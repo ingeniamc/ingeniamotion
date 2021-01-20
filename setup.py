@@ -12,10 +12,9 @@ setuptools.setup(
     packages=find_packages(),
     author="Ingenia Motion Control",
     author_email="support@ingeniamc.com",
-    description="A small example package",
+    description="Motion library for Ingenia servo drives",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/pypa/sampleproject",
     packages=setuptools.find_packages(),
     classifiers=[
         "Programming Language :: Python :: 3",
@@ -23,7 +22,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        'ingenialink>=3.4.0'
+        'ingenialink>=5.1.0'
     ]
     python_requires='>=3.6',
 )

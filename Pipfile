@@ -1,0 +1,21 @@
+[[source]]
+url = "https://pypi.python.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[requires]
+python_version = "3.6.5"
+
+[packages]
+ingenialink = "==5.1.0"
+packaging = "*"
+cffi = "==1.12.2"
+
+[dev-packages]
+e1839a8 = {path = "."}
+sphinx = "*"
+sphinx-rtd-theme = "*"
+sphinxcontrib-bibtex = "*"
+matplotlib = "*"
+nbsphinx = "*"
+ipython = "*"
