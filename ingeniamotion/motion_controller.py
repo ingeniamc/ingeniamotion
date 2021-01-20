@@ -6,3 +6,6 @@ class MotionController():
     Returns:
         
     """
+
+    def __init__(self):
+        
