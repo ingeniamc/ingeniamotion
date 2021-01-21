@@ -1,0 +1,11 @@
+.eqno {
+  float: right;
+}
+
+.caption, .figure {
+  text-align: center;
+}
+
+iframe {
+  border: none;
+}
