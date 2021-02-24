@@ -1,9 +1,11 @@
-from .commissioning import Commissioning
+from .configuration import Configuration
 from .motion import Motion
 from .capture import Capture
-from .launcher import Launcher
+from .communication import Communication
+from .driver_tests import DriverTests
 
-class MotionController():
+
+class MotionController(object):
     """Motion Controller.
 
     Parameters:
@@ -12,32 +14,28 @@ class MotionController():
         
     """
 
-    self.__servos = []
-    self.__net = None
-
+    __servos = {}
+    __net = {}
 
     def __init__(self):
-        self.__commissioning = Commissioning(self)
+        self.__config = Configuration(self)
         self.__motion = Motion(self)
         self.__capture = Capture(self)
-        self.__launcher = Launcher(self)
+        self.__comm = Communication(self)
+        self.__tests = DriverTests(self)
 
-    
-    def MCConnectServo():
-        pass
-
-    
-    def MCDisconnectServo():
-        pass
+    def check_servo(self, servo):
+        if servo not in self.servos:
+            raise Exception("Servo '{}' does not exist".format(servo))
 
     # Properties
     @property
-    def servo(self):
-        return self.__servo
+    def servos(self):
+        return self.__servos
 
-    @servo.setter
-    def servo(self, value):
-        self.__servo = value
+    @servos.setter
+    def servos(self, value):
+        self.__servos = value
 
     @property
     def net(self):
@@ -48,33 +46,21 @@ class MotionController():
         self.__net = value
 
     @property
-    def commissioning(self):
-        return self.__commissioning
-
-    @commissioning.setter
-    def commissioning(self, value):
-        self.__commissioning = value
+    def config(self):
+        return self.__config
 
     @property
     def mot(self):
         return self.__motion
 
-    @mot.setter
-    def mot(self, value):
-        self.__motion = value
-
     @property
     def cap(self):
         return self.__capture
 
-    @cap.setter
-    def cap(self, value):
-        self.__capture = value
+    @property
+    def comm(self):
+        return self.__comm
 
     @property
-    def lan(self):
-        return self.__launcher
-
-    @lan.setter
-    def lan(self, value):
-        self.__launcher = value
+    def tests(self):
+        return self.__tests

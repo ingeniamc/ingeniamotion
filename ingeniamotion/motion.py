@@ -1,4 +1,4 @@
-class Motion():
+class Motion(object):
     """Motion.
 
     Parameters:
@@ -7,5 +7,5 @@ class Motion():
         
     """
 
-    def __init__(self):
-        pass
+    def __init__(self, mc):
+        self.mc = mc
