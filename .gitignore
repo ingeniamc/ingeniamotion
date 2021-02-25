@@ -48,3 +48,9 @@ Thumbs.db
 *.mov
 *.wmv
 
+# Cython
+*.c
+build
+
+# Pipenv
+Pipfile.lock

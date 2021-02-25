@@ -8,7 +8,6 @@ python_version = "3.6.8"
 
 [packages]
 ingenialink = "==5.1.0"
-packaging = "*"
 cffi = "==1.12.2"
 numpy = "1.20.0"
 canopen = "1.2.0"
@@ -20,3 +19,4 @@ sphinxcontrib-bibtex = "*"
 matplotlib = "*"
 nbsphinx = "*"
 ipython = "*"
+Cython = "3.0a6"
