@@ -14,10 +14,9 @@ class MotionController:
         
     """
 
-    __servos = {}
-    __net = {}
-
     def __init__(self):
+        self.__servos = {}
+        self.__net = {}
         self.__config = Configuration(self)
         self.__motion = Motion(self)
         self.__capture = Capture(self)
