@@ -51,6 +51,7 @@ Thumbs.db
 # Cython
 *.c
 build
+*.egg-info
 
 # Pipenv
 Pipfile.lock

@@ -1,9 +1,9 @@
 import re
+import glob
+import sysconfig
 import setuptools
-from setuptools import setup
-from setuptools import Extension
+from setuptools.command.build_py import build_py as _build_py
 
-from Cython.Distutils import build_ext
 from Cython.Build import cythonize
 
 with open("README.md", "r", encoding="utf-8") as fh:
@@ -12,10 +12,24 @@ with open("README.md", "r", encoding="utf-8") as fh:
 with open('ingeniamotion/__init__.py') as f:
     __version = re.search(r"__version__\s+=\s+'(.*)'", f.read()).group(1)
 
+
+class build_py(_build_py):
+
+    def find_package_modules(self, package, package_dir):
+        ext_suffix = sysconfig.get_config_var('EXT_SUFFIX')
+        modules = super().find_package_modules(package, package_dir)
+        filtered_modules = []
+        for (pkg, mod, filepath) in modules:
+            if glob.glob(filepath.replace('.py', f".*{ext_suffix}")):
+                continue
+            filtered_modules.append((pkg, mod, filepath, ))
+        return filtered_modules
+
+
 setuptools.setup(
     name="ingeniamotion",
     version=__version,
-    cmdclass={'build_ext': build_ext},
+    cmdclass={'build_py': build_py},
     packages=setuptools.find_packages(),
     author="Ingenia Motion Control",
     author_email="support@ingeniamc.com",

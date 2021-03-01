@@ -1,12 +1,13 @@
 Build Module
 ============
 
-Build module in target path (recommended):
+Install locally:
 ```bash
-python setup.py build_ext -b "C:\path\to\folder"
+python setup.py install
 ```
 
-Build module in place:
+Generate .whl file:
 ```bash
 python setup.py build_ext -i
+python setup.py bdist_wheel
 ```
