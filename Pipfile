@@ -4,15 +4,16 @@ verify_ssl = true
 name = "pypi"
 
 [requires]
-python_version = "3.6.5"
+python_version = "3.6"
 
 [packages]
 ingenialink = "==5.1.0"
 packaging = "*"
 cffi = "==1.12.2"
+numpy = "1.19.5"
+canopen = "1.2.0"
 
 [dev-packages]
-e1839a8 = {path = "."}
 sphinx = "*"
 sphinx-rtd-theme = "*"
 sphinxcontrib-bibtex = "*"
