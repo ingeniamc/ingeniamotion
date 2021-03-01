@@ -1,7 +1,7 @@
 from enum import IntEnum
 
 
-class Configuration(object):
+class Configuration:
     """Commissioning.
 
     Parameters:
@@ -15,8 +15,8 @@ class Configuration(object):
         RELEASE_BRAKE = 1
         ENABLE_BRAKE = 2
 
-    def __init__(self, mc):
-        self.mc = mc
+    def __init__(self, motion_controller):
+        self.mc = motion_controller
 
     def release_brake(self, servo="default", subnode=1):
         self.mc.check_servo(servo)

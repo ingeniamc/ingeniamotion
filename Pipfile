@@ -4,13 +4,13 @@ verify_ssl = true
 name = "pypi"
 
 [requires]
-python_version = "3.6.8"
+python_version = "3.6"
 
 [packages]
 ingenialink = "==5.1.0"
 packaging = "*"
 cffi = "==1.12.2"
-numpy = "1.20.0"
+numpy = "1.19.5"
 canopen = "1.2.0"
 
 [dev-packages]

@@ -1,4 +1,4 @@
-class Capture(object):
+class Capture:
     """Capture.
 
     Parameters:
@@ -7,5 +7,5 @@ class Capture(object):
         
     """
 
-    def __init__(self, mc):
+    def __init__(self, motion_controller):
         pass

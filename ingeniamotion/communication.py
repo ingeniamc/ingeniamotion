@@ -5,7 +5,7 @@ from os import path
 from enum import IntEnum
 
 
-class Communication(object):
+class Communication:
     """Connect.
 
     Parameters:
@@ -15,22 +15,21 @@ class Communication(object):
     """
 
     class Protocol(IntEnum):
-        UDP = 2
         TCP = 1
+        UDP = 2
 
-    def __init__(self, mc):
-        self.mc = mc
+    def __init__(self, motion_controller):
+        self.mc = motion_controller
 
     def connect_servo_eoe(self, ip, dict_path=None, alias="default", protocol=Protocol.UDP, port=1061):
         """
             Connect to target servo by Ethernet over EtherCAT
 
-            :param alias: Driver alias
-            :param dict_path: servo dictionary path.
-            :param ip: servo IP. 192.168.2.22 by default.
+            :param ip: servo IP
+            :param dict_path: servo dictionary path
+            :param alias: servo alias to reference it. "default" by default
             :param protocol: UDP or TCP protocol. UDP by default
             :param port: servo port. 1061 by default
-            :return: servo instance
         """
         if not dict_path:
             raise TypeError("dict_path argument is missing")
@@ -38,14 +37,13 @@ class Communication(object):
 
     def connect_servo_ethernet(self, ip, dict_path=None, alias="default", protocol=Protocol.UDP, port=1061):
         """
-            Connect to target driver by Ethernet
+            Connect to target servo by Ethernet
 
-            :param alias: Driver alias
-            :param dict_path: servo dictionary path.
-            :param ip: servo IP. 192.168.2.22 by default.
+            :param ip: servo IP
+            :param dict_path: servo dictionary path
+            :param alias: servo alias to reference it. "default" by default
             :param protocol: UDP or TCP protocol. UDP by default
             :param port: servo port. 1061 by default
-            :return: servo instance
         """
         if not dict_path:
             raise TypeError("dict_path argument is missing")

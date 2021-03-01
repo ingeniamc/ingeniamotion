@@ -2,10 +2,10 @@ from .wizard_tests.feedback_test import Feedbacks
 from .wizard_tests.phase_calibration import Phasing
 
 
-class DriverTests(object):
+class DriveTests:
 
-    def __init__(self, mc):
-        self.mc = mc
+    def __init__(self, motion_controller):
+        self.mc = motion_controller
 
     def digital_halls_test(self, servo="default", subnode=1, apply_changes=True):
         return self.feedback_test(Feedbacks.SensorType.HALLS, servo, subnode, apply_changes)

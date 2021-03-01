@@ -24,8 +24,8 @@ class Feedbacks(BaseTest):
 
     class ResultType(IntEnum):
         SUCCESS = 0
-        RESOLUTION_ERROR = -2**0
-        SYMMETRY_ERROR = -2**1
+        RESOLUTION_ERROR = -1
+        SYMMETRY_ERROR = -2
 
     result_description = {
         ResultType.SUCCESS: "Feedback test pass successfully",

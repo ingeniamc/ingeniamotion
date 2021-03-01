@@ -2,10 +2,10 @@ from .configuration import Configuration
 from .motion import Motion
 from .capture import Capture
 from .communication import Communication
-from .driver_tests import DriverTests
+from .drive_tests import DriveTests
 
 
-class MotionController(object):
+class MotionController:
     """Motion Controller.
 
     Parameters:
@@ -22,7 +22,7 @@ class MotionController(object):
         self.__motion = Motion(self)
         self.__capture = Capture(self)
         self.__comm = Communication(self)
-        self.__tests = DriverTests(self)
+        self.__tests = DriveTests(self)
 
     def check_servo(self, servo):
         if servo not in self.servos:
