@@ -48,3 +48,10 @@ Thumbs.db
 *.mov
 *.wmv
 
+# Cython
+*.c
+build
+*.egg-info
+
+# Pipenv
+Pipfile.lock
