@@ -24,8 +24,7 @@ def main(args):
     }
     result = feedback_type[args.feedback](subnode=args.axis,
                                           apply_changes=not args.debug)
-    if not isinstance(result, int):
-        logging.info(result["message"])
+    logging.info(result["message"])
 
 
 if __name__ == '__main__':

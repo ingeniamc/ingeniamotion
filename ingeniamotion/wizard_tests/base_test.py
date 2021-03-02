@@ -56,9 +56,6 @@ class BaseTest(ABC):
             self.setup()
             output = self.loop()
             self.teardown()
-        except TestError as e:
-            logging.error(e)
-            return -1
         finally:
             self.restore_backup_registers()
 

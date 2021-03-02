@@ -18,8 +18,7 @@ def main(args):
     mc.comm.connect_servo_eoe(args.ip, args.dictionary_path)
     result = mc.tests.commutation(subnode=args.axis,
                                   apply_changes=not args.debug)
-    if not isinstance(result, int):
-        logging.info(result["message"])
+    logging.info(result["message"])
 
 
 if __name__ == '__main__':
