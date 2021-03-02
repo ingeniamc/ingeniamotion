@@ -14,13 +14,17 @@ def setup_command():
 
 def main(args):
     mc = MotionController()
+    # Connect Servo
     mc.comm.connect_servo_eoe(args.ip, args.dictionary_path)
-    brake_function = {
-        "disabled": mc.config.disable_brake_override,
-        "release": mc.config.release_brake,
-        "enable": mc.config.enable_brake
-    }
-    brake_function[args.override](subnode=args.axis)
+    if args.override == "disabled":
+        # Disable brake override
+        mc.config.disable_brake_override(subnode=args.axis)
+    if args.override == "release":
+        # Release brake
+        mc.config.release_brake(subnode=args.axis)
+    if args.override == "enable":
+        # Enable brake
+        mc.config.enable_brake(subnode=args.axis)
 
 
 if __name__ == '__main__':

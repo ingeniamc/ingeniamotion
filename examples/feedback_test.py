@@ -16,14 +16,21 @@ def setup_command():
 
 def main(args):
     mc = MotionController()
+    # Connect Servo
     mc.comm.connect_servo_eoe(args.ip, args.dictionary_path)
-    feedback_type = {
-        "HALLS": mc.tests.digital_halls_test,
-        "QEI": mc.tests.incremental_encoder_1_test,
-        "QEI2": mc.tests.incremental_encoder_2_test
-    }
-    result = feedback_type[args.feedback](subnode=args.axis,
-                                          apply_changes=not args.debug)
+    result = None
+    if args.feedback == "HALLS":
+        # Run Digital Halls feedback tests
+        result = mc.tests.digital_halls_test(subnode=args.axis,
+                                             apply_changes=not args.debug)
+    if args.feedback == "QEI":
+        # Run Incremental Encoder 1 feedback tests
+        result = mc.tests.incremental_encoder_1_test(subnode=args.axis,
+                                                     apply_changes=not args.debug)
+    if args.feedback == "QEI2":
+        # Run Incremental Encoder 2 feedback tests
+        result = mc.tests.incremental_encoder_2_test(subnode=args.axis,
+                                                     apply_changes=not args.debug)
     logging.info(result["message"])
 
 
