@@ -19,7 +19,7 @@ class DriveTests:
     def feedback_test(self, feedback, servo="default", subnode=1, apply_changes=True):
         feedbacks_test = Feedbacks(self.mc.servos[servo], subnode, feedback)
         output = feedbacks_test.run()
-        if apply_changes:
+        if apply_changes and not isinstance(output, int):
             for key, value in output["suggested_registers"].items():
                 self.mc.servos[servo].raw_write(key, value, subnode=subnode)
         return output
@@ -27,7 +27,7 @@ class DriveTests:
     def commutation(self, servo="default", subnode=1, apply_changes=True):
         commutation = Phasing(self.mc.servos[servo], subnode)
         output = commutation.run()
-        if apply_changes:
+        if apply_changes and not isinstance(output, int):
             for key, value in output["suggested_registers"].items():
                 self.mc.servos[servo].raw_write(key, value, subnode=subnode)
         return output
