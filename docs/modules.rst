@@ -1,7 +1,12 @@
 Ingenia Motion
-====================
+==============
 
 .. toctree::
    :maxdepth: 4
 
-   ingeniamotion
+   ingeniamotion/motion_controller
+   ingeniamotion/capture
+   ingeniamotion/communication
+   ingeniamotion/configuration
+   ingeniamotion/drive_tests
+   ingeniamotion/motion
