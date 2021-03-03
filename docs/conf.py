@@ -14,16 +14,17 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 
+import ingeniamotion
 
 # -- Project information -----------------------------------------------------
 
 project = 'ingeniamotion'
 copyright = '2021, Ingenia Motion Control'
 author = 'Ingenia Motion Control'
+version = ingeniamotion.__version__
 
 # The full version, including alpha/beta/rc tags
-release = '0.1.0'
-
+release = version
 
 # -- General configuration ---------------------------------------------------
 
@@ -57,4 +58,4 @@ html_theme = 'sphinx_rtd_theme'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-intersphinx_mapping = {'ingenialink': ('https://ingenialink.readthedocs.io/en/latest', None)}
+pdf_documents = [('index', u'ingeniamotion v0.1.0', u'Ingeniamotion', author), ]

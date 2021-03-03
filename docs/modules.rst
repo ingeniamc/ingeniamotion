@@ -5,5 +5,3 @@ Ingenia Motion
    :maxdepth: 4
 
    ingeniamotion
-
-   examples

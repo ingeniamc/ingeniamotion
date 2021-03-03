@@ -10,7 +10,11 @@ Welcome to ingeniamotion's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   what_is_ingeniamotion
+
    modules
+
+   examples
 
 Indices and tables
 ==================
