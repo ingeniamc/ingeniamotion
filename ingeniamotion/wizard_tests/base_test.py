@@ -51,16 +51,18 @@ class BaseTest(ABC):
         pass
 
     def run(self):
+        drive_disconnected = False
         self.save_backup_registers()
         try:
             self.setup()
             output = self.loop()
-            self.teardown()
-        except TestError as e:
-            logging.error(e)
-            return -1
+        except ILError as err:
+            drive_disconnected = True
+            raise err
         finally:
-            self.restore_backup_registers()
+            if not drive_disconnected:
+                self.teardown()
+                self.restore_backup_registers()
 
         return {
             "result": output,
