@@ -55,3 +55,6 @@ build
 
 # Pipenv
 Pipfile.lock
+
+#Sphinx
+_docs

@@ -14,9 +14,10 @@ def setup_command():
 
 
 def main(args):
+    # Create MotionController instance
     mc = MotionController()
-    # Connect Servo
-    mc.comm.connect_servo_eoe(args.ip, args.dictionary_path)
+    # Connect Servo with MotionController instance
+    mc.communication.connect_servo_eoe(args.ip, args.dictionary_path)
     # Run Commutation test
     result = mc.tests.commutation(subnode=args.axis,
                                   apply_changes=not args.debug)

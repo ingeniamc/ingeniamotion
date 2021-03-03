@@ -7,11 +7,6 @@ from .drive_tests import DriveTests
 
 class MotionController:
     """Motion Controller.
-
-    Parameters:
-        
-    Returns:
-        
     """
 
     def __init__(self):
@@ -30,6 +25,9 @@ class MotionController:
     # Properties
     @property
     def servos(self):
+        """
+        Dict of ``ingenialink.Servo`` connected indexed by alias
+        """
         return self.__servos
 
     @servos.setter
@@ -38,6 +36,9 @@ class MotionController:
 
     @property
     def net(self):
+        """
+        Dict of ``ingenialink.Network`` connected indexed by alias
+        """
         return self.__net
 
     @net.setter
@@ -45,21 +46,36 @@ class MotionController:
         self.__net = value
 
     @property
-    def config(self):
+    def configuration(self):
+        """
+        Instance of  :class:`~ingeniamotion.configuration.Configuration` class
+        """
         return self.__config
 
     @property
-    def mot(self):
+    def motion(self):
+        """
+        Instance of  :class:`~ingeniamotion.motion.Motion` class
+        """
         return self.__motion
 
     @property
-    def cap(self):
+    def capture(self):
+        """
+        Instance of  :class:`~ingeniamotion.capture.Capture` class
+        """
         return self.__capture
 
     @property
-    def comm(self):
+    def communication(self):
+        """
+        Instance of  :class:`~ingeniamotion.communication.Communication` class
+        """
         return self.__comm
 
     @property
     def tests(self):
+        """
+        Instance of  :class:`~ingeniamotion.drive_tests.DriveTests` class
+        """
         return self.__tests
