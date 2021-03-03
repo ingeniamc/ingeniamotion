@@ -45,19 +45,19 @@ class MotionController:
         self.__net = value
 
     @property
-    def config(self):
+    def configuration(self):
         return self.__config
 
     @property
-    def mot(self):
+    def motion(self):
         return self.__motion
 
     @property
-    def cap(self):
+    def capture(self):
         return self.__capture
 
     @property
-    def comm(self):
+    def communication(self):
         return self.__comm
 
     @property

@@ -5,7 +5,8 @@ from ingeniamotion import MotionController
 
 def setup_command():
     parser = argparse.ArgumentParser(description='Run feedback test')
-    parser.add_argument('feedback', help='feedback to test', choices=['HALLS', 'QEI', 'QEI2'])
+    parser.add_argument('feedback', help='feedback to test',
+                        choices=['HALLS', 'QEI', 'QEI2'])
     parser.add_argument('dictionary_path', help='path to drive dictionary')
     parser.add_argument('-ip', default="192.168.2.22", help='drive ip address')
     parser.add_argument('--axis', default=1, help='drive axis')
@@ -15,9 +16,10 @@ def setup_command():
 
 
 def main(args):
+    # Create MotionController instance
     mc = MotionController()
-    # Connect Servo
-    mc.comm.connect_servo_eoe(args.ip, args.dictionary_path)
+    # Connect Servo with MotionController instance
+    mc.communication.connect_servo_eoe(args.ip, args.dictionary_path)
     result = None
     if args.feedback == "HALLS":
         # Run Digital Halls feedback tests
