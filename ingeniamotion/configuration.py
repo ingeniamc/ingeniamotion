@@ -18,7 +18,7 @@ class Configuration:
 
     def release_brake(self, servo="default", subnode=1):
         """
-        Override brake status to released in the target servo and axis.
+        Override the brake status to released in the target servo and axis.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -34,7 +34,7 @@ class Configuration:
 
     def enable_brake(self, servo="default", subnode=1):
         """
-        Override brake status to enabled in the target servo and axis.
+        Override the brake status of the target servo and axis.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -50,7 +50,7 @@ class Configuration:
 
     def disable_brake_override(self, servo="default", subnode=1):
         """
-        Disable the brake override in the target servo and axis.
+        Disable the brake override of the target servo and axis.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -66,7 +66,7 @@ class Configuration:
 
     def default_brake(self, servo="default", subnode=1):
         """
-         Disable the brake override in the target servo and axis, as :func:`disable_brake_override`.
+         Disable the brake override of the target servo and axis, as :func:`disable_brake_override`.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.

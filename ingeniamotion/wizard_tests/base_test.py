@@ -26,7 +26,7 @@ class BaseTest(ABC):
                 logging.warning(e)
 
     def restore_backup_registers(self):
-        """ Restore the value of the registers after the test execution.
+        """ Restores the value of the registers after the test execution.
 
         Notes:
         This should only be called by the Wizard.
