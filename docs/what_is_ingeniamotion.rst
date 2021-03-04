@@ -1,7 +1,7 @@
 What is Ingeniamotion?
 ======================
 
-Ingeniamotion is a library that works over ingenialink and aims to simplify the interaction with Igenia's drives.
+Ingeniamotion is a library that works over ingenialink and aims to simplify the interaction with Ingenia's drives.
 
 How it works?
 -------------
