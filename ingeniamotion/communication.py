@@ -6,15 +6,13 @@ from enum import IntEnum
 
 
 class Communication:
-    """Connect.
-
-    Parameters:
-
-    Returns:
-
+    """Communication.
     """
 
     class Protocol(IntEnum):
+        """
+        Communication protocol enum
+        """
         TCP = 1
         UDP = 2
 
@@ -23,13 +21,14 @@ class Communication:
 
     def connect_servo_eoe(self, ip, dict_path=None, alias="default", protocol=Protocol.UDP, port=1061):
         """
-            Connect to target servo by Ethernet over EtherCAT
+        Connect to target servo by Ethernet over EtherCAT
 
-            :param ip: servo IP
-            :param dict_path: servo dictionary path
-            :param alias: servo alias to reference it. "default" by default
-            :param protocol: UDP or TCP protocol. UDP by default
-            :param port: servo port. 1061 by default
+        Args:
+            ip (str): servo IP.
+            dict_path (str): servo dictionary path.
+            alias (str): servo alias to reference it. ``default`` by default.
+            protocol (Protocol): UDP or TCP protocol. ``UDP`` by default.
+            port (int): servo port. ``1061`` by default.
         """
         if not dict_path:
             raise TypeError("dict_path argument is missing")
@@ -37,13 +36,14 @@ class Communication:
 
     def connect_servo_ethernet(self, ip, dict_path=None, alias="default", protocol=Protocol.UDP, port=1061):
         """
-            Connect to target servo by Ethernet
+        Connect to target servo by Ethernet
 
-            :param ip: servo IP
-            :param dict_path: servo dictionary path
-            :param alias: servo alias to reference it. "default" by default
-            :param protocol: UDP or TCP protocol. UDP by default
-            :param port: servo port. 1061 by default
+        Args:
+            ip (str): servo IP
+            dict_path (str): servo dictionary path.
+            alias (str): servo alias to reference it. ``default`` by default.
+            protocol (Protocol): UDP or TCP protocol. ``UDP`` by default.
+            port (int): servo port. ``1061`` by default.
         """
         if not dict_path:
             raise TypeError("dict_path argument is missing")
