@@ -84,7 +84,7 @@ class Configuration:
             servo (str): servo alias to reference it. ``default`` by default.
         """
         if not path.isfile(config_path):
-            raise FileNotFoundError("{} file not exist!".format(config_path))
+            raise FileNotFoundError("{} file does not exist!".format(config_path))
         servo_inst = self.mc.servos[servo]
         servo_inst.dict_load(config_path)
         servo_inst.dict_storage_write()

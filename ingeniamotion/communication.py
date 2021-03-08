@@ -51,7 +51,7 @@ class Communication:
 
     def __servo_connect(self, ip, dict_path, alias, prot, protocol=Protocol.UDP, port=1061):
         if not path.isfile(dict_path):
-            raise FileNotFoundError("{} file not exist!".format(dict_path))
+            raise FileNotFoundError("{} file does not exist!".format(dict_path))
         try:
             net, servo = il.lucky(prot, dict_path, address_ip=ip, port_ip=port, protocol=protocol)
             self.mc.servos[alias] = servo
