@@ -101,3 +101,25 @@ class Configuration:
         servo_inst.dict_storage_read()
         servo_dict = servo_inst.dict
         servo_dict.save(output_file)
+
+    def set_max_acceleration(self, acceleration, servo="default", axis=1):
+        """
+
+        Args:
+            acceleration: maximum acceleration in rev/s^2.
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+        """
+        drive = self.mc.servos[servo]
+        drive.write("PROF_MAX_ACC", acceleration, subnode=axis)
+
+    def set_max_velocity(self, velocity, servo="default", axis=1):
+        """
+
+        Args:
+            velocity: maximum velocity in rev/s.
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+        """
+        drive = self.mc.servos[servo]
+        drive.write("PROF_MAX_VEL", velocity, subnode=axis)
