@@ -14,6 +14,10 @@ class Configuration:
         RELEASE_BRAKE = 1
         ENABLE_BRAKE = 2
 
+    BRAKE_OVERRIDE_REGISTER = "MOT_BRAKE_OVERRIDE"
+    PROFILE_MAX_ACCELERATION_REGISTER = "PROF_MAX_ACC"
+    PROFILE_MAX_VELOCITY_REGISTER = "PROF_MAX_VEL"
+
     def __init__(self, motion_controller):
         self.mc = motion_controller
 
@@ -28,7 +32,7 @@ class Configuration:
         self.mc.check_servo(servo)
         servo = self.mc.servos[servo]
         servo.raw_write(
-            "MOT_BRAKE_OVERRIDE",
+            self.BRAKE_OVERRIDE_REGISTER,
             self.BrakeOverride.RELEASE_BRAKE,
             subnode=axis
         )
@@ -44,7 +48,7 @@ class Configuration:
         self.mc.check_servo(servo)
         servo = self.mc.servos[servo]
         servo.raw_write(
-            "MOT_BRAKE_OVERRIDE",
+            self.BRAKE_OVERRIDE_REGISTER,
             self.BrakeOverride.ENABLE_BRAKE,
             subnode=axis
         )
@@ -60,7 +64,7 @@ class Configuration:
         self.mc.check_servo(servo)
         servo = self.mc.servos[servo]
         servo.raw_write(
-            "MOT_BRAKE_OVERRIDE",
+            self.BRAKE_OVERRIDE_REGISTER,
             self.BrakeOverride.OVERRIDE_DISABLED,
             subnode=axis
         )
@@ -111,7 +115,7 @@ class Configuration:
             axis (int): servo axis. ``1`` by default.
         """
         drive = self.mc.servos[servo]
-        drive.write("PROF_MAX_ACC", acceleration, subnode=axis)
+        drive.write(self.PROFILE_MAX_ACCELERATION_REGISTER, acceleration, subnode=axis)
 
     def set_max_velocity(self, velocity, servo="default", axis=1):
         """
@@ -122,4 +126,4 @@ class Configuration:
             axis (int): servo axis. ``1`` by default.
         """
         drive = self.mc.servos[servo]
-        drive.write("PROF_MAX_VEL", velocity, subnode=axis)
+        drive.write(self.PROFILE_MAX_VELOCITY_REGISTER, velocity, subnode=axis)

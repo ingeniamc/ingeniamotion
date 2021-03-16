@@ -25,6 +25,14 @@ class Motion:
         PVT = 0xB4
         HOMING = 0x113
 
+    CONTROL_WORD_REGISTER = 'DRV_STATE_CONTROL'
+    OPERATION_MODE_REGISTER = "DRV_OP_CMD"
+    POSITION_SET_POINT_REGISTER = "CL_POS_SET_POINT_VALUE"
+    VELOCITY_SET_POINT_REGISTER = "CL_VEL_SET_POINT_VALUE"
+    CURRENT_QUADRATURE_SET_POINT_REGISTER = "CL_CUR_Q_SET_POINT"
+    ACTUAL_POSITION_REGISTER = "CL_POS_FBK_VALUE"
+    ACTUAL_VELOCITY_REGISTER = "CL_VEL_FBK_VALUE"
+
     def __init__(self, motion_controller):
         self.mc = motion_controller
 
@@ -36,13 +44,12 @@ class Motion:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
         """
-        target_latch_register = 'DRV_STATE_CONTROL'
         drive = self.mc.servos[servo]
-        control_word = drive.raw_read(target_latch_register, subnode=axis)
+        control_word = drive.raw_read(self.CONTROL_WORD_REGISTER, subnode=axis)
         new_control_word = control_word & (~0x200)
-        drive.raw_write(target_latch_register, new_control_word, subnode=axis)
+        drive.raw_write(self.CONTROL_WORD_REGISTER, new_control_word, subnode=axis)
         new_control_word = control_word | 0x200
-        drive.raw_write(target_latch_register, new_control_word, subnode=axis)
+        drive.raw_write(self.CONTROL_WORD_REGISTER, new_control_word, subnode=axis)
 
     def set_operation_mode(self, operation_mode, servo="default", axis=1):
         """
@@ -54,7 +61,7 @@ class Motion:
             axis (int): servo axis. ``1`` by default.
         """
         drive = self.mc.servos[servo]
-        drive.raw_write('DRV_OP_CMD', operation_mode, subnode=axis)
+        drive.raw_write(self.OPERATION_MODE_REGISTER, operation_mode, subnode=axis)
 
     def motor_enable(self, servo="default", axis=1):
         """
@@ -92,7 +99,7 @@ class Motion:
              ``False`` by default.
         """
         drive = self.mc.servos[servo]
-        drive.write("CL_POS_SET_POINT_VALUE", position, subnode=axis)
+        drive.write(self.POSITION_SET_POINT_REGISTER, position, subnode=axis)
         if target_latch:
             self.target_latch(servo, axis)
             if blocking:
@@ -111,7 +118,7 @@ class Motion:
              ``False`` by default.
         """
         drive = self.mc.servos[servo]
-        drive.write("CL_VEL_SET_POINT_VALUE", velocity, subnode=axis)
+        drive.write(self.VELOCITY_SET_POINT_REGISTER, velocity, subnode=axis)
         if target_latch:
             self.target_latch(servo, axis)
             if blocking:
@@ -127,7 +134,7 @@ class Motion:
             axis (int): servo axis. ``1`` by default.
         """
         drive = self.mc.servos[servo]
-        drive.write("CL_CUR_Q_SET_POINT", current, subnode=axis)
+        drive.write(self.CURRENT_QUADRATURE_SET_POINT_REGISTER, current, subnode=axis)
 
     def wait_for_position(self, position, servo="default", axis=1, error=20, timeout=None, interval=None):
         """
@@ -149,7 +156,7 @@ class Motion:
         while not target_reached:
             if interval:
                 time.sleep(interval)
-            curr_position = drive.read("CL_POS_FBK_VALUE", subnode=axis)
+            curr_position = drive.read(self.ACTUAL_POSITION_REGISTER, subnode=axis)
             target_reached = abs(position - curr_position) < error
             if timeout and (init_time + timeout) < time.time():
                 target_reached = True
@@ -174,7 +181,7 @@ class Motion:
         while not target_reached:
             if interval:
                 time.sleep(interval)
-            curr_velocity = drive.read("CL_VEL_FBK_VALUE", subnode=axis)
+            curr_velocity = drive.read(self.ACTUAL_VELOCITY_REGISTER, subnode=axis)
             target_reached = abs(velocity - curr_velocity) < error
             if timeout and (init_time + timeout) < time.time():
                 target_reached = True
