@@ -13,13 +13,16 @@ node('windows') {
     deleteDir()
 
     stage('Windows checkout') {
-        checkout([$class: 'GitSCM', 
-                branches: [[name: '*/master'], [name: '*/develop']], 
-                doGenerateSubmoduleConfigurations: false, 
-                extensions: [], 
+        checkout([$class: 'GitSCM',
+                branches: [ [name: '*/master'],
+                            [name: '*/develop'],
+                            [name: '*/feature/INGM-27-add-jenkins-ci-process']
+                        ],
+                doGenerateSubmoduleConfigurations: false,
+                extensions: [],
                 submoduleCfg: [],
-                userRemoteConfigs: [[credentialsId: 'jenkins-bitbucket', 
-                    url: 'https://bitbucket.org/ingeniamc/libs-ingeniamotion-2.git']]])
+                userRemoteConfigs: [[credentialsId: 'jenkins-bitbucket',
+                    url: 'https://bitbucket.org/ingeniamc/libs-ingeniamotion.git']]])
     }
 
 
@@ -34,14 +37,22 @@ node('windows') {
             pipenv run sphinx-build -b html docs _docs
         '''
     }
-    stage('Archive') {
+    stage('Build libraries')
+    {
         bat '''
             pipenv run python setup.py bdist_wheel
+        '''
+    }
+
+    stage('Archive') {
+        bat '''
+
+            "C:/Program Files/7-Zip/7z.exe" a -r docs.zip -w _docs -mem=AES256
         '''
         archiveArtifacts artifacts: 'dist/*'
     }
 
     stage('Deploy') {
-        
+
     }
 }

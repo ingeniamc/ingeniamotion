@@ -9,8 +9,8 @@ python_version = "3.6"
 [packages]
 ingenialink = "==5.1.0"
 cffi = "==1.12.2"
-numpy = "1.19.5"
-canopen = "1.2.0"
+numpy = "==1.19.5"
+canopen = "==1.2.0"
 
 [dev-packages]
 sphinx = "*"
