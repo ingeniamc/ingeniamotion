@@ -49,7 +49,7 @@ node('windows') {
 
             "C:/Program Files/7-Zip/7z.exe" a -r docs.zip -w _docs -mem=AES256
         '''
-        archiveArtifacts artifacts: 'dist/*'
+        archiveArtifacts artifacts: 'dist/*, docs.zip'
     }
 
     stage('Deploy') {
