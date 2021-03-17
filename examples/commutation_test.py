@@ -19,7 +19,7 @@ def main(args):
     # Connect Servo with MotionController instance
     mc.communication.connect_servo_eoe(args.ip, args.dictionary_path)
     # Run Commutation test
-    result = mc.tests.commutation(subnode=args.axis,
+    result = mc.tests.commutation(axis=args.axis,
                                   apply_changes=not args.debug)
     logging.info(result["message"])
 

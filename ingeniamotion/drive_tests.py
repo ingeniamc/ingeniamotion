@@ -7,7 +7,7 @@ class DriveTests:
     def __init__(self, motion_controller):
         self.mc = motion_controller
 
-    def digital_halls_test(self, servo="default", subnode=1, apply_changes=True):
+    def digital_halls_test(self, servo="default", axis=1, apply_changes=True):
         """
         Executes the digital halls feedback test given a target servo and axis.
         By default test will make changes in some drive registers like feedback polarity and others suggested registers.
@@ -15,7 +15,7 @@ class DriveTests:
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
-            subnode (int): axis that will run the test. ``1`` by default.
+            axis (int): axis that will run the test. ``1`` by default.
             apply_changes (bool): if ``True``, test applies changes to the servo, if ``False`` it does not.
                 ``True`` by default.
 
@@ -35,9 +35,9 @@ class DriveTests:
         Raises:
             TestError: In case the servo or setup configuration makes impossible fulfilling the test
         """
-        return self.__feedback_test(Feedbacks.SensorType.HALLS, servo, subnode, apply_changes)
+        return self.__feedback_test(Feedbacks.SensorType.HALLS, servo, axis, apply_changes)
 
-    def incremental_encoder_1_test(self, servo="default", subnode=1, apply_changes=True):
+    def incremental_encoder_1_test(self, servo="default", axis=1, apply_changes=True):
         """
         Executes the incremental encoder 1 feedback test given a target servo and axis.
         By default test will make changes in some drive registers like feedback polarity and other suggested registers.
@@ -45,7 +45,7 @@ class DriveTests:
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
-            subnode (int): axis that will run the test. ``1`` by default.
+            axis (int): axis that will run the test. ``1`` by default.
             apply_changes (bool): if ``True``, test applies changes to the servo, if ``False`` it does not.
                 ``True`` by default.
 
@@ -65,9 +65,9 @@ class DriveTests:
         Raises:
             TestError: In case the servo or setup configuration makes impossible fulfilling the test
         """
-        return self.__feedback_test(Feedbacks.SensorType.QEI, servo, subnode, apply_changes)
+        return self.__feedback_test(Feedbacks.SensorType.QEI, servo, axis, apply_changes)
 
-    def incremental_encoder_2_test(self, servo="default", subnode=1, apply_changes=True):
+    def incremental_encoder_2_test(self, servo="default", axis=1, apply_changes=True):
         """
         Executes incremental encoder 2 feedback test given a target servo and axis.
         By default test will make changes in some drive registers like feedback polarity and other suggested registers.
@@ -75,7 +75,7 @@ class DriveTests:
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
-            subnode (int): axis that will run the test. ``1`` by default.
+            axis (int): axis that will run the test. ``1`` by default.
             apply_changes (bool): if ``True``, test applies changes to the servo, if ``False`` it does not.
                 ``True`` by default.
 
@@ -95,17 +95,17 @@ class DriveTests:
         Raises:
             TestError: In case the servo or setup configuration makes impossible fulfilling the test
         """
-        return self.__feedback_test(Feedbacks.SensorType.QEI2, servo, subnode, apply_changes)
+        return self.__feedback_test(Feedbacks.SensorType.QEI2, servo, axis, apply_changes)
 
-    def __feedback_test(self, feedback, servo="default", subnode=1, apply_changes=True):
-        feedbacks_test = Feedbacks(self.mc.servos[servo], subnode, feedback)
+    def __feedback_test(self, feedback, servo="default", axis=1, apply_changes=True):
+        feedbacks_test = Feedbacks(self.mc.servos[servo], axis, feedback)
         output = feedbacks_test.run()
         if apply_changes:
             for key, value in output["suggested_registers"].items():
-                self.mc.servos[servo].raw_write(key, value, subnode=subnode)
+                self.mc.servos[servo].raw_write(key, value, subnode=axis)
         return output
 
-    def commutation(self, servo="default", subnode=1, apply_changes=True):
+    def commutation(self, servo="default", axis=1, apply_changes=True):
         """
         Executes a commutation calibration given a target servo and axis.
         By default commutation will make changes in some drive registers like commutation angle offset and
@@ -113,7 +113,7 @@ class DriveTests:
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
-            subnode (int): axis that will run the test. ``1`` by default.
+            axis (int): axis that will run the test. ``1`` by default.
             apply_changes (bool): if ``True``, test applies changes to the servo, if ``False`` it does not.
                 ``True`` by default.
 
@@ -133,9 +133,9 @@ class DriveTests:
         Raises:
             TestError: If servo or setup configuration makes impossible complete the calibration
         """
-        commutation = Phasing(self.mc.servos[servo], subnode)
+        commutation = Phasing(self.mc.servos[servo], axis)
         output = commutation.run()
         if apply_changes:
             for key, value in output["suggested_registers"].items():
-                self.mc.servos[servo].raw_write(key, value, subnode=subnode)
+                self.mc.servos[servo].raw_write(key, value, subnode=axis)
         return output

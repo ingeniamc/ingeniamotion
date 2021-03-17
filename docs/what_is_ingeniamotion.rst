@@ -45,9 +45,9 @@ Or we can execute some tests or calibrations:
 
 .. code-block:: python
 
-    mc.tests.digital_halls_test(servo="servo_one", subnode=1)
+    mc.tests.digital_halls_test(servo="servo_one", axis=1)
 
-    mc.tests.commutation(servo="servo_two", subnode=1)
+    mc.tests.commutation(servo="servo_two", axis=1)
 
 MotionController namespaces
 ---------------------------
