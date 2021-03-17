@@ -15,8 +15,7 @@ node('windows') {
     stage('Windows checkout') {
         checkout([$class: 'GitSCM',
                 branches: [ [name: '*/master'],
-                            [name: '*/develop'],
-                            [name: '*/feature/INGM-27-add-jenkins-ci-process']
+                            [name: '*/develop']
                         ],
                 doGenerateSubmoduleConfigurations: false,
                 extensions: [],
