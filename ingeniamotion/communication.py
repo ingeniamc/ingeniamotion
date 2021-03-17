@@ -58,3 +58,32 @@ class Communication:
             self.mc.net[alias] = net
         except il.exceptions.ILError as e:
             logging.error("Error trying to connect to the servo. %s.", str(e))
+
+    def get_register(self, register, servo="default", axis=1):
+        """
+        Return the value of a target register.
+
+        Args:
+            register (str): register UID.
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+
+        Returns:
+            float: Current register value.
+        """
+        drive = self.mc.servos[servo]
+        value = drive.read(register, subnode=axis)
+        return value
+
+    def set_register(self, register, value, servo="default", axis=1):
+        """
+        Set a value of a target register.
+
+        Args:
+            register (str): register UID.
+            value (int, float): new value for the register.
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+        """
+        drive = self.mc.servos[servo]
+        drive.write(register, value, subnode=axis)
