@@ -54,6 +54,6 @@ setuptools.setup(
         'numpy<=1.19.5',
         'canopen>=1.0.0'
     ],
-    python_requires='==3.6',
+    python_requires='==3.6.*',
     ext_modules=cythonize(["ingeniamotion/*.py", "ingeniamotion/wizard_tests/*.py"])
 )
