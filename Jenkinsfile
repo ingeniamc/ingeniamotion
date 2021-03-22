@@ -39,6 +39,7 @@ node('windows') {
     stage('Build libraries')
     {
         bat '''
+            pipenv run python setup.py build_ext -i
             pipenv run python setup.py bdist_wheel
         '''
     }

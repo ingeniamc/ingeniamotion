@@ -20,13 +20,13 @@ def main(args):
     mc.communication.connect_servo_eoe(args.ip, args.dictionary_path)
     if args.override == "disabled":
         # Disable brake override
-        mc.configuration.disable_brake_override(subnode=args.axis)
+        mc.configuration.disable_brake_override(axis=args.axis)
     if args.override == "release":
         # Release brake
-        mc.configuration.release_brake(subnode=args.axis)
+        mc.configuration.release_brake(axis=args.axis)
     if args.override == "enable":
         # Enable brake
-        mc.configuration.enable_brake(subnode=args.axis)
+        mc.configuration.enable_brake(axis=args.axis)
 
 
 if __name__ == '__main__':

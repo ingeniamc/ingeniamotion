@@ -6,11 +6,15 @@ from setuptools.command.build_py import build_py as _build_py
 
 from Cython.Build import cythonize
 
-with open("README.md", "r", encoding="utf-8") as fh:
+with open("docs/what_is_ingeniamotion.rst", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 with open('ingeniamotion/__init__.py') as f:
     __version = re.search(r"__version__\s+=\s+'(.*)'", f.read()).group(1)
+
+
+def get_docs_url():
+    return "https://distext.ingeniamc.com/doc/ingeniamotion/{}".format(__version)
 
 
 class build_py(_build_py):
@@ -35,7 +39,11 @@ setuptools.setup(
     author_email="support@ingeniamc.com",
     description="Motion library for Ingenia servo drives",
     long_description=long_description,
-    long_description_content_type="text/markdown",
+    long_description_content_type="text/x-rst",
+    url='https://www.ingeniamc.com',
+    project_urls={
+                "Documentation": get_docs_url(),
+    },
     classifiers=[
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
@@ -43,7 +51,9 @@ setuptools.setup(
     ],
     install_requires=[
         'ingenialink>=5.1.0',
+        'numpy<=1.19.5',
+        'canopen>=1.0.0'
     ],
-    python_requires='>=3.6',
+    python_requires='==3.6.*',
     ext_modules=cythonize(["ingeniamotion/*.py", "ingeniamotion/wizard_tests/*.py"])
 )

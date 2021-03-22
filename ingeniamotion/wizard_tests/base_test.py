@@ -62,7 +62,7 @@ class BaseTest(ABC):
         finally:
             if not drive_disconnected:
                 self.teardown()
-                self.restore_backup_registers()
+            self.restore_backup_registers()
 
         return {
             "result": output,

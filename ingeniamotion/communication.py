@@ -57,7 +57,7 @@ class Communication:
             self.mc.servos[alias] = servo
             self.mc.net[alias] = net
         except il.exceptions.ILError as e:
-            logging.error("Error trying to connect to the servo. %s.", str(e))
+            raise Exception("Error trying to connect to the servo. {}.".format(e))
 
     def get_register(self, register, servo="default", axis=1):
         """

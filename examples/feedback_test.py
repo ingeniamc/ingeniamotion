@@ -23,15 +23,15 @@ def main(args):
     result = None
     if args.feedback == "HALLS":
         # Run Digital Halls feedback tests
-        result = mc.tests.digital_halls_test(subnode=args.axis,
+        result = mc.tests.digital_halls_test(axis=args.axis,
                                              apply_changes=not args.debug)
     if args.feedback == "QEI":
         # Run Incremental Encoder 1 feedback tests
-        result = mc.tests.incremental_encoder_1_test(subnode=args.axis,
+        result = mc.tests.incremental_encoder_1_test(axis=args.axis,
                                                      apply_changes=not args.debug)
     if args.feedback == "QEI2":
         # Run Incremental Encoder 2 feedback tests
-        result = mc.tests.incremental_encoder_2_test(subnode=args.axis,
+        result = mc.tests.incremental_encoder_2_test(axis=args.axis,
                                                      apply_changes=not args.debug)
     logging.info(result["message"])
 
