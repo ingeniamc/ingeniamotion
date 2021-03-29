@@ -73,6 +73,8 @@ class Communication:
         """
         drive = self.mc.servos[servo]
         value = drive.read(register, subnode=axis)
+        if drive.dict.get_regs(axis).get(register).dtype.value <= il.registers.REG_DTYPE.S64.value:
+            return int(value)
         return value
 
     def set_register(self, register, value, servo="default", axis=1):

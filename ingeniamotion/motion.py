@@ -44,12 +44,11 @@ class Motion:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
         """
-        drive = self.mc.servos[servo]
-        control_word = drive.raw_read(self.CONTROL_WORD_REGISTER, subnode=axis)
+        control_word = self.mc.communication.get_register(self.CONTROL_WORD_REGISTER, servo=servo, axis=axis)
         new_control_word = control_word & (~0x200)
-        drive.raw_write(self.CONTROL_WORD_REGISTER, new_control_word, subnode=axis)
+        self.mc.communication.set_register(self.CONTROL_WORD_REGISTER, new_control_word, servo=servo, axis=axis)
         new_control_word = control_word | 0x200
-        drive.raw_write(self.CONTROL_WORD_REGISTER, new_control_word, subnode=axis)
+        self.mc.communication.set_register(self.CONTROL_WORD_REGISTER, new_control_word, servo=servo, axis=axis)
 
     def set_operation_mode(self, operation_mode, servo="default", axis=1):
         """
@@ -60,8 +59,7 @@ class Motion:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
         """
-        drive = self.mc.servos[servo]
-        drive.raw_write(self.OPERATION_MODE_REGISTER, operation_mode, subnode=axis)
+        self.mc.communication.set_register(self.OPERATION_MODE_REGISTER, operation_mode, servo=servo, axis=axis)
 
     def motor_enable(self, servo="default", axis=1):
         """
@@ -98,8 +96,7 @@ class Motion:
             blocking (bool): if ```True``, the function is blocked until the target position is reached.
              ``False`` by default.
         """
-        drive = self.mc.servos[servo]
-        drive.write(self.POSITION_SET_POINT_REGISTER, position, subnode=axis)
+        self.mc.communication.set_register(self.POSITION_SET_POINT_REGISTER, position, servo=servo, axis=axis)
         if target_latch:
             self.target_latch(servo, axis)
             if blocking:
@@ -117,8 +114,7 @@ class Motion:
             blocking (bool): if ```True``, the function is blocked until the target position is reached.
              ``False`` by default.
         """
-        drive = self.mc.servos[servo]
-        drive.write(self.VELOCITY_SET_POINT_REGISTER, velocity, subnode=axis)
+        self.mc.communication.set_register(self.VELOCITY_SET_POINT_REGISTER, velocity, servo=servo, axis=axis)
         if target_latch:
             self.target_latch(servo, axis)
             if blocking:
@@ -133,8 +129,8 @@ class Motion:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
         """
-        drive = self.mc.servos[servo]
-        drive.write(self.CURRENT_QUADRATURE_SET_POINT_REGISTER, current, subnode=axis)
+        self.mc.communication.set_register(self.CURRENT_QUADRATURE_SET_POINT_REGISTER,
+                                           current, servo=servo, axis=axis)
 
     def wait_for_position(self, position, servo="default", axis=1, error=20, timeout=None, interval=None):
         """
@@ -150,13 +146,13 @@ class Motion:
             interval (float): interval of time between actual position reads, in seconds.
              ``None`` by default.
         """
-        drive = self.mc.servos[servo]
         target_reached = False
         init_time = time.time()
         while not target_reached:
             if interval:
                 time.sleep(interval)
-            curr_position = drive.read(self.ACTUAL_POSITION_REGISTER, subnode=axis)
+            curr_position = self.mc.communication.get_register(self.ACTUAL_POSITION_REGISTER,
+                                                               servo=servo, axis=axis)
             target_reached = abs(position - curr_position) < error
             if timeout and (init_time + timeout) < time.time():
                 target_reached = True
@@ -175,13 +171,13 @@ class Motion:
             interval (float): interval of time between actual position reads, in seconds.
              ``None`` by default.
         """
-        drive = self.mc.servos[servo]
         target_reached = False
         init_time = time.time()
         while not target_reached:
             if interval:
                 time.sleep(interval)
-            curr_velocity = drive.read(self.ACTUAL_VELOCITY_REGISTER, subnode=axis)
+            curr_velocity = self.mc.communication.get_register(self.ACTUAL_VELOCITY_REGISTER,
+                                                               servo=servo, axis=axis)
             target_reached = abs(velocity - curr_velocity) < error
             if timeout and (init_time + timeout) < time.time():
                 target_reached = True

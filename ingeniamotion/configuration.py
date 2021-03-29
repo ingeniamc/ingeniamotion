@@ -30,11 +30,11 @@ class Configuration:
             axis (int): axis that will run the test. 1 by default.
         """
         self.mc.check_servo(servo)
-        servo = self.mc.servos[servo]
-        servo.raw_write(
+        self.mc.communication.set_register(
             self.BRAKE_OVERRIDE_REGISTER,
             self.BrakeOverride.RELEASE_BRAKE,
-            subnode=axis
+            servo=servo,
+            axis=axis
         )
 
     def enable_brake(self, servo="default", axis=1):
@@ -46,11 +46,11 @@ class Configuration:
             axis (int): axis that will run the test. 1 by default.
         """
         self.mc.check_servo(servo)
-        servo = self.mc.servos[servo]
-        servo.raw_write(
+        self.mc.communication.set_register(
             self.BRAKE_OVERRIDE_REGISTER,
             self.BrakeOverride.ENABLE_BRAKE,
-            subnode=axis
+            servo=servo,
+            axis=axis
         )
 
     def disable_brake_override(self, servo="default", axis=1):
@@ -62,11 +62,11 @@ class Configuration:
             axis (int): axis that will run the test. 1 by default.
         """
         self.mc.check_servo(servo)
-        servo = self.mc.servos[servo]
-        servo.raw_write(
+        self.mc.communication.set_register(
             self.BRAKE_OVERRIDE_REGISTER,
             self.BrakeOverride.OVERRIDE_DISABLED,
-            subnode=axis
+            servo=servo,
+            axis=axis
         )
 
     def default_brake(self, servo="default", axis=1):
@@ -79,17 +79,17 @@ class Configuration:
         """
         self.disable_brake_override(servo, axis)
 
-    def load_configuration(self, config_path, axis="default"):
+    def load_configuration(self, config_path, servo="default"):
         """
         Load a configuration file to the target servo.
 
         Args:
             config_path (str): config file path to load.
-            axis (str): servo alias to reference it. ``default`` by default.
+            servo (str): servo alias to reference it. ``default`` by default.
         """
         if not path.isfile(config_path):
             raise FileNotFoundError("{} file does not exist!".format(config_path))
-        servo_inst = self.mc.servos[axis]
+        servo_inst = self.mc.servos[servo]
         servo_inst.dict_load(config_path)
         servo_inst.dict_storage_write()
 
@@ -114,8 +114,12 @@ class Configuration:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
         """
-        drive = self.mc.servos[servo]
-        drive.write(self.PROFILE_MAX_ACCELERATION_REGISTER, acceleration, subnode=axis)
+        self.mc.communication.set_register(
+            self.PROFILE_MAX_ACCELERATION_REGISTER,
+            acceleration,
+            servo=servo,
+            axis=axis
+        )
 
     def set_max_velocity(self, velocity, servo="default", axis=1):
         """
@@ -125,5 +129,9 @@ class Configuration:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
         """
-        drive = self.mc.servos[servo]
-        drive.write(self.PROFILE_MAX_VELOCITY_REGISTER, velocity, subnode=axis)
+        self.mc.communication.set_register(
+            self.PROFILE_MAX_VELOCITY_REGISTER,
+            velocity,
+            servo=servo,
+            axis=axis
+        )
