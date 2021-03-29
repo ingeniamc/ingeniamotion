@@ -69,7 +69,7 @@ class Communication:
             axis (int): servo axis. ``1`` by default.
 
         Returns:
-            float: Current register value.
+            int, float or str: Current register value.
         """
         drive = self.mc.servos[servo]
         value = drive.read(register, subnode=axis)

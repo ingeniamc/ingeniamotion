@@ -1,22 +1,12 @@
 Examples
 ========
 
-Brake configuration example
----------------------------
+.. toctree::
+   :maxdepth: 4
 
-.. literalinclude:: ../examples/brake_config.py
+   examples/capture
+   examples/communication
+   examples/configuration
+   examples/drive_tests
+   examples/motion
 
-Feedback tests example
-----------------------
-
-.. literalinclude:: ../examples/feedback_test.py
-
-Commutation example
--------------------
-
-.. literalinclude:: ../examples/commutation_test.py
-
-Velocity and Torque ramp example
---------------------------------
-
-.. literalinclude:: ../examples/velocity_torque_ramp.py
