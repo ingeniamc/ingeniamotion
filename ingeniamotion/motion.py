@@ -1,4 +1,5 @@
 import time
+import ingenialogger
 
 from enum import IntEnum
 
@@ -35,6 +36,7 @@ class Motion:
 
     def __init__(self, motion_controller):
         self.mc = motion_controller
+        self.logger = ingenialogger.get_logger(__name__)
 
     def target_latch(self, servo="default", axis=1):
         """
@@ -62,6 +64,12 @@ class Motion:
         """
         drive = self.mc.servos[servo]
         drive.raw_write(self.OPERATION_MODE_REGISTER, operation_mode, subnode=axis)
+        try:
+            self.logger.debug("Operation mode set to %s",
+                              self.OperationMode(operation_mode).name,
+                              axis=axis)
+        except ValueError:
+            self.logger.debug("Operation mode set to %s", operation_mode, axis=axis)
 
     def motor_enable(self, servo="default", axis=1):
         """
@@ -153,6 +161,7 @@ class Motion:
         drive = self.mc.servos[servo]
         target_reached = False
         init_time = time.time()
+        self.logger.debug("Wait for position %s", position, axis=axis)
         while not target_reached:
             if interval:
                 time.sleep(interval)
@@ -178,6 +187,7 @@ class Motion:
         drive = self.mc.servos[servo]
         target_reached = False
         init_time = time.time()
+        self.logger.debug("Wait for velocity %s", velocity, axis=axis)
         while not target_reached:
             if interval:
                 time.sleep(interval)

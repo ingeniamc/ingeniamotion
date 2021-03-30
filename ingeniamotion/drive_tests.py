@@ -1,3 +1,5 @@
+import ingenialogger
+
 from .wizard_tests.feedback_test import Feedbacks
 from .wizard_tests.phase_calibration import Phasing
 
@@ -6,6 +8,7 @@ class DriveTests:
 
     def __init__(self, motion_controller):
         self.mc = motion_controller
+        self.logger = ingenialogger.get_logger(__name__)
 
     def digital_halls_test(self, servo="default", axis=1, apply_changes=True):
         """
@@ -103,6 +106,7 @@ class DriveTests:
         if apply_changes:
             for key, value in output["suggested_registers"].items():
                 self.mc.servos[servo].raw_write(key, value, subnode=axis)
+            self.logger.debug("Feedback test changes applied", axis=axis)
         return output
 
     def commutation(self, servo="default", axis=1, apply_changes=True):
@@ -138,4 +142,5 @@ class DriveTests:
         if apply_changes:
             for key, value in output["suggested_registers"].items():
                 self.mc.servos[servo].raw_write(key, value, subnode=axis)
+            self.logger.debug("Commutation changes applied", axis=axis)
         return output

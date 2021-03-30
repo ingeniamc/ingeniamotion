@@ -1,3 +1,5 @@
+import ingenialogger
+
 from os import path
 from enum import IntEnum
 
@@ -20,6 +22,7 @@ class Configuration:
 
     def __init__(self, motion_controller):
         self.mc = motion_controller
+        self.logger = ingenialogger.get_logger(__name__)
 
     def release_brake(self, servo="default", axis=1):
         """
@@ -92,6 +95,7 @@ class Configuration:
         servo_inst = self.mc.servos[axis]
         servo_inst.dict_load(config_path)
         servo_inst.dict_storage_write()
+        self.logger.info("Configuration loaded from %s", config_path)
 
     def save_configuration(self, output_file, servo="default"):
         """
@@ -105,6 +109,7 @@ class Configuration:
         servo_inst.dict_storage_read()
         servo_dict = servo_inst.dict
         servo_dict.save(output_file)
+        self.logger.info("Configuration saved to %s", output_file)
 
     def set_max_acceleration(self, acceleration, servo="default", axis=1):
         """
@@ -116,6 +121,7 @@ class Configuration:
         """
         drive = self.mc.servos[servo]
         drive.write(self.PROFILE_MAX_ACCELERATION_REGISTER, acceleration, subnode=axis)
+        self.logger.debug("Max acceleration set to %s", acceleration, axis=axis)
 
     def set_max_velocity(self, velocity, servo="default", axis=1):
         """
@@ -127,3 +133,4 @@ class Configuration:
         """
         drive = self.mc.servos[servo]
         drive.write(self.PROFILE_MAX_VELOCITY_REGISTER, velocity, subnode=axis)
+        self.logger.debug("Max velocity set to %s", velocity, axis=axis)
