@@ -1,4 +1,4 @@
-import logging
+import ingenialogger
 
 from abc import ABC, abstractmethod
 from ingenialink.exceptions import ILError
@@ -16,6 +16,7 @@ class BaseTest(ABC):
         self.suggested_registers = {}
         self.servo = None
         self.subnode = None
+        self.logger = ingenialogger.get_logger(__name__)
 
     def save_backup_registers(self):
         self.backup_registers[self.subnode] = {}
@@ -23,7 +24,7 @@ class BaseTest(ABC):
             try:
                 self.backup_registers[self.subnode][uid] = self.servo.read(uid, subnode=self.subnode)
             except ILError as e:
-                logging.warning(e)
+                self.logger.warning(e, axis=self.subnode)
 
     def restore_backup_registers(self):
         """ Restores the value of the registers after the test execution.
@@ -36,7 +37,7 @@ class BaseTest(ABC):
                 try:
                     self.servo.raw_write(key, value, subnode=subnode)
                 except ILError as e:
-                    logging.warning(e)
+                    self.logger.warning(e, axis=subnode)
 
     @abstractmethod
     def setup(self):

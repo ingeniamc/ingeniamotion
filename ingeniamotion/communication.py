@@ -1,4 +1,3 @@
-import logging
 import ingenialink as il
 
 from os import path
