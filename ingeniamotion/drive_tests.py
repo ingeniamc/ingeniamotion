@@ -105,7 +105,7 @@ class DriveTests:
         output = feedbacks_test.run()
         if apply_changes:
             for key, value in output["suggested_registers"].items():
-                self.mc.servos[servo].raw_write(key, value, subnode=axis)
+                self.mc.communication.set_register(key, value, servo=servo, axis=axis)
             self.logger.debug("Feedback test changes applied", axis=axis)
         return output
 
@@ -141,6 +141,6 @@ class DriveTests:
         output = commutation.run()
         if apply_changes:
             for key, value in output["suggested_registers"].items():
-                self.mc.servos[servo].raw_write(key, value, subnode=axis)
+                self.mc.communication.set_register(key, value, servo=servo, axis=axis)
             self.logger.debug("Commutation changes applied", axis=axis)
         return output
