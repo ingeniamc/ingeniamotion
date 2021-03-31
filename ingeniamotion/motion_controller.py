@@ -22,6 +22,9 @@ class MotionController:
         if servo not in self.servos:
             raise Exception("Servo '{}' does not exist".format(servo))
 
+    def servo_name(self, servo):
+        return "{} ({})".format(self.servos[servo].info["prod_code"], servo)
+
     # Properties
     @property
     def servos(self):

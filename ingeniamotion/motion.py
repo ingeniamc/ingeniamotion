@@ -65,9 +65,9 @@ class Motion:
         try:
             self.logger.debug("Operation mode set to %s",
                               self.OperationMode(operation_mode).name,
-                              axis=axis)
+                              axis=axis, drive=self.mc.servo_name(servo))
         except ValueError:
-            self.logger.debug("Operation mode set to %s", operation_mode, axis=axis)
+            self.logger.debug("Operation mode set to %s", operation_mode, axis=axis, drive=self.mc.servo_name(servo))
 
     def motor_enable(self, servo="default", axis=1):
         """
@@ -156,7 +156,7 @@ class Motion:
         """
         target_reached = False
         init_time = time.time()
-        self.logger.debug("Wait for position %s", position, axis=axis)
+        self.logger.debug("Wait for position %s", position, axis=axis, drive=self.mc.servo_name(servo))
         while not target_reached:
             if interval:
                 time.sleep(interval)
@@ -165,6 +165,8 @@ class Motion:
             target_reached = abs(position - curr_position) < error
             if timeout and (init_time + timeout) < time.time():
                 target_reached = True
+                self.logger.warning("Timeout: position %s was not reached", position,
+                                    axis=axis, drive=self.mc.servo_name(servo))
 
     def wait_for_velocity(self, velocity, servo="default", axis=1, error=0.1, timeout=None, interval=None):
         """
@@ -182,7 +184,7 @@ class Motion:
         """
         target_reached = False
         init_time = time.time()
-        self.logger.debug("Wait for velocity %s", velocity, axis=axis)
+        self.logger.debug("Wait for velocity %s", velocity, axis=axis, drive=self.mc.servo_name(servo))
         while not target_reached:
             if interval:
                 time.sleep(interval)
@@ -191,3 +193,5 @@ class Motion:
             target_reached = abs(velocity - curr_velocity) < error
             if timeout and (init_time + timeout) < time.time():
                 target_reached = True
+                self.logger.warning("Timeout: velocity %s was not reached", velocity,
+                                    axis=axis, drive=self.mc.servo_name(servo))

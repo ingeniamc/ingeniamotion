@@ -106,7 +106,7 @@ class DriveTests:
         if apply_changes:
             for key, value in output["suggested_registers"].items():
                 self.mc.communication.set_register(key, value, servo=servo, axis=axis)
-            self.logger.debug("Feedback test changes applied", axis=axis)
+            self.logger.debug("Feedback test changes applied", axis=axis, drive=self.mc.servo_name(servo))
         return output
 
     def commutation(self, servo="default", axis=1, apply_changes=True):
@@ -142,5 +142,5 @@ class DriveTests:
         if apply_changes:
             for key, value in output["suggested_registers"].items():
                 self.mc.communication.set_register(key, value, servo=servo, axis=axis)
-            self.logger.debug("Commutation changes applied", axis=axis)
+            self.logger.debug("Commutation changes applied", axis=axis, drive=self.mc.servo_name(servo))
         return output

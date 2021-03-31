@@ -95,7 +95,8 @@ class Configuration:
         servo_inst = self.mc.servos[servo]
         servo_inst.dict_load(config_path)
         servo_inst.dict_storage_write()
-        self.logger.info("Configuration loaded from %s", config_path)
+        self.logger.info("Configuration loaded from %s", config_path,
+                         drive=self.mc.servo_name(servo))
 
     def save_configuration(self, output_file, servo="default"):
         """
@@ -109,7 +110,8 @@ class Configuration:
         servo_inst.dict_storage_read()
         servo_dict = servo_inst.dict
         servo_dict.save(output_file)
-        self.logger.info("Configuration saved to %s", output_file)
+        self.logger.info("Configuration saved to %s", output_file,
+                         drive=self.mc.servo_name(servo))
 
     def set_max_acceleration(self, acceleration, servo="default", axis=1):
         """
@@ -125,7 +127,8 @@ class Configuration:
             servo=servo,
             axis=axis
         )
-        self.logger.debug("Max acceleration set to %s", acceleration, axis=axis)
+        self.logger.debug("Max acceleration set to %s", acceleration,
+                          axis=axis, drive=self.mc.servo_name(servo))
 
     def set_max_velocity(self, velocity, servo="default", axis=1):
         """
@@ -141,4 +144,5 @@ class Configuration:
             servo=servo,
             axis=axis
         )
-        self.logger.debug("Max velocity set to %s", velocity, axis=axis)
+        self.logger.debug("Max velocity set to %s", velocity,
+                          axis=axis, drive=self.mc.servo_name(servo))
