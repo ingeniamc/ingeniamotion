@@ -1,5 +1,5 @@
 import time
-import logging
+import ingenialogger
 import ingenialink as il
 
 from enum import IntEnum
@@ -83,6 +83,7 @@ class Feedbacks(BaseTest):
         self.servo = servo
         self.subnode = subnode
         self.sensor = sensor
+        self.logger = ingenialogger.get_logger(__name__)
         self.feedback_resolution_functions = {
             self.SensorType.ABS1: self.absolute_encoder_1_resolution,
             self.SensorType.QEI: self.incremental_encoder_1_resolution,
@@ -101,39 +102,46 @@ class Feedbacks(BaseTest):
     def check_feedback_tolerance(self, error, error_msg, error_type):
         if error > self.FEEDBACK_TOLERANCE:
             error_advice = "Please, review your feedback & motor pair poles settings"
-            logging.error("%s %s", error_msg, error_advice)
+            self.logger.error("%s %s", error_msg, error_advice, axis=self.subnode)
             return error_type
         return 0
 
     def check_symmetry(self, positive, negative):
-        logging.info("SYMMETRY CHECK")
+        self.logger.debug("SYMMETRY CHECK", axis=self.subnode)
         error = 100 * abs(positive + negative) / self.feedback_resolution
-        logging.info(
-            "Detected symmetry mismatch of: {:.3f}%".format(error)
+        self.logger.info(
+            "Detected symmetry mismatch of: %.3f%%",
+            error,
+            axis=self.subnode
         )
         error_msg = "ERROR: A mismatch in resolution has been " \
                     "detected between positive and negative direction."
         return self.check_feedback_tolerance(error, error_msg, self.ResultType.SYMMETRY_ERROR)
 
     def check_polarity(self, displacement):
-        logging.info("POLARITY CHECK")
+        self.logger.debug("POLARITY CHECK", axis=self.subnode)
         polarity = 0 if displacement > 0 else 1
         polarity_str = "NORMAL" if polarity == 0 else "REVERSED"
-        logging.info("Feedback polarity detected: {}".format(polarity_str))
+        self.logger.info("Feedback polarity detected: %s",
+                         polarity_str,
+                         axis=self.subnode)
         return polarity
 
     def check_resolution(self, displacement):
         displacement = displacement * self.pair_poles
-        logging.info("RESOLUTION CHECK")
-        logging.info(
-            "Theoretical resolution: {:.0f}".format(self.feedback_resolution)
+        self.logger.debug("RESOLUTION CHECK", axis=self.subnode)
+        self.logger.debug(
+            "Theoretical resolution: %.0f",
+            self.feedback_resolution,
+            axis=self.subnode
         )
-        logging.info(
-            "Detected resolution (pos): {:.0f}".format(abs(displacement))
+        self.logger.info(
+            "Detected resolution (pos): %.0f",
+            abs(displacement), axis=self.subnode
         )
         displacement_value = abs(self.feedback_resolution - abs(displacement))
         error = 100 * displacement_value / self.feedback_resolution
-        logging.info("Detected mismatch of: {:.3f}%".format(error))
+        self.logger.info("Detected mismatch of: %.3f%%", error, axis=self.subnode)
         error_msg = "ERROR: The detected feedback resolution does not " \
                     "match with the specified in the configuration."
         return self.check_feedback_tolerance(error, error_msg, self.ResultType.RESOLUTION_ERROR)
@@ -191,9 +199,10 @@ class Feedbacks(BaseTest):
             self.suggested_registers[filter_type_uid] = self.LOW_PASS_FILTER
             self.suggested_registers[filter_freq_uid] = self.HALLS_FILTER_CUTOFF_FREQUENCY
 
-            logging.info(
+            self.logger.info(
                 "Setting a velocity low pass filter at 10 Hz as "
-                "velocity feedback is set to Halls"
+                "velocity feedback is set to Halls",
+                axis=self.subnode
             )
             del self.backup_registers[self.subnode][
                 "CL_VEL_FBK_FILTER1_TYPE"
@@ -203,7 +212,7 @@ class Feedbacks(BaseTest):
             ]
 
     def absolute_encoder_1_resolution(self):
-        logging.info("BiSS-C/SSI polarity set to Normal")
+        self.logger.debug("BiSS-C/SSI polarity set to Normal", axis=self.subnode)
         self.servo.raw_write(
             "FBK_BISS1_SSI1_POS_POLARITY",
             0,
@@ -217,7 +226,7 @@ class Feedbacks(BaseTest):
         return feedback_resolution
 
     def incremental_encoder_1_resolution(self):
-        logging.info("Incremental Encoder polarity set to Normal")
+        self.logger.info("Incremental Encoder polarity set to Normal", axis=self.subnode)
         self.servo.raw_write(
             "FBK_DIGENC1_POLARITY",
             0,
@@ -245,7 +254,7 @@ class Feedbacks(BaseTest):
             0,
             subnode=self.subnode
         )
-        logging.info("Halls pair poles set to {}".format(self.pair_poles))
+        self.logger.debug("Halls pair poles set to %s", self.pair_poles, axis=self.subnode)
         self.servo.raw_write(
             "FBK_DIGHALL_PAIRPOLES",
             self.pair_poles,
@@ -257,7 +266,7 @@ class Feedbacks(BaseTest):
         return feedback_resolution
 
     def secondary_ssi_resolution(self):
-        logging.info("Secondary SSI polarity set to Normal")
+        self.logger.debug("Secondary SSI polarity set to Normal", axis=self.subnode)
         self.servo.raw_write(
             "FBK_SSI2_POS_POLARITY",
             0,
@@ -271,13 +280,13 @@ class Feedbacks(BaseTest):
         return feedback_resolution
 
     def absolute_encoder_2_resolution(self):
-        logging.info("BiSS-C slave 2 polarity set to Normal")
+        self.logger.debug("BiSS-C slave 2 polarity set to Normal", axis=self.subnode)
         self.servo.raw_write(
             "FBK_BISS2_POS_POLARITY",
             0,
             subnode=self.subnode
         )
-        logging.info("Auxiliar feedback set to BiSS-C slave 1")
+        self.logger.info("Auxiliar feedback set to BiSS-C slave 1", axis=self.subnode)
         serial_slave_1_single_turn_bits = self.servo.raw_read(
             "FBK_BISS2_POS_ST_BITS",
             subnode=self.subnode
@@ -286,7 +295,7 @@ class Feedbacks(BaseTest):
         return feedback_resolution
 
     def incremental_encoder_2_resolution(self):
-        logging.info("Incremental Encoder 2 polarity set to Normal")
+        self.logger.debug("Incremental Encoder 2 polarity set to Normal", axis=self.subnode)
         self.servo.raw_write(
             "FBK_DIGENC2_POLARITY",
             0,
@@ -315,7 +324,7 @@ class Feedbacks(BaseTest):
             try:
                 self.servo.raw_write(following_error_uid, 1, subnode=self.subnode)
             except ILError as e:
-                logging.warning(e)
+                self.logger.warning(e, axis=self.subnode)
 
     def suggest_polarity(self, pol):
         feedbacks_polarity_register = {
@@ -325,7 +334,6 @@ class Feedbacks(BaseTest):
             self.SensorType.ABS1: "FBK_BISS1_SSI1_POS_POLARITY",
             self.SensorType.SSI2: "FBK_SSI2_POS_POLARITY",
             self.SensorType.BISSC2: "FBK_BISS2_POS_POLARITY"
-
         }
         polarity_uid = feedbacks_polarity_register[self.sensor]
         if self.sensor == self.SensorType.HALLS:
@@ -340,9 +348,7 @@ class Feedbacks(BaseTest):
         #  - Feedback reaction codes to WARNING
         # Protection to avoid any unwanted movement
         self.servo.disable(subnode=self.subnode)
-        logging.info("-------------------------")
-        logging.info("CONFIGURATION OF THE TEST")
-        logging.info("-------------------------")
+        self.logger.info("CONFIGURATION OF THE TEST", axis=self.subnode)
         # Set commutation modulation to sinusoidal
         self.servo.raw_write(
             "MOT_COMMU_MOD",
@@ -377,22 +383,22 @@ class Feedbacks(BaseTest):
         # same time)
         self.feedback_setting()
 
-        logging.info("Mode of operation set to Current mode")
+        self.logger.debug("Mode of operation set to Current mode", axis=self.subnode)
         self.servo.raw_write(
             "DRV_OP_CMD",
             2,
             subnode=self.subnode
         )
 
-        logging.info("Set phasing mode to No phasing")
+        self.logger.debug("Set phasing mode to No phasing", axis=self.subnode)
         self.servo.raw_write(
             "COMMU_PHASING_MODE",
             2,
             subnode=self.subnode
         )
 
-        logging.info("Target quadrature current set to zero")
-        logging.info("Target direct current set to zero")
+        self.logger.debug("Target quadrature current set to zero", axis=self.subnode)
+        self.logger.debug("Target direct current set to zero", axis=self.subnode)
         self.servo.raw_write(
             "CL_CUR_Q_SET_POINT",
             0,
@@ -404,22 +410,24 @@ class Feedbacks(BaseTest):
             subnode=self.subnode
         )
 
-        logging.info("Commutation feedback set to Internal Generator")
+        self.logger.debug("Commutation feedback set to Internal Generator", axis=self.subnode)
         self.servo.raw_write(
             "COMMU_ANGLE_SENSOR",
             3,
             subnode=self.subnode
         )
 
-        logging.info("Generator mode set to Saw tooth")
+        self.logger.debug("Generator mode set to Saw tooth", axis=self.subnode)
         self.servo.raw_write(
             "FBK_GEN_MODE",
             1,
             subnode=self.subnode
         )
 
-        logging.info(
-            "Generator frequency set to {} Hz".format(self.test_frequency)
+        self.logger.debug(
+            "Generator frequency set to %s Hz",
+            self.test_frequency,
+            axis=self.subnode
         )
         self.servo.raw_write(
             "FBK_GEN_FREQ",
@@ -427,21 +435,21 @@ class Feedbacks(BaseTest):
             subnode=self.subnode
         )
 
-        logging.info("Generator gain set to 1")
+        self.logger.debug("Generator gain set to 1", axis=self.subnode)
         self.servo.raw_write(
             "FBK_GEN_GAIN",
             1,
             subnode=self.subnode
         )
 
-        logging.info("Generator offset set to 0")
+        self.logger.debug("Generator offset set to 0", axis=self.subnode)
         self.servo.raw_write(
             "FBK_GEN_OFFSET",
             0,
             subnode=self.subnode
         )
 
-        logging.info("Generator cycle number set to 1")
+        self.logger.debug("Generator cycle number set to 1", axis=self.subnode)
         self.servo.raw_write(
             "FBK_GEN_CYCLES",
             1,
@@ -452,7 +460,7 @@ class Feedbacks(BaseTest):
         self.reaction_codes_to_warning()
 
     def teardown(self):
-        logging.debug("Disabling motor")
+        self.logger.debug("Disabling motor", axis=self.subnode)
         self.servo.disable(subnode=self.subnode)
 
     def show_error_message(self):
@@ -472,8 +480,9 @@ class Feedbacks(BaseTest):
         raise TestError(error_msg)
 
     def force_displacement(self):
-        logging.info(
-            "Set Generator rearm to 1 again to force a new displacement"
+        self.logger.debug(
+            "Set Generator rearm to 1 again to force a new displacement",
+            axis=self.subnode
         )
         self.servo.raw_write(
             "FBK_GEN_REARM",
@@ -498,9 +507,7 @@ class Feedbacks(BaseTest):
         return position
 
     def loop(self):
-        logging.info("-----------------")
-        logging.info("START OF THE TEST")
-        logging.info("-----------------")
+        self.logger.info("START OF THE TEST", axis=self.subnode)
 
         self.servo.enable(subnode=self.subnode)
         self.force_displacement()
@@ -511,9 +518,10 @@ class Feedbacks(BaseTest):
         )
 
         # Increase current progressively
-        logging.info(
-            "Increasing current to {}% rated until one electrical cycle "
-            "is completed".format(self.PERCENTAGE_CURRENT_USED * 100)
+        self.logger.info(
+            "Increasing current to %s%% rated until one electrical cycle is completed",
+            self.PERCENTAGE_CURRENT_USED * 100,
+            axis=self.subnode
         )
         time_elapsed = 0
         current = 0
@@ -534,19 +542,17 @@ class Feedbacks(BaseTest):
 
         self.wait_for_movement(self.TIME_BETWEEN_MOVEMENT)
         position_1 = self.get_current_position()
-        logging.info("Actual position: {:.0f}".format(position_1))
+        self.logger.debug("Actual position: %.0f",
+                         position_1, axis=self.subnode)
         self.force_displacement()
-        logging.info("Wait until one electrical cycle is completed")
+        self.logger.debug("Wait until one electrical cycle is completed", axis=self.subnode)
 
         self.wait_for_movement(max_time)
         position_2 = self.get_current_position()
         position_displacement = position_2 - position_1
-        logging.info("Actual position: {:.0f}".format(position_2))
-        logging.info(
-            "Detected forward displacement: {:.0f}".format(
-                position_displacement
-            )
-        )
+        self.logger.debug("Actual position: %.0f", position_2, axis=self.subnode)
+        self.logger.info("Detected forward displacement: %.0f",
+                         position_displacement, axis=self.subnode)
 
         # Check the movement displacement
         if position_displacement == 0:
@@ -556,21 +562,20 @@ class Feedbacks(BaseTest):
 
         self.wait_for_movement(self.TIME_BETWEEN_MOVEMENT)
 
-        logging.info("-----------------")
-        logging.info("Reversing direction test")
-        logging.info("Generator gain set to -1")
+        self.logger.debug("Reversing direction test", axis=self.subnode)
+        self.logger.debug("Generator gain set to -1", axis=self.subnode)
         self.servo.raw_write(
             "FBK_GEN_GAIN",
             -1,
             subnode=self.subnode
         )
-        logging.info("Generator offset set to 1")
+        self.logger.debug("Generator offset set to 1", axis=self.subnode)
         self.servo.raw_write(
             "FBK_GEN_OFFSET",
             1,
             subnode=self.subnode
         )
-        logging.info("Generator Cycle number set to 1")
+        self.logger.debug("Generator Cycle number set to 1", axis=self.subnode)
         self.servo.raw_write(
             "FBK_GEN_CYCLES",
             1,
@@ -578,21 +583,20 @@ class Feedbacks(BaseTest):
         )
 
         self.force_displacement()
-        logging.info("Wait until one electrical cycle is completed")
+        self.logger.debug("Wait until one electrical cycle is completed", axis=self.subnode)
         self.wait_for_movement(max_time)
-        logging.info("Wait between movements")
+        self.logger.debug("Wait between movements", axis=self.subnode)
         self.wait_for_movement(self.TIME_BETWEEN_MOVEMENT)
 
         position_3 = self.get_current_position()
-        logging.info("Actual position: {:.0f}".format(position_3))
+        self.logger.debug("Actual position: %.0f", position_3, axis=self.subnode)
 
         self.servo.disable(subnode=self.subnode)
 
         negative_displacement = position_3 - position_2
-        logging.info(
-            "Detected reverse displacement: {:.0f}".format(
-                negative_displacement
-            )
+        self.logger.info(
+            "Detected reverse displacement: %.0f",
+            negative_displacement, axis=self.subnode
         )
 
         test_output = 0
