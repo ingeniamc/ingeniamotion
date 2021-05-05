@@ -87,13 +87,13 @@ class Monitoring:
 
         Args:
             prescaler (int): determines monitoring frequency. Frequency will be ``Power stage frequency / prescaler``.
-                It must be 1 or bigger.
+                It must be 1 or higher.
 
         Raises:
             ValueError: If prescaler is lowe than 1.
         """
         if prescaler < 1:
-            raise ValueError("prescaler must be 1 or bigger")
+            raise ValueError("prescaler must be 1 or higher")
         position_velocity_loop_rate = self.mc.communication.get_register(
             'DRV_POS_VEL_RATE',
             servo=self.servo,
