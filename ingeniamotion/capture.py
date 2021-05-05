@@ -109,7 +109,7 @@ class Capture:
             Monitoring: Instance of monitoring configured.
 
         Raises:
-            ValueError: If prescaler is lowe than 1.
+            ValueError: If prescaler is less than 1.
         """
         monitoring = Monitoring(self.mc, servo)
         monitoring.disable_monitoring()

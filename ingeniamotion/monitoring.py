@@ -92,18 +92,18 @@ class Monitoring:
                 It must be 1 or higher.
 
         Raises:
-            ValueError: If prescaler is lowe than 1.
+            ValueError: If prescaler is less than 1.
         """
         if prescaler < 1:
             raise ValueError("prescaler must be 1 or higher")
         position_velocity_loop_rate = self.mc.communication.get_register(
-            'DRV_POS_VEL_RATE',
+            "DRV_POS_VEL_RATE",
             servo=self.servo,
             axis=1
         )
         self.sampling_freq = round(position_velocity_loop_rate / prescaler, 2)
         self.mc.communication.set_register(
-            'MON_DIST_FREQ_DIV',
+            "MON_DIST_FREQ_DIV",
             prescaler,
             servo=self.servo,
             axis=0
@@ -137,7 +137,7 @@ class Monitoring:
             network.monitoring_set_mapped_register(ch_idx, mapped_reg, dtype.value)
 
         num_mon_reg = self.mc.communication.get_register(
-            'MON_CFG_TOTAL_MAP',
+            "MON_CFG_TOTAL_MAP",
             servo=self.servo,
             axis=0
         )
@@ -159,7 +159,7 @@ class Monitoring:
             TypeError: If trigger_mode is rising or falling edge trigger and trigger_signal or trigger_value are None.
         """
         self.mc.communication.set_register(
-            'MON_CFG_TRIGGER_REPETITIONS',
+            "MON_CFG_TRIGGER_REPETITIONS",
             trigger_repetitions,
             servo=self.servo,
             axis=0
@@ -202,11 +202,11 @@ class Monitoring:
     @staticmethod
     def __unpack_trigger_value(value, dtype):
         if dtype == il.REG_DTYPE.U16:
-            return np.array([int(value)], dtype='int64').astype('uint16')[0]
+            return np.array([int(value)], dtype="int64").astype("uint16")[0]
         if dtype == il.REG_DTYPE.U32:
             return struct.unpack('L', struct.pack('I', int(value)))[0]
         if dtype == il.REG_DTYPE.S32:
-            return np.array([int(value)], dtype='int64').astype('int32')[0]
+            return np.array([int(value)], dtype="int64").astype("int32")[0]
         return struct.unpack('L', struct.pack('f', value))[0]
 
     @check_monitoring_disabled
@@ -222,7 +222,7 @@ class Monitoring:
         window_samples = total_num_samples - trigger_delay_samples
 
         self.mc.communication.set_register(
-            'MON_CFG_EOC_TYPE',
+            "MON_CFG_EOC_TYPE",
             self.EOC_TRIGGER_NUMBER_SAMPLES,
             servo=self.servo,
             axis=0
