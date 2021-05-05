@@ -1,6 +1,6 @@
 import ingenialink as il
 
-from .monitoring import Monitoring
+from .monitoring import Monitoring, MonitoringSoCType
 
 
 class Capture:
@@ -71,7 +71,7 @@ class Capture:
         return poller
 
     def create_monitoring(self, registers, prescaler, sample_time, trigger_delay=0,
-                          trigger_mode=Monitoring.MonitoringSoCType.TRIGGER_EVENT_NONE,
+                          trigger_mode=MonitoringSoCType.TRIGGER_EVENT_NONE,
                           trigger_signal=None, trigger_value=None, servo="default", start=True):
         """
         Returns a Monitoring instance configured with target registers.
@@ -97,7 +97,7 @@ class Capture:
             sample_time (float): sample time in seconds.
             trigger_delay (float): trigger delay in seconds. Value should be between ``-sample_time/2`` and
                 ``sample_time/2`` . ``0`` by default.
-            trigger_mode (Monitoring.MonitoringSoCType): monitoring start of condition type. ``TRIGGER_EVENT_NONE`` by
+            trigger_mode (MonitoringSoCType): monitoring start of condition type. ``TRIGGER_EVENT_NONE`` by
                 default.
             trigger_signal (dict): dict with name and axis of trigger signal for rising or falling edge trigger.
             trigger_value (int or float): value for rising or falling edge trigger.

@@ -24,7 +24,23 @@ def check_monitoring_disabled(func):
     return wrapper
 
 
+class MonitoringSoCType(IntEnum):
+    """
+    Monitoring start of condition type
+    """
+    TRIGGER_EVENT_NONE = 0
+    """ No trigger """
+    TRIGGER_EVENT_FORCED = 1
+    """ Forced trigger """
+    TRIGGER_CYCLIC_RISING_EDGE = 2
+    """ Rising edge trigger """
+    TRIGGER_NUMBER_SAMPLES = 3
+    TRIGGER_CYCLIC_FALLING_EDGE = 4
+    """ Falling edge trigger """
+
+
 class Monitoring:
+
     """
     Class to configure a monitoring in a servo.
 
@@ -32,20 +48,6 @@ class Monitoring:
         mc (MotionController): MotionController instance.
         servo (str): servo alias to reference it. ``default`` by default.
     """
-
-    class MonitoringSoCType(IntEnum):
-        """
-        Monitoring start of condition type
-        """
-        TRIGGER_EVENT_NONE = 0
-        """ No trigger """
-        TRIGGER_EVENT_FORCED = 1
-        """ Forced trigger """
-        TRIGGER_CYCLIC_RISING_EDGE = 2
-        """ Rising edge trigger """
-        TRIGGER_NUMBER_SAMPLES = 3
-        TRIGGER_CYCLIC_FALLING_EDGE = 4
-        """ Falling edge trigger """
 
     EOC_TRIGGER_NUMBER_SAMPLES = 3
 
@@ -148,7 +150,7 @@ class Monitoring:
         Configure monitoring trigger. Monitoring must be disabled.
 
         Args:
-            trigger_mode (Monitoring.MonitoringSoCType): monitoring start of condition type.
+            trigger_mode (MonitoringSoCType): monitoring start of condition type.
             trigger_signal (dict): dict with name and axis of trigger signal for rising or falling edge trigger.
             trigger_value (int or float): value for rising or falling edge trigger.
             trigger_repetitions (int): number of time trigger will be pull.
@@ -169,8 +171,8 @@ class Monitoring:
             axis=0
         )
         if trigger_mode in \
-                [self.MonitoringSoCType.TRIGGER_CYCLIC_RISING_EDGE,
-                 self.MonitoringSoCType.TRIGGER_CYCLIC_FALLING_EDGE]:
+                [MonitoringSoCType.TRIGGER_CYCLIC_RISING_EDGE,
+                 MonitoringSoCType.TRIGGER_CYCLIC_FALLING_EDGE]:
             if trigger_signal is None or trigger_value is None:
                 raise TypeError("trigger_signal or trigger_value are None")
             self.__rising_or_falling_edge_trigger(trigger_mode, trigger_signal, trigger_value)
@@ -208,15 +210,17 @@ class Monitoring:
         return struct.unpack('L', struct.pack('f', value))[0]
 
     @check_monitoring_disabled
-    def configure_number_samples(self, window_samples, trigger_delay_samples):
+    def configure_number_samples(self, total_num_samples, trigger_delay_samples):
         """
         Configure monitoring number of samples. Monitoring must be disabled.
 
         Args:
-            window_samples: monitoring total number of samples.
+            total_num_samples: monitoring total number of samples.
             trigger_delay_samples: monitoring number of samples before trigger.
         """
         # Configure number of samples
+        window_samples = total_num_samples - trigger_delay_samples
+
         self.mc.communication.set_register(
             'MON_CFG_EOC_TYPE',
             self.EOC_TRIGGER_NUMBER_SAMPLES,
@@ -249,8 +253,8 @@ class Monitoring:
         total_num_samples = int(self.sampling_freq * total_time)
         self.samples_number = total_num_samples
         trigger_delay_samples = int(((total_time / 2) - trigger_delay) * self.sampling_freq)
-        window_samples = total_num_samples - trigger_delay_samples
-        self.configure_number_samples(window_samples, trigger_delay_samples)
+        trigger_delay_samples = trigger_delay_samples if trigger_delay_samples > 0 else 1
+        self.configure_number_samples(total_num_samples, trigger_delay_samples)
 
     def enable_monitoring(self):
         """
