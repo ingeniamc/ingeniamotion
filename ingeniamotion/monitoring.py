@@ -2,6 +2,7 @@ import struct
 import numpy as np
 import ingenialogger
 import ingenialink as il
+from functools import wraps
 from ingenialink.exceptions import ILError
 
 from enum import IntEnum
@@ -10,6 +11,7 @@ MONITORING_ENABLED_BIT = 0x1
 
 
 def check_monitoring_disabled(func):
+    @wraps(func)
     def wrapper(self, *args, **kwargs):
         monitor_status = self.mc.communication.get_register(
             "MON_DIST_STATUS",
@@ -32,11 +34,18 @@ class Monitoring:
     """
 
     class MonitoringSoCType(IntEnum):
+        """
+        Monitoring start of condition type
+        """
         TRIGGER_EVENT_NONE = 0
+        """ No trigger """
         TRIGGER_EVENT_FORCED = 1
+        """ Forced trigger """
         TRIGGER_CYCLIC_RISING_EDGE = 2
+        """ Rising edge trigger """
         TRIGGER_NUMBER_SAMPLES = 3
         TRIGGER_CYCLIC_FALLING_EDGE = 4
+        """ Falling edge trigger """
 
     EOC_TRIGGER_NUMBER_SAMPLES = 3
 
@@ -49,10 +58,13 @@ class Monitoring:
     MONITORING_AVAILABLE_FRAME_BIT = 0x800
 
     class MonitoringVersion(IntEnum):
+        """
+        Monitoring version
+        """
+        # Monitoring V1 used for Everest 1.7.1 and older.
         MONITORING_V1 = 0,
-        """ Monitoring V1 used for Everest 1.7.1 and older. """
+        # Monitoring V2 used for Capitan and some custom low-power drivers.
         MONITORING_V2 = 1
-        """ Monitoring V2 used for Capitan and some custom low-power drivers. """
 
     def __init__(self, mc, servo="default"):
         super().__init__()
