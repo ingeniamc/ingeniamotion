@@ -202,12 +202,14 @@ class Monitoring:
     @staticmethod
     def __unpack_trigger_value(value, dtype):
         if dtype == il.REG_DTYPE.U16:
-            return np.array([int(value)], dtype="int64").astype("uint16")[0]
-        if dtype == il.REG_DTYPE.U32:
-            return struct.unpack('L', struct.pack('I', int(value)))[0]
-        if dtype == il.REG_DTYPE.S32:
-            return np.array([int(value)], dtype="int64").astype("int32")[0]
-        return struct.unpack('L', struct.pack('f', value))[0]
+            output = np.array([int(value)], dtype="int64").astype("uint16")[0]
+        elif dtype == il.REG_DTYPE.U32:
+            output = struct.unpack('L', struct.pack('I', int(value)))[0]
+        elif dtype == il.REG_DTYPE.S32:
+            output = np.array([int(value)], dtype="int64").astype("int32")[0]
+        else:
+            output = struct.unpack('L', struct.pack('f', value))[0]
+        return output
 
     @check_monitoring_disabled
     def configure_number_samples(self, total_num_samples, trigger_delay_samples):
