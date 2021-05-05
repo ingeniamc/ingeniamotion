@@ -1,5 +1,7 @@
 import ingenialink as il
 
+from .monitoring import Monitoring
+
 
 class Capture:
     """Capture.
@@ -67,3 +69,54 @@ class Capture:
         if start:
             poller.start()
         return poller
+
+    def create_monitoring(self, registers, prescaler, sample_time, trigger_delay=0,
+                          trigger_mode=Monitoring.MonitoringSoCType.TRIGGER_EVENT_NONE,
+                          trigger_signal=None, trigger_value=None, servo="default", start=True):
+        """
+        Returns a Monitoring instance configured with target registers.
+
+        Args:
+            registers (list of dict): list of registers to add to Monitoring. Dicts should have the follow format:
+
+                .. code-block:: python
+
+                    [
+                        { # Monitoring register one
+                            "name": "CL_POS_FBK_VALUE",  # Register name.
+                            "axis": 1  # Register axis. If it has no axis field, by default axis 1.
+                        },
+                        { # Monitoring register two
+                            "name": "CL_VEL_FBK_VALUE",  # Register name.
+                            "axis": 1  # Register axis. If it has no axis field, by default axis 1.
+                        }
+                    ]
+
+            prescaler (int): determines monitoring frequency. Frequency will be ``Power stage frequency / prescaler``.
+                It must be 1 or bigger.
+            sample_time (float): sample time in seconds.
+            trigger_delay (float): trigger delay in seconds. Value should be between ``-sample_time/2`` and
+                ``sample_time/2`` . ``0`` by default.
+            trigger_mode (Monitoring.MonitoringSoCType): monitoring start of condition type. ``TRIGGER_EVENT_NONE```by
+                default.
+            trigger_signal (dict): dict with name and axis of trigger signal for rising or falling edge trigger.
+            trigger_value (int or float): value for rising or falling edge trigger.
+            servo (str): servo alias to reference it. ``default`` by default.
+            start (bool): if ``True``, function starts poller, if ``False`` poller should be started after.
+                ``True`` by default.
+
+        Returns:
+            Monitoring: Instance of monitoring configured.
+
+        Raises:
+            ValueError: If prescaler is lowe than 1.
+        """
+        monitoring = Monitoring(self.mc, servo)
+        monitoring.disable_monitoring()
+        monitoring.set_frequency(prescaler)
+        monitoring.map_registers(registers)
+        monitoring.set_trigger(trigger_mode, trigger_signal=trigger_signal, trigger_value=trigger_value)
+        monitoring.configure_sample_time(sample_time, trigger_delay)
+        if start:
+            monitoring.enable_monitoring()
+        return monitoring
