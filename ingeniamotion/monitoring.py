@@ -14,7 +14,7 @@ def check_monitoring_disabled(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         monitor_status = self.mc.communication.get_register(
-            "MON_DIST_STATUS",
+            Monitoring.MONITORING_DISTURBANCE_STATUS_REGISTER,
             servo=self.servo,
             axis=0
         )
@@ -68,6 +68,18 @@ class Monitoring:
         # Monitoring V2 used for Capitan and some custom low-power drivers.
         MONITORING_V2 = 1
 
+    MONITORING_FREQUENCY_DIVIDER_REGISTER = "MON_DIST_FREQ_DIV"
+    MONITORING_NUMBER_MAPPED_REGISTERS_REGISTER = "MON_CFG_TOTAL_MAP"
+    MONITORING_NUMBER_TRIGGER_REPETITIONS_REGISTER = "MON_CFG_TRIGGER_REPETITIONS"
+    MONITOR_START_CONDITION_TYPE_REGISTER = "MON_CFG_SOC_TYPE"
+    MONITOR_END_CONDITION_TYPE_REGISTER = "MON_CFG_EOC_TYPE"
+    MONITORING_INDEX_CHECKER_REGISTER = "MON_IDX_CHECK"
+    MONITORING_DISTURBANCE_STATUS_REGISTER = "MON_DIST_STATUS"
+    MONITORING_TRIGGER_DELAY_SAMPLES_REGISTER = "MON_CFG_TRIGGER_DELAY"
+    MONITORING_WINDOW_NUMBER_SAMPLES_REGISTER = "MON_CFG_WINDOW_SAMP"
+    MONITORING_NUMBER_CYCLES_REGISTER = "MON_CFG_CYCLES_VALUE"
+    MONITORING_CURRENT_NUMBER_BYTES_REGISTER = "MON_CFG_BYTES_VALUE"
+
     def __init__(self, mc, servo="default"):
         super().__init__()
         self.mc = mc
@@ -85,25 +97,26 @@ class Monitoring:
     @check_monitoring_disabled
     def set_frequency(self, prescaler):
         """
-        Function to define monitoring frequency with a prescaler. Monitoring must be disabled.
+        Function to define monitoring frequency with a prescaler. Frequency will be
+        ``Position & velocity loop rate frequency / prescaler``,
+        see :func:`ingeniamotion.configuration.Configuration.get_position_and_velocity_loop_rate` to know about this
+        frequency. Monitoring must be disabled.
 
         Args:
-            prescaler (int): determines monitoring frequency. Frequency will be ``Power stage frequency / prescaler``.
-                It must be 1 or higher.
+            prescaler (int): determines monitoring frequency. It must be 1 or higher.
 
         Raises:
             ValueError: If prescaler is less than 1.
         """
         if prescaler < 1:
             raise ValueError("prescaler must be 1 or higher")
-        position_velocity_loop_rate = self.mc.communication.get_register(
-            "DRV_POS_VEL_RATE",
+        position_velocity_loop_rate = self.mc.configuration.get_position_and_velocity_loop_rate(
             servo=self.servo,
             axis=1
         )
         self.sampling_freq = round(position_velocity_loop_rate / prescaler, 2)
         self.mc.communication.set_register(
-            "MON_DIST_FREQ_DIV",
+            self.MONITORING_FREQUENCY_DIVIDER_REGISTER,
             prescaler,
             servo=self.servo,
             axis=0
@@ -137,7 +150,7 @@ class Monitoring:
             network.monitoring_set_mapped_register(ch_idx, mapped_reg, dtype.value)
 
         num_mon_reg = self.mc.communication.get_register(
-            "MON_CFG_TOTAL_MAP",
+            self.MONITORING_NUMBER_MAPPED_REGISTERS_REGISTER,
             servo=self.servo,
             axis=0
         )
@@ -159,13 +172,13 @@ class Monitoring:
             TypeError: If trigger_mode is rising or falling edge trigger and trigger_signal or trigger_value are None.
         """
         self.mc.communication.set_register(
-            "MON_CFG_TRIGGER_REPETITIONS",
+            self.MONITORING_NUMBER_TRIGGER_REPETITIONS_REGISTER,
             trigger_repetitions,
             servo=self.servo,
             axis=0
         )
         self.mc.communication.set_register(
-            "MON_CFG_SOC_TYPE",
+            self.MONITOR_START_CONDITION_TYPE_REGISTER,
             trigger_mode,
             servo=self.servo,
             axis=0
@@ -193,7 +206,7 @@ class Monitoring:
             axis=0
         )
         self.mc.communication.set_register(
-            "MON_IDX_CHECK",
+            self.MONITORING_INDEX_CHECKER_REGISTER,
             index_reg,
             servo=self.servo,
             axis=0
@@ -224,19 +237,19 @@ class Monitoring:
         window_samples = total_num_samples - trigger_delay_samples
 
         self.mc.communication.set_register(
-            "MON_CFG_EOC_TYPE",
+            self.MONITOR_END_CONDITION_TYPE_REGISTER,
             self.EOC_TRIGGER_NUMBER_SAMPLES,
             servo=self.servo,
             axis=0
         )
         self.mc.communication.set_register(
-            "MON_CFG_TRIGGER_DELAY",
+            self.MONITORING_TRIGGER_DELAY_SAMPLES_REGISTER,
             trigger_delay_samples,
             servo=self.servo,
             axis=0
         )
         self.mc.communication.set_register(
-            "MON_CFG_WINDOW_SAMP",
+            self.MONITORING_WINDOW_NUMBER_SAMPLES_REGISTER,
             window_samples,
             servo=self.servo,
             axis=0
@@ -269,7 +282,7 @@ class Monitoring:
         network.monitoring_enable()
         # Check monitoring status
         monitor_status = self.mc.communication.get_register(
-            "MON_DIST_STATUS",
+            self.MONITORING_DISTURBANCE_STATUS_REGISTER,
             servo=self.servo,
             axis=0
         )
@@ -290,7 +303,7 @@ class Monitoring:
         """
         network = self.mc.net[self.servo]
         trigger_repetitions = self.mc.communication.get_register(
-            "MON_CFG_TRIGGER_REPETITIONS",
+            self.MONITORING_NUMBER_TRIGGER_REPETITIONS_REGISTER,
             servo=self.servo,
             axis=0
         )
@@ -322,7 +335,7 @@ class Monitoring:
     def __check_version(self):
         self.__version_flag = self.MonitoringVersion.MONITORING_V2
         try:
-            self.mc.servos[self.servo].dict.get_regs(0)["MON_CFG_BYTES_VALUE"]
+            self.mc.servos[self.servo].dict.get_regs(0)[self.MONITORING_CURRENT_NUMBER_BYTES_REGISTER]
         except ILError:
             # The Monitoring V2 is NOT available
             self.__version_flag = self.MonitoringVersion.MONITORING_V1
@@ -330,14 +343,14 @@ class Monitoring:
     def __check_data_is_ready(self):
         if self.__version_flag == self.MonitoringVersion.MONITORING_V2:
             monitor_status = self.mc.communication.get_register(
-                "MON_DIST_STATUS",
+                self.MONITORING_DISTURBANCE_STATUS_REGISTER,
                 servo=self.servo,
                 axis=0
             )
             data_is_ready = (monitor_status & self.MONITORING_AVAILABLE_FRAME_BIT) != 0
         else:
             monit_nmb_blocks = self.mc.communication.get_register(
-                "MON_CFG_CYCLES_VALUE",
+                self.MONITORING_NUMBER_CYCLES_REGISTER,
                 servo=self.servo,
                 axis=0
             )
@@ -358,7 +371,7 @@ class Monitoring:
             trigger_repetitions (int): number of time trigger will be pull.
         """
         self.mc.communication.set_register(
-            "MON_CFG_TRIGGER_REPETITIONS",
+            self.MONITORING_NUMBER_TRIGGER_REPETITIONS_REGISTER,
             trigger_repetitions,
             servo=self.servo,
             axis=0
