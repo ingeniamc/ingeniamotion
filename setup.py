@@ -50,9 +50,8 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        'ingenialink>=5.1.0',
-        'numpy<=1.19.5',
-        'canopen>=1.0.0'
+        'ingenialink==5.2.2',
+        'ingenialogger>=0.2.0'
     ],
     python_requires='==3.6.*',
     ext_modules=cythonize(["ingeniamotion/*.py", "ingeniamotion/wizard_tests/*.py"])

@@ -72,7 +72,7 @@ class Capture:
 
     def create_monitoring(self, registers, prescaler, sample_time, trigger_delay=0,
                           trigger_mode=MonitoringSoCType.TRIGGER_EVENT_NONE,
-                          trigger_signal=None, trigger_value=None, servo="default", start=True):
+                          trigger_signal=None, trigger_value=None, servo="default", start=False):
         """
         Returns a Monitoring instance configured with target registers.
 
