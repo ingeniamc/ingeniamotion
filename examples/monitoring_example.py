@@ -1,14 +1,12 @@
+import logging
 import numpy as np
 import matplotlib.pyplot as plt
 
 from ingeniamotion import MotionController
 from ingeniamotion.monitoring import MonitoringSoCType
 
-
-def show_read_percentage(x):
-    percentage = x*100
-    print("Read {:.2f}% of the data".format(percentage))
-
+logging.basicConfig(level=logging.DEBUG)
+logging.getLogger('matplotlib.font_manager').disabled = True
 
 mc = MotionController()
 mc.communication.connect_servo_eoe("192.168.2.22", "./eve-net_1.7.0.xdf")
@@ -23,8 +21,8 @@ monitoring_prescaler = 10
 total_time_s = 1  # Total sample time in seconds
 trigger_delay_s = 0.0  # Trigger delay time in seconds
 
-# trigger_mode = MonitoringSoCType.TRIGGER_EVENT_NONE
-trigger_mode = MonitoringSoCType.TRIGGER_CYCLIC_RISING_EDGE
+trigger_mode = MonitoringSoCType.TRIGGER_EVENT_NONE
+# trigger_mode = MonitoringSoCType.TRIGGER_CYCLIC_RISING_EDGE
 # trigger_mode = MonitoringSoCType.TRIGGER_CYCLIC_FALLING_EDGE
 
 # Trigger signal register if trigger_mode is TRIGGER_CYCLIC_RISING_EDGE or TRIGGER_CYCLIC_FALLING_EDGE
@@ -45,9 +43,7 @@ monitoring = mc.capture.create_monitoring(registers,
 monitoring.enable_monitoring()
 print("Waiting for trigger")
 # Blocking function to read monitoring values
-data = monitoring.read_monitoring_data(
-    progress_callback=show_read_percentage  # Optional callback to show read progress, it's not necessary
-)
+data = monitoring.read_monitoring_data()
 print("Triggered and data read!")
 
 # Calculate abscissa values with total_time_s and trigger_delay_s
