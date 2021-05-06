@@ -304,7 +304,7 @@ class Monitoring:
         )
         is_enabled = self.is_monitoring_enabled()
         self.__read_process_finished = False
-        data_array = [[]] * len(self.mapped_registers)
+        data_array = [[] for _ in self.mapped_registers]
         self.logger.debug("Waiting for data")
         while not self.__read_process_finished:
             if not self.__check_data_is_ready():
