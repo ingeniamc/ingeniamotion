@@ -7,20 +7,15 @@ from ingenialink.exceptions import ILError
 
 from enum import IntEnum
 
-MONITORING_ENABLED_BIT = 0x1
-
 
 def check_monitoring_disabled(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
-        monitor_status = self.mc.communication.get_register(
-            Monitoring.MONITORING_DISTURBANCE_STATUS_REGISTER,
-            servo=self.servo,
-            axis=0
-        )
-        if (monitor_status & MONITORING_ENABLED_BIT) == 1:
+        monitoring_enabled = self.is_monitoring_enabled()
+        if monitoring_enabled:
             raise MonitoringError("Monitoring is enabled")
         return func(self, *args, **kwargs)
+
     return wrapper
 
 
@@ -40,7 +35,6 @@ class MonitoringSoCType(IntEnum):
 
 
 class Monitoring:
-
     """
     Class to configure a monitoring in a servo.
 
@@ -56,8 +50,9 @@ class Monitoring:
         MonitoringSoCType.TRIGGER_CYCLIC_FALLING_EDGE: "MON_CFG_FALLING_CONDITION"
     }
 
-    REGISTER_MAP_OFFSET = 0x800
+    MONITORING_ENABLED_BIT = 0x1
     MONITORING_AVAILABLE_FRAME_BIT = 0x800
+    REGISTER_MAP_OFFSET = 0x800
 
     class MonitoringVersion(IntEnum):
         """
@@ -286,7 +281,7 @@ class Monitoring:
             servo=self.servo,
             axis=0
         )
-        if (monitor_status & MONITORING_ENABLED_BIT) != 1:
+        if (monitor_status & self.MONITORING_ENABLED_BIT) != 1:
             raise MonitoringError("ERROR MONITOR STATUS: {}".format(monitor_status))
 
     def disable_monitoring(self):
@@ -307,23 +302,36 @@ class Monitoring:
             servo=self.servo,
             axis=0
         )
+        is_enabled = self.is_monitoring_enabled()
         self.__read_process_finished = False
-        data_array = [[] for _ in self.mapped_registers]
+        data_array = [[]] * len(self.mapped_registers)
+        self.logger.debug("Waiting for data")
         while not self.__read_process_finished:
             if not self.__check_data_is_ready():
-                if trigger_repetitions == 0:
+                if not is_enabled or trigger_repetitions == 0:
+                    text_is_enabled = "enabled" if is_enabled else "disabled"
                     self.logger.warning("Can't read monitoring data because monitoring is not ready."
-                                        " MON_CFG_TRIGGER_REPETITIONS is 0.")
-                    break
+                                        " MON_CFG_TRIGGER_REPETITIONS is {}. Monitoring is {}"
+                                        .format(trigger_repetitions, text_is_enabled))
+                    self.__read_process_finished = True
                 continue
             network.monitoring_read_data()
             self.__fill_data(data_array)
+            current_progress = len(data_array[0]) / self.samples_number
+            self.logger.debug("Read %.2f%% of monitoring data", current_progress * 100)
             if progress_callback is not None:
-                current_progress = len(data_array[0]) / self.samples_number
                 progress_callback(current_progress)
             if len(data_array[0]) >= self.samples_number:
                 self.__read_process_finished = True
         return data_array
+
+    def is_monitoring_enabled(self):
+        monitor_status = self.mc.communication.get_register(
+            Monitoring.MONITORING_DISTURBANCE_STATUS_REGISTER,
+            servo=self.servo,
+            axis=0
+        )
+        return (monitor_status & self.MONITORING_ENABLED_BIT) == 1
 
     def __fill_data(self, data_array):
         network = self.mc.net[self.servo]
