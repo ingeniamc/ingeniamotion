@@ -1,3 +1,4 @@
+import re
 import ingenialogger
 
 from os import path
@@ -19,6 +20,8 @@ class Configuration:
     BRAKE_OVERRIDE_REGISTER = "MOT_BRAKE_OVERRIDE"
     PROFILE_MAX_ACCELERATION_REGISTER = "PROF_MAX_ACC"
     PROFILE_MAX_VELOCITY_REGISTER = "PROF_MAX_VEL"
+    POWER_STAGE_FREQUENCY_REGISTER = "DRV_PS_FREQ_SELECTION"
+    POSITION_AND_VELOCITY_LOOP_RATE_REGISTER = "DRV_POS_VEL_RATE"
 
     def __init__(self, motion_controller):
         self.mc = motion_controller
@@ -146,3 +149,80 @@ class Configuration:
         )
         self.logger.debug("Max velocity set to %s", velocity,
                           axis=axis, drive=self.mc.servo_name(servo))
+
+    def get_position_and_velocity_loop_rate(self, servo="default", axis=1):
+        """
+        Get position & velocity loop rate frequency.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+
+        Returns:
+            int: Position & velocity loop rate frequency in Hz.
+        """
+        return self.mc.communication.get_register(
+            self.POSITION_AND_VELOCITY_LOOP_RATE_REGISTER,
+            servo=servo,
+            axis=axis
+        )
+
+    def get_power_stage_frequency(self, servo="default", axis=1, raw=False):
+        """
+        Get Power stage frequency register.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+            raw (bool): if ``False`` return frequency in Hz, if ``True`` return raw register value.
+                ```False`` by default.
+
+        Returns:
+            int: Frequency in Hz if raw is ``False``, else, raw register value.
+        """
+        pow_stg_freq = self.mc.communication.get_register(
+            self.POWER_STAGE_FREQUENCY_REGISTER,
+            servo=servo,
+            axis=axis
+        )
+        if raw:
+            return pow_stg_freq
+        pow_stg_freq_enum = self.mc.get_register_enum(self.POWER_STAGE_FREQUENCY_REGISTER, servo, axis)
+        freq_label = pow_stg_freq_enum(pow_stg_freq).name
+        match = re.match(r"(\d+) (\w+)", freq_label)
+        value, unit = match.groups()
+        if unit == "MHz":
+            return int(value)*1000000
+        if unit == "kHz":
+            return int(value)*1000
+        return int(value)
+
+    def get_power_stage_frequency_enum(self, servo="default", axis=1):
+        """
+        Return Power stage frequency register enum.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+
+        Returns:
+            IntEnum: Enum with power stage frequency available values.
+
+        """
+        return self.mc.get_register_enum(self.POWER_STAGE_FREQUENCY_REGISTER, servo, axis)
+
+    def set_power_stage_frequency(self, value, servo="default", axis=1):
+        """
+        Set power stage frequency from enum value. See :func: `get_power_stage_frequency_enum`.
+
+        Args:
+            value (int): Enum value to set power stage frequency.
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+        """
+        self.mc.communication.set_register(
+            self.POWER_STAGE_FREQUENCY_REGISTER,
+            value,
+            servo=servo,
+            axis=axis
+        )
