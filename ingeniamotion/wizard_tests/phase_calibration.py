@@ -43,23 +43,23 @@ class Phasing(BaseTest):
     }
 
     BACKUP_REGISTERS = [
-        'CL_POS_FBK_SENSOR',
-        'DRV_OP_CMD',
-        'CL_CUR_Q_SET_POINT',
-        'CL_CUR_D_SET_POINT',
-        'FBK_GEN_MODE',
-        'FBK_GEN_FREQ',
-        'FBK_GEN_GAIN',
-        'FBK_GEN_OFFSET',
-        'COMMU_ANGLE_SENSOR',
-        'FBK_GEN_CYCLES',
-        'COMMU_PHASING_MAX_CURRENT',
-        'COMMU_PHASING_TIMEOUT',
-        'COMMU_PHASING_ACCURACY',
-        'COMMU_PHASING_MODE',
-        'MOT_COMMU_MOD',
-        'COMMU_ANGLE_INTEGRITY1_OPTION',
-        'COMMU_ANGLE_INTEGRITY2_OPTION'
+        "CL_POS_FBK_SENSOR",
+        "DRV_OP_CMD",
+        "CL_CUR_Q_SET_POINT",
+        "CL_CUR_D_SET_POINT",
+        "FBK_GEN_MODE",
+        "FBK_GEN_FREQ",
+        "FBK_GEN_GAIN",
+        "FBK_GEN_OFFSET",
+        "COMMU_ANGLE_SENSOR",
+        "FBK_GEN_CYCLES",
+        "COMMU_PHASING_MAX_CURRENT",
+        "COMMU_PHASING_TIMEOUT",
+        "COMMU_PHASING_ACCURACY",
+        "COMMU_PHASING_MODE",
+        "MOT_COMMU_MOD",
+        "COMMU_ANGLE_INTEGRITY1_OPTION",
+        "COMMU_ANGLE_INTEGRITY2_OPTION"
     ]
 
     class ResultType(IntEnum):
@@ -171,12 +171,12 @@ class Phasing(BaseTest):
 
     def reaction_codes_to_warning(self):
         try:
-            self.servo.raw_write('COMMU_ANGLE_INTEGRITY1_OPTION', 1, subnode=self.subnode)
+            self.servo.raw_write("COMMU_ANGLE_INTEGRITY1_OPTION", 1, subnode=self.subnode)
         except ILError:
             self.logger.warning('Could not write COMMU_ANGLE_INTEGRITY1_OPTION', axis=self.subnode)
 
         try:
-            self.servo.raw_write('COMMU_ANGLE_INTEGRITY2_OPTION', 1, subnode=self.subnode)
+            self.servo.raw_write("COMMU_ANGLE_INTEGRITY2_OPTION", 1, subnode=self.subnode)
         except ILError:
             self.logger.warning('Could not write COMMU_ANGLE_INTEGRITY2_OPTION', axis=self.subnode)
 

@@ -44,39 +44,39 @@ class Feedbacks(BaseTest):
     WARNING_BIT_MASK = 0x0FFFFFFF
     FAIL_MSG_MISMATCH = "A mismatch in resolution has been detected."
 
-    BACKUP_REGISTERS = ['CL_POS_FBK_SENSOR',
-                        'FBK_BISS1_SSI1_POS_POLARITY',
-                        'FBK_BISS2_POS_POLARITY',
-                        'FBK_DIGENC1_POLARITY',
-                        'FBK_DIGENC2_POLARITY',
-                        'FBK_DIGHALL_POLARITY',
-                        'FBK_DIGHALL_PAIRPOLES',
-                        'MOT_PAIR_POLES',
-                        'DRV_OP_CMD',
-                        'CL_CUR_Q_SET_POINT',
-                        'CL_CUR_D_SET_POINT',
-                        'FBK_GEN_MODE',
-                        'FBK_GEN_FREQ',
-                        'FBK_GEN_GAIN',
-                        'FBK_GEN_OFFSET',
-                        'COMMU_ANGLE_SENSOR',
-                        'FBK_GEN_CYCLES',
-                        'FBK_SSI2_POS_POLARITY',
-                        'COMMU_PHASING_MODE',
-                        'MOT_COMMU_MOD',
-                        'CL_AUX_FBK_SENSOR',
-                        'ERROR_DIGENC_AGAINST_HALL_OPTION',
-                        'ERROR_DIGHALL_SEQ_OPTION',
-                        'CL_VEL_FOLLOWING_OPTION',
-                        'ERROR_VEL_OUT_LIMITS_OPTION',
-                        'ERROR_POS_OUT_LIMITS_OPTION',
-                        'ERROR_POS_FOLLOWING_OPTION',
-                        'COMMU_ANGLE_INTEGRITY1_OPTION',
-                        'COMMU_ANGLE_INTEGRITY2_OPTION',
-                        'CL_VEL_FBK_SENSOR',
-                        'COMMU_ANGLE_REF_SENSOR',
-                        'CL_VEL_FBK_FILTER1_TYPE',
-                        'CL_VEL_FBK_FILTER1_FREQ']
+    BACKUP_REGISTERS = ["CL_POS_FBK_SENSOR",
+                        "FBK_BISS1_SSI1_POS_POLARITY",
+                        "FBK_BISS2_POS_POLARITY",
+                        "FBK_DIGENC1_POLARITY",
+                        "FBK_DIGENC2_POLARITY",
+                        "FBK_DIGHALL_POLARITY",
+                        "FBK_DIGHALL_PAIRPOLES",
+                        "MOT_PAIR_POLES",
+                        "DRV_OP_CMD",
+                        "CL_CUR_Q_SET_POINT",
+                        "CL_CUR_D_SET_POINT",
+                        "FBK_GEN_MODE",
+                        "FBK_GEN_FREQ",
+                        "FBK_GEN_GAIN",
+                        "FBK_GEN_OFFSET",
+                        "COMMU_ANGLE_SENSOR",
+                        "FBK_GEN_CYCLES",
+                        "FBK_SSI2_POS_POLARITY",
+                        "COMMU_PHASING_MODE",
+                        "MOT_COMMU_MOD",
+                        "CL_AUX_FBK_SENSOR",
+                        "ERROR_DIGENC_AGAINST_HALL_OPTION",
+                        "ERROR_DIGHALL_SEQ_OPTION",
+                        "CL_VEL_FOLLOWING_OPTION",
+                        "ERROR_VEL_OUT_LIMITS_OPTION",
+                        "ERROR_POS_OUT_LIMITS_OPTION",
+                        "ERROR_POS_FOLLOWING_OPTION",
+                        "COMMU_ANGLE_INTEGRITY1_OPTION",
+                        "COMMU_ANGLE_INTEGRITY2_OPTION",
+                        "CL_VEL_FBK_SENSOR",
+                        "COMMU_ANGLE_REF_SENSOR",
+                        "CL_VEL_FBK_FILTER1_TYPE",
+                        "CL_VEL_FBK_FILTER1_FREQ"]
 
     def __init__(self, servo, subnode, sensor):
         super().__init__()
@@ -194,7 +194,7 @@ class Feedbacks(BaseTest):
         # TODO: set filter depending on motors rated velocity by the
         #  following formula: f_halls = w_mechanical * pp * 6
         if velocity_feedback == self.SensorType.HALLS:
-            filter_type_uid = 'CL_VEL_FBK_FILTER1_TYPE'
+            filter_type_uid = "CL_VEL_FBK_FILTER1_TYPE"
             filter_freq_uid = "CL_VEL_FBK_FILTER1_FREQ"
             self.suggested_registers[filter_type_uid] = self.LOW_PASS_FILTER
             self.suggested_registers[filter_freq_uid] = self.HALLS_FILTER_CUTOFF_FREQUENCY
@@ -240,7 +240,7 @@ class Feedbacks(BaseTest):
 
     def digital_halls_resolution(self):
         self.servo.raw_write(
-            'CL_VEL_FBK_FILTER1_TYPE',
+            "CL_VEL_FBK_FILTER1_TYPE",
             self.LOW_PASS_FILTER,
             subnode=self.subnode
         )
@@ -311,14 +311,14 @@ class Feedbacks(BaseTest):
         # set velocity and position following errors to WARNING = 1
         # ignore failed writes
         following_error_uids = [
-            'ERROR_DIGENC_AGAINST_HALL_OPTION',
-            'ERROR_DIGHALL_SEQ_OPTION',
-            'CL_VEL_FOLLOWING_OPTION',
-            'ERROR_VEL_OUT_LIMITS_OPTION',
-            'ERROR_POS_OUT_LIMITS_OPTION',
-            'ERROR_POS_FOLLOWING_OPTION',
-            'COMMU_ANGLE_INTEGRITY1_OPTION',
-            'COMMU_ANGLE_INTEGRITY2_OPTION'
+            "ERROR_DIGENC_AGAINST_HALL_OPTION",
+            "ERROR_DIGHALL_SEQ_OPTION",
+            "CL_VEL_FOLLOWING_OPTION",
+            "ERROR_VEL_OUT_LIMITS_OPTION",
+            "ERROR_POS_OUT_LIMITS_OPTION",
+            "ERROR_POS_FOLLOWING_OPTION",
+            "COMMU_ANGLE_INTEGRITY1_OPTION",
+            "COMMU_ANGLE_INTEGRITY2_OPTION"
         ]
         for following_error_uid in following_error_uids:
             try:
@@ -368,11 +368,11 @@ class Feedbacks(BaseTest):
         # Change multiplier using gear ratio if feedback to check is configured
         # as position sensor (out of gear)
         position_feedback_value = self.servo.raw_read(
-            'CL_POS_FBK_SENSOR', subnode=self.subnode
+            "CL_POS_FBK_SENSOR", subnode=self.subnode
         )
         if position_feedback_value == self.sensor:
             self.resolution_multiplier = self.servo.raw_read(
-                'PROF_POS_VEL_RATIO',
+                "PROF_POS_VEL_RATIO",
                 subnode=self.subnode
             )
         # For each feedback on motor side we should repeat this test using the
@@ -465,12 +465,12 @@ class Feedbacks(BaseTest):
 
     def show_error_message(self):
         self.servo.write(
-            'DRV_DIAG_ERROR_LIST_IDX',
+            "DRV_DIAG_ERROR_LIST_IDX",
             0,
             subnode=self.subnode
         )
         error_code = int(self.servo.read(
-            'DRV_DIAG_ERROR_LIST_CODE',
+            "DRV_DIAG_ERROR_LIST_CODE",
             subnode=self.subnode
         ))
         error_code_cleaned = error_code & self.WARNING_BIT_MASK
