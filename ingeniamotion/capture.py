@@ -92,8 +92,10 @@ class Capture:
                         }
                     ]
 
-            prescaler (int): determines monitoring frequency. Frequency will be ``Power stage frequency / prescaler``.
-                It must be 1 or higher.
+            prescaler (int): determines monitoring frequency. Frequency will be
+                ``Position & velocity loop rate frequency / prescaler``, see
+                :func:`ingeniamotion.configuration.Configuration.get_position_and_velocity_loop_rate` to know about
+                this frequency. It must be 1 or higher.
             sample_time (float): sample time in seconds.
             trigger_delay (float): trigger delay in seconds. Value should be between ``-sample_time/2`` and
                 ``sample_time/2`` . ``0`` by default.
