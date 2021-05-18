@@ -333,7 +333,7 @@ class Monitoring:
             axis=0
         )
         if (monitor_status & self.MONITORING_STATUS_ENABLED_BIT) != 1:
-            raise MonitoringError("ERROR MONITOR STATUS: {}".format(monitor_status))
+            raise MonitoringError("Error enabling monitoring. Monitoring status code: {}".format(monitor_status))
 
     def disable_monitoring(self):
         """
