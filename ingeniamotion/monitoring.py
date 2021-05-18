@@ -130,10 +130,10 @@ class Monitoring:
         frequency. Monitoring must be disabled.
 
         Args:
-            prescaler (int): determines monitoring frequency. It must be 1 or higher.
+            prescaler (int): determines monitoring frequency. It must be ``1`` or higher.
 
         Raises:
-            ValueError: If prescaler is less than 1.
+            ValueError: If prescaler is less than ``1``.
         """
         if prescaler < 1:
             raise ValueError("prescaler must be 1 or higher")
@@ -161,6 +161,7 @@ class Monitoring:
 
         Raises:
             MonitoringError: If register maps fails in the servo.
+            MonitoringError: If buffer size is not enough for all the registers.
         """
         drive = self.mc.servos[self.servo]
         network = self.mc.net[self.servo]
@@ -206,6 +207,7 @@ class Monitoring:
 
         Raises:
             TypeError: If trigger_mode is rising or falling edge trigger and trigger_signal or trigger_value are None.
+            MonitoringError: If trigger signal is not mapped.
         """
         self.mc.communication.set_register(
             self.MONITORING_NUMBER_TRIGGER_REPETITIONS_REGISTER,
@@ -269,6 +271,10 @@ class Monitoring:
             total_num_samples (int): monitoring total number of samples.
             trigger_delay_samples (int): monitoring number of samples before trigger.
                 It should be less than total_num_samples. Minimum ``1``.
+
+        Raises:
+            ValueError: If trigger_delay_samples is less than ``1`` or higher than total_num_samples.
+            MonitoringError: If buffer size is not enough for all the samples.
         """
         if not total_num_samples > trigger_delay_samples:
             raise ValueError("trigger_delay_samples should be less than total_num_samples")
@@ -309,6 +315,10 @@ class Monitoring:
             total_time (float): monitoring sample total time, in seconds.
             trigger_delay (float): trigger delay in seconds. Value should be between ``-total_time/2`` and
                 ``total_time/2``.
+
+        Raises:
+            ValueError: If trigger_delay is not between ``-total_time/2`` and ``total_time/2``.
+            MonitoringError: If buffer size is not enough for all the samples.
         """
         if total_time/2 < abs(trigger_delay):
             raise ValueError("trigger_delay value should be between -total_time/2 and total_time/2")
@@ -372,7 +382,6 @@ class Monitoring:
             network.monitoring_read_data()
             self.__fill_data(data_array)
             current_progress = len(data_array[0]) / self.samples_number
-            self.logger.debug("read %d, total %d", len(data_array[0]), self.samples_number)
             self.logger.debug("Read %.2f%% of monitoring data", current_progress * 100)
             if progress_callback is not None:
                 progress_callback(current_progress)
