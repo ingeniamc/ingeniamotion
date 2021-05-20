@@ -1,10 +1,12 @@
 # Changelog
 
-## [Unreleased]
+## [0.2.0] - 2021-05-20
 ### Added
 - Functions get_register and set_register.
 - Functions create_poller.
 - Monitoring class and create_monitoring function.
+- Set and get power stage frequency and get position and velocity loop rate functions
+  in configuration.
 
 ## [0.1.1] - 2021-03-18
 ### Added

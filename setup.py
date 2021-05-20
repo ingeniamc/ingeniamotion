@@ -50,7 +50,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        'ingenialink==5.2.2',
+        'ingenialink==5.3.0',
         'ingenialogger>=0.2.0'
     ],
     python_requires='==3.6.*',
