@@ -1,3 +1,5 @@
+from enum import IntEnum
+
 from .configuration import Configuration
 from .motion import Motion
 from .capture import Capture
@@ -21,6 +23,15 @@ class MotionController:
     def check_servo(self, servo):
         if servo not in self.servos:
             raise Exception("Servo '{}' does not exist".format(servo))
+
+    def servo_name(self, servo):
+        return "{} ({})".format(self.servos[servo].info["prod_code"], servo)
+
+    def get_register_enum(self, register, servo, axis):
+        drive = self.servos[servo]
+        enum_list = drive.dict.get_regs(axis)[register].enums
+        enum_dict = {x["label"]: x["value"] for x in enum_list}
+        return IntEnum(register, enum_dict)
 
     # Properties
     @property

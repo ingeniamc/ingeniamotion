@@ -1,5 +1,5 @@
 import time
-import logging
+import ingenialogger
 
 from enum import IntEnum
 from ingenialink.exceptions import ILError
@@ -43,23 +43,23 @@ class Phasing(BaseTest):
     }
 
     BACKUP_REGISTERS = [
-        'CL_POS_FBK_SENSOR',
-        'DRV_OP_CMD',
-        'CL_CUR_Q_SET_POINT',
-        'CL_CUR_D_SET_POINT',
-        'FBK_GEN_MODE',
-        'FBK_GEN_FREQ',
-        'FBK_GEN_GAIN',
-        'FBK_GEN_OFFSET',
-        'COMMU_ANGLE_SENSOR',
-        'FBK_GEN_CYCLES',
-        'COMMU_PHASING_MAX_CURRENT',
-        'COMMU_PHASING_TIMEOUT',
-        'COMMU_PHASING_ACCURACY',
-        'COMMU_PHASING_MODE',
-        'MOT_COMMU_MOD',
-        'COMMU_ANGLE_INTEGRITY1_OPTION',
-        'COMMU_ANGLE_INTEGRITY2_OPTION'
+        "CL_POS_FBK_SENSOR",
+        "DRV_OP_CMD",
+        "CL_CUR_Q_SET_POINT",
+        "CL_CUR_D_SET_POINT",
+        "FBK_GEN_MODE",
+        "FBK_GEN_FREQ",
+        "FBK_GEN_GAIN",
+        "FBK_GEN_OFFSET",
+        "COMMU_ANGLE_SENSOR",
+        "FBK_GEN_CYCLES",
+        "COMMU_PHASING_MAX_CURRENT",
+        "COMMU_PHASING_TIMEOUT",
+        "COMMU_PHASING_ACCURACY",
+        "COMMU_PHASING_MODE",
+        "MOT_COMMU_MOD",
+        "COMMU_ANGLE_INTEGRITY1_OPTION",
+        "COMMU_ANGLE_INTEGRITY2_OPTION"
     ]
 
     class ResultType(IntEnum):
@@ -78,6 +78,7 @@ class Phasing(BaseTest):
         self.backup_registers_names = self.BACKUP_REGISTERS
         self.comm = None
         self.ref = None
+        self.logger = ingenialogger.get_logger(__name__)
 
         self.default_phasing_current = default_current
         self.default_phasing_timeout = default_timeout
@@ -113,9 +114,7 @@ class Phasing(BaseTest):
         # Protection to avoid any unwanted movement
         self.servo.disable(subnode=self.subnode)
 
-        logging.debug("-------------------------")
-        logging.debug("CONFIGURATION OF THE TEST")
-        logging.debug("-------------------------")
+        self.logger.info("CONFIGURATION OF THE TEST", axis=self.subnode)
 
         self.comm = self.servo.raw_read("COMMU_ANGLE_SENSOR", subnode=self.subnode)
         self.ref = self.servo.raw_read("COMMU_ANGLE_REF_SENSOR", subnode=self.subnode)
@@ -134,48 +133,52 @@ class Phasing(BaseTest):
             fb = self.ref
 
         # Check phasing registers mode
-        logging.debug("Checking input data")
+        self.logger.debug("Checking input data", axis=self.subnode)
         self.check_input_data()
 
         # Set sinusoidal commutation modulation
         self.servo.raw_write("MOT_COMMU_MOD", 0, subnode=self.subnode)
 
-        logging.debug("Mode of operation set to Current mode")
+        self.logger.debug("Mode of operation set to Current mode", axis=self.subnode)
         self.servo.raw_write("DRV_OP_CMD", 2, subnode=self.subnode)
 
-        logging.debug("Target quadrature current set to zero")
-        logging.debug("Target direct current set to zero")
+        self.logger.debug("Target quadrature current set to zero", axis=self.subnode)
+        self.logger.debug("Target direct current set to zero", axis=self.subnode)
         self.servo.raw_write("CL_CUR_Q_SET_POINT", 0, subnode=self.subnode)
         self.servo.raw_write("CL_CUR_D_SET_POINT", 0, subnode=self.subnode)
 
-        logging.debug("Reset phasing status by setting again commutation sensor")
+        self.logger.debug("Reset phasing status by setting again commutation sensor", axis=self.subnode)
         self.servo.raw_write("COMMU_ANGLE_SENSOR", fb, subnode=self.subnode)
 
         self.pha_current = self.servo.raw_read("COMMU_PHASING_MAX_CURRENT", subnode=self.subnode)
-        logging.debug("Set phasing current to " + str(round(self.pha_current, 2)) + " A")
+        self.logger.debug("Set phasing current to %.2f A",
+                          self.pha_current,
+                          axis=self.subnode)
 
         self.pha_timeout = self.servo.raw_read("COMMU_PHASING_TIMEOUT",
                                                subnode=self.subnode)  # value in ms
-        logging.debug("Set phasing timeout to " + str(self.pha_timeout / 1000) + " s")
+        self.logger.debug("Set phasing timeout to %s s",
+                          self.pha_timeout / 1000,
+                          axis=self.subnode)
 
         self.pha_accuracy = self.servo.raw_read("COMMU_PHASING_ACCURACY", subnode=self.subnode)
-        logging.debug("Set phasing accuracy to " + str(self.pha_accuracy) + " mº")
+        self.logger.debug("Set phasing accuracy to %s mº", self.pha_accuracy, axis=self.subnode)
 
-        logging.debug("Set phasing mode to Forced")
+        self.logger.debug("Set phasing mode to Forced", axis=self.subnode)
         self.servo.raw_write("COMMU_PHASING_MODE", self.PHA_FORCED, subnode=self.subnode)
 
         self.reaction_codes_to_warning()
 
     def reaction_codes_to_warning(self):
         try:
-            self.servo.raw_write('COMMU_ANGLE_INTEGRITY1_OPTION', 1, subnode=self.subnode)
+            self.servo.raw_write("COMMU_ANGLE_INTEGRITY1_OPTION", 1, subnode=self.subnode)
         except ILError:
-            print('Could not write COMMU_ANGLE_INTEGRITY1_OPTION')
+            self.logger.warning('Could not write COMMU_ANGLE_INTEGRITY1_OPTION', axis=self.subnode)
 
         try:
-            self.servo.raw_write('COMMU_ANGLE_INTEGRITY2_OPTION', 1, subnode=self.subnode)
+            self.servo.raw_write("COMMU_ANGLE_INTEGRITY2_OPTION", 1, subnode=self.subnode)
         except ILError:
-            print('Could not write COMMU_ANGLE_INTEGRITY2_OPTION')
+            self.logger.warning('Could not write COMMU_ANGLE_INTEGRITY2_OPTION', axis=self.subnode)
 
     def define_phasing_steps(self):
         # Doc: Last step is defined as the first angle delta smaller than 3 times the phasing accuracy
@@ -217,16 +220,14 @@ class Phasing(BaseTest):
                 return self.PHA_NON_FORCED
 
     def loop(self):
-        logging.info("-----------------")
-        logging.info("START OF THE TEST")
-        logging.info("-----------------")
+        self.logger.info("START OF THE TEST", axis=self.subnode)
 
         num_of_steps = self.define_phasing_steps()
 
-        logging.debug("Enabling motor")
+        self.logger.debug("Enabling motor", axis=self.subnode)
         self.servo.enable(subnode=self.subnode)
 
-        logging.debug("Wait until phasing is executed")
+        self.logger.info("Wait until phasing is executed", axis=self.subnode)
 
         phasing_bit_latched = False
         timeout = time.time() + (num_of_steps * self.pha_timeout / 1000)
@@ -254,7 +255,7 @@ class Phasing(BaseTest):
         return self.ResultType.SUCCESS
 
     def teardown(self):
-        logging.debug("Disabling motor")
+        self.logger.debug("Disabling motor", axis=self.subnode)
         self.servo.disable(subnode=self.subnode)
 
     def get_result_msg(self, output):

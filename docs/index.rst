@@ -16,6 +16,8 @@ Welcome to ingeniamotion's documentation!
 
    examples
 
+   changelog
+
 Indices and tables
 ==================
 
