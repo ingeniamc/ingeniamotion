@@ -337,13 +337,8 @@ class Monitoring:
         network = self.mc.net[self.servo]
         network.monitoring_enable()
         # Check monitoring status
-        monitor_status = self.mc.communication.get_register(
-            self.MONITORING_DISTURBANCE_STATUS_REGISTER,
-            servo=self.servo,
-            axis=0
-        )
-        if (monitor_status & self.MONITORING_STATUS_ENABLED_BIT) != 1:
-            raise MonitoringError("Error enabling monitoring. Monitoring status code: {}".format(monitor_status))
+        if not self.is_monitoring_enabled():
+            raise MonitoringError("Error enabling monitoring.")
 
     def disable_monitoring(self):
         """
@@ -375,7 +370,7 @@ class Monitoring:
                 if not is_enabled or trigger_repetitions == 0:
                     text_is_enabled = "enabled" if is_enabled else "disabled"
                     self.logger.warning("Can't read monitoring data because monitoring is not ready."
-                                        " MON_CFG_TRIGGER_REPETITIONS is {}. Monitoring is {}"
+                                        " MON_CFG_TRIGGER_REPETITIONS is {}. Monitoring is {}."
                                         .format(trigger_repetitions, text_is_enabled))
                     self.__read_process_finished = True
                 continue
@@ -389,6 +384,19 @@ class Monitoring:
                 self.__read_process_finished = True
         return data_array
 
+    def get_monitoring_disturbance_status(self):
+        """
+        Get Monitoring/Disturbance Status.
+
+        Returns:
+            int: Monitoring/Disturbance Status.
+        """
+        return self.mc.communication.get_register(
+            Monitoring.MONITORING_DISTURBANCE_STATUS_REGISTER,
+            servo=self.servo,
+            axis=0
+        )
+
     def is_monitoring_enabled(self):
         """
         Check if monitoring is enabled.
@@ -396,11 +404,7 @@ class Monitoring:
         Returns:
             bool: True if monitoring is enabled, else False.
         """
-        monitor_status = self.mc.communication.get_register(
-            Monitoring.MONITORING_DISTURBANCE_STATUS_REGISTER,
-            servo=self.servo,
-            axis=0
-        )
+        monitor_status = self.get_monitoring_disturbance_status()
         return (monitor_status & self.MONITORING_STATUS_ENABLED_BIT) == 1
 
     def get_monitoring_process_stage(self):
@@ -410,13 +414,19 @@ class Monitoring:
         Returns:
             MonitoringProcessStage: Current monitoring process stage.
         """
-        monitor_status = self.mc.communication.get_register(
-            Monitoring.MONITORING_DISTURBANCE_STATUS_REGISTER,
-            servo=self.servo,
-            axis=0
-        )
+        monitor_status = self.get_monitoring_disturbance_status()
         masked_value = monitor_status & self.MONITORING_STATUS_PROCESS_STAGE_BITS
         return MonitoringProcessStage(masked_value)
+
+    def is_frame_available(self):
+        """
+        Check if monitoring has an available frame.
+
+        Returns:
+            bool: True if monitoring has an available frame, else False.
+        """
+        monitor_status = self.get_monitoring_disturbance_status()
+        return (monitor_status & self.MONITORING_AVAILABLE_FRAME_BIT) != 0
 
     def __fill_data(self, data_array):
         network = self.mc.net[self.servo]
@@ -434,20 +444,14 @@ class Monitoring:
             self.__version_flag = self.MonitoringVersion.MONITORING_V1
 
     def __check_data_is_ready(self):
+        monit_nmb_blocks = self.mc.communication.get_register(
+            self.MONITORING_NUMBER_CYCLES_REGISTER,
+            servo=self.servo,
+            axis=0
+        )
+        data_is_ready = monit_nmb_blocks > 0
         if self.__version_flag == self.MonitoringVersion.MONITORING_V2:
-            monitor_status = self.mc.communication.get_register(
-                self.MONITORING_DISTURBANCE_STATUS_REGISTER,
-                servo=self.servo,
-                axis=0
-            )
-            data_is_ready = (monitor_status & self.MONITORING_AVAILABLE_FRAME_BIT) != 0
-        else:
-            monit_nmb_blocks = self.mc.communication.get_register(
-                self.MONITORING_NUMBER_CYCLES_REGISTER,
-                servo=self.servo,
-                axis=0
-            )
-            data_is_ready = monit_nmb_blocks > 0
+            data_is_ready &= self.is_frame_available()
         return data_is_ready
 
     def stop_reading_data(self):
