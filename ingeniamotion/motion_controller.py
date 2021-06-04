@@ -5,6 +5,7 @@ from .motion import Motion
 from .capture import Capture
 from .communication import Communication
 from .drive_tests import DriveTests
+from .feedbacks import Feedbacks
 
 
 class MotionController:
@@ -19,6 +20,7 @@ class MotionController:
         self.__capture = Capture(self)
         self.__comm = Communication(self)
         self.__tests = DriveTests(self)
+        self.__fdbck = Feedbacks(self)
 
     def check_servo(self, servo):
         if servo not in self.servos:
@@ -90,3 +92,10 @@ class MotionController:
         Instance of  :class:`~ingeniamotion.drive_tests.DriveTests` class
         """
         return self.__tests
+
+    @property
+    def feedbacks(self):
+        """
+        Instance of  :class:`~ingeniamotion.feedbacks.Feedbacks` class
+        """
+        return self.__fdbck
