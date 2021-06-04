@@ -134,7 +134,7 @@ class Feedbacks:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. 1 by default.
         """
-        reference_feedback = self.get_commutation_feedback(servo, axis)
+        reference_feedback = self.get_reference_feedback(servo, axis)
         sensor_type = self.feedbackType[reference_feedback]
         return sensor_type
 
@@ -185,7 +185,7 @@ class Feedbacks:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. 1 by default.
         """
-        velocity_feedback = self.get_commutation_feedback(servo, axis)
+        velocity_feedback = self.get_velocity_feedback(servo, axis)
         sensor_type = self.feedbackType[velocity_feedback]
         return sensor_type
 
@@ -236,7 +236,7 @@ class Feedbacks:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. 1 by default.
         """
-        position_feedback = self.get_commutation_feedback(servo, axis)
+        position_feedback = self.get_position_feedback(servo, axis)
         sensor_type = self.feedbackType[position_feedback]
         return sensor_type
 
@@ -287,7 +287,7 @@ class Feedbacks:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. 1 by default.
         """
-        auxiliar_feedback = self.get_commutation_feedback(servo, axis)
+        auxiliar_feedback = self.get_auxiliar_feedback(servo, axis)
         sensor_type = self.feedbackType[auxiliar_feedback]
         return sensor_type
 
