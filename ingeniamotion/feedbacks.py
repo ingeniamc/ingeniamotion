@@ -67,7 +67,7 @@ class Feedbacks:
             axis (int): axis that will run the test. ``1`` by default.
 
         Returns:
-            Feedbacks.SensorType: Type of feedback configured.
+            SensorType: Type of feedback configured.
         """
         self.mc.check_servo(servo)
         commutation_feedback = self.mc.communication.get_register(
@@ -83,7 +83,7 @@ class Feedbacks:
         Writes commutation feedbacks value in the target servo and axis.
 
         Args:
-            feedback (int): feedback sensor number
+            feedback (SensorType): feedback sensor number
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
         """
@@ -98,7 +98,7 @@ class Feedbacks:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
         Returns:
-            Feedbacks.SensorCategory: Category {ABSOLUTE, INCREMENTAL} of the
+            SensorCategory: Category {ABSOLUTE, INCREMENTAL} of the
             selected feedback.
         """
         commutation_feedback = self.get_commutation_feedback(servo, axis)
@@ -126,7 +126,7 @@ class Feedbacks:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
         Returns:
-            Feedbacks.SensorType: Type of feedback configured
+            SensorType: Type of feedback configured
         """
         self.mc.check_servo(servo)
         reference_feedback = self.mc.communication.get_register(
@@ -142,7 +142,7 @@ class Feedbacks:
         Writes reference feedbacks value in the target servo and axis.
 
         Args:
-            feedback (int): feedback sensor number
+            feedback (SensorType): feedback sensor number
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
         """
@@ -157,7 +157,7 @@ class Feedbacks:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
         Returns:
-            Feedbacks.SensorCategory: Category {ABSOLUTE, INCREMENTAL} of the
+            SensorCategory: Category {ABSOLUTE, INCREMENTAL} of the
             selected feedback.
         """
         reference_feedback = self.get_reference_feedback(servo, axis)
@@ -185,7 +185,7 @@ class Feedbacks:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
         Returns:
-            Feedbacks.SensorType: Type of feedback configured
+            SensorType: Type of feedback configured
         """
         self.mc.check_servo(servo)
         velocity_feedback = self.mc.communication.get_register(
@@ -201,7 +201,7 @@ class Feedbacks:
         Writes velocity feedbacks value in the target servo and axis.
 
         Args:
-            feedback (int): feedback sensor number
+            feedback (SensorType): feedback sensor number
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
         """
@@ -216,7 +216,7 @@ class Feedbacks:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
         Returns:
-            Feedbacks.SensorCategory: Category {ABSOLUTE, INCREMENTAL} of the
+            SensorCategory: Category {ABSOLUTE, INCREMENTAL} of the
             selected feedback.
         """
         velocity_feedback = self.get_velocity_feedback(servo, axis)
@@ -244,7 +244,7 @@ class Feedbacks:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
         Returns:
-            Feedbacks.SensorType: Type of feedback configured
+            SensorType: Type of feedback configured
         """
         self.mc.check_servo(servo)
         position_feedback = self.mc.communication.get_register(
@@ -260,7 +260,7 @@ class Feedbacks:
         Writes position feedbacks value in the target servo and axis.
 
         Args:
-            feedback (int): feedback sensor number
+            feedback (SensorType): feedback sensor number
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
         """
@@ -275,7 +275,7 @@ class Feedbacks:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
         Returns:
-            Feedbacks.SensorCategory: Category {ABSOLUTE, INCREMENTAL} of the
+            SensorCategory: Category {ABSOLUTE, INCREMENTAL} of the
             selected feedback.
         """
         position_feedback = self.get_position_feedback(servo, axis)
@@ -303,7 +303,7 @@ class Feedbacks:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
         Returns:
-            Feedbacks.SensorType: Type of feedback configured
+            SensorType: Type of feedback configured
         """
         self.mc.check_servo(servo)
         auxiliar_feedback = self.mc.communication.get_register(
@@ -319,7 +319,7 @@ class Feedbacks:
         Writes auxiliar feedbacks value in the target servo and axis.
 
         Args:
-            feedback (int): feedback sensor number
+            feedback (SensorType): feedback sensor number
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
         """
@@ -334,7 +334,7 @@ class Feedbacks:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
         Returns:
-            Feedbacks.SensorCategory: Category {ABSOLUTE, INCREMENTAL} of the
+            SensorCategory: Category {ABSOLUTE, INCREMENTAL} of the
             selected feedback.
         """
         auxiliar_feedback = self.get_auxiliar_feedback(servo, axis)
