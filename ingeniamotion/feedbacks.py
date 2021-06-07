@@ -8,7 +8,7 @@ class Feedbacks:
     """
 
     # Available feedbacks
-    class SensorName(IntEnum):
+    class SensorType(IntEnum):
         """
         Summit series feedback type enum
         """
@@ -21,22 +21,22 @@ class Feedbacks:
         SMO = 9  # SMO
         INTGEN = 3  # INTERNAL GENERATOR
 
-    class SensorType(IntEnum):
+    class SensorCategory(IntEnum):
         """
         Feedback type enum
         """
         ABSOLUTE = 0
         INCREMENTAL = 1
 
-    feedbackType = {
-        SensorName.ABS1: SensorType.ABSOLUTE,
-        SensorName.QEI: SensorType.INCREMENTAL,
-        SensorName.HALLS: SensorType.ABSOLUTE,
-        SensorName.SSI2: SensorType.ABSOLUTE,
-        SensorName.BISSC2: SensorType.ABSOLUTE,
-        SensorName.QEI2: SensorType.INCREMENTAL,
-        SensorName.INTGEN: SensorType.ABSOLUTE,
-        SensorName.SMO: SensorType.ABSOLUTE
+    __feedback_type_dict = {
+        SensorType.ABS1: SensorCategory.ABSOLUTE,
+        SensorType.QEI: SensorCategory.INCREMENTAL,
+        SensorType.HALLS: SensorCategory.ABSOLUTE,
+        SensorType.SSI2: SensorCategory.ABSOLUTE,
+        SensorType.BISSC2: SensorCategory.ABSOLUTE,
+        SensorType.QEI2: SensorCategory.INCREMENTAL,
+        SensorType.INTGEN: SensorCategory.ABSOLUTE,
+        SensorType.SMO: SensorCategory.ABSOLUTE
     }
 
     COMMUTATION_FEEDBACK_REGISTER = "COMMU_ANGLE_SENSOR"
@@ -59,8 +59,7 @@ class Feedbacks:
             axis (int): axis that will run the test. ``1`` by default.
 
         Returns:
-            Feedbacks.SensorType: Type {ABSOLUTE, INCREMENTAL} of the the
-            selected feedback.
+            Feedbacks.SensorType: Type of feedback configured.
         """
         self.mc.check_servo(servo)
         commutation_feedback = self.mc.communication.get_register(
@@ -68,7 +67,7 @@ class Feedbacks:
             servo=servo,
             axis=axis
         )
-        sensor_name = self.SensorName(commutation_feedback)
+        sensor_name = self.SensorType(commutation_feedback)
         return sensor_name
 
     def set_commutation_feedback(self, feedback,  servo="default", axis=1):
@@ -76,13 +75,13 @@ class Feedbacks:
         Writes commutation feedbacks value in the target servo and axis.
 
         Args:
+            feedback (int): feedback sensor number
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
-            feedback (int): feedback sensor number
         """
         raise NotImplementedError("This function has not been implemented yet")
 
-    def get_commutation_feedback_type(self, servo="default", axis=1):
+    def get_commutation_feedback_category(self, servo="default", axis=1):
         """
         Reads commutation feedbacks type {ABSOLUTE or INCREMENTAL}
         in the target servo and axis.
@@ -91,12 +90,12 @@ class Feedbacks:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
         Returns:
-            Feedbacks.SensorType: Type {ABSOLUTE, INCREMENTAL} of the the
+            Feedbacks.SensorCategory: Category {ABSOLUTE, INCREMENTAL} of the
             selected feedback.
         """
         commutation_feedback = self.get_commutation_feedback(servo, axis)
-        sensor_type = self.feedbackType[commutation_feedback]
-        return sensor_type
+        sensor_category = self.__feedback_type_dict[commutation_feedback]
+        return sensor_category
 
     def get_commutation_feedback_resolution(self, servo="default", axis=1):
         """
@@ -118,6 +117,8 @@ class Feedbacks:
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
+        Returns:
+            Feedbacks.SensorType: Type of feedback configured
         """
         self.mc.check_servo(servo)
         reference_feedback = self.mc.communication.get_register(
@@ -125,7 +126,7 @@ class Feedbacks:
             servo=servo,
             axis=axis
         )
-        sensor_name = self.SensorName(reference_feedback)
+        sensor_name = self.SensorType(reference_feedback)
         return sensor_name
 
     def set_reference_feedback(self, feedback,  servo="default", axis=1):
@@ -133,13 +134,13 @@ class Feedbacks:
         Writes reference feedbacks value in the target servo and axis.
 
         Args:
+            feedback (int): feedback sensor number
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
-            feedback (int): feedback sensor number
         """
         raise NotImplementedError("This function has not been implemented yet")
 
-    def get_reference_feedback_type(self, servo="default", axis=1):
+    def get_reference_feedback_category(self, servo="default", axis=1):
         """
         Reads reference feedbacks type {ABSOLUTE or INCREMENTAL}
         in the target servo and axis.
@@ -148,12 +149,12 @@ class Feedbacks:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
         Returns:
-            Feedbacks.SensorType: Type {ABSOLUTE, INCREMENTAL} of the the
+            Feedbacks.SensorCategory: Category {ABSOLUTE, INCREMENTAL} of the
             selected feedback.
         """
         reference_feedback = self.get_reference_feedback(servo, axis)
-        sensor_type = self.feedbackType[reference_feedback]
-        return sensor_type
+        sensor_category = self.__feedback_type_dict[reference_feedback]
+        return sensor_category
 
     def get_reference_feedback_resolution(self, servo="default", axis=1):
         """
@@ -175,6 +176,8 @@ class Feedbacks:
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
+        Returns:
+            Feedbacks.SensorType: Type of feedback configured
         """
         self.mc.check_servo(servo)
         velocity_feedback = self.mc.communication.get_register(
@@ -182,7 +185,7 @@ class Feedbacks:
             servo=servo,
             axis=axis
         )
-        sensor_name = self.SensorName(velocity_feedback)
+        sensor_name = self.SensorType(velocity_feedback)
         return sensor_name
 
     def set_velocity_feedback(self, feedback,  servo="default", axis=1):
@@ -190,13 +193,13 @@ class Feedbacks:
         Writes velocity feedbacks value in the target servo and axis.
 
         Args:
+            feedback (int): feedback sensor number
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
-            feedback (int): feedback sensor number
         """
         raise NotImplementedError("This function has not been implemented yet")
 
-    def get_velocity_feedback_type(self, servo="default", axis=1):
+    def get_velocity_feedback_category(self, servo="default", axis=1):
         """
         Reads velocity feedbacks type {ABSOLUTE or INCREMENTAL}
         in the target servo and axis.
@@ -205,12 +208,12 @@ class Feedbacks:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
         Returns:
-            Feedbacks.SensorType: Type {ABSOLUTE, INCREMENTAL} of the the
+            Feedbacks.SensorCategory: Category {ABSOLUTE, INCREMENTAL} of the
             selected feedback.
         """
         velocity_feedback = self.get_velocity_feedback(servo, axis)
-        sensor_type = self.feedbackType[velocity_feedback]
-        return sensor_type
+        sensor_category = self.__feedback_type_dict[velocity_feedback]
+        return sensor_category
 
     def get_velocity_feedback_resolution(self, servo="default", axis=1):
         """
@@ -232,6 +235,8 @@ class Feedbacks:
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
+        Returns:
+            Feedbacks.SensorType: Type of feedback configured
         """
         self.mc.check_servo(servo)
         position_feedback = self.mc.communication.get_register(
@@ -239,7 +244,7 @@ class Feedbacks:
             servo=servo,
             axis=axis
         )
-        sensor_name = self.SensorName(position_feedback)
+        sensor_name = self.SensorType(position_feedback)
         return sensor_name
 
     def set_position_feedback(self, feedback,  servo="default", axis=1):
@@ -247,13 +252,13 @@ class Feedbacks:
         Writes position feedbacks value in the target servo and axis.
 
         Args:
+            feedback (int): feedback sensor number
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
-            feedback (int): feedback sensor number
         """
         raise NotImplementedError("This function has not been implemented yet")
 
-    def get_position_feedback_type(self, servo="default", axis=1):
+    def get_position_feedback_category(self, servo="default", axis=1):
         """
         Reads position feedbacks type {ABSOLUTE or INCREMENTAL}
         in the target servo and axis.
@@ -262,12 +267,12 @@ class Feedbacks:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
         Returns:
-            Feedbacks.SensorType: Type {ABSOLUTE, INCREMENTAL} of the the
+            Feedbacks.SensorCategory: Category {ABSOLUTE, INCREMENTAL} of the
             selected feedback.
         """
         position_feedback = self.get_position_feedback(servo, axis)
-        sensor_type = self.feedbackType[position_feedback]
-        return sensor_type
+        sensor_category = self.__feedback_type_dict[position_feedback]
+        return sensor_category
 
     def get_position_feedback_resolution(self, servo="default", axis=1):
         """
@@ -289,6 +294,8 @@ class Feedbacks:
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
+        Returns:
+            Feedbacks.SensorType: Type of feedback configured
         """
         self.mc.check_servo(servo)
         auxiliar_feedback = self.mc.communication.get_register(
@@ -296,7 +303,7 @@ class Feedbacks:
             servo=servo,
             axis=axis
         )
-        sensor_name = self.SensorName(auxiliar_feedback)
+        sensor_name = self.SensorType(auxiliar_feedback)
         return sensor_name
 
     def set_auxiliar_feedback(self, feedback,  servo="default", axis=1):
@@ -304,13 +311,13 @@ class Feedbacks:
         Writes auxiliar feedbacks value in the target servo and axis.
 
         Args:
+            feedback (int): feedback sensor number
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
-            feedback (int): feedback sensor number
         """
         raise NotImplementedError("This function has not been implemented yet")
 
-    def get_auxiliar_feedback_type(self, servo="default", axis=1):
+    def get_auxiliar_feedback_category(self, servo="default", axis=1):
         """
         Reads auxiliar feedbacks type {ABSOLUTE or INCREMENTAL}
         in the target servo and axis.
@@ -319,12 +326,12 @@ class Feedbacks:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
         Returns:
-            Feedbacks.SensorType: Type {ABSOLUTE, INCREMENTAL} of the the
+            Feedbacks.SensorCategory: Category {ABSOLUTE, INCREMENTAL} of the
             selected feedback.
         """
         auxiliar_feedback = self.get_auxiliar_feedback(servo, axis)
-        sensor_type = self.feedbackType[auxiliar_feedback]
-        return sensor_type
+        sensor_category = self.__feedback_type_dict[auxiliar_feedback]
+        return sensor_category
 
     def get_auxiliar_feedback_resolution(self, servo="default", axis=1):
         """
