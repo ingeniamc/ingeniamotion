@@ -12,18 +12,26 @@ class Feedbacks:
         """
         Summit series feedback type enum
         """
-        ABS1 = 1  # ABSOLUTE ENCODER 1
-        QEI = 4  # DIGITAL/INCREMENTAL ENCODER 1
-        HALLS = 5  # DIGITAL HALLS
-        SSI2 = 6  # SECONDARY SSI
-        BISSC2 = 7  # ABSOLUTE ENCODER 2
-        QEI2 = 8  # DIGITAL/INCREMENTAL ENCODER 2
-        SMO = 9  # SMO
-        INTGEN = 3  # INTERNAL GENERATOR
+        ABS1 = 1
+        """ Absolute encoder 1 """
+        QEI = 4
+        """ Digital/Incremental encoder 1 """
+        HALLS = 5
+        """ Digital halls """
+        SSI2 = 6
+        """ Secondary SSI """
+        BISSC2 = 7
+        """ Absolute encoder 2 """
+        QEI2 = 8
+        """ Digital/Incremental encoder 2 """
+        SMO = 9
+        """ SMO """
+        INTGEN = 3
+        """ Internal generator """
 
     class SensorCategory(IntEnum):
         """
-        Feedback type enum
+        Feedback category enum
         """
         ABSOLUTE = 0
         INCREMENTAL = 1
