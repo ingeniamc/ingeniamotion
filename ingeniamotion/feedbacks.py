@@ -56,6 +56,14 @@ class Feedbacks:
     def __init__(self, motion_controller):
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
+        self.feedback_resolution_functions = {
+            self.SensorType.ABS1: self.absolute_encoder_1_resolution,
+            self.SensorType.QEI: self.incremental_encoder_1_resolution,
+            self.SensorType.HALLS: self.digital_halls_resolution,
+            self.SensorType.SSI2: self.secondary_ssi_resolution,
+            self.SensorType.BISSC2: self.absolute_encoder_2_resolution,
+            self.SensorType.QEI2: self.incremental_encoder_2_resolution
+        }
 
     # Commutation feedback
     def get_commutation_feedback(self, servo="default", axis=1):
@@ -87,7 +95,13 @@ class Feedbacks:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
         """
-        raise NotImplementedError("This function has not been implemented yet")
+        self.mc.check_servo(servo)
+        self.mc.communication.set_register(
+            self.COMMUTATION_FEEDBACK_REGISTER,
+            feedback,
+            servo=servo,
+            axis=axis
+        )
 
     def get_commutation_feedback_category(self, servo="default", axis=1):
         """
@@ -115,7 +129,10 @@ class Feedbacks:
         Returns:
             int: Resolution of the selected feedback.
         """
-        raise NotImplementedError("This function has not been implemented yet")
+        sensor_type = self.get_commutation_feedback(servo, axis)
+        feedback_resolution = self.feedback_resolution_functions[sensor_type] \
+            (servo, axis)
+        return feedback_resolution
 
     # Reference feedback
     def get_reference_feedback(self, servo="default", axis=1):
@@ -146,7 +163,13 @@ class Feedbacks:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
         """
-        raise NotImplementedError("This function has not been implemented yet")
+        self.mc.check_servo(servo)
+        self.mc.communication.set_register(
+            self.REFERENCE_FEEDBACK_REGISTER,
+            feedback,
+            servo=servo,
+            axis=axis
+        )
 
     def get_reference_feedback_category(self, servo="default", axis=1):
         """
@@ -174,7 +197,10 @@ class Feedbacks:
         Returns:
             int: Resolution of the selected feedback.
         """
-        raise NotImplementedError("This function has not been implemented yet")
+        sensor_type = self.get_reference_feedback(servo, axis)
+        feedback_resolution = self.feedback_resolution_functions[sensor_type] \
+            (servo, axis)
+        return feedback_resolution
 
     # Velocity feedback
     def get_velocity_feedback(self, servo="default", axis=1):
@@ -205,7 +231,13 @@ class Feedbacks:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
         """
-        raise NotImplementedError("This function has not been implemented yet")
+        self.mc.check_servo(servo)
+        self.mc.communication.set_register(
+            self.VELOCITY_FEEDBACK_REGISTER,
+            feedback,
+            servo=servo,
+            axis=axis
+        )
 
     def get_velocity_feedback_category(self, servo="default", axis=1):
         """
@@ -233,7 +265,10 @@ class Feedbacks:
         Returns:
             int: Resolution of the selected feedback.
         """
-        raise NotImplementedError("This function has not been implemented yet")
+        sensor_type = self.get_velocity_feedback(servo, axis)
+        feedback_resolution = self.feedback_resolution_functions[sensor_type] \
+            (servo, axis)
+        return feedback_resolution
 
     # Position feedback
     def get_position_feedback(self, servo="default", axis=1):
@@ -264,7 +299,13 @@ class Feedbacks:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
         """
-        raise NotImplementedError("This function has not been implemented yet")
+        self.mc.check_servo(servo)
+        self.mc.communication.set_register(
+            self.POSITION_FEEDBACK_REGISTER,
+            feedback,
+            servo=servo,
+            axis=axis
+        )
 
     def get_position_feedback_category(self, servo="default", axis=1):
         """
@@ -292,7 +333,10 @@ class Feedbacks:
         Returns:
             int: Resolution of the selected feedback.
         """
-        raise NotImplementedError("This function has not been implemented yet")
+        sensor_type = self.get_position_feedback(servo, axis)
+        feedback_resolution = self.feedback_resolution_functions[sensor_type] \
+            (servo, axis)
+        return feedback_resolution
 
     # Auxiliar feedback
     def get_auxiliar_feedback(self, servo="default", axis=1):
@@ -323,7 +367,13 @@ class Feedbacks:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
         """
-        raise NotImplementedError("This function has not been implemented yet")
+        self.mc.check_servo(servo)
+        self.mc.communication.set_register(
+            self.AUXILIAR_FEEDBACK_REGISTER,
+            feedback,
+            servo=servo,
+            axis=axis
+        )
 
     def get_auxiliar_feedback_category(self, servo="default", axis=1):
         """
@@ -351,4 +401,59 @@ class Feedbacks:
         Returns:
             int: Resolution of the selected feedback.
         """
-        raise NotImplementedError("This function has not been implemented yet")
+        sensor_type = self.get_commutation_feedback(servo, axis)
+        feedback_resolution = self.feedback_resolution_functions[sensor_type] \
+            (servo, axis)
+        return feedback_resolution
+
+    def absolute_encoder_1_resolution(self, servo="default", axis=1):
+        single_turn_bits = self.mc.communication.get_register(
+            "FBK_BISS1_SSI1_POS_ST_BITS",
+            servo=servo,
+            axis=axis
+        )
+        feedback_resolution = 2 ** single_turn_bits
+        return feedback_resolution
+
+    def incremental_encoder_1_resolution(self, servo="default", axis=1):
+        feedback_resolution = self.mc.communication.get_register(
+            "FBK_DIGENC1_RESOLUTION",
+            servo=servo,
+            axis=axis
+        )
+        return feedback_resolution
+
+    def digital_halls_resolution(self, servo="default", axis=1):
+        pair_poles = self.mc.communication.get_register(
+            "FBK_DIGHALL_PAIRPOLES",
+            servo=servo,
+            axis=axis
+        )
+        feedback_resolution = 6 * pair_poles
+        return feedback_resolution
+
+    def secondary_ssi_resolution(self, servo="default", axis=1):
+        secondary_single_turn_bits = self.mc.communication.get_register(
+            "FBK_SSI2_POS_ST_BITS",
+            servo=servo,
+            axis=axis
+        )
+        feedback_resolution = 2 ** secondary_single_turn_bits
+        return feedback_resolution
+
+    def absolute_encoder_2_resolution(self, servo="default", axis=1):
+        serial_slave_1_single_turn_bits = self.mc.communication.get_register(
+            "FBK_BISS2_POS_ST_BITS",
+            servo=servo,
+            axis=axis
+        )
+        feedback_resolution = 2 ** serial_slave_1_single_turn_bits
+        return feedback_resolution
+
+    def incremental_encoder_2_resolution(self, servo="default", axis=1):
+        feedback_resolution = self.mc.communication.get_register(
+            "FBK_DIGENC2_RESOLUTION",
+            servo=servo,
+            axis=axis
+        )
+        return feedback_resolution
