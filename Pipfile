@@ -7,7 +7,7 @@ name = "pypi"
 python_version = "3.6"
 
 [packages]
-ingenialink = "==5.3.0"
+ingenialink = "==5.3.4"
 ingenialogger = ">=0.2.0"
 ifaddr= "==0.1.7"
 
