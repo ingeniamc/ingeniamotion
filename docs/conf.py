@@ -34,6 +34,7 @@ release = version
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
+    'sphinx.ext.intersphinx',
     'rst2pdf.pdfbuilder'
 ]
 
@@ -61,3 +62,6 @@ html_theme = 'sphinx_rtd_theme'
 html_static_path = ['_static']
 
 pdf_documents = [('index', u'ingeniamotion v0.1.0', u'Ingeniamotion', author), ]
+
+intersphinx_mapping = {'python': ('https://docs.python.org/3.6', None),
+                       'ingenialink': ('https://distext.ingeniamc.com/doc/ingenialink-python/5.2.2', None)}

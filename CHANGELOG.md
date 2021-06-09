@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.0] - 2021-06-09
+### Added
+- Add SOEM communications as a way to connect to the drive.
+- Add the possibility to use SDO read/writes when using SOEM.
+
 ## [0.2.0] - 2021-05-20
 ### Added
 - Functions get_register and set_register.
