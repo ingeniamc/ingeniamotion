@@ -11,7 +11,7 @@ ingenialink = "==5.3.0"
 ingenialogger = ">=0.2.0"
 
 [dev-packages]
-sphinx = "*"
+sphinx = "==3.5.4"
 sphinx-rtd-theme = "*"
 sphinxcontrib-bibtex = "*"
 matplotlib = "*"
