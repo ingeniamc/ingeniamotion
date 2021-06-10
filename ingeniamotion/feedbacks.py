@@ -62,7 +62,9 @@ class Feedbacks:
             self.SensorType.HALLS: self.digital_halls_resolution,
             self.SensorType.SSI2: self.secondary_ssi_resolution,
             self.SensorType.BISSC2: self.absolute_encoder_2_resolution,
-            self.SensorType.QEI2: self.incremental_encoder_2_resolution
+            self.SensorType.QEI2: self.incremental_encoder_2_resolution,
+            self.SensorType.INTGEN: self.internal_generator_resolution,
+            self.SensorType.SMO: self.SMO_resolution
         }
 
     # Commutation feedback
@@ -407,6 +409,15 @@ class Feedbacks:
         return feedback_resolution
 
     def absolute_encoder_1_resolution(self, servo="default", axis=1):
+        """
+        Reads ABS1 encoder resolution in the target servo and axis.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): axis that will run the test. ``1`` by default.
+        Returns:
+            int: Resolution of ABS1 encoder.
+        """
         single_turn_bits = self.mc.communication.get_register(
             "FBK_BISS1_SSI1_POS_ST_BITS",
             servo=servo,
@@ -416,6 +427,15 @@ class Feedbacks:
         return feedback_resolution
 
     def incremental_encoder_1_resolution(self, servo="default", axis=1):
+        """
+        Reads incremental encoder 1 resolution in the target servo and axis.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): axis that will run the test. ``1`` by default.
+        Returns:
+            int: Resolution of incremental encoder 1.
+        """
         feedback_resolution = self.mc.communication.get_register(
             "FBK_DIGENC1_RESOLUTION",
             servo=servo,
@@ -424,6 +444,15 @@ class Feedbacks:
         return feedback_resolution
 
     def digital_halls_resolution(self, servo="default", axis=1):
+        """
+        Reads digital halls pole pairs in the target servo and axis.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): axis that will run the test. ``1`` by default.
+        Returns:
+            int: Resolution of digital halls encoder.
+        """
         pair_poles = self.mc.communication.get_register(
             "FBK_DIGHALL_PAIRPOLES",
             servo=servo,
@@ -433,6 +462,15 @@ class Feedbacks:
         return feedback_resolution
 
     def secondary_ssi_resolution(self, servo="default", axis=1):
+        """
+        Reads secondary SSI encoder resolution in the target servo and axis.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): axis that will run the test. ``1`` by default.
+        Returns:
+            int: Resolution of secondary SSI encoder.
+        """
         secondary_single_turn_bits = self.mc.communication.get_register(
             "FBK_SSI2_POS_ST_BITS",
             servo=servo,
@@ -442,6 +480,15 @@ class Feedbacks:
         return feedback_resolution
 
     def absolute_encoder_2_resolution(self, servo="default", axis=1):
+        """
+        Reads ABS2 encoder resolution in the target servo and axis.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): axis that will run the test. ``1`` by default.
+        Returns:
+            int: Resolution of ABS2 encoder.
+        """
         serial_slave_1_single_turn_bits = self.mc.communication.get_register(
             "FBK_BISS2_POS_ST_BITS",
             servo=servo,
@@ -451,9 +498,42 @@ class Feedbacks:
         return feedback_resolution
 
     def incremental_encoder_2_resolution(self, servo="default", axis=1):
+        """
+        Reads incremental encoder 2 resolution in the target servo and axis.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): axis that will run the test. ``1`` by default.
+        Returns:
+            int: Resolution of incremental encoder 2 encoder.
+        """
         feedback_resolution = self.mc.communication.get_register(
             "FBK_DIGENC2_RESOLUTION",
             servo=servo,
             axis=axis
         )
         return feedback_resolution
+
+    def internal_generator_resolution(self, servo="default", axis=1):
+        """
+        Reads internal generator resolution in the target servo and axis.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): axis that will run the test. ``1`` by default.
+        Returns:
+            int: Resolution of internal generator.
+        """
+        raise ValueError('Internal generator does not have resolution')
+
+    def SMO_resolution(self, servo="default", axis=1):
+        """
+        Reads SMO resolution in the target servo and axis.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): axis that will run the test. ``1`` by default.
+        Returns:
+            int: Resolution of SMO.
+        """
+        raise ValueError('SMO does not have resolution')
