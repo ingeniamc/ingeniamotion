@@ -18,6 +18,7 @@ class Motion:
     ACTUAL_VELOCITY_REGISTER = "CL_VEL_FBK_VALUE"
 
     STATUS_WORD_TARGET_REACHED_BIT = 0x800
+    CONTROL_WORD_TARGET_LATCH_BIT = 0x200
 
     def __init__(self, motion_controller):
         self.mc = motion_controller
@@ -33,10 +34,10 @@ class Motion:
         """
         control_word = self.mc.communication.get_register(self.CONTROL_WORD_REGISTER, servo=servo,
                                                           axis=axis)
-        new_control_word = control_word & (~0x200)
+        new_control_word = control_word & (~self.CONTROL_WORD_TARGET_LATCH_BIT)
         self.mc.communication.set_register(self.CONTROL_WORD_REGISTER, new_control_word,
                                            servo=servo, axis=axis)
-        new_control_word = control_word | 0x200
+        new_control_word = control_word | self.CONTROL_WORD_TARGET_LATCH_BIT
         self.mc.communication.set_register(self.CONTROL_WORD_REGISTER, new_control_word,
                                            servo=servo, axis=axis)
 

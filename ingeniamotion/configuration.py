@@ -4,8 +4,10 @@ import ingenialogger
 from os import path
 from enum import IntEnum
 
+from .homing import Homing
 
-class Configuration:
+
+class Configuration(Homing):
     """Configuration.
     """
 
@@ -25,6 +27,7 @@ class Configuration:
     STATUS_WORD_REGISTER = "DRV_STATE_STATUS"
 
     def __init__(self, motion_controller):
+        super().__init__(motion_controller)
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
 
