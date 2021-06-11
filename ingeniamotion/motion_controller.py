@@ -5,6 +5,7 @@ from .motion import Motion
 from .capture import Capture
 from .communication import Communication
 from .drive_tests import DriveTests
+from .feedbacks import Feedbacks
 
 
 class MotionController:
