@@ -5,9 +5,10 @@ from os import path
 from enum import IntEnum
 
 from .homing import Homing
+from .feedbacks import Feedbacks
 
 
-class Configuration(Homing):
+class Configuration(Homing, Feedbacks):
     """Configuration.
     """
 
