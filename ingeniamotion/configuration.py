@@ -28,7 +28,8 @@ class Configuration(Homing, Feedbacks):
     STATUS_WORD_REGISTER = "DRV_STATE_STATUS"
 
     def __init__(self, motion_controller):
-        super().__init__(motion_controller)
+        Homing.__init__(self, motion_controller)
+        Feedbacks.__init__(self, motion_controller)
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
 
