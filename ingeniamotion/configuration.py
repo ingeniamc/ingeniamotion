@@ -22,6 +22,7 @@ class Configuration:
     PROFILE_MAX_VELOCITY_REGISTER = "PROF_MAX_VEL"
     POWER_STAGE_FREQUENCY_REGISTER = "DRV_PS_FREQ_SELECTION"
     POSITION_AND_VELOCITY_LOOP_RATE_REGISTER = "DRV_POS_VEL_RATE"
+    STATUS_WORD_REGISTER = "DRV_STATE_STATUS"
 
     def __init__(self, motion_controller):
         self.mc = motion_controller
@@ -96,8 +97,7 @@ class Configuration:
         if not path.isfile(config_path):
             raise FileNotFoundError("{} file does not exist!".format(config_path))
         servo_inst = self.mc.servos[servo]
-        servo_inst.dict_load(config_path)
-        servo_inst.dict_storage_write()
+        servo_inst.dict_storage_write(config_path)
         self.logger.info("Configuration loaded from %s", config_path,
                          drive=self.mc.servo_name(servo))
 
@@ -110,9 +110,7 @@ class Configuration:
             servo (str): servo alias to reference it. ``default`` by default.
         """
         servo_inst = self.mc.servos[servo]
-        servo_inst.dict_storage_read()
-        servo_dict = servo_inst.dict
-        servo_dict.save(output_file)
+        servo_inst.dict_storage_read(output_file)
         self.logger.info("Configuration saved to %s", output_file,
                          drive=self.mc.servo_name(servo))
 
@@ -226,3 +224,6 @@ class Configuration:
             servo=servo,
             axis=axis
         )
+
+    def get_status_word(self, servo="default", axis=1):
+        return self.mc.communication.get_register(self.STATUS_WORD_REGISTER, servo, axis)
