@@ -12,7 +12,7 @@ ingenialogger = ">=0.2.0"
 ifaddr= "==0.1.7"
 
 [dev-packages]
-sphinx = "*"
+sphinx = "==3.5.4"
 sphinx-rtd-theme = "*"
 sphinxcontrib-bibtex = "*"
 matplotlib = "*"
