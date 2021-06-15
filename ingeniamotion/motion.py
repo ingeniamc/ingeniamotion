@@ -178,7 +178,7 @@ class Motion:
                 time.sleep(interval)
             curr_position = self.mc.communication.get_register(self.ACTUAL_POSITION_REGISTER,
                                                                servo=servo, axis=axis)
-            target_reached = abs(position - curr_position) < error
+            target_reached = abs(position - curr_position) < abs(error)
             if timeout and (init_time + timeout) < time.time():
                 target_reached = True
                 self.logger.warning("Timeout: position %s was not reached", position,
@@ -187,16 +187,16 @@ class Motion:
     def wait_for_velocity(self, velocity, servo="default", axis=1, error=0.1, timeout=None,
                           interval=None):
         """
-        Wait until actual position is equal to a target position, with an error.
+        Wait until actual velocity is equal to a target velocity, with an error.
 
         Args:
             velocity (float): target velocity, in rev/s.
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
-            error (int): allowed error between actual position and target position, in counts.
-            timeout (int): how many seconds to wait for the servo to reach the target position,
+            error (int): allowed error between actual velocity and target velocity, in counts.
+            timeout (int): how many seconds to wait for the servo to reach the target velocity,
              if ``None`` it will wait forever . ``None`` by default.
-            interval (float): interval of time between actual position reads, in seconds.
+            interval (float): interval of time between actual velocity reads, in seconds.
              ``None`` by default.
         """
         target_reached = False
@@ -208,7 +208,7 @@ class Motion:
                 time.sleep(interval)
             curr_velocity = self.mc.communication.get_register(self.ACTUAL_VELOCITY_REGISTER,
                                                                servo=servo, axis=axis)
-            target_reached = abs(velocity - curr_velocity) < error
+            target_reached = abs(velocity - curr_velocity) < abs(error)
             if timeout and (init_time + timeout) < time.time():
                 target_reached = True
                 self.logger.warning("Timeout: velocity %s was not reached", velocity,
