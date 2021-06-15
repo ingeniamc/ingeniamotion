@@ -54,6 +54,6 @@ setuptools.setup(
         'ingenialogger>=0.2.0',
         'ifaddr==0.1.7'
     ],
-    python_requires='==3.6.*',
+    python_requires='>=3.6',
     ext_modules=cythonize(["ingeniamotion/*.py", "ingeniamotion/wizard_tests/*.py"])
 )

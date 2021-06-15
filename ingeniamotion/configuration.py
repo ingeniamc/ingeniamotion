@@ -4,8 +4,10 @@ import ingenialogger
 from os import path
 from enum import IntEnum
 
+from .feedbacks import Feedbacks
 
-class Configuration:
+
+class Configuration(Feedbacks):
     """Configuration.
     """
 
@@ -24,6 +26,7 @@ class Configuration:
     POSITION_AND_VELOCITY_LOOP_RATE_REGISTER = "DRV_POS_VEL_RATE"
 
     def __init__(self, motion_controller):
+        super().__init__(motion_controller)
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
 

@@ -155,9 +155,15 @@ class Monitoring:
         Map registers to monitoring. Monitoring must be disabled.
 
         Args:
-            registers (list of dict): List of registers to map. Each register must be a dict with two keys:
-                - "axis": number of register axis
-                - "name": register key in drive object
+            registers (list of dict): List of registers to map.
+                Each register must be a dict with two keys:
+
+                .. code-block:: python
+
+                    {
+                        "name": "CL_POS_FBK_VALUE",  # Register name.
+                        "axis": 1  # Register axis. If it has no axis field, by default axis 1.
+                    }
 
         Raises:
             MonitoringError: If register maps fails in the servo.
@@ -392,7 +398,7 @@ class Monitoring:
             int: Monitoring/Disturbance Status.
         """
         return self.mc.communication.get_register(
-            Monitoring.MONITORING_DISTURBANCE_STATUS_REGISTER,
+            self.MONITORING_DISTURBANCE_STATUS_REGISTER,
             servo=self.servo,
             axis=0
         )
