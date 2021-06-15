@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.3.1] - 2021-06-15
+### Added
+- Add disturbance functionality for all summit and custom drives.
+- Implement feedback resolution reading and feedback type set and get.
+
 ## [0.3.0] - 2021-06-09
 ### Added
 - Add SOEM communications as a way to connect to the drive.
