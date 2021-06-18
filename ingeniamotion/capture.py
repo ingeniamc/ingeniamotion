@@ -1,6 +1,7 @@
 import ingenialink as il
 
 from .monitoring import Monitoring, MonitoringSoCType
+from .disturbance import Disturbance
 
 
 class Capture:
@@ -104,8 +105,8 @@ class Capture:
             trigger_signal (dict): dict with name and axis of trigger signal for rising or falling edge trigger.
             trigger_value (int or float): value for rising or falling edge trigger.
             servo (str): servo alias to reference it. ``default`` by default.
-            start (bool): if ``True``, function starts poller, if ``False`` poller should be started after.
-                ``True`` by default.
+            start (bool): if ``True``, function starts monitoring, if ``False`` monitoring should be started after.
+                ``False`` by default.
 
         Returns:
             Monitoring: Instance of monitoring configured.
@@ -127,3 +128,35 @@ class Capture:
         if start:
             monitoring.enable_monitoring()
         return monitoring
+
+    def create_disturbance(self, register, data, freq_divider, servo="default", axis=1, start=False):
+        """
+        Returns a Disturbance instance configured with target registers.
+
+        Args:
+            register (str): target register UID.
+            data (list): data to write in disturbance.
+            freq_divider (int): determines disturbance frequency divider. Frequency will be
+                ``Position & velocity loop rate frequency / freq_divider``, see
+                :func:`ingeniamotion.configuration.Configuration.get_position_and_velocity_loop_rate` to know about
+                this frequency. It must be ``1`` or higher.
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+            start (bool): if ``True``, function starts disturbance, if ``False`` disturbance should be started after.
+                ``False`` by default.
+
+        Returns:
+            Disturbance: Instance of disturbance configured.
+
+        Raises:
+            ValueError: If freq_divider is less than ``1``.
+            DisturbanceError: If buffer size is not enough for all the registers and samples.
+        """
+        disturbance = Disturbance(self.mc, servo)
+        disturbance.disable_disturbance()
+        disturbance.set_frequency_divider(freq_divider)
+        disturbance.map_registers({"name": register, "axis": axis})
+        disturbance.write_disturbance_data(data)
+        if start:
+            disturbance.enable_disturbance()
+        return disturbance
