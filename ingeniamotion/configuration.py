@@ -231,4 +231,14 @@ class Configuration(Homing, Feedbacks):
         )
 
     def get_status_word(self, servo="default", axis=1):
+        """
+        Return status word register value.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+
+        Returns:
+            int: Status word.
+        """
         return self.mc.communication.get_register(self.STATUS_WORD_REGISTER, servo, axis)
