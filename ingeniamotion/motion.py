@@ -1,7 +1,8 @@
 import time
 import ingenialogger
 
-from ingeniamotion.enums import OperationMode
+from ingeniamotion.enums import OperationMode, SensorType,\
+    PhasingMode, GeneratorMode
 
 
 class Motion:
@@ -14,8 +15,16 @@ class Motion:
     POSITION_SET_POINT_REGISTER = "CL_POS_SET_POINT_VALUE"
     VELOCITY_SET_POINT_REGISTER = "CL_VEL_SET_POINT_VALUE"
     CURRENT_QUADRATURE_SET_POINT_REGISTER = "CL_CUR_Q_SET_POINT"
+    CURRENT_DIRECT_SET_POINT_REGISTER = "CL_CUR_D_SET_POINT"
+    VOLTAGE_QUADRATURE_SET_POINT_REGISTER = "CL_VOL_Q_SET_POINT"
+    VOLTAGE_DIRECT_SET_POINT_REGISTER = "CL_VOL_D_SET_POINT"
     ACTUAL_POSITION_REGISTER = "CL_POS_FBK_VALUE"
     ACTUAL_VELOCITY_REGISTER = "CL_VEL_FBK_VALUE"
+    GENERATOR_FREQUENCY_REGISTER = "FBK_GEN_FREQ"
+    GENERATOR_GAIN_REGISTER = "FBK_GEN_GAIN"
+    GENERATOR_OFFSET_REGISTER = "FBK_GEN_OFFSET"
+    GENERATOR_CYCLE_NUMBER_REGISTER = "FBK_GEN_CYCLES"
+    GENERATOR_REARM_REGISTER = "FBK_GEN_REARM"
 
     STATUS_WORD_TARGET_REACHED_BIT = 0x800
     CONTROL_WORD_TARGET_LATCH_BIT = 0x200
@@ -154,6 +163,42 @@ class Motion:
         self.mc.communication.set_register(self.CURRENT_QUADRATURE_SET_POINT_REGISTER,
                                            current, servo=servo, axis=axis)
 
+    def set_current_direct(self, current, servo="default", axis=1):
+        """
+        Set direct current set point to a target servo and axis, in A.
+
+        Args:
+            current (float): target direct current, in A.
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+        """
+        self.mc.communication.set_register(self.CURRENT_DIRECT_SET_POINT_REGISTER,
+                                           current, servo=servo, axis=axis)
+
+    def set_voltage_quadrature(self, voltage, servo="default", axis=1):
+        """
+        Set quadrature voltage set point to a target servo and axis, in V.
+
+        Args:
+            voltage (float): target quadrature voltage, in V.
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+        """
+        self.mc.communication.set_register(self.VOLTAGE_QUADRATURE_SET_POINT_REGISTER,
+                                           voltage, servo=servo, axis=axis)
+
+    def set_voltage_direct(self, voltage, servo="default", axis=1):
+        """
+        Set direct voltage set point to a target servo and axis, in V.
+
+        Args:
+            voltage (float): target direct voltage, in V.
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+        """
+        self.mc.communication.set_register(self.VOLTAGE_DIRECT_SET_POINT_REGISTER,
+                                           voltage, servo=servo, axis=axis)
+
     def wait_for_position(self, position, servo="default", axis=1, error=20, timeout=None,
                           interval=None):
         """
@@ -213,3 +258,70 @@ class Motion:
                 target_reached = True
                 self.logger.warning("Timeout: velocity %s was not reached", velocity,
                                     axis=axis, drive=self.mc.servo_name(servo))
+
+    def set_internal_generator_configuration(self, op_mode, generator_mode,
+                                             servo="default", axis=1):
+        """
+        Set internal generator configuration.
+
+        .. note::
+            This functions affects the following drive registers: **motor pair poles**,
+            **operation mode**, **phasing mode** and **commutation feedback**. This is an
+            advanced-user oriented method, you could lose your drive configuration, use it
+            at your own risk.
+
+        Args:
+            op_mode (OperationMode): select Current or Voltage operation mode
+             for internal generator configuration.
+            generator_mode (GeneratorMode): select generator mode for
+             internal generator configuration.
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+        """
+        if op_mode not in [OperationMode.CURRENT, OperationMode.VOLTAGE]:
+            raise ValueError("Operation mode must be Current or Voltage")
+        self.set_operation_mode(op_mode, servo=servo, axis=axis)
+        self.mc.configuration.set_motor_pair_poles(1, servo=servo, axis=axis)
+        self.mc.configuration.set_phasing_mode(PhasingMode.NO_PHASING,
+                                               servo=servo, axis=axis)
+        if op_mode == OperationMode.CURRENT:
+            self.set_current_quadrature(0, servo=servo, axis=axis)
+            self.set_current_direct(0, servo=servo, axis=axis)
+        elif op_mode == OperationMode.VOLTAGE:
+            self.set_voltage_quadrature(0, servo=servo, axis=axis)
+            self.set_voltage_direct(0, servo=servo, axis=axis)
+        self.mc.configuration.set_commutation_feedback(SensorType.INTGEN,
+                                                       servo=servo, axis=axis)
+        self.mc.configuration.set_generator_mode(generator_mode,
+                                                 servo=servo, axis=axis)
+
+    def internal_generator_move(self, direction, cycles, frequency,
+                                servo="default", axis=1):
+        """
+        Move motor in internal generator configuration.
+
+        Args:
+            direction (int): ``1`` for positive direction and
+             ``-1`` for negative direction.
+            cycles (int): movement cycles.
+            frequency (int): cycles for second.
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+        """
+        self.mc.communication.set_register(self.GENERATOR_FREQUENCY_REGISTER, frequency,
+                                           servo=servo, axis=axis)
+        if direction > 0:
+            self.mc.communication.set_register(self.GENERATOR_GAIN_REGISTER, 1,
+                                               servo=servo, axis=axis)
+            self.mc.communication.set_register(self.GENERATOR_OFFSET_REGISTER, 0,
+                                               servo=servo, axis=axis)
+        else:
+            self.mc.communication.set_register(self.GENERATOR_GAIN_REGISTER, -1,
+                                               servo=servo, axis=axis)
+            self.mc.communication.set_register(self.GENERATOR_OFFSET_REGISTER, 1,
+                                               servo=servo, axis=axis)
+
+        self.mc.communication.set_register(self.GENERATOR_CYCLE_NUMBER_REGISTER, cycles,
+                                           servo=servo, axis=axis)
+        self.mc.communication.set_register(self.GENERATOR_REARM_REGISTER, 1,
+                                           servo=servo, axis=axis)
