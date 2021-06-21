@@ -259,8 +259,7 @@ class Motion:
                 self.logger.warning("Timeout: velocity %s was not reached", velocity,
                                     axis=axis, drive=self.mc.servo_name(servo))
 
-    def set_internal_generator_configuration(self, op_mode, generator_mode,
-                                             servo="default", axis=1):
+    def set_internal_generator_configuration(self, op_mode, servo="default", axis=1):
         """
         Set internal generator configuration.
 
@@ -273,8 +272,6 @@ class Motion:
         Args:
             op_mode (OperationMode): select Current or Voltage operation mode
              for internal generator configuration.
-            generator_mode (GeneratorMode): select generator mode for
-             internal generator configuration.
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
         """
@@ -292,13 +289,11 @@ class Motion:
             self.set_voltage_direct(0, servo=servo, axis=axis)
         self.mc.configuration.set_commutation_feedback(SensorType.INTGEN,
                                                        servo=servo, axis=axis)
-        self.mc.configuration.set_generator_mode(generator_mode,
-                                                 servo=servo, axis=axis)
 
-    def internal_generator_move(self, direction, cycles, frequency,
-                                servo="default", axis=1):
+    def internal_generator_saw_tooth_move(self, direction, cycles, frequency,
+                                          servo="default", axis=1):
         """
-        Move motor in internal generator configuration.
+        Move motor in internal generator configuration with generator mode saw tooth.
 
         Args:
             direction (int): ``1`` for positive direction and
@@ -308,6 +303,8 @@ class Motion:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
         """
+        self.mc.configuration.set_generator_mode(GeneratorMode.SAW_TOOTH,
+                                                 servo=servo, axis=axis)
         self.mc.communication.set_register(self.GENERATOR_FREQUENCY_REGISTER, frequency,
                                            servo=servo, axis=axis)
         if direction > 0:
@@ -324,4 +321,20 @@ class Motion:
         self.mc.communication.set_register(self.GENERATOR_CYCLE_NUMBER_REGISTER, cycles,
                                            servo=servo, axis=axis)
         self.mc.communication.set_register(self.GENERATOR_REARM_REGISTER, 1,
+                                           servo=servo, axis=axis)
+
+    def internal_generator_constant_move(self, offset, servo="default", axis=1):
+        """
+        Move motor in internal generator configuration with generator mode constant.
+
+        Args:
+            offset (int): internal generator offset.
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+        """
+        self.mc.configuration.set_generator_mode(GeneratorMode.CONSTANT,
+                                                 servo=servo, axis=axis)
+        self.mc.communication.set_register(self.GENERATOR_GAIN_REGISTER, 0,
+                                           servo=servo, axis=axis)
+        self.mc.communication.set_register(self.GENERATOR_OFFSET_REGISTER, offset,
                                            servo=servo, axis=axis)
