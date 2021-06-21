@@ -2,6 +2,7 @@ import time
 import logging
 import argparse
 from ingeniamotion import MotionController
+from ingeniamotion.enums import OperationMode
 from ingenialink.exceptions import ILError
 
 # Set your motor torque constant
@@ -63,7 +64,7 @@ def velocity_demo(mc):
     target_velocity = [16.667, 66.667, 0]
     acceleration = [0.1667, 0.8333, 20]
     wait_in_seconds = 40
-    mc.motion.set_operation_mode(mc.motion.OperationMode.PROFILE_VELOCITY)
+    mc.motion.set_operation_mode(OperationMode.PROFILE_VELOCITY)
     mc.configuration.set_max_velocity(70)
     mc.motion.motor_enable()
     velocity_ramp(target_velocity[0], acceleration[0], mc)
@@ -76,7 +77,7 @@ def velocity_demo(mc):
 def torque_demo(mc):
     target_torque = 0.706
     rotatum = 0.0035
-    mc.motion.set_operation_mode(mc.motion.OperationMode.CURRENT)
+    mc.motion.set_operation_mode(OperationMode.CURRENT)
     mc.motion.motor_enable()
     torque_ramp(target_torque, rotatum, TORQUE_CONSTANT, mc)
     mc.motion.set_current_quadrature(0)
