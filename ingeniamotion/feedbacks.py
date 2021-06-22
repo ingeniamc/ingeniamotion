@@ -89,7 +89,7 @@ class Feedbacks(metaclass=MCMetaClass):
         sensor_name = self.SensorType(commutation_feedback)
         return sensor_name
 
-    @MCMetaClass.check_motor_enable
+    @MCMetaClass.check_motor_disabled
     def set_commutation_feedback(self, feedback,  servo=DEFAULT_SERVO,
                                  axis=DEFAULT_AXIS):
         """
@@ -158,7 +158,7 @@ class Feedbacks(metaclass=MCMetaClass):
         sensor_name = self.SensorType(reference_feedback)
         return sensor_name
 
-    @MCMetaClass.check_motor_enable
+    @MCMetaClass.check_motor_disabled
     def set_reference_feedback(self, feedback,  servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
         Writes reference feedbacks value in the target servo and axis.
@@ -225,7 +225,7 @@ class Feedbacks(metaclass=MCMetaClass):
         sensor_name = self.SensorType(velocity_feedback)
         return sensor_name
 
-    @MCMetaClass.check_motor_enable
+    @MCMetaClass.check_motor_disabled
     def set_velocity_feedback(self, feedback,  servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
         Writes velocity feedbacks value in the target servo and axis.
@@ -292,7 +292,7 @@ class Feedbacks(metaclass=MCMetaClass):
         sensor_name = self.SensorType(position_feedback)
         return sensor_name
 
-    @MCMetaClass.check_motor_enable
+    @MCMetaClass.check_motor_disabled
     def set_position_feedback(self, feedback,  servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
         Writes position feedbacks value in the target servo and axis.
@@ -359,7 +359,7 @@ class Feedbacks(metaclass=MCMetaClass):
         sensor_name = self.SensorType(auxiliar_feedback)
         return sensor_name
 
-    @MCMetaClass.check_motor_enable
+    @MCMetaClass.check_motor_disabled
     def set_auxiliar_feedback(self, feedback,  servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
         Writes auxiliar feedbacks value in the target servo and axis.

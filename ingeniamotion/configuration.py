@@ -222,7 +222,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         return self.mc.get_register_enum(self.POWER_STAGE_FREQUENCY_REGISTER,
                                          servo, axis)
 
-    @MCMetaClass.check_motor_enable
+    @MCMetaClass.check_motor_disabled
     def set_power_stage_frequency(self, value, servo=DEFAULT_SERVO,
                                   axis=DEFAULT_AXIS):
         """
