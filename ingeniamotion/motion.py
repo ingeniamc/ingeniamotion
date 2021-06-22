@@ -210,7 +210,7 @@ class Motion(metaclass=MCMetaClass):
             error (int): allowed error between actual velocity and target
                 velocity, in counts.
             timeout (int): how many seconds to wait for the servo to reach the
-                target velocity, if ``None`` it will wait forever .
+                target velocity, if ``None`` it will wait forever.
                 ``None`` by default.
             interval (float): interval of time between actual velocity reads,
                 in seconds. ``None`` by default.
