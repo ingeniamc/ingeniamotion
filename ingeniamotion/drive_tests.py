@@ -14,10 +14,10 @@ class DriveTests(metaclass=MCMetaClass):
     def digital_halls_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
                            apply_changes=True):
         """
-        Executes the digital halls feedback test given a target servo and axis.
-        By default test will make changes in some drive registers like feedback
-            polarity and others suggested registers.
-        To avoid it, set ``apply_changes`` to ``False``.
+        Executes the digital halls feedback test given a target servo and
+        axis. By default test will make changes in some drive registers like
+        feedback polarity and others suggested registers. To avoid it, set
+        ``apply_changes`` to ``False``.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -48,10 +48,10 @@ class DriveTests(metaclass=MCMetaClass):
     def incremental_encoder_1_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
                                    apply_changes=True):
         """
-        Executes the incremental encoder 1 feedback test given a target servo and axis.
-        By default test will make changes in some drive registers like feedback
-            polarity and other suggested registers. To avoid it, set
-            ``apply_changes`` to ``False``.
+        Executes the incremental encoder 1 feedback test given a target servo
+        and axis. By default test will make changes in some drive registers
+        like feedback polarity and other suggested registers. To avoid it, set
+        ``apply_changes`` to ``False``.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -82,10 +82,10 @@ class DriveTests(metaclass=MCMetaClass):
     def incremental_encoder_2_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
                                    apply_changes=True):
         """
-        Executes incremental encoder 2 feedback test given a target servo and axis.
-        By default test will make changes in some drive registers like
-            feedback polarity and other suggested registers. To avoid it,
-            set ``apply_changes`` to ``False``.
+        Executes incremental encoder 2 feedback test given a target servo
+        and axis. By default test will make changes in some drive registers
+        like feedback polarity and other suggested registers. To avoid it,
+        set ``apply_changes`` to ``False``.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -130,8 +130,8 @@ class DriveTests(metaclass=MCMetaClass):
         """
         Executes a commutation calibration given a target servo and axis.
         By default commutation will make changes in some drive registers like
-            commutation angle offset and other suggested registers. To avoid
-            it, set ``apply_changes`` to ``False``.
+        commutation angle offset and other suggested registers. To avoid it,
+        set ``apply_changes`` to ``False``.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.

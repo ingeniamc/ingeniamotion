@@ -329,7 +329,7 @@ class Monitoring:
     def configure_sample_time(self, total_time, trigger_delay):
         """
         Configure monitoring number of samples defines by sample and trigger
-            delay time. Monitoring must be disabled.
+        delay time. Monitoring must be disabled.
 
         Args:
             total_time (float): monitoring sample total time, in seconds.
@@ -376,8 +376,8 @@ class Monitoring:
         Blocking function that read the monitoring data.
 
         Returns:
-            list of list: data of monitoring.
-                Each element of the list is a different register data.
+            list of list: data of monitoring. Each element of the list is a
+            different register data.
         """
         network = self.mc.net[self.servo]
         trigger_repetitions = self.mc.communication.get_register(

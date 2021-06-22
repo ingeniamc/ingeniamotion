@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+### Added
+- Error module.
+- Homing functions.
+- Servo connection and motor enabled checker.
+
 ## [0.3.1] - 2021-06-15
 ### Added
 - Add disturbance functionality for all summit and custom drives.
