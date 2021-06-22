@@ -1,6 +1,7 @@
 import math
 import time
 from ingeniamotion import MotionController
+from ingeniamotion.enums import OperationMode
 
 mc = MotionController()
 mc.communication.connect_servo_eoe("192.168.2.22", "./eve-net-e_eoe_1.7.2.xdf")
@@ -20,13 +21,14 @@ n_samples = int(1 / (signal_frequency * sample_period))
 # A = signal_amplitude (Amplitude)
 # t = sample_period*i (time)
 # w = signal_frequency*2*math.pi (angular frequency)
-data = [int(signal_amplitude * math.sin(sample_period*i * signal_frequency * 2*math.pi)) for i in range(n_samples)]
+data = [int(signal_amplitude * math.sin(sample_period*i * signal_frequency * 2*math.pi))
+        for i in range(n_samples)]
 
 # Call function create_disturbance to configure a disturbance
 dist = mc.capture.create_disturbance(target_register, data, divider)
 
 # Set profile position operation mode and enable motor to enable motor move
-mc.motion.set_operation_mode(mc.motion.OperationMode.PROFILE_POSITION)
+mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION)
 # Enable disturbance
 dist.enable_disturbance()
 # Enable motor
