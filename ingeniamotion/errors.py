@@ -63,6 +63,36 @@ class Errors:
         )
         return last_error
 
+    def get_last_buffer_error(self, servo="default", axis=1):
+        return self.get_buffer_error_by_index(0, servo=servo, axis=axis)
+
+    def get_buffer_error_by_index(self, index, servo="default", axis=1):
+        """
+        Get error code from buffer error target index.
+
+        Args:
+            index (int): buffer error index.
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+
+        Returns:
+
+        """
+        error_location = self.__get_error_location(servo)
+        subnode = 0 if error_location == self.ErrorLocation.COCO else axis
+        self.mc.communication.set_register(
+            self.ERROR_LIST_INDEX_REQUEST_REGISTER[error_location],
+            index,
+            servo=servo,
+            axis=subnode
+        )
+        err_code = self.mc.communication.get_register(
+            self.ERROR_LIST_REQUESTED_CODE[error_location],
+            servo=servo,
+            axis=subnode
+        )
+        return err_code
+
     def get_number_total_errors(self, servo="default", axis=1):
         """
         Return total number of drive errors.
@@ -95,23 +125,11 @@ class Errors:
             list of int: List of all errors.
         """
         err_list = []
-        error_location = self.__get_error_location(servo)
-        subnode = 0 if error_location == self.ErrorLocation.COCO else axis
         err_num = self.get_number_total_errors(servo, axis)
         for i in range(err_num):
-            self.mc.communication.set_register(
-                self.ERROR_LIST_INDEX_REQUEST_REGISTER[error_location],
-                i,
-                servo=servo,
-                axis=subnode
-            )
-            err_code = self.mc.communication.get_register(
-                self.ERROR_LIST_REQUESTED_CODE[error_location],
-                servo=servo,
-                axis=subnode
-            )
+            err_code = self.get_buffer_error_by_index(i, servo=servo,
+                                                      axis=axis)
             err_list.append(err_code)
-
         return err_list
 
     def is_fault_active(self, servo="default", axis=1):
@@ -149,3 +167,7 @@ class Errors:
             return self.ErrorLocation.COCO
         except ILError:
             return self.ErrorLocation.MOCO
+
+    def get_error_data(self, error_code, servo="default"):
+        drive = self.mc.servos[servo]
+        return drive.errors[error_code]

@@ -1,5 +1,6 @@
 import ingenialogger
 
+from .enums import SensorType
 from .wizard_tests.feedback_test import Feedbacks
 from .wizard_tests.phase_calibration import Phasing
 
@@ -38,7 +39,7 @@ class DriveTests:
         Raises:
             TestError: In case the servo or setup configuration makes impossible fulfilling the test
         """
-        return self.__feedback_test(Feedbacks.SensorType.HALLS, servo, axis, apply_changes)
+        return self.__feedback_test(SensorType.HALLS, servo, axis, apply_changes)
 
     def incremental_encoder_1_test(self, servo="default", axis=1, apply_changes=True):
         """
@@ -68,7 +69,7 @@ class DriveTests:
         Raises:
             TestError: In case the servo or setup configuration makes impossible fulfilling the test
         """
-        return self.__feedback_test(Feedbacks.SensorType.QEI, servo, axis, apply_changes)
+        return self.__feedback_test(SensorType.QEI, servo, axis, apply_changes)
 
     def incremental_encoder_2_test(self, servo="default", axis=1, apply_changes=True):
         """
@@ -98,10 +99,10 @@ class DriveTests:
         Raises:
             TestError: In case the servo or setup configuration makes impossible fulfilling the test
         """
-        return self.__feedback_test(Feedbacks.SensorType.QEI2, servo, axis, apply_changes)
+        return self.__feedback_test(SensorType.QEI2, servo, axis, apply_changes)
 
     def __feedback_test(self, feedback, servo="default", axis=1, apply_changes=True):
-        feedbacks_test = Feedbacks(self.mc.servos[servo], axis, feedback)
+        feedbacks_test = Feedbacks(self.mc, servo, axis, feedback)
         output = feedbacks_test.run()
         if apply_changes:
             for key, value in output["suggested_registers"].items():

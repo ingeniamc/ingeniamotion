@@ -199,6 +199,53 @@ class Motion:
         self.mc.communication.set_register(self.VOLTAGE_DIRECT_SET_POINT_REGISTER,
                                            voltage, servo=servo, axis=axis)
 
+    def current_quadrature_ramp(self, target_value, time_s, servo="default", axis=1,
+                                init_value=0, interval=None):
+        for value in self.__ramp_generator(init_value, target_value, time_s, interval):
+            self.set_current_quadrature(value, servo=servo, axis=axis)
+
+    def current_direct_ramp(self, target_value, time_s, servo="default", axis=1,
+                            init_value=0, interval=None):
+        for value in self.__ramp_generator(init_value, target_value, time_s, interval):
+            self.set_current_direct(value, servo=servo, axis=axis)
+
+    def voltage_quadrature_ramp(self, target_value, time_s, servo="default", axis=1,
+                                init_value=0, interval=None):
+        for value in self.__ramp_generator(init_value, target_value, time_s, interval):
+            self.set_voltage_quadrature(value, servo=servo, axis=axis)
+
+    def voltage_direct_ramp(self, target_value, time_s, servo="default", axis=1,
+                            init_value=0, interval=None):
+        for value in self.__ramp_generator(init_value, target_value, time_s, interval):
+            self.set_voltage_direct(value, servo=servo, axis=axis)
+
+    @staticmethod
+    def __ramp_generator(init_v, final_v, total_t, interval=None):
+        slope = (final_v-init_v) / total_t
+        yield init_v
+        init_time = time.time()
+        current_time = init_time
+        while current_time < init_time+total_t:
+            current_time = time.time()
+            yield slope * (current_time-init_time)
+            if interval is not None:
+                time.sleep(interval)
+        yield final_v
+
+    def get_actual_position(self, servo="default", axis=1):
+        """
+        Returns actual position register.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+
+        Returns:
+            int: actual position value
+        """
+        return self.mc.communication.get_register(self.ACTUAL_POSITION_REGISTER,
+                                                  servo=servo, axis=axis)
+
     def wait_for_position(self, position, servo="default", axis=1, error=20, timeout=None,
                           interval=None):
         """
@@ -221,8 +268,7 @@ class Motion:
         while not target_reached:
             if interval:
                 time.sleep(interval)
-            curr_position = self.mc.communication.get_register(self.ACTUAL_POSITION_REGISTER,
-                                                               servo=servo, axis=axis)
+            curr_position = self.get_actual_position(servo=servo, axis=axis)
             target_reached = abs(position - curr_position) < abs(error)
             if timeout and (init_time + timeout) < time.time():
                 target_reached = True
