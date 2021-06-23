@@ -14,17 +14,21 @@ class BaseTest(ABC):
         self.backup_registers_names = None
         self.backup_registers = {}
         self.suggested_registers = {}
+        self.mc = None
         self.servo = None
-        self.subnode = None
+        self.axis = None
         self.logger = ingenialogger.get_logger(__name__)
 
     def save_backup_registers(self):
-        self.backup_registers[self.subnode] = {}
+        self.backup_registers[self.axis] = {}
         for uid in self.backup_registers_names:
             try:
-                self.backup_registers[self.subnode][uid] = self.servo.read(uid, subnode=self.subnode)
+                value = self.mc.communication.get_register(
+                    uid, servo=self.servo, axis=self.axis
+                )
+                self.backup_registers[self.axis][uid] = value
             except ILError as e:
-                self.logger.warning(e, axis=self.subnode)
+                self.logger.warning(e, axis=self.axis)
 
     def restore_backup_registers(self):
         """ Restores the value of the registers after the test execution.
@@ -35,7 +39,9 @@ class BaseTest(ABC):
         for subnode, registers in self.backup_registers.items():
             for key, value in self.backup_registers[subnode].items():
                 try:
-                    self.servo.raw_write(key, value, subnode=subnode)
+                    self.mc.communication.set_register(
+                        key, value, servo=self.servo, axis=self.axis
+                    )
                 except ILError as e:
                     self.logger.warning(e, axis=subnode)
 
