@@ -3,12 +3,14 @@ import ingenialogger
 from abc import ABC, abstractmethod
 from ingenialink.exceptions import ILError
 
+from .stoppable import Stoppable, StopException
+
 
 class TestError(Exception):
     pass
 
 
-class BaseTest(ABC):
+class BaseTest(ABC, Stoppable):
 
     def __init__(self):
         self.backup_registers_names = None
@@ -17,6 +19,7 @@ class BaseTest(ABC):
         self.mc = None
         self.servo = None
         self.axis = None
+        self.report = None
         self.logger = ingenialogger.get_logger(__name__)
 
     def save_backup_registers(self):
@@ -58,19 +61,25 @@ class BaseTest(ABC):
         pass
 
     def run(self):
+        self.reset_stop()
         drive_disconnected = False
         self.save_backup_registers()
         try:
             self.setup()
             output = self.loop()
+            self.report = self.__generate_report(output)
         except ILError as err:
             drive_disconnected = True
             raise err
+        except StopException:
+            self.logger.warning("Test has been stopped")
         finally:
             if not drive_disconnected:
                 self.teardown()
             self.restore_backup_registers()
+        return self.report
 
+    def __generate_report(self, output):
         return {
             "result": output,
             "suggested_registers": self.suggested_registers,

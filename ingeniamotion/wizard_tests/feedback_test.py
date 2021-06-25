@@ -89,6 +89,7 @@ class Feedbacks(BaseTest):
         self.backup_registers_names = self.BACKUP_REGISTERS
         self.suggested_registers = {}
 
+    @BaseTest.stoppable
     def check_feedback_tolerance(self, error, error_msg, error_type):
         if error > self.FEEDBACK_TOLERANCE:
             error_advice = "Please, review your feedback & motor pair poles settings"
@@ -96,6 +97,7 @@ class Feedbacks(BaseTest):
             return error_type
         return 0
 
+    @BaseTest.stoppable
     def check_symmetry(self, positive, negative):
         self.logger.debug("SYMMETRY CHECK")
         error = 100 * abs(positive + negative) / self.feedback_resolution
@@ -108,6 +110,7 @@ class Feedbacks(BaseTest):
         return self.check_feedback_tolerance(error, error_msg,
                                              self.ResultType.SYMMETRY_ERROR)
 
+    @BaseTest.stoppable
     def check_polarity(self, displacement):
         self.logger.debug("POLARITY CHECK")
         polarity = self.Polarity.NORMAL if displacement > 0 \
@@ -116,6 +119,7 @@ class Feedbacks(BaseTest):
                          polarity.name)
         return polarity
 
+    @BaseTest.stoppable
     def check_resolution(self, displacement):
         displacement = displacement * self.pair_poles
         self.logger.debug("RESOLUTION CHECK")
@@ -132,6 +136,7 @@ class Feedbacks(BaseTest):
         return self.check_feedback_tolerance(
             error, error_msg, self.ResultType.RESOLUTION_ERROR)
 
+    @BaseTest.stoppable
     def feedback_setting(self):  # TODO Feedback Polarity to 0
         if self.sensor == SensorType.HALLS:
             self.halls_extra_settings()
@@ -161,6 +166,7 @@ class Feedbacks(BaseTest):
             self.sensor, servo=self.servo, axis=self.axis
         )
 
+    @BaseTest.stoppable
     def halls_extra_settings(self):
         # Read velocity feedback
         velocity_feedback = self.mc.configuration.get_velocity_feedback(
@@ -187,6 +193,7 @@ class Feedbacks(BaseTest):
                 "CL_VEL_FBK_FILTER1_FREQ"
             ]
 
+    @BaseTest.stoppable
     def reaction_codes_to_warning(self):  # TODO
         # set velocity and position following errors to WARNING = 1
         # ignore failed writes
@@ -209,6 +216,7 @@ class Feedbacks(BaseTest):
             except ILError as e:
                 self.logger.warning(e)
 
+    @BaseTest.stoppable
     def suggest_polarity(self, pol):
         feedbacks_polarity_register = {
             SensorType.HALLS: "FBK_DIGHALL_POLARITY",
@@ -224,6 +232,7 @@ class Feedbacks(BaseTest):
             self.suggested_registers[pair_poles_uid] = self.pair_poles
         self.suggested_registers[polarity_uid] = pol
 
+    @BaseTest.stoppable
     def setup(self):
         # Prerequisites:
         #  - Motor & Feedbacks configured (Pair poles & rated current are used)
@@ -276,6 +285,7 @@ class Feedbacks(BaseTest):
         self.logger.debug("Disabling motor")
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
 
+    @BaseTest.stoppable
     def show_error_message(self):  # TODO
         error_code = self.mc.errors.get_last_buffer_error(servo=self.servo,
                                                           axis=self.axis)
@@ -285,6 +295,7 @@ class Feedbacks(BaseTest):
         )[3]
         raise TestError(error_msg)
 
+    @BaseTest.stoppable
     def wait_for_movement(self, timeout):
         timeout = time.time() + timeout
         while time.time() < timeout:
@@ -294,12 +305,14 @@ class Feedbacks(BaseTest):
             ):
                 self.show_error_message()
 
+    @BaseTest.stoppable
     def get_current_position(self):
         position = self.mc.motion.get_actual_position(servo=self.servo,
                                                       axis=self.axis)
         position = position / self.resolution_multiplier
         return position
 
+    @BaseTest.stoppable
     def current_ramp_up(self):
         max_current = self.mc.communication.get_register(
             "MOT_RATED_CURRENT",
@@ -319,39 +332,45 @@ class Feedbacks(BaseTest):
             servo=self.servo, axis=self.axis
         )
 
-    def loop(self):
-        max_time = 1 / self.test_frequency
-
-        self.logger.info("START OF THE TEST")
-        self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
+    def first_movement_and_set_current(self):
         self.mc.motion.internal_generator_saw_tooth_move(
             self.Polarity.NORMAL, 1, self.test_frequency,
             servo=self.servo, axis=self.axis
         )
-        self.current_ramp_up()
-
         self.logger.debug("Generator mode set to Saw tooth")
         self.logger.debug("Generator frequency set to %s Hz",
                           self.test_frequency)
         self.logger.debug("Generator gain set to 1")
         self.logger.debug("Generator offset set to 0")
         self.logger.debug("Generator cycle number set to 1")
-
+        self.current_ramp_up()
         self.wait_for_movement(self.TIME_BETWEEN_MOVEMENT)
-        position_1 = self.get_current_position()
-        self.logger.debug("Actual position: %.0f",
-                          position_1, axis=self.axis)
+        return self.get_current_position()
+
+    @BaseTest.stoppable
+    def internal_generator_move(self, polarity):
+        cycles = 1
+        freq = self.test_frequency
+        gain = 1 if polarity == self.Polarity.NORMAL else -1
         self.mc.motion.internal_generator_saw_tooth_move(
-            self.Polarity.NORMAL, 1, self.test_frequency,
+            polarity, cycles, freq,
             servo=self.servo, axis=self.axis
         )
+        self.logger.debug("%s direction test", polarity.name)
+        self.logger.debug("Generator gain set to %s", gain)
+        self.logger.debug("Generator offset set to %s", polarity)
+        self.logger.debug("Generator Cycle number set to %s", cycles)
         self.logger.debug("Wait until one electrical cycle is completed")
-        self.wait_for_movement(max_time)
-        position_2 = self.get_current_position()
-        position_displacement = position_2 - position_1
-        self.logger.debug("Actual position: %.0f", position_2, axis=self.axis)
+        self.wait_for_movement(cycles/freq)
+        self.wait_for_movement(self.TIME_BETWEEN_MOVEMENT)
+        position = self.get_current_position()
+        self.logger.debug("Actual position: %.0f", position)
+        return position
+
+    @BaseTest.stoppable
+    def check_movement(self, position_displacement):
         self.logger.info("Detected forward displacement: %.0f",
-                         position_displacement, axis=self.axis)
+                         position_displacement)
 
         # Check the movement displacement
         if position_displacement == 0:
@@ -360,32 +379,22 @@ class Feedbacks(BaseTest):
                                           "configuration & wiring"
             raise TestError(error_movement_displacement)
 
-        self.wait_for_movement(self.TIME_BETWEEN_MOVEMENT)
-
-        self.mc.motion.internal_generator_saw_tooth_move(
-            self.Polarity.REVERSED, 1, self.test_frequency,
-            servo=self.servo, axis=self.axis
-        )
-        self.logger.debug("Reversing direction test")
-        self.logger.debug("Generator gain set to -1")
-        self.logger.debug("Generator offset set to 1")
-        self.logger.debug("Generator Cycle number set to 1")
-
-        self.logger.debug("Wait until one electrical cycle is completed")
-        self.wait_for_movement(max_time)
-        self.logger.debug("Wait between movements", axis=self.axis)
-        self.wait_for_movement(self.TIME_BETWEEN_MOVEMENT)
-
-        position_3 = self.get_current_position()
-        self.logger.debug("Actual position: %.0f", position_3)
-
+    @BaseTest.stoppable
+    def loop(self):
+        self.logger.info("START OF THE TEST")
+        self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
+        position_1 = self.first_movement_and_set_current()
+        self.logger.debug("Actual position: %.0f",
+                          position_1, axis=self.axis)
+        position_2 = self.internal_generator_move(self.Polarity.NORMAL)
+        position_displacement = position_2 - position_1
+        self.check_movement(position_displacement)
+        position_3 = self.internal_generator_move(self.Polarity.REVERSED)
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
-
         negative_displacement = position_3 - position_2
         self.logger.info(
             "Detected reverse displacement: %.0f", negative_displacement
         )
-
         return self.generate_output(position_displacement,
                                     negative_displacement)
 
