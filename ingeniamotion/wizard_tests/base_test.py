@@ -74,9 +74,11 @@ class BaseTest(ABC, Stoppable):
         except StopException:
             self.logger.warning("Test has been stopped")
         finally:
-            if not drive_disconnected:
-                self.teardown()
-            self.restore_backup_registers()
+            try:
+                if not drive_disconnected:
+                    self.teardown()
+            finally:
+                self.restore_backup_registers()
         return self.report
 
     def __generate_report(self, output):

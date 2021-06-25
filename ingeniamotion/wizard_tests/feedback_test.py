@@ -32,7 +32,6 @@ class Feedbacks(BaseTest):
     # Aux constants
     FEEDBACK_TOLERANCE = 17
     TEST_FREQUENCY = 0.4
-    CYCLES = 10
     TIME_BETWEEN_MOVEMENT = 0.5
     PERCENTAGE_CURRENT_USED = 0.8
     LOW_PASS_FILTER = 1
@@ -73,6 +72,15 @@ class Feedbacks(BaseTest):
                         "COMMU_ANGLE_REF_SENSOR",
                         "CL_VEL_FBK_FILTER1_TYPE",
                         "CL_VEL_FBK_FILTER1_FREQ"]
+
+    __feedbacks_polarity_register = {
+        SensorType.HALLS: "FBK_DIGHALL_POLARITY",
+        SensorType.QEI: "FBK_DIGENC1_POLARITY",
+        SensorType.QEI2: "FBK_DIGENC2_POLARITY",
+        SensorType.ABS1: "FBK_BISS1_SSI1_POS_POLARITY",
+        SensorType.SSI2: "FBK_SSI2_POS_POLARITY",
+        SensorType.BISSC2: "FBK_BISS2_POS_POLARITY"
+    }
 
     def __init__(self, mc, servo, axis, sensor):
         super().__init__()
@@ -160,6 +168,12 @@ class Feedbacks(BaseTest):
         self.mc.configuration.set_auxiliar_feedback(auxiliary_sensor,
                                                     servo=self.servo,
                                                     axis=self.axis)
+        # Set Polarity to 0
+        polarity_register = self.__feedbacks_polarity_register[self.sensor]
+        self.mc.communication.set_register(
+            polarity_register, self.Polarity.NORMAL,
+            servo=self.servo, axis=self.axis
+        )
         # Depending on the type of the feedback, calculate the correct
         # feedback resolution
         self.feedback_resolution = self.mc.configuration.get_feedback_resolution(
@@ -194,7 +208,8 @@ class Feedbacks(BaseTest):
             ]
 
     @BaseTest.stoppable
-    def reaction_codes_to_warning(self):  # TODO
+    def reaction_codes_to_warning(self):
+        # TODO Add function in errors to disable errors
         # set velocity and position following errors to WARNING = 1
         # ignore failed writes
         following_error_uids = [
@@ -218,15 +233,7 @@ class Feedbacks(BaseTest):
 
     @BaseTest.stoppable
     def suggest_polarity(self, pol):
-        feedbacks_polarity_register = {
-            SensorType.HALLS: "FBK_DIGHALL_POLARITY",
-            SensorType.QEI: "FBK_DIGENC1_POLARITY",
-            SensorType.QEI2: "FBK_DIGENC2_POLARITY",
-            SensorType.ABS1: "FBK_BISS1_SSI1_POS_POLARITY",
-            SensorType.SSI2: "FBK_SSI2_POS_POLARITY",
-            SensorType.BISSC2: "FBK_BISS2_POS_POLARITY"
-        }
-        polarity_uid = feedbacks_polarity_register[self.sensor]
+        polarity_uid = self.__feedbacks_polarity_register[self.sensor]
         if self.sensor == SensorType.HALLS:
             pair_poles_uid = "FBK_DIGHALL_PAIRPOLES"
             self.suggested_registers[pair_poles_uid] = self.pair_poles
@@ -286,9 +293,10 @@ class Feedbacks(BaseTest):
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
 
     @BaseTest.stoppable
-    def show_error_message(self):  # TODO
+    def show_error_message(self):
         error_code = self.mc.errors.get_last_buffer_error(servo=self.servo,
                                                           axis=self.axis)
+        # TODO check if clan warning bit is necessary
         error_code_cleaned = error_code & self.WARNING_BIT_MASK
         error_msg = self.mc.errors.get_error_data(
             error_code, servo=self.servo
@@ -325,7 +333,7 @@ class Feedbacks(BaseTest):
             self.PERCENTAGE_CURRENT_USED * 100
         )
         target_current = self.PERCENTAGE_CURRENT_USED * max_current
-        cycle_time = 1 / self.test_frequency
+        cycle_time = 2 / self.test_frequency
 
         self.mc.motion.current_quadrature_ramp(
             target_current, cycle_time,
@@ -334,7 +342,7 @@ class Feedbacks(BaseTest):
 
     def first_movement_and_set_current(self):
         self.mc.motion.internal_generator_saw_tooth_move(
-            self.Polarity.NORMAL, 1, self.test_frequency,
+            1, 1, self.test_frequency,
             servo=self.servo, axis=self.axis
         )
         self.logger.debug("Generator mode set to Saw tooth")
@@ -352,8 +360,9 @@ class Feedbacks(BaseTest):
         cycles = 1
         freq = self.test_frequency
         gain = 1 if polarity == self.Polarity.NORMAL else -1
+        pol = 1 if polarity == self.Polarity.NORMAL else -1
         self.mc.motion.internal_generator_saw_tooth_move(
-            polarity, cycles, freq,
+            pol, cycles, freq,
             servo=self.servo, axis=self.axis
         )
         self.logger.debug("%s direction test", polarity.name)
