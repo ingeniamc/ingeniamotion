@@ -39,6 +39,13 @@ class Feedbacks(BaseTest):
     WARNING_BIT_MASK = 0x0FFFFFFF
     FAIL_MSG_MISMATCH = "A mismatch in resolution has been detected."
 
+    COMMUTATION_MODULATION_REGISTER = "MOT_COMMU_MOD"
+    POSITION_TO_VELOCITY_SENSOR_RATIO_REGISTER = "PROF_POS_VEL_RATIO"
+    VELOCITY_FEEDBACK_FILTER_1_TYPE_REGISTER = "CL_VEL_FBK_FILTER1_TYPE"
+    VELOCITY_FEEDBACK_FILTER_1_FREQUENCY_REGISTER = "CL_VEL_FBK_FILTER1_FREQ"
+    DIG_HALL_POLE_PAIRS_REGISTER = "FBK_DIGHALL_PAIRPOLES"
+    RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
+
     BACKUP_REGISTERS = ["CL_POS_FBK_SENSOR",
                         "FBK_BISS1_SSI1_POS_POLARITY",
                         "FBK_BISS2_POS_POLARITY",
@@ -190,8 +197,8 @@ class Feedbacks(BaseTest):
         # TODO: set filter depending on motors rated velocity by the
         #  following formula: f_halls = w_mechanical * pp * 6
         if velocity_feedback == SensorType.HALLS:
-            filter_type_uid = "CL_VEL_FBK_FILTER1_TYPE"
-            filter_freq_uid = "CL_VEL_FBK_FILTER1_FREQ"
+            filter_type_uid = self.VELOCITY_FEEDBACK_FILTER_1_TYPE_REGISTER
+            filter_freq_uid = self.VELOCITY_FEEDBACK_FILTER_1_FREQUENCY_REGISTER
             self.suggested_registers[filter_type_uid] = self.LOW_PASS_FILTER
             self.suggested_registers[filter_freq_uid] = \
                 self.HALLS_FILTER_CUTOFF_FREQUENCY
@@ -201,10 +208,10 @@ class Feedbacks(BaseTest):
                 "velocity feedback is set to Halls"
             )
             del self.backup_registers[self.axis][
-                "CL_VEL_FBK_FILTER1_TYPE"
+                self.VELOCITY_FEEDBACK_FILTER_1_TYPE_REGISTER
             ]
             del self.backup_registers[self.axis][
-                "CL_VEL_FBK_FILTER1_FREQ"
+                self.VELOCITY_FEEDBACK_FILTER_1_FREQUENCY_REGISTER
             ]
 
     @BaseTest.stoppable
@@ -235,7 +242,7 @@ class Feedbacks(BaseTest):
     def suggest_polarity(self, pol):
         polarity_uid = self.__feedbacks_polarity_register[self.sensor]
         if self.sensor == SensorType.HALLS:
-            pair_poles_uid = "FBK_DIGHALL_PAIRPOLES"
+            pair_poles_uid = self.DIG_HALL_POLE_PAIRS_REGISTER
             self.suggested_registers[pair_poles_uid] = self.pair_poles
         self.suggested_registers[polarity_uid] = pol
 
@@ -250,7 +257,8 @@ class Feedbacks(BaseTest):
         self.logger.info("CONFIGURATION OF THE TEST")
         # Set commutation modulation to sinusoidal
         self.mc.communication.set_register(
-            "MOT_COMMU_MOD", 0, servo=self.servo, axis=self.axis
+            self.COMMUTATION_MODULATION_REGISTER, 0,
+            servo=self.servo, axis=self.axis
         )
         # Default resolution multiplier
         # Change multiplier using gear ratio if feedback to check is configured
@@ -260,7 +268,8 @@ class Feedbacks(BaseTest):
         )
         if position_feedback_value == self.sensor:
             self.resolution_multiplier = self.mc.communication.get_register(
-                "PROF_POS_VEL_RATIO", servo=self.servo, axis=self.axis
+                self.POSITION_TO_VELOCITY_SENSOR_RATIO_REGISTER,
+                servo=self.servo, axis=self.axis
             )
         # For each feedback on motor side we should repeat this test using the
         # feedback as position sensor. The polarity of the feedback must be set
@@ -323,7 +332,7 @@ class Feedbacks(BaseTest):
     @BaseTest.stoppable
     def current_ramp_up(self):
         max_current = self.mc.communication.get_register(
-            "MOT_RATED_CURRENT",
+            self.RATED_CURRENT_REGISTER,
             servo=self.servo, axis=self.axis
         )
         # Increase current progressively
