@@ -138,7 +138,7 @@ class DriveTests:
         Raises:
             TestError: If servo or setup configuration makes impossible complete the calibration
         """
-        commutation = Phasing(self.mc.servos[servo], axis)
+        commutation = Phasing(self.mc, servo, axis)
         output = commutation.run()
         if apply_changes:
             for key, value in output["suggested_registers"].items():
