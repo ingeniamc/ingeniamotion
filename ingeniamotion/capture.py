@@ -2,16 +2,18 @@ import ingenialink as il
 
 from .monitoring import Monitoring, MonitoringSoCType
 from .disturbance import Disturbance
+from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
-class Capture:
+class Capture(metaclass=MCMetaClass):
     """Capture.
     """
 
     def __init__(self, motion_controller):
         self.mc = motion_controller
 
-    def create_poller(self, registers, servo="default", sampling_time=0.125, buffer_size=100, start=True):
+    def create_poller(self, registers, servo=DEFAULT_SERVO,
+                      sampling_time=0.125, buffer_size=100, start=True):
         """
         Returns a Poller instance with target registers.
 
@@ -63,7 +65,7 @@ class Capture:
             poller = il.Poller(self.mc.servos[servo], len(registers))
         poller.configure(sampling_time, buffer_size)
         for index, register in enumerate(registers):
-            axis = register.get("axis", 1)
+            axis = register.get("axis", DEFAULT_AXIS)
             name = register.get("name")
             register_obj = drive.dict.get_regs(axis)[name]
             poller.ch_configure(index, register_obj)
@@ -73,12 +75,14 @@ class Capture:
 
     def create_monitoring(self, registers, prescaler, sample_time, trigger_delay=0,
                           trigger_mode=MonitoringSoCType.TRIGGER_EVENT_NONE,
-                          trigger_signal=None, trigger_value=None, servo="default", start=False):
+                          trigger_signal=None, trigger_value=None,
+                          servo=DEFAULT_SERVO, start=False):
         """
         Returns a Monitoring instance configured with target registers.
 
         Args:
-            registers (list of dict): list of registers to add to Monitoring. Dicts should have the follow format:
+            registers (list of dict): list of registers to add to Monitoring.
+            Dicts should have the follow format:
 
                 .. code-block:: python
 
@@ -98,26 +102,31 @@ class Capture:
                 :func:`ingeniamotion.configuration.Configuration.get_position_and_velocity_loop_rate` to know about
                 this frequency. It must be ``1`` or higher.
             sample_time (float): sample time in seconds.
-            trigger_delay (float): trigger delay in seconds. Value should be between ``-sample_time/2`` and
-                ``sample_time/2`` . ``0`` by default.
-            trigger_mode (MonitoringSoCType): monitoring start of condition type. ``TRIGGER_EVENT_NONE`` by
-                default.
-            trigger_signal (dict): dict with name and axis of trigger signal for rising or falling edge trigger.
+            trigger_delay (float): trigger delay in seconds. Value should be between
+                ``-sample_time/2`` and ``sample_time/2`` . ``0`` by default.
+            trigger_mode (MonitoringSoCType): monitoring start of condition type.
+                ``TRIGGER_EVENT_NONE`` by default.
+            trigger_signal (dict): dict with name and axis of trigger signal
+                for rising or falling edge trigger.
             trigger_value (int or float): value for rising or falling edge trigger.
             servo (str): servo alias to reference it. ``default`` by default.
-            start (bool): if ``True``, function starts monitoring, if ``False`` monitoring should be started after.
-                ``False`` by default.
+            start (bool): if ``True``, function starts monitoring, if ``False``
+                monitoring should be started after. ``False`` by default.
 
         Returns:
             Monitoring: Instance of monitoring configured.
 
         Raises:
             ValueError: If prescaler is less than ``1``.
-            ValueError: If trigger_delay is not between ``-total_time/2`` and ``total_time/2``.
+            ValueError: If trigger_delay is not between ``-total_time/2`` and
+             ``total_time/2``.
             MonitoringError: If register maps fails in the servo.
-            MonitoringError: If buffer size is not enough for all the registers and samples.
-            MonitoringError: If trigger_mode is rising or falling edge trigger and trigger signal is not mapped.
-            TypeError: If trigger_mode is rising or falling edge trigger and trigger_signal or trigger_value are None.
+            MonitoringError: If buffer size is not enough for all the registers
+             and samples.
+            MonitoringError: If trigger_mode is rising or falling edge trigger
+             and trigger signal is not mapped.
+            TypeError: If trigger_mode is rising or falling edge trigger and
+             trigger_signal or trigger_value are None.
         """
         monitoring = Monitoring(self.mc, servo)
         monitoring.disable_monitoring()
@@ -129,7 +138,8 @@ class Capture:
             monitoring.enable_monitoring()
         return monitoring
 
-    def create_disturbance(self, register, data, freq_divider, servo="default", axis=1, start=False):
+    def create_disturbance(self, register, data, freq_divider,
+                           servo=DEFAULT_SERVO, axis=DEFAULT_AXIS, start=False):
         """
         Returns a Disturbance instance configured with target registers.
 
@@ -138,11 +148,12 @@ class Capture:
             data (list): data to write in disturbance.
             freq_divider (int): determines disturbance frequency divider. Frequency will be
                 ``Position & velocity loop rate frequency / freq_divider``, see
-                :func:`ingeniamotion.configuration.Configuration.get_position_and_velocity_loop_rate` to know about
-                this frequency. It must be ``1`` or higher.
+                :func:`ingeniamotion.configuration.Configuration.get_position_and_velocity_loop_rate`
+                to know about this frequency. It must be ``1`` or higher.
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
-            start (bool): if ``True``, function starts disturbance, if ``False`` disturbance should be started after.
+            start (bool): if ``True``, function starts disturbance,
+                if ``False`` disturbance should be started after.
                 ``False`` by default.
 
         Returns:

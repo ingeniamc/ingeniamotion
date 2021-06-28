@@ -1,9 +1,10 @@
 import ingenialogger
 
 from ingeniamotion.enums import OperationMode, HomingMode
+from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
-class Homing:
+class Homing(metaclass=MCMetaClass):
 
     HOMING_MODE_REGISTER = "HOM_MODE"
     HOMING_OFFSET_REGISTER = "HOM_OFFSET"
@@ -18,7 +19,7 @@ class Homing:
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
 
-    def set_homing_mode(self, homing_mode, servo="default", axis=1):
+    def set_homing_mode(self, homing_mode, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
         Set homing mode.
 
@@ -30,7 +31,7 @@ class Homing:
         self.mc.communication.set_register(self.HOMING_MODE_REGISTER,
                                            homing_mode, servo, axis)
 
-    def set_homing_offset(self, homing_offset, servo="default", axis=1):
+    def set_homing_offset(self, homing_offset, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
         Set homing offset configuration.
 
@@ -42,7 +43,7 @@ class Homing:
         self.mc.communication.set_register(self.HOMING_OFFSET_REGISTER,
                                            homing_offset, servo, axis)
 
-    def set_homing_timeout(self, timeout_ms, servo="default", axis=1):
+    def set_homing_timeout(self, timeout_ms, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
         Set homing timeout configuration.
 
@@ -54,7 +55,8 @@ class Homing:
         self.mc.communication.set_register(self.HOMING_TIMEOUT_REGISTER,
                                            timeout_ms, servo, axis)
 
-    def homing_on_current_position(self, hom_offset, servo="default", axis=1):
+    def homing_on_current_position(self, hom_offset, servo=DEFAULT_SERVO,
+                                   axis=DEFAULT_AXIS):
         """
         Do current position homing.
 
@@ -79,8 +81,9 @@ class Homing:
         # Restore op mode
         self.mc.motion.set_operation_mode(prev_op_mode, servo, axis)
 
-    def homing_on_switch_limit(self, hom_offset, direction, switch, timeout_ms, lim_vel, zero_vel,
-                               servo="default", axis=1, motor_enable=True):
+    def homing_on_switch_limit(self, hom_offset, direction, switch, timeout_ms,
+                               lim_vel, zero_vel, servo=DEFAULT_SERVO,
+                               axis=DEFAULT_AXIS, motor_enable=True):
         """
         Do homing on switch limit.
 
@@ -117,8 +120,9 @@ class Homing:
             self.mc.motion.motor_enable(servo, axis)
         self.mc.motion.target_latch(servo, axis)
 
-    def homing_on_index_pulse(self, hom_offset, direction, index, timeout_ms, zero_vel,
-                              servo="default", axis=1, motor_enable=True):
+    def homing_on_index_pulse(self, hom_offset, direction, index, timeout_ms,
+                              zero_vel, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
+                              motor_enable=True):
         """
         Do homing on index pulse.
 
@@ -152,9 +156,10 @@ class Homing:
             self.mc.motion.motor_enable(servo, axis)
         self.mc.motion.target_latch(servo, axis)
 
-    def homing_on_switch_limit_and_index_pulse(self, hom_offset, direction, switch, index,
-                                               timeout_ms, lim_vel, zero_vel, servo="default",
-                                               axis=1, motor_enable=True):
+    def homing_on_switch_limit_and_index_pulse(self, hom_offset, direction, switch,
+                                               index, timeout_ms, lim_vel, zero_vel,
+                                               servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
+                                               motor_enable=True):
         """
         Do homing on switch limit and index pulse.
 
@@ -174,12 +179,14 @@ class Homing:
         self.mc.motion.set_operation_mode(OperationMode.HOMING, servo, axis)
         if direction > 0:
             # Positive direction
-            self.set_homing_mode(HomingMode.POSITIVE_LIMIT_SWITCH_IDX_PULSE, servo, axis)
+            self.set_homing_mode(HomingMode.POSITIVE_LIMIT_SWITCH_IDX_PULSE,
+                                 servo, axis)
             self.mc.communication.set_register(self.POSITIVE_HOMING_SWITCH_REGISTER,
                                                switch, servo, axis)
         else:
             # Negative direction
-            self.set_homing_mode(HomingMode.NEGATIVE_LIMIT_SWITCH_IDX_PULSE, servo, axis)
+            self.set_homing_mode(HomingMode.NEGATIVE_LIMIT_SWITCH_IDX_PULSE,
+                                 servo, axis)
             self.mc.communication.set_register(self.NEGATIVE_HOMING_SWITCH_REGISTER,
                                                switch, servo, axis)
         self.set_homing_offset(hom_offset, servo, axis)

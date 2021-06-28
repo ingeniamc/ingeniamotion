@@ -1,11 +1,11 @@
-import ingenialink as il
-
 from enum import IntEnum
 from ingenialink.exceptions import ILError
 
+from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
-class Errors:
-    """Capture.
+
+class Errors(metaclass=MCMetaClass):
+    """Errors
     """
 
     class ErrorLocation(IntEnum):
@@ -43,7 +43,7 @@ class Errors:
     def __init__(self, motion_controller):
         self.mc = motion_controller
 
-    def get_last_error(self, servo="default", axis=1):
+    def get_last_error(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
         Return last servo error.
 
@@ -63,7 +63,7 @@ class Errors:
         )
         return last_error
 
-    def get_number_total_errors(self, servo="default", axis=1):
+    def get_number_total_errors(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
         Return total number of drive errors.
 
@@ -83,7 +83,7 @@ class Errors:
         )
         return num_errors
 
-    def get_all_errors(self, servo="default", axis=1):
+    def get_all_errors(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
         Return list with all error codes.
 
@@ -114,7 +114,7 @@ class Errors:
 
         return err_list
 
-    def is_fault_active(self, servo="default", axis=1):
+    def is_fault_active(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
         Return if fault is active.
 
@@ -128,7 +128,7 @@ class Errors:
         status_word = self.mc.configuration.get_status_word(servo=servo, axis=axis)
         return bool(status_word & self.STATUS_WORD_FAULT_BIT)
 
-    def is_warning_active(self, servo="default", axis=1):
+    def is_warning_active(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
         Return if warning is active.
 
@@ -142,10 +142,10 @@ class Errors:
         status_word = self.mc.configuration.get_status_word(servo=servo, axis=axis)
         return bool(status_word & self.STATUS_WORD_WARNING_BIT)
 
-    def __get_error_location(self, servo="default"):
+    def __get_error_location(self, servo=DEFAULT_SERVO):
         # Try to read CoCo's last error, if it does not exist go to MoCo
         try:
-            self.mc.servos[servo].dict.get_regs(0)[self.LAST_ERROR_COCO_REGISTER]
+            _ = self.mc.servos[servo].dict.get_regs(0)[self.LAST_ERROR_COCO_REGISTER]
             return self.ErrorLocation.COCO
         except ILError:
             return self.ErrorLocation.MOCO
