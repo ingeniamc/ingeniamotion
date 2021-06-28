@@ -159,9 +159,9 @@ class Disturbance:
             registers_data = [registers_data]
         drive = self.mc.servos[self.servo]
         self.__check_buffer_size_is_enough(registers_data)
-        for ch_idx, data in enumerate(registers_data):
-            dtype = self.mapped_registers[ch_idx]["dtype"]
-            drive.disturbance_write_data(ch_idx, dtype, data)
+        idx_list = list(range(len(registers_data)))
+        dtype_list = [x["dtype"] for x in self.mapped_registers]
+        drive.disturbance_write_data(idx_list, dtype_list, registers_data)
 
     def map_registers_and_write_data(self, registers):
         """
