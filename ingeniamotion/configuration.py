@@ -264,7 +264,8 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
                                                             axis=axis)
         return bool(status_word & self.STATUS_WORD_OPERATION_ENABLED_BIT)
 
-    def set_phasing_mode(self, phasing_mode, servo="default", axis=1):
+    def set_phasing_mode(self, phasing_mode, servo=DEFAULT_SERVO,
+                         axis=DEFAULT_AXIS):
         """
         Set phasing mode.
 
@@ -276,7 +277,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         self.mc.communication.set_register(self.PHASING_MODE_REGISTER,
                                            phasing_mode, servo, axis)
 
-    def get_phasing_mode(self, servo="default", axis=1):
+    def get_phasing_mode(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
         Get current phasing mode.
 
@@ -294,7 +295,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         except ValueError:
             return phasing_mode
 
-    def set_generator_mode(self, mode, servo="default", axis=1):
+    def set_generator_mode(self, mode, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
         Set generator mode.
 
@@ -306,7 +307,8 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         self.mc.communication.set_register(self.GENERATOR_MODE_REGISTER,
                                            mode, servo, axis)
 
-    def set_motor_pair_poles(self, pair_poles, servo="default", axis=1):
+    def set_motor_pair_poles(self, pair_poles, servo=DEFAULT_SERVO,
+                             axis=DEFAULT_AXIS):
         """
         Set motor pair poles.
 
@@ -318,7 +320,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         self.mc.communication.set_register(self.MOTOR_POLE_PAIRS_REGISTER,
                                            pair_poles, servo=servo, axis=axis)
 
-    def get_motor_pair_poles(self, servo="default", axis=1):
+    def get_motor_pair_poles(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
         Get motor pair poles.
 

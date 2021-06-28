@@ -173,7 +173,7 @@ class Motion(metaclass=MCMetaClass):
             current, servo=servo, axis=axis
         )
 
-    def set_current_direct(self, current, servo="default", axis=1):
+    def set_current_direct(self, current, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
         Set direct current set point to a target servo and axis, in A.
 
@@ -185,7 +185,8 @@ class Motion(metaclass=MCMetaClass):
         self.mc.communication.set_register(self.CURRENT_DIRECT_SET_POINT_REGISTER,
                                            current, servo=servo, axis=axis)
 
-    def set_voltage_quadrature(self, voltage, servo="default", axis=1):
+    def set_voltage_quadrature(self, voltage, servo=DEFAULT_SERVO,
+                               axis=DEFAULT_AXIS):
         """
         Set quadrature voltage set point to a target servo and axis, in V.
 
@@ -197,7 +198,8 @@ class Motion(metaclass=MCMetaClass):
         self.mc.communication.set_register(self.VOLTAGE_QUADRATURE_SET_POINT_REGISTER,
                                            voltage, servo=servo, axis=axis)
 
-    def set_voltage_direct(self, voltage, servo="default", axis=1):
+    def set_voltage_direct(self, voltage, servo=DEFAULT_SERVO,
+                           axis=DEFAULT_AXIS):
         """
         Set direct voltage set point to a target servo and axis, in V.
 
@@ -278,7 +280,8 @@ class Motion(metaclass=MCMetaClass):
                                     velocity, axis=axis,
                                     drive=self.mc.servo_name(servo))
 
-    def set_internal_generator_configuration(self, op_mode, servo="default", axis=1):
+    def set_internal_generator_configuration(self, op_mode, servo=DEFAULT_SERVO,
+                                             axis=DEFAULT_AXIS):
         """
         Set internal generator configuration.
 
@@ -310,7 +313,7 @@ class Motion(metaclass=MCMetaClass):
                                                        servo=servo, axis=axis)
 
     def internal_generator_saw_tooth_move(self, direction, cycles, frequency,
-                                          servo="default", axis=1):
+                                          servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
         Move motor in internal generator configuration with generator mode saw tooth.
 
@@ -342,7 +345,8 @@ class Motion(metaclass=MCMetaClass):
         self.mc.communication.set_register(self.GENERATOR_REARM_REGISTER, 1,
                                            servo=servo, axis=axis)
 
-    def internal_generator_constant_move(self, offset, servo="default", axis=1):
+    def internal_generator_constant_move(self, offset, servo=DEFAULT_SERVO,
+                                         axis=DEFAULT_AXIS):
         """
         Move motor in internal generator configuration with generator mode constant.
 
