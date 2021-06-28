@@ -22,10 +22,6 @@ class MotionController:
         self.__tests = DriveTests(self)
         self.__errors = Errors(self)
 
-    def check_servo(self, servo):
-        if servo not in self.servos:
-            raise Exception("Servo '{}' does not exist".format(servo))
-
     def servo_name(self, servo):
         return "{} ({})".format(self.servos[servo].info["prod_code"], servo)
 
