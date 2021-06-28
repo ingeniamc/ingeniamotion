@@ -1,7 +1,7 @@
 import ingenialogger
 
 from abc import ABC, abstractmethod
-from ingenialink.exceptions import ILError
+from ingenialink.exceptions import ILError, ILTimeoutError
 
 from .stoppable import Stoppable, StopException
 
@@ -77,6 +77,8 @@ class BaseTest(ABC, Stoppable):
             try:
                 if not drive_disconnected:
                     self.teardown()
+            except ILTimeoutError:
+                pass
             finally:
                 self.restore_backup_registers()
         return self.report

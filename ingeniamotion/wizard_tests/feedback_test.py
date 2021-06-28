@@ -307,9 +307,9 @@ class Feedbacks(BaseTest):
                                                           axis=self.axis)
         # TODO check if clan warning bit is necessary
         error_code_cleaned = error_code & self.WARNING_BIT_MASK
-        error_msg = self.mc.errors.get_error_data(
+        _, _, _, error_msg = self.mc.errors.get_error_data(
             error_code, servo=self.servo
-        )[3]
+        )
         raise TestError(error_msg)
 
     @BaseTest.stoppable

@@ -5,7 +5,7 @@ from ingenialink.exceptions import ILError
 
 
 class Errors:
-    """Capture.
+    """Errors.
     """
 
     class ErrorLocation(IntEnum):
@@ -64,6 +64,16 @@ class Errors:
         return last_error
 
     def get_last_buffer_error(self, servo="default", axis=1):
+        """
+        Get error code from error buffer last position.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+
+        Returns:
+            int: Code error.
+        """
         return self.get_buffer_error_by_index(0, servo=servo, axis=axis)
 
     def get_buffer_error_by_index(self, index, servo="default", axis=1):
@@ -76,7 +86,7 @@ class Errors:
             axis (int): servo axis. ``1`` by default.
 
         Returns:
-
+            int: Code error.
         """
         error_location = self.__get_error_location(servo)
         subnode = 0 if error_location == self.ErrorLocation.COCO else axis
@@ -168,6 +178,26 @@ class Errors:
         except ILError:
             return self.ErrorLocation.MOCO
 
+    # TODO
     def get_error_data(self, error_code, servo="default"):
+        """
+        Return error info from target error_code.
+
+        Args:
+            error_code (int): target error code.
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        Returns:
+            (str, str, str, str): Returns error info.
+
+            id (str):
+                Error Id
+            affected_module (str):
+                Error affected module
+            error_type (str):
+                Error type
+            error_message (str):
+                Error message
+        """
         drive = self.mc.servos[servo]
-        return drive.errors[error_code]
+        return tuple(drive.errors[error_code])

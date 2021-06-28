@@ -201,21 +201,77 @@ class Motion:
 
     def current_quadrature_ramp(self, target_value, time_s, servo="default", axis=1,
                                 init_value=0, interval=None):
+        """
+        Given a target value and a time in seconds, changes the current
+        quadrature set-point linearly following a ramp. This function is
+        blocked until target reached.
+
+        Args:
+            target_value (float): target value of the ramp.
+            time_s (float): duration of the ramp, in seconds.
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+            init_value (float): initial value of the ramp. ``0`` by default.
+            interval (float): time interval between register writes, in seconds.
+                ``None`` by default, no interval.
+        """
         for value in self.__ramp_generator(init_value, target_value, time_s, interval):
             self.set_current_quadrature(value, servo=servo, axis=axis)
 
     def current_direct_ramp(self, target_value, time_s, servo="default", axis=1,
                             init_value=0, interval=None):
+        """
+        Given a target value and a time in seconds, changes the current
+        direct set-point linearly following a ramp. This function is
+        blocked until target reached.
+
+        Args:
+            target_value (float): target value of the ramp.
+            time_s (float): duration of the ramp, in seconds.
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+            init_value (float): initial value of the ramp. ``0`` by default.
+            interval (float): time interval between register writes, in seconds.
+                ``None`` by default, no interval.
+        """
         for value in self.__ramp_generator(init_value, target_value, time_s, interval):
             self.set_current_direct(value, servo=servo, axis=axis)
 
     def voltage_quadrature_ramp(self, target_value, time_s, servo="default", axis=1,
                                 init_value=0, interval=None):
+        """
+        Given a target value and a time in seconds, changes the voltage
+        quadrature set-point linearly following a ramp. This function is
+        blocked until target reached.
+
+        Args:
+            target_value (float): target value of the ramp.
+            time_s (float): duration of the ramp, in seconds.
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+            init_value (float): initial value of the ramp. ``0`` by default.
+            interval (float): time interval between register writes, in seconds.
+                ``None`` by default, no interval.
+        """
         for value in self.__ramp_generator(init_value, target_value, time_s, interval):
             self.set_voltage_quadrature(value, servo=servo, axis=axis)
 
     def voltage_direct_ramp(self, target_value, time_s, servo="default", axis=1,
                             init_value=0, interval=None):
+        """
+        Given a target value and a time in seconds, changes the voltage
+        direct set-point linearly following a ramp. This function is
+        blocked until target reached.
+
+        Args:
+            target_value (float): target value of the ramp.
+            time_s (float): duration of the ramp, in seconds.
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+            init_value (float): initial value of the ramp. ``0`` by default.
+            interval (float): time interval between register writes, in seconds.
+                ``None`` by default, no interval.
+        """
         for value in self.__ramp_generator(init_value, target_value, time_s, interval):
             self.set_voltage_direct(value, servo=servo, axis=axis)
 
