@@ -6,6 +6,7 @@ from enum import IntEnum
 
 from .homing import Homing
 from .feedbacks import Feedbacks
+from .enums import PhasingMode, GeneratorMode
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
@@ -27,6 +28,9 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
     POWER_STAGE_FREQUENCY_REGISTER = "DRV_PS_FREQ_SELECTION"
     POSITION_AND_VELOCITY_LOOP_RATE_REGISTER = "DRV_POS_VEL_RATE"
     STATUS_WORD_REGISTER = "DRV_STATE_STATUS"
+    PHASING_MODE_REGISTER = "COMMU_PHASING_MODE"
+    GENERATOR_MODE_REGISTER = "FBK_GEN_MODE"
+    MOTOR_POLE_PAIRS_REGISTER = "MOT_PAIR_POLES"
 
     STATUS_WORD_OPERATION_ENABLED_BIT = 0x04
 
@@ -259,3 +263,71 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         status_word = self.mc.configuration.get_status_word(servo=servo,
                                                             axis=axis)
         return bool(status_word & self.STATUS_WORD_OPERATION_ENABLED_BIT)
+
+    def set_phasing_mode(self, phasing_mode, servo="default", axis=1):
+        """
+        Set phasing mode.
+
+        Args:
+            phasing_mode (PhasingMode): phasing mode.
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+        """
+        self.mc.communication.set_register(self.PHASING_MODE_REGISTER,
+                                           phasing_mode, servo, axis)
+
+    def get_phasing_mode(self, servo="default", axis=1):
+        """
+        Get current phasing mode.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+
+        Returns:
+            PhasingMode: Phasing mode value.
+        """
+        phasing_mode = self.mc.communication.get_register(
+            self.PHASING_MODE_REGISTER, servo, axis)
+        try:
+            return PhasingMode(phasing_mode)
+        except ValueError:
+            return phasing_mode
+
+    def set_generator_mode(self, mode, servo="default", axis=1):
+        """
+        Set generator mode.
+
+        Args:
+            mode (GeneratorMode): generator mode value.
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+        """
+        self.mc.communication.set_register(self.GENERATOR_MODE_REGISTER,
+                                           mode, servo, axis)
+
+    def set_motor_pair_poles(self, pair_poles, servo="default", axis=1):
+        """
+        Set motor pair poles.
+
+        Args:
+            pair_poles (int): motor pair poles-
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+        """
+        self.mc.communication.set_register(self.MOTOR_POLE_PAIRS_REGISTER,
+                                           pair_poles, servo=servo, axis=axis)
+
+    def get_motor_pair_poles(self, servo="default", axis=1):
+        """
+        Get motor pair poles.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+
+        Returns:
+            int: Pair poles value.
+        """
+        return self.mc.communication.get_register(self.MOTOR_POLE_PAIRS_REGISTER,
+                                                  servo=servo, axis=axis)

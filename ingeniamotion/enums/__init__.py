@@ -68,3 +68,49 @@ class MonitoringProcessStage(IntEnum):
     """ Waiting for trigger """
     DATA_ACQUISITION = 0x6
     """ Data acquisition """
+
+
+class SensorType(IntEnum):
+    """
+    Summit series feedback type enum
+    """
+    ABS1 = 1
+    """ Absolute encoder 1 """
+    INTGEN = 3
+    """ Internal generator """
+    QEI = 4
+    """ Digital/Incremental encoder 1 """
+    HALLS = 5
+    """ Digital halls """
+    SSI2 = 6
+    """ Secondary SSI """
+    BISSC2 = 7
+    """ Absolute encoder 2 """
+    QEI2 = 8
+    """ Digital/Incremental encoder 2 """
+    SMO = 9
+    """ SMO """
+
+
+class PhasingMode(IntEnum):
+    """
+    Phasing modes
+    """
+    NON_FORCED = 0
+    """ Non forced """
+    FORCED = 1
+    """ Forced """
+    NO_PHASING = 2
+    """ No phasing """
+
+
+class GeneratorMode(IntEnum):
+    """
+    Generator modes
+    """
+    CONSTANT = 0
+    """ Constant """
+    SAW_TOOTH = 1
+    """ Saw tooth """
+    SQUARE = 2
+    """ Square """
