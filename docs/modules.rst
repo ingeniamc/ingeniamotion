@@ -10,3 +10,5 @@ Ingenia Motion
    ingeniamotion/configuration
    ingeniamotion/drive_tests
    ingeniamotion/motion
+   ingeniamotion/errors
+   ingeniamotion/enums

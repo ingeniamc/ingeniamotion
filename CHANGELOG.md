@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.4.0] - 2021-06-28
+### Added
+- Error module.
+- Homing functions.
+- Servo connection and motor enabled checker.
+- Add capability to map more than one register into disturbance.
+
+### Changed
+- Update ingeniamotion feedback test
+
+## [0.3.1] - 2021-06-15
+### Added
+- Add disturbance functionality for all summit and custom drives.
+- Implement feedback resolution reading and feedback type set and get.
+
 ## [0.3.0] - 2021-06-09
 ### Added
 - Add SOEM communications as a way to connect to the drive.

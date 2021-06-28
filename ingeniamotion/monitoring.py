@@ -7,6 +7,8 @@ from ingenialink.exceptions import ILError
 
 from enum import IntEnum
 
+from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
+
 
 def check_monitoring_disabled(func):
     @wraps(func)
@@ -105,7 +107,7 @@ class Monitoring:
     MONITORING_CURRENT_NUMBER_BYTES_REGISTER = "MON_CFG_BYTES_VALUE"
     MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER = "MON_MAX_SIZE"
 
-    def __init__(self, mc, servo="default"):
+    def __init__(self, mc, servo=DEFAULT_SERVO):
         super().__init__()
         self.mc = mc
         self.servo = servo
@@ -137,10 +139,11 @@ class Monitoring:
         """
         if prescaler < 1:
             raise ValueError("prescaler must be 1 or higher")
-        position_velocity_loop_rate = self.mc.configuration.get_position_and_velocity_loop_rate(
-            servo=self.servo,
-            axis=1
-        )
+        position_velocity_loop_rate = \
+            self.mc.configuration.get_position_and_velocity_loop_rate(
+                servo=self.servo,
+                axis=DEFAULT_AXIS
+            )
         self.sampling_freq = round(position_velocity_loop_rate / prescaler, 2)
         self.mc.communication.set_register(
             self.MONITORING_FREQUENCY_DIVIDER_REGISTER,
@@ -174,16 +177,17 @@ class Monitoring:
         network.monitoring_remove_all_mapped_registers()
 
         for channel in registers:
-            subnode = channel.get("axis", 1)
+            subnode = channel.get("axis", DEFAULT_AXIS)
             register = channel["name"]
             register_obj = drive.dict.get_regs(subnode)[register]
             dtype = register_obj.dtype
             channel["dtype"] = dtype
 
-        self.__check_buffer_size_is_enough(self.samples_number, self.trigger_delay_samples, registers)
+        self.__check_buffer_size_is_enough(self.samples_number,
+                                           self.trigger_delay_samples, registers)
 
         for ch_idx, channel in enumerate(registers):
-            subnode = channel.get("axis", 1)
+            subnode = channel.get("axis", DEFAULT_AXIS)
             register = channel["name"]
             dtype = channel["dtype"]
             address_offset = self.REGISTER_MAP_OFFSET * (subnode - 1)
@@ -201,18 +205,21 @@ class Monitoring:
         self.mapped_registers = registers
 
     @check_monitoring_disabled
-    def set_trigger(self, trigger_mode, trigger_signal=None, trigger_value=None, trigger_repetitions=1):
+    def set_trigger(self, trigger_mode, trigger_signal=None, trigger_value=None,
+                    trigger_repetitions=1):
         """
         Configure monitoring trigger. Monitoring must be disabled.
 
         Args:
             trigger_mode (MonitoringSoCType): monitoring start of condition type.
-            trigger_signal (dict): dict with name and axis of trigger signal for rising or falling edge trigger.
+            trigger_signal (dict): dict with name and axis of trigger signal
+                for rising or falling edge trigger.
             trigger_value (int or float): value for rising or falling edge trigger.
             trigger_repetitions (int): number of time trigger will be pull.
 
         Raises:
-            TypeError: If trigger_mode is rising or falling edge trigger and trigger_signal or trigger_value are None.
+            TypeError: If trigger_mode is rising or falling edge trigger and
+                trigger_signal or trigger_value are None.
             MonitoringError: If trigger signal is not mapped.
         """
         self.mc.communication.set_register(
@@ -232,12 +239,15 @@ class Monitoring:
                  MonitoringSoCType.TRIGGER_CYCLIC_FALLING_EDGE]:
             if trigger_signal is None or trigger_value is None:
                 raise TypeError("trigger_signal or trigger_value are None")
-            self.__rising_or_falling_edge_trigger(trigger_mode, trigger_signal, trigger_value)
+            self.__rising_or_falling_edge_trigger(trigger_mode, trigger_signal,
+                                                  trigger_value)
 
-    def __rising_or_falling_edge_trigger(self, trigger_mode, trigger_signal, trigger_value):
+    def __rising_or_falling_edge_trigger(self, trigger_mode, trigger_signal,
+                                         trigger_value):
         index_reg = -1
         for index, item in enumerate(self.mapped_registers):
-            if trigger_signal["name"] == item["name"] and trigger_signal.get("axis", 1) == item["axis"]:
+            if (trigger_signal["name"] == item["name"] and
+                    trigger_signal.get("axis", DEFAULT_AXIS) == item["axis"]):
                 index_reg = index
         if index_reg < 0:
             raise MonitoringError("Trigger signal is not mapped in Monitoring")
@@ -279,14 +289,17 @@ class Monitoring:
                 It should be less than total_num_samples. Minimum ``1``.
 
         Raises:
-            ValueError: If trigger_delay_samples is less than ``1`` or higher than total_num_samples.
+            ValueError: If trigger_delay_samples is less than ``1``
+                or higher than total_num_samples.
             MonitoringError: If buffer size is not enough for all the samples.
         """
         if not total_num_samples > trigger_delay_samples:
-            raise ValueError("trigger_delay_samples should be less than total_num_samples")
+            raise ValueError("trigger_delay_samples should be less"
+                             " than total_num_samples")
         if trigger_delay_samples < 1:
             raise ValueError("trigger_delay_samples should be minimum 1")
-        self.__check_buffer_size_is_enough(total_num_samples, trigger_delay_samples, self.mapped_registers)
+        self.__check_buffer_size_is_enough(total_num_samples, trigger_delay_samples,
+                                           self.mapped_registers)
 
         self.samples_number = total_num_samples
         self.trigger_delay_samples = trigger_delay_samples
@@ -315,21 +328,25 @@ class Monitoring:
     @check_monitoring_disabled
     def configure_sample_time(self, total_time, trigger_delay):
         """
-        Configure monitoring number of samples defines by sample and trigger delay time. Monitoring must be disabled.
+        Configure monitoring number of samples defines by sample and trigger
+        delay time. Monitoring must be disabled.
 
         Args:
             total_time (float): monitoring sample total time, in seconds.
-            trigger_delay (float): trigger delay in seconds. Value should be between ``-total_time/2`` and
-                ``total_time/2``.
+            trigger_delay (float): trigger delay in seconds. Value should be
+                between ``-total_time/2`` and  ``total_time/2``.
 
         Raises:
-            ValueError: If trigger_delay is not between ``-total_time/2`` and ``total_time/2``.
+            ValueError: If trigger_delay is not between ``-total_time/2`` and
+                ``total_time/2``.
             MonitoringError: If buffer size is not enough for all the samples.
         """
-        if total_time/2 < abs(trigger_delay):
-            raise ValueError("trigger_delay value should be between -total_time/2 and total_time/2")
+        if total_time / 2 < abs(trigger_delay):
+            raise ValueError("trigger_delay value should be between"
+                             " -total_time/2 and total_time/2")
         total_num_samples = int(self.sampling_freq * total_time)
-        trigger_delay_samples = int(((total_time / 2) - trigger_delay) * self.sampling_freq)
+        trigger_delay_samples = int(((total_time / 2) - trigger_delay)
+                                    * self.sampling_freq)
         trigger_delay_samples = trigger_delay_samples if trigger_delay_samples > 0 else 1
         self.configure_number_samples(total_num_samples, trigger_delay_samples)
 
@@ -359,7 +376,8 @@ class Monitoring:
         Blocking function that read the monitoring data.
 
         Returns:
-            list of list: data of monitoring. Each element of the list is a different register data.
+            list of list: data of monitoring. Each element of the list is a
+            different register data.
         """
         network = self.mc.net[self.servo]
         trigger_repetitions = self.mc.communication.get_register(
@@ -375,9 +393,10 @@ class Monitoring:
             if not self.__check_data_is_ready():
                 if not is_enabled or trigger_repetitions == 0:
                     text_is_enabled = "enabled" if is_enabled else "disabled"
-                    self.logger.warning("Can't read monitoring data because monitoring is not ready."
-                                        " MON_CFG_TRIGGER_REPETITIONS is {}. Monitoring is {}."
-                                        .format(trigger_repetitions, text_is_enabled))
+                    self.logger.warning(
+                        "Can't read monitoring data because monitoring is not ready."
+                        " MON_CFG_TRIGGER_REPETITIONS is {}. Monitoring is {}."
+                        .format(trigger_repetitions, text_is_enabled))
                     self.__read_process_finished = True
                 continue
             network.monitoring_read_data()
@@ -444,7 +463,8 @@ class Monitoring:
     def __check_version(self):
         self.__version_flag = self.MonitoringVersion.MONITORING_V2
         try:
-            self.mc.servos[self.servo].dict.get_regs(0)[self.MONITORING_CURRENT_NUMBER_BYTES_REGISTER]
+            self.mc.servos[self.servo].dict.get_regs(0)[
+                self.MONITORING_CURRENT_NUMBER_BYTES_REGISTER]
         except ILError:
             # The Monitoring V2 is NOT available
             self.__version_flag = self.MonitoringVersion.MONITORING_V1
@@ -496,16 +516,19 @@ class Monitoring:
         except ILError:
             return self.MINIMUM_BUFFER_SIZE
 
-    def __check_buffer_size_is_enough(self, total_samples, trigger_delay_samples, registers):
+    def __check_buffer_size_is_enough(self, total_samples, trigger_delay_samples,
+                                      registers):
         size_demand = 0
-        n_sample = max(total_samples-trigger_delay_samples, trigger_delay_samples)
+        n_sample = max(total_samples - trigger_delay_samples, trigger_delay_samples)
         for register in registers:
             size_demand += self.__data_type_size[register["dtype"]] * n_sample
-        if not self.max_sample_number/2 >= size_demand:
-            raise MonitoringError("Number of samples is too high or mapped registers are too big. "
-                                  "Demanded size: {} bytes, buffer max size: {} bytes."
-                                  .format(size_demand, self.max_sample_number//2))
-        self.logger.debug("Demanded size: %d bytes, buffer max size: %d bytes.", size_demand, self.max_sample_number//2)
+        if not self.max_sample_number / 2 >= size_demand:
+            raise MonitoringError(
+                "Number of samples is too high or mapped registers are too big. "
+                "Demanded size: {} bytes, buffer max size: {} bytes."
+                .format(size_demand, self.max_sample_number // 2))
+        self.logger.debug("Demanded size: %d bytes, buffer max size: %d bytes.",
+                          size_demand, self.max_sample_number // 2)
 
 
 class MonitoringError(Exception):
