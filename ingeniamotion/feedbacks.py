@@ -526,3 +526,17 @@ class Feedbacks(metaclass=MCMetaClass):
             int: Resolution Value error.
         """
         raise ValueError('Selected feedback does not have resolution')
+
+    def get_feedback_resolution(self, feedback, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        """
+        Reads target feedback resolution in the target servo and axis.
+
+        Args:
+            feedback (SensorType): target feedback.
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): axis that will run the test. ``1`` by default.
+
+        Returns:
+            int: Resolution of target feedback.
+        """
+        return self.feedback_resolution_functions[feedback](servo, axis)
