@@ -30,7 +30,7 @@ class PhasingCheck(BaseTest):
     result_description = {
         ResultType.SUCCESS: "Motor is well phased.",
         ResultType.WRONG_PHASING: "Phasing check fails."
-                                  " Motor phasing is wrong.",
+                                  " Wrong motor phasing.",
     }
 
     def __init__(self, mc, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
