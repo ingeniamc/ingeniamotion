@@ -21,7 +21,7 @@ def main(args):
     # Run Commutation test
     result = mc.tests.commutation(axis=args.axis,
                                   apply_changes=not args.debug)
-    logging.info(result["message"])
+    logging.info(result["result_message"])
 
 
 if __name__ == '__main__':
