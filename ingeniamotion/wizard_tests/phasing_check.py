@@ -15,6 +15,10 @@ class PhasingCheck(BaseTest):
     INITIAL_ANGLE_HALLS = 240
     MAX_CURRENT_DERIVATIVE = 0.4
 
+    PHASING_ACCURACY_REGISTER = "COMMU_PHASING_ACCURACY"
+    PHASING_TIMEOUT_REGISTER = "COMMU_PHASING_TIMEOUT"
+    MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER = "COMMU_PHASING_MAX_CURRENT"
+
     BACKUP_REGISTERS = [
         "DRV_OP_CMD", "CL_CUR_Q_SET_POINT", "CL_CUR_D_SET_POINT"
     ]
@@ -99,7 +103,7 @@ class PhasingCheck(BaseTest):
     @BaseTest.stoppable
     def define_phasing_steps(self):
         pha_accuracy = self.mc.communication.get_register(
-            "COMMU_PHASING_ACCURACY",
+            self.PHASING_ACCURACY_REGISTER,
             servo=self.servo, axis=self.axis
         )
         delta = (3 * pha_accuracy / 1000)
@@ -123,7 +127,7 @@ class PhasingCheck(BaseTest):
         num_of_steps = self.define_phasing_steps()
         phasing_bit_latched = False
         phasing_timeout = self.mc.communication.get_register(
-            "COMMU_PHASING_TIMEOUT",
+            self.PHASING_TIMEOUT_REGISTER,
             servo=self.servo, axis=self.axis
         )
         timeout = time.time() + (num_of_steps * phasing_timeout / 1000)
@@ -162,7 +166,7 @@ class PhasingCheck(BaseTest):
     @BaseTest.stoppable
     def check_motor_commutation(self):
         phasing_current = self.mc.communication.get_register(
-            "COMMU_PHASING_MAX_CURRENT",
+            self.MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER,
             servo=self.servo, axis=self.axis
         )
         max_test_current = round(phasing_current, 2)
