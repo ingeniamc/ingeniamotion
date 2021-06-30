@@ -33,6 +33,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
     MOTOR_POLE_PAIRS_REGISTER = "MOT_PAIR_POLES"
 
     STATUS_WORD_OPERATION_ENABLED_BIT = 0x04
+    STATUS_WORD_COMMUTATION_FEEDBACK_ALIGNED_BIT = 0x4000
 
     def __init__(self, motion_controller):
         Homing.__init__(self, motion_controller)
@@ -260,9 +261,36 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
                                                   servo, axis)
 
     def is_motor_enabled(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        """
+        Return motor status.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+
+        Returns:
+            bool: ``True`` if motor is enabled, else ``False``.
+        """
         status_word = self.mc.configuration.get_status_word(servo=servo,
                                                             axis=axis)
         return bool(status_word & self.STATUS_WORD_OPERATION_ENABLED_BIT)
+
+    def is_commutation_feedback_aligned(self, servo=DEFAULT_SERVO,
+                                        axis=DEFAULT_AXIS):
+        """
+        Return commutation feedback aligned status.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+
+        Returns:
+            bool: ``True`` if commutation feedback is aligned, else ``False``.
+        """
+        status_word = self.mc.configuration.get_status_word(servo=servo,
+                                                            axis=axis)
+        return bool(status_word &
+                    self.STATUS_WORD_COMMUTATION_FEEDBACK_ALIGNED_BIT)
 
     def set_phasing_mode(self, phasing_mode, servo=DEFAULT_SERVO,
                          axis=DEFAULT_AXIS):

@@ -1,5 +1,6 @@
 import ingenialogger
 
+from enum import IntEnum
 from abc import ABC, abstractmethod
 from ingenialink.exceptions import ILError, ILTimeoutError
 
@@ -11,6 +12,11 @@ class TestError(Exception):
 
 
 class BaseTest(ABC, Stoppable):
+
+    class SeverityLevel(IntEnum):
+        SUCCESS = 0
+        WARNING = 1
+        FAIL = 2
 
     def __init__(self):
         self.backup_registers_names = None
@@ -85,11 +91,15 @@ class BaseTest(ABC, Stoppable):
 
     def __generate_report(self, output):
         return {
-            "result": output,
+            "result_severity": self.get_result_severity(output),
             "suggested_registers": self.suggested_registers,
-            "message": self.get_result_msg(output)
+            "result_message": self.get_result_msg(output)
         }
 
     @abstractmethod
     def get_result_msg(self, output):
+        pass
+
+    @abstractmethod
+    def get_result_severity(self, output):
         pass

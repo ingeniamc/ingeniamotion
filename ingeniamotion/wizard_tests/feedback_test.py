@@ -435,3 +435,9 @@ class Feedbacks(BaseTest):
             text = [self.result_description[x]
                     for x in self.result_description if -output & x > 0]
             return ".".join(text)
+
+    def get_result_severity(self, output):
+        if output < self.ResultType.SUCCESS:
+            return self.SeverityLevel.FAIL
+        else:
+            return self.SeverityLevel.SUCCESS

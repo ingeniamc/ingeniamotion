@@ -3,6 +3,7 @@ import ingenialogger
 from .enums import SensorType
 from .wizard_tests.feedback_test import Feedbacks
 from .wizard_tests.phase_calibration import Phasing
+from .wizard_tests.phasing_check import PhasingCheck
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
@@ -31,12 +32,12 @@ class DriveTests(metaclass=MCMetaClass):
 
                 {
                     # (int) Result code
-                    "result": 0,
+                    "result_severity": 0,
                     # (dict) Suggested register values
                     "suggested_registers":
                         {"FBK_DIGHALL_POLARITY": 0},
                     # (str) Human readable result message
-                    "message": "Feedback test pass successfully"
+                    "result_message": "Feedback test pass successfully"
                 }
 
         Raises:
@@ -64,12 +65,12 @@ class DriveTests(metaclass=MCMetaClass):
 
                 {
                     # (int) Result code
-                    "result": 0,
+                    "result_severity": 0,
                     # (dict) Suggested register values
                     "suggested_registers":
                         {"FBK_DIGENC1_POLARITY": 0},
                     # (str) Human readable result message
-                    "message": "Feedback test pass successfully"
+                    "result_message": "Feedback test pass successfully"
                 }
 
         Raises:
@@ -97,12 +98,12 @@ class DriveTests(metaclass=MCMetaClass):
 
                 {
                     # (int) Result code
-                    "result": 0,
+                    "result_severity": 0,
                     # (dict) Suggested register values
                     "suggested_registers":
                         {"FBK_DIGENC2_POLARITY": 0},
                     # (str) Human readable result message
-                    "message": "Feedback test pass successfully"
+                    "result_message": "Feedback test pass successfully"
                 }
 
         Raises:
@@ -166,12 +167,12 @@ class DriveTests(metaclass=MCMetaClass):
 
                 {
                     # (int) Result code
-                    "result": 0,
+                    "result_severity": 0,
                     # (dict) Suggested register values
                     "suggested_registers":
                         {"COMMU_ANGLE_OFFSET": 0.12},
                     # (str) Human readable result message
-                    "message": "Phasing process finished successfully"
+                    "result_message": "Phasing process finished successfully"
                 }
 
         Raises:
@@ -187,3 +188,26 @@ class DriveTests(metaclass=MCMetaClass):
             self.logger.debug("Commutation changes applied", axis=axis,
                               drive=self.mc.servo_name(servo))
         return output
+
+    def phasing_check(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        """
+        Checks servo phasing.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): axis that will run the test. ``1`` by default.
+
+        Returns:
+            dict: Dictionary with the result of the test::
+
+                {
+                    # (int) Result code
+                    "result_severity": 0,
+                    # (dict) Suggested register values
+                    "suggested_registers": {},
+                    # (str) Human readable result message
+                    "result_message": "Phasing process finished successfully"
+                }
+        """
+        phasing_check = PhasingCheck(self.mc, servo, axis)
+        return phasing_check.run()
