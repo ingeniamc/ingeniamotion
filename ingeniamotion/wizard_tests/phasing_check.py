@@ -13,7 +13,7 @@ class PhasingCheck(BaseTest):
     MAX_ALLOWED_ANGLE_MOVE = 15
     INITIAL_ANGLE = 180
     INITIAL_ANGLE_HALLS = 240
-    MAX_CURRENT_DERIVATIVE = 0.4
+    CURRENT_SLOPE = 0.4
 
     PHASING_ACCURACY_REGISTER = "COMMU_PHASING_ACCURACY"
     PHASING_TIMEOUT_REGISTER = "COMMU_PHASING_TIMEOUT"
@@ -64,7 +64,7 @@ class PhasingCheck(BaseTest):
             servo=self.servo, axis=self.axis
         )
         is_ok = True
-        total_time = max_current/self.MAX_CURRENT_DERIVATIVE
+        total_time = max_current/self.CURRENT_SLOPE
         for value in self.mc.motion.ramp_generator(
                 0, current_sign*max_current, total_time, interval=0.1
         ):
