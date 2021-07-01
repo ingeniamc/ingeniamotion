@@ -1,4 +1,5 @@
 import time
+import math
 import ingenialogger
 import ingenialink as il
 
@@ -18,6 +19,7 @@ class Feedbacks(BaseTest):
         SUCCESS = 0
         RESOLUTION_ERROR = -1
         SYMMETRY_ERROR = -2
+        POS_VEL_RATIO_ERROR = -4
 
     class Polarity(IntEnum):
         NORMAL = 0
@@ -26,7 +28,10 @@ class Feedbacks(BaseTest):
     result_description = {
         ResultType.SUCCESS: "Feedback test pass successfully",
         ResultType.RESOLUTION_ERROR: "Feedback has a resolution error",
-        ResultType.SYMMETRY_ERROR: "Feedback has a symmetry error"
+        ResultType.SYMMETRY_ERROR: "Feedback has a symmetry error",
+        ResultType.POS_VEL_RATIO_ERROR:
+            "Position to velocity sensor ratio cannot be different "
+            "than 1 when both feedback sensors are the same."
     }
 
     # Aux constants
@@ -99,6 +104,7 @@ class Feedbacks(BaseTest):
                                                drive=mc.servo_name(servo))
         self.feedback_resolution = None
         self.pair_poles = None
+        self.pos_vel_same_feedback = None
         self.resolution_multiplier = 1.0
         self.test_frequency = self.TEST_FREQUENCY
         self.backup_registers_names = self.BACKUP_REGISTERS
@@ -266,6 +272,10 @@ class Feedbacks(BaseTest):
         position_feedback_value = self.mc.configuration.get_position_feedback(
             servo=self.servo, axis=self.axis
         )
+        velocity_feedback_value = self.mc.configuration.get_velocity_feedback(
+            servo=self.servo, axis=self.axis
+        )
+        self.pos_vel_same_feedback = position_feedback_value == velocity_feedback_value
         if position_feedback_value == self.sensor:
             self.resolution_multiplier = self.mc.communication.get_register(
                 self.POSITION_TO_VELOCITY_SENSOR_RATIO_REGISTER,
@@ -397,9 +407,23 @@ class Feedbacks(BaseTest):
                                           "configuration & wiring"
             raise TestError(error_movement_displacement)
 
+    def check_pos_vel_ratio(self):
+        pos_vel_ratio = self.mc.communication.get_register(
+            self.POSITION_TO_VELOCITY_SENSOR_RATIO_REGISTER,
+            servo=self.servo, axis=self.axis
+        )
+        if self.pos_vel_same_feedback and not math.isclose(pos_vel_ratio, 1):
+            return self.ResultType.POS_VEL_RATIO_ERROR
+        if not self.pos_vel_same_feedback and math.isclose(pos_vel_ratio, 1):
+            self.logger.warning("Position and velocity feedbacks are different but"
+                                " the Position to velocity sensor ratio is 1.")
+
     @BaseTest.stoppable
     def loop(self):
         self.logger.info("START OF THE TEST")
+        check_pos_vel_output = self.check_pos_vel_ratio()
+        if check_pos_vel_output is not None:
+            return check_pos_vel_output
         self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
         position_1 = self.first_movement_and_set_current()
         self.logger.debug("Actual position: %.0f",
@@ -433,5 +457,5 @@ class Feedbacks(BaseTest):
             return self.result_description[output]
         if output < 0:
             text = [self.result_description[x]
-                    for x in self.result_description if -output & x > 0]
+                    for x in self.result_description if -output & -x > 0]
             return ".".join(text)
