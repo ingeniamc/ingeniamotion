@@ -58,24 +58,24 @@ class STOTest(BaseTest):
         pass
 
     def loop(self):
-        # Check STO1 status --> Check bit 0 (0x1 in HEX)
         if self.mc.configuration.is_sto1_active(
-                servo=self.servo, axis=self.axis):
-            self.logger.info("STO1 bit is HIGH")
-        else:
+                servo=self.servo, axis=self.axis) == 0:
             self.logger.info("STO1 bit is LOW")
-
-        # Check STO2 status --> Check bit 1 (0x2 in HEX)
-        if self.mc.configuration.is_sto2_active(
-                servo=self.servo, axis=self.axis):
-            self.logger.info("STO2 bit is HIGH")
+        # Check STO1 status --> Check bit 0 (0x1 in HEX)
         else:
+            self.logger.info("STO1 bit is HIGH")
+
+        if self.mc.configuration.is_sto2_active(
+                servo=self.servo, axis=self.axis) == 0:
             self.logger.info("STO2 bit is LOW")
+        # Check STO2 status --> Check bit 1 (0x2 in HEX)
+        else:
+            self.logger.info("STO2 bit is HIGH")
 
         # Check STO supply fault status --> Check bit 2 (0x4 in HEX)
         sto_power_supply = self.mc.configuration.check_sto_power_supply(
                 servo=self.servo, axis=self.axis)
-        if not sto_power_supply:
+        if sto_power_supply == 0:
             self.logger.info('STO Power Supply is LOW')
         else:
             self.logger.info("STO Power Supply is HIGH")
@@ -83,13 +83,13 @@ class STOTest(BaseTest):
         # Check STO abnormal fault status --> Check bit 3 (0x8 in HEX)
         sto_abnormal_fault = self.mc.configuration.check_sto_abnormal_fault(
                 servo=self.servo, axis=self.axis)
-        if not sto_abnormal_fault:
+        if sto_abnormal_fault == 0:
             self.logger.info("STO abnormal fault bit is LOW")
         else:
             self.logger.info('STO abnormal fault bit is HIGH')
 
         # Check STO report --> Check bit 4 (0x10 in HEX)
-        if not self.mc.configuration.get_sto_report_bit(
+        if self.mc.configuration.get_sto_report_bit(
                 servo=self.servo, axis=self.axis) == 0:
             self.logger.info("STO report is LOW")
         else:

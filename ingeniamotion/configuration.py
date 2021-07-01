@@ -373,33 +373,135 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
                                                   servo=servo, axis=axis)
 
     def get_sto_status(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        """
+        Get STO register
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+
+        Returns:
+            int: STO register value.
+        """
         return self.mc.communication.get_register(
             self.STO_STATUS_REGISTER, servo=servo, axis=axis
         )
 
     def is_sto1_active(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        return self.get_sto_status(servo, axis) & self.STO1_ACTIVE_BIT
+        """
+        Get STO1 bit from STO register
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+
+        Returns:
+            int: return value of STO1 bit.
+        """
+        if self.get_sto_status(servo, axis) & self.STO1_ACTIVE_BIT:
+            return 1
+        else:
+            return 0
 
     def is_sto2_active(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        return self.get_sto_status(servo, axis) & self.STO2_ACTIVE_BIT
+        """
+        Get STO2 bit from STO register
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+
+        Returns:
+            int: return value of STO2 bit.
+        """
+        if self.get_sto_status(servo, axis) & self.STO2_ACTIVE_BIT:
+            return 1
+        else:
+            return 0
 
     def check_sto_power_supply(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        return self.get_sto_status(servo, axis) & self.STO_SUPPLY_FAULT_BIT
+        """
+        Get power supply bit from STO register
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+
+        Returns:
+            int: return value of power supply bit.
+        """
+        if self.get_sto_status(servo, axis) & self.STO_SUPPLY_FAULT_BIT:
+            return 1
+        else:
+            return 0
 
     def check_sto_abnormal_fault(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        return self.get_sto_status(servo, axis) & self.STO_ABNORMAL_FAULT_BIT
+        """
+        Get abnormal fault bit from STO register
 
-    def get_sto_report_bit(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+
+        Returns:
+            int: return value of abnormal fault bit.
+        """
         if self.get_sto_status(servo, axis) & self.STO_ABNORMAL_FAULT_BIT:
             return 1
         else:
             return 0
 
+    def get_sto_report_bit(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        """
+        Get report bit from STO register
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+
+        Returns:
+            int: return value of report bit.
+        """
+        if self.get_sto_status(servo, axis) & self.STO_REPORT_BIT:
+            return 1
+        else:
+            return 0
+
     def is_sto_active(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        """
+        Check if STO is active
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+
+        Returns:
+            bool: ``True`` if STO is active, else ``False``.
+        """
         return self.get_sto_status(servo, axis) == self.STO_ACTIVE_STATE
 
     def is_sto_inactive(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        """
+        Check if STO is inactive
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+
+        Returns:
+            bool: ``True`` if STO is inactive, else ``False``.
+        """
         return self.get_sto_status(servo, axis) == self.STO_INACTIVE_STATE
 
     def is_sto_abnormal_latched(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        """
+        Check if STO is abnormal latched
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+
+        Returns:
+            bool: ``True`` if STO is abnormal latched, else ``False``.
+        """
         return self.get_sto_status(servo, axis) == self.STO_LATCHED_STATE

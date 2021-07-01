@@ -214,5 +214,24 @@ class DriveTests(metaclass=MCMetaClass):
         return phasing_check.run()
 
     def sto_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        """
+        Check STO
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): axis that will run the test. ``1`` by default.
+
+        Returns:
+            dict: Dictionary with the result of the test::
+
+                {
+                    # (int) Result code
+                    "result_severity": 0,
+                    # (dict) Suggested register values
+                    "suggested_registers": {},
+                    # (str) Human readable result message
+                    "result_message": "Phasing process finished successfully"
+                }
+        """
         sto_test = STOTest(self.mc, servo, axis)
         return sto_test.run()
