@@ -4,6 +4,7 @@ from .enums import SensorType
 from .wizard_tests.feedback_test import Feedbacks
 from .wizard_tests.phase_calibration import Phasing
 from .wizard_tests.phasing_check import PhasingCheck
+from .wizard_tests.sto import STOTest
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
@@ -211,3 +212,7 @@ class DriveTests(metaclass=MCMetaClass):
         """
         phasing_check = PhasingCheck(self.mc, servo, axis)
         return phasing_check.run()
+
+    def sto_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        sto_test = STOTest(self.mc, servo, axis)
+        return sto_test.run()

@@ -31,9 +31,19 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
     PHASING_MODE_REGISTER = "COMMU_PHASING_MODE"
     GENERATOR_MODE_REGISTER = "FBK_GEN_MODE"
     MOTOR_POLE_PAIRS_REGISTER = "MOT_PAIR_POLES"
+    STO_STATUS_REGISTER = "DRV_PROT_STO_STATUS"
 
     STATUS_WORD_OPERATION_ENABLED_BIT = 0x04
     STATUS_WORD_COMMUTATION_FEEDBACK_ALIGNED_BIT = 0x4000
+    STO1_ACTIVE_BIT = 0x1
+    STO2_ACTIVE_BIT = 0x2
+    STO_SUPPLY_FAULT_BIT = 0x4
+    STO_ABNORMAL_FAULT_BIT = 0x8
+    STO_REPORT_BIT = 0x10
+
+    STO_ACTIVE_STATE = 4
+    STO_INACTIVE_STATE = 23
+    STO_LATCHED_STATE = 31
 
     def __init__(self, motion_controller):
         Homing.__init__(self, motion_controller)
@@ -361,3 +371,35 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """
         return self.mc.communication.get_register(self.MOTOR_POLE_PAIRS_REGISTER,
                                                   servo=servo, axis=axis)
+
+    def get_sto_status(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        return self.mc.communication.get_register(
+            self.STO_STATUS_REGISTER, servo=servo, axis=axis
+        )
+
+    def is_sto1_active(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        return self.get_sto_status(servo, axis) & self.STO1_ACTIVE_BIT
+
+    def is_sto2_active(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        return self.get_sto_status(servo, axis) & self.STO2_ACTIVE_BIT
+
+    def check_sto_power_supply(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        return self.get_sto_status(servo, axis) & self.STO_SUPPLY_FAULT_BIT
+
+    def check_sto_abnormal_fault(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        return self.get_sto_status(servo, axis) & self.STO_ABNORMAL_FAULT_BIT
+
+    def get_sto_report_bit(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        if self.get_sto_status(servo, axis) & self.STO_ABNORMAL_FAULT_BIT:
+            return 1
+        else:
+            return 0
+
+    def is_sto_active(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        return self.get_sto_status(servo, axis) == self.STO_ACTIVE_STATE
+
+    def is_sto_inactive(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        return self.get_sto_status(servo, axis) == self.STO_INACTIVE_STATE
+
+    def is_sto_abnormal_latched(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        return self.get_sto_status(servo, axis) == self.STO_LATCHED_STATE
