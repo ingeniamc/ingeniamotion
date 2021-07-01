@@ -29,7 +29,7 @@ class PhasingCheck(BaseTest):
 
     result_description = {
         ResultType.SUCCESS: "Motor is well phased.",
-        ResultType.WRONG_PHASING: "Phasing check fails."
+        ResultType.WRONG_PHASING: "Phasing check failed."
                                   " Wrong motor phasing.",
     }
 
