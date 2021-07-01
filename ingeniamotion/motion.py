@@ -227,7 +227,7 @@ class Motion(metaclass=MCMetaClass):
             interval (float): time interval between register writes, in seconds.
                 ``None`` by default, no interval.
         """
-        for value in self.__ramp_generator(init_value, target_value, time_s, interval):
+        for value in self.ramp_generator(init_value, target_value, time_s, interval):
             self.set_current_quadrature(value, servo=servo, axis=axis)
 
     def current_direct_ramp(self, target_value, time_s, servo=DEFAULT_SERVO,
@@ -246,7 +246,7 @@ class Motion(metaclass=MCMetaClass):
             interval (float): time interval between register writes, in seconds.
                 ``None`` by default, no interval.
         """
-        for value in self.__ramp_generator(init_value, target_value, time_s, interval):
+        for value in self.ramp_generator(init_value, target_value, time_s, interval):
             self.set_current_direct(value, servo=servo, axis=axis)
 
     def voltage_quadrature_ramp(self, target_value, time_s, servo=DEFAULT_SERVO,
@@ -265,7 +265,7 @@ class Motion(metaclass=MCMetaClass):
             interval (float): time interval between register writes, in seconds.
                 ``None`` by default, no interval.
         """
-        for value in self.__ramp_generator(init_value, target_value, time_s, interval):
+        for value in self.ramp_generator(init_value, target_value, time_s, interval):
             self.set_voltage_quadrature(value, servo=servo, axis=axis)
 
     def voltage_direct_ramp(self, target_value, time_s, servo=DEFAULT_SERVO,
@@ -284,11 +284,11 @@ class Motion(metaclass=MCMetaClass):
             interval (float): time interval between register writes, in seconds.
                 ``None`` by default, no interval.
         """
-        for value in self.__ramp_generator(init_value, target_value, time_s, interval):
+        for value in self.ramp_generator(init_value, target_value, time_s, interval):
             self.set_voltage_direct(value, servo=servo, axis=axis)
 
     @staticmethod
-    def __ramp_generator(init_v, final_v, total_t, interval=None):
+    def ramp_generator(init_v, final_v, total_t, interval=None):
         slope = (final_v-init_v) / total_t
         yield init_v
         init_time = time.time()

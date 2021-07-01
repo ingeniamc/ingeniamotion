@@ -263,3 +263,9 @@ class Phasing(BaseTest):
 
     def get_result_msg(self, output):
         return self.result_description[output]
+
+    def get_result_severity(self, output):
+        if output < self.ResultType.SUCCESS:
+            return self.SeverityLevel.FAIL
+        else:
+            return self.SeverityLevel.SUCCESS
