@@ -91,7 +91,8 @@ class PhasingCheck(BaseTest):
 
     @BaseTest.stoppable
     def analyse_phasing_bit_and_force_to_high(self):
-        if not self.mc.configuration.is_commutation_feedback_aligned():
+        if not self.mc.configuration.is_commutation_feedback_aligned(
+                servo=self.servo, axis=self.axis):
             phasing_mode = self.mc.configuration.get_phasing_mode(
                 servo=self.servo, axis=self.axis
             )
@@ -107,7 +108,8 @@ class PhasingCheck(BaseTest):
             servo=self.servo, axis=self.axis
         )
         delta = (3 * pha_accuracy / 1000)
-        ref_feedback = self.mc.configuration.get_reference_feedback()
+        ref_feedback = self.mc.configuration.get_reference_feedback(
+            servo=self.servo, axis=self.axis)
 
         num_of_steps = 1
         if ref_feedback == SensorType.HALLS:
@@ -133,7 +135,8 @@ class PhasingCheck(BaseTest):
         timeout = time.time() + (num_of_steps * phasing_timeout / 1000)
         while time.time() < timeout:
             self.stoppable_sleep(0.1)
-            if self.mc.configuration.is_commutation_feedback_aligned():
+            if self.mc.configuration.is_commutation_feedback_aligned(
+                    servo=self.servo, axis=self.axis):
                 phasing_bit_latched = True
                 break
         if not phasing_bit_latched:
@@ -156,7 +159,8 @@ class PhasingCheck(BaseTest):
                                                       axis=self.axis)
                 self.stoppable_sleep(0.1)
                 i = i + delta_i
-                if self.mc.configuration.is_commutation_feedback_aligned():
+                if self.mc.configuration.is_commutation_feedback_aligned(
+                        servo=self.servo, axis=self.axis):
                     phasing_bit_latched = True
         self.mc.motion.set_current_quadrature(0, servo=self.servo, axis=self.axis)
         self.logger.info("Wait until motor has stopped")
@@ -170,8 +174,10 @@ class PhasingCheck(BaseTest):
             servo=self.servo, axis=self.axis
         )
         max_test_current = round(phasing_current, 2)
-        ref_feedback = self.mc.configuration.get_reference_feedback()
-        comm_feedback = self.mc.configuration.get_commutation_feedback()
+        ref_feedback = self.mc.configuration.get_reference_feedback(
+            servo=self.servo, axis=self.axis)
+        comm_feedback = self.mc.configuration.get_commutation_feedback(
+            servo=self.servo, axis=self.axis)
 
         # With Halls only, this test makes no sense
         if ref_feedback == SensorType.HALLS and comm_feedback == SensorType.HALLS:
