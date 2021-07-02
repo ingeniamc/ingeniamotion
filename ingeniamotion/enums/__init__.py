@@ -92,6 +92,14 @@ class SensorType(IntEnum):
     """ SMO """
 
 
+class SensorCategory(IntEnum):
+    """
+    Feedback category enum
+    """
+    ABSOLUTE = 0
+    INCREMENTAL = 1
+
+
 class PhasingMode(IntEnum):
     """
     Phasing modes
