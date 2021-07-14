@@ -14,6 +14,7 @@ class MCMetaClass(type):
     This class also have other decorators that can be useful for some
     functions, as motor disabled checker.
     """
+    SERVO_ARG_NAME = "servo"
 
     def __new__(mcs, name, bases, local):
         """
@@ -21,7 +22,8 @@ class MCMetaClass(type):
         """
         for attr in local:
             value = local[attr]
-            if callable(value) and "servo" in inspect.getfullargspec(value).args:
+            if callable(value) and \
+                    mcs.SERVO_ARG_NAME in inspect.getfullargspec(value).args:
                 local[attr] = mcs.check_servo(value)
         return type.__new__(mcs, name, bases, local)
 
@@ -34,7 +36,12 @@ class MCMetaClass(type):
         @wraps(func)
         def wrapper(self, *args, **kwargs):
             mc = self.mc
-            servo = kwargs.get("servo", DEFAULT_SERVO)
+            func_args = inspect.getfullargspec(func).args
+            servo_index = func_args.index(mcs.SERVO_ARG_NAME)
+            if len(args) < servo_index:
+                servo = kwargs.get(mcs.SERVO_ARG_NAME, DEFAULT_SERVO)
+            else:
+                servo = args[servo_index-1]
             if servo not in mc.servos:
                 raise KeyError("Servo '{}' is not connected".format(servo))
             return func(self, *args, **kwargs)

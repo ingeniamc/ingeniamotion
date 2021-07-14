@@ -4,6 +4,7 @@ from .enums import SensorType
 from .wizard_tests.feedback_test import Feedbacks
 from .wizard_tests.phase_calibration import Phasing
 from .wizard_tests.phasing_check import PhasingCheck
+from .wizard_tests.sto import STOTest
 from .wizard_tests.brake import Brake
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
@@ -212,6 +213,29 @@ class DriveTests(metaclass=MCMetaClass):
         """
         phasing_check = PhasingCheck(self.mc, servo, axis)
         return phasing_check.run()
+
+    def sto_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        """
+        Check STO
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): axis that will run the test. ``1`` by default.
+
+        Returns:
+            dict: Dictionary with the result of the test::
+
+                {
+                    # (int) Result code
+                    "result_severity": 0,
+                    # (dict) Suggested register values
+                    "suggested_registers": {},
+                    # (str) Human readable result message
+                    "result_message": "Phasing process finished successfully"
+                }
+        """
+        sto_test = STOTest(self.mc, servo, axis)
+        return sto_test.run()
 
     def brake_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
