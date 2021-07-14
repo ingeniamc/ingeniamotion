@@ -76,7 +76,7 @@ class Phasing(BaseTest):
         self.pha_timeout = None
         self.pha_accuracy = None
 
-    def check_input_data(self):  # TODO
+    def check_input_data(self):
 
         max_current_drive = self.mc.communication.get_register(
             self.MAX_CURRENT_REGISTER,
