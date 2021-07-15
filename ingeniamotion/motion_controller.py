@@ -6,6 +6,7 @@ from .capture import Capture
 from .communication import Communication
 from .drive_tests import DriveTests
 from .errors import Errors
+from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 
 
 class MotionController:
@@ -22,10 +23,10 @@ class MotionController:
         self.__tests = DriveTests(self)
         self.__errors = Errors(self)
 
-    def servo_name(self, servo):
+    def servo_name(self, servo=DEFAULT_SERVO):
         return "{} ({})".format(self.servos[servo].info["prod_code"], servo)
 
-    def get_register_enum(self, register, servo, axis):
+    def get_register_enum(self, register, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         drive = self.servos[servo]
         enum_list = drive.dict.get_regs(axis)[register].enums
         enum_dict = {x["label"]: x["value"] for x in enum_list}
