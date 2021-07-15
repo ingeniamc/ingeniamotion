@@ -5,6 +5,7 @@ from .wizard_tests.feedback_test import Feedbacks
 from .wizard_tests.phase_calibration import Phasing
 from .wizard_tests.phasing_check import PhasingCheck
 from .wizard_tests.sto import STOTest
+from .wizard_tests.brake import Brake
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
@@ -235,3 +236,18 @@ class DriveTests(metaclass=MCMetaClass):
         """
         sto_test = STOTest(self.mc, servo, axis)
         return sto_test.run()
+
+    def brake_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        """
+        Run brake test.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): axis that will run the test. ``1`` by default.
+
+        Returns:
+            Brake: Instance of Brake test. Call ``Brake.finish()`` to end the test.
+        """
+        brake_test = Brake(self.mc, servo, axis)
+        brake_test.run()
+        return brake_test
