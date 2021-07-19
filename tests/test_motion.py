@@ -8,8 +8,25 @@ POS_PID_KP_VALUE = 0.1
 POSITION_PERCENTAGE_ERROR_ALLOWED = 5
 
 
-# def test_target_latch():
-#     assert False
+def test_target_latch(motion_controller):
+    mc, alias = motion_controller
+    mc.communication.set_register("PROF_LATCH_MODE", 0x40, servo=alias)
+    mc.motion.motor_enable(servo=alias)
+    pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
+    init_pos = mc.motion.get_actual_position(servo=alias)
+    mc.motion.move_to_position(init_pos + pos_res, servo=alias, target_latch=False)
+    test_act_pos = mc.motion.get_actual_position(servo=alias)
+    time.sleep(1)
+    assert pytest.approx(
+        test_act_pos, pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED/100
+    ) == init_pos
+    mc.motion.target_latch(servo=alias)
+    time.sleep(1)
+    test_act_pos = mc.motion.get_actual_position(servo=alias)
+    assert pytest.approx(
+        test_act_pos, pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
+    ) == init_pos + pos_res
+
 
 @pytest.mark.smoke
 @pytest.mark.parametrize("operation_mode", list(OperationMode))
