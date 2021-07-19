@@ -216,13 +216,16 @@ def test_ramp_generator(mocker, init_v, final_v, total_t, t, result):
 ])
 def test_get_actual_position(motion_controller, position_value):
     mc, alias = motion_controller
+    pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
     mc.motion.set_operation_mode(
         OperationMode.PROFILE_POSITION, servo=alias)
     mc.motion.motor_enable(servo=alias)
     mc.motion.move_to_position(
         position_value, servo=alias, blocking=True)
     test_position = mc.motion.get_actual_position(servo=alias)
-    assert abs(test_position - position_value) < 10
+    assert pytest.approx(
+        test_position, abs=pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED/100
+    ) == position_value
 
 
 @pytest.mark.develop
