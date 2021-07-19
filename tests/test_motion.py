@@ -11,7 +11,7 @@ POSITION_PERCENTAGE_ERROR_ALLOWED = 5
 # def test_target_latch():
 #     assert False
 
-
+@pytest.mark.smoke
 @pytest.mark.parametrize("operation_mode", list(OperationMode))
 def test_set_operation_mode(motion_controller, operation_mode):
     mc, alias = motion_controller
@@ -20,6 +20,7 @@ def test_set_operation_mode(motion_controller, operation_mode):
     assert operation_mode.value == test_op
 
 
+@pytest.mark.smoke
 @pytest.mark.parametrize("operation_mode", list(OperationMode))
 def test_get_operation_mode(motion_controller, operation_mode):
     mc, alias = motion_controller
@@ -28,12 +29,14 @@ def test_get_operation_mode(motion_controller, operation_mode):
     assert test_op == operation_mode.value
 
 
+@pytest.mark.smoke
 def test_motor_enable(motion_controller):
     mc, alias = motion_controller
     mc.motion.motor_enable(servo=alias)
     assert mc.configuration.is_motor_enabled(servo=alias)
 
 
+@pytest.mark.smoke
 def test_motor_disable(motion_controller):
     mc, alias = motion_controller
     mc.motion.motor_enable(servo=alias)
@@ -41,6 +44,7 @@ def test_motor_disable(motion_controller):
     assert not mc.configuration.is_motor_enabled(servo=alias)
 
 
+@pytest.mark.smoke
 @pytest.mark.parametrize("position_value", [
     1000, 0, -1000, 4000
 ])
@@ -71,6 +75,7 @@ def test_move_position(motion_controller, position_value):
     ) == position_value
 
 
+@pytest.mark.smoke
 @pytest.mark.parametrize("velocity_value", [
     0.5, 1, 0, -0.5
 ])
@@ -100,6 +105,7 @@ def test_set_velocity_blocking(motion_controller, velocity_value):
     assert pytest.approx(test_vel, abs=0.1) == velocity_value
 
 
+@pytest.mark.smoke
 @pytest.mark.parametrize("current_value", [
     0.5, 1, 0, -0.5
 ])
@@ -112,6 +118,7 @@ def test_set_current_quadrature(motion_controller, current_value):
     assert pytest.approx(test_current) == current_value
 
 
+@pytest.mark.smoke
 @pytest.mark.parametrize("current_value", [
     0.5, 1, 0, -0.5
 ])
@@ -124,6 +131,7 @@ def test_set_current_direct(motion_controller, current_value):
     assert pytest.approx(test_current) == current_value
 
 
+@pytest.mark.smoke
 @pytest.mark.parametrize("voltage_value", [
     0.5, 1, 0, -0.5
 ])
@@ -136,6 +144,7 @@ def test_set_voltage_quadrature(motion_controller, voltage_value):
     assert pytest.approx(test_voltage) == voltage_value
 
 
+@pytest.mark.smoke
 @pytest.mark.parametrize("voltage_value", [
     0.5, 1, 0, -0.5
 ])

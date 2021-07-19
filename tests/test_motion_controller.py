@@ -4,10 +4,12 @@ from ingeniamotion import MotionController
 from ingeniamotion.enums import OperationMode
 
 
+@pytest.mark.smoke
 def test_motion_controller():
     MotionController()
 
 
+@pytest.mark.smoke
 def test_servo_name(motion_controller):
     mc, alias = motion_controller
     prod_code = mc.servos[alias].info["prod_code"]
@@ -16,6 +18,7 @@ def test_servo_name(motion_controller):
     assert name == "{} ({})".format(prod_code, alias)
 
 
+@pytest.mark.smoke
 def test_get_register_enum(motion_controller):
     mc, alias = motion_controller
     servo_arg = () if alias == "default" else (alias,)
