@@ -3,6 +3,7 @@ import pytest
 import numpy as np
 
 from ingeniamotion.enums import OperationMode
+from ingeniamotion.motion import Motion
 
 POS_PID_KP_VALUE = 0.1
 POSITION_PERCENTAGE_ERROR_ALLOWED = 5
@@ -188,10 +189,26 @@ def test_set_voltage_direct(motion_controller, voltage_value):
 #
 # def test_voltage_direct_ramp():
 #     assert False
-#
-#
-# def test_ramp_generator():
-#     assert False
+
+
+@pytest.mark.smoke
+@pytest.mark.parametrize("init_v, final_v, total_t, t, result", [
+    (0, 1, 2, [1], [0.5]),
+    (0, -2, 2, [1], [-1]),
+    (-2, -4, 2, [1, 2], [-3, -4]),
+    (-1, 1, 10, [2.5, 5, 7.5], [-0.5, 0, 0.5]),
+    (0, 10, 10, [1, 2, 3], [1, 2, 3]),
+    (0, 10, 10, [20], [10]),
+    (-2.54, 23.45, 34, [2, 16.7, 44], [-1.01117647, 10.2256764, 23.45]),
+])
+def test_ramp_generator(mocker, init_v, final_v, total_t, t, result):
+    mocker.patch('time.time', side_effect=[0, *t])
+    generator = Motion.ramp_generator(init_v, final_v, total_t)
+    first_val = next(generator)
+    assert pytest.approx(first_val) == init_v
+    for result_v in result:
+        test_result = next(generator)
+        assert pytest.approx(test_result) == result_v
 
 
 @pytest.mark.parametrize("position_value", [
@@ -238,7 +255,6 @@ def test_internal_generator_saw_tooth_move(
     mc, alias = motion_controller_teardown
     pair_poles = mc.configuration.get_motor_pair_poles(servo=alias)
     pos_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
-    initial_position = mc.motion.get_actual_position(servo=alias)
     mc.motion.set_internal_generator_configuration(op_mode, servo=alias)
     mc.motion.motor_enable(servo=alias)
     if op_mode == OperationMode.CURRENT:
@@ -248,6 +264,7 @@ def test_internal_generator_saw_tooth_move(
         mc.motion.voltage_quadrature_ramp(1, 1, servo=alias)
         mc.motion.voltage_direct_ramp(1, 1, servo=alias)
     time.sleep(1)
+    initial_position = mc.motion.get_actual_position(servo=alias)
     mc.motion.internal_generator_saw_tooth_move(
         direction, pair_poles, 1, servo=alias)
     time.sleep(pair_poles)
