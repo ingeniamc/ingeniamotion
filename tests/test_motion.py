@@ -32,7 +32,6 @@ def test_motor_enable(motion_controller):
     mc, alias = motion_controller
     mc.motion.motor_enable(servo=alias)
     assert mc.configuration.is_motor_enabled(servo=alias)
-    mc.motion.motor_disable(servo=alias)
 
 
 def test_motor_disable(motion_controller):
@@ -59,15 +58,17 @@ def test_set_position(motion_controller, position_value):
 ])
 def test_move_position(motion_controller, position_value):
     mc, alias = motion_controller
+    pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
     mc.motion.set_operation_mode(
         OperationMode.PROFILE_POSITION, servo=alias)
     mc.motion.motor_enable(servo=alias)
     mc.motion.move_to_position(
         position_value, servo=alias, blocking=True)
     test_position = mc.communication.get_register(
-        "CL_POS_SET_POINT_VALUE", servo=alias)
-    assert test_position == position_value
-    mc.motion.motor_disable(servo=alias)
+        "CL_POS_FBK_VALUE", servo=alias)
+    assert pytest.approx(
+        test_position, abs=pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
+    ) == position_value
 
 
 @pytest.mark.parametrize("velocity_value", [
@@ -82,6 +83,23 @@ def test_set_velocity(motion_controller, velocity_value):
     assert test_vel == velocity_value
 
 
+# TODO Update approx error. Well tuned motor is needed.
+@pytest.mark.parametrize("velocity_value", [
+    0.5, 1, 0, -0.5
+])
+def test_set_velocity_blocking(motion_controller, velocity_value):
+    mc, alias = motion_controller
+    mc.motion.set_operation_mode(
+        OperationMode.PROFILE_VELOCITY, servo=alias)
+    mc.motion.motor_enable(servo=alias)
+    mc.motion.set_velocity(
+        velocity_value, servo=alias, blocking=True)
+    time.sleep(1)
+    test_vel = mc.communication.get_register(
+        "CL_VEL_FBK_VALUE", servo=alias)
+    assert pytest.approx(test_vel, abs=0.1) == velocity_value
+
+
 @pytest.mark.parametrize("current_value", [
     0.5, 1, 0, -0.5
 ])
@@ -91,7 +109,7 @@ def test_set_current_quadrature(motion_controller, current_value):
         current_value, servo=alias)
     test_current = mc.communication.get_register(
         "CL_CUR_Q_SET_POINT", servo=alias)
-    assert test_current == current_value
+    assert pytest.approx(test_current) == current_value
 
 
 @pytest.mark.parametrize("current_value", [
@@ -103,7 +121,7 @@ def test_set_current_direct(motion_controller, current_value):
         current_value, servo=alias)
     test_current = mc.communication.get_register(
         "CL_CUR_D_SET_POINT", servo=alias)
-    assert test_current == current_value
+    assert pytest.approx(test_current) == current_value
 
 
 @pytest.mark.parametrize("voltage_value", [
@@ -113,9 +131,9 @@ def test_set_voltage_quadrature(motion_controller, voltage_value):
     mc, alias = motion_controller
     mc.motion.set_voltage_quadrature(
         voltage_value, servo=alias)
-    test_current = mc.communication.get_register(
+    test_voltage = mc.communication.get_register(
         "CL_VOL_Q_SET_POINT", servo=alias)
-    assert test_current == voltage_value
+    assert pytest.approx(test_voltage) == voltage_value
 
 
 @pytest.mark.parametrize("voltage_value", [
@@ -125,9 +143,9 @@ def test_set_voltage_direct(motion_controller, voltage_value):
     mc, alias = motion_controller
     mc.motion.set_voltage_direct(
         voltage_value, servo=alias)
-    test_current = mc.communication.get_register(
+    test_voltage = mc.communication.get_register(
         "CL_VOL_D_SET_POINT", servo=alias)
-    assert test_current == voltage_value
+    assert pytest.approx(test_voltage) == voltage_value
 
 
 # def test_current_quadrature_ramp():
@@ -162,7 +180,6 @@ def test_get_actual_position(motion_controller, position_value):
         position_value, servo=alias, blocking=True)
     test_position = mc.motion.get_actual_position(servo=alias)
     assert abs(test_position - position_value) < 10
-    mc.motion.motor_disable(servo=alias)
 
 
 # def test_wait_for_position():
@@ -214,10 +231,8 @@ def test_internal_generator_saw_tooth_move(
     expected_movement = pos_resolution * direction
     assert abs(total_movement - expected_movement) < \
            pos_resolution * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
-    mc.motion.motor_disable(servo=alias)
 
 
-@pytest.mark.develop
 @pytest.mark.parametrize("op_mode", [
     OperationMode.VOLTAGE, OperationMode.CURRENT
 ])
@@ -254,4 +269,3 @@ def test_internal_generator_constant_move(
             cycle_pos * (value - 1)
         assert abs(total_movement - expected_movement) < \
                pos_resolution * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
-    mc.motion.motor_disable(servo=alias)

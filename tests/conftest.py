@@ -45,6 +45,13 @@ def motion_controller(pytestconfig, read_config):
     return mc, alias
 
 
+@pytest.fixture(autouse=True)
+def disable_motor_fixture(motion_controller):
+    yield
+    mc, alias = motion_controller
+    mc.motion.motor_disable(servo=alias)
+
+
 @pytest.fixture
 def motion_controller_teardown(motion_controller, pytestconfig, read_config):
     yield motion_controller
