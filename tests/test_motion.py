@@ -20,7 +20,6 @@ VOLTAGE_QUADRATURE_SET_POINT_REGISTER = "CL_VOL_Q_SET_POINT"
 VOLTAGE_DIRECT_SET_POINT_REGISTER = "CL_VOL_D_SET_POINT"
 
 
-@pytest.mark.develop
 def test_target_latch(motion_controller):
     mc, alias = motion_controller
     mc.communication.set_register(PROFILER_LATCHING_MODE_REGISTER,
@@ -188,22 +187,6 @@ def test_set_voltage_direct(motion_controller, voltage_value):
     test_voltage = mc.communication.get_register(
         VOLTAGE_DIRECT_SET_POINT_REGISTER, servo=alias)
     assert pytest.approx(test_voltage) == voltage_value
-
-
-# def test_current_quadrature_ramp():
-#     assert False
-#
-#
-# def test_current_direct_ramp():
-#     assert False
-#
-#
-# def test_voltage_quadrature_ramp():
-#     assert False
-#
-#
-# def test_voltage_direct_ramp():
-#     assert False
 
 
 @pytest.mark.smoke
