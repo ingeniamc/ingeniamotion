@@ -37,3 +37,12 @@ It's recommended remove first the _pdf folder.
 ```bash
 sphinx-build -b pdf docs _pdf
 ```
+
+Run PyTest
+----------
+
+Fill configuration json ``tests/config.json``.
+
+Run tests with target protocol (eoe, soem). For example:
+
+``pytest --protocol soem``
