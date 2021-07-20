@@ -290,14 +290,14 @@ class Motion(metaclass=MCMetaClass):
     @staticmethod
     def ramp_generator(init_v, final_v, total_t, interval=None):
         slope = (final_v-init_v) / total_t
-        yield init_v
         init_time = time.time()
-        current_time = init_time
+        yield init_v
+        current_time = time.time()
         while current_time < init_time+total_t:
-            current_time = time.time()
-            yield slope * (current_time-init_time)
+            yield slope * (current_time-init_time) + init_v
             if interval is not None:
                 time.sleep(interval)
+            current_time = time.time()
         yield final_v
 
     def get_actual_position(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
