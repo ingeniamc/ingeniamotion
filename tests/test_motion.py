@@ -8,10 +8,23 @@ from ingeniamotion.motion import Motion
 POS_PID_KP_VALUE = 0.1
 POSITION_PERCENTAGE_ERROR_ALLOWED = 5
 
+PROFILER_LATCHING_MODE_REGISTER = "PROF_LATCH_MODE"
+OPERATION_MODE_REGISTER = "DRV_OP_CMD"
+POSITION_SET_POINT_REGISTER = "CL_POS_SET_POINT_VALUE"
+ACTUAL_POSITION_REGISTER = "CL_POS_FBK_VALUE"
+VELOCITY_SET_POINT_REGISTER = "CL_VEL_SET_POINT_VALUE"
+ACTUAL_VELOCITY_REGISTER = "CL_VEL_FBK_VALUE"
+CURRENT_QUADRATURE_SET_POINT_REGISTER = "CL_CUR_Q_SET_POINT"
+CURRENT_DIRECT_SET_POINT_REGISTER = "CL_CUR_D_SET_POINT"
+VOLTAGE_QUADRATURE_SET_POINT_REGISTER = "CL_VOL_Q_SET_POINT"
+VOLTAGE_DIRECT_SET_POINT_REGISTER = "CL_VOL_D_SET_POINT"
 
+
+@pytest.mark.develop
 def test_target_latch(motion_controller):
     mc, alias = motion_controller
-    mc.communication.set_register("PROF_LATCH_MODE", 0x40, servo=alias)
+    mc.communication.set_register(PROFILER_LATCHING_MODE_REGISTER,
+                                  0x40, servo=alias)
     mc.motion.motor_enable(servo=alias)
     pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
     init_pos = mc.motion.get_actual_position(servo=alias)
@@ -34,7 +47,8 @@ def test_target_latch(motion_controller):
 def test_set_operation_mode(motion_controller, operation_mode):
     mc, alias = motion_controller
     mc.motion.set_operation_mode(operation_mode, servo=alias)
-    test_op = mc.communication.get_register("DRV_OP_CMD", servo=alias)
+    test_op = mc.communication.get_register(OPERATION_MODE_REGISTER,
+                                            servo=alias)
     assert operation_mode.value == test_op
 
 
@@ -42,7 +56,8 @@ def test_set_operation_mode(motion_controller, operation_mode):
 @pytest.mark.parametrize("operation_mode", list(OperationMode))
 def test_get_operation_mode(motion_controller, operation_mode):
     mc, alias = motion_controller
-    mc.communication.set_register("DRV_OP_CMD", operation_mode, servo=alias)
+    mc.communication.set_register(OPERATION_MODE_REGISTER,
+                                  operation_mode, servo=alias)
     test_op = mc.motion.get_operation_mode(servo=alias)
     assert test_op == operation_mode.value
 
@@ -71,7 +86,7 @@ def test_set_position(motion_controller, position_value):
     mc.motion.move_to_position(position_value, servo=alias,
                                target_latch=False, blocking=False)
     test_position = mc.communication.get_register(
-        "CL_POS_SET_POINT_VALUE", servo=alias)
+        POSITION_SET_POINT_REGISTER, servo=alias)
     assert test_position == position_value
 
 
@@ -87,7 +102,7 @@ def test_move_position(motion_controller, position_value):
     mc.motion.move_to_position(
         position_value, servo=alias, blocking=True)
     test_position = mc.communication.get_register(
-        "CL_POS_FBK_VALUE", servo=alias)
+        ACTUAL_POSITION_REGISTER, servo=alias)
     assert pytest.approx(
         test_position, abs=pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
     ) == position_value
@@ -102,7 +117,7 @@ def test_set_velocity(motion_controller, velocity_value):
     mc.motion.set_velocity(
         velocity_value, servo=alias, target_latch=False)
     test_vel = mc.communication.get_register(
-        "CL_VEL_SET_POINT_VALUE", servo=alias)
+        VELOCITY_SET_POINT_REGISTER, servo=alias)
     assert test_vel == velocity_value
 
 
@@ -119,7 +134,7 @@ def test_set_velocity_blocking(motion_controller, velocity_value):
         velocity_value, servo=alias, blocking=True)
     time.sleep(1)
     test_vel = mc.communication.get_register(
-        "CL_VEL_FBK_VALUE", servo=alias)
+        ACTUAL_VELOCITY_REGISTER, servo=alias)
     assert pytest.approx(test_vel, abs=0.1) == velocity_value
 
 
@@ -132,7 +147,7 @@ def test_set_current_quadrature(motion_controller, current_value):
     mc.motion.set_current_quadrature(
         current_value, servo=alias)
     test_current = mc.communication.get_register(
-        "CL_CUR_Q_SET_POINT", servo=alias)
+        CURRENT_QUADRATURE_SET_POINT_REGISTER, servo=alias)
     assert pytest.approx(test_current) == current_value
 
 
@@ -145,7 +160,7 @@ def test_set_current_direct(motion_controller, current_value):
     mc.motion.set_current_direct(
         current_value, servo=alias)
     test_current = mc.communication.get_register(
-        "CL_CUR_D_SET_POINT", servo=alias)
+        CURRENT_DIRECT_SET_POINT_REGISTER, servo=alias)
     assert pytest.approx(test_current) == current_value
 
 
@@ -158,7 +173,7 @@ def test_set_voltage_quadrature(motion_controller, voltage_value):
     mc.motion.set_voltage_quadrature(
         voltage_value, servo=alias)
     test_voltage = mc.communication.get_register(
-        "CL_VOL_Q_SET_POINT", servo=alias)
+        VOLTAGE_QUADRATURE_SET_POINT_REGISTER, servo=alias)
     assert pytest.approx(test_voltage) == voltage_value
 
 
@@ -171,7 +186,7 @@ def test_set_voltage_direct(motion_controller, voltage_value):
     mc.motion.set_voltage_direct(
         voltage_value, servo=alias)
     test_voltage = mc.communication.get_register(
-        "CL_VOL_D_SET_POINT", servo=alias)
+        VOLTAGE_DIRECT_SET_POINT_REGISTER, servo=alias)
     assert pytest.approx(test_voltage) == voltage_value
 
 
@@ -228,7 +243,6 @@ def test_get_actual_position(motion_controller, position_value):
     ) == position_value
 
 
-@pytest.mark.develop
 @pytest.mark.smoke
 def test_wait_for_position_timeout(motion_controller):
     timeout_value = 2
@@ -239,7 +253,6 @@ def test_wait_for_position_timeout(motion_controller):
     assert pytest.approx(final_time-init_time, abs=0.1) == timeout_value
 
 
-@pytest.mark.develop
 @pytest.mark.smoke
 def test_wait_for_velocity_timeout(motion_controller):
     timeout_value = 2
