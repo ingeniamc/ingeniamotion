@@ -1,8 +1,10 @@
 import ifaddr
 import ingenialink as il
+import ingenialogger
 
 from os import path
 from enum import IntEnum
+from ingenialink.canopen import CAN_BAUDRATE, CAN_DEVICE
 
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
@@ -20,6 +22,7 @@ class Communication(metaclass=MCMetaClass):
 
     def __init__(self, motion_controller):
         self.mc = motion_controller
+        self.logger = ingenialogger.get_logger(__name__)
 
     def connect_servo_eoe(self, ip, dict_path=None, alias=DEFAULT_SERVO,
                           protocol=Protocol.UDP, port=1061):
@@ -135,6 +138,57 @@ class Communication(metaclass=MCMetaClass):
         """
         self.connect_servo_ecat(self.get_ifname_by_index(if_index), dict_path,
                                 slave, eoe_comm, alias)
+
+    def connect_servo_canopen(self, can_device, dict_path, eds_file,
+                              node_id, baudrate=CAN_BAUDRATE.Baudrate_1M,
+                              channel=0, alias=DEFAULT_SERVO):
+        """
+        Connect to target servo by CANOpen.
+
+        Args:
+            can_device (ingenialink.canopen.net.CAN_DEVICE): CANOpen device type.
+            dict_path (str): servo dictionary path.
+            eds_file (str): EDS file path.
+            node_id (int): node id. It's posible scan node ids with
+                :func:`scan_servos_canopen`.
+            baudrate (ingenialink.canopen.net.CAN_BAUDRATE): communication baudrate.
+                1 Mbit/s by default.
+            channel (int): CANOpen device channel. ``0`` by default.
+            alias (str): servo alias to reference it. ``default`` by default.
+        """
+        net = il.CANOpenNetwork(device=can_device, channel=channel, baudrate=baudrate)
+        net.connect_through_node(eds_file, dict_path, node_id, boot_mode=True)
+        drives_connected = net.servos
+        if len(drives_connected) > 0:
+            servo = drives_connected[0]
+        else:
+            raise Exception("Error trying to connect to the servo.")
+        self.mc.servos[alias] = servo
+        self.mc.net[alias] = net
+
+    def scan_servos_canopen(self, can_device,
+                            baudrate=CAN_BAUDRATE.Baudrate_1M, channel=0):
+        """
+        Scan CANOpen device network to get all nodes.
+
+        Args:
+            can_device (ingenialink.canopen.net.CAN_DEVICE): CANOpen device type.
+            baudrate (ingenialink.canopen.net.CAN_BAUDRATE): communication baudrate.
+                1 Mbit/s by default.
+            channel (int): CANOpen device channel. ``0`` by default.
+        Returns:
+            list of int: List of node ids available in the network.
+        """
+        net = il.canopen.net.Network(can_device, baudrate=baudrate,
+                                     channel=channel)
+        if net is None:
+            self.logger.warning("Could not find any nodes in the network."
+                                "Device: %s, channel: %s and baudrate: %s.",
+                                can_device, channel, baudrate)
+            return []
+        nodes = net.detect_nodes()
+        net.disconnect()
+        return nodes
 
     def get_register(self, register, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
