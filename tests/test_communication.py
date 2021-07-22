@@ -2,6 +2,7 @@ import pytest
 
 from ingeniamotion import MotionController
 from ingenialink.registers import REG_DTYPE
+from ingenialink.exceptions import ILError
 
 
 @pytest.mark.smoke
@@ -17,7 +18,6 @@ def test_connect_servo_eoe(read_config):
     assert "eoe_test" in mc.net and mc.net["eoe_test"] is not None
 
 
-@pytest.mark.develop
 @pytest.mark.smoke
 @pytest.mark.eoe
 def test_connect_servo_eoe_no_dictionary_error(read_config):
@@ -41,7 +41,6 @@ def test_connect_servo_ethernet(read_config):
     assert "eoe_test" in mc.net and mc.net["eoe_test"] is not None
 
 
-@pytest.mark.develop
 @pytest.mark.smoke
 @pytest.mark.eoe
 def test_connect_servo_ethernet_no_dictionary_error(read_config):
@@ -67,7 +66,6 @@ def test_connect_servo_ecat(read_config):
     assert "soem_test" in mc.net and mc.net["soem_test"] is not None
 
 
-@pytest.mark.develop
 @pytest.mark.smoke
 @pytest.mark.soem
 def test_connect_servo_ecat_no_dictionary_error(read_config):
@@ -94,7 +92,6 @@ def test_connect_servo_ecat_interface_index(read_config):
     assert "soem_test" in mc.net and mc.net["soem_test"] is not None
 
 
-@pytest.mark.develop
 @pytest.mark.smoke
 @pytest.mark.soem
 def test_connect_servo_ecat_interface_index_no_dictionary_error(read_config):
@@ -121,6 +118,13 @@ def test_get_register(motion_controller, uid, value):
 
 
 @pytest.mark.smoke
+def test_get_register_wrong_uid(motion_controller):
+    mc, alias = motion_controller
+    with pytest.raises(ILError):
+        mc.communication.get_register("WRONG_UID", servo=alias)
+
+
+@pytest.mark.smoke
 @pytest.mark.parametrize("uid, value", [
     ("CL_VOL_Q_SET_POINT", -234),
     ("CL_POS_SET_POINT_VALUE", 23),
@@ -132,6 +136,34 @@ def test_set_register(motion_controller, uid, value):
     mc.communication.set_register(uid, value, servo=alias)
     test_value = drive.read(uid)
     assert pytest.approx(test_value) == value
+
+
+@pytest.mark.smoke
+def test_set_register_wrong_uid(motion_controller):
+    mc, alias = motion_controller
+    with pytest.raises(ILError):
+        mc.communication.set_register("WRONG_UID", 2, servo=alias)
+
+
+@pytest.mark.smoke
+@pytest.mark.parametrize("uid, value, fail", [
+    ("CL_VOL_Q_SET_POINT", -234, False),
+    ("CL_VOL_Q_SET_POINT", "I'm not a number", True),
+    ("CL_VOL_Q_SET_POINT", 234.4, False),
+    ("CL_POS_SET_POINT_VALUE", 1245, False),
+    ("CL_POS_SET_POINT_VALUE", -1245, False),
+    ("CL_POS_SET_POINT_VALUE", 1245.5421, True),
+    ("PROF_POS_OPTION_CODE", -54, True),
+    ("PROF_POS_OPTION_CODE", 54, False),
+    ("PROF_POS_OPTION_CODE", "54", True),
+])
+def test_set_register_wrong_value_type(motion_controller, uid, value, fail):
+    mc, alias = motion_controller
+    if fail:
+        with pytest.raises(TypeError):
+            mc.communication.set_register(uid, value, servo=alias)
+    else:
+        mc.communication.set_register(uid, value, servo=alias)
 
 
 @pytest.mark.smoke

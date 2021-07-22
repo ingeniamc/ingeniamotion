@@ -111,8 +111,9 @@ class Motion(metaclass=MCMetaClass):
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
         """
-        drive = self.mc.servos[servo]
-        drive.disable(subnode=axis)
+        if self.mc.configuration.is_motor_enabled(servo=servo, axis=axis):
+            drive = self.mc.servos[servo]
+            drive.disable(subnode=axis)
 
     def move_to_position(self, position, servo=DEFAULT_SERVO,
                          axis=DEFAULT_AXIS, target_latch=True,
