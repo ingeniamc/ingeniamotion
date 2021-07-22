@@ -156,8 +156,15 @@ class Communication(metaclass=MCMetaClass):
             channel (int): CANOpen device channel. ``0`` by default.
             alias (str): servo alias to reference it. ``default`` by default.
         """
+
+        if not path.isfile(dict_path):
+            raise FileNotFoundError('Dict file {} does not exist!'.format(dict_path))
+
+        if not path.isfile(eds_file):
+            raise FileNotFoundError("EDS file {} does not exist!".format(eds_file))
+
         net = il.CANOpenNetwork(device=can_device, channel=channel, baudrate=baudrate)
-        net.connect_through_node(eds_file, dict_path, node_id, boot_mode=True)
+        net.connect_through_node(eds_file, dict_path, node_id, heartbeat=False)
         drives_connected = net.servos
         if len(drives_connected) > 0:
             servo = drives_connected[0]
