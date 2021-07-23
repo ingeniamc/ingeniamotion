@@ -24,5 +24,6 @@ if len(node_id_list) > 0:
         channel=0  # First CANOpen device channel selected.
     )
     print("Servo connected!")
+    mc.communication.disconnect_canopen()
 else:
     print("No node id available")

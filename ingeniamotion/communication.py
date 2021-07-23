@@ -162,16 +162,19 @@ class Communication(metaclass=MCMetaClass):
 
         if not path.isfile(eds_file):
             raise FileNotFoundError("EDS file {} does not exist!".format(eds_file))
-
         net = il.CANOpenNetwork(device=can_device, channel=channel, baudrate=baudrate)
-        net.connect_through_node(eds_file, dict_path, node_id, heartbeat=False)
-        drives_connected = net.servos
-        if len(drives_connected) > 0:
-            servo = drives_connected[0]
-        else:
-            raise Exception("Error trying to connect to the servo.")
-        self.mc.servos[alias] = servo
-        self.mc.net[alias] = net
+        try:
+            net.connect_through_node(eds_file, dict_path, node_id, heartbeat=False)
+            drives_connected = net.servos
+            if len(drives_connected) > 0:
+                servo = drives_connected[0]
+            else:
+                raise Exception("Error trying to connect to the servo.")
+            self.mc.servos[alias] = servo
+            self.mc.net[alias] = net
+        except Exception as e:
+            net.disconnect()
+            raise e
 
     def scan_servos_canopen(self, can_device,
                             baudrate=CAN_BAUDRATE.Baudrate_1M, channel=0):
@@ -196,6 +199,10 @@ class Communication(metaclass=MCMetaClass):
         nodes = net.detect_nodes()
         net.disconnect()
         return nodes
+
+    def disconnect_canopen(self, servo=DEFAULT_SERVO):
+        network = self.mc.net[servo]
+        network.disconnect()
 
     def get_register(self, register, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """

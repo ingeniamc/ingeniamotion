@@ -3,7 +3,7 @@ import pytest
 from ingeniamotion import MotionController
 from ingenialink.registers import REG_DTYPE
 from ingenialink.exceptions import ILError
-
+from ingenialink.canopen import CAN_BAUDRATE, CAN_DEVICE
 
 @pytest.mark.smoke
 @pytest.mark.eoe
@@ -101,6 +101,43 @@ def test_connect_servo_ecat_interface_index_no_dictionary_error(read_config):
         mc.communication.connect_servo_ecat_interface_index(
             soem_config["index"], "no_dictionary",
             slave=soem_config["slave"], alias="soem_test")
+
+
+@pytest.mark.skip(reason='This test enters in conflict with "disable_motor_fixture"')
+@pytest.mark.smoke
+@pytest.mark.canopen
+def test_connect_servo_canopen(read_config):
+    mc = MotionController()
+    canopen_config = read_config["canopen"]
+    assert "canopen_test" not in mc.servos
+    assert "canopen_test" not in mc.net
+    device = CAN_DEVICE(canopen_config["device"])
+    baudrate = CAN_BAUDRATE(canopen_config["baudrate"])
+    mc.communication.connect_servo_canopen(
+        device, canopen_config["dictionary"], canopen_config["eds"],
+        canopen_config["node_id"], baudrate, canopen_config["channel"],
+        alias="canopen_test")
+    assert "canopen_test" in mc.servos and mc.servos["canopen_test"] is not None
+    assert "canopen_test" in mc.net and mc.net["canopen_test"] is not None
+    mc.net["canopen_test"].disconnect()
+
+
+@pytest.mark.smoke
+@pytest.mark.canopen
+def test_connect_servo_canopen_busy_drive_error(motion_controller, read_config):
+    mc, alias = motion_controller
+    canopen_config = read_config["canopen"]
+    assert "canopen_test" not in mc.servos
+    assert "canopen_test" not in mc.net
+    assert alias in mc.servos
+    assert alias in mc.net
+    device = CAN_DEVICE(canopen_config["device"])
+    baudrate = CAN_BAUDRATE(canopen_config["baudrate"])
+    with pytest.raises(ILError):
+        mc.communication.connect_servo_canopen(
+            device, canopen_config["dictionary"], canopen_config["eds"],
+            canopen_config["node_id"], baudrate, canopen_config["channel"],
+            alias="canopen_test")
 
 
 @pytest.mark.smoke
