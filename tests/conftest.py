@@ -3,62 +3,73 @@ import pytest
 
 from ingeniamotion import MotionController
 
+ALLOW_PROTOCOLS = ['eoe', 'soem']
+
 
 def pytest_addoption(parser):
     parser.addoption("--protocol", action="store", default="eoe",
-                     help="eoe, soem")
+                     help="eoe, soem", choices=ALLOW_PROTOCOLS)
 
 
-@pytest.fixture(autouse=True)
+def pytest_collection_modifyitems(config, items):
+    protocol = config.getoption("--protocol")
+    negate_protocols = [x for x in ALLOW_PROTOCOLS if x != protocol]
+    skip_by_protocol = pytest.mark.skip(reason="Protocol does not match")
+    for item in items:
+        if protocol in item.keywords:
+            continue
+        for not_protocol in negate_protocols:
+            if not_protocol in item.keywords:
+                item.add_marker(skip_by_protocol)
+
+
+@pytest.fixture(scope="session")
 def read_config():
     config = 'tests/config.json'
     print('current config file:', config)
     with open(config, "r") as fp:
         contents = json.load(fp)
-    pytest.config = contents
+    return contents
 
 
-@pytest.fixture
-def motion_controller():
-    return MotionController()
+def connect_eoe(mc, config, alias):
+    config_eoe = config["eoe"]
+    mc.communication.connect_servo_eoe(
+        config_eoe["ip"], config_eoe["dictionary"], alias=alias)
 
 
-def connect_eoe(mc, alias=None):
-    config = pytest.config["eoe"]
-    if alias is None:
-        mc.communication.connect_servo_eoe(
-            config["ip"], config["dictionary"])
-    else:
-        mc.communication.connect_servo_eoe(
-            config["ip"], config["dictionary"], alias="test")
+def connect_soem(mc, config, alias):
+    config_soem = config["soem"]
+    mc.communication.connect_servo_ecat_interface_index(
+        config_soem["index"], config_soem["dictionary"],
+        config_soem["slave"], eoe_comm=config_soem["eoe_comm"], alias=alias)
 
 
-def connect_soem_eoe(mc, alias=None):
-    config = pytest.config["soem"]
-    if alias is None:
-        mc.communication.connect_servo_ecat_interface_index(
-            config["index"], config["dictionary"], config["slave"])
-    else:
-        mc.communication.connect_servo_ecat_interface_index(
-            config["index"], config["dictionary"],
-            config["slave"], alias="test")
-
-
-@pytest.fixture
-def servo_default(motion_controller, pytestconfig):
+@pytest.fixture(scope="session")
+def motion_controller(pytestconfig, read_config):
+    alias = "test"
+    mc = MotionController()
     protocol = pytestconfig.getoption("--protocol")
     if protocol == "eoe":
-        connect_eoe(motion_controller)
+        connect_eoe(mc, read_config, alias)
     elif protocol == "soem":
-        connect_soem_eoe(motion_controller)
-    return motion_controller
+        connect_soem(mc, read_config, alias)
+    mc.configuration.load_configuration(
+        read_config[protocol]["config_file"], servo=alias)
+    return mc, alias
+
+
+@pytest.fixture(autouse=True)
+def disable_motor_fixture(motion_controller):
+    yield
+    mc, alias = motion_controller
+    mc.motion.motor_disable(servo=alias)
 
 
 @pytest.fixture
-def servo_test_name(motion_controller, pytestconfig):
+def motion_controller_teardown(motion_controller, pytestconfig, read_config):
+    yield motion_controller
     protocol = pytestconfig.getoption("--protocol")
-    if protocol == "eoe":
-        connect_eoe(motion_controller, "test")
-    elif protocol == "soem":
-        connect_soem_eoe(motion_controller, "test")
-    return motion_controller
+    mc, alias = motion_controller
+    mc.configuration.load_configuration(
+        read_config[protocol]["config_file"], servo=alias)

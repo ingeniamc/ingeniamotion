@@ -228,6 +228,27 @@ class Communication(metaclass=MCMetaClass):
             axis (int): servo axis. ``1`` by default.
         """
         drive = self.mc.servos[servo]
+        register_dtype_value = drive.dict.get_regs(axis).get(register).dtype.value
+        signed_int = [
+            il.registers.REG_DTYPE.S8.value, il.registers.REG_DTYPE.S16.value,
+            il.registers.REG_DTYPE.S32.value, il.registers.REG_DTYPE.S64.value
+        ]
+        unsigned_int = [
+            il.registers.REG_DTYPE.U8.value, il.registers.REG_DTYPE.U16.value,
+            il.registers.REG_DTYPE.U32.value, il.registers.REG_DTYPE.U64.value
+        ]
+        if register_dtype_value == il.registers.REG_DTYPE.FLOAT.value and \
+                not isinstance(value, (int, float)):
+            raise TypeError("Value must be a float")
+        if register_dtype_value == il.registers.REG_DTYPE.STR.value and \
+                not isinstance(value, str):
+            raise TypeError("Value must be a string")
+        if register_dtype_value in signed_int and \
+                not isinstance(value, int):
+            raise TypeError("Value must be an int")
+        if register_dtype_value in unsigned_int and \
+                (not isinstance(value, int) or value < 0):
+            raise TypeError("Value must be an unsigned int")
         drive.write(register, value, subnode=axis)
 
     def get_sdo_register(self, index, subindex, dtype, string_size=None,
