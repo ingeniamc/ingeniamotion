@@ -235,7 +235,10 @@ class Communication(metaclass=MCMetaClass):
             axis (int): servo axis. ``1`` by default.
         """
         drive = self.mc.servos[servo]
-        register_dtype_value = drive.dict.get_regs(axis).get(register).dtype.value
+        register_instance = drive.dict.get_regs(axis).get(register)
+        register_dtype_value = None
+        if register_instance:
+            register_dtype_value = register_instance.dtype.value
         signed_int = [
             il.registers.REG_DTYPE.S8.value, il.registers.REG_DTYPE.S16.value,
             il.registers.REG_DTYPE.S32.value, il.registers.REG_DTYPE.S64.value
