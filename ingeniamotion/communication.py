@@ -201,6 +201,12 @@ class Communication(metaclass=MCMetaClass):
         return nodes
 
     def disconnect_canopen(self, servo=DEFAULT_SERVO):
+        """
+        Disconnect CANOpen servo.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+        """
         network = self.mc.net[servo]
         network.disconnect()
 
