@@ -8,6 +8,7 @@
     "index": 4,
     "dictionary": "eve-net-e_eoe_1.7.2.xdf",
     "slave": 1,
-    "config_file": "eve-test-config.xcf"
+    "config_file": "eve-test-config.xcf",
+    "eoe_comm": true
   }
 }
