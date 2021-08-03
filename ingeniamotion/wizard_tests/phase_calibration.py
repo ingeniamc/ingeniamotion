@@ -76,6 +76,7 @@ class Phasing(BaseTest):
         self.pha_timeout = None
         self.pha_accuracy = None
 
+    @BaseTest.stoppable
     def check_input_data(self):
 
         max_current_drive = self.mc.communication.get_register(
@@ -129,6 +130,7 @@ class Phasing(BaseTest):
                     servo=self.servo, axis=self.axis
                 )
 
+    @BaseTest.stoppable
     def setup(self):
         # Prerequisites:
         #  - Motor & Feedbacks configured (Pair poles & rated current are used)
@@ -204,6 +206,7 @@ class Phasing(BaseTest):
 
         self.reaction_codes_to_warning()
 
+    @BaseTest.stoppable
     def reaction_codes_to_warning(self):
         try:
             self.mc.communication.set_register("COMMU_ANGLE_INTEGRITY1_OPTION", 1,
@@ -217,6 +220,7 @@ class Phasing(BaseTest):
         except ILError:
             self.logger.warning('Could not write COMMU_ANGLE_INTEGRITY2_OPTION')
 
+    @BaseTest.stoppable
     def define_phasing_steps(self):
         # Doc: Last step is defined as the first angle delta smaller than 3 times the phasing accuracy
         delta = (3 * self.pha_accuracy / 1000)
@@ -236,6 +240,7 @@ class Phasing(BaseTest):
                 num_of_steps = num_of_steps + 1
         return num_of_steps
 
+    @BaseTest.stoppable
     def set_phasing_mode(self):
         ref_category = self.mc.configuration.get_reference_feedback_category(
             servo=self.servo, axis=self.axis)
@@ -261,6 +266,7 @@ class Phasing(BaseTest):
                 # Set a forced and then a Non forced
                 return PhasingMode.NON_FORCED
 
+    @BaseTest.stoppable
     def loop(self):
         self.logger.info("START OF THE TEST", axis=self.axis)
 

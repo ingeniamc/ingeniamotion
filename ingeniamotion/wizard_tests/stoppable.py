@@ -30,5 +30,5 @@ class Stoppable:
 
     def stoppable_sleep(self, timeout):
         init_time = time()
-        while init_time + timeout < time():
+        while init_time + timeout > time():
             self.check_stop()
