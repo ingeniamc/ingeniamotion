@@ -33,7 +33,7 @@ def main(args):
         # Run Incremental Encoder 2 feedback tests
         result = mc.tests.incremental_encoder_2_test(axis=args.axis,
                                                      apply_changes=not args.debug)
-    logging.info(result["message"])
+    logging.info(result["result_message"])
 
 
 if __name__ == '__main__':

@@ -15,7 +15,7 @@ class OperationMode(IntEnum):
     POSITION = 0x04
     PROFILE_POSITION = 0x14
     CYCLIC_POSITION = 0x24
-    CYCLIC_POSITION_S_CURVE = 0x44
+    PROFILE_POSITION_S_CURVE = 0x44
     PVT = 0xB4
     HOMING = 0x113
 
@@ -90,6 +90,14 @@ class SensorType(IntEnum):
     """ Digital/Incremental encoder 2 """
     SMO = 9
     """ SMO """
+
+
+class SensorCategory(IntEnum):
+    """
+    Feedback category enum
+    """
+    ABSOLUTE = 0
+    INCREMENTAL = 1
 
 
 class PhasingMode(IntEnum):
