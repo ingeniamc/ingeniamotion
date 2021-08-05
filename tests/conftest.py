@@ -26,7 +26,6 @@ def pytest_collection_modifyitems(config, items):
 @pytest.fixture(scope="session")
 def read_config():
     config = 'tests/config.json'
-    print('current config file:', config)
     with open(config, "r") as fp:
         contents = json.load(fp)
     return contents
