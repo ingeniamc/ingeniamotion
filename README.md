@@ -43,6 +43,6 @@ Run PyTest
 
 Fill configuration json ``tests/config.json``.
 
-Run tests with target protocol (eoe, soem). For example:
+Run tests with target protocol (eoe, soem or canopen). For example:
 
 ``pytest --protocol soem``
