@@ -49,10 +49,11 @@ def test_create_monitoring_no_trigger(motion_controller):
     mc.motion.motor_enable(alias)
     monitoring.enable_monitoring()
     init = time.time()
-    for i in range(3):
-        while init + (i+1)*total_time/4 > time.time():
+    quarter_total_time = total_time/4
+    for i in range(1, 4):
+        while init + i*quarter_total_time > time.time():
             pass
-        mc.motion.move_to_position(1000*(i+1), alias)
+        mc.motion.move_to_position(1000*i, alias)
     data = monitoring.read_monitoring_data()
     assert samples == len(data[0])
     for index, value in enumerate(data[0]):
@@ -91,10 +92,11 @@ def test_create_monitoring_edge_trigger(motion_controller, trigger_mode, values_
     monitoring.enable_monitoring()
     time.sleep(1)
     init = time.time()
-    for i in range(3):
-        while init + (i+1)*total_time/4 > time.time():
+    quarter_total_time = total_time/4
+    for i in range(1, 4):
+        while init + i*quarter_total_time > time.time():
             pass
-        mc.motion.move_to_position(values_list[i+1], alias)
+        mc.motion.move_to_position(values_list[i], alias)
     data = monitoring.read_monitoring_data()
     assert samples == len(data[0])
     assert data[0][2000] == values_list[2]
