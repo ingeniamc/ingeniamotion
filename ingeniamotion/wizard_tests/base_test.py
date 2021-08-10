@@ -68,23 +68,18 @@ class BaseTest(ABC, Stoppable):
 
     def run(self):
         self.reset_stop()
-        drive_disconnected = False
         self.save_backup_registers()
         try:
             self.setup()
             output = self.loop()
             self.report = self.__generate_report(output)
         except ILError as err:
-            drive_disconnected = True
             raise err
         except StopException:
             self.logger.warning("Test has been stopped")
         finally:
             try:
-                if not drive_disconnected:
-                    self.teardown()
-            except ILTimeoutError:
-                pass
+                self.teardown()
             finally:
                 self.restore_backup_registers()
         return self.report
