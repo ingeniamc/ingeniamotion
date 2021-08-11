@@ -7,13 +7,15 @@ from ingenialink.exceptions import ILError
 
 from enum import IntEnum
 
+from .exceptions import MonitoringError
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 
 
 def check_monitoring_disabled(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
-        monitoring_enabled = self.is_monitoring_enabled()
+        monitoring_enabled = self.mc.capture.is_monitoring_enabled(
+            servo=self.servo)
         if monitoring_enabled:
             raise MonitoringError("Monitoring is enabled")
         return func(self, *args, **kwargs)
@@ -66,7 +68,6 @@ class Monitoring:
         MonitoringSoCType.TRIGGER_CYCLIC_FALLING_EDGE: "MON_CFG_FALLING_CONDITION"
     }
 
-    MONITORING_STATUS_ENABLED_BIT = 0x1
     MONITORING_STATUS_PROCESS_STAGE_BITS = 0x6
     MONITORING_AVAILABLE_FRAME_BIT = 0x800
     REGISTER_MAP_OFFSET = 0x800
@@ -100,7 +101,6 @@ class Monitoring:
     MONITOR_START_CONDITION_TYPE_REGISTER = "MON_CFG_SOC_TYPE"
     MONITOR_END_CONDITION_TYPE_REGISTER = "MON_CFG_EOC_TYPE"
     MONITORING_INDEX_CHECKER_REGISTER = "MON_IDX_CHECK"
-    MONITORING_DISTURBANCE_STATUS_REGISTER = "MON_DIST_STATUS"
     MONITORING_TRIGGER_DELAY_SAMPLES_REGISTER = "MON_CFG_TRIGGER_DELAY"
     MONITORING_WINDOW_NUMBER_SAMPLES_REGISTER = "MON_CFG_WINDOW_SAMP"
     MONITORING_NUMBER_CYCLES_REGISTER = "MON_CFG_CYCLES_VALUE"
@@ -350,26 +350,6 @@ class Monitoring:
         trigger_delay_samples = trigger_delay_samples if trigger_delay_samples > 0 else 1
         self.configure_number_samples(total_num_samples, trigger_delay_samples)
 
-    def enable_monitoring(self):
-        """
-        Enable monitoring
-
-        Raises:
-            MonitoringError: If monitoring can't be enabled.
-        """
-        network = self.mc.net[self.servo]
-        network.monitoring_enable()
-        # Check monitoring status
-        if not self.is_monitoring_enabled():
-            raise MonitoringError("Error enabling monitoring.")
-
-    def disable_monitoring(self):
-        """
-        Disable monitoring
-        """
-        network = self.mc.net[self.servo]
-        network.monitoring_disable()
-
     # TODO Study remove progress_callback
     def read_monitoring_data(self, progress_callback=None):
         """
@@ -385,7 +365,7 @@ class Monitoring:
             servo=self.servo,
             axis=0
         )
-        is_enabled = self.is_monitoring_enabled()
+        is_enabled = self.mc.capture.is_monitoring_enabled(servo=self.servo)
         self.__read_process_finished = False
         data_array = [[] for _ in self.mapped_registers]
         self.logger.debug("Waiting for data")
@@ -409,29 +389,6 @@ class Monitoring:
                 self.__read_process_finished = True
         return data_array
 
-    def get_monitoring_disturbance_status(self):
-        """
-        Get Monitoring/Disturbance Status.
-
-        Returns:
-            int: Monitoring/Disturbance Status.
-        """
-        return self.mc.communication.get_register(
-            self.MONITORING_DISTURBANCE_STATUS_REGISTER,
-            servo=self.servo,
-            axis=0
-        )
-
-    def is_monitoring_enabled(self):
-        """
-        Check if monitoring is enabled.
-
-        Returns:
-            bool: True if monitoring is enabled, else False.
-        """
-        monitor_status = self.get_monitoring_disturbance_status()
-        return (monitor_status & self.MONITORING_STATUS_ENABLED_BIT) == 1
-
     def get_monitoring_process_stage(self):
         """
         Return monitoring process stage.
@@ -439,7 +396,8 @@ class Monitoring:
         Returns:
             MonitoringProcessStage: Current monitoring process stage.
         """
-        monitor_status = self.get_monitoring_disturbance_status()
+        monitor_status = self.mc.capture.get_monitoring_disturbance_status(
+            servo=self.servo)
         masked_value = monitor_status & self.MONITORING_STATUS_PROCESS_STAGE_BITS
         return MonitoringProcessStage(masked_value)
 
@@ -450,7 +408,8 @@ class Monitoring:
         Returns:
             bool: True if monitoring has an available frame, else False.
         """
-        monitor_status = self.get_monitoring_disturbance_status()
+        monitor_status = self.mc.capture.get_monitoring_disturbance_status(
+            servo=self.servo)
         return (monitor_status & self.MONITORING_AVAILABLE_FRAME_BIT) != 0
 
     def __fill_data(self, data_array):
@@ -529,7 +488,3 @@ class Monitoring:
                 .format(size_demand, self.max_sample_number // 2))
         self.logger.debug("Demanded size: %d bytes, buffer max size: %d bytes.",
                           size_demand, self.max_sample_number // 2)
-
-
-class MonitoringError(Exception):
-    pass
