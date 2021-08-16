@@ -88,3 +88,13 @@ def motion_controller_teardown(motion_controller, pytestconfig, read_config):
     mc, alias = motion_controller
     mc.configuration.load_configuration(
         read_config[protocol]["config_file"], servo=alias)
+
+
+@pytest.fixture
+def disable_monitoring_disturbance(motion_controller):
+    yield
+    mc, alias = motion_controller
+    network = mc.net[alias]
+    network.monitoring_disable()
+    network.disturbance_remove_all_mapped_registers()
+    network.monitoring_remove_all_mapped_registers()
