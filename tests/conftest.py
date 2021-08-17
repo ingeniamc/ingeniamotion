@@ -94,7 +94,4 @@ def motion_controller_teardown(motion_controller, pytestconfig, read_config):
 def disable_monitoring_disturbance(motion_controller):
     yield
     mc, alias = motion_controller
-    network = mc.net[alias]
-    network.monitoring_disable()
-    network.disturbance_remove_all_mapped_registers()
-    network.monitoring_remove_all_mapped_registers()
+    mc.capture.clean_monitoring_disturbance(servo=alias)
