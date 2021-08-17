@@ -31,7 +31,8 @@ def test_create_poller(motion_controller):
         assert pytest.approx(tared_ts // 1 * 0.2) == value
 
 
-def test_create_monitoring_no_trigger(motion_controller):
+def test_create_monitoring_no_trigger(motion_controller,
+                                      disable_monitoring_disturbance):
     registers = [{
         "name": "CL_POS_REF_VALUE",
         "axis": 1
@@ -67,7 +68,8 @@ def test_create_monitoring_no_trigger(motion_controller):
     (MonitoringSoCType.TRIGGER_CYCLIC_RISING_EDGE, [0, 1000, 2000, 3000]),
     (MonitoringSoCType.TRIGGER_CYCLIC_FALLING_EDGE, [3000, 2000, 1000, 0]),
 ])
-def test_create_monitoring_edge_trigger(motion_controller, trigger_mode, values_list):
+def test_create_monitoring_edge_trigger(motion_controller, trigger_mode, values_list,
+                                        disable_monitoring_disturbance):
     register = {
         "name": "CL_POS_REF_VALUE",
         "axis": 1
@@ -108,7 +110,8 @@ def test_create_monitoring_edge_trigger(motion_controller, trigger_mode, values_
             assert value == theo_value
 
 
-def test_create_disturbance(motion_controller):
+def test_create_disturbance(motion_controller,
+                            disable_monitoring_disturbance):
     mc, alias = motion_controller
     target_register = "CL_POS_SET_POINT_VALUE"
     max_frequency = mc.configuration.get_position_and_velocity_loop_rate(alias)

@@ -1,3 +1,4 @@
+import time
 import struct
 import numpy as np
 import ingenialogger
@@ -74,6 +75,8 @@ class Monitoring:
 
     MINIMUM_BUFFER_SIZE = 8192
 
+    ESTIMATED_MAX_TIME_FOR_SAMPLE = 0.0015
+
     class MonitoringVersion(IntEnum):
         """
         Monitoring version
@@ -127,9 +130,9 @@ class Monitoring:
     def set_frequency(self, prescaler):
         """
         Function to define monitoring frequency with a prescaler. Frequency will be
-        ``Position & velocity loop rate frequency / prescaler``,
-        see :func:`ingeniamotion.configuration.Configuration.get_position_and_velocity_loop_rate` to know about this
-        frequency. Monitoring must be disabled.
+        ``Position & velocity loop rate frequency / prescaler``, see
+        :func:`ingeniamotion.configuration.Configuration.get_position_and_velocity_loop_rate`
+        to know about this frequency. Monitoring must be disabled.
 
         Args:
             prescaler (int): determines monitoring frequency. It must be ``1`` or higher.
@@ -350,8 +353,40 @@ class Monitoring:
         trigger_delay_samples = trigger_delay_samples if trigger_delay_samples > 0 else 1
         self.configure_number_samples(total_num_samples, trigger_delay_samples)
 
+    def __setup_read_monitoring_data(self):
+        trigger_repetitions = self.mc.communication.get_register(
+            self.MONITORING_NUMBER_TRIGGER_REPETITIONS_REGISTER,
+            servo=self.servo,
+            axis=0
+        )
+        is_enabled = self.mc.capture.is_monitoring_enabled(servo=self.servo)
+        self.__read_process_finished = False
+        return trigger_repetitions, is_enabled
+
+    def __update_read_process_finished(self, init_read_time, data_length,
+                                       init_time, timeout):
+        time_now = time.time()
+        if data_length >= self.samples_number:
+            self.__read_process_finished = True
+        total_num_samples = len(self.mapped_registers) * self.samples_number
+        max_timeout = self.ESTIMATED_MAX_TIME_FOR_SAMPLE * total_num_samples
+        exist_read_time = init_read_time is not None
+        if exist_read_time and init_read_time + max_timeout < time_now:
+            self.logger.warning("Timeout. Drive take too match time reading data")
+            self.__read_process_finished = True
+        if not exist_read_time and timeout is not None and init_time+timeout < time_now:
+            self.logger.warning("Timeout. No trigger was reached.")
+            self.__read_process_finished = True
+
+    def __show_current_process(self, current_len, progress_callback):
+        current_progress = current_len / self.samples_number
+        self.logger.debug("Read %.2f%% of monitoring data",
+                          current_progress * 100)
+        if progress_callback is not None:
+            progress_callback(current_progress)
+
     # TODO Study remove progress_callback
-    def read_monitoring_data(self, progress_callback=None):
+    def read_monitoring_data(self, timeout=None, progress_callback=None):
         """
         Blocking function that read the monitoring data.
 
@@ -360,17 +395,22 @@ class Monitoring:
             different register data.
         """
         network = self.mc.net[self.servo]
-        trigger_repetitions = self.mc.communication.get_register(
-            self.MONITORING_NUMBER_TRIGGER_REPETITIONS_REGISTER,
-            servo=self.servo,
-            axis=0
-        )
-        is_enabled = self.mc.capture.is_monitoring_enabled(servo=self.servo)
-        self.__read_process_finished = False
+        trigger_repetitions, is_enabled = self.__setup_read_monitoring_data()
         data_array = [[] for _ in self.mapped_registers]
         self.logger.debug("Waiting for data")
+        init_read_time, init_time = None, time.time()
+        current_len = 0
         while not self.__read_process_finished:
-            if not self.__check_data_is_ready():
+            self.__update_read_process_finished(init_read_time, current_len,
+                                                init_time, timeout)
+            if self.__check_data_is_ready():
+                network.monitoring_read_data()
+                self.__fill_data(data_array)
+                if init_read_time is None:
+                    init_read_time = time.time()
+                current_len = len(data_array[0])
+                self.__show_current_process(current_len, progress_callback)
+            else:
                 if not is_enabled or trigger_repetitions == 0:
                     text_is_enabled = "enabled" if is_enabled else "disabled"
                     self.logger.warning(
@@ -378,15 +418,6 @@ class Monitoring:
                         " MON_CFG_TRIGGER_REPETITIONS is {}. Monitoring is {}."
                         .format(trigger_repetitions, text_is_enabled))
                     self.__read_process_finished = True
-                continue
-            network.monitoring_read_data()
-            self.__fill_data(data_array)
-            current_progress = len(data_array[0]) / self.samples_number
-            self.logger.debug("Read %.2f%% of monitoring data", current_progress * 100)
-            if progress_callback is not None:
-                progress_callback(current_progress)
-            if len(data_array[0]) >= self.samples_number:
-                self.__read_process_finished = True
         return data_array
 
     def get_monitoring_process_stage(self):
