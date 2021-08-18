@@ -27,62 +27,74 @@ def feedback_list(motion_controller):
 
 def test_digital_halls_test(motion_controller, feedback_list):
     mc, alias = motion_controller
+    commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
     if SensorType.HALLS in feedback_list:
         results = mc.tests.digital_halls_test(servo=alias)
         assert results["result_severity"] == BaseTest.SeverityLevel.SUCCESS
     else:
         with pytest.raises(exceptions.ILStateError):
             mc.tests.digital_halls_test(servo=alias)
+    assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
 
 def test_incremental_encoder_1_test(motion_controller, feedback_list):
     mc, alias = motion_controller
+    commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
     if SensorType.QEI in feedback_list:
         results = mc.tests.incremental_encoder_1_test(servo=alias)
         assert results["result_severity"] == BaseTest.SeverityLevel.SUCCESS
     else:
         with pytest.raises(TestError):
             mc.tests.incremental_encoder_1_test(servo=alias)
+    assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
 
 def test_incremental_encoder_2_test(motion_controller, feedback_list):
     mc, alias = motion_controller
+    commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
     if SensorType.QEI2 in feedback_list:
         results = mc.tests.incremental_encoder_2_test(servo=alias)
         assert results["result_severity"] == BaseTest.SeverityLevel.SUCCESS
     else:
         with pytest.raises(TestError):
             mc.tests.incremental_encoder_2_test(servo=alias)
+    assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
 
 def test_absolute_encoder_1_test(motion_controller, feedback_list):
     mc, alias = motion_controller
+    commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
     if SensorType.ABS1 in feedback_list:
         results = mc.tests.absolute_encoder_1_test(servo=alias)
         assert results["result_severity"] == BaseTest.SeverityLevel.SUCCESS
     else:
         with pytest.raises(TestError):
             mc.tests.absolute_encoder_1_test(servo=alias)
+    assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
 
 def test_absolute_encoder_2_test(motion_controller, feedback_list):
     mc, alias = motion_controller
+    commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
     if SensorType.BISSC2 in feedback_list:
         results = mc.tests.absolute_encoder_2_test(servo=alias)
         assert results["result_severity"] == BaseTest.SeverityLevel.SUCCESS
     else:
         with pytest.raises(TestError):
             mc.tests.absolute_encoder_2_test(servo=alias)
+    assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
 
 def test_secondary_ssi_test(motion_controller, feedback_list):
     mc, alias = motion_controller
+    commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
     if SensorType.SSI2 in feedback_list:
         results = mc.tests.secondary_ssi_test(servo=alias)
         assert results["result_severity"] == BaseTest.SeverityLevel.SUCCESS
     else:
         with pytest.raises(TestError):
             mc.tests.secondary_ssi_test(servo=alias)
+    assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
 
 def test_commutation(motion_controller):
