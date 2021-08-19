@@ -2,6 +2,10 @@ import pytest
 from ingenialink.exceptions import ILError
 
 
+USER_UNDER_VOLTAGE_ERROR_OPTION_CODE_REGISTER = "ERROR_PROT_UNDER_VOLT_OPTION"
+USER_UNDER_VOLTAGE_LEVEL_REGISTER = "DRV_PROT_USER_UNDER_VOLT"
+
+
 @pytest.fixture
 def error_number(motion_controller):
     mc, alias = motion_controller
@@ -28,6 +32,19 @@ def generate_drive_errors(motion_controller):
         error_code_list.append(item["code"])
         mc.communication.set_register(item["register"], old_value, servo=alias)
     return error_code_list[::-1]
+
+
+@pytest.fixture
+def force_warning(motion_controller):
+    mc, alias = motion_controller
+    mc.communication.set_register(
+        USER_UNDER_VOLTAGE_ERROR_OPTION_CODE_REGISTER, 1, servo=alias)
+    mc.communication.set_register(USER_UNDER_VOLTAGE_LEVEL_REGISTER, 100, servo=alias)
+    mc.motion.motor_enable(servo=alias)
+    yield
+    mc.communication.set_register(
+        USER_UNDER_VOLTAGE_ERROR_OPTION_CODE_REGISTER, 0, servo=alias)
+    mc.communication.set_register(USER_UNDER_VOLTAGE_LEVEL_REGISTER, 10, servo=alias)
 
 
 class TestErrors:
@@ -84,9 +101,13 @@ class TestErrors:
         assert not mc.errors.is_fault_active(servo=alias)
 
     @pytest.mark.smoke
-    @pytest.mark.skip("Not implemented")
-    def test_is_warning_active(self, motion_controller, generate_drive_errors):
+    @pytest.mark.usefixtures("force_warning")
+    def test_is_warning_active(self, motion_controller):
         mc, alias = motion_controller
+        assert mc.errors.is_warning_active(servo=alias)
+        mc.communication.set_register(
+            USER_UNDER_VOLTAGE_LEVEL_REGISTER, 10, servo=alias)
+        assert not mc.errors.is_warning_active(servo=alias)
 
     @pytest.mark.smoke
     @pytest.mark.parametrize("error_code, affected_module, error_type, error_msg", [
