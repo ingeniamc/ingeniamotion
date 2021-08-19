@@ -37,6 +37,8 @@ class Errors(metaclass=MCMetaClass):
         ErrorLocation.MOCO: ERROR_LIST_REQUESTED_MOCO_CODE
     }
 
+    MAXIMUM_ERROR_INDEX = 32
+
     STATUS_WORD_FAULT_BIT = 0x08
     STATUS_WORD_WARNING_BIT = 0x80
 
@@ -82,13 +84,15 @@ class Errors(metaclass=MCMetaClass):
         Get error code from buffer error target index.
 
         Args:
-            index (int): buffer error index.
+            index (int): buffer error index. It must be less than ``32``.
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
 
         Returns:
             int: Code error.
         """
+        if not index < self.MAXIMUM_ERROR_INDEX:
+            raise ValueError('index must be less than 32')
         error_location = self.__get_error_location(servo)
         subnode = 0 if error_location == self.ErrorLocation.COCO else axis
         self.mc.communication.set_register(
@@ -137,6 +141,7 @@ class Errors(metaclass=MCMetaClass):
         """
         err_list = []
         err_num = self.get_number_total_errors(servo, axis)
+        err_num = min(err_num, self.MAXIMUM_ERROR_INDEX)
         for i in range(err_num):
             err_code = self.get_buffer_error_by_index(i, servo=servo,
                                                       axis=axis)
