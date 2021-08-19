@@ -115,12 +115,22 @@ class Motion(metaclass=MCMetaClass):
             drive = self.mc.servos[servo]
             drive.disable(subnode=axis)
 
+    def fault_reset(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        """
+        Fault reset.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+        """
+        drive = self.mc.servos[servo]
+        drive.fault_reset(axis)
+
     def move_to_position(self, position, servo=DEFAULT_SERVO,
                          axis=DEFAULT_AXIS, target_latch=True,
                          blocking=False):
         """
         Set position set point to a target servo and axis, in counts.
-
 
         Args:
             position (int): target position, in counts.

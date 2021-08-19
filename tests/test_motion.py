@@ -1,6 +1,7 @@
 import time
 import pytest
 import numpy as np
+from ingenialink import exceptions
 
 from ingeniamotion.enums import OperationMode
 from ingeniamotion.motion import Motion
@@ -74,6 +75,19 @@ def test_motor_disable(motion_controller):
     mc.motion.motor_enable(servo=alias)
     mc.motion.motor_disable(servo=alias)
     assert not mc.configuration.is_motor_enabled(servo=alias)
+
+
+def test_fault_reset(motion_controller_teardown):
+    mc, alias = motion_controller_teardown
+    uid = "DRV_PROT_USER_UNDER_VOLT"
+    value = 100
+    mc.communication.set_register(uid, value, alias)
+    assert not mc.errors.is_fault_active(servo=alias)
+    with pytest.raises(exceptions.ILStateError):
+        mc.motion.motor_enable(servo=alias)
+    assert mc.errors.is_fault_active(servo=alias)
+    mc.motion.fault_reset(servo=alias)
+    assert not mc.errors.is_fault_active(servo=alias)
 
 
 @pytest.mark.smoke
