@@ -37,6 +37,9 @@ class TestErrors:
         mc, alias = motion_controller
         last_error = mc.errors.get_last_error(servo=alias)
         assert last_error == generate_drive_errors[0]
+        mc.motion.fault_reset(servo=alias)
+        last_error = mc.errors.get_last_error(servo=alias)
+        assert last_error == 0
 
     @pytest.mark.smoke
     def test_get_last_buffer_error(self, motion_controller, generate_drive_errors):
@@ -51,6 +54,13 @@ class TestErrors:
         for i in index_list:
             last_error = mc.errors.get_buffer_error_by_index(i, servo=alias)
             assert last_error == generate_drive_errors[i]
+
+    @pytest.mark.smoke
+    def test_get_buffer_error_by_index_exception(self, motion_controller,
+                                                 generate_drive_errors):
+        mc, alias = motion_controller
+        with pytest.raises(ValueError):
+            mc.errors.get_buffer_error_by_index(33, servo=alias)
 
     @pytest.mark.smoke
     def test_get_number_total_errors(self, motion_controller, error_number,
@@ -70,6 +80,8 @@ class TestErrors:
     def test_is_fault_active(self, motion_controller, generate_drive_errors):
         mc, alias = motion_controller
         assert mc.errors.is_fault_active(servo=alias)
+        mc.motion.fault_reset(servo=alias)
+        assert not mc.errors.is_fault_active(servo=alias)
 
     @pytest.mark.smoke
     @pytest.mark.skip("Not implemented")
