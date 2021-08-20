@@ -1,6 +1,8 @@
 import ingenialogger
 import ingenialink as il
+from numpy import ndarray
 from functools import wraps
+from collections.abc import Iterable
 from ingenialink.exceptions import ILError
 
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
@@ -155,7 +157,14 @@ class Disturbance:
             DisturbanceError: If buffer size is not enough for all the
                 registers and samples.
         """
-        if isinstance(registers_data, list) and not isinstance(registers_data[0], list):
+        if isinstance(registers_data, ndarray):
+            registers_data = registers_data.tolist()
+        if isinstance(registers_data, Iterable):
+            for i, x in enumerate(registers_data):
+                if isinstance(x, ndarray):
+                    registers_data[i] = x.tolist()
+        if isinstance(registers_data, Iterable) and \
+                not isinstance(registers_data[0], Iterable):
             registers_data = [registers_data]
         drive = self.mc.servos[self.servo]
         self.__check_buffer_size_is_enough(registers_data)
