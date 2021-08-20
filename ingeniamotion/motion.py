@@ -116,8 +116,7 @@ class Motion(metaclass=MCMetaClass):
             drive.disable(subnode=axis)
 
     def fault_reset(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        """
-        Fault reset.
+        """Fault reset.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
