@@ -1,5 +1,6 @@
 import time
 import ingenialogger
+from ingenialink.exceptions import ILError
 
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.enums import OperationMode, SensorType,\
@@ -101,7 +102,15 @@ class Motion(metaclass=MCMetaClass):
             axis (int): servo axis. ``1`` by default.
         """
         drive = self.mc.servos[servo]
-        drive.enable(subnode=axis)
+        try:
+            drive.enable(subnode=axis)
+        except ILError as e:
+            error_code = self.mc.errors.get_last_buffer_error(servo=servo, axis=axis)
+            error_id, _, _, error_msg = self.mc.errors.get_error_data(
+                error_code, servo=servo)
+            exception_type = type(e)
+            raise exception_type("An error occurred enabling motor. Reason: {}"
+                                 .format(error_msg))
 
     def motor_disable(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """

@@ -1,6 +1,7 @@
 import time
 import pytest
 import numpy as np
+from ingenialink import exceptions
 
 from ingeniamotion.enums import OperationMode
 from ingeniamotion.motion import Motion
@@ -68,10 +69,62 @@ def test_motor_enable(motion_controller):
     assert mc.configuration.is_motor_enabled(servo=alias)
 
 
+@pytest.mark.parametrize("uid, value, exception_type, message", [
+    ("DRV_PROT_USER_UNDER_VOLT", 100, exceptions.ILStateError,
+     "User Under-voltage detected"),
+    ("DRV_PROT_USER_OVER_TEMP", 1, exceptions.ILTimeoutError,
+     "Over-temperature detected (user limit)"),
+    ("DRV_PROT_USER_OVER_VOLT", 1, exceptions.ILStateError,
+     "User Over-voltage detected")
+])
+def test_motor_enable_error(motion_controller_teardown,
+                            uid, value, exception_type, message):
+    mc, alias = motion_controller_teardown
+    mc.communication.set_register(uid, value, alias)
+    with pytest.raises(exception_type) as excinfo:
+        mc.motion.motor_enable(servo=alias)
+    assert str(excinfo.value) == \
+           "An error occurred enabling motor. Reason: {}" \
+           .format(message)
+
+
+def test_motor_enable_with_fault(motion_controller_teardown):
+    uid = "DRV_PROT_USER_UNDER_VOLT"
+    value = 100
+    exception_type = exceptions.ILStateError
+    message = "User Under-voltage detected"
+    mc, alias = motion_controller_teardown
+    mc.communication.set_register(uid, value, alias)
+    with pytest.raises(exception_type) as excinfo_1:
+        mc.motion.motor_enable(servo=alias)
+    assert str(excinfo_1.value) == \
+           "An error occurred enabling motor. Reason: {}" \
+           .format(message)
+    with pytest.raises(exception_type) as excinfo_2:
+        mc.motion.motor_enable(servo=alias)
+    assert str(excinfo_2.value) == \
+           "An error occurred enabling motor. Reason: {}" \
+           .format(message)
+
+
 @pytest.mark.smoke
-def test_motor_disable(motion_controller):
+@pytest.mark.parametrize("enable_motor", [True, False])
+def test_motor_disable(motion_controller, enable_motor):
     mc, alias = motion_controller
-    mc.motion.motor_enable(servo=alias)
+    if enable_motor:
+        mc.motion.motor_enable(servo=alias)
+    mc.motion.motor_disable(servo=alias)
+    assert not mc.configuration.is_motor_enabled(servo=alias)
+
+
+def test_motor_disable_with_fault(motion_controller_teardown):
+    uid = "DRV_PROT_USER_UNDER_VOLT"
+    value = 100
+    exception_type = exceptions.ILStateError
+    mc, alias = motion_controller_teardown
+    mc.communication.set_register(uid, value, alias)
+    with pytest.raises(exception_type):
+        mc.motion.motor_enable(servo=alias)
     mc.motion.motor_disable(servo=alias)
     assert not mc.configuration.is_motor_enabled(servo=alias)
 
