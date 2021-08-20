@@ -2,9 +2,7 @@ from enum import IntEnum
 
 
 class OperationMode(IntEnum):
-    """
-    Operation Mode Enum
-    """
+    """Operation Mode Enum"""
     VOLTAGE = 0x00
     CURRENT_AMPLIFIER = 0x01
     CURRENT = 0x02
@@ -21,17 +19,13 @@ class OperationMode(IntEnum):
 
 
 class Protocol(IntEnum):
-    """
-    Communication protocol
-    """
+    """Communication protocol"""
     TCP = 1
     UDP = 2
 
 
 class HomingMode(IntEnum):
-    """
-    Homing modes
-    """
+    """Homing modes"""
     CURRENT_POSITION = 0
     POSITIVE_LIMIT_SWITCH = 1
     NEGATIVE_LIMIT_SWITCH = 2
@@ -42,83 +36,71 @@ class HomingMode(IntEnum):
 
 
 class MonitoringSoCType(IntEnum):
-    """
-    Monitoring start of condition type
-    """
+    """Monitoring start of condition type"""
     TRIGGER_EVENT_NONE = 0
-    """ No trigger """
+    """No trigger"""
     TRIGGER_EVENT_FORCED = 1
-    """ Forced trigger """
+    """Forced trigger"""
     TRIGGER_CYCLIC_RISING_EDGE = 2
-    """ Rising edge trigger """
+    """Rising edge trigger"""
     TRIGGER_NUMBER_SAMPLES = 3
     TRIGGER_CYCLIC_FALLING_EDGE = 4
-    """ Falling edge trigger """
+    """Falling edge trigger"""
 
 
 class MonitoringProcessStage(IntEnum):
-    """
-    Monitoring process stage
-    """
+    """Monitoring process stage"""
     INIT_STAGE = 0x0
-    """ Init stage """
+    """Init stage"""
     FILLING_DELAY_DATA = 0x2
-    """ Filling delay data """
+    """Filling delay data"""
     WAITING_FOR_TRIGGER = 0x4
-    """ Waiting for trigger """
+    """Waiting for trigger"""
     DATA_ACQUISITION = 0x6
-    """ Data acquisition """
+    """Data acquisition"""
 
 
 class SensorType(IntEnum):
-    """
-    Summit series feedback type enum
-    """
+    """Summit series feedback type enum"""
     ABS1 = 1
-    """ Absolute encoder 1 """
+    """Absolute encoder 1"""
     INTGEN = 3
-    """ Internal generator """
+    """Internal generator"""
     QEI = 4
-    """ Digital/Incremental encoder 1 """
+    """Digital/Incremental encoder 1"""
     HALLS = 5
-    """ Digital halls """
+    """Digital halls"""
     SSI2 = 6
-    """ Secondary SSI """
+    """Secondary SSI"""
     BISSC2 = 7
-    """ Absolute encoder 2 """
+    """Absolute encoder 2"""
     QEI2 = 8
-    """ Digital/Incremental encoder 2 """
+    """Digital/Incremental encoder 2"""
     SMO = 9
-    """ SMO """
+    """SMO"""
 
 
 class SensorCategory(IntEnum):
-    """
-    Feedback category enum
-    """
+    """Feedback category enum"""
     ABSOLUTE = 0
     INCREMENTAL = 1
 
 
 class PhasingMode(IntEnum):
-    """
-    Phasing modes
-    """
+    """Phasing modes"""
     NON_FORCED = 0
-    """ Non forced """
+    """Non forced"""
     FORCED = 1
-    """ Forced """
+    """Forced"""
     NO_PHASING = 2
-    """ No phasing """
+    """No phasing"""
 
 
 class GeneratorMode(IntEnum):
-    """
-    Generator modes
-    """
+    """Generator modes"""
     CONSTANT = 0
-    """ Constant """
+    """Constant"""
     SAW_TOOTH = 1
-    """ Saw tooth """
+    """Saw tooth"""
     SQUARE = 2
-    """ Square """
+    """Square"""

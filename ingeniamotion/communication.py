@@ -14,9 +14,7 @@ class Communication(metaclass=MCMetaClass):
     """
 
     class Protocol(IntEnum):
-        """
-        Communication protocol enum
-        """
+        """Communication protocol enum"""
         TCP = 1
         UDP = 2
 
@@ -26,8 +24,7 @@ class Communication(metaclass=MCMetaClass):
 
     def connect_servo_eoe(self, ip, dict_path=None, alias=DEFAULT_SERVO,
                           protocol=Protocol.UDP, port=1061):
-        """
-        Connect to target servo by Ethernet over EtherCAT
+        """Connect to target servo by Ethernet over EtherCAT
 
         Args:
             ip (str): servo IP.
@@ -42,8 +39,7 @@ class Communication(metaclass=MCMetaClass):
 
     def connect_servo_ethernet(self, ip, dict_path=None, alias=DEFAULT_SERVO,
                                protocol=Protocol.UDP, port=1061):
-        """
-        Connect to target servo by Ethernet
+        """Connect to target servo by Ethernet
 
         Args:
             ip (str): servo IP
@@ -70,8 +66,7 @@ class Communication(metaclass=MCMetaClass):
 
     def connect_servo_ecat(self, ifname, dict_path, slave=1,
                            eoe_comm=True, alias=DEFAULT_SERVO):
-        """
-        Connect servo by ECAT with embedded master.
+        """Connect servo by ECAT with embedded master.
 
         Args:
             ifname (str): interface name. It should have format
@@ -95,8 +90,7 @@ class Communication(metaclass=MCMetaClass):
 
     @staticmethod
     def get_ifname_by_index(index):
-        """
-        Return interface name by index.
+        """Return interface name by index.
 
         Args:
             index (int): position of interface selected in
@@ -112,8 +106,7 @@ class Communication(metaclass=MCMetaClass):
 
     @staticmethod
     def get_interface_name_list():
-        """
-        Get interface list.
+        """Get interface list.
 
         Returns:
             list of str: List with interface readable names.
@@ -122,8 +115,7 @@ class Communication(metaclass=MCMetaClass):
 
     def connect_servo_ecat_interface_index(self, if_index, dict_path, slave=1,
                                            eoe_comm=True, alias=DEFAULT_SERVO):
-        """
-        Connect servo by ECAT with embedded master.
+        """Connect servo by ECAT with embedded master.
         Interface should be selected by index of list given in
         :func:`get_interface_name_list`.
 
@@ -142,8 +134,7 @@ class Communication(metaclass=MCMetaClass):
     def connect_servo_canopen(self, can_device, dict_path, eds_file,
                               node_id, baudrate=CAN_BAUDRATE.Baudrate_1M,
                               channel=0, alias=DEFAULT_SERVO):
-        """
-        Connect to target servo by CANOpen.
+        """Connect to target servo by CANOpen.
 
         Args:
             can_device (ingenialink.canopen.net.CAN_DEVICE): CANOpen device type.
@@ -178,8 +169,7 @@ class Communication(metaclass=MCMetaClass):
 
     def scan_servos_canopen(self, can_device,
                             baudrate=CAN_BAUDRATE.Baudrate_1M, channel=0):
-        """
-        Scan CANOpen device network to get all nodes.
+        """Scan CANOpen device network to get all nodes.
 
         Args:
             can_device (ingenialink.canopen.net.CAN_DEVICE): CANOpen device type.
@@ -201,8 +191,7 @@ class Communication(metaclass=MCMetaClass):
         return nodes
 
     def disconnect_canopen(self, servo=DEFAULT_SERVO):
-        """
-        Disconnect CANOpen servo.
+        """Disconnect CANOpen servo.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -211,8 +200,7 @@ class Communication(metaclass=MCMetaClass):
         network.disconnect()
 
     def get_register(self, register, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        """
-        Return the value of a target register.
+        """Return the value of a target register.
 
         Args:
             register (str): register UID.
@@ -231,8 +219,7 @@ class Communication(metaclass=MCMetaClass):
 
     def set_register(self, register, value, servo=DEFAULT_SERVO,
                      axis=DEFAULT_AXIS):
-        """
-        Set a value of a target register.
+        """Set a value of a target register.
 
         Args:
             register (str): register UID.
@@ -269,8 +256,7 @@ class Communication(metaclass=MCMetaClass):
 
     def get_sdo_register(self, index, subindex, dtype, string_size=None,
                          servo=DEFAULT_SERVO):
-        """
-        Return the value via SDO of a target register.
+        """Return the value via SDO of a target register.
 
         Args:
             index (int): register index.

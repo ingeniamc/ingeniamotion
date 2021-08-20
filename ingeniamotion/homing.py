@@ -20,8 +20,7 @@ class Homing(metaclass=MCMetaClass):
         self.logger = ingenialogger.get_logger(__name__)
 
     def set_homing_mode(self, homing_mode, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        """
-        Set homing mode.
+        """Set homing mode.
 
         Args:
             homing_mode (HomingMode): homing mode.
@@ -32,8 +31,7 @@ class Homing(metaclass=MCMetaClass):
                                            homing_mode, servo, axis)
 
     def set_homing_offset(self, homing_offset, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        """
-        Set homing offset configuration.
+        """Set homing offset configuration.
 
         Args:
             homing_offset (int): homing offset.
@@ -44,8 +42,7 @@ class Homing(metaclass=MCMetaClass):
                                            homing_offset, servo, axis)
 
     def set_homing_timeout(self, timeout_ms, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        """
-        Set homing timeout configuration.
+        """Set homing timeout configuration.
 
         Args:
             timeout_ms (int): homing timeout in milliseconds.
@@ -57,8 +54,7 @@ class Homing(metaclass=MCMetaClass):
 
     def homing_on_current_position(self, hom_offset, servo=DEFAULT_SERVO,
                                    axis=DEFAULT_AXIS):
-        """
-        Do current position homing.
+        """Do current position homing.
 
         Args:
             hom_offset (int): homing offset.
@@ -84,8 +80,7 @@ class Homing(metaclass=MCMetaClass):
     def homing_on_switch_limit(self, hom_offset, direction, switch, timeout_ms,
                                lim_vel, zero_vel, servo=DEFAULT_SERVO,
                                axis=DEFAULT_AXIS, motor_enable=True):
-        """
-        Do homing on switch limit.
+        """Do homing on switch limit.
 
         Args:
             hom_offset (int): homing offset.
@@ -123,8 +118,7 @@ class Homing(metaclass=MCMetaClass):
     def homing_on_index_pulse(self, hom_offset, direction, index, timeout_ms,
                               zero_vel, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
                               motor_enable=True):
-        """
-        Do homing on index pulse.
+        """Do homing on index pulse.
 
         Args:
             hom_offset (int): homing offset.

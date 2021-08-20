@@ -22,8 +22,7 @@ def check_disturbance_disabled(func):
 
 
 class Disturbance:
-    """
-    Class to configure a disturbance in a servo.
+    """Class to configure a disturbance in a servo.
 
     Args:
         mc (MotionController): MotionController instance.
@@ -68,8 +67,7 @@ class Disturbance:
 
     @check_disturbance_disabled
     def set_frequency_divider(self, divider):
-        """
-        Function to define disturbance frequency with a prescaler. Frequency will be
+        """Function to define disturbance frequency with a prescaler. Frequency will be
         ``Position & velocity loop rate frequency / prescaler``,  see
         :func:`ingeniamotion.configuration.Configuration.get_position_and_velocity_loop_rate`
         to know about this frequency. Monitoring/Disturbance must be disabled.
@@ -100,8 +98,7 @@ class Disturbance:
 
     @check_disturbance_disabled
     def map_registers(self, registers):
-        """
-        Map registers to Disturbance. Disturbance must be disabled.
+        """Map registers to Disturbance. Disturbance must be disabled.
 
         Args:
             registers (dict or list of dict): registers to map.
@@ -111,7 +108,8 @@ class Disturbance:
 
                     {
                         "name": "CL_POS_SET_POINT_VALUE",  # Register name.
-                        "axis": 1  # Register axis. If it has no axis field, by default axis 1.
+                        "axis": 1  # Register axis.
+                        # If it has no axis field, by default axis 1.
                     }
 
         Returns:
@@ -147,8 +145,7 @@ class Disturbance:
 
     @check_disturbance_disabled
     def write_disturbance_data(self, registers_data):
-        """
-        Write data in mapped registers. Disturbance must be disabled.
+        """Write data in mapped registers. Disturbance must be disabled.
 
         Args:
             registers_data (list of (list or float or int)):
@@ -175,8 +172,7 @@ class Disturbance:
         drive.disturbance_write_data(idx_list, dtype_list, registers_data)
 
     def map_registers_and_write_data(self, registers):
-        """
-        Map registers to Disturbance and write data. Disturbance must be disabled.
+        """Map registers to Disturbance and write data. Disturbance must be disabled.
 
         Args:
             registers (dict or list of dict): registers to map and write data.
@@ -186,7 +182,8 @@ class Disturbance:
 
                     {
                         "name": "CL_POS_SET_POINT_VALUE",  # Register name.
-                        "axis": 1,  # Register axis. If it has no axis field, by default axis 1.
+                        "axis": 1,  # Register axis.
+                        # If it has no axis field, by default axis 1.
                         "data": [0.0, 0.1, 0.2, ...]  # Data for load in this register
                     }
 
@@ -223,8 +220,7 @@ class Disturbance:
                           total_buffer_size, self.max_sample_number)
 
     def get_max_sample_size(self):
-        """
-        Return disturbance max size, in bytes.
+        """Return disturbance max size, in bytes.
 
         Returns:
             int: Max buffer size in bytes.

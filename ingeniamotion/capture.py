@@ -7,8 +7,7 @@ from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
 class Capture(metaclass=MCMetaClass):
-    """Capture.
-    """
+    """Capture."""
 
     MONITORING_DISTURBANCE_STATUS_REGISTER = "MON_DIST_STATUS"
 
@@ -19,30 +18,34 @@ class Capture(metaclass=MCMetaClass):
 
     def create_poller(self, registers, servo=DEFAULT_SERVO,
                       sampling_time=0.125, buffer_size=100, start=True):
-        """
-        Returns a Poller instance with target registers.
+        """Returns a Poller instance with target registers.
 
         Args:
-            registers (list of dict): list of registers to add to the Poller. Dicts should have the follow format:
+            registers (list of dict): list of registers to add to the Poller.
+                Dicts should have the follow format:
 
                 .. code-block:: python
 
                     [
                         { # Poller register one
                             "name": "CL_POS_FBK_VALUE",  # Register name.
-                            "axis": 1  # Register axis. If it has no axis field, by default axis 1.
+                            "axis": 1  # Register axis.
+                            # If it has no axis field, by default axis 1.
                         },
                         { # Poller register two
                             "name": "CL_VEL_FBK_VALUE",  # Register name.
-                            "axis": 1  # Register axis. If it has no axis field, by default axis 1.
+                            "axis": 1  # Register axis.
+                            # If it has no axis field, by default axis 1.
                         }
                     ]
 
             servo (str): servo alias to reference it. ``default`` by default.
-            sampling_time (float): period of the sampling in seconds. By default ``0.125`` seconds.
-            buffer_size (int): number maximum of sample for each data read. ``100`` by default.
-            start (bool): if ``True``, function starts poller, if ``False`` poller should be started after.
-             ``True`` by default.
+            sampling_time (float): period of the sampling in seconds.
+                By default ``0.125`` seconds.
+            buffer_size (int): number maximum of sample for each data read.
+                ``100`` by default.
+            start (bool): if ``True``, function starts poller, if ``False``
+                poller should be started after. ``True`` by default.
 
         Returns:
             Poller: Poller object with chosen registers.
@@ -54,11 +57,13 @@ class Capture(metaclass=MCMetaClass):
                 Poller stop reading the registers.
 
             Poller.data
-                tuple with 3 items: a list of timestamp, list of lists of values (one list of values for each register),
-                and a boolean that indicates if data was lost.
+                tuple with 3 items: a list of timestamp, list of lists of values
+                (one list of values for each register), and a boolean that
+                indicates if data was lost.
 
-                When the poller starts, the lists are filled with the timestamp and the value of the registers reading.
-                The maximum length of the list will be buffer_size value, when this size is reached,
+                When the poller starts, the lists are filled with the timestamp
+                and the value of the registers reading. The maximum length of
+                the list will be buffer_size value, when this size is reached,
                 the older value will be removed and the newest will be added.
 
                 When the property data is read list are reset to a empty list.
@@ -82,8 +87,7 @@ class Capture(metaclass=MCMetaClass):
                           trigger_mode=MonitoringSoCType.TRIGGER_EVENT_NONE,
                           trigger_signal=None, trigger_value=None,
                           servo=DEFAULT_SERVO, start=False):
-        """
-        Returns a Monitoring instance configured with target registers.
+        """Returns a Monitoring instance configured with target registers.
 
         Args:
             registers (list of dict): list of registers to add to Monitoring.
@@ -94,18 +98,20 @@ class Capture(metaclass=MCMetaClass):
                     [
                         { # Monitoring register one
                             "name": "CL_POS_FBK_VALUE",  # Register name.
-                            "axis": 1  # Register axis. If it has no axis field, by default axis 1.
+                            "axis": 1  # Register axis.
+                            # If it has no axis field, by default axis 1.
                         },
                         { # Monitoring register two
                             "name": "CL_VEL_FBK_VALUE",  # Register name.
-                            "axis": 1  # Register axis. If it has no axis field, by default axis 1.
+                            "axis": 1  # Register axis.
+                            # If it has no axis field, by default axis 1.
                         }
                     ]
 
             prescaler (int): determines monitoring frequency. Frequency will be
                 ``Position & velocity loop rate frequency / prescaler``, see
-                :func:`ingeniamotion.configuration.Configuration.get_position_and_velocity_loop_rate` to know about
-                this frequency. It must be ``1`` or higher.
+                :func:`ingeniamotion.configuration.Configuration.get_position_and_velocity_loop_rate`
+                to know about this frequency. It must be ``1`` or higher.
             sample_time (float): sample time in seconds.
             trigger_delay (float): trigger delay in seconds. Value should be between
                 ``-sample_time/2`` and ``sample_time/2`` . ``0`` by default.
@@ -145,14 +151,13 @@ class Capture(metaclass=MCMetaClass):
 
     def create_disturbance(self, register, data, freq_divider,
                            servo=DEFAULT_SERVO, axis=DEFAULT_AXIS, start=False):
-        """
-        Returns a Disturbance instance configured with target registers.
+        """Returns a Disturbance instance configured with target registers.
 
         Args:
             register (str): target register UID.
             data (list): data to write in disturbance.
-            freq_divider (int): determines disturbance frequency divider. Frequency will be
-                ``Position & velocity loop rate frequency / freq_divider``, see
+            freq_divider (int): determines disturbance frequency divider. Frequency will
+                be ``Position & velocity loop rate frequency / freq_divider``, see
                 :func:`ingeniamotion.configuration.Configuration.get_position_and_velocity_loop_rate`
                 to know about this frequency. It must be ``1`` or higher.
             servo (str): servo alias to reference it. ``default`` by default.
@@ -166,7 +171,8 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             ValueError: If freq_divider is less than ``1``.
-            DisturbanceError: If buffer size is not enough for all the registers and samples.
+            DisturbanceError: If buffer size is not enough for all the
+                registers and samples.
         """
         self.clean_monitoring(servo=servo)
         disturbance = Disturbance(self.mc, servo)
@@ -178,8 +184,7 @@ class Capture(metaclass=MCMetaClass):
         return disturbance
 
     def enable_monitoring_disturbance(self, servo=DEFAULT_SERVO):
-        """
-        Enable monitoring.
+        """Enable monitoring.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -194,8 +199,7 @@ class Capture(metaclass=MCMetaClass):
             raise MonitoringError("Error enabling monitoring.")
 
     def disable_monitoring_disturbance(self, servo=DEFAULT_SERVO):
-        """
-        Disable monitoring.
+        """Disable monitoring.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -204,8 +208,7 @@ class Capture(metaclass=MCMetaClass):
         network.monitoring_disable()
 
     def get_monitoring_disturbance_status(self, servo=DEFAULT_SERVO):
-        """
-        Get Monitoring/Disturbance Status.
+        """Get Monitoring/Disturbance Status.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -220,8 +223,7 @@ class Capture(metaclass=MCMetaClass):
         )
 
     def is_monitoring_enabled(self, servo=DEFAULT_SERVO):
-        """
-        Check if monitoring is enabled.
+        """Check if monitoring is enabled.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -233,8 +235,7 @@ class Capture(metaclass=MCMetaClass):
         return (monitor_status & self.MONITORING_STATUS_ENABLED_BIT) == 1
 
     def is_disturbance_enabled(self, servo=DEFAULT_SERVO):
-        """
-        Check if disturbance is enabled.
+        """Check if disturbance is enabled.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -245,8 +246,7 @@ class Capture(metaclass=MCMetaClass):
         return self.is_monitoring_enabled(servo)
 
     def clean_monitoring(self, servo=DEFAULT_SERVO):
-        """
-        Disable monitoring/disturbance and remove monitoring mapped registers.
+        """Disable monitoring/disturbance and remove monitoring mapped registers.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -256,8 +256,7 @@ class Capture(metaclass=MCMetaClass):
         network.monitoring_remove_all_mapped_registers()
 
     def clean_disturbance(self, servo=DEFAULT_SERVO):
-        """
-        Disable monitoring/disturbance and remove disturbance mapped registers.
+        """Disable monitoring/disturbance and remove disturbance mapped registers.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -267,8 +266,7 @@ class Capture(metaclass=MCMetaClass):
         network.disturbance_remove_all_mapped_registers()
 
     def clean_monitoring_disturbance(self, servo=DEFAULT_SERVO):
-        """
-        Disable monitoring/disturbance, remove disturbance and monitoring
+        """Disable monitoring/disturbance, remove disturbance and monitoring
         mapped registers.
 
         Args:

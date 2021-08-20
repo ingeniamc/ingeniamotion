@@ -17,8 +17,7 @@ class DriveTests(metaclass=MCMetaClass):
 
     def digital_halls_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
                            apply_changes=True):
-        """
-        Executes the digital halls feedback test given a target servo and
+        """Executes the digital halls feedback test given a target servo and
         axis. By default test will make changes in some drive registers like
         feedback polarity and others suggested registers. To avoid it, set
         ``apply_changes`` to ``False``.
@@ -50,8 +49,7 @@ class DriveTests(metaclass=MCMetaClass):
 
     def incremental_encoder_1_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
                                    apply_changes=True):
-        """
-        Executes the incremental encoder 1 feedback test given a target servo
+        """Executes the incremental encoder 1 feedback test given a target servo
         and axis. By default test will make changes in some drive registers
         like feedback polarity and other suggested registers. To avoid it, set
         ``apply_changes`` to ``False``.
@@ -83,8 +81,7 @@ class DriveTests(metaclass=MCMetaClass):
 
     def incremental_encoder_2_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
                                    apply_changes=True):
-        """
-        Executes incremental encoder 2 feedback test given a target servo
+        """Executes incremental encoder 2 feedback test given a target servo
         and axis. By default test will make changes in some drive registers
         like feedback polarity and other suggested registers. To avoid it,
         set ``apply_changes`` to ``False``.
@@ -116,16 +113,14 @@ class DriveTests(metaclass=MCMetaClass):
 
     def absolute_encoder_1_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
                                 apply_changes=True):
-        """
-        Executes absolute encoder 1 feedback test given a target servo and axis.
+        """Executes absolute encoder 1 feedback test given a target servo and axis.
         To know more about it see :func:`digital_halls_test`.
         """
         return self.__feedback_test(SensorType.ABS1, servo, axis, apply_changes)
 
     def absolute_encoder_2_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
                                 apply_changes=True):
-        """
-        Executes absolute encoder 2 feedback test given a target servo and axis.
+        """Executes absolute encoder 2 feedback test given a target servo and axis.
         To know more about it see :func:`digital_halls_test`.
         """
         return self.__feedback_test(SensorType.BISSC2, servo, axis, apply_changes)
