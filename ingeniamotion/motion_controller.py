@@ -6,6 +6,7 @@ from .capture import Capture
 from .communication import Communication
 from .drive_tests import DriveTests
 from .errors import Errors
+from .information import Information
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 
 
@@ -22,6 +23,7 @@ class MotionController:
         self.__comm = Communication(self)
         self.__tests = DriveTests(self)
         self.__errors = Errors(self)
+        self.__info = Information(self)
 
     def servo_name(self, servo=DEFAULT_SERVO):
         return "{} ({})".format(self.servos[servo].info["prod_code"], servo)
@@ -96,3 +98,10 @@ class MotionController:
         Instance of :class:`~ingeniamotion.errors.Errors` class
         """
         return self.__errors
+
+    @property
+    def info(self):
+        """
+        Instance of :class:`~ingeniamotion.errors.Information` class
+        """
+        return self.__info
