@@ -2,15 +2,13 @@ from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
 class Information(metaclass=MCMetaClass):
-    """Information.
-    """
+    """Information."""
 
     def __init__(self, motion_controller):
         self.mc = motion_controller
 
     def register_info(self, register, axis=DEFAULT_AXIS, servo=DEFAULT_SERVO):
-        """
-        Return register object.
+        """Return register object.
 
         Args:
             register (str): register UID.
@@ -24,8 +22,7 @@ class Information(metaclass=MCMetaClass):
         return drive.dict.get_regs(axis).get(register)
 
     def register_type(self, register, axis=DEFAULT_AXIS, servo=DEFAULT_SERVO):
-        """
-        Return register dtype.
+        """Return register dtype.
 
         Args:
             register (str): register UID.
@@ -40,8 +37,7 @@ class Information(metaclass=MCMetaClass):
         return register.dtype
 
     def register_access(self, register, axis=DEFAULT_AXIS, servo=DEFAULT_SERVO):
-        """
-        Return register access.
+        """Return register access.
 
         Args:
             register (str): register UID.
@@ -56,8 +52,7 @@ class Information(metaclass=MCMetaClass):
         return register.access
 
     def register_range(self, register, axis=DEFAULT_AXIS, servo=DEFAULT_SERVO):
-        """
-        Return register range.
+        """Return register range.
 
         Args:
             register (str): register UID.
