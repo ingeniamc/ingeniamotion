@@ -48,7 +48,7 @@ def test_create_monitoring_no_trigger(motion_controller,
                                               total_time, servo=alias)
     mc.motion.move_to_position(0, alias)
     mc.motion.motor_enable(alias)
-    monitoring.enable_monitoring()
+    mc.capture.enable_monitoring_disturbance(servo=alias)
     init = time.time()
     quarter_total_time = total_time/4
     for i in range(1, 4):
@@ -91,7 +91,7 @@ def test_create_monitoring_edge_trigger(motion_controller, trigger_mode, values_
     )
     mc.motion.move_to_position(values_list[0], alias)
     mc.motion.motor_enable(alias)
-    monitoring.enable_monitoring()
+    mc.capture.enable_monitoring_disturbance(servo=alias)
     time.sleep(1)
     init = time.time()
     quarter_total_time = total_time/4
@@ -125,7 +125,7 @@ def test_create_disturbance(motion_controller,
         data += [i * data_subrange] * 1000
     dist = mc.capture.create_disturbance(target_register, data, divider, servo=alias)
     init_time = time.time()
-    dist.enable_disturbance()
+    mc.capture.enable_monitoring_disturbance(servo=alias)
     while init_time + samples*period*2 > time.time():
         time_now = time.time() - init_time
         current_value = mc.communication.get_register(target_register, alias)

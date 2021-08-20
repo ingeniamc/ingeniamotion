@@ -5,13 +5,15 @@ from functools import wraps
 from collections.abc import Iterable
 from ingenialink.exceptions import ILError
 
+from .exceptions import DisturbanceError
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 
 
 def check_disturbance_disabled(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
-        disturbance_enabled = self.is_disturbance_enabled()
+        disturbance_enabled = self.mc.capture.is_disturbance_enabled(
+            servo=self.servo)
         if disturbance_enabled:
             raise DisturbanceError("Disturbance is enabled")
         return func(self, *args, **kwargs)
@@ -220,49 +222,6 @@ class Disturbance:
         self.logger.debug("Demanded size: %d bytes, buffer max size: %d bytes.",
                           total_buffer_size, self.max_sample_number)
 
-    def enable_disturbance(self):
-        """
-        Enable disturbance
-
-        Raises:
-            DisturbanceError: If disturbance can't be enabled.
-        """
-        network = self.mc.net[self.servo]
-        network.monitoring_enable()
-        # Check monitoring status
-        if not self.is_disturbance_enabled():
-            raise DisturbanceError("Error enabling disturbance.")
-
-    def disable_disturbance(self):
-        """
-        Disable disturbance
-        """
-        network = self.mc.net[self.servo]
-        network.monitoring_disable()
-
-    def get_monitoring_disturbance_status(self):
-        """
-        Get Monitoring/Disturbance Status.
-
-        Returns:
-            int: Monitoring/Disturbance Status.
-        """
-        return self.mc.communication.get_register(
-            self.MONITORING_DISTURBANCE_STATUS_REGISTER,
-            servo=self.servo,
-            axis=0
-        )
-
-    def is_disturbance_enabled(self):
-        """
-        Check if disturbance is enabled.
-
-        Returns:
-            bool: True if disturbance is enabled, else False.
-        """
-        disturbance_status = self.get_monitoring_disturbance_status()
-        return (disturbance_status & self.MONITORING_STATUS_ENABLED_BIT) == 1
-
     def get_max_sample_size(self):
         """
         Return disturbance max size, in bytes.
@@ -278,7 +237,3 @@ class Disturbance:
             )
         except ILError:
             return self.MINIMUM_BUFFER_SIZE
-
-
-class DisturbanceError(Exception):
-    pass

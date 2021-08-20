@@ -1,13 +1,18 @@
 import ingenialink as il
 
-from .monitoring import Monitoring, MonitoringSoCType
 from .disturbance import Disturbance
+from .monitoring import Monitoring, MonitoringSoCType
+from .exceptions import MonitoringError, DisturbanceError
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
 class Capture(metaclass=MCMetaClass):
     """Capture.
     """
+
+    MONITORING_DISTURBANCE_STATUS_REGISTER = "MON_DIST_STATUS"
+
+    MONITORING_STATUS_ENABLED_BIT = 0x1
 
     def __init__(self, motion_controller):
         self.mc = motion_controller
@@ -128,14 +133,14 @@ class Capture(metaclass=MCMetaClass):
             TypeError: If trigger_mode is rising or falling edge trigger and
              trigger_signal or trigger_value are None.
         """
+        self.disable_monitoring_disturbance(servo=servo)
         monitoring = Monitoring(self.mc, servo)
-        monitoring.disable_monitoring()
         monitoring.set_frequency(prescaler)
         monitoring.map_registers(registers)
         monitoring.set_trigger(trigger_mode, trigger_signal=trigger_signal, trigger_value=trigger_value)
         monitoring.configure_sample_time(sample_time, trigger_delay)
         if start:
-            monitoring.enable_monitoring()
+            self.enable_monitoring_disturbance(servo=servo)
         return monitoring
 
     def create_disturbance(self, register, data, freq_divider,
@@ -163,11 +168,111 @@ class Capture(metaclass=MCMetaClass):
             ValueError: If freq_divider is less than ``1``.
             DisturbanceError: If buffer size is not enough for all the registers and samples.
         """
+        self.clean_monitoring(servo=servo)
         disturbance = Disturbance(self.mc, servo)
-        disturbance.disable_disturbance()
         disturbance.set_frequency_divider(freq_divider)
         disturbance.map_registers({"name": register, "axis": axis})
         disturbance.write_disturbance_data(data)
         if start:
-            disturbance.enable_disturbance()
+            self.enable_monitoring_disturbance(servo=servo)
         return disturbance
+
+    def enable_monitoring_disturbance(self, servo=DEFAULT_SERVO):
+        """
+        Enable monitoring.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        Raises:
+            MonitoringError: If monitoring can't be enabled.
+        """
+        network = self.mc.net[servo]
+        network.monitoring_enable()
+        # Check monitoring status
+        if not self.is_monitoring_enabled(servo=servo):
+            raise MonitoringError("Error enabling monitoring.")
+
+    def disable_monitoring_disturbance(self, servo=DEFAULT_SERVO):
+        """
+        Disable monitoring.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+        """
+        network = self.mc.net[servo]
+        network.monitoring_disable()
+
+    def get_monitoring_disturbance_status(self, servo=DEFAULT_SERVO):
+        """
+        Get Monitoring/Disturbance Status.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        Returns:
+            int: Monitoring/Disturbance Status.
+        """
+        return self.mc.communication.get_register(
+            self.MONITORING_DISTURBANCE_STATUS_REGISTER,
+            servo=servo,
+            axis=0
+        )
+
+    def is_monitoring_enabled(self, servo=DEFAULT_SERVO):
+        """
+        Check if monitoring is enabled.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        Returns:
+            bool: True if monitoring is enabled, else False.
+        """
+        monitor_status = self.get_monitoring_disturbance_status(servo)
+        return (monitor_status & self.MONITORING_STATUS_ENABLED_BIT) == 1
+
+    def is_disturbance_enabled(self, servo=DEFAULT_SERVO):
+        """
+        Check if disturbance is enabled.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        Returns:
+            bool: True if disturbance is enabled, else False.
+        """
+        return self.is_monitoring_enabled(servo)
+
+    def clean_monitoring(self, servo=DEFAULT_SERVO):
+        """
+        Disable monitoring/disturbance and remove monitoring mapped registers.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+        """
+        self.disable_monitoring_disturbance(servo=servo)
+        network = self.mc.net[servo]
+        network.monitoring_remove_all_mapped_registers()
+
+    def clean_disturbance(self, servo=DEFAULT_SERVO):
+        """
+        Disable monitoring/disturbance and remove disturbance mapped registers.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+        """
+        self.disable_monitoring_disturbance(servo=servo)
+        network = self.mc.net[servo]
+        network.disturbance_remove_all_mapped_registers()
+
+    def clean_monitoring_disturbance(self, servo=DEFAULT_SERVO):
+        """
+        Disable monitoring/disturbance, remove disturbance and monitoring
+        mapped registers.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+        """
+        self.clean_monitoring(servo=servo)
+        self.clean_disturbance(servo=servo)
