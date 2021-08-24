@@ -14,17 +14,6 @@ def force_fault(motion_controller):
     mc.communication.set_register(uid, 10, alias)
 
 
-@pytest.fixture(scope="session")
-def feedback_list(motion_controller):
-    mc, alias = motion_controller
-    fdbk_lst = [mc.configuration.get_commutation_feedback(servo=alias),
-                mc.configuration.get_reference_feedback(servo=alias),
-                mc.configuration.get_velocity_feedback(servo=alias),
-                mc.configuration.get_position_feedback(servo=alias),
-                mc.configuration.get_auxiliar_feedback(servo=alias)]
-    return set(fdbk_lst)
-
-
 def test_digital_halls_test(motion_controller, feedback_list):
     mc, alias = motion_controller
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)

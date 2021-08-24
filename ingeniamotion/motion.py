@@ -333,6 +333,21 @@ class Motion(metaclass=MCMetaClass):
         return self.mc.communication.get_register(self.ACTUAL_POSITION_REGISTER,
                                                   servo=servo, axis=axis)
 
+    def get_actual_velocity(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        """
+        Returns actual velocity register.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+
+        Returns:
+            int: actual velocity value
+
+        """
+        return self.mc.communication.get_register(self.ACTUAL_VELOCITY_REGISTER,
+                                                  servo=servo, axis=axis)
+
     def wait_for_position(self, position, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
                           error=20, timeout=None, interval=None):
         """
@@ -388,10 +403,7 @@ class Motion(metaclass=MCMetaClass):
         while not target_reached:
             if interval:
                 time.sleep(interval)
-            curr_velocity = self.mc.communication.get_register(
-                self.ACTUAL_VELOCITY_REGISTER,
-                servo=servo, axis=axis
-            )
+            curr_velocity = self.get_actual_velocity(servo=servo, axis=axis)
             target_reached = abs(velocity - curr_velocity) < abs(error)
             if timeout and (init_time + timeout) < time.time():
                 target_reached = True
