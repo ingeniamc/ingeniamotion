@@ -1,6 +1,7 @@
-import types
 import inspect
 from functools import wraps
+
+from ingeniamotion.exceptions import IMStatusWordError
 
 DEFAULT_SERVO = "default"
 DEFAULT_AXIS = 1
@@ -60,6 +61,6 @@ class MCMetaClass(type):
             axis = kwargs.get("axis", DEFAULT_AXIS)
             if mc.configuration.is_motor_enabled(servo=servo,
                                                  axis=axis):
-                raise Exception("Motor is enabled")
+                raise IMStatusWordError("Motor is enabled")
             return func(self, *args, **kwargs)
         return wrapper

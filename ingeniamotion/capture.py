@@ -2,7 +2,7 @@ import ingenialink as il
 
 from .disturbance import Disturbance
 from .monitoring import Monitoring, MonitoringSoCType
-from .exceptions import MonitoringError, DisturbanceError
+from .exceptions import IMMonitoringError, IMDisturbanceError
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
@@ -125,10 +125,10 @@ class Capture(metaclass=MCMetaClass):
             ValueError: If prescaler is less than ``1``.
             ValueError: If trigger_delay is not between ``-total_time/2`` and
              ``total_time/2``.
-            MonitoringError: If register maps fails in the servo.
-            MonitoringError: If buffer size is not enough for all the registers
+            IMMonitoringError: If register maps fails in the servo.
+            IMMonitoringError: If buffer size is not enough for all the registers
              and samples.
-            MonitoringError: If trigger_mode is rising or falling edge trigger
+            IMMonitoringError: If trigger_mode is rising or falling edge trigger
              and trigger signal is not mapped.
             TypeError: If trigger_mode is rising or falling edge trigger and
              trigger_signal or trigger_value are None.
@@ -166,7 +166,7 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             ValueError: If freq_divider is less than ``1``.
-            DisturbanceError: If buffer size is not enough for all the registers and samples.
+            IMDisturbanceError: If buffer size is not enough for all the registers and samples.
         """
         self.clean_monitoring(servo=servo)
         disturbance = Disturbance(self.mc, servo)
@@ -185,13 +185,13 @@ class Capture(metaclass=MCMetaClass):
             servo (str): servo alias to reference it. ``default`` by default.
 
         Raises:
-            MonitoringError: If monitoring can't be enabled.
+            IMMonitoringError: If monitoring can't be enabled.
         """
         network = self.mc.net[servo]
         network.monitoring_enable()
         # Check monitoring status
         if not self.is_monitoring_enabled(servo=servo):
-            raise MonitoringError("Error enabling monitoring.")
+            raise IMMonitoringError("Error enabling monitoring.")
 
     def disable_monitoring_disturbance(self, servo=DEFAULT_SERVO):
         """
@@ -276,3 +276,8 @@ class Capture(metaclass=MCMetaClass):
         """
         self.clean_monitoring(servo=servo)
         self.clean_disturbance(servo=servo)
+
+    @MCMetaClass.check_motor_disabled
+    def mcb_synchronization(self, servo=DEFAULT_SERVO):
+        self.enable_monitoring_disturbance(servo=servo)
+        self.disable_monitoring_disturbance(servo=servo)
