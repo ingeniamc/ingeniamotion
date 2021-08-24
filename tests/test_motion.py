@@ -292,7 +292,6 @@ def test_get_actual_position(motion_controller, position_value):
     ) == position_value
 
 
-@pytest.mark.develop
 @pytest.mark.parametrize("velocity_value", [
     1, 0, -1
 ])
