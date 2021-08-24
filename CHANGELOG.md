@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+### Added
+- Capture mcb_synchronization function
+- Add exceptions module
+
+### Changed
+- MonitoringError and DisturbanceError exceptions to 
+  IMMonitoringError and IMDisturbanceError
+
 ## [0.4.0] - 2021-06-28
 ### Added
 - Error module.
