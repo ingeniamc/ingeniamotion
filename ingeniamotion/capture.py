@@ -279,5 +279,12 @@ class Capture(metaclass=MCMetaClass):
 
     @MCMetaClass.check_motor_disabled
     def mcb_synchronization(self, servo=DEFAULT_SERVO):
+        """Synchronize MCB, necessary to monitoring and disturbance.
+        Motor must be disabled.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        """
         self.enable_monitoring_disturbance(servo=servo)
         self.disable_monitoring_disturbance(servo=servo)
