@@ -1,8 +1,8 @@
 import time
 import pytest
 
+from ingeniamotion.exceptions import IMStatusWordError
 from ingeniamotion.enums import OperationMode, MonitoringSoCType
-
 
 def test_create_poller(motion_controller):
     registers = [{
@@ -132,4 +132,26 @@ def test_create_disturbance(motion_controller,
         sample_num = int((time_now//period) % samples)
         if sample_num % data_subrange < 10:
             continue
-        assert current_value == data[sample_num]  # sample_num//1000*1000
+        assert current_value == data[sample_num]
+
+
+@pytest.mark.develop
+@pytest.mark.smoke
+def test_mcb_synchronization(mocker, motion_controller):
+    mc, alias = motion_controller
+    enable_mon = mocker.patch(
+        'ingeniamotion.capture.Capture.enable_monitoring_disturbance')
+    disable_mon = mocker.patch(
+        'ingeniamotion.capture.Capture.disable_monitoring_disturbance')
+    mc.capture.mcb_synchronization(servo=alias)
+    enable_mon.assert_called_once_with(servo=alias)
+    disable_mon.assert_called_once_with(servo=alias)
+
+
+@pytest.mark.develop
+@pytest.mark.smoke
+def test_mcb_synchronization_fail(motion_controller):
+    mc, alias = motion_controller
+    mc.motion.motor_enable(servo=alias)
+    with pytest.raises(IMStatusWordError):
+        mc.capture.mcb_synchronization(servo=alias)
