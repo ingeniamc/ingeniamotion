@@ -4,6 +4,7 @@ import pytest
 from ingeniamotion.exceptions import IMStatusWordError
 from ingeniamotion.enums import OperationMode, MonitoringSoCType
 
+
 def test_create_poller(motion_controller):
     registers = [{
         "name": "CL_CUR_Q_SET_POINT",

@@ -72,7 +72,7 @@ def test_motor_enable(motion_controller):
 @pytest.mark.parametrize("uid, value, exception_type, message", [
     ("DRV_PROT_USER_UNDER_VOLT", 100, exceptions.ILStateError,
      "User Under-voltage detected"),
-    ("DRV_PROT_USER_OVER_TEMP", 1, exceptions.ILTimeoutError,
+    ("DRV_PROT_USER_OVER_TEMP", 1, exceptions.ILStateError,
      "Over-temperature detected (user limit)"),
     ("DRV_PROT_USER_OVER_VOLT", 1, exceptions.ILStateError,
      "User Over-voltage detected")
