@@ -562,9 +562,8 @@ class Monitoring:
         """
         trigger_mode = self.get_trigger_type()
         if trigger_mode != MonitoringSoCType.TRIGGER_EVENT_FORCED:
-            # TODO Change by IMMonitoringError
-            raise MonitoringError("Monitoring trigger type "
-                                  "is not Forced Trigger")
+            raise IMMonitoringError("Monitoring trigger type "
+                                    "is not Forced Trigger")
         mon_process_stage = None
         final_time = time.time() + timeout
         while mon_process_stage is None or (

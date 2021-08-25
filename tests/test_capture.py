@@ -136,7 +136,6 @@ def test_create_disturbance(motion_controller,
         assert current_value == data[sample_num]
 
 
-@pytest.mark.develop
 @pytest.mark.smoke
 def test_mcb_synchronization(mocker, motion_controller):
     mc, alias = motion_controller
@@ -149,7 +148,6 @@ def test_mcb_synchronization(mocker, motion_controller):
     disable_mon.assert_called_once_with(servo=alias)
 
 
-@pytest.mark.develop
 @pytest.mark.smoke
 def test_mcb_synchronization_fail(motion_controller):
     mc, alias = motion_controller

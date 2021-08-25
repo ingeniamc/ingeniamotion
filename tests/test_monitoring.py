@@ -2,7 +2,7 @@ import time
 
 import pytest
 
-from ingeniamotion.monitoring import Monitoring, MonitoringError
+from ingeniamotion.monitoring import Monitoring, IMMonitoringError
 from ingeniamotion.enums import MonitoringSoCType
 
 MONITOR_START_CONDITION_TYPE_REGISTER = "MON_CFG_SOC_TYPE"
@@ -70,7 +70,7 @@ def test_raise_forced_trigger_fail(motion_controller, monitoring):
     monitoring.set_trigger(MonitoringSoCType.TRIGGER_EVENT_NONE)
     monitoring.configure_sample_time(2, 0)
     mc.capture.enable_monitoring_disturbance(servo=alias)
-    with pytest.raises(MonitoringError):
+    with pytest.raises(IMMonitoringError):
         monitoring.raise_forced_trigger()
 
 
