@@ -1,7 +1,7 @@
 import ingenialink as il
 
 from .disturbance import Disturbance
-from .monitoring import Monitoring, MonitoringSoCType
+from .monitoring import Monitoring, MonitoringEventType, MonitoringEventConfig
 from .exceptions import MonitoringError, DisturbanceError
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
@@ -10,9 +10,11 @@ class Capture(metaclass=MCMetaClass):
     """Capture.
     """
 
-    MONITORING_DISTURBANCE_STATUS_REGISTER = "MON_DIST_STATUS"
+    MONITORING_STATUS_REGISTER = "MONITORING_STATUS"
+    DISTURBANCE_STATUS_REGISTER = "DISTURBANCE_STATUS"
 
     MONITORING_STATUS_ENABLED_BIT = 0x1
+    DISTURBANCE_STATUS_ENABLED_BIT = 0x1
 
     def __init__(self, motion_controller):
         self.mc = motion_controller
@@ -79,7 +81,8 @@ class Capture(metaclass=MCMetaClass):
         return poller
 
     def create_monitoring(self, registers, prescaler, sample_time, trigger_delay=0,
-                          trigger_mode=MonitoringSoCType.TRIGGER_EVENT_NONE,
+                          trigger_type=MonitoringEventType.TRIGGER_EVENT_AUTO,
+                          trigger_config=MonitoringEventConfig.TRIGGER_EDGE_RISING_OR_FALLING,
                           trigger_signal=None, trigger_value=None,
                           servo=DEFAULT_SERVO, start=False):
         """
@@ -134,10 +137,16 @@ class Capture(metaclass=MCMetaClass):
              trigger_signal or trigger_value are None.
         """
         self.disable_monitoring_disturbance(servo=servo)
+        self.mc.communication.set_register(
+            "MON_REMOVE_DATA",
+            1,
+            servo=servo,
+            axis=0
+        )
         monitoring = Monitoring(self.mc, servo)
         monitoring.set_frequency(prescaler)
         monitoring.map_registers(registers)
-        monitoring.set_trigger(trigger_mode, trigger_signal=trigger_signal, trigger_value=trigger_value)
+        monitoring.set_trigger(trigger_type, trigger_config, trigger_signal=trigger_signal, trigger_value=trigger_value)
         monitoring.configure_sample_time(sample_time, trigger_delay)
         if start:
             self.enable_monitoring_disturbance(servo=servo)
@@ -168,10 +177,17 @@ class Capture(metaclass=MCMetaClass):
             ValueError: If freq_divider is less than ``1``.
             DisturbanceError: If buffer size is not enough for all the registers and samples.
         """
+        self.mc.communication.set_register(
+            "DIST_REMOVE_DATA",
+            1,
+            servo=servo,
+            axis=0
+        )
         self.clean_monitoring(servo=servo)
         disturbance = Disturbance(self.mc, servo)
         disturbance.set_frequency_divider(freq_divider)
         disturbance.map_registers({"name": register, "axis": axis})
+
         disturbance.write_disturbance_data(data)
         if start:
             self.enable_monitoring_disturbance(servo=servo)
@@ -189,6 +205,7 @@ class Capture(metaclass=MCMetaClass):
         """
         network = self.mc.net[servo]
         network.monitoring_enable()
+
         # Check monitoring status
         if not self.is_monitoring_enabled(servo=servo):
             raise MonitoringError("Error enabling monitoring.")
@@ -203,7 +220,7 @@ class Capture(metaclass=MCMetaClass):
         network = self.mc.net[servo]
         network.monitoring_disable()
 
-    def get_monitoring_disturbance_status(self, servo=DEFAULT_SERVO):
+    def get_monitoring_status(self, servo=DEFAULT_SERVO):
         """
         Get Monitoring/Disturbance Status.
 
@@ -214,7 +231,23 @@ class Capture(metaclass=MCMetaClass):
             int: Monitoring/Disturbance Status.
         """
         return self.mc.communication.get_register(
-            self.MONITORING_DISTURBANCE_STATUS_REGISTER,
+            self.MONITORING_STATUS_REGISTER,
+            servo=servo,
+            axis=0
+        )
+
+    def get_disturbance_status(self, servo=DEFAULT_SERVO):
+        """
+        Get Monitoring/Disturbance Status.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        Returns:
+            int: Monitoring/Disturbance Status.
+        """
+        return self.mc.communication.get_register(
+            self.DISTURBANCE_STATUS_REGISTER,
             servo=servo,
             axis=0
         )
@@ -229,7 +262,7 @@ class Capture(metaclass=MCMetaClass):
         Returns:
             bool: True if monitoring is enabled, else False.
         """
-        monitor_status = self.get_monitoring_disturbance_status(servo)
+        monitor_status = self.get_monitoring_status(servo)
         return (monitor_status & self.MONITORING_STATUS_ENABLED_BIT) == 1
 
     def is_disturbance_enabled(self, servo=DEFAULT_SERVO):
@@ -242,7 +275,8 @@ class Capture(metaclass=MCMetaClass):
         Returns:
             bool: True if disturbance is enabled, else False.
         """
-        return self.is_monitoring_enabled(servo)
+        disturbance_status = self.get_disturbance_status(servo)
+        return (disturbance_status & self.DISTURBANCE_STATUS_ENABLED_BIT) == 1
 
     def clean_monitoring(self, servo=DEFAULT_SERVO):
         """

@@ -4,7 +4,7 @@ from ingeniamotion import MotionController
 from ingeniamotion.enums import OperationMode
 
 mc = MotionController()
-mc.communication.connect_servo_eoe("192.168.2.22", "./eve-net-e_eoe_1.7.2.xdf")
+mc.communication.connect_servo_eoe("192.168.2.22", "./cap-net-c_eth_0.7.3.xdf")
 
 # Disturbance register
 target_register = "CL_POS_SET_POINT_VALUE"
@@ -13,7 +13,7 @@ divider = 10
 # Calculate time between disturbance samples
 sample_period = divider/mc.configuration.get_position_and_velocity_loop_rate()
 # The disturbance signal will be a simple harmonic motion (SHM) with frequency 0.5Hz and 2000 counts of amplitude
-signal_frequency = 0.5
+signal_frequency = 3
 signal_amplitude = 2000
 # Calculate number of samples to load a complete oscillation
 n_samples = int(1 / (signal_frequency * sample_period))
@@ -25,7 +25,7 @@ data = [int(signal_amplitude * math.sin(sample_period*i * signal_frequency * 2*m
         for i in range(n_samples)]
 
 # Call function create_disturbance to configure a disturbance
-dist = mc.capture.create_disturbance(target_register, data, divider)
+dist = mc.capture.create_disturbance(target_register, data, divider, start=True)
 
 # Set profile position operation mode and enable motor to enable motor move
 mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION)

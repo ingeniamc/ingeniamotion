@@ -11,6 +11,8 @@ from enum import IntEnum
 from .exceptions import MonitoringError
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 
+import struct
+import binascii
 
 def check_monitoring_disabled(func):
     @wraps(func)
@@ -24,19 +26,17 @@ def check_monitoring_disabled(func):
     return wrapper
 
 
-class MonitoringSoCType(IntEnum):
-    """
-    Monitoring start of condition type
-    """
-    TRIGGER_EVENT_NONE = 0
+class MonitoringEventType(IntEnum):
+    TRIGGER_EVENT_AUTO = 0
     """ No trigger """
     TRIGGER_EVENT_FORCED = 1
     """ Forced trigger """
-    TRIGGER_CYCLIC_RISING_EDGE = 2
-    """ Rising edge trigger """
-    TRIGGER_NUMBER_SAMPLES = 3
-    TRIGGER_CYCLIC_FALLING_EDGE = 4
-    """ Falling edge trigger """
+    TRIGGER_EVENT_EDGE = 2
+
+class MonitoringEventConfig(IntEnum):
+    TRIGGER_EDGE_RISING_OR_FALLING = 0
+    TRIGGER_EDGE_RISING = 1
+    TRIGGER_EDGE_FALLING = 2
 
 
 class MonitoringProcessStage(IntEnum):
@@ -62,15 +62,15 @@ class Monitoring:
         servo (str): servo alias to reference it. ``default`` by default.
     """
 
-    EOC_TRIGGER_NUMBER_SAMPLES = 3
+    # EOC_TRIGGER_NUMBER_SAMPLES = 3
 
     EDGE_CONDITION_REGISTER = {
-        MonitoringSoCType.TRIGGER_CYCLIC_RISING_EDGE: "MON_CFG_RISING_CONDITION",
-        MonitoringSoCType.TRIGGER_CYCLIC_FALLING_EDGE: "MON_CFG_FALLING_CONDITION"
+        MonitoringEventConfig.TRIGGER_EDGE_RISING: "MON_CFG_RISING_CONDITION",
+        MonitoringEventConfig.TRIGGER_EDGE_FALLING: "MON_CFG_FALLING_CONDITION"
     }
 
     MONITORING_STATUS_PROCESS_STAGE_BITS = 0x6
-    MONITORING_AVAILABLE_FRAME_BIT = 0x800
+    MONITORING_AVAILABLE_FRAME_BIT = 0x8
     REGISTER_MAP_OFFSET = 0x800
 
     MINIMUM_BUFFER_SIZE = 8192
@@ -91,18 +91,19 @@ class Monitoring:
         il.REG_DTYPE.S8: 1,
         il.REG_DTYPE.U16: 2,
         il.REG_DTYPE.S16: 2,
-        il.REG_DTYPE.U32: 4,
         il.REG_DTYPE.S32: 4,
         il.REG_DTYPE.U64: 8,
         il.REG_DTYPE.S64: 8,
         il.REG_DTYPE.FLOAT: 4
     }
 
+    MONITORING_MAP_REG0 = "MON_CFG_REG0_MAP"
+    MONITORING_MAP_REG1 = "MON_CFG_REG1_MAP"
     MONITORING_FREQUENCY_DIVIDER_REGISTER = "MON_DIST_FREQ_DIV"
     MONITORING_NUMBER_MAPPED_REGISTERS_REGISTER = "MON_CFG_TOTAL_MAP"
     MONITORING_NUMBER_TRIGGER_REPETITIONS_REGISTER = "MON_CFG_TRIGGER_REPETITIONS"
-    MONITOR_START_CONDITION_TYPE_REGISTER = "MON_CFG_SOC_TYPE"
-    MONITOR_END_CONDITION_TYPE_REGISTER = "MON_CFG_EOC_TYPE"
+    MONITOR_EVENT_TYPE_REGISTER = "MON_CFG_TRIGGER_TYPE"
+    MONITOR_EVENT_CONFIG_REGISTER = "MON_CFG_TRIGGER_CONFIG"
     MONITORING_INDEX_CHECKER_REGISTER = "MON_IDX_CHECK"
     MONITORING_TRIGGER_DELAY_SAMPLES_REGISTER = "MON_CFG_TRIGGER_DELAY"
     MONITORING_WINDOW_NUMBER_SAMPLES_REGISTER = "MON_CFG_WINDOW_SAMP"
@@ -184,6 +185,8 @@ class Monitoring:
             register = channel["name"]
             register_obj = drive.dict.get_regs(subnode)[register]
             dtype = register_obj.dtype
+
+            channel["size"] =  self.__data_type_size[dtype]
             channel["dtype"] = dtype
 
         self.__check_buffer_size_is_enough(self.samples_number,
@@ -197,7 +200,33 @@ class Monitoring:
             register_obj = drive.dict.get_regs(subnode)[register]
             mapped_reg = register_obj.address + address_offset
             network.monitoring_set_mapped_register(ch_idx, mapped_reg, dtype.value)
-
+            """
+            This must not be here....
+            """
+            # TYPES MUST BE CHECKED, i32 and float32 OK! -> https://doc.ingeniamc.com/display/SS/0x0D0+-+Monitoring+mapped+register+0
+            values = (register_obj.address, dtype.value.to_bytes(1, byteorder='big'), channel["size"].to_bytes(1, byteorder='big'))
+            # Missing subnode info bit 31..28
+            s = struct.Struct('>h c c')
+            packed_data = s.pack(*values)
+            print("reg: ", register, " key: ", register_obj.address, " type: ", dtype.value, " size: ", channel["size"], " --------> pack ", binascii.hexlify(packed_data), "inted: ", struct.unpack('>I', packed_data)[0])
+            if ch_idx == 0:
+                self.mc.communication.set_register(
+                    self.MONITORING_MAP_REG0,
+                    struct.unpack('>I', packed_data)[0],
+                    axis=0
+                )
+            elif ch_idx == 1:
+                self.mc.communication.set_register(
+                    self.MONITORING_MAP_REG1,
+                    struct.unpack('>I', packed_data)[0],
+                    axis=0
+                )
+        self.mc.communication.set_register(
+            self.MONITORING_NUMBER_MAPPED_REGISTERS_REGISTER,
+            len(registers),
+            servo=self.servo,
+            axis=0
+        )
         num_mon_reg = self.mc.communication.get_register(
             self.MONITORING_NUMBER_MAPPED_REGISTERS_REGISTER,
             servo=self.servo,
@@ -208,7 +237,7 @@ class Monitoring:
         self.mapped_registers = registers
 
     @check_monitoring_disabled
-    def set_trigger(self, trigger_mode, trigger_signal=None, trigger_value=None,
+    def set_trigger(self, trigger_type, trigger_config, trigger_signal=None, trigger_value=None,
                     trigger_repetitions=1):
         """
         Configure monitoring trigger. Monitoring must be disabled.
@@ -225,6 +254,7 @@ class Monitoring:
                 trigger_signal or trigger_value are None.
             MonitoringError: If trigger signal is not mapped.
         """
+        # MUST BE REMOVED
         self.mc.communication.set_register(
             self.MONITORING_NUMBER_TRIGGER_REPETITIONS_REGISTER,
             trigger_repetitions,
@@ -232,20 +262,24 @@ class Monitoring:
             axis=0
         )
         self.mc.communication.set_register(
-            self.MONITOR_START_CONDITION_TYPE_REGISTER,
-            trigger_mode,
+            self.MONITOR_EVENT_TYPE_REGISTER,
+            trigger_type,
             servo=self.servo,
             axis=0
         )
-        if trigger_mode in \
-                [MonitoringSoCType.TRIGGER_CYCLIC_RISING_EDGE,
-                 MonitoringSoCType.TRIGGER_CYCLIC_FALLING_EDGE]:
+        if trigger_type == MonitoringEventType.TRIGGER_EVENT_EDGE:
+            self.mc.communication.set_register(
+                self.MONITOR_EVENT_CONFIG_REGISTER,
+                trigger_config,
+                servo=self.servo,
+                axis=0
+            )
             if trigger_signal is None or trigger_value is None:
                 raise TypeError("trigger_signal or trigger_value are None")
-            self.__rising_or_falling_edge_trigger(trigger_mode, trigger_signal,
+            self.__rising_or_falling_edge_trigger(trigger_config, trigger_signal,
                                                   trigger_value)
 
-    def __rising_or_falling_edge_trigger(self, trigger_mode, trigger_signal,
+    def __rising_or_falling_edge_trigger(self, trigger_config, trigger_signal,
                                          trigger_value):
         index_reg = -1
         for index, item in enumerate(self.mapped_registers):
@@ -256,8 +290,9 @@ class Monitoring:
             raise MonitoringError("Trigger signal is not mapped in Monitoring")
         dtype = self.mapped_registers[index_reg]["dtype"]
         level_edge = self.__unpack_trigger_value(trigger_value, dtype)
+        #must be fix
         self.mc.communication.set_register(
-            self.EDGE_CONDITION_REGISTER[trigger_mode],
+            self.EDGE_CONDITION_REGISTER[trigger_config],
             level_edge,
             servo=self.servo,
             axis=0
@@ -309,12 +344,12 @@ class Monitoring:
         # Configure number of samples
         window_samples = total_num_samples - trigger_delay_samples
 
-        self.mc.communication.set_register(
-            self.MONITOR_END_CONDITION_TYPE_REGISTER,
-            self.EOC_TRIGGER_NUMBER_SAMPLES,
-            servo=self.servo,
-            axis=0
-        )
+        # self.mc.communication.set_register(
+        #     self.MONITOR_END_CONDITION_TYPE_REGISTER,
+        #     self.EOC_TRIGGER_NUMBER_SAMPLES,
+        #     servo=self.servo,
+        #     axis=0
+        # )
         self.mc.communication.set_register(
             self.MONITORING_TRIGGER_DELAY_SAMPLES_REGISTER,
             trigger_delay_samples,
@@ -323,7 +358,7 @@ class Monitoring:
         )
         self.mc.communication.set_register(
             self.MONITORING_WINDOW_NUMBER_SAMPLES_REGISTER,
-            window_samples,
+            window_samples + trigger_delay_samples,
             servo=self.servo,
             axis=0
         )
@@ -439,7 +474,7 @@ class Monitoring:
         Returns:
             bool: True if monitoring has an available frame, else False.
         """
-        monitor_status = self.mc.capture.get_monitoring_disturbance_status(
+        monitor_status = self.mc.capture.get_monitoring_status(
             servo=self.servo)
         return (monitor_status & self.MONITORING_AVAILABLE_FRAME_BIT) != 0
 

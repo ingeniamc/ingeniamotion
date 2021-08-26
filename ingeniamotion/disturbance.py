@@ -8,6 +8,8 @@ from ingenialink.exceptions import ILError
 from .exceptions import DisturbanceError
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 
+import struct
+import binascii
 
 def check_disturbance_disabled(func):
     @wraps(func)
@@ -33,6 +35,10 @@ class Disturbance:
     DISTURBANCE_FREQUENCY_DIVIDER_REGISTER = "DIST_FREQ_DIV"
     DISTURBANCE_MAXIMUM_SAMPLE_SIZE_REGISTER = "DIST_MAX_SIZE"
     MONITORING_DISTURBANCE_STATUS_REGISTER = "MON_DIST_STATUS"
+    DISTURBANCE_NUMBER_MAPPED_REGISTERS_REGISTER = "DIST_CFG_MAP_REGS"
+    DISTURBANCE_MAP_REG0 = "DIST_CFG_REG0_MAP"
+    DISTURBANCE_MAP_REG1 = "DIST_CFG_REG1_MAP"
+    DISTURBANCE_ENABLE = "DIST_ENABLE"
 
     CYCLIC_RX = "CYCLIC_RX"
 
@@ -66,7 +72,7 @@ class Disturbance:
         self.max_sample_number = self.get_max_sample_size()
         self.data = None
 
-    @check_disturbance_disabled
+    # @check_disturbance_disabled
     def set_frequency_divider(self, divider):
         """
         Function to define disturbance frequency with a prescaler. Frequency will be
@@ -98,7 +104,7 @@ class Disturbance:
         )
         return 1 / self.sampling_freq
 
-    @check_disturbance_disabled
+    # @check_disturbance_disabled
     def map_registers(self, registers):
         """
         Map registers to Disturbance. Disturbance must be disabled.
@@ -143,9 +149,41 @@ class Disturbance:
             network.disturbance_set_mapped_register(ch_idx, mapped_reg, dtype.value)
             self.mapped_registers.append(channel)
             total_sample_size += self.__data_type_size[dtype]
+
+            """
+            This must not be here....
+            """
+            channel["size"] = self.__data_type_size[dtype]
+            # TYPES MUST BE CHECK, i32 and float32 OK! -> https://doc.ingeniamc.com/display/SS/0x0D0+-+Monitoring+mapped+register+0
+            values = (register_obj.address, dtype.value.to_bytes(1, byteorder='big'),
+                      channel["size"].to_bytes(1, byteorder='big'))
+            # Missing subnode info bit 31..28
+            s = struct.Struct('>h c c')
+            packed_data = s.pack(*values)
+            print("reg: ", register, " key: ", register_obj.address, " type: ", dtype.value, " size: ", channel["size"],
+                  " --------> pack ", binascii.hexlify(packed_data), "inted: ", struct.unpack('>I', packed_data)[0])
+            if ch_idx == 0:
+                self.mc.communication.set_register(
+                    self.DISTURBANCE_MAP_REG0,
+                    struct.unpack('>I', packed_data)[0],
+                    axis=0
+                )
+            elif ch_idx == 1:
+                self.mc.communication.set_register(
+                    self.DISTURBANCE_MAP_REG1,
+                    struct.unpack('>I', packed_data)[0],
+                    axis=0
+                )
+
+        self.mc.communication.set_register(
+            self.DISTURBANCE_NUMBER_MAPPED_REGISTERS_REGISTER,
+            len(registers),
+            servo=self.servo,
+            axis=0
+        )
         return self.max_sample_number / total_sample_size
 
-    @check_disturbance_disabled
+    # @check_disturbance_disabled
     def write_disturbance_data(self, registers_data):
         """
         Write data in mapped registers. Disturbance must be disabled.
@@ -159,6 +197,12 @@ class Disturbance:
             DisturbanceError: If buffer size is not enough for all the
                 registers and samples.
         """
+        self.mc.communication.set_register(
+            "DIST_REMOVE_DATA",
+            1,
+            servo=self.servo,
+            axis=0
+        )
         if isinstance(registers_data, ndarray):
             registers_data = registers_data.tolist()
         if isinstance(registers_data, Iterable):
@@ -173,6 +217,13 @@ class Disturbance:
         idx_list = list(range(len(registers_data)))
         dtype_list = [x["dtype"] for x in self.mapped_registers]
         drive.disturbance_write_data(idx_list, dtype_list, registers_data)
+
+        self.mc.communication.set_register(
+            "DIST_ENABLE",
+            1,
+            servo=self.servo,
+            axis=0
+        )
 
     def map_registers_and_write_data(self, registers):
         """
