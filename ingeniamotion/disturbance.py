@@ -5,7 +5,7 @@ from functools import wraps
 from collections.abc import Iterable
 from ingenialink.exceptions import ILError
 
-from .exceptions import DisturbanceError
+from .exceptions import IMDisturbanceError, IMStatusWordError
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 
 
@@ -15,7 +15,7 @@ def check_disturbance_disabled(func):
         disturbance_enabled = self.mc.capture.is_disturbance_enabled(
             servo=self.servo)
         if disturbance_enabled:
-            raise DisturbanceError("Disturbance is enabled")
+            raise IMDisturbanceError("Disturbance is enabled")
         return func(self, *args, **kwargs)
 
     return wrapper
@@ -65,7 +65,11 @@ class Disturbance:
         self.logger = ingenialogger.get_logger(__name__, drive=mc.servo_name(servo))
         self.max_sample_number = self.get_max_sample_size()
         self.data = None
-
+        try:
+            self.mc.capture.mcb_synchronization(servo=servo)
+        except IMStatusWordError:
+            self.logger.warning("MCB could not be synchronized. Motor is enabled.",
+                                drive=mc.servo_name(servo))
     @check_disturbance_disabled
     def set_frequency_divider(self, divider):
         """
@@ -118,7 +122,7 @@ class Disturbance:
             int: max number of samples
 
         Raises:
-            DisturbanceError: If the register is not allowed to be mapped as
+            IMDisturbanceError: If the register is not allowed to be mapped as
                 a disturbance register.
         """
         if not isinstance(registers, list):
@@ -135,8 +139,8 @@ class Disturbance:
             cyclic = register_obj.cyclic
             if cyclic != self.CYCLIC_RX:
                 network.disturbance_remove_all_mapped_registers()
-                raise DisturbanceError("{} can not be mapped as a disturbance register"
-                                       .format(register))
+                raise IMDisturbanceError("{} can not be mapped as a disturbance register"
+                                         .format(register))
             channel["dtype"] = dtype
             address_offset = self.REGISTER_MAP_OFFSET * (subnode - 1)
             mapped_reg = register_obj.address + address_offset
@@ -156,7 +160,7 @@ class Disturbance:
                 as in :func:`map_registers`.
 
         Raises:
-            DisturbanceError: If buffer size is not enough for all the
+            IMDisturbanceError: If buffer size is not enough for all the
                 registers and samples.
         """
         if isinstance(registers_data, ndarray):
@@ -191,9 +195,9 @@ class Disturbance:
                     }
 
         Raises:
-            DisturbanceError: If the register is not allowed to be mapped as a
+            IMDisturbanceError: If the register is not allowed to be mapped as a
                 disturbance register.
-            DisturbanceError: If buffer size is not enough for all the
+            IMDisturbanceError: If buffer size is not enough for all the
                 registers and samples.
         """
         if not isinstance(registers, list):
@@ -214,7 +218,7 @@ class Disturbance:
             dtype = self.mapped_registers[ch_idx]["dtype"]
             total_buffer_size += self.__data_type_size[dtype] * len(data)
         if total_buffer_size > self.max_sample_number:
-            raise DisturbanceError(
+            raise IMDisturbanceError(
                 "Number of samples is too high. "
                 "Demanded size: {} bytes, buffer max size: {} bytes."
                 .format(total_buffer_size, self.max_sample_number)

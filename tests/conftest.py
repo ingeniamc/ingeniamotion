@@ -88,6 +88,7 @@ def motion_controller_teardown(motion_controller, pytestconfig, read_config):
     mc, alias = motion_controller
     mc.configuration.load_configuration(
         read_config[protocol]["config_file"], servo=alias)
+    mc.motion.fault_reset(servo=alias)
 
 
 @pytest.fixture
