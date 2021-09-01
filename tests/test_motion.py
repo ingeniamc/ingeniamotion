@@ -292,6 +292,23 @@ def test_get_actual_position(motion_controller, position_value):
     ) == position_value
 
 
+@pytest.mark.parametrize("velocity_value", [
+    1, 0, -1
+])
+def test_get_actual_velocity(motion_controller, velocity_value):
+    mc, alias = motion_controller
+    mc.motion.set_operation_mode(
+        OperationMode.PROFILE_VELOCITY, servo=alias)
+    mc.motion.motor_enable(servo=alias)
+    mc.motion.set_velocity(
+        velocity_value, servo=alias, blocking=True)
+    time.sleep(1)
+    test_velocity = mc.motion.get_actual_velocity(servo=alias)
+    reg_value = mc.communication.get_register(ACTUAL_VELOCITY_REGISTER,
+                                              servo=alias)
+    assert pytest.approx(test_velocity, 0.1) == reg_value
+
+
 @pytest.mark.smoke
 def test_wait_for_position_timeout(motion_controller):
     timeout_value = 2
