@@ -1,6 +1,14 @@
-class MonitoringError(Exception):
+class IMException(Exception):
     pass
 
 
-class DisturbanceError(Exception):
+class IMMonitoringError(IMException):
+    pass
+
+
+class IMDisturbanceError(IMException):
+    pass
+
+
+class IMStatusWordError(IMException):
     pass
