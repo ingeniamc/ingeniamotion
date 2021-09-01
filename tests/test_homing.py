@@ -4,7 +4,6 @@ import pytest
 
 from ingeniamotion.enums import HomingMode, SensorType, OperationMode
 
-
 HOMING_MODE_REGISTER = "HOM_MODE"
 HOMING_OFFSET_REGISTER = "HOM_OFFSET"
 HOMING_TIMEOUT_REGISTER = "HOM_SEQ_TIMEOUT"

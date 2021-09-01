@@ -8,6 +8,8 @@ from ingeniamotion.enums import MonitoringSoCType
 MONITOR_START_CONDITION_TYPE_REGISTER = "MON_CFG_SOC_TYPE"
 
 
+@pytest.mark.soem
+@pytest.mark.eoe
 @pytest.fixture
 def monitoring(motion_controller):
     mc, alias = motion_controller
@@ -15,16 +17,22 @@ def monitoring(motion_controller):
     return monitoring
 
 
+@pytest.mark.soem
+@pytest.mark.eoe
 @pytest.fixture
 def mon_set_freq(monitoring):
     monitoring.set_frequency(10)
 
 
+@pytest.mark.soem
+@pytest.mark.eoe
 @pytest.fixture
 def mon_map_registers(monitoring):
     monitoring.map_registers([{"axis": 1, "name": "CL_POS_FBK_VALUE"}])
 
 
+@pytest.mark.soem
+@pytest.mark.eoe
 @pytest.mark.smoke
 @pytest.mark.parametrize("trigger_type", [
     MonitoringSoCType.TRIGGER_EVENT_NONE,
@@ -40,6 +48,8 @@ def test_get_trigger_type(motion_controller, monitoring, trigger_type):
     assert test_trigger == trigger_type
 
 
+@pytest.mark.soem
+@pytest.mark.eoe
 @pytest.mark.smoke
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
@@ -61,6 +71,8 @@ def test_raise_forced_trigger(motion_controller, monitoring, block,
     assert test_output == result
 
 
+@pytest.mark.soem
+@pytest.mark.eoe
 @pytest.mark.smoke
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
@@ -74,6 +86,8 @@ def test_raise_forced_trigger_fail(motion_controller, monitoring):
         monitoring.raise_forced_trigger()
 
 
+@pytest.mark.soem
+@pytest.mark.eoe
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
 @pytest.mark.usefixtures("disable_monitoring_disturbance")

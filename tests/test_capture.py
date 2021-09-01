@@ -32,6 +32,8 @@ def test_create_poller(motion_controller):
         assert pytest.approx(tared_ts // 1 * 0.2) == value
 
 
+@pytest.mark.soem
+@pytest.mark.eoe
 def test_create_monitoring_no_trigger(motion_controller,
                                       disable_monitoring_disturbance):
     registers = [{
@@ -65,6 +67,8 @@ def test_create_monitoring_no_trigger(motion_controller,
             assert value == theo_value
 
 
+@pytest.mark.soem
+@pytest.mark.eoe
 @pytest.mark.parametrize("trigger_mode, values_list", [
     (MonitoringSoCType.TRIGGER_CYCLIC_RISING_EDGE, [0, 1000, 2000, 3000]),
     (MonitoringSoCType.TRIGGER_CYCLIC_FALLING_EDGE, [3000, 2000, 1000, 0]),
@@ -111,6 +115,8 @@ def test_create_monitoring_edge_trigger(motion_controller, trigger_mode, values_
             assert value == theo_value
 
 
+@pytest.mark.soem
+@pytest.mark.eoe
 def test_create_disturbance(motion_controller,
                             disable_monitoring_disturbance):
     mc, alias = motion_controller
@@ -136,6 +142,8 @@ def test_create_disturbance(motion_controller,
         assert current_value == data[sample_num]
 
 
+@pytest.mark.soem
+@pytest.mark.eoe
 @pytest.mark.smoke
 def test_mcb_synchronization(mocker, motion_controller):
     mc, alias = motion_controller
@@ -148,6 +156,8 @@ def test_mcb_synchronization(mocker, motion_controller):
     disable_mon.assert_called_once_with(servo=alias)
 
 
+@pytest.mark.soem
+@pytest.mark.eoe
 @pytest.mark.smoke
 def test_mcb_synchronization_fail(motion_controller):
     mc, alias = motion_controller

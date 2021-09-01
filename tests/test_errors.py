@@ -31,7 +31,8 @@ def generate_drive_errors(motion_controller):
             pass
         error_code_list.append(item["code"])
         mc.communication.set_register(item["register"], old_value, servo=alias)
-    return error_code_list[::-1]
+    yield error_code_list[::-1]
+    mc.motion.fault_reset(servo=alias)
 
 
 @pytest.fixture
