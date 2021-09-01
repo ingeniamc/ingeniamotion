@@ -72,7 +72,7 @@ def test_motor_enable(motion_controller):
 @pytest.mark.parametrize("uid, value, exception_type, message", [
     ("DRV_PROT_USER_UNDER_VOLT", 100, exceptions.ILStateError,
      "User Under-voltage detected"),
-    ("DRV_PROT_USER_OVER_TEMP", 1, exceptions.ILTimeoutError,
+    ("DRV_PROT_USER_OVER_TEMP", 1, exceptions.ILStateError,
      "Over-temperature detected (user limit)"),
     ("DRV_PROT_USER_OVER_VOLT", 1, exceptions.ILStateError,
      "User Over-voltage detected")
@@ -290,6 +290,23 @@ def test_get_actual_position(motion_controller, position_value):
     assert pytest.approx(
         test_position, abs=pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED/100
     ) == position_value
+
+
+@pytest.mark.parametrize("velocity_value", [
+    1, 0, -1
+])
+def test_get_actual_velocity(motion_controller, velocity_value):
+    mc, alias = motion_controller
+    mc.motion.set_operation_mode(
+        OperationMode.PROFILE_VELOCITY, servo=alias)
+    mc.motion.motor_enable(servo=alias)
+    mc.motion.set_velocity(
+        velocity_value, servo=alias, blocking=True)
+    time.sleep(1)
+    test_velocity = mc.motion.get_actual_velocity(servo=alias)
+    reg_value = mc.communication.get_register(ACTUAL_VELOCITY_REGISTER,
+                                              servo=alias)
+    assert pytest.approx(test_velocity, 0.1) == reg_value
 
 
 @pytest.mark.smoke

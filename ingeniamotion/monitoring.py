@@ -8,7 +8,7 @@ from ingenialink.exceptions import ILError
 
 from enum import IntEnum
 
-from .exceptions import MonitoringError
+from .exceptions import IMMonitoringError, IMStatusWordError
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 
 
@@ -18,7 +18,7 @@ def check_monitoring_disabled(func):
         monitoring_enabled = self.mc.capture.is_monitoring_enabled(
             servo=self.servo)
         if monitoring_enabled:
-            raise MonitoringError("Monitoring is enabled")
+            raise IMMonitoringError("Monitoring is enabled")
         return func(self, *args, **kwargs)
 
     return wrapper
@@ -102,6 +102,7 @@ class Monitoring:
     MONITORING_NUMBER_CYCLES_REGISTER = "MON_CFG_CYCLES_VALUE"
     MONITORING_CURRENT_NUMBER_BYTES_REGISTER = "MON_CFG_BYTES_VALUE"
     MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER = "MON_MAX_SIZE"
+    MONITORING_FORCE_TRIGGER_REGISTER = "MON_CMD_FORCE_TRIGGER"
 
     def __init__(self, mc, servo=DEFAULT_SERVO):
         super().__init__()
@@ -118,6 +119,11 @@ class Monitoring:
         self.__check_version()
         self.max_sample_number = self.get_max_sample_size()
         self.data = None
+        try:
+            self.mc.capture.mcb_synchronization(servo=servo)
+        except IMStatusWordError:
+            self.logger.warning("MCB could not be synchronized. Motor is enabled.",
+                                drive=mc.servo_name(servo))
 
     @check_monitoring_disabled
     def set_frequency(self, prescaler):
@@ -165,8 +171,8 @@ class Monitoring:
                     }
 
         Raises:
-            MonitoringError: If register maps fails in the servo.
-            MonitoringError: If buffer size is not enough for all the registers.
+            IMMonitoringError: If register maps fails in the servo.
+            IMMonitoringError: If buffer size is not enough for all the registers.
         """
         drive = self.mc.servos[self.servo]
         network = self.mc.net[self.servo]
@@ -197,7 +203,7 @@ class Monitoring:
             axis=0
         )
         if num_mon_reg < 1:
-            raise MonitoringError("Map Monitoring registers fails")
+            raise IMMonitoringError("Map Monitoring registers fails")
         self.mapped_registers = registers
 
     @check_monitoring_disabled
@@ -215,7 +221,7 @@ class Monitoring:
         Raises:
             TypeError: If trigger_mode is rising or falling edge trigger and
                 trigger_signal or trigger_value are None.
-            MonitoringError: If trigger signal is not mapped.
+            IMMonitoringError: If trigger signal is not mapped.
         """
         self.mc.communication.set_register(
             self.MONITORING_NUMBER_TRIGGER_REPETITIONS_REGISTER,
@@ -245,7 +251,7 @@ class Monitoring:
                     trigger_signal.get("axis", DEFAULT_AXIS) == item["axis"]):
                 index_reg = index
         if index_reg < 0:
-            raise MonitoringError("Trigger signal is not mapped in Monitoring")
+            raise IMMonitoringError("Trigger signal is not mapped in Monitoring")
         dtype = self.mapped_registers[index_reg]["dtype"]
         level_edge = self.__unpack_trigger_value(trigger_value, dtype)
         self.mc.communication.set_register(
@@ -286,7 +292,7 @@ class Monitoring:
         Raises:
             ValueError: If trigger_delay_samples is less than ``1``
                 or higher than total_num_samples.
-            MonitoringError: If buffer size is not enough for all the samples.
+            IMMonitoringError: If buffer size is not enough for all the samples.
         """
         if not total_num_samples > trigger_delay_samples:
             raise ValueError("trigger_delay_samples should be less"
@@ -334,7 +340,7 @@ class Monitoring:
         Raises:
             ValueError: If trigger_delay is not between ``-total_time/2`` and
                 ``total_time/2``.
-            MonitoringError: If buffer size is not enough for all the samples.
+            IMMonitoringError: If buffer size is not enough for all the samples.
         """
         if total_time / 2 < abs(trigger_delay):
             raise ValueError("trigger_delay value should be between"
@@ -381,6 +387,10 @@ class Monitoring:
     def read_monitoring_data(self, timeout=None, progress_callback=None):
         """
         Blocking function that read the monitoring data.
+
+        Args:
+            timeout (float): maximum time trigger is waited, in seconds.
+                ``None`` by default.
 
         Returns:
             list of list: data of monitoring. Each element of the list is a
@@ -505,9 +515,73 @@ class Monitoring:
         for register in registers:
             size_demand += self.__data_type_size[register["dtype"]] * n_sample
         if not self.max_sample_number / 2 >= size_demand:
-            raise MonitoringError(
+            raise IMMonitoringError(
                 "Number of samples is too high or mapped registers are too big. "
                 "Demanded size: {} bytes, buffer max size: {} bytes."
                 .format(size_demand, self.max_sample_number // 2))
         self.logger.debug("Demanded size: %d bytes, buffer max size: %d bytes.",
                           size_demand, self.max_sample_number // 2)
+
+    def get_trigger_type(self):
+        """Get monitoring trigger type.
+
+        Returns:
+            MonitoringSoCType: trigger type
+
+        """
+        register_value = self.mc.communication.get_register(
+            self.MONITOR_START_CONDITION_TYPE_REGISTER,
+            servo=self.servo,
+            axis=0
+        )
+        try:
+            return MonitoringSoCType(register_value)
+        except ValueError:
+            return register_value
+
+    def raise_forced_trigger(self, blocking=False, timeout=5):
+        """Raise trigger for Forced Trigger type.
+
+        Args:
+            blocking (bool): if ``True``, functions wait until trigger is forced
+                (or until the timeout) If ``False``, function try to raise the
+                trigger only once.
+            timeout (float): blocking timeout in seconds. ``5`` by default.
+
+        Returns:
+            bool: Return ``True`` if trigger is raised, else ``False``.
+
+        """
+        trigger_mode = self.get_trigger_type()
+        if trigger_mode != MonitoringSoCType.TRIGGER_EVENT_FORCED:
+            raise IMMonitoringError("Monitoring trigger type "
+                                    "is not Forced Trigger")
+        mon_process_stage = None
+        final_time = time.time() + timeout
+        while mon_process_stage is None or (
+                blocking and final_time > time.time() and
+                mon_process_stage != MonitoringProcessStage.WAITING_FOR_TRIGGER):
+            mon_process_stage = self.get_monitoring_process_stage()
+            self.mc.communication.set_register(
+                self.MONITORING_FORCE_TRIGGER_REGISTER,
+                1, servo=self.servo, axis=0)
+        return mon_process_stage == MonitoringProcessStage.WAITING_FOR_TRIGGER
+
+    def read_monitoring_data_forced_trigger(self, trigger_timeout=5):
+        """Trigger and read Forced Trigger monitoring.
+
+        Args:
+            trigger_timeout (float): maximum time function wait to raise the trigger,
+                in seconds. ``5`` by default.
+
+        Returns:
+            list of list: data of monitoring. Each element of the list is a
+            different register data.
+
+        """
+        is_triggered = self.raise_forced_trigger(blocking=True, timeout=trigger_timeout)
+        if is_triggered:
+            return self.read_monitoring_data()
+        else:
+            self.logger.warning("Timeout. Forced trigger is not raised.")
+            return [[] for _ in self.mapped_registers]
