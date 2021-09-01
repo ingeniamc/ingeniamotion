@@ -11,9 +11,7 @@ from ingeniamotion.enums import SensorType, OperationMode
 
 
 class Feedbacks(BaseTest):
-    """
-    Feedbacks Wizard Class description.
-    """
+    """Feedbacks Wizard Class description."""
 
     class ResultType(IntEnum):
         SUCCESS = 0

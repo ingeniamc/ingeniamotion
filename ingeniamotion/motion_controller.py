@@ -37,9 +37,7 @@ class MotionController:
     # Properties
     @property
     def servos(self):
-        """
-        Dict of ``ingenialink.Servo`` connected indexed by alias
-        """
+        """Dict of ``ingenialink.Servo`` connected indexed by alias"""
         return self.__servos
 
     @servos.setter
@@ -48,9 +46,7 @@ class MotionController:
 
     @property
     def net(self):
-        """
-        Dict of ``ingenialink.Network`` connected indexed by alias
-        """
+        """Dict of ``ingenialink.Network`` connected indexed by alias"""
         return self.__net
 
     @net.setter
@@ -59,49 +55,35 @@ class MotionController:
 
     @property
     def configuration(self):
-        """
-        Instance of  :class:`~ingeniamotion.configuration.Configuration` class
-        """
+        """Instance of  :class:`~ingeniamotion.configuration.Configuration` class"""
         return self.__config
 
     @property
     def motion(self):
-        """
-        Instance of  :class:`~ingeniamotion.motion.Motion` class
-        """
+        """Instance of  :class:`~ingeniamotion.motion.Motion` class"""
         return self.__motion
 
     @property
     def capture(self):
-        """
-        Instance of  :class:`~ingeniamotion.capture.Capture` class
-        """
+        """Instance of  :class:`~ingeniamotion.capture.Capture` class"""
         return self.__capture
 
     @property
     def communication(self):
-        """
-        Instance of  :class:`~ingeniamotion.communication.Communication` class
-        """
+        """Instance of  :class:`~ingeniamotion.communication.Communication` class"""
         return self.__comm
 
     @property
     def tests(self):
-        """
-        Instance of  :class:`~ingeniamotion.drive_tests.DriveTests` class
-        """
+        """Instance of  :class:`~ingeniamotion.drive_tests.DriveTests` class"""
         return self.__tests
 
     @property
     def errors(self):
-        """
-        Instance of :class:`~ingeniamotion.errors.Errors` class
-        """
+        """Instance of :class:`~ingeniamotion.errors.Errors` class"""
         return self.__errors
 
     @property
     def info(self):
-        """
-        Instance of :class:`~ingeniamotion.errors.Information` class
-        """
+        """Instance of :class:`~ingeniamotion.errors.Information` class"""
         return self.__info

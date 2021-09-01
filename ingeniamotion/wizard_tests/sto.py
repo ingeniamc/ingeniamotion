@@ -6,9 +6,7 @@ from .base_test import BaseTest
 
 
 class STOTest(BaseTest):
-    """
-    STO test.
-    """
+    """STO test."""
 
     class ResultType(IntEnum):
         STO_INACTIVE = 0

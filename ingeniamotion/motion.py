@@ -36,8 +36,7 @@ class Motion(metaclass=MCMetaClass):
         self.logger = ingenialogger.get_logger(__name__)
 
     def target_latch(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        """
-        Active target latch.
+        """Active target latch.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -54,8 +53,7 @@ class Motion(metaclass=MCMetaClass):
 
     def set_operation_mode(self, operation_mode, servo=DEFAULT_SERVO,
                            axis=DEFAULT_AXIS):
-        """
-        Set operation mode to a target servo and axis.
+        """Set operation mode to a target servo and axis.
 
         Args:
             operation_mode (OperationMode): operation mode, any of
@@ -74,8 +72,7 @@ class Motion(metaclass=MCMetaClass):
                               drive=self.mc.servo_name(servo))
 
     def get_operation_mode(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        """
-        Return current operation mode.
+        """Return current operation mode.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -94,8 +91,7 @@ class Motion(metaclass=MCMetaClass):
             return operation_mode
 
     def motor_enable(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        """
-        Enable motor.
+        """Enable motor.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -113,8 +109,7 @@ class Motion(metaclass=MCMetaClass):
                                  .format(error_msg))
 
     def motor_disable(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        """
-        Disable motor.
+        """Disable motor.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -137,8 +132,7 @@ class Motion(metaclass=MCMetaClass):
     def move_to_position(self, position, servo=DEFAULT_SERVO,
                          axis=DEFAULT_AXIS, target_latch=True,
                          blocking=False):
-        """
-        Set position set point to a target servo and axis, in counts.
+        """Set position set point to a target servo and axis, in counts.
 
         Args:
             position (int): target position, in counts.
@@ -158,8 +152,7 @@ class Motion(metaclass=MCMetaClass):
 
     def set_velocity(self, velocity, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
                      target_latch=True, blocking=False):
-        """
-        Set velocity set point to a target servo and axis, in rev/s.
+        """Set velocity set point to a target servo and axis, in rev/s.
 
         Args:
             velocity (float): target velocity, in rev/s.
@@ -179,8 +172,7 @@ class Motion(metaclass=MCMetaClass):
 
     def set_current_quadrature(self, current, servo=DEFAULT_SERVO,
                                axis=DEFAULT_AXIS):
-        """
-        Set quadrature current set point to a target servo and axis, in A.
+        """Set quadrature current set point to a target servo and axis, in A.
 
         Args:
             current (float): target quadrature current, in A.
@@ -193,8 +185,7 @@ class Motion(metaclass=MCMetaClass):
         )
 
     def set_current_direct(self, current, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        """
-        Set direct current set point to a target servo and axis, in A.
+        """Set direct current set point to a target servo and axis, in A.
 
         Args:
             current (float): target direct current, in A.
@@ -206,8 +197,7 @@ class Motion(metaclass=MCMetaClass):
 
     def set_voltage_quadrature(self, voltage, servo=DEFAULT_SERVO,
                                axis=DEFAULT_AXIS):
-        """
-        Set quadrature voltage set point to a target servo and axis, in V.
+        """Set quadrature voltage set point to a target servo and axis, in V.
 
         Args:
             voltage (float): target quadrature voltage, in V.
@@ -219,8 +209,7 @@ class Motion(metaclass=MCMetaClass):
 
     def set_voltage_direct(self, voltage, servo=DEFAULT_SERVO,
                            axis=DEFAULT_AXIS):
-        """
-        Set direct voltage set point to a target servo and axis, in V.
+        """Set direct voltage set point to a target servo and axis, in V.
 
         Args:
             voltage (float): target direct voltage, in V.
@@ -232,8 +221,7 @@ class Motion(metaclass=MCMetaClass):
 
     def current_quadrature_ramp(self, target_value, time_s, servo=DEFAULT_SERVO,
                                 axis=DEFAULT_AXIS, init_value=0, interval=None):
-        """
-        Given a target value and a time in seconds, changes the current
+        """Given a target value and a time in seconds, changes the current
         quadrature set-point linearly following a ramp. This function is
         blocked until target reached.
 

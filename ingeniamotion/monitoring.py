@@ -25,37 +25,32 @@ def check_monitoring_disabled(func):
 
 
 class MonitoringSoCType(IntEnum):
-    """
-    Monitoring start of condition type
-    """
+    """Monitoring start of condition type"""
     TRIGGER_EVENT_NONE = 0
-    """ No trigger """
+    """No trigger"""
     TRIGGER_EVENT_FORCED = 1
-    """ Forced trigger """
+    """Forced trigger"""
     TRIGGER_CYCLIC_RISING_EDGE = 2
-    """ Rising edge trigger """
+    """Rising edge trigger"""
     TRIGGER_NUMBER_SAMPLES = 3
     TRIGGER_CYCLIC_FALLING_EDGE = 4
-    """ Falling edge trigger """
+    """Falling edge trigger"""
 
 
 class MonitoringProcessStage(IntEnum):
-    """
-    Monitoring process stage
-    """
+    """Monitoring process stage"""
     INIT_STAGE = 0x0
-    """ Init stage """
+    """Init stage"""
     FILLING_DELAY_DATA = 0x2
-    """ Filling delay data """
+    """Filling delay data"""
     WAITING_FOR_TRIGGER = 0x4
-    """ Waiting for trigger """
+    """Waiting for trigger"""
     DATA_ACQUISITION = 0x6
-    """ Data acquisition """
+    """Data acquisition"""
 
 
 class Monitoring:
-    """
-    Class to configure a monitoring in a servo.
+    """Class to configure a monitoring in a servo.
 
     Args:
         mc (MotionController): MotionController instance.
@@ -78,9 +73,7 @@ class Monitoring:
     ESTIMATED_MAX_TIME_FOR_SAMPLE = 0.0015
 
     class MonitoringVersion(IntEnum):
-        """
-        Monitoring version
-        """
+        """Monitoring version"""
         # Monitoring V1 used for Everest 1.7.1 and older.
         MONITORING_V1 = 0,
         # Monitoring V2 used for Capitan and some custom low-power drivers.
@@ -134,14 +127,14 @@ class Monitoring:
 
     @check_monitoring_disabled
     def set_frequency(self, prescaler):
-        """
-        Function to define monitoring frequency with a prescaler. Frequency will be
+        """Function to define monitoring frequency with a prescaler. Frequency will be
         ``Position & velocity loop rate frequency / prescaler``, see
         :func:`ingeniamotion.configuration.Configuration.get_position_and_velocity_loop_rate`
         to know about this frequency. Monitoring must be disabled.
 
         Args:
-            prescaler (int): determines monitoring frequency. It must be ``1`` or higher.
+            prescaler (int): determines monitoring frequency.
+                It must be ``1`` or higher.
 
         Raises:
             ValueError: If prescaler is less than ``1``.
@@ -163,8 +156,7 @@ class Monitoring:
 
     @check_monitoring_disabled
     def map_registers(self, registers):
-        """
-        Map registers to monitoring. Monitoring must be disabled.
+        """Map registers to monitoring. Monitoring must be disabled.
 
         Args:
             registers (list of dict): List of registers to map.
@@ -174,7 +166,8 @@ class Monitoring:
 
                     {
                         "name": "CL_POS_FBK_VALUE",  # Register name.
-                        "axis": 1  # Register axis. If it has no axis field, by default axis 1.
+                        "axis": 1  # Register axis.
+                        # If it has no axis field, by default axis 1.
                     }
 
         Raises:
@@ -216,8 +209,7 @@ class Monitoring:
     @check_monitoring_disabled
     def set_trigger(self, trigger_mode, trigger_signal=None, trigger_value=None,
                     trigger_repetitions=1):
-        """
-        Configure monitoring trigger. Monitoring must be disabled.
+        """Configure monitoring trigger. Monitoring must be disabled.
 
         Args:
             trigger_mode (MonitoringSoCType): monitoring start of condition type.
