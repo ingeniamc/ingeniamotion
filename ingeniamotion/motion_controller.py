@@ -17,6 +17,7 @@ class MotionController:
     def __init__(self):
         self.__servos = {}
         self.__net = {}
+        self.__servo_net = {}
         self.__config = Configuration(self)
         self.__motion = Motion(self)
         self.__capture = Capture(self)
@@ -30,7 +31,7 @@ class MotionController:
 
     def get_register_enum(self, register, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         drive = self.servos[servo]
-        enum_list = drive.dict.get_regs(axis)[register].enums
+        enum_list = drive.dictionary.registers(axis)[register].enums
         enum_dict = {x["label"]: x["value"] for x in enum_list}
         return IntEnum(register, enum_dict)
 
@@ -56,6 +57,14 @@ class MotionController:
     @net.setter
     def net(self, value):
         self.__net = value
+
+    @property
+    def servo_net(self):
+        return self.__servo_net
+
+    @servo_net.setter
+    def servo_net(self, value):
+        self.__servo_net = value
 
     @property
     def configuration(self):

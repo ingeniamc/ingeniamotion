@@ -5,10 +5,11 @@ import ingenialogger
 import ingenialink as il
 from functools import wraps
 from ingenialink.exceptions import ILError
+from ingenialink.register import REG_DTYPE
 
 from enum import IntEnum
 
-from .exceptions import MonitoringError
+from .exceptions import MonitoringError, IMRegisterNotExist
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 
 
@@ -176,13 +177,13 @@ class Monitoring:
             MonitoringError: If buffer size is not enough for all the registers.
         """
         drive = self.mc.servos[self.servo]
-        network = self.mc.net[self.servo]
-        network.monitoring_remove_all_mapped_registers()
+        drive.monitoring_remove_all_mapped_registers()
 
         for channel in registers:
             subnode = channel.get("axis", DEFAULT_AXIS)
             register = channel["name"]
-            register_obj = drive.dict.get_regs(subnode)[register]
+            register_obj = self.mc.info.register_info(
+                register, subnode, servo=self.servo)
             dtype = register_obj.dtype
             channel["dtype"] = dtype
 
@@ -194,9 +195,10 @@ class Monitoring:
             register = channel["name"]
             dtype = channel["dtype"]
             address_offset = self.REGISTER_MAP_OFFSET * (subnode - 1)
-            register_obj = drive.dict.get_regs(subnode)[register]
+            register_obj = self.mc.info.register_info(
+                register, subnode, servo=self.servo)
             mapped_reg = register_obj.address + address_offset
-            network.monitoring_set_mapped_register(ch_idx, mapped_reg, dtype.value)
+            drive.monitoring_set_mapped_register(ch_idx, mapped_reg, dtype.value)
 
         num_mon_reg = self.mc.communication.get_register(
             self.MONITORING_NUMBER_MAPPED_REGISTERS_REGISTER,
@@ -394,7 +396,7 @@ class Monitoring:
             list of list: data of monitoring. Each element of the list is a
             different register data.
         """
-        network = self.mc.net[self.servo]
+        drive = self.mc.servos[self.servo]
         trigger_repetitions, is_enabled = self.__setup_read_monitoring_data()
         data_array = [[] for _ in self.mapped_registers]
         self.logger.debug("Waiting for data")
@@ -404,20 +406,19 @@ class Monitoring:
             self.__update_read_process_finished(init_read_time, current_len,
                                                 init_time, timeout)
             if self.__check_data_is_ready():
-                network.monitoring_read_data()
+                drive.monitoring_read_data()
                 self.__fill_data(data_array)
                 if init_read_time is None:
                     init_read_time = time.time()
                 current_len = len(data_array[0])
                 self.__show_current_process(current_len, progress_callback)
-            else:
-                if not is_enabled or trigger_repetitions == 0:
-                    text_is_enabled = "enabled" if is_enabled else "disabled"
-                    self.logger.warning(
-                        "Can't read monitoring data because monitoring is not ready."
-                        " MON_CFG_TRIGGER_REPETITIONS is {}. Monitoring is {}."
-                        .format(trigger_repetitions, text_is_enabled))
-                    self.__read_process_finished = True
+            elif not is_enabled or trigger_repetitions == 0:
+                text_is_enabled = "enabled" if is_enabled else "disabled"
+                self.logger.warning(
+                    "Can't read monitoring data because monitoring is not ready."
+                    " MON_CFG_TRIGGER_REPETITIONS is {}. Monitoring is {}."
+                    .format(trigger_repetitions, text_is_enabled))
+                self.__read_process_finished = True
         return data_array
 
     def get_monitoring_process_stage(self):
@@ -444,18 +445,18 @@ class Monitoring:
         return (monitor_status & self.MONITORING_AVAILABLE_FRAME_BIT) != 0
 
     def __fill_data(self, data_array):
-        network = self.mc.net[self.servo]
+        drive = self.mc.servos[self.servo]
         for ch_idx, channel in enumerate(self.mapped_registers):
             dtype = channel["dtype"]
-            tmp_monitor_data = network.monitoring_channel_data(ch_idx, dtype)
+            tmp_monitor_data = drive.monitoring_channel_data(ch_idx, REG_DTYPE(dtype))
             data_array[ch_idx] += tmp_monitor_data
 
     def __check_version(self):
         self.__version_flag = self.MonitoringVersion.MONITORING_V2
         try:
-            self.mc.servos[self.servo].dict.get_regs(0)[
-                self.MONITORING_CURRENT_NUMBER_BYTES_REGISTER]
-        except ILError:
+            self.mc.info.register_info(
+                self.MONITORING_CURRENT_NUMBER_BYTES_REGISTER, 0, servo=self.servo)
+        except IMRegisterNotExist:
             # The Monitoring V2 is NOT available
             self.__version_flag = self.MonitoringVersion.MONITORING_V1
 
@@ -508,11 +509,12 @@ class Monitoring:
 
     def __check_buffer_size_is_enough(self, total_samples, trigger_delay_samples,
                                       registers):
-        size_demand = 0
         n_sample = max(total_samples - trigger_delay_samples, trigger_delay_samples)
-        for register in registers:
-            size_demand += self.__data_type_size[register["dtype"]] * n_sample
-        if not self.max_sample_number / 2 >= size_demand:
+        size_demand = sum(
+            self.__data_type_size[register["dtype"]] * n_sample
+            for register in registers
+        )
+        if self.max_sample_number / 2 < size_demand:
             raise MonitoringError(
                 "Number of samples is too high or mapped registers are too big. "
                 "Demanded size: {} bytes, buffer max size: {} bytes."

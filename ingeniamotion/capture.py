@@ -1,5 +1,9 @@
 import ingenialink as il
 
+from ingenialink.ipb.poller import IPBPoller
+from ingenialink.canopen.poller import CanopenPoller
+from ingenialink.canopen.servo import CanopenServo
+
 from .disturbance import Disturbance
 from .monitoring import Monitoring, MonitoringSoCType
 from .exceptions import MonitoringError, DisturbanceError
@@ -63,16 +67,15 @@ class Capture(metaclass=MCMetaClass):
 
                 When the property data is read list are reset to a empty list.
         """
-        drive = self.mc.servos[servo]
-        if self.mc.net[servo].prot == il.NET_PROT.CAN:
-            poller = il.CANOpenPoller(self.mc.servos[servo], len(registers))
+        if isinstance(self.mc.servos[servo], CanopenServo):
+            poller = CanopenPoller(self.mc.servos[servo], len(registers))
         else:
-            poller = il.Poller(self.mc.servos[servo], len(registers))
+            poller = IPBPoller(self.mc.servos[servo], len(registers))
         poller.configure(sampling_time, buffer_size)
         for index, register in enumerate(registers):
             axis = register.get("axis", DEFAULT_AXIS)
             name = register.get("name")
-            register_obj = drive.dict.get_regs(axis)[name]
+            register_obj = self.mc.info.register_info(name, axis, servo=servo)
             poller.ch_configure(index, register_obj)
         if start:
             poller.start()
@@ -187,8 +190,8 @@ class Capture(metaclass=MCMetaClass):
         Raises:
             MonitoringError: If monitoring can't be enabled.
         """
-        network = self.mc.net[servo]
-        network.monitoring_enable()
+        drive = self.mc.servos[servo]
+        drive.monitoring_enable()
         # Check monitoring status
         if not self.is_monitoring_enabled(servo=servo):
             raise MonitoringError("Error enabling monitoring.")
@@ -200,8 +203,8 @@ class Capture(metaclass=MCMetaClass):
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
         """
-        network = self.mc.net[servo]
-        network.monitoring_disable()
+        drive = self.mc.servos[servo]
+        drive.monitoring_disable()
 
     def get_monitoring_disturbance_status(self, servo=DEFAULT_SERVO):
         """
@@ -252,8 +255,8 @@ class Capture(metaclass=MCMetaClass):
             servo (str): servo alias to reference it. ``default`` by default.
         """
         self.disable_monitoring_disturbance(servo=servo)
-        network = self.mc.net[servo]
-        network.monitoring_remove_all_mapped_registers()
+        drive = self.mc.servos[servo]
+        drive.monitoring_remove_all_mapped_registers()
 
     def clean_disturbance(self, servo=DEFAULT_SERVO):
         """
@@ -263,8 +266,8 @@ class Capture(metaclass=MCMetaClass):
             servo (str): servo alias to reference it. ``default`` by default.
         """
         self.disable_monitoring_disturbance(servo=servo)
-        network = self.mc.net[servo]
-        network.disturbance_remove_all_mapped_registers()
+        drive = self.mc.servos[servo]
+        drive.disturbance_remove_all_mapped_registers()
 
     def clean_monitoring_disturbance(self, servo=DEFAULT_SERVO):
         """

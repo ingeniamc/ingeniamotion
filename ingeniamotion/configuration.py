@@ -118,7 +118,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         if not path.isfile(config_path):
             raise FileNotFoundError("{} file does not exist!".format(config_path))
         servo_inst = self.mc.servos[servo]
-        servo_inst.dict_storage_write(config_path)
+        servo_inst.load_configuration(config_path)
         self.logger.info("Configuration loaded from %s", config_path,
                          drive=self.mc.servo_name(servo))
 
@@ -131,7 +131,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             servo (str): servo alias to reference it. ``default`` by default.
         """
         servo_inst = self.mc.servos[servo]
-        servo_inst.dict_storage_read(output_file)
+        servo_inst.save_configuration(output_file)
         self.logger.info("Configuration saved to %s", output_file,
                          drive=self.mc.servo_name(servo))
 

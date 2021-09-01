@@ -4,8 +4,8 @@ import ingenialogger
 from enum import IntEnum
 
 from .base_test import BaseTest, TestError
-from ingeniamotion.enums import SensorType, OperationMode, PhasingMode
 from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
+from ingeniamotion.enums import SensorType, OperationMode, PhasingMode
 
 
 class PhasingCheck(BaseTest):

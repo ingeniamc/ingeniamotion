@@ -4,3 +4,7 @@ class MonitoringError(Exception):
 
 class DisturbanceError(Exception):
     pass
+
+
+class IMRegisterNotExist(Exception):
+    pass

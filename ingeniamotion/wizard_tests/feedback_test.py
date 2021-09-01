@@ -1,12 +1,11 @@
 import time
 import math
 import ingenialogger
-import ingenialink as il
 
 from enum import IntEnum
-from ingenialink.exceptions import ILError
 
 from .base_test import BaseTest, TestError
+from ingeniamotion.exceptions import IMRegisterNotExist
 from ingeniamotion.enums import SensorType, OperationMode
 
 
@@ -158,7 +157,7 @@ class Feedbacks(BaseTest):
             error, error_msg, self.ResultType.RESOLUTION_ERROR)
 
     @BaseTest.stoppable
-    def feedback_setting(self):  # TODO Feedback Polarity to 0
+    def feedback_setting(self):
         if self.sensor == SensorType.HALLS:
             self.halls_extra_settings()
         # First set all feedback to feedback in test, so there won't be
@@ -241,7 +240,7 @@ class Feedbacks(BaseTest):
                     following_error_uid, 1,
                     servo=self.servo, axis=self.axis
                 )
-            except ILError as e:
+            except IMRegisterNotExist as e:
                 self.logger.warning(e)
 
     @BaseTest.stoppable

@@ -179,7 +179,7 @@ class Errors(metaclass=MCMetaClass):
     def __get_error_location(self, servo=DEFAULT_SERVO):
         # Try to read CoCo's last error, if it does not exist go to MoCo
         try:
-            _ = self.mc.servos[servo].dict.get_regs(0)[self.LAST_ERROR_COCO_REGISTER]
+            _ = self.mc.servos[servo].get_reg(self.LAST_ERROR_COCO_REGISTER, 0)
             return self.ErrorLocation.COCO
         except ILError:
             return self.ErrorLocation.MOCO

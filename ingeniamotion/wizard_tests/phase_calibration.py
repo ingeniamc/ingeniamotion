@@ -2,10 +2,10 @@ import time
 import ingenialogger
 
 from enum import IntEnum
-from ingenialink.exceptions import ILError
 
 from ingeniamotion.enums import PhasingMode, OperationMode,\
     SensorCategory, SensorType
+from ingeniamotion.exceptions import IMRegisterNotExist
 from .base_test import BaseTest, TestError
 
 
@@ -211,13 +211,13 @@ class Phasing(BaseTest):
         try:
             self.mc.communication.set_register("COMMU_ANGLE_INTEGRITY1_OPTION", 1,
                                                servo=self.servo, axis=self.axis)
-        except ILError:
+        except IMRegisterNotExist:
             self.logger.warning('Could not write COMMU_ANGLE_INTEGRITY1_OPTION')
 
         try:
             self.mc.communication.set_register("COMMU_ANGLE_INTEGRITY2_OPTION", 1,
                                                servo=self.servo, axis=self.axis)
-        except ILError:
+        except IMRegisterNotExist:
             self.logger.warning('Could not write COMMU_ANGLE_INTEGRITY2_OPTION')
 
     @BaseTest.stoppable
