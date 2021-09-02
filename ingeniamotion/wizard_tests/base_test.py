@@ -1,5 +1,6 @@
 import ingenialogger
 
+from enum import IntEnum
 from abc import ABC, abstractmethod
 from ingenialink.exceptions import ILError, ILTimeoutError
 
@@ -11,6 +12,11 @@ class TestError(Exception):
 
 
 class BaseTest(ABC, Stoppable):
+
+    class SeverityLevel(IntEnum):
+        SUCCESS = 0
+        WARNING = 1
+        FAIL = 2
 
     def __init__(self):
         self.backup_registers_names = None
@@ -62,34 +68,33 @@ class BaseTest(ABC, Stoppable):
 
     def run(self):
         self.reset_stop()
-        drive_disconnected = False
         self.save_backup_registers()
         try:
             self.setup()
             output = self.loop()
             self.report = self.__generate_report(output)
         except ILError as err:
-            drive_disconnected = True
             raise err
         except StopException:
             self.logger.warning("Test has been stopped")
         finally:
             try:
-                if not drive_disconnected:
-                    self.teardown()
-            except ILTimeoutError:
-                pass
+                self.teardown()
             finally:
                 self.restore_backup_registers()
         return self.report
 
     def __generate_report(self, output):
         return {
-            "result": output,
+            "result_severity": self.get_result_severity(output),
             "suggested_registers": self.suggested_registers,
-            "message": self.get_result_msg(output)
+            "result_message": self.get_result_msg(output)
         }
 
     @abstractmethod
     def get_result_msg(self, output):
+        pass
+
+    @abstractmethod
+    def get_result_severity(self, output):
         pass

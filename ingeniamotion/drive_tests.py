@@ -3,6 +3,9 @@ import ingenialogger
 from .enums import SensorType
 from .wizard_tests.feedback_test import Feedbacks
 from .wizard_tests.phase_calibration import Phasing
+from .wizard_tests.phasing_check import PhasingCheck
+from .wizard_tests.sto import STOTest
+from .wizard_tests.brake import Brake
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
@@ -14,8 +17,7 @@ class DriveTests(metaclass=MCMetaClass):
 
     def digital_halls_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
                            apply_changes=True):
-        """
-        Executes the digital halls feedback test given a target servo and
+        """Executes the digital halls feedback test given a target servo and
         axis. By default test will make changes in some drive registers like
         feedback polarity and others suggested registers. To avoid it, set
         ``apply_changes`` to ``False``.
@@ -31,12 +33,12 @@ class DriveTests(metaclass=MCMetaClass):
 
                 {
                     # (int) Result code
-                    "result": 0,
+                    "result_severity": 0,
                     # (dict) Suggested register values
                     "suggested_registers":
                         {"FBK_DIGHALL_POLARITY": 0},
                     # (str) Human readable result message
-                    "message": "Feedback test pass successfully"
+                    "result_message": "Feedback test pass successfully"
                 }
 
         Raises:
@@ -47,8 +49,7 @@ class DriveTests(metaclass=MCMetaClass):
 
     def incremental_encoder_1_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
                                    apply_changes=True):
-        """
-        Executes the incremental encoder 1 feedback test given a target servo
+        """Executes the incremental encoder 1 feedback test given a target servo
         and axis. By default test will make changes in some drive registers
         like feedback polarity and other suggested registers. To avoid it, set
         ``apply_changes`` to ``False``.
@@ -64,12 +65,12 @@ class DriveTests(metaclass=MCMetaClass):
 
                 {
                     # (int) Result code
-                    "result": 0,
+                    "result_severity": 0,
                     # (dict) Suggested register values
                     "suggested_registers":
                         {"FBK_DIGENC1_POLARITY": 0},
                     # (str) Human readable result message
-                    "message": "Feedback test pass successfully"
+                    "result_message": "Feedback test pass successfully"
                 }
 
         Raises:
@@ -80,8 +81,7 @@ class DriveTests(metaclass=MCMetaClass):
 
     def incremental_encoder_2_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
                                    apply_changes=True):
-        """
-        Executes incremental encoder 2 feedback test given a target servo
+        """Executes incremental encoder 2 feedback test given a target servo
         and axis. By default test will make changes in some drive registers
         like feedback polarity and other suggested registers. To avoid it,
         set ``apply_changes`` to ``False``.
@@ -97,12 +97,12 @@ class DriveTests(metaclass=MCMetaClass):
 
                 {
                     # (int) Result code
-                    "result": 0,
+                    "result_severity": 0,
                     # (dict) Suggested register values
                     "suggested_registers":
                         {"FBK_DIGENC2_POLARITY": 0},
                     # (str) Human readable result message
-                    "message": "Feedback test pass successfully"
+                    "result_message": "Feedback test pass successfully"
                 }
 
         Raises:
@@ -113,16 +113,14 @@ class DriveTests(metaclass=MCMetaClass):
 
     def absolute_encoder_1_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
                                 apply_changes=True):
-        """
-        Executes absolute encoder 1 feedback test given a target servo and axis.
+        """Executes absolute encoder 1 feedback test given a target servo and axis.
         To know more about it see :func:`digital_halls_test`.
         """
         return self.__feedback_test(SensorType.ABS1, servo, axis, apply_changes)
 
     def absolute_encoder_2_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
                                 apply_changes=True):
-        """
-        Executes absolute encoder 2 feedback test given a target servo and axis.
+        """Executes absolute encoder 2 feedback test given a target servo and axis.
         To know more about it see :func:`digital_halls_test`.
         """
         return self.__feedback_test(SensorType.BISSC2, servo, axis, apply_changes)
@@ -166,12 +164,12 @@ class DriveTests(metaclass=MCMetaClass):
 
                 {
                     # (int) Result code
-                    "result": 0,
+                    "result_severity": 0,
                     # (dict) Suggested register values
                     "suggested_registers":
                         {"COMMU_ANGLE_OFFSET": 0.12},
                     # (str) Human readable result message
-                    "message": "Phasing process finished successfully"
+                    "result_message": "Phasing process finished successfully"
                 }
 
         Raises:
@@ -187,3 +185,64 @@ class DriveTests(metaclass=MCMetaClass):
             self.logger.debug("Commutation changes applied", axis=axis,
                               drive=self.mc.servo_name(servo))
         return output
+
+    def phasing_check(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        """
+        Checks servo phasing.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): axis that will run the test. ``1`` by default.
+
+        Returns:
+            dict: Dictionary with the result of the test::
+
+                {
+                    # (int) Result code
+                    "result_severity": 0,
+                    # (dict) Suggested register values
+                    "suggested_registers": {},
+                    # (str) Human readable result message
+                    "result_message": "Phasing process finished successfully"
+                }
+        """
+        phasing_check = PhasingCheck(self.mc, servo, axis)
+        return phasing_check.run()
+
+    def sto_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        """
+        Check STO
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): axis that will run the test. ``1`` by default.
+
+        Returns:
+            dict: Dictionary with the result of the test::
+
+                {
+                    # (int) Result code
+                    "result_severity": 0,
+                    # (dict) Suggested register values
+                    "suggested_registers": {},
+                    # (str) Human readable result message
+                    "result_message": "Phasing process finished successfully"
+                }
+        """
+        sto_test = STOTest(self.mc, servo, axis)
+        return sto_test.run()
+
+    def brake_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        """
+        Run brake test.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): axis that will run the test. ``1`` by default.
+
+        Returns:
+            Brake: Instance of Brake test. Call ``Brake.finish()`` to end the test.
+        """
+        brake_test = Brake(self.mc, servo, axis)
+        brake_test.run()
+        return brake_test

@@ -7,7 +7,7 @@ name = "pypi"
 python_version = "3"
 
 [packages]
-ingenialink = ">=5.3.6"
+ingenialink = ">=5.3.9"
 ingenialogger = ">=0.2.0"
 ifaddr= "==0.1.7"
 
@@ -20,3 +20,6 @@ nbsphinx = "*"
 ipython = "*"
 Cython = "==3.0a6"
 rst2pdf = "*"
+pytest = "==6.2.4"
+pytest-cov = "==2.12.1"
+pytest-mock = "==3.6.1"

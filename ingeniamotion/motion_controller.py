@@ -6,6 +6,8 @@ from .capture import Capture
 from .communication import Communication
 from .drive_tests import DriveTests
 from .errors import Errors
+from .information import Information
+from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 
 
 class MotionController:
@@ -21,11 +23,12 @@ class MotionController:
         self.__comm = Communication(self)
         self.__tests = DriveTests(self)
         self.__errors = Errors(self)
+        self.__info = Information(self)
 
-    def servo_name(self, servo):
+    def servo_name(self, servo=DEFAULT_SERVO):
         return "{} ({})".format(self.servos[servo].info["prod_code"], servo)
 
-    def get_register_enum(self, register, servo, axis):
+    def get_register_enum(self, register, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         drive = self.servos[servo]
         enum_list = drive.dict.get_regs(axis)[register].enums
         enum_dict = {x["label"]: x["value"] for x in enum_list}
@@ -34,9 +37,7 @@ class MotionController:
     # Properties
     @property
     def servos(self):
-        """
-        Dict of ``ingenialink.Servo`` connected indexed by alias
-        """
+        """Dict of ``ingenialink.Servo`` connected indexed by alias"""
         return self.__servos
 
     @servos.setter
@@ -45,9 +46,7 @@ class MotionController:
 
     @property
     def net(self):
-        """
-        Dict of ``ingenialink.Network`` connected indexed by alias
-        """
+        """Dict of ``ingenialink.Network`` connected indexed by alias"""
         return self.__net
 
     @net.setter
@@ -56,42 +55,35 @@ class MotionController:
 
     @property
     def configuration(self):
-        """
-        Instance of  :class:`~ingeniamotion.configuration.Configuration` class
-        """
+        """Instance of  :class:`~ingeniamotion.configuration.Configuration` class"""
         return self.__config
 
     @property
     def motion(self):
-        """
-        Instance of  :class:`~ingeniamotion.motion.Motion` class
-        """
+        """Instance of  :class:`~ingeniamotion.motion.Motion` class"""
         return self.__motion
 
     @property
     def capture(self):
-        """
-        Instance of  :class:`~ingeniamotion.capture.Capture` class
-        """
+        """Instance of  :class:`~ingeniamotion.capture.Capture` class"""
         return self.__capture
 
     @property
     def communication(self):
-        """
-        Instance of  :class:`~ingeniamotion.communication.Communication` class
-        """
+        """Instance of  :class:`~ingeniamotion.communication.Communication` class"""
         return self.__comm
 
     @property
     def tests(self):
-        """
-        Instance of  :class:`~ingeniamotion.drive_tests.DriveTests` class
-        """
+        """Instance of  :class:`~ingeniamotion.drive_tests.DriveTests` class"""
         return self.__tests
 
     @property
     def errors(self):
-        """
-        Instance of :class:`~ingeniamotion.errors.Errors` class
-        """
+        """Instance of :class:`~ingeniamotion.errors.Errors` class"""
         return self.__errors
+
+    @property
+    def info(self):
+        """Instance of :class:`~ingeniamotion.errors.Information` class"""
+        return self.__info

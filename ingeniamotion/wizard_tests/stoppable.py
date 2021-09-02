@@ -1,4 +1,5 @@
 from functools import wraps
+from time import time
 
 
 class StopException(Exception):
@@ -7,19 +8,27 @@ class StopException(Exception):
 
 class Stoppable:
 
-    stop = False
+    is_stopped = False
 
     @staticmethod
     def stoppable(fun):
         @wraps(fun)
         def wrapper(self, *args, **kwargs):
-            if self.stop:
-                raise StopException
+            self.check_stop()
             return fun(self, *args, **kwargs)
         return wrapper
 
     def reset_stop(self):
-        self.stop = False
+        self.is_stopped = False
 
-    def active_stop(self):
-        self.stop = True
+    def stop(self):
+        self.is_stopped = True
+
+    def check_stop(self):
+        if self.is_stopped:
+            raise StopException
+
+    def stoppable_sleep(self, timeout):
+        init_time = time()
+        while init_time + timeout > time():
+            self.check_stop()

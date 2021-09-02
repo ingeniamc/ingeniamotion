@@ -1,5 +1,6 @@
 import time
 import ingenialogger
+from ingenialink.exceptions import ILError
 
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.enums import OperationMode, SensorType,\
@@ -35,8 +36,7 @@ class Motion(metaclass=MCMetaClass):
         self.logger = ingenialogger.get_logger(__name__)
 
     def target_latch(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        """
-        Active target latch.
+        """Active target latch.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -53,8 +53,7 @@ class Motion(metaclass=MCMetaClass):
 
     def set_operation_mode(self, operation_mode, servo=DEFAULT_SERVO,
                            axis=DEFAULT_AXIS):
-        """
-        Set operation mode to a target servo and axis.
+        """Set operation mode to a target servo and axis.
 
         Args:
             operation_mode (OperationMode): operation mode, any of
@@ -73,8 +72,7 @@ class Motion(metaclass=MCMetaClass):
                               drive=self.mc.servo_name(servo))
 
     def get_operation_mode(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        """
-        Return current operation mode.
+        """Return current operation mode.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -93,33 +91,48 @@ class Motion(metaclass=MCMetaClass):
             return operation_mode
 
     def motor_enable(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        """
-        Enable motor.
+        """Enable motor.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
         """
         drive = self.mc.servos[servo]
-        drive.enable(subnode=axis)
+        try:
+            drive.enable(subnode=axis)
+        except ILError as e:
+            error_code = self.mc.errors.get_last_buffer_error(servo=servo, axis=axis)
+            error_id, _, _, error_msg = self.mc.errors.get_error_data(
+                error_code, servo=servo)
+            exception_type = type(e)
+            raise exception_type("An error occurred enabling motor. Reason: {}"
+                                 .format(error_msg))
 
     def motor_disable(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        """Disable motor.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
         """
-        Disable motor.
+        if self.mc.configuration.is_motor_enabled(servo=servo, axis=axis):
+            drive = self.mc.servos[servo]
+            drive.disable(subnode=axis)
+
+    def fault_reset(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        """Fault reset.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
         """
         drive = self.mc.servos[servo]
-        drive.disable(subnode=axis)
+        drive.fault_reset(axis)
 
     def move_to_position(self, position, servo=DEFAULT_SERVO,
                          axis=DEFAULT_AXIS, target_latch=True,
                          blocking=False):
-        """
-        Set position set point to a target servo and axis, in counts.
-
+        """Set position set point to a target servo and axis, in counts.
 
         Args:
             position (int): target position, in counts.
@@ -139,8 +152,7 @@ class Motion(metaclass=MCMetaClass):
 
     def set_velocity(self, velocity, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
                      target_latch=True, blocking=False):
-        """
-        Set velocity set point to a target servo and axis, in rev/s.
+        """Set velocity set point to a target servo and axis, in rev/s.
 
         Args:
             velocity (float): target velocity, in rev/s.
@@ -160,8 +172,7 @@ class Motion(metaclass=MCMetaClass):
 
     def set_current_quadrature(self, current, servo=DEFAULT_SERVO,
                                axis=DEFAULT_AXIS):
-        """
-        Set quadrature current set point to a target servo and axis, in A.
+        """Set quadrature current set point to a target servo and axis, in A.
 
         Args:
             current (float): target quadrature current, in A.
@@ -174,8 +185,7 @@ class Motion(metaclass=MCMetaClass):
         )
 
     def set_current_direct(self, current, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        """
-        Set direct current set point to a target servo and axis, in A.
+        """Set direct current set point to a target servo and axis, in A.
 
         Args:
             current (float): target direct current, in A.
@@ -187,8 +197,7 @@ class Motion(metaclass=MCMetaClass):
 
     def set_voltage_quadrature(self, voltage, servo=DEFAULT_SERVO,
                                axis=DEFAULT_AXIS):
-        """
-        Set quadrature voltage set point to a target servo and axis, in V.
+        """Set quadrature voltage set point to a target servo and axis, in V.
 
         Args:
             voltage (float): target quadrature voltage, in V.
@@ -200,8 +209,7 @@ class Motion(metaclass=MCMetaClass):
 
     def set_voltage_direct(self, voltage, servo=DEFAULT_SERVO,
                            axis=DEFAULT_AXIS):
-        """
-        Set direct voltage set point to a target servo and axis, in V.
+        """Set direct voltage set point to a target servo and axis, in V.
 
         Args:
             voltage (float): target direct voltage, in V.
@@ -213,8 +221,7 @@ class Motion(metaclass=MCMetaClass):
 
     def current_quadrature_ramp(self, target_value, time_s, servo=DEFAULT_SERVO,
                                 axis=DEFAULT_AXIS, init_value=0, interval=None):
-        """
-        Given a target value and a time in seconds, changes the current
+        """Given a target value and a time in seconds, changes the current
         quadrature set-point linearly following a ramp. This function is
         blocked until target reached.
 
@@ -227,7 +234,7 @@ class Motion(metaclass=MCMetaClass):
             interval (float): time interval between register writes, in seconds.
                 ``None`` by default, no interval.
         """
-        for value in self.__ramp_generator(init_value, target_value, time_s, interval):
+        for value in self.ramp_generator(init_value, target_value, time_s, interval):
             self.set_current_quadrature(value, servo=servo, axis=axis)
 
     def current_direct_ramp(self, target_value, time_s, servo=DEFAULT_SERVO,
@@ -246,7 +253,7 @@ class Motion(metaclass=MCMetaClass):
             interval (float): time interval between register writes, in seconds.
                 ``None`` by default, no interval.
         """
-        for value in self.__ramp_generator(init_value, target_value, time_s, interval):
+        for value in self.ramp_generator(init_value, target_value, time_s, interval):
             self.set_current_direct(value, servo=servo, axis=axis)
 
     def voltage_quadrature_ramp(self, target_value, time_s, servo=DEFAULT_SERVO,
@@ -265,7 +272,7 @@ class Motion(metaclass=MCMetaClass):
             interval (float): time interval between register writes, in seconds.
                 ``None`` by default, no interval.
         """
-        for value in self.__ramp_generator(init_value, target_value, time_s, interval):
+        for value in self.ramp_generator(init_value, target_value, time_s, interval):
             self.set_voltage_quadrature(value, servo=servo, axis=axis)
 
     def voltage_direct_ramp(self, target_value, time_s, servo=DEFAULT_SERVO,
@@ -284,20 +291,20 @@ class Motion(metaclass=MCMetaClass):
             interval (float): time interval between register writes, in seconds.
                 ``None`` by default, no interval.
         """
-        for value in self.__ramp_generator(init_value, target_value, time_s, interval):
+        for value in self.ramp_generator(init_value, target_value, time_s, interval):
             self.set_voltage_direct(value, servo=servo, axis=axis)
 
     @staticmethod
-    def __ramp_generator(init_v, final_v, total_t, interval=None):
+    def ramp_generator(init_v, final_v, total_t, interval=None):
         slope = (final_v-init_v) / total_t
-        yield init_v
         init_time = time.time()
-        current_time = init_time
+        yield init_v
+        current_time = time.time()
         while current_time < init_time+total_t:
-            current_time = time.time()
-            yield slope * (current_time-init_time)
+            yield slope * (current_time-init_time) + init_v
             if interval is not None:
                 time.sleep(interval)
+            current_time = time.time()
         yield final_v
 
     def get_actual_position(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
@@ -312,6 +319,21 @@ class Motion(metaclass=MCMetaClass):
             int: actual position value
         """
         return self.mc.communication.get_register(self.ACTUAL_POSITION_REGISTER,
+                                                  servo=servo, axis=axis)
+
+    def get_actual_velocity(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        """
+        Returns actual velocity register.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+
+        Returns:
+            int: actual velocity value
+
+        """
+        return self.mc.communication.get_register(self.ACTUAL_VELOCITY_REGISTER,
                                                   servo=servo, axis=axis)
 
     def wait_for_position(self, position, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
@@ -369,10 +391,7 @@ class Motion(metaclass=MCMetaClass):
         while not target_reached:
             if interval:
                 time.sleep(interval)
-            curr_velocity = self.mc.communication.get_register(
-                self.ACTUAL_VELOCITY_REGISTER,
-                servo=servo, axis=axis
-            )
+            curr_velocity = self.get_actual_velocity(servo=servo, axis=axis)
             target_reached = abs(velocity - curr_velocity) < abs(error)
             if timeout and (init_time + timeout) < time.time():
                 target_reached = True

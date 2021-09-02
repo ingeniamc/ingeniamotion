@@ -1,0 +1,23 @@
+{
+  "eoe": {
+    "ip": "192.168.2.22",
+    "dictionary": "eve-net-e_eoe_1.7.2.xdf",
+    "config_file": "eve-test-config.xcf"
+  },
+  "soem": {
+    "index": 4,
+    "dictionary": "eve-net-e_eoe_1.7.2.xdf",
+    "slave": 1,
+    "config_file": "eve-test-config.xcf",
+    "eoe_comm": true
+  },
+  "canopen": {
+    "device": "pcan",
+    "dictionary": "eve-net-c_can_1.8.1.xdf",
+    "eds": "eve-net-c_1.8.1.eds",
+    "node_id": 32,
+    "baudrate": 1000000,
+    "channel": 0,
+    "config_file": "eve-test-config_canopen.xcf"
+  }
+}

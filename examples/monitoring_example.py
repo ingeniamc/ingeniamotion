@@ -40,7 +40,7 @@ monitoring = mc.capture.create_monitoring(registers,
                                           trigger_signal=trigger_signal,
                                           trigger_value=trigger_value)
 # Enable Monitoring
-monitoring.enable_monitoring()
+mc.capture.enable_monitoring_disturbance()
 print("Waiting for trigger")
 # Blocking function to read monitoring values
 data = monitoring.read_monitoring_data()
