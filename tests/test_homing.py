@@ -115,12 +115,12 @@ def test_homing_on_switch_limit_timeout(motion_controller):
         homing_offset, direction, switch, homing_timeout,
         search_vel, zero_vel, servo=alias, motor_enable=False)
     time.sleep(homing_timeout/1000)
-    assert mc.motion.get_actual_velocity(servo=alias) == 0
+    assert pytest.approx(mc.motion.get_actual_velocity(servo=alias)) == 0
     mc.motion.motor_enable(servo=alias)
     mc.motion.target_latch(servo=alias)
     assert mc.motion.get_actual_velocity(servo=alias) != 0
     time.sleep(homing_timeout/1000+1)
-    assert mc.motion.get_actual_velocity(servo=alias) == 0
+    assert pytest.approx(mc.motion.get_actual_velocity(servo=alias)) == 0
 
 
 @pytest.mark.usefixtures("initial_position")
