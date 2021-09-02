@@ -236,6 +236,10 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             value (int): Enum value to set power stage frequency.
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
+
+        Raises:
+            IMStatusWordError: If motor is enabled.
+
         """
         self.mc.communication.set_register(
             self.POWER_STAGE_FREQUENCY_REGISTER,

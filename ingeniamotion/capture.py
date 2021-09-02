@@ -283,6 +283,9 @@ class Capture(metaclass=MCMetaClass):
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
 
+        Raises:
+            IMStatusWordError: If motor is enabled.
+
         """
         self.enable_monitoring_disturbance(servo=servo)
         self.disable_monitoring_disturbance(servo=servo)
