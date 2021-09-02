@@ -188,13 +188,12 @@
           <Labels>
             <Label lang="en_US">Monitoring Frequency Divider</Label>
           </Labels>
-          <Range min="1" max="255"/>
         </Register>
         <Register access="rw" address_type="NVM_NONE" address="0x00C2" dtype="u32" id="MON_CFG_TRIGGER_DELAY" units="-" subnode="0" cyclic="CONFIG" desc="" cat_id="MONITORING">
           <Labels>
             <Label lang="en_US">Monitoring Memory Buffer1 Size</Label>
           </Labels>
-          <Range min="1" max="42949672950"/>
+          <Range min="0" max="42949672950"/>
         </Register>
         <Register access="rw" address_type="NVM_NONE" address="0x00C3" dtype="u32" id="MON_CFG_WINDOW_SAMP" units="-" subnode="0" cyclic="CONFIG" desc="" cat_id="MONITORING">
           <Labels>
@@ -211,7 +210,6 @@
           <Labels>
             <Label lang="en_US">Disturbance Frequency Divider</Label>
           </Labels>
-          <Range min="1" max="255"/>
         </Register>
         <Register access="rw" address_type="NVM_NONE" address="0x00C6" dtype="u16" id="DIST_ENABLE" units="-" subnode="0" cyclic="CONFIG" desc="" cat_id="MONITORING">
           <Labels>

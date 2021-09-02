@@ -16,10 +16,11 @@ registers = [{"axis": 1, "name": "DRV_PROT_VBUS_VALUE"},
              {"axis": 1, "name": "CL_VEL_FBK_VALUE"}]
 
 # Servo frequency divisor to set monitoring frequency
-monitoring_prescaler = 10
+monitoring_prescaler = 1
 
 total_time_s = 0.1  # Total sample time in seconds
-trigger_delay_s = 0.0  # Trigger delay time in seconds
+# total_time_s = 0.5  # Total sample time in seconds
+trigger_delay_s = -0.1  # Trigger delay time in seconds
 
 # trigger_type = MonitoringEventType.TRIGGER_EVENT_AUTO
 # trigger_type = MonitoringEventType.TRIGGER_EVENT_FORCED
@@ -46,22 +47,29 @@ monitoring = mc.capture.create_monitoring(registers,
                                           trigger_value=trigger_value)
 # Enable Monitoring
 mc.capture.enable_monitoring_disturbance()
-print("Waiting for trigger")
-# Blocking function to read monitoring values
-data = monitoring.read_monitoring_data()
-print("Triggered and data read!")
+while 1:
+    print("Waiting for trigger")
+    # Blocking function to read monitoring values
+    data = monitoring.read_monitoring_data()
+    print("Triggered and data read!")
 
-# Calculate abscissa values with total_time_s and trigger_delay_s
-x_start = -total_time_s/2 + trigger_delay_s
-x_end = total_time_s/2 + trigger_delay_s
-x_values = np.linspace(x_start, x_end, len(data[0]))
+    # Calculate abscissa values with total_time_s and trigger_delay_s
+    x_start = -total_time_s/2 + trigger_delay_s
+    x_end = total_time_s/2 + trigger_delay_s
+    x_values = np.linspace(x_start, x_end, len(data[0]))
 
-# Plot result
-fig, axs = plt.subplots(2)
-for index in range(len(axs)):
-    ax = axs[index]
-    ax.plot(x_values, data[index])
-    ax.set_title(registers[index]["name"])
+    # Plot result
+    fig, axs = plt.subplots(2)
+    for index in range(len(axs)):
+        ax = axs[index]
+        ax.plot(x_values, data[index])
+        ax.set_title(registers[index]["name"])
 
-plt.autoscale()
-plt.show()
+    plt.autoscale()
+    plt.show()
+    monitoring.mc.communication.set_register(
+            "MON_CFG_TRIGGER_REPETITIONS",
+            1,
+            servo=monitoring.servo,
+            axis=0
+        )

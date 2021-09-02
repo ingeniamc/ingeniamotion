@@ -9,12 +9,12 @@ mc.communication.connect_servo_eoe("192.168.2.22", "./cap-net-c_eth_0.7.3.xdf")
 # Disturbance register
 target_register = "CL_POS_SET_POINT_VALUE"
 # Frequency divider to set disturbance frequency
-divider = 10
+divider = 10000
 # Calculate time between disturbance samples
 sample_period = divider/mc.configuration.get_position_and_velocity_loop_rate()
 # The disturbance signal will be a simple harmonic motion (SHM) with frequency 0.5Hz and 2000 counts of amplitude
-signal_frequency = 3
-signal_amplitude = 2000
+signal_frequency = 0.1
+signal_amplitude = 2
 # Calculate number of samples to load a complete oscillation
 n_samples = int(1 / (signal_frequency * sample_period))
 # Generate a SHM with the formula x(t)=A*sin(t*w) where:
@@ -34,7 +34,7 @@ mc.capture.enable_monitoring_disturbance()
 # Enable motor
 mc.motion.motor_enable()
 # Wait 10 seconds
-time.sleep(10)
+time.sleep(100)
 # Disable motor
 mc.motion.motor_disable()
 # Disable disturbance

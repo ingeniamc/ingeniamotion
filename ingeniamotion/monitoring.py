@@ -334,8 +334,8 @@ class Monitoring:
         if not total_num_samples > trigger_delay_samples:
             raise ValueError("trigger_delay_samples should be less"
                              " than total_num_samples")
-        if trigger_delay_samples < 1:
-            raise ValueError("trigger_delay_samples should be minimum 1")
+        # if trigger_delay_samples < 1:
+        #     raise ValueError("trigger_delay_samples should be minimum 1")
         self.__check_buffer_size_is_enough(total_num_samples, trigger_delay_samples,
                                            self.mapped_registers)
 
@@ -379,13 +379,11 @@ class Monitoring:
                 ``total_time/2``.
             MonitoringError: If buffer size is not enough for all the samples.
         """
-        if total_time / 2 < abs(trigger_delay):
-            raise ValueError("trigger_delay value should be between"
-                             " -total_time/2 and total_time/2")
+        # if total_time / 2 < abs(trigger_delay):
+        #     raise ValueError("trigger_delay value should be between"
+        #                      " -total_time/2 and total_time/2")
         total_num_samples = int(self.sampling_freq * total_time)
-        trigger_delay_samples = int(((total_time / 2) - trigger_delay)
-                                    * self.sampling_freq)
-        trigger_delay_samples = trigger_delay_samples if trigger_delay_samples > 0 else 1
+        trigger_delay_samples = total_num_samples - abs(int(self.sampling_freq * trigger_delay))
         self.configure_number_samples(total_num_samples, trigger_delay_samples)
 
     def __setup_read_monitoring_data(self):
@@ -446,7 +444,7 @@ class Monitoring:
                 current_len = len(data_array[0])
                 self.__show_current_process(current_len, progress_callback)
             else:
-                if not is_enabled or trigger_repetitions == 0:
+                if not is_enabled:
                     text_is_enabled = "enabled" if is_enabled else "disabled"
                     self.logger.warning(
                         "Can't read monitoring data because monitoring is not ready."
