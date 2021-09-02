@@ -114,14 +114,11 @@ class PhasingCheck(BaseTest):
         num_of_steps = 1
         if ref_feedback == SensorType.HALLS:
             actual_angle = self.INITIAL_ANGLE_HALLS
-            while actual_angle > delta:
-                actual_angle = actual_angle / 2
-                num_of_steps = num_of_steps + 1
         else:
             actual_angle = self.INITIAL_ANGLE
-            while actual_angle > delta:
-                actual_angle = actual_angle / 2
-                num_of_steps = num_of_steps + 1
+        while actual_angle > delta:
+            actual_angle = actual_angle / 2
+            num_of_steps += 1
         return num_of_steps
 
     @BaseTest.stoppable
@@ -154,14 +151,13 @@ class PhasingCheck(BaseTest):
                 servo=self.servo, axis=self.axis
             ):
                 raise TestError("Motor phasing fail")
-            else:
-                self.mc.motion.set_current_quadrature(0, servo=self.servo,
-                                                      axis=self.axis)
-                self.stoppable_sleep(0.1)
-                i = i + delta_i
-                if self.mc.configuration.is_commutation_feedback_aligned(
-                        servo=self.servo, axis=self.axis):
-                    phasing_bit_latched = True
+            self.mc.motion.set_current_quadrature(0, servo=self.servo,
+                                                  axis=self.axis)
+            self.stoppable_sleep(0.1)
+            i += delta_i
+            if self.mc.configuration.is_commutation_feedback_aligned(
+                    servo=self.servo, axis=self.axis):
+                phasing_bit_latched = True
         self.mc.motion.set_current_quadrature(0, servo=self.servo, axis=self.axis)
         self.logger.info("Wait until motor has stopped")
         self.mc.motion.wait_for_velocity(0, servo=self.servo,

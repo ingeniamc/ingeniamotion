@@ -228,16 +228,12 @@ class Phasing(BaseTest):
         # If reference feedback are Halls
         if self.ref == SensorType.HALLS:
             actual_angle = self.INITIAL_ANGLE_HALLS
-            num_of_steps = 1
-            while actual_angle > delta:
-                actual_angle = actual_angle / 2
-                num_of_steps = num_of_steps + 1
         else:
             actual_angle = self.INITIAL_ANGLE
-            num_of_steps = 1
-            while actual_angle > delta:
-                actual_angle = actual_angle / 2
-                num_of_steps = num_of_steps + 1
+        num_of_steps = 1
+        while actual_angle > delta:
+            actual_angle = actual_angle / 2
+            num_of_steps += 1
         return num_of_steps
 
     @BaseTest.stoppable
@@ -258,13 +254,12 @@ class Phasing(BaseTest):
             else:
                 # Set a forced and then a No-Phasing
                 return PhasingMode.NO_PHASING
+        elif self.comm == self.ref:
+            # Set a forced and then a No-Phasing
+            return PhasingMode.NO_PHASING
         else:
-            if self.comm == self.ref:
-                # Set a forced and then a No-Phasing
-                return PhasingMode.NO_PHASING
-            else:
-                # Set a forced and then a Non forced
-                return PhasingMode.NON_FORCED
+            # Set a forced and then a Non forced
+            return PhasingMode.NON_FORCED
 
     @BaseTest.stoppable
     def loop(self):

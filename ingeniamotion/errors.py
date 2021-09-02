@@ -58,12 +58,11 @@ class Errors(metaclass=MCMetaClass):
         """
         error_location = self.__get_error_location(servo)
         subnode = 0 if error_location == self.ErrorLocation.COCO else axis
-        last_error = self.mc.communication.get_register(
+        return self.mc.communication.get_register(
             self.LAST_ERROR_REGISTER[error_location],
             servo=servo,
             axis=subnode
         )
-        return last_error
 
     def get_last_buffer_error(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
@@ -91,7 +90,7 @@ class Errors(metaclass=MCMetaClass):
         Returns:
             int: Code error.
         """
-        if not index < self.MAXIMUM_ERROR_INDEX:
+        if index >= self.MAXIMUM_ERROR_INDEX:
             raise ValueError('index must be less than 32')
         error_location = self.__get_error_location(servo)
         subnode = 0 if error_location == self.ErrorLocation.COCO else axis
@@ -101,12 +100,11 @@ class Errors(metaclass=MCMetaClass):
             servo=servo,
             axis=subnode
         )
-        err_code = self.mc.communication.get_register(
+        return self.mc.communication.get_register(
             self.ERROR_LIST_REQUESTED_CODE[error_location],
             servo=servo,
             axis=subnode
         )
-        return err_code
 
     def get_number_total_errors(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
@@ -121,12 +119,11 @@ class Errors(metaclass=MCMetaClass):
         """
         error_location = self.__get_error_location(servo)
         subnode = 0 if error_location == self.ErrorLocation.COCO else axis
-        num_errors = self.mc.communication.get_register(
+        return self.mc.communication.get_register(
             self.ERROR_TOTAL_NUMBER_REGISTER[error_location],
             servo=servo,
             axis=subnode
         )
-        return num_errors
 
     def get_all_errors(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """

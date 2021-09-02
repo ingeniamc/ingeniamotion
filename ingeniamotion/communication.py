@@ -285,13 +285,12 @@ class Communication(metaclass=MCMetaClass):
             int, float or str: Current register value.
         """
         drive = self.mc.servos[servo]
-        if il.register.REG_DTYPE.STR.value == dtype.value:
-            if not isinstance(string_size, int):
-                raise TypeError("string_size should be an int for data type string")
-            return drive.read_string_sdo(index, subindex,
-                                         string_size, drive.slave)
-        else:
+        if il.register.REG_DTYPE.STR.value != dtype.value:
             return drive.read_sdo(index, subindex, dtype.value, drive.slave)
+        if not isinstance(string_size, int):
+            raise TypeError("string_size should be an int for data type string")
+        return drive.read_string_sdo(index, subindex,
+                                     string_size, drive.slave)
 
     def set_sdo_register(self, index, subindex, dtype, value,
                          servo=DEFAULT_SERVO):

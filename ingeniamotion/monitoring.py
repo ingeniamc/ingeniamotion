@@ -296,7 +296,7 @@ class Monitoring:
                 or higher than total_num_samples.
             IMMonitoringError: If buffer size is not enough for all the samples.
         """
-        if not total_num_samples > trigger_delay_samples:
+        if trigger_delay_samples >= total_num_samples:
             raise ValueError("trigger_delay_samples should be less"
                              " than total_num_samples")
         if trigger_delay_samples < 1:
@@ -582,8 +582,7 @@ class Monitoring:
 
         """
         is_triggered = self.raise_forced_trigger(blocking=True, timeout=trigger_timeout)
-        if is_triggered:
-            return self.read_monitoring_data()
-        else:
+        if not is_triggered:
             self.logger.warning("Timeout. Forced trigger is not raised.")
             return [[] for _ in self.mapped_registers]
+        return self.read_monitoring_data()
