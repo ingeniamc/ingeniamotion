@@ -1,13 +1,37 @@
 # Changelog
 
-## [Unreleased]
+## [0.4.1] - 2021-09-02
 ### Added
-- Capture mcb_synchronization function
-- Add exceptions module
+- Capture mcb_synchronization function.
+- Add exceptions module.
+- Phasing Check test.
+- STO test.
+- Create enable_monitoring_disturbance and 
+  disable_monitoring_disturbance in Capture module.
+- Create Info module.
+- Add fault_reset function.
+- Add Monitoring read function for forced trigger mode.
+- Add Brake test.
+- Add CANOpen communications.
 
 ### Changed
 - MonitoringError and DisturbanceError exceptions to 
-  IMMonitoringError and IMDisturbanceError
+  IMMonitoringError and IMDisturbanceError.
+- Functions motor_enable and motor_disable add error messages
+  to raised exception.
+- Add timeout param to read_monitoring_data.
+- Update Commutation test.
+- Update stop test functions.
+
+### Removed
+- Removed enable_monitoring from Monitoring class.
+- Removed enable_disturbance from Disturbance class.
+
+### Fixed
+- Disturbance class and create_disturbance functions
+  allow numpy arrays as a disturbance data.
+- Fixed servo alias bug. Some functions were not allow
+  with no default alias.
 
 ## [0.4.0] - 2021-06-28
 ### Added
