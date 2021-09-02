@@ -99,6 +99,10 @@ class Feedbacks(metaclass=MCMetaClass):
             feedback (SensorType): feedback sensor number
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
+
+        Raises:
+            IMStatusWordError: If motor is enabled.
+
         """
         self.mc.communication.set_register(
             self.COMMUTATION_FEEDBACK_REGISTER,
@@ -167,6 +171,10 @@ class Feedbacks(metaclass=MCMetaClass):
             feedback (SensorType): feedback sensor number
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
+
+        Raises:
+            IMStatusWordError: If motor is enabled.
+
         """
         self.mc.communication.set_register(
             self.REFERENCE_FEEDBACK_REGISTER,
@@ -234,6 +242,10 @@ class Feedbacks(metaclass=MCMetaClass):
             feedback (SensorType): feedback sensor number
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
+
+        Raises:
+            IMStatusWordError: If motor is enabled.
+
         """
         self.mc.communication.set_register(
             self.VELOCITY_FEEDBACK_REGISTER,
@@ -301,6 +313,10 @@ class Feedbacks(metaclass=MCMetaClass):
             feedback (SensorType): feedback sensor number
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
+
+        Raises:
+            IMStatusWordError: If motor is enabled.
+
         """
         self.mc.communication.set_register(
             self.POSITION_FEEDBACK_REGISTER,
@@ -368,6 +384,10 @@ class Feedbacks(metaclass=MCMetaClass):
             feedback (SensorType): feedback sensor number
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. ``1`` by default.
+
+        Raises:
+            IMStatusWordError: If motor is enabled.
+
         """
         self.mc.communication.set_register(
             self.AUXILIAR_FEEDBACK_REGISTER,

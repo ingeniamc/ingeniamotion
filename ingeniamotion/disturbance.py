@@ -6,7 +6,7 @@ from collections.abc import Iterable
 from ingenialink.exceptions import ILError
 from ingenialink.register import REG_DTYPE
 
-from .exceptions import DisturbanceError
+from .exceptions import IMDisturbanceError, IMStatusWordError
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 
 
@@ -16,15 +16,14 @@ def check_disturbance_disabled(func):
         disturbance_enabled = self.mc.capture.is_disturbance_enabled(
             servo=self.servo)
         if disturbance_enabled:
-            raise DisturbanceError("Disturbance is enabled")
+            raise IMDisturbanceError("Disturbance is enabled")
         return func(self, *args, **kwargs)
 
     return wrapper
 
 
 class Disturbance:
-    """
-    Class to configure a disturbance in a servo.
+    """Class to configure a disturbance in a servo.
 
     Args:
         mc (MotionController): MotionController instance.
@@ -66,11 +65,14 @@ class Disturbance:
         self.logger = ingenialogger.get_logger(__name__, drive=mc.servo_name(servo))
         self.max_sample_number = self.get_max_sample_size()
         self.data = None
-
+        try:
+            self.mc.capture.mcb_synchronization(servo=servo)
+        except IMStatusWordError:
+            self.logger.warning("MCB could not be synchronized. Motor is enabled.",
+                                drive=mc.servo_name(servo))
     @check_disturbance_disabled
     def set_frequency_divider(self, divider):
-        """
-        Function to define disturbance frequency with a prescaler. Frequency will be
+        """Function to define disturbance frequency with a prescaler. Frequency will be
         ``Position & velocity loop rate frequency / prescaler``,  see
         :func:`ingeniamotion.configuration.Configuration.get_position_and_velocity_loop_rate`
         to know about this frequency. Monitoring/Disturbance must be disabled.
@@ -101,8 +103,7 @@ class Disturbance:
 
     @check_disturbance_disabled
     def map_registers(self, registers):
-        """
-        Map registers to Disturbance. Disturbance must be disabled.
+        """Map registers to Disturbance. Disturbance must be disabled.
 
         Args:
             registers (dict or list of dict): registers to map.
@@ -112,14 +113,15 @@ class Disturbance:
 
                     {
                         "name": "CL_POS_SET_POINT_VALUE",  # Register name.
-                        "axis": 1  # Register axis. If it has no axis field, by default axis 1.
+                        "axis": 1  # Register axis.
+                        # If it has no axis field, by default axis 1.
                     }
 
         Returns:
             int: max number of samples
 
         Raises:
-            DisturbanceError: If the register is not allowed to be mapped as
+            IMDisturbanceError: If the register is not allowed to be mapped as
                 a disturbance register.
         """
         if not isinstance(registers, list):
@@ -136,8 +138,8 @@ class Disturbance:
             cyclic = register_obj.cyclic
             if cyclic != self.CYCLIC_RX:
                 drive.disturbance_remove_all_mapped_registers()
-                raise DisturbanceError("{} can not be mapped as a disturbance register"
-                                       .format(register))
+                raise IMDisturbanceError("{} can not be mapped as a disturbance register"
+                                         .format(register))
             channel["dtype"] = dtype
             address_offset = self.REGISTER_MAP_OFFSET * (subnode - 1)
             mapped_reg = register_obj.address + address_offset
@@ -148,8 +150,7 @@ class Disturbance:
 
     @check_disturbance_disabled
     def write_disturbance_data(self, registers_data):
-        """
-        Write data in mapped registers. Disturbance must be disabled.
+        """Write data in mapped registers. Disturbance must be disabled.
 
         Args:
             registers_data (list of (list or float or int)):
@@ -157,7 +158,7 @@ class Disturbance:
                 as in :func:`map_registers`.
 
         Raises:
-            DisturbanceError: If buffer size is not enough for all the
+            IMDisturbanceError: If buffer size is not enough for all the
                 registers and samples.
         """
         if isinstance(registers_data, ndarray):
@@ -176,8 +177,7 @@ class Disturbance:
         drive.disturbance_write_data(idx_list, dtype_list, registers_data)
 
     def map_registers_and_write_data(self, registers):
-        """
-        Map registers to Disturbance and write data. Disturbance must be disabled.
+        """Map registers to Disturbance and write data. Disturbance must be disabled.
 
         Args:
             registers (dict or list of dict): registers to map and write data.
@@ -187,14 +187,15 @@ class Disturbance:
 
                     {
                         "name": "CL_POS_SET_POINT_VALUE",  # Register name.
-                        "axis": 1,  # Register axis. If it has no axis field, by default axis 1.
+                        "axis": 1,  # Register axis.
+                        # If it has no axis field, by default axis 1.
                         "data": [0.0, 0.1, 0.2, ...]  # Data for load in this register
                     }
 
         Raises:
-            DisturbanceError: If the register is not allowed to be mapped as a
+            IMDisturbanceError: If the register is not allowed to be mapped as a
                 disturbance register.
-            DisturbanceError: If buffer size is not enough for all the
+            IMDisturbanceError: If buffer size is not enough for all the
                 registers and samples.
         """
         if not isinstance(registers, list):
@@ -215,7 +216,7 @@ class Disturbance:
             dtype = self.mapped_registers[ch_idx]["dtype"]
             total_buffer_size += self.__data_type_size[dtype] * len(data)
         if total_buffer_size > self.max_sample_number:
-            raise DisturbanceError(
+            raise IMDisturbanceError(
                 "Number of samples is too high. "
                 "Demanded size: {} bytes, buffer max size: {} bytes."
                 .format(total_buffer_size, self.max_sample_number)
@@ -224,8 +225,7 @@ class Disturbance:
                           total_buffer_size, self.max_sample_number)
 
     def get_max_sample_size(self):
-        """
-        Return disturbance max size, in bytes.
+        """Return disturbance max size, in bytes.
 
         Returns:
             int: Max buffer size in bytes.

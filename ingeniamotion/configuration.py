@@ -15,9 +15,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
     """
 
     class BrakeOverride(IntEnum):
-        """
-        Brake override configuration enum
-        """
+        """Brake override configuration enum"""
         OVERRIDE_DISABLED = 0
         RELEASE_BRAKE = 1
         ENABLE_BRAKE = 2
@@ -52,8 +50,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         self.logger = ingenialogger.get_logger(__name__)
 
     def release_brake(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        """
-        Override the brake status to released in the target servo and axis.
+        """Override the brake status to released in the target servo and axis.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -67,8 +64,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         )
 
     def enable_brake(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        """
-        Override the brake status of the target servo and axis.
+        """Override the brake status of the target servo and axis.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -82,8 +78,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         )
 
     def disable_brake_override(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        """
-        Disable the brake override of the target servo and axis.
+        """Disable the brake override of the target servo and axis.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -97,8 +92,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         )
 
     def default_brake(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        """
-        Disable the brake override of the target servo and axis, as
+        """Disable the brake override of the target servo and axis, as
         :func:`disable_brake_override`.
 
         Args:
@@ -108,8 +102,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         self.disable_brake_override(servo, axis)
 
     def load_configuration(self, config_path, servo=DEFAULT_SERVO):
-        """
-        Load a configuration file to the target servo.
+        """Load a configuration file to the target servo.
 
         Args:
             config_path (str): config file path to load.
@@ -123,8 +116,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
                          drive=self.mc.servo_name(servo))
 
     def save_configuration(self, output_file, servo=DEFAULT_SERVO):
-        """
-        Save the servo configuration to a target file.
+        """Save the servo configuration to a target file.
 
         Args:
             output_file (str): servo configuration destination file.
@@ -137,7 +129,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
     def set_max_acceleration(self, acceleration, servo=DEFAULT_SERVO,
                              axis=DEFAULT_AXIS):
-        """
+        """Update maximum acceleration register.
 
         Args:
             acceleration: maximum acceleration in rev/s^2.
@@ -154,7 +146,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
                           axis=axis, drive=self.mc.servo_name(servo))
 
     def set_max_velocity(self, velocity, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        """
+        """Update maximum velocity register.
 
         Args:
             velocity: maximum velocity in rev/s.
@@ -172,8 +164,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
     def get_position_and_velocity_loop_rate(self, servo=DEFAULT_SERVO,
                                             axis=DEFAULT_AXIS):
-        """
-        Get position & velocity loop rate frequency.
+        """Get position & velocity loop rate frequency.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -190,8 +181,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
     def get_power_stage_frequency(self, servo=DEFAULT_SERVO,
                                   axis=DEFAULT_AXIS, raw=False):
-        """
-        Get Power stage frequency register.
+        """Get Power stage frequency register.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -223,8 +213,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
     def get_power_stage_frequency_enum(self, servo=DEFAULT_SERVO,
                                        axis=DEFAULT_AXIS):
-        """
-        Return Power stage frequency register enum.
+        """Return Power stage frequency register enum.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -240,14 +229,17 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
     @MCMetaClass.check_motor_disabled
     def set_power_stage_frequency(self, value, servo=DEFAULT_SERVO,
                                   axis=DEFAULT_AXIS):
-        """
-        Set power stage frequency from enum value.
+        """Set power stage frequency from enum value.
         See :func: `get_power_stage_frequency_enum`.
 
         Args:
             value (int): Enum value to set power stage frequency.
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
+
+        Raises:
+            IMStatusWordError: If motor is enabled.
+
         """
         self.mc.communication.set_register(
             self.POWER_STAGE_FREQUENCY_REGISTER,
@@ -257,8 +249,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         )
 
     def get_status_word(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        """
-        Return status word register value.
+        """Return status word register value.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -271,8 +262,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
                                                   servo, axis)
 
     def is_motor_enabled(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        """
-        Return motor status.
+        """Return motor status.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -287,8 +277,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
     def is_commutation_feedback_aligned(self, servo=DEFAULT_SERVO,
                                         axis=DEFAULT_AXIS):
-        """
-        Return commutation feedback aligned status.
+        """Return commutation feedback aligned status.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -304,8 +293,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
     def set_phasing_mode(self, phasing_mode, servo=DEFAULT_SERVO,
                          axis=DEFAULT_AXIS):
-        """
-        Set phasing mode.
+        """Set phasing mode.
 
         Args:
             phasing_mode (PhasingMode): phasing mode.

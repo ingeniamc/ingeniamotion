@@ -14,17 +14,13 @@ def force_fault(motion_controller):
     mc.communication.set_register(uid, 10, alias)
 
 
-@pytest.fixture(scope="session")
-def feedback_list(motion_controller):
+@pytest.fixture(scope="module")
+def feedback_test_setup(motion_controller):
     mc, alias = motion_controller
-    fdbk_lst = [mc.configuration.get_commutation_feedback(servo=alias),
-                mc.configuration.get_reference_feedback(servo=alias),
-                mc.configuration.get_velocity_feedback(servo=alias),
-                mc.configuration.get_position_feedback(servo=alias),
-                mc.configuration.get_auxiliar_feedback(servo=alias)]
-    return set(fdbk_lst)
+    mc.tests.commutation(servo=alias)
 
 
+@pytest.mark.usefixtures("feedback_test_setup")
 def test_digital_halls_test(motion_controller, feedback_list):
     mc, alias = motion_controller
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
@@ -37,6 +33,7 @@ def test_digital_halls_test(motion_controller, feedback_list):
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
 
+@pytest.mark.usefixtures("feedback_test_setup")
 def test_incremental_encoder_1_test(motion_controller, feedback_list):
     mc, alias = motion_controller
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
@@ -49,6 +46,7 @@ def test_incremental_encoder_1_test(motion_controller, feedback_list):
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
 
+@pytest.mark.usefixtures("feedback_test_setup")
 def test_incremental_encoder_2_test(motion_controller, feedback_list):
     mc, alias = motion_controller
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
@@ -61,6 +59,7 @@ def test_incremental_encoder_2_test(motion_controller, feedback_list):
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
 
+@pytest.mark.usefixtures("feedback_test_setup")
 def test_absolute_encoder_1_test(motion_controller, feedback_list):
     mc, alias = motion_controller
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
@@ -73,6 +72,7 @@ def test_absolute_encoder_1_test(motion_controller, feedback_list):
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
 
+@pytest.mark.usefixtures("feedback_test_setup")
 def test_absolute_encoder_2_test(motion_controller, feedback_list):
     mc, alias = motion_controller
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
@@ -85,6 +85,7 @@ def test_absolute_encoder_2_test(motion_controller, feedback_list):
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
 
+@pytest.mark.usefixtures("feedback_test_setup")
 def test_secondary_ssi_test(motion_controller, feedback_list):
     mc, alias = motion_controller
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)

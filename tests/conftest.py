@@ -88,6 +88,7 @@ def motion_controller_teardown(motion_controller, pytestconfig, read_config):
     mc, alias = motion_controller
     mc.configuration.load_configuration(
         read_config[protocol]["config_file"], servo=alias)
+    mc.motion.fault_reset(servo=alias)
 
 
 @pytest.fixture
@@ -95,3 +96,14 @@ def disable_monitoring_disturbance(motion_controller):
     yield
     mc, alias = motion_controller
     mc.capture.clean_monitoring_disturbance(servo=alias)
+
+
+@pytest.fixture(scope="session")
+def feedback_list(motion_controller):
+    mc, alias = motion_controller
+    fdbk_lst = [mc.configuration.get_commutation_feedback(servo=alias),
+                mc.configuration.get_reference_feedback(servo=alias),
+                mc.configuration.get_velocity_feedback(servo=alias),
+                mc.configuration.get_position_feedback(servo=alias),
+                mc.configuration.get_auxiliar_feedback(servo=alias)]
+    return set(fdbk_lst)

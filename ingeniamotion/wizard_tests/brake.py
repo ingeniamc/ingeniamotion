@@ -67,10 +67,10 @@ class Brake(BaseTest):
             self.logger.warning("Test has been stopped")
             self.finish()
 
-    def get_result_msg(self, output):
+    def get_result_severity(self, output):
         return output
 
-    def get_result_severity(self, output):
+    def get_result_msg(self, output):
         if output == self.SeverityLevel.SUCCESS:
             return "Success"
         else:

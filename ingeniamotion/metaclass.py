@@ -1,14 +1,14 @@
-import types
 import inspect
 from functools import wraps
+
+from ingeniamotion.exceptions import IMStatusWordError
 
 DEFAULT_SERVO = "default"
 DEFAULT_AXIS = 1
 
 
 class MCMetaClass(type):
-    """
-    MotionController submodules metaclass to add servo checker for all
+    """MotionController submodules metaclass to add servo checker for all
     the functions that has an argument named servo.
 
     This class also have other decorators that can be useful for some
@@ -17,8 +17,8 @@ class MCMetaClass(type):
     SERVO_ARG_NAME = "servo"
 
     def __new__(mcs, name, bases, local):
-        """
-        If a function has argument named servo, decorates it with check_servo decorator.
+        """If a function has argument named servo,
+        decorates it with check_servo decorator.
         """
         for attr in local:
             value = local[attr]
@@ -29,8 +29,7 @@ class MCMetaClass(type):
 
     @classmethod
     def check_servo(mcs, func):
-        """
-        Decorator to check if the servo is connected.
+        """Decorator to check if the servo is connected.
         If servo is not connected raises an exception.
         """
         @wraps(func)
@@ -49,8 +48,7 @@ class MCMetaClass(type):
 
     @classmethod
     def check_motor_disabled(mcs, func):
-        """
-        Decorator to check if motor is disabled.
+        """Decorator to check if motor is disabled.
         If motor is enabled raises an exception.
         """
         @wraps(func)
@@ -60,6 +58,6 @@ class MCMetaClass(type):
             axis = kwargs.get("axis", DEFAULT_AXIS)
             if mc.configuration.is_motor_enabled(servo=servo,
                                                  axis=axis):
-                raise Exception("Motor is enabled")
+                raise IMStatusWordError("Motor is enabled")
             return func(self, *args, **kwargs)
         return wrapper

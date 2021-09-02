@@ -13,3 +13,4 @@ Ingenia Motion
    ingeniamotion/errors
    ingeniamotion/info
    ingeniamotion/enums
+   ingeniamotion/exceptions
