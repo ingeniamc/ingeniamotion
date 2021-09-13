@@ -170,8 +170,7 @@ class Communication(metaclass=MCMetaClass):
         net = self.mc.net[net_key]
         try:
             servo = net.connect_to_slave(
-                node_id, dict_path, eds_file,
-                servo_status_listener=False, net_status_listener=False)
+                node_id, dict_path, eds_file)
             self.mc.servos[alias] = servo
             self.mc.servo_net[alias] = net_key
         except Exception as e:
@@ -199,19 +198,16 @@ class Communication(metaclass=MCMetaClass):
                                 "Device: %s, channel: %s and baudrate: %s.",
                                 can_device, channel, baudrate)
             return []
-        nodes = net.scan_slaves()
-        net.disconnect()
-        return nodes
+        return net.scan_slaves()
 
-    def disconnect_canopen(self, servo=DEFAULT_SERVO):
-        """Disconnect CANOpen servo.
+    def disconnect(self, servo=DEFAULT_SERVO):
+        """Disconnect servo.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
         """
-        drive = self.mc.servos[servo]
-        net_key = self.mc.servo_net[servo]
-        network = self.mc.net[net_key]
+        drive = self.mc._get_drive(servo)
+        network = self.mc._get_network(servo)
         network.disconnect_from_slave(drive)
         del self.mc.servos[servo]
         del self.mc.servo_net[servo]
@@ -294,8 +290,7 @@ class Communication(metaclass=MCMetaClass):
 
     def set_sdo_register(self, index, subindex, dtype, value,
                          servo=DEFAULT_SERVO):
-        """
-        Set the value via SDO of a target register.
+        """Set the value via SDO of a target register.
 
         Args:
             index (int): register index.
@@ -306,3 +301,47 @@ class Communication(metaclass=MCMetaClass):
         """
         drive = self.mc.servos[servo]
         drive.write_sdo(index, subindex, dtype.value, value, drive.slave)
+
+    def subscribe_net_status(self, callback, servo=DEFAULT_SERVO):
+        """Add a callback to net status change event.
+
+        Args:
+            callback (callable): when net status changes callback is called.
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        """
+        network = self.mc._get_network(servo)
+        network.subscribe_to_status(callback)
+
+    def unsubscribe_net_status(self, callback, servo=DEFAULT_SERVO):
+        """Remove net status change event callback.
+
+        Args:
+            callback (callable): callback to remove.
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        """
+        network = self.mc._get_network(servo)
+        network.unsubscribe_from_status(callback)
+
+    def subscribe_servo_status(self, callback, servo=DEFAULT_SERVO):
+        """Add a callback to servo status change event.
+
+        Args:
+            callback (callable): when servo status changes callback is called.
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        """
+        drive = self.mc._get_drive(servo)
+        drive.subscribe_to_status(callback)
+
+    def unsubscribe_servo_status(self, callback, servo=DEFAULT_SERVO):
+        """Remove servo status change event callback.
+
+        Args:
+            callback (callable): callback to remove.
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        """
+        drive = self.mc._get_drive(servo)
+        drive.unsubscribe_from_status(callback)

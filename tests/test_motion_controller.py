@@ -12,7 +12,7 @@ def test_motion_controller():
 @pytest.mark.smoke
 def test_servo_name(motion_controller):
     mc, alias = motion_controller
-    prod_code = mc.servos[alias].info["prod_code"]
+    prod_code = mc.servos[alias].info["product_code"]
     servo_arg = () if alias == "default" else (alias,)
     name = mc.servo_name(*servo_arg)
     assert name == "{} ({})".format(prod_code, alias)

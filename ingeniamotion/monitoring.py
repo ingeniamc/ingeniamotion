@@ -271,15 +271,16 @@ class Monitoring:
 
     @staticmethod
     def __unpack_trigger_value(value, dtype):
+        """Converts any value from its dtype to an UINT32"""
         if dtype == il.REG_DTYPE.U16:
-            output = np.array([int(value)], dtype="int64").astype("uint16")[0]
-        elif dtype == il.REG_DTYPE.U32:
-            output = struct.unpack('L', struct.pack('I', int(value)))[0]
-        elif dtype == il.REG_DTYPE.S32:
-            output = np.array([int(value)], dtype="int64").astype("int32")[0]
-        else:
-            output = struct.unpack('L', struct.pack('f', value))[0]
-        return int(output)
+            return int(np.array([int(value)], dtype='int64').astype('uint16')[0])
+        if dtype == il.REG_DTYPE.U32:
+            return int(struct.unpack('L', struct.pack('I', int(value)))[0])
+        if dtype == il.REG_DTYPE.S32:
+            if value < 0:
+                return int(value + (1 << 32))
+            return int(np.array([int(value)], dtype='int64').astype('int32')[0])
+        return int(struct.unpack('L', struct.pack('f', value))[0])
 
     @check_monitoring_disabled
     def configure_number_samples(self, total_num_samples, trigger_delay_samples):

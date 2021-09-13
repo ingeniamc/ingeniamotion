@@ -27,13 +27,24 @@ class MotionController:
         self.__info = Information(self)
 
     def servo_name(self, servo=DEFAULT_SERVO):
-        return "{} ({})".format(self.servos[servo].info["prod_code"], servo)
+        return "{} ({})".format(self.servos[servo].info["product_code"], servo)
 
     def get_register_enum(self, register, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         drive = self.servos[servo]
         enum_list = drive.dictionary.registers(axis)[register].enums
         enum_dict = {x["label"]: x["value"] for x in enum_list}
         return IntEnum(register, enum_dict)
+
+    def is_alive(self, servo=DEFAULT_SERVO):
+        drive = self.mc._get_drive(servo)
+        return drive.is_alive()
+
+    def _get_network(self, servo):
+        net_key = self.servo_net[servo]
+        return self.net[net_key]
+
+    def _get_drive(self, servo):
+        return self.servos[servo]
 
     # Properties
     @property
