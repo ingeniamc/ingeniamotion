@@ -1,13 +1,14 @@
 import ifaddr
 import ingenialogger
 import ingenialink as il
+from functools import partial
 
 from os import path
 from enum import IntEnum
+from ingenialink.canopen import CAN_BAUDRATE
 from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.ethercat.network import EthercatNetwork
-from ingenialink.canopen import CAN_BAUDRATE, CAN_DEVICE
 
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
@@ -15,6 +16,8 @@ from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 class Communication(metaclass=MCMetaClass):
     """Communication.
     """
+
+    FORCE_SYSTEM_BOOT_CODE_REGISTER = "DRV_BOOT_COCO_FORCE"
 
     class Protocol(IntEnum):
         """Communication protocol enum"""
@@ -121,6 +124,7 @@ class Communication(metaclass=MCMetaClass):
 
         Returns:
             list of str: List with interface readable names.
+
         """
         return [x.nice_name for x in ifaddr.get_adapters()]
 
@@ -138,9 +142,37 @@ class Communication(metaclass=MCMetaClass):
             eoe_comm (bool): use eoe communications if ``True``,
                 if ``False`` use SDOs. ``True`` by default.
             alias (str): servo alias to reference it. ``default`` by default.
+
         """
         self.connect_servo_ecat(self.get_ifname_by_index(if_index), dict_path,
                                 slave, eoe_comm, alias)
+
+    def scan_servos_ecat(self, ifname):
+        """Return a list of available servos.
+
+        Args:
+            ifname (str): interface name. It should have format
+                ``\\Device\\NPF_[...]``.
+        Returns:
+            list of int: Drives available in the target interface.
+
+        """
+        if ifname not in self.mc.net:
+            self.mc.net[ifname] = EthercatNetwork(ifname)
+        net = self.mc.net[ifname]
+        return net.scan_slaves()
+
+    def scan_servos_ecat_interface_index(self, if_index):
+        """Return a list of available servos.
+
+        Args:
+            if_index (int): interface index in list given by function
+                :func:`get_interface_name_list`.
+        Returns:
+            list of int: Drives available in the target interface.
+
+        """
+        return self.scan_servos_ecat(self.get_ifname_by_index(if_index))
 
     def connect_servo_canopen(self, can_device, dict_path, eds_file,
                               node_id, baudrate=CAN_BAUDRATE.Baudrate_1M,
@@ -157,6 +189,7 @@ class Communication(metaclass=MCMetaClass):
                 1 Mbit/s by default.
             channel (int): CANOpen device channel. ``0`` by default.
             alias (str): servo alias to reference it. ``default`` by default.
+
         """
 
         if not path.isfile(dict_path):
@@ -187,6 +220,7 @@ class Communication(metaclass=MCMetaClass):
             channel (int): CANOpen device channel. ``0`` by default.
         Returns:
             list of int: List of node ids available in the network.
+
         """
         net_key = "{}_{}_{}".format(can_device, channel, baudrate)
         if net_key not in self.mc.net:
@@ -205,6 +239,7 @@ class Communication(metaclass=MCMetaClass):
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
+
         """
         drive = self.mc._get_drive(servo)
         network = self.mc._get_network(servo)
@@ -222,6 +257,7 @@ class Communication(metaclass=MCMetaClass):
 
         Returns:
             int, float or str: Current register value.
+
         """
         drive = self.mc.servos[servo]
         register_dtype = self.mc.info.register_type(register, axis, servo=servo)
@@ -240,6 +276,7 @@ class Communication(metaclass=MCMetaClass):
             value (int, float): new value for the register.
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
+
         """
         drive = self.mc.servos[servo]
         register_dtype_value = self.mc.info.register_type(register, axis, servo=servo)
@@ -279,6 +316,7 @@ class Communication(metaclass=MCMetaClass):
 
         Returns:
             int, float or str: Current register value.
+
         """
         drive = self.mc.servos[servo]
         if il.register.REG_DTYPE.STR.value != dtype.value:
@@ -298,6 +336,7 @@ class Communication(metaclass=MCMetaClass):
             dtype (ingenialink.registers.REG_DTYPE): register data type.
             value (int or float): new value for the register.
             servo (str): servo alias to reference it. ``default`` by default.
+
         """
         drive = self.mc.servos[servo]
         drive.write_sdo(index, subindex, dtype.value, value, drive.slave)
@@ -345,3 +384,64 @@ class Communication(metaclass=MCMetaClass):
         """
         drive = self.mc._get_drive(servo)
         drive.unsubscribe_from_status(callback)
+
+    def load_firmware_canopen(self, fw_file, servo=DEFAULT_SERVO,
+                              status_callback=None, progress_callback=None,
+                              error_enabled_callback=None):
+        """Load firmware via CANopen.
+
+        Args:
+            fw_file (str): Firmware file path.
+            servo (str): servo alias to reference it. ``default`` by default.
+            status_callback (callable): callback with status.
+            progress_callback (callable): callback with progress.
+            error_enabled_callback (callable): callback with errors enabled.
+
+        """
+        net = self.mc._get_network(servo)
+        drive = self.mc._get_drive(servo)
+        if not isinstance(net, CanopenNetwork):
+            raise ValueError("Target servo is not connected via CANopen")
+        if status_callback is None:
+            status_callback = partial(self.logger.info, "Load firmware status: %s")
+        if progress_callback is None:
+            progress_callback = partial(self.logger.info, "Load firmware progress: %s")
+        net.subscribe_to_load_firmware_process(
+            status_callback, progress_callback, error_enabled_callback)
+        net.load_firmware(drive.target, fw_file)
+
+    def load_firmware_ecat(self, ifname, fw_file, slave=1, boot_in_app=True):
+        """Load firmware via ECAT.
+
+        Args:
+            ifname (str): interface name. It should have format
+                ``\\Device\\NPF_[...]``.
+            fw_file (str): Firmware file path.
+            slave (int): slave index. ``1`` by default.
+            boot_in_app (bool): If summit series -> True.
+                                If capitan series -> False.
+                                If custom device -> Contact manufacturer.
+
+        """
+        if ifname not in self.mc.net:
+            self.mc.net[ifname] = EthercatNetwork(ifname)
+        net = self.mc.net[ifname]
+        net.load_firmware(fw_file, slave, boot_in_app)
+
+    def load_firmware_ecat_interface_index(self, if_index, fw_file,
+                                           slave=1, boot_in_app=True):
+        """Load firmware via ECAT.
+
+        Args:
+            if_index (int): interface index in list given by function
+                :func:`get_interface_name_list`.
+            fw_file (str): Firmware file path.
+            slave (int): slave index. ``1`` by default.
+            boot_in_app (bool): If summit series -> True.
+                                If capitan series -> False.
+                                If custom device -> Contact manufacturer.
+
+        """
+        self.load_firmware_ecat(self.get_ifname_by_index(if_index),
+                                fw_file, slave, boot_in_app)
+

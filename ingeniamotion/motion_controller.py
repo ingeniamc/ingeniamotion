@@ -36,14 +36,41 @@ class MotionController:
         return IntEnum(register, enum_dict)
 
     def is_alive(self, servo=DEFAULT_SERVO):
+        """Check if the servo is alive.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        Returns:
+            bool: ``True`` if the servo is alive, ``False`` otherwise.
+
+        """
         drive = self.mc._get_drive(servo)
         return drive.is_alive()
 
     def _get_network(self, servo):
+        """Return servo network instance.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        Returns:
+            ingenialink.network.Network: servo Ingenialink Network instance.
+
+        """
         net_key = self.servo_net[servo]
         return self.net[net_key]
 
     def _get_drive(self, servo):
+        """Return servo drive instance.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        Returns:
+            ingenialink.servo.Servo: servo Ingenialink Servo instance.
+
+        """
         return self.servos[servo]
 
     # Properties

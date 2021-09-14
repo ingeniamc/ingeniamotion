@@ -526,3 +526,37 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             bool: ``True`` if STO is abnormal latched, else ``False``.
         """
         return self.get_sto_status(servo, axis) == self.STO_LATCHED_STATE
+
+    def change_tcp_ip_parameters(self, ip_address, subnet_mask,
+                                 gateway, servo=DEFAULT_SERVO):
+        """Change TCP IP parameters and store it.
+
+        Args:
+            ip_address (str): IP Address to be changed.
+            subnet_mask (str): Subnet mask to be changed.
+            gateway (str): Gateway to be changed.
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        """
+        drive = self.mc._get_drive(servo)
+        drive.change_tcp_ip_parameters(ip_address, subnet_mask, gateway)
+
+    def store_tcp_ip_parameters(self, servo=DEFAULT_SERVO):
+        """Store TCP IP parameters to non-volatile memory.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        """
+        drive = self.mc._get_drive(servo)
+        drive.store_tcp_ip_parameters()
+
+    def restore_tcp_ip_parameters(self, servo=DEFAULT_SERVO):
+        """Restore TCP IP parameters to default values.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        """
+        drive = self.mc._get_drive(servo)
+        drive.restore_tcp_ip_parameters()
