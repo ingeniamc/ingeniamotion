@@ -1,11 +1,14 @@
+import time
 import ifaddr
+import subprocess
 import ingenialogger
 import ingenialink as il
-from functools import partial
 
 from os import path
 from enum import IntEnum
-from ingenialink.canopen import CAN_BAUDRATE
+from functools import partial
+from ingenialink import CAN_BAUDRATE
+from ingenialink.exceptions import ILError, ILFirmwareLoadError
 from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.ethercat.network import EthercatNetwork
@@ -62,6 +65,7 @@ class Communication(metaclass=MCMetaClass):
                         protocol=Protocol.UDP, port=1061):
         if not path.isfile(dict_path):
             raise FileNotFoundError("{} file does not exist!".format(dict_path))
+
         try:
             if "ethernet" not in self.mc.net:
                 self.mc.net["ethernet"] = EthernetNetwork()
@@ -70,7 +74,7 @@ class Communication(metaclass=MCMetaClass):
 
             self.mc.servos[alias] = servo
             self.mc.servo_net[alias] = "ethernet"
-        except il.exceptions.ILError as e:
+        except ILError as e:
             raise Exception("Error trying to connect to the servo. {}.".format(e))
 
     def connect_servo_ecat(self, ifname, dict_path, slave=1,
@@ -98,7 +102,7 @@ class Communication(metaclass=MCMetaClass):
 
             self.mc.servos[alias] = servo
             self.mc.servo_net[alias] = ifname
-        except il.exceptions.ILError as e:
+        except ILError as e:
             raise Exception("Error trying to connect to the servo. {}."
                             .format(e))
 
@@ -263,7 +267,7 @@ class Communication(metaclass=MCMetaClass):
         register_dtype = self.mc.info.register_type(register, axis, servo=servo)
         value = drive.read(register, subnode=axis)
         if (register_dtype.value <=
-                il.register.REG_DTYPE.S64.value):
+                il.REG_DTYPE.S64.value):
             return int(value)
         return value
 
@@ -281,17 +285,17 @@ class Communication(metaclass=MCMetaClass):
         drive = self.mc.servos[servo]
         register_dtype_value = self.mc.info.register_type(register, axis, servo=servo)
         signed_int = [
-            il.register.REG_DTYPE.S8, il.register.REG_DTYPE.S16,
-            il.register.REG_DTYPE.S32, il.register.REG_DTYPE.S64
+            il.REG_DTYPE.S8, il.REG_DTYPE.S16,
+            il.REG_DTYPE.S32, il.REG_DTYPE.S64
         ]
         unsigned_int = [
-            il.register.REG_DTYPE.U8, il.register.REG_DTYPE.U16,
-            il.register.REG_DTYPE.U32, il.register.REG_DTYPE.U64
+            il.REG_DTYPE.U8, il.REG_DTYPE.U16,
+            il.REG_DTYPE.U32, il.REG_DTYPE.U64
         ]
-        if register_dtype_value == il.register.REG_DTYPE.FLOAT and \
+        if register_dtype_value == il.REG_DTYPE.FLOAT and \
                 not isinstance(value, (int, float)):
             raise TypeError("Value must be a float")
-        if register_dtype_value == il.register.REG_DTYPE.STR and \
+        if register_dtype_value == il.REG_DTYPE.STR and \
                 not isinstance(value, str):
             raise TypeError("Value must be a string")
         if register_dtype_value in signed_int and \
@@ -319,7 +323,7 @@ class Communication(metaclass=MCMetaClass):
 
         """
         drive = self.mc.servos[servo]
-        if il.register.REG_DTYPE.STR.value != dtype.value:
+        if il.REG_DTYPE.STR.value != dtype.value:
             return drive.read_sdo(index, subindex, dtype.value, drive.slave)
         if not isinstance(string_size, int):
             raise TypeError("string_size should be an int for data type string")
@@ -445,3 +449,77 @@ class Communication(metaclass=MCMetaClass):
         self.load_firmware_ecat(self.get_ifname_by_index(if_index),
                                 fw_file, slave, boot_in_app)
 
+    def load_firmware_ethernet(self, ip, fw_file, ftp_user=None, ftp_pwd=None):
+        """Load firmware via Ethernet. Boot mode is needed to load firmware.
+
+        .. warning::
+            After functions ends, the servo will take a moment to load firmware.
+            During the process, the servo will be not operative.
+
+        Args:
+            ip (str): servo IP.
+            fw_file (str): Firmware file path.
+            ftp_user (str): FTP user to connect with.
+            ftp_pwd (str): FTP password for the given user.
+
+        """
+        if "ethernet" not in self.mc.net:
+            self.mc.net["ethernet"] = EthernetNetwork()
+        net = self.mc.net["ethernet"]
+        if ftp_user is None and ftp_pwd is None:
+            ftp_user, ftp_pwd = "Ingenia", "Ingenia"
+        net.load_firmware(fw_file, ip, ftp_user, ftp_pwd)
+
+    @staticmethod
+    def __ftp_ping(ip):
+        command = ['ping', ip]
+        return subprocess.call(command) == 0
+
+    def boot_mode_and_load_firmware_ethernet(self, fw_file, servo=DEFAULT_SERVO,
+                                             ftp_user=None, ftp_pwd=None):
+        """Set servo to boot mode and load firmware. Servo is disconnected.
+
+        .. warning::
+            After functions ends, the servo will take a moment to load firmware.
+            During the process, the servo will be not operative.
+
+        Args:
+            fw_file (str): Firmware file path.
+            servo (str): servo alias to reference it. ``default`` by default.
+            ftp_user (str): FTP user to connect with.
+            ftp_pwd (str): FTP password for the given user.
+
+        """
+        net = self.mc._get_network(servo)
+        drive = self.mc._get_drive(servo)
+        ip = drive.target
+        if not isinstance(net, EthernetNetwork):
+            raise ValueError("Target servo is not connected via Ethernet")
+        self.boot_mode(servo)
+        timeout = 5
+        init_time = time.time()
+        ftp_ready = False
+        while not ftp_ready and time.time() - init_time < timeout:
+            ftp_ready = self.__ftp_ping(ip)
+            time.sleep(1)
+        self.load_firmware_ethernet(ip, fw_file, ftp_user, ftp_pwd)
+
+    def boot_mode(self, servo=DEFAULT_SERVO):
+        """Set servo to boot mode. Servo is disconnected.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        """
+        PASSWORD_FORCE_BOOT_COCO = 0x424F4F54
+        net = self.mc._get_network(servo)
+        drive = self.mc._get_drive(servo)
+        net.stop_status_listener()
+        drive.stop_status_listener()
+        try:
+            self.mc.communication.set_register(
+                self.FORCE_SYSTEM_BOOT_CODE_REGISTER,
+                PASSWORD_FORCE_BOOT_COCO, servo=servo, axis=0)
+        except ILError:
+            pass
+        self.disconnect(servo)
