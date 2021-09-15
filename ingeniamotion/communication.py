@@ -32,7 +32,8 @@ class Communication(metaclass=MCMetaClass):
         self.logger = ingenialogger.get_logger(__name__)
 
     def connect_servo_eoe(self, ip, dict_path=None, alias=DEFAULT_SERVO,
-                          protocol=Protocol.UDP, port=1061):
+                          protocol=Protocol.UDP, port=1061,
+                          reconnection_retries=None, reconnection_timeout=None):
         """Connect to target servo by Ethernet over EtherCAT
 
         Args:
@@ -41,13 +42,19 @@ class Communication(metaclass=MCMetaClass):
             alias (str): servo alias to reference it. ``default`` by default.
             protocol (Protocol): UDP or TCP protocol. ``UDP`` by default.
             port (int): servo port. ``1061`` by default.
+            reconnection_retries (int): Number of reconnection retried before declaring
+                a connected or disconnected stated.
+            reconnection_timeout (int): Time in ms of the reconnection timeout.
         """
         if not dict_path:
             raise TypeError("dict_path argument is missing")
-        self.__servo_connect(ip, dict_path, alias, protocol, port)
+        self.__servo_connect(ip, dict_path, alias, protocol, port,
+                             {"reconnection_retries": reconnection_retries,
+                              "reconnection_timeout": reconnection_timeout})
 
     def connect_servo_ethernet(self, ip, dict_path=None, alias=DEFAULT_SERVO,
-                               protocol=Protocol.UDP, port=1061):
+                               protocol=Protocol.UDP, port=1061,
+                               reconnection_retries=None, reconnection_timeout=None):
         """Connect to target servo by Ethernet
 
         Args:
@@ -56,13 +63,23 @@ class Communication(metaclass=MCMetaClass):
             alias (str): servo alias to reference it. ``default`` by default.
             protocol (Protocol): UDP or TCP protocol. ``UDP`` by default.
             port (int): servo port. ``1061`` by default.
+            reconnection_retries (int): Number of reconnection retried before declaring
+                a connected or disconnected stated.
+            reconnection_timeout (int): Time in ms of the reconnection timeout.
         """
         if not dict_path:
             raise TypeError("dict_path argument is missing")
-        self.__servo_connect(ip, dict_path, alias, protocol, port)
+        self.__servo_connect(ip, dict_path, alias, protocol, port,
+                             {"reconnection_retries": reconnection_retries,
+                              "reconnection_timeout": reconnection_timeout})
 
     def __servo_connect(self, ip, dict_path, alias,
-                        protocol=Protocol.UDP, port=1061):
+                        protocol=Protocol.UDP, port=1061,
+                        reconnection=None):
+        if reconnection is None:
+            reconnection = {}
+        reconnection = {x: reconnection[x] for x in reconnection
+                        if reconnection[x] is not None}
         if not path.isfile(dict_path):
             raise FileNotFoundError("{} file does not exist!".format(dict_path))
 
@@ -70,7 +87,7 @@ class Communication(metaclass=MCMetaClass):
             if "ethernet" not in self.mc.net:
                 self.mc.net["ethernet"] = EthernetNetwork()
             net = self.mc.net["ethernet"]
-            servo = net.connect_to_slave(ip, dict_path, port, protocol)
+            servo = net.connect_to_slave(ip, dict_path, port, protocol, **reconnection)
 
             self.mc.servos[alias] = servo
             self.mc.servo_net[alias] = "ethernet"
@@ -78,7 +95,8 @@ class Communication(metaclass=MCMetaClass):
             raise Exception("Error trying to connect to the servo. {}.".format(e))
 
     def connect_servo_ecat(self, ifname, dict_path, slave=1,
-                           eoe_comm=True, alias=DEFAULT_SERVO):
+                           eoe_comm=True, alias=DEFAULT_SERVO,
+                           reconnection_retries=None, reconnection_timeout=None):
         """Connect servo by ECAT with embedded master.
 
         Args:
@@ -90,6 +108,12 @@ class Communication(metaclass=MCMetaClass):
                 if ``False`` use SDOs. ``True`` by default.
             alias (str): servo alias to reference it. ``default`` by default.
         """
+        reconnection = {}
+        if reconnection_retries is not None:
+            reconnection['reconnection_retries'] = reconnection_retries
+        if reconnection_timeout is not None:
+            reconnection['reconnection_timeout'] = reconnection_timeout
+
         if not path.isfile(dict_path):
             raise FileNotFoundError("{} file does not exist!".format(dict_path))
         use_eoe_comms = 1 if eoe_comm else 0
@@ -97,7 +121,8 @@ class Communication(metaclass=MCMetaClass):
             if ifname not in self.mc.net:
                 self.mc.net[ifname] = EthercatNetwork(ifname)
             net = self.mc.net[ifname]
-            servo = net.connect_to_slave(slave, dict_path, use_eoe_comms)
+            servo = net.connect_to_slave(slave, dict_path,
+                                         use_eoe_comms, **reconnection)
             servo.slave = slave
 
             self.mc.servos[alias] = servo
@@ -133,7 +158,9 @@ class Communication(metaclass=MCMetaClass):
         return [x.nice_name for x in ifaddr.get_adapters()]
 
     def connect_servo_ecat_interface_index(self, if_index, dict_path, slave=1,
-                                           eoe_comm=True, alias=DEFAULT_SERVO):
+                                           eoe_comm=True, alias=DEFAULT_SERVO,
+                                           reconnection_retries=None,
+                                           reconnection_timeout=None):
         """Connect servo by ECAT with embedded master.
         Interface should be selected by index of list given in
         :func:`get_interface_name_list`.
@@ -146,10 +173,14 @@ class Communication(metaclass=MCMetaClass):
             eoe_comm (bool): use eoe communications if ``True``,
                 if ``False`` use SDOs. ``True`` by default.
             alias (str): servo alias to reference it. ``default`` by default.
+            reconnection_retries (int): Number of reconnection retried before declaring
+                a connected or disconnected stated.
+            reconnection_timeout (int): Time in ms of the reconnection timeout.
 
         """
         self.connect_servo_ecat(self.get_ifname_by_index(if_index), dict_path,
-                                slave, eoe_comm, alias)
+                                slave, eoe_comm, alias,
+                                reconnection_retries, reconnection_timeout)
 
     def scan_servos_ecat(self, ifname):
         """Return a list of available servos.

@@ -56,6 +56,7 @@ def test_connect_servo_ethernet_no_dictionary_error(read_config):
             eoe_config["ip"], "no_dictionary", alias="eoe_test")
 
 
+@pytest.mark.skip(reason='This test enters in conflict with "motion_controller"')
 @pytest.mark.smoke
 @pytest.mark.soem
 def test_connect_servo_ecat(read_config):
@@ -83,6 +84,7 @@ def test_connect_servo_ecat_no_dictionary_error(read_config):
             slave=soem_config["slave"], alias="soem_test")
 
 
+@pytest.mark.skip(reason='This test enters in conflict with "motion_controller"')
 @pytest.mark.smoke
 @pytest.mark.soem
 def test_connect_servo_ecat_interface_index(read_config):
