@@ -441,9 +441,8 @@ class Communication(metaclass=MCMetaClass):
             status_callback = partial(self.logger.info, "Load firmware status: %s")
         if progress_callback is None:
             progress_callback = partial(self.logger.info, "Load firmware progress: %s")
-        net.subscribe_to_load_firmware_process(
-            status_callback, progress_callback, error_enabled_callback)
-        net.load_firmware(drive.target, fw_file)
+        net.load_firmware(drive.target, fw_file, status_callback,
+                          progress_callback, error_enabled_callback)
 
     def load_firmware_ecat(self, ifname, fw_file, slave=1, boot_in_app=True):
         """Load firmware via ECAT.
