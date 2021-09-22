@@ -137,7 +137,8 @@ class DriveTests(metaclass=MCMetaClass):
                         apply_changes=True):
         feedbacks_test = Feedbacks(self.mc, servo, axis, feedback)
         output = feedbacks_test.run()
-        if apply_changes:
+        if (apply_changes and
+                output["result_severity"] == feedbacks_test.SeverityLevel.SUCCESS):
             for key, value in output["suggested_registers"].items():
                 self.mc.communication.set_register(key, value,
                                                    servo=servo, axis=axis)
@@ -178,7 +179,8 @@ class DriveTests(metaclass=MCMetaClass):
         """
         commutation = Phasing(self.mc, servo, axis)
         output = commutation.run()
-        if apply_changes:
+        if (apply_changes and
+                output["result_severity"] == commutation.SeverityLevel.SUCCESS):
             for key, value in output["suggested_registers"].items():
                 self.mc.communication.set_register(key, value, servo=servo,
                                                    axis=axis)
