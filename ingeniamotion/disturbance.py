@@ -6,8 +6,9 @@ from collections.abc import Iterable
 from ingenialink.exceptions import ILError
 from ingenialink.register import REG_DTYPE
 
-from .exceptions import IMDisturbanceError, IMStatusWordError
+from ingeniamotion.enums import MonitoringVersion
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
+from .exceptions import IMDisturbanceError, IMStatusWordError
 
 
 def check_disturbance_disabled(func):
@@ -59,17 +60,17 @@ class Disturbance:
         self.mc = mc
         self.servo = servo
         self.mapped_registers = []
-        self.disturbance_data = []
         self.sampling_freq = None
-        self.samples_number = 0
+        self.__version = mc.capture._check_version(servo)
         self.logger = ingenialogger.get_logger(__name__, drive=mc.servo_name(servo))
         self.max_sample_number = self.get_max_sample_size()
-        self.data = None
-        try:
-            self.mc.capture.mcb_synchronization(servo=servo)
-        except IMStatusWordError:
-            self.logger.warning("MCB could not be synchronized. Motor is enabled.",
-                                drive=mc.servo_name(servo))
+        if self.__version < MonitoringVersion.MONITORING_V3:
+            try:
+                self.mc.capture.mcb_synchronization(servo=servo)
+            except IMStatusWordError:
+                self.logger.warning("MCB could not be synchronized. Motor is enabled.",
+                                    drive=mc.servo_name(servo))
+
     @check_disturbance_disabled
     def set_frequency_divider(self, divider):
         """Function to define disturbance frequency with a prescaler. Frequency will be
@@ -143,7 +144,9 @@ class Disturbance:
             channel["dtype"] = dtype
             address_offset = self.REGISTER_MAP_OFFSET * (subnode - 1)
             mapped_reg = register_obj.address + address_offset
-            drive.disturbance_set_mapped_register(ch_idx, mapped_reg, dtype.value)
+            drive.disturbance_set_mapped_register(ch_idx, mapped_reg,
+                                                  subnode, dtype.value,
+                                                  self.__data_type_size[dtype])
             self.mapped_registers.append(channel)
             total_sample_size += self.__data_type_size[dtype]
         return self.max_sample_number / total_sample_size

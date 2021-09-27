@@ -30,7 +30,7 @@ dist = mc.capture.create_disturbance(target_register, data, divider)
 # Set profile position operation mode and enable motor to enable motor move
 mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION)
 # Enable disturbance
-mc.capture.enable_monitoring_disturbance()
+mc.capture.enable_disturbance()
 # Enable motor
 mc.motion.motor_enable()
 # Wait 10 seconds
@@ -38,4 +38,5 @@ time.sleep(10)
 # Disable motor
 mc.motion.motor_disable()
 # Disable disturbance
-mc.capture.disable_monitoring_disturbance()
+mc.capture.clean_disturbance()
+mc.communication.disconnect()

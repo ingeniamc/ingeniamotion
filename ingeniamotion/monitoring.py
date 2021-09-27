@@ -5,12 +5,14 @@ import ingenialogger
 import ingenialink as il
 from functools import wraps
 from ingenialink.exceptions import ILError
-from ingenialink.register import REG_DTYPE
+from ingenialink import REG_DTYPE, REG_ACCESS
+from ingenialink.ipb.register import IPBRegister
 
 from enum import IntEnum
 
-from .exceptions import IMMonitoringError, IMStatusWordError, IMRegisterNotExist
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
+from .exceptions import IMMonitoringError, IMStatusWordError
+from ingeniamotion.enums import MonitoringVersion, MonitoringProcessStage
 
 
 def check_monitoring_disabled(func):
@@ -38,18 +40,6 @@ class MonitoringSoCType(IntEnum):
     """Falling edge trigger"""
 
 
-class MonitoringProcessStage(IntEnum):
-    """Monitoring process stage"""
-    INIT_STAGE = 0x0
-    """Init stage"""
-    FILLING_DELAY_DATA = 0x2
-    """Filling delay data"""
-    WAITING_FOR_TRIGGER = 0x4
-    """Waiting for trigger"""
-    DATA_ACQUISITION = 0x6
-    """Data acquisition"""
-
-
 class Monitoring:
     """Class to configure a monitoring in a servo.
 
@@ -65,20 +55,21 @@ class Monitoring:
         MonitoringSoCType.TRIGGER_CYCLIC_FALLING_EDGE: "MON_CFG_FALLING_CONDITION"
     }
 
-    MONITORING_STATUS_PROCESS_STAGE_BITS = 0x6
-    MONITORING_AVAILABLE_FRAME_BIT = 0x800
     REGISTER_MAP_OFFSET = 0x800
 
     MINIMUM_BUFFER_SIZE = 8192
 
     ESTIMATED_MAX_TIME_FOR_SAMPLE = 0.0015
 
-    class MonitoringVersion(IntEnum):
-        """Monitoring version"""
-        # Monitoring V1 used for Everest 1.7.1 and older.
-        MONITORING_V1 = 0,
-        # Monitoring V2 used for Capitan and some custom low-power drivers.
-        MONITORING_V2 = 1
+    monitoring_version_register = IPBRegister(
+        "MON_DIS_VERSION",
+        "-",
+        "CONFIG",
+        REG_DTYPE.U32,
+        REG_ACCESS.RO,
+        0x00BA,
+        subnode=0
+    )
 
     __data_type_size = {
         il.REG_DTYPE.U8: 1,
@@ -100,8 +91,7 @@ class Monitoring:
     MONITORING_INDEX_CHECKER_REGISTER = "MON_IDX_CHECK"
     MONITORING_TRIGGER_DELAY_SAMPLES_REGISTER = "MON_CFG_TRIGGER_DELAY"
     MONITORING_WINDOW_NUMBER_SAMPLES_REGISTER = "MON_CFG_WINDOW_SAMP"
-    MONITORING_NUMBER_CYCLES_REGISTER = "MON_CFG_CYCLES_VALUE"
-    MONITORING_CURRENT_NUMBER_BYTES_REGISTER = "MON_CFG_BYTES_VALUE"
+    MONITORING_ACTUAL_NUMBER_SAMPLES_REGISTER = "MON_CFG_CYCLES_VALUE"
     MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER = "MON_MAX_SIZE"
     MONITORING_FORCE_TRIGGER_REGISTER = "MON_CMD_FORCE_TRIGGER"
 
@@ -112,19 +102,19 @@ class Monitoring:
         self.mapped_registers = {}
         self.monitoring_data = []
         self.sampling_freq = None
-        self.__version_flag = self.MonitoringVersion.MONITORING_V1
+        self.__version = mc.capture._check_version(servo)
         self.__read_process_finished = False
         self.samples_number = 0
         self.trigger_delay_samples = 0
         self.logger = ingenialogger.get_logger(__name__, drive=mc.servo_name(servo))
-        self.__check_version()
         self.max_sample_number = self.get_max_sample_size()
         self.data = None
-        try:
-            self.mc.capture.mcb_synchronization(servo=servo)
-        except IMStatusWordError:
-            self.logger.warning("MCB could not be synchronized. Motor is enabled.",
-                                drive=mc.servo_name(servo))
+        if self.__version < MonitoringVersion.MONITORING_V3:
+            try:
+                self.mc.capture.mcb_synchronization(servo=servo)
+            except IMStatusWordError:
+                self.logger.warning("MCB could not be synchronized. Motor is enabled.",
+                                    drive=mc.servo_name(servo))
 
     @check_monitoring_disabled
     def set_frequency(self, prescaler):
@@ -197,7 +187,9 @@ class Monitoring:
             register_obj = self.mc.info.register_info(
                 register, subnode, servo=self.servo)
             mapped_reg = register_obj.address + address_offset
-            drive.monitoring_set_mapped_register(ch_idx, mapped_reg, dtype.value)
+            drive.monitoring_set_mapped_register(ch_idx, mapped_reg,
+                                                 subnode, dtype.value,
+                                                 self.__data_type_size[dtype])
 
         num_mon_reg = self.mc.communication.get_register(
             self.MONITORING_NUMBER_MAPPED_REGISTERS_REGISTER,
@@ -209,8 +201,7 @@ class Monitoring:
         self.mapped_registers = registers
 
     @check_monitoring_disabled
-    def set_trigger(self, trigger_mode, trigger_signal=None, trigger_value=None,
-                    trigger_repetitions=1):
+    def set_trigger(self, trigger_mode, trigger_signal=None, trigger_value=None):
         """Configure monitoring trigger. Monitoring must be disabled.
 
         Args:
@@ -225,12 +216,7 @@ class Monitoring:
                 trigger_signal or trigger_value are None.
             IMMonitoringError: If trigger signal is not mapped.
         """
-        self.mc.communication.set_register(
-            self.MONITORING_NUMBER_TRIGGER_REPETITIONS_REGISTER,
-            trigger_repetitions,
-            servo=self.servo,
-            axis=0
-        )
+        self.reset_trigger_repetitions()
         self.mc.communication.set_register(
             self.MONITOR_START_CONDITION_TYPE_REGISTER,
             trigger_mode,
@@ -307,15 +293,18 @@ class Monitoring:
 
         self.samples_number = total_num_samples
         self.trigger_delay_samples = trigger_delay_samples
-        # Configure number of samples
-        window_samples = total_num_samples - trigger_delay_samples
 
-        self.mc.communication.set_register(
-            self.MONITOR_END_CONDITION_TYPE_REGISTER,
-            self.EOC_TRIGGER_NUMBER_SAMPLES,
-            servo=self.servo,
-            axis=0
-        )
+        if self.__version == MonitoringVersion.MONITORING_V3:
+            window_samples = total_num_samples
+        else:
+            window_samples = total_num_samples - trigger_delay_samples
+            self.mc.communication.set_register(
+                self.MONITOR_END_CONDITION_TYPE_REGISTER,
+                self.EOC_TRIGGER_NUMBER_SAMPLES,
+                servo=self.servo,
+                axis=0
+            )
+
         self.mc.communication.set_register(
             self.MONITORING_TRIGGER_DELAY_SAMPLES_REGISTER,
             trigger_delay_samples,
@@ -355,11 +344,16 @@ class Monitoring:
         self.configure_number_samples(total_num_samples, trigger_delay_samples)
 
     def __setup_read_monitoring_data(self):
-        trigger_repetitions = self.mc.communication.get_register(
-            self.MONITORING_NUMBER_TRIGGER_REPETITIONS_REGISTER,
-            servo=self.servo,
-            axis=0
-        )
+        if self.__version < MonitoringVersion.MONITORING_V3:
+            trigger_repetitions = self.mc.communication.get_register(
+                self.MONITORING_NUMBER_TRIGGER_REPETITIONS_REGISTER,
+                servo=self.servo,
+                axis=0
+            )
+        else:
+            rearm_done = self.mc.capture.get_monitoring_process_stage(
+                self.servo, version=self.__version) != MonitoringProcessStage.END_STAGE
+            trigger_repetitions = int(rearm_done)
         is_enabled = self.mc.capture.is_monitoring_enabled(servo=self.servo)
         self.__read_process_finished = False
         return trigger_repetitions, is_enabled
@@ -406,8 +400,6 @@ class Monitoring:
         init_read_time, init_time = None, time.time()
         current_len = 0
         while not self.__read_process_finished:
-            self.__update_read_process_finished(init_read_time, current_len,
-                                                init_time, timeout)
             if self.__check_data_is_ready():
                 drive.monitoring_read_data()
                 self.__fill_data(data_array)
@@ -422,30 +414,11 @@ class Monitoring:
                     " MON_CFG_TRIGGER_REPETITIONS is {}. Monitoring is {}."
                     .format(trigger_repetitions, text_is_enabled))
                 self.__read_process_finished = True
+            self.__update_read_process_finished(init_read_time, current_len,
+                                                init_time, timeout)
+        if self.__version >= MonitoringVersion.MONITORING_V3:
+            drive.write("MON_OP_ADD_REG", 1, subnode=0)
         return data_array
-
-    def get_monitoring_process_stage(self):
-        """
-        Return monitoring process stage.
-
-        Returns:
-            MonitoringProcessStage: Current monitoring process stage.
-        """
-        monitor_status = self.mc.capture.get_monitoring_disturbance_status(
-            servo=self.servo)
-        masked_value = monitor_status & self.MONITORING_STATUS_PROCESS_STAGE_BITS
-        return MonitoringProcessStage(masked_value)
-
-    def is_frame_available(self):
-        """
-        Check if monitoring has an available frame.
-
-        Returns:
-            bool: True if monitoring has an available frame, else False.
-        """
-        monitor_status = self.mc.capture.get_monitoring_disturbance_status(
-            servo=self.servo)
-        return (monitor_status & self.MONITORING_AVAILABLE_FRAME_BIT) != 0
 
     def __fill_data(self, data_array):
         drive = self.mc.servos[self.servo]
@@ -454,24 +427,16 @@ class Monitoring:
             tmp_monitor_data = drive.monitoring_channel_data(ch_idx, REG_DTYPE(dtype))
             data_array[ch_idx] += tmp_monitor_data
 
-    def __check_version(self):
-        self.__version_flag = self.MonitoringVersion.MONITORING_V2
-        try:
-            self.mc.info.register_info(
-                self.MONITORING_CURRENT_NUMBER_BYTES_REGISTER, 0, servo=self.servo)
-        except IMRegisterNotExist:
-            # The Monitoring V2 is NOT available
-            self.__version_flag = self.MonitoringVersion.MONITORING_V1
-
     def __check_data_is_ready(self):
         monit_nmb_blocks = self.mc.communication.get_register(
-            self.MONITORING_NUMBER_CYCLES_REGISTER,
+            self.MONITORING_ACTUAL_NUMBER_SAMPLES_REGISTER,
             servo=self.servo,
             axis=0
         )
         data_is_ready = monit_nmb_blocks > 0
-        if self.__version_flag == self.MonitoringVersion.MONITORING_V2:
-            data_is_ready &= self.is_frame_available()
+        if self.__version >= MonitoringVersion.MONITORING_V2:
+            data_is_ready &= self.mc.capture.is_frame_available(
+                self.servo, version=self.__version)
         return data_is_ready
 
     def stop_reading_data(self):
@@ -480,16 +445,14 @@ class Monitoring:
         """
         self.__read_process_finished = True
 
-    def reset_trigger_repetitions(self, trigger_repetitions=1):
+    def reset_trigger_repetitions(self):
         """
         Reset trigger repetitions to target value.
 
-        Args:
-            trigger_repetitions (int): number of time trigger will be pull.
         """
         self.mc.communication.set_register(
             self.MONITORING_NUMBER_TRIGGER_REPETITIONS_REGISTER,
-            trigger_repetitions,
+            1,
             servo=self.servo,
             axis=0
         )
@@ -564,7 +527,8 @@ class Monitoring:
         while mon_process_stage is None or (
                 blocking and final_time > time.time() and
                 mon_process_stage != MonitoringProcessStage.WAITING_FOR_TRIGGER):
-            mon_process_stage = self.get_monitoring_process_stage()
+            mon_process_stage = self.mc.capture.get_monitoring_process_stage(
+                servo=self.servo, version=self.__version)
             self.mc.communication.set_register(
                 self.MONITORING_FORCE_TRIGGER_REGISTER,
                 1, servo=self.servo, axis=0)
