@@ -15,7 +15,8 @@ def check_disturbance_disabled(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         disturbance_enabled = self.mc.capture.is_disturbance_enabled(
-            servo=self.servo)
+            servo=self.servo,
+            version=self._version)
         if disturbance_enabled:
             raise IMDisturbanceError("Disturbance is enabled")
         return func(self, *args, **kwargs)
@@ -61,10 +62,10 @@ class Disturbance:
         self.servo = servo
         self.mapped_registers = []
         self.sampling_freq = None
-        self.__version = mc.capture._check_version(servo)
+        self._version = mc.capture._check_version(servo)
         self.logger = ingenialogger.get_logger(__name__, drive=mc.servo_name(servo))
         self.max_sample_number = self.get_max_sample_size()
-        if self.__version < MonitoringVersion.MONITORING_V3:
+        if self._version < MonitoringVersion.MONITORING_V3:
             try:
                 self.mc.capture.mcb_synchronization(servo=servo)
             except IMStatusWordError:

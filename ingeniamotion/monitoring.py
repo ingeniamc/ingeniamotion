@@ -3,12 +3,11 @@ import struct
 import numpy as np
 import ingenialogger
 import ingenialink as il
+from enum import IntEnum
 from functools import wraps
 from ingenialink.exceptions import ILError
 from ingenialink import REG_DTYPE, REG_ACCESS
 from ingenialink.ipb.register import IPBRegister
-
-from enum import IntEnum
 
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 from .exceptions import IMMonitoringError, IMStatusWordError
@@ -438,6 +437,22 @@ class Monitoring:
             data_is_ready &= self.mc.capture.is_frame_available(
                 self.servo, version=self.__version)
         return data_is_ready
+
+    def get_monitoring_process_stage(self):
+        """(Deprecated) Return monitoring process stage.
+
+        Returns:
+            MonitoringProcessStage: Current monitoring process stage.
+        """
+        return self.mc.capture.get_monitoring_process_stage(self.servo, self.__version)
+
+    def is_frame_available(self):
+        """(Deprecated) Check if monitoring has an available frame.
+
+        Returns:
+            bool: True if monitoring has an available frame, else False.
+        """
+        return self.mc.capture.is_frame_available(self.servo, self.__version)
 
     def stop_reading_data(self):
         """
