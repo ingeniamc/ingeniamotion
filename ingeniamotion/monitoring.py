@@ -415,7 +415,7 @@ class Monitoring:
             self.__update_read_process_finished(init_read_time, current_len,
                                                 init_time, timeout)
         if self.__version >= MonitoringVersion.MONITORING_V3:
-            drive.write("MON_OP_ADD_REG", 1, subnode=0)
+            drive.monitoring_remove_data()
         return data_array
 
     def __fill_data(self, data_array):

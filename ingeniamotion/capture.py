@@ -289,15 +289,21 @@ class Capture(metaclass=MCMetaClass):
         self.disable_monitoring(servo=servo)
         self.disable_disturbance(servo=servo)
 
-    def disable_monitoring(self, servo=DEFAULT_SERVO):
+    def disable_monitoring(self, servo=DEFAULT_SERVO, version=None):
         """Disable monitoring.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
+            version (MonitoringVersion): Monitoring/Disturbance version,
+                if ``None`` reads from drive. ``None`` by default.
 
         """
+        if version is None:
+            version = self._check_version(servo)
         drive = self.mc.servos[servo]
         drive.monitoring_disable()
+        if version < MonitoringVersion.MONITORING_V3:
+            return drive.monitoring_remove_data()
 
     def disable_disturbance(self, servo=DEFAULT_SERVO, version=None):
         """Disable disturbance.
@@ -311,9 +317,11 @@ class Capture(metaclass=MCMetaClass):
         if version is None:
             version = self._check_version(servo)
         if version < MonitoringVersion.MONITORING_V3:
-            return self.disable_monitoring(servo=servo)
+            return self.disable_monitoring(servo=servo, version=version)
         drive = self.mc.servos[servo]
         drive.disturbance_disable()
+        if version < MonitoringVersion.MONITORING_V3:
+            return drive.disturbance_remove_data()
 
     def get_monitoring_disturbance_status(self, servo=DEFAULT_SERVO):
         """Get Monitoring Status.
@@ -440,13 +448,16 @@ class Capture(metaclass=MCMetaClass):
         mask = self.MONITORING_AVAILABLE_FRAME_BIT[version]
         return (monitor_status & mask) != 0
 
-    def clean_monitoring(self, servo=DEFAULT_SERVO):
+    def clean_monitoring(self, servo=DEFAULT_SERVO, version=None):
         """Disable monitoring/disturbance and remove monitoring mapped registers.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
+            version (MonitoringVersion): Monitoring/Disturbance version,
+                if None reads from drive. ``None`` by default.
+
         """
-        self.disable_monitoring(servo=servo)
+        self.disable_monitoring(servo=servo, version=version)
         drive = self.mc.servos[servo]
         drive.monitoring_remove_all_mapped_registers()
 
@@ -457,6 +468,7 @@ class Capture(metaclass=MCMetaClass):
             servo (str): servo alias to reference it. ``default`` by default.
             version (MonitoringVersion): Monitoring/Disturbance version,
                 if None reads from drive. ``None`` by default.
+
         """
         self.disable_disturbance(servo=servo, version=version)
         drive = self.mc.servos[servo]
