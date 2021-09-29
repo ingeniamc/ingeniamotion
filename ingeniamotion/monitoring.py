@@ -45,6 +45,7 @@ class Monitoring:
     Args:
         mc (MotionController): MotionController instance.
         servo (str): servo alias to reference it. ``default`` by default.
+    
     """
 
     EOC_TRIGGER_NUMBER_SAMPLES = 3
@@ -128,6 +129,7 @@ class Monitoring:
 
         Raises:
             ValueError: If prescaler is less than ``1``.
+
         """
         if prescaler < 1:
             raise ValueError("prescaler must be 1 or higher")
@@ -163,6 +165,7 @@ class Monitoring:
         Raises:
             IMMonitoringError: If register maps fails in the servo.
             IMMonitoringError: If buffer size is not enough for all the registers.
+
         """
         drive = self.mc.servos[self.servo]
         drive.monitoring_remove_all_mapped_registers()
@@ -208,12 +211,12 @@ class Monitoring:
             trigger_signal (dict): dict with name and axis of trigger signal
                 for rising or falling edge trigger.
             trigger_value (int or float): value for rising or falling edge trigger.
-            trigger_repetitions (int): number of time trigger will be pull.
 
         Raises:
             TypeError: If trigger_mode is rising or falling edge trigger and
                 trigger_signal or trigger_value are None.
             IMMonitoringError: If trigger signal is not mapped.
+
         """
         self.reset_trigger_repetitions()
         self.mc.communication.set_register(
@@ -269,8 +272,7 @@ class Monitoring:
 
     @check_monitoring_disabled
     def configure_number_samples(self, total_num_samples, trigger_delay_samples):
-        """
-        Configure monitoring number of samples. Monitoring must be disabled.
+        """Configure monitoring number of samples. Monitoring must be disabled.
 
         Args:
             total_num_samples (int): monitoring total number of samples.
@@ -281,6 +283,7 @@ class Monitoring:
             ValueError: If trigger_delay_samples is less than ``1``
                 or higher than total_num_samples.
             IMMonitoringError: If buffer size is not enough for all the samples.
+
         """
         if trigger_delay_samples >= total_num_samples:
             raise ValueError("trigger_delay_samples should be less"
@@ -319,8 +322,7 @@ class Monitoring:
 
     @check_monitoring_disabled
     def configure_sample_time(self, total_time, trigger_delay):
-        """
-        Configure monitoring number of samples defines by sample and trigger
+        """Configure monitoring number of samples defines by sample and trigger
         delay time. Monitoring must be disabled.
 
         Args:
@@ -332,6 +334,7 @@ class Monitoring:
             ValueError: If trigger_delay is not between ``-total_time/2`` and
                 ``total_time/2``.
             IMMonitoringError: If buffer size is not enough for all the samples.
+
         """
         if total_time / 2 < abs(trigger_delay):
             raise ValueError("trigger_delay value should be between"
@@ -341,21 +344,6 @@ class Monitoring:
                                     * self.sampling_freq)
         trigger_delay_samples = trigger_delay_samples if trigger_delay_samples > 0 else 1
         self.configure_number_samples(total_num_samples, trigger_delay_samples)
-
-    def __setup_read_monitoring_data(self):
-        if self.__version < MonitoringVersion.MONITORING_V3:
-            trigger_repetitions = self.mc.communication.get_register(
-                self.MONITORING_NUMBER_TRIGGER_REPETITIONS_REGISTER,
-                servo=self.servo,
-                axis=0
-            )
-        else:
-            rearm_done = self.mc.capture.get_monitoring_process_stage(
-                self.servo, version=self.__version) != MonitoringProcessStage.END_STAGE
-            trigger_repetitions = int(rearm_done)
-        is_enabled = self.mc.capture.is_monitoring_enabled(servo=self.servo)
-        self.__read_process_finished = False
-        return trigger_repetitions, is_enabled
 
     def __update_read_process_finished(self, init_read_time, data_length,
                                        init_time, timeout):
@@ -379,10 +367,35 @@ class Monitoring:
         if progress_callback is not None:
             progress_callback(current_progress)
 
+    def __check_monitoring_is_ready(self):
+        is_enabled = self.mc.capture.is_monitoring_enabled(self.servo)
+        result_text = ""
+        if self.__version < MonitoringVersion.MONITORING_V3:
+            trigger_repetitions = self.mc.communication.get_register(
+                self.MONITORING_NUMBER_TRIGGER_REPETITIONS_REGISTER,
+                servo=self.servo,
+                axis=0
+            )
+            is_ready = is_enabled and trigger_repetitions != 0
+            not_ready_text = "MON_CFG_TRIGGER_REPETITIONS is {}".format(
+                trigger_repetitions)
+        else:
+            monitoring_stage = self.mc.capture.get_monitoring_process_stage(
+                self.servo, self.__version)
+            is_ready = (is_enabled and
+                        monitoring_stage != MonitoringProcessStage.INIT_STAGE)
+            not_ready_text = "Monitoring stage is {}".format(monitoring_stage.name)
+
+        if not is_ready:
+            text_is_enabled = "enabled" if is_enabled else "disabled"
+            result_text = ("Can't read monitoring data because monitoring is not ready."
+                           " {}. Monitoring is {}."
+                           .format(not_ready_text, text_is_enabled))
+        return is_ready, result_text
+
     # TODO Study remove progress_callback
     def read_monitoring_data(self, timeout=None, progress_callback=None):
-        """
-        Blocking function that read the monitoring data.
+        """Blocking function that read the monitoring data.
 
         Args:
             timeout (float): maximum time trigger is waited, in seconds.
@@ -391,9 +404,11 @@ class Monitoring:
         Returns:
             list of list: data of monitoring. Each element of the list is a
             different register data.
+
         """
         drive = self.mc.servos[self.servo]
-        trigger_repetitions, is_enabled = self.__setup_read_monitoring_data()
+        self.__read_process_finished = False
+        is_ready, result_text = self.__check_monitoring_is_ready()
         data_array = [[] for _ in self.mapped_registers]
         self.logger.debug("Waiting for data")
         init_read_time, init_time = None, time.time()
@@ -406,12 +421,8 @@ class Monitoring:
                     init_read_time = time.time()
                 current_len = len(data_array[0])
                 self.__show_current_process(current_len, progress_callback)
-            elif not is_enabled or trigger_repetitions == 0:
-                text_is_enabled = "enabled" if is_enabled else "disabled"
-                self.logger.warning(
-                    "Can't read monitoring data because monitoring is not ready."
-                    " MON_CFG_TRIGGER_REPETITIONS is {}. Monitoring is {}."
-                    .format(trigger_repetitions, text_is_enabled))
+            elif not is_ready:
+                self.logger.warning(result_text)
                 self.__read_process_finished = True
             self.__update_read_process_finished(init_read_time, current_len,
                                                 init_time, timeout)
@@ -443,6 +454,7 @@ class Monitoring:
 
         Returns:
             MonitoringProcessStage: Current monitoring process stage.
+
         """
         return self.mc.capture.get_monitoring_process_stage(self.servo, self.__version)
 
@@ -451,20 +463,16 @@ class Monitoring:
 
         Returns:
             bool: True if monitoring has an available frame, else False.
+
         """
         return self.mc.capture.is_frame_available(self.servo, self.__version)
 
     def stop_reading_data(self):
-        """
-        Stops read_monitoring_data function.
-        """
+        """Stops read_monitoring_data function."""
         self.__read_process_finished = True
 
     def reset_trigger_repetitions(self):
-        """
-        Reset trigger repetitions to target value.
-
-        """
+        """Reset trigger repetitions to target value."""
         self.mc.communication.set_register(
             self.MONITORING_NUMBER_TRIGGER_REPETITIONS_REGISTER,
             1,
@@ -473,11 +481,11 @@ class Monitoring:
         )
 
     def get_max_sample_size(self):
-        """
-        Return monitoring max size, in bytes.
+        """Return monitoring max size, in bytes.
 
         Returns:
             int: Max buffer size in bytes.
+
         """
         try:
             return self.mc.communication.get_register(
@@ -490,18 +498,24 @@ class Monitoring:
 
     def __check_buffer_size_is_enough(self, total_samples, trigger_delay_samples,
                                       registers):
-        n_sample = max(total_samples - trigger_delay_samples, trigger_delay_samples)
+        if self.__version < MonitoringVersion.MONITORING_V3:
+            n_sample = max(total_samples - trigger_delay_samples, trigger_delay_samples)
+            max_size = self.max_sample_number // 2
+        else:
+            n_sample = total_samples
+            max_size = self.max_sample_number
+
         size_demand = sum(
             self.__data_type_size[register["dtype"]] * n_sample
             for register in registers
         )
-        if self.max_sample_number / 2 < size_demand:
+        if max_size < size_demand:
             raise IMMonitoringError(
                 "Number of samples is too high or mapped registers are too big. "
                 "Demanded size: {} bytes, buffer max size: {} bytes."
-                .format(size_demand, self.max_sample_number // 2))
+                .format(size_demand, max_size))
         self.logger.debug("Demanded size: %d bytes, buffer max size: %d bytes.",
-                          size_demand, self.max_sample_number // 2)
+                          size_demand, max_size)
 
     def get_trigger_type(self):
         """Get monitoring trigger type.
