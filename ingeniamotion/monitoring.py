@@ -2,12 +2,10 @@ import time
 import struct
 import numpy as np
 import ingenialogger
-import ingenialink as il
 from enum import IntEnum
 from functools import wraps
+from ingenialink import REG_DTYPE
 from ingenialink.exceptions import ILError
-from ingenialink import REG_DTYPE, REG_ACCESS
-from ingenialink.ipb.register import IPBRegister
 
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 from .exceptions import IMMonitoringError, IMStatusWordError
@@ -61,26 +59,16 @@ class Monitoring:
 
     ESTIMATED_MAX_TIME_FOR_SAMPLE = 0.0015
 
-    monitoring_version_register = IPBRegister(
-        "MON_DIS_VERSION",
-        "-",
-        "CONFIG",
-        REG_DTYPE.U32,
-        REG_ACCESS.RO,
-        0x00BA,
-        subnode=0
-    )
-
     __data_type_size = {
-        il.REG_DTYPE.U8: 1,
-        il.REG_DTYPE.S8: 1,
-        il.REG_DTYPE.U16: 2,
-        il.REG_DTYPE.S16: 2,
-        il.REG_DTYPE.U32: 4,
-        il.REG_DTYPE.S32: 4,
-        il.REG_DTYPE.U64: 8,
-        il.REG_DTYPE.S64: 8,
-        il.REG_DTYPE.FLOAT: 4
+        REG_DTYPE.U8: 1,
+        REG_DTYPE.S8: 1,
+        REG_DTYPE.U16: 2,
+        REG_DTYPE.S16: 2,
+        REG_DTYPE.U32: 4,
+        REG_DTYPE.S32: 4,
+        REG_DTYPE.U64: 8,
+        REG_DTYPE.S64: 8,
+        REG_DTYPE.FLOAT: 4
     }
 
     MONITORING_FREQUENCY_DIVIDER_REGISTER = "MON_DIST_FREQ_DIV"
@@ -260,11 +248,11 @@ class Monitoring:
     @staticmethod
     def __unpack_trigger_value(value, dtype):
         """Converts any value from its dtype to an UINT32"""
-        if dtype == il.REG_DTYPE.U16:
+        if dtype == REG_DTYPE.U16:
             return int(np.array([int(value)], dtype='int64').astype('uint16')[0])
-        if dtype == il.REG_DTYPE.U32:
+        if dtype == REG_DTYPE.U32:
             return int(struct.unpack('L', struct.pack('I', int(value)))[0])
-        if dtype == il.REG_DTYPE.S32:
+        if dtype == REG_DTYPE.S32:
             if value < 0:
                 return int(value + (1 << 32))
             return int(np.array([int(value)], dtype='int64').astype('int32')[0])
