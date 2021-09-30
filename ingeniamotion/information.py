@@ -67,3 +67,18 @@ class Information(metaclass=MCMetaClass):
         """
         register = self.register_info(register, axis=axis, servo=servo)
         return register.range
+
+    def register_exists(self, register, axis=DEFAULT_AXIS, servo=DEFAULT_SERVO):
+        """Check if register exists in dictionary.
+
+        Args:
+            register (str): register UID.
+            axis (int): servo axis. ``1`` by default.
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        Returns:
+            bool: ``True`` if register exists, else ``False``.
+
+        """
+        drive = self.mc.servos[servo]
+        return register in drive.dictionary.registers(axis)
