@@ -1,9 +1,12 @@
 import ifaddr
-import ingenialink as il
 import ingenialogger
+import ingenialink as il
 
 from os import path
 from enum import IntEnum
+from ingenialink.canopen.network import CanopenNetwork
+from ingenialink.ethernet.network import EthernetNetwork
+from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.canopen import CAN_BAUDRATE, CAN_DEVICE
 
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
@@ -35,7 +38,7 @@ class Communication(metaclass=MCMetaClass):
         """
         if not dict_path:
             raise TypeError("dict_path argument is missing")
-        self.__servo_connect(ip, dict_path, alias, il.NET_PROT.ETH, protocol, port)
+        self.__servo_connect(ip, dict_path, alias, protocol, port)
 
     def connect_servo_ethernet(self, ip, dict_path=None, alias=DEFAULT_SERVO,
                                protocol=Protocol.UDP, port=1061):
@@ -50,17 +53,20 @@ class Communication(metaclass=MCMetaClass):
         """
         if not dict_path:
             raise TypeError("dict_path argument is missing")
-        self.__servo_connect(ip, dict_path, alias, il.NET_PROT.ETH, protocol, port)
+        self.__servo_connect(ip, dict_path, alias, protocol, port)
 
-    def __servo_connect(self, ip, dict_path, alias, prot,
+    def __servo_connect(self, ip, dict_path, alias,
                         protocol=Protocol.UDP, port=1061):
         if not path.isfile(dict_path):
             raise FileNotFoundError("{} file does not exist!".format(dict_path))
         try:
-            net, servo = il.lucky(prot, dict_path, address_ip=ip,
-                                  port_ip=port, protocol=protocol)
+            if "ethernet" not in self.mc.net:
+                self.mc.net["ethernet"] = EthernetNetwork()
+            net = self.mc.net["ethernet"]
+            servo = net.connect_to_slave(ip, dict_path, port, protocol)
+
             self.mc.servos[alias] = servo
-            self.mc.net[alias] = net
+            self.mc.servo_net[alias] = "ethernet"
         except il.exceptions.ILError as e:
             raise Exception("Error trying to connect to the servo. {}.".format(e))
 
@@ -77,13 +83,18 @@ class Communication(metaclass=MCMetaClass):
                 if ``False`` use SDOs. ``True`` by default.
             alias (str): servo alias to reference it. ``default`` by default.
         """
+        if not path.isfile(dict_path):
+            raise FileNotFoundError("{} file does not exist!".format(dict_path))
         use_eoe_comms = 1 if eoe_comm else 0
         try:
-            servo, net = il.servo.connect_ecat(ifname, dict_path,
-                                               slave, use_eoe_comms)
+            if ifname not in self.mc.net:
+                self.mc.net[ifname] = EthercatNetwork(ifname)
+            net = self.mc.net[ifname]
+            servo = net.connect_to_slave(slave, dict_path, use_eoe_comms)
+            servo.slave = slave
+
             self.mc.servos[alias] = servo
-            net.slave = slave
-            self.mc.net[alias] = net
+            self.mc.servo_net[alias] = ifname
         except il.exceptions.ILError as e:
             raise Exception("Error trying to connect to the servo. {}."
                             .format(e))
@@ -153,18 +164,17 @@ class Communication(metaclass=MCMetaClass):
 
         if not path.isfile(eds_file):
             raise FileNotFoundError("EDS file {} does not exist!".format(eds_file))
-        net = il.CANOpenNetwork(device=can_device, channel=channel, baudrate=baudrate)
+        net_key = "{}_{}_{}".format(can_device, channel, baudrate)
+        if net_key not in self.mc.net:
+            self.mc.net[net_key] = CanopenNetwork(can_device, channel, baudrate)
+        net = self.mc.net[net_key]
         try:
-            net.connect_through_node(eds_file, dict_path, node_id, heartbeat=False)
-            drives_connected = net.servos
-            if len(drives_connected) > 0:
-                servo = drives_connected[0]
-            else:
-                raise Exception("Error trying to connect to the servo.")
+            servo = net.connect_to_slave(
+                node_id, dict_path, eds_file,
+                servo_status_listener=False, net_status_listener=False)
             self.mc.servos[alias] = servo
-            self.mc.net[alias] = net
+            self.mc.servo_net[alias] = net_key
         except Exception as e:
-            net.disconnect()
             raise e
 
     def scan_servos_canopen(self, can_device,
@@ -179,14 +189,17 @@ class Communication(metaclass=MCMetaClass):
         Returns:
             list of int: List of node ids available in the network.
         """
-        net = il.canopen.net.Network(can_device, baudrate=baudrate,
-                                     channel=channel)
+        net_key = "{}_{}_{}".format(can_device, channel, baudrate)
+        if net_key not in self.mc.net:
+            self.mc.net[net_key] = CanopenNetwork(can_device, channel, baudrate)
+        net = self.mc.net[net_key]
+
         if net is None:
             self.logger.warning("Could not find any nodes in the network."
                                 "Device: %s, channel: %s and baudrate: %s.",
                                 can_device, channel, baudrate)
             return []
-        nodes = net.detect_nodes()
+        nodes = net.scan_slaves()
         net.disconnect()
         return nodes
 
@@ -196,8 +209,12 @@ class Communication(metaclass=MCMetaClass):
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
         """
-        network = self.mc.net[servo]
-        network.disconnect()
+        drive = self.mc.servos[servo]
+        net_key = self.mc.servo_net[servo]
+        network = self.mc.net[net_key]
+        network.disconnect_from_slave(drive)
+        del self.mc.servos[servo]
+        del self.mc.servo_net[servo]
 
     def get_register(self, register, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """Return the value of a target register.
@@ -211,9 +228,10 @@ class Communication(metaclass=MCMetaClass):
             int, float or str: Current register value.
         """
         drive = self.mc.servos[servo]
+        register_dtype = self.mc.info.register_type(register, axis, servo=servo)
         value = drive.read(register, subnode=axis)
-        if (drive.dict.get_regs(axis).get(register).dtype.value <=
-                il.registers.REG_DTYPE.S64.value):
+        if (register_dtype.value <=
+                il.register.REG_DTYPE.S64.value):
             return int(value)
         return value
 
@@ -228,22 +246,19 @@ class Communication(metaclass=MCMetaClass):
             axis (int): servo axis. ``1`` by default.
         """
         drive = self.mc.servos[servo]
-        register_instance = drive.dict.get_regs(axis).get(register)
-        register_dtype_value = None
-        if register_instance:
-            register_dtype_value = register_instance.dtype.value
+        register_dtype_value = self.mc.info.register_type(register, axis, servo=servo)
         signed_int = [
-            il.registers.REG_DTYPE.S8.value, il.registers.REG_DTYPE.S16.value,
-            il.registers.REG_DTYPE.S32.value, il.registers.REG_DTYPE.S64.value
+            il.register.REG_DTYPE.S8, il.register.REG_DTYPE.S16,
+            il.register.REG_DTYPE.S32, il.register.REG_DTYPE.S64
         ]
         unsigned_int = [
-            il.registers.REG_DTYPE.U8.value, il.registers.REG_DTYPE.U16.value,
-            il.registers.REG_DTYPE.U32.value, il.registers.REG_DTYPE.U64.value
+            il.register.REG_DTYPE.U8, il.register.REG_DTYPE.U16,
+            il.register.REG_DTYPE.U32, il.register.REG_DTYPE.U64
         ]
-        if register_dtype_value == il.registers.REG_DTYPE.FLOAT.value and \
+        if register_dtype_value == il.register.REG_DTYPE.FLOAT and \
                 not isinstance(value, (int, float)):
             raise TypeError("Value must be a float")
-        if register_dtype_value == il.registers.REG_DTYPE.STR.value and \
+        if register_dtype_value == il.register.REG_DTYPE.STR and \
                 not isinstance(value, str):
             raise TypeError("Value must be a string")
         if register_dtype_value in signed_int and \
@@ -269,14 +284,13 @@ class Communication(metaclass=MCMetaClass):
         Returns:
             int, float or str: Current register value.
         """
-        network = self.mc.net[servo]
-        if il.registers.REG_DTYPE.STR.value == dtype.value:
-            if not isinstance(string_size, int):
-                raise TypeError("string_size should be an int for data type string")
-            return network.read_string_sdo(index, subindex,
-                                           string_size, network.slave)
-        else:
-            return network.read_sdo(index, subindex, dtype.value, network.slave)
+        drive = self.mc.servos[servo]
+        if il.register.REG_DTYPE.STR.value != dtype.value:
+            return drive.read_sdo(index, subindex, dtype.value, drive.slave)
+        if not isinstance(string_size, int):
+            raise TypeError("string_size should be an int for data type string")
+        return drive.read_string_sdo(index, subindex,
+                                     string_size, drive.slave)
 
     def set_sdo_register(self, index, subindex, dtype, value,
                          servo=DEFAULT_SERVO):
@@ -290,5 +304,5 @@ class Communication(metaclass=MCMetaClass):
             value (int or float): new value for the register.
             servo (str): servo alias to reference it. ``default`` by default.
         """
-        network = self.mc.net[servo]
-        network.write_sdo(index, subindex, dtype.value, value, network.slave)
+        drive = self.mc.servos[servo]
+        drive.write_sdo(index, subindex, dtype.value, value, drive.slave)

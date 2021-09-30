@@ -4,6 +4,7 @@ from numpy import ndarray
 from functools import wraps
 from collections.abc import Iterable
 from ingenialink.exceptions import ILError
+from ingenialink.register import REG_DTYPE
 
 from .exceptions import IMDisturbanceError, IMStatusWordError
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
@@ -126,23 +127,23 @@ class Disturbance:
         if not isinstance(registers, list):
             registers = [registers]
         drive = self.mc.servos[self.servo]
-        network = self.mc.net[self.servo]
-        network.disturbance_remove_all_mapped_registers()
+        drive.disturbance_remove_all_mapped_registers()
         total_sample_size = 0
         for ch_idx, channel in enumerate(registers):
             subnode = channel.get("axis", DEFAULT_AXIS)
             register = channel["name"]
-            register_obj = drive.dict.get_regs(subnode)[register]
+            register_obj = self.mc.info.register_info(
+                register, subnode, servo=self.servo)
             dtype = register_obj.dtype
             cyclic = register_obj.cyclic
             if cyclic != self.CYCLIC_RX:
-                network.disturbance_remove_all_mapped_registers()
+                drive.disturbance_remove_all_mapped_registers()
                 raise IMDisturbanceError("{} can not be mapped as a disturbance register"
                                          .format(register))
             channel["dtype"] = dtype
             address_offset = self.REGISTER_MAP_OFFSET * (subnode - 1)
             mapped_reg = register_obj.address + address_offset
-            network.disturbance_set_mapped_register(ch_idx, mapped_reg, dtype.value)
+            drive.disturbance_set_mapped_register(ch_idx, mapped_reg, dtype.value)
             self.mapped_registers.append(channel)
             total_sample_size += self.__data_type_size[dtype]
         return self.max_sample_number / total_sample_size
@@ -172,7 +173,7 @@ class Disturbance:
         drive = self.mc.servos[self.servo]
         self.__check_buffer_size_is_enough(registers_data)
         idx_list = list(range(len(registers_data)))
-        dtype_list = [x["dtype"] for x in self.mapped_registers]
+        dtype_list = [REG_DTYPE(x["dtype"]) for x in self.mapped_registers]
         drive.disturbance_write_data(idx_list, dtype_list, registers_data)
 
     def map_registers_and_write_data(self, registers):

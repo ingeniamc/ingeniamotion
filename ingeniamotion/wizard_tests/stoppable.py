@@ -1,5 +1,5 @@
-from functools import wraps
 from time import time
+from functools import wraps
 
 
 class StopException(Exception):

@@ -2,8 +2,9 @@ import ingenialogger
 
 from enum import IntEnum
 from abc import ABC, abstractmethod
-from ingenialink.exceptions import ILError, ILTimeoutError
+from ingenialink.exceptions import ILError
 
+from ingeniamotion.exceptions import IMRegisterNotExist
 from .stoppable import Stoppable, StopException
 
 
@@ -36,7 +37,7 @@ class BaseTest(ABC, Stoppable):
                     uid, servo=self.servo, axis=self.axis
                 )
                 self.backup_registers[self.axis][uid] = value
-            except ILError as e:
+            except IMRegisterNotExist as e:
                 self.logger.warning(e, axis=self.axis)
 
     def restore_backup_registers(self):
@@ -51,7 +52,7 @@ class BaseTest(ABC, Stoppable):
                     self.mc.communication.set_register(
                         key, value, servo=self.servo, axis=self.axis
                     )
-                except ILError as e:
+                except IMRegisterNotExist as e:
                     self.logger.warning(e, axis=subnode)
 
     @abstractmethod
