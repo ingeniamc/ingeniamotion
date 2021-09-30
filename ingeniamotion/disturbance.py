@@ -1,20 +1,21 @@
 import ingenialogger
-import ingenialink as il
 from numpy import ndarray
 from functools import wraps
+from ingenialink import REG_DTYPE
 from collections.abc import Iterable
 from ingenialink.exceptions import ILError
-from ingenialink.register import REG_DTYPE
 
-from .exceptions import IMDisturbanceError, IMStatusWordError
+from ingeniamotion.enums import MonitoringVersion
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
+from .exceptions import IMDisturbanceError, IMStatusWordError
 
 
 def check_disturbance_disabled(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         disturbance_enabled = self.mc.capture.is_disturbance_enabled(
-            servo=self.servo)
+            servo=self.servo,
+            version=self._version)
         if disturbance_enabled:
             raise IMDisturbanceError("Disturbance is enabled")
         return func(self, *args, **kwargs)
@@ -43,15 +44,15 @@ class Disturbance:
     MINIMUM_BUFFER_SIZE = 8192
 
     __data_type_size = {
-        il.REG_DTYPE.U8: 1,
-        il.REG_DTYPE.S8: 1,
-        il.REG_DTYPE.U16: 2,
-        il.REG_DTYPE.S16: 2,
-        il.REG_DTYPE.U32: 4,
-        il.REG_DTYPE.S32: 4,
-        il.REG_DTYPE.U64: 8,
-        il.REG_DTYPE.S64: 8,
-        il.REG_DTYPE.FLOAT: 4
+        REG_DTYPE.U8: 1,
+        REG_DTYPE.S8: 1,
+        REG_DTYPE.U16: 2,
+        REG_DTYPE.S16: 2,
+        REG_DTYPE.U32: 4,
+        REG_DTYPE.S32: 4,
+        REG_DTYPE.U64: 8,
+        REG_DTYPE.S64: 8,
+        REG_DTYPE.FLOAT: 4
     }
 
     def __init__(self, mc, servo=DEFAULT_SERVO):
@@ -59,17 +60,17 @@ class Disturbance:
         self.mc = mc
         self.servo = servo
         self.mapped_registers = []
-        self.disturbance_data = []
         self.sampling_freq = None
-        self.samples_number = 0
+        self._version = mc.capture._check_version(servo)
         self.logger = ingenialogger.get_logger(__name__, drive=mc.servo_name(servo))
         self.max_sample_number = self.get_max_sample_size()
-        self.data = None
-        try:
-            self.mc.capture.mcb_synchronization(servo=servo)
-        except IMStatusWordError:
-            self.logger.warning("MCB could not be synchronized. Motor is enabled.",
-                                drive=mc.servo_name(servo))
+        if self._version < MonitoringVersion.MONITORING_V3:
+            try:
+                self.mc.capture.mcb_synchronization(servo=servo)
+            except IMStatusWordError:
+                self.logger.warning("MCB could not be synchronized. Motor is enabled.",
+                                    drive=mc.servo_name(servo))
+
     @check_disturbance_disabled
     def set_frequency_divider(self, divider):
         """Function to define disturbance frequency with a prescaler. Frequency will be
@@ -143,10 +144,25 @@ class Disturbance:
             channel["dtype"] = dtype
             address_offset = self.REGISTER_MAP_OFFSET * (subnode - 1)
             mapped_reg = register_obj.address + address_offset
-            drive.disturbance_set_mapped_register(ch_idx, mapped_reg, dtype.value)
+            drive.disturbance_set_mapped_register(ch_idx, mapped_reg,
+                                                  subnode, dtype.value,
+                                                  self.__data_type_size[dtype])
             self.mapped_registers.append(channel)
             total_sample_size += self.__data_type_size[dtype]
         return self.max_sample_number / total_sample_size
+
+    @staticmethod
+    def __registers_data_adapter(registers_data):
+        if isinstance(registers_data, ndarray):
+            registers_data = registers_data.tolist()
+        if isinstance(registers_data, Iterable) and \
+                not isinstance(registers_data[0], Iterable):
+            return [registers_data]
+        if isinstance(registers_data, Iterable):
+            for i, x in enumerate(registers_data):
+                if isinstance(x, ndarray):
+                    registers_data[i] = x.tolist()
+        return registers_data
 
     @check_disturbance_disabled
     def write_disturbance_data(self, registers_data):
@@ -161,15 +177,7 @@ class Disturbance:
             IMDisturbanceError: If buffer size is not enough for all the
                 registers and samples.
         """
-        if isinstance(registers_data, ndarray):
-            registers_data = registers_data.tolist()
-        if isinstance(registers_data, Iterable):
-            for i, x in enumerate(registers_data):
-                if isinstance(x, ndarray):
-                    registers_data[i] = x.tolist()
-        if isinstance(registers_data, Iterable) and \
-                not isinstance(registers_data[0], Iterable):
-            registers_data = [registers_data]
+        registers_data = self.__registers_data_adapter(registers_data)
         drive = self.mc.servos[self.servo]
         self.__check_buffer_size_is_enough(registers_data)
         idx_list = list(range(len(registers_data)))

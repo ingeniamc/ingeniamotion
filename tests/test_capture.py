@@ -19,6 +19,7 @@ def test_create_poller(motion_controller):
         time.sleep(1)
         mc.motion.set_current_quadrature(0.2 * (i + 1), servo=alias)
     timestamp, test_data, _ = poller.data
+    poller.stop()
     first_zero = None
     for index, ts in enumerate(timestamp):
         value = test_data[0][index]

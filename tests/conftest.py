@@ -70,8 +70,7 @@ def motion_controller(pytestconfig, read_config):
     mc.configuration.load_configuration(
         read_config[protocol]["config_file"], servo=alias)
     yield mc, alias
-    if protocol == "canopen":
-        mc.communication.disconnect_canopen(alias)
+    mc.communication.disconnect(alias)
 
 
 @pytest.fixture(autouse=True)

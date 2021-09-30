@@ -1,5 +1,7 @@
+import time
 import pytest
 
+from ingenialink.servo import SERVO_STATE
 from ingenialink.register import REG_DTYPE
 from ingenialink.exceptions import ILError
 from ingenialink.canopen import CAN_BAUDRATE, CAN_DEVICE
@@ -54,6 +56,7 @@ def test_connect_servo_ethernet_no_dictionary_error(read_config):
             eoe_config["ip"], "no_dictionary", alias="eoe_test")
 
 
+@pytest.mark.skip(reason='This test enters in conflict with "motion_controller"')
 @pytest.mark.smoke
 @pytest.mark.soem
 def test_connect_servo_ecat(read_config):
@@ -81,6 +84,7 @@ def test_connect_servo_ecat_no_dictionary_error(read_config):
             slave=soem_config["slave"], alias="soem_test")
 
 
+@pytest.mark.skip(reason='This test enters in conflict with "motion_controller"')
 @pytest.mark.smoke
 @pytest.mark.soem
 def test_connect_servo_ecat_interface_index(read_config):
@@ -214,7 +218,7 @@ def test_set_register_wrong_value_type(motion_controller, uid, value, fail):
 @pytest.mark.parametrize("uid, index, subindex, dtype, value", [
     ("CL_VOL_Q_SET_POINT", 0x2018, 0, REG_DTYPE.FLOAT, -234),
     ("CL_POS_SET_POINT_VALUE", 0x2020, 0, REG_DTYPE.S32, 1245),
-    ("PROF_POS_OPTION_CODE",  0x2024, 0, REG_DTYPE.U16, 54),
+    ("PROF_POS_OPTION_CODE", 0x2024, 0, REG_DTYPE.U16, 54),
 ])
 def test_get_sdo_register(motion_controller, uid, index, subindex, dtype, value):
     mc, alias = motion_controller
@@ -229,7 +233,7 @@ def test_get_sdo_register(motion_controller, uid, index, subindex, dtype, value)
 @pytest.mark.parametrize("uid, index, subindex, dtype, value", [
     ("CL_VOL_Q_SET_POINT", 0x2018, 0, REG_DTYPE.FLOAT, -234),
     ("CL_POS_SET_POINT_VALUE", 0x2020, 0, REG_DTYPE.S32, 1245),
-    ("PROF_POS_OPTION_CODE",  0x2024, 0, REG_DTYPE.U16, 54),
+    ("PROF_POS_OPTION_CODE", 0x2024, 0, REG_DTYPE.U16, 54),
 ])
 def test_set_sdo_register(motion_controller, uid, index, subindex, dtype, value):
     mc, alias = motion_controller
@@ -238,3 +242,28 @@ def test_set_sdo_register(motion_controller, uid, index, subindex, dtype, value)
     test_value = mc.communication.get_register(
         uid, servo=alias)
     assert test_value == value
+
+
+def dummy_callback(status, _, axis):
+    pass
+
+
+@pytest.mark.develop
+def test_subscribe_servo_status(mocker, motion_controller):
+    mc, alias = motion_controller
+    axis = 1
+    patch_callback = mocker.patch('tests.test_communication.dummy_callback')
+    mc.communication.subscribe_servo_status(patch_callback, alias)
+    time.sleep(0.5)
+    mc.motion.motor_enable(alias, axis)
+    time.sleep(0.5)
+    mc.motion.motor_disable(alias, axis)
+    time.sleep(0.5)
+    expected_status = [
+        SERVO_STATE.RDY,
+        SERVO_STATE.ENABLED,
+        SERVO_STATE.DISABLED
+    ]
+    for index, call in enumerate(patch_callback.call_args_list):
+        assert call[0][0] == expected_status[index]
+        assert call[0][2] == axis

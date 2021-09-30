@@ -58,6 +58,8 @@ class MonitoringProcessStage(IntEnum):
     """Waiting for trigger"""
     DATA_ACQUISITION = 0x6
     """Data acquisition"""
+    END_STAGE = 0x8
+    """End stage"""
 
 
 class SensorType(IntEnum):
@@ -104,3 +106,13 @@ class GeneratorMode(IntEnum):
     """Saw tooth"""
     SQUARE = 2
     """Square"""
+
+
+class MonitoringVersion(IntEnum):
+    """Monitoring version"""
+    MONITORING_V1 = 0,
+    """Monitoring V1 used for Everest 1.8.1 and older."""
+    MONITORING_V2 = 1
+    """Monitoring V2 used for Capitan and some custom low-power drivers."""
+    MONITORING_V3 = 2
+    """Monitoring V3 used for Everest and Capitan newer than 1.8.1."""

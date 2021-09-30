@@ -86,8 +86,7 @@ class Feedbacks(metaclass=MCMetaClass):
             servo=servo,
             axis=axis
         )
-        sensor_name = self.SensorType(commutation_feedback)
-        return sensor_name
+        return self.SensorType(commutation_feedback)
 
     @MCMetaClass.check_motor_disabled
     def set_commutation_feedback(self, feedback,  servo=DEFAULT_SERVO,
@@ -124,8 +123,7 @@ class Feedbacks(metaclass=MCMetaClass):
             selected feedback.
         """
         commutation_feedback = self.get_commutation_feedback(servo, axis)
-        sensor_category = self.__feedback_type_dict[commutation_feedback]
-        return sensor_category
+        return self.__feedback_type_dict[commutation_feedback]
 
     def get_commutation_feedback_resolution(self, servo=DEFAULT_SERVO,
                                             axis=DEFAULT_AXIS):
@@ -139,9 +137,7 @@ class Feedbacks(metaclass=MCMetaClass):
             int: Resolution of the selected feedback.
         """
         sensor_type = self.get_commutation_feedback(servo, axis)
-        feedback_resolution = self.feedback_resolution_functions[sensor_type] \
-            (servo, axis)
-        return feedback_resolution
+        return self.feedback_resolution_functions[sensor_type](servo, axis)
 
     # Reference feedback
     def get_reference_feedback(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
@@ -159,8 +155,7 @@ class Feedbacks(metaclass=MCMetaClass):
             servo=servo,
             axis=axis
         )
-        sensor_name = self.SensorType(reference_feedback)
-        return sensor_name
+        return self.SensorType(reference_feedback)
 
     @MCMetaClass.check_motor_disabled
     def set_reference_feedback(self, feedback,  servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
@@ -196,8 +191,7 @@ class Feedbacks(metaclass=MCMetaClass):
             selected feedback.
         """
         reference_feedback = self.get_reference_feedback(servo, axis)
-        sensor_category = self.__feedback_type_dict[reference_feedback]
-        return sensor_category
+        return self.__feedback_type_dict[reference_feedback]
 
     def get_reference_feedback_resolution(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
@@ -210,9 +204,7 @@ class Feedbacks(metaclass=MCMetaClass):
             int: Resolution of the selected feedback.
         """
         sensor_type = self.get_reference_feedback(servo, axis)
-        feedback_resolution = self.feedback_resolution_functions[sensor_type] \
-            (servo, axis)
-        return feedback_resolution
+        return self.feedback_resolution_functions[sensor_type](servo, axis)
 
     # Velocity feedback
     def get_velocity_feedback(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
@@ -230,8 +222,7 @@ class Feedbacks(metaclass=MCMetaClass):
             servo=servo,
             axis=axis
         )
-        sensor_name = self.SensorType(velocity_feedback)
-        return sensor_name
+        return self.SensorType(velocity_feedback)
 
     @MCMetaClass.check_motor_disabled
     def set_velocity_feedback(self, feedback,  servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
@@ -267,8 +258,7 @@ class Feedbacks(metaclass=MCMetaClass):
             selected feedback.
         """
         velocity_feedback = self.get_velocity_feedback(servo, axis)
-        sensor_category = self.__feedback_type_dict[velocity_feedback]
-        return sensor_category
+        return self.__feedback_type_dict[velocity_feedback]
 
     def get_velocity_feedback_resolution(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
@@ -281,9 +271,7 @@ class Feedbacks(metaclass=MCMetaClass):
             int: Resolution of the selected feedback.
         """
         sensor_type = self.get_velocity_feedback(servo, axis)
-        feedback_resolution = self.feedback_resolution_functions[sensor_type] \
-            (servo, axis)
-        return feedback_resolution
+        return self.feedback_resolution_functions[sensor_type](servo, axis)
 
     # Position feedback
     def get_position_feedback(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
@@ -301,8 +289,7 @@ class Feedbacks(metaclass=MCMetaClass):
             servo=servo,
             axis=axis
         )
-        sensor_name = self.SensorType(position_feedback)
-        return sensor_name
+        return self.SensorType(position_feedback)
 
     @MCMetaClass.check_motor_disabled
     def set_position_feedback(self, feedback,  servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
@@ -338,8 +325,7 @@ class Feedbacks(metaclass=MCMetaClass):
             selected feedback.
         """
         position_feedback = self.get_position_feedback(servo, axis)
-        sensor_category = self.__feedback_type_dict[position_feedback]
-        return sensor_category
+        return self.__feedback_type_dict[position_feedback]
 
     def get_position_feedback_resolution(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
@@ -352,9 +338,7 @@ class Feedbacks(metaclass=MCMetaClass):
             int: Resolution of the selected feedback.
         """
         sensor_type = self.get_position_feedback(servo, axis)
-        feedback_resolution = self.feedback_resolution_functions[sensor_type] \
-            (servo, axis)
-        return feedback_resolution
+        return self.feedback_resolution_functions[sensor_type](servo, axis)
 
     # Auxiliar feedback
     def get_auxiliar_feedback(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
@@ -372,8 +356,7 @@ class Feedbacks(metaclass=MCMetaClass):
             servo=servo,
             axis=axis
         )
-        sensor_name = self.SensorType(auxiliar_feedback)
-        return sensor_name
+        return self.SensorType(auxiliar_feedback)
 
     @MCMetaClass.check_motor_disabled
     def set_auxiliar_feedback(self, feedback,  servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
@@ -409,8 +392,7 @@ class Feedbacks(metaclass=MCMetaClass):
             selected feedback.
         """
         auxiliar_feedback = self.get_auxiliar_feedback(servo, axis)
-        sensor_category = self.__feedback_type_dict[auxiliar_feedback]
-        return sensor_category
+        return self.__feedback_type_dict[auxiliar_feedback]
 
     def get_auxiliar_feedback_resolution(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
@@ -423,9 +405,7 @@ class Feedbacks(metaclass=MCMetaClass):
             int: Resolution of the selected feedback.
         """
         sensor_type = self.get_auxiliar_feedback(servo, axis)
-        feedback_resolution = self.feedback_resolution_functions[sensor_type] \
-            (servo, axis)
-        return feedback_resolution
+        return self.feedback_resolution_functions[sensor_type](servo, axis)
 
     def get_absolute_encoder_1_resolution(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
@@ -442,8 +422,7 @@ class Feedbacks(metaclass=MCMetaClass):
             servo=servo,
             axis=axis
         )
-        feedback_resolution = 2 ** single_turn_bits
-        return feedback_resolution
+        return 2 ** single_turn_bits
 
     def get_incremental_encoder_1_resolution(self, servo=DEFAULT_SERVO,
                                              axis=DEFAULT_AXIS):
@@ -456,12 +435,11 @@ class Feedbacks(metaclass=MCMetaClass):
         Returns:
             int: Resolution of incremental encoder 1.
         """
-        feedback_resolution = self.mc.communication.get_register(
+        return self.mc.communication.get_register(
             "FBK_DIGENC1_RESOLUTION",
             servo=servo,
             axis=axis
         )
-        return feedback_resolution
 
     def get_digital_halls_resolution(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
@@ -478,8 +456,7 @@ class Feedbacks(metaclass=MCMetaClass):
             servo=servo,
             axis=axis
         )
-        feedback_resolution = 6 * pair_poles
-        return feedback_resolution
+        return 6 * pair_poles
 
     def get_secondary_ssi_resolution(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
@@ -496,8 +473,7 @@ class Feedbacks(metaclass=MCMetaClass):
             servo=servo,
             axis=axis
         )
-        feedback_resolution = 2 ** secondary_single_turn_bits
-        return feedback_resolution
+        return 2 ** secondary_single_turn_bits
 
     def get_absolute_encoder_2_resolution(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
@@ -514,8 +490,7 @@ class Feedbacks(metaclass=MCMetaClass):
             servo=servo,
             axis=axis
         )
-        feedback_resolution = 2 ** serial_slave_1_single_turn_bits
-        return feedback_resolution
+        return 2 ** serial_slave_1_single_turn_bits
 
     def get_incremental_encoder_2_resolution(self, servo=DEFAULT_SERVO,
                                              axis=DEFAULT_AXIS):
@@ -528,12 +503,11 @@ class Feedbacks(metaclass=MCMetaClass):
         Returns:
             int: Resolution of incremental encoder 2 encoder.
         """
-        feedback_resolution = self.mc.communication.get_register(
+        return self.mc.communication.get_register(
             "FBK_DIGENC2_RESOLUTION",
             servo=servo,
             axis=axis
         )
-        return feedback_resolution
 
     def __no_feedback_resolution(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
