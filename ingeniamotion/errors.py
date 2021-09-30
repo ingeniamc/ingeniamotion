@@ -1,8 +1,8 @@
 from enum import IntEnum
 from ingenialink.exceptions import ILError
 
+from .exceptions import IMRegisterNotExist
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
-
 
 class Errors(metaclass=MCMetaClass):
     """Errors.
@@ -176,9 +176,10 @@ class Errors(metaclass=MCMetaClass):
     def __get_error_location(self, servo=DEFAULT_SERVO):
         # Try to read CoCo's last error, if it does not exist go to MoCo
         try:
-            _ = self.mc.servos[servo].get_reg(self.LAST_ERROR_COCO_REGISTER, 0)
+            _ = self.mc.info.register_info(
+                self.LAST_ERROR_COCO_REGISTER, 0, servo=servo)
             return self.ErrorLocation.COCO
-        except ILError:
+        except IMRegisterNotExist:
             return self.ErrorLocation.MOCO
 
     def get_error_data(self, error_code, servo=DEFAULT_SERVO):

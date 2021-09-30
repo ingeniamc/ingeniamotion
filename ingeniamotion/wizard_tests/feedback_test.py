@@ -192,6 +192,11 @@ class Feedbacks(BaseTest):
 
     @BaseTest.stoppable
     def halls_extra_settings(self):
+        self.mc.communication.set_register(
+            self.DIG_HALL_POLE_PAIRS_REGISTER, self.pair_poles,
+            servo=self.servo, axis=self.axis
+        )
+
         # Read velocity feedback
         velocity_feedback = self.mc.configuration.get_velocity_feedback(
             servo=self.servo, axis=self.axis
@@ -278,6 +283,11 @@ class Feedbacks(BaseTest):
                 self.POSITION_TO_VELOCITY_SENSOR_RATIO_REGISTER,
                 servo=self.servo, axis=self.axis
             )
+
+        # Read pole pairs and set to 1 for an electrical revolution
+        self.pair_poles = self.mc.configuration.get_motor_pair_poles(
+            servo=self.servo, axis=self.axis
+        )
         # For each feedback on motor side we should repeat this test using the
         # feedback as position sensor. The polarity of the feedback must be set
         # also to normal at the beginning. All feedback are set to the same,
@@ -285,11 +295,6 @@ class Feedbacks(BaseTest):
         # error (wizard_tests series can only support 4 feedback at the
         # same time)
         self.feedback_setting()
-
-        # Read pole pairs and set to 1 for an electrical revolution
-        self.pair_poles = self.mc.configuration.get_motor_pair_poles(
-            servo=self.servo, axis=self.axis
-        )
 
         self.mc.motion.set_internal_generator_configuration(
             OperationMode.CURRENT, servo=self.servo, axis=self.axis

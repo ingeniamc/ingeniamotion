@@ -101,30 +101,63 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """
         self.disable_brake_override(servo, axis)
 
-    def load_configuration(self, config_path, servo=DEFAULT_SERVO):
+    def load_configuration(self, config_path, axis=None, servo=DEFAULT_SERVO):
         """Load a configuration file to the target servo.
 
         Args:
             config_path (str): config file path to load.
+            axis (int): target axis to load configuration.
+                If ``None`` function loads all axis. ``None`` by default.
             servo (str): servo alias to reference it. ``default`` by default.
         """
         if not path.isfile(config_path):
             raise FileNotFoundError("{} file does not exist!".format(config_path))
         servo_inst = self.mc.servos[servo]
-        servo_inst.load_configuration(config_path)
+        servo_inst.load_configuration(config_path, subnode=axis)
         self.logger.info("Configuration loaded from %s", config_path,
                          drive=self.mc.servo_name(servo))
 
-    def save_configuration(self, output_file, servo=DEFAULT_SERVO):
+    def save_configuration(self, output_file, axis=None, servo=DEFAULT_SERVO):
         """Save the servo configuration to a target file.
 
         Args:
             output_file (str): servo configuration destination file.
+            axis (int): target axis to load configuration.
+                If ``None`` function loads all axis. ``None`` by default.
             servo (str): servo alias to reference it. ``default`` by default.
+
         """
         servo_inst = self.mc.servos[servo]
-        servo_inst.save_configuration(output_file)
+        servo_inst.save_configuration(output_file, subnode=axis)
         self.logger.info("Configuration saved to %s", output_file,
+                         drive=self.mc.servo_name(servo))
+
+    def store_configuration(self, axis=None, servo=DEFAULT_SERVO):
+        """Store servo configuration to non-volatile memory.
+
+        Args:
+            axis (int): target axis to load configuration.
+                If ``None`` function loads all axis. ``None`` by default.
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        """
+        drive = self.mc._get_drive(servo)
+        drive.store_parameters(axis)
+        self.logger.info("Configuration stored",
+                         drive=self.mc.servo_name(servo))
+
+    def restore_configuration(self, axis=None, servo=DEFAULT_SERVO):
+        """Restore servo to default configuration.
+
+        Args:
+            axis (int): target axis to load configuration.
+                If ``None`` function loads all axis. ``None`` by default.
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        """
+        drive = self.mc._get_drive(servo)
+        drive.restore_parameters(axis)
+        self.logger.info("Configuration restored",
                          drive=self.mc.servo_name(servo))
 
     def set_max_acceleration(self, acceleration, servo=DEFAULT_SERVO,
@@ -493,3 +526,37 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             bool: ``True`` if STO is abnormal latched, else ``False``.
         """
         return self.get_sto_status(servo, axis) == self.STO_LATCHED_STATE
+
+    def change_tcp_ip_parameters(self, ip_address, subnet_mask,
+                                 gateway, servo=DEFAULT_SERVO):
+        """Change TCP IP parameters and store it.
+
+        Args:
+            ip_address (str): IP Address to be changed.
+            subnet_mask (str): Subnet mask to be changed.
+            gateway (str): Gateway to be changed.
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        """
+        drive = self.mc._get_drive(servo)
+        drive.change_tcp_ip_parameters(ip_address, subnet_mask, gateway)
+
+    def store_tcp_ip_parameters(self, servo=DEFAULT_SERVO):
+        """Store TCP IP parameters to non-volatile memory.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        """
+        drive = self.mc._get_drive(servo)
+        drive.store_tcp_ip_parameters()
+
+    def restore_tcp_ip_parameters(self, servo=DEFAULT_SERVO):
+        """Restore TCP IP parameters to default values.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        """
+        drive = self.mc._get_drive(servo)
+        drive.restore_tcp_ip_parameters()
