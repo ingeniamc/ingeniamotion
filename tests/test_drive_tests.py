@@ -1,7 +1,14 @@
+import time
 import pytest
+
+from threading import Thread
 from ingenialink import exceptions
 
 from ingeniamotion.enums import SensorType
+from ingeniamotion.exceptions import IMRegisterNotExist
+from ingeniamotion.wizard_tests.feedback_test import Feedbacks
+from ingeniamotion.wizard_tests.phase_calibration import Phasing
+from ingeniamotion.wizard_tests.phasing_check import PhasingCheck
 from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
 
 
@@ -151,3 +158,50 @@ def test_brake_test(motion_controller):
     assert 1 == mc.configuration.get_motor_pair_poles(servo=alias)
     brake_test.finish()
     assert pair_poles == mc.configuration.get_motor_pair_poles(servo=alias)
+
+
+def get_backup_registers(test, mc, alias):
+    reg_values = {}
+    for reg in test.BACKUP_REGISTERS:
+        try:
+            reg_values[reg] = mc.communication.get_register(reg, servo=alias)
+        except IMRegisterNotExist:
+            pass
+    return reg_values
+
+
+def run_test_and_stop(test):
+    test_thread = Thread(target=test.run)
+    test_thread.start()
+    time.sleep(2)
+    test.stop()
+    test_thread.join()
+
+
+@pytest.mark.usefixtures("feedback_test_setup")
+@pytest.mark.parametrize("sensor", list(SensorType))
+def test_feedback_stop(motion_controller, sensor):
+    mc, alias = motion_controller
+    test = Feedbacks(mc, alias, 1, sensor)
+    reg_values = get_backup_registers(test, mc, alias)
+    run_test_and_stop(test)
+    for reg in reg_values:
+        assert reg_values[reg] == mc.communication.get_register(reg, servo=alias)
+
+
+def test_commutation_stop(motion_controller):
+    mc, alias = motion_controller
+    test = Phasing(mc, alias, 1)
+    reg_values = get_backup_registers(test, mc, alias)
+    run_test_and_stop(test)
+    for reg in reg_values:
+        assert reg_values[reg] == mc.communication.get_register(reg, servo=alias)
+
+
+def test_phasing_check_stop(motion_controller):
+    mc, alias = motion_controller
+    test = PhasingCheck(mc, alias, 1)
+    reg_values = get_backup_registers(test, mc, alias)
+    run_test_and_stop(test)
+    for reg in reg_values:
+        assert reg_values[reg] == mc.communication.get_register(reg, servo=alias)
