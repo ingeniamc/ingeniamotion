@@ -92,7 +92,7 @@ class Communication(metaclass=MCMetaClass):
             self.mc.servos[alias] = servo
             self.mc.servo_net[alias] = "ethernet"
         except ILError as e:
-            raise Exception("Error trying to connect to the servo. {}.".format(e))
+            raise e
 
     def connect_servo_ecat(self, ifname, dict_path, slave=1,
                            eoe_comm=True, alias=DEFAULT_SERVO,
@@ -128,8 +128,7 @@ class Communication(metaclass=MCMetaClass):
             self.mc.servos[alias] = servo
             self.mc.servo_net[alias] = ifname
         except ILError as e:
-            raise Exception("Error trying to connect to the servo. {}."
-                            .format(e))
+            raise e
 
     @staticmethod
     def get_ifname_by_index(index):
