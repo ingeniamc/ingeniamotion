@@ -1,7 +1,6 @@
 import pytest
 from ingenialink.exceptions import ILError
 
-
 USER_UNDER_VOLTAGE_ERROR_OPTION_CODE_REGISTER = "ERROR_PROT_UNDER_VOLT_OPTION"
 USER_UNDER_VOLTAGE_LEVEL_REGISTER = "DRV_PROT_USER_UNDER_VOLT"
 
@@ -23,6 +22,7 @@ def generate_drive_errors(motion_controller):
     ]
     error_code_list = []
     for item in errors_list:
+        mc.motion.fault_reset(servo=alias)
         old_value = mc.communication.get_register(item["register"], servo=alias)
         mc.communication.set_register(item["register"], item["value"], servo=alias)
         try:
@@ -50,19 +50,22 @@ def force_warning(motion_controller):
 
 class TestErrors:
 
+    @pytest.mark.develop
     @pytest.mark.smoke
     def test_get_last_error(self, motion_controller, generate_drive_errors):
         mc, alias = motion_controller
-        last_error = mc.errors.get_last_error(servo=alias)
+        last_error, subnode, warning = mc.errors.get_last_error(servo=alias)
         assert last_error == generate_drive_errors[0]
         mc.motion.fault_reset(servo=alias)
-        last_error = mc.errors.get_last_error(servo=alias)
+        last_error, subnode, warning = mc.errors.get_last_error(servo=alias)
         assert last_error == 0
+        assert subnode is None
+        assert warning is None
 
     @pytest.mark.smoke
     def test_get_last_buffer_error(self, motion_controller, generate_drive_errors):
         mc, alias = motion_controller
-        last_error = mc.errors.get_last_buffer_error(servo=alias)
+        last_error, subnode, warning = mc.errors.get_last_buffer_error(servo=alias)
         assert last_error == generate_drive_errors[0]
 
     @pytest.mark.smoke
@@ -70,7 +73,8 @@ class TestErrors:
         mc, alias = motion_controller
         index_list = [2, 1, 3, 0]
         for i in index_list:
-            last_error = mc.errors.get_buffer_error_by_index(i, servo=alias)
+            last_error, subnode, warning = mc.errors.get_buffer_error_by_index(
+                i, servo=alias)
             assert last_error == generate_drive_errors[i]
 
     @pytest.mark.smoke
@@ -92,7 +96,8 @@ class TestErrors:
         mc, alias = motion_controller
         test_all_errors = mc.errors.get_all_errors(servo=alias)
         for i, code_error in enumerate(generate_drive_errors):
-            assert test_all_errors[i] == code_error
+            test_code_error, axis, warning = test_all_errors[i]
+            assert test_code_error == code_error
 
     @pytest.mark.smoke
     def test_is_fault_active(self, motion_controller, generate_drive_errors):

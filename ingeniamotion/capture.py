@@ -302,7 +302,7 @@ class Capture(metaclass=MCMetaClass):
             version = self._check_version(servo)
         drive = self.mc.servos[servo]
         drive.monitoring_disable()
-        if version < MonitoringVersion.MONITORING_V3:
+        if version >= MonitoringVersion.MONITORING_V3:
             return drive.monitoring_remove_data()
 
     def disable_disturbance(self, servo=DEFAULT_SERVO, version=None):

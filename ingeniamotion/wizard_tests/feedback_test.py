@@ -315,8 +315,8 @@ class Feedbacks(BaseTest):
 
     @BaseTest.stoppable
     def show_error_message(self):
-        error_code = self.mc.errors.get_last_buffer_error(servo=self.servo,
-                                                          axis=self.axis)
+        error_code, axis, warning= self.mc.errors.get_last_buffer_error(
+            servo=self.servo, axis=self.axis)
         # TODO check if clan warning bit is necessary
         error_code_cleaned = error_code & self.WARNING_BIT_MASK
         _, _, _, error_msg = self.mc.errors.get_error_data(
