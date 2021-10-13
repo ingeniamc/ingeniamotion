@@ -52,3 +52,18 @@ def test_register_range(motion_controller, uid, axis, range):
     mc, alias = motion_controller
     register_range = mc.info.register_range(uid, axis, alias)
     assert tuple(register_range) == range
+
+
+@pytest.mark.parametrize("uid, axis, exists", [
+    ("CL_POS_FBK_VALUE", 1, True),
+    ("CL_VEL_SET_POINT_VALUE", 1, True),
+    ("PROF_POS_OPTION_CODE", 1, True),
+    ("PROF_IP_CLEAR_DATA", 1, True),
+    ("DRV_AXIS_NUMBER", 0, True),
+    ("WRONG_UID", 1, False),
+    ("drv_axis_number", 0, False)
+])
+def test_register_exists(motion_controller, uid, axis, exists):
+    mc, alias = motion_controller
+    register_exists = mc.info.register_exists(uid, axis, alias)
+    assert register_exists == exists
