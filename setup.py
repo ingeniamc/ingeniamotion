@@ -52,7 +52,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        'ingenialink>=6.0.0',
+        'ingenialink>=6.1.0',
         'ingenialogger==0.2.1',
         'ifaddr==0.1.7'
     ],

@@ -104,7 +104,15 @@ class Errors(metaclass=MCMetaClass):
             axis (int): axis force read errors in target axis. ``None`` by default.
 
         Returns:
-            int: Last code error.
+            (int, int, bool): Returns error data.
+
+            code (int):
+                Code error.
+            axis (int):
+                Error axis.
+            is_warning (bool):
+                ``True`` if warning, else ``False``.
+
         """
         error_version = self.__get_error_location(servo)
         subnode, error_location = self.__get_error_subnode(error_version, axis)
@@ -124,7 +132,15 @@ class Errors(metaclass=MCMetaClass):
             axis (int): axis force read errors in target axis. ``None`` by default.
 
         Returns:
-            int: Code error.
+            (int, int, bool): Returns error data.
+
+            code (int):
+                Code error.
+            axis (int):
+                Error axis.
+            is_warning (bool):
+                ``True`` if warning, else ``False``.
+
         """
         return self.get_buffer_error_by_index(0, servo=servo, axis=axis)
 
@@ -139,7 +155,15 @@ class Errors(metaclass=MCMetaClass):
             axis (int): axis force read errors in target axis. ``None`` by default.
 
         Returns:
-            int: Code error.
+            (int, int, bool): Returns error data.
+
+            code (int):
+                Code error.
+            axis (int):
+                Error axis.
+            is_warning (bool):
+                ``True`` if warning, else ``False``.
+
         """
         if index >= self.MAXIMUM_ERROR_INDEX:
             raise ValueError('index must be less than 32')
@@ -168,6 +192,7 @@ class Errors(metaclass=MCMetaClass):
 
         Returns:
             int: Total number of errors.
+
         """
         error_version = self.__get_error_location(servo)
         subnode, error_location = self.__get_error_subnode(error_version, axis)
@@ -186,7 +211,8 @@ class Errors(metaclass=MCMetaClass):
             axis (int): axis force read errors in target axis. ``None`` by default.
 
         Returns:
-            list of int: List of all errors.
+            list of tuple: List of all errors.
+
         """
         err_list = []
         err_num = self.get_number_total_errors(servo, axis)

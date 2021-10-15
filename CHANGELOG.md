@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0] - 2021-10-15
+### Added
+- Compatibility with System Errors.
+- Function register_exists in info module.
+- Load firmware and boot_mode functions.
+- Store and restore configuration functions.
+- Add disconnect function.
+
 ## [0.4.1] - 2021-09-02
 ### Added
 - Capture mcb_synchronization function.
