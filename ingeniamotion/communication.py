@@ -83,16 +83,13 @@ class Communication(metaclass=MCMetaClass):
         if not path.isfile(dict_path):
             raise FileNotFoundError("{} file does not exist!".format(dict_path))
 
-        try:
-            if "ethernet" not in self.mc.net:
-                self.mc.net["ethernet"] = EthernetNetwork()
-            net = self.mc.net["ethernet"]
-            servo = net.connect_to_slave(ip, dict_path, port, protocol, **reconnection)
+        if "ethernet" not in self.mc.net:
+            self.mc.net["ethernet"] = EthernetNetwork()
+        net = self.mc.net["ethernet"]
+        servo = net.connect_to_slave(ip, dict_path, port, protocol, **reconnection)
 
-            self.mc.servos[alias] = servo
-            self.mc.servo_net[alias] = "ethernet"
-        except ILError as e:
-            raise Exception("Error trying to connect to the servo. {}.".format(e))
+        self.mc.servos[alias] = servo
+        self.mc.servo_net[alias] = "ethernet"
 
     def connect_servo_ecat(self, ifname, dict_path, slave=1,
                            eoe_comm=True, alias=DEFAULT_SERVO,
@@ -117,19 +114,16 @@ class Communication(metaclass=MCMetaClass):
         if not path.isfile(dict_path):
             raise FileNotFoundError("{} file does not exist!".format(dict_path))
         use_eoe_comms = 1 if eoe_comm else 0
-        try:
-            if ifname not in self.mc.net:
-                self.mc.net[ifname] = EthercatNetwork(ifname)
-            net = self.mc.net[ifname]
-            servo = net.connect_to_slave(slave, dict_path,
-                                         use_eoe_comms, **reconnection)
-            servo.slave = slave
 
-            self.mc.servos[alias] = servo
-            self.mc.servo_net[alias] = ifname
-        except ILError as e:
-            raise Exception("Error trying to connect to the servo. {}."
-                            .format(e))
+        if ifname not in self.mc.net:
+            self.mc.net[ifname] = EthercatNetwork(ifname)
+        net = self.mc.net[ifname]
+        servo = net.connect_to_slave(slave, dict_path,
+                                     use_eoe_comms, **reconnection)
+        servo.slave = slave
+
+        self.mc.servos[alias] = servo
+        self.mc.servo_net[alias] = ifname
 
     @staticmethod
     def get_ifname_by_index(index):
@@ -236,13 +230,12 @@ class Communication(metaclass=MCMetaClass):
         if net_key not in self.mc.net:
             self.mc.net[net_key] = CanopenNetwork(can_device, channel, baudrate)
         net = self.mc.net[net_key]
-        try:
-            servo = net.connect_to_slave(
-                node_id, dict_path, eds_file)
-            self.mc.servos[alias] = servo
-            self.mc.servo_net[alias] = net_key
-        except Exception as e:
-            raise e
+
+        servo = net.connect_to_slave(
+            node_id, dict_path, eds_file)
+        self.mc.servos[alias] = servo
+        self.mc.servo_net[alias] = net_key
+
 
     def scan_servos_canopen(self, can_device,
                             baudrate=CAN_BAUDRATE.Baudrate_1M, channel=0):
