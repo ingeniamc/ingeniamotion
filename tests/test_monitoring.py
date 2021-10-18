@@ -13,8 +13,7 @@ MONITOR_START_CONDITION_TYPE_REGISTER = "MON_CFG_SOC_TYPE"
 @pytest.fixture
 def monitoring(motion_controller):
     mc, alias = motion_controller
-    monitoring = Monitoring(mc, alias)
-    return monitoring
+    return Monitoring(mc, alias)
 
 
 @pytest.mark.soem

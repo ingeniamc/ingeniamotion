@@ -25,6 +25,6 @@ if len(node_id_list) > 0:
     )
     print("Servo connected!")
     # Disconnect servo, this lines is mandatory
-    mc.communication.disconnect_canopen()
+    mc.communication.disconnect()
 else:
     print("No node id available")

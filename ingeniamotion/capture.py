@@ -1,17 +1,48 @@
 import ingenialink as il
 
+from ingenialink.exceptions import ILError
+from ingenialink.ipb.poller import IPBPoller
+from ingenialink.ipb.register import IPBRegister
+from ingenialink.canopen.servo import CanopenServo
+from ingenialink.canopen.poller import CanopenPoller
+
 from .disturbance import Disturbance
 from .monitoring import Monitoring, MonitoringSoCType
-from .exceptions import IMMonitoringError, IMDisturbanceError
+from .exceptions import IMRegisterNotExist, IMMonitoringError
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
+from ingeniamotion.enums import MonitoringVersion, MonitoringProcessStage
 
 
 class Capture(metaclass=MCMetaClass):
     """Capture."""
 
-    MONITORING_DISTURBANCE_STATUS_REGISTER = "MON_DIST_STATUS"
+    DISTURBANCE_STATUS_REGISTER = "DIST_STATUS"
+    MONITORING_STATUS_REGISTER = "MON_DIST_STATUS"
+    MONITORING_CURRENT_NUMBER_BYTES_REGISTER = "MON_CFG_BYTES_VALUE"
+
+    monitoring_version_register = IPBRegister(
+        "MON_DIS_VERSION",
+        "-",
+        "CONFIG",
+        il.REG_DTYPE.U32,
+        il.REG_ACCESS.RO,
+        0x00BA,
+        subnode=0
+    )
 
     MONITORING_STATUS_ENABLED_BIT = 0x1
+    DISTURBANCE_STATUS_ENABLED_BIT = 0x1
+
+    MONITORING_STATUS_PROCESS_STAGE_BITS = {
+        MonitoringVersion.MONITORING_V1: 0x6,
+        MonitoringVersion.MONITORING_V2: 0x6,
+        MonitoringVersion.MONITORING_V3: 0xE
+    }
+    MONITORING_AVAILABLE_FRAME_BIT = {
+        MonitoringVersion.MONITORING_V1: 0x800,
+        MonitoringVersion.MONITORING_V2: 0x800,
+        MonitoringVersion.MONITORING_V3: 0x10
+    }
 
     def __init__(self, motion_controller):
         self.mc = motion_controller
@@ -68,16 +99,15 @@ class Capture(metaclass=MCMetaClass):
 
                 When the property data is read list are reset to a empty list.
         """
-        drive = self.mc.servos[servo]
-        if self.mc.net[servo].prot == il.NET_PROT.CAN:
-            poller = il.CANOpenPoller(self.mc.servos[servo], len(registers))
+        if isinstance(self.mc.servos[servo], CanopenServo):
+            poller = CanopenPoller(self.mc.servos[servo], len(registers))
         else:
-            poller = il.Poller(self.mc.servos[servo], len(registers))
+            poller = IPBPoller(self.mc.servos[servo], len(registers))
         poller.configure(sampling_time, buffer_size)
         for index, register in enumerate(registers):
             axis = register.get("axis", DEFAULT_AXIS)
             name = register.get("name")
-            register_obj = drive.dict.get_regs(axis)[name]
+            register_obj = self.mc.info.register_info(name, axis, servo=servo)
             poller.ch_configure(index, register_obj)
         if start:
             poller.start()
@@ -139,11 +169,13 @@ class Capture(metaclass=MCMetaClass):
             TypeError: If trigger_mode is rising or falling edge trigger and
              trigger_signal or trigger_value are None.
         """
-        self.disable_monitoring_disturbance(servo=servo)
+        self.clean_monitoring(servo=servo)
         monitoring = Monitoring(self.mc, servo)
         monitoring.set_frequency(prescaler)
         monitoring.map_registers(registers)
-        monitoring.set_trigger(trigger_mode, trigger_signal=trigger_signal, trigger_value=trigger_value)
+        monitoring.set_trigger(trigger_mode,
+                               trigger_signal=trigger_signal,
+                               trigger_value=trigger_value)
         monitoring.configure_sample_time(sample_time, trigger_delay)
         if start:
             self.enable_monitoring_disturbance(servo=servo)
@@ -174,7 +206,7 @@ class Capture(metaclass=MCMetaClass):
             IMDisturbanceError: If buffer size is not enough for all the
                 registers and samples.
         """
-        self.clean_monitoring(servo=servo)
+        self.clean_disturbance(servo=servo)
         disturbance = Disturbance(self.mc, servo)
         disturbance.set_frequency_divider(freq_divider)
         disturbance.map_registers({"name": register, "axis": axis})
@@ -183,7 +215,35 @@ class Capture(metaclass=MCMetaClass):
             self.enable_monitoring_disturbance(servo=servo)
         return disturbance
 
+    def _check_version(self, servo):
+        drive = self.mc._get_drive(servo)
+        try:
+            drive.read(self.monitoring_version_register)
+            return MonitoringVersion.MONITORING_V3
+        except ILError:
+            # The Monitoring V3 is NOT available
+            pass
+        try:
+            self.mc.info.register_info(
+                self.MONITORING_CURRENT_NUMBER_BYTES_REGISTER, 0, servo=servo)
+            return MonitoringVersion.MONITORING_V2
+        except IMRegisterNotExist:
+            # The Monitoring V2 is NOT available
+            return MonitoringVersion.MONITORING_V1
+
     def enable_monitoring_disturbance(self, servo=DEFAULT_SERVO):
+        """Enable monitoring and disturbance.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        Raises:
+            IMMonitoringError: If monitoring can't be enabled.
+        """
+        self.enable_monitoring(servo=servo)
+        self.enable_disturbance(servo=servo)
+
+    def enable_monitoring(self, servo=DEFAULT_SERVO):
         """Enable monitoring.
 
         Args:
@@ -192,23 +252,79 @@ class Capture(metaclass=MCMetaClass):
         Raises:
             IMMonitoringError: If monitoring can't be enabled.
         """
-        network = self.mc.net[servo]
-        network.monitoring_enable()
+        drive = self.mc.servos[servo]
+        drive.monitoring_enable()
         # Check monitoring status
         if not self.is_monitoring_enabled(servo=servo):
             raise IMMonitoringError("Error enabling monitoring.")
 
+    def enable_disturbance(self, servo=DEFAULT_SERVO, version=None):
+        """Enable disturbance.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            version (MonitoringVersion): Monitoring/Disturbance version,
+                if ``None`` reads from drive. ``None`` by default.
+
+        Raises:
+            IMMonitoringError: If disturbance can't be enabled.
+        """
+        if version is None:
+            version = self._check_version(servo)
+        if version < MonitoringVersion.MONITORING_V3:
+            return self.enable_monitoring(servo=servo)
+        drive = self.mc.servos[servo]
+        drive.disturbance_enable()
+        # Check disturbance status
+        if not self.is_disturbance_enabled(servo=servo):
+            raise IMMonitoringError("Error enabling disturbance.")
+
     def disable_monitoring_disturbance(self, servo=DEFAULT_SERVO):
+        """Disable monitoring and disturbance.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        """
+        self.disable_monitoring(servo=servo)
+        self.disable_disturbance(servo=servo)
+
+    def disable_monitoring(self, servo=DEFAULT_SERVO, version=None):
         """Disable monitoring.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
+            version (MonitoringVersion): Monitoring/Disturbance version,
+                if ``None`` reads from drive. ``None`` by default.
+
         """
-        network = self.mc.net[servo]
-        network.monitoring_disable()
+        if version is None:
+            version = self._check_version(servo)
+        drive = self.mc.servos[servo]
+        drive.monitoring_disable()
+        if version >= MonitoringVersion.MONITORING_V3:
+            return drive.monitoring_remove_data()
+
+    def disable_disturbance(self, servo=DEFAULT_SERVO, version=None):
+        """Disable disturbance.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            version (MonitoringVersion): Monitoring/Disturbance version,
+                if ``None`` reads from drive. ``None`` by default.
+
+        """
+        if version is None:
+            version = self._check_version(servo)
+        if version < MonitoringVersion.MONITORING_V3:
+            return self.disable_monitoring(servo=servo, version=version)
+        drive = self.mc.servos[servo]
+        drive.disturbance_disable()
+        if version < MonitoringVersion.MONITORING_V3:
+            return drive.disturbance_remove_data()
 
     def get_monitoring_disturbance_status(self, servo=DEFAULT_SERVO):
-        """Get Monitoring/Disturbance Status.
+        """Get Monitoring Status.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -217,10 +333,52 @@ class Capture(metaclass=MCMetaClass):
             int: Monitoring/Disturbance Status.
         """
         return self.mc.communication.get_register(
-            self.MONITORING_DISTURBANCE_STATUS_REGISTER,
+            self.MONITORING_STATUS_REGISTER,
             servo=servo,
             axis=0
         )
+
+    def get_monitoring_status(self, servo=DEFAULT_SERVO):
+        """Get Monitoring Status.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        Returns:
+            int: Monitoring Status.
+        """
+        return self.mc.communication.get_register(
+            self.MONITORING_STATUS_REGISTER,
+            servo=servo,
+            axis=0
+        )
+
+    def get_disturbance_status(self, servo=DEFAULT_SERVO, version=None):
+        """Get Disturbance Status.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            version (MonitoringVersion): Monitoring/Disturbance version,
+                if ``None`` reads from drive. ``None`` by default.
+
+        Returns:
+            int: Disturbance Status.
+
+        """
+        if version is None:
+            version = self._check_version(servo)
+        if version < MonitoringVersion.MONITORING_V3:
+            return self.mc.communication.get_register(
+                self.MONITORING_STATUS_REGISTER,
+                servo=servo,
+                axis=0
+            )
+        else:
+            return self.mc.communication.get_register(
+                self.DISTURBANCE_STATUS_REGISTER,
+                servo=servo,
+                axis=0
+            )
 
     def is_monitoring_enabled(self, servo=DEFAULT_SERVO):
         """Check if monitoring is enabled.
@@ -230,40 +388,91 @@ class Capture(metaclass=MCMetaClass):
 
         Returns:
             bool: True if monitoring is enabled, else False.
+
         """
-        monitor_status = self.get_monitoring_disturbance_status(servo)
+        monitor_status = self.get_monitoring_status(servo)
         return (monitor_status & self.MONITORING_STATUS_ENABLED_BIT) == 1
 
-    def is_disturbance_enabled(self, servo=DEFAULT_SERVO):
+    def is_disturbance_enabled(self, servo=DEFAULT_SERVO, version=None):
         """Check if disturbance is enabled.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
+            version (MonitoringVersion): Monitoring/Disturbance version,
+                if ``None`` reads from drive. ``None`` by default.
 
         Returns:
             bool: True if disturbance is enabled, else False.
-        """
-        return self.is_monitoring_enabled(servo)
 
-    def clean_monitoring(self, servo=DEFAULT_SERVO):
+        """
+        monitor_status = self.get_disturbance_status(servo, version=version)
+        return (monitor_status & self.DISTURBANCE_STATUS_ENABLED_BIT) == 1
+
+    def get_monitoring_process_stage(self, servo=DEFAULT_SERVO, version=None):
+        """
+        Return monitoring process stage.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            version (MonitoringVersion): Monitoring/Disturbance version,
+                if ``None`` reads from drive. ``None`` by default.
+
+        Returns:
+            MonitoringProcessStage: Current monitoring process stage.
+
+        """
+        if version is None:
+            version = self._check_version(servo=servo)
+        monitor_status = self.mc.capture.get_monitoring_status(
+            servo=servo)
+        mask = self.MONITORING_STATUS_PROCESS_STAGE_BITS[version]
+        masked_value = monitor_status & mask
+        return MonitoringProcessStage(masked_value)
+
+    def is_frame_available(self, servo=DEFAULT_SERVO, version=None):
+        """
+        Check if monitoring has an available frame.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            version (MonitoringVersion): Monitoring/Disturbance version,
+                if ``None`` reads from drive. ``None`` by default.
+
+        Returns:
+            bool: True if monitoring has an available frame, else False.
+        """
+        if version is None:
+            version = self._check_version(servo=servo)
+        monitor_status = self.mc.capture.get_monitoring_disturbance_status(
+            servo=servo)
+        mask = self.MONITORING_AVAILABLE_FRAME_BIT[version]
+        return (monitor_status & mask) != 0
+
+    def clean_monitoring(self, servo=DEFAULT_SERVO, version=None):
         """Disable monitoring/disturbance and remove monitoring mapped registers.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
-        """
-        self.disable_monitoring_disturbance(servo=servo)
-        network = self.mc.net[servo]
-        network.monitoring_remove_all_mapped_registers()
+            version (MonitoringVersion): Monitoring/Disturbance version,
+                if None reads from drive. ``None`` by default.
 
-    def clean_disturbance(self, servo=DEFAULT_SERVO):
+        """
+        self.disable_monitoring(servo=servo, version=version)
+        drive = self.mc.servos[servo]
+        drive.monitoring_remove_all_mapped_registers()
+
+    def clean_disturbance(self, servo=DEFAULT_SERVO, version=None):
         """Disable monitoring/disturbance and remove disturbance mapped registers.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
+            version (MonitoringVersion): Monitoring/Disturbance version,
+                if None reads from drive. ``None`` by default.
+
         """
-        self.disable_monitoring_disturbance(servo=servo)
-        network = self.mc.net[servo]
-        network.disturbance_remove_all_mapped_registers()
+        self.disable_disturbance(servo=servo, version=version)
+        drive = self.mc.servos[servo]
+        drive.disturbance_remove_all_mapped_registers()
 
     def clean_monitoring_disturbance(self, servo=DEFAULT_SERVO):
         """Disable monitoring/disturbance, remove disturbance and monitoring

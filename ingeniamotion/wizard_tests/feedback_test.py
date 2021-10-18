@@ -1,12 +1,11 @@
 import time
 import math
 import ingenialogger
-import ingenialink as il
 
 from enum import IntEnum
-from ingenialink.exceptions import ILError
 
 from .base_test import BaseTest, TestError
+from ingeniamotion.exceptions import IMRegisterNotExist
 from ingeniamotion.enums import SensorType, OperationMode
 
 
@@ -156,7 +155,7 @@ class Feedbacks(BaseTest):
             error, error_msg, self.ResultType.RESOLUTION_ERROR)
 
     @BaseTest.stoppable
-    def feedback_setting(self):  # TODO Feedback Polarity to 0
+    def feedback_setting(self):
         if self.sensor == SensorType.HALLS:
             self.halls_extra_settings()
         # First set all feedback to feedback in test, so there won't be
@@ -193,6 +192,11 @@ class Feedbacks(BaseTest):
 
     @BaseTest.stoppable
     def halls_extra_settings(self):
+        self.mc.communication.set_register(
+            self.DIG_HALL_POLE_PAIRS_REGISTER, self.pair_poles,
+            servo=self.servo, axis=self.axis
+        )
+
         # Read velocity feedback
         velocity_feedback = self.mc.configuration.get_velocity_feedback(
             servo=self.servo, axis=self.axis
@@ -239,7 +243,7 @@ class Feedbacks(BaseTest):
                     following_error_uid, 1,
                     servo=self.servo, axis=self.axis
                 )
-            except ILError as e:
+            except IMRegisterNotExist as e:
                 self.logger.warning(e)
 
     @BaseTest.stoppable
@@ -279,6 +283,11 @@ class Feedbacks(BaseTest):
                 self.POSITION_TO_VELOCITY_SENSOR_RATIO_REGISTER,
                 servo=self.servo, axis=self.axis
             )
+
+        # Read pole pairs and set to 1 for an electrical revolution
+        self.pair_poles = self.mc.configuration.get_motor_pair_poles(
+            servo=self.servo, axis=self.axis
+        )
         # For each feedback on motor side we should repeat this test using the
         # feedback as position sensor. The polarity of the feedback must be set
         # also to normal at the beginning. All feedback are set to the same,
@@ -286,11 +295,6 @@ class Feedbacks(BaseTest):
         # error (wizard_tests series can only support 4 feedback at the
         # same time)
         self.feedback_setting()
-
-        # Read pole pairs and set to 1 for an electrical revolution
-        self.pair_poles = self.mc.configuration.get_motor_pair_poles(
-            servo=self.servo, axis=self.axis
-        )
 
         self.mc.motion.set_internal_generator_configuration(
             OperationMode.CURRENT, servo=self.servo, axis=self.axis
@@ -311,8 +315,8 @@ class Feedbacks(BaseTest):
 
     @BaseTest.stoppable
     def show_error_message(self):
-        error_code = self.mc.errors.get_last_buffer_error(servo=self.servo,
-                                                          axis=self.axis)
+        error_code, axis, warning= self.mc.errors.get_last_buffer_error(
+            servo=self.servo, axis=self.axis)
         # TODO check if clan warning bit is necessary
         error_code_cleaned = error_code & self.WARNING_BIT_MASK
         _, _, _, error_msg = self.mc.errors.get_error_data(

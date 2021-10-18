@@ -93,6 +93,7 @@ def main(args):
         torque_demo(mc)
     else:
         logging.error("Demo {} does not exist".format(args.demo))
+    mc.communication.disconnect()
 
 
 if __name__ == '__main__':

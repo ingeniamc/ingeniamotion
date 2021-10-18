@@ -333,3 +333,13 @@ def test_is_sto_abnormal_latched(mocker, motion_controller,
     patch_get_sto_status(mocker, sto_status_value)
     value = mc.configuration.is_sto_abnormal_latched(servo=alias)
     assert value == expected_result
+
+
+def test_store_configuration(motion_controller):
+    mc, alias = motion_controller
+    mc.configuration.store_configuration(servo=alias)
+
+
+def test_restore_configuration(motion_controller):
+    mc, alias = motion_controller
+    mc.configuration.restore_configuration(servo=alias)

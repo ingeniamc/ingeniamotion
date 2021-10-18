@@ -60,3 +60,5 @@ for index in range(len(axs)):
 
 plt.autoscale()
 plt.show()
+
+mc.communication.disconnect()

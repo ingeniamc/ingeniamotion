@@ -101,7 +101,8 @@ class Motion(metaclass=MCMetaClass):
         try:
             drive.enable(subnode=axis)
         except ILError as e:
-            error_code = self.mc.errors.get_last_buffer_error(servo=servo, axis=axis)
+            error_code, subnode, warning = self.mc.errors.get_last_buffer_error(
+                servo=servo, axis=axis)
             error_id, _, _, error_msg = self.mc.errors.get_error_data(
                 error_code, servo=servo)
             exception_type = type(e)

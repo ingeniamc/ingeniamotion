@@ -16,3 +16,8 @@ class IMDisturbanceError(IMException):
 class IMStatusWordError(IMException):
     """Status word error raised by IngeniaMotion"""
     pass
+
+
+class IMRegisterNotExist(IMException):
+    """Error raised by IngeniaMotion when a register not exists"""
+    pass

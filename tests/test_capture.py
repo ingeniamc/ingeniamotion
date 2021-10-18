@@ -19,6 +19,7 @@ def test_create_poller(motion_controller):
         time.sleep(1)
         mc.motion.set_current_quadrature(0.2 * (i + 1), servo=alias)
     timestamp, test_data, _ = poller.data
+    poller.stop()
     first_zero = None
     for index, ts in enumerate(timestamp):
         value = test_data[0][index]
@@ -63,7 +64,7 @@ def test_create_monitoring_no_trigger(motion_controller,
     for index, value in enumerate(data[0]):
         subindex = index % 1000
         theo_value = index//1000 * 1000
-        if 100 < subindex:  # Ignore first 100 samples for each value change
+        if subindex > 100:  # Ignore first 100 samples for each value change
             assert value == theo_value
 
 

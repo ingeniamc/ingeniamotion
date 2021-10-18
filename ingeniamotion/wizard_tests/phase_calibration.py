@@ -2,10 +2,10 @@ import time
 import ingenialogger
 
 from enum import IntEnum
-from ingenialink.exceptions import ILError
 
 from ingeniamotion.enums import PhasingMode, OperationMode,\
     SensorCategory, SensorType
+from ingeniamotion.exceptions import IMRegisterNotExist
 from .base_test import BaseTest, TestError
 
 
@@ -211,13 +211,13 @@ class Phasing(BaseTest):
         try:
             self.mc.communication.set_register("COMMU_ANGLE_INTEGRITY1_OPTION", 1,
                                                servo=self.servo, axis=self.axis)
-        except ILError:
+        except IMRegisterNotExist:
             self.logger.warning('Could not write COMMU_ANGLE_INTEGRITY1_OPTION')
 
         try:
             self.mc.communication.set_register("COMMU_ANGLE_INTEGRITY2_OPTION", 1,
                                                servo=self.servo, axis=self.axis)
-        except ILError:
+        except IMRegisterNotExist:
             self.logger.warning('Could not write COMMU_ANGLE_INTEGRITY2_OPTION')
 
     @BaseTest.stoppable
@@ -228,16 +228,12 @@ class Phasing(BaseTest):
         # If reference feedback are Halls
         if self.ref == SensorType.HALLS:
             actual_angle = self.INITIAL_ANGLE_HALLS
-            num_of_steps = 1
-            while actual_angle > delta:
-                actual_angle = actual_angle / 2
-                num_of_steps = num_of_steps + 1
         else:
             actual_angle = self.INITIAL_ANGLE
-            num_of_steps = 1
-            while actual_angle > delta:
-                actual_angle = actual_angle / 2
-                num_of_steps = num_of_steps + 1
+        num_of_steps = 1
+        while actual_angle > delta:
+            actual_angle = actual_angle / 2
+            num_of_steps += 1
         return num_of_steps
 
     @BaseTest.stoppable
@@ -258,13 +254,12 @@ class Phasing(BaseTest):
             else:
                 # Set a forced and then a No-Phasing
                 return PhasingMode.NO_PHASING
+        elif self.comm == self.ref:
+            # Set a forced and then a No-Phasing
+            return PhasingMode.NO_PHASING
         else:
-            if self.comm == self.ref:
-                # Set a forced and then a No-Phasing
-                return PhasingMode.NO_PHASING
-            else:
-                # Set a forced and then a Non forced
-                return PhasingMode.NON_FORCED
+            # Set a forced and then a Non forced
+            return PhasingMode.NON_FORCED
 
     @BaseTest.stoppable
     def loop(self):
