@@ -27,6 +27,7 @@ def main(args):
     if args.override == "enable":
         # Enable brake
         mc.configuration.enable_brake(axis=args.axis)
+    mc.communication.disconnect()
 
 
 if __name__ == '__main__':

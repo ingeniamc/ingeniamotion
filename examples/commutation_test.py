@@ -22,6 +22,7 @@ def main(args):
     result = mc.tests.commutation(axis=args.axis,
                                   apply_changes=not args.debug)
     logging.info(result["result_message"])
+    mc.communication.disconnect()
 
 
 if __name__ == '__main__':

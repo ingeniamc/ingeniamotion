@@ -36,3 +36,4 @@ ani = animation.FuncAnimation(
     fig, animate, interval=100)
 plt.autoscale()
 plt.show()
+mc.communication.disconnect()

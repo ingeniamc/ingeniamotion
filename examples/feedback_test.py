@@ -34,6 +34,7 @@ def main(args):
         result = mc.tests.incremental_encoder_2_test(axis=args.axis,
                                                      apply_changes=not args.debug)
     logging.info(result["result_message"])
+    mc.communication.disconnect()
 
 
 if __name__ == '__main__':
