@@ -7,7 +7,7 @@ from ingenialink.canopen.servo import CanopenServo
 from ingenialink.canopen.poller import CanopenPoller
 
 from .disturbance import Disturbance
-from .monitoring import Monitoring, MonitoringSoCType
+from .monitoring import Monitoring, MonitoringSoCType, MonitoringSoCConfig
 from .exceptions import IMRegisterNotExist, IMMonitoringError
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.enums import MonitoringVersion, MonitoringProcessStage
@@ -114,7 +114,8 @@ class Capture(metaclass=MCMetaClass):
         return poller
 
     def create_monitoring(self, registers, prescaler, sample_time, trigger_delay=0,
-                          trigger_mode=MonitoringSoCType.TRIGGER_EVENT_NONE,
+                          trigger_mode=MonitoringSoCType.TRIGGER_EVENT_AUTO,
+                          trigger_config=MonitoringSoCConfig.TRIGGER_CONFIG_RISING_OR_FALLING,
                           trigger_signal=None, trigger_value=None,
                           servo=DEFAULT_SERVO, start=False):
         """Returns a Monitoring instance configured with target registers.
@@ -173,12 +174,12 @@ class Capture(metaclass=MCMetaClass):
         monitoring = Monitoring(self.mc, servo)
         monitoring.set_frequency(prescaler)
         monitoring.map_registers(registers)
-        monitoring.set_trigger(trigger_mode,
+        monitoring.set_trigger(trigger_mode, trigger_config,
                                trigger_signal=trigger_signal,
                                trigger_value=trigger_value)
         monitoring.configure_sample_time(sample_time, trigger_delay)
         if start:
-            self.enable_monitoring_disturbance(servo=servo)
+            self.enable_monitoring(servo=servo)
         return monitoring
 
     def create_disturbance(self, register, data, freq_divider,
@@ -212,7 +213,7 @@ class Capture(metaclass=MCMetaClass):
         disturbance.map_registers({"name": register, "axis": axis})
         disturbance.write_disturbance_data(data)
         if start:
-            self.enable_monitoring_disturbance(servo=servo)
+            self.enable_disturbance(servo=servo)
         return disturbance
 
     def _check_version(self, servo):
@@ -230,18 +231,6 @@ class Capture(metaclass=MCMetaClass):
         except IMRegisterNotExist:
             # The Monitoring V2 is NOT available
             return MonitoringVersion.MONITORING_V1
-
-    def enable_monitoring_disturbance(self, servo=DEFAULT_SERVO):
-        """Enable monitoring and disturbance.
-
-        Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-
-        Raises:
-            IMMonitoringError: If monitoring can't be enabled.
-        """
-        self.enable_monitoring(servo=servo)
-        self.enable_disturbance(servo=servo)
 
     def enable_monitoring(self, servo=DEFAULT_SERVO):
         """Enable monitoring.
@@ -483,18 +472,3 @@ class Capture(metaclass=MCMetaClass):
         """
         self.clean_monitoring(servo=servo)
         self.clean_disturbance(servo=servo)
-
-    @MCMetaClass.check_motor_disabled
-    def mcb_synchronization(self, servo=DEFAULT_SERVO):
-        """Synchronize MCB, necessary to monitoring and disturbance.
-        Motor must be disabled.
-
-        Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-
-        Raises:
-            IMStatusWordError: If motor is enabled.
-
-        """
-        self.enable_monitoring_disturbance(servo=servo)
-        self.disable_monitoring_disturbance(servo=servo)

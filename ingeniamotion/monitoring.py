@@ -25,16 +25,15 @@ def check_monitoring_disabled(func):
 
 
 class MonitoringSoCType(IntEnum):
-    """Monitoring start of condition type"""
-    TRIGGER_EVENT_NONE = 0
-    """No trigger"""
+    TRIGGER_EVENT_AUTO = 0
     TRIGGER_EVENT_FORCED = 1
-    """Forced trigger"""
-    TRIGGER_CYCLIC_RISING_EDGE = 2
-    """Rising edge trigger"""
-    TRIGGER_NUMBER_SAMPLES = 3
-    TRIGGER_CYCLIC_FALLING_EDGE = 4
-    """Falling edge trigger"""
+    TRIGGER_EVENT_EDGE = 2
+
+
+class MonitoringSoCConfig(IntEnum):
+    TRIGGER_CONFIG_RISING_OR_FALLING = 0
+    TRIGGER_CONFIG_RISING = 1
+    TRIGGER_CONFIG_FALLING = 2
 
 
 class Monitoring:
@@ -49,8 +48,7 @@ class Monitoring:
     EOC_TRIGGER_NUMBER_SAMPLES = 3
 
     EDGE_CONDITION_REGISTER = {
-        MonitoringSoCType.TRIGGER_CYCLIC_RISING_EDGE: "MON_CFG_RISING_CONDITION",
-        MonitoringSoCType.TRIGGER_CYCLIC_FALLING_EDGE: "MON_CFG_FALLING_CONDITION"
+        MonitoringSoCType.TRIGGER_EVENT_EDGE: "MON_CFG_RISING_CONDITION",
     }
 
     REGISTER_MAP_OFFSET = 0x800
@@ -73,9 +71,10 @@ class Monitoring:
 
     MONITORING_FREQUENCY_DIVIDER_REGISTER = "MON_DIST_FREQ_DIV"
     MONITORING_NUMBER_MAPPED_REGISTERS_REGISTER = "MON_CFG_TOTAL_MAP"
-    MONITORING_NUMBER_TRIGGER_REPETITIONS_REGISTER = "MON_CFG_TRIGGER_REPETITIONS"
+    MONITORING_NUMBER_TRIGGER_REPETITIONS_REGISTER = "MON_REARM"
     MONITOR_START_CONDITION_TYPE_REGISTER = "MON_CFG_SOC_TYPE"
-    MONITOR_END_CONDITION_TYPE_REGISTER = "MON_CFG_EOC_TYPE"
+    MONITOR_START_CONDITION_CONFIG_REGISTER = "MON_CFG_EOC_TYPE"
+    # MONITOR_END_CONDITION_TYPE_REGISTER = "MON_CFG_EOC_TYPE"
     MONITORING_INDEX_CHECKER_REGISTER = "MON_IDX_CHECK"
     MONITORING_TRIGGER_DELAY_SAMPLES_REGISTER = "MON_CFG_TRIGGER_DELAY"
     MONITORING_WINDOW_NUMBER_SAMPLES_REGISTER = "MON_CFG_WINDOW_SAMP"
@@ -191,7 +190,7 @@ class Monitoring:
         self.mapped_registers = registers
 
     @check_monitoring_disabled
-    def set_trigger(self, trigger_mode, trigger_signal=None, trigger_value=None):
+    def set_trigger(self, trigger_mode, trigger_config, trigger_signal=None, trigger_value=None):
         """Configure monitoring trigger. Monitoring must be disabled.
 
         Args:
@@ -213,9 +212,16 @@ class Monitoring:
             servo=self.servo,
             axis=0
         )
+
+        self.mc.communication.set_register(
+            self.MONITOR_START_CONDITION_CONFIG_REGISTER,
+            trigger_config,
+            servo=self.servo,
+            axis=0
+        )
+
         if trigger_mode in \
-                [MonitoringSoCType.TRIGGER_CYCLIC_RISING_EDGE,
-                 MonitoringSoCType.TRIGGER_CYCLIC_FALLING_EDGE]:
+                [MonitoringSoCType.TRIGGER_EVENT_EDGE]:
             if trigger_signal is None or trigger_value is None:
                 raise TypeError("trigger_signal or trigger_value are None")
             self.__rising_or_falling_edge_trigger(trigger_mode, trigger_signal,
@@ -273,11 +279,11 @@ class Monitoring:
             IMMonitoringError: If buffer size is not enough for all the samples.
 
         """
-        if trigger_delay_samples >= total_num_samples:
-            raise ValueError("trigger_delay_samples should be less"
-                             " than total_num_samples")
-        if trigger_delay_samples < 1:
-            raise ValueError("trigger_delay_samples should be minimum 1")
+        # if trigger_delay_samples >= total_num_samples:
+        #     raise ValueError("trigger_delay_samples should be less"
+        #                      " than total_num_samples")
+        # if trigger_delay_samples < 1:
+        #     raise ValueError("trigger_delay_samples should be minimum 1")
         self.__check_buffer_size_is_enough(total_num_samples, trigger_delay_samples,
                                            self.mapped_registers)
 
@@ -330,7 +336,7 @@ class Monitoring:
         total_num_samples = int(self.sampling_freq * total_time)
         trigger_delay_samples = int(((total_time / 2) - trigger_delay)
                                     * self.sampling_freq)
-        trigger_delay_samples = trigger_delay_samples if trigger_delay_samples > 0 else 1
+        trigger_delay_samples = trigger_delay_samples
         self.configure_number_samples(total_num_samples, trigger_delay_samples)
 
     def __update_read_process_finished(self, init_read_time, data_length,
