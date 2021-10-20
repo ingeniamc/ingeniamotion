@@ -264,6 +264,16 @@ class Capture(metaclass=MCMetaClass):
             return self.enable_monitoring(servo=servo)
         drive = self.mc.servos[servo]
         drive.disturbance_enable()
+
+        self.mc.communication.set_register(
+            "DIST_ENABLE",
+            1,
+            servo=servo,
+            axis=0
+        )
+
+
+
         # Check disturbance status
         if not self.is_disturbance_enabled(servo=servo):
             raise IMMonitoringError("Error enabling disturbance.")

@@ -16,10 +16,10 @@ registers = [{"axis": 1, "name": "FBK_CUR_MODULE_VALUE"},
              {"axis": 1, "name": "FBK_GEN_VALUE"} ]
 
 # Servo frequency divisor to set monitoring frequency
-monitoring_prescaler = 8
+monitoring_prescaler = 60
 
-total_time_s = 0.3  # Total sample time in seconds
-trigger_delay_s = 0  # Trigger delay time in seconds
+total_time_s = 1  # Total sample time in seconds
+trigger_delay_s = 0.5  # Trigger delay time in seconds
 
 # trigger_mode = MonitoringSoCType.TRIGGER_EVENT_AUTO
 # trigger_mode = MonitoringSoCType.TRIGGER_EVENT_FORCED
@@ -34,7 +34,7 @@ trigger_config = MonitoringSoCConfig.TRIGGER_CONFIG_RISING
 trigger_signal = {"axis": 1, "name": "FBK_GEN_VALUE"}
 # Trigger value if trigger_mode is TRIGGER_CYCLIC_RISING_EDGE or TRIGGER_CYCLIC_FALLING_EDGE
 # else, it does nothing
-trigger_value = 1.01
+trigger_value = 1.5
 
 mc.capture.disable_disturbance()
 mc.capture.disable_monitoring()

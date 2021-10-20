@@ -5,7 +5,7 @@ import math
 
 from ingeniamotion import MotionController
 from ingeniamotion.enums import OperationMode
-from ingeniamotion.monitoring import MonitoringSoCType
+from ingeniamotion.monitoring import MonitoringSoCType, MonitoringSoCConfig
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger('matplotlib.font_manager').disabled = True
@@ -14,7 +14,7 @@ mc = MotionController()
 mc.communication.connect_servo_eoe("192.168.2.22", "./registers_dictionary.xdf")
 
 # Monitoring registers
-registers = [{"axis": 1, "name": "FBK_CUR_MODULE_VALUE"},
+registers = [{"axis": 1, "name": "CL_CUR_Q_REF_VALUE"},
              {"axis": 1, "name": "DRV_PROT_VBUS_VALUE"},
              ]
 
@@ -22,14 +22,18 @@ registers = [{"axis": 1, "name": "FBK_CUR_MODULE_VALUE"},
 dist_target_register = "CL_CUR_Q_SET_POINT"
 
 # Servo frequency divisor to set monitoring frequency
-monitoring_prescaler = 2
+monitoring_prescaler = 60
 
-total_time_s = 0.08  # Total sample time in seconds
+total_time_s = 1  # Total sample time in seconds
 trigger_delay_s = 0  # Trigger delay time in seconds
 
-# trigger_mode = MonitoringSoCType.TRIGGER_EVENT_NONE
-# trigger_mode = MonitoringSoCType.TRIGGER_CYCLIC_RISING_EDGE
-trigger_mode = MonitoringSoCType.TRIGGER_CYCLIC_FALLING_EDGE
+# trigger_mode = MonitoringSoCType.TRIGGER_EVENT_AUTO
+# trigger_mode = MonitoringSoCType.TRIGGER_EVENT_FORCED
+trigger_mode = MonitoringSoCType.TRIGGER_EVENT_EDGE
+
+# trigger_config = MonitoringSoCConfig.TRIGGER_CONFIG_RISING_OR_FALLING
+trigger_config = MonitoringSoCConfig.TRIGGER_CONFIG_RISING
+# trigger_config = MonitoringSoCConfig.TRIGGER_CONFIG_FALLING
 
 # Trigger signal register if trigger_mode is TRIGGER_CYCLIC_RISING_EDGE or TRIGGER_CYCLIC_FALLING_EDGE
 # else, it does nothing
@@ -39,36 +43,36 @@ trigger_signal = {"axis": 1, "name": "DRV_PROT_VBUS_VALUE"}
 trigger_value = 24
 
 
-# # Frequency divider to set disturbance frequency
-# dist_divider = 1
-# # Calculate time between disturbance samples
-# sample_period = dist_divider/mc.configuration.get_position_and_velocity_loop_rate()
-# # The disturbance signal will be a simple harmonic motion (SHM) with frequency 0.5Hz and 2000 counts of amplitude
-# signal_frequency = 10
-# signal_amplitude = 1
-# # Calculate number of samples to load a complete oscillation
-# n_samples = int(1 / (signal_frequency * sample_period))
-# # Generate a SHM with the formula x(t)=A*sin(t*w) where:
-# # A = signal_amplitude (Amplitude)
-# # t = sample_period*i (time)
-# # w = signal_frequency*2*math.pi (angular frequency)
-# data = [float(signal_amplitude * math.sin(sample_period*i * signal_frequency * 2*math.pi))
-#         for i in range(n_samples)]
-#
-# mc.capture.disable_monitoring_disturbance()
-#
-# # Call function create_disturbance to configure a disturbance
-# dist = mc.capture.create_disturbance(dist_target_register, data, dist_divider, start=True)
-#
-# # Set profile position operation mode and enable motor to enable motor move
-# mc.motion.set_operation_mode(OperationMode.CURRENT)
-# # Enable disturbance
-# mc.capture.enable_monitoring_disturbance()
-# # Enable motor
-# mc.motion.motor_enable()
+# Frequency divider to set disturbance frequency
+dist_divider = 80
+# Calculate time between disturbance samples
+sample_period = dist_divider/mc.configuration.get_position_and_velocity_loop_rate()
+# The disturbance signal will be a simple harmonic motion (SHM) with frequency 0.5Hz and 2000 counts of amplitude
+signal_frequency = 10
+signal_amplitude = 1
+# Calculate number of samples to load a complete oscillation
+n_samples = int(1 / (signal_frequency * sample_period))
+# Generate a SHM with the formula x(t)=A*sin(t*w) where:
+# A = signal_amplitude (Amplitude)
+# t = sample_period*i (time)
+# w = signal_frequency*2*math.pi (angular frequency)
+data = [float(signal_amplitude * math.sin(sample_period*i * signal_frequency * 2*math.pi))
+        for i in range(n_samples)]
 
 mc.capture.disable_disturbance()
 mc.capture.disable_monitoring()
+
+mc.communication.set_register("DIST_ENABLE", 0, axis=0)
+
+# Call function create_disturbance to configure a disturbance
+dist = mc.capture.create_disturbance(dist_target_register, data, dist_divider, start=True)
+
+# Set profile position operation mode and enable motor to enable motor move
+mc.motion.set_operation_mode(OperationMode.CURRENT)
+# Enable disturbance
+mc.capture.enable_disturbance()
+# Enable motor
+mc.motion.motor_enable()
 
 monitoring = mc.capture.create_monitoring(registers,
                                           monitoring_prescaler,
