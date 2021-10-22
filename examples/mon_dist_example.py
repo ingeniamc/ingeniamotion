@@ -22,7 +22,7 @@ registers = [{"axis": 1, "name": "CL_CUR_Q_REF_VALUE"},
 dist_target_register = "CL_CUR_Q_SET_POINT"
 
 # Servo frequency divisor to set monitoring frequency
-monitoring_prescaler = 60
+monitoring_prescaler = 30
 
 total_time_s = 1  # Total sample time in seconds
 trigger_delay_s = 0  # Trigger delay time in seconds
@@ -37,10 +37,10 @@ trigger_config = MonitoringSoCConfig.TRIGGER_CONFIG_RISING
 
 # Trigger signal register if trigger_mode is TRIGGER_CYCLIC_RISING_EDGE or TRIGGER_CYCLIC_FALLING_EDGE
 # else, it does nothing
-trigger_signal = {"axis": 1, "name": "DRV_PROT_VBUS_VALUE"}
+trigger_signal = {"axis": 1, "name": "CL_CUR_Q_REF_VALUE"}
 # Trigger value if trigger_mode is TRIGGER_CYCLIC_RISING_EDGE or TRIGGER_CYCLIC_FALLING_EDGE
 # else, it does nothing
-trigger_value = 24
+trigger_value = 0
 
 
 # Frequency divider to set disturbance frequency
@@ -65,12 +65,12 @@ mc.capture.disable_monitoring()
 mc.communication.set_register("DIST_ENABLE", 0, axis=0)
 
 # Call function create_disturbance to configure a disturbance
-dist = mc.capture.create_disturbance(dist_target_register, data, dist_divider, start=True)
+dist = mc.capture.create_disturbance(dist_target_register, data, dist_divider, start=False)
 
 # Set profile position operation mode and enable motor to enable motor move
 mc.motion.set_operation_mode(OperationMode.CURRENT)
 # Enable disturbance
-mc.capture.enable_disturbance()
+# mc.capture.enable_disturbance()
 # Enable motor
 mc.motion.motor_enable()
 
