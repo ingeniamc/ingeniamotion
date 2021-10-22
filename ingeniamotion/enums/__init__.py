@@ -37,14 +37,20 @@ class HomingMode(IntEnum):
 
 class MonitoringSoCType(IntEnum):
     """Monitoring start of condition type"""
-    TRIGGER_EVENT_NONE = 0
+    TRIGGER_EVENT_AUTO = 0
     """No trigger"""
     TRIGGER_EVENT_FORCED = 1
     """Forced trigger"""
-    TRIGGER_CYCLIC_RISING_EDGE = 2
+    TRIGGER_EVENT_EDGE = 2
+    """Edge trigger"""
+
+
+class MonitoringSoCConfig(IntEnum):
+    TRIGGER_CONFIG_RISING_OR_FALLING = 0
+    """Rising or falling edge trigger"""
+    TRIGGER_CONFIG_RISING = 1
     """Rising edge trigger"""
-    TRIGGER_NUMBER_SAMPLES = 3
-    TRIGGER_CYCLIC_FALLING_EDGE = 4
+    TRIGGER_CONFIG_FALLING = 2
     """Falling edge trigger"""
 
 
