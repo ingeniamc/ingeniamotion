@@ -176,8 +176,8 @@ class Monitoring(ABC):
                 ``None`` by default.
 
         Raises:
-            TypeError: If trigger_mode is rising or falling edge trigger and
-                trigger_signal or trigger_value are None.
+            TypeError: If trigger_mode is trigger event edge and
+                edge_condition, trigger_signal or trigger_value are None.
             IMMonitoringError: If trigger signal is not mapped.
 
         """

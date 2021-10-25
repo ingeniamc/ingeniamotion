@@ -9,13 +9,6 @@ from .base_monitoring import Monitoring, check_monitoring_disabled
 
 
 class MonitoringV1(Monitoring):
-    """Class to configure a monitoring in a servo.
-
-    Args:
-        mc (MotionController): MotionController instance.
-        servo (str): servo alias to reference it. ``default`` by default.
-
-    """
     EOC_TRIGGER_NUMBER_SAMPLES = 3
 
     TRIGGER_CYCLIC_RISING_EDGE = 2
@@ -50,28 +43,12 @@ class MonitoringV1(Monitoring):
     @check_monitoring_disabled
     def set_trigger(self, trigger_mode, edge_condition=None,
                     trigger_signal=None, trigger_value=None):
-        """Configure monitoring trigger. Monitoring must be disabled.
-
-        Args:
-            trigger_mode (MonitoringSoCType): monitoring start of condition type.
-            edge_condition (MonitoringSoCConfig): edge event type. ``None`` by default.
-            trigger_signal (dict): dict with name and axis of trigger signal
-                for rising or falling edge trigger. ``None`` by default.
-            trigger_value (int or float): value for rising or falling edge trigger.
-                ``None`` by default.
-
-        Raises:
-            TypeError: If trigger_mode is rising or falling edge trigger and
-                trigger_signal or trigger_value are None.
-            IMMonitoringError: If trigger signal is not mapped.
-
-        """
         self.rearm_monitoring()
         if trigger_mode == MonitoringSoCType.TRIGGER_EVENT_EDGE:
             if trigger_signal is None or trigger_value is None:
                 raise TypeError("trigger_signal or trigger_value are None")
             if edge_condition is None:
-                raise ValueError("Edge condition is not selected")
+                raise TypeError("Edge condition is not selected")
             trigger_mode = self.__get_old_soc_type(edge_condition)
             index_reg, level_edge = self._get_reg_index_and_edge_condition_value(
                 trigger_signal, trigger_value)
@@ -96,19 +73,6 @@ class MonitoringV1(Monitoring):
 
     @check_monitoring_disabled
     def configure_number_samples(self, total_num_samples, trigger_delay_samples):
-        """Configure monitoring number of samples. Monitoring must be disabled.
-
-        Args:
-            total_num_samples (int): monitoring total number of samples.
-            trigger_delay_samples (int): monitoring number of samples before trigger.
-                It should be less than total_num_samples.
-
-        Raises:
-            ValueError: If trigger_delay_samples is less than ``0``
-                or higher than total_num_samples.
-            IMMonitoringError: If buffer size is not enough for all the samples.
-
-        """
         if trigger_delay_samples > total_num_samples:
             raise ValueError("trigger_delay_samples should be less"
                              " than total_num_samples")
@@ -171,7 +135,6 @@ class MonitoringV1(Monitoring):
         return data_is_ready
 
     def rearm_monitoring(self):
-        """Rearm monitoring."""
         self.mc.communication.set_register(
             self.MONITORING_NUMBER_TRIGGER_REPETITIONS_REGISTER,
             1,
