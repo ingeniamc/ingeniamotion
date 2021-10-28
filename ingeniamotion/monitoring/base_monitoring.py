@@ -279,11 +279,16 @@ class Monitoring(ABC):
             self._check_read_data_timeout(init_read_time)
 
     def _show_current_process(self, current_len, progress_callback):
+        process_stage = self.mc.capture.get_monitoring_process_stage(
+            servo=self.servo,
+            version=self._version)
         current_progress = current_len / self.samples_number
-        self.logger.debug("Read %.2f%% of monitoring data",
-                          current_progress * 100)
+        if process_stage in [MonitoringProcessStage.DATA_ACQUISITION,
+                             MonitoringProcessStage.END_STAGE]:
+            self.logger.debug("Read %.2f%% of monitoring data",
+                              current_progress * 100)
         if progress_callback is not None:
-            progress_callback(current_progress)
+            progress_callback(process_stage, current_progress)
 
     @abstractmethod
     def _check_monitoring_is_ready(self):
@@ -319,12 +324,12 @@ class Monitoring(ABC):
                 drive.monitoring_read_data()
                 self._fill_data(data_array)
                 current_len = len(data_array[0])
-                self._show_current_process(current_len, progress_callback)
             elif not is_ready:
                 self.logger.warning(result_text)
                 self._read_process_finished = True
             self._update_read_process_finished(init_read_time, current_len,
                                                init_time, timeout)
+            self._show_current_process(current_len, progress_callback)
         return data_array
 
     def _fill_data(self, data_array):
