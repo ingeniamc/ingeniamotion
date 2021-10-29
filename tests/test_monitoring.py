@@ -2,8 +2,8 @@ import time
 
 import pytest
 
-from ingeniamotion.monitoring import Monitoring, IMMonitoringError
 from ingeniamotion.enums import MonitoringSoCType
+from ingeniamotion.exceptions import IMMonitoringError
 
 MONITOR_START_CONDITION_TYPE_REGISTER = "MON_CFG_SOC_TYPE"
 
@@ -13,7 +13,7 @@ MONITOR_START_CONDITION_TYPE_REGISTER = "MON_CFG_SOC_TYPE"
 @pytest.fixture
 def monitoring(motion_controller):
     mc, alias = motion_controller
-    return Monitoring(mc, alias)
+    return mc.capture.create_empty_monitoring(alias)
 
 
 @pytest.mark.soem
@@ -34,10 +34,9 @@ def mon_map_registers(monitoring):
 @pytest.mark.eoe
 @pytest.mark.smoke
 @pytest.mark.parametrize("trigger_type", [
-    MonitoringSoCType.TRIGGER_EVENT_NONE,
+    MonitoringSoCType.TRIGGER_EVENT_AUTO,
     MonitoringSoCType.TRIGGER_EVENT_FORCED,
-    MonitoringSoCType.TRIGGER_CYCLIC_RISING_EDGE,
-    MonitoringSoCType.TRIGGER_CYCLIC_FALLING_EDGE,
+    MonitoringSoCType.TRIGGER_EVENT_EDGE
 ])
 def test_get_trigger_type(motion_controller, monitoring, trigger_type):
     mc, alias = motion_controller
@@ -78,7 +77,7 @@ def test_raise_forced_trigger(motion_controller, monitoring, block,
 @pytest.mark.usefixtures("disable_monitoring_disturbance")
 def test_raise_forced_trigger_fail(motion_controller, monitoring):
     mc, alias = motion_controller
-    monitoring.set_trigger(MonitoringSoCType.TRIGGER_EVENT_NONE)
+    monitoring.set_trigger(MonitoringSoCType.TRIGGER_EVENT_AUTO)
     monitoring.configure_sample_time(2, 0)
     mc.capture.enable_monitoring_disturbance(servo=alias)
     with pytest.raises(IMMonitoringError):

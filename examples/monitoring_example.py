@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from ingeniamotion import MotionController
-from ingeniamotion.monitoring import MonitoringSoCType
+from ingeniamotion.enums import MonitoringSoCType, MonitoringSoCConfig
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger('matplotlib.font_manager').disabled = True
@@ -21,9 +21,11 @@ monitoring_prescaler = 10
 total_time_s = 1  # Total sample time in seconds
 trigger_delay_s = 0.0  # Trigger delay time in seconds
 
-trigger_mode = MonitoringSoCType.TRIGGER_EVENT_NONE
-# trigger_mode = MonitoringSoCType.TRIGGER_CYCLIC_RISING_EDGE
-# trigger_mode = MonitoringSoCType.TRIGGER_CYCLIC_FALLING_EDGE
+trigger_mode = MonitoringSoCType.TRIGGER_EVENT_AUTO
+# trigger_mode = MonitoringSoCType.TRIGGER_EVENT_EDGE
+trigger_config = None
+# trigger_config = MonitoringSoCConfig.TRIGGER_CONFIG_RISING
+# trigger_config = MonitoringSoCConfig.TRIGGER_CONFIG_FALLING
 
 # Trigger signal register if trigger_mode is TRIGGER_CYCLIC_RISING_EDGE or TRIGGER_CYCLIC_FALLING_EDGE
 # else, it does nothing
@@ -37,10 +39,11 @@ monitoring = mc.capture.create_monitoring(registers,
                                           total_time_s,
                                           trigger_delay=trigger_delay_s,
                                           trigger_mode=trigger_mode,
+                                          trigger_config=trigger_config,
                                           trigger_signal=trigger_signal,
                                           trigger_value=trigger_value)
 # Enable Monitoring
-mc.capture.enable_monitoring_disturbance()
+mc.capture.enable_monitoring()
 print("Waiting for trigger")
 # Blocking function to read monitoring values
 data = monitoring.read_monitoring_data()

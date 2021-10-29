@@ -2,7 +2,7 @@ import time
 import pytest
 
 from ingeniamotion.exceptions import IMStatusWordError
-from ingeniamotion.enums import OperationMode, MonitoringSoCType
+from ingeniamotion.enums import OperationMode, MonitoringSoCType, MonitoringSoCConfig
 
 
 def test_create_poller(motion_controller):
@@ -70,12 +70,16 @@ def test_create_monitoring_no_trigger(motion_controller,
 
 @pytest.mark.soem
 @pytest.mark.eoe
-@pytest.mark.parametrize("trigger_mode, values_list", [
-    (MonitoringSoCType.TRIGGER_CYCLIC_RISING_EDGE, [0, 1000, 2000, 3000]),
-    (MonitoringSoCType.TRIGGER_CYCLIC_FALLING_EDGE, [3000, 2000, 1000, 0]),
+@pytest.mark.parametrize("trigger_mode, trigger_config, values_list", [
+    (MonitoringSoCType.TRIGGER_EVENT_EDGE,
+     MonitoringSoCConfig.TRIGGER_CONFIG_RISING,
+     [0, 1000, 2000, 3000]),
+    (MonitoringSoCType.TRIGGER_EVENT_EDGE,
+     MonitoringSoCConfig.TRIGGER_CONFIG_FALLING,
+     [3000, 2000, 1000, 0]),
 ])
-def test_create_monitoring_edge_trigger(motion_controller, trigger_mode, values_list,
-                                        disable_monitoring_disturbance):
+def test_create_monitoring_edge_trigger(motion_controller, trigger_mode, trigger_config,
+                                        values_list, disable_monitoring_disturbance):
     register = {
         "name": "CL_POS_REF_VALUE",
         "axis": 1
@@ -91,6 +95,7 @@ def test_create_monitoring_edge_trigger(motion_controller, trigger_mode, values_
         [register], divider, total_time,
         trigger_delay=0,
         trigger_mode=trigger_mode,
+        trigger_config=trigger_config,
         trigger_signal=register,
         trigger_value=1500,
         servo=alias

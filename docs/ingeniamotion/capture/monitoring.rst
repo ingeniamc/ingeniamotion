@@ -1,5 +1,5 @@
 Monitoring
 ==========
 
-.. automodule:: ingeniamotion.monitoring
+.. autoclass:: ingeniamotion.monitoring.base_monitoring.Monitoring
    :members:
