@@ -327,6 +327,8 @@ class Capture(metaclass=MCMetaClass):
         """
         if version is None:
             version = self._check_version(servo)
+        if not self.is_monitoring_enabled(servo=servo):
+            return
         drive = self.mc.servos[servo]
         drive.monitoring_disable()
         if version >= MonitoringVersion.MONITORING_V3:
@@ -343,6 +345,8 @@ class Capture(metaclass=MCMetaClass):
         """
         if version is None:
             version = self._check_version(servo)
+        if not self.is_disturbance_enabled(servo, version):
+            return
         if version < MonitoringVersion.MONITORING_V3:
             return self.disable_monitoring(servo=servo, version=version)
         drive = self.mc.servos[servo]
