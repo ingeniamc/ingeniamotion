@@ -36,7 +36,7 @@ class Monitoring(ABC):
 
     REGISTER_MAP_OFFSET = 0x800
     MINIMUM_BUFFER_SIZE = 8192
-    ESTIMATED_MAX_TIME_FOR_SAMPLE = 0.0015
+    ESTIMATED_MAX_TIME_FOR_SAMPLE = 0.003
 
     _data_type_size = {
         REG_DTYPE.U8: 1,
