@@ -273,6 +273,8 @@ class Monitoring(ABC):
     def _update_read_process_finished(self, init_read_time, current_len,
                                       init_time, timeout):
         self._check_read_data_ends(current_len)
+        if self._read_process_finished:
+            return
         if init_read_time is None:
             self._check_trigger_timeout(init_time, timeout)
         else:
