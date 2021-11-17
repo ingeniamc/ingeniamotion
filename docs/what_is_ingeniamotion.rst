@@ -54,22 +54,31 @@ MotionController namespaces
 
 MotionController functionalities are group in the following namespaces.
 
+**Communication**
+
+This namespace has all the basic communication functions with the servo:
+connect, read or write a register, load firmware, etc.
+
+**Configuration**
+
+Here we will find functions to configure the servo:
+load or save configuration, configure limits, feedbacks, brake settings, etc.
+
 **Motion**
 
 In this namespace we will find all the functions that will help us to move the servos.
 
-**Communication**
-
-This namespace has all the basic communication functions with the servo:
-connect, read or write a register, load or save configuration, load firmware, etc.
-
-**Configuration**
-
-Here we will find functions to configure the servo: configure limits, feedbacks, brake settings, etc.
-
 **Capture**
 
 This namespace will help us to work with monitoring and similar features.
+
+**Info**
+
+Functions to get register information from dictionary.
+
+**Errors**
+
+Namespace to manage drive errors and get errors data.
 
 **Tests**
 

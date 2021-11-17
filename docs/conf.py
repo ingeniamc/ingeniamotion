@@ -61,7 +61,8 @@ html_theme = 'sphinx_rtd_theme'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-pdf_documents = [('index', u'ingeniamotion v0.1.0', u'Ingeniamotion', author), ]
+pdf_name = u"ingeniamotion v{}".format(ingeniamotion.__version__)
+pdf_documents = [('index', pdf_name, u'Ingeniamotion', author), ]
 
 intersphinx_mapping = {'python': ('https://docs.python.org/3.6', None),
                        'ingenialink': ('https://distext.ingeniamc.com/doc/ingenialink-python/6.1.0', None)}

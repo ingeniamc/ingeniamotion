@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.1] - 2021-11-17
+### Added
+- Compatibility with monitoring for Everest and Capitan 2.0.0.
+
+### Changed
+- Increase default monitoring timeout.
+- Disable monitoring and disturbance have no effect if they are already disabled.
+
 ## [0.5.0] - 2021-10-15
 ### Added
 - Compatibility with System Errors.
