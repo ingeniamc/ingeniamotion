@@ -243,7 +243,6 @@ class Communication(metaclass=MCMetaClass):
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = net_key
 
-
     def scan_servos_canopen(self, can_device,
                             baudrate=CAN_BAUDRATE.Baudrate_1M, channel=0):
         """Scan CANOpen device network to get all nodes.

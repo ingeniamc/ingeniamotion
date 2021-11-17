@@ -6,6 +6,11 @@ Set and Get Registers Example
 
 .. literalinclude:: ../../examples/set_get_register.py
 
+Connect CANopen drive
+---------------------
+
+.. literalinclude:: ../../examples/canopen_example.py
+
 Load Firmware ECAT
 ------------------
 
