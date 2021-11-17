@@ -205,7 +205,9 @@ class Communication(metaclass=MCMetaClass):
 
     def connect_servo_canopen(self, can_device, dict_path, eds_file,
                               node_id, baudrate=CAN_BAUDRATE.Baudrate_1M,
-                              channel=0, alias=DEFAULT_SERVO):
+                              channel=0, alias=DEFAULT_SERVO,
+                              servo_status_listener=True,
+                              net_status_listener=True):
         """Connect to target servo by CANOpen.
 
         Args:
@@ -218,6 +220,10 @@ class Communication(metaclass=MCMetaClass):
                 1 Mbit/s by default.
             channel (int): CANOpen device channel. ``0`` by default.
             alias (str): servo alias to reference it. ``default`` by default.
+            servo_status_listener (bool): Toggle the listener of the servo for
+            its status, errors, faults, etc.
+            net_status_listener (bool): Toggle the listener of the network
+            status, connection and disconnection.
 
         """
 
@@ -232,10 +238,10 @@ class Communication(metaclass=MCMetaClass):
         net = self.mc.net[net_key]
 
         servo = net.connect_to_slave(
-            node_id, dict_path, eds_file)
+            node_id, dict_path, eds_file,
+            servo_status_listener, net_status_listener)
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = net_key
-
 
     def scan_servos_canopen(self, can_device,
                             baudrate=CAN_BAUDRATE.Baudrate_1M, channel=0):

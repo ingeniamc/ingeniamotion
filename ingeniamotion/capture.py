@@ -6,11 +6,14 @@ from ingenialink.ipb.register import IPBRegister
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.canopen.poller import CanopenPoller
 
-from .disturbance import Disturbance
-from .monitoring import Monitoring, MonitoringSoCType
-from .exceptions import IMRegisterNotExist, IMMonitoringError
-from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
-from ingeniamotion.enums import MonitoringVersion, MonitoringProcessStage
+from ingeniamotion.disturbance import Disturbance
+from ingeniamotion.monitoring.base_monitoring import Monitoring
+from ingeniamotion.monitoring.monitoring_v1 import MonitoringV1
+from ingeniamotion.monitoring.monitoring_v3 import MonitoringV3
+from ingeniamotion.exceptions import IMRegisterNotExist, IMMonitoringError
+from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
+from ingeniamotion.enums import MonitoringVersion, MonitoringProcessStage,\
+    MonitoringSoCType, MonitoringSoCConfig
 
 
 class Capture(metaclass=MCMetaClass):
@@ -113,9 +116,25 @@ class Capture(metaclass=MCMetaClass):
             poller.start()
         return poller
 
+    def create_empty_monitoring(self, servo=DEFAULT_SERVO):
+        """Returns a Monitoring instance not configured.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        Returns:
+            Monitoring: Not configured instance of monitoring.
+
+        """
+        version = self._check_version(servo)
+        if version == MonitoringVersion.MONITORING_V3:
+            return MonitoringV3(self.mc, servo)
+        if version < MonitoringVersion.MONITORING_V3:
+            return MonitoringV1(self.mc, servo)
+
     def create_monitoring(self, registers, prescaler, sample_time, trigger_delay=0,
-                          trigger_mode=MonitoringSoCType.TRIGGER_EVENT_NONE,
-                          trigger_signal=None, trigger_value=None,
+                          trigger_mode=MonitoringSoCType.TRIGGER_EVENT_AUTO,
+                          trigger_config=None, trigger_signal=None, trigger_value=None,
                           servo=DEFAULT_SERVO, start=False):
         """Returns a Monitoring instance configured with target registers.
 
@@ -147,6 +166,8 @@ class Capture(metaclass=MCMetaClass):
                 ``-sample_time/2`` and ``sample_time/2`` . ``0`` by default.
             trigger_mode (MonitoringSoCType): monitoring start of condition type.
                 ``TRIGGER_EVENT_NONE`` by default.
+            trigger_config (MonitoringSoCConfig): monitoring edge condition.
+                ``None`` by default.
             trigger_signal (dict): dict with name and axis of trigger signal
                 for rising or falling edge trigger.
             trigger_value (int or float): value for rising or falling edge trigger.
@@ -168,17 +189,19 @@ class Capture(metaclass=MCMetaClass):
              and trigger signal is not mapped.
             TypeError: If trigger_mode is rising or falling edge trigger and
              trigger_signal or trigger_value are None.
+
         """
         self.clean_monitoring(servo=servo)
-        monitoring = Monitoring(self.mc, servo)
+        monitoring = self.create_empty_monitoring(servo)
         monitoring.set_frequency(prescaler)
         monitoring.map_registers(registers)
         monitoring.set_trigger(trigger_mode,
+                               edge_condition=trigger_config,
                                trigger_signal=trigger_signal,
                                trigger_value=trigger_value)
         monitoring.configure_sample_time(sample_time, trigger_delay)
         if start:
-            self.enable_monitoring_disturbance(servo=servo)
+            self.enable_monitoring(servo=servo)
         return monitoring
 
     def create_disturbance(self, register, data, freq_divider,
@@ -205,6 +228,7 @@ class Capture(metaclass=MCMetaClass):
             ValueError: If freq_divider is less than ``1``.
             IMDisturbanceError: If buffer size is not enough for all the
                 registers and samples.
+
         """
         self.clean_disturbance(servo=servo)
         disturbance = Disturbance(self.mc, servo)
@@ -212,7 +236,7 @@ class Capture(metaclass=MCMetaClass):
         disturbance.map_registers({"name": register, "axis": axis})
         disturbance.write_disturbance_data(data)
         if start:
-            self.enable_monitoring_disturbance(servo=servo)
+            self.enable_disturbance(servo=servo)
         return disturbance
 
     def _check_version(self, servo):
@@ -239,6 +263,7 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             IMMonitoringError: If monitoring can't be enabled.
+
         """
         self.enable_monitoring(servo=servo)
         self.enable_disturbance(servo=servo)
@@ -251,6 +276,7 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             IMMonitoringError: If monitoring can't be enabled.
+
         """
         drive = self.mc.servos[servo]
         drive.monitoring_enable()
@@ -268,6 +294,7 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             IMMonitoringError: If disturbance can't be enabled.
+
         """
         if version is None:
             version = self._check_version(servo)
@@ -300,6 +327,8 @@ class Capture(metaclass=MCMetaClass):
         """
         if version is None:
             version = self._check_version(servo)
+        if not self.is_monitoring_enabled(servo=servo):
+            return
         drive = self.mc.servos[servo]
         drive.monitoring_disable()
         if version >= MonitoringVersion.MONITORING_V3:
@@ -316,6 +345,8 @@ class Capture(metaclass=MCMetaClass):
         """
         if version is None:
             version = self._check_version(servo)
+        if not self.is_disturbance_enabled(servo, version):
+            return
         if version < MonitoringVersion.MONITORING_V3:
             return self.disable_monitoring(servo=servo, version=version)
         drive = self.mc.servos[servo]
@@ -443,7 +474,7 @@ class Capture(metaclass=MCMetaClass):
         """
         if version is None:
             version = self._check_version(servo=servo)
-        monitor_status = self.mc.capture.get_monitoring_disturbance_status(
+        monitor_status = self.mc.capture.get_monitoring_status(
             servo=servo)
         mask = self.MONITORING_AVAILABLE_FRAME_BIT[version]
         return (monitor_status & mask) != 0
@@ -496,5 +527,5 @@ class Capture(metaclass=MCMetaClass):
             IMStatusWordError: If motor is enabled.
 
         """
-        self.enable_monitoring_disturbance(servo=servo)
-        self.disable_monitoring_disturbance(servo=servo)
+        self.enable_monitoring(servo=servo)
+        self.disable_monitoring(servo=servo)
