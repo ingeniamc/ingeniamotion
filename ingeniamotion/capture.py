@@ -82,7 +82,7 @@ class Capture(metaclass=MCMetaClass):
                 poller should be started after. ``True`` by default.
 
         Returns:
-            Poller: Poller object with chosen registers.
+            ingenialink.poller.Poller: Poller object with chosen registers.
 
             Poller.start()
                 Poller starts reading the registers.

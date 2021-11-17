@@ -7,12 +7,12 @@ import ingenialink as il
 from os import path
 from enum import IntEnum
 from functools import partial
-from ingenialink import CAN_BAUDRATE
-from ingenialink.exceptions import ILError, ILFirmwareLoadError
+from ingenialink.exceptions import ILError
 from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.ethercat.network import EthercatNetwork
 
+from ingeniamotion.enums import Protocol
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
@@ -135,7 +135,7 @@ class Communication(metaclass=MCMetaClass):
 
         Returns:
             str: real name of selected interface.
-                It can be used for function :func:`connect_servo_ecat`.
+            It can be used for function :func:`connect_servo_ecat`.
         """
         return "\\Device\\NPF_{}".format(
             ifaddr.get_adapters()[index].name.decode("utf-8")
@@ -204,26 +204,26 @@ class Communication(metaclass=MCMetaClass):
         return self.scan_servos_ecat(self.get_ifname_by_index(if_index))
 
     def connect_servo_canopen(self, can_device, dict_path, eds_file,
-                              node_id, baudrate=CAN_BAUDRATE.Baudrate_1M,
+                              node_id, baudrate=il.CAN_BAUDRATE.Baudrate_1M,
                               channel=0, alias=DEFAULT_SERVO,
                               servo_status_listener=True,
                               net_status_listener=True):
         """Connect to target servo by CANOpen.
 
         Args:
-            can_device (ingenialink.canopen.net.CAN_DEVICE): CANOpen device type.
+            can_device (ingenialink.canopen.network.CAN_DEVICE): CANOpen device type.
             dict_path (str): servo dictionary path.
             eds_file (str): EDS file path.
             node_id (int): node id. It's posible scan node ids with
                 :func:`scan_servos_canopen`.
-            baudrate (ingenialink.canopen.net.CAN_BAUDRATE): communication baudrate.
+            baudrate (ingenialink.canopen.network.CAN_BAUDRATE): communication baudrate.
                 1 Mbit/s by default.
-            channel (int): CANOpen device channel. ``0`` by default.
+            channel (int): CANopen device channel. ``0`` by default.
             alias (str): servo alias to reference it. ``default`` by default.
             servo_status_listener (bool): Toggle the listener of the servo for
-            its status, errors, faults, etc.
+                its status, errors, faults, etc.
             net_status_listener (bool): Toggle the listener of the network
-            status, connection and disconnection.
+                status, connection and disconnection.
 
         """
 
@@ -244,12 +244,12 @@ class Communication(metaclass=MCMetaClass):
         self.mc.servo_net[alias] = net_key
 
     def scan_servos_canopen(self, can_device,
-                            baudrate=CAN_BAUDRATE.Baudrate_1M, channel=0):
+                            baudrate=il.CAN_BAUDRATE.Baudrate_1M, channel=0):
         """Scan CANOpen device network to get all nodes.
 
         Args:
-            can_device (ingenialink.canopen.net.CAN_DEVICE): CANOpen device type.
-            baudrate (ingenialink.canopen.net.CAN_BAUDRATE): communication baudrate.
+            can_device (ingenialink.canopen.network.CAN_DEVICE): CANOpen device type.
+            baudrate (ingenialink.canopen.network.CAN_BAUDRATE): communication baudrate.
                 1 Mbit/s by default.
             channel (int): CANOpen device channel. ``0`` by default.
         Returns:
@@ -343,7 +343,7 @@ class Communication(metaclass=MCMetaClass):
         Args:
             index (int): register index.
             subindex (int): register subindex.
-            dtype (ingenialink.registers.REG_DTYPE): register data type.
+            dtype (ingenialink.register.REG_DTYPE): register data type.
             string_size (int): if register data is a string,
                 size in bytes is mandatory. ``None`` by default.
             servo (str): servo alias to reference it. ``default`` by default.
@@ -367,7 +367,7 @@ class Communication(metaclass=MCMetaClass):
         Args:
             index (int): register index.
             subindex (int): register subindex.
-            dtype (ingenialink.registers.REG_DTYPE): register data type.
+            dtype (ingenialink.register.REG_DTYPE): register data type.
             value (int or float): new value for the register.
             servo (str): servo alias to reference it. ``default`` by default.
 

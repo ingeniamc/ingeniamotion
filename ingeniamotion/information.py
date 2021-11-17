@@ -17,7 +17,7 @@ class Information(metaclass=MCMetaClass):
             servo (str): servo alias to reference it. ``default`` by default.
 
         Returns:
-            ingenialink.registers.Register: Register object.
+            ingenialink.register.Register: Register object.
         """
         drive = self.mc.servos[servo]
         try:
@@ -35,7 +35,7 @@ class Information(metaclass=MCMetaClass):
             servo (str): servo alias to reference it. ``default`` by default.
 
         Returns:
-            ingenialink.registers.REG_DTYPE: Register dtype.
+            ingenialink.register.REG_DTYPE: Register dtype.
         """
         register = self.register_info(register, axis=axis, servo=servo)
         return register.dtype
@@ -49,7 +49,7 @@ class Information(metaclass=MCMetaClass):
             servo (str): servo alias to reference it. ``default`` by default.
 
         Returns:
-            ingenialink.registers.REG_ACCESS: Register access.
+            ingenialink.register.REG_ACCESS: Register access.
         """
         register = self.register_info(register, axis=axis, servo=servo)
         return register.access
