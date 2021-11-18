@@ -4,10 +4,10 @@ verify_ssl = true
 name = "pypi"
 
 [requires]
-python_version = "3"
+python_version = "3.6"
 
 [packages]
-ingenialink = ">=6.1.0"
+ingenialink = ">=6.1.1"
 ingenialogger = ">=0.2.1"
 ifaddr= "==0.1.7"
 
