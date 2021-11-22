@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.2] - 2021-11-23
+### Added
+- Compatibility with Python 3.7, 3.8, 3.9, 3.10.
+
+### Fixed
+- Fixed code autocompletion.
+
 ## [0.5.1] - 2021-11-17
 ### Added
 - Compatibility with monitoring for Everest and Capitan 2.0.0.
