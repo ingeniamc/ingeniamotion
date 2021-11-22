@@ -5,54 +5,57 @@
  * Copyright (c) 2020 Ingenia Motion Control.
  */
 
-properties([
-  buildDiscarder(logRotator(artifactNumToKeepStr: '10', daysToKeepStr: '30')),
-])
 
-node('windows') {
+def NODE_NAME = "sw"
+def BRANCH_NAME_DEVELOP = "INGM-123-create-automatic-process"
+def BRANCH_NAME_MASTER = "master"
+
+node(NODE_NAME) {
     deleteDir()
-
-    stage('Windows checkout') {
-        checkout([$class: 'GitSCM',
-                branches: [ [name: '*/master'],
-                            [name: '*/develop']
-                        ],
-                doGenerateSubmoduleConfigurations: false,
-                extensions: [],
-                submoduleCfg: [],
-                userRemoteConfigs: [[credentialsId: 'jenkins-bitbucket',
-                    url: 'https://bitbucket.org/ingeniamc/libs-ingeniamotion.git']]])
-    }
-
-
-    stage('Install deps') {
-        bat '''
-            python -m pipenv install --dev
-        '''
-    }
-
-    stage('Docs') {
-        bat '''
-            pipenv run sphinx-build -b html docs _docs
-        '''
-    }
-    stage('Build libraries')
+    if (env.BRANCH_NAME == BRANCH_NAME_MASTER || env.BRANCH_NAME == BRANCH_NAME_DEVELOP)
     {
-        bat '''
-            pipenv run python setup.py build_ext -i
-            pipenv run python setup.py bdist_wheel
-        '''
-    }
+        stage('Checkout') {
+            checkout scm
+        }
 
-    stage('Archive') {
-        bat '''
+        stage('Remove all previous files')
+            {
+                bat """
+                    rmdir /Q /S "_build"
+                    rmdir /Q /S "_deps"
+                    rmdir /Q /S "_install"
+                    rmdir /Q /S "_dist"
+                    rmdir /Q /S "build"
+                    rmdir /Q /S "_docs"
+                    del /f "Pipfile.lock"
+                """
+            }
 
-            "C:/Program Files/7-Zip/7z.exe" a -r docs.zip -w _docs -mem=AES256
-        '''
-        archiveArtifacts artifacts: 'dist/*, docs.zip'
-    }
+        stage('Install deps') {
+            bat '''
+                pipenv install --dev
+            '''
+        }
 
-    stage('Deploy') {
+        stage('Docs') {
+            bat '''
+                pipenv run sphinx-build -b html docs _docs
+            '''
+        }
 
+        stage('Build libraries')
+        {
+            bat '''
+                pipenv run python setup.py bdist_wheel
+            '''
+        }
+
+        stage('Archive') {
+            bat '''
+
+                "C:/Program Files/7-Zip/7z.exe" a -r docs.zip -w _docs -mem=AES256
+            '''
+            archiveArtifacts artifacts: 'dist/*, docs.zip'
+        }
     }
 }
