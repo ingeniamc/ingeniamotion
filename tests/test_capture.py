@@ -154,9 +154,9 @@ def test_create_disturbance(motion_controller,
 def test_mcb_synchronization(mocker, motion_controller):
     mc, alias = motion_controller
     enable_mon = mocker.patch(
-        'ingeniamotion.capture.Capture.enable_monitoring_disturbance')
+        'ingeniamotion.capture.Capture.enable_monitoring')
     disable_mon = mocker.patch(
-        'ingeniamotion.capture.Capture.disable_monitoring_disturbance')
+        'ingeniamotion.capture.Capture.disable_monitoring')
     mc.capture.mcb_synchronization(servo=alias)
     enable_mon.assert_called_once_with(servo=alias)
     disable_mon.assert_called_once_with(servo=alias)
