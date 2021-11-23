@@ -2,7 +2,7 @@
 
 ## [0.5.2] - 2021-11-23
 ### Added
-- Compatibility with Python 3.7, 3.8, 3.9, 3.10.
+- Compatibility with Python 3.7, 3.8 and 3.9.
 
 ### Fixed
 - Fixed code autocompletion.

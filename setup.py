@@ -25,13 +25,14 @@ setuptools.setup(
     url='https://www.ingeniamc.com',
     project_urls={
                 "Documentation": get_docs_url(),
+                'Source': 'https://github.com/ingeniamc/ingeniamotion'
     },
     classifiers=[
         "Programming Language :: Python :: 3",
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        'ingenialink>=6.1.1',
+        'ingenialink>=6.1.2',
         'ingenialogger==0.2.1',
         'ifaddr==0.1.7'
     ],
