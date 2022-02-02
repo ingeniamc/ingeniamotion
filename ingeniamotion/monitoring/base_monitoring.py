@@ -5,10 +5,9 @@ import ingenialogger
 from functools import wraps
 from ingenialink import REG_DTYPE
 from abc import ABC, abstractmethod
-from ingenialink.exceptions import ILError
 
 from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
-from ingeniamotion.exceptions import IMMonitoringError
+from ingeniamotion.exceptions import IMMonitoringError, IMRegisterNotExist
 from ingeniamotion.enums import MonitoringProcessStage, \
     MonitoringSoCType, MonitoringSoCConfig
 
@@ -363,7 +362,7 @@ class Monitoring(ABC):
                 servo=self.servo,
                 axis=0
             )
-        except ILError:
+        except IMRegisterNotExist:
             return self.MINIMUM_BUFFER_SIZE
 
     @abstractmethod
