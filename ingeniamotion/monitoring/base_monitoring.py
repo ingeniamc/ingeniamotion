@@ -263,7 +263,7 @@ class Monitoring(ABC):
         total_num_samples = len(self.mapped_registers) * self.samples_number
         max_timeout = self.ESTIMATED_MAX_TIME_FOR_SAMPLE * total_num_samples
         if init_read_time + max_timeout < time_now:
-            self.logger.warning("Timeout. Drive take too match time reading data")
+            self.logger.warning("Timeout. Drive take too much time reading data")
             self._read_process_finished = True
 
     def _check_read_data_ends(self, data_length):
