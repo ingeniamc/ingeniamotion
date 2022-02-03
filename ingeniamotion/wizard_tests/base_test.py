@@ -14,11 +14,6 @@ class TestError(Exception):
 
 class BaseTest(ABC, Stoppable):
 
-    class SeverityLevel(IntEnum):
-        SUCCESS = 0
-        WARNING = 1
-        FAIL = 2
-
     def __init__(self):
         self.backup_registers_names = None
         self.backup_registers = {}

@@ -5,7 +5,8 @@ from enum import IntEnum
 
 from .base_test import BaseTest, TestError
 from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
-from ingeniamotion.enums import SensorType, OperationMode, PhasingMode
+from ingeniamotion.enums import SensorType, OperationMode, PhasingMode, \
+    SeverityLevel
 
 
 class PhasingCheck(BaseTest):
@@ -206,6 +207,6 @@ class PhasingCheck(BaseTest):
 
     def get_result_severity(self, output):
         if output < self.ResultType.SUCCESS:
-            return self.SeverityLevel.FAIL
+            return SeverityLevel.FAIL
         else:
-            return self.SeverityLevel.SUCCESS
+            return SeverityLevel.SUCCESS
