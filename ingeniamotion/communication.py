@@ -8,11 +8,13 @@ from os import path
 from enum import IntEnum
 from functools import partial
 from ingenialink.exceptions import ILError
+from ingenialink.register import REG_ACCESS
 from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.ethercat.network import EthercatNetwork
 
 from ingeniamotion.enums import Protocol
+from ingeniamotion.exceptions import IMRegisterWrongAccess
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
@@ -314,6 +316,7 @@ class Communication(metaclass=MCMetaClass):
         """
         drive = self.mc.servos[servo]
         register_dtype_value = self.mc.info.register_type(register, axis, servo=servo)
+        register_access_type = self.mc.info.register_info(register).access
         signed_int = [
             il.REG_DTYPE.S8, il.REG_DTYPE.S16,
             il.REG_DTYPE.S32, il.REG_DTYPE.S64
@@ -334,6 +337,9 @@ class Communication(metaclass=MCMetaClass):
         if register_dtype_value in unsigned_int and \
                 (not isinstance(value, int) or value < 0):
             raise TypeError("Value must be an unsigned int")
+        if register_access_type == REG_ACCESS.RO:
+            raise IMRegisterWrongAccess("Register: {} cannot write to a read-only register".format(register))
+
         drive.write(register, value, subnode=axis)
 
     def get_sdo_register(self, index, subindex, dtype, string_size=None,
