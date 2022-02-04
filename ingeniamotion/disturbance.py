@@ -3,7 +3,6 @@ from numpy import ndarray
 from functools import wraps
 from ingenialink import REG_DTYPE
 from collections.abc import Iterable
-from ingenialink.exceptions import ILError
 
 from ingeniamotion.enums import MonitoringVersion
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
@@ -41,8 +40,6 @@ class Disturbance:
     MONITORING_STATUS_ENABLED_BIT = 0x1
     REGISTER_MAP_OFFSET = 0x800
 
-    MINIMUM_BUFFER_SIZE = 8192
-
     __data_type_size = {
         REG_DTYPE.U8: 1,
         REG_DTYPE.S8: 1,
@@ -63,7 +60,7 @@ class Disturbance:
         self.sampling_freq = None
         self._version = mc.capture._check_version(servo)
         self.logger = ingenialogger.get_logger(__name__, drive=mc.servo_name(servo))
-        self.max_sample_number = self.get_max_sample_size()
+        self.max_sample_number = mc.capture.disturbance_max_sample_size(servo)
         if self._version < MonitoringVersion.MONITORING_V3:
             try:
                 self.mc.capture.mcb_synchronization(servo=servo)
@@ -232,17 +229,3 @@ class Disturbance:
         self.logger.debug("Demanded size: %d bytes, buffer max size: %d bytes.",
                           total_buffer_size, self.max_sample_number)
 
-    def get_max_sample_size(self):
-        """Return disturbance max size, in bytes.
-
-        Returns:
-            int: Max buffer size in bytes.
-        """
-        try:
-            return self.mc.communication.get_register(
-                self.DISTURBANCE_MAXIMUM_SAMPLE_SIZE_REGISTER,
-                servo=self.servo,
-                axis=0
-            )
-        except ILError:
-            return self.MINIMUM_BUFFER_SIZE
