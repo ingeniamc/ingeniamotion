@@ -549,7 +549,7 @@ class Capture(metaclass=MCMetaClass):
                 servo=servo,
                 axis=0
             )
-        except ILError:
+        except IMRegisterNotExist:
             return self.MINIMUM_BUFFER_SIZE
 
     def monitoring_max_sample_size(self, servo=DEFAULT_SERVO):
@@ -568,5 +568,5 @@ class Capture(metaclass=MCMetaClass):
                 servo=servo,
                 axis=0
             )
-        except ILError:
+        except IMRegisterNotExist:
             return self.MINIMUM_BUFFER_SIZE

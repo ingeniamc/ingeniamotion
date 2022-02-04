@@ -360,6 +360,21 @@ class Communication(metaclass=MCMetaClass):
         return drive.read_string_sdo(index, subindex,
                                      string_size, drive.slave)
 
+    def get_sdo_register_complete_access(self, index, size, servo=DEFAULT_SERVO):
+        """Read register via SDO complete access, return value in bytes.
+
+        Args:
+            index (int): register index.
+            size (int): size in bytes of register.
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        Returns:
+            bytes: Register value.
+
+        """
+        drive = self.mc._get_drive(servo)
+        return drive.read_sdo_complete_access(index, size, drive.slave)
+
     def set_sdo_register(self, index, subindex, dtype, value,
                          servo=DEFAULT_SERVO):
         """Set the value via SDO of a target register.
