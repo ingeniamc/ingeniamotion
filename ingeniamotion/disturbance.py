@@ -3,11 +3,10 @@ from numpy import ndarray
 from functools import wraps
 from ingenialink import REG_DTYPE
 from collections.abc import Iterable
-from ingenialink.exceptions import ILError
 
 from ingeniamotion.enums import MonitoringVersion
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
-from .exceptions import IMDisturbanceError, IMStatusWordError
+from .exceptions import IMDisturbanceError, IMStatusWordError, IMRegisterNotExist
 
 
 def check_disturbance_disabled(func):
@@ -244,5 +243,5 @@ class Disturbance:
                 servo=self.servo,
                 axis=0
             )
-        except ILError:
+        except IMRegisterNotExist:
             return self.MINIMUM_BUFFER_SIZE
