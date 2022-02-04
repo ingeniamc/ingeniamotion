@@ -23,7 +23,13 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
     BRAKE_OVERRIDE_REGISTER = "MOT_BRAKE_OVERRIDE"
     PROFILE_MAX_ACCELERATION_REGISTER = "PROF_MAX_ACC"
     PROFILE_MAX_VELOCITY_REGISTER = "PROF_MAX_VEL"
-    POWER_STAGE_FREQUENCY_REGISTER = "DRV_PS_FREQ_SELECTION"
+    POWER_STAGE_FREQUENCY_SELECTION_REGISTER = "DRV_PS_FREQ_SELECTION"
+    POWER_STAGE_FREQUENCY_REGISTERS = [
+        "DRV_PS_FREQ_1",
+        "DRV_PS_FREQ_2",
+        "DRV_PS_FREQ_3",
+        "DRV_PS_FREQ_4"
+    ]
     POSITION_AND_VELOCITY_LOOP_RATE_REGISTER = "DRV_POS_VEL_RATE"
     STATUS_WORD_REGISTER = "DRV_STATE_STATUS"
     PHASING_MODE_REGISTER = "COMMU_PHASING_MODE"
@@ -226,23 +232,15 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             int: Frequency in Hz if raw is ``False``, else, raw register value.
         """
         pow_stg_freq = self.mc.communication.get_register(
-            self.POWER_STAGE_FREQUENCY_REGISTER,
+            self.POWER_STAGE_FREQUENCY_SELECTION_REGISTER,
             servo=servo,
             axis=axis
         )
         if raw:
             return pow_stg_freq
-        pow_stg_freq_enum = self.mc.get_register_enum(
-            self.POWER_STAGE_FREQUENCY_REGISTER, servo, axis
-        )
-        freq_label = pow_stg_freq_enum(pow_stg_freq).name
-        match = re.match(r"(\d+) (\w+)", freq_label)
-        value, unit = match.groups()
-        if unit == "MHz":
-            return int(value)*1000000
-        if unit == "kHz":
-            return int(value)*1000
-        return int(value)
+        pow_stg_freq_reg = self.POWER_STAGE_FREQUENCY_REGISTERS[pow_stg_freq]
+        freq = self.mc.communication.get_register(pow_stg_freq_reg)
+        return freq
 
     def get_power_stage_frequency_enum(self, servo=DEFAULT_SERVO,
                                        axis=DEFAULT_AXIS):
