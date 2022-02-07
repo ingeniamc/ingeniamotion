@@ -313,10 +313,15 @@ class Communication(metaclass=MCMetaClass):
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
 
+        Raises:
+            TypeError: If the value is of the wrong type.
+            IMRegisterNotExist: If the register doesn't exist.
+            IMRegisterWrongAccess: If the register access is read-only.
+
         """
         drive = self.mc.servos[servo]
         register_dtype_value = self.mc.info.register_type(register, axis, servo=servo)
-        register_access_type = self.mc.info.register_info(register).access
+        register_access_type = self.mc.info.register_info(register, axis, servo=servo).access
         signed_int = [
             il.REG_DTYPE.S8, il.REG_DTYPE.S16,
             il.REG_DTYPE.S32, il.REG_DTYPE.S64
