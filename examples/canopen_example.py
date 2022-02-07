@@ -1,5 +1,5 @@
 from ingeniamotion import MotionController
-from ingenialink.canopen import CAN_BAUDRATE, CAN_DEVICE
+from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE
 
 # Create MotionController instance
 mc = MotionController()

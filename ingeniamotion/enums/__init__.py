@@ -1,5 +1,6 @@
 from enum import IntEnum
-
+from ingenialink.register import REG_DTYPE, REG_ACCESS
+from ingenialink.canopen import CAN_BAUDRATE, CAN_DEVICE
 
 class OperationMode(IntEnum):
     """Operation Mode Enum"""
@@ -122,3 +123,6 @@ class MonitoringVersion(IntEnum):
     """Monitoring V2 used for Capitan and some custom low-power drivers."""
     MONITORING_V3 = 2
     """Monitoring V3 used for Everest and Capitan newer than 1.8.1."""
+
+
+__all__ = ["CAN_BAUDRATE", "CAN_DEVICE", "REG_ACCESS", "REG_DTYPE"]
