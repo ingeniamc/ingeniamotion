@@ -230,6 +230,10 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             int: Frequency in Hz if raw is ``False``, else, raw register value.
+
+        Raises:
+            ValueError: If power stage frequency selection register has an
+                invalid value.
         """
         pow_stg_freq = self.mc.communication.get_register(
             self.POWER_STAGE_FREQUENCY_SELECTION_REGISTER,
@@ -238,8 +242,12 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         )
         if raw:
             return pow_stg_freq
-        pow_stg_freq_reg = self.POWER_STAGE_FREQUENCY_REGISTERS[pow_stg_freq]
-        freq = self.mc.communication.get_register(pow_stg_freq_reg)
+        try:
+            pow_stg_freq_reg = self.POWER_STAGE_FREQUENCY_REGISTERS[pow_stg_freq]
+        except IndexError:
+            raise ValueError("Invalid power stage frequency register")
+        freq = self.mc.communication.get_register(pow_stg_freq_reg,
+                                                  servo=servo, axis=axis)
         return freq
 
     def get_power_stage_frequency_enum(self, servo=DEFAULT_SERVO,
@@ -254,7 +262,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             IntEnum: Enum with power stage frequency available values.
 
         """
-        return self.mc.get_register_enum(self.POWER_STAGE_FREQUENCY_REGISTER,
+        return self.mc.get_register_enum(self.POWER_STAGE_FREQUENCY_SELECTION_REGISTER,
                                          servo, axis)
 
     @MCMetaClass.check_motor_disabled
@@ -273,7 +281,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         """
         self.mc.communication.set_register(
-            self.POWER_STAGE_FREQUENCY_REGISTER,
+            self.POWER_STAGE_FREQUENCY_SELECTION_REGISTER,
             value,
             servo=servo,
             axis=axis

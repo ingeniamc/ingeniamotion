@@ -5,7 +5,7 @@ BRAKE_OVERRIDE_REGISTER = "MOT_BRAKE_OVERRIDE"
 POSITION_SET_POINT_REGISTER = "CL_POS_SET_POINT_VALUE"
 PROFILE_MAX_ACCELERATION_REGISTER = "PROF_MAX_ACC"
 PROFILE_MAX_VELOCITY_REGISTER = "PROF_MAX_VEL"
-POWER_STAGE_FREQUENCY_REGISTER = "DRV_PS_FREQ_SELECTION"
+POWER_STAGE_FREQUENCY_SELECTION_REGISTER = "DRV_PS_FREQ_SELECTION"
 POSITION_AND_VELOCITY_LOOP_RATE_REGISTER = "DRV_POS_VEL_RATE"
 STATUS_WORD_REGISTER = "DRV_STATE_STATUS"
 PHASING_MODE_REGISTER = "COMMU_PHASING_MODE"
@@ -111,7 +111,7 @@ def test_get_power_stage_frequency_raw(motion_controller):
     mc, alias = motion_controller
     test_value = mc.configuration.get_power_stage_frequency(servo=alias, raw=True)
     pow_stg_freq = mc.communication.get_register(
-        POWER_STAGE_FREQUENCY_REGISTER, servo=alias)
+        POWER_STAGE_FREQUENCY_SELECTION_REGISTER, servo=alias)
     assert test_value == pow_stg_freq
 
 
@@ -131,8 +131,16 @@ def test_set_power_stage_frequency(motion_controller, input_value):
     mc.configuration.set_power_stage_frequency(
         input_value, servo=alias)
     output_value = mc.communication.get_register(
-        POWER_STAGE_FREQUENCY_REGISTER, servo=alias)
+        POWER_STAGE_FREQUENCY_SELECTION_REGISTER, servo=alias)
     assert pytest.approx(output_value) == input_value
+
+
+@pytest.mark.smoke
+def test_get_power_stage_frequency_exception(mocker, motion_controller):
+    mc, alias = motion_controller
+    mocker.patch("ingeniamotion.communication.Communication.get_register", return_value=5)
+    with pytest.raises(ValueError):
+        mc.configuration.get_power_stage_frequency(servo=alias)
 
 
 @pytest.mark.smoke
