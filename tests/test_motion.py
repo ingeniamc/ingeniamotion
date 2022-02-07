@@ -5,6 +5,7 @@ from ingenialink import exceptions
 
 from ingeniamotion.enums import OperationMode
 from ingeniamotion.motion import Motion
+from ingeniamotion.exceptions import IMTimeoutError
 
 POS_PID_KP_VALUE = 0.1
 POSITION_PERCENTAGE_ERROR_ALLOWED = 5
@@ -317,6 +318,14 @@ def test_wait_for_position_timeout(motion_controller):
     mc.motion.wait_for_position(10000, servo=alias, timeout=timeout_value)
     final_time = time.time()
     assert pytest.approx(final_time-init_time, abs=0.1) == timeout_value
+
+
+@pytest.mark.smoke
+def test_wait_for_position_timeout_exception(motion_controller):
+    mc, alias = motion_controller
+    timeout_value = 0.1
+    with pytest.raises(IMTimeoutError):
+        mc.motion.wait_for_position(10000, servo=alias, timeout=timeout_value)
 
 
 @pytest.mark.smoke
