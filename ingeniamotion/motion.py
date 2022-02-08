@@ -132,7 +132,8 @@ class Motion(metaclass=MCMetaClass):
 
     def move_to_position(self, position, servo=DEFAULT_SERVO,
                          axis=DEFAULT_AXIS, target_latch=True,
-                         blocking=False):
+                         blocking=False, error=20, timeout=None,
+                         interval=None):
         """Set position set point to a target servo and axis, in counts.
 
         Args:
@@ -143,16 +144,25 @@ class Motion(metaclass=MCMetaClass):
                 ``True`` by default.
             blocking (bool): if ``True``, the function is blocked until the
                 target position is reached. ``False`` by default.
+            error (int): If blocking is enabled, allowed error between actual
+                position and target position, in counts.
+            timeout (float): If blocking is enabled, how many seconds to wait
+                for the servo to reach the target position, if ``None`` it
+                will wait forever. ``None`` by default.
+            interval (float): If blocking is enabled, interval of time between
+                actual position reads, in seconds. ``None`` by default.
         """
         self.mc.communication.set_register(self.POSITION_SET_POINT_REGISTER,
                                            position, servo=servo, axis=axis)
         if target_latch:
             self.target_latch(servo, axis)
             if blocking:
-                self.wait_for_position(position, servo, axis)
+                self.wait_for_position(position, servo, axis, error,
+                                       timeout, interval)
 
     def set_velocity(self, velocity, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
-                     target_latch=True, blocking=False):
+                     target_latch=True, blocking=False, error=0.1,
+                     timeout=None, interval=None):
         """Set velocity set point to a target servo and axis, in rev/s.
 
         Args:
@@ -163,13 +173,21 @@ class Motion(metaclass=MCMetaClass):
                 ``True`` by default.
             blocking (bool): if ``True``, the function is blocked until the
                 target position is reached. ``False`` by default.
+            error (float): If blocking is enabled, allowed error between
+                actual velocity and target velocity, in counts.
+            timeout (float): If blocking is enabled, how many seconds to wait
+                for the servo to reach the target velocity, if ``None`` it
+                will wait forever. ``None`` by default.
+            interval (float): If blocking is enabled, interval of time between
+                actual velocity reads, in seconds. ``None`` by default.
         """
         self.mc.communication.set_register(self.VELOCITY_SET_POINT_REGISTER,
                                            velocity, servo=servo, axis=axis)
         if target_latch:
             self.target_latch(servo, axis)
             if blocking:
-                self.wait_for_velocity(velocity, servo, axis)
+                self.wait_for_velocity(velocity, servo, axis, error,
+                                       timeout, interval)
 
     def set_current_quadrature(self, current, servo=DEFAULT_SERVO,
                                axis=DEFAULT_AXIS):
