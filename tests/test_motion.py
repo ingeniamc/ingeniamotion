@@ -315,17 +315,10 @@ def test_wait_for_position_timeout(motion_controller):
     timeout_value = 2
     mc, alias = motion_controller
     init_time = time.time()
-    mc.motion.wait_for_position(10000, servo=alias, timeout=timeout_value)
-    final_time = time.time()
-    assert pytest.approx(final_time-init_time, abs=0.1) == timeout_value
-
-
-@pytest.mark.smoke
-def test_wait_for_position_timeout_exception(motion_controller):
-    mc, alias = motion_controller
-    timeout_value = 0.1
     with pytest.raises(IMTimeoutError):
         mc.motion.wait_for_position(10000, servo=alias, timeout=timeout_value)
+    final_time = time.time()
+    assert pytest.approx(final_time-init_time, abs=0.1) == timeout_value
 
 
 @pytest.mark.smoke
@@ -333,17 +326,10 @@ def test_wait_for_velocity_timeout(motion_controller):
     timeout_value = 2
     mc, alias = motion_controller
     init_time = time.time()
-    mc.motion.wait_for_velocity(10000, servo=alias, timeout=timeout_value)
-    final_time = time.time()
-    assert pytest.approx(final_time-init_time, abs=0.1) == timeout_value
-
-
-@pytest.mark.smoke
-def test_wait_for_velocity_timeout_exception(motion_controller):
-    mc, alias = motion_controller
-    timeout_value = 0.1
     with pytest.raises(IMTimeoutError):
         mc.motion.wait_for_velocity(10000, servo=alias, timeout=timeout_value)
+    final_time = time.time()
+    assert pytest.approx(final_time-init_time, abs=0.1) == timeout_value
 
 
 @pytest.mark.parametrize("op_mode", [
