@@ -383,9 +383,9 @@ class Motion(metaclass=MCMetaClass):
             velocity (float): target velocity, in rev/s.
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
-            error (int): allowed error between actual velocity and target
+            error (float): allowed error between actual velocity and target
                 velocity, in counts.
-            timeout (int): how many seconds to wait for the servo to reach the
+            timeout (float): how many seconds to wait for the servo to reach the
                 target velocity, if ``None`` it will wait forever.
                 ``None`` by default.
             interval (float): interval of time between actual velocity reads,
@@ -405,6 +405,7 @@ class Motion(metaclass=MCMetaClass):
                 self.logger.warning("Timeout: velocity %s was not reached",
                                     velocity, axis=axis,
                                     drive=self.mc.servo_name(servo))
+                raise IMTimeoutError("Velocity was not reached in time")
 
     def set_internal_generator_configuration(self, op_mode, servo=DEFAULT_SERVO,
                                              axis=DEFAULT_AXIS):
