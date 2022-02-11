@@ -347,7 +347,7 @@ class Motion(metaclass=MCMetaClass):
             position (int): target position, in counts.
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
-            error (float): allowed error between actual position and target
+            error (int): allowed error between actual position and target
                 position, in counts.
             timeout (float): how many seconds to wait for the servo to reach the
                 target position, if ``None`` it will wait forever .
@@ -384,7 +384,7 @@ class Motion(metaclass=MCMetaClass):
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
             error (float): allowed error between actual velocity and target
-                velocity, in counts.
+                velocity, in rev/s.
             timeout (float): how many seconds to wait for the servo to reach the
                 target velocity, if ``None`` it will wait forever.
                 ``None`` by default.
