@@ -174,7 +174,7 @@ class Motion(metaclass=MCMetaClass):
             blocking (bool): if ``True``, the function is blocked until the
                 target position is reached. ``False`` by default.
             error (float): If blocking is enabled, allowed error between
-                actual velocity and target velocity, in counts.
+                actual velocity and target velocity, in rev/s.
             timeout (float): If blocking is enabled, how many seconds to wait
                 for the servo to reach the target velocity, if ``None`` it
                 will wait forever. ``None`` by default.
