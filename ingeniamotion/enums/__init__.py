@@ -124,3 +124,8 @@ class MonitoringVersion(IntEnum):
     """Monitoring V2 used for Capitan and some custom low-power drivers."""
     MONITORING_V3 = 2
     """Monitoring V3 used for Everest and Capitan newer than 1.8.1."""
+
+
+enums = list(globals().keys())
+enums.remove("IntEnum")
+__all__ = enums
