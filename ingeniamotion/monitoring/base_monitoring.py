@@ -7,7 +7,7 @@ from ingenialink import REG_DTYPE
 from abc import ABC, abstractmethod
 
 from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
-from ingeniamotion.exceptions import IMMonitoringError, IMRegisterNotExist
+from ingeniamotion.exceptions import IMMonitoringError
 from ingeniamotion.enums import MonitoringProcessStage, \
     MonitoringSoCType, MonitoringSoCConfig
 
@@ -34,7 +34,6 @@ class Monitoring(ABC):
     """
 
     REGISTER_MAP_OFFSET = 0x800
-    MINIMUM_BUFFER_SIZE = 8192
     ESTIMATED_MAX_TIME_FOR_SAMPLE = 0.003
 
     _data_type_size = {
@@ -56,7 +55,6 @@ class Monitoring(ABC):
     MONITORING_TRIGGER_DELAY_SAMPLES_REGISTER = "MON_CFG_TRIGGER_DELAY"
     MONITORING_WINDOW_NUMBER_SAMPLES_REGISTER = "MON_CFG_WINDOW_SAMP"
     MONITORING_ACTUAL_NUMBER_SAMPLES_REGISTER = "MON_CFG_CYCLES_VALUE"
-    MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER = "MON_MAX_SIZE"
     MONITORING_FORCE_TRIGGER_REGISTER = "MON_CMD_FORCE_TRIGGER"
 
     def __init__(self, mc, servo=DEFAULT_SERVO):
@@ -70,7 +68,7 @@ class Monitoring(ABC):
         self.samples_number = 0
         self.trigger_delay_samples = 0
         self.logger = ingenialogger.get_logger(__name__, drive=mc.servo_name(servo))
-        self.max_sample_number = self.get_max_sample_size()
+        self.max_sample_number = mc.capture.monitoring_max_sample_size(servo)
         self.data = None
         self._version = None
 
@@ -348,22 +346,6 @@ class Monitoring(ABC):
     def rearm_monitoring(self):
         """Rearm monitoring."""
         pass
-
-    def get_max_sample_size(self):
-        """Return monitoring max size, in bytes.
-
-        Returns:
-            int: Max buffer size in bytes.
-
-        """
-        try:
-            return self.mc.communication.get_register(
-                self.MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER,
-                servo=self.servo,
-                axis=0
-            )
-        except IMRegisterNotExist:
-            return self.MINIMUM_BUFFER_SIZE
 
     @abstractmethod
     def _check_buffer_size_is_enough(self, total_samples, trigger_delay_samples,

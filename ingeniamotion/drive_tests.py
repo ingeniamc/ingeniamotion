@@ -1,6 +1,6 @@
 import ingenialogger
 
-from .enums import SensorType
+from .enums import SensorType, SeverityLevel
 from .wizard_tests.feedback_test import Feedbacks
 from .wizard_tests.phase_calibration import Phasing
 from .wizard_tests.phasing_check import PhasingCheck
@@ -138,7 +138,7 @@ class DriveTests(metaclass=MCMetaClass):
         feedbacks_test = Feedbacks(self.mc, servo, axis, feedback)
         output = feedbacks_test.run()
         if (apply_changes and
-                output["result_severity"] == feedbacks_test.SeverityLevel.SUCCESS):
+                output["result_severity"] == SeverityLevel.SUCCESS):
             for key, value in output["suggested_registers"].items():
                 self.mc.communication.set_register(key, value,
                                                    servo=servo, axis=axis)
@@ -180,7 +180,7 @@ class DriveTests(metaclass=MCMetaClass):
         commutation = Phasing(self.mc, servo, axis)
         output = commutation.run()
         if (apply_changes and
-                output["result_severity"] == commutation.SeverityLevel.SUCCESS):
+                output["result_severity"] == SeverityLevel.SUCCESS):
             for key, value in output["suggested_registers"].items():
                 self.mc.communication.set_register(key, value, servo=servo,
                                                    axis=axis)

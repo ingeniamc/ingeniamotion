@@ -3,6 +3,7 @@ import ingenialogger
 from enum import IntEnum
 
 from .base_test import BaseTest
+from ingeniamotion.enums import SeverityLevel
 
 
 class STOTest(BaseTest):
@@ -115,6 +116,6 @@ class STOTest(BaseTest):
 
     def get_result_severity(self, output):
         if output < self.ResultType.STO_INACTIVE:
-            return self.SeverityLevel.FAIL
+            return SeverityLevel.FAIL
         else:
-            return self.SeverityLevel.SUCCESS
+            return SeverityLevel.SUCCESS

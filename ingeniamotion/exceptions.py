@@ -23,6 +23,11 @@ class IMRegisterNotExist(IMException):
     pass
 
 
+class IMRegisterWrongAccess(IMException):
+    """Error raised by IngeniaMotion when trying to write to a read-only register"""
+    pass
+
+
 class IMTimeoutError(IMException):
     """Error raised by IngeniaMotion when a timeout has occurred"""
     pass
