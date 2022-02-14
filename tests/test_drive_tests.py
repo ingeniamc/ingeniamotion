@@ -4,7 +4,7 @@ import pytest
 from threading import Thread
 from ingenialink import exceptions
 
-from ingeniamotion.enums import SensorType
+from ingeniamotion.enums import SensorType, SeverityLevel
 from ingeniamotion.exceptions import IMRegisterNotExist
 from ingeniamotion.wizard_tests.feedback_test import Feedbacks
 from ingeniamotion.wizard_tests.phase_calibration import Phasing
@@ -33,7 +33,7 @@ def test_digital_halls_test(motion_controller, feedback_list):
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
     if SensorType.HALLS in feedback_list:
         results = mc.tests.digital_halls_test(servo=alias)
-        assert results["result_severity"] == BaseTest.SeverityLevel.SUCCESS
+        assert results["result_severity"] == SeverityLevel.SUCCESS
     else:
         with pytest.raises(exceptions.ILStateError):
             mc.tests.digital_halls_test(servo=alias)
@@ -46,7 +46,7 @@ def test_incremental_encoder_1_test(motion_controller, feedback_list):
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
     if SensorType.QEI in feedback_list:
         results = mc.tests.incremental_encoder_1_test(servo=alias)
-        assert results["result_severity"] == BaseTest.SeverityLevel.SUCCESS
+        assert results["result_severity"] == SeverityLevel.SUCCESS
     else:
         with pytest.raises(TestError):
             mc.tests.incremental_encoder_1_test(servo=alias)
@@ -59,7 +59,7 @@ def test_incremental_encoder_2_test(motion_controller, feedback_list):
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
     if SensorType.QEI2 in feedback_list:
         results = mc.tests.incremental_encoder_2_test(servo=alias)
-        assert results["result_severity"] == BaseTest.SeverityLevel.SUCCESS
+        assert results["result_severity"] == SeverityLevel.SUCCESS
     else:
         with pytest.raises(TestError):
             mc.tests.incremental_encoder_2_test(servo=alias)
@@ -72,7 +72,7 @@ def test_absolute_encoder_1_test(motion_controller, feedback_list):
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
     if SensorType.ABS1 in feedback_list:
         results = mc.tests.absolute_encoder_1_test(servo=alias)
-        assert results["result_severity"] == BaseTest.SeverityLevel.SUCCESS
+        assert results["result_severity"] == SeverityLevel.SUCCESS
     else:
         with pytest.raises(TestError):
             mc.tests.absolute_encoder_1_test(servo=alias)
@@ -85,7 +85,7 @@ def test_absolute_encoder_2_test(motion_controller, feedback_list):
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
     if SensorType.BISSC2 in feedback_list:
         results = mc.tests.absolute_encoder_2_test(servo=alias)
-        assert results["result_severity"] == BaseTest.SeverityLevel.SUCCESS
+        assert results["result_severity"] == SeverityLevel.SUCCESS
     else:
         with pytest.raises(TestError):
             mc.tests.absolute_encoder_2_test(servo=alias)
@@ -98,7 +98,7 @@ def test_secondary_ssi_test(motion_controller, feedback_list):
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
     if SensorType.SSI2 in feedback_list:
         results = mc.tests.secondary_ssi_test(servo=alias)
-        assert results["result_severity"] == BaseTest.SeverityLevel.SUCCESS
+        assert results["result_severity"] == SeverityLevel.SUCCESS
     else:
         with pytest.raises(TestError):
             mc.tests.secondary_ssi_test(servo=alias)
@@ -108,7 +108,7 @@ def test_secondary_ssi_test(motion_controller, feedback_list):
 def test_commutation(motion_controller):
     mc, alias = motion_controller
     results = mc.tests.commutation(servo=alias)
-    assert results["result_severity"] == BaseTest.SeverityLevel.SUCCESS
+    assert results["result_severity"] == SeverityLevel.SUCCESS
 
 
 def test_commutation_error(motion_controller, force_fault):
@@ -120,7 +120,7 @@ def test_commutation_error(motion_controller, force_fault):
 def test_phasing_check(motion_controller):
     mc, alias = motion_controller
     results = mc.tests.phasing_check(servo=alias)
-    assert results["result_severity"] == BaseTest.SeverityLevel.SUCCESS
+    assert results["result_severity"] == SeverityLevel.SUCCESS
 
 
 def test_phasing_check_error(motion_controller, force_fault):
@@ -133,7 +133,7 @@ def test_phasing_check_error(motion_controller, force_fault):
 def test_sto_test(motion_controller):
     mc, alias = motion_controller
     results = mc.tests.sto_test(servo=alias)
-    assert results["result_severity"] == BaseTest.SeverityLevel.SUCCESS
+    assert results["result_severity"] == SeverityLevel.SUCCESS
 
 
 @pytest.mark.smoke
@@ -146,7 +146,7 @@ def test_sto_test_error(mocker, motion_controller, sto_value, message):
                  return_value=sto_value)
     mc, alias = motion_controller
     results = mc.tests.sto_test(servo=alias)
-    assert results["result_severity"] == BaseTest.SeverityLevel.FAIL
+    assert results["result_severity"] == SeverityLevel.FAIL
     assert results["result_message"] == message
 
 

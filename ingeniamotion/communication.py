@@ -11,6 +11,7 @@ from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.ethercat.network import EthercatNetwork
 
+from ingeniamotion.exceptions import IMRegisterWrongAccess
 from ingeniamotion.enums import Protocol, CAN_BAUDRATE, REG_DTYPE
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
@@ -310,9 +311,15 @@ class Communication(metaclass=MCMetaClass):
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
 
+        Raises:
+            TypeError: If the value is of the wrong type.
+            IMRegisterNotExist: If the register doesn't exist.
+            IMRegisterWrongAccess: If the register access is read-only.
+
         """
         drive = self.mc.servos[servo]
         register_dtype_value = self.mc.info.register_type(register, axis, servo=servo)
+        register_access_type = self.mc.info.register_info(register, axis, servo=servo).access
         signed_int = [
             REG_DTYPE.S8, REG_DTYPE.S16,
             REG_DTYPE.S32, REG_DTYPE.S64
@@ -333,6 +340,9 @@ class Communication(metaclass=MCMetaClass):
         if register_dtype_value in unsigned_int and \
                 (not isinstance(value, int) or value < 0):
             raise TypeError("Value must be an unsigned int")
+        if register_access_type == REG_ACCESS.RO:
+            raise IMRegisterWrongAccess("Register: {} cannot write to a read-only register".format(register))
+
         drive.write(register, value, subnode=axis)
 
     def get_sdo_register(self, index, subindex, dtype, string_size=None,

@@ -4,7 +4,7 @@ from enum import IntEnum
 from abc import ABC, abstractmethod
 from ingenialink.exceptions import ILError
 
-from ingeniamotion.exceptions import IMRegisterNotExist
+from ingeniamotion.exceptions import IMRegisterNotExist, IMRegisterWrongAccess
 from .stoppable import Stoppable, StopException
 
 
@@ -13,11 +13,6 @@ class TestError(Exception):
 
 
 class BaseTest(ABC, Stoppable):
-
-    class SeverityLevel(IntEnum):
-        SUCCESS = 0
-        WARNING = 1
-        FAIL = 2
 
     def __init__(self):
         self.backup_registers_names = None
@@ -53,6 +48,8 @@ class BaseTest(ABC, Stoppable):
                         key, value, servo=self.servo, axis=self.axis
                     )
                 except IMRegisterNotExist as e:
+                    self.logger.warning(e, axis=subnode)
+                except IMRegisterWrongAccess as e:
                     self.logger.warning(e, axis=subnode)
 
     @abstractmethod

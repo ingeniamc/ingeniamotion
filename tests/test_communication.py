@@ -5,7 +5,7 @@ from ingenialink.servo import SERVO_STATE
 from ingenialink.exceptions import ILError
 
 from ingeniamotion import MotionController
-from ingeniamotion.exceptions import IMRegisterNotExist
+from ingeniamotion.exceptions import IMRegisterNotExist, IMRegisterWrongAccess
 from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE, REG_DTYPE
 
 
@@ -209,6 +209,15 @@ def test_set_register_wrong_value_type(motion_controller, uid, value, fail):
         with pytest.raises(TypeError):
             mc.communication.set_register(uid, value, servo=alias)
     else:
+        mc.communication.set_register(uid, value, servo=alias)
+
+
+@pytest.mark.smoke
+def test_set_register_wrong_access(motion_controller):
+    mc, alias = motion_controller
+    uid = "DRV_STATE_STATUS"
+    value = 0
+    with pytest.raises(IMRegisterWrongAccess):
         mc.communication.set_register(uid, value, servo=alias)
 
 

@@ -126,6 +126,13 @@ class MonitoringVersion(IntEnum):
     """Monitoring V3 used for Everest and Capitan newer than 1.8.1."""
 
 
+class SeverityLevel(IntEnum):
+    """Test result enum"""
+    SUCCESS = 0
+    WARNING = 1
+    FAIL = 2
+
+
 enums = list(globals().keys())
 enums.remove("IntEnum")
 __all__ = enums
