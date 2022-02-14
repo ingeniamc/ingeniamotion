@@ -4,7 +4,7 @@ from ingenialink.exceptions import ILError
 
 from .base_test import BaseTest
 from .stoppable import StopException
-from ingeniamotion.enums import OperationMode
+from ingeniamotion.enums import OperationMode, SeverityLevel
 from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 
 
@@ -48,7 +48,7 @@ class Brake(BaseTest):
             self.teardown()
         finally:
             self.restore_backup_registers()
-        output = self.SeverityLevel.SUCCESS
+        output = SeverityLevel.SUCCESS
         return {
             "result_severity": self.get_result_severity(output),
             "result_message": self.get_result_msg(output)
@@ -71,7 +71,7 @@ class Brake(BaseTest):
         return output
 
     def get_result_msg(self, output):
-        if output == self.SeverityLevel.SUCCESS:
+        if output == SeverityLevel.SUCCESS:
             return "Success"
         else:
             return "Fail"
