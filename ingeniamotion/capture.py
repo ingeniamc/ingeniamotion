@@ -1,5 +1,3 @@
-import ingenialink as il
-
 from ingenialink.exceptions import ILError
 from ingenialink.ipb.poller import IPBPoller
 from ingenialink.ipb.register import IPBRegister
@@ -13,7 +11,7 @@ from ingeniamotion.monitoring.monitoring_v3 import MonitoringV3
 from ingeniamotion.exceptions import IMRegisterNotExist, IMMonitoringError
 from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.enums import MonitoringVersion, MonitoringProcessStage,\
-    MonitoringSoCType, MonitoringSoCConfig
+    MonitoringSoCType, MonitoringSoCConfig, REG_DTYPE, REG_ACCESS
 
 
 class Capture(metaclass=MCMetaClass):
@@ -27,8 +25,8 @@ class Capture(metaclass=MCMetaClass):
         "MON_DIS_VERSION",
         "-",
         "CONFIG",
-        il.REG_DTYPE.U32,
-        il.REG_ACCESS.RO,
+        REG_DTYPE.U32,
+        REG_ACCESS.RO,
         0x00BA,
         subnode=0
     )

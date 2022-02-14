@@ -2,7 +2,6 @@ import time
 import ifaddr
 import subprocess
 import ingenialogger
-import ingenialink as il
 
 from os import path
 from enum import IntEnum
@@ -12,7 +11,7 @@ from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.ethercat.network import EthercatNetwork
 
-from ingeniamotion.enums import Protocol
+from ingeniamotion.enums import Protocol, CAN_BAUDRATE, REG_DTYPE
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
@@ -204,19 +203,19 @@ class Communication(metaclass=MCMetaClass):
         return self.scan_servos_ecat(self.get_ifname_by_index(if_index))
 
     def connect_servo_canopen(self, can_device, dict_path, eds_file,
-                              node_id, baudrate=il.CAN_BAUDRATE.Baudrate_1M,
+                              node_id, baudrate=CAN_BAUDRATE.Baudrate_1M,
                               channel=0, alias=DEFAULT_SERVO,
                               servo_status_listener=True,
                               net_status_listener=True):
         """Connect to target servo by CANOpen.
 
         Args:
-            can_device (ingenialink.canopen.network.CAN_DEVICE): CANOpen device type.
+            can_device (CAN_DEVICE): CANOpen device type.
             dict_path (str): servo dictionary path.
             eds_file (str): EDS file path.
             node_id (int): node id. It's posible scan node ids with
                 :func:`scan_servos_canopen`.
-            baudrate (ingenialink.canopen.network.CAN_BAUDRATE): communication baudrate.
+            baudrate (CAN_BAUDRATE): communication baudrate.
                 1 Mbit/s by default.
             channel (int): CANopen device channel. ``0`` by default.
             alias (str): servo alias to reference it. ``default`` by default.
@@ -244,12 +243,12 @@ class Communication(metaclass=MCMetaClass):
         self.mc.servo_net[alias] = net_key
 
     def scan_servos_canopen(self, can_device,
-                            baudrate=il.CAN_BAUDRATE.Baudrate_1M, channel=0):
+                            baudrate=CAN_BAUDRATE.Baudrate_1M, channel=0):
         """Scan CANOpen device network to get all nodes.
 
         Args:
-            can_device (ingenialink.canopen.network.CAN_DEVICE): CANOpen device type.
-            baudrate (ingenialink.canopen.network.CAN_BAUDRATE): communication baudrate.
+            can_device (CAN_DEVICE): CANOpen device type.
+            baudrate (CAN_BAUDRATE): communication baudrate.
                 1 Mbit/s by default.
             channel (int): CANOpen device channel. ``0`` by default.
         Returns:
@@ -297,7 +296,7 @@ class Communication(metaclass=MCMetaClass):
         register_dtype = self.mc.info.register_type(register, axis, servo=servo)
         value = drive.read(register, subnode=axis)
         if (register_dtype.value <=
-                il.REG_DTYPE.S64.value):
+                REG_DTYPE.S64.value):
             return int(value)
         return value
 
@@ -315,17 +314,17 @@ class Communication(metaclass=MCMetaClass):
         drive = self.mc.servos[servo]
         register_dtype_value = self.mc.info.register_type(register, axis, servo=servo)
         signed_int = [
-            il.REG_DTYPE.S8, il.REG_DTYPE.S16,
-            il.REG_DTYPE.S32, il.REG_DTYPE.S64
+            REG_DTYPE.S8, REG_DTYPE.S16,
+            REG_DTYPE.S32, REG_DTYPE.S64
         ]
         unsigned_int = [
-            il.REG_DTYPE.U8, il.REG_DTYPE.U16,
-            il.REG_DTYPE.U32, il.REG_DTYPE.U64
+            REG_DTYPE.U8, REG_DTYPE.U16,
+            REG_DTYPE.U32, REG_DTYPE.U64
         ]
-        if register_dtype_value == il.REG_DTYPE.FLOAT and \
+        if register_dtype_value == REG_DTYPE.FLOAT and \
                 not isinstance(value, (int, float)):
             raise TypeError("Value must be a float")
-        if register_dtype_value == il.REG_DTYPE.STR and \
+        if register_dtype_value == REG_DTYPE.STR and \
                 not isinstance(value, str):
             raise TypeError("Value must be a string")
         if register_dtype_value in signed_int and \
@@ -343,7 +342,7 @@ class Communication(metaclass=MCMetaClass):
         Args:
             index (int): register index.
             subindex (int): register subindex.
-            dtype (ingenialink.register.REG_DTYPE): register data type.
+            dtype (REG_DTYPE): register data type.
             string_size (int): if register data is a string,
                 size in bytes is mandatory. ``None`` by default.
             servo (str): servo alias to reference it. ``default`` by default.
@@ -353,7 +352,7 @@ class Communication(metaclass=MCMetaClass):
 
         """
         drive = self.mc.servos[servo]
-        if il.REG_DTYPE.STR.value != dtype.value:
+        if REG_DTYPE.STR.value != dtype.value:
             return drive.read_sdo(index, subindex, dtype.value, drive.slave)
         if not isinstance(string_size, int):
             raise TypeError("string_size should be an int for data type string")
@@ -382,7 +381,7 @@ class Communication(metaclass=MCMetaClass):
         Args:
             index (int): register index.
             subindex (int): register subindex.
-            dtype (ingenialink.register.REG_DTYPE): register data type.
+            dtype (REG_DTYPE): register data type.
             value (int or float): new value for the register.
             servo (str): servo alias to reference it. ``default`` by default.
 
