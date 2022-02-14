@@ -151,7 +151,7 @@ class Motion(metaclass=MCMetaClass):
         if blocking:
             if not target_latch:
                 self.logger.warning("Target latch is disabled. Target position"
-                                    "may not be reached.", axis=axis,
+                                    " may not be reached.", axis=axis,
                                     drive=self.mc.servo_name(servo))
             self.wait_for_position(position, servo, axis)
 
@@ -175,7 +175,7 @@ class Motion(metaclass=MCMetaClass):
         if blocking:
             if not target_latch:
                 self.logger.warning("Target latch is disabled. Target velocity"
-                                    "may not be reached.", axis=axis,
+                                    " may not be reached.", axis=axis,
                                     drive=self.mc.servo_name(servo))
             self.wait_for_velocity(velocity, servo, axis)
 
