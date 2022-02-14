@@ -21,3 +21,8 @@ class IMStatusWordError(IMException):
 class IMRegisterNotExist(IMException):
     """Error raised by IngeniaMotion when a register not exists"""
     pass
+
+
+class IMRegisterWrongAccess(IMException):
+    """Error raised by IngeniaMotion when trying to write to a read-only register"""
+    pass

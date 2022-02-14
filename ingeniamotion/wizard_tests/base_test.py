@@ -4,7 +4,7 @@ from enum import IntEnum
 from abc import ABC, abstractmethod
 from ingenialink.exceptions import ILError
 
-from ingeniamotion.exceptions import IMRegisterNotExist
+from ingeniamotion.exceptions import IMRegisterNotExist, IMRegisterWrongAccess
 from .stoppable import Stoppable, StopException
 
 
@@ -53,6 +53,8 @@ class BaseTest(ABC, Stoppable):
                         key, value, servo=self.servo, axis=self.axis
                     )
                 except IMRegisterNotExist as e:
+                    self.logger.warning(e, axis=subnode)
+                except IMRegisterWrongAccess as e:
                     self.logger.warning(e, axis=subnode)
 
     @abstractmethod
