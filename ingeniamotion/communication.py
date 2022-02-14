@@ -12,7 +12,7 @@ from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.ethercat.network import EthercatNetwork
 
 from ingeniamotion.exceptions import IMRegisterWrongAccess
-from ingeniamotion.enums import Protocol, CAN_BAUDRATE, REG_DTYPE
+from ingeniamotion.enums import Protocol, CAN_BAUDRATE, REG_DTYPE, REG_ACCESS
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
