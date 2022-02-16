@@ -3,13 +3,12 @@ import struct
 import numpy as np
 import ingenialogger
 from functools import wraps
-from ingenialink import REG_DTYPE
 from abc import ABC, abstractmethod
 
 from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 from ingeniamotion.exceptions import IMMonitoringError
 from ingeniamotion.enums import MonitoringProcessStage, \
-    MonitoringSoCType, MonitoringSoCConfig
+    MonitoringSoCType, MonitoringSoCConfig, REG_DTYPE
 
 
 def check_monitoring_disabled(func):
