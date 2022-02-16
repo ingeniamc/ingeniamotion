@@ -2,12 +2,11 @@ import time
 import pytest
 
 from ingenialink.servo import SERVO_STATE
-from ingenialink.register import REG_DTYPE
 from ingenialink.exceptions import ILError
-from ingenialink.canopen import CAN_BAUDRATE, CAN_DEVICE
 
 from ingeniamotion import MotionController
 from ingeniamotion.exceptions import IMRegisterNotExist, IMRegisterWrongAccess
+from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE, REG_DTYPE
 
 
 @pytest.mark.smoke

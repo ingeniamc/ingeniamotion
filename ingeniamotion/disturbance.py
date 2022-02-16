@@ -1,10 +1,9 @@
 import ingenialogger
 from numpy import ndarray
 from functools import wraps
-from ingenialink import REG_DTYPE
 from collections.abc import Iterable
 
-from ingeniamotion.enums import MonitoringVersion
+from ingeniamotion.enums import MonitoringVersion, REG_DTYPE
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 from .exceptions import IMDisturbanceError, IMStatusWordError
 

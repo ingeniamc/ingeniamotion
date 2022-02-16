@@ -1,4 +1,6 @@
 from enum import IntEnum
+from ingenialink.register import REG_DTYPE, REG_ACCESS
+from ingenialink.canopen import CAN_BAUDRATE, CAN_DEVICE
 
 
 class OperationMode(IntEnum):
@@ -129,3 +131,8 @@ class SeverityLevel(IntEnum):
     SUCCESS = 0
     WARNING = 1
     FAIL = 2
+
+
+enums = list(globals().keys())
+enums.remove("IntEnum")
+__all__ = enums

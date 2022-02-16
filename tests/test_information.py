@@ -1,6 +1,6 @@
 import pytest
 
-from ingenialink.register import REG_DTYPE, REG_ACCESS
+from ingeniamotion.enums import REG_DTYPE, REG_ACCESS
 
 
 @pytest.mark.parametrize("uid, axis, dtype, access, reg_range", [
