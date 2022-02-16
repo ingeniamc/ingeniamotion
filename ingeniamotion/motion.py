@@ -157,9 +157,13 @@ class Motion(metaclass=MCMetaClass):
                                            position, servo=servo, axis=axis)
         if target_latch:
             self.target_latch(servo, axis)
-            if blocking:
-                self.wait_for_position(position, servo, axis, error,
-                                       timeout, interval)
+        if blocking:
+            if not target_latch:
+                self.logger.warning("Target latch is disabled. Target position"
+                                    " may not be reached.", axis=axis,
+                                    drive=self.mc.servo_name(servo))
+            self.wait_for_position(position, servo, axis, error,
+                                   timeout, interval)
 
     def set_velocity(self, velocity, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
                      target_latch=True, blocking=False, error=0.1,
@@ -186,9 +190,13 @@ class Motion(metaclass=MCMetaClass):
                                            velocity, servo=servo, axis=axis)
         if target_latch:
             self.target_latch(servo, axis)
-            if blocking:
-                self.wait_for_velocity(velocity, servo, axis, error,
-                                       timeout, interval)
+        if blocking:
+            if not target_latch:
+                self.logger.warning("Target latch is disabled. Target velocity"
+                                    " may not be reached.", axis=axis,
+                                    drive=self.mc.servo_name(servo))
+            self.wait_for_velocity(velocity, servo, axis, error,
+                                   timeout, interval)
 
     def set_current_quadrature(self, current, servo=DEFAULT_SERVO,
                                axis=DEFAULT_AXIS):
