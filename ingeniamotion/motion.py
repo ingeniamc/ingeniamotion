@@ -5,6 +5,7 @@ from ingenialink.exceptions import ILError
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.enums import OperationMode, SensorType,\
     PhasingMode, GeneratorMode
+from ingeniamotion.exceptions import IMTimeoutError
 
 
 class Motion(metaclass=MCMetaClass):
@@ -132,7 +133,8 @@ class Motion(metaclass=MCMetaClass):
 
     def move_to_position(self, position, servo=DEFAULT_SERVO,
                          axis=DEFAULT_AXIS, target_latch=True,
-                         blocking=False):
+                         blocking=False, error=20, timeout=None,
+                         interval=None):
         """Set position set point to a target servo and axis, in counts.
 
         Args:
@@ -143,16 +145,29 @@ class Motion(metaclass=MCMetaClass):
                 ``True`` by default.
             blocking (bool): if ``True``, the function is blocked until the
                 target position is reached. ``False`` by default.
+            error (int): If blocking is enabled, allowed error between actual
+                position and target position, in counts.
+            timeout (float): If blocking is enabled, how many seconds to wait
+                for the servo to reach the target position, if ``None`` it
+                will wait forever. ``None`` by default.
+            interval (float): If blocking is enabled, interval of time between
+                actual position reads, in seconds. ``None`` by default.
         """
         self.mc.communication.set_register(self.POSITION_SET_POINT_REGISTER,
                                            position, servo=servo, axis=axis)
         if target_latch:
             self.target_latch(servo, axis)
-            if blocking:
-                self.wait_for_position(position, servo, axis)
+        if blocking:
+            if not target_latch:
+                self.logger.warning("Target latch is disabled. Target position"
+                                    " may not be reached.", axis=axis,
+                                    drive=self.mc.servo_name(servo))
+            self.wait_for_position(position, servo, axis, error,
+                                   timeout, interval)
 
     def set_velocity(self, velocity, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
-                     target_latch=True, blocking=False):
+                     target_latch=True, blocking=False, error=0.1,
+                     timeout=None, interval=None):
         """Set velocity set point to a target servo and axis, in rev/s.
 
         Args:
@@ -163,13 +178,25 @@ class Motion(metaclass=MCMetaClass):
                 ``True`` by default.
             blocking (bool): if ``True``, the function is blocked until the
                 target position is reached. ``False`` by default.
+            error (float): If blocking is enabled, allowed error between
+                actual velocity and target velocity, in rev/s.
+            timeout (float): If blocking is enabled, how many seconds to wait
+                for the servo to reach the target velocity, if ``None`` it
+                will wait forever. ``None`` by default.
+            interval (float): If blocking is enabled, interval of time between
+                actual velocity reads, in seconds. ``None`` by default.
         """
         self.mc.communication.set_register(self.VELOCITY_SET_POINT_REGISTER,
                                            velocity, servo=servo, axis=axis)
         if target_latch:
             self.target_latch(servo, axis)
-            if blocking:
-                self.wait_for_velocity(velocity, servo, axis)
+        if blocking:
+            if not target_latch:
+                self.logger.warning("Target latch is disabled. Target velocity"
+                                    " may not be reached.", axis=axis,
+                                    drive=self.mc.servo_name(servo))
+            self.wait_for_velocity(velocity, servo, axis, error,
+                                   timeout, interval)
 
     def set_current_quadrature(self, current, servo=DEFAULT_SERVO,
                                axis=DEFAULT_AXIS):
@@ -348,11 +375,15 @@ class Motion(metaclass=MCMetaClass):
             axis (int): servo axis. ``1`` by default.
             error (int): allowed error between actual position and target
                 position, in counts.
-            timeout (int): how many seconds to wait for the servo to reach the
+            timeout (float): how many seconds to wait for the servo to reach the
                 target position, if ``None`` it will wait forever .
                 ``None`` by default.
             interval (float): interval of time between actual position reads,
                 in seconds. ``None`` by default.
+
+        Raises:
+            IMTimeoutError: If the target position is not reached in time.
+
         """
         target_reached = False
         init_time = time.time()
@@ -367,6 +398,7 @@ class Motion(metaclass=MCMetaClass):
                 target_reached = True
                 self.logger.warning("Timeout: position %s was not reached", position,
                                     axis=axis, drive=self.mc.servo_name(servo))
+                raise IMTimeoutError("Position was not reached in time")
 
     def wait_for_velocity(self, velocity, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
                           error=0.1, timeout=None, interval=None):
@@ -377,9 +409,9 @@ class Motion(metaclass=MCMetaClass):
             velocity (float): target velocity, in rev/s.
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
-            error (int): allowed error between actual velocity and target
-                velocity, in counts.
-            timeout (int): how many seconds to wait for the servo to reach the
+            error (float): allowed error between actual velocity and target
+                velocity, in rev/s.
+            timeout (float): how many seconds to wait for the servo to reach the
                 target velocity, if ``None`` it will wait forever.
                 ``None`` by default.
             interval (float): interval of time between actual velocity reads,
@@ -399,6 +431,7 @@ class Motion(metaclass=MCMetaClass):
                 self.logger.warning("Timeout: velocity %s was not reached",
                                     velocity, axis=axis,
                                     drive=self.mc.servo_name(servo))
+                raise IMTimeoutError("Velocity was not reached in time")
 
     def set_internal_generator_configuration(self, op_mode, servo=DEFAULT_SERVO,
                                              axis=DEFAULT_AXIS):

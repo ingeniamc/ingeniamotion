@@ -1,5 +1,3 @@
-import ingenialink as il
-
 from ingenialink.exceptions import ILError
 from ingenialink.ipb.poller import IPBPoller
 from ingenialink.ipb.register import IPBRegister
@@ -13,22 +11,26 @@ from ingeniamotion.monitoring.monitoring_v3 import MonitoringV3
 from ingeniamotion.exceptions import IMRegisterNotExist, IMMonitoringError
 from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.enums import MonitoringVersion, MonitoringProcessStage,\
-    MonitoringSoCType, MonitoringSoCConfig
+    MonitoringSoCType, MonitoringSoCConfig, REG_DTYPE, REG_ACCESS
 
 
 class Capture(metaclass=MCMetaClass):
     """Capture."""
 
     DISTURBANCE_STATUS_REGISTER = "DIST_STATUS"
+    DISTURBANCE_MAXIMUM_SAMPLE_SIZE_REGISTER = "DIST_MAX_SIZE"
     MONITORING_STATUS_REGISTER = "MON_DIST_STATUS"
     MONITORING_CURRENT_NUMBER_BYTES_REGISTER = "MON_CFG_BYTES_VALUE"
+    MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER = "MON_MAX_SIZE"
+
+    MINIMUM_BUFFER_SIZE = 8192
 
     monitoring_version_register = IPBRegister(
         "MON_DIS_VERSION",
         "-",
         "CONFIG",
-        il.REG_DTYPE.U32,
-        il.REG_ACCESS.RO,
+        REG_DTYPE.U32,
+        REG_ACCESS.RO,
         0x00BA,
         subnode=0
     )
@@ -529,3 +531,40 @@ class Capture(metaclass=MCMetaClass):
         """
         self.enable_monitoring(servo=servo)
         self.disable_monitoring(servo=servo)
+
+    def disturbance_max_sample_size(self, servo=DEFAULT_SERVO):
+        """Return disturbance max size, in bytes.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        Returns:
+            int: Max buffer size in bytes.
+        """
+        try:
+            return self.mc.communication.get_register(
+                self.DISTURBANCE_MAXIMUM_SAMPLE_SIZE_REGISTER,
+                servo=servo,
+                axis=0
+            )
+        except IMRegisterNotExist:
+            return self.MINIMUM_BUFFER_SIZE
+
+    def monitoring_max_sample_size(self, servo=DEFAULT_SERVO):
+        """Return monitoring max size, in bytes.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+
+        Returns:
+            int: Max buffer size in bytes.
+
+        """
+        try:
+            return self.mc.communication.get_register(
+                self.MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER,
+                servo=servo,
+                axis=0
+            )
+        except IMRegisterNotExist:
+            return self.MINIMUM_BUFFER_SIZE

@@ -1,8 +1,7 @@
 import json
 import pytest
 
-from ingenialink.canopen import CAN_BAUDRATE, CAN_DEVICE
-
+from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE
 from ingeniamotion import MotionController
 
 ALLOW_PROTOCOLS = ["eoe", "soem", "canopen"]

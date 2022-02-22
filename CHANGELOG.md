@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.3] - 2022-02-16
+### Changed
+- Replaced ILerror exception with IMRegisterNotExist exception in base monitoring and disturbance.
+- Moved SeverityLevel enum from base test to enums module.
+- Moved disturbance_max_size_sample_size and monitoring_max_size_sample_size functions to capture.
+- Read power stage frequency directly from registers.
+
+### Added
+- IMRegisterWrongAccess and IMTimeoutError exceptions.
+- Ingenialink enums to enums module.
+- IMTimeoutError exception to move_to_position and set_velocity functions.-
+
 ## [0.5.2] - 2021-11-23
 ### Added
 - Compatibility with Python 3.7, 3.8 and 3.9.

@@ -4,7 +4,7 @@ import ingenialogger
 from enum import IntEnum
 
 from ingeniamotion.enums import PhasingMode, OperationMode,\
-    SensorCategory, SensorType
+    SensorCategory, SensorType, SeverityLevel
 from ingeniamotion.exceptions import IMRegisterNotExist
 from .base_test import BaseTest, TestError
 
@@ -311,6 +311,6 @@ class Phasing(BaseTest):
 
     def get_result_severity(self, output):
         if output < self.ResultType.SUCCESS:
-            return self.SeverityLevel.FAIL
+            return SeverityLevel.FAIL
         else:
-            return self.SeverityLevel.SUCCESS
+            return SeverityLevel.SUCCESS
