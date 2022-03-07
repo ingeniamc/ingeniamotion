@@ -224,18 +224,23 @@ class Communication(metaclass=MCMetaClass):
         """
 
         if not path.isfile(dict_path):
-            raise FileNotFoundError('Dict file {} does not exist!'.format(dict_path))
+            raise FileNotFoundError(
+                'Dict file {} does not exist!'.format(dict_path))
 
         if not path.isfile(eds_file):
-            raise FileNotFoundError("EDS file {} does not exist!".format(eds_file))
-        self.mc.net[alias] = CanopenNetwork(can_device, channel, baudrate)
-        net = self.mc.net[alias]
+            raise FileNotFoundError(
+                "EDS file {} does not exist!".format(eds_file))
+        net_key = "{}_{}_{}".format(can_device, channel, baudrate)
+        if net_key not in self.mc.net:
+            self.mc.net[net_key] = CanopenNetwork(can_device, channel,
+                                                  baudrate)
+        net = self.mc.net[net_key]
 
         servo = net.connect_to_slave(
             node_id, dict_path, eds_file,
             servo_status_listener, net_status_listener)
         self.mc.servos[alias] = servo
-        self.mc.servo_net[alias] = alias
+        self.mc.servo_net[alias] = net_key
 
     def scan_servos_canopen(self, can_device,
                             baudrate=CAN_BAUDRATE.Baudrate_1M, channel=0):
@@ -250,7 +255,10 @@ class Communication(metaclass=MCMetaClass):
             list of int: List of node ids available in the network.
 
         """
-        net = CanopenNetwork(can_device, channel, baudrate)
+        net = None
+        net_key = "{}_{}_{}".format(can_device, channel, baudrate)
+        if net_key not in self.mc.net:
+            net = CanopenNetwork(can_device, channel, baudrate)
 
         if net is None:
             self.logger.warning("Could not find any nodes in the network."
