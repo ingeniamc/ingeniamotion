@@ -255,10 +255,11 @@ class Communication(metaclass=MCMetaClass):
             list of int: List of node ids available in the network.
 
         """
-        net = None
         net_key = "{}_{}_{}".format(can_device, channel, baudrate)
         if net_key not in self.mc.net:
-            net = CanopenNetwork(can_device, channel, baudrate)
+            self.mc.net[net_key] = CanopenNetwork(can_device, channel,
+                                                  baudrate)
+        net = self.mc.net[net_key]
 
         if net is None:
             self.logger.warning("Could not find any nodes in the network."
