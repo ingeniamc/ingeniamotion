@@ -206,8 +206,8 @@ class Communication(metaclass=MCMetaClass):
     def connect_servo_canopen(self, can_device, dict_path, eds_file,
                               node_id, baudrate=CAN_BAUDRATE.Baudrate_1M,
                               channel=0, alias=DEFAULT_SERVO,
-                              servo_status_listener=True,
-                              net_status_listener=True):
+                              servo_status_listener=False,
+                              net_status_listener=False):
         """Connect to target servo by CANOpen.
 
         Args:
