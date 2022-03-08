@@ -163,6 +163,68 @@ class Communication(metaclass=MCMetaClass):
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = ifname
 
+    def connect_servo_ecat_interface_ip(self, interface_ip, dict_path,
+                                        slave=1, eoe_comm=True,
+                                        alias=DEFAULT_SERVO,
+                                        reconnection_retries=None,
+                                        reconnection_timeout=None,
+                                        servo_status_listener=False,
+                                        net_status_listener=False):
+        """Connect servo by ECAT with embedded master.
+
+        Args:
+            interface_ip (str): IP of the interface to be connected to.
+            dict_path (str): servo dictionary path.
+            slave (int): slave index. ``1`` by default.
+            eoe_comm (bool): use eoe communications if ``True``,
+                if ``False`` use SDOs. ``True`` by default.
+            alias (str): servo alias to reference it. ``default`` by default.
+            reconnection_retries (int): Number of reconnection retried before
+            declaring a connected or disconnected stated.
+            reconnection_timeout (int): Time in ms of the reconnection timeout.
+            servo_status_listener (bool): Toggle the listener of the servo for
+                its status, errors, faults, etc.
+            net_status_listener (bool): Toggle the listener of the network
+                status, connection and disconnection.
+        """
+        self.connect_servo_ecat(
+            self.get_ifname_from_interface_ip(interface_ip), dict_path,
+            slave, eoe_comm, alias, reconnection_retries, reconnection_timeout,
+            servo_status_listener, net_status_listener
+        )
+
+    @staticmethod
+    def get_ifname_from_interface_ip(address):
+        """Returns interface name based on the address ip of an interface.
+
+        Args:
+            address (str): ip expected adapter is expected to
+            be configured with.
+
+        Raises:
+            ValueError: In case the input is not valid or the
+
+        Returns:
+            str: Ifname of the controller.
+        """
+        adapter_name = None
+
+        for adapter in ifaddr.get_adapters():
+            for ip in adapter.ips:
+                if ip.is_IPv4 and ip.ip == address:
+                    adapter_name = adapter.name.decode("utf-8")
+                    break
+
+            if adapter_name is not None:
+                break
+
+        if adapter_name is None:
+            raise ValueError(
+                f"Could not found a adapter configured as {address} "
+                f"to connect as EtherCAT master")
+        else:
+            return "\\Device\\NPF_{}".format(adapter_name)
+
     @staticmethod
     def get_ifname_by_index(index):
         """Return interface name by index.
