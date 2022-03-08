@@ -4,7 +4,9 @@ import pytest
 BRAKE_OVERRIDE_REGISTER = "MOT_BRAKE_OVERRIDE"
 POSITION_SET_POINT_REGISTER = "CL_POS_SET_POINT_VALUE"
 PROFILE_MAX_ACCELERATION_REGISTER = "PROF_MAX_ACC"
+PROFILE_MAX_DECELERATION_REGISTER = "PROF_MAX_DEC"
 PROFILE_MAX_VELOCITY_REGISTER = "PROF_MAX_VEL"
+MAX_VELOCITY_REGISTER = "CL_VEL_REF_MAX"
 POWER_STAGE_FREQUENCY_SELECTION_REGISTER = "DRV_PS_FREQ_SELECTION"
 POSITION_AND_VELOCITY_LOOP_RATE_REGISTER = "DRV_POS_VEL_RATE"
 STATUS_WORD_REGISTER = "DRV_STATE_STATUS"
@@ -70,6 +72,25 @@ def test_save_configuration_and_load_configuration(motion_controller):
 
 
 @pytest.mark.smoke
+def test_set_profiler(motion_controller):
+    acceleration = 0
+    deceleration = 0
+    velocity = 0
+    mc, alias = motion_controller
+    mc.configuration.set_profiler(
+        acceleration, deceleration, velocity, servo=alias)
+    acceleration_value = mc.communication.get_register(
+        PROFILE_MAX_ACCELERATION_REGISTER, servo=alias)
+    assert pytest.approx(acceleration_value) == acceleration
+    deceleration_value = mc.communication.get_register(
+        PROFILE_MAX_DECELERATION_REGISTER, servo=alias)
+    assert pytest.approx(deceleration_value) == deceleration
+    velocity_value = mc.communication.get_register(
+        PROFILE_MAX_VELOCITY_REGISTER, servo=alias)
+    assert pytest.approx(velocity_value) == velocity
+
+
+@pytest.mark.smoke
 def test_set_max_acceleration(motion_controller):
     input_value = 0
     mc, alias = motion_controller
@@ -81,10 +102,43 @@ def test_set_max_acceleration(motion_controller):
 
 
 @pytest.mark.smoke
+def test_set_max_profile_acceleration(motion_controller):
+    input_value = 0
+    mc, alias = motion_controller
+    mc.configuration.set_max_profile_acceleration(
+        input_value, servo=alias)
+    output_value = mc.communication.get_register(
+        PROFILE_MAX_ACCELERATION_REGISTER, servo=alias)
+    assert pytest.approx(output_value) == input_value
+
+
+@pytest.mark.smoke
+def test_set_max_deceleration(motion_controller):
+    input_value = 0
+    mc, alias = motion_controller
+    mc.configuration.set_max_profile_deceleration(
+        input_value, servo=alias)
+    output_value = mc.communication.get_register(
+        PROFILE_MAX_DECELERATION_REGISTER, servo=alias)
+    assert pytest.approx(output_value) == input_value
+
+
+@pytest.mark.smoke
 def test_set_max_velocity(motion_controller):
     input_value = 0
     mc, alias = motion_controller
     mc.configuration.set_max_velocity(
+        input_value, servo=alias)
+    output_value = mc.communication.get_register(
+        MAX_VELOCITY_REGISTER, servo=alias)
+    assert pytest.approx(output_value) == input_value
+
+
+@pytest.mark.smoke
+def test_set_max_profile_velocity(motion_controller):
+    input_value = 0
+    mc, alias = motion_controller
+    mc.configuration.set_max_profile_velocity(
         input_value, servo=alias)
     output_value = mc.communication.get_register(
         PROFILE_MAX_VELOCITY_REGISTER, servo=alias)
