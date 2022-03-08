@@ -22,7 +22,9 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
     BRAKE_OVERRIDE_REGISTER = "MOT_BRAKE_OVERRIDE"
     PROFILE_MAX_ACCELERATION_REGISTER = "PROF_MAX_ACC"
+    PROFILE_MAX_DECELERATION_REGISTER = "PROF_MAX_DEC"
     PROFILE_MAX_VELOCITY_REGISTER = "PROF_MAX_VEL"
+    MAX_VELOCITY_REGISTER = "CL_VEL_REF_MAX"
     POWER_STAGE_FREQUENCY_SELECTION_REGISTER = "DRV_PS_FREQ_SELECTION"
     POWER_STAGE_FREQUENCY_REGISTERS = [
         "DRV_PS_FREQ_1",
@@ -175,6 +177,9 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
         """
+        self.logger.warning('This method is deprecated. '
+                            'Please use "set_max_profile_acceleration" or '
+                            '"set_profile".')
         self.mc.communication.set_register(
             self.PROFILE_MAX_ACCELERATION_REGISTER,
             acceleration,
@@ -184,11 +189,102 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         self.logger.debug("Max acceleration set to %s", acceleration,
                           axis=axis, drive=self.mc.servo_name(servo))
 
-    def set_max_velocity(self, velocity, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+    def set_max_profile_acceleration(self, acceleration, servo=DEFAULT_SERVO,
+                                     axis=DEFAULT_AXIS):
+        """Update maximum profile acceleration register.
+
+        Args:
+            acceleration: maximum profile acceleration in rev/s^2.
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+        """
+        self.mc.communication.set_register(
+            self.PROFILE_MAX_ACCELERATION_REGISTER,
+            acceleration,
+            servo=servo,
+            axis=axis
+        )
+        self.logger.debug("Max profile acceleration set to %s", acceleration,
+                          axis=axis, drive=self.mc.servo_name(servo))
+
+    def set_max_profile_deceleration(self, deceleration, servo=DEFAULT_SERVO,
+                                     axis=DEFAULT_AXIS):
+        """Update maximum profile deceleration register.
+
+        Args:
+            deceleration: maximum profile deceleration in rev/s^2.
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+        """
+        self.mc.communication.set_register(
+            self.PROFILE_MAX_DECELERATION_REGISTER,
+            deceleration,
+            servo=servo,
+            axis=axis
+        )
+        self.logger.debug("Max profile deceleration set to %s", deceleration,
+                          axis=axis, drive=self.mc.servo_name(servo))
+
+    def set_profiler(self, acceleration=None, deceleration=None, velocity=None,
+                     servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        """Update maximum acceleration and deceleration register.
+
+        Args:
+            acceleration: maximum acceleration in rev/s^2.
+            deceleration: maximum deceleration in rev/s^2.
+            velocity: maximum profile velocity in rev/s.
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+        """
+        if acceleration is None and deceleration is None and velocity is None:
+            raise TypeError('Missing arguments. '
+                            'At least one value is required.')
+
+        if acceleration is not None:
+            self.set_max_profile_acceleration(
+                acceleration,
+                servo=servo,
+                axis=axis
+            )
+
+        if deceleration is not None:
+            self.set_max_profile_deceleration(
+                deceleration,
+                servo=servo,
+                axis=axis
+            )
+
+        if velocity is not None:
+            self.set_max_profile_velocity(
+                velocity,
+                servo=servo,
+                axis=axis
+            )
+
+    def set_max_velocity(self, velocity, servo=DEFAULT_SERVO,
+                         axis=DEFAULT_AXIS):
         """Update maximum velocity register.
 
         Args:
             velocity: maximum velocity in rev/s.
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+        """
+        self.mc.communication.set_register(
+            self.MAX_VELOCITY_REGISTER,
+            velocity,
+            servo=servo,
+            axis=axis
+        )
+        self.logger.debug("Max velocity set to %s", velocity,
+                          axis=axis, drive=self.mc.servo_name(servo))
+
+    def set_max_profile_velocity(self, velocity, servo=DEFAULT_SERVO,
+                                 axis=DEFAULT_AXIS):
+        """Update maximum profile velocity register.
+
+        Args:
+            velocity: maximum profile velocity in rev/s.
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
         """
@@ -198,7 +294,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             servo=servo,
             axis=axis
         )
-        self.logger.debug("Max velocity set to %s", velocity,
+        self.logger.debug("Max profile velocity set to %s", velocity,
                           axis=axis, drive=self.mc.servo_name(servo))
 
     def get_position_and_velocity_loop_rate(self, servo=DEFAULT_SERVO,
