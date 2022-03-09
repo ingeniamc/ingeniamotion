@@ -31,6 +31,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         "DRV_PS_FREQ_4"
     ]
     POSITION_AND_VELOCITY_LOOP_RATE_REGISTER = "DRV_POS_VEL_RATE"
+    CURRENT_LOOP_RATE_REGISTER = "CL_CUR_FREQ"
     STATUS_WORD_REGISTER = "DRV_STATE_STATUS"
     PHASING_MODE_REGISTER = "COMMU_PHASING_MODE"
     GENERATOR_MODE_REGISTER = "FBK_GEN_MODE"
@@ -214,6 +215,23 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """
         return self.mc.communication.get_register(
             self.POSITION_AND_VELOCITY_LOOP_RATE_REGISTER,
+            servo=servo,
+            axis=axis
+        )
+
+    def get_current_loop_rate(self, servo=DEFAULT_SERVO,
+                              axis=DEFAULT_AXIS):
+        """Get current loop rate frequency.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+
+        Returns:
+            int: Current loop rate frequency in Hz.
+        """
+        return self.mc.communication.get_register(
+            self.CURRENT_LOOP_RATE_REGISTER,
             servo=servo,
             axis=axis
         )
