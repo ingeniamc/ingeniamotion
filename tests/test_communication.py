@@ -73,6 +73,26 @@ def test_connect_servo_ecat(read_config):
 
 @pytest.mark.smoke
 @pytest.mark.soem
+def test_get_ifname_from_interface_ip(mocker, read_config):
+    ip = type('IP', (object,), {
+        'ip': '192.168.2.1',
+        'is_IPv4': True
+    })
+    adapter = type('Adapter', (object, ), {
+        'ips': [ip],
+        'name': b'{192D1D2F-C684-467D-A637-EC07BD434A63}'
+    })
+    mocker.patch('ifaddr.get_adapters', return_value=[adapter])
+    mc = MotionController()
+    soem_config = read_config["soem"]
+    ifname = mc.communication.get_ifname_from_interface_ip(
+        soem_config['interface_ip']
+    )
+    assert ifname == "\\Device\\NPF_{192D1D2F-C684-467D-A637-EC07BD434A63}"
+
+
+@pytest.mark.smoke
+@pytest.mark.soem
 def test_connect_servo_ecat_no_dictionary_error(read_config):
     mc = MotionController()
     soem_config = read_config["soem"]
