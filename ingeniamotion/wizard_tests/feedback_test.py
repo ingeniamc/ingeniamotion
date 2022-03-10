@@ -38,7 +38,6 @@ class Feedbacks(BaseTest):
     PERCENTAGE_CURRENT_USED = 0.8
     LOW_PASS_FILTER = 1
     HALLS_FILTER_CUTOFF_FREQUENCY = 10
-    WARNING_BIT_MASK = 0x0FFFFFFF
     FAIL_MSG_MISMATCH = "A mismatch in resolution has been detected."
 
     COMMUTATION_MODULATION_REGISTER = "MOT_COMMU_MOD"
@@ -312,17 +311,6 @@ class Feedbacks(BaseTest):
     def teardown(self):
         self.logger.debug("Disabling motor")
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
-
-    @BaseTest.stoppable
-    def show_error_message(self):
-        error_code, axis, warning= self.mc.errors.get_last_buffer_error(
-            servo=self.servo, axis=self.axis)
-        # TODO check if clan warning bit is necessary
-        error_code_cleaned = error_code & self.WARNING_BIT_MASK
-        _, _, _, error_msg = self.mc.errors.get_error_data(
-            error_code, servo=self.servo
-        )
-        raise TestError(error_msg)
 
     @BaseTest.stoppable
     def wait_for_movement(self, timeout):
