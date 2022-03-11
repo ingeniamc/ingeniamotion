@@ -189,6 +189,10 @@ class Communication(metaclass=MCMetaClass):
                 its status, errors, faults, etc.
             net_status_listener (bool): Toggle the listener of the network
                 status, connection and disconnection.
+        Raises:
+            FileNotFoundError: Dictionary file is not found.
+            ValueError: In case the input is not valid or the adapter
+            is not found.
         """
         self.connect_servo_ecat(
             self.get_ifname_from_interface_ip(interface_ip), dict_path,
