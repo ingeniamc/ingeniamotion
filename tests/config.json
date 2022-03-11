@@ -7,7 +7,6 @@
   "soem": {
     "index": 4,
     "dictionary": "eve-net-e_eoe_1.7.2.xdf",
-    "interface_ip": "192.168.2.1",
     "slave": 1,
     "config_file": "eve-test-config.xcf",
     "eoe_comm": true

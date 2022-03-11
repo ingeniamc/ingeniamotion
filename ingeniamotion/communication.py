@@ -139,6 +139,9 @@ class Communication(metaclass=MCMetaClass):
                 its status, errors, faults, etc.
             net_status_listener (bool): Toggle the listener of the network
                 status, connection and disconnection.
+
+        Raises:
+            FileNotFoundError: Dictionary file is not found.
         """
         reconnection = {}
         if reconnection_retries is not None:
@@ -202,7 +205,8 @@ class Communication(metaclass=MCMetaClass):
             be configured with.
 
         Raises:
-            ValueError: In case the input is not valid or the
+            ValueError: In case the input is not valid or the adapter
+            is not found.
 
         Returns:
             str: Ifname of the controller.
