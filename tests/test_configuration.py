@@ -71,78 +71,103 @@ def test_save_configuration_and_load_configuration(motion_controller):
         POSITION_SET_POINT_REGISTER, servo=alias) == 0
 
 
-@pytest.mark.smoke
-def test_set_profiler(motion_controller):
-    acceleration = 0
-    deceleration = 0
-    velocity = 0
+def test_set_profiler_exception(motion_controller):
     mc, alias = motion_controller
+
+    with pytest.raises(TypeError):
+        mc.configuration.set_profiler(
+            None, None, None, servo=alias)
+
+
+@pytest.mark.smoke
+@pytest.mark.parametrize("acceleration, deceleration, velocity", [
+    (0, 0, 0),
+    (15, 20, 25),
+    (1, None, None),
+    (None, 1, None),
+    (None, None, 1)
+])
+def test_set_profiler(motion_controller, acceleration, deceleration, velocity):
+    mc, alias = motion_controller
+    expected_acceleration = acceleration
+    if acceleration is None:
+        expected_acceleration = mc.communication.get_register(
+            PROFILE_MAX_ACCELERATION_REGISTER, servo=alias)
+    expected_deceleration = deceleration
+    if deceleration is None:
+        expected_deceleration = mc.communication.get_register(
+            PROFILE_MAX_DECELERATION_REGISTER, servo=alias)
+    expected_velocity = velocity
+    if velocity is None:
+        expected_velocity = mc.communication.get_register(
+            PROFILE_MAX_VELOCITY_REGISTER, servo=alias)
+
     mc.configuration.set_profiler(
         acceleration, deceleration, velocity, servo=alias)
     acceleration_value = mc.communication.get_register(
         PROFILE_MAX_ACCELERATION_REGISTER, servo=alias)
-    assert pytest.approx(acceleration_value) == acceleration
+    assert pytest.approx(acceleration_value) == expected_acceleration
     deceleration_value = mc.communication.get_register(
         PROFILE_MAX_DECELERATION_REGISTER, servo=alias)
-    assert pytest.approx(deceleration_value) == deceleration
+    assert pytest.approx(deceleration_value) == expected_deceleration
     velocity_value = mc.communication.get_register(
         PROFILE_MAX_VELOCITY_REGISTER, servo=alias)
-    assert pytest.approx(velocity_value) == velocity
+    assert pytest.approx(velocity_value) == expected_velocity
 
 
 @pytest.mark.smoke
-def test_set_max_acceleration(motion_controller):
-    input_value = 0
+@pytest.mark.parametrize("acceleration", [0, 10, 25])
+def test_set_max_acceleration(motion_controller, acceleration):
     mc, alias = motion_controller
     mc.configuration.set_max_acceleration(
-        input_value, servo=alias)
+        acceleration, servo=alias)
     output_value = mc.communication.get_register(
         PROFILE_MAX_ACCELERATION_REGISTER, servo=alias)
-    assert pytest.approx(output_value) == input_value
+    assert pytest.approx(output_value) == acceleration
 
 
 @pytest.mark.smoke
-def test_set_max_profile_acceleration(motion_controller):
-    input_value = 0
+@pytest.mark.parametrize("acceleration", [0, 10, 25])
+def test_set_max_profile_acceleration(motion_controller, acceleration):
     mc, alias = motion_controller
     mc.configuration.set_max_profile_acceleration(
-        input_value, servo=alias)
+        acceleration, servo=alias)
     output_value = mc.communication.get_register(
         PROFILE_MAX_ACCELERATION_REGISTER, servo=alias)
-    assert pytest.approx(output_value) == input_value
+    assert pytest.approx(output_value) == acceleration
 
 
 @pytest.mark.smoke
-def test_set_max_deceleration(motion_controller):
-    input_value = 0
+@pytest.mark.parametrize("deceleration", [0, 10, 25])
+def test_set_max_deceleration(motion_controller, deceleration):
     mc, alias = motion_controller
     mc.configuration.set_max_profile_deceleration(
-        input_value, servo=alias)
+        deceleration, servo=alias)
     output_value = mc.communication.get_register(
         PROFILE_MAX_DECELERATION_REGISTER, servo=alias)
-    assert pytest.approx(output_value) == input_value
+    assert pytest.approx(output_value) == deceleration
 
 
 @pytest.mark.smoke
-def test_set_max_velocity(motion_controller):
-    input_value = 0
+@pytest.mark.parametrize("velocity", [0, 10, 25])
+def test_set_max_velocity(motion_controller, velocity):
     mc, alias = motion_controller
     mc.configuration.set_max_velocity(
-        input_value, servo=alias)
+        velocity, servo=alias)
     output_value = mc.communication.get_register(
         MAX_VELOCITY_REGISTER, servo=alias)
-    assert pytest.approx(output_value) == input_value
+    assert pytest.approx(output_value) == velocity
 
 
 @pytest.mark.smoke
-def test_set_max_profile_velocity(motion_controller):
-    input_value = 0
+@pytest.mark.parametrize("velocity", [0, 10, 25])
+def test_set_max_profile_velocity(motion_controller, velocity):
     mc, alias = motion_controller
     mc.configuration.set_max_profile_velocity(
-        input_value, servo=alias)
+        velocity, servo=alias)
     output_value = mc.communication.get_register(
         PROFILE_MAX_VELOCITY_REGISTER, servo=alias)
-    assert pytest.approx(output_value) == input_value
+    assert pytest.approx(output_value) == velocity
 
 
 @pytest.mark.smoke

@@ -177,9 +177,9 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
         """
-        self.logger.warning('This method is deprecated. '
+        self.logger.warning('"set_max_acceleration" is deprecated. '
                             'Please use "set_max_profile_acceleration" or '
-                            '"set_profile".')
+                            '"set_profiler".')
         self.mc.communication.set_register(
             self.PROFILE_MAX_ACCELERATION_REGISTER,
             acceleration,
@@ -227,7 +227,13 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
     def set_profiler(self, acceleration=None, deceleration=None, velocity=None,
                      servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        """Update maximum acceleration and deceleration register.
+        """Set up the acceleration, deceleration and velocity profilers.
+        All of these parameters are optional, meaning the user can set only one
+        if desired. However, At least a minimum of one of these parameters
+        is mandatory to call this function.
+
+        Raises:
+            TypeError: Missing arguments. All the arguments given were None.
 
         Args:
             acceleration: maximum acceleration in rev/s^2.
@@ -238,7 +244,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """
         if acceleration is None and deceleration is None and velocity is None:
             raise TypeError('Missing arguments. '
-                            'At least one value is required.')
+                            'At least one argument is required.')
 
         if acceleration is not None:
             self.set_max_profile_acceleration(
