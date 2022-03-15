@@ -102,7 +102,7 @@ class Motion(metaclass=MCMetaClass):
             axis (int): servo axis. ``1`` by default.
 
         Raises:
-            ILError: If the servo cannot enable the motor.
+            ingenialink.exceptions.ILError: If the servo cannot enable the motor.
 
         """
         drive = self.mc.servos[servo]

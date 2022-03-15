@@ -49,7 +49,7 @@ class Communication(metaclass=MCMetaClass):
         Raises:
             TypeError: If the dict_path argument is missing.
             FileNotFoundError: If the dict file doesn't exist.
-            ILError: If the servo's IP or port is incorrect.
+            ingenialink.exceptions.ILError: If the servo's IP or port is incorrect.
 
         """
         if not dict_path:
@@ -76,7 +76,7 @@ class Communication(metaclass=MCMetaClass):
         Raises:
             TypeError: If the dict_path argument is missing.
             FileNotFoundError: If the dict file doesn't exist.
-            ILError: If the servo's IP or port is incorrect.
+            ingenialink.exceptions.ILError: If the servo's IP or port is incorrect.
 
         """
         if not dict_path:
@@ -119,7 +119,7 @@ class Communication(metaclass=MCMetaClass):
 
         Raises:
             FileNotFoundError: If the dict file doesn't exist.
-            ILError: If the interface name or the slave index is incorrect.
+            ingenialink.exceptions.ILError: If the interface name or the slave index is incorrect.
 
         """
         reconnection = {}
@@ -255,7 +255,7 @@ class Communication(metaclass=MCMetaClass):
 
         Raises:
             FileNotFoundError: If either of the dict files doesn't exist.
-            ILError: If CANOpen device type, node id or channel is incorrect.
+            ingenialink.exceptions.ILError: If CANOpen device type, node id or channel is incorrect.
 
         """
 
