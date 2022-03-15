@@ -201,7 +201,20 @@ class Communication(metaclass=MCMetaClass):
         )
 
     @staticmethod
-    def get_ifname_from_interface_ip(address):
+    def __get_adapter_name(address):
+        """Returns the adapter name of an adapter based on its address.
+
+        Args:
+            address (str): ip expected adapter is expected to
+            be configured with.
+        """
+        for adapter in ifaddr.get_adapters():
+            for ip in adapter.ips:
+                if ip.is_IPv4 and ip.ip == address:
+                    return adapter.name.decode("utf-8")
+        return None
+
+    def get_ifname_from_interface_ip(self, address):
         """Returns interface name based on the address ip of an interface.
 
         Args:
@@ -215,16 +228,7 @@ class Communication(metaclass=MCMetaClass):
         Returns:
             str: Ifname of the controller.
         """
-        adapter_name = None
-
-        for adapter in ifaddr.get_adapters():
-            for ip in adapter.ips:
-                if ip.is_IPv4 and ip.ip == address:
-                    adapter_name = adapter.name.decode("utf-8")
-                    break
-
-            if adapter_name is not None:
-                break
+        adapter_name = self.__get_adapter_name(address)
 
         if adapter_name is None:
             raise ValueError(
