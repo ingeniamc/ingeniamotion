@@ -33,7 +33,9 @@ class Communication(metaclass=MCMetaClass):
 
     def connect_servo_eoe(self, ip, dict_path=None, alias=DEFAULT_SERVO,
                           protocol=Protocol.UDP, port=1061,
-                          reconnection_retries=None, reconnection_timeout=None):
+                          reconnection_retries=None, reconnection_timeout=None,
+                          servo_status_listener=False,
+                          net_status_listener=False):
         """Connect to target servo by Ethernet over EtherCAT
 
         Args:
@@ -45,16 +47,26 @@ class Communication(metaclass=MCMetaClass):
             reconnection_retries (int): Number of reconnection retried before declaring
                 a connected or disconnected stated.
             reconnection_timeout (int): Time in ms of the reconnection timeout.
+            servo_status_listener (bool): Toggle the listener of the servo for
+                its status, errors, faults, etc.
+            net_status_listener (bool): Toggle the listener of the network
+                status, connection and disconnection.
         """
         if not dict_path:
             raise TypeError("dict_path argument is missing")
         self.__servo_connect(ip, dict_path, alias, protocol, port,
                              {"reconnection_retries": reconnection_retries,
-                              "reconnection_timeout": reconnection_timeout})
+                              "reconnection_timeout": reconnection_timeout},
+                             servo_status_listener=servo_status_listener,
+                             net_status_listener=net_status_listener)
 
     def connect_servo_ethernet(self, ip, dict_path=None, alias=DEFAULT_SERVO,
                                protocol=Protocol.UDP, port=1061,
-                               reconnection_retries=None, reconnection_timeout=None):
+                               reconnection_retries=None,
+                               reconnection_timeout=None,
+                               servo_status_listener=False,
+                               net_status_listener=False
+                               ):
         """Connect to target servo by Ethernet
 
         Args:
@@ -66,16 +78,24 @@ class Communication(metaclass=MCMetaClass):
             reconnection_retries (int): Number of reconnection retried before declaring
                 a connected or disconnected stated.
             reconnection_timeout (int): Time in ms of the reconnection timeout.
+            servo_status_listener (bool): Toggle the listener of the servo for
+                its status, errors, faults, etc.
+            net_status_listener (bool): Toggle the listener of the network
+                status, connection and disconnection.
         """
         if not dict_path:
             raise TypeError("dict_path argument is missing")
         self.__servo_connect(ip, dict_path, alias, protocol, port,
                              {"reconnection_retries": reconnection_retries,
-                              "reconnection_timeout": reconnection_timeout})
+                              "reconnection_timeout": reconnection_timeout},
+                             servo_status_listener=servo_status_listener,
+                             net_status_listener=net_status_listener)
 
     def __servo_connect(self, ip, dict_path, alias,
                         protocol=Protocol.UDP, port=1061,
-                        reconnection=None):
+                        reconnection=None,
+                        servo_status_listener=False,
+                        net_status_listener=False):
         if reconnection is None:
             reconnection = {}
         reconnection = {x: reconnection[x] for x in reconnection
@@ -85,14 +105,21 @@ class Communication(metaclass=MCMetaClass):
 
         self.mc.net[alias] = EthernetNetwork()
         net = self.mc.net[alias]
-        servo = net.connect_to_slave(ip, dict_path, port, protocol, **reconnection)
+        servo = net.connect_to_slave(
+            ip, dict_path, port, protocol, **reconnection,
+            servo_status_listener=servo_status_listener,
+            net_status_listener=net_status_listener
+        )
 
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = alias
 
     def connect_servo_ecat(self, ifname, dict_path, slave=1,
                            eoe_comm=True, alias=DEFAULT_SERVO,
-                           reconnection_retries=None, reconnection_timeout=None):
+                           reconnection_retries=None,
+                           reconnection_timeout=None,
+                           servo_status_listener=False,
+                           net_status_listener=False):
         """Connect servo by ECAT with embedded master.
 
         Args:
@@ -103,6 +130,16 @@ class Communication(metaclass=MCMetaClass):
             eoe_comm (bool): use eoe communications if ``True``,
                 if ``False`` use SDOs. ``True`` by default.
             alias (str): servo alias to reference it. ``default`` by default.
+            reconnection_retries (int): Number of reconnection retried before declaring
+                a connected or disconnected stated.
+            reconnection_timeout (int): Time in ms of the reconnection timeout.
+            servo_status_listener (bool): Toggle the listener of the servo for
+                its status, errors, faults, etc.
+            net_status_listener (bool): Toggle the listener of the network
+                status, connection and disconnection.
+
+        Raises:
+            FileNotFoundError: Dictionary file is not found.
         """
         reconnection = {}
         if reconnection_retries is not None:
@@ -116,12 +153,87 @@ class Communication(metaclass=MCMetaClass):
 
         self.mc.net[alias] = EthercatNetwork(ifname)
         net = self.mc.net[alias]
-        servo = net.connect_to_slave(slave, dict_path,
-                                     use_eoe_comms, **reconnection)
+        servo = net.connect_to_slave(
+            slave, dict_path,
+            use_eoe_comms, **reconnection,
+            servo_status_listener=servo_status_listener,
+            net_status_listener=net_status_listener
+        )
         servo.slave = slave
 
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = alias
+
+    def connect_servo_ecat_interface_ip(self, interface_ip, dict_path,
+                                        slave=1, eoe_comm=True,
+                                        alias=DEFAULT_SERVO,
+                                        reconnection_retries=None,
+                                        reconnection_timeout=None,
+                                        servo_status_listener=False,
+                                        net_status_listener=False):
+        """Connect servo by ECAT with embedded master.
+
+        Args:
+            interface_ip (str): IP of the interface to be connected to.
+            dict_path (str): servo dictionary path.
+            slave (int): slave index. ``1`` by default.
+            eoe_comm (bool): use eoe communications if ``True``,
+                if ``False`` use SDOs. ``True`` by default.
+            alias (str): servo alias to reference it. ``default`` by default.
+            reconnection_retries (int): Number of reconnection retried before
+            declaring a connected or disconnected stated.
+            reconnection_timeout (int): Time in ms of the reconnection timeout.
+            servo_status_listener (bool): Toggle the listener of the servo for
+                its status, errors, faults, etc.
+            net_status_listener (bool): Toggle the listener of the network
+                status, connection and disconnection.
+        Raises:
+            FileNotFoundError: Dictionary file is not found.
+            ValueError: In case the input is not valid or the adapter
+            is not found.
+        """
+        self.connect_servo_ecat(
+            self.get_ifname_from_interface_ip(interface_ip), dict_path,
+            slave, eoe_comm, alias, reconnection_retries, reconnection_timeout,
+            servo_status_listener, net_status_listener
+        )
+
+    @staticmethod
+    def __get_adapter_name(address):
+        """Returns the adapter name of an adapter based on its address.
+
+        Args:
+            address (str): ip expected adapter is expected to
+            be configured with.
+        """
+        for adapter in ifaddr.get_adapters():
+            for ip in adapter.ips:
+                if ip.is_IPv4 and ip.ip == address:
+                    return adapter.name.decode("utf-8")
+        return None
+
+    def get_ifname_from_interface_ip(self, address):
+        """Returns interface name based on the address ip of an interface.
+
+        Args:
+            address (str): ip expected adapter is expected to
+            be configured with.
+
+        Raises:
+            ValueError: In case the input is not valid or the adapter
+            is not found.
+
+        Returns:
+            str: Ifname of the controller.
+        """
+        adapter_name = self.__get_adapter_name(address)
+
+        if adapter_name is None:
+            raise ValueError(
+                f"Could not found a adapter configured as {address} "
+                f"to connect as EtherCAT master")
+        else:
+            return "\\Device\\NPF_{}".format(adapter_name)
 
     @staticmethod
     def get_ifname_by_index(index):
@@ -152,7 +264,9 @@ class Communication(metaclass=MCMetaClass):
     def connect_servo_ecat_interface_index(self, if_index, dict_path, slave=1,
                                            eoe_comm=True, alias=DEFAULT_SERVO,
                                            reconnection_retries=None,
-                                           reconnection_timeout=None):
+                                           reconnection_timeout=None,
+                                           servo_status_listener=False,
+                                           net_status_listener=False):
         """Connect servo by ECAT with embedded master.
         Interface should be selected by index of list given in
         :func:`get_interface_name_list`.
@@ -165,14 +279,19 @@ class Communication(metaclass=MCMetaClass):
             eoe_comm (bool): use eoe communications if ``True``,
                 if ``False`` use SDOs. ``True`` by default.
             alias (str): servo alias to reference it. ``default`` by default.
-            reconnection_retries (int): Number of reconnection retried before declaring
-                a connected or disconnected stated.
+            reconnection_retries (int): Number of reconnection retried before
+            declaring a connected or disconnected stated.
             reconnection_timeout (int): Time in ms of the reconnection timeout.
+            servo_status_listener (bool): Toggle the listener of the servo for
+                its status, errors, faults, etc.
+            net_status_listener (bool): Toggle the listener of the network
+                status, connection and disconnection.
 
         """
         self.connect_servo_ecat(self.get_ifname_by_index(if_index), dict_path,
                                 slave, eoe_comm, alias,
-                                reconnection_retries, reconnection_timeout)
+                                reconnection_retries, reconnection_timeout,
+                                servo_status_listener, net_status_listener)
 
     def scan_servos_ecat(self, ifname):
         """Return a list of available servos.
