@@ -57,7 +57,7 @@ class BaseTest(ABC, Stoppable):
     def show_error_message(self):
         error_code, axis, warning = self.mc.errors.get_last_buffer_error(
             servo=self.servo, axis=self.axis)
-        _, _, _, error_msg = self.mc.errors.get_error_data(
+        *_, error_msg = self.mc.errors.get_error_data(
             error_code, servo=self.servo
         )
         raise TestError(error_msg)
