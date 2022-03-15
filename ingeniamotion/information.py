@@ -18,6 +18,12 @@ class Information(metaclass=MCMetaClass):
 
         Returns:
             ingenialink.register.Register: Register object.
+
+        Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
+            IMRegisterNotExist: If register does not exist in dictionary.
+
         """
         drive = self.mc.servos[servo]
         try:
@@ -36,6 +42,12 @@ class Information(metaclass=MCMetaClass):
 
         Returns:
             ingenialink.register.REG_DTYPE: Register dtype.
+
+        Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
+            IMRegisterNotExist: If register does not exist in dictionary.
+
         """
         register = self.register_info(register, axis=axis, servo=servo)
         return register.dtype
@@ -50,6 +62,12 @@ class Information(metaclass=MCMetaClass):
 
         Returns:
             ingenialink.register.REG_ACCESS: Register access.
+
+        Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
+            IMRegisterNotExist: If register does not exist in dictionary.
+
         """
         register = self.register_info(register, axis=axis, servo=servo)
         return register.access
@@ -64,6 +82,12 @@ class Information(metaclass=MCMetaClass):
 
         Returns:
             int, int: Register range, minimum and maximum.
+
+        Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
+            IMRegisterNotExist: If register does not exist in dictionary.
+
         """
         register = self.register_info(register, axis=axis, servo=servo)
         return register.range
@@ -78,6 +102,10 @@ class Information(metaclass=MCMetaClass):
 
         Returns:
             bool: ``True`` if register exists, else ``False``.
+
+        Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
 
         """
         drive = self.mc.servos[servo]
