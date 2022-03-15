@@ -42,6 +42,11 @@ class Motion(metaclass=MCMetaClass):
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
+
+        Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
+
         """
         control_word = self.mc.communication.get_register(self.CONTROL_WORD_REGISTER,
                                                           servo=servo, axis=axis)
@@ -61,6 +66,11 @@ class Motion(metaclass=MCMetaClass):
                 :class:`OperationMode`.
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
+
+        Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
+
         """
         self.mc.communication.set_register(self.OPERATION_MODE_REGISTER, operation_mode,
                                            servo=servo, axis=axis)
@@ -81,6 +91,11 @@ class Motion(metaclass=MCMetaClass):
 
         Returns:
             OperationMode: Return current operation mode.
+
+        Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
+
         """
         operation_mode = self.mc.communication.get_register(
             self.OPERATION_MODE_DISPLAY_REGISTER,
@@ -97,6 +112,12 @@ class Motion(metaclass=MCMetaClass):
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
+
+        Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
+            ILError: If the servo cannot enable the motor.
+
         """
         drive = self.mc.servos[servo]
         try:
@@ -116,6 +137,11 @@ class Motion(metaclass=MCMetaClass):
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
+
+        Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
+
         """
         if self.mc.configuration.is_motor_enabled(servo=servo, axis=axis):
             drive = self.mc.servos[servo]
@@ -127,6 +153,11 @@ class Motion(metaclass=MCMetaClass):
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
+
+        Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
+
         """
         drive = self.mc.servos[servo]
         drive.fault_reset(axis)
@@ -152,6 +183,13 @@ class Motion(metaclass=MCMetaClass):
                 will wait forever. ``None`` by default.
             interval (float): If blocking is enabled, interval of time between
                 actual position reads, in seconds. ``None`` by default.
+
+        Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
+            TypeError: If position is not an int.
+            IMTimeoutError: If the target position is not reached in time.
+
         """
         self.mc.communication.set_register(self.POSITION_SET_POINT_REGISTER,
                                            position, servo=servo, axis=axis)
@@ -185,6 +223,12 @@ class Motion(metaclass=MCMetaClass):
                 will wait forever. ``None`` by default.
             interval (float): If blocking is enabled, interval of time between
                 actual velocity reads, in seconds. ``None`` by default.
+        Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
+            TypeError: If velocity is not a float.
+            IMTimeoutError: If the target velocity is not reached in time.
+
         """
         self.mc.communication.set_register(self.VELOCITY_SET_POINT_REGISTER,
                                            velocity, servo=servo, axis=axis)
@@ -206,6 +250,12 @@ class Motion(metaclass=MCMetaClass):
             current (float): target quadrature current, in A.
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
+
+        Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
+            TypeError: If current is not a float.
+
         """
         self.mc.communication.set_register(
             self.CURRENT_QUADRATURE_SET_POINT_REGISTER,
@@ -219,6 +269,12 @@ class Motion(metaclass=MCMetaClass):
             current (float): target direct current, in A.
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
+
+        Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
+            TypeError: If current is not a float.
+
         """
         self.mc.communication.set_register(self.CURRENT_DIRECT_SET_POINT_REGISTER,
                                            current, servo=servo, axis=axis)
@@ -231,6 +287,12 @@ class Motion(metaclass=MCMetaClass):
             voltage (float): target quadrature voltage, in V.
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
+
+        Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
+            TypeError: If voltage is not a float.
+
         """
         self.mc.communication.set_register(self.VOLTAGE_QUADRATURE_SET_POINT_REGISTER,
                                            voltage, servo=servo, axis=axis)
@@ -243,6 +305,12 @@ class Motion(metaclass=MCMetaClass):
             voltage (float): target direct voltage, in V.
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
+
+        Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
+            TypeError: If voltage is not a float.
+
         """
         self.mc.communication.set_register(self.VOLTAGE_DIRECT_SET_POINT_REGISTER,
                                            voltage, servo=servo, axis=axis)
@@ -261,6 +329,12 @@ class Motion(metaclass=MCMetaClass):
             init_value (float): initial value of the ramp. ``0`` by default.
             interval (float): time interval between register writes, in seconds.
                 ``None`` by default, no interval.
+
+        Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
+            TypeError: If target_value or time_s is not a float.
+
         """
         for value in self.ramp_generator(init_value, target_value, time_s, interval):
             self.set_current_quadrature(value, servo=servo, axis=axis)
@@ -280,6 +354,12 @@ class Motion(metaclass=MCMetaClass):
             init_value (float): initial value of the ramp. ``0`` by default.
             interval (float): time interval between register writes, in seconds.
                 ``None`` by default, no interval.
+
+        Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
+            TypeError: If target_value or time_s is not a float.
+
         """
         for value in self.ramp_generator(init_value, target_value, time_s, interval):
             self.set_current_direct(value, servo=servo, axis=axis)
@@ -299,6 +379,12 @@ class Motion(metaclass=MCMetaClass):
             init_value (float): initial value of the ramp. ``0`` by default.
             interval (float): time interval between register writes, in seconds.
                 ``None`` by default, no interval.
+
+        Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
+            TypeError: If target_value or time_s is not a float.
+
         """
         for value in self.ramp_generator(init_value, target_value, time_s, interval):
             self.set_voltage_quadrature(value, servo=servo, axis=axis)
@@ -318,6 +404,12 @@ class Motion(metaclass=MCMetaClass):
             init_value (float): initial value of the ramp. ``0`` by default.
             interval (float): time interval between register writes, in seconds.
                 ``None`` by default, no interval.
+
+        Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
+            TypeError: If target_value or time_s is not a float.
+
         """
         for value in self.ramp_generator(init_value, target_value, time_s, interval):
             self.set_voltage_direct(value, servo=servo, axis=axis)
@@ -345,6 +437,11 @@ class Motion(metaclass=MCMetaClass):
 
         Returns:
             int: actual position value
+
+        Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
+
         """
         return self.mc.communication.get_register(self.ACTUAL_POSITION_REGISTER,
                                                   servo=servo, axis=axis)
@@ -359,6 +456,10 @@ class Motion(metaclass=MCMetaClass):
 
         Returns:
             int: actual velocity value
+
+        Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
 
         """
         return self.mc.communication.get_register(self.ACTUAL_VELOCITY_REGISTER,
@@ -382,6 +483,8 @@ class Motion(metaclass=MCMetaClass):
                 in seconds. ``None`` by default.
 
         Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
             IMTimeoutError: If the target position is not reached in time.
 
         """
@@ -416,6 +519,12 @@ class Motion(metaclass=MCMetaClass):
                 ``None`` by default.
             interval (float): interval of time between actual velocity reads,
                 in seconds. ``None`` by default.
+
+        Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
+            IMTimeoutError: If the target velocity is not reached in time.
+
         """
         target_reached = False
         init_time = time.time()
@@ -449,6 +558,12 @@ class Motion(metaclass=MCMetaClass):
              for internal generator configuration.
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
+
+        Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
+            ValueError: If operation mode is not set to Current or Voltage.
+
         """
         if op_mode not in [OperationMode.CURRENT, OperationMode.VOLTAGE]:
             raise ValueError("Operation mode must be Current or Voltage")
@@ -477,6 +592,12 @@ class Motion(metaclass=MCMetaClass):
             frequency (int): cycles for second.
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
+
+        Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
+            TypeError: If direction, cycles or frequency is not of the correct type.
+
         """
         self.mc.configuration.set_generator_mode(GeneratorMode.SAW_TOOTH,
                                                  servo=servo, axis=axis)
@@ -507,6 +628,12 @@ class Motion(metaclass=MCMetaClass):
             offset (int): internal generator offset.
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
+
+        Raises:
+            KeyError: If no servo is connected.
+            TypeError: If servo axis is incorrect.
+            TypeError: If offset is not an int.
+
         """
         self.mc.configuration.set_generator_mode(GeneratorMode.CONSTANT,
                                                  servo=servo, axis=axis)
