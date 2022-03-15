@@ -73,10 +73,6 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             SensorType: Type of feedback configured.
-
-        Raises:
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
         """
         commutation_feedback = self.mc.communication.get_register(
             self.COMMUTATION_FEEDBACK_REGISTER,
@@ -97,10 +93,6 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Raises:
             IMStatusWordError: If motor is enabled.
-            TypeError: If the value is of the wrong type.
-            IMRegisterNotExist: If the register doesn't exist.
-            IMRegisterWrongAccess: If the register access is read-only.
-
         """
         self.mc.communication.set_register(
             self.COMMUTATION_FEEDBACK_REGISTER,
@@ -121,10 +113,6 @@ class Feedbacks(metaclass=MCMetaClass):
         Returns:
             SensorCategory: Category {ABSOLUTE, INCREMENTAL} of the
             selected feedback.
-
-        Raises:
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
         """
         commutation_feedback = self.get_commutation_feedback(servo, axis)
         return self.__feedback_type_dict[commutation_feedback]
@@ -139,10 +127,6 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             int: Resolution of the selected feedback.
-
-        Raises:
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
         """
         sensor_type = self.get_commutation_feedback(servo, axis)
         return self.feedback_resolution_functions[sensor_type](servo, axis)
@@ -157,10 +141,6 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             SensorType: Type of feedback configured
-
-        Raises:
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
         """
         reference_feedback = self.mc.communication.get_register(
             self.REFERENCE_FEEDBACK_REGISTER,
@@ -181,9 +161,6 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Raises:
             IMStatusWordError: If motor is enabled.
-            TypeError: If the value is of the wrong type.
-            IMRegisterNotExist: If the register doesn't exist.
-            IMRegisterWrongAccess: If the register access is read-only.
         """
         self.mc.communication.set_register(
             self.REFERENCE_FEEDBACK_REGISTER,
@@ -204,10 +181,6 @@ class Feedbacks(metaclass=MCMetaClass):
         Returns:
             SensorCategory: Category {ABSOLUTE, INCREMENTAL} of the
             selected feedback.
-
-        Raises:
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
         """
         reference_feedback = self.get_reference_feedback(servo, axis)
         return self.__feedback_type_dict[reference_feedback]
@@ -222,10 +195,6 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             int: Resolution of the selected feedback.
-
-        Raises:
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
         """
         sensor_type = self.get_reference_feedback(servo, axis)
         return self.feedback_resolution_functions[sensor_type](servo, axis)
@@ -240,10 +209,6 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             SensorType: Type of feedback configured
-
-        Raises:
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
         """
         velocity_feedback = self.mc.communication.get_register(
             self.VELOCITY_FEEDBACK_REGISTER,
@@ -263,11 +228,6 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Raises:
             IMStatusWordError: If motor is enabled.
-
-        Raises:
-            TypeError: If the value is of the wrong type.
-            IMRegisterNotExist: If the register doesn't exist.
-            IMRegisterWrongAccess: If the register access is read-only.
         """
         self.mc.communication.set_register(
             self.VELOCITY_FEEDBACK_REGISTER,
@@ -287,10 +247,6 @@ class Feedbacks(metaclass=MCMetaClass):
         Returns:
             SensorCategory: Category {ABSOLUTE, INCREMENTAL} of the
             selected feedback.
-
-        Raises:
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
         """
         velocity_feedback = self.get_velocity_feedback(servo, axis)
         return self.__feedback_type_dict[velocity_feedback]
@@ -304,10 +260,6 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             int: Resolution of the selected feedback.
-
-        Raises:
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
         """
         sensor_type = self.get_velocity_feedback(servo, axis)
         return self.feedback_resolution_functions[sensor_type](servo, axis)
@@ -321,11 +273,7 @@ class Feedbacks(metaclass=MCMetaClass):
             axis (int): axis that will run the test. ``1`` by default.
 
         Returns:
-            SensorType: Type of feedback configured
-
-        Raises:
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
+            SensorType: Type of feedback configured.
         """
         position_feedback = self.mc.communication.get_register(
             self.POSITION_FEEDBACK_REGISTER,
@@ -345,9 +293,6 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Raises:
             IMStatusWordError: If motor is enabled.
-            TypeError: If the value is of the wrong type.
-            IMRegisterNotExist: If the register doesn't exist.
-            IMRegisterWrongAccess: If the register access is read-only.
         """
         self.mc.communication.set_register(
             self.POSITION_FEEDBACK_REGISTER,
@@ -367,10 +312,6 @@ class Feedbacks(metaclass=MCMetaClass):
         Returns:
             SensorCategory: Category {ABSOLUTE, INCREMENTAL} of the
             selected feedback.
-
-        Raises:
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
         """
         position_feedback = self.get_position_feedback(servo, axis)
         return self.__feedback_type_dict[position_feedback]
@@ -384,10 +325,6 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             int: Resolution of the selected feedback.
-
-        Raises:
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
         """
         sensor_type = self.get_position_feedback(servo, axis)
         return self.feedback_resolution_functions[sensor_type](servo, axis)
@@ -402,10 +339,6 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             SensorType: Type of feedback configured
-
-        Raises:
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
         """
         auxiliar_feedback = self.mc.communication.get_register(
             self.AUXILIAR_FEEDBACK_REGISTER,
@@ -425,11 +358,6 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Raises:
             IMStatusWordError: If motor is enabled.
-
-        Raises:
-            TypeError: If the value is of the wrong type.
-            IMRegisterNotExist: If the register doesn't exist.
-            IMRegisterWrongAccess: If the register access is read-only.
         """
         self.mc.communication.set_register(
             self.AUXILIAR_FEEDBACK_REGISTER,
@@ -449,10 +377,6 @@ class Feedbacks(metaclass=MCMetaClass):
         Returns:
             SensorCategory: Category {ABSOLUTE, INCREMENTAL} of the
             selected feedback.
-
-        Raises:
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
         """
         auxiliar_feedback = self.get_auxiliar_feedback(servo, axis)
         return self.__feedback_type_dict[auxiliar_feedback]
@@ -466,10 +390,6 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             int: Resolution of the selected feedback.
-
-        Raises:
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
         """
         sensor_type = self.get_auxiliar_feedback(servo, axis)
         return self.feedback_resolution_functions[sensor_type](servo, axis)
@@ -483,10 +403,6 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             int: Resolution of ABS1 encoder.
-
-        Raises:
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
         """
         single_turn_bits = self.mc.communication.get_register(
             "FBK_BISS1_SSI1_POS_ST_BITS",
@@ -505,10 +421,6 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             int: Resolution of incremental encoder 1.
-
-        Raises:
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
         """
         return self.mc.communication.get_register(
             "FBK_DIGENC1_RESOLUTION",
@@ -525,10 +437,6 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             int: Resolution of digital halls encoder.
-
-        Raises:
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
         """
         pair_poles = self.mc.communication.get_register(
             "FBK_DIGHALL_PAIRPOLES",
@@ -546,10 +454,6 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             int: Resolution of secondary SSI encoder.
-
-        Raises:
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
         """
         secondary_single_turn_bits = self.mc.communication.get_register(
             "FBK_SSI2_POS_ST_BITS",
@@ -567,10 +471,6 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             int: Resolution of ABS2 encoder.
-
-        Raises:
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
         """
         serial_slave_1_single_turn_bits = self.mc.communication.get_register(
             "FBK_BISS2_POS_ST_BITS",
@@ -589,10 +489,6 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             int: Resolution of incremental encoder 2 encoder.
-
-        Raises:
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
         """
         return self.mc.communication.get_register(
             "FBK_DIGENC2_RESOLUTION",

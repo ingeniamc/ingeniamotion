@@ -107,9 +107,6 @@ class Capture(metaclass=MCMetaClass):
         Raises:
             TypeError: If the register is not valid.
             IMRegisterNotExist: If register does not exist in dictionary.
-            ingenialink.exceptions.ILCreationError: If the object is NULL.
-            ingenialink.exceptions.ILStateError: The poller is already running.
-            ingenialink.exceptions.ILValueError: Channel out of range.
         """
         if isinstance(self.mc.servos[servo], CanopenServo):
             poller = CanopenPoller(self.mc.servos[servo], len(registers))
@@ -379,7 +376,6 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
         """
         return self.mc.communication.get_register(
             self.MONITORING_STATUS_REGISTER,
@@ -398,7 +394,6 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
         """
         return self.mc.communication.get_register(
             self.MONITORING_STATUS_REGISTER,
@@ -419,7 +414,6 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
         """
         if version is None:
             version = self._check_version(servo)
@@ -447,7 +441,6 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
         """
         monitor_status = self.get_monitoring_status(servo)
         return (monitor_status & self.MONITORING_STATUS_ENABLED_BIT) == 1
@@ -465,7 +458,6 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
         """
         monitor_status = self.get_disturbance_status(servo, version=version)
         return (monitor_status & self.DISTURBANCE_STATUS_ENABLED_BIT) == 1
@@ -484,7 +476,6 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
         """
         if version is None:
             version = self._check_version(servo=servo)
@@ -508,7 +499,6 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
         """
         if version is None:
             version = self._check_version(servo=servo)
@@ -576,9 +566,6 @@ class Capture(metaclass=MCMetaClass):
 
         Returns:
             int: Max buffer size in bytes.
-
-        Raises:
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
         """
         try:
             return self.mc.communication.get_register(
@@ -597,9 +584,6 @@ class Capture(metaclass=MCMetaClass):
 
         Returns:
             int: Max buffer size in bytes.
-
-        Raises:
-            ingenialink.exceptions.ILAccessError: If the register access is write-only.
         """
         try:
             return self.mc.communication.get_register(
