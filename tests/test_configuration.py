@@ -7,6 +7,7 @@ PROFILE_MAX_ACCELERATION_REGISTER = "PROF_MAX_ACC"
 PROFILE_MAX_VELOCITY_REGISTER = "PROF_MAX_VEL"
 POWER_STAGE_FREQUENCY_SELECTION_REGISTER = "DRV_PS_FREQ_SELECTION"
 POSITION_AND_VELOCITY_LOOP_RATE_REGISTER = "DRV_POS_VEL_RATE"
+CURRENT_LOOP_RATE_REGISTER = "CL_CUR_FREQ"
 STATUS_WORD_REGISTER = "DRV_STATE_STATUS"
 PHASING_MODE_REGISTER = "COMMU_PHASING_MODE"
 GENERATOR_MODE_REGISTER = "FBK_GEN_MODE"
@@ -97,6 +98,15 @@ def test_get_position_and_velocity_loop_rate(motion_controller):
     test_value = mc.configuration.get_position_and_velocity_loop_rate(servo=alias)
     reg_value = mc.communication.get_register(
         POSITION_AND_VELOCITY_LOOP_RATE_REGISTER, servo=alias)
+    assert test_value == reg_value
+
+
+@pytest.mark.smoke
+def test_get_current_loop_rate(motion_controller):
+    mc, alias = motion_controller
+    test_value = mc.configuration.get_current_loop_rate(servo=alias)
+    reg_value = mc.communication.get_register(
+        CURRENT_LOOP_RATE_REGISTER, servo=alias)
     assert test_value == reg_value
 
 
