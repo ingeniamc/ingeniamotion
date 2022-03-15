@@ -9,8 +9,7 @@ from ingeniamotion.exceptions import IMTimeoutError
 
 
 class Motion(metaclass=MCMetaClass):
-    """Motion.
-    """
+    """Motion."""
 
     CONTROL_WORD_REGISTER = "DRV_STATE_CONTROL"
     OPERATION_MODE_REGISTER = "DRV_OP_CMD"

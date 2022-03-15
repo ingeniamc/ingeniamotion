@@ -113,7 +113,7 @@ class Errors(metaclass=MCMetaClass):
                 ``True`` if warning, else ``False``.
 
         Raises:
-            ILAccessError: If the register access is write-only.
+            ingenialink.exceptions.ILAccessError: If the register access is write-only.
             IMRegisterNotExist: If the register doesn't exist.
 
         """
@@ -148,7 +148,7 @@ class Errors(metaclass=MCMetaClass):
             TypeError: If the value is of the wrong type.
             IMRegisterNotExist: If the register doesn't exist.
             IMRegisterWrongAccess: If the register access is read-only.
-            ILAccessError: If the register access is write-only.
+            ingenialink.exceptions.ILAccessError: If the register access is write-only.
         """
         return self.get_buffer_error_by_index(0, servo=servo, axis=axis)
 
@@ -176,7 +176,7 @@ class Errors(metaclass=MCMetaClass):
             TypeError: If the value is of the wrong type.
             IMRegisterNotExist: If the register doesn't exist.
             IMRegisterWrongAccess: If the register access is read-only.
-            ILAccessError: If the register access is write-only.
+            ingenialink.exceptions.ILAccessError: If the register access is write-only.
 
         """
         if index >= self.MAXIMUM_ERROR_INDEX:
@@ -208,7 +208,7 @@ class Errors(metaclass=MCMetaClass):
             int: Total number of errors.
 
         Raises:
-            ILAccessError: If the register access is write-only.
+            ingenialink.exceptions.ILAccessError: If the register access is write-only.
             IMRegisterNotExist: If the register doesn't exist.
         """
         error_version = self.__get_error_location(servo)
@@ -231,7 +231,7 @@ class Errors(metaclass=MCMetaClass):
             list of tuple: List of all errors.
 
         Raises:
-            ILAccessError: If the register access is write-only.
+            ingenialink.exceptions.ILAccessError: If the register access is write-only.
             IMRegisterNotExist: If the register doesn't exist.
         """
         err_list = []
