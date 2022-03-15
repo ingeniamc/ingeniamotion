@@ -325,7 +325,7 @@ class Communication(metaclass=MCMetaClass):
             int, float or str: Current register value.
 
         Raises:
-            ILAccessError: If the register access is write-only.
+            ingenialink.exceptions.ILAccessError: If the register access is write-only.
             IMRegisterNotExist: If the register doesn't exist.
 
         """

@@ -407,7 +407,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Raises:
             TypeError: If pair poles is not an int.
-            ILValueError: If pair poles is out of range.
+            ingenialink.exceptions.ILValueError: If pair poles is out of range.
 
         """
         self.mc.communication.set_register(self.MOTOR_POLE_PAIRS_REGISTER,
