@@ -103,18 +103,16 @@ class Communication(metaclass=MCMetaClass):
         if not path.isfile(dict_path):
             raise FileNotFoundError("{} file does not exist!".format(dict_path))
 
-        if "ethernet" not in self.mc.net:
-            self.mc.net["ethernet"] = EthernetNetwork()
-        net = self.mc.net["ethernet"]
+        self.mc.net[alias] = EthernetNetwork()
+        net = self.mc.net[alias]
         servo = net.connect_to_slave(
-            ip, dict_path, port, protocol,
-            **reconnection,
+            ip, dict_path, port, protocol, **reconnection,
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener
         )
 
         self.mc.servos[alias] = servo
-        self.mc.servo_net[alias] = "ethernet"
+        self.mc.servo_net[alias] = alias
 
     def connect_servo_ecat(self, ifname, dict_path, slave=1,
                            eoe_comm=True, alias=DEFAULT_SERVO,
@@ -153,18 +151,18 @@ class Communication(metaclass=MCMetaClass):
             raise FileNotFoundError("{} file does not exist!".format(dict_path))
         use_eoe_comms = 1 if eoe_comm else 0
 
-        if ifname not in self.mc.net:
-            self.mc.net[ifname] = EthercatNetwork(ifname)
-        net = self.mc.net[ifname]
+        self.mc.net[alias] = EthercatNetwork(ifname)
+        net = self.mc.net[alias]
         servo = net.connect_to_slave(
             slave, dict_path,
             use_eoe_comms, **reconnection,
             servo_status_listener=servo_status_listener,
-            net_status_listener=net_status_listener)
+            net_status_listener=net_status_listener
+        )
         servo.slave = slave
 
         self.mc.servos[alias] = servo
-        self.mc.servo_net[alias] = ifname
+        self.mc.servo_net[alias] = alias
 
     def connect_servo_ecat_interface_ip(self, interface_ip, dict_path,
                                         slave=1, eoe_comm=True,
@@ -305,9 +303,7 @@ class Communication(metaclass=MCMetaClass):
             list of int: Drives available in the target interface.
 
         """
-        if ifname not in self.mc.net:
-            self.mc.net[ifname] = EthercatNetwork(ifname)
-        net = self.mc.net[ifname]
+        net = EthercatNetwork(ifname)
         return net.scan_slaves()
 
     def scan_servos_ecat_interface_index(self, if_index):
@@ -347,13 +343,16 @@ class Communication(metaclass=MCMetaClass):
         """
 
         if not path.isfile(dict_path):
-            raise FileNotFoundError('Dict file {} does not exist!'.format(dict_path))
+            raise FileNotFoundError(
+                'Dict file {} does not exist!'.format(dict_path))
 
         if not path.isfile(eds_file):
-            raise FileNotFoundError("EDS file {} does not exist!".format(eds_file))
+            raise FileNotFoundError(
+                "EDS file {} does not exist!".format(eds_file))
         net_key = "{}_{}_{}".format(can_device, channel, baudrate)
         if net_key not in self.mc.net:
-            self.mc.net[net_key] = CanopenNetwork(can_device, channel, baudrate)
+            self.mc.net[net_key] = CanopenNetwork(can_device, channel,
+                                                  baudrate)
         net = self.mc.net[net_key]
 
         servo = net.connect_to_slave(
@@ -377,7 +376,8 @@ class Communication(metaclass=MCMetaClass):
         """
         net_key = "{}_{}_{}".format(can_device, channel, baudrate)
         if net_key not in self.mc.net:
-            self.mc.net[net_key] = CanopenNetwork(can_device, channel, baudrate)
+            self.mc.net[net_key] = CanopenNetwork(can_device, channel,
+                                                  baudrate)
         net = self.mc.net[net_key]
 
         if net is None:
@@ -599,9 +599,7 @@ class Communication(metaclass=MCMetaClass):
                                 If custom device -> Contact manufacturer.
 
         """
-        if ifname not in self.mc.net:
-            self.mc.net[ifname] = EthercatNetwork(ifname)
-        net = self.mc.net[ifname]
+        net = EthercatNetwork(ifname)
         net.load_firmware(fw_file, slave, boot_in_app)
 
     def load_firmware_ecat_interface_index(self, if_index, fw_file,
@@ -635,9 +633,7 @@ class Communication(metaclass=MCMetaClass):
             ftp_pwd (str): FTP password for the given user.
 
         """
-        if "ethernet" not in self.mc.net:
-            self.mc.net["ethernet"] = EthernetNetwork()
-        net = self.mc.net["ethernet"]
+        net = EthernetNetwork()
         if ftp_user is None and ftp_pwd is None:
             ftp_user, ftp_pwd = "Ingenia", "Ingenia"
         net.load_firmware(fw_file, ip, ftp_user, ftp_pwd)
