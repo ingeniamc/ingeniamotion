@@ -83,3 +83,25 @@ Namespace to manage drive errors and get errors data.
 **Tests**
 
 The functions of this namespace will help us to lunch some tests for the commissioning process.
+
+
+Common exceptions
+-------------
+
+.. code-block:: python
+
+    KeyError: "Servo 'default' is not connected"
+
+This `exception <https://docs.python.org/3.6/library/exceptions.html#KeyError>`_ is raised whenever we use a function that interacts with the drive but no drive is connected.
+
+.. code-block:: python
+
+    TypeError: 'NoneType' object is not subscriptable
+
+This `exception <https://docs.python.org/3.6/library/exceptions.html#TypeError>`_ is raised when we provide a function with the wrong servo axis number.
+
+.. code-block:: python
+
+    ILTimeoutError
+
+This `exception <https://distext.ingeniamc.com/doc/ingenialink-python/6.2.2/api/exceptions.html#ingenialink.exceptions.ILTimeoutError>`_ is raised when the drive gets abruptly disconnected.

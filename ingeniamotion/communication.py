@@ -306,9 +306,6 @@ class Communication(metaclass=MCMetaClass):
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
 
-        Raises:
-            KeyError: If no servo is connected.
-
         """
         drive = self.mc._get_drive(servo)
         network = self.mc._get_network(servo)

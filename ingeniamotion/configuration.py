@@ -62,10 +62,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. 1 by default.
 
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
-
         """
         self.mc.communication.set_register(
             self.BRAKE_OVERRIDE_REGISTER,
@@ -81,10 +77,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. 1 by default.
 
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
-
         """
         self.mc.communication.set_register(
             self.BRAKE_OVERRIDE_REGISTER,
@@ -99,10 +91,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. 1 by default.
-
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
 
         """
         self.mc.communication.set_register(
@@ -120,10 +108,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. 1 by default.
 
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
-
         """
         self.disable_brake_override(servo, axis)
 
@@ -137,8 +121,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             servo (str): servo alias to reference it. ``default`` by default.
 
         Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
             FileNotFoundError: If configuration file does not exist.
 
         """
@@ -158,10 +140,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
                 If ``None`` function loads all axis. ``None`` by default.
             servo (str): servo alias to reference it. ``default`` by default.
 
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
-
         """
         servo_inst = self.mc.servos[servo]
         servo_inst.save_configuration(output_file, subnode=axis)
@@ -176,10 +154,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
                 If ``None`` function loads all axis. ``None`` by default.
             servo (str): servo alias to reference it. ``default`` by default.
 
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
-
         """
         drive = self.mc._get_drive(servo)
         drive.store_parameters(axis)
@@ -193,10 +167,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             axis (int): target axis to load configuration.
                 If ``None`` function loads all axis. ``None`` by default.
             servo (str): servo alias to reference it. ``default`` by default.
-
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
 
         """
         drive = self.mc._get_drive(servo)
@@ -214,8 +184,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             axis (int): servo axis. ``1`` by default.
 
         Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
             TypeError: If acceleration is not a float.
 
         """
@@ -237,8 +205,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             axis (int): servo axis. ``1`` by default.
 
         Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
             TypeError: If velocity is not a float.
 
         """
@@ -262,10 +228,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Returns:
             int: Position & velocity loop rate frequency in Hz.
 
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
-
         """
         return self.mc.communication.get_register(
             self.POSITION_AND_VELOCITY_LOOP_RATE_REGISTER,
@@ -287,8 +249,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             int: Frequency in Hz if raw is ``False``, else, raw register value.
 
         Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
             ValueError: If power stage frequency selection register has an
                 invalid value.
         """
@@ -318,10 +278,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Returns:
             IntEnum: Enum with power stage frequency available values.
 
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
-
         """
         return self.mc.get_register_enum(self.POWER_STAGE_FREQUENCY_SELECTION_REGISTER,
                                          servo, axis)
@@ -338,8 +294,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             axis (int): servo axis. ``1`` by default.
 
         Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
             IMStatusWordError: If motor is enabled.
 
         """
@@ -360,10 +314,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Returns:
             int: Status word.
 
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
-
         """
         return self.mc.communication.get_register(self.STATUS_WORD_REGISTER,
                                                   servo, axis)
@@ -377,10 +327,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             bool: ``True`` if motor is enabled, else ``False``.
-
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
 
         """
         status_word = self.mc.configuration.get_status_word(servo=servo,
@@ -398,10 +344,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Returns:
             bool: ``True`` if commutation feedback is aligned, else ``False``.
 
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
-
         """
         status_word = self.mc.configuration.get_status_word(servo=servo,
                                                             axis=axis)
@@ -417,10 +359,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
 
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
-
         """
         self.mc.communication.set_register(self.PHASING_MODE_REGISTER,
                                            phasing_mode, servo, axis)
@@ -435,10 +373,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             PhasingMode: Phasing mode value.
-
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
 
         """
         phasing_mode = self.mc.communication.get_register(
@@ -457,10 +391,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
 
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
-
         """
         self.mc.communication.set_register(self.GENERATOR_MODE_REGISTER,
                                            mode, servo, axis)
@@ -476,8 +406,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             axis (int): servo axis. ``1`` by default.
 
         Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
             TypeError: If pair poles is not an int.
             ILValueError: If pair poles is out of range.
 
@@ -496,10 +424,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Returns:
             int: Pair poles value.
 
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
-
         """
         return self.mc.communication.get_register(self.MOTOR_POLE_PAIRS_REGISTER,
                                                   servo=servo, axis=axis)
@@ -514,10 +438,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             int: STO register value.
-
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
 
         """
         return self.mc.communication.get_register(
@@ -534,10 +454,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             int: return value of STO1 bit.
-
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
 
         """
         if self.get_sto_status(servo, axis) & self.STO1_ACTIVE_BIT:
@@ -556,10 +472,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Returns:
             int: return value of STO2 bit.
 
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
-
         """
         if self.get_sto_status(servo, axis) & self.STO2_ACTIVE_BIT:
             return 1
@@ -576,10 +488,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             int: return value of power supply bit.
-
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
 
         """
         if self.get_sto_status(servo, axis) & self.STO_SUPPLY_FAULT_BIT:
@@ -598,10 +506,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Returns:
             int: return value of abnormal fault bit.
 
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
-
         """
         if self.get_sto_status(servo, axis) & self.STO_ABNORMAL_FAULT_BIT:
             return 1
@@ -618,10 +522,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             int: return value of report bit.
-
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
 
         """
         if self.get_sto_status(servo, axis) & self.STO_REPORT_BIT:
@@ -640,10 +540,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Returns:
             bool: ``True`` if STO is active, else ``False``.
 
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
-
         """
         return self.get_sto_status(servo, axis) == self.STO_ACTIVE_STATE
 
@@ -657,10 +553,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             bool: ``True`` if STO is inactive, else ``False``.
-
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
 
         """
         return self.get_sto_status(servo, axis) == self.STO_INACTIVE_STATE
@@ -676,10 +568,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Returns:
             bool: ``True`` if STO is abnormal latched, else ``False``.
 
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
-
         """
         return self.get_sto_status(servo, axis) == self.STO_LATCHED_STATE
 
@@ -693,10 +581,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             gateway (str): Gateway to be changed.
             servo (str): servo alias to reference it. ``default`` by default.
 
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
-
         """
         drive = self.mc._get_drive(servo)
         drive.change_tcp_ip_parameters(ip_address, subnet_mask, gateway)
@@ -707,10 +591,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
 
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
-
         """
         drive = self.mc._get_drive(servo)
         drive.store_tcp_ip_parameters()
@@ -720,10 +600,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
-
-        Raises:
-            KeyError: If no servo is connected.
-            TypeError: If servo axis is incorrect.
 
         """
         drive = self.mc._get_drive(servo)
