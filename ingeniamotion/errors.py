@@ -4,8 +4,7 @@ from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
 class Errors(metaclass=MCMetaClass):
-    """Errors.
-    """
+    """Errors."""
 
     class ErrorLocation(IntEnum):
         COCO = 0
@@ -113,6 +112,10 @@ class Errors(metaclass=MCMetaClass):
             is_warning (bool):
                 ``True`` if warning, else ``False``.
 
+        Raises:
+            ILAccessError: If the register access is write-only.
+            IMRegisterNotExist: If the register doesn't exist.
+
         """
         error_version = self.__get_error_location(servo)
         subnode, error_location = self.__get_error_subnode(error_version, axis)
@@ -141,6 +144,11 @@ class Errors(metaclass=MCMetaClass):
             is_warning (bool):
                 ``True`` if warning, else ``False``.
 
+        Raises:
+            TypeError: If the value is of the wrong type.
+            IMRegisterNotExist: If the register doesn't exist.
+            IMRegisterWrongAccess: If the register access is read-only.
+            ILAccessError: If the register access is write-only.
         """
         return self.get_buffer_error_by_index(0, servo=servo, axis=axis)
 
@@ -163,6 +171,12 @@ class Errors(metaclass=MCMetaClass):
                 Error axis.
             is_warning (bool):
                 ``True`` if warning, else ``False``.
+
+        Raises:
+            TypeError: If the value is of the wrong type.
+            IMRegisterNotExist: If the register doesn't exist.
+            IMRegisterWrongAccess: If the register access is read-only.
+            ILAccessError: If the register access is write-only.
 
         """
         if index >= self.MAXIMUM_ERROR_INDEX:
@@ -193,6 +207,9 @@ class Errors(metaclass=MCMetaClass):
         Returns:
             int: Total number of errors.
 
+        Raises:
+            ILAccessError: If the register access is write-only.
+            IMRegisterNotExist: If the register doesn't exist.
         """
         error_version = self.__get_error_location(servo)
         subnode, error_location = self.__get_error_subnode(error_version, axis)
@@ -213,6 +230,9 @@ class Errors(metaclass=MCMetaClass):
         Returns:
             list of tuple: List of all errors.
 
+        Raises:
+            ILAccessError: If the register access is write-only.
+            IMRegisterNotExist: If the register doesn't exist.
         """
         err_list = []
         err_num = self.get_number_total_errors(servo, axis)
@@ -233,7 +253,8 @@ class Errors(metaclass=MCMetaClass):
         Returns:
             bool: ``True`` if fault is active, else ``False``.
         """
-        status_word = self.mc.configuration.get_status_word(servo=servo, axis=axis)
+        status_word = self.mc.configuration.get_status_word(
+            servo=servo, axis=axis)
         return bool(status_word & self.STATUS_WORD_FAULT_BIT)
 
     def is_warning_active(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
