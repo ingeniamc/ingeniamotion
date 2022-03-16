@@ -105,7 +105,6 @@ class Capture(metaclass=MCMetaClass):
                 When the property data is read list are reset to a empty list.
 
         Raises:
-            TypeError: If the register is not valid.
             IMRegisterNotExist: If register does not exist in dictionary.
         """
         if isinstance(self.mc.servos[servo], CanopenServo):
