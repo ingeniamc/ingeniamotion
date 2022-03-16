@@ -105,10 +105,6 @@ class Capture(metaclass=MCMetaClass):
                 When the property data is read list are reset to a empty list.
 
         Raises:
-            ILCreationError: If the object is NULL.
-            ILStateError: The poller is already running.
-            ILValueError: Channel out of range.
-            TypeError: If the register is not valid.
             IMRegisterNotExist: If register does not exist in dictionary.
         """
         if isinstance(self.mc.servos[servo], CanopenServo):
@@ -378,7 +374,6 @@ class Capture(metaclass=MCMetaClass):
             int: Monitoring/Disturbance Status.
 
         Raises:
-            ILAccessError: If the register access is write-only.
             IMRegisterNotExist: If the register doesn't exist.
         """
         return self.mc.communication.get_register(
@@ -397,7 +392,6 @@ class Capture(metaclass=MCMetaClass):
             int: Monitoring Status.
 
         Raises:
-            ILAccessError: If the register access is write-only.
             IMRegisterNotExist: If the register doesn't exist.
         """
         return self.mc.communication.get_register(
@@ -418,7 +412,6 @@ class Capture(metaclass=MCMetaClass):
             int: Disturbance Status.
 
         Raises:
-            ILAccessError: If the register access is write-only.
             IMRegisterNotExist: If the register doesn't exist.
         """
         if version is None:
@@ -446,7 +439,6 @@ class Capture(metaclass=MCMetaClass):
             bool: True if monitoring is enabled, else False.
 
         Raises:
-            ILAccessError: If the register access is write-only.
             IMRegisterNotExist: If the register doesn't exist.
         """
         monitor_status = self.get_monitoring_status(servo)
@@ -464,7 +456,6 @@ class Capture(metaclass=MCMetaClass):
             bool: True if disturbance is enabled, else False.
 
         Raises:
-            ILAccessError: If the register access is write-only.
             IMRegisterNotExist: If the register doesn't exist.
         """
         monitor_status = self.get_disturbance_status(servo, version=version)
@@ -483,7 +474,6 @@ class Capture(metaclass=MCMetaClass):
             MonitoringProcessStage: Current monitoring process stage.
 
         Raises:
-            ILAccessError: If the register access is write-only.
             IMRegisterNotExist: If the register doesn't exist.
         """
         if version is None:
@@ -507,7 +497,6 @@ class Capture(metaclass=MCMetaClass):
             bool: True if monitoring has an available frame, else False.
 
         Raises:
-            ILAccessError: If the register access is write-only.
             IMRegisterNotExist: If the register doesn't exist.
         """
         if version is None:
@@ -576,9 +565,6 @@ class Capture(metaclass=MCMetaClass):
 
         Returns:
             int: Max buffer size in bytes.
-
-        Raises:
-            ILAccessError: If the register access is write-only.
         """
         try:
             return self.mc.communication.get_register(
@@ -597,9 +583,6 @@ class Capture(metaclass=MCMetaClass):
 
         Returns:
             int: Max buffer size in bytes.
-
-        Raises:
-            ILAccessError: If the register access is write-only.
         """
         try:
             return self.mc.communication.get_register(

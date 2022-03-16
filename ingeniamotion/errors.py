@@ -95,8 +95,7 @@ class Errors(metaclass=MCMetaClass):
             return 0, self.ErrorLocation.COCO
 
     def get_last_error(self, servo=DEFAULT_SERVO, axis=None):
-        """
-        Return last servo error.
+        """Return last servo error.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -111,11 +110,6 @@ class Errors(metaclass=MCMetaClass):
                 Error axis.
             is_warning (bool):
                 ``True`` if warning, else ``False``.
-
-        Raises:
-            ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
-
         """
         error_version = self.__get_error_location(servo)
         subnode, error_location = self.__get_error_subnode(error_version, axis)
@@ -127,8 +121,7 @@ class Errors(metaclass=MCMetaClass):
         return self.__parse_error_to_tuple(error, error_version, axis)
 
     def get_last_buffer_error(self, servo=DEFAULT_SERVO, axis=None):
-        """
-        Get error code from error buffer last position.
+        """Get error code from error buffer last position.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -143,19 +136,12 @@ class Errors(metaclass=MCMetaClass):
                 Error axis.
             is_warning (bool):
                 ``True`` if warning, else ``False``.
-
-        Raises:
-            TypeError: If the value is of the wrong type.
-            IMRegisterNotExist: If the register doesn't exist.
-            IMRegisterWrongAccess: If the register access is read-only.
-            ILAccessError: If the register access is write-only.
         """
         return self.get_buffer_error_by_index(0, servo=servo, axis=axis)
 
     def get_buffer_error_by_index(self, index, servo=DEFAULT_SERVO,
                                   axis=None):
-        """
-        Get error code from buffer error target index.
+        """Get error code from buffer error target index.
 
         Args:
             index (int): buffer error index. It must be less than ``32``.
@@ -171,13 +157,6 @@ class Errors(metaclass=MCMetaClass):
                 Error axis.
             is_warning (bool):
                 ``True`` if warning, else ``False``.
-
-        Raises:
-            TypeError: If the value is of the wrong type.
-            IMRegisterNotExist: If the register doesn't exist.
-            IMRegisterWrongAccess: If the register access is read-only.
-            ILAccessError: If the register access is write-only.
-
         """
         if index >= self.MAXIMUM_ERROR_INDEX:
             raise ValueError('index must be less than 32')
@@ -197,8 +176,7 @@ class Errors(metaclass=MCMetaClass):
         return self.__parse_error_to_tuple(error, error_version, axis)
 
     def get_number_total_errors(self, servo=DEFAULT_SERVO, axis=None):
-        """
-        Return total number of drive errors.
+        """Return total number of drive errors.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -206,10 +184,6 @@ class Errors(metaclass=MCMetaClass):
 
         Returns:
             int: Total number of errors.
-
-        Raises:
-            ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
         """
         error_version = self.__get_error_location(servo)
         subnode, error_location = self.__get_error_subnode(error_version, axis)
@@ -220,8 +194,7 @@ class Errors(metaclass=MCMetaClass):
         )
 
     def get_all_errors(self, servo=DEFAULT_SERVO, axis=None):
-        """
-        Return list with all error codes.
+        """Return list with all error codes.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -229,10 +202,6 @@ class Errors(metaclass=MCMetaClass):
 
         Returns:
             list of tuple: List of all errors.
-
-        Raises:
-            ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
         """
         err_list = []
         err_num = self.get_number_total_errors(servo, axis)
@@ -243,8 +212,7 @@ class Errors(metaclass=MCMetaClass):
         return err_list
 
     def is_fault_active(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        """
-        Return if fault is active.
+        """Return if fault is active.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -258,8 +226,7 @@ class Errors(metaclass=MCMetaClass):
         return bool(status_word & self.STATUS_WORD_FAULT_BIT)
 
     def is_warning_active(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
-        """
-        Return if warning is active.
+        """Return if warning is active.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -272,8 +239,7 @@ class Errors(metaclass=MCMetaClass):
         return bool(status_word & self.STATUS_WORD_WARNING_BIT)
 
     def get_error_data(self, error_code, servo=DEFAULT_SERVO):
-        """
-        Return error info from target error_code.
+        """Return error info from target error_code.
 
         Args:
             error_code (int): target error code.

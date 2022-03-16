@@ -109,8 +109,6 @@ class DriveTests(metaclass=MCMetaClass):
             TestError: In case the servo or setup configuration makes
                 impossible fulfilling the test
             TypeError: If the value is of the wrong type.
-            IMRegisterNotExist: If the register doesn't exist.
-            IMRegisterWrongAccess: If the register access is read-only.
         """
         return self.__feedback_test(SensorType.QEI2, servo, axis, apply_changes)
 
@@ -178,8 +176,6 @@ class DriveTests(metaclass=MCMetaClass):
             TestError: If servo or setup configuration makes impossible
                 complete the calibration.
             TypeError: If the value is of the wrong type.
-            IMRegisterNotExist: If the register doesn't exist.
-            IMRegisterWrongAccess: If the register access is read-only.
         """
         commutation = Phasing(self.mc, servo, axis)
         output = commutation.run()
