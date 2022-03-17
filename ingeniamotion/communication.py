@@ -51,6 +51,11 @@ class Communication(metaclass=MCMetaClass):
                 its status, errors, faults, etc.
             net_status_listener (bool): Toggle the listener of the network
                 status, connection and disconnection.
+
+        Raises:
+            TypeError: If the dict_path argument is missing.
+            FileNotFoundError: If the dict file doesn't exist.
+            ingenialink.exceptions.ILError: If the servo's IP or port is incorrect.
         """
         if not dict_path:
             raise TypeError("dict_path argument is missing")
@@ -82,6 +87,11 @@ class Communication(metaclass=MCMetaClass):
                 its status, errors, faults, etc.
             net_status_listener (bool): Toggle the listener of the network
                 status, connection and disconnection.
+
+        Raises:
+            TypeError: If the dict_path argument is missing.
+            FileNotFoundError: If the dict file doesn't exist.
+            ingenialink.exceptions.ILError: If the servo's IP or port is incorrect.
         """
         if not dict_path:
             raise TypeError("dict_path argument is missing")
@@ -139,7 +149,8 @@ class Communication(metaclass=MCMetaClass):
                 status, connection and disconnection.
 
         Raises:
-            FileNotFoundError: Dictionary file is not found.
+            FileNotFoundError: If the dict file doesn't exist.
+            ingenialink.exceptions.ILError: If the interface name or the slave index is incorrect.
         """
         reconnection = {}
         if reconnection_retries is not None:
@@ -246,6 +257,10 @@ class Communication(metaclass=MCMetaClass):
         Returns:
             str: real name of selected interface.
             It can be used for function :func:`connect_servo_ecat`.
+
+        Raises:
+            IndexError: If interface index is out of range.
+
         """
         return "\\Device\\NPF_{}".format(
             ifaddr.get_adapters()[index].name.decode("utf-8")
@@ -287,6 +302,10 @@ class Communication(metaclass=MCMetaClass):
             net_status_listener (bool): Toggle the listener of the network
                 status, connection and disconnection.
 
+        Raises:
+            FileNotFoundError: If the dict file doesn't exist.
+            IndexError: If interface index is out of range.
+
         """
         self.connect_servo_ecat(self.get_ifname_by_index(if_index), dict_path,
                                 slave, eoe_comm, alias,
@@ -315,6 +334,9 @@ class Communication(metaclass=MCMetaClass):
         Returns:
             list of int: Drives available in the target interface.
 
+        Raises:
+            IndexError: If interface index is out of range.
+
         """
         return self.scan_servos_ecat(self.get_ifname_by_index(if_index))
 
@@ -339,6 +361,10 @@ class Communication(metaclass=MCMetaClass):
                 its status, errors, faults, etc.
             net_status_listener (bool): Toggle the listener of the network
                 status, connection and disconnection.
+
+        Raises:
+            FileNotFoundError: If either of the dict files doesn't exist.
+            ingenialink.exceptions.ILError: If CANOpen device type, node id or channel is incorrect.
 
         """
 
@@ -411,6 +437,10 @@ class Communication(metaclass=MCMetaClass):
         Returns:
             int, float or str: Current register value.
 
+        Raises:
+            ingenialink.exceptions.ILAccessError: If the register access is write-only.
+            IMRegisterNotExist: If the register doesn't exist.
+
         """
         drive = self.mc.servos[servo]
         register_dtype = self.mc.info.register_type(register, axis, servo=servo)
@@ -478,6 +508,9 @@ class Communication(metaclass=MCMetaClass):
 
         Returns:
             int, float or str: Current register value.
+
+        Raises:
+            TypeError: If string_size is not an int.
 
         """
         drive = self.mc.servos[servo]
@@ -574,6 +607,9 @@ class Communication(metaclass=MCMetaClass):
             progress_callback (callable): callback with progress.
             error_enabled_callback (callable): callback with errors enabled.
 
+        Raises:
+            ValueError: If servo is not connected via CANopen.
+
         """
         net = self.mc._get_network(servo)
         drive = self.mc._get_drive(servo)
@@ -656,6 +692,9 @@ class Communication(metaclass=MCMetaClass):
             servo (str): servo alias to reference it. ``default`` by default.
             ftp_user (str): FTP user to connect with.
             ftp_pwd (str): FTP password for the given user.
+
+        Raises:
+            ValueError: If servo is not connected via Ethernet.
 
         """
         net = self.mc._get_network(servo)

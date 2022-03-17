@@ -64,6 +64,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. 1 by default.
+
         """
         self.mc.communication.set_register(
             self.BRAKE_OVERRIDE_REGISTER,
@@ -78,6 +79,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. 1 by default.
+
         """
         self.mc.communication.set_register(
             self.BRAKE_OVERRIDE_REGISTER,
@@ -92,6 +94,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. 1 by default.
+
         """
         self.mc.communication.set_register(
             self.BRAKE_OVERRIDE_REGISTER,
@@ -107,6 +110,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): axis that will run the test. 1 by default.
+
         """
         self.disable_brake_override(servo, axis)
 
@@ -118,6 +122,10 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             axis (int): target axis to load configuration.
                 If ``None`` function loads all axis. ``None`` by default.
             servo (str): servo alias to reference it. ``default`` by default.
+
+        Raises:
+            FileNotFoundError: If configuration file does not exist.
+
         """
         if not path.isfile(config_path):
             raise FileNotFoundError("{} file does not exist!".format(config_path))
@@ -174,9 +182,13 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """Update maximum acceleration register.
 
         Args:
-            acceleration: maximum acceleration in rev/s^2.
+            acceleration(float): maximum acceleration in rev/s^2.
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
+
+        Raises:
+            TypeError: If acceleration is not a float.
+
         """
         self.logger.warning('"set_max_acceleration" is deprecated. '
                             'Please use "set_max_profile_acceleration" or '
@@ -276,6 +288,10 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             velocity: maximum velocity in rev/s.
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
+
+        Raises:
+            TypeError: If velocity is not a float.
+
         """
         self.mc.communication.set_register(
             self.MAX_VELOCITY_REGISTER,
@@ -314,6 +330,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             int: Position & velocity loop rate frequency in Hz.
+
         """
         return self.mc.communication.get_register(
             self.POSITION_AND_VELOCITY_LOOP_RATE_REGISTER,
@@ -416,6 +433,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             int: Status word.
+
         """
         return self.mc.communication.get_register(self.STATUS_WORD_REGISTER,
                                                   servo, axis)
@@ -429,6 +447,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             bool: ``True`` if motor is enabled, else ``False``.
+
         """
         status_word = self.mc.configuration.get_status_word(servo=servo,
                                                             axis=axis)
@@ -444,6 +463,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             bool: ``True`` if commutation feedback is aligned, else ``False``.
+
         """
         status_word = self.mc.configuration.get_status_word(servo=servo,
                                                             axis=axis)
@@ -458,6 +478,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             phasing_mode (PhasingMode): phasing mode.
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
+
         """
         self.mc.communication.set_register(self.PHASING_MODE_REGISTER,
                                            phasing_mode, servo, axis)
@@ -472,6 +493,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             PhasingMode: Phasing mode value.
+
         """
         phasing_mode = self.mc.communication.get_register(
             self.PHASING_MODE_REGISTER, servo, axis)
@@ -488,6 +510,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             mode (GeneratorMode): generator mode value.
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
+
         """
         self.mc.communication.set_register(self.GENERATOR_MODE_REGISTER,
                                            mode, servo, axis)
@@ -501,6 +524,11 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             pair_poles (int): motor pair poles-
             servo (str): servo alias to reference it. ``default`` by default.
             axis (int): servo axis. ``1`` by default.
+
+        Raises:
+            TypeError: If pair poles is not an int.
+            ingenialink.exceptions.ILValueError: If pair poles is less than 0.
+
         """
         self.mc.communication.set_register(self.MOTOR_POLE_PAIRS_REGISTER,
                                            pair_poles, servo=servo, axis=axis)
@@ -515,6 +543,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             int: Pair poles value.
+
         """
         return self.mc.communication.get_register(self.MOTOR_POLE_PAIRS_REGISTER,
                                                   servo=servo, axis=axis)
@@ -529,6 +558,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             int: STO register value.
+
         """
         return self.mc.communication.get_register(
             self.STO_STATUS_REGISTER, servo=servo, axis=axis
@@ -544,6 +574,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             int: return value of STO1 bit.
+
         """
         if self.get_sto_status(servo, axis) & self.STO1_ACTIVE_BIT:
             return 1
@@ -560,6 +591,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             int: return value of STO2 bit.
+
         """
         if self.get_sto_status(servo, axis) & self.STO2_ACTIVE_BIT:
             return 1
@@ -576,6 +608,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             int: return value of power supply bit.
+
         """
         if self.get_sto_status(servo, axis) & self.STO_SUPPLY_FAULT_BIT:
             return 1
@@ -592,6 +625,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             int: return value of abnormal fault bit.
+
         """
         if self.get_sto_status(servo, axis) & self.STO_ABNORMAL_FAULT_BIT:
             return 1
@@ -608,6 +642,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             int: return value of report bit.
+
         """
         if self.get_sto_status(servo, axis) & self.STO_REPORT_BIT:
             return 1
@@ -624,6 +659,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             bool: ``True`` if STO is active, else ``False``.
+
         """
         return self.get_sto_status(servo, axis) == self.STO_ACTIVE_STATE
 
@@ -637,6 +673,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             bool: ``True`` if STO is inactive, else ``False``.
+
         """
         return self.get_sto_status(servo, axis) == self.STO_INACTIVE_STATE
 
@@ -650,6 +687,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             bool: ``True`` if STO is abnormal latched, else ``False``.
+
         """
         return self.get_sto_status(servo, axis) == self.STO_LATCHED_STATE
 
