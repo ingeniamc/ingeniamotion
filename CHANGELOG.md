@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.5.4] - 2022-03-17
+### Changed
+- Connection status listeners are all set to False by default.
+- Function set_max_velocity no longer changes the profile velocity, instead it changes velocity.
+
+### Added
+- Support to multi-slave Ethernet, EoE and CANopen connections.
+- Function connect_servo_ecat_interface_ip in communication.
+- Function get_ifname_from_interface_ip in communication.
+- Function get_current_loop_rate in configuration.
+- Function set_profiler in configuration.
+- Function set_max_profile_acceleration in configuration.
+- Function set_max_profile_deceleration in configuration.
+- Function set_max_profile_velocity in configuration.
+
+### Fixed
+- Commutation analysis feedback now returns the proper drive errors.
+
+### Deprecated 
+- Deprecated set_max_acceleration in configuration.
+
+
 ## [0.5.3] - 2022-02-16
 ### Changed
 - Replaced ILerror exception with IMRegisterNotExist exception in base monitoring and disturbance.
