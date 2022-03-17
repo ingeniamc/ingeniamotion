@@ -181,6 +181,9 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
                              axis=DEFAULT_AXIS):
         """Update maximum acceleration register.
 
+        ..warning:: This function is deprecated. Please use
+        "set_max_profile_acceleration" or "set_profiler" instead.
+
         Args:
             acceleration(float): maximum acceleration in rev/s^2.
             servo (str): servo alias to reference it. ``default`` by default.
