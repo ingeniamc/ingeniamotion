@@ -108,7 +108,6 @@ class DriveTests(metaclass=MCMetaClass):
         Raises:
             TestError: In case the servo or setup configuration makes
                 impossible fulfilling the test
-            TypeError: If the value is of the wrong type.
         """
         return self.__feedback_test(SensorType.QEI2, servo, axis, apply_changes)
 
@@ -175,7 +174,6 @@ class DriveTests(metaclass=MCMetaClass):
         Raises:
             TestError: If servo or setup configuration makes impossible
                 complete the calibration.
-            TypeError: If the value is of the wrong type.
         """
         commutation = Phasing(self.mc, servo, axis)
         output = commutation.run()

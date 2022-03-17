@@ -136,6 +136,8 @@ class Errors(metaclass=MCMetaClass):
                 Error axis.
             is_warning (bool):
                 ``True`` if warning, else ``False``.
+        Raises:
+            ValueError: Index must be less than 32
         """
         return self.get_buffer_error_by_index(0, servo=servo, axis=axis)
 
@@ -157,6 +159,8 @@ class Errors(metaclass=MCMetaClass):
                 Error axis.
             is_warning (bool):
                 ``True`` if warning, else ``False``.
+        Raises:
+            ValueError: Index must be less than 32
         """
         if index >= self.MAXIMUM_ERROR_INDEX:
             raise ValueError('index must be less than 32')
@@ -256,6 +260,8 @@ class Errors(metaclass=MCMetaClass):
                 Error type
             error_message (str):
                 Error message
+        Raises:
+            KeyError: The error codes does not exist in the error's dictionary.
 
         """
         drive = self.mc.servos[servo]
