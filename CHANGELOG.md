@@ -19,7 +19,7 @@
 - Commutation analysis feedback now returns the proper drive errors.
 
 ### Deprecated 
-- Deprecated set_max_acceleration in configuration.
+- Deprecated set_max_acceleration in configuration use set_profiler or set_max_profile_acceleration.
 
 
 ## [0.5.3] - 2022-02-16
