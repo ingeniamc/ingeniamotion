@@ -13,6 +13,7 @@ class TestError(Exception):
 
 
 class BaseTest(ABC, Stoppable):
+    WARNING_BIT_MASK = 0x0FFFFFFF
 
     def __init__(self):
         self.backup_registers_names = None
@@ -51,6 +52,15 @@ class BaseTest(ABC, Stoppable):
                     self.logger.warning(e, axis=subnode)
                 except IMRegisterWrongAccess as e:
                     self.logger.warning(e, axis=subnode)
+
+    @Stoppable.stoppable
+    def show_error_message(self):
+        error_code, axis, warning = self.mc.errors.get_last_buffer_error(
+            servo=self.servo, axis=self.axis)
+        *_, error_msg = self.mc.errors.get_error_data(
+            error_code, servo=self.servo
+        )
+        raise TestError(error_msg)
 
     @abstractmethod
     def setup(self):

@@ -11,8 +11,7 @@ from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 
 
 class MotionController:
-    """Motion Controller.
-    """
+    """Motion Controller."""
 
     def __init__(self):
         self.__servos = {}

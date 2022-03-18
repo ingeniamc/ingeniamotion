@@ -127,8 +127,7 @@ class DriveTests(metaclass=MCMetaClass):
 
     def secondary_ssi_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
                            apply_changes=True):
-        """
-        Executes secondary SSI feedback test given a target servo and axis.
+        """ Executes secondary SSI feedback test given a target servo and axis.
         To know more about it see :func:`digital_halls_test`.
         """
         return self.__feedback_test(SensorType.BISSC2, servo, axis, apply_changes)
@@ -148,8 +147,7 @@ class DriveTests(metaclass=MCMetaClass):
 
     def commutation(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
                     apply_changes=True):
-        """
-        Executes a commutation calibration given a target servo and axis.
+        """Executes a commutation calibration given a target servo and axis.
         By default commutation will make changes in some drive registers
         like commutation angle offset and other suggested registers.
         To avoid it, set ``apply_changes`` to ``False``.

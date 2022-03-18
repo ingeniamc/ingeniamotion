@@ -103,6 +103,9 @@ class Capture(metaclass=MCMetaClass):
                 the older value will be removed and the newest will be added.
 
                 When the property data is read list are reset to a empty list.
+
+        Raises:
+            IMRegisterNotExist: If register does not exist in dictionary.
         """
         if isinstance(self.mc.servos[servo], CanopenServo):
             poller = CanopenPoller(self.mc.servos[servo], len(registers))
@@ -242,6 +245,11 @@ class Capture(metaclass=MCMetaClass):
         return disturbance
 
     def _check_version(self, servo):
+        """Checks the version of the monitoring based on a given servo.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+        """
         drive = self.mc._get_drive(servo)
         try:
             drive.read(self.monitoring_version_register)
@@ -364,6 +372,9 @@ class Capture(metaclass=MCMetaClass):
 
         Returns:
             int: Monitoring/Disturbance Status.
+
+        Raises:
+            IMRegisterNotExist: If the register doesn't exist.
         """
         return self.mc.communication.get_register(
             self.MONITORING_STATUS_REGISTER,
@@ -379,6 +390,9 @@ class Capture(metaclass=MCMetaClass):
 
         Returns:
             int: Monitoring Status.
+
+        Raises:
+            IMRegisterNotExist: If the register doesn't exist.
         """
         return self.mc.communication.get_register(
             self.MONITORING_STATUS_REGISTER,
@@ -397,6 +411,8 @@ class Capture(metaclass=MCMetaClass):
         Returns:
             int: Disturbance Status.
 
+        Raises:
+            IMRegisterNotExist: If the register doesn't exist.
         """
         if version is None:
             version = self._check_version(servo)
@@ -422,6 +438,8 @@ class Capture(metaclass=MCMetaClass):
         Returns:
             bool: True if monitoring is enabled, else False.
 
+        Raises:
+            IMRegisterNotExist: If the register doesn't exist.
         """
         monitor_status = self.get_monitoring_status(servo)
         return (monitor_status & self.MONITORING_STATUS_ENABLED_BIT) == 1
@@ -437,6 +455,8 @@ class Capture(metaclass=MCMetaClass):
         Returns:
             bool: True if disturbance is enabled, else False.
 
+        Raises:
+            IMRegisterNotExist: If the register doesn't exist.
         """
         monitor_status = self.get_disturbance_status(servo, version=version)
         return (monitor_status & self.DISTURBANCE_STATUS_ENABLED_BIT) == 1
@@ -453,6 +473,8 @@ class Capture(metaclass=MCMetaClass):
         Returns:
             MonitoringProcessStage: Current monitoring process stage.
 
+        Raises:
+            IMRegisterNotExist: If the register doesn't exist.
         """
         if version is None:
             version = self._check_version(servo=servo)
@@ -473,6 +495,9 @@ class Capture(metaclass=MCMetaClass):
 
         Returns:
             bool: True if monitoring has an available frame, else False.
+
+        Raises:
+            IMRegisterNotExist: If the register doesn't exist.
         """
         if version is None:
             version = self._check_version(servo=servo)
@@ -558,7 +583,6 @@ class Capture(metaclass=MCMetaClass):
 
         Returns:
             int: Max buffer size in bytes.
-
         """
         try:
             return self.mc.communication.get_register(

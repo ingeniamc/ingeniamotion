@@ -18,6 +18,10 @@ class Information(metaclass=MCMetaClass):
 
         Returns:
             ingenialink.register.Register: Register object.
+
+        Raises:
+            IMRegisterNotExist: If register does not exist in dictionary.
+
         """
         drive = self.mc.servos[servo]
         try:
@@ -36,6 +40,10 @@ class Information(metaclass=MCMetaClass):
 
         Returns:
             ingenialink.register.REG_DTYPE: Register dtype.
+
+        Raises:
+            IMRegisterNotExist: If register does not exist in dictionary.
+
         """
         register = self.register_info(register, axis=axis, servo=servo)
         return register.dtype
@@ -50,6 +58,10 @@ class Information(metaclass=MCMetaClass):
 
         Returns:
             ingenialink.register.REG_ACCESS: Register access.
+
+        Raises:
+            IMRegisterNotExist: If register does not exist in dictionary.
+
         """
         register = self.register_info(register, axis=axis, servo=servo)
         return register.access
@@ -64,6 +76,10 @@ class Information(metaclass=MCMetaClass):
 
         Returns:
             int, int: Register range, minimum and maximum.
+
+        Raises:
+            IMRegisterNotExist: If register does not exist in dictionary.
+
         """
         register = self.register_info(register, axis=axis, servo=servo)
         return register.range

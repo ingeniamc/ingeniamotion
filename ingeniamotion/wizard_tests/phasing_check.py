@@ -148,11 +148,13 @@ class PhasingCheck(BaseTest):
         i = 0
         delta_i = 0.1
         while not phasing_bit_latched:
-            if self.mc.configuration.is_motor_enabled(
+            if not self.mc.configuration.is_motor_enabled(
                 servo=self.servo, axis=self.axis
             ):
-                raise TestError("Motor phasing fail")
-            self.mc.motion.set_current_quadrature(0, servo=self.servo,
+                self.mc.errors.get_last_buffer_error(
+                    servo=self.servo, axis=self.axis)
+                self.show_error_message()
+            self.mc.motion.set_current_quadrature(i, servo=self.servo,
                                                   axis=self.axis)
             self.stoppable_sleep(0.1)
             i += delta_i
