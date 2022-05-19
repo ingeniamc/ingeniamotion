@@ -18,18 +18,6 @@ node(NODE_NAME) {
             checkout scm
         }
 
-        stage('Remove all previous files')
-            {
-                bat """
-                    rmdir /Q /S "_build"
-                    rmdir /Q /S "_deps"
-                    rmdir /Q /S "_install"
-                    rmdir /Q /S "_dist"
-                    rmdir /Q /S "build"
-                    rmdir /Q /S "_docs"
-                """
-            }
-
         stage('Install deps') {
             bat '''
                 python -m venv venv
