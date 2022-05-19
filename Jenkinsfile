@@ -21,20 +21,21 @@ node(NODE_NAME) {
         stage('Install deps') {
             bat '''
                 python -m venv venv
-                venv\\Scripts\\python.exe -m pip install -r requirements\\dev-requirements.txt
+                venv\\Scripts\\activate.bat
+                pip install -r requirements\\dev-requirements.txt
             '''
         }
 
         stage('Docs') {
             bat '''
-                venv\\Scripts\\python.exe -m sphinx-build -b html docs _docs
+                sphinx-build -b html docs _docs
             '''
         }
 
         stage('Build libraries')
         {
             bat '''
-                venv\\Scripts\\python.exe setup.py bdist_wheel
+                python setup.py bdist_wheel
             '''
         }
 
