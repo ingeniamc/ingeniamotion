@@ -1,0 +1,4 @@
+-r requirements.txt
+ingenialink>=6.2.3
+ingenialogger>=0.2.1
+ifaddr==0.1.7

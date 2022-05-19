@@ -12,7 +12,7 @@ def BRANCH_NAME_MASTER = "master"
 
 node(NODE_NAME) {
     deleteDir()
-    if (env.BRANCH_NAME == BRANCH_NAME_MASTER || env.BRANCH_NAME.contains(BRANCH_NAME_RELEASE))
+    if (true)
     {
         stage('Checkout') {
             checkout scm
@@ -27,26 +27,26 @@ node(NODE_NAME) {
                     rmdir /Q /S "_dist"
                     rmdir /Q /S "build"
                     rmdir /Q /S "_docs"
-                    del /f "Pipfile.lock"
                 """
             }
 
         stage('Install deps') {
             bat '''
-                pipenv install --dev
+                python -m venv venv
+                venv\\Scripts\\python.exe -m pip install -r requirements\\dev-requirements.txt
             '''
         }
 
         stage('Docs') {
             bat '''
-                pipenv run sphinx-build -b html docs _docs
+                venv\\Scripts\\python.exe -m sphinx-build -b html docs _docs
             '''
         }
 
         stage('Build libraries')
         {
             bat '''
-                pipenv run python setup.py bdist_wheel
+                venv\\Scripts\\python.exe setup.py bdist_wheel
             '''
         }
 
