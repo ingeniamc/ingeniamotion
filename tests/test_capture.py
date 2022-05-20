@@ -44,26 +44,27 @@ def test_create_monitoring_no_trigger(motion_controller,
     mc, alias = motion_controller
     mc.motion.set_operation_mode(OperationMode.VELOCITY, alias)
     max_frequency = mc.configuration.get_position_and_velocity_loop_rate(alias)
-    divider = 20
-    samples = 4000
+    divider = 40
+    samples = 2000
+    quarter_num_samples = int(samples / 4)
     freq = max_frequency/divider
     total_time = samples/freq
-    monitoring = mc.capture.create_monitoring(registers, divider,
-                                              total_time, servo=alias)
+    quarter_total_time = total_time/4
     mc.motion.move_to_position(0, alias)
     mc.motion.motor_enable(alias)
+    monitoring = mc.capture.create_monitoring(registers, divider,
+                                              total_time, servo=alias)
     mc.capture.enable_monitoring_disturbance(servo=alias)
     init = time.time()
-    quarter_total_time = total_time/4
     for i in range(1, 4):
         while init + i*quarter_total_time > time.time():
             pass
-        mc.motion.move_to_position(1000*i, alias)
+        mc.motion.move_to_position(quarter_num_samples*i, alias)
     data = monitoring.read_monitoring_data()
     assert samples == len(data[0])
     for index, value in enumerate(data[0]):
-        subindex = index % 1000
-        theo_value = index//1000 * 1000
+        subindex = index % quarter_num_samples
+        theo_value = index//quarter_num_samples * quarter_num_samples
         if subindex > 100:  # Ignore first 100 samples for each value change
             assert value == theo_value
 
