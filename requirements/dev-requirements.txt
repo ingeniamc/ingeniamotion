@@ -1,5 +1,11 @@
 -r requirements.txt
-ingenialink>=6.2.3
-ingenialogger>=0.2.1
-ifaddr==0.1.7
+sphinx==3.5.4
+sphinx-rtd-theme==1.0.0
+sphinxcontrib-bibtex==2.4.1
+matplotlib==3.3.4
+nbsphinx==0.8.7
+rst2pdf==0.98
+pytest==6.2.4
+pytest-cov==2.12.1
+pytest-mock==3.6.1
 wheel==0.37.1
