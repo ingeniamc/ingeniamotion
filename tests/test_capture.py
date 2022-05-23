@@ -129,14 +129,14 @@ def test_create_disturbance(motion_controller,
     mc, alias = motion_controller
     target_register = "CL_POS_SET_POINT_VALUE"
     max_frequency = mc.configuration.get_position_and_velocity_loop_rate(alias)
-    divider = 20
-    samples = 4000
+    divider = 40
+    samples = 2000
     freq = max_frequency/divider
     period = 1/freq
     data = []
-    data_subrange = 1000
+    data_subrange = samples // 4
     for i in range(samples//data_subrange):
-        data += [i * data_subrange] * 1000
+        data += [i * data_subrange] * data_subrange
     dist = mc.capture.create_disturbance(target_register, data, divider, servo=alias)
     init_time = time.time()
     mc.capture.enable_monitoring_disturbance(servo=alias)
@@ -144,7 +144,7 @@ def test_create_disturbance(motion_controller,
         time_now = time.time() - init_time
         current_value = mc.communication.get_register(target_register, alias)
         sample_num = int((time_now//period) % samples)
-        if sample_num % data_subrange < 10:
+        if sample_num % data_subrange < 15:
             continue
         assert current_value == data[sample_num]
 
