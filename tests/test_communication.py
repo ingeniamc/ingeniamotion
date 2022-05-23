@@ -248,12 +248,13 @@ def test_set_register_wrong_access(motion_controller):
 def test_get_sdo_register(read_config, motion_controller, uid, index,
                           subindex, dtype, value):
     eoe_comm = read_config["soem"]["eoe_comm"]
-    if not eoe_comm:
-        mc, alias = motion_controller
-        mc.communication.set_register(uid, value, servo=alias)
-        test_value = mc.communication.get_sdo_register(
-            index, subindex, dtype, servo=alias)
-        assert test_value == value
+    if eoe_comm:
+        pytest.skip("SDOs are not used in EOE communication")
+    mc, alias = motion_controller
+    mc.communication.set_register(uid, value, servo=alias)
+    test_value = mc.communication.get_sdo_register(
+        index, subindex, dtype, servo=alias)
+    assert test_value == value
 
 
 @pytest.mark.smoke
@@ -266,13 +267,14 @@ def test_get_sdo_register(read_config, motion_controller, uid, index,
 def test_set_sdo_register(read_config, motion_controller, uid, index,
                           subindex, dtype, value):
     eoe_comm = read_config["soem"]["eoe_comm"]
-    if not eoe_comm:
-        mc, alias = motion_controller
-        mc.communication.set_sdo_register(
-            index, subindex, dtype, value, servo=alias)
-        test_value = mc.communication.get_register(
-            uid, servo=alias)
-        assert test_value == value
+    if eoe_comm:
+        pytest.skip("SDOs are not used in EOE communication")
+    mc, alias = motion_controller
+    mc.communication.set_sdo_register(
+        index, subindex, dtype, value, servo=alias)
+    test_value = mc.communication.get_register(
+        uid, servo=alias)
+    assert test_value == value
 
 
 def dummy_callback(status, _, axis):
