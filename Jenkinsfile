@@ -18,35 +18,23 @@ node(NODE_NAME) {
             checkout scm
         }
 
-        stage('Remove all previous files')
-            {
-                bat """
-                    rmdir /Q /S "_build"
-                    rmdir /Q /S "_deps"
-                    rmdir /Q /S "_install"
-                    rmdir /Q /S "_dist"
-                    rmdir /Q /S "build"
-                    rmdir /Q /S "_docs"
-                    del /f "Pipfile.lock"
-                """
-            }
-
         stage('Install deps') {
             bat '''
-                pipenv install --dev
+                python -m venv venv
+                venv\\Scripts\\python.exe -m pip install -r requirements\\dev-requirements.txt
             '''
         }
 
         stage('Docs') {
             bat '''
-                pipenv run sphinx-build -b html docs _docs
+                 venv\\Scripts\\python.exe -m sphinx -b html docs _docs
             '''
         }
 
         stage('Build libraries')
         {
             bat '''
-                pipenv run python setup.py bdist_wheel
+                 venv\\Scripts\\python.exe setup.py bdist_wheel
             '''
         }
 

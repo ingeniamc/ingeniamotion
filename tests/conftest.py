@@ -105,3 +105,10 @@ def feedback_list(motion_controller):
                 mc.configuration.get_position_feedback(servo=alias),
                 mc.configuration.get_auxiliar_feedback(servo=alias)]
     return set(fdbk_lst)
+
+
+@pytest.fixture
+def commutation_teardown(motion_controller):
+    yield
+    mc, alias = motion_controller
+    mc.tests.commutation(servo=alias)
