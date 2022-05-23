@@ -18,7 +18,7 @@ STATUS_WORD_HOMING_ERROR_BIT = 0x2000
 STATUS_WORD_HOMING_ATTAINED_BIT = 0x1000
 STATUS_WORD_TARGET_REACHED_BIT = 0x400
 
-RELATIVE_ERROR_ALLOWED = 1e-2
+RELATIVE_ERROR_ALLOWED = 3e-2
 
 
 @pytest.fixture
@@ -163,7 +163,7 @@ def test_homing_on_index_pulse(motion_controller, feedback_list, direction):
     mc, alias = motion_controller
     homing_offset = 1000
     homing_timeout = 10000
-    zero_vel = 0.3
+    zero_vel = 0.1
     motor_enable, sensor_index = __check_index_pulse_is_allowed(feedback_list)
     mc.configuration.homing_on_index_pulse(homing_offset, direction,
                                            sensor_index, homing_timeout,

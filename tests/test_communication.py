@@ -15,11 +15,11 @@ def test_connect_servo_eoe(read_config):
     mc = MotionController()
     eoe_config = read_config["eoe"]
     assert "eoe_test" not in mc.servos
-    assert "ethernet" not in mc.net
+    assert "eoe_test" not in mc.net
     mc.communication.connect_servo_eoe(
         eoe_config["ip"], eoe_config["dictionary"], alias="eoe_test")
     assert "eoe_test" in mc.servos and mc.servos["eoe_test"] is not None
-    assert "ethernet" in mc.net and mc.net["ethernet"] is not None
+    assert "eoe_test" in mc.net and mc.net["eoe_test"] is not None
 
 
 @pytest.mark.smoke
@@ -38,11 +38,11 @@ def test_connect_servo_ethernet(read_config):
     mc = MotionController()
     eoe_config = read_config["eoe"]
     assert "eoe_test" not in mc.servos
-    assert "ethernet" not in mc.net
+    assert "eoe_test" not in mc.net
     mc.communication.connect_servo_ethernet(
         eoe_config["ip"], eoe_config["dictionary"], alias="eoe_test")
     assert "eoe_test" in mc.servos and mc.servos["eoe_test"] is not None
-    assert "ethernet" in mc.net and mc.net["ethernet"] is not None
+    assert "eoe_test" in mc.net and mc.net["eoe_test"] is not None
 
 
 @pytest.mark.smoke
