@@ -245,12 +245,15 @@ def test_set_register_wrong_access(motion_controller):
     ("CL_POS_SET_POINT_VALUE", 0x2020, 0, REG_DTYPE.S32, 1245),
     ("PROF_POS_OPTION_CODE", 0x2024, 0, REG_DTYPE.U16, 54),
 ])
-def test_get_sdo_register(motion_controller, uid, index, subindex, dtype, value):
-    mc, alias = motion_controller
-    mc.communication.set_register(uid, value, servo=alias)
-    test_value = mc.communication.get_sdo_register(
-        index, subindex, dtype, servo=alias)
-    assert test_value == value
+def test_get_sdo_register(read_config, motion_controller, uid, index,
+                          subindex, dtype, value):
+    eoe_comm = read_config["soem"]["eoe_comm"]
+    if not eoe_comm:
+        mc, alias = motion_controller
+        mc.communication.set_register(uid, value, servo=alias)
+        test_value = mc.communication.get_sdo_register(
+            index, subindex, dtype, servo=alias)
+        assert test_value == value
 
 
 @pytest.mark.smoke
@@ -260,13 +263,16 @@ def test_get_sdo_register(motion_controller, uid, index, subindex, dtype, value)
     ("CL_POS_SET_POINT_VALUE", 0x2020, 0, REG_DTYPE.S32, 1245),
     ("PROF_POS_OPTION_CODE", 0x2024, 0, REG_DTYPE.U16, 54),
 ])
-def test_set_sdo_register(motion_controller, uid, index, subindex, dtype, value):
-    mc, alias = motion_controller
-    mc.communication.set_sdo_register(
-        index, subindex, dtype, value, servo=alias)
-    test_value = mc.communication.get_register(
-        uid, servo=alias)
-    assert test_value == value
+def test_set_sdo_register(read_config, motion_controller, uid, index,
+                          subindex, dtype, value):
+    eoe_comm = read_config["soem"]["eoe_comm"]
+    if not eoe_comm:
+        mc, alias = motion_controller
+        mc.communication.set_sdo_register(
+            index, subindex, dtype, value, servo=alias)
+        test_value = mc.communication.get_register(
+            uid, servo=alias)
+        assert test_value == value
 
 
 def dummy_callback(status, _, axis):
