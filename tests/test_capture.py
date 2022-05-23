@@ -46,7 +46,7 @@ def test_create_monitoring_no_trigger(motion_controller,
     max_frequency = mc.configuration.get_position_and_velocity_loop_rate(alias)
     divider = 40
     samples = 2000
-    quarter_num_samples = int(samples / 4)
+    quarter_num_samples = samples // 4
     freq = max_frequency/divider
     total_time = samples/freq
     quarter_total_time = total_time/4
@@ -74,10 +74,10 @@ def test_create_monitoring_no_trigger(motion_controller,
 @pytest.mark.parametrize("trigger_mode, trigger_config, values_list", [
     (MonitoringSoCType.TRIGGER_EVENT_EDGE,
      MonitoringSoCConfig.TRIGGER_CONFIG_RISING,
-     [0, 1000, 2000, 3000]),
+     [0, 0.25, 0.5, 0.75]),
     (MonitoringSoCType.TRIGGER_EVENT_EDGE,
      MonitoringSoCConfig.TRIGGER_CONFIG_FALLING,
-     [3000, 2000, 1000, 0]),
+     [0.75, 0.5, 0.25, 0]),
 ])
 def test_create_monitoring_edge_trigger(motion_controller, trigger_mode, trigger_config,
                                         values_list, disable_monitoring_disturbance):
@@ -88,8 +88,10 @@ def test_create_monitoring_edge_trigger(motion_controller, trigger_mode, trigger
     mc, alias = motion_controller
     mc.motion.set_operation_mode(OperationMode.VELOCITY, alias)
     max_frequency = mc.configuration.get_position_and_velocity_loop_rate(alias)
-    divider = 20
-    samples = 4000
+    divider = 40
+    samples = 2000
+    quarter_num_samples = samples // 4
+    trigger_value = ((values_list[1] + values_list[2]) / 2) * samples
     freq = max_frequency/divider
     total_time = samples/freq
     monitoring = mc.capture.create_monitoring(
@@ -98,10 +100,10 @@ def test_create_monitoring_edge_trigger(motion_controller, trigger_mode, trigger
         trigger_mode=trigger_mode,
         trigger_config=trigger_config,
         trigger_signal=register,
-        trigger_value=1500,
+        trigger_value=trigger_value,
         servo=alias
     )
-    mc.motion.move_to_position(values_list[0], alias)
+    mc.motion.move_to_position(int(values_list[0] * samples), alias)
     mc.motion.motor_enable(alias)
     mc.capture.enable_monitoring_disturbance(servo=alias)
     time.sleep(1)
@@ -110,15 +112,13 @@ def test_create_monitoring_edge_trigger(motion_controller, trigger_mode, trigger
     for i in range(1, 4):
         while init + i*quarter_total_time > time.time():
             pass
-        mc.motion.move_to_position(values_list[i], alias)
+        mc.motion.move_to_position(int(values_list[i] * samples), alias)
     data = monitoring.read_monitoring_data()
     assert samples == len(data[0])
-    assert data[0][2000] == values_list[2]
-    assert data[0][1999] == values_list[1]
     for index, value in enumerate(data[0]):
-        subindex = index % 1000
-        theo_value = values_list[index//1000]
-        if 10 < subindex < 990:  # Ignore some samples near of value changes
+        subindex = index % quarter_num_samples
+        theo_value = int(values_list[index//quarter_num_samples] * samples)
+        if 10 < subindex < quarter_num_samples - 10:  # Ignore some samples near of value changes
             assert value == theo_value
 
 
