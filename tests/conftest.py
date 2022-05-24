@@ -1,7 +1,7 @@
 import json
 import pytest
 
-from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE
+from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE, SensorType
 from ingeniamotion import MotionController
 
 ALLOW_PROTOCOLS = ["eoe", "soem", "canopen"]
@@ -112,3 +112,24 @@ def commutation_teardown(motion_controller):
     yield
     mc, alias = motion_controller
     mc.tests.commutation(servo=alias)
+
+
+@pytest.fixture
+def clean_and_restore_feedbacks(motion_controller):
+    mc, alias = motion_controller
+    comm = mc.configuration.get_commutation_feedback(servo=alias)
+    ref = mc.configuration.get_reference_feedback(servo=alias)
+    vel = mc.configuration.get_velocity_feedback(servo=alias)
+    pos = mc.configuration.get_position_feedback(servo=alias)
+    aux = mc.configuration.get_auxiliar_feedback(servo=alias)
+    mc.configuration.set_commutation_feedback(SensorType.INTGEN, servo=alias)
+    mc.configuration.set_reference_feedback(SensorType.INTGEN, servo=alias)
+    mc.configuration.set_velocity_feedback(SensorType.INTGEN, servo=alias)
+    mc.configuration.set_position_feedback(SensorType.INTGEN, servo=alias)
+    mc.configuration.set_auxiliar_feedback(SensorType.QEI, servo=alias)
+    yield
+    mc.configuration.set_commutation_feedback(comm, servo=alias)
+    mc.configuration.set_reference_feedback(ref, servo=alias)
+    mc.configuration.set_velocity_feedback(vel, servo=alias)
+    mc.configuration.set_position_feedback(pos, servo=alias)
+    mc.configuration.set_auxiliar_feedback(aux, servo=alias)
