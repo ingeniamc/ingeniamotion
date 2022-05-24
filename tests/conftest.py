@@ -83,10 +83,9 @@ def disable_motor_fixture(motion_controller):
 @pytest.fixture
 def motion_controller_teardown(motion_controller, pytestconfig, read_config):
     yield motion_controller
-    protocol = pytestconfig.getoption("--protocol")
     mc, alias = motion_controller
     mc.configuration.load_configuration(
-        read_config[protocol]["config_file"], servo=alias)
+        read_config, servo=alias)
     mc.motion.fault_reset(servo=alias)
 
 
