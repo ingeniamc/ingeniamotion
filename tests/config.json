@@ -8,6 +8,7 @@
   ],
   "soem": [
   {
+    "ip": "192.168.3.1",
     "index": 5,
     "dictionary": "//172.29.177.9/distext/products/EVE-XCR/firmware/2.0.0/eve-xcr-e_eoe_2.0.0.xdf",
     "slave": 1,
