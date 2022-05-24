@@ -31,7 +31,7 @@ if (true){
 
             stage('Update FW to drives') {
                 bat """
-                    venv\\Scripts\\python.exe tests\\load_FWs.py %1
+                    venv\\Scripts\\python.exe tests\\load_FWs.py ecat
                 """
             }
 
@@ -63,7 +63,7 @@ if (true){
 
             stage('Update FW to drives') {
                 bat """
-                    venv\\Scripts\\python.exe tests\\load_FWs.py %1
+                    venv\\Scripts\\python.exe tests\\load_FWs.py can
                 """
             }
 
