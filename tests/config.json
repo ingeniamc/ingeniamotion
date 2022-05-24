@@ -1,23 +1,23 @@
 {
   "eoe": {
-    "ip": "192.168.2.22",
-    "dictionary": "eve-net-e_eoe_1.7.2.xdf",
-    "config_file": "eve-test-config.xcf"
+    "ip": "192.168.2.10",
+    "dictionary": "//172.29.177.9/distext/products/EVE-XCR/firmware/2.0.0/eve-xcr-c_eth_2.0.0.xdf",
+    "config_file": "//dist.ingenia/dist/setups/setup_eve_can/1.2.0/config.xml"
   },
   "soem": {
-    "index": 4,
-    "dictionary": "eve-net-e_eoe_1.7.2.xdf",
+    "index": 5,
+    "dictionary": "//172.29.177.9/distext/products/EVE-XCR/firmware/2.0.0/eve-xcr-e_eoe_2.0.0.xdf",
     "slave": 1,
-    "config_file": "eve-test-config.xcf",
+    "config_file": "//dist.ingenia/dist/setups/setup_eve_ecat/1.2.0/config.xml",
     "eoe_comm": true
   },
   "canopen": {
     "device": "pcan",
-    "dictionary": "eve-net-c_can_1.8.1.xdf",
-    "eds": "eve-net-c_1.8.1.eds",
-    "node_id": 32,
+    "dictionary": "//172.29.177.9/distext/products/EVE-XCR/firmware/2.0.0/eve-xcr-c_can_2.0.0.xdf",
+    "eds": "//172.29.177.9/distext/products/EVE-XCR/firmware/2.0.0/eve-xcr-c_2.0.0.eds",
+    "node_id": 20,
     "baudrate": 1000000,
     "channel": 0,
-    "config_file": "eve-test-config_canopen.xcf"
+    "config_file": "//dist.ingenia/dist/setups/setup_eve_can/1.2.0/config.xml"
   }
 }
