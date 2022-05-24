@@ -13,10 +13,7 @@ def BRANCH_NAME_RELEASE = "release"
 def BRANCH_NAME_DEVELOP = "develop"
 def BRANCH_NAME_MASTER = "master"
 
-if (env.BRANCH_NAME == BRANCH_NAME_DEVELOP ||
-env.BRANCH_NAME.contains(BRANCH_NAME_RELEASE) ||
-(env.CHANGE_ID && env.BRANCH_NAME.startsWith("PR-") &&
-                (env.CHANGE_TARGET == BRANCH_NAME_DEVELOP || env.CHANGE_TARGET.contains(BRANCH_NAME_RELEASE)))){
+if (true){
     lock('test_execution_lock_ecat') {
         node(ECAT_NODE) {
             deleteDir()
@@ -120,13 +117,3 @@ if (env.BRANCH_NAME == BRANCH_NAME_MASTER ||
         }
     }
 }
-
-
-
-
-
-
-
-
-
-
