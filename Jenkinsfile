@@ -38,6 +38,7 @@ if (true){
             stage('Run EtherCAT embedded tests') {
                 bat '''
                     venv\\Scripts\\python.exe -m pytest tests --protocol soem --html=pytest_ecat_report.html --self-contained-html
+                    exit /b 0
                 '''
             }
 
@@ -70,12 +71,14 @@ if (true){
             stage('Run CANopen tests') {
                 bat '''
                     venv\\Scripts\\python.exe -m pytest tests --protocol canopen --html=pytest_can_report.html --self-contained-html
+                    exit /b 0
                 '''
             }
 
             stage('Run Ethernet tests') {
                 bat '''
                     venv\\Scripts\\python.exe -m pytest tests --protocol eoe --html=pytest_eth_report.html --self-contained-html
+                    exit /b 0
                 '''
             }
 
