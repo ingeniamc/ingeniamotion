@@ -5,9 +5,4 @@ sphinxcontrib-bibtex==2.4.1
 matplotlib==3.3.4
 nbsphinx==0.8.7
 rst2pdf==0.98
-pytest==6.2.4
-pytest-cov==2.12.1
-pytest-mock==3.6.1
 wheel==0.37.1
-ping3==3.0.2
-pytest-html==3.1.1
