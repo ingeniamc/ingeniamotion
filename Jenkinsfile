@@ -37,8 +37,12 @@ if (true){
 
             stage('Run EtherCAT embedded tests') {
                 bat '''
-                    venv\\Scripts\\python.exe -m pytest tests --protocol soem
+                    venv\\Scripts\\python.exe -m pytest tests --protocol soem --html=pytest_ecat_report.html --self-contained-html
                 '''
+            }
+
+            stage('Save test results') {
+                archiveArtifacts artifacts: '*.html'
             }
         }
     }
@@ -65,14 +69,18 @@ if (true){
 
             stage('Run CANopen tests') {
                 bat '''
-                    venv\\Scripts\\python.exe -m pytest tests --protocol canopen
+                    venv\\Scripts\\python.exe -m pytest tests --protocol canopen --html=pytest_can_report.html --self-contained-html
                 '''
             }
 
             stage('Run Ethernet tests') {
                 bat '''
-                    venv\\Scripts\\python.exe -m pytest tests --protocol eoe
+                    venv\\Scripts\\python.exe -m pytest tests --protocol eoe --html=pytest_eth_report.html --self-contained-html
                 '''
+            }
+
+            stage('Save test results') {
+                archiveArtifacts artifacts: '*.html'
             }
         }
     }
