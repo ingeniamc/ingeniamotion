@@ -21,7 +21,7 @@ dirname = os.path.dirname(__file__)
 def setup_command():
     parser = argparse.ArgumentParser(description='Run feedback test')
     parser.add_argument('comm', help='communication protocol',
-                        choices=['can', 'ecat', 'eth'])
+                        choices=['canopen', 'soem', 'eoe'])
     return parser.parse_args()
 
 
@@ -113,11 +113,11 @@ def main(comm, config):
     for index, servo_conf in enumerate(servo_list):
         logger.info("Upload FW comm %s, index: %d", comm, index)
         try:
-            if comm == "can":
+            if comm == "canopen":
                 load_can(servo_conf, mc)
-            if comm == "ecat":
+            if comm == "soem":
                 load_ecat(servo_conf, mc)
-            if comm == "eth":
+            if comm == "eoe":
                 load_eth(servo_conf, mc)
         except (ILError, IMException) as e:
             logger.exception(e)
