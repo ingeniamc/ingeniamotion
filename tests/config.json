@@ -10,7 +10,7 @@
   "soem": [
   {
     "ip": "192.168.3.1",
-    "index": 5,
+    "index": 2,
     "dictionary": "//172.29.177.9/distext/products/EVE-XCR/firmware/2.0.0/eve-xcr-e_eoe_2.0.0.xdf",
     "slave": 1,
     "config_file": "//dist.ingenia/dist/setups/setup_eve_ecat/1.2.0/config.xml",
