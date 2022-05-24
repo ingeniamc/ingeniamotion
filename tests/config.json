@@ -5,6 +5,12 @@
     "dictionary": "//172.29.177.9/distext/products/EVE-XCR/firmware/2.0.0/eve-xcr-c_eth_2.0.0.xdf",
     "config_file": "//dist.ingenia/dist/setups/setup_eve_can/1.2.0/config.xml",
 	"fw_file": "//172.29.177.9/distext/products/EVE-XCR/firmware/2.0.0/eve-xcr-c_2.0.0.sfu"	
+  },
+  {
+    "ip": "192.168.2.11",
+    "dictionary": "//172.29.177.9/distext/products/CAP-XCR/firmware/2.0.1/cap-xcr-c_eth_2.0.1.xdf",
+    "config_file": "//dist.ingenia/dist/setups/setup_cap_can/1.1.0/config.xml",
+	"fw_file": "//172.29.177.9/distext/products/CAP-XCR/firmware/2.0.1/cap-xcr-c_2.0.1.lfu"
   }
   ],
   "soem": [
@@ -17,6 +23,16 @@
     "eoe_comm": true,
 	"fw_file": "//172.29.177.9/distext/products/EVE-XCR/firmware/2.0.0/eve-xcr-e_2.0.0.sfu",
 	"boot_in_app": true	
+  },
+  {
+    "ip": "192.168.3.1",
+    "index": 2,
+    "dictionary": "//172.29.177.9/distext/products/CAP-XCR/firmware/2.0.1/cap-xcr-e_eoe_2.0.1.xdf",
+    "slave": 2,
+    "config_file": "//dist.ingenia/dist/setups/setup_cap_ecat/1.1.0/config.xml",
+    "eoe_comm": true,
+	"fw_file": "//172.29.177.9/distext/products/CAP-XCR/firmware/2.0.1/cap-xcr-e_2.0.1.lfu",
+	"boot_in_app": false
   }
   ],
   "canopen": [
@@ -29,6 +45,16 @@
     "channel": 0,
     "config_file": "//dist.ingenia/dist/setups/setup_eve_can/1.2.0/config.xml",
 	"fw_file": "//172.29.177.9/distext/products/EVE-XCR/firmware/2.0.0/eve-xcr-c_2.0.0.sfu"	
+  },
+  {
+    "device": "pcan",
+    "dictionary": "//172.29.177.9/distext/products/CAP-XCR/firmware/2.0.1/cap-xcr-c_can_2.0.1.xdf",
+    "eds": "//172.29.177.9/distext/products/CAP-XCR/firmware/2.0.1/cap-xcr-c_2.0.1.eds",
+    "node_id": 21,
+    "baudrate": 1000000,
+    "channel": 0,
+    "config_file": "//dist.ingenia/dist/setups/setup_cap_can/1.1.0/config.xml",
+	"fw_file": "//172.29.177.9/distext/products/CAP-XCR/firmware/2.0.1/cap-xcr-c_2.0.1.lfu"
   }
   ]
 }
