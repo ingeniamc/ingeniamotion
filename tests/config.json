@@ -1,17 +1,22 @@
 {
-  "eoe": {
+  "eoe": [
+  {
     "ip": "192.168.2.10",
     "dictionary": "//172.29.177.9/distext/products/EVE-XCR/firmware/2.0.0/eve-xcr-c_eth_2.0.0.xdf",
     "config_file": "//dist.ingenia/dist/setups/setup_eve_can/1.2.0/config.xml"
-  },
-  "soem": {
+  }
+  ],
+  "soem": [
+  {
     "index": 5,
     "dictionary": "//172.29.177.9/distext/products/EVE-XCR/firmware/2.0.0/eve-xcr-e_eoe_2.0.0.xdf",
     "slave": 1,
     "config_file": "//dist.ingenia/dist/setups/setup_eve_ecat/1.2.0/config.xml",
     "eoe_comm": true
-  },
-  "canopen": {
+  }
+  ],
+  "canopen": [
+  {
     "device": "pcan",
     "dictionary": "//172.29.177.9/distext/products/EVE-XCR/firmware/2.0.0/eve-xcr-c_can_2.0.0.xdf",
     "eds": "//172.29.177.9/distext/products/EVE-XCR/firmware/2.0.0/eve-xcr-c_2.0.0.eds",
@@ -20,4 +25,5 @@
     "channel": 0,
     "config_file": "//dist.ingenia/dist/setups/setup_eve_can/1.2.0/config.xml"
   }
+  ]
 }
