@@ -63,6 +63,7 @@ def restore_resolution_registers(motion_controller):
         ABS2_1_SINGLE_TURN_REGISTER, abs_2_1_sing_turn, servo=alias)
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_commutation_feedback(motion_controller, sensor):
@@ -75,6 +76,7 @@ def test_get_commutation_feedback(motion_controller, sensor):
     assert sensor == test_feedback
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_set_commutation_feedback(motion_controller, sensor):
@@ -86,6 +88,7 @@ def test_set_commutation_feedback(motion_controller, sensor):
     assert sensor == register_value
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor, category", SENSOR_TYPE_AND_CATEGORY)
 def test_get_commutation_feedback_category(motion_controller, sensor, category):
@@ -95,6 +98,7 @@ def test_get_commutation_feedback_category(motion_controller, sensor, category):
     assert test_category == category
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_commutation_feedback_resolution(motion_controller, sensor):
@@ -112,6 +116,7 @@ def test_get_commutation_feedback_resolution(motion_controller, sensor):
         assert test_res_1 == test_res_2
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_reference_feedback(motion_controller, sensor):
@@ -124,6 +129,7 @@ def test_get_reference_feedback(motion_controller, sensor):
     assert sensor == test_feedback
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_set_reference_feedback(motion_controller, sensor):
@@ -135,6 +141,7 @@ def test_set_reference_feedback(motion_controller, sensor):
     assert sensor == register_value
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor, category", SENSOR_TYPE_AND_CATEGORY)
 def test_get_reference_feedback_category(motion_controller, sensor, category):
@@ -144,6 +151,7 @@ def test_get_reference_feedback_category(motion_controller, sensor, category):
     assert test_category == category
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_reference_feedback_resolution(motion_controller, sensor):
@@ -161,6 +169,7 @@ def test_get_reference_feedback_resolution(motion_controller, sensor):
         assert test_res_1 == test_res_2
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_velocity_feedback(motion_controller, sensor):
@@ -173,6 +182,7 @@ def test_get_velocity_feedback(motion_controller, sensor):
     assert sensor == test_feedback
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_set_velocity_feedback(motion_controller, sensor):
@@ -184,6 +194,7 @@ def test_set_velocity_feedback(motion_controller, sensor):
     assert sensor == register_value
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor, category", SENSOR_TYPE_AND_CATEGORY)
 def test_get_velocity_feedback_category(motion_controller, sensor, category):
@@ -193,6 +204,7 @@ def test_get_velocity_feedback_category(motion_controller, sensor, category):
     assert test_category == category
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_velocity_feedback_resolution(motion_controller, sensor):
@@ -210,6 +222,7 @@ def test_get_velocity_feedback_resolution(motion_controller, sensor):
         assert test_res_1 == test_res_2
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_position_feedback(motion_controller, sensor):
@@ -222,6 +235,7 @@ def test_get_position_feedback(motion_controller, sensor):
     assert sensor == test_feedback
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_set_position_feedback(motion_controller, sensor):
@@ -233,6 +247,7 @@ def test_set_position_feedback(motion_controller, sensor):
     assert sensor == register_value
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor, category", SENSOR_TYPE_AND_CATEGORY)
 def test_get_position_feedback_category(motion_controller, sensor, category):
@@ -242,6 +257,7 @@ def test_get_position_feedback_category(motion_controller, sensor, category):
     assert test_category == category
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_position_feedback_resolution(motion_controller, sensor):
@@ -259,6 +275,7 @@ def test_get_position_feedback_resolution(motion_controller, sensor):
         assert test_res_1 == test_res_2
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", [
     SensorType.ABS1,
@@ -279,6 +296,7 @@ def test_get_auxiliar_feedback(motion_controller, sensor):
     assert sensor == test_feedback
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", [
     SensorType.ABS1,
@@ -298,6 +316,7 @@ def test_set_auxiliar_feedback(motion_controller, sensor):
     assert sensor == register_value
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor, category", [
     (SensorType.ABS1, SensorCategory.ABSOLUTE),
@@ -315,6 +334,7 @@ def test_get_auxiliar_feedback_category(motion_controller, sensor, category):
     assert test_category == category
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", [
     SensorType.ABS1,
@@ -340,6 +360,7 @@ def test_get_auxiliar_feedback_resolution(motion_controller, sensor):
         assert test_res_1 == test_res_2
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("restore_resolution_registers")
 @pytest.mark.parametrize("single_turn, resolution", ABSOLUTE_ENCODER_RESOLUTION_TEST_VALUES)
 def test_get_absolute_encoder_1_resolution(motion_controller, single_turn, resolution):
@@ -350,6 +371,7 @@ def test_get_absolute_encoder_1_resolution(motion_controller, single_turn, resol
     assert resolution == test_res
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("restore_resolution_registers")
 @pytest.mark.parametrize("resolution", INCREMENTAL_ENCODER_RESOLUTION_TEST_VALUES)
 def test_get_incremental_encoder_1_resolution(motion_controller, resolution):
@@ -363,6 +385,7 @@ def test_get_incremental_encoder_1_resolution(motion_controller, resolution):
     assert resolution == test_res
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("restore_resolution_registers")
 @pytest.mark.parametrize("pair_poles, resolution", [
     (1, 6),
@@ -380,6 +403,7 @@ def test_get_digital_halls_resolution(motion_controller, pair_poles, resolution)
     assert resolution == test_res
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("restore_resolution_registers")
 @pytest.mark.parametrize("single_turn, resolution", ABSOLUTE_ENCODER_RESOLUTION_TEST_VALUES)
 def test_get_secondary_ssi_resolution(motion_controller, single_turn, resolution):
@@ -390,6 +414,7 @@ def test_get_secondary_ssi_resolution(motion_controller, single_turn, resolution
     assert resolution == test_res
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("restore_resolution_registers")
 @pytest.mark.parametrize("single_turn, resolution", ABSOLUTE_ENCODER_RESOLUTION_TEST_VALUES)
 def test_get_absolute_encoder_2_resolution(motion_controller, single_turn, resolution):
@@ -400,6 +425,7 @@ def test_get_absolute_encoder_2_resolution(motion_controller, single_turn, resol
     assert resolution == test_res
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("restore_resolution_registers")
 @pytest.mark.parametrize("resolution", INCREMENTAL_ENCODER_RESOLUTION_TEST_VALUES)
 def test_get_incremental_encoder_2_resolution(motion_controller, resolution):
