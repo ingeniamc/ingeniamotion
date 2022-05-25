@@ -144,7 +144,7 @@ def test_create_disturbance(motion_controller,
         time_now = time.time() - init_time
         current_value = mc.communication.get_register(target_register, alias)
         sample_num = int((time_now//period) % samples)
-        if sample_num % data_subrange < 15:
+        if sample_num % data_subrange < 20:
             continue
         assert current_value == data[sample_num]
 

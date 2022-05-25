@@ -53,10 +53,10 @@ def test_get_trigger_type(motion_controller, monitoring, trigger_type):
 @pytest.mark.usefixtures("mon_map_registers")
 @pytest.mark.usefixtures("disable_monitoring_disturbance")
 @pytest.mark.parametrize("block, timeout, sample_t, wait, result", [
-    (False, 5, 2, 2, True),
-    (True, 5, 2, 0, True),
-    (False, 5, 2, 0, False),
-    (True, 1, 3, 0, False),
+    (False, 5, 0.8, 2, True),
+    (True, 6, 0.8, 0, True),
+    (False, 5, 0.8, 0, False),
+    (True, 0.3, 0.8, 0, False),
 ])
 def test_raise_forced_trigger(motion_controller, monitoring, block,
                               timeout, sample_t, wait, result):
@@ -78,7 +78,7 @@ def test_raise_forced_trigger(motion_controller, monitoring, block,
 def test_raise_forced_trigger_fail(motion_controller, monitoring):
     mc, alias = motion_controller
     monitoring.set_trigger(MonitoringSoCType.TRIGGER_EVENT_AUTO)
-    monitoring.configure_sample_time(2, 0)
+    monitoring.configure_sample_time(0.8, 0)
     mc.capture.enable_monitoring_disturbance(servo=alias)
     with pytest.raises(IMMonitoringError):
         monitoring.raise_forced_trigger()
@@ -90,8 +90,8 @@ def test_raise_forced_trigger_fail(motion_controller, monitoring):
 @pytest.mark.usefixtures("mon_map_registers")
 @pytest.mark.usefixtures("disable_monitoring_disturbance")
 @pytest.mark.parametrize("timeout, sample_t, result", [
-    (5, 2, True),
-    (1, 3, False),
+    (5, 0.8, True),
+    (0.3, 0.8, False),
 ])
 def test_read_monitoring_data_forced_trigger(motion_controller, monitoring,
                                              timeout, sample_t, result):
