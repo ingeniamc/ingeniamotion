@@ -15,11 +15,11 @@ def test_connect_servo_eoe(read_config):
     mc = MotionController()
     eoe_config = read_config["eoe"]
     assert "eoe_test" not in mc.servos
-    assert "ethernet" not in mc.net
+    assert "eoe_test" not in mc.net
     mc.communication.connect_servo_eoe(
         eoe_config["ip"], eoe_config["dictionary"], alias="eoe_test")
     assert "eoe_test" in mc.servos and mc.servos["eoe_test"] is not None
-    assert "ethernet" in mc.net and mc.net["ethernet"] is not None
+    assert "eoe_test" in mc.net and mc.net["eoe_test"] is not None
 
 
 @pytest.mark.smoke
@@ -38,11 +38,11 @@ def test_connect_servo_ethernet(read_config):
     mc = MotionController()
     eoe_config = read_config["eoe"]
     assert "eoe_test" not in mc.servos
-    assert "ethernet" not in mc.net
+    assert "eoe_test" not in mc.net
     mc.communication.connect_servo_ethernet(
         eoe_config["ip"], eoe_config["dictionary"], alias="eoe_test")
     assert "eoe_test" in mc.servos and mc.servos["eoe_test"] is not None
-    assert "ethernet" in mc.net and mc.net["ethernet"] is not None
+    assert "eoe_test" in mc.net and mc.net["eoe_test"] is not None
 
 
 @pytest.mark.smoke
@@ -245,7 +245,11 @@ def test_set_register_wrong_access(motion_controller):
     ("CL_POS_SET_POINT_VALUE", 0x2020, 0, REG_DTYPE.S32, 1245),
     ("PROF_POS_OPTION_CODE", 0x2024, 0, REG_DTYPE.U16, 54),
 ])
-def test_get_sdo_register(motion_controller, uid, index, subindex, dtype, value):
+def test_get_sdo_register(read_config, motion_controller, uid, index,
+                          subindex, dtype, value):
+    eoe_comm = read_config["soem"]["eoe_comm"]
+    if eoe_comm:
+        pytest.skip("SDOs are not used in EOE communication")
     mc, alias = motion_controller
     mc.communication.set_register(uid, value, servo=alias)
     test_value = mc.communication.get_sdo_register(
@@ -260,7 +264,11 @@ def test_get_sdo_register(motion_controller, uid, index, subindex, dtype, value)
     ("CL_POS_SET_POINT_VALUE", 0x2020, 0, REG_DTYPE.S32, 1245),
     ("PROF_POS_OPTION_CODE", 0x2024, 0, REG_DTYPE.U16, 54),
 ])
-def test_set_sdo_register(motion_controller, uid, index, subindex, dtype, value):
+def test_set_sdo_register(read_config, motion_controller, uid, index,
+                          subindex, dtype, value):
+    eoe_comm = read_config["soem"]["eoe_comm"]
+    if eoe_comm:
+        pytest.skip("SDOs are not used in EOE communication")
     mc, alias = motion_controller
     mc.communication.set_sdo_register(
         index, subindex, dtype, value, servo=alias)
