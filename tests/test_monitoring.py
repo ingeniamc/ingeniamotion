@@ -2,7 +2,7 @@ import time
 
 import pytest
 
-from ingeniamotion.enums import MonitoringSoCType
+from ingeniamotion.enums import MonitoringSoCType, MonitoringSoCConfig
 from ingeniamotion.exceptions import IMMonitoringError
 
 MONITOR_START_CONDITION_TYPE_REGISTER = "MON_CFG_SOC_TYPE"
@@ -104,3 +104,155 @@ def test_read_monitoring_data_forced_trigger(motion_controller, monitoring,
         assert len(test_output[0]) == monitoring.samples_number
     else:
         assert len(test_output[0]) == 0
+
+
+@pytest.mark.soem
+@pytest.mark.eoe
+@pytest.mark.parametrize("prescaler", list(range(2, 11, 2)))
+def test_set_monitoring_frequency(motion_controller, monitoring, prescaler):
+    mc, alias = motion_controller
+    monitoring.set_frequency(prescaler)
+    value = mc.communication.get_register(
+        monitoring.MONITORING_FREQUENCY_DIVIDER_REGISTER,
+        servo=alias,
+        axis=0
+    )
+    assert value == prescaler
+
+
+@pytest.mark.soem
+@pytest.mark.eoe
+def test_set_monitoring_frequency_exception(monitoring):
+    prescaler = 0.5
+    with pytest.raises(ValueError):
+        monitoring.set_frequency(prescaler)
+
+
+@pytest.mark.soem
+@pytest.mark.eoe
+def test_monitoring_map_registers_size_exception(monitoring):
+    registers = [{"axis": 1, "name": "CL_POS_FBK_VALUE"}]
+    monitoring.samples_number = monitoring.max_sample_number
+    with pytest.raises(IMMonitoringError):
+        monitoring.map_registers(registers)
+
+
+@pytest.mark.soem
+@pytest.mark.eoe
+def test_monitoring_map_registers_fail(monitoring):
+    registers = []
+    with pytest.raises(IMMonitoringError):
+        monitoring.map_registers(registers)
+
+
+@pytest.mark.soem
+@pytest.mark.eoe
+@pytest.mark.usefixtures("mon_map_registers")
+@pytest.mark.parametrize(
+    "trigger_type, edge_condition, trigger_signal, trigger_value", [
+        (MonitoringSoCType.TRIGGER_EVENT_AUTO, None, None, None),
+        (MonitoringSoCType.TRIGGER_EVENT_FORCED, None, None, None),
+        (MonitoringSoCType.TRIGGER_EVENT_EDGE,
+         MonitoringSoCConfig.TRIGGER_CONFIG_RISING,
+         {"axis": 1, "name": "CL_POS_FBK_VALUE"},
+         0.5)
+])
+def test_monitoring_set_trigger(motion_controller, monitoring, trigger_type,
+                                edge_condition, trigger_signal,
+                                trigger_value):
+    mc, alias = motion_controller
+    monitoring.set_trigger(trigger_type, edge_condition,
+                           trigger_signal, trigger_value)
+    value = mc.communication.get_register(
+        MONITOR_START_CONDITION_TYPE_REGISTER, servo=alias, axis=0)
+    assert value == trigger_type
+
+
+@pytest.mark.soem
+@pytest.mark.eoe
+@pytest.mark.usefixtures("mon_map_registers")
+@pytest.mark.parametrize(
+    "trigger_type, edge_condition, trigger_signal, trigger_value", [
+        (MonitoringSoCType.TRIGGER_EVENT_EDGE, None,
+         {"axis": 1, "name": "CL_POS_FBK_VALUE"}, 0.5),
+        (MonitoringSoCType.TRIGGER_EVENT_EDGE,
+         MonitoringSoCConfig.TRIGGER_CONFIG_RISING, None, 0.5),
+        (MonitoringSoCType.TRIGGER_EVENT_EDGE,
+         MonitoringSoCConfig.TRIGGER_CONFIG_RISING,
+         {"axis": 1, "name": "CL_POS_FBK_VALUE"}, None)
+])
+def test_monitoring_set_trigger_exceptions(monitoring, trigger_type,
+                                          edge_condition, trigger_signal,
+                                          trigger_value):
+    with pytest.raises(TypeError):
+        monitoring.set_trigger(trigger_type, edge_condition,
+                               trigger_signal, trigger_value)
+
+
+@pytest.mark.soem
+@pytest.mark.eoe
+def test_configure_number_samples(motion_controller, monitoring):
+    mc, alias = motion_controller
+    total_num_samples = 500
+    trigger_delay_samples = 100
+    monitoring.configure_number_samples(total_num_samples,
+                                        trigger_delay_samples)
+    value = mc.communication.get_register(
+        monitoring.MONITORING_WINDOW_NUMBER_SAMPLES_REGISTER,
+        servo=alias,
+        axis=0
+    )
+    assert value == total_num_samples
+    value = mc.communication.get_register(
+        monitoring.MONITORING_TRIGGER_DELAY_SAMPLES_REGISTER,
+        servo=alias,
+        axis=0
+    )
+    assert value == trigger_delay_samples
+
+
+@pytest.mark.soem
+@pytest.mark.eoe
+@pytest.mark.parametrize("total_num_samples, trigger_delay_samples", [
+                          (500, 510), (510, -500)
+])
+def test_configure_number_samples_exceptions(monitoring, total_num_samples,
+                                             trigger_delay_samples):
+    with pytest.raises(ValueError):
+        monitoring.configure_number_samples(total_num_samples,
+                                            trigger_delay_samples)
+
+
+@pytest.mark.soem
+@pytest.mark.eoe
+def test_configure_sample_time(motion_controller, monitoring):
+    mc, alias = motion_controller
+    total_time = 5
+    sampling_freq = 1e4
+    monitoring.sampling_freq = sampling_freq
+    trigger_delay = total_time // 2
+    total_num_samples = int(sampling_freq * total_time)
+    trigger_delay_samples = int(((total_time / 2) - trigger_delay)
+                                * sampling_freq)
+    monitoring.configure_sample_time(total_time, trigger_delay)
+    value = mc.communication.get_register(
+        monitoring.MONITORING_WINDOW_NUMBER_SAMPLES_REGISTER,
+        servo=alias,
+        axis=0
+    )
+    assert value == total_num_samples
+    value = mc.communication.get_register(
+        monitoring.MONITORING_TRIGGER_DELAY_SAMPLES_REGISTER,
+        servo=alias,
+        axis=0
+    )
+    assert value == trigger_delay_samples
+
+
+@pytest.mark.soem
+@pytest.mark.eoe
+@pytest.mark.parametrize("total_time, sign", [(5, 1), (5, -1)])
+def test_configure_sample_time_exception(monitoring, total_time, sign):
+    trigger_delay = sign * ((total_time // 2) + 1)
+    with pytest.raises(ValueError):
+        monitoring.configure_sample_time(total_time, trigger_delay)
