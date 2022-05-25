@@ -173,6 +173,8 @@ def test_mcb_synchronization_fail(motion_controller):
         mc.capture.mcb_synchronization(servo=alias)
 
 
+@pytest.mark.soem
+@pytest.mark.eoe
 @pytest.mark.smoke
 def test_disturbance_max_sample_size(motion_controller):
     mc, alias = motion_controller
@@ -184,6 +186,8 @@ def test_disturbance_max_sample_size(motion_controller):
     assert max_sample_size == value
 
 
+@pytest.mark.soem
+@pytest.mark.eoe
 @pytest.mark.smoke
 def test_monitoring_max_sample_size(motion_controller):
     mc, alias = motion_controller
