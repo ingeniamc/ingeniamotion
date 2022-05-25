@@ -237,7 +237,7 @@ def test_set_register_wrong_access(motion_controller):
 ])
 def test_get_sdo_register(read_config, motion_controller, uid, index,
                           subindex, dtype, value):
-    eoe_comm = read_config["soem"]["eoe_comm"]
+    eoe_comm = read_config["eoe_comm"]
     if eoe_comm:
         pytest.skip("SDOs are not used in EOE communication")
     mc, alias = motion_controller
@@ -256,7 +256,7 @@ def test_get_sdo_register(read_config, motion_controller, uid, index,
 ])
 def test_set_sdo_register(read_config, motion_controller, uid, index,
                           subindex, dtype, value):
-    eoe_comm = read_config["soem"]["eoe_comm"]
+    eoe_comm = read_config["eoe_comm"]
     if eoe_comm:
         pytest.skip("SDOs are not used in EOE communication")
     mc, alias = motion_controller
