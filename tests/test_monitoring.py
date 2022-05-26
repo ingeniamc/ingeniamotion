@@ -392,3 +392,13 @@ def test_stop_reading_data(motion_controller, monitoring):
     assert len(test_output[0]) == 0
     assert (time.time() - init_time) < timeout
 
+
+@pytest.mark.smoke
+def test_monitoring_max_sample_size(motion_controller):
+    mc, alias = motion_controller
+    target_register = mc.capture.MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER
+    axis = 0
+    max_sample_size = mc.capture.monitoring_max_sample_size(servo=alias)
+    drive = mc.servos[alias]
+    value = drive.read(target_register, subnode=axis)
+    assert max_sample_size == value

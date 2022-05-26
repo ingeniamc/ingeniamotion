@@ -171,25 +171,3 @@ def test_mcb_synchronization_fail(motion_controller):
     mc.motion.motor_enable(servo=alias)
     with pytest.raises(IMStatusWordError):
         mc.capture.mcb_synchronization(servo=alias)
-
-
-@pytest.mark.smoke
-def test_disturbance_max_sample_size(motion_controller):
-    mc, alias = motion_controller
-    target_register = mc.capture.DISTURBANCE_MAXIMUM_SAMPLE_SIZE_REGISTER
-    axis = 0
-    max_sample_size = mc.capture.disturbance_max_sample_size(servo=alias)
-    drive = mc.servos[alias]
-    value = drive.read(target_register, subnode=axis)
-    assert max_sample_size == value
-
-
-@pytest.mark.smoke
-def test_monitoring_max_sample_size(motion_controller):
-    mc, alias = motion_controller
-    target_register = mc.capture.MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER
-    axis = 0
-    max_sample_size = mc.capture.monitoring_max_sample_size(servo=alias)
-    drive = mc.servos[alias]
-    value = drive.read(target_register, subnode=axis)
-    assert max_sample_size == value
