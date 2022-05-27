@@ -172,7 +172,7 @@ def test_monitoring_map_registers_fail(monitoring):
          MonitoringSoCConfig.TRIGGER_CONFIG_RISING,
          {"axis": 1, "name": "CL_POS_FBK_VALUE"},
          0.5)
-])
+    ])
 def test_monitoring_set_trigger(motion_controller, monitoring, trigger_type,
                                 edge_condition, trigger_signal,
                                 trigger_value):
@@ -196,10 +196,10 @@ def test_monitoring_set_trigger(motion_controller, monitoring, trigger_type,
         (MonitoringSoCType.TRIGGER_EVENT_EDGE,
          MonitoringSoCConfig.TRIGGER_CONFIG_RISING,
          {"axis": 1, "name": "CL_POS_FBK_VALUE"}, None)
-])
+    ])
 def test_monitoring_set_trigger_exceptions(monitoring, trigger_type,
-                                          edge_condition, trigger_signal,
-                                          trigger_value):
+                                           edge_condition, trigger_signal,
+                                           trigger_value):
     with pytest.raises(TypeError):
         monitoring.set_trigger(trigger_type, edge_condition,
                                trigger_signal, trigger_value)
@@ -333,11 +333,11 @@ def test_read_monitoring_data_no_rearm(motion_controller, monitoring):
     mc.capture.enable_monitoring_disturbance(servo=alias)
     time.sleep(wait)
     trigger_raised = monitoring.raise_forced_trigger(block, timeout)
-    assert trigger_raised == True
+    assert trigger_raised
     test_output = monitoring.read_monitoring_data()
     assert len(test_output[0]) > 0
     trigger_raised = monitoring.raise_forced_trigger(block, timeout)
-    assert trigger_raised == False
+    assert not trigger_raised
     test_output = monitoring.read_monitoring_data()
     assert len(test_output[0]) == 0
 
@@ -360,7 +360,7 @@ def test_rearm_monitoring(motion_controller, monitoring):
     time.sleep(wait)
     for _ in range(3):
         trigger_raised = monitoring.raise_forced_trigger(block, timeout)
-        assert trigger_raised == True
+        assert trigger_raised
         test_output = monitoring.read_monitoring_data()
         assert len(test_output[0]) > 0
         monitoring.rearm_monitoring()
@@ -373,6 +373,7 @@ def run_read_monitoring_data_and_stop(monitoring, timeout):
     test_thread.start()
     monitoring.stop_reading_data()
     return test_thread.join()
+
 
 @pytest.mark.soem
 @pytest.mark.eoe
