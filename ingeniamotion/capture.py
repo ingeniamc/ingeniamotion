@@ -243,9 +243,10 @@ class Capture(metaclass=MCMetaClass):
         """
         drive = self.mc._get_drive(servo)
         try:
-            drive.read(self.MONITORING_VERSION_REGISTER, subnode=0)
+            self.mc.communication.get_register(
+                self.MONITORING_VERSION_REGISTER, servo=servo, axis=0)
             return MonitoringVersion.MONITORING_V3
-        except ILError:
+        except IMRegisterNotExist:
             # The Monitoring V3 is NOT available
             pass
         try:
