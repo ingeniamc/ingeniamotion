@@ -35,6 +35,7 @@ def test_create_poller(motion_controller):
 
 @pytest.mark.soem
 @pytest.mark.eoe
+@pytest.mark.canopen
 def test_create_monitoring_no_trigger(motion_controller,
                                       disable_monitoring_disturbance):
     registers = [{
@@ -71,6 +72,7 @@ def test_create_monitoring_no_trigger(motion_controller,
 
 @pytest.mark.soem
 @pytest.mark.eoe
+@pytest.mark.canopen
 @pytest.mark.parametrize("trigger_mode, trigger_config, values_list", [
     (MonitoringSoCType.TRIGGER_EVENT_EDGE,
      MonitoringSoCConfig.TRIGGER_CONFIG_RISING,
@@ -124,6 +126,7 @@ def test_create_monitoring_edge_trigger(motion_controller, trigger_mode, trigger
 
 @pytest.mark.soem
 @pytest.mark.eoe
+@pytest.mark.canopen
 def test_create_disturbance(motion_controller,
                             disable_monitoring_disturbance):
     mc, alias = motion_controller
@@ -176,6 +179,7 @@ def test_mcb_synchronization_fail(motion_controller):
 @pytest.mark.soem
 @pytest.mark.eoe
 @pytest.mark.smoke
+@pytest.mark.canopen
 def test_disturbance_max_sample_size(motion_controller):
     mc, alias = motion_controller
     target_register = mc.capture.DISTURBANCE_MAXIMUM_SAMPLE_SIZE_REGISTER
@@ -189,6 +193,7 @@ def test_disturbance_max_sample_size(motion_controller):
 @pytest.mark.soem
 @pytest.mark.eoe
 @pytest.mark.smoke
+@pytest.mark.canopen
 def test_monitoring_max_sample_size(motion_controller):
     mc, alias = motion_controller
     target_register = mc.capture.MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER
