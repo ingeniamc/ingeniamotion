@@ -1,9 +1,7 @@
 from ingenialink.exceptions import ILError
 from ingenialink.ipb.poller import IPBPoller
-from ingenialink.ipb.register import IPBRegister
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.canopen.poller import CanopenPoller
-from ingenialink.canopen.register import CanopenRegister
 
 from ingeniamotion.disturbance import Disturbance
 from ingeniamotion.monitoring.base_monitoring import Monitoring
@@ -12,7 +10,7 @@ from ingeniamotion.monitoring.monitoring_v3 import MonitoringV3
 from ingeniamotion.exceptions import IMRegisterNotExist, IMMonitoringError
 from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.enums import MonitoringVersion, MonitoringProcessStage,\
-    MonitoringSoCType, MonitoringSoCConfig, REG_DTYPE, REG_ACCESS
+    MonitoringSoCType, MonitoringSoCConfig
 
 
 class Capture(metaclass=MCMetaClass):
