@@ -26,20 +26,7 @@ class Capture(metaclass=MCMetaClass):
 
     MINIMUM_BUFFER_SIZE = 8192
 
-    monitoring_version_register_ipb = IPBRegister(
-        "MON_DIS_VERSION",
-        "-",
-        "CONFIG",
-        REG_DTYPE.U32,
-        REG_ACCESS.RO,
-        0x00BA,
-        subnode=0
-    )
-
-    monitoring_version_register_can = CanopenRegister(
-        identifier='', units='', subnode=0, idx=0x58BA, subidx=0x00, cyclic='CONFIG',
-        dtype=REG_DTYPE.U32, access=REG_ACCESS.RO
-    )
+    MONITORING_VERSION_REGISTER = 'MON_DIST_VERSION'
 
     MONITORING_STATUS_ENABLED_BIT = 0x1
     DISTURBANCE_STATUS_ENABLED_BIT = 0x1
@@ -258,11 +245,7 @@ class Capture(metaclass=MCMetaClass):
         """
         drive = self.mc._get_drive(servo)
         try:
-            if isinstance(drive, CanopenServo):
-                version_register = self.monitoring_version_register_can
-            else:
-                version_register = self.monitoring_version_register_ipb
-            drive.read(version_register)
+            drive.read(self.MONITORING_VERSION_REGISTER, subnode=0)
             return MonitoringVersion.MONITORING_V3
         except ILError:
             # The Monitoring V3 is NOT available
