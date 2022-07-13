@@ -6,6 +6,7 @@ from collections.abc import Iterable
 from ingeniamotion.enums import MonitoringVersion, REG_DTYPE
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 from .exceptions import IMDisturbanceError, IMStatusWordError
+from ingenialink.ipb.register import IPBRegister
 
 
 def check_disturbance_disabled(func):
@@ -139,7 +140,10 @@ class Disturbance:
                                          .format(register))
             channel["dtype"] = dtype
             address_offset = self.REGISTER_MAP_OFFSET * (subnode - 1)
-            mapped_reg = register_obj.address + address_offset
+            if isinstance(register_obj, IPBRegister):
+                mapped_reg = register_obj.address + address_offset
+            else:
+                mapped_reg = register_obj.idx
             drive.disturbance_set_mapped_register(ch_idx, mapped_reg,
                                                   subnode, dtype.value,
                                                   self.__data_type_size[dtype])

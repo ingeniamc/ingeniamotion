@@ -33,8 +33,6 @@ def test_create_poller(motion_controller):
         assert pytest.approx(tared_ts // 1 * 0.2) == value
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 def test_create_monitoring_no_trigger(motion_controller,
                                       disable_monitoring_disturbance):
     registers = [{
@@ -69,8 +67,6 @@ def test_create_monitoring_no_trigger(motion_controller,
             assert value == theo_value
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 @pytest.mark.parametrize("trigger_mode, trigger_config, values_list", [
     (MonitoringSoCType.TRIGGER_EVENT_EDGE,
      MonitoringSoCConfig.TRIGGER_CONFIG_RISING,
@@ -122,8 +118,6 @@ def test_create_monitoring_edge_trigger(motion_controller, trigger_mode, trigger
             assert value == theo_value
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 def test_create_disturbance(motion_controller,
                             disable_monitoring_disturbance):
     mc, alias = motion_controller
@@ -149,8 +143,6 @@ def test_create_disturbance(motion_controller,
         assert current_value == data[sample_num]
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 @pytest.mark.smoke
 def test_mcb_synchronization(mocker, motion_controller):
     mc, alias = motion_controller
@@ -163,8 +155,6 @@ def test_mcb_synchronization(mocker, motion_controller):
     disable_mon.assert_called_once_with(servo=alias)
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 @pytest.mark.smoke
 def test_mcb_synchronization_fail(motion_controller):
     mc, alias = motion_controller
@@ -173,8 +163,6 @@ def test_mcb_synchronization_fail(motion_controller):
         mc.capture.mcb_synchronization(servo=alias)
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 @pytest.mark.smoke
 def test_disturbance_max_sample_size(motion_controller):
     mc, alias = motion_controller
@@ -186,8 +174,6 @@ def test_disturbance_max_sample_size(motion_controller):
     assert max_sample_size == value
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 @pytest.mark.smoke
 def test_monitoring_max_sample_size(motion_controller):
     mc, alias = motion_controller
