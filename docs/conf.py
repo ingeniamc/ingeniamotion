@@ -35,7 +35,8 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
-    'rst2pdf.pdfbuilder'
+    'rst2pdf.pdfbuilder',
+    'm2r2'
 ]
 
 autodoc_member_order = 'bysource'
