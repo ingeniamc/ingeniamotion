@@ -9,6 +9,7 @@ from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 from ingeniamotion.exceptions import IMMonitoringError
 from ingeniamotion.enums import MonitoringProcessStage, \
     MonitoringSoCType, MonitoringSoCConfig, REG_DTYPE
+from ingenialink.ipb.register import IPBRegister
 
 
 def check_monitoring_disabled(func):
@@ -143,7 +144,10 @@ class Monitoring(ABC):
             address_offset = self.REGISTER_MAP_OFFSET * (subnode - 1)
             register_obj = self.mc.info.register_info(
                 register, subnode, servo=self.servo)
-            mapped_reg = register_obj.address + address_offset
+            if isinstance(register_obj, IPBRegister):
+                mapped_reg = register_obj.address + address_offset
+            else:
+                mapped_reg = register_obj.idx
             drive.monitoring_set_mapped_register(ch_idx, mapped_reg,
                                                  subnode, dtype.value,
                                                  self._data_type_size[dtype])

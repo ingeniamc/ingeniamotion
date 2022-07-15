@@ -6,47 +6,39 @@
  */
 
 
-def NODE_NAME = "sw"
+def SW_NODE = "sw"
+def ECAT_NODE = "ecat-test-slave"
+def CAN_NODE = "canopen-test-slave"
 def BRANCH_NAME_RELEASE = "release"
+def BRANCH_NAME_DEVELOP = "develop"
 def BRANCH_NAME_MASTER = "master"
 
-node(NODE_NAME) {
-    deleteDir()
-    if (env.BRANCH_NAME == BRANCH_NAME_MASTER || env.BRANCH_NAME.contains(BRANCH_NAME_RELEASE))
-    {
+if (env.BRANCH_NAME == BRANCH_NAME_MASTER ||
+ env.BRANCH_NAME.contains(BRANCH_NAME_RELEASE) ||
+ (env.CHANGE_ID && env.BRANCH_NAME.startsWith("PR-") && env.CHANGE_TARGET.contains(BRANCH_NAME_RELEASE))) {
+    node(SW_NODE) {
+        deleteDir()
         stage('Checkout') {
             checkout scm
         }
 
-        stage('Remove all previous files')
-            {
-                bat """
-                    rmdir /Q /S "_build"
-                    rmdir /Q /S "_deps"
-                    rmdir /Q /S "_install"
-                    rmdir /Q /S "_dist"
-                    rmdir /Q /S "build"
-                    rmdir /Q /S "_docs"
-                    del /f "Pipfile.lock"
-                """
-            }
-
         stage('Install deps') {
             bat '''
-                pipenv install --dev
+                python -m venv venv
+                venv\\Scripts\\python.exe -m pip install -r requirements\\dev-requirements.txt
             '''
         }
 
         stage('Docs') {
             bat '''
-                pipenv run sphinx-build -b html docs _docs
+                 venv\\Scripts\\python.exe -m sphinx -b html docs _docs
             '''
         }
 
         stage('Build libraries')
         {
             bat '''
-                pipenv run python setup.py bdist_wheel
+                 venv\\Scripts\\python.exe setup.py bdist_wheel
             '''
         }
 
@@ -58,4 +50,52 @@ node(NODE_NAME) {
             archiveArtifacts artifacts: 'dist/*, docs.zip'
         }
     }
+}
+
+if (env.BRANCH_NAME == BRANCH_NAME_DEVELOP ||
+env.BRANCH_NAME.contains(BRANCH_NAME_RELEASE) ||
+(env.CHANGE_ID && env.BRANCH_NAME.startsWith("PR-") &&
+(env.CHANGE_TARGET == BRANCH_NAME_DEVELOP || env.CHANGE_TARGET.contains(BRANCH_NAME_RELEASE)))){
+    lock('test_execution_lock_can') {
+        node(CAN_NODE) {
+            deleteDir()
+            stage('Checkout') {
+                checkout scm
+            }
+
+            stage('Install deps') {
+                bat '''
+                    python -m venv venv
+                    venv\\Scripts\\python.exe -m pip install -r requirements\\test-requirements.txt
+                '''
+            }
+
+            stage('Update FW to drives') {
+                bat """
+                    venv\\Scripts\\python.exe tests\\load_FWs.py canopen
+                """
+            }
+
+            stage('Run CANopen tests') {
+                bat '''
+                    venv\\Scripts\\python.exe -m pytest tests --protocol canopen --slave 0 --html=pytest_can_slave_0_report.html --self-contained-html
+                    venv\\Scripts\\python.exe -m pytest tests --protocol canopen --slave 1 --html=pytest_can_slave_1_report.html --self-contained-html
+                    exit /b 0
+                '''
+            }
+
+            stage('Run Ethernet tests') {
+                bat '''
+                    venv\\Scripts\\python.exe -m pytest tests --protocol eoe --slave 0 --html=pytest_eth_slave_0_report.html --self-contained-html
+                    venv\\Scripts\\python.exe -m pytest tests --protocol eoe --slave 1 --html=pytest_eth_slave_1_report.html --self-contained-html
+                    exit /b 0
+                '''
+            }
+
+            stage('Save test results') {
+                archiveArtifacts artifacts: '*.html'
+            }
+        }
+    }
+
 }

@@ -14,14 +14,21 @@ POSITIVE_HOMING_SWITCH_REGISTER = "IO_IN_POS_HOM_SWITCH"
 NEGATIVE_HOMING_SWITCH_REGISTER = "IO_IN_NEG_HOM_SWITCH"
 VELOCITY_SET_POINT_REGISTER = "CL_VEL_SET_POINT_VALUE"
 
+STATUS_WORD_HOMING_ERROR_BIT = 0x2000
+STATUS_WORD_HOMING_ATTAINED_BIT = 0x1000
+STATUS_WORD_TARGET_REACHED_BIT = 0x400
+
+RELATIVE_ERROR_ALLOWED = 3e-2
+
 
 @pytest.fixture
 def initial_position(motion_controller):
     mc, alias = motion_controller
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
     mc.motion.motor_enable(servo=alias)
+    last_pos = mc.motion.get_actual_position(servo=alias)
     position = mc.configuration.get_position_feedback_resolution(servo=alias)//2
-    mc.motion.move_to_position(position, servo=alias, blocking=True)
+    mc.motion.move_to_position(position+last_pos, servo=alias, blocking=True)
     mc.motion.motor_disable(servo=alias)
     return position
 
@@ -62,7 +69,10 @@ def test_set_homing_timeout(motion_controller, homing_timeout):
 def test_homing_on_current_position(motion_controller, homing_offset):
     mc, alias = motion_controller
     mc.configuration.homing_on_current_position(homing_offset, servo=alias)
-    assert mc.motion.get_actual_position(servo=alias) == homing_offset
+    feedback_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
+    assert pytest.approx(
+        mc.motion.get_actual_position(servo=alias),
+        abs=feedback_resolution*RELATIVE_ERROR_ALLOWED) == homing_offset
 
 
 @pytest.mark.smoke
@@ -118,18 +128,13 @@ def test_homing_on_switch_limit_timeout(motion_controller):
     assert pytest.approx(mc.motion.get_actual_velocity(servo=alias)) == 0
     mc.motion.motor_enable(servo=alias)
     mc.motion.target_latch(servo=alias)
+    time.sleep(1)
     assert mc.motion.get_actual_velocity(servo=alias) != 0
-    time.sleep(homing_timeout/1000+1)
+    time.sleep(homing_timeout/1000)
     assert pytest.approx(mc.motion.get_actual_velocity(servo=alias)) == 0
 
 
-@pytest.mark.usefixtures("initial_position")
-@pytest.mark.parametrize("direction", [1, 0])
-def test_homing_on_index_pulse(motion_controller, feedback_list, direction):
-    mc, alias = motion_controller
-    homing_offset = 1000
-    homing_timeout = 10000
-    zero_vel = 0.3
+def __check_index_pulse_is_allowed(feedback_list):
     motor_enable = True
     if SensorType.QEI in feedback_list:
         sensor_index = 0
@@ -138,12 +143,34 @@ def test_homing_on_index_pulse(motion_controller, feedback_list, direction):
     else:
         sensor_index = 1
         motor_enable = False
+    return motor_enable, sensor_index
+
+
+def __check_homing_was_successful(mc, alias, timeout_ms):
+    init_time = time.time()
+    while init_time + timeout_ms/1000 > time.time():
+        status_word = mc.configuration.get_status_word(servo=alias)
+        homing_error = bool(status_word & STATUS_WORD_HOMING_ERROR_BIT)
+        homing_attained = bool(status_word & STATUS_WORD_HOMING_ATTAINED_BIT)
+        if (not homing_error) & homing_attained:
+            return True
+    return False
+
+
+@pytest.mark.usefixtures("initial_position")
+@pytest.mark.parametrize("direction", [1, 0])
+def test_homing_on_index_pulse(motion_controller, feedback_list, direction):
+    mc, alias = motion_controller
+    homing_offset = 1000
+    homing_timeout = 10000
+    zero_vel = 0.1
+    motor_enable, sensor_index = __check_index_pulse_is_allowed(feedback_list)
     mc.configuration.homing_on_index_pulse(homing_offset, direction,
                                            sensor_index, homing_timeout,
                                            zero_vel, servo=alias,
                                            motor_enable=motor_enable)
     if motor_enable:
-        time.sleep(5)
+        assert __check_homing_was_successful(mc, alias, homing_timeout)
     test_offset = mc.communication.get_register(HOMING_OFFSET_REGISTER, servo=alias)
     test_timeout = mc.communication.get_register(HOMING_TIMEOUT_REGISTER, servo=alias)
     test_hom_mode = mc.communication.get_register(HOMING_MODE_REGISTER, servo=alias)
@@ -164,7 +191,10 @@ def test_homing_on_index_pulse(motion_controller, feedback_list, direction):
     if motor_enable:
         resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
         actual_position = mc.motion.get_actual_position(servo=alias)
-        assert pytest.approx(actual_position, abs=resolution/20.) == homing_offset
+        assert pytest.approx(
+            actual_position,
+            abs=resolution*RELATIVE_ERROR_ALLOWED
+        ) == homing_offset
 
 
 @pytest.mark.smoke
