@@ -1,4 +1,4 @@
-__version__ = '0.5.4'
+__version__ = '0.5.5'
 """ str: Library version. """
 from .motion_controller import MotionController
 from . import enums
