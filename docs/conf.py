@@ -35,7 +35,8 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
-    'rst2pdf.pdfbuilder'
+    'rst2pdf.pdfbuilder',
+    'm2r2'
 ]
 
 autodoc_member_order = 'bysource'
@@ -65,4 +66,4 @@ pdf_name = u"ingeniamotion v{}".format(ingeniamotion.__version__)
 pdf_documents = [('index', pdf_name, u'Ingeniamotion', author), ]
 
 intersphinx_mapping = {'python': ('https://docs.python.org/3.6', None),
-                       'ingenialink': ('https://distext.ingeniamc.com/doc/ingenialink-python/6.2.3', None)}
+                       'ingenialink': ('https://distext.ingeniamc.com/doc/ingenialink-python/6.4.1', None)}

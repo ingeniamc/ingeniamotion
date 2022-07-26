@@ -189,6 +189,7 @@ def test_feedback_stop(motion_controller, sensor):
         assert reg_values[reg] == mc.communication.get_register(reg, servo=alias)
 
 
+@pytest.mark.usefixtures("commutation_teardown")
 def test_commutation_stop(motion_controller):
     mc, alias = motion_controller
     test = Phasing(mc, alias, 1)
@@ -198,6 +199,7 @@ def test_commutation_stop(motion_controller):
         assert reg_values[reg] == mc.communication.get_register(reg, servo=alias)
 
 
+@pytest.mark.usefixtures("commutation_teardown")
 def test_phasing_check_stop(motion_controller):
     mc, alias = motion_controller
     test = PhasingCheck(mc, alias, 1)

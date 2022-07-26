@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.5] - 2022-07-26
+### Added
+- Support monitoring/disturbance with CANopen protocol.
+- Feedback tests.
+- Monitoring/disturbance tests.
+
+
 ## [0.5.4] - 2022-03-17
 ### Changed
 - Connection status listeners are all set to False by default.

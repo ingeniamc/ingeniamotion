@@ -1,6 +1,5 @@
 from ingenialink.exceptions import ILError
 from ingenialink.ipb.poller import IPBPoller
-from ingenialink.ipb.register import IPBRegister
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.canopen.poller import CanopenPoller
 
@@ -11,7 +10,7 @@ from ingeniamotion.monitoring.monitoring_v3 import MonitoringV3
 from ingeniamotion.exceptions import IMRegisterNotExist, IMMonitoringError
 from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.enums import MonitoringVersion, MonitoringProcessStage,\
-    MonitoringSoCType, MonitoringSoCConfig, REG_DTYPE, REG_ACCESS
+    MonitoringSoCType, MonitoringSoCConfig
 
 
 class Capture(metaclass=MCMetaClass):
@@ -25,15 +24,7 @@ class Capture(metaclass=MCMetaClass):
 
     MINIMUM_BUFFER_SIZE = 8192
 
-    monitoring_version_register = IPBRegister(
-        "MON_DIS_VERSION",
-        "-",
-        "CONFIG",
-        REG_DTYPE.U32,
-        REG_ACCESS.RO,
-        0x00BA,
-        subnode=0
-    )
+    MONITORING_VERSION_REGISTER = 'MON_DIST_VERSION'
 
     MONITORING_STATUS_ENABLED_BIT = 0x1
     DISTURBANCE_STATUS_ENABLED_BIT = 0x1
@@ -252,9 +243,10 @@ class Capture(metaclass=MCMetaClass):
         """
         drive = self.mc._get_drive(servo)
         try:
-            drive.read(self.monitoring_version_register)
+            self.mc.communication.get_register(
+                self.MONITORING_VERSION_REGISTER, servo=servo, axis=0)
             return MonitoringVersion.MONITORING_V3
-        except ILError:
+        except IMRegisterNotExist:
             # The Monitoring V3 is NOT available
             pass
         try:

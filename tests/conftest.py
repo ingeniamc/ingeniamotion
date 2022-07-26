@@ -1,7 +1,7 @@
 import json
 import pytest
 
-from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE
+from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE, SensorType
 from ingeniamotion import MotionController
 
 ALLOW_PROTOCOLS = ["eoe", "soem", "canopen"]
@@ -10,6 +10,8 @@ ALLOW_PROTOCOLS = ["eoe", "soem", "canopen"]
 def pytest_addoption(parser):
     parser.addoption("--protocol", action="store", default="eoe",
                      help="eoe, soem", choices=ALLOW_PROTOCOLS)
+    parser.addoption("--slave", type="int", default=0,
+                     help="Slave index in config.json")
 
 
 def pytest_collection_modifyitems(config, items):
@@ -25,33 +27,32 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture(scope="session")
-def read_config():
+def read_config(request):
+    slave = request.config.getoption("--slave")
+    protocol = request.config.getoption("--protocol")
     config = 'tests/config.json'
     with open(config, "r") as fp:
         contents = json.load(fp)
-    return contents
+    return contents[protocol][slave]
 
 
 def connect_eoe(mc, config, alias):
-    config_eoe = config["eoe"]
     mc.communication.connect_servo_eoe(
-        config_eoe["ip"], config_eoe["dictionary"], alias=alias)
+        config["ip"], config["dictionary"], alias=alias)
 
 
 def connect_soem(mc, config, alias):
-    config_soem = config["soem"]
     mc.communication.connect_servo_ecat_interface_index(
-        config_soem["index"], config_soem["dictionary"],
-        config_soem["slave"], eoe_comm=config_soem["eoe_comm"], alias=alias)
+        config["index"], config["dictionary"],
+        config["slave"], eoe_comm=config["eoe_comm"], alias=alias)
 
 
 def connect_canopen(mc, config, alias):
-    config_canopen = config["canopen"]
-    device = CAN_DEVICE(config_canopen["device"])
-    baudrate = CAN_BAUDRATE(config_canopen["baudrate"])
+    device = CAN_DEVICE(config["device"])
+    baudrate = CAN_BAUDRATE(config["baudrate"])
     mc.communication.connect_servo_canopen(
-        device, config_canopen["dictionary"], config_canopen["eds"],
-        config_canopen["node_id"], baudrate, config_canopen["channel"],
+        device, config["dictionary"], config["eds"],
+        config["node_id"], baudrate, config["channel"],
         alias=alias)
 
 
@@ -67,7 +68,7 @@ def motion_controller(pytestconfig, read_config):
     elif protocol == "canopen":
         connect_canopen(mc, read_config, alias)
     mc.configuration.load_configuration(
-        read_config[protocol]["config_file"], servo=alias)
+        read_config["config_file"], servo=alias)
     yield mc, alias
     mc.communication.disconnect(alias)
 
@@ -82,10 +83,9 @@ def disable_motor_fixture(motion_controller):
 @pytest.fixture
 def motion_controller_teardown(motion_controller, pytestconfig, read_config):
     yield motion_controller
-    protocol = pytestconfig.getoption("--protocol")
     mc, alias = motion_controller
     mc.configuration.load_configuration(
-        read_config[protocol]["config_file"], servo=alias)
+        read_config["config_file"], servo=alias)
     mc.motion.fault_reset(servo=alias)
 
 
@@ -105,3 +105,31 @@ def feedback_list(motion_controller):
                 mc.configuration.get_position_feedback(servo=alias),
                 mc.configuration.get_auxiliar_feedback(servo=alias)]
     return set(fdbk_lst)
+
+
+@pytest.fixture
+def commutation_teardown(motion_controller):
+    yield
+    mc, alias = motion_controller
+    mc.tests.commutation(servo=alias)
+
+
+@pytest.fixture
+def clean_and_restore_feedbacks(motion_controller):
+    mc, alias = motion_controller
+    comm = mc.configuration.get_commutation_feedback(servo=alias)
+    ref = mc.configuration.get_reference_feedback(servo=alias)
+    vel = mc.configuration.get_velocity_feedback(servo=alias)
+    pos = mc.configuration.get_position_feedback(servo=alias)
+    aux = mc.configuration.get_auxiliar_feedback(servo=alias)
+    mc.configuration.set_commutation_feedback(SensorType.INTGEN, servo=alias)
+    mc.configuration.set_reference_feedback(SensorType.INTGEN, servo=alias)
+    mc.configuration.set_velocity_feedback(SensorType.INTGEN, servo=alias)
+    mc.configuration.set_position_feedback(SensorType.INTGEN, servo=alias)
+    mc.configuration.set_auxiliar_feedback(SensorType.QEI, servo=alias)
+    yield
+    mc.configuration.set_commutation_feedback(comm, servo=alias)
+    mc.configuration.set_reference_feedback(ref, servo=alias)
+    mc.configuration.set_velocity_feedback(vel, servo=alias)
+    mc.configuration.set_position_feedback(pos, servo=alias)
+    mc.configuration.set_auxiliar_feedback(aux, servo=alias)
