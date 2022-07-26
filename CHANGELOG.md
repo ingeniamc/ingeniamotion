@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.5.5] - 2022-07-11
+## [0.5.5] - 2022-07-26
 ### Added
 - Support monitoring/disturbance with CANopen protocol.
 - Feedback tests.
