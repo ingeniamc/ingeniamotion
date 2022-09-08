@@ -14,6 +14,14 @@ Requirements
 * Python 3.6, 3.7, 3.8 or 3.9
 * [WinPcap](https://www.winpcap.org/install/) 4.1.3
 
+Installation
+------------
+
+The recommended way to install is by using pip, i.e:
+```bash
+pip install ingeniamotion
+```
+
 Build Module
 ------------
 
