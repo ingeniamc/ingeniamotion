@@ -161,7 +161,7 @@ class Phasing(BaseTest):
             fb = self.ref
 
         # Check phasing registers mode
-        self.logger.debug("Checking input data")
+        self.logger.info("Checking input data")
         self.check_input_data()
 
         # Set sinusoidal commutation modulation
@@ -188,21 +188,21 @@ class Phasing(BaseTest):
             PhasingMode.FORCED, servo=self.servo, axis=self.axis)
         self.logger.info("Set phasing mode to Forced")
 
-        self.logger.debug("Set phasing current to %.2f A",
+        self.logger.info("Set phasing current to %.2f A",
                           self.pha_current)
 
         self.pha_timeout = self.mc.communication.get_register(
             self.PHASING_TIMEOUT_REGISTER,
             servo=self.servo, axis=self.axis
         )
-        self.logger.debug("Set phasing timeout to %s s",
+        self.logger.info("Set phasing timeout to %s s",
                           self.pha_timeout / 1000)
 
         self.pha_accuracy = self.mc.communication.get_register(
             self.PHASING_ACCURACY_REGISTER,
             servo=self.servo, axis=self.axis
         )
-        self.logger.debug("Set phasing accuracy to %s mº", self.pha_accuracy)
+        self.logger.info("Set phasing accuracy to %s mº", self.pha_accuracy)
 
         self.reaction_codes_to_warning()
 
