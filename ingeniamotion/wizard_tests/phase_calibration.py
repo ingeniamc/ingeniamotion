@@ -161,7 +161,7 @@ class Phasing(BaseTest):
             fb = self.ref
 
         # Check phasing registers mode
-        self.logger.info("Checking input data")
+        self.logger.debug("Checking input data")
         self.check_input_data()
 
         # Set sinusoidal commutation modulation
