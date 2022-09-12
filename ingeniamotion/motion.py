@@ -22,6 +22,8 @@ class Motion(metaclass=MCMetaClass):
     VOLTAGE_DIRECT_SET_POINT_REGISTER = "CL_VOL_D_SET_POINT"
     ACTUAL_POSITION_REGISTER = "CL_POS_FBK_VALUE"
     ACTUAL_VELOCITY_REGISTER = "CL_VEL_FBK_VALUE"
+    ACTUAL_DIRECT_CURRENT_REGISTER = "CL_CUR_D_VALUE"
+    ACTUAL_QUADRATURE_CURRENT_REGISTER = "CL_CUR_Q_VALUE"
     GENERATOR_FREQUENCY_REGISTER = "FBK_GEN_FREQ"
     GENERATOR_GAIN_REGISTER = "FBK_GEN_GAIN"
     GENERATOR_OFFSET_REGISTER = "FBK_GEN_OFFSET"
@@ -412,6 +414,36 @@ class Motion(metaclass=MCMetaClass):
 
         """
         return self.mc.communication.get_register(self.ACTUAL_VELOCITY_REGISTER,
+                                                  servo=servo, axis=axis)
+
+    def get_actual_direct_current(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        """
+        Returns actual direct current register.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+
+        Returns:
+            int: actual direct current value
+
+        """
+        return self.mc.communication.get_register(self.ACTUAL_DIRECT_CURRENT_REGISTER,
+                                                  servo=servo, axis=axis)
+
+    def get_actual_quadrature_current(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        """
+        Returns actual quadrature current register.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+
+        Returns:
+            int: actual quadrature current value
+
+        """
+        return self.mc.communication.get_register(self.ACTUAL_QUADRATURE_CURRENT_REGISTER,
                                                   servo=servo, axis=axis)
 
     def wait_for_position(self, position, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
