@@ -16,7 +16,8 @@ class Brake(BaseTest):
                         "DRV_OP_CMD",
                         "MOT_PAIR_POLES",
                         "COMMU_PHASING_MODE",
-                        "COMMU_ANGLE_SENSOR"]
+                        "COMMU_ANGLE_SENSOR",
+                        "MOT_COMMU_MOD"]
 
     def __init__(self, mc, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         super().__init__()
@@ -32,6 +33,7 @@ class Brake(BaseTest):
             servo=self.servo, axis=self.axis)
         self.mc.configuration.disable_brake_override(
             servo=self.servo, axis=self.axis)
+        self.mc.communication.set_register("MOT_COMMU_MOD", 0, servo=self.servo, axis=self.axis)
         self.mc.motion.set_internal_generator_configuration(
             OperationMode.VOLTAGE, servo=self.servo, axis=self.axis)
 
