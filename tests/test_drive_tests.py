@@ -11,6 +11,9 @@ from ingeniamotion.wizard_tests.phase_calibration import Phasing
 from ingeniamotion.wizard_tests.phasing_check import PhasingCheck
 from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
 
+CURRENT_QUADRATURE_SET_POINT_REGISTER = "CL_CUR_Q_SET_POINT"
+RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
+MAXIMUM_CONTINUOUS_CURRENT_DRIVE_PROTECTION = "DRV_PROT_MAN_MAX_CONT_CURRENT_VALUE"
 
 @pytest.fixture
 def force_fault(motion_controller):
@@ -207,3 +210,47 @@ def test_phasing_check_stop(motion_controller):
     run_test_and_stop(test)
     for reg in reg_values:
         assert reg_values[reg] == mc.communication.get_register(reg, servo=alias)
+
+
+@pytest.mark.develop
+@pytest.mark.parametrize("test_currents", [
+    "Rated current", "Drive current", "Same value"
+])
+def test_current_ramp_up(motion_controller, test_currents):
+    mc, alias = motion_controller
+    feedbacks_test = Feedbacks(mc, alias, 1, SensorType.HALLS)
+
+    current_drive = mc.communication.get_register(
+        MAXIMUM_CONTINUOUS_CURRENT_DRIVE_PROTECTION,
+        servo=alias, axis=1
+    )
+
+    if test_currents == "Rated current":
+        current_motor = current_drive + 1
+    elif test_currents == "Drive current":
+        current_motor = current_drive - 1
+    else:
+        current_motor = current_drive
+
+    mc.communication.set_register(
+        RATED_CURRENT_REGISTER, current_motor,
+        servo=alias, axis=1
+    )
+
+    feedbacks_test.current_ramp_up()
+
+    current_quadrature = mc.communication.get_register(
+        CURRENT_QUADRATURE_SET_POINT_REGISTER,
+        servo=alias, axis=1
+    )
+
+    test_max_current = current_quadrature / 0.8
+
+    if test_currents == "Rated current":
+        assert pytest.approx(test_max_current, 0.01) == current_drive
+    elif test_currents == "Drive current":
+        assert pytest.approx(test_max_current, 0.01) == current_motor
+    else:
+        assert pytest.approx(test_max_current, 0.01) == current_drive == current_motor
+
+
