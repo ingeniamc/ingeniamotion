@@ -2,6 +2,14 @@ import ingenialogger
 
 from .enums import SensorType, SeverityLevel
 from .wizard_tests.feedback_test import Feedbacks
+from .wizard_tests.absolute_encoder1_test import AbsoluteEncoder1
+from .wizard_tests.internal_generator_test import InternalGenerator
+from .wizard_tests.digital_incremental1_test import DigitalIncremental1
+from .wizard_tests.digital_hall_test import DigitalHall
+from .wizard_tests.secondary_ssi_test import SecondarySSI
+from .wizard_tests.absolute_encoder2_test import AbsoluteEncoder2
+from .wizard_tests.digital_incremental2_test import DigitalIncremental2
+from .wizard_tests.smo_test import SMO
 from .wizard_tests.phase_calibration import Phasing
 from .wizard_tests.phasing_check import PhasingCheck
 from .wizard_tests.sto import STOTest
@@ -134,7 +142,24 @@ class DriveTests(metaclass=MCMetaClass):
 
     def __feedback_test(self, feedback, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
                         apply_changes=True):
-        feedbacks_test = Feedbacks(self.mc, servo, axis, feedback)
+        if feedback == SensorType.ABS1:
+            feedbacks_test = AbsoluteEncoder1(self.mc, servo, axis)
+        elif feedback == SensorType.INTGEN:
+            feedbacks_test = InternalGenerator(self.mc, servo, axis)
+        elif feedback == SensorType.QEI:
+            feedbacks_test = DigitalIncremental1(self.mc, servo, axis)
+        elif feedback == SensorType.HALLS:
+            feedbacks_test = DigitalHall(self.mc, servo, axis)
+        elif feedback == SensorType.SSI2:
+            feedbacks_test = SecondarySSI(self.mc, servo, axis)
+        elif feedback == SensorType.BISSC2:
+            feedbacks_test = AbsoluteEncoder2(self.mc, servo, axis)
+        elif feedback == SensorType.QEI2:
+            feedbacks_test = DigitalIncremental2(self.mc, servo, axis)
+        elif feedback == SensorType.SMO:
+            feedbacks_test = SMO(self.mc, servo, axis)
+        else:
+            feedbacks_test = Feedbacks(self.mc, servo, axis, feedback)
         output = feedbacks_test.run()
         if (apply_changes and
                 output["result_severity"] == SeverityLevel.SUCCESS):
