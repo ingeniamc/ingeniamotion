@@ -4,7 +4,7 @@ import ingenialogger
 
 from enum import IntEnum
 
-from .base_test import BaseTest, TestError
+from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
 from ingeniamotion.exceptions import IMRegisterNotExist
 from ingeniamotion.enums import SensorType, OperationMode, SeverityLevel
 
@@ -37,23 +37,16 @@ class Feedbacks(BaseTest):
     TIME_BETWEEN_MOVEMENT = 0.5
     PERCENTAGE_CURRENT_USED = 0.8
     LOW_PASS_FILTER = 1
-    HALLS_FILTER_CUTOFF_FREQUENCY = 10
+
     FAIL_MSG_MISMATCH = "A mismatch in resolution has been detected."
 
     COMMUTATION_MODULATION_REGISTER = "MOT_COMMU_MOD"
     POSITION_TO_VELOCITY_SENSOR_RATIO_REGISTER = "PROF_POS_VEL_RATIO"
     VELOCITY_FEEDBACK_FILTER_1_TYPE_REGISTER = "CL_VEL_FBK_FILTER1_TYPE"
     VELOCITY_FEEDBACK_FILTER_1_FREQUENCY_REGISTER = "CL_VEL_FBK_FILTER1_FREQ"
-    DIG_HALL_POLE_PAIRS_REGISTER = "FBK_DIGHALL_PAIRPOLES"
     RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
 
     BACKUP_REGISTERS = ["CL_POS_FBK_SENSOR",
-                        "FBK_BISS1_SSI1_POS_POLARITY",
-                        "FBK_BISS2_POS_POLARITY",
-                        "FBK_DIGENC1_POLARITY",
-                        "FBK_DIGENC2_POLARITY",
-                        "FBK_DIGHALL_POLARITY",
-                        "FBK_DIGHALL_PAIRPOLES",
                         "MOT_PAIR_POLES",
                         "DRV_OP_CMD",
                         "CL_CUR_Q_SET_POINT",
@@ -69,7 +62,6 @@ class Feedbacks(BaseTest):
                         "MOT_COMMU_MOD",
                         "CL_AUX_FBK_SENSOR",
                         "ERROR_DIGENC_AGAINST_HALL_OPTION",
-                        "ERROR_DIGHALL_SEQ_OPTION",
                         "CL_VEL_FOLLOWING_OPTION",
                         "ERROR_VEL_OUT_LIMITS_OPTION",
                         "ERROR_POS_OUT_LIMITS_OPTION",
@@ -81,21 +73,16 @@ class Feedbacks(BaseTest):
                         "CL_VEL_FBK_FILTER1_TYPE",
                         "CL_VEL_FBK_FILTER1_FREQ"]
 
-    __feedbacks_polarity_register = {
-        SensorType.HALLS: "FBK_DIGHALL_POLARITY",
-        SensorType.QEI: "FBK_DIGENC1_POLARITY",
-        SensorType.QEI2: "FBK_DIGENC2_POLARITY",
-        SensorType.ABS1: "FBK_BISS1_SSI1_POS_POLARITY",
-        SensorType.SSI2: "FBK_SSI2_POS_POLARITY",
-        SensorType.BISSC2: "FBK_BISS2_POS_POLARITY"
-    }
+    FEEDBACK_POLARITY_REGISTER = None
 
-    def __init__(self, mc, servo, axis, sensor):
+    SENSOR_TYPE_FEEDBACK_TEST = None
+
+    def __init__(self, mc, servo, axis):
         super().__init__()
         self.mc = mc
         self.servo = servo
         self.axis = axis
-        self.sensor = sensor
+        self.sensor = self.SENSOR_TYPE_FEEDBACK_TEST
         self.logger = ingenialogger.get_logger(__name__, axis=axis,
                                                drive=mc.servo_name(servo))
         self.feedback_resolution = None
@@ -174,7 +161,7 @@ class Feedbacks(BaseTest):
                                                     servo=self.servo,
                                                     axis=self.axis)
         # Set Polarity to 0
-        polarity_register = self.__feedbacks_polarity_register[self.sensor]
+        polarity_register = self.FEEDBACK_POLARITY_REGISTER
         self.mc.communication.set_register(
             polarity_register, self.Polarity.NORMAL,
             servo=self.servo, axis=self.axis
@@ -211,7 +198,7 @@ class Feedbacks(BaseTest):
 
     @BaseTest.stoppable
     def suggest_polarity(self, pol):
-        polarity_uid = self.__feedbacks_polarity_register[self.sensor]
+        polarity_uid = self.FEEDBACK_POLARITY_REGISTER
         self.suggested_registers[polarity_uid] = pol
 
     @BaseTest.stoppable

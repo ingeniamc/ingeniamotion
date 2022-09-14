@@ -1,15 +1,15 @@
 import ingenialogger
 
 from .enums import SensorType, SeverityLevel
-from .wizard_tests.feedback_test import Feedbacks
-from .wizard_tests.absolute_encoder1_test import AbsoluteEncoder1
-from .wizard_tests.internal_generator_test import InternalGenerator
-from .wizard_tests.digital_incremental1_test import DigitalIncremental1
-from .wizard_tests.digital_hall_test import DigitalHall
-from .wizard_tests.secondary_ssi_test import SecondarySSI
-from .wizard_tests.absolute_encoder2_test import AbsoluteEncoder2
-from .wizard_tests.digital_incremental2_test import DigitalIncremental2
-from .wizard_tests.smo_test import SMO
+from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
+from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder1_test import AbsoluteEncoder1
+from ingeniamotion.wizard_tests.feedbacks_tests.internal_generator_test import InternalGenerator
+from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental1_test import DigitalIncremental1
+from ingeniamotion.wizard_tests.feedbacks_tests.digital_hall_test import DigitalHall
+from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import SecondarySSI
+from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder2_test import AbsoluteEncoder2
+from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental2_test import DigitalIncremental2
+from ingeniamotion.wizard_tests.feedbacks_tests.smo_test import SMO
 from .wizard_tests.phase_calibration import Phasing
 from .wizard_tests.phasing_check import PhasingCheck
 from .wizard_tests.sto import STOTest

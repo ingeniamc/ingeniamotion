@@ -1,12 +1,18 @@
-from .feedback_test import Feedbacks
-from .base_test import BaseTest
+from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
+from ingeniamotion.wizard_tests.base_test import BaseTest
 from ingeniamotion.enums import SensorType
 
 
 class AbsoluteEncoder2(Feedbacks):
+    BACKUP_REGISTERS_BISSC2 = ["FBK_BISS2_POS_POLARITY"]
+
+    FEEDBACK_POLARITY_REGISTER = "FBK_BISS2_POS_POLARITY"
+
+    SENSOR_TYPE_FEEDBACK_TEST = SensorType.BISSC2
+
     def __init__(self, mc, servo, axis):
-        super().__init__()
-        self.sensor = SensorType.BISSC2
+        super().__init__(mc, servo, axis)
+        self.backup_registers_names += self.BACKUP_REGISTERS_BISSC2
 
     @BaseTest.stoppable
     def feedback_setting(self):
@@ -29,7 +35,7 @@ class AbsoluteEncoder2(Feedbacks):
                                                     servo=self.servo,
                                                     axis=self.axis)
         # Set Polarity to 0
-        polarity_register = self.__feedbacks_polarity_register[self.sensor]
+        polarity_register = self.FEEDBACK_POLARITY_REGISTER
         self.mc.communication.set_register(
             polarity_register, self.Polarity.NORMAL,
             servo=self.servo, axis=self.axis
