@@ -50,7 +50,6 @@ def force_warning(motion_controller):
 
 class TestErrors:
 
-    @pytest.mark.develop
     @pytest.mark.smoke
     def test_get_last_error(self, motion_controller, generate_drive_errors):
         mc, alias = motion_controller

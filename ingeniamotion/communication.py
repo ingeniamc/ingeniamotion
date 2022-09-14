@@ -4,7 +4,6 @@ import subprocess
 import ingenialogger
 
 from os import path
-from enum import IntEnum
 from functools import partial
 from ingenialink.exceptions import ILError
 from ingenialink.canopen.network import CanopenNetwork
@@ -21,11 +20,6 @@ class Communication(metaclass=MCMetaClass):
     """
 
     FORCE_SYSTEM_BOOT_CODE_REGISTER = "DRV_BOOT_COCO_FORCE"
-
-    class Protocol(IntEnum):
-        """Communication protocol enum"""
-        TCP = 1
-        UDP = 2
 
     def __init__(self, motion_controller):
         self.mc = motion_controller
