@@ -16,8 +16,11 @@ class OperationMode(IntEnum):
     PROFILE_POSITION = 0x14
     CYCLIC_POSITION = 0x24
     PROFILE_POSITION_S_CURVE = 0x44
+    INTERPOLATED_POSITION = 0xA4
     PVT = 0xB4
     HOMING = 0x113
+    TORQUE = 0x05
+    CYCLIC_TORQUE = 0x25
 
 
 class Protocol(IntEnum):
