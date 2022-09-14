@@ -437,3 +437,9 @@ def test_get_incremental_encoder_2_resolution(motion_controller, resolution):
     )
     test_res = mc.configuration.get_incremental_encoder_2_resolution(servo=alias)
     assert resolution == test_res
+
+@pytest.mark.smoke
+def test_instance_sensor_type(motion_controller):
+    mc, alias = motion_controller
+    test_feedback = mc.configuration.get_commutation_feedback(servo=alias)
+    assert isinstance(test_feedback, SensorType) is True

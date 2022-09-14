@@ -1,36 +1,11 @@
 import ingenialogger
-from enum import IntEnum
 
+from ingeniamotion.enums import SensorType, SensorCategory
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
 class Feedbacks(metaclass=MCMetaClass):
     """Feedbacks Wizard Class description."""
-
-    # Available feedbacks
-    class SensorType(IntEnum):
-        """Summit series feedback type enum"""
-        ABS1 = 1
-        """ Absolute encoder 1 """
-        QEI = 4
-        """ Digital/Incremental encoder 1 """
-        HALLS = 5
-        """ Digital halls """
-        SSI2 = 6
-        """ Secondary SSI """
-        BISSC2 = 7
-        """ Absolute encoder 2 """
-        QEI2 = 8
-        """ Digital/Incremental encoder 2 """
-        SMO = 9
-        """ SMO """
-        INTGEN = 3
-        """ Internal generator """
-
-    class SensorCategory(IntEnum):
-        """Feedback category enum"""
-        ABSOLUTE = 0
-        INCREMENTAL = 1
 
     __feedback_type_dict = {
         SensorType.ABS1: SensorCategory.ABSOLUTE,
@@ -53,14 +28,14 @@ class Feedbacks(metaclass=MCMetaClass):
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
         self.feedback_resolution_functions = {
-            self.SensorType.ABS1: self.get_absolute_encoder_1_resolution,
-            self.SensorType.QEI: self.get_incremental_encoder_1_resolution,
-            self.SensorType.HALLS: self.get_digital_halls_resolution,
-            self.SensorType.SSI2: self.get_secondary_ssi_resolution,
-            self.SensorType.BISSC2: self.get_absolute_encoder_2_resolution,
-            self.SensorType.QEI2: self.get_incremental_encoder_2_resolution,
-            self.SensorType.INTGEN: self.__no_feedback_resolution,
-            self.SensorType.SMO: self.__no_feedback_resolution
+            SensorType.ABS1: self.get_absolute_encoder_1_resolution,
+            SensorType.QEI: self.get_incremental_encoder_1_resolution,
+            SensorType.HALLS: self.get_digital_halls_resolution,
+            SensorType.SSI2: self.get_secondary_ssi_resolution,
+            SensorType.BISSC2: self.get_absolute_encoder_2_resolution,
+            SensorType.QEI2: self.get_incremental_encoder_2_resolution,
+            SensorType.INTGEN: self.__no_feedback_resolution,
+            SensorType.SMO: self.__no_feedback_resolution
         }
 
     # Commutation feedback
@@ -79,7 +54,7 @@ class Feedbacks(metaclass=MCMetaClass):
             servo=servo,
             axis=axis
         )
-        return self.SensorType(commutation_feedback)
+        return SensorType(commutation_feedback)
 
     @MCMetaClass.check_motor_disabled
     def set_commutation_feedback(self, feedback,  servo=DEFAULT_SERVO,
@@ -147,7 +122,7 @@ class Feedbacks(metaclass=MCMetaClass):
             servo=servo,
             axis=axis
         )
-        return self.SensorType(reference_feedback)
+        return SensorType(reference_feedback)
 
     @MCMetaClass.check_motor_disabled
     def set_reference_feedback(self, feedback,  servo=DEFAULT_SERVO,
@@ -215,7 +190,7 @@ class Feedbacks(metaclass=MCMetaClass):
             servo=servo,
             axis=axis
         )
-        return self.SensorType(velocity_feedback)
+        return SensorType(velocity_feedback)
 
     @MCMetaClass.check_motor_disabled
     def set_velocity_feedback(self, feedback,  servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
@@ -280,7 +255,7 @@ class Feedbacks(metaclass=MCMetaClass):
             servo=servo,
             axis=axis
         )
-        return self.SensorType(position_feedback)
+        return SensorType(position_feedback)
 
     @MCMetaClass.check_motor_disabled
     def set_position_feedback(self, feedback,  servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
@@ -345,7 +320,7 @@ class Feedbacks(metaclass=MCMetaClass):
             servo=servo,
             axis=axis
         )
-        return self.SensorType(auxiliar_feedback)
+        return SensorType(auxiliar_feedback)
 
     @MCMetaClass.check_motor_disabled
     def set_auxiliar_feedback(self, feedback,  servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
