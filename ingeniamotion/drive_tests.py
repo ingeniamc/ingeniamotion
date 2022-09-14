@@ -130,7 +130,7 @@ class DriveTests(metaclass=MCMetaClass):
         """ Executes secondary SSI feedback test given a target servo and axis.
         To know more about it see :func:`digital_halls_test`.
         """
-        return self.__feedback_test(SensorType.BISSC2, servo, axis, apply_changes)
+        return self.__feedback_test(SensorType.SSI2, servo, axis, apply_changes)
 
     def __feedback_test(self, feedback, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
                         apply_changes=True):
