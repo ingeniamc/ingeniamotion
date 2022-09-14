@@ -116,7 +116,7 @@ class Feedbacks(BaseTest):
 
     @BaseTest.stoppable
     def check_symmetry(self, positive, negative):
-        self.logger.debug("SYMMETRY CHECK")
+        self.logger.info("SYMMETRY CHECK")
         error = 100 * abs(positive + negative) / self.feedback_resolution
         self.logger.info(
             "Detected symmetry mismatch of: %.3f%%",
@@ -129,7 +129,7 @@ class Feedbacks(BaseTest):
 
     @BaseTest.stoppable
     def check_polarity(self, displacement):
-        self.logger.debug("POLARITY CHECK")
+        self.logger.info("POLARITY CHECK")
         polarity = self.Polarity.NORMAL if displacement > 0 \
             else self.Polarity.REVERSED
         self.logger.info("Feedback polarity detected: %s",
@@ -139,8 +139,8 @@ class Feedbacks(BaseTest):
     @BaseTest.stoppable
     def check_resolution(self, displacement):
         displacement = displacement * self.pair_poles
-        self.logger.debug("RESOLUTION CHECK")
-        self.logger.debug(
+        self.logger.info("RESOLUTION CHECK")
+        self.logger.info(
             "Theoretical resolution: %.0f",
             self.feedback_resolution
         )
@@ -298,18 +298,18 @@ class Feedbacks(BaseTest):
         self.mc.motion.set_internal_generator_configuration(
             OperationMode.CURRENT, servo=self.servo, axis=self.axis
         )
-        self.logger.debug("Set pair poles to 1")
-        self.logger.debug("Mode of operation set to Current mode")
-        self.logger.debug("Set phasing mode to No phasing")
-        self.logger.debug("Target quadrature current set to zero")
-        self.logger.debug("Target direct current set to zero")
-        self.logger.debug("Commutation feedback set to Internal Generator")
+        self.logger.info("Set pair poles to 1")
+        self.logger.info("Mode of operation set to Current mode")
+        self.logger.info("Set phasing mode to No phasing")
+        self.logger.info("Target quadrature current set to zero")
+        self.logger.info("Target direct current set to zero")
+        self.logger.info("Commutation feedback set to Internal Generator")
 
         # set velocity and position following errors to WARNING = 1
         self.reaction_codes_to_warning()
 
     def teardown(self):
-        self.logger.debug("Disabling motor")
+        self.logger.info("Disabling motor")
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
 
     @BaseTest.stoppable
@@ -354,12 +354,12 @@ class Feedbacks(BaseTest):
             1, 1, self.test_frequency,
             servo=self.servo, axis=self.axis
         )
-        self.logger.debug("Generator mode set to Saw tooth")
-        self.logger.debug("Generator frequency set to %s Hz",
+        self.logger.info("Generator mode set to Saw tooth")
+        self.logger.info("Generator frequency set to %s Hz",
                           self.test_frequency)
-        self.logger.debug("Generator gain set to 1")
-        self.logger.debug("Generator offset set to 0")
-        self.logger.debug("Generator cycle number set to 1")
+        self.logger.info("Generator gain set to 1")
+        self.logger.info("Generator offset set to 0")
+        self.logger.info("Generator cycle number set to 1")
         self.current_ramp_up()
         self.wait_for_movement(self.TIME_BETWEEN_MOVEMENT)
         return self.get_current_position()
@@ -374,15 +374,15 @@ class Feedbacks(BaseTest):
             pol, cycles, freq,
             servo=self.servo, axis=self.axis
         )
-        self.logger.debug("%s direction test", polarity.name)
-        self.logger.debug("Generator gain set to %s", gain)
-        self.logger.debug("Generator offset set to %s", polarity)
-        self.logger.debug("Generator Cycle number set to %s", cycles)
-        self.logger.debug("Wait until one electrical cycle is completed")
+        self.logger.info("%s direction test", polarity.name)
+        self.logger.info("Generator gain set to %s", gain)
+        self.logger.info("Generator offset set to %s", polarity)
+        self.logger.info("Generator Cycle number set to %s", cycles)
+        self.logger.info("Wait until one electrical cycle is completed")
         self.wait_for_movement(cycles/freq)
         self.wait_for_movement(self.TIME_BETWEEN_MOVEMENT)
         position = self.get_current_position()
-        self.logger.debug("Actual position: %.0f", position)
+        self.logger.info("Actual position: %.0f", position)
         return position
 
     @BaseTest.stoppable
@@ -416,7 +416,7 @@ class Feedbacks(BaseTest):
             return check_pos_vel_output
         self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
         position_1 = self.first_movement_and_set_current()
-        self.logger.debug("Actual position: %.0f",
+        self.logger.info("Actual position: %.0f",
                           position_1, axis=self.axis)
         position_2 = self.internal_generator_move(self.Polarity.NORMAL)
         position_displacement = position_2 - position_1
