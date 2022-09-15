@@ -346,8 +346,8 @@ class Feedbacks(BaseTest):
 
         self.logger.debug(f'The maximum current is set by: {min(dict_currents, key=dict_currents.get)}')
         # Increase current progressively
-        self.logger.info(f'Increasing current to %s%% rated until one electrical cycle is completed',
-                         {self.PERCENTAGE_CURRENT_USED * 100})
+        self.logger.info(f'Increasing current to {self.PERCENTAGE_CURRENT_USED * 100}% '
+                         f'rated until one electrical cycle is completed')
 
         target_current = self.PERCENTAGE_CURRENT_USED * max_current
         cycle_time = 2 / self.test_frequency

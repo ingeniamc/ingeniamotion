@@ -212,13 +212,17 @@ def test_phasing_check_stop(motion_controller):
         assert reg_values[reg] == mc.communication.get_register(reg, servo=alias)
 
 
-@pytest.mark.smoke
 @pytest.mark.parametrize("test_currents", [
     "Rated current", "Drive current", "Same value"
 ])
-def test_current_ramp_up(motion_controller, test_currents):
+@pytest.mark.parametrize("test_sensor", [
+    SensorType.ABS1, SensorType.QEI, SensorType.HALLS,
+    SensorType.SSI2, SensorType.BISSC2, SensorType.QEI2
+])
+def test_current_ramp_up(motion_controller, test_currents, test_sensor):
     mc, alias = motion_controller
-    feedbacks_test = Feedbacks(mc, alias, 1, SensorType.HALLS)
+
+    feedbacks_test = Feedbacks(mc, alias, 1, test_sensor)
 
     current_drive = mc.communication.get_register(
         MAXIMUM_CONTINUOUS_CURRENT_DRIVE_PROTECTION,
@@ -244,13 +248,13 @@ def test_current_ramp_up(motion_controller, test_currents):
         servo=alias, axis=1
     )
 
-    test_max_current = current_quadrature / 0.8
+    test_max_current = current_quadrature / feedbacks_test.PERCENTAGE_CURRENT_USED
 
     if test_currents == "Rated current":
-        assert pytest.approx(test_max_current, 0.01) == current_drive
+        assert pytest.approx(test_max_current) == current_drive
     elif test_currents == "Drive current":
-        assert pytest.approx(test_max_current, 0.01) == current_motor
+        assert pytest.approx(test_max_current) == current_motor
     else:
-        assert pytest.approx(test_max_current, 0.01) == current_drive == current_motor
+        assert pytest.approx(test_max_current) == current_drive == current_motor
 
 
