@@ -2,7 +2,7 @@ from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
 from ingeniamotion.enums import SensorType
 
 
-class DigitalIncremental2(Feedbacks):
+class DigitalIncremental2Test(Feedbacks):
     BACKUP_REGISTERS_QEI2 = ["FBK_DIGENC2_POLARITY"]
 
     FEEDBACK_POLARITY_REGISTER = "FBK_DIGENC2_POLARITY"

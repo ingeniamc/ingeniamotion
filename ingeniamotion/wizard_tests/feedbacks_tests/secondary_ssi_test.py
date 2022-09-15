@@ -2,7 +2,7 @@ from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
 from ingeniamotion.enums import SensorType
 
 
-class SecondarySSI(Feedbacks):
+class SecondarySSITest(Feedbacks):
     BACKUP_REGISTERS_SSI2 = []
 
     FEEDBACK_POLARITY_REGISTER = "FBK_SSI2_POS_POLARITY"

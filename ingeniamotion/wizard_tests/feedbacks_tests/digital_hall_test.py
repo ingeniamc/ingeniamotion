@@ -3,7 +3,7 @@ from ingeniamotion.wizard_tests.base_test import BaseTest
 from ingeniamotion.enums import SensorType
 
 
-class DigitalHall(Feedbacks):
+class DigitalHallTest(Feedbacks):
     HALLS_FILTER_CUTOFF_FREQUENCY = 10
     DIG_HALL_POLE_PAIRS_REGISTER = "FBK_DIGHALL_PAIRPOLES"
 

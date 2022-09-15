@@ -3,7 +3,7 @@ from ingeniamotion.wizard_tests.base_test import BaseTest
 from ingeniamotion.enums import SensorType
 
 
-class AbsoluteEncoder2(Feedbacks):
+class AbsoluteEncoder2Test(Feedbacks):
     BACKUP_REGISTERS_BISSC2 = ["FBK_BISS2_POS_POLARITY"]
 
     FEEDBACK_POLARITY_REGISTER = "FBK_BISS2_POS_POLARITY"

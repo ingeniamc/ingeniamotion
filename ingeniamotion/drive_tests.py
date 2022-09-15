@@ -2,14 +2,12 @@ import ingenialogger
 
 from .enums import SensorType, SeverityLevel
 from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
-from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder1_test import AbsoluteEncoder1
-from ingeniamotion.wizard_tests.feedbacks_tests.internal_generator_test import InternalGenerator
-from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental1_test import DigitalIncremental1
-from ingeniamotion.wizard_tests.feedbacks_tests.digital_hall_test import DigitalHall
-from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import SecondarySSI
-from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder2_test import AbsoluteEncoder2
-from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental2_test import DigitalIncremental2
-from ingeniamotion.wizard_tests.feedbacks_tests.smo_test import SMO
+from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder1_test import AbsoluteEncoder1Test
+from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental1_test import DigitalIncremental1Test
+from ingeniamotion.wizard_tests.feedbacks_tests.digital_hall_test import DigitalHallTest
+from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import SecondarySSITest
+from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder2_test import AbsoluteEncoder2Test
+from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental2_test import DigitalIncremental2Test
 from .wizard_tests.phase_calibration import Phasing
 from .wizard_tests.phasing_check import PhasingCheck
 from .wizard_tests.sto import STOTest
@@ -142,25 +140,27 @@ class DriveTests(metaclass=MCMetaClass):
 
     def __feedback_test(self, feedback, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
                         apply_changes=True):
-        if feedback == SensorType.ABS1:
-            feedbacks_test = AbsoluteEncoder1(self.mc, servo, axis)
-        elif feedback == SensorType.INTGEN:
-            feedbacks_test = InternalGenerator(self.mc, servo, axis)
-        elif feedback == SensorType.QEI:
-            feedbacks_test = DigitalIncremental1(self.mc, servo, axis)
-        elif feedback == SensorType.HALLS:
-            feedbacks_test = DigitalHall(self.mc, servo, axis)
-        elif feedback == SensorType.SSI2:
-            feedbacks_test = SecondarySSI(self.mc, servo, axis)
-        elif feedback == SensorType.BISSC2:
-            feedbacks_test = AbsoluteEncoder2(self.mc, servo, axis)
-        elif feedback == SensorType.QEI2:
-            feedbacks_test = DigitalIncremental2(self.mc, servo, axis)
-        elif feedback == SensorType.SMO:
-            feedbacks_test = SMO(self.mc, servo, axis)
-        else:
-            feedbacks_test = Feedbacks(self.mc, servo, axis, feedback)
-        output = feedbacks_test.run()
+        # if feedback == SensorType.ABS1:
+        #     feedbacks_test = AbsoluteEncoder1Test(self.mc, servo, axis)
+        # elif feedback == SensorType.QEI:
+        #     feedbacks_test = DigitalIncremental1Test(self.mc, servo, axis)
+        # elif feedback == SensorType.HALLS:
+        #     feedbacks_test = DigitalHallTest(self.mc, servo, axis)
+        # elif feedback == SensorType.SSI2:
+        #     feedbacks_test = SecondarySSITest(self.mc, servo, axis)
+        # elif feedback == SensorType.BISSC2:
+        #     feedbacks_test = AbsoluteEncoder2Test(self.mc, servo, axis)
+        # elif feedback == SensorType.QEI2:
+        #     feedbacks_test = DigitalIncremental2Test(self.mc, servo, axis)
+
+        feedbacks_test = {SensorType.ABS1: AbsoluteEncoder2Test(self.mc, servo, axis),
+                          SensorType.QEI: DigitalIncremental1Test(self.mc, servo, axis),
+                          SensorType.HALLS: DigitalHallTest(self.mc, servo, axis),
+                          SensorType.SSI2: SecondarySSITest(self.mc, servo, axis),
+                          SensorType.BISSC2: AbsoluteEncoder2Test(self.mc, servo, axis),
+                          SensorType.QEI2: DigitalIncremental2Test(self.mc, servo, axis)}
+
+        output = feedbacks_test[feedback].run()
         if (apply_changes and
                 output["result_severity"] == SeverityLevel.SUCCESS):
             for key, value in output["suggested_registers"].items():
