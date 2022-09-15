@@ -16,6 +16,12 @@ from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
 class DriveTests(metaclass=MCMetaClass):
+    __sensors = {SensorType.ABS1: AbsoluteEncoder2Test,
+                 SensorType.QEI: DigitalIncremental1Test,
+                 SensorType.HALLS: DigitalHallTest,
+                 SensorType.SSI2: SecondarySSITest,
+                 SensorType.BISSC2: AbsoluteEncoder2Test,
+                 SensorType.QEI2: DigitalIncremental2Test}
 
     def __init__(self, motion_controller):
         self.mc = motion_controller
@@ -138,29 +144,12 @@ class DriveTests(metaclass=MCMetaClass):
         """
         return self.__feedback_test(SensorType.SSI2, servo, axis, apply_changes)
 
+    def set_feedback_test(self, feedback, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        return self.__sensors[feedback](self.mc, servo, axis)
+
     def __feedback_test(self, feedback, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
                         apply_changes=True):
-        # if feedback == SensorType.ABS1:
-        #     feedbacks_test = AbsoluteEncoder1Test(self.mc, servo, axis)
-        # elif feedback == SensorType.QEI:
-        #     feedbacks_test = DigitalIncremental1Test(self.mc, servo, axis)
-        # elif feedback == SensorType.HALLS:
-        #     feedbacks_test = DigitalHallTest(self.mc, servo, axis)
-        # elif feedback == SensorType.SSI2:
-        #     feedbacks_test = SecondarySSITest(self.mc, servo, axis)
-        # elif feedback == SensorType.BISSC2:
-        #     feedbacks_test = AbsoluteEncoder2Test(self.mc, servo, axis)
-        # elif feedback == SensorType.QEI2:
-        #     feedbacks_test = DigitalIncremental2Test(self.mc, servo, axis)
-
-        feedbacks_test = {SensorType.ABS1: AbsoluteEncoder2Test(self.mc, servo, axis),
-                          SensorType.QEI: DigitalIncremental1Test(self.mc, servo, axis),
-                          SensorType.HALLS: DigitalHallTest(self.mc, servo, axis),
-                          SensorType.SSI2: SecondarySSITest(self.mc, servo, axis),
-                          SensorType.BISSC2: AbsoluteEncoder2Test(self.mc, servo, axis),
-                          SensorType.QEI2: DigitalIncremental2Test(self.mc, servo, axis)}
-
-        output = feedbacks_test[feedback].run()
+        output = self.set_feedback_test(feedback, servo, axis).run()
         if (apply_changes and
                 output["result_severity"] == SeverityLevel.SUCCESS):
             for key, value in output["suggested_registers"].items():

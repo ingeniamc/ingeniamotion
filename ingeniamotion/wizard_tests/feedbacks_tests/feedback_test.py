@@ -156,14 +156,13 @@ class Feedbacks(BaseTest):
         self.mc.configuration.set_position_feedback(self.sensor,
                                                     servo=self.servo,
                                                     axis=self.axis)
-        auxiliary_sensor = self.sensor
-        self.mc.configuration.set_auxiliar_feedback(auxiliary_sensor,
+        self.mc.configuration.set_auxiliar_feedback(self.sensor,
                                                     servo=self.servo,
                                                     axis=self.axis)
         # Set Polarity to 0
-        polarity_register = self.FEEDBACK_POLARITY_REGISTER
         self.mc.communication.set_register(
-            polarity_register, self.Polarity.NORMAL,
+            self.FEEDBACK_POLARITY_REGISTER,
+            self.Polarity.NORMAL,
             servo=self.servo, axis=self.axis
         )
         # Depending on the type of the feedback, calculate the correct
