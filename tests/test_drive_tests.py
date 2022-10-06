@@ -6,7 +6,7 @@ from ingenialink import exceptions
 
 from ingeniamotion.enums import SensorType, SeverityLevel
 from ingeniamotion.exceptions import IMRegisterNotExist
-from ingeniamotion.wizard_tests.feedback_test import Feedbacks
+from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
 from ingeniamotion.wizard_tests.phase_calibration import Phasing
 from ingeniamotion.wizard_tests.phasing_check import PhasingCheck
 from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
