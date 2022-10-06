@@ -425,7 +425,7 @@ class Motion(metaclass=MCMetaClass):
             axis (int): servo axis. ``1`` by default.
 
         Returns:
-            int: actual direct current value
+            float: actual direct current value
 
         """
         return self.mc.communication.get_register(self.ACTUAL_DIRECT_CURRENT_REGISTER,
