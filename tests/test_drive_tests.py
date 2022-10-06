@@ -6,7 +6,12 @@ from ingenialink import exceptions
 
 from ingeniamotion.enums import SensorType, SeverityLevel
 from ingeniamotion.exceptions import IMRegisterNotExist
-from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
+from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder1_test import AbsoluteEncoder1Test
+from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder2_test import AbsoluteEncoder2Test
+from ingeniamotion.wizard_tests.feedbacks_tests.digital_hall_test import DigitalHallTest
+from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental1_test import DigitalIncremental1Test
+from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental2_test import DigitalIncremental2Test
+from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import SecondarySSITest
 from ingeniamotion.wizard_tests.phase_calibration import Phasing
 from ingeniamotion.wizard_tests.phasing_check import PhasingCheck
 from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
@@ -212,6 +217,7 @@ def test_phasing_check_stop(motion_controller):
         assert reg_values[reg] == mc.communication.get_register(reg, servo=alias)
 
 
+@pytest.mark.develop
 @pytest.mark.parametrize("test_currents", [
     "Rated current", "Drive current", "Same value"
 ])
@@ -222,7 +228,16 @@ def test_phasing_check_stop(motion_controller):
 def test_current_ramp_up(motion_controller, test_currents, test_sensor):
     mc, alias = motion_controller
 
-    feedbacks_test = Feedbacks(mc, alias, 1, test_sensor)
+    axis = 1
+    test_feedback_options = {
+        SensorType.ABS1: AbsoluteEncoder1Test(mc, alias, axis),
+        SensorType.QEI: DigitalIncremental1Test(mc, alias, axis),
+        SensorType.HALLS: DigitalHallTest(mc, alias, axis),
+        SensorType.SSI2: SecondarySSITest(mc, alias, axis),
+        SensorType.BISSC2: AbsoluteEncoder2Test(mc, alias, axis),
+        SensorType.QEI2: DigitalIncremental2Test(mc, alias, axis)
+    }
+    feedbacks_test = test_feedback_options[test_sensor]
 
     current_drive = mc.communication.get_register(
         MAXIMUM_CONTINUOUS_CURRENT_DRIVE_PROTECTION,
