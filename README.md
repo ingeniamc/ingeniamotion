@@ -27,7 +27,13 @@ Build Module
 
 Install locally:
 ```bash
-python setup.py install
+pip install -e .
+```
+
+To include extra requirements to do developing or runing the tests please run:
+```bash
+pip install -e .[dev]
+pip install -e .[tests]
 ```
 
 Generate .whl file:

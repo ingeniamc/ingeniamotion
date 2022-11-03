@@ -36,5 +36,24 @@ setuptools.setup(
         'ingenialogger==0.2.1',
         'ifaddr==0.1.7'
     ],
+    extras_require={
+        "tests": [
+            "pytest==6.2.4",
+            "pytest-cov==2.12.1",
+            "pytest-mock==3.6.1",
+            "ping3==3.0.2",
+            "pytest-html==3.1.1",
+        ],
+        "dev": [
+            "sphinx==3.5.4",
+            "sphinx-rtd-theme==1.0.0",
+            "sphinxcontrib-bibtex==2.4.1",
+            "matplotlib==3.3.4",
+            "nbsphinx==0.8.7",
+            "rst2pdf==0.98",
+            "wheel==0.37.1",
+            "m2r2==0.3.2"
+        ],
+    },
     python_requires='>=3.6',
 )
