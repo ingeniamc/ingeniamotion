@@ -255,16 +255,16 @@ class Monitoring(ABC):
             return
         time_now = time.time()
         if init_time + timeout < time_now:
-            raise IMMonitoringError("Timeout. No trigger was reached.")
             self._read_process_finished = True
+            raise IMMonitoringError("Timeout. No trigger was reached.")
 
     def _check_read_data_timeout(self, init_read_time):
         time_now = time.time()
         total_num_samples = len(self.mapped_registers) * self.samples_number
         max_timeout = self.ESTIMATED_MAX_TIME_FOR_SAMPLE * total_num_samples
         if init_read_time + max_timeout < time_now:
-            raise IMMonitoringError("Timeout. Drive take too much time reading data")
             self._read_process_finished = True
+            raise IMMonitoringError("Timeout. Drive take too much time reading data")
 
     def _check_read_data_ends(self, data_length):
         if data_length >= self.samples_number:
@@ -312,6 +312,9 @@ class Monitoring(ABC):
             list of list: data of monitoring. Each element of the list is a
             different register data.
 
+        Raises:
+            IMMonitoringError: If monitoring is not ready.
+
         """
         drive = self.mc.servos[self.servo]
         self._read_process_finished = False
@@ -327,6 +330,7 @@ class Monitoring(ABC):
                 self._fill_data(data_array)
                 current_len = len(data_array[0])
             elif not is_ready:
+                self._read_process_finished = True
                 raise IMMonitoringError(result_text)
             self._update_read_process_finished(init_read_time, current_len,
                                                init_time, timeout)
@@ -424,9 +428,11 @@ class Monitoring(ABC):
             list of list: data of monitoring. Each element of the list is a
             different register data.
 
+        Raises:
+            IMMonitoringError: If timeout is reached.
+
         """
         is_triggered = self.raise_forced_trigger(blocking=True, timeout=trigger_timeout)
         if not is_triggered:
             raise IMMonitoringError("Timeout. Forced trigger is not raised.")
-            return [[] for _ in self.mapped_registers]
         return self.read_monitoring_data()
