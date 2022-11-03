@@ -115,11 +115,12 @@ def test_read_monitoring_data_forced_trigger(motion_controller, monitoring,
     monitoring.set_trigger(MonitoringSoCType.TRIGGER_EVENT_FORCED)
     monitoring.configure_sample_time(sample_t, 0)
     mc.capture.enable_monitoring_disturbance(servo=alias)
-    test_output = monitoring.read_monitoring_data_forced_trigger(timeout)
     if result:
+        test_output = monitoring.read_monitoring_data_forced_trigger(timeout)
         assert len(test_output[0]) == monitoring.samples_number
     else:
-        assert len(test_output[0]) == 0
+        with pytest.raises(IMMonitoringError):
+             monitoring.read_monitoring_data_forced_trigger(timeout)
 
 
 @pytest.mark.soem
@@ -293,13 +294,29 @@ def test_read_monitoring_data_not_configured(motion_controller, monitoring):
 @pytest.mark.eoe
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
+@pytest.mark.develop
 def test_read_monitoring_data_disabled(monitoring):
-    # TODO Add exception in function for this test case
     monitoring.configure_sample_time(0.8, 0)
-    test_output = monitoring.read_monitoring_data()
-    assert len(test_output[0]) == 0
+    with pytest.raises(IMMonitoringError):
+        monitoring.read_monitoring_data()
 
 
+@pytest.mark.develop
+@pytest.mark.soem
+@pytest.mark.eoe
+@pytest.mark.usefixtures("mon_set_freq")
+@pytest.mark.usefixtures("disable_monitoring_disturbance")
+def test_read_monitoring_data_non_mapped_registers(motion_controller, monitoring):
+    monitoring.configure_sample_time(0.8, 0)
+    mc, alias = motion_controller
+    drive = mc._get_drive(alias)
+    drive.monitoring_remove_all_mapped_registers()
+    mc.capture.enable_monitoring_disturbance(servo=alias)
+    with pytest.raises(IMMonitoringError):
+        monitoring.read_monitoring_data()
+
+
+@pytest.mark.develop
 @pytest.mark.soem
 @pytest.mark.eoe
 @pytest.mark.usefixtures("mon_set_freq")
@@ -312,8 +329,11 @@ def test_read_monitoring_data_timeout(motion_controller, monitoring):
     monitoring.set_trigger(MonitoringSoCType.TRIGGER_EVENT_FORCED)
     monitoring.configure_sample_time(sample_t, 0)
     mc.capture.enable_monitoring_disturbance(servo=alias)
-    test_output = monitoring.read_monitoring_data(timeout)
-    assert len(test_output[0]) == 0
+    time_start = time.time()
+    with pytest.raises(IMMonitoringError):
+        monitoring.read_monitoring_data(timeout)
+    time_end = time.time() - time_start
+    assert time_end > timeout
 
 
 @pytest.mark.soem
@@ -338,8 +358,8 @@ def test_read_monitoring_data_no_rearm(motion_controller, monitoring):
     assert len(test_output[0]) > 0
     trigger_raised = monitoring.raise_forced_trigger(block, timeout)
     assert not trigger_raised
-    test_output = monitoring.read_monitoring_data()
-    assert len(test_output[0]) == 0
+    with pytest.raises(IMMonitoringError):
+        monitoring.read_monitoring_data()
 
 
 @pytest.mark.soem

@@ -255,7 +255,7 @@ class Monitoring(ABC):
             return
         time_now = time.time()
         if init_time + timeout < time_now:
-            self.logger.warning("Timeout. No trigger was reached.")
+            raise IMMonitoringError("Timeout. No trigger was reached.")
             self._read_process_finished = True
 
     def _check_read_data_timeout(self, init_read_time):
@@ -263,7 +263,7 @@ class Monitoring(ABC):
         total_num_samples = len(self.mapped_registers) * self.samples_number
         max_timeout = self.ESTIMATED_MAX_TIME_FOR_SAMPLE * total_num_samples
         if init_read_time + max_timeout < time_now:
-            self.logger.warning("Timeout. Drive take too much time reading data")
+            raise IMMonitoringError("Timeout. Drive take too much time reading data")
             self._read_process_finished = True
 
     def _check_read_data_ends(self, data_length):
@@ -327,8 +327,7 @@ class Monitoring(ABC):
                 self._fill_data(data_array)
                 current_len = len(data_array[0])
             elif not is_ready:
-                self.logger.warning(result_text)
-                self._read_process_finished = True
+                raise IMMonitoringError(result_text)
             self._update_read_process_finished(init_read_time, current_len,
                                                init_time, timeout)
             self._show_current_process(current_len, progress_callback)
@@ -428,6 +427,6 @@ class Monitoring(ABC):
         """
         is_triggered = self.raise_forced_trigger(blocking=True, timeout=trigger_timeout)
         if not is_triggered:
-            self.logger.warning("Timeout. Forced trigger is not raised.")
+            raise IMMonitoringError("Timeout. Forced trigger is not raised.")
             return [[] for _ in self.mapped_registers]
         return self.read_monitoring_data()
