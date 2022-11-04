@@ -431,3 +431,12 @@ class Monitoring(ABC):
             self.logger.warning("Timeout. Forced trigger is not raised.")
             return [[] for _ in self.mapped_registers]
         return self.read_monitoring_data()
+
+    def get_frequency(self):
+        """Returns the monitoring sampling rate.
+
+        Returns:
+            int: sampling rate in Hz. None if the frequency is not set.
+
+        """        
+        return self.sampling_freq

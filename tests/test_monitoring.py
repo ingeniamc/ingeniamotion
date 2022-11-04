@@ -403,3 +403,11 @@ def test_monitoring_max_sample_size(motion_controller):
     drive = mc.servos[alias]
     value = drive.read(target_register, subnode=axis)
     assert max_sample_size == value
+
+
+def test_get_frequency(monitoring):
+    freq = monitoring.get_frequency()
+    assert freq is None
+    monitoring.set_frequency(2)
+    freq = monitoring.get_frequency()
+    assert freq == monitoring.sampling_freq
