@@ -36,5 +36,10 @@ setuptools.setup(
         'ingenialogger==0.2.1',
         'ifaddr==0.1.7'
     ],
+    extras_require={
+        "dev": [
+            "sphinx_autodoc_typehints==1.19.5",
+        ],
+    },
     python_requires='>=3.6',
 )
