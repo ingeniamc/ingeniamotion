@@ -549,7 +549,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """Set phasing mode.
 
         Args:
-            phasing_mode (PhasingMode): phasing mode.
+            phasing_mode : phasing mode.
             servo : servo alias to reference it. ``default`` by default.
             axis : servo axis. ``1`` by default.
 
