@@ -8,6 +8,8 @@ from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 from .exceptions import IMDisturbanceError, IMStatusWordError
 from ingenialink.ipb.register import IPBRegister
 
+from typing import Union
+
 
 def check_disturbance_disabled(func):
     @wraps(func)
@@ -52,7 +54,7 @@ class Disturbance:
         REG_DTYPE.FLOAT: 4
     }
 
-    def __init__(self, mc, servo=DEFAULT_SERVO):
+    def __init__(self, mc, servo: str = DEFAULT_SERVO):
         super().__init__()
         self.mc = mc
         self.servo = servo
@@ -69,17 +71,17 @@ class Disturbance:
                                     drive=mc.servo_name(servo))
 
     @check_disturbance_disabled
-    def set_frequency_divider(self, divider):
+    def set_frequency_divider(self, divider: int) -> float:
         """Function to define disturbance frequency with a prescaler. Frequency will be
         ``Position & velocity loop rate frequency / prescaler``,  see
         :func:`ingeniamotion.configuration.Configuration.get_position_and_velocity_loop_rate`
         to know about this frequency. Monitoring/Disturbance must be disabled.
 
         Args:
-            divider (int): determines disturbance frequency. It must be ``1`` or higher.
+            divider : determines disturbance frequency. It must be ``1`` or higher.
 
         Return:
-            float: sample period in seconds.
+            Sample period in seconds.
 
         Raises:
             ValueError: If divider is less than ``1``.
@@ -100,11 +102,11 @@ class Disturbance:
         return 1 / self.sampling_freq
 
     @check_disturbance_disabled
-    def map_registers(self, registers):
+    def map_registers(self, registers: Union[dict, list[dict]]) -> int:
         """Map registers to Disturbance. Disturbance must be disabled.
 
         Args:
-            registers (dict or list of dict): registers to map.
+            registers : registers to map.
                 Each register must be a dict with two keys.
 
                 .. code-block:: python
@@ -116,7 +118,7 @@ class Disturbance:
                     }
 
         Returns:
-            int: max number of samples
+            Max number of samples
 
         Raises:
             IMDisturbanceError: If the register is not allowed to be mapped as
@@ -165,11 +167,11 @@ class Disturbance:
         return registers_data
 
     @check_disturbance_disabled
-    def write_disturbance_data(self, registers_data):
+    def write_disturbance_data(self, registers_data: list[Union[list, float, int]]) -> None:
         """Write data in mapped registers. Disturbance must be disabled.
 
         Args:
-            registers_data (list of (list or float or int)):
+            registers_data :
                 data to write in disturbance. Registers should have same order
                 as in :func:`map_registers`.
 
@@ -184,11 +186,11 @@ class Disturbance:
         dtype_list = [REG_DTYPE(x["dtype"]) for x in self.mapped_registers]
         drive.disturbance_write_data(idx_list, dtype_list, registers_data)
 
-    def map_registers_and_write_data(self, registers):
+    def map_registers_and_write_data(self, registers: Union[dict, list[dict]]) -> None:
         """Map registers to Disturbance and write data. Disturbance must be disabled.
 
         Args:
-            registers (dict or list of dict): registers to map and write data.
+            registers : registers to map and write data.
                 Each register must be a dict with three keys:
 
                 .. code-block:: python
@@ -218,7 +220,7 @@ class Disturbance:
         self.map_registers(registers_keys)
         self.write_disturbance_data(registers_data)
 
-    def __check_buffer_size_is_enough(self, registers):
+    def __check_buffer_size_is_enough(self, registers: Union[dict, list[dict]]) -> None:
         total_buffer_size = 0
         for ch_idx, data in enumerate(registers):
             dtype = self.mapped_registers[ch_idx]["dtype"]
