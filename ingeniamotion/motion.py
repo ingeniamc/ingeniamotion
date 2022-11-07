@@ -7,6 +7,8 @@ from ingeniamotion.enums import OperationMode, SensorType,\
     PhasingMode, GeneratorMode
 from ingeniamotion.exceptions import IMTimeoutError
 
+from typing import Optional
+
 
 class Motion(metaclass=MCMetaClass):
     """Motion."""
@@ -35,12 +37,16 @@ class Motion(metaclass=MCMetaClass):
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
 
-    def target_latch(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+    def target_latch(
+        self,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS
+    ) -> None:
         """Active target latch.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
 
         """
         control_word = self.mc.communication.get_register(self.CONTROL_WORD_REGISTER,
@@ -52,15 +58,18 @@ class Motion(metaclass=MCMetaClass):
         self.mc.communication.set_register(self.CONTROL_WORD_REGISTER, new_control_word,
                                            servo=servo, axis=axis)
 
-    def set_operation_mode(self, operation_mode, servo=DEFAULT_SERVO,
-                           axis=DEFAULT_AXIS):
+    def set_operation_mode(
+        self,
+        operation_mode: OperationMode,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS
+    ) -> None:
         """Set operation mode to a target servo and axis.
 
         Args:
-            operation_mode (OperationMode): operation mode, any of
-                :class:`OperationMode`.
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
+            operation_mode : operation mode, any of :class:`OperationMode`.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
 
         """
         self.mc.communication.set_register(self.OPERATION_MODE_REGISTER, operation_mode,
@@ -73,15 +82,19 @@ class Motion(metaclass=MCMetaClass):
             self.logger.debug("Operation mode set to %s", operation_mode, axis=axis,
                               drive=self.mc.servo_name(servo))
 
-    def get_operation_mode(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+    def get_operation_mode(
+        self,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS
+    ) -> OperationMode:
         """Return current operation mode.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
 
         Returns:
-            OperationMode: Return current operation mode.
+            Return current operation mode.
 
         """
         operation_mode = self.mc.communication.get_register(
@@ -93,12 +106,16 @@ class Motion(metaclass=MCMetaClass):
         except ValueError:
             return operation_mode
 
-    def motor_enable(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+    def motor_enable(
+        self,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS
+    ) -> None:
         """Enable motor.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
 
         Raises:
             ingenialink.exceptions.ILError: If the servo cannot enable the motor.
@@ -116,49 +133,64 @@ class Motion(metaclass=MCMetaClass):
             raise exception_type("An error occurred enabling motor. Reason: {}"
                                  .format(error_msg))
 
-    def motor_disable(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+    def motor_disable(
+        self,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS
+    ) -> None:
         """Disable motor.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
 
         """
         if self.mc.configuration.is_motor_enabled(servo=servo, axis=axis):
             drive = self.mc.servos[servo]
             drive.disable(subnode=axis)
 
-    def fault_reset(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+    def fault_reset(
+        self,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS
+    ) -> None:
         """Fault reset.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
 
         """
         drive = self.mc.servos[servo]
         drive.fault_reset(axis)
 
-    def move_to_position(self, position, servo=DEFAULT_SERVO,
-                         axis=DEFAULT_AXIS, target_latch=True,
-                         blocking=False, error=20, timeout=None,
-                         interval=None):
+    def move_to_position(
+        self,
+        position: int,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+        target_latch: bool = True,
+        blocking: bool = False,
+        error: int = 20,
+        timeout: Optional[float] = None,
+        interval: Optional[float] = None
+    ) -> None:
         """Set position set point to a target servo and axis, in counts.
 
         Args:
-            position (int): target position, in counts.
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
-            target_latch (bool): if ``True`` does target latch at the end.
+            position : target position, in counts.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
+            target_latch : if ``True`` does target latch at the end.
                 ``True`` by default.
-            blocking (bool): if ``True``, the function is blocked until the
+            blocking : if ``True``, the function is blocked until the
                 target position is reached. ``False`` by default.
-            error (int): If blocking is enabled, allowed error between actual
+            error : If blocking is enabled, allowed error between actual
                 position and target position, in counts.
-            timeout (float): If blocking is enabled, how many seconds to wait
+            timeout : If blocking is enabled, how many seconds to wait
                 for the servo to reach the target position, if ``None`` it
                 will wait forever. ``None`` by default.
-            interval (float): If blocking is enabled, interval of time between
+            interval : If blocking is enabled, interval of time between
                 actual position reads, in seconds. ``None`` by default.
 
         Raises:
@@ -178,25 +210,33 @@ class Motion(metaclass=MCMetaClass):
             self.wait_for_position(position, servo, axis, error,
                                    timeout, interval)
 
-    def set_velocity(self, velocity, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
-                     target_latch=True, blocking=False, error=0.1,
-                     timeout=None, interval=None):
+    def set_velocity(
+        self,
+        velocity: float,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+        target_latch: bool = True,
+        blocking: bool = False,
+        error: float = 0.1,
+        timeout: Optional[float] = None,
+        interval: Optional[float] = None
+    ) -> None:
         """Set velocity set point to a target servo and axis, in rev/s.
 
         Args:
-            velocity (float): target velocity, in rev/s.
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
-            target_latch (bool): if ``True`` does target latch at the end.
+            velocity : target velocity, in rev/s.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
+            target_latch : if ``True`` does target latch at the end.
                 ``True`` by default.
-            blocking (bool): if ``True``, the function is blocked until the
+            blocking : if ``True``, the function is blocked until the
                 target position is reached. ``False`` by default.
-            error (float): If blocking is enabled, allowed error between
+            error : If blocking is enabled, allowed error between
                 actual velocity and target velocity, in rev/s.
-            timeout (float): If blocking is enabled, how many seconds to wait
+            timeout : If blocking is enabled, how many seconds to wait
                 for the servo to reach the target velocity, if ``None`` it
                 will wait forever. ``None`` by default.
-            interval (float): If blocking is enabled, interval of time between
+            interval : If blocking is enabled, interval of time between
                 actual velocity reads, in seconds. ``None`` by default.
         Raises:
             TypeError: If velocity is not a float.
@@ -215,14 +255,18 @@ class Motion(metaclass=MCMetaClass):
             self.wait_for_velocity(velocity, servo, axis, error,
                                    timeout, interval)
 
-    def set_current_quadrature(self, current, servo=DEFAULT_SERVO,
-                               axis=DEFAULT_AXIS):
+    def set_current_quadrature(
+        self,
+        current: float,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS
+    ) -> None:
         """Set quadrature current set point to a target servo and axis, in A.
 
         Args:
-            current (float): target quadrature current, in A.
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
+            current : target quadrature current, in A.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
 
         Raises:
             TypeError: If current is not a float.
@@ -233,13 +277,18 @@ class Motion(metaclass=MCMetaClass):
             current, servo=servo, axis=axis
         )
 
-    def set_current_direct(self, current, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+    def set_current_direct(
+        self,
+        current: float,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS
+    ) -> None:
         """Set direct current set point to a target servo and axis, in A.
 
         Args:
-            current (float): target direct current, in A.
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
+            current : target direct current, in A.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
 
         Raises:
             TypeError: If current is not a float.
@@ -248,14 +297,18 @@ class Motion(metaclass=MCMetaClass):
         self.mc.communication.set_register(self.CURRENT_DIRECT_SET_POINT_REGISTER,
                                            current, servo=servo, axis=axis)
 
-    def set_voltage_quadrature(self, voltage, servo=DEFAULT_SERVO,
-                               axis=DEFAULT_AXIS):
+    def set_voltage_quadrature(
+        self,
+        voltage: float,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS
+    ) -> None:
         """Set quadrature voltage set point to a target servo and axis, in V.
 
         Args:
-            voltage (float): target quadrature voltage, in V.
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
+            voltage : target quadrature voltage, in V.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
 
         Raises:
             TypeError: If voltage is not a float.
@@ -264,14 +317,18 @@ class Motion(metaclass=MCMetaClass):
         self.mc.communication.set_register(self.VOLTAGE_QUADRATURE_SET_POINT_REGISTER,
                                            voltage, servo=servo, axis=axis)
 
-    def set_voltage_direct(self, voltage, servo=DEFAULT_SERVO,
-                           axis=DEFAULT_AXIS):
+    def set_voltage_direct(
+        self,
+        voltage: float,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS
+    ) -> None:
         """Set direct voltage set point to a target servo and axis, in V.
 
         Args:
-            voltage (float): target direct voltage, in V.
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
+            voltage : target direct voltage, in V.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
 
         Raises:
             TypeError: If voltage is not a float.
@@ -280,19 +337,26 @@ class Motion(metaclass=MCMetaClass):
         self.mc.communication.set_register(self.VOLTAGE_DIRECT_SET_POINT_REGISTER,
                                            voltage, servo=servo, axis=axis)
 
-    def current_quadrature_ramp(self, target_value, time_s, servo=DEFAULT_SERVO,
-                                axis=DEFAULT_AXIS, init_value=0, interval=None):
+    def current_quadrature_ramp(
+        self,
+        target_value: float,
+        time_s: float,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+        init_value: float = 0,
+        interval: Optional[float] = None
+    ) -> None:
         """Given a target value and a time in seconds, changes the current
         quadrature set-point linearly following a ramp. This function is
         blocked until target reached.
 
         Args:
-            target_value (float): target value of the ramp.
-            time_s (float): duration of the ramp, in seconds.
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
-            init_value (float): initial value of the ramp. ``0`` by default.
-            interval (float): time interval between register writes, in seconds.
+            target_value : target value of the ramp.
+            time_s : duration of the ramp, in seconds.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
+            init_value : initial value of the ramp. ``0`` by default.
+            interval : time interval between register writes, in seconds.
                 ``None`` by default, no interval.
 
         Raises:
@@ -302,20 +366,27 @@ class Motion(metaclass=MCMetaClass):
         for value in self.ramp_generator(init_value, target_value, time_s, interval):
             self.set_current_quadrature(value, servo=servo, axis=axis)
 
-    def current_direct_ramp(self, target_value, time_s, servo=DEFAULT_SERVO,
-                            axis=DEFAULT_AXIS, init_value=0, interval=None):
+    def current_direct_ramp(
+        self,
+        target_value: float,
+        time_s: float,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+        init_value: float = 0,
+        interval: Optional[float] = None
+    ):
         """
         Given a target value and a time in seconds, changes the current
         direct set-point linearly following a ramp. This function is
         blocked until target reached.
 
         Args:
-            target_value (float): target value of the ramp.
-            time_s (float): duration of the ramp, in seconds.
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
-            init_value (float): initial value of the ramp. ``0`` by default.
-            interval (float): time interval between register writes, in seconds.
+            target_value : target value of the ramp.
+            time_s : duration of the ramp, in seconds.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
+            init_value : initial value of the ramp. ``0`` by default.
+            interval : time interval between register writes, in seconds.
                 ``None`` by default, no interval.
 
         Raises:
@@ -325,20 +396,27 @@ class Motion(metaclass=MCMetaClass):
         for value in self.ramp_generator(init_value, target_value, time_s, interval):
             self.set_current_direct(value, servo=servo, axis=axis)
 
-    def voltage_quadrature_ramp(self, target_value, time_s, servo=DEFAULT_SERVO,
-                                axis=DEFAULT_AXIS, init_value=0, interval=None):
+    def voltage_quadrature_ramp(
+        self,
+        target_value: float,
+        time_s: float,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+        init_value: float = 0,
+        interval: Optional[float] = None
+    ) -> None:
         """
         Given a target value and a time in seconds, changes the voltage
         quadrature set-point linearly following a ramp. This function is
         blocked until target reached.
 
         Args:
-            target_value (float): target value of the ramp.
-            time_s (float): duration of the ramp, in seconds.
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
-            init_value (float): initial value of the ramp. ``0`` by default.
-            interval (float): time interval between register writes, in seconds.
+            target_value : target value of the ramp.
+            time_s : duration of the ramp, in seconds.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
+            init_value : initial value of the ramp. ``0`` by default.
+            interval : time interval between register writes, in seconds.
                 ``None`` by default, no interval.
 
         Raises:
@@ -348,20 +426,27 @@ class Motion(metaclass=MCMetaClass):
         for value in self.ramp_generator(init_value, target_value, time_s, interval):
             self.set_voltage_quadrature(value, servo=servo, axis=axis)
 
-    def voltage_direct_ramp(self, target_value, time_s, servo=DEFAULT_SERVO,
-                            axis=DEFAULT_AXIS, init_value=0, interval=None):
+    def voltage_direct_ramp(
+        self,
+        target_value: float,
+        time_s: float,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+        init_value: float = 0,
+        interval: Optional[float] = None
+    ):
         """
         Given a target value and a time in seconds, changes the voltage
         direct set-point linearly following a ramp. This function is
         blocked until target reached.
 
         Args:
-            target_value (float): target value of the ramp.
-            time_s (float): duration of the ramp, in seconds.
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
-            init_value (float): initial value of the ramp. ``0`` by default.
-            interval (float): time interval between register writes, in seconds.
+            target_value : target value of the ramp.
+            time_s : duration of the ramp, in seconds.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
+            init_value : initial value of the ramp. ``0`` by default.
+            interval : time interval between register writes, in seconds.
                 ``None`` by default, no interval.
 
         Raises:
@@ -384,13 +469,17 @@ class Motion(metaclass=MCMetaClass):
             current_time = time.time()
         yield final_v
 
-    def get_actual_position(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+    def get_actual_position(
+        self,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS
+    ) -> int:
         """
         Returns actual position register.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
 
         Returns:
             int: actual position value
@@ -399,13 +488,17 @@ class Motion(metaclass=MCMetaClass):
         return self.mc.communication.get_register(self.ACTUAL_POSITION_REGISTER,
                                                   servo=servo, axis=axis)
 
-    def get_actual_velocity(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+    def get_actual_velocity(
+        self,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS
+    ) -> int:
         """
         Returns actual velocity register.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
 
         Returns:
             int: actual velocity value
@@ -414,21 +507,28 @@ class Motion(metaclass=MCMetaClass):
         return self.mc.communication.get_register(self.ACTUAL_VELOCITY_REGISTER,
                                                   servo=servo, axis=axis)
 
-    def wait_for_position(self, position, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
-                          error=20, timeout=None, interval=None):
+    def wait_for_position(
+        self,
+        position: int,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+        error: int = 20,
+        timeout: Optional[float] = None,
+        interval: Optional[float] = None
+    ) -> None:
         """
         Wait until actual position is equal to a target position, with an error.
 
         Args:
-            position (int): target position, in counts.
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
-            error (int): allowed error between actual position and target
+            position : target position, in counts.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
+            error : allowed error between actual position and target
                 position, in counts.
-            timeout (float): how many seconds to wait for the servo to reach the
+            timeout : how many seconds to wait for the servo to reach the
                 target position, if ``None`` it will wait forever .
                 ``None`` by default.
-            interval (float): interval of time between actual position reads,
+            interval : interval of time between actual position reads,
                 in seconds. ``None`` by default.
 
         Raises:
@@ -450,21 +550,28 @@ class Motion(metaclass=MCMetaClass):
                                     axis=axis, drive=self.mc.servo_name(servo))
                 raise IMTimeoutError("Position was not reached in time")
 
-    def wait_for_velocity(self, velocity, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
-                          error=0.1, timeout=None, interval=None):
+    def wait_for_velocity(
+        self,
+        velocity: float,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+        error: float = 0.1,
+        timeout: Optional[float] = None,
+        interval: Optional[float] = None
+    ) -> None:
         """
         Wait until actual velocity is equal to a target velocity, with an error.
 
         Args:
-            velocity (float): target velocity, in rev/s.
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
-            error (float): allowed error between actual velocity and target
+            velocity : target velocity, in rev/s.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
+            error : allowed error between actual velocity and target
                 velocity, in rev/s.
-            timeout (float): how many seconds to wait for the servo to reach the
+            timeout : how many seconds to wait for the servo to reach the
                 target velocity, if ``None`` it will wait forever.
                 ``None`` by default.
-            interval (float): interval of time between actual velocity reads,
+            interval : interval of time between actual velocity reads,
                 in seconds. ``None`` by default.
 
         Raises:
@@ -487,8 +594,12 @@ class Motion(metaclass=MCMetaClass):
                                     drive=self.mc.servo_name(servo))
                 raise IMTimeoutError("Velocity was not reached in time")
 
-    def set_internal_generator_configuration(self, op_mode, servo=DEFAULT_SERVO,
-                                             axis=DEFAULT_AXIS):
+    def set_internal_generator_configuration(
+        self,
+        op_mode: OperationMode,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS
+    ) -> None:
         """
         Set internal generator configuration.
 
@@ -499,10 +610,10 @@ class Motion(metaclass=MCMetaClass):
             configuration, use it at your own risk.
 
         Args:
-            op_mode (OperationMode): select Current or Voltage operation mode
+            op_mode : select Current or Voltage operation mode
              for internal generator configuration.
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
 
         Raises:
             ValueError: If operation mode is not set to Current or Voltage.
@@ -523,18 +634,24 @@ class Motion(metaclass=MCMetaClass):
         self.mc.configuration.set_commutation_feedback(SensorType.INTGEN,
                                                        servo=servo, axis=axis)
 
-    def internal_generator_saw_tooth_move(self, direction, cycles, frequency,
-                                          servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+    def internal_generator_saw_tooth_move(
+        self,
+        direction: int,
+        cycles: int,
+        frequency: int,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS
+    ) -> None:
         """
         Move motor in internal generator configuration with generator mode saw tooth.
 
         Args:
-            direction (int): ``1`` for positive direction and
+            direction : ``1`` for positive direction and
              ``-1`` for negative direction.
-            cycles (int): movement cycles.
-            frequency (int): cycles for second.
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
+            cycles : movement cycles.
+            frequency : cycles for second.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
 
         Raises:
             TypeError: If direction, cycles or frequency is not of the correct type.
@@ -560,15 +677,19 @@ class Motion(metaclass=MCMetaClass):
         self.mc.communication.set_register(self.GENERATOR_REARM_REGISTER, 1,
                                            servo=servo, axis=axis)
 
-    def internal_generator_constant_move(self, offset, servo=DEFAULT_SERVO,
-                                         axis=DEFAULT_AXIS):
+    def internal_generator_constant_move(
+        self,
+        offset: int,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS
+    ) -> None:
         """
         Move motor in internal generator configuration with generator mode constant.
 
         Args:
-            offset (int): internal generator offset.
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
+            offset : internal generator offset.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
 
         Raises:
             TypeError: If offset is not an int.
