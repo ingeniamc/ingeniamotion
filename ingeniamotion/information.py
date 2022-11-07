@@ -56,8 +56,8 @@ class Information(metaclass=MCMetaClass):
             IMRegisterNotExist: If register does not exist in dictionary.
 
         """
-        register = self.register_info(register, axis=axis, servo=servo)
-        return register.dtype
+        register_obj = self.register_info(register, axis=axis, servo=servo)
+        return register_obj.dtype
 
     def register_access(
         self,
@@ -79,8 +79,8 @@ class Information(metaclass=MCMetaClass):
             IMRegisterNotExist: If register does not exist in dictionary.
 
         """
-        register = self.register_info(register, axis=axis, servo=servo)
-        return register.access
+        register_obj = self.register_info(register, axis=axis, servo=servo)
+        return register_obj.access
 
     def register_range(
         self,
@@ -102,8 +102,8 @@ class Information(metaclass=MCMetaClass):
             IMRegisterNotExist: If register does not exist in dictionary.
 
         """
-        register = self.register_info(register, axis=axis, servo=servo)
-        return register.range
+        register_obj = self.register_info(register, axis=axis, servo=servo)
+        return register_obj.range
 
     def register_exists(
         self,

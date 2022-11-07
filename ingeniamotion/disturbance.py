@@ -220,7 +220,7 @@ class Disturbance:
         self.map_registers(registers_keys)
         self.write_disturbance_data(registers_data)
 
-    def __check_buffer_size_is_enough(self, registers: Union[dict, list[dict]]) -> None:
+    def __check_buffer_size_is_enough(self, registers: list[Union[list, float, int]]) -> None:
         total_buffer_size = 0
         for ch_idx, data in enumerate(registers):
             dtype = self.mapped_registers[ch_idx]["dtype"]
