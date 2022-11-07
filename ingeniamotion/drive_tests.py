@@ -15,21 +15,25 @@ class DriveTests(metaclass=MCMetaClass):
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
 
-    def digital_halls_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
-                           apply_changes=True):
+    def digital_halls_test(
+        self,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+        apply_changes: bool = True
+    ) -> dict:
         """Executes the digital halls feedback test given a target servo and
         axis. By default test will make changes in some drive registers like
         feedback polarity and others suggested registers. To avoid it, set
         ``apply_changes`` to ``False``.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): axis that will run the test. ``1`` by default.
-            apply_changes (bool): if ``True``, test applies changes to the
+            servo : servo alias to reference it. ``default`` by default.
+            axis : axis that will run the test. ``1`` by default.
+            apply_changes : if ``True``, test applies changes to the
                 servo, if ``False`` it does not. ``True`` by default.
 
         Returns:
-            dict: Dictionary with the result of the test::
+            Dictionary with the result of the test::
 
                 {
                     # (int) Result code
@@ -47,21 +51,25 @@ class DriveTests(metaclass=MCMetaClass):
         """
         return self.__feedback_test(SensorType.HALLS, servo, axis, apply_changes)
 
-    def incremental_encoder_1_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
-                                   apply_changes=True):
+    def incremental_encoder_1_test(
+        self,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+        apply_changes: bool = True
+    ) -> dict:
         """Executes the incremental encoder 1 feedback test given a target servo
         and axis. By default test will make changes in some drive registers
         like feedback polarity and other suggested registers. To avoid it, set
         ``apply_changes`` to ``False``.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): axis that will run the test. ``1`` by default.
-            apply_changes (bool): if ``True``, test applies changes to the
+            servo : servo alias to reference it. ``default`` by default.
+            axis : axis that will run the test. ``1`` by default.
+            apply_changes : if ``True``, test applies changes to the
                 servo, if ``False`` it does not. ``True`` by default.
 
         Returns:
-            dict: Dictionary with the result of the test::
+            Dictionary with the result of the test::
 
                 {
                     # (int) Result code
@@ -79,21 +87,25 @@ class DriveTests(metaclass=MCMetaClass):
         """
         return self.__feedback_test(SensorType.QEI, servo, axis, apply_changes)
 
-    def incremental_encoder_2_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
-                                   apply_changes=True):
+    def incremental_encoder_2_test(
+        self,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+        apply_changes: bool = True
+    ) -> dict:
         """Executes incremental encoder 2 feedback test given a target servo
         and axis. By default test will make changes in some drive registers
         like feedback polarity and other suggested registers. To avoid it,
         set ``apply_changes`` to ``False``.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): axis that will run the test. ``1`` by default.
-            apply_changes (bool): if ``True``, test applies changes to the
+            servo : servo alias to reference it. ``default`` by default.
+            axis : axis that will run the test. ``1`` by default.
+            apply_changes : if ``True``, test applies changes to the
                 servo, if ``False`` it does not. ``True`` by default.
 
         Returns:
-            dict: Dictionary with the result of the test::
+            Dictionary with the result of the test::
 
                 {
                     # (int) Result code
@@ -111,29 +123,46 @@ class DriveTests(metaclass=MCMetaClass):
         """
         return self.__feedback_test(SensorType.QEI2, servo, axis, apply_changes)
 
-    def absolute_encoder_1_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
-                                apply_changes=True):
+    def absolute_encoder_1_test(
+        self,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+        apply_changes: bool = True
+    ) -> dict:
         """Executes absolute encoder 1 feedback test given a target servo and axis.
         To know more about it see :func:`digital_halls_test`.
         """
         return self.__feedback_test(SensorType.ABS1, servo, axis, apply_changes)
 
-    def absolute_encoder_2_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
-                                apply_changes=True):
+    def absolute_encoder_2_test(
+        self,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+        apply_changes: bool = True
+    ):
         """Executes absolute encoder 2 feedback test given a target servo and axis.
         To know more about it see :func:`digital_halls_test`.
         """
         return self.__feedback_test(SensorType.BISSC2, servo, axis, apply_changes)
 
-    def secondary_ssi_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
-                           apply_changes=True):
+    def secondary_ssi_test(
+        self,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+        apply_changes: bool = True
+    ):
         """ Executes secondary SSI feedback test given a target servo and axis.
         To know more about it see :func:`digital_halls_test`.
         """
         return self.__feedback_test(SensorType.SSI2, servo, axis, apply_changes)
 
-    def __feedback_test(self, feedback, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
-                        apply_changes=True):
+    def __feedback_test(
+        self,
+        feedback, #TODO: add type
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+        apply_changes: bool = True
+    ) -> dict:
         feedbacks_test = Feedbacks(self.mc, servo, axis, feedback)
         output = feedbacks_test.run()
         if (apply_changes and
@@ -145,21 +174,25 @@ class DriveTests(metaclass=MCMetaClass):
                               drive=self.mc.servo_name(servo))
         return output
 
-    def commutation(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
-                    apply_changes=True):
+    def commutation(
+        self, 
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+        apply_changes: bool = True
+    ) -> dict:
         """Executes a commutation calibration given a target servo and axis.
         By default commutation will make changes in some drive registers
         like commutation angle offset and other suggested registers.
         To avoid it, set ``apply_changes`` to ``False``.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): axis that will run the test. ``1`` by default.
-            apply_changes (bool): if ``True``, test applies changes to the
+            servo : servo alias to reference it. ``default`` by default.
+            axis : axis that will run the test. ``1`` by default.
+            apply_changes : if ``True``, test applies changes to the
                 servo, if ``False`` it does not. ``True`` by default.
 
         Returns:
-            dict: Dictionary with the result of the test::
+            Dictionary with the result of the test::
 
                 {
                     # (int) Result code
@@ -186,16 +219,20 @@ class DriveTests(metaclass=MCMetaClass):
                               drive=self.mc.servo_name(servo))
         return output
 
-    def phasing_check(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+    def phasing_check(
+        self,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS
+    ) -> dict:
         """
         Checks servo phasing.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): axis that will run the test. ``1`` by default.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : axis that will run the test. ``1`` by default.
 
         Returns:
-            dict: Dictionary with the result of the test::
+            Dictionary with the result of the test::
 
                 {
                     # (int) Result code
@@ -209,16 +246,20 @@ class DriveTests(metaclass=MCMetaClass):
         phasing_check = PhasingCheck(self.mc, servo, axis)
         return phasing_check.run()
 
-    def sto_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+    def sto_test(
+        self,
+        servo: str = DEFAULT_SERVO, 
+        axis: int = DEFAULT_AXIS
+    ) -> dict:
         """
         Check STO
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): axis that will run the test. ``1`` by default.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : axis that will run the test. ``1`` by default.
 
         Returns:
-            dict: Dictionary with the result of the test::
+            Dictionary with the result of the test::
 
                 {
                     # (int) Result code
@@ -232,16 +273,20 @@ class DriveTests(metaclass=MCMetaClass):
         sto_test = STOTest(self.mc, servo, axis)
         return sto_test.run()
 
-    def brake_test(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+    def brake_test(
+        self,
+        servo: str = DEFAULT_SERVO, 
+        axis: int = DEFAULT_AXIS
+    ) -> Brake:
         """
         Run brake test.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): axis that will run the test. ``1`` by default.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : axis that will run the test. ``1`` by default.
 
         Returns:
-            Brake: Instance of Brake test. Call ``Brake.finish()`` to end the test.
+            Instance of Brake test. Call ``Brake.finish()`` to end the test.
         """
         brake_test = Brake(self.mc, servo, axis)
         brake_test.run()
