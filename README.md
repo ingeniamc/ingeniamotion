@@ -30,7 +30,7 @@ Install locally:
 pip install -e .
 ```
 
-To include extra requirements to do developing or runing the tests please run:
+To include extra requirements to do developing or running the tests please run:
 ```bash
 pip install -e .[dev]
 pip install -e .[tests]
