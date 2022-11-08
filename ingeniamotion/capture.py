@@ -353,8 +353,7 @@ class Capture(metaclass=MCMetaClass):
             return self.disable_monitoring(servo=servo, version=version)
         drive = self.mc.servos[servo]
         drive.disturbance_disable()
-        if version >= MonitoringVersion.MONITORING_V3:
-            return drive.disturbance_remove_data()
+        return drive.disturbance_remove_data()
 
     def get_monitoring_disturbance_status(self, servo=DEFAULT_SERVO):
         """Get Monitoring Status.
