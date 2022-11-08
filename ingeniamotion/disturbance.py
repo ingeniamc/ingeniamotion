@@ -120,7 +120,6 @@ class Disturbance:
 
         Raises:
             IMDisturbanceError: If the register list is empty.
-
             IMDisturbanceError: If the register is not allowed to be mapped as
                 a disturbance register.
         """
@@ -180,7 +179,6 @@ class Disturbance:
         Raises:
             IMDisturbanceError: If the registers are not correctly 
                 configured.
-
             IMDisturbanceError: If buffer size is not enough for all the
                 registers and samples.
         """
