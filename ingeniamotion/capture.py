@@ -594,7 +594,7 @@ class Capture(metaclass=MCMetaClass):
             axis (int): servo axis. ``1`` by default.
 
         Returns:
-            int: sampling rate in Hz.
+            float: sampling rate in Hz.
 
         """
 
