@@ -294,14 +294,12 @@ def test_read_monitoring_data_not_configured(motion_controller, monitoring):
 @pytest.mark.eoe
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
-@pytest.mark.develop
 def test_read_monitoring_data_disabled(monitoring):
     monitoring.configure_sample_time(0.8, 0)
     with pytest.raises(IMMonitoringError):
         monitoring.read_monitoring_data()
 
 
-@pytest.mark.develop
 @pytest.mark.soem
 @pytest.mark.eoe
 @pytest.mark.usefixtures("mon_set_freq")
@@ -316,7 +314,6 @@ def test_read_monitoring_data_non_mapped_registers(motion_controller, monitoring
         monitoring.read_monitoring_data()
 
 
-@pytest.mark.develop
 @pytest.mark.soem
 @pytest.mark.eoe
 @pytest.mark.usefixtures("mon_set_freq")
