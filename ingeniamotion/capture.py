@@ -1,3 +1,5 @@
+from typing import Optional, Union
+
 from ingenialink.exceptions import ILError
 from ingenialink.poller import Poller
 from ingenialink.ipb.poller import IPBPoller
@@ -13,7 +15,6 @@ from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.enums import MonitoringVersion, MonitoringProcessStage,\
     MonitoringSoCType, MonitoringSoCConfig
 
-from typing import Optional, Union
 
 class Capture(metaclass=MCMetaClass):
     """Capture."""
@@ -49,7 +50,7 @@ class Capture(metaclass=MCMetaClass):
         self,
         registers: list[dict],
         servo: str = DEFAULT_SERVO,
-        sampling_time: float = 0.125, 
+        sampling_time: float = 0.125,
         buffer_size: int = 100,
         start: bool = True
     ) -> Poller:
@@ -137,7 +138,7 @@ class Capture(metaclass=MCMetaClass):
             return MonitoringV1(self.mc, servo)
 
     def create_monitoring(
-        self, 
+        self,
         registers: list[dict],
         prescaler: int,
         sample_time: float,
@@ -314,7 +315,7 @@ class Capture(metaclass=MCMetaClass):
         self,
         servo: str = DEFAULT_SERVO,
         version: Optional[MonitoringVersion] = None
-    ):
+    ) -> None:
         """Enable disturbance.
 
         Args:
@@ -350,7 +351,7 @@ class Capture(metaclass=MCMetaClass):
         self,
         servo: str = DEFAULT_SERVO,
         version: Optional[MonitoringVersion] = None
-    ):
+    ) -> None:
         """Disable monitoring.
 
         Args:
@@ -372,7 +373,7 @@ class Capture(metaclass=MCMetaClass):
         self,
         servo: str = DEFAULT_SERVO,
         version: Optional[MonitoringVersion] = None
-    ):
+    ) -> None:
         """Disable disturbance.
 
         Args:

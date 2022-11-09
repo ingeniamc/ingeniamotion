@@ -1,10 +1,11 @@
 import time
 import ifaddr
 import subprocess
-import ingenialogger
-
 from os import path
 from functools import partial
+from typing import Optional, Union, Callable
+
+import ingenialogger
 from ingenialink.exceptions import ILError
 from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.ethernet.network import EthernetNetwork
@@ -13,7 +14,6 @@ from ingenialink.ethercat.network import EthercatNetwork
 from ingeniamotion.exceptions import IMRegisterWrongAccess
 from ingeniamotion.enums import Protocol, CAN_BAUDRATE, CAN_DEVICE, REG_DTYPE, REG_ACCESS
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
-from typing import Optional, Union, Callable
 
 
 class Communication(metaclass=MCMetaClass):
@@ -603,7 +603,7 @@ class Communication(metaclass=MCMetaClass):
         dtype: REG_DTYPE,
         value: Union[int, float],
         servo: str = DEFAULT_SERVO
-    ):
+    ) -> None:
         """Set the value via SDO of a target register.
 
         Args:

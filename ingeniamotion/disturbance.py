@@ -2,13 +2,12 @@ import ingenialogger
 from numpy import ndarray
 from functools import wraps
 from collections.abc import Iterable
+from typing import Union
 
 from ingeniamotion.enums import MonitoringVersion, REG_DTYPE
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 from .exceptions import IMDisturbanceError, IMStatusWordError
 from ingenialink.ipb.register import IPBRegister
-
-from typing import Union
 
 
 def check_disturbance_disabled(func):

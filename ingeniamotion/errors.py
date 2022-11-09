@@ -1,7 +1,7 @@
 from enum import IntEnum
+from typing import Optional
 
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
-from typing import Optional
 
 
 class Errors(metaclass=MCMetaClass):

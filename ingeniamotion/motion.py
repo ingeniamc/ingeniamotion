@@ -1,4 +1,6 @@
 import time
+from typing import Optional
+
 import ingenialogger
 from ingenialink.exceptions import ILError
 
@@ -6,8 +8,6 @@ from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.enums import OperationMode, SensorType,\
     PhasingMode, GeneratorMode
 from ingeniamotion.exceptions import IMTimeoutError
-
-from typing import Optional
 
 
 class Motion(metaclass=MCMetaClass):
@@ -374,7 +374,7 @@ class Motion(metaclass=MCMetaClass):
         axis: int = DEFAULT_AXIS,
         init_value: float = 0,
         interval: Optional[float] = None
-    ):
+    ) -> None:
         """
         Given a target value and a time in seconds, changes the current
         direct set-point linearly following a ramp. This function is
@@ -434,7 +434,7 @@ class Motion(metaclass=MCMetaClass):
         axis: int = DEFAULT_AXIS,
         init_value: float = 0,
         interval: Optional[float] = None
-    ):
+    ) -> None:
         """
         Given a target value and a time in seconds, changes the voltage
         direct set-point linearly following a ramp. This function is

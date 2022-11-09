@@ -1,5 +1,8 @@
 from enum import IntEnum
 
+from ingenialink.network import Network
+from ingenialink.servo import Servo
+
 from .configuration import Configuration
 from .motion import Motion
 from .capture import Capture
@@ -8,9 +11,6 @@ from .drive_tests import DriveTests
 from .errors import Errors
 from .information import Information
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
-
-from ingenialink.network import Network
-from ingenialink.servo import Servo
 
 
 class MotionController:
@@ -62,7 +62,7 @@ class MotionController:
             servo : servo alias to reference it. ``default`` by default.
 
         Returns:
-            servo Ingenialink Network instance.
+            Network instance of the servo.
 
         """
         net_key = self.servo_net[servo]
@@ -75,7 +75,7 @@ class MotionController:
             servo : servo alias to reference it. ``default`` by default.
 
         Returns:
-            servo Ingenialink Servo instance.
+            Servo instance.
 
         """
         return self.servos[servo]

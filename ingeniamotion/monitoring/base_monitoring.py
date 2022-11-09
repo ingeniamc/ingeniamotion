@@ -4,15 +4,13 @@ import numpy as np
 import ingenialogger
 from functools import wraps
 from abc import ABC, abstractmethod
+from typing import Optional, Union, Callable
 
 from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 from ingeniamotion.exceptions import IMMonitoringError
 from ingeniamotion.enums import MonitoringProcessStage, \
     MonitoringSoCType, MonitoringSoCConfig, REG_DTYPE
 from ingenialink.ipb.register import IPBRegister
-
-from typing import Optional, Union, Callable
-
 
 
 def check_monitoring_disabled(func):

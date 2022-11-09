@@ -1,6 +1,7 @@
+from ingenialink.register import Register, REG_ACCESS, REG_DTYPE
+
 from .exceptions import IMRegisterNotExist
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
-from ingenialink.register import Register, REG_ACCESS, REG_DTYPE
 
 
 class Information(metaclass=MCMetaClass):

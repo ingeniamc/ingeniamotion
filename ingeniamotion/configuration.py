@@ -3,13 +3,12 @@ import ingenialogger
 
 from os import path
 from enum import IntEnum
+from typing import Optional
 
 from .homing import Homing
 from .feedbacks import Feedbacks
 from .enums import PhasingMode, GeneratorMode
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
-
-from typing import Optional, Union, Callable
 
 
 class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
