@@ -139,7 +139,7 @@ class DriveTests(metaclass=MCMetaClass):
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
         apply_changes: bool = True
-    ):
+    ) -> dict:
         """Executes absolute encoder 2 feedback test given a target servo and axis.
         To know more about it see :func:`digital_halls_test`.
         """
