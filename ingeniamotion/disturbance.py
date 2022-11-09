@@ -2,12 +2,17 @@ import ingenialogger
 from numpy import ndarray
 from functools import wraps
 from collections.abc import Iterable
-from typing import Union
+from typing import Union, TYPE_CHECKING
+
+from ingenialink.ipb.register import IPBRegister
 
 from ingeniamotion.enums import MonitoringVersion, REG_DTYPE
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 from .exceptions import IMDisturbanceError, IMStatusWordError
-from ingenialink.ipb.register import IPBRegister
+
+
+if TYPE_CHECKING:
+    from ingeniamotion.motion_controller import MotionController
 
 
 def check_disturbance_disabled(func):
@@ -27,8 +32,8 @@ class Disturbance:
     """Class to configure a disturbance in a servo.
 
     Args:
-        mc (MotionController): MotionController instance.
-        servo (str): servo alias to reference it. ``default`` by default.
+        mc : MotionController instance.
+        servo : servo alias to reference it. ``default`` by default.
     """
 
     DISTURBANCE_FREQUENCY_DIVIDER_REGISTER = "DIST_FREQ_DIV"
@@ -53,7 +58,7 @@ class Disturbance:
         REG_DTYPE.FLOAT: 4
     }
 
-    def __init__(self, mc, servo: str = DEFAULT_SERVO):
+    def __init__(self, mc: "MotionController", servo: str = DEFAULT_SERVO):
         super().__init__()
         self.mc = mc
         self.servo = servo
