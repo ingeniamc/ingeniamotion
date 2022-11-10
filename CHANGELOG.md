@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.5.6] - 2022-11-10
+### Fixed
+- On capture.disable_disturbance, disturbance data is removed.
+
+
 ## [0.5.5] - 2022-07-26
 ### Added
 - Support monitoring/disturbance with CANopen protocol.
