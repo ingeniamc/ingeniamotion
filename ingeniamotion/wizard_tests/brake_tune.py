@@ -131,25 +131,6 @@ class BrakeTune(BaseTest):
         self.logger.info("Disabling brake")
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
 
-    def run(self) -> dict:
-        self.reset_stop()
-        self.save_backup_registers()
-        try:
-            self.setup()
-            output = self.loop()
-            self.report = {
-                "result_severity": self.get_result_severity(output),
-                "result_message": self.get_result_msg(output)
-            }
-        except ILError as err:
-            raise err
-        finally:
-            try:
-                self.teardown()
-            finally:
-                self.restore_backup_registers()
-            return self.report
-
     def get_result_severity(self, output: ResultBrakeType) -> SeverityLevel:
         severity_options = {
             self.ResultBrakeType.SUCCESS: SeverityLevel.SUCCESS,
