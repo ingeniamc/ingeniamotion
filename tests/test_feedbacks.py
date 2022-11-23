@@ -21,8 +21,7 @@ SENSOR_TYPE_AND_CATEGORY = [
     (SensorType.SSI2, SensorCategory.ABSOLUTE),
     (SensorType.BISSC2, SensorCategory.ABSOLUTE),
     (SensorType.QEI2, SensorCategory.INCREMENTAL),
-    (SensorType.INTGEN, SensorCategory.ABSOLUTE),
-    (SensorType.SMO, SensorCategory.ABSOLUTE)
+    (SensorType.INTGEN, SensorCategory.ABSOLUTE)
 ]
 
 
@@ -107,7 +106,7 @@ def test_get_commutation_feedback_resolution(motion_controller, sensor):
         COMMUTATION_FEEDBACK_REGISTER,
         sensor,
         servo=alias)
-    if sensor in [SensorType.INTGEN, SensorType.SMO]:
+    if sensor in [SensorType.INTGEN]:
         with pytest.raises(ValueError):
             mc.configuration.get_commutation_feedback_resolution(servo=alias)
     else:
@@ -160,7 +159,7 @@ def test_get_reference_feedback_resolution(motion_controller, sensor):
         REFERENCE_FEEDBACK_REGISTER,
         sensor,
         servo=alias)
-    if sensor in [SensorType.INTGEN, SensorType.SMO]:
+    if sensor in [SensorType.INTGEN]:
         with pytest.raises(ValueError):
             mc.configuration.get_reference_feedback_resolution(servo=alias)
     else:
@@ -213,7 +212,7 @@ def test_get_velocity_feedback_resolution(motion_controller, sensor):
         VELOCITY_FEEDBACK_REGISTER,
         sensor,
         servo=alias)
-    if sensor in [SensorType.INTGEN, SensorType.SMO]:
+    if sensor in [SensorType.INTGEN]:
         with pytest.raises(ValueError):
             mc.configuration.get_velocity_feedback_resolution(servo=alias)
     else:
@@ -266,7 +265,7 @@ def test_get_position_feedback_resolution(motion_controller, sensor):
         POSITION_FEEDBACK_REGISTER,
         sensor,
         servo=alias)
-    if sensor in [SensorType.INTGEN, SensorType.SMO]:
+    if sensor in [SensorType.INTGEN]:
         with pytest.raises(ValueError):
             mc.configuration.get_position_feedback_resolution(servo=alias)
     else:
@@ -283,8 +282,7 @@ def test_get_position_feedback_resolution(motion_controller, sensor):
     SensorType.HALLS,
     SensorType.SSI2,
     SensorType.BISSC2,
-    SensorType.QEI2,
-    SensorType.SMO
+    SensorType.QEI2
 ])
 def test_get_auxiliar_feedback(motion_controller, sensor):
     mc, alias = motion_controller
@@ -304,8 +302,7 @@ def test_get_auxiliar_feedback(motion_controller, sensor):
     SensorType.HALLS,
     SensorType.SSI2,
     SensorType.BISSC2,
-    SensorType.QEI2,
-    SensorType.SMO
+    SensorType.QEI2
 ])
 def test_set_auxiliar_feedback(motion_controller, sensor):
     mc, alias = motion_controller
@@ -324,8 +321,7 @@ def test_set_auxiliar_feedback(motion_controller, sensor):
     (SensorType.HALLS, SensorCategory.ABSOLUTE),
     (SensorType.SSI2, SensorCategory.ABSOLUTE),
     (SensorType.BISSC2, SensorCategory.ABSOLUTE),
-    (SensorType.QEI2, SensorCategory.INCREMENTAL),
-    (SensorType.SMO, SensorCategory.ABSOLUTE)
+    (SensorType.QEI2, SensorCategory.INCREMENTAL)
 ])
 def test_get_auxiliar_feedback_category(motion_controller, sensor, category):
     mc, alias = motion_controller
@@ -342,8 +338,7 @@ def test_get_auxiliar_feedback_category(motion_controller, sensor, category):
     SensorType.HALLS,
     SensorType.SSI2,
     SensorType.BISSC2,
-    SensorType.QEI2,
-    SensorType.SMO
+    SensorType.QEI2
 ])
 def test_get_auxiliar_feedback_resolution(motion_controller, sensor):
     mc, alias = motion_controller
@@ -351,7 +346,7 @@ def test_get_auxiliar_feedback_resolution(motion_controller, sensor):
         AUXILIAR_FEEDBACK_REGISTER,
         sensor,
         servo=alias)
-    if sensor in [SensorType.INTGEN, SensorType.SMO]:
+    if sensor in [SensorType.INTGEN]:
         with pytest.raises(ValueError):
             mc.configuration.get_auxiliar_feedback_resolution(servo=alias)
     else:
