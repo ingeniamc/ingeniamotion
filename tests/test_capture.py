@@ -183,3 +183,21 @@ def test_monitoring_max_sample_size(motion_controller):
     drive = mc.servos[alias]
     value = drive.read(target_register, subnode=axis)
     assert max_sample_size == value
+
+def test_get_frequency(motion_controller, disable_monitoring_disturbance):
+    mc, alias = motion_controller
+    registers = [{
+        "name": "CL_POS_REF_VALUE",
+        "axis": 1
+    }]
+    max_frequency = mc.configuration.get_position_and_velocity_loop_rate(alias)
+    divider = 40
+    samples = 2000
+    freq = max_frequency / divider
+    total_time = samples / freq
+    monitoring = mc.capture.create_monitoring(registers, divider,
+                                              total_time, servo=alias)
+    assert mc.capture.get_frequency(servo=alias) == freq
+    new_divider = 2
+    monitoring.set_frequency(new_divider)
+    assert mc.capture.get_frequency(servo=alias) == max_frequency / new_divider
