@@ -440,7 +440,7 @@ class Motion(metaclass=MCMetaClass):
             axis (int): servo axis. ``1`` by default.
 
         Returns:
-            int: actual quadrature current value
+            float: actual quadrature current value
 
         """
         return self.mc.communication.get_register(self.ACTUAL_QUADRATURE_CURRENT_REGISTER,
