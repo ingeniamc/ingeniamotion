@@ -1,13 +1,19 @@
+from typing import TYPE_CHECKING
+
 from ingenialink.register import Register, REG_ACCESS, REG_DTYPE
 
 from .exceptions import IMRegisterNotExist
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
+if TYPE_CHECKING:
+    from ingeniamotion.motion_controller import MotionController
+
+
 class Information(metaclass=MCMetaClass):
     """Information."""
 
-    def __init__(self, motion_controller):
+    def __init__(self, motion_controller: "MotionController"):
         self.mc = motion_controller
 
     def register_info(
@@ -34,8 +40,9 @@ class Information(metaclass=MCMetaClass):
         try:
             return drive.dictionary.registers(axis)[register]
         except KeyError:
-            raise IMRegisterNotExist("Register: {} axis: {} not exist in dictionary"
-                                     .format(register, axis))
+            raise IMRegisterNotExist(
+                "Register: {} axis: {} not exist in dictionary".format(register, axis)
+            )
 
     def register_type(
         self,
