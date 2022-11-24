@@ -89,8 +89,6 @@ class SensorType(IntEnum):
     """Absolute encoder 2"""
     QEI2 = 8
     """Digital/Incremental encoder 2"""
-    SMO = 9
-    """SMO"""
 
 
 class SensorCategory(IntEnum):

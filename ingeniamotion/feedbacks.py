@@ -14,8 +14,7 @@ class Feedbacks(metaclass=MCMetaClass):
         SensorType.SSI2: SensorCategory.ABSOLUTE,
         SensorType.BISSC2: SensorCategory.ABSOLUTE,
         SensorType.QEI2: SensorCategory.INCREMENTAL,
-        SensorType.INTGEN: SensorCategory.ABSOLUTE,
-        SensorType.SMO: SensorCategory.ABSOLUTE
+        SensorType.INTGEN: SensorCategory.ABSOLUTE
     }
 
     COMMUTATION_FEEDBACK_REGISTER = "COMMU_ANGLE_SENSOR"
@@ -34,8 +33,7 @@ class Feedbacks(metaclass=MCMetaClass):
             SensorType.SSI2: self.get_secondary_ssi_resolution,
             SensorType.BISSC2: self.get_absolute_encoder_2_resolution,
             SensorType.QEI2: self.get_incremental_encoder_2_resolution,
-            SensorType.INTGEN: self.__no_feedback_resolution,
-            SensorType.SMO: self.__no_feedback_resolution
+            SensorType.INTGEN: self.__no_feedback_resolution
         }
 
     # Commutation feedback
