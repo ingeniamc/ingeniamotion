@@ -8,78 +8,86 @@
 
 def SW_NODE = "windows-slave"
 def ECAT_NODE = "ecat-test"
+def ECAT_NODE_LOCK = "test_execution_lock_ecat"
 def CAN_NODE = "canopen-test"
+def CAN_NODE_LOCK = "test_execution_lock_can"
 
-node(ECAT_NODE) {
-    deleteDir()
+lock(ECAT_NODE_LOCK)
+{
+    node(ECAT_NODE) {
+        deleteDir()
 
-    stage('Checkout') {
-        checkout scm
-    }
+        stage('Checkout') {
+            checkout scm
+        }
 
-    stage('Install deps') {
-        bat '''
-            python -m venv venv
-            venv\\Scripts\\python.exe -m pip install -r requirements\\test-requirements.txt
-        '''
-    }
+        stage('Install deps') {
+            bat '''
+                python -m venv venv
+                venv\\Scripts\\python.exe -m pip install -r requirements\\test-requirements.txt
+            '''
+        }
 
-    stage('Update FW to drives') {
-        bat """
-            venv\\Scripts\\python.exe tests\\load_FWs.py soem
-        """
-    }
+        stage('Update FW to drives') {
+            bat """
+                venv\\Scripts\\python.exe tests\\load_FWs.py soem
+            """
+        }
 
-    stage('Run EtherCAT embedded tests') {
-        bat '''
-            venv\\Scripts\\python.exe -m pytest tests --protocol soem --slave 0 --html=pytest_ecat_slave_0_report.html --self-contained-html
-            venv\\Scripts\\python.exe -m pytest tests --protocol soem --slave 1 --html=pytest_ecat_slave_1_report.html --self-contained-html
-            exit /b 0
-        '''
-    }
+        stage('Run EtherCAT embedded tests') {
+            bat '''
+                venv\\Scripts\\python.exe -m pytest tests --protocol soem --slave 0 --html=pytest_ecat_slave_0_report.html --self-contained-html
+                venv\\Scripts\\python.exe -m pytest tests --protocol soem --slave 1 --html=pytest_ecat_slave_1_report.html --self-contained-html
+                exit /b 0
+            '''
+        }
 
-    stage('Save test results') {
-        archiveArtifacts artifacts: '*.html'
+        stage('Save test results') {
+            archiveArtifacts artifacts: '*.html'
+        }
     }
 }
 
-node(CAN_NODE) {
-    deleteDir()
-    stage('Checkout') {
-        checkout scm
-    }
+lock(CAN_NODE_LOCK)
+{
+    node(CAN_NODE) {
+        deleteDir()
+        stage('Checkout') {
+            checkout scm
+        }
 
-    stage('Install deps') {
-        bat '''
-            python -m venv venv
-            venv\\Scripts\\python.exe -m pip install -r requirements\\test-requirements.txt
-        '''
-    }
+        stage('Install deps') {
+            bat '''
+                python -m venv venv
+                venv\\Scripts\\python.exe -m pip install -r requirements\\test-requirements.txt
+            '''
+        }
 
-    stage('Update FW to drives') {
-        bat """
-            venv\\Scripts\\python.exe tests\\load_FWs.py canopen
-        """
-    }
+        stage('Update FW to drives') {
+            bat """
+                venv\\Scripts\\python.exe tests\\load_FWs.py canopen
+            """
+        }
 
-    stage('Run CANopen tests') {
-        bat '''
-            venv\\Scripts\\python.exe -m pytest tests --protocol canopen --slave 0 --html=pytest_can_slave_0_report.html --self-contained-html
-            venv\\Scripts\\python.exe -m pytest tests --protocol canopen --slave 1 --html=pytest_can_slave_1_report.html --self-contained-html
-            exit /b 0
-        '''
-    }
+        stage('Run CANopen tests') {
+            bat '''
+                venv\\Scripts\\python.exe -m pytest tests --protocol canopen --slave 0 --html=pytest_can_slave_0_report.html --self-contained-html
+                venv\\Scripts\\python.exe -m pytest tests --protocol canopen --slave 1 --html=pytest_can_slave_1_report.html --self-contained-html
+                exit /b 0
+            '''
+        }
 
-    stage('Run Ethernet tests') {
-        bat '''
-            venv\\Scripts\\python.exe -m pytest tests --protocol eoe --slave 0 --html=pytest_eth_slave_0_report.html --self-contained-html
-            venv\\Scripts\\python.exe -m pytest tests --protocol eoe --slave 1 --html=pytest_eth_slave_1_report.html --self-contained-html
-            exit /b 0
-        '''
-    }
+        stage('Run Ethernet tests') {
+            bat '''
+                venv\\Scripts\\python.exe -m pytest tests --protocol eoe --slave 0 --html=pytest_eth_slave_0_report.html --self-contained-html
+                venv\\Scripts\\python.exe -m pytest tests --protocol eoe --slave 1 --html=pytest_eth_slave_1_report.html --self-contained-html
+                exit /b 0
+            '''
+        }
 
-    stage('Save test results') {
-        archiveArtifacts artifacts: '*.html'
+        stage('Save test results') {
+            archiveArtifacts artifacts: '*.html'
+        }
     }
 }
 
