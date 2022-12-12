@@ -16,17 +16,30 @@ pipeline {
                 }
             }
             stages {
+                stage('Clone repository') {
+                    steps {
+                        bat """
+                            cd C:\\Users\\ContainerAdministrator
+                            git clone https://github.com/ingeniamc/ingeniamotion.git
+                            cd ingeniamotion
+                            git checkout ${env.GIT_COMMIT}
+                        """
+                    }
+                 }
                 stage('Install deps') {
                     steps {
                         bat '''
+                            cd C:\\Users\\ContainerAdministrator\\ingeniamotion
                             python -m venv venv
                             venv\\Scripts\\python.exe -m pip install -r requirements\\dev-requirements.txt
+                            venv\\Scripts\\python.exe -m pip install -e .
                         '''
                     }
                 }
                 stage('Build wheels') {
                     steps {
                         bat '''
+                             cd C:\\Users\\ContainerAdministrator\\ingeniamotion
                              venv\\Scripts\\python.exe setup.py bdist_wheel
                         '''
                     }
@@ -34,14 +47,18 @@ pipeline {
                 stage('Generate documentation') {
                     steps {
                         bat '''
-                             venv\\Scripts\\python.exe -m sphinx -b html docs _docs
+                            cd C:\\Users\\ContainerAdministrator\\ingeniamotion
+                            venv\\Scripts\\python.exe -m sphinx -b html docs _docs
                         '''
                     }
                 }
                 stage('Archive') {
                     steps {
                         bat """
+                            cd C:\\Users\\ContainerAdministrator\\ingeniamotion
                             "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
+                            XCOPY dist ${env.WORKSPACE}\\dist /i
+                            XCOPY docs.zip ${env.WORKSPACE}
                         """
                         archiveArtifacts artifacts: "dist\\*, docs.zip"
                     }
