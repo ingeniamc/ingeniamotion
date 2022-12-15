@@ -1,7 +1,13 @@
 import ingenialogger
 
 from .enums import SensorType, SeverityLevel
-from .wizard_tests.feedback_test import Feedbacks
+from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
+from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder1_test import AbsoluteEncoder1Test
+from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental1_test import DigitalIncremental1Test
+from ingeniamotion.wizard_tests.feedbacks_tests.digital_hall_test import DigitalHallTest
+from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import SecondarySSITest
+from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder2_test import AbsoluteEncoder2Test
+from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental2_test import DigitalIncremental2Test
 from .wizard_tests.phase_calibration import Phasing
 from .wizard_tests.phasing_check import PhasingCheck
 from .wizard_tests.sto import STOTest
@@ -10,6 +16,12 @@ from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
 class DriveTests(metaclass=MCMetaClass):
+    __sensors = {SensorType.ABS1: AbsoluteEncoder2Test,
+                 SensorType.QEI: DigitalIncremental1Test,
+                 SensorType.HALLS: DigitalHallTest,
+                 SensorType.SSI2: SecondarySSITest,
+                 SensorType.BISSC2: AbsoluteEncoder2Test,
+                 SensorType.QEI2: DigitalIncremental2Test}
 
     def __init__(self, motion_controller):
         self.mc = motion_controller
@@ -132,10 +144,12 @@ class DriveTests(metaclass=MCMetaClass):
         """
         return self.__feedback_test(SensorType.SSI2, servo, axis, apply_changes)
 
+    def set_feedback_test(self, feedback, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        return self.__sensors[feedback](self.mc, servo, axis)
+
     def __feedback_test(self, feedback, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS,
                         apply_changes=True):
-        feedbacks_test = Feedbacks(self.mc, servo, axis, feedback)
-        output = feedbacks_test.run()
+        output = self.set_feedback_test(feedback, servo, axis).run()
         if (apply_changes and
                 output["result_severity"] == SeverityLevel.SUCCESS):
             for key, value in output["suggested_registers"].items():

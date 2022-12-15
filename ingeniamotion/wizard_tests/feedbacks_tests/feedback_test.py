@@ -4,7 +4,7 @@ import ingenialogger
 
 from enum import IntEnum
 
-from .base_test import BaseTest, TestError
+from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
 from ingeniamotion.exceptions import IMRegisterNotExist
 from ingeniamotion.enums import SensorType, OperationMode, SeverityLevel
 
@@ -37,23 +37,16 @@ class Feedbacks(BaseTest):
     TIME_BETWEEN_MOVEMENT = 0.5
     PERCENTAGE_CURRENT_USED = 0.8
     LOW_PASS_FILTER = 1
-    HALLS_FILTER_CUTOFF_FREQUENCY = 10
+
     FAIL_MSG_MISMATCH = "A mismatch in resolution has been detected."
 
     COMMUTATION_MODULATION_REGISTER = "MOT_COMMU_MOD"
     POSITION_TO_VELOCITY_SENSOR_RATIO_REGISTER = "PROF_POS_VEL_RATIO"
     VELOCITY_FEEDBACK_FILTER_1_TYPE_REGISTER = "CL_VEL_FBK_FILTER1_TYPE"
     VELOCITY_FEEDBACK_FILTER_1_FREQUENCY_REGISTER = "CL_VEL_FBK_FILTER1_FREQ"
-    DIG_HALL_POLE_PAIRS_REGISTER = "FBK_DIGHALL_PAIRPOLES"
     RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
 
     BACKUP_REGISTERS = ["CL_POS_FBK_SENSOR",
-                        "FBK_BISS1_SSI1_POS_POLARITY",
-                        "FBK_BISS2_POS_POLARITY",
-                        "FBK_DIGENC1_POLARITY",
-                        "FBK_DIGENC2_POLARITY",
-                        "FBK_DIGHALL_POLARITY",
-                        "FBK_DIGHALL_PAIRPOLES",
                         "MOT_PAIR_POLES",
                         "DRV_OP_CMD",
                         "CL_CUR_Q_SET_POINT",
@@ -69,7 +62,6 @@ class Feedbacks(BaseTest):
                         "MOT_COMMU_MOD",
                         "CL_AUX_FBK_SENSOR",
                         "ERROR_DIGENC_AGAINST_HALL_OPTION",
-                        "ERROR_DIGHALL_SEQ_OPTION",
                         "CL_VEL_FOLLOWING_OPTION",
                         "ERROR_VEL_OUT_LIMITS_OPTION",
                         "ERROR_POS_OUT_LIMITS_OPTION",
@@ -81,21 +73,16 @@ class Feedbacks(BaseTest):
                         "CL_VEL_FBK_FILTER1_TYPE",
                         "CL_VEL_FBK_FILTER1_FREQ"]
 
-    __feedbacks_polarity_register = {
-        SensorType.HALLS: "FBK_DIGHALL_POLARITY",
-        SensorType.QEI: "FBK_DIGENC1_POLARITY",
-        SensorType.QEI2: "FBK_DIGENC2_POLARITY",
-        SensorType.ABS1: "FBK_BISS1_SSI1_POS_POLARITY",
-        SensorType.SSI2: "FBK_SSI2_POS_POLARITY",
-        SensorType.BISSC2: "FBK_BISS2_POS_POLARITY"
-    }
+    FEEDBACK_POLARITY_REGISTER = None
 
-    def __init__(self, mc, servo, axis, sensor):
+    SENSOR_TYPE_FEEDBACK_TEST = None
+
+    def __init__(self, mc, servo, axis):
         super().__init__()
         self.mc = mc
         self.servo = servo
         self.axis = axis
-        self.sensor = sensor
+        self.sensor = self.SENSOR_TYPE_FEEDBACK_TEST
         self.logger = ingenialogger.get_logger(__name__, axis=axis,
                                                drive=mc.servo_name(servo))
         self.feedback_resolution = None
@@ -155,8 +142,6 @@ class Feedbacks(BaseTest):
 
     @BaseTest.stoppable
     def feedback_setting(self):
-        if self.sensor == SensorType.HALLS:
-            self.halls_extra_settings()
         # First set all feedback to feedback in test, so there won't be
         # more than 5 feedback at the same time
         self.mc.configuration.set_commutation_feedback(self.sensor,
@@ -171,16 +156,13 @@ class Feedbacks(BaseTest):
         self.mc.configuration.set_position_feedback(self.sensor,
                                                     servo=self.servo,
                                                     axis=self.axis)
-        auxiliary_sensor = self.sensor
-        if self.sensor == SensorType.BISSC2:
-            auxiliary_sensor = SensorType.ABS1
-        self.mc.configuration.set_auxiliar_feedback(auxiliary_sensor,
+        self.mc.configuration.set_auxiliar_feedback(self.sensor,
                                                     servo=self.servo,
                                                     axis=self.axis)
         # Set Polarity to 0
-        polarity_register = self.__feedbacks_polarity_register[self.sensor]
         self.mc.communication.set_register(
-            polarity_register, self.Polarity.NORMAL,
+            self.FEEDBACK_POLARITY_REGISTER,
+            self.Polarity.NORMAL,
             servo=self.servo, axis=self.axis
         )
         # Depending on the type of the feedback, calculate the correct
@@ -188,38 +170,6 @@ class Feedbacks(BaseTest):
         self.feedback_resolution = self.mc.configuration.get_feedback_resolution(
             self.sensor, servo=self.servo, axis=self.axis
         )
-
-    @BaseTest.stoppable
-    def halls_extra_settings(self):
-        self.mc.communication.set_register(
-            self.DIG_HALL_POLE_PAIRS_REGISTER, self.pair_poles,
-            servo=self.servo, axis=self.axis
-        )
-
-        # Read velocity feedback
-        velocity_feedback = self.mc.configuration.get_velocity_feedback(
-            servo=self.servo, axis=self.axis
-        )
-        # Read velocity feedback, if is HALLS set filter to 10 Hz
-        # TODO: set filter depending on motors rated velocity by the
-        #  following formula: f_halls = w_mechanical * pp * 6
-        if velocity_feedback == SensorType.HALLS:
-            filter_type_uid = self.VELOCITY_FEEDBACK_FILTER_1_TYPE_REGISTER
-            filter_freq_uid = self.VELOCITY_FEEDBACK_FILTER_1_FREQUENCY_REGISTER
-            self.suggested_registers[filter_type_uid] = self.LOW_PASS_FILTER
-            self.suggested_registers[filter_freq_uid] = \
-                self.HALLS_FILTER_CUTOFF_FREQUENCY
-
-            self.logger.info(
-                "Setting a velocity low pass filter at 10 Hz as "
-                "velocity feedback is set to Halls"
-            )
-            del self.backup_registers[self.axis][
-                self.VELOCITY_FEEDBACK_FILTER_1_TYPE_REGISTER
-            ]
-            del self.backup_registers[self.axis][
-                self.VELOCITY_FEEDBACK_FILTER_1_FREQUENCY_REGISTER
-            ]
 
     @BaseTest.stoppable
     def reaction_codes_to_warning(self):
@@ -247,10 +197,7 @@ class Feedbacks(BaseTest):
 
     @BaseTest.stoppable
     def suggest_polarity(self, pol):
-        polarity_uid = self.__feedbacks_polarity_register[self.sensor]
-        if self.sensor == SensorType.HALLS:
-            pair_poles_uid = self.DIG_HALL_POLE_PAIRS_REGISTER
-            self.suggested_registers[pair_poles_uid] = self.pair_poles
+        polarity_uid = self.FEEDBACK_POLARITY_REGISTER
         self.suggested_registers[polarity_uid] = pol
 
     @BaseTest.stoppable
