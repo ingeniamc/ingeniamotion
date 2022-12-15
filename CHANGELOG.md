@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.5.7] - 2022-12-16
 ### Added
 - Brake tuning.
 
