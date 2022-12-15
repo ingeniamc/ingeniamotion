@@ -14,11 +14,11 @@ class BrakeTune(BaseTest):
     """A class to perform a brake tuning. It enables and disables a brake through enabling/disabling the motor.
 
     Args:
-        mc (MotionController)
-        enable_disable_motor_period (float): Period of time in seconds between a motor starts to be enabled,
+        mc: Motion Controller.
+        enable_disable_motor_period: Period of time in seconds between a motor starts to be enabled,
             and it finishes to be disabled.
-        servo (str)
-        axis (int)
+        servo: servo alias to reference it. ``default`` by default.
+        axis: axis that will run the test. 1 by default.
 
     """
 
