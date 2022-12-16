@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.5.7] - 2022-12-16
+### Added
+- Brake tuning.
+
 ## [0.5.6] - 2022-11-10
 ### Fixed
 - On capture.disable_disturbance, disturbance data is removed.
