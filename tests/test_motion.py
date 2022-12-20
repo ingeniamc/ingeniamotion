@@ -312,22 +312,24 @@ def test_get_actual_velocity(motion_controller, velocity_value):
                                               servo=alias)
     assert pytest.approx(test_velocity, 0.1) == reg_value
 
+
 @pytest.mark.smoke
-def test_get_actual_direct_current(mocker, motion_controller):
+def test_get_actual_current_direct(mocker, motion_controller):
     mc, alias = motion_controller
     patch_get_register = mocker.patch(
         'ingeniamotion.communication.Communication.get_register')
-    mc.motion.get_actual_direct_current(servo=alias)
+    mc.motion.get_actual_current_direct(servo=alias)
     patch_get_register.assert_called_once_with(ACTUAL_DIRECT_CURRENT_REGISTER, servo=alias, axis=1)
 
 
 @pytest.mark.smoke
-def test_get_actual_quadrature_current(mocker, motion_controller):
+def test_get_actual_current_quadrature(mocker, motion_controller):
     mc, alias = motion_controller
     patch_get_register = mocker.patch(
         'ingeniamotion.communication.Communication.get_register')
-    mc.motion.get_actual_quadrature_current(servo=alias)
+    mc.motion.get_actual_current_quadrature(servo=alias)
     patch_get_register.assert_called_once_with(ACTUAL_QUADRATURE_CURRENT_REGISTER, servo=alias, axis=1)
+
 
 @pytest.mark.smoke
 def test_wait_for_position_timeout(motion_controller):

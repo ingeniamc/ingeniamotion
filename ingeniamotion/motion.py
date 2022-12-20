@@ -416,7 +416,7 @@ class Motion(metaclass=MCMetaClass):
         return self.mc.communication.get_register(self.ACTUAL_VELOCITY_REGISTER,
                                                   servo=servo, axis=axis)
 
-    def get_actual_direct_current(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+    def get_actual_current_direct(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
         Returns actual direct current register.
 
@@ -431,7 +431,7 @@ class Motion(metaclass=MCMetaClass):
         return self.mc.communication.get_register(self.ACTUAL_DIRECT_CURRENT_REGISTER,
                                                   servo=servo, axis=axis)
 
-    def get_actual_quadrature_current(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+    def get_actual_current_quadrature(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
         Returns actual quadrature current register.
 
