@@ -82,6 +82,21 @@ def load_reports(input_reports):
     return test_reports
 
 
+def get_result_based_on_previous(previous_result, actual_result):
+    if previous_result == "ERROR" or actual_result == "ERROR":
+        result = "ERROR"
+    elif previous_result == "FAILED" or actual_result == "FAILED":
+        result = "FAILED"
+    elif previous_result == "SKIPPED" and actual_result == "SKIPPED":
+        result = "SKIPPED"
+    elif previous_result == "SKIPPED" and actual_result == "PASSED":
+        result = "PASSED"
+    elif previous_result == "PASSED" and actual_result == "PASSED":
+        result = "PASSED"
+
+    return result
+
+
 def combine_reports(test_reports):
     combined_report = {
         "time": 0,
@@ -132,23 +147,9 @@ def combine_reports(test_reports):
                         "time": report_dict["testcases"][classname][name]["time"]
                     }
                 else:
-                    if combined_report["testcases"][classname][name]["result"] == "ERROR":
-                        result = "ERROR" # ERROR before
-                    elif report_dict["testcases"][classname][name]["result"] == "ERROR":
-                        result = "ERROR" # ERROR now
-                    elif combined_report["testcases"][classname][name]["result"] == "FAILED":
-                        result = "FAILED" # FAILED before
-                    elif report_dict["testcases"][classname][name]["result"] == "FAILED":
-                        result = "FAILED" # FAILED now
-                    elif combined_report["testcases"][classname][name]["result"] == "SKIPPED":
-                        # SKIPPED before
-                        if combined_report["testcases"][classname][name]["result"] == "PASSED":
-                            result = "PASSED"
-                        else:
-                            result = "SKIPPED"
-                    else:
-                        if combined_report["testcases"][classname][name]["result"] == "PASSED":
-                            result = "PASSED"
+                    previous_result = combined_report["testcases"][classname][name]["result"]
+                    actual_result = report_dict["testcases"][classname][name]["result"]
+                    result = get_result_based_on_previous(previous_result, actual_result)
 
                     if report_dict["testcases"][classname][name]["result"] != "PASSED":
                         message = "{} // PROTOCOL: {} - SLAVE: {} --> {} ({})".format(
