@@ -84,6 +84,7 @@ def disable_motor_fixture(motion_controller):
 def motion_controller_teardown(motion_controller, pytestconfig, read_config):
     yield motion_controller
     mc, alias = motion_controller
+    mc.motion.motor_disable(servo=alias)
     mc.configuration.load_configuration(
         read_config["config_file"], servo=alias)
     mc.motion.fault_reset(servo=alias)

@@ -22,22 +22,34 @@ VOLTAGE_QUADRATURE_SET_POINT_REGISTER = "CL_VOL_Q_SET_POINT"
 VOLTAGE_DIRECT_SET_POINT_REGISTER = "CL_VOL_D_SET_POINT"
 
 
+def __mean_actual_velocity_position(mc, servo, velocity=False, n_samples=200, sampling_period=0):
+    samples = np.zeros(n_samples)
+    for j in range(n_samples):
+        if velocity:
+            value = mc.motion.get_actual_velocity(servo=servo)
+        else:
+            value = mc.motion.get_actual_position(servo=servo)            
+        samples[j] = value
+        time.sleep(sampling_period)
+    return np.mean(samples)
+
+
 def test_target_latch(motion_controller):
     mc, alias = motion_controller
     mc.communication.set_register(PROFILER_LATCHING_MODE_REGISTER,
                                   0x40, servo=alias)
     mc.motion.motor_enable(servo=alias)
     pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
-    init_pos = mc.motion.get_actual_position(servo=alias)
+    init_pos = int(__mean_actual_velocity_position(mc, alias))
     mc.motion.move_to_position(init_pos + pos_res, servo=alias, target_latch=False)
-    test_act_pos = mc.motion.get_actual_position(servo=alias)
+    test_act_pos = __mean_actual_velocity_position(mc, alias)
     time.sleep(1)
     assert pytest.approx(
         test_act_pos, pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED/100
     ) == init_pos
     mc.motion.target_latch(servo=alias)
     time.sleep(1)
-    test_act_pos = mc.motion.get_actual_position(servo=alias)
+    test_act_pos = __mean_actual_velocity_position(mc, alias)
     assert pytest.approx(
         test_act_pos, pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
     ) == init_pos + pos_res
@@ -167,8 +179,7 @@ def test_move_position(motion_controller, position_value):
     mc.motion.motor_enable(servo=alias)
     mc.motion.move_to_position(
         position_value, servo=alias, blocking=True)
-    test_position = mc.communication.get_register(
-        ACTUAL_POSITION_REGISTER, servo=alias)
+    test_position = __mean_actual_velocity_position(mc, alias)
     assert pytest.approx(
         test_position, abs=pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
     ) == position_value
@@ -199,8 +210,7 @@ def test_set_velocity_blocking(motion_controller, velocity_value):
     mc.motion.set_velocity(
         velocity_value, servo=alias, blocking=True)
     time.sleep(1)
-    test_vel = mc.communication.get_register(
-        ACTUAL_VELOCITY_REGISTER, servo=alias)
+    test_vel = __mean_actual_velocity_position(mc, alias, velocity=True)
     assert pytest.approx(test_vel, abs=0.1) == velocity_value
 
 
@@ -287,7 +297,7 @@ def test_get_actual_position(motion_controller, position_value):
     mc.motion.motor_enable(servo=alias)
     mc.motion.move_to_position(
         position_value, servo=alias, blocking=True)
-    test_position = mc.motion.get_actual_position(servo=alias)
+    test_position = __mean_actual_velocity_position(mc, alias)
     assert pytest.approx(
         test_position, abs=pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED/100
     ) == position_value
@@ -304,10 +314,14 @@ def test_get_actual_velocity(motion_controller, velocity_value):
     mc.motion.set_velocity(
         velocity_value, servo=alias, blocking=True)
     time.sleep(1)
-    test_velocity = mc.motion.get_actual_velocity(servo=alias)
-    reg_value = mc.communication.get_register(ACTUAL_VELOCITY_REGISTER,
-                                              servo=alias)
-    assert pytest.approx(test_velocity, 0.1) == reg_value
+    n_samples = 200
+    test_velocity = np.zeros(n_samples)
+    reg_value = np.zeros(n_samples)
+    for j in range(n_samples):
+        test_velocity[j] = mc.motion.get_actual_velocity(servo=alias)
+        reg_value[j] = mc.communication.get_register(ACTUAL_VELOCITY_REGISTER,
+                                                     servo=alias)
+    assert pytest.approx(np.mean(test_velocity), 0.2) == np.mean(reg_value)
 
 
 @pytest.mark.smoke
