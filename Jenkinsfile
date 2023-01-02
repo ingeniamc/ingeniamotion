@@ -101,13 +101,12 @@ pipeline {
                             move .coverage .coverage_ethercat
                             exit /b 0
                         '''
-                        junit 'pytest_ethercat_0_report.xml'
-                        junit 'pytest_ethercat_1_report.xml'
                     }
                 }
                 stage('Save test results') {
                     steps {
                         stash includes: '.coverage_ethercat', name: 'coverage_reports'
+                        stash includes: '*.xml', name: 'test_reports'
                     }
                 }
             }
@@ -148,8 +147,6 @@ pipeline {
                             move .coverage .coverage_canopen
                             exit /b 0
                         '''
-                        junit 'pytest_canopen_0_report.xml'
-                        junit 'pytest_canopen_1_report.xml'
                     }
                 }
                 stage('Run Ethernet tests') {
@@ -160,8 +157,6 @@ pipeline {
                             move .coverage .coverage_ethernet
                             exit /b 0
                         '''
-                        junit 'pytest_ethernet_0_report.xml'
-                        junit 'pytest_ethernet_1_report.xml'
                     }
                 }
                 stage('Save test results') {
@@ -172,6 +167,11 @@ pipeline {
                             venv\\Scripts\\python.exe -m coverage xml --include=ingeniamotion/*
                         '''
                         publishCoverage adapters: [coberturaReportAdapter('coverage.xml')]
+                        unstash 'test_reports'
+                        bat '''
+                            venv\\Scripts\\python.exe -m tests.combine_reports -i pytest_ethernet_0_report.xml pytest_ethernet_1_report.xml pytest_canopen_0_report.xml pytest_canopen_1_report.xml pytest_ethercat_0_report.xml pytest_ethercat_1_report.xml -o combined_report.xml
+                        '''
+                        junit 'combined_report.xml'
                         archiveArtifacts artifacts: '*.xml'
                     }
                 }
