@@ -99,9 +99,6 @@ def combine_reports(test_reports):
             combined_report["timestamp"] = report_dict["timestamp"]
             combined_report["hostname"] = report_dict["hostname"]
         combined_report["time"] += report_dict["time"]
-        if combined_report["tests"] > 0:
-            if report_dict["tests"] != combined_report["tests"]:
-                raise AssertionError("The number of tests should be the same for every report")
         combined_report["tests"] = report_dict["tests"]
 
         for classname in report_dict["testcases"].keys():
@@ -136,7 +133,7 @@ def combine_reports(test_reports):
                         result = "FAILED" # FAILED before
                     elif report_dict["testcases"][classname][name]["result"] == "FAILED":
                         result = "FAILED" # FAILED now
-                    elif report_dict["testcases"][classname][name]["result"] == "SKIPPED":
+                    elif combined_report["testcases"][classname][name]["result"] == "SKIPPED":
                         # SKIPPED before
                         if combined_report["testcases"][classname][name]["result"] == "PASSED":
                             result = "PASSED"
