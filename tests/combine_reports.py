@@ -106,22 +106,29 @@ def combine_reports(test_reports):
                 combined_report["testcases"][classname] = {}
             for name in report_dict["testcases"][classname].keys():
                 if name not in combined_report["testcases"][classname]:
-                    combined_report["testcases"][classname][name] = {
-                        "result": report_dict["testcases"][classname][name]["result"],
-                        "message": "\n PROTOCOL: {} - SLAVE: {} --> {} \n {} \n {}".format(
+                    result = report_dict["testcases"][classname][name]["result"]
+                    if result != "PASSED":
+                        message = "PROTOCOL: {} - SLAVE: {} --> {} ({})".format(
                             str(protocol),
                             str(slave),
                             report_dict["testcases"][classname][name]["result"],
-                            SEPARATOR,
                             report_dict["testcases"][classname][name]["message"]
-                        ),
-                        "output": "\n PROTOCOL: {} - SLAVE: {} --> {} \n {} \n {}".format(
+                        )
+                        output =  "\n PROTOCOL: {} - SLAVE: {} --> {} \n {} \n {}".format(
                             str(protocol),
                             str(slave),
                             report_dict["testcases"][classname][name]["result"],
                             SEPARATOR,
                             report_dict["testcases"][classname][name]["output"]
-                        ),
+                        )
+                    else:
+                        message = ""
+                        output = ""
+                    
+                    combined_report["testcases"][classname][name] = {
+                        "result": report_dict["testcases"][classname][name]["result"],
+                        "message": message,
+                        "output": output,
                         "time": report_dict["testcases"][classname][name]["time"]
                     }
                 else:
@@ -143,24 +150,30 @@ def combine_reports(test_reports):
                         if combined_report["testcases"][classname][name]["result"] == "PASSED":
                             result = "PASSED"
 
-                    combined_report["testcases"][classname][name] = {
-                        "result": result,
-                        "message": "{} \n\n PROTOCOL: {} - SLAVE: {} --> {} \n {} \n {}".format(
+                    if report_dict["testcases"][classname][name]["result"] != "PASSED":
+                        message = "{} // PROTOCOL: {} - SLAVE: {} --> {} ({})".format(
                             combined_report["testcases"][classname][name]["message"],
                             str(protocol),
                             str(slave),
                             report_dict["testcases"][classname][name]["result"],
-                            SEPARATOR,
                             report_dict["testcases"][classname][name]["message"]
-                        ),
-                        "output": "{} \n\n PROTOCOL: {} - SLAVE: {} --> {} \n {} \n {}".format(
+                        )
+                        output = "{} \n\n PROTOCOL: {} - SLAVE: {} --> {} \n {} \n {}".format(
                             combined_report["testcases"][classname][name]["output"],
                             str(protocol),
                             str(slave),
                             report_dict["testcases"][classname][name]["result"],
                             SEPARATOR,
                             report_dict["testcases"][classname][name]["output"]
-                        ),
+                        )
+                    else:
+                        message = combined_report["testcases"][classname][name]["message"]
+                        output = combined_report["testcases"][classname][name]["output"]
+
+                    combined_report["testcases"][classname][name] = {
+                        "result": result,
+                        "message": message,
+                        "output": output,
                         "time": combined_report["testcases"][classname][name]["time"] + report_dict["testcases"][classname][name]["time"]
                     }
 
