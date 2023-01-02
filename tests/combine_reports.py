@@ -89,9 +89,7 @@ def get_result_based_on_previous(previous_result, actual_result):
         result = "FAILED"
     elif previous_result == "SKIPPED" and actual_result == "SKIPPED":
         result = "SKIPPED"
-    elif previous_result == "SKIPPED" and actual_result == "PASSED":
-        result = "PASSED"
-    elif previous_result == "PASSED" and actual_result == "PASSED":
+    elif previous_result in ["SKIPPED", "PASSED"] and actual_result == "PASSED":
         result = "PASSED"
 
     return result
