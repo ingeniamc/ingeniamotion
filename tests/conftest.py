@@ -133,3 +133,11 @@ def clean_and_restore_feedbacks(motion_controller):
     mc.configuration.set_velocity_feedback(vel, servo=alias)
     mc.configuration.set_position_feedback(pos, servo=alias)
     mc.configuration.set_auxiliar_feedback(aux, servo=alias)
+
+
+@pytest.fixture(scope="session", autouse=True)
+def log_node_protocol(record_testsuite_property, pytestconfig):
+    protocol = pytestconfig.getoption("--protocol")
+    slave = pytestconfig.getoption("--slave")
+    record_testsuite_property("protocol", protocol)
+    record_testsuite_property("slave", slave)
