@@ -178,7 +178,7 @@ def test_move_position(motion_controller, position_value):
         OperationMode.PROFILE_POSITION, servo=alias)
     mc.motion.motor_enable(servo=alias)
     mc.motion.move_to_position(
-        position_value, servo=alias, blocking=True)
+        position_value, servo=alias, blocking=True, timeout=10)
     test_position = __mean_actual_velocity_position(mc, alias)
     assert pytest.approx(
         test_position, abs=pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
@@ -208,7 +208,7 @@ def test_set_velocity_blocking(motion_controller, velocity_value):
         OperationMode.PROFILE_VELOCITY, servo=alias)
     mc.motion.motor_enable(servo=alias)
     mc.motion.set_velocity(
-        velocity_value, servo=alias, blocking=True)
+        velocity_value, servo=alias, blocking=True, timeout=10)
     time.sleep(1)
     test_vel = __mean_actual_velocity_position(mc, alias, velocity=True)
     assert pytest.approx(test_vel, abs=0.1) == velocity_value
@@ -296,7 +296,7 @@ def test_get_actual_position(motion_controller, position_value):
         OperationMode.PROFILE_POSITION, servo=alias)
     mc.motion.motor_enable(servo=alias)
     mc.motion.move_to_position(
-        position_value, servo=alias, blocking=True)
+        position_value, servo=alias, blocking=True, timeout=10)
     test_position = __mean_actual_velocity_position(mc, alias)
     assert pytest.approx(
         test_position, abs=pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED/100
@@ -312,7 +312,7 @@ def test_get_actual_velocity(motion_controller, velocity_value):
         OperationMode.PROFILE_VELOCITY, servo=alias)
     mc.motion.motor_enable(servo=alias)
     mc.motion.set_velocity(
-        velocity_value, servo=alias, blocking=True)
+        velocity_value, servo=alias, blocking=True, timeout=10)
     time.sleep(1)
     n_samples = 200
     test_velocity = np.zeros(n_samples)
