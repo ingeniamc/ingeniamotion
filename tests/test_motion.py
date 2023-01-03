@@ -313,7 +313,7 @@ def test_get_actual_velocity(motion_controller, velocity_value):
     mc.motion.motor_enable(servo=alias)
     mc.motion.set_velocity(
         velocity_value, servo=alias, blocking=True, timeout=10)
-    time.sleep(1)
+    time.sleep(2)
     n_samples = 200
     test_velocity = np.zeros(n_samples)
     reg_value = np.zeros(n_samples)
