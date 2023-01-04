@@ -65,16 +65,16 @@ def test_get_trigger_type(motion_controller, monitoring, trigger_type):
 @pytest.mark.soem
 @pytest.mark.eoe
 @pytest.mark.smoke
-@pytest.mark.usefixtures("mon_set_freq")
-@pytest.mark.usefixtures("mon_map_registers")
 @pytest.mark.parametrize("block, timeout, sample_t, wait, result", [
     (False, 5, 0.8, 2, True),
     (True, 6, 0.8, 0, True),
     (False, 5, 0.8, 0, False),
-    (True, 0.3, 0.8, 0, False),
+    (True, 0.1, 0.8, 0, False),
 ])
-def test_raise_forced_trigger(motion_controller, monitoring, block,
-                              timeout, sample_t, wait, result, disable_monitoring_disturbance):
+def test_raise_forced_trigger(
+    motion_controller, monitoring, block, timeout, sample_t, wait, result, mon_set_freq, 
+    mon_map_registers, disable_monitoring_disturbance
+):
     mc, alias = motion_controller
     monitoring.set_trigger(MonitoringSoCType.TRIGGER_EVENT_FORCED)
     monitoring.configure_sample_time(sample_t, 0)
@@ -82,6 +82,7 @@ def test_raise_forced_trigger(motion_controller, monitoring, block,
     time.sleep(wait)
     test_output = monitoring.raise_forced_trigger(blocking=block, timeout=timeout)
     assert test_output == result
+    time.sleep(1)
 
 
 @pytest.mark.soem
@@ -104,7 +105,7 @@ def test_raise_forced_trigger_fail(motion_controller, monitoring, disable_monito
 @pytest.mark.usefixtures("mon_map_registers")
 @pytest.mark.parametrize("timeout, sample_t, result", [
     (5, 0.8, True),
-    (0.3, 0.8, False),
+    (0.1, 0.8, False),
 ])
 def test_read_monitoring_data_forced_trigger(motion_controller, monitoring,
                                              timeout, sample_t, result, disable_monitoring_disturbance):
