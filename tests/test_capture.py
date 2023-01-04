@@ -1,8 +1,28 @@
 import time
+
 import pytest
+import numpy as np
 
 from ingeniamotion.exceptions import IMStatusWordError
 from ingeniamotion.enums import OperationMode, MonitoringSoCType, MonitoringSoCConfig
+
+
+
+def __compare_signals(expected_signal, received_signal, length_tol=None, fft_tol=0.05):
+    if length_tol is not None:
+        assert pytest.approx(len(received_signal), length_tol) == len(expected_signal)
+
+        if len(received_signal) < len():
+            expected_signal = expected_signal[:len(received_signal)]
+
+    fft_received = np.abs(np.fft.fft(received_signal))
+    fft_expected = np.abs(np.fft.fft(expected_signal))
+
+    # L1 normalization
+    fft_received = fft_received / np.amax(fft_received)
+    fft_expected = fft_expected / np.amax(fft_expected)
+        
+    assert np.allclose(fft_received, fft_expected, rtol=0, atol=fft_tol)
 
 
 def test_create_poller(motion_controller):
@@ -13,24 +33,22 @@ def test_create_poller(motion_controller):
     sampling_time = 0.05
     mc, alias = motion_controller
     mc.motion.set_current_quadrature(-0.2, servo=alias)
-    poller = mc.capture.create_poller(registers, alias, sampling_time)
+    poller = mc.capture.create_poller(registers, alias, sampling_time, buffer_size=120)
     mc.motion.set_current_quadrature(0, servo=alias)
+    period = 1
+    expected_signal = [0] * int(period / sampling_time)
     for i in range(5):
         time.sleep(1)
         mc.motion.set_current_quadrature(0.2 * (i + 1), servo=alias)
+        expected_signal.extend([0.2 * (i + 1)] * int(period / sampling_time))
+    time.sleep(period)
     timestamp, test_data, _ = poller.data
     poller.stop()
-    first_zero = None
-    for index, ts in enumerate(timestamp):
-        value = test_data[0][index]
-        if first_zero is None and abs(value) < 0.00001:
-            first_zero = ts
-        if first_zero is None:
-            continue
-        tared_ts = ts-first_zero
-        if pytest.approx(round(tared_ts), abs=sampling_time) == tared_ts:
-            continue  # Values near on changes are not check
-        assert pytest.approx(tared_ts // 1 * 0.2) == value
+
+    assert np.allclose(np.diff(timestamp), sampling_time, rtol=0.1, atol=0)
+
+    received_signal = test_data[0]
+    __compare_signals(expected_signal, received_signal)
 
 
 def test_create_monitoring_no_trigger(motion_controller,
@@ -54,17 +72,14 @@ def test_create_monitoring_no_trigger(motion_controller,
                                               total_time, servo=alias)
     mc.capture.enable_monitoring_disturbance(servo=alias)
     init = time.time()
+    expected_signal = [0]*quarter_num_samples
     for i in range(1, 4):
         while init + i*quarter_total_time > time.time():
             pass
         mc.motion.move_to_position(quarter_num_samples*i, alias)
+        expected_signal.extend([i*quarter_num_samples]*quarter_num_samples)
     data = monitoring.read_monitoring_data()
-    assert samples == len(data[0])
-    for index, value in enumerate(data[0]):
-        subindex = index % quarter_num_samples
-        theo_value = index//quarter_num_samples * quarter_num_samples
-        if subindex > 100:  # Ignore first 100 samples for each value change
-            assert value == theo_value
+    __compare_signals(expected_signal, data[0])
 
 
 @pytest.mark.parametrize("trigger_mode, trigger_config, values_list", [
@@ -105,17 +120,17 @@ def test_create_monitoring_edge_trigger(motion_controller, trigger_mode, trigger
     time.sleep(1)
     init = time.time()
     quarter_total_time = total_time/4
+    expected_signal = np.zeros(samples)
+    expected_signal[:quarter_num_samples] = int(values_list[0] * samples)
     for i in range(1, 4):
         while init + i*quarter_total_time > time.time():
             pass
-        mc.motion.move_to_position(int(values_list[i] * samples), alias)
+        value = int(values_list[i] * samples)
+        mc.motion.move_to_position(value, alias)
+        expected_signal[i*quarter_num_samples:(i+1)*quarter_num_samples] = value
+
     data = monitoring.read_monitoring_data()
-    assert samples == len(data[0])
-    for index, value in enumerate(data[0]):
-        subindex = index % quarter_num_samples
-        theo_value = int(values_list[index//quarter_num_samples] * samples)
-        if 10 < subindex < quarter_num_samples - 10:  # Ignore some samples near of value changes
-            assert value == theo_value
+    __compare_signals(expected_signal, data[0])
 
 
 def test_create_disturbance(motion_controller,
@@ -134,13 +149,17 @@ def test_create_disturbance(motion_controller,
     dist = mc.capture.create_disturbance(target_register, data, divider, servo=alias)
     init_time = time.time()
     mc.capture.enable_monitoring_disturbance(servo=alias)
-    while init_time + samples*period*2 > time.time():
-        time_now = time.time() - init_time
+    read_data = []
+    dist_timestamp = np.arange(samples)*period
+    read_timestamp = []
+    while time.time() < init_time + samples*period:
+        read_timestamp.append(time.time() - init_time)
         current_value = mc.communication.get_register(target_register, alias)
-        sample_num = int((time_now//period) % samples)
-        if sample_num % data_subrange < 20:
-            continue
-        assert current_value == data[sample_num]
+        read_data.append(current_value)
+        time.sleep(period)
+
+    read_data = np.interp(dist_timestamp, read_timestamp, read_data)
+    __compare_signals(data, read_data)
 
 
 @pytest.mark.smoke
