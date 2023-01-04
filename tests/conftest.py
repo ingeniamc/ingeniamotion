@@ -133,3 +133,10 @@ def clean_and_restore_feedbacks(motion_controller):
     mc.configuration.set_velocity_feedback(vel, servo=alias)
     mc.configuration.set_position_feedback(pos, servo=alias)
     mc.configuration.set_auxiliar_feedback(aux, servo=alias)
+
+
+@pytest.fixture()
+def skip_if_monitoring_not_available(motion_controller):
+    mc, alias = motion_controller
+    if "MON_DIST_STATUS" not in mc.servos[alias].dictionary.registers(0):
+        pytest.skip('Monitoring is not available')

@@ -51,8 +51,9 @@ def test_create_poller(motion_controller):
     __compare_signals(expected_signal, received_signal)
 
 
-def test_create_monitoring_no_trigger(motion_controller,
-                                      disable_monitoring_disturbance):
+def test_create_monitoring_no_trigger(
+    skip_if_monitoring_not_available, motion_controller, disable_monitoring_disturbance
+):
     registers = [{
         "name": "CL_POS_REF_VALUE",
         "axis": 1
@@ -90,8 +91,14 @@ def test_create_monitoring_no_trigger(motion_controller,
      MonitoringSoCConfig.TRIGGER_CONFIG_FALLING,
      [0.75, 0.5, 0.25, 0]),
 ])
-def test_create_monitoring_edge_trigger(motion_controller, trigger_mode, trigger_config,
-                                        values_list, disable_monitoring_disturbance):
+def test_create_monitoring_edge_trigger(
+    skip_if_monitoring_not_available,
+    motion_controller,
+    trigger_mode,
+    trigger_config, 
+    values_list, 
+    disable_monitoring_disturbance
+):
     register = {
         "name": "CL_POS_REF_VALUE",
         "axis": 1
@@ -133,8 +140,9 @@ def test_create_monitoring_edge_trigger(motion_controller, trigger_mode, trigger
     __compare_signals(expected_signal, data[0])
 
 
-def test_create_disturbance(motion_controller,
-                            disable_monitoring_disturbance):
+def test_create_disturbance(
+    skip_if_monitoring_not_available, motion_controller, disable_monitoring_disturbance
+):
     mc, alias = motion_controller
     target_register = "CL_POS_SET_POINT_VALUE"
     max_frequency = mc.configuration.get_position_and_velocity_loop_rate(alias)
@@ -194,7 +202,7 @@ def test_disturbance_max_sample_size(motion_controller):
 
 
 @pytest.mark.smoke
-def test_monitoring_max_sample_size(motion_controller):
+def test_monitoring_max_sample_size(skip_if_monitoring_not_available, motion_controller):
     mc, alias = motion_controller
     target_register = mc.capture.MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER
     axis = 0
@@ -203,7 +211,9 @@ def test_monitoring_max_sample_size(motion_controller):
     value = drive.read(target_register, subnode=axis)
     assert max_sample_size == value
 
-def test_get_frequency(motion_controller, disable_monitoring_disturbance):
+def test_get_frequency(
+    skip_if_monitoring_not_available, motion_controller, disable_monitoring_disturbance
+):
     mc, alias = motion_controller
     registers = [{
         "name": "CL_POS_REF_VALUE",
