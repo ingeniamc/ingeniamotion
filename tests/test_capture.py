@@ -191,7 +191,7 @@ def test_mcb_synchronization_fail(motion_controller):
 
 
 @pytest.mark.smoke
-def test_disturbance_max_sample_size(motion_controller):
+def test_disturbance_max_sample_size(skip_if_monitoring_not_available, motion_controller):
     mc, alias = motion_controller
     target_register = mc.capture.DISTURBANCE_MAXIMUM_SAMPLE_SIZE_REGISTER
     axis = 0
