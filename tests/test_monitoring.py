@@ -27,7 +27,7 @@ class ThreadWithReturnValue(Thread):
 @pytest.mark.soem
 @pytest.mark.eoe
 @pytest.fixture
-def monitoring(motion_controller):
+def monitoring(skip_if_monitoring_not_available, motion_controller):
     mc, alias = motion_controller
     return mc.capture.create_empty_monitoring(alias)
 
@@ -35,14 +35,14 @@ def monitoring(motion_controller):
 @pytest.mark.soem
 @pytest.mark.eoe
 @pytest.fixture
-def mon_set_freq(monitoring):
+def mon_set_freq(skip_if_monitoring_not_available, monitoring):
     monitoring.set_frequency(10)
 
 
 @pytest.mark.soem
 @pytest.mark.eoe
 @pytest.fixture
-def mon_map_registers(monitoring):
+def mon_map_registers(skip_if_monitoring_not_available, monitoring):
     monitoring.map_registers([{"axis": 1, "name": "CL_POS_FBK_VALUE"}])
 
 
@@ -67,7 +67,6 @@ def test_get_trigger_type(motion_controller, monitoring, trigger_type):
 @pytest.mark.smoke
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
-@pytest.mark.usefixtures("disable_monitoring_disturbance")
 @pytest.mark.parametrize("block, timeout, sample_t, wait, result", [
     (False, 5, 0.8, 2, True),
     (True, 6, 0.8, 0, True),
@@ -75,7 +74,7 @@ def test_get_trigger_type(motion_controller, monitoring, trigger_type):
     (True, 0.3, 0.8, 0, False),
 ])
 def test_raise_forced_trigger(motion_controller, monitoring, block,
-                              timeout, sample_t, wait, result):
+                              timeout, sample_t, wait, result, disable_monitoring_disturbance):
     mc, alias = motion_controller
     monitoring.set_trigger(MonitoringSoCType.TRIGGER_EVENT_FORCED)
     monitoring.configure_sample_time(sample_t, 0)
@@ -90,8 +89,7 @@ def test_raise_forced_trigger(motion_controller, monitoring, block,
 @pytest.mark.smoke
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
-@pytest.mark.usefixtures("disable_monitoring_disturbance")
-def test_raise_forced_trigger_fail(motion_controller, monitoring):
+def test_raise_forced_trigger_fail(motion_controller, monitoring, disable_monitoring_disturbance):
     mc, alias = motion_controller
     monitoring.set_trigger(MonitoringSoCType.TRIGGER_EVENT_AUTO)
     monitoring.configure_sample_time(0.8, 0)
@@ -104,13 +102,12 @@ def test_raise_forced_trigger_fail(motion_controller, monitoring):
 @pytest.mark.eoe
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
-@pytest.mark.usefixtures("disable_monitoring_disturbance")
 @pytest.mark.parametrize("timeout, sample_t, result", [
     (5, 0.8, True),
     (0.3, 0.8, False),
 ])
 def test_read_monitoring_data_forced_trigger(motion_controller, monitoring,
-                                             timeout, sample_t, result):
+                                             timeout, sample_t, result, disable_monitoring_disturbance):
     mc, alias = motion_controller
     monitoring.set_trigger(MonitoringSoCType.TRIGGER_EVENT_FORCED)
     monitoring.configure_sample_time(sample_t, 0)
@@ -304,8 +301,7 @@ def test_read_monitoring_data_disabled(monitoring):
 @pytest.mark.eoe
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
-@pytest.mark.usefixtures("disable_monitoring_disturbance")
-def test_read_monitoring_data_timeout(motion_controller, monitoring):
+def test_read_monitoring_data_timeout(motion_controller, monitoring, disable_monitoring_disturbance):
     timeout = 2
     sample_t = 0.8
     mc, alias = motion_controller
@@ -321,8 +317,7 @@ def test_read_monitoring_data_timeout(motion_controller, monitoring):
 @pytest.mark.smoke
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
-@pytest.mark.usefixtures("disable_monitoring_disturbance")
-def test_read_monitoring_data_no_rearm(motion_controller, monitoring):
+def test_read_monitoring_data_no_rearm(motion_controller, monitoring, disable_monitoring_disturbance):
     sample_t = 0.8
     timeout = 2
     block = True
@@ -347,8 +342,7 @@ def test_read_monitoring_data_no_rearm(motion_controller, monitoring):
 @pytest.mark.smoke
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
-@pytest.mark.usefixtures("disable_monitoring_disturbance")
-def test_rearm_monitoring(motion_controller, monitoring):
+def test_rearm_monitoring(motion_controller, monitoring, disable_monitoring_disturbance):
     sample_t = 0.8
     timeout = 2
     block = True
@@ -380,8 +374,7 @@ def run_read_monitoring_data_and_stop(monitoring, timeout):
 @pytest.mark.smoke
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
-@pytest.mark.usefixtures("disable_monitoring_disturbance")
-def test_stop_reading_data(motion_controller, monitoring):
+def test_stop_reading_data(motion_controller, monitoring, disable_monitoring_disturbance):
     sample_t = 0.8
     timeout = 10
     mc, alias = motion_controller
@@ -395,7 +388,7 @@ def test_stop_reading_data(motion_controller, monitoring):
 
 
 @pytest.mark.smoke
-def test_monitoring_max_sample_size(motion_controller):
+def test_monitoring_max_sample_size(motion_controller, skip_if_monitoring_not_available):
     mc, alias = motion_controller
     target_register = mc.capture.MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER
     axis = 0
