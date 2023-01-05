@@ -3,6 +3,7 @@ import math
 import ingenialogger
 
 from enum import IntEnum
+from ingenialink.exceptions import ILTimeoutError, ILStateError
 
 from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
 from ingeniamotion.exceptions import IMRegisterNotExist
@@ -363,7 +364,7 @@ class Feedbacks(BaseTest):
             return check_pos_vel_output
         try:
             self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
-        except Exception as e:
+        except (ILTimeoutError, ILStateError) as e:
             raise TestError(f"An error occurred enabling motor. Reason: {e}")
         position_1 = self.first_movement_and_set_current()
         self.logger.info("Actual position: %.0f",
