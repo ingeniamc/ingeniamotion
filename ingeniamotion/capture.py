@@ -4,7 +4,8 @@ from ingenialink.exceptions import ILError
 from ingenialink.poller import Poller
 from ingenialink.ipb.poller import IPBPoller
 from ingenialink.canopen.servo import CanopenServo
-from ingenialink.canopen.poller import CanopenPoller
+from ingenialink.ethernet.servo import EthernetServo
+from ingenialink.poller import Poller
 
 from ingeniamotion.disturbance import Disturbance
 from ingeniamotion.monitoring.base_monitoring import Monitoring
@@ -108,8 +109,8 @@ class Capture(metaclass=MCMetaClass):
         Raises:
             IMRegisterNotExist: If register does not exist in dictionary.
         """
-        if isinstance(self.mc.servos[servo], CanopenServo):
-            poller = CanopenPoller(self.mc.servos[servo], len(registers))
+        if isinstance(self.mc.servos[servo], (CanopenServo, EthernetServo)):
+            poller = Poller(self.mc.servos[servo], len(registers))
         else:
             poller = IPBPoller(self.mc.servos[servo], len(registers))
         poller.configure(sampling_time, buffer_size)
