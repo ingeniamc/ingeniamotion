@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Tuple
 
 from ingenialink.register import Register, REG_ACCESS, REG_DTYPE
 
@@ -95,7 +95,7 @@ class Information(metaclass=MCMetaClass):
         register: str,
         axis: int = DEFAULT_AXIS,
         servo: str = DEFAULT_SERVO,
-    ) -> tuple[int, int]:
+    ) -> Tuple[int, int]:
         """Return register range.
 
         Args:

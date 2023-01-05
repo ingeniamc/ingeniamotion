@@ -4,7 +4,7 @@ import numpy as np
 import ingenialogger
 from functools import wraps
 from abc import ABC, abstractmethod
-from typing import Optional, Union, Callable
+from typing import Optional, Union, Callable, List
 
 from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 from ingeniamotion.exceptions import IMMonitoringError
@@ -104,7 +104,7 @@ class Monitoring(ABC):
         )
 
     @check_monitoring_disabled
-    def map_registers(self, registers: list[dict]) -> None:
+    def map_registers(self, registers: List[dict]) -> None:
         """Map registers to monitoring. Monitoring must be disabled.
 
         Args:
@@ -319,7 +319,7 @@ class Monitoring(ABC):
         self,
         timeout: Optional[float] = None,
         progress_callback: Optional[Callable] = None
-    ) -> list[list]:
+    ) -> List[list]:
         """Blocking function that read the monitoring data.
 
         Args:
@@ -431,7 +431,7 @@ class Monitoring(ABC):
                 1, servo=self.servo, axis=0)
         return mon_process_stage == MonitoringProcessStage.WAITING_FOR_TRIGGER
 
-    def read_monitoring_data_forced_trigger(self, trigger_timeout: float = 5) -> list[list]:
+    def read_monitoring_data_forced_trigger(self, trigger_timeout: float = 5) -> List[list]:
         """Trigger and read Forced Trigger monitoring.
 
         Args:

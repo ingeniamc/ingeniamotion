@@ -1,5 +1,5 @@
 from enum import IntEnum
-from typing import Optional
+from typing import Optional, Tuple, List
 
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
@@ -99,7 +99,7 @@ class Errors(metaclass=MCMetaClass):
         self,
         servo: str = DEFAULT_SERVO,
         axis: Optional[int] = None
-    ) -> tuple[int, int, bool]:
+    ) -> Tuple[int, int, bool]:
         """Return last servo error.
 
         Args:
@@ -129,7 +129,7 @@ class Errors(metaclass=MCMetaClass):
         self,
         servo: str = DEFAULT_SERVO,
         axis: Optional[int] = None
-    ) -> tuple[int, int, bool]:
+    ) -> Tuple[int, int, bool]:
         """Get error code from error buffer last position.
 
         Args:
@@ -155,7 +155,7 @@ class Errors(metaclass=MCMetaClass):
         index: int,
         servo: str = DEFAULT_SERVO,
         axis: Optional[int] = None
-    ) -> tuple[int, int, bool]:
+    ) -> Tuple[int, int, bool]:
         """Get error code from buffer error target index.
 
         Args:
@@ -218,7 +218,7 @@ class Errors(metaclass=MCMetaClass):
         self,
         servo: str = DEFAULT_SERVO,
         axis: Optional[int] = None
-    ) -> list[tuple[int, int, bool]]:
+    ) -> List[Tuple[int, int, bool]]:
         """Return list with all error codes.
 
         Args:
@@ -267,7 +267,7 @@ class Errors(metaclass=MCMetaClass):
         self,
         error_code: int,
         servo: str = DEFAULT_SERVO
-    ) -> tuple[str, str, str, str]:
+    ) -> Tuple[str, str, str, str]:
         """Return error info from target error_code.
 
         Args:

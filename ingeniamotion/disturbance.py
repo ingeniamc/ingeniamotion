@@ -2,7 +2,7 @@ import ingenialogger
 from numpy import ndarray
 from functools import wraps
 from collections.abc import Iterable
-from typing import Union, TYPE_CHECKING
+from typing import Union, TYPE_CHECKING, List
 
 from ingenialink.ipb.register import IPBRegister
 
@@ -106,7 +106,7 @@ class Disturbance:
         return 1 / self.sampling_freq
 
     @check_disturbance_disabled
-    def map_registers(self, registers: Union[dict, list[dict]]) -> int:
+    def map_registers(self, registers: Union[dict, List[dict]]) -> int:
         """Map registers to Disturbance. Disturbance must be disabled.
 
         Args:
@@ -171,7 +171,7 @@ class Disturbance:
         return registers_data
 
     @check_disturbance_disabled
-    def write_disturbance_data(self, registers_data: list[Union[list, float, int]]) -> None:
+    def write_disturbance_data(self, registers_data: List[Union[list, float, int]]) -> None:
         """Write data in mapped registers. Disturbance must be disabled.
 
         Args:
@@ -190,7 +190,7 @@ class Disturbance:
         dtype_list = [REG_DTYPE(x["dtype"]) for x in self.mapped_registers]
         drive.disturbance_write_data(idx_list, dtype_list, registers_data)
 
-    def map_registers_and_write_data(self, registers: Union[dict, list[dict]]) -> None:
+    def map_registers_and_write_data(self, registers: Union[dict, List[dict]]) -> None:
         """Map registers to Disturbance and write data. Disturbance must be disabled.
 
         Args:
@@ -224,7 +224,7 @@ class Disturbance:
         self.map_registers(registers_keys)
         self.write_disturbance_data(registers_data)
 
-    def __check_buffer_size_is_enough(self, registers: list[Union[list, float, int]]) -> None:
+    def __check_buffer_size_is_enough(self, registers: List[Union[list, float, int]]) -> None:
         total_buffer_size = 0
         for ch_idx, data in enumerate(registers):
             dtype = self.mapped_registers[ch_idx]["dtype"]

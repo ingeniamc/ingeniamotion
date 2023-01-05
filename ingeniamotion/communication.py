@@ -3,7 +3,7 @@ import ifaddr
 import subprocess
 from os import path
 from functools import partial
-from typing import Optional, Union, Callable
+from typing import Optional, Union, Callable, List
 
 import ingenialogger
 from ingenialink.exceptions import ILError
@@ -291,7 +291,7 @@ class Communication(metaclass=MCMetaClass):
         )
 
     @staticmethod
-    def get_interface_name_list() -> list[str]:
+    def get_interface_name_list() -> List[str]:
         """Get interface list.
 
         Returns:
@@ -342,7 +342,7 @@ class Communication(metaclass=MCMetaClass):
                                 reconnection_retries, reconnection_timeout,
                                 servo_status_listener, net_status_listener)
 
-    def scan_servos_ecat(self, ifname: str) -> list[int]:
+    def scan_servos_ecat(self, ifname: str) -> List[int]:
         """Return a list of available servos.
 
         Args:
@@ -355,7 +355,7 @@ class Communication(metaclass=MCMetaClass):
         net = EthercatNetwork(ifname)
         return net.scan_slaves()
 
-    def scan_servos_ecat_interface_index(self, if_index: int) -> list[int]:
+    def scan_servos_ecat_interface_index(self, if_index: int) -> List[int]:
         """Return a list of available servos.
 
         Args:
@@ -428,7 +428,7 @@ class Communication(metaclass=MCMetaClass):
         can_device: CAN_DEVICE,
         baudrate: CAN_BAUDRATE = CAN_BAUDRATE.Baudrate_1M,
         channel: int = 0,
-    ) -> list[int]:
+    ) -> List[int]:
         """Scan CANOpen device network to get all nodes.
 
         Args:

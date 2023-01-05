@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional, Union, List
 
 from ingenialink.exceptions import ILError
 from ingenialink.poller import Poller
@@ -49,7 +49,7 @@ class Capture(metaclass=MCMetaClass):
 
     def create_poller(
         self,
-        registers: list[dict],
+        registers: List[dict],
         servo: str = DEFAULT_SERVO,
         sampling_time: float = 0.125,
         buffer_size: int = 100,
@@ -140,7 +140,7 @@ class Capture(metaclass=MCMetaClass):
 
     def create_monitoring(
         self,
-        registers: list[dict],
+        registers: List[dict],
         prescaler: int,
         sample_time: float,
         trigger_delay: float = 0,
