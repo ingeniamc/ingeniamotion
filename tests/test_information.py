@@ -41,14 +41,15 @@ def test_register_access(motion_controller, uid, axis, access):
     assert register_access == access
 
 
+@pytest.mark.canopen
+@pytest.mark.eoe
 @pytest.mark.parametrize("uid, axis, range", [
     ("CL_POS_FBK_VALUE", 1, (-2147483648, 2147483647)),
-    ("CL_VEL_SET_POINT_VALUE", 1, (-2147483648, pytest.approx(2147483647, 1))),
+    ("CL_VEL_SET_POINT_VALUE", 1, (-2147483648, 2147483647)),
     ("PROF_POS_OPTION_CODE", 1, (0, 65535)),
     ("PROF_IP_CLEAR_DATA", 1, (0, 65535))
 ])
 def test_register_range(motion_controller, uid, axis, range):
-    # TODO: Fix issue with ranges and remove approx from the parameters.
     mc, alias = motion_controller
     register_range = mc.info.register_range(uid, axis, alias)
     assert tuple(register_range) == range
