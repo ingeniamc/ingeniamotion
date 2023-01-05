@@ -96,8 +96,8 @@ pipeline {
                 stage('Run EtherCAT tests') {
                     steps {
                         bat '''
-                            venv\\Scripts\\python.exe -m pytest tests --protocol soem --slave 0 --junitxml=pytest_ethercat_0_report.xml
-                            venv\\Scripts\\python.exe -m pytest tests --protocol soem --slave 1 --junitxml=pytest_ethercat_1_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests --protocol soem --slave 0 --junitxml=pytest_reports/pytest_ethercat_0_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests --protocol soem --slave 1 --junitxml=pytest_reports/pytest_ethercat_1_report.xml
                             move .coverage .coverage_ethercat
                             exit /b 0
                         '''
@@ -106,7 +106,7 @@ pipeline {
                 stage('Save test results') {
                     steps {
                         stash includes: '.coverage_ethercat', name: 'coverage_reports'
-                        stash includes: '*.xml', name: 'test_reports'
+                        stash includes: 'pytest_reports/', name: 'test_reports'
                     }
                 }
             }
@@ -141,9 +141,10 @@ pipeline {
                 }
                 stage('Run CANopen tests') {
                     steps {
+                        unstash 'test_reports'
                         bat '''
-                            venv\\Scripts\\python.exe -m pytest tests --protocol canopen --slave 0 --junitxml=pytest_canopen_0_report.xml
-                            venv\\Scripts\\python.exe -m pytest tests --protocol canopen --slave 1 --junitxml=pytest_canopen_1_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests --protocol canopen --slave 0 --junitxml=pytest_reports/pytest_canopen_0_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests --protocol canopen --slave 1 --junitxml=pytest_reports/pytest_canopen_1_report.xml
                             move .coverage .coverage_canopen
                             exit /b 0
                         '''
@@ -152,8 +153,8 @@ pipeline {
                 stage('Run Ethernet tests') {
                     steps {
                         bat '''
-                            venv\\Scripts\\python.exe -m pytest tests --protocol eoe --slave 0 --junitxml=pytest_ethernet_0_report.xml
-                            venv\\Scripts\\python.exe -m pytest tests --protocol eoe --slave 1 --junitxml=pytest_ethernet_1_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests --protocol eoe --slave 0 --junitxml=pytest_reports/pytest_ethernet_0_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests --protocol eoe --slave 1 --junitxml=pytest_reports/pytest_ethernet_1_report.xml
                             move .coverage .coverage_ethernet
                             exit /b 0
                         '''
@@ -167,12 +168,11 @@ pipeline {
                             venv\\Scripts\\python.exe -m coverage xml --include=ingeniamotion/*
                         '''
                         publishCoverage adapters: [coberturaReportAdapter('coverage.xml')]
-                        unstash 'test_reports'
+                        archiveArtifacts artifacts: '*.xml, pytest_reports\\*'
                         bat '''
-                            venv\\Scripts\\python.exe -m tests.combine_reports -i pytest_ethernet_0_report.xml pytest_ethernet_1_report.xml pytest_canopen_0_report.xml pytest_canopen_1_report.xml pytest_ethercat_0_report.xml pytest_ethercat_1_report.xml -o combined_report.xml
+                            venv\\Scripts\\python.exe -m tests.combine_reports -i pytest_reports/ -o combined_report.xml
                         '''
                         junit 'combined_report.xml'
-                        archiveArtifacts artifacts: '*.xml'
                     }
                 }
             }
