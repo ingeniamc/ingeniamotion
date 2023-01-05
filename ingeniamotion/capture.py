@@ -22,6 +22,7 @@ class Capture(metaclass=MCMetaClass):
     MONITORING_STATUS_REGISTER = "MON_DIST_STATUS"
     MONITORING_CURRENT_NUMBER_BYTES_REGISTER = "MON_CFG_BYTES_VALUE"
     MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER = "MON_MAX_SIZE"
+    MONITORING_FREQUENCY_DIVIDER_REGISTER = "MON_DIST_FREQ_DIV"
 
     MINIMUM_BUFFER_SIZE = 8192
 
@@ -354,8 +355,7 @@ class Capture(metaclass=MCMetaClass):
             return self.disable_monitoring(servo=servo, version=version)
         drive = self.mc.servos[servo]
         drive.disturbance_disable()
-        if version < MonitoringVersion.MONITORING_V3:
-            return drive.disturbance_remove_data()
+        return drive.disturbance_remove_data()
 
     def get_monitoring_disturbance_status(self, servo=DEFAULT_SERVO):
         """Get Monitoring Status.
@@ -585,3 +585,28 @@ class Capture(metaclass=MCMetaClass):
             )
         except IMRegisterNotExist:
             return self.MINIMUM_BUFFER_SIZE
+
+    def get_frequency(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+        """Returns the monitoring frequency.
+
+        Args:
+            servo (str): servo alias to reference it. ``default`` by default.
+            axis (int): servo axis. ``1`` by default.
+
+        Returns:
+            float: sampling rate in Hz.
+
+        """
+
+        position_velocity_loop_rate = \
+            self.mc.configuration.get_position_and_velocity_loop_rate(
+                servo=servo,
+                axis=axis
+            )
+        prescaler = self.mc.communication.get_register(
+            self.MONITORING_FREQUENCY_DIVIDER_REGISTER,
+            servo=servo,
+            axis=0
+        )
+        sampling_freq = round(position_velocity_loop_rate / prescaler, 2)
+        return sampling_freq
