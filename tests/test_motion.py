@@ -2,6 +2,7 @@ import time
 import pytest
 import numpy as np
 from ingenialink import exceptions
+import logging
 
 from ingeniamotion.enums import OperationMode
 from ingeniamotion.motion import Motion
@@ -17,7 +18,9 @@ ACTUAL_POSITION_REGISTER = "CL_POS_FBK_VALUE"
 VELOCITY_SET_POINT_REGISTER = "CL_VEL_SET_POINT_VALUE"
 ACTUAL_VELOCITY_REGISTER = "CL_VEL_FBK_VALUE"
 CURRENT_QUADRATURE_SET_POINT_REGISTER = "CL_CUR_Q_SET_POINT"
+ACTUAL_QUADRATURE_CURRENT_REGISTER = "CL_CUR_Q_VALUE"
 CURRENT_DIRECT_SET_POINT_REGISTER = "CL_CUR_D_SET_POINT"
+ACTUAL_DIRECT_CURRENT_REGISTER = "CL_CUR_D_VALUE"
 VOLTAGE_QUADRATURE_SET_POINT_REGISTER = "CL_VOL_Q_SET_POINT"
 VOLTAGE_DIRECT_SET_POINT_REGISTER = "CL_VOL_D_SET_POINT"
 
@@ -308,6 +311,24 @@ def test_get_actual_velocity(motion_controller, velocity_value):
     reg_value = mc.communication.get_register(ACTUAL_VELOCITY_REGISTER,
                                               servo=alias)
     assert pytest.approx(test_velocity, 0.1) == reg_value
+
+
+@pytest.mark.smoke
+def test_get_actual_current_direct(mocker, motion_controller):
+    mc, alias = motion_controller
+    patch_get_register = mocker.patch(
+        'ingeniamotion.communication.Communication.get_register')
+    mc.motion.get_actual_current_direct(servo=alias)
+    patch_get_register.assert_called_once_with(ACTUAL_DIRECT_CURRENT_REGISTER, servo=alias, axis=1)
+
+
+@pytest.mark.smoke
+def test_get_actual_current_quadrature(mocker, motion_controller):
+    mc, alias = motion_controller
+    patch_get_register = mocker.patch(
+        'ingeniamotion.communication.Communication.get_register')
+    mc.motion.get_actual_current_quadrature(servo=alias)
+    patch_get_register.assert_called_once_with(ACTUAL_QUADRATURE_CURRENT_REGISTER, servo=alias, axis=1)
 
 
 @pytest.mark.smoke

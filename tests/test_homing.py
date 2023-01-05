@@ -28,7 +28,7 @@ def initial_position(motion_controller):
     mc.motion.motor_enable(servo=alias)
     last_pos = mc.motion.get_actual_position(servo=alias)
     position = mc.configuration.get_position_feedback_resolution(servo=alias)//2
-    mc.motion.move_to_position(position+last_pos, servo=alias, blocking=True)
+    mc.motion.move_to_position(position+last_pos, servo=alias, blocking=True, timeout=5)
     mc.motion.motor_disable(servo=alias)
     return position
 

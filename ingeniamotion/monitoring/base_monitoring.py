@@ -432,3 +432,4 @@ class Monitoring(ABC):
             self.logger.warning("Timeout. Forced trigger is not raised.")
             return [[] for _ in self.mapped_registers]
         return self.read_monitoring_data()
+
