@@ -54,51 +54,36 @@ def load_reports(input_reports):
             if classname not in test_reports[input_path]["testcases"]:
                 test_reports[input_path]["testcases"][classname] = {}
 
-            failure = testcase.find("failure")
-            skipped = testcase.find("skipped")
-            error = testcase.find("error")
-            if failure is not None:
-                test_reports[input_path]["testcases"][classname][name] = {
-                    "result": "FAILED",
-                    "message": failure.attrib["message"],
-                    "output": failure.text,
-                }
-            elif skipped is not None:
-                test_reports[input_path]["testcases"][classname][name] = {
-                    "result": "SKIPPED",
-                    "message": skipped.attrib["message"],
-                    "output": skipped.text,
-                }
-            elif error is not None:
-                test_reports[input_path]["testcases"][classname][name] = {
-                    "result": "ERROR",
-                    "message": error.attrib["message"],
-                    "output": error.text,
-                }
+            results = [(case, testcase.find(case)) for case in ['failure', 'skipped', 'error'] if testcase.find(case) is not None]
+            if not results:
+                result = "passed"
+                message = ""
+                output = ""
             else:
-                test_reports[input_path]["testcases"][classname][name] = {
-                    "result": "PASSED",
-                    "message": "",
-                    "output": "",
-                }
-            test_reports[input_path]["testcases"][classname][name]["time"] = float(
-                testcase.attrib["time"]
-            )
+                result = results[0][0]
+                message = results[0][1].attrib["message"]
+                output = results[0][1].text
+            test_reports[input_path]["testcases"][classname][name] = {
+                "result": result,
+                "message": message,
+                "output": output,
+                "time": float(testcase.attrib["time"])
+            }
 
     return test_reports
 
 
 def get_result_based_on_previous(previous_result, actual_result):
-    if previous_result == "ERROR" or actual_result == "ERROR":
-        result = "ERROR"
-    elif previous_result == "FAILED" or actual_result == "FAILED":
-        result = "FAILED"
-    elif previous_result == "SKIPPED" and actual_result == "SKIPPED":
-        result = "SKIPPED"
-    elif previous_result in ["SKIPPED", "PASSED"] and actual_result == "PASSED":
-        result = "PASSED"
-    elif previous_result == "PASSED" and actual_result in "SKIPPED":
-        result = "PASSED"
+    if previous_result == "error" or actual_result == "error":
+        result = "error"
+    elif previous_result == "failure" or actual_result == "failure":
+        result = "failure"
+    elif previous_result == "skipped" and actual_result == "skipped":
+        result = "skipped"
+    elif previous_result in ["skipped", "passed"] and actual_result == "passed":
+        result = "passed"
+    elif previous_result == "passed" and actual_result in "skipped":
+        result = "passed"
 
     return result
 
@@ -128,7 +113,7 @@ def combine_reports(test_reports):
             for name in report_dict["testcases"][classname].keys():
                 if name not in combined_report["testcases"][classname]:
                     result = report_dict["testcases"][classname][name]["result"]
-                    if result != "PASSED":
+                    if result != "passed":
                         message = "PROTOCOL: {} - SLAVE: {} --> {} ({})".format(
                             str(protocol),
                             str(slave),
@@ -157,7 +142,7 @@ def combine_reports(test_reports):
                     actual_result = report_dict["testcases"][classname][name]["result"]
                     result = get_result_based_on_previous(previous_result, actual_result)
 
-                    if report_dict["testcases"][classname][name]["result"] != "PASSED":
+                    if report_dict["testcases"][classname][name]["result"] != "passed":
                         message = "{} // PROTOCOL: {} - SLAVE: {} --> {} ({})".format(
                             combined_report["testcases"][classname][name]["message"],
                             str(protocol),
@@ -188,11 +173,11 @@ def combine_reports(test_reports):
     for classname in combined_report["testcases"].keys():
         for name in combined_report["testcases"][classname].keys():
             result = combined_report["testcases"][classname][name]["result"]
-            if result == "PASSED":
+            if result == "passed":
                 combined_report["passed"] += 1
-            elif result == "ERROR":
+            elif result == "error":
                 combined_report["errors"] += 1
-            elif result == "FAILED":
+            elif result == "failure":
                 combined_report["failures"] += 1
             else:
                 combined_report["skipped"] += 1
@@ -219,16 +204,16 @@ def save_xml(combined_report, output_file):
             testcase.set("classname", classname)
             testcase.set("name", name)
 
-            if testcase_dict["result"] == "SKIPPED":
+            if testcase_dict["result"] == "skipped":
                 skip = ET.SubElement(testcase, "skipped")
                 skip.set("type", "pytest.skip")
                 skip.set("message", testcase_dict["message"])
                 skip.text = testcase_dict["output"]
-            elif testcase_dict["result"] == "ERROR":
+            elif testcase_dict["result"] == "error":
                 skip = ET.SubElement(testcase, "error")
                 skip.set("message", testcase_dict["message"])
                 skip.text = testcase_dict["output"]
-            elif testcase_dict["result"] == "FAILED":
+            elif testcase_dict["result"] == "failure":
                 skip = ET.SubElement(testcase, "failure")
                 skip.set("message", testcase_dict["message"])
                 skip.text = testcase_dict["output"]
