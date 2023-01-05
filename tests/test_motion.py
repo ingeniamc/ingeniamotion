@@ -321,7 +321,7 @@ def test_get_actual_velocity(motion_controller, velocity_value):
         test_velocity[j] = mc.motion.get_actual_velocity(servo=alias)
         reg_value[j] = mc.communication.get_register(ACTUAL_VELOCITY_REGISTER,
                                                      servo=alias)
-    assert pytest.approx(np.mean(test_velocity), 0.2) == np.mean(reg_value)
+    assert np.mean(np.abs(test_velocity - np.mean(reg_value))) < 0.1
 
 
 @pytest.mark.smoke
