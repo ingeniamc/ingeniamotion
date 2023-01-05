@@ -13,24 +13,26 @@ SEPARATOR = "============================================="
 
 
 def setup_command():
-    parser = argparse.ArgumentParser(description='Combine xml pytest reports')
-    parser.add_argument('-i', '--input-reports', default=[], nargs='+', required=True)
-    parser.add_argument('-o', '--output-file', type=str, required=True)
+    parser = argparse.ArgumentParser(description="Combine xml pytest reports")
+    parser.add_argument("-i", "--input-reports", default=[], nargs="+", required=True)
+    parser.add_argument("-o", "--output-file", type=str, required=True)
     return parser.parse_args()
 
 
 def load_reports(input_reports):
     test_reports = {}
     for input_path in input_reports:
-        try: 
-            with open(input_path, 'r', encoding='utf-8') as xml_file:
+        try:
+            with open(input_path, "r", encoding="utf-8") as xml_file:
                 tree = ET.parse(xml_file)
         except FileNotFoundError:
             raise FileNotFoundError(f"There is not any xml file in the path: {input_path}")
         root = tree.getroot()
         testsuite = root.find(XML_TESTSUITE)
         properties = testsuite.findall(XML_TESTSUITE_PROPS)
-        protocol = [prop.attrib["value"] for prop in properties if prop.attrib["name"] == "protocol"][0]
+        protocol = [
+            prop.attrib["value"] for prop in properties if prop.attrib["name"] == "protocol"
+        ][0]
         slave = [prop.attrib["value"] for prop in properties if prop.attrib["name"] == "slave"][0]
         test_reports[input_path] = {
             "errors": int(testsuite.attrib["errors"]),
@@ -42,16 +44,16 @@ def load_reports(input_reports):
             "hostname": testsuite.attrib["hostname"],
             "protocol": protocol,
             "slave": slave,
-            "testcases": {}
-        } 
+            "testcases": {},
+        }
         testcases = testsuite.findall(XML_TESTCASE)
-        
+
         for testcase in testcases:
             classname = testcase.attrib["classname"]
             name = testcase.attrib["name"]
             if classname not in test_reports[input_path]["testcases"]:
                 test_reports[input_path]["testcases"][classname] = {}
-            
+
             failure = testcase.find("failure")
             skipped = testcase.find("skipped")
             error = testcase.find("error")
@@ -59,28 +61,30 @@ def load_reports(input_reports):
                 test_reports[input_path]["testcases"][classname][name] = {
                     "result": "FAILED",
                     "message": failure.attrib["message"],
-                    "output": failure.text
+                    "output": failure.text,
                 }
             elif skipped is not None:
                 test_reports[input_path]["testcases"][classname][name] = {
                     "result": "SKIPPED",
                     "message": skipped.attrib["message"],
-                    "output": skipped.text
+                    "output": skipped.text,
                 }
             elif error is not None:
                 test_reports[input_path]["testcases"][classname][name] = {
                     "result": "ERROR",
                     "message": error.attrib["message"],
-                    "output": error.text
+                    "output": error.text,
                 }
             else:
                 test_reports[input_path]["testcases"][classname][name] = {
                     "result": "PASSED",
                     "message": "",
-                    "output": ""
+                    "output": "",
                 }
-            test_reports[input_path]["testcases"][classname][name]["time"] = float(testcase.attrib["time"])
-        
+            test_reports[input_path]["testcases"][classname][name]["time"] = float(
+                testcase.attrib["time"]
+            )
+
     return test_reports
 
 
@@ -107,7 +111,7 @@ def combine_reports(test_reports):
         "passed": 0,
         "skipped": 0,
         "tests": 0,
-        "testcases": {}
+        "testcases": {},
     }
     for report_path, report_dict in test_reports.items():
         protocol = report_dict["protocol"]
@@ -129,24 +133,24 @@ def combine_reports(test_reports):
                             str(protocol),
                             str(slave),
                             report_dict["testcases"][classname][name]["result"],
-                            report_dict["testcases"][classname][name]["message"]
+                            report_dict["testcases"][classname][name]["message"],
                         )
-                        output =  "\n PROTOCOL: {} - SLAVE: {} --> {} \n {} \n {}".format(
+                        output = "\n PROTOCOL: {} - SLAVE: {} --> {} \n {} \n {}".format(
                             str(protocol),
                             str(slave),
                             report_dict["testcases"][classname][name]["result"],
                             SEPARATOR,
-                            report_dict["testcases"][classname][name]["output"]
+                            report_dict["testcases"][classname][name]["output"],
                         )
                     else:
                         message = ""
                         output = ""
-                    
+
                     combined_report["testcases"][classname][name] = {
                         "result": report_dict["testcases"][classname][name]["result"],
                         "message": message,
                         "output": output,
-                        "time": report_dict["testcases"][classname][name]["time"]
+                        "time": report_dict["testcases"][classname][name]["time"],
                     }
                 else:
                     previous_result = combined_report["testcases"][classname][name]["result"]
@@ -159,7 +163,7 @@ def combine_reports(test_reports):
                             str(protocol),
                             str(slave),
                             report_dict["testcases"][classname][name]["result"],
-                            report_dict["testcases"][classname][name]["message"]
+                            report_dict["testcases"][classname][name]["message"],
                         )
                         output = "{} \n\n PROTOCOL: {} - SLAVE: {} --> {} \n {} \n {}".format(
                             combined_report["testcases"][classname][name]["output"],
@@ -167,7 +171,7 @@ def combine_reports(test_reports):
                             str(slave),
                             report_dict["testcases"][classname][name]["result"],
                             SEPARATOR,
-                            report_dict["testcases"][classname][name]["output"]
+                            report_dict["testcases"][classname][name]["output"],
                         )
                     else:
                         message = combined_report["testcases"][classname][name]["message"]
@@ -177,7 +181,8 @@ def combine_reports(test_reports):
                         "result": result,
                         "message": message,
                         "output": output,
-                        "time": combined_report["testcases"][classname][name]["time"] + report_dict["testcases"][classname][name]["time"]
+                        "time": combined_report["testcases"][classname][name]["time"]
+                        + report_dict["testcases"][classname][name]["time"],
                     }
 
     for classname in combined_report["testcases"].keys():
@@ -186,11 +191,11 @@ def combine_reports(test_reports):
             if result == "PASSED":
                 combined_report["passed"] += 1
             elif result == "ERROR":
-                combined_report["errors"] += 1        
+                combined_report["errors"] += 1
             elif result == "FAILED":
-                combined_report["failures"] += 1    
+                combined_report["failures"] += 1
             else:
-                combined_report["skipped"] += 1    
+                combined_report["skipped"] += 1
 
     return combined_report
 
@@ -216,32 +221,32 @@ def save_xml(combined_report, output_file):
 
             if testcase_dict["result"] == "SKIPPED":
                 skip = ET.SubElement(testcase, "skipped")
-                skip.set("type", "pytest.skip") 
-                skip.set("message", testcase_dict["message"]) 
-                skip.text = testcase_dict["output"] 
+                skip.set("type", "pytest.skip")
+                skip.set("message", testcase_dict["message"])
+                skip.text = testcase_dict["output"]
             elif testcase_dict["result"] == "ERROR":
                 skip = ET.SubElement(testcase, "error")
-                skip.set("message", testcase_dict["message"]) 
-                skip.text = testcase_dict["output"] 
+                skip.set("message", testcase_dict["message"])
+                skip.text = testcase_dict["output"]
             elif testcase_dict["result"] == "FAILED":
                 skip = ET.SubElement(testcase, "failure")
-                skip.set("message", testcase_dict["message"]) 
-                skip.text = testcase_dict["output"] 
+                skip.set("message", testcase_dict["message"])
+                skip.text = testcase_dict["output"]
 
-    dom = minidom.parseString(ET.tostring(tree, encoding='utf-8'))
+    dom = minidom.parseString(ET.tostring(tree, encoding="utf-8"))
     with open(output_file, "wb") as f:
-        f.write(dom.toprettyxml(indent='\t').encode())
+        f.write(dom.toprettyxml(indent="\t").encode())
 
 
 def main(args):
     input_reports = []
-    for input_report in  args.input_reports:
+    for input_report in args.input_reports:
         if os.path.isdir(input_report):
             xml_files = glob.glob(os.path.join(input_report, "*.xml"))
             if len(xml_files) == 0:
                 raise AttributeError(f"Folder {input_report} is empty")
             input_reports.extend(xml_files)
-        elif input_report.endswith('.xml'):
+        elif input_report.endswith(".xml"):
             input_reports.append(input_report)
         else:
             raise AttributeError(f"Incorrect extension: {input_report}")
@@ -251,8 +256,9 @@ def main(args):
 
     test_reports = load_reports(input_reports)
     combined_report = combine_reports(test_reports)
-    save_xml(combined_report, args.output_file)        
+    save_xml(combined_report, args.output_file)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     args = setup_command()
     main(args)
