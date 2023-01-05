@@ -54,7 +54,11 @@ def load_reports(input_reports):
             if classname not in test_reports[input_path]["testcases"]:
                 test_reports[input_path]["testcases"][classname] = {}
 
-            results = [(case, testcase.find(case)) for case in ['failure', 'skipped', 'error'] if testcase.find(case) is not None]
+            results = [
+                (case, testcase.find(case))
+                for case in ["failure", "skipped", "error"]
+                if testcase.find(case) is not None
+            ]
             if not results:
                 result = "passed"
                 message = ""
@@ -67,28 +71,33 @@ def load_reports(input_reports):
                 "result": result,
                 "message": message,
                 "output": output,
-                "time": float(testcase.attrib["time"])
+                "time": float(testcase.attrib["time"]),
             }
 
     return test_reports
 
 
 def get_result_based_on_previous(previous_result, actual_result):
-    if previous_result == "error" or actual_result == "error":
+    results = [previous_result, actual_result]
+    if previous_result == actual_result:
+        result = actual_result
+    elif "error" in results:
         result = "error"
-    elif previous_result == "failure" or actual_result == "failure":
+    elif "failure" in results:
         result = "failure"
-    elif previous_result == "skipped" and actual_result == "skipped":
-        result = "skipped"
-    elif previous_result in ["skipped", "passed"] and actual_result == "passed":
-        result = "passed"
-    elif previous_result == "passed" and actual_result in "skipped":
+    else:
         result = "passed"
 
     return result
 
 
 def combine_reports(test_reports):
+    result_dict = {
+        "passed": "PASSED",
+        "error": "ERROR",
+        "failure": "FAILED",
+        "skipped": "SKIPPED",
+    }
     combined_report = {
         "time": 0,
         "errors": 0,
@@ -117,13 +126,13 @@ def combine_reports(test_reports):
                         message = "PROTOCOL: {} - SLAVE: {} --> {} ({})".format(
                             str(protocol),
                             str(slave),
-                            report_dict["testcases"][classname][name]["result"],
+                            result_dict[report_dict["testcases"][classname][name]["result"]],
                             report_dict["testcases"][classname][name]["message"],
                         )
                         output = "\n PROTOCOL: {} - SLAVE: {} --> {} \n {} \n {}".format(
                             str(protocol),
                             str(slave),
-                            report_dict["testcases"][classname][name]["result"],
+                            result_dict[report_dict["testcases"][classname][name]["result"]],
                             SEPARATOR,
                             report_dict["testcases"][classname][name]["output"],
                         )
@@ -147,14 +156,14 @@ def combine_reports(test_reports):
                             combined_report["testcases"][classname][name]["message"],
                             str(protocol),
                             str(slave),
-                            report_dict["testcases"][classname][name]["result"],
+                            result_dict[report_dict["testcases"][classname][name]["result"]],
                             report_dict["testcases"][classname][name]["message"],
                         )
                         output = "{} \n\n PROTOCOL: {} - SLAVE: {} --> {} \n {} \n {}".format(
                             combined_report["testcases"][classname][name]["output"],
                             str(protocol),
                             str(slave),
-                            report_dict["testcases"][classname][name]["result"],
+                            result_dict[report_dict["testcases"][classname][name]["result"]],
                             SEPARATOR,
                             report_dict["testcases"][classname][name]["output"],
                         )
@@ -170,17 +179,16 @@ def combine_reports(test_reports):
                         + report_dict["testcases"][classname][name]["time"],
                     }
 
+    total_numbers_dict = {
+        "failure": "failures",
+        "passed": "passed",
+        "skipped": "skipped",
+        "error": "errors",
+    }
     for classname in combined_report["testcases"].keys():
         for name in combined_report["testcases"][classname].keys():
             result = combined_report["testcases"][classname][name]["result"]
-            if result == "passed":
-                combined_report["passed"] += 1
-            elif result == "error":
-                combined_report["errors"] += 1
-            elif result == "failure":
-                combined_report["failures"] += 1
-            else:
-                combined_report["skipped"] += 1
+            combined_report[total_numbers_dict[result]] += 1
 
     return combined_report
 
