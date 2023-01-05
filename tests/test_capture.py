@@ -15,6 +15,8 @@ def __compare_signals(expected_signal, received_signal, length_tol=None, fft_tol
         if len(received_signal) < len():
             expected_signal = expected_signal[:len(received_signal)]
 
+    assert len(received_signal) == len(expected_signal)
+
     fft_received = np.abs(np.fft.fft(received_signal))
     fft_expected = np.abs(np.fft.fft(expected_signal))
 
