@@ -37,9 +37,9 @@ def feedback_test_setup(motion_controller):
     ("digital_halls_test", SensorType.HALLS),
     ("incremental_encoder_1_test", SensorType.QEI),
     ("incremental_encoder_2_test", SensorType.QEI2),
-    ("test_absolute_encoder_1_test", SensorType.ABS1),
-    ("test_absolute_encoder_2_test", SensorType.BISSC2),
-    ("test_secondary_ssi_test", SensorType.SSI2)
+    ("absolute_encoder_1_test", SensorType.ABS1),
+    ("absolute_encoder_2_test", SensorType.BISSC2),
+    ("secondary_ssi_test", SensorType.SSI2)
 ])
 def test_encoders_test(motion_controller, feedback_list, feedback_test_name, encoder):
     mc, alias = motion_controller
