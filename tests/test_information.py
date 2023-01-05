@@ -48,6 +48,7 @@ def test_register_access(motion_controller, uid, axis, access):
     ("PROF_IP_CLEAR_DATA", 1, (0, 65535))
 ])
 def test_register_range(motion_controller, uid, axis, range):
+    # TODO: Fix issue with ranges and remove approx from the parameters.
     mc, alias = motion_controller
     register_range = mc.info.register_range(uid, axis, alias)
     assert tuple(register_range) == range
