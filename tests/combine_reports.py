@@ -1,3 +1,5 @@
+import os
+import glob
 import argparse
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
@@ -21,8 +23,8 @@ def load_reports(input_reports):
     test_reports = {}
     for input_path in input_reports:
         try: 
-            with open(input_path, 'r', encoding='utf-8') as xdf_file:
-                tree = ET.parse(xdf_file)
+            with open(input_path, 'r', encoding='utf-8') as xml_file:
+                tree = ET.parse(xml_file)
         except FileNotFoundError:
             raise FileNotFoundError(f"There is not any xml file in the path: {input_path}")
         root = tree.getroot()
@@ -230,10 +232,22 @@ def save_xml(combined_report, output_file):
 
 
 def main(args):
-    if len(args.input_reports) < 2:
+    input_reports = []
+    for input_report in  args.input_reports:
+        if os.path.isdir(input_report):
+            xml_files = glob.glob(os.path.join(input_report, "*.xml"))
+            if len(xml_files) == 0:
+                raise AttributeError(f"Folder {input_report} is empty")
+            input_reports.extend(xml_files)
+        elif input_report.endswith('.xml'):
+            input_reports.append(input_report)
+        else:
+            raise AttributeError(f"Incorrect extension: {input_report}")
+
+    if len(input_reports) < 2:
         raise AttributeError("At least two input reports are needed to be combined")
 
-    test_reports = load_reports(args.input_reports)
+    test_reports = load_reports(input_reports)
     combined_report = combine_reports(test_reports)
     save_xml(combined_report, args.output_file)        
 
