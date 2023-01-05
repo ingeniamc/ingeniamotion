@@ -10,6 +10,7 @@ from ingeniamotion.exceptions import IMMonitoringError
 from ingeniamotion.enums import MonitoringProcessStage, \
     MonitoringSoCType, MonitoringSoCConfig, REG_DTYPE
 from ingenialink.ipb.register import IPBRegister
+from ingenialink.ethernet.register import EthernetRegister
 
 
 def check_monitoring_disabled(func):
@@ -144,7 +145,7 @@ class Monitoring(ABC):
             address_offset = self.REGISTER_MAP_OFFSET * (subnode - 1)
             register_obj = self.mc.info.register_info(
                 register, subnode, servo=self.servo)
-            if isinstance(register_obj, IPBRegister):
+            if isinstance(register_obj, (IPBRegister, EthernetRegister)):
                 mapped_reg = register_obj.address + address_offset
             else:
                 mapped_reg = register_obj.idx

@@ -45,6 +45,7 @@ class Feedbacks(BaseTest):
     VELOCITY_FEEDBACK_FILTER_1_TYPE_REGISTER = "CL_VEL_FBK_FILTER1_TYPE"
     VELOCITY_FEEDBACK_FILTER_1_FREQUENCY_REGISTER = "CL_VEL_FBK_FILTER1_FREQ"
     RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
+    MAXIMUM_CONTINUOUS_CURRENT_DRIVE_PROTECTION = "DRV_PROT_MAN_MAX_CONT_CURRENT_VALUE"
 
     BACKUP_REGISTERS = ["CL_POS_FBK_SENSOR",
                         "MOT_PAIR_POLES",
@@ -278,16 +279,23 @@ class Feedbacks(BaseTest):
 
     @BaseTest.stoppable
     def current_ramp_up(self):
-        max_current = self.mc.communication.get_register(
-            self.RATED_CURRENT_REGISTER,
-            servo=self.servo, axis=self.axis
-        )
+        dict_currents = {
+            "Rated motor current": self.mc.communication.get_register(
+                self.RATED_CURRENT_REGISTER,
+                servo=self.servo, axis=self.axis
+            ),
+            "Drive nominal current": self.mc.communication.get_register(
+                self.MAXIMUM_CONTINUOUS_CURRENT_DRIVE_PROTECTION,
+                servo=self.servo, axis=self.axis
+            )
+        }
+        max_current = min(dict_currents.values())
+
+        self.logger.debug(f'The maximum current is set by: {min(dict_currents, key=dict_currents.get)}')
         # Increase current progressively
-        self.logger.info(
-            "Increasing current to %s%% rated until"
-            " one electrical cycle is completed",
-            self.PERCENTAGE_CURRENT_USED * 100
-        )
+        self.logger.info(f'Increasing current to {self.PERCENTAGE_CURRENT_USED * 100}% '
+                         f'rated until one electrical cycle is completed')
+
         target_current = self.PERCENTAGE_CURRENT_USED * max_current
         cycle_time = 2 / self.test_frequency
 
