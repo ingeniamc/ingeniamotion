@@ -6,10 +6,15 @@ from ingenialink import exceptions
 
 from ingeniamotion.enums import SensorType, SeverityLevel
 from ingeniamotion.exceptions import IMRegisterNotExist
-from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
+from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder1_test import AbsoluteEncoder1Test
+from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder2_test import AbsoluteEncoder2Test
+from ingeniamotion.wizard_tests.feedbacks_tests.digital_hall_test import DigitalHallTest
+from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental1_test import DigitalIncremental1Test
+from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental2_test import DigitalIncremental2Test
+from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import SecondarySSITest
 from ingeniamotion.wizard_tests.phase_calibration import Phasing
 from ingeniamotion.wizard_tests.phasing_check import PhasingCheck
-from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
+from ingeniamotion.wizard_tests.base_test import TestError
 
 
 @pytest.fixture
@@ -28,80 +33,23 @@ def feedback_test_setup(motion_controller):
 
 
 @pytest.mark.usefixtures("feedback_test_setup")
-def test_digital_halls_test(motion_controller, feedback_list):
+@pytest.mark.parametrize("feedback_test_name, encoder", [
+    ("digital_halls_test", SensorType.HALLS),
+    ("incremental_encoder_1_test", SensorType.QEI),
+    ("incremental_encoder_2_test", SensorType.QEI2),
+    ("test_absolute_encoder_1_test", SensorType.ABS1),
+    ("test_absolute_encoder_2_test", SensorType.BISSC2),
+    ("test_secondary_ssi_test", SensorType.SSI2)
+])
+def test_encoders_test(motion_controller, feedback_list, feedback_test_name, encoder):
     mc, alias = motion_controller
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
-    if SensorType.HALLS in feedback_list:
-        results = mc.tests.digital_halls_test(servo=alias)
+    if encoder in feedback_list:
+        results = getattr(mc.tests, feedback_test_name)(servo=alias)
         assert results["result_severity"] == SeverityLevel.SUCCESS
     else:
-        with pytest.raises(exceptions.ILStateError):
+        with pytest.raises(TestError):
             mc.tests.digital_halls_test(servo=alias)
-    assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
-
-
-@pytest.mark.usefixtures("feedback_test_setup")
-def test_incremental_encoder_1_test(motion_controller, feedback_list):
-    mc, alias = motion_controller
-    commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
-    if SensorType.QEI in feedback_list:
-        results = mc.tests.incremental_encoder_1_test(servo=alias)
-        assert results["result_severity"] == SeverityLevel.SUCCESS
-    else:
-        with pytest.raises(TestError):
-            mc.tests.incremental_encoder_1_test(servo=alias)
-    assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
-
-
-@pytest.mark.usefixtures("feedback_test_setup")
-def test_incremental_encoder_2_test(motion_controller, feedback_list):
-    mc, alias = motion_controller
-    commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
-    if SensorType.QEI2 in feedback_list:
-        results = mc.tests.incremental_encoder_2_test(servo=alias)
-        assert results["result_severity"] == SeverityLevel.SUCCESS
-    else:
-        with pytest.raises(TestError):
-            mc.tests.incremental_encoder_2_test(servo=alias)
-    assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
-
-
-@pytest.mark.usefixtures("feedback_test_setup")
-def test_absolute_encoder_1_test(motion_controller, feedback_list):
-    mc, alias = motion_controller
-    commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
-    if SensorType.ABS1 in feedback_list:
-        results = mc.tests.absolute_encoder_1_test(servo=alias)
-        assert results["result_severity"] == SeverityLevel.SUCCESS
-    else:
-        with pytest.raises(TestError):
-            mc.tests.absolute_encoder_1_test(servo=alias)
-    assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
-
-
-@pytest.mark.usefixtures("feedback_test_setup")
-def test_absolute_encoder_2_test(motion_controller, feedback_list):
-    mc, alias = motion_controller
-    commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
-    if SensorType.BISSC2 in feedback_list:
-        results = mc.tests.absolute_encoder_2_test(servo=alias)
-        assert results["result_severity"] == SeverityLevel.SUCCESS
-    else:
-        with pytest.raises(TestError):
-            mc.tests.absolute_encoder_2_test(servo=alias)
-    assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
-
-
-@pytest.mark.usefixtures("feedback_test_setup")
-def test_secondary_ssi_test(motion_controller, feedback_list):
-    mc, alias = motion_controller
-    commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
-    if SensorType.SSI2 in feedback_list:
-        results = mc.tests.secondary_ssi_test(servo=alias)
-        assert results["result_severity"] == SeverityLevel.SUCCESS
-    else:
-        with pytest.raises(TestError):
-            mc.tests.secondary_ssi_test(servo=alias)
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
 
@@ -179,10 +127,17 @@ def run_test_and_stop(test):
 
 
 @pytest.mark.usefixtures("feedback_test_setup")
-@pytest.mark.parametrize("sensor", list(SensorType))
-def test_feedback_stop(motion_controller, sensor):
+@pytest.mark.parametrize("feedback_class", [
+    AbsoluteEncoder1Test,
+    AbsoluteEncoder2Test,
+    DigitalHallTest,
+    DigitalIncremental1Test,
+    DigitalIncremental2Test,
+    SecondarySSITest
+])
+def test_feedback_stop(motion_controller, feedback_class):
     mc, alias = motion_controller
-    test = Feedbacks(mc, alias, 1, sensor)
+    test = feedback_class(mc, alias, 1)
     reg_values = get_backup_registers(test, mc, alias)
     run_test_and_stop(test)
     for reg in reg_values:

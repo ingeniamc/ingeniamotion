@@ -361,7 +361,10 @@ class Feedbacks(BaseTest):
         check_pos_vel_output = self.check_pos_vel_ratio()
         if check_pos_vel_output is not None:
             return check_pos_vel_output
-        self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
+        try:
+            self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
+        except Exception as e:
+            raise TestError(f"An error occurred enabling motor. Reason: {e}")
         position_1 = self.first_movement_and_set_current()
         self.logger.info("Actual position: %.0f",
                           position_1, axis=self.axis)
