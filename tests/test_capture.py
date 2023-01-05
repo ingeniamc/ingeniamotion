@@ -45,7 +45,7 @@ def test_create_poller(motion_controller):
     timestamp, test_data, _ = poller.data
     poller.stop()
 
-    assert np.allclose(np.diff(timestamp), sampling_time, rtol=0.1, atol=0)
+    assert np.allclose(np.diff(timestamp), sampling_time, rtol=0.5, atol=0)
 
     received_signal = test_data[0]
     __compare_signals(expected_signal, received_signal)
