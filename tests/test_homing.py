@@ -3,6 +3,7 @@ import time
 import pytest
 
 from ingeniamotion.enums import HomingMode, SensorType, OperationMode
+from .conftest import mean_actual_velocity_position
 
 HOMING_MODE_REGISTER = "HOM_MODE"
 HOMING_OFFSET_REGISTER = "HOM_OFFSET"
@@ -131,7 +132,7 @@ def test_homing_on_switch_limit_timeout(motion_controller):
     time.sleep(1)
     assert mc.motion.get_actual_velocity(servo=alias) != 0
     time.sleep(homing_timeout/1000)
-    assert pytest.approx(mc.motion.get_actual_velocity(servo=alias)) == 0
+    assert pytest.approx(mean_actual_velocity_position(mc, alias)) == 0
 
 
 def __check_index_pulse_is_allowed(feedback_list):
