@@ -132,7 +132,7 @@ def test_homing_on_switch_limit_timeout(motion_controller):
     time.sleep(1)
     assert mc.motion.get_actual_velocity(servo=alias) != 0
     time.sleep(homing_timeout/1000)
-    assert pytest.approx(mean_actual_velocity_position(mc, alias), 0.05) == 0
+    assert pytest.approx(mean_actual_velocity_position(mc, alias, velocity=True), 0.05) == 0
 
 
 def __check_index_pulse_is_allowed(feedback_list):
