@@ -190,7 +190,7 @@ class Motion(metaclass=MCMetaClass):
         if blocking:
             if not target_latch:
                 self.logger.warning(
-                    "Target latch is disabled. Target position" " may not be reached.",
+                    "Target latch is disabled. Target position may not be reached.",
                     axis=axis,
                     drive=self.mc.servo_name(servo),
                 )
@@ -237,7 +237,7 @@ class Motion(metaclass=MCMetaClass):
         if blocking:
             if not target_latch:
                 self.logger.warning(
-                    "Target latch is disabled. Target velocity" " may not be reached.",
+                    "Target latch is disabled. Target velocity may not be reached.",
                     axis=axis,
                     drive=self.mc.servo_name(servo),
                 )
