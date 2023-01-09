@@ -17,7 +17,7 @@ class Errors(metaclass=MCMetaClass):
     LAST_ERROR_REGISTER = {
         ErrorLocation.COCO: LAST_ERROR_COCO_REGISTER,
         ErrorLocation.MOCO: LAST_ERROR_MOCO_REGISTER,
-        ErrorLocation.SYSTEM: LAST_ERROR_SYSTEM_REGISTER
+        ErrorLocation.SYSTEM: LAST_ERROR_SYSTEM_REGISTER,
     }
     ERROR_TOTAL_NUMBER_COCO_REGISTER = "DRV_DIAG_ERROR_TOTAL_COM"
     ERROR_TOTAL_NUMBER_MOCO_REGISTER = "DRV_DIAG_ERROR_TOTAL"
@@ -25,7 +25,7 @@ class Errors(metaclass=MCMetaClass):
     ERROR_TOTAL_NUMBER_REGISTER = {
         ErrorLocation.COCO: ERROR_TOTAL_NUMBER_COCO_REGISTER,
         ErrorLocation.MOCO: ERROR_TOTAL_NUMBER_MOCO_REGISTER,
-        ErrorLocation.SYSTEM: ERROR_TOTAL_NUMBER_SYSTEM_REGISTER
+        ErrorLocation.SYSTEM: ERROR_TOTAL_NUMBER_SYSTEM_REGISTER,
     }
     ERROR_LIST_INDEX_REQUEST_COCO_REGISTER = "DRV_DIAG_ERROR_LIST_IDX_COM"
     ERROR_LIST_INDEX_REQUEST_MOCO_REGISTER = "DRV_DIAG_ERROR_LIST_IDX"
@@ -33,7 +33,7 @@ class Errors(metaclass=MCMetaClass):
     ERROR_LIST_INDEX_REQUEST_REGISTER = {
         ErrorLocation.COCO: ERROR_LIST_INDEX_REQUEST_COCO_REGISTER,
         ErrorLocation.MOCO: ERROR_LIST_INDEX_REQUEST_MOCO_REGISTER,
-        ErrorLocation.SYSTEM: ERROR_LIST_INDEX_REQUEST_SYSTEM_REGISTER
+        ErrorLocation.SYSTEM: ERROR_LIST_INDEX_REQUEST_SYSTEM_REGISTER,
     }
     ERROR_LIST_REQUESTED_COCO_CODE = "DRV_DIAG_ERROR_LIST_CODE_COM"
     ERROR_LIST_REQUESTED_MOCO_CODE = "DRV_DIAG_ERROR_LIST_CODE"
@@ -41,7 +41,7 @@ class Errors(metaclass=MCMetaClass):
     ERROR_LIST_REQUESTED_CODE = {
         ErrorLocation.COCO: ERROR_LIST_REQUESTED_COCO_CODE,
         ErrorLocation.MOCO: ERROR_LIST_REQUESTED_MOCO_CODE,
-        ErrorLocation.SYSTEM: ERROR_LIST_REQUESTED_SYSTEM_CODE
+        ErrorLocation.SYSTEM: ERROR_LIST_REQUESTED_SYSTEM_CODE,
     }
 
     MAXIMUM_ERROR_INDEX = 32
@@ -71,12 +71,10 @@ class Errors(metaclass=MCMetaClass):
         return error_code, subnode, bool(is_warning)
 
     def __get_error_location(self, servo=DEFAULT_SERVO):
-        if self.mc.info.register_exists(
-                self.LAST_ERROR_SYSTEM_REGISTER, axis=0, servo=servo):
+        if self.mc.info.register_exists(self.LAST_ERROR_SYSTEM_REGISTER, axis=0, servo=servo):
             # Check System last error, if it does not exist check to CoCo
             return self.ErrorLocation.SYSTEM
-        if self.mc.info.register_exists(
-                self.LAST_ERROR_COCO_REGISTER, axis=0, servo=servo):
+        if self.mc.info.register_exists(self.LAST_ERROR_COCO_REGISTER, axis=0, servo=servo):
             # Check CoCo last error, if it does not exist use MoCo
             return self.ErrorLocation.COCO
         return self.ErrorLocation.MOCO
@@ -114,9 +112,7 @@ class Errors(metaclass=MCMetaClass):
         error_version = self.__get_error_location(servo)
         subnode, error_location = self.__get_error_subnode(error_version, axis)
         error = self.mc.communication.get_register(
-            self.LAST_ERROR_REGISTER[error_location],
-            servo=servo,
-            axis=subnode
+            self.LAST_ERROR_REGISTER[error_location], servo=servo, axis=subnode
         )
         return self.__parse_error_to_tuple(error, error_version, axis)
 
@@ -141,8 +137,7 @@ class Errors(metaclass=MCMetaClass):
         """
         return self.get_buffer_error_by_index(0, servo=servo, axis=axis)
 
-    def get_buffer_error_by_index(self, index, servo=DEFAULT_SERVO,
-                                  axis=None):
+    def get_buffer_error_by_index(self, index, servo=DEFAULT_SERVO, axis=None):
         """Get error code from buffer error target index.
 
         Args:
@@ -163,19 +158,14 @@ class Errors(metaclass=MCMetaClass):
             ValueError: Index must be less than 32
         """
         if index >= self.MAXIMUM_ERROR_INDEX:
-            raise ValueError('index must be less than 32')
+            raise ValueError("index must be less than 32")
         error_version = self.__get_error_location(servo)
         subnode, error_location = self.__get_error_subnode(error_version, axis)
         self.mc.communication.set_register(
-            self.ERROR_LIST_INDEX_REQUEST_REGISTER[error_location],
-            index,
-            servo=servo,
-            axis=subnode
+            self.ERROR_LIST_INDEX_REQUEST_REGISTER[error_location], index, servo=servo, axis=subnode
         )
         error = self.mc.communication.get_register(
-            self.ERROR_LIST_REQUESTED_CODE[error_location],
-            servo=servo,
-            axis=subnode
+            self.ERROR_LIST_REQUESTED_CODE[error_location], servo=servo, axis=subnode
         )
         return self.__parse_error_to_tuple(error, error_version, axis)
 
@@ -192,9 +182,7 @@ class Errors(metaclass=MCMetaClass):
         error_version = self.__get_error_location(servo)
         subnode, error_location = self.__get_error_subnode(error_version, axis)
         return self.mc.communication.get_register(
-            self.ERROR_TOTAL_NUMBER_REGISTER[error_location],
-            servo=servo,
-            axis=subnode
+            self.ERROR_TOTAL_NUMBER_REGISTER[error_location], servo=servo, axis=subnode
         )
 
     def get_all_errors(self, servo=DEFAULT_SERVO, axis=None):
@@ -225,8 +213,7 @@ class Errors(metaclass=MCMetaClass):
         Returns:
             bool: ``True`` if fault is active, else ``False``.
         """
-        status_word = self.mc.configuration.get_status_word(
-            servo=servo, axis=axis)
+        status_word = self.mc.configuration.get_status_word(servo=servo, axis=axis)
         return bool(status_word & self.STATUS_WORD_FAULT_BIT)
 
     def is_warning_active(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):

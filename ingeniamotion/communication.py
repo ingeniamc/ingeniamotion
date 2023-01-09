@@ -16,8 +16,7 @@ from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
 class Communication(metaclass=MCMetaClass):
-    """Communication.
-    """
+    """Communication."""
 
     FORCE_SYSTEM_BOOT_CODE_REGISTER = "DRV_BOOT_COCO_FORCE"
 
@@ -25,11 +24,18 @@ class Communication(metaclass=MCMetaClass):
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
 
-    def connect_servo_eoe(self, ip, dict_path=None, alias=DEFAULT_SERVO,
-                          protocol=Protocol.UDP, port=1061,
-                          reconnection_retries=None, reconnection_timeout=None,
-                          servo_status_listener=False,
-                          net_status_listener=False):
+    def connect_servo_eoe(
+        self,
+        ip,
+        dict_path=None,
+        alias=DEFAULT_SERVO,
+        protocol=Protocol.UDP,
+        port=1061,
+        reconnection_retries=None,
+        reconnection_timeout=None,
+        servo_status_listener=False,
+        net_status_listener=False,
+    ):
         """Connect to target servo by Ethernet over EtherCAT
 
         Args:
@@ -53,19 +59,32 @@ class Communication(metaclass=MCMetaClass):
         """
         if not dict_path:
             raise TypeError("dict_path argument is missing")
-        self.__servo_connect(ip, dict_path, alias, protocol, port,
-                             {"reconnection_retries": reconnection_retries,
-                              "reconnection_timeout": reconnection_timeout},
-                             servo_status_listener=servo_status_listener,
-                             net_status_listener=net_status_listener)
+        self.__servo_connect(
+            ip,
+            dict_path,
+            alias,
+            protocol,
+            port,
+            {
+                "reconnection_retries": reconnection_retries,
+                "reconnection_timeout": reconnection_timeout,
+            },
+            servo_status_listener=servo_status_listener,
+            net_status_listener=net_status_listener,
+        )
 
-    def connect_servo_ethernet(self, ip, dict_path=None, alias=DEFAULT_SERVO,
-                               protocol=Protocol.UDP, port=1061,
-                               reconnection_retries=None,
-                               reconnection_timeout=None,
-                               servo_status_listener=False,
-                               net_status_listener=False
-                               ):
+    def connect_servo_ethernet(
+        self,
+        ip,
+        dict_path=None,
+        alias=DEFAULT_SERVO,
+        protocol=Protocol.UDP,
+        port=1061,
+        reconnection_retries=None,
+        reconnection_timeout=None,
+        servo_status_listener=False,
+        net_status_listener=False,
+    ):
         """Connect to target servo by Ethernet
 
         Args:
@@ -89,41 +108,64 @@ class Communication(metaclass=MCMetaClass):
         """
         if not dict_path:
             raise TypeError("dict_path argument is missing")
-        self.__servo_connect(ip, dict_path, alias, protocol, port,
-                             {"reconnection_retries": reconnection_retries,
-                              "reconnection_timeout": reconnection_timeout},
-                             servo_status_listener=servo_status_listener,
-                             net_status_listener=net_status_listener)
+        self.__servo_connect(
+            ip,
+            dict_path,
+            alias,
+            protocol,
+            port,
+            {
+                "reconnection_retries": reconnection_retries,
+                "reconnection_timeout": reconnection_timeout,
+            },
+            servo_status_listener=servo_status_listener,
+            net_status_listener=net_status_listener,
+        )
 
-    def __servo_connect(self, ip, dict_path, alias,
-                        protocol=Protocol.UDP, port=1061,
-                        reconnection=None,
-                        servo_status_listener=False,
-                        net_status_listener=False):
+    def __servo_connect(
+        self,
+        ip,
+        dict_path,
+        alias,
+        protocol=Protocol.UDP,
+        port=1061,
+        reconnection=None,
+        servo_status_listener=False,
+        net_status_listener=False,
+    ):
         if reconnection is None:
             reconnection = {}
-        reconnection = {x: reconnection[x] for x in reconnection
-                        if reconnection[x] is not None}
+        reconnection = {x: reconnection[x] for x in reconnection if reconnection[x] is not None}
         if not path.isfile(dict_path):
             raise FileNotFoundError("{} file does not exist!".format(dict_path))
 
         self.mc.net[alias] = EthernetNetwork()
         net = self.mc.net[alias]
         servo = net.connect_to_slave(
-            ip, dict_path, port, protocol, **reconnection,
+            ip,
+            dict_path,
+            port,
+            protocol,
+            **reconnection,
             servo_status_listener=servo_status_listener,
-            net_status_listener=net_status_listener
+            net_status_listener=net_status_listener,
         )
 
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = alias
 
-    def connect_servo_ecat(self, ifname, dict_path, slave=1,
-                           eoe_comm=True, alias=DEFAULT_SERVO,
-                           reconnection_retries=None,
-                           reconnection_timeout=None,
-                           servo_status_listener=False,
-                           net_status_listener=False):
+    def connect_servo_ecat(
+        self,
+        ifname,
+        dict_path,
+        slave=1,
+        eoe_comm=True,
+        alias=DEFAULT_SERVO,
+        reconnection_retries=None,
+        reconnection_timeout=None,
+        servo_status_listener=False,
+        net_status_listener=False,
+    ):
         """Connect servo by ECAT with embedded master.
 
         Args:
@@ -148,9 +190,9 @@ class Communication(metaclass=MCMetaClass):
         """
         reconnection = {}
         if reconnection_retries is not None:
-            reconnection['reconnection_retries'] = reconnection_retries
+            reconnection["reconnection_retries"] = reconnection_retries
         if reconnection_timeout is not None:
-            reconnection['reconnection_timeout'] = reconnection_timeout
+            reconnection["reconnection_timeout"] = reconnection_timeout
 
         if not path.isfile(dict_path):
             raise FileNotFoundError("{} file does not exist!".format(dict_path))
@@ -159,23 +201,30 @@ class Communication(metaclass=MCMetaClass):
         self.mc.net[alias] = EthercatNetwork(ifname)
         net = self.mc.net[alias]
         servo = net.connect_to_slave(
-            slave, dict_path,
-            use_eoe_comms, **reconnection,
+            slave,
+            dict_path,
+            use_eoe_comms,
+            **reconnection,
             servo_status_listener=servo_status_listener,
-            net_status_listener=net_status_listener
+            net_status_listener=net_status_listener,
         )
         servo.slave = slave
 
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = alias
 
-    def connect_servo_ecat_interface_ip(self, interface_ip, dict_path,
-                                        slave=1, eoe_comm=True,
-                                        alias=DEFAULT_SERVO,
-                                        reconnection_retries=None,
-                                        reconnection_timeout=None,
-                                        servo_status_listener=False,
-                                        net_status_listener=False):
+    def connect_servo_ecat_interface_ip(
+        self,
+        interface_ip,
+        dict_path,
+        slave=1,
+        eoe_comm=True,
+        alias=DEFAULT_SERVO,
+        reconnection_retries=None,
+        reconnection_timeout=None,
+        servo_status_listener=False,
+        net_status_listener=False,
+    ):
         """Connect servo by ECAT with embedded master.
 
         Args:
@@ -198,9 +247,15 @@ class Communication(metaclass=MCMetaClass):
             is not found.
         """
         self.connect_servo_ecat(
-            self.get_ifname_from_interface_ip(interface_ip), dict_path,
-            slave, eoe_comm, alias, reconnection_retries, reconnection_timeout,
-            servo_status_listener, net_status_listener
+            self.get_ifname_from_interface_ip(interface_ip),
+            dict_path,
+            slave,
+            eoe_comm,
+            alias,
+            reconnection_retries,
+            reconnection_timeout,
+            servo_status_listener,
+            net_status_listener,
         )
 
     @staticmethod
@@ -236,7 +291,8 @@ class Communication(metaclass=MCMetaClass):
         if adapter_name is None:
             raise ValueError(
                 f"Could not found a adapter configured as {address} "
-                f"to connect as EtherCAT master")
+                f"to connect as EtherCAT master"
+            )
         else:
             return "\\Device\\NPF_{}".format(adapter_name)
 
@@ -256,9 +312,7 @@ class Communication(metaclass=MCMetaClass):
             IndexError: If interface index is out of range.
 
         """
-        return "\\Device\\NPF_{}".format(
-            ifaddr.get_adapters()[index].name.decode("utf-8")
-        )
+        return "\\Device\\NPF_{}".format(ifaddr.get_adapters()[index].name.decode("utf-8"))
 
     @staticmethod
     def get_interface_name_list():
@@ -270,12 +324,18 @@ class Communication(metaclass=MCMetaClass):
         """
         return [x.nice_name for x in ifaddr.get_adapters()]
 
-    def connect_servo_ecat_interface_index(self, if_index, dict_path, slave=1,
-                                           eoe_comm=True, alias=DEFAULT_SERVO,
-                                           reconnection_retries=None,
-                                           reconnection_timeout=None,
-                                           servo_status_listener=False,
-                                           net_status_listener=False):
+    def connect_servo_ecat_interface_index(
+        self,
+        if_index,
+        dict_path,
+        slave=1,
+        eoe_comm=True,
+        alias=DEFAULT_SERVO,
+        reconnection_retries=None,
+        reconnection_timeout=None,
+        servo_status_listener=False,
+        net_status_listener=False,
+    ):
         """Connect servo by ECAT with embedded master.
         Interface should be selected by index of list given in
         :func:`get_interface_name_list`.
@@ -301,10 +361,17 @@ class Communication(metaclass=MCMetaClass):
             IndexError: If interface index is out of range.
 
         """
-        self.connect_servo_ecat(self.get_ifname_by_index(if_index), dict_path,
-                                slave, eoe_comm, alias,
-                                reconnection_retries, reconnection_timeout,
-                                servo_status_listener, net_status_listener)
+        self.connect_servo_ecat(
+            self.get_ifname_by_index(if_index),
+            dict_path,
+            slave,
+            eoe_comm,
+            alias,
+            reconnection_retries,
+            reconnection_timeout,
+            servo_status_listener,
+            net_status_listener,
+        )
 
     def scan_servos_ecat(self, ifname):
         """Return a list of available servos.
@@ -334,11 +401,18 @@ class Communication(metaclass=MCMetaClass):
         """
         return self.scan_servos_ecat(self.get_ifname_by_index(if_index))
 
-    def connect_servo_canopen(self, can_device, dict_path, eds_file,
-                              node_id, baudrate=CAN_BAUDRATE.Baudrate_1M,
-                              channel=0, alias=DEFAULT_SERVO,
-                              servo_status_listener=False,
-                              net_status_listener=False):
+    def connect_servo_canopen(
+        self,
+        can_device,
+        dict_path,
+        eds_file,
+        node_id,
+        baudrate=CAN_BAUDRATE.Baudrate_1M,
+        channel=0,
+        alias=DEFAULT_SERVO,
+        servo_status_listener=False,
+        net_status_listener=False,
+    ):
         """Connect to target servo by CANOpen.
 
         Args:
@@ -363,26 +437,22 @@ class Communication(metaclass=MCMetaClass):
         """
 
         if not path.isfile(dict_path):
-            raise FileNotFoundError(
-                'Dict file {} does not exist!'.format(dict_path))
+            raise FileNotFoundError("Dict file {} does not exist!".format(dict_path))
 
         if not path.isfile(eds_file):
-            raise FileNotFoundError(
-                "EDS file {} does not exist!".format(eds_file))
+            raise FileNotFoundError("EDS file {} does not exist!".format(eds_file))
         net_key = "{}_{}_{}".format(can_device, channel, baudrate)
         if net_key not in self.mc.net:
-            self.mc.net[net_key] = CanopenNetwork(can_device, channel,
-                                                  baudrate)
+            self.mc.net[net_key] = CanopenNetwork(can_device, channel, baudrate)
         net = self.mc.net[net_key]
 
         servo = net.connect_to_slave(
-            node_id, dict_path, eds_file,
-            servo_status_listener, net_status_listener)
+            node_id, dict_path, eds_file, servo_status_listener, net_status_listener
+        )
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = net_key
 
-    def scan_servos_canopen(self, can_device,
-                            baudrate=CAN_BAUDRATE.Baudrate_1M, channel=0):
+    def scan_servos_canopen(self, can_device, baudrate=CAN_BAUDRATE.Baudrate_1M, channel=0):
         """Scan CANOpen device network to get all nodes.
 
         Args:
@@ -396,14 +466,17 @@ class Communication(metaclass=MCMetaClass):
         """
         net_key = "{}_{}_{}".format(can_device, channel, baudrate)
         if net_key not in self.mc.net:
-            self.mc.net[net_key] = CanopenNetwork(can_device, channel,
-                                                  baudrate)
+            self.mc.net[net_key] = CanopenNetwork(can_device, channel, baudrate)
         net = self.mc.net[net_key]
 
         if net is None:
-            self.logger.warning("Could not find any nodes in the network."
-                                "Device: %s, channel: %s and baudrate: %s.",
-                                can_device, channel, baudrate)
+            self.logger.warning(
+                "Could not find any nodes in the network."
+                "Device: %s, channel: %s and baudrate: %s.",
+                can_device,
+                channel,
+                baudrate,
+            )
             return []
         return net.scan_slaves()
 
@@ -439,13 +512,11 @@ class Communication(metaclass=MCMetaClass):
         drive = self.mc.servos[servo]
         register_dtype = self.mc.info.register_type(register, axis, servo=servo)
         value = drive.read(register, subnode=axis)
-        if (register_dtype.value <=
-                REG_DTYPE.S64.value):
+        if register_dtype.value <= REG_DTYPE.S64.value:
             return int(value)
         return value
 
-    def set_register(self, register, value, servo=DEFAULT_SERVO,
-                     axis=DEFAULT_AXIS):
+    def set_register(self, register, value, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """Set a value of a target register.
 
         Args:
@@ -463,33 +534,24 @@ class Communication(metaclass=MCMetaClass):
         drive = self.mc.servos[servo]
         register_dtype_value = self.mc.info.register_type(register, axis, servo=servo)
         register_access_type = self.mc.info.register_info(register, axis, servo=servo).access
-        signed_int = [
-            REG_DTYPE.S8, REG_DTYPE.S16,
-            REG_DTYPE.S32, REG_DTYPE.S64
-        ]
-        unsigned_int = [
-            REG_DTYPE.U8, REG_DTYPE.U16,
-            REG_DTYPE.U32, REG_DTYPE.U64
-        ]
-        if register_dtype_value == REG_DTYPE.FLOAT and \
-                not isinstance(value, (int, float)):
+        signed_int = [REG_DTYPE.S8, REG_DTYPE.S16, REG_DTYPE.S32, REG_DTYPE.S64]
+        unsigned_int = [REG_DTYPE.U8, REG_DTYPE.U16, REG_DTYPE.U32, REG_DTYPE.U64]
+        if register_dtype_value == REG_DTYPE.FLOAT and not isinstance(value, (int, float)):
             raise TypeError("Value must be a float")
-        if register_dtype_value == REG_DTYPE.STR and \
-                not isinstance(value, str):
+        if register_dtype_value == REG_DTYPE.STR and not isinstance(value, str):
             raise TypeError("Value must be a string")
-        if register_dtype_value in signed_int and \
-                not isinstance(value, int):
+        if register_dtype_value in signed_int and not isinstance(value, int):
             raise TypeError("Value must be an int")
-        if register_dtype_value in unsigned_int and \
-                (not isinstance(value, int) or value < 0):
+        if register_dtype_value in unsigned_int and (not isinstance(value, int) or value < 0):
             raise TypeError("Value must be an unsigned int")
         if register_access_type == REG_ACCESS.RO:
-            raise IMRegisterWrongAccess("Register: {} cannot write to a read-only register".format(register))
+            raise IMRegisterWrongAccess(
+                "Register: {} cannot write to a read-only register".format(register)
+            )
 
         drive.write(register, value, subnode=axis)
 
-    def get_sdo_register(self, index, subindex, dtype, string_size=None,
-                         servo=DEFAULT_SERVO):
+    def get_sdo_register(self, index, subindex, dtype, string_size=None, servo=DEFAULT_SERVO):
         """Return the value via SDO of a target register.
 
         Args:
@@ -512,8 +574,7 @@ class Communication(metaclass=MCMetaClass):
             return drive.read_sdo(index, subindex, dtype.value, drive.slave)
         if not isinstance(string_size, int):
             raise TypeError("string_size should be an int for data type string")
-        return drive.read_string_sdo(index, subindex,
-                                     string_size, drive.slave)
+        return drive.read_string_sdo(index, subindex, string_size, drive.slave)
 
     def get_sdo_register_complete_access(self, index, size, servo=DEFAULT_SERVO):
         """Read register via SDO complete access, return value in bytes.
@@ -530,8 +591,7 @@ class Communication(metaclass=MCMetaClass):
         drive = self.mc._get_drive(servo)
         return drive.read_sdo_complete_access(index, size, drive.slave)
 
-    def set_sdo_register(self, index, subindex, dtype, value,
-                         servo=DEFAULT_SERVO):
+    def set_sdo_register(self, index, subindex, dtype, value, servo=DEFAULT_SERVO):
         """Set the value via SDO of a target register.
 
         Args:
@@ -589,9 +649,14 @@ class Communication(metaclass=MCMetaClass):
         drive = self.mc._get_drive(servo)
         drive.unsubscribe_from_status(callback)
 
-    def load_firmware_canopen(self, fw_file, servo=DEFAULT_SERVO,
-                              status_callback=None, progress_callback=None,
-                              error_enabled_callback=None):
+    def load_firmware_canopen(
+        self,
+        fw_file,
+        servo=DEFAULT_SERVO,
+        status_callback=None,
+        progress_callback=None,
+        error_enabled_callback=None,
+    ):
         """Load firmware via CANopen.
 
         Args:
@@ -613,8 +678,9 @@ class Communication(metaclass=MCMetaClass):
             status_callback = partial(self.logger.info, "Load firmware status: %s")
         if progress_callback is None:
             progress_callback = partial(self.logger.info, "Load firmware progress: %s")
-        net.load_firmware(drive.target, fw_file, status_callback,
-                          progress_callback, error_enabled_callback)
+        net.load_firmware(
+            drive.target, fw_file, status_callback, progress_callback, error_enabled_callback
+        )
 
     def load_firmware_ecat(self, ifname, fw_file, slave=1, boot_in_app=True):
         """Load firmware via ECAT.
@@ -632,8 +698,7 @@ class Communication(metaclass=MCMetaClass):
         net = EthercatNetwork(ifname)
         net.load_firmware(fw_file, slave, boot_in_app)
 
-    def load_firmware_ecat_interface_index(self, if_index, fw_file,
-                                           slave=1, boot_in_app=True):
+    def load_firmware_ecat_interface_index(self, if_index, fw_file, slave=1, boot_in_app=True):
         """Load firmware via ECAT.
 
         Args:
@@ -646,8 +711,7 @@ class Communication(metaclass=MCMetaClass):
                                 If custom device -> Contact manufacturer.
 
         """
-        self.load_firmware_ecat(self.get_ifname_by_index(if_index),
-                                fw_file, slave, boot_in_app)
+        self.load_firmware_ecat(self.get_ifname_by_index(if_index), fw_file, slave, boot_in_app)
 
     def load_firmware_ethernet(self, ip, fw_file, ftp_user=None, ftp_pwd=None):
         """Load firmware via Ethernet. Boot mode is needed to load firmware.
@@ -670,11 +734,12 @@ class Communication(metaclass=MCMetaClass):
 
     @staticmethod
     def __ftp_ping(ip):
-        command = ['ping', ip]
+        command = ["ping", ip]
         return subprocess.call(command) == 0
 
-    def boot_mode_and_load_firmware_ethernet(self, fw_file, servo=DEFAULT_SERVO,
-                                             ftp_user=None, ftp_pwd=None):
+    def boot_mode_and_load_firmware_ethernet(
+        self, fw_file, servo=DEFAULT_SERVO, ftp_user=None, ftp_pwd=None
+    ):
         """Set servo to boot mode and load firmware. Servo is disconnected.
 
         .. warning::
@@ -719,8 +784,8 @@ class Communication(metaclass=MCMetaClass):
         drive.stop_status_listener()
         try:
             self.mc.communication.set_register(
-                self.FORCE_SYSTEM_BOOT_CODE_REGISTER,
-                PASSWORD_FORCE_BOOT_COCO, servo=servo, axis=0)
+                self.FORCE_SYSTEM_BOOT_CODE_REGISTER, PASSWORD_FORCE_BOOT_COCO, servo=servo, axis=0
+            )
         except ILError:
             pass
         self.disconnect(servo)

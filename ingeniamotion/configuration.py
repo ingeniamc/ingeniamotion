@@ -11,11 +11,11 @@ from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
 class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
-    """Configuration.
-    """
+    """Configuration."""
 
     class BrakeOverride(IntEnum):
         """Brake override configuration enum"""
+
         OVERRIDE_DISABLED = 0
         RELEASE_BRAKE = 1
         ENABLE_BRAKE = 2
@@ -30,7 +30,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         "DRV_PS_FREQ_1",
         "DRV_PS_FREQ_2",
         "DRV_PS_FREQ_3",
-        "DRV_PS_FREQ_4"
+        "DRV_PS_FREQ_4",
     ]
     POSITION_AND_VELOCITY_LOOP_RATE_REGISTER = "DRV_POS_VEL_RATE"
     CURRENT_LOOP_RATE_REGISTER = "CL_CUR_FREQ"
@@ -67,10 +67,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         """
         self.mc.communication.set_register(
-            self.BRAKE_OVERRIDE_REGISTER,
-            self.BrakeOverride.RELEASE_BRAKE,
-            servo=servo,
-            axis=axis
+            self.BRAKE_OVERRIDE_REGISTER, self.BrakeOverride.RELEASE_BRAKE, servo=servo, axis=axis
         )
 
     def enable_brake(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
@@ -82,10 +79,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         """
         self.mc.communication.set_register(
-            self.BRAKE_OVERRIDE_REGISTER,
-            self.BrakeOverride.ENABLE_BRAKE,
-            servo=servo,
-            axis=axis
+            self.BRAKE_OVERRIDE_REGISTER, self.BrakeOverride.ENABLE_BRAKE, servo=servo, axis=axis
         )
 
     def disable_brake_override(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
@@ -100,7 +94,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             self.BRAKE_OVERRIDE_REGISTER,
             self.BrakeOverride.OVERRIDE_DISABLED,
             servo=servo,
-            axis=axis
+            axis=axis,
         )
 
     def default_brake(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
@@ -131,8 +125,9 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             raise FileNotFoundError("{} file does not exist!".format(config_path))
         servo_inst = self.mc.servos[servo]
         servo_inst.load_configuration(config_path, subnode=axis)
-        self.logger.info("Configuration loaded from %s", config_path,
-                         drive=self.mc.servo_name(servo))
+        self.logger.info(
+            "Configuration loaded from %s", config_path, drive=self.mc.servo_name(servo)
+        )
 
     def save_configuration(self, output_file, axis=None, servo=DEFAULT_SERVO):
         """Save the servo configuration to a target file.
@@ -146,8 +141,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """
         servo_inst = self.mc.servos[servo]
         servo_inst.save_configuration(output_file, subnode=axis)
-        self.logger.info("Configuration saved to %s", output_file,
-                         drive=self.mc.servo_name(servo))
+        self.logger.info("Configuration saved to %s", output_file, drive=self.mc.servo_name(servo))
 
     def store_configuration(self, axis=None, servo=DEFAULT_SERVO):
         """Store servo configuration to non-volatile memory.
@@ -160,8 +154,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """
         drive = self.mc._get_drive(servo)
         drive.store_parameters(axis)
-        self.logger.info("Configuration stored",
-                         drive=self.mc.servo_name(servo))
+        self.logger.info("Configuration stored", drive=self.mc.servo_name(servo))
 
     def restore_configuration(self, axis=None, servo=DEFAULT_SERVO):
         """Restore servo to default configuration.
@@ -174,11 +167,9 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """
         drive = self.mc._get_drive(servo)
         drive.restore_parameters(axis)
-        self.logger.info("Configuration restored",
-                         drive=self.mc.servo_name(servo))
+        self.logger.info("Configuration restored", drive=self.mc.servo_name(servo))
 
-    def set_max_acceleration(self, acceleration, servo=DEFAULT_SERVO,
-                             axis=DEFAULT_AXIS):
+    def set_max_acceleration(self, acceleration, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """Update maximum acceleration register.
 
         .. warning::
@@ -194,20 +185,19 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             TypeError: If acceleration is not a float.
 
         """
-        self.logger.warning('"set_max_acceleration" is deprecated. '
-                            'Please use "set_max_profile_acceleration" or '
-                            '"set_profiler".')
-        self.mc.communication.set_register(
-            self.PROFILE_MAX_ACCELERATION_REGISTER,
-            acceleration,
-            servo=servo,
-            axis=axis
+        self.logger.warning(
+            '"set_max_acceleration" is deprecated. '
+            'Please use "set_max_profile_acceleration" or '
+            '"set_profiler".'
         )
-        self.logger.debug("Max acceleration set to %s", acceleration,
-                          axis=axis, drive=self.mc.servo_name(servo))
+        self.mc.communication.set_register(
+            self.PROFILE_MAX_ACCELERATION_REGISTER, acceleration, servo=servo, axis=axis
+        )
+        self.logger.debug(
+            "Max acceleration set to %s", acceleration, axis=axis, drive=self.mc.servo_name(servo)
+        )
 
-    def set_max_profile_acceleration(self, acceleration, servo=DEFAULT_SERVO,
-                                     axis=DEFAULT_AXIS):
+    def set_max_profile_acceleration(self, acceleration, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """Update maximum profile acceleration register.
 
         Args:
@@ -216,16 +206,16 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             axis (int): servo axis. ``1`` by default.
         """
         self.mc.communication.set_register(
-            self.PROFILE_MAX_ACCELERATION_REGISTER,
-            acceleration,
-            servo=servo,
-            axis=axis
+            self.PROFILE_MAX_ACCELERATION_REGISTER, acceleration, servo=servo, axis=axis
         )
-        self.logger.debug("Max profile acceleration set to %s", acceleration,
-                          axis=axis, drive=self.mc.servo_name(servo))
+        self.logger.debug(
+            "Max profile acceleration set to %s",
+            acceleration,
+            axis=axis,
+            drive=self.mc.servo_name(servo),
+        )
 
-    def set_max_profile_deceleration(self, deceleration, servo=DEFAULT_SERVO,
-                                     axis=DEFAULT_AXIS):
+    def set_max_profile_deceleration(self, deceleration, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """Update maximum profile deceleration register.
 
         Args:
@@ -234,16 +224,23 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             axis (int): servo axis. ``1`` by default.
         """
         self.mc.communication.set_register(
-            self.PROFILE_MAX_DECELERATION_REGISTER,
-            deceleration,
-            servo=servo,
-            axis=axis
+            self.PROFILE_MAX_DECELERATION_REGISTER, deceleration, servo=servo, axis=axis
         )
-        self.logger.debug("Max profile deceleration set to %s", deceleration,
-                          axis=axis, drive=self.mc.servo_name(servo))
+        self.logger.debug(
+            "Max profile deceleration set to %s",
+            deceleration,
+            axis=axis,
+            drive=self.mc.servo_name(servo),
+        )
 
-    def set_profiler(self, acceleration=None, deceleration=None, velocity=None,
-                     servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+    def set_profiler(
+        self,
+        acceleration=None,
+        deceleration=None,
+        velocity=None,
+        servo=DEFAULT_SERVO,
+        axis=DEFAULT_AXIS,
+    ):
         """Set up the acceleration, deceleration and velocity profilers.
         All of these parameters are optional, meaning the user can set only one
         if desired. However, At least a minimum of one of these parameters
@@ -260,32 +257,18 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             axis (int): servo axis. ``1`` by default.
         """
         if acceleration is None and deceleration is None and velocity is None:
-            raise TypeError('Missing arguments. '
-                            'At least one argument is required.')
+            raise TypeError("Missing arguments. At least one argument is required.")
 
         if acceleration is not None:
-            self.set_max_profile_acceleration(
-                acceleration,
-                servo=servo,
-                axis=axis
-            )
+            self.set_max_profile_acceleration(acceleration, servo=servo, axis=axis)
 
         if deceleration is not None:
-            self.set_max_profile_deceleration(
-                deceleration,
-                servo=servo,
-                axis=axis
-            )
+            self.set_max_profile_deceleration(deceleration, servo=servo, axis=axis)
 
         if velocity is not None:
-            self.set_max_profile_velocity(
-                velocity,
-                servo=servo,
-                axis=axis
-            )
+            self.set_max_profile_velocity(velocity, servo=servo, axis=axis)
 
-    def set_max_velocity(self, velocity, servo=DEFAULT_SERVO,
-                         axis=DEFAULT_AXIS):
+    def set_max_velocity(self, velocity, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """Update maximum velocity register.
 
         Args:
@@ -298,16 +281,13 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         """
         self.mc.communication.set_register(
-            self.MAX_VELOCITY_REGISTER,
-            velocity,
-            servo=servo,
-            axis=axis
+            self.MAX_VELOCITY_REGISTER, velocity, servo=servo, axis=axis
         )
-        self.logger.debug("Max velocity set to %s", velocity,
-                          axis=axis, drive=self.mc.servo_name(servo))
+        self.logger.debug(
+            "Max velocity set to %s", velocity, axis=axis, drive=self.mc.servo_name(servo)
+        )
 
-    def set_max_profile_velocity(self, velocity, servo=DEFAULT_SERVO,
-                                 axis=DEFAULT_AXIS):
+    def set_max_profile_velocity(self, velocity, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """Update maximum profile velocity register.
 
         Args:
@@ -316,16 +296,13 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             axis (int): servo axis. ``1`` by default.
         """
         self.mc.communication.set_register(
-            self.PROFILE_MAX_VELOCITY_REGISTER,
-            velocity,
-            servo=servo,
-            axis=axis
+            self.PROFILE_MAX_VELOCITY_REGISTER, velocity, servo=servo, axis=axis
         )
-        self.logger.debug("Max profile velocity set to %s", velocity,
-                          axis=axis, drive=self.mc.servo_name(servo))
+        self.logger.debug(
+            "Max profile velocity set to %s", velocity, axis=axis, drive=self.mc.servo_name(servo)
+        )
 
-    def get_position_and_velocity_loop_rate(self, servo=DEFAULT_SERVO,
-                                            axis=DEFAULT_AXIS):
+    def get_position_and_velocity_loop_rate(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """Get position & velocity loop rate frequency.
 
         Args:
@@ -337,13 +314,10 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         """
         return self.mc.communication.get_register(
-            self.POSITION_AND_VELOCITY_LOOP_RATE_REGISTER,
-            servo=servo,
-            axis=axis
+            self.POSITION_AND_VELOCITY_LOOP_RATE_REGISTER, servo=servo, axis=axis
         )
 
-    def get_current_loop_rate(self, servo=DEFAULT_SERVO,
-                              axis=DEFAULT_AXIS):
+    def get_current_loop_rate(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """Get current loop rate frequency.
 
         Args:
@@ -354,13 +328,10 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             int: Current loop rate frequency in Hz.
         """
         return self.mc.communication.get_register(
-            self.CURRENT_LOOP_RATE_REGISTER,
-            servo=servo,
-            axis=axis
+            self.CURRENT_LOOP_RATE_REGISTER, servo=servo, axis=axis
         )
 
-    def get_power_stage_frequency(self, servo=DEFAULT_SERVO,
-                                  axis=DEFAULT_AXIS, raw=False):
+    def get_power_stage_frequency(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS, raw=False):
         """Get Power stage frequency register.
 
         Args:
@@ -377,9 +348,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
                 invalid value.
         """
         pow_stg_freq = self.mc.communication.get_register(
-            self.POWER_STAGE_FREQUENCY_SELECTION_REGISTER,
-            servo=servo,
-            axis=axis
+            self.POWER_STAGE_FREQUENCY_SELECTION_REGISTER, servo=servo, axis=axis
         )
         if raw:
             return pow_stg_freq
@@ -387,12 +356,10 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             pow_stg_freq_reg = self.POWER_STAGE_FREQUENCY_REGISTERS[pow_stg_freq]
         except IndexError:
             raise ValueError("Invalid power stage frequency register")
-        freq = self.mc.communication.get_register(pow_stg_freq_reg,
-                                                  servo=servo, axis=axis)
+        freq = self.mc.communication.get_register(pow_stg_freq_reg, servo=servo, axis=axis)
         return freq
 
-    def get_power_stage_frequency_enum(self, servo=DEFAULT_SERVO,
-                                       axis=DEFAULT_AXIS):
+    def get_power_stage_frequency_enum(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """Return Power stage frequency register enum.
 
         Args:
@@ -403,12 +370,10 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             IntEnum: Enum with power stage frequency available values.
 
         """
-        return self.mc.get_register_enum(self.POWER_STAGE_FREQUENCY_SELECTION_REGISTER,
-                                         servo, axis)
+        return self.mc.get_register_enum(self.POWER_STAGE_FREQUENCY_SELECTION_REGISTER, servo, axis)
 
     @MCMetaClass.check_motor_disabled
-    def set_power_stage_frequency(self, value, servo=DEFAULT_SERVO,
-                                  axis=DEFAULT_AXIS):
+    def set_power_stage_frequency(self, value, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """Set power stage frequency from enum value.
         See :func: `get_power_stage_frequency_enum`.
 
@@ -422,10 +387,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         """
         self.mc.communication.set_register(
-            self.POWER_STAGE_FREQUENCY_SELECTION_REGISTER,
-            value,
-            servo=servo,
-            axis=axis
+            self.POWER_STAGE_FREQUENCY_SELECTION_REGISTER, value, servo=servo, axis=axis
         )
 
     def get_status_word(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
@@ -439,8 +401,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             int: Status word.
 
         """
-        return self.mc.communication.get_register(self.STATUS_WORD_REGISTER,
-                                                  servo, axis)
+        return self.mc.communication.get_register(self.STATUS_WORD_REGISTER, servo, axis)
 
     def is_motor_enabled(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """Return motor status.
@@ -453,12 +414,10 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             bool: ``True`` if motor is enabled, else ``False``.
 
         """
-        status_word = self.mc.configuration.get_status_word(servo=servo,
-                                                            axis=axis)
+        status_word = self.mc.configuration.get_status_word(servo=servo, axis=axis)
         return bool(status_word & self.STATUS_WORD_OPERATION_ENABLED_BIT)
 
-    def is_commutation_feedback_aligned(self, servo=DEFAULT_SERVO,
-                                        axis=DEFAULT_AXIS):
+    def is_commutation_feedback_aligned(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """Return commutation feedback aligned status.
 
         Args:
@@ -469,13 +428,10 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             bool: ``True`` if commutation feedback is aligned, else ``False``.
 
         """
-        status_word = self.mc.configuration.get_status_word(servo=servo,
-                                                            axis=axis)
-        return bool(status_word &
-                    self.STATUS_WORD_COMMUTATION_FEEDBACK_ALIGNED_BIT)
+        status_word = self.mc.configuration.get_status_word(servo=servo, axis=axis)
+        return bool(status_word & self.STATUS_WORD_COMMUTATION_FEEDBACK_ALIGNED_BIT)
 
-    def set_phasing_mode(self, phasing_mode, servo=DEFAULT_SERVO,
-                         axis=DEFAULT_AXIS):
+    def set_phasing_mode(self, phasing_mode, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """Set phasing mode.
 
         Args:
@@ -484,8 +440,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             axis (int): servo axis. ``1`` by default.
 
         """
-        self.mc.communication.set_register(self.PHASING_MODE_REGISTER,
-                                           phasing_mode, servo, axis)
+        self.mc.communication.set_register(self.PHASING_MODE_REGISTER, phasing_mode, servo, axis)
 
     def get_phasing_mode(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
@@ -499,8 +454,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             PhasingMode: Phasing mode value.
 
         """
-        phasing_mode = self.mc.communication.get_register(
-            self.PHASING_MODE_REGISTER, servo, axis)
+        phasing_mode = self.mc.communication.get_register(self.PHASING_MODE_REGISTER, servo, axis)
         try:
             return PhasingMode(phasing_mode)
         except ValueError:
@@ -516,11 +470,9 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             axis (int): servo axis. ``1`` by default.
 
         """
-        self.mc.communication.set_register(self.GENERATOR_MODE_REGISTER,
-                                           mode, servo, axis)
+        self.mc.communication.set_register(self.GENERATOR_MODE_REGISTER, mode, servo, axis)
 
-    def set_motor_pair_poles(self, pair_poles, servo=DEFAULT_SERVO,
-                             axis=DEFAULT_AXIS):
+    def set_motor_pair_poles(self, pair_poles, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
         Set motor pair poles.
 
@@ -534,8 +486,9 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             ingenialink.exceptions.ILValueError: If pair poles is less than 0.
 
         """
-        self.mc.communication.set_register(self.MOTOR_POLE_PAIRS_REGISTER,
-                                           pair_poles, servo=servo, axis=axis)
+        self.mc.communication.set_register(
+            self.MOTOR_POLE_PAIRS_REGISTER, pair_poles, servo=servo, axis=axis
+        )
 
     def get_motor_pair_poles(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
@@ -549,8 +502,9 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             int: Pair poles value.
 
         """
-        return self.mc.communication.get_register(self.MOTOR_POLE_PAIRS_REGISTER,
-                                                  servo=servo, axis=axis)
+        return self.mc.communication.get_register(
+            self.MOTOR_POLE_PAIRS_REGISTER, servo=servo, axis=axis
+        )
 
     def get_sto_status(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
@@ -564,9 +518,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             int: STO register value.
 
         """
-        return self.mc.communication.get_register(
-            self.STO_STATUS_REGISTER, servo=servo, axis=axis
-        )
+        return self.mc.communication.get_register(self.STO_STATUS_REGISTER, servo=servo, axis=axis)
 
     def is_sto1_active(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         """
@@ -695,8 +647,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """
         return self.get_sto_status(servo, axis) == self.STO_LATCHED_STATE
 
-    def change_tcp_ip_parameters(self, ip_address, subnet_mask,
-                                 gateway, servo=DEFAULT_SERVO):
+    def change_tcp_ip_parameters(self, ip_address, subnet_mask, gateway, servo=DEFAULT_SERVO):
         """Change TCP IP parameters and store it.
 
         Args:

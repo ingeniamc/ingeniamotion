@@ -27,8 +27,9 @@ class Information(metaclass=MCMetaClass):
         try:
             return drive.dictionary.registers(axis)[register]
         except KeyError:
-            raise IMRegisterNotExist("Register: {} axis: {} not exist in dictionary"
-                                     .format(register, axis))
+            raise IMRegisterNotExist(
+                "Register: {} axis: {} not exist in dictionary".format(register, axis)
+            )
 
     def register_type(self, register, axis=DEFAULT_AXIS, servo=DEFAULT_SERVO):
         """Return register dtype.

@@ -5,6 +5,7 @@ from ingenialink.canopen import CAN_BAUDRATE, CAN_DEVICE
 
 class OperationMode(IntEnum):
     """Operation Mode Enum"""
+
     VOLTAGE = 0x00
     CURRENT_AMPLIFIER = 0x01
     CURRENT = 0x02
@@ -25,12 +26,14 @@ class OperationMode(IntEnum):
 
 class Protocol(IntEnum):
     """Communication protocol"""
+
     TCP = 1
     UDP = 2
 
 
 class HomingMode(IntEnum):
     """Homing modes"""
+
     CURRENT_POSITION = 0
     POSITIVE_LIMIT_SWITCH = 1
     NEGATIVE_LIMIT_SWITCH = 2
@@ -42,6 +45,7 @@ class HomingMode(IntEnum):
 
 class MonitoringSoCType(IntEnum):
     """Monitoring start of condition type"""
+
     TRIGGER_EVENT_AUTO = 0
     """No trigger"""
     TRIGGER_EVENT_FORCED = 1
@@ -61,6 +65,7 @@ class MonitoringSoCConfig(IntEnum):
 
 class MonitoringProcessStage(IntEnum):
     """Monitoring process stage"""
+
     INIT_STAGE = 0x0
     """Init stage"""
     FILLING_DELAY_DATA = 0x2
@@ -75,6 +80,7 @@ class MonitoringProcessStage(IntEnum):
 
 class SensorType(IntEnum):
     """Summit series feedback type enum"""
+
     ABS1 = 1
     """Absolute encoder 1"""
     INTGEN = 3
@@ -93,12 +99,14 @@ class SensorType(IntEnum):
 
 class SensorCategory(IntEnum):
     """Feedback category enum"""
+
     ABSOLUTE = 0
     INCREMENTAL = 1
 
 
 class PhasingMode(IntEnum):
     """Phasing modes"""
+
     NON_FORCED = 0
     """Non forced"""
     FORCED = 1
@@ -109,6 +117,7 @@ class PhasingMode(IntEnum):
 
 class GeneratorMode(IntEnum):
     """Generator modes"""
+
     CONSTANT = 0
     """Constant"""
     SAW_TOOTH = 1
@@ -119,7 +128,8 @@ class GeneratorMode(IntEnum):
 
 class MonitoringVersion(IntEnum):
     """Monitoring version"""
-    MONITORING_V1 = 0,
+
+    MONITORING_V1 = (0,)
     """Monitoring V1 used for Everest 1.8.1 and older."""
     MONITORING_V2 = 1
     """Monitoring V2 used for Capitan and some custom low-power drivers."""
@@ -129,6 +139,7 @@ class MonitoringVersion(IntEnum):
 
 class SeverityLevel(IntEnum):
     """Test result enum"""
+
     SUCCESS = 0
     WARNING = 1
     FAIL = 2

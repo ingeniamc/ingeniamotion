@@ -7,8 +7,12 @@ from abc import ABC, abstractmethod
 
 from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 from ingeniamotion.exceptions import IMMonitoringError
-from ingeniamotion.enums import MonitoringProcessStage, \
-    MonitoringSoCType, MonitoringSoCConfig, REG_DTYPE
+from ingeniamotion.enums import (
+    MonitoringProcessStage,
+    MonitoringSoCType,
+    MonitoringSoCConfig,
+    REG_DTYPE,
+)
 from ingenialink.ipb.register import IPBRegister
 from ingenialink.ethernet.register import EthernetRegister
 
@@ -16,8 +20,7 @@ from ingenialink.ethernet.register import EthernetRegister
 def check_monitoring_disabled(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
-        monitoring_enabled = self.mc.capture.is_monitoring_enabled(
-            servo=self.servo)
+        monitoring_enabled = self.mc.capture.is_monitoring_enabled(servo=self.servo)
         if monitoring_enabled:
             raise IMMonitoringError("Monitoring is enabled")
         return func(self, *args, **kwargs)
@@ -46,7 +49,7 @@ class Monitoring(ABC):
         REG_DTYPE.S32: 4,
         REG_DTYPE.U64: 8,
         REG_DTYPE.S64: 8,
-        REG_DTYPE.FLOAT: 4
+        REG_DTYPE.FLOAT: 4,
     }
 
     MONITORING_FREQUENCY_DIVIDER_REGISTER = "MON_DIST_FREQ_DIV"
@@ -90,17 +93,12 @@ class Monitoring(ABC):
         """
         if prescaler < 1:
             raise ValueError("prescaler must be 1 or higher")
-        position_velocity_loop_rate = \
-            self.mc.configuration.get_position_and_velocity_loop_rate(
-                servo=self.servo,
-                axis=DEFAULT_AXIS
-            )
+        position_velocity_loop_rate = self.mc.configuration.get_position_and_velocity_loop_rate(
+            servo=self.servo, axis=DEFAULT_AXIS
+        )
         self.sampling_freq = round(position_velocity_loop_rate / prescaler, 2)
         self.mc.communication.set_register(
-            self.MONITORING_FREQUENCY_DIVIDER_REGISTER,
-            prescaler,
-            servo=self.servo,
-            axis=0
+            self.MONITORING_FREQUENCY_DIVIDER_REGISTER, prescaler, servo=self.servo, axis=0
         )
 
     @check_monitoring_disabled
@@ -130,33 +128,30 @@ class Monitoring(ABC):
         for channel in registers:
             subnode = channel.get("axis", DEFAULT_AXIS)
             register = channel["name"]
-            register_obj = self.mc.info.register_info(
-                register, subnode, servo=self.servo)
+            register_obj = self.mc.info.register_info(register, subnode, servo=self.servo)
             dtype = register_obj.dtype
             channel["dtype"] = dtype
 
-        self._check_buffer_size_is_enough(self.samples_number,
-                                          self.trigger_delay_samples, registers)
+        self._check_buffer_size_is_enough(
+            self.samples_number, self.trigger_delay_samples, registers
+        )
 
         for ch_idx, channel in enumerate(registers):
             subnode = channel.get("axis", DEFAULT_AXIS)
             register = channel["name"]
             dtype = channel["dtype"]
             address_offset = self.REGISTER_MAP_OFFSET * (subnode - 1)
-            register_obj = self.mc.info.register_info(
-                register, subnode, servo=self.servo)
+            register_obj = self.mc.info.register_info(register, subnode, servo=self.servo)
             if isinstance(register_obj, (IPBRegister, EthernetRegister)):
                 mapped_reg = register_obj.address + address_offset
             else:
                 mapped_reg = register_obj.idx
-            drive.monitoring_set_mapped_register(ch_idx, mapped_reg,
-                                                 subnode, dtype.value,
-                                                 self._data_type_size[dtype])
+            drive.monitoring_set_mapped_register(
+                ch_idx, mapped_reg, subnode, dtype.value, self._data_type_size[dtype]
+            )
 
         num_mon_reg = self.mc.communication.get_register(
-            self.MONITORING_NUMBER_MAPPED_REGISTERS_REGISTER,
-            servo=self.servo,
-            axis=0
+            self.MONITORING_NUMBER_MAPPED_REGISTERS_REGISTER, servo=self.servo, axis=0
         )
         if num_mon_reg < 1:
             raise IMMonitoringError("Map Monitoring registers fails")
@@ -164,8 +159,9 @@ class Monitoring(ABC):
 
     @abstractmethod
     @check_monitoring_disabled
-    def set_trigger(self, trigger_mode, edge_condition=None,
-                    trigger_signal=None, trigger_value=None):
+    def set_trigger(
+        self, trigger_mode, edge_condition=None, trigger_signal=None, trigger_value=None
+    ):
         """Configure monitoring trigger. Monitoring must be disabled.
 
         Args:
@@ -187,8 +183,10 @@ class Monitoring(ABC):
     def _get_reg_index_and_edge_condition_value(self, trigger_signal, trigger_value):
         index_reg = -1
         for index, item in enumerate(self.mapped_registers):
-            if (trigger_signal["name"] == item["name"] and
-                    trigger_signal.get("axis", DEFAULT_AXIS) == item["axis"]):
+            if (
+                trigger_signal["name"] == item["name"]
+                and trigger_signal.get("axis", DEFAULT_AXIS) == item["axis"]
+            ):
                 index_reg = index
         if index_reg < 0:
             raise IMMonitoringError("Trigger signal is not mapped in Monitoring")
@@ -200,14 +198,14 @@ class Monitoring(ABC):
     def _unpack_trigger_value(value, dtype):
         """Converts any value from its dtype to an UINT32"""
         if dtype == REG_DTYPE.U16:
-            return int(np.array([int(value)], dtype='int64').astype('uint16')[0])
+            return int(np.array([int(value)], dtype="int64").astype("uint16")[0])
         if dtype == REG_DTYPE.U32:
-            return int(struct.unpack('L', struct.pack('I', int(value)))[0])
+            return int(struct.unpack("L", struct.pack("I", int(value)))[0])
         if dtype == REG_DTYPE.S32:
             if value < 0:
                 return int(value + (1 << 32))
-            return int(np.array([int(value)], dtype='int64').astype('int32')[0])
-        return int(struct.unpack('L', struct.pack('f', value))[0])
+            return int(np.array([int(value)], dtype="int64").astype("int32")[0])
+        return int(struct.unpack("L", struct.pack("f", value))[0])
 
     @abstractmethod
     @check_monitoring_disabled
@@ -244,11 +242,9 @@ class Monitoring(ABC):
 
         """
         if total_time / 2 < abs(trigger_delay):
-            raise ValueError("trigger_delay value should be between"
-                             " -total_time/2 and total_time/2")
+            raise ValueError("trigger_delay value should be between -total_time/2 and total_time/2")
         total_num_samples = int(self.sampling_freq * total_time)
-        trigger_delay_samples = int(((total_time / 2) - trigger_delay)
-                                    * self.sampling_freq)
+        trigger_delay_samples = int(((total_time / 2) - trigger_delay) * self.sampling_freq)
         self.configure_number_samples(total_num_samples, trigger_delay_samples)
 
     def _check_trigger_timeout(self, init_time, timeout):
@@ -271,8 +267,7 @@ class Monitoring(ABC):
         if data_length >= self.samples_number:
             self._read_process_finished = True
 
-    def _update_read_process_finished(self, init_read_time, current_len,
-                                      init_time, timeout):
+    def _update_read_process_finished(self, init_read_time, current_len, init_time, timeout):
         self._check_read_data_ends(current_len)
         if self._read_process_finished:
             return
@@ -283,13 +278,14 @@ class Monitoring(ABC):
 
     def _show_current_process(self, current_len, progress_callback):
         process_stage = self.mc.capture.get_monitoring_process_stage(
-            servo=self.servo,
-            version=self._version)
+            servo=self.servo, version=self._version
+        )
         current_progress = current_len / self.samples_number
-        if process_stage in [MonitoringProcessStage.DATA_ACQUISITION,
-                             MonitoringProcessStage.END_STAGE]:
-            self.logger.debug("Read %.2f%% of monitoring data",
-                              current_progress * 100)
+        if process_stage in [
+            MonitoringProcessStage.DATA_ACQUISITION,
+            MonitoringProcessStage.END_STAGE,
+        ]:
+            self.logger.debug("Read %.2f%% of monitoring data", current_progress * 100)
         if progress_callback is not None:
             progress_callback(process_stage, current_progress)
 
@@ -330,8 +326,7 @@ class Monitoring(ABC):
             elif not is_ready:
                 self.logger.warning(result_text)
                 self._read_process_finished = True
-            self._update_read_process_finished(init_read_time, current_len,
-                                               init_time, timeout)
+            self._update_read_process_finished(init_read_time, current_len, init_time, timeout)
             self._show_current_process(current_len, progress_callback)
         return data_array
 
@@ -352,22 +347,21 @@ class Monitoring(ABC):
         pass
 
     @abstractmethod
-    def _check_buffer_size_is_enough(self, total_samples, trigger_delay_samples,
-                                     registers):
+    def _check_buffer_size_is_enough(self, total_samples, trigger_delay_samples, registers):
         pass
 
     def _check_samples_and_max_size(self, n_sample, max_size, registers):
         size_demand = sum(
-            self._data_type_size[register["dtype"]] * n_sample
-            for register in registers
+            self._data_type_size[register["dtype"]] * n_sample for register in registers
         )
         if max_size < size_demand:
             raise IMMonitoringError(
                 "Number of samples is too high or mapped registers are too big. "
-                "Demanded size: {} bytes, buffer max size: {} bytes."
-                .format(size_demand, max_size))
-        self.logger.debug("Demanded size: %d bytes, buffer max size: %d bytes.",
-                          size_demand, max_size)
+                "Demanded size: {} bytes, buffer max size: {} bytes.".format(size_demand, max_size)
+            )
+        self.logger.debug(
+            "Demanded size: %d bytes, buffer max size: %d bytes.", size_demand, max_size
+        )
 
     def get_trigger_type(self):
         """Get monitoring trigger type.
@@ -377,9 +371,7 @@ class Monitoring(ABC):
 
         """
         register_value = self.mc.communication.get_register(
-            self.MONITOR_START_CONDITION_TYPE_REGISTER,
-            servo=self.servo,
-            axis=0
+            self.MONITOR_START_CONDITION_TYPE_REGISTER, servo=self.servo, axis=0
         )
         try:
             return MonitoringSoCType(register_value)
@@ -401,18 +393,20 @@ class Monitoring(ABC):
         """
         trigger_mode = self.get_trigger_type()
         if trigger_mode != MonitoringSoCType.TRIGGER_EVENT_FORCED:
-            raise IMMonitoringError("Monitoring trigger type "
-                                    "is not Forced Trigger")
+            raise IMMonitoringError("Monitoring trigger type is not Forced Trigger")
         mon_process_stage = None
         final_time = time.time() + timeout
         while mon_process_stage is None or (
-                blocking and final_time > time.time() and
-                mon_process_stage != MonitoringProcessStage.WAITING_FOR_TRIGGER):
+            blocking
+            and final_time > time.time()
+            and mon_process_stage != MonitoringProcessStage.WAITING_FOR_TRIGGER
+        ):
             mon_process_stage = self.mc.capture.get_monitoring_process_stage(
-                servo=self.servo, version=self._version)
+                servo=self.servo, version=self._version
+            )
             self.mc.communication.set_register(
-                self.MONITORING_FORCE_TRIGGER_REGISTER,
-                1, servo=self.servo, axis=0)
+                self.MONITORING_FORCE_TRIGGER_REGISTER, 1, servo=self.servo, axis=0
+            )
         return mon_process_stage == MonitoringProcessStage.WAITING_FOR_TRIGGER
 
     def read_monitoring_data_forced_trigger(self, trigger_timeout=5):
@@ -432,4 +426,3 @@ class Monitoring(ABC):
             self.logger.warning("Timeout. Forced trigger is not raised.")
             return [[] for _ in self.mapped_registers]
         return self.read_monitoring_data()
-
