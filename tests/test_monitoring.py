@@ -49,15 +49,19 @@ def mon_map_registers(monitoring):
 @pytest.mark.soem
 @pytest.mark.eoe
 @pytest.mark.smoke
-@pytest.mark.parametrize("trigger_type", [
-    MonitoringSoCType.TRIGGER_EVENT_AUTO,
-    MonitoringSoCType.TRIGGER_EVENT_FORCED,
-    MonitoringSoCType.TRIGGER_EVENT_EDGE
-])
+@pytest.mark.parametrize(
+    "trigger_type",
+    [
+        MonitoringSoCType.TRIGGER_EVENT_AUTO,
+        MonitoringSoCType.TRIGGER_EVENT_FORCED,
+        MonitoringSoCType.TRIGGER_EVENT_EDGE,
+    ],
+)
 def test_get_trigger_type(motion_controller, monitoring, trigger_type):
     mc, alias = motion_controller
     mc.communication.set_register(
-        MONITOR_START_CONDITION_TYPE_REGISTER, trigger_type, servo=alias, axis=0)
+        MONITOR_START_CONDITION_TYPE_REGISTER, trigger_type, servo=alias, axis=0
+    )
     test_trigger = monitoring.get_trigger_type()
     assert test_trigger == trigger_type
 
@@ -68,14 +72,18 @@ def test_get_trigger_type(motion_controller, monitoring, trigger_type):
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
 @pytest.mark.usefixtures("disable_monitoring_disturbance")
-@pytest.mark.parametrize("block, timeout, sample_t, wait, result", [
-    (False, 5, 0.8, 2, True),
-    (True, 6, 0.8, 0, True),
-    (False, 5, 0.8, 0, False),
-    (True, 0.3, 0.8, 0, False),
-])
-def test_raise_forced_trigger(motion_controller, monitoring, block,
-                              timeout, sample_t, wait, result):
+@pytest.mark.parametrize(
+    "block, timeout, sample_t, wait, result",
+    [
+        (False, 5, 0.8, 2, True),
+        (True, 6, 0.8, 0, True),
+        (False, 5, 0.8, 0, False),
+        (True, 0.3, 0.8, 0, False),
+    ],
+)
+def test_raise_forced_trigger(
+    motion_controller, monitoring, block, timeout, sample_t, wait, result
+):
     mc, alias = motion_controller
     monitoring.set_trigger(MonitoringSoCType.TRIGGER_EVENT_FORCED)
     monitoring.configure_sample_time(sample_t, 0)
@@ -105,12 +113,16 @@ def test_raise_forced_trigger_fail(motion_controller, monitoring):
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
 @pytest.mark.usefixtures("disable_monitoring_disturbance")
-@pytest.mark.parametrize("timeout, sample_t, result", [
-    (5, 0.8, True),
-    (0.3, 0.8, False),
-])
-def test_read_monitoring_data_forced_trigger(motion_controller, monitoring,
-                                             timeout, sample_t, result):
+@pytest.mark.parametrize(
+    "timeout, sample_t, result",
+    [
+        (5, 0.8, True),
+        (0.3, 0.8, False),
+    ],
+)
+def test_read_monitoring_data_forced_trigger(
+    motion_controller, monitoring, timeout, sample_t, result
+):
     mc, alias = motion_controller
     monitoring.set_trigger(MonitoringSoCType.TRIGGER_EVENT_FORCED)
     monitoring.configure_sample_time(sample_t, 0)
@@ -129,9 +141,7 @@ def test_set_monitoring_frequency(motion_controller, monitoring, prescaler):
     mc, alias = motion_controller
     monitoring.set_frequency(prescaler)
     value = mc.communication.get_register(
-        monitoring.MONITORING_FREQUENCY_DIVIDER_REGISTER,
-        servo=alias,
-        axis=0
+        monitoring.MONITORING_FREQUENCY_DIVIDER_REGISTER, servo=alias, axis=0
     )
     assert value == prescaler
 
@@ -165,22 +175,26 @@ def test_monitoring_map_registers_fail(monitoring):
 @pytest.mark.eoe
 @pytest.mark.usefixtures("mon_map_registers")
 @pytest.mark.parametrize(
-    "trigger_type, edge_condition, trigger_signal, trigger_value", [
+    "trigger_type, edge_condition, trigger_signal, trigger_value",
+    [
         (MonitoringSoCType.TRIGGER_EVENT_AUTO, None, None, None),
         (MonitoringSoCType.TRIGGER_EVENT_FORCED, None, None, None),
-        (MonitoringSoCType.TRIGGER_EVENT_EDGE,
-         MonitoringSoCConfig.TRIGGER_CONFIG_RISING,
-         {"axis": 1, "name": "CL_POS_FBK_VALUE"},
-         0.5)
-    ])
-def test_monitoring_set_trigger(motion_controller, monitoring, trigger_type,
-                                edge_condition, trigger_signal,
-                                trigger_value):
+        (
+            MonitoringSoCType.TRIGGER_EVENT_EDGE,
+            MonitoringSoCConfig.TRIGGER_CONFIG_RISING,
+            {"axis": 1, "name": "CL_POS_FBK_VALUE"},
+            0.5,
+        ),
+    ],
+)
+def test_monitoring_set_trigger(
+    motion_controller, monitoring, trigger_type, edge_condition, trigger_signal, trigger_value
+):
     mc, alias = motion_controller
-    monitoring.set_trigger(trigger_type, edge_condition,
-                           trigger_signal, trigger_value)
+    monitoring.set_trigger(trigger_type, edge_condition, trigger_signal, trigger_value)
     value = mc.communication.get_register(
-        MONITOR_START_CONDITION_TYPE_REGISTER, servo=alias, axis=0)
+        MONITOR_START_CONDITION_TYPE_REGISTER, servo=alias, axis=0
+    )
     assert value == trigger_type
 
 
@@ -188,21 +202,28 @@ def test_monitoring_set_trigger(motion_controller, monitoring, trigger_type,
 @pytest.mark.eoe
 @pytest.mark.usefixtures("mon_map_registers")
 @pytest.mark.parametrize(
-    "trigger_type, edge_condition, trigger_signal, trigger_value", [
-        (MonitoringSoCType.TRIGGER_EVENT_EDGE, None,
-         {"axis": 1, "name": "CL_POS_FBK_VALUE"}, 0.5),
-        (MonitoringSoCType.TRIGGER_EVENT_EDGE,
-         MonitoringSoCConfig.TRIGGER_CONFIG_RISING, None, 0.5),
-        (MonitoringSoCType.TRIGGER_EVENT_EDGE,
-         MonitoringSoCConfig.TRIGGER_CONFIG_RISING,
-         {"axis": 1, "name": "CL_POS_FBK_VALUE"}, None)
-    ])
-def test_monitoring_set_trigger_exceptions(monitoring, trigger_type,
-                                           edge_condition, trigger_signal,
-                                           trigger_value):
+    "trigger_type, edge_condition, trigger_signal, trigger_value",
+    [
+        (MonitoringSoCType.TRIGGER_EVENT_EDGE, None, {"axis": 1, "name": "CL_POS_FBK_VALUE"}, 0.5),
+        (
+            MonitoringSoCType.TRIGGER_EVENT_EDGE,
+            MonitoringSoCConfig.TRIGGER_CONFIG_RISING,
+            None,
+            0.5,
+        ),
+        (
+            MonitoringSoCType.TRIGGER_EVENT_EDGE,
+            MonitoringSoCConfig.TRIGGER_CONFIG_RISING,
+            {"axis": 1, "name": "CL_POS_FBK_VALUE"},
+            None,
+        ),
+    ],
+)
+def test_monitoring_set_trigger_exceptions(
+    monitoring, trigger_type, edge_condition, trigger_signal, trigger_value
+):
     with pytest.raises(TypeError):
-        monitoring.set_trigger(trigger_type, edge_condition,
-                               trigger_signal, trigger_value)
+        monitoring.set_trigger(trigger_type, edge_condition, trigger_signal, trigger_value)
 
 
 @pytest.mark.soem
@@ -211,32 +232,23 @@ def test_configure_number_samples(motion_controller, monitoring):
     mc, alias = motion_controller
     total_num_samples = 500
     trigger_delay_samples = 100
-    monitoring.configure_number_samples(total_num_samples,
-                                        trigger_delay_samples)
+    monitoring.configure_number_samples(total_num_samples, trigger_delay_samples)
     value = mc.communication.get_register(
-        monitoring.MONITORING_WINDOW_NUMBER_SAMPLES_REGISTER,
-        servo=alias,
-        axis=0
+        monitoring.MONITORING_WINDOW_NUMBER_SAMPLES_REGISTER, servo=alias, axis=0
     )
     assert value == total_num_samples
     value = mc.communication.get_register(
-        monitoring.MONITORING_TRIGGER_DELAY_SAMPLES_REGISTER,
-        servo=alias,
-        axis=0
+        monitoring.MONITORING_TRIGGER_DELAY_SAMPLES_REGISTER, servo=alias, axis=0
     )
     assert value == trigger_delay_samples
 
 
 @pytest.mark.soem
 @pytest.mark.eoe
-@pytest.mark.parametrize("total_num_samples, trigger_delay_samples", [
-                          (500, 510), (510, -500)
-])
-def test_configure_number_samples_exceptions(monitoring, total_num_samples,
-                                             trigger_delay_samples):
+@pytest.mark.parametrize("total_num_samples, trigger_delay_samples", [(500, 510), (510, -500)])
+def test_configure_number_samples_exceptions(monitoring, total_num_samples, trigger_delay_samples):
     with pytest.raises(ValueError):
-        monitoring.configure_number_samples(total_num_samples,
-                                            trigger_delay_samples)
+        monitoring.configure_number_samples(total_num_samples, trigger_delay_samples)
 
 
 @pytest.mark.soem
@@ -248,19 +260,14 @@ def test_configure_sample_time(motion_controller, monitoring):
     monitoring.sampling_freq = sampling_freq
     trigger_delay = total_time // 2
     total_num_samples = int(sampling_freq * total_time)
-    trigger_delay_samples = int(((total_time / 2) - trigger_delay)
-                                * sampling_freq)
+    trigger_delay_samples = int(((total_time / 2) - trigger_delay) * sampling_freq)
     monitoring.configure_sample_time(total_time, trigger_delay)
     value = mc.communication.get_register(
-        monitoring.MONITORING_WINDOW_NUMBER_SAMPLES_REGISTER,
-        servo=alias,
-        axis=0
+        monitoring.MONITORING_WINDOW_NUMBER_SAMPLES_REGISTER, servo=alias, axis=0
     )
     assert value == total_num_samples
     value = mc.communication.get_register(
-        monitoring.MONITORING_TRIGGER_DELAY_SAMPLES_REGISTER,
-        servo=alias,
-        axis=0
+        monitoring.MONITORING_TRIGGER_DELAY_SAMPLES_REGISTER, servo=alias, axis=0
     )
     assert value == trigger_delay_samples
 

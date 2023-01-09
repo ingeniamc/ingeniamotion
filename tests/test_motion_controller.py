@@ -45,5 +45,5 @@ def test_get_register_enum(motion_controller):
             name = element.name.replace("_", " ")
             assert test_name.upper() == name
             checked_ops += 1
- 
+
     assert checked_ops > 0

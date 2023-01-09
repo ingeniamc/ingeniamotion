@@ -6,7 +6,7 @@ with open("docs/what_is_ingeniamotion.rst", "r", encoding="utf-8") as fh:
     long_description = fh.read()
 
 with open('ingeniamotion/__init__.py') as f:
-    __version = re.search(r"__version__\s+=\s+'(.*)'", f.read()).group(1)
+    __version = re.search(r"__version__\s+=\s+\"(.*)\"", f.read()).group(1)
 
 
 def get_docs_url():
@@ -53,7 +53,8 @@ setuptools.setup(
             "nbsphinx==0.8.7",
             "rst2pdf==0.98",
             "wheel==0.37.1",
-            "m2r2==0.3.2"
+            "m2r2==0.3.2",
+            "black==22.8.0",
         ],
     },
     python_requires='>=3.6',
