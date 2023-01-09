@@ -53,7 +53,8 @@ setuptools.setup(
             "nbsphinx==0.8.7",
             "rst2pdf==0.98",
             "wheel==0.37.1",
-            "m2r2==0.3.2"
+            "m2r2==0.3.2",
+            "black==22.8.0",
         ],
     },
     python_requires='>=3.6',

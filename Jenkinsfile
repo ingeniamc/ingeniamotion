@@ -44,6 +44,14 @@ pipeline {
                         '''
                     }
                 }
+                stage('Check formatting') {
+                    steps {
+                        bat """
+                            cd C:\\Users\\ContainerAdministrator\\ingeniamotion
+                            venv\\Scripts\\python.exe -m black -l 100 --check ingeniamotion tests
+                        """
+                    }
+                }
                 stage('Generate documentation') {
                     steps {
                         bat '''
