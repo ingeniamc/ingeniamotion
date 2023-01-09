@@ -126,13 +126,13 @@ def test_homing_on_switch_limit_timeout(motion_controller):
         homing_offset, direction, switch, homing_timeout,
         search_vel, zero_vel, servo=alias, motor_enable=False)
     time.sleep(homing_timeout/1000)
-    assert pytest.approx(mc.motion.get_actual_velocity(servo=alias)) == 0
+    assert pytest.approx(mean_actual_velocity_position(mc, alias, velocity=True), RELATIVE_ERROR_ALLOWED) == 0
     mc.motion.motor_enable(servo=alias)
     mc.motion.target_latch(servo=alias)
     time.sleep(1)
-    assert abs(mean_actual_velocity_position(mc, alias, velocity=True)) > 0.05
+    assert abs(mean_actual_velocity_position(mc, alias, velocity=True)) > RELATIVE_ERROR_ALLOWED
     time.sleep(homing_timeout/1000)
-    assert pytest.approx(mean_actual_velocity_position(mc, alias, velocity=True), 0.05) == 0
+    assert pytest.approx(mean_actual_velocity_position(mc, alias, velocity=True), RELATIVE_ERROR_ALLOWED) == 0
 
 
 def __check_index_pulse_is_allowed(feedback_list):
