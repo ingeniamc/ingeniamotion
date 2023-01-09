@@ -28,21 +28,20 @@ def __compare_signals(expected_signal, received_signal, length_tol=None, fft_tol
 
 def test_create_poller(motion_controller):
     registers = [{"name": "CL_CUR_Q_SET_POINT", "axis": 1}]
-    sampling_time = 0.05
+    sampling_time = 0.125
     mc, alias = motion_controller
     mc.motion.set_current_quadrature(-0.2, servo=alias)
     poller = mc.capture.create_poller(registers, alias, sampling_time, buffer_size=120)
     mc.motion.set_current_quadrature(0, servo=alias)
     period = 1
     expected_signal = [0] * int(period / sampling_time)
-    for i in range(5):
+    for i in range(7):
         time.sleep(1)
         mc.motion.set_current_quadrature(0.2 * (i + 1), servo=alias)
         expected_signal.extend([0.2 * (i + 1)] * int(period / sampling_time))
     time.sleep(period)
     timestamp, test_data, _ = poller.data
     poller.stop()
-
     assert np.allclose(np.diff(timestamp), sampling_time, rtol=0.5, atol=0)
 
     received_signal = test_data[0]
