@@ -129,7 +129,7 @@ class GeneratorMode(IntEnum):
 class MonitoringVersion(IntEnum):
     """Monitoring version"""
 
-    MONITORING_V1 = (0,)
+    MONITORING_V1 = 0
     """Monitoring V1 used for Everest 1.8.1 and older."""
     MONITORING_V2 = 1
     """Monitoring V2 used for Capitan and some custom low-power drivers."""
