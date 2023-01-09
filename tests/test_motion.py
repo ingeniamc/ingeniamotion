@@ -247,9 +247,13 @@ def test_get_actual_position(motion_controller, position_value):
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
     mc.motion.motor_enable(servo=alias)
     mc.motion.move_to_position(position_value, servo=alias, blocking=True, timeout=10)
-    test_position = mean_actual_velocity_position(mc, alias)
-    pos_tolerance = pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
-    assert pytest.approx(position_value, abs=pos_tolerance) == test_position
+    n_samples = 200
+    test_position = np.zeros(n_samples)
+    reg_value = np.zeros(n_samples)
+    for j in range(n_samples):
+        test_position[j] = mc.motion.get_actual_position(servo=alias)
+        reg_value[j] = mc.communication.get_register(ACTUAL_POSITION_REGISTER, servo=alias)
+    assert np.abs(np.mean(test_position) - np.mean(reg_value)) < 0.1
 
 
 @pytest.mark.parametrize("velocity_value", [1, 0, -1])
