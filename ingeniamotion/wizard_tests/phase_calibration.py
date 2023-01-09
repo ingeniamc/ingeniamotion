@@ -112,9 +112,7 @@ class Phasing(BaseTest):
                 self.MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER, servo=self.servo, axis=self.axis
             )
             if self.pha_current > max_test_current:
-                raise TestError(
-                    "Defined phasing current is higher than configured maximum current"
-                )
+                raise TestError("Defined phasing current is higher than configured maximum current")
         if self.default_phasing_timeout:
             self.mc.communication.set_register(
                 self.PHASING_TIMEOUT_REGISTER,
@@ -284,9 +282,7 @@ class Phasing(BaseTest):
                 break
 
         if not phasing_bit_latched:
-            self.logger.info(
-                "ERROR: Phasing process has failed. Review your motor configuration."
-            )
+            self.logger.info("ERROR: Phasing process has failed. Review your motor configuration.")
             return self.ResultType.FAIL
 
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
