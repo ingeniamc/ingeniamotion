@@ -124,7 +124,9 @@ def test_write_disturbance_data_not_configured(disturbance):
 
 @pytest.mark.soem
 @pytest.mark.eoe
-def test_write_disturbance_data_enabled(motion_controller, disturbance, disable_monitoring_disturbance):
+def test_write_disturbance_data_enabled(
+    motion_controller, disturbance, disable_monitoring_disturbance
+):
     mc, alias = motion_controller
     mc.capture.enable_monitoring_disturbance(alias)
     with pytest.raises(IMDisturbanceError):
