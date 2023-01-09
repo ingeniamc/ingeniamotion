@@ -3,7 +3,7 @@ from functools import wraps
 
 
 class StopException(Exception):
-    """ Stop exception. """
+    """Stop exception."""
 
 
 class Stoppable:
@@ -16,6 +16,7 @@ class Stoppable:
         def wrapper(self, *args, **kwargs):
             self.check_stop()
             return fun(self, *args, **kwargs)
+
         return wrapper
 
     def reset_stop(self):

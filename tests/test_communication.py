@@ -16,7 +16,8 @@ def test_connect_servo_eoe(read_config):
     assert "eoe_test" not in mc.servos
     assert "eoe_test" not in mc.net
     mc.communication.connect_servo_eoe(
-        read_config["ip"], read_config["dictionary"], alias="eoe_test")
+        read_config["ip"], read_config["dictionary"], alias="eoe_test"
+    )
     assert "eoe_test" in mc.servos and mc.servos["eoe_test"] is not None
     assert "eoe_test" in mc.net and mc.net["eoe_test"] is not None
 
@@ -26,8 +27,7 @@ def test_connect_servo_eoe(read_config):
 def test_connect_servo_eoe_no_dictionary_error(read_config):
     mc = MotionController()
     with pytest.raises(FileNotFoundError):
-        mc.communication.connect_servo_eoe(
-            read_config["ip"], "no_dictionary", alias="eoe_test")
+        mc.communication.connect_servo_eoe(read_config["ip"], "no_dictionary", alias="eoe_test")
 
 
 @pytest.mark.smoke
@@ -37,7 +37,8 @@ def test_connect_servo_ethernet(read_config):
     assert "eoe_test" not in mc.servos
     assert "eoe_test" not in mc.net
     mc.communication.connect_servo_ethernet(
-        read_config["ip"], read_config["dictionary"], alias="eoe_test")
+        read_config["ip"], read_config["dictionary"], alias="eoe_test"
+    )
     assert "eoe_test" in mc.servos and mc.servos["eoe_test"] is not None
     assert "eoe_test" in mc.net and mc.net["eoe_test"] is not None
 
@@ -48,7 +49,8 @@ def test_connect_servo_ethernet_no_dictionary_error(read_config):
     mc = MotionController()
     with pytest.raises(FileNotFoundError):
         mc.communication.connect_servo_ethernet(
-            read_config["ip"], "no_dictionary", alias="eoe_test")
+            read_config["ip"], "no_dictionary", alias="eoe_test"
+        )
 
 
 @pytest.mark.skip(reason='This test enters in conflict with "motion_controller"')
@@ -60,8 +62,8 @@ def test_connect_servo_ecat(read_config):
     assert "soem_test" not in mc.servos
     assert ifname not in mc.net
     mc.communication.connect_servo_ecat(
-        ifname, read_config["dictionary"],
-        slave=read_config["slave"], alias="soem_test")
+        ifname, read_config["dictionary"], slave=read_config["slave"], alias="soem_test"
+    )
     assert "soem_test" in mc.servos and mc.servos["soem_test"] is not None
     assert ifname in mc.net and mc.net[ifname] is not None
 
@@ -69,17 +71,13 @@ def test_connect_servo_ecat(read_config):
 @pytest.mark.smoke
 @pytest.mark.soem
 def test_get_ifname_from_interface_ip(mocker):
-    ip = type('IP', (object,), {
-        'ip': '192.168.2.1',
-        'is_IPv4': True
-    })
-    adapter = type('Adapter', (object, ), {
-        'ips': [ip],
-        'name': b'{192D1D2F-C684-467D-A637-EC07BD434A63}'
-    })
-    mocker.patch('ifaddr.get_adapters', return_value=[adapter])
+    ip = type("IP", (object,), {"ip": "192.168.2.1", "is_IPv4": True})
+    adapter = type(
+        "Adapter", (object,), {"ips": [ip], "name": b"{192D1D2F-C684-467D-A637-EC07BD434A63}"}
+    )
+    mocker.patch("ifaddr.get_adapters", return_value=[adapter])
     mc = MotionController()
-    ifname = mc.communication.get_ifname_from_interface_ip('192.168.2.1')
+    ifname = mc.communication.get_ifname_from_interface_ip("192.168.2.1")
     assert ifname == "\\Device\\NPF_{192D1D2F-C684-467D-A637-EC07BD434A63}"
 
 
@@ -90,8 +88,8 @@ def test_connect_servo_ecat_no_dictionary_error(read_config):
     ifname = mc.communication.get_ifname_by_index(read_config["index"])
     with pytest.raises(FileNotFoundError):
         mc.communication.connect_servo_ecat(
-            ifname, "no_dictionary",
-            slave=read_config["slave"], alias="soem_test")
+            ifname, "no_dictionary", slave=read_config["slave"], alias="soem_test"
+        )
 
 
 @pytest.mark.skip(reason='This test enters in conflict with "motion_controller"')
@@ -103,8 +101,11 @@ def test_connect_servo_ecat_interface_index(read_config):
     assert "soem_test" not in mc.servos
     assert ifname not in mc.net
     mc.communication.connect_servo_ecat_interface_index(
-        read_config["index"], read_config["dictionary"],
-        slave=soem_config["slave"], alias="soem_test")
+        read_config["index"],
+        read_config["dictionary"],
+        slave=soem_config["slave"],
+        alias="soem_test",
+    )
     assert "soem_test" in mc.servos and mc.servos["soem_test"] is not None
     assert ifname in mc.net and mc.net[ifname] is not None
 
@@ -115,8 +116,8 @@ def test_connect_servo_ecat_interface_index_no_dictionary_error(read_config):
     mc = MotionController()
     with pytest.raises(FileNotFoundError):
         mc.communication.connect_servo_ecat_interface_index(
-            read_config["index"], "no_dictionary",
-            slave=read_config["slave"], alias="soem_test")
+            read_config["index"], "no_dictionary", slave=read_config["slave"], alias="soem_test"
+        )
 
 
 @pytest.mark.skip(reason='This test enters in conflict with "disable_motor_fixture"')
@@ -129,9 +130,14 @@ def test_connect_servo_canopen(read_config):
     device = CAN_DEVICE(read_config["device"])
     baudrate = CAN_BAUDRATE(read_config["baudrate"])
     mc.communication.connect_servo_canopen(
-        device, read_config["dictionary"], read_config["eds"],
-        read_config["node_id"], baudrate, read_config["channel"],
-        alias="canopen_test")
+        device,
+        read_config["dictionary"],
+        read_config["eds"],
+        read_config["node_id"],
+        baudrate,
+        read_config["channel"],
+        alias="canopen_test",
+    )
     assert "canopen_test" in mc.servos and mc.servos["canopen_test"] is not None
     assert "canopen_test" in mc.net and mc.net["canopen_test"] is not None
     mc.net["canopen_test"].disconnect()
@@ -151,17 +157,25 @@ def test_connect_servo_canopen_busy_drive_error(motion_controller, read_config):
     baudrate = CAN_BAUDRATE(read_config["baudrate"])
     with pytest.raises(ILError):
         mc.communication.connect_servo_canopen(
-            device, read_config["dictionary"], read_config["eds"],
-            read_config["node_id"], baudrate, read_config["channel"],
-            alias="canopen_test")
+            device,
+            read_config["dictionary"],
+            read_config["eds"],
+            read_config["node_id"],
+            baudrate,
+            read_config["channel"],
+            alias="canopen_test",
+        )
 
 
 @pytest.mark.smoke
-@pytest.mark.parametrize("uid, value", [
-    ("CL_VOL_Q_SET_POINT", 0.34),
-    ("CL_POS_SET_POINT_VALUE", -923),
-    ("PROF_POS_OPTION_CODE", 1),
-])
+@pytest.mark.parametrize(
+    "uid, value",
+    [
+        ("CL_VOL_Q_SET_POINT", 0.34),
+        ("CL_POS_SET_POINT_VALUE", -923),
+        ("PROF_POS_OPTION_CODE", 1),
+    ],
+)
 def test_get_register(motion_controller, uid, value):
     mc, alias = motion_controller
     drive = mc.servos[alias]
@@ -178,11 +192,14 @@ def test_get_register_wrong_uid(motion_controller):
 
 
 @pytest.mark.smoke
-@pytest.mark.parametrize("uid, value", [
-    ("CL_VOL_Q_SET_POINT", -234),
-    ("CL_POS_SET_POINT_VALUE", 23),
-    ("PROF_POS_OPTION_CODE", 54),
-])
+@pytest.mark.parametrize(
+    "uid, value",
+    [
+        ("CL_VOL_Q_SET_POINT", -234),
+        ("CL_POS_SET_POINT_VALUE", 23),
+        ("PROF_POS_OPTION_CODE", 54),
+    ],
+)
 def test_set_register(motion_controller, uid, value):
     mc, alias = motion_controller
     drive = mc.servos[alias]
@@ -199,17 +216,20 @@ def test_set_register_wrong_uid(motion_controller):
 
 
 @pytest.mark.smoke
-@pytest.mark.parametrize("uid, value, fail", [
-    ("CL_VOL_Q_SET_POINT", -234, False),
-    ("CL_VOL_Q_SET_POINT", "I'm not a number", True),
-    ("CL_VOL_Q_SET_POINT", 234.4, False),
-    ("CL_POS_SET_POINT_VALUE", 1245, False),
-    ("CL_POS_SET_POINT_VALUE", -1245, False),
-    ("CL_POS_SET_POINT_VALUE", 1245.5421, True),
-    ("PROF_POS_OPTION_CODE", -54, True),
-    ("PROF_POS_OPTION_CODE", 54, False),
-    ("PROF_POS_OPTION_CODE", "54", True),
-])
+@pytest.mark.parametrize(
+    "uid, value, fail",
+    [
+        ("CL_VOL_Q_SET_POINT", -234, False),
+        ("CL_VOL_Q_SET_POINT", "I'm not a number", True),
+        ("CL_VOL_Q_SET_POINT", 234.4, False),
+        ("CL_POS_SET_POINT_VALUE", 1245, False),
+        ("CL_POS_SET_POINT_VALUE", -1245, False),
+        ("CL_POS_SET_POINT_VALUE", 1245.5421, True),
+        ("PROF_POS_OPTION_CODE", -54, True),
+        ("PROF_POS_OPTION_CODE", 54, False),
+        ("PROF_POS_OPTION_CODE", "54", True),
+    ],
+)
 def test_set_register_wrong_value_type(motion_controller, uid, value, fail):
     mc, alias = motion_controller
     if fail:
@@ -230,40 +250,41 @@ def test_set_register_wrong_access(motion_controller):
 
 @pytest.mark.smoke
 @pytest.mark.soem
-@pytest.mark.parametrize("uid, index, subindex, dtype, value", [
-    ("CL_VOL_Q_SET_POINT", 0x2018, 0, REG_DTYPE.FLOAT, -234),
-    ("CL_POS_SET_POINT_VALUE", 0x2020, 0, REG_DTYPE.S32, 1245),
-    ("PROF_POS_OPTION_CODE", 0x2024, 0, REG_DTYPE.U16, 54),
-])
-def test_get_sdo_register(read_config, motion_controller, uid, index,
-                          subindex, dtype, value):
+@pytest.mark.parametrize(
+    "uid, index, subindex, dtype, value",
+    [
+        ("CL_VOL_Q_SET_POINT", 0x2018, 0, REG_DTYPE.FLOAT, -234),
+        ("CL_POS_SET_POINT_VALUE", 0x2020, 0, REG_DTYPE.S32, 1245),
+        ("PROF_POS_OPTION_CODE", 0x2024, 0, REG_DTYPE.U16, 54),
+    ],
+)
+def test_get_sdo_register(read_config, motion_controller, uid, index, subindex, dtype, value):
     eoe_comm = read_config["eoe_comm"]
     if eoe_comm:
         pytest.skip("SDOs are not used in EOE communication")
     mc, alias = motion_controller
     mc.communication.set_register(uid, value, servo=alias)
-    test_value = mc.communication.get_sdo_register(
-        index, subindex, dtype, servo=alias)
+    test_value = mc.communication.get_sdo_register(index, subindex, dtype, servo=alias)
     assert test_value == value
 
 
 @pytest.mark.smoke
 @pytest.mark.soem
-@pytest.mark.parametrize("uid, index, subindex, dtype, value", [
-    ("CL_VOL_Q_SET_POINT", 0x2018, 0, REG_DTYPE.FLOAT, -234),
-    ("CL_POS_SET_POINT_VALUE", 0x2020, 0, REG_DTYPE.S32, 1245),
-    ("PROF_POS_OPTION_CODE", 0x2024, 0, REG_DTYPE.U16, 54),
-])
-def test_set_sdo_register(read_config, motion_controller, uid, index,
-                          subindex, dtype, value):
+@pytest.mark.parametrize(
+    "uid, index, subindex, dtype, value",
+    [
+        ("CL_VOL_Q_SET_POINT", 0x2018, 0, REG_DTYPE.FLOAT, -234),
+        ("CL_POS_SET_POINT_VALUE", 0x2020, 0, REG_DTYPE.S32, 1245),
+        ("PROF_POS_OPTION_CODE", 0x2024, 0, REG_DTYPE.U16, 54),
+    ],
+)
+def test_set_sdo_register(read_config, motion_controller, uid, index, subindex, dtype, value):
     eoe_comm = read_config["eoe_comm"]
     if eoe_comm:
         pytest.skip("SDOs are not used in EOE communication")
     mc, alias = motion_controller
-    mc.communication.set_sdo_register(
-        index, subindex, dtype, value, servo=alias)
-    test_value = mc.communication.get_register(
-        uid, servo=alias)
+    mc.communication.set_sdo_register(index, subindex, dtype, value, servo=alias)
+    test_value = mc.communication.get_register(uid, servo=alias)
     assert test_value == value
 
 
@@ -274,18 +295,14 @@ def dummy_callback(status, _, axis):
 def test_subscribe_servo_status(mocker, motion_controller):
     mc, alias = motion_controller
     axis = 1
-    patch_callback = mocker.patch('tests.test_communication.dummy_callback')
+    patch_callback = mocker.patch("tests.test_communication.dummy_callback")
     mc.communication.subscribe_servo_status(patch_callback, alias)
     time.sleep(0.5)
     mc.motion.motor_enable(alias, axis)
     time.sleep(0.5)
     mc.motion.motor_disable(alias, axis)
     time.sleep(0.5)
-    expected_status = [
-        SERVO_STATE.RDY,
-        SERVO_STATE.ENABLED,
-        SERVO_STATE.DISABLED
-    ]
+    expected_status = [SERVO_STATE.RDY, SERVO_STATE.ENABLED, SERVO_STATE.DISABLED]
     for index, call in enumerate(patch_callback.call_args_list):
         assert call[0][0] == expected_status[index]
         assert call[0][2] == axis

@@ -7,9 +7,11 @@ class DigitalHallTest(Feedbacks):
     HALLS_FILTER_CUTOFF_FREQUENCY = 10
     DIG_HALL_POLE_PAIRS_REGISTER = "FBK_DIGHALL_PAIRPOLES"
 
-    BACKUP_REGISTERS_HALLS = ["FBK_DIGHALL_POLARITY",
-                              "FBK_DIGHALL_PAIRPOLES",
-                              "ERROR_DIGHALL_SEQ_OPTION"]
+    BACKUP_REGISTERS_HALLS = [
+        "FBK_DIGHALL_POLARITY",
+        "FBK_DIGHALL_PAIRPOLES",
+        "ERROR_DIGHALL_SEQ_OPTION",
+    ]
 
     FEEDBACK_POLARITY_REGISTER = "FBK_DIGHALL_POLARITY"
 
@@ -27,8 +29,7 @@ class DigitalHallTest(Feedbacks):
     @BaseTest.stoppable
     def halls_extra_settings(self):
         self.mc.communication.set_register(
-            self.DIG_HALL_POLE_PAIRS_REGISTER, self.pair_poles,
-            servo=self.servo, axis=self.axis
+            self.DIG_HALL_POLE_PAIRS_REGISTER, self.pair_poles, servo=self.servo, axis=self.axis
         )
 
         # Read velocity feedback
@@ -42,19 +43,14 @@ class DigitalHallTest(Feedbacks):
             filter_type_uid = self.VELOCITY_FEEDBACK_FILTER_1_TYPE_REGISTER
             filter_freq_uid = self.VELOCITY_FEEDBACK_FILTER_1_FREQUENCY_REGISTER
             self.suggested_registers[filter_type_uid] = self.LOW_PASS_FILTER
-            self.suggested_registers[filter_freq_uid] = \
-                self.HALLS_FILTER_CUTOFF_FREQUENCY
+            self.suggested_registers[filter_freq_uid] = self.HALLS_FILTER_CUTOFF_FREQUENCY
 
             self.logger.info(
                 "Setting a velocity low pass filter at 10 Hz as "
                 "velocity feedback is set to Halls"
             )
-            del self.backup_registers[self.axis][
-                self.VELOCITY_FEEDBACK_FILTER_1_TYPE_REGISTER
-            ]
-            del self.backup_registers[self.axis][
-                self.VELOCITY_FEEDBACK_FILTER_1_FREQUENCY_REGISTER
-            ]
+            del self.backup_registers[self.axis][self.VELOCITY_FEEDBACK_FILTER_1_TYPE_REGISTER]
+            del self.backup_registers[self.axis][self.VELOCITY_FEEDBACK_FILTER_1_FREQUENCY_REGISTER]
 
     @BaseTest.stoppable
     def suggest_polarity(self, pol):
@@ -62,4 +58,3 @@ class DigitalHallTest(Feedbacks):
         pair_poles_uid = self.DIG_HALL_POLE_PAIRS_REGISTER
         self.suggested_registers[pair_poles_uid] = self.pair_poles
         self.suggested_registers[polarity_uid] = pol
-

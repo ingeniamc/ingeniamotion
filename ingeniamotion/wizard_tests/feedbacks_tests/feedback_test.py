@@ -27,9 +27,8 @@ class Feedbacks(BaseTest):
         ResultType.SUCCESS: "Feedback test pass successfully",
         ResultType.RESOLUTION_ERROR: "Feedback has a resolution error",
         ResultType.SYMMETRY_ERROR: "Feedback has a symmetry error",
-        ResultType.POS_VEL_RATIO_ERROR:
-            "Position to velocity sensor ratio cannot be different "
-            "than 1 when both feedback sensors are the same."
+        ResultType.POS_VEL_RATIO_ERROR: "Position to velocity sensor ratio cannot be different "
+        "than 1 when both feedback sensors are the same.",
     }
 
     # Aux constants
@@ -46,33 +45,36 @@ class Feedbacks(BaseTest):
     VELOCITY_FEEDBACK_FILTER_1_TYPE_REGISTER = "CL_VEL_FBK_FILTER1_TYPE"
     VELOCITY_FEEDBACK_FILTER_1_FREQUENCY_REGISTER = "CL_VEL_FBK_FILTER1_FREQ"
     RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
+    MAXIMUM_CONTINUOUS_CURRENT_DRIVE_PROTECTION = "DRV_PROT_MAN_MAX_CONT_CURRENT_VALUE"
 
-    BACKUP_REGISTERS = ["CL_POS_FBK_SENSOR",
-                        "MOT_PAIR_POLES",
-                        "DRV_OP_CMD",
-                        "CL_CUR_Q_SET_POINT",
-                        "CL_CUR_D_SET_POINT",
-                        "FBK_GEN_MODE",
-                        "FBK_GEN_FREQ",
-                        "FBK_GEN_GAIN",
-                        "FBK_GEN_OFFSET",
-                        "COMMU_ANGLE_SENSOR",
-                        "FBK_GEN_CYCLES",
-                        "FBK_SSI2_POS_POLARITY",
-                        "COMMU_PHASING_MODE",
-                        "MOT_COMMU_MOD",
-                        "CL_AUX_FBK_SENSOR",
-                        "ERROR_DIGENC_AGAINST_HALL_OPTION",
-                        "CL_VEL_FOLLOWING_OPTION",
-                        "ERROR_VEL_OUT_LIMITS_OPTION",
-                        "ERROR_POS_OUT_LIMITS_OPTION",
-                        "ERROR_POS_FOLLOWING_OPTION",
-                        "COMMU_ANGLE_INTEGRITY1_OPTION",
-                        "COMMU_ANGLE_INTEGRITY2_OPTION",
-                        "CL_VEL_FBK_SENSOR",
-                        "COMMU_ANGLE_REF_SENSOR",
-                        "CL_VEL_FBK_FILTER1_TYPE",
-                        "CL_VEL_FBK_FILTER1_FREQ"]
+    BACKUP_REGISTERS = [
+        "CL_POS_FBK_SENSOR",
+        "MOT_PAIR_POLES",
+        "DRV_OP_CMD",
+        "CL_CUR_Q_SET_POINT",
+        "CL_CUR_D_SET_POINT",
+        "FBK_GEN_MODE",
+        "FBK_GEN_FREQ",
+        "FBK_GEN_GAIN",
+        "FBK_GEN_OFFSET",
+        "COMMU_ANGLE_SENSOR",
+        "FBK_GEN_CYCLES",
+        "FBK_SSI2_POS_POLARITY",
+        "COMMU_PHASING_MODE",
+        "MOT_COMMU_MOD",
+        "CL_AUX_FBK_SENSOR",
+        "ERROR_DIGENC_AGAINST_HALL_OPTION",
+        "CL_VEL_FOLLOWING_OPTION",
+        "ERROR_VEL_OUT_LIMITS_OPTION",
+        "ERROR_POS_OUT_LIMITS_OPTION",
+        "ERROR_POS_FOLLOWING_OPTION",
+        "COMMU_ANGLE_INTEGRITY1_OPTION",
+        "COMMU_ANGLE_INTEGRITY2_OPTION",
+        "CL_VEL_FBK_SENSOR",
+        "COMMU_ANGLE_REF_SENSOR",
+        "CL_VEL_FBK_FILTER1_TYPE",
+        "CL_VEL_FBK_FILTER1_FREQ",
+    ]
 
     FEEDBACK_POLARITY_REGISTER = None
 
@@ -84,8 +86,7 @@ class Feedbacks(BaseTest):
         self.servo = servo
         self.axis = axis
         self.sensor = self.SENSOR_TYPE_FEEDBACK_TEST
-        self.logger = ingenialogger.get_logger(__name__, axis=axis,
-                                               drive=mc.servo_name(servo))
+        self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
         self.feedback_resolution = None
         self.pair_poles = None
         self.pos_vel_same_feedback = None
@@ -106,65 +107,49 @@ class Feedbacks(BaseTest):
     def check_symmetry(self, positive, negative):
         self.logger.info("SYMMETRY CHECK")
         error = 100 * abs(positive + negative) / self.feedback_resolution
-        self.logger.info(
-            "Detected symmetry mismatch of: %.3f%%",
-            error
+        self.logger.info("Detected symmetry mismatch of: %.3f%%", error)
+        error_msg = (
+            "ERROR: A mismatch in resolution has been "
+            "detected between positive and negative direction."
         )
-        error_msg = "ERROR: A mismatch in resolution has been " \
-                    "detected between positive and negative direction."
-        return self.check_feedback_tolerance(error, error_msg,
-                                             self.ResultType.SYMMETRY_ERROR)
+        return self.check_feedback_tolerance(error, error_msg, self.ResultType.SYMMETRY_ERROR)
 
     @BaseTest.stoppable
     def check_polarity(self, displacement):
         self.logger.info("POLARITY CHECK")
-        polarity = self.Polarity.NORMAL if displacement > 0 \
-            else self.Polarity.REVERSED
-        self.logger.info("Feedback polarity detected: %s",
-                         polarity.name)
+        polarity = self.Polarity.NORMAL if displacement > 0 else self.Polarity.REVERSED
+        self.logger.info("Feedback polarity detected: %s", polarity.name)
         return polarity
 
     @BaseTest.stoppable
     def check_resolution(self, displacement):
         displacement = displacement * self.pair_poles
         self.logger.info("RESOLUTION CHECK")
-        self.logger.info(
-            "Theoretical resolution: %.0f",
-            self.feedback_resolution
-        )
+        self.logger.info("Theoretical resolution: %.0f", self.feedback_resolution)
         self.logger.info("Detected resolution (pos): %.0f", abs(displacement))
         displacement_value = abs(self.feedback_resolution - abs(displacement))
         error = 100 * displacement_value / self.feedback_resolution
         self.logger.info("Detected mismatch of: %.3f%%", error)
-        error_msg = "ERROR: The detected feedback resolution does not " \
-                    "match with the specified in the configuration."
-        return self.check_feedback_tolerance(
-            error, error_msg, self.ResultType.RESOLUTION_ERROR)
+        error_msg = (
+            "ERROR: The detected feedback resolution does not "
+            "match with the specified in the configuration."
+        )
+        return self.check_feedback_tolerance(error, error_msg, self.ResultType.RESOLUTION_ERROR)
 
     @BaseTest.stoppable
     def feedback_setting(self):
         # First set all feedback to feedback in test, so there won't be
         # more than 5 feedback at the same time
-        self.mc.configuration.set_commutation_feedback(self.sensor,
-                                                       servo=self.servo,
-                                                       axis=self.axis)
-        self.mc.configuration.set_reference_feedback(self.sensor,
-                                                     servo=self.servo,
-                                                     axis=self.axis)
-        self.mc.configuration.set_velocity_feedback(self.sensor,
-                                                    servo=self.servo,
-                                                    axis=self.axis)
-        self.mc.configuration.set_position_feedback(self.sensor,
-                                                    servo=self.servo,
-                                                    axis=self.axis)
-        self.mc.configuration.set_auxiliar_feedback(self.sensor,
-                                                    servo=self.servo,
-                                                    axis=self.axis)
+        self.mc.configuration.set_commutation_feedback(
+            self.sensor, servo=self.servo, axis=self.axis
+        )
+        self.mc.configuration.set_reference_feedback(self.sensor, servo=self.servo, axis=self.axis)
+        self.mc.configuration.set_velocity_feedback(self.sensor, servo=self.servo, axis=self.axis)
+        self.mc.configuration.set_position_feedback(self.sensor, servo=self.servo, axis=self.axis)
+        self.mc.configuration.set_auxiliar_feedback(self.sensor, servo=self.servo, axis=self.axis)
         # Set Polarity to 0
         self.mc.communication.set_register(
-            self.FEEDBACK_POLARITY_REGISTER,
-            self.Polarity.NORMAL,
-            servo=self.servo, axis=self.axis
+            self.FEEDBACK_POLARITY_REGISTER, self.Polarity.NORMAL, servo=self.servo, axis=self.axis
         )
         # Depending on the type of the feedback, calculate the correct
         # feedback resolution
@@ -185,13 +170,12 @@ class Feedbacks(BaseTest):
             "ERROR_POS_OUT_LIMITS_OPTION",
             "ERROR_POS_FOLLOWING_OPTION",
             "COMMU_ANGLE_INTEGRITY1_OPTION",
-            "COMMU_ANGLE_INTEGRITY2_OPTION"
+            "COMMU_ANGLE_INTEGRITY2_OPTION",
         ]
         for following_error_uid in following_error_uids:
             try:
                 self.mc.communication.set_register(
-                    following_error_uid, 1,
-                    servo=self.servo, axis=self.axis
+                    following_error_uid, 1, servo=self.servo, axis=self.axis
                 )
             except IMRegisterNotExist as e:
                 self.logger.warning(e)
@@ -212,8 +196,7 @@ class Feedbacks(BaseTest):
         self.logger.info("CONFIGURATION OF THE TEST")
         # Set commutation modulation to sinusoidal
         self.mc.communication.set_register(
-            self.COMMUTATION_MODULATION_REGISTER, 0,
-            servo=self.servo, axis=self.axis
+            self.COMMUTATION_MODULATION_REGISTER, 0, servo=self.servo, axis=self.axis
         )
         # Default resolution multiplier
         # Change multiplier using gear ratio if feedback to check is configured
@@ -227,8 +210,7 @@ class Feedbacks(BaseTest):
         self.pos_vel_same_feedback = position_feedback_value == velocity_feedback_value
         if position_feedback_value == self.sensor:
             self.resolution_multiplier = self.mc.communication.get_register(
-                self.POSITION_TO_VELOCITY_SENSOR_RATIO_REGISTER,
-                servo=self.servo, axis=self.axis
+                self.POSITION_TO_VELOCITY_SENSOR_RATIO_REGISTER, servo=self.servo, axis=self.axis
             )
 
         # Read pole pairs and set to 1 for an electrical revolution
@@ -265,46 +247,49 @@ class Feedbacks(BaseTest):
         timeout = time.time() + timeout
         while time.time() < timeout:
             time.sleep(0.1)
-            if self.mc.errors.is_fault_active(
-                servo=self.servo, axis=self.axis
-            ):
+            if self.mc.errors.is_fault_active(servo=self.servo, axis=self.axis):
                 self.show_error_message()
 
     @BaseTest.stoppable
     def get_current_position(self):
-        position = self.mc.motion.get_actual_position(servo=self.servo,
-                                                      axis=self.axis)
+        position = self.mc.motion.get_actual_position(servo=self.servo, axis=self.axis)
         position = position / self.resolution_multiplier
         return position
 
     @BaseTest.stoppable
     def current_ramp_up(self):
-        max_current = self.mc.communication.get_register(
-            self.RATED_CURRENT_REGISTER,
-            servo=self.servo, axis=self.axis
+        dict_currents = {
+            "Rated motor current": self.mc.communication.get_register(
+                self.RATED_CURRENT_REGISTER, servo=self.servo, axis=self.axis
+            ),
+            "Drive nominal current": self.mc.communication.get_register(
+                self.MAXIMUM_CONTINUOUS_CURRENT_DRIVE_PROTECTION, servo=self.servo, axis=self.axis
+            ),
+        }
+        max_current = min(dict_currents.values())
+
+        self.logger.debug(
+            f"The maximum current is set by: {min(dict_currents, key=dict_currents.get)}"
         )
         # Increase current progressively
         self.logger.info(
-            "Increasing current to %s%% rated until"
-            " one electrical cycle is completed",
-            self.PERCENTAGE_CURRENT_USED * 100
+            f"Increasing current to {self.PERCENTAGE_CURRENT_USED * 100}% "
+            f"rated until one electrical cycle is completed"
         )
+
         target_current = self.PERCENTAGE_CURRENT_USED * max_current
         cycle_time = 2 / self.test_frequency
 
         self.mc.motion.current_quadrature_ramp(
-            target_current, cycle_time,
-            servo=self.servo, axis=self.axis
+            target_current, cycle_time, servo=self.servo, axis=self.axis
         )
 
     def first_movement_and_set_current(self):
         self.mc.motion.internal_generator_saw_tooth_move(
-            1, 1, self.test_frequency,
-            servo=self.servo, axis=self.axis
+            1, 1, self.test_frequency, servo=self.servo, axis=self.axis
         )
         self.logger.info("Generator mode set to Saw tooth")
-        self.logger.info("Generator frequency set to %s Hz",
-                          self.test_frequency)
+        self.logger.info("Generator frequency set to %s Hz", self.test_frequency)
         self.logger.info("Generator gain set to 1")
         self.logger.info("Generator offset set to 0")
         self.logger.info("Generator cycle number set to 1")
@@ -319,15 +304,14 @@ class Feedbacks(BaseTest):
         gain = 1 if polarity == self.Polarity.NORMAL else -1
         pol = 1 if polarity == self.Polarity.NORMAL else -1
         self.mc.motion.internal_generator_saw_tooth_move(
-            pol, cycles, freq,
-            servo=self.servo, axis=self.axis
+            pol, cycles, freq, servo=self.servo, axis=self.axis
         )
         self.logger.info("%s direction test", polarity.name)
         self.logger.info("Generator gain set to %s", gain)
         self.logger.info("Generator offset set to %s", polarity)
         self.logger.info("Generator Cycle number set to %s", cycles)
         self.logger.info("Wait until one electrical cycle is completed")
-        self.wait_for_movement(cycles/freq)
+        self.wait_for_movement(cycles / freq)
         self.wait_for_movement(self.TIME_BETWEEN_MOVEMENT)
         position = self.get_current_position()
         self.logger.info("Actual position: %.0f", position)
@@ -335,26 +319,28 @@ class Feedbacks(BaseTest):
 
     @BaseTest.stoppable
     def check_movement(self, position_displacement):
-        self.logger.info("Detected forward displacement: %.0f",
-                         position_displacement)
+        self.logger.info("Detected forward displacement: %.0f", position_displacement)
 
         # Check the movement displacement
         if position_displacement == 0:
-            error_movement_displacement = "ERROR: No movement detected. " \
-                                          "Please, review your feedback " \
-                                          "configuration & wiring"
+            error_movement_displacement = (
+                "ERROR: No movement detected. "
+                "Please, review your feedback "
+                "configuration & wiring"
+            )
             raise TestError(error_movement_displacement)
 
     def check_pos_vel_ratio(self):
         pos_vel_ratio = self.mc.communication.get_register(
-            self.POSITION_TO_VELOCITY_SENSOR_RATIO_REGISTER,
-            servo=self.servo, axis=self.axis
+            self.POSITION_TO_VELOCITY_SENSOR_RATIO_REGISTER, servo=self.servo, axis=self.axis
         )
         if self.pos_vel_same_feedback and not math.isclose(pos_vel_ratio, 1):
             return self.ResultType.POS_VEL_RATIO_ERROR
         if not self.pos_vel_same_feedback and math.isclose(pos_vel_ratio, 1):
-            self.logger.warning("Position and velocity feedbacks are different but"
-                                " the Position to velocity sensor ratio is 1.")
+            self.logger.warning(
+                "Position and velocity feedbacks are different but"
+                " the Position to velocity sensor ratio is 1."
+            )
 
     @BaseTest.stoppable
     def loop(self):
@@ -367,28 +353,22 @@ class Feedbacks(BaseTest):
         except (ILTimeoutError, ILStateError) as e:
             raise TestError(f"An error occurred enabling motor. Reason: {e}")
         position_1 = self.first_movement_and_set_current()
-        self.logger.info("Actual position: %.0f",
-                          position_1, axis=self.axis)
+        self.logger.info("Actual position: %.0f", position_1, axis=self.axis)
         position_2 = self.internal_generator_move(self.Polarity.NORMAL)
         position_displacement = position_2 - position_1
         self.check_movement(position_displacement)
         position_3 = self.internal_generator_move(self.Polarity.REVERSED)
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
         negative_displacement = position_3 - position_2
-        self.logger.info(
-            "Detected reverse displacement: %.0f", negative_displacement
-        )
-        return self.generate_output(position_displacement,
-                                    negative_displacement)
+        self.logger.info("Detected reverse displacement: %.0f", negative_displacement)
+        return self.generate_output(position_displacement, negative_displacement)
 
     def generate_output(self, position_displacement, negative_displacement):
         test_output = 0
 
-        test_output += self.check_symmetry(position_displacement,
-                                           negative_displacement)
+        test_output += self.check_symmetry(position_displacement, negative_displacement)
         test_output += self.check_resolution(position_displacement)
-        test_output = self.ResultType.SUCCESS if test_output == 0 \
-            else test_output
+        test_output = self.ResultType.SUCCESS if test_output == 0 else test_output
         polarity = self.check_polarity(position_displacement)
         self.suggest_polarity(polarity)
         return test_output
@@ -397,8 +377,7 @@ class Feedbacks(BaseTest):
         if output == self.ResultType.SUCCESS:
             return self.result_description[output]
         if output < 0:
-            text = [self.result_description[x]
-                    for x in self.result_description if -output & -x > 0]
+            text = [self.result_description[x] for x in self.result_description if -output & -x > 0]
             return ".".join(text)
 
     def get_result_severity(self, output):
