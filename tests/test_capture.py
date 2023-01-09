@@ -74,6 +74,9 @@ def test_create_monitoring_no_trigger(
     monitoring = mc.capture.create_monitoring(registers, divider,
                                               total_time, servo=alias)
     mc.capture.enable_monitoring_disturbance(servo=alias)
+    # Dummy reading
+    monitoring.read_monitoring_data()
+    monitoring.rearm_monitoring()
     init = time.time()
     expected_signal = [0]*quarter_num_samples
     for i in range(1, 4):
