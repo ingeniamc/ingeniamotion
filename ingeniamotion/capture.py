@@ -1,4 +1,7 @@
+from typing import Optional, Union, List
+
 from ingenialink.exceptions import ILError
+from ingenialink.poller import Poller
 from ingenialink.ipb.poller import IPBPoller
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.ethernet.servo import EthernetServo
@@ -45,12 +48,18 @@ class Capture(metaclass=MCMetaClass):
     def __init__(self, motion_controller):
         self.mc = motion_controller
 
-    def create_poller(self, registers, servo=DEFAULT_SERVO,
-                      sampling_time=0.125, buffer_size=100, start=True):
+    def create_poller(
+        self,
+        registers: List[dict],
+        servo: str = DEFAULT_SERVO,
+        sampling_time: float = 0.125,
+        buffer_size: int = 100,
+        start: bool = True
+    ) -> Poller:
         """Returns a Poller instance with target registers.
 
         Args:
-            registers (list of dict): list of registers to add to the Poller.
+            registers : list of registers to add to the Poller.
                 Dicts should have the follow format:
 
                 .. code-block:: python
@@ -68,16 +77,16 @@ class Capture(metaclass=MCMetaClass):
                         }
                     ]
 
-            servo (str): servo alias to reference it. ``default`` by default.
-            sampling_time (float): period of the sampling in seconds.
+            servo: servo alias to reference it. ``default`` by default.
+            sampling_time: period of the sampling in seconds.
                 By default ``0.125`` seconds.
-            buffer_size (int): number maximum of sample for each data read.
+            buffer_size: number maximum of sample for each data read.
                 ``100`` by default.
-            start (bool): if ``True``, function starts poller, if ``False``
+            start: if ``True``, function starts poller, if ``False``
                 poller should be started after. ``True`` by default.
 
         Returns:
-            ingenialink.poller.Poller: Poller object with chosen registers.
+            Poller object with chosen registers.
 
             Poller.start()
                 Poller starts reading the registers.
@@ -114,14 +123,14 @@ class Capture(metaclass=MCMetaClass):
             poller.start()
         return poller
 
-    def create_empty_monitoring(self, servo=DEFAULT_SERVO):
+    def create_empty_monitoring(self, servo: str = DEFAULT_SERVO) -> Monitoring:
         """Returns a Monitoring instance not configured.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
+            servo : servo alias to reference it. ``default`` by default.
 
         Returns:
-            Monitoring: Not configured instance of monitoring.
+            Not configured instance of monitoring.
 
         """
         version = self._check_version(servo)
@@ -130,15 +139,24 @@ class Capture(metaclass=MCMetaClass):
         if version < MonitoringVersion.MONITORING_V3:
             return MonitoringV1(self.mc, servo)
 
-    def create_monitoring(self, registers, prescaler, sample_time, trigger_delay=0,
-                          trigger_mode=MonitoringSoCType.TRIGGER_EVENT_AUTO,
-                          trigger_config=None, trigger_signal=None, trigger_value=None,
-                          servo=DEFAULT_SERVO, start=False):
+    def create_monitoring(
+        self,
+        registers: List[dict],
+        prescaler: int,
+        sample_time: float,
+        trigger_delay: float = 0,
+        trigger_mode: MonitoringSoCType = MonitoringSoCType.TRIGGER_EVENT_AUTO,
+        trigger_config: Optional[MonitoringSoCConfig] = None,
+        trigger_signal: Optional[dict] = None,
+        trigger_value: Union[float, int, None] = None,
+        servo: str = DEFAULT_SERVO,
+        start: bool = False
+    ) -> Monitoring:
         """Returns a Monitoring instance configured with target registers.
 
         Args:
-            registers (list of dict): list of registers to add to Monitoring.
-            Dicts should have the follow format:
+            registers: list of registers to add to Monitoring.
+                Dicts should have the follow format:
 
                 .. code-block:: python
 
@@ -155,26 +173,26 @@ class Capture(metaclass=MCMetaClass):
                         }
                     ]
 
-            prescaler (int): determines monitoring frequency. Frequency will be
+            prescaler : determines monitoring frequency. Frequency will be
                 ``Position & velocity loop rate frequency / prescaler``, see
                 :func:`ingeniamotion.configuration.Configuration.get_position_and_velocity_loop_rate`
                 to know about this frequency. It must be ``1`` or higher.
-            sample_time (float): sample time in seconds.
-            trigger_delay (float): trigger delay in seconds. Value should be between
+            sample_time : sample time in seconds.
+            trigger_delay : trigger delay in seconds. Value should be between
                 ``-sample_time/2`` and ``sample_time/2`` . ``0`` by default.
-            trigger_mode (MonitoringSoCType): monitoring start of condition type.
+            trigger_mode : monitoring start of condition type.
                 ``TRIGGER_EVENT_NONE`` by default.
-            trigger_config (MonitoringSoCConfig): monitoring edge condition.
+            trigger_config : monitoring edge condition.
                 ``None`` by default.
-            trigger_signal (dict): dict with name and axis of trigger signal
+            trigger_signal : dict with name and axis of trigger signal
                 for rising or falling edge trigger.
-            trigger_value (int or float): value for rising or falling edge trigger.
-            servo (str): servo alias to reference it. ``default`` by default.
-            start (bool): if ``True``, function starts monitoring, if ``False``
+            trigger_value : value for rising or falling edge trigger.
+            servo : servo alias to reference it. ``default`` by default.
+            start : if ``True``, function starts monitoring, if ``False``
                 monitoring should be started after. ``False`` by default.
 
         Returns:
-            Monitoring: Instance of monitoring configured.
+            Instance of monitoring configured.
 
         Raises:
             ValueError: If prescaler is less than ``1``.
@@ -202,25 +220,32 @@ class Capture(metaclass=MCMetaClass):
             self.enable_monitoring(servo=servo)
         return monitoring
 
-    def create_disturbance(self, register, data, freq_divider,
-                           servo=DEFAULT_SERVO, axis=DEFAULT_AXIS, start=False):
+    def create_disturbance(
+        self,
+        register: str,
+        data: list,
+        freq_divider: int,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+        start: bool = False
+    ) -> Disturbance:
         """Returns a Disturbance instance configured with target registers.
 
         Args:
-            register (str): target register UID.
-            data (list): data to write in disturbance.
-            freq_divider (int): determines disturbance frequency divider. Frequency will
+            register : target register UID.
+            data : data to write in disturbance.
+            freq_divider : determines disturbance frequency divider. Frequency will
                 be ``Position & velocity loop rate frequency / freq_divider``, see
                 :func:`ingeniamotion.configuration.Configuration.get_position_and_velocity_loop_rate`
                 to know about this frequency. It must be ``1`` or higher.
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
-            start (bool): if ``True``, function starts disturbance,
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
+            start : if ``True``, function starts disturbance,
                 if ``False`` disturbance should be started after.
                 ``False`` by default.
 
         Returns:
-            Disturbance: Instance of disturbance configured.
+            Instance of disturbance configured.
 
         Raises:
             ValueError: If freq_divider is less than ``1``.
@@ -237,11 +262,11 @@ class Capture(metaclass=MCMetaClass):
             self.enable_disturbance(servo=servo)
         return disturbance
 
-    def _check_version(self, servo):
+    def _check_version(self, servo: str) -> MonitoringVersion:
         """Checks the version of the monitoring based on a given servo.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
+            servo : servo alias to reference it. ``default`` by default.
         """
         drive = self.mc._get_drive(servo)
         try:
@@ -259,11 +284,11 @@ class Capture(metaclass=MCMetaClass):
             # The Monitoring V2 is NOT available
             return MonitoringVersion.MONITORING_V1
 
-    def enable_monitoring_disturbance(self, servo=DEFAULT_SERVO):
+    def enable_monitoring_disturbance(self, servo: str = DEFAULT_SERVO) -> None:
         """Enable monitoring and disturbance.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
+            servo : servo alias to reference it. ``default`` by default.
 
         Raises:
             IMMonitoringError: If monitoring can't be enabled.
@@ -272,11 +297,11 @@ class Capture(metaclass=MCMetaClass):
         self.enable_monitoring(servo=servo)
         self.enable_disturbance(servo=servo)
 
-    def enable_monitoring(self, servo=DEFAULT_SERVO):
+    def enable_monitoring(self, servo: str = DEFAULT_SERVO) -> None:
         """Enable monitoring.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
+            servo : servo alias to reference it. ``default`` by default.
 
         Raises:
             IMMonitoringError: If monitoring can't be enabled.
@@ -288,12 +313,16 @@ class Capture(metaclass=MCMetaClass):
         if not self.is_monitoring_enabled(servo=servo):
             raise IMMonitoringError("Error enabling monitoring.")
 
-    def enable_disturbance(self, servo=DEFAULT_SERVO, version=None):
+    def enable_disturbance(
+        self,
+        servo: str = DEFAULT_SERVO,
+        version: Optional[MonitoringVersion] = None
+    ) -> None:
         """Enable disturbance.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            version (MonitoringVersion): Monitoring/Disturbance version,
+            servo : servo alias to reference it. ``default`` by default.
+            version : Monitoring/Disturbance version,
                 if ``None`` reads from drive. ``None`` by default.
 
         Raises:
@@ -310,22 +339,26 @@ class Capture(metaclass=MCMetaClass):
         if not self.is_disturbance_enabled(servo=servo):
             raise IMMonitoringError("Error enabling disturbance.")
 
-    def disable_monitoring_disturbance(self, servo=DEFAULT_SERVO):
+    def disable_monitoring_disturbance(self, servo: str = DEFAULT_SERVO) -> None:
         """Disable monitoring and disturbance.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
+            servo : servo alias to reference it. ``default`` by default.
 
         """
         self.disable_monitoring(servo=servo)
         self.disable_disturbance(servo=servo)
 
-    def disable_monitoring(self, servo=DEFAULT_SERVO, version=None):
+    def disable_monitoring(
+        self,
+        servo: str = DEFAULT_SERVO,
+        version: Optional[MonitoringVersion] = None
+    ) -> None:
         """Disable monitoring.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            version (MonitoringVersion): Monitoring/Disturbance version,
+            servo : servo alias to reference it. ``default`` by default.
+            version : Monitoring/Disturbance version,
                 if ``None`` reads from drive. ``None`` by default.
 
         """
@@ -338,12 +371,16 @@ class Capture(metaclass=MCMetaClass):
         if version >= MonitoringVersion.MONITORING_V3:
             return drive.monitoring_remove_data()
 
-    def disable_disturbance(self, servo=DEFAULT_SERVO, version=None):
+    def disable_disturbance(
+        self,
+        servo: str = DEFAULT_SERVO,
+        version: Optional[MonitoringVersion] = None
+    ) -> None:
         """Disable disturbance.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            version (MonitoringVersion): Monitoring/Disturbance version,
+            servo : servo alias to reference it. ``default`` by default.
+            version : Monitoring/Disturbance version,
                 if ``None`` reads from drive. ``None`` by default.
 
         """
@@ -357,14 +394,14 @@ class Capture(metaclass=MCMetaClass):
         drive.disturbance_disable()
         return drive.disturbance_remove_data()
 
-    def get_monitoring_disturbance_status(self, servo=DEFAULT_SERVO):
+    def get_monitoring_disturbance_status(self, servo: str = DEFAULT_SERVO) -> int:
         """Get Monitoring Status.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
+            servo : servo alias to reference it. ``default`` by default.
 
         Returns:
-            int: Monitoring/Disturbance Status.
+            Monitoring/Disturbance Status.
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
@@ -375,14 +412,14 @@ class Capture(metaclass=MCMetaClass):
             axis=0
         )
 
-    def get_monitoring_status(self, servo=DEFAULT_SERVO):
+    def get_monitoring_status(self, servo: str = DEFAULT_SERVO) -> int:
         """Get Monitoring Status.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
+            servo : servo alias to reference it. ``default`` by default.
 
         Returns:
-            int: Monitoring Status.
+            Monitoring Status.
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
@@ -393,16 +430,20 @@ class Capture(metaclass=MCMetaClass):
             axis=0
         )
 
-    def get_disturbance_status(self, servo=DEFAULT_SERVO, version=None):
+    def get_disturbance_status(
+        self,
+        servo: str = DEFAULT_SERVO,
+        version: Optional[MonitoringVersion] = None
+    ) -> int:
         """Get Disturbance Status.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            version (MonitoringVersion): Monitoring/Disturbance version,
+            servo : servo alias to reference it. ``default`` by default.
+            version : Monitoring/Disturbance version,
                 if ``None`` reads from drive. ``None`` by default.
 
         Returns:
-            int: Disturbance Status.
+            Disturbance Status.
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
@@ -422,14 +463,14 @@ class Capture(metaclass=MCMetaClass):
                 axis=0
             )
 
-    def is_monitoring_enabled(self, servo=DEFAULT_SERVO):
+    def is_monitoring_enabled(self, servo: str = DEFAULT_SERVO) -> bool:
         """Check if monitoring is enabled.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
+            servo : servo alias to reference it. ``default`` by default.
 
         Returns:
-            bool: True if monitoring is enabled, else False.
+            True if monitoring is enabled, else False.
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
@@ -437,16 +478,20 @@ class Capture(metaclass=MCMetaClass):
         monitor_status = self.get_monitoring_status(servo)
         return (monitor_status & self.MONITORING_STATUS_ENABLED_BIT) == 1
 
-    def is_disturbance_enabled(self, servo=DEFAULT_SERVO, version=None):
+    def is_disturbance_enabled(
+        self,
+        servo: str = DEFAULT_SERVO,
+        version: Optional[MonitoringVersion] = None
+    ) -> bool:
         """Check if disturbance is enabled.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            version (MonitoringVersion): Monitoring/Disturbance version,
+            servo : servo alias to reference it. ``default`` by default.
+            version : Monitoring/Disturbance version,
                 if ``None`` reads from drive. ``None`` by default.
 
         Returns:
-            bool: True if disturbance is enabled, else False.
+            True if disturbance is enabled, else False.
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
@@ -454,17 +499,21 @@ class Capture(metaclass=MCMetaClass):
         monitor_status = self.get_disturbance_status(servo, version=version)
         return (monitor_status & self.DISTURBANCE_STATUS_ENABLED_BIT) == 1
 
-    def get_monitoring_process_stage(self, servo=DEFAULT_SERVO, version=None):
+    def get_monitoring_process_stage(
+        self,
+        servo: str = DEFAULT_SERVO,
+        version: Optional[MonitoringVersion] = None
+    ) -> MonitoringProcessStage:
         """
         Return monitoring process stage.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            version (MonitoringVersion): Monitoring/Disturbance version,
+            servo : servo alias to reference it. ``default`` by default.
+            version : Monitoring/Disturbance version,
                 if ``None`` reads from drive. ``None`` by default.
 
         Returns:
-            MonitoringProcessStage: Current monitoring process stage.
+            Current monitoring process stage.
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
@@ -477,17 +526,21 @@ class Capture(metaclass=MCMetaClass):
         masked_value = monitor_status & mask
         return MonitoringProcessStage(masked_value)
 
-    def is_frame_available(self, servo=DEFAULT_SERVO, version=None):
+    def is_frame_available(
+        self,
+        servo: str = DEFAULT_SERVO,
+        version: Optional[MonitoringVersion] = None
+    ) -> bool:
         """
         Check if monitoring has an available frame.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            version (MonitoringVersion): Monitoring/Disturbance version,
+            servo : servo alias to reference it. ``default`` by default.
+            version : Monitoring/Disturbance version,
                 if ``None`` reads from drive. ``None`` by default.
 
         Returns:
-            bool: True if monitoring has an available frame, else False.
+            True if monitoring has an available frame, else False.
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
@@ -499,12 +552,16 @@ class Capture(metaclass=MCMetaClass):
         mask = self.MONITORING_AVAILABLE_FRAME_BIT[version]
         return (monitor_status & mask) != 0
 
-    def clean_monitoring(self, servo=DEFAULT_SERVO, version=None):
+    def clean_monitoring(
+        self,
+        servo: str = DEFAULT_SERVO,
+        version: Optional[MonitoringVersion] = None
+    ) -> None:
         """Disable monitoring/disturbance and remove monitoring mapped registers.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            version (MonitoringVersion): Monitoring/Disturbance version,
+            servo : servo alias to reference it. ``default`` by default.
+            version : Monitoring/Disturbance version,
                 if None reads from drive. ``None`` by default.
 
         """
@@ -512,12 +569,16 @@ class Capture(metaclass=MCMetaClass):
         drive = self.mc.servos[servo]
         drive.monitoring_remove_all_mapped_registers()
 
-    def clean_disturbance(self, servo=DEFAULT_SERVO, version=None):
+    def clean_disturbance(
+        self,
+        servo: str = DEFAULT_SERVO,
+        version: Optional[MonitoringVersion] = None
+    ) -> None:
         """Disable monitoring/disturbance and remove disturbance mapped registers.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            version (MonitoringVersion): Monitoring/Disturbance version,
+            servo : servo alias to reference it. ``default`` by default.
+            version : Monitoring/Disturbance version,
                 if None reads from drive. ``None`` by default.
 
         """
@@ -525,23 +586,23 @@ class Capture(metaclass=MCMetaClass):
         drive = self.mc.servos[servo]
         drive.disturbance_remove_all_mapped_registers()
 
-    def clean_monitoring_disturbance(self, servo=DEFAULT_SERVO):
+    def clean_monitoring_disturbance(self, servo: str = DEFAULT_SERVO) -> None:
         """Disable monitoring/disturbance, remove disturbance and monitoring
         mapped registers.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
+            servo : servo alias to reference it. ``default`` by default.
         """
         self.clean_monitoring(servo=servo)
         self.clean_disturbance(servo=servo)
 
     @MCMetaClass.check_motor_disabled
-    def mcb_synchronization(self, servo=DEFAULT_SERVO):
+    def mcb_synchronization(self, servo: str = DEFAULT_SERVO) -> None:
         """Synchronize MCB, necessary to monitoring and disturbance.
         Motor must be disabled.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
+            servo : servo alias to reference it. ``default`` by default.
 
         Raises:
             IMStatusWordError: If motor is enabled.
@@ -550,14 +611,14 @@ class Capture(metaclass=MCMetaClass):
         self.enable_monitoring(servo=servo)
         self.disable_monitoring(servo=servo)
 
-    def disturbance_max_sample_size(self, servo=DEFAULT_SERVO):
+    def disturbance_max_sample_size(self, servo: str = DEFAULT_SERVO) -> int:
         """Return disturbance max size, in bytes.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
+            servo : servo alias to reference it. ``default`` by default.
 
         Returns:
-            int: Max buffer size in bytes.
+            Max buffer size in bytes.
         """
         try:
             return self.mc.communication.get_register(
@@ -568,14 +629,14 @@ class Capture(metaclass=MCMetaClass):
         except IMRegisterNotExist:
             return self.MINIMUM_BUFFER_SIZE
 
-    def monitoring_max_sample_size(self, servo=DEFAULT_SERVO):
+    def monitoring_max_sample_size(self, servo: str = DEFAULT_SERVO) -> int:
         """Return monitoring max size, in bytes.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
+            servo : servo alias to reference it. ``default`` by default.
 
         Returns:
-            int: Max buffer size in bytes.
+            Max buffer size in bytes.
         """
         try:
             return self.mc.communication.get_register(

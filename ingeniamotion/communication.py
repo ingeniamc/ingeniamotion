@@ -1,17 +1,18 @@
 import time
 import ifaddr
 import subprocess
-import ingenialogger
-
 from os import path
 from functools import partial
+from typing import Optional, Union, Callable, List
+
+import ingenialogger
 from ingenialink.exceptions import ILError
 from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.ethercat.network import EthercatNetwork
 
 from ingeniamotion.exceptions import IMRegisterWrongAccess
-from ingeniamotion.enums import Protocol, CAN_BAUDRATE, REG_DTYPE, REG_ACCESS
+from ingeniamotion.enums import Protocol, CAN_BAUDRATE, CAN_DEVICE, REG_DTYPE, REG_ACCESS
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
@@ -25,25 +26,32 @@ class Communication(metaclass=MCMetaClass):
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
 
-    def connect_servo_eoe(self, ip, dict_path=None, alias=DEFAULT_SERVO,
-                          protocol=Protocol.UDP, port=1061,
-                          reconnection_retries=None, reconnection_timeout=None,
-                          servo_status_listener=False,
-                          net_status_listener=False):
+    def connect_servo_eoe(
+        self,
+        ip: str,
+        dict_path: Optional[str] = None,
+        alias: str = DEFAULT_SERVO,
+        protocol: Protocol = Protocol.UDP,
+        port: int = 1061,
+        reconnection_retries: Optional[int] = None,
+        reconnection_timeout: Optional[int] = None,
+        servo_status_listener: bool = False,
+        net_status_listener: bool = False
+    ) -> None:
         """Connect to target servo by Ethernet over EtherCAT
 
         Args:
-            ip (str): servo IP.
-            dict_path (str): servo dictionary path.
-            alias (str): servo alias to reference it. ``default`` by default.
-            protocol (Protocol): UDP or TCP protocol. ``UDP`` by default.
-            port (int): servo port. ``1061`` by default.
-            reconnection_retries (int): Number of reconnection retried before declaring
+            ip : servo IP.
+            dict_path : servo dictionary path.
+            alias : servo alias to reference it. ``default`` by default.
+            protocol : UDP or TCP protocol. ``UDP`` by default.
+            port : servo port. ``1061`` by default.
+            reconnection_retries : Number of reconnection retried before declaring
                 a connected or disconnected stated.
-            reconnection_timeout (int): Time in ms of the reconnection timeout.
-            servo_status_listener (bool): Toggle the listener of the servo for
+            reconnection_timeout : Time in ms of the reconnection timeout.
+            servo_status_listener : Toggle the listener of the servo for
                 its status, errors, faults, etc.
-            net_status_listener (bool): Toggle the listener of the network
+            net_status_listener : Toggle the listener of the network
                 status, connection and disconnection.
 
         Raises:
@@ -59,27 +67,32 @@ class Communication(metaclass=MCMetaClass):
                              servo_status_listener=servo_status_listener,
                              net_status_listener=net_status_listener)
 
-    def connect_servo_ethernet(self, ip, dict_path=None, alias=DEFAULT_SERVO,
-                               protocol=Protocol.UDP, port=1061,
-                               reconnection_retries=None,
-                               reconnection_timeout=None,
-                               servo_status_listener=False,
-                               net_status_listener=False
-                               ):
+    def connect_servo_ethernet(
+        self,
+        ip: str,
+        dict_path: Optional[str] = None,
+        alias: str = DEFAULT_SERVO,
+        protocol: Protocol = Protocol.UDP,
+        port: int = 1061,
+        reconnection_retries: Optional[int] = None,
+        reconnection_timeout: Optional[int] = None,
+        servo_status_listener: bool = False,
+        net_status_listener: bool = False
+    ) -> None:
         """Connect to target servo by Ethernet
 
         Args:
-            ip (str): servo IP
-            dict_path (str): servo dictionary path.
-            alias (str): servo alias to reference it. ``default`` by default.
-            protocol (Protocol): UDP or TCP protocol. ``UDP`` by default.
-            port (int): servo port. ``1061`` by default.
-            reconnection_retries (int): Number of reconnection retried before declaring
+            ip : servo IP
+            dict_path : servo dictionary path.
+            alias : servo alias to reference it. ``default`` by default.
+            protocol : UDP or TCP protocol. ``UDP`` by default.
+            port : servo port. ``1061`` by default.
+            reconnection_retries : Number of reconnection retried before declaring
                 a connected or disconnected stated.
-            reconnection_timeout (int): Time in ms of the reconnection timeout.
-            servo_status_listener (bool): Toggle the listener of the servo for
+            reconnection_timeout : Time in ms of the reconnection timeout.
+            servo_status_listener : Toggle the listener of the servo for
                 its status, errors, faults, etc.
-            net_status_listener (bool): Toggle the listener of the network
+            net_status_listener : Toggle the listener of the network
                 status, connection and disconnection.
 
         Raises:
@@ -95,11 +108,17 @@ class Communication(metaclass=MCMetaClass):
                              servo_status_listener=servo_status_listener,
                              net_status_listener=net_status_listener)
 
-    def __servo_connect(self, ip, dict_path, alias,
-                        protocol=Protocol.UDP, port=1061,
-                        reconnection=None,
-                        servo_status_listener=False,
-                        net_status_listener=False):
+    def __servo_connect(
+        self,
+        ip: str,
+        dict_path: str,
+        alias: str,
+        protocol: Protocol = Protocol.UDP,
+        port: int = 1061,
+        reconnection: Optional[dict] = None,
+        servo_status_listener: bool = False,
+        net_status_listener: bool = False
+    ) -> None:
         if reconnection is None:
             reconnection = {}
         reconnection = {x: reconnection[x] for x in reconnection
@@ -118,28 +137,34 @@ class Communication(metaclass=MCMetaClass):
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = alias
 
-    def connect_servo_ecat(self, ifname, dict_path, slave=1,
-                           eoe_comm=True, alias=DEFAULT_SERVO,
-                           reconnection_retries=None,
-                           reconnection_timeout=None,
-                           servo_status_listener=False,
-                           net_status_listener=False):
+    def connect_servo_ecat(
+        self,
+        ifname: str,
+        dict_path: str,
+        slave: int = 1,
+        eoe_comm: bool = True,
+        alias: str = DEFAULT_SERVO,
+        reconnection_retries: Optional[int] = None,
+        reconnection_timeout: Optional[int] = None,
+        servo_status_listener: bool = False,
+        net_status_listener: bool = False
+    ) -> None:
         """Connect servo by ECAT with embedded master.
 
         Args:
-            ifname (str): interface name. It should have format
+            ifname : interface name. It should have format
                 ``\\Device\\NPF_[...]``.
-            dict_path (str): servo dictionary path.
-            slave (int): slave index. ``1`` by default.
-            eoe_comm (bool): use eoe communications if ``True``,
+            dict_path : servo dictionary path.
+            slave : slave index. ``1`` by default.
+            eoe_comm : use eoe communications if ``True``,
                 if ``False`` use SDOs. ``True`` by default.
-            alias (str): servo alias to reference it. ``default`` by default.
-            reconnection_retries (int): Number of reconnection retried before declaring
+            alias : servo alias to reference it. ``default`` by default.
+            reconnection_retries : Number of reconnection retried before declaring
                 a connected or disconnected stated.
-            reconnection_timeout (int): Time in ms of the reconnection timeout.
-            servo_status_listener (bool): Toggle the listener of the servo for
+            reconnection_timeout : Time in ms of the reconnection timeout.
+            servo_status_listener : Toggle the listener of the servo for
                 its status, errors, faults, etc.
-            net_status_listener (bool): Toggle the listener of the network
+            net_status_listener : Toggle the listener of the network
                 status, connection and disconnection.
 
         Raises:
@@ -169,28 +194,33 @@ class Communication(metaclass=MCMetaClass):
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = alias
 
-    def connect_servo_ecat_interface_ip(self, interface_ip, dict_path,
-                                        slave=1, eoe_comm=True,
-                                        alias=DEFAULT_SERVO,
-                                        reconnection_retries=None,
-                                        reconnection_timeout=None,
-                                        servo_status_listener=False,
-                                        net_status_listener=False):
+    def connect_servo_ecat_interface_ip(
+        self,
+        interface_ip: str,
+        dict_path: str,
+        slave: int = 1,
+        eoe_comm: bool = True,
+        alias: str = DEFAULT_SERVO,
+        reconnection_retries: Optional[int] = None,
+        reconnection_timeout: Optional[int] = None,
+        servo_status_listener: bool = False,
+        net_status_listener: bool = False
+    ) -> None:
         """Connect servo by ECAT with embedded master.
 
         Args:
-            interface_ip (str): IP of the interface to be connected to.
-            dict_path (str): servo dictionary path.
-            slave (int): slave index. ``1`` by default.
-            eoe_comm (bool): use eoe communications if ``True``,
+            interface_ip : IP of the interface to be connected to.
+            dict_path : servo dictionary path.
+            slave : slave index. ``1`` by default.
+            eoe_comm : use eoe communications if ``True``,
                 if ``False`` use SDOs. ``True`` by default.
-            alias (str): servo alias to reference it. ``default`` by default.
-            reconnection_retries (int): Number of reconnection retried before
+            alias : servo alias to reference it. ``default`` by default.
+            reconnection_retries : Number of reconnection retried before
             declaring a connected or disconnected stated.
-            reconnection_timeout (int): Time in ms of the reconnection timeout.
-            servo_status_listener (bool): Toggle the listener of the servo for
+            reconnection_timeout : Time in ms of the reconnection timeout.
+            servo_status_listener : Toggle the listener of the servo for
                 its status, errors, faults, etc.
-            net_status_listener (bool): Toggle the listener of the network
+            net_status_listener : Toggle the listener of the network
                 status, connection and disconnection.
         Raises:
             FileNotFoundError: Dictionary file is not found.
@@ -204,11 +234,11 @@ class Communication(metaclass=MCMetaClass):
         )
 
     @staticmethod
-    def __get_adapter_name(address):
+    def __get_adapter_name(address: str) -> Optional[str]:
         """Returns the adapter name of an adapter based on its address.
 
         Args:
-            address (str): ip expected adapter is expected to
+            address : ip expected adapter is expected to
             be configured with.
         """
         for adapter in ifaddr.get_adapters():
@@ -217,11 +247,11 @@ class Communication(metaclass=MCMetaClass):
                     return adapter.name.decode("utf-8")
         return None
 
-    def get_ifname_from_interface_ip(self, address):
+    def get_ifname_from_interface_ip(self, address: str) -> str:
         """Returns interface name based on the address ip of an interface.
 
         Args:
-            address (str): ip expected adapter is expected to
+            address : ip expected adapter is expected to
             be configured with.
 
         Raises:
@@ -229,7 +259,7 @@ class Communication(metaclass=MCMetaClass):
             is not found.
 
         Returns:
-            str: Ifname of the controller.
+            Ifname of the controller.
         """
         adapter_name = self.__get_adapter_name(address)
 
@@ -241,15 +271,15 @@ class Communication(metaclass=MCMetaClass):
             return "\\Device\\NPF_{}".format(adapter_name)
 
     @staticmethod
-    def get_ifname_by_index(index):
+    def get_ifname_by_index(index: int) -> str:
         """Return interface name by index.
 
         Args:
-            index (int): position of interface selected in
+            index : position of interface selected in
                 :func:`get_interface_name_list`.
 
         Returns:
-            str: real name of selected interface.
+            Real name of selected interface.
             It can be used for function :func:`connect_servo_ecat`.
 
         Raises:
@@ -261,39 +291,45 @@ class Communication(metaclass=MCMetaClass):
         )
 
     @staticmethod
-    def get_interface_name_list():
+    def get_interface_name_list() -> List[str]:
         """Get interface list.
 
         Returns:
-            list of str: List with interface readable names.
+            List with interface readable names.
 
         """
         return [x.nice_name for x in ifaddr.get_adapters()]
 
-    def connect_servo_ecat_interface_index(self, if_index, dict_path, slave=1,
-                                           eoe_comm=True, alias=DEFAULT_SERVO,
-                                           reconnection_retries=None,
-                                           reconnection_timeout=None,
-                                           servo_status_listener=False,
-                                           net_status_listener=False):
+    def connect_servo_ecat_interface_index(
+        self,
+        if_index: int,
+        dict_path: str,
+        slave: int = 1,
+        eoe_comm: bool = True,
+        alias: str = DEFAULT_SERVO,
+        reconnection_retries: Optional[int] = None,
+        reconnection_timeout: Optional[int] = None,
+        servo_status_listener: bool = False,
+        net_status_listener: bool = False
+    ) -> None:
         """Connect servo by ECAT with embedded master.
         Interface should be selected by index of list given in
         :func:`get_interface_name_list`.
 
         Args:
-            if_index (int): interface index in list given by function
+            if_index : interface index in list given by function
                 :func:`get_interface_name_list`.
-            dict_path (str): servo dictionary path.
-            slave (int): slave index. ``1`` by default.
-            eoe_comm (bool): use eoe communications if ``True``,
+            dict_path : servo dictionary path.
+            slave : slave index. ``1`` by default.
+            eoe_comm : use eoe communications if ``True``,
                 if ``False`` use SDOs. ``True`` by default.
-            alias (str): servo alias to reference it. ``default`` by default.
-            reconnection_retries (int): Number of reconnection retried before
+            alias : servo alias to reference it. ``default`` by default.
+            reconnection_retries : Number of reconnection retried before
             declaring a connected or disconnected stated.
-            reconnection_timeout (int): Time in ms of the reconnection timeout.
-            servo_status_listener (bool): Toggle the listener of the servo for
+            reconnection_timeout : Time in ms of the reconnection timeout.
+            servo_status_listener : Toggle the listener of the servo for
                 its status, errors, faults, etc.
-            net_status_listener (bool): Toggle the listener of the network
+            net_status_listener : Toggle the listener of the network
                 status, connection and disconnection.
 
         Raises:
@@ -306,27 +342,27 @@ class Communication(metaclass=MCMetaClass):
                                 reconnection_retries, reconnection_timeout,
                                 servo_status_listener, net_status_listener)
 
-    def scan_servos_ecat(self, ifname):
+    def scan_servos_ecat(self, ifname: str) -> List[int]:
         """Return a list of available servos.
 
         Args:
-            ifname (str): interface name. It should have format
+            ifname : interface name. It should have format
                 ``\\Device\\NPF_[...]``.
         Returns:
-            list of int: Drives available in the target interface.
+            Drives available in the target interface.
 
         """
         net = EthercatNetwork(ifname)
         return net.scan_slaves()
 
-    def scan_servos_ecat_interface_index(self, if_index):
+    def scan_servos_ecat_interface_index(self, if_index: int) -> List[int]:
         """Return a list of available servos.
 
         Args:
-            if_index (int): interface index in list given by function
+            if_index : interface index in list given by function
                 :func:`get_interface_name_list`.
         Returns:
-            list of int: Drives available in the target interface.
+            Drives available in the target interface.
 
         Raises:
             IndexError: If interface index is out of range.
@@ -334,26 +370,32 @@ class Communication(metaclass=MCMetaClass):
         """
         return self.scan_servos_ecat(self.get_ifname_by_index(if_index))
 
-    def connect_servo_canopen(self, can_device, dict_path, eds_file,
-                              node_id, baudrate=CAN_BAUDRATE.Baudrate_1M,
-                              channel=0, alias=DEFAULT_SERVO,
-                              servo_status_listener=False,
-                              net_status_listener=False):
+    def connect_servo_canopen(
+        self,
+        can_device: CAN_DEVICE,
+        dict_path: str,
+        eds_file: str,
+        node_id: int,
+        baudrate: CAN_BAUDRATE = CAN_BAUDRATE.Baudrate_1M,
+        channel: int = 0,
+        alias: str = DEFAULT_SERVO,
+        servo_status_listener: bool = False,
+        net_status_listener: bool = False
+    ) -> None:
         """Connect to target servo by CANOpen.
 
         Args:
-            can_device (CAN_DEVICE): CANOpen device type.
-            dict_path (str): servo dictionary path.
-            eds_file (str): EDS file path.
-            node_id (int): node id. It's posible scan node ids with
+            can_device : CANOpen device type.
+            dict_path : servo dictionary path.
+            eds_file : EDS file path.
+            node_id : node id. It's posible scan node ids with
                 :func:`scan_servos_canopen`.
-            baudrate (CAN_BAUDRATE): communication baudrate.
-                1 Mbit/s by default.
-            channel (int): CANopen device channel. ``0`` by default.
-            alias (str): servo alias to reference it. ``default`` by default.
-            servo_status_listener (bool): Toggle the listener of the servo for
+            baudrate : communication baudrate. 1 Mbit/s by default.
+            channel : CANopen device channel. ``0`` by default.
+            alias : servo alias to reference it. ``default`` by default.
+            servo_status_listener : Toggle the listener of the servo for
                 its status, errors, faults, etc.
-            net_status_listener (bool): Toggle the listener of the network
+            net_status_listener : Toggle the listener of the network
                 status, connection and disconnection.
 
         Raises:
@@ -381,17 +423,20 @@ class Communication(metaclass=MCMetaClass):
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = net_key
 
-    def scan_servos_canopen(self, can_device,
-                            baudrate=CAN_BAUDRATE.Baudrate_1M, channel=0):
+    def scan_servos_canopen(
+        self,
+        can_device: CAN_DEVICE,
+        baudrate: CAN_BAUDRATE = CAN_BAUDRATE.Baudrate_1M,
+        channel: int = 0,
+    ) -> List[int]:
         """Scan CANOpen device network to get all nodes.
 
         Args:
-            can_device (CAN_DEVICE): CANOpen device type.
-            baudrate (CAN_BAUDRATE): communication baudrate.
-                1 Mbit/s by default.
-            channel (int): CANOpen device channel. ``0`` by default.
+            can_device : CANOpen device type.
+            baudrate : communication baudrate. 1 Mbit/s by default.
+            channel : CANOpen device channel. ``0`` by default.
         Returns:
-            list of int: List of node ids available in the network.
+            List of node ids available in the network.
 
         """
         net_key = "{}_{}_{}".format(can_device, channel, baudrate)
@@ -407,11 +452,11 @@ class Communication(metaclass=MCMetaClass):
             return []
         return net.scan_slaves()
 
-    def disconnect(self, servo=DEFAULT_SERVO):
+    def disconnect(self, servo: str = DEFAULT_SERVO) -> None:
         """Disconnect servo.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
+            servo : servo alias to reference it. ``default`` by default.
 
         """
         drive = self.mc._get_drive(servo)
@@ -420,16 +465,21 @@ class Communication(metaclass=MCMetaClass):
         del self.mc.servos[servo]
         del self.mc.servo_net[servo]
 
-    def get_register(self, register, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+    def get_register(
+        self,
+        register: str,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS
+    ) -> Union[int, float, str]:
         """Return the value of a target register.
 
         Args:
-            register (str): register UID.
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
+            register : register UID.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
 
         Returns:
-            int, float or str: Current register value.
+            Current register value.
 
         Raises:
             ingenialink.exceptions.ILAccessError: If the register access is write-only.
@@ -444,15 +494,20 @@ class Communication(metaclass=MCMetaClass):
             return int(value)
         return value
 
-    def set_register(self, register, value, servo=DEFAULT_SERVO,
-                     axis=DEFAULT_AXIS):
+    def set_register(
+        self,
+        register: str,
+        value: Union[int, float],
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS
+    ) -> None:
         """Set a value of a target register.
 
         Args:
-            register (str): register UID.
-            value (int, float): new value for the register.
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
+            register : register UID.
+            value : new value for the register.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
 
         Raises:
             TypeError: If the value is of the wrong type.
@@ -488,20 +543,26 @@ class Communication(metaclass=MCMetaClass):
 
         drive.write(register, value, subnode=axis)
 
-    def get_sdo_register(self, index, subindex, dtype, string_size=None,
-                         servo=DEFAULT_SERVO):
+    def get_sdo_register(
+        self,
+        index: int,
+        subindex: int,
+        dtype: REG_DTYPE,
+        string_size: Optional[int] = None,
+        servo: str = DEFAULT_SERVO
+    ) -> Union[int, float, str]:
         """Return the value via SDO of a target register.
 
         Args:
-            index (int): register index.
-            subindex (int): register subindex.
-            dtype (REG_DTYPE): register data type.
-            string_size (int): if register data is a string,
+            index : register index.
+            subindex : register subindex.
+            dtype : register data type.
+            string_size : if register data is a string,
                 size in bytes is mandatory. ``None`` by default.
-            servo (str): servo alias to reference it. ``default`` by default.
+            servo : servo alias to reference it. ``default`` by default.
 
         Returns:
-            int, float or str: Current register value.
+            Current register value.
 
         Raises:
             TypeError: If string_size is not an int.
@@ -515,91 +576,107 @@ class Communication(metaclass=MCMetaClass):
         return drive.read_string_sdo(index, subindex,
                                      string_size, drive.slave)
 
-    def get_sdo_register_complete_access(self, index, size, servo=DEFAULT_SERVO):
+    def get_sdo_register_complete_access(
+        self,
+        index: int,
+        size: int,
+        servo: str = DEFAULT_SERVO
+    ) -> bytes:
         """Read register via SDO complete access, return value in bytes.
 
         Args:
-            index (int): register index.
-            size (int): size in bytes of register.
-            servo (str): servo alias to reference it. ``default`` by default.
+            index : register index.
+            size : size in bytes of register.
+            servo : servo alias to reference it. ``default`` by default.
 
         Returns:
-            bytes: Register value.
+            Register value.
 
         """
         drive = self.mc._get_drive(servo)
         return drive.read_sdo_complete_access(index, size, drive.slave)
 
-    def set_sdo_register(self, index, subindex, dtype, value,
-                         servo=DEFAULT_SERVO):
+    def set_sdo_register(
+        self,
+        index: int,
+        subindex: int,
+        dtype: REG_DTYPE,
+        value: Union[int, float],
+        servo: str = DEFAULT_SERVO
+    ) -> None:
         """Set the value via SDO of a target register.
 
         Args:
-            index (int): register index.
-            subindex (int): register subindex.
-            dtype (REG_DTYPE): register data type.
-            value (int or float): new value for the register.
-            servo (str): servo alias to reference it. ``default`` by default.
+            index : register index.
+            subindex : register subindex.
+            dtype : register data type.
+            value : new value for the register.
+            servo : servo alias to reference it. ``default`` by default.
 
         """
         drive = self.mc.servos[servo]
         drive.write_sdo(index, subindex, dtype.value, value, drive.slave)
 
-    def subscribe_net_status(self, callback, servo=DEFAULT_SERVO):
+    def subscribe_net_status(self, callback: Callable, servo: str = DEFAULT_SERVO) -> None:
         """Add a callback to net status change event.
 
         Args:
-            callback (callable): when net status changes callback is called.
-            servo (str): servo alias to reference it. ``default`` by default.
+            callback : when net status changes callback is called.
+            servo : servo alias to reference it. ``default`` by default.
 
         """
         network = self.mc._get_network(servo)
         network.subscribe_to_status(callback)
 
-    def unsubscribe_net_status(self, callback, servo=DEFAULT_SERVO):
+    def unsubscribe_net_status(self, callback: Callable, servo: str = DEFAULT_SERVO) -> None:
         """Remove net status change event callback.
 
         Args:
-            callback (callable): callback to remove.
-            servo (str): servo alias to reference it. ``default`` by default.
+            callback : callback to remove.
+            servo : servo alias to reference it. ``default`` by default.
 
         """
         network = self.mc._get_network(servo)
         network.unsubscribe_from_status(callback)
 
-    def subscribe_servo_status(self, callback, servo=DEFAULT_SERVO):
+    def subscribe_servo_status(self, callback: Callable, servo: str = DEFAULT_SERVO) -> None:
         """Add a callback to servo status change event.
 
         Args:
-            callback (callable): when servo status changes callback is called.
-            servo (str): servo alias to reference it. ``default`` by default.
+            callback : when servo status changes callback is called.
+            servo : servo alias to reference it. ``default`` by default.
 
         """
         drive = self.mc._get_drive(servo)
         drive.subscribe_to_status(callback)
 
-    def unsubscribe_servo_status(self, callback, servo=DEFAULT_SERVO):
+    def unsubscribe_servo_status(self, callback: Callable, servo: str = DEFAULT_SERVO) -> None:
         """Remove servo status change event callback.
 
         Args:
-            callback (callable): callback to remove.
-            servo (str): servo alias to reference it. ``default`` by default.
+            callback : callback to remove.
+            servo : servo alias to reference it. ``default`` by default.
 
         """
         drive = self.mc._get_drive(servo)
         drive.unsubscribe_from_status(callback)
 
-    def load_firmware_canopen(self, fw_file, servo=DEFAULT_SERVO,
-                              status_callback=None, progress_callback=None,
-                              error_enabled_callback=None):
+    def load_firmware_canopen(
+        self,
+        fw_file: str,
+        servo: str = DEFAULT_SERVO,
+        status_callback: Optional[Callable] = None,
+        progress_callback: Optional[Callable] = None,
+        error_enabled_callback: Optional[Callable] = None
+    ) -> None:
         """Load firmware via CANopen.
 
         Args:
-            fw_file (str): Firmware file path.
-            servo (str): servo alias to reference it. ``default`` by default.
-            status_callback (callable): callback with status.
-            progress_callback (callable): callback with progress.
-            error_enabled_callback (callable): callback with errors enabled.
+            fw_file : Firmware file path.
+            servo : servo alias to reference it. ``default`` by default.
+            status_callback : callback with status.
+            progress_callback : callback with progress.
+            error_enabled_callback : callback with errors enabled.
 
         Raises:
             ValueError: If servo is not connected via CANopen.
@@ -616,15 +693,21 @@ class Communication(metaclass=MCMetaClass):
         net.load_firmware(drive.target, fw_file, status_callback,
                           progress_callback, error_enabled_callback)
 
-    def load_firmware_ecat(self, ifname, fw_file, slave=1, boot_in_app=True):
+    def load_firmware_ecat(
+        self,
+        ifname: str,
+        fw_file: str,
+        slave: int = 1,
+        boot_in_app: bool = True
+    ) -> None:
         """Load firmware via ECAT.
 
         Args:
-            ifname (str): interface name. It should have format
+            ifname : interface name. It should have format
                 ``\\Device\\NPF_[...]``.
-            fw_file (str): Firmware file path.
-            slave (int): slave index. ``1`` by default.
-            boot_in_app (bool): If summit series -> True.
+            fw_file : Firmware file path.
+            slave : slave index. ``1`` by default.
+            boot_in_app : If summit series -> True.
                                 If capitan series -> False.
                                 If custom device -> Contact manufacturer.
 
@@ -632,16 +715,21 @@ class Communication(metaclass=MCMetaClass):
         net = EthercatNetwork(ifname)
         net.load_firmware(fw_file, slave, boot_in_app)
 
-    def load_firmware_ecat_interface_index(self, if_index, fw_file,
-                                           slave=1, boot_in_app=True):
+    def load_firmware_ecat_interface_index(
+        self,
+        if_index: int,
+        fw_file: str,
+        slave: int = 1,
+        boot_in_app: bool = True
+    ) -> None:
         """Load firmware via ECAT.
 
         Args:
-            if_index (int): interface index in list given by function
+            if_index : interface index in list given by function
                 :func:`get_interface_name_list`.
-            fw_file (str): Firmware file path.
-            slave (int): slave index. ``1`` by default.
-            boot_in_app (bool): If summit series -> True.
+            fw_file : Firmware file path.
+            slave : slave index. ``1`` by default.
+            boot_in_app : If summit series -> True.
                                 If capitan series -> False.
                                 If custom device -> Contact manufacturer.
 
@@ -649,7 +737,13 @@ class Communication(metaclass=MCMetaClass):
         self.load_firmware_ecat(self.get_ifname_by_index(if_index),
                                 fw_file, slave, boot_in_app)
 
-    def load_firmware_ethernet(self, ip, fw_file, ftp_user=None, ftp_pwd=None):
+    def load_firmware_ethernet(
+        self,
+        ip: str,
+        fw_file: str,
+        ftp_user: Optional[str] = None,
+        ftp_pwd: Optional[str] = None
+    ) -> None:
         """Load firmware via Ethernet. Boot mode is needed to load firmware.
 
         .. warning::
@@ -657,10 +751,10 @@ class Communication(metaclass=MCMetaClass):
             During the process, the servo will be not operative.
 
         Args:
-            ip (str): servo IP.
-            fw_file (str): Firmware file path.
-            ftp_user (str): FTP user to connect with.
-            ftp_pwd (str): FTP password for the given user.
+            ip : servo IP.
+            fw_file : Firmware file path.
+            ftp_user : FTP user to connect with.
+            ftp_pwd : FTP password for the given user.
 
         """
         net = EthernetNetwork()
@@ -673,8 +767,13 @@ class Communication(metaclass=MCMetaClass):
         command = ['ping', ip]
         return subprocess.call(command) == 0
 
-    def boot_mode_and_load_firmware_ethernet(self, fw_file, servo=DEFAULT_SERVO,
-                                             ftp_user=None, ftp_pwd=None):
+    def boot_mode_and_load_firmware_ethernet(
+        self,
+        fw_file: str,
+        servo: str = DEFAULT_SERVO,
+        ftp_user: Optional[str] = None,
+        ftp_pwd: Optional[str] = None
+    ) -> None:
         """Set servo to boot mode and load firmware. Servo is disconnected.
 
         .. warning::
@@ -682,10 +781,10 @@ class Communication(metaclass=MCMetaClass):
             During the process, the servo will be not operative.
 
         Args:
-            fw_file (str): Firmware file path.
-            servo (str): servo alias to reference it. ``default`` by default.
-            ftp_user (str): FTP user to connect with.
-            ftp_pwd (str): FTP password for the given user.
+            fw_file : Firmware file path.
+            servo : servo alias to reference it. ``default`` by default.
+            ftp_user : FTP user to connect with.
+            ftp_pwd : FTP password for the given user.
 
         Raises:
             ValueError: If servo is not connected via Ethernet.
@@ -705,11 +804,11 @@ class Communication(metaclass=MCMetaClass):
             time.sleep(1)
         self.load_firmware_ethernet(ip, fw_file, ftp_user, ftp_pwd)
 
-    def boot_mode(self, servo=DEFAULT_SERVO):
+    def boot_mode(self, servo: str = DEFAULT_SERVO) -> None:
         """Set servo to boot mode. Servo is disconnected.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
+            servo : servo alias to reference it. ``default`` by default.
 
         """
         PASSWORD_FORCE_BOOT_COCO = 0x424F4F54

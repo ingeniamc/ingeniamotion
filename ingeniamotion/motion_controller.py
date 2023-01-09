@@ -1,5 +1,8 @@
 from enum import IntEnum
 
+from ingenialink.network import Network
+from ingenialink.servo import Servo
+
 from .configuration import Configuration
 from .motion import Motion
 from .capture import Capture
@@ -25,49 +28,54 @@ class MotionController:
         self.__errors = Errors(self)
         self.__info = Information(self)
 
-    def servo_name(self, servo=DEFAULT_SERVO):
+    def servo_name(self, servo: str = DEFAULT_SERVO) -> str:
         return "{} ({})".format(self.servos[servo].info["product_code"], servo)
 
-    def get_register_enum(self, register, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+    def get_register_enum(
+        self,
+        register: int,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS
+    ) -> IntEnum:
         drive = self.servos[servo]
         enum_list = drive.dictionary.registers(axis)[register].enums
         enum_dict = {x["label"]: x["value"] for x in enum_list}
         return IntEnum(register, enum_dict)
 
-    def is_alive(self, servo=DEFAULT_SERVO):
+    def is_alive(self, servo: str = DEFAULT_SERVO) -> bool:
         """Check if the servo is alive.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
+            servo : servo alias to reference it. ``default`` by default.
 
         Returns:
-            bool: ``True`` if the servo is alive, ``False`` otherwise.
+            ``True`` if the servo is alive, ``False`` otherwise.
 
         """
         drive = self.mc._get_drive(servo)
         return drive.is_alive()
 
-    def _get_network(self, servo):
+    def _get_network(self, servo: str) -> Network:
         """Return servo network instance.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
+            servo : servo alias to reference it. ``default`` by default.
 
         Returns:
-            ingenialink.network.Network: servo Ingenialink Network instance.
+            Network instance of the servo.
 
         """
         net_key = self.servo_net[servo]
         return self.net[net_key]
 
-    def _get_drive(self, servo):
+    def _get_drive(self, servo: str) -> Servo:
         """Return servo drive instance.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
+            servo : servo alias to reference it. ``default`` by default.
 
         Returns:
-            ingenialink.servo.Servo: servo Ingenialink Servo instance.
+            Servo instance.
 
         """
         return self.servos[servo]
