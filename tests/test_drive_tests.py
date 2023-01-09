@@ -9,8 +9,12 @@ from ingeniamotion.exceptions import IMRegisterNotExist
 from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder1_test import AbsoluteEncoder1Test
 from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder2_test import AbsoluteEncoder2Test
 from ingeniamotion.wizard_tests.feedbacks_tests.digital_hall_test import DigitalHallTest
-from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental1_test import DigitalIncremental1Test
-from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental2_test import DigitalIncremental2Test
+from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental1_test import (
+    DigitalIncremental1Test,
+)
+from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental2_test import (
+    DigitalIncremental2Test,
+)
 from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import SecondarySSITest
 from ingeniamotion.wizard_tests.phase_calibration import Phasing
 from ingeniamotion.wizard_tests.phasing_check import PhasingCheck
@@ -19,6 +23,7 @@ from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
 CURRENT_QUADRATURE_SET_POINT_REGISTER = "CL_CUR_Q_SET_POINT"
 RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
 MAXIMUM_CONTINUOUS_CURRENT_DRIVE_PROTECTION = "DRV_PROT_MAN_MAX_CONT_CURRENT_VALUE"
+
 
 @pytest.fixture
 def force_fault(motion_controller):
@@ -145,13 +150,18 @@ def test_sto_test(motion_controller):
 
 
 @pytest.mark.smoke
-@pytest.mark.parametrize("sto_value, message", [
-    (0x4, "STO Active"), (0x1F, "Abnormal STO Latched"), (0x8, "Abnormal STO"),
-    (0x73, "Abnormal Supply"), (0x5, "STO Inputs Differ")
-])
+@pytest.mark.parametrize(
+    "sto_value, message",
+    [
+        (0x4, "STO Active"),
+        (0x1F, "Abnormal STO Latched"),
+        (0x8, "Abnormal STO"),
+        (0x73, "Abnormal Supply"),
+        (0x5, "STO Inputs Differ"),
+    ],
+)
 def test_sto_test_error(mocker, motion_controller, sto_value, message):
-    mocker.patch('ingeniamotion.configuration.Configuration.get_sto_status',
-                 return_value=sto_value)
+    mocker.patch("ingeniamotion.configuration.Configuration.get_sto_status", return_value=sto_value)
     mc, alias = motion_controller
     results = mc.tests.sto_test(servo=alias)
     assert results["result_severity"] == SeverityLevel.FAIL
@@ -218,13 +228,18 @@ def test_phasing_check_stop(motion_controller):
 
 
 @pytest.mark.develop
-@pytest.mark.parametrize("test_currents", [
-    "Rated current", "Drive current", "Same value"
-])
-@pytest.mark.parametrize("test_sensor", [
-    SensorType.ABS1, SensorType.QEI, SensorType.HALLS,
-    SensorType.SSI2, SensorType.BISSC2, SensorType.QEI2
-])
+@pytest.mark.parametrize("test_currents", ["Rated current", "Drive current", "Same value"])
+@pytest.mark.parametrize(
+    "test_sensor",
+    [
+        SensorType.ABS1,
+        SensorType.QEI,
+        SensorType.HALLS,
+        SensorType.SSI2,
+        SensorType.BISSC2,
+        SensorType.QEI2,
+    ],
+)
 def test_current_ramp_up(motion_controller, test_currents, test_sensor):
     mc, alias = motion_controller
 
@@ -235,13 +250,12 @@ def test_current_ramp_up(motion_controller, test_currents, test_sensor):
         SensorType.HALLS: DigitalHallTest(mc, alias, axis),
         SensorType.SSI2: SecondarySSITest(mc, alias, axis),
         SensorType.BISSC2: AbsoluteEncoder2Test(mc, alias, axis),
-        SensorType.QEI2: DigitalIncremental2Test(mc, alias, axis)
+        SensorType.QEI2: DigitalIncremental2Test(mc, alias, axis),
     }
     feedbacks_test = test_feedback_options[test_sensor]
 
     current_drive = mc.communication.get_register(
-        MAXIMUM_CONTINUOUS_CURRENT_DRIVE_PROTECTION,
-        servo=alias, axis=1
+        MAXIMUM_CONTINUOUS_CURRENT_DRIVE_PROTECTION, servo=alias, axis=1
     )
 
     if test_currents == "Rated current":
@@ -251,16 +265,12 @@ def test_current_ramp_up(motion_controller, test_currents, test_sensor):
     else:
         current_motor = current_drive
 
-    mc.communication.set_register(
-        RATED_CURRENT_REGISTER, current_motor,
-        servo=alias, axis=1
-    )
+    mc.communication.set_register(RATED_CURRENT_REGISTER, current_motor, servo=alias, axis=1)
 
     feedbacks_test.current_ramp_up()
 
     current_quadrature = mc.communication.get_register(
-        CURRENT_QUADRATURE_SET_POINT_REGISTER,
-        servo=alias, axis=1
+        CURRENT_QUADRATURE_SET_POINT_REGISTER, servo=alias, axis=1
     )
 
     test_max_current = current_quadrature / feedbacks_test.PERCENTAGE_CURRENT_USED
@@ -271,5 +281,3 @@ def test_current_ramp_up(motion_controller, test_currents, test_sensor):
         assert pytest.approx(test_max_current) == current_motor
     else:
         assert pytest.approx(test_max_current) == current_drive == current_motor
-
-

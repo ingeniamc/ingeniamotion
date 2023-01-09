@@ -12,4 +12,3 @@ class SecondarySSITest(Feedbacks):
     def __init__(self, mc, servo, axis):
         super().__init__(mc, servo, axis)
         self.backup_registers_names += self.BACKUP_REGISTERS_SSI2
-
