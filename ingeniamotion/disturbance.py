@@ -7,6 +7,7 @@ from ingeniamotion.enums import MonitoringVersion, REG_DTYPE
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 from .exceptions import IMDisturbanceError, IMStatusWordError
 from ingenialink.ipb.register import IPBRegister
+from ingenialink.ethernet.register import EthernetRegister
 
 
 def check_disturbance_disabled(func):
@@ -140,7 +141,7 @@ class Disturbance:
                                          .format(register))
             channel["dtype"] = dtype
             address_offset = self.REGISTER_MAP_OFFSET * (subnode - 1)
-            if isinstance(register_obj, IPBRegister):
+            if isinstance(register_obj, (IPBRegister, EthernetRegister)):
                 mapped_reg = register_obj.address + address_offset
             else:
                 mapped_reg = register_obj.idx
