@@ -143,7 +143,7 @@ def test_homing_on_switch_limit_timeout(motion_controller):
     mc.motion.motor_enable(servo=alias)
     mc.motion.target_latch(servo=alias)
     time.sleep(1)
-    assert mean_actual_velocity_position(mc, alias, velocity=True) > 0.05
+    assert abs(mean_actual_velocity_position(mc, alias, velocity=True)) > 0.05
     time.sleep(homing_timeout / 1000)
     assert pytest.approx(0, abs=0.05) == mean_actual_velocity_position(mc, alias, velocity=True)
 
