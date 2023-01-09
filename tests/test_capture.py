@@ -28,7 +28,7 @@ def __compare_signals(expected_signal, received_signal, length_tol=None, fft_tol
 
 def test_create_poller(motion_controller):
     registers = [{"name": "CL_CUR_Q_SET_POINT", "axis": 1}]
-    sampling_time = 0.125
+    sampling_time = 0.25
     mc, alias = motion_controller
     mc.motion.set_current_quadrature(-0.2, servo=alias)
     poller = mc.capture.create_poller(registers, alias, sampling_time, buffer_size=120)
