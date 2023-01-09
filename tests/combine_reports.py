@@ -149,8 +149,11 @@ def update_report(report_dict, combined_report, classname, name, protocol, slave
         message = combined_report["testcases"][classname][name]["message"]
         output = combined_report["testcases"][classname][name]["output"]
 
-    time = combined_report["testcases"][classname][name]["time"] + report_dict["testcases"][classname][name]["time"]
-    
+    time = (
+        combined_report["testcases"][classname][name]["time"]
+        + report_dict["testcases"][classname][name]["time"]
+    )
+
     return result, message, output, time
 
 

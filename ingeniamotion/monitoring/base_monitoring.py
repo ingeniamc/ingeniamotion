@@ -247,9 +247,7 @@ class Monitoring(ABC):
 
         """
         if total_time / 2 < abs(trigger_delay):
-            raise ValueError(
-                "trigger_delay value should be between -total_time/2 and total_time/2"
-            )
+            raise ValueError("trigger_delay value should be between -total_time/2 and total_time/2")
         total_num_samples = int(self.sampling_freq * total_time)
         trigger_delay_samples = int(((total_time / 2) - trigger_delay) * self.sampling_freq)
         self.configure_number_samples(total_num_samples, trigger_delay_samples)
