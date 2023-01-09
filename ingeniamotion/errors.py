@@ -1,4 +1,5 @@
 from enum import IntEnum
+from typing import Optional, Tuple, List
 
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
@@ -70,7 +71,7 @@ class Errors(metaclass=MCMetaClass):
         is_warning = (error & self.ERROR_WARNING_BIT) >> self.ERROR_WARNING_SHIFT
         return error_code, subnode, bool(is_warning)
 
-    def __get_error_location(self, servo=DEFAULT_SERVO):
+    def __get_error_location(self, servo: str = DEFAULT_SERVO):
         if self.mc.info.register_exists(
                 self.LAST_ERROR_SYSTEM_REGISTER, axis=0, servo=servo):
             # Check System last error, if it does not exist check to CoCo
@@ -94,15 +95,19 @@ class Errors(metaclass=MCMetaClass):
         if location == self.ErrorLocation.COCO:
             return 0, self.ErrorLocation.COCO
 
-    def get_last_error(self, servo=DEFAULT_SERVO, axis=None):
+    def get_last_error(
+        self,
+        servo: str = DEFAULT_SERVO,
+        axis: Optional[int] = None
+    ) -> Tuple[int, int, bool]:
         """Return last servo error.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): axis force read errors in target axis. ``None`` by default.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : axis force read errors in target axis. ``None`` by default.
 
         Returns:
-            (int, int, bool): Returns error data.
+            Returns error data.
 
             code (int):
                 Code error.
@@ -120,15 +125,19 @@ class Errors(metaclass=MCMetaClass):
         )
         return self.__parse_error_to_tuple(error, error_version, axis)
 
-    def get_last_buffer_error(self, servo=DEFAULT_SERVO, axis=None):
+    def get_last_buffer_error(
+        self,
+        servo: str = DEFAULT_SERVO,
+        axis: Optional[int] = None
+    ) -> Tuple[int, int, bool]:
         """Get error code from error buffer last position.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): axis force read errors in target axis. ``None`` by default.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : axis force read errors in target axis. ``None`` by default.
 
         Returns:
-            (int, int, bool): Returns error data.
+            Returns error data.
 
             code (int):
                 Code error.
@@ -141,17 +150,21 @@ class Errors(metaclass=MCMetaClass):
         """
         return self.get_buffer_error_by_index(0, servo=servo, axis=axis)
 
-    def get_buffer_error_by_index(self, index, servo=DEFAULT_SERVO,
-                                  axis=None):
+    def get_buffer_error_by_index(
+        self,
+        index: int,
+        servo: str = DEFAULT_SERVO,
+        axis: Optional[int] = None
+    ) -> Tuple[int, int, bool]:
         """Get error code from buffer error target index.
 
         Args:
-            index (int): buffer error index. It must be less than ``32``.
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): axis force read errors in target axis. ``None`` by default.
+            index : buffer error index. It must be less than ``32``.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : axis force read errors in target axis. ``None`` by default.
 
         Returns:
-            (int, int, bool): Returns error data.
+            Returns error data.
 
             code (int):
                 Code error.
@@ -179,15 +192,19 @@ class Errors(metaclass=MCMetaClass):
         )
         return self.__parse_error_to_tuple(error, error_version, axis)
 
-    def get_number_total_errors(self, servo=DEFAULT_SERVO, axis=None):
+    def get_number_total_errors(
+        self,
+        servo: str = DEFAULT_SERVO,
+        axis: Optional[int] = None
+    ) -> int:
         """Return total number of drive errors.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): axis force read errors in target axis. ``None`` by default.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : axis force read errors in target axis. ``None`` by default.
 
         Returns:
-            int: Total number of errors.
+            Total number of errors.
         """
         error_version = self.__get_error_location(servo)
         subnode, error_location = self.__get_error_subnode(error_version, axis)
@@ -197,15 +214,19 @@ class Errors(metaclass=MCMetaClass):
             axis=subnode
         )
 
-    def get_all_errors(self, servo=DEFAULT_SERVO, axis=None):
+    def get_all_errors(
+        self,
+        servo: str = DEFAULT_SERVO,
+        axis: Optional[int] = None
+    ) -> List[Tuple[int, int, bool]]:
         """Return list with all error codes.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): axis force read errors in target axis. ``None`` by default.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : axis force read errors in target axis. ``None`` by default.
 
         Returns:
-            list of tuple: List of all errors.
+            List of all errors.
         """
         err_list = []
         err_num = self.get_number_total_errors(servo, axis)
@@ -215,42 +236,46 @@ class Errors(metaclass=MCMetaClass):
             err_list.append(error)
         return err_list
 
-    def is_fault_active(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+    def is_fault_active(self, servo: str = DEFAULT_SERVO, axis=DEFAULT_AXIS) -> bool:
         """Return if fault is active.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
 
         Returns:
-            bool: ``True`` if fault is active, else ``False``.
+            ``True`` if fault is active, else ``False``.
         """
         status_word = self.mc.configuration.get_status_word(
             servo=servo, axis=axis)
         return bool(status_word & self.STATUS_WORD_FAULT_BIT)
 
-    def is_warning_active(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+    def is_warning_active(self, servo: str = DEFAULT_SERVO, axis=DEFAULT_AXIS) -> bool:
         """Return if warning is active.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
 
         Returns:
-            bool: ``True`` if warning is active, else ``False``.
+            ``True`` if warning is active, else ``False``.
         """
         status_word = self.mc.configuration.get_status_word(servo=servo, axis=axis)
         return bool(status_word & self.STATUS_WORD_WARNING_BIT)
 
-    def get_error_data(self, error_code, servo=DEFAULT_SERVO):
+    def get_error_data(
+        self,
+        error_code: int,
+        servo: str = DEFAULT_SERVO
+    ) -> Tuple[str, str, str, str]:
         """Return error info from target error_code.
 
         Args:
-            error_code (int): target error code.
-            servo (str): servo alias to reference it. ``default`` by default.
+            error_code : target error code.
+            servo : servo alias to reference it. ``default`` by default.
 
         Returns:
-            (str, str, str, str): Returns error info.
+           Returns error info.
 
             id (str):
                 Error Id

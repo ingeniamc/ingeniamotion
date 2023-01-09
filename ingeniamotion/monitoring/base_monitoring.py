@@ -4,6 +4,7 @@ import numpy as np
 import ingenialogger
 from functools import wraps
 from abc import ABC, abstractmethod
+from typing import Optional, Union, Callable, List
 
 from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 from ingeniamotion.exceptions import IMMonitoringError
@@ -74,14 +75,14 @@ class Monitoring(ABC):
         self._version = None
 
     @check_monitoring_disabled
-    def set_frequency(self, prescaler):
+    def set_frequency(self, prescaler: int) -> None:
         """Function to define monitoring frequency with a prescaler. Frequency will be
         ``Position & velocity loop rate frequency / prescaler``, see
         :func:`ingeniamotion.configuration.Configuration.get_position_and_velocity_loop_rate`
         to know about this frequency. Monitoring must be disabled.
 
         Args:
-            prescaler (int): determines monitoring frequency.
+            prescaler : determines monitoring frequency.
                 It must be ``1`` or higher.
 
         Raises:
@@ -104,11 +105,11 @@ class Monitoring(ABC):
         )
 
     @check_monitoring_disabled
-    def map_registers(self, registers):
+    def map_registers(self, registers: List[dict]) -> None:
         """Map registers to monitoring. Monitoring must be disabled.
 
         Args:
-            registers (list of dict): List of registers to map.
+            registers : List of registers to map.
                 Each register must be a dict with two keys:
 
                 .. code-block:: python
@@ -164,16 +165,21 @@ class Monitoring(ABC):
 
     @abstractmethod
     @check_monitoring_disabled
-    def set_trigger(self, trigger_mode, edge_condition=None,
-                    trigger_signal=None, trigger_value=None):
+    def set_trigger(
+        self,
+        trigger_mode: MonitoringSoCType,
+        edge_condition: Optional[MonitoringSoCConfig] = None,
+        trigger_signal: Optional[dict] = None,
+        trigger_value: Union[None, int, float] = None
+    ) -> None:
         """Configure monitoring trigger. Monitoring must be disabled.
 
         Args:
-            trigger_mode (MonitoringSoCType): monitoring start of condition type.
-            edge_condition (MonitoringSoCConfig): edge event type. ``None`` by default.
-            trigger_signal (dict): dict with name and axis of trigger signal
+            trigger_mode : monitoring start of condition type.
+            edge_condition : edge event type. ``None`` by default.
+            trigger_signal : dict with name and axis of trigger signal
                 for rising or falling edge trigger. ``None`` by default.
-            trigger_value (int or float): value for rising or falling edge trigger.
+            trigger_value : value for rising or falling edge trigger.
                 ``None`` by default.
 
         Raises:
@@ -211,12 +217,16 @@ class Monitoring(ABC):
 
     @abstractmethod
     @check_monitoring_disabled
-    def configure_number_samples(self, total_num_samples, trigger_delay_samples):
+    def configure_number_samples(
+        self,
+        total_num_samples: int,
+        trigger_delay_samples: int
+    ) -> None:
         """Configure monitoring number of samples. Monitoring must be disabled.
 
         Args:
-            total_num_samples (int): monitoring total number of samples.
-            trigger_delay_samples (int): monitoring number of samples before trigger.
+            total_num_samples : monitoring total number of samples.
+            trigger_delay_samples : monitoring number of samples before trigger.
                 It should be less than total_num_samples. Minimum ``0``.
 
         Raises:
@@ -228,13 +238,17 @@ class Monitoring(ABC):
         pass
 
     @check_monitoring_disabled
-    def configure_sample_time(self, total_time, trigger_delay):
+    def configure_sample_time(
+        self,
+        total_time: float,
+        trigger_delay: float
+    ) -> None:
         """Configure monitoring number of samples defines by sample and trigger
         delay time. Monitoring must be disabled.
 
         Args:
-            total_time (float): monitoring sample total time, in seconds.
-            trigger_delay (float): trigger delay in seconds. Value should be
+            total_time : monitoring sample total time, in seconds.
+            trigger_delay : trigger delay in seconds. Value should be
                 between ``-total_time/2`` and  ``total_time/2``.
 
         Raises:
@@ -302,16 +316,19 @@ class Monitoring(ABC):
         pass
 
     # TODO Study remove progress_callback
-    def read_monitoring_data(self, timeout=None, progress_callback=None):
+    def read_monitoring_data(
+        self,
+        timeout: Optional[float] = None,
+        progress_callback: Optional[Callable] = None
+    ) -> List[list]:
         """Blocking function that read the monitoring data.
 
         Args:
-            timeout (float): maximum time trigger is waited, in seconds.
+            timeout : maximum time trigger is waited, in seconds.
                 ``None`` by default.
 
         Returns:
-            list of list: data of monitoring. Each element of the list is a
-            different register data.
+            Data of monitoring. Each element of the list is a different register data.
 
         """
         drive = self.mc.servos[self.servo]
@@ -369,11 +386,11 @@ class Monitoring(ABC):
         self.logger.debug("Demanded size: %d bytes, buffer max size: %d bytes.",
                           size_demand, max_size)
 
-    def get_trigger_type(self):
+    def get_trigger_type(self) -> MonitoringSoCType:
         """Get monitoring trigger type.
 
         Returns:
-            MonitoringSoCType: trigger type
+            Trigger type
 
         """
         register_value = self.mc.communication.get_register(
@@ -386,17 +403,17 @@ class Monitoring(ABC):
         except ValueError:
             return register_value
 
-    def raise_forced_trigger(self, blocking=False, timeout=5):
+    def raise_forced_trigger(self, blocking: bool = False, timeout: float = 5) -> bool:
         """Raise trigger for Forced Trigger type.
 
         Args:
-            blocking (bool): if ``True``, functions wait until trigger is forced
+            blocking : if ``True``, functions wait until trigger is forced
                 (or until the timeout) If ``False``, function try to raise the
                 trigger only once.
-            timeout (float): blocking timeout in seconds. ``5`` by default.
+            timeout : blocking timeout in seconds. ``5`` by default.
 
         Returns:
-            bool: Return ``True`` if trigger is raised, else ``False``.
+            Return ``True`` if trigger is raised, else ``False``.
 
         """
         trigger_mode = self.get_trigger_type()
@@ -415,16 +432,15 @@ class Monitoring(ABC):
                 1, servo=self.servo, axis=0)
         return mon_process_stage == MonitoringProcessStage.WAITING_FOR_TRIGGER
 
-    def read_monitoring_data_forced_trigger(self, trigger_timeout=5):
+    def read_monitoring_data_forced_trigger(self, trigger_timeout: float = 5) -> List[list]:
         """Trigger and read Forced Trigger monitoring.
 
         Args:
-            trigger_timeout (float): maximum time function wait to raise the trigger,
+            trigger_timeout : maximum time function wait to raise the trigger,
                 in seconds. ``5`` by default.
 
         Returns:
-            list of list: data of monitoring. Each element of the list is a
-            different register data.
+            Data of monitoring. Each element of the list is a different register data.
 
         """
         is_triggered = self.raise_forced_trigger(blocking=True, timeout=trigger_timeout)
