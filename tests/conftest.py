@@ -1,10 +1,13 @@
 import json
 import pytest
+from typing import Dict
 
 from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE, SensorType
 from ingeniamotion import MotionController
 
 ALLOW_PROTOCOLS = ["eoe", "soem", "canopen"]
+
+test_report_key = pytest.StashKey[Dict[str, pytest.CollectReport]]()
 
 
 def pytest_addoption(parser):
@@ -134,3 +137,24 @@ def clean_and_restore_feedbacks(motion_controller):
     mc.configuration.set_velocity_feedback(vel, servo=alias)
     mc.configuration.set_position_feedback(pos, servo=alias)
     mc.configuration.set_auxiliar_feedback(aux, servo=alias)
+
+
+@pytest.hookimpl(tryfirst=True, hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    # execute all other hooks to obtain the report object
+    outcome = yield
+    rep = outcome.get_result()
+
+    # store test results for each phase of a call, which can be "setup", "call", "teardown"
+    item.stash.setdefault(test_report_key, {})[rep.when] = rep
+
+
+@pytest.fixture(scope="function", autouse=True)
+def load_configuration_if_test_fails(request, motion_controller, read_config):
+    mc, alias = motion_controller
+    yield
+
+    report = request.node.stash[test_report_key]
+    if report["setup"].failed or ("call" not in report) or report["call"].failed:
+        mc.configuration.load_configuration(read_config["config_file"], servo=alias)
+        mc.motion.fault_reset(servo=alias)

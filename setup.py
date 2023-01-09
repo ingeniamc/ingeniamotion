@@ -38,7 +38,7 @@ setuptools.setup(
     ],
     extras_require={
         "tests": [
-            "pytest==6.2.4",
+            "pytest==7.0.1",
             "pytest-cov==2.12.1",
             "pytest-mock==3.6.1",
             "ping3==3.0.2",
@@ -48,6 +48,7 @@ setuptools.setup(
             "sphinx==3.5.4",
             "sphinx-rtd-theme==1.0.0",
             "sphinxcontrib-bibtex==2.4.1",
+            "sphinx_autodoc_typehints==1.19.5",
             "matplotlib==3.3.4",
             "nbsphinx==0.8.7",
             "rst2pdf==0.98",
