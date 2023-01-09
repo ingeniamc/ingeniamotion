@@ -3,8 +3,13 @@ import ingenialogger
 
 from enum import IntEnum
 
-from ingeniamotion.enums import PhasingMode, OperationMode,\
-    SensorCategory, SensorType, SeverityLevel
+from ingeniamotion.enums import (
+    PhasingMode,
+    OperationMode,
+    SensorCategory,
+    SensorType,
+    SeverityLevel,
+)
 from ingeniamotion.exceptions import IMRegisterNotExist
 from .base_test import BaseTest, TestError
 
@@ -44,7 +49,7 @@ class Phasing(BaseTest):
         "COMMU_PHASING_MODE",
         "MOT_COMMU_MOD",
         "COMMU_ANGLE_INTEGRITY1_OPTION",
-        "COMMU_ANGLE_INTEGRITY2_OPTION"
+        "COMMU_ANGLE_INTEGRITY2_OPTION",
     ]
 
     class ResultType(IntEnum):
@@ -56,8 +61,9 @@ class Phasing(BaseTest):
         ResultType.FAIL: "Phasing process has failed.  Review your motor configuration.",
     }
 
-    def __init__(self, mc, servo, axis, default_current=True,
-                 default_timeout=True, default_accuracy=True):
+    def __init__(
+        self, mc, servo, axis, default_current=True, default_timeout=True, default_accuracy=True
+    ):
         super().__init__()
         self.mc = mc
         self.servo = servo
@@ -65,8 +71,7 @@ class Phasing(BaseTest):
         self.backup_registers_names = self.BACKUP_REGISTERS
         self.comm = None
         self.ref = None
-        self.logger = ingenialogger.get_logger(__name__, axis=axis,
-                                               drive=mc.servo_name(servo))
+        self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
 
         self.default_phasing_current = default_current
         self.default_phasing_timeout = default_timeout
@@ -80,54 +85,55 @@ class Phasing(BaseTest):
     def check_input_data(self):
 
         max_current_drive = self.mc.communication.get_register(
-            self.MAX_CURRENT_REGISTER,
-            servo=self.servo, axis=self.axis)
+            self.MAX_CURRENT_REGISTER, servo=self.servo, axis=self.axis
+        )
 
         max_current_motor = self.mc.communication.get_register(
-            self.RATED_CURRENT_REGISTER,
-            servo=self.servo, axis=self.axis)
+            self.RATED_CURRENT_REGISTER, servo=self.servo, axis=self.axis
+        )
         max_test_current = min(max_current_drive, max_current_motor)
 
         if self.default_phasing_current:
             pos_vel_ratio = self.mc.communication.get_register(
-                self.POSITION_TO_VELOCITY_SENSOR_RATIO_REGISTER,
-                servo=self.servo, axis=self.axis)
+                self.POSITION_TO_VELOCITY_SENSOR_RATIO_REGISTER, servo=self.servo, axis=self.axis
+            )
             if pos_vel_ratio == 1:
-                self.pha_current = \
-                    self.PHASING_CURRENT_PERCENTAGE * max_test_current
+                self.pha_current = self.PHASING_CURRENT_PERCENTAGE * max_test_current
             else:
-                self.pha_current = \
-                    self.PHASING_CURRENT_PERCENTAGE_GEAR * max_test_current
+                self.pha_current = self.PHASING_CURRENT_PERCENTAGE_GEAR * max_test_current
             self.mc.communication.set_register(
                 self.MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER,
                 value=self.pha_current,
-                servo=self.servo, axis=self.axis)
+                servo=self.servo,
+                axis=self.axis,
+            )
         else:
             self.pha_current = self.mc.communication.get_register(
-                self.MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER,
-                servo=self.servo, axis=self.axis
+                self.MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER, servo=self.servo, axis=self.axis
             )
             if self.pha_current > max_test_current:
-                raise TestError("Defined phasing current is higher "
-                                "than configured maximum current")
+                raise TestError("Defined phasing current is higher than configured maximum current")
         if self.default_phasing_timeout:
             self.mc.communication.set_register(
                 self.PHASING_TIMEOUT_REGISTER,
                 self.PHASING_TIMEOUT_DEFAULT,
-                servo=self.servo, axis=self.axis
+                servo=self.servo,
+                axis=self.axis,
             )
         if self.default_phasing_accuracy:
             if SensorType.HALLS in [self.comm, self.ref]:
                 self.mc.communication.set_register(
                     self.PHASING_ACCURACY_REGISTER,
                     self.PHASING_ACCURACY_HALLS_DEFAULT,
-                    servo=self.servo, axis=self.axis
+                    servo=self.servo,
+                    axis=self.axis,
                 )
             else:
                 self.mc.communication.set_register(
                     self.PHASING_ACCURACY_REGISTER,
                     self.PHASING_ACCURACY_DEFAULT,
-                    servo=self.servo, axis=self.axis
+                    servo=self.servo,
+                    axis=self.axis,
                 )
 
     @BaseTest.stoppable
@@ -141,19 +147,19 @@ class Phasing(BaseTest):
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
         self.logger.info("CONFIGURATION OF THE TEST", axis=self.axis)
 
-        self.comm = self.mc.configuration.get_commutation_feedback(servo=self.servo,
-                                                                   axis=self.axis)
-        self.ref = self.mc.configuration.get_reference_feedback(servo=self.servo,
-                                                                axis=self.axis)
+        self.comm = self.mc.configuration.get_commutation_feedback(servo=self.servo, axis=self.axis)
+        self.ref = self.mc.configuration.get_reference_feedback(servo=self.servo, axis=self.axis)
 
         if self.ref == self.INTERNAL_GENERATOR_VALUE:
-            raise TestError('Reference feedback sensor is set to internal generator')
+            raise TestError("Reference feedback sensor is set to internal generator")
         if self.comm == self.INTERNAL_GENERATOR_VALUE:
-            raise TestError('Commutation feedback sensor is set to internal generator')
+            raise TestError("Commutation feedback sensor is set to internal generator")
 
         # selection of commutation sensor
-        if self.mc.configuration.get_reference_feedback_category(
-                servo=self.servo, axis=self.axis) == SensorCategory.INCREMENTAL:
+        if (
+            self.mc.configuration.get_reference_feedback_category(servo=self.servo, axis=self.axis)
+            == SensorCategory.INCREMENTAL
+        ):
             # Delete commutation feedback from backup registers list as commutation feedback is kept the same
             fb = self.comm
         else:
@@ -165,42 +171,32 @@ class Phasing(BaseTest):
         self.check_input_data()
 
         # Set sinusoidal commutation modulation
-        self.mc.communication.set_register("MOT_COMMU_MOD", 0,
-                                           servo=self.servo, axis=self.axis)
+        self.mc.communication.set_register("MOT_COMMU_MOD", 0, servo=self.servo, axis=self.axis)
         self.logger.info("Commutation modulation set to Sinusoidal")
 
-        self.mc.motion.set_operation_mode(
-            OperationMode.CURRENT, servo=self.servo, axis=self.axis)
+        self.mc.motion.set_operation_mode(OperationMode.CURRENT, servo=self.servo, axis=self.axis)
         self.logger.info("Mode of operation set to Current mode")
 
-        self.mc.motion.set_current_quadrature(
-            0, servo=self.servo, axis=self.axis)
-        self.mc.motion.set_current_direct(
-            0, servo=self.servo, axis=self.axis)
+        self.mc.motion.set_current_quadrature(0, servo=self.servo, axis=self.axis)
+        self.mc.motion.set_current_direct(0, servo=self.servo, axis=self.axis)
         self.logger.info("Target quadrature current set to zero", axis=self.axis)
         self.logger.info("Target direct current set to zero", axis=self.axis)
 
-        self.mc.configuration.set_commutation_feedback(
-            fb, servo=self.servo, axis=self.axis)
+        self.mc.configuration.set_commutation_feedback(fb, servo=self.servo, axis=self.axis)
         self.logger.info("Reset phasing status by setting again commutation sensor")
 
-        self.mc.configuration.set_phasing_mode(
-            PhasingMode.FORCED, servo=self.servo, axis=self.axis)
+        self.mc.configuration.set_phasing_mode(PhasingMode.FORCED, servo=self.servo, axis=self.axis)
         self.logger.info("Set phasing mode to Forced")
 
-        self.logger.info("Set phasing current to %.2f A",
-                          self.pha_current)
+        self.logger.info("Set phasing current to %.2f A", self.pha_current)
 
         self.pha_timeout = self.mc.communication.get_register(
-            self.PHASING_TIMEOUT_REGISTER,
-            servo=self.servo, axis=self.axis
+            self.PHASING_TIMEOUT_REGISTER, servo=self.servo, axis=self.axis
         )
-        self.logger.info("Set phasing timeout to %s s",
-                          self.pha_timeout / 1000)
+        self.logger.info("Set phasing timeout to %s s", self.pha_timeout / 1000)
 
         self.pha_accuracy = self.mc.communication.get_register(
-            self.PHASING_ACCURACY_REGISTER,
-            servo=self.servo, axis=self.axis
+            self.PHASING_ACCURACY_REGISTER, servo=self.servo, axis=self.axis
         )
         self.logger.info("Set phasing accuracy to %s mº", self.pha_accuracy)
 
@@ -209,21 +205,23 @@ class Phasing(BaseTest):
     @BaseTest.stoppable
     def reaction_codes_to_warning(self):
         try:
-            self.mc.communication.set_register("COMMU_ANGLE_INTEGRITY1_OPTION", 1,
-                                               servo=self.servo, axis=self.axis)
+            self.mc.communication.set_register(
+                "COMMU_ANGLE_INTEGRITY1_OPTION", 1, servo=self.servo, axis=self.axis
+            )
         except IMRegisterNotExist:
-            self.logger.warning('Could not write COMMU_ANGLE_INTEGRITY1_OPTION')
+            self.logger.warning("Could not write COMMU_ANGLE_INTEGRITY1_OPTION")
 
         try:
-            self.mc.communication.set_register("COMMU_ANGLE_INTEGRITY2_OPTION", 1,
-                                               servo=self.servo, axis=self.axis)
+            self.mc.communication.set_register(
+                "COMMU_ANGLE_INTEGRITY2_OPTION", 1, servo=self.servo, axis=self.axis
+            )
         except IMRegisterNotExist:
-            self.logger.warning('Could not write COMMU_ANGLE_INTEGRITY2_OPTION')
+            self.logger.warning("Could not write COMMU_ANGLE_INTEGRITY2_OPTION")
 
     @BaseTest.stoppable
     def define_phasing_steps(self):
         # Doc: Last step is defined as the first angle delta smaller than 3 times the phasing accuracy
-        delta = (3 * self.pha_accuracy / 1000)
+        delta = 3 * self.pha_accuracy / 1000
 
         # If reference feedback are Halls
         if self.ref == SensorType.HALLS:
@@ -239,15 +237,16 @@ class Phasing(BaseTest):
     @BaseTest.stoppable
     def set_phasing_mode(self):
         ref_category = self.mc.configuration.get_reference_feedback_category(
-            servo=self.servo, axis=self.axis)
+            servo=self.servo, axis=self.axis
+        )
         comm_category = self.mc.configuration.get_commutation_feedback_category(
-            servo=self.servo, axis=self.axis)
+            servo=self.servo, axis=self.axis
+        )
         # Check if reference feedback is incremental
         if ref_category == SensorCategory.INCREMENTAL:
             # In that if commutation feedback is incremental also
             if self.comm == SensorType.INTGEN:
-                raise TestError('Commutation feedback sensor '
-                                'is set to internal generator')
+                raise TestError("Commutation feedback sensor is set to internal generator")
             elif comm_category == SensorCategory.INCREMENTAL:
                 # Set forced mode
                 return PhasingMode.FORCED
@@ -277,20 +276,19 @@ class Phasing(BaseTest):
         while time.time() < timeout:
             self.stoppable_sleep(0.1)
             if self.mc.configuration.is_commutation_feedback_aligned(
-                    servo=self.servo, axis=self.axis):
+                servo=self.servo, axis=self.axis
+            ):
                 phasing_bit_latched = True
                 break
 
         if not phasing_bit_latched:
-            self.logger.info("ERROR: Phasing process has failed."
-                             " Review your motor configuration.")
+            self.logger.info("ERROR: Phasing process has failed. Review your motor configuration.")
             return self.ResultType.FAIL
 
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
         pha = self.set_phasing_mode()
         ang = self.mc.communication.get_register(
-            self.COMMUTATION_ANGLE_OFFSET_REGISTER,
-            servo=self.servo, axis=self.axis
+            self.COMMUTATION_ANGLE_OFFSET_REGISTER, servo=self.servo, axis=self.axis
         )
 
         self.suggested_registers = {
@@ -298,7 +296,7 @@ class Phasing(BaseTest):
             "COMMU_PHASING_TIMEOUT": self.pha_timeout,
             "COMMU_PHASING_ACCURACY": self.pha_accuracy,
             "COMMU_PHASING_MAX_CURRENT": self.pha_current,
-            "COMMU_ANGLE_OFFSET": ang
+            "COMMU_ANGLE_OFFSET": ang,
         }
         return self.ResultType.SUCCESS
 
