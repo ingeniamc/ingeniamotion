@@ -29,15 +29,13 @@ class BaseTest(ABC, Stoppable):
         self.backup_registers[self.axis] = {}
         for uid in self.backup_registers_names:
             try:
-                value = self.mc.communication.get_register(
-                    uid, servo=self.servo, axis=self.axis
-                )
+                value = self.mc.communication.get_register(uid, servo=self.servo, axis=self.axis)
                 self.backup_registers[self.axis][uid] = value
             except IMRegisterNotExist as e:
                 self.logger.warning(e, axis=self.axis)
 
     def restore_backup_registers(self):
-        """ Restores the value of the registers after the test execution.
+        """Restores the value of the registers after the test execution.
 
         Notes:
         This should only be called by the Wizard.
@@ -45,9 +43,7 @@ class BaseTest(ABC, Stoppable):
         for subnode, registers in self.backup_registers.items():
             for key, value in self.backup_registers[subnode].items():
                 try:
-                    self.mc.communication.set_register(
-                        key, value, servo=self.servo, axis=self.axis
-                    )
+                    self.mc.communication.set_register(key, value, servo=self.servo, axis=self.axis)
                 except IMRegisterNotExist as e:
                     self.logger.warning(e, axis=subnode)
                 except IMRegisterWrongAccess as e:
@@ -56,10 +52,9 @@ class BaseTest(ABC, Stoppable):
     @Stoppable.stoppable
     def show_error_message(self):
         error_code, axis, warning = self.mc.errors.get_last_buffer_error(
-            servo=self.servo, axis=self.axis)
-        *_, error_msg = self.mc.errors.get_error_data(
-            error_code, servo=self.servo
+            servo=self.servo, axis=self.axis
         )
+        *_, error_msg = self.mc.errors.get_error_data(error_code, servo=self.servo)
         raise TestError(error_msg)
 
     @abstractmethod
@@ -96,7 +91,7 @@ class BaseTest(ABC, Stoppable):
         return {
             "result_severity": self.get_result_severity(output),
             "suggested_registers": self.suggested_registers,
-            "result_message": self.get_result_msg(output)
+            "result_message": self.get_result_msg(output),
         }
 
     @abstractmethod

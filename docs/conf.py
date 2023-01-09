@@ -34,6 +34,7 @@ release = version
 extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.napoleon',
+    'sphinx_autodoc_typehints',
     'sphinx.ext.intersphinx',
     'rst2pdf.pdfbuilder',
     'm2r2'
@@ -67,3 +68,5 @@ pdf_documents = [('index', pdf_name, u'Ingeniamotion', author), ]
 
 intersphinx_mapping = {'python': ('https://docs.python.org/3.6', None),
                        'ingenialink': ('https://distext.ingeniamc.com/doc/ingenialink-python/6.4.1', None)}
+
+napoleon_use_param = True

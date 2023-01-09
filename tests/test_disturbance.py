@@ -22,9 +22,7 @@ def test_disturbance_max_sample_size(motion_controller, disturbance):
     mc, alias = motion_controller
     max_sample_size = disturbance.max_sample_number
     value = mc.communication.get_register(
-        disturbance.DISTURBANCE_MAXIMUM_SAMPLE_SIZE_REGISTER,
-        servo=alias,
-        axis=0
+        disturbance.DISTURBANCE_MAXIMUM_SAMPLE_SIZE_REGISTER, servo=alias, axis=0
     )
     assert max_sample_size == value
 
@@ -36,9 +34,7 @@ def test_set_frequency_divider(motion_controller, disturbance, prescaler):
     mc, alias = motion_controller
     disturbance.set_frequency_divider(prescaler)
     value = mc.communication.get_register(
-        disturbance.DISTURBANCE_FREQUENCY_DIVIDER_REGISTER,
-        servo=alias,
-        axis=0
+        disturbance.DISTURBANCE_FREQUENCY_DIVIDER_REGISTER, servo=alias, axis=0
     )
     assert value == prescaler
 
@@ -53,46 +49,33 @@ def test_set_frequency_divider_exception(disturbance):
 
 @pytest.mark.soem
 @pytest.mark.eoe
-@pytest.mark.parametrize("axis, name, expected_value", [
-                         (1, "CL_POS_SET_POINT_VALUE", 270533892),
-                         (1, "CL_VEL_SET_POINT_VALUE", 270600196),
-                         (1, "CL_TOR_SET_POINT_VALUE", 270665732)
-                         ])
-def test_disturbance_map_registers(motion_controller, disturbance,
-                                   axis, name, expected_value):
+@pytest.mark.parametrize(
+    "axis, name, expected_value",
+    [
+        (1, "CL_POS_SET_POINT_VALUE", 270533892),
+        (1, "CL_VEL_SET_POINT_VALUE", 270600196),
+        (1, "CL_TOR_SET_POINT_VALUE", 270665732),
+    ],
+)
+def test_disturbance_map_registers(motion_controller, disturbance, axis, name, expected_value):
     mc, alias = motion_controller
-    registers = [
-        {"axis": axis, "name": name}
-    ]
+    registers = [{"axis": axis, "name": name}]
     disturbance.map_registers(registers)
-    value = mc.communication.get_register(
-        "DIST_CFG_REG0_MAP",
-        servo=alias,
-        axis=0
-    )
+    value = mc.communication.get_register("DIST_CFG_REG0_MAP", servo=alias, axis=0)
     assert value == expected_value
-    value = mc.communication.get_register(
-        "DIST_CFG_MAP_REGS",
-        servo=alias,
-        axis=0
-    )
+    value = mc.communication.get_register("DIST_CFG_MAP_REGS", servo=alias, axis=0)
     assert value == 1
 
 
 @pytest.mark.soem
 @pytest.mark.eoe
 @pytest.mark.parametrize("number_registers", list(range(1, 17)))
-def test_disturbance_number_map_registers(motion_controller, disturbance,
-                                          number_registers):
+def test_disturbance_number_map_registers(motion_controller, disturbance, number_registers):
     mc, alias = motion_controller
     reg_dict = {"axis": 1, "name": "CL_POS_SET_POINT_VALUE"}
     registers = [reg_dict for _ in range(number_registers)]
     disturbance.map_registers(registers)
-    value = mc.communication.get_register(
-        "DIST_CFG_MAP_REGS",
-        servo=alias,
-        axis=0
-    )
+    value = mc.communication.get_register("DIST_CFG_MAP_REGS", servo=alias, axis=0)
     assert value == number_registers
 
 

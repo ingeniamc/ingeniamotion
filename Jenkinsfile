@@ -44,6 +44,14 @@ pipeline {
                         '''
                     }
                 }
+                stage('Check formatting') {
+                    steps {
+                        bat """
+                            cd C:\\Users\\ContainerAdministrator\\ingeniamotion
+                            venv\\Scripts\\python.exe -m black -l 100 --check ingeniamotion tests
+                        """
+                    }
+                }
                 stage('Generate documentation') {
                     steps {
                         bat '''
@@ -96,18 +104,17 @@ pipeline {
                 stage('Run EtherCAT tests') {
                     steps {
                         bat '''
-                            venv\\Scripts\\python.exe -m pytest tests --protocol soem --slave 0 --junitxml=pytest_ethercat_0_report.xml
-                            venv\\Scripts\\python.exe -m pytest tests --protocol soem --slave 1 --junitxml=pytest_ethercat_1_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests --protocol soem --slave 0 --junitxml=pytest_reports/pytest_ethercat_0_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests --protocol soem --slave 1 --junitxml=pytest_reports/pytest_ethercat_1_report.xml
                             move .coverage .coverage_ethercat
                             exit /b 0
                         '''
-                        junit 'pytest_ethercat_0_report.xml'
-                        junit 'pytest_ethercat_1_report.xml'
                     }
                 }
                 stage('Save test results') {
                     steps {
                         stash includes: '.coverage_ethercat', name: 'coverage_reports'
+                        stash includes: 'pytest_reports/', name: 'test_reports'
                     }
                 }
             }
@@ -142,26 +149,23 @@ pipeline {
                 }
                 stage('Run CANopen tests') {
                     steps {
+                        unstash 'test_reports'
                         bat '''
-                            venv\\Scripts\\python.exe -m pytest tests --protocol canopen --slave 0 --junitxml=pytest_canopen_0_report.xml
-                            venv\\Scripts\\python.exe -m pytest tests --protocol canopen --slave 1 --junitxml=pytest_canopen_1_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests --protocol canopen --slave 0 --junitxml=pytest_reports/pytest_canopen_0_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests --protocol canopen --slave 1 --junitxml=pytest_reports/pytest_canopen_1_report.xml
                             move .coverage .coverage_canopen
                             exit /b 0
                         '''
-                        junit 'pytest_canopen_0_report.xml'
-                        junit 'pytest_canopen_1_report.xml'
                     }
                 }
                 stage('Run Ethernet tests') {
                     steps {
                         bat '''
-                            venv\\Scripts\\python.exe -m pytest tests --protocol eoe --slave 0 --junitxml=pytest_ethernet_0_report.xml
-                            venv\\Scripts\\python.exe -m pytest tests --protocol eoe --slave 1 --junitxml=pytest_ethernet_1_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests --protocol eoe --slave 0 --junitxml=pytest_reports/pytest_ethernet_0_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests --protocol eoe --slave 1 --junitxml=pytest_reports/pytest_ethernet_1_report.xml
                             move .coverage .coverage_ethernet
                             exit /b 0
                         '''
-                        junit 'pytest_ethernet_0_report.xml'
-                        junit 'pytest_ethernet_1_report.xml'
                     }
                 }
                 stage('Save test results') {
@@ -172,7 +176,11 @@ pipeline {
                             venv\\Scripts\\python.exe -m coverage xml --include=ingeniamotion/*
                         '''
                         publishCoverage adapters: [coberturaReportAdapter('coverage.xml')]
-                        archiveArtifacts artifacts: '*.xml'
+                        archiveArtifacts artifacts: '*.xml, pytest_reports\\*'
+                        bat '''
+                            venv\\Scripts\\python.exe -m tests.combine_reports -i pytest_reports/ -o combined_report.xml
+                        '''
+                        junit 'combined_report.xml'
                     }
                 }
             }
