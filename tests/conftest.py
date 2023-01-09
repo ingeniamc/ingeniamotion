@@ -11,10 +11,10 @@ test_report_key = pytest.StashKey[Dict[str, pytest.CollectReport]]()
 
 
 def pytest_addoption(parser):
-    parser.addoption("--protocol", action="store", default="eoe",
-                     help="eoe, soem", choices=ALLOW_PROTOCOLS)
-    parser.addoption("--slave", type="int", default=0,
-                     help="Slave index in config.json")
+    parser.addoption(
+        "--protocol", action="store", default="eoe", help="eoe, soem", choices=ALLOW_PROTOCOLS
+    )
+    parser.addoption("--slave", type="int", default=0, help="Slave index in config.json")
 
 
 def pytest_collection_modifyitems(config, items):
@@ -33,30 +33,38 @@ def pytest_collection_modifyitems(config, items):
 def read_config(request):
     slave = request.config.getoption("--slave")
     protocol = request.config.getoption("--protocol")
-    config = 'tests/config.json'
+    config = "tests/config.json"
     with open(config, "r") as fp:
         contents = json.load(fp)
     return contents[protocol][slave]
 
 
 def connect_eoe(mc, config, alias):
-    mc.communication.connect_servo_eoe(
-        config["ip"], config["dictionary"], alias=alias)
+    mc.communication.connect_servo_eoe(config["ip"], config["dictionary"], alias=alias)
 
 
 def connect_soem(mc, config, alias):
     mc.communication.connect_servo_ecat_interface_index(
-        config["index"], config["dictionary"],
-        config["slave"], eoe_comm=config["eoe_comm"], alias=alias)
+        config["index"],
+        config["dictionary"],
+        config["slave"],
+        eoe_comm=config["eoe_comm"],
+        alias=alias,
+    )
 
 
 def connect_canopen(mc, config, alias):
     device = CAN_DEVICE(config["device"])
     baudrate = CAN_BAUDRATE(config["baudrate"])
     mc.communication.connect_servo_canopen(
-        device, config["dictionary"], config["eds"],
-        config["node_id"], baudrate, config["channel"],
-        alias=alias)
+        device,
+        config["dictionary"],
+        config["eds"],
+        config["node_id"],
+        baudrate,
+        config["channel"],
+        alias=alias,
+    )
 
 
 @pytest.fixture(scope="session")
@@ -70,8 +78,7 @@ def motion_controller(pytestconfig, read_config):
         connect_soem(mc, read_config, alias)
     elif protocol == "canopen":
         connect_canopen(mc, read_config, alias)
-    mc.configuration.load_configuration(
-        read_config["config_file"], servo=alias)
+    mc.configuration.load_configuration(read_config["config_file"], servo=alias)
     yield mc, alias
     mc.communication.disconnect(alias)
 
@@ -87,8 +94,7 @@ def disable_motor_fixture(motion_controller):
 def motion_controller_teardown(motion_controller, pytestconfig, read_config):
     yield motion_controller
     mc, alias = motion_controller
-    mc.configuration.load_configuration(
-        read_config["config_file"], servo=alias)
+    mc.configuration.load_configuration(read_config["config_file"], servo=alias)
     mc.motion.fault_reset(servo=alias)
 
 
@@ -102,11 +108,13 @@ def disable_monitoring_disturbance(motion_controller):
 @pytest.fixture(scope="session")
 def feedback_list(motion_controller):
     mc, alias = motion_controller
-    fdbk_lst = [mc.configuration.get_commutation_feedback(servo=alias),
-                mc.configuration.get_reference_feedback(servo=alias),
-                mc.configuration.get_velocity_feedback(servo=alias),
-                mc.configuration.get_position_feedback(servo=alias),
-                mc.configuration.get_auxiliar_feedback(servo=alias)]
+    fdbk_lst = [
+        mc.configuration.get_commutation_feedback(servo=alias),
+        mc.configuration.get_reference_feedback(servo=alias),
+        mc.configuration.get_velocity_feedback(servo=alias),
+        mc.configuration.get_position_feedback(servo=alias),
+        mc.configuration.get_auxiliar_feedback(servo=alias),
+    ]
     return set(fdbk_lst)
 
 

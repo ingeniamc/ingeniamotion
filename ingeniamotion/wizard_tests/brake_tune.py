@@ -24,11 +24,13 @@ class BrakeTune(BaseTest):
 
     class BrakeRegKey(IntEnum):
         """Brake Register Keys for dictionaries"""
+
         FEEDBACK_SOURCE = 0
         CONTROL_MODE = 1
 
     class ResultBrakeType(IntEnum):
         """Type of result once a brake tuning is stopped or failed"""
+
         SUCCESS = 0
         FAIL_FEEDBACK_SOURCE = 1
         FAIL_CURRENT_MODE = 2
@@ -41,20 +43,21 @@ class BrakeTune(BaseTest):
         "MOT_BRAKE_OVERRIDE",
         "DRV_OP_CMD",
         "CL_VOL_Q_SET_POINT",
-        "CL_VOL_D_SET_POINT"
+        "CL_VOL_D_SET_POINT",
     ]
 
-    def __init__(self,
-                 mc: MotionController,
-                 enable_disable_motor_period: float = 1.0,
-                 servo: str = DEFAULT_SERVO,
-                 axis: int = DEFAULT_AXIS) -> None:
+    def __init__(
+        self,
+        mc: MotionController,
+        enable_disable_motor_period: float = 1.0,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+    ) -> None:
         super().__init__()
         self.mc = mc
         self.servo = servo
         self.axis = axis
-        self.logger = ingenialogger.get_logger(__name__, axis=axis,
-                                               drive=mc.servo_name(servo))
+        self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
         self.backup_registers_names = self.BACKUP_REGISTERS
         self.__enable_disable_motor_period = enable_disable_motor_period
 
@@ -79,14 +82,15 @@ class BrakeTune(BaseTest):
         brake_is_current_mode = 1
         # Start the test
         try:
-            while (reg_values[self.BrakeRegKey.FEEDBACK_SOURCE] != no_brake_current_feedback_source) and \
-                    (reg_values[self.BrakeRegKey.CONTROL_MODE] == brake_is_current_mode):
+            while (
+                reg_values[self.BrakeRegKey.FEEDBACK_SOURCE] != no_brake_current_feedback_source
+            ) and (reg_values[self.BrakeRegKey.CONTROL_MODE] == brake_is_current_mode):
                 # Motor enable
                 self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
-                self.stoppable_sleep(self.__enable_disable_motor_period/2)
+                self.stoppable_sleep(self.__enable_disable_motor_period / 2)
                 # Motor disable
                 self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
-                self.stoppable_sleep(self.__enable_disable_motor_period/2)
+                self.stoppable_sleep(self.__enable_disable_motor_period / 2)
 
                 reg_values = self.__update_brake_registers_values()
         except stoppable.StopException:
@@ -101,15 +105,14 @@ class BrakeTune(BaseTest):
     def __update_brake_registers_values(self) -> dict:
         brake_registers_updated = {}
         updated_brake_current_feedback_source = self.mc.communication.get_register(
-            self.BRAKE_CURRENT_FEEDBACK_SOURCE,
-            servo=self.servo,
-            axis=self.axis
+            self.BRAKE_CURRENT_FEEDBACK_SOURCE, servo=self.servo, axis=self.axis
         )
-        brake_registers_updated[self.BrakeRegKey.FEEDBACK_SOURCE] = updated_brake_current_feedback_source
+        brake_registers_updated[
+            self.BrakeRegKey.FEEDBACK_SOURCE
+        ] = updated_brake_current_feedback_source
         updated_brake_control_mode = self.mc.communication.get_register(
-            self.BRAKE_CONTROL_MODE,
-            servo=self.servo,
-            axis=self.axis)
+            self.BRAKE_CONTROL_MODE, servo=self.servo, axis=self.axis
+        )
         brake_registers_updated[self.BrakeRegKey.CONTROL_MODE] = updated_brake_control_mode
         return brake_registers_updated
 
@@ -122,7 +125,7 @@ class BrakeTune(BaseTest):
             self.ResultBrakeType.SUCCESS: SeverityLevel.SUCCESS,
             self.ResultBrakeType.FAIL_FEEDBACK_SOURCE: SeverityLevel.FAIL,
             self.ResultBrakeType.FAIL_CURRENT_MODE: SeverityLevel.FAIL,
-            self.ResultBrakeType.FAIL_DICTIONARY: SeverityLevel.FAIL
+            self.ResultBrakeType.FAIL_DICTIONARY: SeverityLevel.FAIL,
         }
         return severity_options[output]
 
@@ -131,6 +134,6 @@ class BrakeTune(BaseTest):
             self.ResultBrakeType.SUCCESS: "Brake tune is stopped properly",
             self.ResultBrakeType.FAIL_FEEDBACK_SOURCE: "A brake current feedback source is not set",
             self.ResultBrakeType.FAIL_CURRENT_MODE: "The brake is not in current mode",
-            self.ResultBrakeType.FAIL_DICTIONARY: "Brake current control mode is not implemented in the drive"
+            self.ResultBrakeType.FAIL_DICTIONARY: "Brake current control mode is not implemented in the drive",
         }
         return message_options[output]

@@ -13,8 +13,12 @@ from ingeniamotion.monitoring.monitoring_v1 import MonitoringV1
 from ingeniamotion.monitoring.monitoring_v3 import MonitoringV3
 from ingeniamotion.exceptions import IMRegisterNotExist, IMMonitoringError
 from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
-from ingeniamotion.enums import MonitoringVersion, MonitoringProcessStage,\
-    MonitoringSoCType, MonitoringSoCConfig
+from ingeniamotion.enums import (
+    MonitoringVersion,
+    MonitoringProcessStage,
+    MonitoringSoCType,
+    MonitoringSoCConfig,
+)
 
 
 class Capture(metaclass=MCMetaClass):
@@ -29,7 +33,7 @@ class Capture(metaclass=MCMetaClass):
 
     MINIMUM_BUFFER_SIZE = 8192
 
-    MONITORING_VERSION_REGISTER = 'MON_DIST_VERSION'
+    MONITORING_VERSION_REGISTER = "MON_DIST_VERSION"
 
     MONITORING_STATUS_ENABLED_BIT = 0x1
     DISTURBANCE_STATUS_ENABLED_BIT = 0x1
@@ -37,12 +41,12 @@ class Capture(metaclass=MCMetaClass):
     MONITORING_STATUS_PROCESS_STAGE_BITS = {
         MonitoringVersion.MONITORING_V1: 0x6,
         MonitoringVersion.MONITORING_V2: 0x6,
-        MonitoringVersion.MONITORING_V3: 0xE
+        MonitoringVersion.MONITORING_V3: 0xE,
     }
     MONITORING_AVAILABLE_FRAME_BIT = {
         MonitoringVersion.MONITORING_V1: 0x800,
         MonitoringVersion.MONITORING_V2: 0x800,
-        MonitoringVersion.MONITORING_V3: 0x10
+        MonitoringVersion.MONITORING_V3: 0x10,
     }
 
     def __init__(self, motion_controller):
@@ -54,7 +58,7 @@ class Capture(metaclass=MCMetaClass):
         servo: str = DEFAULT_SERVO,
         sampling_time: float = 0.125,
         buffer_size: int = 100,
-        start: bool = True
+        start: bool = True,
     ) -> Poller:
         """Returns a Poller instance with target registers.
 
@@ -150,7 +154,7 @@ class Capture(metaclass=MCMetaClass):
         trigger_signal: Optional[dict] = None,
         trigger_value: Union[float, int, None] = None,
         servo: str = DEFAULT_SERVO,
-        start: bool = False
+        start: bool = False,
     ) -> Monitoring:
         """Returns a Monitoring instance configured with target registers.
 
@@ -211,10 +215,12 @@ class Capture(metaclass=MCMetaClass):
         monitoring = self.create_empty_monitoring(servo)
         monitoring.set_frequency(prescaler)
         monitoring.map_registers(registers)
-        monitoring.set_trigger(trigger_mode,
-                               edge_condition=trigger_config,
-                               trigger_signal=trigger_signal,
-                               trigger_value=trigger_value)
+        monitoring.set_trigger(
+            trigger_mode,
+            edge_condition=trigger_config,
+            trigger_signal=trigger_signal,
+            trigger_value=trigger_value,
+        )
         monitoring.configure_sample_time(sample_time, trigger_delay)
         if start:
             self.enable_monitoring(servo=servo)
@@ -227,7 +233,7 @@ class Capture(metaclass=MCMetaClass):
         freq_divider: int,
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
-        start: bool = False
+        start: bool = False,
     ) -> Disturbance:
         """Returns a Disturbance instance configured with target registers.
 
@@ -271,14 +277,16 @@ class Capture(metaclass=MCMetaClass):
         drive = self.mc._get_drive(servo)
         try:
             self.mc.communication.get_register(
-                self.MONITORING_VERSION_REGISTER, servo=servo, axis=0)
+                self.MONITORING_VERSION_REGISTER, servo=servo, axis=0
+            )
             return MonitoringVersion.MONITORING_V3
         except IMRegisterNotExist:
             # The Monitoring V3 is NOT available
             pass
         try:
             self.mc.info.register_info(
-                self.MONITORING_CURRENT_NUMBER_BYTES_REGISTER, 0, servo=servo)
+                self.MONITORING_CURRENT_NUMBER_BYTES_REGISTER, 0, servo=servo
+            )
             return MonitoringVersion.MONITORING_V2
         except IMRegisterNotExist:
             # The Monitoring V2 is NOT available
@@ -314,9 +322,7 @@ class Capture(metaclass=MCMetaClass):
             raise IMMonitoringError("Error enabling monitoring.")
 
     def enable_disturbance(
-        self,
-        servo: str = DEFAULT_SERVO,
-        version: Optional[MonitoringVersion] = None
+        self, servo: str = DEFAULT_SERVO, version: Optional[MonitoringVersion] = None
     ) -> None:
         """Enable disturbance.
 
@@ -350,9 +356,7 @@ class Capture(metaclass=MCMetaClass):
         self.disable_disturbance(servo=servo)
 
     def disable_monitoring(
-        self,
-        servo: str = DEFAULT_SERVO,
-        version: Optional[MonitoringVersion] = None
+        self, servo: str = DEFAULT_SERVO, version: Optional[MonitoringVersion] = None
     ) -> None:
         """Disable monitoring.
 
@@ -372,9 +376,7 @@ class Capture(metaclass=MCMetaClass):
             return drive.monitoring_remove_data()
 
     def disable_disturbance(
-        self,
-        servo: str = DEFAULT_SERVO,
-        version: Optional[MonitoringVersion] = None
+        self, servo: str = DEFAULT_SERVO, version: Optional[MonitoringVersion] = None
     ) -> None:
         """Disable disturbance.
 
@@ -407,9 +409,7 @@ class Capture(metaclass=MCMetaClass):
             IMRegisterNotExist: If the register doesn't exist.
         """
         return self.mc.communication.get_register(
-            self.MONITORING_STATUS_REGISTER,
-            servo=servo,
-            axis=0
+            self.MONITORING_STATUS_REGISTER, servo=servo, axis=0
         )
 
     def get_monitoring_status(self, servo: str = DEFAULT_SERVO) -> int:
@@ -425,15 +425,11 @@ class Capture(metaclass=MCMetaClass):
             IMRegisterNotExist: If the register doesn't exist.
         """
         return self.mc.communication.get_register(
-            self.MONITORING_STATUS_REGISTER,
-            servo=servo,
-            axis=0
+            self.MONITORING_STATUS_REGISTER, servo=servo, axis=0
         )
 
     def get_disturbance_status(
-        self,
-        servo: str = DEFAULT_SERVO,
-        version: Optional[MonitoringVersion] = None
+        self, servo: str = DEFAULT_SERVO, version: Optional[MonitoringVersion] = None
     ) -> int:
         """Get Disturbance Status.
 
@@ -452,15 +448,11 @@ class Capture(metaclass=MCMetaClass):
             version = self._check_version(servo)
         if version < MonitoringVersion.MONITORING_V3:
             return self.mc.communication.get_register(
-                self.MONITORING_STATUS_REGISTER,
-                servo=servo,
-                axis=0
+                self.MONITORING_STATUS_REGISTER, servo=servo, axis=0
             )
         else:
             return self.mc.communication.get_register(
-                self.DISTURBANCE_STATUS_REGISTER,
-                servo=servo,
-                axis=0
+                self.DISTURBANCE_STATUS_REGISTER, servo=servo, axis=0
             )
 
     def is_monitoring_enabled(self, servo: str = DEFAULT_SERVO) -> bool:
@@ -479,9 +471,7 @@ class Capture(metaclass=MCMetaClass):
         return (monitor_status & self.MONITORING_STATUS_ENABLED_BIT) == 1
 
     def is_disturbance_enabled(
-        self,
-        servo: str = DEFAULT_SERVO,
-        version: Optional[MonitoringVersion] = None
+        self, servo: str = DEFAULT_SERVO, version: Optional[MonitoringVersion] = None
     ) -> bool:
         """Check if disturbance is enabled.
 
@@ -500,9 +490,7 @@ class Capture(metaclass=MCMetaClass):
         return (monitor_status & self.DISTURBANCE_STATUS_ENABLED_BIT) == 1
 
     def get_monitoring_process_stage(
-        self,
-        servo: str = DEFAULT_SERVO,
-        version: Optional[MonitoringVersion] = None
+        self, servo: str = DEFAULT_SERVO, version: Optional[MonitoringVersion] = None
     ) -> MonitoringProcessStage:
         """
         Return monitoring process stage.
@@ -520,16 +508,13 @@ class Capture(metaclass=MCMetaClass):
         """
         if version is None:
             version = self._check_version(servo=servo)
-        monitor_status = self.mc.capture.get_monitoring_status(
-            servo=servo)
+        monitor_status = self.mc.capture.get_monitoring_status(servo=servo)
         mask = self.MONITORING_STATUS_PROCESS_STAGE_BITS[version]
         masked_value = monitor_status & mask
         return MonitoringProcessStage(masked_value)
 
     def is_frame_available(
-        self,
-        servo: str = DEFAULT_SERVO,
-        version: Optional[MonitoringVersion] = None
+        self, servo: str = DEFAULT_SERVO, version: Optional[MonitoringVersion] = None
     ) -> bool:
         """
         Check if monitoring has an available frame.
@@ -547,15 +532,12 @@ class Capture(metaclass=MCMetaClass):
         """
         if version is None:
             version = self._check_version(servo=servo)
-        monitor_status = self.mc.capture.get_monitoring_status(
-            servo=servo)
+        monitor_status = self.mc.capture.get_monitoring_status(servo=servo)
         mask = self.MONITORING_AVAILABLE_FRAME_BIT[version]
         return (monitor_status & mask) != 0
 
     def clean_monitoring(
-        self,
-        servo: str = DEFAULT_SERVO,
-        version: Optional[MonitoringVersion] = None
+        self, servo: str = DEFAULT_SERVO, version: Optional[MonitoringVersion] = None
     ) -> None:
         """Disable monitoring/disturbance and remove monitoring mapped registers.
 
@@ -570,9 +552,7 @@ class Capture(metaclass=MCMetaClass):
         drive.monitoring_remove_all_mapped_registers()
 
     def clean_disturbance(
-        self,
-        servo: str = DEFAULT_SERVO,
-        version: Optional[MonitoringVersion] = None
+        self, servo: str = DEFAULT_SERVO, version: Optional[MonitoringVersion] = None
     ) -> None:
         """Disable monitoring/disturbance and remove disturbance mapped registers.
 
@@ -622,9 +602,7 @@ class Capture(metaclass=MCMetaClass):
         """
         try:
             return self.mc.communication.get_register(
-                self.DISTURBANCE_MAXIMUM_SAMPLE_SIZE_REGISTER,
-                servo=servo,
-                axis=0
+                self.DISTURBANCE_MAXIMUM_SAMPLE_SIZE_REGISTER, servo=servo, axis=0
             )
         except IMRegisterNotExist:
             return self.MINIMUM_BUFFER_SIZE
@@ -640,9 +618,7 @@ class Capture(metaclass=MCMetaClass):
         """
         try:
             return self.mc.communication.get_register(
-                self.MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER,
-                servo=servo,
-                axis=0
+                self.MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER, servo=servo, axis=0
             )
         except IMRegisterNotExist:
             return self.MINIMUM_BUFFER_SIZE
@@ -659,15 +635,11 @@ class Capture(metaclass=MCMetaClass):
 
         """
 
-        position_velocity_loop_rate = \
-            self.mc.configuration.get_position_and_velocity_loop_rate(
-                servo=servo,
-                axis=axis
-            )
+        position_velocity_loop_rate = self.mc.configuration.get_position_and_velocity_loop_rate(
+            servo=servo, axis=axis
+        )
         prescaler = self.mc.communication.get_register(
-            self.MONITORING_FREQUENCY_DIVIDER_REGISTER,
-            servo=servo,
-            axis=0
+            self.MONITORING_FREQUENCY_DIVIDER_REGISTER, servo=servo, axis=0
         )
         sampling_freq = round(position_velocity_loop_rate / prescaler, 2)
         return sampling_freq
