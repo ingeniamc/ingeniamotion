@@ -12,6 +12,14 @@ XML_TESTCASE = "testcase"
 SEPARATOR = "============================================="
 
 
+result_dict = {
+    "passed": "PASSED",
+    "error": "ERROR",
+    "failure": "FAILED",
+    "skipped": "SKIPPED",
+}
+
+
 def setup_command():
     parser = argparse.ArgumentParser(description="Combine xml pytest reports")
     parser.add_argument("-i", "--input-reports", default=[], nargs="+", required=True)
@@ -91,13 +99,62 @@ def get_result_based_on_previous(previous_result, actual_result):
     return result
 
 
+def add_first_report_available(report_dict, classname, name, protocol, slave):
+    result = report_dict["testcases"][classname][name]["result"]
+    if result != "passed":
+        message = "PROTOCOL: {} - SLAVE: {} --> {} ({})".format(
+            str(protocol),
+            str(slave),
+            result_dict[report_dict["testcases"][classname][name]["result"]],
+            report_dict["testcases"][classname][name]["message"],
+        )
+        output = "\n PROTOCOL: {} - SLAVE: {} --> {} \n {} \n {}".format(
+            str(protocol),
+            str(slave),
+            result_dict[report_dict["testcases"][classname][name]["result"]],
+            SEPARATOR,
+            report_dict["testcases"][classname][name]["output"],
+        )
+    else:
+        message = ""
+        output = ""
+
+    time = report_dict["testcases"][classname][name]["time"]
+
+    return result, message, output, time
+
+
+def update_report(report_dict, combined_report, classname, name, protocol, slave):
+    previous_result = combined_report["testcases"][classname][name]["result"]
+    actual_result = report_dict["testcases"][classname][name]["result"]
+    result = get_result_based_on_previous(previous_result, actual_result)
+
+    if report_dict["testcases"][classname][name]["result"] != "passed":
+        message = "{} // PROTOCOL: {} - SLAVE: {} --> {} ({})".format(
+            combined_report["testcases"][classname][name]["message"],
+            str(protocol),
+            str(slave),
+            result_dict[report_dict["testcases"][classname][name]["result"]],
+            report_dict["testcases"][classname][name]["message"],
+        )
+        output = "{} \n\n PROTOCOL: {} - SLAVE: {} --> {} \n {} \n {}".format(
+            combined_report["testcases"][classname][name]["output"],
+            str(protocol),
+            str(slave),
+            result_dict[report_dict["testcases"][classname][name]["result"]],
+            SEPARATOR,
+            report_dict["testcases"][classname][name]["output"],
+        )
+    else:
+        message = combined_report["testcases"][classname][name]["message"]
+        output = combined_report["testcases"][classname][name]["output"]
+
+    time = combined_report["testcases"][classname][name]["time"] + report_dict["testcases"][classname][name]["time"]
+    
+    return result, message, output, time
+
+
 def combine_reports(test_reports):
-    result_dict = {
-        "passed": "PASSED",
-        "error": "ERROR",
-        "failure": "FAILED",
-        "skipped": "SKIPPED",
-    }
     combined_report = {
         "time": 0,
         "errors": 0,
@@ -121,63 +178,20 @@ def combine_reports(test_reports):
                 combined_report["testcases"][classname] = {}
             for name in report_dict["testcases"][classname].keys():
                 if name not in combined_report["testcases"][classname]:
-                    result = report_dict["testcases"][classname][name]["result"]
-                    if result != "passed":
-                        message = "PROTOCOL: {} - SLAVE: {} --> {} ({})".format(
-                            str(protocol),
-                            str(slave),
-                            result_dict[report_dict["testcases"][classname][name]["result"]],
-                            report_dict["testcases"][classname][name]["message"],
-                        )
-                        output = "\n PROTOCOL: {} - SLAVE: {} --> {} \n {} \n {}".format(
-                            str(protocol),
-                            str(slave),
-                            result_dict[report_dict["testcases"][classname][name]["result"]],
-                            SEPARATOR,
-                            report_dict["testcases"][classname][name]["output"],
-                        )
-                    else:
-                        message = ""
-                        output = ""
-
-                    combined_report["testcases"][classname][name] = {
-                        "result": report_dict["testcases"][classname][name]["result"],
-                        "message": message,
-                        "output": output,
-                        "time": report_dict["testcases"][classname][name]["time"],
-                    }
+                    result, message, output, time = add_first_report_available(
+                        report_dict, classname, name, protocol, slave
+                    )
                 else:
-                    previous_result = combined_report["testcases"][classname][name]["result"]
-                    actual_result = report_dict["testcases"][classname][name]["result"]
-                    result = get_result_based_on_previous(previous_result, actual_result)
+                    result, message, output, time = update_report(
+                        report_dict, combined_report, classname, name, protocol, slave
+                    )
 
-                    if report_dict["testcases"][classname][name]["result"] != "passed":
-                        message = "{} // PROTOCOL: {} - SLAVE: {} --> {} ({})".format(
-                            combined_report["testcases"][classname][name]["message"],
-                            str(protocol),
-                            str(slave),
-                            result_dict[report_dict["testcases"][classname][name]["result"]],
-                            report_dict["testcases"][classname][name]["message"],
-                        )
-                        output = "{} \n\n PROTOCOL: {} - SLAVE: {} --> {} \n {} \n {}".format(
-                            combined_report["testcases"][classname][name]["output"],
-                            str(protocol),
-                            str(slave),
-                            result_dict[report_dict["testcases"][classname][name]["result"]],
-                            SEPARATOR,
-                            report_dict["testcases"][classname][name]["output"],
-                        )
-                    else:
-                        message = combined_report["testcases"][classname][name]["message"]
-                        output = combined_report["testcases"][classname][name]["output"]
-
-                    combined_report["testcases"][classname][name] = {
-                        "result": result,
-                        "message": message,
-                        "output": output,
-                        "time": combined_report["testcases"][classname][name]["time"]
-                        + report_dict["testcases"][classname][name]["time"],
-                    }
+                combined_report["testcases"][classname][name] = {
+                    "result": result,
+                    "message": message,
+                    "output": output,
+                    "time": time,
+                }
 
     total_numbers_dict = {
         "failure": "failures",
