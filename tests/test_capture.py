@@ -20,7 +20,7 @@ def __compare_signals(expected_signal, received_signal, length_tol=None, fft_tol
     fft_received = np.abs(np.fft.fft(received_signal))
     fft_expected = np.abs(np.fft.fft(expected_signal))
 
-    # L1 normalization
+    # Normalization
     fft_received = fft_received / np.amax(fft_received)
     fft_expected = fft_expected / np.amax(fft_expected)
         
@@ -215,6 +215,7 @@ def test_monitoring_max_sample_size(skip_if_monitoring_not_available, motion_con
     drive = mc.servos[alias]
     value = drive.read(target_register, subnode=axis)
     assert max_sample_size == value
+
 
 def test_get_frequency(
     skip_if_monitoring_not_available, motion_controller, disable_monitoring_disturbance
