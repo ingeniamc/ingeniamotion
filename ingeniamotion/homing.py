@@ -20,10 +20,7 @@ class Homing(metaclass=MCMetaClass):
         self.logger = ingenialogger.get_logger(__name__)
 
     def set_homing_mode(
-        self,
-        homing_mode: HomingMode,
-        servo: str = DEFAULT_SERVO,
-        axis: int = DEFAULT_AXIS
+        self, homing_mode: HomingMode, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> None:
         """Set homing mode.
 
@@ -32,14 +29,10 @@ class Homing(metaclass=MCMetaClass):
             servo : servo alias to reference it. ``default`` by default.
             axis : servo axis. ``1`` by default.
         """
-        self.mc.communication.set_register(self.HOMING_MODE_REGISTER,
-                                           homing_mode, servo, axis)
+        self.mc.communication.set_register(self.HOMING_MODE_REGISTER, homing_mode, servo, axis)
 
     def set_homing_offset(
-        self,
-        homing_offset: int,
-        servo: str = DEFAULT_SERVO,
-        axis: int = DEFAULT_AXIS
+        self, homing_offset: int, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> None:
         """Set homing offset configuration.
 
@@ -48,14 +41,10 @@ class Homing(metaclass=MCMetaClass):
             servo : servo alias to reference it. ``default`` by default.
             axis : servo axis. ``1`` by default.
         """
-        self.mc.communication.set_register(self.HOMING_OFFSET_REGISTER,
-                                           homing_offset, servo, axis)
+        self.mc.communication.set_register(self.HOMING_OFFSET_REGISTER, homing_offset, servo, axis)
 
     def set_homing_timeout(
-        self,
-        timeout_ms: int,
-        servo: str = DEFAULT_SERVO,
-        axis: int = DEFAULT_AXIS
+        self, timeout_ms: int, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> None:
         """Set homing timeout configuration.
 
@@ -64,24 +53,18 @@ class Homing(metaclass=MCMetaClass):
             servo : servo alias to reference it. ``default`` by default.
             axis : servo axis. ``1`` by default.
         """
-        self.mc.communication.set_register(self.HOMING_TIMEOUT_REGISTER,
-                                           timeout_ms, servo, axis)
+        self.mc.communication.set_register(self.HOMING_TIMEOUT_REGISTER, timeout_ms, servo, axis)
 
-    def __check_motor_phasing(
-        self,
-        servo: str,
-        axis: int
-    ) -> None:
-        if not self.mc.configuration.is_commutation_feedback_aligned(
-                servo=servo, axis=axis):
-            self.logger.warning("Motor must be well phased before run any homing.",
-                                axis=axis, drive=self.mc.servo_name(servo))
+    def __check_motor_phasing(self, servo: str, axis: int) -> None:
+        if not self.mc.configuration.is_commutation_feedback_aligned(servo=servo, axis=axis):
+            self.logger.warning(
+                "Motor must be well phased before run any homing.",
+                axis=axis,
+                drive=self.mc.servo_name(servo),
+            )
 
     def homing_on_current_position(
-        self,
-        hom_offset: int,
-        servo: str = DEFAULT_SERVO,
-        axis: int = DEFAULT_AXIS
+        self, hom_offset: int, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> None:
         """Do current position homing.
 
@@ -93,12 +76,10 @@ class Homing(metaclass=MCMetaClass):
         # Save previous mode
         prev_op_mode = self.mc.motion.get_operation_mode(servo, axis)
 
-        self.mc.communication.set_register(self.HOMING_MODE_REGISTER,
-                                           HomingMode.CURRENT_POSITION,
-                                           servo, axis)
-        self.mc.communication.set_register(self.HOMING_OFFSET_REGISTER,
-                                           hom_offset,
-                                           servo, axis)
+        self.mc.communication.set_register(
+            self.HOMING_MODE_REGISTER, HomingMode.CURRENT_POSITION, servo, axis
+        )
+        self.mc.communication.set_register(self.HOMING_OFFSET_REGISTER, hom_offset, servo, axis)
         self.mc.motion.set_operation_mode(OperationMode.HOMING, servo, axis)
 
         # Perform the homing
@@ -116,7 +97,7 @@ class Homing(metaclass=MCMetaClass):
         zero_vel: int,
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
-        motor_enable: bool = True
+        motor_enable: bool = True,
     ) -> None:
         """Do homing on switch limit.
 
@@ -139,19 +120,23 @@ class Homing(metaclass=MCMetaClass):
         if direction > 0:
             # Positive direction
             self.set_homing_mode(HomingMode.POSITIVE_LIMIT_SWITCH, servo, axis)
-            self.mc.communication.set_register(self.POSITIVE_HOMING_SWITCH_REGISTER,
-                                               switch, servo, axis)
+            self.mc.communication.set_register(
+                self.POSITIVE_HOMING_SWITCH_REGISTER, switch, servo, axis
+            )
         else:
             # Negative direction
             self.set_homing_mode(HomingMode.NEGATIVE_LIMIT_SWITCH, servo, axis)
-            self.mc.communication.set_register(self.NEGATIVE_HOMING_SWITCH_REGISTER,
-                                               switch, servo, axis)
+            self.mc.communication.set_register(
+                self.NEGATIVE_HOMING_SWITCH_REGISTER, switch, servo, axis
+            )
         self.set_homing_offset(hom_offset, servo, axis)
         self.set_homing_timeout(timeout_ms, servo, axis)
-        self.mc.communication.set_register(self.HOMING_SEARCH_VELOCITY_REGISTER,
-                                           lim_vel, servo, axis)
-        self.mc.communication.set_register(self.HOMING_ZERO_VELOCITY_REGISTER,
-                                           zero_vel, servo, axis)
+        self.mc.communication.set_register(
+            self.HOMING_SEARCH_VELOCITY_REGISTER, lim_vel, servo, axis
+        )
+        self.mc.communication.set_register(
+            self.HOMING_ZERO_VELOCITY_REGISTER, zero_vel, servo, axis
+        )
         self.__check_motor_phasing(servo, axis)
         # Perform the homing
         if motor_enable:
@@ -167,7 +152,7 @@ class Homing(metaclass=MCMetaClass):
         zero_vel: int,
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
-        motor_enable: bool = True
+        motor_enable: bool = True,
     ) -> None:
         """Do homing on index pulse.
 
@@ -194,10 +179,12 @@ class Homing(metaclass=MCMetaClass):
             self.set_homing_mode(HomingMode.NEGATIVE_IDX_PULSE, servo, axis)
         self.set_homing_offset(hom_offset, servo, axis)
         self.set_homing_timeout(timeout_ms, servo, axis)
-        self.mc.communication.set_register(self.HOMING_INDEX_PULSE_SOURCE_REGISTER,
-                                           index, servo, axis)
-        self.mc.communication.set_register(self.HOMING_ZERO_VELOCITY_REGISTER,
-                                           zero_vel, servo, axis)
+        self.mc.communication.set_register(
+            self.HOMING_INDEX_PULSE_SOURCE_REGISTER, index, servo, axis
+        )
+        self.mc.communication.set_register(
+            self.HOMING_ZERO_VELOCITY_REGISTER, zero_vel, servo, axis
+        )
         self.__check_motor_phasing(servo, axis)
         # Perform the homing
         if motor_enable:
@@ -215,7 +202,7 @@ class Homing(metaclass=MCMetaClass):
         zero_vel: int,
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
-        motor_enable: bool = True
+        motor_enable: bool = True,
     ) -> None:
         """
         Do homing on switch limit and index pulse.
@@ -239,24 +226,27 @@ class Homing(metaclass=MCMetaClass):
         self.mc.motion.set_operation_mode(OperationMode.HOMING, servo, axis)
         if direction > 0:
             # Positive direction
-            self.set_homing_mode(HomingMode.POSITIVE_LIMIT_SWITCH_IDX_PULSE,
-                                 servo, axis)
-            self.mc.communication.set_register(self.POSITIVE_HOMING_SWITCH_REGISTER,
-                                               switch, servo, axis)
+            self.set_homing_mode(HomingMode.POSITIVE_LIMIT_SWITCH_IDX_PULSE, servo, axis)
+            self.mc.communication.set_register(
+                self.POSITIVE_HOMING_SWITCH_REGISTER, switch, servo, axis
+            )
         else:
             # Negative direction
-            self.set_homing_mode(HomingMode.NEGATIVE_LIMIT_SWITCH_IDX_PULSE,
-                                 servo, axis)
-            self.mc.communication.set_register(self.NEGATIVE_HOMING_SWITCH_REGISTER,
-                                               switch, servo, axis)
+            self.set_homing_mode(HomingMode.NEGATIVE_LIMIT_SWITCH_IDX_PULSE, servo, axis)
+            self.mc.communication.set_register(
+                self.NEGATIVE_HOMING_SWITCH_REGISTER, switch, servo, axis
+            )
         self.set_homing_offset(hom_offset, servo, axis)
         self.set_homing_timeout(timeout_ms, servo, axis)
-        self.mc.communication.set_register(self.HOMING_INDEX_PULSE_SOURCE_REGISTER,
-                                           index, servo, axis)
-        self.mc.communication.set_register(self.HOMING_SEARCH_VELOCITY_REGISTER,
-                                           lim_vel, servo, axis)
-        self.mc.communication.set_register(self.HOMING_ZERO_VELOCITY_REGISTER,
-                                           zero_vel, servo, axis)
+        self.mc.communication.set_register(
+            self.HOMING_INDEX_PULSE_SOURCE_REGISTER, index, servo, axis
+        )
+        self.mc.communication.set_register(
+            self.HOMING_SEARCH_VELOCITY_REGISTER, lim_vel, servo, axis
+        )
+        self.mc.communication.set_register(
+            self.HOMING_ZERO_VELOCITY_REGISTER, zero_vel, servo, axis
+        )
         self.__check_motor_phasing(servo, axis)
         # Perform the homing
         if motor_enable:

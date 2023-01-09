@@ -20,8 +20,8 @@ def check_disturbance_disabled(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
         disturbance_enabled = self.mc.capture.is_disturbance_enabled(
-            servo=self.servo,
-            version=self._version)
+            servo=self.servo, version=self._version
+        )
         if disturbance_enabled:
             raise IMDisturbanceError("Disturbance is enabled")
         return func(self, *args, **kwargs)
@@ -56,7 +56,7 @@ class Disturbance:
         REG_DTYPE.S32: 4,
         REG_DTYPE.U64: 8,
         REG_DTYPE.S64: 8,
-        REG_DTYPE.FLOAT: 4
+        REG_DTYPE.FLOAT: 4,
     }
 
     def __init__(self, mc: "MotionController", servo: str = DEFAULT_SERVO):
@@ -72,8 +72,9 @@ class Disturbance:
             try:
                 self.mc.capture.mcb_synchronization(servo=servo)
             except IMStatusWordError:
-                self.logger.warning("MCB could not be synchronized. Motor is enabled.",
-                                    drive=mc.servo_name(servo))
+                self.logger.warning(
+                    "MCB could not be synchronized. Motor is enabled.", drive=mc.servo_name(servo)
+                )
 
     @check_disturbance_disabled
     def set_frequency_divider(self, divider: int) -> float:
@@ -93,16 +94,12 @@ class Disturbance:
         """
         if divider < 1:
             raise ValueError("divider must be 1 or higher")
-        position_velocity_loop_rate = \
-            self.mc.configuration.get_position_and_velocity_loop_rate(
-                servo=self.servo
-            )
+        position_velocity_loop_rate = self.mc.configuration.get_position_and_velocity_loop_rate(
+            servo=self.servo
+        )
         self.sampling_freq = round(position_velocity_loop_rate / divider, 2)
         self.mc.communication.set_register(
-            self.DISTURBANCE_FREQUENCY_DIVIDER_REGISTER,
-            divider,
-            servo=self.servo,
-            axis=0
+            self.DISTURBANCE_FREQUENCY_DIVIDER_REGISTER, divider, servo=self.servo, axis=0
         )
         return 1 / self.sampling_freq
 
@@ -137,23 +134,23 @@ class Disturbance:
         for ch_idx, channel in enumerate(registers):
             subnode = channel.get("axis", DEFAULT_AXIS)
             register = channel["name"]
-            register_obj = self.mc.info.register_info(
-                register, subnode, servo=self.servo)
+            register_obj = self.mc.info.register_info(register, subnode, servo=self.servo)
             dtype = register_obj.dtype
             cyclic = register_obj.cyclic
             if cyclic != self.CYCLIC_RX:
                 drive.disturbance_remove_all_mapped_registers()
-                raise IMDisturbanceError("{} can not be mapped as a disturbance register"
-                                         .format(register))
+                raise IMDisturbanceError(
+                    "{} can not be mapped as a disturbance register".format(register)
+                )
             channel["dtype"] = dtype
             address_offset = self.REGISTER_MAP_OFFSET * (subnode - 1)
             if isinstance(register_obj, (IPBRegister, EthernetRegister)):
                 mapped_reg = register_obj.address + address_offset
             else:
                 mapped_reg = register_obj.idx
-            drive.disturbance_set_mapped_register(ch_idx, mapped_reg,
-                                                  subnode, dtype.value,
-                                                  self.__data_type_size[dtype])
+            drive.disturbance_set_mapped_register(
+                ch_idx, mapped_reg, subnode, dtype.value, self.__data_type_size[dtype]
+            )
             self.mapped_registers.append(channel)
             total_sample_size += self.__data_type_size[dtype]
         return self.max_sample_number / total_sample_size
@@ -162,8 +159,7 @@ class Disturbance:
     def __registers_data_adapter(registers_data):
         if isinstance(registers_data, ndarray):
             registers_data = registers_data.tolist()
-        if isinstance(registers_data, Iterable) and \
-                not isinstance(registers_data[0], Iterable):
+        if isinstance(registers_data, Iterable) and not isinstance(registers_data[0], Iterable):
             return [registers_data]
         if isinstance(registers_data, Iterable):
             for i, x in enumerate(registers_data):
@@ -233,9 +229,12 @@ class Disturbance:
         if total_buffer_size > self.max_sample_number:
             raise IMDisturbanceError(
                 "Number of samples is too high. "
-                "Demanded size: {} bytes, buffer max size: {} bytes."
-                .format(total_buffer_size, self.max_sample_number)
+                "Demanded size: {} bytes, buffer max size: {} bytes.".format(
+                    total_buffer_size, self.max_sample_number
+                )
             )
-        self.logger.debug("Demanded size: %d bytes, buffer max size: %d bytes.",
-                          total_buffer_size, self.max_sample_number)
-
+        self.logger.debug(
+            "Demanded size: %d bytes, buffer max size: %d bytes.",
+            total_buffer_size,
+            self.max_sample_number,
+        )
