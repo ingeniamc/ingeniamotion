@@ -38,7 +38,7 @@ setuptools.setup(
     ],
     extras_require={
         "tests": [
-            "pytest==6.2.4",
+            "pytest==7.0.1",
             "pytest-cov==2.12.1",
             "pytest-mock==3.6.1",
             "ping3==3.0.2",
