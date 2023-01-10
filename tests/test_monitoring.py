@@ -24,30 +24,22 @@ class ThreadWithReturnValue(Thread):
         return self._return
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 @pytest.fixture
 def monitoring(skip_if_monitoring_not_available, motion_controller):
     mc, alias = motion_controller
     return mc.capture.create_empty_monitoring(alias)
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 @pytest.fixture
 def mon_set_freq(skip_if_monitoring_not_available, monitoring):
     monitoring.set_frequency(10)
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 @pytest.fixture
 def mon_map_registers(skip_if_monitoring_not_available, monitoring):
     monitoring.map_registers([{"axis": 1, "name": "CL_POS_FBK_VALUE"}])
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "trigger_type",
@@ -66,8 +58,6 @@ def test_get_trigger_type(motion_controller, monitoring, trigger_type):
     assert test_trigger == trigger_type
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "block, timeout, sample_t, wait, result",
@@ -100,8 +90,6 @@ def test_raise_forced_trigger(
     time.sleep(1)
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 @pytest.mark.smoke
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
@@ -114,8 +102,6 @@ def test_raise_forced_trigger_fail(motion_controller, monitoring, disable_monito
         monitoring.raise_forced_trigger()
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
 @pytest.mark.parametrize(
@@ -139,8 +125,6 @@ def test_read_monitoring_data_forced_trigger(
         assert len(test_output[0]) == 0
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 @pytest.mark.parametrize("prescaler", list(range(2, 11, 2)))
 def test_set_monitoring_frequency(motion_controller, monitoring, prescaler):
     mc, alias = motion_controller
@@ -151,16 +135,12 @@ def test_set_monitoring_frequency(motion_controller, monitoring, prescaler):
     assert value == prescaler
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 def test_set_monitoring_frequency_exception(monitoring):
     prescaler = 0.5
     with pytest.raises(ValueError):
         monitoring.set_frequency(prescaler)
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 def test_monitoring_map_registers_size_exception(monitoring):
     registers = [{"axis": 1, "name": "CL_POS_FBK_VALUE"}]
     monitoring.samples_number = monitoring.max_sample_number
@@ -168,16 +148,12 @@ def test_monitoring_map_registers_size_exception(monitoring):
         monitoring.map_registers(registers)
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 def test_monitoring_map_registers_fail(monitoring):
     registers = []
     with pytest.raises(IMMonitoringError):
         monitoring.map_registers(registers)
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 @pytest.mark.usefixtures("mon_map_registers")
 @pytest.mark.parametrize(
     "trigger_type, edge_condition, trigger_signal, trigger_value",
@@ -203,8 +179,6 @@ def test_monitoring_set_trigger(
     assert value == trigger_type
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 @pytest.mark.usefixtures("mon_map_registers")
 @pytest.mark.parametrize(
     "trigger_type, edge_condition, trigger_signal, trigger_value",
@@ -231,8 +205,6 @@ def test_monitoring_set_trigger_exceptions(
         monitoring.set_trigger(trigger_type, edge_condition, trigger_signal, trigger_value)
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 def test_configure_number_samples(motion_controller, monitoring):
     mc, alias = motion_controller
     total_num_samples = 500
@@ -248,16 +220,12 @@ def test_configure_number_samples(motion_controller, monitoring):
     assert value == trigger_delay_samples
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 @pytest.mark.parametrize("total_num_samples, trigger_delay_samples", [(500, 510), (510, -500)])
 def test_configure_number_samples_exceptions(monitoring, total_num_samples, trigger_delay_samples):
     with pytest.raises(ValueError):
         monitoring.configure_number_samples(total_num_samples, trigger_delay_samples)
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 def test_configure_sample_time(motion_controller, monitoring):
     mc, alias = motion_controller
     total_time = 5
@@ -277,8 +245,6 @@ def test_configure_sample_time(motion_controller, monitoring):
     assert value == trigger_delay_samples
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 @pytest.mark.parametrize("total_time, sign", [(5, 1), (5, -1)])
 def test_configure_sample_time_exception(monitoring, total_time, sign):
     trigger_delay = sign * ((total_time // 2) + 1)
@@ -287,8 +253,6 @@ def test_configure_sample_time_exception(monitoring, total_time, sign):
 
 
 @pytest.mark.skip("Check if channels are configured is not implemented yet")
-@pytest.mark.soem
-@pytest.mark.eoe
 @pytest.mark.usefixtures("disable_monitoring_disturbance")
 def test_read_monitoring_data_not_configured(motion_controller, monitoring):
     # TODO Add exception in function for this test case
@@ -301,8 +265,6 @@ def test_read_monitoring_data_not_configured(motion_controller, monitoring):
     assert len(test_output[0]) == 0
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
 def test_read_monitoring_data_disabled(monitoring):
@@ -312,8 +274,6 @@ def test_read_monitoring_data_disabled(monitoring):
     assert len(test_output[0]) == 0
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
 def test_read_monitoring_data_timeout(
@@ -329,8 +289,6 @@ def test_read_monitoring_data_timeout(
     assert len(test_output[0]) == 0
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 @pytest.mark.smoke
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
@@ -356,8 +314,6 @@ def test_read_monitoring_data_no_rearm(
     assert len(test_output[0]) == 0
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 @pytest.mark.smoke
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
@@ -388,8 +344,6 @@ def run_read_monitoring_data_and_stop(monitoring, timeout):
     return test_thread.join()
 
 
-@pytest.mark.soem
-@pytest.mark.eoe
 @pytest.mark.smoke
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
