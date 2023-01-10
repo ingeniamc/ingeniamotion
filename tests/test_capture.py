@@ -7,7 +7,7 @@ from ingeniamotion.exceptions import IMStatusWordError
 from ingeniamotion.enums import OperationMode, MonitoringSoCType, MonitoringSoCConfig
 
 
-def __compare_signals(expected_signal, received_signal, length_tol=None, fft_tol=0.05):
+def __compare_signals(expected_signal, received_signal, length_tol=None, fft_tol=0.05, plot=False):
     if length_tol is not None:
         assert pytest.approx(len(received_signal), length_tol) == len(expected_signal)
 
@@ -22,6 +22,13 @@ def __compare_signals(expected_signal, received_signal, length_tol=None, fft_tol
     # Normalization
     fft_received = fft_received / np.amax(fft_received)
     fft_expected = fft_expected / np.amax(fft_expected)
+
+    if plot:
+        import matplotlib.pyplot as plt
+
+        plt.plot(received_signal)
+        plt.plot(expected_signal)
+        plt.show()
 
     assert np.allclose(fft_received, fft_expected, rtol=0, atol=fft_tol)
 
@@ -140,6 +147,62 @@ def test_create_monitoring_edge_trigger(
 
     data = monitoring.read_monitoring_data()
     __compare_signals(expected_signal, data[0])
+
+
+@pytest.mark.parametrize("trigger_delay_rate", [-1 / 4, 1 / 4])
+def test_create_monitoring_trigger_delay(
+    skip_if_monitoring_not_available,
+    motion_controller,
+    trigger_delay_rate,
+):
+    trigger_mode = MonitoringSoCType.TRIGGER_EVENT_EDGE
+    trigger_config = MonitoringSoCConfig.TRIGGER_CONFIG_RISING
+    values_list = [0, 0.25, 0.5, 0.75]
+    register = {"name": "CL_POS_REF_VALUE", "axis": 1}
+    mc, alias = motion_controller
+    mc.motion.set_operation_mode(OperationMode.VELOCITY, alias)
+    max_frequency = mc.configuration.get_position_and_velocity_loop_rate(alias)
+    divider = 40
+    samples = 2000
+    quarter_num_samples = samples // 4
+    trigger_value = ((values_list[1] + values_list[2]) / 2) * samples
+    freq = max_frequency / divider
+    total_time = samples / freq
+    trigger_delay = total_time * trigger_delay_rate
+    trigger_delay_samples = int(samples * trigger_delay_rate) + 1
+    monitoring = mc.capture.create_monitoring(
+        [register],
+        divider,
+        total_time,
+        trigger_delay=trigger_delay,
+        trigger_mode=trigger_mode,
+        trigger_config=trigger_config,
+        trigger_signal=register,
+        trigger_value=trigger_value,
+        servo=alias,
+    )
+    mc.motion.move_to_position(int(values_list[0] * samples), alias)
+    mc.motion.motor_enable(alias)
+    mc.capture.enable_monitoring_disturbance(servo=alias)
+    time.sleep(1)
+    init = time.time()
+    quarter_total_time = total_time / 4
+    expected_signal = np.zeros(samples)
+    expected_signal[:quarter_num_samples] = int(values_list[0] * samples)
+    for i in range(1, 4):
+        while init + i * quarter_total_time > time.time():
+            pass
+        value = int(values_list[i] * samples)
+        mc.motion.move_to_position(value, alias)
+        expected_signal[i * quarter_num_samples : (i + 1) * quarter_num_samples] = value
+
+    expected_signal = np.roll(expected_signal, -trigger_delay_samples)
+    if trigger_delay_samples < 0:
+        expected_signal[:-trigger_delay_samples] = 0
+    else:
+        expected_signal[-trigger_delay_samples:] = value
+    data = monitoring.read_monitoring_data()
+    __compare_signals(expected_signal, data[0], plot=True)
 
 
 def test_create_disturbance(
