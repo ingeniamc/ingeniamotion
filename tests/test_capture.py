@@ -7,7 +7,7 @@ from ingeniamotion.exceptions import IMStatusWordError
 from ingeniamotion.enums import OperationMode, MonitoringSoCType, MonitoringSoCConfig
 
 
-def __compare_signals(expected_signal, received_signal, length_tol=None, fft_tol=0.05, plot=False):
+def __compare_signals(expected_signal, received_signal, length_tol=None, fft_tol=0.05):
     if length_tol is not None:
         assert pytest.approx(len(received_signal), length_tol) == len(expected_signal)
 
@@ -22,13 +22,6 @@ def __compare_signals(expected_signal, received_signal, length_tol=None, fft_tol
     # Normalization
     fft_received = fft_received / np.amax(fft_received)
     fft_expected = fft_expected / np.amax(fft_expected)
-
-    if plot:
-        import matplotlib.pyplot as plt
-
-        plt.plot(received_signal)
-        plt.plot(expected_signal)
-        plt.show()
 
     assert np.allclose(fft_received, fft_expected, rtol=0, atol=fft_tol)
 
@@ -202,7 +195,7 @@ def test_create_monitoring_trigger_delay(
     else:
         expected_signal[-trigger_delay_samples:] = value
     data = monitoring.read_monitoring_data()
-    __compare_signals(expected_signal, data[0], plot=True)
+    __compare_signals(expected_signal, data[0])
 
 
 def test_create_disturbance(
