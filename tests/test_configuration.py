@@ -126,13 +126,13 @@ def test_set_profiler(motion_controller, acceleration, deceleration, velocity):
     acceleration_value = mc.communication.get_register(
         PROFILE_MAX_ACCELERATION_REGISTER, servo=alias
     )
-    assert pytest.approx(acceleration_value) == expected_acceleration
+    assert pytest.approx(expected_acceleration) == acceleration_value
     deceleration_value = mc.communication.get_register(
         PROFILE_MAX_DECELERATION_REGISTER, servo=alias
     )
-    assert pytest.approx(deceleration_value) == expected_deceleration
+    assert pytest.approx(expected_deceleration) == deceleration_value
     velocity_value = mc.communication.get_register(PROFILE_MAX_VELOCITY_REGISTER, servo=alias)
-    assert pytest.approx(velocity_value) == expected_velocity
+    assert pytest.approx(expected_velocity) == velocity_value
 
 
 @pytest.mark.smoke
@@ -141,7 +141,7 @@ def test_set_max_acceleration(motion_controller, acceleration):
     mc, alias = motion_controller
     mc.configuration.set_max_acceleration(acceleration, servo=alias)
     output_value = mc.communication.get_register(PROFILE_MAX_ACCELERATION_REGISTER, servo=alias)
-    assert pytest.approx(output_value) == acceleration
+    assert pytest.approx(acceleration) == output_value
 
 
 @pytest.mark.smoke
@@ -150,7 +150,7 @@ def test_set_max_profile_acceleration(motion_controller, acceleration):
     mc, alias = motion_controller
     mc.configuration.set_max_profile_acceleration(acceleration, servo=alias)
     output_value = mc.communication.get_register(PROFILE_MAX_ACCELERATION_REGISTER, servo=alias)
-    assert pytest.approx(output_value) == acceleration
+    assert pytest.approx(acceleration) == output_value
 
 
 @pytest.mark.smoke
@@ -168,7 +168,7 @@ def test_set_max_velocity(motion_controller, velocity):
     mc, alias = motion_controller
     mc.configuration.set_max_velocity(velocity, servo=alias)
     output_value = mc.communication.get_register(MAX_VELOCITY_REGISTER, servo=alias)
-    assert pytest.approx(output_value) == velocity
+    assert pytest.approx(velocity) == output_value
 
 
 @pytest.mark.smoke
@@ -177,7 +177,7 @@ def test_set_max_profile_velocity(motion_controller, velocity):
     mc, alias = motion_controller
     mc.configuration.set_max_profile_velocity(velocity, servo=alias)
     output_value = mc.communication.get_register(PROFILE_MAX_VELOCITY_REGISTER, servo=alias)
-    assert pytest.approx(output_value) == velocity
+    assert pytest.approx(velocity) == output_value
 
 
 @pytest.mark.smoke
@@ -227,7 +227,7 @@ def test_set_power_stage_frequency(motion_controller, input_value):
     output_value = mc.communication.get_register(
         POWER_STAGE_FREQUENCY_SELECTION_REGISTER, servo=alias
     )
-    assert pytest.approx(output_value) == input_value
+    assert pytest.approx(input_value) == output_value
 
 
 @pytest.mark.smoke
@@ -305,7 +305,7 @@ def test_set_phasing_mode(motion_controller):
     mc, alias = motion_controller
     mc.configuration.set_phasing_mode(input_value, servo=alias)
     output_value = mc.communication.get_register(PHASING_MODE_REGISTER, servo=alias)
-    assert pytest.approx(output_value) == input_value
+    assert pytest.approx(input_value) == output_value
 
 
 @pytest.mark.smoke
@@ -322,7 +322,7 @@ def test_set_generator_mode(motion_controller):
     mc, alias = motion_controller
     mc.configuration.set_generator_mode(input_value, servo=alias)
     output_value = mc.communication.get_register(GENERATOR_MODE_REGISTER, servo=alias)
-    assert pytest.approx(output_value) == input_value
+    assert pytest.approx(input_value) == output_value
 
 
 def test_set_motor_pair_poles(motion_controller_teardown):
@@ -330,7 +330,7 @@ def test_set_motor_pair_poles(motion_controller_teardown):
     mc, alias = motion_controller_teardown
     mc.configuration.set_motor_pair_poles(input_value, servo=alias)
     output_value = mc.communication.get_register(MOTOR_POLE_PAIRS_REGISTER, servo=alias)
-    assert pytest.approx(output_value) == input_value
+    assert pytest.approx(input_value) == output_value
 
 
 @pytest.mark.smoke
