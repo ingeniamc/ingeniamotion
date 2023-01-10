@@ -54,13 +54,17 @@ def feedback_test_setup(motion_controller):
 )
 def test_encoders_test(motion_controller, feedback_list, feedback_test_name, encoder):
     mc, alias = motion_controller
+    if encoder == SensorType.QEI2 and not mc.info.register_exists(
+        "FBK_DIGENC2_RESOLUTION", servo=alias
+    ):
+        pytest.skip("Incremental encoder 2 is not available")
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
     if encoder in feedback_list:
         results = getattr(mc.tests, feedback_test_name)(servo=alias)
         assert results["result_severity"] == SeverityLevel.SUCCESS
     else:
         with pytest.raises(TestError):
-            mc.tests.digital_halls_test(servo=alias)
+            getattr(mc.tests, feedback_test_name)(servo=alias)
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
 
