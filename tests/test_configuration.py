@@ -66,12 +66,30 @@ def remove_file_if_exist():
 def test_save_configuration_and_load_configuration(motion_controller):
     file_path = "test_file"
     mc, alias = motion_controller
-    mc.communication.set_register(POSITION_SET_POINT_REGISTER, 0, servo=alias)
+    old_value = mc.communication.get_register(PROFILE_MAX_VELOCITY_REGISTER, servo=alias)
+    mc.communication.set_register(PROFILE_MAX_VELOCITY_REGISTER, 10, servo=alias)
     mc.configuration.save_configuration("test_file", servo=alias)
     assert os.path.isfile(file_path)
-    mc.communication.set_register(POSITION_SET_POINT_REGISTER, 1000, servo=alias)
+    mc.communication.set_register(PROFILE_MAX_VELOCITY_REGISTER, 20, servo=alias)
     mc.configuration.load_configuration("test_file", servo=alias)
-    assert mc.communication.get_register(POSITION_SET_POINT_REGISTER, servo=alias) == 0
+    assert mc.communication.get_register(PROFILE_MAX_VELOCITY_REGISTER, servo=alias) == 10
+    mc.communication.set_register(PROFILE_MAX_VELOCITY_REGISTER, old_value, servo=alias)
+
+
+@pytest.mark.usefixtures("remove_file_if_exist")
+@pytest.mark.canopen
+@pytest.mark.eoe
+def test_save_configuration_and_load_configuration_nvm_none(motion_controller):
+    file_path = "test_file"
+    mc, alias = motion_controller
+    old_value = mc.communication.get_register(POSITION_SET_POINT_REGISTER, servo=alias)
+    mc.communication.set_register(POSITION_SET_POINT_REGISTER, 10, servo=alias)
+    mc.configuration.save_configuration("test_file", servo=alias)
+    assert os.path.isfile(file_path)
+    mc.communication.set_register(POSITION_SET_POINT_REGISTER, 20, servo=alias)
+    mc.configuration.load_configuration("test_file", servo=alias)
+    assert mc.communication.get_register(POSITION_SET_POINT_REGISTER, servo=alias) == 20
+    mc.communication.set_register(POSITION_SET_POINT_REGISTER, old_value, servo=alias)
 
 
 def test_set_profiler_exception(motion_controller):
