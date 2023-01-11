@@ -81,9 +81,7 @@ def test_disturbance_map_registers_exception(disturbance):
         disturbance.map_registers(registers)
 
 
-@pytest.mark.skip("Exception is not implemented yet")
 def test_disturbance_map_registers_empty(disturbance):
-    # TODO Add exception in function for this test case
     registers = []
     with pytest.raises(IMDisturbanceError):
         disturbance.map_registers(registers)
@@ -95,9 +93,7 @@ def test_write_disturbance_data_buffer_exception(disturbance):
         disturbance.write_disturbance_data([0] * disturbance.max_sample_number)
 
 
-@pytest.mark.skip("Exception is not implemented yet")
 def test_write_disturbance_data_not_configured(disturbance):
-    # TODO Add exception in function for this test case
     with pytest.raises(IMDisturbanceError):
         disturbance.write_disturbance_data([0] * 100)
 

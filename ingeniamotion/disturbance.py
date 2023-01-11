@@ -126,6 +126,8 @@ class Disturbance:
             IMDisturbanceError: If the register is not allowed to be mapped as
                 a disturbance register.
         """
+        if len(registers) == 0:
+            raise IMDisturbanceError("No registers to be mapped.")
         if not isinstance(registers, list):
             registers = [registers]
         drive = self.mc.servos[self.servo]
@@ -180,6 +182,8 @@ class Disturbance:
             IMDisturbanceError: If buffer size is not enough for all the
                 registers and samples.
         """
+        if len(self.mapped_registers) == 0 or self.sampling_freq is None:
+            raise IMDisturbanceError("Disturbance is not correctly configured yet")
         registers_data = self.__registers_data_adapter(registers_data)
         drive = self.mc.servos[self.servo]
         self.__check_buffer_size_is_enough(registers_data)
