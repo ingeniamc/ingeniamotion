@@ -59,13 +59,8 @@ def load_can(drive_conf, mc):
             break
 
         except ILFirmwareLoadError as e:
-            if str(e) != "Could not recover drive":
-                # TODO Fix canopen FW loader and remove this if
-                logger.error(f"CAN boot error: {e}")
-                raise e
-            else:
-                logger.warning(f"Exception '{e}' has raised, but it is ignored.")
-                break
+            logger.error(f"CAN boot error: {e}")
+            raise e
 
         finally:
             mc.communication.disconnect()
