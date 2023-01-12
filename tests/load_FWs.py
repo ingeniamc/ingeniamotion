@@ -106,11 +106,10 @@ def load_can(drive_conf, mc):
             # Reaching this point means we are connected
             detected = True
             logger.info("New FW detected after: {:.1f} s".format(time.perf_counter() - ini_time))
+            mc.communication.disconnect()
         except Exception as e:
             # When cannot connect
             pass
-
-        mc.communication.disconnect()
 
         if not detected:
             time.sleep(SLEEP_TIME_NEW_FW_DETECT)
