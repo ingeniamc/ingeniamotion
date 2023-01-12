@@ -55,12 +55,11 @@ def load_can(drive_conf, mc):
             mc.communication.load_firmware_canopen(drive_conf["fw_file"])
 
             # Reaching this means that FW was correctly flashed
-            time.sleep(SLEEP_TIME_AFTER_ATTEMP)
             break
 
         except ILFirmwareLoadError as e:
             logger.error(f"CAN boot error: {e}")
-            raise e
+            time.sleep(SLEEP_TIME_AFTER_ATTEMP)
 
         finally:
             mc.communication.disconnect()
