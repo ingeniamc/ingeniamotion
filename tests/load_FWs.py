@@ -54,24 +54,21 @@ def load_can(drive_conf, mc):
         try:
             mc.communication.load_firmware_canopen(drive_conf["fw_file"])
 
-            mc.communication.disconnect()
-
             # Reaching this means that FW was correctly flashed
             time.sleep(SLEEP_TIME_AFTER_ATTEMP)
             break
 
         except ILFirmwareLoadError as e:
-            # Disconnect CAN network
-            mc.communication.disconnect()
-
             if str(e) != "Could not recover drive":
                 # TODO Fix canopen FW loader and remove this if
                 logger.error(f"CAN boot error: {e}")
-                time.sleep(SLEEP_TIME_AFTER_ATTEMP)
                 raise e
             else:
                 logger.warning(f"Exception '{e}' has raised, but it is ignored.")
                 break
+
+        finally:
+            mc.communication.disconnect()
 
     logger.info(
         "FW updated. %s, node: %d, baudrate: %d, channel: %d",
