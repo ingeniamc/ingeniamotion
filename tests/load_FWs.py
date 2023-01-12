@@ -35,29 +35,28 @@ def load_can(drive_conf, mc):
     SLEEP_TIME_NEW_FW_DETECT = 5.0
 
     for attempt in range(BL_NUM_OF_REATTEMPTS):
-        logger.info("CAN boot attempt {} of {}".format(attempt + 1, BL_NUM_OF_REATTEMPTS))
+        logger.info(f"CAN boot attempt {attempt + 1} of {BL_NUM_OF_REATTEMPTS}")
+        mc.communication.connect_servo_canopen(
+            CAN_DEVICE(drive_conf["device"]),
+            drive_conf["dictionary"],
+            drive_conf["eds"],
+            drive_conf["node_id"],
+            CAN_BAUDRATE(drive_conf["baudrate"]),
+            channel=drive_conf["channel"],
+        )
+        logger.info(
+            "Drive connected. %s, node: %d, baudrate: %d, channel: %d",
+            drive_conf["device"],
+            drive_conf["node_id"],
+            drive_conf["baudrate"],
+            drive_conf["channel"],
+        )
         try:
-            mc.communication.connect_servo_canopen(
-                CAN_DEVICE(drive_conf["device"]),
-                drive_conf["dictionary"],
-                drive_conf["eds"],
-                drive_conf["node_id"],
-                CAN_BAUDRATE(drive_conf["baudrate"]),
-                channel=drive_conf["channel"],
-            )
-            logger.info(
-                "Drive connected. %s, node: %d, baudrate: %d, channel: %d",
-                drive_conf["device"],
-                drive_conf["node_id"],
-                drive_conf["baudrate"],
-                drive_conf["channel"],
-            )
             mc.communication.load_firmware_canopen(drive_conf["fw_file"])
 
             mc.communication.disconnect()
 
             # Reaching this means that FW was correctly flashed
-            err_str = None
             time.sleep(SLEEP_TIME_AFTER_ATTEMP)
             break
 
@@ -67,27 +66,22 @@ def load_can(drive_conf, mc):
 
             if str(e) != "Could not recover drive":
                 # TODO Fix canopen FW loader and remove this if
-                err_str = "CAN boot error: {}".format(e)
-                logger.error(err_str)
+                logger.error(f"CAN boot error: {e}")
                 time.sleep(SLEEP_TIME_AFTER_ATTEMP)
                 raise e
             else:
-                err_str = None
                 logger.warning(f"Exception '{e}' has raised, but it is ignored.")
                 break
 
-    if err_str is None:
-        logger.info(
-            "FW updated. %s, node: %d, baudrate: %d, channel: %d",
-            drive_conf["device"],
-            drive_conf["node_id"],
-            drive_conf["baudrate"],
-            drive_conf["channel"],
-        )
-    else:
-        raise Exception(err_str)
+    logger.info(
+        "FW updated. %s, node: %d, baudrate: %d, channel: %d",
+        drive_conf["device"],
+        drive_conf["node_id"],
+        drive_conf["baudrate"],
+        drive_conf["channel"],
+    )
 
-    logger.info("Waiting {} seconds for trying to connect".format(SLEEP_TIME_AFTER_BL))
+    logger.info(f"Waiting {SLEEP_TIME_AFTER_BL} seconds for trying to connect")
     time.sleep(SLEEP_TIME_AFTER_BL)
 
     # Check whether the new FW is present
@@ -109,10 +103,8 @@ def load_can(drive_conf, mc):
             mc.communication.disconnect()
         except Exception as e:
             # When cannot connect
-            pass
-
-        if not detected:
             time.sleep(SLEEP_TIME_NEW_FW_DETECT)
+            pass
 
     if not detected:
         raise Exception("New FW not detected")
