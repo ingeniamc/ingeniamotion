@@ -14,7 +14,7 @@ from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE
 from ingenialink.exceptions import ILError, ILFirmwareLoadError
 
 logger = ingenialogger.get_logger("load_FWs")
-ingenialogger.configure_logger()
+ingenialogger.configure_logger(level=ingenialogger.LoggingLevel.INFO)
 dirname = os.path.dirname(__file__)
 
 
@@ -25,35 +25,98 @@ def setup_command():
 
 
 def load_can(drive_conf, mc):
-    mc.communication.connect_servo_canopen(
-        CAN_DEVICE(drive_conf["device"]),
-        drive_conf["dictionary"],
-        drive_conf["eds"],
-        drive_conf["node_id"],
-        CAN_BAUDRATE(drive_conf["baudrate"]),
-        channel=drive_conf["channel"],
-    )
-    logger.info(
-        "Drive connected. %s, node: %d, baudrate: %d, channel: %d",
-        drive_conf["device"],
-        drive_conf["node_id"],
-        drive_conf["baudrate"],
-        drive_conf["channel"],
-    )
-    try:
-        mc.communication.load_firmware_canopen(drive_conf["fw_file"])
-    except ILFirmwareLoadError as e:
-        # TODO Remove try-except when issue INGK-438 will fix
-        if str(e) != "Could not recover drive":
-            raise e
-    logger.info(
-        "FW updated. %s, node: %d, baudrate: %d, channel: %d",
-        drive_conf["device"],
-        drive_conf["node_id"],
-        drive_conf["baudrate"],
-        drive_conf["channel"],
-    )
-    mc.communication.disconnect()
+    # Number of reattempts for trying the CAN bootloader
+    BL_NUM_OF_REATTEMPTS = 2
+
+    # Timings, in seconds
+    SLEEP_TIME_AFTER_ATTEMP = 5.0
+    SLEEP_TIME_AFTER_BL = 5.0
+    TIMEOUT_NEW_FW_DETECT = 30.0
+    SLEEP_TIME_NEW_FW_DETECT = 5.0
+
+    for attempt in range(BL_NUM_OF_REATTEMPTS):
+        logger.info("CAN boot attempt {} of {}".format(attempt + 1, BL_NUM_OF_REATTEMPTS))
+        try:
+            mc.communication.connect_servo_canopen(
+                CAN_DEVICE(drive_conf["device"]),
+                drive_conf["dictionary"],
+                drive_conf["eds"],
+                drive_conf["node_id"],
+                CAN_BAUDRATE(drive_conf["baudrate"]),
+                channel=drive_conf["channel"],
+            )
+            logger.info(
+                "Drive connected. %s, node: %d, baudrate: %d, channel: %d",
+                drive_conf["device"],
+                drive_conf["node_id"],
+                drive_conf["baudrate"],
+                drive_conf["channel"],
+            )
+            mc.communication.load_firmware_canopen(drive_conf["fw_file"])
+
+            mc.communication.disconnect()
+
+            # Reaching this means that FW was correctly flashed
+            err_str = None
+            time.sleep(SLEEP_TIME_AFTER_ATTEMP)
+            break
+
+        except ILFirmwareLoadError as e:
+            # Disconnect CAN network
+            mc.communication.disconnect()
+
+            if str(e) != "Could not recover drive":
+                # TODO Fix canopen FW loader and remove this if
+                err_str = "CAN boot error: {}".format(e)
+                logger.error(err_str)
+                time.sleep(SLEEP_TIME_AFTER_ATTEMP)
+                raise e
+            else:
+                err_str = None
+                logger.warning(f"Exception '{e}' has raised, but it is ignored.")
+                break
+
+    if err_str is None:
+        logger.info(
+            "FW updated. %s, node: %d, baudrate: %d, channel: %d",
+            drive_conf["device"],
+            drive_conf["node_id"],
+            drive_conf["baudrate"],
+            drive_conf["channel"],
+        )
+    else:
+        raise Exception(err_str)
+
+    logger.info("Waiting {} seconds for trying to connect".format(SLEEP_TIME_AFTER_BL))
+    time.sleep(SLEEP_TIME_AFTER_BL)
+
+    # Check whether the new FW is present
+    detected = False
+    ini_time = time.perf_counter()
+    while (time.perf_counter() - ini_time) <= TIMEOUT_NEW_FW_DETECT and not detected:
+        try:
+            mc.communication.connect_servo_canopen(
+                CAN_DEVICE(drive_conf["device"]),
+                drive_conf["dictionary"],
+                drive_conf["eds"],
+                drive_conf["node_id"],
+                CAN_BAUDRATE(drive_conf["baudrate"]),
+                channel=drive_conf["channel"],
+            )
+            # Reaching this point means we are connected
+            detected = True
+            logger.info("New FW detected after: {:.1f} s".format(time.perf_counter() - ini_time))
+        except Exception as e:
+            # When cannot connect
+            pass
+
+        mc.communication.disconnect()
+
+        if not detected:
+            time.sleep(SLEEP_TIME_NEW_FW_DETECT)
+
+    if not detected:
+        raise Exception("New FW not detected")
 
 
 def load_ecat(drive_conf, mc):
