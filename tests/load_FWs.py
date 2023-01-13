@@ -36,21 +36,26 @@ def load_can(drive_conf, mc):
 
     for attempt in range(BL_NUM_OF_REATTEMPTS):
         logger.info(f"CAN boot attempt {attempt + 1} of {BL_NUM_OF_REATTEMPTS}")
-        mc.communication.connect_servo_canopen(
-            CAN_DEVICE(drive_conf["device"]),
-            drive_conf["dictionary"],
-            drive_conf["eds"],
-            drive_conf["node_id"],
-            CAN_BAUDRATE(drive_conf["baudrate"]),
-            channel=drive_conf["channel"],
-        )
-        logger.info(
-            "Drive connected. %s, node: %d, baudrate: %d, channel: %d",
-            drive_conf["device"],
-            drive_conf["node_id"],
-            drive_conf["baudrate"],
-            drive_conf["channel"],
-        )
+        try:
+            mc.communication.connect_servo_canopen(
+                CAN_DEVICE(drive_conf["device"]),
+                drive_conf["dictionary"],
+                drive_conf["eds"],
+                drive_conf["node_id"],
+                CAN_BAUDRATE(drive_conf["baudrate"]),
+                channel=drive_conf["channel"],
+            )
+            logger.info(
+                "Drive connected. %s, node: %d, baudrate: %d, channel: %d",
+                drive_conf["device"],
+                drive_conf["node_id"],
+                drive_conf["baudrate"],
+                drive_conf["channel"],
+            )
+        except Exception as e:
+            logger.info(f"Couldn't connect to the drive: {e}")
+            continue
+
         try:
             mc.communication.load_firmware_canopen(drive_conf["fw_file"])
 
