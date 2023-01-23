@@ -6,7 +6,7 @@ Ingeniamotion
 
 Ingeniamotion is a library that works over ingenialink and aims to simplify the interaction with Ingenia's drives.
 
-[![Ingenia Servodrives](https://ingeniamc.com/wp-content/uploads/2021/04/ingenia-servo-drives.jpg)](http://www.ingeniamc.com)
+[![Ingenia Servodrives](https://github.com/ingeniamc/ingenialink-python/blob/master/docs/_static/images/main_image.png?raw=true)](http://www.ingeniamc.com)
 
 Requirements
 ------------
