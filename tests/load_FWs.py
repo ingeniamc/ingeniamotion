@@ -71,7 +71,6 @@ def load_can(drive_conf, mc):
                 mc.communication.disconnect()
             except Exception as e:
                 logger.error(f"Error when disconnection from drive: {e}")
-                pass
 
     logger.info(
         "FW updated. %s, node: %d, baudrate: %d, channel: %d",
@@ -104,7 +103,6 @@ def load_can(drive_conf, mc):
         except Exception as e:
             # When cannot connect
             time.sleep(SLEEP_TIME_NEW_FW_DETECT)
-            pass
 
     if not detected:
         raise Exception("New FW not detected")
