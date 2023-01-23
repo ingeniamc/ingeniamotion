@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.6.0] - 2023-01-23
+### Added
+- Pull request template.
+- Functions get_actual_current_direct and get_actual_current_quadrature.
+- Test improvements.
+- Code formatting tool.
+
+### Changed
+- README image.
+- Improve load_FWs script for canopen.
+
 ## [0.5.7] - 2022-12-16
 ### Added
 - Brake tuning.
