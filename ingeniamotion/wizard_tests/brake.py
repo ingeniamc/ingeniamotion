@@ -12,36 +12,36 @@ class Brake(BaseTest):
 
     BRAKE_OVERRIDE_REGISTER = "MOT_BRAKE_OVERRIDE"
 
-    BACKUP_REGISTERS = ["MOT_BRAKE_OVERRIDE",
-                        "DRV_OP_CMD",
-                        "MOT_PAIR_POLES",
-                        "COMMU_PHASING_MODE",
-                        "COMMU_ANGLE_SENSOR"]
+    BACKUP_REGISTERS = [
+        "MOT_BRAKE_OVERRIDE",
+        "DRV_OP_CMD",
+        "MOT_PAIR_POLES",
+        "COMMU_PHASING_MODE",
+        "COMMU_ANGLE_SENSOR",
+        "MOT_COMMU_MOD",
+    ]
 
     def __init__(self, mc, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
         super().__init__()
         self.mc = mc
         self.servo = servo
         self.axis = axis
-        self.logger = ingenialogger.get_logger(__name__, axis=axis,
-                                               drive=mc.servo_name(servo))
+        self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
         self.backup_registers_names = self.BACKUP_REGISTERS
 
     def setup(self):
-        self.mc.motion.motor_disable(
-            servo=self.servo, axis=self.axis)
-        self.mc.configuration.disable_brake_override(
-            servo=self.servo, axis=self.axis)
+        self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
+        self.mc.configuration.disable_brake_override(servo=self.servo, axis=self.axis)
+        self.mc.communication.set_register("MOT_COMMU_MOD", 0, servo=self.servo, axis=self.axis)
         self.mc.motion.set_internal_generator_configuration(
-            OperationMode.VOLTAGE, servo=self.servo, axis=self.axis)
+            OperationMode.VOLTAGE, servo=self.servo, axis=self.axis
+        )
 
     def loop(self):
-        self.mc.motion.motor_enable(
-            servo=self.servo, axis=self.axis)
+        self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
 
     def teardown(self):
-        self.mc.motion.motor_disable(
-            servo=self.servo, axis=self.axis)
+        self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
 
     def finish(self):
         try:
@@ -51,7 +51,7 @@ class Brake(BaseTest):
         output = SeverityLevel.SUCCESS
         return {
             "result_severity": self.get_result_severity(output),
-            "result_message": self.get_result_msg(output)
+            "result_message": self.get_result_msg(output),
         }
 
     def run(self):

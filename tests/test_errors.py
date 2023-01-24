@@ -38,19 +38,15 @@ def generate_drive_errors(motion_controller):
 @pytest.fixture
 def force_warning(motion_controller):
     mc, alias = motion_controller
-    mc.communication.set_register(
-        USER_UNDER_VOLTAGE_ERROR_OPTION_CODE_REGISTER, 1, servo=alias)
+    mc.communication.set_register(USER_UNDER_VOLTAGE_ERROR_OPTION_CODE_REGISTER, 1, servo=alias)
     mc.communication.set_register(USER_UNDER_VOLTAGE_LEVEL_REGISTER, 100, servo=alias)
     mc.motion.motor_enable(servo=alias)
     yield
-    mc.communication.set_register(
-        USER_UNDER_VOLTAGE_ERROR_OPTION_CODE_REGISTER, 0, servo=alias)
+    mc.communication.set_register(USER_UNDER_VOLTAGE_ERROR_OPTION_CODE_REGISTER, 0, servo=alias)
     mc.communication.set_register(USER_UNDER_VOLTAGE_LEVEL_REGISTER, 10, servo=alias)
 
 
 class TestErrors:
-
-    @pytest.mark.develop
     @pytest.mark.smoke
     def test_get_last_error(self, motion_controller, generate_drive_errors):
         mc, alias = motion_controller
@@ -73,20 +69,17 @@ class TestErrors:
         mc, alias = motion_controller
         index_list = [2, 1, 3, 0]
         for i in index_list:
-            last_error, subnode, warning = mc.errors.get_buffer_error_by_index(
-                i, servo=alias)
+            last_error, subnode, warning = mc.errors.get_buffer_error_by_index(i, servo=alias)
             assert last_error == generate_drive_errors[i]
 
     @pytest.mark.smoke
-    def test_get_buffer_error_by_index_exception(self, motion_controller,
-                                                 generate_drive_errors):
+    def test_get_buffer_error_by_index_exception(self, motion_controller, generate_drive_errors):
         mc, alias = motion_controller
         with pytest.raises(ValueError):
             mc.errors.get_buffer_error_by_index(33, servo=alias)
 
     @pytest.mark.smoke
-    def test_get_number_total_errors(self, motion_controller, error_number,
-                                     generate_drive_errors):
+    def test_get_number_total_errors(self, motion_controller, error_number, generate_drive_errors):
         mc, alias = motion_controller
         test_error_number = mc.errors.get_number_total_errors(servo=alias)
         assert test_error_number == error_number + len(generate_drive_errors)
@@ -111,22 +104,26 @@ class TestErrors:
     def test_is_warning_active(self, motion_controller):
         mc, alias = motion_controller
         assert mc.errors.is_warning_active(servo=alias)
-        mc.communication.set_register(
-            USER_UNDER_VOLTAGE_LEVEL_REGISTER, 10, servo=alias)
+        mc.communication.set_register(USER_UNDER_VOLTAGE_LEVEL_REGISTER, 10, servo=alias)
         assert not mc.errors.is_warning_active(servo=alias)
 
     @pytest.mark.smoke
-    @pytest.mark.parametrize("error_code, affected_module, error_type, error_msg", [
-        (0x3241, "Power stage", "Cyclic", "User Under-voltage detected"),
-        (0x4303, "Power stage", "Cyclic", "Over-temperature detected (user limit)"),
-        (0x3231, "Power stage", "Cyclic", "User Over-voltage detected"),
-        (0x4304, "Power stage", "Cyclic", "Under-temperature detected (user limit)"),
-    ])
-    def test_get_error_data(self, motion_controller, error_code,
-                            affected_module, error_type, error_msg):
+    @pytest.mark.parametrize(
+        "error_code, affected_module, error_type, error_msg",
+        [
+            (0x3241, "Power stage", "Cyclic", "User Under-voltage detected"),
+            (0x4303, "Power stage", "Cyclic", "Over-temperature detected (user limit)"),
+            (0x3231, "Power stage", "Cyclic", "User Over-voltage detected"),
+            (0x4304, "Power stage", "Cyclic", "Under-temperature detected (user limit)"),
+        ],
+    )
+    def test_get_error_data(
+        self, motion_controller, error_code, affected_module, error_type, error_msg
+    ):
         mc, alias = motion_controller
-        test_id, test_aff_mod, test_type, test_msg = \
-            mc.errors.get_error_data(error_code, servo=alias)
+        test_id, test_aff_mod, test_type, test_msg = mc.errors.get_error_data(
+            error_code, servo=alias
+        )
         assert error_code == int(test_id, base=16)
         assert test_aff_mod == affected_module
         assert test_type == error_type

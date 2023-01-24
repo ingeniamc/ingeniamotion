@@ -1,23 +1,36 @@
+from typing import TYPE_CHECKING, Tuple
+
+from ingenialink.register import Register, REG_ACCESS, REG_DTYPE
+
 from .exceptions import IMRegisterNotExist
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
+
+
+if TYPE_CHECKING:
+    from ingeniamotion.motion_controller import MotionController
 
 
 class Information(metaclass=MCMetaClass):
     """Information."""
 
-    def __init__(self, motion_controller):
+    def __init__(self, motion_controller: "MotionController"):
         self.mc = motion_controller
 
-    def register_info(self, register, axis=DEFAULT_AXIS, servo=DEFAULT_SERVO):
+    def register_info(
+        self,
+        register: str,
+        axis: int = DEFAULT_AXIS,
+        servo: str = DEFAULT_SERVO,
+    ) -> Register:
         """Return register object.
 
         Args:
-            register (str): register UID.
-            axis (int): servo axis. ``1`` by default.
-            servo (str): servo alias to reference it. ``default`` by default.
+            register : register UID.
+            axis : servo axis. ``1`` by default.
+            servo : servo alias to reference it. ``default`` by default.
 
         Returns:
-            ingenialink.register.Register: Register object.
+            Register object.
 
         Raises:
             IMRegisterNotExist: If register does not exist in dictionary.
@@ -27,73 +40,94 @@ class Information(metaclass=MCMetaClass):
         try:
             return drive.dictionary.registers(axis)[register]
         except KeyError:
-            raise IMRegisterNotExist("Register: {} axis: {} not exist in dictionary"
-                                     .format(register, axis))
+            raise IMRegisterNotExist(
+                "Register: {} axis: {} not exist in dictionary".format(register, axis)
+            )
 
-    def register_type(self, register, axis=DEFAULT_AXIS, servo=DEFAULT_SERVO):
+    def register_type(
+        self,
+        register: str,
+        axis: int = DEFAULT_AXIS,
+        servo: str = DEFAULT_SERVO,
+    ) -> REG_DTYPE:
         """Return register dtype.
 
         Args:
-            register (str): register UID.
-            axis (int): servo axis. ``1`` by default.
-            servo (str): servo alias to reference it. ``default`` by default.
+            register : register UID.
+            axis : servo axis. ``1`` by default.
+            servo : servo alias to reference it. ``default`` by default.
 
         Returns:
-            ingenialink.register.REG_DTYPE: Register dtype.
+            Register dtype.
 
         Raises:
             IMRegisterNotExist: If register does not exist in dictionary.
 
         """
-        register = self.register_info(register, axis=axis, servo=servo)
-        return register.dtype
+        register_obj = self.register_info(register, axis=axis, servo=servo)
+        return register_obj.dtype
 
-    def register_access(self, register, axis=DEFAULT_AXIS, servo=DEFAULT_SERVO):
+    def register_access(
+        self,
+        register: str,
+        axis: int = DEFAULT_AXIS,
+        servo: str = DEFAULT_SERVO,
+    ) -> REG_ACCESS:
         """Return register access.
 
         Args:
-            register (str): register UID.
-            axis (int): servo axis. ``1`` by default.
-            servo (str): servo alias to reference it. ``default`` by default.
+            register : register UID.
+            axis : servo axis. ``1`` by default.
+            servo : servo alias to reference it. ``default`` by default.
 
         Returns:
-            ingenialink.register.REG_ACCESS: Register access.
+            Register access.
 
         Raises:
             IMRegisterNotExist: If register does not exist in dictionary.
 
         """
-        register = self.register_info(register, axis=axis, servo=servo)
-        return register.access
+        register_obj = self.register_info(register, axis=axis, servo=servo)
+        return register_obj.access
 
-    def register_range(self, register, axis=DEFAULT_AXIS, servo=DEFAULT_SERVO):
+    def register_range(
+        self,
+        register: str,
+        axis: int = DEFAULT_AXIS,
+        servo: str = DEFAULT_SERVO,
+    ) -> Tuple[int, int]:
         """Return register range.
 
         Args:
-            register (str): register UID.
-            axis (int): servo axis. ``1`` by default.
-            servo (str): servo alias to reference it. ``default`` by default.
+            register : register UID.
+            axis : servo axis. ``1`` by default.
+            servo : servo alias to reference it. ``default`` by default.
 
         Returns:
-            int, int: Register range, minimum and maximum.
+            Register range, minimum and maximum.
 
         Raises:
             IMRegisterNotExist: If register does not exist in dictionary.
 
         """
-        register = self.register_info(register, axis=axis, servo=servo)
-        return register.range
+        register_obj = self.register_info(register, axis=axis, servo=servo)
+        return register_obj.range
 
-    def register_exists(self, register, axis=DEFAULT_AXIS, servo=DEFAULT_SERVO):
+    def register_exists(
+        self,
+        register: str,
+        axis: int = DEFAULT_AXIS,
+        servo: str = DEFAULT_SERVO,
+    ) -> bool:
         """Check if register exists in dictionary.
 
         Args:
-            register (str): register UID.
-            axis (int): servo axis. ``1`` by default.
-            servo (str): servo alias to reference it. ``default`` by default.
+            register : register UID.
+            axis : servo axis. ``1`` by default.
+            servo : servo alias to reference it. ``default`` by default.
 
         Returns:
-            bool: ``True`` if register exists, else ``False``.
+            ``True`` if register exists, else ``False``.
 
         """
         drive = self.mc.servos[servo]
