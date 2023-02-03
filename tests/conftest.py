@@ -181,11 +181,12 @@ def load_configuration_if_test_fails(request, motion_controller, read_config):
 
 def mean_actual_velocity_position(mc, servo, velocity=False, n_samples=200, sampling_period=0):
     samples = np.zeros(n_samples)
-    for j in range(n_samples):
-        if velocity:
-            value = mc.motion.get_actual_velocity(servo=servo)
-        else:
-            value = mc.motion.get_actual_position(servo=servo)
-        samples[j] = value
+    get_actual_value_dict = {
+        True: mc.motion.get_actual_velocity,
+        False: mc.motion.get_actual_position,
+    }
+    for sample_idx in range(n_samples):
+        value = get_actual_value_dict[velocity](servo=servo)
+        samples[sample_idx] = value
         time.sleep(sampling_period)
     return np.mean(samples)

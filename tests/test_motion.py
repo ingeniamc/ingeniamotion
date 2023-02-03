@@ -250,9 +250,9 @@ def test_get_actual_position(motion_controller, position_value):
     n_samples = 200
     test_position = np.zeros(n_samples)
     reg_value = np.zeros(n_samples)
-    for j in range(n_samples):
-        test_position[j] = mc.motion.get_actual_position(servo=alias)
-        reg_value[j] = mc.communication.get_register(ACTUAL_POSITION_REGISTER, servo=alias)
+    for sample_ix in range(n_samples):
+        test_position[sample_ix] = mc.motion.get_actual_position(servo=alias)
+        reg_value[sample_ix] = mc.communication.get_register(ACTUAL_POSITION_REGISTER, servo=alias)
     assert np.abs(np.mean(test_position) - np.mean(reg_value)) < 0.1
 
 
@@ -266,9 +266,9 @@ def test_get_actual_velocity(motion_controller, velocity_value):
     n_samples = 200
     test_velocity = np.zeros(n_samples)
     reg_value = np.zeros(n_samples)
-    for j in range(n_samples):
-        test_velocity[j] = mc.motion.get_actual_velocity(servo=alias)
-        reg_value[j] = mc.communication.get_register(ACTUAL_VELOCITY_REGISTER, servo=alias)
+    for sample_ix in range(n_samples):
+        test_velocity[sample_ix] = mc.motion.get_actual_velocity(servo=alias)
+        reg_value[sample_ix] = mc.communication.get_register(ACTUAL_VELOCITY_REGISTER, servo=alias)
     assert np.abs(np.mean(test_velocity) - np.mean(reg_value)) < 0.1
 
 
