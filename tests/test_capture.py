@@ -7,15 +7,7 @@ from ingeniamotion.exceptions import IMStatusWordError
 from ingeniamotion.enums import OperationMode, MonitoringSoCType, MonitoringSoCConfig
 
 
-def __compare_signals(expected_signal, received_signal, length_tol=None, fft_tol=0.05):
-    if length_tol is not None:
-        assert pytest.approx(len(received_signal), length_tol) == len(expected_signal)
-
-        if len(received_signal) < len():
-            expected_signal = expected_signal[: len(received_signal)]
-
-    assert len(received_signal) == len(expected_signal)
-
+def __compare_signals(expected_signal, received_signal, fft_tol=0.05):
     fft_received = np.abs(np.fft.fft(received_signal))
     fft_expected = np.abs(np.fft.fft(expected_signal))
 
@@ -23,7 +15,7 @@ def __compare_signals(expected_signal, received_signal, length_tol=None, fft_tol
     fft_received = fft_received / np.amax(fft_received)
     fft_expected = fft_expected / np.amax(fft_expected)
 
-    assert np.allclose(fft_received, fft_expected, rtol=0, atol=fft_tol)
+    return np.allclose(fft_received, fft_expected, rtol=0, atol=fft_tol)
 
 
 def test_create_poller(motion_controller):
@@ -45,7 +37,8 @@ def test_create_poller(motion_controller):
     assert np.allclose(np.diff(timestamp), sampling_time, rtol=0.5, atol=0)
 
     received_signal = test_data[0]
-    __compare_signals(expected_signal, received_signal)
+    assert len(received_signal) == len(expected_signal)
+    assert __compare_signals(expected_signal, received_signal)
 
 
 def test_create_monitoring_no_trigger(
@@ -76,7 +69,8 @@ def test_create_monitoring_no_trigger(
         mc.motion.move_to_position(quarter_num_samples * i, alias)
         expected_signal.extend([i * quarter_num_samples] * quarter_num_samples)
     data = monitoring.read_monitoring_data()
-    __compare_signals(expected_signal, data[0])
+    assert len(data[0]) == len(expected_signal)
+    assert __compare_signals(expected_signal, data[0])
 
 
 @pytest.mark.parametrize(
@@ -139,7 +133,8 @@ def test_create_monitoring_edge_trigger(
         expected_signal[i * quarter_num_samples : (i + 1) * quarter_num_samples] = value
 
     data = monitoring.read_monitoring_data()
-    __compare_signals(expected_signal, data[0])
+    assert len(data[0]) == len(expected_signal)
+    assert __compare_signals(expected_signal, data[0])
 
 
 @pytest.mark.parametrize("trigger_delay_rate", [-1 / 4, 1 / 4])
@@ -195,7 +190,8 @@ def test_create_monitoring_trigger_delay(
     else:
         expected_signal[-trigger_delay_samples:] = value
     data = monitoring.read_monitoring_data()
-    __compare_signals(expected_signal, data[0])
+    assert len(data[0]) == len(expected_signal)
+    assert __compare_signals(expected_signal, data[0])
 
 
 def test_create_disturbance(
@@ -225,7 +221,8 @@ def test_create_disturbance(
         time.sleep(period)
 
     read_data = np.interp(dist_timestamp, read_timestamp, read_data)
-    __compare_signals(data, read_data)
+    assert len(data) == len(read_data)
+    assert __compare_signals(data, read_data)
 
 
 @pytest.mark.smoke
