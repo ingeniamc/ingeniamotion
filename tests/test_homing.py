@@ -3,7 +3,7 @@ import time
 import pytest
 
 from ingeniamotion.enums import HomingMode, SensorType, OperationMode
-from .conftest import mean_actual_velocity_position
+from tests.conftest import mean_actual_velocity_position
 
 HOMING_MODE_REGISTER = "HOM_MODE"
 HOMING_OFFSET_REGISTER = "HOM_OFFSET"
