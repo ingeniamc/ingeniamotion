@@ -123,9 +123,12 @@ class Disturbance:
             Max number of samples
 
         Raises:
+            IMDisturbanceError: If the registers is an empty list.
             IMDisturbanceError: If the register is not allowed to be mapped as
                 a disturbance register.
         """
+        if len(registers) == 0:
+            raise IMDisturbanceError("No registers to be mapped.")
         if not isinstance(registers, list):
             registers = [registers]
         drive = self.mc.servos[self.servo]
@@ -177,9 +180,13 @@ class Disturbance:
                 as in :func:`map_registers`.
 
         Raises:
+            IMDisturbanceError: If there are no mapped registers or the sampling frequency is not
+                set yet.
             IMDisturbanceError: If buffer size is not enough for all the
                 registers and samples.
         """
+        if len(self.mapped_registers) == 0 or self.sampling_freq is None:
+            raise IMDisturbanceError("Disturbance is not correctly configured yet")
         registers_data = self.__registers_data_adapter(registers_data)
         drive = self.mc.servos[self.servo]
         self.__check_buffer_size_is_enough(registers_data)
