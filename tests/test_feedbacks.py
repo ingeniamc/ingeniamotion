@@ -53,7 +53,7 @@ def restore_resolution_registers(motion_controller):
             mc.communication.set_register(register, register_value, servo=alias)
 
 
-def skip_if_QEI2_is_not_available(mc, alias, sensor=SensorType.QEI2):
+def skip_if_qei2_is_not_available(mc, alias, sensor=SensorType.QEI2):
     if sensor == SensorType.QEI2 and not mc.info.register_exists(
         INCREMENTAL_RESOLUTION_2_REGISTER, servo=alias
     ):
@@ -95,7 +95,7 @@ def test_get_commutation_feedback_category(motion_controller, sensor, category):
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_commutation_feedback_resolution(motion_controller, sensor):
     mc, alias = motion_controller
-    skip_if_QEI2_is_not_available(mc, alias, sensor=sensor)
+    skip_if_qei2_is_not_available(mc, alias, sensor=sensor)
     mc.communication.set_register(COMMUTATION_FEEDBACK_REGISTER, sensor, servo=alias)
     if sensor in [SensorType.INTGEN]:
         with pytest.raises(ValueError):
@@ -141,7 +141,7 @@ def test_get_reference_feedback_category(motion_controller, sensor, category):
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_reference_feedback_resolution(motion_controller, sensor):
     mc, alias = motion_controller
-    skip_if_QEI2_is_not_available(mc, alias, sensor=sensor)
+    skip_if_qei2_is_not_available(mc, alias, sensor=sensor)
     mc.communication.set_register(REFERENCE_FEEDBACK_REGISTER, sensor, servo=alias)
     if sensor in [SensorType.INTGEN]:
         with pytest.raises(ValueError):
@@ -187,7 +187,7 @@ def test_get_velocity_feedback_category(motion_controller, sensor, category):
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_velocity_feedback_resolution(motion_controller, sensor):
     mc, alias = motion_controller
-    skip_if_QEI2_is_not_available(mc, alias, sensor=sensor)
+    skip_if_qei2_is_not_available(mc, alias, sensor=sensor)
     mc.communication.set_register(VELOCITY_FEEDBACK_REGISTER, sensor, servo=alias)
     if sensor in [SensorType.INTGEN]:
         with pytest.raises(ValueError):
@@ -233,7 +233,7 @@ def test_get_position_feedback_category(motion_controller, sensor, category):
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_position_feedback_resolution(motion_controller, sensor):
     mc, alias = motion_controller
-    skip_if_QEI2_is_not_available(mc, alias, sensor=sensor)
+    skip_if_qei2_is_not_available(mc, alias, sensor=sensor)
     mc.communication.set_register(POSITION_FEEDBACK_REGISTER, sensor, servo=alias)
     if sensor in [SensorType.INTGEN]:
         with pytest.raises(ValueError):
@@ -319,7 +319,7 @@ def test_get_auxiliar_feedback_category(motion_controller, sensor, category):
 )
 def test_get_auxiliar_feedback_resolution(motion_controller, sensor):
     mc, alias = motion_controller
-    skip_if_QEI2_is_not_available(mc, alias, sensor=sensor)
+    skip_if_qei2_is_not_available(mc, alias, sensor=sensor)
     mc.communication.set_register(AUXILIAR_FEEDBACK_REGISTER, sensor, servo=alias)
     if sensor in [SensorType.INTGEN]:
         with pytest.raises(ValueError):
@@ -385,7 +385,7 @@ def test_get_absolute_encoder_2_resolution(motion_controller, single_turn, resol
 @pytest.mark.parametrize("resolution", INCREMENTAL_ENCODER_RESOLUTION_TEST_VALUES)
 def test_get_incremental_encoder_2_resolution(motion_controller, resolution):
     mc, alias = motion_controller
-    skip_if_QEI2_is_not_available(mc, alias)
+    skip_if_qei2_is_not_available(mc, alias)
     mc.communication.set_register(INCREMENTAL_RESOLUTION_2_REGISTER, resolution, servo=alias)
     test_res = mc.configuration.get_incremental_encoder_2_resolution(servo=alias)
     assert resolution == test_res
