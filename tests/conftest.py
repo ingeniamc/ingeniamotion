@@ -1,6 +1,9 @@
 import json
 import pytest
 from typing import Dict
+import time
+
+import numpy as np
 
 from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE, SensorType
 from ingeniamotion import MotionController
@@ -94,6 +97,7 @@ def disable_motor_fixture(motion_controller):
 def motion_controller_teardown(motion_controller, pytestconfig, read_config):
     yield motion_controller
     mc, alias = motion_controller
+    mc.motion.motor_disable(servo=alias)
     mc.configuration.load_configuration(read_config["config_file"], servo=alias)
     mc.motion.fault_reset(servo=alias)
 
@@ -173,3 +177,16 @@ def load_configuration_if_test_fails(request, motion_controller, read_config):
     if report["setup"].failed or ("call" not in report) or report["call"].failed:
         mc.configuration.load_configuration(read_config["config_file"], servo=alias)
         mc.motion.fault_reset(servo=alias)
+
+
+def mean_actual_velocity_position(mc, servo, velocity=False, n_samples=200, sampling_period=0):
+    samples = np.zeros(n_samples)
+    get_actual_value_dict = {
+        True: mc.motion.get_actual_velocity,
+        False: mc.motion.get_actual_position,
+    }
+    for sample_idx in range(n_samples):
+        value = get_actual_value_dict[velocity](servo=servo)
+        samples[sample_idx] = value
+        time.sleep(sampling_period)
+    return np.mean(samples)
