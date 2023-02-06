@@ -11,7 +11,7 @@ def __compare_signals(expected_signal, received_signal, length_tol=None, fft_tol
     if length_tol is not None:
         assert pytest.approx(len(received_signal), length_tol) == len(expected_signal)
 
-        if len(received_signal) < len():
+        if len(received_signal) < len(expected_signal):
             expected_signal = expected_signal[: len(received_signal)]
 
     assert len(received_signal) == len(expected_signal)
