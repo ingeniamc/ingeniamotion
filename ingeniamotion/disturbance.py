@@ -123,6 +123,7 @@ class Disturbance:
             Max number of samples
 
         Raises:
+            IMDisturbanceError: If the registers is an empty list.
             IMDisturbanceError: If the register is not allowed to be mapped as
                 a disturbance register.
         """
@@ -179,6 +180,8 @@ class Disturbance:
                 as in :func:`map_registers`.
 
         Raises:
+            IMDisturbanceError: If there are no mapped registers or the sampling frequency is not
+                set yet.
             IMDisturbanceError: If buffer size is not enough for all the
                 registers and samples.
         """
