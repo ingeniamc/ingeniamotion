@@ -12,7 +12,7 @@ pipeline {
             agent {
                 docker {
                     label SW_NODE
-                    image 'ingeniacontainers.azurecr.io/ingeniamotion-builder'
+                    image 'ingeniacontainers.azurecr.io/win-python-builder:1.0'
                 }
             }
             stages {
