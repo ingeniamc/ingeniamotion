@@ -3,6 +3,7 @@ import time
 import pytest
 
 from ingeniamotion.enums import HomingMode, SensorType, OperationMode
+from tests.conftest import mean_actual_velocity_position
 
 HOMING_MODE_REGISTER = "HOM_MODE"
 HOMING_OFFSET_REGISTER = "HOM_OFFSET"
@@ -67,13 +68,10 @@ def test_homing_on_current_position(motion_controller, homing_offset):
     mc, alias = motion_controller
     mc.configuration.homing_on_current_position(homing_offset, servo=alias)
     feedback_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
-    assert (
-        pytest.approx(
-            mc.motion.get_actual_position(servo=alias),
-            abs=feedback_resolution * RELATIVE_ERROR_ALLOWED,
-        )
-        == homing_offset
-    )
+    assert pytest.approx(
+        homing_offset,
+        abs=feedback_resolution * RELATIVE_ERROR_ALLOWED,
+    ) == mc.motion.get_actual_position(servo=alias)
 
 
 @pytest.mark.smoke
@@ -113,8 +111,8 @@ def test_homing_on_switch_limit(motion_controller, direction):
     elif direction == 0:
         assert test_hom_mode == HomingMode.NEGATIVE_LIMIT_SWITCH
     assert test_op_mode == OperationMode.HOMING
-    assert pytest.approx(test_zero_vel) == zero_vel
-    assert pytest.approx(test_search_vel) == search_vel
+    assert pytest.approx(zero_vel) == test_zero_vel
+    assert pytest.approx(search_vel) == test_search_vel
     assert test_switch == switch
 
 
@@ -138,13 +136,13 @@ def test_homing_on_switch_limit_timeout(motion_controller):
         motor_enable=False,
     )
     time.sleep(homing_timeout / 1000)
-    assert pytest.approx(mc.motion.get_actual_velocity(servo=alias)) == 0
+    assert pytest.approx(0, abs=0.05) == mean_actual_velocity_position(mc, alias, velocity=True)
     mc.motion.motor_enable(servo=alias)
     mc.motion.target_latch(servo=alias)
     time.sleep(1)
-    assert mc.motion.get_actual_velocity(servo=alias) != 0
+    assert abs(mean_actual_velocity_position(mc, alias, velocity=True)) > 0.05
     time.sleep(homing_timeout / 1000)
-    assert pytest.approx(mc.motion.get_actual_velocity(servo=alias)) == 0
+    assert pytest.approx(0, abs=0.05) == mean_actual_velocity_position(mc, alias, velocity=True)
 
 
 def __check_index_pulse_is_allowed(feedback_list):
@@ -204,13 +202,13 @@ def test_homing_on_index_pulse(motion_controller, feedback_list, direction):
     elif direction == 0:
         assert test_hom_mode == HomingMode.NEGATIVE_IDX_PULSE
     assert test_op_mode == OperationMode.HOMING
-    assert pytest.approx(test_zero_vel) == zero_vel
+    assert pytest.approx(zero_vel) == test_zero_vel
     assert test_sensor_index == sensor_index
     if motor_enable:
         resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
         actual_position = mc.motion.get_actual_position(servo=alias)
         assert (
-            pytest.approx(actual_position, abs=resolution * RELATIVE_ERROR_ALLOWED) == homing_offset
+            pytest.approx(homing_offset, abs=resolution * RELATIVE_ERROR_ALLOWED) == actual_position
         )
 
 
@@ -256,7 +254,7 @@ def test_homing_on_switch_limit_and_index_pulse(motion_controller, direction):
     elif direction == 0:
         assert test_hom_mode == HomingMode.NEGATIVE_LIMIT_SWITCH_IDX_PULSE
     assert test_op_mode == OperationMode.HOMING
-    assert pytest.approx(test_zero_vel) == zero_vel
-    assert pytest.approx(test_search_vel) == search_vel
+    assert pytest.approx(zero_vel) == test_zero_vel
+    assert pytest.approx(search_vel) == test_search_vel
     assert test_switch == switch
     assert test_sensor_index == sensor_index
