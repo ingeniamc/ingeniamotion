@@ -35,16 +35,12 @@ def test_target_latch(motion_controller):
     mc.motion.move_to_position(init_pos + pos_res, servo=alias, target_latch=False)
     test_act_pos = mean_actual_velocity_position(mc, alias)
     time.sleep(1)
-    assert (
-        pytest.approx(test_act_pos, pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED / 100) == init_pos
-    )
+    rel_tolerance = pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
+    assert pytest.approx(init_pos, rel_tolerance) == test_act_pos
     mc.motion.target_latch(servo=alias)
     time.sleep(1)
     test_act_pos = mean_actual_velocity_position(mc, alias)
-    assert (
-        pytest.approx(test_act_pos, pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED / 100)
-        == init_pos + pos_res
-    )
+    assert pytest.approx(init_pos + pos_res, rel_tolerance) == test_act_pos
 
 
 @pytest.mark.smoke
@@ -160,10 +156,8 @@ def test_move_position(motion_controller, position_value):
     mc.motion.motor_enable(servo=alias)
     mc.motion.move_to_position(position_value, servo=alias, blocking=True, timeout=10)
     test_position = mean_actual_velocity_position(mc, alias)
-    assert (
-        pytest.approx(test_position, abs=pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED / 100)
-        == position_value
-    )
+    pos_tolerance = pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
+    assert pytest.approx(position_value, abs=pos_tolerance) == test_position
 
 
 @pytest.mark.smoke
@@ -184,7 +178,7 @@ def test_set_velocity_blocking(motion_controller, velocity_value):
     mc.motion.set_velocity(velocity_value, servo=alias, blocking=True, timeout=10)
     time.sleep(1)
     test_vel = mean_actual_velocity_position(mc, alias, velocity=True)
-    assert pytest.approx(test_vel, abs=0.1) == velocity_value
+    assert pytest.approx(velocity_value, abs=0.1) == test_vel
 
 
 @pytest.mark.smoke
@@ -193,7 +187,7 @@ def test_set_current_quadrature(motion_controller, current_value):
     mc, alias = motion_controller
     mc.motion.set_current_quadrature(current_value, servo=alias)
     test_current = mc.communication.get_register(CURRENT_QUADRATURE_SET_POINT_REGISTER, servo=alias)
-    assert pytest.approx(test_current) == current_value
+    assert pytest.approx(current_value) == test_current
 
 
 @pytest.mark.smoke
@@ -202,7 +196,7 @@ def test_set_current_direct(motion_controller, current_value):
     mc, alias = motion_controller
     mc.motion.set_current_direct(current_value, servo=alias)
     test_current = mc.communication.get_register(CURRENT_DIRECT_SET_POINT_REGISTER, servo=alias)
-    assert pytest.approx(test_current) == current_value
+    assert pytest.approx(current_value) == test_current
 
 
 @pytest.mark.smoke
@@ -211,7 +205,7 @@ def test_set_voltage_quadrature(motion_controller, voltage_value):
     mc, alias = motion_controller
     mc.motion.set_voltage_quadrature(voltage_value, servo=alias)
     test_voltage = mc.communication.get_register(VOLTAGE_QUADRATURE_SET_POINT_REGISTER, servo=alias)
-    assert pytest.approx(test_voltage) == voltage_value
+    assert pytest.approx(voltage_value) == test_voltage
 
 
 @pytest.mark.smoke
@@ -220,7 +214,7 @@ def test_set_voltage_direct(motion_controller, voltage_value):
     mc, alias = motion_controller
     mc.motion.set_voltage_direct(voltage_value, servo=alias)
     test_voltage = mc.communication.get_register(VOLTAGE_DIRECT_SET_POINT_REGISTER, servo=alias)
-    assert pytest.approx(test_voltage) == voltage_value
+    assert pytest.approx(voltage_value) == test_voltage
 
 
 @pytest.mark.smoke
@@ -240,10 +234,10 @@ def test_ramp_generator(mocker, init_v, final_v, total_t, t, result):
     mocker.patch("time.time", side_effect=[0, *t])
     generator = Motion.ramp_generator(init_v, final_v, total_t)
     first_val = next(generator)
-    assert pytest.approx(first_val) == init_v
+    assert pytest.approx(init_v) == first_val
     for result_v in result:
         test_result = next(generator)
-        assert pytest.approx(test_result) == result_v
+        assert pytest.approx(result_v) == test_result
 
 
 @pytest.mark.parametrize("position_value", [1000, 0, -1000, 4000])
@@ -253,11 +247,13 @@ def test_get_actual_position(motion_controller, position_value):
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
     mc.motion.motor_enable(servo=alias)
     mc.motion.move_to_position(position_value, servo=alias, blocking=True, timeout=10)
-    test_position = mean_actual_velocity_position(mc, alias)
-    assert (
-        pytest.approx(test_position, abs=pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED / 100)
-        == position_value
-    )
+    n_samples = 200
+    test_position = np.zeros(n_samples)
+    reg_value = np.zeros(n_samples)
+    for sample_ix in range(n_samples):
+        test_position[sample_ix] = mc.motion.get_actual_position(servo=alias)
+        reg_value[sample_ix] = mc.communication.get_register(ACTUAL_POSITION_REGISTER, servo=alias)
+    assert np.abs(np.mean(test_position) - np.mean(reg_value)) < 0.1
 
 
 @pytest.mark.parametrize("velocity_value", [1, 0, -1])
@@ -270,9 +266,9 @@ def test_get_actual_velocity(motion_controller, velocity_value):
     n_samples = 200
     test_velocity = np.zeros(n_samples)
     reg_value = np.zeros(n_samples)
-    for j in range(n_samples):
-        test_velocity[j] = mc.motion.get_actual_velocity(servo=alias)
-        reg_value[j] = mc.communication.get_register(ACTUAL_VELOCITY_REGISTER, servo=alias)
+    for sample_ix in range(n_samples):
+        test_velocity[sample_ix] = mc.motion.get_actual_velocity(servo=alias)
+        reg_value[sample_ix] = mc.communication.get_register(ACTUAL_VELOCITY_REGISTER, servo=alias)
     assert np.abs(np.mean(test_velocity) - np.mean(reg_value)) < 0.1
 
 
@@ -302,7 +298,7 @@ def test_wait_for_position_timeout(motion_controller):
     with pytest.raises(IMTimeoutError):
         mc.motion.wait_for_position(10000, servo=alias, timeout=timeout_value)
     final_time = time.time()
-    assert pytest.approx(final_time - init_time, abs=0.1) == timeout_value
+    assert pytest.approx(timeout_value, abs=0.1) == final_time - init_time
 
 
 @pytest.mark.smoke
@@ -313,7 +309,7 @@ def test_wait_for_velocity_timeout(motion_controller):
     with pytest.raises(IMTimeoutError):
         mc.motion.wait_for_velocity(10000, servo=alias, timeout=timeout_value)
     final_time = time.time()
-    assert pytest.approx(final_time - init_time, abs=0.1) == timeout_value
+    assert pytest.approx(timeout_value, abs=0.1) == final_time - init_time
 
 
 @pytest.mark.parametrize("op_mode", [OperationMode.VOLTAGE, OperationMode.CURRENT])
