@@ -413,7 +413,7 @@ class Monitoring(ABC):
             self.mc.communication.set_register(
                 self.MONITORING_FORCE_TRIGGER_REGISTER, 1, servo=self.servo, axis=0
             )
-        return mon_process_stage == MonitoringProcessStage.WAITING_FOR_TRIGGER
+        return mon_process_stage >= MonitoringProcessStage.WAITING_FOR_TRIGGER
 
     def read_monitoring_data_forced_trigger(self, trigger_timeout: float = 5) -> List[list]:
         """Trigger and read Forced Trigger monitoring.
