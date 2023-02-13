@@ -4,12 +4,10 @@ from functools import wraps
 from collections.abc import Iterable
 from typing import Union, TYPE_CHECKING, List
 
-from ingenialink.ipb.register import IPBRegister
-from ingenialink.ethernet.register import EthernetRegister
-
 from ingeniamotion.enums import MonitoringVersion, REG_DTYPE
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 from .exceptions import IMDisturbanceError, IMStatusWordError
+from ingeniamotion.utils import map_register_address
 
 
 if TYPE_CHECKING:
@@ -146,11 +144,7 @@ class Disturbance:
                     "{} can not be mapped as a disturbance register".format(register)
                 )
             channel["dtype"] = dtype
-            address_offset = self.REGISTER_MAP_OFFSET * (subnode - 1)
-            if isinstance(register_obj, (IPBRegister, EthernetRegister)):
-                mapped_reg = register_obj.address + address_offset
-            else:
-                mapped_reg = register_obj.idx
+            mapped_reg = map_register_address(register_obj)
             drive.disturbance_set_mapped_register(
                 ch_idx, mapped_reg, subnode, dtype.value, self.__data_type_size[dtype]
             )
