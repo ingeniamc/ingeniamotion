@@ -466,7 +466,9 @@ class Communication(metaclass=MCMetaClass):
         if register_dtype_value in unsigned_int and (not isinstance(value, int) or value < 0):
             raise TypeError("Value must be an unsigned int")
         if register_access_type == REG_ACCESS.RO:
-            raise IMRegisterWrongAccess(f"Register: {register} cannot write to a read-only register")
+            raise IMRegisterWrongAccess(
+                f"Register: {register} cannot write to a read-only register"
+            )
         drive.write(register, value, subnode=axis)
 
     def get_sdo_register(
