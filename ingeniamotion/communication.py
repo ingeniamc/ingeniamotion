@@ -13,7 +13,7 @@ from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.eoe.network import EoENetwork
 
 from ingeniamotion.exceptions import IMRegisterWrongAccess
-from ingeniamotion.enums import Protocol, CAN_BAUDRATE, CAN_DEVICE, REG_DTYPE, REG_ACCESS
+from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE, REG_DTYPE, REG_ACCESS
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
@@ -31,10 +31,7 @@ class Communication(metaclass=MCMetaClass):
         ip: str,
         dict_path: Optional[str] = None,
         alias: str = DEFAULT_SERVO,
-        protocol: Protocol = Protocol.UDP,
         port: int = 1061,
-        reconnection_retries: Optional[int] = None,
-        reconnection_timeout: Optional[int] = None,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
     ) -> None:
@@ -44,11 +41,7 @@ class Communication(metaclass=MCMetaClass):
             ip : servo IP.
             dict_path : servo dictionary path.
             alias : servo alias to reference it. ``default`` by default.
-            protocol : UDP or TCP protocol. ``UDP`` by default.
             port : servo port. ``1061`` by default.
-            reconnection_retries : Number of reconnection retried before declaring
-                a connected or disconnected stated.
-            reconnection_timeout : Time in ms of the reconnection timeout.
             servo_status_listener : Toggle the listener of the servo for
                 its status, errors, faults, etc.
             net_status_listener : Toggle the listener of the network
@@ -65,12 +58,7 @@ class Communication(metaclass=MCMetaClass):
             ip,
             dict_path,
             alias,
-            protocol,
             port,
-            {
-                "reconnection_retries": reconnection_retries,
-                "reconnection_timeout": reconnection_timeout,
-            },
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
         )
@@ -80,10 +68,8 @@ class Communication(metaclass=MCMetaClass):
         ip: str,
         dict_path: Optional[str] = None,
         alias: str = DEFAULT_SERVO,
-        protocol: Protocol = Protocol.UDP,
         port: int = 1061,
-        reconnection_retries: Optional[int] = None,
-        reconnection_timeout: Optional[int] = None,
+        connection_timeout: int = 5,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
     ) -> None:
@@ -93,11 +79,9 @@ class Communication(metaclass=MCMetaClass):
             ip : servo IP
             dict_path : servo dictionary path.
             alias : servo alias to reference it. ``default`` by default.
-            protocol : UDP or TCP protocol. ``UDP`` by default.
             port : servo port. ``1061`` by default.
-            reconnection_retries : Number of reconnection retried before declaring
-                a connected or disconnected stated.
-            reconnection_timeout : Time in ms of the reconnection timeout.
+            connection_timeout: Timeout in seconds for connection.
+                ``5`` seconds by default.
             servo_status_listener : Toggle the listener of the servo for
                 its status, errors, faults, etc.
             net_status_listener : Toggle the listener of the network
@@ -114,12 +98,8 @@ class Communication(metaclass=MCMetaClass):
             ip,
             dict_path,
             alias,
-            protocol,
             port,
-            {
-                "reconnection_retries": reconnection_retries,
-                "reconnection_timeout": reconnection_timeout,
-            },
+            connection_timeout,
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
         )
@@ -129,15 +109,11 @@ class Communication(metaclass=MCMetaClass):
         ip: str,
         dict_path: str,
         alias: str,
-        protocol: Protocol = Protocol.UDP,
         port: int = 1061,
-        reconnection: Optional[dict] = None,
+        connection_timeout: int = 5,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
     ) -> None:
-        if reconnection is None:
-            reconnection = {}
-        reconnection = {x: reconnection[x] for x in reconnection if reconnection[x] is not None}
         if not path.isfile(dict_path):
             raise FileNotFoundError("{} file does not exist!".format(dict_path))
 
@@ -147,8 +123,7 @@ class Communication(metaclass=MCMetaClass):
             ip,
             dict_path,
             port,
-            protocol,
-            **reconnection,
+            connection_timeout,
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
         )
