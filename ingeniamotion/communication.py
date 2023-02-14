@@ -249,7 +249,7 @@ class Communication(metaclass=MCMetaClass):
 
         Returns:
             Real name of selected interface.
-            It can be used for function :func:`connect_servo_ecat`.
+            It can be used for function :func:`connect_servo_eoe_service`.
 
         Raises:
             IndexError: If interface index is out of range.
@@ -297,7 +297,7 @@ class Communication(metaclass=MCMetaClass):
             TypeError: If the dict_path argument is missing.
             IndexError: If interface index is out of range.
         """
-        self.connect_servo_ecat(
+        self.connect_servo_eoe_service(
             self.get_ifname_by_index(if_index),
             dict_path,
             ip,
@@ -334,7 +334,7 @@ class Communication(metaclass=MCMetaClass):
             IndexError: If interface index is out of range.
 
         """
-        return self.scan_servos_ecat(self.get_ifname_by_index(if_index))
+        return self.scan_servos_eoe_service(self.get_ifname_by_index(if_index))
 
     def connect_servo_canopen(
         self,
