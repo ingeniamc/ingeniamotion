@@ -34,7 +34,8 @@ setuptools.setup(
     install_requires=[
         'ingenialink==6.5.*',
         'ingenialogger==0.2.1',
-        'ifaddr==0.1.7'
+        'ifaddr==0.1.7',
+        'numpy==1.19.5'
     ],
     extras_require={
         "tests": [
