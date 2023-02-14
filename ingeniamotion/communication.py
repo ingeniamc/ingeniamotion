@@ -10,6 +10,7 @@ from ingenialink.exceptions import ILError
 from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.ethercat.network import EthercatNetwork
+from ingenialink.eoe.network import EoENetwork
 
 from ingeniamotion.exceptions import IMRegisterWrongAccess
 from ingeniamotion.enums import Protocol, CAN_BAUDRATE, CAN_DEVICE, REG_DTYPE, REG_ACCESS
@@ -152,6 +153,51 @@ class Communication(metaclass=MCMetaClass):
             net_status_listener=net_status_listener,
         )
 
+        self.mc.servos[alias] = servo
+        self.mc.servo_net[alias] = alias
+
+    def connect_servo_eoe_service(
+        self,
+        ifname: str,
+        dict_path: str,
+        ip: str = "192.168.3.22",
+        slave: int = 1,
+        port: int = 1061,
+        alias: str = DEFAULT_SERVO,
+        servo_status_listener: bool = False,
+        net_status_listener: bool = False,
+    ) -> None:
+        """Connect to target servo by Ethernet over EtherCAT
+
+        Args:
+            ifname : interface name. It should have format
+                ``\\Device\\NPF_[...]``.
+            dict_path : servo dictionary path.
+            ip : IP address to be assigned to the servo.
+            slave : slave index. ``1`` by default.
+            port : servo port. ``1061`` by default.
+            alias : servo alias to reference it. ``default`` by default.
+            servo_status_listener : Toggle the listener of the servo for
+                its status, errors, faults, etc.
+            net_status_listener : Toggle the listener of the network
+                status, connection and disconnection.
+
+        Raises:
+            TypeError: If the dict_path argument is missing.
+        """
+        if not dict_path:
+            raise TypeError("dict_path argument is missing")
+        self.mc.net[alias] = EoENetwork(ifname)
+        net = self.mc.net[alias]
+        servo = net.connect_to_slave(
+            slave,
+            ip,
+            dict_path,
+            port,
+            servo_status_listener=servo_status_listener,
+            net_status_listener=net_status_listener,
+        )
+        servo.slave = slave
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = alias
 
