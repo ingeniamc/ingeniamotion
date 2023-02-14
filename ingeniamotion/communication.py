@@ -115,7 +115,7 @@ class Communication(metaclass=MCMetaClass):
         net_status_listener: bool = False,
     ) -> None:
         if not path.isfile(dict_path):
-            raise FileNotFoundError("{} file does not exist!".format(dict_path))
+            raise FileNotFoundError(f"{dict_path} file does not exist!")
 
         self.mc.net[alias] = EthernetNetwork()
         net = self.mc.net[alias]
@@ -346,11 +346,11 @@ class Communication(metaclass=MCMetaClass):
         """
 
         if not path.isfile(dict_path):
-            raise FileNotFoundError("Dict file {} does not exist!".format(dict_path))
+            raise FileNotFoundError(f"Dict file {dict_path} does not exist!")
 
         if not path.isfile(eds_file):
-            raise FileNotFoundError("EDS file {} does not exist!".format(eds_file))
-        net_key = "{}_{}_{}".format(can_device, channel, baudrate)
+            raise FileNotFoundError(f"EDS file {eds_file} does not exist!")
+        net_key = f"{can_device}_{channel}_{baudrate}"
         if net_key not in self.mc.net:
             self.mc.net[net_key] = CanopenNetwork(can_device, channel, baudrate)
         net = self.mc.net[net_key]
@@ -377,7 +377,7 @@ class Communication(metaclass=MCMetaClass):
             List of node ids available in the network.
 
         """
-        net_key = "{}_{}_{}".format(can_device, channel, baudrate)
+        net_key = f"{can_device}_{channel}_{baudrate}"
         if net_key not in self.mc.net:
             self.mc.net[net_key] = CanopenNetwork(can_device, channel, baudrate)
         net = self.mc.net[net_key]
@@ -466,10 +466,7 @@ class Communication(metaclass=MCMetaClass):
         if register_dtype_value in unsigned_int and (not isinstance(value, int) or value < 0):
             raise TypeError("Value must be an unsigned int")
         if register_access_type == REG_ACCESS.RO:
-            raise IMRegisterWrongAccess(
-                "Register: {} cannot write to a read-only register".format(register)
-            )
-
+            raise IMRegisterWrongAccess(f"Register: {register} cannot write to a read-only register")
         drive.write(register, value, subnode=axis)
 
     def get_sdo_register(
