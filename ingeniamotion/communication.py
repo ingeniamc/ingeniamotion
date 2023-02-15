@@ -179,6 +179,46 @@ class Communication(metaclass=MCMetaClass):
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = alias
 
+    def connect_servo_eoe_service_interface_ip(
+        self,
+        interface_ip: str,
+        dict_path: str,
+        ip: str = "192.168.3.22",
+        slave: int = 1,
+        port: int = 1061,
+        alias: str = DEFAULT_SERVO,
+        servo_status_listener: bool = False,
+        net_status_listener: bool = False,
+    ) -> None:
+        """Connect to target servo by Ethernet over EtherCAT
+
+        Args:
+            interface_ip : IP of the interface to be connected to.
+            dict_path : servo dictionary path.
+            ip : IP address to be assigned to the servo.
+            slave : slave index. ``1`` by default.
+            port : servo port. ``1061`` by default.
+            alias : servo alias to reference it. ``default`` by default.
+            servo_status_listener : Toggle the listener of the servo for
+                its status, errors, faults, etc.
+            net_status_listener : Toggle the listener of the network
+                status, connection and disconnection.
+
+        Raises:
+            TypeError: If the dict_path argument is missing.
+            IndexError: If interface index is out of range.
+        """
+        self.connect_servo_eoe_service(
+            self.get_ifname_from_interface_ip(interface_ip),
+            dict_path,
+            ip,
+            slave,
+            port,
+            alias,
+            servo_status_listener,
+            net_status_listener,
+        )
+
     @staticmethod
     def __get_adapter_name(address: str) -> Optional[str]:
         """Returns the adapter name of an adapter based on its address.
