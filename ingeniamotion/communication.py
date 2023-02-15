@@ -159,9 +159,12 @@ class Communication(metaclass=MCMetaClass):
 
         Raises:
             TypeError: If the dict_path argument is missing.
+            FileNotFoundError: If the dict file doesn't exist.
         """
         if not dict_path:
             raise TypeError("dict_path argument is missing")
+        if not path.isfile(dict_path):
+            raise FileNotFoundError(f"{dict_path} file does not exist!")
         self.mc.net[alias] = EoENetwork(ifname)
         net = self.mc.net[alias]
         servo = net.connect_to_slave(
