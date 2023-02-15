@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+### Added
+- connect_servo_eoe_service and connect_servo_eoe_service_interface_index functions are added.
+- The utils module.
+
+### Deprecated
+- connect_servo_ecat and connect_servo_ecat_interface_ip functions are removed.
+
 ## [0.6.0] - 2023-01-23
 ### Added
 - Pull request template.
