@@ -7,7 +7,7 @@ from typing import Union, TYPE_CHECKING, List
 from ingeniamotion.enums import MonitoringVersion, REG_DTYPE
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 from .exceptions import IMDisturbanceError, IMStatusWordError
-from ingeniamotion.utils import map_register_address
+from ingeniamotion.utils.monitoring import map_register_address
 
 
 if TYPE_CHECKING:
