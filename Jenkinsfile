@@ -175,8 +175,9 @@ pipeline {
                 stage('Save test results') {
                     steps {
                         //unstash 'coverage_reports' Uncomment once EtherCAT tests are operational.
+                        // Add .coverage_ethercat to the combine command once EtherCAT tests are operational.
                         bat '''
-                            venv\\Scripts\\python.exe -m coverage combine .coverage_ethercat .coverage_ethernet .coverage_canopen
+                            venv\\Scripts\\python.exe -m coverage combine .coverage_ethernet .coverage_canopen
                             venv\\Scripts\\python.exe -m coverage xml --include=ingeniamotion/*
                         '''
                         publishCoverage adapters: [coberturaReportAdapter('coverage.xml')]
