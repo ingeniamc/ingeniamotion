@@ -14,7 +14,7 @@ from ingeniamotion.enums import (
     MonitoringSoCConfig,
     REG_DTYPE,
 )
-from ingeniamotion.utils.monitoring import map_register_address
+from ingeniamotion.capture import map_register_address
 
 
 def check_monitoring_disabled(func):
