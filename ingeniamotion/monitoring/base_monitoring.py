@@ -140,9 +140,12 @@ class Monitoring(ABC):
             register = channel["name"]
             dtype = channel["dtype"]
             register_obj = self.mc.info.register_info(register, subnode, servo=self.servo)
-            mapped_reg = capture.map_register_address(register_obj)
             drive.monitoring_set_mapped_register(
-                ch_idx, mapped_reg, subnode, dtype.value, self._data_type_size[dtype]
+                ch_idx,
+                register_obj.mapped_address,
+                subnode,
+                dtype.value,
+                self._data_type_size[dtype],
             )
 
         num_mon_reg = self.mc.communication.get_register(
