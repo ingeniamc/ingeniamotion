@@ -14,7 +14,6 @@ from ingeniamotion.enums import (
     MonitoringSoCConfig,
     REG_DTYPE,
 )
-import ingeniamotion.capture as capture
 
 
 def check_monitoring_disabled(func):

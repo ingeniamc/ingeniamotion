@@ -7,7 +7,6 @@ from typing import Union, TYPE_CHECKING, List
 from ingeniamotion.enums import MonitoringVersion, REG_DTYPE
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 from .exceptions import IMDisturbanceError, IMStatusWordError
-import ingeniamotion.capture as capture
 
 
 if TYPE_CHECKING:
