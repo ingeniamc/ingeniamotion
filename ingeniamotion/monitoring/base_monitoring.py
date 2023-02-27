@@ -14,8 +14,6 @@ from ingeniamotion.enums import (
     MonitoringSoCConfig,
     REG_DTYPE,
 )
-from ingenialink.ipb.register import IPBRegister
-from ingenialink.ethernet.register import EthernetRegister
 
 
 def check_monitoring_disabled(func):
@@ -141,14 +139,13 @@ class Monitoring(ABC):
             subnode = channel.get("axis", DEFAULT_AXIS)
             register = channel["name"]
             dtype = channel["dtype"]
-            address_offset = self.REGISTER_MAP_OFFSET * (subnode - 1)
             register_obj = self.mc.info.register_info(register, subnode, servo=self.servo)
-            if isinstance(register_obj, (IPBRegister, EthernetRegister)):
-                mapped_reg = register_obj.address + address_offset
-            else:
-                mapped_reg = register_obj.idx
             drive.monitoring_set_mapped_register(
-                ch_idx, mapped_reg, subnode, dtype.value, self._data_type_size[dtype]
+                ch_idx,
+                register_obj.mapped_address,
+                subnode,
+                dtype.value,
+                self._data_type_size[dtype],
             )
 
         num_mon_reg = self.mc.communication.get_register(
