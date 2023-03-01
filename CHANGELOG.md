@@ -2,7 +2,7 @@
 
 ## [Unreleased]
 ### Added
-- connect_servo_eoe_service and connect_servo_eoe_service_interface_index functions are added.
+- connect_servo_eoe_service, connect_servo_eoe_service_interface_index and connect_servo_eoe_service_interface_ip functions are added.
 
 ### Removed
 - connect_servo_ecat, connect_servo_ecat_interface_index and connect_servo_ecat_interface_ip functions are removed.
