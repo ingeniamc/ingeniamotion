@@ -2,11 +2,11 @@
 
 ## [Unreleased]
 ### Added
-- connect_servo_eoe_service, connect_servo_eoe_service_interface_index and connect_servo_eoe_service_interface_ip functions are added.
+- connect_servo_eoe_service, connect_servo_eoe_service_interface_index and connect_servo_eoe_service_interface_ip functions.
 
 ### Removed
-- connect_servo_ecat, connect_servo_ecat_interface_index and connect_servo_ecat_interface_ip functions are removed.
-- get_sdo_register, get_sdo_register_complete_access and set_sdo_register
+- connect_servo_ecat, connect_servo_ecat_interface_index and connect_servo_ecat_interface_ip functions.
+- get_sdo_register, get_sdo_register_complete_access and set_sdo_register functions.
 
 ## [0.6.0] - 2023-01-23
 ### Added
