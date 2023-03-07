@@ -69,7 +69,7 @@ class Communication(metaclass=MCMetaClass):
         dict_path: str,
         alias: str = DEFAULT_SERVO,
         port: int = 1061,
-        connection_timeout: int = 5,
+        connection_timeout: int = 1,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
     ) -> None:
@@ -81,7 +81,7 @@ class Communication(metaclass=MCMetaClass):
             alias : servo alias to reference it. ``default`` by default.
             port : servo port. ``1061`` by default.
             connection_timeout: Timeout in seconds for connection.
-                ``5`` seconds by default.
+                ``1`` seconds by default.
             servo_status_listener : Toggle the listener of the servo for
                 its status, errors, faults, etc.
             net_status_listener : Toggle the listener of the network
@@ -109,7 +109,7 @@ class Communication(metaclass=MCMetaClass):
         dict_path: str,
         alias: str,
         port: int = 1061,
-        connection_timeout: int = 5,
+        connection_timeout: int = 1,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
     ) -> None:
