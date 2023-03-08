@@ -200,7 +200,7 @@ def run_test_and_stop(test):
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_feedback_stop(motion_controller, sensor):
     mc, alias = motion_controller
-    test = mc.tests.get_feedback_test(alias, sensor, 1)
+    test = mc.tests.get_feedback_test(sensor, alias, 1)
     reg_values = get_backup_registers(test, mc, alias)
     run_test_and_stop(test)
     for reg in reg_values:
