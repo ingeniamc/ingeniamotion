@@ -33,7 +33,7 @@ setuptools.setup(
     ],
     install_requires=[
         'ingenialink==7.0.*',
-        'ingenialogger==0.2.1',
+        'ingenialogger>=0.2.1',
         'ifaddr==0.1.7',
         'numpy==1.19.5'
     ],
