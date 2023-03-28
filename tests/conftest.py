@@ -47,11 +47,10 @@ def connect_eoe(mc, config, alias):
 
 
 def connect_soem(mc, config, alias):
-    mc.communication.connect_servo_ecat_interface_index(
+    mc.communication.connect_servo_eoe_service_interface_index(
         config["index"],
         config["dictionary"],
-        config["slave"],
-        eoe_comm=config["eoe_comm"],
+        slave=config["slave"],
         alias=alias,
     )
 

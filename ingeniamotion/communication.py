@@ -161,8 +161,9 @@ class Communication(metaclass=MCMetaClass):
         """
         if not path.isfile(dict_path):
             raise FileNotFoundError(f"{dict_path} file does not exist!")
-        self.mc.net[alias] = EoENetwork(ifname)
-        net = self.mc.net[alias]
+        if ifname not in self.mc.net:
+            self.mc.net[ifname] = EoENetwork(ifname)
+        net = self.mc.net[ifname]
         servo = net.connect_to_slave(
             slave,
             ip,
@@ -173,7 +174,7 @@ class Communication(metaclass=MCMetaClass):
         )
         servo.slave = slave
         self.mc.servos[alias] = servo
-        self.mc.servo_net[alias] = alias
+        self.mc.servo_net[alias] = ifname
 
     def connect_servo_eoe_service_interface_ip(
         self,
@@ -332,7 +333,10 @@ class Communication(metaclass=MCMetaClass):
             Drives available in the target interface.
 
         """
-        net = EoENetwork(ifname)
+        if ifname in self.mc.net:
+            net = self.mc.net[ifname]
+        else:
+            net = EoENetwork(ifname)
         return net.scan_slaves()
 
     def scan_servos_eoe_service_interface_index(self, if_index: int) -> List[int]:
@@ -443,7 +447,10 @@ class Communication(metaclass=MCMetaClass):
         network = self.mc._get_network(servo)
         network.disconnect_from_slave(drive)
         del self.mc.servos[servo]
-        del self.mc.servo_net[servo]
+        net_name = self.mc.servo_net.pop(servo)
+        servo_count = list(self.mc.servo_net.values()).count(net_name)
+        if servo_count == 0:
+            del self.mc.net[net_name]
 
     def get_register(
         self, register: str, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -587,9 +594,7 @@ class Communication(metaclass=MCMetaClass):
             drive.target, fw_file, status_callback, progress_callback, error_enabled_callback
         )
 
-    def load_firmware_ecat(
-        self, ifname: str, fw_file: str, slave: int = 1, boot_in_app: bool = True
-    ) -> None:
+    def load_firmware_ecat(self, ifname: str, fw_file: str, slave: int = 1) -> None:
         """Load firmware via ECAT.
 
         Args:
@@ -597,16 +602,13 @@ class Communication(metaclass=MCMetaClass):
                 ``\\Device\\NPF_[...]``.
             fw_file : Firmware file path.
             slave : slave index. ``1`` by default.
-            boot_in_app : If summit series -> True.
-                                If capitan series -> False.
-                                If custom device -> Contact manufacturer.
 
         """
         net = EthercatNetwork(ifname)
-        net.load_firmware(fw_file, slave, boot_in_app)
+        net.load_firmware(fw_file, slave)
 
     def load_firmware_ecat_interface_index(
-        self, if_index: int, fw_file: str, slave: int = 1, boot_in_app: bool = True
+        self, if_index: int, fw_file: str, slave: int = 1
     ) -> None:
         """Load firmware via ECAT.
 
@@ -615,12 +617,9 @@ class Communication(metaclass=MCMetaClass):
                 :func:`get_interface_name_list`.
             fw_file : Firmware file path.
             slave : slave index. ``1`` by default.
-            boot_in_app : If summit series -> True.
-                                If capitan series -> False.
-                                If custom device -> Contact manufacturer.
 
         """
-        self.load_firmware_ecat(self.get_ifname_by_index(if_index), fw_file, slave, boot_in_app)
+        self.load_firmware_ecat(self.get_ifname_by_index(if_index), fw_file, slave)
 
     def load_firmware_ethernet(
         self, ip: str, fw_file: str, ftp_user: Optional[str] = None, ftp_pwd: Optional[str] = None
