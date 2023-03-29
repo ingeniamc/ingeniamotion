@@ -526,7 +526,11 @@ class Communication(metaclass=MCMetaClass):
 
         """
         network = self.mc._get_network(servo)
-        network.subscribe_to_status(callback)
+        if isinstance(network, EthernetNetwork):
+            drive = self.mc._get_drive(servo)
+            network.subscribe_to_status(drive.target, callback)
+        else:
+            network.subscribe_to_status(callback)
 
     def unsubscribe_net_status(self, callback: Callable, servo: str = DEFAULT_SERVO) -> None:
         """Remove net status change event callback.
@@ -537,7 +541,11 @@ class Communication(metaclass=MCMetaClass):
 
         """
         network = self.mc._get_network(servo)
-        network.unsubscribe_from_status(callback)
+        if isinstance(network, EthernetNetwork):
+            drive = self.mc._get_drive(servo)
+            network.unsubscribe_from_status(drive.target, callback)
+        else:
+            network.unsubscribe_from_status(callback)
 
     def subscribe_servo_status(self, callback: Callable, servo: str = DEFAULT_SERVO) -> None:
         """Add a callback to servo status change event.
