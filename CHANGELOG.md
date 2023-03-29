@@ -13,6 +13,7 @@
 
 ### Fixed
 - is_alive function in MotionController.
+- subscribe_net_status and unsubscribe_net_status works for Ethernet based communication.
 
 ## [0.6.0] - 2023-01-23
 ### Added
