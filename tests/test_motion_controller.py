@@ -47,3 +47,9 @@ def test_get_register_enum(motion_controller):
             checked_ops += 1
 
     assert checked_ops > 0
+
+
+@pytest.mark.smoke
+def test_is_alive(motion_controller):
+    mc, alias = motion_controller
+    assert mc.is_alive(alias)

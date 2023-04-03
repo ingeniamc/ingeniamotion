@@ -49,7 +49,7 @@ class MotionController:
             ``True`` if the servo is alive, ``False`` otherwise.
 
         """
-        drive = self.mc._get_drive(servo)
+        drive = self._get_drive(servo)
         return drive.is_alive()
 
     def _get_network(self, servo: str) -> Network:

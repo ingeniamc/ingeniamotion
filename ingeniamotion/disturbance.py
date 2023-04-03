@@ -4,9 +4,6 @@ from functools import wraps
 from collections.abc import Iterable
 from typing import Union, TYPE_CHECKING, List
 
-from ingenialink.ipb.register import IPBRegister
-from ingenialink.ethernet.register import EthernetRegister
-
 from ingeniamotion.enums import MonitoringVersion, REG_DTYPE
 from .metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 from .exceptions import IMDisturbanceError, IMStatusWordError
@@ -123,9 +120,12 @@ class Disturbance:
             Max number of samples
 
         Raises:
+            IMDisturbanceError: If the registers is an empty list.
             IMDisturbanceError: If the register is not allowed to be mapped as
                 a disturbance register.
         """
+        if len(registers) == 0:
+            raise IMDisturbanceError("No registers to be mapped.")
         if not isinstance(registers, list):
             registers = [registers]
         drive = self.mc.servos[self.servo]
@@ -143,13 +143,12 @@ class Disturbance:
                     "{} can not be mapped as a disturbance register".format(register)
                 )
             channel["dtype"] = dtype
-            address_offset = self.REGISTER_MAP_OFFSET * (subnode - 1)
-            if isinstance(register_obj, (IPBRegister, EthernetRegister)):
-                mapped_reg = register_obj.address + address_offset
-            else:
-                mapped_reg = register_obj.idx
             drive.disturbance_set_mapped_register(
-                ch_idx, mapped_reg, subnode, dtype.value, self.__data_type_size[dtype]
+                ch_idx,
+                register_obj.mapped_address,
+                subnode,
+                dtype.value,
+                self.__data_type_size[dtype],
             )
             self.mapped_registers.append(channel)
             total_sample_size += self.__data_type_size[dtype]
@@ -177,9 +176,13 @@ class Disturbance:
                 as in :func:`map_registers`.
 
         Raises:
+            IMDisturbanceError: If there are no mapped registers or the sampling frequency is not
+                set yet.
             IMDisturbanceError: If buffer size is not enough for all the
                 registers and samples.
         """
+        if len(self.mapped_registers) == 0 or self.sampling_freq is None:
+            raise IMDisturbanceError("Disturbance is not correctly configured yet")
         registers_data = self.__registers_data_adapter(registers_data)
         drive = self.mc.servos[self.servo]
         self.__check_buffer_size_is_enough(registers_data)

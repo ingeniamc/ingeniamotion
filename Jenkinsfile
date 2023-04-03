@@ -12,7 +12,7 @@ pipeline {
             agent {
                 docker {
                     label SW_NODE
-                    image 'ingeniacontainers.azurecr.io/ingeniamotion-builder'
+                    image 'ingeniacontainers.azurecr.io/win-python-builder:1.0'
                 }
             }
             stages {
@@ -74,6 +74,10 @@ pipeline {
             }
         }
         stage('EtherCAT tests') {
+            // Remove once EtherCAT tests are operational.
+            when {
+                expression { false }
+            }
             options {
                 lock(ECAT_NODE_LOCK)
             }
@@ -149,7 +153,7 @@ pipeline {
                 }
                 stage('Run CANopen tests') {
                     steps {
-                        unstash 'test_reports'
+                        //unstash 'test_reports' Uncomment once EtherCAT tests are operational.
                         bat '''
                             venv\\Scripts\\python.exe -m pytest tests --protocol canopen --slave 0 --junitxml=pytest_reports/pytest_canopen_0_report.xml
                             venv\\Scripts\\python.exe -m pytest tests --protocol canopen --slave 1 --junitxml=pytest_reports/pytest_canopen_1_report.xml
@@ -170,9 +174,10 @@ pipeline {
                 }
                 stage('Save test results') {
                     steps {
-                        unstash 'coverage_reports'
+                        //unstash 'coverage_reports' Uncomment once EtherCAT tests are operational.
+                        // Add .coverage_ethercat to the combine command once EtherCAT tests are operational.
                         bat '''
-                            venv\\Scripts\\python.exe -m coverage combine .coverage_ethercat .coverage_ethernet .coverage_canopen
+                            venv\\Scripts\\python.exe -m coverage combine .coverage_ethernet .coverage_canopen
                             venv\\Scripts\\python.exe -m coverage xml --include=ingeniamotion/*
                         '''
                         publishCoverage adapters: [coberturaReportAdapter('coverage.xml')]
