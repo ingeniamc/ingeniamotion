@@ -1,11 +1,19 @@
 # Changelog
 
-## [Unreleased]
+## [0.6.1] - 2023-04-03
 ### Added
-- connect_servo_eoe_service and connect_servo_eoe_service_interface_index functions are added.
+- connect_servo_eoe_service, connect_servo_eoe_service_interface_index and connect_servo_eoe_service_interface_ip functions.
 
-### Deprecated
-- connect_servo_ecat and connect_servo_ecat_interface_ip functions are removed.
+### Changed
+- Removed ``boot_in_app`` argument from load_firmware_ecat and load_firmware_ecat_interface_index functions. It is not necessary anymore.
+
+### Removed
+- connect_servo_ecat, connect_servo_ecat_interface_index and connect_servo_ecat_interface_ip functions.
+- get_sdo_register, get_sdo_register_complete_access and set_sdo_register functions.
+
+### Fixed
+- is_alive function in MotionController.
+- subscribe_net_status and unsubscribe_net_status works for Ethernet based communication.
 
 ## [0.6.0] - 2023-01-23
 ### Added

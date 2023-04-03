@@ -69,7 +69,7 @@ class Communication(metaclass=MCMetaClass):
         dict_path: str,
         alias: str = DEFAULT_SERVO,
         port: int = 1061,
-        connection_timeout: int = 5,
+        connection_timeout: int = 1,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
     ) -> None:
@@ -81,7 +81,7 @@ class Communication(metaclass=MCMetaClass):
             alias : servo alias to reference it. ``default`` by default.
             port : servo port. ``1061`` by default.
             connection_timeout: Timeout in seconds for connection.
-                ``5`` seconds by default.
+                ``1`` seconds by default.
             servo_status_listener : Toggle the listener of the servo for
                 its status, errors, faults, etc.
             net_status_listener : Toggle the listener of the network
@@ -109,7 +109,7 @@ class Communication(metaclass=MCMetaClass):
         dict_path: str,
         alias: str,
         port: int = 1061,
-        connection_timeout: int = 5,
+        connection_timeout: int = 1,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
     ) -> None:
@@ -158,11 +158,16 @@ class Communication(metaclass=MCMetaClass):
 
         Raises:
             FileNotFoundError: If the dict file doesn't exist.
+            ValueError: ip must be a subnetwork of 192.168.3.0/24
+            ingenialink.exceptions.ILError: If the EoE service is not running
+            ingenialink.exceptions.ILError: If the EoE service cannot be started on the network
+                                            interface.
         """
         if not path.isfile(dict_path):
             raise FileNotFoundError(f"{dict_path} file does not exist!")
-        self.mc.net[alias] = EoENetwork(ifname)
-        net = self.mc.net[alias]
+        if ifname not in self.mc.net:
+            self.mc.net[ifname] = EoENetwork(ifname)
+        net = self.mc.net[ifname]
         servo = net.connect_to_slave(
             slave,
             ip,
@@ -173,7 +178,7 @@ class Communication(metaclass=MCMetaClass):
         )
         servo.slave = slave
         self.mc.servos[alias] = servo
-        self.mc.servo_net[alias] = alias
+        self.mc.servo_net[alias] = ifname
 
     def connect_servo_eoe_service_interface_ip(
         self,
@@ -203,6 +208,11 @@ class Communication(metaclass=MCMetaClass):
         Raises:
             TypeError: If the dict_path argument is missing.
             IndexError: If interface index is out of range.
+            FileNotFoundError: If the dict file doesn't exist.
+            ValueError: ip must be a subnetwork of 192.168.3.0/24
+            ingenialink.exceptions.ILError: If the EoE service is not running
+            ingenialink.exceptions.ILError: If the EoE service cannot be started on the network
+                                            interface.
         """
         self.connect_servo_eoe_service(
             self.get_ifname_from_interface_ip(interface_ip),
@@ -310,6 +320,11 @@ class Communication(metaclass=MCMetaClass):
         Raises:
             TypeError: If the dict_path argument is missing.
             IndexError: If interface index is out of range.
+            FileNotFoundError: If the dict file doesn't exist.
+            ValueError: ip must be a subnetwork of 192.168.3.0/24
+            ingenialink.exceptions.ILError: If the EoE service is not running
+            ingenialink.exceptions.ILError: If the EoE service cannot be started on the network
+                                            interface.
         """
         self.connect_servo_eoe_service(
             self.get_ifname_by_index(if_index),
@@ -331,8 +346,11 @@ class Communication(metaclass=MCMetaClass):
         Returns:
             Drives available in the target interface.
 
+        Raises:
+            ingenialink.exceptions.ILError: If the EoE service is not running
+
         """
-        net = EoENetwork(ifname)
+        net = self.mc.net[ifname] if ifname in self.mc.net else EoENetwork(ifname)
         return net.scan_slaves()
 
     def scan_servos_eoe_service_interface_index(self, if_index: int) -> List[int]:
@@ -346,6 +364,7 @@ class Communication(metaclass=MCMetaClass):
 
         Raises:
             IndexError: If interface index is out of range.
+            ingenialink.exceptions.ILError: If the EoE service is not running
 
         """
         return self.scan_servos_eoe_service(self.get_ifname_by_index(if_index))
@@ -443,7 +462,10 @@ class Communication(metaclass=MCMetaClass):
         network = self.mc._get_network(servo)
         network.disconnect_from_slave(drive)
         del self.mc.servos[servo]
-        del self.mc.servo_net[servo]
+        net_name = self.mc.servo_net.pop(servo)
+        servo_count = list(self.mc.servo_net.values()).count(net_name)
+        if servo_count == 0:
+            del self.mc.net[net_name]
 
     def get_register(
         self, register: str, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -510,76 +532,6 @@ class Communication(metaclass=MCMetaClass):
             )
         drive.write(register, value, subnode=axis)
 
-    def get_sdo_register(
-        self,
-        index: int,
-        subindex: int,
-        dtype: REG_DTYPE,
-        string_size: Optional[int] = None,
-        servo: str = DEFAULT_SERVO,
-    ) -> Union[int, float, str]:
-        """Return the value via SDO of a target register.
-
-        Args:
-            index : register index.
-            subindex : register subindex.
-            dtype : register data type.
-            string_size : if register data is a string,
-                size in bytes is mandatory. ``None`` by default.
-            servo : servo alias to reference it. ``default`` by default.
-
-        Returns:
-            Current register value.
-
-        Raises:
-            TypeError: If string_size is not an int.
-
-        """
-        drive = self.mc.servos[servo]
-        if REG_DTYPE.STR.value != dtype.value:
-            return drive.read_sdo(index, subindex, dtype.value, drive.slave)
-        if not isinstance(string_size, int):
-            raise TypeError("string_size should be an int for data type string")
-        return drive.read_string_sdo(index, subindex, string_size, drive.slave)
-
-    def get_sdo_register_complete_access(
-        self, index: int, size: int, servo: str = DEFAULT_SERVO
-    ) -> bytes:
-        """Read register via SDO complete access, return value in bytes.
-
-        Args:
-            index : register index.
-            size : size in bytes of register.
-            servo : servo alias to reference it. ``default`` by default.
-
-        Returns:
-            Register value.
-
-        """
-        drive = self.mc._get_drive(servo)
-        return drive.read_sdo_complete_access(index, size, drive.slave)
-
-    def set_sdo_register(
-        self,
-        index: int,
-        subindex: int,
-        dtype: REG_DTYPE,
-        value: Union[int, float],
-        servo: str = DEFAULT_SERVO,
-    ) -> None:
-        """Set the value via SDO of a target register.
-
-        Args:
-            index : register index.
-            subindex : register subindex.
-            dtype : register data type.
-            value : new value for the register.
-            servo : servo alias to reference it. ``default`` by default.
-
-        """
-        drive = self.mc.servos[servo]
-        drive.write_sdo(index, subindex, dtype.value, value, drive.slave)
-
     def subscribe_net_status(self, callback: Callable, servo: str = DEFAULT_SERVO) -> None:
         """Add a callback to net status change event.
 
@@ -589,7 +541,11 @@ class Communication(metaclass=MCMetaClass):
 
         """
         network = self.mc._get_network(servo)
-        network.subscribe_to_status(callback)
+        if isinstance(network, EthernetNetwork):
+            drive = self.mc._get_drive(servo)
+            network.subscribe_to_status(drive.target, callback)
+        else:
+            network.subscribe_to_status(callback)
 
     def unsubscribe_net_status(self, callback: Callable, servo: str = DEFAULT_SERVO) -> None:
         """Remove net status change event callback.
@@ -600,7 +556,11 @@ class Communication(metaclass=MCMetaClass):
 
         """
         network = self.mc._get_network(servo)
-        network.unsubscribe_from_status(callback)
+        if isinstance(network, EthernetNetwork):
+            drive = self.mc._get_drive(servo)
+            network.unsubscribe_from_status(drive.target, callback)
+        else:
+            network.unsubscribe_from_status(callback)
 
     def subscribe_servo_status(self, callback: Callable, servo: str = DEFAULT_SERVO) -> None:
         """Add a callback to servo status change event.
@@ -657,9 +617,7 @@ class Communication(metaclass=MCMetaClass):
             drive.target, fw_file, status_callback, progress_callback, error_enabled_callback
         )
 
-    def load_firmware_ecat(
-        self, ifname: str, fw_file: str, slave: int = 1, boot_in_app: bool = True
-    ) -> None:
+    def load_firmware_ecat(self, ifname: str, fw_file: str, slave: int = 1) -> None:
         """Load firmware via ECAT.
 
         Args:
@@ -667,16 +625,19 @@ class Communication(metaclass=MCMetaClass):
                 ``\\Device\\NPF_[...]``.
             fw_file : Firmware file path.
             slave : slave index. ``1`` by default.
-            boot_in_app : If summit series -> True.
-                                If capitan series -> False.
-                                If custom device -> Contact manufacturer.
+
+        Raises:
+            FileNotFoundError: If the firmware file cannot be found.
+            ingenialink.exceptions.ILFirmwareLoadError: If no slave is detected.
+            ingenialink.exceptions.ILFirmwareLoadError: If the FoE write operation is not successful
+            NotImplementedError: If FoE is not implemented for the current OS and architecture
 
         """
         net = EthercatNetwork(ifname)
-        net.load_firmware(fw_file, slave, boot_in_app)
+        net.load_firmware(fw_file, slave)
 
     def load_firmware_ecat_interface_index(
-        self, if_index: int, fw_file: str, slave: int = 1, boot_in_app: bool = True
+        self, if_index: int, fw_file: str, slave: int = 1
     ) -> None:
         """Load firmware via ECAT.
 
@@ -685,12 +646,16 @@ class Communication(metaclass=MCMetaClass):
                 :func:`get_interface_name_list`.
             fw_file : Firmware file path.
             slave : slave index. ``1`` by default.
-            boot_in_app : If summit series -> True.
-                                If capitan series -> False.
-                                If custom device -> Contact manufacturer.
+
+        Raises:
+            IndexError: If interface index is out of range.
+            FileNotFoundError: If the firmware file cannot be found.
+            ingenialink.exceptions.ILFirmwareLoadError: If no slave is detected.
+            ingenialink.exceptions.ILFirmwareLoadError: If the FoE write operation is not successful
+            NotImplementedError: If FoE is not implemented for the current OS and architecture
 
         """
-        self.load_firmware_ecat(self.get_ifname_by_index(if_index), fw_file, slave, boot_in_app)
+        self.load_firmware_ecat(self.get_ifname_by_index(if_index), fw_file, slave)
 
     def load_firmware_ethernet(
         self, ip: str, fw_file: str, ftp_user: Optional[str] = None, ftp_pwd: Optional[str] = None
