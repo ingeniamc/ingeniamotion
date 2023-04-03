@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.6.1] - 2023-04-03
 ### Added
 - connect_servo_eoe_service, connect_servo_eoe_service_interface_index and connect_servo_eoe_service_interface_ip functions.
 
