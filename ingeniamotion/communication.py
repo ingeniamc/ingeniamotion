@@ -158,6 +158,10 @@ class Communication(metaclass=MCMetaClass):
 
         Raises:
             FileNotFoundError: If the dict file doesn't exist.
+            ValueError: ip must be a subnetwork of 192.168.3.0/24
+            ingenialink.exceptions.ILError: If the EoE service is not running
+            ingenialink.exceptions.ILError: If the EoE service cannot be started on the network
+                                            interface.
         """
         if not path.isfile(dict_path):
             raise FileNotFoundError(f"{dict_path} file does not exist!")
@@ -204,6 +208,11 @@ class Communication(metaclass=MCMetaClass):
         Raises:
             TypeError: If the dict_path argument is missing.
             IndexError: If interface index is out of range.
+            FileNotFoundError: If the dict file doesn't exist.
+            ValueError: ip must be a subnetwork of 192.168.3.0/24
+            ingenialink.exceptions.ILError: If the EoE service is not running
+            ingenialink.exceptions.ILError: If the EoE service cannot be started on the network
+                                            interface.
         """
         self.connect_servo_eoe_service(
             self.get_ifname_from_interface_ip(interface_ip),
@@ -311,6 +320,11 @@ class Communication(metaclass=MCMetaClass):
         Raises:
             TypeError: If the dict_path argument is missing.
             IndexError: If interface index is out of range.
+            FileNotFoundError: If the dict file doesn't exist.
+            ValueError: ip must be a subnetwork of 192.168.3.0/24
+            ingenialink.exceptions.ILError: If the EoE service is not running
+            ingenialink.exceptions.ILError: If the EoE service cannot be started on the network
+                                            interface.
         """
         self.connect_servo_eoe_service(
             self.get_ifname_by_index(if_index),
@@ -332,11 +346,11 @@ class Communication(metaclass=MCMetaClass):
         Returns:
             Drives available in the target interface.
 
+        Raises:
+            ingenialink.exceptions.ILError: If the EoE service is not running
+
         """
-        if ifname in self.mc.net:
-            net = self.mc.net[ifname]
-        else:
-            net = EoENetwork(ifname)
+        net = self.mc.net[ifname] if ifname in self.mc.net else EoENetwork(ifname)
         return net.scan_slaves()
 
     def scan_servos_eoe_service_interface_index(self, if_index: int) -> List[int]:
@@ -350,6 +364,7 @@ class Communication(metaclass=MCMetaClass):
 
         Raises:
             IndexError: If interface index is out of range.
+            ingenialink.exceptions.ILError: If the EoE service is not running
 
         """
         return self.scan_servos_eoe_service(self.get_ifname_by_index(if_index))
@@ -611,6 +626,12 @@ class Communication(metaclass=MCMetaClass):
             fw_file : Firmware file path.
             slave : slave index. ``1`` by default.
 
+        Raises:
+            FileNotFoundError: If the firmware file cannot be found.
+            ingenialink.exceptions.ILFirmwareLoadError: If no slave is detected.
+            ingenialink.exceptions.ILFirmwareLoadError: If the FoE write operation is not successful
+            NotImplementedError: If FoE is not implemented for the current OS and architecture
+
         """
         net = EthercatNetwork(ifname)
         net.load_firmware(fw_file, slave)
@@ -625,6 +646,13 @@ class Communication(metaclass=MCMetaClass):
                 :func:`get_interface_name_list`.
             fw_file : Firmware file path.
             slave : slave index. ``1`` by default.
+
+        Raises:
+            IndexError: If interface index is out of range.
+            FileNotFoundError: If the firmware file cannot be found.
+            ingenialink.exceptions.ILFirmwareLoadError: If no slave is detected.
+            ingenialink.exceptions.ILFirmwareLoadError: If the FoE write operation is not successful
+            NotImplementedError: If FoE is not implemented for the current OS and architecture
 
         """
         self.load_firmware_ecat(self.get_ifname_by_index(if_index), fw_file, slave)
