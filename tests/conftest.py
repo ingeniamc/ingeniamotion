@@ -61,7 +61,6 @@ def connect_canopen(mc, config, alias):
     mc.communication.connect_servo_canopen(
         device,
         config["dictionary"],
-        config["eds"],
         config["node_id"],
         baudrate,
         config["channel"],
