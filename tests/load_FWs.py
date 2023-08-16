@@ -40,7 +40,6 @@ def load_can(drive_conf, mc):
             mc.communication.connect_servo_canopen(
                 CAN_DEVICE(drive_conf["device"]),
                 drive_conf["dictionary"],
-                drive_conf["eds"],
                 drive_conf["node_id"],
                 CAN_BAUDRATE(drive_conf["baudrate"]),
                 channel=drive_conf["channel"],
@@ -91,7 +90,6 @@ def load_can(drive_conf, mc):
             mc.communication.connect_servo_canopen(
                 CAN_DEVICE(drive_conf["device"]),
                 drive_conf["dictionary"],
-                drive_conf["eds"],
                 drive_conf["node_id"],
                 CAN_BAUDRATE(drive_conf["baudrate"]),
                 channel=drive_conf["channel"],
