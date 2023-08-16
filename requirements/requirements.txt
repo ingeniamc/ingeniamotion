@@ -1,4 +1,4 @@
-ingenialink==7.0.0
+git+https://github.com/ingeniamc/ingenialink-python.git@INGK-548-avoid-using-eds-file
 ingenialogger>=0.2.1
 ifaddr==0.1.7
 numpy==1.19.5
