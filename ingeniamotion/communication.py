@@ -409,9 +409,7 @@ class Communication(metaclass=MCMetaClass):
             self.mc.net[net_key] = CanopenNetwork(can_device, channel, baudrate)
         net = self.mc.net[net_key]
 
-        servo = net.connect_to_slave(
-            node_id, dict_path, servo_status_listener, net_status_listener
-        )
+        servo = net.connect_to_slave(node_id, dict_path, servo_status_listener, net_status_listener)
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = net_key
 
