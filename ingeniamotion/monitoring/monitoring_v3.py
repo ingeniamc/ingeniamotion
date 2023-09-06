@@ -20,7 +20,6 @@ class MonitoringV3(Monitoring):
     def set_trigger(
         self, trigger_mode, edge_condition=None, trigger_signal=None, trigger_value=None
     ):
-        self.rearm_monitoring()
         self.mc.communication.set_register(
             self.MONITOR_START_CONDITION_TYPE_REGISTER, trigger_mode, servo=self.servo, axis=0
         )

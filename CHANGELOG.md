@@ -1,8 +1,11 @@
 # Changelog
 
-## [Unreleased]
+## [0.6.2] - 2023-09-06
 ### Changed
 - Remove EDS file path param from CANopen connection. It is no longer necessary.
+
+### Fixed
+- Fix monitoring V3. Remove rearm_monitoring from set_trigger function.
 
 ## [0.6.1] - 2023-04-03
 ### Added
