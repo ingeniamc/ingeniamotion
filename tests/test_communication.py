@@ -78,7 +78,6 @@ def test_connect_servo_canopen(read_config):
     mc.communication.connect_servo_canopen(
         device,
         read_config["dictionary"],
-        read_config["eds"],
         read_config["node_id"],
         baudrate,
         read_config["channel"],
@@ -105,7 +104,6 @@ def test_connect_servo_canopen_busy_drive_error(motion_controller, read_config):
         mc.communication.connect_servo_canopen(
             device,
             read_config["dictionary"],
-            read_config["eds"],
             read_config["node_id"],
             baudrate,
             read_config["channel"],

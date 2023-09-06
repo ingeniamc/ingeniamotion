@@ -373,7 +373,6 @@ class Communication(metaclass=MCMetaClass):
         self,
         can_device: CAN_DEVICE,
         dict_path: str,
-        eds_file: str,
         node_id: int,
         baudrate: CAN_BAUDRATE = CAN_BAUDRATE.Baudrate_1M,
         channel: int = 0,
@@ -386,7 +385,6 @@ class Communication(metaclass=MCMetaClass):
         Args:
             can_device : CANOpen device type.
             dict_path : servo dictionary path.
-            eds_file : EDS file path.
             node_id : node id. It's posible scan node ids with
                 :func:`scan_servos_canopen`.
             baudrate : communication baudrate. 1 Mbit/s by default.
@@ -406,16 +404,12 @@ class Communication(metaclass=MCMetaClass):
         if not path.isfile(dict_path):
             raise FileNotFoundError(f"Dict file {dict_path} does not exist!")
 
-        if not path.isfile(eds_file):
-            raise FileNotFoundError(f"EDS file {eds_file} does not exist!")
         net_key = f"{can_device}_{channel}_{baudrate}"
         if net_key not in self.mc.net:
             self.mc.net[net_key] = CanopenNetwork(can_device, channel, baudrate)
         net = self.mc.net[net_key]
 
-        servo = net.connect_to_slave(
-            node_id, dict_path, eds_file, servo_status_listener, net_status_listener
-        )
+        servo = net.connect_to_slave(node_id, dict_path, servo_status_listener, net_status_listener)
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = net_key
 
