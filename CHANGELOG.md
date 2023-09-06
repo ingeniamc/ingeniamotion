@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.6.2] - 2023-09-06
 ### Changed
 - Remove EDS file path param from CANopen connection. It is no longer necessary.
 
