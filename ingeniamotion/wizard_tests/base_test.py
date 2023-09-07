@@ -68,7 +68,7 @@ class BaseTest(ABC, Stoppable):
         pass
 
     @abstractmethod
-    def loop(self) -> None:
+    def loop(self) -> Union[None, ResultBrakeType]:
         pass
 
     @abstractmethod

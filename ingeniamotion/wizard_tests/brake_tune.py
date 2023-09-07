@@ -1,4 +1,5 @@
 from enum import IntEnum
+from typing import Union
 
 import ingenialogger
 
@@ -9,6 +10,21 @@ from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.wizard_tests import stoppable
 from ingeniamotion.wizard_tests.base_test import BaseTest
 
+
+class BrakeRegKey(IntEnum):
+    """Brake Register Keys for dictionaries"""
+
+    FEEDBACK_SOURCE = 0
+    CONTROL_MODE = 1
+
+
+class ResultBrakeType(IntEnum):
+    """Type of result once a brake tuning is stopped or failed"""
+
+    SUCCESS = 0
+    FAIL_FEEDBACK_SOURCE = 1
+    FAIL_CURRENT_MODE = 2
+    FAIL_DICTIONARY = 3
 
 class BrakeTune(BaseTest):
     """A class to perform a brake tuning. It enables and disables a brake through enabling/disabling the motor.
@@ -21,20 +37,6 @@ class BrakeTune(BaseTest):
         axis: axis that will run the test. 1 by default.
 
     """
-
-    class BrakeRegKey(IntEnum):
-        """Brake Register Keys for dictionaries"""
-
-        FEEDBACK_SOURCE = 0
-        CONTROL_MODE = 1
-
-    class ResultBrakeType(IntEnum):
-        """Type of result once a brake tuning is stopped or failed"""
-
-        SUCCESS = 0
-        FAIL_FEEDBACK_SOURCE = 1
-        FAIL_CURRENT_MODE = 2
-        FAIL_DICTIONARY = 3
 
     BRAKE_CURRENT_FEEDBACK_SOURCE = "MOT_BRAKE_CUR_FBK"
     BRAKE_CONTROL_MODE = "MOT_BRAKE_CONTROL_MODE"
@@ -72,19 +74,19 @@ class BrakeTune(BaseTest):
         self.mc.motion.set_voltage_direct(0, servo=self.servo, axis=self.axis)
 
     @BaseTest.stoppable
-    def loop(self) -> ResultBrakeType:
+    def loop(self) -> Union[None, ResultBrakeType]:
         try:
             reg_values = self.__update_brake_registers_values()
         except IMRegisterNotExist:
-            return self.ResultBrakeType.FAIL_DICTIONARY
+            return ResultBrakeType.FAIL_DICTIONARY
         # Register values to avoid meanwhile the test is being executed
         no_brake_current_feedback_source = 0
         brake_is_current_mode = 1
         # Start the test
         try:
             while (
-                reg_values[self.BrakeRegKey.FEEDBACK_SOURCE] != no_brake_current_feedback_source
-            ) and (reg_values[self.BrakeRegKey.CONTROL_MODE] == brake_is_current_mode):
+                reg_values[BrakeRegKey.FEEDBACK_SOURCE] != no_brake_current_feedback_source
+            ) and (reg_values[BrakeRegKey.CONTROL_MODE] == brake_is_current_mode):
                 # Motor enable
                 self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
                 self.stoppable_sleep(self.__enable_disable_motor_period / 2)
@@ -95,25 +97,27 @@ class BrakeTune(BaseTest):
                 reg_values = self.__update_brake_registers_values()
         except stoppable.StopException:
             self.logger.info("Test has been stopped")
-            return self.ResultBrakeType.SUCCESS
+            return ResultBrakeType.SUCCESS
 
-        if reg_values[self.BrakeRegKey.FEEDBACK_SOURCE] == no_brake_current_feedback_source:
-            return self.ResultBrakeType.FAIL_FEEDBACK_SOURCE
-        elif reg_values[self.BrakeRegKey.CONTROL_MODE] != brake_is_current_mode:
-            return self.ResultBrakeType.FAIL_CURRENT_MODE
+        if reg_values[BrakeRegKey.FEEDBACK_SOURCE] == no_brake_current_feedback_source:
+            return ResultBrakeType.FAIL_FEEDBACK_SOURCE
+        elif reg_values[BrakeRegKey.CONTROL_MODE] != brake_is_current_mode:
+            return ResultBrakeType.FAIL_CURRENT_MODE
+        else:
+            return None
 
-    def __update_brake_registers_values(self) -> dict:
+    def __update_brake_registers_values(self) -> dict[BrakeRegKey, Union[int, float, str]]:
         brake_registers_updated = {}
         updated_brake_current_feedback_source = self.mc.communication.get_register(
             self.BRAKE_CURRENT_FEEDBACK_SOURCE, servo=self.servo, axis=self.axis
         )
         brake_registers_updated[
-            self.BrakeRegKey.FEEDBACK_SOURCE
+            BrakeRegKey.FEEDBACK_SOURCE
         ] = updated_brake_current_feedback_source
         updated_brake_control_mode = self.mc.communication.get_register(
             self.BRAKE_CONTROL_MODE, servo=self.servo, axis=self.axis
         )
-        brake_registers_updated[self.BrakeRegKey.CONTROL_MODE] = updated_brake_control_mode
+        brake_registers_updated[BrakeRegKey.CONTROL_MODE] = updated_brake_control_mode
         return brake_registers_updated
 
     def teardown(self) -> None:
@@ -122,18 +126,18 @@ class BrakeTune(BaseTest):
 
     def get_result_severity(self, output: ResultBrakeType) -> SeverityLevel:
         severity_options = {
-            self.ResultBrakeType.SUCCESS: SeverityLevel.SUCCESS,
-            self.ResultBrakeType.FAIL_FEEDBACK_SOURCE: SeverityLevel.FAIL,
-            self.ResultBrakeType.FAIL_CURRENT_MODE: SeverityLevel.FAIL,
-            self.ResultBrakeType.FAIL_DICTIONARY: SeverityLevel.FAIL,
+            ResultBrakeType.SUCCESS: SeverityLevel.SUCCESS,
+            ResultBrakeType.FAIL_FEEDBACK_SOURCE: SeverityLevel.FAIL,
+            ResultBrakeType.FAIL_CURRENT_MODE: SeverityLevel.FAIL,
+            ResultBrakeType.FAIL_DICTIONARY: SeverityLevel.FAIL,
         }
         return severity_options[output]
 
     def get_result_msg(self, output: ResultBrakeType) -> str:
         message_options = {
-            self.ResultBrakeType.SUCCESS: "Brake tune is stopped properly",
-            self.ResultBrakeType.FAIL_FEEDBACK_SOURCE: "A brake current feedback source is not set",
-            self.ResultBrakeType.FAIL_CURRENT_MODE: "The brake is not in current mode",
-            self.ResultBrakeType.FAIL_DICTIONARY: "Brake current control mode is not implemented in the drive",
+            ResultBrakeType.SUCCESS: "Brake tune is stopped properly",
+            ResultBrakeType.FAIL_FEEDBACK_SOURCE: "A brake current feedback source is not set",
+            ResultBrakeType.FAIL_CURRENT_MODE: "The brake is not in current mode",
+            ResultBrakeType.FAIL_DICTIONARY: "Brake current control mode is not implemented in the drive",
         }
         return message_options[output]
