@@ -4,6 +4,7 @@ from enum import IntEnum
 
 from .base_test import BaseTest
 from ingeniamotion.enums import SeverityLevel
+from .. import MotionController
 
 
 class STOTest(BaseTest):
@@ -38,9 +39,9 @@ class STOTest(BaseTest):
     STO_ABNORMAL_FAULT_BIT = 0x8
     STO_REPORT_BIT = 0x10
 
-    BACKUP_REGISTERS = []
+    BACKUP_REGISTERS: list[str] = []
 
-    def __init__(self, mc, servo, axis):
+    def __init__(self, mc: MotionController, servo: str, axis: int) -> None:
         super().__init__()
         self.mc = mc
         self.servo = servo
@@ -49,13 +50,13 @@ class STOTest(BaseTest):
         self.backup_registers_names = self.BACKUP_REGISTERS
         self.suggested_registers = {}
 
-    def setup(self):
+    def setup(self) -> None:
         pass
 
-    def teardown(self):
+    def teardown(self) -> None:
         pass
 
-    def loop(self):
+    def loop(self) -> ResultType:
         if self.mc.configuration.is_sto1_active(servo=self.servo, axis=self.axis) == 0:
             self.logger.info("STO1 bit is LOW")
         # Check STO1 status --> Check bit 0 (0x1 in HEX)
@@ -106,10 +107,10 @@ class STOTest(BaseTest):
         else:
             return self.ResultType.STO_INPUTS_DIFFER
 
-    def get_result_msg(self, output):
+    def get_result_msg(self, output: ResultType) -> str:
         return self.result_description[output]
 
-    def get_result_severity(self, output):
+    def get_result_severity(self, output: ResultType) -> SeverityLevel:
         if output < self.ResultType.STO_INACTIVE:
             return SeverityLevel.FAIL
         else:
