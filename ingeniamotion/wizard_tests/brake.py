@@ -1,3 +1,5 @@
+from typing import Union
+
 import ingenialogger
 
 from ingenialink.exceptions import ILError
@@ -6,6 +8,7 @@ from .base_test import BaseTest
 from .stoppable import StopException
 from ingeniamotion.enums import OperationMode, SeverityLevel
 from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
+from .. import MotionController
 
 
 class Brake(BaseTest):
@@ -21,7 +24,7 @@ class Brake(BaseTest):
         "MOT_COMMU_MOD",
     ]
 
-    def __init__(self, mc, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+    def __init__(self, mc: MotionController, servo: str=DEFAULT_SERVO, axis: int=DEFAULT_AXIS) -> None:
         super().__init__()
         self.mc = mc
         self.servo = servo
@@ -29,7 +32,7 @@ class Brake(BaseTest):
         self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
         self.backup_registers_names = self.BACKUP_REGISTERS
 
-    def setup(self):
+    def setup(self) -> None:
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
         self.mc.configuration.disable_brake_override(servo=self.servo, axis=self.axis)
         self.mc.communication.set_register("MOT_COMMU_MOD", 0, servo=self.servo, axis=self.axis)
@@ -37,13 +40,13 @@ class Brake(BaseTest):
             OperationMode.VOLTAGE, servo=self.servo, axis=self.axis
         )
 
-    def loop(self):
+    def loop(self) -> None:
         self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
 
-    def teardown(self):
+    def teardown(self) -> None:
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
 
-    def finish(self):
+    def finish(self) -> dict[str, Union[SeverityLevel, str]]:
         try:
             self.teardown()
         finally:
@@ -54,7 +57,7 @@ class Brake(BaseTest):
             "result_message": self.get_result_msg(output),
         }
 
-    def run(self):
+    def run(self) -> None:
         self.reset_stop()
         self.save_backup_registers()
         try:
@@ -67,10 +70,10 @@ class Brake(BaseTest):
             self.logger.warning("Test has been stopped")
             self.finish()
 
-    def get_result_severity(self, output):
+    def get_result_severity(self, output: SeverityLevel) -> SeverityLevel:
         return output
 
-    def get_result_msg(self, output):
+    def get_result_msg(self, output: SeverityLevel) -> str:
         if output == SeverityLevel.SUCCESS:
             return "Success"
         else:

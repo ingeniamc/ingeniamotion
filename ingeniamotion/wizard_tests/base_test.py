@@ -9,6 +9,7 @@ from ingenialink.exceptions import ILError
 from ingeniamotion.exceptions import IMRegisterNotExist, IMRegisterWrongAccess
 from .stoppable import Stoppable, StopException
 from .. import MotionController
+from ..enums import SeverityLevel
 
 
 class TestError(Exception):
@@ -100,9 +101,9 @@ class BaseTest(ABC, Stoppable):
         }
 
     @abstractmethod
-    def get_result_msg(self, output: Any) -> None:
+    def get_result_msg(self, output: Any) -> str:
         pass
 
     @abstractmethod
-    def get_result_severity(self, output: Any) -> None:
+    def get_result_severity(self, output: Any) -> SeverityLevel:
         pass
