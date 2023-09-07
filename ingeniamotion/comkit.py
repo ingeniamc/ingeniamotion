@@ -1,12 +1,10 @@
-import os
 import io
 import xml.etree.ElementTree as ET
+from enum import Enum
 from typing import Optional
 from xml.dom import minidom
-from shutil import copyfile
 import tempfile
-
-import ntpath
+from pathlib import Path
 
 FILE_EXT_DICTIONARY = ".xdf"
 DICT_DEVICE_PRODUCT_CODE = "ProductCode"
@@ -14,83 +12,50 @@ DICT_DEVICE_PART_NUMBER = "PartNumber"
 DICT_DEVICE_PART_NUMBER_COCO = "PartNumberCoco"
 DICT_DEVICE_PART_NUMBER_MOCO = "PartNumberMoco"
 
+MOCO_SUBNODE = 1
+SUBNODE_ATTRIBUTE = "subnode"
+REGISTER_SECTION = "Body/Device/Registers"
+DEVICE_SECTION = "Body/Device"
+ERRORS_SECTION = "Body/Errors"
+IMAGE_SECTION = "DriveImage"
+
+
+class CORE(Enum):
+    """Core type enum"""
+
+    COMMUNICATION_CORE = "Coco"
+    MOTION_CORE = "Moco"
+
 
 def create_comkit_dictionary(
-    coco_dict_path: str, moco_dict_path: str, dest_path: Optional[str] = None
+    coco_dict_path: str, moco_dict_path: str, dest_folder: Optional[str] = None
 ) -> str:
     """Create a dictionary for COMKIT by merging a COCO dictionary and a MOCO dictionary.
 
     Args:
         coco_dict_path : COCO dictionary path.
         moco_dict_path : MOCO dictionary path.
-        dest_path: Path to store the COMKIT dictionary. If it's not provided the merged
-            dictionary is stored in the temporary system's folder.
+        dest_folder: Path to a folder to store the COMKIT dictionary. If it's not provided the
+            merged dictionary is stored in the temporary system's folder.
 
     Returns:
         Path to the COMKIT dictionary.
 
     """
-    register_section = "Body/Device/Registers"
-    register_element = "Body/Device/Registers/Register"
-    drive_image_element = "DriveImage"
-    device_element = "Body/Device"
-    errors_element = "Body/Errors"
+    coco_dict_name = Path(coco_dict_path).stem
+    moco_dict_name = Path(moco_dict_path).stem
+    if dest_folder is None:
+        dest_folder = tempfile.gettempdir()
+    dest_path = f"{dest_folder}/{coco_dict_name}-{moco_dict_name}{FILE_EXT_DICTIONARY}"
+    moco_tree_root = get_tree_root(moco_dict_path)
+    coco_tree_root = get_tree_root(coco_dict_path)
+    comkit_tree_root = coco_tree_root
+    comkit_tree_root = merge_registers(moco_tree_root, comkit_tree_root)
+    comkit_tree_root = merge_images(moco_tree_root, comkit_tree_root)
+    comkit_tree_root = merge_errors(moco_tree_root, comkit_tree_root)
+    comkit_tree_root = set_attributes(moco_tree_root, comkit_tree_root)
 
-    dict_coco_filename, dict_coco_extension = os.path.splitext(coco_dict_path)
-    dict_coco_filename = ntpath.basename(dict_coco_filename)
-
-    dict_moco_filename, dict_moco_extension = os.path.splitext(moco_dict_path)
-    dict_moco_filename = ntpath.basename(dict_moco_filename)
-
-    if dest_path is None:
-        dest_path = f"{tempfile.gettempdir()}/{dict_coco_filename}-{dict_moco_filename}{FILE_EXT_DICTIONARY}"
-    else:
-        dest_path = f"{dest_path}/{dict_coco_filename}-{dict_moco_filename}{FILE_EXT_DICTIONARY}"
-
-    copyfile(coco_dict_path, dest_path)
-
-    tree_dict_moco = ET.parse(moco_dict_path)
-    root_dict_moco = tree_dict_moco.getroot()
-
-    tree_dict_merged = ET.parse(coco_dict_path)
-    root_dict_merged = tree_dict_merged.getroot()
-
-    moco_registers = root_dict_moco.findall(register_element)
-
-    merged_dict_registers_section = root_dict_merged.find(register_section)
-
-    for moco_register in moco_registers:
-        if "subnode" in moco_register.attrib and moco_register.attrib["subnode"] == "1":
-            merged_dict_registers_section.append(moco_register)
-
-    device_moco = root_dict_moco.find(device_element)
-    device_coco = root_dict_merged.find(device_element)
-
-    if device_moco is not None and DICT_DEVICE_PART_NUMBER in device_moco.attrib:
-        device_coco.set("PartNumberMoco", device_moco.attrib[DICT_DEVICE_PART_NUMBER])
-
-    if device_coco is not None and DICT_DEVICE_PART_NUMBER in device_coco.attrib:
-        device_coco.set("PartNumberCoco", device_coco.attrib[DICT_DEVICE_PART_NUMBER])
-
-    if device_moco is not None and DICT_DEVICE_PRODUCT_CODE in device_moco.attrib:
-        device_coco.set("ProductCodeMoco", device_moco.attrib[DICT_DEVICE_PRODUCT_CODE])
-
-    if device_coco is not None and DICT_DEVICE_PRODUCT_CODE in device_coco.attrib:
-        device_coco.set("ProductCodeCoco", device_coco.attrib[DICT_DEVICE_PRODUCT_CODE])
-
-    drive_image_coco = root_dict_merged.find(drive_image_element)
-    if drive_image_coco is not None:
-        drive_image_coco.set("type", "coco")
-
-    drive_image_moco = root_dict_moco.find(drive_image_element)
-    if drive_image_moco is not None:
-        drive_image_moco.set("type", "moco")
-        root_dict_merged.append(drive_image_moco)
-
-    errors_moco = root_dict_moco.find(errors_element)
-    root_dict_merged.append(errors_moco)
-
-    xmlstr = minidom.parseString(ET.tostring(root_dict_merged)).toprettyxml(
+    xmlstr = minidom.parseString(ET.tostring(comkit_tree_root)).toprettyxml(
         indent="  ", newl="", encoding="UTF-8"
     )
 
@@ -99,3 +64,112 @@ def create_comkit_dictionary(
     merged_file.close()
 
     return dest_path
+
+
+def get_tree_root(dict_path: str):
+    """Get XML root element.
+
+    Args:
+        dict_path : dictionary path.
+
+    Returns:
+        Root element.
+
+    """
+    tree = ET.parse(dict_path)
+    return tree.getroot()
+
+
+def merge_registers(src_root, dest_root):
+    """Append registers from source tree to destination tree.
+
+    Args:
+        src_root: Source tree.
+        dest_root: Destination tree.
+
+    Returns:
+        Destination tree.
+
+    """
+    src_registers = src_root.findall(f"{REGISTER_SECTION}/Register")
+    dest_register_section = dest_root.find(REGISTER_SECTION)
+    for register in src_registers:
+        if SUBNODE_ATTRIBUTE in register.attrib and register.attrib[SUBNODE_ATTRIBUTE] == str(
+            MOCO_SUBNODE
+        ):
+            dest_register_section.append(register)
+    return dest_root
+
+
+def merge_errors(src_root, dest_root):
+    """Append errors from source tree to destination tree.
+
+    Args:
+        src_root: Source tree.
+        dest_root: Destination tree.
+
+    Returns:
+        Destination tree.
+
+    """
+    src_errors = src_root.find(ERRORS_SECTION)
+    dest_root.append(src_errors)
+    return dest_root
+
+
+def merge_images(src_root, dest_root):
+    """Append image from source tree to destination tree.
+
+    Args:
+        src_root: Source tree.
+        dest_root: Destination tree.
+
+    Returns:
+        Destination tree.
+
+    """
+    src_drive_image = src_root.find(IMAGE_SECTION)
+    if src_drive_image is not None:
+        src_drive_image.set("type", CORE.MOTION_CORE.value.lower())
+    dest_drive_image = dest_root.find(IMAGE_SECTION)
+    if dest_drive_image is not None:
+        dest_drive_image.set("type", CORE.COMMUNICATION_CORE.value.lower())
+    dest_root.append(src_drive_image)
+    return dest_root
+
+
+def set_attributes(src_tree, dest_tree):
+    """Set COCO and MOCO part numbers and product codes in destination tree.
+
+    Args:
+        src_root: Source tree.
+        dest_root: Destination tree.
+
+    Returns:
+        Destination tree.
+
+    """
+    create_attribute(DICT_DEVICE_PART_NUMBER, src_tree, dest_tree, CORE.MOTION_CORE)
+    create_attribute(DICT_DEVICE_PART_NUMBER, dest_tree, dest_tree, CORE.COMMUNICATION_CORE)
+    create_attribute(DICT_DEVICE_PRODUCT_CODE, src_tree, dest_tree, CORE.MOTION_CORE)
+    create_attribute(DICT_DEVICE_PRODUCT_CODE, dest_tree, dest_tree, CORE.COMMUNICATION_CORE)
+    return dest_tree
+
+
+def create_attribute(attribute, src_root, dest_root, core):
+    """Create an attribute in the destination tree.
+
+    Args:
+        attribute: Name of the attribute.
+        src_root: Source tree.
+        dest_root: Destination tree.
+        core: Type of core attribute.
+
+    Returns:
+        Destination tree.
+
+    """
+    src_device_elem = src_root.find(DEVICE_SECTION)
+    dst_device_elem = dest_root.find(DEVICE_SECTION)
+    if src_device_elem is not None and attribute in src_device_elem.attrib:
+        dst_device_elem.set(f"{attribute}{core.value}", src_device_elem.attrib[attribute])
