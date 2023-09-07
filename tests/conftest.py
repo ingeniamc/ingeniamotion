@@ -1,4 +1,6 @@
 import json
+from enum import Enum
+
 import pytest
 from typing import Dict
 import time
@@ -8,14 +10,20 @@ import numpy as np
 from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE, SensorType
 from ingeniamotion import MotionController
 
-ALLOW_PROTOCOLS = ["eoe", "soem", "canopen"]
+class PROTOCOL(Enum):
+    """Protocols that are used in config.json."""
+    EOE = "eoe"
+    SOEM = "soem"
+    CANOPEN = "canopen"
+
+ALLOW_PROTOCOLS = [PROTOCOL.EOE, PROTOCOL.SOEM, PROTOCOL.CANOPEN]
 
 test_report_key = pytest.StashKey[Dict[str, pytest.CollectReport]]()
 
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--protocol", action="store", default="eoe", help="eoe, soem", choices=ALLOW_PROTOCOLS
+        "--protocol", action="store", default=PROTOCOL.EOE, help="eoe, soem", choices=ALLOW_PROTOCOLS
     )
     parser.addoption("--slave", type="int", default=0, help="Slave index in config.json")
 
@@ -73,11 +81,11 @@ def motion_controller(pytestconfig, read_config):
     alias = "test"
     mc = MotionController()
     protocol = pytestconfig.getoption("--protocol")
-    if protocol == "eoe":
+    if protocol == PROTOCOL.EOE:
         connect_eoe(mc, read_config, alias)
-    elif protocol == "soem":
+    elif protocol == PROTOCOL.EOE:
         connect_soem(mc, read_config, alias)
-    elif protocol == "canopen":
+    elif protocol == PROTOCOL.CANOPEN:
         connect_canopen(mc, read_config, alias)
     mc.configuration.load_configuration(read_config["config_file"], servo=alias)
     yield mc, alias
