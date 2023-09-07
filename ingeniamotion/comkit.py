@@ -54,15 +54,7 @@ def create_comkit_dictionary(
     comkit_tree_root = merge_images(moco_tree_root, comkit_tree_root)
     comkit_tree_root = merge_errors(moco_tree_root, comkit_tree_root)
     comkit_tree_root = set_attributes(moco_tree_root, comkit_tree_root)
-
-    xmlstr = minidom.parseString(ET.tostring(comkit_tree_root)).toprettyxml(
-        indent="  ", newl="", encoding="UTF-8"
-    )
-
-    merged_file = io.open(dest_path, "wb")
-    merged_file.write(xmlstr)
-    merged_file.close()
-
+    save_to_file(comkit_tree_root, dest_path)
     return dest_path
 
 
@@ -112,8 +104,13 @@ def merge_errors(src_root, dest_root):
         Destination tree.
 
     """
-    src_errors = src_root.find(ERRORS_SECTION)
-    dest_root.append(src_errors)
+    dest_errors = dest_root.findall(f"{ERRORS_SECTION}/Error")
+    dest_errors_section = dest_root.find(ERRORS_SECTION)
+    dest_errors_ids = [error.attrib["id"] for error in dest_errors]
+    src_errors = src_root.findall(f"{ERRORS_SECTION}/Error")
+    for error in src_errors:
+        if error.attrib["id"] not in dest_errors_ids:
+            dest_errors_section.append(error)
     return dest_root
 
 
@@ -173,3 +170,19 @@ def create_attribute(attribute, src_root, dest_root, core):
     dst_device_elem = dest_root.find(DEVICE_SECTION)
     if src_device_elem is not None and attribute in src_device_elem.attrib:
         dst_device_elem.set(f"{attribute}{core.value}", src_device_elem.attrib[attribute])
+
+
+def save_to_file(tree_root, dest_path):
+    """Save XML tree to file.
+
+    Args:
+        tree_root: XML tree.
+        dest_path: Destination path.
+
+    """
+    xml_str = minidom.parseString(ET.tostring(tree_root)).toprettyxml(
+        indent="  ", newl="", encoding="UTF-8"
+    )
+    merged_file = io.open(dest_path, "wb")
+    merged_file.write(xml_str)
+    merged_file.close()

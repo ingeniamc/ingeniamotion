@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<IngeniaDictionary>
+  <Header>
+    <Version>2</Version>
+    <DefaultLanguage>en_US</DefaultLanguage>
+  </Header>
+  <Body>
+    <Device family="Summit" firmwareVersion="" ProductCode="987654321" PartNumber="CORE" RevisionNumber="31" Interface="ETH" name="Generic">
+      <Registers>
+        <Register access="r" address_type="NVM_NONE" address="0x000F" dtype="s32" id="DRV_DIAG_ERROR_LAST" units="-" subnode="1" cyclic="CYCLIC_TX" desc="Contains the last generated error" cat_id="REPORTING">
+          <Labels>
+            <Label lang="en_US">Last error</Label>
+          </Labels>
+        </Register>
+      </Registers>
+    </Device>
+    <Errors>
+      <Error id="0x00003280" affected_module="Power stage" error_type="cyclic">
+        <Labels>
+          <Label lang="en_US">STO is active and could have disabled the power stage disabled</Label>
+        </Labels>
+      </Error>
+    </Errors>
+  </Body>
+  <DriveImage encoding="xs:base64Binary">
+  
+  </DriveImage>
+</IngeniaDictionary>
