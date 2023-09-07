@@ -1,6 +1,7 @@
 import os
 import io
 import xml.etree.ElementTree as ET
+from typing import Optional
 from xml.dom import minidom
 from shutil import copyfile
 import tempfile
@@ -12,45 +13,44 @@ DICT_DEVICE_PRODUCT_CODE = "ProductCode"
 DICT_DEVICE_PART_NUMBER = "PartNumber"
 DICT_DEVICE_PART_NUMBER_COCO = "PartNumberCoco"
 DICT_DEVICE_PART_NUMBER_MOCO = "PartNumberMoco"
-COMKIT_PRODUCT_CODE = 52510721
 
 
-def merge_dictionaries(dict_path_a, dict_path_b):
-    """
-    Merges a dictionary containing COCO registers with a dictionary that contains MOCO registers.
+def create_comkit_dictionary(coco_dict_path: str, moco_dict_path: str, dest_path: Optional[str] = None) -> str:
+    """Create a dictionary for COMKIT by merging a COCO dictionary and a MOCO dictionary.
+
+    Args:
+        coco_dict_path : COCO dictionary path.
+        moco_dict_path : MOCO dictionary path.
+        dest_path: Path to store the COMKIT dictionary. If it's not provided the merged
+        dictionary is stored in the temporary system's folder.
+
+    Returns:
+        Path to the COMKIT dictionary.
+
     """
     register_section = "Body/Device/Registers"
     register_element = "Body/Device/Registers/Register"
     drive_image_element = "DriveImage"
     device_element = "Body/Device"
     errors_element = "Body/Errors"
-    dicts = [dict_path_a, dict_path_b]
-    for dict_idx, dict_path in enumerate(dicts):
-        tree_dict = ET.parse(dict_path)
-        root_dict = tree_dict.getroot()
-        device_elem = root_dict.find(device_element)
-        if (
-            DICT_DEVICE_PRODUCT_CODE in device_elem.attrib
-            and int(device_elem.attrib[DICT_DEVICE_PRODUCT_CODE]) == COMKIT_PRODUCT_CODE
-        ):
-            dict_coco_path = dict_path
-            dict_moco_path = dicts[abs(dict_idx - 1)]
-            break
 
-    dict_coco_filename, dict_coco_extension = os.path.splitext(dict_coco_path)
+    dict_coco_filename, dict_coco_extension = os.path.splitext(coco_dict_path)
     dict_coco_filename = ntpath.basename(dict_coco_filename)
 
-    dict_moco_filename, dict_moco_extension = os.path.splitext(dict_moco_path)
+    dict_moco_filename, dict_moco_extension = os.path.splitext(moco_dict_path)
     dict_moco_filename = ntpath.basename(dict_moco_filename)
 
-    merged_dict_path = f"{tempfile.gettempdir()}/{dict_coco_filename}-{dict_moco_filename}{FILE_EXT_DICTIONARY}"
+    if dest_path is None:
+        dest_path = f"{tempfile.gettempdir()}/{dict_coco_filename}-{dict_moco_filename}{FILE_EXT_DICTIONARY}"
+    else:
+        dest_path = f"{dest_path}/{dict_coco_filename}-{dict_moco_filename}{FILE_EXT_DICTIONARY}"
 
-    copyfile(dict_coco_path, merged_dict_path)
+    copyfile(coco_dict_path, dest_path)
 
-    tree_dict_moco = ET.parse(dict_moco_path)
+    tree_dict_moco = ET.parse(moco_dict_path)
     root_dict_moco = tree_dict_moco.getroot()
 
-    tree_dict_merged = ET.parse(dict_coco_path)
+    tree_dict_merged = ET.parse(coco_dict_path)
     root_dict_merged = tree_dict_merged.getroot()
 
     moco_registers = root_dict_moco.findall(register_element)
@@ -92,8 +92,8 @@ def merge_dictionaries(dict_path_a, dict_path_b):
         indent="  ", newl="", encoding="UTF-8"
     )
 
-    merged_file = io.open(merged_dict_path, "wb")
+    merged_file = io.open(dest_path, "wb")
     merged_file.write(xmlstr)
     merged_file.close()
 
-    return merged_dict_path
+    return dest_path
