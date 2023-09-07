@@ -237,7 +237,7 @@ class Communication(metaclass=MCMetaClass):
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
     ) -> None:
-        """Connect to target servo by Ethernet
+        """Connect to target servo using a COM-KIT
 
         Args:
             ip : servo IP
@@ -253,7 +253,7 @@ class Communication(metaclass=MCMetaClass):
                 status, connection and disconnection.
 
         Raises:
-            FileNotFoundError: If the dict file doesn't exist.
+            FileNotFoundError: If a dict file doesn't exist.
             ingenialink.exceptions.ILError: If the servo's IP or port is incorrect.
         """
         for dict_path in [coco_dict_path, moco_dict_path]:

@@ -15,14 +15,16 @@ DICT_DEVICE_PART_NUMBER_COCO = "PartNumberCoco"
 DICT_DEVICE_PART_NUMBER_MOCO = "PartNumberMoco"
 
 
-def create_comkit_dictionary(coco_dict_path: str, moco_dict_path: str, dest_path: Optional[str] = None) -> str:
+def create_comkit_dictionary(
+    coco_dict_path: str, moco_dict_path: str, dest_path: Optional[str] = None
+) -> str:
     """Create a dictionary for COMKIT by merging a COCO dictionary and a MOCO dictionary.
 
     Args:
         coco_dict_path : COCO dictionary path.
         moco_dict_path : MOCO dictionary path.
         dest_path: Path to store the COMKIT dictionary. If it's not provided the merged
-        dictionary is stored in the temporary system's folder.
+            dictionary is stored in the temporary system's folder.
 
     Returns:
         Path to the COMKIT dictionary.
