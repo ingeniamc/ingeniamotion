@@ -15,6 +15,7 @@ from ingenialink.eoe.network import EoENetwork
 from ingeniamotion.exceptions import IMRegisterWrongAccess
 from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE, REG_DTYPE, REG_ACCESS
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
+from ingeniamotion.comkit import merge_dictionaries
 
 
 class Communication(metaclass=MCMetaClass):
@@ -66,7 +67,7 @@ class Communication(metaclass=MCMetaClass):
     def connect_servo_ethernet(
         self,
         ip: str,
-        dict_path: str,
+        dict_paths: [str, list[str]],
         alias: str = DEFAULT_SERVO,
         port: int = 1061,
         connection_timeout: int = 1,
@@ -77,7 +78,7 @@ class Communication(metaclass=MCMetaClass):
 
         Args:
             ip : servo IP
-            dict_path : servo dictionary path.
+            dict_paths : servo dictionary path/s.
             alias : servo alias to reference it. ``default`` by default.
             port : servo port. ``1061`` by default.
             connection_timeout: Timeout in seconds for connection.
@@ -91,8 +92,17 @@ class Communication(metaclass=MCMetaClass):
             FileNotFoundError: If the dict file doesn't exist.
             ingenialink.exceptions.ILError: If the servo's IP or port is incorrect.
         """
-        if not path.isfile(dict_path):
-            raise FileNotFoundError(f"{dict_path} file does not exist!")
+        if len(dict_paths) > 2:
+            raise ValueError("Cannot connect using more than two dictionaries.")
+        if isinstance(dict_paths, str):
+            dict_paths = [dict_paths]
+        for dict_path in dict_paths:
+            if not path.isfile(dict_path):
+                raise FileNotFoundError(f"{dict_path} file does not exist!")
+        if len(dict_paths) > 1:
+            dict_path = merge_dictionaries(*dict_paths)
+        else:
+            dict_path = dict_paths.pop()
         self.__servo_connect(
             ip,
             dict_path,
