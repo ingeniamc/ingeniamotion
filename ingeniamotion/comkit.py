@@ -1,5 +1,6 @@
 import io
 import xml.etree.ElementTree as ET
+from xml.etree.ElementTree import ElementTree, Element
 from enum import Enum
 from typing import Optional
 from xml.dom import minidom
@@ -58,7 +59,7 @@ def create_comkit_dictionary(
     return dest_path
 
 
-def get_tree_root(dict_path: str):
+def get_tree_root(dict_path: str) -> ElementTree:
     """Get XML root element.
 
     Args:
@@ -72,7 +73,7 @@ def get_tree_root(dict_path: str):
     return tree.getroot()
 
 
-def merge_registers(src_root, dest_root):
+def merge_registers(src_root, dest_root) -> Element:
     """Append registers from source tree to destination tree.
 
     Args:
@@ -93,7 +94,7 @@ def merge_registers(src_root, dest_root):
     return dest_root
 
 
-def merge_errors(src_root, dest_root):
+def merge_errors(src_root, dest_root) -> Element:
     """Append errors from source tree to destination tree.
 
     Args:
@@ -114,7 +115,7 @@ def merge_errors(src_root, dest_root):
     return dest_root
 
 
-def merge_images(src_root, dest_root):
+def merge_images(src_root, dest_root) -> Element:
     """Append image from source tree to destination tree.
 
     Args:
@@ -135,12 +136,12 @@ def merge_images(src_root, dest_root):
     return dest_root
 
 
-def set_attributes(src_tree, dest_tree):
+def set_attributes(src_tree, dest_tree) -> Element:
     """Set COCO and MOCO part numbers and product codes in destination tree.
 
     Args:
-        src_root: Source tree.
-        dest_root: Destination tree.
+        src_tree: Source tree.
+        dest_tree: Destination tree.
 
     Returns:
         Destination tree.
@@ -153,7 +154,7 @@ def set_attributes(src_tree, dest_tree):
     return dest_tree
 
 
-def create_attribute(attribute, src_root, dest_root, core):
+def create_attribute(attribute, src_root, dest_root, core) -> None:
     """Create an attribute in the destination tree.
 
     Args:
@@ -172,7 +173,7 @@ def create_attribute(attribute, src_root, dest_root, core):
         dst_device_elem.set(f"{attribute}{core.value}", src_device_elem.attrib[attribute])
 
 
-def save_to_file(tree_root, dest_path):
+def save_to_file(tree_root, dest_path) -> None:
     """Save XML tree to file.
 
     Args:
