@@ -169,19 +169,19 @@ class PhasingCheck(BaseTest):
         )
         result = self.vary_current_and_check_position(1, max_test_current)
         if result != self.ResultType.SUCCESS:
-            return result # type: ignore
+            return result
         self.logger.info(
             "{} {} {}".format(
                 "Slowly decreasing Current Direct Set-point until", -max_test_current, "A"
             )
         )
-        return self.vary_current_and_check_position(-1, max_test_current) # type: ignore
+        return self.vary_current_and_check_position(-1, max_test_current)
 
     @BaseTest.stoppable
     def loop(self) -> ResultType:
         self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
         self.analyse_phasing_bit_and_force_to_high()
-        return self.check_motor_commutation() # type: ignore
+        return self.check_motor_commutation()
 
     def teardown(self) -> None:
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
