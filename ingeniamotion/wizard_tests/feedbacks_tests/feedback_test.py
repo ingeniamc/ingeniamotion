@@ -9,7 +9,7 @@ from enum import IntEnum
 from ingeniamotion import MotionController
 from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
 from ingeniamotion.exceptions import IMRegisterNotExist, IMException
-from ingeniamotion.enums import SensorType, OperationMode, SeverityLevel
+from ingeniamotion.enums import OperationMode, SeverityLevel
 
 
 class Feedbacks(BaseTest):
@@ -98,15 +98,15 @@ class Feedbacks(BaseTest):
         self.suggested_registers = {}
 
     @BaseTest.stoppable
-    def check_feedback_tolerance(self, error: float, error_msg: str, error_type: ResultType) -> int:
+    def check_feedback_tolerance(self, error: float, error_msg: str, error_type: ResultType) -> ResultType:
         if error > self.FEEDBACK_TOLERANCE:
             error_advice = "Please, review your feedback & motor pair poles settings"
             self.logger.error("%s %s", error_msg, error_advice)
             return error_type
-        return 0
+        return self.ResultType.SUCCESS
 
     @BaseTest.stoppable
-    def check_symmetry(self, positive: float, negative: float): # type: ignore
+    def check_symmetry(self, positive: float, negative: float) -> ResultType:
         self.logger.info("SYMMETRY CHECK")
         if not isinstance(self.feedback_resolution, int):
             raise IMException("Feedbacks has to be set before symetry checking.")
@@ -126,7 +126,7 @@ class Feedbacks(BaseTest):
         return polarity
 
     @BaseTest.stoppable
-    def check_resolution(self, displacement: float): # type: ignore
+    def check_resolution(self, displacement: float) -> ResultType:
         if not isinstance(self.pair_poles, int):
             raise IMException("Pair poles has to be set before resolution checking.")
         if not isinstance(self.feedback_resolution, int):
@@ -260,9 +260,11 @@ class Feedbacks(BaseTest):
             if self.mc.errors.is_fault_active(servo=self.servo, axis=self.axis):
                 self.show_error_message()
 
-    @BaseTest.stoppable
-    def get_current_position(self): # type: ignore
+    # @BaseTest.stoppable
+    def get_current_position(self) -> float:
         position = self.mc.motion.get_actual_position(servo=self.servo, axis=self.axis)
+        if not isinstance(position, int):
+            raise IMException("Actual position register must be an integer variable")
         current_position = position / self.resolution_multiplier
         return current_position
 
@@ -279,7 +281,7 @@ class Feedbacks(BaseTest):
         max_current = min(dict_currents.values())
 
         self.logger.debug(
-            f"The maximum current is set by: {min(dict_currents, key=dict_currents.get)}"
+            f"The maximum current is set by: {min(dict_currents, key=dict_currents.__getitem__)}"
         )
         # Increase current progressively
         self.logger.info(
@@ -294,7 +296,7 @@ class Feedbacks(BaseTest):
             target_current, cycle_time, servo=self.servo, axis=self.axis
         )
 
-    def first_movement_and_set_current(self): # type: ignore
+    def first_movement_and_set_current(self) -> float:
         self.mc.motion.internal_generator_saw_tooth_move(
             1, 1, self.test_frequency, servo=self.servo, axis=self.axis
         )
@@ -308,7 +310,7 @@ class Feedbacks(BaseTest):
         return self.get_current_position()
 
     @BaseTest.stoppable
-    def internal_generator_move(self, polarity: Polarity): # type: ignore
+    def internal_generator_move(self, polarity: Polarity) -> float:
         cycles = 1
         freq = self.test_frequency
         gain = 1 if polarity == self.Polarity.NORMAL else -1
@@ -373,7 +375,7 @@ class Feedbacks(BaseTest):
         self.logger.info("Detected reverse displacement: %.0f", negative_displacement)
         return self.generate_output(position_displacement, negative_displacement)
 
-    def generate_output(self, position_displacement, negative_displacement):
+    def generate_output(self, position_displacement: float, negative_displacement: float) -> ResultType:
         test_output = 0
 
         test_output += self.check_symmetry(position_displacement, negative_displacement)
@@ -381,7 +383,7 @@ class Feedbacks(BaseTest):
         test_output = self.ResultType.SUCCESS if test_output == 0 else test_output
         polarity = self.check_polarity(position_displacement)
         self.suggest_polarity(polarity)
-        return test_output
+        return self.ResultType(test_output)  # TODO check return
 
     def get_result_msg(self, output: ResultType) -> str:
         if output == self.ResultType.SUCCESS:
