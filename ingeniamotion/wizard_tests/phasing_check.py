@@ -1,7 +1,8 @@
+from enum import IntEnum
 import time
 import ingenialogger
 
-from ingeniamotion.wizard_tests.base_test import BaseTest, TestError, BaseResultType
+from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
 from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 from ingeniamotion.enums import SensorType, OperationMode, PhasingMode, SeverityLevel
 from .. import MotionController
@@ -20,7 +21,7 @@ class PhasingCheck(BaseTest):
 
     BACKUP_REGISTERS = ["DRV_OP_CMD", "CL_CUR_Q_SET_POINT", "CL_CUR_D_SET_POINT"]
 
-    class ResultType(BaseResultType):
+    class ResultType(IntEnum):
         SUCCESS = 0
         WRONG_PHASING = -1
 

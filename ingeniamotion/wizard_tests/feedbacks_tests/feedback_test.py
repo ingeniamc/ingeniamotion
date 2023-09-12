@@ -6,7 +6,7 @@ from typing import Optional
 import ingenialogger
 
 from ingeniamotion import MotionController
-from ingeniamotion.wizard_tests.base_test import BaseTest, TestError, BaseResultType
+from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
 from ingeniamotion.exceptions import IMRegisterNotExist, IMException
 from ingeniamotion.enums import OperationMode, SeverityLevel, SensorType
 
@@ -14,7 +14,7 @@ from ingeniamotion.enums import OperationMode, SeverityLevel, SensorType
 class Feedbacks(BaseTest):
     """Feedbacks Wizard Class description."""
 
-    class ResultType(BaseResultType):
+    class ResultType(IntEnum):
         SUCCESS = 0
         RESOLUTION_ERROR = -1
         SYMMETRY_ERROR = -2

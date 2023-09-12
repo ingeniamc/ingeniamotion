@@ -40,18 +40,18 @@ class Brake(BaseTest):
             OperationMode.VOLTAGE, servo=self.servo, axis=self.axis
         )
 
-    def loop(self) -> None:
+    def loop(self) -> SeverityLevel:
         self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
+        return SeverityLevel.SUCCESS
 
     def teardown(self) -> None:
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
 
-    def finish(self) -> dict[str, Union[SeverityLevel, str]]:
+    def finish(self, output: SeverityLevel) -> dict[str, Union[SeverityLevel, str]]:
         try:
             self.teardown()
         finally:
             self.restore_backup_registers()
-        output = SeverityLevel.SUCCESS
         return {
             "result_severity": self.get_result_severity(output),
             "result_message": self.get_result_msg(output),
@@ -62,13 +62,13 @@ class Brake(BaseTest):
         self.save_backup_registers()
         try:
             self.setup()
-            self.loop()
+            output = self.loop()
         except ILError as err:
-            self.finish()
+            self.finish(output)
             raise err
         except StopException:
             self.logger.warning("Test has been stopped")
-            self.finish()
+            self.finish(output)
 
     def get_result_severity(self, output: SeverityLevel) -> SeverityLevel:
         return output

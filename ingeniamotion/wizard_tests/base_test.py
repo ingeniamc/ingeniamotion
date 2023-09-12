@@ -9,13 +9,10 @@ from ingenialink.exceptions import ILError
 from ingeniamotion.exceptions import IMRegisterNotExist, IMRegisterWrongAccess
 from .stoppable import Stoppable, StopException
 from .. import MotionController
-from ..enums import SeverityLevel
+from ingeniamotion.enums import SeverityLevel
 
 
 class TestError(Exception):
-    pass
-
-class BaseResultType(IntEnum):
     pass
 
 
@@ -71,14 +68,14 @@ class BaseTest(ABC, Stoppable):
         pass
 
     @abstractmethod
-    def loop(self) -> Optional[BaseResultType]:
+    def loop(self) -> Any:
         pass
 
     @abstractmethod
     def teardown(self) -> None:
         pass
 
-    def run(self) -> Optional[dict[str, Any]]:
+    def run(self) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
         self.reset_stop()
         self.save_backup_registers()
         try:
@@ -96,7 +93,7 @@ class BaseTest(ABC, Stoppable):
                 self.restore_backup_registers()
         return self.report
 
-    def __generate_report(self, output: Any) -> dict[str, Any]:
+    def __generate_report(self, output: Any) -> dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]:
         return {
             "result_severity": self.get_result_severity(output),
             "suggested_registers": self.suggested_registers,

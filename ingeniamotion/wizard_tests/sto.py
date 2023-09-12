@@ -2,7 +2,7 @@ import ingenialogger
 
 from enum import IntEnum
 
-from ingeniamotion.wizard_tests.base_test import BaseTest, BaseResultType
+from ingeniamotion.wizard_tests.base_test import BaseTest
 from ingeniamotion.enums import SeverityLevel
 from .. import MotionController
 
@@ -10,7 +10,7 @@ from .. import MotionController
 class STOTest(BaseTest):
     """STO test."""
 
-    class ResultType(BaseResultType):
+    class ResultType(IntEnum):
         STO_INACTIVE = 0
         STO_ACTIVE = -1
         STO_ABNORMAL_LATCHED = -2
@@ -49,6 +49,7 @@ class STOTest(BaseTest):
         self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
         self.backup_registers_names = self.BACKUP_REGISTERS
         self.suggested_registers = {}
+        self.TEST_TYPE = self.ResultType
 
     def setup(self) -> None:
         pass

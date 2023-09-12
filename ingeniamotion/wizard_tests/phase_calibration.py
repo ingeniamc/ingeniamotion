@@ -1,3 +1,4 @@
+from enum import IntEnum
 import time
 import ingenialogger
 
@@ -9,7 +10,7 @@ from ingeniamotion.enums import (
     SeverityLevel,
 )
 from ingeniamotion.exceptions import IMRegisterNotExist
-from ingeniamotion.wizard_tests.base_test import BaseTest, TestError, BaseResultType
+from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
 from .. import MotionController
 
 
@@ -51,7 +52,7 @@ class Phasing(BaseTest):
         "COMMU_ANGLE_INTEGRITY2_OPTION",
     ]
 
-    class ResultType(BaseResultType):
+    class ResultType(IntEnum):
         SUCCESS = 0
         FAIL = -1
 

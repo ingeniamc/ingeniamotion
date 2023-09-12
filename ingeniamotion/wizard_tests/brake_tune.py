@@ -8,7 +8,7 @@ from ingeniamotion.exceptions import IMRegisterNotExist
 from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.wizard_tests import stoppable
-from ingeniamotion.wizard_tests.base_test import BaseTest, BaseResultType
+from ingeniamotion.wizard_tests.base_test import BaseTest
 
 
 class BrakeRegKey(IntEnum):
@@ -18,7 +18,7 @@ class BrakeRegKey(IntEnum):
     CONTROL_MODE = 1
 
 
-class ResultBrakeType(BaseResultType):
+class ResultBrakeType(IntEnum):
     """Type of result once a brake tuning is stopped or failed"""
 
     SUCCESS = 0
