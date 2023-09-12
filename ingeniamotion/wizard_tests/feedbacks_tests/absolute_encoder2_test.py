@@ -5,7 +5,7 @@ from ingeniamotion.enums import SensorType
 
 
 class AbsoluteEncoder2Test(Feedbacks):
-    BACKUP_REGISTERS_BISSC2 = ["FBK_BISS2_POS_POLARITY"]
+    BACKUP_REGISTERS_BISSC2:list[str] = ["FBK_BISS2_POS_POLARITY"]
 
     FEEDBACK_POLARITY_REGISTER = "FBK_BISS2_POS_POLARITY"
 
@@ -13,7 +13,7 @@ class AbsoluteEncoder2Test(Feedbacks):
 
     def __init__(self, mc: MotionController, servo:str, axis:int):
         super().__init__(mc, servo, axis)
-        self.backup_registers_names.append(*self.BACKUP_REGISTERS_BISSC2)
+        self.backup_registers_names.extend(self.BACKUP_REGISTERS_BISSC2)
 
     @BaseTest.stoppable
     def feedback_setting(self) -> None:

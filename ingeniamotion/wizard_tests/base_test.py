@@ -20,7 +20,7 @@ class BaseTest(ABC, Stoppable):
     WARNING_BIT_MASK = 0x0FFFFFFF
 
     def __init__(self) -> None:
-        self.backup_registers_names: Optional[list[str]] = None
+        self.backup_registers_names: list[str] = []
         self.backup_registers: dict[int, dict[str, Union[int, float, str]]] = {}
         self.suggested_registers: dict[str, Union[int, float, str]]= {}
         self.mc: MotionController
@@ -68,7 +68,7 @@ class BaseTest(ABC, Stoppable):
         pass
 
     @abstractmethod
-    def loop(self) -> Union[None, ResultBrakeType]:
+    def loop(self) -> Optional[ResultType]:
         pass
 
     @abstractmethod

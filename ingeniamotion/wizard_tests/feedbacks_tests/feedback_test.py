@@ -9,7 +9,7 @@ from enum import IntEnum
 from ingeniamotion import MotionController
 from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
 from ingeniamotion.exceptions import IMRegisterNotExist, IMException
-from ingeniamotion.enums import OperationMode, SeverityLevel
+from ingeniamotion.enums import OperationMode, SeverityLevel, SensorType
 
 
 class Feedbacks(BaseTest):
@@ -78,9 +78,9 @@ class Feedbacks(BaseTest):
         "CL_VEL_FBK_FILTER1_FREQ",
     ]
 
-    FEEDBACK_POLARITY_REGISTER = None
+    FEEDBACK_POLARITY_REGISTER = ""
 
-    SENSOR_TYPE_FEEDBACK_TEST = None
+    SENSOR_TYPE_FEEDBACK_TEST:SensorType
 
     def __init__(self, mc: MotionController, servo: str, axis: int) -> None:
         super().__init__()
@@ -130,7 +130,7 @@ class Feedbacks(BaseTest):
         if not isinstance(self.pair_poles, int):
             raise IMException("Pair poles has to be set before resolution checking.")
         if not isinstance(self.feedback_resolution, int):
-            raise IMException("Feedbacks has to be set before symetry checking.")
+            raise IMException("Feedbacks has to be set before resolution checking.")
         displacement = displacement * self.pair_poles
         self.logger.info("RESOLUTION CHECK")
         self.logger.info("Theoretical resolution: %.0f", self.feedback_resolution)
@@ -260,7 +260,7 @@ class Feedbacks(BaseTest):
             if self.mc.errors.is_fault_active(servo=self.servo, axis=self.axis):
                 self.show_error_message()
 
-    # @BaseTest.stoppable
+    @BaseTest.stoppable
     def get_current_position(self) -> float:
         position = self.mc.motion.get_actual_position(servo=self.servo, axis=self.axis)
         if not isinstance(position, int):

@@ -4,7 +4,7 @@ from ingeniamotion.enums import SensorType
 
 
 class DigitalIncremental1Test(Feedbacks):
-    BACKUP_REGISTERS_QEI = ["FBK_DIGENC1_POLARITY"]
+    BACKUP_REGISTERS_QEI:list[str] = ["FBK_DIGENC1_POLARITY"]
 
     FEEDBACK_POLARITY_REGISTER = "FBK_DIGENC1_POLARITY"
 
@@ -12,4 +12,4 @@ class DigitalIncremental1Test(Feedbacks):
 
     def __init__(self, mc: MotionController, servo: str, axis: int) -> None:
         super().__init__(mc, servo, axis)
-        self.backup_registers_names += self.BACKUP_REGISTERS_QEI
+        self.backup_registers_names.extend(self.BACKUP_REGISTERS_QEI)
