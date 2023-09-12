@@ -1,5 +1,5 @@
 from enum import IntEnum
-from typing import Union
+from typing import Optional, Union
 
 import ingenialogger
 
@@ -8,7 +8,7 @@ from ingeniamotion.exceptions import IMRegisterNotExist
 from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.wizard_tests import stoppable
-from ingeniamotion.wizard_tests.base_test import BaseTest
+from ingeniamotion.wizard_tests.base_test import BaseTest, BaseResultType
 
 
 class BrakeRegKey(IntEnum):
@@ -18,7 +18,7 @@ class BrakeRegKey(IntEnum):
     CONTROL_MODE = 1
 
 
-class ResultBrakeType(IntEnum):
+class ResultBrakeType(BaseResultType):
     """Type of result once a brake tuning is stopped or failed"""
 
     SUCCESS = 0
@@ -74,7 +74,7 @@ class BrakeTune(BaseTest):
         self.mc.motion.set_voltage_direct(0, servo=self.servo, axis=self.axis)
 
     @BaseTest.stoppable
-    def loop(self) -> Union[None, ResultBrakeType]:
+    def loop(self) -> Optional[ResultBrakeType]:
         try:
             reg_values = self.__update_brake_registers_values()
         except IMRegisterNotExist:

@@ -15,6 +15,9 @@ from ..enums import SeverityLevel
 class TestError(Exception):
     pass
 
+class BaseResultType(IntEnum):
+    pass
+
 
 class BaseTest(ABC, Stoppable):
     WARNING_BIT_MASK = 0x0FFFFFFF
@@ -68,7 +71,7 @@ class BaseTest(ABC, Stoppable):
         pass
 
     @abstractmethod
-    def loop(self) -> Optional[ResultType]:
+    def loop(self) -> Optional[BaseResultType]:
         pass
 
     @abstractmethod

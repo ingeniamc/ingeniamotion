@@ -1,13 +1,12 @@
+from enum import IntEnum
 import time
 import math
 from typing import Optional
 
 import ingenialogger
 
-from enum import IntEnum
-
 from ingeniamotion import MotionController
-from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
+from ingeniamotion.wizard_tests.base_test import BaseTest, TestError, BaseResultType
 from ingeniamotion.exceptions import IMRegisterNotExist, IMException
 from ingeniamotion.enums import OperationMode, SeverityLevel, SensorType
 
@@ -15,7 +14,7 @@ from ingeniamotion.enums import OperationMode, SeverityLevel, SensorType
 class Feedbacks(BaseTest):
     """Feedbacks Wizard Class description."""
 
-    class ResultType(IntEnum):
+    class ResultType(BaseResultType):
         SUCCESS = 0
         RESOLUTION_ERROR = -1
         SYMMETRY_ERROR = -2
@@ -358,7 +357,7 @@ class Feedbacks(BaseTest):
             return None
 
     @BaseTest.stoppable
-    def loop(self) -> Optional[ResultType]:
+    def loop(self) -> ResultType:
         self.logger.info("START OF THE TEST")
         check_pos_vel_output = self.check_pos_vel_ratio()
         if check_pos_vel_output is not None:
