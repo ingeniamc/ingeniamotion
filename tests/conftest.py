@@ -69,7 +69,8 @@ def connect_canopen(mc, config, alias):
         config["channel"],
         alias=alias,
     )
-    
+
+
 def make_fake_connection(mc, alias):
     mc.servos[alias] = MockServo()
     fake_net_key = "fake_servo_net"
@@ -90,7 +91,7 @@ def motion_controller(pytestconfig, read_config):
         connect_canopen(mc, read_config, alias)
     elif protocol == "no_connection":
         make_fake_connection(mc, alias)
-        
+
     if protocol != "no_connection":
         mc.configuration.load_configuration(read_config["config_file"], servo=alias)
         yield mc, alias

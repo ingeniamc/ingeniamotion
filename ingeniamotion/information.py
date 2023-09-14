@@ -19,6 +19,7 @@ if TYPE_CHECKING:
 
 logger = ingenialogger.get_logger(__name__)
 
+
 class Information(metaclass=MCMetaClass):
     """Information."""
 
@@ -141,7 +142,7 @@ class Information(metaclass=MCMetaClass):
         """
         drive = self.mc.servos[servo]
         return register in drive.dictionary.registers(axis)
-    
+
     def get_product_name(self, alias: str = DEFAULT_SERVO) -> str:
         """Get the product name of the drive.
 
@@ -295,7 +296,7 @@ class Information(metaclass=MCMetaClass):
             return None
 
     def get_drive_info_coco_moco(
-            self, alias: str
+        self, alias: str
     ) -> tuple[list[Optional[int]], list[Optional[int]], list[Optional[str]], list[Optional[int]]]:
         """Get info from COCO and MOCO registers.
 
@@ -321,8 +322,8 @@ class Information(metaclass=MCMetaClass):
                     Servo.PRODUCT_ID_REGISTERS[subnode], alias, axis=subnode
                 )
             except (
-                    ILError,
-                    IMException,
+                ILError,
+                IMException,
             ) as e:
                 logger.error(e)
             # Revision numbers
