@@ -1,8 +1,10 @@
+from os import path
 import xml.etree.ElementTree as ET
 from xml.dom import minidom
 
 import pytest
 
+from ingeniamotion import MotionController
 from ingeniamotion.comkit import create_comkit_dictionary, get_tree_root
 
 
@@ -30,3 +32,15 @@ def test_create_comkit_dictionary_wrong_file_extension():
     dest_path = "com-kit-core.txt"
     with pytest.raises(ValueError):
         create_comkit_dictionary(coco_path, moco_path, dest_path)
+
+
+@pytest.mark.eoe
+def test_create_comkit_remove_temp_dictionary(read_config):
+    coco_path = "./tests/resources/com-kit.xdf"
+    moco_path = "./tests/resources//core.xdf"
+    mc = MotionController()
+    mc.communication.connect_servo_comkit(read_config["ip"], coco_path, moco_path)
+    comkit_dict = mc.communication.__comkit_dict
+    assert path.exists(comkit_dict)
+    mc.communication.disconnect()
+    assert not path.exists(comkit_dict)
