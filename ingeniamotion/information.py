@@ -1,9 +1,10 @@
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING, Tuple, Optional
 
 from ingenialink.register import Register, REG_ACCESS, REG_DTYPE
 
 from .exceptions import IMRegisterNotExist
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
+from ingeniamotion.comkit import create_comkit_dictionary
 
 
 if TYPE_CHECKING:
@@ -132,3 +133,24 @@ class Information(metaclass=MCMetaClass):
         """
         drive = self.mc.servos[servo]
         return register in drive.dictionary.registers(axis)
+
+    @staticmethod
+    def create_comkit_dictionary(
+        coco_dict_path: str, moco_dict_path: str, dest_file: Optional[str] = None
+    ) -> str:
+        """Create a dictionary for COMKIT by merging a COCO dictionary and a MOCO dictionary.
+
+        Args:
+            coco_dict_path : COCO dictionary path.
+            moco_dict_path : MOCO dictionary path.
+            dest_file: Path to store the COMKIT dictionary. If it's not provided the
+                merged dictionary is stored in the temporary system's folder.
+
+        Returns:
+            Path to the COMKIT dictionary.
+
+        Raises:
+            ValueError: If destination file has a wrong extension.
+
+        """
+        return create_comkit_dictionary(coco_dict_path, moco_dict_path, dest_file)
