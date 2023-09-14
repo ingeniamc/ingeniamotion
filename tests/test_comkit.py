@@ -21,3 +21,12 @@ def test_create_comkit_dictionary():
         indent="  ", newl="", encoding="UTF-8"
     )
     assert comkit_xml_str == reference_xml_str
+
+
+@pytest.mark.smoke
+def test_create_comkit_dictionary_wrong_file_extension():
+    coco_path = "./tests/resources/com-kit.xdf"
+    moco_path = "./tests/resources//core.xdf"
+    dest_path = "com-kit-core.txt"
+    with pytest.raises(ValueError):
+        create_comkit_dictionary(coco_path, moco_path, dest_path)

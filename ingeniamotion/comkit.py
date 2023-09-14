@@ -5,7 +5,6 @@ from enum import Enum
 from typing import Optional
 from xml.dom import minidom
 import tempfile
-from pathlib import Path
 
 FILE_EXT_DICTIONARY = ".xdf"
 DICT_DEVICE_PRODUCT_CODE = "ProductCode"
@@ -29,25 +28,29 @@ class CORE(Enum):
 
 
 def create_comkit_dictionary(
-    coco_dict_path: str, moco_dict_path: str, dest_folder: Optional[str] = None
+    coco_dict_path: str, moco_dict_path: str, dest_file: Optional[str] = None
 ) -> str:
     """Create a dictionary for COMKIT by merging a COCO dictionary and a MOCO dictionary.
 
     Args:
         coco_dict_path : COCO dictionary path.
         moco_dict_path : MOCO dictionary path.
-        dest_folder: Path to a folder to store the COMKIT dictionary. If it's not provided the
+        dest_file: Path to store the COMKIT dictionary. If it's not provided the
             merged dictionary is stored in the temporary system's folder.
 
     Returns:
         Path to the COMKIT dictionary.
 
+    Raises:
+        ValueError: If destination file has a wrong extension.
+
     """
-    coco_dict_name = Path(coco_dict_path).stem
-    moco_dict_name = Path(moco_dict_path).stem
-    if dest_folder is None:
-        dest_folder = tempfile.gettempdir()
-    dest_path = f"{dest_folder}/{coco_dict_name}-{moco_dict_name}{FILE_EXT_DICTIONARY}"
+    if dest_file is None:
+        dest_file = tempfile.NamedTemporaryFile(suffix=FILE_EXT_DICTIONARY).name
+    elif not dest_file.endswith(FILE_EXT_DICTIONARY):
+        raise ValueError(
+            f"Destination file {dest_file} needs to have an {FILE_EXT_DICTIONARY} extension."
+        )
     moco_tree_root = get_tree_root(moco_dict_path)
     coco_tree_root = get_tree_root(coco_dict_path)
     comkit_tree_root = coco_tree_root
@@ -55,8 +58,8 @@ def create_comkit_dictionary(
     comkit_tree_root = merge_images(moco_tree_root, comkit_tree_root)
     comkit_tree_root = merge_errors(moco_tree_root, comkit_tree_root)
     comkit_tree_root = set_attributes(moco_tree_root, comkit_tree_root)
-    save_to_file(comkit_tree_root, dest_path)
-    return dest_path
+    save_to_file(comkit_tree_root, dest_file)
+    return dest_file
 
 
 def get_tree_root(dict_path: str) -> ElementTree:
