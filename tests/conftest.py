@@ -4,26 +4,21 @@ from enum import Enum
 import pytest
 from typing import Dict
 import time
-
 import numpy as np
 
 from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE, SensorType
 from ingeniamotion import MotionController
+from tests.mock_ingenialink import MockNetwork, MockServo
 
-class PROTOCOL(Enum):
-    """Protocols that are used in config.json."""
-    EOE = "eoe"
-    SOEM = "soem"
-    CANOPEN = "canopen"
 
-ALLOW_PROTOCOLS = [PROTOCOL.EOE, PROTOCOL.SOEM, PROTOCOL.CANOPEN]
+ALLOW_PROTOCOLS = ["eoe", "soem", "canopen", "no_connection"]
 
 test_report_key = pytest.StashKey[Dict[str, pytest.CollectReport]]()
 
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--protocol", action="store", default=PROTOCOL.EOE, help="eoe, soem", choices=ALLOW_PROTOCOLS
+        "--protocol", action="store", default="eoe", help="eoe, soem", choices=ALLOW_PROTOCOLS
     )
     parser.addoption("--slave", type="int", default=0, help="Slave index in config.json")
 
@@ -74,6 +69,12 @@ def connect_canopen(mc, config, alias):
         config["channel"],
         alias=alias,
     )
+    
+def make_fake_connection(mc, alias):
+    mc.servos[alias] = MockServo()
+    fake_net_key = "fake_servo_net"
+    mc.servo_net[alias] = fake_net_key
+    mc.net[fake_net_key] = MockNetwork()
 
 
 @pytest.fixture(scope="session")
@@ -81,22 +82,30 @@ def motion_controller(pytestconfig, read_config):
     alias = "test"
     mc = MotionController()
     protocol = pytestconfig.getoption("--protocol")
-    if protocol == PROTOCOL.EOE:
+    if protocol == "eoe":
         connect_eoe(mc, read_config, alias)
-    elif protocol == PROTOCOL.EOE:
+    elif protocol == "soem":
         connect_soem(mc, read_config, alias)
-    elif protocol == PROTOCOL.CANOPEN:
+    elif protocol == "canopen":
         connect_canopen(mc, read_config, alias)
-    mc.configuration.load_configuration(read_config["config_file"], servo=alias)
-    yield mc, alias
-    mc.communication.disconnect(alias)
+    elif protocol == "no_connection":
+        make_fake_connection(mc, alias)
+        
+    if protocol != "no_connection":
+        mc.configuration.load_configuration(read_config["config_file"], servo=alias)
+        yield mc, alias
+        mc.communication.disconnect(alias)
+    else:
+        yield mc, alias
 
 
 @pytest.fixture(autouse=True)
-def disable_motor_fixture(motion_controller):
+def disable_motor_fixture(pytestconfig, motion_controller):
     yield
-    mc, alias = motion_controller
-    mc.motion.motor_disable(servo=alias)
+    protocol = pytestconfig.getoption("--protocol")
+    if protocol != "no_connection":
+        mc, alias = motion_controller
+        mc.motion.motor_disable(servo=alias)
 
 
 @pytest.fixture

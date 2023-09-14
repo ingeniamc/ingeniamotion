@@ -1,9 +1,8 @@
 import os
 from typing import TYPE_CHECKING, Tuple, Union, Optional
 import xml.etree.ElementTree as ET
-from functools import cache
 
-from ingenialink import NET_PROT, Servo
+from ingenialink import Servo
 from ingenialink.eoe.network import EoENetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.canopen.network import CanopenNetwork
@@ -142,6 +141,7 @@ class Information(metaclass=MCMetaClass):
         """
         drive = self.mc.servos[servo]
         return register in drive.dictionary.registers(axis)
+    
     def get_product_name(self, alias: str = DEFAULT_SERVO) -> str:
         """Get the product name of the drive.
 
@@ -294,7 +294,6 @@ class Information(metaclass=MCMetaClass):
             # If there is no DriveImage tag in dictionary file
             return None
 
-    # @cache
     def get_drive_info_coco_moco(
             self, alias: str
     ) -> tuple[list[Optional[int]], list[Optional[int]], list[Optional[str]], list[Optional[int]]]:
@@ -363,9 +362,6 @@ class Information(metaclass=MCMetaClass):
             FW version.
             Serial number.
         """
-        # if force_reading:
-        #     self.get_drive_info_coco_moco.cache_clear()
-
         prod_codes, rev_numbers, fw_versions, serial_numbers = self.get_drive_info_coco_moco(alias)
 
         prod_code = prod_codes[1] or prod_codes[0] or 0
