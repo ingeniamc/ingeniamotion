@@ -11,9 +11,9 @@
                         <Label lang="en_US">Number Axis</Label>            
                     </Labels>          
                 </Register>        
-              <Register access="r" address_type="NVM_NONE" address="0x000F" dtype="s32" id="DRV_DIAG_ERROR_LAST" units="-" subnode="1" cyclic="CYCLIC_TX" desc="Contains the last generated error" cat_id="REPORTING">          
+              <Register access="r" address_type="NVM_NONE" address="0x0011" dtype="u16" id="DRV_STATE_STATUS" units="-" subnode="1" cyclic="CYCLIC_TX" cat_id="REPORTING">          
                     <Labels>            
-                        <Label lang="en_US">Last error</Label>            
+                        <Label lang="en_US">Status word</Label>            
                     </Labels>          
                 </Register>        
             </Registers>      
