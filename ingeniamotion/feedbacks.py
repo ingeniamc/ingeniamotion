@@ -1,6 +1,9 @@
+from typing import Optional
 import ingenialogger
 
 from ingeniamotion.enums import SensorType, SensorCategory
+from ingeniamotion.exceptions import IMException
+from ingeniamotion.motion_controller import MotionController
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
@@ -23,7 +26,7 @@ class Feedbacks(metaclass=MCMetaClass):
     POSITION_FEEDBACK_REGISTER = "CL_POS_FBK_SENSOR"
     AUXILIAR_FEEDBACK_REGISTER = "CL_AUX_FBK_SENSOR"
 
-    def __init__(self, motion_controller):
+    def __init__(self, motion_controller: MotionController) -> None:
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
         self.feedback_resolution_functions = {
@@ -90,7 +93,7 @@ class Feedbacks(metaclass=MCMetaClass):
 
     def get_commutation_feedback_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ) -> int:
+    ) -> Optional[int]:
         """Reads commutation feedbacks resolution in the target servo and axis.
 
         Args:
@@ -157,7 +160,7 @@ class Feedbacks(metaclass=MCMetaClass):
 
     def get_reference_feedback_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ) -> int:
+    ) -> Optional[int]:
         """Reads reference feedbacks resolution in the target servo and axis.
 
         Args:
@@ -224,7 +227,7 @@ class Feedbacks(metaclass=MCMetaClass):
 
     def get_velocity_feedback_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ) -> int:
+    ) -> Optional[int]:
         """Reads velocity feedbacks resolution in the target servo and axis.
 
         Args:
@@ -291,7 +294,7 @@ class Feedbacks(metaclass=MCMetaClass):
 
     def get_position_feedback_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ) -> int:
+    ) -> Optional[int]:
         """Reads position feedbacks resolution in the target servo and axis.
 
         Args:
@@ -358,7 +361,7 @@ class Feedbacks(metaclass=MCMetaClass):
 
     def get_auxiliar_feedback_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ) -> int:
+    ) -> Optional[int]:
         """Reads auxiliar feedbacks resolution in the target servo and axis.
 
         Args:
@@ -386,7 +389,10 @@ class Feedbacks(metaclass=MCMetaClass):
         single_turn_bits = self.mc.communication.get_register(
             "FBK_BISS1_SSI1_POS_ST_BITS", servo=servo, axis=axis
         )
-        return 2**single_turn_bits
+        resolution = 2**single_turn_bits
+        if not isinstance(resolution, int):
+            raise IMException("Resolution value has to be an integer")
+        return resolution
 
     def get_incremental_encoder_1_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -400,7 +406,10 @@ class Feedbacks(metaclass=MCMetaClass):
         Returns:
             Resolution of incremental encoder 1.
         """
-        return self.mc.communication.get_register("FBK_DIGENC1_RESOLUTION", servo=servo, axis=axis)
+        resolution = self.mc.communication.get_register("FBK_DIGENC1_RESOLUTION", servo=servo, axis=axis)
+        if not isinstance(resolution, int):
+            raise IMException("Resolution value has to be an integer")
+        return resolution
 
     def get_digital_halls_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -417,7 +426,10 @@ class Feedbacks(metaclass=MCMetaClass):
         pair_poles = self.mc.communication.get_register(
             "FBK_DIGHALL_PAIRPOLES", servo=servo, axis=axis
         )
-        return 6 * pair_poles
+        resolution = 6 * pair_poles
+        if not isinstance(resolution, int):
+            raise IMException("Resolution value has to be an integer")
+        return resolution
 
     def get_secondary_ssi_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -434,7 +446,10 @@ class Feedbacks(metaclass=MCMetaClass):
         secondary_single_turn_bits = self.mc.communication.get_register(
             "FBK_SSI2_POS_ST_BITS", servo=servo, axis=axis
         )
-        return 2**secondary_single_turn_bits
+        resolution = 2**secondary_single_turn_bits
+        if not isinstance(resolution, int):
+            raise IMException("Resolution value has to be an integer")
+        return resolution
 
     def get_absolute_encoder_2_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -451,7 +466,10 @@ class Feedbacks(metaclass=MCMetaClass):
         serial_slave_1_single_turn_bits = self.mc.communication.get_register(
             "FBK_BISS2_POS_ST_BITS", servo=servo, axis=axis
         )
-        return 2**serial_slave_1_single_turn_bits
+        resolution = 2**serial_slave_1_single_turn_bits
+        if not isinstance(resolution, int):
+            raise IMException("Resolution value has to be an integer")
+        return resolution
 
     def get_incremental_encoder_2_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -465,7 +483,10 @@ class Feedbacks(metaclass=MCMetaClass):
         Returns:
             Resolution of incremental encoder 2 encoder.
         """
-        return self.mc.communication.get_register("FBK_DIGENC2_RESOLUTION", servo=servo, axis=axis)
+        resolution = self.mc.communication.get_register("FBK_DIGENC2_RESOLUTION", servo=servo, axis=axis)
+        if not isinstance(resolution, int):
+            raise IMException("Resolution value has to be an integer")
+        return resolution
 
     def __no_feedback_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -483,7 +504,7 @@ class Feedbacks(metaclass=MCMetaClass):
 
     def get_feedback_resolution(
         self, feedback: SensorType, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ) -> int:
+    ) -> Optional[int]:
         """Reads target feedback resolution in the target servo and axis.
 
         Args:
