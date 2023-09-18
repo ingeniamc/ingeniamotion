@@ -1,6 +1,8 @@
 import os
 import pytest
 
+from ingenialink.canopen.network import CAN_BAUDRATE
+
 BRAKE_OVERRIDE_REGISTER = "MOT_BRAKE_OVERRIDE"
 POSITION_SET_POINT_REGISTER = "CL_POS_SET_POINT_VALUE"
 PROFILE_MAX_ACCELERATION_REGISTER = "PROF_MAX_ACC"
@@ -447,3 +449,10 @@ def test_store_configuration(motion_controller):
 def test_restore_configuration(motion_controller):
     mc, alias = motion_controller
     mc.configuration.restore_configuration(servo=alias)
+
+
+@pytest.mark.no_connection
+def test_change_baudrate_exception(motion_controller):
+    mc, alias = motion_controller
+    with pytest.raises(ValueError):
+        mc.configuration.change_baudrate(CAN_BAUDRATE.Baudrate_1M, alias)
