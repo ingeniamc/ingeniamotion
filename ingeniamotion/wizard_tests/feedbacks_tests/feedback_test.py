@@ -45,6 +45,7 @@ class Feedbacks(BaseTest):
     VELOCITY_FEEDBACK_FILTER_1_FREQUENCY_REGISTER = "CL_VEL_FBK_FILTER1_FREQ"
     RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
     MAXIMUM_CONTINUOUS_CURRENT_DRIVE_PROTECTION = "DRV_PROT_MAN_MAX_CONT_CURRENT_VALUE"
+    POSITIONING_OPTION_CODE_REGISTER = "PROF_POS_OPTION_CODE"
 
     BACKUP_REGISTERS = [
         "CL_POS_FBK_SENSOR",
@@ -73,6 +74,7 @@ class Feedbacks(BaseTest):
         "COMMU_ANGLE_REF_SENSOR",
         "CL_VEL_FBK_FILTER1_TYPE",
         "CL_VEL_FBK_FILTER1_FREQ",
+        POSITIONING_OPTION_CODE_REGISTER,
     ]
 
     FEEDBACK_POLARITY_REGISTER = None
@@ -196,6 +198,10 @@ class Feedbacks(BaseTest):
         # Set commutation modulation to sinusoidal
         self.mc.communication.set_register(
             self.COMMUTATION_MODULATION_REGISTER, 0, servo=self.servo, axis=self.axis
+        )
+        # Set positioning mode to NO LIMITS
+        self.mc.communication.set_register(
+            self.POSITIONING_OPTION_CODE_REGISTER, 0, servo=self.servo, axis=self.axis
         )
         # Default resolution multiplier
         # Change multiplier using gear ratio if feedback to check is configured
