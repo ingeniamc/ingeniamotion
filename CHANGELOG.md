@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+### Added
+- Functions needed to load firmware to a Motion Core (MoCo).
+
 ## [0.6.2] - 2023-09-06
 ### Changed
 - Remove EDS file path param from CANopen connection. It is no longer necessary.
