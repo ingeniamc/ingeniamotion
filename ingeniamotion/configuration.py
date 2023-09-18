@@ -1,6 +1,3 @@
-import re
-import ingenialogger
-
 from os import path
 from enum import IntEnum
 from typing import Optional
@@ -9,6 +6,9 @@ from .homing import Homing
 from .feedbacks import Feedbacks
 from .enums import PhasingMode, GeneratorMode
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
+
+import ingenialogger
+from ingenialink.canopen.network import CanopenNetwork, CAN_BAUDRATE
 
 
 class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
@@ -712,3 +712,26 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """
         drive = self.mc._get_drive(servo)
         drive.restore_tcp_ip_parameters()
+
+    def change_baudrate(self, baud_rate: CAN_BAUDRATE, servo: str = DEFAULT_SERVO) -> None:
+        """Change a CANopen device's baudrate.
+
+        Args:
+            baud_rate: New baud rate value.
+            servo : servo alias to reference it. ``default`` by default.
+
+        """
+        drive = self.mc._get_drive(servo)
+        net = self.mc._get_network(servo)
+        if not isinstance(net, CanopenNetwork):
+            raise ValueError(f"Servo {servo} is not a CANopen device.")
+        vendor_id = self.mc.info.get_vendor_id(servo)
+        (
+            (prod_code, _),
+            (rev_number, _),
+            _,
+            (serial_number, _),
+        ) = self.mc.info.get_drive_info_coco_moco(servo)
+        net.change_baudrate(
+            drive.target, baud_rate, vendor_id, prod_code, rev_number, serial_number
+        )

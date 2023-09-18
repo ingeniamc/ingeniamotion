@@ -23,6 +23,8 @@ logger = ingenialogger.get_logger(__name__)
 class Information(metaclass=MCMetaClass):
     """Information."""
 
+    VENDOR_ID_REGISTER = "DRV_ID_VENDOR_ID"
+
     def __init__(self, motion_controller: "MotionController"):
         self.mc = motion_controller
 
@@ -400,3 +402,14 @@ class Information(metaclass=MCMetaClass):
         _, _, fw_version, _ = self.get_drive_info(alias)
         fw_version = fw_version.replace("_", "")
         return fw_version
+
+    def get_vendor_id(self, alias: str) -> str:
+        """Get the vendor ID of a drive.
+
+        Args:
+            alias: Alias of the drive.
+
+        Returns:
+            Vendor ID.
+        """
+        return self.mc.communication.get_register(self.VENDOR_ID_REGISTER, alias)
