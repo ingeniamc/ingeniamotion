@@ -1,5 +1,8 @@
 from enum import IntEnum
-from typing import Optional, Tuple, List
+from typing import Optional, Union
+from ingeniamotion.exceptions import IMException
+
+from ingeniamotion.motion_controller import MotionController
 
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
@@ -56,10 +59,10 @@ class Errors(metaclass=MCMetaClass):
     ERROR_WARNING_BIT = 0x10000000
     ERROR_WARNING_SHIFT = 28
 
-    def __init__(self, motion_controller):
+    def __init__(self, motion_controller: MotionController) -> None:
         self.mc = motion_controller
 
-    def __parse_error_to_tuple(self, error, location, subnode=None):
+    def __parse_error_to_tuple(self, error: int, location: ErrorLocation, subnode: Optional[int]=None) -> tuple[int, Optional[int], Optional[bool]]:
         error_code = error & self.ERROR_CODE_BITS
         if error_code == 0:
             return error_code, None, None
@@ -71,7 +74,7 @@ class Errors(metaclass=MCMetaClass):
         is_warning = (error & self.ERROR_WARNING_BIT) >> self.ERROR_WARNING_SHIFT
         return error_code, subnode, bool(is_warning)
 
-    def __get_error_location(self, servo: str = DEFAULT_SERVO):
+    def __get_error_location(self, servo: str = DEFAULT_SERVO) -> ErrorLocation:
         if self.mc.info.register_exists(self.LAST_ERROR_SYSTEM_REGISTER, axis=0, servo=servo):
             # Check System last error, if it does not exist check to CoCo
             return self.ErrorLocation.SYSTEM
@@ -80,22 +83,23 @@ class Errors(metaclass=MCMetaClass):
             return self.ErrorLocation.COCO
         return self.ErrorLocation.MOCO
 
-    def __get_error_subnode(self, location, subnode):
+    def __get_error_subnode(self, location: ErrorLocation, subnode: Optional[int]) -> tuple[int, ErrorLocation]:
         if location == self.ErrorLocation.SYSTEM:
             if subnode is None:
                 return 0, location
-            if subnode == 0:
+            elif subnode == 0:
                 location = self.ErrorLocation.COCO
-            if subnode > 0:
+            elif subnode > 0:
                 location = self.ErrorLocation.MOCO
-        if location == self.ErrorLocation.MOCO:
+            return subnode, location
+        elif location == self.ErrorLocation.MOCO:
             return subnode or DEFAULT_AXIS, self.ErrorLocation.MOCO
-        if location == self.ErrorLocation.COCO:
+        elif location == self.ErrorLocation.COCO:
             return 0, self.ErrorLocation.COCO
 
     def get_last_error(
         self, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
-    ) -> Tuple[int, int, bool]:
+    ) -> tuple[int, Optional[int], Optional[bool]]:
         """Return last servo error.
 
         Args:
@@ -117,11 +121,13 @@ class Errors(metaclass=MCMetaClass):
         error = self.mc.communication.get_register(
             self.LAST_ERROR_REGISTER[error_location], servo=servo, axis=subnode
         )
+        if not isinstance(error, int):
+            raise IMException("Error has to be an integer")
         return self.__parse_error_to_tuple(error, error_version, axis)
 
     def get_last_buffer_error(
         self, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
-    ) -> Tuple[int, int, bool]:
+    ) -> tuple[int, Optional[int], Optional[bool]]:
         """Get error code from error buffer last position.
 
         Args:
@@ -144,7 +150,7 @@ class Errors(metaclass=MCMetaClass):
 
     def get_buffer_error_by_index(
         self, index: int, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
-    ) -> Tuple[int, int, bool]:
+    ) -> tuple[int, Optional[int], Optional[bool]]:
         """Get error code from buffer error target index.
 
         Args:
@@ -174,6 +180,8 @@ class Errors(metaclass=MCMetaClass):
         error = self.mc.communication.get_register(
             self.ERROR_LIST_REQUESTED_CODE[error_location], servo=servo, axis=subnode
         )
+        if not isinstance(error, int):
+            raise IMException("Error has to be an integer")
         return self.__parse_error_to_tuple(error, error_version, axis)
 
     def get_number_total_errors(
@@ -190,13 +198,16 @@ class Errors(metaclass=MCMetaClass):
         """
         error_version = self.__get_error_location(servo)
         subnode, error_location = self.__get_error_subnode(error_version, axis)
-        return self.mc.communication.get_register(
+        total_number_errors = self.mc.communication.get_register(
             self.ERROR_TOTAL_NUMBER_REGISTER[error_location], servo=servo, axis=subnode
         )
+        if not isinstance(total_number_errors, int):
+            raise IMException("Total number errors value has to be an integer")
+        return total_number_errors
 
     def get_all_errors(
         self, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
-    ) -> List[Tuple[int, int, bool]]:
+    ) -> list[tuple[int, Optional[int], Optional[bool]]]:
         """Return list with all error codes.
 
         Args:
@@ -214,7 +225,7 @@ class Errors(metaclass=MCMetaClass):
             err_list.append(error)
         return err_list
 
-    def is_fault_active(self, servo: str = DEFAULT_SERVO, axis=DEFAULT_AXIS) -> bool:
+    def is_fault_active(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
         """Return if fault is active.
 
         Args:
@@ -227,7 +238,7 @@ class Errors(metaclass=MCMetaClass):
         status_word = self.mc.configuration.get_status_word(servo=servo, axis=axis)
         return bool(status_word & self.STATUS_WORD_FAULT_BIT)
 
-    def is_warning_active(self, servo: str = DEFAULT_SERVO, axis=DEFAULT_AXIS) -> bool:
+    def is_warning_active(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
         """Return if warning is active.
 
         Args:
@@ -242,7 +253,7 @@ class Errors(metaclass=MCMetaClass):
 
     def get_error_data(
         self, error_code: int, servo: str = DEFAULT_SERVO
-    ) -> Tuple[str, str, str, str]:
+    ) -> tuple[str, str, str, str]:
         """Return error info from target error_code.
 
         Args:
@@ -265,4 +276,5 @@ class Errors(metaclass=MCMetaClass):
 
         """
         drive = self.mc.servos[servo]
-        return tuple(drive.errors[error_code & self.ERROR_CODE_BITS])
+        dictionary_errors = drive.errors[error_code & self.ERROR_CODE_BITS]
+        return tuple(dictionary_errors) # type: ignore
