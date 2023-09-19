@@ -2,6 +2,7 @@ import _typeshed
 import inspect
 from functools import wraps
 from typing import Any, Callable, ClassVar, Type, TypeVar
+from ingeniamotion.enums import SensorType
 
 from ingeniamotion.exceptions import IMStatusWordError
 
@@ -9,6 +10,7 @@ DEFAULT_SERVO = "default"
 DEFAULT_AXIS = 1
 
 T = TypeVar('T')
+F = Callable[..., None]
 
 class MCMetaClass(type):
     """MotionController submodules metaclass to add servo checker for all
@@ -52,7 +54,7 @@ class MCMetaClass(type):
         return wrapper
 
     @classmethod
-    def check_motor_disabled(mcs: Type[T], func: Callable[..., T]) -> Callable[..., T]:
+    def check_motor_disabled(mcs: T, func: F) -> F:
         """Decorator to check if motor is disabled.
         If motor is enabled raises an exception.
         """
