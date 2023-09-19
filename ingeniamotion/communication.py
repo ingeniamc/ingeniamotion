@@ -26,7 +26,6 @@ class Communication(metaclass=MCMetaClass):
     def __init__(self, motion_controller):
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
-        self.__comkit_dict: Optional[str] = None
 
     def connect_servo_eoe(
         self,
@@ -260,16 +259,17 @@ class Communication(metaclass=MCMetaClass):
         for dict_path in [coco_dict_path, moco_dict_path]:
             if not path.isfile(dict_path):
                 raise FileNotFoundError(f"{dict_path} file does not exist!")
-        self.__comkit_dict = create_comkit_dictionary(coco_dict_path, moco_dict_path)
+        dict_path = create_comkit_dictionary(coco_dict_path, moco_dict_path)
         self.__servo_connect(
             ip,
-            self.__comkit_dict,
+            dict_path,
             alias,
             port,
             connection_timeout,
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
         )
+        remove(dict_path)
 
     @staticmethod
     def __get_adapter_name(address: str) -> Optional[str]:
@@ -506,9 +506,6 @@ class Communication(metaclass=MCMetaClass):
         servo_count = list(self.mc.servo_net.values()).count(net_name)
         if servo_count == 0:
             del self.mc.net[net_name]
-        if self.__comkit_dict is not None:
-            remove(self.__comkit_dict)
-            self.__comkit_dict = None
 
     def get_register(
         self, register: str, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
