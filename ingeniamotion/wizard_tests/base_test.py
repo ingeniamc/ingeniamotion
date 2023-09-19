@@ -7,6 +7,7 @@ from abc import ABC, abstractmethod
 from ingenialink.exceptions import ILError
 
 from ingeniamotion.exceptions import IMRegisterNotExist, IMRegisterWrongAccess
+from ingeniamotion.metaclass import DEFAULT_SERVO
 from .stoppable import Stoppable, StopException
 from .. import MotionController
 from ingeniamotion.enums import SeverityLevel
@@ -24,7 +25,7 @@ class BaseTest(ABC, Stoppable):
         self.backup_registers: dict[int, dict[str, Union[int, float, str]]] = {}
         self.suggested_registers: dict[str, Union[int, float, str]]= {}
         self.mc: MotionController
-        self.servo: Optional[str] = None
+        self.servo: str = DEFAULT_SERVO
         self.axis: int = 0
         self.report: Optional[dict[str, Any]] = None
         self.logger = ingenialogger.get_logger(__name__)
