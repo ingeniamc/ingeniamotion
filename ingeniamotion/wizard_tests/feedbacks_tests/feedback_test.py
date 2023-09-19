@@ -46,6 +46,8 @@ class Feedbacks(BaseTest):
     RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
     MAXIMUM_CONTINUOUS_CURRENT_DRIVE_PROTECTION = "DRV_PROT_MAN_MAX_CONT_CURRENT_VALUE"
     POSITIONING_OPTION_CODE_REGISTER = "PROF_POS_OPTION_CODE"
+    MAX_POSITION_RANGE_LIMIT_REGISTER = "CL_POS_REF_MAX_RANGE"
+    MIN_POSITION_RANGE_LIMIT_REGISTER = "CL_POS_REF_MIN_RANGE"
 
     BACKUP_REGISTERS = [
         "CL_POS_FBK_SENSOR",
@@ -75,6 +77,8 @@ class Feedbacks(BaseTest):
         "CL_VEL_FBK_FILTER1_TYPE",
         "CL_VEL_FBK_FILTER1_FREQ",
         POSITIONING_OPTION_CODE_REGISTER,
+        MAX_POSITION_RANGE_LIMIT_REGISTER,
+        MIN_POSITION_RANGE_LIMIT_REGISTER,
     ]
 
     FEEDBACK_POLARITY_REGISTER = None
@@ -202,6 +206,12 @@ class Feedbacks(BaseTest):
         # Set positioning mode to NO LIMITS
         self.mc.communication.set_register(
             self.POSITIONING_OPTION_CODE_REGISTER, 0, servo=self.servo, axis=self.axis
+        )
+        self.mc.communication.set_register(
+            self.MIN_POSITION_RANGE_LIMIT_REGISTER, 0, servo=self.servo, axis=self.axis
+        )
+        self.mc.communication.set_register(
+            self.MAX_POSITION_RANGE_LIMIT_REGISTER, 0, servo=self.servo, axis=self.axis
         )
         # Default resolution multiplier
         # Change multiplier using gear ratio if feedback to check is configured
