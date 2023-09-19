@@ -456,3 +456,10 @@ def test_change_baudrate_exception(motion_controller):
     mc, alias = motion_controller
     with pytest.raises(ValueError):
         mc.configuration.change_baudrate(CAN_BAUDRATE.Baudrate_1M, alias)
+
+
+@pytest.mark.no_connection
+def test_change_node_id_exception(motion_controller):
+    mc, alias = motion_controller
+    with pytest.raises(ValueError):
+        mc.configuration.change_node_id(32, alias)

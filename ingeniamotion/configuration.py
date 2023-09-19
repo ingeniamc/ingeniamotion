@@ -737,7 +737,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         )
 
     def change_node_id(self, node_id: int, servo: str = DEFAULT_SERVO) -> None:
-        """Change a CANopen device's baudrate.
+        """Change a CANopen device's node ID.
 
         Args:
             node_id: New node ID.
