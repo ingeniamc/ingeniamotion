@@ -1,8 +1,9 @@
 # Changelog
 
-## [Unreleased]
+## [0.6.3]
 ### Fixed
 - Remove disturbance data before including new data.
+- Set positioning mode to NO LIMITS during the feedback test.
 
 ## [0.6.2] - 2023-09-06
 ### Changed
