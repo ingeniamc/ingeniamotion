@@ -55,6 +55,8 @@ class Feedbacks(metaclass=MCMetaClass):
         commutation_feedback = self.mc.communication.get_register(
             self.COMMUTATION_FEEDBACK_REGISTER, servo=servo, axis=axis
         )
+        if not isinstance(commutation_feedback, int):
+            raise IMException("Commutation feedback value has to be an integer")
         return SensorType(commutation_feedback)
 
     @MCMetaClass.check_motor_disabled
@@ -122,6 +124,8 @@ class Feedbacks(metaclass=MCMetaClass):
         reference_feedback = self.mc.communication.get_register(
             self.REFERENCE_FEEDBACK_REGISTER, servo=servo, axis=axis
         )
+        if not isinstance(reference_feedback, int):
+            raise IMException("Reference feedback has to be an integer")
         return SensorType(reference_feedback)
 
     @MCMetaClass.check_motor_disabled
@@ -189,6 +193,8 @@ class Feedbacks(metaclass=MCMetaClass):
         velocity_feedback = self.mc.communication.get_register(
             self.VELOCITY_FEEDBACK_REGISTER, servo=servo, axis=axis
         )
+        if not isinstance(velocity_feedback, int):
+            raise IMException("Velocity feedback has to be an integer")
         return SensorType(velocity_feedback)
 
     @MCMetaClass.check_motor_disabled
@@ -256,6 +262,8 @@ class Feedbacks(metaclass=MCMetaClass):
         position_feedback = self.mc.communication.get_register(
             self.POSITION_FEEDBACK_REGISTER, servo=servo, axis=axis
         )
+        if not isinstance(position_feedback, int):
+            raise IMException("Position feedback has to be an integer")
         return SensorType(position_feedback)
 
     @MCMetaClass.check_motor_disabled
@@ -323,6 +331,8 @@ class Feedbacks(metaclass=MCMetaClass):
         auxiliar_feedback = self.mc.communication.get_register(
             self.AUXILIAR_FEEDBACK_REGISTER, servo=servo, axis=axis
         )
+        if not isinstance(auxiliar_feedback, int):
+            raise IMException("Auxiliar feedback has to be an integer")
         return SensorType(auxiliar_feedback)
 
     @MCMetaClass.check_motor_disabled
@@ -389,6 +399,8 @@ class Feedbacks(metaclass=MCMetaClass):
         single_turn_bits = self.mc.communication.get_register(
             "FBK_BISS1_SSI1_POS_ST_BITS", servo=servo, axis=axis
         )
+        if not isinstance(single_turn_bits, int):
+            raise IMException("Single-turn bits has to be an integer")
         resolution = 2**single_turn_bits
         if not isinstance(resolution, int):
             raise IMException("Resolution value has to be an integer")
@@ -446,9 +458,9 @@ class Feedbacks(metaclass=MCMetaClass):
         secondary_single_turn_bits = self.mc.communication.get_register(
             "FBK_SSI2_POS_ST_BITS", servo=servo, axis=axis
         )
-        resolution = 2**secondary_single_turn_bits
-        if not isinstance(resolution, int):
+        if not isinstance(secondary_single_turn_bits, int):
             raise IMException("Resolution value has to be an integer")
+        resolution = int(2**secondary_single_turn_bits)
         return resolution
 
     def get_absolute_encoder_2_resolution(
@@ -466,9 +478,9 @@ class Feedbacks(metaclass=MCMetaClass):
         serial_slave_1_single_turn_bits = self.mc.communication.get_register(
             "FBK_BISS2_POS_ST_BITS", servo=servo, axis=axis
         )
-        resolution = 2**serial_slave_1_single_turn_bits
-        if not isinstance(resolution, int):
-            raise IMException("Resolution value has to be an integer")
+        if not isinstance(serial_slave_1_single_turn_bits, int):
+            raise IMException("Single-turn bits has to be an integer")
+        resolution = int(2**serial_slave_1_single_turn_bits)
         return resolution
 
     def get_incremental_encoder_2_resolution(
