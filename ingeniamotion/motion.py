@@ -50,6 +50,8 @@ class Motion(metaclass=MCMetaClass):
         control_word = self.mc.communication.get_register(
             self.CONTROL_WORD_REGISTER, servo=servo, axis=axis
         )
+        if not isinstance(control_word, int):
+            raise IMException("Control word register value has to be a integer")
         new_control_word = control_word & (~self.CONTROL_WORD_TARGET_LATCH_BIT)
         self.mc.communication.set_register(
             self.CONTROL_WORD_REGISTER, new_control_word, servo=servo, axis=axis
@@ -60,7 +62,7 @@ class Motion(metaclass=MCMetaClass):
         )
 
     def set_operation_mode(
-        self, operation_mode: OperationMode, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
+        self, operation_mode: Union[OperationMode, int], servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> None:
         """Set operation mode to a target servo and axis.
 
