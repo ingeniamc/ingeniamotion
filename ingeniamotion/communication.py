@@ -488,7 +488,7 @@ class Communication(metaclass=MCMetaClass):
         drive = self.mc.servos[servo]
         register_dtype = self.mc.info.register_type(register, axis, servo=servo)
         value = drive.read(register, subnode=axis)
-        if register_dtype.value <= REG_DTYPE.S64.value:
+        if register_dtype.value <= REG_DTYPE.S64.value and isinstance(value, int):
             return int(value)
         if not isinstance(value, (int, float, str)):
             raise IMException("Register value is not a correct type of value.")
@@ -497,7 +497,7 @@ class Communication(metaclass=MCMetaClass):
     def set_register(
         self,
         register: str,
-        value: Union[int, float],
+        value: Union[int, float, str],
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
     ) -> None:
@@ -534,7 +534,7 @@ class Communication(metaclass=MCMetaClass):
             )
         drive.write(register, value, subnode=axis)
 
-    def subscribe_net_status(self, callback: Callable[..., str], servo: str = DEFAULT_SERVO) -> None:
+    def subscribe_net_status(self, callback: Callable[[str], None], servo: str = DEFAULT_SERVO) -> None:
         """Add a callback to net status change event.
 
         Args:
@@ -549,7 +549,7 @@ class Communication(metaclass=MCMetaClass):
         else:
             network.subscribe_to_status(callback)
 
-    def unsubscribe_net_status(self, callback: Callable[..., str], servo: str = DEFAULT_SERVO) -> None:
+    def unsubscribe_net_status(self, callback: Callable[[str], None], servo: str = DEFAULT_SERVO) -> None:
         """Remove net status change event callback.
 
         Args:
@@ -564,7 +564,7 @@ class Communication(metaclass=MCMetaClass):
         else:
             network.unsubscribe_from_status(callback)
 
-    def subscribe_servo_status(self, callback: Callable[..., str], servo: str = DEFAULT_SERVO) -> None:
+    def subscribe_servo_status(self, callback: Callable[[str], None], servo: str = DEFAULT_SERVO) -> None:
         """Add a callback to servo status change event.
 
         Args:
@@ -575,7 +575,7 @@ class Communication(metaclass=MCMetaClass):
         drive = self.mc._get_drive(servo)
         drive.subscribe_to_status(callback)
 
-    def unsubscribe_servo_status(self, callback: Callable[..., str], servo: str = DEFAULT_SERVO) -> None:
+    def unsubscribe_servo_status(self, callback: Callable[[str], None], servo: str = DEFAULT_SERVO) -> None:
         """Remove servo status change event callback.
 
         Args:
@@ -590,9 +590,9 @@ class Communication(metaclass=MCMetaClass):
         self,
         fw_file: str,
         servo: str = DEFAULT_SERVO,
-        status_callback: Optional[Callable[..., str]] = None,
-        progress_callback: Optional[Callable[..., str]] = None,
-        error_enabled_callback: Optional[Callable[..., str]] = None,
+        status_callback: Optional[Callable[[str], None]] = None,
+        progress_callback: Optional[Callable[[str], None]] = None,
+        error_enabled_callback: Optional[Callable[[str], None]] = None,
     ) -> None:
         """Load firmware via CANopen.
 
