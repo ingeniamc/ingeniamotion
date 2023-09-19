@@ -3,7 +3,10 @@ import ingenialogger
 
 from os import path
 from enum import IntEnum
-from typing import Optional
+from typing import Optional, Union
+from ingeniamotion.exceptions import IMException
+
+from ingeniamotion.motion_controller import MotionController
 
 from .homing import Homing
 from .feedbacks import Feedbacks
@@ -53,7 +56,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
     STO_INACTIVE_STATE = 23
     STO_LATCHED_STATE = 31
 
-    def __init__(self, motion_controller):
+    def __init__(self, motion_controller: MotionController) -> None:
         Homing.__init__(self, motion_controller)
         Feedbacks.__init__(self, motion_controller)
         self.mc = motion_controller
@@ -330,9 +333,13 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             Position & velocity loop rate frequency in Hz.
 
         """
-        return self.mc.communication.get_register(
+        pos_vel_loop_rate = self.mc.communication.get_register(
             self.POSITION_AND_VELOCITY_LOOP_RATE_REGISTER, servo=servo, axis=axis
         )
+        if not isinstance(pos_vel_loop_rate, int):
+            raise IMException("Position and velocity loop has to be an integer")
+        return pos_vel_loop_rate
+    
 
     def get_current_loop_rate(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
         """Get current loop rate frequency.
@@ -344,9 +351,12 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Returns:
             Current loop rate frequency in Hz.
         """
-        return self.mc.communication.get_register(
+        current_loop = self.mc.communication.get_register(
             self.CURRENT_LOOP_RATE_REGISTER, servo=servo, axis=axis
         )
+        if not isinstance(current_loop, int):
+            raise IMException("Current loop value has to be an integer")
+        return current_loop
 
     def get_power_stage_frequency(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS, raw: bool = False
@@ -369,6 +379,8 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         pow_stg_freq = self.mc.communication.get_register(
             self.POWER_STAGE_FREQUENCY_SELECTION_REGISTER, servo=servo, axis=axis
         )
+        if not isinstance(pow_stg_freq, int):
+            raise IMException("Power stage frequency value has to be an integer")
         if raw:
             return pow_stg_freq
         try:
@@ -376,6 +388,8 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         except IndexError:
             raise ValueError("Invalid power stage frequency register")
         freq = self.mc.communication.get_register(pow_stg_freq_reg, servo=servo, axis=axis)
+        if not isinstance(freq, int):
+            raise IMException("Frequency value has to be an integer")
         return freq
 
     def get_power_stage_frequency_enum(
@@ -424,7 +438,10 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             Status word.
 
         """
-        return self.mc.communication.get_register(self.STATUS_WORD_REGISTER, servo, axis)
+        status_word = self.mc.communication.get_register(self.STATUS_WORD_REGISTER, servo, axis)
+        if not isinstance(status_word, int):
+            raise IMException("Power stage frequency value has to be an integer")
+        return status_word
 
     def is_motor_enabled(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
         """Return motor status.
@@ -469,7 +486,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """
         self.mc.communication.set_register(self.PHASING_MODE_REGISTER, phasing_mode, servo, axis)
 
-    def get_phasing_mode(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> PhasingMode:
+    def get_phasing_mode(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> Union[PhasingMode, int]:
         """
         Get current phasing mode.
 
@@ -478,10 +495,12 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             axis : servo axis. ``1`` by default.
 
         Returns:
-            PhasingMode: Phasing mode value.
+            Phasing mode value.
 
         """
         phasing_mode = self.mc.communication.get_register(self.PHASING_MODE_REGISTER, servo, axis)
+        if not isinstance(phasing_mode, int):
+            raise IMException("Phasing mode value has to be an integer")
         try:
             return PhasingMode(phasing_mode)
         except ValueError:
@@ -533,9 +552,12 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             Pair poles value.
 
         """
-        return self.mc.communication.get_register(
+        pair_poles = self.mc.communication.get_register(
             self.MOTOR_POLE_PAIRS_REGISTER, servo=servo, axis=axis
         )
+        if not isinstance(pair_poles, int):
+            raise IMException("Pair poles value has to be an integer")
+        return pair_poles
 
     def get_sto_status(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
         """
@@ -549,7 +571,10 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             STO register value.
 
         """
-        return self.mc.communication.get_register(self.STO_STATUS_REGISTER, servo=servo, axis=axis)
+        sto_status = self.mc.communication.get_register(self.STO_STATUS_REGISTER, servo=servo, axis=axis)
+        if not isinstance(sto_status, int):
+            raise IMException("STO status value has to be an integer")
+        return sto_status
 
     def is_sto1_active(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
         """
