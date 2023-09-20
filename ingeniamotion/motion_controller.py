@@ -32,7 +32,7 @@ class MotionController:
         return "{} ({})".format(self.servos[servo].info["product_code"], servo)
 
     def get_register_enum(
-        self, register: int, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
+        self, register: str, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> IntEnum:
         drive = self.servos[servo]
         enum_list = drive.dictionary.registers(axis)[register].enums

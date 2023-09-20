@@ -668,7 +668,7 @@ class Motion(metaclass=MCMetaClass):
         self,
         direction: int,
         cycles: int,
-        frequency: int,
+        frequency: float,
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
     ) -> None:
