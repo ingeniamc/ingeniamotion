@@ -62,7 +62,7 @@ def create_comkit_dictionary(
     return dest_file
 
 
-def get_tree_root(dict_path: str) -> ElementTree:
+def get_tree_root(dict_path: str) -> Element:
     """Get XML root element.
 
     Args:
@@ -76,7 +76,7 @@ def get_tree_root(dict_path: str) -> ElementTree:
     return tree.getroot()
 
 
-def merge_registers(src_root, dest_root) -> Element:
+def merge_registers(src_root: Element, dest_root: Element) -> Element:
     """Append registers from source tree to destination tree.
 
     Args:
@@ -89,6 +89,8 @@ def merge_registers(src_root, dest_root) -> Element:
     """
     src_registers = src_root.findall(f"{REGISTER_SECTION}/Register")
     dest_register_section = dest_root.find(REGISTER_SECTION)
+    if not isinstance(dest_register_section, Element):
+        return dest_root
     for register in src_registers:
         if SUBNODE_ATTRIBUTE in register.attrib and register.attrib[SUBNODE_ATTRIBUTE] == str(
             MOCO_SUBNODE
@@ -97,7 +99,7 @@ def merge_registers(src_root, dest_root) -> Element:
     return dest_root
 
 
-def merge_errors(src_root, dest_root) -> Element:
+def merge_errors(src_root: Element, dest_root: Element) -> Element:
     """Append errors from source tree to destination tree.
 
     Args:
@@ -110,6 +112,8 @@ def merge_errors(src_root, dest_root) -> Element:
     """
     dest_errors = dest_root.findall(f"{ERRORS_SECTION}/Error")
     dest_errors_section = dest_root.find(ERRORS_SECTION)
+    if not isinstance(dest_errors_section, Element):
+        return dest_root
     dest_errors_ids = [error.attrib["id"] for error in dest_errors]
     src_errors = src_root.findall(f"{ERRORS_SECTION}/Error")
     for error in src_errors:
@@ -118,7 +122,7 @@ def merge_errors(src_root, dest_root) -> Element:
     return dest_root
 
 
-def merge_images(src_root, dest_root) -> Element:
+def merge_images(src_root: Element, dest_root: Element) -> Element:
     """Append image from source tree to destination tree.
 
     Args:
@@ -130,6 +134,8 @@ def merge_images(src_root, dest_root) -> Element:
 
     """
     src_drive_image = src_root.find(IMAGE_SECTION)
+    if not isinstance(src_drive_image, Element):
+        return dest_root
     if src_drive_image is not None:
         src_drive_image.set("type", CORE.MOTION_CORE.value.lower())
     dest_drive_image = dest_root.find(IMAGE_SECTION)
@@ -139,7 +145,7 @@ def merge_images(src_root, dest_root) -> Element:
     return dest_root
 
 
-def set_attributes(src_tree, dest_tree) -> Element:
+def set_attributes(src_tree: Element, dest_tree: Element) -> Element:
     """Set COCO and MOCO part numbers and product codes in destination tree.
 
     Args:
@@ -157,7 +163,7 @@ def set_attributes(src_tree, dest_tree) -> Element:
     return dest_tree
 
 
-def create_attribute(attribute, src_root, dest_root, core) -> None:
+def create_attribute(attribute: str, src_root: Element, dest_root: Element, core: CORE) -> None:
     """Create an attribute in the destination tree.
 
     Args:
@@ -172,11 +178,13 @@ def create_attribute(attribute, src_root, dest_root, core) -> None:
     """
     src_device_elem = src_root.find(DEVICE_SECTION)
     dst_device_elem = dest_root.find(DEVICE_SECTION)
+    if not isinstance(dst_device_elem, Element):
+        return
     if src_device_elem is not None and attribute in src_device_elem.attrib:
         dst_device_elem.set(f"{attribute}{core.value}", src_device_elem.attrib[attribute])
 
 
-def save_to_file(tree_root, dest_path) -> None:
+def save_to_file(tree_root: Element, dest_path: str) -> None:
     """Save XML tree to file.
 
     Args:
