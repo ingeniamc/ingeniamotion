@@ -1,6 +1,7 @@
 from enum import IntEnum
 import time
 import ingenialogger
+from ingeniamotion.exceptions import IMException
 
 from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
 from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
@@ -88,6 +89,8 @@ class PhasingCheck(BaseTest):
         pha_accuracy = self.mc.communication.get_register(
             self.PHASING_ACCURACY_REGISTER, servo=self.servo, axis=self.axis
         )
+        if not isinstance(pha_accuracy, int):
+            raise IMException(f"{self.PHASING_ACCURACY_REGISTER} has to be an integer")
         delta = 3 * pha_accuracy / 1000
         ref_feedback = self.mc.configuration.get_reference_feedback(
             servo=self.servo, axis=self.axis
@@ -110,6 +113,8 @@ class PhasingCheck(BaseTest):
         phasing_timeout = self.mc.communication.get_register(
             self.PHASING_TIMEOUT_REGISTER, servo=self.servo, axis=self.axis
         )
+        if not isinstance(phasing_timeout, int):
+            raise IMException(f"{self.PHASING_TIMEOUT_REGISTER} has to be an integer")
         timeout = time.time() + (num_of_steps * phasing_timeout / 1000)
         while time.time() < timeout:
             self.stoppable_sleep(0.1)
@@ -149,6 +154,8 @@ class PhasingCheck(BaseTest):
         phasing_current = self.mc.communication.get_register(
             self.MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER, servo=self.servo, axis=self.axis
         )
+        if not isinstance(phasing_current, float):
+            raise IMException(f"{self.MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER} has to be an integer")
         max_test_current = round(phasing_current, 2)
         ref_feedback = self.mc.configuration.get_reference_feedback(
             servo=self.servo, axis=self.axis
