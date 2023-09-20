@@ -1,4 +1,8 @@
 # Changelog
+## [Unreleased]
+- Add mypy into the project.
+- Add types for all functions and classes.
+- Make and pass the first static type analysis.
 
 ## [0.6.2] - 2023-09-06
 ### Changed
