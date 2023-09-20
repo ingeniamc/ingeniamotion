@@ -5,13 +5,13 @@ from ingeniamotion.enums import SensorType
 
 
 class AbsoluteEncoder2Test(Feedbacks):
-    BACKUP_REGISTERS_BISSC2:list[str] = ["FBK_BISS2_POS_POLARITY"]
+    BACKUP_REGISTERS_BISSC2: list[str] = ["FBK_BISS2_POS_POLARITY"]
 
     FEEDBACK_POLARITY_REGISTER = "FBK_BISS2_POS_POLARITY"
 
     SENSOR_TYPE_FEEDBACK_TEST = SensorType.BISSC2
 
-    def __init__(self, mc: MotionController, servo:str, axis:int):
+    def __init__(self, mc: MotionController, servo: str, axis: int):
         super().__init__(mc, servo, axis)
         self.backup_registers_names.extend(self.BACKUP_REGISTERS_BISSC2)
 

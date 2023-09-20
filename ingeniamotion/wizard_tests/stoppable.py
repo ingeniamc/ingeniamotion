@@ -3,10 +3,12 @@ from time import time
 from functools import wraps
 from typing import TypeVar, Callable, Any
 
-F = TypeVar('F', bound=Callable[..., Any])
+F = TypeVar("F", bound=Callable[..., Any])
+
 
 class StopException(Exception):
     """Stop exception."""
+
 
 T = typing.TypeVar("T")
 
@@ -18,7 +20,7 @@ class Stoppable:
     @staticmethod
     def stoppable(fun: Callable[..., T]) -> Callable[..., T]:
         @wraps(fun)
-        def wrapper(self, *args, **kwargs): #type: ignore
+        def wrapper(self, *args, **kwargs):  # type: ignore
             self.check_stop()
             return fun(self, *args, **kwargs)
 

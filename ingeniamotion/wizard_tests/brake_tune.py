@@ -26,6 +26,7 @@ class ResultBrakeType(IntEnum):
     FAIL_CURRENT_MODE = 2
     FAIL_DICTIONARY = 3
 
+
 class BrakeTune(BaseTest):
     """A class to perform a brake tuning. It enables and disables a brake through enabling/disabling the motor.
 
@@ -111,9 +112,7 @@ class BrakeTune(BaseTest):
         updated_brake_current_feedback_source = self.mc.communication.get_register(
             self.BRAKE_CURRENT_FEEDBACK_SOURCE, servo=self.servo, axis=self.axis
         )
-        brake_registers_updated[
-            BrakeRegKey.FEEDBACK_SOURCE
-        ] = updated_brake_current_feedback_source
+        brake_registers_updated[BrakeRegKey.FEEDBACK_SOURCE] = updated_brake_current_feedback_source
         updated_brake_control_mode = self.mc.communication.get_register(
             self.BRAKE_CONTROL_MODE, servo=self.servo, axis=self.axis
         )

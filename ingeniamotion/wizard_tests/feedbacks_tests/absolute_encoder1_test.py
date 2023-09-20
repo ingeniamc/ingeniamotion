@@ -4,7 +4,7 @@ from ingeniamotion.enums import SensorType
 
 
 class AbsoluteEncoder1Test(Feedbacks):
-    BACKUP_REGISTERS_ABS1:list[str] = ["FBK_BISS1_SSI1_POS_POLARITY"]
+    BACKUP_REGISTERS_ABS1: list[str] = ["FBK_BISS1_SSI1_POS_POLARITY"]
 
     FEEDBACK_POLARITY_REGISTER = "FBK_BISS1_SSI1_POS_POLARITY"
 

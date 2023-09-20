@@ -24,7 +24,9 @@ class Brake(BaseTest):
         "MOT_COMMU_MOD",
     ]
 
-    def __init__(self, mc: MotionController, servo: str=DEFAULT_SERVO, axis: int=DEFAULT_AXIS) -> None:
+    def __init__(
+        self, mc: MotionController, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
+    ) -> None:
         super().__init__()
         self.mc = mc
         self.servo = servo

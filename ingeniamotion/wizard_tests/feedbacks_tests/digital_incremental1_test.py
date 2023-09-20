@@ -4,7 +4,7 @@ from ingeniamotion.enums import SensorType
 
 
 class DigitalIncremental1Test(Feedbacks):
-    BACKUP_REGISTERS_QEI:list[str] = ["FBK_DIGENC1_POLARITY"]
+    BACKUP_REGISTERS_QEI: list[str] = ["FBK_DIGENC1_POLARITY"]
 
     FEEDBACK_POLARITY_REGISTER = "FBK_DIGENC1_POLARITY"
 

@@ -172,7 +172,11 @@ class DriveTests(metaclass=MCMetaClass):
         apply_changes: bool = True,
     ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
         output = self.get_feedback_test(feedback, servo, axis).run()
-        if apply_changes and output is not None and output["result_severity"] == SeverityLevel.SUCCESS:
+        if (
+            apply_changes
+            and output is not None
+            and output["result_severity"] == SeverityLevel.SUCCESS
+        ):
             if not isinstance(output["suggested_registers"], dict):
                 raise IMException("Suggested registers has to be a dictionary")
             for key, value in output["suggested_registers"].items():
@@ -215,7 +219,11 @@ class DriveTests(metaclass=MCMetaClass):
         """
         commutation = Phasing(self.mc, servo, axis)
         output = commutation.run()
-        if apply_changes and output is not None and output["result_severity"] == SeverityLevel.SUCCESS:
+        if (
+            apply_changes
+            and output is not None
+            and output["result_severity"] == SeverityLevel.SUCCESS
+        ):
             if not isinstance(output["suggested_registers"], dict):
                 raise IMException("Suggested registers have to be a dictionary")
             for key, value in output["suggested_registers"].items():
@@ -225,7 +233,9 @@ class DriveTests(metaclass=MCMetaClass):
             )
         return output
 
-    def phasing_check(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+    def phasing_check(
+        self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
+    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
         """
         Checks servo phasing.
 
@@ -248,7 +258,9 @@ class DriveTests(metaclass=MCMetaClass):
         phasing_check = PhasingCheck(self.mc, servo, axis)
         return phasing_check.run()
 
-    def sto_test(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+    def sto_test(
+        self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
+    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
         """
         Check STO
 

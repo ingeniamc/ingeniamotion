@@ -111,7 +111,7 @@ class Information(metaclass=MCMetaClass):
 
         """
         register_obj = self.register_info(register, axis=axis, servo=servo)
-        return register_obj.range # type: ignore [no-any-return]
+        return register_obj.range  # type: ignore [no-any-return]
 
     def register_exists(
         self,

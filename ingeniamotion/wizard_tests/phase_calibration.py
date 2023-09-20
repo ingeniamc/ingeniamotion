@@ -63,7 +63,13 @@ class Phasing(BaseTest):
     }
 
     def __init__(
-        self, mc: MotionController, servo: str, axis: int, default_current: bool=True, default_timeout: bool=True, default_accuracy: bool=True
+        self,
+        mc: MotionController,
+        servo: str,
+        axis: int,
+        default_current: bool = True,
+        default_timeout: bool = True,
+        default_accuracy: bool = True,
     ) -> None:
         super().__init__()
         self.mc = mc
@@ -116,7 +122,9 @@ class Phasing(BaseTest):
                 self.MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER, servo=self.servo, axis=self.axis
             )
             if not isinstance(pha_current, float):
-                raise IMException(f"{self.MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER} has to be a float")
+                raise IMException(
+                    f"{self.MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER} has to be a float"
+                )
             self.pha_current = pha_current
             if self.pha_current > max_test_current:
                 raise TestError("Defined phasing current is higher than configured maximum current")

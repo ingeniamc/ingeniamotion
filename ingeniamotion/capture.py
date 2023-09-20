@@ -115,9 +115,9 @@ class Capture(metaclass=MCMetaClass):
         for index, register in enumerate(registers):
             axis = register.get("axis", DEFAULT_AXIS)
             name = register.get("name")
-            if (not isinstance(axis, int)):
+            if not isinstance(axis, int):
                 raise IMException("Axis type is an integer")
-            if (not isinstance(name, str)):
+            if not isinstance(name, str):
                 raise IMException("Name type is a string")
             register_obj = self.mc.info.register_info(name, axis, servo=servo)
             poller.ch_configure(index, register_obj)
@@ -371,7 +371,7 @@ class Capture(metaclass=MCMetaClass):
         drive = self.mc.servos[servo]
         drive.monitoring_disable()
         if version >= MonitoringVersion.MONITORING_V3 and not drive.monitoring_remove_data():
-            return 
+            return
 
     def disable_disturbance(
         self, servo: str = DEFAULT_SERVO, version: Optional[MonitoringVersion] = None
@@ -628,7 +628,7 @@ class Capture(metaclass=MCMetaClass):
             Max buffer size in bytes.
         """
         try:
-            max_sample_size =  self.mc.communication.get_register(
+            max_sample_size = self.mc.communication.get_register(
                 self.MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER, servo=servo, axis=0
             )
             if not isinstance(max_sample_size, int):
@@ -637,7 +637,7 @@ class Capture(metaclass=MCMetaClass):
         except IMRegisterNotExist:
             return self.MINIMUM_BUFFER_SIZE
 
-    def get_frequency(self, servo: str = DEFAULT_SERVO, axis:int = DEFAULT_AXIS) -> float:
+    def get_frequency(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> float:
         """Returns the monitoring frequency.
 
         Args:

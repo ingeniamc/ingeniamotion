@@ -79,7 +79,7 @@ class Feedbacks(BaseTest):
 
     FEEDBACK_POLARITY_REGISTER = ""
 
-    SENSOR_TYPE_FEEDBACK_TEST:SensorType
+    SENSOR_TYPE_FEEDBACK_TEST: SensorType
 
     def __init__(self, mc: MotionController, servo: str, axis: int) -> None:
         super().__init__()
@@ -97,7 +97,9 @@ class Feedbacks(BaseTest):
         self.suggested_registers = {}
 
     @BaseTest.stoppable
-    def check_feedback_tolerance(self, error: float, error_msg: str, error_type: ResultType) -> ResultType:
+    def check_feedback_tolerance(
+        self, error: float, error_msg: str, error_type: ResultType
+    ) -> ResultType:
         if error > self.FEEDBACK_TOLERANCE:
             error_advice = "Please, review your feedback & motor pair poles settings"
             self.logger.error("%s %s", error_msg, error_advice)
@@ -190,7 +192,9 @@ class Feedbacks(BaseTest):
     @BaseTest.stoppable
     def suggest_polarity(self, pol: Polarity) -> None:
         if not isinstance(self.FEEDBACK_POLARITY_REGISTER, str):
-            raise IMException("Feedback polarity register has to be set before polarity suggestion.")
+            raise IMException(
+                "Feedback polarity register has to be set before polarity suggestion."
+            )
         polarity_uid = self.FEEDBACK_POLARITY_REGISTER
         self.suggested_registers[polarity_uid] = pol
 
@@ -216,7 +220,7 @@ class Feedbacks(BaseTest):
         velocity_feedback_value = self.mc.configuration.get_velocity_feedback(
             servo=self.servo, axis=self.axis
         )
-        
+
         self.pos_vel_same_feedback = position_feedback_value == velocity_feedback_value
         if position_feedback_value == self.sensor:
             resolution_multiplier = self.mc.communication.get_register(
@@ -385,7 +389,9 @@ class Feedbacks(BaseTest):
         self.logger.info("Detected reverse displacement: %.0f", negative_displacement)
         return self.generate_output(position_displacement, negative_displacement)
 
-    def generate_output(self, position_displacement: float, negative_displacement: float) -> ResultType:
+    def generate_output(
+        self, position_displacement: float, negative_displacement: float
+    ) -> ResultType:
         test_output = 0
 
         test_output += self.check_symmetry(position_displacement, negative_displacement)

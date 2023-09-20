@@ -62,7 +62,9 @@ class Errors(metaclass=MCMetaClass):
     def __init__(self, motion_controller: MotionController) -> None:
         self.mc = motion_controller
 
-    def __parse_error_to_tuple(self, error: int, location: ErrorLocation, subnode: Optional[int]=None) -> tuple[int, Optional[int], Optional[bool]]:
+    def __parse_error_to_tuple(
+        self, error: int, location: ErrorLocation, subnode: Optional[int] = None
+    ) -> tuple[int, Optional[int], Optional[bool]]:
         error_code = error & self.ERROR_CODE_BITS
         if error_code == 0:
             return error_code, None, None
@@ -83,7 +85,9 @@ class Errors(metaclass=MCMetaClass):
             return self.ErrorLocation.COCO
         return self.ErrorLocation.MOCO
 
-    def __get_error_subnode(self, location: ErrorLocation, subnode: Optional[int]) -> tuple[int, ErrorLocation]:
+    def __get_error_subnode(
+        self, location: ErrorLocation, subnode: Optional[int]
+    ) -> tuple[int, ErrorLocation]:
         if location == self.ErrorLocation.SYSTEM:
             if subnode is None:
                 return 0, location
@@ -277,4 +281,4 @@ class Errors(metaclass=MCMetaClass):
         """
         drive = self.mc.servos[servo]
         dictionary_errors = drive.errors[error_code & self.ERROR_CODE_BITS]
-        return tuple(dictionary_errors) # type: ignore
+        return tuple(dictionary_errors)  # type: ignore

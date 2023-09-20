@@ -4,12 +4,12 @@ from ingeniamotion.enums import SensorType
 
 
 class SecondarySSITest(Feedbacks):
-    BACKUP_REGISTERS_SSI2:list[str] = []
+    BACKUP_REGISTERS_SSI2: list[str] = []
 
     FEEDBACK_POLARITY_REGISTER = "FBK_SSI2_POS_POLARITY"
 
     SENSOR_TYPE_FEEDBACK_TEST = SensorType.SSI2
 
-    def __init__(self, mc: MotionController, servo:str, axis:int):
+    def __init__(self, mc: MotionController, servo: str, axis: int):
         super().__init__(mc, servo, axis)
         self.backup_registers_names.extend(self.BACKUP_REGISTERS_SSI2)

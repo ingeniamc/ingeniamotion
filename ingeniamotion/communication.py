@@ -7,7 +7,13 @@ from typing import Optional, Union, Callable, List
 
 import ingenialogger
 from ingenialink.exceptions import ILError
-from ingenialink.canopen.network import CanopenNetwork, CAN_BAUDRATE, CAN_DEVICE, REG_DTYPE, REG_ACCESS
+from ingenialink.canopen.network import (
+    CanopenNetwork,
+    CAN_BAUDRATE,
+    CAN_DEVICE,
+    REG_DTYPE,
+    REG_ACCESS,
+)
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.eoe.network import EoENetwork
@@ -534,7 +540,9 @@ class Communication(metaclass=MCMetaClass):
             )
         drive.write(register, value, subnode=axis)
 
-    def subscribe_net_status(self, callback: Callable[[str], None], servo: str = DEFAULT_SERVO) -> None:
+    def subscribe_net_status(
+        self, callback: Callable[[str], None], servo: str = DEFAULT_SERVO
+    ) -> None:
         """Add a callback to net status change event.
 
         Args:
@@ -549,7 +557,9 @@ class Communication(metaclass=MCMetaClass):
         else:
             network.subscribe_to_status(callback)
 
-    def unsubscribe_net_status(self, callback: Callable[[str], None], servo: str = DEFAULT_SERVO) -> None:
+    def unsubscribe_net_status(
+        self, callback: Callable[[str], None], servo: str = DEFAULT_SERVO
+    ) -> None:
         """Remove net status change event callback.
 
         Args:
@@ -564,7 +574,9 @@ class Communication(metaclass=MCMetaClass):
         else:
             network.unsubscribe_from_status(callback)
 
-    def subscribe_servo_status(self, callback: Callable[[str], None], servo: str = DEFAULT_SERVO) -> None:
+    def subscribe_servo_status(
+        self, callback: Callable[[str], None], servo: str = DEFAULT_SERVO
+    ) -> None:
         """Add a callback to servo status change event.
 
         Args:
@@ -575,7 +587,9 @@ class Communication(metaclass=MCMetaClass):
         drive = self.mc._get_drive(servo)
         drive.subscribe_to_status(callback)
 
-    def unsubscribe_servo_status(self, callback: Callable[[str], None], servo: str = DEFAULT_SERVO) -> None:
+    def unsubscribe_servo_status(
+        self, callback: Callable[[str], None], servo: str = DEFAULT_SERVO
+    ) -> None:
         """Remove servo status change event callback.
 
         Args:

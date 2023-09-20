@@ -9,7 +9,7 @@ class DigitalHallTest(Feedbacks):
     HALLS_FILTER_CUTOFF_FREQUENCY = 10
     DIG_HALL_POLE_PAIRS_REGISTER = "FBK_DIGHALL_PAIRPOLES"
 
-    BACKUP_REGISTERS_HALLS:list[str] = [
+    BACKUP_REGISTERS_HALLS: list[str] = [
         "FBK_DIGHALL_POLARITY",
         "FBK_DIGHALL_PAIRPOLES",
         "ERROR_DIGHALL_SEQ_OPTION",
@@ -19,7 +19,7 @@ class DigitalHallTest(Feedbacks):
 
     SENSOR_TYPE_FEEDBACK_TEST = SensorType.HALLS
 
-    def __init__(self, mc: MotionController, servo:str, axis:int) -> None:
+    def __init__(self, mc: MotionController, servo: str, axis: int) -> None:
         super().__init__(mc, servo, axis)
         self.backup_registers_names.extend(self.BACKUP_REGISTERS_HALLS)
 

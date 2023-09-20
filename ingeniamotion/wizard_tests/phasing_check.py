@@ -31,7 +31,9 @@ class PhasingCheck(BaseTest):
         ResultType.WRONG_PHASING: "Phasing check failed. Wrong motor phasing.",
     }
 
-    def __init__(self, mc: MotionController, servo: str=DEFAULT_SERVO, axis: int=DEFAULT_AXIS) -> None:
+    def __init__(
+        self, mc: MotionController, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
+    ) -> None:
         super().__init__()
         self.mc = mc
         self.servo = servo
@@ -155,7 +157,9 @@ class PhasingCheck(BaseTest):
             self.MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER, servo=self.servo, axis=self.axis
         )
         if not isinstance(phasing_current, float):
-            raise IMException(f"{self.MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER} has to be an integer")
+            raise IMException(
+                f"{self.MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER} has to be an integer"
+            )
         max_test_current = round(phasing_current, 2)
         ref_feedback = self.mc.configuration.get_reference_feedback(
             servo=self.servo, axis=self.axis

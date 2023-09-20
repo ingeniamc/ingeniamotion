@@ -22,7 +22,7 @@ from ingeniamotion.motion_controller import MotionController
 
 def check_monitoring_disabled(func: Callable[..., None]) -> Callable[..., None]:
     @wraps(func)
-    def wrapper(self, *args, **kwargs): # type: ignore
+    def wrapper(self, *args, **kwargs):  # type: ignore
         monitoring_enabled = self.mc.capture.is_monitoring_enabled(servo=self.servo)
         if monitoring_enabled:
             raise IMMonitoringError("Monitoring is enabled")
@@ -64,12 +64,12 @@ class Monitoring(ABC):
     MONITORING_ACTUAL_NUMBER_SAMPLES_REGISTER = "MON_CFG_CYCLES_VALUE"
     MONITORING_FORCE_TRIGGER_REGISTER = "MON_CMD_FORCE_TRIGGER"
 
-    def __init__(self, mc: MotionController, servo:str = DEFAULT_SERVO) -> None:
+    def __init__(self, mc: MotionController, servo: str = DEFAULT_SERVO) -> None:
         super().__init__()
         self.mc = mc
         self.servo = servo
         self.mapped_registers: list[dict[str, str]] = []
-        self.monitoring_data = [] # type: ignore
+        self.monitoring_data = []  # type: ignore
         self.sampling_freq: Optional[float] = None
         self._read_process_finished = False
         self.samples_number = 0
@@ -192,7 +192,9 @@ class Monitoring(ABC):
         """
         pass
 
-    def _get_reg_index_and_edge_condition_value(self, trigger_signal: dict[str, str], trigger_value: Union[int, float]) -> tuple[int, int]:
+    def _get_reg_index_and_edge_condition_value(
+        self, trigger_signal: dict[str, str], trigger_value: Union[int, float]
+    ) -> tuple[int, int]:
         index_reg = -1
         for index, item in enumerate(self.mapped_registers):
             if (
@@ -281,7 +283,13 @@ class Monitoring(ABC):
         if data_length >= self.samples_number:
             self._read_process_finished = True
 
-    def _update_read_process_finished(self, init_read_time: Optional[float], current_len: int, init_time: float, timeout: Optional[float]) -> None:
+    def _update_read_process_finished(
+        self,
+        init_read_time: Optional[float],
+        current_len: int,
+        init_time: float,
+        timeout: Optional[float],
+    ) -> None:
         self._check_read_data_ends(current_len)
         if self._read_process_finished:
             return
@@ -290,7 +298,11 @@ class Monitoring(ABC):
         else:
             self._check_read_data_timeout(init_read_time)
 
-    def _show_current_process(self, current_len: int, progress_callback: Optional[Callable[[MonitoringProcessStage, float], None]]) -> None:
+    def _show_current_process(
+        self,
+        current_len: int,
+        progress_callback: Optional[Callable[[MonitoringProcessStage, float], None]],
+    ) -> None:
         process_stage = self.mc.capture.get_monitoring_process_stage(
             servo=self.servo, version=self._version
         )
@@ -313,7 +325,9 @@ class Monitoring(ABC):
 
     # TODO Study remove progress_callback
     def read_monitoring_data(
-        self, timeout: Optional[float] = None, progress_callback: Optional[Callable[[MonitoringProcessStage, float], None]] = None
+        self,
+        timeout: Optional[float] = None,
+        progress_callback: Optional[Callable[[MonitoringProcessStage, float], None]] = None,
     ) -> list[list[Union[int, float]]]:
         """Blocking function that read the monitoring data.
 
@@ -362,10 +376,14 @@ class Monitoring(ABC):
         pass
 
     @abstractmethod
-    def _check_buffer_size_is_enough(self, total_samples: int, trigger_delay_samples: int, registers: list[dict[str, str]]) -> None:
+    def _check_buffer_size_is_enough(
+        self, total_samples: int, trigger_delay_samples: int, registers: list[dict[str, str]]
+    ) -> None:
         pass
 
-    def _check_samples_and_max_size(self, n_sample: int, max_size: int, registers: list[dict[str, str]]) -> None:
+    def _check_samples_and_max_size(
+        self, n_sample: int, max_size: int, registers: list[dict[str, str]]
+    ) -> None:
         size_demand = sum(
             self._data_type_size[register["dtype"]] * n_sample for register in registers
         )
@@ -426,7 +444,9 @@ class Monitoring(ABC):
             )
         return mon_process_stage >= MonitoringProcessStage.WAITING_FOR_TRIGGER
 
-    def read_monitoring_data_forced_trigger(self, trigger_timeout: float = 5) -> list[list[Union[int, float]]]:
+    def read_monitoring_data_forced_trigger(
+        self, trigger_timeout: float = 5
+    ) -> list[list[Union[int, float]]]:
         """Trigger and read Forced Trigger monitoring.
 
         Args:

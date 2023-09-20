@@ -418,7 +418,9 @@ class Feedbacks(metaclass=MCMetaClass):
         Returns:
             Resolution of incremental encoder 1.
         """
-        resolution = self.mc.communication.get_register("FBK_DIGENC1_RESOLUTION", servo=servo, axis=axis)
+        resolution = self.mc.communication.get_register(
+            "FBK_DIGENC1_RESOLUTION", servo=servo, axis=axis
+        )
         if not isinstance(resolution, int):
             raise IMException("Resolution value has to be an integer")
         return resolution
@@ -495,7 +497,9 @@ class Feedbacks(metaclass=MCMetaClass):
         Returns:
             Resolution of incremental encoder 2 encoder.
         """
-        resolution = self.mc.communication.get_register("FBK_DIGENC2_RESOLUTION", servo=servo, axis=axis)
+        resolution = self.mc.communication.get_register(
+            "FBK_DIGENC2_RESOLUTION", servo=servo, axis=axis
+        )
         if not isinstance(resolution, int):
             raise IMException("Resolution value has to be an integer")
         return resolution

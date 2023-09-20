@@ -23,7 +23,7 @@ class MonitoringV1(Monitoring):
         MonitoringSoCConfig.TRIGGER_CONFIG_FALLING: "MON_CFG_FALLING_CONDITION",
     }
 
-    def __init__(self, mc: MotionController, servo:str = DEFAULT_SERVO) -> None:
+    def __init__(self, mc: MotionController, servo: str = DEFAULT_SERVO) -> None:
         super().__init__(mc, servo)
         self._version = mc.capture._check_version(servo)
         self.logger = ingenialogger.get_logger(__name__, drive=mc.servo_name(servo))
@@ -43,7 +43,11 @@ class MonitoringV1(Monitoring):
 
     @check_monitoring_disabled
     def set_trigger(
-        self, trigger_mode: Union[MonitoringSoCType, int], edge_condition: Optional[MonitoringSoCConfig]=None, trigger_signal: Optional[dict[str, str]]=None, trigger_value: Union[int, float, None]=None
+        self,
+        trigger_mode: Union[MonitoringSoCType, int],
+        edge_condition: Optional[MonitoringSoCConfig] = None,
+        trigger_signal: Optional[dict[str, str]] = None,
+        trigger_value: Union[int, float, None] = None,
     ) -> None:
         self.rearm_monitoring()
         if trigger_mode == MonitoringSoCType.TRIGGER_EVENT_EDGE:
@@ -60,7 +64,9 @@ class MonitoringV1(Monitoring):
             self.MONITOR_START_CONDITION_TYPE_REGISTER, trigger_mode, servo=self.servo, axis=0
         )
 
-    def __rising_or_falling_edge_trigger(self, edge_condition: MonitoringSoCConfig, index_reg: int, level_edge: int) -> None:
+    def __rising_or_falling_edge_trigger(
+        self, edge_condition: MonitoringSoCConfig, index_reg: int, level_edge: int
+    ) -> None:
         self.mc.communication.set_register(
             self.MONITORING_INDEX_CHECKER_REGISTER, index_reg, servo=self.servo, axis=0
         )
@@ -133,7 +139,9 @@ class MonitoringV1(Monitoring):
             self.MONITORING_NUMBER_TRIGGER_REPETITIONS_REGISTER, 1, servo=self.servo, axis=0
         )
 
-    def _check_buffer_size_is_enough(self, total_samples: int, trigger_delay_samples: int, registers: list[dict[str, str]]) -> None:
+    def _check_buffer_size_is_enough(
+        self, total_samples: int, trigger_delay_samples: int, registers: list[dict[str, str]]
+    ) -> None:
         n_sample = max(total_samples - trigger_delay_samples, trigger_delay_samples)
         max_size = self.max_sample_number // 2
         self._check_samples_and_max_size(n_sample, max_size, registers)

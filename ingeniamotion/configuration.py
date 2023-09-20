@@ -339,7 +339,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         if not isinstance(pos_vel_loop_rate, int):
             raise IMException("Position and velocity loop has to be an integer")
         return pos_vel_loop_rate
-    
 
     def get_current_loop_rate(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
         """Get current loop rate frequency.
@@ -486,7 +485,9 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """
         self.mc.communication.set_register(self.PHASING_MODE_REGISTER, phasing_mode, servo, axis)
 
-    def get_phasing_mode(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> Union[PhasingMode, int]:
+    def get_phasing_mode(
+        self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
+    ) -> Union[PhasingMode, int]:
         """
         Get current phasing mode.
 
@@ -571,7 +572,9 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             STO register value.
 
         """
-        sto_status = self.mc.communication.get_register(self.STO_STATUS_REGISTER, servo=servo, axis=axis)
+        sto_status = self.mc.communication.get_register(
+            self.STO_STATUS_REGISTER, servo=servo, axis=axis
+        )
         if not isinstance(sto_status, int):
             raise IMException("STO status value has to be an integer")
         return sto_status

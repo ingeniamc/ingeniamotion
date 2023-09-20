@@ -20,9 +20,11 @@ TYPE_MAPPED_REGISTERS_DATA = dict[str, list[Union[int, float]]]
 TYPE_MAPPED_REGISTERS_DATA_NO_KEY = list[Union[int, float]]
 
 
-def check_disturbance_disabled(func: Callable[..., Union[int, float, None]]) -> Callable[..., Union[int, float, None]]:
+def check_disturbance_disabled(
+    func: Callable[..., Union[int, float, None]]
+) -> Callable[..., Union[int, float, None]]:
     @wraps(func)
-    def wrapper(self, *args, **kwargs): # type: ignore
+    def wrapper(self, *args, **kwargs):  # type: ignore
         disturbance_enabled = self.mc.capture.is_disturbance_enabled(
             servo=self.servo, version=self._version
         )
@@ -108,7 +110,10 @@ class Disturbance:
         return 1 / self.sampling_freq
 
     @check_disturbance_disabled
-    def map_registers(self, registers: Union[TYPE_MAPPED_REGISTERS_NAME_AXIS, list[TYPE_MAPPED_REGISTERS_NAME_AXIS]]) -> float:
+    def map_registers(
+        self,
+        registers: Union[TYPE_MAPPED_REGISTERS_NAME_AXIS, list[TYPE_MAPPED_REGISTERS_NAME_AXIS]],
+    ) -> float:
         """Map registers to Disturbance. Disturbance must be disabled.
 
         Args:
@@ -166,24 +171,41 @@ class Disturbance:
         return self.max_sample_number / total_sample_size
 
     @staticmethod
-    def __registers_data_adapter(registers_data: Union[list[Union[int, float, ndarray, TYPE_MAPPED_REGISTERS_DATA_NO_KEY]], ndarray]) -> list[TYPE_MAPPED_REGISTERS_DATA_NO_KEY]:
+    def __registers_data_adapter(
+        registers_data: Union[
+            list[Union[int, float, ndarray, TYPE_MAPPED_REGISTERS_DATA_NO_KEY]], ndarray
+        ]
+    ) -> list[TYPE_MAPPED_REGISTERS_DATA_NO_KEY]:
         if isinstance(registers_data, ndarray):
             registers_data = registers_data.tolist()
             return [registers_data]
-        elif isinstance(registers_data, list) and all(isinstance(data, list) for data in registers_data):
+        elif isinstance(registers_data, list) and all(
+            isinstance(data, list) for data in registers_data
+        ):
             return registers_data
-        elif isinstance(registers_data, list) and all(isinstance(data, (int, float)) for data in registers_data):
+        elif isinstance(registers_data, list) and all(
+            isinstance(data, (int, float)) for data in registers_data
+        ):
             return [registers_data]
-        elif isinstance(registers_data, list) and all(isinstance(data, ndarray) for data in registers_data):
+        elif isinstance(registers_data, list) and all(
+            isinstance(data, ndarray) for data in registers_data
+        ):
             for i, x in enumerate(registers_data):
                 if isinstance(x, ndarray):
                     registers_data[i] = x.tolist()
             return registers_data
         else:
-            raise IMException("Registers data adapter doesn't have the correct type for its input argument")
+            raise IMException(
+                "Registers data adapter doesn't have the correct type for its input argument"
+            )
 
     @check_disturbance_disabled
-    def write_disturbance_data(self, registers_data: Union[list[Union[int, float, ndarray, TYPE_MAPPED_REGISTERS_DATA_NO_KEY]], ndarray]) -> None:
+    def write_disturbance_data(
+        self,
+        registers_data: Union[
+            list[Union[int, float, ndarray, TYPE_MAPPED_REGISTERS_DATA_NO_KEY]], ndarray
+        ],
+    ) -> None:
         """Write data in mapped registers. Disturbance must be disabled.
 
         Args:
@@ -206,7 +228,9 @@ class Disturbance:
         dtype_list = [REG_DTYPE(x["dtype"]) for x in self.mapped_registers]
         drive.disturbance_write_data(idx_list, dtype_list, registers_data)
 
-    def map_registers_and_write_data(self, registers: Union[TYPE_MAPPED_REGISTERS_ALL, list[TYPE_MAPPED_REGISTERS_ALL]]) -> None:
+    def map_registers_and_write_data(
+        self, registers: Union[TYPE_MAPPED_REGISTERS_ALL, list[TYPE_MAPPED_REGISTERS_ALL]]
+    ) -> None:
         """Map registers to Disturbance and write data. Disturbance must be disabled.
 
         Args:
@@ -240,7 +264,9 @@ class Disturbance:
         self.map_registers(registers_keys)
         self.write_disturbance_data(registers_data)
 
-    def __check_buffer_size_is_enough(self, registers: list[TYPE_MAPPED_REGISTERS_DATA_NO_KEY]) -> None:
+    def __check_buffer_size_is_enough(
+        self, registers: list[TYPE_MAPPED_REGISTERS_DATA_NO_KEY]
+    ) -> None:
         total_buffer_size = 0
         for ch_idx, data in enumerate(registers):
             dtype = self.mapped_registers[ch_idx]["dtype"]

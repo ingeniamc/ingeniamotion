@@ -3,7 +3,12 @@ import ingenialogger
 from ingeniamotion.exceptions import IMException
 
 from ingeniamotion.metaclass import DEFAULT_SERVO
-from ingeniamotion.enums import MonitoringSoCConfig, MonitoringVersion, MonitoringProcessStage, MonitoringSoCType
+from ingeniamotion.enums import (
+    MonitoringSoCConfig,
+    MonitoringVersion,
+    MonitoringProcessStage,
+    MonitoringSoCType,
+)
 from ingeniamotion.motion_controller import MotionController
 
 from ingeniamotion.monitoring.base_monitoring import Monitoring, check_monitoring_disabled
@@ -21,7 +26,11 @@ class MonitoringV3(Monitoring):
 
     @check_monitoring_disabled
     def set_trigger(
-        self, trigger_mode: MonitoringSoCType, edge_condition: Optional[MonitoringSoCConfig]=None, trigger_signal: Optional[dict[str, str]]=None, trigger_value: Union[int, float, None]=None
+        self,
+        trigger_mode: MonitoringSoCType,
+        edge_condition: Optional[MonitoringSoCConfig] = None,
+        trigger_signal: Optional[dict[str, str]] = None,
+        trigger_value: Union[int, float, None] = None,
     ) -> None:
         self.mc.communication.set_register(
             self.MONITOR_START_CONDITION_TYPE_REGISTER, trigger_mode, servo=self.servo, axis=0
@@ -36,7 +45,9 @@ class MonitoringV3(Monitoring):
             )
             self.__rising_or_falling_edge_trigger(edge_condition, index_reg, level_edge)
 
-    def __rising_or_falling_edge_trigger(self, edge_condition: MonitoringSoCConfig, index_reg: int, level_edge: int) -> None:
+    def __rising_or_falling_edge_trigger(
+        self, edge_condition: MonitoringSoCConfig, index_reg: int, level_edge: int
+    ) -> None:
         self.mc.communication.set_register(
             self.MONITOR_START_CONDITION_CONFIG_REGISTER, edge_condition, servo=self.servo, axis=0
         )
@@ -89,7 +100,9 @@ class MonitoringV3(Monitoring):
 
     # TODO Study remove progress_callback
     def read_monitoring_data(
-        self, timeout: Optional[float] = None, progress_callback: Optional[Callable[[MonitoringProcessStage, float], None]] = None
+        self,
+        timeout: Optional[float] = None,
+        progress_callback: Optional[Callable[[MonitoringProcessStage, float], None]] = None,
     ) -> list[list[Union[int, float]]]:
         drive = self.mc.servos[self.servo]
         data_array = super().read_monitoring_data(
@@ -113,7 +126,9 @@ class MonitoringV3(Monitoring):
             self.MONITORING_REARM_REGISTER, 1, servo=self.servo, axis=0
         )
 
-    def _check_buffer_size_is_enough(self, total_samples: int, trigger_delay_samples: int, registers: list[dict[str, str]]) -> None:
+    def _check_buffer_size_is_enough(
+        self, total_samples: int, trigger_delay_samples: int, registers: list[dict[str, str]]
+    ) -> None:
         n_sample = total_samples
         max_size = self.max_sample_number
         self._check_samples_and_max_size(n_sample, max_size, registers)

@@ -62,7 +62,10 @@ class Motion(metaclass=MCMetaClass):
         )
 
     def set_operation_mode(
-        self, operation_mode: Union[OperationMode, int], servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
+        self,
+        operation_mode: Union[OperationMode, int],
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
     ) -> None:
         """Set operation mode to a target servo and axis.
 
@@ -445,7 +448,9 @@ class Motion(metaclass=MCMetaClass):
             self.set_voltage_direct(value, servo=servo, axis=axis)
 
     @staticmethod
-    def ramp_generator(init_v: float, final_v: float, total_t: float, interval: Optional[float]=None) -> Generator[float, None, None]:
+    def ramp_generator(
+        init_v: float, final_v: float, total_t: float, interval: Optional[float] = None
+    ) -> Generator[float, None, None]:
         slope = (final_v - init_v) / total_t
         init_time = time.time()
         yield init_v
@@ -495,7 +500,9 @@ class Motion(metaclass=MCMetaClass):
             raise IMException("Actual velocity value has to be an integer")
         return actual_velocity
 
-    def get_actual_current_direct(self, servo: str=DEFAULT_SERVO, axis: int=DEFAULT_AXIS) -> float:
+    def get_actual_current_direct(
+        self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
+    ) -> float:
         """
         Returns actual direct current register.
 
@@ -514,7 +521,9 @@ class Motion(metaclass=MCMetaClass):
             raise IMException("Actual current direct value has to be a float")
         return actual_current_direct
 
-    def get_actual_current_quadrature(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> float:
+    def get_actual_current_quadrature(
+        self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
+    ) -> float:
         """
         Returns actual quadrature current register.
 

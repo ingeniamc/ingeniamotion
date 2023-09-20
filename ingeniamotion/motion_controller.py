@@ -50,7 +50,7 @@ class MotionController:
 
         """
         drive = self._get_drive(servo)
-        return drive.is_alive() # type: ignore [no-any-return]
+        return drive.is_alive()  # type: ignore [no-any-return]
 
     def _get_network(self, servo: str) -> Network:
         """Return servo network instance.

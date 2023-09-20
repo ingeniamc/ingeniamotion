@@ -9,8 +9,9 @@ from ingeniamotion.exceptions import IMStatusWordError
 DEFAULT_SERVO = "default"
 DEFAULT_AXIS = 1
 
-T = TypeVar('T')
+T = TypeVar("T")
 F = Callable[..., None]
+
 
 class MCMetaClass(type):
     """MotionController submodules metaclass to add servo checker for all
@@ -22,7 +23,9 @@ class MCMetaClass(type):
 
     SERVO_ARG_NAME: ClassVar[str] = "servo"
 
-    def __new__(mcs: type["MCMetaClass"], name: str, bases: tuple[type, ...], local: dict[str, Any]) -> "MCMetaClass":
+    def __new__(
+        mcs: type["MCMetaClass"], name: str, bases: tuple[type, ...], local: dict[str, Any]
+    ) -> "MCMetaClass":
         """If a function has argument named servo,
         decorates it with check_servo decorator.
         """
@@ -39,7 +42,7 @@ class MCMetaClass(type):
         """
 
         @wraps(func)
-        def wrapper(self, *args, **kwargs): # type: ignore
+        def wrapper(self, *args, **kwargs):  # type: ignore
             mc = self.mc
             func_args = inspect.getfullargspec(func).args
             servo_index = func_args.index(mcs.SERVO_ARG_NAME)
@@ -60,7 +63,7 @@ class MCMetaClass(type):
         """
 
         @wraps(func)
-        def wrapper(self, *args, **kwargs): # type: ignore
+        def wrapper(self, *args, **kwargs):  # type: ignore
             mc = self.mc
             servo = kwargs.get("servo", DEFAULT_SERVO)
             axis = kwargs.get("axis", DEFAULT_AXIS)
