@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<IngeniaDictionary>
+  <Header>
+    <Version>2</Version>
+    <DefaultLanguage>en_US</DefaultLanguage>
+  </Header>
+  <Body>
+    <Device family="Summit" firmwareVersion="" ProductCode="123456789" RevisionNumber="12345" Interface="ETH" name="Generic">
+      <Registers>
+        <Register access="r" address_type="NVM_NONE" address="0x00A0" dtype="u16" id="DRV_AXIS_NUMBER" units="cnt" subnode="0" cyclic="CONFIG" desc="" cat_id="IDENTIFICATION">
+          <Labels>
+            <Label lang="en_US">Number Axis</Label>
+          </Labels>
+        </Register>
+      </Registers>
+    </Device>
+    <Errors>
+      <Error id="0x0000FF43" affected_module="Communication" error_type="cyclic">
+        <Labels>
+          <Label lang="en_US">Cyclic timeout Ethercat PDO lifeguard</Label>
+        </Labels>
+      </Error>
+    </Errors>
+  </Body>
+  <DriveImage encoding="xs:base64Binary">
+    
+  </DriveImage>
+</IngeniaDictionary>

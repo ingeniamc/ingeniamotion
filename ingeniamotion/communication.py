@@ -1,7 +1,7 @@
 import time
 import ifaddr
 import subprocess
-from os import path
+from os import path, remove
 from functools import partial
 from typing import Optional, Union, Callable, List
 
@@ -21,6 +21,7 @@ from ingenialink.eoe.network import EoENetwork
 from ingeniamotion.exceptions import IMException, IMRegisterWrongAccess
 from ingeniamotion.motion_controller import MotionController
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
+from ingeniamotion.comkit import create_comkit_dictionary
 
 
 class Communication(metaclass=MCMetaClass):
@@ -230,6 +231,51 @@ class Communication(metaclass=MCMetaClass):
             servo_status_listener,
             net_status_listener,
         )
+
+    def connect_servo_comkit(
+        self,
+        ip: str,
+        coco_dict_path: str,
+        moco_dict_path: str,
+        alias: str = DEFAULT_SERVO,
+        port: int = 1061,
+        connection_timeout: int = 1,
+        servo_status_listener: bool = False,
+        net_status_listener: bool = False,
+    ) -> None:
+        """Connect to target servo using a COM-KIT
+
+        Args:
+            ip : servo IP
+            coco_dict_path : COCO dictionary path.
+            moco_dict_path : MOCO dictionary path.
+            alias : servo alias to reference it. ``default`` by default.
+            port : servo port. ``1061`` by default.
+            connection_timeout: Timeout in seconds for connection.
+                ``1`` seconds by default.
+            servo_status_listener : Toggle the listener of the servo for
+                its status, errors, faults, etc.
+            net_status_listener : Toggle the listener of the network
+                status, connection and disconnection.
+
+        Raises:
+            FileNotFoundError: If a dict file doesn't exist.
+            ingenialink.exceptions.ILError: If the servo's IP or port is incorrect.
+        """
+        for dict_path in [coco_dict_path, moco_dict_path]:
+            if not path.isfile(dict_path):
+                raise FileNotFoundError(f"{dict_path} file does not exist!")
+        dict_path = create_comkit_dictionary(coco_dict_path, moco_dict_path)
+        self.__servo_connect(
+            ip,
+            dict_path,
+            alias,
+            port,
+            connection_timeout,
+            servo_status_listener=servo_status_listener,
+            net_status_listener=net_status_listener,
+        )
+        remove(dict_path)
 
     @staticmethod
     def __get_adapter_name(address: str) -> Optional[str]:
