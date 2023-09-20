@@ -1,5 +1,6 @@
 from enum import IntEnum
 import time
+from typing import Optional
 import ingenialogger
 
 from ingeniamotion.enums import (
@@ -9,9 +10,9 @@ from ingeniamotion.enums import (
     SensorType,
     SeverityLevel,
 )
-from ingeniamotion.exceptions import IMRegisterNotExist
+from ingeniamotion.exceptions import IMException, IMRegisterNotExist
 from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
-from .. import MotionController
+from ingeniamotion import MotionController
 
 
 class Phasing(BaseTest):
@@ -69,8 +70,8 @@ class Phasing(BaseTest):
         self.servo = servo
         self.axis = axis
         self.backup_registers_names = self.BACKUP_REGISTERS
-        self.comm = None
-        self.ref = None
+        self.comm: Optional[SensorType] = None
+        self.ref: Optional[SensorType] = None
         self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
 
         self.default_phasing_current = default_current
@@ -87,10 +88,13 @@ class Phasing(BaseTest):
         max_current_drive = self.mc.communication.get_register(
             self.MAX_CURRENT_REGISTER, servo=self.servo, axis=self.axis
         )
-
+        if not isinstance(max_current_drive, float):
+            raise IMException("Max. current of the drive has to be a float")
         max_current_motor = self.mc.communication.get_register(
             self.RATED_CURRENT_REGISTER, servo=self.servo, axis=self.axis
         )
+        if not isinstance(max_current_motor, float):
+            raise IMException("Rated current has to be a float")
         max_test_current = min(max_current_drive, max_current_motor)
 
         if self.default_phasing_current:
@@ -108,9 +112,12 @@ class Phasing(BaseTest):
                 axis=self.axis,
             )
         else:
-            self.pha_current = self.mc.communication.get_register(
+            pha_current = self.mc.communication.get_register(
                 self.MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER, servo=self.servo, axis=self.axis
             )
+            if not isinstance(pha_current, float):
+                raise IMException(f"{self.MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER} has to be a float")
+            self.pha_current = pha_current
             if self.pha_current > max_test_current:
                 raise TestError("Defined phasing current is higher than configured maximum current")
         if self.default_phasing_timeout:
@@ -190,14 +197,20 @@ class Phasing(BaseTest):
 
         self.logger.info("Set phasing current to %.2f A", self.pha_current)
 
-        self.pha_timeout = self.mc.communication.get_register(
+        pha_timeout = self.mc.communication.get_register(
             self.PHASING_TIMEOUT_REGISTER, servo=self.servo, axis=self.axis
         )
+        if not isinstance(pha_timeout, int):
+            raise IMException(f"{self.PHASING_TIMEOUT_REGISTER} has to be a integer")
+        self.pha_timeout = pha_timeout
         self.logger.info(f"Set phasing timeout to {self.pha_timeout / 1000} s")
 
-        self.pha_accuracy = self.mc.communication.get_register(
+        pha_accuracy = self.mc.communication.get_register(
             self.PHASING_ACCURACY_REGISTER, servo=self.servo, axis=self.axis
         )
+        if not isinstance(pha_accuracy, int):
+            raise IMException(f"{self.PHASING_ACCURACY_REGISTER} has to be a integer")
+        self.pha_accuracy = pha_accuracy
         self.logger.info(f"Set phasing accuracy to {self.pha_accuracy} mº")
 
         self.reaction_codes_to_warning()
