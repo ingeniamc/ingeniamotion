@@ -30,6 +30,8 @@ class DigitalHallTest(Feedbacks):
 
     @BaseTest.stoppable
     def halls_extra_settings(self) -> None:
+        if not isinstance(self.pair_poles, int):
+            raise IMException("Pair poles has to be an integer")
         self.mc.communication.set_register(
             self.DIG_HALL_POLE_PAIRS_REGISTER, self.pair_poles, servo=self.servo, axis=self.axis
         )
