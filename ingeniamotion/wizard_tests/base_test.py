@@ -1,15 +1,15 @@
-from typing import Any, Union, Optional
+from typing import TYPE_CHECKING, Any, Union, Optional
 
 import ingenialogger
 
-from enum import IntEnum
 from abc import ABC, abstractmethod
 from ingenialink.exceptions import ILError
 
 from ingeniamotion.exceptions import IMRegisterNotExist, IMRegisterWrongAccess
 from ingeniamotion.metaclass import DEFAULT_SERVO
-from .stoppable import Stoppable, StopException
-from .. import MotionController
+from ingeniamotion.wizard_tests.stoppable import Stoppable, StopException
+if TYPE_CHECKING:
+    from ingeniamotion import MotionController
 from ingeniamotion.enums import SeverityLevel
 
 
@@ -24,7 +24,7 @@ class BaseTest(ABC, Stoppable):
         self.backup_registers_names: list[str] = []
         self.backup_registers: dict[int, dict[str, Union[int, float, str]]] = {}
         self.suggested_registers: dict[str, Union[int, float, str]] = {}
-        self.mc: MotionController
+        self.mc: "MotionController"
         self.servo: str = DEFAULT_SERVO
         self.axis: int = 0
         self.report: Optional[dict[str, Any]] = None

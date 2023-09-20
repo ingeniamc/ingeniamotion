@@ -1,6 +1,6 @@
 from enum import IntEnum
 import time
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 import ingenialogger
 
 from ingeniamotion.enums import (
@@ -12,7 +12,8 @@ from ingeniamotion.enums import (
 )
 from ingeniamotion.exceptions import IMException, IMRegisterNotExist
 from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
-from ingeniamotion import MotionController
+if TYPE_CHECKING:
+    from ingeniamotion import MotionController
 
 
 class Phasing(BaseTest):
@@ -64,7 +65,7 @@ class Phasing(BaseTest):
 
     def __init__(
         self,
-        mc: MotionController,
+        mc: "MotionController",
         servo: str,
         axis: int,
         default_current: bool = True,

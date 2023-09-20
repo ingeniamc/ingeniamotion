@@ -2,8 +2,8 @@ from typing import TYPE_CHECKING, Optional
 
 from ingenialink.register import Register, REG_ACCESS, REG_DTYPE
 
-from .exceptions import IMRegisterNotExist
-from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
+from ingeniamotion.exceptions import IMRegisterNotExist
+from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.comkit import create_comkit_dictionary
 
 

@@ -1,10 +1,12 @@
+from typing import TYPE_CHECKING
 import ingenialogger
 
 from enum import IntEnum
 
 from ingeniamotion.wizard_tests.base_test import BaseTest
 from ingeniamotion.enums import SeverityLevel
-from .. import MotionController
+if TYPE_CHECKING:
+    from ingeniamotion import MotionController
 
 
 class STOTest(BaseTest):
@@ -41,7 +43,7 @@ class STOTest(BaseTest):
 
     BACKUP_REGISTERS: list[str] = []
 
-    def __init__(self, mc: MotionController, servo: str, axis: int) -> None:
+    def __init__(self, mc: "MotionController", servo: str, axis: int) -> None:
         super().__init__()
         self.mc = mc
         self.servo = servo

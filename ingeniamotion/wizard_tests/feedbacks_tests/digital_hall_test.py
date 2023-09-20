@@ -1,4 +1,8 @@
-from ingeniamotion import MotionController
+from typing import TYPE_CHECKING
+
+
+if TYPE_CHECKING:
+    from ingeniamotion import MotionController
 from ingeniamotion.exceptions import IMException
 from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
 from ingeniamotion.wizard_tests.base_test import BaseTest
@@ -19,7 +23,7 @@ class DigitalHallTest(Feedbacks):
 
     SENSOR_TYPE_FEEDBACK_TEST = SensorType.HALLS
 
-    def __init__(self, mc: MotionController, servo: str, axis: int) -> None:
+    def __init__(self, mc: "MotionController", servo: str, axis: int) -> None:
         super().__init__(mc, servo, axis)
         self.backup_registers_names.extend(self.BACKUP_REGISTERS_HALLS)
 

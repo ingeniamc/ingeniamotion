@@ -3,7 +3,7 @@ import ifaddr
 import subprocess
 from os import path, remove
 from functools import partial
-from typing import Optional, Union, Callable, List
+from typing import TYPE_CHECKING, Optional, Union, Callable, List
 
 import ingenialogger
 from ingenialink.exceptions import ILError
@@ -19,8 +19,9 @@ from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.eoe.network import EoENetwork
 
 from ingeniamotion.exceptions import IMException, IMRegisterWrongAccess
-from ingeniamotion.motion_controller import MotionController
-from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
+if TYPE_CHECKING:
+    from ingeniamotion.motion_controller import MotionController
+from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.comkit import create_comkit_dictionary
 
 
@@ -29,7 +30,7 @@ class Communication(metaclass=MCMetaClass):
 
     FORCE_SYSTEM_BOOT_CODE_REGISTER = "DRV_BOOT_COCO_FORCE"
 
-    def __init__(self, motion_controller: MotionController) -> None:
+    def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
 

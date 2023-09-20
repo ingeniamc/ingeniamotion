@@ -1,8 +1,10 @@
+from typing import TYPE_CHECKING
 import ingenialogger
 
 from ingeniamotion.enums import OperationMode, HomingMode
-from ingeniamotion.motion_controller import MotionController
-from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
+if TYPE_CHECKING:
+    from ingeniamotion.motion_controller import MotionController
+from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
 class Homing(metaclass=MCMetaClass):
@@ -16,7 +18,7 @@ class Homing(metaclass=MCMetaClass):
     HOMING_ZERO_VELOCITY_REGISTER = "HOM_SPEED_ZERO"
     HOMING_INDEX_PULSE_SOURCE_REGISTER = "HOM_IDX_PULSE_SRC"
 
-    def __init__(self, motion_controller: MotionController) -> None:
+    def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
 

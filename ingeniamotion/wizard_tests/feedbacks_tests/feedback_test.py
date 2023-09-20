@@ -1,11 +1,12 @@
 from enum import IntEnum
 import time
 import math
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 import ingenialogger
 
-from ingeniamotion import MotionController
+if TYPE_CHECKING:
+    from ingeniamotion import MotionController
 from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
 from ingeniamotion.exceptions import IMRegisterNotExist, IMException
 from ingeniamotion.enums import OperationMode, SeverityLevel, SensorType
@@ -81,7 +82,7 @@ class Feedbacks(BaseTest):
 
     SENSOR_TYPE_FEEDBACK_TEST: SensorType
 
-    def __init__(self, mc: MotionController, servo: str, axis: int) -> None:
+    def __init__(self, mc: "MotionController", servo: str, axis: int) -> None:
         super().__init__()
         self.mc = mc
         self.servo = servo

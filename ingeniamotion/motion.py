@@ -1,10 +1,11 @@
 import time
-from typing import Generator, Optional, Union
+from typing import TYPE_CHECKING, Generator, Optional, Union
 
 import ingenialogger
 from ingenialink.exceptions import ILError
 
-from ingeniamotion.motion_controller import MotionController
+if TYPE_CHECKING:
+    from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.enums import OperationMode, SensorType, PhasingMode, GeneratorMode
 from ingeniamotion.exceptions import IMException, IMTimeoutError
@@ -35,7 +36,7 @@ class Motion(metaclass=MCMetaClass):
     STATUS_WORD_TARGET_REACHED_BIT = 0x800
     CONTROL_WORD_TARGET_LATCH_BIT = 0x200
 
-    def __init__(self, motion_controller: MotionController) -> None:
+    def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
 

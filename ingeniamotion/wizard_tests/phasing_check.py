@@ -1,12 +1,14 @@
 from enum import IntEnum
 import time
+from typing import TYPE_CHECKING
 import ingenialogger
 from ingeniamotion.exceptions import IMException
 
 from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
 from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 from ingeniamotion.enums import SensorType, OperationMode, PhasingMode, SeverityLevel
-from .. import MotionController
+if TYPE_CHECKING:
+    from ingeniamotion import MotionController
 
 
 class PhasingCheck(BaseTest):
@@ -32,7 +34,7 @@ class PhasingCheck(BaseTest):
     }
 
     def __init__(
-        self, mc: MotionController, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
+        self, mc: "MotionController", servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> None:
         super().__init__()
         self.mc = mc

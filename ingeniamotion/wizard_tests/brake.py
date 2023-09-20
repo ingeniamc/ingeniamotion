@@ -1,14 +1,14 @@
-from typing import Union
+from typing import TYPE_CHECKING, Union
 
 import ingenialogger
-
 from ingenialink.exceptions import ILError
 
-from .base_test import BaseTest
-from .stoppable import StopException
+from ingeniamotion.wizard_tests.base_test import BaseTest
+from ingeniamotion.wizard_tests.stoppable import StopException
 from ingeniamotion.enums import OperationMode, SeverityLevel
 from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
-from .. import MotionController
+if TYPE_CHECKING:
+    from ingeniamotion import MotionController
 
 
 class Brake(BaseTest):
@@ -25,7 +25,7 @@ class Brake(BaseTest):
     ]
 
     def __init__(
-        self, mc: MotionController, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
+        self, mc: "MotionController", servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> None:
         super().__init__()
         self.mc = mc

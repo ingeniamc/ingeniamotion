@@ -1,8 +1,6 @@
-import _typeshed
 import inspect
 from functools import wraps
-from typing import Any, Callable, ClassVar, Type, TypeVar
-from ingeniamotion.enums import SensorType
+from typing import Any, Callable, ClassVar, TypeVar
 
 from ingeniamotion.exceptions import IMStatusWordError
 

@@ -1,10 +1,11 @@
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 import ingenialogger
 
 from ingeniamotion.metaclass import DEFAULT_SERVO
 from ingeniamotion.exceptions import IMException, IMStatusWordError
 from ingeniamotion.enums import MonitoringVersion, MonitoringSoCType, MonitoringSoCConfig
-from ingeniamotion.motion_controller import MotionController
+if TYPE_CHECKING:
+    from ingeniamotion.motion_controller import MotionController
 
 from ingeniamotion.monitoring.base_monitoring import Monitoring, check_monitoring_disabled
 
@@ -23,7 +24,7 @@ class MonitoringV1(Monitoring):
         MonitoringSoCConfig.TRIGGER_CONFIG_FALLING: "MON_CFG_FALLING_CONDITION",
     }
 
-    def __init__(self, mc: MotionController, servo: str = DEFAULT_SERVO) -> None:
+    def __init__(self, mc: "MotionController", servo: str = DEFAULT_SERVO) -> None:
         super().__init__(mc, servo)
         self._version = mc.capture._check_version(servo)
         self.logger = ingenialogger.get_logger(__name__, drive=mc.servo_name(servo))

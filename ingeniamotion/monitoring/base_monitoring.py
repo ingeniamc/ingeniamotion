@@ -4,8 +4,7 @@ import numpy as np
 import ingenialogger
 from functools import wraps
 from abc import ABC, abstractmethod
-from typing import Optional, Union, Callable
-from typing_extensions import ParamSpec
+from typing import TYPE_CHECKING, Optional, Union, Callable
 
 from ingenialink.enums.register import REG_DTYPE
 
@@ -17,7 +16,8 @@ from ingeniamotion.enums import (
     MonitoringSoCConfig,
     MonitoringVersion,
 )
-from ingeniamotion.motion_controller import MotionController
+if TYPE_CHECKING:
+    from ingeniamotion.motion_controller import MotionController
 
 
 def check_monitoring_disabled(func: Callable[..., None]) -> Callable[..., None]:
@@ -64,7 +64,7 @@ class Monitoring(ABC):
     MONITORING_ACTUAL_NUMBER_SAMPLES_REGISTER = "MON_CFG_CYCLES_VALUE"
     MONITORING_FORCE_TRIGGER_REGISTER = "MON_CMD_FORCE_TRIGGER"
 
-    def __init__(self, mc: MotionController, servo: str = DEFAULT_SERVO) -> None:
+    def __init__(self, mc: "MotionController", servo: str = DEFAULT_SERVO) -> None:
         super().__init__()
         self.mc = mc
         self.servo = servo

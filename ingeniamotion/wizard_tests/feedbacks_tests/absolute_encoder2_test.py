@@ -1,4 +1,8 @@
-from ingeniamotion import MotionController
+from typing import TYPE_CHECKING
+
+
+if TYPE_CHECKING:
+    from ingeniamotion import MotionController
 from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
 from ingeniamotion.wizard_tests.base_test import BaseTest
 from ingeniamotion.enums import SensorType
@@ -11,7 +15,7 @@ class AbsoluteEncoder2Test(Feedbacks):
 
     SENSOR_TYPE_FEEDBACK_TEST = SensorType.BISSC2
 
-    def __init__(self, mc: MotionController, servo: str, axis: int):
+    def __init__(self, mc: "MotionController", servo: str, axis: int):
         super().__init__(mc, servo, axis)
         self.backup_registers_names.extend(self.BACKUP_REGISTERS_BISSC2)
 

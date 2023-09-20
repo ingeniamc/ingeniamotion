@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 from ingenialink.poller import Poller
 from numpy import ndarray
@@ -15,7 +15,8 @@ from ingeniamotion.enums import (
     MonitoringSoCType,
     MonitoringSoCConfig,
 )
-from ingeniamotion.motion_controller import MotionController
+if TYPE_CHECKING:
+    from ingeniamotion.motion_controller import MotionController
 
 
 class Capture(metaclass=MCMetaClass):
@@ -46,7 +47,7 @@ class Capture(metaclass=MCMetaClass):
         MonitoringVersion.MONITORING_V3: 0x10,
     }
 
-    def __init__(self, motion_controller: MotionController) -> None:
+    def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
 
     def create_poller(

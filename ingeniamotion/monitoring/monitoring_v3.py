@@ -1,4 +1,4 @@
-from typing import Callable, Optional, Union
+from typing import TYPE_CHECKING, Callable, Optional, Union
 import ingenialogger
 from ingeniamotion.exceptions import IMException
 
@@ -9,7 +9,8 @@ from ingeniamotion.enums import (
     MonitoringProcessStage,
     MonitoringSoCType,
 )
-from ingeniamotion.motion_controller import MotionController
+if TYPE_CHECKING:
+    from ingeniamotion.motion_controller import MotionController
 
 from ingeniamotion.monitoring.base_monitoring import Monitoring, check_monitoring_disabled
 
@@ -19,7 +20,7 @@ class MonitoringV3(Monitoring):
     MONITOR_START_CONDITION_CONFIG_REGISTER = "MON_CFG_EOC_TYPE"
     MONITORING_TRIGGER_THRESHOLD_REGISTER = "MON_CFG_RISING_CONDITION"
 
-    def __init__(self, mc: MotionController, servo: str = DEFAULT_SERVO) -> None:
+    def __init__(self, mc: "MotionController", servo: str = DEFAULT_SERVO) -> None:
         super().__init__(mc, servo)
         self._version = MonitoringVersion.MONITORING_V3
         self.logger = ingenialogger.get_logger(__name__, drive=mc.servo_name(servo))

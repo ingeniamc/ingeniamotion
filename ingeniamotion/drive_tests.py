@@ -1,9 +1,10 @@
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 import ingenialogger
 
 from ingeniamotion.enums import SensorType, SeverityLevel
 from ingeniamotion.exceptions import IMException
-from ingeniamotion.motion_controller import MotionController
+if TYPE_CHECKING:
+    from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
 from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder1_test import AbsoluteEncoder1Test
 from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental1_test import (
@@ -32,7 +33,7 @@ class DriveTests(metaclass=MCMetaClass):
         SensorType.QEI2: DigitalIncremental2Test,
     }
 
-    def __init__(self, motion_controller: MotionController) -> None:
+    def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
 

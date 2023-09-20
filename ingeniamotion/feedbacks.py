@@ -1,10 +1,11 @@
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 import ingenialogger
 
 from ingeniamotion.enums import SensorType, SensorCategory
 from ingeniamotion.exceptions import IMException
-from ingeniamotion.motion_controller import MotionController
-from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
+if TYPE_CHECKING:
+    from ingeniamotion.motion_controller import MotionController
+from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
 class Feedbacks(metaclass=MCMetaClass):
@@ -26,7 +27,7 @@ class Feedbacks(metaclass=MCMetaClass):
     POSITION_FEEDBACK_REGISTER = "CL_POS_FBK_SENSOR"
     AUXILIAR_FEEDBACK_REGISTER = "CL_AUX_FBK_SENSOR"
 
-    def __init__(self, motion_controller: MotionController) -> None:
+    def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
         self.feedback_resolution_functions = {

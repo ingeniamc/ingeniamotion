@@ -1,17 +1,17 @@
-import re
 import ingenialogger
 
 from os import path
 from enum import IntEnum
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 from ingeniamotion.exceptions import IMException
 
-from ingeniamotion.motion_controller import MotionController
+if TYPE_CHECKING:
+    from ingeniamotion.motion_controller import MotionController
 
-from .homing import Homing
-from .feedbacks import Feedbacks
-from .enums import PhasingMode, GeneratorMode
-from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
+from ingeniamotion.homing import Homing
+from ingeniamotion.feedbacks import Feedbacks
+from ingeniamotion.enums import PhasingMode, GeneratorMode
+from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
 class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
@@ -56,7 +56,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
     STO_INACTIVE_STATE = 23
     STO_LATCHED_STATE = 31
 
-    def __init__(self, motion_controller: MotionController) -> None:
+    def __init__(self, motion_controller: "MotionController") -> None:
         Homing.__init__(self, motion_controller)
         Feedbacks.__init__(self, motion_controller)
         self.mc = motion_controller

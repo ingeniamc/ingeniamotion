@@ -1,10 +1,11 @@
 from enum import IntEnum
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional
 from ingeniamotion.exceptions import IMException
 
-from ingeniamotion.motion_controller import MotionController
+if TYPE_CHECKING:
+    from ingeniamotion.motion_controller import MotionController
 
-from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
+from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
 class Errors(metaclass=MCMetaClass):
@@ -59,7 +60,7 @@ class Errors(metaclass=MCMetaClass):
     ERROR_WARNING_BIT = 0x10000000
     ERROR_WARNING_SHIFT = 28
 
-    def __init__(self, motion_controller: MotionController) -> None:
+    def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
 
     def __parse_error_to_tuple(
