@@ -4,6 +4,7 @@ import ingenialogger
 from ingeniamotion.metaclass import DEFAULT_SERVO
 from ingeniamotion.exceptions import IMException, IMStatusWordError
 from ingeniamotion.enums import MonitoringVersion, MonitoringSoCType, MonitoringSoCConfig
+
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 

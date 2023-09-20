@@ -19,6 +19,7 @@ from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.eoe.network import EoENetwork
 
 from ingeniamotion.exceptions import IMException, IMRegisterWrongAccess
+
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO

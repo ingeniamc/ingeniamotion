@@ -5,6 +5,7 @@ from enum import IntEnum
 
 from ingeniamotion.wizard_tests.base_test import BaseTest
 from ingeniamotion.enums import SeverityLevel
+
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
 

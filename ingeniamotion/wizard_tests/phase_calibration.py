@@ -12,6 +12,7 @@ from ingeniamotion.enums import (
 )
 from ingeniamotion.exceptions import IMException, IMRegisterNotExist
 from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
+
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
 

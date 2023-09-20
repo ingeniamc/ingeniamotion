@@ -16,6 +16,7 @@ from ingeniamotion.enums import (
     MonitoringSoCConfig,
     MonitoringVersion,
 )
+
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 

@@ -3,6 +3,7 @@ import ingenialogger
 
 from ingeniamotion.enums import SensorType, SeverityLevel
 from ingeniamotion.exceptions import IMException
+
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks

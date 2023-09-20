@@ -3,6 +3,7 @@ import ingenialogger
 
 from ingeniamotion.enums import SensorType, SensorCategory
 from ingeniamotion.exceptions import IMException
+
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO

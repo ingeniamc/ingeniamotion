@@ -8,6 +8,7 @@ from ingenialink.exceptions import ILError
 from ingeniamotion.exceptions import IMRegisterNotExist, IMRegisterWrongAccess
 from ingeniamotion.metaclass import DEFAULT_SERVO
 from ingeniamotion.wizard_tests.stoppable import Stoppable, StopException
+
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
 from ingeniamotion.enums import SeverityLevel

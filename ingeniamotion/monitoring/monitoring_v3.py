@@ -9,6 +9,7 @@ from ingeniamotion.enums import (
     MonitoringProcessStage,
     MonitoringSoCType,
 )
+
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
