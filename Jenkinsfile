@@ -44,6 +44,14 @@ pipeline {
                         '''
                     }
                 }
+                stage('Make a static type analysis') {
+                    steps {
+                        bat """
+                            cd C:\\Users\\ContainerAdministrator\\ingeniamotion
+                            venv\\Scripts\\python.exe -m mypy ingeniamotion
+                        """
+                    }
+                }
                 stage('Check formatting') {
                     steps {
                         bat """
