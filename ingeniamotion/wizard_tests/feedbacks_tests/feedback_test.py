@@ -90,7 +90,7 @@ class Feedbacks(BaseTest):
         self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
         self.feedback_resolution: Optional[int] = None
         self.pair_poles: Optional[int] = None
-        self.pos_vel_same_feedback = None
+        self.pos_vel_same_feedback = False
         self.resolution_multiplier = 1.0
         self.test_frequency = self.TEST_FREQUENCY
         self.backup_registers_names = self.BACKUP_REGISTERS
@@ -216,12 +216,15 @@ class Feedbacks(BaseTest):
         velocity_feedback_value = self.mc.configuration.get_velocity_feedback(
             servo=self.servo, axis=self.axis
         )
+        
         self.pos_vel_same_feedback = position_feedback_value == velocity_feedback_value
         if position_feedback_value == self.sensor:
-            self.resolution_multiplier = self.mc.communication.get_register(
+            resolution_multiplier = self.mc.communication.get_register(
                 self.POSITION_TO_VELOCITY_SENSOR_RATIO_REGISTER, servo=self.servo, axis=self.axis
             )
-
+            if not isinstance(resolution_multiplier, float):
+                raise IMException("Resolution multiplier has to be a float")
+            self.resolution_multiplier = resolution_multiplier
         # Read pole pairs and set to 1 for an electrical revolution
         self.pair_poles = self.mc.configuration.get_motor_pair_poles(
             servo=self.servo, axis=self.axis
@@ -269,13 +272,19 @@ class Feedbacks(BaseTest):
 
     @BaseTest.stoppable
     def current_ramp_up(self) -> None:
+        rated_current = self.mc.communication.get_register(
+            self.RATED_CURRENT_REGISTER, servo=self.servo, axis=self.axis
+        )
+        if not isinstance(rated_current, float):
+            raise IMException("Rated current has to be a float")
+        nominal_current = self.mc.communication.get_register(
+            self.MAXIMUM_CONTINUOUS_CURRENT_DRIVE_PROTECTION, servo=self.servo, axis=self.axis
+        )
+        if not isinstance(nominal_current, float):
+            raise IMException("Nominal current has to be a float")
         dict_currents = {
-            "Rated motor current": self.mc.communication.get_register(
-                self.RATED_CURRENT_REGISTER, servo=self.servo, axis=self.axis
-            ),
-            "Drive nominal current": self.mc.communication.get_register(
-                self.MAXIMUM_CONTINUOUS_CURRENT_DRIVE_PROTECTION, servo=self.servo, axis=self.axis
-            ),
+            "Rated motor current": rated_current,
+            "Drive nominal current": nominal_current,
         }
         max_current = min(dict_currents.values())
 
@@ -345,6 +354,8 @@ class Feedbacks(BaseTest):
         pos_vel_ratio = self.mc.communication.get_register(
             self.POSITION_TO_VELOCITY_SENSOR_RATIO_REGISTER, servo=self.servo, axis=self.axis
         )
+        if not isinstance(pos_vel_ratio, float):
+            raise IMException("Position to velocity sensor ratio value has to be a float")
         if self.pos_vel_same_feedback and not math.isclose(pos_vel_ratio, 1):
             return self.ResultType.POS_VEL_RATIO_ERROR
         if not self.pos_vel_same_feedback and math.isclose(pos_vel_ratio, 1):
