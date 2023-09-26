@@ -1,3 +1,4 @@
+from enum import Enum
 import os
 from typing import TYPE_CHECKING, Tuple, Union, Optional
 import xml.etree.ElementTree as ET
@@ -18,6 +19,12 @@ if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 logger = ingenialogger.get_logger(__name__)
+
+
+class COMMUNICATION_TYPE(Enum):
+    Canopen = 0
+    Ethernet = 1
+    Ethercat = 2
 
 
 class Information(metaclass=MCMetaClass):
@@ -186,7 +193,7 @@ class Information(metaclass=MCMetaClass):
         drive_name = drive.name
         return f"{drive_name}"
 
-    def get_communication_type(self, alias: str = DEFAULT_SERVO) -> str:
+    def get_communication_type(self, alias: str = DEFAULT_SERVO) -> COMMUNICATION_TYPE:
         """Get the connected drive's communication type.
 
         Args:
@@ -198,9 +205,9 @@ class Information(metaclass=MCMetaClass):
         """
         drive_network = self.mc._get_network(alias)
         communication_types = {
-            CanopenNetwork: "CANopen",
-            EoENetwork: "EtherCAT",
-            EthernetNetwork: "Ethernet",
+            CanopenNetwork: COMMUNICATION_TYPE.Canopen,
+            EoENetwork: COMMUNICATION_TYPE.Ethercat,
+            EthernetNetwork: COMMUNICATION_TYPE.Ethernet,
         }
         return communication_types[type(drive_network)]
 
