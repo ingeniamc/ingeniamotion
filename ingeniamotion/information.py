@@ -156,13 +156,14 @@ class Information(metaclass=MCMetaClass):
         return f"{product_name}"
 
     def get_target(self, alias: str = DEFAULT_SERVO) -> Union[int, str]:
-        """Get the target of the drive.
+        """Get the target of the drive. A target means an IP for Ethernet communications or
+        a Node ID for CANopen communications.
 
         Args:
             alias: alias of the servo.
 
         Returns:
-            The target.
+            An IP or a Node ID.
         """
         drive = self.mc.servos[alias]
         net = self.mc._get_network(alias)
@@ -174,7 +175,7 @@ class Information(metaclass=MCMetaClass):
             return int(drive.target)
 
     def get_name(self, alias: str = DEFAULT_SERVO) -> str:
-        """Get the drive name.
+        """Get the drive's name.
 
         Args:
             alias: Alias of the servo.
@@ -186,7 +187,7 @@ class Information(metaclass=MCMetaClass):
         return f"{drive_name}"
 
     def get_communication_type(self, alias: str = DEFAULT_SERVO) -> str:
-        """Get the type of the communication of the connected drive.
+        """Get the connected drive's communication type.
 
         Args:
             alias: alias of the connected drive.
