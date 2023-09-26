@@ -3,11 +3,9 @@ import os
 from typing import TYPE_CHECKING, Tuple, Union, Optional
 import xml.etree.ElementTree as ET
 
-from ingenialink import Servo
 from ingenialink.eoe.network import EoENetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.canopen.network import CanopenNetwork
-from ingenialink.exceptions import ILError
 from ingenialink.register import Register, REG_ACCESS, REG_DTYPE
 import ingenialogger
 
@@ -301,109 +299,3 @@ class Information(metaclass=MCMetaClass):
         except IndexError:
             # If there is no DriveImage tag in dictionary file
             return None
-
-    def get_drive_info_coco_moco(
-        self, alias: str
-    ) -> tuple[list[Optional[int]], list[Optional[int]], list[Optional[str]], list[Optional[int]]]:
-        """Get info from COCO and MOCO registers.
-
-        Args:
-            alias: Servo alias.
-
-        Returns:
-            Product codes (COCO, MOCO).
-            Revision numbers (COCO, MOCO).
-            FW versions (COCO, MOCO).
-            Serial numbers (COCO, MOCO).
-
-        """
-        prod_codes: list[Optional[int]] = [None, None]
-        rev_numbers: list[Optional[int]] = [None, None]
-        fw_versions: list[Optional[str]] = [None, None]
-        serial_number: list[Optional[int]] = [None, None]
-
-        for subnode in [0, 1]:
-            # Product codes
-            try:
-                prod_codes[subnode] = self.mc.communication.get_register(
-                    Servo.PRODUCT_ID_REGISTERS[subnode], alias, axis=subnode
-                )
-            except (
-                ILError,
-                IMException,
-            ) as e:
-                logger.error(e)
-            # Revision numbers
-            try:
-                rev_numbers[subnode] = self.mc.communication.get_register(
-                    Servo.REVISION_NUMBER_REGISTERS[subnode], alias, axis=subnode
-                )
-            except (ILError, IMException) as e:
-                logger.error(e)
-            # FW versions
-            try:
-                fw_versions[subnode] = self.mc.communication.get_register(
-                    Servo.SOFTWARE_VERSION_REGISTERS[subnode], alias, axis=subnode
-                )
-            except (ILError, IMException) as e:
-                logger.error(e)
-            # Serial numbers
-            try:
-                serial_number[subnode] = self.mc.communication.get_register(
-                    Servo.SERIAL_NUMBER_REGISTERS[subnode], alias, axis=subnode
-                )
-            except (ILError, IMException) as e:
-                logger.error(e)
-
-        return prod_codes, rev_numbers, fw_versions, serial_number
-
-    def get_drive_info(self, alias: str, force_reading: bool = False) -> tuple[int, int, str, int]:
-        """Get info from MOCO if it is available or from COCO if it is not.
-
-        Args:
-            alias: Servo alias.
-            force_reading: If True, cleans the cache before reading the drive.
-
-        Returns:
-            Product code.
-            Revision number.
-            FW version.
-            Serial number.
-        """
-        prod_codes, rev_numbers, fw_versions, serial_numbers = self.get_drive_info_coco_moco(alias)
-
-        prod_code = prod_codes[1] or prod_codes[0] or 0
-
-        rev_number = rev_numbers[1] or rev_numbers[0] or 0
-
-        fw_version = fw_versions[1] or fw_versions[0] or "-"
-        fw_version = "_" + ".".join(fw_version.split(".")[:4])
-
-        serial_number = serial_numbers[1] or serial_numbers[0] or 0
-
-        return prod_code, rev_number, fw_version, serial_number
-
-    def get_serial_number(self, alias: str) -> int:
-        """Get the serial number of a drive.
-
-        Args:
-            alias: Alias of the drive.
-
-        Returns:
-            Serial number
-        """
-        _, _, _, serial_number = self.get_drive_info(alias)
-        return serial_number
-
-    def get_fw_version(self, alias: str) -> str:
-        """Get the firmware version of a drive.
-
-        Args:
-            alias: Alias of the drive.
-
-        Returns:
-            Firmware version.
-        """
-        _, _, fw_version, _ = self.get_drive_info(alias)
-        fw_version = fw_version.replace("_", "")
-        return fw_version
