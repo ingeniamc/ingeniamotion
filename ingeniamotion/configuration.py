@@ -265,10 +265,10 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             velocity: maximum profile velocity in rev/s.
             servo : servo alias to reference it. ``default`` by default.
             axis : servo axis. ``1`` by default.
-            
+
         Raises:
             TypeError: Missing arguments. All the arguments given were None.
-            
+
         """
         if acceleration is None and deceleration is None and velocity is None:
             raise TypeError("Missing arguments. At least one argument is required.")
@@ -334,7 +334,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
         pos_vel_loop_rate = self.mc.communication.get_register(
             self.POSITION_AND_VELOCITY_LOOP_RATE_REGISTER, servo=servo, axis=axis
@@ -352,10 +352,10 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             Current loop rate frequency in Hz.
-            
+
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
         current_loop = self.mc.communication.get_register(
             self.CURRENT_LOOP_RATE_REGISTER, servo=servo, axis=axis
@@ -382,7 +382,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             ValueError: If power stage frequency selection register has an
                 invalid value.
             TypeError: If some parameter has an error type.
-        
+
         """
         pow_stg_freq = self.mc.communication.get_register(
             self.POWER_STAGE_FREQUENCY_SELECTION_REGISTER, servo=servo, axis=axis
@@ -447,7 +447,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
         status_word = self.mc.communication.get_register(self.STATUS_WORD_REGISTER, servo, axis)
         if not isinstance(status_word, int):
@@ -512,7 +512,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
         phasing_mode = self.mc.communication.get_register(self.PHASING_MODE_REGISTER, servo, axis)
         if not isinstance(phasing_mode, int):
@@ -566,7 +566,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             Pair poles value.
-        
+
         Raises:
             TypeError: If some parameter has an error type.
         """
@@ -587,10 +587,10 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             STO register value.
-        
+
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
         sto_status = self.mc.communication.get_register(
             self.STO_STATUS_REGISTER, servo=servo, axis=axis

@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Optional
 import ingenialogger
 
 from ingeniamotion.enums import SensorType, SensorCategory
+
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
@@ -52,10 +53,10 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             Type of feedback configured.
-            
+
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
         commutation_feedback = self.mc.communication.get_register(
             self.COMMUTATION_FEEDBACK_REGISTER, servo=servo, axis=axis
@@ -125,10 +126,10 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             Type of feedback configured
-            
+
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
         reference_feedback = self.mc.communication.get_register(
             self.REFERENCE_FEEDBACK_REGISTER, servo=servo, axis=axis
@@ -198,10 +199,10 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             Type of feedback configured
-            
+
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
         velocity_feedback = self.mc.communication.get_register(
             self.VELOCITY_FEEDBACK_REGISTER, servo=servo, axis=axis
@@ -271,10 +272,10 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             Type of feedback configured.
-            
+
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
         position_feedback = self.mc.communication.get_register(
             self.POSITION_FEEDBACK_REGISTER, servo=servo, axis=axis
@@ -344,10 +345,10 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             Type of feedback configured
-            
+
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
         auxiliar_feedback = self.mc.communication.get_register(
             self.AUXILIAR_FEEDBACK_REGISTER, servo=servo, axis=axis
@@ -416,10 +417,10 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             Resolution of ABS1 encoder.
-            
+
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
         single_turn_bits = self.mc.communication.get_register(
             "FBK_BISS1_SSI1_POS_ST_BITS", servo=servo, axis=axis
@@ -442,10 +443,10 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             Resolution of incremental encoder 1.
-            
+
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
         resolution = self.mc.communication.get_register(
             "FBK_DIGENC1_RESOLUTION", servo=servo, axis=axis
@@ -465,10 +466,10 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             Resolution of digital halls encoder.
-            
+
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
         pair_poles = self.mc.communication.get_register(
             "FBK_DIGHALL_PAIRPOLES", servo=servo, axis=axis
@@ -489,10 +490,10 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             Resolution of secondary SSI encoder.
-            
+
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
         secondary_single_turn_bits = self.mc.communication.get_register(
             "FBK_SSI2_POS_ST_BITS", servo=servo, axis=axis
@@ -513,10 +514,10 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             Resolution of ABS2 encoder.
-            
+
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
         serial_slave_1_single_turn_bits = self.mc.communication.get_register(
             "FBK_BISS2_POS_ST_BITS", servo=servo, axis=axis
@@ -537,10 +538,10 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             Resolution of incremental encoder 2 encoder.
-            
+
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
         resolution = self.mc.communication.get_register(
             "FBK_DIGENC2_RESOLUTION", servo=servo, axis=axis

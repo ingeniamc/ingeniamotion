@@ -193,9 +193,7 @@ class Feedbacks(BaseTest):
     @BaseTest.stoppable
     def suggest_polarity(self, pol: Polarity) -> None:
         if not isinstance(self.FEEDBACK_POLARITY_REGISTER, str):
-            raise TypeError(
-                "Feedback polarity register has to be set before polarity suggestion."
-            )
+            raise TypeError("Feedback polarity register has to be set before polarity suggestion.")
         polarity_uid = self.FEEDBACK_POLARITY_REGISTER
         self.suggested_registers[polarity_uid] = pol
 

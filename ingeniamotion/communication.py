@@ -538,7 +538,7 @@ class Communication(metaclass=MCMetaClass):
             ingenialink.exceptions.ILAccessError: If the register access is write-only.
             IMRegisterNotExist: If the register doesn't exist.
             TypeError: If some parameter has an error type.
-        
+
         """
         drive = self.mc.servos[servo]
         register_dtype = self.mc.info.register_type(register, axis, servo=servo)

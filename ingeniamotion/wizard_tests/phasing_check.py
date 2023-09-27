@@ -7,6 +7,7 @@ import ingenialogger
 from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
 from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 from ingeniamotion.enums import SensorType, OperationMode, PhasingMode, SeverityLevel
+
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
 
@@ -159,9 +160,7 @@ class PhasingCheck(BaseTest):
             self.MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER, servo=self.servo, axis=self.axis
         )
         if not isinstance(phasing_current, float):
-            raise TypeError(
-                f"{self.MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER} has to be an integer"
-            )
+            raise TypeError(f"{self.MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER} has to be an integer")
         max_test_current = round(phasing_current, 2)
         ref_feedback = self.mc.configuration.get_reference_feedback(
             servo=self.servo, axis=self.axis

@@ -112,7 +112,7 @@ class Capture(metaclass=MCMetaClass):
         Raises:
             IMRegisterNotExist: If register does not exist in dictionary.
             TypeError: If some parameter has an error type.
-        
+
         """
         poller = Poller(self.mc.servos[servo], len(registers))
         poller.configure(sampling_time, buffer_size)
@@ -140,7 +140,7 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             NotImplementedError: If an wrong monitoring version is requested.
-        
+
         """
         version = self._check_version(servo)
         if version == MonitoringVersion.MONITORING_V3:
@@ -280,7 +280,7 @@ class Capture(metaclass=MCMetaClass):
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
-        
+
         """
         drive = self.mc._get_drive(servo)
         try:
@@ -416,7 +416,7 @@ class Capture(metaclass=MCMetaClass):
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
             TypeError: If some parameter has an error type.
-        
+
         """
         monitoring_disturbance_status = self.mc.communication.get_register(
             self.MONITORING_STATUS_REGISTER, servo=servo, axis=0
@@ -437,7 +437,7 @@ class Capture(metaclass=MCMetaClass):
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
             TypeError: If some parameter has an error type.
-        
+
         """
         monitoring_status = self.mc.communication.get_register(
             self.MONITORING_STATUS_REGISTER, servo=servo, axis=0
@@ -462,7 +462,7 @@ class Capture(metaclass=MCMetaClass):
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
             TypeError: If some parameter has an error type.
-        
+
         """
         if version is None:
             version = self._check_version(servo)
@@ -489,7 +489,7 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
-        
+
         """
         monitor_status = self.get_monitoring_status(servo)
         return (monitor_status & self.MONITORING_STATUS_ENABLED_BIT) == 1
@@ -509,7 +509,7 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
-        
+
         """
         monitor_status = self.get_disturbance_status(servo, version=version)
         return (monitor_status & self.DISTURBANCE_STATUS_ENABLED_BIT) == 1
@@ -530,7 +530,7 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
-        
+
         """
         if version is None:
             version = self._check_version(servo=servo)
@@ -555,7 +555,7 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
-        
+
         """
         if version is None:
             version = self._check_version(servo=servo)
@@ -599,7 +599,7 @@ class Capture(metaclass=MCMetaClass):
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
-        
+
         """
         self.clean_monitoring(servo=servo)
         self.clean_disturbance(servo=servo)
@@ -627,10 +627,10 @@ class Capture(metaclass=MCMetaClass):
 
         Returns:
             Max buffer size in bytes.
-            
+
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
         try:
             max_sample_size = self.mc.communication.get_register(
@@ -650,10 +650,10 @@ class Capture(metaclass=MCMetaClass):
 
         Returns:
             Max buffer size in bytes.
-            
+
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
         try:
             max_sample_size = self.mc.communication.get_register(
@@ -677,7 +677,7 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
 
         position_velocity_loop_rate = self.mc.configuration.get_position_and_velocity_loop_rate(

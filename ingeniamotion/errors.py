@@ -119,10 +119,10 @@ class Errors(metaclass=MCMetaClass):
                 Error axis.
             is_warning (bool):
                 ``True`` if warning, else ``False``.
-                
+
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
         error_version = self.__get_error_location(servo)
         subnode, error_location = self.__get_error_subnode(error_version, axis)
@@ -204,10 +204,10 @@ class Errors(metaclass=MCMetaClass):
 
         Returns:
             Total number of errors.
-            
+
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
         error_version = self.__get_error_location(servo)
         subnode, error_location = self.__get_error_subnode(error_version, axis)

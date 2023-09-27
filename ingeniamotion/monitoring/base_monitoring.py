@@ -125,7 +125,7 @@ class Monitoring(ABC):
             IMMonitoringError: If register maps fails in the servo.
             IMMonitoringError: If buffer size is not enough for all the registers.
             TypeError: If some parameter has an error type.
-        
+
         """
         drive = self.mc.servos[self.servo]
         drive.monitoring_remove_all_mapped_registers()
@@ -256,7 +256,7 @@ class Monitoring(ABC):
                 ``total_time/2``.
             IMMonitoringError: If buffer size is not enough for all the samples.
             TypeError: If some parameter has an error type.
-        
+
         """
         if total_time / 2 < abs(trigger_delay):
             raise ValueError("trigger_delay value should be between -total_time/2 and total_time/2")
@@ -404,10 +404,10 @@ class Monitoring(ABC):
 
         Returns:
             Trigger type
-        
+
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
         register_value = self.mc.communication.get_register(
             self.MONITOR_START_CONDITION_TYPE_REGISTER, servo=self.servo, axis=0

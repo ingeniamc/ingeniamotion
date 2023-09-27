@@ -49,7 +49,7 @@ class Motion(metaclass=MCMetaClass):
 
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
         control_word = self.mc.communication.get_register(
             self.CONTROL_WORD_REGISTER, servo=servo, axis=axis
@@ -111,7 +111,7 @@ class Motion(metaclass=MCMetaClass):
 
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
         operation_mode = self.mc.communication.get_register(
             self.OPERATION_MODE_DISPLAY_REGISTER, servo=servo, axis=axis
@@ -482,7 +482,7 @@ class Motion(metaclass=MCMetaClass):
 
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
         actual_position = self.mc.communication.get_register(
             self.ACTUAL_POSITION_REGISTER, servo=servo, axis=axis
@@ -504,7 +504,7 @@ class Motion(metaclass=MCMetaClass):
 
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
         actual_velocity = self.mc.communication.get_register(
             self.ACTUAL_VELOCITY_REGISTER, servo=servo, axis=axis
@@ -528,7 +528,7 @@ class Motion(metaclass=MCMetaClass):
 
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
         actual_current_direct = self.mc.communication.get_register(
             self.ACTUAL_DIRECT_CURRENT_REGISTER, servo=servo, axis=axis
@@ -552,7 +552,7 @@ class Motion(metaclass=MCMetaClass):
 
         Raises:
             TypeError: If some parameter has an error type.
-        
+
         """
         actual_current_quadrature = self.mc.communication.get_register(
             self.ACTUAL_QUADRATURE_CURRENT_REGISTER, servo=servo, axis=axis
