@@ -804,7 +804,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         rev_number = rev_numbers[1] or rev_numbers[0] or 0
 
         fw_version = fw_versions[1] or fw_versions[0] or "-"
-        fw_version = "_" + ".".join(fw_version.split(".")[:4])
+        fw_version = ".".join(fw_version.split(".")[:4])
 
         serial_number = serial_numbers[1] or serial_numbers[0] or 0
 
