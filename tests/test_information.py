@@ -1,6 +1,7 @@
 import pytest
 
 from ingeniamotion.enums import REG_DTYPE, REG_ACCESS
+from ingeniamotion.information import COMMUNICATION_TYPE
 
 
 @pytest.mark.no_connection
@@ -120,7 +121,7 @@ def test_get_name(motion_controller):
 
 @pytest.mark.no_connection
 def test_get_communication_type(motion_controller):
-    expected_communication_type = "Ethernet"
+    expected_communication_type = COMMUNICATION_TYPE.Ethernet
 
     mc, alias = motion_controller
     communication_type = mc.info.get_communication_type(alias)

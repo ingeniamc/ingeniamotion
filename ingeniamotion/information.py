@@ -202,12 +202,13 @@ class Information(metaclass=MCMetaClass):
 
         """
         drive_network = self.mc._get_network(alias)
-        communication_types = {
-            CanopenNetwork: COMMUNICATION_TYPE.Canopen,
-            EoENetwork: COMMUNICATION_TYPE.Ethercat,
-            EthernetNetwork: COMMUNICATION_TYPE.Ethernet,
-        }
-        return communication_types[type(drive_network)]
+        if isinstance(drive_network, CanopenNetwork):
+            communication_type = COMMUNICATION_TYPE.Canopen
+        elif isinstance(drive_network, EthernetNetwork):
+            communication_type = COMMUNICATION_TYPE.Ethernet
+        elif isinstance(drive_network, EoENetwork):
+            communication_type = COMMUNICATION_TYPE.Ethercat
+        return communication_type
 
     def get_full_name(self, alias: str = DEFAULT_SERVO) -> str:
         """Return the full name of the drive [Product name] [Name] ([Target]).
