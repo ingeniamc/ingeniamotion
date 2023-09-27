@@ -7,7 +7,7 @@ from ingenialink.enums.register import REG_DTYPE
 
 from ingeniamotion.enums import MonitoringVersion
 from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
-from ingeniamotion.exceptions import IMDisturbanceError, IMException, IMStatusWordError
+from ingeniamotion.exceptions import IMDisturbanceError, IMStatusWordError
 
 
 if TYPE_CHECKING:
@@ -135,6 +135,7 @@ class Disturbance:
             IMDisturbanceError: If the registers is an empty list.
             IMDisturbanceError: If the register is not allowed to be mapped as
                 a disturbance register.
+            TypeError: If some parameter has an error type.
         """
         if len(registers) == 0:
             raise IMDisturbanceError("No registers to be mapped.")
@@ -146,10 +147,10 @@ class Disturbance:
         for ch_idx, channel in enumerate(registers):
             subnode = channel.get("axis", DEFAULT_AXIS)
             if not isinstance(subnode, int):
-                raise IMException("Subnode value has to be an integer")
+                raise TypeError("Subnode value has to be an integer")
             register = channel["name"]
             if not isinstance(register, str):
-                raise IMException("Register key has to be a string")
+                raise TypeError("Register key has to be a string")
             register_obj = self.mc.info.register_info(register, subnode, servo=self.servo)
             dtype = register_obj.dtype
             cyclic = register_obj.cyclic
@@ -195,7 +196,7 @@ class Disturbance:
                     registers_data[i] = x.tolist()
             return registers_data
         else:
-            raise IMException(
+            raise TypeError(
                 "Registers data adapter doesn't have the correct type for its input argument"
             )
 

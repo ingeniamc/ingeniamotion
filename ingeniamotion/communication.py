@@ -18,7 +18,7 @@ from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.eoe.network import EoENetwork
 
-from ingeniamotion.exceptions import IMException, IMRegisterWrongAccess
+from ingeniamotion.exceptions import IMRegisterWrongAccess
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -290,7 +290,7 @@ class Communication(metaclass=MCMetaClass):
         for adapter in ifaddr.get_adapters():
             for ip in adapter.ips:
                 if ip.is_IPv4 and ip.ip == address:
-                    return f"{adapter.name.decode('utf-8')}"
+                    return bytes.decode(adapter.name)
         return None
 
     def get_ifname_from_interface_ip(self, address: str) -> str:
@@ -402,12 +402,12 @@ class Communication(metaclass=MCMetaClass):
 
         Raises:
             ingenialink.exceptions.ILError: If the EoE service is not running
-
+            TypeError: If some parameter has an error type.
         """
         net = self.mc.net[ifname] if ifname in self.mc.net else EoENetwork(ifname)
         slaves = net.scan_slaves()
         if not isinstance(slaves, list):
-            raise IMException("Slaves are not saved in a list")
+            raise TypeError("Slaves are not saved in a list")
         return slaves
 
     def scan_servos_eoe_service_interface_index(self, if_index: int) -> List[int]:
@@ -484,7 +484,7 @@ class Communication(metaclass=MCMetaClass):
             channel : CANOpen device channel. ``0`` by default.
         Returns:
             List of node ids available in the network.
-
+            TypeError: If some parameter has an error type.
         """
         net_key = f"{can_device}_{channel}_{baudrate}"
         if net_key not in self.mc.net:
@@ -502,7 +502,7 @@ class Communication(metaclass=MCMetaClass):
             return []
         slaves = net.scan_slaves()
         if not isinstance(slaves, list):
-            raise IMException("Slaves are not saved in a list")
+            raise TypeError("Slaves are not saved in a list")
         return slaves
 
     def disconnect(self, servo: str = DEFAULT_SERVO) -> None:
@@ -537,7 +537,8 @@ class Communication(metaclass=MCMetaClass):
         Raises:
             ingenialink.exceptions.ILAccessError: If the register access is write-only.
             IMRegisterNotExist: If the register doesn't exist.
-
+            TypeError: If some parameter has an error type.
+        
         """
         drive = self.mc.servos[servo]
         register_dtype = self.mc.info.register_type(register, axis, servo=servo)
@@ -545,7 +546,7 @@ class Communication(metaclass=MCMetaClass):
         if register_dtype.value <= REG_DTYPE.S64.value and isinstance(value, int):
             return int(value)
         if not isinstance(value, (int, float, str)):
-            raise IMException("Register value is not a correct type of value.")
+            raise TypeError("Register value is not a correct type of value.")
         return value
 
     def set_register(

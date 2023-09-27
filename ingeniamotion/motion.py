@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.enums import OperationMode, SensorType, PhasingMode, GeneratorMode
-from ingeniamotion.exceptions import IMException, IMTimeoutError
+from ingeniamotion.exceptions import IMTimeoutError
 
 
 class Motion(metaclass=MCMetaClass):
@@ -47,12 +47,15 @@ class Motion(metaclass=MCMetaClass):
             servo : servo alias to reference it. ``default`` by default.
             axis : servo axis. ``1`` by default.
 
+        Raises:
+            TypeError: If some parameter has an error type.
+        
         """
         control_word = self.mc.communication.get_register(
             self.CONTROL_WORD_REGISTER, servo=servo, axis=axis
         )
         if not isinstance(control_word, int):
-            raise IMException("Control word register value has to be a integer")
+            raise TypeError("Control word register value has to be a integer")
         new_control_word = control_word & (~self.CONTROL_WORD_TARGET_LATCH_BIT)
         self.mc.communication.set_register(
             self.CONTROL_WORD_REGISTER, new_control_word, servo=servo, axis=axis
@@ -106,12 +109,15 @@ class Motion(metaclass=MCMetaClass):
         Returns:
             Return current operation mode.
 
+        Raises:
+            TypeError: If some parameter has an error type.
+        
         """
         operation_mode = self.mc.communication.get_register(
             self.OPERATION_MODE_DISPLAY_REGISTER, servo=servo, axis=axis
         )
         if not isinstance(operation_mode, (OperationMode, int)):
-            raise IMException("Operation mode value has to be an integer or OperationMode type.")
+            raise TypeError("Operation mode value has to be an integer or OperationMode type.")
         try:
             return OperationMode(operation_mode)
         except ValueError:
@@ -474,12 +480,15 @@ class Motion(metaclass=MCMetaClass):
         Returns:
             int: actual position value
 
+        Raises:
+            TypeError: If some parameter has an error type.
+        
         """
         actual_position = self.mc.communication.get_register(
             self.ACTUAL_POSITION_REGISTER, servo=servo, axis=axis
         )
         if not isinstance(actual_position, int):
-            raise IMException("Actual position value has to be an integer")
+            raise TypeError("Actual position value has to be an integer")
         return actual_position
 
     def get_actual_velocity(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
@@ -493,12 +502,15 @@ class Motion(metaclass=MCMetaClass):
         Returns:
             int: actual velocity value
 
+        Raises:
+            TypeError: If some parameter has an error type.
+        
         """
         actual_velocity = self.mc.communication.get_register(
             self.ACTUAL_VELOCITY_REGISTER, servo=servo, axis=axis
         )
         if not isinstance(actual_velocity, int):
-            raise IMException("Actual velocity value has to be an integer")
+            raise TypeError("Actual velocity value has to be an integer")
         return actual_velocity
 
     def get_actual_current_direct(
@@ -514,12 +526,15 @@ class Motion(metaclass=MCMetaClass):
         Returns:
             float: actual direct current value
 
+        Raises:
+            TypeError: If some parameter has an error type.
+        
         """
         actual_current_direct = self.mc.communication.get_register(
             self.ACTUAL_DIRECT_CURRENT_REGISTER, servo=servo, axis=axis
         )
         if not isinstance(actual_current_direct, float):
-            raise IMException("Actual current direct value has to be a float")
+            raise TypeError("Actual current direct value has to be a float")
         return actual_current_direct
 
     def get_actual_current_quadrature(
@@ -535,12 +550,15 @@ class Motion(metaclass=MCMetaClass):
         Returns:
             float: actual quadrature current value
 
+        Raises:
+            TypeError: If some parameter has an error type.
+        
         """
         actual_current_quadrature = self.mc.communication.get_register(
             self.ACTUAL_QUADRATURE_CURRENT_REGISTER, servo=servo, axis=axis
         )
         if not isinstance(actual_current_quadrature, float):
-            raise IMException("Actual current quadrature value has to be a float")
+            raise TypeError("Actual current quadrature value has to be a float")
         return actual_current_quadrature
 
     def wait_for_position(

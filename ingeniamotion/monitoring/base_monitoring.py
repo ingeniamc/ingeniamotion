@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING, Optional, Union, Callable
 from ingenialink.enums.register import REG_DTYPE
 
 from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
-from ingeniamotion.exceptions import IMException, IMMonitoringError
+from ingeniamotion.exceptions import IMMonitoringError
 from ingeniamotion.enums import (
     MonitoringProcessStage,
     MonitoringSoCType,
@@ -124,7 +124,8 @@ class Monitoring(ABC):
         Raises:
             IMMonitoringError: If register maps fails in the servo.
             IMMonitoringError: If buffer size is not enough for all the registers.
-
+            TypeError: If some parameter has an error type.
+        
         """
         drive = self.mc.servos[self.servo]
         drive.monitoring_remove_all_mapped_registers()
@@ -132,7 +133,7 @@ class Monitoring(ABC):
         for channel in registers:
             subnode = channel.get("axis", DEFAULT_AXIS)
             if not isinstance(subnode, int):
-                raise IMException("Subnode has to be an integer")
+                raise TypeError("Subnode has to be an integer")
             register = channel["name"]
             register_obj = self.mc.info.register_info(register, subnode, servo=self.servo)
             dtype = register_obj.dtype
@@ -145,7 +146,7 @@ class Monitoring(ABC):
         for ch_idx, channel in enumerate(registers):
             subnode = channel.get("axis", DEFAULT_AXIS)
             if not isinstance(subnode, int):
-                raise IMException("Subnode has to be an integer")
+                raise TypeError("Subnode has to be an integer")
             register = channel["name"]
             dtype = channel["dtype"]
             register_obj = self.mc.info.register_info(register, subnode, servo=self.servo)
@@ -161,7 +162,7 @@ class Monitoring(ABC):
             self.MONITORING_NUMBER_MAPPED_REGISTERS_REGISTER, servo=self.servo, axis=0
         )
         if not isinstance(num_mon_reg, int):
-            raise IMException("Number of mapped registers value has to be an integer")
+            raise TypeError("Number of mapped registers value has to be an integer")
         if num_mon_reg < 1:
             raise IMMonitoringError("Map Monitoring registers fails")
         self.mapped_registers = registers
@@ -254,12 +255,13 @@ class Monitoring(ABC):
             ValueError: If trigger_delay is not between ``-total_time/2`` and
                 ``total_time/2``.
             IMMonitoringError: If buffer size is not enough for all the samples.
-
+            TypeError: If some parameter has an error type.
+        
         """
         if total_time / 2 < abs(trigger_delay):
             raise ValueError("trigger_delay value should be between -total_time/2 and total_time/2")
         if not isinstance(self.sampling_freq, float):
-            raise IMException("Sampling frequency has to be set before configuring the sample time")
+            raise TypeError("Sampling frequency has to be set before configuring the sample time")
         total_num_samples = int(self.sampling_freq * total_time)
         trigger_delay_samples = int(((total_time / 2) - trigger_delay) * self.sampling_freq)
         self.configure_number_samples(total_num_samples, trigger_delay_samples)
@@ -402,13 +404,16 @@ class Monitoring(ABC):
 
         Returns:
             Trigger type
-
+        
+        Raises:
+            TypeError: If some parameter has an error type.
+        
         """
         register_value = self.mc.communication.get_register(
             self.MONITOR_START_CONDITION_TYPE_REGISTER, servo=self.servo, axis=0
         )
         if not isinstance(register_value, int):
-            raise IMException("Monitoring trigger type register value has to be an integer")
+            raise TypeError("Monitoring trigger type register value has to be an integer")
         try:
             return MonitoringSoCType(register_value)
         except ValueError:

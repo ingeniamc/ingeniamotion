@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
-from ingeniamotion.exceptions import IMException
 from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
 from ingeniamotion.wizard_tests.base_test import BaseTest
 from ingeniamotion.enums import SensorType
@@ -35,7 +34,7 @@ class DigitalHallTest(Feedbacks):
     @BaseTest.stoppable
     def halls_extra_settings(self) -> None:
         if not isinstance(self.pair_poles, int):
-            raise IMException("Pair poles has to be an integer")
+            raise TypeError("Pair poles has to be an integer")
         self.mc.communication.set_register(
             self.DIG_HALL_POLE_PAIRS_REGISTER, self.pair_poles, servo=self.servo, axis=self.axis
         )
@@ -65,6 +64,6 @@ class DigitalHallTest(Feedbacks):
         polarity_uid = self.FEEDBACK_POLARITY_REGISTER
         pair_poles_uid = self.DIG_HALL_POLE_PAIRS_REGISTER
         if not isinstance(self.pair_poles, int):
-            raise IMException("Pair poles has to be set before polarity suggestion.")
+            raise TypeError("Pair poles has to be set before polarity suggestion.")
         self.suggested_registers[pair_poles_uid] = self.pair_poles
         self.suggested_registers[polarity_uid] = pol

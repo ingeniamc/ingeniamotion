@@ -3,7 +3,6 @@ import ingenialogger
 from os import path
 from enum import IntEnum
 from typing import TYPE_CHECKING, Optional, Union
-from ingeniamotion.exceptions import IMException
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -260,15 +259,16 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         if desired. However, At least a minimum of one of these parameters
         is mandatory to call this function.
 
-        Raises:
-            TypeError: Missing arguments. All the arguments given were None.
-
         Args:
             acceleration: maximum acceleration in rev/s^2.
             deceleration: maximum deceleration in rev/s^2.
             velocity: maximum profile velocity in rev/s.
             servo : servo alias to reference it. ``default`` by default.
             axis : servo axis. ``1`` by default.
+            
+        Raises:
+            TypeError: Missing arguments. All the arguments given were None.
+            
         """
         if acceleration is None and deceleration is None and velocity is None:
             raise TypeError("Missing arguments. At least one argument is required.")
@@ -332,12 +332,15 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Returns:
             Position & velocity loop rate frequency in Hz.
 
+        Raises:
+            TypeError: If some parameter has an error type.
+        
         """
         pos_vel_loop_rate = self.mc.communication.get_register(
             self.POSITION_AND_VELOCITY_LOOP_RATE_REGISTER, servo=servo, axis=axis
         )
         if not isinstance(pos_vel_loop_rate, int):
-            raise IMException("Position and velocity loop has to be an integer")
+            raise TypeError("Position and velocity loop has to be an integer")
         return pos_vel_loop_rate
 
     def get_current_loop_rate(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
@@ -349,12 +352,16 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             Current loop rate frequency in Hz.
+            
+        Raises:
+            TypeError: If some parameter has an error type.
+        
         """
         current_loop = self.mc.communication.get_register(
             self.CURRENT_LOOP_RATE_REGISTER, servo=servo, axis=axis
         )
         if not isinstance(current_loop, int):
-            raise IMException("Current loop value has to be an integer")
+            raise TypeError("Current loop value has to be an integer")
         return current_loop
 
     def get_power_stage_frequency(
@@ -374,12 +381,14 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Raises:
             ValueError: If power stage frequency selection register has an
                 invalid value.
+            TypeError: If some parameter has an error type.
+        
         """
         pow_stg_freq = self.mc.communication.get_register(
             self.POWER_STAGE_FREQUENCY_SELECTION_REGISTER, servo=servo, axis=axis
         )
         if not isinstance(pow_stg_freq, int):
-            raise IMException("Power stage frequency value has to be an integer")
+            raise TypeError("Power stage frequency value has to be an integer")
         if raw:
             return pow_stg_freq
         try:
@@ -388,7 +397,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             raise ValueError("Invalid power stage frequency register")
         freq = self.mc.communication.get_register(pow_stg_freq_reg, servo=servo, axis=axis)
         if not isinstance(freq, int):
-            raise IMException("Frequency value has to be an integer")
+            raise TypeError("Frequency value has to be an integer")
         return freq
 
     def get_power_stage_frequency_enum(
@@ -436,10 +445,13 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Returns:
             Status word.
 
+        Raises:
+            TypeError: If some parameter has an error type.
+        
         """
         status_word = self.mc.communication.get_register(self.STATUS_WORD_REGISTER, servo, axis)
         if not isinstance(status_word, int):
-            raise IMException("Power stage frequency value has to be an integer")
+            raise TypeError("Power stage frequency value has to be an integer")
         return status_word
 
     def is_motor_enabled(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
@@ -498,10 +510,13 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Returns:
             Phasing mode value.
 
+        Raises:
+            TypeError: If some parameter has an error type.
+        
         """
         phasing_mode = self.mc.communication.get_register(self.PHASING_MODE_REGISTER, servo, axis)
         if not isinstance(phasing_mode, int):
-            raise IMException("Phasing mode value has to be an integer")
+            raise TypeError("Phasing mode value has to be an integer")
         try:
             return PhasingMode(phasing_mode)
         except ValueError:
@@ -551,13 +566,15 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             Pair poles value.
-
+        
+        Raises:
+            TypeError: If some parameter has an error type.
         """
         pair_poles = self.mc.communication.get_register(
             self.MOTOR_POLE_PAIRS_REGISTER, servo=servo, axis=axis
         )
         if not isinstance(pair_poles, int):
-            raise IMException("Pair poles value has to be an integer")
+            raise TypeError("Pair poles value has to be an integer")
         return pair_poles
 
     def get_sto_status(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
@@ -570,13 +587,16 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             STO register value.
-
+        
+        Raises:
+            TypeError: If some parameter has an error type.
+        
         """
         sto_status = self.mc.communication.get_register(
             self.STO_STATUS_REGISTER, servo=servo, axis=axis
         )
         if not isinstance(sto_status, int):
-            raise IMException("STO status value has to be an integer")
+            raise TypeError("STO status value has to be an integer")
         return sto_status
 
     def is_sto1_active(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:

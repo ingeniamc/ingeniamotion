@@ -10,7 +10,7 @@ from ingeniamotion.enums import (
     SensorType,
     SeverityLevel,
 )
-from ingeniamotion.exceptions import IMException, IMRegisterNotExist
+from ingeniamotion.exceptions import IMRegisterNotExist
 from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
 
 if TYPE_CHECKING:
@@ -97,12 +97,12 @@ class Phasing(BaseTest):
             self.MAX_CURRENT_REGISTER, servo=self.servo, axis=self.axis
         )
         if not isinstance(max_current_drive, float):
-            raise IMException("Max. current of the drive has to be a float")
+            raise TypeError("Max. current of the drive has to be a float")
         max_current_motor = self.mc.communication.get_register(
             self.RATED_CURRENT_REGISTER, servo=self.servo, axis=self.axis
         )
         if not isinstance(max_current_motor, float):
-            raise IMException("Rated current has to be a float")
+            raise TypeError("Rated current has to be a float")
         max_test_current = min(max_current_drive, max_current_motor)
 
         if self.default_phasing_current:
@@ -124,7 +124,7 @@ class Phasing(BaseTest):
                 self.MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER, servo=self.servo, axis=self.axis
             )
             if not isinstance(pha_current, float):
-                raise IMException(
+                raise TypeError(
                     f"{self.MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER} has to be a float"
                 )
             self.pha_current = pha_current
@@ -211,7 +211,7 @@ class Phasing(BaseTest):
             self.PHASING_TIMEOUT_REGISTER, servo=self.servo, axis=self.axis
         )
         if not isinstance(pha_timeout, int):
-            raise IMException(f"{self.PHASING_TIMEOUT_REGISTER} has to be a integer")
+            raise TypeError(f"{self.PHASING_TIMEOUT_REGISTER} has to be a integer")
         self.pha_timeout = pha_timeout
         self.logger.info(f"Set phasing timeout to {self.pha_timeout / 1000} s")
 
@@ -219,7 +219,7 @@ class Phasing(BaseTest):
             self.PHASING_ACCURACY_REGISTER, servo=self.servo, axis=self.axis
         )
         if not isinstance(pha_accuracy, int):
-            raise IMException(f"{self.PHASING_ACCURACY_REGISTER} has to be a integer")
+            raise TypeError(f"{self.PHASING_ACCURACY_REGISTER} has to be a integer")
         self.pha_accuracy = pha_accuracy
         self.logger.info(f"Set phasing accuracy to {self.pha_accuracy} mº")
 

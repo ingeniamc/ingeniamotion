@@ -1,6 +1,5 @@
 from enum import IntEnum
 from typing import TYPE_CHECKING, Optional
-from ingeniamotion.exceptions import IMException
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -120,6 +119,10 @@ class Errors(metaclass=MCMetaClass):
                 Error axis.
             is_warning (bool):
                 ``True`` if warning, else ``False``.
+                
+        Raises:
+            TypeError: If some parameter has an error type.
+        
         """
         error_version = self.__get_error_location(servo)
         subnode, error_location = self.__get_error_subnode(error_version, axis)
@@ -127,7 +130,7 @@ class Errors(metaclass=MCMetaClass):
             self.LAST_ERROR_REGISTER[error_location], servo=servo, axis=subnode
         )
         if not isinstance(error, int):
-            raise IMException("Error has to be an integer")
+            raise TypeError("Error has to be an integer")
         return self.__parse_error_to_tuple(error, error_version, axis)
 
     def get_last_buffer_error(
@@ -174,6 +177,7 @@ class Errors(metaclass=MCMetaClass):
                 ``True`` if warning, else ``False``.
         Raises:
             ValueError: Index must be less than 32
+            TypeError: If some parameter has an error type.
         """
         if index >= self.MAXIMUM_ERROR_INDEX:
             raise ValueError("index must be less than 32")
@@ -186,7 +190,7 @@ class Errors(metaclass=MCMetaClass):
             self.ERROR_LIST_REQUESTED_CODE[error_location], servo=servo, axis=subnode
         )
         if not isinstance(error, int):
-            raise IMException("Error has to be an integer")
+            raise TypeError("Error has to be an integer")
         return self.__parse_error_to_tuple(error, error_version, axis)
 
     def get_number_total_errors(
@@ -200,6 +204,10 @@ class Errors(metaclass=MCMetaClass):
 
         Returns:
             Total number of errors.
+            
+        Raises:
+            TypeError: If some parameter has an error type.
+        
         """
         error_version = self.__get_error_location(servo)
         subnode, error_location = self.__get_error_subnode(error_version, axis)
@@ -207,7 +215,7 @@ class Errors(metaclass=MCMetaClass):
             self.ERROR_TOTAL_NUMBER_REGISTER[error_location], servo=servo, axis=subnode
         )
         if not isinstance(total_number_errors, int):
-            raise IMException("Total number errors value has to be an integer")
+            raise TypeError("Total number errors value has to be an integer")
         return total_number_errors
 
     def get_all_errors(

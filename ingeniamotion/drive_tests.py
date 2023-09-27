@@ -2,7 +2,6 @@ from typing import TYPE_CHECKING, Optional, Union
 import ingenialogger
 
 from ingeniamotion.enums import SensorType, SeverityLevel
-from ingeniamotion.exceptions import IMException
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -180,7 +179,7 @@ class DriveTests(metaclass=MCMetaClass):
             and output["result_severity"] == SeverityLevel.SUCCESS
         ):
             if not isinstance(output["suggested_registers"], dict):
-                raise IMException("Suggested registers has to be a dictionary")
+                raise TypeError("Suggested registers has to be a dictionary")
             for key, value in output["suggested_registers"].items():
                 self.mc.communication.set_register(key, value, servo=servo, axis=axis)
             self.logger.debug(
@@ -218,6 +217,7 @@ class DriveTests(metaclass=MCMetaClass):
         Raises:
             TestError: If servo or setup configuration makes impossible
                 complete the calibration.
+            TypeError: If some parameter has an error type.
         """
         commutation = Phasing(self.mc, servo, axis)
         output = commutation.run()
@@ -227,7 +227,7 @@ class DriveTests(metaclass=MCMetaClass):
             and output["result_severity"] == SeverityLevel.SUCCESS
         ):
             if not isinstance(output["suggested_registers"], dict):
-                raise IMException("Suggested registers have to be a dictionary")
+                raise TypeError("Suggested registers have to be a dictionary")
             for key, value in output["suggested_registers"].items():
                 self.mc.communication.set_register(key, value, servo=servo, axis=axis)
             self.logger.debug(

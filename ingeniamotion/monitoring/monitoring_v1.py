@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, Optional, Union
 import ingenialogger
 
 from ingeniamotion.metaclass import DEFAULT_SERVO
-from ingeniamotion.exceptions import IMException, IMStatusWordError
+from ingeniamotion.exceptions import IMStatusWordError
 from ingeniamotion.enums import MonitoringVersion, MonitoringSoCType, MonitoringSoCConfig
 
 if TYPE_CHECKING:
@@ -130,7 +130,7 @@ class MonitoringV1(Monitoring):
             self.MONITORING_ACTUAL_NUMBER_SAMPLES_REGISTER, servo=self.servo, axis=0
         )
         if not isinstance(monit_nmb_blocks, int):
-            raise IMException("Actual number of monitoring samples value has to be an integer")
+            raise TypeError("Actual number of monitoring samples value has to be an integer")
         data_is_ready = monit_nmb_blocks > 0
         if self._version == MonitoringVersion.MONITORING_V2:
             data_is_ready &= self.mc.capture.is_frame_available(self.servo, version=self._version)

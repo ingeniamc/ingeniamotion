@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING, Callable, Optional, Union
+
 import ingenialogger
-from ingeniamotion.exceptions import IMException
 
 from ingeniamotion.metaclass import DEFAULT_SERVO
 from ingeniamotion.enums import (
@@ -9,10 +9,8 @@ from ingeniamotion.enums import (
     MonitoringProcessStage,
     MonitoringSoCType,
 )
-
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
-
 from ingeniamotion.monitoring.base_monitoring import Monitoring, check_monitoring_disabled
 
 
@@ -118,7 +116,7 @@ class MonitoringV3(Monitoring):
             self.MONITORING_ACTUAL_NUMBER_SAMPLES_REGISTER, servo=self.servo, axis=0
         )
         if not isinstance(monit_nmb_blocks, int):
-            raise IMException("Actual number of monitoring samples value has to be an integer")
+            raise TypeError("Actual number of monitoring samples value has to be an integer")
         data_is_ready = monit_nmb_blocks > 0
         data_is_ready &= self.mc.capture.is_frame_available(self.servo, version=self._version)
         return data_is_ready

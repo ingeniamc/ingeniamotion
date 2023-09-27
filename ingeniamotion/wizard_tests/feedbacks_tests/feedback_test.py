@@ -111,7 +111,7 @@ class Feedbacks(BaseTest):
     def check_symmetry(self, positive: float, negative: float) -> ResultType:
         self.logger.info("SYMMETRY CHECK")
         if not isinstance(self.feedback_resolution, int):
-            raise IMException("Feedbacks has to be set before symetry checking.")
+            raise TypeError("Feedbacks has to be set before symetry checking.")
         error = 100 * abs(positive + negative) / self.feedback_resolution
         self.logger.info("Detected symmetry mismatch of: %.3f%%", error)
         error_msg = (
@@ -130,9 +130,9 @@ class Feedbacks(BaseTest):
     @BaseTest.stoppable
     def check_resolution(self, displacement: float) -> ResultType:
         if not isinstance(self.pair_poles, int):
-            raise IMException("Pair poles has to be set before resolution checking.")
+            raise TypeError("Pair poles has to be set before resolution checking.")
         if not isinstance(self.feedback_resolution, int):
-            raise IMException("Feedbacks has to be set before resolution checking.")
+            raise TypeError("Feedbacks has to be set before resolution checking.")
         displacement = displacement * self.pair_poles
         self.logger.info("RESOLUTION CHECK")
         self.logger.info("Theoretical resolution: %.0f", self.feedback_resolution)
@@ -193,7 +193,7 @@ class Feedbacks(BaseTest):
     @BaseTest.stoppable
     def suggest_polarity(self, pol: Polarity) -> None:
         if not isinstance(self.FEEDBACK_POLARITY_REGISTER, str):
-            raise IMException(
+            raise TypeError(
                 "Feedback polarity register has to be set before polarity suggestion."
             )
         polarity_uid = self.FEEDBACK_POLARITY_REGISTER
@@ -228,7 +228,7 @@ class Feedbacks(BaseTest):
                 self.POSITION_TO_VELOCITY_SENSOR_RATIO_REGISTER, servo=self.servo, axis=self.axis
             )
             if not isinstance(resolution_multiplier, float):
-                raise IMException("Resolution multiplier has to be a float")
+                raise TypeError("Resolution multiplier has to be a float")
             self.resolution_multiplier = resolution_multiplier
         # Read pole pairs and set to 1 for an electrical revolution
         self.pair_poles = self.mc.configuration.get_motor_pair_poles(
@@ -271,7 +271,7 @@ class Feedbacks(BaseTest):
     def get_current_position(self) -> float:
         position = self.mc.motion.get_actual_position(servo=self.servo, axis=self.axis)
         if not isinstance(position, int):
-            raise IMException("Actual position register must be an integer variable")
+            raise TypeError("Actual position register must be an integer variable")
         current_position = position / self.resolution_multiplier
         return current_position
 
@@ -281,12 +281,12 @@ class Feedbacks(BaseTest):
             self.RATED_CURRENT_REGISTER, servo=self.servo, axis=self.axis
         )
         if not isinstance(rated_current, float):
-            raise IMException("Rated current has to be a float")
+            raise TypeError("Rated current has to be a float")
         nominal_current = self.mc.communication.get_register(
             self.MAXIMUM_CONTINUOUS_CURRENT_DRIVE_PROTECTION, servo=self.servo, axis=self.axis
         )
         if not isinstance(nominal_current, float):
-            raise IMException("Nominal current has to be a float")
+            raise TypeError("Nominal current has to be a float")
         dict_currents = {
             "Rated motor current": rated_current,
             "Drive nominal current": nominal_current,
@@ -360,7 +360,7 @@ class Feedbacks(BaseTest):
             self.POSITION_TO_VELOCITY_SENSOR_RATIO_REGISTER, servo=self.servo, axis=self.axis
         )
         if not isinstance(pos_vel_ratio, float):
-            raise IMException("Position to velocity sensor ratio value has to be a float")
+            raise TypeError("Position to velocity sensor ratio value has to be a float")
         if self.pos_vel_same_feedback and not math.isclose(pos_vel_ratio, 1):
             return self.ResultType.POS_VEL_RATIO_ERROR
         if not self.pos_vel_same_feedback and math.isclose(pos_vel_ratio, 1):
