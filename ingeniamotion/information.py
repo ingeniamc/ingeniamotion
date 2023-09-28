@@ -169,7 +169,7 @@ class Information(metaclass=MCMetaClass):
 
         Args:
             alias: alias of the servo.
-        
+
         Returns:
             If it exists for example: "EVE-NET-E", "CAP-NET-E", etc.
         """
@@ -316,3 +316,33 @@ class Information(metaclass=MCMetaClass):
         """
         drive = self.mc.servos[alias]
         return str(os.path.basename(drive.dictionary.path))
+
+    # TODO: INGM-333 - Once ingenialink has the encoded image
+    def get_encoded_image_from_dictionary(self, alias: str) -> Optional[str]:
+        """Get the encoded product image from a drive dictionary.
+        This function reads a dictionary of a drive, and it parses whether the dictionary file has a
+        DriveImage tag and its content.
+        Args:
+            alias: Alias of the drive.
+        Returns:
+            The encoded image or NoneType object.
+        """
+        drive = self.mc.servos[alias]
+        # Read encoded image in XDF dictionary file
+        dictionary_path = drive.dictionary.path
+        try:
+            with open(dictionary_path, "r", encoding="utf-8") as xdf_file:
+                tree = ET.parse(xdf_file)
+        except FileNotFoundError:
+            raise FileNotFoundError(f"There is not any xdf file in the path: {dictionary_path}")
+        root = tree.getroot()
+        try:
+            image_element = root.findall(f"./DriveImage")
+            if image_element[0].text is not None and image_element[0].text.strip():
+                return f"{image_element[0].text}"
+            else:
+                # If the content in DriveImage tag is empty
+                return None
+        except IndexError:
+            # If there is no DriveImage tag in dictionary file
+            return None
