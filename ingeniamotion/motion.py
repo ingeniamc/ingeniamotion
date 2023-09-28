@@ -48,7 +48,7 @@ class Motion(metaclass=MCMetaClass):
             axis : servo axis. ``1`` by default.
 
         Raises:
-            TypeError: If some parameter has an error type.
+            TypeError: If some read value has a wrong type..
 
         """
         control_word = self.mc.communication.get_register(
@@ -110,7 +110,7 @@ class Motion(metaclass=MCMetaClass):
             Return current operation mode.
 
         Raises:
-            TypeError: If some parameter has an error type.
+            TypeError: If some read value has a wrong type..
 
         """
         operation_mode = self.mc.communication.get_register(
@@ -481,7 +481,7 @@ class Motion(metaclass=MCMetaClass):
             int: actual position value
 
         Raises:
-            TypeError: If some parameter has an error type.
+            TypeError: If some read value has a wrong type..
 
         """
         actual_position = self.mc.communication.get_register(
@@ -503,7 +503,7 @@ class Motion(metaclass=MCMetaClass):
             int: actual velocity value
 
         Raises:
-            TypeError: If some parameter has an error type.
+            TypeError: If some read value has a wrong type..
 
         """
         actual_velocity = self.mc.communication.get_register(
@@ -527,7 +527,7 @@ class Motion(metaclass=MCMetaClass):
             float: actual direct current value
 
         Raises:
-            TypeError: If some parameter has an error type.
+            TypeError: If some read value has a wrong type..
 
         """
         actual_current_direct = self.mc.communication.get_register(
@@ -551,7 +551,7 @@ class Motion(metaclass=MCMetaClass):
             float: actual quadrature current value
 
         Raises:
-            TypeError: If some parameter has an error type.
+            TypeError: If some read value has a wrong type..
 
         """
         actual_current_quadrature = self.mc.communication.get_register(

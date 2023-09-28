@@ -172,9 +172,6 @@ def create_attribute(attribute: str, src_root: Element, dest_root: Element, core
         dest_root: Destination tree.
         core: Type of core attribute.
 
-    Returns:
-        Destination tree.
-
     """
     src_device_elem = src_root.find(DEVICE_SECTION)
     dst_device_elem = dest_root.find(DEVICE_SECTION)

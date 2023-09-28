@@ -55,7 +55,7 @@ class Feedbacks(metaclass=MCMetaClass):
             Type of feedback configured.
 
         Raises:
-            TypeError: If some parameter has an error type.
+            TypeError: If some read value has a wrong type..
 
         """
         commutation_feedback = self.mc.communication.get_register(
@@ -128,7 +128,7 @@ class Feedbacks(metaclass=MCMetaClass):
             Type of feedback configured
 
         Raises:
-            TypeError: If some parameter has an error type.
+            TypeError: If some read value has a wrong type..
 
         """
         reference_feedback = self.mc.communication.get_register(
@@ -201,7 +201,7 @@ class Feedbacks(metaclass=MCMetaClass):
             Type of feedback configured
 
         Raises:
-            TypeError: If some parameter has an error type.
+            TypeError: If some read value has a wrong type..
 
         """
         velocity_feedback = self.mc.communication.get_register(
@@ -274,7 +274,7 @@ class Feedbacks(metaclass=MCMetaClass):
             Type of feedback configured.
 
         Raises:
-            TypeError: If some parameter has an error type.
+            TypeError: If some read value has a wrong type..
 
         """
         position_feedback = self.mc.communication.get_register(
@@ -347,7 +347,7 @@ class Feedbacks(metaclass=MCMetaClass):
             Type of feedback configured
 
         Raises:
-            TypeError: If some parameter has an error type.
+            TypeError: If some read value has a wrong type..
 
         """
         auxiliar_feedback = self.mc.communication.get_register(
@@ -419,7 +419,7 @@ class Feedbacks(metaclass=MCMetaClass):
             Resolution of ABS1 encoder.
 
         Raises:
-            TypeError: If some parameter has an error type.
+            TypeError: If some read value has a wrong type..
 
         """
         single_turn_bits = self.mc.communication.get_register(
@@ -445,7 +445,7 @@ class Feedbacks(metaclass=MCMetaClass):
             Resolution of incremental encoder 1.
 
         Raises:
-            TypeError: If some parameter has an error type.
+            TypeError: If some read value has a wrong type..
 
         """
         resolution = self.mc.communication.get_register(
@@ -468,7 +468,7 @@ class Feedbacks(metaclass=MCMetaClass):
             Resolution of digital halls encoder.
 
         Raises:
-            TypeError: If some parameter has an error type.
+            TypeError: If some read value has a wrong type..
 
         """
         pair_poles = self.mc.communication.get_register(
@@ -492,7 +492,7 @@ class Feedbacks(metaclass=MCMetaClass):
             Resolution of secondary SSI encoder.
 
         Raises:
-            TypeError: If some parameter has an error type.
+            TypeError: If some read value has a wrong type..
 
         """
         secondary_single_turn_bits = self.mc.communication.get_register(
@@ -516,7 +516,7 @@ class Feedbacks(metaclass=MCMetaClass):
             Resolution of ABS2 encoder.
 
         Raises:
-            TypeError: If some parameter has an error type.
+            TypeError: If some read value has a wrong type..
 
         """
         serial_slave_1_single_turn_bits = self.mc.communication.get_register(
@@ -540,7 +540,7 @@ class Feedbacks(metaclass=MCMetaClass):
             Resolution of incremental encoder 2 encoder.
 
         Raises:
-            TypeError: If some parameter has an error type.
+            TypeError: If some read value has a wrong type..
 
         """
         resolution = self.mc.communication.get_register(

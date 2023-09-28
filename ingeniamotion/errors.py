@@ -121,7 +121,7 @@ class Errors(metaclass=MCMetaClass):
                 ``True`` if warning, else ``False``.
 
         Raises:
-            TypeError: If some parameter has an error type.
+            TypeError: If some read value has a wrong type..
 
         """
         error_version = self.__get_error_location(servo)
@@ -177,7 +177,7 @@ class Errors(metaclass=MCMetaClass):
                 ``True`` if warning, else ``False``.
         Raises:
             ValueError: Index must be less than 32
-            TypeError: If some parameter has an error type.
+            TypeError: If some read value has a wrong type..
         """
         if index >= self.MAXIMUM_ERROR_INDEX:
             raise ValueError("index must be less than 32")
@@ -206,7 +206,7 @@ class Errors(metaclass=MCMetaClass):
             Total number of errors.
 
         Raises:
-            TypeError: If some parameter has an error type.
+            TypeError: If some read value has a wrong type..
 
         """
         error_version = self.__get_error_location(servo)

@@ -135,7 +135,7 @@ class Disturbance:
             IMDisturbanceError: If the registers is an empty list.
             IMDisturbanceError: If the register is not allowed to be mapped as
                 a disturbance register.
-            TypeError: If some parameter has an error type.
+            TypeError: If some read value has a wrong type..
         """
         if len(registers) == 0:
             raise IMDisturbanceError("No registers to be mapped.")

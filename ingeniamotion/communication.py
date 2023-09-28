@@ -402,7 +402,7 @@ class Communication(metaclass=MCMetaClass):
 
         Raises:
             ingenialink.exceptions.ILError: If the EoE service is not running
-            TypeError: If some parameter has an error type.
+            TypeError: If some read value has a wrong type..
         """
         net = self.mc.net[ifname] if ifname in self.mc.net else EoENetwork(ifname)
         slaves = net.scan_slaves()
@@ -484,7 +484,7 @@ class Communication(metaclass=MCMetaClass):
             channel : CANOpen device channel. ``0`` by default.
         Returns:
             List of node ids available in the network.
-            TypeError: If some parameter has an error type.
+            TypeError: If some read value has a wrong type..
         """
         net_key = f"{can_device}_{channel}_{baudrate}"
         if net_key not in self.mc.net:
@@ -537,7 +537,7 @@ class Communication(metaclass=MCMetaClass):
         Raises:
             ingenialink.exceptions.ILAccessError: If the register access is write-only.
             IMRegisterNotExist: If the register doesn't exist.
-            TypeError: If some parameter has an error type.
+            TypeError: If some read value has a wrong type..
 
         """
         drive = self.mc.servos[servo]
