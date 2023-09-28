@@ -469,24 +469,24 @@ def test_get_drive_info_coco_moco(motion_controller):
 def test_get_product_code(motion_controller):
     expected_product_code_0 = 12
     expected_product_code_1 = 21
-    
+
     mc, alias = motion_controller
     product_code_0 = mc.configuration.get_product_code(alias, 0)
     product_code_1 = mc.configuration.get_product_code(alias, 1)
-    
+
     assert product_code_0 == expected_product_code_0
     assert product_code_1 == expected_product_code_1
-    
-    
+
+
 @pytest.mark.no_connection
 def test_get_revision_number(motion_controller):
     expected_revision_number_0 = 123
     expected_revision_number_1 = 321
-    
+
     mc, alias = motion_controller
     revision_number_0 = mc.configuration.get_revision_number(alias, 0)
     revision_number_1 = mc.configuration.get_revision_number(alias, 1)
-    
+
     assert revision_number_0 == expected_revision_number_0
     assert revision_number_1 == expected_revision_number_1
 
