@@ -178,10 +178,10 @@ class Information(metaclass=MCMetaClass):
 
     def get_node_id(self, alias: str = DEFAULT_SERVO) -> int:
         """Get the node ID for CANopen communications.
-        
+
         Args:
             alias: alias of the servo.
-            
+
         Returns:
             Node ID of the drive.
         """
@@ -191,13 +191,13 @@ class Information(metaclass=MCMetaClass):
             return int(drive.target)
         else:
             raise IMException("You need a CANopen communication to use this function")
-        
+
     def get_ip(self, alias: str = DEFAULT_SERVO) -> str:
         """Get the IP for Ethernet communications.
-        
+
         Args:
             alias: alias of the servo.
-            
+
         Returns:
             IP of the drive.
         """
@@ -207,13 +207,13 @@ class Information(metaclass=MCMetaClass):
             return str(drive.target)
         else:
             raise IMException("You need an Ethernet communication to use this function")
-        
+
     def get_slave_id(self, alias: str = DEFAULT_SERVO) -> int:
         """Get the slave ID for EoE communications.
-        
+
         Args:
             alias: alias of the servo.
-            
+
         Returns:
             Slave ID of the drive.
         """
@@ -223,7 +223,7 @@ class Information(metaclass=MCMetaClass):
             return int(net._configured_slaves[drive.target])
         else:
             raise IMException("You need a CANopen communication to use this function")
-        
+
     def get_name(self, alias: str = DEFAULT_SERVO) -> str:
         """Get the drive's name.
 
