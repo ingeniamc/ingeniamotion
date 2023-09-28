@@ -164,17 +164,20 @@ class Information(metaclass=MCMetaClass):
         """
         return create_comkit_dictionary(coco_dict_path, moco_dict_path, dest_file)
 
-    def get_product_name(self, alias: str = DEFAULT_SERVO) -> str:
+    def get_product_name(self, alias: str = DEFAULT_SERVO) -> Optional[str]:
         """Get the product name of the drive.
 
         Args:
             alias: alias of the servo.
+        
         Returns:
             If it exists for example: "EVE-NET-E", "CAP-NET-E", etc.
         """
         drive = self.mc.servos[alias]
         product_name = drive.dictionary.part_number
-        return f"{product_name}"
+        if not product_name is None:
+            return f"{product_name}"
+        return None
 
     def get_node_id(self, alias: str = DEFAULT_SERVO) -> int:
         """Get the node ID for CANopen communications.

@@ -514,4 +514,4 @@ def test_get_fw_version(motion_controller):
     firmware_version_1 = mc.configuration.get_fw_version(alias, 1)
 
     assert firmware_version_0 == expected_fw_version_0
-    assert firmware_version_0 == expected_fw_version_0
+    assert firmware_version_1 == expected_fw_version_1
