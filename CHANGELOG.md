@@ -5,6 +5,11 @@
 - In Configuation class: get_drive_info_coco_moco, get_product_code, get_revision_number, get_serial_number, get_fw_version
 - no_connection marker is added for unit testing.
 
+## [Unreleased]
+### Added
+- Functions needed to load firmware to a Motion Core (MoCo).
+- COM-KIT support.
+
 ## [0.6.2] - 2023-09-06
 ### Changed
 - Remove EDS file path param from CANopen connection. It is no longer necessary.

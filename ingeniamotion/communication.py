@@ -1,7 +1,7 @@
 import time
 import ifaddr
 import subprocess
-from os import path
+from os import path, remove
 from functools import partial
 from typing import Optional, Union, Callable, List
 
@@ -15,12 +15,19 @@ from ingenialink.eoe.network import EoENetwork
 from ingeniamotion.exceptions import IMRegisterWrongAccess
 from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE, REG_DTYPE, REG_ACCESS
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
+from ingeniamotion.comkit import create_comkit_dictionary
 
 
 class Communication(metaclass=MCMetaClass):
     """Communication."""
 
-    FORCE_SYSTEM_BOOT_CODE_REGISTER = "DRV_BOOT_COCO_FORCE"
+    FORCE_SYSTEM_BOOT_COCO_REGISTER = "DRV_BOOT_COCO_FORCE"
+    FORCE_SYSTEM_BOOT_MOCO_REGISTER = "DRV_BOOT_MOCO_MODE"
+    SYSTEM_RESET_MOCO_REGISTER = "DRV_BOOT_RESET"
+
+    PASSWORD_FORCE_BOOT_COCO = 0x424F4F54
+    PASSWORD_FORCE_BOOT_MOCO = 0x426F6F74
+    PASSWORD_SYSTEM_RESET = 0x72657365
 
     def __init__(self, motion_controller):
         self.mc = motion_controller
@@ -224,6 +231,51 @@ class Communication(metaclass=MCMetaClass):
             servo_status_listener,
             net_status_listener,
         )
+
+    def connect_servo_comkit(
+        self,
+        ip: str,
+        coco_dict_path: str,
+        moco_dict_path: str,
+        alias: str = DEFAULT_SERVO,
+        port: int = 1061,
+        connection_timeout: int = 1,
+        servo_status_listener: bool = False,
+        net_status_listener: bool = False,
+    ) -> None:
+        """Connect to target servo using a COM-KIT
+
+        Args:
+            ip : servo IP
+            coco_dict_path : COCO dictionary path.
+            moco_dict_path : MOCO dictionary path.
+            alias : servo alias to reference it. ``default`` by default.
+            port : servo port. ``1061`` by default.
+            connection_timeout: Timeout in seconds for connection.
+                ``1`` seconds by default.
+            servo_status_listener : Toggle the listener of the servo for
+                its status, errors, faults, etc.
+            net_status_listener : Toggle the listener of the network
+                status, connection and disconnection.
+
+        Raises:
+            FileNotFoundError: If a dict file doesn't exist.
+            ingenialink.exceptions.ILError: If the servo's IP or port is incorrect.
+        """
+        for dict_path in [coco_dict_path, moco_dict_path]:
+            if not path.isfile(dict_path):
+                raise FileNotFoundError(f"{dict_path} file does not exist!")
+        dict_path = create_comkit_dictionary(coco_dict_path, moco_dict_path)
+        self.__servo_connect(
+            ip,
+            dict_path,
+            alias,
+            port,
+            connection_timeout,
+            servo_status_listener=servo_status_listener,
+            net_status_listener=net_status_listener,
+        )
+        remove(dict_path)
 
     @staticmethod
     def __get_adapter_name(address: str) -> Optional[str]:
@@ -721,15 +773,74 @@ class Communication(metaclass=MCMetaClass):
             servo : servo alias to reference it. ``default`` by default.
 
         """
-        PASSWORD_FORCE_BOOT_COCO = 0x424F4F54
         net = self.mc._get_network(servo)
         drive = self.mc._get_drive(servo)
         net.stop_status_listener()
         drive.stop_status_listener()
         try:
             self.mc.communication.set_register(
-                self.FORCE_SYSTEM_BOOT_CODE_REGISTER, PASSWORD_FORCE_BOOT_COCO, servo=servo, axis=0
+                self.FORCE_SYSTEM_BOOT_COCO_REGISTER,
+                self.PASSWORD_FORCE_BOOT_COCO,
+                servo=servo,
+                axis=0,
             )
         except ILError:
             pass
         self.disconnect(servo)
+
+    def load_firmware_moco(
+        self,
+        fw_file: str,
+        servo: str = DEFAULT_SERVO,
+    ) -> None:
+        """Load firmware to the Motion Core.
+
+        .. warning::
+            After functions ends, the servo will take a moment to load firmware.
+            During the process, the servo will be not operative.
+
+        Args:
+            fw_file : Firmware file path.
+            servo : servo alias to reference it. ``default`` by default.
+
+        Raises:
+            ValueError: If servo is not connected via Ethernet.
+
+        """
+        default_node = 10
+        default_subnode = 1
+        default_port = 1061
+        net = self.mc._get_network(servo)
+        drive = self.mc._get_drive(servo)
+        ip = drive.target
+        if not isinstance(net, EthernetNetwork):
+            raise ValueError("Target servo is not connected via Ethernet")
+        net.load_firmware_moco(default_node, default_subnode, ip, default_port, fw_file)
+
+    def boot_mode_moco(self, servo: str = DEFAULT_SERVO) -> None:
+        """Set the Motion Core to boot mode.
+
+        Args:
+            servo : servo alias to reference it. ``default`` by default.
+
+        """
+        net = self.mc._get_network(servo)
+        drive = self.mc._get_drive(servo)
+        net.stop_status_listener()
+        drive.stop_status_listener()
+        try:
+            self.mc.communication.set_register(
+                self.FORCE_SYSTEM_BOOT_MOCO_REGISTER,
+                self.PASSWORD_FORCE_BOOT_MOCO,
+                servo=servo,
+            )
+        except ILError as e:
+            self.logger.debug(e)
+        try:
+            self.mc.communication.set_register(
+                self.SYSTEM_RESET_MOCO_REGISTER,
+                self.PASSWORD_FORCE_BOOT_MOCO,
+                servo=servo,
+            )
+        except ILError as e:
+            self.logger.debug(e)
