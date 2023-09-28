@@ -2,13 +2,25 @@ from os import path
 from enum import IntEnum
 from typing import Optional
 
-from .homing import Homing
-from .feedbacks import Feedbacks
-from .enums import PhasingMode, GeneratorMode
-from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
-
+from ingenialink import Servo
+from ingenialink.exceptions import ILError
+import ingenialogger
+from ingeniamotion.exceptions import IMException
 import ingenialogger
 from ingenialink.canopen.network import CanopenNetwork, CAN_BAUDRATE
+
+from ingeniamotion.homing import Homing
+from ingeniamotion.feedbacks import Feedbacks
+from ingeniamotion.enums import PhasingMode, GeneratorMode
+from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
+
+
+
+class TYPE_SUBNODES(IntEnum):
+    COCO = 0
+    MOCO = 1
+
+
 
 
 class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
@@ -52,6 +64,23 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
     STO_ACTIVE_STATE = 4
     STO_INACTIVE_STATE = 23
     STO_LATCHED_STATE = 31
+
+    PRODUCT_ID_REGISTERS = {
+        TYPE_SUBNODES.COCO: "DRV_ID_PRODUCT_CODE_COCO",
+        TYPE_SUBNODES.MOCO: "DRV_ID_PRODUCT_CODE",
+    }
+    REVISION_NUMBER_REGISTERS = {
+        TYPE_SUBNODES.COCO: "DRV_ID_REVISION_NUMBER_COCO",
+        TYPE_SUBNODES.MOCO: "DRV_ID_REVISION_NUMBER",
+    }
+    SERIAL_NUMBER_REGISTERS = {
+        TYPE_SUBNODES.COCO: "DRV_ID_SERIAL_NUMBER_COCO",
+        TYPE_SUBNODES.MOCO: "DRV_ID_SERIAL_NUMBER",
+    }
+    SOFTWARE_VERSION_REGISTERS = {
+        TYPE_SUBNODES.COCO: "DRV_APP_COCO_VERSION",
+        TYPE_SUBNODES.MOCO: "DRV_ID_SOFTWARE_VERSION",
+    }
 
     def __init__(self, motion_controller):
         Homing.__init__(self, motion_controller)
@@ -712,6 +741,123 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """
         drive = self.mc._get_drive(servo)
         drive.restore_tcp_ip_parameters()
+
+    def get_drive_info_coco_moco(
+        self, alias: str
+    ) -> tuple[list[Optional[int]], list[Optional[int]], list[Optional[str]], list[Optional[int]]]:
+        """Get product codes, revision numbers, firmware versions and serial numbers from
+        COCO and MOCO.
+
+        Args:
+            alias: Servo alias.
+
+        Returns:
+            Product codes (COCO, MOCO).
+            Revision numbers (COCO, MOCO).
+            FW versions (COCO, MOCO).
+            Serial numbers (COCO, MOCO).
+
+        """
+        prod_codes: list[Optional[int]] = [None, None]
+        rev_numbers: list[Optional[int]] = [None, None]
+        fw_versions: list[Optional[str]] = [None, None]
+        serial_number: list[Optional[int]] = [None, None]
+
+        for subnode in [0, 1]:
+            # Product codes
+            try:
+                prod_codes[subnode] = self.get_product_code(alias, subnode)
+            except (
+                ILError,
+                IMException,
+            ) as e:
+                self.logger.error(e)
+            # Revision numbers
+            try:
+                rev_numbers[subnode] = self.get_revision_number(alias, subnode)
+            except (ILError, IMException) as e:
+                self.logger.error(e)
+            # FW versions
+            try:
+                fw_versions[subnode] = self.get_fw_version(alias, subnode)
+            except (ILError, IMException) as e:
+                self.logger.error(e)
+            # Serial numbers
+            try:
+                serial_number[subnode] = self.get_serial_number(alias, subnode)
+            except (ILError, IMException) as e:
+                self.logger.error(e)
+
+        return prod_codes, rev_numbers, fw_versions, serial_number
+
+    @staticmethod
+    def get_subnode_type(subnode: int) -> TYPE_SUBNODES:
+        """Get a subnode type depending on the axis number.
+
+        Args:
+            subnode: Axis number of the drive.
+
+        Returns:
+            Subnode type.
+
+        Raises:
+            ValueError: For negative subnode values.
+        """
+        if subnode < 0:
+            raise ValueError("There are no subnodes with negative values")
+        return TYPE_SUBNODES.COCO if subnode == 0 else TYPE_SUBNODES.MOCO
+
+    def get_product_code(self, alias: str, subnode: int) -> int:
+        """Get the product code of a drive.
+
+        Args:
+            alias: Alias of the drive.
+            subnode: Axis number of the drive.
+
+        Returns:
+            Product code
+        """
+        product_code_register = self.PRODUCT_ID_REGISTERS[self.get_subnode_type(subnode)]
+        return self.mc.communication.get_register(product_code_register, alias, axis=subnode)
+
+    def get_revision_number(self, alias: str, subnode: int) -> int:
+        """Get the revision number of a drive.
+
+        Args:
+            alias: Alias of the drive.
+            subnode: Axis number of the drive.
+
+        Returns:
+            Revision number
+        """
+        revision_number_register = self.REVISION_NUMBER_REGISTERS[self.get_subnode_type(subnode)]
+        return self.mc.communication.get_register(revision_number_register, alias, axis=subnode)
+
+    def get_serial_number(self, alias: str, subnode: int) -> int:
+        """Get the serial number of a drive.
+
+        Args:
+            alias: Alias of the drive.
+            subnode: Axis number of the drive.
+
+        Returns:
+            Serial number
+        """
+        serial_number_register = self.SERIAL_NUMBER_REGISTERS[self.get_subnode_type(subnode)]
+        return self.mc.communication.get_register(serial_number_register, alias, axis=subnode)
+
+    def get_fw_version(self, alias: str, subnode: int) -> str:
+        """Get the firmware version of a drive.
+
+        Args:
+            alias: Alias of the drive.
+            subnode: Axis number of the drive.
+
+        Returns:
+            Firmware version.
+        """
+        fw_register = self.SOFTWARE_VERSION_REGISTERS[self.get_subnode_type(subnode)]
+        return self.mc.communication.get_register(fw_register, alias, axis=subnode)
 
     def change_baudrate(self, baud_rate: CAN_BAUDRATE, servo: str = DEFAULT_SERVO) -> None:
         """Change a CANopen device's baudrate.

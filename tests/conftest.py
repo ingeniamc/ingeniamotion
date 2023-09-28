@@ -39,10 +39,11 @@ def pytest_collection_modifyitems(config, items):
 def read_config(request):
     slave = request.config.getoption("--slave")
     protocol = request.config.getoption("--protocol")
-    config = "tests/config.json"
-    with open(config, "r") as fp:
-        contents = json.load(fp)
-    return contents[protocol][slave]
+    if protocol != "no_connection":
+        config = "tests/config.json"
+        with open(config, "r") as fp:
+            contents = json.load(fp)
+        return contents[protocol][slave]
 
 
 def connect_eoe(mc, config, alias):
