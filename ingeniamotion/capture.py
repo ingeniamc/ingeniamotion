@@ -111,7 +111,7 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             IMRegisterNotExist: If register does not exist in dictionary.
-            TypeError: If some read value has a wrong type..
+            TypeError: If some parameter has a wrong type.
 
         """
         poller = Poller(self.mc.servos[servo], len(registers))
@@ -415,7 +415,7 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
-            TypeError: If some read value has a wrong type..
+            TypeError: If some read value has a wrong type.
 
         """
         monitoring_disturbance_status = self.mc.communication.get_register(
@@ -436,7 +436,7 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
-            TypeError: If some read value has a wrong type..
+            TypeError: If some read value has a wrong type.
 
         """
         monitoring_status = self.mc.communication.get_register(
@@ -461,7 +461,7 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
-            TypeError: If some read value has a wrong type..
+            TypeError: If some read value has a wrong type.
 
         """
         if version is None:
@@ -629,7 +629,7 @@ class Capture(metaclass=MCMetaClass):
             Max buffer size in bytes.
 
         Raises:
-            TypeError: If some read value has a wrong type..
+            TypeError: If some read value has a wrong type.
 
         """
         try:
@@ -652,7 +652,7 @@ class Capture(metaclass=MCMetaClass):
             Max buffer size in bytes.
 
         Raises:
-            TypeError: If some read value has a wrong type..
+            TypeError: If some read value has a wrong type.
 
         """
         try:
@@ -676,7 +676,7 @@ class Capture(metaclass=MCMetaClass):
             Sampling rate in Hz.
 
         Raises:
-            TypeError: If some read value has a wrong type..
+            TypeError: If some read value has a wrong type.
 
         """
 

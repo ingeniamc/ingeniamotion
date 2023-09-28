@@ -333,7 +333,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             Position & velocity loop rate frequency in Hz.
 
         Raises:
-            TypeError: If some read value has a wrong type..
+            TypeError: If some read value has a wrong type.
 
         """
         pos_vel_loop_rate = self.mc.communication.get_register(
@@ -354,7 +354,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             Current loop rate frequency in Hz.
 
         Raises:
-            TypeError: If some read value has a wrong type..
+            TypeError: If some read value has a wrong type.
 
         """
         current_loop = self.mc.communication.get_register(
@@ -381,7 +381,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Raises:
             ValueError: If power stage frequency selection register has an
                 invalid value.
-            TypeError: If some read value has a wrong type..
+            TypeError: If some read value has a wrong type.
 
         """
         pow_stg_freq = self.mc.communication.get_register(
@@ -446,7 +446,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             Status word.
 
         Raises:
-            TypeError: If some read value has a wrong type..
+            TypeError: If some read value has a wrong type.
 
         """
         status_word = self.mc.communication.get_register(self.STATUS_WORD_REGISTER, servo, axis)
@@ -511,7 +511,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             Phasing mode value.
 
         Raises:
-            TypeError: If some read value has a wrong type..
+            TypeError: If some read value has a wrong type.
 
         """
         phasing_mode = self.mc.communication.get_register(self.PHASING_MODE_REGISTER, servo, axis)
@@ -568,7 +568,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             Pair poles value.
 
         Raises:
-            TypeError: If some read value has a wrong type..
+            TypeError: If some read value has a wrong type.
         """
         pair_poles = self.mc.communication.get_register(
             self.MOTOR_POLE_PAIRS_REGISTER, servo=servo, axis=axis
@@ -589,7 +589,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             STO register value.
 
         Raises:
-            TypeError: If some read value has a wrong type..
+            TypeError: If some read value has a wrong type.
 
         """
         sto_status = self.mc.communication.get_register(

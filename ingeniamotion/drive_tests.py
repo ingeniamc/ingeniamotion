@@ -217,7 +217,7 @@ class DriveTests(metaclass=MCMetaClass):
         Raises:
             TestError: If servo or setup configuration makes impossible
                 complete the calibration.
-            TypeError: If some read value has a wrong type..
+            TypeError: If some parameter has a wrong type.
         """
         commutation = Phasing(self.mc, servo, axis)
         output = commutation.run()
