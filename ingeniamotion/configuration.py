@@ -15,12 +15,9 @@ from ingeniamotion.enums import PhasingMode, GeneratorMode
 from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
-
 class TYPE_SUBNODES(IntEnum):
     COCO = 0
     MOCO = 1
-
-
 
 
 class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
@@ -81,6 +78,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         TYPE_SUBNODES.COCO: "DRV_APP_COCO_VERSION",
         TYPE_SUBNODES.MOCO: "DRV_ID_SOFTWARE_VERSION",
     }
+    VENDOR_ID_REGISTER = "DRV_ID_VENDOR_ID"
 
     def __init__(self, motion_controller):
         Homing.__init__(self, motion_controller)
@@ -859,6 +857,15 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         fw_register = self.SOFTWARE_VERSION_REGISTERS[self.get_subnode_type(subnode)]
         return self.mc.communication.get_register(fw_register, alias, axis=subnode)
 
+    def get_vendor_id(self, alias: str) -> int:
+        """Get the vendor ID of a drive.
+        Args:
+            alias: Alias of the drive.
+        Returns:
+            Vendor ID.
+        """
+        return self.mc.communication.get_register(self.VENDOR_ID_REGISTER, alias)
+
     def change_baudrate(self, baud_rate: CAN_BAUDRATE, servo: str = DEFAULT_SERVO) -> None:
         """Change a CANopen device's baudrate.
 
@@ -871,7 +878,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         net = self.mc._get_network(servo)
         if not isinstance(net, CanopenNetwork):
             raise ValueError(f"Servo {servo} is not a CANopen device.")
-        vendor_id = self.mc.info.get_vendor_id(servo)
+        vendor_id = self.get_vendor_id(servo)
         (
             (prod_code, _),
             (rev_number, _),

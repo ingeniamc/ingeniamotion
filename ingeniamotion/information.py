@@ -23,8 +23,6 @@ logger = ingenialogger.get_logger(__name__)
 class Information(metaclass=MCMetaClass):
     """Information."""
 
-    VENDOR_ID_REGISTER = "DRV_ID_VENDOR_ID"
-
     def __init__(self, motion_controller: "MotionController"):
         self.mc = motion_controller
 
