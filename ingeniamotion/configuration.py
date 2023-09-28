@@ -740,7 +740,8 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
     def get_drive_info_coco_moco(
         self, alias: str
     ) -> tuple[list[Optional[int]], list[Optional[int]], list[Optional[str]], list[Optional[int]]]:
-        """Get info from COCO and MOCO registers.
+        """Get product codes, revision numbers, firmware versions and serial numbers from
+        COCO and MOCO.
 
         Args:
             alias: Servo alias.
@@ -783,32 +784,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
                 self.logger.error(e)
 
         return prod_codes, rev_numbers, fw_versions, serial_number
-
-    def get_drive_info(self, alias: str) -> tuple[int, int, str, int]:
-        """Get info from MOCO if it is available or from COCO if it is not.
-
-        Args:
-            alias: Servo alias.
-            force_reading: If True, cleans the cache before reading the drive.
-
-        Returns:
-            Product code.
-            Revision number.
-            FW version.
-            Serial number.
-        """
-        prod_codes, rev_numbers, fw_versions, serial_numbers = self.get_drive_info_coco_moco(alias)
-
-        prod_code = prod_codes[1] or prod_codes[0] or 0
-
-        rev_number = rev_numbers[1] or rev_numbers[0] or 0
-
-        fw_version = fw_versions[1] or fw_versions[0] or "-"
-        fw_version = ".".join(fw_version.split(".")[:4])
-
-        serial_number = serial_numbers[1] or serial_numbers[0] or 0
-
-        return prod_code, rev_number, fw_version, serial_number
 
     @staticmethod
     def get_subnode_type(subnode: int) -> TYPE_SUBNODES:

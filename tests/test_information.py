@@ -100,13 +100,13 @@ def test_get_product_name(motion_controller, mocker):
 
 
 @pytest.mark.no_connection
-def test_get_target(motion_controller):
-    expected_target = "FAKE_TARGET"
+def test_get_ip(motion_controller):
+    expected_ip = "FAKE_TARGET"
 
     mc, alias = motion_controller
-    target = mc.info.get_target(alias)
+    ip = mc.info.get_ip(alias)
 
-    assert target == expected_target
+    assert ip == expected_ip
 
 
 @pytest.mark.no_connection

@@ -1,6 +1,5 @@
-from enum import Enum
 import os
-from typing import TYPE_CHECKING, Tuple, Union, Optional
+from typing import TYPE_CHECKING, Tuple, Optional
 import xml.etree.ElementTree as ET
 
 from ingenialink.eoe.network import EoENetwork
@@ -9,20 +8,15 @@ from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.register import Register, REG_ACCESS, REG_DTYPE
 import ingenialogger
 
-from .exceptions import IMRegisterNotExist, IMException
-from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
+from ingeniamotion.exceptions import IMRegisterNotExist, IMException
+from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
+from ingeniamotion.enums import COMMUNICATION_TYPE
 
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 logger = ingenialogger.get_logger(__name__)
-
-
-class COMMUNICATION_TYPE(Enum):
-    Canopen = 0
-    Ethernet = 1
-    Ethercat = 2
 
 
 class Information(metaclass=MCMetaClass):
@@ -160,25 +154,54 @@ class Information(metaclass=MCMetaClass):
         product_name = drive.dictionary.part_number
         return f"{product_name}"
 
-    def get_target(self, alias: str = DEFAULT_SERVO) -> Union[int, str]:
-        """Get the target of the drive. A target means an IP for Ethernet communications or
-        a Node ID for CANopen communications.
-
+    def get_node_id(self, alias: str = DEFAULT_SERVO) -> int:
+        """Get the node ID for CANopen communications.
+        
         Args:
             alias: alias of the servo.
-
+            
         Returns:
-            An IP or a Node ID.
+            Node ID of the drive.
         """
-        drive = self.mc.servos[alias]
         net = self.mc._get_network(alias)
-        if isinstance(net, EoENetwork):
-            return int(net._configured_slaves[drive.target])
-        elif isinstance(net, EthernetNetwork):
+        drive = self.mc.servos[alias]
+        if isinstance(net, CanopenNetwork):
+            return int(drive.target)
+        else:
+            raise IMException("You need a CANopen communication to use this function")
+        
+    def get_ip(self, alias: str = DEFAULT_SERVO) -> str:
+        """Get the IP for Ethernet communications.
+        
+        Args:
+            alias: alias of the servo.
+            
+        Returns:
+            IP of the drive.
+        """
+        net = self.mc._get_network(alias)
+        drive = self.mc.servos[alias]
+        if isinstance(net, EthernetNetwork):
             return str(drive.target)
         else:
-            return int(drive.target)
-
+            raise IMException("You need an Ethernet communication to use this function")
+        
+    def get_slave_id(self, alias: str = DEFAULT_SERVO) -> int:
+        """Get the slave ID for EoE communications.
+        
+        Args:
+            alias: alias of the servo.
+            
+        Returns:
+            Slave ID of the drive.
+        """
+        net = self.mc._get_network(alias)
+        drive = self.mc.servos[alias]
+        if isinstance(net, EoENetwork):
+            return int(net._configured_slaves[drive.target])
+        else:
+            raise IMException("You need a CANopen communication to use this function")
+        
     def get_name(self, alias: str = DEFAULT_SERVO) -> str:
         """Get the drive's name.
 
@@ -221,11 +244,11 @@ class Information(metaclass=MCMetaClass):
         """
         prod_name = self.get_product_name(alias)
         name = self.get_name(alias)
-        target = self.get_target(alias)
         full_name = f"{prod_name} - {name}"
         net = self.mc._get_network(alias)
         if isinstance(net, EthernetNetwork):
-            full_name = f"{full_name} ({target})"
+            ip = self.get_ip(alias)
+            full_name = f"{full_name} ({ip})"
         return full_name
 
     def get_subnodes(self, alias: str = DEFAULT_SERVO) -> int:
@@ -268,35 +291,3 @@ class Information(metaclass=MCMetaClass):
         """
         drive = self.mc.servos[alias]
         return str(os.path.basename(drive.dictionary.path))
-
-    def get_encoded_image_from_dictionary(self, alias: str) -> Optional[str]:
-        """Get the encoded product image from a drive dictionary.
-
-        This function reads a dictionary of a drive, and it parses whether the dictionary file has a
-        DriveImage tag and its content.
-
-        Args:
-            alias: Alias of the drive.
-
-        Returns:
-            The encoded image or NoneType object.
-        """
-        drive = self.mc.servos[alias]
-        # Read encoded image in XDF dictionary file
-        dictionary_path = drive.dictionary.path
-        try:
-            with open(dictionary_path, "r", encoding="utf-8") as xdf_file:
-                tree = ET.parse(xdf_file)
-        except FileNotFoundError:
-            raise FileNotFoundError(f"There is not any xdf file in the path: {dictionary_path}")
-        root = tree.getroot()
-        try:
-            image_element = root.findall(f"./DriveImage")
-            if image_element[0].text is not None and image_element[0].text.strip():
-                return f"{image_element[0].text}"
-            else:
-                # If the content in DriveImage tag is empty
-                return None
-        except IndexError:
-            # If there is no DriveImage tag in dictionary file
-            return None

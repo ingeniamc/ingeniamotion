@@ -466,22 +466,6 @@ def test_get_drive_info_coco_moco(motion_controller):
 
 
 @pytest.mark.no_connection
-def test_get_drive_info(motion_controller):
-    expected_prod_code = 21
-    expected_rev_number = 321
-    expected_fw_version = "2.3.4"
-    expected_serial_number = 6543
-
-    mc, alias = motion_controller
-    prod_code, rev_num, fw_ver, ser_num = mc.configuration.get_drive_info(alias)
-
-    assert prod_code == expected_prod_code
-    assert rev_num == expected_rev_number
-    assert fw_ver == expected_fw_version
-    assert ser_num == expected_serial_number
-
-
-@pytest.mark.no_connection
 def test_get_product_code(motion_controller):
     expected_product_code_0 = 12
     expected_product_code_1 = 21
