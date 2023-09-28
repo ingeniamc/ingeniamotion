@@ -2,12 +2,10 @@ from os import path
 from enum import IntEnum
 from typing import Optional
 
-from ingenialink import Servo
 from ingenialink.exceptions import ILError
-import ingenialogger
 from ingeniamotion.exceptions import IMException
-import ingenialogger
 from ingenialink.canopen.network import CanopenNetwork, CAN_BAUDRATE
+import ingenialogger
 
 from ingeniamotion.homing import Homing
 from ingeniamotion.feedbacks import Feedbacks
