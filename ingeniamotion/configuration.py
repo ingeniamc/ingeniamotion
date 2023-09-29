@@ -1,6 +1,6 @@
 from os import path
 from enum import IntEnum
-from typing import Optional
+from typing import List, Optional, Tuple
 
 from ingenialink import Servo
 from ingenialink.exceptions import ILError
@@ -739,7 +739,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
     def get_drive_info_coco_moco(
         self, alias: str
-    ) -> tuple[list[Optional[int]], list[Optional[int]], list[Optional[str]], list[Optional[int]]]:
+    ) -> Tuple[List[Optional[int]], List[Optional[int]], List[Optional[str]], List[Optional[int]]]:
         """Get product codes, revision numbers, firmware versions and serial numbers from
         COCO and MOCO.
 
@@ -753,10 +753,10 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             Serial numbers (COCO, MOCO).
 
         """
-        prod_codes: list[Optional[int]] = [None, None]
-        rev_numbers: list[Optional[int]] = [None, None]
-        fw_versions: list[Optional[str]] = [None, None]
-        serial_number: list[Optional[int]] = [None, None]
+        prod_codes: List[Optional[int]] = [None, None]
+        rev_numbers: List[Optional[int]] = [None, None]
+        fw_versions: List[Optional[str]] = [None, None]
+        serial_number: List[Optional[int]] = [None, None]
 
         for subnode in [0, 1]:
             # Product codes

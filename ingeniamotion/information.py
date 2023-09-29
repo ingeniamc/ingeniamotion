@@ -1,5 +1,5 @@
 import os
-from typing import TYPE_CHECKING, Tuple, Optional
+from typing import TYPE_CHECKING, Dict, Tuple, Optional
 import xml.etree.ElementTree as ET
 
 from ingenialink.eoe.network import EoENetwork
@@ -288,7 +288,7 @@ class Information(metaclass=MCMetaClass):
         drive = self.mc.servos[alias]
         return int(drive.subnodes)
 
-    def get_categories(self, alias: str) -> dict[str, str]:
+    def get_categories(self, alias: str) -> Dict[str, str]:
         """Return dictionary categories instance.
 
         Args:
@@ -300,7 +300,7 @@ class Information(metaclass=MCMetaClass):
         drive = self.mc.servos[alias]
         dictionary_categories = drive.dictionary.categories
         category_ids = dictionary_categories.category_ids
-        categories: dict[str, str] = {}
+        categories: Dict[str, str] = {}
         for cat_id in category_ids:
             categories[cat_id] = dictionary_categories.labels(cat_id)["en_US"]
         return categories
