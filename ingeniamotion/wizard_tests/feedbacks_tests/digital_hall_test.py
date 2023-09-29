@@ -33,7 +33,7 @@ class DigitalHallTest(Feedbacks):
 
     @BaseTest.stoppable
     def halls_extra_settings(self) -> None:
-        if not isinstance(self.pair_poles, int):
+        if self.pair_poles is None:
             raise TypeError("Pair poles has to be an integer")
         self.mc.communication.set_register(
             self.DIG_HALL_POLE_PAIRS_REGISTER, self.pair_poles, servo=self.servo, axis=self.axis
@@ -63,7 +63,7 @@ class DigitalHallTest(Feedbacks):
     def suggest_polarity(self, pol: Feedbacks.Polarity) -> None:
         polarity_uid = self.FEEDBACK_POLARITY_REGISTER
         pair_poles_uid = self.DIG_HALL_POLE_PAIRS_REGISTER
-        if not isinstance(self.pair_poles, int):
+        if self.pair_poles is None:
             raise TypeError("Pair poles has to be set before polarity suggestion.")
         self.suggested_registers[pair_poles_uid] = self.pair_poles
         self.suggested_registers[polarity_uid] = pol
