@@ -63,7 +63,8 @@ pipeline {
                 stage("Run tests without connection") {
                     steps {
                         bat '''
-                            venv\\Scripts\\python.exe -m pytest tests -m no_connection --protocol no_connection --slave 0 --junitxml=pytest_reports/pytest_no_connection_report.xml
+                            cd C:\\Users\\ContainerAdministrator\\ingeniamotion
+                            venv\\Scripts\\python.exe -m pytest tests -m no_connection --protocol no_connection --junitxml=pytest_reports\\pytest_no_connection_report.xml
                             move .coverage .coverage_no_connection
                             exit /b 0
                         '''
