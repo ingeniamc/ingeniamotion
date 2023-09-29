@@ -4,7 +4,6 @@ from functools import wraps
 from typing import TypeVar, Callable, Any
 
 
-
 class StopException(Exception):
     """Stop exception."""
 

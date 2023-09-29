@@ -550,9 +550,7 @@ class Feedbacks(metaclass=MCMetaClass):
             raise TypeError("Resolution value has to be an integer")
         return resolution
 
-    def __no_feedback_resolution(
-        self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ) -> int:
+    def __no_feedback_resolution(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
         """Used for feedbacks that has no resolution.
 
         Args:
