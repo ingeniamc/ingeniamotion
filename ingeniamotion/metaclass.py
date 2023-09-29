@@ -19,7 +19,7 @@ class MCMetaClass(type):
     functions, as motor disabled checker.
     """
 
-    SERVO_ARG_NAME: ClassVar[str] = "servo"
+    SERVO_ARG_NAME: str = "servo"
 
     def __new__(
         mcs: type["MCMetaClass"], name: str, bases: tuple[type, ...], local: dict[str, Any]
@@ -55,7 +55,7 @@ class MCMetaClass(type):
         return wrapper
 
     @classmethod
-    def check_motor_disabled(mcs: T, func: F) -> F:
+    def check_motor_disabled(mcs, func: Callable[..., T]) -> Callable[..., T]:
         """Decorator to check if motor is disabled.
         If motor is enabled raises an exception.
         """

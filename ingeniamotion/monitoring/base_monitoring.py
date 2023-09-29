@@ -70,7 +70,6 @@ class Monitoring(ABC):
         self.mc = mc
         self.servo = servo
         self.mapped_registers: list[dict[str, str]] = []
-        self.monitoring_data = []  # type: ignore
         self.sampling_freq: Optional[float] = None
         self._read_process_finished = False
         self.samples_number = 0

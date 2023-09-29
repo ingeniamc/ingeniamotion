@@ -78,7 +78,7 @@ class Feedbacks(BaseTest):
         "CL_VEL_FBK_FILTER1_FREQ",
     ]
 
-    FEEDBACK_POLARITY_REGISTER = ""
+    FEEDBACK_POLARITY_REGISTER: str
 
     SENSOR_TYPE_FEEDBACK_TEST: SensorType
 
@@ -398,7 +398,7 @@ class Feedbacks(BaseTest):
         test_output = self.ResultType.SUCCESS if test_output == 0 else test_output
         polarity = self.check_polarity(position_displacement)
         self.suggest_polarity(polarity)
-        return self.ResultType(test_output)  # TODO check return
+        return self.ResultType(test_output)
 
     def get_result_msg(self, output: ResultType) -> str:
         if output == self.ResultType.SUCCESS:
@@ -407,7 +407,7 @@ class Feedbacks(BaseTest):
             text = [self.result_description[x] for x in self.result_description if -output & -x > 0]
             return ".".join(text)
         else:
-            raise IMException("Unknown error")
+            raise NotImplementedError("This ResultType is not implemented")
 
     def get_result_severity(self, output: ResultType) -> SeverityLevel:
         if output < self.ResultType.SUCCESS:

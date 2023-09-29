@@ -3,7 +3,6 @@ from time import time
 from functools import wraps
 from typing import TypeVar, Callable, Any
 
-F = TypeVar("F", bound=Callable[..., Any])
 
 
 class StopException(Exception):

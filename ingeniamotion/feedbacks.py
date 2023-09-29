@@ -552,7 +552,7 @@ class Feedbacks(metaclass=MCMetaClass):
 
     def __no_feedback_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ) -> None:
+    ) -> int:
         """Used for feedbacks that has no resolution.
 
         Args:
@@ -566,7 +566,7 @@ class Feedbacks(metaclass=MCMetaClass):
 
     def get_feedback_resolution(
         self, feedback: SensorType, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ) -> Optional[int]:
+    ) -> int:
         """Reads target feedback resolution in the target servo and axis.
 
         Args:

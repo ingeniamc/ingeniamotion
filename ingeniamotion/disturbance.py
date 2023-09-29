@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 # Constants for typing
+# TODO: INGM-327
 TYPE_MAPPED_REGISTERS_ALL = dict[str, Union[str, int, list[float]]]
 TYPE_MAPPED_REGISTERS_NAME_AXIS = dict[str, Union[str, int]]
 TYPE_MAPPED_REGISTERS_DATA = dict[str, list[Union[int, float]]]
