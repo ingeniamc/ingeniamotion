@@ -31,7 +31,7 @@ pipeline {
                         bat '''
                             cd C:\\Users\\ContainerAdministrator\\ingeniamotion
                             python -m venv venv
-                            venv\\Scripts\\python.exe -m pip install -r requirements\\dev-requirements.txt
+                            venv\\Scripts\\python.exe -m pip install -r requirements\\dev-requirements.txt -r requirements\\test-requirements.txt
                             venv\\Scripts\\python.exe -m pip install -e .
                         '''
                     }
