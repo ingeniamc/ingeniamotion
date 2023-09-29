@@ -65,14 +65,14 @@ pipeline {
                         bat '''
                             cd C:\\Users\\ContainerAdministrator\\ingeniamotion
                             venv\\Scripts\\python.exe -m pytest tests -m no_connection --protocol no_connection --junitxml=pytest_reports\\pytest_no_connection_report.xml
-                            move .coverage .coverage_no_connection
+                            move .coverage ${env.WORKSPACE}\\.coverage_no_connection
+                            XCOPY pytest_reports ${env.WORKSPACE}\\pytest_reports /i
                             exit /b 0
                         '''
                     }
                 }
                 stage('Save test results') {
                     steps {
-                        cd C:\\Users\\ContainerAdministrator\\ingeniamotion
                         stash includes: '.coverage_no_connection', name: 'coverage_reports'
                         stash includes: 'pytest_reports/', name: 'test_reports'
                     }
