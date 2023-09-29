@@ -72,6 +72,7 @@ pipeline {
                 }
                 stage('Save test results') {
                     steps {
+                        cd C:\\Users\\ContainerAdministrator\\ingeniamotion
                         stash includes: '.coverage_no_connection', name: 'coverage_reports'
                         stash includes: 'pytest_reports/', name: 'test_reports'
                     }
