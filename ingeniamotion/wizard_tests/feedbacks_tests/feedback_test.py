@@ -132,9 +132,7 @@ class Feedbacks(BaseTest):
         if self.pair_poles is None:
             raise TypeError("Pair poles has to be set before resolution checking.")
         if self.feedback_resolution is None:
-            raise TypeError(
-                "Feedback resolution has to be set before resolution checking."
-            )
+            raise TypeError("Feedback resolution has to be set before resolution checking.")
         displacement = displacement * self.pair_poles
         self.logger.info("RESOLUTION CHECK")
         self.logger.info("Theoretical resolution: %.0f", self.feedback_resolution)
