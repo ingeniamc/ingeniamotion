@@ -4,7 +4,7 @@ import numpy as np
 import ingenialogger
 from functools import wraps
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Optional, Union, Callable
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union, Callable
 
 from ingenialink.enums.register import REG_DTYPE
 
@@ -69,7 +69,7 @@ class Monitoring(ABC):
         super().__init__()
         self.mc = mc
         self.servo = servo
-        self.mapped_registers: list[dict[str, str]] = []
+        self.mapped_registers: List[Dict[str, str]] = []
         self.sampling_freq: Optional[float] = None
         self._read_process_finished = False
         self.samples_number = 0
@@ -105,7 +105,7 @@ class Monitoring(ABC):
         )
 
     @check_monitoring_disabled
-    def map_registers(self, registers: list[dict["str", "str"]]) -> None:
+    def map_registers(self, registers: List[Dict["str", "str"]]) -> None:
         """Map registers to monitoring. Monitoring must be disabled.
 
         Args:
@@ -172,7 +172,7 @@ class Monitoring(ABC):
         self,
         trigger_mode: MonitoringSoCType,
         edge_condition: Optional[MonitoringSoCConfig] = None,
-        trigger_signal: Optional[dict[str, str]] = None,
+        trigger_signal: Optional[Dict[str, str]] = None,
         trigger_value: Union[None, int, float] = None,
     ) -> None:
         """Configure monitoring trigger. Monitoring must be disabled.
@@ -194,8 +194,8 @@ class Monitoring(ABC):
         pass
 
     def _get_reg_index_and_edge_condition_value(
-        self, trigger_signal: dict[str, str], trigger_value: Union[int, float]
-    ) -> tuple[int, int]:
+        self, trigger_signal: Dict[str, str], trigger_value: Union[int, float]
+    ) -> Tuple[int, int]:
         index_reg = -1
         for index, item in enumerate(self.mapped_registers):
             if (
@@ -318,7 +318,7 @@ class Monitoring(ABC):
             progress_callback(process_stage, current_progress)
 
     @abstractmethod
-    def _check_monitoring_is_ready(self) -> tuple[bool, Optional[str]]:
+    def _check_monitoring_is_ready(self) -> Tuple[bool, Optional[str]]:
         pass
 
     @abstractmethod
@@ -330,7 +330,7 @@ class Monitoring(ABC):
         self,
         timeout: Optional[float] = None,
         progress_callback: Optional[Callable[[MonitoringProcessStage, float], None]] = None,
-    ) -> list[list[Union[int, float]]]:
+    ) -> List[List[Union[int, float]]]:
         """Blocking function that read the monitoring data.
 
         Args:
@@ -344,7 +344,7 @@ class Monitoring(ABC):
         drive = self.mc.servos[self.servo]
         self._read_process_finished = False
         is_ready, result_text = self._check_monitoring_is_ready()
-        data_array: list[list[Union[int, float]]] = [[] for _ in self.mapped_registers]
+        data_array: List[List[Union[int, float]]] = [[] for _ in self.mapped_registers]
         self.logger.debug("Waiting for data")
         init_read_time, init_time = None, time.time()
         current_len = 0
@@ -361,7 +361,7 @@ class Monitoring(ABC):
             self._show_current_process(current_len, progress_callback)
         return data_array
 
-    def _fill_data(self, data_array: list[list[Union[int, float]]]) -> None:
+    def _fill_data(self, data_array: List[List[Union[int, float]]]) -> None:
         drive = self.mc.servos[self.servo]
         for ch_idx, channel in enumerate(self.mapped_registers):
             dtype = channel["dtype"]
@@ -379,12 +379,12 @@ class Monitoring(ABC):
 
     @abstractmethod
     def _check_buffer_size_is_enough(
-        self, total_samples: int, trigger_delay_samples: int, registers: list[dict[str, str]]
+        self, total_samples: int, trigger_delay_samples: int, registers: List[Dict[str, str]]
     ) -> None:
         pass
 
     def _check_samples_and_max_size(
-        self, n_sample: int, max_size: int, registers: list[dict[str, str]]
+        self, n_sample: int, max_size: int, registers: List[Dict[str, str]]
     ) -> None:
         size_demand = sum(
             self._data_type_size[register["dtype"]] * n_sample for register in registers
@@ -451,7 +451,7 @@ class Monitoring(ABC):
 
     def read_monitoring_data_forced_trigger(
         self, trigger_timeout: float = 5
-    ) -> list[list[Union[int, float]]]:
+    ) -> List[List[Union[int, float]]]:
         """Trigger and read Forced Trigger monitoring.
 
         Args:

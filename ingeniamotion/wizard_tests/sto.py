@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 import ingenialogger
 
 from enum import IntEnum
@@ -42,7 +42,7 @@ class STOTest(BaseTest):
     STO_ABNORMAL_FAULT_BIT = 0x8
     STO_REPORT_BIT = 0x10
 
-    BACKUP_REGISTERS: list[str] = []
+    BACKUP_REGISTERS: List[str] = []
 
     def __init__(self, mc: "MotionController", servo: str, axis: int) -> None:
         super().__init__()

@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 
 if TYPE_CHECKING:
@@ -9,7 +9,7 @@ from ingeniamotion.enums import SensorType
 
 
 class AbsoluteEncoder2Test(Feedbacks):
-    BACKUP_REGISTERS_BISSC2: list[str] = ["FBK_BISS2_POS_POLARITY"]
+    BACKUP_REGISTERS_BISSC2: List[str] = ["FBK_BISS2_POS_POLARITY"]
 
     FEEDBACK_POLARITY_REGISTER = "FBK_BISS2_POS_POLARITY"
 

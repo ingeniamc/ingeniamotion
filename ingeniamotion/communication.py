@@ -397,8 +397,8 @@ class Communication(metaclass=MCMetaClass):
             net_status_listener,
         )
 
-    def scan_servos_eoe_service(self, ifname: str) -> list[int]:
-        """Return a list of available servos.
+    def scan_servos_eoe_service(self, ifname: str) -> List[int]:
+        """Return a List of available servos.
 
         Args:
             ifname : interface name. It should have format
@@ -412,7 +412,7 @@ class Communication(metaclass=MCMetaClass):
         """
         net = self.mc.net[ifname] if ifname in self.mc.net else EoENetwork(ifname)
         slaves = net.scan_slaves()
-        if not isinstance(slaves, list):
+        if not isinstance(slaves, List):
             raise TypeError("Slaves are not saved in a list")
         return slaves
 
@@ -481,7 +481,7 @@ class Communication(metaclass=MCMetaClass):
         can_device: CAN_DEVICE,
         baudrate: CAN_BAUDRATE = CAN_BAUDRATE.Baudrate_1M,
         channel: int = 0,
-    ) -> list[int]:
+    ) -> List[int]:
         """Scan CANOpen device network to get all nodes.
 
         Args:
@@ -507,8 +507,8 @@ class Communication(metaclass=MCMetaClass):
             )
             return []
         slaves = net.scan_slaves()
-        if not isinstance(slaves, list):
-            raise TypeError("Slaves are not saved in a list")
+        if not isinstance(slaves, List):
+            raise TypeError("Slaves are not saved in a List")
         return slaves
 
     def disconnect(self, servo: str = DEFAULT_SERVO) -> None:

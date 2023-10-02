@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 
 if TYPE_CHECKING:
@@ -8,7 +8,7 @@ from ingeniamotion.enums import SensorType
 
 
 class DigitalIncremental2Test(Feedbacks):
-    BACKUP_REGISTERS_QEI2: list[str] = ["FBK_DIGENC2_POLARITY"]
+    BACKUP_REGISTERS_QEI2: List[str] = ["FBK_DIGENC2_POLARITY"]
 
     FEEDBACK_POLARITY_REGISTER = "FBK_DIGENC2_POLARITY"
 

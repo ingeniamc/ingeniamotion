@@ -1,4 +1,5 @@
 from enum import IntEnum
+from typing import Dict
 
 from ingenialink.network import Network
 from ingenialink.servo import Servo
@@ -17,9 +18,9 @@ class MotionController:
     """Motion Controller."""
 
     def __init__(self) -> None:
-        self.__servos: dict[str, Servo] = {}
-        self.__net: dict[str, Network] = {}
-        self.__servo_net: dict[str, str] = {}
+        self.__servos: Dict[str, Servo] = {}
+        self.__net: Dict[str, Network] = {}
+        self.__servo_net: Dict[str, str] = {}
         self.__config: Configuration = Configuration(self)
         self.__motion: Motion = Motion(self)
         self.__capture: Capture = Capture(self)
@@ -79,29 +80,29 @@ class MotionController:
 
     # Properties
     @property
-    def servos(self) -> dict[str, Servo]:
+    def servos(self) -> Dict[str, Servo]:
         """Dict of ``ingenialink.Servo`` connected indexed by alias"""
         return self.__servos
 
     @servos.setter
-    def servos(self, value: dict[str, Servo]) -> None:
+    def servos(self, value: Dict[str, Servo]) -> None:
         self.__servos = value
 
     @property
-    def net(self) -> dict[str, Network]:
+    def net(self) -> Dict[str, Network]:
         """Dict of ``ingenialink.Network`` connected indexed by alias"""
         return self.__net
 
     @net.setter
-    def net(self, value: dict[str, Network]) -> None:
+    def net(self, value: Dict[str, Network]) -> None:
         self.__net = value
 
     @property
-    def servo_net(self) -> dict[str, str]:
+    def servo_net(self) -> Dict[str, str]:
         return self.__servo_net
 
     @servo_net.setter
-    def servo_net(self, value: dict[str, str]) -> None:
+    def servo_net(self, value: Dict[str, str]) -> None:
         self.__servo_net = value
 
     @property

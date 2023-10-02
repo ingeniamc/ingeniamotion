@@ -1,5 +1,5 @@
 from enum import IntEnum
-from typing import Optional, Union
+from typing import Dict, Optional, Union
 
 import ingenialogger
 
@@ -107,7 +107,7 @@ class BrakeTune(BaseTest):
         else:
             return None
 
-    def __update_brake_registers_values(self) -> dict[BrakeRegKey, Union[int, float, str]]:
+    def __update_brake_registers_values(self) -> Dict[BrakeRegKey, Union[int, float, str]]:
         brake_registers_updated = {}
         updated_brake_current_feedback_source = self.mc.communication.get_register(
             self.BRAKE_CURRENT_FEEDBACK_SOURCE, servo=self.servo, axis=self.axis

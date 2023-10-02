@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 from ingenialink.poller import Poller
 from numpy import ndarray
@@ -53,7 +53,7 @@ class Capture(metaclass=MCMetaClass):
 
     def create_poller(
         self,
-        registers: list[dict[str, Union[int, str]]],
+        registers: List[Dict[str, Union[int, str]]],
         servo: str = DEFAULT_SERVO,
         sampling_time: float = 0.125,
         buffer_size: int = 100,
@@ -152,13 +152,13 @@ class Capture(metaclass=MCMetaClass):
 
     def create_monitoring(
         self,
-        registers: list[dict[str, str]],
+        registers: List[Dict[str, str]],
         prescaler: int,
         sample_time: float,
         trigger_delay: float = 0,
         trigger_mode: MonitoringSoCType = MonitoringSoCType.TRIGGER_EVENT_AUTO,
         trigger_config: Optional[MonitoringSoCConfig] = None,
-        trigger_signal: Optional[dict[str, str]] = None,
+        trigger_signal: Optional[Dict[str, str]] = None,
         trigger_value: Union[float, int, None] = None,
         servo: str = DEFAULT_SERVO,
         start: bool = False,
@@ -236,7 +236,7 @@ class Capture(metaclass=MCMetaClass):
     def create_disturbance(
         self,
         register: str,
-        data: Union[list[Union[float, int]], ndarray],
+        data: Union[List[Union[float, int]], ndarray],
         freq_divider: int,
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,

@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List
 
 
 if TYPE_CHECKING:
@@ -8,7 +8,7 @@ from ingeniamotion.enums import SensorType
 
 
 class SecondarySSITest(Feedbacks):
-    BACKUP_REGISTERS_SSI2: list[str] = []
+    BACKUP_REGISTERS_SSI2: List[str] = []
 
     FEEDBACK_POLARITY_REGISTER = "FBK_SSI2_POS_POLARITY"
 

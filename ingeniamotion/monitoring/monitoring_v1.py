@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 import ingenialogger
 
 from ingeniamotion.metaclass import DEFAULT_SERVO
@@ -48,7 +48,7 @@ class MonitoringV1(Monitoring):
         self,
         trigger_mode: Union[MonitoringSoCType, int],
         edge_condition: Optional[MonitoringSoCConfig] = None,
-        trigger_signal: Optional[dict[str, str]] = None,
+        trigger_signal: Optional[Dict[str, str]] = None,
         trigger_value: Union[int, float, None] = None,
     ) -> None:
         self.rearm_monitoring()
@@ -108,7 +108,7 @@ class MonitoringV1(Monitoring):
         self.samples_number = total_num_samples
         self.trigger_delay_samples = trigger_delay_samples
 
-    def _check_monitoring_is_ready(self) -> tuple[bool, Optional[str]]:
+    def _check_monitoring_is_ready(self) -> Tuple[bool, Optional[str]]:
         is_enabled = self.mc.capture.is_monitoring_enabled(self.servo)
         result_text = None
         trigger_repetitions = self.mc.communication.get_register(
@@ -142,7 +142,7 @@ class MonitoringV1(Monitoring):
         )
 
     def _check_buffer_size_is_enough(
-        self, total_samples: int, trigger_delay_samples: int, registers: list[dict[str, str]]
+        self, total_samples: int, trigger_delay_samples: int, registers: List[Dict[str, str]]
     ) -> None:
         n_sample = max(total_samples - trigger_delay_samples, trigger_delay_samples)
         max_size = self.max_sample_number // 2

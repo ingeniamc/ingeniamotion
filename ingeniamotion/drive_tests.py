@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Dict, Optional, Union
 import ingenialogger
 
 from ingeniamotion.enums import SensorType, SeverityLevel
@@ -39,7 +39,7 @@ class DriveTests(metaclass=MCMetaClass):
 
     def digital_halls_test(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS, apply_changes: bool = True
-    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
         """Executes the digital halls feedback test given a target servo and
         axis. By default test will make changes in some drive registers like
         feedback polarity and others suggested registers. To avoid it, set
@@ -72,7 +72,7 @@ class DriveTests(metaclass=MCMetaClass):
 
     def incremental_encoder_1_test(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS, apply_changes: bool = True
-    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
         """Executes the incremental encoder 1 feedback test given a target servo
         and axis. By default test will make changes in some drive registers
         like feedback polarity and other suggested registers. To avoid it, set
@@ -105,7 +105,7 @@ class DriveTests(metaclass=MCMetaClass):
 
     def incremental_encoder_2_test(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS, apply_changes: bool = True
-    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
         """Executes incremental encoder 2 feedback test given a target servo
         and axis. By default test will make changes in some drive registers
         like feedback polarity and other suggested registers. To avoid it,
@@ -138,7 +138,7 @@ class DriveTests(metaclass=MCMetaClass):
 
     def absolute_encoder_1_test(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS, apply_changes: bool = True
-    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
         """Executes absolute encoder 1 feedback test given a target servo and axis.
         To know more about it see :func:`digital_halls_test`.
         """
@@ -146,7 +146,7 @@ class DriveTests(metaclass=MCMetaClass):
 
     def absolute_encoder_2_test(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS, apply_changes: bool = True
-    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
         """Executes absolute encoder 2 feedback test given a target servo and axis.
         To know more about it see :func:`digital_halls_test`.
         """
@@ -154,7 +154,7 @@ class DriveTests(metaclass=MCMetaClass):
 
     def secondary_ssi_test(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS, apply_changes: bool = True
-    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
         """Executes secondary SSI feedback test given a target servo and axis.
         To know more about it see :func:`digital_halls_test`.
         """
@@ -171,14 +171,14 @@ class DriveTests(metaclass=MCMetaClass):
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
         apply_changes: bool = True,
-    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
         output = self.get_feedback_test(feedback, servo, axis).run()
         if (
             apply_changes
             and output is not None
             and output["result_severity"] == SeverityLevel.SUCCESS
         ):
-            if not isinstance(output["suggested_registers"], dict):
+            if not isinstance(output["suggested_registers"], Dict):
                 raise TypeError("Suggested registers has to be a dictionary")
             for key, value in output["suggested_registers"].items():
                 self.mc.communication.set_register(key, value, servo=servo, axis=axis)
@@ -189,7 +189,7 @@ class DriveTests(metaclass=MCMetaClass):
 
     def commutation(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS, apply_changes: bool = True
-    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
         """Executes a commutation calibration given a target servo and axis.
         By default commutation will make changes in some drive registers
         like commutation angle offset and other suggested registers.
@@ -226,7 +226,7 @@ class DriveTests(metaclass=MCMetaClass):
             and output is not None
             and output["result_severity"] == SeverityLevel.SUCCESS
         ):
-            if not isinstance(output["suggested_registers"], dict):
+            if not isinstance(output["suggested_registers"], Dict):
                 raise TypeError("Suggested registers have to be a dictionary")
             for key, value in output["suggested_registers"].items():
                 self.mc.communication.set_register(key, value, servo=servo, axis=axis)
@@ -237,7 +237,7 @@ class DriveTests(metaclass=MCMetaClass):
 
     def phasing_check(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
         """
         Checks servo phasing.
 
@@ -262,7 +262,7 @@ class DriveTests(metaclass=MCMetaClass):
 
     def sto_test(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
         """
         Check STO
 

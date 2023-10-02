@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Union
+from typing import TYPE_CHECKING, Dict, Union
 
 import ingenialogger
 from ingenialink.exceptions import ILError
@@ -50,7 +50,7 @@ class Brake(BaseTest):
     def teardown(self) -> None:
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
 
-    def finish(self, output: SeverityLevel) -> dict[str, Union[SeverityLevel, str]]:
+    def finish(self, output: SeverityLevel) -> Dict[str, Union[SeverityLevel, str]]:
         try:
             self.teardown()
         finally:

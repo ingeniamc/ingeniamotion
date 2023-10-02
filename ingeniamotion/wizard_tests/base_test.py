@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Any, Union, Optional
+from typing import TYPE_CHECKING, Any, Dict, List, Union, Optional
 
 import ingenialogger
 
@@ -22,18 +22,18 @@ class BaseTest(ABC, Stoppable):
     WARNING_BIT_MASK = 0x0FFFFFFF
 
     def __init__(self) -> None:
-        self.backup_registers_names: list[str] = []
-        self.backup_registers: dict[int, dict[str, Union[int, float, str]]] = {}
-        self.suggested_registers: dict[str, Union[int, float, str]] = {}
+        self.backup_registers_names: List[str] = []
+        self.backup_registers: Dict[int, Dict[str, Union[int, float, str]]] = {}
+        self.suggested_registers: Dict[str, Union[int, float, str]] = {}
         self.mc: "MotionController"
         self.servo: str = DEFAULT_SERVO
         self.axis: int = 0
-        self.report: Optional[dict[str, Any]] = None
+        self.report: Optional[Dict[str, Any]] = None
         self.logger = ingenialogger.get_logger(__name__)
 
     def save_backup_registers(self) -> None:
         self.backup_registers[self.axis] = {}
-        if not isinstance(self.backup_registers_names, list):
+        if not isinstance(self.backup_registers_names, List):
             return
         for uid in self.backup_registers_names:
             try:
@@ -79,7 +79,7 @@ class BaseTest(ABC, Stoppable):
 
     def run(
         self,
-    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
         self.reset_stop()
         self.save_backup_registers()
         try:
@@ -99,7 +99,7 @@ class BaseTest(ABC, Stoppable):
 
     def __generate_report(
         self, output: Any
-    ) -> dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]:
+    ) -> Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]:
         return {
             "result_severity": self.get_result_severity(output),
             "suggested_registers": self.suggested_registers,
