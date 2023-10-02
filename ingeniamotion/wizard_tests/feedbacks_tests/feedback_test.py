@@ -129,11 +129,11 @@ class Feedbacks(BaseTest):
 
     @BaseTest.stoppable
     def check_resolution(self, displacement: float) -> ResultType:
-        if not isinstance(self.pair_poles, int):
+        if self.pair_poles is None:
             raise TypeError("Pair poles has to be set before resolution checking.")
-        if not isinstance(self.feedback_resolution, int):
+        if self.feedback_resolution is None:
             raise TypeError(
-                'Feedbacks has to be set before resolution checking. In addition, the if condition for pair_poles and feedback_resolution should be " is None"'
+                "Feedback resolution has to be set before resolution checking."
             )
         displacement = displacement * self.pair_poles
         self.logger.info("RESOLUTION CHECK")
