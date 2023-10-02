@@ -1,6 +1,7 @@
 # Changelog
 ## [Unreleased]
 ### Added
+- Functions needed to load firmware to a Motion Core (MoCo).
 - COM-KIT support.
 - Add mypy into the project.
 - Add types for all functions and classes.
