@@ -161,7 +161,7 @@ pipeline {
                         '''
                     }
                 }
-                stage('Update drives FW') {
+                /*stage('Update drives FW') {
                     steps {
                         bat '''
                             venv\\Scripts\\python.exe tests\\load_FWs.py canopen
@@ -188,14 +188,17 @@ pipeline {
                             exit /b 0
                         '''
                     }
-                }
+                }*/
                 stage('Save test results') {
                     steps {
                         //unstash 'coverage_reports' Uncomment once EtherCAT tests are operational.
                         // Add .coverage_ethercat to the combine command once EtherCAT tests are operational.
                         unstash 'coverage_reports'
-                        bat '''
+                        /*bat '''
                             venv\\Scripts\\python.exe -m coverage combine .coverage_ethernet .coverage_canopen .coverage_no_connection
+                            venv\\Scripts\\python.exe -m coverage xml --include=ingeniamotion/*
+                        '''*/
+                        bat '''
                             venv\\Scripts\\python.exe -m coverage xml --include=ingeniamotion/*
                         '''
                         publishCoverage adapters: [coberturaReportAdapter('coverage.xml')]
