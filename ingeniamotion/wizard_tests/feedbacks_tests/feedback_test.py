@@ -132,7 +132,9 @@ class Feedbacks(BaseTest):
         if not isinstance(self.pair_poles, int):
             raise TypeError("Pair poles has to be set before resolution checking.")
         if not isinstance(self.feedback_resolution, int):
-            raise TypeError("Feedbacks has to be set before resolution checking.")
+            raise TypeError(
+                'Feedbacks has to be set before resolution checking. In addition, the if condition for pair_poles and feedback_resolution should be " is None"'
+            )
         displacement = displacement * self.pair_poles
         self.logger.info("RESOLUTION CHECK")
         self.logger.info("Theoretical resolution: %.0f", self.feedback_resolution)

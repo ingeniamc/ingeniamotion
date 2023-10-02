@@ -101,7 +101,7 @@ class Feedbacks(metaclass=MCMetaClass):
 
     def get_commutation_feedback_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ) -> Optional[int]:
+    ) -> int:
         """Reads commutation feedbacks resolution in the target servo and axis.
 
         Args:
@@ -174,7 +174,7 @@ class Feedbacks(metaclass=MCMetaClass):
 
     def get_reference_feedback_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ) -> Optional[int]:
+    ) -> int:
         """Reads reference feedbacks resolution in the target servo and axis.
 
         Args:
@@ -247,7 +247,7 @@ class Feedbacks(metaclass=MCMetaClass):
 
     def get_velocity_feedback_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ) -> Optional[int]:
+    ) -> int:
         """Reads velocity feedbacks resolution in the target servo and axis.
 
         Args:
@@ -320,7 +320,7 @@ class Feedbacks(metaclass=MCMetaClass):
 
     def get_position_feedback_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ) -> Optional[int]:
+    ) -> int:
         """Reads position feedbacks resolution in the target servo and axis.
 
         Args:

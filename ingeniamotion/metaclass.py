@@ -8,7 +8,6 @@ DEFAULT_SERVO = "default"
 DEFAULT_AXIS = 1
 
 T = TypeVar("T")
-F = Callable[..., None]
 
 
 class MCMetaClass(type):
