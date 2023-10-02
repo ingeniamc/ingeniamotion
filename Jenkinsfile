@@ -69,14 +69,12 @@ pipeline {
                             XCOPY pytest_reports ${env.WORKSPACE}\\pytest_reports /i
                             exit /b 0
                         """
-                        junit 'pytest_no_connection_report.xml'
                     }
                 }
                 stage('Save test results') {
                     steps {
                         stash includes: '.coverage_no_connection', name: 'coverage_reports'
                         stash includes: 'pytest_reports/', name: 'test_reports'
-                        archiveArtifacts artifacts: '*.xml'
                     }
                 }
                 stage('Archive') {
@@ -163,7 +161,7 @@ pipeline {
                         '''
                     }
                 }
-                /*stage('Update drives FW') {
+                stage('Update drives FW') {
                     steps {
                         bat '''
                             venv\\Scripts\\python.exe tests\\load_FWs.py canopen
@@ -190,18 +188,15 @@ pipeline {
                             exit /b 0
                         '''
                     }
-                }*/
+                }
                 stage('Save test results') {
                     steps {
                         //unstash 'coverage_reports' Uncomment once EtherCAT tests are operational.
                         // Add .coverage_ethercat to the combine command once EtherCAT tests are operational.
                         unstash 'coverage_reports'
                         unstash 'test_reports'
-                        /*bat '''
-                            venv\\Scripts\\python.exe -m coverage combine .coverage_ethernet .coverage_canopen .coverage_no_connection
-                            venv\\Scripts\\python.exe -m coverage xml --include=ingeniamotion/*
-                        '''*/
                         bat '''
+                            venv\\Scripts\\python.exe -m coverage combine .coverage_ethernet .coverage_canopen .coverage_no_connection
                             venv\\Scripts\\python.exe -m coverage xml --include=ingeniamotion/*
                         '''
                         publishCoverage adapters: [coberturaReportAdapter('coverage.xml')]
