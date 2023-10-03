@@ -1,6 +1,6 @@
 import inspect
 from functools import wraps
-from typing import Any, Callable, Dict, Tuple, TypeVar
+from typing import Any, Callable, Dict, Tuple, Type, TypeVar
 
 from ingeniamotion.exceptions import IMStatusWordError
 
@@ -21,7 +21,7 @@ class MCMetaClass(type):
     SERVO_ARG_NAME: str = "servo"
 
     def __new__(
-        mcs: type["MCMetaClass"], name: str, bases: Tuple[type, ...], local: Dict[str, Any]
+        mcs: Type["MCMetaClass"], name: str, bases: Tuple[Type, ...], local: Dict[str, Any]
     ) -> "MCMetaClass":
         """If a function has argument named servo,
         decorates it with check_servo decorator.
