@@ -858,9 +858,15 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             Product code
+            
+        Raises:
+            TypeError: If some read value has a wrong type.
         """
         product_code_register = self.PRODUCT_ID_REGISTERS[self.get_subnode_type(subnode)]
-        return self.mc.communication.get_register(product_code_register, alias, axis=subnode)
+        product_code_value = self.mc.communication.get_register(product_code_register, alias, axis=subnode)
+        if not isinstance(product_code_register, int):
+            raise TypeError("Product code value has to be an integer")
+        return product_code_value
 
     def get_revision_number(self, alias: str, subnode: int) -> int:
         """Get the revision number of a drive.
@@ -871,9 +877,15 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             Revision number
+            
+        Raises:
+            TypeError: If some read value has a wrong type.
         """
         revision_number_register = self.REVISION_NUMBER_REGISTERS[self.get_subnode_type(subnode)]
-        return self.mc.communication.get_register(revision_number_register, alias, axis=subnode)
+        revision_number_value = self.mc.communication.get_register(revision_number_register, alias, axis=subnode)
+        if not isinstance(revision_number_value, int):
+            raise TypeError("Revision number value has to be an integer")
+        return revision_number_value
 
     def get_serial_number(self, alias: str, subnode: int) -> int:
         """Get the serial number of a drive.
@@ -884,9 +896,15 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             Serial number
+            
+        Raises:
+            TypeError: If some read value has a wrong type.
         """
         serial_number_register = self.SERIAL_NUMBER_REGISTERS[self.get_subnode_type(subnode)]
-        return self.mc.communication.get_register(serial_number_register, alias, axis=subnode)
+        serial_number_value = self.mc.communication.get_register(serial_number_register, alias, axis=subnode)
+        if not isinstance(serial_number_value, int):
+            raise TypeError("Serial number value has to be an integer")
+        return serial_number_value
 
     def get_fw_version(self, alias: str, subnode: int) -> str:
         """Get the firmware version of a drive.
@@ -897,6 +915,12 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             Firmware version.
+            
+        Raises:
+            TypeError: If some read value has a wrong type.  
         """
         fw_register = self.SOFTWARE_VERSION_REGISTERS[self.get_subnode_type(subnode)]
-        return self.mc.communication.get_register(fw_register, alias, axis=subnode)
+        fw_value = self.mc.communication.get_register(fw_register, alias, axis=subnode)
+        if not isinstance(fw_value, str):
+            raise TypeError("Firmware value has to be a string")
+        return fw_value
