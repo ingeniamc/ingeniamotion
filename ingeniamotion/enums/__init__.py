@@ -145,6 +145,12 @@ class SeverityLevel(IntEnum):
     FAIL = 2
 
 
+class COMMUNICATION_TYPE(IntEnum):
+    Canopen = 0
+    Ethernet = 1
+    Ethercat = 2
+
+
 enums = list(globals().keys())
 enums.remove("IntEnum")
 __all__ = enums
