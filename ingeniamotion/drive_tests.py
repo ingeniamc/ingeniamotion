@@ -12,6 +12,12 @@ from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder2_test import Ab
 from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental2_test import (
     DigitalIncremental2Test,
 )
+from ingeniamotion.wizard_tests.feedbacks_tests.dc_feedback_polarity_test import (
+    DCFeedbacksPolarityTest,
+)
+from ingeniamotion.wizard_tests.feedbacks_tests.dc_feedback_resolution_test import (
+    DCFeedbacksResolutionTest,
+)
 from .wizard_tests.phase_calibration import Phasing
 from .wizard_tests.phasing_check import PhasingCheck
 from .wizard_tests.sto import STOTest
@@ -278,3 +284,79 @@ class DriveTests(metaclass=MCMetaClass):
         brake_test = Brake(self.mc, servo, axis)
         brake_test.run()
         return brake_test
+
+    def polarity_feedback_single_phase_test(
+        self,
+        feedback: SensorType,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+        apply_changes: bool = True,
+    ):
+        """Executes polarity feedback test for single phase motors given a target servo
+        and axis. By default, test will make changes in feedback polarity. To avoid it,
+        set ``apply_changes`` to ``False``.
+
+        Args:
+            feedback: feedback sensor type
+            servo: servo alias to reference it. ``default`` by default.
+            axis: axis that will run the test. ``1`` by default.
+            apply_changes: if ``True``, test applies changes to the
+                servo, if ``False`` it does not. ``True`` by default.
+
+        Returns:
+            Dictionary with the result of the test::
+
+                {
+                    # (int) Result code
+                    "result_severity": 0,
+                    # (dict) Suggested register values
+                    "suggested_registers":
+                        {"FBK_DIGENC2_POLARITY": 0},
+                    # (str) Human readable result message
+                    "result_message": "Feedback test pass successfully"
+                }
+
+        Raises:
+            TestError: In case the servo or setup configuration makes
+                impossible fulfilling the test
+        """
+        dc_feedback_polarity_test = DCFeedbacksPolarityTest(self.mc, feedback, servo, axis)
+        output = dc_feedback_polarity_test.run()
+        if apply_changes and output["result_severity"] == SeverityLevel.SUCCESS:
+            for key, value in output["suggested_registers"].items():
+                self.mc.communication.set_register(key, value, servo=servo, axis=axis)
+            self.logger.debug(
+                "Commutation changes applied", axis=axis, drive=self.mc.servo_name(servo)
+            )
+        return output
+
+    def resolution_feedback_single_phase_test(
+        self, feedback: SensorType, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
+    ):
+        """Executes resolution feedback test for single phase motors given a target servo
+        and axis. This test needs a human check to ensure the feedback is well configured.
+        Test move the motor exactly the same counts that the feedback resolution,
+        if the motor does not do exactly one entire revolution
+        that means feedback is not well configured.
+
+        Args:
+            feedback: feedback sensor type
+            servo: servo alias to reference it. ``default`` by default.
+            axis: axis that will run the test. ``1`` by default.
+
+        Returns:
+            Dictionary with the result of the test::
+
+                {
+                    # (int) Result code
+                    "result_severity": 0,
+                    # (str) Human readable result message
+                    "result_message": "Feedback test pass successfully"
+                }
+
+        Raises:
+            TestError: In case the servo or setup configuration makes
+                impossible fulfilling the test
+        """
+        dc_feedback_resolution_test = DCFeedbacksResolutionTest(self.mc, feedback, servo, axis)
+        return dc_feedback_resolution_test.run()
