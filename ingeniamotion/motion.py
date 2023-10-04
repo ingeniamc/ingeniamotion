@@ -491,7 +491,7 @@ class Motion(metaclass=MCMetaClass):
             raise TypeError("Actual position value has to be an integer")
         return actual_position
 
-    def get_actual_velocity(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
+    def get_actual_velocity(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> float:
         """
         Returns actual velocity register.
 
@@ -509,7 +509,7 @@ class Motion(metaclass=MCMetaClass):
         actual_velocity = self.mc.communication.get_register(
             self.ACTUAL_VELOCITY_REGISTER, servo=servo, axis=axis
         )
-        if not isinstance(actual_velocity, int):
+        if not isinstance(actual_velocity, float):
             raise TypeError("Actual velocity value has to be an integer")
         return actual_velocity
 
@@ -520,8 +520,8 @@ class Motion(metaclass=MCMetaClass):
         Returns actual direct current register.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
+            servo: servo alias to reference it. ``default`` by default.
+            axis: servo axis. ``1`` by default.
 
         Returns:
             float: actual direct current value

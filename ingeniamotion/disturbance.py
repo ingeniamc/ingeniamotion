@@ -1,7 +1,6 @@
 import ingenialogger
 from numpy import ndarray
 from functools import wraps
-from collections.abc import Iterable
 from typing import Callable, Dict, List, Union, TYPE_CHECKING
 from ingenialink.enums.register import REG_DTYPE
 
@@ -226,7 +225,7 @@ class Disturbance:
         registers_data = self.__registers_data_adapter(registers_data)
         drive = self.mc.servos[self.servo]
         self.__check_buffer_size_is_enough(registers_data)
-        idx_list = List(range(len(registers_data)))
+        idx_list = list(range(len(registers_data)))
         dtype_list = [REG_DTYPE(x["dtype"]) for x in self.mapped_registers]
         drive.disturbance_write_data(idx_list, dtype_list, registers_data)
 
