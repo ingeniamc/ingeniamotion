@@ -19,6 +19,8 @@ class DCFeedbacksResolutionTest(BaseTest):
     MOVEMENT_EXTRA_TIME_FACTOR = 1.5
     MOVEMENT_TIMEOUT = MOVEMENT_EXTRA_TIME_FACTOR / DEFAULT_PROFILE_MAX_VEL
 
+    PID_LOG_MSG = "Kp = {kp}, Ki = {ki} and Kd = {kd}"
+
     class ResultType(IntEnum):
         SUCCESS = 0
 
@@ -51,9 +53,12 @@ class DCFeedbacksResolutionTest(BaseTest):
         self.servo = servo
         self.axis = axis
         self.backup_registers_names = self.BACKUP_REGISTERS
+        self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
 
+    @BaseTest.stoppable
     def setup(self) -> None:
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
+        self.logger.info("Motor disable")
         self.feedback_resolution = self.mc.configuration.get_feedback_resolution(
             self.sensor, servo=self.servo, axis=self.axis
         )
@@ -63,28 +68,44 @@ class DCFeedbacksResolutionTest(BaseTest):
             self.mc.configuration.set_auxiliar_feedback(
                 SensorType.ABS1, servo=self.servo, axis=self.axis
             )
+            self.logger.info(
+                f"Set velocity and position feedbacks to {self.sensor.name}"
+                f" and axuiliar to {SensorType.ABS1.name}"
+            )
         else:
             self.mc.configuration.set_auxiliar_feedback(
                 self.sensor, servo=self.servo, axis=self.axis
             )
+            self.logger.info(f"Set velocity, position and auxiliar feedbacks to {self.sensor.name}")
         self.mc.configuration.set_velocity_pid(
             **self.DEFAULT_VELOCITY_PID, servo=self.servo, axis=self.axis
+        )
+        self.logger.info(
+            f"Velocity PID set to {self.PID_LOG_MSG.format(**self.DEFAULT_VELOCITY_PID)}"
         )
         self.mc.configuration.set_position_pid(
             **self.DEFAULT_POSITION_PID, servo=self.servo, axis=self.axis
         )
+        self.logger.info(
+            f"Position PID set to {self.PID_LOG_MSG.format(**self.DEFAULT_POSITION_PID)}"
+        )
         self.mc.configuration.set_max_profile_velocity(
             self.DEFAULT_PROFILE_MAX_VEL, servo=self.servo, axis=self.axis
         )
+        self.logger.info(f"Maximum profile velocity set to {self.DEFAULT_PROFILE_MAX_VEL}")
         self.mc.motion.set_operation_mode(
             OperationMode.PROFILE_POSITION_S_CURVE, servo=self.servo, axis=self.axis
         )
+        self.logger.info(f"Set operation mode to {OperationMode.PROFILE_POSITION_S_CURVE.name}")
 
+    @BaseTest.stoppable
     def loop(self) -> ResultType:
         initial_pos = self.mc.motion.get_actual_position(servo=self.servo, axis=self.axis)
         self.mc.motion.move_to_position(initial_pos, servo=self.servo, axis=self.axis)
         self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
+        self.logger.info("Motor enable")
         try:
+            self.logger.info(f"Try to reach position {initial_pos + self.feedback_resolution}")
             self.mc.motion.move_to_position(
                 initial_pos + self.feedback_resolution,
                 servo=self.servo,
@@ -104,6 +125,7 @@ class DCFeedbacksResolutionTest(BaseTest):
 
     def teardown(self) -> None:
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
+        self.logger.info("Motor disable")
 
     def get_result_msg(self, output: ResultType) -> str:
         description = self.result_description.get(output)
