@@ -1,6 +1,8 @@
+from typing import Union
+
 import ingenialogger
 
-from ingeniamotion.enums import SensorType, SensorCategory
+from ingeniamotion.enums import SensorType, SensorCategory, FeedbackPolarity
 from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
@@ -15,6 +17,15 @@ class Feedbacks(metaclass=MCMetaClass):
         SensorType.BISSC2: SensorCategory.ABSOLUTE,
         SensorType.QEI2: SensorCategory.INCREMENTAL,
         SensorType.INTGEN: SensorCategory.ABSOLUTE,
+    }
+
+    __feedback_polarity_register_dict = {
+        SensorType.ABS1: "FBK_BISS1_SSI1_POS_POLARITY",
+        SensorType.QEI: "FBK_DIGENC1_POLARITY",
+        SensorType.HALLS: "FBK_DIGHALL_POLARITY",
+        SensorType.SSI2: "FBK_SSI2_POS_POLARITY",
+        SensorType.BISSC2: "FBK_BISS2_POS_POLARITY",
+        SensorType.QEI2: "FBK_DIGENC2_POLARITY",
     }
 
     COMMUTATION_FEEDBACK_REGISTER = "COMMU_ANGLE_SENSOR"
@@ -495,3 +506,66 @@ class Feedbacks(metaclass=MCMetaClass):
             Resolution of target feedback.
         """
         return self.feedback_resolution_functions[feedback](servo, axis)
+
+    def get_feedback_polarity_register_uid(self, feedback: SensorType) -> str:
+        """Returns feedback polarity register UID
+
+        Args:
+           feedback: target feedback sensor.
+
+        Returns:
+            Register UID
+
+        """
+        polarity_register = self.__feedback_polarity_register_dict.get(feedback)
+        if polarity_register is None:
+            raise NotImplementedError(f"Senor {feedback.name} polarity is not implemented")
+        return polarity_register
+
+    def set_feedback_polarity(
+        self,
+        polarity: FeedbackPolarity,
+        feedback: SensorType,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+    ) -> None:
+        """Set target feedback polarity in the target servo and axis.
+
+        Args:
+            polarity: target polarity.
+            feedback: target feedback.
+            servo: servo alias to reference it. ``default`` by default.
+            axis: axis that will run the test. ``1`` by default.
+
+        """
+        polarity_register = self.get_feedback_polarity_register_uid(feedback)
+        self.mc.communication.set_register(polarity_register, polarity, servo=servo, axis=axis)
+        self.logger.debug(
+            f"Feedback {feedback.name} polarity set to {polarity.name}",
+            axis=axis,
+            drive=self.mc.servo_name(servo),
+        )
+
+    def get_feedback_polarity(
+        self,
+        feedback: SensorType,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+    ) -> Union[int, FeedbackPolarity]:
+        """Get target feedback polarity of the target servo and axis.
+
+        Args:
+            feedback: target feedback.
+            servo: servo alias to reference it. ``default`` by default.
+            axis: axis that will run the test. ``1`` by default.
+
+        Returns:
+            Feedback polarity
+
+        """
+        polarity_register = self.get_feedback_polarity_register_uid(feedback)
+        raw_polarity = self.mc.communication.get_register(polarity_register, servo=servo, axis=axis)
+        try:
+            return FeedbackPolarity(raw_polarity)
+        except ValueError:
+            return raw_polarity
