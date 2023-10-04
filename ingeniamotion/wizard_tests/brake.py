@@ -57,7 +57,7 @@ class Brake(BaseTest):
         output = SeverityLevel.SUCCESS
         return {
             "result_severity": self.get_result_severity(output),
-            "result_message": self.get_result_msg(output)
+            "result_message": self.get_result_msg(output),
         }
 
     def run(self) -> None:
