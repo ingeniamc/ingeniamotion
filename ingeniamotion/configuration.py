@@ -867,7 +867,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         product_code_value = self.mc.communication.get_register(
             product_code_register, alias, axis=subnode
         )
-        if not isinstance(product_code_register, int):
+        if not isinstance(product_code_value, int):
             raise TypeError("Product code value has to be an integer")
         return product_code_value
 
