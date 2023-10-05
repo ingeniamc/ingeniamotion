@@ -1,12 +1,15 @@
+from enum import IntEnum
 import time
 import math
+from typing import TYPE_CHECKING, Optional
+
 import ingenialogger
 
-from enum import IntEnum
-
+if TYPE_CHECKING:
+    from ingeniamotion import MotionController
 from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
-from ingeniamotion.exceptions import IMRegisterNotExist
-from ingeniamotion.enums import SensorType, OperationMode, SeverityLevel
+from ingeniamotion.exceptions import IMRegisterNotExist, IMException
+from ingeniamotion.enums import OperationMode, SeverityLevel, SensorType
 
 
 class Feedbacks(BaseTest):
@@ -75,36 +78,40 @@ class Feedbacks(BaseTest):
         "CL_VEL_FBK_FILTER1_FREQ",
     ]
 
-    FEEDBACK_POLARITY_REGISTER = None
+    FEEDBACK_POLARITY_REGISTER: str
 
-    SENSOR_TYPE_FEEDBACK_TEST = None
+    SENSOR_TYPE_FEEDBACK_TEST: SensorType
 
-    def __init__(self, mc, servo, axis):
+    def __init__(self, mc: "MotionController", servo: str, axis: int) -> None:
         super().__init__()
         self.mc = mc
         self.servo = servo
         self.axis = axis
         self.sensor = self.SENSOR_TYPE_FEEDBACK_TEST
         self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
-        self.feedback_resolution = None
-        self.pair_poles = None
-        self.pos_vel_same_feedback = None
+        self.feedback_resolution: Optional[int] = None
+        self.pair_poles: Optional[int] = None
+        self.pos_vel_same_feedback = False
         self.resolution_multiplier = 1.0
         self.test_frequency = self.TEST_FREQUENCY
         self.backup_registers_names = self.BACKUP_REGISTERS
         self.suggested_registers = {}
 
     @BaseTest.stoppable
-    def check_feedback_tolerance(self, error, error_msg, error_type):
+    def check_feedback_tolerance(
+        self, error: float, error_msg: str, error_type: ResultType
+    ) -> ResultType:
         if error > self.FEEDBACK_TOLERANCE:
             error_advice = "Please, review your feedback & motor pair poles settings"
             self.logger.error("%s %s", error_msg, error_advice)
             return error_type
-        return 0
+        return self.ResultType.SUCCESS
 
     @BaseTest.stoppable
-    def check_symmetry(self, positive, negative):
+    def check_symmetry(self, positive: float, negative: float) -> ResultType:
         self.logger.info("SYMMETRY CHECK")
+        if not isinstance(self.feedback_resolution, int):
+            raise TypeError("Feedbacks has to be set before symetry checking.")
         error = 100 * abs(positive + negative) / self.feedback_resolution
         self.logger.info("Detected symmetry mismatch of: %.3f%%", error)
         error_msg = (
@@ -114,14 +121,18 @@ class Feedbacks(BaseTest):
         return self.check_feedback_tolerance(error, error_msg, self.ResultType.SYMMETRY_ERROR)
 
     @BaseTest.stoppable
-    def check_polarity(self, displacement):
+    def check_polarity(self, displacement: float) -> Polarity:
         self.logger.info("POLARITY CHECK")
         polarity = self.Polarity.NORMAL if displacement > 0 else self.Polarity.REVERSED
         self.logger.info("Feedback polarity detected: %s", polarity.name)
         return polarity
 
     @BaseTest.stoppable
-    def check_resolution(self, displacement):
+    def check_resolution(self, displacement: float) -> ResultType:
+        if self.pair_poles is None:
+            raise TypeError("Pair poles has to be set before resolution checking.")
+        if self.feedback_resolution is None:
+            raise TypeError("Feedback resolution has to be set before resolution checking.")
         displacement = displacement * self.pair_poles
         self.logger.info("RESOLUTION CHECK")
         self.logger.info("Theoretical resolution: %.0f", self.feedback_resolution)
@@ -136,7 +147,7 @@ class Feedbacks(BaseTest):
         return self.check_feedback_tolerance(error, error_msg, self.ResultType.RESOLUTION_ERROR)
 
     @BaseTest.stoppable
-    def feedback_setting(self):
+    def feedback_setting(self) -> None:
         # First set all feedback to feedback in test, so there won't be
         # more than 5 feedback at the same time
         self.mc.configuration.set_commutation_feedback(
@@ -157,7 +168,7 @@ class Feedbacks(BaseTest):
         )
 
     @BaseTest.stoppable
-    def reaction_codes_to_warning(self):
+    def reaction_codes_to_warning(self) -> None:
         # TODO Add function in errors to disable errors
         # set velocity and position following errors to WARNING = 1
         # ignore failed writes
@@ -180,12 +191,14 @@ class Feedbacks(BaseTest):
                 self.logger.warning(e)
 
     @BaseTest.stoppable
-    def suggest_polarity(self, pol):
+    def suggest_polarity(self, pol: Polarity) -> None:
+        if not isinstance(self.FEEDBACK_POLARITY_REGISTER, str):
+            raise TypeError("Feedback polarity register has to be set before polarity suggestion.")
         polarity_uid = self.FEEDBACK_POLARITY_REGISTER
         self.suggested_registers[polarity_uid] = pol
 
     @BaseTest.stoppable
-    def setup(self):
+    def setup(self) -> None:
         # Prerequisites:
         #  - Motor & Feedbacks configured (Pair poles & rated current are used)
         #  - Current control loop tuned
@@ -206,12 +219,15 @@ class Feedbacks(BaseTest):
         velocity_feedback_value = self.mc.configuration.get_velocity_feedback(
             servo=self.servo, axis=self.axis
         )
+
         self.pos_vel_same_feedback = position_feedback_value == velocity_feedback_value
         if position_feedback_value == self.sensor:
-            self.resolution_multiplier = self.mc.communication.get_register(
+            resolution_multiplier = self.mc.communication.get_register(
                 self.POSITION_TO_VELOCITY_SENSOR_RATIO_REGISTER, servo=self.servo, axis=self.axis
             )
-
+            if not isinstance(resolution_multiplier, float):
+                raise TypeError("Resolution multiplier has to be a float")
+            self.resolution_multiplier = resolution_multiplier
         # Read pole pairs and set to 1 for an electrical revolution
         self.pair_poles = self.mc.configuration.get_motor_pair_poles(
             servo=self.servo, axis=self.axis
@@ -237,12 +253,12 @@ class Feedbacks(BaseTest):
         # set velocity and position following errors to WARNING = 1
         self.reaction_codes_to_warning()
 
-    def teardown(self):
+    def teardown(self) -> None:
         self.logger.info("Disabling motor")
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
 
     @BaseTest.stoppable
-    def wait_for_movement(self, timeout):
+    def wait_for_movement(self, timeout: float) -> None:
         timeout = time.time() + timeout
         while time.time() < timeout:
             time.sleep(0.1)
@@ -250,25 +266,33 @@ class Feedbacks(BaseTest):
                 self.show_error_message()
 
     @BaseTest.stoppable
-    def get_current_position(self):
+    def get_current_position(self) -> float:
         position = self.mc.motion.get_actual_position(servo=self.servo, axis=self.axis)
-        position = position / self.resolution_multiplier
-        return position
+        if not isinstance(position, int):
+            raise TypeError("Actual position register must be an integer variable")
+        current_position = position / self.resolution_multiplier
+        return current_position
 
     @BaseTest.stoppable
-    def current_ramp_up(self):
+    def current_ramp_up(self) -> None:
+        rated_current = self.mc.communication.get_register(
+            self.RATED_CURRENT_REGISTER, servo=self.servo, axis=self.axis
+        )
+        if not isinstance(rated_current, float):
+            raise TypeError("Rated current has to be a float")
+        nominal_current = self.mc.communication.get_register(
+            self.MAXIMUM_CONTINUOUS_CURRENT_DRIVE_PROTECTION, servo=self.servo, axis=self.axis
+        )
+        if not isinstance(nominal_current, float):
+            raise TypeError("Nominal current has to be a float")
         dict_currents = {
-            "Rated motor current": self.mc.communication.get_register(
-                self.RATED_CURRENT_REGISTER, servo=self.servo, axis=self.axis
-            ),
-            "Drive nominal current": self.mc.communication.get_register(
-                self.MAXIMUM_CONTINUOUS_CURRENT_DRIVE_PROTECTION, servo=self.servo, axis=self.axis
-            ),
+            "Rated motor current": rated_current,
+            "Drive nominal current": nominal_current,
         }
         max_current = min(dict_currents.values())
 
         self.logger.debug(
-            f"The maximum current is set by: {min(dict_currents, key=dict_currents.get)}"
+            f"The maximum current is set by: {min(dict_currents, key=dict_currents.__getitem__)}"
         )
         # Increase current progressively
         self.logger.info(
@@ -283,7 +307,7 @@ class Feedbacks(BaseTest):
             target_current, cycle_time, servo=self.servo, axis=self.axis
         )
 
-    def first_movement_and_set_current(self):
+    def first_movement_and_set_current(self) -> float:
         self.mc.motion.internal_generator_saw_tooth_move(
             1, 1, self.test_frequency, servo=self.servo, axis=self.axis
         )
@@ -297,7 +321,7 @@ class Feedbacks(BaseTest):
         return self.get_current_position()
 
     @BaseTest.stoppable
-    def internal_generator_move(self, polarity):
+    def internal_generator_move(self, polarity: Polarity) -> float:
         cycles = 1
         freq = self.test_frequency
         gain = 1 if polarity == self.Polarity.NORMAL else -1
@@ -317,7 +341,7 @@ class Feedbacks(BaseTest):
         return position
 
     @BaseTest.stoppable
-    def check_movement(self, position_displacement):
+    def check_movement(self, position_displacement: float) -> None:
         self.logger.info("Detected forward displacement: %.0f", position_displacement)
 
         # Check the movement displacement
@@ -329,10 +353,12 @@ class Feedbacks(BaseTest):
             )
             raise TestError(error_movement_displacement)
 
-    def check_pos_vel_ratio(self):
+    def check_pos_vel_ratio(self) -> Optional[ResultType]:
         pos_vel_ratio = self.mc.communication.get_register(
             self.POSITION_TO_VELOCITY_SENSOR_RATIO_REGISTER, servo=self.servo, axis=self.axis
         )
+        if not isinstance(pos_vel_ratio, float):
+            raise TypeError("Position to velocity sensor ratio value has to be a float")
         if self.pos_vel_same_feedback and not math.isclose(pos_vel_ratio, 1):
             return self.ResultType.POS_VEL_RATIO_ERROR
         if not self.pos_vel_same_feedback and math.isclose(pos_vel_ratio, 1):
@@ -340,9 +366,12 @@ class Feedbacks(BaseTest):
                 "Position and velocity feedbacks are different but"
                 " the Position to velocity sensor ratio is 1."
             )
+            return None
+        else:
+            return None
 
     @BaseTest.stoppable
-    def loop(self):
+    def loop(self) -> ResultType:
         self.logger.info("START OF THE TEST")
         check_pos_vel_output = self.check_pos_vel_ratio()
         if check_pos_vel_output is not None:
@@ -359,7 +388,9 @@ class Feedbacks(BaseTest):
         self.logger.info("Detected reverse displacement: %.0f", negative_displacement)
         return self.generate_output(position_displacement, negative_displacement)
 
-    def generate_output(self, position_displacement, negative_displacement):
+    def generate_output(
+        self, position_displacement: float, negative_displacement: float
+    ) -> ResultType:
         test_output = 0
 
         test_output += self.check_symmetry(position_displacement, negative_displacement)
@@ -367,16 +398,18 @@ class Feedbacks(BaseTest):
         test_output = self.ResultType.SUCCESS if test_output == 0 else test_output
         polarity = self.check_polarity(position_displacement)
         self.suggest_polarity(polarity)
-        return test_output
+        return self.ResultType(test_output)
 
-    def get_result_msg(self, output):
+    def get_result_msg(self, output: ResultType) -> str:
         if output == self.ResultType.SUCCESS:
             return self.result_description[output]
         if output < 0:
             text = [self.result_description[x] for x in self.result_description if -output & -x > 0]
             return ".".join(text)
+        else:
+            raise NotImplementedError("This ResultType is not implemented")
 
-    def get_result_severity(self, output):
+    def get_result_severity(self, output: ResultType) -> SeverityLevel:
         if output < self.ResultType.SUCCESS:
             return SeverityLevel.FAIL
         else:

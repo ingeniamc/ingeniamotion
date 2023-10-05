@@ -276,6 +276,7 @@ def test_get_actual_velocity(motion_controller, velocity_value):
 def test_get_actual_current_direct(mocker, motion_controller):
     mc, alias = motion_controller
     patch_get_register = mocker.patch("ingeniamotion.communication.Communication.get_register")
+    patch_get_register.return_value = 2.0
     mc.motion.get_actual_current_direct(servo=alias)
     patch_get_register.assert_called_once_with(ACTUAL_DIRECT_CURRENT_REGISTER, servo=alias, axis=1)
 
@@ -284,6 +285,7 @@ def test_get_actual_current_direct(mocker, motion_controller):
 def test_get_actual_current_quadrature(mocker, motion_controller):
     mc, alias = motion_controller
     patch_get_register = mocker.patch("ingeniamotion.communication.Communication.get_register")
+    patch_get_register.return_value = 2.0
     mc.motion.get_actual_current_quadrature(servo=alias)
     patch_get_register.assert_called_once_with(
         ACTUAL_QUADRATURE_CURRENT_REGISTER, servo=alias, axis=1
