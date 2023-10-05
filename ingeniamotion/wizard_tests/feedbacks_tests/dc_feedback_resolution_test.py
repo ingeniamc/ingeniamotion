@@ -1,3 +1,4 @@
+import math
 from enum import IntEnum
 from typing import TYPE_CHECKING
 
@@ -14,10 +15,11 @@ if TYPE_CHECKING:
 class DCFeedbacksResolutionTest(BaseTest):
     MOVEMENT_ERROR_FACTOR = 0.05
     DEFAULT_PROFILE_MAX_VEL = 0.3
-    DEFAULT_VELOCITY_PID = {"kp": 3, "ki": 1, "kd": 0}
-    DEFAULT_POSITION_PID = {"kp": 0.01, "ki": 0, "kd": 0}
+    DEFAULT_VELOCITY_PID = {"kp": 0.1, "ki": 10, "kd": 0}
+    POSITION_TUNE_BW = 1
     MOVEMENT_EXTRA_TIME_FACTOR = 1.5
     MOVEMENT_TIMEOUT = MOVEMENT_EXTRA_TIME_FACTOR / DEFAULT_PROFILE_MAX_VEL
+    OPERATION_MODE = OperationMode.PROFILE_POSITION
 
     PID_LOG_MSG = "Kp = {kp}, Ki = {ki} and Kd = {kd}"
 
@@ -83,20 +85,21 @@ class DCFeedbacksResolutionTest(BaseTest):
         self.logger.info(
             f"Velocity PID set to {self.PID_LOG_MSG.format(**self.DEFAULT_VELOCITY_PID)}"
         )
+        position_kp = 2.0 * math.pi * self.POSITION_TUNE_BW / self.feedback_resolution
         self.mc.configuration.set_position_pid(
-            **self.DEFAULT_POSITION_PID, servo=self.servo, axis=self.axis
+            kp=position_kp, servo=self.servo, axis=self.axis
         )
         self.logger.info(
-            f"Position PID set to {self.PID_LOG_MSG.format(**self.DEFAULT_POSITION_PID)}"
+            f"Position PID set to {self.PID_LOG_MSG.format(kp=position_kp, ki=0, kd=0)}"
         )
         self.mc.configuration.set_max_profile_velocity(
             self.DEFAULT_PROFILE_MAX_VEL, servo=self.servo, axis=self.axis
         )
         self.logger.info(f"Maximum profile velocity set to {self.DEFAULT_PROFILE_MAX_VEL}")
         self.mc.motion.set_operation_mode(
-            OperationMode.PROFILE_POSITION_S_CURVE, servo=self.servo, axis=self.axis
+            self.OPERATION_MODE, servo=self.servo, axis=self.axis
         )
-        self.logger.info(f"Set operation mode to {OperationMode.PROFILE_POSITION_S_CURVE.name}")
+        self.logger.info(f"Set operation mode to {self.OPERATION_MODE.name}")
 
     @BaseTest.stoppable
     def loop(self) -> ResultType:
@@ -111,6 +114,7 @@ class DCFeedbacksResolutionTest(BaseTest):
                 servo=self.servo,
                 axis=self.axis,
                 blocking=True,
+                error=int(self.feedback_resolution * self.MOVEMENT_ERROR_FACTOR),
                 timeout=self.MOVEMENT_TIMEOUT,
             )
         except IMTimeoutError as e:

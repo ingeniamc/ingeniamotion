@@ -14,6 +14,7 @@ class DCFeedbacksPolarityTest(BaseTest):
     MOVEMENT_ERROR_FACTOR = 0.05
     CURRENT_RAMP_TOTAL_TIME = 5
     CURRENT_RAMP_INTERVAL = 0.1
+    OPERATION_MODE = OperationMode.CURRENT
 
     class ResultType(IntEnum):
         SUCCESS = 0
@@ -57,8 +58,8 @@ class DCFeedbacksPolarityTest(BaseTest):
         self.logger.info(f"Set polarity to {FeedbackPolarity.NORMAL.name}")
         self.mc.motion.set_current_quadrature(0, servo=self.servo, axis=self.axis)
         self.logger.info("Set current to 0")
-        self.mc.motion.set_operation_mode(OperationMode.CURRENT, servo=self.servo, axis=self.axis)
-        self.logger.info(f"Set operation mode to {OperationMode.CURRENT.name}")
+        self.mc.motion.set_operation_mode(self.OPERATION_MODE, servo=self.servo, axis=self.axis)
+        self.logger.info(f"Set operation mode to {self.OPERATION_MODE.name}")
         self.mc.configuration.set_velocity_feedback(self.sensor, servo=self.servo, axis=self.axis)
         self.mc.configuration.set_position_feedback(self.sensor, servo=self.servo, axis=self.axis)
         if self.sensor == SensorType.BISSC2:
