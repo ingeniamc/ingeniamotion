@@ -74,12 +74,15 @@ class TestMetaclass:
             pass
 
     @pytest.mark.no_connection
-    @pytest.mark.parametrize("servo, axis, error", [
-        ("a", 1, IMStatusWordError),
-        ("b", 1, None),
-        ("c", 1, KeyError),
-        ("a", 2, None),
-    ])
+    @pytest.mark.parametrize(
+        "servo, axis, error",
+        [
+            ("a", 1, IMStatusWordError),
+            ("b", 1, None),
+            ("c", 1, KeyError),
+            ("a", 2, None),
+        ],
+    )
     def test_check_motor_disabled_keyword_parameters(self, servo, axis, error):
         dummy_class = self.DummyClass()
         if error is None:
@@ -89,12 +92,15 @@ class TestMetaclass:
                 dummy_class.dummy_func(servo=servo, axis=axis)
 
     @pytest.mark.no_connection
-    @pytest.mark.parametrize("servo, axis, error", [
-        ("a", 1, IMStatusWordError),
-        ("b", 1, None),
-        ("c", 1, KeyError),
-        ("a", 2, None),
-    ])
+    @pytest.mark.parametrize(
+        "servo, axis, error",
+        [
+            ("a", 1, IMStatusWordError),
+            ("b", 1, None),
+            ("c", 1, KeyError),
+            ("a", 2, None),
+        ],
+    )
     def test_check_motor_disabled_positional_parameters(self, servo, axis, error):
         dummy_class = self.DummyClass()
         if error is None:

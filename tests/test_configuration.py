@@ -15,6 +15,14 @@ PHASING_MODE_REGISTER = "COMMU_PHASING_MODE"
 GENERATOR_MODE_REGISTER = "FBK_GEN_MODE"
 MOTOR_POLE_PAIRS_REGISTER = "MOT_PAIR_POLES"
 STO_STATUS_REGISTER = "DRV_PROT_STO_STATUS"
+VELOCITY_LOOP_KP_REGISTER = "CL_VEL_PID_KP"
+VELOCITY_LOOP_KI_REGISTER = "CL_VEL_PID_KI"
+VELOCITY_LOOP_KD_REGISTER = "CL_VEL_PID_KD"
+POSITION_LOOP_KP_REGISTER = "CL_POS_PID_KP"
+POSITION_LOOP_KI_REGISTER = "CL_POS_PID_KI"
+POSITION_LOOP_KD_REGISTER = "CL_POS_PID_KD"
+RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
+MAX_CURRENT_REGISTER = "CL_CUR_REF_MAX"
 
 
 @pytest.fixture
@@ -515,3 +523,57 @@ def test_get_fw_version(motion_controller):
 
     assert firmware_version_0 == expected_fw_version_0
     assert firmware_version_1 == expected_fw_version_1
+
+
+@pytest.mark.develop
+def test_set_velocity_pid(motion_controller_teardown):
+    mc, alias = motion_controller_teardown
+    kp_test = 1
+    ki_test = 2
+    kd_test = 3
+    mc.configuration.set_velocity_pid(kp_test, ki_test, kd_test, servo=alias)
+    kp_reg = mc.communication.get_register(VELOCITY_LOOP_KP_REGISTER, servo=alias)
+    ki_reg = mc.communication.get_register(VELOCITY_LOOP_KI_REGISTER, servo=alias)
+    kd_reg = mc.communication.get_register(VELOCITY_LOOP_KD_REGISTER, servo=alias)
+    assert kp_test == kp_reg
+    assert ki_test == ki_reg
+    assert kd_test == kd_reg
+
+
+@pytest.mark.develop
+def test_set_position_pid(motion_controller_teardown):
+    mc, alias = motion_controller_teardown
+    kp_test = 1
+    ki_test = 2
+    kd_test = 3
+    mc.configuration.set_position_pid(kp_test, ki_test, kd_test, servo=alias)
+    kp_reg = mc.communication.get_register(POSITION_LOOP_KP_REGISTER, servo=alias)
+    ki_reg = mc.communication.get_register(POSITION_LOOP_KI_REGISTER, servo=alias)
+    kd_reg = mc.communication.get_register(POSITION_LOOP_KD_REGISTER, servo=alias)
+    assert kp_test == kp_reg
+    assert ki_test == ki_reg
+    assert kd_test == kd_reg
+
+
+@pytest.mark.develop
+@pytest.mark.smoke
+def test_get_set_rated_current(motion_controller):
+    mc, alias = motion_controller
+    initial_rated_current = mc.communication.get_register(RATED_CURRENT_REGISTER, servo=alias)
+    read_rated_current = mc.configuration.get_rated_current(alias)
+    assert pytest.approx(initial_rated_current) == read_rated_current
+    test_rated_current = 1.23
+    mc.configuration.set_rated_current(test_rated_current, servo=alias)
+    read_test_rated_current = mc.communication.get_register(RATED_CURRENT_REGISTER, servo=alias)
+    assert pytest.approx(test_rated_current) == read_test_rated_current
+    # Teardown
+    mc.communication.set_register(RATED_CURRENT_REGISTER, initial_rated_current, servo=alias)
+
+
+@pytest.mark.develop
+@pytest.mark.smoke
+def test_get_max_current(motion_controller):
+    mc, alias = motion_controller
+    real_max_current = mc.communication.get_register(MAX_CURRENT_REGISTER, servo=alias)
+    test_max_current = mc.configuration.get_max_current(alias)
+    assert pytest.approx(real_max_current) == test_max_current
