@@ -978,6 +978,9 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             node_id: New node ID.
             servo : servo alias to reference it. ``default`` by default.
 
+        Raises:
+            ValueError: If servo is not a CANopen device.
+
         """
         drive = self.mc._get_drive(servo)
         net = self.mc._get_network(servo)
