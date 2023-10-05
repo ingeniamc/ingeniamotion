@@ -527,6 +527,16 @@ def test_change_baudrate_exception(motion_controller):
 
 
 @pytest.mark.no_connection
+def test_get_vendor_id(motion_controller):
+    expected_vendor_id = 123456789
+
+    mc, alias = motion_controller
+    vendor_id = mc.configuration.get_vendor_id(alias)
+
+    assert vendor_id == expected_vendor_id
+
+
+@pytest.mark.no_connection
 def test_change_node_id_exception(motion_controller):
     mc, alias = motion_controller
     with pytest.raises(ValueError):

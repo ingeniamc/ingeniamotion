@@ -936,10 +936,16 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
     def get_vendor_id(self, alias: str) -> int:
         """Get the vendor ID of a drive.
+
         Args:
             alias: Alias of the drive.
+
         Returns:
             Vendor ID.
+
+        Raises:
+            TypeError: If the read vendor ID has the wrong type.
+
         """
         vendor_id = self.mc.communication.get_register(self.VENDOR_ID_REGISTER, alias)
         if not isinstance(vendor_id, int):
@@ -954,6 +960,9 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Args:
             baud_rate: New baud rate value.
             servo : servo alias to reference it. ``default`` by default.
+
+        Raises:
+            ValueError: If the servo is not a CANopen device.
 
         """
         drive = self.mc._get_drive(servo)
