@@ -360,7 +360,13 @@ class DriveTests(metaclass=MCMetaClass):
         return output
 
     def resolution_feedback_single_phase_test(
-        self, feedback: SensorType, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
+        self,
+        feedback: SensorType,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+        kp: Optional[float] = None,
+        ki: Optional[float] = None,
+        kd: Optional[float] = None,
     ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
         """Executes resolution feedback test for single phase motors given a target servo
         and axis. This test needs a human check to ensure the feedback is well configured.
@@ -372,6 +378,14 @@ class DriveTests(metaclass=MCMetaClass):
             feedback: feedback sensor type
             servo: servo alias to reference it. ``default`` by default.
             axis: axis that will run the test. ``1`` by default.
+            kp: overrides test velocity Kp. If ``None`` use test default Kp value.
+                At the end of the test initial drive value is restored.
+            ki: if ki is ``None`` is ignored, overrides test velocity Ki.
+                If ``None`` use test default Ki value.
+                At the end of the test initial drive value is restored.
+            kd: if kd is ``None`` is ignored, overrides test velocity Kd.
+                If ``None`` use test default Kd value.
+                At the end of the test initial drive value is restored.
 
         Returns:
             Dictionary with the result of the test::
@@ -387,5 +401,7 @@ class DriveTests(metaclass=MCMetaClass):
             TestError: In case the servo or setup configuration makes
                 impossible fulfilling the test
         """
-        dc_feedback_resolution_test = DCFeedbacksResolutionTest(self.mc, feedback, servo, axis)
+        dc_feedback_resolution_test = DCFeedbacksResolutionTest(
+            self.mc, feedback, servo, axis, kp=kp, ki=ki, kd=kd
+        )
         return dc_feedback_resolution_test.run()

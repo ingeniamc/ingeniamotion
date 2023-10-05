@@ -1,6 +1,6 @@
 import math
 from enum import IntEnum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import ingenialogger
 
@@ -46,7 +46,16 @@ class DCFeedbacksResolutionTest(BaseTest):
 
     feedback_resolution: int
 
-    def __init__(self, mc: "MotionController", sensor: SensorType, servo: str, axis: int):
+    def __init__(
+        self,
+        mc: "MotionController",
+        sensor: SensorType,
+        servo: str,
+        axis: int,
+        kp: Optional[float] = None,
+        ki: Optional[float] = None,
+        kd: Optional[float] = None,
+    ):
         if sensor == SensorType.HALLS:
             raise NotImplementedError("This test is not implemented for Hall sensor")
         super().__init__()
@@ -55,6 +64,11 @@ class DCFeedbacksResolutionTest(BaseTest):
         self.servo = servo
         self.axis = axis
         self.backup_registers_names = self.BACKUP_REGISTERS
+        self.test_velocity_pid = self.DEFAULT_VELOCITY_PID.copy()
+        if kp is not None:
+            self.test_velocity_pid["kp"] = kp
+            self.test_velocity_pid["ki"] = ki or 0
+            self.test_velocity_pid["kd"] = kd or 0
         self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
 
     @BaseTest.stoppable
@@ -80,11 +94,9 @@ class DCFeedbacksResolutionTest(BaseTest):
             )
             self.logger.info(f"Set velocity, position and auxiliar feedbacks to {self.sensor.name}")
         self.mc.configuration.set_velocity_pid(
-            **self.DEFAULT_VELOCITY_PID, servo=self.servo, axis=self.axis
+            **self.test_velocity_pid, servo=self.servo, axis=self.axis
         )
-        self.logger.info(
-            f"Velocity PID set to {self.PID_LOG_MSG.format(**self.DEFAULT_VELOCITY_PID)}"
-        )
+        self.logger.info(f"Velocity PID set to {self.PID_LOG_MSG.format(**self.test_velocity_pid)}")
         position_kp = 2.0 * math.pi * self.POSITION_TUNE_BW / self.feedback_resolution
         self.mc.configuration.set_position_pid(kp=position_kp, servo=self.servo, axis=self.axis)
         self.logger.info(
