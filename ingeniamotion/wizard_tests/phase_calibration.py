@@ -1,7 +1,7 @@
-import time
-import ingenialogger
-
 from enum import IntEnum
+import time
+from typing import TYPE_CHECKING, Optional
+import ingenialogger
 
 from ingeniamotion.enums import (
     PhasingMode,
@@ -11,13 +11,16 @@ from ingeniamotion.enums import (
     SeverityLevel,
 )
 from ingeniamotion.exceptions import IMRegisterNotExist
-from .base_test import BaseTest, TestError
+from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
+
+if TYPE_CHECKING:
+    from ingeniamotion import MotionController
 
 
 class Phasing(BaseTest):
     INTERNAL_GENERATOR_VALUE = 3
-    INITIAL_ANGLE = 180
-    INITIAL_ANGLE_HALLS = 240
+    INITIAL_ANGLE = 180.0
+    INITIAL_ANGLE_HALLS = 240.0
     PHASING_CURRENT_PERCENTAGE = 0.4
     PHASING_CURRENT_PERCENTAGE_GEAR = 0.8
     PHASING_TIMEOUT_DEFAULT = 2000
@@ -62,35 +65,44 @@ class Phasing(BaseTest):
     }
 
     def __init__(
-        self, mc, servo, axis, default_current=True, default_timeout=True, default_accuracy=True
-    ):
+        self,
+        mc: "MotionController",
+        servo: str,
+        axis: int,
+        default_current: bool = True,
+        default_timeout: bool = True,
+        default_accuracy: bool = True,
+    ) -> None:
         super().__init__()
         self.mc = mc
         self.servo = servo
         self.axis = axis
         self.backup_registers_names = self.BACKUP_REGISTERS
-        self.comm = None
-        self.ref = None
+        self.comm: Optional[SensorType] = None
+        self.ref: Optional[SensorType] = None
         self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
 
         self.default_phasing_current = default_current
         self.default_phasing_timeout = default_timeout
         self.default_phasing_accuracy = default_accuracy
 
-        self.pha_current = None
-        self.pha_timeout = None
-        self.pha_accuracy = None
+        self.pha_current: float = 0.0
+        self.pha_timeout: float = 0.0
+        self.pha_accuracy: float = 0.0
 
     @BaseTest.stoppable
-    def check_input_data(self):
+    def check_input_data(self) -> None:
 
         max_current_drive = self.mc.communication.get_register(
             self.MAX_CURRENT_REGISTER, servo=self.servo, axis=self.axis
         )
-
+        if not isinstance(max_current_drive, float):
+            raise TypeError("Max. current of the drive has to be a float")
         max_current_motor = self.mc.communication.get_register(
             self.RATED_CURRENT_REGISTER, servo=self.servo, axis=self.axis
         )
+        if not isinstance(max_current_motor, float):
+            raise TypeError("Rated current has to be a float")
         max_test_current = min(max_current_drive, max_current_motor)
 
         if self.default_phasing_current:
@@ -108,9 +120,14 @@ class Phasing(BaseTest):
                 axis=self.axis,
             )
         else:
-            self.pha_current = self.mc.communication.get_register(
+            pha_current = self.mc.communication.get_register(
                 self.MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER, servo=self.servo, axis=self.axis
             )
+            if not isinstance(pha_current, float):
+                raise TypeError(
+                    f"{self.MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER} has to be a float"
+                )
+            self.pha_current = pha_current
             if self.pha_current > max_test_current:
                 raise TestError("Defined phasing current is higher than configured maximum current")
         if self.default_phasing_timeout:
@@ -137,7 +154,7 @@ class Phasing(BaseTest):
                 )
 
     @BaseTest.stoppable
-    def setup(self):
+    def setup(self) -> None:
         # Prerequisites:
         #  - Motor & Feedbacks configured (Pair poles & rated current are used)
         #  - Current control loop tuned
@@ -190,20 +207,26 @@ class Phasing(BaseTest):
 
         self.logger.info("Set phasing current to %.2f A", self.pha_current)
 
-        self.pha_timeout = self.mc.communication.get_register(
+        pha_timeout = self.mc.communication.get_register(
             self.PHASING_TIMEOUT_REGISTER, servo=self.servo, axis=self.axis
         )
-        self.logger.info("Set phasing timeout to %s s", self.pha_timeout / 1000)
+        if not isinstance(pha_timeout, int):
+            raise TypeError(f"{self.PHASING_TIMEOUT_REGISTER} has to be a integer")
+        self.pha_timeout = pha_timeout
+        self.logger.info(f"Set phasing timeout to {self.pha_timeout / 1000} s")
 
-        self.pha_accuracy = self.mc.communication.get_register(
+        pha_accuracy = self.mc.communication.get_register(
             self.PHASING_ACCURACY_REGISTER, servo=self.servo, axis=self.axis
         )
-        self.logger.info("Set phasing accuracy to %s mº", self.pha_accuracy)
+        if not isinstance(pha_accuracy, int):
+            raise TypeError(f"{self.PHASING_ACCURACY_REGISTER} has to be a integer")
+        self.pha_accuracy = pha_accuracy
+        self.logger.info(f"Set phasing accuracy to {self.pha_accuracy} mº")
 
         self.reaction_codes_to_warning()
 
     @BaseTest.stoppable
-    def reaction_codes_to_warning(self):
+    def reaction_codes_to_warning(self) -> None:
         try:
             self.mc.communication.set_register(
                 "COMMU_ANGLE_INTEGRITY1_OPTION", 1, servo=self.servo, axis=self.axis
@@ -219,7 +242,7 @@ class Phasing(BaseTest):
             self.logger.warning("Could not write COMMU_ANGLE_INTEGRITY2_OPTION")
 
     @BaseTest.stoppable
-    def define_phasing_steps(self):
+    def define_phasing_steps(self) -> int:
         # Doc: Last step is defined as the first angle delta smaller than 3 times the phasing accuracy
         delta = 3 * self.pha_accuracy / 1000
 
@@ -235,7 +258,7 @@ class Phasing(BaseTest):
         return num_of_steps
 
     @BaseTest.stoppable
-    def set_phasing_mode(self):
+    def set_phasing_mode(self) -> PhasingMode:
         ref_category = self.mc.configuration.get_reference_feedback_category(
             servo=self.servo, axis=self.axis
         )
@@ -261,7 +284,7 @@ class Phasing(BaseTest):
             return PhasingMode.NON_FORCED
 
     @BaseTest.stoppable
-    def loop(self):
+    def loop(self) -> ResultType:
         self.logger.info("START OF THE TEST", axis=self.axis)
 
         num_of_steps = self.define_phasing_steps()
@@ -300,14 +323,14 @@ class Phasing(BaseTest):
         }
         return self.ResultType.SUCCESS
 
-    def teardown(self):
+    def teardown(self) -> None:
         self.logger.info("Disabling motor")
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
 
-    def get_result_msg(self, output):
+    def get_result_msg(self, output: ResultType) -> str:
         return self.result_description[output]
 
-    def get_result_severity(self, output):
+    def get_result_severity(self, output: ResultType) -> SeverityLevel:
         if output < self.ResultType.SUCCESS:
             return SeverityLevel.FAIL
         else:

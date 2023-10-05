@@ -7,6 +7,9 @@
 - In Information class: get_product_name, get_node_id, get_ip, get_slave_id, get_name, get_communication_type, get_full_name, get_subnodes, get_categories, get_dictionary_file_name.
 - In Configuration class: get_drive_info_coco_moco, get_product_code, get_revision_number, get_serial_number, get_fw_version
 - no_connection marker is added for unit testing.
+- Add mypy into the project.
+- Add types for all functions and classes.
+- Make and pass the first static type analysis.
 - Resolution and polarity test for DC motors (resolution test needs human check)
 - Feedbacks functions to set/get feedback polarity
 - Add in configuration set_velocity_pid, set_position_pid and get_rated_current

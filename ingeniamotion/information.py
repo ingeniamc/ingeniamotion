@@ -1,5 +1,5 @@
 import os
-from typing import TYPE_CHECKING, Dict, Tuple, Optional
+from typing import TYPE_CHECKING, Dict, Optional, Tuple
 import xml.etree.ElementTree as ET
 
 from ingenialink.eoe.network import EoENetwork
@@ -105,7 +105,7 @@ class Information(metaclass=MCMetaClass):
         register: str,
         axis: int = DEFAULT_AXIS,
         servo: str = DEFAULT_SERVO,
-    ) -> Tuple[int, int]:
+    ) -> Optional[Tuple[int, int]]:
         """Return register range.
 
         Args:
@@ -121,7 +121,7 @@ class Information(metaclass=MCMetaClass):
 
         """
         register_obj = self.register_info(register, axis=axis, servo=servo)
-        return register_obj.range
+        return register_obj.range  # type: ignore [no-any-return]
 
     def register_exists(
         self,
