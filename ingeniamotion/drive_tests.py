@@ -312,7 +312,7 @@ class DriveTests(metaclass=MCMetaClass):
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
         apply_changes: bool = True,
-    ):
+    ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
         """Executes polarity feedback test for single phase motors given a target servo
         and axis. By default, test will make changes in feedback polarity. To avoid it,
         set ``apply_changes`` to ``False``.
@@ -343,7 +343,13 @@ class DriveTests(metaclass=MCMetaClass):
         """
         dc_feedback_polarity_test = DCFeedbacksPolarityTest(self.mc, feedback, servo, axis)
         output = dc_feedback_polarity_test.run()
-        if apply_changes and output["result_severity"] == SeverityLevel.SUCCESS:
+        if (
+            apply_changes
+            and output is not None
+            and output["result_severity"] == SeverityLevel.SUCCESS
+        ):
+            if not isinstance(output["suggested_registers"], Dict):
+                raise TypeError("Suggested registers have to be a dictionary")
             for key, value in output["suggested_registers"].items():
                 self.mc.communication.set_register(key, value, servo=servo, axis=axis)
             self.logger.debug(
@@ -355,7 +361,7 @@ class DriveTests(metaclass=MCMetaClass):
 
     def resolution_feedback_single_phase_test(
         self, feedback: SensorType, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ):
+    ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
         """Executes resolution feedback test for single phase motors given a target servo
         and axis. This test needs a human check to ensure the feedback is well configured.
         Test move the motor exactly the same counts that the feedback resolution,

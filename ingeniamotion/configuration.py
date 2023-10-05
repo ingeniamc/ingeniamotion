@@ -1005,14 +1005,20 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Returns:
             Rated current
 
+        Raises:
+            TypeError: If some read value has a wrong type.
+
         """
-        return self.mc.communication.get_register(
+        rated_current = self.mc.communication.get_register(
             self.RATED_CURRENT_REGISTER, servo=servo, axis=axis
         )
+        if not isinstance(rated_current, float):
+            raise TypeError("Rated current value has to be a float")
+        return rated_current
 
     def set_rated_current(
         self, rated_current: float, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ):
+    ) -> None:
         """Set rated current in the target servo and axis.
 
         Args:

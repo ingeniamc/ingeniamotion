@@ -641,9 +641,14 @@ class Feedbacks(metaclass=MCMetaClass):
         Returns:
             Feedback polarity
 
+        Raises:
+            TypeError: If some read value has a wrong type.
+
         """
         polarity_register = self.get_feedback_polarity_register_uid(feedback)
         raw_polarity = self.mc.communication.get_register(polarity_register, servo=servo, axis=axis)
+        if not isinstance(raw_polarity, int):
+            raise TypeError("Polarity value has to be an integer")
         try:
             return FeedbackPolarity(raw_polarity)
         except ValueError:

@@ -86,9 +86,7 @@ class DCFeedbacksResolutionTest(BaseTest):
             f"Velocity PID set to {self.PID_LOG_MSG.format(**self.DEFAULT_VELOCITY_PID)}"
         )
         position_kp = 2.0 * math.pi * self.POSITION_TUNE_BW / self.feedback_resolution
-        self.mc.configuration.set_position_pid(
-            kp=position_kp, servo=self.servo, axis=self.axis
-        )
+        self.mc.configuration.set_position_pid(kp=position_kp, servo=self.servo, axis=self.axis)
         self.logger.info(
             f"Position PID set to {self.PID_LOG_MSG.format(kp=position_kp, ki=0, kd=0)}"
         )
@@ -96,9 +94,7 @@ class DCFeedbacksResolutionTest(BaseTest):
             self.DEFAULT_PROFILE_MAX_VEL, servo=self.servo, axis=self.axis
         )
         self.logger.info(f"Maximum profile velocity set to {self.DEFAULT_PROFILE_MAX_VEL}")
-        self.mc.motion.set_operation_mode(
-            self.OPERATION_MODE, servo=self.servo, axis=self.axis
-        )
+        self.mc.motion.set_operation_mode(self.OPERATION_MODE, servo=self.servo, axis=self.axis)
         self.logger.info(f"Set operation mode to {self.OPERATION_MODE.name}")
 
     @BaseTest.stoppable
