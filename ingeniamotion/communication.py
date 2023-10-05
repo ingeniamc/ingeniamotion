@@ -3,18 +3,26 @@ import ifaddr
 import subprocess
 from os import path, remove
 from functools import partial
-from typing import Optional, Union, Callable, List
+from typing import TYPE_CHECKING, Optional, Union, Callable, List
 
 import ingenialogger
 from ingenialink.exceptions import ILError
-from ingenialink.canopen.network import CanopenNetwork
+from ingenialink.canopen.network import (
+    CanopenNetwork,
+    CAN_BAUDRATE,
+    CAN_DEVICE,
+    REG_DTYPE,
+    REG_ACCESS,
+)
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.eoe.network import EoENetwork
 
 from ingeniamotion.exceptions import IMRegisterWrongAccess
-from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE, REG_DTYPE, REG_ACCESS
-from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
+
+if TYPE_CHECKING:
+    from ingeniamotion.motion_controller import MotionController
+from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.comkit import create_comkit_dictionary
 
 
@@ -29,7 +37,7 @@ class Communication(metaclass=MCMetaClass):
     PASSWORD_FORCE_BOOT_MOCO = 0x426F6F74
     PASSWORD_SYSTEM_RESET = 0x72657365
 
-    def __init__(self, motion_controller):
+    def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
 
@@ -288,7 +296,7 @@ class Communication(metaclass=MCMetaClass):
         for adapter in ifaddr.get_adapters():
             for ip in adapter.ips:
                 if ip.is_IPv4 and ip.ip == address:
-                    return adapter.name.decode("utf-8")
+                    return bytes.decode(adapter.name)
         return None
 
     def get_ifname_from_interface_ip(self, address: str) -> str:
@@ -390,7 +398,7 @@ class Communication(metaclass=MCMetaClass):
         )
 
     def scan_servos_eoe_service(self, ifname: str) -> List[int]:
-        """Return a list of available servos.
+        """Return a List of available servos.
 
         Args:
             ifname : interface name. It should have format
@@ -400,10 +408,13 @@ class Communication(metaclass=MCMetaClass):
 
         Raises:
             ingenialink.exceptions.ILError: If the EoE service is not running
-
+            TypeError: If some parameter has a wrong type.
         """
         net = self.mc.net[ifname] if ifname in self.mc.net else EoENetwork(ifname)
-        return net.scan_slaves()
+        slaves = net.scan_slaves()
+        if not isinstance(slaves, List):
+            raise TypeError("Slaves are not saved in a list")
+        return slaves
 
     def scan_servos_eoe_service_interface_index(self, if_index: int) -> List[int]:
         """Return a list of available servos.
@@ -479,7 +490,7 @@ class Communication(metaclass=MCMetaClass):
             channel : CANOpen device channel. ``0`` by default.
         Returns:
             List of node ids available in the network.
-
+            TypeError: If some parameter has a wrong type.
         """
         net_key = f"{can_device}_{channel}_{baudrate}"
         if net_key not in self.mc.net:
@@ -495,7 +506,10 @@ class Communication(metaclass=MCMetaClass):
                 baudrate,
             )
             return []
-        return net.scan_slaves()
+        slaves = net.scan_slaves()
+        if not isinstance(slaves, List):
+            raise TypeError("Slaves are not saved in a List")
+        return slaves
 
     def disconnect(self, servo: str = DEFAULT_SERVO) -> None:
         """Disconnect servo.
@@ -529,19 +543,22 @@ class Communication(metaclass=MCMetaClass):
         Raises:
             ingenialink.exceptions.ILAccessError: If the register access is write-only.
             IMRegisterNotExist: If the register doesn't exist.
+            TypeError: If some parameter has a wrong type.
 
         """
         drive = self.mc.servos[servo]
         register_dtype = self.mc.info.register_type(register, axis, servo=servo)
         value = drive.read(register, subnode=axis)
-        if register_dtype.value <= REG_DTYPE.S64.value:
+        if register_dtype.value <= REG_DTYPE.S64.value and isinstance(value, int):
             return int(value)
+        if not isinstance(value, (int, float, str)):
+            raise TypeError("Register value is not a correct type of value.")
         return value
 
     def set_register(
         self,
         register: str,
-        value: Union[int, float],
+        value: Union[int, float, str],
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
     ) -> None:
@@ -578,7 +595,9 @@ class Communication(metaclass=MCMetaClass):
             )
         drive.write(register, value, subnode=axis)
 
-    def subscribe_net_status(self, callback: Callable, servo: str = DEFAULT_SERVO) -> None:
+    def subscribe_net_status(
+        self, callback: Callable[[str], None], servo: str = DEFAULT_SERVO
+    ) -> None:
         """Add a callback to net status change event.
 
         Args:
@@ -593,7 +612,9 @@ class Communication(metaclass=MCMetaClass):
         else:
             network.subscribe_to_status(callback)
 
-    def unsubscribe_net_status(self, callback: Callable, servo: str = DEFAULT_SERVO) -> None:
+    def unsubscribe_net_status(
+        self, callback: Callable[[str], None], servo: str = DEFAULT_SERVO
+    ) -> None:
         """Remove net status change event callback.
 
         Args:
@@ -608,7 +629,9 @@ class Communication(metaclass=MCMetaClass):
         else:
             network.unsubscribe_from_status(callback)
 
-    def subscribe_servo_status(self, callback: Callable, servo: str = DEFAULT_SERVO) -> None:
+    def subscribe_servo_status(
+        self, callback: Callable[[str], None], servo: str = DEFAULT_SERVO
+    ) -> None:
         """Add a callback to servo status change event.
 
         Args:
@@ -619,7 +642,9 @@ class Communication(metaclass=MCMetaClass):
         drive = self.mc._get_drive(servo)
         drive.subscribe_to_status(callback)
 
-    def unsubscribe_servo_status(self, callback: Callable, servo: str = DEFAULT_SERVO) -> None:
+    def unsubscribe_servo_status(
+        self, callback: Callable[[str], None], servo: str = DEFAULT_SERVO
+    ) -> None:
         """Remove servo status change event callback.
 
         Args:
@@ -634,9 +659,9 @@ class Communication(metaclass=MCMetaClass):
         self,
         fw_file: str,
         servo: str = DEFAULT_SERVO,
-        status_callback: Optional[Callable] = None,
-        progress_callback: Optional[Callable] = None,
-        error_enabled_callback: Optional[Callable] = None,
+        status_callback: Optional[Callable[[str], None]] = None,
+        progress_callback: Optional[Callable[[str], None]] = None,
+        error_enabled_callback: Optional[Callable[[str], None]] = None,
     ) -> None:
         """Load firmware via CANopen.
 
@@ -725,7 +750,7 @@ class Communication(metaclass=MCMetaClass):
         net.load_firmware(fw_file, ip, ftp_user, ftp_pwd)
 
     @staticmethod
-    def __ftp_ping(ip):
+    def __ftp_ping(ip: str) -> bool:
         command = ["ping", ip]
         return subprocess.call(command) == 0
 

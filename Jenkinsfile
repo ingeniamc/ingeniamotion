@@ -31,7 +31,7 @@ pipeline {
                         bat '''
                             cd C:\\Users\\ContainerAdministrator\\ingeniamotion
                             python -m venv venv
-                            venv\\Scripts\\python.exe -m pip install -r requirements\\dev-requirements.txt
+                            venv\\Scripts\\python.exe -m pip install -r requirements\\dev-requirements.txt -r requirements\\test-requirements.txt
                             venv\\Scripts\\python.exe -m pip install -e .
                         '''
                     }
@@ -42,6 +42,14 @@ pipeline {
                              cd C:\\Users\\ContainerAdministrator\\ingeniamotion
                              venv\\Scripts\\python.exe setup.py bdist_wheel
                         '''
+                    }
+                }
+                stage('Make a static type analysis') {
+                    steps {
+                        bat """
+                            cd C:\\Users\\ContainerAdministrator\\ingeniamotion
+                            venv\\Scripts\\python.exe -m mypy ingeniamotion
+                        """
                     }
                 }
                 stage('Check formatting') {
@@ -62,11 +70,13 @@ pipeline {
                 }
                 stage("Run tests without connection") {
                     steps {
-                        bat '''
-                            venv\\Scripts\\python.exe -m pytest tests -m no_connection --protocol no_connection --slave 0 --junitxml=pytest_reports/pytest_no_connection_report.xml
-                            move .coverage .coverage_no_connection
+                        bat """
+                            cd C:\\Users\\ContainerAdministrator\\ingeniamotion
+                            venv\\Scripts\\python.exe -m pytest tests -m no_connection --protocol no_connection --junitxml=pytest_reports\\pytest_no_connection_report.xml
+                            move .coverage ${env.WORKSPACE}\\.coverage_no_connection
+                            XCOPY pytest_reports ${env.WORKSPACE}\\pytest_reports /i
                             exit /b 0
-                        '''
+                        """
                     }
                 }
                 stage('Save test results') {
@@ -191,8 +201,10 @@ pipeline {
                     steps {
                         //unstash 'coverage_reports' Uncomment once EtherCAT tests are operational.
                         // Add .coverage_ethercat to the combine command once EtherCAT tests are operational.
+                        unstash 'coverage_reports'
+                        unstash 'test_reports'
                         bat '''
-                            venv\\Scripts\\python.exe -m coverage combine .coverage_ethernet .coverage_canopen
+                            venv\\Scripts\\python.exe -m coverage combine .coverage_ethernet .coverage_canopen .coverage_no_connection
                             venv\\Scripts\\python.exe -m coverage xml --include=ingeniamotion/*
                         '''
                         publishCoverage adapters: [coberturaReportAdapter('coverage.xml')]
