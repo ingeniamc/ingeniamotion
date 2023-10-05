@@ -94,18 +94,18 @@ class DCFeedbacksPolarityTest(BaseTest):
         )
 
     @BaseTest.stoppable
-    def increase_current_until_movement(self, initial_position: int, rated_current: float) -> int:
+    def increase_current_until_movement(self, initial_position: int, max_current: float) -> int:
         """Increase motor current until it moves
 
         Args:
             initial_position: initial position
-            rated_current: motor rated current
+            max_current: motor rated current
 
         Returns:
             returns final position
         """
         for set_curr in self.mc.motion.ramp_generator(
-            0, rated_current, self.CURRENT_RAMP_TOTAL_TIME, self.CURRENT_RAMP_INTERVAL
+            0, max_current, self.CURRENT_RAMP_TOTAL_TIME, self.CURRENT_RAMP_INTERVAL
         ):
             self.check_stop()
             current_pos = self.mc.motion.get_actual_position(servo=self.servo, axis=self.axis)
@@ -138,10 +138,12 @@ class DCFeedbacksPolarityTest(BaseTest):
     @BaseTest.stoppable
     def loop(self) -> ResultType:
         rated_current = self.mc.configuration.get_rated_current(servo=self.servo, axis=self.axis)
+        max_current = self.mc.configuration.get_max_current(servo=self.servo, axis=self.axis)
+        test_current = min(rated_current, max_current)
         self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
         self.logger.info("Motor enable")
         initial_position = self.mc.motion.get_actual_position(servo=self.servo, axis=self.axis)
-        final_position = self.increase_current_until_movement(initial_position, rated_current)
+        final_position = self.increase_current_until_movement(initial_position, test_current)
         polarity = self.calculate_polarity(initial_position, final_position)
         self.logger.info(f"Polarity found: {polarity.name}")
         polarity_uid = self.mc.configuration.get_feedback_polarity_register_uid(self.sensor)

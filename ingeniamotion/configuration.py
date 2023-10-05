@@ -56,6 +56,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
     POSITION_LOOP_KI_REGISTER = "CL_POS_PID_KI"
     POSITION_LOOP_KD_REGISTER = "CL_POS_PID_KD"
     RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
+    MAX_CURRENT_REGISTER = "CL_CUR_REF_MAX"
 
     STATUS_WORD_OPERATION_ENABLED_BIT = 0x04
     STATUS_WORD_COMMUTATION_FEEDBACK_ALIGNED_BIT = 0x4000
@@ -1030,3 +1031,24 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         self.mc.communication.set_register(
             self.RATED_CURRENT_REGISTER, rated_current, servo=servo, axis=axis
         )
+
+    def get_max_current(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> float:
+        """Get max current in the target servo and axis.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+            axis: servo axis. ``1`` by default.
+
+        Returns:
+            Max current
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+
+        """
+        max_current = self.mc.communication.get_register(
+            self.MAX_CURRENT_REGISTER, servo=servo, axis=axis
+        )
+        if not isinstance(max_current, float):
+            raise TypeError("Rated current value has to be a float")
+        return max_current
