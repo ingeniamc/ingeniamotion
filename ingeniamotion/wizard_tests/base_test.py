@@ -1,11 +1,17 @@
+from typing import TYPE_CHECKING, Any, Dict, List, Union, Optional
+
 import ingenialogger
 
-from enum import IntEnum
 from abc import ABC, abstractmethod
 from ingenialink.exceptions import ILError
 
 from ingeniamotion.exceptions import IMRegisterNotExist, IMRegisterWrongAccess
-from .stoppable import Stoppable, StopException
+from ingeniamotion.metaclass import DEFAULT_SERVO
+from ingeniamotion.wizard_tests.stoppable import Stoppable, StopException
+
+if TYPE_CHECKING:
+    from ingeniamotion import MotionController
+from ingeniamotion.enums import SeverityLevel
 
 
 class TestError(Exception):
@@ -15,18 +21,20 @@ class TestError(Exception):
 class BaseTest(ABC, Stoppable):
     WARNING_BIT_MASK = 0x0FFFFFFF
 
-    def __init__(self):
-        self.backup_registers_names = None
-        self.backup_registers = {}
-        self.suggested_registers = {}
-        self.mc = None
-        self.servo = None
-        self.axis = None
-        self.report = None
+    def __init__(self) -> None:
+        self.backup_registers_names: List[str] = []
+        self.backup_registers: Dict[int, Dict[str, Union[int, float, str]]] = {}
+        self.suggested_registers: Dict[str, Union[int, float, str]] = {}
+        self.mc: "MotionController"
+        self.servo: str = DEFAULT_SERVO
+        self.axis: int = 0
+        self.report: Optional[Dict[str, Any]] = None
         self.logger = ingenialogger.get_logger(__name__)
 
-    def save_backup_registers(self):
+    def save_backup_registers(self) -> None:
         self.backup_registers[self.axis] = {}
+        if not isinstance(self.backup_registers_names, List):
+            return
         for uid in self.backup_registers_names:
             try:
                 value = self.mc.communication.get_register(uid, servo=self.servo, axis=self.axis)
@@ -34,7 +42,7 @@ class BaseTest(ABC, Stoppable):
             except IMRegisterNotExist as e:
                 self.logger.warning(e, axis=self.axis)
 
-    def restore_backup_registers(self):
+    def restore_backup_registers(self) -> None:
         """Restores the value of the registers after the test execution.
 
         Notes:
@@ -50,7 +58,7 @@ class BaseTest(ABC, Stoppable):
                     self.logger.warning(e, axis=subnode)
 
     @Stoppable.stoppable
-    def show_error_message(self):
+    def show_error_message(self) -> None:
         error_code, axis, warning = self.mc.errors.get_last_buffer_error(
             servo=self.servo, axis=self.axis
         )
@@ -58,18 +66,20 @@ class BaseTest(ABC, Stoppable):
         raise TestError(error_msg)
 
     @abstractmethod
-    def setup(self):
+    def setup(self) -> None:
         pass
 
     @abstractmethod
-    def loop(self):
+    def loop(self) -> Any:
         pass
 
     @abstractmethod
-    def teardown(self):
+    def teardown(self) -> None:
         pass
 
-    def run(self):
+    def run(
+        self,
+    ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
         self.reset_stop()
         self.save_backup_registers()
         try:
@@ -87,7 +97,9 @@ class BaseTest(ABC, Stoppable):
                 self.restore_backup_registers()
         return self.report
 
-    def __generate_report(self, output):
+    def __generate_report(
+        self, output: Any
+    ) -> Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]:
         return {
             "result_severity": self.get_result_severity(output),
             "suggested_registers": self.suggested_registers,
@@ -95,9 +107,9 @@ class BaseTest(ABC, Stoppable):
         }
 
     @abstractmethod
-    def get_result_msg(self, output):
+    def get_result_msg(self, output: Any) -> str:
         pass
 
     @abstractmethod
-    def get_result_severity(self, output):
+    def get_result_severity(self, output: Any) -> SeverityLevel:
         pass

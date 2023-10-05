@@ -1,4 +1,4 @@
-ingenialink==7.0.*
+ingenialink @ git+https://github.com/ingeniamc/ingenialink-python@develop
 ingenialogger>=0.2.1
 ifaddr==0.1.7
 numpy==1.19.5

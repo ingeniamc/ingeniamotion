@@ -1,7 +1,12 @@
+from typing import TYPE_CHECKING, Optional
+
 import ingenialogger
 
 from ingeniamotion.enums import SensorType, SensorCategory
-from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
+
+if TYPE_CHECKING:
+    from ingeniamotion.motion_controller import MotionController
+from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
 class Feedbacks(metaclass=MCMetaClass):
@@ -23,7 +28,7 @@ class Feedbacks(metaclass=MCMetaClass):
     POSITION_FEEDBACK_REGISTER = "CL_POS_FBK_SENSOR"
     AUXILIAR_FEEDBACK_REGISTER = "CL_AUX_FBK_SENSOR"
 
-    def __init__(self, motion_controller):
+    def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
         self.feedback_resolution_functions = {
@@ -48,10 +53,16 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             Type of feedback configured.
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+
         """
         commutation_feedback = self.mc.communication.get_register(
             self.COMMUTATION_FEEDBACK_REGISTER, servo=servo, axis=axis
         )
+        if not isinstance(commutation_feedback, int):
+            raise TypeError("Commutation feedback value has to be an integer")
         return SensorType(commutation_feedback)
 
     @MCMetaClass.check_motor_disabled
@@ -115,10 +126,16 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             Type of feedback configured
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+
         """
         reference_feedback = self.mc.communication.get_register(
             self.REFERENCE_FEEDBACK_REGISTER, servo=servo, axis=axis
         )
+        if not isinstance(reference_feedback, int):
+            raise TypeError("Reference feedback has to be an integer")
         return SensorType(reference_feedback)
 
     @MCMetaClass.check_motor_disabled
@@ -182,10 +199,16 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             Type of feedback configured
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+
         """
         velocity_feedback = self.mc.communication.get_register(
             self.VELOCITY_FEEDBACK_REGISTER, servo=servo, axis=axis
         )
+        if not isinstance(velocity_feedback, int):
+            raise TypeError("Velocity feedback has to be an integer")
         return SensorType(velocity_feedback)
 
     @MCMetaClass.check_motor_disabled
@@ -249,10 +272,16 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             Type of feedback configured.
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+
         """
         position_feedback = self.mc.communication.get_register(
             self.POSITION_FEEDBACK_REGISTER, servo=servo, axis=axis
         )
+        if not isinstance(position_feedback, int):
+            raise TypeError("Position feedback has to be an integer")
         return SensorType(position_feedback)
 
     @MCMetaClass.check_motor_disabled
@@ -316,10 +345,16 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             Type of feedback configured
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+
         """
         auxiliar_feedback = self.mc.communication.get_register(
             self.AUXILIAR_FEEDBACK_REGISTER, servo=servo, axis=axis
         )
+        if not isinstance(auxiliar_feedback, int):
+            raise TypeError("Auxiliar feedback has to be an integer")
         return SensorType(auxiliar_feedback)
 
     @MCMetaClass.check_motor_disabled
@@ -358,7 +393,7 @@ class Feedbacks(metaclass=MCMetaClass):
 
     def get_auxiliar_feedback_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ) -> int:
+    ) -> Optional[int]:
         """Reads auxiliar feedbacks resolution in the target servo and axis.
 
         Args:
@@ -382,11 +417,20 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             Resolution of ABS1 encoder.
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+
         """
         single_turn_bits = self.mc.communication.get_register(
             "FBK_BISS1_SSI1_POS_ST_BITS", servo=servo, axis=axis
         )
-        return 2**single_turn_bits
+        if not isinstance(single_turn_bits, int):
+            raise TypeError("Single-turn bits has to be an integer")
+        resolution = 2**single_turn_bits
+        if not isinstance(resolution, int):
+            raise TypeError("Resolution value has to be an integer")
+        return resolution
 
     def get_incremental_encoder_1_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -399,8 +443,17 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             Resolution of incremental encoder 1.
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+
         """
-        return self.mc.communication.get_register("FBK_DIGENC1_RESOLUTION", servo=servo, axis=axis)
+        resolution = self.mc.communication.get_register(
+            "FBK_DIGENC1_RESOLUTION", servo=servo, axis=axis
+        )
+        if not isinstance(resolution, int):
+            raise TypeError("Resolution value has to be an integer")
+        return resolution
 
     def get_digital_halls_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -413,11 +466,18 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             Resolution of digital halls encoder.
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+
         """
         pair_poles = self.mc.communication.get_register(
             "FBK_DIGHALL_PAIRPOLES", servo=servo, axis=axis
         )
-        return 6 * pair_poles
+        resolution = 6 * pair_poles
+        if not isinstance(resolution, int):
+            raise TypeError("Resolution value has to be an integer")
+        return resolution
 
     def get_secondary_ssi_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -430,11 +490,18 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             Resolution of secondary SSI encoder.
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+
         """
         secondary_single_turn_bits = self.mc.communication.get_register(
             "FBK_SSI2_POS_ST_BITS", servo=servo, axis=axis
         )
-        return 2**secondary_single_turn_bits
+        if not isinstance(secondary_single_turn_bits, int):
+            raise TypeError("Resolution value has to be an integer")
+        resolution = int(2**secondary_single_turn_bits)
+        return resolution
 
     def get_absolute_encoder_2_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -447,11 +514,18 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             Resolution of ABS2 encoder.
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+
         """
         serial_slave_1_single_turn_bits = self.mc.communication.get_register(
             "FBK_BISS2_POS_ST_BITS", servo=servo, axis=axis
         )
-        return 2**serial_slave_1_single_turn_bits
+        if not isinstance(serial_slave_1_single_turn_bits, int):
+            raise TypeError("Single-turn bits has to be an integer")
+        resolution = int(2**serial_slave_1_single_turn_bits)
+        return resolution
 
     def get_incremental_encoder_2_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -464,12 +538,19 @@ class Feedbacks(metaclass=MCMetaClass):
 
         Returns:
             Resolution of incremental encoder 2 encoder.
-        """
-        return self.mc.communication.get_register("FBK_DIGENC2_RESOLUTION", servo=servo, axis=axis)
 
-    def __no_feedback_resolution(
-        self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ) -> None:
+        Raises:
+            TypeError: If some read value has a wrong type.
+
+        """
+        resolution = self.mc.communication.get_register(
+            "FBK_DIGENC2_RESOLUTION", servo=servo, axis=axis
+        )
+        if not isinstance(resolution, int):
+            raise TypeError("Resolution value has to be an integer")
+        return resolution
+
+    def __no_feedback_resolution(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
         """Used for feedbacks that has no resolution.
 
         Args:

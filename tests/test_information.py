@@ -1,6 +1,7 @@
 import pytest
 
 from ingeniamotion.enums import REG_DTYPE, REG_ACCESS
+from ingeniamotion.information import COMMUNICATION_TYPE
 
 
 @pytest.mark.no_connection
@@ -99,13 +100,13 @@ def test_get_product_name(motion_controller, mocker):
 
 
 @pytest.mark.no_connection
-def test_get_target(motion_controller):
-    expected_target = "FAKE_TARGET"
+def test_get_ip(motion_controller):
+    expected_ip = "FAKE_TARGET"
 
     mc, alias = motion_controller
-    target = mc.info.get_target(alias)
+    ip = mc.info.get_ip(alias)
 
-    assert target == expected_target
+    assert ip == expected_ip
 
 
 @pytest.mark.no_connection
@@ -120,7 +121,7 @@ def test_get_name(motion_controller):
 
 @pytest.mark.no_connection
 def test_get_communication_type(motion_controller):
-    expected_communication_type = "Ethernet"
+    expected_communication_type = COMMUNICATION_TYPE.Ethernet
 
     mc, alias = motion_controller
     communication_type = mc.info.get_communication_type(alias)
@@ -176,55 +177,3 @@ def test_get_encoded_image_from_dictionary(motion_controller):
     encoded_image = mc.info.get_encoded_image_from_dictionary(alias)
 
     assert type(encoded_image) == expected_type_output
-
-
-@pytest.mark.no_connection
-def test_get_drive_info_coco_moco(motion_controller):
-    expected_product_codes = [12, 21]
-    expected_revision_numbers = [123, 321]
-    expected_firmware_versions = ["4.3.2", "2.3.4"]
-    expected_serial_numbers = [3456, 6543]
-
-    mc, alias = motion_controller
-    prod_codes, rev_nums, fw_vers, ser_nums = mc.info.get_drive_info_coco_moco(alias)
-
-    assert prod_codes == expected_product_codes
-    assert rev_nums == expected_revision_numbers
-    assert fw_vers == expected_firmware_versions
-    assert ser_nums == expected_serial_numbers
-
-
-@pytest.mark.no_connection
-def test_get_drive_info(motion_controller):
-    expected_prod_code = 21
-    expected_rev_number = 321
-    expected_fw_version = "_2.3.4"
-    expected_serial_number = 6543
-
-    mc, alias = motion_controller
-    prod_code, rev_num, fw_ver, ser_num = mc.info.get_drive_info(alias)
-
-    assert prod_code == expected_prod_code
-    assert rev_num == expected_rev_number
-    assert fw_ver == expected_fw_version
-    assert ser_num == expected_serial_number
-
-
-@pytest.mark.no_connection
-def test_get_serial_number(motion_controller):
-    expected_serial_number = 6543
-
-    mc, alias = motion_controller
-    serial_number = mc.info.get_serial_number(alias)
-
-    assert serial_number == expected_serial_number
-
-
-@pytest.mark.no_connection
-def test_get_fw_version(motion_controller):
-    expected_fw_version = "2.3.4"
-
-    mc, alias = motion_controller
-    firmware_version = mc.info.get_fw_version(alias)
-
-    assert firmware_version == expected_fw_version
