@@ -941,7 +941,12 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Returns:
             Vendor ID.
         """
-        return self.mc.communication.get_register(self.VENDOR_ID_REGISTER, alias)
+        vendor_id = self.mc.communication.get_register(self.VENDOR_ID_REGISTER, alias)
+        if not isinstance(vendor_id, int):
+            raise TypeError(
+                f"Wrong {self.VENDOR_ID_REGISTER} value. Expected int, got {type(vendor_id)}"
+            )
+        return vendor_id
 
     def change_baudrate(self, baud_rate: CAN_BAUDRATE, servo: str = DEFAULT_SERVO) -> None:
         """Change a CANopen device's baudrate.
@@ -961,7 +966,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             (rev_number, _),
             _,
             (serial_number, _),
-        ) = self.mc.info.get_drive_info_coco_moco(servo)
+        ) = self.get_drive_info_coco_moco(servo)
         net.change_baudrate(
             drive.target, baud_rate, vendor_id, prod_code, rev_number, serial_number
         )
