@@ -970,12 +970,9 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         if not isinstance(net, CanopenNetwork):
             raise ValueError(f"Servo {servo} is not a CANopen device.")
         vendor_id = self.get_vendor_id(servo)
-        (
-            (prod_code, _),
-            (rev_number, _),
-            _,
-            (serial_number, _),
-        ) = self.get_drive_info_coco_moco(servo)
+        prod_code = self.get_product_code(servo, subnode=0)
+        rev_number = self.get_revision_number(servo, subnode=0)
+        serial_number = self.get_serial_number(servo, subnode=0)
         net.change_baudrate(
             drive.target, baud_rate, vendor_id, prod_code, rev_number, serial_number
         )
