@@ -79,6 +79,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         TYPE_SUBNODES.COCO: "DRV_APP_COCO_VERSION",
         TYPE_SUBNODES.MOCO: "DRV_ID_SOFTWARE_VERSION",
     }
+    VENDOR_ID_COCO_REGISTER = "DRV_ID_VENDOR_ID_COCO"
     VENDOR_ID_REGISTER = "DRV_ID_VENDOR_ID"
 
     def __init__(self, motion_controller: "MotionController") -> None:
@@ -934,11 +935,12 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             raise TypeError("Firmware value has to be a string")
         return fw_value
 
-    def get_vendor_id(self, alias: str) -> int:
+    def get_vendor_id(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
         """Get the vendor ID of a drive.
 
         Args:
-            alias: Alias of the drive.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
 
         Returns:
             Vendor ID.
@@ -947,10 +949,14 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             TypeError: If the read vendor ID has the wrong type.
 
         """
-        vendor_id = self.mc.communication.get_register(self.VENDOR_ID_REGISTER, alias)
+        if axis == 0:
+            register = self.VENDOR_ID_COCO_REGISTER
+        else:
+            register = self.VENDOR_ID_REGISTER
+        vendor_id = self.mc.communication.get_register(register, servo, axis)
         if not isinstance(vendor_id, int):
             raise TypeError(
-                f"Wrong {self.VENDOR_ID_REGISTER} value. Expected int, got {type(vendor_id)}"
+                f"Wrong {register} value for axis {axis}. Expected int, got {type(vendor_id)}"
             )
         return vendor_id
 
