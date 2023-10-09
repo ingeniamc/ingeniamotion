@@ -370,9 +370,9 @@ class DriveTests(metaclass=MCMetaClass):
     ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
         """Executes resolution feedback test for single phase motors given a target servo
         and axis. This test needs a human check to ensure the feedback is well configured.
-        Test move the motor exactly the same counts that the feedback resolution,
-        if the motor does not do exactly one entire revolution
-        that means feedback is not well configured.
+        The test will move the motor with the number of counts set in the feedback resolution,
+        if the motor does not move exactly one revolution this means that
+        the feedback is not configured correctly.
 
         Args:
             feedback: feedback sensor type

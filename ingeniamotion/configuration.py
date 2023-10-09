@@ -1086,7 +1086,10 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             self.RATED_CURRENT_REGISTER, servo=servo, axis=axis
         )
         if not isinstance(rated_current, float):
-            raise TypeError("Rated current value has to be a float")
+            raise TypeError(
+                f"Wrong {self.RATED_CURRENT_REGISTER} value for axis {axis}. "
+                f"Expected int, got {type(rated_current)}"
+            )
         return rated_current
 
     def set_rated_current(
@@ -1122,5 +1125,8 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             self.MAX_CURRENT_REGISTER, servo=servo, axis=axis
         )
         if not isinstance(max_current, float):
-            raise TypeError("Rated current value has to be a float")
+            raise TypeError(
+                f"Wrong {self.MAX_CURRENT_REGISTER} value for axis {axis}. "
+                f"Expected int, got {type(max_current)}"
+            )
         return max_current
