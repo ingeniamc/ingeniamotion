@@ -11,6 +11,7 @@
 - Make and pass the first static type analysis.
 - Function to change the baudrate of a CANopen device
 - Function to get the vendor ID
+- Function to change the node ID of a CANopen device
 
 ## [0.6.2] - 2023-09-06
 ### Changed

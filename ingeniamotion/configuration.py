@@ -982,3 +982,24 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         net.change_baudrate(
             drive.target, baud_rate, vendor_id, prod_code, rev_number, serial_number
         )
+
+    def change_node_id(self, node_id: int, servo: str = DEFAULT_SERVO) -> None:
+        """Change a CANopen device's node ID.
+
+        Args:
+            node_id: New node ID.
+            servo : servo alias to reference it. ``default`` by default.
+
+        Raises:
+            ValueError: If servo is not a CANopen device.
+
+        """
+        drive = self.mc._get_drive(servo)
+        net = self.mc._get_network(servo)
+        if not isinstance(net, CanopenNetwork):
+            raise ValueError(f"Servo {servo} is not a CANopen device.")
+        vendor_id = self.get_vendor_id(servo)
+        prod_code = self.get_product_code(servo, subnode=0)
+        rev_number = self.get_revision_number(servo, subnode=0)
+        serial_number = self.get_serial_number(servo, subnode=0)
+        net.change_node_id(drive.target, node_id, vendor_id, prod_code, rev_number, serial_number)
