@@ -598,7 +598,7 @@ class Feedbacks(metaclass=MCMetaClass):
         """
         polarity_register = self.__feedback_polarity_register_dict.get(feedback)
         if polarity_register is None:
-            raise NotImplementedError(f"Senor {feedback.name} polarity is not implemented")
+            raise NotImplementedError(f"Sensor {feedback.name} polarity is not implemented")
         return polarity_register
 
     def set_feedback_polarity(

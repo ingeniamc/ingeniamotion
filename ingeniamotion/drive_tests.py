@@ -340,6 +340,7 @@ class DriveTests(metaclass=MCMetaClass):
         Raises:
             TestError: In case the servo or setup configuration makes
                 impossible fulfilling the test
+            TypeError: If some parameter has a wrong type.
         """
         dc_feedback_polarity_test = DCFeedbacksPolarityTest(self.mc, feedback, servo, axis)
         output = dc_feedback_polarity_test.run()

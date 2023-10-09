@@ -77,23 +77,6 @@ class DCFeedbacksPolarityTest(BaseTest):
             self.logger.info(f"Set velocity, position and auxiliar feedbacks to {self.sensor.name}")
 
     @BaseTest.stoppable
-    def check_movement(self, initial_position: int, current_position: int) -> bool:
-        """Check motor movement
-
-        Args:
-            initial_position: initial position
-            current_position: current position
-
-        Returns:
-            True if positions are different enough, else False
-
-        """
-        return (
-            abs(current_position - initial_position)
-            > self.feedback_resolution * self.MOVEMENT_ERROR_FACTOR
-        )
-
-    @BaseTest.stoppable
     def increase_current_until_movement(self, initial_position: int, max_current: float) -> int:
         """Increase motor current until it moves
 
@@ -103,13 +86,20 @@ class DCFeedbacksPolarityTest(BaseTest):
 
         Returns:
             returns final position
+
+        Raises:
+            TestError: No movement detected
+
         """
         for set_curr in self.mc.motion.ramp_generator(
             0, max_current, self.CURRENT_RAMP_TOTAL_TIME, self.CURRENT_RAMP_INTERVAL
         ):
             self.check_stop()
             current_pos = self.mc.motion.get_actual_position(servo=self.servo, axis=self.axis)
-            if self.check_movement(initial_position, current_pos):
+            if (
+                abs(current_pos - initial_position)
+                > self.feedback_resolution * self.MOVEMENT_ERROR_FACTOR
+            ):
                 self.mc.motion.motor_disable(self.servo, self.axis)
                 return current_pos
             self.mc.motion.set_current_quadrature(set_curr, servo=self.servo, axis=self.axis)

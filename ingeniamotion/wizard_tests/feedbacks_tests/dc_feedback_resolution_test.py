@@ -127,7 +127,10 @@ class DCFeedbacksResolutionTest(BaseTest):
             )
         except IMTimeoutError as e:
             final_position = self.mc.motion.get_actual_position(servo=self.servo, axis=self.axis)
-            if abs(final_position - initial_pos) > self.feedback_resolution * 0.1:
+            if (
+                abs(final_position - initial_pos)
+                > self.feedback_resolution * self.MOVEMENT_ERROR_FACTOR
+            ):
                 raise TestError(e) from e
             raise TestError(
                 "ERROR: No movement detected. Please, review your feedback configuration & wiring"
