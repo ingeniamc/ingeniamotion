@@ -10,6 +10,9 @@
 - Add mypy into the project.
 - Add types for all functions and classes.
 - Make and pass the first static type analysis.
+- Function to change the baudrate of a CANopen device
+- Function to get the vendor ID
+- Function to change the node ID of a CANopen device
 - Resolution and polarity test for DC motors (resolution test needs human check)
 - Feedbacks functions to set/get feedback polarity
 - Add in configuration set_velocity_pid, set_position_pid and get_rated_current

@@ -4,12 +4,13 @@ from typing import TYPE_CHECKING, List, Optional, Tuple, Union
 
 import ingenialogger
 from ingenialink.exceptions import ILError
+from ingenialink.canopen.network import CanopenNetwork, CAN_BAUDRATE
 
-from ingeniamotion.enums import GeneratorMode, PhasingMode
-from ingeniamotion.exceptions import IMException
-from ingeniamotion.feedbacks import Feedbacks
 from ingeniamotion.homing import Homing
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
+from ingeniamotion.exceptions import IMException
+from ingeniamotion.feedbacks import Feedbacks
+from ingeniamotion.enums import GeneratorMode, PhasingMode
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -86,6 +87,8 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         TYPE_SUBNODES.COCO: "DRV_APP_COCO_VERSION",
         TYPE_SUBNODES.MOCO: "DRV_ID_SOFTWARE_VERSION",
     }
+    VENDOR_ID_COCO_REGISTER = "DRV_ID_VENDOR_ID_COCO"
+    VENDOR_ID_REGISTER = "DRV_ID_VENDOR_ID"
 
     def __init__(self, motion_controller: "MotionController") -> None:
         Homing.__init__(self, motion_controller)
@@ -939,6 +942,75 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         if not isinstance(fw_value, str):
             raise TypeError("Firmware value has to be a string")
         return fw_value
+
+    def get_vendor_id(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
+        """Get the vendor ID of a drive.
+
+        Args:
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
+
+        Returns:
+            Vendor ID.
+
+        Raises:
+            TypeError: If the read vendor ID has the wrong type.
+
+        """
+        if axis == 0:
+            register = self.VENDOR_ID_COCO_REGISTER
+        else:
+            register = self.VENDOR_ID_REGISTER
+        vendor_id = self.mc.communication.get_register(register, servo, axis)
+        if not isinstance(vendor_id, int):
+            raise TypeError(
+                f"Wrong {register} value for axis {axis}. Expected int, got {type(vendor_id)}"
+            )
+        return vendor_id
+
+    def change_baudrate(self, baud_rate: CAN_BAUDRATE, servo: str = DEFAULT_SERVO) -> None:
+        """Change a CANopen device's baudrate.
+
+        Args:
+            baud_rate: New baud rate value.
+            servo : servo alias to reference it. ``default`` by default.
+
+        Raises:
+            ValueError: If the servo is not a CANopen device.
+
+        """
+        drive = self.mc._get_drive(servo)
+        net = self.mc._get_network(servo)
+        if not isinstance(net, CanopenNetwork):
+            raise ValueError(f"Servo {servo} is not a CANopen device.")
+        vendor_id = self.get_vendor_id(servo)
+        prod_code = self.get_product_code(servo, subnode=0)
+        rev_number = self.get_revision_number(servo, subnode=0)
+        serial_number = self.get_serial_number(servo, subnode=0)
+        net.change_baudrate(
+            drive.target, baud_rate, vendor_id, prod_code, rev_number, serial_number
+        )
+
+    def change_node_id(self, node_id: int, servo: str = DEFAULT_SERVO) -> None:
+        """Change a CANopen device's node ID.
+
+        Args:
+            node_id: New node ID.
+            servo : servo alias to reference it. ``default`` by default.
+
+        Raises:
+            ValueError: If servo is not a CANopen device.
+
+        """
+        drive = self.mc._get_drive(servo)
+        net = self.mc._get_network(servo)
+        if not isinstance(net, CanopenNetwork):
+            raise ValueError(f"Servo {servo} is not a CANopen device.")
+        vendor_id = self.get_vendor_id(servo)
+        prod_code = self.get_product_code(servo, subnode=0)
+        rev_number = self.get_revision_number(servo, subnode=0)
+        serial_number = self.get_serial_number(servo, subnode=0)
+        net.change_node_id(drive.target, node_id, vendor_id, prod_code, rev_number, serial_number)
 
     def set_velocity_pid(
         self,

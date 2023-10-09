@@ -1,6 +1,8 @@
 import os
 import pytest
 
+from ingenialink.canopen.network import CAN_BAUDRATE
+
 BRAKE_OVERRIDE_REGISTER = "MOT_BRAKE_OVERRIDE"
 POSITION_SET_POINT_REGISTER = "CL_POS_SET_POINT_VALUE"
 PROFILE_MAX_ACCELERATION_REGISTER = "PROF_MAX_ACC"
@@ -523,6 +525,30 @@ def test_get_fw_version(motion_controller):
 
     assert firmware_version_0 == expected_fw_version_0
     assert firmware_version_1 == expected_fw_version_1
+
+
+@pytest.mark.no_connection
+def test_change_baudrate_exception(motion_controller):
+    mc, alias = motion_controller
+    with pytest.raises(ValueError):
+        mc.configuration.change_baudrate(CAN_BAUDRATE.Baudrate_1M, alias)
+
+
+@pytest.mark.no_connection
+def test_get_vendor_id(motion_controller):
+    expected_vendor_id = 123456789
+
+    mc, alias = motion_controller
+    vendor_id = mc.configuration.get_vendor_id(alias)
+
+    assert vendor_id == expected_vendor_id
+
+
+@pytest.mark.no_connection
+def test_change_node_id_exception(motion_controller):
+    mc, alias = motion_controller
+    with pytest.raises(ValueError):
+        mc.configuration.change_node_id(32, alias)
 
 
 @pytest.mark.develop
