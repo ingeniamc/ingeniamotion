@@ -24,6 +24,7 @@ class MockServo:
             "DRV_ID_REVISION_NUMBER": 321,
             "DRV_ID_SOFTWARE_VERSION": "2.3.4",
             "DRV_ID_SERIAL_NUMBER": 6543,
+            "DRV_ID_VENDOR_ID": 123456789,
         }
         self.__fake_register_values = (
             self.__fake_registers_subnode_0,

@@ -9,6 +9,8 @@
 - Add mypy into the project.
 - Add types for all functions and classes.
 - Make and pass the first static type analysis.
+- Function to change the baudrate of a CANopen device
+- Function to get the vendor ID
 
 ## [0.6.2] - 2023-09-06
 ### Changed
