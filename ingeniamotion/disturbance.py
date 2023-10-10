@@ -1,7 +1,7 @@
 import ingenialogger
 from numpy import ndarray
 from functools import wraps
-from typing import Callable, Dict, List, Union, TYPE_CHECKING
+from typing import Callable, Dict, List, Union, TYPE_CHECKING, Optional
 from ingenialink.enums.register import REG_DTYPE
 
 from ingeniamotion.enums import MonitoringVersion
@@ -70,7 +70,7 @@ class Disturbance:
         self.mc = mc
         self.servo = servo
         self.mapped_registers: List[TYPE_MAPPED_REGISTERS_NAME_AXIS] = []
-        self.sampling_freq = None
+        self.sampling_freq: Optional[float] = None
         self._version = mc.capture._check_version(servo)
         self.logger = ingenialogger.get_logger(__name__, drive=mc.servo_name(servo))
         self.max_sample_number = mc.capture.disturbance_max_sample_size(servo)

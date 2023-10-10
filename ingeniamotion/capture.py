@@ -7,7 +7,7 @@ from ingeniamotion.disturbance import Disturbance
 from ingeniamotion.monitoring.base_monitoring import Monitoring
 from ingeniamotion.monitoring.monitoring_v1 import MonitoringV1
 from ingeniamotion.monitoring.monitoring_v3 import MonitoringV3
-from ingeniamotion.exceptions import IMRegisterNotExist, IMMonitoringError
+from ingeniamotion.exceptions import IMRegisterNotExist, IMMonitoringError, IMStatusWordError
 from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.enums import (
     MonitoringVersion,
@@ -604,7 +604,6 @@ class Capture(metaclass=MCMetaClass):
         self.clean_monitoring(servo=servo)
         self.clean_disturbance(servo=servo)
 
-    @MCMetaClass.check_motor_disabled
     def mcb_synchronization(self, servo: str = DEFAULT_SERVO) -> None:
         """Synchronize MCB, necessary to monitoring and disturbance.
         Motor must be disabled.
@@ -616,6 +615,10 @@ class Capture(metaclass=MCMetaClass):
             IMStatusWordError: If motor is enabled.
 
         """
+        subnodes = self.mc.info.get_subnodes(servo)
+        for axis in range(1, subnodes):
+            if self.mc.configuration.is_motor_enabled(servo=servo, axis=axis):
+                raise IMStatusWordError("Motor is enabled")
         self.enable_monitoring(servo=servo)
         self.disable_monitoring(servo=servo)
 

@@ -227,7 +227,6 @@ def test_phasing_check_stop(motion_controller):
         assert reg_values[reg] == mc.communication.get_register(reg, servo=alias)
 
 
-@pytest.mark.develop
 @pytest.mark.parametrize("test_currents", ["Rated current", "Drive current", "Same value"])
 @pytest.mark.parametrize(
     "test_sensor",

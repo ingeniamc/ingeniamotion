@@ -50,6 +50,14 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
     GENERATOR_MODE_REGISTER = "FBK_GEN_MODE"
     MOTOR_POLE_PAIRS_REGISTER = "MOT_PAIR_POLES"
     STO_STATUS_REGISTER = "DRV_PROT_STO_STATUS"
+    VELOCITY_LOOP_KP_REGISTER = "CL_VEL_PID_KP"
+    VELOCITY_LOOP_KI_REGISTER = "CL_VEL_PID_KI"
+    VELOCITY_LOOP_KD_REGISTER = "CL_VEL_PID_KD"
+    POSITION_LOOP_KP_REGISTER = "CL_POS_PID_KP"
+    POSITION_LOOP_KI_REGISTER = "CL_POS_PID_KI"
+    POSITION_LOOP_KD_REGISTER = "CL_POS_PID_KD"
+    RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
+    MAX_CURRENT_REGISTER = "CL_CUR_REF_MAX"
 
     STATUS_WORD_OPERATION_ENABLED_BIT = 0x04
     STATUS_WORD_COMMUTATION_FEEDBACK_ALIGNED_BIT = 0x4000
@@ -1003,3 +1011,122 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         rev_number = self.get_revision_number(servo, subnode=0)
         serial_number = self.get_serial_number(servo, subnode=0)
         net.change_node_id(drive.target, node_id, vendor_id, prod_code, rev_number, serial_number)
+
+    def set_velocity_pid(
+        self,
+        kp: float,
+        ki: float = 0,
+        kd: float = 0,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+    ) -> None:
+        """Set velocity PID values in the target servo and axis.
+
+        Args:
+            kp: proportional constant
+            ki: integral constant
+            kd: derivative constant
+            servo: servo alias to reference it. ``default`` by default.
+            axis: servo axis. ``1`` by default.
+
+        """
+        self.mc.communication.set_register(
+            self.VELOCITY_LOOP_KP_REGISTER, kp, servo=servo, axis=axis
+        )
+        self.mc.communication.set_register(
+            self.VELOCITY_LOOP_KI_REGISTER, ki, servo=servo, axis=axis
+        )
+        self.mc.communication.set_register(
+            self.VELOCITY_LOOP_KD_REGISTER, kd, servo=servo, axis=axis
+        )
+
+    def set_position_pid(
+        self,
+        kp: float,
+        ki: float = 0,
+        kd: float = 0,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+    ) -> None:
+        """Set position PID values in the target servo and axis.
+
+        Args:
+            kp: proportional constant
+            ki: integral constant
+            kd: derivative constant
+            servo: servo alias to reference it. ``default`` by default.
+            axis: servo axis. ``1`` by default.
+
+        """
+        self.mc.communication.set_register(
+            self.POSITION_LOOP_KP_REGISTER, kp, servo=servo, axis=axis
+        )
+        self.mc.communication.set_register(
+            self.POSITION_LOOP_KI_REGISTER, ki, servo=servo, axis=axis
+        )
+        self.mc.communication.set_register(
+            self.POSITION_LOOP_KD_REGISTER, kd, servo=servo, axis=axis
+        )
+
+    def get_rated_current(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> float:
+        """Get rated current in the target servo and axis.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+            axis: servo axis. ``1`` by default.
+
+        Returns:
+            Rated current
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+
+        """
+        rated_current = self.mc.communication.get_register(
+            self.RATED_CURRENT_REGISTER, servo=servo, axis=axis
+        )
+        if not isinstance(rated_current, float):
+            raise TypeError(
+                f"Wrong {self.RATED_CURRENT_REGISTER} value for axis {axis}. "
+                f"Expected int, got {type(rated_current)}"
+            )
+        return rated_current
+
+    def set_rated_current(
+        self, rated_current: float, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
+    ) -> None:
+        """Set rated current in the target servo and axis.
+
+        Args:
+            rated_current: target rated current.
+            servo: servo alias to reference it. ``default`` by default.
+            axis: servo axis. ``1`` by default.
+
+        """
+        self.mc.communication.set_register(
+            self.RATED_CURRENT_REGISTER, rated_current, servo=servo, axis=axis
+        )
+
+    def get_max_current(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> float:
+        """Get max current in the target servo and axis.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+            axis: servo axis. ``1`` by default.
+
+        Returns:
+            Max current
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+
+        """
+        max_current = self.mc.communication.get_register(
+            self.MAX_CURRENT_REGISTER, servo=servo, axis=axis
+        )
+        if not isinstance(max_current, float):
+            raise TypeError(
+                f"Wrong {self.MAX_CURRENT_REGISTER} value for axis {axis}. "
+                f"Expected int, got {type(max_current)}"
+            )
+        return max_current

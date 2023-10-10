@@ -151,6 +151,13 @@ class COMMUNICATION_TYPE(IntEnum):
     Ethercat = 2
 
 
+class FeedbackPolarity(IntEnum):
+    """Feedback polarity enum"""
+
+    NORMAL = 0
+    REVERSED = 1
+
+
 enums = list(globals().keys())
 enums.remove("IntEnum")
 __all__ = enums
