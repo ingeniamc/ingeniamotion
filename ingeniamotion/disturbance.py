@@ -227,6 +227,8 @@ class Disturbance:
         self.__check_buffer_size_is_enough(registers_data)
         idx_list = list(range(len(registers_data)))
         dtype_list = [REG_DTYPE(x["dtype"]) for x in self.mapped_registers]
+        if self._version >= MonitoringVersion.MONITORING_V3:
+            drive.disturbance_remove_data()
         drive.disturbance_write_data(idx_list, dtype_list, registers_data)
 
     def map_registers_and_write_data(

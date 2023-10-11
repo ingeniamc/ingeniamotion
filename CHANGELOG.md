@@ -19,9 +19,12 @@
 
 ### Fixed
 - check_motor_disabled decorator does not work with positional arguments
-
-### Fixed
 - Adapt get_encoded_image_from_dictionary for COM-KIT
+
+## [0.6.3] - 2023-10-11
+### Fixed
+- Remove disturbance data before including new data.
+- Set positioning mode to NO LIMITS during the feedback test.
 
 ## [0.6.2] - 2023-09-06
 ### Changed
