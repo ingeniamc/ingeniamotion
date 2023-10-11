@@ -20,6 +20,9 @@
 ### Fixed
 - check_motor_disabled decorator does not work with positional arguments
 
+### Fixed
+- Adapt get_encoded_image_from_dictionary for COM-KIT
+
 ## [0.6.2] - 2023-09-06
 ### Changed
 - Remove EDS file path param from CANopen connection. It is no longer necessary.

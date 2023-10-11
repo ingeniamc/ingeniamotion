@@ -318,12 +318,13 @@ class Information(metaclass=MCMetaClass):
         return str(os.path.basename(drive.dictionary.path))
 
     # TODO: INGM-333 - Once ingenialink has the encoded image
-    def get_encoded_image_from_dictionary(self, alias: str) -> Optional[str]:
+    def get_encoded_image_from_dictionary(self, alias: str, axis: int = 0) -> Optional[str]:
         """Get the encoded product image from a drive dictionary.
         This function reads a dictionary of a drive, and it parses whether the dictionary file has a
         DriveImage tag and its content.
         Args:
             alias: Alias of the drive.
+            axis: Drive axis. Used when using  COM-KIT.
         Returns:
             The encoded image or NoneType object.
         """
@@ -337,9 +338,13 @@ class Information(metaclass=MCMetaClass):
             raise FileNotFoundError(f"There is not any xdf file in the path: {dictionary_path}")
         root = tree.getroot()
         try:
-            image_element = root.findall(f"./DriveImage")
-            if image_element[0].text is not None and image_element[0].text.strip():
-                return f"{image_element[0].text}"
+            images = root.findall("./DriveImage")
+            try:
+                image = images[axis]
+            except IndexError:
+                return None
+            if image.text is not None and image.text.strip():
+                return f"{image.text}"
             else:
                 # If the content in DriveImage tag is empty
                 return None
