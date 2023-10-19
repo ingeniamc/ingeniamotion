@@ -476,6 +476,67 @@ class Communication(metaclass=MCMetaClass):
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = net_key
 
+    def connect_servo_ethercat(
+        self,
+        interface_name: str,
+        slave_id: int,
+        dict_path: str,
+        alias: str = DEFAULT_SERVO,
+        servo_status_listener: bool = False,
+        net_status_listener: bool = False,
+    ) -> None:
+        """Connect to target servo by CANOpen.
+
+        Args:
+            interface_name : interface name. It should have format
+                ``\\Device\\NPF_[...]``.
+            slave_id: EtherCAT slave ID.
+            dict_path : servo dictionary path.
+            alias : servo alias to reference it. ``default`` by default.
+            servo_status_listener : Toggle the listener of the servo for
+                its status, errors, faults, etc.
+            net_status_listener : Toggle the listener of the network
+                status, connection and disconnection.
+
+        Raises:
+            FileNotFoundError: If the dict file doesn't exist.
+
+        """
+
+        if not path.isfile(dict_path):
+            raise FileNotFoundError(f"Dict file {dict_path} does not exist!")
+
+        self.mc.net[alias] = EthercatNetwork(interface_name)
+        net = self.mc.net[alias]
+        servo = net.connect_to_slave(
+            slave_id,
+            dict_path,
+            servo_status_listener=servo_status_listener,
+            net_status_listener=net_status_listener,
+        )
+
+        self.mc.servos[alias] = servo
+        self.mc.servo_net[alias] = alias
+
+    @staticmethod
+    def scan_servos_ethercat(
+        interface_name: str,
+    ) -> List[int]:
+        """Scan CANOpen device network to get all nodes.
+
+        Args:
+            interface_name : interface name. It should have format
+                ``\\Device\\NPF_[...]``.
+        Returns:
+            List of slaves available in the network.
+            TypeError: If some parameter has a wrong type.
+        """
+        net = EthercatNetwork(interface_name)
+        slaves = net.scan_slaves()
+        if not isinstance(slaves, List):
+            raise TypeError("Slaves are not saved in a List")
+        return slaves
+
     def scan_servos_canopen(
         self,
         can_device: CAN_DEVICE,
