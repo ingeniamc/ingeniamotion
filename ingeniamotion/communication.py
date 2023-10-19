@@ -333,7 +333,8 @@ class Communication(metaclass=MCMetaClass):
 
         Returns:
             Real name of selected interface.
-            It can be used for function :func:`connect_servo_eoe_service`.
+            It can be used for functions :func:`connect_servo_eoe_service` and
+            :func:`connect_servo_ethercat`.
 
         Raises:
             IndexError: If interface index is out of range.
@@ -485,7 +486,7 @@ class Communication(metaclass=MCMetaClass):
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
     ) -> None:
-        """Connect to target servo by CANOpen.
+        """Connect to an EtherCAT slave.
 
         Args:
             interface_name : interface name. It should have format
@@ -518,17 +519,85 @@ class Communication(metaclass=MCMetaClass):
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = alias
 
+    def connect_servo_ethercat_interface_index(
+        self,
+        if_index: int,
+        slave_id: int,
+        dict_path: str,
+        alias: str = DEFAULT_SERVO,
+        servo_status_listener: bool = False,
+        net_status_listener: bool = False,
+    ) -> None:
+        """Connect to an EtherCAT slave.
+
+        Args:
+            if_index : interface index in list given by function
+                :func:`get_interface_name_list`.
+            slave_id: EtherCAT slave ID.
+            dict_path : servo dictionary path.
+            alias : servo alias to reference it. ``default`` by default.
+            servo_status_listener : Toggle the listener of the servo for
+                its status, errors, faults, etc.
+            net_status_listener : Toggle the listener of the network
+                status, connection and disconnection.
+
+        Raises:
+            IndexError: If interface index is out of range.
+
+        """
+        self.connect_servo_ethercat(
+            self.get_ifname_by_index(if_index),
+            slave_id,
+            dict_path,
+            alias,
+            servo_status_listener,
+            net_status_listener,
+        )
+
+    def connect_servo_ethercat_interface_ip(
+        self,
+        interface_ip: str,
+        slave_id: int,
+        dict_path: str,
+        alias: str = DEFAULT_SERVO,
+        servo_status_listener: bool = False,
+        net_status_listener: bool = False,
+    ) -> None:
+        """Connect to an EtherCAT slave.
+
+        Args:
+            interface_ip : IP of the interface to be connected to.
+            slave_id: EtherCAT slave ID.
+            dict_path : servo dictionary path.
+            alias : servo alias to reference it. ``default`` by default.
+            servo_status_listener : Toggle the listener of the servo for
+                its status, errors, faults, etc.
+            net_status_listener : Toggle the listener of the network
+                status, connection and disconnection.
+
+        """
+        self.connect_servo_ethercat(
+            self.get_ifname_from_interface_ip(interface_ip),
+            slave_id,
+            dict_path,
+            alias,
+            servo_status_listener,
+            net_status_listener,
+        )
+
     @staticmethod
     def scan_servos_ethercat(
         interface_name: str,
     ) -> List[int]:
-        """Scan CANOpen device network to get all nodes.
+        """Scan a network adapter to get all connected EtherCAT slaves.
 
         Args:
             interface_name : interface name. It should have format
                 ``\\Device\\NPF_[...]``.
         Returns:
-            List of slaves available in the network.
+            List of EtherCAT slaves available in the network.
+
+        Raises:
             TypeError: If some parameter has a wrong type.
         """
         net = EthercatNetwork(interface_name)
@@ -536,6 +605,33 @@ class Communication(metaclass=MCMetaClass):
         if not isinstance(slaves, List):
             raise TypeError("Slaves are not saved in a List")
         return slaves
+
+    def scan_servos_ethercat_interface_ip(self, interface_ip: str) -> List[int]:
+        """Scan a network adapter to get all connected EtherCAT slaves.
+
+        Args:
+            interface_ip : IP of the interface to be connected to.
+
+        Returns:
+            List of EtherCAT slaves available in the network.
+
+        """
+        return self.scan_servos_ethercat(self.get_ifname_from_interface_ip(interface_ip))
+
+    def scan_servos_ethercat_interface_index(self, if_index: int) -> List[int]:
+        """Scan a network adapter to get all connected EtherCAT slaves.
+
+        Args:
+            if_index : interface index in list given by function
+                :func:`get_interface_name_list`.
+        Returns:
+            List of EtherCAT slaves available in the network.
+
+        Raises:
+            IndexError: If interface index is out of range.
+
+        """
+        return self.scan_servos_ethercat(self.get_ifname_by_index(if_index))
 
     def scan_servos_canopen(
         self,
