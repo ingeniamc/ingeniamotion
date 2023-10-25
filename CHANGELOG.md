@@ -20,6 +20,7 @@
 ### Fixed
 - check_motor_disabled decorator does not work with positional arguments
 - Adapt get_encoded_image_from_dictionary for COM-KIT
+- Feedback test output when symmetry and resolution errors occurred simultaneously.
 
 ## [0.6.3] - 2023-10-11
 ### Fixed
