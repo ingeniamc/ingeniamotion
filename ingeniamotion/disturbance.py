@@ -3,6 +3,7 @@ from numpy import ndarray
 from functools import wraps
 from typing import Callable, Dict, List, Union, TYPE_CHECKING, Optional
 from ingenialink.enums.register import REG_DTYPE
+from ingenialink.exceptions import ILValueError
 
 from ingeniamotion.enums import MonitoringVersion
 from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
@@ -229,7 +230,10 @@ class Disturbance:
         dtype_list = [REG_DTYPE(x["dtype"]) for x in self.mapped_registers]
         if self._version >= MonitoringVersion.MONITORING_V3:
             drive.disturbance_remove_data()
-        drive.disturbance_write_data(idx_list, dtype_list, registers_data)
+        try:
+            drive.disturbance_write_data(idx_list, dtype_list, registers_data)
+        except ILValueError as e:
+            raise IMDisturbanceError(e)
 
     def map_registers_and_write_data(
         self, registers: Union[TYPE_MAPPED_REGISTERS_ALL, List[TYPE_MAPPED_REGISTERS_ALL]]
