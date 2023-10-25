@@ -407,14 +407,17 @@ class Feedbacks(BaseTest):
     def generate_output(
         self, position_displacement: float, negative_displacement: float
     ) -> ResultType:
-        test_output = 0
-
-        test_output += self.check_symmetry(position_displacement, negative_displacement)
-        test_output += self.check_resolution(position_displacement)
-        test_output = self.ResultType.SUCCESS if test_output == 0 else test_output
+        if (
+            output := self.check_symmetry(position_displacement, negative_displacement)
+        ) != self.ResultType.SUCCESS.value:
+            return self.ResultType(output)
+        if (
+            output := self.check_resolution(position_displacement)
+        ) != self.ResultType.SUCCESS.value:
+            return self.ResultType(output)
         polarity = self.check_polarity(position_displacement)
         self.suggest_polarity(polarity)
-        return self.ResultType(test_output)
+        return self.ResultType.SUCCESS
 
     def get_result_msg(self, output: ResultType) -> str:
         if output == self.ResultType.SUCCESS:
