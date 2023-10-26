@@ -22,6 +22,9 @@
 - Adapt get_encoded_image_from_dictionary for COM-KIT
 - Feedback test output when symmetry and resolution errors occurred simultaneously.
 
+### Changed
+- Use ingenialink to get the drive's encoded image from the dictionary.
+
 ## [0.6.3] - 2023-10-11
 ### Fixed
 - Remove disturbance data before including new data.
