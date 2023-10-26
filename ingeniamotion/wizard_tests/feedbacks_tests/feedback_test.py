@@ -418,13 +418,7 @@ class Feedbacks(BaseTest):
         return self.ResultType.SUCCESS
 
     def get_result_msg(self, output: ResultType) -> str:
-        if output == self.ResultType.SUCCESS:
-            return self.result_description[output]
-        if output < 0:
-            text = [self.result_description[x] for x in self.result_description if -output & -x > 0]
-            return ".".join(text)
-        else:
-            raise NotImplementedError("This ResultType is not implemented")
+        return self.result_description[output]
 
     def get_result_severity(self, output: ResultType) -> SeverityLevel:
         if output < self.ResultType.SUCCESS:
