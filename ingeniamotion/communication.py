@@ -606,11 +606,8 @@ class Communication(metaclass=MCMetaClass):
 
         """
         network = self.mc._get_network(servo)
-        if isinstance(network, EthernetNetwork):
-            drive = self.mc._get_drive(servo)
-            network.subscribe_to_status(drive.target, callback)
-        else:
-            network.subscribe_to_status(callback)
+        drive = self.mc._get_drive(servo)
+        network.subscribe_to_status(drive.target, callback)
 
     def unsubscribe_net_status(
         self, callback: Callable[[str], None], servo: str = DEFAULT_SERVO
@@ -623,11 +620,8 @@ class Communication(metaclass=MCMetaClass):
 
         """
         network = self.mc._get_network(servo)
-        if isinstance(network, EthernetNetwork):
-            drive = self.mc._get_drive(servo)
-            network.unsubscribe_from_status(drive.target, callback)
-        else:
-            network.unsubscribe_from_status(callback)
+        drive = self.mc._get_drive(servo)
+        network.unsubscribe_from_status(drive.target, callback)
 
     def subscribe_servo_status(
         self, callback: Callable[[str], None], servo: str = DEFAULT_SERVO
