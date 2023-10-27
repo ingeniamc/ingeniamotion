@@ -407,23 +407,18 @@ class Feedbacks(BaseTest):
     def generate_output(
         self, position_displacement: float, negative_displacement: float
     ) -> ResultType:
-        test_output = 0
-
-        test_output += self.check_symmetry(position_displacement, negative_displacement)
-        test_output += self.check_resolution(position_displacement)
-        test_output = self.ResultType.SUCCESS if test_output == 0 else test_output
+        symmetry_check_result = self.check_symmetry(position_displacement, negative_displacement)
+        if symmetry_check_result != self.ResultType.SUCCESS.value:
+            return self.ResultType.SYMMETRY_ERROR
+        resolution_check_result = self.check_resolution(position_displacement)
+        if resolution_check_result != self.ResultType.SUCCESS.value:
+            return self.ResultType.RESOLUTION_ERROR
         polarity = self.check_polarity(position_displacement)
         self.suggest_polarity(polarity)
-        return self.ResultType(test_output)
+        return self.ResultType.SUCCESS
 
     def get_result_msg(self, output: ResultType) -> str:
-        if output == self.ResultType.SUCCESS:
-            return self.result_description[output]
-        if output < 0:
-            text = [self.result_description[x] for x in self.result_description if -output & -x > 0]
-            return ".".join(text)
-        else:
-            raise NotImplementedError("This ResultType is not implemented")
+        return self.result_description[output]
 
     def get_result_severity(self, output: ResultType) -> SeverityLevel:
         if output < self.ResultType.SUCCESS:
