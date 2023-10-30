@@ -25,6 +25,7 @@
 
 ### Changed
 - Use ingenialink to get the drive's encoded image from the dictionary.
+- Update subscribe and unsubscribe to network status functions.
 
 ## [0.6.3] - 2023-10-11
 ### Fixed
