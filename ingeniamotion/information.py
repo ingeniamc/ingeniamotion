@@ -5,6 +5,7 @@ import xml.etree.ElementTree as ET
 from ingenialink.eoe.network import EoENetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.canopen.network import CanopenNetwork
+from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.register import Register, REG_ACCESS, REG_DTYPE
 import ingenialogger
 
@@ -254,7 +255,7 @@ class Information(metaclass=MCMetaClass):
             communication_type = COMMUNICATION_TYPE.Canopen
         elif isinstance(drive_network, EthernetNetwork):
             communication_type = COMMUNICATION_TYPE.Ethernet
-        elif isinstance(drive_network, EoENetwork):
+        elif isinstance(drive_network, (EoENetwork, EthercatNetwork)):
             communication_type = COMMUNICATION_TYPE.Ethercat
         return communication_type
 
