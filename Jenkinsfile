@@ -175,13 +175,13 @@ pipeline {
                         '''
                     }
                 }
-                stage('Update drives FW') {
+                /*stage('Update drives FW') {
                     steps {
                         bat '''
                             venv\\Scripts\\python.exe tests\\load_FWs.py canopen
                         '''
                     }
-                }
+                }*/
                 stage('Run CANopen smoke tests') {
                     when {
                         allOf{
