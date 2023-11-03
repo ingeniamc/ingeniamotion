@@ -8,9 +8,8 @@ def CAN_NODE_LOCK = "test_execution_lock_can"
 pipeline {
     agent none
     parameters {
-        booleanParam(name: 'Run all tests', defaultValue: false, description: 'Run all tests.')
         choice(
-            choices: ['All', 'Smoke'], 
+            choices: ['Smoke', 'All'], 
             name: 'TESTS'
         )
     }
