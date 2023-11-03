@@ -8,7 +8,12 @@ def CAN_NODE_LOCK = "test_execution_lock_can"
 pipeline {
     agent none
     parameters {
-        booleanParam(name: 'Run all tests', defaultValue: false, description: 'Run all tests.')
+        booleanParam(name: 'Run all tests', defaultValue: false, description: 'Run all tests.'),
+        choice(
+            choices: ['All', 'Smoke'], 
+            name: 'TESTS',
+            defaultValue: 'Smoke'
+        )
     }
     stages {
         stage('Build wheels and documentation') {
@@ -127,9 +132,6 @@ pipeline {
                     }
                 }
                 stage('Update drives FW') {
-                    when {
-                        expression { false }
-                    }
                     steps {
                         bat '''
                             venv\\Scripts\\python.exe tests\\load_FWs.py soem
@@ -175,16 +177,19 @@ pipeline {
                         '''
                     }
                 }
-                stage('Update drives FW') {
+                /*stage('Update drives FW') {
                     steps {
                         bat '''
                             venv\\Scripts\\python.exe tests\\load_FWs.py canopen
                         '''
                     }
-                }
-                stage('Run CANopen tests') {
+                }*/
+                stage('Run CANopen smoke tests') {
                     steps {
                         //unstash 'test_reports' Uncomment once EtherCAT tests are operational.
+                        when {
+                            expression {params.TESTS == 'Smoke'}
+                        }
                         bat '''
                             venv\\Scripts\\python.exe -m pytest tests -m smoke --durations=0 --durations-min=1.0 --protocol canopen --slave 0 --junitxml=pytest_reports/pytest_canopen_0_report.xml
                             venv\\Scripts\\python.exe -m pytest tests -m smoke --durations=0 --durations-min=1.0 --protocol canopen --slave 1 --junitxml=pytest_reports/pytest_canopen_1_report.xml
@@ -193,6 +198,24 @@ pipeline {
                         '''
                     }
                 }
+                /*stage('Run CANopen all tests') {
+                    steps {
+                        //unstash 'test_reports' Uncomment once EtherCAT tests are operational.
+                        when {
+                            anyOf{
+                                branch 'master';
+                                branch 'develop';
+                                expression {params.TESTS == 'All'}
+                            }
+                        }
+                        bat '''
+                            venv\\Scripts\\python.exe -m pytest tests -m smoke --durations=0 --durations-min=1.0 --protocol canopen --slave 0 --junitxml=pytest_reports/pytest_canopen_0_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests -m smoke --durations=0 --durations-min=1.0 --protocol canopen --slave 1 --junitxml=pytest_reports/pytest_canopen_1_report.xml
+                            move .coverage .coverage_canopen
+                            exit /b 0
+                        '''
+                    }
+                }*/
                 stage('Run Ethernet tests') {
                     steps {
                         bat '''
