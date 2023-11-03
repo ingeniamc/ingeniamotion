@@ -582,7 +582,6 @@ def test_set_position_pid(motion_controller_teardown):
 
 
 @pytest.mark.develop
-@pytest.mark.smoke
 def test_get_set_rated_current(motion_controller):
     mc, alias = motion_controller
     initial_rated_current = mc.communication.get_register(RATED_CURRENT_REGISTER, servo=alias)
@@ -597,7 +596,6 @@ def test_get_set_rated_current(motion_controller):
 
 
 @pytest.mark.develop
-@pytest.mark.smoke
 def test_get_max_current(motion_controller):
     mc, alias = motion_controller
     real_max_current = mc.communication.get_register(MAX_CURRENT_REGISTER, servo=alias)

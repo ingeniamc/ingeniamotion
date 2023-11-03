@@ -61,7 +61,6 @@ def test_set_homing_timeout(motion_controller, homing_timeout):
     assert test_homing_timeout == homing_timeout
 
 
-@pytest.mark.smoke
 @pytest.mark.parametrize("homing_offset", [0, 1000])
 @pytest.mark.usefixtures("initial_position")
 def test_homing_on_current_position(motion_controller, homing_offset):
@@ -74,7 +73,6 @@ def test_homing_on_current_position(motion_controller, homing_offset):
     ) == mc.motion.get_actual_position(servo=alias)
 
 
-@pytest.mark.smoke
 @pytest.mark.usefixtures("initial_position")
 @pytest.mark.parametrize("direction", [1, 0])
 def test_homing_on_switch_limit(motion_controller, direction):
@@ -212,7 +210,6 @@ def test_homing_on_index_pulse(motion_controller, feedback_list, direction):
         )
 
 
-@pytest.mark.smoke
 @pytest.mark.usefixtures("initial_position")
 @pytest.mark.parametrize("direction", [1, 0])
 def test_homing_on_switch_limit_and_index_pulse(motion_controller, direction):

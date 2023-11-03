@@ -6,7 +6,7 @@ from ingenialink.exceptions import ILError
 
 from ingeniamotion import MotionController
 from ingeniamotion.exceptions import IMRegisterNotExist, IMRegisterWrongAccess
-from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE, REG_DTYPE
+from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE
 
 
 @pytest.mark.smoke
