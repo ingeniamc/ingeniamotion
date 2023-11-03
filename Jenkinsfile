@@ -175,18 +175,18 @@ pipeline {
                         '''
                     }
                 }
-                /*stage('Update drives FW') {
+                stage('Update drives FW') {
                     steps {
                         bat '''
                             venv\\Scripts\\python.exe tests\\load_FWs.py canopen
                         '''
                     }
-                }*/
+                }
                 stage('Run CANopen smoke tests') {
                     when {
                         allOf{
                             not{ branch 'master' };
-                            not{ branch 'INGM-337-Run-only-smoke-test-in-PR-jobs' };
+                            not{ branch 'develop' };
                             expression { params.TESTS == 'Smoke' }
                         }
                     }
@@ -222,7 +222,7 @@ pipeline {
                     when {
                         allOf{
                             not{ branch 'master' };
-                            not{ branch 'INGM-337-Run-only-smoke-test-in-PR-jobs' };
+                            not{ branch 'develop' };
                             expression { params.TESTS == 'Smoke' }
                         }
                     }
