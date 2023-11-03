@@ -124,7 +124,7 @@ def test_commutation(motion_controller):
     assert results["result_severity"] == SeverityLevel.SUCCESS
 
 
-pytest.mark.smoke
+@pytest.mark.smoke
 def test_commutation_error(motion_controller, force_fault):
     mc, alias = motion_controller
     with pytest.raises(force_fault):
@@ -137,7 +137,7 @@ def test_phasing_check(motion_controller):
     assert results["result_severity"] == SeverityLevel.SUCCESS
 
 
-pytest.mark.smoke
+@pytest.mark.smoke
 def test_phasing_check_error(motion_controller, force_fault):
     mc, alias = motion_controller
     with pytest.raises(force_fault):
