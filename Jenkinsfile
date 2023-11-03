@@ -222,7 +222,7 @@ pipeline {
                     when {
                         allOf{
                             not{ branch 'master' };
-                            not{ branch 'develop' };
+                            not{ branch 'INGM-337-Run-only-smoke-test-in-PR-jobs' };
                             expression { params.TESTS == 'Smoke' }
                         }
                     }
@@ -239,7 +239,7 @@ pipeline {
                     when {
                         anyOf{
                             branch 'master';
-                            branch 'develop';
+                            branch 'INGM-337-Run-only-smoke-test-in-PR-jobs';
                             expression { params.TESTS == 'All' }
                         }
                     }
