@@ -184,11 +184,11 @@ pipeline {
                     }
                 }*/
                 stage('Run CANopen smoke tests') {
+                    when {
+                        expression { params.TESTS == 'Smoke' }
+                    }
                     steps {
                         //unstash 'test_reports' Uncomment once EtherCAT tests are operational.
-                        when {
-                            expression {params.TESTS == 'Smoke'}
-                        }
                         bat '''
                             venv\\Scripts\\python.exe -m pytest tests -m smoke --durations=0 --durations-min=1.0 --protocol canopen --slave 0 --junitxml=pytest_reports/pytest_canopen_0_report.xml
                             venv\\Scripts\\python.exe -m pytest tests -m smoke --durations=0 --durations-min=1.0 --protocol canopen --slave 1 --junitxml=pytest_reports/pytest_canopen_1_report.xml
