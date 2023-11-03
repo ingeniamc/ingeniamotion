@@ -197,29 +197,49 @@ pipeline {
                         '''
                     }
                 }
-                /*stage('Run CANopen all tests') {
+                stage('Run CANopen all tests') {
+                    when {
+                        anyOf{
+                            branch 'master';
+                            branch 'develop';
+                            expression { params.TESTS == 'All' }
+                        }
+                    }
                     steps {
                         //unstash 'test_reports' Uncomment once EtherCAT tests are operational.
-                        when {
-                            anyOf{
-                                branch 'master';
-                                branch 'develop';
-                                expression {params.TESTS == 'All'}
-                            }
-                        }
                         bat '''
-                            venv\\Scripts\\python.exe -m pytest tests -m smoke --durations=0 --durations-min=1.0 --protocol canopen --slave 0 --junitxml=pytest_reports/pytest_canopen_0_report.xml
-                            venv\\Scripts\\python.exe -m pytest tests -m smoke --durations=0 --durations-min=1.0 --protocol canopen --slave 1 --junitxml=pytest_reports/pytest_canopen_1_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests --durations=0 --durations-min=1.0 --protocol canopen --slave 0 --junitxml=pytest_reports/pytest_canopen_0_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests --durations=0 --durations-min=1.0 --protocol canopen --slave 1 --junitxml=pytest_reports/pytest_canopen_1_report.xml
                             move .coverage .coverage_canopen
                             exit /b 0
                         '''
                     }
-                }*/
-                stage('Run Ethernet tests') {
+                }
+                stage('Run Ethernet smoke tests') {
+                    when {
+                        expression { params.TESTS == 'Smoke' }
+                    }
                     steps {
                         bat '''
                             venv\\Scripts\\python.exe -m pytest tests -m smoke --durations=0 --durations-min=1.0 --protocol eoe --slave 0 --junitxml=pytest_reports/pytest_ethernet_0_report.xml
                             venv\\Scripts\\python.exe -m pytest tests -m smoke --durations=0 --durations-min=1.0 --protocol eoe --slave 1 --junitxml=pytest_reports/pytest_ethernet_1_report.xml
+                            move .coverage .coverage_ethernet
+                            exit /b 0
+                        '''
+                    }
+                }
+                stage('Run Ethernet all tests') {
+                    when {
+                        anyOf{
+                            branch 'master';
+                            branch 'develop';
+                            expression { params.TESTS == 'All' }
+                        }
+                    }
+                    steps {
+                        bat '''
+                            venv\\Scripts\\python.exe -m pytest tests --durations=0 --durations-min=1.0 --protocol eoe --slave 0 --junitxml=pytest_reports/pytest_ethernet_0_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests --durations=0 --durations-min=1.0 --protocol eoe --slave 1 --junitxml=pytest_reports/pytest_ethernet_1_report.xml
                             move .coverage .coverage_ethernet
                             exit /b 0
                         '''
