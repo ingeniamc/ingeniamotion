@@ -11,8 +11,7 @@ pipeline {
         booleanParam(name: 'Run all tests', defaultValue: false, description: 'Run all tests.')
         choice(
             choices: ['All', 'Smoke'], 
-            name: 'TESTS',
-            defaultValue: 'Smoke'
+            name: 'TESTS'
         )
     }
     stages {
