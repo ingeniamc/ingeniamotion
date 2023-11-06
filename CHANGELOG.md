@@ -17,6 +17,8 @@
 - Feedbacks functions to set/get feedback polarity
 - Add in configuration set_velocity_pid, set_position_pid and get_rated_current
 - Add functions to connect to and scan EtherCAT devices using CoE (SDOs).
+- Running Smoke and All tests stages for the Jenkins pipeline.
+- Option to choose running only smoke and no connection tests, or all tests.
 
 ### Fixed
 - check_motor_disabled decorator does not work with positional arguments
@@ -26,6 +28,7 @@
 ### Changed
 - Use ingenialink to get the drive's encoded image from the dictionary.
 - Update subscribe and unsubscribe to network status functions.
+- Smoke tests are defined as tests that need a setup but takes 1 second (approx.) as maximum.
 
 ## [0.6.3] - 2023-10-11
 ### Fixed
