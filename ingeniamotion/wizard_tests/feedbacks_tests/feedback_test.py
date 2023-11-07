@@ -79,9 +79,6 @@ class Feedbacks(BaseTest):
         "COMMU_ANGLE_REF_SENSOR",
         "CL_VEL_FBK_FILTER1_TYPE",
         "CL_VEL_FBK_FILTER1_FREQ",
-        POSITIONING_OPTION_CODE_REGISTER,
-        MAX_POSITION_RANGE_LIMIT_REGISTER,
-        MIN_POSITION_RANGE_LIMIT_REGISTER,
     ]
 
     FEEDBACK_POLARITY_REGISTER: str
@@ -100,8 +97,25 @@ class Feedbacks(BaseTest):
         self.pos_vel_same_feedback = False
         self.resolution_multiplier = 1.0
         self.test_frequency = self.TEST_FREQUENCY
+        self.add_registers_to_backup()
         self.backup_registers_names = self.BACKUP_REGISTERS
         self.suggested_registers = {}
+
+    def add_registers_to_backup(self) -> None:
+        """Add registers to the backup list.
+
+        There are registers that if exists they can make issues for a feedback testing, but if they
+        don't exist, they won't make any problem. This function add these type of registers in the
+        backup list.
+        """
+        registers_to_add = [
+            self.POSITIONING_OPTION_CODE_REGISTER,
+            self.MAX_POSITION_RANGE_LIMIT_REGISTER,
+            self.MIN_POSITION_RANGE_LIMIT_REGISTER,
+        ]
+        for register in registers_to_add:
+            if self.mc.info.register_exists(register, self.axis, self.servo):
+                self.BACKUP_REGISTERS.append(register)
 
     @BaseTest.stoppable
     def check_feedback_tolerance(
@@ -217,15 +231,24 @@ class Feedbacks(BaseTest):
             self.COMMUTATION_MODULATION_REGISTER, 0, servo=self.servo, axis=self.axis
         )
         # Set positioning mode to NO LIMITS
-        self.mc.communication.set_register(
-            self.POSITIONING_OPTION_CODE_REGISTER, 0, servo=self.servo, axis=self.axis
-        )
-        self.mc.communication.set_register(
-            self.MIN_POSITION_RANGE_LIMIT_REGISTER, 0, servo=self.servo, axis=self.axis
-        )
-        self.mc.communication.set_register(
-            self.MAX_POSITION_RANGE_LIMIT_REGISTER, 0, servo=self.servo, axis=self.axis
-        )
+        if self.mc.info.register_exists(
+            self.POSITIONING_OPTION_CODE_REGISTER, servo=self.servo, axis=self.axis
+        ):
+            self.mc.communication.set_register(
+                self.POSITIONING_OPTION_CODE_REGISTER, 0, servo=self.servo, axis=self.axis
+            )
+        if self.mc.info.register_exists(
+            self.MIN_POSITION_RANGE_LIMIT_REGISTER, servo=self.servo, axis=self.axis
+        ):
+            self.mc.communication.set_register(
+                self.MIN_POSITION_RANGE_LIMIT_REGISTER, 0, servo=self.servo, axis=self.axis
+            )
+        if self.mc.info.register_exists(
+            self.MAX_POSITION_RANGE_LIMIT_REGISTER, servo=self.servo, axis=self.axis
+        ):
+            self.mc.communication.set_register(
+                self.MAX_POSITION_RANGE_LIMIT_REGISTER, 0, servo=self.servo, axis=self.axis
+            )
         # Default resolution multiplier
         # Change multiplier using gear ratio if feedback to check is configured
         # as position sensor (out of gear)
