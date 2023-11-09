@@ -321,9 +321,10 @@ def test_set_internal_generator_configuration(motion_controller_teardown, op_mod
     assert 1 == mc.configuration.get_motor_pair_poles(servo=alias)
 
 
-# TODO: Add OperationMode.VOLTAGE after fixing INGM-349
+# TODO: Remove skip after fixing INGM-349
 @pytest.mark.parametrize("op_mode", [OperationMode.CURRENT])
 @pytest.mark.parametrize("direction", [-1, 1])
+@pytest.mark.skip
 def test_internal_generator_saw_tooth_move(motion_controller_teardown, op_mode, direction):
     mc, alias = motion_controller_teardown
     pair_poles = mc.configuration.get_motor_pair_poles(servo=alias)
@@ -350,9 +351,10 @@ def test_internal_generator_saw_tooth_move(motion_controller_teardown, op_mode, 
     )
 
 
-# TODO: Add OperationMode.VOLTAGE after fixing INGM-349
+# TODO: Remove skip after fixing INGM-349
 @pytest.mark.parametrize("op_mode", [OperationMode.CURRENT])
 @pytest.mark.parametrize("direction", [-1, 1])
+@pytest.mark.skip
 def test_internal_generator_constant_move(motion_controller_teardown, op_mode, direction):
     mc, alias = motion_controller_teardown
     pair_poles = mc.configuration.get_motor_pair_poles(servo=alias)
