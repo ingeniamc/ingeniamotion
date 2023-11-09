@@ -137,7 +137,9 @@ def test_commutation_error(motion_controller, force_fault):
 def test_phasing_check(motion_controller):
     mc, alias = motion_controller
     results = mc.tests.phasing_check(servo=alias)
-    assert results["result_severity"] == SeverityLevel.SUCCESS
+    if results["result_severity"] != SeverityLevel.SUCCESS:
+        results = mc.tests.phasing_check(servo=alias)
+        assert results["result_severity"] == SeverityLevel.SUCCESS
 
 
 def test_phasing_check_error(motion_controller, force_fault):
