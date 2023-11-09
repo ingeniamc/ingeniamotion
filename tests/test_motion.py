@@ -322,7 +322,7 @@ def test_set_internal_generator_configuration(motion_controller_teardown, op_mod
 
 
 # TODO: Remove skip after fixing INGM-349
-@pytest.mark.parametrize("op_mode", [OperationMode.CURRENT])
+@pytest.mark.parametrize("op_mode", [OperationMode.VOLTAGE, OperationMode.CURRENT])
 @pytest.mark.parametrize("direction", [-1, 1])
 @pytest.mark.skip
 def test_internal_generator_saw_tooth_move(motion_controller_teardown, op_mode, direction):
@@ -352,7 +352,7 @@ def test_internal_generator_saw_tooth_move(motion_controller_teardown, op_mode, 
 
 
 # TODO: Remove skip after fixing INGM-349
-@pytest.mark.parametrize("op_mode", [OperationMode.CURRENT])
+@pytest.mark.parametrize("op_mode", [OperationMode.VOLTAGE, OperationMode.CURRENT])
 @pytest.mark.parametrize("direction", [-1, 1])
 @pytest.mark.skip
 def test_internal_generator_constant_move(motion_controller_teardown, op_mode, direction):
