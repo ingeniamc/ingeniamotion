@@ -1,15 +1,16 @@
-from enum import IntEnum
-import time
 import math
+import time
+from enum import IntEnum
 from typing import TYPE_CHECKING, Optional
 
 import ingenialogger
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
+
+from ingeniamotion.enums import OperationMode, SensorType, SeverityLevel
+from ingeniamotion.exceptions import IMRegisterNotExist
 from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
-from ingeniamotion.exceptions import IMRegisterNotExist, IMException
-from ingeniamotion.enums import OperationMode, SeverityLevel, SensorType
 
 
 class Feedbacks(BaseTest):
@@ -73,12 +74,18 @@ class Feedbacks(BaseTest):
         "ERROR_VEL_OUT_LIMITS_OPTION",
         "ERROR_POS_OUT_LIMITS_OPTION",
         "ERROR_POS_FOLLOWING_OPTION",
-        "COMMU_ANGLE_INTEGRITY1_OPTION",
-        "COMMU_ANGLE_INTEGRITY2_OPTION",
         "CL_VEL_FBK_SENSOR",
         "COMMU_ANGLE_REF_SENSOR",
         "CL_VEL_FBK_FILTER1_TYPE",
         "CL_VEL_FBK_FILTER1_FREQ",
+    ]
+
+    OPTIONAL_BACKUP_REGISTERS = [
+        "COMMU_ANGLE_INTEGRITY1_OPTION",
+        "COMMU_ANGLE_INTEGRITY2_OPTION",
+        POSITIONING_OPTION_CODE_REGISTER,
+        MAX_POSITION_RANGE_LIMIT_REGISTER,
+        MIN_POSITION_RANGE_LIMIT_REGISTER,
     ]
 
     FEEDBACK_POLARITY_REGISTER: str
@@ -97,25 +104,9 @@ class Feedbacks(BaseTest):
         self.pos_vel_same_feedback = False
         self.resolution_multiplier = 1.0
         self.test_frequency = self.TEST_FREQUENCY
-        self.add_registers_to_backup()
-        self.backup_registers_names = self.BACKUP_REGISTERS
+        self.backup_registers_names = self.BACKUP_REGISTERS.copy()
+        self.optional_backup_registers_names = self.OPTIONAL_BACKUP_REGISTERS.copy()
         self.suggested_registers = {}
-
-    def add_registers_to_backup(self) -> None:
-        """Add registers to the backup list.
-
-        There are registers that if exists they can make issues for a feedback testing, but if they
-        don't exist, they won't make any problem. This function add these type of registers in the
-        backup list.
-        """
-        registers_to_add = [
-            self.POSITIONING_OPTION_CODE_REGISTER,
-            self.MAX_POSITION_RANGE_LIMIT_REGISTER,
-            self.MIN_POSITION_RANGE_LIMIT_REGISTER,
-        ]
-        for register in registers_to_add:
-            if self.mc.info.register_exists(register, self.axis, self.servo):
-                self.BACKUP_REGISTERS.append(register)
 
     @BaseTest.stoppable
     def check_feedback_tolerance(
