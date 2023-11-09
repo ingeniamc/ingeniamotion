@@ -17,11 +17,14 @@
 - Feedbacks functions to set/get feedback polarity
 - Add in configuration set_velocity_pid, set_position_pid and get_rated_current
 - Add functions to connect to and scan EtherCAT devices using CoE (SDOs).
+- Optional registers for Wizard tests.
+- All registers are initialized for no_connection unit tests.
 
 ### Fixed
 - check_motor_disabled decorator does not work with positional arguments
 - Adapt get_encoded_image_from_dictionary for COM-KIT
 - Feedback test output when symmetry and resolution errors occurred simultaneously.
+- No error because of positioning registers are missing in the dictionary.
 
 ### Changed
 - Use ingenialink to get the drive's encoded image from the dictionary.
