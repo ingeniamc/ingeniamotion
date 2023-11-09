@@ -270,11 +270,11 @@ class Feedbacks(BaseTest):
             self.mc.communication.set_register(
                 self.MAX_POSITION_RANGE_LIMIT_REGISTER, 0, servo=self.servo, axis=self.axis
             )
-    
+
     def __set_resolution_multiplier(self) -> None:
         """Set the resolution multiplier.
-        
-        Change multiplier using gear ratio if feedback to check is configured as position sensor 
+
+        Change multiplier using gear ratio if feedback to check is configured as position sensor
         (out of gear).
         """
         position_feedback_value = self.mc.configuration.get_position_feedback(
@@ -292,7 +292,7 @@ class Feedbacks(BaseTest):
             if not isinstance(resolution_multiplier, float):
                 raise TypeError("Resolution multiplier has to be a float")
             self.resolution_multiplier = resolution_multiplier
-    
+
     def teardown(self) -> None:
         self.logger.info("Disabling motor")
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
