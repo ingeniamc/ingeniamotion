@@ -17,8 +17,6 @@
 - Feedbacks functions to set/get feedback polarity
 - Add in configuration set_velocity_pid, set_position_pid and get_rated_current
 - Add functions to connect to and scan EtherCAT devices using CoE (SDOs).
-- Running Smoke and All tests stages for the Jenkins pipeline.
-- Option to choose running only smoke and no connection tests, or all tests.
 
 ### Fixed
 - check_motor_disabled decorator does not work with positional arguments
