@@ -219,6 +219,7 @@ def dummy_callback(status, _, axis):
     pass
 
 
+@pytest.mark.smoke
 def test_subscribe_servo_status(mocker, motion_controller):
     mc, alias = motion_controller
     axis = 1

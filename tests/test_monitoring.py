@@ -101,7 +101,6 @@ def test_raise_forced_trigger_fail(motion_controller, monitoring, disable_monito
         monitoring.raise_forced_trigger()
 
 
-@pytest.mark.smoke
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
 @pytest.mark.parametrize(
@@ -353,6 +352,7 @@ def run_read_monitoring_data_and_stop(monitoring, timeout):
     return test_thread.join()
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
 def test_stop_reading_data(motion_controller, monitoring, disable_monitoring_disturbance):

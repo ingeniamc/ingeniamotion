@@ -105,6 +105,7 @@ def test_save_configuration_and_load_configuration_nvm_none(motion_controller):
     mc.communication.set_register(POSITION_SET_POINT_REGISTER, old_value, servo=alias)
 
 
+@pytest.mark.smoke
 def test_set_profiler_exception(motion_controller):
     mc, alias = motion_controller
 
@@ -326,6 +327,7 @@ def test_set_generator_mode(motion_controller):
     assert pytest.approx(input_value) == output_value
 
 
+@pytest.mark.smoke
 def test_set_motor_pair_poles(motion_controller_teardown):
     input_value = 0
     mc, alias = motion_controller_teardown
@@ -460,6 +462,7 @@ def test_store_configuration(motion_controller):
     mc.configuration.store_configuration(servo=alias)
 
 
+@pytest.mark.smoke
 def test_restore_configuration(motion_controller):
     mc, alias = motion_controller
     mc.configuration.restore_configuration(servo=alias)
