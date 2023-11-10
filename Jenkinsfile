@@ -136,7 +136,31 @@ pipeline {
                         '''
                     }
                 }
-                stage('Run EtherCAT tests') {
+                stage('Run EtherCAT all tests') {
+                    when {
+                        anyOf{
+                            branch 'master';
+                            branch 'develop';
+                            expression { params.TESTS == 'All' }
+                        }
+                    }
+                    steps {
+                        bat '''
+                            venv\\Scripts\\python.exe -m pytest tests --protocol soem --slave 0 --junitxml=pytest_reports/pytest_ethercat_0_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests --protocol soem --slave 1 --junitxml=pytest_reports/pytest_ethercat_1_report.xml
+                            move .coverage .coverage_ethercat
+                            exit /b 0
+                        '''
+                    }
+                }
+                stage('Run EtherCAT smoke tests') {
+                    when {
+                        allOf{
+                            not{ branch 'master' };
+                            not{ branch 'develop' };
+                            expression { params.TESTS == 'Smoke' }
+                        }
+                    }
                     steps {
                         bat '''
                             venv\\Scripts\\python.exe -m pytest tests -m smoke --protocol soem --slave 0 --junitxml=pytest_reports/pytest_ethercat_0_report.xml
