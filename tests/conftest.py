@@ -214,3 +214,13 @@ def mean_actual_velocity_position(mc, servo, velocity=False, n_samples=200, samp
         samples[sample_idx] = value
         time.sleep(sampling_period)
     return np.mean(samples)
+
+
+@pytest.fixture(scope="module", autouse=True)
+def load_configuration_after_each_module(pytestconfig, motion_controller, read_config):
+    yield motion_controller
+    protocol = pytestconfig.getoption("--protocol")
+    if protocol != "no_connection":
+        mc, alias = motion_controller
+        mc.motion.motor_disable(servo=alias)
+        mc.configuration.load_configuration(read_config["config_file"], servo=alias)

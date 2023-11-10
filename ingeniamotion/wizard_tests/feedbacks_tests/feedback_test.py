@@ -4,11 +4,12 @@ import math
 from typing import TYPE_CHECKING, Optional
 
 import ingenialogger
+from ingenialink.exceptions import ILTimeoutError, ILStateError
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
 from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
-from ingeniamotion.exceptions import IMRegisterNotExist, IMException
+from ingeniamotion.exceptions import IMRegisterNotExist
 from ingeniamotion.enums import OperationMode, SeverityLevel, SensorType
 
 
@@ -392,7 +393,10 @@ class Feedbacks(BaseTest):
         check_pos_vel_output = self.check_pos_vel_ratio()
         if check_pos_vel_output is not None:
             return check_pos_vel_output
-        self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
+        try:
+            self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
+        except (ILTimeoutError, ILStateError) as e:
+            raise TestError(f"An error occurred enabling motor. Reason: {e}")
         position_1 = self.first_movement_and_set_current()
         self.logger.info("Actual position: %.0f", position_1, axis=self.axis)
         position_2 = self.internal_generator_move(self.Polarity.NORMAL)
