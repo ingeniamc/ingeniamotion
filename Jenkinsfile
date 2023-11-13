@@ -188,10 +188,10 @@ pipeline {
                     }
                 }
                 stage('Run Ethernet tests') {
+                    // Add tests of slave 1 after fixing CAP-924
                     steps {
                         bat '''
                             venv\\Scripts\\python.exe -m pytest tests --protocol eoe --slave 0 --junitxml=pytest_reports/pytest_ethernet_0_report.xml
-                            venv\\Scripts\\python.exe -m pytest tests --protocol eoe --slave 1 --junitxml=pytest_reports/pytest_ethernet_1_report.xml
                             move .coverage .coverage_ethernet
                             exit /b 0
                         '''

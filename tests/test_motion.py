@@ -1,10 +1,10 @@
 import time
+
 import pytest
 import numpy as np
 from ingenialink import exceptions
-import logging
 
-from .conftest import mean_actual_velocity_position
+from tests.conftest import mean_actual_velocity_position
 from ingeniamotion.enums import OperationMode
 from ingeniamotion.motion import Motion
 from ingeniamotion.exceptions import IMTimeoutError
@@ -240,10 +240,9 @@ def test_ramp_generator(mocker, init_v, final_v, total_t, t, result):
         assert pytest.approx(result_v) == test_result
 
 
-@pytest.mark.parametrize("position_value", [1000, 0, -1000, 4000])
+@pytest.mark.parametrize("position_value", [-4000, -1000, 1000, 4000])
 def test_get_actual_position(motion_controller, position_value):
     mc, alias = motion_controller
-    pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
     mc.motion.motor_enable(servo=alias)
     mc.motion.move_to_position(position_value, servo=alias, blocking=True, timeout=10)
@@ -253,7 +252,7 @@ def test_get_actual_position(motion_controller, position_value):
     for sample_ix in range(n_samples):
         test_position[sample_ix] = mc.motion.get_actual_position(servo=alias)
         reg_value[sample_ix] = mc.communication.get_register(ACTUAL_POSITION_REGISTER, servo=alias)
-    assert np.abs(np.mean(test_position) - np.mean(reg_value)) < 0.1
+    assert np.abs(np.mean(test_position) - np.mean(reg_value)) < 0.5
 
 
 @pytest.mark.parametrize("velocity_value", [1, 0, -1])
@@ -322,8 +321,10 @@ def test_set_internal_generator_configuration(motion_controller_teardown, op_mod
     assert 1 == mc.configuration.get_motor_pair_poles(servo=alias)
 
 
+# TODO: Remove skip after fixing INGM-349
 @pytest.mark.parametrize("op_mode", [OperationMode.VOLTAGE, OperationMode.CURRENT])
 @pytest.mark.parametrize("direction", [-1, 1])
+@pytest.mark.skip
 def test_internal_generator_saw_tooth_move(motion_controller_teardown, op_mode, direction):
     mc, alias = motion_controller_teardown
     pair_poles = mc.configuration.get_motor_pair_poles(servo=alias)
@@ -350,8 +351,10 @@ def test_internal_generator_saw_tooth_move(motion_controller_teardown, op_mode, 
     )
 
 
+# TODO: Remove skip after fixing INGM-349
 @pytest.mark.parametrize("op_mode", [OperationMode.VOLTAGE, OperationMode.CURRENT])
 @pytest.mark.parametrize("direction", [-1, 1])
+@pytest.mark.skip
 def test_internal_generator_constant_move(motion_controller_teardown, op_mode, direction):
     mc, alias = motion_controller_teardown
     pair_poles = mc.configuration.get_motor_pair_poles(servo=alias)

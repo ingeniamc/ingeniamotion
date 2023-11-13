@@ -216,9 +216,9 @@ def test_get_power_stage_frequency_enum(motion_controller):
 
 @pytest.mark.smoke
 @pytest.mark.parametrize("input_value", [0, 1, 2, 3])
-def test_set_power_stage_frequency(motion_controller, input_value):
+def test_set_power_stage_frequency(motion_controller_teardown, input_value):
     input_value = 0
-    mc, alias = motion_controller
+    mc, alias = motion_controller_teardown
     mc.configuration.set_power_stage_frequency(input_value, servo=alias)
     output_value = mc.communication.get_register(
         POWER_STAGE_FREQUENCY_SELECTION_REGISTER, servo=alias
