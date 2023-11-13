@@ -34,8 +34,6 @@ class BaseTest(ABC, Stoppable):
 
     def save_backup_registers(self) -> None:
         self.backup_registers[self.axis] = {}
-        if not isinstance(self.backup_registers_names, List):
-            return
         for uid in self.backup_registers_names:
             try:
                 value = self.mc.communication.get_register(uid, servo=self.servo, axis=self.axis)
@@ -43,8 +41,6 @@ class BaseTest(ABC, Stoppable):
             except IMRegisterNotExist as e:
                 self.logger.warning(e, axis=self.axis)
 
-        if not isinstance(self.optional_backup_registers_names, List):
-            return
         for uid in self.optional_backup_registers_names:
             if self.mc.info.register_exists(uid, self.axis, self.servo):
                 value = self.mc.communication.get_register(uid, servo=self.servo, axis=self.axis)
