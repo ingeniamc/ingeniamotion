@@ -5,7 +5,7 @@
     <DefaultLanguage>en_US</DefaultLanguage>
   </Header>
   <Body>
-    <Device family="Summit" firmwareVersion="1.0.0" ProductCode="57876481" PartNumber="FAKE_PART_NUMBER" RevisionNumber="196637" Interface="ETH" name="Generic">
+    <Device family="Summit" firmwareVersion="2.4.1" ProductCode="46211073" PartNumber="FAKE_PART_NUMBER" RevisionNumber="196639" Interface="ETH" name="Generic">
       <Categories>
         <Category id="OTHERS">
           <Labels>
@@ -189,14 +189,14 @@
             <Label lang="en_US">Disturbance mapped register 15</Label>
           </Labels>
         </Register>
-        <Register access="r" address_type="NVM_NONE" address="0x00A0" dtype="u16" id="DRV_AXIS_NUMBER" units="none" subnode="0" cyclic="CONFIG" desc="" cat_id="IDENTIFICATION">
+        <Register access="r" address_type="NVM_NONE" address="0x00A0" dtype="u16" id="DRV_AXIS_NUMBER" units="cnt" subnode="0" cyclic="CONFIG" desc="" cat_id="IDENTIFICATION">
           <Labels>
             <Label lang="en_US">Number of axes</Label>
           </Labels>
         </Register>
         <Register access="rw" address_type="NVM" address="0x00A1" dtype="u32" id="COMMS_ETH_IP" units="-" subnode="0" cyclic="CONFIG" desc="" cat_id="COMMUNICATIONS">
           <Labels>
-            <Label lang="en_US">IP address</Label>
+            <Label lang="en_US">IP Address</Label>
           </Labels>
         </Register>
         <Register access="rw" address_type="NVM" address="0x00A2" dtype="u32" id="COMMS_ETH_NET_MASK" units="-" subnode="0" cyclic="CONFIG" desc="" cat_id="COMMUNICATIONS">
@@ -206,12 +206,7 @@
         </Register>
         <Register access="rw" address_type="NVM" address="0x00A3" dtype="u32" id="COMMS_ETH_GW" units="-" subnode="0" cyclic="CONFIG" desc="" cat_id="COMMUNICATIONS">
           <Labels>
-            <Label lang="en_US">Gateway address</Label>
-          </Labels>
-        </Register>
-        <Register access="rw" address_type="NVM_NONE" address="0x00A4" dtype="u64" id="COMMS_ETH_MAC" units="-" subnode="0" cyclic="CONFIG" desc="" cat_id="COMMUNICATIONS">
-          <Labels>
-            <Label lang="en_US">MAC address</Label>
+            <Label lang="en_US">Gateway Address</Label>
           </Labels>
         </Register>
         <Register access="r" address_type="NVM_NONE" address="0x00AA" dtype="str" id="DRV_BOOT_COCO_VERSION" units="-" subnode="0" cyclic="CONFIG" desc="" cat_id="IDENTIFICATION">
@@ -219,19 +214,29 @@
             <Label lang="en_US">Bootloader version</Label>
           </Labels>
         </Register>
-        <Register access="r" address_type="NVM_NONE" address="0x00B0" dtype="u32" id="MON_DIST_STATUS" units="none" subnode="0" cyclic="CONFIG" desc="This register allows knowing the monitoring status." cat_id="MONITORING">
+        <Register access="r" address_type="NVM_NONE" address="0x00B0" dtype="u32" id="MON_DIST_STATUS" units="none" subnode="0" cyclic="CONFIG" desc="This register allows knowing the monitoring and disturbance status." cat_id="MONITORING">
           <Labels>
             <Label lang="en_US">Monitoring status</Label>
           </Labels>
         </Register>
-        <Register access="r" address_type="NVM_NONE" address="0x00B1" dtype="u32" id="MON_CFG_CYCLES_VALUE" units="cnt" subnode="0" cyclic="CONFIG" desc="This object provides the actual number of samples of the running monitoring process." cat_id="MONITORING">
+        <Register access="r" address_type="NVM_NONE" address="0x00B1" dtype="u32" id="MON_CFG_CYCLES_VALUE" units="cnt" subnode="0" cyclic="CONFIG" desc="This object provides the actual number of monitoring samples." cat_id="MONITORING">
           <Labels>
             <Label lang="en_US">Actual number of monitoring samples</Label>
+          </Labels>
+        </Register>
+        <Register access="r" address_type="NVM_NONE" address="0x00B2" dtype="u16" id="MON_DATA_VALUE" units="none" subnode="0" cyclic="CONFIG" desc="This object provides the monitoring available data" cat_id="MONITORING">
+          <Labels>
+            <Label lang="en_US">Monitoring data</Label>
           </Labels>
         </Register>
         <Register access="r" address_type="NVM_NONE" address="0x00B3" dtype="u32" id="DIST_CFG_CYCLES" units="cnt" subnode="0" cyclic="CONFIG" desc="This object provides the actual number of disturbance samples." cat_id="MONITORING">
           <Labels>
             <Label lang="en_US">Actual number of disturbance samples</Label>
+          </Labels>
+        </Register>
+        <Register access="w" address_type="NVM_NONE" address="0x00B4" dtype="u16" id="DIST_DATA_VALUE" units="none" subnode="0" cyclic="CONFIG" desc="Set a data block to disturbance." cat_id="MONITORING">
+          <Labels>
+            <Label lang="en_US">Disturbance Data</Label>
           </Labels>
         </Register>
         <Register access="r" address_type="NVM_NONE" address="0x00B5" dtype="u32" id="MON_MAX_SIZE" units="-" subnode="0" cyclic="CONFIG" desc="Monitoring maximum size in bytes." cat_id="MONITORING">
@@ -241,7 +246,7 @@
         </Register>
         <Register access="r" address_type="NVM_NONE" address="0x00B6" dtype="u32" id="DIST_MAX_SIZE" units="-" subnode="0" cyclic="CONFIG" desc="Disturbance maximum size in bytes." cat_id="MONITORING">
           <Labels>
-            <Label lang="en_US">Disturbance Maximum SizeDisturbance maximum size</Label>
+            <Label lang="en_US">Disturbance maximum size</Label>
           </Labels>
         </Register>
         <Register access="r" address_type="NVM_NONE" address="0x00B7" dtype="u32" id="MON_CFG_BYTES_VALUE" units="-" subnode="0" cyclic="CONFIG" desc="This object provides the actual number of monitoring bytes of the running monitoring process." cat_id="MONITORING">
@@ -254,7 +259,7 @@
             <Label lang="en_US">Disturbance current number of bytes</Label>
           </Labels>
         </Register>
-        <Register access="r" address_type="NVM_NONE" address="0x00BA" dtype="u32" id="MON_DIST_VERSION" units="-" subnode="0" cyclic="CONFIG" desc="This register has the monitoring version." cat_id="MONITORING">
+        <Register access="r" address_type="NVM_NONE" address="0x00BA" dtype="u32" id="MON_DIST_VERSION" units="-" subnode="0" cyclic="CONFIG" desc="This register has the monitoring version" cat_id="MONITORING">
           <Labels>
             <Label lang="en_US">Monitoring disturbance version</Label>
           </Labels>
@@ -274,7 +279,7 @@
             <Label lang="en_US">Disturbance status</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_NONE" address="0x00C0" dtype="u16" id="MON_DIST_ENABLE" units="-" subnode="0" cyclic="CONFIG" desc="Disturbance current number of bytes" cat_id="MONITORING">
+        <Register access="rw" address_type="NVM_NONE" address="0x00C0" dtype="u16" id="MON_DIST_ENABLE" units="-" subnode="0" cyclic="CONFIG" desc="Enables or disables the monitoring method." cat_id="MONITORING">
           <Labels>
             <Label lang="en_US">Enable monitoring</Label>
           </Labels>
@@ -289,12 +294,12 @@
             <Label lang="en_US">Monitoring delay</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_NONE" address="0x00C3" dtype="u32" id="MON_CFG_WINDOW_SAMP" units="-" subnode="0" cyclic="CONFIG" desc="This register allows setting the number of samples to be stored during monitoring." cat_id="MONITORING">
+        <Register access="rw" address_type="NVM_NONE" address="0x00C3" dtype="u32" id="MON_CFG_WINDOW_SAMP" units="none" subnode="0" cyclic="CONFIG" desc="This register allows setting the number of samples to be stored during monitoring." cat_id="MONITORING">
           <Labels>
             <Label lang="en_US">Monitoring buffer size</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_NONE" address="0x00C4" dtype="u32" id="DIST_CFG_SAMPLES" units="-" subnode="0" cyclic="CONFIG" desc="This register sets the number of samples available in the disturbance buffer." cat_id="MONITORING">
+        <Register access="rw" address_type="NVM_NONE" address="0x00C4" dtype="u32" id="DIST_CFG_SAMPLES" units="none" subnode="0" cyclic="CONFIG" desc="This register sets the number of samples available in the disturbance buffer." cat_id="MONITORING">
           <Labels>
             <Label lang="en_US">Disturbance buffer size</Label>
           </Labels>
@@ -309,87 +314,87 @@
             <Label lang="en_US">Enable disturbance</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_NONE" address="0x00D0" dtype="u32" id="MON_CFG_REG0_MAP" units="none" subnode="0" cyclic="CONFIG" desc="This register allows configuring the monitoring mapped register 0." cat_id="MONITORING">
+        <Register access="rw" address_type="NVM_NONE" address="0x00D0" dtype="u32" id="MON_CFG_REG0_MAP" units="none" subnode="0" cyclic="CONFIG" desc="This register allows knowing the monitoring mapped register 0." cat_id="MONITORING">
           <Labels>
-            <Label lang="en_US">Monitoring mapped register 0</Label>
+            <Label lang="en_US">Monitoring Mapped Register 0</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_NONE" address="0x00D1" dtype="u32" id="MON_CFG_REG1_MAP" units="none" subnode="0" cyclic="CONFIG" desc="This register allows configuring the monitoring mapped register 1." cat_id="MONITORING">
+        <Register access="rw" address_type="NVM_NONE" address="0x00D1" dtype="u32" id="MON_CFG_REG1_MAP" units="none" subnode="0" cyclic="CONFIG" desc="This register allows knowing the monitoring mapped register 1." cat_id="MONITORING">
           <Labels>
-            <Label lang="en_US">Monitoring mapped register 1</Label>
+            <Label lang="en_US">Monitoring Mapped Register 1</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_NONE" address="0x00D2" dtype="u32" id="MON_CFG_REG2_MAP" units="none" subnode="0" cyclic="CONFIG" desc="This register allows configuring the monitoring mapped register 2." cat_id="MONITORING">
+        <Register access="rw" address_type="NVM_NONE" address="0x00D2" dtype="u32" id="MON_CFG_REG2_MAP" units="none" subnode="0" cyclic="CONFIG" desc="This register allows knowing the monitoring mapped register 2." cat_id="MONITORING">
           <Labels>
-            <Label lang="en_US">Monitoring mapped register 2</Label>
+            <Label lang="en_US">Monitoring Mapped Register 2</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_NONE" address="0x00D3" dtype="u32" id="MON_CFG_REG3_MAP" units="none" subnode="0" cyclic="CONFIG" desc="This register allows configuring the monitoring mapped register 3." cat_id="MONITORING">
+        <Register access="rw" address_type="NVM_NONE" address="0x00D3" dtype="u32" id="MON_CFG_REG3_MAP" units="none" subnode="0" cyclic="CONFIG" desc="" cat_id="MONITORING">
           <Labels>
-            <Label lang="en_US">Monitoring mapped register 3</Label>
+            <Label lang="en_US">Monitoring Mapped Register 3</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_NONE" address="0x00D4" dtype="u32" id="MON_CFG_REG4_MAP" units="none" subnode="0" cyclic="CONFIG" desc="This register allows configuring the monitoring mapped register 4." cat_id="MONITORING">
+        <Register access="rw" address_type="NVM_NONE" address="0x00D4" dtype="u32" id="MON_CFG_REG4_MAP" units="none" subnode="0" cyclic="CONFIG" desc="" cat_id="MONITORING">
           <Labels>
-            <Label lang="en_US">Monitoring mapped register 4</Label>
+            <Label lang="en_US">Monitoring Mapped Register 4</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_NONE" address="0x00D5" dtype="u32" id="MON_CFG_REG5_MAP" units="none" subnode="0" cyclic="CONFIG" desc="This register allows configuring the monitoring mapped register 5." cat_id="MONITORING">
+        <Register access="rw" address_type="NVM_NONE" address="0x00D5" dtype="u32" id="MON_CFG_REG5_MAP" units="none" subnode="0" cyclic="CONFIG" desc="" cat_id="MONITORING">
           <Labels>
-            <Label lang="en_US">Monitoring mapped register 5</Label>
+            <Label lang="en_US">Monitoring Mapped Register 5</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_NONE" address="0x00D6" dtype="u32" id="MON_CFG_REG6_MAP" units="none" subnode="0" cyclic="CONFIG" desc="This register allows configuring the monitoring mapped register 6." cat_id="MONITORING">
+        <Register access="rw" address_type="NVM_NONE" address="0x00D6" dtype="u32" id="MON_CFG_REG6_MAP" units="none" subnode="0" cyclic="CONFIG" desc="" cat_id="MONITORING">
           <Labels>
-            <Label lang="en_US">Monitoring mapped register 6</Label>
+            <Label lang="en_US">Monitoring Mapped Register 6</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_NONE" address="0x00D7" dtype="u32" id="MON_CFG_REG7_MAP" units="none" subnode="0" cyclic="CONFIG" desc="This register allows configuring the monitoring mapped register 7." cat_id="MONITORING">
+        <Register access="rw" address_type="NVM_NONE" address="0x00D7" dtype="u32" id="MON_CFG_REG7_MAP" units="none" subnode="0" cyclic="CONFIG" desc="" cat_id="MONITORING">
           <Labels>
-            <Label lang="en_US">Monitoring mapped register 7</Label>
+            <Label lang="en_US">Monitoring Mapped Register 7</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_NONE" address="0x00D8" dtype="u32" id="MON_CFG_REG8_MAP" units="none" subnode="0" cyclic="CONFIG" desc="This register allows configuring the monitoring mapped register 8." cat_id="MONITORING">
+        <Register access="rw" address_type="NVM_NONE" address="0x00D8" dtype="u32" id="MON_CFG_REG8_MAP" units="none" subnode="0" cyclic="CONFIG" desc="" cat_id="MONITORING">
           <Labels>
-            <Label lang="en_US">Monitoring mapped register 8</Label>
+            <Label lang="en_US">Monitoring Mapped Register 8</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_NONE" address="0x00D9" dtype="u32" id="MON_CFG_REG9_MAP" units="none" subnode="0" cyclic="CONFIG" desc="This register allows configuring the monitoring mapped register 9." cat_id="MONITORING">
+        <Register access="rw" address_type="NVM_NONE" address="0x00D9" dtype="u32" id="MON_CFG_REG9_MAP" units="none" subnode="0" cyclic="CONFIG" desc="" cat_id="MONITORING">
           <Labels>
             <Label lang="en_US">Monitoring Mapped Register 9</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_NONE" address="0x00DA" dtype="u32" id="MON_CFG_REFG10_MAP" units="none" subnode="0" cyclic="CONFIG" desc="This register allows configuring the monitoring mapped register 10." cat_id="MONITORING">
+        <Register access="rw" address_type="NVM_NONE" address="0x00DA" dtype="u32" id="MON_CFG_REFG10_MAP" units="none" subnode="0" cyclic="CONFIG" desc="" cat_id="MONITORING">
           <Labels>
-            <Label lang="en_US">Monitoring mapped register 10</Label>
+            <Label lang="en_US">Monitoring Mapped Register 10</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_NONE" address="0x00DB" dtype="u32" id="MON_CFG_REFG11_MAP" units="none" subnode="0" cyclic="CONFIG" desc="This register allows configuring the monitoring mapped register 11." cat_id="MONITORING">
+        <Register access="rw" address_type="NVM_NONE" address="0x00DB" dtype="u32" id="MON_CFG_REFG11_MAP" units="none" subnode="0" cyclic="CONFIG" desc="" cat_id="MONITORING">
           <Labels>
-            <Label lang="en_US">Monitoring mapped register 11</Label>
+            <Label lang="en_US">Monitoring Mapped Register 11</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_NONE" address="0x00DC" dtype="u32" id="MON_CFG_REFG12_MAP" units="none" subnode="0" cyclic="CONFIG" desc="This register allows configuring the monitoring mapped register 12." cat_id="MONITORING">
+        <Register access="rw" address_type="NVM_NONE" address="0x00DC" dtype="u32" id="MON_CFG_REFG12_MAP" units="none" subnode="0" cyclic="CONFIG" desc="" cat_id="MONITORING">
           <Labels>
-            <Label lang="en_US">Monitoring mapped register 12</Label>
+            <Label lang="en_US">Monitoring Mapped Register 12</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_NONE" address="0x00DD" dtype="u32" id="MON_CFG_REFG13_MAP" units="none" subnode="0" cyclic="CONFIG" desc="This register allows configuring the monitoring mapped register 13." cat_id="MONITORING">
+        <Register access="rw" address_type="NVM_NONE" address="0x00DD" dtype="u32" id="MON_CFG_REFG13_MAP" units="none" subnode="0" cyclic="CONFIG" desc="" cat_id="MONITORING">
           <Labels>
-            <Label lang="en_US">Monitoring mapped register 13</Label>
+            <Label lang="en_US">Monitoring Mapped Register 13</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_NONE" address="0x00DE" dtype="u32" id="MON_CFG_REFG14_MAP" units="none" subnode="0" cyclic="CONFIG" desc="This register allows configuring the monitoring mapped register 14." cat_id="MONITORING">
+        <Register access="rw" address_type="NVM_NONE" address="0x00DE" dtype="u32" id="MON_CFG_REFG14_MAP" units="none" subnode="0" cyclic="CONFIG" desc="" cat_id="MONITORING">
           <Labels>
-            <Label lang="en_US">Monitoring mapped register 14</Label>
+            <Label lang="en_US">Monitoring Mapped Register 14</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_NONE" address="0x00DF" dtype="u32" id="MON_CFG_REFG15_MAP" units="none" subnode="0" cyclic="CONFIG" desc="This register allows configuring the monitoring mapped register 15." cat_id="MONITORING">
+        <Register access="rw" address_type="NVM_NONE" address="0x00DF" dtype="u32" id="MON_CFG_REFG15_MAP" units="none" subnode="0" cyclic="CONFIG" desc="" cat_id="MONITORING">
           <Labels>
-            <Label lang="en_US">Monitoring mapped register 15</Label>
+            <Label lang="en_US">Monitoring Mapped Register 15</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_NONE" address="0x00E3" dtype="u16" id="MON_CFG_TOTAL_MAP" units="cnt" subnode="0" cyclic="CONFIG" desc="This register sets the actual number of mapped registers." cat_id="MONITORING">
+        <Register access="rw" address_type="NVM_NONE" address="0x00E3" dtype="u16" id="MON_CFG_TOTAL_MAP" units="none" subnode="0" cyclic="CONFIG" desc="This register exposes the actual number of mapped registers." cat_id="MONITORING">
           <Labels>
             <Label lang="en_US">Monitoring number mapped registers</Label>
           </Labels>
@@ -399,7 +404,7 @@
             <Label lang="en_US">Monitoring number of bytes per sample</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_NONE" address="0x00E8" dtype="u16" id="DIST_CFG_MAP_REGS" units="none" subnode="0" cyclic="CONFIG" desc="This register sets the actual number of mapped registers." cat_id="MONITORING">
+        <Register access="rw" address_type="NVM_NONE" address="0x00E8" dtype="u16" id="DIST_CFG_MAP_REGS" units="none" subnode="0" cyclic="CONFIG" desc="This register exposes the actual number of mapped registers." cat_id="MONITORING">
           <Labels>
             <Label lang="en_US">Disturbance number mapped registers</Label>
           </Labels>
@@ -439,7 +444,7 @@
             <Enum value="2">TRIGGER_CONFIG_FALLING</Enum>
           </Enumerations>
         </Register>
-        <Register access="w" address_type="NVM_NONE" address="0x00F3" dtype="u16" id="MON_CMD_FORCE_TRIGGER" units="none" subnode="0" cyclic="CONFIG" desc="Set monitoring force trigger event." cat_id="OTHERS">
+        <Register access="w" address_type="NVM_NONE" address="0x00F3" dtype="u16" id="MON_CMD_FORCE_TRIGGER" units="none" subnode="0" cyclic="CONFIG" desc="Set monitoring force trigger event." cat_id="MONITORING">
           <Labels>
             <Label lang="en_US">Monitoring force trigger</Label>
           </Labels>
@@ -464,17 +469,17 @@
             <Label lang="en_US">System last error</Label>
           </Labels>
         </Register>
-        <Register access="r" address_type="NVM_NONE" address="0x064A" dtype="u16" id="DRV_DIAG_SYS_ERROR_TOTAL_COM" units="-" subnode="0" cyclic="CONFIG" desc="" cat_id="REPORTING">
+        <Register access="r" address_type="NVM_NONE" address="0x064A" dtype="u16" id="DRV_DIAG_SYS_ERROR_TOTAL_COM" units="none" subnode="0" cyclic="CONFIG" desc="System error total number" cat_id="REPORTING">
           <Labels>
             <Label lang="en_US">System error total number</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_NONE" address="0x064B" dtype="u16" id="DRV_DIAG_SYS_ERROR_LIST_IDX_COM" units="-" subnode="0" cyclic="CONFIG" desc="" cat_id="REPORTING">
+        <Register access="rw" address_type="NVM_NONE" address="0x064B" dtype="u16" id="DRV_DIAG_SYS_ERROR_LIST_IDX_COM" units="none" subnode="0" cyclic="CONFIG" desc="System error list index request" cat_id="REPORTING">
           <Labels>
             <Label lang="en_US">System error list index request</Label>
           </Labels>
         </Register>
-        <Register access="r" address_type="NVM_NONE" address="0x064C" dtype="s32" id="DRV_DIAG_SYS_ERROR_LIST_CODE_COM" units="-" subnode="0" cyclic="CONFIG" desc="" cat_id="REPORTING">
+        <Register access="r" address_type="NVM_NONE" address="0x064C" dtype="s32" id="DRV_DIAG_SYS_ERROR_LIST_CODE_COM" units="none" subnode="0" cyclic="CONFIG" desc="System error list requested code" cat_id="REPORTING">
           <Labels>
             <Label lang="en_US">System error list requested code</Label>
           </Labels>
@@ -495,6 +500,12 @@
             <Label lang="en_US">Error list requested code</Label>
           </Labels>
         </Register>
+        <Register access="rw" address_type="NVM" address="0x0680" dtype="u8" id="COMMS_EMCY_ERROR_PIN" units="-" subnode="0" cyclic="CONFIG" desc="This register allow to select the error notification source for error management and  EMCY generation.&#13;&#10;- 0: Error notification source not attached&#13;&#10;- x (1 to 3): Moco GPOx is used to notify errors." cat_id="INTERNAL">
+          <Labels>
+            <Label lang="en_US">Error notification source</Label>
+          </Labels>
+          <Range min="0" max="3"/>
+        </Register>
         <Register access="rw" address_type="NVM" address="0x06C5" dtype="u32" id="COMMS_CYCLE_TIMEOUT" units="ms" subnode="0" cyclic="CONFIG" desc="This register allow to select the maximum communication cycle timeout to detect error. If the drive does not receive any PDO during the defined timeout, it will force to enter into fault state." cat_id="COMMUNICATIONS">
           <Labels>
             <Label lang="en_US">Communication cycle timeout</Label>
@@ -502,12 +513,12 @@
         </Register>
         <Register access="rw" address_type="NVM_NONE" address="0x06DB" dtype="u32" id="DRV_STORE_COCO_ALL" units="-" subnode="0" cyclic="CONFIG" desc="" cat_id="IDENTIFICATION">
           <Labels>
-            <Label lang="en_US">Coco Store all</Label>
+            <Label lang="en_US">Store all</Label>
           </Labels>
         </Register>
         <Register access="rw" address_type="NVM_NONE" address="0x06DC" dtype="u32" id="DRV_RESTORE_COCO_ALL" units="-" subnode="0" cyclic="CONFIG" desc="" cat_id="IDENTIFICATION">
           <Labels>
-            <Label lang="en_US">Coco Restore all</Label>
+            <Label lang="en_US">Restore all</Label>
           </Labels>
         </Register>
         <Register access="w" address_type="NVM_NONE" address="0x06DE" dtype="u32" id="DRV_BOOT_COCO_FORCE" units="none" subnode="0" cyclic="CONFIG" desc="Allows to enter in boot mode" cat_id="OTHERS">
@@ -645,7 +656,7 @@
             <Label lang="en_US">Torque set-point</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_CFG" address="0x0024" dtype="u16" id="PROF_POS_OPTION_CODE" units="-" subnode="1" cyclic="CYCLIC_RX" desc="Positioning option code as per CiA402 (0x60F2)&#13;&#10;&#13;&#10;Bits 0, 1 - Relative option (not implemented)&#13;&#10;Bits 2, 3 - Change immediately option (not implemented)&#13;&#10;Bits 4, 5 - Request response option (not implemented)&#13;&#10;Bits 6, 7 - Rotary axis direction option" cat_id="OTHERS">
+        <Register access="rw" address_type="NVM_CFG" address="0x0024" dtype="u16" id="PROF_POS_OPTION_CODE" units="-" subnode="1" cyclic="CYCLIC_RX" desc="Positioning option code as per CiA402 (0x60F2)&#13;&#10;&#13;&#10;Bits 0, 1 - Relative option (not implemented)&#13;&#10;Bits 2, 3 - Change immediately option (not implemented)&#13;&#10;Bits 4, 5 - Request response option (not implemented)&#13;&#10;Bits 6, 7 - Rotary axis direction option&#13;&#10;Bit 15 - Profiler latch from last demand (0) or from actual value (1)" cat_id="OTHERS">
           <Labels>
             <Label lang="en_US">Positioning option code</Label>
           </Labels>
@@ -755,7 +766,7 @@
             <Label lang="en_US">Generator value</Label>
           </Labels>
         </Register>
-        <Register access="r" address_type="NVM_NONE" address="0x0051" dtype="s32" id="FBK_SSI2_POS_VALUE" units="cnt" subnode="1" cyclic="CYCLIC_TX" desc="Raw position obtained from Secondary BiSS-C / SSI slave 1 feedback frame" cat_id="FEEDBACK">
+        <Register access="r" address_type="NVM_NONE" address="0x0051" dtype="s32" id="FBK_SSI2_POS_VALUE" units="cnt" subnode="1" cyclic="CYCLIC_TX" desc="Raw position obtained from SSI feedback frame" cat_id="FEEDBACK">
           <Labels>
             <Label lang="en_US">Secondary Absolute Slave 1 - Position</Label>
           </Labels>
@@ -770,7 +781,7 @@
             <Label lang="en_US">Torque demand</Label>
           </Labels>
         </Register>
-        <Register access="r" address_type="NVM_NONE" address="0x0054" dtype="u32" id="FBK_SSI2_FULL_FRAME_VALUE" units="-" subnode="1" cyclic="CYCLIC_TX" desc="Full frame value obtained from Secondary BiSS-C / SSI slave 1 feedback" cat_id="FEEDBACK">
+        <Register access="r" address_type="NVM_NONE" address="0x0054" dtype="u32" id="FBK_SSI2_FULL_FRAME_VALUE" units="-" subnode="1" cyclic="CYCLIC_TX" desc="Full frame value obtained from SSI feedback" cat_id="FEEDBACK">
           <Labels>
             <Label lang="en_US">Secondary Absolute Slave 1 - Full frame</Label>
           </Labels>
@@ -895,7 +906,7 @@
             <Label lang="en_US">Current command value</Label>
           </Labels>
         </Register>
-        <Register access="r" address_type="NVM_NONE" address="0x0078" dtype="s32" id="CL_POS_REF_VALUE" units="cnt" subnode="1" cyclic="CYCLIC_TX" desc="Internal position set-point that enters to the position drive controller" cat_id="FILTERS">
+        <Register access="r" address_type="NVM_NONE" address="0x0078" dtype="s32" id="CL_POS_REF_VALUE" units="cnt" subnode="1" cyclic="CYCLIC_TX" desc="Internal position set-point that enters to the position drive controller" cat_id="REPORTING">
           <Labels>
             <Label lang="en_US">Position demand</Label>
           </Labels>
@@ -938,6 +949,16 @@
         <Register access="r" address_type="NVM_NONE" address="0x0082" dtype="float" id="IO_ANA1_VALUE" units="-" subnode="1" cyclic="CYCLIC_TX" desc="This register allow to read the value obtained from analog input 1, after being normalized and applying corresponding gain and offset.&#13;&#10;&#13;&#10;Analog value is internally computed as:&#13;&#10;- Value = (Adc(range 0 to 1) * Gain) + Offset" cat_id="IN_OUT">
           <Labels>
             <Label lang="en_US">Analog input 1 - Value</Label>
+          </Labels>
+        </Register>
+        <Register access="r" address_type="NVM_NONE" address="0x0083" dtype="u16" id="IO_ANA2_COUNTS" units="ADC" subnode="1" cyclic="CYCLIC_TX" desc="Counts obtained from analog input 2. ADC resolution is 16 bits for differential signals" cat_id="INTERNAL">
+          <Labels>
+            <Label lang="en_US">Analog input 2 - Counts</Label>
+          </Labels>
+        </Register>
+        <Register access="r" address_type="NVM_NONE" address="0x0084" dtype="float" id="IO_ANA2_VALUE" units="-" subnode="1" cyclic="CYCLIC_TX" desc="This register allow to read the value obtained from analog input 2, after being normalized and applying corresponding gain and offset.&#13;&#10;&#13;&#10;Analog value is internally computed as:&#13;&#10;- Value = (Adc(range 0 to 1) * Gain) + Offset" cat_id="IN_OUT">
+          <Labels>
+            <Label lang="en_US">Analog input 2 - Value</Label>
           </Labels>
         </Register>
         <Register access="r" address_type="NVM_NONE" address="0x0096" dtype="float" id="CL_POS_CMD_VALUE" units="cnt" subnode="1" cyclic="CYCLIC_TX" desc="Position command in position control loop." cat_id="CONTROL">
@@ -1088,16 +1109,16 @@
         </Register>
         <Register access="rw" address_type="NVM_CFG" address="0x0125" dtype="u16" id="MOT_BRAKE_HOLDING_DUTY" units="%" subnode="1" cyclic="CONFIG" desc="Percentage of voltage applied to the brake." cat_id="MOTOR">
           <Labels>
-            <Label lang="en_US">Brake holding voltage percentatge</Label>
+            <Label lang="en_US">Brake holding voltage percentage</Label>
           </Labels>
           <Range min="0" max="100"/>
         </Register>
-        <Register access="rw" address_type="NVM_CFG" address="0x0126" dtype="u32" id="MOT_BRAKE_PRE_TIME" units="ms" subnode="1" cyclic="CONFIG" desc="Indicates the delay in milliseconds the brake starts holding the actual position before the drive stops driving the actuator." cat_id="MOTOR">
+        <Register access="rw" address_type="NVM_CFG" address="0x0126" dtype="u32" id="MOT_BRAKE_PRE_TIME" units="ms" subnode="1" cyclic="CONFIG" desc="Indicates the delay in milliseconds between activation of the power stage and disengaging the brake (brake activated state)." cat_id="MOTOR">
           <Labels>
             <Label lang="en_US">Delay before release brake</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_CFG" address="0x0127" dtype="u32" id="MOT_BRAKE_POST_TIME" units="ms" subnode="1" cyclic="CONFIG" desc="Indicates the delay in milliseconds the brake is still holding the position after the drive starts driving the actuator." cat_id="MOTOR">
+        <Register access="rw" address_type="NVM_CFG" address="0x0127" dtype="u32" id="MOT_BRAKE_POST_TIME" units="ms" subnode="1" cyclic="CONFIG" desc="Indicates the delay in milliseconds between engaging the brake and deactivation of the power stage." cat_id="MOTOR">
           <Labels>
             <Label lang="en_US">Delay after enable brake</Label>
           </Labels>
@@ -1117,7 +1138,7 @@
             <Enum value="2">Enable brake</Enum>
           </Enumerations>
         </Register>
-        <Register access="rw" address_type="NVM_CFG" address="0x012A" dtype="float" id="MOT_BRAKE_ACTIVATION_CUR" units="A" subnode="1" cyclic="CONFIG" desc="Current in Amperes to release the brake. &#13;&#10;-This option is available in brake current control mode." cat_id="MOTOR">
+        <Register access="rw" address_type="NVM_CFG" address="0x012A" dtype="float" id="MOT_BRAKE_ACTIVATION_CUR" units="A" subnode="1" cyclic="CONFIG" desc="Current in Amperes to release the brake.&#13;&#10;-This option is available in brake current control mode." cat_id="MOTOR">
           <Labels>
             <Label lang="en_US">Brake activation current</Label>
           </Labels>
@@ -1142,8 +1163,9 @@
             <Label lang="en_US">Brake control mode</Label>
           </Labels>
           <Enumerations>
-            <Enum value="0">Duty control</Enum>
+            <Enum value="0">Voltage control</Enum>
             <Enum value="1">Current control</Enum>
+            <Enum value="2">None</Enum>
           </Enumerations>
         </Register>
         <Register access="rw" address_type="NVM_CFG" address="0x012F" dtype="float" id="MOT_BRAKE_CL_ERROR_WINDOW" units="A" subnode="1" cyclic="CONFIG" desc="Indicates the brake current error window. Error is generated when error exceeded following window during  a given timeout." cat_id="MOTOR">
@@ -1151,7 +1173,7 @@
             <Label lang="en_US">Brake current error window</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_CFG" address="0x0130" dtype="u32" id="MOT_BRAKE_CL_ERROR_TIMEOUT" units="ms" subnode="1" cyclic="CONFIG" desc="Indicates the maximum time in which the difference between demand and actual brake current is allowed to be outside the window." cat_id="MOTOR">
+        <Register access="rw" address_type="NVM_CFG" address="0x0130" dtype="u32" id="MOT_BRAKE_CL_ERROR_TIMEOUT" units="ms" subnode="1" cyclic="CONFIG" desc="This register is used in current control mode. This register is used to configure the following error detection time threshold ." cat_id="MOTOR">
           <Labels>
             <Label lang="en_US">Brake current error timeout</Label>
           </Labels>
@@ -1159,6 +1181,11 @@
         <Register access="rw" address_type="NVM_CFG" address="0x0131" dtype="float" id="MOT_BRAKE_MAX_CUR" units="A" subnode="1" cyclic="CONFIG" desc="Indicates the maximum allowed output current at the brake. This register acts as a protection preventing brake overcurrent." cat_id="MOTOR">
           <Labels>
             <Label lang="en_US">Brake max current</Label>
+          </Labels>
+        </Register>
+        <Register access="r" address_type="NVM_NONE" address="0x0133" dtype="float" id="MOT_BRAKE_CUR_VALUE" units="A" subnode="1" cyclic="CYCLIC_TX" desc="This register shows the corresponding brake current reading." cat_id="MOTOR">
+          <Labels>
+            <Label lang="en_US">Brake current actual value</Label>
           </Labels>
         </Register>
         <Register access="rw" address_type="NVM_CFG" address="0x0134" dtype="u16" id="MOT_BRAKE_CUR_FBK" units="-" subnode="1" cyclic="CONFIG" desc="" cat_id="MOTOR">
@@ -1170,6 +1197,11 @@
             <Enum value="1">General purpose analog input 1</Enum>
             <Enum value="2">General purpose analog input 2</Enum>
           </Enumerations>
+        </Register>
+        <Register access="r" address_type="NVM_NONE" address="0x0141" dtype="float" id="MOT_BRAKE_CUR_CMD" units="A" subnode="1" cyclic="CYCLIC_TX" desc="Commanded value on the brake current control loop" cat_id="MOTOR">
+          <Labels>
+            <Label lang="en_US">Brake current command</Label>
+          </Labels>
         </Register>
         <Register access="rw" address_type="NVM_CFG" address="0x014F" dtype="u16" id="MOT_COMMU_MOD" units="-" subnode="1" cyclic="CONFIG" desc="Specifies the modulation used to drive the actuator" cat_id="OTHERS">
           <Labels>
@@ -1198,9 +1230,10 @@
             <Enum value="5">Digital halls</Enum>
             <Enum value="6">Secondary Absolute Slave 1</Enum>
             <Enum value="7">Primary Absolute Slave 2 (daisy chain)</Enum>
+            <Enum value="8">Incremental encoder 2</Enum>
           </Enumerations>
         </Register>
-        <Register access="rw" address_type="NVM_CFG" address="0x0152" dtype="float" id="COMMU_ANGLE_REF_OFFSET" units="rev" subnode="1" cyclic="CONFIG" desc="Offset between the generated 0 angle position of the drive and the value read by the reference feedback sensor. It is computed automatically by a forced phasing method." cat_id="COMMUTATION">
+        <Register access="rw" address_type="NVM_CFG" address="0x0152" dtype="float" id="COMMU_ANGLE_REF_OFFSET" units="rev" subnode="1" cyclic="CYCLIC_TX" desc="Offset between the generated 0 angle position of the drive and the value read by the reference feedback sensor. It is computed automatically by a forced phasing method." cat_id="COMMUTATION">
           <Labels>
             <Label lang="en_US">Reference angle offset</Label>
           </Labels>
@@ -1217,6 +1250,7 @@
             <Enum value="5">Digital halls</Enum>
             <Enum value="6">Secondary Absolute Slave 1</Enum>
             <Enum value="7">Primary Absolute Slave 2 (daisy chain)</Enum>
+            <Enum value="8">Incremental encoder 2</Enum>
           </Enumerations>
         </Register>
         <Register access="rw" address_type="NVM_CFG" address="0x0154" dtype="u16" id="COMMU_PHASING_MODE" units="-" subnode="1" cyclic="CONFIG" desc="Indicates the method of actuator alignment" cat_id="COMMUTATION">
@@ -1283,7 +1317,7 @@
             <Label lang="en_US">Interpolation data record status</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_CFG" address="0x01C8" dtype="u16" id="PROF_LATCH_MODE" units="-" subnode="1" cyclic="CONFIG" desc="Indicates how the input values of the profiler module are latched: automatically by a change on the set-point value or manually by the control word&#13;&#10;&#13;&#10;The bits are defined as follows:&#13;&#10;&#13;&#10;Bit 0 - Current interpolator latching option&#13;&#10;Bit 1 - Velocity interpolator latching option&#13;&#10;Bit 2 - Position interpolator latching option&#13;&#10;Bit 3 - Profile current latching option&#13;&#10;Bit 4 - Profile velocity latching option&#13;&#10;Bit 5 - Profile position latching option &#13;&#10;&#13;&#10;Value 0 means automatic latching and value 1 means manual latching." cat_id="PROFILER">
+        <Register access="rw" address_type="NVM_CFG" address="0x01C8" dtype="u16" id="PROF_LATCH_MODE" units="-" subnode="1" cyclic="CONFIG" desc="Indicates how the input values of the profiler module are latched: automatically by a change on the set-point value or manually by the control word" cat_id="PROFILER">
           <Labels>
             <Label lang="en_US">Profiler latching mode</Label>
           </Labels>
@@ -1328,7 +1362,7 @@
             <Label lang="en_US">Position control loop error</Label>
           </Labels>
         </Register>
-        <Register access="r" address_type="NVM_NONE" address="0x01E3" dtype="float" id="CL_VEL_ERROR_FOLLOWING" units="rev/s" subnode="1" cyclic="CYCLIC_TX" desc="" cat_id="REPORTING">
+        <Register access="r" address_type="NVM_NONE" address="0x01E3" dtype="float" id="CL_VEL_ERROR_FOLLOWING" units="rev/s" subnode="1" cyclic="CYCLIC_TX" desc="Difference between velocity demand and actual value" cat_id="REPORTING">
           <Labels>
             <Label lang="en_US">Velocity control loop error</Label>
           </Labels>
@@ -1368,7 +1402,7 @@
             <Label lang="en_US">Position following error window</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_CFG" address="0x01ED" dtype="u32" id="CL_POS_ERROR_TIMEOUT" units="ms" subnode="1" cyclic="CYCLIC_RX" desc="Indicates the maximum time in which the difference between demand and actual position is allowed to be outside the position window." cat_id="THRESHOLDS">
+        <Register access="rw" address_type="NVM_CFG" address="0x01ED" dtype="u32" id="CL_POS_ERROR_TIMEOUT" units="ms" subnode="1" cyclic="CYCLIC_RX" desc="Indicates the maximum time the difference between demand and actual position is allowed to be outside the position window." cat_id="THRESHOLDS">
           <Labels>
             <Label lang="en_US">Position following error timeout</Label>
           </Labels>
@@ -1434,6 +1468,97 @@
             <Label lang="en_US">Interpolation buffer maximum size</Label>
           </Labels>
         </Register>
+        <Register access="rw" address_type="NVM_NONE" address="0x01FB" dtype="u16" id="MON_DIST_SELECTION" units="-" subnode="1" cyclic="CONFIG" desc="0 - Monitoring and disturbance disabled&#13;&#10;1 - Monitoring enabled, Disturbance disabled&#13;&#10;2 - Monitoring disabled, Disturbance enabled&#13;&#10;3 - Monitoring and disturbance enabled" cat_id="MONITORING">
+          <Labels>
+            <Label lang="en_US">Monitoring and disturbance selection</Label>
+          </Labels>
+          <Enumerations>
+            <Enum value="0">Monitoring and disturbance disabled</Enum>
+            <Enum value="1">Monitoring enabled</Enum>
+            <Enum value="2">Disturbance enabled</Enum>
+            <Enum value="3">Monitoring and disturbance enabled</Enum>
+          </Enumerations>
+        </Register>
+        <Register access="r" address_type="NVM_NONE" address="0x0204" dtype="u32" id="MON_HR_CH1_SAMP1" units="-" subnode="1" cyclic="CYCLIC_TX" desc="Contains sample 1 of monitoring channel 1" cat_id="MONITORING">
+          <Labels>
+            <Label lang="en_US">Monitoring sample 1 - Channel 1</Label>
+          </Labels>
+        </Register>
+        <Register access="r" address_type="NVM_NONE" address="0x0205" dtype="u32" id="MON_HR_CH2_SAMP1" units="-" subnode="1" cyclic="CYCLIC_TX" desc="Contains sample 1 of monitoring channel 2" cat_id="MONITORING">
+          <Labels>
+            <Label lang="en_US">Monitoring sample 1 - Channel 2</Label>
+          </Labels>
+        </Register>
+        <Register access="r" address_type="NVM_NONE" address="0x0206" dtype="u32" id="MON_HR_CH3_SAMP1" units="-" subnode="1" cyclic="CYCLIC_TX" desc="Contains sample 1 of monitoring channel 3" cat_id="MONITORING">
+          <Labels>
+            <Label lang="en_US">Monitoring sample 1 - Channel 3</Label>
+          </Labels>
+        </Register>
+        <Register access="r" address_type="NVM_NONE" address="0x0207" dtype="u32" id="MON_HR_CH4_SAMP1" units="-" subnode="1" cyclic="CYCLIC_TX" desc="Contains sample 1 of monitoring channel 4" cat_id="MONITORING">
+          <Labels>
+            <Label lang="en_US">Monitoring sample 1 - Channel 4</Label>
+          </Labels>
+        </Register>
+        <Register access="r" address_type="NVM_NONE" address="0x0208" dtype="u32" id="MON_HR_CH1_SAMP2" units="-" subnode="1" cyclic="CYCLIC_TX" desc="Contains sample 2 of monitoring channel 1" cat_id="MONITORING">
+          <Labels>
+            <Label lang="en_US">Monitoring sample 2 - Channel 1</Label>
+          </Labels>
+        </Register>
+        <Register access="r" address_type="NVM_NONE" address="0x0209" dtype="u32" id="MON_HR_CH2_SAMP2" units="-" subnode="1" cyclic="CYCLIC_TX" desc="Contains sample 2 of monitoring channel 2" cat_id="MONITORING">
+          <Labels>
+            <Label lang="en_US">Monitoring sample 2 - Channel 2</Label>
+          </Labels>
+        </Register>
+        <Register access="r" address_type="NVM_NONE" address="0x020A" dtype="u32" id="MON_HR_CH3_SAMP2" units="-" subnode="1" cyclic="CYCLIC_TX" desc="Contains sample 2 of monitoring channel 1" cat_id="MONITORING">
+          <Labels>
+            <Label lang="en_US">Monitoring sample 2 - Channel 3</Label>
+          </Labels>
+        </Register>
+        <Register access="r" address_type="NVM_NONE" address="0x020B" dtype="u32" id="MON_HR_CH4_SAMP2" units="-" subnode="1" cyclic="CYCLIC_TX" desc="Contains sample 2 of monitoring channel 4" cat_id="MONITORING">
+          <Labels>
+            <Label lang="en_US">Monitoring sample 2 - Channel 4</Label>
+          </Labels>
+        </Register>
+        <Register access="rw" address_type="NVM_NONE" address="0x020C" dtype="u32" id="DIST_HR_CH1_SAMP1" units="-" subnode="1" cyclic="CYCLIC_RX" desc="Contains sample 1 of disturbance channel 1" cat_id="MONITORING">
+          <Labels>
+            <Label lang="en_US">Disturbance sample 1 - Channel 1</Label>
+          </Labels>
+        </Register>
+        <Register access="rw" address_type="NVM_NONE" address="0x020D" dtype="u32" id="DIST_HR_CH2_SAMP1" units="-" subnode="1" cyclic="CYCLIC_RX" desc="Contains sample 1 of disturbance channel 2" cat_id="MONITORING">
+          <Labels>
+            <Label lang="en_US">Disturbance sample 1 - Channel 2</Label>
+          </Labels>
+        </Register>
+        <Register access="rw" address_type="NVM_NONE" address="0x020E" dtype="u32" id="DIST_HR_CH3_SAMP1" units="-" subnode="1" cyclic="CYCLIC_RX" desc="Contains sample 1 of disturbance channel 3" cat_id="MONITORING">
+          <Labels>
+            <Label lang="en_US">Disturbance sample 1 - Channel 3</Label>
+          </Labels>
+        </Register>
+        <Register access="rw" address_type="NVM_NONE" address="0x020F" dtype="u32" id="DIST_HR_CH4_SAMP1" units="-" subnode="1" cyclic="CYCLIC_RX" desc="Contains sample 1 of disturbance channel 4" cat_id="MONITORING">
+          <Labels>
+            <Label lang="en_US">Disturbance sample 1 - Channel 4</Label>
+          </Labels>
+        </Register>
+        <Register access="rw" address_type="NVM_NONE" address="0x0210" dtype="u32" id="DIST_HR_CH1_SAMP2" units="-" subnode="1" cyclic="CYCLIC_RX" desc="Contains sample 2 of disturbance channel 1" cat_id="MONITORING">
+          <Labels>
+            <Label lang="en_US">Disturbance sample 2 - Channel 1</Label>
+          </Labels>
+        </Register>
+        <Register access="rw" address_type="NVM_NONE" address="0x0211" dtype="u32" id="DIST_HR_CH2_SAMP2" units="-" subnode="1" cyclic="CYCLIC_RX" desc="Contains sample 2 of disturbance channel 2" cat_id="MONITORING">
+          <Labels>
+            <Label lang="en_US">Disturbance sample 2 - Channel 2</Label>
+          </Labels>
+        </Register>
+        <Register access="rw" address_type="NVM_NONE" address="0x0212" dtype="u32" id="DIST_HR_CH3_SAMP2" units="-" subnode="1" cyclic="CYCLIC_RX" desc="Contains sample 2 of disturbance channel 3" cat_id="MONITORING">
+          <Labels>
+            <Label lang="en_US">Disturbance sample 2 - Channel 3</Label>
+          </Labels>
+        </Register>
+        <Register access="rw" address_type="NVM_NONE" address="0x0213" dtype="u32" id="DIST_HR_CH4_SAMP2" units="-" subnode="1" cyclic="CYCLIC_RX" desc="Contains sample 2 of disturbance channel 4" cat_id="MONITORING">
+          <Labels>
+            <Label lang="en_US">Disturbance sample 2 - Channel 4</Label>
+          </Labels>
+        </Register>
         <Register access="r" address_type="NVM_CFG" address="0x02E0" dtype="u16" id="SET_POINT_SRC" units="-" subnode="1" cyclic="CONFIG" desc="Indicates the source of the set-points for the motion." cat_id="TARGET">
           <Labels>
             <Label lang="en_US">Command source 1</Label>
@@ -1460,6 +1585,16 @@
             <Label lang="en_US">Analog input 1 - Offset</Label>
           </Labels>
         </Register>
+        <Register access="rw" address_type="NVM_CFG" address="0x02EC" dtype="float" id="IO_ANA2_GAIN" units="-" subnode="1" cyclic="CONFIG" desc="Gain applied to the unitary analog input 2 readings. Unitary means a value of 0 when 0 counts are read and 1 when full range counts are read." cat_id="IN_OUT">
+          <Labels>
+            <Label lang="en_US">Analog input 2 - Gain</Label>
+          </Labels>
+        </Register>
+        <Register access="rw" address_type="NVM_CFG" address="0x02ED" dtype="float" id="IO_ANA2_OFFSET" units="-" subnode="1" cyclic="CONFIG" desc="Offset  applied to analog input 2 readings after gain amplification." cat_id="IN_OUT">
+          <Labels>
+            <Label lang="en_US">Analog input 2 - Offset</Label>
+          </Labels>
+        </Register>
         <Register access="r" address_type="NVM_NONE" address="0x035F" dtype="u32" id="FBK_ENA_MASK" units="-" subnode="1" cyclic="CONFIG" desc="Boolean mask indicating the enabled feedbacks" cat_id="REPORTING">
           <Labels>
             <Label lang="en_US">Enabled feedbacks mask</Label>
@@ -1476,6 +1611,7 @@
             <Enum value="5">Digital halls</Enum>
             <Enum value="6">Secondary Absolute Slave 1</Enum>
             <Enum value="7">Primary Absolute Slave 2 (daisy chain)</Enum>
+            <Enum value="8">Incremental encoder 2</Enum>
           </Enumerations>
         </Register>
         <Register access="rw" address_type="NVM_CFG" address="0x0361" dtype="u16" id="CL_POS_FBK_SENSOR" units="-" subnode="1" cyclic="CONFIG" desc="Selects the position feedback sensor" cat_id="FEEDBACK">
@@ -1489,6 +1625,7 @@
             <Enum value="5">Digital halls</Enum>
             <Enum value="6">Secondary Absolute Slave 1</Enum>
             <Enum value="7">Primary Absolute Slave 2 (daisy chain)</Enum>
+            <Enum value="8">Incremental encoder 2</Enum>
           </Enumerations>
         </Register>
         <Register access="rw" address_type="NVM_CFG" address="0x0362" dtype="u16" id="CL_AUX_FBK_SENSOR" units="none" subnode="1" cyclic="CONFIG" desc="Indicates the sensor used for raw value reading" cat_id="FEEDBACK">
@@ -1501,6 +1638,7 @@
             <Enum value="5">Digital halls</Enum>
             <Enum value="6">Secondary Absolute Slave 1</Enum>
             <Enum value="7">Primary Absolute Slave 2 (daisy chain)</Enum>
+            <Enum value="8">Incremental encoder 2</Enum>
           </Enumerations>
         </Register>
         <Register access="rw" address_type="NVM_CFG" address="0x0364" dtype="float" id="PROF_POS_VEL_RATIO" units="-" subnode="1" cyclic="CONFIG" desc="Ratio between revolutions in position sensor against revolutions in velocity sensor [revs in position sensor / revs in velocity sensor]&#13;&#10;&#13;&#10;For instance, if 1 revolution at the position sensor locations equals 50 revolutions where the velocity sensor is located, the ratio should be 1/50." cat_id="FEEDBACK">
@@ -1566,20 +1704,20 @@
           <Labels>
             <Label lang="en_US">Primary Absolute Slave 1 - Position start bit</Label>
           </Labels>
-          <Range min="0" max="63"/>
+          <Range min="0" max="31"/>
         </Register>
-        <Register access="rw" address_type="NVM_CFG" address="0x0378" dtype="u16" id="FBK_SSI2_FRAME_SIZE" units="-" subnode="1" cyclic="CONFIG" desc="Defines the size in bits of the frame to be read from the Secondary BiSS-C / SSI slave 1 interface" cat_id="FEEDBACK">
+        <Register access="rw" address_type="NVM_CFG" address="0x0378" dtype="u16" id="FBK_SSI2_FRAME_SIZE" units="-" subnode="1" cyclic="CONFIG" desc="Defines the size in bits of the frame to be read from the SSI interface" cat_id="FEEDBACK">
           <Labels>
-            <Label lang="en_US">Secondary Absolute Slave 1 - Frame size</Label>
+            <Label lang="en_US">Secondary Absolute Slave 1 -  Frame size</Label>
           </Labels>
-          <Range min="10" max="64"/>
+          <Range min="10" max="31"/>
         </Register>
-        <Register access="rw" address_type="NVM_CFG" address="0x0379" dtype="u16" id="FBK_SSI2_ERROR_TOLERANCE" units="-" subnode="1" cyclic="CONFIG" desc="Number of error detections on Secondary BiSS-C / SSI slave 1 feedback frame allowed before a fault generation." cat_id="FEEDBACK">
+        <Register access="rw" address_type="NVM_CFG" address="0x0379" dtype="u16" id="FBK_SSI2_ERROR_TOLERANCE" units="-" subnode="1" cyclic="CONFIG" desc="Number of error detections on SSI feedback frame allowed before a fault generation." cat_id="FEEDBACK">
           <Labels>
             <Label lang="en_US">Secondary Absolute Slave 1 - Error tolerance</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_CFG" address="0x037B" dtype="u16" id="FBK_SSI2_POS_POLARITY" units="-" subnode="1" cyclic="CONFIG" desc="Indicates the polarity of rotation of the Secondary BiSS-C / SSI slave 1 feedback sensor" cat_id="FEEDBACK">
+        <Register access="rw" address_type="NVM_CFG" address="0x037B" dtype="u16" id="FBK_SSI2_POS_POLARITY" units="-" subnode="1" cyclic="CONFIG" desc="Indicates the polarity of rotation of the SSI feedback sensor" cat_id="FEEDBACK">
           <Labels>
             <Label lang="en_US">Secondary Absolute Slave 1 - Polarity</Label>
           </Labels>
@@ -1588,35 +1726,33 @@
             <Enum value="1">Reversed</Enum>
           </Enumerations>
         </Register>
-        <Register access="rw" address_type="NVM_CFG" address="0x037C" dtype="u16" id="FBK_SSI2_FRAME_TYPE" units="-" subnode="1" cyclic="CONFIG" desc="Selects the frame type of the Secondary BiSS-C / SSI slave 1 feedback sensor" cat_id="FEEDBACK">
+        <Register access="rw" address_type="NVM_CFG" address="0x037C" dtype="u16" id="FBK_SSI2_FRAME_TYPE" units="-" subnode="1" cyclic="CONFIG" desc="Selects the frame type of the SSI feedback sensor" cat_id="FEEDBACK">
           <Labels>
-            <Label lang="en_US">Secondary Absolute Slave 1 - Frame type</Label>
+            <Label lang="en_US">Secondary Absolute Slave 1 -  Frame type</Label>
           </Labels>
           <Enumerations>
             <Enum value="0">Raw</Enum>
             <Enum value="1">Raw gray</Enum>
             <Enum value="2">Zettlex - SSI1</Enum>
-            <Enum value="3">BiSS-C BP3</Enum>
-            <Enum value="4">BiSS-C BP3 Gray</Enum>
           </Enumerations>
         </Register>
-        <Register access="rw" address_type="NVM_CFG" address="0x037D" dtype="u16" id="FBK_SSI2_POS_BITS" units="-" subnode="1" cyclic="CONFIG" desc="Size in bits of position information block in Secondary BiSS-C / SSI slave 1 feedback frame" cat_id="FEEDBACK">
+        <Register access="rw" address_type="NVM_CFG" address="0x037D" dtype="u16" id="FBK_SSI2_POS_BITS" units="-" subnode="1" cyclic="CONFIG" desc="Size in bits of position information block in SSI feedback frame" cat_id="FEEDBACK">
           <Labels>
             <Label lang="en_US">Secondary Absolute Slave 1 - Position bits</Label>
           </Labels>
-          <Range min="10" max="32"/>
+          <Range min="10" max="31"/>
         </Register>
-        <Register access="rw" address_type="NVM_CFG" address="0x037E" dtype="u16" id="FBK_SSI2_POS_ST_BITS" units="-" subnode="1" cyclic="CONFIG" desc="Defines the size in bits of the single-turn information inside the position block of the Secondary BiSS-C / SSI slave 1 feedback frame" cat_id="FEEDBACK">
+        <Register access="rw" address_type="NVM_CFG" address="0x037E" dtype="u16" id="FBK_SSI2_POS_ST_BITS" units="-" subnode="1" cyclic="CONFIG" desc="Defines the size in bits of the single-turn information inside the position block of the SSI feedback frame" cat_id="FEEDBACK">
           <Labels>
             <Label lang="en_US">Secondary Absolute Slave 1 - Single-turn bits</Label>
           </Labels>
-          <Range min="10" max="32"/>
+          <Range min="10" max="31"/>
         </Register>
-        <Register access="rw" address_type="NVM_CFG" address="0x037F" dtype="u16" id="FBK_SSI2_POS_START_BIT" units="-" subnode="1" cyclic="CONFIG" desc="Defines how many bits the position information is displaced from the LSB in the Secondary BiSS-C / SSI slave 1 feedback frame." cat_id="FEEDBACK">
+        <Register access="rw" address_type="NVM_CFG" address="0x037F" dtype="u16" id="FBK_SSI2_POS_START_BIT" units="-" subnode="1" cyclic="CONFIG" desc="Defines how many bits the position information is displaced from the LSB in the SSI feedback frame." cat_id="FEEDBACK">
           <Labels>
             <Label lang="en_US">Secondary Absolute Slave 1 - Position start bit</Label>
           </Labels>
-          <Range min="0" max="63"/>
+          <Range min="0" max="31"/>
         </Register>
         <Register access="rw" address_type="NVM_CFG" address="0x0380" dtype="u16" id="FBK_GEN_MODE" units="-" subnode="1" cyclic="CONFIG" desc="Waveform to be injected as input feedback value" cat_id="FEEDBACK">
           <Labels>
@@ -1667,7 +1803,7 @@
             <Enum value="10000">10000</Enum>
           </Enumerations>
         </Register>
-        <Register access="rw" address_type="NVM_CFG" address="0x0387" dtype="u32" id="FBK_SSI2_BAUD" units="kbits/s" subnode="1" cyclic="CONFIG" desc="Secondary BiSS-C / SSI slave 1 baudrate in kHz" cat_id="FEEDBACK">
+        <Register access="rw" address_type="NVM_CFG" address="0x0387" dtype="u32" id="FBK_SSI2_BAUD" units="kbits/s" subnode="1" cyclic="CONFIG" desc="Secondary SSI baudrate in kHz" cat_id="FEEDBACK">
           <Labels>
             <Label lang="en_US">Secondary Absolute Slave 1 - Baudrate</Label>
           </Labels>
@@ -1692,7 +1828,7 @@
             <Enum value="1">Reversed</Enum>
           </Enumerations>
         </Register>
-        <Register access="rw" address_type="NVM_CFG" address="0x038A" dtype="u16" id="FBK_DIGENC1_FILTER" units="-" subnode="1" cyclic="CONFIG" desc="Glitch filter for incremental encoder feedback" cat_id="FEEDBACK">
+        <Register access="rw" address_type="NVM_CFG" address="0x038A" dtype="u16" id="FBK_DIGENC1_FILTER" units="-" subnode="1" cyclic="CONFIG" desc="Glitch filter for incremental encoder feedbacks" cat_id="FEEDBACK">
           <Labels>
             <Label lang="en_US">Incremental encoder 1 - Filter</Label>
           </Labels>
@@ -1713,6 +1849,43 @@
         <Register access="r" address_type="NVM_NONE" address="0x038B" dtype="s32" id="FBK_DIGENC1_VALUE" units="cnt" subnode="1" cyclic="CYCLIC_TX" desc="Contains raw value read by incremental encoder." cat_id="FEEDBACK">
           <Labels>
             <Label lang="en_US">Incremental encoder 1 - Value</Label>
+          </Labels>
+        </Register>
+        <Register access="rw" address_type="NVM_CFG" address="0x038C" dtype="u32" id="FBK_DIGENC2_RESOLUTION" units="cnt" subnode="1" cyclic="CONFIG" desc="Number of counts per 1 mechanical revolution of the secondary incremental encoder sensor" cat_id="FEEDBACK">
+          <Labels>
+            <Label lang="en_US">Incremental encoder 2 - Resolution</Label>
+          </Labels>
+        </Register>
+        <Register access="rw" address_type="NVM_CFG" address="0x038D" dtype="u16" id="FBK_DIGENC2_POLARITY" units="cnt" subnode="1" cyclic="CONFIG" desc="Indicates the polarity of rotation of the secondary incremental encoder sensor" cat_id="FEEDBACK">
+          <Labels>
+            <Label lang="en_US">Incremental encoder 2 - Polarity</Label>
+          </Labels>
+          <Enumerations>
+            <Enum value="0">Standard</Enum>
+            <Enum value="1">Reversed</Enum>
+          </Enumerations>
+        </Register>
+        <Register access="rw" address_type="NVM_CFG" address="0x038E" dtype="u16" id="FBK_DIGENC2_FILTER" units="-" subnode="1" cyclic="CONFIG" desc="Glitch filter for secondary incremental encoder feedback" cat_id="FEEDBACK">
+          <Labels>
+            <Label lang="en_US">Incremental encoder 2 - Filter</Label>
+          </Labels>
+          <Enumerations>
+            <Enum value="0">100 MHz</Enum>
+            <Enum value="1">33 MHz</Enum>
+            <Enum value="2">16 MHz</Enum>
+            <Enum value="3">8 MHz</Enum>
+            <Enum value="4">4 MHz</Enum>
+            <Enum value="5">2 MHz</Enum>
+            <Enum value="6">1 MHz</Enum>
+            <Enum value="7">520 kHz</Enum>
+            <Enum value="8">260 kHz</Enum>
+            <Enum value="9">130 KHz</Enum>
+            <Enum value="10">65 kHz</Enum>
+          </Enumerations>
+        </Register>
+        <Register access="r" address_type="NVM_NONE" address="0x038F" dtype="s32" id="FBK_DIGENC2_VALUE" units="cnt" subnode="1" cyclic="CYCLIC_TX" desc="Contains raw value read by secondary incremental encoder." cat_id="FEEDBACK">
+          <Labels>
+            <Label lang="en_US">Incremental encoder 2 - Value</Label>
           </Labels>
         </Register>
         <Register access="rw" address_type="NVM_CFG" address="0x0390" dtype="u16" id="FBK_DIGHALL_POLARITY" units="-" subnode="1" cyclic="CONFIG" desc="Indicates the polarity of rotation of the digital halls sensor" cat_id="FEEDBACK">
@@ -1757,10 +1930,11 @@
             <Label lang="en_US">Feedback runaway source</Label>
           </Labels>
           <Enumerations>
-            <Enum value="1">Biss-C / SSI - slave 1</Enum>
+            <Enum value="1">BiSS-C / SSI - slave 1</Enum>
             <Enum value="4">Incremental encoder 1</Enum>
-            <Enum value="6">Secondary BiSS-C / SSI slave 1</Enum>
-            <Enum value="7">Biss-C slave 2</Enum>
+            <Enum value="6">Secondary SSI encoder</Enum>
+            <Enum value="7">BiSS-C slave 2</Enum>
+            <Enum value="8">Incremental encoder 2</Enum>
           </Enumerations>
         </Register>
         <Register access="rw" address_type="NVM_CFG" address="0x0395" dtype="u16" id="FBK_BISS_CHAIN" units="-" subnode="1" cyclic="CONFIG" desc="Number of serial absolute feedbacks connected in daisy chain. There has to be at least one feedback connected" cat_id="FEEDBACK">
@@ -1839,7 +2013,7 @@
           <Labels>
             <Label lang="en_US">Primary Absolute Slave 2 (daisy chain) - Position start bit</Label>
           </Labels>
-          <Range min="0" max="63"/>
+          <Range min="0" max="31"/>
         </Register>
         <Register access="r" address_type="NVM_NONE" address="0x0408" dtype="u16" id="FBK_BISS1_SSI1_CRC_POLY" units="-" subnode="1" cyclic="CONFIG" desc="Biss-C slave 1 / Primary SSI CRC polynomial in binary format." cat_id="FEEDBACK">
           <Labels>
@@ -1881,7 +2055,7 @@
             <Label lang="en_US">Primary Absolute Slave 2 (daisy chain) - Position offset</Label>
           </Labels>
         </Register>
-        <Register access="rw" address_type="NVM_CFG" address="0x043A" dtype="s32" id="FBK_SSI2_OFFSET" units="cnt" subnode="1" cyclic="CONFIG" desc="Position offset added to Secondary BiSS-C / SSI slave 1 feedback" cat_id="FEEDBACK">
+        <Register access="rw" address_type="NVM_CFG" address="0x043A" dtype="s32" id="FBK_SSI2_OFFSET" units="cnt" subnode="1" cyclic="CONFIG" desc="Position offset added to SSI feedback" cat_id="FEEDBACK">
           <Labels>
             <Label lang="en_US">Secondary Absolute Slave 1 - Position offset</Label>
           </Labels>
@@ -1889,31 +2063,6 @@
         <Register access="rw" address_type="NVM_CFG" address="0x043B" dtype="float" id="TORQUE_ESTIM_KT" units="Nm/A" subnode="1" cyclic="CONFIG" desc="" cat_id="FEEDBACK">
           <Labels>
             <Label lang="en_US">Torque constant</Label>
-          </Labels>
-        </Register>
-        <Register access="rw" address_type="NVM_CFG" address="0x043C" dtype="u16" id="FBK_SSI2_PROTOCOL" units="-" subnode="1" cyclic="CONFIG" desc="Secondary BiSS-C / SSI slave 1 protocol to be used" cat_id="FEEDBACK">
-          <Labels>
-            <Label lang="en_US">Secondary Absolute Slave 1 - Protocol</Label>
-          </Labels>
-          <Enumerations>
-            <Enum value="0">BiSS C</Enum>
-            <Enum value="1">SSI</Enum>
-            <Enum value="3">Serial Synchronous 1</Enum>
-          </Enumerations>
-        </Register>
-        <Register access="r" address_type="NVM_NONE" address="0x043D" dtype="u16" id="FBK_SSI2_CRC_POLY" units="-" subnode="1" cyclic="CONFIG" desc="Secondary BiSS-C / SSI slave 1 CRC polynomial in binary format." cat_id="FEEDBACK">
-          <Labels>
-            <Label lang="en_US">Secondary Absolute Slave 1 - CRC polynomial</Label>
-          </Labels>
-        </Register>
-        <Register access="r" address_type="NVM_NONE" address="0x043E" dtype="u16" id="FBK_SSI2_CRC_SEED" units="-" subnode="1" cyclic="CONFIG" desc="Secondary BiSS-C / SSI slave 1 CRC seed" cat_id="FEEDBACK">
-          <Labels>
-            <Label lang="en_US">Secondary Absolute Slave 1 - CRC seed</Label>
-          </Labels>
-        </Register>
-        <Register access="r" address_type="NVM_NONE" address="0x043F" dtype="u16" id="FBK_SSI2_CRC_BITS" units="-" subnode="1" cyclic="CONFIG" desc="Secondary BiSS-C / SSI slave 1 number of Crc bits" cat_id="FEEDBACK">
-          <Labels>
-            <Label lang="en_US">Secondary Absolute Slave 1 - CRC number of bits</Label>
           </Labels>
         </Register>
         <Register access="rw" address_type="NVM_CFG" address="0x0450" dtype="u16" id="HOM_MODE" units="-" subnode="1" cyclic="CYCLIC_RX" desc="Indicates the homing mode used for 0 detection" cat_id="HOMING">
@@ -1980,6 +2129,7 @@
           </Labels>
           <Enumerations>
             <Enum value="0">Incremental encoder 1</Enum>
+            <Enum value="1">Incremental encoder 2</Enum>
           </Enumerations>
         </Register>
         <Register access="r" address_type="NVM_NONE" address="0x0458" dtype="u32" id="CL_CUR_FREQ" units="Hz" subnode="1" cyclic="CONFIG" desc="Indicates the frequency of the current loop" cat_id="CONTROL">
@@ -2158,10 +2308,10 @@
             <Label lang="en_US">Power stage frequency</Label>
           </Labels>
           <Enumerations>
-            <Enum value="0">20 kHz</Enum>
-            <Enum value="1">50 kHz</Enum>
-            <Enum value="2">100 kHz</Enum>
-            <Enum value="3">200 kHz</Enum>
+            <Enum value="0">10 kHz</Enum>
+            <Enum value="1">20 kHz</Enum>
+            <Enum value="2">50 kHz</Enum>
+            <Enum value="3">100 kHz</Enum>
           </Enumerations>
         </Register>
         <Register access="rw" address_type="NVM_CFG" address="0x0522" dtype="u32" id="CL_CFG_OPTION" units="-" subnode="1" cyclic="CONFIG" desc="This parameter allows configuring certain options related to the control loops&#13;&#10;&#13;&#10;Bit 0: Position loop continuity&#13;&#10;Bit 1: Velocity loop continuity&#13;&#10;Bit 2: Reserved" cat_id="CONTROL">
@@ -2572,7 +2722,7 @@
             <Enum value="0">Standard GPO</Enum>
             <Enum value="1">Operation enabled flag</Enum>
             <Enum value="2">External shunt</Enum>
-            <Enum value="3">Health</Enum>
+            <Enum value="3">Health signal</Enum>
           </Enumerations>
         </Register>
         <Register access="rw" address_type="NVM_CFG" address="0x05FD" dtype="u16" id="IO_OUT_MAP_2" units="-" subnode="1" cyclic="CONFIG" desc="" cat_id="IN_OUT">
@@ -2583,7 +2733,7 @@
             <Enum value="0">Standard GPO</Enum>
             <Enum value="1">Operation enabled flag</Enum>
             <Enum value="2">External shunt</Enum>
-            <Enum value="3">Health</Enum>
+            <Enum value="3">Health signal</Enum>
           </Enumerations>
         </Register>
         <Register access="rw" address_type="NVM_CFG" address="0x05FE" dtype="u16" id="IO_OUT_MAP_3" units="-" subnode="1" cyclic="CONFIG" desc="" cat_id="IN_OUT">
@@ -2594,7 +2744,7 @@
             <Enum value="0">Standard GPO</Enum>
             <Enum value="1">Operation enabled flag</Enum>
             <Enum value="2">External shunt</Enum>
-            <Enum value="3">Health</Enum>
+            <Enum value="3">Health signal</Enum>
           </Enumerations>
         </Register>
         <Register access="rw" address_type="NVM_CFG" address="0x05FF" dtype="u16" id="IO_OUT_MAP_4" units="-" subnode="1" cyclic="CONFIG" desc="" cat_id="IN_OUT">
@@ -2605,7 +2755,7 @@
             <Enum value="0">Standard GPO</Enum>
             <Enum value="1">Operation enabled flag</Enum>
             <Enum value="2">External shunt</Enum>
-            <Enum value="3">Health</Enum>
+            <Enum value="3">Health signal</Enum>
           </Enumerations>
         </Register>
         <Register access="r" address_type="NVM_NONE" address="0x0600" dtype="u32" id="IO_IN_VALUE" units="-" subnode="1" cyclic="CYCLIC_TX" desc="Boolean mask indicating the state of all the digital inputs" cat_id="REPORTING">
@@ -2681,6 +2831,16 @@
             <Enum value="6">Quick stop ramp</Enum>
           </Enumerations>
         </Register>
+        <Register access="rw" address_type="NVM_CFG" address="0x060D" dtype="u16" id="ERROR_PROT_EXT_ERROR_REACTION" units="-" subnode="1" cyclic="CONFIG" desc="Configures the reaction to an external error signal&#13;&#10;&#13;&#10;Options:&#13;&#10;0 - No action&#13;&#10;1- Fault (with configured fault reaction code)&#13;&#10;2 - Reserved&#13;&#10;3 - Quick stop command" cat_id="PROTECTIONS">
+          <Labels>
+            <Label lang="en_US">External error signal reaction</Label>
+          </Labels>
+          <Enumerations>
+            <Enum value="0">No action</Enum>
+            <Enum value="1">Fault</Enum>
+            <Enum value="3">Quick stop command</Enum>
+          </Enumerations>
+        </Register>
         <Register access="rw" address_type="NVM_CFG" address="0x060F" dtype="u16" id="ERROR_PROT_I2T_OPTION" units="-" subnode="1" cyclic="CONFIG" desc="Reaction option code for the &amp;quot;I2T without current control&amp;quot; error" cat_id="PROTECTIONS">
           <Labels>
             <Label lang="en_US">User I2T error option code</Label>
@@ -2714,7 +2874,7 @@
             <Enum value="3">Quick stop ramp</Enum>
           </Enumerations>
         </Register>
-        <Register access="rw" address_type="NVM_CFG" address="0x0612" dtype="u16" id="ERROR_POS_FOLLOWING_OPTION" units="-" subnode="1" cyclic="CONFIG" desc="Reaction option code for the &amp;quot;Position following error&amp;quot; error" cat_id="PROTECTIONS">
+        <Register access="rw" address_type="NVM_CFG" address="0x0612" dtype="u16" id="ERROR_POS_FOLLOWING_OPTION" units="-" subnode="1" cyclic="CONFIG" desc="Reaction option code for the &amp;quot;Position tracking error&amp;quot; error" cat_id="PROTECTIONS">
           <Labels>
             <Label lang="en_US">Position following error option code</Label>
           </Labels>
@@ -2780,6 +2940,17 @@
             <Enum value="3">Quick stop ramp</Enum>
           </Enumerations>
         </Register>
+        <Register access="rw" address_type="NVM_CFG" address="0x0618" dtype="u16" id="ERROR_PROT_EXT_FAULT_OPTION" units="-" subnode="1" cyclic="CONFIG" desc="Reaction option code for the &amp;quot;External fault&amp;quot; error" cat_id="PROTECTIONS">
+          <Labels>
+            <Label lang="en_US">External fault option code</Label>
+          </Labels>
+          <Enumerations>
+            <Enum value="0">Disable power stage</Enum>
+            <Enum value="1">Do nothing</Enum>
+            <Enum value="2">Slow down ramp</Enum>
+            <Enum value="3">Quick stop ramp</Enum>
+          </Enumerations>
+        </Register>
         <Register access="rw" address_type="NVM_CFG" address="0x0619" dtype="u16" id="ERROR_DIGHALL_SEQ_OPTION" units="-" subnode="1" cyclic="CONFIG" desc="Reaction option code for the &amp;quot;Halls sequence error&amp;quot; error" cat_id="PROTECTIONS">
           <Labels>
             <Label lang="en_US">Halls sequence error option code</Label>
@@ -2805,6 +2976,17 @@
         <Register access="rw" address_type="NVM_CFG" address="0x061B" dtype="u16" id="ERROR_PROT_OVER_CUR_OPTION" units="-" subnode="1" cyclic="CONFIG" desc="Reaction option code for the &amp;quot;Over current without current control&amp;quot; error" cat_id="PROTECTIONS">
           <Labels>
             <Label lang="en_US">Over current without current control error option code</Label>
+          </Labels>
+          <Enumerations>
+            <Enum value="0">Disable power stage</Enum>
+            <Enum value="1">Do nothing</Enum>
+            <Enum value="2">Slow down ramp</Enum>
+            <Enum value="3">Quick stop ramp</Enum>
+          </Enumerations>
+        </Register>
+        <Register access="rw" address_type="NVM_CFG" address="0x061C" dtype="u16" id="COMMS_WATCHDOG_ERROR_OPTION" units="-" subnode="1" cyclic="CONFIG" desc="Reaction option code for the &amp;quot;Communications watchdog error&amp;quot; error" cat_id="PROTECTIONS">
+          <Labels>
+            <Label lang="en_US">Communications watchdog error option code</Label>
           </Labels>
           <Enumerations>
             <Enum value="0">Disable power stage</Enum>
@@ -2846,7 +3028,7 @@
             <Enum value="4">GPI4</Enum>
           </Enumerations>
         </Register>
-        <Register access="rw" address_type="NVM_CFG" address="0x0624" dtype="u16" id="IO_IN_FLT_RESET" units="-" subnode="1" cyclic="CONFIG" desc="Links a digital input to perform fault reset on rising edge" cat_id="IN_OUT">
+        <Register access="rw" address_type="NVM_CFG" address="0x0624" dtype="u16" id="IO_IN_FLT_RESET" units="-" subnode="1" cyclic="CONFIG" desc="Links a digital input to perform a fault reset on rising edge" cat_id="IN_OUT">
           <Labels>
             <Label lang="en_US">Fault reset input</Label>
           </Labels>
@@ -2909,7 +3091,14 @@
           <Enumerations>
             <Enum value="0">Disabled</Enum>
             <Enum value="1">Only Sync 0</Enum>
+            <Enum value="2">Only Sync 1</Enum>
+            <Enum value="3">Sync 0 and Sync 1</Enum>
           </Enumerations>
+        </Register>
+        <Register access="rw" address_type="NVM_CFG" address="0x0642" dtype="u32" id="COMMS_WATCHDOG_WINDOW" units="ms" subnode="1" cyclic="CONFIG" desc="Communications watchdog window in milliseconds. Once the drive has entered &amp;quot;ready to switch on&amp;quot; state for the first time, an error will be triggered in the drive when no communication frames are received during the amount of time defined in this parameter (if its value is greater than 0)&#13;&#10;&#13;&#10;0 - Watchdog disabled&#13;&#10;Any other - Watchdog enabled" cat_id="COMMUNICATIONS">
+          <Labels>
+            <Label lang="en_US">Communication watchdog window</Label>
+          </Labels>
         </Register>
         <Register access="rw" address_type="NVM_CFG" address="0x0643" dtype="u32" id="COMMS_SYNC_SIGNAL_FREQ" units="Hz" subnode="1" cyclic="CONFIG" desc="Frequency at which the synchronization signal is being generated. It should be an exact multiple of the PWM frequency selected." cat_id="OTHERS">
           <Labels>
@@ -2960,6 +3149,11 @@
             <Label lang="en_US">Restore all</Label>
           </Labels>
         </Register>
+        <Register access="w" address_type="NVM_NONE" address="0x06DD" dtype="u32" id="DICT_ACCESS_PWD" units="-" subnode="1" cyclic="CONFIG" desc="Password for changing user rol for dictionary access." cat_id="INTERNAL">
+          <Labels>
+            <Label lang="en_US">Dict. access password</Label>
+          </Labels>
+        </Register>
         <Register access="w" address_type="NVM_NONE" address="0x06DF" dtype="u32" id="DRV_BOOT_RESET" units="-" subnode="1" cyclic="CONFIG" desc="With the proper password resets the drive." cat_id="INTERNAL">
           <Labels>
             <Label lang="en_US">System reset</Label>
@@ -2985,12 +3179,17 @@
             <Label lang="en_US">Software version</Label>
           </Labels>
         </Register>
+        <Register access="r" address_type="NVM_NONE" address="0x06E5" dtype="str" id="DRV_ID_WEB" units="-" subnode="1" cyclic="CONFIG" desc="Ingenia website link" cat_id="IDENTIFICATION">
+          <Labels>
+            <Label lang="en_US">Ingenia url</Label>
+          </Labels>
+        </Register>
         <Register access="r" address_type="NVM_LOCK" address="0x06E6" dtype="u32" id="DRV_ID_SERIAL_NUMBER" units="-" subnode="1" cyclic="CONFIG" desc="Unique serial number id of the device" cat_id="IDENTIFICATION">
           <Labels>
             <Label lang="en_US">Serial number</Label>
           </Labels>
         </Register>
-        <Register access="r" address_type="NVM_HW" address="0x0700" dtype="u32" id="DRV_PS_FREQ_1" units="Hz" subnode="1" cyclic="CONFIG" desc="Contains the selectable commutation frequency 1 (Also minimum PWM frequency)" cat_id="INTERNAL">
+        <Register access="r" address_type="NVM_HW" address="0x0700" dtype="u32" id="DRV_PS_FREQ_1" units="Hz" subnode="1" cyclic="CONFIG" desc="Contains the selectable commutation frequency 1" cat_id="INTERNAL">
           <Labels>
             <Label lang="en_US">Power stage frequency 1</Label>
           </Labels>
@@ -3005,22 +3204,22 @@
             <Label lang="en_US">Power stage frequency 3</Label>
           </Labels>
         </Register>
-        <Register access="r" address_type="NVM_HW" address="0x0703" dtype="u32" id="DRV_PS_FREQ_4" units="Hz" subnode="1" cyclic="CONFIG" desc="Contains the selectable commutation frequency 4 (Also maximum PWM frequency)" cat_id="INTERNAL">
+        <Register access="r" address_type="NVM_HW" address="0x0703" dtype="u32" id="DRV_PS_FREQ_4" units="Hz" subnode="1" cyclic="CONFIG" desc="Contains the selectable commutation frequency 4" cat_id="INTERNAL">
           <Labels>
             <Label lang="en_US">Power stage frequency 4</Label>
           </Labels>
         </Register>
-        <Register access="r" address_type="NVM_HW" address="0x0704" dtype="u32" id="DRV_PS_DEAD_TIME" units="-" subnode="1" cyclic="CONFIG" desc="Dead-time applied to PWM generation to avoid shoot-through in the power stage" cat_id="INTERNAL">
+        <Register access="r" address_type="NVM_HW" address="0x0704" dtype="u32" id="DRV_PS_DEAD_TIME" units="ns" subnode="1" cyclic="CONFIG" desc="Dead-time applied to PWM generation to avoid shoot-through in the power stage" cat_id="INTERNAL">
           <Labels>
             <Label lang="en_US">Power stage dead-time (ns)</Label>
           </Labels>
         </Register>
-        <Register access="r" address_type="NVM_HW" address="0x0706" dtype="u32" id="DRV_PS_MIN_LOW_SIDE_ON_TIME" units="-" subnode="1" cyclic="CONFIG" desc="Minimum time the power stage low side should be enabled for a proper current measurement." cat_id="INTERNAL">
+        <Register access="r" address_type="NVM_HW" address="0x0706" dtype="u32" id="DRV_PS_MIN_LOW_SIDE_ON_TIME" units="ns" subnode="1" cyclic="CONFIG" desc="Minimum time the power stage low side should be enabled for a proper current measurement." cat_id="INTERNAL">
           <Labels>
             <Label lang="en_US">Min. low side on time (ns)</Label>
           </Labels>
         </Register>
-        <Register access="r" address_type="NVM_HW" address="0x0707" dtype="u32" id="DRV_PS_MIN_HIGH_SIDE_ON_TIME" units="ns" subnode="1" cyclic="CONFIG" desc="" cat_id="OTHERS">
+        <Register access="r" address_type="NVM_HW" address="0x0707" dtype="u32" id="DRV_PS_MIN_HIGH_SIDE_ON_TIME" units="ns" subnode="1" cyclic="CONFIG" desc="Minimum high side on time in ns&#13;&#10;&#13;&#10;Note:&#13;&#10;&#13;&#10;Real pulse width = floor [(HS_ontime + Dt) / 10ns ] - Dt &#13;&#10;&#13;&#10;Where 10ns is the minimum discretization" cat_id="OTHERS">
           <Labels>
             <Label lang="en_US">Min. high side on time (ns)</Label>
           </Labels>
@@ -3188,7 +3387,7 @@
         </Register>
         <Register access="r" address_type="NVM_HW" address="0x0746" dtype="u16" id="DRV_PROT_RED_TEMP_TYPE" units="-" subnode="1" cyclic="CONFIG" desc="Indicates the type of temperature sensor is used for the redundant temperature sensor type" cat_id="INTERNAL">
           <Labels>
-            <Label lang="en_US">Red. temp. sensor type</Label>
+            <Label lang="en_US">Power stage temp. sensor 2 type</Label>
           </Labels>
           <Enumerations>
             <Enum value="0">NTC</Enum>
@@ -3221,27 +3420,27 @@
             <Label lang="en_US">Power stage temp. sensor 2 offset</Label>
           </Labels>
         </Register>
-        <Register access="r" address_type="NVM_HW" address="0x0750" dtype="float" id="DRV_PROT_DERATING_CONST" units="-" subnode="1" cyclic="CONFIG" desc="Constant applied in function of the drive temperature to the maximum nominal current" cat_id="INTERNAL">
+        <Register access="r" address_type="NVM_HW" address="0x0750" dtype="float" id="DRV_PROT_DERATING_CONST" units="A/ºC" subnode="1" cyclic="CONFIG" desc="Constant applied in function of the drive temperature to the maximum nominal current" cat_id="INTERNAL">
           <Labels>
             <Label lang="en_US">Derating constant</Label>
           </Labels>
         </Register>
-        <Register access="r" address_type="NVM_HW" address="0x0751" dtype="float" id="DRV_PROT_DERATING_FREQ_CONST1" units="-" subnode="1" cyclic="CONFIG" desc="Derating constant for commutation frequency 1 that modifies the temperature threshold for starting current derating." cat_id="INTERNAL">
+        <Register access="r" address_type="NVM_HW" address="0x0751" dtype="float" id="DRV_PROT_DERATING_FREQ_CONST1" units="A/V" subnode="1" cyclic="CONFIG" desc="Derating constant for commutation frequency 1 that modifies the temperature threshold for starting current derating." cat_id="INTERNAL">
           <Labels>
             <Label lang="en_US">Frequency 1 derating constant</Label>
           </Labels>
         </Register>
-        <Register access="r" address_type="NVM_HW" address="0x0752" dtype="float" id="DRV_PROT_DERATING_FREQ_CONST2" units="-" subnode="1" cyclic="CONFIG" desc="Derating constant for commutation frequency 2 that modifies the temperature threshold for starting current derating." cat_id="INTERNAL">
+        <Register access="r" address_type="NVM_HW" address="0x0752" dtype="float" id="DRV_PROT_DERATING_FREQ_CONST2" units="A/V" subnode="1" cyclic="CONFIG" desc="Derating constant for commutation frequency 2 that modifies the temperature threshold for starting current derating." cat_id="INTERNAL">
           <Labels>
             <Label lang="en_US">Frequency 2 derating constant</Label>
           </Labels>
         </Register>
-        <Register access="r" address_type="NVM_HW" address="0x0753" dtype="float" id="DRV_PROT_DERATING_FREQ_CONST3" units="-" subnode="1" cyclic="CONFIG" desc="Derating constant for commutation frequency 3 that modifies the temperature threshold for starting current derating." cat_id="INTERNAL">
+        <Register access="r" address_type="NVM_HW" address="0x0753" dtype="float" id="DRV_PROT_DERATING_FREQ_CONST3" units="A/V" subnode="1" cyclic="CONFIG" desc="Derating constant for commutation frequency 3 that modifies the temperature threshold for starting current derating." cat_id="INTERNAL">
           <Labels>
             <Label lang="en_US">Frequency 3 derating constant</Label>
           </Labels>
         </Register>
-        <Register access="r" address_type="NVM_HW" address="0x0754" dtype="float" id="DRV_PROT_DERATING_FREQ_CONST4" units="-" subnode="1" cyclic="CONFIG" desc="Derating constant for commutation frequency 4 that modifies the temperature threshold for starting current derating." cat_id="INTERNAL">
+        <Register access="r" address_type="NVM_HW" address="0x0754" dtype="float" id="DRV_PROT_DERATING_FREQ_CONST4" units="A/V" subnode="1" cyclic="CONFIG" desc="Derating constant for commutation frequency 4 that modifies the temperature threshold for starting current derating." cat_id="INTERNAL">
           <Labels>
             <Label lang="en_US">Frequency 4 derating constant</Label>
           </Labels>
@@ -3694,9 +3893,14 @@
           <Label lang="en_US">STO is active in operation enabled and has disabled the power stage</Label>
         </Labels>
       </Error>
+      <Error id="0x00002301" affected_module="Brake" error_type="cyclic">
+        <Labels>
+          <Label lang="en_US">Brake over-current</Label>
+        </Labels>
+      </Error>
     </Errors>
   </Body>
   <DriveImage encoding="xs:base64Binary">
-    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
+    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
   </DriveImage>
 </IngeniaDictionary>
