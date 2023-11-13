@@ -26,7 +26,6 @@
 ### Changed
 - Use ingenialink to get the drive's encoded image from the dictionary.
 - Update subscribe and unsubscribe to network status functions.
-- Smoke tests are defined as tests that need a setup but takes 1 second (approx.) as maximum.
 
 ## [0.6.3] - 2023-10-11
 ### Fixed
