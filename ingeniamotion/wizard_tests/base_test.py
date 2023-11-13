@@ -1,16 +1,16 @@
-from typing import TYPE_CHECKING, Any, Dict, List, Union, Optional
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 import ingenialogger
-
-from abc import ABC, abstractmethod
 from ingenialink.exceptions import ILError
 
 from ingeniamotion.exceptions import IMRegisterNotExist, IMRegisterWrongAccess
 from ingeniamotion.metaclass import DEFAULT_SERVO
-from ingeniamotion.wizard_tests.stoppable import Stoppable, StopException
+from ingeniamotion.wizard_tests.stoppable import StopException, Stoppable
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
+
 from ingeniamotion.enums import SeverityLevel
 
 
@@ -23,6 +23,7 @@ class BaseTest(ABC, Stoppable):
 
     def __init__(self) -> None:
         self.backup_registers_names: List[str] = []
+        self.optional_backup_registers_names: List[str] = []
         self.backup_registers: Dict[int, Dict[str, Union[int, float, str]]] = {}
         self.suggested_registers: Dict[str, Union[int, float, str]] = {}
         self.mc: "MotionController"
@@ -33,14 +34,17 @@ class BaseTest(ABC, Stoppable):
 
     def save_backup_registers(self) -> None:
         self.backup_registers[self.axis] = {}
-        if not isinstance(self.backup_registers_names, List):
-            return
         for uid in self.backup_registers_names:
             try:
                 value = self.mc.communication.get_register(uid, servo=self.servo, axis=self.axis)
                 self.backup_registers[self.axis][uid] = value
             except IMRegisterNotExist as e:
                 self.logger.warning(e, axis=self.axis)
+
+        for uid in self.optional_backup_registers_names:
+            if self.mc.info.register_exists(uid, self.axis, self.servo):
+                value = self.mc.communication.get_register(uid, servo=self.servo, axis=self.axis)
+                self.backup_registers[self.axis][uid] = value
 
     def restore_backup_registers(self) -> None:
         """Restores the value of the registers after the test execution.

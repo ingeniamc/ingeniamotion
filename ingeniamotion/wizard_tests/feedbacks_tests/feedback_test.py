@@ -1,15 +1,16 @@
-from enum import IntEnum
-import time
 import math
+import time
+from enum import IntEnum
 from typing import TYPE_CHECKING, Optional
 
 import ingenialogger
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
+
+from ingeniamotion.enums import OperationMode, SensorType, SeverityLevel
+from ingeniamotion.exceptions import IMRegisterNotExist
 from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
-from ingeniamotion.exceptions import IMRegisterNotExist, IMException
-from ingeniamotion.enums import OperationMode, SeverityLevel, SensorType
 
 
 class Feedbacks(BaseTest):
@@ -73,12 +74,15 @@ class Feedbacks(BaseTest):
         "ERROR_VEL_OUT_LIMITS_OPTION",
         "ERROR_POS_OUT_LIMITS_OPTION",
         "ERROR_POS_FOLLOWING_OPTION",
-        "COMMU_ANGLE_INTEGRITY1_OPTION",
-        "COMMU_ANGLE_INTEGRITY2_OPTION",
         "CL_VEL_FBK_SENSOR",
         "COMMU_ANGLE_REF_SENSOR",
         "CL_VEL_FBK_FILTER1_TYPE",
         "CL_VEL_FBK_FILTER1_FREQ",
+    ]
+
+    OPTIONAL_BACKUP_REGISTERS = [
+        "COMMU_ANGLE_INTEGRITY1_OPTION",
+        "COMMU_ANGLE_INTEGRITY2_OPTION",
         POSITIONING_OPTION_CODE_REGISTER,
         MAX_POSITION_RANGE_LIMIT_REGISTER,
         MIN_POSITION_RANGE_LIMIT_REGISTER,
@@ -100,7 +104,8 @@ class Feedbacks(BaseTest):
         self.pos_vel_same_feedback = False
         self.resolution_multiplier = 1.0
         self.test_frequency = self.TEST_FREQUENCY
-        self.backup_registers_names = self.BACKUP_REGISTERS
+        self.backup_registers_names = self.BACKUP_REGISTERS.copy()
+        self.optional_backup_registers_names = self.OPTIONAL_BACKUP_REGISTERS.copy()
         self.suggested_registers = {}
 
     @BaseTest.stoppable
@@ -217,33 +222,9 @@ class Feedbacks(BaseTest):
             self.COMMUTATION_MODULATION_REGISTER, 0, servo=self.servo, axis=self.axis
         )
         # Set positioning mode to NO LIMITS
-        self.mc.communication.set_register(
-            self.POSITIONING_OPTION_CODE_REGISTER, 0, servo=self.servo, axis=self.axis
-        )
-        self.mc.communication.set_register(
-            self.MIN_POSITION_RANGE_LIMIT_REGISTER, 0, servo=self.servo, axis=self.axis
-        )
-        self.mc.communication.set_register(
-            self.MAX_POSITION_RANGE_LIMIT_REGISTER, 0, servo=self.servo, axis=self.axis
-        )
+        self.__set_positioning_register_values()
         # Default resolution multiplier
-        # Change multiplier using gear ratio if feedback to check is configured
-        # as position sensor (out of gear)
-        position_feedback_value = self.mc.configuration.get_position_feedback(
-            servo=self.servo, axis=self.axis
-        )
-        velocity_feedback_value = self.mc.configuration.get_velocity_feedback(
-            servo=self.servo, axis=self.axis
-        )
-
-        self.pos_vel_same_feedback = position_feedback_value == velocity_feedback_value
-        if position_feedback_value == self.sensor:
-            resolution_multiplier = self.mc.communication.get_register(
-                self.POSITION_TO_VELOCITY_SENSOR_RATIO_REGISTER, servo=self.servo, axis=self.axis
-            )
-            if not isinstance(resolution_multiplier, float):
-                raise TypeError("Resolution multiplier has to be a float")
-            self.resolution_multiplier = resolution_multiplier
+        self.__set_resolution_multiplier()
         # Read pole pairs and set to 1 for an electrical revolution
         self.pair_poles = self.mc.configuration.get_motor_pair_poles(
             servo=self.servo, axis=self.axis
@@ -268,6 +249,49 @@ class Feedbacks(BaseTest):
 
         # set velocity and position following errors to WARNING = 1
         self.reaction_codes_to_warning()
+
+    def __set_positioning_register_values(self) -> None:
+        """Set positioning mode to NO LIMITS."""
+        if self.mc.info.register_exists(
+            self.POSITIONING_OPTION_CODE_REGISTER, servo=self.servo, axis=self.axis
+        ):
+            self.mc.communication.set_register(
+                self.POSITIONING_OPTION_CODE_REGISTER, 0, servo=self.servo, axis=self.axis
+            )
+        if self.mc.info.register_exists(
+            self.MIN_POSITION_RANGE_LIMIT_REGISTER, servo=self.servo, axis=self.axis
+        ):
+            self.mc.communication.set_register(
+                self.MIN_POSITION_RANGE_LIMIT_REGISTER, 0, servo=self.servo, axis=self.axis
+            )
+        if self.mc.info.register_exists(
+            self.MAX_POSITION_RANGE_LIMIT_REGISTER, servo=self.servo, axis=self.axis
+        ):
+            self.mc.communication.set_register(
+                self.MAX_POSITION_RANGE_LIMIT_REGISTER, 0, servo=self.servo, axis=self.axis
+            )
+
+    def __set_resolution_multiplier(self) -> None:
+        """Set the resolution multiplier.
+
+        Change multiplier using gear ratio if feedback to check is configured as position sensor
+        (out of gear).
+        """
+        position_feedback_value = self.mc.configuration.get_position_feedback(
+            servo=self.servo, axis=self.axis
+        )
+        velocity_feedback_value = self.mc.configuration.get_velocity_feedback(
+            servo=self.servo, axis=self.axis
+        )
+
+        self.pos_vel_same_feedback = position_feedback_value == velocity_feedback_value
+        if position_feedback_value == self.sensor:
+            resolution_multiplier = self.mc.communication.get_register(
+                self.POSITION_TO_VELOCITY_SENSOR_RATIO_REGISTER, servo=self.servo, axis=self.axis
+            )
+            if not isinstance(resolution_multiplier, float):
+                raise TypeError("Resolution multiplier has to be a float")
+            self.resolution_multiplier = resolution_multiplier
 
     def teardown(self) -> None:
         self.logger.info("Disabling motor")
