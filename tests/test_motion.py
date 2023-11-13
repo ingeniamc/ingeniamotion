@@ -26,13 +26,6 @@ VOLTAGE_QUADRATURE_SET_POINT_REGISTER = "CL_VOL_Q_SET_POINT"
 VOLTAGE_DIRECT_SET_POINT_REGISTER = "CL_VOL_D_SET_POINT"
 
 
-@pytest.mark.smoke
-def test_aaaa(motion_controller):
-    mc, alias = motion_controller
-    assert True
-
-
-@pytest.mark.smoke
 def test_target_latch(motion_controller):
     mc, alias = motion_controller
     mc.communication.set_register(PROFILER_LATCHING_MODE_REGISTER, 0x40, servo=alias)
@@ -269,7 +262,6 @@ def test_get_actual_position(motion_controller, position_value):
     assert np.abs(np.mean(test_position) - np.mean(reg_value)) < 0.5
 
 
-@pytest.mark.smoke
 @pytest.mark.parametrize("velocity_value", [1, 0, -1])
 def test_get_actual_velocity(motion_controller, velocity_value):
     mc, alias = motion_controller
@@ -306,7 +298,6 @@ def test_get_actual_current_quadrature(mocker, motion_controller):
     )
 
 
-@pytest.mark.smoke
 def test_wait_for_position_timeout(motion_controller):
     timeout_value = 2
     mc, alias = motion_controller
@@ -317,7 +308,6 @@ def test_wait_for_position_timeout(motion_controller):
     assert pytest.approx(timeout_value, abs=0.1) == final_time - init_time
 
 
-@pytest.mark.smoke
 def test_wait_for_velocity_timeout(motion_controller):
     timeout_value = 2
     mc, alias = motion_controller
