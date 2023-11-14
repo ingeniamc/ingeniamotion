@@ -265,6 +265,7 @@ def test_monitoring_max_sample_size(skip_if_monitoring_not_available, motion_con
     assert max_sample_size == value
 
 
+@pytest.mark.smoke
 def test_get_frequency(
     skip_if_monitoring_not_available, motion_controller, disable_monitoring_disturbance
 ):

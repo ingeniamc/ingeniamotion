@@ -7,6 +7,12 @@ def CAN_NODE_LOCK = "test_execution_lock_can"
 
 pipeline {
     agent none
+    parameters {
+        choice(
+            choices: ['Smoke', 'All'], 
+            name: 'TESTS'
+        )
+    }
     stages {
         stage('Build wheels and documentation') {
             agent {
@@ -130,11 +136,35 @@ pipeline {
                         '''
                     }
                 }
-                stage('Run EtherCAT tests') {
+                stage('Run EtherCAT all tests') {
+                    when {
+                        anyOf{
+                            branch 'master';
+                            branch 'develop';
+                            expression { params.TESTS == 'All' }
+                        }
+                    }
                     steps {
                         bat '''
                             venv\\Scripts\\python.exe -m pytest tests --protocol soem --slave 0 --junitxml=pytest_reports/pytest_ethercat_0_report.xml
                             venv\\Scripts\\python.exe -m pytest tests --protocol soem --slave 1 --junitxml=pytest_reports/pytest_ethercat_1_report.xml
+                            move .coverage .coverage_ethercat
+                            exit /b 0
+                        '''
+                    }
+                }
+                stage('Run EtherCAT smoke tests') {
+                    when {
+                        allOf{
+                            not{ branch 'master' };
+                            not{ branch 'develop' };
+                            expression { params.TESTS == 'Smoke' }
+                        }
+                    }
+                    steps {
+                        bat '''
+                            venv\\Scripts\\python.exe -m pytest tests -m smoke --protocol soem --slave 0 --junitxml=pytest_reports/pytest_ethercat_0_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests -m smoke --protocol soem --slave 1 --junitxml=pytest_reports/pytest_ethercat_1_report.xml
                             move .coverage .coverage_ethercat
                             exit /b 0
                         '''
@@ -176,7 +206,32 @@ pipeline {
                         '''
                     }
                 }
-                stage('Run CANopen tests') {
+                stage('Run CANopen smoke tests') {
+                    when {
+                        allOf{
+                            not{ branch 'master' };
+                            not{ branch 'develop' };
+                            expression { params.TESTS == 'Smoke' }
+                        }
+                    }
+                    steps {
+                        //unstash 'test_reports' Uncomment once EtherCAT tests are operational.
+                        bat '''
+                            venv\\Scripts\\python.exe -m pytest tests -m smoke --protocol canopen --slave 0 --junitxml=pytest_reports/pytest_canopen_0_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests -m smoke --protocol canopen --slave 1 --junitxml=pytest_reports/pytest_canopen_1_report.xml
+                            move .coverage .coverage_canopen
+                            exit /b 0
+                        '''
+                    }
+                }
+                stage('Run CANopen all tests') {
+                    when {
+                        anyOf{
+                            branch 'master';
+                            branch 'develop';
+                            expression { params.TESTS == 'All' }
+                        }
+                    }
                     steps {
                         //unstash 'test_reports' Uncomment once EtherCAT tests are operational.
                         bat '''
@@ -187,11 +242,36 @@ pipeline {
                         '''
                     }
                 }
-                stage('Run Ethernet tests') {
+                stage('Run Ethernet smoke tests') {
                     // Add tests of slave 1 after fixing CAP-924
+                    when {
+                        allOf{
+                            not{ branch 'master' };
+                            not{ branch 'develop' };
+                            expression { params.TESTS == 'Smoke' }
+                        }
+                    }
+                    steps {
+                        bat '''
+                            venv\\Scripts\\python.exe -m pytest tests -m smoke --protocol eoe --slave 0 --junitxml=pytest_reports/pytest_ethernet_0_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests -m smoke --protocol eoe --slave 1 --junitxml=pytest_reports/pytest_ethernet_1_report.xml
+                            move .coverage .coverage_ethernet
+                            exit /b 0
+                        '''
+                    }
+                }
+                stage('Run Ethernet all tests') {
+                    when {
+                        anyOf{
+                            branch 'master';
+                            branch 'develop';
+                            expression { params.TESTS == 'All' }
+                        }
+                    }
                     steps {
                         bat '''
                             venv\\Scripts\\python.exe -m pytest tests --protocol eoe --slave 0 --junitxml=pytest_reports/pytest_ethernet_0_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests --protocol eoe --slave 1 --junitxml=pytest_reports/pytest_ethernet_1_report.xml
                             move .coverage .coverage_ethernet
                             exit /b 0
                         '''

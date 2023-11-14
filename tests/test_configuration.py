@@ -1,4 +1,5 @@
 import os
+
 import pytest
 
 from ingenialink.canopen.network import CAN_BAUDRATE
@@ -72,6 +73,7 @@ def remove_file_if_exist():
         os.remove(file_path)
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("remove_file_if_exist")
 def test_save_configuration_and_load_configuration(motion_controller):
     file_path = "test_file.xcf"
@@ -89,6 +91,7 @@ def test_save_configuration_and_load_configuration(motion_controller):
 @pytest.mark.usefixtures("remove_file_if_exist")
 @pytest.mark.canopen
 @pytest.mark.eoe
+@pytest.mark.smoke
 def test_save_configuration_and_load_configuration_nvm_none(motion_controller):
     file_path = "test_file.xcf"
     mc, alias = motion_controller
@@ -102,6 +105,7 @@ def test_save_configuration_and_load_configuration_nvm_none(motion_controller):
     mc.communication.set_register(POSITION_SET_POINT_REGISTER, old_value, servo=alias)
 
 
+@pytest.mark.smoke
 def test_set_profiler_exception(motion_controller):
     mc, alias = motion_controller
 
@@ -242,6 +246,7 @@ def test_get_status_word(motion_controller):
     assert test_value == reg_value
 
 
+@pytest.mark.smoke
 def test_is_motor_enabled_1(motion_controller):
     mc, alias = motion_controller
     mc.motion.motor_disable(alias)
@@ -296,6 +301,7 @@ def test_is_commutation_feedback_aligned(
     assert test_value == expected_result
 
 
+@pytest.mark.smoke
 def test_set_phasing_mode(motion_controller):
     input_value = 0
     mc, alias = motion_controller
@@ -321,6 +327,7 @@ def test_set_generator_mode(motion_controller):
     assert pytest.approx(input_value) == output_value
 
 
+@pytest.mark.smoke
 def test_set_motor_pair_poles(motion_controller_teardown):
     input_value = 0
     mc, alias = motion_controller_teardown
@@ -449,11 +456,13 @@ def test_is_sto_abnormal_latched(mocker, motion_controller, sto_status_value, ex
     assert value == expected_result
 
 
+@pytest.mark.smoke
 def test_store_configuration(motion_controller):
     mc, alias = motion_controller
     mc.configuration.store_configuration(servo=alias)
 
 
+@pytest.mark.smoke
 def test_restore_configuration(motion_controller):
     mc, alias = motion_controller
     mc.configuration.restore_configuration(servo=alias)
@@ -551,7 +560,7 @@ def test_change_node_id_exception(motion_controller):
         mc.configuration.change_node_id(32, alias)
 
 
-@pytest.mark.develop
+@pytest.mark.smoke
 def test_set_velocity_pid(motion_controller_teardown):
     mc, alias = motion_controller_teardown
     kp_test = 1
@@ -566,7 +575,7 @@ def test_set_velocity_pid(motion_controller_teardown):
     assert kd_test == kd_reg
 
 
-@pytest.mark.develop
+@pytest.mark.smoke
 def test_set_position_pid(motion_controller_teardown):
     mc, alias = motion_controller_teardown
     kp_test = 1
@@ -581,7 +590,6 @@ def test_set_position_pid(motion_controller_teardown):
     assert kd_test == kd_reg
 
 
-@pytest.mark.develop
 @pytest.mark.smoke
 def test_get_set_rated_current(motion_controller):
     mc, alias = motion_controller
@@ -596,7 +604,6 @@ def test_get_set_rated_current(motion_controller):
     mc.communication.set_register(RATED_CURRENT_REGISTER, initial_rated_current, servo=alias)
 
 
-@pytest.mark.develop
 @pytest.mark.smoke
 def test_get_max_current(motion_controller):
     mc, alias = motion_controller

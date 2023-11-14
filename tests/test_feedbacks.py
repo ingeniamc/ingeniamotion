@@ -1,6 +1,6 @@
 import pytest
 
-from ingeniamotion.enums import SensorType, SensorCategory
+from ingeniamotion.enums import SensorCategory, SensorType
 
 COMMUTATION_FEEDBACK_REGISTER = "COMMU_ANGLE_SENSOR"
 REFERENCE_FEEDBACK_REGISTER = "COMMU_ANGLE_REF_SENSOR"
@@ -398,9 +398,7 @@ def test_instance_sensor_type(motion_controller):
     assert isinstance(test_feedback, SensorType)
 
 
-@pytest.mark.develop
 @pytest.mark.smoke
-@pytest.mark.no_connection
 @pytest.mark.parametrize(
     "sensor, register",
     [
