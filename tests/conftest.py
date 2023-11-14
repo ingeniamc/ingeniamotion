@@ -170,7 +170,9 @@ def clean_and_restore_feedbacks(motion_controller):
 @pytest.fixture()
 def skip_if_monitoring_not_available(motion_controller):
     mc, alias = motion_controller
-    if "MON_DIST_STATUS" not in mc.servos[alias].dictionary.registers(0):
+    try:
+        mc.capture._check_version(alias)
+    except NotImplementedError:
         pytest.skip("Monitoring is not available")
 
 
