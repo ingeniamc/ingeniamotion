@@ -23,6 +23,7 @@
 - check_motor_disabled decorator does not work with positional arguments
 - Adapt get_encoded_image_from_dictionary for COM-KIT
 - Feedback test output when symmetry and resolution errors occurred simultaneously.
+- Raise exception if monitoring and disturbance features are not available.
 
 ### Changed
 - Use ingenialink to get the drive's encoded image from the dictionary.

@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 from ingenialink.poller import Poller
+from ingenialink.exceptions import ILIOError
 from numpy import ndarray
 
 from ingeniamotion.disturbance import Disturbance
@@ -281,6 +282,10 @@ class Capture(metaclass=MCMetaClass):
         Args:
             servo : servo alias to reference it. ``default`` by default.
 
+        Raises:
+            NotImplementedError: If the drive does not support monitoring
+            and disturbance.
+
         """
         drive = self.mc._get_drive(servo)
         try:
@@ -288,17 +293,25 @@ class Capture(metaclass=MCMetaClass):
                 self.MONITORING_VERSION_REGISTER, servo=servo, axis=0
             )
             return MonitoringVersion.MONITORING_V3
-        except IMRegisterNotExist:
+        except (IMRegisterNotExist, ILIOError):
             # The Monitoring V3 is NOT available
             pass
         try:
-            self.mc.info.register_info(
-                self.MONITORING_CURRENT_NUMBER_BYTES_REGISTER, 0, servo=servo
+            self.mc.communication.get_register(
+                self.MONITORING_CURRENT_NUMBER_BYTES_REGISTER, servo=servo, axis=0
             )
             return MonitoringVersion.MONITORING_V2
-        except IMRegisterNotExist:
+        except (IMRegisterNotExist, ILIOError):
             # The Monitoring V2 is NOT available
+            pass
+        try:
+            self.mc.communication.get_register(self.MONITORING_STATUS_REGISTER, servo=servo, axis=0)
             return MonitoringVersion.MONITORING_V1
+        except (IMRegisterNotExist, ILIOError):
+            # Monitoring/disturbance are not available
+            raise NotImplementedError(
+                "The monitoring and disturbance features are not available for this drive"
+            )
 
     def enable_monitoring_disturbance(self, servo: str = DEFAULT_SERVO) -> None:
         """Enable monitoring and disturbance.
