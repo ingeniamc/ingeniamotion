@@ -1,12 +1,12 @@
 import os
-from typing import TYPE_CHECKING, Dict, Optional, Tuple
-import xml.etree.ElementTree as ET
+from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
 
 from ingenialink.eoe.network import EoENetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.ethercat.network import EthercatNetwork
-from ingenialink.register import Register, REG_ACCESS, REG_DTYPE
+from ingenialink.register import Register
+from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
 import ingenialogger
 
 from ingeniamotion.exceptions import IMRegisterNotExist, IMException
@@ -106,7 +106,7 @@ class Information(metaclass=MCMetaClass):
         register: str,
         axis: int = DEFAULT_AXIS,
         servo: str = DEFAULT_SERVO,
-    ) -> Optional[Tuple[int, int]]:
+    ) -> Union[Tuple[None, None], Tuple[int, int], Tuple[float, float], Tuple[str, str]]:
         """Return register range.
 
         Args:
@@ -122,7 +122,7 @@ class Information(metaclass=MCMetaClass):
 
         """
         register_obj = self.register_info(register, axis=axis, servo=servo)
-        return register_obj.range  # type: ignore [no-any-return]
+        return register_obj.range
 
     def register_exists(
         self,
@@ -223,7 +223,7 @@ class Information(metaclass=MCMetaClass):
         """
         net = self.mc._get_network(alias)
         drive = self.mc.servos[alias]
-        if isinstance(net, EoENetwork):
+        if isinstance(net, EoENetwork) and isinstance(drive.target, str):
             return int(net._configured_slaves[drive.target])
         else:
             raise IMException("You need a CANopen communication to use this function")
@@ -300,6 +300,8 @@ class Information(metaclass=MCMetaClass):
         """
         drive = self.mc.servos[alias]
         dictionary_categories = drive.dictionary.categories
+        if not dictionary_categories:
+            raise IMException("Dictionary categories are not defined.")
         category_ids = dictionary_categories.category_ids
         categories: Dict[str, str] = {}
         for cat_id in category_ids:

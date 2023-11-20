@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, List, Optional, Tuple, Union
 import ingenialogger
 from ingenialink.exceptions import ILError
 from ingenialink.canopen.network import CanopenNetwork, CAN_BAUDRATE
+from ingenialink.ethernet.servo import EthernetServo
 
 from ingeniamotion.homing import Homing
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
@@ -774,6 +775,8 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         """
         drive = self.mc._get_drive(servo)
+        if not isinstance(drive, EthernetServo):
+            raise IMException("TCP IP parameters can only be changed in ethernet servos.")
         drive.change_tcp_ip_parameters(ip_address, subnet_mask, gateway)
 
     def store_tcp_ip_parameters(self, servo: str = DEFAULT_SERVO) -> None:
@@ -784,6 +787,8 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         """
         drive = self.mc._get_drive(servo)
+        if not isinstance(drive, EthernetServo):
+            raise IMException("TCP IP parameters can only be stored in ethernet servos.")
         drive.store_tcp_ip_parameters()
 
     def restore_tcp_ip_parameters(self, servo: str = DEFAULT_SERVO) -> None:
@@ -794,6 +799,8 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         """
         drive = self.mc._get_drive(servo)
+        if not isinstance(drive, EthernetServo):
+            raise IMException("TCP IP parameters can only be restored in ethernet servos.")
         drive.restore_tcp_ip_parameters()
 
     def get_drive_info_coco_moco(
@@ -988,7 +995,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         rev_number = self.get_revision_number(servo, subnode=0)
         serial_number = self.get_serial_number(servo, subnode=0)
         net.change_baudrate(
-            drive.target, baud_rate, vendor_id, prod_code, rev_number, serial_number
+            int(drive.target), baud_rate, vendor_id, prod_code, rev_number, serial_number
         )
 
     def change_node_id(self, node_id: int, servo: str = DEFAULT_SERVO) -> None:
@@ -1010,7 +1017,9 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         prod_code = self.get_product_code(servo, subnode=0)
         rev_number = self.get_revision_number(servo, subnode=0)
         serial_number = self.get_serial_number(servo, subnode=0)
-        net.change_node_id(drive.target, node_id, vendor_id, prod_code, rev_number, serial_number)
+        net.change_node_id(
+            int(drive.target), node_id, vendor_id, prod_code, rev_number, serial_number
+        )
 
     def set_velocity_pid(
         self,

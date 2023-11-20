@@ -69,7 +69,7 @@ class Monitoring(ABC):
         super().__init__()
         self.mc = mc
         self.servo = servo
-        self.mapped_registers: List[Dict[str, str]] = []
+        self.mapped_registers: List[Dict[str, Union[str, REG_DTYPE]]] = []
         self.sampling_freq: Optional[float] = None
         self._read_process_finished = False
         self.samples_number = 0
@@ -105,7 +105,7 @@ class Monitoring(ABC):
         )
 
     @check_monitoring_disabled
-    def map_registers(self, registers: List[Dict["str", "str"]]) -> None:
+    def map_registers(self, registers: List[Dict[str, Union[str, REG_DTYPE]]]) -> None:
         """Map registers to monitoring. Monitoring must be disabled.
 
         Args:
@@ -134,6 +134,8 @@ class Monitoring(ABC):
             if not isinstance(subnode, int):
                 raise TypeError("Subnode has to be an integer")
             register = channel["name"]
+            if not isinstance(register, str):
+                raise TypeError("Register has to be a string")
             register_obj = self.mc.info.register_info(register, subnode, servo=self.servo)
             dtype = register_obj.dtype
             channel["dtype"] = dtype
@@ -147,6 +149,10 @@ class Monitoring(ABC):
             if not isinstance(subnode, int):
                 raise TypeError("Subnode has to be an integer")
             register = channel["name"]
+            if not isinstance(register, str):
+                raise TypeError("Register has to be a string")
+            if not isinstance(channel["dtype"], REG_DTYPE):
+                raise TypeError("dtype has to be of type REG_DTYPE")
             dtype = channel["dtype"]
             register_obj = self.mc.info.register_info(register, subnode, servo=self.servo)
             drive.monitoring_set_mapped_register(
@@ -206,6 +212,8 @@ class Monitoring(ABC):
         if index_reg < 0:
             raise IMMonitoringError("Trigger signal is not mapped in Monitoring")
         dtype = self.mapped_registers[index_reg]["dtype"]
+        if not isinstance(dtype, REG_DTYPE):
+            raise TypeError("dtype has to be of type REG_DTYPE")
         level_edge = self._unpack_trigger_value(trigger_value, dtype)
         return index_reg, level_edge
 
@@ -379,15 +387,20 @@ class Monitoring(ABC):
 
     @abstractmethod
     def _check_buffer_size_is_enough(
-        self, total_samples: int, trigger_delay_samples: int, registers: List[Dict[str, str]]
+        self,
+        total_samples: int,
+        trigger_delay_samples: int,
+        registers: List[Dict[str, Union[str, REG_DTYPE]]],
     ) -> None:
         pass
 
     def _check_samples_and_max_size(
-        self, n_sample: int, max_size: int, registers: List[Dict[str, str]]
+        self, n_sample: int, max_size: int, registers: List[Dict[str, Union[str, REG_DTYPE]]]
     ) -> None:
         size_demand = sum(
-            self._data_type_size[register["dtype"]] * n_sample for register in registers
+            self._data_type_size[register["dtype"]] * n_sample
+            for register in registers
+            if isinstance(register["dtype"], REG_DTYPE)
         )
         if max_size < size_demand:
             raise IMMonitoringError(

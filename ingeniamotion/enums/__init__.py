@@ -1,6 +1,6 @@
 from enum import IntEnum
-from ingenialink.register import REG_DTYPE, REG_ACCESS
-from ingenialink.canopen import CAN_BAUDRATE, CAN_DEVICE
+from ingenialink.enums.register import REG_DTYPE, REG_ACCESS
+from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE
 
 
 class OperationMode(IntEnum):
