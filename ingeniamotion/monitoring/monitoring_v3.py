@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union
 
 import ingenialogger
+from ingenialink.enums.register import REG_DTYPE
 
 from ingeniamotion.metaclass import DEFAULT_SERVO
 from ingeniamotion.enums import (
@@ -128,7 +129,10 @@ class MonitoringV3(Monitoring):
         )
 
     def _check_buffer_size_is_enough(
-        self, total_samples: int, trigger_delay_samples: int, registers: List[Dict[str, str]]
+        self,
+        total_samples: int,
+        trigger_delay_samples: int,
+        registers: List[Dict[str, Union[str, REG_DTYPE]]],
     ) -> None:
         n_sample = total_samples
         max_size = self.max_sample_number
