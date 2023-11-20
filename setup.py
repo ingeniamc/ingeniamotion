@@ -17,6 +17,8 @@ setuptools.setup(
     name="ingeniamotion",
     version=__version,
     packages=setuptools.find_packages(),
+    include_package_data=True,
+    package_data={"ingeniamotion": ["py.typed"]},
     author="Ingenia Motion Control",
     author_email="support@ingeniamc.com",
     description="Motion library for Ingenia servo drives",
