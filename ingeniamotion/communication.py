@@ -7,11 +7,7 @@ from typing import TYPE_CHECKING, Optional, Union, Callable, List, Any
 
 import ingenialogger
 from ingenialink.exceptions import ILError
-from ingenialink.canopen.network import (
-    CanopenNetwork,
-    CAN_BAUDRATE,
-    CAN_DEVICE
-)
+from ingenialink.canopen.network import CanopenNetwork, CAN_BAUDRATE, CAN_DEVICE
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.eoe.network import EoENetwork
@@ -192,7 +188,7 @@ class Communication(metaclass=MCMetaClass):
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
         )
-        servo.slave = slave # type: ignore [attr-defined]
+        servo.slave = slave  # type: ignore [attr-defined]
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = ifname
 

@@ -390,7 +390,8 @@ class Monitoring(ABC):
         self, n_sample: int, max_size: int, registers: List[Dict[str, str]]
     ) -> None:
         size_demand = sum(
-            self._data_type_size[self.mapped_registers_dtype[register["name"]]] * n_sample for register in registers
+            self._data_type_size[self.mapped_registers_dtype[register["name"]]] * n_sample
+            for register in registers
         )
         if max_size < size_demand:
             raise IMMonitoringError(

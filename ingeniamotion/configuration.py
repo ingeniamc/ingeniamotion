@@ -1017,7 +1017,9 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         prod_code = self.get_product_code(servo, subnode=0)
         rev_number = self.get_revision_number(servo, subnode=0)
         serial_number = self.get_serial_number(servo, subnode=0)
-        net.change_node_id(int(drive.target), node_id, vendor_id, prod_code, rev_number, serial_number)
+        net.change_node_id(
+            int(drive.target), node_id, vendor_id, prod_code, rev_number, serial_number
+        )
 
     def set_velocity_pid(
         self,
