@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 # Constants for typing
 # TODO: INGM-327
 TYPE_MAPPED_REGISTERS_ALL = Dict[str, Union[str, int, List[float]]]
-TYPE_MAPPED_REGISTERS_NAME_AXIS = Dict[str, Union[str, int]]
+TYPE_MAPPED_REGISTERS_NAME_AXIS = Dict[str, Union[str, int, REG_DTYPE]]
 TYPE_MAPPED_REGISTERS_DATA = Dict[str, List[Union[int, float]]]
 TYPE_MAPPED_REGISTERS_DATA_NO_KEY = List[Union[int, float]]
 
@@ -277,6 +277,8 @@ class Disturbance:
         total_buffer_size = 0
         for ch_idx, data in enumerate(registers):
             dtype = self.mapped_registers[ch_idx]["dtype"]
+            if not isinstance(dtype, REG_DTYPE):
+                continue
             total_buffer_size += self.__data_type_size[dtype] * len(data)
         if total_buffer_size > self.max_sample_number:
             raise IMDisturbanceError(

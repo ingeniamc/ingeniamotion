@@ -3,20 +3,21 @@ import ifaddr
 import subprocess
 from os import path, remove
 from functools import partial
-from typing import TYPE_CHECKING, Optional, Union, Callable, List
+from typing import TYPE_CHECKING, Optional, Union, Callable, List, Any
 
 import ingenialogger
 from ingenialink.exceptions import ILError
 from ingenialink.canopen.network import (
     CanopenNetwork,
     CAN_BAUDRATE,
-    CAN_DEVICE,
-    REG_DTYPE,
-    REG_ACCESS,
+    CAN_DEVICE
 )
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.eoe.network import EoENetwork
+from ingenialink.enums.register import REG_DTYPE, REG_ACCESS
+from ingenialink.enums.servo import SERVO_STATE
+from ingenialink.network import NET_DEV_EVT
 
 from ingeniamotion.exceptions import IMRegisterWrongAccess
 
@@ -191,7 +192,7 @@ class Communication(metaclass=MCMetaClass):
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
         )
-        servo.slave = slave
+        servo.slave = slave # type: ignore [attr-defined]
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = ifname
 
@@ -753,7 +754,7 @@ class Communication(metaclass=MCMetaClass):
         drive.write(register, value, subnode=axis)
 
     def subscribe_net_status(
-        self, callback: Callable[[str], None], servo: str = DEFAULT_SERVO
+        self, callback: Callable[[NET_DEV_EVT], None], servo: str = DEFAULT_SERVO
     ) -> None:
         """Add a callback to net status change event.
 
@@ -767,7 +768,7 @@ class Communication(metaclass=MCMetaClass):
         network.subscribe_to_status(drive.target, callback)
 
     def unsubscribe_net_status(
-        self, callback: Callable[[str], None], servo: str = DEFAULT_SERVO
+        self, callback: Callable[[NET_DEV_EVT], None], servo: str = DEFAULT_SERVO
     ) -> None:
         """Remove net status change event callback.
 
@@ -781,7 +782,7 @@ class Communication(metaclass=MCMetaClass):
         network.unsubscribe_from_status(drive.target, callback)
 
     def subscribe_servo_status(
-        self, callback: Callable[[str], None], servo: str = DEFAULT_SERVO
+        self, callback: Callable[[SERVO_STATE, None, int], Any], servo: str = DEFAULT_SERVO
     ) -> None:
         """Add a callback to servo status change event.
 
@@ -794,7 +795,7 @@ class Communication(metaclass=MCMetaClass):
         drive.subscribe_to_status(callback)
 
     def unsubscribe_servo_status(
-        self, callback: Callable[[str], None], servo: str = DEFAULT_SERVO
+        self, callback: Callable[[SERVO_STATE, None, int], Any], servo: str = DEFAULT_SERVO
     ) -> None:
         """Remove servo status change event callback.
 
@@ -811,8 +812,8 @@ class Communication(metaclass=MCMetaClass):
         fw_file: str,
         servo: str = DEFAULT_SERVO,
         status_callback: Optional[Callable[[str], None]] = None,
-        progress_callback: Optional[Callable[[str], None]] = None,
-        error_enabled_callback: Optional[Callable[[str], None]] = None,
+        progress_callback: Optional[Callable[[int], None]] = None,
+        error_enabled_callback: Optional[Callable[[bool], None]] = None,
     ) -> None:
         """Load firmware via CANopen.
 
@@ -836,7 +837,7 @@ class Communication(metaclass=MCMetaClass):
         if progress_callback is None:
             progress_callback = partial(self.logger.info, "Load firmware progress: %s")
         net.load_firmware(
-            drive.target, fw_file, status_callback, progress_callback, error_enabled_callback
+            int(drive.target), fw_file, status_callback, progress_callback, error_enabled_callback
         )
 
     def load_firmware_ecat(self, ifname: str, fw_file: str, slave: int = 1) -> None:
@@ -896,8 +897,8 @@ class Communication(metaclass=MCMetaClass):
 
         """
         net = EthernetNetwork()
-        if ftp_user is None and ftp_pwd is None:
-            ftp_user, ftp_pwd = "Ingenia", "Ingenia"
+        ftp_user = ftp_user or "Ingenia"
+        ftp_pwd = ftp_pwd or "Ingenia"
         net.load_firmware(fw_file, ip, ftp_user, ftp_pwd)
 
     @staticmethod
@@ -930,7 +931,7 @@ class Communication(metaclass=MCMetaClass):
         """
         net = self.mc._get_network(servo)
         drive = self.mc._get_drive(servo)
-        ip = drive.target
+        ip = str(drive.target)
         if not isinstance(net, EthernetNetwork):
             raise ValueError("Target servo is not connected via Ethernet")
         self.boot_mode(servo)
@@ -988,7 +989,7 @@ class Communication(metaclass=MCMetaClass):
         default_port = 1061
         net = self.mc._get_network(servo)
         drive = self.mc._get_drive(servo)
-        ip = drive.target
+        ip = str(drive.target)
         if not isinstance(net, EthernetNetwork):
             raise ValueError("Target servo is not connected via Ethernet")
         net.load_firmware_moco(default_node, default_subnode, ip, default_port, fw_file)

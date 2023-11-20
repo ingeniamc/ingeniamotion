@@ -70,6 +70,7 @@ class Monitoring(ABC):
         self.mc = mc
         self.servo = servo
         self.mapped_registers: List[Dict[str, str]] = []
+        self.mapped_registers_dtype: Dict[str, REG_DTYPE] = {}
         self.sampling_freq: Optional[float] = None
         self._read_process_finished = False
         self.samples_number = 0
@@ -128,6 +129,7 @@ class Monitoring(ABC):
         """
         drive = self.mc.servos[self.servo]
         drive.monitoring_remove_all_mapped_registers()
+        channel_dtype: dict[str, REG_DTYPE] = {}
 
         for channel in registers:
             subnode = channel.get("axis", DEFAULT_AXIS)
@@ -135,8 +137,7 @@ class Monitoring(ABC):
                 raise TypeError("Subnode has to be an integer")
             register = channel["name"]
             register_obj = self.mc.info.register_info(register, subnode, servo=self.servo)
-            dtype = register_obj.dtype
-            channel["dtype"] = dtype
+            channel_dtype[register] = register_obj.dtype
 
         self._check_buffer_size_is_enough(
             self.samples_number, self.trigger_delay_samples, registers
@@ -147,7 +148,7 @@ class Monitoring(ABC):
             if not isinstance(subnode, int):
                 raise TypeError("Subnode has to be an integer")
             register = channel["name"]
-            dtype = channel["dtype"]
+            dtype = channel_dtype[register]
             register_obj = self.mc.info.register_info(register, subnode, servo=self.servo)
             drive.monitoring_set_mapped_register(
                 ch_idx,
@@ -165,6 +166,7 @@ class Monitoring(ABC):
         if num_mon_reg < 1:
             raise IMMonitoringError("Map Monitoring registers fails")
         self.mapped_registers = registers
+        self.mapped_registers_dtype = channel_dtype
 
     @abstractmethod
     @check_monitoring_disabled
@@ -205,7 +207,8 @@ class Monitoring(ABC):
                 index_reg = index
         if index_reg < 0:
             raise IMMonitoringError("Trigger signal is not mapped in Monitoring")
-        dtype = self.mapped_registers[index_reg]["dtype"]
+        reg_name = self.mapped_registers[index_reg]["name"]
+        dtype = self.mapped_registers_dtype[reg_name]
         level_edge = self._unpack_trigger_value(trigger_value, dtype)
         return index_reg, level_edge
 
@@ -364,7 +367,7 @@ class Monitoring(ABC):
     def _fill_data(self, data_array: List[List[Union[int, float]]]) -> None:
         drive = self.mc.servos[self.servo]
         for ch_idx, channel in enumerate(self.mapped_registers):
-            dtype = channel["dtype"]
+            dtype = self.mapped_registers_dtype[channel["name"]]
             tmp_monitor_data = drive.monitoring_channel_data(ch_idx, REG_DTYPE(dtype))
             data_array[ch_idx] += tmp_monitor_data
 
@@ -387,7 +390,7 @@ class Monitoring(ABC):
         self, n_sample: int, max_size: int, registers: List[Dict[str, str]]
     ) -> None:
         size_demand = sum(
-            self._data_type_size[register["dtype"]] * n_sample for register in registers
+            self._data_type_size[self.mapped_registers_dtype[register["name"]]] * n_sample for register in registers
         )
         if max_size < size_demand:
             raise IMMonitoringError(
