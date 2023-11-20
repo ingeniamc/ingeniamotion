@@ -11,7 +11,7 @@ Ingeniamotion is a library that works over ingenialink and aims to simplify the 
 Requirements
 ------------
 
-* Python 3.6, 3.7, 3.8 or 3.9
+* Python 3.8 or 3.9
 * [WinPcap](https://www.winpcap.org/install/) 4.1.3
 
 Installation
