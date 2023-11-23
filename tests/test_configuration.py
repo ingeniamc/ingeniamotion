@@ -473,7 +473,7 @@ def test_get_drive_info_coco_moco(motion_controller):
     expected_product_codes = [123456, 123456]
     expected_revision_numbers = [654321, 654321]
     expected_firmware_versions = ["0.1.0", "0.1.0"]
-    expected_serial_numbers = [7, 2]
+    expected_serial_numbers = [123456789, 123456789]
 
     mc, alias = motion_controller
     prod_codes, rev_nums, fw_vers, ser_nums = mc.configuration.get_drive_info_coco_moco(alias)
@@ -512,8 +512,8 @@ def test_get_revision_number(motion_controller):
 
 @pytest.mark.virtual
 def test_get_serial_number(motion_controller):
-    expected_serial_number_0 = 7
-    expected_serial_number_1 = 2
+    expected_serial_number_0 = 123456789
+    expected_serial_number_1 = 123456789
 
     mc, alias = motion_controller
     serial_number_0 = mc.configuration.get_serial_number(alias, 0)
@@ -545,12 +545,15 @@ def test_change_baudrate_exception(motion_controller):
 
 @pytest.mark.virtual
 def test_get_vendor_id(motion_controller):
-    expected_vendor_id = 3
+    expected_vendor_id_0 = 987654321
+    expected_vendor_id_1 = 987654321
 
     mc, alias = motion_controller
-    vendor_id = mc.configuration.get_vendor_id(alias)
+    vendor_id_0 = mc.configuration.get_vendor_id(alias, axis=0)
+    vendor_id_1 = mc.configuration.get_vendor_id(alias, axis=1)
 
-    assert vendor_id == expected_vendor_id
+    assert vendor_id_0 == expected_vendor_id_0
+    assert vendor_id_1 == expected_vendor_id_1
 
 
 @pytest.mark.virtual
