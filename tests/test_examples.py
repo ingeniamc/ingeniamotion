@@ -16,8 +16,8 @@ def test_canopen_example(read_config, script_runner):
     dictionary = read_config["dictionary"]
     node_id = read_config["node_id"]
     can_transceiver = read_config["device"]
-    can_baudrate = read_config["can_baudrate"]
-    can_channel = read_config["can_channel"]
+    can_baudrate = read_config["baudrate"]
+    can_channel = read_config["channel"]
     result = script_runner.run(
         script_path,
         f"--dictionary_path={dictionary}",
