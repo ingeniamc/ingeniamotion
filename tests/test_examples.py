@@ -6,9 +6,7 @@ def test_disturbance_example(read_config, script_runner):
     script_path = "examples/disturbance_example.py"
     ip_address = read_config["ip"]
     dictionary = read_config["dictionary"]
-    result = script_runner.run(
-        [script_path, f"--ip={ip_address}", f"--dictionary_path={dictionary}"]
-    )
+    result = script_runner.run(script_path, f"--ip={ip_address}", f"--dictionary_path={dictionary}")
     assert result.returncode == 0
 
 
@@ -21,13 +19,11 @@ def test_canopen_example(read_config, script_runner):
     can_baudrate = read_config["can_baudrate"]
     can_channel = read_config["can_channel"]
     result = script_runner.run(
-        [
-            script_path,
-            f"--dictionary_path={dictionary}",
-            f"--node_id={node_id}",
-            f"--can_transceiver={can_transceiver}",
-            f"--can_baudrate={can_baudrate}",
-            f"--can_channel={can_channel}",
-        ]
+        script_path,
+        f"--dictionary_path={dictionary}",
+        f"--node_id={node_id}",
+        f"--can_transceiver={can_transceiver}",
+        f"--can_baudrate={can_baudrate}",
+        f"--can_channel={can_channel}",
     )
     assert result.returncode == 0
