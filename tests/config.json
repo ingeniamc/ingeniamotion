@@ -54,5 +54,11 @@
     "config_file": "//azr-srv-ingfs1/dist/setups/setup_cap_can/1.1.0/config.xml",
     "fw_file": "//awe-srv-max-prd/distext/products/CAP-XCR/firmware/2.4.0/cap-xcr-c_2.4.0.lfu"
   }
+  ],
+  "virtual": [
+  {
+    "ip": "127.0.0.1",
+    "dictionary": "tests/dictionaries/virtual_drive.xdf"
+  }
   ]
 }

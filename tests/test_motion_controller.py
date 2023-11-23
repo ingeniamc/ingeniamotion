@@ -57,7 +57,7 @@ def test_is_alive(motion_controller):
     assert mc.is_alive(alias)
 
 
-@pytest.mark.no_connection
+@pytest.mark.virtual
 class TestMetaclass:
     class DummyClass(metaclass=MCMetaClass):
         mc = MotionController()
@@ -73,7 +73,7 @@ class TestMetaclass:
         def dummy_func(self, servo: str, axis: int):
             pass
 
-    @pytest.mark.no_connection
+    @pytest.mark.virtual
     @pytest.mark.parametrize(
         "servo, axis, error",
         [
@@ -91,7 +91,7 @@ class TestMetaclass:
             with pytest.raises(error):
                 dummy_class.dummy_func(servo=servo, axis=axis)
 
-    @pytest.mark.no_connection
+    @pytest.mark.virtual
     @pytest.mark.parametrize(
         "servo, axis, error",
         [

@@ -468,12 +468,12 @@ def test_restore_configuration(motion_controller):
     mc.configuration.restore_configuration(servo=alias)
 
 
-@pytest.mark.no_connection
+@pytest.mark.virtual
 def test_get_drive_info_coco_moco(motion_controller):
-    expected_product_codes = [12, 21]
-    expected_revision_numbers = [123, 321]
-    expected_firmware_versions = ["4.3.2", "2.3.4"]
-    expected_serial_numbers = [3456, 6543]
+    expected_product_codes = [123456, 123456]
+    expected_revision_numbers = [654321, 654321]
+    expected_firmware_versions = ["0.1.0", "0.1.0"]
+    expected_serial_numbers = [7, 2]
 
     mc, alias = motion_controller
     prod_codes, rev_nums, fw_vers, ser_nums = mc.configuration.get_drive_info_coco_moco(alias)
@@ -484,10 +484,10 @@ def test_get_drive_info_coco_moco(motion_controller):
     assert ser_nums == expected_serial_numbers
 
 
-@pytest.mark.no_connection
+@pytest.mark.virtual
 def test_get_product_code(motion_controller):
-    expected_product_code_0 = 12
-    expected_product_code_1 = 21
+    expected_product_code_0 = 123456
+    expected_product_code_1 = 123456
 
     mc, alias = motion_controller
     product_code_0 = mc.configuration.get_product_code(alias, 0)
@@ -497,10 +497,10 @@ def test_get_product_code(motion_controller):
     assert product_code_1 == expected_product_code_1
 
 
-@pytest.mark.no_connection
+@pytest.mark.virtual
 def test_get_revision_number(motion_controller):
-    expected_revision_number_0 = 123
-    expected_revision_number_1 = 321
+    expected_revision_number_0 = 654321
+    expected_revision_number_1 = 654321
 
     mc, alias = motion_controller
     revision_number_0 = mc.configuration.get_revision_number(alias, 0)
@@ -510,10 +510,10 @@ def test_get_revision_number(motion_controller):
     assert revision_number_1 == expected_revision_number_1
 
 
-@pytest.mark.no_connection
+@pytest.mark.virtual
 def test_get_serial_number(motion_controller):
-    expected_serial_number_0 = 3456
-    expected_serial_number_1 = 6543
+    expected_serial_number_0 = 7
+    expected_serial_number_1 = 2
 
     mc, alias = motion_controller
     serial_number_0 = mc.configuration.get_serial_number(alias, 0)
@@ -523,10 +523,10 @@ def test_get_serial_number(motion_controller):
     assert serial_number_1 == expected_serial_number_1
 
 
-@pytest.mark.no_connection
+@pytest.mark.virtual
 def test_get_fw_version(motion_controller):
-    expected_fw_version_0 = "4.3.2"
-    expected_fw_version_1 = "2.3.4"
+    expected_fw_version_0 = "0.1.0"
+    expected_fw_version_1 = "0.1.0"
 
     mc, alias = motion_controller
     firmware_version_0 = mc.configuration.get_fw_version(alias, 0)
@@ -536,16 +536,16 @@ def test_get_fw_version(motion_controller):
     assert firmware_version_1 == expected_fw_version_1
 
 
-@pytest.mark.no_connection
+@pytest.mark.virtual
 def test_change_baudrate_exception(motion_controller):
     mc, alias = motion_controller
     with pytest.raises(ValueError):
         mc.configuration.change_baudrate(CAN_BAUDRATE.Baudrate_1M, alias)
 
 
-@pytest.mark.no_connection
+@pytest.mark.virtual
 def test_get_vendor_id(motion_controller):
-    expected_vendor_id = 123456789
+    expected_vendor_id = 3
 
     mc, alias = motion_controller
     vendor_id = mc.configuration.get_vendor_id(alias)
@@ -553,7 +553,7 @@ def test_get_vendor_id(motion_controller):
     assert vendor_id == expected_vendor_id
 
 
-@pytest.mark.no_connection
+@pytest.mark.virtual
 def test_change_node_id_exception(motion_controller):
     mc, alias = motion_controller
     with pytest.raises(ValueError):

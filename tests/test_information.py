@@ -4,7 +4,7 @@ from ingeniamotion.enums import REG_DTYPE, REG_ACCESS
 from ingeniamotion.information import COMMUNICATION_TYPE
 
 
-@pytest.mark.no_connection
+@pytest.mark.virtual
 @pytest.mark.parametrize(
     "uid, axis",
     [
@@ -22,7 +22,7 @@ def test_register_info(motion_controller, uid, axis):
     assert isinstance(register.range, tuple)
 
 
-@pytest.mark.no_connection
+@pytest.mark.virtual
 @pytest.mark.parametrize(
     "uid, axis, dtype",
     [
@@ -38,7 +38,7 @@ def test_register_type(motion_controller, uid, axis, dtype):
     assert register_dtype == dtype
 
 
-@pytest.mark.no_connection
+@pytest.mark.virtual
 @pytest.mark.parametrize(
     "uid, axis, access",
     [
@@ -54,7 +54,7 @@ def test_register_access(motion_controller, uid, axis, access):
     assert register_access == access
 
 
-@pytest.mark.no_connection
+@pytest.mark.virtual
 @pytest.mark.parametrize(
     "uid, axis, range",
     [
@@ -70,7 +70,7 @@ def test_register_range(motion_controller, uid, axis, range):
     assert tuple(register_range) == range
 
 
-@pytest.mark.no_connection
+@pytest.mark.virtual
 @pytest.mark.parametrize(
     "uid, axis, exists",
     [
@@ -89,9 +89,9 @@ def test_register_exists(motion_controller, uid, axis, exists):
     assert register_exists == exists
 
 
-@pytest.mark.no_connection
+@pytest.mark.virtual
 def test_get_product_name(motion_controller, mocker):
-    expected_product_name = "FAKE_PART_NUMBER"
+    expected_product_name = "VIRTUAL-DRIVE"
 
     mc, alias = motion_controller
     product_name = mc.info.get_product_name(alias)
@@ -99,9 +99,9 @@ def test_get_product_name(motion_controller, mocker):
     assert product_name == expected_product_name
 
 
-@pytest.mark.no_connection
+@pytest.mark.virtual
 def test_get_ip(motion_controller):
-    expected_ip = "FAKE_TARGET"
+    expected_ip = "127.0.0.1"
 
     mc, alias = motion_controller
     ip = mc.info.get_ip(alias)
@@ -109,9 +109,9 @@ def test_get_ip(motion_controller):
     assert ip == expected_ip
 
 
-@pytest.mark.no_connection
+@pytest.mark.virtual
 def test_get_name(motion_controller):
-    expected_name = "FAKE_NAME"
+    expected_name = "Drive"
 
     mc, alias = motion_controller
     name = mc.info.get_name(alias)
@@ -119,7 +119,7 @@ def test_get_name(motion_controller):
     assert name == expected_name
 
 
-@pytest.mark.no_connection
+@pytest.mark.virtual
 def test_get_communication_type(motion_controller):
     expected_communication_type = COMMUNICATION_TYPE.Ethernet
 
@@ -129,9 +129,9 @@ def test_get_communication_type(motion_controller):
     assert communication_type == expected_communication_type
 
 
-@pytest.mark.no_connection
+@pytest.mark.virtual
 def test_get_full_name(motion_controller):
-    expected_full_name = "FAKE_PART_NUMBER - FAKE_NAME (FAKE_TARGET)"
+    expected_full_name = "VIRTUAL-DRIVE - Drive (127.0.0.1)"
 
     mc, alias = motion_controller
     full_name = mc.info.get_full_name(alias)
@@ -139,9 +139,9 @@ def test_get_full_name(motion_controller):
     assert full_name == expected_full_name
 
 
-@pytest.mark.no_connection
+@pytest.mark.virtual
 def test_get_subnodes(motion_controller):
-    expected_subnodes = 5
+    expected_subnodes = 2
 
     mc, alias = motion_controller
     subnodes = mc.info.get_subnodes(alias)
@@ -149,7 +149,7 @@ def test_get_subnodes(motion_controller):
     assert subnodes == expected_subnodes
 
 
-@pytest.mark.no_connection
+@pytest.mark.virtual
 def test_get_categories(motion_controller):
     expected_number_categories = 19
 
@@ -159,9 +159,9 @@ def test_get_categories(motion_controller):
     assert len(categories) == expected_number_categories
 
 
-@pytest.mark.no_connection
+@pytest.mark.virtual
 def test_get_dictionary_file_name(motion_controller):
-    expected_dictionary_path = "mock_eth.xdf"
+    expected_dictionary_path = "virtual_drive.xdf"
 
     mc, alias = motion_controller
     dictionary_file_name = mc.info.get_dictionary_file_name(alias)
@@ -169,7 +169,7 @@ def test_get_dictionary_file_name(motion_controller):
     assert dictionary_file_name in expected_dictionary_path
 
 
-@pytest.mark.no_connection
+@pytest.mark.virtual
 def test_get_encoded_image_from_dictionary(motion_controller):
     expected_type_output = str
 

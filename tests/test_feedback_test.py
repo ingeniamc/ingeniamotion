@@ -18,7 +18,7 @@ from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import (
 )
 
 
-@pytest.mark.no_connection
+@pytest.mark.virtual
 @pytest.mark.parametrize(
     "feedback_test_type, expected_total_mandatory",
     [
@@ -50,7 +50,7 @@ def test_feedback_test_initialization(
     assert total_backup_register == expected_total_backup_registers
 
 
-@pytest.mark.no_connection
+@pytest.mark.virtual
 @pytest.mark.parametrize(
     "feedback_test_type",
     [
