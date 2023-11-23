@@ -235,8 +235,8 @@ pipeline {
                     steps {
                         //unstash 'test_reports' Uncomment once EtherCAT tests are operational.
                         bat '''
-                            venv\\Scripts\\python.exe -m pytest tests --protocol canopen --slave 0 --junitxml=pytest_reports/pytest_canopen_0_report.xml
-                            venv\\Scripts\\python.exe -m pytest tests --protocol canopen --slave 1 --junitxml=pytest_reports/pytest_canopen_1_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests/test_examples.py --protocol canopen --slave 0 --junitxml=pytest_reports/pytest_canopen_0_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests/test_examples.py --protocol canopen --slave 1 --junitxml=pytest_reports/pytest_canopen_1_report.xml
                             move .coverage .coverage_canopen
                             exit /b 0
                         '''
@@ -270,8 +270,8 @@ pipeline {
                     }
                     steps {
                         bat '''
-                            venv\\Scripts\\python.exe -m pytest tests --protocol eoe --slave 0 --junitxml=pytest_reports/pytest_ethernet_0_report.xml
-                            venv\\Scripts\\python.exe -m pytest tests --protocol eoe --slave 1 --junitxml=pytest_reports/pytest_ethernet_1_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests/test_examples.py --protocol eoe --slave 0 --junitxml=pytest_reports/pytest_ethernet_0_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests/test_examples.py --protocol eoe --slave 1 --junitxml=pytest_reports/pytest_ethernet_1_report.xml
                             move .coverage .coverage_ethernet
                             exit /b 0
                         '''
