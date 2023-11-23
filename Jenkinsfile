@@ -74,12 +74,12 @@ pipeline {
                         '''
                     }
                 }
-                stage("Run tests without connection") {
+                stage("Run virtual drive tests") {
                     steps {
                         bat """
                             cd C:\\Users\\ContainerAdministrator\\ingeniamotion
-                            venv\\Scripts\\python.exe -m pytest tests -m no_connection --protocol no_connection --junitxml=pytest_reports\\pytest_no_connection_report.xml
-                            move .coverage ${env.WORKSPACE}\\.coverage_no_connection
+                            venv\\Scripts\\python.exe -m pytest tests -m virtual --protocol virtual --junitxml=pytest_reports\\pytest_virtual_report.xml
+                            move .coverage ${env.WORKSPACE}\\.coverage_virtual
                             XCOPY pytest_reports ${env.WORKSPACE}\\pytest_reports /i
                             exit /b 0
                         """
@@ -87,7 +87,7 @@ pipeline {
                 }
                 stage('Save test results') {
                     steps {
-                        stash includes: '.coverage_no_connection', name: 'coverage_reports'
+                        stash includes: '.coverage_virtual', name: 'coverage_reports'
                         stash includes: 'pytest_reports/', name: 'test_reports'
                     }
                 }
@@ -284,7 +284,7 @@ pipeline {
                         unstash 'coverage_reports'
                         unstash 'test_reports'
                         bat '''
-                            venv\\Scripts\\python.exe -m coverage combine .coverage_ethernet .coverage_canopen .coverage_no_connection
+                            venv\\Scripts\\python.exe -m coverage combine .coverage_ethernet .coverage_canopen .coverage_virtual
                             venv\\Scripts\\python.exe -m coverage xml --include=ingeniamotion/*
                         '''
                         publishCoverage adapters: [coberturaReportAdapter('coverage.xml')]
