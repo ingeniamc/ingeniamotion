@@ -9,6 +9,7 @@ import numpy as np
 
 from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE, SensorType
 from ingeniamotion import MotionController
+from ingenialink.virtual.virtual_drive import VirtualDrive
 
 
 ALLOW_PROTOCOLS = ["eoe", "soem", "canopen", "virtual"]
@@ -83,6 +84,12 @@ def motion_controller(pytestconfig, read_config):
         connect_soem(mc, read_config, alias)
     elif protocol == "canopen":
         connect_canopen(mc, read_config, alias)
+    elif protocol == "virtual":
+        virtual_drive = VirtualDrive(
+            read_config["ip"], read_config["port"], read_config["dictionary"]
+        )
+        virtual_drive.start()
+        connect_eoe(mc, read_config, alias)
     else:
         connect_eoe(mc, read_config, alias)
 
@@ -92,6 +99,7 @@ def motion_controller(pytestconfig, read_config):
         mc.communication.disconnect(alias)
     else:
         yield mc, alias
+        virtual_drive.stop()
 
 
 @pytest.fixture(autouse=True)

@@ -58,7 +58,8 @@
   "virtual": [
   {
     "ip": "127.0.0.1",
-    "dictionary": "tests/dictionaries/virtual_drive.xdf"
+    "dictionary": "tests/dictionaries/virtual_drive.xdf",
+    "port": 1061
   }
   ]
 }
