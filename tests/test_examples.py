@@ -27,3 +27,12 @@ def test_canopen_example(read_config, script_runner):
         f"--can_channel={can_channel}",
     )
     assert result.returncode == 0
+
+
+@pytest.mark.eoe
+def test_set_get_register_example(read_config, script_runner):
+    script_path = "examples/set_get_register.py"
+    ip_address = read_config["ip"]
+    dictionary = read_config["dictionary"]
+    result = script_runner.run(script_path, f"--ip={ip_address}", f"--dictionary_path={dictionary}")
+    assert result.returncode == 0
