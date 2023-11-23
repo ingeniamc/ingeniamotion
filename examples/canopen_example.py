@@ -34,16 +34,16 @@ def main(args):
 def setup_command():
     parser = argparse.ArgumentParser(description='Canopen example')
     parser.add_argument('--dictionary_path', help='Path to drive dictionary', required=True)
-    parser.add_argument('-node_id', default=32, type=int,
+    parser.add_argument('--node_id', default=32, type=int,
                         help='Node ID')
-    parser.add_argument('-can_transceiver', default='ixxat',
+    parser.add_argument('--can_transceiver', default='ixxat',
                         choices=['pcan', 'kvaser', 'ixxat'],
                         help='CAN transceiver')
-    parser.add_argument('-can_baudrate', default=1000000, type=int,
+    parser.add_argument('--can_baudrate', default=1000000, type=int,
                         choices=[50000, 100000, 125000, 250000,
                                  500000, 1000000],
                         help='CAN baudrate')
-    parser.add_argument('-can_channel', default=0, type=int,
+    parser.add_argument('--can_channel', default=0, type=int,
                         help='CAN transceiver channel')
     return parser.parse_args()
 

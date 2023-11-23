@@ -13,7 +13,7 @@ def main(args):
     # Disturbance register
     target_register = "CL_POS_SET_POINT_VALUE"
     # Frequency divider to set disturbance frequency
-    divider = 10
+    divider = 25
     # Calculate time between disturbance samples
     sample_period = divider / mc.configuration.get_position_and_velocity_loop_rate()
     # The disturbance signal will be a simple harmonic motion (SHM) with frequency 0.5Hz and 2000 counts of amplitude
