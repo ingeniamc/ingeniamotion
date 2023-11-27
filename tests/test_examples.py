@@ -168,3 +168,18 @@ def test_feedback_example(read_config, script_runner, mocker, feedback):
     mocker.patch.object(MotionController, "tests", MockDriveTests)
     result = script_runner.run(script_path, feedback, dictionary, f"-ip={ip_address}")
     assert result.returncode == 0
+
+
+@pytest.mark.eoe
+def test_commutation_test_example(read_config, script_runner, mocker):
+    script_path = "examples/commutation_test.py"
+    ip_address = read_config["ip"]
+    dictionary = read_config["dictionary"]
+
+    class MockDriveTests:
+        def commutation(*args, **kwargs):
+            return {"result_message": SeverityLevel.SUCCESS}
+
+    mocker.patch.object(MotionController, "tests", MockDriveTests)
+    result = script_runner.run(script_path, dictionary, f"-ip={ip_address}")
+    assert result.returncode == 0
