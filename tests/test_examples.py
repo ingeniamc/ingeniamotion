@@ -82,7 +82,10 @@ def test_velocity_torque_ramp_example(read_config, script_runner, mocker, mode):
             pass
 
     mocker.patch.object(MotionController, "motion", MockMotion)
-    result = script_runner.run(script_path, mode, dictionary, f"-ip={ip_address}", "-no_wait")
+    mocker.patch("time.sleep", return_value=None)
+    result = script_runner.run(
+        script_path, mode, dictionary, f"-ip={ip_address}", f"-target_torque={0}"
+    )
     assert result.returncode == 0
 
 
