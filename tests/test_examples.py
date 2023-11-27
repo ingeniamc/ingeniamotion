@@ -94,3 +94,27 @@ def test_monitoring_example(read_config, script_runner):
         script_path, f"--ip={ip_address}", f"--dictionary_path={dictionary}", "--close"
     )
     assert result.returncode == 0
+
+
+@pytest.mark.eoe
+def test_load_fw_ftp(read_config, script_runner, mocker):
+    script_path = "examples/load_fw_ftp.py"
+    ip_address = read_config["ip"]
+    dictionary = read_config["dictionary"]
+    fw_file = read_config["fw_file"]
+
+    class MockCommunication:
+        def boot_mode_and_load_firmware_ethernet(self, *args, **kwargs):
+            pass
+
+        def connect_servo_ethernet(self, *args, **kwargs):
+            pass
+
+    mocker.patch.object(MotionController, "communication", MockCommunication)
+    result = script_runner.run(
+        script_path,
+        f"--dictionary_path={dictionary}",
+        f"--ip={ip_address}",
+        f"--firmware_file={fw_file}",
+    )
+    assert result.returncode == 0
