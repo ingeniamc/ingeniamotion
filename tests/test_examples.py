@@ -1,6 +1,7 @@
 import pytest
 
 from ingeniamotion import MotionController
+from ingeniamotion.enums import SeverityLevel
 
 
 @pytest.mark.eoe
@@ -141,4 +142,29 @@ def test_load_fw_ecat(read_config, script_runner, mocker):
         f"--slave_id={slave_id}",
         f"--firmware_file={fw_file}",
     )
+    assert result.returncode == 0
+
+
+@pytest.mark.eoe
+@pytest.mark.parametrize(
+    "feedback",
+    ["HALLS", "QEI", "QEI2"],
+)
+def test_feedback_example(read_config, script_runner, mocker, feedback):
+    script_path = "examples/feedback_test.py"
+    ip_address = read_config["ip"]
+    dictionary = read_config["dictionary"]
+
+    class MockDriveTests:
+        def digital_halls_test(*args, **kwargs):
+            return {"result_message": SeverityLevel.SUCCESS}
+
+        def incremental_encoder_1_test(*args, **kwargs):
+            return {"result_message": SeverityLevel.SUCCESS}
+
+        def incremental_encoder_2_test(*args, **kwargs):
+            return {"result_message": SeverityLevel.SUCCESS}
+
+    mocker.patch.object(MotionController, "tests", MockDriveTests)
+    result = script_runner.run(script_path, feedback, dictionary, f"-ip={ip_address}")
     assert result.returncode == 0
