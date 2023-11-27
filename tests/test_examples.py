@@ -1,5 +1,7 @@
 import pytest
 
+from ingeniamotion import MotionController
+
 
 @pytest.mark.eoe
 def test_disturbance_example(read_config, script_runner):
@@ -46,4 +48,38 @@ def test_poller_example(read_config, script_runner):
     result = script_runner.run(
         script_path, f"--ip={ip_address}", f"--dictionary_path={dictionary}", "--close"
     )
+    assert result.returncode == 0
+
+
+@pytest.mark.eoe
+@pytest.mark.parametrize(
+    "mode",
+    ["velocity", "torque"],
+)
+def test_velocity_torque_ramp_example(read_config, script_runner, mocker, mode):
+    script_path = "examples/velocity_torque_ramp.py"
+    ip_address = read_config["ip"]
+    dictionary = read_config["dictionary"]
+
+    class MockMotion:
+        def wait_for_velocity(self, *args, **kwargs):
+            pass
+
+        def set_operation_mode(self, *args, **kwargs):
+            pass
+
+        def set_velocity(self, *args, **kwargs):
+            pass
+
+        def motor_enable(*args, **kwargs):
+            pass
+
+        def motor_disable(*args, **kwargs):
+            pass
+
+        def set_current_quadrature(*args, **kwargs):
+            pass
+
+    mocker.patch.object(MotionController, "motion", MockMotion)
+    result = script_runner.run(script_path, mode, dictionary, f"-ip={ip_address}", "-no_wait")
     assert result.returncode == 0

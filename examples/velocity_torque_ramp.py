@@ -15,6 +15,7 @@ def setup_command():
                         choices=['velocity', 'torque'])
     parser.add_argument('dictionary_path', help='path to drive dictionary')
     parser.add_argument('-ip', default="192.168.2.22", help='drive ip address')
+    parser.add_argument('-no_wait', help="Whether to wait for velocity/torque to be reached", action='store_false')
     return parser.parse_args()
 
 
@@ -60,10 +61,10 @@ def torque_ramp(final_torque, rotatum, torque_constant, mc):
             pass
 
 
-def velocity_demo(mc):
+def velocity_demo(mc, wait):
+    wait_in_seconds = 40 if wait else 0
     target_velocity = [16.667, 66.667, 0]
     acceleration = [0.1667, 0.8333, 20]
-    wait_in_seconds = 40
     mc.motion.set_operation_mode(OperationMode.PROFILE_VELOCITY)
     mc.configuration.set_max_velocity(70)
     mc.motion.motor_enable()
@@ -74,12 +75,13 @@ def velocity_demo(mc):
     mc.motion.motor_disable()
 
 
-def torque_demo(mc):
+def torque_demo(mc, wait):
     target_torque = 0.706
     rotatum = 0.0035
     mc.motion.set_operation_mode(OperationMode.CURRENT)
     mc.motion.motor_enable()
-    torque_ramp(target_torque, rotatum, TORQUE_CONSTANT, mc)
+    if wait:
+        torque_ramp(target_torque, rotatum, TORQUE_CONSTANT, mc)
     mc.motion.set_current_quadrature(0)
     mc.motion.motor_disable()
 
@@ -88,9 +90,9 @@ def main(args):
     mc = MotionController()
     mc.communication.connect_servo_eoe(args.ip, args.dictionary_path)
     if args.demo == "velocity":
-        velocity_demo(mc)
+        velocity_demo(mc, args.no_wait)
     elif args.demo == "torque":
-        torque_demo(mc)
+        torque_demo(mc, args.no_wait)
     else:
         logging.error("Demo {} does not exist".format(args.demo))
     mc.communication.disconnect()
