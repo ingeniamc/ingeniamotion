@@ -183,3 +183,28 @@ def test_commutation_test_example(read_config, script_runner, mocker):
     mocker.patch.object(MotionController, "tests", MockDriveTests)
     result = script_runner.run(script_path, dictionary, f"-ip={ip_address}")
     assert result.returncode == 0
+
+
+@pytest.mark.eoe
+@pytest.mark.parametrize(
+    "override",
+    ["disabled", "release", "enable"],
+)
+def test_brake_config_example(read_config, script_runner, mocker, override):
+    script_path = "examples/brake_config.py"
+    ip_address = read_config["ip"]
+    dictionary = read_config["dictionary"]
+
+    class MockConfiguration:
+        def disable_brake_override(*args, **kwargs):
+            pass
+
+        def release_brake(*args, **kwargs):
+            pass
+
+        def enable_brake(*args, **kwargs):
+            pass
+
+    mocker.patch.object(MotionController, "configuration", MockConfiguration)
+    result = script_runner.run(script_path, override, dictionary, f"-ip={ip_address}")
+    assert result.returncode == 0
