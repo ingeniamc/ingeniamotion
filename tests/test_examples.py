@@ -118,3 +118,27 @@ def test_load_fw_ftp(read_config, script_runner, mocker):
         f"--firmware_file={fw_file}",
     )
     assert result.returncode == 0
+
+
+@pytest.mark.soem
+def test_load_fw_ecat(read_config, script_runner, mocker):
+    script_path = "examples/load_fw_ecat.py"
+    interface_index = read_config["index"]
+    slave_id = read_config["slave"]
+    fw_file = read_config["fw_file"]
+
+    class MockCommunication:
+        def load_firmware_ecat_interface_index(self, *args, **kwargs):
+            pass
+
+        def get_interface_name_list(*args, **kwargs):
+            pass
+
+    mocker.patch.object(MotionController, "communication", MockCommunication)
+    result = script_runner.run(
+        script_path,
+        f"--interface_index={interface_index}",
+        f"--slave_id={slave_id}",
+        f"--firmware_file={fw_file}",
+    )
+    assert result.returncode == 0
