@@ -19,7 +19,7 @@ def main(args):
                  {"axis": 1, "name": "CL_VEL_FBK_VALUE"}]
 
     # Servo frequency divisor to set monitoring frequency
-    monitoring_prescaler = 10
+    monitoring_prescaler = 25
 
     total_time_s = 1  # Total sample time in seconds
     trigger_delay_s = 0.0  # Trigger delay time in seconds
