@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.7.0] - 2023-11-28
 ### Added
 - Functions needed to load firmware to a Motion Core (MoCo).
 - COM-KIT support.
