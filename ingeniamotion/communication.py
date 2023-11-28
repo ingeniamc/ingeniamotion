@@ -503,7 +503,6 @@ class Communication(metaclass=MCMetaClass):
 
         if not path.isfile(dict_path):
             raise FileNotFoundError(f"Dict file {dict_path} does not exist!")
-
         if interface_name not in self.mc.net:
             self.mc.net[interface_name] = EthercatNetwork(interface_name)
         net = self.mc.net[interface_name]
@@ -513,7 +512,6 @@ class Communication(metaclass=MCMetaClass):
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
         )
-
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = interface_name
 
