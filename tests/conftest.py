@@ -1,4 +1,5 @@
 import json
+import os
 from enum import Enum
 
 import pytest
@@ -8,10 +9,10 @@ import numpy as np
 
 from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE, SensorType
 from ingeniamotion import MotionController
-from tests.mock_ingenialink import MockNetwork, MockServo
+from ingenialink.virtual.virtual_drive import VirtualDrive
 
 
-ALLOW_PROTOCOLS = ["eoe", "soem", "canopen", "no_connection"]
+ALLOW_PROTOCOLS = ["eoe", "soem", "canopen", "virtual"]
 
 test_report_key = pytest.StashKey[Dict[str, pytest.CollectReport]]()
 
@@ -39,11 +40,13 @@ def pytest_collection_modifyitems(config, items):
 def read_config(request):
     slave = request.config.getoption("--slave")
     protocol = request.config.getoption("--protocol")
-    if protocol != "no_connection":
-        config = "tests/config.json"
-        with open(config, "r") as fp:
-            contents = json.load(fp)
-        return contents[protocol][slave]
+    config = "tests/config.json"
+    with open(config, "r") as fp:
+        contents = json.load(fp)
+    relative_path = contents["virtual"][0]["dictionary"]
+    absolute_path = os.path.join(os.path.abspath(os.getcwd()), relative_path)
+    contents["virtual"][0]["dictionary"] = absolute_path
+    return contents[protocol][slave]
 
 
 def connect_eoe(mc, config, alias):
@@ -72,33 +75,31 @@ def connect_canopen(mc, config, alias):
     )
 
 
-def make_fake_connection(mc, alias):
-    mc.servos[alias] = MockServo()
-    fake_net_key = "fake_servo_net"
-    mc.servo_net[alias] = fake_net_key
-    mc.net[fake_net_key] = MockNetwork()
-
-
 @pytest.fixture(scope="session")
 def motion_controller(pytestconfig, read_config):
     alias = "test"
     mc = MotionController()
     protocol = pytestconfig.getoption("--protocol")
-    if protocol == "eoe":
-        connect_eoe(mc, read_config, alias)
-    elif protocol == "soem":
+    if protocol == "soem":
         connect_soem(mc, read_config, alias)
     elif protocol == "canopen":
         connect_canopen(mc, read_config, alias)
-    elif protocol == "no_connection":
-        make_fake_connection(mc, alias)
+    elif protocol == "virtual":
+        virtual_drive = VirtualDrive(
+            read_config["ip"], read_config["port"], read_config["dictionary"]
+        )
+        virtual_drive.start()
+        connect_eoe(mc, read_config, alias)
+    else:
+        connect_eoe(mc, read_config, alias)
 
-    if protocol != "no_connection":
+    if protocol != "virtual":
         mc.configuration.load_configuration(read_config["config_file"], servo=alias)
         yield mc, alias
         mc.communication.disconnect(alias)
     else:
         yield mc, alias
+        virtual_drive.stop()
 
 
 @pytest.fixture(autouse=True)
@@ -222,7 +223,7 @@ def mean_actual_velocity_position(mc, servo, velocity=False, n_samples=200, samp
 def load_configuration_after_each_module(pytestconfig, motion_controller, read_config):
     yield motion_controller
     protocol = pytestconfig.getoption("--protocol")
-    if protocol != "no_connection":
+    if protocol != "virtual":
         mc, alias = motion_controller
         mc.motion.motor_disable(servo=alias)
         mc.configuration.load_configuration(read_config["config_file"], servo=alias)
