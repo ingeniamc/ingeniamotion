@@ -697,6 +697,7 @@ class Motion(metaclass=MCMetaClass):
         direction: int,
         cycles: int,
         frequency: float,
+        gain: float = 1.0,
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
     ) -> None:
@@ -721,17 +722,17 @@ class Motion(metaclass=MCMetaClass):
         )
         if direction > 0:
             self.mc.communication.set_register(
-                self.GENERATOR_GAIN_REGISTER, 1, servo=servo, axis=axis
+                self.GENERATOR_GAIN_REGISTER, gain, servo=servo, axis=axis
             )
             self.mc.communication.set_register(
                 self.GENERATOR_OFFSET_REGISTER, 0, servo=servo, axis=axis
             )
         else:
             self.mc.communication.set_register(
-                self.GENERATOR_GAIN_REGISTER, -1, servo=servo, axis=axis
+                self.GENERATOR_GAIN_REGISTER, -gain, servo=servo, axis=axis
             )
             self.mc.communication.set_register(
-                self.GENERATOR_OFFSET_REGISTER, 1, servo=servo, axis=axis
+                self.GENERATOR_OFFSET_REGISTER, gain, servo=servo, axis=axis
             )
 
         self.mc.communication.set_register(

@@ -11,7 +11,14 @@ from ingeniamotion.homing import Homing
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 from ingeniamotion.exceptions import IMException
 from ingeniamotion.feedbacks import Feedbacks
-from ingeniamotion.enums import GeneratorMode, PhasingMode
+from ingeniamotion.enums import (
+    GeneratorMode,
+    PhasingMode,
+    CommutationMode,
+    FilterNumber,
+    FilterSignal,
+    FilterType,
+)
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -59,6 +66,13 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
     POSITION_LOOP_KD_REGISTER = "CL_POS_PID_KD"
     RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
     MAX_CURRENT_REGISTER = "CL_CUR_REF_MAX"
+    COMMUTATION_MODE_REGISTER = "MOT_COMMU_MOD"
+    BUS_VOLTAGE_REGISTER = "DRV_PROT_VBUS_VALUE"
+    POSITION_TO_VELOCITY_RATIO_REGISTER = "PROF_POS_VEL_RATIO"
+    FILTER_TYPE_REGISTER = "CL_{}_FILTER{}_TYPE"
+    FILTER_FREQ_REGISTER = "CL_{}_FILTER{}_FREQ"
+    FILTER_Q_REGISTER = "CL_{}_FILTER{}_Q"
+    FILTER_GAIN_REGISTER = "CL_{}_FILTER{}_GAIN"
 
     STATUS_WORD_OPERATION_ENABLED_BIT = 0x04
     STATUS_WORD_COMMUTATION_FEEDBACK_ALIGNED_BIT = 0x4000
@@ -317,6 +331,27 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         if velocity is not None:
             self.set_max_profile_velocity(velocity, servo=servo, axis=axis)
+
+    def get_max_velocity(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> float:
+        """Get maximum velocity.
+
+        Args:
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
+
+        Returns:
+            Max velocity.
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+
+        """
+        max_velocity = self.mc.communication.get_register(
+            self.MAX_VELOCITY_REGISTER, servo=servo, axis=axis
+        )
+        if not isinstance(max_velocity, float):
+            raise TypeError("Max velocity value has to be a float")
+        return max_velocity
 
     def set_max_velocity(
         self, velocity: float, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -1139,3 +1174,138 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
                 f"Expected int, got {type(max_current)}"
             )
         return max_current
+
+    def get_commutation_mode(
+        self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
+    ) -> CommutationMode:
+        """Get commutation mode in the target servo and axis.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+            axis: servo axis. ``1`` by default.
+
+        Returns:
+            Commutation mode.
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+
+        """
+        commutation_mode = self.mc.communication.get_register(
+            self.COMMUTATION_MODE_REGISTER, servo, axis
+        )
+        if not isinstance(commutation_mode, int):
+            raise TypeError("Commutation mode value has to be an integer")
+
+        return CommutationMode(commutation_mode)
+
+    def set_commutation_mode(
+        self,
+        commutation_mode: CommutationMode,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+    ) -> None:
+        """Set commutation mode in the target servo and axis.
+
+        Args:
+            rated_current: target commutation mode.
+            servo: servo alias to reference it. ``default`` by default.
+            axis: servo axis. ``1`` by default.
+
+        """
+        self.mc.communication.set_register(
+            self.COMMUTATION_MODE_REGISTER, commutation_mode, servo, axis
+        )
+
+    def get_bus_voltage(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> float:
+        """Get Bus voltage.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+            axis: servo axis. ``1`` by default.
+
+        Returns:
+            Bus voltage.
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+
+        """
+        bus_voltage = self.mc.communication.get_register(self.BUS_VOLTAGE_REGISTER, servo, axis)
+        if not isinstance(bus_voltage, float):
+            raise TypeError("Bus voltage value has to be a float")
+
+        return bus_voltage
+
+    def get_pos_to_vel_ratio(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> float:
+        """Get the position-to-velocity ratio.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+            axis: servo axis. ``1`` by default.
+
+        Returns:
+            Position-to-velocity ratio.
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+
+        """
+        pos_to_vel_ratio = self.mc.communication.get_register(
+            self.POSITION_TO_VELOCITY_RATIO_REGISTER, servo, axis
+        )
+        if not isinstance(pos_to_vel_ratio, float):
+            raise TypeError("Position-to-velocity ratio value has to be a float")
+
+        return pos_to_vel_ratio
+
+    def set_pos_to_vel_ratio(
+        self, pos_to_vel_ratio: float, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
+    ) -> None:
+        """Set the position-to-velocity ratio.
+
+        Args:
+            pos_to_vel_ratio: position-to-velocity ratio.
+            servo: servo alias to reference it. ``default`` by default.
+            axis: servo axis. ``1`` by default.
+
+        """
+        self.mc.communication.set_register(
+            self.POSITION_TO_VELOCITY_RATIO_REGISTER, pos_to_vel_ratio, servo, axis
+        )
+
+    def configure_filter(
+        self,
+        signal: FilterSignal,
+        number: FilterNumber,
+        filter_type: Optional[FilterType] = None,
+        frequency: Optional[int] = None,
+        q_factor: Optional[float] = None,
+        gain: Optional[float] = None,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+    ) -> None:
+        """Configure a filter.
+
+        Args:
+            signal: Signal to be filtered.
+            number: Filter number (1 or 2).
+            filter_type: Filter type.
+            frequency: Cut-off frequency.
+            q_factor: Q factor.
+            gain: Filter gain.
+            servo: servo alias to reference it. ``default`` by default.
+            axis: servo axis. ``1`` by default.
+        """
+        arguments = [filter_type, frequency, q_factor, gain]
+        registers = [
+            self.FILTER_TYPE_REGISTER,
+            self.FILTER_FREQ_REGISTER,
+            self.FILTER_Q_REGISTER,
+            self.FILTER_GAIN_REGISTER,
+        ]
+        for value, reg_template in zip(arguments, registers):
+            if value is None:
+                continue
+            register = reg_template.format(signal.value, number.value)
+            self.mc.communication.set_register(register, value, servo, axis)

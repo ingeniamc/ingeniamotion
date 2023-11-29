@@ -1,4 +1,4 @@
-from enum import IntEnum
+from enum import IntEnum, Enum
 from ingenialink.enums.register import REG_DTYPE, REG_ACCESS
 from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE
 
@@ -156,6 +156,61 @@ class FeedbackPolarity(IntEnum):
 
     NORMAL = 0
     REVERSED = 1
+
+
+class CommutationMode(IntEnum):
+    """Commutation Mode Enum"""
+
+    SINUSOIDAL = 0
+    TRAPEZOIDAL = 1
+    SINGLE_PHASE = 2
+
+
+class FilterType(IntEnum):
+    """
+    Biquad filter type.
+    """
+
+    DISABLED = 0
+    """ Filter disabled """
+    LOWPASS = 1
+    """ Low-pass filter """
+    HIGHPASS = 2
+    """ High-pass filter """
+    BANDPASS = 3
+    """ Band-pass filter """
+    PEAK = 4
+    """ Peak filter """
+    NOTCH = 5
+    """ Notch filter """
+    LOWSHELF = 6
+    """ Low Shelf filter """
+    HIGHSHELF = 7
+    """ High Shelf filter """
+
+
+class FilterSignal(Enum):
+    """Signal to configure filter."""
+
+    POSITION_FEEDBACK = "POS_FBK"
+    """Position feedback."""
+    POSITION_REFERENCE = "POS_REF"
+    """Position reference."""
+    VELOCITY_FEEDBACK = "VEL_FBK"
+    """Velocity feedback."""
+    VELOCITY_REFERENCE = "VEL_REF"
+    """Velocity reference."""
+    CURRENT_FEEDBACK = "CUR_FBK"
+    """Current feedback."""
+    CURRENT_REFERENCE = "CUR_REF"
+    """Current reference."""
+
+
+class FilterNumber(IntEnum):
+    """Filter number (1 or 2)."""
+
+    FILTER1 = 1
+    FILTER2 = 2
 
 
 enums = list(globals().keys())

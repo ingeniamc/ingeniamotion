@@ -1,8 +1,9 @@
 import os
 
 import pytest
-
 from ingenialink.canopen.network import CAN_BAUDRATE
+
+from ingeniamotion.enums import CommutationMode, FilterType, FilterNumber, FilterSignal
 
 BRAKE_OVERRIDE_REGISTER = "MOT_BRAKE_OVERRIDE"
 POSITION_SET_POINT_REGISTER = "CL_POS_SET_POINT_VALUE"
@@ -26,6 +27,13 @@ POSITION_LOOP_KI_REGISTER = "CL_POS_PID_KI"
 POSITION_LOOP_KD_REGISTER = "CL_POS_PID_KD"
 RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
 MAX_CURRENT_REGISTER = "CL_CUR_REF_MAX"
+COMMUTATION_MODE_REGISTER = "MOT_COMMU_MOD"
+BUS_VOLTAGE_REGISTER = "DRV_PROT_VBUS_VALUE"
+POSITION_TO_VELOCITY_RATIO_REGISTER = "PROF_POS_VEL_RATIO"
+FILTER_TYPE_REGISTER = "CL_{}_FILTER{}_TYPE"
+FILTER_FREQ_REGISTER = "CL_{}_FILTER{}_FREQ"
+FILTER_Q_REGISTER = "CL_{}_FILTER{}_Q"
+FILTER_GAIN_REGISTER = "CL_{}_FILTER{}_GAIN"
 
 
 @pytest.fixture
@@ -613,3 +621,81 @@ def test_get_max_current(motion_controller):
     real_max_current = mc.communication.get_register(MAX_CURRENT_REGISTER, servo=alias)
     test_max_current = mc.configuration.get_max_current(alias)
     assert pytest.approx(real_max_current) == test_max_current
+
+
+@pytest.mark.virtual
+def test_set_commutation_mode(motion_controller):
+    input_value = CommutationMode.SINUSOIDAL
+    mc, alias = motion_controller
+    mc.configuration.set_commutation_mode(input_value, servo=alias)
+    output_value = mc.communication.get_register(COMMUTATION_MODE_REGISTER, servo=alias)
+    assert pytest.approx(input_value) == output_value
+
+
+@pytest.mark.virtual
+def test_get_commutation_mode(motion_controller):
+    mc, alias = motion_controller
+    test_value = mc.configuration.get_commutation_mode(servo=alias)
+    reg_value = mc.communication.get_register(COMMUTATION_MODE_REGISTER, servo=alias)
+    assert test_value == reg_value
+
+
+@pytest.mark.virtual
+def test_get_bus_voltage(motion_controller):
+    mc, alias = motion_controller
+    test_value = mc.configuration.get_bus_voltage(servo=alias)
+    reg_value = mc.communication.get_register(BUS_VOLTAGE_REGISTER, servo=alias)
+    assert pytest.approx(test_value) == reg_value
+
+
+@pytest.mark.virtual
+def test_set_pos_to_vel_ratio(motion_controller):
+    input_value = 1.0
+    mc, alias = motion_controller
+    mc.configuration.set_pos_to_vel_ratio(input_value, servo=alias)
+    output_value = mc.communication.get_register(POSITION_TO_VELOCITY_RATIO_REGISTER, servo=alias)
+    assert pytest.approx(input_value) == output_value
+
+
+@pytest.mark.virtual
+def test_get_pos_to_vel_ratio(motion_controller):
+    mc, alias = motion_controller
+    test_value = mc.configuration.get_pos_to_vel_ratio(servo=alias)
+    reg_value = mc.communication.get_register(POSITION_TO_VELOCITY_RATIO_REGISTER, servo=alias)
+    assert test_value == reg_value
+
+
+@pytest.mark.virtual
+@pytest.mark.parametrize("filter_type", [FilterType.LOWPASS, FilterType.HIGHPASS])
+@pytest.mark.parametrize("filter_number", [FilterNumber.FILTER1, FilterNumber.FILTER2])
+@pytest.mark.parametrize("filter_signal", [FilterSignal.CURRENT_FEEDBACK, FilterSignal.VELOCITY_REFERENCE])
+def test_configure_filter(motion_controller, filter_type, filter_number, filter_signal):
+    mc, alias = motion_controller
+    frequency = 10
+    q_factor = 1.3
+    gain = 1.2
+    mc.configuration.configure_filter(
+        filter_signal,
+        filter_number,
+        filter_type=filter_type,
+        frequency=frequency,
+        q_factor=q_factor,
+        gain=gain,
+        servo=alias,
+    )
+
+    reg_type = FILTER_TYPE_REGISTER.format(filter_signal.value, filter_number.value)
+    read_type = mc.communication.get_register(reg_type, servo=alias)
+    assert pytest.approx(read_type) == filter_type
+
+    reg_freq = FILTER_FREQ_REGISTER.format(filter_signal.value, filter_number.value)
+    read_freq = mc.communication.get_register(reg_freq, servo=alias)
+    assert pytest.approx(read_freq) == frequency
+
+    reg_q_factor = FILTER_Q_REGISTER.format(filter_signal.value, filter_number.value)
+    read_q_factor = mc.communication.get_register(reg_q_factor, servo=alias)
+    assert pytest.approx(read_q_factor) == q_factor
+
+    reg_gain = FILTER_GAIN_REGISTER.format(filter_signal.value, filter_number.value)
+    read_gain = mc.communication.get_register(reg_gain, servo=alias)
+    assert pytest.approx(read_gain) == gain

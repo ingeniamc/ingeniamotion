@@ -13,7 +13,7 @@ from ingeniamotion.enums import OperationMode, SensorType, SeverityLevel
 from ingeniamotion.exceptions import IMRegisterNotExist
 from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
 from ingeniamotion.exceptions import IMRegisterNotExist
-from ingeniamotion.enums import OperationMode, SeverityLevel, SensorType
+from ingeniamotion.enums import OperationMode, SeverityLevel, SensorType, CommutationMode
 
 
 class Feedbacks(BaseTest):
@@ -46,8 +46,6 @@ class Feedbacks(BaseTest):
 
     FAIL_MSG_MISMATCH = "A mismatch in resolution has been detected."
 
-    COMMUTATION_MODULATION_REGISTER = "MOT_COMMU_MOD"
-    POSITION_TO_VELOCITY_SENSOR_RATIO_REGISTER = "PROF_POS_VEL_RATIO"
     VELOCITY_FEEDBACK_FILTER_1_TYPE_REGISTER = "CL_VEL_FBK_FILTER1_TYPE"
     VELOCITY_FEEDBACK_FILTER_1_FREQUENCY_REGISTER = "CL_VEL_FBK_FILTER1_FREQ"
     RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
@@ -221,8 +219,8 @@ class Feedbacks(BaseTest):
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
         self.logger.info("CONFIGURATION OF THE TEST")
         # Set commutation modulation to sinusoidal
-        self.mc.communication.set_register(
-            self.COMMUTATION_MODULATION_REGISTER, 0, servo=self.servo, axis=self.axis
+        self.mc.configuration.set_commutation_mode(
+            CommutationMode.SINUSOIDAL, servo=self.servo, axis=self.axis
         )
         # Set positioning mode to NO LIMITS
         self.__set_positioning_register_values()
@@ -289,8 +287,8 @@ class Feedbacks(BaseTest):
 
         self.pos_vel_same_feedback = position_feedback_value == velocity_feedback_value
         if position_feedback_value == self.sensor:
-            resolution_multiplier = self.mc.communication.get_register(
-                self.POSITION_TO_VELOCITY_SENSOR_RATIO_REGISTER, servo=self.servo, axis=self.axis
+            resolution_multiplier = self.mc.configuration.get_pos_to_vel_ratio(
+                servo=self.servo, axis=self.axis
             )
             if not isinstance(resolution_multiplier, float):
                 raise TypeError("Resolution multiplier has to be a float")

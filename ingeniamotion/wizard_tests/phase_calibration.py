@@ -12,6 +12,7 @@ from ingeniamotion.enums import (
 )
 from ingeniamotion.exceptions import IMRegisterNotExist
 from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
+from ingeniamotion.enums import CommutationMode
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
@@ -29,7 +30,6 @@ class Phasing(BaseTest):
 
     MAX_CURRENT_REGISTER = "CL_CUR_REF_MAX"
     RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
-    POSITION_TO_VELOCITY_SENSOR_RATIO_REGISTER = "PROF_POS_VEL_RATIO"
     PHASING_ACCURACY_REGISTER = "COMMU_PHASING_ACCURACY"
     PHASING_TIMEOUT_REGISTER = "COMMU_PHASING_TIMEOUT"
     MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER = "COMMU_PHASING_MAX_CURRENT"
@@ -106,8 +106,8 @@ class Phasing(BaseTest):
         max_test_current = min(max_current_drive, max_current_motor)
 
         if self.default_phasing_current:
-            pos_vel_ratio = self.mc.communication.get_register(
-                self.POSITION_TO_VELOCITY_SENSOR_RATIO_REGISTER, servo=self.servo, axis=self.axis
+            pos_vel_ratio = self.mc.configuration.get_pos_to_vel_ratio(
+                servo=self.servo, axis=self.axis
             )
             if pos_vel_ratio == 1:
                 self.pha_current = self.PHASING_CURRENT_PERCENTAGE * max_test_current
@@ -188,7 +188,9 @@ class Phasing(BaseTest):
         self.check_input_data()
 
         # Set sinusoidal commutation modulation
-        self.mc.communication.set_register("MOT_COMMU_MOD", 0, servo=self.servo, axis=self.axis)
+        self.mc.configuration.set_commutation_mode(
+            CommutationMode.SINUSOIDAL, servo=self.servo, axis=self.axis
+        )
         self.logger.info("Commutation modulation set to Sinusoidal")
 
         self.mc.motion.set_operation_mode(OperationMode.CURRENT, servo=self.servo, axis=self.axis)
