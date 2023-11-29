@@ -1,8 +1,10 @@
 import pytest
 
 from ingeniamotion.enums import REG_DTYPE, REG_ACCESS
+from ingeniamotion.information import COMMUNICATION_TYPE
 
 
+@pytest.mark.virtual
 @pytest.mark.parametrize(
     "uid, axis",
     [
@@ -20,6 +22,7 @@ def test_register_info(motion_controller, uid, axis):
     assert isinstance(register.range, tuple)
 
 
+@pytest.mark.virtual
 @pytest.mark.parametrize(
     "uid, axis, dtype",
     [
@@ -35,6 +38,7 @@ def test_register_type(motion_controller, uid, axis, dtype):
     assert register_dtype == dtype
 
 
+@pytest.mark.virtual
 @pytest.mark.parametrize(
     "uid, axis, access",
     [
@@ -50,13 +54,12 @@ def test_register_access(motion_controller, uid, axis, access):
     assert register_access == access
 
 
-@pytest.mark.canopen
-@pytest.mark.eoe
+@pytest.mark.virtual
 @pytest.mark.parametrize(
     "uid, axis, range",
     [
         ("CL_POS_FBK_VALUE", 1, (-2147483648, 2147483647)),
-        ("CL_VEL_SET_POINT_VALUE", 1, (-2147483648, 2147483647)),
+        ("CL_VEL_SET_POINT_VALUE", 1, (-3.4e38, 3.4e38)),
         ("PROF_POS_OPTION_CODE", 1, (0, 65535)),
         ("PROF_IP_CLEAR_DATA", 1, (0, 65535)),
     ],
@@ -67,6 +70,7 @@ def test_register_range(motion_controller, uid, axis, range):
     assert tuple(register_range) == range
 
 
+@pytest.mark.virtual
 @pytest.mark.parametrize(
     "uid, axis, exists",
     [
@@ -83,3 +87,93 @@ def test_register_exists(motion_controller, uid, axis, exists):
     mc, alias = motion_controller
     register_exists = mc.info.register_exists(uid, axis, alias)
     assert register_exists == exists
+
+
+@pytest.mark.virtual
+def test_get_product_name(motion_controller, mocker):
+    expected_product_name = "VIRTUAL-DRIVE"
+
+    mc, alias = motion_controller
+    product_name = mc.info.get_product_name(alias)
+
+    assert product_name == expected_product_name
+
+
+@pytest.mark.virtual
+def test_get_ip(motion_controller):
+    expected_ip = "127.0.0.1"
+
+    mc, alias = motion_controller
+    ip = mc.info.get_ip(alias)
+
+    assert ip == expected_ip
+
+
+@pytest.mark.virtual
+def test_get_name(motion_controller):
+    expected_name = "Drive"
+
+    mc, alias = motion_controller
+    name = mc.info.get_name(alias)
+
+    assert name == expected_name
+
+
+@pytest.mark.virtual
+def test_get_communication_type(motion_controller):
+    expected_communication_type = COMMUNICATION_TYPE.Ethernet
+
+    mc, alias = motion_controller
+    communication_type = mc.info.get_communication_type(alias)
+
+    assert communication_type == expected_communication_type
+
+
+@pytest.mark.virtual
+def test_get_full_name(motion_controller):
+    expected_full_name = "VIRTUAL-DRIVE - Drive (127.0.0.1)"
+
+    mc, alias = motion_controller
+    full_name = mc.info.get_full_name(alias)
+
+    assert full_name == expected_full_name
+
+
+@pytest.mark.virtual
+def test_get_subnodes(motion_controller):
+    expected_subnodes = 2
+
+    mc, alias = motion_controller
+    subnodes = mc.info.get_subnodes(alias)
+
+    assert subnodes == expected_subnodes
+
+
+@pytest.mark.virtual
+def test_get_categories(motion_controller):
+    expected_number_categories = 19
+
+    mc, alias = motion_controller
+    categories = mc.info.get_categories(alias)
+
+    assert len(categories) == expected_number_categories
+
+
+@pytest.mark.virtual
+def test_get_dictionary_file_name(motion_controller):
+    expected_dictionary_path = "virtual_drive.xdf"
+
+    mc, alias = motion_controller
+    dictionary_file_name = mc.info.get_dictionary_file_name(alias)
+
+    assert dictionary_file_name in expected_dictionary_path
+
+
+@pytest.mark.virtual
+def test_get_encoded_image_from_dictionary(motion_controller):
+    expected_type_output = str
+
+    mc, alias = motion_controller
+    encoded_image = mc.info.get_encoded_image_from_dictionary(alias)
+
+    assert type(encoded_image) == expected_type_output

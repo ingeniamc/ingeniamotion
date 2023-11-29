@@ -1,28 +1,40 @@
 import time
 import ifaddr
 import subprocess
-from os import path
+from os import path, remove
 from functools import partial
-from typing import Optional, Union, Callable, List
+from typing import TYPE_CHECKING, Optional, Union, Callable, List, Any
 
 import ingenialogger
 from ingenialink.exceptions import ILError
-from ingenialink.canopen.network import CanopenNetwork
+from ingenialink.canopen.network import CanopenNetwork, CAN_BAUDRATE, CAN_DEVICE
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.eoe.network import EoENetwork
+from ingenialink.enums.register import REG_DTYPE, REG_ACCESS
+from ingenialink.enums.servo import SERVO_STATE
+from ingenialink.network import NET_DEV_EVT
 
 from ingeniamotion.exceptions import IMRegisterWrongAccess
-from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE, REG_DTYPE, REG_ACCESS
-from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
+
+if TYPE_CHECKING:
+    from ingeniamotion.motion_controller import MotionController
+from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
+from ingeniamotion.comkit import create_comkit_dictionary
 
 
 class Communication(metaclass=MCMetaClass):
     """Communication."""
 
-    FORCE_SYSTEM_BOOT_CODE_REGISTER = "DRV_BOOT_COCO_FORCE"
+    FORCE_SYSTEM_BOOT_COCO_REGISTER = "DRV_BOOT_COCO_FORCE"
+    FORCE_SYSTEM_BOOT_MOCO_REGISTER = "DRV_BOOT_MOCO_MODE"
+    SYSTEM_RESET_MOCO_REGISTER = "DRV_BOOT_RESET"
 
-    def __init__(self, motion_controller):
+    PASSWORD_FORCE_BOOT_COCO = 0x424F4F54
+    PASSWORD_FORCE_BOOT_MOCO = 0x426F6F74
+    PASSWORD_SYSTEM_RESET = 0x72657365
+
+    def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
 
@@ -176,7 +188,7 @@ class Communication(metaclass=MCMetaClass):
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
         )
-        servo.slave = slave
+        servo.slave = slave  # type: ignore [attr-defined]
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = ifname
 
@@ -225,6 +237,51 @@ class Communication(metaclass=MCMetaClass):
             net_status_listener,
         )
 
+    def connect_servo_comkit(
+        self,
+        ip: str,
+        coco_dict_path: str,
+        moco_dict_path: str,
+        alias: str = DEFAULT_SERVO,
+        port: int = 1061,
+        connection_timeout: int = 1,
+        servo_status_listener: bool = False,
+        net_status_listener: bool = False,
+    ) -> None:
+        """Connect to target servo using a COM-KIT
+
+        Args:
+            ip : servo IP
+            coco_dict_path : COCO dictionary path.
+            moco_dict_path : MOCO dictionary path.
+            alias : servo alias to reference it. ``default`` by default.
+            port : servo port. ``1061`` by default.
+            connection_timeout: Timeout in seconds for connection.
+                ``1`` seconds by default.
+            servo_status_listener : Toggle the listener of the servo for
+                its status, errors, faults, etc.
+            net_status_listener : Toggle the listener of the network
+                status, connection and disconnection.
+
+        Raises:
+            FileNotFoundError: If a dict file doesn't exist.
+            ingenialink.exceptions.ILError: If the servo's IP or port is incorrect.
+        """
+        for dict_path in [coco_dict_path, moco_dict_path]:
+            if not path.isfile(dict_path):
+                raise FileNotFoundError(f"{dict_path} file does not exist!")
+        dict_path = create_comkit_dictionary(coco_dict_path, moco_dict_path)
+        self.__servo_connect(
+            ip,
+            dict_path,
+            alias,
+            port,
+            connection_timeout,
+            servo_status_listener=servo_status_listener,
+            net_status_listener=net_status_listener,
+        )
+        remove(dict_path)
+
     @staticmethod
     def __get_adapter_name(address: str) -> Optional[str]:
         """Returns the adapter name of an adapter based on its address.
@@ -236,7 +293,7 @@ class Communication(metaclass=MCMetaClass):
         for adapter in ifaddr.get_adapters():
             for ip in adapter.ips:
                 if ip.is_IPv4 and ip.ip == address:
-                    return adapter.name.decode("utf-8")
+                    return bytes.decode(adapter.name)
         return None
 
     def get_ifname_from_interface_ip(self, address: str) -> str:
@@ -273,7 +330,8 @@ class Communication(metaclass=MCMetaClass):
 
         Returns:
             Real name of selected interface.
-            It can be used for function :func:`connect_servo_eoe_service`.
+            It can be used for functions :func:`connect_servo_eoe_service` and
+            :func:`connect_servo_ethercat`.
 
         Raises:
             IndexError: If interface index is out of range.
@@ -338,7 +396,7 @@ class Communication(metaclass=MCMetaClass):
         )
 
     def scan_servos_eoe_service(self, ifname: str) -> List[int]:
-        """Return a list of available servos.
+        """Return a List of available servos.
 
         Args:
             ifname : interface name. It should have format
@@ -348,10 +406,13 @@ class Communication(metaclass=MCMetaClass):
 
         Raises:
             ingenialink.exceptions.ILError: If the EoE service is not running
-
+            TypeError: If some parameter has a wrong type.
         """
         net = self.mc.net[ifname] if ifname in self.mc.net else EoENetwork(ifname)
-        return net.scan_slaves()
+        slaves = net.scan_slaves()
+        if not isinstance(slaves, List):
+            raise TypeError("Slaves are not saved in a list")
+        return slaves
 
     def scan_servos_eoe_service_interface_index(self, if_index: int) -> List[int]:
         """Return a list of available servos.
@@ -413,6 +474,161 @@ class Communication(metaclass=MCMetaClass):
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = net_key
 
+    def connect_servo_ethercat(
+        self,
+        interface_name: str,
+        slave_id: int,
+        dict_path: str,
+        alias: str = DEFAULT_SERVO,
+        servo_status_listener: bool = False,
+        net_status_listener: bool = False,
+    ) -> None:
+        """Connect to an EtherCAT slave.
+
+        Args:
+            interface_name : interface name. It should have format
+                ``\\Device\\NPF_[...]``.
+            slave_id: EtherCAT slave ID.
+            dict_path : servo dictionary path.
+            alias : servo alias to reference it. ``default`` by default.
+            servo_status_listener : Toggle the listener of the servo for
+                its status, errors, faults, etc.
+            net_status_listener : Toggle the listener of the network
+                status, connection and disconnection.
+
+        Raises:
+            FileNotFoundError: If the dict file doesn't exist.
+
+        """
+
+        if not path.isfile(dict_path):
+            raise FileNotFoundError(f"Dict file {dict_path} does not exist!")
+        if interface_name not in self.mc.net:
+            self.mc.net[interface_name] = EthercatNetwork(interface_name)
+        net = self.mc.net[interface_name]
+        servo = net.connect_to_slave(
+            slave_id,
+            dict_path,
+            servo_status_listener=servo_status_listener,
+            net_status_listener=net_status_listener,
+        )
+        self.mc.servos[alias] = servo
+        self.mc.servo_net[alias] = interface_name
+
+    def connect_servo_ethercat_interface_index(
+        self,
+        if_index: int,
+        slave_id: int,
+        dict_path: str,
+        alias: str = DEFAULT_SERVO,
+        servo_status_listener: bool = False,
+        net_status_listener: bool = False,
+    ) -> None:
+        """Connect to an EtherCAT slave.
+
+        Args:
+            if_index : interface index in list given by function
+                :func:`get_interface_name_list`.
+            slave_id: EtherCAT slave ID.
+            dict_path : servo dictionary path.
+            alias : servo alias to reference it. ``default`` by default.
+            servo_status_listener : Toggle the listener of the servo for
+                its status, errors, faults, etc.
+            net_status_listener : Toggle the listener of the network
+                status, connection and disconnection.
+
+        Raises:
+            IndexError: If interface index is out of range.
+
+        """
+        self.connect_servo_ethercat(
+            self.get_ifname_by_index(if_index),
+            slave_id,
+            dict_path,
+            alias,
+            servo_status_listener,
+            net_status_listener,
+        )
+
+    def connect_servo_ethercat_interface_ip(
+        self,
+        interface_ip: str,
+        slave_id: int,
+        dict_path: str,
+        alias: str = DEFAULT_SERVO,
+        servo_status_listener: bool = False,
+        net_status_listener: bool = False,
+    ) -> None:
+        """Connect to an EtherCAT slave.
+
+        Args:
+            interface_ip : IP of the interface to be connected to.
+            slave_id: EtherCAT slave ID.
+            dict_path : servo dictionary path.
+            alias : servo alias to reference it. ``default`` by default.
+            servo_status_listener : Toggle the listener of the servo for
+                its status, errors, faults, etc.
+            net_status_listener : Toggle the listener of the network
+                status, connection and disconnection.
+
+        """
+        self.connect_servo_ethercat(
+            self.get_ifname_from_interface_ip(interface_ip),
+            slave_id,
+            dict_path,
+            alias,
+            servo_status_listener,
+            net_status_listener,
+        )
+
+    @staticmethod
+    def scan_servos_ethercat(
+        interface_name: str,
+    ) -> List[int]:
+        """Scan a network adapter to get all connected EtherCAT slaves.
+
+        Args:
+            interface_name : interface name. It should have format
+                ``\\Device\\NPF_[...]``.
+        Returns:
+            List of EtherCAT slaves available in the network.
+
+        Raises:
+            TypeError: If some parameter has a wrong type.
+        """
+        net = EthercatNetwork(interface_name)
+        slaves = net.scan_slaves()
+        if not isinstance(slaves, List):
+            raise TypeError("Slaves are not saved in a List")
+        return slaves
+
+    def scan_servos_ethercat_interface_ip(self, interface_ip: str) -> List[int]:
+        """Scan a network adapter to get all connected EtherCAT slaves.
+
+        Args:
+            interface_ip : IP of the interface to be connected to.
+
+        Returns:
+            List of EtherCAT slaves available in the network.
+
+        """
+        return self.scan_servos_ethercat(self.get_ifname_from_interface_ip(interface_ip))
+
+    def scan_servos_ethercat_interface_index(self, if_index: int) -> List[int]:
+        """Scan a network adapter to get all connected EtherCAT slaves.
+
+        Args:
+            if_index : interface index in list given by function
+                :func:`get_interface_name_list`.
+        Returns:
+            List of EtherCAT slaves available in the network.
+
+        Raises:
+            IndexError: If interface index is out of range.
+
+        """
+        return self.scan_servos_ethercat(self.get_ifname_by_index(if_index))
+
     def scan_servos_canopen(
         self,
         can_device: CAN_DEVICE,
@@ -427,7 +643,7 @@ class Communication(metaclass=MCMetaClass):
             channel : CANOpen device channel. ``0`` by default.
         Returns:
             List of node ids available in the network.
-
+            TypeError: If some parameter has a wrong type.
         """
         net_key = f"{can_device}_{channel}_{baudrate}"
         if net_key not in self.mc.net:
@@ -443,7 +659,10 @@ class Communication(metaclass=MCMetaClass):
                 baudrate,
             )
             return []
-        return net.scan_slaves()
+        slaves = net.scan_slaves()
+        if not isinstance(slaves, List):
+            raise TypeError("Slaves are not saved in a List")
+        return slaves
 
     def disconnect(self, servo: str = DEFAULT_SERVO) -> None:
         """Disconnect servo.
@@ -477,19 +696,22 @@ class Communication(metaclass=MCMetaClass):
         Raises:
             ingenialink.exceptions.ILAccessError: If the register access is write-only.
             IMRegisterNotExist: If the register doesn't exist.
+            TypeError: If some parameter has a wrong type.
 
         """
         drive = self.mc.servos[servo]
         register_dtype = self.mc.info.register_type(register, axis, servo=servo)
         value = drive.read(register, subnode=axis)
-        if register_dtype.value <= REG_DTYPE.S64.value:
+        if register_dtype.value <= REG_DTYPE.S64.value and isinstance(value, int):
             return int(value)
+        if not isinstance(value, (int, float, str)):
+            raise TypeError("Register value is not a correct type of value.")
         return value
 
     def set_register(
         self,
         register: str,
-        value: Union[int, float],
+        value: Union[int, float, str],
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
     ) -> None:
@@ -526,7 +748,9 @@ class Communication(metaclass=MCMetaClass):
             )
         drive.write(register, value, subnode=axis)
 
-    def subscribe_net_status(self, callback: Callable, servo: str = DEFAULT_SERVO) -> None:
+    def subscribe_net_status(
+        self, callback: Callable[[NET_DEV_EVT], None], servo: str = DEFAULT_SERVO
+    ) -> None:
         """Add a callback to net status change event.
 
         Args:
@@ -535,13 +759,12 @@ class Communication(metaclass=MCMetaClass):
 
         """
         network = self.mc._get_network(servo)
-        if isinstance(network, EthernetNetwork):
-            drive = self.mc._get_drive(servo)
-            network.subscribe_to_status(drive.target, callback)
-        else:
-            network.subscribe_to_status(callback)
+        drive = self.mc._get_drive(servo)
+        network.subscribe_to_status(drive.target, callback)
 
-    def unsubscribe_net_status(self, callback: Callable, servo: str = DEFAULT_SERVO) -> None:
+    def unsubscribe_net_status(
+        self, callback: Callable[[NET_DEV_EVT], None], servo: str = DEFAULT_SERVO
+    ) -> None:
         """Remove net status change event callback.
 
         Args:
@@ -550,13 +773,12 @@ class Communication(metaclass=MCMetaClass):
 
         """
         network = self.mc._get_network(servo)
-        if isinstance(network, EthernetNetwork):
-            drive = self.mc._get_drive(servo)
-            network.unsubscribe_from_status(drive.target, callback)
-        else:
-            network.unsubscribe_from_status(callback)
+        drive = self.mc._get_drive(servo)
+        network.unsubscribe_from_status(drive.target, callback)
 
-    def subscribe_servo_status(self, callback: Callable, servo: str = DEFAULT_SERVO) -> None:
+    def subscribe_servo_status(
+        self, callback: Callable[[SERVO_STATE, None, int], Any], servo: str = DEFAULT_SERVO
+    ) -> None:
         """Add a callback to servo status change event.
 
         Args:
@@ -567,7 +789,9 @@ class Communication(metaclass=MCMetaClass):
         drive = self.mc._get_drive(servo)
         drive.subscribe_to_status(callback)
 
-    def unsubscribe_servo_status(self, callback: Callable, servo: str = DEFAULT_SERVO) -> None:
+    def unsubscribe_servo_status(
+        self, callback: Callable[[SERVO_STATE, None, int], Any], servo: str = DEFAULT_SERVO
+    ) -> None:
         """Remove servo status change event callback.
 
         Args:
@@ -582,9 +806,9 @@ class Communication(metaclass=MCMetaClass):
         self,
         fw_file: str,
         servo: str = DEFAULT_SERVO,
-        status_callback: Optional[Callable] = None,
-        progress_callback: Optional[Callable] = None,
-        error_enabled_callback: Optional[Callable] = None,
+        status_callback: Optional[Callable[[str], None]] = None,
+        progress_callback: Optional[Callable[[int], None]] = None,
+        error_enabled_callback: Optional[Callable[[bool], None]] = None,
     ) -> None:
         """Load firmware via CANopen.
 
@@ -608,7 +832,7 @@ class Communication(metaclass=MCMetaClass):
         if progress_callback is None:
             progress_callback = partial(self.logger.info, "Load firmware progress: %s")
         net.load_firmware(
-            drive.target, fw_file, status_callback, progress_callback, error_enabled_callback
+            int(drive.target), fw_file, status_callback, progress_callback, error_enabled_callback
         )
 
     def load_firmware_ecat(self, ifname: str, fw_file: str, slave: int = 1) -> None:
@@ -668,12 +892,12 @@ class Communication(metaclass=MCMetaClass):
 
         """
         net = EthernetNetwork()
-        if ftp_user is None and ftp_pwd is None:
-            ftp_user, ftp_pwd = "Ingenia", "Ingenia"
+        ftp_user = ftp_user or "Ingenia"
+        ftp_pwd = ftp_pwd or "Ingenia"
         net.load_firmware(fw_file, ip, ftp_user, ftp_pwd)
 
     @staticmethod
-    def __ftp_ping(ip):
+    def __ftp_ping(ip: str) -> bool:
         command = ["ping", ip]
         return subprocess.call(command) == 0
 
@@ -702,7 +926,7 @@ class Communication(metaclass=MCMetaClass):
         """
         net = self.mc._get_network(servo)
         drive = self.mc._get_drive(servo)
-        ip = drive.target
+        ip = str(drive.target)
         if not isinstance(net, EthernetNetwork):
             raise ValueError("Target servo is not connected via Ethernet")
         self.boot_mode(servo)
@@ -721,15 +945,74 @@ class Communication(metaclass=MCMetaClass):
             servo : servo alias to reference it. ``default`` by default.
 
         """
-        PASSWORD_FORCE_BOOT_COCO = 0x424F4F54
         net = self.mc._get_network(servo)
         drive = self.mc._get_drive(servo)
         net.stop_status_listener()
         drive.stop_status_listener()
         try:
             self.mc.communication.set_register(
-                self.FORCE_SYSTEM_BOOT_CODE_REGISTER, PASSWORD_FORCE_BOOT_COCO, servo=servo, axis=0
+                self.FORCE_SYSTEM_BOOT_COCO_REGISTER,
+                self.PASSWORD_FORCE_BOOT_COCO,
+                servo=servo,
+                axis=0,
             )
         except ILError:
             pass
         self.disconnect(servo)
+
+    def load_firmware_moco(
+        self,
+        fw_file: str,
+        servo: str = DEFAULT_SERVO,
+    ) -> None:
+        """Load firmware to the Motion Core.
+
+        .. warning::
+            After functions ends, the servo will take a moment to load firmware.
+            During the process, the servo will be not operative.
+
+        Args:
+            fw_file : Firmware file path.
+            servo : servo alias to reference it. ``default`` by default.
+
+        Raises:
+            ValueError: If servo is not connected via Ethernet.
+
+        """
+        default_node = 10
+        default_subnode = 1
+        default_port = 1061
+        net = self.mc._get_network(servo)
+        drive = self.mc._get_drive(servo)
+        ip = str(drive.target)
+        if not isinstance(net, EthernetNetwork):
+            raise ValueError("Target servo is not connected via Ethernet")
+        net.load_firmware_moco(default_node, default_subnode, ip, default_port, fw_file)
+
+    def boot_mode_moco(self, servo: str = DEFAULT_SERVO) -> None:
+        """Set the Motion Core to boot mode.
+
+        Args:
+            servo : servo alias to reference it. ``default`` by default.
+
+        """
+        net = self.mc._get_network(servo)
+        drive = self.mc._get_drive(servo)
+        net.stop_status_listener()
+        drive.stop_status_listener()
+        try:
+            self.mc.communication.set_register(
+                self.FORCE_SYSTEM_BOOT_MOCO_REGISTER,
+                self.PASSWORD_FORCE_BOOT_MOCO,
+                servo=servo,
+            )
+        except ILError as e:
+            self.logger.debug(e)
+        try:
+            self.mc.communication.set_register(
+                self.SYSTEM_RESET_MOCO_REGISTER,
+                self.PASSWORD_FORCE_BOOT_MOCO,
+                servo=servo,
+            )
+        except ILError as e:
+            self.logger.debug(e)

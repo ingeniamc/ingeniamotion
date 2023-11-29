@@ -17,6 +17,8 @@ setuptools.setup(
     name="ingeniamotion",
     version=__version,
     packages=setuptools.find_packages(),
+    include_package_data=True,
+    package_data={"ingeniamotion": ["py.typed"]},
     author="Ingenia Motion Control",
     author_email="support@ingeniamc.com",
     description="Motion library for Ingenia servo drives",
@@ -32,7 +34,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        'ingenialink>=7.0.3, < 7.1.0',
+        'ingenialink>=7.1.0, < 7.2.0',
         'ingenialogger>=0.2.1',
         'ifaddr==0.1.7',
         'numpy==1.19.5'

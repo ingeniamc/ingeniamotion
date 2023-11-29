@@ -4,7 +4,9 @@ import numpy as np
 import ingenialogger
 from functools import wraps
 from abc import ABC, abstractmethod
-from typing import Optional, Union, Callable, List
+from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union, Callable
+
+from ingenialink.enums.register import REG_DTYPE
 
 from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 from ingeniamotion.exceptions import IMMonitoringError
@@ -12,13 +14,16 @@ from ingeniamotion.enums import (
     MonitoringProcessStage,
     MonitoringSoCType,
     MonitoringSoCConfig,
-    REG_DTYPE,
+    MonitoringVersion,
 )
 
+if TYPE_CHECKING:
+    from ingeniamotion.motion_controller import MotionController
 
-def check_monitoring_disabled(func):
+
+def check_monitoring_disabled(func: Callable[..., None]) -> Callable[..., None]:
     @wraps(func)
-    def wrapper(self, *args, **kwargs):
+    def wrapper(self, *args, **kwargs):  # type: ignore
         monitoring_enabled = self.mc.capture.is_monitoring_enabled(servo=self.servo)
         if monitoring_enabled:
             raise IMMonitoringError("Monitoring is enabled")
@@ -60,20 +65,19 @@ class Monitoring(ABC):
     MONITORING_ACTUAL_NUMBER_SAMPLES_REGISTER = "MON_CFG_CYCLES_VALUE"
     MONITORING_FORCE_TRIGGER_REGISTER = "MON_CMD_FORCE_TRIGGER"
 
-    def __init__(self, mc, servo=DEFAULT_SERVO):
+    def __init__(self, mc: "MotionController", servo: str = DEFAULT_SERVO) -> None:
         super().__init__()
         self.mc = mc
         self.servo = servo
-        self.mapped_registers = {}
-        self.monitoring_data = []
-        self.sampling_freq = None
+        self.mapped_registers: List[Dict[str, Union[str, REG_DTYPE]]] = []
+        self.sampling_freq: Optional[float] = None
         self._read_process_finished = False
         self.samples_number = 0
         self.trigger_delay_samples = 0
         self.logger = ingenialogger.get_logger(__name__, drive=mc.servo_name(servo))
         self.max_sample_number = mc.capture.monitoring_max_sample_size(servo)
         self.data = None
-        self._version = None
+        self._version: Optional[MonitoringVersion] = None
 
     @check_monitoring_disabled
     def set_frequency(self, prescaler: int) -> None:
@@ -101,7 +105,7 @@ class Monitoring(ABC):
         )
 
     @check_monitoring_disabled
-    def map_registers(self, registers: List[dict]) -> None:
+    def map_registers(self, registers: List[Dict[str, Union[str, REG_DTYPE]]]) -> None:
         """Map registers to monitoring. Monitoring must be disabled.
 
         Args:
@@ -119,6 +123,7 @@ class Monitoring(ABC):
         Raises:
             IMMonitoringError: If register maps fails in the servo.
             IMMonitoringError: If buffer size is not enough for all the registers.
+            TypeError: If some parameter has a wrong type.
 
         """
         drive = self.mc.servos[self.servo]
@@ -126,7 +131,11 @@ class Monitoring(ABC):
 
         for channel in registers:
             subnode = channel.get("axis", DEFAULT_AXIS)
+            if not isinstance(subnode, int):
+                raise TypeError("Subnode has to be an integer")
             register = channel["name"]
+            if not isinstance(register, str):
+                raise TypeError("Register has to be a string")
             register_obj = self.mc.info.register_info(register, subnode, servo=self.servo)
             dtype = register_obj.dtype
             channel["dtype"] = dtype
@@ -137,7 +146,13 @@ class Monitoring(ABC):
 
         for ch_idx, channel in enumerate(registers):
             subnode = channel.get("axis", DEFAULT_AXIS)
+            if not isinstance(subnode, int):
+                raise TypeError("Subnode has to be an integer")
             register = channel["name"]
+            if not isinstance(register, str):
+                raise TypeError("Register has to be a string")
+            if not isinstance(channel["dtype"], REG_DTYPE):
+                raise TypeError("dtype has to be of type REG_DTYPE")
             dtype = channel["dtype"]
             register_obj = self.mc.info.register_info(register, subnode, servo=self.servo)
             drive.monitoring_set_mapped_register(
@@ -151,6 +166,8 @@ class Monitoring(ABC):
         num_mon_reg = self.mc.communication.get_register(
             self.MONITORING_NUMBER_MAPPED_REGISTERS_REGISTER, servo=self.servo, axis=0
         )
+        if not isinstance(num_mon_reg, int):
+            raise TypeError("Number of mapped registers value has to be an integer")
         if num_mon_reg < 1:
             raise IMMonitoringError("Map Monitoring registers fails")
         self.mapped_registers = registers
@@ -161,7 +178,7 @@ class Monitoring(ABC):
         self,
         trigger_mode: MonitoringSoCType,
         edge_condition: Optional[MonitoringSoCConfig] = None,
-        trigger_signal: Optional[dict] = None,
+        trigger_signal: Optional[Dict[str, str]] = None,
         trigger_value: Union[None, int, float] = None,
     ) -> None:
         """Configure monitoring trigger. Monitoring must be disabled.
@@ -182,7 +199,9 @@ class Monitoring(ABC):
         """
         pass
 
-    def _get_reg_index_and_edge_condition_value(self, trigger_signal, trigger_value):
+    def _get_reg_index_and_edge_condition_value(
+        self, trigger_signal: Dict[str, str], trigger_value: Union[int, float]
+    ) -> Tuple[int, int]:
         index_reg = -1
         for index, item in enumerate(self.mapped_registers):
             if (
@@ -193,11 +212,13 @@ class Monitoring(ABC):
         if index_reg < 0:
             raise IMMonitoringError("Trigger signal is not mapped in Monitoring")
         dtype = self.mapped_registers[index_reg]["dtype"]
+        if not isinstance(dtype, REG_DTYPE):
+            raise TypeError("dtype has to be of type REG_DTYPE")
         level_edge = self._unpack_trigger_value(trigger_value, dtype)
         return index_reg, level_edge
 
     @staticmethod
-    def _unpack_trigger_value(value, dtype):
+    def _unpack_trigger_value(value: Union[int, float], dtype: REG_DTYPE) -> int:
         """Converts any value from its dtype to an UINT32"""
         if dtype == REG_DTYPE.U16:
             return int(np.array([int(value)], dtype="int64").astype("uint16")[0])
@@ -241,15 +262,18 @@ class Monitoring(ABC):
             ValueError: If trigger_delay is not between ``-total_time/2`` and
                 ``total_time/2``.
             IMMonitoringError: If buffer size is not enough for all the samples.
+            TypeError: If some parameter has a wrong type.
 
         """
         if total_time / 2 < abs(trigger_delay):
             raise ValueError("trigger_delay value should be between -total_time/2 and total_time/2")
+        if not isinstance(self.sampling_freq, float):
+            raise TypeError("Sampling frequency has to be set before configuring the sample time")
         total_num_samples = int(self.sampling_freq * total_time)
         trigger_delay_samples = int(((total_time / 2) - trigger_delay) * self.sampling_freq)
         self.configure_number_samples(total_num_samples, trigger_delay_samples)
 
-    def _check_trigger_timeout(self, init_time, timeout):
+    def _check_trigger_timeout(self, init_time: float, timeout: Optional[float]) -> None:
         if timeout is None:
             return
         time_now = time.time()
@@ -257,7 +281,7 @@ class Monitoring(ABC):
             self.logger.warning("Timeout. No trigger was reached.")
             self._read_process_finished = True
 
-    def _check_read_data_timeout(self, init_read_time):
+    def _check_read_data_timeout(self, init_read_time: float) -> None:
         time_now = time.time()
         total_num_samples = len(self.mapped_registers) * self.samples_number
         max_timeout = self.ESTIMATED_MAX_TIME_FOR_SAMPLE * total_num_samples
@@ -265,11 +289,17 @@ class Monitoring(ABC):
             self.logger.warning("Timeout. Drive take too much time reading data")
             self._read_process_finished = True
 
-    def _check_read_data_ends(self, data_length):
+    def _check_read_data_ends(self, data_length: int) -> None:
         if data_length >= self.samples_number:
             self._read_process_finished = True
 
-    def _update_read_process_finished(self, init_read_time, current_len, init_time, timeout):
+    def _update_read_process_finished(
+        self,
+        init_read_time: Optional[float],
+        current_len: int,
+        init_time: float,
+        timeout: Optional[float],
+    ) -> None:
         self._check_read_data_ends(current_len)
         if self._read_process_finished:
             return
@@ -278,7 +308,11 @@ class Monitoring(ABC):
         else:
             self._check_read_data_timeout(init_read_time)
 
-    def _show_current_process(self, current_len, progress_callback):
+    def _show_current_process(
+        self,
+        current_len: int,
+        progress_callback: Optional[Callable[[MonitoringProcessStage, float], None]],
+    ) -> None:
         process_stage = self.mc.capture.get_monitoring_process_stage(
             servo=self.servo, version=self._version
         )
@@ -292,17 +326,19 @@ class Monitoring(ABC):
             progress_callback(process_stage, current_progress)
 
     @abstractmethod
-    def _check_monitoring_is_ready(self):
+    def _check_monitoring_is_ready(self) -> Tuple[bool, Optional[str]]:
         pass
 
     @abstractmethod
-    def _check_data_is_ready(self):
+    def _check_data_is_ready(self) -> bool:
         pass
 
     # TODO Study remove progress_callback
     def read_monitoring_data(
-        self, timeout: Optional[float] = None, progress_callback: Optional[Callable] = None
-    ) -> List[list]:
+        self,
+        timeout: Optional[float] = None,
+        progress_callback: Optional[Callable[[MonitoringProcessStage, float], None]] = None,
+    ) -> List[List[Union[int, float]]]:
         """Blocking function that read the monitoring data.
 
         Args:
@@ -316,7 +352,7 @@ class Monitoring(ABC):
         drive = self.mc.servos[self.servo]
         self._read_process_finished = False
         is_ready, result_text = self._check_monitoring_is_ready()
-        data_array = [[] for _ in self.mapped_registers]
+        data_array: List[List[Union[int, float]]] = [[] for _ in self.mapped_registers]
         self.logger.debug("Waiting for data")
         init_read_time, init_time = None, time.time()
         current_len = 0
@@ -333,29 +369,38 @@ class Monitoring(ABC):
             self._show_current_process(current_len, progress_callback)
         return data_array
 
-    def _fill_data(self, data_array):
+    def _fill_data(self, data_array: List[List[Union[int, float]]]) -> None:
         drive = self.mc.servos[self.servo]
         for ch_idx, channel in enumerate(self.mapped_registers):
             dtype = channel["dtype"]
             tmp_monitor_data = drive.monitoring_channel_data(ch_idx, REG_DTYPE(dtype))
             data_array[ch_idx] += tmp_monitor_data
 
-    def stop_reading_data(self):
+    def stop_reading_data(self) -> None:
         """Stops read_monitoring_data function."""
         self._read_process_finished = True
 
     @abstractmethod
-    def rearm_monitoring(self):
+    def rearm_monitoring(self) -> None:
         """Rearm monitoring."""
         pass
 
     @abstractmethod
-    def _check_buffer_size_is_enough(self, total_samples, trigger_delay_samples, registers):
+    def _check_buffer_size_is_enough(
+        self,
+        total_samples: int,
+        trigger_delay_samples: int,
+        registers: List[Dict[str, Union[str, REG_DTYPE]]],
+    ) -> None:
         pass
 
-    def _check_samples_and_max_size(self, n_sample, max_size, registers):
+    def _check_samples_and_max_size(
+        self, n_sample: int, max_size: int, registers: List[Dict[str, Union[str, REG_DTYPE]]]
+    ) -> None:
         size_demand = sum(
-            self._data_type_size[register["dtype"]] * n_sample for register in registers
+            self._data_type_size[register["dtype"]] * n_sample
+            for register in registers
+            if isinstance(register["dtype"], REG_DTYPE)
         )
         if max_size < size_demand:
             raise IMMonitoringError(
@@ -366,16 +411,21 @@ class Monitoring(ABC):
             "Demanded size: %d bytes, buffer max size: %d bytes.", size_demand, max_size
         )
 
-    def get_trigger_type(self) -> MonitoringSoCType:
+    def get_trigger_type(self) -> Union[MonitoringSoCType, int]:
         """Get monitoring trigger type.
 
         Returns:
             Trigger type
 
+        Raises:
+            TypeError: If some read value has a wrong type.
+
         """
         register_value = self.mc.communication.get_register(
             self.MONITOR_START_CONDITION_TYPE_REGISTER, servo=self.servo, axis=0
         )
+        if not isinstance(register_value, int):
+            raise TypeError("Monitoring trigger type register value has to be an integer")
         try:
             return MonitoringSoCType(register_value)
         except ValueError:
@@ -412,7 +462,9 @@ class Monitoring(ABC):
             )
         return mon_process_stage >= MonitoringProcessStage.WAITING_FOR_TRIGGER
 
-    def read_monitoring_data_forced_trigger(self, trigger_timeout: float = 5) -> List[list]:
+    def read_monitoring_data_forced_trigger(
+        self, trigger_timeout: float = 5
+    ) -> List[List[Union[int, float]]]:
         """Trigger and read Forced Trigger monitoring.
 
         Args:

@@ -1,6 +1,6 @@
 import pytest
 
-from ingeniamotion.enums import SensorType, SensorCategory
+from ingeniamotion.enums import SensorCategory, SensorType
 
 COMMUTATION_FEEDBACK_REGISTER = "COMMU_ANGLE_SENSOR"
 REFERENCE_FEEDBACK_REGISTER = "COMMU_ANGLE_REF_SENSOR"
@@ -395,4 +395,21 @@ def test_get_incremental_encoder_2_resolution(motion_controller, resolution):
 def test_instance_sensor_type(motion_controller):
     mc, alias = motion_controller
     test_feedback = mc.configuration.get_commutation_feedback(servo=alias)
-    assert isinstance(test_feedback, SensorType) is True
+    assert isinstance(test_feedback, SensorType)
+
+
+@pytest.mark.smoke
+@pytest.mark.parametrize(
+    "sensor, register",
+    [
+        (SensorType.ABS1, "FBK_BISS1_SSI1_POS_POLARITY"),
+        (SensorType.QEI, "FBK_DIGENC1_POLARITY"),
+        (SensorType.HALLS, "FBK_DIGHALL_POLARITY"),
+        (SensorType.SSI2, "FBK_SSI2_POS_POLARITY"),
+        (SensorType.BISSC2, "FBK_BISS2_POS_POLARITY"),
+        (SensorType.QEI2, "FBK_DIGENC2_POLARITY"),
+    ],
+)
+def test_get_feedback_polarity_register_uid(motion_controller, sensor, register):
+    mc, alias = motion_controller
+    assert mc.configuration.get_feedback_polarity_register_uid(sensor) == register

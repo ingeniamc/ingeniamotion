@@ -1,14 +1,25 @@
-import re
-import ingenialogger
-
-from os import path
 from enum import IntEnum
-from typing import Optional
+from os import path
+from typing import TYPE_CHECKING, List, Optional, Tuple, Union
 
-from .homing import Homing
-from .feedbacks import Feedbacks
-from .enums import PhasingMode, GeneratorMode
-from .metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
+import ingenialogger
+from ingenialink.exceptions import ILError
+from ingenialink.canopen.network import CanopenNetwork, CAN_BAUDRATE
+from ingenialink.ethernet.servo import EthernetServo
+
+from ingeniamotion.homing import Homing
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
+from ingeniamotion.exceptions import IMException
+from ingeniamotion.feedbacks import Feedbacks
+from ingeniamotion.enums import GeneratorMode, PhasingMode
+
+if TYPE_CHECKING:
+    from ingeniamotion.motion_controller import MotionController
+
+
+class TYPE_SUBNODES(IntEnum):
+    COCO = 0
+    MOCO = 1
 
 
 class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
@@ -40,6 +51,14 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
     GENERATOR_MODE_REGISTER = "FBK_GEN_MODE"
     MOTOR_POLE_PAIRS_REGISTER = "MOT_PAIR_POLES"
     STO_STATUS_REGISTER = "DRV_PROT_STO_STATUS"
+    VELOCITY_LOOP_KP_REGISTER = "CL_VEL_PID_KP"
+    VELOCITY_LOOP_KI_REGISTER = "CL_VEL_PID_KI"
+    VELOCITY_LOOP_KD_REGISTER = "CL_VEL_PID_KD"
+    POSITION_LOOP_KP_REGISTER = "CL_POS_PID_KP"
+    POSITION_LOOP_KI_REGISTER = "CL_POS_PID_KI"
+    POSITION_LOOP_KD_REGISTER = "CL_POS_PID_KD"
+    RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
+    MAX_CURRENT_REGISTER = "CL_CUR_REF_MAX"
 
     STATUS_WORD_OPERATION_ENABLED_BIT = 0x04
     STATUS_WORD_COMMUTATION_FEEDBACK_ALIGNED_BIT = 0x4000
@@ -53,7 +72,26 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
     STO_INACTIVE_STATE = 23
     STO_LATCHED_STATE = 31
 
-    def __init__(self, motion_controller):
+    PRODUCT_ID_REGISTERS = {
+        TYPE_SUBNODES.COCO: "DRV_ID_PRODUCT_CODE_COCO",
+        TYPE_SUBNODES.MOCO: "DRV_ID_PRODUCT_CODE",
+    }
+    REVISION_NUMBER_REGISTERS = {
+        TYPE_SUBNODES.COCO: "DRV_ID_REVISION_NUMBER_COCO",
+        TYPE_SUBNODES.MOCO: "DRV_ID_REVISION_NUMBER",
+    }
+    SERIAL_NUMBER_REGISTERS = {
+        TYPE_SUBNODES.COCO: "DRV_ID_SERIAL_NUMBER_COCO",
+        TYPE_SUBNODES.MOCO: "DRV_ID_SERIAL_NUMBER",
+    }
+    SOFTWARE_VERSION_REGISTERS = {
+        TYPE_SUBNODES.COCO: "DRV_APP_COCO_VERSION",
+        TYPE_SUBNODES.MOCO: "DRV_ID_SOFTWARE_VERSION",
+    }
+    VENDOR_ID_COCO_REGISTER = "DRV_ID_VENDOR_ID_COCO"
+    VENDOR_ID_REGISTER = "DRV_ID_VENDOR_ID"
+
+    def __init__(self, motion_controller: "MotionController") -> None:
         Homing.__init__(self, motion_controller)
         Feedbacks.__init__(self, motion_controller)
         self.mc = motion_controller
@@ -257,15 +295,16 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         if desired. However, At least a minimum of one of these parameters
         is mandatory to call this function.
 
-        Raises:
-            TypeError: Missing arguments. All the arguments given were None.
-
         Args:
             acceleration: maximum acceleration in rev/s^2.
             deceleration: maximum deceleration in rev/s^2.
             velocity: maximum profile velocity in rev/s.
             servo : servo alias to reference it. ``default`` by default.
             axis : servo axis. ``1`` by default.
+
+        Raises:
+            TypeError: Missing arguments. All the arguments given were None.
+
         """
         if acceleration is None and deceleration is None and velocity is None:
             raise TypeError("Missing arguments. At least one argument is required.")
@@ -329,10 +368,16 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Returns:
             Position & velocity loop rate frequency in Hz.
 
+        Raises:
+            TypeError: If some read value has a wrong type.
+
         """
-        return self.mc.communication.get_register(
+        pos_vel_loop_rate = self.mc.communication.get_register(
             self.POSITION_AND_VELOCITY_LOOP_RATE_REGISTER, servo=servo, axis=axis
         )
+        if not isinstance(pos_vel_loop_rate, int):
+            raise TypeError("Position and velocity loop has to be an integer")
+        return pos_vel_loop_rate
 
     def get_current_loop_rate(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
         """Get current loop rate frequency.
@@ -343,10 +388,17 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         Returns:
             Current loop rate frequency in Hz.
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+
         """
-        return self.mc.communication.get_register(
+        current_loop = self.mc.communication.get_register(
             self.CURRENT_LOOP_RATE_REGISTER, servo=servo, axis=axis
         )
+        if not isinstance(current_loop, int):
+            raise TypeError("Current loop value has to be an integer")
+        return current_loop
 
     def get_power_stage_frequency(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS, raw: bool = False
@@ -365,10 +417,14 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Raises:
             ValueError: If power stage frequency selection register has an
                 invalid value.
+            TypeError: If some read value has a wrong type.
+
         """
         pow_stg_freq = self.mc.communication.get_register(
             self.POWER_STAGE_FREQUENCY_SELECTION_REGISTER, servo=servo, axis=axis
         )
+        if not isinstance(pow_stg_freq, int):
+            raise TypeError("Power stage frequency value has to be an integer")
         if raw:
             return pow_stg_freq
         try:
@@ -376,6 +432,8 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         except IndexError:
             raise ValueError("Invalid power stage frequency register")
         freq = self.mc.communication.get_register(pow_stg_freq_reg, servo=servo, axis=axis)
+        if not isinstance(freq, int):
+            raise TypeError("Frequency value has to be an integer")
         return freq
 
     def get_power_stage_frequency_enum(
@@ -423,8 +481,14 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Returns:
             Status word.
 
+        Raises:
+            TypeError: If some read value has a wrong type.
+
         """
-        return self.mc.communication.get_register(self.STATUS_WORD_REGISTER, servo, axis)
+        status_word = self.mc.communication.get_register(self.STATUS_WORD_REGISTER, servo, axis)
+        if not isinstance(status_word, int):
+            raise TypeError("Power stage frequency value has to be an integer")
+        return status_word
 
     def is_motor_enabled(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
         """Return motor status.
@@ -469,7 +533,9 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """
         self.mc.communication.set_register(self.PHASING_MODE_REGISTER, phasing_mode, servo, axis)
 
-    def get_phasing_mode(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> PhasingMode:
+    def get_phasing_mode(
+        self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
+    ) -> Union[PhasingMode, int]:
         """
         Get current phasing mode.
 
@@ -478,10 +544,15 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             axis : servo axis. ``1`` by default.
 
         Returns:
-            PhasingMode: Phasing mode value.
+            Phasing mode value.
+
+        Raises:
+            TypeError: If some read value has a wrong type.
 
         """
         phasing_mode = self.mc.communication.get_register(self.PHASING_MODE_REGISTER, servo, axis)
+        if not isinstance(phasing_mode, int):
+            raise TypeError("Phasing mode value has to be an integer")
         try:
             return PhasingMode(phasing_mode)
         except ValueError:
@@ -532,10 +603,15 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Returns:
             Pair poles value.
 
+        Raises:
+            TypeError: If some read value has a wrong type.
         """
-        return self.mc.communication.get_register(
+        pair_poles = self.mc.communication.get_register(
             self.MOTOR_POLE_PAIRS_REGISTER, servo=servo, axis=axis
         )
+        if not isinstance(pair_poles, int):
+            raise TypeError("Pair poles value has to be an integer")
+        return pair_poles
 
     def get_sto_status(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
         """
@@ -548,8 +624,16 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Returns:
             STO register value.
 
+        Raises:
+            TypeError: If some read value has a wrong type.
+
         """
-        return self.mc.communication.get_register(self.STO_STATUS_REGISTER, servo=servo, axis=axis)
+        sto_status = self.mc.communication.get_register(
+            self.STO_STATUS_REGISTER, servo=servo, axis=axis
+        )
+        if not isinstance(sto_status, int):
+            raise TypeError("STO status value has to be an integer")
+        return sto_status
 
     def is_sto1_active(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
         """
@@ -691,6 +775,8 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         """
         drive = self.mc._get_drive(servo)
+        if not isinstance(drive, EthernetServo):
+            raise IMException("TCP IP parameters can only be changed in ethernet servos.")
         drive.change_tcp_ip_parameters(ip_address, subnet_mask, gateway)
 
     def store_tcp_ip_parameters(self, servo: str = DEFAULT_SERVO) -> None:
@@ -701,6 +787,8 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         """
         drive = self.mc._get_drive(servo)
+        if not isinstance(drive, EthernetServo):
+            raise IMException("TCP IP parameters can only be stored in ethernet servos.")
         drive.store_tcp_ip_parameters()
 
     def restore_tcp_ip_parameters(self, servo: str = DEFAULT_SERVO) -> None:
@@ -711,4 +799,343 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         """
         drive = self.mc._get_drive(servo)
+        if not isinstance(drive, EthernetServo):
+            raise IMException("TCP IP parameters can only be restored in ethernet servos.")
         drive.restore_tcp_ip_parameters()
+
+    def get_drive_info_coco_moco(
+        self, alias: str
+    ) -> Tuple[List[Optional[int]], List[Optional[int]], List[Optional[str]], List[Optional[int]]]:
+        """Get product codes, revision numbers, firmware versions and serial numbers from
+        COCO and MOCO.
+
+        Args:
+            alias: Servo alias.
+
+        Returns:
+            Product codes (COCO, MOCO).
+            Revision numbers (COCO, MOCO).
+            FW versions (COCO, MOCO).
+            Serial numbers (COCO, MOCO).
+
+        """
+        prod_codes: List[Optional[int]] = [None, None]
+        rev_numbers: List[Optional[int]] = [None, None]
+        fw_versions: List[Optional[str]] = [None, None]
+        serial_number: List[Optional[int]] = [None, None]
+
+        for subnode in [0, 1]:
+            # Product codes
+            try:
+                prod_codes[subnode] = self.get_product_code(alias, subnode)
+            except (
+                ILError,
+                IMException,
+            ) as e:
+                self.logger.error(e)
+            # Revision numbers
+            try:
+                rev_numbers[subnode] = self.get_revision_number(alias, subnode)
+            except (ILError, IMException) as e:
+                self.logger.error(e)
+            # FW versions
+            try:
+                fw_versions[subnode] = self.get_fw_version(alias, subnode)
+            except (ILError, IMException) as e:
+                self.logger.error(e)
+            # Serial numbers
+            try:
+                serial_number[subnode] = self.get_serial_number(alias, subnode)
+            except (ILError, IMException) as e:
+                self.logger.error(e)
+
+        return prod_codes, rev_numbers, fw_versions, serial_number
+
+    @staticmethod
+    def get_subnode_type(subnode: int) -> TYPE_SUBNODES:
+        """Get a subnode type depending on the axis number.
+
+        Args:
+            subnode: Axis number of the drive.
+
+        Returns:
+            Subnode type.
+
+        Raises:
+            ValueError: For negative subnode values.
+        """
+        if subnode < 0:
+            raise ValueError("There are no subnodes with negative values")
+        return TYPE_SUBNODES.COCO if subnode == 0 else TYPE_SUBNODES.MOCO
+
+    def get_product_code(self, alias: str, subnode: int) -> int:
+        """Get the product code of a drive.
+
+        Args:
+            alias: Alias of the drive.
+            subnode: Axis number of the drive.
+
+        Returns:
+            Product code
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+        """
+        product_code_register = self.PRODUCT_ID_REGISTERS[self.get_subnode_type(subnode)]
+        product_code_value = self.mc.communication.get_register(
+            product_code_register, alias, axis=subnode
+        )
+        if not isinstance(product_code_value, int):
+            raise TypeError("Product code value has to be an integer")
+        return product_code_value
+
+    def get_revision_number(self, alias: str, subnode: int) -> int:
+        """Get the revision number of a drive.
+
+        Args:
+            alias: Alias of the drive.
+            subnode: Axis number of the drive.
+
+        Returns:
+            Revision number
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+        """
+        revision_number_register = self.REVISION_NUMBER_REGISTERS[self.get_subnode_type(subnode)]
+        revision_number_value = self.mc.communication.get_register(
+            revision_number_register, alias, axis=subnode
+        )
+        if not isinstance(revision_number_value, int):
+            raise TypeError("Revision number value has to be an integer")
+        return revision_number_value
+
+    def get_serial_number(self, alias: str, subnode: int) -> int:
+        """Get the serial number of a drive.
+
+        Args:
+            alias: Alias of the drive.
+            subnode: Axis number of the drive.
+
+        Returns:
+            Serial number
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+        """
+        serial_number_register = self.SERIAL_NUMBER_REGISTERS[self.get_subnode_type(subnode)]
+        serial_number_value = self.mc.communication.get_register(
+            serial_number_register, alias, axis=subnode
+        )
+        if not isinstance(serial_number_value, int):
+            raise TypeError("Serial number value has to be an integer")
+        return serial_number_value
+
+    def get_fw_version(self, alias: str, subnode: int) -> str:
+        """Get the firmware version of a drive.
+
+        Args:
+            alias: Alias of the drive.
+            subnode: Axis number of the drive.
+
+        Returns:
+            Firmware version.
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+        """
+        fw_register = self.SOFTWARE_VERSION_REGISTERS[self.get_subnode_type(subnode)]
+        fw_value = self.mc.communication.get_register(fw_register, alias, axis=subnode)
+        if not isinstance(fw_value, str):
+            raise TypeError("Firmware value has to be a string")
+        return fw_value
+
+    def get_vendor_id(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
+        """Get the vendor ID of a drive.
+
+        Args:
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
+
+        Returns:
+            Vendor ID.
+
+        Raises:
+            TypeError: If the read vendor ID has the wrong type.
+
+        """
+        if axis == 0:
+            register = self.VENDOR_ID_COCO_REGISTER
+        else:
+            register = self.VENDOR_ID_REGISTER
+        vendor_id = self.mc.communication.get_register(register, servo, axis)
+        if not isinstance(vendor_id, int):
+            raise TypeError(
+                f"Wrong {register} value for axis {axis}. Expected int, got {type(vendor_id)}"
+            )
+        return vendor_id
+
+    def change_baudrate(self, baud_rate: CAN_BAUDRATE, servo: str = DEFAULT_SERVO) -> None:
+        """Change a CANopen device's baudrate.
+
+        Args:
+            baud_rate: New baud rate value.
+            servo : servo alias to reference it. ``default`` by default.
+
+        Raises:
+            ValueError: If the servo is not a CANopen device.
+
+        """
+        drive = self.mc._get_drive(servo)
+        net = self.mc._get_network(servo)
+        if not isinstance(net, CanopenNetwork):
+            raise ValueError(f"Servo {servo} is not a CANopen device.")
+        vendor_id = self.get_vendor_id(servo)
+        prod_code = self.get_product_code(servo, subnode=0)
+        rev_number = self.get_revision_number(servo, subnode=0)
+        serial_number = self.get_serial_number(servo, subnode=0)
+        net.change_baudrate(
+            int(drive.target), baud_rate, vendor_id, prod_code, rev_number, serial_number
+        )
+
+    def change_node_id(self, node_id: int, servo: str = DEFAULT_SERVO) -> None:
+        """Change a CANopen device's node ID.
+
+        Args:
+            node_id: New node ID.
+            servo : servo alias to reference it. ``default`` by default.
+
+        Raises:
+            ValueError: If servo is not a CANopen device.
+
+        """
+        drive = self.mc._get_drive(servo)
+        net = self.mc._get_network(servo)
+        if not isinstance(net, CanopenNetwork):
+            raise ValueError(f"Servo {servo} is not a CANopen device.")
+        vendor_id = self.get_vendor_id(servo)
+        prod_code = self.get_product_code(servo, subnode=0)
+        rev_number = self.get_revision_number(servo, subnode=0)
+        serial_number = self.get_serial_number(servo, subnode=0)
+        net.change_node_id(
+            int(drive.target), node_id, vendor_id, prod_code, rev_number, serial_number
+        )
+
+    def set_velocity_pid(
+        self,
+        kp: float,
+        ki: float = 0,
+        kd: float = 0,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+    ) -> None:
+        """Set velocity PID values in the target servo and axis.
+
+        Args:
+            kp: proportional constant
+            ki: integral constant
+            kd: derivative constant
+            servo: servo alias to reference it. ``default`` by default.
+            axis: servo axis. ``1`` by default.
+
+        """
+        self.mc.communication.set_register(
+            self.VELOCITY_LOOP_KP_REGISTER, kp, servo=servo, axis=axis
+        )
+        self.mc.communication.set_register(
+            self.VELOCITY_LOOP_KI_REGISTER, ki, servo=servo, axis=axis
+        )
+        self.mc.communication.set_register(
+            self.VELOCITY_LOOP_KD_REGISTER, kd, servo=servo, axis=axis
+        )
+
+    def set_position_pid(
+        self,
+        kp: float,
+        ki: float = 0,
+        kd: float = 0,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+    ) -> None:
+        """Set position PID values in the target servo and axis.
+
+        Args:
+            kp: proportional constant
+            ki: integral constant
+            kd: derivative constant
+            servo: servo alias to reference it. ``default`` by default.
+            axis: servo axis. ``1`` by default.
+
+        """
+        self.mc.communication.set_register(
+            self.POSITION_LOOP_KP_REGISTER, kp, servo=servo, axis=axis
+        )
+        self.mc.communication.set_register(
+            self.POSITION_LOOP_KI_REGISTER, ki, servo=servo, axis=axis
+        )
+        self.mc.communication.set_register(
+            self.POSITION_LOOP_KD_REGISTER, kd, servo=servo, axis=axis
+        )
+
+    def get_rated_current(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> float:
+        """Get rated current in the target servo and axis.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+            axis: servo axis. ``1`` by default.
+
+        Returns:
+            Rated current
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+
+        """
+        rated_current = self.mc.communication.get_register(
+            self.RATED_CURRENT_REGISTER, servo=servo, axis=axis
+        )
+        if not isinstance(rated_current, float):
+            raise TypeError(
+                f"Wrong {self.RATED_CURRENT_REGISTER} value for axis {axis}. "
+                f"Expected int, got {type(rated_current)}"
+            )
+        return rated_current
+
+    def set_rated_current(
+        self, rated_current: float, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
+    ) -> None:
+        """Set rated current in the target servo and axis.
+
+        Args:
+            rated_current: target rated current.
+            servo: servo alias to reference it. ``default`` by default.
+            axis: servo axis. ``1`` by default.
+
+        """
+        self.mc.communication.set_register(
+            self.RATED_CURRENT_REGISTER, rated_current, servo=servo, axis=axis
+        )
+
+    def get_max_current(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> float:
+        """Get max current in the target servo and axis.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+            axis: servo axis. ``1`` by default.
+
+        Returns:
+            Max current
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+
+        """
+        max_current = self.mc.communication.get_register(
+            self.MAX_CURRENT_REGISTER, servo=servo, axis=axis
+        )
+        if not isinstance(max_current, float):
+            raise TypeError(
+                f"Wrong {self.MAX_CURRENT_REGISTER} value for axis {axis}. "
+                f"Expected int, got {type(max_current)}"
+            )
+        return max_current

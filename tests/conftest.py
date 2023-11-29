@@ -1,14 +1,18 @@
 import json
+import os
+from enum import Enum
+
 import pytest
 from typing import Dict
 import time
-
 import numpy as np
 
 from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE, SensorType
 from ingeniamotion import MotionController
+from ingenialink.virtual.virtual_drive import VirtualDrive
 
-ALLOW_PROTOCOLS = ["eoe", "soem", "canopen"]
+
+ALLOW_PROTOCOLS = ["eoe", "soem", "canopen", "virtual"]
 
 test_report_key = pytest.StashKey[Dict[str, pytest.CollectReport]]()
 
@@ -39,6 +43,9 @@ def read_config(request):
     config = "tests/config.json"
     with open(config, "r") as fp:
         contents = json.load(fp)
+    relative_path = contents["virtual"][0]["dictionary"]
+    absolute_path = os.path.join(os.path.abspath(os.getcwd()), relative_path)
+    contents["virtual"][0]["dictionary"] = absolute_path
     return contents[protocol][slave]
 
 
@@ -73,22 +80,35 @@ def motion_controller(pytestconfig, read_config):
     alias = "test"
     mc = MotionController()
     protocol = pytestconfig.getoption("--protocol")
-    if protocol == "eoe":
-        connect_eoe(mc, read_config, alias)
-    elif protocol == "soem":
+    if protocol == "soem":
         connect_soem(mc, read_config, alias)
     elif protocol == "canopen":
         connect_canopen(mc, read_config, alias)
-    mc.configuration.load_configuration(read_config["config_file"], servo=alias)
-    yield mc, alias
-    mc.communication.disconnect(alias)
+    elif protocol == "virtual":
+        virtual_drive = VirtualDrive(
+            read_config["ip"], read_config["port"], read_config["dictionary"]
+        )
+        virtual_drive.start()
+        connect_eoe(mc, read_config, alias)
+    else:
+        connect_eoe(mc, read_config, alias)
+
+    if protocol != "virtual":
+        mc.configuration.load_configuration(read_config["config_file"], servo=alias)
+        yield mc, alias
+        mc.communication.disconnect(alias)
+    else:
+        yield mc, alias
+        virtual_drive.stop()
 
 
 @pytest.fixture(autouse=True)
-def disable_motor_fixture(motion_controller):
+def disable_motor_fixture(pytestconfig, motion_controller):
     yield
-    mc, alias = motion_controller
-    mc.motion.motor_disable(servo=alias)
+    protocol = pytestconfig.getoption("--protocol")
+    if protocol != "no_connection":
+        mc, alias = motion_controller
+        mc.motion.motor_disable(servo=alias)
 
 
 @pytest.fixture
@@ -151,7 +171,9 @@ def clean_and_restore_feedbacks(motion_controller):
 @pytest.fixture()
 def skip_if_monitoring_not_available(motion_controller):
     mc, alias = motion_controller
-    if "MON_DIST_STATUS" not in mc.servos[alias].dictionary.registers(0):
+    try:
+        mc.capture._check_version(alias)
+    except NotImplementedError:
         pytest.skip("Monitoring is not available")
 
 
@@ -195,3 +217,13 @@ def mean_actual_velocity_position(mc, servo, velocity=False, n_samples=200, samp
         samples[sample_idx] = value
         time.sleep(sampling_period)
     return np.mean(samples)
+
+
+@pytest.fixture(scope="module", autouse=True)
+def load_configuration_after_each_module(pytestconfig, motion_controller, read_config):
+    yield motion_controller
+    protocol = pytestconfig.getoption("--protocol")
+    if protocol != "virtual":
+        mc, alias = motion_controller
+        mc.motion.motor_disable(servo=alias)
+        mc.configuration.load_configuration(read_config["config_file"], servo=alias)

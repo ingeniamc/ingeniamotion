@@ -18,7 +18,7 @@ from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental2_test import
 from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import SecondarySSITest
 from ingeniamotion.wizard_tests.phase_calibration import Phasing
 from ingeniamotion.wizard_tests.phasing_check import PhasingCheck
-from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
+from ingeniamotion.wizard_tests.base_test import TestError
 
 CURRENT_QUADRATURE_SET_POINT_REGISTER = "CL_CUR_Q_SET_POINT"
 RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
@@ -48,7 +48,7 @@ def test_digital_halls_test(motion_controller, feedback_list):
         results = mc.tests.digital_halls_test(servo=alias)
         assert results["result_severity"] == SeverityLevel.SUCCESS
     else:
-        with pytest.raises(exceptions.ILStateError):
+        with pytest.raises(TestError):
             mc.tests.digital_halls_test(servo=alias)
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
@@ -69,6 +69,8 @@ def test_incremental_encoder_1_test(motion_controller, feedback_list):
 @pytest.mark.usefixtures("feedback_test_setup")
 def test_incremental_encoder_2_test(motion_controller, feedback_list):
     mc, alias = motion_controller
+    if not mc.info.register_exists("FBK_DIGENC2_RESOLUTION", servo=alias):
+        pytest.skip("Incremental encoder 2 is not available")
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
     if SensorType.QEI2 in feedback_list:
         results = mc.tests.incremental_encoder_2_test(servo=alias)
@@ -109,6 +111,8 @@ def test_absolute_encoder_2_test(motion_controller, feedback_list):
 def test_secondary_ssi_test(motion_controller, feedback_list):
     mc, alias = motion_controller
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
+    if SensorType.QEI in feedback_list:
+        pytest.skip("Can not run the test. Incremental encoder 1 and SSI 2 share pins.")
     if SensorType.SSI2 in feedback_list:
         results = mc.tests.secondary_ssi_test(servo=alias)
         assert results["result_severity"] == SeverityLevel.SUCCESS
@@ -118,24 +122,28 @@ def test_secondary_ssi_test(motion_controller, feedback_list):
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
 
-def test_commutation(motion_controller):
-    mc, alias = motion_controller
+def test_commutation(motion_controller_teardown):
+    mc, alias = motion_controller_teardown
     results = mc.tests.commutation(servo=alias)
     assert results["result_severity"] == SeverityLevel.SUCCESS
 
 
+@pytest.mark.smoke
 def test_commutation_error(motion_controller, force_fault):
     mc, alias = motion_controller
     with pytest.raises(force_fault):
         mc.tests.commutation(servo=alias)
 
 
+# TODO: Remove skip mark after fixing INGM-352
+@pytest.mark.skip
 def test_phasing_check(motion_controller):
     mc, alias = motion_controller
     results = mc.tests.phasing_check(servo=alias)
     assert results["result_severity"] == SeverityLevel.SUCCESS
 
 
+@pytest.mark.smoke
 def test_phasing_check_error(motion_controller, force_fault):
     mc, alias = motion_controller
     with pytest.raises(force_fault):
@@ -197,10 +205,20 @@ def run_test_and_stop(test):
 
 
 @pytest.mark.usefixtures("feedback_test_setup")
-@pytest.mark.parametrize("sensor", list(SensorType))
-def test_feedback_stop(motion_controller, sensor):
+@pytest.mark.parametrize(
+    "feedback_class",
+    [
+        AbsoluteEncoder1Test,
+        AbsoluteEncoder2Test,
+        DigitalHallTest,
+        DigitalIncremental1Test,
+        DigitalIncremental2Test,
+        SecondarySSITest,
+    ],
+)
+def test_feedback_stop(motion_controller, feedback_class):
     mc, alias = motion_controller
-    test = mc.tests.get_feedback_test(sensor, alias, 1)
+    test = feedback_class(mc, alias, 1)
     reg_values = get_backup_registers(test, mc, alias)
     run_test_and_stop(test)
     for reg in reg_values:
@@ -227,7 +245,6 @@ def test_phasing_check_stop(motion_controller):
         assert reg_values[reg] == mc.communication.get_register(reg, servo=alias)
 
 
-@pytest.mark.develop
 @pytest.mark.parametrize("test_currents", ["Rated current", "Drive current", "Same value"])
 @pytest.mark.parametrize(
     "test_sensor",

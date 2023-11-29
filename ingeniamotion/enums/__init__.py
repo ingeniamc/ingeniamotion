@@ -1,6 +1,6 @@
 from enum import IntEnum
-from ingenialink.register import REG_DTYPE, REG_ACCESS
-from ingenialink.canopen import CAN_BAUDRATE, CAN_DEVICE
+from ingenialink.enums.register import REG_DTYPE, REG_ACCESS
+from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE
 
 
 class OperationMode(IntEnum):
@@ -143,6 +143,19 @@ class SeverityLevel(IntEnum):
     SUCCESS = 0
     WARNING = 1
     FAIL = 2
+
+
+class COMMUNICATION_TYPE(IntEnum):
+    Canopen = 0
+    Ethernet = 1
+    Ethercat = 2
+
+
+class FeedbackPolarity(IntEnum):
+    """Feedback polarity enum"""
+
+    NORMAL = 0
+    REVERSED = 1
 
 
 enums = list(globals().keys())

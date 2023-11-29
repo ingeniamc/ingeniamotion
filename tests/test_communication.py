@@ -6,7 +6,7 @@ from ingenialink.exceptions import ILError
 
 from ingeniamotion import MotionController
 from ingeniamotion.exceptions import IMRegisterNotExist, IMRegisterWrongAccess
-from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE, REG_DTYPE
+from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE
 
 
 @pytest.mark.smoke
@@ -50,6 +50,29 @@ def test_connect_servo_ethernet_no_dictionary_error(read_config):
     with pytest.raises(FileNotFoundError):
         mc.communication.connect_servo_ethernet(
             read_config["ip"], "no_dictionary", alias="eoe_test"
+        )
+
+
+@pytest.mark.smoke
+@pytest.mark.eoe
+@pytest.mark.parametrize(
+    "coco_dict_path",
+    [
+        True,
+        False,
+    ],
+)
+def test_connect_servo_comkit_no_dictionary_error(coco_dict_path, read_config):
+    mc = MotionController()
+    if coco_dict_path:
+        coco_dict_path = read_config["dictionary"]
+        moco_dict_path = "no_dictionary"
+    else:
+        coco_dict_path = "no_dictionary"
+        moco_dict_path = read_config["dictionary"]
+    with pytest.raises(FileNotFoundError):
+        mc.communication.connect_servo_comkit(
+            read_config["ip"], coco_dict_path, moco_dict_path, alias="eoe_test"
         )
 
 
@@ -196,6 +219,7 @@ def dummy_callback(status, _, axis):
     pass
 
 
+@pytest.mark.smoke
 def test_subscribe_servo_status(mocker, motion_controller):
     mc, alias = motion_controller
     axis = 1

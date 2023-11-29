@@ -1,12 +1,14 @@
-from typing import Optional, Union, List
+from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 from ingenialink.poller import Poller
+from ingenialink.exceptions import ILIOError
+from numpy import ndarray
 
 from ingeniamotion.disturbance import Disturbance
 from ingeniamotion.monitoring.base_monitoring import Monitoring
 from ingeniamotion.monitoring.monitoring_v1 import MonitoringV1
 from ingeniamotion.monitoring.monitoring_v3 import MonitoringV3
-from ingeniamotion.exceptions import IMRegisterNotExist, IMMonitoringError
+from ingeniamotion.exceptions import IMRegisterNotExist, IMMonitoringError, IMStatusWordError
 from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.enums import (
     MonitoringVersion,
@@ -14,6 +16,9 @@ from ingeniamotion.enums import (
     MonitoringSoCType,
     MonitoringSoCConfig,
 )
+
+if TYPE_CHECKING:
+    from ingeniamotion.motion_controller import MotionController
 
 
 class Capture(metaclass=MCMetaClass):
@@ -44,12 +49,12 @@ class Capture(metaclass=MCMetaClass):
         MonitoringVersion.MONITORING_V3: 0x10,
     }
 
-    def __init__(self, motion_controller):
+    def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
 
     def create_poller(
         self,
-        registers: List[dict],
+        registers: List[Dict[str, Union[int, str]]],
         servo: str = DEFAULT_SERVO,
         sampling_time: float = 0.125,
         buffer_size: int = 100,
@@ -107,12 +112,18 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             IMRegisterNotExist: If register does not exist in dictionary.
+            TypeError: If some parameter has a wrong type.
+
         """
         poller = Poller(self.mc.servos[servo], len(registers))
         poller.configure(sampling_time, buffer_size)
         for index, register in enumerate(registers):
             axis = register.get("axis", DEFAULT_AXIS)
             name = register.get("name")
+            if not isinstance(axis, int):
+                raise TypeError("Wrong axis type, it should be an int")
+            if not isinstance(name, str):
+                raise TypeError("Name type is a string")
             register_obj = self.mc.info.register_info(name, axis, servo=servo)
             poller.ch_configure(index, register_obj)
         if start:
@@ -128,22 +139,27 @@ class Capture(metaclass=MCMetaClass):
         Returns:
             Not configured instance of monitoring.
 
+        Raises:
+            NotImplementedError: If an wrong monitoring version is requested.
+
         """
         version = self._check_version(servo)
         if version == MonitoringVersion.MONITORING_V3:
             return MonitoringV3(self.mc, servo)
-        if version < MonitoringVersion.MONITORING_V3:
+        elif version == MonitoringVersion.MONITORING_V1:
             return MonitoringV1(self.mc, servo)
+        else:
+            raise NotImplementedError(f"This version {version} is not implemented yet")
 
     def create_monitoring(
         self,
-        registers: List[dict],
+        registers: List[Dict[str, str]],
         prescaler: int,
         sample_time: float,
         trigger_delay: float = 0,
         trigger_mode: MonitoringSoCType = MonitoringSoCType.TRIGGER_EVENT_AUTO,
         trigger_config: Optional[MonitoringSoCConfig] = None,
-        trigger_signal: Optional[dict] = None,
+        trigger_signal: Optional[Dict[str, str]] = None,
         trigger_value: Union[float, int, None] = None,
         servo: str = DEFAULT_SERVO,
         start: bool = False,
@@ -221,7 +237,7 @@ class Capture(metaclass=MCMetaClass):
     def create_disturbance(
         self,
         register: str,
-        data: list,
+        data: Union[List[Union[float, int]], ndarray],
         freq_divider: int,
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
@@ -265,6 +281,11 @@ class Capture(metaclass=MCMetaClass):
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
+
+        Raises:
+            NotImplementedError: If the drive does not support monitoring
+            and disturbance.
+
         """
         drive = self.mc._get_drive(servo)
         try:
@@ -272,17 +293,25 @@ class Capture(metaclass=MCMetaClass):
                 self.MONITORING_VERSION_REGISTER, servo=servo, axis=0
             )
             return MonitoringVersion.MONITORING_V3
-        except IMRegisterNotExist:
+        except (IMRegisterNotExist, ILIOError):
             # The Monitoring V3 is NOT available
             pass
         try:
-            self.mc.info.register_info(
-                self.MONITORING_CURRENT_NUMBER_BYTES_REGISTER, 0, servo=servo
+            self.mc.communication.get_register(
+                self.MONITORING_CURRENT_NUMBER_BYTES_REGISTER, servo=servo, axis=0
             )
             return MonitoringVersion.MONITORING_V2
-        except IMRegisterNotExist:
+        except (IMRegisterNotExist, ILIOError):
             # The Monitoring V2 is NOT available
+            pass
+        try:
+            self.mc.communication.get_register(self.MONITORING_STATUS_REGISTER, servo=servo, axis=0)
             return MonitoringVersion.MONITORING_V1
+        except (IMRegisterNotExist, ILIOError):
+            # Monitoring/disturbance are not available
+            raise NotImplementedError(
+                "The monitoring and disturbance features are not available for this drive"
+            )
 
     def enable_monitoring_disturbance(self, servo: str = DEFAULT_SERVO) -> None:
         """Enable monitoring and disturbance.
@@ -365,7 +394,7 @@ class Capture(metaclass=MCMetaClass):
         drive = self.mc.servos[servo]
         drive.monitoring_disable()
         if version >= MonitoringVersion.MONITORING_V3:
-            return drive.monitoring_remove_data()
+            drive.monitoring_remove_data()
 
     def disable_disturbance(
         self, servo: str = DEFAULT_SERVO, version: Optional[MonitoringVersion] = None
@@ -386,7 +415,7 @@ class Capture(metaclass=MCMetaClass):
             return self.disable_monitoring(servo=servo, version=version)
         drive = self.mc.servos[servo]
         drive.disturbance_disable()
-        return drive.disturbance_remove_data()
+        drive.disturbance_remove_data()
 
     def get_monitoring_disturbance_status(self, servo: str = DEFAULT_SERVO) -> int:
         """Get Monitoring Status.
@@ -399,10 +428,15 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
+            TypeError: If some read value has a wrong type.
+
         """
-        return self.mc.communication.get_register(
+        monitoring_disturbance_status = self.mc.communication.get_register(
             self.MONITORING_STATUS_REGISTER, servo=servo, axis=0
         )
+        if not isinstance(monitoring_disturbance_status, int):
+            raise TypeError("Monitoring and disturbance status value has to be an integer")
+        return monitoring_disturbance_status
 
     def get_monitoring_status(self, servo: str = DEFAULT_SERVO) -> int:
         """Get Monitoring Status.
@@ -415,10 +449,15 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
+            TypeError: If some read value has a wrong type.
+
         """
-        return self.mc.communication.get_register(
+        monitoring_status = self.mc.communication.get_register(
             self.MONITORING_STATUS_REGISTER, servo=servo, axis=0
         )
+        if not isinstance(monitoring_status, int):
+            raise TypeError("Monitoring status value has to be an integer")
+        return monitoring_status
 
     def get_disturbance_status(
         self, servo: str = DEFAULT_SERVO, version: Optional[MonitoringVersion] = None
@@ -435,17 +474,22 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
+            TypeError: If some read value has a wrong type.
+
         """
         if version is None:
             version = self._check_version(servo)
         if version < MonitoringVersion.MONITORING_V3:
-            return self.mc.communication.get_register(
+            disturbance_status = self.mc.communication.get_register(
                 self.MONITORING_STATUS_REGISTER, servo=servo, axis=0
             )
         else:
-            return self.mc.communication.get_register(
+            disturbance_status = self.mc.communication.get_register(
                 self.DISTURBANCE_STATUS_REGISTER, servo=servo, axis=0
             )
+        if not isinstance(disturbance_status, int):
+            raise TypeError("Disturbance status value has to be an integer")
+        return disturbance_status
 
     def is_monitoring_enabled(self, servo: str = DEFAULT_SERVO) -> bool:
         """Check if monitoring is enabled.
@@ -458,6 +502,7 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
+
         """
         monitor_status = self.get_monitoring_status(servo)
         return (monitor_status & self.MONITORING_STATUS_ENABLED_BIT) == 1
@@ -477,6 +522,7 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
+
         """
         monitor_status = self.get_disturbance_status(servo, version=version)
         return (monitor_status & self.DISTURBANCE_STATUS_ENABLED_BIT) == 1
@@ -497,6 +543,7 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
+
         """
         if version is None:
             version = self._check_version(servo=servo)
@@ -521,6 +568,7 @@ class Capture(metaclass=MCMetaClass):
 
         Raises:
             IMRegisterNotExist: If the register doesn't exist.
+
         """
         if version is None:
             version = self._check_version(servo=servo)
@@ -564,11 +612,11 @@ class Capture(metaclass=MCMetaClass):
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
+
         """
         self.clean_monitoring(servo=servo)
         self.clean_disturbance(servo=servo)
 
-    @MCMetaClass.check_motor_disabled
     def mcb_synchronization(self, servo: str = DEFAULT_SERVO) -> None:
         """Synchronize MCB, necessary to monitoring and disturbance.
         Motor must be disabled.
@@ -580,6 +628,10 @@ class Capture(metaclass=MCMetaClass):
             IMStatusWordError: If motor is enabled.
 
         """
+        subnodes = self.mc.info.get_subnodes(servo)
+        for axis in range(1, subnodes):
+            if self.mc.configuration.is_motor_enabled(servo=servo, axis=axis):
+                raise IMStatusWordError("Motor is enabled")
         self.enable_monitoring(servo=servo)
         self.disable_monitoring(servo=servo)
 
@@ -591,11 +643,18 @@ class Capture(metaclass=MCMetaClass):
 
         Returns:
             Max buffer size in bytes.
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+
         """
         try:
-            return self.mc.communication.get_register(
+            max_sample_size = self.mc.communication.get_register(
                 self.DISTURBANCE_MAXIMUM_SAMPLE_SIZE_REGISTER, servo=servo, axis=0
             )
+            if not isinstance(max_sample_size, int):
+                raise TypeError("Maximum sample size has to be an integer")
+            return max_sample_size
         except IMRegisterNotExist:
             return self.MINIMUM_BUFFER_SIZE
 
@@ -607,23 +666,33 @@ class Capture(metaclass=MCMetaClass):
 
         Returns:
             Max buffer size in bytes.
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+
         """
         try:
-            return self.mc.communication.get_register(
+            max_sample_size = self.mc.communication.get_register(
                 self.MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER, servo=servo, axis=0
             )
+            if not isinstance(max_sample_size, int):
+                raise TypeError("Maximum sample size has to be an integer")
+            return max_sample_size
         except IMRegisterNotExist:
             return self.MINIMUM_BUFFER_SIZE
 
-    def get_frequency(self, servo=DEFAULT_SERVO, axis=DEFAULT_AXIS):
+    def get_frequency(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> float:
         """Returns the monitoring frequency.
 
         Args:
-            servo (str): servo alias to reference it. ``default`` by default.
-            axis (int): servo axis. ``1`` by default.
+            servo: servo alias to reference it. ``default`` by default.
+            axis: servo axis. ``1`` by default.
 
         Returns:
-            float: sampling rate in Hz.
+            Sampling rate in Hz.
+
+        Raises:
+            TypeError: If some read value has a wrong type.
 
         """
 
@@ -633,5 +702,7 @@ class Capture(metaclass=MCMetaClass):
         prescaler = self.mc.communication.get_register(
             self.MONITORING_FREQUENCY_DIVIDER_REGISTER, servo=servo, axis=0
         )
+        if not isinstance(prescaler, int):
+            raise TypeError("Monitoring loop frequency divider has to be an integer")
         sampling_freq = round(position_velocity_loop_rate / prescaler, 2)
         return sampling_freq

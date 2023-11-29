@@ -1,5 +1,37 @@
 # Changelog
 
+## [0.7.0] - 2023-11-29
+### Added
+- Functions needed to load firmware to a Motion Core (MoCo).
+- COM-KIT support.
+- In Information class: get_product_name, get_node_id, get_ip, get_slave_id, get_name, get_communication_type, get_full_name, get_subnodes, get_categories, get_dictionary_file_name.
+- In Configuration class: get_drive_info_coco_moco, get_product_code, get_revision_number, get_serial_number, get_fw_version
+- no_connection marker is added for unit testing.
+- Add mypy into the project.
+- Add types for all functions and classes.
+- Make and pass the first static type analysis.
+- Function to change the baudrate of a CANopen device
+- Function to get the vendor ID
+- Function to change the node ID of a CANopen device
+- Resolution and polarity test for DC motors (resolution test needs human check)
+- Feedbacks functions to set/get feedback polarity
+- Add in configuration set_velocity_pid, set_position_pid and get_rated_current
+- Add functions to connect to and scan EtherCAT devices using CoE (SDOs).
+- Optional backup registers for Wizard tests.
+
+### Fixed
+- check_motor_disabled decorator does not work with positional arguments
+- Adapt get_encoded_image_from_dictionary for COM-KIT
+- Feedback test output when symmetry and resolution errors occurred simultaneously.
+- Raise exception if monitoring and disturbance features are not available.
+
+### Changed
+- Use ingenialink to get the drive's encoded image from the dictionary.
+- Update subscribe and unsubscribe to network status functions.
+
+### Deprecated 
+- Support to Python 3.6 and 3.7.
+
 ## [0.6.3] - 2023-10-11
 ### Fixed
 - Remove disturbance data before including new data.

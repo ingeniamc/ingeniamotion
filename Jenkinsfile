@@ -7,6 +7,12 @@ def CAN_NODE_LOCK = "test_execution_lock_can"
 
 pipeline {
     agent none
+    parameters {
+        choice(
+            choices: ['Smoke', 'All'], 
+            name: 'TESTS'
+        )
+    }
     stages {
         stage('Build wheels and documentation') {
             agent {
@@ -31,7 +37,7 @@ pipeline {
                         bat '''
                             cd C:\\Users\\ContainerAdministrator\\ingeniamotion
                             python -m venv venv
-                            venv\\Scripts\\python.exe -m pip install -r requirements\\dev-requirements.txt
+                            venv\\Scripts\\python.exe -m pip install -r requirements\\dev-requirements.txt -r requirements\\test-requirements.txt
                             venv\\Scripts\\python.exe -m pip install -e .
                         '''
                     }
@@ -42,6 +48,14 @@ pipeline {
                              cd C:\\Users\\ContainerAdministrator\\ingeniamotion
                              venv\\Scripts\\python.exe setup.py bdist_wheel
                         '''
+                    }
+                }
+                stage('Make a static type analysis') {
+                    steps {
+                        bat """
+                            cd C:\\Users\\ContainerAdministrator\\ingeniamotion
+                            venv\\Scripts\\python.exe -m mypy ingeniamotion
+                        """
                     }
                 }
                 stage('Check formatting') {
@@ -58,6 +72,23 @@ pipeline {
                             cd C:\\Users\\ContainerAdministrator\\ingeniamotion
                             venv\\Scripts\\python.exe -m sphinx -b html docs _docs
                         '''
+                    }
+                }
+                stage("Run virtual drive tests") {
+                    steps {
+                        bat """
+                            cd C:\\Users\\ContainerAdministrator\\ingeniamotion
+                            venv\\Scripts\\python.exe -m pytest tests -m virtual --protocol virtual --junitxml=pytest_reports\\pytest_virtual_report.xml
+                            move .coverage ${env.WORKSPACE}\\.coverage_virtual
+                            XCOPY pytest_reports ${env.WORKSPACE}\\pytest_reports /i
+                            exit /b 0
+                        """
+                    }
+                }
+                stage('Save test results') {
+                    steps {
+                        stash includes: '.coverage_virtual', name: 'coverage_reports'
+                        stash includes: 'pytest_reports/', name: 'test_reports'
                     }
                 }
                 stage('Archive') {
@@ -105,11 +136,35 @@ pipeline {
                         '''
                     }
                 }
-                stage('Run EtherCAT tests') {
+                stage('Run EtherCAT all tests') {
+                    when {
+                        anyOf{
+                            branch 'master';
+                            branch 'develop';
+                            expression { params.TESTS == 'All' }
+                        }
+                    }
                     steps {
                         bat '''
                             venv\\Scripts\\python.exe -m pytest tests --protocol soem --slave 0 --junitxml=pytest_reports/pytest_ethercat_0_report.xml
                             venv\\Scripts\\python.exe -m pytest tests --protocol soem --slave 1 --junitxml=pytest_reports/pytest_ethercat_1_report.xml
+                            move .coverage .coverage_ethercat
+                            exit /b 0
+                        '''
+                    }
+                }
+                stage('Run EtherCAT smoke tests') {
+                    when {
+                        allOf{
+                            not{ branch 'master' };
+                            not{ branch 'develop' };
+                            expression { params.TESTS == 'Smoke' }
+                        }
+                    }
+                    steps {
+                        bat '''
+                            venv\\Scripts\\python.exe -m pytest tests -m smoke --protocol soem --slave 0 --junitxml=pytest_reports/pytest_ethercat_0_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests -m smoke --protocol soem --slave 1 --junitxml=pytest_reports/pytest_ethercat_1_report.xml
                             move .coverage .coverage_ethercat
                             exit /b 0
                         '''
@@ -151,7 +206,32 @@ pipeline {
                         '''
                     }
                 }
-                stage('Run CANopen tests') {
+                stage('Run CANopen smoke tests') {
+                    when {
+                        allOf{
+                            not{ branch 'master' };
+                            not{ branch 'develop' };
+                            expression { params.TESTS == 'Smoke' }
+                        }
+                    }
+                    steps {
+                        //unstash 'test_reports' Uncomment once EtherCAT tests are operational.
+                        bat '''
+                            venv\\Scripts\\python.exe -m pytest tests -m smoke --protocol canopen --slave 0 --junitxml=pytest_reports/pytest_canopen_0_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests -m smoke --protocol canopen --slave 1 --junitxml=pytest_reports/pytest_canopen_1_report.xml
+                            move .coverage .coverage_canopen
+                            exit /b 0
+                        '''
+                    }
+                }
+                stage('Run CANopen all tests') {
+                    when {
+                        anyOf{
+                            branch 'master';
+                            branch 'develop';
+                            expression { params.TESTS == 'All' }
+                        }
+                    }
                     steps {
                         //unstash 'test_reports' Uncomment once EtherCAT tests are operational.
                         bat '''
@@ -162,7 +242,32 @@ pipeline {
                         '''
                     }
                 }
-                stage('Run Ethernet tests') {
+                stage('Run Ethernet smoke tests') {
+                    // Add tests of slave 1 after fixing CAP-924
+                    when {
+                        allOf{
+                            not{ branch 'master' };
+                            not{ branch 'develop' };
+                            expression { params.TESTS == 'Smoke' }
+                        }
+                    }
+                    steps {
+                        bat '''
+                            venv\\Scripts\\python.exe -m pytest tests -m smoke --protocol eoe --slave 0 --junitxml=pytest_reports/pytest_ethernet_0_report.xml
+                            venv\\Scripts\\python.exe -m pytest tests -m smoke --protocol eoe --slave 1 --junitxml=pytest_reports/pytest_ethernet_1_report.xml
+                            move .coverage .coverage_ethernet
+                            exit /b 0
+                        '''
+                    }
+                }
+                stage('Run Ethernet all tests') {
+                    when {
+                        anyOf{
+                            branch 'master';
+                            branch 'develop';
+                            expression { params.TESTS == 'All' }
+                        }
+                    }
                     steps {
                         bat '''
                             venv\\Scripts\\python.exe -m pytest tests --protocol eoe --slave 0 --junitxml=pytest_reports/pytest_ethernet_0_report.xml
@@ -176,8 +281,10 @@ pipeline {
                     steps {
                         //unstash 'coverage_reports' Uncomment once EtherCAT tests are operational.
                         // Add .coverage_ethercat to the combine command once EtherCAT tests are operational.
+                        unstash 'coverage_reports'
+                        unstash 'test_reports'
                         bat '''
-                            venv\\Scripts\\python.exe -m coverage combine .coverage_ethernet .coverage_canopen
+                            venv\\Scripts\\python.exe -m coverage combine .coverage_ethernet .coverage_canopen .coverage_virtual
                             venv\\Scripts\\python.exe -m coverage xml --include=ingeniamotion/*
                         '''
                         publishCoverage adapters: [coberturaReportAdapter('coverage.xml')]

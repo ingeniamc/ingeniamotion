@@ -1,5 +1,8 @@
 import os
+
 import pytest
+
+from ingenialink.canopen.network import CAN_BAUDRATE
 
 BRAKE_OVERRIDE_REGISTER = "MOT_BRAKE_OVERRIDE"
 POSITION_SET_POINT_REGISTER = "CL_POS_SET_POINT_VALUE"
@@ -15,6 +18,14 @@ PHASING_MODE_REGISTER = "COMMU_PHASING_MODE"
 GENERATOR_MODE_REGISTER = "FBK_GEN_MODE"
 MOTOR_POLE_PAIRS_REGISTER = "MOT_PAIR_POLES"
 STO_STATUS_REGISTER = "DRV_PROT_STO_STATUS"
+VELOCITY_LOOP_KP_REGISTER = "CL_VEL_PID_KP"
+VELOCITY_LOOP_KI_REGISTER = "CL_VEL_PID_KI"
+VELOCITY_LOOP_KD_REGISTER = "CL_VEL_PID_KD"
+POSITION_LOOP_KP_REGISTER = "CL_POS_PID_KP"
+POSITION_LOOP_KI_REGISTER = "CL_POS_PID_KI"
+POSITION_LOOP_KD_REGISTER = "CL_POS_PID_KD"
+RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
+MAX_CURRENT_REGISTER = "CL_CUR_REF_MAX"
 
 
 @pytest.fixture
@@ -62,6 +73,7 @@ def remove_file_if_exist():
         os.remove(file_path)
 
 
+@pytest.mark.smoke
 @pytest.mark.usefixtures("remove_file_if_exist")
 def test_save_configuration_and_load_configuration(motion_controller):
     file_path = "test_file.xcf"
@@ -79,6 +91,7 @@ def test_save_configuration_and_load_configuration(motion_controller):
 @pytest.mark.usefixtures("remove_file_if_exist")
 @pytest.mark.canopen
 @pytest.mark.eoe
+@pytest.mark.smoke
 def test_save_configuration_and_load_configuration_nvm_none(motion_controller):
     file_path = "test_file.xcf"
     mc, alias = motion_controller
@@ -92,6 +105,7 @@ def test_save_configuration_and_load_configuration_nvm_none(motion_controller):
     mc.communication.set_register(POSITION_SET_POINT_REGISTER, old_value, servo=alias)
 
 
+@pytest.mark.smoke
 def test_set_profiler_exception(motion_controller):
     mc, alias = motion_controller
 
@@ -206,9 +220,9 @@ def test_get_power_stage_frequency_enum(motion_controller):
 
 @pytest.mark.smoke
 @pytest.mark.parametrize("input_value", [0, 1, 2, 3])
-def test_set_power_stage_frequency(motion_controller, input_value):
+def test_set_power_stage_frequency(motion_controller_teardown, input_value):
     input_value = 0
-    mc, alias = motion_controller
+    mc, alias = motion_controller_teardown
     mc.configuration.set_power_stage_frequency(input_value, servo=alias)
     output_value = mc.communication.get_register(
         POWER_STAGE_FREQUENCY_SELECTION_REGISTER, servo=alias
@@ -232,6 +246,7 @@ def test_get_status_word(motion_controller):
     assert test_value == reg_value
 
 
+@pytest.mark.smoke
 def test_is_motor_enabled_1(motion_controller):
     mc, alias = motion_controller
     mc.motion.motor_disable(alias)
@@ -286,6 +301,7 @@ def test_is_commutation_feedback_aligned(
     assert test_value == expected_result
 
 
+@pytest.mark.smoke
 def test_set_phasing_mode(motion_controller):
     input_value = 0
     mc, alias = motion_controller
@@ -311,6 +327,7 @@ def test_set_generator_mode(motion_controller):
     assert pytest.approx(input_value) == output_value
 
 
+@pytest.mark.smoke
 def test_set_motor_pair_poles(motion_controller_teardown):
     input_value = 0
     mc, alias = motion_controller_teardown
@@ -439,11 +456,160 @@ def test_is_sto_abnormal_latched(mocker, motion_controller, sto_status_value, ex
     assert value == expected_result
 
 
+@pytest.mark.smoke
 def test_store_configuration(motion_controller):
     mc, alias = motion_controller
     mc.configuration.store_configuration(servo=alias)
 
 
+@pytest.mark.smoke
 def test_restore_configuration(motion_controller):
     mc, alias = motion_controller
     mc.configuration.restore_configuration(servo=alias)
+
+
+@pytest.mark.virtual
+def test_get_drive_info_coco_moco(motion_controller):
+    expected_product_codes = [123456, 123456]
+    expected_revision_numbers = [654321, 654321]
+    expected_firmware_versions = ["0.1.0", "0.1.0"]
+    expected_serial_numbers = [123456789, 123456789]
+
+    mc, alias = motion_controller
+    prod_codes, rev_nums, fw_vers, ser_nums = mc.configuration.get_drive_info_coco_moco(alias)
+
+    assert prod_codes == expected_product_codes
+    assert rev_nums == expected_revision_numbers
+    assert fw_vers == expected_firmware_versions
+    assert ser_nums == expected_serial_numbers
+
+
+@pytest.mark.virtual
+def test_get_product_code(motion_controller):
+    expected_product_code_0 = 123456
+    expected_product_code_1 = 123456
+
+    mc, alias = motion_controller
+    product_code_0 = mc.configuration.get_product_code(alias, 0)
+    product_code_1 = mc.configuration.get_product_code(alias, 1)
+
+    assert product_code_0 == expected_product_code_0
+    assert product_code_1 == expected_product_code_1
+
+
+@pytest.mark.virtual
+def test_get_revision_number(motion_controller):
+    expected_revision_number_0 = 654321
+    expected_revision_number_1 = 654321
+
+    mc, alias = motion_controller
+    revision_number_0 = mc.configuration.get_revision_number(alias, 0)
+    revision_number_1 = mc.configuration.get_revision_number(alias, 1)
+
+    assert revision_number_0 == expected_revision_number_0
+    assert revision_number_1 == expected_revision_number_1
+
+
+@pytest.mark.virtual
+def test_get_serial_number(motion_controller):
+    expected_serial_number_0 = 123456789
+    expected_serial_number_1 = 123456789
+
+    mc, alias = motion_controller
+    serial_number_0 = mc.configuration.get_serial_number(alias, 0)
+    serial_number_1 = mc.configuration.get_serial_number(alias, 1)
+
+    assert serial_number_0 == expected_serial_number_0
+    assert serial_number_1 == expected_serial_number_1
+
+
+@pytest.mark.virtual
+def test_get_fw_version(motion_controller):
+    expected_fw_version_0 = "0.1.0"
+    expected_fw_version_1 = "0.1.0"
+
+    mc, alias = motion_controller
+    firmware_version_0 = mc.configuration.get_fw_version(alias, 0)
+    firmware_version_1 = mc.configuration.get_fw_version(alias, 1)
+
+    assert firmware_version_0 == expected_fw_version_0
+    assert firmware_version_1 == expected_fw_version_1
+
+
+@pytest.mark.virtual
+def test_change_baudrate_exception(motion_controller):
+    mc, alias = motion_controller
+    with pytest.raises(ValueError):
+        mc.configuration.change_baudrate(CAN_BAUDRATE.Baudrate_1M, alias)
+
+
+@pytest.mark.virtual
+def test_get_vendor_id(motion_controller):
+    expected_vendor_id_0 = 987654321
+    expected_vendor_id_1 = 987654321
+
+    mc, alias = motion_controller
+    vendor_id_0 = mc.configuration.get_vendor_id(alias, axis=0)
+    vendor_id_1 = mc.configuration.get_vendor_id(alias, axis=1)
+
+    assert vendor_id_0 == expected_vendor_id_0
+    assert vendor_id_1 == expected_vendor_id_1
+
+
+@pytest.mark.virtual
+def test_change_node_id_exception(motion_controller):
+    mc, alias = motion_controller
+    with pytest.raises(ValueError):
+        mc.configuration.change_node_id(32, alias)
+
+
+@pytest.mark.smoke
+def test_set_velocity_pid(motion_controller_teardown):
+    mc, alias = motion_controller_teardown
+    kp_test = 1
+    ki_test = 2
+    kd_test = 3
+    mc.configuration.set_velocity_pid(kp_test, ki_test, kd_test, servo=alias)
+    kp_reg = mc.communication.get_register(VELOCITY_LOOP_KP_REGISTER, servo=alias)
+    ki_reg = mc.communication.get_register(VELOCITY_LOOP_KI_REGISTER, servo=alias)
+    kd_reg = mc.communication.get_register(VELOCITY_LOOP_KD_REGISTER, servo=alias)
+    assert kp_test == kp_reg
+    assert ki_test == ki_reg
+    assert kd_test == kd_reg
+
+
+@pytest.mark.smoke
+def test_set_position_pid(motion_controller_teardown):
+    mc, alias = motion_controller_teardown
+    kp_test = 1
+    ki_test = 2
+    kd_test = 3
+    mc.configuration.set_position_pid(kp_test, ki_test, kd_test, servo=alias)
+    kp_reg = mc.communication.get_register(POSITION_LOOP_KP_REGISTER, servo=alias)
+    ki_reg = mc.communication.get_register(POSITION_LOOP_KI_REGISTER, servo=alias)
+    kd_reg = mc.communication.get_register(POSITION_LOOP_KD_REGISTER, servo=alias)
+    assert kp_test == kp_reg
+    assert ki_test == ki_reg
+    assert kd_test == kd_reg
+
+
+@pytest.mark.smoke
+def test_get_set_rated_current(motion_controller):
+    mc, alias = motion_controller
+    initial_rated_current = mc.communication.get_register(RATED_CURRENT_REGISTER, servo=alias)
+    read_rated_current = mc.configuration.get_rated_current(alias)
+    assert pytest.approx(initial_rated_current) == read_rated_current
+    test_rated_current = 1.23
+    mc.configuration.set_rated_current(test_rated_current, servo=alias)
+    read_test_rated_current = mc.communication.get_register(RATED_CURRENT_REGISTER, servo=alias)
+    assert pytest.approx(test_rated_current) == read_test_rated_current
+    # Teardown
+    mc.communication.set_register(RATED_CURRENT_REGISTER, initial_rated_current, servo=alias)
+
+
+@pytest.mark.smoke
+def test_get_max_current(motion_controller):
+    mc, alias = motion_controller
+    real_max_current = mc.communication.get_register(MAX_CURRENT_REGISTER, servo=alias)
+    test_max_current = mc.configuration.get_max_current(alias)
+    assert pytest.approx(real_max_current) == test_max_current

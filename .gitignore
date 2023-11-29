@@ -53,6 +53,9 @@ Thumbs.db
 build
 *.egg-info
 
+# Venv
+venv
+
 # Pipenv
 Pipfile.lock
 

@@ -1,3 +1,8 @@
+from typing import TYPE_CHECKING, List
+
+
+if TYPE_CHECKING:
+    from ingeniamotion import MotionController
 from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
 from ingeniamotion.wizard_tests.base_test import BaseTest
 from ingeniamotion.enums import SensorType
@@ -7,7 +12,7 @@ class DigitalHallTest(Feedbacks):
     HALLS_FILTER_CUTOFF_FREQUENCY = 10
     DIG_HALL_POLE_PAIRS_REGISTER = "FBK_DIGHALL_PAIRPOLES"
 
-    BACKUP_REGISTERS_HALLS = [
+    BACKUP_REGISTERS_HALLS: List[str] = [
         "FBK_DIGHALL_POLARITY",
         "FBK_DIGHALL_PAIRPOLES",
         "ERROR_DIGHALL_SEQ_OPTION",
@@ -17,17 +22,19 @@ class DigitalHallTest(Feedbacks):
 
     SENSOR_TYPE_FEEDBACK_TEST = SensorType.HALLS
 
-    def __init__(self, mc, servo, axis):
+    def __init__(self, mc: "MotionController", servo: str, axis: int) -> None:
         super().__init__(mc, servo, axis)
-        self.backup_registers_names += self.BACKUP_REGISTERS_HALLS
+        self.backup_registers_names.extend(self.BACKUP_REGISTERS_HALLS)
 
     @BaseTest.stoppable
-    def feedback_setting(self):
+    def feedback_setting(self) -> None:
         self.halls_extra_settings()
         super().feedback_setting()
 
     @BaseTest.stoppable
-    def halls_extra_settings(self):
+    def halls_extra_settings(self) -> None:
+        if self.pair_poles is None:
+            raise TypeError("Pair poles has to be an integer")
         self.mc.communication.set_register(
             self.DIG_HALL_POLE_PAIRS_REGISTER, self.pair_poles, servo=self.servo, axis=self.axis
         )
@@ -53,8 +60,10 @@ class DigitalHallTest(Feedbacks):
             del self.backup_registers[self.axis][self.VELOCITY_FEEDBACK_FILTER_1_FREQUENCY_REGISTER]
 
     @BaseTest.stoppable
-    def suggest_polarity(self, pol):
+    def suggest_polarity(self, pol: Feedbacks.Polarity) -> None:
         polarity_uid = self.FEEDBACK_POLARITY_REGISTER
         pair_poles_uid = self.DIG_HALL_POLE_PAIRS_REGISTER
+        if self.pair_poles is None:
+            raise TypeError("Pair poles has to be set before polarity suggestion.")
         self.suggested_registers[pair_poles_uid] = self.pair_poles
         self.suggested_registers[polarity_uid] = pol
