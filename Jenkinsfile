@@ -87,7 +87,7 @@ pipeline {
                 }
                 stage('Save test results') {
                     steps {
-                        stash includes: '.coverage_virtual', name: 'coverage_reports'
+                        stash includes: '.coverage_virtual', name: 'coverage_report_virtual'
                         stash includes: 'pytest_reports/', name: 'test_reports'
                     }
                 }
@@ -274,6 +274,7 @@ pipeline {
                 stage('Save test results') {
                     steps {
                         unstash 'coverage_reports'
+                        unstash 'coverage_report_virtual'
                         unstash 'test_reports'
                         bat '''
                             venv\\Scripts\\python.exe -m coverage combine .coverage_ethernet .coverage_canopen .coverage_virtual .coverage_ethercat
