@@ -395,9 +395,7 @@ class Feedbacks(BaseTest):
             raise TestError(error_movement_displacement)
 
     def check_pos_vel_ratio(self) -> Optional[ResultType]:
-        pos_vel_ratio = self.mc.communication.get_register(
-            self.POSITION_TO_VELOCITY_SENSOR_RATIO_REGISTER, servo=self.servo, axis=self.axis
-        )
+        pos_vel_ratio = self.mc.configuration.get_pos_to_vel_ratio(servo=self.servo, axis=self.axis)
         if not isinstance(pos_vel_ratio, float):
             raise TypeError("Position to velocity sensor ratio value has to be a float")
         if self.pos_vel_same_feedback and not math.isclose(pos_vel_ratio, 1):

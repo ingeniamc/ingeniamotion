@@ -668,7 +668,9 @@ def test_get_pos_to_vel_ratio(motion_controller):
 @pytest.mark.virtual
 @pytest.mark.parametrize("filter_type", [FilterType.LOWPASS, FilterType.HIGHPASS])
 @pytest.mark.parametrize("filter_number", [FilterNumber.FILTER1, FilterNumber.FILTER2])
-@pytest.mark.parametrize("filter_signal", [FilterSignal.CURRENT_FEEDBACK, FilterSignal.VELOCITY_REFERENCE])
+@pytest.mark.parametrize(
+    "filter_signal", [FilterSignal.CURRENT_FEEDBACK, FilterSignal.VELOCITY_REFERENCE]
+)
 def test_configure_filter(motion_controller, filter_type, filter_number, filter_signal):
     mc, alias = motion_controller
     frequency = 10
