@@ -333,7 +333,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             self.set_max_profile_velocity(velocity, servo=servo, axis=axis)
 
     def get_max_velocity(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> float:
-        """Get maximum velocity.
+        """Get the maximum velocity.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -343,7 +343,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             Max velocity.
 
         Raises:
-            TypeError: If some read value has a wrong type.
+            TypeError: If the read value has the wrong type.
 
         """
         max_velocity = self.mc.communication.get_register(
