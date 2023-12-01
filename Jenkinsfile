@@ -87,7 +87,7 @@ pipeline {
                 }
                 stage('Save test results') {
                     steps {
-                        stash includes: '.coverage_virtual', name: 'coverage_reports'
+                        stash includes: '.coverage_virtual', name: 'coverage_report_virtual'
                         stash includes: 'pytest_reports/', name: 'test_reports'
                     }
                 }
@@ -105,10 +105,6 @@ pipeline {
             }
         }
         stage('EtherCAT tests') {
-            // Remove once EtherCAT tests are operational.
-            when {
-                expression { false }
-            }
             options {
                 lock(ECAT_NODE_LOCK)
             }
@@ -146,7 +142,6 @@ pipeline {
                     }
                     steps {
                         bat '''
-                            venv\\Scripts\\python.exe -m pytest tests --protocol soem --slave 0 --junitxml=pytest_reports/pytest_ethercat_0_report.xml
                             venv\\Scripts\\python.exe -m pytest tests --protocol soem --slave 1 --junitxml=pytest_reports/pytest_ethercat_1_report.xml
                             move .coverage .coverage_ethercat
                             exit /b 0
@@ -163,7 +158,6 @@ pipeline {
                     }
                     steps {
                         bat '''
-                            venv\\Scripts\\python.exe -m pytest tests -m smoke --protocol soem --slave 0 --junitxml=pytest_reports/pytest_ethercat_0_report.xml
                             venv\\Scripts\\python.exe -m pytest tests -m smoke --protocol soem --slave 1 --junitxml=pytest_reports/pytest_ethercat_1_report.xml
                             move .coverage .coverage_ethercat
                             exit /b 0
@@ -215,7 +209,7 @@ pipeline {
                         }
                     }
                     steps {
-                        //unstash 'test_reports' Uncomment once EtherCAT tests are operational.
+                        unstash 'test_reports'
                         bat '''
                             venv\\Scripts\\python.exe -m pytest tests -m smoke --protocol canopen --slave 0 --junitxml=pytest_reports/pytest_canopen_0_report.xml
                             venv\\Scripts\\python.exe -m pytest tests -m smoke --protocol canopen --slave 1 --junitxml=pytest_reports/pytest_canopen_1_report.xml
@@ -233,7 +227,7 @@ pipeline {
                         }
                     }
                     steps {
-                        //unstash 'test_reports' Uncomment once EtherCAT tests are operational.
+                        unstash 'test_reports'
                         bat '''
                             venv\\Scripts\\python.exe -m pytest tests --protocol canopen --slave 0 --junitxml=pytest_reports/pytest_canopen_0_report.xml
                             venv\\Scripts\\python.exe -m pytest tests --protocol canopen --slave 1 --junitxml=pytest_reports/pytest_canopen_1_report.xml
@@ -278,12 +272,11 @@ pipeline {
                 }
                 stage('Save test results') {
                     steps {
-                        //unstash 'coverage_reports' Uncomment once EtherCAT tests are operational.
-                        // Add .coverage_ethercat to the combine command once EtherCAT tests are operational.
                         unstash 'coverage_reports'
+                        unstash 'coverage_report_virtual'
                         unstash 'test_reports'
                         bat '''
-                            venv\\Scripts\\python.exe -m coverage combine .coverage_ethernet .coverage_canopen .coverage_virtual
+                            venv\\Scripts\\python.exe -m coverage combine .coverage_ethernet .coverage_canopen .coverage_virtual .coverage_ethercat
                             venv\\Scripts\\python.exe -m coverage xml --include=ingeniamotion/*
                         '''
                         publishCoverage adapters: [coberturaReportAdapter('coverage.xml')]
