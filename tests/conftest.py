@@ -106,9 +106,10 @@ def motion_controller(pytestconfig, read_config):
 def disable_motor_fixture(pytestconfig, motion_controller):
     yield
     protocol = pytestconfig.getoption("--protocol")
-    if protocol != "no_connection":
+    if protocol != "virtual":
         mc, alias = motion_controller
         mc.motion.motor_disable(servo=alias)
+        mc.motion.fault_reset(servo=alias)
 
 
 @pytest.fixture

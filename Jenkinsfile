@@ -142,6 +142,7 @@ pipeline {
                     }
                     steps {
                         bat '''
+                            venv\\Scripts\\python.exe -m pytest tests --protocol soem --slave 0 --junitxml=pytest_reports/pytest_ethercat_0_report.xml
                             venv\\Scripts\\python.exe -m pytest tests --protocol soem --slave 1 --junitxml=pytest_reports/pytest_ethercat_1_report.xml
                             move .coverage .coverage_ethercat
                             exit /b 0
@@ -158,6 +159,7 @@ pipeline {
                     }
                     steps {
                         bat '''
+                            venv\\Scripts\\python.exe -m pytest tests -m smoke --protocol soem --slave 0 --junitxml=pytest_reports/pytest_ethercat_0_report.xml
                             venv\\Scripts\\python.exe -m pytest tests -m smoke --protocol soem --slave 1 --junitxml=pytest_reports/pytest_ethercat_1_report.xml
                             move .coverage .coverage_ethercat
                             exit /b 0

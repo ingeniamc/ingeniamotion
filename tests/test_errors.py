@@ -30,7 +30,11 @@ def generate_drive_errors(motion_controller):
         except ILError:
             pass
         error_code_list.append(item["code"])
-        mc.communication.set_register(item["register"], old_value, servo=alias)
+        try:
+            mc.communication.set_register(item["register"], old_value, servo=alias)
+        except ILError:
+            # Sometimes fails with EVE-XCR-E
+            mc.communication.set_register(item["register"], old_value, servo=alias)
     yield error_code_list[::-1]
     mc.motion.fault_reset(servo=alias)
 

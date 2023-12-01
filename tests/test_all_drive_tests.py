@@ -30,7 +30,7 @@ def force_fault(motion_controller):
     mc, alias = motion_controller
     uid = "DRV_PROT_USER_UNDER_VOLT"
     mc.communication.set_register(uid, 100, alias)
-    yield exceptions.ILStateError
+    yield exceptions.ILError
     mc.communication.set_register(uid, 10, alias)
 
 

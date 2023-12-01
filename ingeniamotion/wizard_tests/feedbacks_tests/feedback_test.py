@@ -4,7 +4,7 @@ from enum import IntEnum
 from typing import TYPE_CHECKING, Optional
 
 import ingenialogger
-from ingenialink.exceptions import ILTimeoutError, ILStateError
+from ingenialink.exceptions import ILTimeoutError, ILStateError, ILIOError
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
@@ -417,7 +417,7 @@ class Feedbacks(BaseTest):
             return check_pos_vel_output
         try:
             self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
-        except (ILTimeoutError, ILStateError) as e:
+        except (ILTimeoutError, ILStateError, ILIOError) as e:
             raise TestError(f"An error occurred enabling motor. Reason: {e}")
         position_1 = self.first_movement_and_set_current()
         self.logger.info("Actual position: %.0f", position_1, axis=self.axis)
