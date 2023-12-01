@@ -72,14 +72,14 @@ def test_motor_enable(motion_controller):
 @pytest.mark.parametrize(
     "uid, value, exception_type, message",
     [
-        ("DRV_PROT_USER_UNDER_VOLT", 100, exceptions.ILStateError, "User Under-voltage detected"),
+        ("DRV_PROT_USER_UNDER_VOLT", 100, exceptions.ILError, "User Under-voltage detected"),
         (
             "DRV_PROT_USER_OVER_TEMP",
             1,
-            exceptions.ILStateError,
+            exceptions.ILError,
             "Over-temperature detected (user limit)",
         ),
-        ("DRV_PROT_USER_OVER_VOLT", 1, exceptions.ILStateError, "User Over-voltage detected"),
+        ("DRV_PROT_USER_OVER_VOLT", 1, exceptions.ILError, "User Over-voltage detected"),
     ],
 )
 def test_motor_enable_error(motion_controller_teardown, uid, value, exception_type, message):
@@ -94,7 +94,7 @@ def test_motor_enable_error(motion_controller_teardown, uid, value, exception_ty
 def test_motor_enable_with_fault(motion_controller_teardown):
     uid = "DRV_PROT_USER_UNDER_VOLT"
     value = 100
-    exception_type = exceptions.ILStateError
+    exception_type = exceptions.ILError
     message = "User Under-voltage detected"
     mc, alias = motion_controller_teardown
     mc.communication.set_register(uid, value, alias)
@@ -120,7 +120,7 @@ def test_motor_disable(motion_controller, enable_motor):
 def test_motor_disable_with_fault(motion_controller_teardown):
     uid = "DRV_PROT_USER_UNDER_VOLT"
     value = 100
-    exception_type = exceptions.ILStateError
+    exception_type = exceptions.ILError
     mc, alias = motion_controller_teardown
     mc.communication.set_register(uid, value, alias)
     with pytest.raises(exception_type):
@@ -136,7 +136,7 @@ def test_fault_reset(motion_controller_teardown):
     value = 100
     mc.communication.set_register(uid, value, alias)
     assert not mc.errors.is_fault_active(servo=alias)
-    with pytest.raises(exceptions.ILStateError):
+    with pytest.raises(exceptions.ILError):
         mc.motion.motor_enable(servo=alias)
     assert mc.errors.is_fault_active(servo=alias)
     mc.motion.fault_reset(servo=alias)
