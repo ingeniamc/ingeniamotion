@@ -18,6 +18,7 @@ def __compare_signals(expected_signal, received_signal, fft_tol=0.05):
     return np.allclose(fft_received, fft_expected, rtol=0, atol=fft_tol)
 
 
+@pytest.mark.virtual
 def test_create_poller(motion_controller):
     registers = [{"name": "CL_CUR_Q_SET_POINT", "axis": 1}]
     sampling_time = 0.0625
@@ -225,6 +226,7 @@ def test_create_disturbance(
     assert __compare_signals(data, read_data)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_mcb_synchronization(mocker, motion_controller):
     mc, alias = motion_controller
@@ -243,6 +245,7 @@ def test_mcb_synchronization_fail(motion_controller):
         mc.capture.mcb_synchronization(servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_disturbance_max_sample_size(skip_if_monitoring_not_available, motion_controller):
     mc, alias = motion_controller
@@ -254,6 +257,7 @@ def test_disturbance_max_sample_size(skip_if_monitoring_not_available, motion_co
     assert max_sample_size == value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_monitoring_max_sample_size(skip_if_monitoring_not_available, motion_controller):
     mc, alias = motion_controller
