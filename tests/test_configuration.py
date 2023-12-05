@@ -216,6 +216,7 @@ def test_get_current_loop_rate(motion_controller):
     assert test_value == reg_value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_power_stage_frequency(motion_controller):
     mc, alias = motion_controller
