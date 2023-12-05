@@ -135,10 +135,9 @@ def test_commutation_error(motion_controller, force_fault):
         mc.tests.commutation(servo=alias)
 
 
-# TODO: Remove skip mark after fixing INGM-352
-@pytest.mark.skip
 def test_phasing_check(motion_controller):
     mc, alias = motion_controller
+    mc.tests.commutation(servo=alias)
     results = mc.tests.phasing_check(servo=alias)
     assert results["result_severity"] == SeverityLevel.SUCCESS
 
