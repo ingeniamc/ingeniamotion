@@ -197,12 +197,15 @@ def pytest_runtest_makereport(item, call):
 
 
 @pytest.fixture(scope="function", autouse=True)
-def load_configuration_if_test_fails(request, motion_controller, read_config):
+def load_configuration_if_test_fails(pytestconfig, request, motion_controller, read_config):
     mc, alias = motion_controller
     yield
 
     report = request.node.stash[test_report_key]
-    if report["setup"].failed or ("call" not in report) or report["call"].failed:
+    protocol = pytestconfig.getoption("--protocol")
+    if protocol != "virtual" and (
+        report["setup"].failed or ("call" not in report) or report["call"].failed
+    ):
         mc.configuration.load_configuration(read_config["config_file"], servo=alias)
         mc.motion.fault_reset(servo=alias)
 
