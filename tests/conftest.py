@@ -142,13 +142,6 @@ def feedback_list(motion_controller):
 
 
 @pytest.fixture
-def commutation_teardown(motion_controller):
-    yield
-    mc, alias = motion_controller
-    mc.tests.commutation(servo=alias)
-
-
-@pytest.fixture
 def clean_and_restore_feedbacks(motion_controller):
     mc, alias = motion_controller
     comm = mc.configuration.get_commutation_feedback(servo=alias)
