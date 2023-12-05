@@ -18,7 +18,6 @@ def __compare_signals(expected_signal, received_signal, fft_tol=0.05):
     return np.allclose(fft_received, fft_expected, rtol=0, atol=fft_tol)
 
 
-@pytest.mark.virtual
 def test_create_poller(motion_controller):
     registers = [{"name": "CL_CUR_Q_SET_POINT", "axis": 1}]
     sampling_time = 0.0625
