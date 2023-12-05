@@ -15,6 +15,7 @@ def disturbance(motion_controller, skip_if_monitoring_not_available):
     return Disturbance(mc, alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_disturbance_max_sample_size(motion_controller, disturbance):
     mc, alias = motion_controller
@@ -80,6 +81,7 @@ def test_disturbance_map_registers_sample_number(disturbance):
     assert value == disturbance.max_sample_number / 4
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_disturbance_map_registers_exception(disturbance):
     registers = [{"axis": 0, "name": "DRV_AXIS_NUMBER"}]
@@ -87,6 +89,7 @@ def test_disturbance_map_registers_exception(disturbance):
         disturbance.map_registers(registers)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_disturbance_map_registers_empty(disturbance):
     registers = []
@@ -101,6 +104,7 @@ def test_write_disturbance_data_buffer_exception(disturbance):
         disturbance.write_disturbance_data([0] * disturbance.max_sample_number)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_write_disturbance_data_not_configured(disturbance):
     with pytest.raises(IMDisturbanceError):
