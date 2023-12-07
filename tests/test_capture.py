@@ -404,7 +404,7 @@ def test_get_monitoring_process_stage_v3(mocker, motion_controller, monitor_stat
 
 
 @pytest.mark.parametrize(
-    "monitor_status, expected_stage",
+    "monitoring_status, expected_stage",
     [
         (0x00, MonitoringProcessStage.INIT_STAGE),
         (0x02, MonitoringProcessStage.FILLING_DELAY_DATA),
@@ -415,13 +415,29 @@ def test_get_monitoring_process_stage_v3(mocker, motion_controller, monitor_stat
 @pytest.mark.smoke
 @pytest.mark.virtual
 def test_get_monitoring_process_stage_v1_v2(
-    mocker, motion_controller, monitor_status, expected_stage
+    mocker, motion_controller, monitoring_status, expected_stage
 ):
     mc, alias = motion_controller
-    mocker.patch.object(mc.capture, "get_monitoring_status", return_value=monitor_status)
+    mocker.patch.object(mc.capture, "get_monitoring_status", return_value=monitoring_status)
     assert (
         mc.capture.get_monitoring_process_stage(
             servo=alias, version=MonitoringVersion.MONITORING_V2
         )
         == expected_stage
     )
+
+
+@pytest.mark.parametrize(
+    "monitoring_status, monitoring_version",
+    [
+        (0x800, MonitoringVersion.MONITORING_V1),
+        (0x800, MonitoringVersion.MONITORING_V2),
+        (0x10, MonitoringVersion.MONITORING_V3),
+    ],
+)
+@pytest.mark.smoke
+@pytest.mark.virtual
+def test_is_frame_available(mocker, motion_controller, monitoring_status, monitoring_version):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.capture, "get_monitoring_status", return_value=monitoring_status)
+    assert mc.capture.is_frame_available(servo=alias, version=monitoring_version)
