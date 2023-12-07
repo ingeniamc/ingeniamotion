@@ -309,3 +309,45 @@ def test_create_empty_monitoring_exception(mocker, motion_controller):
     mocker.patch.object(mc.capture, "_check_version", return_value=MonitoringVersion.MONITORING_V2)
     with pytest.raises(NotImplementedError):
         mc.capture.create_empty_monitoring(servo=alias)
+
+
+@pytest.mark.smoke
+@pytest.mark.virtual
+def test_check_monitoring_version_v3(motion_controller):
+    mc, alias = motion_controller
+    version = mc.capture._check_version(servo=alias)
+    assert version == MonitoringVersion.MONITORING_V3
+
+
+@pytest.mark.smoke
+@pytest.mark.virtual
+def test_check_monitoring_version_v2(mocker, motion_controller):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.capture, "MONITORING_VERSION_REGISTER", return_value="NON_EXISTING_UID")
+    version = mc.capture._check_version(servo=alias)
+    assert version == MonitoringVersion.MONITORING_V2
+
+
+@pytest.mark.smoke
+@pytest.mark.virtual
+def test_check_monitoring_version_v1(mocker, motion_controller):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.capture, "MONITORING_VERSION_REGISTER", return_value="NON_EXISTING_UID")
+    mocker.patch.object(
+        mc.capture, "MONITORING_CURRENT_NUMBER_BYTES_REGISTER", return_value="NON_EXISTING_UID"
+    )
+    version = mc.capture._check_version(servo=alias)
+    assert version == MonitoringVersion.MONITORING_V1
+
+
+@pytest.mark.smoke
+@pytest.mark.virtual
+def test_check_monitoring_version_not_available(mocker, motion_controller):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.capture, "MONITORING_VERSION_REGISTER", return_value="NON_EXISTING_UID")
+    mocker.patch.object(
+        mc.capture, "MONITORING_CURRENT_NUMBER_BYTES_REGISTER", return_value="NON_EXISTING_UID"
+    )
+    mocker.patch.object(mc.capture, "MONITORING_STATUS_REGISTER", return_value="NON_EXISTING_UID")
+    with pytest.raises(NotImplementedError):
+        mc.capture._check_version(servo=alias)
