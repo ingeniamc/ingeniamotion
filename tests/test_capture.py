@@ -18,28 +18,26 @@ def __compare_signals(expected_signal, received_signal, fft_tol=0.05):
     return np.allclose(fft_received, fft_expected, rtol=0, atol=fft_tol)
 
 
-@pytest.mark.virtual
 def test_create_poller(motion_controller):
     registers = [{"name": "CL_CUR_Q_SET_POINT", "axis": 1}]
-    sampling_time = 0.2
+    sampling_time = 0.0625
     mc, alias = motion_controller
-    poller = mc.capture.create_poller(registers, alias, sampling_time, start=False)
+    mc.motion.set_current_quadrature(-0.2, servo=alias)
+    poller = mc.capture.create_poller(registers, alias, sampling_time, buffer_size=128)
+    mc.motion.set_current_quadrature(0, servo=alias)
     period = 1
-    total_time = 5
-    expected_signal = np.concatenate(
-        [([i] * int(period / sampling_time)) for i in [0.2 * (i + 1) for i in range(total_time)]],
-        axis=0,
-    )
-    poller.start()
-    for i in range(total_time):
+    expected_signal = [0] * int(period / sampling_time)
+    for i in range(7):
+        time.sleep(1)
         mc.motion.set_current_quadrature(0.2 * (i + 1), servo=alias)
-        time.sleep(period)
-    poller.stop()
+        expected_signal.extend([0.2 * (i + 1)] * int(period / sampling_time))
+    time.sleep(3 * period)
     timestamp, test_data, _ = poller.data
+    poller.stop()
     assert np.allclose(np.diff(timestamp), sampling_time, rtol=0.5, atol=0)
+
     received_signal = test_data[0]
-    # The poller doesn't return the expected number of samples
-    expected_signal = expected_signal[: len(received_signal)]
+    assert len(received_signal) == len(expected_signal)
     assert __compare_signals(expected_signal, received_signal)
 
 
