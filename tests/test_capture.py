@@ -9,6 +9,7 @@ from ingeniamotion.enums import (
     MonitoringSoCType,
     MonitoringSoCConfig,
     MonitoringVersion,
+    MonitoringProcessStage,
 )
 
 
@@ -360,3 +361,67 @@ def test_enable_monitoring_exception(mocker, motion_controller):
     mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=0)
     with pytest.raises(IMMonitoringError):
         mc.capture.enable_monitoring(servo=alias)
+
+
+@pytest.mark.smoke
+@pytest.mark.virtual
+def test_enable_disturbance_exception(mocker, motion_controller):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.capture, "is_disturbance_enabled", return_value=0)
+    with pytest.raises(IMMonitoringError):
+        mc.capture.enable_disturbance(servo=alias)
+
+
+@pytest.mark.parametrize(
+    "function",
+    ["get_monitoring_disturbance_status", "get_monitoring_status", "get_disturbance_status"],
+)
+@pytest.mark.smoke
+@pytest.mark.virtual
+def test_get_monitoring_disturbance_status_exception(mocker, motion_controller, function):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.communication, "get_register", return_value="invalid_value")
+    with pytest.raises(TypeError):
+        getattr(mc.capture, function)(servo=alias)
+
+
+@pytest.mark.parametrize(
+    "monitor_status, expected_stage",
+    [
+        (0x00, MonitoringProcessStage.INIT_STAGE),
+        (0x02, MonitoringProcessStage.FILLING_DELAY_DATA),
+        (0x04, MonitoringProcessStage.WAITING_FOR_TRIGGER),
+        (0x06, MonitoringProcessStage.DATA_ACQUISITION),
+        (0x08, MonitoringProcessStage.END_STAGE),
+    ],
+)
+@pytest.mark.smoke
+@pytest.mark.virtual
+def test_get_monitoring_process_stage_v3(mocker, motion_controller, monitor_status, expected_stage):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.capture, "get_monitoring_status", return_value=monitor_status)
+    assert mc.capture.get_monitoring_process_stage(servo=alias) == expected_stage
+
+
+@pytest.mark.parametrize(
+    "monitor_status, expected_stage",
+    [
+        (0x00, MonitoringProcessStage.INIT_STAGE),
+        (0x02, MonitoringProcessStage.FILLING_DELAY_DATA),
+        (0x04, MonitoringProcessStage.WAITING_FOR_TRIGGER),
+        (0x06, MonitoringProcessStage.DATA_ACQUISITION),
+    ],
+)
+@pytest.mark.smoke
+@pytest.mark.virtual
+def test_get_monitoring_process_stage_v1_v2(
+    mocker, motion_controller, monitor_status, expected_stage
+):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.capture, "get_monitoring_status", return_value=monitor_status)
+    assert (
+        mc.capture.get_monitoring_process_stage(
+            servo=alias, version=MonitoringVersion.MONITORING_V2
+        )
+        == expected_stage
+    )
