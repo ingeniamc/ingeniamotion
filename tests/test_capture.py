@@ -4,7 +4,12 @@ import pytest
 import numpy as np
 
 from ingeniamotion.exceptions import IMStatusWordError
-from ingeniamotion.enums import OperationMode, MonitoringSoCType, MonitoringSoCConfig
+from ingeniamotion.enums import (
+    OperationMode,
+    MonitoringSoCType,
+    MonitoringSoCConfig,
+    MonitoringVersion,
+)
 
 
 def __compare_signals(expected_signal, received_signal, fft_tol=0.05):
@@ -295,3 +300,12 @@ def test_create_poller_exceptions(motion_controller, name, axis):
     mc, alias = motion_controller
     with pytest.raises(TypeError):
         mc.capture.create_poller(registers, alias, sampling_time)
+
+
+@pytest.mark.smoke
+@pytest.mark.virtual
+def test_create_empty_monitoring_exception(mocker, motion_controller):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.capture, "_check_version", return_value=MonitoringVersion.MONITORING_V2)
+    with pytest.raises(NotImplementedError):
+        mc.capture.create_empty_monitoring(servo=alias)
