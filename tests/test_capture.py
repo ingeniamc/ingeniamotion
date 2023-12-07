@@ -441,3 +441,25 @@ def test_is_frame_available(mocker, motion_controller, monitoring_status, monito
     mc, alias = motion_controller
     mocker.patch.object(mc.capture, "get_monitoring_status", return_value=monitoring_status)
     assert mc.capture.is_frame_available(servo=alias, version=monitoring_version)
+
+
+@pytest.mark.parametrize(
+    "function",
+    ["disturbance_max_sample_size", "monitoring_max_sample_size"],
+)
+@pytest.mark.smoke
+@pytest.mark.virtual
+def test_monitoring_disturbance_max_sample_size_exception(mocker, motion_controller, function):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.communication, "get_register", return_value="invalid_value")
+    with pytest.raises(TypeError):
+        getattr(mc.capture, function)(servo=alias)
+
+
+@pytest.mark.smoke
+@pytest.mark.virtual
+def test_get_frequency_exception(mocker, motion_controller):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.communication, "get_register", return_value="invalid_value")
+    with pytest.raises(TypeError):
+        mc.capture.get_frequency(servo=alias)
