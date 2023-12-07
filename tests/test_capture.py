@@ -281,3 +281,17 @@ def test_get_frequency(
     new_divider = 2
     monitoring.set_frequency(new_divider)
     assert mc.capture.get_frequency(servo=alias) == max_frequency / new_divider
+
+
+@pytest.mark.parametrize(
+    "name, axis",
+    [("CL_CUR_Q_SET_POINT", "1"), (1, 1)],
+)
+@pytest.mark.smoke
+@pytest.mark.virtual
+def test_create_poller_exceptions(motion_controller, name, axis):
+    sampling_time = 0.0625
+    registers = [{"name": name, "axis": axis}]
+    mc, alias = motion_controller
+    with pytest.raises(TypeError):
+        mc.capture.create_poller(registers, alias, sampling_time)
