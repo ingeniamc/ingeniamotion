@@ -3,7 +3,7 @@ import time
 import pytest
 import numpy as np
 
-from ingeniamotion.exceptions import IMStatusWordError
+from ingeniamotion.exceptions import IMStatusWordError, IMMonitoringError
 from ingeniamotion.enums import (
     OperationMode,
     MonitoringSoCType,
@@ -351,3 +351,12 @@ def test_check_monitoring_version_not_available(mocker, motion_controller):
     mocker.patch.object(mc.capture, "MONITORING_STATUS_REGISTER", return_value="NON_EXISTING_UID")
     with pytest.raises(NotImplementedError):
         mc.capture._check_version(servo=alias)
+
+
+@pytest.mark.smoke
+@pytest.mark.virtual
+def test_enable_monitoring_exception(mocker, motion_controller):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=0)
+    with pytest.raises(IMMonitoringError):
+        mc.capture.enable_monitoring(servo=alias)
