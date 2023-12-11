@@ -3,6 +3,7 @@ import pytest
 
 from ingenialink.servo import SERVO_STATE
 from ingenialink.exceptions import ILError
+from ingenialink.ethercat.network import EthercatNetwork
 
 from ingeniamotion import MotionController
 from ingeniamotion.exceptions import IMRegisterNotExist, IMRegisterWrongAccess
@@ -234,3 +235,29 @@ def test_subscribe_servo_status(mocker, motion_controller):
     for index, call in enumerate(patch_callback.call_args_list):
         assert call[0][0] == expected_status[index]
         assert call[0][2] == axis
+
+
+@pytest.mark.smoke
+@pytest.mark.virtual
+def test_load_firmware_canopen_exception(motion_controller):
+    mc, alias = motion_controller
+    with pytest.raises(ValueError):
+        mc.communication.load_firmware_canopen("fake_fw_file.lfu", servo=alias)
+
+
+@pytest.mark.smoke
+@pytest.mark.virtual
+def test_boot_mode_and_load_firmware_ethernet_exception(mocker, motion_controller):
+    mc, alias = motion_controller
+    mocker.patch.object(mc, "_get_network", return_value=EthercatNetwork("fake_interface_name"))
+    with pytest.raises(ValueError):
+        mc.communication.boot_mode_and_load_firmware_ethernet("fake_fw_file.lfu", servo=alias)
+
+
+@pytest.mark.smoke
+@pytest.mark.virtual
+def test_load_firmware_moco_exception(mocker, motion_controller):
+    mc, alias = motion_controller
+    mocker.patch.object(mc, "_get_network", return_value=EthercatNetwork("fake_interface_name"))
+    with pytest.raises(ValueError):
+        mc.communication.load_firmware_moco("fake_fw_file.lfu", servo=alias)
