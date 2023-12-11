@@ -1,10 +1,15 @@
 import os
 
 import pytest
-from ingenialink.canopen.network import CAN_BAUDRATE
 from ingenialink.ethercat.servo import EthercatServo
 
-from ingeniamotion.enums import CommutationMode, FilterType, FilterNumber, FilterSignal
+from ingeniamotion.enums import (
+    CommutationMode,
+    FilterType,
+    FilterNumber,
+    FilterSignal,
+    CAN_BAUDRATE,
+)
 from ingeniamotion.exceptions import IMException
 from ingeniamotion.configuration import TYPE_SUBNODES
 
@@ -726,6 +731,11 @@ def test_load_configuration_file_not_found(motion_controller):
         ("get_phasing_mode", 1.0),
         ("get_motor_pair_poles", 1.0),
         ("get_sto_status", 1.0),
+        ("get_rated_current", 1),
+        ("get_max_current", 1),
+        ("get_commutation_mode", 1.0),
+        ("get_bus_voltage", 1),
+        ("get_pos_to_vel_ratio", 1),
     ],
 )
 @pytest.mark.smoke
