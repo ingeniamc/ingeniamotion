@@ -40,6 +40,7 @@ def mon_map_registers(skip_if_monitoring_not_available, monitoring):
     monitoring.map_registers([{"axis": 1, "name": "CL_POS_FBK_VALUE"}])
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "trigger_type",
@@ -142,6 +143,7 @@ def test_set_monitoring_frequency_exception(monitoring):
         monitoring.set_frequency(prescaler)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_monitoring_map_registers_size_exception(monitoring):
     registers = [{"axis": 1, "name": "CL_POS_FBK_VALUE"}]
@@ -150,6 +152,7 @@ def test_monitoring_map_registers_size_exception(monitoring):
         monitoring.map_registers(registers)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_monitoring_map_registers_fail(monitoring):
     registers = []
@@ -368,6 +371,7 @@ def test_stop_reading_data(motion_controller, monitoring, disable_monitoring_dis
     assert (time.time() - init_time) < timeout
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_monitoring_max_sample_size(motion_controller, skip_if_monitoring_not_available):
     mc, alias = motion_controller

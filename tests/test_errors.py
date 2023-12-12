@@ -111,6 +111,7 @@ class TestErrors:
         mc.communication.set_register(USER_UNDER_VOLTAGE_LEVEL_REGISTER, 10, servo=alias)
         assert not mc.errors.is_warning_active(servo=alias)
 
+    @pytest.mark.virtual
     @pytest.mark.smoke
     @pytest.mark.parametrize(
         "error_code, affected_module, error_type, error_msg",

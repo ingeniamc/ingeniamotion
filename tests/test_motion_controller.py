@@ -13,6 +13,7 @@ from ingeniamotion.information import Information
 from ingeniamotion.metaclass import MCMetaClass
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_motion_controller():
     mc = MotionController()
@@ -25,6 +26,7 @@ def test_motion_controller():
     assert isinstance(mc.info, Information)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_servo_name(motion_controller):
     mc, alias = motion_controller
@@ -34,6 +36,7 @@ def test_servo_name(motion_controller):
     assert name == "{} ({})".format(prod_code, alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_register_enum(motion_controller):
     mc, alias = motion_controller
@@ -51,6 +54,7 @@ def test_get_register_enum(motion_controller):
     assert checked_ops > 0
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_is_alive(motion_controller):
     mc, alias = motion_controller

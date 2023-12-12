@@ -225,6 +225,7 @@ def test_create_disturbance(
     assert __compare_signals(data, read_data)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_mcb_synchronization(mocker, motion_controller):
     mc, alias = motion_controller
@@ -243,6 +244,7 @@ def test_mcb_synchronization_fail(motion_controller):
         mc.capture.mcb_synchronization(servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_disturbance_max_sample_size(skip_if_monitoring_not_available, motion_controller):
     mc, alias = motion_controller
@@ -254,6 +256,7 @@ def test_disturbance_max_sample_size(skip_if_monitoring_not_available, motion_co
     assert max_sample_size == value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_monitoring_max_sample_size(skip_if_monitoring_not_available, motion_controller):
     mc, alias = motion_controller
