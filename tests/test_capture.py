@@ -361,7 +361,9 @@ def test_check_monitoring_version_not_available(mocker, motion_controller):
 @pytest.mark.virtual
 def test_enable_monitoring_exception(mocker, motion_controller):
     mc, alias = motion_controller
-    mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=0)
+    monitoring = mc.capture.create_empty_monitoring(alias)
+    mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=False)
+    monitoring.map_registers([{"axis": 1, "name": "CL_POS_FBK_VALUE"}])
     with pytest.raises(IMMonitoringError):
         mc.capture.enable_monitoring(servo=alias)
 
@@ -370,7 +372,10 @@ def test_enable_monitoring_exception(mocker, motion_controller):
 @pytest.mark.virtual
 def test_enable_disturbance_exception(mocker, motion_controller):
     mc, alias = motion_controller
-    mocker.patch.object(mc.capture, "is_disturbance_enabled", return_value=0)
+    monitoring = mc.capture.create_empty_monitoring(alias)
+    mocker.patch.object(mc.capture, "is_disturbance_enabled", return_value=False)
+    mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=False)
+    monitoring.map_registers([{"axis": 1, "name": "CL_POS_FBK_VALUE"}])
     with pytest.raises(IMMonitoringError):
         mc.capture.enable_disturbance(servo=alias)
 
