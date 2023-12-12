@@ -17,7 +17,7 @@ def disturbance(motion_controller, skip_if_monitoring_not_available):
 
 @pytest.mark.virtual
 @pytest.mark.smoke
-def test_disturbance_max_sample_size(is_disturbance_enabled, disturbance):
+def test_disturbance_max_sample_size(motion_controller, disturbance):
     mc, alias = motion_controller
     max_sample_size = disturbance.max_sample_number
     value = mc.communication.get_register(
