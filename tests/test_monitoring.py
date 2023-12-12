@@ -381,3 +381,55 @@ def test_monitoring_max_sample_size(motion_controller, skip_if_monitoring_not_av
     drive = mc.servos[alias]
     value = drive.read(target_register, subnode=axis)
     assert max_sample_size == value
+
+
+@pytest.mark.virtual
+@pytest.mark.smoke
+def test_monitoring_map_registers_invalid_subnode(mocker, motion_controller, monitoring):
+    registers = [{"axis": "1", "name": "DRV_AXIS_NUMBER"}]
+    mc, alias = motion_controller
+    mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=False)
+    with pytest.raises(TypeError):
+        monitoring.map_registers(registers)
+
+
+@pytest.mark.virtual
+@pytest.mark.smoke
+def test_monitoring_map_registers_invalid_register(mocker, motion_controller, monitoring):
+    registers = [{"axis": 1, "name": 1}]
+    mc, alias = motion_controller
+    mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=False)
+    with pytest.raises(TypeError):
+        monitoring.map_registers(registers)
+
+
+@pytest.mark.virtual
+@pytest.mark.smoke
+def test_monitoring_map_registers_invalid_number_mapped_registers(
+    mocker, motion_controller, monitoring
+):
+    registers = [{"axis": 1, "name": "CL_POS_FBK_VALUE"}]
+    mc, alias = motion_controller
+    mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=False)
+    mocker.patch.object(mc.communication, "get_register", return_value="invalid_value")
+    with pytest.raises(TypeError):
+        monitoring.map_registers(registers)
+
+
+@pytest.mark.parametrize(
+    "trigger_delay, expected_exception",
+    [
+        (3, ValueError),
+        (2.5, TypeError),
+    ],
+)
+@pytest.mark.virtual
+@pytest.mark.smoke
+def test_configure_sample_time_exceptions(
+    mocker, motion_controller, monitoring, trigger_delay, expected_exception
+):
+    mc, alias = motion_controller
+    total_time = 5
+    mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=False)
+    with pytest.raises(expected_exception):
+        monitoring.configure_sample_time(total_time, trigger_delay)
