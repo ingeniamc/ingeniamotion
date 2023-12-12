@@ -51,6 +51,7 @@ def teardown_brake_override(motion_controller):
     mc.configuration.default_brake(servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_release_brake(motion_controller, teardown_brake_override):
     mc, alias = motion_controller
@@ -61,6 +62,7 @@ def test_release_brake(motion_controller, teardown_brake_override):
     )
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_enable_brake(motion_controller, teardown_brake_override):
     mc, alias = motion_controller
@@ -71,6 +73,7 @@ def test_enable_brake(motion_controller, teardown_brake_override):
     )
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_disable_brake_override(motion_controller, teardown_brake_override):
     mc, alias = motion_controller
@@ -121,6 +124,7 @@ def test_save_configuration_and_load_configuration_nvm_none(motion_controller):
     mc.communication.set_register(POSITION_SET_POINT_REGISTER, old_value, servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_set_profiler_exception(motion_controller):
     mc, alias = motion_controller
@@ -129,6 +133,7 @@ def test_set_profiler_exception(motion_controller):
         mc.configuration.set_profiler(None, None, None, servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "acceleration, deceleration, velocity",
@@ -151,6 +156,7 @@ def test_set_profiler(motion_controller, acceleration, deceleration, velocity):
         assert pytest.approx(expected_values[key]) == actual_value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("acceleration", [0, 10, 25])
 def test_set_max_acceleration(motion_controller, acceleration):
@@ -160,6 +166,7 @@ def test_set_max_acceleration(motion_controller, acceleration):
     assert pytest.approx(acceleration) == output_value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("acceleration", [0, 10, 25])
 def test_set_max_profile_acceleration(motion_controller, acceleration):
@@ -169,6 +176,7 @@ def test_set_max_profile_acceleration(motion_controller, acceleration):
     assert pytest.approx(acceleration) == output_value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("deceleration", [0, 10, 25])
 def test_set_max_deceleration(motion_controller, deceleration):
@@ -178,6 +186,7 @@ def test_set_max_deceleration(motion_controller, deceleration):
     assert pytest.approx(output_value) == deceleration
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("velocity", [0, 10, 25])
 def test_set_max_velocity(motion_controller, velocity):
@@ -187,6 +196,7 @@ def test_set_max_velocity(motion_controller, velocity):
     assert pytest.approx(velocity) == output_value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("velocity", [0, 10, 25])
 def test_set_max_profile_velocity(motion_controller, velocity):
@@ -196,6 +206,7 @@ def test_set_max_profile_velocity(motion_controller, velocity):
     assert pytest.approx(velocity) == output_value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_position_and_velocity_loop_rate(motion_controller):
     mc, alias = motion_controller
@@ -204,6 +215,7 @@ def test_get_position_and_velocity_loop_rate(motion_controller):
     assert test_value == reg_value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_current_loop_rate(motion_controller):
     mc, alias = motion_controller
@@ -212,12 +224,14 @@ def test_get_current_loop_rate(motion_controller):
     assert test_value == reg_value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_power_stage_frequency(motion_controller):
     mc, alias = motion_controller
     mc.configuration.get_power_stage_frequency(servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_power_stage_frequency_raw(motion_controller):
     mc, alias = motion_controller
@@ -228,12 +242,14 @@ def test_get_power_stage_frequency_raw(motion_controller):
     assert test_value == pow_stg_freq
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_power_stage_frequency_enum(motion_controller):
     mc, alias = motion_controller
     mc.configuration.get_power_stage_frequency_enum(servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("input_value", [0, 1, 2, 3])
 def test_set_power_stage_frequency(motion_controller_teardown, input_value):
@@ -246,6 +262,7 @@ def test_set_power_stage_frequency(motion_controller_teardown, input_value):
     assert pytest.approx(input_value) == output_value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_power_stage_frequency_exception(mocker, motion_controller):
     mc, alias = motion_controller
@@ -254,6 +271,7 @@ def test_get_power_stage_frequency_exception(mocker, motion_controller):
         mc.configuration.get_power_stage_frequency(servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_status_word(motion_controller):
     mc, alias = motion_controller
@@ -273,6 +291,7 @@ def test_is_motor_enabled_1(motion_controller):
     assert not mc.configuration.is_motor_enabled(servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "status_word_value, expected_result",
@@ -294,6 +313,7 @@ def test_is_motor_enabled_2(mocker, motion_controller, status_word_value, expect
     assert test_value == expected_result
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "status_word_value, expected_result",
@@ -317,6 +337,7 @@ def test_is_commutation_feedback_aligned(
     assert test_value == expected_result
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_set_phasing_mode(motion_controller):
     input_value = 0
@@ -326,6 +347,7 @@ def test_set_phasing_mode(motion_controller):
     assert pytest.approx(input_value) == output_value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_phasing_mode(motion_controller):
     mc, alias = motion_controller
@@ -334,6 +356,7 @@ def test_get_phasing_mode(motion_controller):
     assert test_value == reg_value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_set_generator_mode(motion_controller):
     input_value = 0
@@ -343,6 +366,7 @@ def test_set_generator_mode(motion_controller):
     assert pytest.approx(input_value) == output_value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_set_motor_pair_poles(motion_controller_teardown):
     input_value = 0
@@ -352,6 +376,7 @@ def test_set_motor_pair_poles(motion_controller_teardown):
     assert pytest.approx(input_value) == output_value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_motor_pair_poles(motion_controller):
     mc, alias = motion_controller
@@ -360,6 +385,7 @@ def test_get_motor_pair_poles(motion_controller):
     assert test_value == reg_value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_sto_status(motion_controller):
     mc, alias = motion_controller
@@ -372,6 +398,7 @@ def patch_get_sto_status(mocker, value):
     mocker.patch("ingeniamotion.configuration.Configuration.get_sto_status", return_value=value)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_status_value, expected_result",
@@ -391,6 +418,7 @@ def test_is_sto1_active(mocker, motion_controller, sto_status_value, expected_re
     assert value == expected_result
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_status_value, expected_result",
@@ -403,6 +431,7 @@ def test_is_sto2_active(mocker, motion_controller, sto_status_value, expected_re
     assert value == expected_result
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_status_value, expected_result",
@@ -427,6 +456,7 @@ def test_check_sto_abnormal_fault(mocker, motion_controller, sto_status_value, e
     assert value == expected_result
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_status_value, expected_result",
@@ -439,6 +469,7 @@ def test_get_sto_report_bit(mocker, motion_controller, sto_status_value, expecte
     assert value == expected_result
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_status_value, expected_result", [(0x13A0, False), (0x7648, False), (0x4, True)]
@@ -450,6 +481,7 @@ def test_is_sto_active(mocker, motion_controller, sto_status_value, expected_res
     assert value == expected_result
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_status_value, expected_result", [(0xC18A, False), (0x742C, False), (0x17, True)]
@@ -461,6 +493,7 @@ def test_is_sto_inactive(mocker, motion_controller, sto_status_value, expected_r
     assert value == expected_result
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_status_value, expected_result", [(0x1BF3, False), (0x6B7, False), (0x1F, True)]
@@ -579,6 +612,7 @@ def test_change_node_id_exception(motion_controller):
         mc.configuration.change_node_id(32, alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_set_velocity_pid(motion_controller_teardown):
     mc, alias = motion_controller_teardown
@@ -594,6 +628,7 @@ def test_set_velocity_pid(motion_controller_teardown):
     assert kd_test == kd_reg
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_set_position_pid(motion_controller_teardown):
     mc, alias = motion_controller_teardown
@@ -609,6 +644,7 @@ def test_set_position_pid(motion_controller_teardown):
     assert kd_test == kd_reg
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_set_rated_current(motion_controller):
     mc, alias = motion_controller
@@ -623,6 +659,7 @@ def test_get_set_rated_current(motion_controller):
     mc.communication.set_register(RATED_CURRENT_REGISTER, initial_rated_current, servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_max_current(motion_controller):
     mc, alias = motion_controller

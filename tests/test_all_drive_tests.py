@@ -156,6 +156,7 @@ def test_sto_test(motion_controller):
     assert results["result_severity"] == SeverityLevel.SUCCESS
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_value, message",
@@ -224,7 +225,7 @@ def test_feedback_stop(motion_controller, feedback_class):
         assert reg_values[reg] == mc.communication.get_register(reg, servo=alias)
 
 
-@pytest.mark.usefixtures("commutation_teardown")
+@pytest.mark.virtual
 def test_commutation_stop(motion_controller):
     mc, alias = motion_controller
     test = Phasing(mc, alias, 1)
@@ -234,7 +235,7 @@ def test_commutation_stop(motion_controller):
         assert reg_values[reg] == mc.communication.get_register(reg, servo=alias)
 
 
-@pytest.mark.usefixtures("commutation_teardown")
+@pytest.mark.virtual
 def test_phasing_check_stop(motion_controller):
     mc, alias = motion_controller
     test = PhasingCheck(mc, alias, 1)
@@ -244,6 +245,7 @@ def test_phasing_check_stop(motion_controller):
         assert reg_values[reg] == mc.communication.get_register(reg, servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.parametrize("test_currents", ["Rated current", "Drive current", "Same value"])
 @pytest.mark.parametrize(
     "test_sensor",

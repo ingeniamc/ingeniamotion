@@ -11,7 +11,7 @@ from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE
 
 
 @pytest.mark.smoke
-@pytest.mark.eoe
+@pytest.mark.virtual
 def test_connect_servo_eoe(read_config):
     mc = MotionController()
     assert "eoe_test" not in mc.servos
@@ -24,7 +24,7 @@ def test_connect_servo_eoe(read_config):
 
 
 @pytest.mark.smoke
-@pytest.mark.eoe
+@pytest.mark.virtual
 def test_connect_servo_eoe_no_dictionary_error(read_config):
     mc = MotionController()
     with pytest.raises(FileNotFoundError):
@@ -32,7 +32,7 @@ def test_connect_servo_eoe_no_dictionary_error(read_config):
 
 
 @pytest.mark.smoke
-@pytest.mark.eoe
+@pytest.mark.virtual
 def test_connect_servo_ethernet(read_config):
     mc = MotionController()
     assert "eoe_test" not in mc.servos
@@ -45,7 +45,7 @@ def test_connect_servo_ethernet(read_config):
 
 
 @pytest.mark.smoke
-@pytest.mark.eoe
+@pytest.mark.virtual
 def test_connect_servo_ethernet_no_dictionary_error(read_config):
     mc = MotionController()
     with pytest.raises(FileNotFoundError):
@@ -135,6 +135,7 @@ def test_connect_servo_canopen_busy_drive_error(motion_controller, read_config):
         )
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "uid, value",
@@ -152,6 +153,7 @@ def test_get_register(motion_controller, uid, value):
     assert pytest.approx(test_value) == value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_register_wrong_uid(motion_controller):
     mc, alias = motion_controller
@@ -159,6 +161,7 @@ def test_get_register_wrong_uid(motion_controller):
         mc.communication.get_register("WRONG_UID", servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "uid, value",
@@ -176,6 +179,7 @@ def test_set_register(motion_controller, uid, value):
     assert pytest.approx(test_value) == value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_set_register_wrong_uid(motion_controller):
     mc, alias = motion_controller
@@ -183,6 +187,7 @@ def test_set_register_wrong_uid(motion_controller):
         mc.communication.set_register("WRONG_UID", 2, servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "uid, value, fail",
@@ -207,6 +212,7 @@ def test_set_register_wrong_value_type(motion_controller, uid, value, fail):
         mc.communication.set_register(uid, value, servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_set_register_wrong_access(motion_controller):
     mc, alias = motion_controller

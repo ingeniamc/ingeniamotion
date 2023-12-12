@@ -22,6 +22,7 @@ from ingeniamotion.comkit import (
 )
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_create_comkit_dictionary():
     coco_path = "./tests/resources/com-kit.xdf"
@@ -39,6 +40,7 @@ def test_create_comkit_dictionary():
     assert comkit_xml_str == reference_xml_str
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_create_comkit_dictionary_wrong_file_extension():
     coco_path = "./tests/resources/com-kit.xdf"

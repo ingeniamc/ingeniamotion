@@ -43,6 +43,7 @@ def test_target_latch(motion_controller):
     assert pytest.approx(init_pos + pos_res, rel_tolerance) == test_act_pos
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("operation_mode", list(OperationMode))
 def test_set_operation_mode(motion_controller, operation_mode):
@@ -143,6 +144,7 @@ def test_fault_reset(motion_controller_teardown):
     assert not mc.errors.is_fault_active(servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("position_value", [1000, 0, -1000, 4000])
 def test_set_position(motion_controller, position_value):
@@ -165,6 +167,7 @@ def test_move_position(motion_controller, position_value):
     assert pytest.approx(position_value, abs=pos_tolerance) == test_position
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("velocity_value", [0.5, 1, 0, -0.5])
 def test_set_velocity(motion_controller, velocity_value):
@@ -187,6 +190,7 @@ def test_set_velocity_blocking(motion_controller, velocity_value):
     assert pytest.approx(velocity_value, abs=0.1) == test_vel
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("current_value", [0.5, 1, 0, -0.5])
 def test_set_current_quadrature(motion_controller, current_value):
@@ -196,6 +200,7 @@ def test_set_current_quadrature(motion_controller, current_value):
     assert pytest.approx(current_value) == test_current
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("current_value", [0.5, 1, 0, -0.5])
 def test_set_current_direct(motion_controller, current_value):
@@ -205,6 +210,7 @@ def test_set_current_direct(motion_controller, current_value):
     assert pytest.approx(current_value) == test_current
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("voltage_value", [0.5, 1, 0, -0.5])
 def test_set_voltage_quadrature(motion_controller, voltage_value):
@@ -214,6 +220,7 @@ def test_set_voltage_quadrature(motion_controller, voltage_value):
     assert pytest.approx(voltage_value) == test_voltage
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("voltage_value", [0.5, 1, 0, -0.5])
 def test_set_voltage_direct(motion_controller, voltage_value):
@@ -223,6 +230,7 @@ def test_set_voltage_direct(motion_controller, voltage_value):
     assert pytest.approx(voltage_value) == test_voltage
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "init_v, final_v, total_t, t, result",
@@ -278,6 +286,7 @@ def test_get_actual_velocity(motion_controller, velocity_value):
     assert np.abs(np.mean(test_velocity) - np.mean(reg_value)) < 0.1
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_actual_current_direct(mocker, motion_controller):
     mc, alias = motion_controller
@@ -287,6 +296,7 @@ def test_get_actual_current_direct(mocker, motion_controller):
     patch_get_register.assert_called_once_with(ACTUAL_DIRECT_CURRENT_REGISTER, servo=alias, axis=1)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_actual_current_quadrature(mocker, motion_controller):
     mc, alias = motion_controller
@@ -298,6 +308,7 @@ def test_get_actual_current_quadrature(mocker, motion_controller):
     )
 
 
+@pytest.mark.virtual
 def test_wait_for_position_timeout(motion_controller):
     timeout_value = 2
     mc, alias = motion_controller
@@ -308,6 +319,7 @@ def test_wait_for_position_timeout(motion_controller):
     assert pytest.approx(timeout_value, abs=0.1) == final_time - init_time
 
 
+@pytest.mark.virtual
 def test_wait_for_velocity_timeout(motion_controller):
     timeout_value = 2
     mc, alias = motion_controller
