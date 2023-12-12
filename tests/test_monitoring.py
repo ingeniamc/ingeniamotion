@@ -48,6 +48,7 @@ def mon_map_registers(skip_if_monitoring_not_available, monitoring):
         MonitoringSoCType.TRIGGER_EVENT_AUTO,
         MonitoringSoCType.TRIGGER_EVENT_FORCED,
         MonitoringSoCType.TRIGGER_EVENT_EDGE,
+        4,  # Invalid value
     ],
 )
 def test_get_trigger_type(motion_controller, monitoring, trigger_type):
@@ -433,3 +434,12 @@ def test_configure_sample_time_exceptions(
     mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=False)
     with pytest.raises(expected_exception):
         monitoring.configure_sample_time(total_time, trigger_delay)
+
+
+@pytest.mark.smoke
+@pytest.mark.virtual
+def test_get_trigger_type_exception(mocker, motion_controller, monitoring):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.communication, "get_register", return_value="invalid_value")
+    with pytest.raises(TypeError):
+        monitoring.get_trigger_type()
