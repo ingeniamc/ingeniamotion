@@ -308,24 +308,20 @@ def test_get_actual_current_quadrature(mocker, motion_controller):
     )
 
 
+@pytest.mark.parametrize(
+    "function",
+    [
+        "wait_for_position",
+        "wait_for_velocity",
+    ],
+)
 @pytest.mark.virtual
-def test_wait_for_position_timeout(motion_controller):
+def test_wait_for_function_timeout(motion_controller, function):
     timeout_value = 2
     mc, alias = motion_controller
     init_time = time.time()
     with pytest.raises(IMTimeoutError):
-        mc.motion.wait_for_position(10000, servo=alias, timeout=timeout_value)
-    final_time = time.time()
-    assert pytest.approx(timeout_value, abs=0.1) == final_time - init_time
-
-
-@pytest.mark.virtual
-def test_wait_for_velocity_timeout(motion_controller):
-    timeout_value = 2
-    mc, alias = motion_controller
-    init_time = time.time()
-    with pytest.raises(IMTimeoutError):
-        mc.motion.wait_for_velocity(10000, servo=alias, timeout=timeout_value)
+        getattr(mc.motion, function)(1000, servo=alias, timeout=timeout_value)
     final_time = time.time()
     assert pytest.approx(timeout_value, abs=0.1) == final_time - init_time
 
@@ -400,3 +396,31 @@ def test_internal_generator_constant_move(motion_controller_teardown, op_mode, d
             abs(total_movement - expected_movement)
             < pos_resolution * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
         )
+
+
+@pytest.mark.parametrize(
+    "function",
+    [
+        "target_latch",
+        "get_operation_mode",
+        "get_actual_position",
+        "get_actual_velocity",
+        "get_actual_current_direct",
+        "get_actual_current_quadrature",
+    ],
+)
+@pytest.mark.smoke
+@pytest.mark.virtual
+def test_wrong_type_exception(mocker, motion_controller, function):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.communication, "get_register", return_value="invalid_value")
+    with pytest.raises(TypeError):
+        getattr(mc.motion, function)(servo=alias)
+
+
+@pytest.mark.smoke
+@pytest.mark.virtual
+def test_set_internal_generator_configuration_exception(motion_controller):
+    mc, alias = motion_controller
+    with pytest.raises(ValueError):
+        mc.motion.set_internal_generator_configuration(OperationMode.VELOCITY, servo=alias)
