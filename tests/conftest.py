@@ -89,7 +89,9 @@ def motion_controller(pytestconfig, read_config):
             read_config["ip"], read_config["port"], read_config["dictionary"]
         )
         virtual_drive.start()
-        connect_eoe(mc, read_config, alias)
+        mc.communication.connect_servo_ethernet(
+            read_config["ip"], read_config["dictionary"], alias=alias, connection_timeout=5
+        )
     else:
         connect_eoe(mc, read_config, alias)
 
