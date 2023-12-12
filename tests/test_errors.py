@@ -132,3 +132,19 @@ class TestErrors:
         assert test_aff_mod == affected_module
         assert test_type == error_type
         assert test_msg == error_msg
+
+    @pytest.mark.parametrize(
+        "function",
+        [
+            "get_last_error",
+            "get_buffer_error_by_index",
+            "get_number_total_errors",
+        ],
+    )
+    @pytest.mark.smoke
+    @pytest.mark.virtual
+    def test_wrong_type_exception(self, mocker, motion_controller, function):
+        mc, alias = motion_controller
+        mocker.patch.object(mc.communication, "get_register", return_value="invalid_value")
+        with pytest.raises(TypeError):
+            getattr(mc.errors, function)(servo=alias)
