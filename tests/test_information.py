@@ -201,7 +201,6 @@ def test_get_encoded_image_from_dictionary(motion_controller):
     assert type(encoded_image) == expected_type_output
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_register_info_exception(motion_controller):
     mc, alias = motion_controller
@@ -209,7 +208,6 @@ def test_register_info_exception(motion_controller):
         mc.info.register_info("non_existing_uid", 1, alias)
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_get_product_name_none(motion_controller):
     mc, alias = motion_controller
@@ -219,7 +217,6 @@ def test_get_product_name_none(motion_controller):
     assert product_name is None
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_get_node_id_exception(motion_controller):
     mc, alias = motion_controller
@@ -227,7 +224,6 @@ def test_get_node_id_exception(motion_controller):
         mc.info.get_node_id(alias)
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_get_ip_exception(mocker, motion_controller):
     mc, alias = motion_controller
@@ -236,7 +232,6 @@ def test_get_ip_exception(mocker, motion_controller):
         mc.info.get_ip(alias)
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_get_slave_id_exception(motion_controller):
     mc, alias = motion_controller

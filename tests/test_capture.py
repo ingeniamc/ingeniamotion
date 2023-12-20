@@ -296,7 +296,6 @@ def test_get_frequency(
     "name, axis",
     [("CL_CUR_Q_SET_POINT", "1"), (1, 1)],
 )
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_create_poller_exceptions(motion_controller, name, axis):
     sampling_time = 0.0625
@@ -306,7 +305,6 @@ def test_create_poller_exceptions(motion_controller, name, axis):
         mc.capture.create_poller(registers, alias, sampling_time)
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_create_empty_monitoring_exception(mocker, motion_controller):
     mc, alias = motion_controller
@@ -315,7 +313,6 @@ def test_create_empty_monitoring_exception(mocker, motion_controller):
         mc.capture.create_empty_monitoring(servo=alias)
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_check_monitoring_version_v3(motion_controller):
     mc, alias = motion_controller
@@ -323,7 +320,6 @@ def test_check_monitoring_version_v3(motion_controller):
     assert version == MonitoringVersion.MONITORING_V3
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_check_monitoring_version_v2(mocker, motion_controller):
     mc, alias = motion_controller
@@ -332,7 +328,6 @@ def test_check_monitoring_version_v2(mocker, motion_controller):
     assert version == MonitoringVersion.MONITORING_V2
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_check_monitoring_version_v1(mocker, motion_controller):
     mc, alias = motion_controller
@@ -344,7 +339,6 @@ def test_check_monitoring_version_v1(mocker, motion_controller):
     assert version == MonitoringVersion.MONITORING_V1
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_check_monitoring_version_not_available(mocker, motion_controller):
     mc, alias = motion_controller
@@ -357,7 +351,6 @@ def test_check_monitoring_version_not_available(mocker, motion_controller):
         mc.capture._check_version(servo=alias)
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_enable_monitoring_exception(mocker, motion_controller):
     mc, alias = motion_controller
@@ -368,7 +361,6 @@ def test_enable_monitoring_exception(mocker, motion_controller):
         mc.capture.enable_monitoring(servo=alias)
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_enable_disturbance_exception(mocker, motion_controller):
     mc, alias = motion_controller
@@ -384,7 +376,6 @@ def test_enable_disturbance_exception(mocker, motion_controller):
     "function",
     ["get_monitoring_disturbance_status", "get_monitoring_status", "get_disturbance_status"],
 )
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_get_monitoring_disturbance_status_exception(mocker, motion_controller, function):
     mc, alias = motion_controller
@@ -403,7 +394,6 @@ def test_get_monitoring_disturbance_status_exception(mocker, motion_controller, 
         (0x08, MonitoringProcessStage.END_STAGE),
     ],
 )
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_get_monitoring_process_stage_v3(mocker, motion_controller, monitor_status, expected_stage):
     mc, alias = motion_controller
@@ -420,7 +410,6 @@ def test_get_monitoring_process_stage_v3(mocker, motion_controller, monitor_stat
         (0x06, MonitoringProcessStage.DATA_ACQUISITION),
     ],
 )
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_get_monitoring_process_stage_v1_v2(
     mocker, motion_controller, monitoring_status, expected_stage
@@ -443,7 +432,6 @@ def test_get_monitoring_process_stage_v1_v2(
         (0x10, MonitoringVersion.MONITORING_V3),
     ],
 )
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_is_frame_available(mocker, motion_controller, monitoring_status, monitoring_version):
     mc, alias = motion_controller
@@ -455,7 +443,6 @@ def test_is_frame_available(mocker, motion_controller, monitoring_status, monito
     "function",
     ["disturbance_max_sample_size", "monitoring_max_sample_size"],
 )
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_monitoring_disturbance_max_sample_size_exception(mocker, motion_controller, function):
     mc, alias = motion_controller
@@ -464,7 +451,6 @@ def test_monitoring_disturbance_max_sample_size_exception(mocker, motion_control
         getattr(mc.capture, function)(servo=alias)
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_get_frequency_exception(mocker, motion_controller):
     mc, alias = motion_controller

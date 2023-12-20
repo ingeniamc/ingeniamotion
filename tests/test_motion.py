@@ -409,7 +409,6 @@ def test_internal_generator_constant_move(motion_controller_teardown, op_mode, d
         "get_actual_current_quadrature",
     ],
 )
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_wrong_type_exception(mocker, motion_controller, function):
     mc, alias = motion_controller
@@ -418,7 +417,6 @@ def test_wrong_type_exception(mocker, motion_controller, function):
         getattr(mc.motion, function)(servo=alias)
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_set_internal_generator_configuration_exception(motion_controller):
     mc, alias = motion_controller

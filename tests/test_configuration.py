@@ -748,7 +748,6 @@ def test_configure_filter(motion_controller, filter_type, filter_number, filter_
     assert pytest.approx(read_gain) == gain
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_load_configuration_file_not_found(motion_controller):
     file_path = "test_file.xcf"
@@ -775,7 +774,6 @@ def test_load_configuration_file_not_found(motion_controller):
         ("get_pos_to_vel_ratio", 1),
     ],
 )
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_wrong_type_exception(mocker, motion_controller, function, wrong_value):
     mc, alias = motion_controller
@@ -784,7 +782,6 @@ def test_wrong_type_exception(mocker, motion_controller, function, wrong_value):
         getattr(mc.configuration, function)(servo=alias)
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_get_phasing_mode_invalid(mocker, motion_controller):
     mc, alias = motion_controller
@@ -794,7 +791,6 @@ def test_get_phasing_mode_invalid(mocker, motion_controller):
     assert phasing_mode == invalid_enum_value
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_change_tcp_ip_parameters_exception(mocker, motion_controller):
     mc, alias = motion_controller
@@ -812,7 +808,6 @@ def test_change_tcp_ip_parameters_exception(mocker, motion_controller):
         "restore_tcp_ip_parameters",
     ],
 )
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_store_restore_tcp_ip_parameters_exception(mocker, motion_controller, function):
     mc, alias = motion_controller
@@ -828,14 +823,12 @@ def test_store_restore_tcp_ip_parameters_exception(mocker, motion_controller, fu
         (1, TYPE_SUBNODES.MOCO),
     ],
 )
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_get_subnode_type(motion_controller, subnode, expected_result):
     mc, alias = motion_controller
     assert mc.configuration.get_subnode_type(subnode) == expected_result
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_get_subnode_type_exception(motion_controller):
     mc, alias = motion_controller

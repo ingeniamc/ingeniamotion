@@ -436,7 +436,6 @@ def test_configure_sample_time_exceptions(
         monitoring.configure_sample_time(total_time, trigger_delay)
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_get_trigger_type_exception(mocker, motion_controller, monitoring):
     mc, alias = motion_controller

@@ -10,7 +10,6 @@ from ingeniamotion.exceptions import IMRegisterNotExist, IMRegisterWrongAccess
 from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_connect_servo_eoe(read_config):
     mc = MotionController()
@@ -23,7 +22,6 @@ def test_connect_servo_eoe(read_config):
     assert "eoe_test" in mc.net and mc.net["eoe_test"] is not None
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_connect_servo_eoe_no_dictionary_error(read_config):
     mc = MotionController()
@@ -31,7 +29,6 @@ def test_connect_servo_eoe_no_dictionary_error(read_config):
         mc.communication.connect_servo_eoe(read_config["ip"], "no_dictionary", alias="eoe_test")
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_connect_servo_ethernet(read_config):
     mc = MotionController()
@@ -44,7 +41,6 @@ def test_connect_servo_ethernet(read_config):
     assert "eoe_test" in mc.net and mc.net["eoe_test"] is not None
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_connect_servo_ethernet_no_dictionary_error(read_config):
     mc = MotionController()
@@ -243,7 +239,6 @@ def test_subscribe_servo_status(mocker, motion_controller):
         assert call[0][2] == axis
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_load_firmware_canopen_exception(motion_controller):
     mc, alias = motion_controller
@@ -251,7 +246,6 @@ def test_load_firmware_canopen_exception(motion_controller):
         mc.communication.load_firmware_canopen("fake_fw_file.lfu", servo=alias)
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_boot_mode_and_load_firmware_ethernet_exception(mocker, motion_controller):
     mc, alias = motion_controller
@@ -260,7 +254,6 @@ def test_boot_mode_and_load_firmware_ethernet_exception(mocker, motion_controlle
         mc.communication.boot_mode_and_load_firmware_ethernet("fake_fw_file.lfu", servo=alias)
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_load_firmware_moco_exception(mocker, motion_controller):
     mc, alias = motion_controller

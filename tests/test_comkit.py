@@ -58,7 +58,6 @@ def test_create_comkit_dictionary_wrong_file_extension():
         (IMAGE_SECTION, merge_images),
     ],
 )
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_merge_elements(element, merge_function):
     coco_path = "./tests/resources/com-kit.xdf"
@@ -79,7 +78,6 @@ def test_merge_elements(element, merge_function):
         CORE.COMMUNICATION_CORE,
     ],
 )
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_create_attribute(core_type):
     coco_path = "./tests/resources/com-kit.xdf"
@@ -91,7 +89,6 @@ def test_create_attribute(core_type):
     assert DICT_DEVICE_PART_NUMBER + core_type.value in device_elem.attrib
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_save_file():
     coco_path = "./tests/resources/com-kit.xdf"
