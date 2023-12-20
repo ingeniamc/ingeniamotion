@@ -1,9 +1,17 @@
 import os
 
 import pytest
-from ingenialink.canopen.network import CAN_BAUDRATE
+from ingenialink.ethercat.servo import EthercatServo
 
-from ingeniamotion.enums import CommutationMode, FilterType, FilterNumber, FilterSignal
+from ingeniamotion.enums import (
+    CommutationMode,
+    FilterType,
+    FilterNumber,
+    FilterSignal,
+    CAN_BAUDRATE,
+)
+from ingeniamotion.exceptions import IMException
+from ingeniamotion.configuration import TYPE_SUBNODES
 
 BRAKE_OVERRIDE_REGISTER = "MOT_BRAKE_OVERRIDE"
 POSITION_SET_POINT_REGISTER = "CL_POS_SET_POINT_VALUE"
@@ -738,3 +746,91 @@ def test_configure_filter(motion_controller, filter_type, filter_number, filter_
     reg_gain = FILTER_GAIN_REGISTER.format(filter_signal.value, filter_number.value)
     read_gain = mc.communication.get_register(reg_gain, servo=alias)
     assert pytest.approx(read_gain) == gain
+
+
+@pytest.mark.virtual
+def test_load_configuration_file_not_found(motion_controller):
+    file_path = "test_file.xcf"
+    mc, alias = motion_controller
+    with pytest.raises(FileNotFoundError):
+        mc.configuration.load_configuration(file_path, servo=alias)
+
+
+@pytest.mark.parametrize(
+    "function, wrong_value",
+    [
+        ("get_max_velocity", 1),
+        ("get_position_and_velocity_loop_rate", 1.0),
+        ("get_current_loop_rate", 1.0),
+        ("get_power_stage_frequency", 1.0),
+        ("get_status_word", 1.0),
+        ("get_phasing_mode", 1.0),
+        ("get_motor_pair_poles", 1.0),
+        ("get_sto_status", 1.0),
+        ("get_rated_current", 1),
+        ("get_max_current", 1),
+        ("get_commutation_mode", 1.0),
+        ("get_bus_voltage", 1),
+        ("get_pos_to_vel_ratio", 1),
+    ],
+)
+@pytest.mark.virtual
+def test_wrong_type_exception(mocker, motion_controller, function, wrong_value):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.communication, "get_register", return_value=wrong_value)
+    with pytest.raises(TypeError):
+        getattr(mc.configuration, function)(servo=alias)
+
+
+@pytest.mark.virtual
+def test_get_phasing_mode_invalid(mocker, motion_controller):
+    mc, alias = motion_controller
+    invalid_enum_value = 8
+    mocker.patch.object(mc.communication, "get_register", return_value=invalid_enum_value)
+    phasing_mode = mc.configuration.get_phasing_mode(servo=alias)
+    assert phasing_mode == invalid_enum_value
+
+
+@pytest.mark.virtual
+def test_change_tcp_ip_parameters_exception(mocker, motion_controller):
+    mc, alias = motion_controller
+    mocker.patch.object(mc, "_get_drive", return_value=EthercatServo)
+    with pytest.raises(IMException):
+        mc.configuration.change_tcp_ip_parameters(
+            "192.168.2.22", "255.255.0.0", "192.168.2.1", servo=alias
+        )
+
+
+@pytest.mark.parametrize(
+    "function",
+    [
+        "store_tcp_ip_parameters",
+        "restore_tcp_ip_parameters",
+    ],
+)
+@pytest.mark.virtual
+def test_store_restore_tcp_ip_parameters_exception(mocker, motion_controller, function):
+    mc, alias = motion_controller
+    mocker.patch.object(mc, "_get_drive", return_value=EthercatServo)
+    with pytest.raises(IMException):
+        getattr(mc.configuration, function)(servo=alias)
+
+
+@pytest.mark.parametrize(
+    "subnode, expected_result",
+    [
+        (0, TYPE_SUBNODES.COCO),
+        (1, TYPE_SUBNODES.MOCO),
+    ],
+)
+@pytest.mark.virtual
+def test_get_subnode_type(motion_controller, subnode, expected_result):
+    mc, alias = motion_controller
+    assert mc.configuration.get_subnode_type(subnode) == expected_result
+
+
+@pytest.mark.virtual
+def test_get_subnode_type_exception(motion_controller):
+    mc, alias = motion_controller
+    with pytest.raises(ValueError):
+        mc.configuration.get_subnode_type(-1)

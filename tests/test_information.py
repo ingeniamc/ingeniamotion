@@ -1,7 +1,13 @@
 import pytest
 
+from ingenialink.ethercat.network import EthercatNetwork
+from ingenialink.ethernet.network import EthernetNetwork
+from ingenialink.canopen.network import CanopenNetwork
+from ingenialink.canopen import CAN_DEVICE
+
 from ingeniamotion.enums import REG_DTYPE, REG_ACCESS
 from ingeniamotion.information import COMMUNICATION_TYPE
+from ingeniamotion.exceptions import IMRegisterNotExist, IMException
 
 
 @pytest.mark.virtual
@@ -119,24 +125,40 @@ def test_get_name(motion_controller):
     assert name == expected_name
 
 
+@pytest.mark.smoke
+@pytest.mark.parametrize(
+    "communication, expected_result, args",
+    [
+        (EthernetNetwork, COMMUNICATION_TYPE.Ethernet, None),
+        (EthercatNetwork, COMMUNICATION_TYPE.Ethercat, "fake_interface_name"),
+        (CanopenNetwork, COMMUNICATION_TYPE.Canopen, CAN_DEVICE.PCAN),
+    ],
+)
 @pytest.mark.virtual
-def test_get_communication_type(motion_controller):
-    expected_communication_type = COMMUNICATION_TYPE.Ethernet
-
+def test_get_communication_type(mocker, motion_controller, communication, expected_result, args):
     mc, alias = motion_controller
+    if communication != EthernetNetwork:
+        mocker.patch.object(mc, "_get_network", return_value=communication(args))
     communication_type = mc.info.get_communication_type(alias)
+    assert communication_type == expected_result
 
-    assert communication_type == expected_communication_type
 
-
+@pytest.mark.smoke
+@pytest.mark.parametrize(
+    "communication, expected_result, args",
+    [
+        (EthernetNetwork, "VIRTUAL-DRIVE - Drive (127.0.0.1)", None),
+        (EthercatNetwork, "VIRTUAL-DRIVE - Drive", "fake_interface_name"),
+        (CanopenNetwork, "VIRTUAL-DRIVE - Drive", CAN_DEVICE.PCAN),
+    ],
+)
 @pytest.mark.virtual
-def test_get_full_name(motion_controller):
-    expected_full_name = "VIRTUAL-DRIVE - Drive (127.0.0.1)"
-
+def test_get_full_name(mocker, motion_controller, communication, expected_result, args):
     mc, alias = motion_controller
+    if communication != EthernetNetwork:
+        mocker.patch.object(mc, "_get_network", return_value=communication(args))
     full_name = mc.info.get_full_name(alias)
-
-    assert full_name == expected_full_name
+    assert full_name == expected_result
 
 
 @pytest.mark.virtual
@@ -177,3 +199,41 @@ def test_get_encoded_image_from_dictionary(motion_controller):
     encoded_image = mc.info.get_encoded_image_from_dictionary(alias)
 
     assert type(encoded_image) == expected_type_output
+
+
+@pytest.mark.virtual
+def test_register_info_exception(motion_controller):
+    mc, alias = motion_controller
+    with pytest.raises(IMRegisterNotExist):
+        mc.info.register_info("non_existing_uid", 1, alias)
+
+
+@pytest.mark.virtual
+def test_get_product_name_none(motion_controller):
+    mc, alias = motion_controller
+    drive = mc._get_drive(alias)
+    drive.dictionary.part_number = None
+    product_name = mc.info.get_product_name(alias)
+    assert product_name is None
+
+
+@pytest.mark.virtual
+def test_get_node_id_exception(motion_controller):
+    mc, alias = motion_controller
+    with pytest.raises(IMException):
+        mc.info.get_node_id(alias)
+
+
+@pytest.mark.virtual
+def test_get_ip_exception(mocker, motion_controller):
+    mc, alias = motion_controller
+    mocker.patch.object(mc, "_get_network", return_value=EthercatNetwork("fake_interface_name"))
+    with pytest.raises(IMException):
+        mc.info.get_ip(alias)
+
+
+@pytest.mark.virtual
+def test_get_slave_id_exception(motion_controller):
+    mc, alias = motion_controller
+    with pytest.raises(IMException):
+        mc.info.get_slave_id(alias)

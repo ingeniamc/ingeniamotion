@@ -119,3 +119,35 @@ def test_write_disturbance_data_enabled(
     mc.capture.enable_monitoring_disturbance(alias)
     with pytest.raises(IMDisturbanceError):
         disturbance.write_disturbance_data([0] * 100)
+
+
+@pytest.mark.virtual
+@pytest.mark.smoke
+def test_disturbance_map_registers_invalid_subnode(mocker, motion_controller, disturbance):
+    registers = [{"axis": "1", "name": "DRV_AXIS_NUMBER"}]
+    mc, alias = motion_controller
+    mocker.patch.object(mc.capture, "is_disturbance_enabled", return_value=False)
+    with pytest.raises(TypeError):
+        disturbance.map_registers(registers)
+
+
+@pytest.mark.virtual
+@pytest.mark.smoke
+def test_disturbance_map_registers_invalid_register(mocker, motion_controller, disturbance):
+    registers = [{"axis": 1, "name": 1}]
+    mc, alias = motion_controller
+    mocker.patch.object(mc.capture, "is_disturbance_enabled", return_value=False)
+    with pytest.raises(TypeError):
+        disturbance.map_registers(registers)
+
+
+@pytest.mark.virtual
+@pytest.mark.smoke
+def test_write_disturbance_data_wrong_data_type(mocker, motion_controller, disturbance):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.capture, "is_disturbance_enabled", return_value=False)
+    registers = [{"axis": 1, "name": "CL_POS_SET_POINT_VALUE"}]
+    disturbance.map_registers(registers)
+    mocker.patch.object(disturbance, "sampling_freq", return_value=1000)
+    with pytest.raises(TypeError):
+        disturbance.write_disturbance_data(["wrong", "input", "value"])
