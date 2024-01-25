@@ -1,8 +1,9 @@
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
+import numpy as np
 from ingenialink.exceptions import ILIOError
 from ingenialink.poller import Poller
-from numpy.typing import ArrayLike
+from numpy.typing import NDArray
 
 from ingeniamotion.disturbance import Disturbance
 from ingeniamotion.enums import (
@@ -237,7 +238,7 @@ class Capture(metaclass=MCMetaClass):
     def create_disturbance(
         self,
         register: str,
-        data: Union[List[Union[float, int]], ArrayLike],
+        data: Union[List[Union[float, int]], NDArray[np.int_], NDArray[np.float_]],
         freq_divider: int,
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
