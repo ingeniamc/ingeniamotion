@@ -1,16 +1,15 @@
 import json
 import os
-from enum import Enum
-
-import pytest
-from typing import Dict
 import time
+from enum import Enum
+from typing import Dict
+
 import numpy as np
+import pytest
+from virtual_drive.core import VirtualDrive
 
-from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE, SensorType
 from ingeniamotion import MotionController
-from ingenialink.virtual.virtual_drive import VirtualDrive
-
+from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE, SensorType
 
 ALLOW_PROTOCOLS = ["eoe", "soem", "canopen", "virtual"]
 

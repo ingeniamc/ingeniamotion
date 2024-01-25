@@ -1,13 +1,13 @@
 import time
-import pytest
 
-from ingenialink.servo import SERVO_STATE
-from ingenialink.exceptions import ILError
+import pytest
 from ingenialink.ethercat.network import EthercatNetwork
+from ingenialink.exceptions import ILError
+from ingenialink.servo import SERVO_STATE
 
 from ingeniamotion import MotionController
-from ingeniamotion.exceptions import IMRegisterNotExist, IMRegisterWrongAccess
 from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE
+from ingeniamotion.exceptions import IMRegisterNotExist, IMRegisterWrongAccess
 
 
 @pytest.mark.virtual
@@ -260,3 +260,21 @@ def test_load_firmware_moco_exception(mocker, motion_controller):
     mocker.patch.object(mc, "_get_network", return_value=EthercatNetwork("fake_interface_name"))
     with pytest.raises(ValueError):
         mc.communication.load_firmware_moco("fake_fw_file.lfu", servo=alias)
+
+
+@pytest.mark.virtual
+def test_connect_servo_virtual():
+    mc = MotionController()
+    mc.communication.connect_servo_virtual()
+    assert mc.communication._Communication__virtual_drive is not None
+    mc.communication.disconnect()
+    assert mc.communication._Communication__virtual_drive is None
+
+
+@pytest.mark.virtual
+def test_connect_servo_virtual_custom_dictionary(read_config):
+    mc = MotionController()
+    mc.communication.connect_servo_virtual(dict_path=read_config["dictionary"])
+    assert mc.communication._Communication__virtual_drive is not None
+    mc.communication.disconnect()
+    assert mc.communication._Communication__virtual_drive is None

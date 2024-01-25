@@ -1,26 +1,29 @@
-import time
-import ifaddr
 import subprocess
-from os import path, remove
+import time
 from functools import partial
-from typing import TYPE_CHECKING, Optional, Union, Callable, List, Any
+from os import path, remove
+from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
 
+import ifaddr
 import ingenialogger
-from ingenialink.exceptions import ILError
-from ingenialink.canopen.network import CanopenNetwork, CAN_BAUDRATE, CAN_DEVICE
-from ingenialink.ethernet.network import EthernetNetwork
-from ingenialink.ethercat.network import EthercatNetwork
-from ingenialink.eoe.network import EoENetwork
-from ingenialink.enums.register import REG_DTYPE, REG_ACCESS
+from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE, CanopenNetwork
+from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
 from ingenialink.enums.servo import SERVO_STATE
+from ingenialink.eoe.network import EoENetwork
+from ingenialink.ethercat.network import EthercatNetwork
+from ingenialink.ethernet.network import EthernetNetwork
+from ingenialink.exceptions import ILError
 from ingenialink.network import NET_DEV_EVT
+from ingenialink.virtual.network import VirtualNetwork
+from virtual_drive.core import VirtualDrive
 
 from ingeniamotion.exceptions import IMRegisterWrongAccess
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
-from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
+
 from ingeniamotion.comkit import create_comkit_dictionary
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 
 
 class Communication(metaclass=MCMetaClass):
@@ -34,9 +37,12 @@ class Communication(metaclass=MCMetaClass):
     PASSWORD_FORCE_BOOT_MOCO = 0x426F6F74
     PASSWORD_SYSTEM_RESET = 0x72657365
 
+    LOCALHOST_IP = "127.0.0.1"
+
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
+        self.__virtual_drive: Optional[VirtualDrive] = None
 
     def connect_servo_eoe(
         self,
@@ -114,6 +120,54 @@ class Communication(metaclass=MCMetaClass):
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
         )
+
+    def connect_servo_virtual(
+        self,
+        dict_path: Optional[str] = None,
+        alias: str = DEFAULT_SERVO,
+        port: int = 1061,
+        connection_timeout: int = 1,
+        servo_status_listener: bool = False,
+        net_status_listener: bool = False,
+    ) -> None:
+        """Connect to the virtual drive using an ethernet communication.
+
+        Args:
+            dict_path : servo dictionary path.
+            ip : servo IP
+            alias : servo alias to reference it. ``default`` by default.
+            port : servo port. ``1061`` by default.
+            connection_timeout: Timeout in seconds for connection.
+                ``1`` seconds by default.
+            servo_status_listener : Toggle the listener of the servo for
+                its status, errors, faults, etc.
+            net_status_listener : Toggle the listener of the network
+                status, connection and disconnection.
+
+        Raises:
+            FileNotFoundError: If the dict file doesn't exist.
+            ingenialink.exceptions.ILError: If the servo's IP or port is incorrect.
+        """
+        if dict_path is not None and not path.isfile(dict_path):
+            raise FileNotFoundError(f"{dict_path} file does not exist!")
+
+        if self.__virtual_drive is None:
+            self.__virtual_drive = VirtualDrive(self.LOCALHOST_IP, port, dictionary_path=dict_path)
+            self.__virtual_drive.start()
+
+        self.mc.net[alias] = VirtualNetwork()
+        net = self.mc.net[alias]
+        servo = net.connect_to_slave(
+            self.LOCALHOST_IP,
+            self.__virtual_drive.dictionary_path,
+            port,
+            connection_timeout,
+            servo_status_listener=servo_status_listener,
+            net_status_listener=net_status_listener,
+        )
+
+        self.mc.servos[alias] = servo
+        self.mc.servo_net[alias] = alias
 
     def __servo_connect(
         self,
@@ -674,6 +728,9 @@ class Communication(metaclass=MCMetaClass):
         drive = self.mc._get_drive(servo)
         network = self.mc._get_network(servo)
         network.disconnect_from_slave(drive)
+        if isinstance(network, VirtualNetwork) and self.__virtual_drive:
+            self.__virtual_drive.stop()
+            self.__virtual_drive = None
         del self.mc.servos[servo]
         net_name = self.mc.servo_net.pop(servo)
         servo_count = list(self.mc.servo_net.values()).count(net_name)
