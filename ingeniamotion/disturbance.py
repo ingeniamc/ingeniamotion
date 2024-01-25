@@ -1,14 +1,16 @@
-import ingenialogger
-from numpy import ndarray
 from functools import wraps
-from typing import Callable, Dict, List, Union, TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
+
+import ingenialogger
+import numpy as np
 from ingenialink.enums.register import REG_DTYPE
 from ingenialink.exceptions import ILValueError
+from numpy import ndarray
+from numpy.typing import ArrayLike, NDArray
 
 from ingeniamotion.enums import MonitoringVersion
-from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 from ingeniamotion.exceptions import IMDisturbanceError, IMStatusWordError
-
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -175,27 +177,37 @@ class Disturbance:
     @staticmethod
     def __registers_data_adapter(
         registers_data: Union[
-            List[Union[int, float, ndarray, TYPE_MAPPED_REGISTERS_DATA_NO_KEY]], ndarray
+            List[
+                Union[
+                    int,
+                    float,
+                    NDArray[np.int32],
+                    NDArray[np.float32],
+                    TYPE_MAPPED_REGISTERS_DATA_NO_KEY,
+                ]
+            ],
+            NDArray[np.int32],
+            NDArray[np.float32],
         ]
     ) -> List[TYPE_MAPPED_REGISTERS_DATA_NO_KEY]:
         if isinstance(registers_data, ndarray):
             registers_data = registers_data.tolist()
-            return [registers_data]
+            return [registers_data]  # type: ignore [list-item]
         elif isinstance(registers_data, List) and all(
             isinstance(data, List) for data in registers_data
         ):
-            return registers_data
+            return registers_data  # type: ignore [return-value]
         elif isinstance(registers_data, List) and all(
             isinstance(data, (int, float)) for data in registers_data
         ):
-            return [registers_data]
+            return [registers_data]  # type: ignore [list-item]
         elif isinstance(registers_data, List) and all(
             isinstance(data, ndarray) for data in registers_data
         ):
             for i, x in enumerate(registers_data):
                 if isinstance(x, ndarray):
                     registers_data[i] = x.tolist()
-            return registers_data
+            return registers_data  # type: ignore [return-value]
         else:
             raise TypeError(
                 "Registers data adapter doesn't have the correct type for its input argument"
@@ -205,7 +217,17 @@ class Disturbance:
     def write_disturbance_data(
         self,
         registers_data: Union[
-            List[Union[int, float, ndarray, TYPE_MAPPED_REGISTERS_DATA_NO_KEY]], ndarray
+            List[
+                Union[
+                    int,
+                    float,
+                    NDArray[np.int_],
+                    NDArray[np.float_],
+                    TYPE_MAPPED_REGISTERS_DATA_NO_KEY,
+                ]
+            ],
+            NDArray[np.int_],
+            NDArray[np.float_],
         ],
     ) -> None:
         """Write data in mapped registers. Disturbance must be disabled.
@@ -223,15 +245,15 @@ class Disturbance:
         """
         if len(self.mapped_registers) == 0 or self.sampling_freq is None:
             raise IMDisturbanceError("Disturbance is not correctly configured yet")
-        registers_data = self.__registers_data_adapter(registers_data)
+        adapted_registers_data = self.__registers_data_adapter(registers_data)
         drive = self.mc.servos[self.servo]
-        self.__check_buffer_size_is_enough(registers_data)
-        idx_list = list(range(len(registers_data)))
+        self.__check_buffer_size_is_enough(adapted_registers_data)
+        idx_list = list(range(len(adapted_registers_data)))
         dtype_list = [REG_DTYPE(x["dtype"]) for x in self.mapped_registers]
         if self._version >= MonitoringVersion.MONITORING_V3:
             drive.disturbance_remove_data()
         try:
-            drive.disturbance_write_data(idx_list, dtype_list, registers_data)
+            drive.disturbance_write_data(idx_list, dtype_list, adapted_registers_data)
         except ILValueError as e:
             raise IMDisturbanceError(e)
 
