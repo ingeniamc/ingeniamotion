@@ -1,21 +1,22 @@
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
-from ingenialink.poller import Poller
+import numpy as np
 from ingenialink.exceptions import ILIOError
-from numpy import ndarray
+from ingenialink.poller import Poller
+from numpy.typing import NDArray
 
 from ingeniamotion.disturbance import Disturbance
+from ingeniamotion.enums import (
+    MonitoringProcessStage,
+    MonitoringSoCConfig,
+    MonitoringSoCType,
+    MonitoringVersion,
+)
+from ingeniamotion.exceptions import IMMonitoringError, IMRegisterNotExist, IMStatusWordError
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 from ingeniamotion.monitoring.base_monitoring import Monitoring
 from ingeniamotion.monitoring.monitoring_v1 import MonitoringV1
 from ingeniamotion.monitoring.monitoring_v3 import MonitoringV3
-from ingeniamotion.exceptions import IMRegisterNotExist, IMMonitoringError, IMStatusWordError
-from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
-from ingeniamotion.enums import (
-    MonitoringVersion,
-    MonitoringProcessStage,
-    MonitoringSoCType,
-    MonitoringSoCConfig,
-)
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -237,7 +238,7 @@ class Capture(metaclass=MCMetaClass):
     def create_disturbance(
         self,
         register: str,
-        data: Union[List[Union[float, int]], ndarray],
+        data: Union[List[Union[float, int]], NDArray[np.int_], NDArray[np.float_]],
         freq_divider: int,
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,

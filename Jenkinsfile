@@ -121,7 +121,7 @@ pipeline {
                 stage('Install deps') {
                     steps {
                         bat '''
-                            python -m venv venv
+                            py -3.9 -m venv venv
                             venv\\Scripts\\python.exe -m pip install -r requirements\\test-requirements.txt
                         '''
                     }
@@ -189,7 +189,7 @@ pipeline {
                 stage('Install deps') {
                     steps {
                         bat '''
-                            python -m venv venv
+                            py -3.9 -m venv venv
                             venv\\Scripts\\python.exe -m pip install -r requirements\\test-requirements.txt
                         '''
                     }
