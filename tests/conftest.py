@@ -83,9 +83,7 @@ def motion_controller(pytestconfig, read_config):
     elif protocol == "canopen":
         connect_canopen(mc, read_config, alias)
     elif protocol == "virtual":
-        virtual_drive = VirtualDrive(
-            read_config["ip"], read_config["port"], read_config["dictionary"]
-        )
+        virtual_drive = VirtualDrive(read_config["port"], read_config["dictionary"])
         virtual_drive.start()
         connect_eoe(mc, read_config, alias)
     else:
