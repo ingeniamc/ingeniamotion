@@ -155,7 +155,7 @@ class Communication(metaclass=MCMetaClass):
         self.mc.net[alias] = VirtualNetwork()
         net = self.mc.net[alias]
         servo = net.connect_to_slave(
-            self.LOCALHOST_IP,
+            self.__virtual_drive.ip,
             self.__virtual_drive.dictionary_path,
             port,
             connection_timeout,
