@@ -37,8 +37,6 @@ class Communication(metaclass=MCMetaClass):
     PASSWORD_FORCE_BOOT_MOCO = 0x426F6F74
     PASSWORD_SYSTEM_RESET = 0x72657365
 
-    LOCALHOST_IP = "127.0.0.1"
-
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
@@ -134,7 +132,6 @@ class Communication(metaclass=MCMetaClass):
 
         Args:
             dict_path : servo dictionary path.
-            ip : servo IP
             alias : servo alias to reference it. ``default`` by default.
             port : servo port. ``1061`` by default.
             connection_timeout: Timeout in seconds for connection.
@@ -152,7 +149,7 @@ class Communication(metaclass=MCMetaClass):
             raise FileNotFoundError(f"{dict_path} file does not exist!")
 
         if self.__virtual_drive is None:
-            self.__virtual_drive = VirtualDrive(self.LOCALHOST_IP, port, dictionary_path=dict_path)
+            self.__virtual_drive = VirtualDrive(port, dictionary_path=dict_path)
             self.__virtual_drive.start()
 
         self.mc.net[alias] = VirtualNetwork()
