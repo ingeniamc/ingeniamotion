@@ -4,6 +4,7 @@ import os
 import time
 from functools import partial
 
+import ifaddr
 import ingenialogger
 from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE, CanopenNetwork
 from ingenialink.ethercat.network import EthercatNetwork
@@ -109,6 +110,14 @@ def load_can(drive_conf):
 
 
 def load_ecat(drive_conf):
+    ifname = None
+    for adapter in ifaddr.get_adapters():
+        for ip in adapter.ips:
+            if ip.is_IPv4 and ip.ip == drive_conf["ip"]:
+                ifname = bytes.decode(adapter.name)
+                break
+        if ifname is not None:
+            break
     net = EthercatNetwork(drive_conf["ifname"])
     net.load_firmware(drive_conf["fw_file"], drive_conf["slave"])
     logger.info("FW updated. ifname: %s, slave: %d", drive_conf["ifname"], drive_conf["slave"])
