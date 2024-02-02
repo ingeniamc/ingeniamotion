@@ -129,7 +129,9 @@ pipeline {
                 stage('Update drives FW') {
                     steps {
                         bat '''
-                            venv\\Scripts\\python.exe tests\\load_FWs.py soem
+                            py -3.9 -m venv venv_fw
+                            venv_fw\\Scripts\\python.exe -m pip install . 
+                            venv_fw\\Scripts\\python.exe tests\\load_FWs.py soem
                         '''
                     }
                 }
