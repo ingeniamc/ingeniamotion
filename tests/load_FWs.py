@@ -123,7 +123,7 @@ def load_ecat(drive_conf):
         net.load_firmware(drive_conf["fw_file"], drive_conf["slave"])
     except ILError as e:
         raise Exception(f"Could not load the firmware: {e}")
-    logger.info("FW updated. ifname: %s, slave: %d", drive_conf["ifname"], drive_conf["slave"])
+    logger.info("FW updated. ifname: %s, slave: %d", ifname, drive_conf["slave"])
 
 
 def ping_check(target_ip, timeout=180):
