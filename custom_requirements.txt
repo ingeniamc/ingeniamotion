@@ -1,0 +1,2 @@
+# Use this file to install custom requirements in develop. For instance, to install ingenialink from a custom branch.
+ingenialink @ git+https://github.com/ingeniamc/ingenialink-python@develop
