@@ -1,5 +1,6 @@
 import inspect
 from functools import wraps
+from types import FunctionType
 from typing import Any, Callable, Dict, Tuple, Type, TypeVar
 
 from ingeniamotion.exceptions import IMStatusWordError
@@ -29,7 +30,11 @@ class MCMetaClass(type):
         """
         for attr in local:
             value = local[attr]
-            if callable(value) and mcs.SERVO_ARG_NAME in inspect.getfullargspec(value).args:
+            if (
+                callable(value)
+                and isinstance(value, FunctionType)
+                and mcs.SERVO_ARG_NAME in inspect.getfullargspec(value).args
+            ):
                 local[attr] = mcs.check_servo(value)
         return type.__new__(mcs, name, bases, local)
 

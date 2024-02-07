@@ -11,7 +11,7 @@ Ingeniamotion is a library that works over ingenialink and aims to simplify the 
 Requirements
 ------------
 
-* Python 3.8 or 3.9
+* Python 3.9 or higher
 * [WinPcap](https://www.winpcap.org/install/) 4.1.3
 
 Installation
@@ -25,42 +25,18 @@ pip install ingeniamotion
 Build Module
 ------------
 
-Install locally:
+Install tox and run the following:
 ```bash
-pip install -e .
-```
-
-To include extra requirements to do developing or running the tests please run:
-```bash
-pip install -e .[dev]
-pip install -e .[tests]
-```
-
-Generate .whl file:
-```bash
-python setup.py bdist_wheel
+pip install "tox>4"
+tox -e build
 ```
 
 Generate documentation
 ----------------------
 
-For develop the documentation it's recommended uninstall the ingeniamotion in the pipenv
-and remove all the .pyd files. Now we can ensure sphinx will get the data from the source.
-
-### Build HTML documentation
-
-It's recommended remove first the _docs folder.
-
+To produce the documentation, run the following command:
 ```bash
-sphinx-build -b html docs _docs
-```
-
-### Build PDF documentation
-
-It's recommended remove first the _pdf folder.
-
-```bash
-sphinx-build -b pdf docs _pdf
+tox -e docs
 ```
 
 Run PyTest
@@ -68,6 +44,8 @@ Run PyTest
 
 Fill configuration json ``tests/config.json``.
 
-Run tests with target protocol (eoe, soem or canopen). For example:
+Run tests with target protocol and Python version (eoe, soem or canopen). For example:
 
-``pytest --protocol soem``
+```bash
+tox -e py39 -- --protocol soem
+```
