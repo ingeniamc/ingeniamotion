@@ -170,14 +170,6 @@ def skip_if_monitoring_not_available(motion_controller):
         pytest.skip("Monitoring is not available")
 
 
-@pytest.fixture(scope="session", autouse=True)
-def log_node_protocol(record_testsuite_property, pytestconfig):
-    protocol = pytestconfig.getoption("--protocol")
-    slave = pytestconfig.getoption("--slave")
-    record_testsuite_property("protocol", protocol)
-    record_testsuite_property("slave", slave)
-
-
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     # execute all other hooks to obtain the report object
