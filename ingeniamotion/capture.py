@@ -154,13 +154,13 @@ class Capture(metaclass=MCMetaClass):
 
     def create_monitoring(
         self,
-        registers: List[Dict[str, str]],
+        registers: List[Dict[str, Union[int, str]]],
         prescaler: int,
         sample_time: float,
         trigger_delay: float = 0,
         trigger_mode: MonitoringSoCType = MonitoringSoCType.TRIGGER_EVENT_AUTO,
         trigger_config: Optional[MonitoringSoCConfig] = None,
-        trigger_signal: Optional[Dict[str, str]] = None,
+        trigger_signal: Optional[Dict[str, Union[int, str]]] = None,
         trigger_value: Union[float, int, None] = None,
         servo: str = DEFAULT_SERVO,
         start: bool = False,
