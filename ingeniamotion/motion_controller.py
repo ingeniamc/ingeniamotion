@@ -4,14 +4,14 @@ from typing import Dict
 from ingenialink.network import Network
 from ingenialink.servo import Servo
 
-from ingeniamotion.configuration import Configuration
-from ingeniamotion.motion import Motion
 from ingeniamotion.capture import Capture
 from ingeniamotion.communication import Communication
+from ingeniamotion.configuration import Configuration
 from ingeniamotion.drive_tests import DriveTests
 from ingeniamotion.errors import Errors
 from ingeniamotion.information import Information
-from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
+from ingeniamotion.motion import Motion
 
 
 class MotionController:
@@ -37,7 +37,7 @@ class MotionController:
     ) -> IntEnum:
         drive = self.servos[servo]
         enum_list = drive.dictionary.registers(axis)[register].enums
-        enum_dict = {x["label"]: x["value"] for x in enum_list}
+        enum_dict = {value: key for key, value in enum_list.items()}
         return IntEnum(register, enum_dict)
 
     def is_alive(self, servo: str = DEFAULT_SERVO) -> bool:
