@@ -1,4 +1,9 @@
 def SW_NODE = "windows-slave"
+def ECAT_NODE = "ecat-test"
+def ECAT_NODE_LOCK = "test_execution_lock_ecat"
+def CAN_NODE = "canopen-test"
+def CAN_NODE_LOCK = "test_execution_lock_can"
+
 def DOCKER_IMAGE = "ingeniacontainers.azurecr.io/win-python-builder:1.4"
 
 def DEFAULT_TOX_PYTHON_VERSION = "39"
@@ -6,22 +11,6 @@ def DEFAULT_PYTHON_VERSION = "3.9"
 def TOX_VERSION = "4.12.1"
 
 def SMOKE_TESTS_FLAG = ""
-
-def getAgentForProtocol(String protocol) {
-    if (protocol == 'soem') {
-        return "ecat-test"
-    } else {
-        return "canopen-test"
-    }
-}
-
-def getLockForProtocol(String protocol) {
-    if (protocol == 'soem') {
-        return "test_execution_lock_ecat"
-    } else {
-        return "test_execution_lock_can"
-    }
-}
 
 def dockerInstallTox = {
     bat """
@@ -112,136 +101,223 @@ pipeline {
                 }
             }
         }
-        stage('Load Firmware') {
-            matrix {
-                axes {
-                    axis {
-                        name 'PROTOCOL'
-                        values 'soem', 'canopen'
-                    }
-                }
-                agent {
-                    label getAgentForProtocol(env.PROTOCOL)
-                }
-                stages {
-                    stage("Load FW") {
-                        steps {
-                            lock(getLockForProtocol(PROTOCOL)) {
-                                checkout scm
-                                script {installTox ()}
-                                bat """
-                                        venv\\Scripts\\python.exe -m tox -e firmware -- ${PROTOCOL}
-                                    """
-                            }
-                        }   
-                    }           
-                }
+        stage('Ecat tests') {
+            options {
+                lock(ECAT_NODE_LOCK)
             }
-        }
-        stage('Run tests') {
-            matrix {
-                axes {
-                    axis {
-                        name 'PROTOCOL'
-                        values 'soem', 'canopen', 'eoe'
-                    }
-                    axis {
-                        name 'SLAVE'
-                        values '0', '1'
-                    }
-                    axis {
-                        name 'PYTHON'
-                        values '39', '310', '311', '312'
+            agent {
+                label ECAT_NODE
+            }
+            stages {
+                stage("Checkout") {
+                    steps {
+                        checkout scm
+                        script {installTox ()}
                     }
                 }
-                excludes {
-                    // Remove this exclude after fixing INGM-376
-                    exclude {
-                        axis {
-                            name 'PROTOCOL'
-                            values 'soem'
-                        }
-                        axis {
-                            name 'SLAVE'
-                            values '0'
-                        }
-                    }
-                    // Remove this exclude after fixing CAP-924
-                    exclude {
-                        axis {
-                            name 'PROTOCOL'
-                            values 'eoe'
-                        }
-                        axis {
-                            name 'SLAVE'
-                            values '1'
-                        }
-                    }
+                stage("Load FW") {
+                    steps {
+                        bat """
+                                venv\\Scripts\\python.exe -m tox -e firmware -- soem
+                            """
+                    }   
                 }
-                agent {
-                    label getAgentForProtocol(env.PROTOCOL)
-                }
-                stages {
-                    stage('Set env to run only smoke tests') {
-                        when {
-                            allOf{
-                                not{ branch 'master' };
-                                not{ branch 'develop' };
-                                expression { params.TESTS == 'Smoke' }
+                stage('Run tests') {
+                    matrix {
+                        axes {
+                            axis {
+                                name 'SLAVE'
+                                values '0', '1'
+                            }
+                            axis {
+                                name 'PYTHON'
+                                values '39', '310', '311', '312'
                             }
                         }
-                        steps {
-                            script {
-                                SMOKE_TESTS_FLAG = "-m smoke"
-                            }
-                        }
-                    }
-                    stage('Set env to run all tests') {
-                        when {
-                            anyOf{
-                                branch 'master';
-                                branch 'develop';
-                                expression { params.TESTS == 'All' }
-                            }
-                        }
-                        steps {
-                            script {
-                                SMOKE_TESTS_FLAG = ""
-                            }
-                        }
-                    }
-                    stage('Run tests') {
-                        when {
-                            anyOf{
-                                expression { SMOKE_TESTS_FLAG == "" };
-                                allOf {
-                                    expression { SMOKE_TESTS_FLAG == "-m smoke" };
-                                    expression { PYTHON == DEFAULT_TOX_PYTHON_VERSION }
+                        excludes {
+                            // Remove this exclude after fixing INGM-376
+                            exclude {
+                                axis {
+                                    name 'SLAVE'
+                                    values '0'
                                 }
                             }
                         }
-                        steps {
-                            lock(getLockForProtocol(PROTOCOL)) {
-                                checkout scm
-                                script {installTox ()}
-                                bat """
-                                    venv\\Scripts\\python.exe -m tox -e py${PYTHON} -- ${SMOKE_TESTS_FLAG} --protocol ${PROTOCOL} --slave ${SLAVE} --junitxml=pytest_reports/pytest_${PROTOCOL}_${SLAVE}_report_py${PYTHON}.xml
-                                """
+                        stages {
+                            stage('Set env to run only smoke tests') {
+                                when {
+                                    allOf{
+                                        not{ branch 'master' };
+                                        not{ branch 'develop' };
+                                        expression { params.TESTS == 'Smoke' }
+                                    }
+                                }
+                                steps {
+                                    script {
+                                        SMOKE_TESTS_FLAG = "-m smoke"
+                                    }
+                                }
+                            }
+                            stage('Set env to run all tests') {
+                                when {
+                                    anyOf{
+                                        branch 'master';
+                                        branch 'develop';
+                                        expression { params.TESTS == 'All' }
+                                    }
+                                }
+                                steps {
+                                    script {
+                                        SMOKE_TESTS_FLAG = ""
+                                    }
+                                }
+                            }
+                            stage('Run tests') {
+                                options {
+                                    lock('sequential-matrix')
+                                }
+                                when {
+                                    anyOf{
+                                        expression { SMOKE_TESTS_FLAG == "" };
+                                        allOf {
+                                            expression { SMOKE_TESTS_FLAG == "-m smoke" };
+                                            expression { PYTHON == DEFAULT_TOX_PYTHON_VERSION }
+                                        }
+                                    }
+                                }
+                                steps {
+                                    bat """
+                                        venv\\Scripts\\python.exe -m tox -e py${PYTHON} -- ${SMOKE_TESTS_FLAG} --protocol soem --slave ${SLAVE} --junitxml=pytest_reports/pytest_soem_${SLAVE}_report_py${PYTHON}.xml
+                                    """
+                                }
+                                post {
+                                    always {
+                                        bat """
+                                            move .coverage .coverage_soem
+                                        """    
+                                        junit "pytest_reports\\*.xml"
+                                        archiveArtifacts artifacts: 'pytest_reports\\*.xml'
+                                        stash includes: ".coverage_soem", name: "coverage_report_soem"
+                                    }
+                                }
                             }
                         }
-                        post {
-                            always {
-                                bat """
-                                    move .coverage .coverage_${PROTOCOL}
-                                """    
-                                junit "pytest_reports\\*.xml"
-                                archiveArtifacts artifacts: 'pytest_reports\\*.xml'
-                                stash includes: ".coverage_${PROTOCOL}", name: "coverage_report_${PROTOCOL}"
-                            }
-                        }
+                    }          
+                }
+            }
+        }
+        stage('Canopen and ethernet tests') {
+            options {
+                lock(CAN_NODE_LOCK)
+            }
+            agent {
+                label CAN_NODE
+            }
+            stages {
+                stage("Checkout") {
+                    steps {
+                        checkout scm
+                        script {installTox ()}
                     }
                 }
-            }          
+                stage("Load FW") {
+                    steps {
+                        bat """
+                                venv\\Scripts\\python.exe -m tox -e firmware -- canopen
+                            """
+                    }   
+                }
+                stage('Run tests') {
+                    matrix {
+                        axes {
+                            axis {
+                                name 'PROTOCOL'
+                                values 'canopen', 'eoe'
+                            }
+                            axis {
+                                name 'SLAVE'
+                                values '0', '1'
+                            }
+                            axis {
+                                name 'PYTHON'
+                                values '39', '310', '311', '312'
+                            }
+                        }
+                        excludes {
+                            // Remove this exclude after fixing CAP-924
+                            exclude {
+                                axis {
+                                    name 'PROTOCOL'
+                                    values 'eoe'
+                                }
+                                axis {
+                                    name 'SLAVE'
+                                    values '1'
+                                }
+                            }
+                        }
+                        stages {
+                            stage('Set env to run only smoke tests') {
+                                when {
+                                    allOf{
+                                        not{ branch 'master' };
+                                        not{ branch 'develop' };
+                                        expression { params.TESTS == 'Smoke' }
+                                    }
+                                }
+                                steps {
+                                    script {
+                                        SMOKE_TESTS_FLAG = "-m smoke"
+                                    }
+                                }
+                            }
+                            stage('Set env to run all tests') {
+                                when {
+                                    anyOf{
+                                        branch 'master';
+                                        branch 'develop';
+                                        expression { params.TESTS == 'All' }
+                                    }
+                                }
+                                steps {
+                                    script {
+                                        SMOKE_TESTS_FLAG = ""
+                                    }
+                                }
+                            }
+                            stage('Run tests') {
+                                options {
+                                    lock('sequential-matrix')
+                                }
+                                when {
+                                    anyOf{
+                                        expression { SMOKE_TESTS_FLAG == "" };
+                                        allOf {
+                                            expression { SMOKE_TESTS_FLAG == "-m smoke" };
+                                            expression { PYTHON == DEFAULT_TOX_PYTHON_VERSION }
+                                        }
+                                    }
+                                }
+                                steps {
+                                    bat """
+                                        venv\\Scripts\\python.exe -m tox -e py${PYTHON} -- ${SMOKE_TESTS_FLAG} --protocol ${PROTOCOL} --slave ${SLAVE} --junitxml=pytest_reports/pytest_${PROTOCOL}_${SLAVE}_report_py${PYTHON}.xml
+                                    """
+                                }
+                                post {
+                                    always {
+                                        bat """
+                                            move .coverage .coverage_${PROTOCOL}
+                                        """    
+                                        junit "pytest_reports\\pytest_${PROTOCOL}_${SLAVE}_report_py${PYTHON}.xml"
+                                        archiveArtifacts artifacts: "pytest_reports\\pytest_${PROTOCOL}_${SLAVE}_report_py${PYTHON}.xml"
+                                        stash includes: ".coverage_${PROTOCOL}", name: "coverage_report_${PROTOCOL}"
+                                    }
+                                }
+                            }
+                        }
+                    }          
+                }
+            }
         }
         stage('Publish coverage') {
             agent {
