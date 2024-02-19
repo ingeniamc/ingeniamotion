@@ -36,8 +36,7 @@ class MotionController:
         self, register: str, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> IntEnum:
         drive = self.servos[servo]
-        enum_list = drive.dictionary.registers(axis)[register].enums
-        enum_dict = {value: key for key, value in enum_list.items()}
+        enum_dict = drive.dictionary.registers(axis)[register].enums
         return IntEnum(register, enum_dict)
 
     def is_alive(self, servo: str = DEFAULT_SERVO) -> bool:
