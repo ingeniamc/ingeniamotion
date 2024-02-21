@@ -1,5 +1,10 @@
+import json
+import shutil
 import subprocess
 import time
+import zipfile
+from collections import OrderedDict
+from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from os import path, remove
 from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
@@ -13,11 +18,11 @@ from ingenialink.eoe.network import EoENetwork
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.exceptions import ILError
-from ingenialink.network import NET_DEV_EVT
+from ingenialink.network import NET_DEV_EVT, SlaveInfo
 from ingenialink.virtual.network import VirtualNetwork
 from virtual_drive.core import VirtualDrive
 
-from ingeniamotion.exceptions import IMRegisterWrongAccess
+from ingeniamotion.exceptions import IMException, IMRegisterWrongAccess
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -36,6 +41,8 @@ class Communication(metaclass=MCMetaClass):
     PASSWORD_FORCE_BOOT_COCO = 0x424F4F54
     PASSWORD_FORCE_BOOT_MOCO = 0x426F6F74
     PASSWORD_SYSTEM_RESET = 0x72657365
+
+    ENSEMBLE_FIRMWARE_EXTENSION = ".kfu"
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
@@ -884,9 +891,23 @@ class Communication(metaclass=MCMetaClass):
             status_callback = partial(self.logger.info, "Load firmware status: %s")
         if progress_callback is None:
             progress_callback = partial(self.logger.info, "Load firmware progress: %s")
-        net.load_firmware(
-            int(drive.target), fw_file, status_callback, progress_callback, error_enabled_callback
-        )
+        if fw_file.endswith(self.ENSEMBLE_FIRMWARE_EXTENSION):
+            self.__load_ensemble_fw_canopen(
+                net,
+                fw_file,
+                int(drive.target),
+                status_callback,
+                progress_callback,
+                error_enabled_callback,
+            )
+        else:
+            net.load_firmware(
+                int(drive.target),
+                fw_file,
+                status_callback,
+                progress_callback,
+                error_enabled_callback,
+            )
 
     def load_firmware_ecat(self, ifname: str, fw_file: str, slave: int = 1) -> None:
         """Load firmware via ECAT.
@@ -904,8 +925,12 @@ class Communication(metaclass=MCMetaClass):
             NotImplementedError: If FoE is not implemented for the current OS and architecture
 
         """
+
         net = EthercatNetwork(ifname)
-        net.load_firmware(fw_file, slave)
+        if fw_file.endswith(self.ENSEMBLE_FIRMWARE_EXTENSION):
+            self.__load_ensemble_fw_ecat(net, fw_file, slave)
+        else:
+            net.load_firmware(fw_file, slave)
 
     def load_firmware_ecat_interface_index(
         self, if_index: int, fw_file: str, slave: int = 1
@@ -1069,3 +1094,163 @@ class Communication(metaclass=MCMetaClass):
             )
         except ILError as e:
             self.logger.debug(e)
+
+    def __load_ensemble_fw_canopen(
+        self,
+        net: CanopenNetwork,
+        fw_file: str,
+        slave: int,
+        status_callback: Optional[Callable[[str], None]] = None,
+        progress_callback: Optional[Callable[[int], None]] = None,
+        error_enabled_callback: Optional[Callable[[bool], None]] = None,
+    ) -> None:
+        """Load FW to an ensemble of servos through Canopen (in parallel).
+
+        The FW files that are contained in the fw_file will be loaded by selecting any slave which
+        is part of the ensemble.
+
+        Args:
+            net: Canopen network.
+            fw_file: Path to the ensemble FW file.
+            slave: Slave ID (any slave in the ensemble)
+
+        Raises:
+            IMException: If the load FW process of any slave failed.
+        """
+        mapping = self.__unzip_ensemble_fw_file(fw_file)
+        scanned_slaves = net.scan_slaves_info()
+        first_slave_in_ensemble = self.__check_ensemble(scanned_slaves, slave, mapping)
+        threads = {}
+        with ThreadPoolExecutor() as executor:
+            for slave_id_offset, fw_file_prod_code in mapping.items():
+                slave_id = first_slave_in_ensemble + slave_id_offset
+                threads[slave_id] = executor.submit(
+                    net.load_firmware,
+                    slave_id,
+                    fw_file_prod_code[0],
+                    status_callback,
+                    progress_callback,
+                    error_enabled_callback,
+                )
+
+        for slave_id_offset in threads:
+            exception = threads[slave_id_offset].exception()
+            if exception is not None:
+                raise IMException(
+                    f"Load of FW in slave {slave_id} of ensemble failed. Exception: {exception}"
+                )
+
+    def __load_ensemble_fw_ecat(self, net: EthercatNetwork, fw_file: str, slave: int) -> None:
+        """Load FW to an ensemble of servos through Ethercat.
+
+        The FW files that are contained in the fw_file will be loaded by selecting any slave which
+        is part of the ensemble.
+
+        Args:
+            net: Ethercat network.
+            fw_file: Path to the ensemble FW file.
+            slave: Slave ID (any slave in the ensemble)
+        """
+        mapping = self.__unzip_ensemble_fw_file(fw_file)
+        scanned_slaves = net.scan_slaves_info()
+        first_slave_in_ensemble = self.__check_ensemble(scanned_slaves, slave, mapping)
+        for slave_id_offset, fw_file_prod_code in mapping.items():
+            net.load_firmware(fw_file_prod_code[0], first_slave_in_ensemble + slave_id_offset)
+
+    def __check_ensemble(
+        self,
+        scanned_slaves: OrderedDict[int, SlaveInfo],
+        slave_id: int,
+        mapping: dict[int, tuple[str, int, int]],
+    ) -> int:
+        """Check that an slave is part of the ensemble described in the mapping argument and the
+        ensemble is complete (all drives described in the mapping are contained in the list of
+        scanned slaves).
+
+        It returns the ID of the first drive in the ensemble.
+
+        Args:
+            scanned_slaves: Scanned slaves with the respective information.
+            slave_id: Slave ID to be checked.
+            mapping: Mapping of the ensemble.
+
+        Raises:
+            IMException: If the slave ID is not in the scanned slaves list.
+            IMException: If the ensemble described in the mapping can not be found in the list of
+                scanned slaves.
+
+        Returns:
+            The ID of the first drive in the ensemble.
+        """
+        if slave_id not in scanned_slaves:
+            raise IMException(f"Slave {slave_id} was not detected.")
+        slave_id_offset = self.__check_slave_in_ensemble(scanned_slaves[slave_id], mapping)
+        first_slave = slave_id - slave_id_offset
+        for map_slave_id_offset in mapping.keys():
+            map_slave_id = first_slave + map_slave_id_offset
+            map_slave_info = scanned_slaves[map_slave_id]
+            if (
+                map_slave_info.product_code != mapping[map_slave_id_offset][1]
+                or map_slave_info.revision_number != mapping[map_slave_id_offset][2]
+            ):
+                raise IMException(
+                    f"Wrong ensemble. The slave {map_slave_id} has wrong product code or revision number."
+                )
+        return first_slave
+
+    def __check_slave_in_ensemble(
+        self, slave_info: SlaveInfo, mapping: dict[int, tuple[str, int, int]]
+    ) -> int:
+        """Check that an slave is part of the ensemble described in the mapping argument.
+
+        Returns the ID offset (relative position in the ensemble) of the selected slave.
+
+        Args:
+            slave_info: Info of the slave to be checked.
+            mapping: Mapping of the ensemble.
+
+        Raises:
+            IMException: If the slave is not part of the ensemble.
+
+        Returns:
+            The ID offset (relative position in the ensemble) of the selected slave.
+        """
+        for slave_id_offset in mapping.keys():
+            _, product_code, revision_number = mapping[slave_id_offset]
+            if (
+                product_code == slave_info.product_code
+                and revision_number == slave_info.revision_number
+            ):
+                return slave_id_offset
+        raise IMException("The selected drive is not part of the ensemble.")
+
+    def __unzip_ensemble_fw_file(self, fw_file: str) -> dict[int, tuple[str, int, int]]:
+        """Unzip the ensemble FW file and return the mapping.
+
+        Args:
+            fw_file: Ensemble FW file to be unzipped.
+
+        Raises:
+            IMException: If the file extension is incorrect.
+
+        Returns:
+            Mapping described in the ensemble FW file.
+                Dict{slave_id_offset: (fw_file, product_code, revision_number)}
+        """
+        if not fw_file.endswith(self.ENSEMBLE_FIRMWARE_EXTENSION):
+            raise IMException("Wrong file extension.")
+        temp_folder = "temp_folder"
+        with zipfile.ZipFile(fw_file, "r") as zip_ref:
+            zip_ref.extractall(temp_folder)
+        with open(path.join(temp_folder, "mapping.json")) as f:
+            mapping_info = json.load(f)
+        mapping = {}
+        for drive in mapping_info["drives"]:
+            slave_id_offset = drive["slave_id_offset"]
+            fw_file = drive["fw_file"]
+            product_code = drive["product_code"]
+            revision_number = drive["revision_number"]
+            mapping[slave_id_offset] = fw_file, product_code, revision_number
+
+        shutil.rmtree(temp_folder)
+        return mapping

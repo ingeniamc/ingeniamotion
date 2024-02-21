@@ -1,0 +1,71 @@
+{
+  "eoe": [
+    {
+      "ip": "192.168.2.22",
+      "dictionary": "C:/Users/pablo.zinemanas/Firmwares/CAP-NET/2.4.0/cap-net-c_eth_2.4.0.xdf",
+      "config_file": "C:/Users/pablo.zinemanas/Configurations/CAP/ethernet_ENG6_with_brake_current_new.xcf",
+      "fw_file": "C:/Users/pablo.zinemanas/Firmwares/CAP-NET/2.4.0/cap-net-c_2.4.0.lfu"
+    }
+  ],
+  "soem": [
+    {
+      "ip": "192.168.3.1",
+      "index": 3,
+      "dictionary": "C:/Users/pablo.zinemanas/Firmwares/EVE-NET/2.4.0/eve-net-e_eoe_2.4.0.xdf",
+      "slave": 1,
+      "config_file": "C:/Users/pablo.zinemanas/Configurations/EVE/ethercat_ENG1_without_halls.xcf",
+      "eoe_comm": true,
+      "fw_file": "C:/Users/pablo.zinemanas/Firmwares/EVE-NET/2.4.0/eve-net-e_2.4.0.sfu",
+      "boot_in_app": true
+    }
+  ],
+  "canopen": [
+    {
+      "device": "kvaser",
+      "dictionary": "C:/Users/pablo.zinemanas/Firmwares/CAP-NET/2.4.0/cap-net-c_can_2.4.0.xdf",
+      "eds": "C:/Users/pablo.zinemanas/Firmwares/CAP-NET/2.4.0/cap-net-c_2.4.0.eds",
+      "node_id": 32,
+      "baudrate": 1000000,
+      "channel": 0,
+      "config_file": "C:/Users/pablo.zinemanas/Configurations/CAP/canopen_ENG6_with_brake_current.xcf",
+      "fw_file": "C:/Users/pablo.zinemanas/Firmwares/CAP-NET/2.4.0/cap-net-c_2.4.0.lfu"
+    }
+  ]
+}
+
+
+
+{
+  "eoe": [
+    {
+      "ip": "192.168.2.22",
+      "dictionary": "C:/Users/pablo.zinemanas/Firmwares/CAP-NET/2.4.0/cap-net-c_eth_2.4.0.xdf",
+      "config_file": "C:/Users/pablo.zinemanas/Configurations/CAP/ethernet_ENG6_with_brake_current_new.xcf",
+      "fw_file": "C:/Users/pablo.zinemanas/Firmwares/CAP-NET/2.4.0/cap-net-c_2.4.0.lfu"
+    }
+  ],
+  "soem": [
+    {
+      "ip": "192.168.3.1",
+      "index": 3,
+      "dictionary": "C:/Users/pablo.zinemanas/Firmwares/EVE-NET/2.4.0/eve-net-e_eoe_2.4.0.xdf",
+      "slave": 1,
+      "config_file": "C:/Users/pablo.zinemanas/Configurations/EVE/ethercat_ENG1_without_halls.xcf",
+      "eoe_comm": true,
+      "fw_file": "C:/Users/pablo.zinemanas/Firmwares/EVE-NET/2.4.0/eve-net-e_2.4.0.sfu",
+      "boot_in_app": true
+    }
+  ],
+  "canopen": [
+    {
+      "device": "kvaser",
+      "dictionary": "C:/Users/pablo.zinemanas/Firmwares/CAP-NET/2.4.0/cap-net-c_can_2.4.0.xdf",
+      "eds": "C:/Users/pablo.zinemanas/Firmwares/CAP-NET/2.4.0/cap-net-c_2.4.0.eds",
+      "node_id": 32,
+      "baudrate": 1000000,
+      "channel": 0,
+      "config_file": "C:/Users/pablo.zinemanas/Configurations/CAP/canopen_ENG6_with_brake_current.xcf",
+      "fw_file": "C:/Users/pablo.zinemanas/Firmwares/CAP-NET/2.4.0/cap-net-c_2.4.0.lfu"
+    }
+  ]
+}
