@@ -1120,11 +1120,11 @@ class Communication(metaclass=MCMetaClass):
         mapping = self.__unzip_ensemble_fw_file(fw_file)
         scanned_slaves = net.scan_slaves_info()
         first_slave_in_ensemble = self.__check_ensemble(scanned_slaves, slave, mapping)
-        threads = {}
+        thread_results = {}
         with ThreadPoolExecutor() as executor:
             for slave_id_offset, fw_file_prod_code in mapping.items():
                 slave_id = first_slave_in_ensemble + slave_id_offset
-                threads[slave_id] = executor.submit(
+                thread_results[slave_id] = executor.submit(
                     net.load_firmware,
                     slave_id,
                     fw_file_prod_code[0],
@@ -1133,8 +1133,8 @@ class Communication(metaclass=MCMetaClass):
                     error_enabled_callback,
                 )
 
-        for slave_id_offset in threads:
-            exception = threads[slave_id_offset].exception()
+        for slave_id_offset in thread_results:
+            exception = thread_results[slave_id_offset].exception()
             if exception is not None:
                 raise IMException(
                     f"Load of FW in slave {slave_id} of ensemble failed. Exception: {exception}"
@@ -1163,7 +1163,7 @@ class Communication(metaclass=MCMetaClass):
         slave_id: int,
         mapping: dict[int, tuple[str, int, int]],
     ) -> int:
-        """Check that an slave is part of the ensemble described in the mapping argument and the
+        """Check that a slave is part of the ensemble described in the mapping argument and the
         ensemble is complete (all drives described in the mapping are contained in the list of
         scanned slaves).
 
@@ -1201,7 +1201,7 @@ class Communication(metaclass=MCMetaClass):
     def __check_slave_in_ensemble(
         self, slave_info: SlaveInfo, mapping: dict[int, tuple[str, int, int]]
     ) -> int:
-        """Check that an slave is part of the ensemble described in the mapping argument.
+        """Check that a slave is part of the ensemble described in the mapping argument.
 
         Returns the ID offset (relative position in the ensemble) of the selected slave.
 
