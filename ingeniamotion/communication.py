@@ -1,5 +1,6 @@
 import subprocess
 import time
+from collections import OrderedDict
 from functools import partial
 from os import path, remove
 from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
@@ -13,7 +14,7 @@ from ingenialink.eoe.network import EoENetwork
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.exceptions import ILError
-from ingenialink.network import NET_DEV_EVT
+from ingenialink.network import NET_DEV_EVT, SlaveInfo
 from ingenialink.virtual.network import VirtualNetwork
 from virtual_drive.core import VirtualDrive
 
@@ -632,7 +633,27 @@ class Communication(metaclass=MCMetaClass):
         )
 
     @staticmethod
+    def scan_servos_ethercat_with_info(
+        interface_name: str,
+    ) -> OrderedDict[int, SlaveInfo]:
+        """Scan a network adapter to get all connected EtherCAT slaves including slave information.
+
+        Args:
+            interface_name : interface name. It should have format
+                ``\\Device\\NPF_[...]``.
+
+        Returns:
+            Dictionary of nodes available in the network and slave information.
+
+        Raises:
+            TypeError: If some parameter has a wrong type.
+        """
+        net = EthercatNetwork(interface_name)
+        slaves_info = net.scan_slaves_info()
+        return slaves_info
+
     def scan_servos_ethercat(
+        self,
         interface_name: str,
     ) -> List[int]:
         """Scan a network adapter to get all connected EtherCAT slaves.
@@ -646,11 +667,8 @@ class Communication(metaclass=MCMetaClass):
         Raises:
             TypeError: If some parameter has a wrong type.
         """
-        net = EthercatNetwork(interface_name)
-        slaves = net.scan_slaves()
-        if not isinstance(slaves, List):
-            raise TypeError("Slaves are not saved in a List")
-        return slaves
+        slaves_info = self.scan_servos_ethercat_with_info(interface_name)
+        return list(slaves_info.keys())
 
     def scan_servos_ethercat_interface_ip(self, interface_ip: str) -> List[int]:
         """Scan a network adapter to get all connected EtherCAT slaves.
@@ -679,20 +697,23 @@ class Communication(metaclass=MCMetaClass):
         """
         return self.scan_servos_ethercat(self.get_ifname_by_index(if_index))
 
-    def scan_servos_canopen(
+    def scan_servos_canopen_with_info(
         self,
         can_device: CAN_DEVICE,
         baudrate: CAN_BAUDRATE = CAN_BAUDRATE.Baudrate_1M,
         channel: int = 0,
-    ) -> List[int]:
-        """Scan CANOpen device network to get all nodes.
+    ) -> OrderedDict[int, SlaveInfo]:
+        """Scan CANOpen device network to get all nodes including slave information.
 
         Args:
             can_device : CANOpen device type.
             baudrate : communication baudrate. 1 Mbit/s by default.
             channel : CANOpen device channel. ``0`` by default.
+
         Returns:
-            List of node ids available in the network.
+            Dictionary of nodes available in the network and slave information.
+
+        Raise:
             TypeError: If some parameter has a wrong type.
         """
         net_key = f"{can_device}_{channel}_{baudrate}"
@@ -709,10 +730,30 @@ class Communication(metaclass=MCMetaClass):
                 baudrate,
             )
             return []
-        slaves = net.scan_slaves()
-        if not isinstance(slaves, List):
-            raise TypeError("Slaves are not saved in a List")
-        return slaves
+        slaves_info = net.scan_slaves_info()
+        return slaves_info
+
+    def scan_servos_canopen(
+        self,
+        can_device: CAN_DEVICE,
+        baudrate: CAN_BAUDRATE = CAN_BAUDRATE.Baudrate_1M,
+        channel: int = 0,
+    ) -> List[int]:
+        """Scan CANOpen device network to get all nodes.
+
+        Args:
+            can_device : CANOpen device type.
+            baudrate : communication baudrate. 1 Mbit/s by default.
+            channel : CANOpen device channel. ``0`` by default.
+
+        Returns:
+            List of node ids available in the network.
+
+        Raises:
+            TypeError: If some parameter has a wrong type.
+        """
+        slaves_info = self.scan_servos_canopen_with_info(can_device, baudrate, channel)
+        return list(slaves_info.keys())
 
     def disconnect(self, servo: str = DEFAULT_SERVO) -> None:
         """Disconnect servo.
