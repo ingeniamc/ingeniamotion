@@ -1,9 +1,16 @@
-from typing import TYPE_CHECKING, Dict, List, Optional, Union
+import threading
+import time
+from typing import TYPE_CHECKING, Dict, List, Optional, Union, Tuple, Type
 
 import numpy as np
-from ingenialink.exceptions import ILIOError
-from ingenialink.poller import Poller
 from numpy.typing import NDArray
+from ingenialink import Network
+from ingenialink.exceptions import ILIOError
+from ingenialink.pdo import RPDOMap, TPDOMap, RPDOMapItem, TPDOMapItem
+from ingenialink.poller import Poller
+from ingenialink.ethercat.network import EthercatNetwork
+from ingenialink.ethercat.servo import EthercatServo
+from ingenialink.ethercat.register import EthercatRegister
 
 from ingeniamotion.disturbance import Disturbance
 from ingeniamotion.enums import (
@@ -12,7 +19,12 @@ from ingeniamotion.enums import (
     MonitoringSoCType,
     MonitoringVersion,
 )
-from ingeniamotion.exceptions import IMMonitoringError, IMRegisterNotExist, IMStatusWordError
+from ingeniamotion.exceptions import (
+    IMMonitoringError,
+    IMRegisterNotExist,
+    IMStatusWordError,
+    IMException,
+)
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 from ingeniamotion.monitoring.base_monitoring import Monitoring
 from ingeniamotion.monitoring.monitoring_v1 import MonitoringV1
@@ -20,6 +32,147 @@ from ingeniamotion.monitoring.monitoring_v3 import MonitoringV3
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
+
+DEFAULT_PROCESS_DATA_REFRESH_RATE = 0.01
+
+
+class ProcessDataThread(threading.Thread):
+    def __init__(
+        self,
+        net: EthercatNetwork,
+        refresh_rate: Optional[float] = None,
+    ) -> None:
+        super(ProcessDataThread, self).__init__()
+        self._net = net
+        if refresh_rate is None:
+            refresh_rate = DEFAULT_PROCESS_DATA_REFRESH_RATE
+        self._refresh_rate = refresh_rate
+        self._pd_thread_stop_event = threading.Event()
+        for servo in self._net.servos:
+            servo.slave.set_watchdog("processdata", self._refresh_rate * 1500)
+
+    def run(self) -> None:
+        self._net.start_pdos()
+        while not self._pd_thread_stop_event.is_set():
+            self._net.send_receive_processdata()
+            time.sleep(self._refresh_rate)
+
+    def stop(self) -> None:
+        self._pd_thread_stop_event.set()
+        self.join()
+
+
+class PDONetworkManager:
+    def __init__(self, motion_controller: "MotionController") -> None:
+        self.mc = motion_controller
+        self._pdo_threads: Dict[Network, ProcessDataThread] = {}
+
+    def create_pdo_item(
+        self,
+        register_uid: str,
+        axis: int = DEFAULT_AXIS,
+        servo: str = DEFAULT_SERVO,
+        value: Optional[Union[int, float]] = None,
+    ) -> Union[RPDOMapItem, TPDOMapItem]:
+        pdo_map_item_dict: Dict[str, Type[Union[RPDOMapItem, TPDOMapItem]]] = {
+            "CYCLIC_RX": RPDOMapItem,
+            "CYCLIC_TX": TPDOMapItem,
+        }
+        drive = self.mc._get_drive(servo)
+        register = drive.dictionary.registers(axis)[register_uid]
+        if not isinstance(register, EthercatRegister):
+            raise ValueError(f"Expected EthercatRegister. Got {type(register)}")
+        pdo_map_item = pdo_map_item_dict[register.cyclic](register)
+        if isinstance(pdo_map_item, RPDOMapItem):
+            if value is None:
+                raise AttributeError("A default value is required for a RPDO")
+            pdo_map_item.value = value
+        return pdo_map_item
+
+    def create_pdo_maps(
+        self,
+        rpdo_map_items: Union[RPDOMapItem, List[RPDOMapItem]],
+        tpdo_map_items: Union[TPDOMapItem, List[TPDOMapItem]],
+    ) -> Tuple[RPDOMap, TPDOMap]:
+        rpdo_map = self.create_empty_rpdo_map()
+        tpdo_map = self.create_empty_tpdo_map()
+        if not isinstance(rpdo_map_items, list):
+            rpdo_map_items = [rpdo_map_items]
+        if not isinstance(tpdo_map_items, list):
+            tpdo_map_items = [tpdo_map_items]
+        for rpdo_map_item in rpdo_map_items:
+            self.add_pdo_item_to_map(rpdo_map_item, rpdo_map)
+        for tpdo_map_item in tpdo_map_items:
+            self.add_pdo_item_to_map(tpdo_map_item, tpdo_map)
+        return rpdo_map, tpdo_map
+
+    @staticmethod
+    def add_pdo_item_to_map(
+        pdo_map_item: Union[RPDOMapItem, TPDOMapItem],
+        pdo_map: Union[RPDOMap, TPDOMap],
+    ) -> None:
+        if isinstance(pdo_map_item, RPDOMapItem) and not isinstance(pdo_map, RPDOMap):
+            raise ValueError("Cannot add a RPDOItem to a TPDOMap")
+        if isinstance(pdo_map_item, TPDOMapItem) and not isinstance(pdo_map, TPDOMap):
+            raise ValueError("Cannot add a TPDOItem to a RPDOMap")
+        pdo_map.add_item(pdo_map_item)
+
+    @staticmethod
+    def create_empty_rpdo_map() -> RPDOMap:
+        return RPDOMap()
+
+    @staticmethod
+    def create_empty_tpdo_map() -> TPDOMap:
+        return TPDOMap()
+
+    def set_pdo_maps_to_slave(
+        self,
+        rpdo_maps: Union[RPDOMap, List[RPDOMap]],
+        tpdo_maps: Union[TPDOMap, List[TPDOMap]],
+        servo: str = DEFAULT_SERVO,
+    ) -> None:
+        drive = self.mc._get_drive(servo)
+        if not isinstance(drive, EthercatServo):
+            raise ValueError(f"Expected an EthercatServo. Got {type(drive)}")
+        if not isinstance(rpdo_maps, list):
+            rpdo_maps = [rpdo_maps]
+        if not isinstance(tpdo_maps, list):
+            tpdo_maps = [tpdo_maps]
+        if not all(isinstance(rpdo_map, RPDOMap) for rpdo_map in rpdo_maps):
+            raise ValueError("Not all elements of the RPDO map list are instances of a RPDO map")
+        if not all(isinstance(tpdo_map, TPDOMap) for tpdo_map in tpdo_maps):
+            raise ValueError("Not all elements of the TPDO map list are instances of a TPDO map")
+        drive.set_pdo_map_to_slave(rpdo_maps, tpdo_maps)
+
+    def start_pdos(
+        self,
+        interface_name: str,
+        refresh_rate: Optional[float] = None,
+    ) -> None:
+        if refresh_rate is not None and refresh_rate > 5:
+            raise ValueError("The maximum PDO refresh rate is 5 seconds.")
+        net = self.mc.get_network_by_interface_name(interface_name)
+        if net in self._pdo_threads:
+            pdo_thread = self._pdo_threads[net]
+            pdo_thread.stop()
+            raise IMException(f"PDOs are already active on interface: {interface_name}")
+        process_data_thread = ProcessDataThread(net, refresh_rate)
+        self._pdo_threads[net] = process_data_thread
+        process_data_thread.start()
+
+    def stop_pdos(self, interface_name: Optional[str] = None) -> None:
+        if interface_name is None:
+            for pdo_thread in self._pdo_threads.values():
+                pdo_thread.stop()
+            self._pdo_threads.clear()
+        else:
+            net = self.mc.get_network_by_interface_name(interface_name)
+            if net in self._pdo_threads:
+                pdo_thread = self._pdo_threads[net]
+                pdo_thread.stop()
+                del self._pdo_threads[net]
+            else:
+                IMException(f"PDOs are not active on interface: {interface_name}")
 
 
 class Capture(metaclass=MCMetaClass):
@@ -52,6 +205,7 @@ class Capture(metaclass=MCMetaClass):
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
+        self.pdo = PDONetworkManager(self.mc)
 
     def create_poller(
         self,
