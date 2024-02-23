@@ -67,6 +67,16 @@ class MotionController:
         return self.net[net_key]
 
     def get_network_by_interface_name(self, interface_name: str) -> EthercatNetwork:
+        """
+        Get the network instance by the interface name.
+
+        Args:
+            interface_name: Network adapter interface name
+
+        Returns:
+            The network instance.
+
+        """
         if interface_name not in self.net:
             raise ValueError(f"No network object found for interface {interface_name}")
         net = self.net[interface_name]
