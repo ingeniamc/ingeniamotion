@@ -45,7 +45,7 @@ class Communication(metaclass=MCMetaClass):
 
     ENSEMBLE_FIRMWARE_EXTENSION = ".kfu"
     ENSEMBLE_TEMP_FOLDER = "ensemble_temp"
-    ENSEMBLE_SLAVE_MASK = 0x1000000
+    ENSEMBLE_SLAVE_REV_NUM_MASK = 0x1000000
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
@@ -1235,8 +1235,8 @@ class Communication(metaclass=MCMetaClass):
         for slave_id_offset in mapping.keys():
             _, product_code, revision_number = mapping[slave_id_offset]
             if product_code == slave_info.product_code and (
-                revision_number & self.ENSEMBLE_SLAVE_MASK
-            ) == (slave_info.revision_number & self.ENSEMBLE_SLAVE_MASK):
+                revision_number & self.ENSEMBLE_SLAVE_REV_NUM_MASK
+            ) == (slave_info.revision_number & self.ENSEMBLE_SLAVE_REV_NUM_MASK):
                 return slave_id_offset
         raise IMException("The selected drive is not part of the ensemble.")
 
