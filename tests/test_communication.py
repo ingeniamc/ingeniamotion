@@ -4,6 +4,7 @@ from collections import OrderedDict
 
 import pytest
 from ingenialink.canopen.network import CanopenNetwork
+from ingenialink.canopen.servo import CanopenServo
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.exceptions import ILError
 from ingenialink.network import SlaveInfo
@@ -439,10 +440,10 @@ def test_load_ensemble_fw_canopen(mocker):
         def __init__(self) -> None:
             self.path = "path_to_dictionary"
 
-    class MockCanopenServo:
+    class MockCanopenServo(CanopenServo):
         def __init__(self, node_id) -> None:
             self.target = node_id
-            self.dictionary = MockDictionary()
+            self._dictionary = MockDictionary()
 
     servos = {}
     for node_id in range(1, 6):
