@@ -1,3 +1,4 @@
+import os
 import time
 from collections import OrderedDict
 
@@ -289,10 +290,10 @@ def test_connect_servo_virtual_custom_dictionary(read_config):
 def test_unzip_ensemble_fw_file():
     mc = MotionController()
     mapping = mc.communication._Communication__unzip_ensemble_fw_file(TEST_ENSEMBLE_FW_FILE)
+    path = os.path.abspath("ensemble_temp")
     assert mapping == {
-        0: ("cap-net-1-e_2.4.0.lfu", 123456, 1234),
-        1: ("cap-net-2-e_2.4.0.lfu", 123456, 1235),
-        2: ("cap-net-2-e_2.4.0.lfu", 123456, 1236),
+        0: (os.path.join(path, "cap-net-1-e_2.4.0.lfu"), 123456, 4660),
+        1: (os.path.join(path, "cap-net-2-e_2.4.0.lfu"), 123456, 16781876),
     }
 
 
@@ -303,19 +304,17 @@ def test__check_ensemble():
     product_code = 123456
     slaves = OrderedDict(
         {
-            1: SlaveInfo(product_code, 1234),
-            2: SlaveInfo(product_code, 1235),
-            3: SlaveInfo(product_code, 1236),
-            4: SlaveInfo(product_code, 1234),
-            5: SlaveInfo(product_code, 1235),
-            6: SlaveInfo(product_code, 1236),
+            1: SlaveInfo(product_code, 4660),
+            2: SlaveInfo(product_code, 16781876),
+            4: SlaveInfo(product_code, 4660),
+            5: SlaveInfo(product_code, 16781876),
             7: SlaveInfo(654321, 1236),
         }
     )
-    for slave_id in [1, 2, 3]:
+    for slave_id in [1, 2]:
         assert mc.communication._Communication__check_ensemble(slaves, slave_id, mapping) == 1
 
-    for slave_id in [4, 5, 6]:
+    for slave_id in [4, 5]:
         assert mc.communication._Communication__check_ensemble(slaves, slave_id, mapping) == 4
 
 
@@ -326,10 +325,9 @@ def test__check_ensemble_wrong():
     product_code = 123456
     slaves = OrderedDict(
         {
-            1: SlaveInfo(product_code, 1234),
-            2: SlaveInfo(product_code, 1235),
-            3: SlaveInfo(product_code, 1236),
-            5: SlaveInfo(654321, 1236),
+            1: SlaveInfo(product_code, 4660),
+            2: SlaveInfo(product_code, 16781876),
+            3: SlaveInfo(654321, 1236),
         }
     )
     with pytest.raises(IMException) as exc_info:
@@ -337,32 +335,30 @@ def test__check_ensemble_wrong():
     assert str(exc_info.value) == "Slave 4 was not detected."
 
     with pytest.raises(IMException) as exc_info:
-        mc.communication._Communication__check_ensemble(slaves, 5, mapping)
+        mc.communication._Communication__check_ensemble(slaves, 3, mapping)
     assert str(exc_info.value) == "The selected drive is not part of the ensemble."
 
     slaves = OrderedDict(
         {
-            1: SlaveInfo(654321, 1234),
-            2: SlaveInfo(product_code, 1235),
-            3: SlaveInfo(product_code, 1236),
+            1: SlaveInfo(product_code, 4660),
+            2: SlaveInfo(654321, 16781876),
         }
     )
     with pytest.raises(IMException) as exc_info:
-        mc.communication._Communication__check_ensemble(slaves, 3, mapping)
+        mc.communication._Communication__check_ensemble(slaves, 1, mapping)
     assert (
         str(exc_info.value)
-        == "Wrong ensemble. The slave 1 has wrong product code or revision number."
+        == "Wrong ensemble. The slave 2 has wrong product code or revision number."
     )
 
     slaves = OrderedDict(
         {
-            1: SlaveInfo(product_code, 1234),
-            2: SlaveInfo(product_code, 1234),
-            3: SlaveInfo(product_code, 1236),
+            1: SlaveInfo(product_code, 16781876),
+            2: SlaveInfo(product_code, 4660),
         }
     )
     with pytest.raises(IMException) as exc_info:
-        mc.communication._Communication__check_ensemble(slaves, 3, mapping)
+        mc.communication._Communication__check_ensemble(slaves, 2, mapping)
     assert (
         str(exc_info.value)
         == "Wrong ensemble. The slave 2 has wrong product code or revision number."
@@ -370,7 +366,7 @@ def test__check_ensemble_wrong():
 
 
 @pytest.mark.virtual
-@pytest.mark.parametrize("revision_number,expected_id_offset", [(1234, 0), (1235, 1), (1236, 2)])
+@pytest.mark.parametrize("revision_number,expected_id_offset", [(4660, 0), (16781876, 1)])
 def test_check_slave_in_ensemble(revision_number, expected_id_offset):
     mc = MotionController()
     mapping = mc.communication._Communication__unzip_ensemble_fw_file(TEST_ENSEMBLE_FW_FILE)
@@ -387,15 +383,7 @@ def test_check_slave_in_ensemble_drive_not_in_ensemble():
     mc = MotionController()
     mapping = mc.communication._Communication__unzip_ensemble_fw_file(TEST_ENSEMBLE_FW_FILE)
     product_code = 654321
-    revision_number = 1234
-    slave_info = SlaveInfo(product_code, revision_number)
-
-    with pytest.raises(IMException) as exc_info:
-        mc.communication._Communication__check_slave_in_ensemble(slave_info, mapping)
-    assert str(exc_info.value) == "The selected drive is not part of the ensemble."
-
-    product_code = 123456
-    revision_number = 1237
+    revision_number = 4660
     slave_info = SlaveInfo(product_code, revision_number)
 
     with pytest.raises(IMException) as exc_info:
@@ -408,91 +396,97 @@ def test_load_ensemble_fw_ecat(mocker):
     product_code = 123456
     slaves = OrderedDict(
         {
-            1: SlaveInfo(product_code, 1234),
-            2: SlaveInfo(product_code, 1235),
-            3: SlaveInfo(product_code, 1236),
-            4: SlaveInfo(product_code, 1234),
-            5: SlaveInfo(product_code, 1235),
-            6: SlaveInfo(product_code, 1236),
-            7: SlaveInfo(654321, 1236),
+            1: SlaveInfo(product_code, 4660),
+            2: SlaveInfo(product_code, 16781876),
+            3: SlaveInfo(product_code, 4660),
+            4: SlaveInfo(product_code, 16781876),
+            5: SlaveInfo(654321, 1236),
         }
     )
+    temp_path = os.path.abspath("ensemble_temp")
+    fw_file1 = os.path.join(temp_path, "cap-net-1-e_2.4.0.lfu")
+    fw_file2 = os.path.join(temp_path, "cap-net-2-e_2.4.0.lfu")
     mc = MotionController()
     mocker.patch(
         "ingenialink.ethercat.network.EthercatNetwork.scan_slaves_info", return_value=slaves
     )
-    for slave in [1, 2, 3]:
+    for slave in [1, 2]:
         patch_fw_callback = mocker.patch(
             "ingenialink.ethercat.network.EthercatNetwork.load_firmware"
         )
         mc.communication.load_firmware_ecat("", TEST_ENSEMBLE_FW_FILE, slave=slave)
-        assert len(patch_fw_callback.call_args_list) == 3
-        assert patch_fw_callback.call_args_list[0][0] == ("cap-net-1-e_2.4.0.lfu", 1)
-        assert patch_fw_callback.call_args_list[1][0] == ("cap-net-2-e_2.4.0.lfu", 2)
-        assert patch_fw_callback.call_args_list[2][0] == ("cap-net-2-e_2.4.0.lfu", 3)
+        assert len(patch_fw_callback.call_args_list) == 2
+        assert patch_fw_callback.call_args_list[0][0] == (fw_file1, 1)
+        assert patch_fw_callback.call_args_list[1][0] == (fw_file2, 2)
 
-    for slave in [4, 5, 6]:
+    for slave in [3, 4]:
         patch_fw_callback = mocker.patch(
             "ingenialink.ethercat.network.EthercatNetwork.load_firmware"
         )
         mc.communication.load_firmware_ecat("", TEST_ENSEMBLE_FW_FILE, slave=slave)
-        assert len(patch_fw_callback.call_args_list) == 3
-        assert patch_fw_callback.call_args_list[0][0] == ("cap-net-1-e_2.4.0.lfu", 4)
-        assert patch_fw_callback.call_args_list[1][0] == ("cap-net-2-e_2.4.0.lfu", 5)
-        assert patch_fw_callback.call_args_list[2][0] == ("cap-net-2-e_2.4.0.lfu", 6)
+        assert len(patch_fw_callback.call_args_list) == 2
+        assert patch_fw_callback.call_args_list[0][0] == (fw_file1, 3)
+        assert patch_fw_callback.call_args_list[1][0] == (fw_file2, 4)
 
     with pytest.raises(IMException) as exc_info:
-        mc.communication.load_firmware_ecat("", TEST_ENSEMBLE_FW_FILE, slave=7)
+        mc.communication.load_firmware_ecat("", TEST_ENSEMBLE_FW_FILE, slave=5)
     assert str(exc_info.value) == "The selected drive is not part of the ensemble."
 
 
 @pytest.mark.virtual
 def test_load_ensemble_fw_canopen(mocker):
+    class MockDictionary:
+        def __init__(self) -> None:
+            self.path = "path_to_dictionary"
+
     class MockCanopenServo:
         def __init__(self, node_id) -> None:
             self.target = node_id
+            self.dictionary = MockDictionary()
 
     servos = {}
-    for node_id in range(1, 8):
+    for node_id in range(1, 6):
         servos[str(node_id)] = MockCanopenServo(node_id)
 
     mc = MotionController()
     net = CanopenNetwork(CAN_DEVICE.KVASER)
+    net.servos = list(servos.values())
     mocker.patch("ingeniamotion.motion_controller.MotionController._get_network", return_value=net)
+    mocker.patch("ingenialink.canopen.network.CanopenNetwork.connect_to_slave")
+    mocker.patch("ingenialink.canopen.network.CanopenNetwork.disconnect_from_slave")
     mc._get_drive = lambda x: servos[x]
     mc.servos = servos
 
     product_code = 123456
     slaves_info = OrderedDict(
         {
-            1: SlaveInfo(product_code, 1234),
-            2: SlaveInfo(product_code, 1235),
-            3: SlaveInfo(product_code, 1236),
-            4: SlaveInfo(product_code, 1234),
-            5: SlaveInfo(product_code, 1235),
-            6: SlaveInfo(product_code, 1236),
-            7: SlaveInfo(654321, 1236),
+            1: SlaveInfo(product_code, 4660),
+            2: SlaveInfo(product_code, 16781876),
+            3: SlaveInfo(product_code, 4660),
+            4: SlaveInfo(product_code, 16781876),
+            5: SlaveInfo(654321, 1236),
         }
     )
+    temp_path = os.path.abspath("ensemble_temp")
+    fw_file1 = os.path.join(temp_path, "cap-net-1-e_2.4.0.lfu")
+    fw_file2 = os.path.join(temp_path, "cap-net-2-e_2.4.0.lfu")
     mocker.patch(
         "ingenialink.canopen.network.CanopenNetwork.scan_slaves_info", return_value=slaves_info
     )
-    for slave in [1, 2, 3]:
+    for slave in [1, 2]:
         patch_fw_callback = mocker.patch("ingenialink.canopen.network.CanopenNetwork.load_firmware")
         mc.communication.load_firmware_canopen(TEST_ENSEMBLE_FW_FILE, servo=str(slave))
-        assert len(patch_fw_callback.call_args_list) == 3
-        assert patch_fw_callback.call_args_list[0][0][:2] == (1, "cap-net-1-e_2.4.0.lfu")
-        assert patch_fw_callback.call_args_list[1][0][:2] == (2, "cap-net-2-e_2.4.0.lfu")
-        assert patch_fw_callback.call_args_list[2][0][:2] == (3, "cap-net-2-e_2.4.0.lfu")
+        assert len(patch_fw_callback.call_args_list) == 2
+        assert patch_fw_callback.call_args_list[0][0][:2] == (1, fw_file1)
+        assert patch_fw_callback.call_args_list[1][0][:2] == (2, fw_file2)
 
-    for slave in [4, 5, 6]:
+    for slave in [3, 4]:
         patch_fw_callback = mocker.patch("ingenialink.canopen.network.CanopenNetwork.load_firmware")
         mc.communication.load_firmware_canopen(TEST_ENSEMBLE_FW_FILE, servo=str(slave))
-        assert len(patch_fw_callback.call_args_list) == 3
-        assert patch_fw_callback.call_args_list[0][0][:2] == (4, "cap-net-1-e_2.4.0.lfu")
-        assert patch_fw_callback.call_args_list[1][0][:2] == (5, "cap-net-2-e_2.4.0.lfu")
-        assert patch_fw_callback.call_args_list[2][0][:2] == (6, "cap-net-2-e_2.4.0.lfu")
+        assert len(patch_fw_callback.call_args_list) == 2
+        assert patch_fw_callback.call_args_list[0][0][:2] == (3, fw_file1)
+        assert patch_fw_callback.call_args_list[1][0][:2] == (4, fw_file2)
 
     with pytest.raises(IMException) as exc_info:
-        mc.communication.load_firmware_canopen(TEST_ENSEMBLE_FW_FILE, servo="7")
+        mc.communication.load_firmware_canopen(TEST_ENSEMBLE_FW_FILE, servo="5")
     assert str(exc_info.value) == "The selected drive is not part of the ensemble."

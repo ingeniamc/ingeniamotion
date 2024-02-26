@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
 import ifaddr
 import ingenialogger
 from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE, CanopenNetwork
+from ingenialink.canopen.servo import CanopenServo
 from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
 from ingenialink.enums.servo import SERVO_STATE
 from ingenialink.eoe.network import EoENetwork
@@ -43,6 +44,8 @@ class Communication(metaclass=MCMetaClass):
     PASSWORD_SYSTEM_RESET = 0x72657365
 
     ENSEMBLE_FIRMWARE_EXTENSION = ".kfu"
+    ENSEMBLE_TEMP_FOLDER = "ensemble_temp"
+    ENSEMBLE_SLAVE_MASK = 0x1000000
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
@@ -895,7 +898,7 @@ class Communication(metaclass=MCMetaClass):
             self.__load_ensemble_fw_canopen(
                 net,
                 fw_file,
-                int(drive.target),
+                drive,
                 status_callback,
                 progress_callback,
                 error_enabled_callback,
@@ -1099,7 +1102,7 @@ class Communication(metaclass=MCMetaClass):
         self,
         net: CanopenNetwork,
         fw_file: str,
-        slave: int,
+        slave: CanopenServo,
         status_callback: Optional[Callable[[str], None]] = None,
         progress_callback: Optional[Callable[[int], None]] = None,
         error_enabled_callback: Optional[Callable[[bool], None]] = None,
@@ -1112,14 +1115,20 @@ class Communication(metaclass=MCMetaClass):
         Args:
             net: Canopen network.
             fw_file: Path to the ensemble FW file.
-            slave: Slave ID (any slave in the ensemble)
+            slave: Servo object.
 
         Raises:
             IMException: If the load FW process of any slave failed.
         """
         mapping = self.__unzip_ensemble_fw_file(fw_file)
         scanned_slaves = net.scan_slaves_info()
-        first_slave_in_ensemble = self.__check_ensemble(scanned_slaves, slave, mapping)
+        first_slave_in_ensemble = self.__check_ensemble(scanned_slaves, int(slave.target), mapping)
+        dictionary_path = slave.dictionary.path
+        connected_drives = {int(slave.target): slave for slave in net.servos}
+        for slave_id_offset in mapping:
+            slave_id = first_slave_in_ensemble + slave_id_offset
+            if slave_id not in connected_drives:
+                net.connect_to_slave(slave_id, dictionary_path)
         thread_results = {}
         with ThreadPoolExecutor() as executor:
             for slave_id_offset, fw_file_prod_code in mapping.items():
@@ -1133,12 +1142,15 @@ class Communication(metaclass=MCMetaClass):
                     error_enabled_callback,
                 )
 
-        for slave_id_offset in thread_results:
-            exception = thread_results[slave_id_offset].exception()
+        for slave_id in thread_results:
+            if slave_id not in connected_drives:
+                net.disconnect_from_slave(connected_drives[slave_id])
+            exception = thread_results[slave_id].exception()
             if exception is not None:
                 raise IMException(
                     f"Load of FW in slave {slave_id} of ensemble failed. Exception: {exception}"
                 )
+        shutil.rmtree(self.ENSEMBLE_TEMP_FOLDER)
 
     def __load_ensemble_fw_ecat(self, net: EthercatNetwork, fw_file: str, slave: int) -> None:
         """Load FW to an ensemble of servos through Ethercat.
@@ -1156,6 +1168,7 @@ class Communication(metaclass=MCMetaClass):
         first_slave_in_ensemble = self.__check_ensemble(scanned_slaves, slave, mapping)
         for slave_id_offset, fw_file_prod_code in mapping.items():
             net.load_firmware(fw_file_prod_code[0], first_slave_in_ensemble + slave_id_offset)
+        shutil.rmtree(self.ENSEMBLE_TEMP_FOLDER)
 
     def __check_ensemble(
         self,
@@ -1188,6 +1201,10 @@ class Communication(metaclass=MCMetaClass):
         first_slave = slave_id - slave_id_offset
         for map_slave_id_offset in mapping.keys():
             map_slave_id = first_slave + map_slave_id_offset
+            if map_slave_id not in scanned_slaves:
+                raise IMException(
+                    f"Wrong ensemble. The slave {map_slave_id - 1} has wrong product code or revision number."
+                )
             map_slave_info = scanned_slaves[map_slave_id]
             if (
                 map_slave_info.product_code != mapping[map_slave_id_offset][1]
@@ -1217,10 +1234,9 @@ class Communication(metaclass=MCMetaClass):
         """
         for slave_id_offset in mapping.keys():
             _, product_code, revision_number = mapping[slave_id_offset]
-            if (
-                product_code == slave_info.product_code
-                and revision_number == slave_info.revision_number
-            ):
+            if product_code == slave_info.product_code and (
+                revision_number & self.ENSEMBLE_SLAVE_MASK
+            ) == (slave_info.revision_number & self.ENSEMBLE_SLAVE_MASK):
                 return slave_id_offset
         raise IMException("The selected drive is not part of the ensemble.")
 
@@ -1239,18 +1255,16 @@ class Communication(metaclass=MCMetaClass):
         """
         if not fw_file.endswith(self.ENSEMBLE_FIRMWARE_EXTENSION):
             raise IMException("Wrong file extension.")
-        temp_folder = "temp_folder"
         with zipfile.ZipFile(fw_file, "r") as zip_ref:
-            zip_ref.extractall(temp_folder)
-        with open(path.join(temp_folder, "mapping.json")) as f:
+            zip_ref.extractall(self.ENSEMBLE_TEMP_FOLDER)
+        with open(path.join(self.ENSEMBLE_TEMP_FOLDER, "mapping.json")) as f:
             mapping_info = json.load(f)
         mapping = {}
         for drive in mapping_info["drives"]:
             slave_id_offset = drive["slave_id_offset"]
-            fw_file = drive["fw_file"]
+            fw_file = path.join(path.abspath(self.ENSEMBLE_TEMP_FOLDER), drive["fw_file"])
             product_code = drive["product_code"]
             revision_number = drive["revision_number"]
             mapping[slave_id_offset] = fw_file, product_code, revision_number
 
-        shutil.rmtree(temp_folder)
         return mapping
