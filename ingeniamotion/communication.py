@@ -890,6 +890,8 @@ class Communication(metaclass=MCMetaClass):
         drive = self.mc._get_drive(servo)
         if not isinstance(net, CanopenNetwork):
             raise ValueError("Target servo is not connected via CANopen")
+        if not isinstance(drive, CanopenServo):
+            raise ValueError("Target servo is not a Canopen servo")
         if status_callback is None:
             status_callback = partial(self.logger.info, "Load firmware status: %s")
         if progress_callback is None:
