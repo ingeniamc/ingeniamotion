@@ -23,6 +23,7 @@
 - Add in configuration set_velocity_pid, set_position_pid and get_rated_current
 - Add functions to connect to and scan EtherCAT devices using CoE (SDOs).
 - Optional backup registers for Wizard tests.
+- New methods to scan the network and obtained drive info (product code and revision number).
 
 ### Fixed
 - check_motor_disabled decorator does not work with positional arguments
