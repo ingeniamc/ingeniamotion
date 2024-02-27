@@ -280,6 +280,7 @@ class PDONetworkManager:
         if self._pdo_thread is None:
             raise IMException("The PDO exchange has not started yet.")
         self._pdo_thread.stop()
+        self._pdo_thread = None
 
     def subscribe_to_send_process_data(self, callback: Callable[[], None]) -> None:
         """Subscribe be notified when the RPDO values will be sent.

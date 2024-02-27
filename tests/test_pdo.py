@@ -8,6 +8,7 @@ from ingeniamotion.enums import OperationMode
 from ingeniamotion.exceptions import IMException
 
 
+@pytest.mark.soem
 def test_create_rpdo_item(motion_controller):
     mc, alias = motion_controller
     position_set_point_initial_value = 100
@@ -18,18 +19,21 @@ def test_create_rpdo_item(motion_controller):
     assert position_set_point.value == position_set_point_initial_value
 
 
+@pytest.mark.soem
 def test_create_tpdo_item(motion_controller):
     mc, alias = motion_controller
     actual_position = mc.capture.pdo.create_pdo_item("CL_POS_FBK_VALUE", servo=alias)
     assert isinstance(actual_position, TPDOMapItem)
 
 
+@pytest.mark.soem
 def test_create_rpdo_item_no_initial_value(motion_controller):
     mc, alias = motion_controller
     with pytest.raises(AttributeError):
         mc.capture.pdo.create_pdo_item("CL_POS_SET_POINT_VALUE", servo=alias)
 
 
+@pytest.mark.soem
 def test_create_empty_rpdo_map(motion_controller):
     mc, alias = motion_controller
     rpdo_map = mc.capture.pdo.create_empty_rpdo_map()
@@ -37,6 +41,7 @@ def test_create_empty_rpdo_map(motion_controller):
     assert len(rpdo_map.items) == 0
 
 
+@pytest.mark.soem
 def test_create_empty_tpdo_map(motion_controller):
     mc, alias = motion_controller
     tpdo_map = mc.capture.pdo.create_empty_tpdo_map()
@@ -44,6 +49,7 @@ def test_create_empty_tpdo_map(motion_controller):
     assert len(tpdo_map.items) == 0
 
 
+@pytest.mark.soem
 def test_create_pdo_maps_single_item(motion_controller):
     mc, alias = motion_controller
     position_set_point = mc.capture.pdo.create_pdo_item(
@@ -59,6 +65,7 @@ def test_create_pdo_maps_single_item(motion_controller):
     assert actual_position in tpdo_map.items
 
 
+@pytest.mark.soem
 def test_create_pdo_maps_list_items(motion_controller):
     mc, alias = motion_controller
     rpdo_regs = ["CL_POS_SET_POINT_VALUE", "CL_VEL_SET_POINT_VALUE"]
@@ -74,6 +81,7 @@ def test_create_pdo_maps_list_items(motion_controller):
     assert len(tpdo_map.items) == len(tpdo_items)
 
 
+@pytest.mark.soem
 @pytest.mark.parametrize(
     "register, value, pdo_type",
     [
@@ -93,6 +101,7 @@ def test_add_pdo_item_to_map(motion_controller, register, value, pdo_type):
     assert pdo_map_item in pdo_map.items
 
 
+@pytest.mark.soem
 @pytest.mark.parametrize(
     "register, value, pdo_type",
     [
@@ -111,6 +120,7 @@ def test_add_pdo_item_to_map_exceptions(motion_controller, register, value, pdo_
         mc.capture.pdo.add_pdo_item_to_map(pdo_map_item, pdo_map)
 
 
+@pytest.mark.soem
 @pytest.mark.parametrize(
     "rpdo_maps, tpdo_maps",
     [
@@ -140,12 +150,14 @@ def test_set_pdo_maps_to_slave_exception(motion_controller, rpdo_maps, tpdo_maps
         mc.capture.pdo.set_pdo_maps_to_slave(rx_maps, tx_maps, alias)
 
 
+@pytest.mark.soem
 def test_start_pdos_refresh_rate(motion_controller):
     mc, alias = motion_controller
     with pytest.raises(ValueError):
         mc.capture.pdo.start_pdos("interface_name", 5)
 
 
+@pytest.mark.soem
 def test_start_pdos(motion_controller):
     global current_position
     mc, alias = motion_controller
@@ -185,6 +197,7 @@ def test_start_pdos(motion_controller):
     mc.motion.set_operation_mode(initial_operation_mode, servo=alias)
 
 
+@pytest.mark.soem
 def test_stop_pdos_exception(motion_controller):
     mc, alias = motion_controller
     with pytest.raises(IMException):
