@@ -147,27 +147,41 @@ def test_start_pdos_refresh_rate(motion_controller):
 
 
 def test_start_pdos(motion_controller):
+    global current_position
     mc, alias = motion_controller
     interface_name = mc.servo_net[alias]
+    rpdo_map = mc.capture.pdo.create_empty_rpdo_map()
+    tpdo_map = mc.capture.pdo.create_empty_tpdo_map()
     initial_operation_mode = mc.motion.get_operation_mode(servo=alias)
-    initial_position = mc.motion.get_actual_position(servo=alias)
-    op_mode_value = random.choice(
-        [op_mode.value for op_mode in OperationMode if op_mode != initial_operation_mode]
+    operation_mode = mc.capture.pdo.create_pdo_item(
+        "DRV_OP_CMD", servo=alias, value=initial_operation_mode.value
     )
-    operation_mode = mc.capture.pdo.create_pdo_item("DRV_OP_CMD", servo=alias, value=op_mode_value)
     actual_position = mc.capture.pdo.create_pdo_item("CL_POS_FBK_VALUE", servo=alias)
-    rpdo_map, tpdo_map = mc.capture.pdo.create_pdo_maps(operation_mode, actual_position)
+    mc.capture.pdo.add_pdo_item_to_map(operation_mode, rpdo_map)
+    mc.capture.pdo.add_pdo_item_to_map(actual_position, tpdo_map)
     mc.capture.pdo.set_pdo_maps_to_slave(rpdo_map, tpdo_map, servo=alias)
-    mc.capture.pdo.start_pdos(interface_name)
-    time.sleep(1)
-    # Check that TPDO are being received
-    assert actual_position.value == initial_position
+    random_op_mode = random.choice(
+        [op_mode for op_mode in OperationMode if op_mode != initial_operation_mode]
+    )
+
+    def send_callback():
+        operation_mode.value = random_op_mode.value
+
+    def receive_callback():
+        global current_position
+        current_position = actual_position.value
+
+    mc.capture.pdo.subscribe_to_send_process_data(send_callback)
+    mc.capture.pdo.subscribe_to_receive_process_data(receive_callback)
+    refresh_rate = 0.5
+    mc.capture.pdo.start_pdos(interface_name, refresh_rate=refresh_rate)
+    time.sleep(2 * refresh_rate)
+    mc.capture.pdo.stop_pdos()
     # Check that RPDO are being sent
-    assert operation_mode.value != initial_operation_mode
-    # Try to start the PDO thread once is active
-    with pytest.raises(IMException):
-        mc.capture.pdo.start_pdos(interface_name)
-    # Restore inital operation mode
+    assert mc.motion.get_operation_mode(servo=alias) == random_op_mode
+    # Check that TPDO are being received
+    assert mc.motion.get_actual_position(servo=alias) == current_position
+    # Restore the initial operation mode
     mc.motion.set_operation_mode(initial_operation_mode, servo=alias)
 
 
