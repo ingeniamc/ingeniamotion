@@ -1,6 +1,6 @@
 import threading
 import time
-from typing import TYPE_CHECKING, Dict, List, Optional, Union, Tuple, Type
+from typing import TYPE_CHECKING, Dict, List, Optional, Union, Tuple, Type, Callable
 
 import numpy as np
 from numpy.typing import NDArray
@@ -34,7 +34,7 @@ if TYPE_CHECKING:
 
 
 class PDONetworkManager:
-    """Manage all the PDO functionality.
+    """Manage all the PDO functionalities.
 
     Attributes:
         mc: The MotionController.
@@ -45,32 +45,46 @@ class PDONetworkManager:
         """Manage the PDO exchange.
 
         Attributes:
-            net: The EthercatNetwork instace where the PDOs will be active.
+            net: The EthercatNetwork instance where the PDOs will be active.
             refresh_rate: Determines how often (seconds) the PDO values will be updated.
 
         """
 
-        DEFAULT_PROCESS_DATA_REFRESH_RATE = 0.01
+        DEFAULT_PDO_REFRESH_RATE = 0.01
+        MINIMUM_PDO_REFRESH_RATE = 4
+        ETHERCAT_PDO_WATCHDOG = "processdata"
 
         def __init__(
             self,
             net: EthercatNetwork,
             refresh_rate: Optional[float],
+            notify_send_process_data: Optional[Callable[[], None]] = None,
+            notify_receive_process_data: Optional[Callable[[], None]] = None,
         ) -> None:
             super().__init__()
             self._net = net
             if refresh_rate is None:
-                refresh_rate = self.DEFAULT_PROCESS_DATA_REFRESH_RATE
+                refresh_rate = self.DEFAULT_PDO_REFRESH_RATE
+            elif refresh_rate > self.MINIMUM_PDO_REFRESH_RATE:
+                raise ValueError(
+                    f"The minimum PDO refresh rate is {self.MINIMUM_PDO_REFRESH_RATE} seconds."
+                )
             self._refresh_rate = refresh_rate
             self._pd_thread_stop_event = threading.Event()
             for servo in self._net.servos:
-                servo.slave.set_watchdog("processdata", self._refresh_rate * 1500)
+                servo.slave.set_watchdog(self.ETHERCAT_PDO_WATCHDOG, self._refresh_rate * 1500)
+            self._notify_send_process_data = notify_send_process_data
+            self._notify_receive_process_data = notify_receive_process_data
 
         def run(self) -> None:
             """Start the PDO exchange"""
             self._net.start_pdos()
             while not self._pd_thread_stop_event.is_set():
+                if self._notify_send_process_data is not None:
+                    self._notify_send_process_data()
                 self._net.send_receive_processdata()
+                if self._notify_receive_process_data is not None:
+                    self._notify_receive_process_data()
                 time.sleep(self._refresh_rate)
 
         def stop(self) -> None:
@@ -81,6 +95,8 @@ class PDONetworkManager:
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
         self._pdo_thread: Optional[PDONetworkManager.ProcessDataThread] = None
+        self._pdo_send_observers: List[Callable[[], None]] = []
+        self._pdo_receive_observers: List[Callable[[], None]] = []
 
     def create_pdo_item(
         self,
@@ -244,20 +260,80 @@ class PDONetworkManager:
             IMException: If the PDOs are already active.
 
         """
-        if refresh_rate is not None and refresh_rate > 5:
-            raise ValueError("The minimum PDO refresh rate is 5 seconds.")
         net = self.mc.get_network_by_interface_name(interface_name)
         if self._pdo_thread is not None:
             self._pdo_thread.stop()
             raise IMException(f"PDOs are already active on interface: {interface_name}")
-        self._pdo_thread = self.ProcessDataThread(net, refresh_rate)
+        self._pdo_thread = self.ProcessDataThread(
+            net, refresh_rate, self._notify_send_process_data, self._notify_receive_process_data
+        )
         self._pdo_thread.start()
 
     def stop_pdos(self) -> None:
-        """Stop the PDO exchange process."""
+        """
+        Stop the PDO exchange process.
+
+        Raises:
+            IMException: If the PDOs are not active yet.
+
+        """
         if self._pdo_thread is None:
             raise IMException("The PDO exchange has not started yet.")
         self._pdo_thread.stop()
+
+    def subscribe_to_send_process_data(self, callback: Callable[[], None]) -> None:
+        """Subscribe be notified when the RPDO values will be sent.
+
+        Args:
+            callback: Callback function.
+
+        """
+        if callback in self._pdo_send_observers:
+            return
+        self._pdo_send_observers.append(callback)
+
+    def subscribe_to_receive_process_data(self, callback: Callable[[], None]) -> None:
+        """Subscribe be notified when the TPDO values are received.
+
+        Args:
+            callback: Callback function.
+
+        """
+        if callback in self._pdo_receive_observers:
+            return
+        self._pdo_receive_observers.append(callback)
+
+    def unsubscribe_to_send_process_data(self, callback: Callable[[], None]) -> None:
+        """Unsubscribe from the send process data notifications.
+
+        Args:
+            callback: Subscribed callback function.
+
+        """
+        if callback not in self._pdo_send_observers:
+            return
+        self._pdo_send_observers.remove(callback)
+
+    def unsubscribe_to_receive_process_data(self, callback: Callable[[], None]) -> None:
+        """Unsubscribe from the receive process data notifications.
+
+        Args:
+            callback: Subscribed callback function.
+
+        """
+        if callback not in self._pdo_receive_observers:
+            return
+        self._pdo_receive_observers.remove(callback)
+
+    def _notify_send_process_data(self) -> None:
+        """Notify subscribers that the RPDO values will be sent."""
+        for callback in self._pdo_send_observers:
+            callback()
+
+    def _notify_receive_process_data(self) -> None:
+        """Notify subscribers that the TPDO values were received."""
+        for callback in self._pdo_receive_observers:
+            callback()
 
 
 class Capture(metaclass=MCMetaClass):
