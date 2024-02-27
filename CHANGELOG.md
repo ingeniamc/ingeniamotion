@@ -2,6 +2,9 @@
 
 ## [Unreleased]
 
+### Added
+- PDOs for the EtherCAT protocol.
+
 ### Removed
 - Support to Python 3.6 to 3.8.
 
