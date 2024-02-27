@@ -243,6 +243,23 @@ class PDONetworkManager:
             raise ValueError("Not all elements of the TPDO map list are instances of a TPDO map")
         drive.set_pdo_map_to_slave(rpdo_maps, tpdo_maps)
 
+    def clear_pdo_mapping(self, servo: str = DEFAULT_SERVO) -> None:
+        """
+        Clear the PDO mapping within the servo.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+
+        Raises:
+            ValueError: If there is a type mismatch retrieving the drive object.
+
+        """
+        drive = self.mc._get_drive(servo)
+        if not isinstance(drive, EthercatServo):
+            raise ValueError(f"Expected an EthercatServo. Got {type(drive)}")
+        drive.reset_rpdo_mapping()
+        drive.reset_tpdo_mapping()
+
     def start_pdos(
         self,
         interface_name: str,
