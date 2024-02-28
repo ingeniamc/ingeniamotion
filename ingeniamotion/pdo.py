@@ -262,7 +262,7 @@ class PDONetworkManager:
         """
         net = self.mc.get_network_by_interface_name(interface_name)
         if self._pdo_thread is not None:
-            self._pdo_thread.stop()
+            self.stop_pdos()
             raise IMException(f"PDOs are already active on interface: {interface_name}")
         self._pdo_thread = self.ProcessDataThread(
             net, refresh_rate, self._notify_send_process_data, self._notify_receive_process_data
