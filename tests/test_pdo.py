@@ -11,8 +11,8 @@ from ingeniamotion.exceptions import IMException
 
 @pytest.fixture
 def connect_to_all_slaves(motion_controller, pytestconfig):
-    aliases = []
     mc, alias = motion_controller
+    aliases = [alias]
     protocol = pytestconfig.getoption("--protocol")
     if protocol != "soem":
         raise AssertionError("Fixture only available for the soem protocol.")
@@ -20,7 +20,10 @@ def connect_to_all_slaves(motion_controller, pytestconfig):
     with open(config, "r") as fp:
         contents = json.load(fp)
     protocol_contents = contents[protocol]
+    connected_slave_id = mc.servos[alias].slave_id
     for slave_content in protocol_contents:
+        if slave_content["slave"] == connected_slave_id:
+            continue
         alias = f"test{slave_content['slave']}"
         aliases.append(alias)
         mc.communication.connect_servo_ethercat_interface_index(
@@ -30,6 +33,7 @@ def connect_to_all_slaves(motion_controller, pytestconfig):
             alias,
         )
     yield mc, aliases
+    aliases.pop(0)
     for alias in aliases:
         mc.communication.disconnect(alias)
 
