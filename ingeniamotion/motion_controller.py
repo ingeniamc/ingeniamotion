@@ -66,24 +66,6 @@ class MotionController:
         net_key = self.servo_net[servo]
         return self.net[net_key]
 
-    def get_network_by_interface_name(self, interface_name: str) -> EthercatNetwork:
-        """
-        Get the network instance by the interface name.
-
-        Args:
-            interface_name: Network adapter interface name
-
-        Returns:
-            The network instance.
-
-        """
-        if interface_name not in self.net:
-            raise ValueError(f"No network object found for interface {interface_name}")
-        net = self.net[interface_name]
-        if not isinstance(net, EthercatNetwork):
-            raise ValueError(f"Expected an EthercatNetwork. Got {type(net)}")
-        return net
-
     def _get_drive(self, servo: str) -> Servo:
         """Return servo drive instance.
 

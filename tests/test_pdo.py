@@ -3,8 +3,9 @@ import random
 import time
 
 import pytest
-
 from ingenialink.pdo import RPDOMap, TPDOMap, RPDOMapItem, TPDOMapItem
+from ingenialink.ethercat.network import EthercatNetwork
+
 from ingeniamotion.enums import OperationMode
 from ingeniamotion.exceptions import IMException
 
@@ -190,7 +191,6 @@ def test_pdos_refresh_rate(motion_controller):
 @pytest.mark.soem
 def test_start_pdos(connect_to_all_slaves):
     mc, aliases = connect_to_all_slaves
-    interface_name = mc.servo_net[aliases[0]]
     pdo_map_items = {}
     initial_operation_modes = {}
     rpdo_values = {}
@@ -226,7 +226,7 @@ def test_start_pdos(connect_to_all_slaves):
     mc.capture.pdo.subscribe_to_send_process_data(send_callback)
     mc.capture.pdo.subscribe_to_receive_process_data(receive_callback)
     refresh_rate = 0.5
-    mc.capture.pdo.start_pdos(interface_name, refresh_rate=refresh_rate)
+    mc.capture.pdo.start_pdos(refresh_rate=refresh_rate)
     time.sleep(2 * refresh_rate)
     mc.capture.pdo.stop_pdos()
     for alias in aliases:
@@ -245,3 +245,28 @@ def test_stop_pdos_exception(motion_controller):
     mc, alias = motion_controller
     with pytest.raises(IMException):
         mc.capture.pdo.stop_pdos()
+
+
+@pytest.mark.soem
+def test_start_pdos_not_implemented_exception(motion_controller):
+    mc, alias = motion_controller
+    with pytest.raises(NotImplementedError):
+        mc.capture.pdo.start_pdos("canopen")
+
+
+@pytest.mark.soem
+def test_start_pdos_wrong_network_type_exception(motion_controller):
+    mc, alias = motion_controller
+    with pytest.raises(ValueError):
+        mc.capture.pdo.start_pdos("ethernet")
+
+
+@pytest.mark.soem
+def test_start_pdos_number_of_network_exception(mocker, motion_controller):
+    mc, alias = motion_controller
+    mock_net = {"ifname1": EthercatNetwork("ifname1"), "ifname2": EthercatNetwork("ifname2")}
+    mocker.patch.object(mc, "_MotionController__net", mock_net)
+    with pytest.raises(ValueError):
+        mc.capture.pdo.start_pdos()
+    with pytest.raises(IMException):
+        mc.capture.pdo.start_pdos("ethercat")

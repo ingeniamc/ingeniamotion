@@ -6,6 +6,7 @@ from ingenialink.pdo import RPDOMap, TPDOMap, RPDOMapItem, TPDOMapItem
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethercat.servo import EthercatServo
 from ingenialink.ethercat.register import EthercatRegister
+from ingenialink.canopen.network import CanopenNetwork
 
 from ingeniamotion.exceptions import (
     IMException,
@@ -245,25 +246,56 @@ class PDONetworkManager:
 
     def start_pdos(
         self,
-        interface_name: str,
+        network_type: Optional[str] = None,
         refresh_rate: Optional[float] = None,
     ) -> None:
         """
         Start the PDO exchange process.
 
         Args:
-            interface_name: The interface name where the slaves are connected to.
+            network_type: Network type (EtherCAT or CANopen) on which to start the PDO exchange.
             refresh_rate: Determines how often (seconds) the PDO values will be updated.
 
         Raises:
             ValueError: If the refresh rate is too high.
+            ValueError: If the MotionController is connected to more than one Network.
+            ValueError: If network_type argument is invalid.
+            IMException: If the MotionController is connected to more than one Network.
+            ValueError: If there is a type mismatch retrieving the network object.
             IMException: If the PDOs are already active.
 
         """
-        net = self.mc.get_network_by_interface_name(interface_name)
+        if network_type is None:
+            if len(self.mc.net) > 1:
+                raise ValueError(
+                    "There is more than one network created. The network_type argument must be provided."
+                )
+            net = next(iter(self.mc.net.values()))
+        elif network_type not in ["ethercat", "canopen"]:
+            raise ValueError(
+                "Wrong value for the network_type argument. Must be 'ethercat' or 'canopen'"
+            )
+        elif network_type == "canopen":
+            raise NotImplementedError
+        else:
+            ethercat_networks = [
+                network for network in self.mc.net.values() if isinstance(network, EthercatNetwork)
+            ]
+            canopen_networks = [
+                network for network in self.mc.net.values() if isinstance(network, CanopenNetwork)
+            ]
+            if len(ethercat_networks) > 1 or len(canopen_networks) > 1:
+                raise IMException(
+                    f"When using PDOs only one instance per network type is allowed. "
+                    f"Got {len(ethercat_networks)} instances of EthercatNetwork "
+                    f"and {len(canopen_networks)} of CanopenNetwork."
+                )
+            net = ethercat_networks[0] if network_type == "ethercat" else canopen_networks[0]
         if self._pdo_thread is not None:
             self.stop_pdos()
-            raise IMException(f"PDOs are already active on interface: {interface_name}")
+            raise IMException("PDOs are already active.")
+        if not isinstance(net, EthercatNetwork):
+            raise ValueError(f"Expected EthercatNetwork. Got {type(net)}")
         self._pdo_thread = self.ProcessDataThread(
             net, refresh_rate, self._notify_send_process_data, self._notify_receive_process_data
         )
