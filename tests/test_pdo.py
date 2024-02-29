@@ -6,7 +6,7 @@ import pytest
 from ingenialink.pdo import RPDOMap, TPDOMap, RPDOMapItem, TPDOMapItem
 from ingenialink.ethercat.network import EthercatNetwork
 
-from ingeniamotion.enums import OperationMode
+from ingeniamotion.enums import OperationMode, COMMUNICATION_TYPE
 from ingeniamotion.exceptions import IMException
 
 
@@ -185,7 +185,7 @@ def test_set_pdo_maps_to_slave_exception(motion_controller, rpdo_maps, tpdo_maps
 def test_pdos_refresh_rate(motion_controller):
     mc, alias = motion_controller
     with pytest.raises(ValueError):
-        mc.capture.pdo.start_pdos("interface_name", 5)
+        mc.capture.pdo.start_pdos(COMMUNICATION_TYPE.Ethercat, 5)
 
 
 @pytest.mark.soem
@@ -251,7 +251,7 @@ def test_stop_pdos_exception(motion_controller):
 def test_start_pdos_not_implemented_exception(motion_controller):
     mc, alias = motion_controller
     with pytest.raises(NotImplementedError):
-        mc.capture.pdo.start_pdos("canopen")
+        mc.capture.pdo.start_pdos(COMMUNICATION_TYPE.Canopen)
 
 
 @pytest.mark.soem
@@ -269,4 +269,4 @@ def test_start_pdos_number_of_network_exception(mocker, motion_controller):
     with pytest.raises(ValueError):
         mc.capture.pdo.start_pdos()
     with pytest.raises(IMException):
-        mc.capture.pdo.start_pdos("ethercat")
+        mc.capture.pdo.start_pdos(COMMUNICATION_TYPE.Ethercat)

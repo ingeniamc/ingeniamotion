@@ -12,6 +12,7 @@ from ingeniamotion.exceptions import (
     IMException,
 )
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
+from ingeniamotion.enums import COMMUNICATION_TYPE
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -246,7 +247,7 @@ class PDONetworkManager:
 
     def start_pdos(
         self,
-        network_type: Optional[str] = None,
+        network_type: Optional[COMMUNICATION_TYPE] = None,
         refresh_rate: Optional[float] = None,
     ) -> None:
         """
@@ -271,11 +272,11 @@ class PDONetworkManager:
                     "There is more than one network created. The network_type argument must be provided."
                 )
             net = next(iter(self.mc.net.values()))
-        elif network_type not in ["ethercat", "canopen"]:
+        elif not isinstance(network_type, COMMUNICATION_TYPE):
             raise ValueError(
-                "Wrong value for the network_type argument. Must be 'ethercat' or 'canopen'"
+                f"Wrong value for the network_type argument. Must be of type {COMMUNICATION_TYPE}"
             )
-        elif network_type == "canopen":
+        elif network_type == COMMUNICATION_TYPE.Canopen:
             raise NotImplementedError
         else:
             ethercat_networks = [
@@ -286,11 +287,15 @@ class PDONetworkManager:
             ]
             if len(ethercat_networks) > 1 or len(canopen_networks) > 1:
                 raise IMException(
-                    f"When using PDOs only one instance per network type is allowed. "
+                    "When using PDOs only one instance per network type is allowed. "
                     f"Got {len(ethercat_networks)} instances of EthercatNetwork "
                     f"and {len(canopen_networks)} of CanopenNetwork."
                 )
-            net = ethercat_networks[0] if network_type == "ethercat" else canopen_networks[0]
+            net = (
+                ethercat_networks[0]
+                if network_type == COMMUNICATION_TYPE.Ethercat
+                else canopen_networks[0]
+            )
         if self._pdo_thread is not None:
             self.stop_pdos()
             raise IMException("PDOs are already active.")
