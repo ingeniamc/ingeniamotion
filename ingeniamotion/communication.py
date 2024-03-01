@@ -667,8 +667,9 @@ class Communication(metaclass=MCMetaClass):
         Raises:
             TypeError: If some parameter has a wrong type.
         """
-        slaves_info = self.scan_servos_ethercat_with_info(interface_name)
-        return list(slaves_info.keys())
+        net = EthercatNetwork(interface_name)
+        slaves = net.scan_slaves()
+        return slaves
 
     def scan_servos_ethercat_interface_ip(self, interface_ip: str) -> List[int]:
         """Scan a network adapter to get all connected EtherCAT slaves.
@@ -752,8 +753,22 @@ class Communication(metaclass=MCMetaClass):
         Raises:
             TypeError: If some parameter has a wrong type.
         """
-        slaves_info = self.scan_servos_canopen_with_info(can_device, baudrate, channel)
-        return list(slaves_info.keys())
+        net_key = f"{can_device}_{channel}_{baudrate}"
+        if net_key not in self.mc.net:
+            self.mc.net[net_key] = CanopenNetwork(can_device, channel, baudrate)
+        net = self.mc.net[net_key]
+
+        if net is None:
+            self.logger.warning(
+                "Could not find any nodes in the network."
+                "Device: %s, channel: %s and baudrate: %s.",
+                can_device,
+                channel,
+                baudrate,
+            )
+            return []
+        slaves = net.scan_slaves()
+        return slaves
 
     def disconnect(self, servo: str = DEFAULT_SERVO) -> None:
         """Disconnect servo.
