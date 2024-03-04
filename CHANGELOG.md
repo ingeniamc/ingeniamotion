@@ -1,6 +1,9 @@
 # Changelog
 
-## [Unreleased]
+## [0.7.1] - 2024-03-05
+### Added
+- Add scan functions with info: scan_servos_ethercat_with_info and scan_servos_canopen_with_info
+- Add connect_servo_virtual function
 
 ### Removed
 - Support to Python 3.6 to 3.8.
