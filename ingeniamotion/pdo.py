@@ -191,6 +191,7 @@ class PDONetworkManager:
         def stop(self) -> None:
             """Stop the PDO exchange"""
             self._pd_thread_stop_event.set()
+            self._net.stop_pdos()
             self.join()
 
     def __init__(self, motion_controller: "MotionController") -> None:
