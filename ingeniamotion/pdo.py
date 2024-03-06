@@ -21,8 +21,6 @@ if TYPE_CHECKING:
 class PDOPoller:
     """Poll register values using PDOs"""
 
-    DEFAULT_RPDO_REGISTER = "CL_POS_SET_POINT_VALUE"
-
     def __init__(
         self,
         mc: "MotionController",
