@@ -117,7 +117,7 @@ class PDOPoller:
     def __fill_rpdo_map(self) -> None:
         """Fill the RPDO Map with padding"""
         padding_rpdo_item = RPDOMapItem(size_bits=8)
-        padding_rpdo_item.value = 0
+        padding_rpdo_item.raw_data_bytes = int.to_bytes(0, 1, "little")
         self.__mc.capture.pdo.add_pdo_item_to_map(padding_rpdo_item, self.__rpdo_map)
 
     def __fill_tpdo_map(self, registers: List[Dict[str, Union[int, str]]]) -> None:
