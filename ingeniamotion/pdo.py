@@ -49,9 +49,16 @@ class PDOPoller:
         self.__timestamps: List[float] = []
         self.__start_time: Optional[float] = None
         self.__tpdo_map: TPDOMap = self.__mc.capture.pdo.create_empty_tpdo_map()
+        self.__rpdo_map: RPDOMap = self.__mc.capture.pdo.create_empty_rpdo_map()
+        self.__fill_rpdo_map()
 
     def start(self) -> None:
         """Start the poller"""
+        self._clear_buffers()
+        self.__mc.capture.pdo.clear_pdo_mapping(servo=self.__servo)
+        self.__mc.capture.pdo.set_pdo_maps_to_slave(
+            self.__rpdo_map, self.__tpdo_map, servo=self.__servo
+        )
         self.__mc.capture.pdo.subscribe_to_receive_process_data(self._new_data_available)
         self.__start_time = time.time()
         self.__mc.capture.pdo.start_pdos(refresh_rate=self.__refresh_time)
@@ -84,36 +91,7 @@ class PDOPoller:
 
         """
         self.__num_channels = len(registers)
-        self._clear_buffers()
-        for register in registers:
-            name = register.get("name", DEFAULT_SERVO)
-            if not isinstance(name, str):
-                raise ValueError(
-                    f"Wrong type for the 'name' field. Expected 'str', got: {type(name)}"
-                )
-            axis = register.get("axis", DEFAULT_AXIS)
-            if not isinstance(axis, int):
-                raise ValueError(
-                    f"Wrong type for the 'axis' field. Expected 'int', got: {type(axis)}"
-                )
-            tpdo_map_item = self.__mc.capture.pdo.create_pdo_item(
-                name, axis=axis, servo=self.__servo
-            )
-            self.__mc.capture.pdo.add_pdo_item_to_map(tpdo_map_item, self.__tpdo_map)
-        rpdo_map = self.__mc.capture.pdo.create_empty_rpdo_map()
-        default_rpdo_value = self.__mc.communication.get_register(
-            self.DEFAULT_RPDO_REGISTER, servo=self.__servo
-        )
-        if not isinstance(default_rpdo_value, (int, float)):
-            raise ValueError(
-                "Type mismatch when retrieving the initial value of the RPDO. Expected int or float. "
-                f"Got {type(default_rpdo_value)}"
-            )
-        default_rpdo_item = self.__mc.capture.pdo.create_pdo_item(
-            self.DEFAULT_RPDO_REGISTER, servo=self.__servo, value=default_rpdo_value
-        )
-        self.__mc.capture.pdo.add_pdo_item_to_map(default_rpdo_item, rpdo_map)
-        self.__mc.capture.pdo.set_pdo_maps_to_slave(rpdo_map, self.__tpdo_map, servo=self.__servo)
+        self.__fill_tpdo_map(registers)
 
     def _new_data_available(self) -> None:
         """Add readings to the buffers."""
@@ -132,6 +110,30 @@ class PDOPoller:
         """Clear the data buffers."""
         self.__buffer = [[] for _ in range(self.__num_channels)]
         self.__timestamps = []
+
+    def __fill_rpdo_map(self) -> None:
+        """Fill the RPDO Map with padding"""
+        padding_rpdo_item = RPDOMapItem(size_bits=8)
+        padding_rpdo_item.value = 0
+        self.__mc.capture.pdo.add_pdo_item_to_map(padding_rpdo_item, self.__rpdo_map)
+
+    def __fill_tpdo_map(self, registers: List[Dict[str, Union[int, str]]]) -> None:
+        """Fill the TPDO Map with the registers to be polled."""
+        for register in registers:
+            name = register.get("name", DEFAULT_SERVO)
+            if not isinstance(name, str):
+                raise ValueError(
+                    f"Wrong type for the 'name' field. Expected 'str', got: {type(name)}"
+                )
+            axis = register.get("axis", DEFAULT_AXIS)
+            if not isinstance(axis, int):
+                raise ValueError(
+                    f"Wrong type for the 'axis' field. Expected 'int', got: {type(axis)}"
+                )
+            tpdo_map_item = self.__mc.capture.pdo.create_pdo_item(
+                name, axis=axis, servo=self.__servo
+            )
+            self.__mc.capture.pdo.add_pdo_item_to_map(tpdo_map_item, self.__tpdo_map)
 
 
 class PDONetworkManager:
