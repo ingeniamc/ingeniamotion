@@ -92,11 +92,16 @@ class PDOPoller:
         self.__fill_tpdo_map(registers)
 
     def _new_data_available(self) -> None:
-        """Add readings to the buffers."""
+        """Add readings to the buffers.
+
+        Raises:
+            ValueError: If the poller has not been started yet.
+
+        """
         if len(self.__timestamps) == self.__buffer_size:
             self.__timestamps.pop(0)
         if self.__start_time is None:
-            raise ValueError
+            raise ValueError("The poller has not been started yet.")
         time_stamp = round(time.time() - self.__start_time, 6)
         self.__timestamps.append(time_stamp)
         for tpdo_index, tpdo_map_item in enumerate(self.__tpdo_map.items):
@@ -116,7 +121,13 @@ class PDOPoller:
         self.__mc.capture.pdo.add_pdo_item_to_map(padding_rpdo_item, self.__rpdo_map)
 
     def __fill_tpdo_map(self, registers: List[Dict[str, Union[int, str]]]) -> None:
-        """Fill the TPDO Map with the registers to be polled."""
+        """Fill the TPDO Map with the registers to be polled.
+
+        Raises:
+            ValueError: If there is a type mismatch when retrieving the register UID.
+            ValueError: If there is a type mismatch when retrieving the register axis.
+
+        """
         for register in registers:
             name = register.get("name", DEFAULT_SERVO)
             if not isinstance(name, str):
