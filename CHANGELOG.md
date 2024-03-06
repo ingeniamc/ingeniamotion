@@ -4,6 +4,7 @@
 
 ### Added
 - PDOs for the EtherCAT protocol.
+- Register Poller using PDOs.
 
 ### Removed
 - Support to Python 3.6 to 3.8.
