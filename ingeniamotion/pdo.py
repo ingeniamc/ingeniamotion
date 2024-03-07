@@ -53,7 +53,6 @@ class PDOPoller:
     def start(self) -> None:
         """Start the poller"""
         self._clear_buffers()
-        self.__mc.capture.pdo.clear_pdo_mapping(servo=self.__servo)
         self.__mc.capture.pdo.set_pdo_maps_to_slave(
             self.__rpdo_map, self.__tpdo_map, servo=self.__servo
         )
@@ -65,6 +64,8 @@ class PDOPoller:
         """Stop the poller"""
         self.__mc.capture.pdo.stop_pdos()
         self.__mc.capture.pdo.unsubscribe_to_receive_process_data(self._new_data_available)
+        self.__mc.capture.pdo.remove_rpdo_map(self.__servo, self.__rpdo_map)
+        self.__mc.capture.pdo.remove_tpdo_map(self.__servo, self.__tpdo_map)
 
     @property
     def data(self) -> Tuple[List[float], List[List[Union[int, float]]]]:
