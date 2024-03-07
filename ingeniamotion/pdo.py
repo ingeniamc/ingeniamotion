@@ -148,7 +148,7 @@ class PDOPoller:
 class PDONetworkManager:
     """Manage all the PDO functionalities.
 
-    Attributes:
+    Args:
         mc: The MotionController.
 
     """
@@ -156,15 +156,18 @@ class PDONetworkManager:
     class ProcessDataThread(threading.Thread):
         """Manage the PDO exchange.
 
-        Attributes:
+        Args:
             net: The EthercatNetwork instance where the PDOs will be active.
             refresh_rate: Determines how often (seconds) the PDO values will be updated.
-
+            notify_send_process_data: Callback to notify when process data is about to be sent.
+            notify_receive_process_data: Callback to notify when process data is received.
         """
 
         DEFAULT_PDO_REFRESH_RATE = 0.01
         MINIMUM_PDO_REFRESH_RATE = 4
         ETHERCAT_PDO_WATCHDOG = "processdata"
+        PDO_WATCHDOG_INCREMENT_FACTOR = 1.5
+        SECONDS_TO_MS_CONVERSION_FACTOR = 1000
 
         def __init__(
             self,
@@ -184,7 +187,12 @@ class PDONetworkManager:
             self._refresh_rate = refresh_rate
             self._pd_thread_stop_event = threading.Event()
             for servo in self._net.servos:
-                servo.slave.set_watchdog(self.ETHERCAT_PDO_WATCHDOG, self._refresh_rate * 1500)
+                servo.slave.set_watchdog(
+                    self.ETHERCAT_PDO_WATCHDOG,
+                    self._refresh_rate
+                    * self.PDO_WATCHDOG_INCREMENT_FACTOR
+                    * self.SECONDS_TO_MS_CONVERSION_FACTOR,
+                )
             self._notify_send_process_data = notify_send_process_data
             self._notify_receive_process_data = notify_receive_process_data
 
@@ -339,8 +347,8 @@ class PDONetworkManager:
 
         Raises:
             ValueError: If there is a type mismatch retrieving the drive object.
-            ValueError: If not all instances of a RPDOMap are in the RPDOMaps to be mapped.
-            ValueError: If not all instances of a TPDOMap are in the TPDOMaps to be mapped.
+            ValueError: If not all elements of the RPDO map list are instances of a RPDO map.
+            ValueError: If not all elements of the TPDO map list are instances of a TPDO map.
 
         """
         drive = self.mc._get_drive(servo)
