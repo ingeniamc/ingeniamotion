@@ -254,6 +254,54 @@ class PDONetworkManager:
         drive.reset_rpdo_mapping()
         drive.reset_tpdo_mapping()
 
+    def remove_rpdo_map(
+        self,
+        servo: str = DEFAULT_SERVO,
+        rpdo_map: Optional[RPDOMap] = None,
+        rpdo_map_index: Optional[int] = None,
+    ) -> None:
+        """Remove a RPDOMap from the RPDOMap list. The RPDOMap instance or
+        the index of the map in the RPDOMap list should be provided.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+            rpdo_map: The RPDOMap instance to be removed.
+            rpdo_map_index: The index of the RPDOMap list to be removed.
+
+        Raises:
+            ValueError: If the RPDOMap instance is not in the RPDOMap list.
+            IndexError: If the index is out of range.
+
+        """
+        drive = self.mc._get_drive(servo)
+        if not isinstance(drive, EthercatServo):
+            raise ValueError(f"Expected an EthercatServo. Got {type(drive)}")
+        drive.remove_rpdo_map(rpdo_map, rpdo_map_index)
+
+    def remove_tpdo_map(
+        self,
+        servo: str = DEFAULT_SERVO,
+        tpdo_map: Optional[TPDOMap] = None,
+        tpdo_map_index: Optional[int] = None,
+    ) -> None:
+        """Remove a TPDOMap from the TPDOMap list. The TPDOMap instance or
+        the index of the map in the TPDOMap list should be provided.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+            tpdo_map: The TPDOMap instance to be removed.
+            tpdo_map_index: The index of the TPDOMap list to be removed.
+
+        Raises:
+            ValueError: If the TPDOMap instance is not in the TPDOMap list.
+            IndexError: If the index is out of range.
+
+        """
+        drive = self.mc._get_drive(servo)
+        if not isinstance(drive, EthercatServo):
+            raise ValueError(f"Expected an EthercatServo. Got {type(drive)}")
+        drive.remove_tpdo_map(tpdo_map, tpdo_map_index)
+
     def start_pdos(
         self,
         network_type: Optional[COMMUNICATION_TYPE] = None,
