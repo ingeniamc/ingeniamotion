@@ -2,7 +2,6 @@ from enum import IntEnum
 from typing import Dict
 
 from ingenialink.network import Network
-from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.servo import Servo
 
 from ingeniamotion.capture import Capture
