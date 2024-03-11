@@ -1144,15 +1144,19 @@ class Communication(metaclass=MCMetaClass):
                     error_enabled_callback,
                 )
 
+        exception = None
         for slave_id in thread_results:
             if slave_id not in connected_drives:
                 net.disconnect_from_slave(connected_drives[slave_id])
             exception = thread_results[slave_id].exception()
-            if exception is not None:
-                raise IMException(
-                    f"Load of FW in slave {slave_id} of ensemble failed. Exception: {exception}"
-                )
+            break
+
         shutil.rmtree(self.ENSEMBLE_TEMP_FOLDER)
+
+        if exception is not None:
+            raise IMException(
+                f"Load of FW in slave {slave_id} of ensemble failed. Exception: {exception}"
+            )
 
     def __load_ensemble_fw_ecat(self, net: EthercatNetwork, fw_file: str, slave: int) -> None:
         """Load FW to an ensemble of servos through Ethercat.
@@ -1168,9 +1172,13 @@ class Communication(metaclass=MCMetaClass):
         mapping = self.__unzip_ensemble_fw_file(fw_file)
         scanned_slaves = net.scan_slaves_info()
         first_slave_in_ensemble = self.__check_ensemble(scanned_slaves, slave, mapping)
-        for slave_id_offset, fw_file_prod_code in mapping.items():
-            net.load_firmware(fw_file_prod_code[0], first_slave_in_ensemble + slave_id_offset)
-        shutil.rmtree(self.ENSEMBLE_TEMP_FOLDER)
+        try:
+            for slave_id_offset, fw_file_prod_code in mapping.items():
+                net.load_firmware(fw_file_prod_code[0], first_slave_in_ensemble + slave_id_offset)
+        except ILError as e:
+            raise e
+        finally:
+            shutil.rmtree(self.ENSEMBLE_TEMP_FOLDER)
 
     def __check_ensemble(
         self,
@@ -1197,16 +1205,12 @@ class Communication(metaclass=MCMetaClass):
         Returns:
             The ID of the first drive in the ensemble.
         """
-        if slave_id not in scanned_slaves:
-            raise IMException(f"Slave {slave_id} was not detected.")
         slave_id_offset = self.__check_slave_in_ensemble(scanned_slaves[slave_id], mapping)
         first_slave = slave_id - slave_id_offset
-        for map_slave_id_offset in mapping.keys():
+        for map_slave_id_offset in mapping:
             map_slave_id = first_slave + map_slave_id_offset
             if map_slave_id not in scanned_slaves:
-                raise IMException(
-                    f"Wrong ensemble. The slave {map_slave_id - 1} has wrong product code or revision number."
-                )
+                raise IMException(f"Wrong ensemble. The slave {map_slave_id - 1} is not detected.")
             map_slave_info = scanned_slaves[map_slave_id]
             if (
                 map_slave_info.product_code != mapping[map_slave_id_offset][1]
@@ -1234,7 +1238,7 @@ class Communication(metaclass=MCMetaClass):
         Returns:
             The ID offset (relative position in the ensemble) of the selected slave.
         """
-        for slave_id_offset in mapping.keys():
+        for slave_id_offset in mapping:
             _, product_code, revision_number = mapping[slave_id_offset]
             if product_code == slave_info.product_code and (
                 revision_number & self.ENSEMBLE_SLAVE_REV_NUM_MASK
@@ -1255,8 +1259,6 @@ class Communication(metaclass=MCMetaClass):
             Mapping described in the ensemble FW file.
                 Dict{slave_id_offset: (fw_file, product_code, revision_number)}
         """
-        if not fw_file.endswith(self.ENSEMBLE_FIRMWARE_EXTENSION):
-            raise IMException("Wrong file extension.")
         with zipfile.ZipFile(fw_file, "r") as zip_ref:
             zip_ref.extractall(self.ENSEMBLE_TEMP_FOLDER)
         with open(path.join(self.ENSEMBLE_TEMP_FOLDER, "mapping.json")) as f:
