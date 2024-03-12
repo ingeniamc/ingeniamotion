@@ -1,6 +1,9 @@
 import threading
 import time
-from typing import TYPE_CHECKING, Dict, List, Optional, Union, Tuple, Type, Callable
+from typing import TYPE_CHECKING, Dict, List, Optional, Union, Tuple, Type, Callable, Deque
+from collections import defaultdict, deque
+from functools import partial
+from copy import deepcopy
 
 from ingenialink.pdo import RPDOMap, TPDOMap, RPDOMapItem, TPDOMapItem
 from ingenialink.ethercat.network import EthercatNetwork
@@ -43,8 +46,8 @@ class PDOPoller:
         self.__refresh_time = refresh_time
         self.__buffer_size = buffer_size
         self.__num_channels: int = 0
-        self.__buffer: List[List[Union[int, float]]] = [[]]
-        self.__timestamps: List[float] = []
+        self.__buffer: Dict[int, Deque[Union[int, float]]] = defaultdict(partial(deque, maxlen=self.__buffer_size))  # type: ignore
+        self.__timestamps: Deque[float] = deque(maxlen=self.__buffer_size)
         self.__start_time: Optional[float] = None
         self.__tpdo_map: TPDOMap = self.__mc.capture.pdo.create_empty_tpdo_map()
         self.__rpdo_map: RPDOMap = self.__mc.capture.pdo.create_empty_rpdo_map()
@@ -52,7 +55,6 @@ class PDOPoller:
 
     def start(self) -> None:
         """Start the poller"""
-        self._clear_buffers()
         self.__mc.capture.pdo.set_pdo_maps_to_slave(
             self.__rpdo_map, self.__tpdo_map, servo=self.__servo
         )
@@ -68,7 +70,7 @@ class PDOPoller:
         self.__mc.capture.pdo.remove_tpdo_map(self.__servo, self.__tpdo_map)
 
     @property
-    def data(self) -> Tuple[List[float], List[List[Union[int, float]]]]:
+    def data(self) -> Tuple[Deque[float], Dict[int, Deque[Union[int, float]]]]:
         """
         Get the poller data. After the data is retrieved, the data buffers are cleared.
 
@@ -76,8 +78,8 @@ class PDOPoller:
             A list with the readings timestamps and values.
 
         """
-        data = self.__buffer
-        time_stamps = self.__timestamps
+        data = deepcopy(self.__buffer)
+        time_stamps = deepcopy(self.__timestamps)
         self._clear_buffers()
         return time_stamps, data
 
@@ -99,21 +101,18 @@ class PDOPoller:
             ValueError: If the poller has not been started yet.
 
         """
-        if len(self.__timestamps) == self.__buffer_size:
-            self.__timestamps.pop(0)
         if self.__start_time is None:
             raise ValueError("The poller has not been started yet.")
         time_stamp = round(time.time() - self.__start_time, 6)
         self.__timestamps.append(time_stamp)
         for tpdo_index, tpdo_map_item in enumerate(self.__tpdo_map.items):
-            if len(self.__buffer[tpdo_index]) == self.__buffer_size:
-                self.__buffer[tpdo_index].pop(0)
             self.__buffer[tpdo_index].append(tpdo_map_item.value)
 
     def _clear_buffers(self) -> None:
         """Clear the data buffers."""
-        self.__buffer = [[] for _ in range(self.__num_channels)]
-        self.__timestamps = []
+        for buffer in self.__buffer.values():
+            buffer.clear()
+        self.__timestamps.clear()
 
     def __fill_rpdo_map(self) -> None:
         """Fill the RPDO Map with padding"""
