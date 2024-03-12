@@ -199,6 +199,7 @@ class PDONetworkManager:
 
         def run(self) -> None:
             """Start the PDO exchange"""
+            self._net.config_pdo_maps()
             self._net.start_pdos()
             while not self._pd_thread_stop_event.is_set():
                 if self._notify_send_process_data is not None:
