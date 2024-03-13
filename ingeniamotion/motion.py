@@ -153,9 +153,17 @@ class Motion(metaclass=MCMetaClass):
             axis : servo axis. ``1`` by default.
 
         """
-        if self.mc.configuration.is_motor_enabled(servo=servo, axis=axis):
+        try:
+            is_motor_enabled = self.mc.configuration.is_motor_enabled(servo=servo, axis=axis)
+        except ILError as e:
+            self.logger.info(f"Unable to check if motor is enabled. Reason: {e}")
+            return
+        if is_motor_enabled:
             drive = self.mc.servos[servo]
-            drive.disable(subnode=axis)
+            try:
+                drive.disable(subnode=axis)
+            except ILError as e:
+                self.logger.info(f"Unable to disable the motor. Reason: {e}")
 
     def fault_reset(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> None:
         """Fault reset.
@@ -166,7 +174,10 @@ class Motion(metaclass=MCMetaClass):
 
         """
         drive = self.mc.servos[servo]
-        drive.fault_reset(axis)
+        try:
+            drive.fault_reset(axis)
+        except ILError as e:
+            self.logger.info(f"Unable to perform a fault reset. Reason: {e}")
 
     def move_to_position(
         self,
@@ -697,6 +708,7 @@ class Motion(metaclass=MCMetaClass):
         direction: int,
         cycles: int,
         frequency: float,
+        gain: float = 1.0,
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
     ) -> None:
@@ -708,30 +720,34 @@ class Motion(metaclass=MCMetaClass):
              ``-1`` for negative direction.
             cycles : movement cycles.
             frequency : cycles for second.
+            gain: positive generator gain.
             servo : servo alias to reference it. ``default`` by default.
             axis : servo axis. ``1`` by default.
 
         Raises:
             TypeError: If direction, cycles or frequency is not of the correct type.
+            ValueError: If gain is not positive.
 
         """
+        if gain < 0:
+            raise ValueError("Gain should be positive")
         self.mc.configuration.set_generator_mode(GeneratorMode.SAW_TOOTH, servo=servo, axis=axis)
         self.mc.communication.set_register(
             self.GENERATOR_FREQUENCY_REGISTER, frequency, servo=servo, axis=axis
         )
         if direction > 0:
             self.mc.communication.set_register(
-                self.GENERATOR_GAIN_REGISTER, 1, servo=servo, axis=axis
+                self.GENERATOR_GAIN_REGISTER, gain, servo=servo, axis=axis
             )
             self.mc.communication.set_register(
                 self.GENERATOR_OFFSET_REGISTER, 0, servo=servo, axis=axis
             )
         else:
             self.mc.communication.set_register(
-                self.GENERATOR_GAIN_REGISTER, -1, servo=servo, axis=axis
+                self.GENERATOR_GAIN_REGISTER, -gain, servo=servo, axis=axis
             )
             self.mc.communication.set_register(
-                self.GENERATOR_OFFSET_REGISTER, 1, servo=servo, axis=axis
+                self.GENERATOR_OFFSET_REGISTER, gain, servo=servo, axis=axis
             )
 
         self.mc.communication.set_register(

@@ -43,6 +43,7 @@ def test_target_latch(motion_controller):
     assert pytest.approx(init_pos + pos_res, rel_tolerance) == test_act_pos
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("operation_mode", list(OperationMode))
 def test_set_operation_mode(motion_controller, operation_mode):
@@ -72,14 +73,14 @@ def test_motor_enable(motion_controller):
 @pytest.mark.parametrize(
     "uid, value, exception_type, message",
     [
-        ("DRV_PROT_USER_UNDER_VOLT", 100, exceptions.ILStateError, "User Under-voltage detected"),
+        ("DRV_PROT_USER_UNDER_VOLT", 100, exceptions.ILError, "User Under-voltage detected"),
         (
             "DRV_PROT_USER_OVER_TEMP",
             1,
-            exceptions.ILStateError,
+            exceptions.ILError,
             "Over-temperature detected (user limit)",
         ),
-        ("DRV_PROT_USER_OVER_VOLT", 1, exceptions.ILStateError, "User Over-voltage detected"),
+        ("DRV_PROT_USER_OVER_VOLT", 1, exceptions.ILError, "User Over-voltage detected"),
     ],
 )
 def test_motor_enable_error(motion_controller_teardown, uid, value, exception_type, message):
@@ -94,7 +95,7 @@ def test_motor_enable_error(motion_controller_teardown, uid, value, exception_ty
 def test_motor_enable_with_fault(motion_controller_teardown):
     uid = "DRV_PROT_USER_UNDER_VOLT"
     value = 100
-    exception_type = exceptions.ILStateError
+    exception_type = exceptions.ILError
     message = "User Under-voltage detected"
     mc, alias = motion_controller_teardown
     mc.communication.set_register(uid, value, alias)
@@ -120,7 +121,7 @@ def test_motor_disable(motion_controller, enable_motor):
 def test_motor_disable_with_fault(motion_controller_teardown):
     uid = "DRV_PROT_USER_UNDER_VOLT"
     value = 100
-    exception_type = exceptions.ILStateError
+    exception_type = exceptions.ILError
     mc, alias = motion_controller_teardown
     mc.communication.set_register(uid, value, alias)
     with pytest.raises(exception_type):
@@ -136,13 +137,14 @@ def test_fault_reset(motion_controller_teardown):
     value = 100
     mc.communication.set_register(uid, value, alias)
     assert not mc.errors.is_fault_active(servo=alias)
-    with pytest.raises(exceptions.ILStateError):
+    with pytest.raises(exceptions.ILError):
         mc.motion.motor_enable(servo=alias)
     assert mc.errors.is_fault_active(servo=alias)
     mc.motion.fault_reset(servo=alias)
     assert not mc.errors.is_fault_active(servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("position_value", [1000, 0, -1000, 4000])
 def test_set_position(motion_controller, position_value):
@@ -165,6 +167,7 @@ def test_move_position(motion_controller, position_value):
     assert pytest.approx(position_value, abs=pos_tolerance) == test_position
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("velocity_value", [0.5, 1, 0, -0.5])
 def test_set_velocity(motion_controller, velocity_value):
@@ -187,6 +190,7 @@ def test_set_velocity_blocking(motion_controller, velocity_value):
     assert pytest.approx(velocity_value, abs=0.1) == test_vel
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("current_value", [0.5, 1, 0, -0.5])
 def test_set_current_quadrature(motion_controller, current_value):
@@ -196,6 +200,7 @@ def test_set_current_quadrature(motion_controller, current_value):
     assert pytest.approx(current_value) == test_current
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("current_value", [0.5, 1, 0, -0.5])
 def test_set_current_direct(motion_controller, current_value):
@@ -205,6 +210,7 @@ def test_set_current_direct(motion_controller, current_value):
     assert pytest.approx(current_value) == test_current
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("voltage_value", [0.5, 1, 0, -0.5])
 def test_set_voltage_quadrature(motion_controller, voltage_value):
@@ -214,6 +220,7 @@ def test_set_voltage_quadrature(motion_controller, voltage_value):
     assert pytest.approx(voltage_value) == test_voltage
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("voltage_value", [0.5, 1, 0, -0.5])
 def test_set_voltage_direct(motion_controller, voltage_value):
@@ -223,6 +230,7 @@ def test_set_voltage_direct(motion_controller, voltage_value):
     assert pytest.approx(voltage_value) == test_voltage
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "init_v, final_v, total_t, t, result",
@@ -278,6 +286,7 @@ def test_get_actual_velocity(motion_controller, velocity_value):
     assert np.abs(np.mean(test_velocity) - np.mean(reg_value)) < 0.1
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_actual_current_direct(mocker, motion_controller):
     mc, alias = motion_controller
@@ -287,6 +296,7 @@ def test_get_actual_current_direct(mocker, motion_controller):
     patch_get_register.assert_called_once_with(ACTUAL_DIRECT_CURRENT_REGISTER, servo=alias, axis=1)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_actual_current_quadrature(mocker, motion_controller):
     mc, alias = motion_controller
@@ -298,22 +308,20 @@ def test_get_actual_current_quadrature(mocker, motion_controller):
     )
 
 
-def test_wait_for_position_timeout(motion_controller):
+@pytest.mark.parametrize(
+    "function",
+    [
+        "wait_for_position",
+        "wait_for_velocity",
+    ],
+)
+@pytest.mark.virtual
+def test_wait_for_function_timeout(motion_controller, function):
     timeout_value = 2
     mc, alias = motion_controller
     init_time = time.time()
     with pytest.raises(IMTimeoutError):
-        mc.motion.wait_for_position(10000, servo=alias, timeout=timeout_value)
-    final_time = time.time()
-    assert pytest.approx(timeout_value, abs=0.1) == final_time - init_time
-
-
-def test_wait_for_velocity_timeout(motion_controller):
-    timeout_value = 2
-    mc, alias = motion_controller
-    init_time = time.time()
-    with pytest.raises(IMTimeoutError):
-        mc.motion.wait_for_velocity(10000, servo=alias, timeout=timeout_value)
+        getattr(mc.motion, function)(1000, servo=alias, timeout=timeout_value)
     final_time = time.time()
     assert pytest.approx(timeout_value, abs=0.1) == final_time - init_time
 
@@ -388,3 +396,29 @@ def test_internal_generator_constant_move(motion_controller_teardown, op_mode, d
             abs(total_movement - expected_movement)
             < pos_resolution * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
         )
+
+
+@pytest.mark.parametrize(
+    "function",
+    [
+        "target_latch",
+        "get_operation_mode",
+        "get_actual_position",
+        "get_actual_velocity",
+        "get_actual_current_direct",
+        "get_actual_current_quadrature",
+    ],
+)
+@pytest.mark.virtual
+def test_wrong_type_exception(mocker, motion_controller, function):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.communication, "get_register", return_value="invalid_value")
+    with pytest.raises(TypeError):
+        getattr(mc.motion, function)(servo=alias)
+
+
+@pytest.mark.virtual
+def test_set_internal_generator_configuration_exception(motion_controller):
+    mc, alias = motion_controller
+    with pytest.raises(ValueError):
+        mc.motion.set_internal_generator_configuration(OperationMode.VELOCITY, servo=alias)

@@ -1,8 +1,17 @@
 import os
 
 import pytest
+from ingenialink.ethercat.servo import EthercatServo
 
-from ingenialink.canopen.network import CAN_BAUDRATE
+from ingeniamotion.enums import (
+    CommutationMode,
+    FilterType,
+    FilterNumber,
+    FilterSignal,
+    CAN_BAUDRATE,
+)
+from ingeniamotion.exceptions import IMException
+from ingeniamotion.configuration import TYPE_SUBNODES
 
 BRAKE_OVERRIDE_REGISTER = "MOT_BRAKE_OVERRIDE"
 POSITION_SET_POINT_REGISTER = "CL_POS_SET_POINT_VALUE"
@@ -26,6 +35,13 @@ POSITION_LOOP_KI_REGISTER = "CL_POS_PID_KI"
 POSITION_LOOP_KD_REGISTER = "CL_POS_PID_KD"
 RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
 MAX_CURRENT_REGISTER = "CL_CUR_REF_MAX"
+COMMUTATION_MODE_REGISTER = "MOT_COMMU_MOD"
+BUS_VOLTAGE_REGISTER = "DRV_PROT_VBUS_VALUE"
+POSITION_TO_VELOCITY_RATIO_REGISTER = "PROF_POS_VEL_RATIO"
+FILTER_TYPE_REGISTER = "CL_{}_FILTER{}_TYPE"
+FILTER_FREQ_REGISTER = "CL_{}_FILTER{}_FREQ"
+FILTER_Q_REGISTER = "CL_{}_FILTER{}_Q"
+FILTER_GAIN_REGISTER = "CL_{}_FILTER{}_GAIN"
 
 
 @pytest.fixture
@@ -35,6 +51,7 @@ def teardown_brake_override(motion_controller):
     mc.configuration.default_brake(servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_release_brake(motion_controller, teardown_brake_override):
     mc, alias = motion_controller
@@ -45,6 +62,7 @@ def test_release_brake(motion_controller, teardown_brake_override):
     )
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_enable_brake(motion_controller, teardown_brake_override):
     mc, alias = motion_controller
@@ -55,6 +73,7 @@ def test_enable_brake(motion_controller, teardown_brake_override):
     )
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_disable_brake_override(motion_controller, teardown_brake_override):
     mc, alias = motion_controller
@@ -105,6 +124,7 @@ def test_save_configuration_and_load_configuration_nvm_none(motion_controller):
     mc.communication.set_register(POSITION_SET_POINT_REGISTER, old_value, servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_set_profiler_exception(motion_controller):
     mc, alias = motion_controller
@@ -113,6 +133,7 @@ def test_set_profiler_exception(motion_controller):
         mc.configuration.set_profiler(None, None, None, servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "acceleration, deceleration, velocity",
@@ -135,6 +156,7 @@ def test_set_profiler(motion_controller, acceleration, deceleration, velocity):
         assert pytest.approx(expected_values[key]) == actual_value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("acceleration", [0, 10, 25])
 def test_set_max_acceleration(motion_controller, acceleration):
@@ -144,6 +166,7 @@ def test_set_max_acceleration(motion_controller, acceleration):
     assert pytest.approx(acceleration) == output_value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("acceleration", [0, 10, 25])
 def test_set_max_profile_acceleration(motion_controller, acceleration):
@@ -153,6 +176,7 @@ def test_set_max_profile_acceleration(motion_controller, acceleration):
     assert pytest.approx(acceleration) == output_value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("deceleration", [0, 10, 25])
 def test_set_max_deceleration(motion_controller, deceleration):
@@ -162,6 +186,7 @@ def test_set_max_deceleration(motion_controller, deceleration):
     assert pytest.approx(output_value) == deceleration
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("velocity", [0, 10, 25])
 def test_set_max_velocity(motion_controller, velocity):
@@ -171,6 +196,7 @@ def test_set_max_velocity(motion_controller, velocity):
     assert pytest.approx(velocity) == output_value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("velocity", [0, 10, 25])
 def test_set_max_profile_velocity(motion_controller, velocity):
@@ -180,6 +206,7 @@ def test_set_max_profile_velocity(motion_controller, velocity):
     assert pytest.approx(velocity) == output_value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_position_and_velocity_loop_rate(motion_controller):
     mc, alias = motion_controller
@@ -188,6 +215,7 @@ def test_get_position_and_velocity_loop_rate(motion_controller):
     assert test_value == reg_value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_current_loop_rate(motion_controller):
     mc, alias = motion_controller
@@ -196,12 +224,14 @@ def test_get_current_loop_rate(motion_controller):
     assert test_value == reg_value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_power_stage_frequency(motion_controller):
     mc, alias = motion_controller
     mc.configuration.get_power_stage_frequency(servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_power_stage_frequency_raw(motion_controller):
     mc, alias = motion_controller
@@ -212,12 +242,14 @@ def test_get_power_stage_frequency_raw(motion_controller):
     assert test_value == pow_stg_freq
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_power_stage_frequency_enum(motion_controller):
     mc, alias = motion_controller
     mc.configuration.get_power_stage_frequency_enum(servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("input_value", [0, 1, 2, 3])
 def test_set_power_stage_frequency(motion_controller_teardown, input_value):
@@ -230,6 +262,7 @@ def test_set_power_stage_frequency(motion_controller_teardown, input_value):
     assert pytest.approx(input_value) == output_value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_power_stage_frequency_exception(mocker, motion_controller):
     mc, alias = motion_controller
@@ -238,6 +271,7 @@ def test_get_power_stage_frequency_exception(mocker, motion_controller):
         mc.configuration.get_power_stage_frequency(servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_status_word(motion_controller):
     mc, alias = motion_controller
@@ -257,6 +291,7 @@ def test_is_motor_enabled_1(motion_controller):
     assert not mc.configuration.is_motor_enabled(servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "status_word_value, expected_result",
@@ -278,6 +313,7 @@ def test_is_motor_enabled_2(mocker, motion_controller, status_word_value, expect
     assert test_value == expected_result
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "status_word_value, expected_result",
@@ -301,6 +337,7 @@ def test_is_commutation_feedback_aligned(
     assert test_value == expected_result
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_set_phasing_mode(motion_controller):
     input_value = 0
@@ -310,6 +347,7 @@ def test_set_phasing_mode(motion_controller):
     assert pytest.approx(input_value) == output_value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_phasing_mode(motion_controller):
     mc, alias = motion_controller
@@ -318,6 +356,7 @@ def test_get_phasing_mode(motion_controller):
     assert test_value == reg_value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_set_generator_mode(motion_controller):
     input_value = 0
@@ -327,6 +366,7 @@ def test_set_generator_mode(motion_controller):
     assert pytest.approx(input_value) == output_value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_set_motor_pair_poles(motion_controller_teardown):
     input_value = 0
@@ -336,6 +376,7 @@ def test_set_motor_pair_poles(motion_controller_teardown):
     assert pytest.approx(input_value) == output_value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_motor_pair_poles(motion_controller):
     mc, alias = motion_controller
@@ -344,6 +385,7 @@ def test_get_motor_pair_poles(motion_controller):
     assert test_value == reg_value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_sto_status(motion_controller):
     mc, alias = motion_controller
@@ -356,6 +398,7 @@ def patch_get_sto_status(mocker, value):
     mocker.patch("ingeniamotion.configuration.Configuration.get_sto_status", return_value=value)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_status_value, expected_result",
@@ -375,6 +418,7 @@ def test_is_sto1_active(mocker, motion_controller, sto_status_value, expected_re
     assert value == expected_result
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_status_value, expected_result",
@@ -387,6 +431,7 @@ def test_is_sto2_active(mocker, motion_controller, sto_status_value, expected_re
     assert value == expected_result
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_status_value, expected_result",
@@ -411,6 +456,7 @@ def test_check_sto_abnormal_fault(mocker, motion_controller, sto_status_value, e
     assert value == expected_result
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_status_value, expected_result",
@@ -423,6 +469,7 @@ def test_get_sto_report_bit(mocker, motion_controller, sto_status_value, expecte
     assert value == expected_result
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_status_value, expected_result", [(0x13A0, False), (0x7648, False), (0x4, True)]
@@ -434,6 +481,7 @@ def test_is_sto_active(mocker, motion_controller, sto_status_value, expected_res
     assert value == expected_result
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_status_value, expected_result", [(0xC18A, False), (0x742C, False), (0x17, True)]
@@ -445,6 +493,7 @@ def test_is_sto_inactive(mocker, motion_controller, sto_status_value, expected_r
     assert value == expected_result
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_status_value, expected_result", [(0x1BF3, False), (0x6B7, False), (0x1F, True)]
@@ -563,6 +612,7 @@ def test_change_node_id_exception(motion_controller):
         mc.configuration.change_node_id(32, alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_set_velocity_pid(motion_controller_teardown):
     mc, alias = motion_controller_teardown
@@ -578,6 +628,7 @@ def test_set_velocity_pid(motion_controller_teardown):
     assert kd_test == kd_reg
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_set_position_pid(motion_controller_teardown):
     mc, alias = motion_controller_teardown
@@ -593,6 +644,7 @@ def test_set_position_pid(motion_controller_teardown):
     assert kd_test == kd_reg
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_set_rated_current(motion_controller):
     mc, alias = motion_controller
@@ -607,9 +659,178 @@ def test_get_set_rated_current(motion_controller):
     mc.communication.set_register(RATED_CURRENT_REGISTER, initial_rated_current, servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_max_current(motion_controller):
     mc, alias = motion_controller
     real_max_current = mc.communication.get_register(MAX_CURRENT_REGISTER, servo=alias)
     test_max_current = mc.configuration.get_max_current(alias)
     assert pytest.approx(real_max_current) == test_max_current
+
+
+@pytest.mark.virtual
+def test_set_commutation_mode(motion_controller):
+    input_value = CommutationMode.SINUSOIDAL
+    mc, alias = motion_controller
+    mc.configuration.set_commutation_mode(input_value, servo=alias)
+    output_value = mc.communication.get_register(COMMUTATION_MODE_REGISTER, servo=alias)
+    assert pytest.approx(input_value) == output_value
+
+
+@pytest.mark.virtual
+def test_get_commutation_mode(motion_controller):
+    mc, alias = motion_controller
+    test_value = mc.configuration.get_commutation_mode(servo=alias)
+    reg_value = mc.communication.get_register(COMMUTATION_MODE_REGISTER, servo=alias)
+    assert test_value == reg_value
+
+
+@pytest.mark.virtual
+def test_get_bus_voltage(motion_controller):
+    mc, alias = motion_controller
+    test_value = mc.configuration.get_bus_voltage(servo=alias)
+    reg_value = mc.communication.get_register(BUS_VOLTAGE_REGISTER, servo=alias)
+    assert pytest.approx(test_value) == reg_value
+
+
+@pytest.mark.virtual
+def test_set_pos_to_vel_ratio(motion_controller):
+    input_value = 1.0
+    mc, alias = motion_controller
+    mc.configuration.set_pos_to_vel_ratio(input_value, servo=alias)
+    output_value = mc.communication.get_register(POSITION_TO_VELOCITY_RATIO_REGISTER, servo=alias)
+    assert pytest.approx(input_value) == output_value
+
+
+@pytest.mark.virtual
+def test_get_pos_to_vel_ratio(motion_controller):
+    mc, alias = motion_controller
+    test_value = mc.configuration.get_pos_to_vel_ratio(servo=alias)
+    reg_value = mc.communication.get_register(POSITION_TO_VELOCITY_RATIO_REGISTER, servo=alias)
+    assert test_value == reg_value
+
+
+@pytest.mark.virtual
+@pytest.mark.parametrize("filter_type", [FilterType.LOWPASS, FilterType.HIGHPASS])
+@pytest.mark.parametrize("filter_number", [FilterNumber.FILTER1, FilterNumber.FILTER2])
+@pytest.mark.parametrize(
+    "filter_signal", [FilterSignal.CURRENT_FEEDBACK, FilterSignal.VELOCITY_REFERENCE]
+)
+def test_configure_filter(motion_controller, filter_type, filter_number, filter_signal):
+    mc, alias = motion_controller
+    frequency = 10
+    q_factor = 1.3
+    gain = 1.2
+    mc.configuration.configure_filter(
+        filter_signal,
+        filter_number,
+        filter_type=filter_type,
+        frequency=frequency,
+        q_factor=q_factor,
+        gain=gain,
+        servo=alias,
+    )
+
+    reg_type = FILTER_TYPE_REGISTER.format(filter_signal.value, filter_number.value)
+    read_type = mc.communication.get_register(reg_type, servo=alias)
+    assert pytest.approx(read_type) == filter_type
+
+    reg_freq = FILTER_FREQ_REGISTER.format(filter_signal.value, filter_number.value)
+    read_freq = mc.communication.get_register(reg_freq, servo=alias)
+    assert pytest.approx(read_freq) == frequency
+
+    reg_q_factor = FILTER_Q_REGISTER.format(filter_signal.value, filter_number.value)
+    read_q_factor = mc.communication.get_register(reg_q_factor, servo=alias)
+    assert pytest.approx(read_q_factor) == q_factor
+
+    reg_gain = FILTER_GAIN_REGISTER.format(filter_signal.value, filter_number.value)
+    read_gain = mc.communication.get_register(reg_gain, servo=alias)
+    assert pytest.approx(read_gain) == gain
+
+
+@pytest.mark.virtual
+def test_load_configuration_file_not_found(motion_controller):
+    file_path = "test_file.xcf"
+    mc, alias = motion_controller
+    with pytest.raises(FileNotFoundError):
+        mc.configuration.load_configuration(file_path, servo=alias)
+
+
+@pytest.mark.parametrize(
+    "function, wrong_value",
+    [
+        ("get_max_velocity", 1),
+        ("get_position_and_velocity_loop_rate", 1.0),
+        ("get_current_loop_rate", 1.0),
+        ("get_power_stage_frequency", 1.0),
+        ("get_status_word", 1.0),
+        ("get_phasing_mode", 1.0),
+        ("get_motor_pair_poles", 1.0),
+        ("get_sto_status", 1.0),
+        ("get_rated_current", 1),
+        ("get_max_current", 1),
+        ("get_commutation_mode", 1.0),
+        ("get_bus_voltage", 1),
+        ("get_pos_to_vel_ratio", 1),
+    ],
+)
+@pytest.mark.virtual
+def test_wrong_type_exception(mocker, motion_controller, function, wrong_value):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.communication, "get_register", return_value=wrong_value)
+    with pytest.raises(TypeError):
+        getattr(mc.configuration, function)(servo=alias)
+
+
+@pytest.mark.virtual
+def test_get_phasing_mode_invalid(mocker, motion_controller):
+    mc, alias = motion_controller
+    invalid_enum_value = 8
+    mocker.patch.object(mc.communication, "get_register", return_value=invalid_enum_value)
+    phasing_mode = mc.configuration.get_phasing_mode(servo=alias)
+    assert phasing_mode == invalid_enum_value
+
+
+@pytest.mark.virtual
+def test_change_tcp_ip_parameters_exception(mocker, motion_controller):
+    mc, alias = motion_controller
+    mocker.patch.object(mc, "_get_drive", return_value=EthercatServo)
+    with pytest.raises(IMException):
+        mc.configuration.change_tcp_ip_parameters(
+            "192.168.2.22", "255.255.0.0", "192.168.2.1", servo=alias
+        )
+
+
+@pytest.mark.parametrize(
+    "function",
+    [
+        "store_tcp_ip_parameters",
+        "restore_tcp_ip_parameters",
+    ],
+)
+@pytest.mark.virtual
+def test_store_restore_tcp_ip_parameters_exception(mocker, motion_controller, function):
+    mc, alias = motion_controller
+    mocker.patch.object(mc, "_get_drive", return_value=EthercatServo)
+    with pytest.raises(IMException):
+        getattr(mc.configuration, function)(servo=alias)
+
+
+@pytest.mark.parametrize(
+    "subnode, expected_result",
+    [
+        (0, TYPE_SUBNODES.COCO),
+        (1, TYPE_SUBNODES.MOCO),
+    ],
+)
+@pytest.mark.virtual
+def test_get_subnode_type(motion_controller, subnode, expected_result):
+    mc, alias = motion_controller
+    assert mc.configuration.get_subnode_type(subnode) == expected_result
+
+
+@pytest.mark.virtual
+def test_get_subnode_type_exception(motion_controller):
+    mc, alias = motion_controller
+    with pytest.raises(ValueError):
+        mc.configuration.get_subnode_type(-1)

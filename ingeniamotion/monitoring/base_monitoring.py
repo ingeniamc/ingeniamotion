@@ -1,21 +1,21 @@
-import time
 import struct
-import numpy as np
-import ingenialogger
-from functools import wraps
+import time
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union, Callable
+from functools import wraps
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union
 
+import ingenialogger
+import numpy as np
 from ingenialink.enums.register import REG_DTYPE
 
-from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
-from ingeniamotion.exceptions import IMMonitoringError
 from ingeniamotion.enums import (
     MonitoringProcessStage,
-    MonitoringSoCType,
     MonitoringSoCConfig,
+    MonitoringSoCType,
     MonitoringVersion,
 )
+from ingeniamotion.exceptions import IMMonitoringError
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -69,7 +69,7 @@ class Monitoring(ABC):
         super().__init__()
         self.mc = mc
         self.servo = servo
-        self.mapped_registers: List[Dict[str, Union[str, REG_DTYPE]]] = []
+        self.mapped_registers: List[Dict[str, Union[int, str, REG_DTYPE]]] = []
         self.sampling_freq: Optional[float] = None
         self._read_process_finished = False
         self.samples_number = 0
@@ -105,7 +105,7 @@ class Monitoring(ABC):
         )
 
     @check_monitoring_disabled
-    def map_registers(self, registers: List[Dict[str, Union[str, REG_DTYPE]]]) -> None:
+    def map_registers(self, registers: List[Dict[str, Union[int, str, REG_DTYPE]]]) -> None:
         """Map registers to monitoring. Monitoring must be disabled.
 
         Args:
@@ -178,7 +178,7 @@ class Monitoring(ABC):
         self,
         trigger_mode: MonitoringSoCType,
         edge_condition: Optional[MonitoringSoCConfig] = None,
-        trigger_signal: Optional[Dict[str, str]] = None,
+        trigger_signal: Optional[Dict[str, Union[int, str]]] = None,
         trigger_value: Union[None, int, float] = None,
     ) -> None:
         """Configure monitoring trigger. Monitoring must be disabled.
@@ -390,12 +390,12 @@ class Monitoring(ABC):
         self,
         total_samples: int,
         trigger_delay_samples: int,
-        registers: List[Dict[str, Union[str, REG_DTYPE]]],
+        registers: List[Dict[str, Union[int, str, REG_DTYPE]]],
     ) -> None:
         pass
 
     def _check_samples_and_max_size(
-        self, n_sample: int, max_size: int, registers: List[Dict[str, Union[str, REG_DTYPE]]]
+        self, n_sample: int, max_size: int, registers: List[Dict[str, Union[int, str, REG_DTYPE]]]
     ) -> None:
         size_demand = sum(
             self._data_type_size[register["dtype"]] * n_sample

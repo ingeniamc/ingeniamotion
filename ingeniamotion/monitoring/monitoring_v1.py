@@ -3,9 +3,9 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 import ingenialogger
 from ingenialink.enums.register import REG_DTYPE
 
-from ingeniamotion.metaclass import DEFAULT_SERVO
+from ingeniamotion.enums import MonitoringSoCConfig, MonitoringSoCType, MonitoringVersion
 from ingeniamotion.exceptions import IMStatusWordError
-from ingeniamotion.enums import MonitoringVersion, MonitoringSoCType, MonitoringSoCConfig
+from ingeniamotion.metaclass import DEFAULT_SERVO
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -147,7 +147,7 @@ class MonitoringV1(Monitoring):
         self,
         total_samples: int,
         trigger_delay_samples: int,
-        registers: List[Dict[str, Union[str, REG_DTYPE]]],
+        registers: List[Dict[str, Union[int, str, REG_DTYPE]]],
     ) -> None:
         n_sample = max(total_samples - trigger_delay_samples, trigger_delay_samples)
         max_size = self.max_sample_number // 2

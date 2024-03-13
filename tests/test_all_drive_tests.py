@@ -1,11 +1,12 @@
 import time
-import pytest
-
 from threading import Thread
+
+import pytest
 from ingenialink import exceptions
 
 from ingeniamotion.enums import SensorType, SeverityLevel
 from ingeniamotion.exceptions import IMRegisterNotExist
+from ingeniamotion.wizard_tests.base_test import TestError
 from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder1_test import AbsoluteEncoder1Test
 from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder2_test import AbsoluteEncoder2Test
 from ingeniamotion.wizard_tests.feedbacks_tests.digital_hall_test import DigitalHallTest
@@ -18,7 +19,6 @@ from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental2_test import
 from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import SecondarySSITest
 from ingeniamotion.wizard_tests.phase_calibration import Phasing
 from ingeniamotion.wizard_tests.phasing_check import PhasingCheck
-from ingeniamotion.wizard_tests.base_test import TestError
 
 CURRENT_QUADRATURE_SET_POINT_REGISTER = "CL_CUR_Q_SET_POINT"
 RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
@@ -30,7 +30,7 @@ def force_fault(motion_controller):
     mc, alias = motion_controller
     uid = "DRV_PROT_USER_UNDER_VOLT"
     mc.communication.set_register(uid, 100, alias)
-    yield exceptions.ILStateError
+    yield exceptions.ILError
     mc.communication.set_register(uid, 10, alias)
 
 
@@ -135,10 +135,10 @@ def test_commutation_error(motion_controller, force_fault):
         mc.tests.commutation(servo=alias)
 
 
-# TODO: Remove skip mark after fixing INGM-352
-@pytest.mark.skip
+@pytest.mark.skip("Skip until is fixed INGM-352")
 def test_phasing_check(motion_controller):
     mc, alias = motion_controller
+    mc.tests.commutation(servo=alias)
     results = mc.tests.phasing_check(servo=alias)
     assert results["result_severity"] == SeverityLevel.SUCCESS
 
@@ -157,6 +157,7 @@ def test_sto_test(motion_controller):
     assert results["result_severity"] == SeverityLevel.SUCCESS
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_value, message",
@@ -225,7 +226,7 @@ def test_feedback_stop(motion_controller, feedback_class):
         assert reg_values[reg] == mc.communication.get_register(reg, servo=alias)
 
 
-@pytest.mark.usefixtures("commutation_teardown")
+@pytest.mark.virtual
 def test_commutation_stop(motion_controller):
     mc, alias = motion_controller
     test = Phasing(mc, alias, 1)
@@ -235,7 +236,7 @@ def test_commutation_stop(motion_controller):
         assert reg_values[reg] == mc.communication.get_register(reg, servo=alias)
 
 
-@pytest.mark.usefixtures("commutation_teardown")
+@pytest.mark.virtual
 def test_phasing_check_stop(motion_controller):
     mc, alias = motion_controller
     test = PhasingCheck(mc, alias, 1)
@@ -245,6 +246,7 @@ def test_phasing_check_stop(motion_controller):
         assert reg_values[reg] == mc.communication.get_register(reg, servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.parametrize("test_currents", ["Rated current", "Drive current", "Same value"])
 @pytest.mark.parametrize(
     "test_sensor",

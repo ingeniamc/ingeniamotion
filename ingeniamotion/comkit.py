@@ -1,6 +1,6 @@
 import io
 import xml.etree.ElementTree as ET
-from xml.etree.ElementTree import ElementTree, Element
+from xml.etree.ElementTree import Element
 from enum import Enum
 from typing import Optional
 from xml.dom import minidom

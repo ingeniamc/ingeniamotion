@@ -5,7 +5,7 @@ from ingenialink.exceptions import ILError
 
 from ingeniamotion.wizard_tests.base_test import BaseTest
 from ingeniamotion.wizard_tests.stoppable import StopException
-from ingeniamotion.enums import OperationMode, SeverityLevel
+from ingeniamotion.enums import OperationMode, SeverityLevel, CommutationMode
 from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 
 if TYPE_CHECKING:
@@ -38,7 +38,9 @@ class Brake(BaseTest):
     def setup(self) -> None:
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
         self.mc.configuration.disable_brake_override(servo=self.servo, axis=self.axis)
-        self.mc.communication.set_register("MOT_COMMU_MOD", 0, servo=self.servo, axis=self.axis)
+        self.mc.configuration.set_commutation_mode(
+            CommutationMode.SINUSOIDAL, servo=self.servo, axis=self.axis
+        )
         self.mc.motion.set_internal_generator_configuration(
             OperationMode.VOLTAGE, servo=self.servo, axis=self.axis
         )

@@ -3,8 +3,14 @@ import time
 import pytest
 import numpy as np
 
-from ingeniamotion.exceptions import IMStatusWordError
-from ingeniamotion.enums import OperationMode, MonitoringSoCType, MonitoringSoCConfig
+from ingeniamotion.exceptions import IMStatusWordError, IMMonitoringError
+from ingeniamotion.enums import (
+    OperationMode,
+    MonitoringSoCType,
+    MonitoringSoCConfig,
+    MonitoringVersion,
+    MonitoringProcessStage,
+)
 
 
 def __compare_signals(expected_signal, received_signal, fft_tol=0.05):
@@ -225,6 +231,7 @@ def test_create_disturbance(
     assert __compare_signals(data, read_data)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_mcb_synchronization(mocker, motion_controller):
     mc, alias = motion_controller
@@ -243,6 +250,7 @@ def test_mcb_synchronization_fail(motion_controller):
         mc.capture.mcb_synchronization(servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_disturbance_max_sample_size(skip_if_monitoring_not_available, motion_controller):
     mc, alias = motion_controller
@@ -254,6 +262,7 @@ def test_disturbance_max_sample_size(skip_if_monitoring_not_available, motion_co
     assert max_sample_size == value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_monitoring_max_sample_size(skip_if_monitoring_not_available, motion_controller):
     mc, alias = motion_controller
@@ -281,3 +290,170 @@ def test_get_frequency(
     new_divider = 2
     monitoring.set_frequency(new_divider)
     assert mc.capture.get_frequency(servo=alias) == max_frequency / new_divider
+
+
+@pytest.mark.parametrize(
+    "name, axis",
+    [("CL_CUR_Q_SET_POINT", "1"), (1, 1)],
+)
+@pytest.mark.virtual
+def test_create_poller_exceptions(motion_controller, name, axis):
+    sampling_time = 0.0625
+    registers = [{"name": name, "axis": axis}]
+    mc, alias = motion_controller
+    with pytest.raises(TypeError):
+        mc.capture.create_poller(registers, alias, sampling_time)
+
+
+@pytest.mark.virtual
+def test_create_empty_monitoring_exception(mocker, motion_controller):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.capture, "_check_version", return_value=MonitoringVersion.MONITORING_V2)
+    with pytest.raises(NotImplementedError):
+        mc.capture.create_empty_monitoring(servo=alias)
+
+
+@pytest.mark.virtual
+def test_check_monitoring_version_v3(motion_controller):
+    mc, alias = motion_controller
+    version = mc.capture._check_version(servo=alias)
+    assert version == MonitoringVersion.MONITORING_V3
+
+
+@pytest.mark.virtual
+def test_check_monitoring_version_v2(mocker, motion_controller):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.capture, "MONITORING_VERSION_REGISTER", return_value="NON_EXISTING_UID")
+    version = mc.capture._check_version(servo=alias)
+    assert version == MonitoringVersion.MONITORING_V2
+
+
+@pytest.mark.virtual
+def test_check_monitoring_version_v1(mocker, motion_controller):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.capture, "MONITORING_VERSION_REGISTER", return_value="NON_EXISTING_UID")
+    mocker.patch.object(
+        mc.capture, "MONITORING_CURRENT_NUMBER_BYTES_REGISTER", return_value="NON_EXISTING_UID"
+    )
+    version = mc.capture._check_version(servo=alias)
+    assert version == MonitoringVersion.MONITORING_V1
+
+
+@pytest.mark.virtual
+def test_check_monitoring_version_not_available(mocker, motion_controller):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.capture, "MONITORING_VERSION_REGISTER", return_value="NON_EXISTING_UID")
+    mocker.patch.object(
+        mc.capture, "MONITORING_CURRENT_NUMBER_BYTES_REGISTER", return_value="NON_EXISTING_UID"
+    )
+    mocker.patch.object(mc.capture, "MONITORING_STATUS_REGISTER", return_value="NON_EXISTING_UID")
+    with pytest.raises(NotImplementedError):
+        mc.capture._check_version(servo=alias)
+
+
+@pytest.mark.virtual
+def test_enable_monitoring_exception(mocker, motion_controller):
+    mc, alias = motion_controller
+    monitoring = mc.capture.create_empty_monitoring(alias)
+    mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=False)
+    monitoring.map_registers([{"axis": 1, "name": "CL_POS_FBK_VALUE"}])
+    with pytest.raises(IMMonitoringError):
+        mc.capture.enable_monitoring(servo=alias)
+
+
+@pytest.mark.virtual
+def test_enable_disturbance_exception(mocker, motion_controller):
+    mc, alias = motion_controller
+    monitoring = mc.capture.create_empty_monitoring(alias)
+    mocker.patch.object(mc.capture, "is_disturbance_enabled", return_value=False)
+    mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=False)
+    monitoring.map_registers([{"axis": 1, "name": "CL_POS_FBK_VALUE"}])
+    with pytest.raises(IMMonitoringError):
+        mc.capture.enable_disturbance(servo=alias)
+
+
+@pytest.mark.parametrize(
+    "function",
+    ["get_monitoring_disturbance_status", "get_monitoring_status", "get_disturbance_status"],
+)
+@pytest.mark.virtual
+def test_get_monitoring_disturbance_status_exception(mocker, motion_controller, function):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.communication, "get_register", return_value="invalid_value")
+    with pytest.raises(TypeError):
+        getattr(mc.capture, function)(servo=alias)
+
+
+@pytest.mark.parametrize(
+    "monitor_status, expected_stage",
+    [
+        (0x00, MonitoringProcessStage.INIT_STAGE),
+        (0x02, MonitoringProcessStage.FILLING_DELAY_DATA),
+        (0x04, MonitoringProcessStage.WAITING_FOR_TRIGGER),
+        (0x06, MonitoringProcessStage.DATA_ACQUISITION),
+        (0x08, MonitoringProcessStage.END_STAGE),
+    ],
+)
+@pytest.mark.virtual
+def test_get_monitoring_process_stage_v3(mocker, motion_controller, monitor_status, expected_stage):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.capture, "get_monitoring_status", return_value=monitor_status)
+    assert mc.capture.get_monitoring_process_stage(servo=alias) == expected_stage
+
+
+@pytest.mark.parametrize(
+    "monitoring_status, expected_stage",
+    [
+        (0x00, MonitoringProcessStage.INIT_STAGE),
+        (0x02, MonitoringProcessStage.FILLING_DELAY_DATA),
+        (0x04, MonitoringProcessStage.WAITING_FOR_TRIGGER),
+        (0x06, MonitoringProcessStage.DATA_ACQUISITION),
+    ],
+)
+@pytest.mark.virtual
+def test_get_monitoring_process_stage_v1_v2(
+    mocker, motion_controller, monitoring_status, expected_stage
+):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.capture, "get_monitoring_status", return_value=monitoring_status)
+    assert (
+        mc.capture.get_monitoring_process_stage(
+            servo=alias, version=MonitoringVersion.MONITORING_V2
+        )
+        == expected_stage
+    )
+
+
+@pytest.mark.parametrize(
+    "monitoring_status, monitoring_version",
+    [
+        (0x800, MonitoringVersion.MONITORING_V1),
+        (0x800, MonitoringVersion.MONITORING_V2),
+        (0x10, MonitoringVersion.MONITORING_V3),
+    ],
+)
+@pytest.mark.virtual
+def test_is_frame_available(mocker, motion_controller, monitoring_status, monitoring_version):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.capture, "get_monitoring_status", return_value=monitoring_status)
+    assert mc.capture.is_frame_available(servo=alias, version=monitoring_version)
+
+
+@pytest.mark.parametrize(
+    "function",
+    ["disturbance_max_sample_size", "monitoring_max_sample_size"],
+)
+@pytest.mark.virtual
+def test_monitoring_disturbance_max_sample_size_exception(mocker, motion_controller, function):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.communication, "get_register", return_value="invalid_value")
+    with pytest.raises(TypeError):
+        getattr(mc.capture, function)(servo=alias)
+
+
+@pytest.mark.virtual
+def test_get_frequency_exception(mocker, motion_controller):
+    mc, alias = motion_controller
+    mocker.patch.object(mc.communication, "get_register", return_value="invalid_value")
+    with pytest.raises(TypeError):
+        mc.capture.get_frequency(servo=alias)

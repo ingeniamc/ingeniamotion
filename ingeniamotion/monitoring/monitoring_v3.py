@@ -3,16 +3,17 @@ from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union
 import ingenialogger
 from ingenialink.enums.register import REG_DTYPE
 
-from ingeniamotion.metaclass import DEFAULT_SERVO
 from ingeniamotion.enums import (
-    MonitoringSoCConfig,
-    MonitoringVersion,
     MonitoringProcessStage,
+    MonitoringSoCConfig,
     MonitoringSoCType,
+    MonitoringVersion,
 )
+from ingeniamotion.metaclass import DEFAULT_SERVO
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
+
 from ingeniamotion.monitoring.base_monitoring import Monitoring, check_monitoring_disabled
 
 
@@ -132,7 +133,7 @@ class MonitoringV3(Monitoring):
         self,
         total_samples: int,
         trigger_delay_samples: int,
-        registers: List[Dict[str, Union[str, REG_DTYPE]]],
+        registers: List[Dict[str, Union[int, str, REG_DTYPE]]],
     ) -> None:
         n_sample = total_samples
         max_size = self.max_sample_number

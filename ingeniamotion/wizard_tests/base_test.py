@@ -89,7 +89,7 @@ class BaseTest(ABC, Stoppable):
         try:
             self.setup()
             output = self.loop()
-            self.report = self.__generate_report(output)
+            self.report = self.generate_report(output)
         except ILError as err:
             raise err
         except StopException:
@@ -101,7 +101,7 @@ class BaseTest(ABC, Stoppable):
                 self.restore_backup_registers()
         return self.report
 
-    def __generate_report(
+    def generate_report(
         self, output: Any
     ) -> Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]:
         return {

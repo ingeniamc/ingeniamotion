@@ -1,16 +1,14 @@
 import json
 import os
-from enum import Enum
-
-import pytest
-from typing import Dict
 import time
+from typing import Dict
+
 import numpy as np
+import pytest
+from virtual_drive.core import VirtualDrive
 
-from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE, SensorType
 from ingeniamotion import MotionController
-from ingenialink.virtual.virtual_drive import VirtualDrive
-
+from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE, SensorType
 
 ALLOW_PROTOCOLS = ["eoe", "soem", "canopen", "virtual"]
 
@@ -54,11 +52,11 @@ def connect_eoe(mc, config, alias):
 
 
 def connect_soem(mc, config, alias):
-    mc.communication.connect_servo_eoe_service_interface_index(
+    mc.communication.connect_servo_ethercat_interface_index(
         config["index"],
+        config["slave"],
         config["dictionary"],
-        slave=config["slave"],
-        alias=alias,
+        alias,
     )
 
 
@@ -85,9 +83,7 @@ def motion_controller(pytestconfig, read_config):
     elif protocol == "canopen":
         connect_canopen(mc, read_config, alias)
     elif protocol == "virtual":
-        virtual_drive = VirtualDrive(
-            read_config["ip"], read_config["port"], read_config["dictionary"]
-        )
+        virtual_drive = VirtualDrive(read_config["port"], read_config["dictionary"])
         virtual_drive.start()
         connect_eoe(mc, read_config, alias)
     else:
@@ -106,14 +102,18 @@ def motion_controller(pytestconfig, read_config):
 def disable_motor_fixture(pytestconfig, motion_controller):
     yield
     protocol = pytestconfig.getoption("--protocol")
-    if protocol != "no_connection":
+    if protocol != "virtual":
         mc, alias = motion_controller
         mc.motion.motor_disable(servo=alias)
+        mc.motion.fault_reset(servo=alias)
 
 
 @pytest.fixture
 def motion_controller_teardown(motion_controller, pytestconfig, read_config):
     yield motion_controller
+    protocol = pytestconfig.getoption("--protocol")
+    if protocol == "virtual":
+        return
     mc, alias = motion_controller
     mc.motion.motor_disable(servo=alias)
     mc.configuration.load_configuration(read_config["config_file"], servo=alias)
@@ -138,13 +138,6 @@ def feedback_list(motion_controller):
         mc.configuration.get_auxiliar_feedback(servo=alias),
     ]
     return set(fdbk_lst)
-
-
-@pytest.fixture
-def commutation_teardown(motion_controller):
-    yield
-    mc, alias = motion_controller
-    mc.tests.commutation(servo=alias)
 
 
 @pytest.fixture
@@ -177,14 +170,6 @@ def skip_if_monitoring_not_available(motion_controller):
         pytest.skip("Monitoring is not available")
 
 
-@pytest.fixture(scope="session", autouse=True)
-def log_node_protocol(record_testsuite_property, pytestconfig):
-    protocol = pytestconfig.getoption("--protocol")
-    slave = pytestconfig.getoption("--slave")
-    record_testsuite_property("protocol", protocol)
-    record_testsuite_property("slave", slave)
-
-
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
 def pytest_runtest_makereport(item, call):
     # execute all other hooks to obtain the report object
@@ -196,12 +181,15 @@ def pytest_runtest_makereport(item, call):
 
 
 @pytest.fixture(scope="function", autouse=True)
-def load_configuration_if_test_fails(request, motion_controller, read_config):
+def load_configuration_if_test_fails(pytestconfig, request, motion_controller, read_config):
     mc, alias = motion_controller
     yield
 
     report = request.node.stash[test_report_key]
-    if report["setup"].failed or ("call" not in report) or report["call"].failed:
+    protocol = pytestconfig.getoption("--protocol")
+    if protocol != "virtual" and (
+        report["setup"].failed or ("call" not in report) or report["call"].failed
+    ):
         mc.configuration.load_configuration(read_config["config_file"], servo=alias)
         mc.motion.fault_reset(servo=alias)
 

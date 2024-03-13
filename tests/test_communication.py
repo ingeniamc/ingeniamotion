@@ -1,16 +1,18 @@
 import time
-import pytest
+from collections import OrderedDict
 
-from ingenialink.servo import SERVO_STATE
+import pytest
+from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.exceptions import ILError
+from ingenialink.network import SlaveInfo
+from ingenialink.servo import SERVO_STATE
 
 from ingeniamotion import MotionController
-from ingeniamotion.exceptions import IMRegisterNotExist, IMRegisterWrongAccess
 from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE
+from ingeniamotion.exceptions import IMRegisterNotExist, IMRegisterWrongAccess
 
 
-@pytest.mark.smoke
-@pytest.mark.eoe
+@pytest.mark.virtual
 def test_connect_servo_eoe(read_config):
     mc = MotionController()
     assert "eoe_test" not in mc.servos
@@ -22,16 +24,14 @@ def test_connect_servo_eoe(read_config):
     assert "eoe_test" in mc.net and mc.net["eoe_test"] is not None
 
 
-@pytest.mark.smoke
-@pytest.mark.eoe
+@pytest.mark.virtual
 def test_connect_servo_eoe_no_dictionary_error(read_config):
     mc = MotionController()
     with pytest.raises(FileNotFoundError):
         mc.communication.connect_servo_eoe(read_config["ip"], "no_dictionary", alias="eoe_test")
 
 
-@pytest.mark.smoke
-@pytest.mark.eoe
+@pytest.mark.virtual
 def test_connect_servo_ethernet(read_config):
     mc = MotionController()
     assert "eoe_test" not in mc.servos
@@ -43,8 +43,7 @@ def test_connect_servo_ethernet(read_config):
     assert "eoe_test" in mc.net and mc.net["eoe_test"] is not None
 
 
-@pytest.mark.smoke
-@pytest.mark.eoe
+@pytest.mark.virtual
 def test_connect_servo_ethernet_no_dictionary_error(read_config):
     mc = MotionController()
     with pytest.raises(FileNotFoundError):
@@ -134,6 +133,7 @@ def test_connect_servo_canopen_busy_drive_error(motion_controller, read_config):
         )
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "uid, value",
@@ -151,6 +151,7 @@ def test_get_register(motion_controller, uid, value):
     assert pytest.approx(test_value) == value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_register_wrong_uid(motion_controller):
     mc, alias = motion_controller
@@ -158,6 +159,7 @@ def test_get_register_wrong_uid(motion_controller):
         mc.communication.get_register("WRONG_UID", servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "uid, value",
@@ -175,6 +177,7 @@ def test_set_register(motion_controller, uid, value):
     assert pytest.approx(test_value) == value
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_set_register_wrong_uid(motion_controller):
     mc, alias = motion_controller
@@ -182,6 +185,7 @@ def test_set_register_wrong_uid(motion_controller):
         mc.communication.set_register("WRONG_UID", 2, servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "uid, value, fail",
@@ -206,6 +210,7 @@ def test_set_register_wrong_value_type(motion_controller, uid, value, fail):
         mc.communication.set_register(uid, value, servo=alias)
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 def test_set_register_wrong_access(motion_controller):
     mc, alias = motion_controller
@@ -234,3 +239,86 @@ def test_subscribe_servo_status(mocker, motion_controller):
     for index, call in enumerate(patch_callback.call_args_list):
         assert call[0][0] == expected_status[index]
         assert call[0][2] == axis
+
+
+@pytest.mark.virtual
+def test_load_firmware_canopen_exception(motion_controller):
+    mc, alias = motion_controller
+    with pytest.raises(ValueError):
+        mc.communication.load_firmware_canopen("fake_fw_file.lfu", servo=alias)
+
+
+@pytest.mark.virtual
+def test_boot_mode_and_load_firmware_ethernet_exception(mocker, motion_controller):
+    mc, alias = motion_controller
+    mocker.patch.object(mc, "_get_network", return_value=EthercatNetwork("fake_interface_name"))
+    with pytest.raises(ValueError):
+        mc.communication.boot_mode_and_load_firmware_ethernet("fake_fw_file.lfu", servo=alias)
+
+
+@pytest.mark.virtual
+def test_load_firmware_moco_exception(mocker, motion_controller):
+    mc, alias = motion_controller
+    mocker.patch.object(mc, "_get_network", return_value=EthercatNetwork("fake_interface_name"))
+    with pytest.raises(ValueError):
+        mc.communication.load_firmware_moco("fake_fw_file.lfu", servo=alias)
+
+
+@pytest.mark.virtual
+def test_connect_servo_virtual():
+    mc = MotionController()
+    mc.communication.connect_servo_virtual()
+    assert mc.communication._Communication__virtual_drive is not None
+    mc.communication.disconnect()
+    assert mc.communication._Communication__virtual_drive is None
+
+
+@pytest.mark.virtual
+def test_connect_servo_virtual_custom_dictionary(read_config):
+    mc = MotionController()
+    mc.communication.connect_servo_virtual(dict_path=read_config["dictionary"])
+    assert mc.communication._Communication__virtual_drive is not None
+    mc.communication.disconnect()
+    assert mc.communication._Communication__virtual_drive is None
+
+
+@pytest.mark.virtual
+def test_scan_servos_canopen_with_info(mocker):
+    mc = MotionController()
+    detected_slaves = OrderedDict({31: SlaveInfo(1234, 123), 32: SlaveInfo(1234, 123)})
+    mocker.patch(
+        "ingenialink.canopen.network.CanopenNetwork.scan_slaves_info", return_value=detected_slaves
+    )
+    assert mc.communication.scan_servos_canopen_with_info(CAN_DEVICE.KVASER) == detected_slaves
+
+
+@pytest.mark.virtual
+def test_scan_servos_canopen(mocker):
+    mc = MotionController()
+    detected_slaves = [31, 32]
+    mocker.patch(
+        "ingenialink.canopen.network.CanopenNetwork.scan_slaves", return_value=detected_slaves
+    )
+    assert mc.communication.scan_servos_canopen(CAN_DEVICE.KVASER) == detected_slaves
+
+
+@pytest.mark.virtual
+def test_scan_servos_ethercat_with_info(mocker):
+    mc = MotionController()
+    detected_slaves = OrderedDict({1: SlaveInfo(1234, 123), 2: SlaveInfo(1234, 123)})
+    mocker.patch(
+        "ingenialink.ethercat.network.EthercatNetwork.scan_slaves_info",
+        return_value=detected_slaves,
+    )
+    assert mc.communication.scan_servos_ethercat_with_info("") == detected_slaves
+
+
+@pytest.mark.virtual
+def test_scan_servos_ethercat(mocker):
+    mc = MotionController()
+    detected_slaves = [1, 2]
+    mocker.patch(
+        "ingenialink.ethercat.network.EthercatNetwork.scan_slaves",
+        return_value=detected_slaves,
+    )
+    assert mc.communication.scan_servos_ethercat("") == detected_slaves

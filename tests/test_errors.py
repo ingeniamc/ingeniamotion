@@ -30,7 +30,11 @@ def generate_drive_errors(motion_controller):
         except ILError:
             pass
         error_code_list.append(item["code"])
-        mc.communication.set_register(item["register"], old_value, servo=alias)
+        try:
+            mc.communication.set_register(item["register"], old_value, servo=alias)
+        except ILError:
+            # Sometimes fails with EVE-XCR-E
+            mc.communication.set_register(item["register"], old_value, servo=alias)
     yield error_code_list[::-1]
     mc.motion.fault_reset(servo=alias)
 
@@ -107,6 +111,7 @@ class TestErrors:
         mc.communication.set_register(USER_UNDER_VOLTAGE_LEVEL_REGISTER, 10, servo=alias)
         assert not mc.errors.is_warning_active(servo=alias)
 
+    @pytest.mark.virtual
     @pytest.mark.smoke
     @pytest.mark.parametrize(
         "error_code, affected_module, error_type, error_msg",
@@ -128,3 +133,19 @@ class TestErrors:
         assert test_aff_mod == affected_module
         assert test_type == error_type
         assert test_msg == error_msg
+
+    @pytest.mark.parametrize(
+        "function",
+        [
+            "get_last_error",
+            "get_buffer_error_by_index",
+            "get_number_total_errors",
+        ],
+    )
+    @pytest.mark.smoke
+    @pytest.mark.virtual
+    def test_wrong_type_exception(self, mocker, motion_controller, function):
+        mc, alias = motion_controller
+        mocker.patch.object(mc.communication, "get_register", return_value="invalid_value")
+        with pytest.raises(TypeError):
+            getattr(mc.errors, function)(servo=alias)

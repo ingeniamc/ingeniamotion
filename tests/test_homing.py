@@ -34,6 +34,7 @@ def initial_position(motion_controller):
     return position
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("homing_mode", list(HomingMode))
 def test_set_homing_mode(motion_controller, homing_mode):
@@ -43,6 +44,7 @@ def test_set_homing_mode(motion_controller, homing_mode):
     assert test_homing_mode == homing_mode
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("homing_offset", [0, 10, 500, -12, -100, 1000])
 def test_set_homing_offset(motion_controller, homing_offset):
@@ -52,6 +54,7 @@ def test_set_homing_offset(motion_controller, homing_offset):
     assert test_homing_offset == homing_offset
 
 
+@pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("homing_timeout", [0, 10, 500, 1000, 5000, 10000])
 def test_set_homing_timeout(motion_controller, homing_timeout):
