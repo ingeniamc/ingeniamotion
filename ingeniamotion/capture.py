@@ -1,9 +1,9 @@
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import numpy as np
+from numpy.typing import NDArray
 from ingenialink.exceptions import ILIOError
 from ingenialink.poller import Poller
-from numpy.typing import NDArray
 
 from ingeniamotion.disturbance import Disturbance
 from ingeniamotion.enums import (
@@ -12,11 +12,16 @@ from ingeniamotion.enums import (
     MonitoringSoCType,
     MonitoringVersion,
 )
-from ingeniamotion.exceptions import IMMonitoringError, IMRegisterNotExist, IMStatusWordError
+from ingeniamotion.exceptions import (
+    IMMonitoringError,
+    IMRegisterNotExist,
+    IMStatusWordError,
+)
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 from ingeniamotion.monitoring.base_monitoring import Monitoring
 from ingeniamotion.monitoring.monitoring_v1 import MonitoringV1
 from ingeniamotion.monitoring.monitoring_v3 import MonitoringV3
+from ingeniamotion.pdo import PDONetworkManager
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -52,6 +57,7 @@ class Capture(metaclass=MCMetaClass):
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
+        self.pdo = PDONetworkManager(self.mc)
 
     def create_poller(
         self,
