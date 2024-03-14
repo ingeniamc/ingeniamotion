@@ -294,7 +294,7 @@ def test_create_poller(motion_controller):
     time.sleep(sleep_time)
     poller.stop()
     timestamps, data = poller.data
-    channel_0_data, channel_1_data = data.values()
+    channel_0_data, channel_1_data = data
     assert len(channel_0_data) == sleep_time / sampling_time
     assert len(channel_0_data) == len(channel_1_data)
     assert len(data) == len(registers)

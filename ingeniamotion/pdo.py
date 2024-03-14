@@ -1,8 +1,7 @@
 import threading
 import time
 from typing import TYPE_CHECKING, Dict, List, Optional, Union, Tuple, Type, Callable, Deque
-from collections import defaultdict, deque
-from functools import partial
+from collections import deque
 from copy import deepcopy
 
 from ingenialink.pdo import RPDOMap, TPDOMap, RPDOMapItem, TPDOMapItem
@@ -45,8 +44,7 @@ class PDOPoller:
         self.__servo = servo
         self.__refresh_time = refresh_time
         self.__buffer_size = buffer_size
-        self.__num_channels: int = 0
-        self.__buffer: Dict[int, Deque[Union[int, float]]] = defaultdict(partial(deque, maxlen=self.__buffer_size))  # type: ignore
+        self.__buffer: List[Deque[Union[int, float]]] = []
         self.__timestamps: Deque[float] = deque(maxlen=self.__buffer_size)
         self.__start_time: Optional[float] = None
         self.__tpdo_map: TPDOMap = self.__mc.capture.pdo.create_empty_tpdo_map()
@@ -70,7 +68,7 @@ class PDOPoller:
         self.__mc.capture.pdo.remove_tpdo_map(self.__servo, self.__tpdo_map)
 
     @property
-    def data(self) -> Tuple[Deque[float], Dict[int, Deque[Union[int, float]]]]:
+    def data(self) -> Tuple[Deque[float], List[Deque[Union[int, float]]]]:
         """
         Get the poller data. After the data is retrieved, the data buffers are cleared.
 
@@ -91,7 +89,7 @@ class PDOPoller:
             registers : list of registers to add to the Poller.
 
         """
-        self.__num_channels = len(registers)
+        self.__buffer = [deque(maxlen=self.__buffer_size) for _ in range(len(registers))]
         self.__fill_tpdo_map(registers)
 
     def _new_data_available(self) -> None:
@@ -110,7 +108,7 @@ class PDOPoller:
 
     def _clear_buffers(self) -> None:
         """Clear the data buffers."""
-        for buffer in self.__buffer.values():
+        for buffer in self.__buffer:
             buffer.clear()
         self.__timestamps.clear()
 
