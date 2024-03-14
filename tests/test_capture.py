@@ -31,12 +31,12 @@ def test_create_poller(motion_controller):
     mc.motion.set_current_quadrature(-0.2, servo=alias)
     poller = mc.capture.create_poller(registers, alias, sampling_time, buffer_size=128)
     mc.motion.set_current_quadrature(0, servo=alias)
-    period = 1+sampling_time
-    expected_signal = [0.0] * (int(period / sampling_time)-1)
+    period = 1 + sampling_time
+    expected_signal = [0.0] * (int(period / sampling_time) - 1)
     for i in range(7):
         time.sleep(period)
         mc.motion.set_current_quadrature(0.2 * (i + 1), servo=alias)
-        expected_signal.extend([0.2 * (i + 1)] * (int(period / sampling_time)-1))
+        expected_signal.extend([0.2 * (i + 1)] * (int(period / sampling_time) - 1))
     time.sleep(3 * period)
     timestamp, test_data, _ = poller.data
     poller.stop()
