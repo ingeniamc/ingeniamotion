@@ -73,7 +73,8 @@ class PDOPoller:
         Get the poller data. After the data is retrieved, the data buffers are cleared.
 
         Returns:
-            A list with the readings timestamps and values.
+            A tuple with a list of the readings timestamps and a list of lists with
+            the readings values.
 
         """
         data = deepcopy(self.__buffer)
