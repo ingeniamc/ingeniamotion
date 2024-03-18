@@ -239,6 +239,8 @@ def test_start_pdos(connect_to_all_slaves):
         )
         # Restore the initial operation mode
         mc.motion.set_operation_mode(initial_operation_modes[alias], servo=alias)
+        mc.capture.pdo.remove_rpdo_map(alias, rpdo_map_index=0)
+        mc.capture.pdo.remove_tpdo_map(alias, tpdo_map_index=0)
 
 
 @pytest.mark.soem
