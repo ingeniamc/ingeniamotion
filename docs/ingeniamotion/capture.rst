@@ -6,6 +6,7 @@ Capture
 
    capture/monitoring
    capture/disturbance
+   capture/pdo
 
 .. automodule:: ingeniamotion.capture
    :members:

@@ -288,6 +288,48 @@ def test_connect_servo_virtual_custom_dictionary(read_config):
 
 
 @pytest.mark.virtual
+def test_scan_servos_canopen_with_info(mocker):
+    mc = MotionController()
+    detected_slaves = OrderedDict({31: SlaveInfo(1234, 123), 32: SlaveInfo(1234, 123)})
+    mocker.patch(
+        "ingenialink.canopen.network.CanopenNetwork.scan_slaves_info", return_value=detected_slaves
+    )
+    assert mc.communication.scan_servos_canopen_with_info(CAN_DEVICE.KVASER) == detected_slaves
+
+
+@pytest.mark.virtual
+def test_scan_servos_canopen(mocker):
+    mc = MotionController()
+    detected_slaves = [31, 32]
+    mocker.patch(
+        "ingenialink.canopen.network.CanopenNetwork.scan_slaves", return_value=detected_slaves
+    )
+    assert mc.communication.scan_servos_canopen(CAN_DEVICE.KVASER) == detected_slaves
+
+
+@pytest.mark.virtual
+def test_scan_servos_ethercat_with_info(mocker):
+    mc = MotionController()
+    detected_slaves = OrderedDict({1: SlaveInfo(1234, 123), 2: SlaveInfo(1234, 123)})
+    mocker.patch(
+        "ingenialink.ethercat.network.EthercatNetwork.scan_slaves_info",
+        return_value=detected_slaves,
+    )
+    assert mc.communication.scan_servos_ethercat_with_info("") == detected_slaves
+
+
+@pytest.mark.virtual
+def test_scan_servos_ethercat(mocker):
+    mc = MotionController()
+    detected_slaves = [1, 2]
+    mocker.patch(
+        "ingenialink.ethercat.network.EthercatNetwork.scan_slaves",
+        return_value=detected_slaves,
+    )
+    assert mc.communication.scan_servos_ethercat("") == detected_slaves
+
+
+@pytest.mark.virtual
 def test_unzip_ensemble_fw_file():
     mc = MotionController()
     mapping = mc.communication._Communication__unzip_ensemble_fw_file(TEST_ENSEMBLE_FW_FILE)

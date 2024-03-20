@@ -1,6 +1,12 @@
 # Changelog
 
-## [Unreleased]
+## [0.7.1] - 2024-03-13
+### Added
+- Add scan functions with info: scan_servos_ethercat_with_info and scan_servos_canopen_with_info
+- Add connect_servo_virtual function
+
+### Added
+- PDOs for the EtherCAT protocol.
 
 ### Removed
 - Support to Python 3.6 to 3.8.
@@ -23,6 +29,7 @@
 - Add in configuration set_velocity_pid, set_position_pid and get_rated_current
 - Add functions to connect to and scan EtherCAT devices using CoE (SDOs).
 - Optional backup registers for Wizard tests.
+- New methods to scan the network and obtain drive info (product code and revision number).
 - Method to load the FW in an ensemble of drives.
 
 ### Fixed
