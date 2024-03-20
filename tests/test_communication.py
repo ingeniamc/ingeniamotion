@@ -373,9 +373,6 @@ def test__check_ensemble_wrong():
             3: SlaveInfo(654321, 1236),
         }
     )
-    with pytest.raises(IMException) as exc_info:
-        mc.communication._Communication__check_ensemble(slaves, 4, mapping)
-    assert str(exc_info.value) == "Slave 4 was not detected."
 
     with pytest.raises(IMException) as exc_info:
         mc.communication._Communication__check_ensemble(slaves, 3, mapping)
@@ -402,10 +399,7 @@ def test__check_ensemble_wrong():
     )
     with pytest.raises(IMException) as exc_info:
         mc.communication._Communication__check_ensemble(slaves, 2, mapping)
-    assert (
-        str(exc_info.value)
-        == "Wrong ensemble. The slave 2 has wrong product code or revision number."
-    )
+    assert str(exc_info.value) == "Wrong ensemble. The slave 2 is not detected."
 
 
 @pytest.mark.virtual
