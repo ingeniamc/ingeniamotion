@@ -1,6 +1,9 @@
 # Changelog
 
-## [Unreleased]
+## [0.7.1] - 2024-03-13
+### Added
+- Add scan functions with info: scan_servos_ethercat_with_info and scan_servos_canopen_with_info
+- Add connect_servo_virtual function
 
 ### Added
 - PDOs for the EtherCAT protocol.
