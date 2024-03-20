@@ -5,6 +5,7 @@ import time
 import pytest
 from ingenialink.pdo import RPDOMap, TPDOMap, RPDOMapItem, TPDOMapItem
 from ingenialink.ethercat.network import EthercatNetwork
+from packaging import version
 
 from ingeniamotion.enums import OperationMode, COMMUNICATION_TYPE
 from ingeniamotion.exceptions import IMException
@@ -238,6 +239,8 @@ def test_start_pdos(connect_to_all_slaves):
         )
         # Restore the initial operation mode
         mc.motion.set_operation_mode(initial_operation_modes[alias], servo=alias)
+        mc.capture.pdo.remove_rpdo_map(alias, rpdo_map_index=0)
+        mc.capture.pdo.remove_tpdo_map(alias, tpdo_map_index=0)
 
 
 @pytest.mark.soem
@@ -270,3 +273,31 @@ def test_start_pdos_number_of_network_exception(mocker, motion_controller):
         mc.capture.pdo.start_pdos()
     with pytest.raises(IMException):
         mc.capture.pdo.start_pdos(COMMUNICATION_TYPE.Ethercat)
+
+
+def skip_if_pdo_padding_is_not_available(mc, alias):
+    pdo_poller_fw_version = "2.5.0"
+    firmware_version = mc.configuration.get_fw_version(alias, 1)
+    if version.parse(firmware_version) < version.parse(pdo_poller_fw_version):
+        pytest.skip(
+            f"PDO poller is available for firmware version {pdo_poller_fw_version} or higher. "
+            f"Firmware version found: {firmware_version}"
+        )
+
+
+@pytest.mark.soem
+def test_create_poller(motion_controller):
+    mc, alias = motion_controller
+    skip_if_pdo_padding_is_not_available(mc, alias)
+    registers = [{"name": "CL_POS_FBK_VALUE", "axis": 1}, {"name": "CL_VEL_FBK_VALUE", "axis": 1}]
+    sampling_time = 0.25
+    sleep_time = 1
+    poller = mc.capture.pdo.create_poller(registers, alias, sampling_time)
+    time.sleep(sleep_time)
+    poller.stop()
+    timestamps, data = poller.data
+    channel_0_data, channel_1_data = data
+    assert len(channel_0_data) == sleep_time / sampling_time
+    assert len(channel_0_data) == len(channel_1_data)
+    assert len(data) == len(registers)
+    assert len(timestamps) == len(channel_0_data)
