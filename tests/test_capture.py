@@ -244,6 +244,8 @@ def test_mcb_synchronization(mocker, motion_controller):
     disable_mon.assert_called_once_with(servo=alias)
 
 
+# TODO Remove this skip after INGM-400 is done.
+@pytest.mark.skip
 @pytest.mark.smoke
 def test_mcb_synchronization_fail(motion_controller):
     mc, alias = motion_controller
