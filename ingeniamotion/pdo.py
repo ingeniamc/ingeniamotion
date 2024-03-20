@@ -82,7 +82,8 @@ class PDONetworkManager:
                 except ILError as e:
                     if self._notify_exceptions is not None:
                         self._notify_exceptions(e)
-                        self.pause()
+                    self.pause()
+                    continue
                 if self._notify_receive_process_data is not None:
                     self._notify_receive_process_data()
                 time.sleep(self._refresh_rate)
@@ -377,7 +378,11 @@ class PDONetworkManager:
         if not isinstance(net, EthercatNetwork):
             raise ValueError(f"Expected EthercatNetwork. Got {type(net)}")
         self._pdo_thread = self.ProcessDataThread(
-            net, refresh_rate, self._notify_send_process_data, self._notify_receive_process_data
+            net,
+            refresh_rate,
+            self._notify_send_process_data,
+            self._notify_receive_process_data,
+            self._notify_exceptions,
         )
         self._pdo_thread.start()
 
