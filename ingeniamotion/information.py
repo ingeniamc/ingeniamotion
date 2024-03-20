@@ -287,7 +287,8 @@ class Information(metaclass=MCMetaClass):
             Number of subnodes.
         """
         drive = self.mc.servos[alias]
-        return int(drive.subnodes)
+        # TODO Remove the type ignore after INGM-400 is done.
+        return int(drive.subnodes)  # type: ignore
 
     def get_categories(self, alias: str) -> Dict[str, str]:
         """Return dictionary categories instance.

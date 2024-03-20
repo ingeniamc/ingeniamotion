@@ -1,6 +1,8 @@
 import threading
 import time
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Type, Union, Deque
+from collections import deque
+from copy import deepcopy
 
 from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.ethercat.network import EthercatNetwork
@@ -15,6 +17,130 @@ from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
+
+
+class PDOPoller:
+    """Poll register values using PDOs"""
+
+    def __init__(
+        self,
+        mc: "MotionController",
+        servo: str,
+        refresh_time: float,
+        buffer_size: int,
+    ) -> None:
+        """Constructor.
+
+        Args:
+            mc: MotionController instance
+            servo: drive alias.
+            refresh_time: PDO values refresh time.
+            buffer_size: Maximum number of register readings to store.
+
+        """
+        super().__init__()
+        self.__mc = mc
+        self.__servo = servo
+        self.__refresh_time = refresh_time
+        self.__buffer_size = buffer_size
+        self.__buffer: List[Deque[Union[int, float]]] = []
+        self.__timestamps: Deque[float] = deque(maxlen=self.__buffer_size)
+        self.__start_time: Optional[float] = None
+        self.__tpdo_map: TPDOMap = self.__mc.capture.pdo.create_empty_tpdo_map()
+        self.__rpdo_map: RPDOMap = self.__mc.capture.pdo.create_empty_rpdo_map()
+        self.__fill_rpdo_map()
+
+    def start(self) -> None:
+        """Start the poller"""
+        self.__mc.capture.pdo.set_pdo_maps_to_slave(
+            self.__rpdo_map, self.__tpdo_map, servo=self.__servo
+        )
+        self.__mc.capture.pdo.subscribe_to_receive_process_data(self._new_data_available)
+        self.__start_time = time.time()
+        self.__mc.capture.pdo.start_pdos(refresh_rate=self.__refresh_time)
+
+    def stop(self) -> None:
+        """Stop the poller"""
+        self.__mc.capture.pdo.stop_pdos()
+        self.__mc.capture.pdo.unsubscribe_to_receive_process_data(self._new_data_available)
+        self.__mc.capture.pdo.remove_rpdo_map(self.__servo, self.__rpdo_map)
+        self.__mc.capture.pdo.remove_tpdo_map(self.__servo, self.__tpdo_map)
+
+    @property
+    def data(self) -> Tuple[Deque[float], List[Deque[Union[int, float]]]]:
+        """
+        Get the poller data. After the data is retrieved, the data buffers are cleared.
+
+        Returns:
+            A tuple with a list of the readings timestamps and a list of lists with
+            the readings values.
+
+        """
+        data = deepcopy(self.__buffer)
+        time_stamps = deepcopy(self.__timestamps)
+        self._clear_buffers()
+        return time_stamps, data
+
+    def add_channels(self, registers: List[Dict[str, Union[int, str]]]) -> None:
+        """
+        Configure the PDOs with the registers to be read.
+
+        Args:
+            registers : list of registers to add to the Poller.
+
+        """
+        self.__buffer = [deque(maxlen=self.__buffer_size) for _ in range(len(registers))]
+        self.__fill_tpdo_map(registers)
+
+    def _new_data_available(self) -> None:
+        """Add readings to the buffers.
+
+        Raises:
+            ValueError: If the poller has not been started yet.
+
+        """
+        if self.__start_time is None:
+            raise ValueError("The poller has not been started yet.")
+        time_stamp = round(time.time() - self.__start_time, 6)
+        self.__timestamps.append(time_stamp)
+        for tpdo_index, tpdo_map_item in enumerate(self.__tpdo_map.items):
+            self.__buffer[tpdo_index].append(tpdo_map_item.value)
+
+    def _clear_buffers(self) -> None:
+        """Clear the data buffers."""
+        for buffer in self.__buffer:
+            buffer.clear()
+        self.__timestamps.clear()
+
+    def __fill_rpdo_map(self) -> None:
+        """Fill the RPDO Map with padding"""
+        padding_rpdo_item = RPDOMapItem(size_bits=8)
+        padding_rpdo_item.raw_data_bytes = int.to_bytes(0, 1, "little")
+        self.__mc.capture.pdo.add_pdo_item_to_map(padding_rpdo_item, self.__rpdo_map)
+
+    def __fill_tpdo_map(self, registers: List[Dict[str, Union[int, str]]]) -> None:
+        """Fill the TPDO Map with the registers to be polled.
+
+        Raises:
+            ValueError: If there is a type mismatch when retrieving the register UID.
+            ValueError: If there is a type mismatch when retrieving the register axis.
+
+        """
+        for register in registers:
+            name = register.get("name", DEFAULT_SERVO)
+            if not isinstance(name, str):
+                raise ValueError(
+                    f"Wrong type for the 'name' field. Expected 'str', got: {type(name)}"
+                )
+            axis = register.get("axis", DEFAULT_AXIS)
+            if not isinstance(axis, int):
+                raise ValueError(
+                    f"Wrong type for the 'axis' field. Expected 'int', got: {type(axis)}"
+                )
+            tpdo_map_item = self.__mc.capture.pdo.create_pdo_item(
+                name, axis=axis, servo=self.__servo
+            )
+            self.__mc.capture.pdo.add_pdo_item_to_map(tpdo_map_item, self.__tpdo_map)
 
 
 class PDONetworkManager:
@@ -72,7 +198,6 @@ class PDONetworkManager:
 
         def run(self) -> None:
             """Start the PDO exchange"""
-            self._net.config_pdo_maps()
             self._net.start_pdos()
             while not self._pd_thread_stop_event.is_set():
                 if self._notify_send_process_data is not None:
@@ -480,6 +605,54 @@ class PDONetworkManager:
         if callback not in self._pdo_receive_observers:
             return
         self._pdo_receive_observers.remove(callback)
+
+    def create_poller(
+        self,
+        registers: List[Dict[str, Union[int, str]]],
+        servo: str = DEFAULT_SERVO,
+        sampling_time: float = 0.125,
+        buffer_size: int = 100,
+        start: bool = True,
+    ) -> PDOPoller:
+        """
+        Create a register Poller using PDOs.
+
+        Args:
+            registers : list of registers to add to the Poller.
+                Dicts should have the follow format:
+
+                .. code-block:: python
+
+                    [
+                        { # Poller register one
+                            "name": "CL_POS_FBK_VALUE",  # Register name.
+                            "axis": 1  # Register axis.
+                            # If it has no axis field, by default axis 1.
+                        },
+                        { # Poller register two
+                            "name": "CL_VEL_FBK_VALUE",  # Register name.
+                            "axis": 1  # Register axis.
+                            # If it has no axis field, by default axis 1.
+                        }
+                    ]
+
+            servo: servo alias to reference it. ``default`` by default.
+            sampling_time: period of the sampling in seconds.
+                By default ``0.125`` seconds.
+            buffer_size: number maximum of sample for each data read.
+                ``100`` by default.
+            start: if ``True``, function starts poller, if ``False``
+                poller should be started after. ``True`` by default.
+
+        Returns:
+            The poller instance.
+
+        """
+        poller = PDOPoller(self.mc, servo, sampling_time, buffer_size)
+        poller.add_channels(registers)
+        if start:
+            poller.start()
+        return poller
 
     def unsubscribe_to_exceptions(self, callback: Callable[[ILError], None]) -> None:
         """Unsubscribe from the exceptions in the process data notifications.

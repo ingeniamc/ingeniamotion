@@ -90,6 +90,7 @@ def motion_controller(pytestconfig, read_config):
         connect_eoe(mc, read_config, alias)
 
     if protocol != "virtual":
+        mc.configuration.restore_configuration(servo=alias)
         mc.configuration.load_configuration(read_config["config_file"], servo=alias)
         yield mc, alias
         mc.communication.disconnect(alias)
