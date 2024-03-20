@@ -14,7 +14,7 @@ from ingeniamotion import MotionController
 from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE
 from ingeniamotion.exceptions import IMException, IMRegisterNotExist, IMRegisterWrongAccess
 
-TEST_ENSEMBLE_FW_FILE = "tests/resources/example_ensemble_fw.kfu"
+TEST_ENSEMBLE_FW_FILE = "tests/resources/example_ensemble_fw.zfu"
 
 
 @pytest.mark.virtual
