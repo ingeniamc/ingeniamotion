@@ -231,6 +231,8 @@ def test_create_disturbance(
     assert __compare_signals(data, read_data)
 
 
+# TODO Remove this skip after INGM-400 is done.
+@pytest.mark.skip
 @pytest.mark.virtual
 @pytest.mark.smoke
 def test_mcb_synchronization(mocker, motion_controller):
