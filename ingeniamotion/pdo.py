@@ -1,8 +1,8 @@
 import threading
 import time
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Type, Union, Deque
 from collections import deque
 from copy import deepcopy
+from typing import TYPE_CHECKING, Callable, Deque, Dict, List, Optional, Tuple, Type, Union
 
 from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.ethercat.network import EthercatNetwork
