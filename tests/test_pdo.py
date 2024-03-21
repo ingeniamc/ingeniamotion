@@ -6,7 +6,7 @@ import pytest
 from packaging import version
 
 from ingenialink.ethercat.network import EthercatNetwork
-from ingenialink.exceptions import ILError
+from ingenialink.exceptions import ILWrongWorkingCount
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 from ingeniamotion.enums import COMMUNICATION_TYPE, OperationMode
 from ingeniamotion.exceptions import IMException
@@ -313,7 +313,7 @@ def test_subscribe_exceptions(motion_controller, mocker):
     mc, _ = motion_controller
 
     def send_receive_processdata(self):
-        raise ILError("Test error")
+        raise ILWrongWorkingCount("Test error")
 
     mocker.patch("ingenialink.ethercat.network.EthercatNetwork.start_pdos")
     mocker.patch(
