@@ -227,9 +227,9 @@ class PDONetworkManager:
                     break
                 if self._notify_receive_process_data is not None:
                     self._notify_receive_process_data()
-                iteration_duration = time.time() - time_start
-                if iteration_duration < self._refresh_rate:
-                    time.sleep(self._refresh_rate - iteration_duration)
+                remaining_loop_time = self._refresh_rate - (time.time() - time_start)
+                if remaining_loop_time > 0:
+                    time.sleep(remaining_loop_time)
                 iteration_duration = time.time() - time_start
 
         def stop(self) -> None:
