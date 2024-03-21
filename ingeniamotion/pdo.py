@@ -213,10 +213,15 @@ class PDONetworkManager:
                         iteration_duration = time.time() - time_start
                     duration_error = ""
                     if iteration_duration > self._refresh_rate:
-                        duration_error = f"Last iteration took {iteration_duration * 1000} ms which is higher than the refresh rate ({self._refresh_rate * 1000} ms). Please optimize the callbacks and/or increase the refresh rate."
+                        duration_error = (
+                            f"Last iteration took {iteration_duration * 1000} ms which is higher"
+                            f" than the refresh rate ({self._refresh_rate * 1000} ms). Please"
+                            " optimize the callbacks and/or increase the refresh rate."
+                        )
                     if self._notify_exceptions is not None:
                         e = IMException(
-                            f"Stopping the PDO thread due to the following exception: {e} {duration_error}"
+                            "Stopping the PDO thread due to the following exception:"
+                            f" {e} {duration_error}"
                         )
                         self._notify_exceptions(e)
                     break
@@ -474,7 +479,8 @@ class PDONetworkManager:
         if network_type is None:
             if len(self.mc.net) > 1:
                 raise ValueError(
-                    "There is more than one network created. The network_type argument must be provided."
+                    "There is more than one network created. The network_type argument must be"
+                    " provided."
                 )
             net = next(iter(self.mc.net.values()))
         elif not isinstance(network_type, COMMUNICATION_TYPE):
