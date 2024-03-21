@@ -224,13 +224,13 @@ class PDONetworkManager:
                             f" {il_error} {duration_error}"
                         )
                         self._notify_exceptions(im_exception)
-                    break
-                if self._notify_receive_process_data is not None:
-                    self._notify_receive_process_data()
-                remaining_loop_time = self._refresh_rate - (time.time() - time_start)
-                if remaining_loop_time > 0:
-                    time.sleep(remaining_loop_time)
-                iteration_duration = time.time() - time_start
+                else:
+                    if self._notify_receive_process_data is not None:
+                        self._notify_receive_process_data()
+                    remaining_loop_time = self._refresh_rate - (time.time() - time_start)
+                    if remaining_loop_time > 0:
+                        time.sleep(remaining_loop_time)
+                    iteration_duration = time.time() - time_start
 
         def stop(self) -> None:
             """Stop the PDO exchange"""
