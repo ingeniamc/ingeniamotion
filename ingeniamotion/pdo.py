@@ -214,8 +214,8 @@ class PDONetworkManager:
                     duration_error = ""
                     if iteration_duration > self._refresh_rate:
                         duration_error = (
-                            f"Last iteration took {iteration_duration * 1000} ms which is higher"
-                            f" than the refresh rate ({self._refresh_rate * 1000} ms). Please"
+                            f"Last iteration took {iteration_duration * 1000:0.1f} ms which is higher"
+                            f" than the refresh rate ({self._refresh_rate * 1000:0.1f} ms). Please"
                             " optimize the callbacks and/or increase the refresh rate."
                         )
                     if self._notify_exceptions is not None:
