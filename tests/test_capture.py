@@ -231,8 +231,6 @@ def test_create_disturbance(
     assert __compare_signals(data, read_data)
 
 
-# TODO Remove this skip after INGM-400 is done.
-@pytest.mark.skip
 @pytest.mark.virtual
 @pytest.mark.smoke
 def test_mcb_synchronization(mocker, motion_controller):
@@ -244,8 +242,6 @@ def test_mcb_synchronization(mocker, motion_controller):
     disable_mon.assert_called_once_with(servo=alias)
 
 
-# TODO Remove this skip after INGM-400 is done.
-@pytest.mark.skip
 @pytest.mark.smoke
 def test_mcb_synchronization_fail(motion_controller):
     mc, alias = motion_controller

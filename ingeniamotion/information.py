@@ -7,6 +7,7 @@ from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.register import Register
 from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
+from ingenialink.dictionary import SubnodeType
 import ingenialogger
 
 from ingeniamotion.exceptions import IMRegisterNotExist, IMException
@@ -277,18 +278,17 @@ class Information(metaclass=MCMetaClass):
             full_name = f"{full_name} ({ip})"
         return full_name
 
-    def get_subnodes(self, alias: str = DEFAULT_SERVO) -> int:
-        """Return the number of subnodes.
+    def get_subnodes(self, alias: str = DEFAULT_SERVO) -> Dict[int, SubnodeType]:
+        """Return a dictionary with the subnodes IDs as keys and their type as values.
 
         Args:
             alias: Drive alias.
 
         Returns:
-            Number of subnodes.
+            Dictionary of subnode ids and their type.
         """
         drive = self.mc.servos[alias]
-        # TODO Remove the type ignore after INGM-400 is done.
-        return int(drive.subnodes)  # type: ignore
+        return drive.subnodes
 
     def get_categories(self, alias: str) -> Dict[str, str]:
         """Return dictionary categories instance.
