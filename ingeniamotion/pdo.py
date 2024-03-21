@@ -173,7 +173,7 @@ class PDONetworkManager:
             refresh_rate: Optional[float],
             notify_send_process_data: Optional[Callable[[], None]] = None,
             notify_receive_process_data: Optional[Callable[[], None]] = None,
-            notify_exceptions: Optional[Callable[[ILWrongWorkingCount], None]] = None,
+            notify_exceptions: Optional[Callable[[IMException], None]] = None,
         ) -> None:
             super().__init__()
             self._net = net
@@ -199,14 +199,14 @@ class PDONetworkManager:
         def run(self) -> None:
             """Start the PDO exchange"""
             self._net.start_pdos()
-            iteration_duration = -1
+            iteration_duration: float = -1
             while not self._pd_thread_stop_event.is_set():
                 time_start = time.time()
                 if self._notify_send_process_data is not None:
                     self._notify_send_process_data()
                 try:
                     self._net.send_receive_processdata()
-                except ILWrongWorkingCount as e:
+                except ILWrongWorkingCount as il_error:
                     self._pd_thread_stop_event.set()
                     self._net.stop_pdos()
                     if iteration_duration == -1:
@@ -219,11 +219,11 @@ class PDONetworkManager:
                             " optimize the callbacks and/or increase the refresh rate."
                         )
                     if self._notify_exceptions is not None:
-                        e = IMException(
+                        im_exception = IMException(
                             "Stopping the PDO thread due to the following exception:"
-                            f" {e} {duration_error}"
+                            f" {il_error} {duration_error}"
                         )
-                        self._notify_exceptions(e)
+                        self._notify_exceptions(im_exception)
                     break
                 if self._notify_receive_process_data is not None:
                     self._notify_receive_process_data()
@@ -243,7 +243,7 @@ class PDONetworkManager:
         self._pdo_thread: Optional[PDONetworkManager.ProcessDataThread] = None
         self._pdo_send_observers: List[Callable[[], None]] = []
         self._pdo_receive_observers: List[Callable[[], None]] = []
-        self._pdo_exceptions_observers: List[Callable[[ILWrongWorkingCount], None]] = []
+        self._pdo_exceptions_observers: List[Callable[[IMException], None]] = []
 
     def create_pdo_item(
         self,
@@ -556,7 +556,7 @@ class PDONetworkManager:
             return
         self._pdo_receive_observers.append(callback)
 
-    def subscribe_to_exceptions(self, callback: Callable[[ILWrongWorkingCount], None]) -> None:
+    def subscribe_to_exceptions(self, callback: Callable[[IMException], None]) -> None:
         """Subscribe be notified when there is an exception in the PDO process data thread.
 
         If a callback is subscribed, the PDO exchange process is paused when an exception is raised.
@@ -640,7 +640,7 @@ class PDONetworkManager:
             poller.start()
         return poller
 
-    def unsubscribe_to_exceptions(self, callback: Callable[[ILWrongWorkingCount], None]) -> None:
+    def unsubscribe_to_exceptions(self, callback: Callable[[IMException], None]) -> None:
         """Unsubscribe from the exceptions in the process data notifications.
 
         Args:
@@ -661,7 +661,7 @@ class PDONetworkManager:
         for callback in self._pdo_receive_observers:
             callback()
 
-    def _notify_exceptions(self, exc: ILWrongWorkingCount) -> None:
+    def _notify_exceptions(self, exc: IMException) -> None:
         """Notify subscribers that there were an exception.
 
         Args:
