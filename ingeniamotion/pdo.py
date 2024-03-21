@@ -8,9 +8,8 @@ from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.ethercat.servo import EthercatServo
-from ingenialink.exceptions import ILError
+from ingenialink.exceptions import ILWrongWorkingCount
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
-
 from ingeniamotion.enums import COMMUNICATION_TYPE
 from ingeniamotion.exceptions import IMException
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
@@ -174,7 +173,7 @@ class PDONetworkManager:
             refresh_rate: Optional[float],
             notify_send_process_data: Optional[Callable[[], None]] = None,
             notify_receive_process_data: Optional[Callable[[], None]] = None,
-            notify_exceptions: Optional[Callable[[ILError], None]] = None,
+            notify_exceptions: Optional[Callable[[ILWrongWorkingCount], None]] = None,
         ) -> None:
             super().__init__()
             self._net = net
@@ -200,19 +199,33 @@ class PDONetworkManager:
         def run(self) -> None:
             """Start the PDO exchange"""
             self._net.start_pdos()
+            iteration_duration = -1
             while not self._pd_thread_stop_event.is_set():
+                time_start = time.time()
                 if self._notify_send_process_data is not None:
                     self._notify_send_process_data()
                 try:
                     self._net.send_receive_processdata()
-                except ILError as e:
+                except ILWrongWorkingCount as e:
+                    self._pd_thread_stop_event.set()
+                    self._net.stop_pdos()
+                    if iteration_duration == -1:
+                        iteration_duration = time.time() - time_start
+                    duration_error = ""
+                    if iteration_duration > self._refresh_rate:
+                        duration_error = f"Last iteration took {iteration_duration * 1000} ms which is higher than the refresh rate ({self._refresh_rate * 1000} ms). Please optimize the callbacks and/or increase the refresh rate."
                     if self._notify_exceptions is not None:
+                        e = IMException(
+                            f"Stopping the PDO thread due to the following exception: {e} {duration_error}"
+                        )
                         self._notify_exceptions(e)
-                    self.pause()
-                    continue
+                    break
                 if self._notify_receive_process_data is not None:
                     self._notify_receive_process_data()
-                time.sleep(self._refresh_rate)
+                iteration_duration = time.time() - time_start
+                if iteration_duration < self._refresh_rate:
+                    time.sleep(self._refresh_rate - iteration_duration)
+                iteration_duration = time.time() - time_start
 
         def stop(self) -> None:
             """Stop the PDO exchange"""
@@ -220,22 +233,12 @@ class PDONetworkManager:
             self._net.stop_pdos()
             self.join()
 
-        def pause(self) -> None:
-            """Pause the thread."""
-            if not self._pd_thread_stop_event.is_set():
-                self._pd_thread_stop_event.set()
-
-        def resume(self) -> None:
-            """Resume the thread."""
-            if self._pd_thread_stop_event.is_set():
-                self._pd_thread_stop_event.clear()
-
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
         self._pdo_thread: Optional[PDONetworkManager.ProcessDataThread] = None
         self._pdo_send_observers: List[Callable[[], None]] = []
         self._pdo_receive_observers: List[Callable[[], None]] = []
-        self._pdo_exceptions_observers: List[Callable[[ILError], None]] = []
+        self._pdo_exceptions_observers: List[Callable[[ILWrongWorkingCount], None]] = []
 
     def create_pdo_item(
         self,
@@ -525,30 +528,6 @@ class PDONetworkManager:
         self._pdo_thread.stop()
         self._pdo_thread = None
 
-    def pause_pdos(self) -> None:
-        """
-        Pause the PDO exchange process.
-
-        Raises:
-            IMException: If the PDOs are not active yet.
-
-        """
-        if self._pdo_thread is None:
-            raise IMException("The PDO exchange has not started yet.")
-        self._pdo_thread.pause()
-
-    def resume_pdos(self) -> None:
-        """
-        Resume the PDO exchange process.
-
-        Raises:
-            IMException: If the PDOs are not active yet.
-
-        """
-        if self._pdo_thread is None:
-            raise IMException("The PDO exchange has not started yet.")
-        self._pdo_thread.resume()
-
     def subscribe_to_send_process_data(self, callback: Callable[[], None]) -> None:
         """Subscribe be notified when the RPDO values will be sent.
 
@@ -571,7 +550,7 @@ class PDONetworkManager:
             return
         self._pdo_receive_observers.append(callback)
 
-    def subscribe_to_exceptions(self, callback: Callable[[ILError], None]) -> None:
+    def subscribe_to_exceptions(self, callback: Callable[[ILWrongWorkingCount], None]) -> None:
         """Subscribe be notified when there is an exception in the PDO process data thread.
 
         If a callback is subscribed, the PDO exchange process is paused when an exception is raised.
@@ -655,7 +634,7 @@ class PDONetworkManager:
             poller.start()
         return poller
 
-    def unsubscribe_to_exceptions(self, callback: Callable[[ILError], None]) -> None:
+    def unsubscribe_to_exceptions(self, callback: Callable[[ILWrongWorkingCount], None]) -> None:
         """Unsubscribe from the exceptions in the process data notifications.
 
         Args:
@@ -676,7 +655,7 @@ class PDONetworkManager:
         for callback in self._pdo_receive_observers:
             callback()
 
-    def _notify_exceptions(self, exc: ILError) -> None:
+    def _notify_exceptions(self, exc: ILWrongWorkingCount) -> None:
         """Notify subscribers that there were an exception.
 
         Args:
