@@ -8,6 +8,7 @@
 ### Added
 - PDOs for the EtherCAT protocol.
 - Register Poller using PDOs.
+- Callbacks to notify exceptions in the ProcessDataThread.
 
 ### Removed
 - Support to Python 3.6 to 3.8.
