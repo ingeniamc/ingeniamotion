@@ -3,11 +3,12 @@ import random
 import time
 
 import pytest
-from ingenialink.pdo import RPDOMap, TPDOMap, RPDOMapItem, TPDOMapItem
 from ingenialink.ethercat.network import EthercatNetwork
+from ingenialink.exceptions import ILError
+from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 from packaging import version
 
-from ingeniamotion.enums import OperationMode, COMMUNICATION_TYPE
+from ingeniamotion.enums import COMMUNICATION_TYPE, OperationMode
 from ingeniamotion.exceptions import IMException
 
 
@@ -301,3 +302,57 @@ def test_create_poller(motion_controller):
     assert len(channel_0_data) == len(channel_1_data)
     assert len(data) == len(registers)
     assert len(timestamps) == len(channel_0_data)
+
+
+def dummy_callback(e):
+    pass
+
+
+@pytest.mark.soem
+def test_subscribe_exceptions(motion_controller, mocker):
+    mc, _ = motion_controller
+
+    def send_receive_processdata(self):
+        raise ILError("Test error")
+
+    mocker.patch("ingenialink.ethercat.network.EthercatNetwork.start_pdos")
+    mocker.patch(
+        "ingenialink.ethercat.network.EthercatNetwork.send_receive_processdata",
+        new=send_receive_processdata,
+    )
+    patch_callback = mocker.patch("tests.test_communication.dummy_callback")
+
+    mc.capture.pdo.subscribe_to_exceptions(patch_callback)
+    mc.capture.pdo.start_pdos()
+
+    t = time.time()
+    timeout = 5
+    while not mc.capture.pdo._pdo_thread._pd_thread_stop_event.is_set() and (
+        (time.time() - t) < timeout
+    ):
+        pass
+
+    assert mc.capture.pdo._pdo_thread._pd_thread_stop_event.is_set()
+    patch_callback.assert_called_once()
+    assert str(patch_callback.call_args_list[0][0][0]) == "Test error"
+
+
+@pytest.mark.soem
+def test_pause_resume_pdo_thread(motion_controller, mocker):
+    mc, _ = motion_controller
+
+    def send_receive_processdata(self):
+        pass
+
+    mocker.patch("ingenialink.ethercat.network.EthercatNetwork.start_pdos")
+    mocker.patch(
+        "ingenialink.ethercat.network.EthercatNetwork.send_receive_processdata",
+        new=send_receive_processdata,
+    )
+
+    mc.capture.pdo.start_pdos()
+    assert not mc.capture.pdo._pdo_thread._pd_thread_stop_event.is_set()
+    mc.capture.pdo.pause_pdos()
+    assert mc.capture.pdo._pdo_thread._pd_thread_stop_event.is_set()
+    mc.capture.pdo.resume_pdos()
+    assert not mc.capture.pdo._pdo_thread._pd_thread_stop_event.is_set()
