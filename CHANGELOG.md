@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+### Added
+- Callbacks to notify exceptions in the ProcessDataThread.
+
 ## [0.7.1] - 2024-03-13
 ### Added
 - Add scan functions with info: scan_servos_ethercat_with_info and scan_servos_canopen_with_info
@@ -8,7 +12,6 @@
 ### Added
 - PDOs for the EtherCAT protocol.
 - Register Poller using PDOs.
-- Callbacks to notify exceptions in the ProcessDataThread.
 
 ### Removed
 - Support to Python 3.6 to 3.8.
