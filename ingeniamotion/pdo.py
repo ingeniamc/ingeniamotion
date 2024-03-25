@@ -200,7 +200,7 @@ class PDONetworkManager:
             """Start the PDO exchange"""
             try:
                 self._net.start_pdos()
-            except (ILStateError, ILError) as il_error:
+            except ILError as il_error:
                 self._pd_thread_stop_event.set()
                 im_exception = IMException(
                     f"Could not start the PDOs due to the following exception: {il_error}"
