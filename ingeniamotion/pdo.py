@@ -202,10 +202,11 @@ class PDONetworkManager:
                 self._net.start_pdos()
             except ILError as il_error:
                 self._pd_thread_stop_event.set()
-                im_exception = IMException(
-                    f"Could not start the PDOs due to the following exception: {il_error}"
-                )
-                self._notify_exceptions(im_exception)
+                if self._notify_exceptions is not None:
+                    im_exception = IMException(
+                        f"Could not start the PDOs due to the following exception: {il_error}"
+                    )
+                    self._notify_exceptions(im_exception)
             iteration_duration: float = -1
             while not self._pd_thread_stop_event.is_set():
                 time_start = time.time()
