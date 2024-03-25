@@ -8,7 +8,7 @@ from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.ethercat.servo import EthercatServo
-from ingenialink.exceptions import ILWrongWorkingCount
+from ingenialink.exceptions import ILError, ILStateError, ILWrongWorkingCount
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 from ingeniamotion.enums import COMMUNICATION_TYPE
 from ingeniamotion.exceptions import IMException
@@ -198,7 +198,14 @@ class PDONetworkManager:
 
         def run(self) -> None:
             """Start the PDO exchange"""
-            self._net.start_pdos()
+            try:
+                self._net.start_pdos()
+            except (ILStateError, ILError) as il_error:
+                self._pd_thread_stop_event.set()
+                im_exception = IMException(
+                    f"Could not start the PDOs due to the following exception: {il_error}"
+                )
+                self._notify_exceptions(im_exception)
             iteration_duration: float = -1
             while not self._pd_thread_stop_event.is_set():
                 time_start = time.time()
