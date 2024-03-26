@@ -8,6 +8,8 @@
 ### Changed
 - The get_subnodes method from the information module now returns a dictionary with the subnodes IDs as keys and their type as values.
 
+### Removed
+- The comkit module. Now ingenialink methods are use to merge the COM-KIT and CORE dictionaries.
 
 ## [0.7.1] - 2024-03-13
 ### Added
