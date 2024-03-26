@@ -6,7 +6,7 @@ import zipfile
 from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
-from os import path, remove
+from os import path
 from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
 
 import ifaddr
@@ -21,6 +21,8 @@ from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.exceptions import ILError
 from ingenialink.network import NET_DEV_EVT, SlaveInfo
 from ingenialink.virtual.network import VirtualNetwork
+from ingenialink.servo import DictionaryFactory
+from ingenialink.dictionary import Interface
 from virtual_drive.core import VirtualDrive
 
 from ingeniamotion.exceptions import IMException, IMRegisterWrongAccess
@@ -28,7 +30,6 @@ from ingeniamotion.exceptions import IMException, IMRegisterWrongAccess
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
-from ingeniamotion.comkit import create_comkit_dictionary
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 
 
@@ -333,17 +334,17 @@ class Communication(metaclass=MCMetaClass):
         for dict_path in [coco_dict_path, moco_dict_path]:
             if not path.isfile(dict_path):
                 raise FileNotFoundError(f"{dict_path} file does not exist!")
-        dict_path = create_comkit_dictionary(coco_dict_path, moco_dict_path)
         self.__servo_connect(
             ip,
-            dict_path,
+            moco_dict_path,
             alias,
             port,
             connection_timeout,
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
         )
-        remove(dict_path)
+        coco_dict = DictionaryFactory.create_dictionary(coco_dict_path, Interface.ETH)
+        self.mc.servos[alias].dictionary += coco_dict
 
     @staticmethod
     def __get_adapter_name(address: str) -> Optional[str]:

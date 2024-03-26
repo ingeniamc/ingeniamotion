@@ -321,20 +321,14 @@ class Information(metaclass=MCMetaClass):
         drive = self.mc.servos[alias]
         return str(os.path.basename(drive.dictionary.path))
 
-    def get_encoded_image_from_dictionary(self, alias: str, axis: int = 0) -> Optional[str]:
+    def get_encoded_image_from_dictionary(self, alias: str) -> Optional[str]:
         """Get the encoded product image from a drive dictionary.
         This function reads a dictionary of a drive, and it parses whether the dictionary file has a
         DriveImage tag and its content.
         Args:
             alias: Alias of the drive.
-            axis: Drive axis. Used when using  COM-KIT.
         Returns:
             The encoded image or NoneType object.
         """
         drive = self.mc.servos[alias]
-        encoded_image: Optional[str] = None
-        if axis == 1:
-            encoded_image = drive.dictionary.moco_image
-        else:
-            encoded_image = drive.dictionary.image
-        return encoded_image
+        return drive.dictionary.image
