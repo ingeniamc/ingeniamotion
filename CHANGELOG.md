@@ -1,8 +1,13 @@
 # Changelog
 
 ## [Unreleased]
+
 ### Added
 - Callbacks to notify exceptions in the ProcessDataThread.
+
+### Changed
+- The get_subnodes method from the information module now returns a dictionary with the subnodes IDs as keys and their type as values.
+
 
 ## [0.7.1] - 2024-03-13
 ### Added
@@ -35,6 +40,7 @@
 - Add functions to connect to and scan EtherCAT devices using CoE (SDOs).
 - Optional backup registers for Wizard tests.
 - New methods to scan the network and obtain drive info (product code and revision number).
+- Method to load the FW in an ensemble of drives.
 
 ### Fixed
 - check_motor_disabled decorator does not work with positional arguments
