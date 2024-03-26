@@ -1,20 +1,18 @@
 import threading
 import time
-from typing import TYPE_CHECKING, Dict, List, Optional, Union, Tuple, Type, Callable, Deque
 from collections import deque
 from copy import deepcopy
+from typing import TYPE_CHECKING, Callable, Deque, Dict, List, Optional, Tuple, Type, Union
 
-from ingenialink.pdo import RPDOMap, TPDOMap, RPDOMapItem, TPDOMapItem
-from ingenialink.ethercat.network import EthercatNetwork
-from ingenialink.ethercat.servo import EthercatServo
-from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.canopen.network import CanopenNetwork
-
-from ingeniamotion.exceptions import (
-    IMException,
-)
-from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
+from ingenialink.ethercat.network import EthercatNetwork
+from ingenialink.ethercat.register import EthercatRegister
+from ingenialink.ethercat.servo import EthercatServo
+from ingenialink.exceptions import ILError, ILStateError, ILWrongWorkingCount
+from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 from ingeniamotion.enums import COMMUNICATION_TYPE
+from ingeniamotion.exceptions import IMException
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -160,6 +158,7 @@ class PDONetworkManager:
             refresh_rate: Determines how often (seconds) the PDO values will be updated.
             notify_send_process_data: Callback to notify when process data is about to be sent.
             notify_receive_process_data: Callback to notify when process data is received.
+            notify_exceptions: Callback to notify when an exception is raised.
         """
 
         DEFAULT_PDO_REFRESH_RATE = 0.01
@@ -174,6 +173,7 @@ class PDONetworkManager:
             refresh_rate: Optional[float],
             notify_send_process_data: Optional[Callable[[], None]] = None,
             notify_receive_process_data: Optional[Callable[[], None]] = None,
+            notify_exceptions: Optional[Callable[[IMException], None]] = None,
         ) -> None:
             super().__init__()
             self._net = net
@@ -194,17 +194,51 @@ class PDONetworkManager:
                 )
             self._notify_send_process_data = notify_send_process_data
             self._notify_receive_process_data = notify_receive_process_data
+            self._notify_exceptions = notify_exceptions
 
         def run(self) -> None:
             """Start the PDO exchange"""
-            self._net.start_pdos()
+            try:
+                self._net.start_pdos()
+            except ILError as il_error:
+                self._pd_thread_stop_event.set()
+                if self._notify_exceptions is not None:
+                    im_exception = IMException(
+                        f"Could not start the PDOs due to the following exception: {il_error}"
+                    )
+                    self._notify_exceptions(im_exception)
+            iteration_duration: float = -1
             while not self._pd_thread_stop_event.is_set():
+                time_start = time.time()
                 if self._notify_send_process_data is not None:
                     self._notify_send_process_data()
-                self._net.send_receive_processdata()
-                if self._notify_receive_process_data is not None:
-                    self._notify_receive_process_data()
-                time.sleep(self._refresh_rate)
+                try:
+                    self._net.send_receive_processdata()
+                except ILWrongWorkingCount as il_error:
+                    self._pd_thread_stop_event.set()
+                    self._net.stop_pdos()
+                    if iteration_duration == -1:
+                        iteration_duration = time.time() - time_start
+                    duration_error = ""
+                    if iteration_duration > self._refresh_rate:
+                        duration_error = (
+                            f"Last iteration took {iteration_duration * 1000:0.1f} ms which is higher"
+                            f" than the refresh rate ({self._refresh_rate * 1000:0.1f} ms). Please"
+                            " optimize the callbacks and/or increase the refresh rate."
+                        )
+                    if self._notify_exceptions is not None:
+                        im_exception = IMException(
+                            "Stopping the PDO thread due to the following exception:"
+                            f" {il_error} {duration_error}"
+                        )
+                        self._notify_exceptions(im_exception)
+                else:
+                    if self._notify_receive_process_data is not None:
+                        self._notify_receive_process_data()
+                    remaining_loop_time = self._refresh_rate - (time.time() - time_start)
+                    if remaining_loop_time > 0:
+                        time.sleep(remaining_loop_time)
+                    iteration_duration = time.time() - time_start
 
         def stop(self) -> None:
             """Stop the PDO exchange"""
@@ -217,6 +251,7 @@ class PDONetworkManager:
         self._pdo_thread: Optional[PDONetworkManager.ProcessDataThread] = None
         self._pdo_send_observers: List[Callable[[], None]] = []
         self._pdo_receive_observers: List[Callable[[], None]] = []
+        self._pdo_exceptions_observers: List[Callable[[IMException], None]] = []
 
     def create_pdo_item(
         self,
@@ -452,7 +487,8 @@ class PDONetworkManager:
         if network_type is None:
             if len(self.mc.net) > 1:
                 raise ValueError(
-                    "There is more than one network created. The network_type argument must be provided."
+                    "There is more than one network created. The network_type argument must be"
+                    " provided."
                 )
             net = next(iter(self.mc.net.values()))
         elif not isinstance(network_type, COMMUNICATION_TYPE):
@@ -485,7 +521,11 @@ class PDONetworkManager:
         if not isinstance(net, EthercatNetwork):
             raise ValueError(f"Expected EthercatNetwork. Got {type(net)}")
         self._pdo_thread = self.ProcessDataThread(
-            net, refresh_rate, self._notify_send_process_data, self._notify_receive_process_data
+            net,
+            refresh_rate,
+            self._notify_send_process_data,
+            self._notify_receive_process_data,
+            self._notify_exceptions,
         )
         self._pdo_thread.start()
 
@@ -523,6 +563,20 @@ class PDONetworkManager:
         if callback in self._pdo_receive_observers:
             return
         self._pdo_receive_observers.append(callback)
+
+    def subscribe_to_exceptions(self, callback: Callable[[IMException], None]) -> None:
+        """Subscribe be notified when there is an exception in the PDO process data thread.
+
+        If a callback is subscribed, the PDO exchange process is paused when an exception is raised.
+        It can be resumed using the `resume_pdos` method.
+
+        Args:
+            callback: Callback function.
+
+        """
+        if callback in self._pdo_exceptions_observers:
+            return
+        self._pdo_exceptions_observers.append(callback)
 
     def unsubscribe_to_send_process_data(self, callback: Callable[[], None]) -> None:
         """Unsubscribe from the send process data notifications.
@@ -594,6 +648,17 @@ class PDONetworkManager:
             poller.start()
         return poller
 
+    def unsubscribe_to_exceptions(self, callback: Callable[[IMException], None]) -> None:
+        """Unsubscribe from the exceptions in the process data notifications.
+
+        Args:
+            callback: Subscribed callback function.
+
+        """
+        if callback not in self._pdo_exceptions_observers:
+            return
+        self._pdo_exceptions_observers.remove(callback)
+
     def _notify_send_process_data(self) -> None:
         """Notify subscribers that the RPDO values will be sent."""
         for callback in self._pdo_send_observers:
@@ -603,3 +668,12 @@ class PDONetworkManager:
         """Notify subscribers that the TPDO values were received."""
         for callback in self._pdo_receive_observers:
             callback()
+
+    def _notify_exceptions(self, exc: IMException) -> None:
+        """Notify subscribers that there were an exception.
+
+        Args:
+            exc: Exception that was raised in the PDO process data thread.
+        """
+        for callback in self._pdo_exceptions_observers:
+            callback(exc)
