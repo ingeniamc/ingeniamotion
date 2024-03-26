@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+### Changed
+- The get_subnodes method from the information module now returns a dictionary with the subnodes IDs as keys and their type as values.
+
 ## [0.7.1] - 2024-03-13
 ### Added
 - Add scan functions with info: scan_servos_ethercat_with_info and scan_servos_canopen_with_info

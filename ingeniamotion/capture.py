@@ -4,6 +4,7 @@ import numpy as np
 from numpy.typing import NDArray
 from ingenialink.exceptions import ILIOError
 from ingenialink.poller import Poller
+from ingenialink.dictionary import SubnodeType
 
 from ingeniamotion.disturbance import Disturbance
 from ingeniamotion.enums import (
@@ -635,9 +636,12 @@ class Capture(metaclass=MCMetaClass):
             IMStatusWordError: If motor is enabled.
 
         """
-        subnodes = self.mc.info.get_subnodes(servo)
-        for axis in range(1, subnodes):
-            if self.mc.configuration.is_motor_enabled(servo=servo, axis=axis):
+        for subnode in [
+            subnode
+            for subnode, subnode_type in self.mc.info.get_subnodes(servo).items()
+            if subnode_type == SubnodeType.MOTION
+        ]:
+            if self.mc.configuration.is_motor_enabled(servo=servo, axis=subnode):
                 raise IMStatusWordError("Motor is enabled")
         self.enable_monitoring(servo=servo)
         self.disable_monitoring(servo=servo)

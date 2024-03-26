@@ -87,6 +87,7 @@ class Communication(metaclass=MCMetaClass):
             port,
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
+            is_eoe=True,
         )
 
     def connect_servo_ethernet(
@@ -184,6 +185,7 @@ class Communication(metaclass=MCMetaClass):
         connection_timeout: int = 1,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
+        is_eoe: bool = False,
     ) -> None:
         if not path.isfile(dict_path):
             raise FileNotFoundError(f"{dict_path} file does not exist!")
@@ -197,6 +199,7 @@ class Communication(metaclass=MCMetaClass):
             connection_timeout,
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
+            is_eoe=is_eoe,
         )
 
         self.mc.servos[alias] = servo

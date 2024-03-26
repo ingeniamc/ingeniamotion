@@ -3,6 +3,7 @@ import pytest
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.canopen.network import CanopenNetwork, CAN_DEVICE
+from ingenialink.dictionary import SubnodeType
 
 from ingeniamotion.enums import REG_DTYPE, REG_ACCESS
 from ingeniamotion.information import COMMUNICATION_TYPE
@@ -160,8 +161,6 @@ def test_get_full_name(mocker, motion_controller, communication, expected_result
     assert full_name == expected_result
 
 
-# TODO Remove this skip after INGM-400 is done.
-@pytest.mark.skip
 @pytest.mark.virtual
 def test_get_subnodes(motion_controller):
     expected_subnodes = 2
@@ -169,7 +168,9 @@ def test_get_subnodes(motion_controller):
     mc, alias = motion_controller
     subnodes = mc.info.get_subnodes(alias)
 
-    assert subnodes == expected_subnodes
+    assert len(subnodes) == expected_subnodes
+    assert subnodes[0] == SubnodeType.COMMUNICATION
+    assert subnodes[1] == SubnodeType.MOTION
 
 
 @pytest.mark.virtual
