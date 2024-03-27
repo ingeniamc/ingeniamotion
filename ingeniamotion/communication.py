@@ -1,7 +1,7 @@
 import json
+import os
 import shutil
 import subprocess
-import os
 import time
 import zipfile
 from collections import OrderedDict
@@ -12,6 +12,8 @@ from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
 
 import ifaddr
 import ingenialogger
+from virtual_drive.core import VirtualDrive
+
 from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
@@ -22,8 +24,6 @@ from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.exceptions import ILError
 from ingenialink.network import NET_DEV_EVT, SlaveInfo
 from ingenialink.virtual.network import VirtualNetwork
-from virtual_drive.core import VirtualDrive
-
 from ingeniamotion.exceptions import IMException, IMRegisterWrongAccess
 
 if TYPE_CHECKING:
@@ -33,7 +33,6 @@ from ingeniamotion.comkit import create_comkit_dictionary
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 
 RUNNING_ON_WINDOWS = os.name == "nt"
-
 
 
 class Communication(metaclass=MCMetaClass):
@@ -366,7 +365,7 @@ class Communication(metaclass=MCMetaClass):
                     if RUNNING_ON_WINDOWS:
                         return bytes.decode(adapter.name)
                     else:
-                        return adapter.name
+                        return str(adapter.name)
         return None
 
     def get_ifname_from_interface_ip(self, address: str) -> str:
@@ -416,7 +415,7 @@ class Communication(metaclass=MCMetaClass):
         if RUNNING_ON_WINDOWS:
             return "\\Device\\NPF_{}".format(ifaddr.get_adapters()[index].name.decode("utf-8"))
         else:
-            return list(ifaddr.get_adapters())[index].name
+            return str(list(ifaddr.get_adapters())[index].name)
 
     @staticmethod
     def get_interface_name_list() -> List[str]:
