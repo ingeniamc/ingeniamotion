@@ -1,4 +1,5 @@
 import json
+import os
 import shutil
 import subprocess
 import time
@@ -11,6 +12,8 @@ from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
 
 import ifaddr
 import ingenialogger
+from virtual_drive.core import VirtualDrive
+
 from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
@@ -21,8 +24,6 @@ from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.exceptions import ILError
 from ingenialink.network import NET_DEV_EVT, SlaveInfo
 from ingenialink.virtual.network import VirtualNetwork
-from virtual_drive.core import VirtualDrive
-
 from ingeniamotion.exceptions import IMException, IMRegisterWrongAccess
 
 if TYPE_CHECKING:
@@ -30,6 +31,8 @@ if TYPE_CHECKING:
 
 from ingeniamotion.comkit import create_comkit_dictionary
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
+
+RUNNING_ON_WINDOWS = os.name == "nt"
 
 
 class Communication(metaclass=MCMetaClass):
@@ -232,12 +235,15 @@ class Communication(metaclass=MCMetaClass):
                 status, connection and disconnection.
 
         Raises:
+            NotImplementedError: If this method is run in Linux.
             FileNotFoundError: If the dict file doesn't exist.
             ValueError: ip must be a subnetwork of 192.168.3.0/24
             ingenialink.exceptions.ILError: If the EoE service is not running
             ingenialink.exceptions.ILError: If the EoE service cannot be started on the network
                                             interface.
         """
+        if not RUNNING_ON_WINDOWS:
+            raise NotImplementedError("EoE service only works on windows.")
         if not path.isfile(dict_path):
             raise FileNotFoundError(f"{dict_path} file does not exist!")
         if ifname not in self.mc.net:
@@ -356,7 +362,10 @@ class Communication(metaclass=MCMetaClass):
         for adapter in ifaddr.get_adapters():
             for ip in adapter.ips:
                 if ip.is_IPv4 and ip.ip == address:
-                    return bytes.decode(adapter.name)
+                    if RUNNING_ON_WINDOWS:
+                        return bytes.decode(adapter.name)
+                    else:
+                        return str(adapter.name)
         return None
 
     def get_ifname_from_interface_ip(self, address: str) -> str:
@@ -381,7 +390,10 @@ class Communication(metaclass=MCMetaClass):
                 f"to connect as EtherCAT master"
             )
         else:
-            return "\\Device\\NPF_{}".format(adapter_name)
+            if RUNNING_ON_WINDOWS:
+                return "\\Device\\NPF_{}".format(adapter_name)
+            else:
+                return adapter_name
 
     @staticmethod
     def get_ifname_by_index(index: int) -> str:
@@ -400,7 +412,10 @@ class Communication(metaclass=MCMetaClass):
             IndexError: If interface index is out of range.
 
         """
-        return "\\Device\\NPF_{}".format(ifaddr.get_adapters()[index].name.decode("utf-8"))
+        if RUNNING_ON_WINDOWS:
+            return "\\Device\\NPF_{}".format(ifaddr.get_adapters()[index].name.decode("utf-8"))
+        else:
+            return str(list(ifaddr.get_adapters())[index].name)
 
     @staticmethod
     def get_interface_name_list() -> List[str]:
@@ -468,9 +483,12 @@ class Communication(metaclass=MCMetaClass):
             Drives available in the target interface.
 
         Raises:
+            NotImplementedError: If this method is run in Linux.
             ingenialink.exceptions.ILError: If the EoE service is not running
             TypeError: If some parameter has a wrong type.
         """
+        if not RUNNING_ON_WINDOWS:
+            raise NotImplementedError("EoE service only works on windows.")
         net = self.mc.net[ifname] if ifname in self.mc.net else EoENetwork(ifname)
         slaves = net.scan_slaves()
         if not isinstance(slaves, List):
