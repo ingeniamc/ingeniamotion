@@ -101,6 +101,35 @@ pipeline {
                 }
             }
         }
+        stage('Run tests on Linux') {
+            agent {
+                docker {
+                    label "worker"
+                    image "ingeniacontainers.azurecr.io/docker-python:1.4"
+                }
+            }
+            stages {
+                stage('Install deps') {
+                    steps {
+                        sh """
+                            python${DEFAULT_PYTHON_VERSION} -m pip install tox==${TOX_VERSION}
+                        """
+                    }
+                }
+                stage('Run no-connection tests') {
+                    steps {
+                        sh """
+                            python${DEFAULT_PYTHON_VERSION} -m tox -e py${DEFAULT_TOX_PYTHON_VERSION} -- -m virtual --protocol virtual --junitxml=pytest_reports\\pytest_virtual_report.xml
+                        """
+                    }
+                    post {
+                        always {
+                            junit "pytest_reports\\pytest_virtual_report.xml"
+                        }
+                    }
+                }
+            }
+        }
         stage('Ecat tests') {
             options {
                 lock(ECAT_NODE_LOCK)
