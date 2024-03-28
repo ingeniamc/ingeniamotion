@@ -244,9 +244,9 @@ def test_can_bootloader_example_success(mocker, capsys):
 
         def disconnect(*args, **kwargs):
             pass
-    
+
     mock_servos = {"custom_alias": "my_servo"}
-    
+
     mocker.patch.object(MotionController, "communication", MockCommunication)
     mocker.patch.object(MotionController, "servos", mock_servos)
     load_firmware_canopen(can_drive)
@@ -276,6 +276,7 @@ def test_can_bootloader_example_failed(mocker, capsys):
 
     expected_node_list = [can_drive["node_id"]]
     fw_error_message = "An error occurs during the firmware updating."
+
     class MockCommunication:
         def scan_servos_canopen(*args, **kwargs):
             return expected_node_list
@@ -288,9 +289,9 @@ def test_can_bootloader_example_failed(mocker, capsys):
 
         def disconnect(*args, **kwargs):
             pass
-    
+
     mock_servos = {"custom_alias": "my_servo"}
-    
+
     mocker.patch.object(MotionController, "communication", MockCommunication)
     mocker.patch.object(MotionController, "servos", mock_servos)
     load_firmware_canopen(can_drive)
@@ -303,4 +304,3 @@ def test_can_bootloader_example_failed(mocker, capsys):
     assert all_outputs[3] == "Starts to load the firmware."
     assert all_outputs[4] == f"CAN boot error: {fw_error_message}"
     assert all_outputs[5] == "Drive is disconnected."
-    
