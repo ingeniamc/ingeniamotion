@@ -15,7 +15,6 @@ def progress_log(current_progress: int) -> None:
 
 
 def load_firmware_canopen(can_drive: Dict[str, Any]) -> None:
-    # Create MotionController instance
     mc = MotionController()
     # Find available nodes
     node_id_list = mc.communication.scan_servos_canopen(
@@ -24,12 +23,11 @@ def load_firmware_canopen(can_drive: Dict[str, Any]) -> None:
         channel=can_drive["channel"],
     )
     if can_drive["node_id"] not in node_id_list:
-        print("No nodes are connected.")
+        print(f"Node {can_drive['node_id']} is not detected.")
         return
     else:
         print(f"Found nodes: {node_id_list}")
 
-    # Connect drive
     print("Starts to established a communication.")
     alias_can_servo = "custom_alias"
     mc.communication.connect_servo_canopen(
@@ -46,7 +44,6 @@ def load_firmware_canopen(can_drive: Dict[str, Any]) -> None:
         print("Drive is not connected.")
         return
 
-    # Load firmware
     print("Starts to load the firmware.")
     try:
         mc.communication.load_firmware_canopen(
@@ -57,13 +54,13 @@ def load_firmware_canopen(can_drive: Dict[str, Any]) -> None:
         )
         print("Firmware is uploaded successfully.")
     except ILFirmwareLoadError as e:
-        print(f"CAN boot error: {e}")
+        print(f"Firmware loading failed: {e}")
     finally:
         try:
             mc.communication.disconnect(alias_can_servo)
             print("Drive is disconnected.")
         except Exception as e:
-            print(f"Error when disconnection from drive: {e}")
+            print(f"Error during drive disconnection: {e}")
 
 
 if __name__ == "__main__":

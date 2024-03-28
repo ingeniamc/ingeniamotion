@@ -302,5 +302,5 @@ def test_can_bootloader_example_failed(mocker, capsys):
     assert all_outputs[1] == "Starts to established a communication."
     assert all_outputs[2] == "Drive is connected."
     assert all_outputs[3] == "Starts to load the firmware."
-    assert all_outputs[4] == f"CAN boot error: {fw_error_message}"
+    assert all_outputs[4] == f"Firmware loading failed: {fw_error_message}"
     assert all_outputs[5] == "Drive is disconnected."
