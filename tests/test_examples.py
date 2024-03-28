@@ -1,5 +1,7 @@
 import pytest
+from ingenialink.exceptions import ILFirmwareLoadError
 
+from examples.load_fw_canopen import load_firmware_canopen
 from ingeniamotion import MotionController
 from ingeniamotion.enums import SeverityLevel
 
@@ -212,3 +214,93 @@ def test_brake_config_example(read_config, script_runner, mocker, override):
     mocker.patch.object(MotionController, "configuration", MockConfiguration)
     result = script_runner.run(script_path, override, dictionary, f"-ip={ip_address}")
     assert result.returncode == 0
+
+
+@pytest.mark.virtual
+def test_can_bootloader_example_success(mocker, capsys):
+    can_drive = {
+        "device": "my_can_device",
+        "channel": 111,
+        "baudrate": 4444,
+        "node_id": 2222,
+        "dictionary_path": "my_dictionary",
+        "fw_path": "my_fw_file",
+    }
+
+    expected_node_list = [can_drive["node_id"]]
+    status_message = "Mock status message."
+    progress_message = "100"
+
+    class MockCommunication:
+        def scan_servos_canopen(*args, **kwargs):
+            return expected_node_list
+
+        def connect_servo_canopen(*args, **kwargs):
+            pass
+
+        def load_firmware_canopen(*args, **kwargs):
+            kwargs["status_callback"](status_message)
+            kwargs["progress_callback"](progress_message)
+
+        def disconnect(*args, **kwargs):
+            pass
+    
+    mock_servos = {"custom_alias": "my_servo"}
+    
+    mocker.patch.object(MotionController, "communication", MockCommunication)
+    mocker.patch.object(MotionController, "servos", mock_servos)
+    load_firmware_canopen(can_drive)
+
+    captured_outputs = capsys.readouterr()
+    all_outputs = captured_outputs.out.split("\n")
+    assert all_outputs[0] == f"Found nodes: {expected_node_list}"
+    assert all_outputs[1] == "Starts to established a communication."
+    assert all_outputs[2] == "Drive is connected."
+    assert all_outputs[3] == "Starts to load the firmware."
+    assert all_outputs[4] == f"Load firmware status: {status_message}"
+    assert all_outputs[5] == f"Load firmware progress: {progress_message}%"
+    assert all_outputs[6] == "Firmware is uploaded successfully."
+    assert all_outputs[7] == "Drive is disconnected."
+
+
+@pytest.mark.virtual
+def test_can_bootloader_example_failed(mocker, capsys):
+    can_drive = {
+        "device": "my_can_device",
+        "channel": 111,
+        "baudrate": 4444,
+        "node_id": 2222,
+        "dictionary_path": "my_dictionary",
+        "fw_path": "my_fw_file",
+    }
+
+    expected_node_list = [can_drive["node_id"]]
+    fw_error_message = "An error occurs during the firmware updating."
+    class MockCommunication:
+        def scan_servos_canopen(*args, **kwargs):
+            return expected_node_list
+
+        def connect_servo_canopen(*args, **kwargs):
+            pass
+
+        def load_firmware_canopen(*args, **kwargs):
+            raise ILFirmwareLoadError(fw_error_message)
+
+        def disconnect(*args, **kwargs):
+            pass
+    
+    mock_servos = {"custom_alias": "my_servo"}
+    
+    mocker.patch.object(MotionController, "communication", MockCommunication)
+    mocker.patch.object(MotionController, "servos", mock_servos)
+    load_firmware_canopen(can_drive)
+
+    captured_outputs = capsys.readouterr()
+    all_outputs = captured_outputs.out.split("\n")
+    assert all_outputs[0] == f"Found nodes: {expected_node_list}"
+    assert all_outputs[1] == "Starts to established a communication."
+    assert all_outputs[2] == "Drive is connected."
+    assert all_outputs[3] == "Starts to load the firmware."
+    assert all_outputs[4] == f"CAN boot error: {fw_error_message}"
+    assert all_outputs[5] == "Drive is disconnected."
+    
