@@ -353,11 +353,11 @@ class Communication(metaclass=MCMetaClass):
 
     @staticmethod
     def __get_adapter_name(index: int) -> str:
-        """Returns the adapter name of an adapter based on its address.
+        """Returns the adapter name of an adapter based on its index.
 
         Args:
-            address : ip expected adapter is expected to
-            be configured with.
+            index : position of interface selected in
+                :func:`get_interface_name_list`.
         """
         adapter = ifaddr.get_adapters()[index]
         if RUNNING_ON_WINDOWS:
@@ -390,6 +390,18 @@ class Communication(metaclass=MCMetaClass):
 
     @staticmethod
     def _get_interface_index_by_address(address: str) -> int:
+        """Get the interface index by searching its IP address.
+
+        Args:
+            address: IP address of the adapter.
+
+        Returns:
+            Interface's index.
+
+        Raises:
+            IndexError: If no adapter matches the IP address.
+
+        """
         for idx, adapter in enumerate(ifaddr.get_adapters()):
             for ip in adapter.ips:
                 if ip.is_IPv4 and ip.ip == address:
