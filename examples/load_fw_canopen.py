@@ -28,17 +28,15 @@ def load_firmware_canopen(can_drive: Dict[str, Any]) -> None:
     else:
         print(f"Found nodes: {node_id_list}")
 
-    print("Starts to established a communication.")
-    alias_can_servo = "custom_alias"
+    print("Starts to establish a communication.")
     mc.communication.connect_servo_canopen(
         can_drive["device"],
         can_drive["dictionary_path"],
         can_drive["node_id"],
         baudrate=can_drive["baudrate"],
         channel=can_drive["channel"],
-        alias=alias_can_servo,
     )
-    if alias_can_servo in mc.servos:
+    if "default" in mc.servos:
         print("Drive is connected.")
     else:
         print("Drive is not connected.")
@@ -48,7 +46,6 @@ def load_firmware_canopen(can_drive: Dict[str, Any]) -> None:
     try:
         mc.communication.load_firmware_canopen(
             can_drive["fw_path"],
-            servo=alias_can_servo,
             status_callback=status_log,
             progress_callback=progress_log,
         )
@@ -57,7 +54,7 @@ def load_firmware_canopen(can_drive: Dict[str, Any]) -> None:
         print(f"Firmware loading failed: {e}")
     finally:
         try:
-            mc.communication.disconnect(alias_can_servo)
+            mc.communication.disconnect()
             print("Drive is disconnected.")
         except Exception as e:
             print(f"Error during drive disconnection: {e}")
@@ -69,7 +66,7 @@ if __name__ == "__main__":
         "device": CAN_DEVICE.KVASER,
         "channel": 0,
         "baudrate": CAN_BAUDRATE.Baudrate_1M,
-        "node_id": 20,
+        "node_id": 32,
         "dictionary_path": "parent_directory/full_dictionary_path.xdf",
         "fw_path": "parent_directory/full_firmware_file_path.lfu",
     }

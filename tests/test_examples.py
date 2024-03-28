@@ -245,7 +245,7 @@ def test_can_bootloader_example_success(mocker, capsys):
         def disconnect(*args, **kwargs):
             pass
 
-    mock_servos = {"custom_alias": "my_servo"}
+    mock_servos = {"default": "my_servo"}
 
     mocker.patch.object(MotionController, "communication", MockCommunication)
     mocker.patch.object(MotionController, "servos", mock_servos)
@@ -254,7 +254,7 @@ def test_can_bootloader_example_success(mocker, capsys):
     captured_outputs = capsys.readouterr()
     all_outputs = captured_outputs.out.split("\n")
     assert all_outputs[0] == f"Found nodes: {expected_node_list}"
-    assert all_outputs[1] == "Starts to established a communication."
+    assert all_outputs[1] == "Starts to establish a communication."
     assert all_outputs[2] == "Drive is connected."
     assert all_outputs[3] == "Starts to load the firmware."
     assert all_outputs[4] == f"Load firmware status: {status_message}"
@@ -290,7 +290,7 @@ def test_can_bootloader_example_failed(mocker, capsys):
         def disconnect(*args, **kwargs):
             pass
 
-    mock_servos = {"custom_alias": "my_servo"}
+    mock_servos = {"default": "my_servo"}
 
     mocker.patch.object(MotionController, "communication", MockCommunication)
     mocker.patch.object(MotionController, "servos", mock_servos)
@@ -299,7 +299,7 @@ def test_can_bootloader_example_failed(mocker, capsys):
     captured_outputs = capsys.readouterr()
     all_outputs = captured_outputs.out.split("\n")
     assert all_outputs[0] == f"Found nodes: {expected_node_list}"
-    assert all_outputs[1] == "Starts to established a communication."
+    assert all_outputs[1] == "Starts to establish a communication."
     assert all_outputs[2] == "Drive is connected."
     assert all_outputs[3] == "Starts to load the firmware."
     assert all_outputs[4] == f"Firmware loading failed: {fw_error_message}"
