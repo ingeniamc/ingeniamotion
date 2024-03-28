@@ -352,21 +352,18 @@ class Communication(metaclass=MCMetaClass):
         remove(dict_path)
 
     @staticmethod
-    def __get_adapter_name(address: str) -> Optional[str]:
+    def __get_adapter_name(index: int) -> str:
         """Returns the adapter name of an adapter based on its address.
 
         Args:
             address : ip expected adapter is expected to
             be configured with.
         """
-        for adapter in ifaddr.get_adapters():
-            for ip in adapter.ips:
-                if ip.is_IPv4 and ip.ip == address:
-                    if RUNNING_ON_WINDOWS:
-                        return bytes.decode(adapter.name)
-                    else:
-                        return str(adapter.name)
-        return None
+        adapter = ifaddr.get_adapters()[index]
+        if RUNNING_ON_WINDOWS:
+            return f"\\Device\\NPF_{bytes.decode(adapter.name)}"
+        else:
+            return str(adapter.name)
 
     def get_ifname_from_interface_ip(self, address: str) -> str:
         """Returns interface name based on the address ip of an interface.
@@ -382,21 +379,24 @@ class Communication(metaclass=MCMetaClass):
         Returns:
             Ifname of the controller.
         """
-        adapter_name = self.__get_adapter_name(address)
-
-        if adapter_name is None:
+        try:
+            index = self._get_interface_index_by_address(address)
+        except IndexError:
             raise ValueError(
                 f"Could not found a adapter configured as {address} "
                 f"to connect as EtherCAT master"
             )
-        else:
-            if RUNNING_ON_WINDOWS:
-                return "\\Device\\NPF_{}".format(adapter_name)
-            else:
-                return adapter_name
+        return self.__get_adapter_name(index)
 
     @staticmethod
-    def get_ifname_by_index(index: int) -> str:
+    def _get_interface_index_by_address(address: str) -> int:
+        for idx, adapter in enumerate(ifaddr.get_adapters()):
+            for ip in adapter.ips:
+                if ip.is_IPv4 and ip.ip == address:
+                    return idx
+        raise IndexError
+
+    def get_ifname_by_index(self, index: int) -> str:
         """Return interface name by index.
 
         Args:
@@ -412,10 +412,7 @@ class Communication(metaclass=MCMetaClass):
             IndexError: If interface index is out of range.
 
         """
-        if RUNNING_ON_WINDOWS:
-            return "\\Device\\NPF_{}".format(ifaddr.get_adapters()[index].name.decode("utf-8"))
-        else:
-            return str(list(ifaddr.get_adapters())[index].name)
+        return self.__get_adapter_name(index)
 
     @staticmethod
     def get_interface_name_list() -> List[str]:
