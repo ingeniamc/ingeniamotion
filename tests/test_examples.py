@@ -1,14 +1,11 @@
 from typing import Dict
+
 import pytest
-from ingenialink.ethercat.network import EthercatNetwork
-from ingenialink.ethercat.servo import EthercatServo
 
 from examples.connect_ecat_coe import connect_ethercat_coe
 from ingeniamotion import MotionController
 from ingeniamotion.communication import Communication
 from ingeniamotion.enums import SeverityLevel
-
-import pysoem
 
 
 @pytest.mark.eoe
