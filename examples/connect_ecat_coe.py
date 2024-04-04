@@ -23,7 +23,7 @@ def connect_ethercat_coe(ecat_coe_conf: Dict[str, Any]):
 
     if not slave_id_list:
         print(
-            f"Any slave is detected using the interface: {interface_list_human_format[ecat_coe_conf['interface_index']]}."
+            f"No slave detected on interface: {interface_list_human_format[ecat_coe_conf['interface_index']]}"
         )
         return
     else:
@@ -36,17 +36,10 @@ def connect_ethercat_coe(ecat_coe_conf: Dict[str, Any]):
     except FileNotFoundError as e:
         print(e)
         return
-    if "default" not in mc.servos:
-        print("Drive is not connected.")
-        return
-    else:
-        print("Drive is connected.")
+    print("Drive is connected.")
 
     mc.communication.disconnect()
-    if "default" in mc.servos:
-        print("Drive disconnection failed.")
-    else:
-        print("The drive has been disconnected.")
+    print("The drive has been disconnected.")
 
 
 if __name__ == "__main__":

@@ -284,7 +284,7 @@ def test_ecat_coe_connection_example_failed(mocker, capsys):
         "dictionary": "\\\\awe-srv-max-prd\\distext\\products\\CAP-NET\\firmware\\2.5.1\\cap-net-e_eoe_2.5.1.xdf",
     }
 
-    expected_slave_list = [ecat_coe_conf["slave_id"]]
+    expected_slave_list = []
     expected_interfaces_name_list = ["Interface 1", "Interface 2", "Interface 3"]
     expected_real_name_interface = (
         f"\\Device\\NPF_real_name_interface_{ecat_coe_conf['interface_index']}"
@@ -300,14 +300,10 @@ def test_ecat_coe_connection_example_failed(mocker, capsys):
     def get_ifname_by_index(*args, **kwargs):
         return expected_real_name_interface
 
-    def connect_servo_ethercat(*args, **kwargs):
-        test_servos = {}
-
     mocker.patch.object(Communication, "scan_servos_ethercat", scan_servos_ethercat)
     mocker.patch.object(Communication, "get_interface_name_list", get_interface_name_list)
     mocker.patch.object(Communication, "get_ifname_by_index", get_ifname_by_index)
     mocker.patch.object(MotionController, "servos", test_servos)
-    mocker.patch.object(Communication, "connect_servo_ethercat", connect_servo_ethercat)
 
     connect_ethercat_coe(ecat_coe_conf)
 
@@ -324,8 +320,7 @@ def test_ecat_coe_connection_example_failed(mocker, capsys):
         all_outputs[7]
         == f"- Human-readable format name: {expected_interfaces_name_list[ecat_coe_conf['interface_index']]}"
     )
-    assert all_outputs[8] == f"Found slaves: {expected_slave_list}"
-    assert all_outputs[9] == f"Drive is not connected."
+    assert all_outputs[8] == f"No slave detected on interface: {expected_interfaces_name_list[ecat_coe_conf['interface_index']]}"
 
 
 @pytest.mark.virtual
