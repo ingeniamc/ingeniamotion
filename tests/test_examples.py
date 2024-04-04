@@ -220,17 +220,15 @@ def test_brake_config_example(read_config, script_runner, mocker, override):
 
 @pytest.mark.virtual
 def test_ecat_coe_connection_example_success(mocker, capsys):
-    ecat_coe_conf = {
-        "interface_index": 2,
-        "slave_id": 1,
-        "dictionary": "\\\\awe-srv-max-prd\\distext\\products\\CAP-NET\\firmware\\2.5.1\\cap-net-e_eoe_2.5.1.xdf",
-    }
-
-    expected_slave_list = [ecat_coe_conf["slave_id"]]
-    expected_interfaces_name_list = ["Interface 1", "Interface 2", "Interface 3"]
-    expected_real_name_interface = (
-        f"\\Device\\NPF_real_name_interface_{ecat_coe_conf['interface_index']}"
+    interface_index = 2
+    slave_id = 1
+    dictionary_path = (
+        "\\\\awe-srv-max-prd\\distext\\products\\CAP-NET\\firmware\\2.4.0\\cap-net-e_eoe_2.4.0.xdf"
     )
+
+    expected_slave_list = [slave_id]
+    expected_interfaces_name_list = ["Interface 1", "Interface 2", "Interface 3"]
+    expected_real_name_interface = f"\\Device\\NPF_real_name_interface_{interface_index}"
     test_alias = "default"
     test_servos: Dict[str, str] = {}
 
@@ -256,7 +254,7 @@ def test_ecat_coe_connection_example_success(mocker, capsys):
     mocker.patch.object(Communication, "connect_servo_ethercat", connect_servo_ethercat)
     mocker.patch.object(Communication, "disconnect", disconnect)
 
-    connect_ethercat_coe(ecat_coe_conf)
+    connect_ethercat_coe(interface_index, slave_id, dictionary_path)
 
     captured_outputs = capsys.readouterr()
     all_outputs = captured_outputs.out.split("\n")
@@ -265,11 +263,11 @@ def test_ecat_coe_connection_example_success(mocker, capsys):
     assert all_outputs[2] == "1: Interface 2"
     assert all_outputs[3] == "2: Interface 3"
     assert all_outputs[4] == "Interface selected:"
-    assert all_outputs[5] == f"- Index interface: {ecat_coe_conf['interface_index']}"
+    assert all_outputs[5] == f"- Index interface: {interface_index}"
     assert all_outputs[6] == f"- Real name: {expected_real_name_interface}"
     assert (
         all_outputs[7]
-        == f"- Human-readable format name: {expected_interfaces_name_list[ecat_coe_conf['interface_index']]}"
+        == f"- Human-readable format name: {expected_interfaces_name_list[interface_index]}"
     )
     assert all_outputs[8] == f"Found slaves: {expected_slave_list}"
     assert all_outputs[9] == f"Drive is connected."
@@ -278,17 +276,15 @@ def test_ecat_coe_connection_example_success(mocker, capsys):
 
 @pytest.mark.virtual
 def test_ecat_coe_connection_example_failed(mocker, capsys):
-    ecat_coe_conf = {
-        "interface_index": 2,
-        "slave_id": 1,
-        "dictionary": "\\\\awe-srv-max-prd\\distext\\products\\CAP-NET\\firmware\\2.5.1\\cap-net-e_eoe_2.5.1.xdf",
-    }
+    interface_index = 2
+    slave_id = 1
+    dictionary_path = (
+        "\\\\awe-srv-max-prd\\distext\\products\\CAP-NET\\firmware\\2.4.0\\cap-net-e_eoe_2.4.0.xdf"
+    )
 
     expected_slave_list = []
     expected_interfaces_name_list = ["Interface 1", "Interface 2", "Interface 3"]
-    expected_real_name_interface = (
-        f"\\Device\\NPF_real_name_interface_{ecat_coe_conf['interface_index']}"
-    )
+    expected_real_name_interface = f"\\Device\\NPF_real_name_interface_{interface_index}"
     test_servos: Dict[str, str] = {}
 
     def scan_servos_ethercat(*args, **kwargs):
@@ -305,7 +301,7 @@ def test_ecat_coe_connection_example_failed(mocker, capsys):
     mocker.patch.object(Communication, "get_ifname_by_index", get_ifname_by_index)
     mocker.patch.object(MotionController, "servos", test_servos)
 
-    connect_ethercat_coe(ecat_coe_conf)
+    connect_ethercat_coe(interface_index, slave_id, dictionary_path)
 
     captured_outputs = capsys.readouterr()
     all_outputs = captured_outputs.out.split("\n")
@@ -314,27 +310,28 @@ def test_ecat_coe_connection_example_failed(mocker, capsys):
     assert all_outputs[2] == "1: Interface 2"
     assert all_outputs[3] == "2: Interface 3"
     assert all_outputs[4] == "Interface selected:"
-    assert all_outputs[5] == f"- Index interface: {ecat_coe_conf['interface_index']}"
+    assert all_outputs[5] == f"- Index interface: {interface_index}"
     assert all_outputs[6] == f"- Real name: {expected_real_name_interface}"
     assert (
         all_outputs[7]
-        == f"- Human-readable format name: {expected_interfaces_name_list[ecat_coe_conf['interface_index']]}"
+        == f"- Human-readable format name: {expected_interfaces_name_list[interface_index]}"
     )
-    assert all_outputs[8] == f"No slave detected on interface: {expected_interfaces_name_list[ecat_coe_conf['interface_index']]}"
+    assert (
+        all_outputs[8]
+        == f"No slave detected on interface: {expected_interfaces_name_list[interface_index]}"
+    )
 
 
 @pytest.mark.virtual
 def test_ecat_coe_connection_example_connection_error(mocker, capsys):
-    ecat_coe_conf = {
-        "interface_index": 2,
-        "slave_id": 1,
-        "dictionary": "my_dictionary.xdf",
-    }
+    interface_index = 2
+    slave_id = 1
+    dictionary_path = (
+        "\\\\awe-srv-max-prd\\distext\\products\\CAP-NET\\firmware\\2.4.0\\cap-net-e_eoe_2.4.0.xdf"
+    )
 
     expected_interfaces_name_list = ["Interface 1", "Interface 2", "Interface 3"]
-    expected_real_name_interface = (
-        f"\\Device\\NPF_real_name_interface_{ecat_coe_conf['interface_index']}"
-    )
+    expected_real_name_interface = f"\\Device\\NPF_real_name_interface_{interface_index}"
 
     def get_interface_name_list(*args, **kwargs):
         return expected_interfaces_name_list
@@ -346,7 +343,7 @@ def test_ecat_coe_connection_example_connection_error(mocker, capsys):
     mocker.patch.object(Communication, "get_ifname_by_index", get_ifname_by_index)
 
     with pytest.raises(ConnectionError) as e:
-        connect_ethercat_coe(ecat_coe_conf)
+        connect_ethercat_coe(interface_index, slave_id, dictionary_path)
 
     captured_outputs = capsys.readouterr()
     all_outputs = captured_outputs.out.split("\n")
@@ -355,11 +352,11 @@ def test_ecat_coe_connection_example_connection_error(mocker, capsys):
     assert all_outputs[2] == "1: Interface 2"
     assert all_outputs[3] == "2: Interface 3"
     assert all_outputs[4] == "Interface selected:"
-    assert all_outputs[5] == f"- Index interface: {ecat_coe_conf['interface_index']}"
+    assert all_outputs[5] == f"- Index interface: {interface_index}"
     assert all_outputs[6] == f"- Real name: {expected_real_name_interface}"
     assert (
         all_outputs[7]
-        == f"- Human-readable format name: {expected_interfaces_name_list[ecat_coe_conf['interface_index']]}"
+        == f"- Human-readable format name: {expected_interfaces_name_list[interface_index]}"
     )
 
     assert e.value.args[0] == f"could not open interface {expected_real_name_interface}"
