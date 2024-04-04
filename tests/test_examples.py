@@ -1,7 +1,9 @@
+from ingenialink import CAN_BAUDRATE, CAN_DEVICE
 import pytest
 
 from ingeniamotion import MotionController
 from ingeniamotion.enums import SeverityLevel
+from examples.change_node_id import change_node_id
 
 
 @pytest.mark.eoe
@@ -212,3 +214,23 @@ def test_brake_config_example(read_config, script_runner, mocker, override):
     mocker.patch.object(MotionController, "configuration", MockConfiguration)
     result = script_runner.run(script_path, override, dictionary, f"-ip={ip_address}")
     assert result.returncode == 0
+
+
+@pytest.mark.canopen
+def test_change_node_id(motion_controller, read_config, capsys, pytestconfig):
+    
+    mc, alias = motion_controller
+    mc.communication.disconnect(alias)
+    
+    can_drive = {
+        "device": CAN_DEVICE(read_config["device"]),
+        "channel": read_config["channel"],
+        "node_id": read_config["node_id"],
+        "baudrate": CAN_BAUDRATE(read_config["baudrate"]),
+        "dictionary_path": read_config["dictionary"],
+    }
+    new_node_id = 32
+    change_node_id(can_drive, new_node_id)
+    mc, alias = motion_controller(pytestconfig, read_config)
+    print(mc)
+
