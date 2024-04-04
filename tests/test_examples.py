@@ -1,3 +1,4 @@
+from ingenialink import CAN_BAUDRATE, CAN_DEVICE
 import pytest
 from ingenialink.exceptions import ILFirmwareLoadError
 
@@ -218,12 +219,12 @@ def test_brake_config_example(read_config, script_runner, mocker, override):
 
 @pytest.mark.virtual
 def test_can_bootloader_example_success(mocker, capsys):
-    device = "my_can_device"
-    channel = 111
-    baudrate = 4444
-    node_id = 2222
-    dictionary_path = "my_dictionary.xdf"
-    fw_path = "my_fw_file.lfu"
+    device = CAN_DEVICE.PCAN
+    channel = 0
+    baudrate = CAN_BAUDRATE.Baudrate_1M
+    node_id = 32
+    dictionary_path = "test_dictionary.xdf"
+    fw_path = "test_fw.lfu"
 
     expected_node_list = [node_id]
     status_message = "Mock status message."
@@ -263,12 +264,12 @@ def test_can_bootloader_example_success(mocker, capsys):
 
 @pytest.mark.virtual
 def test_can_bootloader_example_failed(mocker, capsys):
-    device = "my_can_device"
-    channel = 111
-    baudrate = 4444
-    node_id = 2222
-    dictionary_path = "my_dictionary.xdf"
-    fw_path = "my_fw_file.lfu"
+    device = CAN_DEVICE.PCAN
+    channel = 0
+    baudrate = CAN_BAUDRATE.Baudrate_1M
+    node_id = 32
+    dictionary_path = "test_dictionary.xdf"
+    fw_path = "test_fw.lfu"
 
     expected_node_list = [node_id]
     fw_error_message = "An error occurs during the firmware updating."
