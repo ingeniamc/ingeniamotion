@@ -218,16 +218,14 @@ def test_brake_config_example(read_config, script_runner, mocker, override):
 
 @pytest.mark.virtual
 def test_can_bootloader_example_success(mocker, capsys):
-    can_drive = {
-        "device": "my_can_device",
-        "channel": 111,
-        "baudrate": 4444,
-        "node_id": 2222,
-        "dictionary_path": "my_dictionary",
-        "fw_path": "my_fw_file",
-    }
+    device = "my_can_device"
+    channel = 111
+    baudrate = 4444
+    node_id = 2222
+    dictionary_path = "my_dictionary.xdf"
+    fw_path = "my_fw_file.lfu"
 
-    expected_node_list = [can_drive["node_id"]]
+    expected_node_list = [node_id]
     status_message = "Mock status message."
     progress_message = "100"
 
@@ -249,7 +247,7 @@ def test_can_bootloader_example_success(mocker, capsys):
 
     mocker.patch.object(MotionController, "communication", MockCommunication)
     mocker.patch.object(MotionController, "servos", mock_servos)
-    load_firmware_canopen(can_drive)
+    load_firmware_canopen(device, channel, baudrate, node_id, dictionary_path, fw_path)
 
     captured_outputs = capsys.readouterr()
     all_outputs = captured_outputs.out.split("\n")
@@ -265,16 +263,14 @@ def test_can_bootloader_example_success(mocker, capsys):
 
 @pytest.mark.virtual
 def test_can_bootloader_example_failed(mocker, capsys):
-    can_drive = {
-        "device": "my_can_device",
-        "channel": 111,
-        "baudrate": 4444,
-        "node_id": 2222,
-        "dictionary_path": "my_dictionary",
-        "fw_path": "my_fw_file",
-    }
+    device = "my_can_device"
+    channel = 111
+    baudrate = 4444
+    node_id = 2222
+    dictionary_path = "my_dictionary.xdf"
+    fw_path = "my_fw_file.lfu"
 
-    expected_node_list = [can_drive["node_id"]]
+    expected_node_list = [node_id]
     fw_error_message = "An error occurs during the firmware updating."
 
     class MockCommunication:
@@ -294,7 +290,7 @@ def test_can_bootloader_example_failed(mocker, capsys):
 
     mocker.patch.object(MotionController, "communication", MockCommunication)
     mocker.patch.object(MotionController, "servos", mock_servos)
-    load_firmware_canopen(can_drive)
+    load_firmware_canopen(device, channel, baudrate, node_id, dictionary_path, fw_path)
 
     captured_outputs = capsys.readouterr()
     all_outputs = captured_outputs.out.split("\n")
