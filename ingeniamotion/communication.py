@@ -16,6 +16,7 @@ from virtual_drive.core import VirtualDrive
 
 from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
+from ingenialink.dictionary import Interface
 from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
 from ingenialink.enums.servo import SERVO_STATE
 from ingenialink.eoe.network import EoENetwork
@@ -23,11 +24,8 @@ from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.exceptions import ILError
 from ingenialink.network import NET_DEV_EVT, SlaveInfo
-from ingenialink.virtual.network import VirtualNetwork
 from ingenialink.servo import DictionaryFactory
-from ingenialink.dictionary import Interface
-from virtual_drive.core import VirtualDrive
-
+from ingenialink.virtual.network import VirtualNetwork
 from ingeniamotion.exceptions import IMException, IMRegisterWrongAccess
 
 if TYPE_CHECKING:
