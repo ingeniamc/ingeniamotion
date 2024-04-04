@@ -4,21 +4,21 @@ from ingeniamotion import MotionController
 def connect_ethercat_coe(interface_index: int, slave_id: int, dictionary_path: str) -> None:
     mc = MotionController()
 
-    interface_list_human_format = mc.communication.get_interface_name_list()
+    interface_list = mc.communication.get_interface_name_list()
     print("List of interfaces - Human-readable format:")
-    for index, interface in enumerate(interface_list_human_format):
+    for index, interface in enumerate(interface_list):
         print(f"{index}: {interface}")
 
     interface_selected = mc.communication.get_ifname_by_index(interface_index)
     print("Interface selected:")
     print(f"- Index interface: {interface_index}")
-    print(f"- Real name: {interface_selected}")
-    print(f"- Human-readable format name: {interface_list_human_format[interface_index]}")
+    print(f"- Interface identifier: {interface_selected}")
+    print(f"- Interface name: {interface_list[interface_index]}")
 
     slave_id_list = mc.communication.scan_servos_ethercat(interface_selected)
 
     if not slave_id_list:
-        print(f"No slave detected on interface: {interface_list_human_format[interface_index]}")
+        print(f"No slave detected on interface: {interface_list[interface_index]}")
         return
     else:
         print(f"Found slaves: {slave_id_list}")

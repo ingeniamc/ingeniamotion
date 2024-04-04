@@ -264,10 +264,10 @@ def test_ecat_coe_connection_example_success(mocker, capsys):
     assert all_outputs[3] == "2: Interface 3"
     assert all_outputs[4] == "Interface selected:"
     assert all_outputs[5] == f"- Index interface: {interface_index}"
-    assert all_outputs[6] == f"- Real name: {expected_real_name_interface}"
+    assert all_outputs[6] == f"- Interface identifier: {expected_real_name_interface}"
     assert (
         all_outputs[7]
-        == f"- Human-readable format name: {expected_interfaces_name_list[interface_index]}"
+        == f"- Interface name: {expected_interfaces_name_list[interface_index]}"
     )
     assert all_outputs[8] == f"Found slaves: {expected_slave_list}"
     assert all_outputs[9] == f"Drive is connected."
@@ -311,10 +311,10 @@ def test_ecat_coe_connection_example_failed(mocker, capsys):
     assert all_outputs[3] == "2: Interface 3"
     assert all_outputs[4] == "Interface selected:"
     assert all_outputs[5] == f"- Index interface: {interface_index}"
-    assert all_outputs[6] == f"- Real name: {expected_real_name_interface}"
+    assert all_outputs[6] == f"- Interface identifier: {expected_real_name_interface}"
     assert (
         all_outputs[7]
-        == f"- Human-readable format name: {expected_interfaces_name_list[interface_index]}"
+        == f"- Interface name: {expected_interfaces_name_list[interface_index]}"
     )
     assert (
         all_outputs[8]
@@ -353,10 +353,10 @@ def test_ecat_coe_connection_example_connection_error(mocker, capsys):
     assert all_outputs[3] == "2: Interface 3"
     assert all_outputs[4] == "Interface selected:"
     assert all_outputs[5] == f"- Index interface: {interface_index}"
-    assert all_outputs[6] == f"- Real name: {expected_real_name_interface}"
+    assert all_outputs[6] == f"- Interface identifier: {expected_real_name_interface}"
     assert (
         all_outputs[7]
-        == f"- Human-readable format name: {expected_interfaces_name_list[interface_index]}"
+        == f"- Interface name: {expected_interfaces_name_list[interface_index]}"
     )
 
     assert e.value.args[0] == f"could not open interface {expected_real_name_interface}"
