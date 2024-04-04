@@ -1,5 +1,5 @@
 import json
-import os
+import platform
 import shutil
 import subprocess
 import time
@@ -32,7 +32,7 @@ if TYPE_CHECKING:
 from ingeniamotion.comkit import create_comkit_dictionary
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 
-RUNNING_ON_WINDOWS = os.name == "nt"
+RUNNING_ON_WINDOWS = platform.system() == "Windows"
 
 
 class Communication(metaclass=MCMetaClass):
