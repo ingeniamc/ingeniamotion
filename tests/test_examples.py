@@ -258,7 +258,7 @@ def test_ecat_coe_connection_example_success(mocker, capsys):
 
     captured_outputs = capsys.readouterr()
     all_outputs = captured_outputs.out.split("\n")
-    assert all_outputs[0] == "List of interfaces - Human-readable format:"
+    assert all_outputs[0] == "List of interfaces:"
     assert all_outputs[1] == "0: Interface 1"
     assert all_outputs[2] == "1: Interface 2"
     assert all_outputs[3] == "2: Interface 3"
@@ -305,7 +305,7 @@ def test_ecat_coe_connection_example_failed(mocker, capsys):
 
     captured_outputs = capsys.readouterr()
     all_outputs = captured_outputs.out.split("\n")
-    assert all_outputs[0] == "List of interfaces - Human-readable format:"
+    assert all_outputs[0] == "List of interfaces:"
     assert all_outputs[1] == "0: Interface 1"
     assert all_outputs[2] == "1: Interface 2"
     assert all_outputs[3] == "2: Interface 3"
@@ -347,7 +347,7 @@ def test_ecat_coe_connection_example_connection_error(mocker, capsys):
 
     captured_outputs = capsys.readouterr()
     all_outputs = captured_outputs.out.split("\n")
-    assert all_outputs[0] == "List of interfaces - Human-readable format:"
+    assert all_outputs[0] == "List of interfaces:"
     assert all_outputs[1] == "0: Interface 1"
     assert all_outputs[2] == "1: Interface 2"
     assert all_outputs[3] == "2: Interface 3"

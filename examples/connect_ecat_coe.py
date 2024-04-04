@@ -5,7 +5,7 @@ def connect_ethercat_coe(interface_index: int, slave_id: int, dictionary_path: s
     mc = MotionController()
 
     interface_list = mc.communication.get_interface_name_list()
-    print("List of interfaces - Human-readable format:")
+    print("List of interfaces:")
     for index, interface in enumerate(interface_list):
         print(f"{index}: {interface}")
 
