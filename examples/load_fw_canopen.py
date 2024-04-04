@@ -37,11 +37,7 @@ def load_firmware_canopen(
         baudrate,
         channel,
     )
-    if "default" in mc.servos:
-        print("Drive is connected.")
-    else:
-        print("Drive is not connected.")
-        return
+    print("Drive is connected.")
 
     print("Starts to load the firmware.")
     try:
