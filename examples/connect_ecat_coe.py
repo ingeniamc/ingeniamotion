@@ -19,11 +19,7 @@ def connect_ethercat_coe(ecat_coe_conf: Dict[str, Any]):
         f"- Human-readable format name: {interface_list_human_format[ecat_coe_conf['interface_index']]}"
     )
 
-    try:
-        slave_id_list = mc.communication.scan_servos_ethercat(interface_selected)
-    except ConnectionError as e:
-        print(e)
-        return
+    slave_id_list = mc.communication.scan_servos_ethercat(interface_selected)
 
     if not slave_id_list:
         print(

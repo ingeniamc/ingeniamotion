@@ -350,7 +350,8 @@ def test_ecat_coe_connection_example_connection_error(mocker, capsys):
     mocker.patch.object(Communication, "get_interface_name_list", get_interface_name_list)
     mocker.patch.object(Communication, "get_ifname_by_index", get_ifname_by_index)
 
-    connect_ethercat_coe(ecat_coe_conf)
+    with pytest.raises(ConnectionError) as e:
+        connect_ethercat_coe(ecat_coe_conf)
 
     captured_outputs = capsys.readouterr()
     all_outputs = captured_outputs.out.split("\n")
@@ -365,4 +366,5 @@ def test_ecat_coe_connection_example_connection_error(mocker, capsys):
         all_outputs[7]
         == f"- Human-readable format name: {expected_interfaces_name_list[ecat_coe_conf['interface_index']]}"
     )
-    assert all_outputs[8] == f"could not open interface {expected_real_name_interface}"
+
+    assert e.value.args[0] == f"could not open interface {expected_real_name_interface}"
