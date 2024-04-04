@@ -1,5 +1,3 @@
-from typing import Any, Dict
-
 from ingenialink import CAN_BAUDRATE, CAN_DEVICE
 from ingenialink.exceptions import ILFirmwareLoadError
 
