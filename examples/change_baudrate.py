@@ -35,7 +35,7 @@ def establish_canopen_communication(mc: MotionController, device: CAN_DEVICE, ch
     print(f"Drive is connected with {baudrate} baudrate.")
 
 
-def change_baudrate(device: CAN_DEVICE, channel: int, baudrate: CAN_BAUDRATE, dictionary_path: str, new_baudrate: int, node_id: Optional[int] = None) -> None:
+def change_baudrate(device: CAN_DEVICE, channel: int, baudrate: CAN_BAUDRATE, dictionary_path: str, new_baudrate: CAN_BAUDRATE, node_id: Optional[int] = None) -> None:
     mc = MotionController()
     try:
         establish_canopen_communication(mc, device, channel, baudrate, dictionary_path, node_id)
@@ -65,5 +65,5 @@ if __name__ == "__main__":
     node_id = 20
     baudrate = CAN_BAUDRATE.Baudrate_1M
     dictionary_path = "\\\\awe-srv-max-prd\\distext\\products\\EVE-NET\\firmware\\2.5.1\\eve-net-c_can_2.5.1.xdf"
-
+    
     change_baudrate(device, channel, baudrate, dictionary_path, CAN_BAUDRATE.Baudrate_250K, node_id)

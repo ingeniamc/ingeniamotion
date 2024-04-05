@@ -1,6 +1,7 @@
 import pytest
 from ingenialink import CAN_BAUDRATE, CAN_DEVICE
 
+from examples.change_baudrate import change_baudrate
 from examples.change_node_id import change_node_id
 from ingeniamotion import MotionController
 from ingeniamotion.enums import SeverityLevel
@@ -262,3 +263,29 @@ def test_change_node_id(read_config, capsys):
     assert all_outputs[10] == "Finding the available nodes..."
     assert all_outputs[11] == f"Found nodes: [{new_node_id}]"
     assert all_outputs[14] == f"Drive is connected with {new_node_id} as a node ID."
+
+
+@pytest.fixture
+def teardown_test_change_baudrate(read_config):
+    new_baudrate = CAN_BAUDRATE.Baudrate_250K
+    yield new_baudrate
+    device = CAN_DEVICE(read_config["device"])
+    baudrate = CAN_BAUDRATE(read_config["baudrate"])
+    change_baudrate(device, read_config["channel"], new_baudrate, read_config["dictionary"], baudrate, read_config["node_id"])
+
+@pytest.mark.usefixtures("setup_for_test_examples")
+@pytest.mark.usefixtures("teardown_for_test_examples")
+@pytest.mark.skip(reason="An script for making a power-cycle is required")
+@pytest.mark.canopen
+def test_change_baudrate(read_config, capsys, teardown_test_change_baudrate):
+    device = CAN_DEVICE(read_config["device"])
+    baudrate = CAN_BAUDRATE(read_config["baudrate"])
+    new_baudrate = teardown_test_change_baudrate
+
+    change_baudrate(device, read_config["channel"], baudrate, read_config["dictionary"], new_baudrate, read_config["node_id"])
+    
+    captured_outputs = capsys.readouterr()
+    all_outputs = captured_outputs.out.split("\n")
+    assert all_outputs[4] == f"Drive is connected with {baudrate} baudrate."
+    assert all_outputs[6] == f"Baudrate has been changed from {baudrate} to {new_baudrate}."
+    assert all_outputs[8] == f"Make a power-cycle on your drive and connect it again using the new baudrate {new_baudrate}"
