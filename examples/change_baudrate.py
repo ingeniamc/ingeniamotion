@@ -32,10 +32,7 @@ def establish_canopen_communication(mc: MotionController, device: CAN_DEVICE, ch
         baudrate=baudrate,
         channel=channel,
     )
-    if "default" in mc.servos:
-        print(f"Drive is connected with {baudrate} baudrate.")
-    else:
-        raise (f"The drive can be connected with {baudrate} baudrate.")
+    print(f"Drive is connected with {baudrate} baudrate.")
 
 
 def change_baudrate(device: CAN_DEVICE, channel: int, baudrate: CAN_BAUDRATE, dictionary_path: str, new_baudrate: int, node_id: Optional[int] = None) -> None:

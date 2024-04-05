@@ -36,10 +36,7 @@ def establish_canopen_communication(mc: MotionController, device: CAN_DEVICE, ch
         baudrate=baudrate,
         channel=channel,
     )
-    if "default" in mc.servos:
-        print(f"Drive is connected with {node_to_connect} as a node ID.")
-    else:
-        raise (f"The drive can be connected with {node_to_connect} as a node ID.")
+    print(f"Drive is connected with {node_to_connect} as a node ID.")
 
 
 def change_node_id(device: CAN_DEVICE, channel: int, baudrate: CAN_BAUDRATE, dictionary_path: str, new_node_id: int, node_id: Optional[int] = None) -> None:
