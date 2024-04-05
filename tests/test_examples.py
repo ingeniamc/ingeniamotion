@@ -235,15 +235,23 @@ def test_brake_config_example(read_config, script_runner, mocker, override):
     result = script_runner.run(script_path, override, dictionary, f"-ip={ip_address}")
     assert result.returncode == 0
 
+@pytest.fixture
+def teardown_test_change_node_id(read_config):
+    yield
+    device = CAN_DEVICE(read_config["device"])
+    baudrate = CAN_BAUDRATE(read_config["baudrate"])
+    change_node_id(device, read_config["channel"], baudrate, read_config["dictionary"], read_config["node_id"])
 
-@pytest.mark.usefixtures("setup_for_test_examples", "teardown_for_test_examples")
+
+@pytest.mark.usefixtures("setup_for_test_examples", "teardown_test_change_node_id")
+@pytest.mark.usefixtures("teardown_for_test_examples")
 @pytest.mark.canopen
 def test_change_node_id(read_config, capsys):
     device = CAN_DEVICE(read_config["device"])
     baudrate = CAN_BAUDRATE(read_config["baudrate"])
     new_node_id = 32
 
-    change_node_id(device, read_config["channel"], read_config["node_id"], baudrate, read_config["dictionary"], new_node_id)
+    change_node_id(device, read_config["channel"], baudrate, read_config["dictionary"], new_node_id, read_config["node_id"])
     
     captured_outputs = capsys.readouterr()
     all_outputs = captured_outputs.out.split("\n")
@@ -254,5 +262,3 @@ def test_change_node_id(read_config, capsys):
     assert all_outputs[10] == "Finding the available nodes..."
     assert all_outputs[11] == f"Found nodes: [{new_node_id}]"
     assert all_outputs[14] == f"Drive is connected with {new_node_id} as a node ID."
-
-    change_node_id(device, read_config["channel"], new_node_id, baudrate, read_config["dictionary"], read_config["node_id"])
