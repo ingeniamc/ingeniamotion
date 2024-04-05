@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional
+from typing import Optional
 
 from ingenialink import CAN_BAUDRATE, CAN_DEVICE
 
@@ -78,10 +78,10 @@ if __name__ == "__main__":
     # If you want to connect to a node manually, set the node_id parameter as an integer.
     # Instead, set the node_id parameter as a NoneType value to connect the first detected CAN node.
 
-    device = CAN_DEVICE.KVASER,
-    channel = 0,
-    node_id = None,
-    baudrate = CAN_BAUDRATE.Baudrate_1M,
-    dictionary_path = "\\\\awe-srv-max-prd\\distext\\products\\EVE-NET\\firmware\\2.5.1\\eve-net-c_can_2.5.1.xdf",
+    device = CAN_DEVICE.KVASER
+    channel = 0
+    node_id = 32
+    baudrate = CAN_BAUDRATE.Baudrate_1M
+    dictionary_path = "\\\\awe-srv-max-prd\\distext\\products\\EVE-NET\\firmware\\2.5.1\\eve-net-c_can_2.5.1.xdf"
 
     change_node_id(device, channel, baudrate, dictionary_path, 20, node_id)
