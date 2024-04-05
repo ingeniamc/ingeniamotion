@@ -1,9 +1,29 @@
-from ingenialink import CAN_BAUDRATE, CAN_DEVICE
 import pytest
+from ingenialink import CAN_BAUDRATE, CAN_DEVICE
 
+from examples.change_node_id import change_node_id
 from ingeniamotion import MotionController
 from ingeniamotion.enums import SeverityLevel
-from examples.change_node_id import change_node_id
+from tests.conftest import connect_canopen, connect_eoe, connect_soem
+
+
+@pytest.fixture
+def setup_for_test_examples(motion_controller):
+    mc, alias = motion_controller
+    mc.communication.disconnect(alias)
+
+
+@pytest.fixture
+def teardown_for_test_examples(motion_controller, read_config, pytestconfig):
+    yield
+    mc, alias = motion_controller
+    protocol = pytestconfig.getoption("--protocol")
+    if protocol == "soem":
+        connect_soem(mc, read_config, alias)
+    elif protocol == "canopen":
+        connect_canopen(mc, read_config, alias)
+    else:
+        connect_eoe(mc, read_config, alias)
 
 
 @pytest.mark.eoe
@@ -15,8 +35,8 @@ def test_disturbance_example(read_config, script_runner):
     assert result.returncode == 0
 
 
+@pytest.mark.usefixtures("setup_for_test_examples", "teardown_for_test_examples")
 @pytest.mark.canopen
-@pytest.mark.skip(reason="This test fails because the canopen node is already connected")
 def test_canopen_example(read_config, script_runner):
     script_path = "examples/canopen_example.py"
     dictionary = read_config["dictionary"]
@@ -216,21 +236,23 @@ def test_brake_config_example(read_config, script_runner, mocker, override):
     assert result.returncode == 0
 
 
+@pytest.mark.usefixtures("setup_for_test_examples", "teardown_for_test_examples")
 @pytest.mark.canopen
-def test_change_node_id(motion_controller, read_config, capsys, pytestconfig):
-    
-    mc, alias = motion_controller
-    mc.communication.disconnect(alias)
-    
-    can_drive = {
-        "device": CAN_DEVICE(read_config["device"]),
-        "channel": read_config["channel"],
-        "node_id": read_config["node_id"],
-        "baudrate": CAN_BAUDRATE(read_config["baudrate"]),
-        "dictionary_path": read_config["dictionary"],
-    }
+def test_change_node_id(read_config, capsys):
+    device = CAN_DEVICE(read_config["device"])
+    baudrate = CAN_BAUDRATE(read_config["baudrate"])
     new_node_id = 32
-    change_node_id(can_drive, new_node_id)
-    mc, alias = motion_controller(pytestconfig, read_config)
-    print(mc)
 
+    change_node_id(device, read_config["channel"], read_config["node_id"], baudrate, read_config["dictionary"], new_node_id)
+    
+    captured_outputs = capsys.readouterr()
+    all_outputs = captured_outputs.out.split("\n")
+    assert all_outputs[0] == "Finding the available nodes..."
+    assert all_outputs[1] == f"Found nodes: [{read_config['node_id']}]"
+    assert all_outputs[4] == f"Drive is connected with {read_config['node_id']} as a node ID."
+    assert all_outputs[7] == "Node ID has been changed"
+    assert all_outputs[10] == "Finding the available nodes..."
+    assert all_outputs[11] == f"Found nodes: [{new_node_id}]"
+    assert all_outputs[14] == f"Drive is connected with {new_node_id} as a node ID."
+
+    change_node_id(device, read_config["channel"], new_node_id, baudrate, read_config["dictionary"], read_config["node_id"])
