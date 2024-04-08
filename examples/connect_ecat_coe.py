@@ -23,11 +23,7 @@ def connect_ethercat_coe(interface_index: int, slave_id: int, dictionary_path: s
     else:
         print(f"Found slaves: {slave_id_list}")
 
-    try:
-        mc.communication.connect_servo_ethercat(interface_selected, slave_id, dictionary_path)
-    except FileNotFoundError as e:
-        print(e)
-        return
+    mc.communication.connect_servo_ethercat(interface_selected, slave_id, dictionary_path)
     print("Drive is connected.")
 
     mc.communication.disconnect()
