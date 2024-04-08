@@ -59,6 +59,7 @@ def change_baudrate(
     old_baudrate = mc.info.get_baudrate()
     if old_baudrate == new_baudrate:
         print(f"This drive already has this baudrate: {old_baudrate}.")
+        mc.communication.disconnect()
         return
     mc.configuration.change_baudrate(new_baudrate)
     print(f"Baudrate has been changed from {old_baudrate} to {new_baudrate}.")
@@ -78,8 +79,7 @@ if __name__ == "__main__":
     channel = 0
     node_id = 20
     baudrate = CAN_BAUDRATE.Baudrate_1M
-    dictionary_path = (
-        "\\\\awe-srv-max-prd\\distext\\products\\EVE-NET\\firmware\\2.5.1\\eve-net-c_can_2.5.1.xdf"
-    )
+    dictionary_path = "parent_directory/dictionary_file.xdf"
+    new_baudrate = CAN_BAUDRATE.Baudrate_250K
 
-    change_baudrate(device, channel, baudrate, dictionary_path, CAN_BAUDRATE.Baudrate_250K, node_id)
+    change_baudrate(device, channel, baudrate, dictionary_path, new_baudrate, node_id)
