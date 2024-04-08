@@ -228,16 +228,16 @@ def test_change_node_id_success(mocker, capsys):
     dictionary_path = "test_dictionary.xdf"
 
     node_id = 20
-    new_node_id = 20
+    test_new_node_id = 32
 
     mocker.patch.object(
-        Communication, "scan_servos_canopen", side_effect=[[node_id], [new_node_id]]
+        Communication, "scan_servos_canopen", side_effect=[[node_id], [test_new_node_id]]
     )
     mocker.patch.object(Communication, "connect_servo_canopen")
     mocker.patch.object(Communication, "disconnect")
-    mocker.patch.object(Information, "get_node_id", side_effect=[node_id, new_node_id])
+    mocker.patch.object(Information, "get_node_id", side_effect=[node_id, test_new_node_id])
     mocker.patch.object(Configuration, "change_node_id")
-    change_node_id(device, channel, baudrate, dictionary_path, new_node_id, node_id)
+    change_node_id(device, channel, baudrate, dictionary_path, test_new_node_id, node_id)
 
     captured_outputs = capsys.readouterr()
     all_outputs = captured_outputs.out.split("\n")
@@ -246,8 +246,8 @@ def test_change_node_id_success(mocker, capsys):
     assert all_outputs[4] == f"Drive is connected with {node_id} as a node ID."
     assert all_outputs[6] == "Node ID has been changed"
     assert all_outputs[9] == "Finding the available nodes..."
-    assert all_outputs[10] == f"Found nodes: [{new_node_id}]"
-    assert all_outputs[13] == f"Drive is connected with {new_node_id} as a node ID."
+    assert all_outputs[10] == f"Found nodes: [{test_new_node_id}]"
+    assert all_outputs[13] == f"Drive is connected with {test_new_node_id} as a node ID."
 
 
 @pytest.mark.virtual
@@ -258,16 +258,16 @@ def test_change_node_id_failed(mocker, capsys):
     dictionary_path = "test_dictionary.xdf"
 
     node_id = 20
-    new_node_id = node_id
+    test_new_node_id = node_id
 
     mocker.patch.object(
-        Communication, "scan_servos_canopen", side_effect=[[node_id], [new_node_id]]
+        Communication, "scan_servos_canopen", side_effect=[[node_id], [test_new_node_id]]
     )
     mocker.patch.object(Communication, "connect_servo_canopen")
     mocker.patch.object(Communication, "disconnect")
-    mocker.patch.object(Information, "get_node_id", side_effect=[node_id, new_node_id])
+    mocker.patch.object(Information, "get_node_id", side_effect=[node_id, test_new_node_id])
     mocker.patch.object(Configuration, "change_node_id")
-    change_node_id(device, channel, baudrate, dictionary_path, new_node_id, node_id)
+    change_node_id(device, channel, baudrate, dictionary_path, test_new_node_id, node_id)
 
     captured_outputs = capsys.readouterr()
     all_outputs = captured_outputs.out.split("\n")
@@ -278,42 +278,44 @@ def test_change_node_id_failed(mocker, capsys):
 
 
 @pytest.mark.virtual
-def test_change_baudrate(mocker, capsys):
+def test_change_baudrate_success(mocker, capsys):
     device = CAN_DEVICE.PCAN
     channel = 0
     baudrate = CAN_BAUDRATE.Baudrate_1M
     node_id = 32
     dictionary_path = "test_dictionary.xdf"
-    new_baudrate = CAN_BAUDRATE.Baudrate_125K
+    test_new_baudrate = CAN_BAUDRATE.Baudrate_125K
 
-    expected_node_list = [node_id]
-
-    class MockCommunication:
-        def scan_servos_canopen(*args, **kwargs):
-            return expected_node_list
-
-        def connect_servo_canopen(*args, **kwargs):
-            pass
-
-        def disconnect(*args, **kwargs):
-            pass
-
-    def mock_get_baudrate(*args, **kwargs):
-        return baudrate
-
-    def mock_change_baudrate(*args, **kwargs):
-        pass
-
-    mocker.patch.object(MotionController, "communication", MockCommunication)
-    mocker.patch.object(Information, "get_baudrate", mock_get_baudrate)
-    mocker.patch.object(Configuration, "change_baudrate", mock_change_baudrate)
-    change_baudrate(device, channel, baudrate, dictionary_path, new_baudrate, node_id)
+    mocker.patch.object(MotionController, "communication")
+    mocker.patch.object(Information, "get_baudrate", side_effect=[baudrate])
+    mocker.patch.object(Configuration, "change_baudrate")
+    change_baudrate(device, channel, baudrate, dictionary_path, test_new_baudrate, node_id)
 
     captured_outputs = capsys.readouterr()
     all_outputs = captured_outputs.out.split("\n")
     assert all_outputs[4] == f"Drive is connected with {baudrate} baudrate."
-    assert all_outputs[6] == f"Baudrate has been changed from {baudrate} to {new_baudrate}."
+    assert all_outputs[6] == f"Baudrate has been changed from {baudrate} to {test_new_baudrate}."
     assert (
         all_outputs[8]
-        == f"Make a power-cycle on your drive and connect it again using the new baudrate {new_baudrate}"
+        == f"Make a power-cycle on your drive and connect it again using the new baudrate {test_new_baudrate}"
     )
+
+
+@pytest.mark.virtual
+def test_change_baudrate_failed(mocker, capsys):
+    device = CAN_DEVICE.PCAN
+    channel = 0
+    baudrate = CAN_BAUDRATE.Baudrate_1M
+    node_id = 32
+    dictionary_path = "test_dictionary.xdf"
+    test_new_baudrate = baudrate
+
+    mocker.patch.object(MotionController, "communication")
+    mocker.patch.object(Information, "get_baudrate", side_effect=[baudrate])
+    mocker.patch.object(Configuration, "change_baudrate")
+    change_baudrate(device, channel, baudrate, dictionary_path, test_new_baudrate, node_id)
+
+    captured_outputs = capsys.readouterr()
+    all_outputs = captured_outputs.out.split("\n")
+    assert all_outputs[4] == f"Drive is connected with {baudrate} baudrate."
+    assert all_outputs[6] == f"This drive already has this baudrate: {baudrate}."
