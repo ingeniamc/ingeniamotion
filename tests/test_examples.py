@@ -4,6 +4,7 @@ from ingenialink import CAN_BAUDRATE, CAN_DEVICE
 from examples.change_baudrate import change_baudrate
 from examples.change_node_id import change_node_id
 from ingeniamotion import MotionController
+from ingeniamotion.communication import Communication
 from ingeniamotion.configuration import Configuration
 from ingeniamotion.enums import SeverityLevel
 from ingeniamotion.information import Information
@@ -219,40 +220,61 @@ def test_brake_config_example(read_config, script_runner, mocker, override):
     assert result.returncode == 0
 
 
-@pytest.fixture
-def teardown_test_change_node_id(read_config):
-    yield
-    device = CAN_DEVICE(read_config["device"])
-    baudrate = CAN_BAUDRATE(read_config["baudrate"])
-    change_node_id(
-        device, read_config["channel"], baudrate, read_config["dictionary"], read_config["node_id"]
-    )
-
-
 @pytest.mark.virtual
-def test_change_node_id(read_config, mocker, capsys):
-    device = CAN_DEVICE(read_config["device"])
-    baudrate = CAN_BAUDRATE(read_config["baudrate"])
-    new_node_id = 32
+def test_change_node_id_success(mocker, capsys):
+    device = CAN_DEVICE.PCAN
+    channel = 0
+    baudrate = CAN_BAUDRATE.Baudrate_1M
+    dictionary_path = "test_dictionary.xdf"
 
-    change_node_id(
-        device,
-        read_config["channel"],
-        baudrate,
-        read_config["dictionary"],
-        new_node_id,
-        read_config["node_id"],
+    node_id = 20
+    new_node_id = 20
+
+    mocker.patch.object(
+        Communication, "scan_servos_canopen", side_effect=[[node_id], [new_node_id]]
     )
+    mocker.patch.object(Communication, "connect_servo_canopen")
+    mocker.patch.object(Communication, "disconnect")
+    mocker.patch.object(Information, "get_node_id", side_effect=[node_id, new_node_id])
+    mocker.patch.object(Configuration, "change_node_id")
+    change_node_id(device, channel, baudrate, dictionary_path, new_node_id, node_id)
 
     captured_outputs = capsys.readouterr()
     all_outputs = captured_outputs.out.split("\n")
     assert all_outputs[0] == "Finding the available nodes..."
-    assert all_outputs[1] == f"Found nodes: [{read_config['node_id']}]"
-    assert all_outputs[4] == f"Drive is connected with {read_config['node_id']} as a node ID."
-    assert all_outputs[7] == "Node ID has been changed"
-    assert all_outputs[10] == "Finding the available nodes..."
-    assert all_outputs[11] == f"Found nodes: [{new_node_id}]"
-    assert all_outputs[14] == f"Drive is connected with {new_node_id} as a node ID."
+    assert all_outputs[1] == f"Found nodes: [{node_id}]"
+    assert all_outputs[4] == f"Drive is connected with {node_id} as a node ID."
+    assert all_outputs[6] == "Node ID has been changed"
+    assert all_outputs[9] == "Finding the available nodes..."
+    assert all_outputs[10] == f"Found nodes: [{new_node_id}]"
+    assert all_outputs[13] == f"Drive is connected with {new_node_id} as a node ID."
+
+
+@pytest.mark.virtual
+def test_change_node_id_failed(mocker, capsys):
+    device = CAN_DEVICE.PCAN
+    channel = 0
+    baudrate = CAN_BAUDRATE.Baudrate_1M
+    dictionary_path = "test_dictionary.xdf"
+
+    node_id = 20
+    new_node_id = node_id
+
+    mocker.patch.object(
+        Communication, "scan_servos_canopen", side_effect=[[node_id], [new_node_id]]
+    )
+    mocker.patch.object(Communication, "connect_servo_canopen")
+    mocker.patch.object(Communication, "disconnect")
+    mocker.patch.object(Information, "get_node_id", side_effect=[node_id, new_node_id])
+    mocker.patch.object(Configuration, "change_node_id")
+    change_node_id(device, channel, baudrate, dictionary_path, new_node_id, node_id)
+
+    captured_outputs = capsys.readouterr()
+    all_outputs = captured_outputs.out.split("\n")
+    assert all_outputs[0] == "Finding the available nodes..."
+    assert all_outputs[1] == f"Found nodes: [{node_id}]"
+    assert all_outputs[4] == f"Drive is connected with {node_id} as a node ID."
+    assert all_outputs[6] == f"This drive already has this node ID: {node_id}."
 
 
 @pytest.mark.virtual
