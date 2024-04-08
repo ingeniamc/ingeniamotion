@@ -49,12 +49,8 @@ def load_firmware_canopen(
         print("Firmware is uploaded successfully.")
     except ILFirmwareLoadError as e:
         print(f"Firmware loading failed: {e}")
-    finally:
-        try:
-            mc.communication.disconnect()
-            print("Drive is disconnected.")
-        except Exception as e:
-            print(f"Error during drive disconnection: {e}")
+    mc.communication.disconnect()
+    print("Drive is disconnected.")
 
 
 if __name__ == "__main__":
