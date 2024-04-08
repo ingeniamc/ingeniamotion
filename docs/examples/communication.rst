@@ -20,3 +20,13 @@ Load Firmware FTP
 -----------------
 
 .. literalinclude:: ../../examples/load_fw_ftp.py
+
+Change Node ID
+--------------
+
+.. literalinclude:: ../../examples/change_node_id.py
+
+Change Baudrate
+---------------
+
+.. literalinclude:: ../../examples/change_baudrate.py
