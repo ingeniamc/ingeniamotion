@@ -6,7 +6,14 @@ from ingeniamotion.exceptions import IMException
 from ingeniamotion.motion_controller import MotionController
 
 
-def establish_canopen_communication(mc: MotionController, device: CAN_DEVICE, channel: int, baudrate: CAN_BAUDRATE, dictionary_path: str, node_id: Optional[int]):
+def establish_canopen_communication(
+    mc: MotionController,
+    device: CAN_DEVICE,
+    channel: int,
+    baudrate: CAN_BAUDRATE,
+    dictionary_path: str,
+    node_id: Optional[int],
+):
     print("Finding the available nodes...")
     node_id_list = mc.communication.scan_servos_canopen(
         device,
@@ -14,7 +21,7 @@ def establish_canopen_communication(mc: MotionController, device: CAN_DEVICE, ch
         channel=channel,
     )
     if not node_id_list:
-        raise IMException(f"Any node is detected.")
+        return False
 
     print(f"Found nodes: {node_id_list}")
     if node_id is None:
@@ -33,14 +40,20 @@ def establish_canopen_communication(mc: MotionController, device: CAN_DEVICE, ch
         channel=channel,
     )
     print(f"Drive is connected with {baudrate} baudrate.")
+    return True
 
 
-def change_baudrate(device: CAN_DEVICE, channel: int, baudrate: CAN_BAUDRATE, dictionary_path: str, new_baudrate: CAN_BAUDRATE, node_id: Optional[int] = None) -> None:
+def change_baudrate(
+    device: CAN_DEVICE,
+    channel: int,
+    baudrate: CAN_BAUDRATE,
+    dictionary_path: str,
+    new_baudrate: CAN_BAUDRATE,
+    node_id: Optional[int] = None,
+) -> None:
     mc = MotionController()
-    try:
-        establish_canopen_communication(mc, device, channel, baudrate, dictionary_path, node_id)
-    except IMException as e:
-        print(e)
+    if not establish_canopen_communication(mc, device, channel, baudrate, dictionary_path, node_id):
+        print("Any node is detected.")
         return
     print("Starts to change the baudrate.")
     old_baudrate = mc.info.get_baudrate()
@@ -50,10 +63,11 @@ def change_baudrate(device: CAN_DEVICE, channel: int, baudrate: CAN_BAUDRATE, di
     mc.configuration.change_baudrate(new_baudrate)
     print(f"Baudrate has been changed from {old_baudrate} to {new_baudrate}.")
 
-    baudrate = new_baudrate
     mc.communication.disconnect()
     print("Drive is disconnected.")
-    print(f"Make a power-cycle on your drive and connect it again using the new baudrate {new_baudrate}")
+    print(
+        f"Make a power-cycle on your drive and connect it again using the new baudrate {new_baudrate}"
+    )
 
 
 if __name__ == "__main__":
@@ -64,6 +78,8 @@ if __name__ == "__main__":
     channel = 0
     node_id = 20
     baudrate = CAN_BAUDRATE.Baudrate_1M
-    dictionary_path = "\\\\awe-srv-max-prd\\distext\\products\\EVE-NET\\firmware\\2.5.1\\eve-net-c_can_2.5.1.xdf"
-    
+    dictionary_path = (
+        "\\\\awe-srv-max-prd\\distext\\products\\EVE-NET\\firmware\\2.5.1\\eve-net-c_can_2.5.1.xdf"
+    )
+
     change_baudrate(device, channel, baudrate, dictionary_path, CAN_BAUDRATE.Baudrate_250K, node_id)

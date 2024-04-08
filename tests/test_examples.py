@@ -4,27 +4,9 @@ from ingenialink import CAN_BAUDRATE, CAN_DEVICE
 from examples.change_baudrate import change_baudrate
 from examples.change_node_id import change_node_id
 from ingeniamotion import MotionController
+from ingeniamotion.configuration import Configuration
 from ingeniamotion.enums import SeverityLevel
-from tests.conftest import connect_canopen, connect_eoe, connect_soem
-
-
-@pytest.fixture
-def setup_for_test_examples(motion_controller):
-    mc, alias = motion_controller
-    mc.communication.disconnect(alias)
-
-
-@pytest.fixture
-def teardown_for_test_examples(motion_controller, read_config, pytestconfig):
-    yield
-    mc, alias = motion_controller
-    protocol = pytestconfig.getoption("--protocol")
-    if protocol == "soem":
-        connect_soem(mc, read_config, alias)
-    elif protocol == "canopen":
-        connect_canopen(mc, read_config, alias)
-    else:
-        connect_eoe(mc, read_config, alias)
+from ingeniamotion.information import Information
 
 
 @pytest.mark.eoe
@@ -236,24 +218,32 @@ def test_brake_config_example(read_config, script_runner, mocker, override):
     result = script_runner.run(script_path, override, dictionary, f"-ip={ip_address}")
     assert result.returncode == 0
 
+
 @pytest.fixture
 def teardown_test_change_node_id(read_config):
     yield
     device = CAN_DEVICE(read_config["device"])
     baudrate = CAN_BAUDRATE(read_config["baudrate"])
-    change_node_id(device, read_config["channel"], baudrate, read_config["dictionary"], read_config["node_id"])
+    change_node_id(
+        device, read_config["channel"], baudrate, read_config["dictionary"], read_config["node_id"]
+    )
 
 
-@pytest.mark.usefixtures("setup_for_test_examples", "teardown_test_change_node_id")
-@pytest.mark.usefixtures("teardown_for_test_examples")
-@pytest.mark.canopen
-def test_change_node_id(read_config, capsys):
+@pytest.mark.virtual
+def test_change_node_id(read_config, mocker, capsys):
     device = CAN_DEVICE(read_config["device"])
     baudrate = CAN_BAUDRATE(read_config["baudrate"])
     new_node_id = 32
 
-    change_node_id(device, read_config["channel"], baudrate, read_config["dictionary"], new_node_id, read_config["node_id"])
-    
+    change_node_id(
+        device,
+        read_config["channel"],
+        baudrate,
+        read_config["dictionary"],
+        new_node_id,
+        read_config["node_id"],
+    )
+
     captured_outputs = capsys.readouterr()
     all_outputs = captured_outputs.out.split("\n")
     assert all_outputs[0] == "Finding the available nodes..."
@@ -265,27 +255,43 @@ def test_change_node_id(read_config, capsys):
     assert all_outputs[14] == f"Drive is connected with {new_node_id} as a node ID."
 
 
-@pytest.fixture
-def teardown_test_change_baudrate(read_config):
-    new_baudrate = CAN_BAUDRATE.Baudrate_250K
-    yield new_baudrate
-    device = CAN_DEVICE(read_config["device"])
-    baudrate = CAN_BAUDRATE(read_config["baudrate"])
-    change_baudrate(device, read_config["channel"], new_baudrate, read_config["dictionary"], baudrate, read_config["node_id"])
+@pytest.mark.virtual
+def test_change_baudrate(mocker, capsys):
+    device = CAN_DEVICE.PCAN
+    channel = 0
+    baudrate = CAN_BAUDRATE.Baudrate_1M
+    node_id = 32
+    dictionary_path = "test_dictionary.xdf"
+    new_baudrate = CAN_BAUDRATE.Baudrate_125K
 
-@pytest.mark.usefixtures("setup_for_test_examples")
-@pytest.mark.usefixtures("teardown_for_test_examples")
-@pytest.mark.skip(reason="An script for making a power-cycle is required")
-@pytest.mark.canopen
-def test_change_baudrate(read_config, capsys, teardown_test_change_baudrate):
-    device = CAN_DEVICE(read_config["device"])
-    baudrate = CAN_BAUDRATE(read_config["baudrate"])
-    new_baudrate = teardown_test_change_baudrate
+    expected_node_list = [node_id]
 
-    change_baudrate(device, read_config["channel"], baudrate, read_config["dictionary"], new_baudrate, read_config["node_id"])
-    
+    class MockCommunication:
+        def scan_servos_canopen(*args, **kwargs):
+            return expected_node_list
+
+        def connect_servo_canopen(*args, **kwargs):
+            pass
+
+        def disconnect(*args, **kwargs):
+            pass
+
+    def mock_get_baudrate(*args, **kwargs):
+        return baudrate
+
+    def mock_change_baudrate(*args, **kwargs):
+        pass
+
+    mocker.patch.object(MotionController, "communication", MockCommunication)
+    mocker.patch.object(Information, "get_baudrate", mock_get_baudrate)
+    mocker.patch.object(Configuration, "change_baudrate", mock_change_baudrate)
+    change_baudrate(device, channel, baudrate, dictionary_path, new_baudrate, node_id)
+
     captured_outputs = capsys.readouterr()
     all_outputs = captured_outputs.out.split("\n")
     assert all_outputs[4] == f"Drive is connected with {baudrate} baudrate."
     assert all_outputs[6] == f"Baudrate has been changed from {baudrate} to {new_baudrate}."
-    assert all_outputs[8] == f"Make a power-cycle on your drive and connect it again using the new baudrate {new_baudrate}"
+    assert (
+        all_outputs[8]
+        == f"Make a power-cycle on your drive and connect it again using the new baudrate {new_baudrate}"
+    )
