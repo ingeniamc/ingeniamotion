@@ -10,7 +10,7 @@ import ingenialogger
 logger = ingenialogger.get_logger(__name__)
 
 
-def establish_canopen_communication(mc: MotionController, device: CAN_DEVICE, channel: int, baudrate: CAN_BAUDRATE, dictionary_path: str, node_id: Optional[int]) -> None:
+def establish_canopen_communication(mc: MotionController, device: CAN_DEVICE, channel: int, baudrate: CAN_BAUDRATE, dictionary_path: str, node_id: Optional[int]) -> bool:
     print("Finding the available nodes...")
     node_id_list = mc.communication.scan_servos_canopen(
         device,
@@ -18,7 +18,7 @@ def establish_canopen_communication(mc: MotionController, device: CAN_DEVICE, ch
         channel=channel,
     )
     if not node_id_list:
-        raise IMException(f"Any node is detected.")
+        return False
     else:
         print(f"Found nodes: {node_id_list}")
         if node_id is None:
@@ -37,33 +37,32 @@ def establish_canopen_communication(mc: MotionController, device: CAN_DEVICE, ch
         channel=channel,
     )
     print(f"Drive is connected with {node_to_connect} as a node ID.")
+    return True
 
 
 def change_node_id(device: CAN_DEVICE, channel: int, baudrate: CAN_BAUDRATE, dictionary_path: str, new_node_id: int, node_id: Optional[int] = None) -> None:
     mc = MotionController()
-    try:
-        establish_canopen_communication(mc, device, channel, baudrate, dictionary_path, node_id)
-    except IMException as e:
-        print(e)
+    if not establish_canopen_communication(mc, device, channel, baudrate, dictionary_path, node_id):
+        print("Any node is detected.")
         return
+    
     print("Starts to change the node ID.")
     old_node_id = mc.info.get_node_id()
     if old_node_id == new_node_id:
         print(f"This drive already has this node ID: {old_node_id}.")
+        mc.communication.disconnect()
         return
-    print(f"Old node ID: {old_node_id}")
+    
     mc.configuration.change_node_id(new_node_id)
     print("Node ID has been changed")
 
-    node_id = new_node_id
     mc.communication.disconnect()
     print("Drive is disconnected.")
 
     print("Starts to establish a communication again.")
-    try:
-        establish_canopen_communication(mc, device, channel, baudrate, dictionary_path, node_id)
-    except IMException as e:
-        print(e)
+    node_id = new_node_id
+    if not establish_canopen_communication(mc, device, channel, baudrate, dictionary_path, node_id):
+        print("Any node is detected.")
         return
 
     mc.communication.disconnect()
@@ -77,8 +76,9 @@ if __name__ == "__main__":
 
     device = CAN_DEVICE.KVASER
     channel = 0
-    node_id = 32
+    node_id = 20
+    new_node_id = 32
     baudrate = CAN_BAUDRATE.Baudrate_1M
-    dictionary_path = "\\\\awe-srv-max-prd\\distext\\products\\EVE-NET\\firmware\\2.5.1\\eve-net-c_can_2.5.1.xdf"
+    dictionary_path = "parent_directory/dictionary_file.xdf"
 
-    change_node_id(device, channel, baudrate, dictionary_path, 20, node_id)
+    change_node_id(device, channel, baudrate, dictionary_path, new_node_id, node_id)
