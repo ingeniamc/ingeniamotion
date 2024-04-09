@@ -197,10 +197,10 @@ class Information(metaclass=MCMetaClass):
             return int(drive.target)
         else:
             raise IMException("You need a CANopen communication to use this function")
-        
-    def get_baudrate(self, alias: str= DEFAULT_SERVO) -> CAN_BAUDRATE:
+
+    def get_baudrate(self, alias: str = DEFAULT_SERVO) -> CAN_BAUDRATE:
         """Get the baudrate of target servo
-        
+
         Args:
             alias: alias of the servo.
 

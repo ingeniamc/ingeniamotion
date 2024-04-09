@@ -262,7 +262,7 @@ def test_get_baudrate_failed(motion_controller, mocker):
 
     mocker.patch.object(mc, "_get_network", return_value=EthercatNetwork("fake_interface_name"))
     with pytest.raises(IMException) as imexpeption_info:
-        _ = mc.info.get_baudrate()    
+        _ = mc.info.get_baudrate()
 
     expected_message_error = "The servo default is not a CANopen device."
     assert expected_message_error == imexpeption_info.value.args[0]
