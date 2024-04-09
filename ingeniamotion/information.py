@@ -198,8 +198,8 @@ class Information(metaclass=MCMetaClass):
         else:
             raise IMException("You need a CANopen communication to use this function")
         
-    def get_baudrate(self, alias: str= DEFAULT_SERVO):
-        """Get the baudrate of a CANopen network.
+    def get_baudrate(self, alias: str= DEFAULT_SERVO) -> CAN_BAUDRATE:
+        """Get the baudrate of target servo
         
         Args:
             alias: alias of the servo.
@@ -210,7 +210,7 @@ class Information(metaclass=MCMetaClass):
         net = self.mc._get_network(alias)
         if isinstance(net, CanopenNetwork):
             return CAN_BAUDRATE(net.baudrate)
-        raise IMException("You need a CANopen communication to use this function")
+        raise IMException(f"The servo {alias} is not a CANopen device.")
 
     def get_ip(self, alias: str = DEFAULT_SERVO) -> str:
         """Get the IP for Ethernet communications.
