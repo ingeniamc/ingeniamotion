@@ -312,10 +312,13 @@ def dummy_callback(e):
 def test_subscribe_exceptions(motion_controller, mocker):
     mc, _ = motion_controller
 
+    error_msg = "Test error"
+
     def send_receive_processdata(self):
-        raise ILWrongWorkingCount("Test error")
+        raise ILWrongWorkingCount(error_msg)
 
     mocker.patch("ingenialink.ethercat.network.EthercatNetwork.start_pdos")
+    mocker.patch("ingenialink.ethercat.network.EthercatNetwork.stop_pdos")
     mocker.patch(
         "ingenialink.ethercat.network.EthercatNetwork.send_receive_processdata",
         new=send_receive_processdata,
@@ -334,4 +337,7 @@ def test_subscribe_exceptions(motion_controller, mocker):
 
     assert mc.capture.pdo._pdo_thread._pd_thread_stop_event.is_set()
     patch_callback.assert_called_once()
-    assert str(patch_callback.call_args_list[0][0][0]) == "Test error"
+    assert (
+        str(patch_callback.call_args_list[0][0][0])
+        == f"Stopping the PDO thread due to the following exception: {error_msg} "
+    )
