@@ -2,7 +2,6 @@ from typing import Optional
 
 from ingenialink import CAN_BAUDRATE, CAN_DEVICE
 
-from ingeniamotion.exceptions import IMException
 from ingeniamotion.motion_controller import MotionController
 
 
@@ -13,7 +12,23 @@ def establish_canopen_communication(
     baudrate: CAN_BAUDRATE,
     dictionary_path: str,
     node_id: Optional[int],
-):
+) -> bool:
+    """Establish a CANopen communication.
+    
+    Find all available nodes by means of a scanning, and perform a communication.
+    If there isn't a selected node ID, it will perform a communication with the first found node ID.
+
+    Args:
+        mc: The object where there are all functions to establish a communication.
+        device: The type of transceiver (KVASER, PCAN, IXXAT).
+        channel: CANopen channel.
+        baudrate: The bit-timing rate of the communication.
+        dictionary_path: The absolute path where is placed a xdf file.
+        node_id: The selected node ID.
+
+    Returns:
+        True if the communication is performed successfully, False if it couldn't be established.
+    """
     print("Finding the available nodes...")
     node_id_list = mc.communication.scan_servos_canopen(
         device,
@@ -53,7 +68,7 @@ def change_baudrate(
 ) -> None:
     mc = MotionController()
     if not establish_canopen_communication(mc, device, channel, baudrate, dictionary_path, node_id):
-        print("Any node is detected.")
+        print("No node is detected.")
         return
     print("Starts to change the baudrate.")
     old_baudrate = mc.info.get_baudrate()
@@ -67,7 +82,7 @@ def change_baudrate(
     mc.communication.disconnect()
     print("Drive is disconnected.")
     print(
-        f"Make a power-cycle on your drive and connect it again using the new baudrate {new_baudrate}"
+        f"Perform a power cycle and reconnect to the drive using the new baud rate: {new_baudrate}"
     )
 
 

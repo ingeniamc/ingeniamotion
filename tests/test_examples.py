@@ -297,7 +297,7 @@ def test_change_baudrate_success(mocker, capsys):
     assert all_outputs[6] == f"Baudrate has been changed from {baudrate} to {test_new_baudrate}."
     assert (
         all_outputs[8]
-        == f"Make a power-cycle on your drive and connect it again using the new baudrate {test_new_baudrate}"
+        == f"Perform a power cycle and reconnect to the drive using the new baud rate: {test_new_baudrate}"
     )
 
 
