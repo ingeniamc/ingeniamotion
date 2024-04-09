@@ -272,7 +272,7 @@ def test_load_firmware_moco_exception(mocker, motion_controller):
 @pytest.mark.virtual
 def test_connect_servo_virtual():
     mc = MotionController()
-    mc.communication.connect_servo_virtual()
+    mc.communication.connect_servo_virtual(port=1062)
     assert mc.communication._Communication__virtual_drive is not None
     mc.communication.disconnect()
     assert mc.communication._Communication__virtual_drive is None
@@ -281,7 +281,7 @@ def test_connect_servo_virtual():
 @pytest.mark.virtual
 def test_connect_servo_virtual_custom_dictionary(read_config):
     mc = MotionController()
-    mc.communication.connect_servo_virtual(dict_path=read_config["dictionary"])
+    mc.communication.connect_servo_virtual(dict_path=read_config["dictionary"], port=1062)
     assert mc.communication._Communication__virtual_drive is not None
     mc.communication.disconnect()
     assert mc.communication._Communication__virtual_drive is None
