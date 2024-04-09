@@ -37,4 +37,4 @@ Please update the documentation.
 
 ### Others
 
--[ ] Set fix version field in the Jira issue.
+- [ ] Set fix version field in the Jira issue.
