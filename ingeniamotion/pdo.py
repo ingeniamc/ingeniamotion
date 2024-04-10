@@ -209,7 +209,7 @@ class PDONetworkManager:
                     self._notify_exceptions(im_exception)
             iteration_duration: float = -1
             while not self._pd_thread_stop_event.is_set():
-                time_start = time.time()
+                time_start = time.perf_counter()
                 if self._notify_send_process_data is not None:
                     self._notify_send_process_data()
                 try:
@@ -218,7 +218,7 @@ class PDONetworkManager:
                     self._pd_thread_stop_event.set()
                     self._net.stop_pdos()
                     if iteration_duration == -1:
-                        iteration_duration = time.time() - time_start
+                        iteration_duration = time.perf_counter() - time_start
                     duration_error = ""
                     if iteration_duration > self._refresh_rate:
                         duration_error = (
@@ -235,16 +235,22 @@ class PDONetworkManager:
                 else:
                     if self._notify_receive_process_data is not None:
                         self._notify_receive_process_data()
-                    remaining_loop_time = self._refresh_rate - (time.time() - time_start)
+                    remaining_loop_time = self._refresh_rate - (time.perf_counter() - time_start)
                     if remaining_loop_time > 0:
-                        time.sleep(remaining_loop_time)
-                    iteration_duration = time.time() - time_start
+                        self.high_precision_sleep(remaining_loop_time)
+                    iteration_duration = time.perf_counter() - time_start
 
         def stop(self) -> None:
             """Stop the PDO exchange"""
             self._pd_thread_stop_event.set()
             self._net.stop_pdos()
             self.join()
+
+        @staticmethod
+        def high_precision_sleep(duration: float) -> None:
+            start_time = time.perf_counter()
+            while duration - (time.perf_counter() - start_time) > 0:
+                pass
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
