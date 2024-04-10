@@ -16,9 +16,7 @@ def establish_coe_connection(mc: MotionController) -> None:
     # Modify these parameters to connect a drive
     interface_index = 3
     slave_id = 1
-    dictionary_path = (
-        "parent_directory/dictionary_file.xdf"
-    )
+    dictionary_path = "parent_directory/dictionary_file.xdf"
 
     interface_selected = mc.communication.get_ifname_by_index(interface_index)
     slave_id_list = mc.communication.scan_servos_ethercat(interface_selected)

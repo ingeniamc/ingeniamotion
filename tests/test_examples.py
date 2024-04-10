@@ -220,23 +220,28 @@ def test_brake_config_example(read_config, script_runner, mocker, override):
     assert result.returncode == 0
 
 
-
 @pytest.mark.virtual
 def test_pdo_poller_success(mocker):
     get_ifname_by_index = mocker.patch.object(Communication, "get_ifname_by_index")
-    scan_servos_ethercat = mocker.patch.object(Communication, "scan_servos_ethercat", return_value=[32])
+    scan_servos_ethercat = mocker.patch.object(
+        Communication, "scan_servos_ethercat", return_value=[32]
+    )
     connect_servo_ethercat = mocker.patch.object(Communication, "connect_servo_ethercat")
     set_position_feedback = mocker.patch.object(Configuration, "set_position_feedback")
     set_velocity_feedback = mocker.patch.object(Configuration, "set_velocity_feedback")
     disconnect = mocker.patch.object(Communication, "disconnect")
     mock_pdo_poller = PDOPoller(MotionController(), "mock_alias", 0.1, 100)
-    create_poller = mocker.patch.object(PDONetworkManager, "create_poller", return_value=mock_pdo_poller)
+    create_poller = mocker.patch.object(
+        PDONetworkManager, "create_poller", return_value=mock_pdo_poller
+    )
     mock_poller_data = (deque([0.1, 0.2]), [deque([1, 2]), deque([0.0, 0.0])])
-    data = mocker.patch.object(PDOPoller, "data", new_callable=mocker.PropertyMock, return_value=mock_poller_data)
+    data = mocker.patch.object(
+        PDOPoller, "data", new_callable=mocker.PropertyMock, return_value=mock_poller_data
+    )
     stop = mocker.patch.object(PDOPoller, "stop")
-    
+
     perform_pdo_poller()
-    
+
     get_ifname_by_index.assert_called_once()
     scan_servos_ethercat.assert_called_once()
     connect_servo_ethercat.assert_called_once()
