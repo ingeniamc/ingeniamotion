@@ -159,10 +159,15 @@ class PDONetworkManager:
             notify_send_process_data: Callback to notify when process data is about to be sent.
             notify_receive_process_data: Callback to notify when process data is received.
             notify_exceptions: Callback to notify when an exception is raised.
+
+        Raises:
+            ValueError: If the provided refresh rate is unfeasible.
+
         """
 
-        DEFAULT_PDO_REFRESH_RATE = 0.01
-        MINIMUM_PDO_REFRESH_RATE = 4
+        DEFAULT_PDO_REFRESH_TIME = 0.01
+        MINIMUM_PDO_REFRESH_TIME = 0.001
+        MAXIMUM_PDO_REFRESH_TIME = 4
         ETHERCAT_PDO_WATCHDOG = "processdata"
         PDO_WATCHDOG_INCREMENT_FACTOR = 1.5
         SECONDS_TO_MS_CONVERSION_FACTOR = 1000
@@ -178,10 +183,14 @@ class PDONetworkManager:
             super().__init__()
             self._net = net
             if refresh_rate is None:
-                refresh_rate = self.DEFAULT_PDO_REFRESH_RATE
-            elif refresh_rate > self.MINIMUM_PDO_REFRESH_RATE:
+                refresh_rate = self.DEFAULT_PDO_REFRESH_TIME
+            elif refresh_rate < self.MINIMUM_PDO_REFRESH_TIME:
                 raise ValueError(
-                    f"The minimum PDO refresh rate is {self.MINIMUM_PDO_REFRESH_RATE} seconds."
+                    f"The minimum PDO refresh rate is {self.MINIMUM_PDO_REFRESH_TIME} seconds."
+                )
+            elif refresh_rate > self.MAXIMUM_PDO_REFRESH_TIME:
+                raise ValueError(
+                    f"The maximum PDO refresh rate is {self.MAXIMUM_PDO_REFRESH_TIME} seconds."
                 )
             self._refresh_rate = refresh_rate
             self._pd_thread_stop_event = threading.Event()
@@ -213,7 +222,7 @@ class PDONetworkManager:
                 if self._notify_send_process_data is not None:
                     self._notify_send_process_data()
                 try:
-                    self._net.send_receive_processdata()
+                    self._net.send_receive_processdata(self._refresh_rate)
                 except ILWrongWorkingCount as il_error:
                     self._pd_thread_stop_event.set()
                     self._net.stop_pdos()
