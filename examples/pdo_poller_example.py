@@ -14,10 +14,10 @@ def establish_coe_connection(mc: MotionController) -> None:
         mc: The object where there are all functions to establish a communication.
     """
     # Modify these parameters to connect a drive
-    interface_index = 4
+    interface_index = 3
     slave_id = 1
     dictionary_path = (
-        "\\\\awe-srv-max-prd\\distext\\products\\CAP-NET\\firmware\\2.5.1\\cap-net-e_eoe_2.5.1.xdf"
+        "parent_directory/dictionary_file.xdf"
     )
 
     interface_selected = mc.communication.get_ifname_by_index(interface_index)
@@ -40,7 +40,7 @@ def set_feedback_sensors(mc: MotionController) -> None:
     Args:
         mc: the controller to configure.
     """
-    # Modify the SensorType if you are using another type.
+    # Modify the SensorType.
     mc.configuration.set_position_feedback(SensorType.HALLS)
     mc.configuration.set_velocity_feedback(SensorType.HALLS)
 
