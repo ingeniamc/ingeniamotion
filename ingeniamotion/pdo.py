@@ -248,6 +248,8 @@ class PDONetworkManager:
 
         @staticmethod
         def high_precision_sleep(duration: float) -> None:
+            """Replaces the time.sleep() method in order to obtain
+            more precise sleeping times."""
             start_time = time.perf_counter()
             while duration - (time.perf_counter() - start_time) > 0:
                 pass
