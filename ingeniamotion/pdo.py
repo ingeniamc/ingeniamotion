@@ -166,7 +166,9 @@ class PDONetworkManager:
         ETHERCAT_PDO_WATCHDOG = "processdata"
         PDO_WATCHDOG_INCREMENT_FACTOR = 1.5
         SECONDS_TO_MS_CONVERSION_FACTOR = 1000
-        TIME_SLEEP_PRECISION = 0.016
+        # The time.sleep precision is 13 ms for Windows OS
+        # https://stackoverflow.com/questions/1133857/how-accurate-is-pythons-time-sleep
+        WINDOWS_TIME_SLEEP_PRECISION = 0.013
 
         def __init__(
             self,
@@ -240,8 +242,8 @@ class PDONetworkManager:
                         remaining_loop_time := self._refresh_rate
                         - (time.perf_counter() - time_start)
                     ) > 0:
-                        if remaining_loop_time > self.TIME_SLEEP_PRECISION:
-                            time.sleep(self.TIME_SLEEP_PRECISION)
+                        if remaining_loop_time > self.WINDOWS_TIME_SLEEP_PRECISION:
+                            time.sleep(self.WINDOWS_TIME_SLEEP_PRECISION)
                         else:
                             self.high_precision_sleep(remaining_loop_time)
                     iteration_duration = time.perf_counter() - time_start
