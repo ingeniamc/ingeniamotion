@@ -270,5 +270,5 @@ def test_process_data_object(mocker):
         "motor_disable",
         "disconnect",
     ]
-    for i, current_function in enumerate(expected_order_execution):
-        assert order_mock.method_calls[i][0] == current_function
+    for current_function, expected_function_name in enumerate(expected_order_execution):
+        assert order_mock.method_calls[current_function][0] == expected_function_name
