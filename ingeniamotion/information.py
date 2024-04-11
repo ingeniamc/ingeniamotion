@@ -14,7 +14,6 @@ import ingenialogger
 from ingeniamotion.exceptions import IMRegisterNotExist, IMException
 from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.enums import COMMUNICATION_TYPE
-from ingeniamotion.comkit import create_comkit_dictionary
 
 
 if TYPE_CHECKING:
@@ -145,27 +144,6 @@ class Information(metaclass=MCMetaClass):
         """
         drive = self.mc.servos[servo]
         return register in drive.dictionary.registers(axis)
-
-    @staticmethod
-    def create_comkit_dictionary(
-        coco_dict_path: str, moco_dict_path: str, dest_file: Optional[str] = None
-    ) -> str:
-        """Create a dictionary for COMKIT by merging a COCO dictionary and a MOCO dictionary.
-
-        Args:
-            coco_dict_path : COCO dictionary path.
-            moco_dict_path : MOCO dictionary path.
-            dest_file: Path to store the COMKIT dictionary. If it's not provided the
-                merged dictionary is stored in the temporary system's folder.
-
-        Returns:
-            Path to the COMKIT dictionary.
-
-        Raises:
-            ValueError: If destination file has a wrong extension.
-
-        """
-        return create_comkit_dictionary(coco_dict_path, moco_dict_path, dest_file)
 
     def get_product_name(self, alias: str = DEFAULT_SERVO) -> Optional[str]:
         """Get the product name of the drive.
@@ -336,20 +314,14 @@ class Information(metaclass=MCMetaClass):
         drive = self.mc.servos[alias]
         return str(os.path.basename(drive.dictionary.path))
 
-    def get_encoded_image_from_dictionary(self, alias: str, axis: int = 0) -> Optional[str]:
+    def get_encoded_image_from_dictionary(self, alias: str) -> Optional[str]:
         """Get the encoded product image from a drive dictionary.
         This function reads a dictionary of a drive, and it parses whether the dictionary file has a
         DriveImage tag and its content.
         Args:
             alias: Alias of the drive.
-            axis: Drive axis. Used when using  COM-KIT.
         Returns:
             The encoded image or NoneType object.
         """
         drive = self.mc.servos[alias]
-        encoded_image: Optional[str] = None
-        if axis == 1:
-            encoded_image = drive.dictionary.moco_image
-        else:
-            encoded_image = drive.dictionary.image
-        return encoded_image
+        return drive.dictionary.image
