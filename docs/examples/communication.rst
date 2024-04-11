@@ -25,3 +25,8 @@ Load Firmware FTP
 -----------------
 
 .. literalinclude:: ../../examples/load_fw_ftp.py
+
+Load Firmware CAN
+-----------------
+
+.. literalinclude:: ../../examples/load_fw_canopen.py
