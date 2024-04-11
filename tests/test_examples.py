@@ -318,24 +318,17 @@ def test_change_node_id_success(mocker, capsys):
     node_id = 20
     test_new_node_id = 32
 
-    mocker.patch.object(
-        Communication, "scan_servos_canopen", side_effect=[[node_id], [test_new_node_id]]
-    )
     mocker.patch.object(Communication, "connect_servo_canopen")
     mocker.patch.object(Communication, "disconnect")
     mocker.patch.object(Information, "get_node_id", side_effect=[node_id, test_new_node_id])
     mocker.patch.object(Configuration, "change_node_id")
-    change_node_id(device, channel, baudrate, dictionary_path, test_new_node_id, node_id)
+    change_node_id(device, channel, node_id, baudrate, dictionary_path, test_new_node_id)
 
     captured_outputs = capsys.readouterr()
     all_outputs = captured_outputs.out.split("\n")
-    assert all_outputs[0] == "Finding the available nodes..."
-    assert all_outputs[1] == f"Found nodes: [{node_id}]"
-    assert all_outputs[4] == f"Drive is connected with {node_id} as a node ID."
-    assert all_outputs[6] == "Node ID has been changed"
-    assert all_outputs[9] == "Finding the available nodes..."
-    assert all_outputs[10] == f"Found nodes: [{test_new_node_id}]"
-    assert all_outputs[13] == f"Drive is connected with {test_new_node_id} as a node ID."
+    assert all_outputs[1] == f"Drive is connected with {node_id} as a node ID."
+    assert all_outputs[3] == "Node ID has been changed"
+    assert all_outputs[6] == f"Now the drive is connected with {test_new_node_id} as a node ID."
 
 
 @pytest.mark.virtual
@@ -348,21 +341,16 @@ def test_change_node_id_failed(mocker, capsys):
     node_id = 20
     test_new_node_id = node_id
 
-    mocker.patch.object(
-        Communication, "scan_servos_canopen", side_effect=[[node_id], [test_new_node_id]]
-    )
     mocker.patch.object(Communication, "connect_servo_canopen")
     mocker.patch.object(Communication, "disconnect")
     mocker.patch.object(Information, "get_node_id", side_effect=[node_id, test_new_node_id])
     mocker.patch.object(Configuration, "change_node_id")
-    change_node_id(device, channel, baudrate, dictionary_path, test_new_node_id, node_id)
+    change_node_id(device, channel, node_id, baudrate, dictionary_path, test_new_node_id)
 
     captured_outputs = capsys.readouterr()
     all_outputs = captured_outputs.out.split("\n")
-    assert all_outputs[0] == "Finding the available nodes..."
-    assert all_outputs[1] == f"Found nodes: [{node_id}]"
-    assert all_outputs[4] == f"Drive is connected with {node_id} as a node ID."
-    assert all_outputs[6] == f"This drive already has this node ID: {node_id}."
+    assert all_outputs[1] == f"Drive is connected with {node_id} as a node ID."
+    assert all_outputs[3] == f"This drive already has this node ID: {node_id}."
 
 
 @pytest.mark.virtual
@@ -378,7 +366,7 @@ def test_change_baudrate_success(mocker, capsys):
     mocker.patch.object(Communication, "disconnect")
     mocker.patch.object(Information, "get_baudrate", side_effect=[baudrate])
     mocker.patch.object(Configuration, "change_baudrate")
-    change_baudrate(device, channel, baudrate, dictionary_path, test_new_baudrate, node_id)
+    change_baudrate(device, channel, node_id, baudrate, dictionary_path, test_new_baudrate)
 
     captured_outputs = capsys.readouterr()
     all_outputs = captured_outputs.out.split("\n")
@@ -403,7 +391,7 @@ def test_change_baudrate_failed(mocker, capsys):
     mocker.patch.object(Communication, "disconnect")
     mocker.patch.object(Information, "get_baudrate", side_effect=[baudrate])
     mocker.patch.object(Configuration, "change_baudrate")
-    change_baudrate(device, channel, baudrate, dictionary_path, test_new_baudrate, node_id)
+    change_baudrate(device, channel, node_id, baudrate, dictionary_path, test_new_baudrate)
 
     captured_outputs = capsys.readouterr()
     all_outputs = captured_outputs.out.split("\n")

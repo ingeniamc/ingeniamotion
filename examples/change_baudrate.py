@@ -8,10 +8,10 @@ from ingeniamotion.motion_controller import MotionController
 def change_baudrate(
     device: CAN_DEVICE,
     channel: int,
+    node_id: int,
     baudrate: CAN_BAUDRATE,
     dictionary_path: str,
     new_baudrate: CAN_BAUDRATE,
-    node_id: Optional[int] = None,
 ) -> None:
     mc = MotionController()
     mc.communication.connect_servo_canopen(device, dictionary_path, node_id, baudrate, channel)
@@ -41,4 +41,4 @@ if __name__ == "__main__":
     dictionary_path = "parent_directory/dictionary_file.xdf"
     new_baudrate = CAN_BAUDRATE.Baudrate_250K
 
-    change_baudrate(device, channel, baudrate, dictionary_path, new_baudrate, node_id)
+    change_baudrate(device, channel, node_id, baudrate, dictionary_path, new_baudrate)
