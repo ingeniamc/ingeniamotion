@@ -1,7 +1,5 @@
 import time
-from typing import Dict, List, Union
 
-from ingeniamotion.enums import SensorType
 from ingeniamotion.motion_controller import MotionController
 
 

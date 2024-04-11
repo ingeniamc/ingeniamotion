@@ -1,7 +1,14 @@
-import pytest
+from unittest.mock import Mock
 
+import pytest
+from ingenialink.pdo import RPDOMap, TPDOMap
+
+from examples.process_data_object import main as main_process_data_object
 from ingeniamotion import MotionController
+from ingeniamotion.communication import Communication
 from ingeniamotion.enums import SeverityLevel
+from ingeniamotion.motion import Motion
+from ingeniamotion.pdo import PDONetworkManager
 
 
 @pytest.mark.eoe
@@ -212,3 +219,55 @@ def test_brake_config_example(read_config, script_runner, mocker, override):
     mocker.patch.object(MotionController, "configuration", MockConfiguration)
     result = script_runner.run(script_path, override, dictionary, f"-ip={ip_address}")
     assert result.returncode == 0
+
+
+@pytest.mark.virtual
+def test_process_data_object(mocker):
+    get_ifname_by_index = mocker.patch.object(Communication, "get_ifname_by_index")
+    scan_servos_ethercat = mocker.patch.object(
+        Communication, "scan_servos_ethercat", return_value=[32]
+    )
+    connect_servo_ethercat = mocker.patch.object(Communication, "connect_servo_ethercat")
+    disconnect = mocker.patch.object(Communication, "disconnect")
+    motor_enable = mocker.patch.object(Motion, "motor_enable")
+    motor_disable = mocker.patch.object(Motion, "motor_disable")
+    create_pdo_item = mocker.patch.object(PDONetworkManager, "create_pdo_item")
+    create_pdo_maps = mocker.patch.object(PDONetworkManager, "create_pdo_maps", return_value=(RPDOMap(), TPDOMap))
+    set_pdo_maps_to_slave = mocker.patch.object(PDONetworkManager, "set_pdo_maps_to_slave")
+    start_pdos = mocker.patch.object(PDONetworkManager, "start_pdos")
+    stop_pdos = mocker.patch.object(PDONetworkManager, "stop_pdos")
+
+    
+    mocks_to_attach = {
+        "connect_servo_ethercat": connect_servo_ethercat,
+        "motor_enable": motor_enable,
+        "create_pdo_item": create_pdo_item,
+        "create_pdo_maps": create_pdo_maps,
+        "set_pdo_maps_to_slave": set_pdo_maps_to_slave,
+        "start_pdos": start_pdos,
+        "stop_pdos": stop_pdos,
+        "motor_disable": motor_disable,
+        "disconnect": disconnect,
+    }
+    order_mock = Mock()
+    for mock_name, mock in mocks_to_attach.items():
+        order_mock.attach_mock(mock, f"{mock_name}")
+
+    assert order_mock.method_calls == []
+    
+    main_process_data_object()
+
+    expected_order_execution = [
+        "connect_servo_ethercat",
+        "motor_enable",
+        "create_pdo_item",
+        "create_pdo_item",
+        "create_pdo_maps",
+        "set_pdo_maps_to_slave",
+        "start_pdos",
+        "stop_pdos",
+        "motor_disable",
+        "disconnect",
+    ]
+    for i, current_function in enumerate(expected_order_execution):
+        assert order_mock.method_calls[i][0] == current_function
