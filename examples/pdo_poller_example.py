@@ -5,33 +5,6 @@ from ingeniamotion.enums import SensorType
 from ingeniamotion.motion_controller import MotionController
 
 
-def establish_coe_connection(mc: MotionController) -> None:
-    """Establish an EtherCAT-CoE communication.
-
-    Find all available nodes, and perform a communication.
-
-    Args:
-        mc: The object where there are all functions to establish a communication.
-    """
-    # Modify these parameters to connect a drive
-    interface_index = 3
-    slave_id = 1
-    dictionary_path = "parent_directory/dictionary_file.xdf"
-
-    interface_selected = mc.communication.get_ifname_by_index(interface_index)
-    slave_id_list = mc.communication.scan_servos_ethercat(interface_selected)
-
-    if not slave_id_list:
-        interface_list = mc.communication.get_interface_name_list()
-        print(f"No slave detected on interface: {interface_list[interface_index]}")
-        return
-    else:
-        print(f"Found slaves: {slave_id_list}")
-
-    mc.communication.connect_servo_ethercat(interface_selected, slave_id, dictionary_path)
-    print("Drive is connected.")
-
-
 def set_feedback_sensors(mc: MotionController) -> None:
     """Set the type of position and velocity feedback sensors.
 
@@ -39,12 +12,12 @@ def set_feedback_sensors(mc: MotionController) -> None:
         mc: the controller to configure.
     """
     # Modify the SensorType.
-    mc.configuration.set_position_feedback(SensorType.HALLS)
-    mc.configuration.set_velocity_feedback(SensorType.HALLS)
+    mc.configuration.set_position_feedback(SensorType.QEI)
+    mc.configuration.set_velocity_feedback(SensorType.QEI)
 
 
-def perform_pdo_poller(mc: MotionController) -> None:
-    """Perform a PDO poller.
+def set_up_pdo_poller(mc: MotionController) -> None:
+    """Set-up a PDO poller.
 
     Read the Actual Position and the Actual Velocity registers using the PDO poller.
 
@@ -75,9 +48,15 @@ def perform_pdo_poller(mc: MotionController) -> None:
 
 def main() -> None:
     mc = MotionController()
-    establish_coe_connection(mc)
+    # Modify these parameters to connect a drive
+    interface_index = 3
+    slave_id = 1
+    dictionary_path = "parent_directory/dictionary_file.xdf"
+    mc.communication.connect_servo_ethercat_interface_index(
+        interface_index, slave_id, dictionary_path
+    )
     set_feedback_sensors(mc)
-    perform_pdo_poller(mc)
+    set_up_pdo_poller(mc)
     mc.communication.disconnect()
     print("The drive has been disconnected.")
 

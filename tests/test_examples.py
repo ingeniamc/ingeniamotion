@@ -2,7 +2,7 @@ from collections import deque
 
 import pytest
 
-from examples.pdo_poller_example import main as perform_pdo_poller
+from examples.pdo_poller_example import main as set_up_pdo_poller
 from ingeniamotion import MotionController
 from ingeniamotion.communication import Communication
 from ingeniamotion.configuration import Configuration
@@ -222,11 +222,9 @@ def test_brake_config_example(read_config, script_runner, mocker, override):
 
 @pytest.mark.virtual
 def test_pdo_poller_success(mocker):
-    get_ifname_by_index = mocker.patch.object(Communication, "get_ifname_by_index")
-    scan_servos_ethercat = mocker.patch.object(
-        Communication, "scan_servos_ethercat", return_value=[32]
+    connect_servo_ethercat = mocker.patch.object(
+        Communication, "connect_servo_ethercat_interface_index"
     )
-    connect_servo_ethercat = mocker.patch.object(Communication, "connect_servo_ethercat")
     set_position_feedback = mocker.patch.object(Configuration, "set_position_feedback")
     set_velocity_feedback = mocker.patch.object(Configuration, "set_velocity_feedback")
     disconnect = mocker.patch.object(Communication, "disconnect")
@@ -240,10 +238,8 @@ def test_pdo_poller_success(mocker):
     )
     stop = mocker.patch.object(PDOPoller, "stop")
 
-    perform_pdo_poller()
+    set_up_pdo_poller()
 
-    get_ifname_by_index.assert_called_once()
-    scan_servos_ethercat.assert_called_once()
     connect_servo_ethercat.assert_called_once()
     set_position_feedback.assert_called_once()
     set_velocity_feedback.assert_called_once()
