@@ -232,12 +232,13 @@ def test_process_data_object(mocker):
     motor_enable = mocker.patch.object(Motion, "motor_enable")
     motor_disable = mocker.patch.object(Motion, "motor_disable")
     create_pdo_item = mocker.patch.object(PDONetworkManager, "create_pdo_item")
-    create_pdo_maps = mocker.patch.object(PDONetworkManager, "create_pdo_maps", return_value=(RPDOMap(), TPDOMap))
+    create_pdo_maps = mocker.patch.object(
+        PDONetworkManager, "create_pdo_maps", return_value=(RPDOMap(), TPDOMap)
+    )
     set_pdo_maps_to_slave = mocker.patch.object(PDONetworkManager, "set_pdo_maps_to_slave")
     start_pdos = mocker.patch.object(PDONetworkManager, "start_pdos")
     stop_pdos = mocker.patch.object(PDONetworkManager, "stop_pdos")
 
-    
     mocks_to_attach = {
         "connect_servo_ethercat": connect_servo_ethercat,
         "motor_enable": motor_enable,
@@ -254,7 +255,7 @@ def test_process_data_object(mocker):
         order_mock.attach_mock(mock, f"{mock_name}")
 
     assert order_mock.method_calls == []
-    
+
     main_process_data_object()
 
     expected_order_execution = [
