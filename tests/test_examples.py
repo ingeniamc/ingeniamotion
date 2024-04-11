@@ -286,17 +286,18 @@ def test_change_baudrate_success(mocker, capsys):
     dictionary_path = "test_dictionary.xdf"
     test_new_baudrate = CAN_BAUDRATE.Baudrate_125K
 
-    mocker.patch.object(MotionController, "communication")
+    mocker.patch.object(Communication, "connect_servo_canopen")
+    mocker.patch.object(Communication, "disconnect")
     mocker.patch.object(Information, "get_baudrate", side_effect=[baudrate])
     mocker.patch.object(Configuration, "change_baudrate")
     change_baudrate(device, channel, baudrate, dictionary_path, test_new_baudrate, node_id)
 
     captured_outputs = capsys.readouterr()
     all_outputs = captured_outputs.out.split("\n")
-    assert all_outputs[4] == f"Drive is connected with {baudrate} baudrate."
-    assert all_outputs[6] == f"Baudrate has been changed from {baudrate} to {test_new_baudrate}."
+    assert all_outputs[0] == f"Drive is connected with {baudrate} baudrate."
+    assert all_outputs[2] == f"Baudrate has been changed from {baudrate} to {test_new_baudrate}."
     assert (
-        all_outputs[8]
+        all_outputs[4]
         == f"Perform a power cycle and reconnect to the drive using the new baud rate: {test_new_baudrate}"
     )
 
@@ -310,12 +311,13 @@ def test_change_baudrate_failed(mocker, capsys):
     dictionary_path = "test_dictionary.xdf"
     test_new_baudrate = baudrate
 
-    mocker.patch.object(MotionController, "communication")
+    mocker.patch.object(Communication, "connect_servo_canopen")
+    mocker.patch.object(Communication, "disconnect")
     mocker.patch.object(Information, "get_baudrate", side_effect=[baudrate])
     mocker.patch.object(Configuration, "change_baudrate")
     change_baudrate(device, channel, baudrate, dictionary_path, test_new_baudrate, node_id)
 
     captured_outputs = capsys.readouterr()
     all_outputs = captured_outputs.out.split("\n")
-    assert all_outputs[4] == f"Drive is connected with {baudrate} baudrate."
-    assert all_outputs[6] == f"This drive already has this baudrate: {baudrate}."
+    assert all_outputs[0] == f"Drive is connected with {baudrate} baudrate."
+    assert all_outputs[2] == f"This drive already has this baudrate: {baudrate}."
