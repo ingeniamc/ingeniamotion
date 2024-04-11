@@ -48,6 +48,7 @@ class PDOPoller:
         self.__tpdo_map: TPDOMap = self.__mc.capture.pdo.create_empty_tpdo_map()
         self.__rpdo_map: RPDOMap = self.__mc.capture.pdo.create_empty_rpdo_map()
         self.__fill_rpdo_map()
+        self.__exception_callbacks: List[Callable[[IMException], None]] = []
 
     def start(self) -> None:
         """Start the poller"""
@@ -55,6 +56,8 @@ class PDOPoller:
             self.__rpdo_map, self.__tpdo_map, servo=self.__servo
         )
         self.__mc.capture.pdo.subscribe_to_receive_process_data(self._new_data_available)
+        for callback in self.__exception_callbacks:
+            self.__mc.capture.pdo.subscribe_to_exceptions(callback)
         self.__start_time = time.time()
         self.__mc.capture.pdo.start_pdos(refresh_rate=self.__refresh_time)
 
@@ -62,6 +65,8 @@ class PDOPoller:
         """Stop the poller"""
         self.__mc.capture.pdo.stop_pdos()
         self.__mc.capture.pdo.unsubscribe_to_receive_process_data(self._new_data_available)
+        for callback in self.__exception_callbacks:
+            self.__mc.capture.pdo.unsubscribe_to_exceptions(callback)
         self.__mc.capture.pdo.remove_rpdo_map(self.__servo, self.__rpdo_map)
         self.__mc.capture.pdo.remove_tpdo_map(self.__servo, self.__tpdo_map)
 
@@ -90,6 +95,15 @@ class PDOPoller:
         """
         self.__buffer = [deque(maxlen=self.__buffer_size) for _ in range(len(registers))]
         self.__fill_tpdo_map(registers)
+
+    def subscribe_to_exceptions(self, callback: Callable[[IMException], None]) -> None:
+        """Get notified when an exception occurs on the PDO thread.
+
+        Args:
+            callback: Function to be called when an exception occurs.
+
+        """
+        self.__exception_callbacks.append(callback)
 
     def _new_data_available(self) -> None:
         """Add readings to the buffers.
