@@ -15,3 +15,8 @@ Disturbance Example
 -------------------
 
 .. literalinclude:: ../../examples/disturbance_example.py
+
+Process Data object Example
+---------------------------
+
+.. literalinclude:: ../../examples/process_data_object.py
