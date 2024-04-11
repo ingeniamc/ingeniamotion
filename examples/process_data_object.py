@@ -3,34 +3,6 @@ import time
 from ingeniamotion.motion_controller import MotionController
 
 
-def establish_coe_connection(mc: MotionController) -> None:
-    """Establish an EtherCAT-CoE communication.
-
-    Find all available nodes, and perform a communication.
-
-    Args:
-        mc: The object where there are all functions to establish a communication.
-    """
-    # Modify these parameters to connect a drive
-    interface_index = 3
-    slave_id = 1
-    dictionary_path = (
-        "\\\\awe-srv-max-prd\\distext\\products\\CAP-NET\\firmware\\2.5.1\\cap-net-e_eoe_2.5.1.xdf"
-    )
-
-    interface_selected = mc.communication.get_ifname_by_index(interface_index)
-    slave_id_list = mc.communication.scan_servos_ethercat(interface_selected)
-
-    if not slave_id_list:
-        interface_list = mc.communication.get_interface_name_list()
-        print(f"No slave detected on interface: {interface_list[interface_index]}")
-        return
-    else:
-        print(f"Found slaves: {slave_id_list}")
-
-    mc.communication.connect_servo_ethercat(interface_selected, slave_id, dictionary_path)
-
-
 def update_position_value_using_pdo(mc: MotionController) -> None:
     """Updates the position of a motor using PDOs.
 
@@ -67,7 +39,16 @@ def update_position_value_using_pdo(mc: MotionController) -> None:
 def main() -> None:
     # Before running this example, the drive has to be configured for a your motor.
     mc = MotionController()
-    establish_coe_connection(mc)
+
+    # Modify these parameters to connect a drive
+    interface_index = 3
+    slave_id = 1
+    dictionary_path = (
+        "\\\\awe-srv-max-prd\\distext\\products\\CAP-NET\\firmware\\2.5.1\\cap-net-e_eoe_2.5.1.xdf"
+    )
+    mc.communication.connect_servo_ethercat_interface_index(
+        interface_index, slave_id, dictionary_path
+    )
     print("Drive is connected.")
     mc.motion.motor_enable()
     print(f"Motor is enabled.")

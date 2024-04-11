@@ -223,11 +223,11 @@ def test_brake_config_example(read_config, script_runner, mocker, override):
 
 @pytest.mark.virtual
 def test_process_data_object(mocker):
-    get_ifname_by_index = mocker.patch.object(Communication, "get_ifname_by_index")
-    scan_servos_ethercat = mocker.patch.object(
-        Communication, "scan_servos_ethercat", return_value=[32]
+    mocker.patch.object(Communication, "get_ifname_by_index")
+    mocker.patch.object(Communication, "scan_servos_ethercat", return_value=[32])
+    connect_servo_ethercat_interface_index = mocker.patch.object(
+        Communication, "connect_servo_ethercat_interface_index"
     )
-    connect_servo_ethercat = mocker.patch.object(Communication, "connect_servo_ethercat")
     disconnect = mocker.patch.object(Communication, "disconnect")
     motor_enable = mocker.patch.object(Motion, "motor_enable")
     motor_disable = mocker.patch.object(Motion, "motor_disable")
@@ -240,7 +240,7 @@ def test_process_data_object(mocker):
     stop_pdos = mocker.patch.object(PDONetworkManager, "stop_pdos")
 
     mocks_to_attach = {
-        "connect_servo_ethercat": connect_servo_ethercat,
+        "connect_servo_ethercat_interface_index": connect_servo_ethercat_interface_index,
         "motor_enable": motor_enable,
         "create_pdo_item": create_pdo_item,
         "create_pdo_maps": create_pdo_maps,
@@ -259,7 +259,7 @@ def test_process_data_object(mocker):
     main_process_data_object()
 
     expected_order_execution = [
-        "connect_servo_ethercat",
+        "connect_servo_ethercat_interface_index",
         "motor_enable",
         "create_pdo_item",
         "create_pdo_item",
