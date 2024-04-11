@@ -356,7 +356,6 @@ def run_read_monitoring_data_and_stop(monitoring, timeout):
     return test_thread.join()
 
 
-@pytest.mark.skip("INGM-423: It will be fixed")
 @pytest.mark.smoke
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
