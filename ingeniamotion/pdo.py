@@ -166,6 +166,7 @@ class PDONetworkManager:
         ETHERCAT_PDO_WATCHDOG = "processdata"
         PDO_WATCHDOG_INCREMENT_FACTOR = 1.5
         SECONDS_TO_MS_CONVERSION_FACTOR = 1000
+        TIME_SLEEP_PRECISION = 0.016
 
         def __init__(
             self,
@@ -235,9 +236,14 @@ class PDONetworkManager:
                 else:
                     if self._notify_receive_process_data is not None:
                         self._notify_receive_process_data()
-                    remaining_loop_time = self._refresh_rate - (time.perf_counter() - time_start)
-                    if remaining_loop_time > 0:
-                        self.high_precision_sleep(remaining_loop_time)
+                    while (
+                        remaining_loop_time := self._refresh_rate
+                        - (time.perf_counter() - time_start)
+                    ) > 0:
+                        if remaining_loop_time > self.TIME_SLEEP_PRECISION:
+                            time.sleep(self.TIME_SLEEP_PRECISION)
+                        else:
+                            self.high_precision_sleep(remaining_loop_time)
                     iteration_duration = time.perf_counter() - time_start
 
         def stop(self) -> None:
