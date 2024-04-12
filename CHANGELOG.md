@@ -4,9 +4,11 @@
 
 ### Added
 - Callbacks to notify exceptions in the ProcessDataThread.
+- A method in the PDOPoller to subscribe to exceptions in the ProcessDataThread.
 
 ### Changed
 - The get_subnodes method from the information module now returns a dictionary with the subnodes IDs as keys and their type as values.
+- Set the send_receive_processdata timeout in the ProcessDataThread according to the refresh rate.
 
 ### Removed
 - The comkit module. Now ingenialink methods are use to merge the COM-KIT and CORE dictionaries.

@@ -48,6 +48,7 @@ class PDOPoller:
         self.__tpdo_map: TPDOMap = self.__mc.capture.pdo.create_empty_tpdo_map()
         self.__rpdo_map: RPDOMap = self.__mc.capture.pdo.create_empty_rpdo_map()
         self.__fill_rpdo_map()
+        self.__exception_callbacks: List[Callable[[IMException], None]] = []
 
     def start(self) -> None:
         """Start the poller"""
@@ -55,6 +56,8 @@ class PDOPoller:
             self.__rpdo_map, self.__tpdo_map, servo=self.__servo
         )
         self.__mc.capture.pdo.subscribe_to_receive_process_data(self._new_data_available)
+        for callback in self.__exception_callbacks:
+            self.__mc.capture.pdo.subscribe_to_exceptions(callback)
         self.__start_time = time.time()
         self.__mc.capture.pdo.start_pdos(refresh_rate=self.__refresh_time)
 
@@ -62,6 +65,8 @@ class PDOPoller:
         """Stop the poller"""
         self.__mc.capture.pdo.stop_pdos()
         self.__mc.capture.pdo.unsubscribe_to_receive_process_data(self._new_data_available)
+        for callback in self.__exception_callbacks:
+            self.__mc.capture.pdo.unsubscribe_to_exceptions(callback)
         self.__mc.capture.pdo.remove_rpdo_map(self.__servo, self.__rpdo_map)
         self.__mc.capture.pdo.remove_tpdo_map(self.__servo, self.__tpdo_map)
 
@@ -90,6 +95,15 @@ class PDOPoller:
         """
         self.__buffer = [deque(maxlen=self.__buffer_size) for _ in range(len(registers))]
         self.__fill_tpdo_map(registers)
+
+    def subscribe_to_exceptions(self, callback: Callable[[IMException], None]) -> None:
+        """Get notified when an exception occurs on the PDO thread.
+
+        Args:
+            callback: Function to be called when an exception occurs.
+
+        """
+        self.__exception_callbacks.append(callback)
 
     def _new_data_available(self) -> None:
         """Add readings to the buffers.
@@ -159,10 +173,15 @@ class PDONetworkManager:
             notify_send_process_data: Callback to notify when process data is about to be sent.
             notify_receive_process_data: Callback to notify when process data is received.
             notify_exceptions: Callback to notify when an exception is raised.
+
+        Raises:
+            ValueError: If the provided refresh rate is unfeasible.
+
         """
 
-        DEFAULT_PDO_REFRESH_RATE = 0.01
-        MINIMUM_PDO_REFRESH_RATE = 4
+        DEFAULT_PDO_REFRESH_TIME = 0.01
+        MINIMUM_PDO_REFRESH_TIME = 0.001
+        MAXIMUM_PDO_REFRESH_TIME = 4
         ETHERCAT_PDO_WATCHDOG = "processdata"
         PDO_WATCHDOG_INCREMENT_FACTOR = 1.5
         SECONDS_TO_MS_CONVERSION_FACTOR = 1000
@@ -181,10 +200,14 @@ class PDONetworkManager:
             super().__init__()
             self._net = net
             if refresh_rate is None:
-                refresh_rate = self.DEFAULT_PDO_REFRESH_RATE
-            elif refresh_rate > self.MINIMUM_PDO_REFRESH_RATE:
+                refresh_rate = self.DEFAULT_PDO_REFRESH_TIME
+            elif refresh_rate < self.MINIMUM_PDO_REFRESH_TIME:
                 raise ValueError(
-                    f"The minimum PDO refresh rate is {self.MINIMUM_PDO_REFRESH_RATE} seconds."
+                    f"The minimum PDO refresh rate is {self.MINIMUM_PDO_REFRESH_TIME} seconds."
+                )
+            elif refresh_rate > self.MAXIMUM_PDO_REFRESH_TIME:
+                raise ValueError(
+                    f"The maximum PDO refresh rate is {self.MAXIMUM_PDO_REFRESH_TIME} seconds."
                 )
             self._refresh_rate = refresh_rate
             self._pd_thread_stop_event = threading.Event()
@@ -216,7 +239,7 @@ class PDONetworkManager:
                 if self._notify_send_process_data is not None:
                     self._notify_send_process_data()
                 try:
-                    self._net.send_receive_processdata()
+                    self._net.send_receive_processdata(self._refresh_rate)
                 except ILWrongWorkingCount as il_error:
                     self._pd_thread_stop_event.set()
                     self._net.stop_pdos()
