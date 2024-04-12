@@ -324,3 +324,22 @@ def test_load_save_configuration_success(mocker, capsys):
     assert all_outputs[1] == "The configuration file is saved with the modification."
     assert all_outputs[2] == "Max. velocity register has the initial value."
     assert all_outputs[3] == "Max. velocity register has the new value."
+
+
+@pytest.mark.virtual
+def test_load_save_configuration_failed(mocker, capsys):
+    mocker.patch.object(Communication, "connect_servo_ethercat_interface_index")
+    mocker.patch.object(Communication, "disconnect")
+    mocker.patch.object(Configuration, "save_configuration")
+    mocker.patch.object(Configuration, "load_configuration")
+    mocker.patch.object(Configuration, "get_max_velocity", return_value = 20.0)
+    mocker.patch.object(Configuration, "set_max_velocity")
+
+    main_load_save_configuration()
+
+    captured_outputs = capsys.readouterr()
+    all_outputs = captured_outputs.out.split("\n")
+
+    assert all_outputs[0] == "The initial configuration is saved."
+    assert all_outputs[1] == "This max. velocity value is already set."
+    
