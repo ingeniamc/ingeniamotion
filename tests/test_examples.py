@@ -1,5 +1,5 @@
-from ingenialink import CAN_BAUDRATE, CAN_DEVICE
 import pytest
+from ingenialink import CAN_BAUDRATE, CAN_DEVICE
 from ingenialink.exceptions import ILFirmwareLoadError
 
 from examples.load_fw_canopen import load_firmware_canopen
@@ -312,7 +312,7 @@ def test_load_save_configuration_success(mocker, capsys):
     mocker.patch.object(Communication, "disconnect")
     mocker.patch.object(Configuration, "save_configuration")
     mocker.patch.object(Configuration, "load_configuration")
-    mocker.patch.object(Configuration, "get_max_velocity", side_effect = [10.0, 10.0, 20.0])
+    mocker.patch.object(Configuration, "get_max_velocity", side_effect=[10.0, 10.0, 20.0])
     mocker.patch.object(Configuration, "set_max_velocity")
 
     main_load_save_configuration()
@@ -332,7 +332,7 @@ def test_load_save_configuration_failed(mocker, capsys):
     mocker.patch.object(Communication, "disconnect")
     mocker.patch.object(Configuration, "save_configuration")
     mocker.patch.object(Configuration, "load_configuration")
-    mocker.patch.object(Configuration, "get_max_velocity", return_value = 20.0)
+    mocker.patch.object(Configuration, "get_max_velocity", return_value=20.0)
     mocker.patch.object(Configuration, "set_max_velocity")
 
     main_load_save_configuration()
@@ -342,4 +342,3 @@ def test_load_save_configuration_failed(mocker, capsys):
 
     assert all_outputs[0] == "The initial configuration is saved."
     assert all_outputs[1] == "This max. velocity value is already set."
-    
