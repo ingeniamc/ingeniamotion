@@ -3,7 +3,10 @@ import pytest
 from ingenialink.exceptions import ILFirmwareLoadError
 
 from examples.load_fw_canopen import load_firmware_canopen
+from examples.load_save_configuration import main as main_load_save_configuration
 from ingeniamotion import MotionController
+from ingeniamotion.communication import Communication
+from ingeniamotion.configuration import Configuration
 from ingeniamotion.enums import SeverityLevel
 
 
@@ -301,3 +304,23 @@ def test_can_bootloader_example_failed(mocker, capsys):
     assert all_outputs[3] == "Starts to load the firmware."
     assert all_outputs[4] == f"Firmware loading failed: {fw_error_message}"
     assert all_outputs[5] == "Drive is disconnected."
+
+
+@pytest.mark.virtual
+def test_load_save_configuration_success(mocker, capsys):
+    mocker.patch.object(Communication, "connect_servo_ethercat_interface_index")
+    mocker.patch.object(Communication, "disconnect")
+    mocker.patch.object(Configuration, "save_configuration")
+    mocker.patch.object(Configuration, "load_configuration")
+    mocker.patch.object(Configuration, "get_max_velocity", side_effect = [10.0, 10.0, 20.0])
+    mocker.patch.object(Configuration, "set_max_velocity")
+
+    main_load_save_configuration()
+
+    captured_outputs = capsys.readouterr()
+    all_outputs = captured_outputs.out.split("\n")
+
+    assert all_outputs[0] == "The initial configuration is saved."
+    assert all_outputs[1] == "The configuration file is saved with the modification."
+    assert all_outputs[2] == "Max. velocity register has the initial value."
+    assert all_outputs[3] == "Max. velocity register has the new value."

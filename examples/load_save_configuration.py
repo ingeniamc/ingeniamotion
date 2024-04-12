@@ -12,6 +12,7 @@ def main() -> None:
     # Save the initial configuration of your drive in a file
     initial_config_path = "initial_configuration.xcf"
     mc.configuration.save_configuration(initial_config_path)
+    print("The initial configuration is saved.")
     
     # Get the initial max. velocity and set it with a new value
     new_max_velocity = 20.0
@@ -25,7 +26,7 @@ def main() -> None:
     # Save the configuration with changes in a file
     modified_config_path = "configuration_example.xcf"
     mc.configuration.save_configuration(modified_config_path)
-    print("The configuration file is saved.")
+    print("The configuration file is saved with the modification.")
     
     # Load the initial configuration and check the max. velocity register has its initial value
     mc.configuration.load_configuration(initial_config_path)
@@ -38,7 +39,6 @@ def main() -> None:
         print("Max. velocity register has the new value.")
 
     mc.communication.disconnect()
-    print("The drive has been disconnected.")
 
 
 if __name__ == "__main__":
