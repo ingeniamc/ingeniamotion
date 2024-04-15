@@ -3,7 +3,11 @@ import pytest
 from ingenialink.exceptions import ILFirmwareLoadError
 
 from examples.load_fw_canopen import load_firmware_canopen
+from examples.commutation_test import main as main_commutation_test
 from ingeniamotion import MotionController
+from ingeniamotion.communication import Communication
+from ingeniamotion.configuration import Configuration
+from ingeniamotion.drive_tests import DriveTests
 from ingeniamotion.enums import SeverityLevel
 
 
@@ -301,3 +305,30 @@ def test_can_bootloader_example_failed(mocker, capsys):
     assert all_outputs[3] == "Starts to load the firmware."
     assert all_outputs[4] == f"Firmware loading failed: {fw_error_message}"
     assert all_outputs[5] == "Drive is disconnected."
+
+
+@pytest.mark.virtual
+def test_commutation_test(mocker):
+    connect_servo_ethercat_interface_index = mocker.patch.object(
+        Communication, "connect_servo_ethercat_interface_index"
+    )
+    disconnect = mocker.patch.object(Communication, "disconnect")
+    set_auxiliar_feedback = mocker.patch.object(Configuration, "set_auxiliar_feedback")
+    set_commutation_feedback = mocker.patch.object(Configuration, "set_commutation_feedback")
+    set_position_feedback = mocker.patch.object(Configuration, "set_position_feedback")
+    set_velocity_feedback = mocker.patch.object(Configuration, "set_velocity_feedback")
+    set_reference_feedback = mocker.patch.object(Configuration, "set_reference_feedback")
+    commutation_test = mocker.patch.object(
+        DriveTests, "commutation", return_value={"result_message": "Commutation is called"}
+    )
+
+    main_commutation_test()
+
+    connect_servo_ethercat_interface_index.assert_called_once()
+    set_auxiliar_feedback.assert_called_once()
+    set_commutation_feedback.assert_called_once()
+    set_position_feedback.assert_called_once()
+    set_velocity_feedback.assert_called_once()
+    set_reference_feedback.assert_called_once()
+    commutation_test.assert_called_once()
+    disconnect.assert_called_once()
