@@ -4,7 +4,9 @@ from ingenialink.exceptions import ILFirmwareLoadError
 
 from examples.load_fw_canopen import load_firmware_canopen
 from examples.load_save_configuration import main as main_load_save_configuration
-from examples.load_save_config_register_changes import main as main_load_save_config_register_changes
+from examples.load_save_config_register_changes import (
+    main as main_load_save_config_register_changes,
+)
 from ingeniamotion import MotionController
 from ingeniamotion.communication import Communication
 from ingeniamotion.configuration import Configuration
@@ -309,7 +311,9 @@ def test_can_bootloader_example_failed(mocker, capsys):
 
 @pytest.mark.virtual
 def test_load_save_configuration(mocker):
-    connect_servo_ethercat_interface_index = mocker.patch.object(Communication, "connect_servo_ethercat_interface_index")
+    connect_servo_ethercat_interface_index = mocker.patch.object(
+        Communication, "connect_servo_ethercat_interface_index"
+    )
     disconnect = mocker.patch.object(Communication, "disconnect")
     save_configuration = mocker.patch.object(Configuration, "save_configuration")
     load_configuration = mocker.patch.object(Configuration, "load_configuration")

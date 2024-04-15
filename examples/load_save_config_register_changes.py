@@ -6,9 +6,7 @@ def main() -> None:
     # Modify these parameters to connect a drive
     interface_index = 3
     slave_id = 1
-    dictionary_path = (
-        "parent_directory/dictionary_file.xdf"
-    )
+    dictionary_path = "parent_directory/dictionary_file.xdf"
     mc.communication.connect_servo_ethercat_interface_index(
         interface_index, slave_id, dictionary_path
     )
