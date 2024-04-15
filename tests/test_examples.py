@@ -3,7 +3,7 @@ import pytest
 from ingenialink.exceptions import ILFirmwareLoadError
 
 from examples.load_fw_canopen import load_firmware_canopen
-from examples.commutation_test import main as main_commutation_test
+from examples.commutation_test_encoders import main as main_commutation_test_encoders
 from ingeniamotion import MotionController
 from ingeniamotion.communication import Communication
 from ingeniamotion.configuration import Configuration
@@ -322,7 +322,7 @@ def test_commutation_test(mocker):
         DriveTests, "commutation", return_value={"result_message": "Commutation is called"}
     )
 
-    main_commutation_test()
+    main_commutation_test_encoders()
 
     connect_servo_ethercat_interface_index.assert_called_once()
     set_auxiliar_feedback.assert_called_once()
