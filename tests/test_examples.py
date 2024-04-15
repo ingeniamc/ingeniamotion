@@ -4,6 +4,7 @@ from ingenialink.exceptions import ILFirmwareLoadError
 
 from examples.load_fw_canopen import load_firmware_canopen
 from examples.load_save_configuration import main as main_load_save_configuration
+from examples.load_save_config_register_changes import main as main_load_save_config_register_changes
 from ingeniamotion import MotionController
 from ingeniamotion.communication import Communication
 from ingeniamotion.configuration import Configuration
@@ -307,7 +308,22 @@ def test_can_bootloader_example_failed(mocker, capsys):
 
 
 @pytest.mark.virtual
-def test_load_save_configuration_success(mocker, capsys):
+def test_load_save_configuration(mocker):
+    connect_servo_ethercat_interface_index = mocker.patch.object(Communication, "connect_servo_ethercat_interface_index")
+    disconnect = mocker.patch.object(Communication, "disconnect")
+    save_configuration = mocker.patch.object(Configuration, "save_configuration")
+    load_configuration = mocker.patch.object(Configuration, "load_configuration")
+
+    main_load_save_configuration()
+
+    connect_servo_ethercat_interface_index.assert_called_once()
+    save_configuration.assert_called_once()
+    load_configuration.assert_called_once()
+    disconnect.assert_called_once()
+
+
+@pytest.mark.virtual
+def test_load_save_configuration_register_changes_success(mocker, capsys):
     mocker.patch.object(Communication, "connect_servo_ethercat_interface_index")
     mocker.patch.object(Communication, "disconnect")
     mocker.patch.object(Configuration, "save_configuration")
@@ -315,7 +331,7 @@ def test_load_save_configuration_success(mocker, capsys):
     mocker.patch.object(Configuration, "get_max_velocity", side_effect=[10.0, 10.0, 20.0])
     mocker.patch.object(Configuration, "set_max_velocity")
 
-    main_load_save_configuration()
+    main_load_save_config_register_changes()
 
     captured_outputs = capsys.readouterr()
     all_outputs = captured_outputs.out.split("\n")
@@ -327,7 +343,7 @@ def test_load_save_configuration_success(mocker, capsys):
 
 
 @pytest.mark.virtual
-def test_load_save_configuration_failed(mocker, capsys):
+def test_load_save_configuration_register_changes_failed(mocker, capsys):
     mocker.patch.object(Communication, "connect_servo_ethercat_interface_index")
     mocker.patch.object(Communication, "disconnect")
     mocker.patch.object(Configuration, "save_configuration")
@@ -335,7 +351,7 @@ def test_load_save_configuration_failed(mocker, capsys):
     mocker.patch.object(Configuration, "get_max_velocity", return_value=20.0)
     mocker.patch.object(Configuration, "set_max_velocity")
 
-    main_load_save_configuration()
+    main_load_save_config_register_changes()
 
     captured_outputs = capsys.readouterr()
     all_outputs = captured_outputs.out.split("\n")
