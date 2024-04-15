@@ -1,7 +1,5 @@
-from typing import Dict
-
-import pytest
 from collections import deque
+from typing import Dict
 
 import pytest
 from ingenialink import CAN_BAUDRATE, CAN_DEVICE
