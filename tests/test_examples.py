@@ -6,9 +6,12 @@ from ingenialink.exceptions import ILFirmwareLoadError
 
 from examples.connect_ecat_coe import connect_ethercat_coe
 from examples.load_fw_canopen import load_firmware_canopen
+from examples.position_ramp import main as main_position_ramp
 from ingeniamotion import MotionController
 from ingeniamotion.communication import Communication
+from ingeniamotion.configuration import Configuration
 from ingeniamotion.enums import SeverityLevel
+from ingeniamotion.motion import Motion
 
 
 @pytest.mark.eoe
@@ -430,3 +433,46 @@ def test_ecat_coe_connection_example_connection_error(mocker, capsys):
     assert all_outputs[6] == f"- Interface identifier: {expected_real_name_interface}"
     assert all_outputs[7] == f"- Interface name: {expected_interfaces_name_list[interface_index]}"
     assert e.value.args[0] == f"could not open interface {expected_real_name_interface}"
+
+
+@pytest.mark.virtual
+def test_position_ramp(mocker, capsys):
+    connect_servo_ethercat_interface_ip = mocker.patch.object(
+        Communication, "connect_servo_ethercat_interface_ip"
+    )
+    disconnect = mocker.patch.object(Communication, "disconnect")
+    set_max_profile_velocity = mocker.patch.object(Configuration, "set_max_profile_velocity")
+    set_max_profile_acceleration = mocker.patch.object(
+        Configuration, "set_max_profile_acceleration"
+    )
+    set_max_profile_deceleration = mocker.patch.object(
+        Configuration, "set_max_profile_deceleration"
+    )
+    motor_enable = mocker.patch.object(Motion, "motor_enable")
+    motor_disable = mocker.patch.object(Motion, "motor_disable")
+    set_operation_mode = mocker.patch.object(Motion, "set_operation_mode")
+    move_to_position = mocker.patch.object(Motion, "move_to_position")
+    wait_for_position = mocker.patch.object(Motion, "wait_for_position")
+    test_actual_values = [1500, 3000, 0]
+    get_actual_position = mocker.patch.object(
+        Motion, "get_actual_position", side_effect=test_actual_values
+    )
+
+    main_position_ramp()
+
+    connect_servo_ethercat_interface_ip.assert_called_once()
+    set_operation_mode.assert_called_once()
+    set_max_profile_acceleration.assert_called_once()
+    set_max_profile_deceleration.assert_called_once()
+    set_max_profile_velocity.assert_called_once()
+    motor_enable.assert_called_once()
+    assert move_to_position.call_count == len(test_actual_values)
+    assert wait_for_position.call_count == len(test_actual_values)
+    assert get_actual_position.call_count == len(test_actual_values)
+    motor_disable.assert_called_once()
+    disconnect.assert_called_once()
+
+    captured_outputs = capsys.readouterr()
+    all_outputs = captured_outputs.out.split("\n")
+    for i, expected_actual_value in enumerate(test_actual_values):
+        assert all_outputs[i] == f"Actual final position: {expected_actual_value}"
