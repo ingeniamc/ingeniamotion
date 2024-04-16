@@ -452,7 +452,6 @@ def test_position_ramp(mocker, capsys):
     motor_disable = mocker.patch.object(Motion, "motor_disable")
     set_operation_mode = mocker.patch.object(Motion, "set_operation_mode")
     move_to_position = mocker.patch.object(Motion, "move_to_position")
-    wait_for_position = mocker.patch.object(Motion, "wait_for_position")
     test_actual_values = [1500, 3000, 0]
     get_actual_position = mocker.patch.object(
         Motion, "get_actual_position", side_effect=test_actual_values
@@ -466,8 +465,9 @@ def test_position_ramp(mocker, capsys):
     set_max_profile_deceleration.assert_called_once()
     set_max_profile_velocity.assert_called_once()
     motor_enable.assert_called_once()
+    for current_target in test_actual_values:
+        move_to_position.assert_any_call(current_target, blocking=True, timeout=2.0)
     assert move_to_position.call_count == len(test_actual_values)
-    assert wait_for_position.call_count == len(test_actual_values)
     assert get_actual_position.call_count == len(test_actual_values)
     motor_disable.assert_called_once()
     disconnect.assert_called_once()
@@ -475,4 +475,4 @@ def test_position_ramp(mocker, capsys):
     captured_outputs = capsys.readouterr()
     all_outputs = captured_outputs.out.split("\n")
     for i, expected_actual_value in enumerate(test_actual_values):
-        assert all_outputs[i] == f"Actual final position: {expected_actual_value}"
+        assert all_outputs[i] == f"Actual position: {expected_actual_value}"

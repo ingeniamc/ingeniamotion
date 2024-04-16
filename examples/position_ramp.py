@@ -2,21 +2,6 @@ from ingeniamotion import MotionController
 from ingeniamotion.enums import OperationMode
 
 
-def position_ramp(final_position, mc: MotionController) -> None:
-    """
-    Creates a position ramp from current position to ``final_position`` as a ramp slope.
-
-    Args:
-        final_position: target position in counts.
-        mc: Controller with all the functions needed to perform a position ramp.
-    """
-    done = False
-    mc.motion.move_to_position(final_position)
-    while not done:
-        mc.motion.wait_for_position(final_position)
-        done = True
-
-
 def main() -> None:
     mc = MotionController()
     ip = "192.168.2.1"
@@ -38,9 +23,9 @@ def main() -> None:
 
     target_positions = [1500, 3000, 0]
     for current_target in target_positions:
-        position_ramp(current_target, mc)
+        mc.motion.move_to_position(current_target, blocking=True, timeout=2.0)
         actual_position = mc.motion.get_actual_position()
-        print(f"Actual final position: {actual_position}")
+        print(f"Actual position: {actual_position}")
 
     # Disable the motor
     mc.motion.motor_disable()
