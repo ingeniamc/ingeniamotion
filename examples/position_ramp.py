@@ -22,7 +22,7 @@ def main() -> None:
     ip = "192.168.2.1"
     slave_id = 1
     dictionary_path = (
-        "\\\\awe-srv-max-prd\\distext\\products\\CAP-NET\\firmware\\2.5.1\\cap-net-e_eoe_2.5.1.xdf"
+        "parent_directory/dictionary_file.xdf"
     )
     mc.communication.connect_servo_ethercat_interface_ip(ip, slave_id, dictionary_path)
 
