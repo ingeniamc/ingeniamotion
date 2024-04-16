@@ -38,6 +38,7 @@ class PDOPoller:
         mc: "MotionController",
         servo: str,
         refresh_time: float,
+        watchdog_timeout: Optional[float],
         buffer_size: int,
     ) -> None:
         """Constructor.
@@ -46,6 +47,8 @@ class PDOPoller:
             mc: MotionController instance
             servo: drive alias.
             refresh_time: PDO values refresh time.
+            watchdog_timeout: The PDO watchdog time. If not provided it will be set proportional
+             to the refresh rate.
             buffer_size: Maximum number of register readings to store.
 
         """
@@ -53,6 +56,7 @@ class PDOPoller:
         self.__mc = mc
         self.__servo = servo
         self.__refresh_time = refresh_time
+        self.__watchdog_timeout = watchdog_timeout
         self.__buffer_size = buffer_size
         self.__buffer: List[Deque[Union[int, float]]] = []
         self.__timestamps: Deque[float] = deque(maxlen=self.__buffer_size)
@@ -71,7 +75,9 @@ class PDOPoller:
         for callback in self.__exception_callbacks:
             self.__mc.capture.pdo.subscribe_to_exceptions(callback)
         self.__start_time = time.time()
-        self.__mc.capture.pdo.start_pdos(refresh_rate=self.__refresh_time)
+        self.__mc.capture.pdo.start_pdos(
+            refresh_rate=self.__refresh_time, watchdog_timeout=self.__watchdog_timeout
+        )
 
     def stop(self) -> None:
         """Stop the poller"""
@@ -182,6 +188,8 @@ class PDONetworkManager:
         Args:
             net: The EthercatNetwork instance where the PDOs will be active.
             refresh_rate: Determines how often (seconds) the PDO values will be updated.
+            watchdog_timeout: The PDO watchdog time. If not provided it will be set proportional
+             to the refresh rate.
             notify_send_process_data: Callback to notify when process data is about to be sent.
             notify_receive_process_data: Callback to notify when process data is received.
             notify_exceptions: Callback to notify when an exception is raised.
@@ -194,9 +202,7 @@ class PDONetworkManager:
         DEFAULT_PDO_REFRESH_TIME = 0.01
         MINIMUM_PDO_REFRESH_TIME = 0.001
         MAXIMUM_PDO_REFRESH_TIME = 4
-        ETHERCAT_PDO_WATCHDOG = "processdata"
         PDO_WATCHDOG_INCREMENT_FACTOR = 1.5
-        SECONDS_TO_MS_CONVERSION_FACTOR = 1000
         # The time.sleep precision is 13 ms for Windows OS
         # https://stackoverflow.com/questions/1133857/how-accurate-is-pythons-time-sleep
         WINDOWS_TIME_SLEEP_PRECISION = 0.013
@@ -205,6 +211,7 @@ class PDONetworkManager:
             self,
             net: EthercatNetwork,
             refresh_rate: Optional[float],
+            watchdog_timeout: Optional[float],
             notify_send_process_data: Optional[Callable[[], None]] = None,
             notify_receive_process_data: Optional[Callable[[], None]] = None,
             notify_exceptions: Optional[Callable[[IMException], None]] = None,
@@ -222,17 +229,15 @@ class PDONetworkManager:
                     f"The maximum PDO refresh rate is {self.MAXIMUM_PDO_REFRESH_TIME} seconds."
                 )
             self._refresh_rate = refresh_rate
-            self._pd_thread_stop_event = threading.Event()
+            if watchdog_timeout is None:
+                watchdog_timeout = self._refresh_rate * self.PDO_WATCHDOG_INCREMENT_FACTOR
+            self._watchdog_timeout = watchdog_timeout
             for servo in self._net.servos:
-                servo.slave.set_watchdog(
-                    self.ETHERCAT_PDO_WATCHDOG,
-                    self._refresh_rate
-                    * self.PDO_WATCHDOG_INCREMENT_FACTOR
-                    * self.SECONDS_TO_MS_CONVERSION_FACTOR,
-                )
+                servo.set_pdo_watchdog_time(watchdog_timeout)
             self._notify_send_process_data = notify_send_process_data
             self._notify_receive_process_data = notify_receive_process_data
             self._notify_exceptions = notify_exceptions
+            self._pd_thread_stop_event = threading.Event()
 
         def run(self) -> None:
             """Start the PDO exchange"""
@@ -258,11 +263,11 @@ class PDONetworkManager:
                     if iteration_duration == -1:
                         iteration_duration = time.perf_counter() - time_start
                     duration_error = ""
-                    if iteration_duration > self._refresh_rate:
+                    if iteration_duration > self._watchdog_timeout:
                         duration_error = (
                             f"Last iteration took {iteration_duration * 1000:0.1f} ms which is higher"
-                            f" than the refresh rate ({self._refresh_rate * 1000:0.1f} ms). Please"
-                            " optimize the callbacks and/or increase the refresh rate."
+                            f" than the watchdog timeout ({self._watchdog_timeout * 1000:0.1f} ms). Please"
+                            " optimize the callbacks and/or increase the refresh rate/watchdog timeout."
                         )
                     if self._notify_exceptions is not None:
                         im_exception = IMException(
@@ -518,6 +523,7 @@ class PDONetworkManager:
         self,
         network_type: Optional[COMMUNICATION_TYPE] = None,
         refresh_rate: Optional[float] = None,
+        watchdog_timeout: Optional[float] = None,
     ) -> None:
         """
         Start the PDO exchange process.
@@ -525,6 +531,8 @@ class PDONetworkManager:
         Args:
             network_type: Network type (EtherCAT or CANopen) on which to start the PDO exchange.
             refresh_rate: Determines how often (seconds) the PDO values will be updated.
+            watchdog_timeout: The PDO watchdog time. If not provided it will be set proportional
+             to the refresh rate.
 
         Raises:
             ValueError: If the refresh rate is too high.
@@ -574,6 +582,7 @@ class PDONetworkManager:
         self._pdo_thread = self.ProcessDataThread(
             net,
             refresh_rate,
+            watchdog_timeout,
             self._notify_send_process_data,
             self._notify_receive_process_data,
             self._notify_exceptions,
@@ -657,6 +666,7 @@ class PDONetworkManager:
         servo: str = DEFAULT_SERVO,
         sampling_time: float = 0.125,
         buffer_size: int = 100,
+        watchdog_timeout: Optional[float] = None,
         start: bool = True,
     ) -> PDOPoller:
         """
@@ -684,6 +694,8 @@ class PDONetworkManager:
             servo: servo alias to reference it. ``default`` by default.
             sampling_time: period of the sampling in seconds.
                 By default ``0.125`` seconds.
+            watchdog_timeout: The PDO watchdog time. If not provided it will be set proportional
+             to the refresh rate.
             buffer_size: number maximum of sample for each data read.
                 ``100`` by default.
             start: if ``True``, function starts poller, if ``False``
@@ -693,7 +705,7 @@ class PDONetworkManager:
             The poller instance.
 
         """
-        poller = PDOPoller(self.mc, servo, sampling_time, buffer_size)
+        poller = PDOPoller(self.mc, servo, sampling_time, watchdog_timeout, buffer_size)
         poller.add_channels(registers)
         if start:
             poller.start()

@@ -5,6 +5,7 @@
 ### Added
 - Callbacks to notify exceptions in the ProcessDataThread.
 - A method in the PDOPoller to subscribe to exceptions in the ProcessDataThread.
+- Set the watchdog timeout of the PDO exchange.
 
 ### Changed
 - The get_subnodes method from the information module now returns a dictionary with the subnodes IDs as keys and their type as values.
