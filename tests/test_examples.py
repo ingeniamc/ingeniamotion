@@ -1,9 +1,12 @@
+from typing import Dict
+
 import pytest
 from ingenialink import CAN_BAUDRATE, CAN_DEVICE
 from ingenialink.exceptions import ILFirmwareLoadError
 
 from examples.change_baudrate import change_baudrate
 from examples.change_node_id import change_node_id
+from examples.connect_ecat_coe import connect_ethercat_coe
 from examples.load_fw_canopen import load_firmware_canopen
 from ingeniamotion import MotionController
 from ingeniamotion.communication import Communication
@@ -397,3 +400,128 @@ def test_change_baudrate_failed(mocker, capsys):
     all_outputs = captured_outputs.out.split("\n")
     assert all_outputs[0] == f"Drive is connected with {baudrate} baudrate."
     assert all_outputs[2] == f"This drive already has this baudrate: {baudrate}."
+
+
+@pytest.mark.virtual
+def test_ecat_coe_connection_example_success(mocker, capsys):
+    interface_index = 2
+    slave_id = 1
+    dictionary_path = (
+        "\\\\awe-srv-max-prd\\distext\\products\\CAP-NET\\firmware\\2.4.0\\cap-net-e_eoe_2.4.0.xdf"
+    )
+    expected_slave_list = [slave_id]
+    expected_interfaces_name_list = ["Interface 1", "Interface 2", "Interface 3"]
+    expected_real_name_interface = f"\\Device\\NPF_real_name_interface_{interface_index}"
+    test_alias = "default"
+    test_servos: Dict[str, str] = {}
+
+    def scan_servos_ethercat(*args, **kwargs):
+        return expected_slave_list
+
+    def get_interface_name_list(*args, **kwargs):
+        return expected_interfaces_name_list
+
+    def get_ifname_by_index(*args, **kwargs):
+        return expected_real_name_interface
+
+    def connect_servo_ethercat(*args, **kwargs):
+        test_servos[test_alias] = "my_servo"
+
+    def disconnect(*args, **kwargs):
+        test_servos.pop(test_alias)
+
+    mocker.patch.object(Communication, "scan_servos_ethercat", scan_servos_ethercat)
+    mocker.patch.object(Communication, "get_interface_name_list", get_interface_name_list)
+    mocker.patch.object(Communication, "get_ifname_by_index", get_ifname_by_index)
+    mocker.patch.object(MotionController, "servos", test_servos)
+    mocker.patch.object(Communication, "connect_servo_ethercat", connect_servo_ethercat)
+    mocker.patch.object(Communication, "disconnect", disconnect)
+    connect_ethercat_coe(interface_index, slave_id, dictionary_path)
+    captured_outputs = capsys.readouterr()
+    all_outputs = captured_outputs.out.split("\n")
+    assert all_outputs[0] == "List of interfaces:"
+    assert all_outputs[1] == "0: Interface 1"
+    assert all_outputs[2] == "1: Interface 2"
+    assert all_outputs[3] == "2: Interface 3"
+    assert all_outputs[4] == "Interface selected:"
+    assert all_outputs[5] == f"- Index interface: {interface_index}"
+    assert all_outputs[6] == f"- Interface identifier: {expected_real_name_interface}"
+    assert all_outputs[7] == f"- Interface name: {expected_interfaces_name_list[interface_index]}"
+    assert all_outputs[8] == f"Found slaves: {expected_slave_list}"
+    assert all_outputs[9] == f"Drive is connected."
+    assert all_outputs[10] == f"The drive has been disconnected."
+
+
+@pytest.mark.virtual
+def test_ecat_coe_connection_example_failed(mocker, capsys):
+    interface_index = 2
+    slave_id = 1
+    dictionary_path = (
+        "\\\\awe-srv-max-prd\\distext\\products\\CAP-NET\\firmware\\2.4.0\\cap-net-e_eoe_2.4.0.xdf"
+    )
+    expected_slave_list = []
+    expected_interfaces_name_list = ["Interface 1", "Interface 2", "Interface 3"]
+    expected_real_name_interface = f"\\Device\\NPF_real_name_interface_{interface_index}"
+    test_servos: Dict[str, str] = {}
+
+    def scan_servos_ethercat(*args, **kwargs):
+        return expected_slave_list
+
+    def get_interface_name_list(*args, **kwargs):
+        return expected_interfaces_name_list
+
+    def get_ifname_by_index(*args, **kwargs):
+        return expected_real_name_interface
+
+    mocker.patch.object(Communication, "scan_servos_ethercat", scan_servos_ethercat)
+    mocker.patch.object(Communication, "get_interface_name_list", get_interface_name_list)
+    mocker.patch.object(Communication, "get_ifname_by_index", get_ifname_by_index)
+    mocker.patch.object(MotionController, "servos", test_servos)
+    connect_ethercat_coe(interface_index, slave_id, dictionary_path)
+    captured_outputs = capsys.readouterr()
+    all_outputs = captured_outputs.out.split("\n")
+    assert all_outputs[0] == "List of interfaces:"
+    assert all_outputs[1] == "0: Interface 1"
+    assert all_outputs[2] == "1: Interface 2"
+    assert all_outputs[3] == "2: Interface 3"
+    assert all_outputs[4] == "Interface selected:"
+    assert all_outputs[5] == f"- Index interface: {interface_index}"
+    assert all_outputs[6] == f"- Interface identifier: {expected_real_name_interface}"
+    assert all_outputs[7] == f"- Interface name: {expected_interfaces_name_list[interface_index]}"
+    assert (
+        all_outputs[8]
+        == f"No slave detected on interface: {expected_interfaces_name_list[interface_index]}"
+    )
+
+
+@pytest.mark.virtual
+def test_ecat_coe_connection_example_connection_error(mocker, capsys):
+    interface_index = 2
+    slave_id = 1
+    dictionary_path = (
+        "\\\\awe-srv-max-prd\\distext\\products\\CAP-NET\\firmware\\2.4.0\\cap-net-e_eoe_2.4.0.xdf"
+    )
+    expected_interfaces_name_list = ["Interface 1", "Interface 2", "Interface 3"]
+    expected_real_name_interface = f"\\Device\\NPF_real_name_interface_{interface_index}"
+
+    def get_interface_name_list(*args, **kwargs):
+        return expected_interfaces_name_list
+
+    def get_ifname_by_index(*args, **kwargs):
+        return expected_real_name_interface
+
+    mocker.patch.object(Communication, "get_interface_name_list", get_interface_name_list)
+    mocker.patch.object(Communication, "get_ifname_by_index", get_ifname_by_index)
+    with pytest.raises(ConnectionError) as e:
+        connect_ethercat_coe(interface_index, slave_id, dictionary_path)
+    captured_outputs = capsys.readouterr()
+    all_outputs = captured_outputs.out.split("\n")
+    assert all_outputs[0] == "List of interfaces:"
+    assert all_outputs[1] == "0: Interface 1"
+    assert all_outputs[2] == "1: Interface 2"
+    assert all_outputs[3] == "2: Interface 3"
+    assert all_outputs[4] == "Interface selected:"
+    assert all_outputs[5] == f"- Index interface: {interface_index}"
+    assert all_outputs[6] == f"- Interface identifier: {expected_real_name_interface}"
+    assert all_outputs[7] == f"- Interface name: {expected_interfaces_name_list[interface_index]}"
+    assert e.value.args[0] == f"could not open interface {expected_real_name_interface}"

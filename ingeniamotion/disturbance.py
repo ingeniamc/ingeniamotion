@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 
 import ingenialogger
 import numpy as np
-from ingenialink.enums.register import REG_DTYPE
+from ingenialink.enums.register import REG_DTYPE, RegCyclicType
 from ingenialink.exceptions import ILValueError
 from numpy import ndarray
 from numpy.typing import ArrayLike, NDArray
@@ -49,8 +49,6 @@ class Disturbance:
     DISTURBANCE_FREQUENCY_DIVIDER_REGISTER = "DIST_FREQ_DIV"
     DISTURBANCE_MAXIMUM_SAMPLE_SIZE_REGISTER = "DIST_MAX_SIZE"
     MONITORING_DISTURBANCE_STATUS_REGISTER = "MON_DIST_STATUS"
-
-    CYCLIC_RX = "CYCLIC_RX"
 
     DISTURBANCE_STATUS_ENABLED_BIT = 0x1000  # TODO: Not implemented yet
     MONITORING_STATUS_ENABLED_BIT = 0x1
@@ -157,7 +155,7 @@ class Disturbance:
             register_obj = self.mc.info.register_info(register, subnode, servo=self.servo)
             dtype = register_obj.dtype
             cyclic = register_obj.cyclic
-            if cyclic != self.CYCLIC_RX:
+            if cyclic != RegCyclicType.RX:
                 drive.disturbance_remove_all_mapped_registers()
                 raise IMDisturbanceError(
                     "{} can not be mapped as a disturbance register".format(register)

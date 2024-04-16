@@ -2,14 +2,26 @@ import threading
 import time
 from collections import deque
 from copy import deepcopy
-from typing import TYPE_CHECKING, Callable, Deque, Dict, List, Optional, Tuple, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Deque,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 from ingenialink.canopen.network import CanopenNetwork
+from ingenialink.enums.register import RegCyclicType
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.ethercat.servo import EthercatServo
-from ingenialink.exceptions import ILError, ILStateError, ILWrongWorkingCount
+from ingenialink.exceptions import ILError, ILWrongWorkingCount
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
+
 from ingeniamotion.enums import COMMUNICATION_TYPE
 from ingeniamotion.exceptions import IMException
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
@@ -173,13 +185,21 @@ class PDONetworkManager:
             notify_send_process_data: Callback to notify when process data is about to be sent.
             notify_receive_process_data: Callback to notify when process data is received.
             notify_exceptions: Callback to notify when an exception is raised.
+
+        Raises:
+            ValueError: If the provided refresh rate is unfeasible.
+
         """
 
-        DEFAULT_PDO_REFRESH_RATE = 0.01
-        MINIMUM_PDO_REFRESH_RATE = 4
+        DEFAULT_PDO_REFRESH_TIME = 0.01
+        MINIMUM_PDO_REFRESH_TIME = 0.001
+        MAXIMUM_PDO_REFRESH_TIME = 4
         ETHERCAT_PDO_WATCHDOG = "processdata"
         PDO_WATCHDOG_INCREMENT_FACTOR = 1.5
         SECONDS_TO_MS_CONVERSION_FACTOR = 1000
+        # The time.sleep precision is 13 ms for Windows OS
+        # https://stackoverflow.com/questions/1133857/how-accurate-is-pythons-time-sleep
+        WINDOWS_TIME_SLEEP_PRECISION = 0.013
 
         def __init__(
             self,
@@ -192,10 +212,14 @@ class PDONetworkManager:
             super().__init__()
             self._net = net
             if refresh_rate is None:
-                refresh_rate = self.DEFAULT_PDO_REFRESH_RATE
-            elif refresh_rate > self.MINIMUM_PDO_REFRESH_RATE:
+                refresh_rate = self.DEFAULT_PDO_REFRESH_TIME
+            elif refresh_rate < self.MINIMUM_PDO_REFRESH_TIME:
                 raise ValueError(
-                    f"The minimum PDO refresh rate is {self.MINIMUM_PDO_REFRESH_RATE} seconds."
+                    f"The minimum PDO refresh rate is {self.MINIMUM_PDO_REFRESH_TIME} seconds."
+                )
+            elif refresh_rate > self.MAXIMUM_PDO_REFRESH_TIME:
+                raise ValueError(
+                    f"The maximum PDO refresh rate is {self.MAXIMUM_PDO_REFRESH_TIME} seconds."
                 )
             self._refresh_rate = refresh_rate
             self._pd_thread_stop_event = threading.Event()
@@ -223,16 +247,16 @@ class PDONetworkManager:
                     self._notify_exceptions(im_exception)
             iteration_duration: float = -1
             while not self._pd_thread_stop_event.is_set():
-                time_start = time.time()
+                time_start = time.perf_counter()
                 if self._notify_send_process_data is not None:
                     self._notify_send_process_data()
                 try:
-                    self._net.send_receive_processdata()
+                    self._net.send_receive_processdata(self._refresh_rate)
                 except ILWrongWorkingCount as il_error:
                     self._pd_thread_stop_event.set()
                     self._net.stop_pdos()
                     if iteration_duration == -1:
-                        iteration_duration = time.time() - time_start
+                        iteration_duration = time.perf_counter() - time_start
                     duration_error = ""
                     if iteration_duration > self._refresh_rate:
                         duration_error = (
@@ -249,16 +273,29 @@ class PDONetworkManager:
                 else:
                     if self._notify_receive_process_data is not None:
                         self._notify_receive_process_data()
-                    remaining_loop_time = self._refresh_rate - (time.time() - time_start)
-                    if remaining_loop_time > 0:
-                        time.sleep(remaining_loop_time)
-                    iteration_duration = time.time() - time_start
+                    while (
+                        remaining_loop_time := self._refresh_rate
+                        - (time.perf_counter() - time_start)
+                    ) > 0:
+                        if remaining_loop_time > self.WINDOWS_TIME_SLEEP_PRECISION:
+                            time.sleep(self.WINDOWS_TIME_SLEEP_PRECISION)
+                        else:
+                            self.high_precision_sleep(remaining_loop_time)
+                    iteration_duration = time.perf_counter() - time_start
 
         def stop(self) -> None:
             """Stop the PDO exchange"""
             self._pd_thread_stop_event.set()
             self._net.stop_pdos()
             self.join()
+
+        @staticmethod
+        def high_precision_sleep(duration: float) -> None:
+            """Replaces the time.sleep() method in order to obtain
+            more precise sleeping times."""
+            start_time = time.perf_counter()
+            while duration - (time.perf_counter() - start_time) > 0:
+                pass
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
@@ -291,9 +328,9 @@ class PDONetworkManager:
             AttributeError: If an initial value is not provided for an RPDO register.
 
         """
-        pdo_map_item_dict: Dict[str, Type[Union[RPDOMapItem, TPDOMapItem]]] = {
-            "CYCLIC_RX": RPDOMapItem,
-            "CYCLIC_TX": TPDOMapItem,
+        pdo_map_item_dict: Dict[RegCyclicType, Type[Union[RPDOMapItem, TPDOMapItem]]] = {
+            RegCyclicType.RX: RPDOMapItem,
+            RegCyclicType.TX: TPDOMapItem,
         }
         drive = self.mc._get_drive(servo)
         register = drive.dictionary.registers(axis)[register_uid]

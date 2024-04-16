@@ -11,6 +11,11 @@ Connect CANopen drive
 
 .. literalinclude:: ../../examples/canopen_example.py
 
+Connect EtherCAT - CoE drive
+----------------------------
+
+.. literalinclude:: ../../examples/connect_ecat_coe.py
+
 Load Firmware ECAT
 ------------------
 
