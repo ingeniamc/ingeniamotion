@@ -4,11 +4,15 @@ import pytest
 from ingenialink import CAN_BAUDRATE, CAN_DEVICE
 from ingenialink.exceptions import ILFirmwareLoadError
 
+from examples.change_baudrate import change_baudrate
+from examples.change_node_id import change_node_id
 from examples.connect_ecat_coe import connect_ethercat_coe
 from examples.load_fw_canopen import load_firmware_canopen
 from ingeniamotion import MotionController
 from ingeniamotion.communication import Communication
+from ingeniamotion.configuration import Configuration
 from ingeniamotion.enums import SeverityLevel
+from ingeniamotion.information import Information
 
 
 @pytest.mark.eoe
@@ -20,8 +24,8 @@ def test_disturbance_example(read_config, script_runner):
     assert result.returncode == 0
 
 
+@pytest.mark.usefixtures("setup_for_test_examples", "teardown_for_test_examples")
 @pytest.mark.canopen
-@pytest.mark.skip(reason="This test fails because the canopen node is already connected")
 def test_canopen_example(read_config, script_runner):
     script_path = "examples/canopen_example.py"
     dictionary = read_config["dictionary"]
@@ -305,6 +309,97 @@ def test_can_bootloader_example_failed(mocker, capsys):
     assert all_outputs[3] == "Starts to load the firmware."
     assert all_outputs[4] == f"Firmware loading failed: {fw_error_message}"
     assert all_outputs[5] == "Drive is disconnected."
+
+
+@pytest.mark.virtual
+def test_change_node_id_success(mocker, capsys):
+    device = CAN_DEVICE.PCAN
+    channel = 0
+    baudrate = CAN_BAUDRATE.Baudrate_1M
+    dictionary_path = "test_dictionary.xdf"
+
+    node_id = 20
+    test_new_node_id = 32
+
+    mocker.patch.object(Communication, "connect_servo_canopen")
+    mocker.patch.object(Communication, "disconnect")
+    mocker.patch.object(Information, "get_node_id", side_effect=[node_id, test_new_node_id])
+    mocker.patch.object(Configuration, "change_node_id")
+    change_node_id(device, channel, node_id, baudrate, dictionary_path, test_new_node_id)
+
+    captured_outputs = capsys.readouterr()
+    all_outputs = captured_outputs.out.split("\n")
+    assert all_outputs[1] == f"Drive is connected with {node_id} as a node ID."
+    assert all_outputs[3] == "Node ID has been changed"
+    assert all_outputs[6] == f"Now the drive is connected with {test_new_node_id} as a node ID."
+
+
+@pytest.mark.virtual
+def test_change_node_id_failed(mocker, capsys):
+    device = CAN_DEVICE.PCAN
+    channel = 0
+    baudrate = CAN_BAUDRATE.Baudrate_1M
+    dictionary_path = "test_dictionary.xdf"
+
+    node_id = 20
+    test_new_node_id = node_id
+
+    mocker.patch.object(Communication, "connect_servo_canopen")
+    mocker.patch.object(Communication, "disconnect")
+    mocker.patch.object(Information, "get_node_id", side_effect=[node_id, test_new_node_id])
+    mocker.patch.object(Configuration, "change_node_id")
+    change_node_id(device, channel, node_id, baudrate, dictionary_path, test_new_node_id)
+
+    captured_outputs = capsys.readouterr()
+    all_outputs = captured_outputs.out.split("\n")
+    assert all_outputs[1] == f"Drive is connected with {node_id} as a node ID."
+    assert all_outputs[3] == f"This drive already has this node ID: {node_id}."
+
+
+@pytest.mark.virtual
+def test_change_baudrate_success(mocker, capsys):
+    device = CAN_DEVICE.PCAN
+    channel = 0
+    baudrate = CAN_BAUDRATE.Baudrate_1M
+    node_id = 32
+    dictionary_path = "test_dictionary.xdf"
+    test_new_baudrate = CAN_BAUDRATE.Baudrate_125K
+
+    mocker.patch.object(Communication, "connect_servo_canopen")
+    mocker.patch.object(Communication, "disconnect")
+    mocker.patch.object(Information, "get_baudrate", side_effect=[baudrate])
+    mocker.patch.object(Configuration, "change_baudrate")
+    change_baudrate(device, channel, node_id, baudrate, dictionary_path, test_new_baudrate)
+
+    captured_outputs = capsys.readouterr()
+    all_outputs = captured_outputs.out.split("\n")
+    assert all_outputs[0] == f"Drive is connected with {baudrate} baudrate."
+    assert all_outputs[2] == f"Baudrate has been changed from {baudrate} to {test_new_baudrate}."
+    assert (
+        all_outputs[4]
+        == f"Perform a power cycle and reconnect to the drive using the new baud rate: {test_new_baudrate}"
+    )
+
+
+@pytest.mark.virtual
+def test_change_baudrate_failed(mocker, capsys):
+    device = CAN_DEVICE.PCAN
+    channel = 0
+    baudrate = CAN_BAUDRATE.Baudrate_1M
+    node_id = 32
+    dictionary_path = "test_dictionary.xdf"
+    test_new_baudrate = baudrate
+
+    mocker.patch.object(Communication, "connect_servo_canopen")
+    mocker.patch.object(Communication, "disconnect")
+    mocker.patch.object(Information, "get_baudrate", side_effect=[baudrate])
+    mocker.patch.object(Configuration, "change_baudrate")
+    change_baudrate(device, channel, node_id, baudrate, dictionary_path, test_new_baudrate)
+
+    captured_outputs = capsys.readouterr()
+    all_outputs = captured_outputs.out.split("\n")
+    assert all_outputs[0] == f"Drive is connected with {baudrate} baudrate."
+    assert all_outputs[2] == f"This drive already has this baudrate: {baudrate}."
 
 
 @pytest.mark.virtual
