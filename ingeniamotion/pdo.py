@@ -2,14 +2,26 @@ import threading
 import time
 from collections import deque
 from copy import deepcopy
-from typing import TYPE_CHECKING, Callable, Deque, Dict, List, Optional, Tuple, Type, Union
+from typing import (
+    TYPE_CHECKING,
+    Callable,
+    Deque,
+    Dict,
+    List,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 from ingenialink.canopen.network import CanopenNetwork
+from ingenialink.enums.register import RegCyclicType
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.ethercat.servo import EthercatServo
-from ingenialink.exceptions import ILError, ILStateError, ILWrongWorkingCount
+from ingenialink.exceptions import ILError, ILWrongWorkingCount
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
+
 from ingeniamotion.enums import COMMUNICATION_TYPE
 from ingeniamotion.exceptions import IMException
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
@@ -316,9 +328,9 @@ class PDONetworkManager:
             AttributeError: If an initial value is not provided for an RPDO register.
 
         """
-        pdo_map_item_dict: Dict[str, Type[Union[RPDOMapItem, TPDOMapItem]]] = {
-            "CYCLIC_RX": RPDOMapItem,
-            "CYCLIC_TX": TPDOMapItem,
+        pdo_map_item_dict: Dict[RegCyclicType, Type[Union[RPDOMapItem, TPDOMapItem]]] = {
+            RegCyclicType.RX: RPDOMapItem,
+            RegCyclicType.TX: TPDOMapItem,
         }
         drive = self.mc._get_drive(servo)
         register = drive.dictionary.registers(axis)[register_uid]
