@@ -50,7 +50,7 @@ def main() -> None:
     interface_index = 3
     slave_id = 1
     dictionary_path = (
-        "\\\\awe-srv-max-prd\\distext\\products\\CAP-NET\\firmware\\2.5.1\\cap-net-e_eoe_2.5.1.xdf"
+        "test_directory/dictionary_file.xdf"
     )
     mc.communication.connect_servo_ethercat_interface_index(
         interface_index, slave_id, dictionary_path
@@ -68,7 +68,7 @@ def main() -> None:
 
     # Run Commutation test
     result = mc.tests.commutation()
-    print(f"Commutation Result: {result['result_message']}")
+    print(f"Commutation Result: {result['result_message']} - {result['result_severity']}")
 
     mc.communication.disconnect()
 

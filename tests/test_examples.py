@@ -319,7 +319,12 @@ def test_commutation_test(mocker):
     set_velocity_feedback = mocker.patch.object(Configuration, "set_velocity_feedback")
     set_reference_feedback = mocker.patch.object(Configuration, "set_reference_feedback")
     commutation_test = mocker.patch.object(
-        DriveTests, "commutation", return_value={"result_message": "Commutation is called"}
+        DriveTests,
+        "commutation",
+        return_value={
+            "result_message": "Commutation is called",
+            "result_severity": SeverityLevel.SUCCESS,
+        },
     )
 
     main_commutation_test_encoders()
