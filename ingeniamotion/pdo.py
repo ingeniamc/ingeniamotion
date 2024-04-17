@@ -202,7 +202,8 @@ class PDONetworkManager:
         DEFAULT_PDO_REFRESH_TIME = 0.01
         MINIMUM_PDO_REFRESH_TIME = 0.001
         MAXIMUM_PDO_REFRESH_TIME = 4
-        PDO_WATCHDOG_INCREMENT_FACTOR = 1.5
+        DEFAULT_WATCHDOG_TIMEOUT = 0.1
+        PDO_WATCHDOG_INCREMENT_FACTOR = 2
         # The time.sleep precision is 13 ms for Windows OS
         # https://stackoverflow.com/questions/1133857/how-accurate-is-pythons-time-sleep
         WINDOWS_TIME_SLEEP_PRECISION = 0.013
@@ -230,7 +231,10 @@ class PDONetworkManager:
                 )
             self._refresh_rate = refresh_rate
             if watchdog_timeout is None:
-                watchdog_timeout = self._refresh_rate * self.PDO_WATCHDOG_INCREMENT_FACTOR
+                watchdog_timeout = max(
+                    self.DEFAULT_WATCHDOG_TIMEOUT,
+                    self._refresh_rate * self.PDO_WATCHDOG_INCREMENT_FACTOR,
+                )
             self._watchdog_timeout = watchdog_timeout
             for servo in self._net.servos:
                 servo.set_pdo_watchdog_time(watchdog_timeout)
