@@ -183,11 +183,18 @@ def test_set_pdo_maps_to_slave_exception(motion_controller, rpdo_maps, tpdo_maps
         mc.capture.pdo.set_pdo_maps_to_slave(rx_maps, tx_maps, alias)
 
 
+@pytest.mark.parametrize(
+    "refresh_rate",
+    [
+        0.0001,
+        5,
+    ],
+)
 @pytest.mark.soem
-def test_pdos_refresh_rate(motion_controller):
+def test_pdos_refresh_rate(motion_controller, refresh_rate):
     mc, alias = motion_controller
     with pytest.raises(ValueError):
-        mc.capture.pdo.start_pdos(COMMUNICATION_TYPE.Ethercat, 5)
+        mc.capture.pdo.start_pdos(COMMUNICATION_TYPE.Ethercat, refresh_rate)
 
 
 @pytest.mark.soem
@@ -314,7 +321,7 @@ def test_subscribe_exceptions(motion_controller, mocker):
 
     error_msg = "Test error"
 
-    def send_receive_processdata(self):
+    def send_receive_processdata(self, *args):
         raise ILWrongWorkingCount(error_msg)
 
     mocker.patch("ingenialink.ethercat.network.EthercatNetwork.start_pdos")

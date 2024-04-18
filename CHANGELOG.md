@@ -5,9 +5,13 @@
 ### Added
 - Callbacks to notify exceptions in the ProcessDataThread.
 - A method in the PDOPoller to subscribe to exceptions in the ProcessDataThread.
+- Set the watchdog timeout of the PDO exchange.
 
 ### Changed
 - The get_subnodes method from the information module now returns a dictionary with the subnodes IDs as keys and their type as values.
+- Set the send_receive_processdata timeout in the ProcessDataThread according to the refresh rate.
+- Cyclic parameter is defined as a RegCyclicType variable instead of a string.
+- The default PDO watchdog timeout is set to 100 ms.
 
 ### Removed
 - The comkit module. Now ingenialink methods are use to merge the COM-KIT and CORE dictionaries.
