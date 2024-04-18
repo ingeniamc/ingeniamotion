@@ -31,13 +31,17 @@ def main() -> None:
 
     # Load the initial configuration and check the max. velocity register has its initial value
     mc.configuration.load_configuration(initial_config_path)
-    if mc.configuration.get_max_velocity() == initial_max_velocity:
-        print("Max. velocity register has the initial value.")
+    print(
+        f"Max. velocity register should be set to its initial value ({initial_max_velocity}). "
+        f"Current value: {mc.configuration.get_max_velocity()}"
+    )
 
     # Load the modified configuration and check the max. velocity value is changed again
     mc.configuration.load_configuration(modified_config_path)
-    if mc.configuration.get_max_velocity() == new_max_velocity:
-        print("Max. velocity register has the new value.")
+    print(
+        f"Max. velocity register should now be set to the new value ({new_max_velocity}). "
+        f"Current value: {mc.configuration.get_max_velocity()}"
+    )
 
     mc.communication.disconnect()
 

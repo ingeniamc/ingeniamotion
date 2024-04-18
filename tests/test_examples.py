@@ -332,7 +332,8 @@ def test_load_save_configuration_register_changes_success(mocker, capsys):
     mocker.patch.object(Communication, "disconnect")
     mocker.patch.object(Configuration, "save_configuration")
     mocker.patch.object(Configuration, "load_configuration")
-    mocker.patch.object(Configuration, "get_max_velocity", side_effect=[10.0, 10.0, 20.0])
+    test_velocities = [10.0, 10.0, 20.0]
+    mocker.patch.object(Configuration, "get_max_velocity", side_effect=test_velocities)
     mocker.patch.object(Configuration, "set_max_velocity")
 
     main_load_save_config_register_changes()
@@ -342,8 +343,16 @@ def test_load_save_configuration_register_changes_success(mocker, capsys):
 
     assert all_outputs[0] == "The initial configuration is saved."
     assert all_outputs[1] == "The configuration file is saved with the modification."
-    assert all_outputs[2] == "Max. velocity register has the initial value."
-    assert all_outputs[3] == "Max. velocity register has the new value."
+    assert (
+        all_outputs[2]
+        == f"Max. velocity register should be set to its initial value ({test_velocities[1]}). "
+        f"Current value: {test_velocities[1]}"
+    )
+    assert (
+        all_outputs[3]
+        == f"Max. velocity register should now be set to the new value ({test_velocities[2]}). "
+        f"Current value: {test_velocities[2]}"
+    )
 
 
 @pytest.mark.virtual
