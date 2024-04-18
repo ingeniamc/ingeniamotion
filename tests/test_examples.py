@@ -536,7 +536,7 @@ def test_pdo_poller_success(mocker):
         Communication, "connect_servo_ethercat_interface_ip"
     )
     disconnect = mocker.patch.object(Communication, "disconnect")
-    mock_pdo_poller = PDOPoller(MotionController(), "mock_alias", 0.1, 100)
+    mock_pdo_poller = PDOPoller(MotionController(), "mock_alias", 0.1, None, 100)
     create_poller = mocker.patch.object(
         PDONetworkManager, "create_poller", return_value=mock_pdo_poller
     )
