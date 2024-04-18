@@ -5,17 +5,6 @@ from ingeniamotion.enums import SensorType
 from ingeniamotion.motion_controller import MotionController
 
 
-def set_feedback_sensors(mc: MotionController) -> None:
-    """Set the type of position and velocity feedback sensors.
-
-    Args:
-        mc: the controller to configure.
-    """
-    # Modify the SensorType.
-    mc.configuration.set_position_feedback(SensorType.QEI)
-    mc.configuration.set_velocity_feedback(SensorType.QEI)
-
-
 def set_up_pdo_poller(mc: MotionController) -> None:
     """Set-up a PDO poller.
 
@@ -49,13 +38,12 @@ def set_up_pdo_poller(mc: MotionController) -> None:
 def main() -> None:
     mc = MotionController()
     # Modify these parameters to connect a drive
-    interface_index = 3
+    interface_ip = "192.168.2.1"
     slave_id = 1
     dictionary_path = "parent_directory/dictionary_file.xdf"
-    mc.communication.connect_servo_ethercat_interface_index(
-        interface_index, slave_id, dictionary_path
+    mc.communication.connect_servo_ethercat_interface_ip(
+        interface_ip, slave_id, dictionary_path
     )
-    set_feedback_sensors(mc)
     set_up_pdo_poller(mc)
     mc.communication.disconnect()
     print("The drive has been disconnected.")

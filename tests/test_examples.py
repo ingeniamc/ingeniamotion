@@ -532,11 +532,9 @@ def test_ecat_coe_connection_example_connection_error(mocker, capsys):
 
 @pytest.mark.virtual
 def test_pdo_poller_success(mocker):
-    connect_servo_ethercat = mocker.patch.object(
-        Communication, "connect_servo_ethercat_interface_index"
+    connect_servo_ethercat_interface_ip = mocker.patch.object(
+        Communication, "connect_servo_ethercat_interface_ip"
     )
-    set_position_feedback = mocker.patch.object(Configuration, "set_position_feedback")
-    set_velocity_feedback = mocker.patch.object(Configuration, "set_velocity_feedback")
     disconnect = mocker.patch.object(Communication, "disconnect")
     mock_pdo_poller = PDOPoller(MotionController(), "mock_alias", 0.1, 100)
     create_poller = mocker.patch.object(
@@ -550,9 +548,7 @@ def test_pdo_poller_success(mocker):
 
     set_up_pdo_poller()
 
-    connect_servo_ethercat.assert_called_once()
-    set_position_feedback.assert_called_once()
-    set_velocity_feedback.assert_called_once()
+    connect_servo_ethercat_interface_ip.assert_called_once()
     create_poller.assert_called_once()
     data.assert_called_once()
     stop.assert_called_once()
