@@ -1,6 +1,7 @@
 import os
 from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
 
+from ingenialink import CAN_BAUDRATE
 from ingenialink.eoe.network import EoENetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.canopen.network import CanopenNetwork
@@ -174,6 +175,20 @@ class Information(metaclass=MCMetaClass):
             return int(drive.target)
         else:
             raise IMException("You need a CANopen communication to use this function")
+
+    def get_baudrate(self, alias: str = DEFAULT_SERVO) -> CAN_BAUDRATE:
+        """Get the baudrate of target servo
+
+        Args:
+            alias: alias of the servo.
+
+        Returns:
+            Baudrate of the drive.
+        """
+        net = self.mc._get_network(alias)
+        if isinstance(net, CanopenNetwork):
+            return CAN_BAUDRATE(net.baudrate)
+        raise IMException(f"The servo {alias} is not a CANopen device.")
 
     def get_ip(self, alias: str = DEFAULT_SERVO) -> str:
         """Get the IP for Ethernet communications.
