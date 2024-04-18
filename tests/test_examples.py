@@ -309,8 +309,8 @@ def test_can_bootloader_example_failed(mocker, capsys):
 
 @pytest.mark.virtual
 def test_commutation_test(mocker):
-    connect_servo_ethercat_interface_index = mocker.patch.object(
-        Communication, "connect_servo_ethercat_interface_index"
+    connect_servo_ethercat_interface_ip = mocker.patch.object(
+        Communication, "connect_servo_ethercat_interface_ip"
     )
     disconnect = mocker.patch.object(Communication, "disconnect")
     set_auxiliar_feedback = mocker.patch.object(Configuration, "set_auxiliar_feedback")
@@ -329,7 +329,7 @@ def test_commutation_test(mocker):
 
     main_commutation_test_encoders()
 
-    connect_servo_ethercat_interface_index.assert_called_once()
+    connect_servo_ethercat_interface_ip.assert_called_once()
     set_auxiliar_feedback.assert_called_once()
     set_commutation_feedback.assert_called_once()
     set_position_feedback.assert_called_once()
