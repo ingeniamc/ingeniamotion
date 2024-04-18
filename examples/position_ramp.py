@@ -34,5 +34,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    # Before running this example, setting-up the drive with a connected motor is required
+    # Make sure the drive is properly configured and connected to a motor
     main()
