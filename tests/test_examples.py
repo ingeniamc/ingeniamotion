@@ -16,6 +16,26 @@ from ingeniamotion.configuration import Configuration
 from ingeniamotion.enums import SeverityLevel
 from ingeniamotion.information import Information
 from ingeniamotion.pdo import PDONetworkManager, PDOPoller
+from tests.conftest import connect_canopen, connect_eoe, connect_soem
+
+
+@pytest.fixture
+def setup_for_test_examples(motion_controller):
+    mc, alias = motion_controller
+    mc.communication.disconnect(alias)
+
+
+@pytest.fixture
+def teardown_for_test_examples(motion_controller, read_config, pytestconfig):
+    yield
+    mc, alias = motion_controller
+    protocol = pytestconfig.getoption("--protocol")
+    if protocol == "soem":
+        connect_soem(mc, read_config, alias)
+    elif protocol == "canopen":
+        connect_canopen(mc, read_config, alias)
+    else:
+        connect_eoe(mc, read_config, alias)
 
 
 @pytest.mark.eoe
