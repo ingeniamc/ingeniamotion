@@ -32,11 +32,11 @@ def update_position_value_using_pdo(mc: MotionController) -> None:
     Args:
         mc : Controller with all the functions needed to perform a PDO exchange.
     """
-    position_value = 0
     waiting_time_for_pdo_exchange = 5
     # Create a RPDO map item
+    initial_position_value = mc.motion.get_actual_position()
     position_set_point = mc.capture.pdo.create_pdo_item(
-        "CL_POS_SET_POINT_VALUE", value=position_value
+        "CL_POS_SET_POINT_VALUE", value=initial_position_value
     )
     # Create a TPDO map item
     actual_position = mc.capture.pdo.create_pdo_item("CL_POS_FBK_VALUE")
@@ -50,7 +50,7 @@ def update_position_value_using_pdo(mc: MotionController) -> None:
     # Map the PDO maps to the slave
     mc.capture.pdo.set_pdo_maps_to_slave(rpdo_map, tpdo_map)
     # Start the PDO exchange
-    mc.capture.pdo.start_pdos()
+    mc.capture.pdo.start_pdos(refresh_rate=0.1)
     time.sleep(waiting_time_for_pdo_exchange)
     # Stop the PDO exchange
     mc.capture.pdo.stop_pdos()
