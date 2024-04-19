@@ -1,25 +1,28 @@
 from collections import deque
 from typing import Dict
+from unittest.mock import Mock
 
-import pytest
 import pytest
 from ingenialink import CAN_BAUDRATE, CAN_DEVICE
 from ingenialink.exceptions import ILFirmwareLoadError
+from ingenialink.pdo import RPDOMap, TPDOMap
 
 from examples.change_baudrate import change_baudrate
 from examples.change_node_id import change_node_id
 from examples.connect_ecat_coe import connect_ethercat_coe
 from examples.load_fw_canopen import load_firmware_canopen
-from examples.pdo_poller_example import main as set_up_pdo_poller
-from examples.load_save_configuration import main as main_load_save_configuration
 from examples.load_save_config_register_changes import (
     main as main_load_save_config_register_changes,
 )
+from examples.load_save_configuration import main as main_load_save_configuration
+from examples.pdo_poller_example import main as set_up_pdo_poller
+from examples.process_data_object import main as main_process_data_object
 from ingeniamotion import MotionController
 from ingeniamotion.communication import Communication
 from ingeniamotion.configuration import Configuration
 from ingeniamotion.enums import SeverityLevel
 from ingeniamotion.information import Information
+from ingeniamotion.motion import Motion
 from ingeniamotion.pdo import PDONetworkManager, PDOPoller
 from tests.conftest import connect_canopen, connect_eoe, connect_soem
 
@@ -642,3 +645,65 @@ def test_load_save_configuration_register_changes_failed(mocker, capsys):
 
     assert all_outputs[0] == "The initial configuration is saved."
     assert all_outputs[1] == "This max. velocity value is already set."
+
+
+@pytest.mark.virtual
+def test_process_data_object(mocker):
+    connect_servo_ethercat_interface_ip = mocker.patch.object(
+        Communication, "connect_servo_ethercat_interface_ip"
+    )
+    disconnect = mocker.patch.object(Communication, "disconnect")
+    motor_enable = mocker.patch.object(Motion, "motor_enable")
+    motor_disable = mocker.patch.object(Motion, "motor_disable")
+    create_pdo_item = mocker.patch.object(PDONetworkManager, "create_pdo_item")
+    create_pdo_maps = mocker.patch.object(
+        PDONetworkManager, "create_pdo_maps", return_value=(RPDOMap(), TPDOMap)
+    )
+    set_pdo_maps_to_slave = mocker.patch.object(PDONetworkManager, "set_pdo_maps_to_slave")
+    start_pdos = mocker.patch.object(PDONetworkManager, "start_pdos")
+    stop_pdos = mocker.patch.object(PDONetworkManager, "stop_pdos")
+    mocker.patch.object(Motion, "get_actual_position")
+    subscribe_to_receive_process_data = mocker.patch.object(
+        PDONetworkManager, "subscribe_to_receive_process_data"
+    )
+    subscribe_to_send_process_data = mocker.patch.object(
+        PDONetworkManager, "subscribe_to_send_process_data"
+    )
+
+    mocks_to_attach = {
+        "connect_servo_ethercat_interface_ip": connect_servo_ethercat_interface_ip,
+        "motor_enable": motor_enable,
+        "create_pdo_item": create_pdo_item,
+        "create_pdo_maps": create_pdo_maps,
+        "set_pdo_maps_to_slave": set_pdo_maps_to_slave,
+        "subscribe_to_receive_process_data": subscribe_to_receive_process_data,
+        "subscribe_to_send_process_data": subscribe_to_send_process_data,
+        "start_pdos": start_pdos,
+        "stop_pdos": stop_pdos,
+        "motor_disable": motor_disable,
+        "disconnect": disconnect,
+    }
+    order_mock = Mock()
+    for mock_name, mock in mocks_to_attach.items():
+        order_mock.attach_mock(mock, f"{mock_name}")
+
+    assert order_mock.method_calls == []
+
+    main_process_data_object()
+
+    expected_order_execution = [
+        "connect_servo_ethercat_interface_ip",
+        "motor_enable",
+        "create_pdo_item",
+        "create_pdo_item",
+        "create_pdo_maps",
+        "subscribe_to_receive_process_data",
+        "subscribe_to_send_process_data",
+        "set_pdo_maps_to_slave",
+        "start_pdos",
+        "stop_pdos",
+        "motor_disable",
+        "disconnect",
+    ]
+    for current_function, expected_function_name in enumerate(expected_order_execution):
+        assert order_mock.method_calls[current_function][0] == expected_function_name
