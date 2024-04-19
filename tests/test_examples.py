@@ -535,8 +535,6 @@ def test_ecat_coe_connection_example_connection_error(mocker, capsys):
 
 @pytest.mark.virtual
 def test_process_data_object(mocker):
-    mocker.patch.object(Communication, "get_ifname_by_index")
-    mocker.patch.object(Communication, "scan_servos_ethercat", return_value=[32])
     connect_servo_ethercat_interface_ip = mocker.patch.object(
         Communication, "connect_servo_ethercat_interface_ip"
     )
@@ -550,6 +548,7 @@ def test_process_data_object(mocker):
     set_pdo_maps_to_slave = mocker.patch.object(PDONetworkManager, "set_pdo_maps_to_slave")
     start_pdos = mocker.patch.object(PDONetworkManager, "start_pdos")
     stop_pdos = mocker.patch.object(PDONetworkManager, "stop_pdos")
+    mocker.patch.object(Motion, "get_actual_position")
     subscribe_to_receive_process_data = mocker.patch.object(
         PDONetworkManager, "subscribe_to_receive_process_data"
     )
