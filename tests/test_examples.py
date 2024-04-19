@@ -1,13 +1,22 @@
+from collections import deque
 from typing import Dict
+from unittest.mock import Mock
 
 import pytest
 from ingenialink import CAN_BAUDRATE, CAN_DEVICE
 from ingenialink.exceptions import ILFirmwareLoadError
+from ingenialink.pdo import RPDOMap, TPDOMap
 
 from examples.change_baudrate import change_baudrate
 from examples.change_node_id import change_node_id
 from examples.connect_ecat_coe import connect_ethercat_coe
 from examples.load_fw_canopen import load_firmware_canopen
+from examples.load_save_config_register_changes import (
+    main as main_load_save_config_register_changes,
+)
+from examples.load_save_configuration import main as main_load_save_configuration
+from examples.pdo_poller_example import main as set_up_pdo_poller
+from examples.process_data_object import main as main_process_data_object
 from examples.commutation_test_encoders import main as main_commutation_test_encoders
 from ingeniamotion import MotionController
 from ingeniamotion.communication import Communication
@@ -15,6 +24,28 @@ from ingeniamotion.configuration import Configuration
 from ingeniamotion.drive_tests import DriveTests
 from ingeniamotion.enums import SeverityLevel
 from ingeniamotion.information import Information
+from ingeniamotion.motion import Motion
+from ingeniamotion.pdo import PDONetworkManager, PDOPoller
+from tests.conftest import connect_canopen, connect_eoe, connect_soem
+
+
+@pytest.fixture
+def setup_for_test_examples(motion_controller):
+    mc, alias = motion_controller
+    mc.communication.disconnect(alias)
+
+
+@pytest.fixture
+def teardown_for_test_examples(motion_controller, read_config, pytestconfig):
+    yield
+    mc, alias = motion_controller
+    protocol = pytestconfig.getoption("--protocol")
+    if protocol == "soem":
+        connect_soem(mc, read_config, alias)
+    elif protocol == "canopen":
+        connect_canopen(mc, read_config, alias)
+    else:
+        connect_eoe(mc, read_config, alias)
 
 
 @pytest.mark.eoe
@@ -527,6 +558,157 @@ def test_ecat_coe_connection_example_connection_error(mocker, capsys):
     assert all_outputs[6] == f"- Interface identifier: {expected_real_name_interface}"
     assert all_outputs[7] == f"- Interface name: {expected_interfaces_name_list[interface_index]}"
     assert e.value.args[0] == f"could not open interface {expected_real_name_interface}"
+
+
+@pytest.mark.virtual
+def test_pdo_poller_success(mocker):
+    connect_servo_ethercat_interface_ip = mocker.patch.object(
+        Communication, "connect_servo_ethercat_interface_ip"
+    )
+    disconnect = mocker.patch.object(Communication, "disconnect")
+    mock_pdo_poller = PDOPoller(MotionController(), "mock_alias", 0.1, None, 100)
+    create_poller = mocker.patch.object(
+        PDONetworkManager, "create_poller", return_value=mock_pdo_poller
+    )
+    mock_poller_data = (deque([0.1, 0.2]), [deque([1, 2]), deque([0.0, 0.0])])
+    data = mocker.patch.object(
+        PDOPoller, "data", new_callable=mocker.PropertyMock, return_value=mock_poller_data
+    )
+    stop = mocker.patch.object(PDOPoller, "stop")
+
+    set_up_pdo_poller()
+
+    connect_servo_ethercat_interface_ip.assert_called_once()
+    create_poller.assert_called_once()
+    data.assert_called_once()
+    stop.assert_called_once()
+    disconnect.assert_called_once()
+
+
+@pytest.mark.virtual
+def test_load_save_configuration(mocker):
+    connect_servo_ethercat_interface_index = mocker.patch.object(
+        Communication, "connect_servo_ethercat_interface_index"
+    )
+    disconnect = mocker.patch.object(Communication, "disconnect")
+    save_configuration = mocker.patch.object(Configuration, "save_configuration")
+    load_configuration = mocker.patch.object(Configuration, "load_configuration")
+
+    main_load_save_configuration()
+
+    connect_servo_ethercat_interface_index.assert_called_once()
+    save_configuration.assert_called_once()
+    load_configuration.assert_called_once()
+    disconnect.assert_called_once()
+
+
+@pytest.mark.virtual
+def test_load_save_configuration_register_changes_success(mocker, capsys):
+    mocker.patch.object(Communication, "connect_servo_ethercat_interface_index")
+    mocker.patch.object(Communication, "disconnect")
+    mocker.patch.object(Configuration, "save_configuration")
+    mocker.patch.object(Configuration, "load_configuration")
+    test_velocities = [10.0, 10.0, 20.0]
+    mocker.patch.object(Configuration, "get_max_velocity", side_effect=test_velocities)
+    mocker.patch.object(Configuration, "set_max_velocity")
+
+    main_load_save_config_register_changes()
+
+    captured_outputs = capsys.readouterr()
+    all_outputs = captured_outputs.out.split("\n")
+
+    assert all_outputs[0] == "The initial configuration is saved."
+    assert all_outputs[1] == "The configuration file is saved with the modification."
+    assert (
+        all_outputs[2]
+        == f"Max. velocity register should be set to its initial value ({test_velocities[1]}). "
+        f"Current value: {test_velocities[1]}"
+    )
+    assert (
+        all_outputs[3]
+        == f"Max. velocity register should now be set to the new value ({test_velocities[2]}). "
+        f"Current value: {test_velocities[2]}"
+    )
+
+
+@pytest.mark.virtual
+def test_load_save_configuration_register_changes_failed(mocker, capsys):
+    mocker.patch.object(Communication, "connect_servo_ethercat_interface_index")
+    mocker.patch.object(Communication, "disconnect")
+    mocker.patch.object(Configuration, "save_configuration")
+    mocker.patch.object(Configuration, "load_configuration")
+    mocker.patch.object(Configuration, "get_max_velocity", return_value=20.0)
+    mocker.patch.object(Configuration, "set_max_velocity")
+
+    main_load_save_config_register_changes()
+
+    captured_outputs = capsys.readouterr()
+    all_outputs = captured_outputs.out.split("\n")
+
+    assert all_outputs[0] == "The initial configuration is saved."
+    assert all_outputs[1] == "This max. velocity value is already set."
+
+
+@pytest.mark.virtual
+def test_process_data_object(mocker):
+    connect_servo_ethercat_interface_ip = mocker.patch.object(
+        Communication, "connect_servo_ethercat_interface_ip"
+    )
+    disconnect = mocker.patch.object(Communication, "disconnect")
+    motor_enable = mocker.patch.object(Motion, "motor_enable")
+    motor_disable = mocker.patch.object(Motion, "motor_disable")
+    create_pdo_item = mocker.patch.object(PDONetworkManager, "create_pdo_item")
+    create_pdo_maps = mocker.patch.object(
+        PDONetworkManager, "create_pdo_maps", return_value=(RPDOMap(), TPDOMap)
+    )
+    set_pdo_maps_to_slave = mocker.patch.object(PDONetworkManager, "set_pdo_maps_to_slave")
+    start_pdos = mocker.patch.object(PDONetworkManager, "start_pdos")
+    stop_pdos = mocker.patch.object(PDONetworkManager, "stop_pdos")
+    mocker.patch.object(Motion, "get_actual_position")
+    subscribe_to_receive_process_data = mocker.patch.object(
+        PDONetworkManager, "subscribe_to_receive_process_data"
+    )
+    subscribe_to_send_process_data = mocker.patch.object(
+        PDONetworkManager, "subscribe_to_send_process_data"
+    )
+
+    mocks_to_attach = {
+        "connect_servo_ethercat_interface_ip": connect_servo_ethercat_interface_ip,
+        "motor_enable": motor_enable,
+        "create_pdo_item": create_pdo_item,
+        "create_pdo_maps": create_pdo_maps,
+        "set_pdo_maps_to_slave": set_pdo_maps_to_slave,
+        "subscribe_to_receive_process_data": subscribe_to_receive_process_data,
+        "subscribe_to_send_process_data": subscribe_to_send_process_data,
+        "start_pdos": start_pdos,
+        "stop_pdos": stop_pdos,
+        "motor_disable": motor_disable,
+        "disconnect": disconnect,
+    }
+    order_mock = Mock()
+    for mock_name, mock in mocks_to_attach.items():
+        order_mock.attach_mock(mock, f"{mock_name}")
+
+    assert order_mock.method_calls == []
+
+    main_process_data_object()
+
+    expected_order_execution = [
+        "connect_servo_ethercat_interface_ip",
+        "motor_enable",
+        "create_pdo_item",
+        "create_pdo_item",
+        "create_pdo_maps",
+        "subscribe_to_receive_process_data",
+        "subscribe_to_send_process_data",
+        "set_pdo_maps_to_slave",
+        "start_pdos",
+        "stop_pdos",
+        "motor_disable",
+        "disconnect",
+    ]
+    for current_function, expected_function_name in enumerate(expected_order_execution):
+        assert order_mock.method_calls[current_function][0] == expected_function_name
 
 
 @pytest.mark.virtual
