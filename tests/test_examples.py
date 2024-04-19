@@ -2,6 +2,7 @@ from collections import deque
 from typing import Dict
 
 import pytest
+import pytest
 from ingenialink import CAN_BAUDRATE, CAN_DEVICE
 from ingenialink.exceptions import ILFirmwareLoadError
 
@@ -10,6 +11,10 @@ from examples.change_node_id import change_node_id
 from examples.connect_ecat_coe import connect_ethercat_coe
 from examples.load_fw_canopen import load_firmware_canopen
 from examples.pdo_poller_example import main as set_up_pdo_poller
+from examples.load_save_configuration import main as main_load_save_configuration
+from examples.load_save_config_register_changes import (
+    main as main_load_save_config_register_changes,
+)
 from ingeniamotion import MotionController
 from ingeniamotion.communication import Communication
 from ingeniamotion.configuration import Configuration
@@ -573,3 +578,67 @@ def test_pdo_poller_success(mocker):
     data.assert_called_once()
     stop.assert_called_once()
     disconnect.assert_called_once()
+
+
+@pytest.mark.virtual
+def test_load_save_configuration(mocker):
+    connect_servo_ethercat_interface_index = mocker.patch.object(
+        Communication, "connect_servo_ethercat_interface_index"
+    )
+    disconnect = mocker.patch.object(Communication, "disconnect")
+    save_configuration = mocker.patch.object(Configuration, "save_configuration")
+    load_configuration = mocker.patch.object(Configuration, "load_configuration")
+
+    main_load_save_configuration()
+
+    connect_servo_ethercat_interface_index.assert_called_once()
+    save_configuration.assert_called_once()
+    load_configuration.assert_called_once()
+    disconnect.assert_called_once()
+
+
+@pytest.mark.virtual
+def test_load_save_configuration_register_changes_success(mocker, capsys):
+    mocker.patch.object(Communication, "connect_servo_ethercat_interface_index")
+    mocker.patch.object(Communication, "disconnect")
+    mocker.patch.object(Configuration, "save_configuration")
+    mocker.patch.object(Configuration, "load_configuration")
+    test_velocities = [10.0, 10.0, 20.0]
+    mocker.patch.object(Configuration, "get_max_velocity", side_effect=test_velocities)
+    mocker.patch.object(Configuration, "set_max_velocity")
+
+    main_load_save_config_register_changes()
+
+    captured_outputs = capsys.readouterr()
+    all_outputs = captured_outputs.out.split("\n")
+
+    assert all_outputs[0] == "The initial configuration is saved."
+    assert all_outputs[1] == "The configuration file is saved with the modification."
+    assert (
+        all_outputs[2]
+        == f"Max. velocity register should be set to its initial value ({test_velocities[1]}). "
+        f"Current value: {test_velocities[1]}"
+    )
+    assert (
+        all_outputs[3]
+        == f"Max. velocity register should now be set to the new value ({test_velocities[2]}). "
+        f"Current value: {test_velocities[2]}"
+    )
+
+
+@pytest.mark.virtual
+def test_load_save_configuration_register_changes_failed(mocker, capsys):
+    mocker.patch.object(Communication, "connect_servo_ethercat_interface_index")
+    mocker.patch.object(Communication, "disconnect")
+    mocker.patch.object(Configuration, "save_configuration")
+    mocker.patch.object(Configuration, "load_configuration")
+    mocker.patch.object(Configuration, "get_max_velocity", return_value=20.0)
+    mocker.patch.object(Configuration, "set_max_velocity")
+
+    main_load_save_config_register_changes()
+
+    captured_outputs = capsys.readouterr()
+    all_outputs = captured_outputs.out.split("\n")
+
+    assert all_outputs[0] == "The initial configuration is saved."
+    assert all_outputs[1] == "This max. velocity value is already set."
