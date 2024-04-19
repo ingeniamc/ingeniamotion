@@ -8,7 +8,7 @@ def set_feedbacks(mc: MotionController):
     All feedbacks can be set either the same encoder or different encoders.
     In this example we are using an Incremental Encoder (SensorType.QEI) and
     a Digital Halls (SensorType.HALLS).
-    
+
     Args:
         mc: Controller to configure the type of encoder for each feedback
 
@@ -25,12 +25,8 @@ def main() -> None:
 
     interface_ip = "192.168.2.1"
     slave_id = 1
-    dictionary_path = (
-        "test_directory/dictionary_file.xdf"
-    )
-    mc.communication.connect_servo_ethercat_interface_ip(
-        interface_ip, slave_id, dictionary_path
-    )
+    dictionary_path = "test_directory/dictionary_file.xdf"
+    mc.communication.connect_servo_ethercat_interface_ip(interface_ip, slave_id, dictionary_path)
 
     set_feedbacks(mc)
     # -------------------------------------------------------------
