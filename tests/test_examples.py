@@ -22,6 +22,7 @@ from ingeniamotion.communication import Communication
 from ingeniamotion.configuration import Configuration
 from ingeniamotion.enums import SeverityLevel
 from ingeniamotion.information import Information
+from ingeniamotion.motion import Motion
 from ingeniamotion.pdo import PDONetworkManager, PDOPoller
 from tests.conftest import connect_canopen, connect_eoe, connect_soem
 
@@ -43,8 +44,6 @@ def teardown_for_test_examples(motion_controller, read_config, pytestconfig):
         connect_canopen(mc, read_config, alias)
     else:
         connect_eoe(mc, read_config, alias)
-from ingeniamotion.motion import Motion
-from ingeniamotion.pdo import PDONetworkManager
 
 
 @pytest.mark.eoe
