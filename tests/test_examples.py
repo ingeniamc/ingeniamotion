@@ -1,3 +1,4 @@
+from collections import deque
 from typing import Dict
 
 import pytest
@@ -9,6 +10,7 @@ from examples.change_baudrate import change_baudrate
 from examples.change_node_id import change_node_id
 from examples.connect_ecat_coe import connect_ethercat_coe
 from examples.load_fw_canopen import load_firmware_canopen
+from examples.pdo_poller_example import main as set_up_pdo_poller
 from examples.load_save_configuration import main as main_load_save_configuration
 from examples.load_save_config_register_changes import (
     main as main_load_save_config_register_changes,
@@ -18,6 +20,27 @@ from ingeniamotion.communication import Communication
 from ingeniamotion.configuration import Configuration
 from ingeniamotion.enums import SeverityLevel
 from ingeniamotion.information import Information
+from ingeniamotion.pdo import PDONetworkManager, PDOPoller
+from tests.conftest import connect_canopen, connect_eoe, connect_soem
+
+
+@pytest.fixture
+def setup_for_test_examples(motion_controller):
+    mc, alias = motion_controller
+    mc.communication.disconnect(alias)
+
+
+@pytest.fixture
+def teardown_for_test_examples(motion_controller, read_config, pytestconfig):
+    yield
+    mc, alias = motion_controller
+    protocol = pytestconfig.getoption("--protocol")
+    if protocol == "soem":
+        connect_soem(mc, read_config, alias)
+    elif protocol == "canopen":
+        connect_canopen(mc, read_config, alias)
+    else:
+        connect_eoe(mc, read_config, alias)
 
 
 @pytest.mark.eoe
@@ -530,6 +553,31 @@ def test_ecat_coe_connection_example_connection_error(mocker, capsys):
     assert all_outputs[6] == f"- Interface identifier: {expected_real_name_interface}"
     assert all_outputs[7] == f"- Interface name: {expected_interfaces_name_list[interface_index]}"
     assert e.value.args[0] == f"could not open interface {expected_real_name_interface}"
+
+
+@pytest.mark.virtual
+def test_pdo_poller_success(mocker):
+    connect_servo_ethercat_interface_ip = mocker.patch.object(
+        Communication, "connect_servo_ethercat_interface_ip"
+    )
+    disconnect = mocker.patch.object(Communication, "disconnect")
+    mock_pdo_poller = PDOPoller(MotionController(), "mock_alias", 0.1, None, 100)
+    create_poller = mocker.patch.object(
+        PDONetworkManager, "create_poller", return_value=mock_pdo_poller
+    )
+    mock_poller_data = (deque([0.1, 0.2]), [deque([1, 2]), deque([0.0, 0.0])])
+    data = mocker.patch.object(
+        PDOPoller, "data", new_callable=mocker.PropertyMock, return_value=mock_poller_data
+    )
+    stop = mocker.patch.object(PDOPoller, "stop")
+
+    set_up_pdo_poller()
+
+    connect_servo_ethercat_interface_ip.assert_called_once()
+    create_poller.assert_called_once()
+    data.assert_called_once()
+    stop.assert_called_once()
+    disconnect.assert_called_once()
 
 
 @pytest.mark.virtual
