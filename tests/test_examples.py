@@ -17,9 +17,11 @@ from examples.load_save_config_register_changes import (
 from examples.load_save_configuration import main as main_load_save_configuration
 from examples.pdo_poller_example import main as set_up_pdo_poller
 from examples.process_data_object import main as main_process_data_object
+from examples.commutation_test_encoders import main as main_commutation_test_encoders
 from ingeniamotion import MotionController
 from ingeniamotion.communication import Communication
 from ingeniamotion.configuration import Configuration
+from ingeniamotion.drive_tests import DriveTests
 from ingeniamotion.enums import SeverityLevel
 from ingeniamotion.information import Information
 from ingeniamotion.motion import Motion
@@ -707,3 +709,35 @@ def test_process_data_object(mocker):
     ]
     for current_function, expected_function_name in enumerate(expected_order_execution):
         assert order_mock.method_calls[current_function][0] == expected_function_name
+
+
+@pytest.mark.virtual
+def test_commutation_test(mocker):
+    connect_servo_ethercat_interface_ip = mocker.patch.object(
+        Communication, "connect_servo_ethercat_interface_ip"
+    )
+    disconnect = mocker.patch.object(Communication, "disconnect")
+    set_auxiliar_feedback = mocker.patch.object(Configuration, "set_auxiliar_feedback")
+    set_commutation_feedback = mocker.patch.object(Configuration, "set_commutation_feedback")
+    set_position_feedback = mocker.patch.object(Configuration, "set_position_feedback")
+    set_velocity_feedback = mocker.patch.object(Configuration, "set_velocity_feedback")
+    set_reference_feedback = mocker.patch.object(Configuration, "set_reference_feedback")
+    commutation_test = mocker.patch.object(
+        DriveTests,
+        "commutation",
+        return_value={
+            "result_message": "Commutation is called",
+            "result_severity": SeverityLevel.SUCCESS,
+        },
+    )
+
+    main_commutation_test_encoders()
+
+    connect_servo_ethercat_interface_ip.assert_called_once()
+    set_auxiliar_feedback.assert_called_once()
+    set_commutation_feedback.assert_called_once()
+    set_position_feedback.assert_called_once()
+    set_velocity_feedback.assert_called_once()
+    set_reference_feedback.assert_called_once()
+    commutation_test.assert_called_once()
+    disconnect.assert_called_once()
