@@ -6,9 +6,7 @@ def main() -> None:
     mc = MotionController()
     ip = "192.168.2.1"
     slave_id = 1
-    dictionary_path = (
-        "parent_directory/dictionary_file.xdf"
-    )
+    dictionary_path = "parent_directory/dictionary_file.xdf"
     mc.communication.connect_servo_ethercat_interface_ip(ip, slave_id, dictionary_path)
 
     # Select the position mode and trapezoidal profiler

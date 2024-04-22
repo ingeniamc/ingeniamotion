@@ -47,6 +47,8 @@ def teardown_for_test_examples(motion_controller, read_config, pytestconfig):
         connect_canopen(mc, read_config, alias)
     else:
         connect_eoe(mc, read_config, alias)
+
+
 from ingeniamotion.motion import Motion
 
 
