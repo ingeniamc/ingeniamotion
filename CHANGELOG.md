@@ -1,8 +1,9 @@
 # Changelog
 
-## [Unreleased]
-
+## [0.8.0] - 2024-04-23
 ### Added
+- PDOs for the EtherCAT protocol.
+- Register Poller using PDOs.
 - Callbacks to notify exceptions in the ProcessDataThread.
 - A method in the PDOPoller to subscribe to exceptions in the ProcessDataThread.
 - Set the watchdog timeout of the PDO exchange.
@@ -20,10 +21,6 @@
 ### Added
 - Add scan functions with info: scan_servos_ethercat_with_info and scan_servos_canopen_with_info
 - Add connect_servo_virtual function
-
-### Added
-- PDOs for the EtherCAT protocol.
-- Register Poller using PDOs.
 
 ### Removed
 - Support to Python 3.6 to 3.8.
