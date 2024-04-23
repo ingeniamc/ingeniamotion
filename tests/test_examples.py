@@ -9,6 +9,7 @@ from ingenialink.pdo import RPDOMap, TPDOMap
 
 from examples.change_baudrate import change_baudrate
 from examples.change_node_id import change_node_id
+from examples.commutation_test_encoders import main as main_commutation_test_encoders
 from examples.connect_ecat_coe import connect_ethercat_coe
 from examples.load_fw_canopen import load_firmware_canopen
 from examples.load_save_config_register_changes import (
@@ -16,8 +17,8 @@ from examples.load_save_config_register_changes import (
 )
 from examples.load_save_configuration import main as main_load_save_configuration
 from examples.pdo_poller_example import main as set_up_pdo_poller
+from examples.position_ramp import main as main_position_ramp
 from examples.process_data_object import main as main_process_data_object
-from examples.commutation_test_encoders import main as main_commutation_test_encoders
 from ingeniamotion import MotionController
 from ingeniamotion.communication import Communication
 from ingeniamotion.configuration import Configuration
@@ -46,6 +47,9 @@ def teardown_for_test_examples(motion_controller, read_config, pytestconfig):
         connect_canopen(mc, read_config, alias)
     else:
         connect_eoe(mc, read_config, alias)
+
+
+from ingeniamotion.motion import Motion
 
 
 @pytest.mark.eoe
@@ -741,3 +745,46 @@ def test_commutation_test(mocker):
     set_reference_feedback.assert_called_once()
     commutation_test.assert_called_once()
     disconnect.assert_called_once()
+
+
+@pytest.mark.virtual
+def test_position_ramp(mocker, capsys):
+    connect_servo_ethercat_interface_ip = mocker.patch.object(
+        Communication, "connect_servo_ethercat_interface_ip"
+    )
+    disconnect = mocker.patch.object(Communication, "disconnect")
+    set_max_profile_velocity = mocker.patch.object(Configuration, "set_max_profile_velocity")
+    set_max_profile_acceleration = mocker.patch.object(
+        Configuration, "set_max_profile_acceleration"
+    )
+    set_max_profile_deceleration = mocker.patch.object(
+        Configuration, "set_max_profile_deceleration"
+    )
+    motor_enable = mocker.patch.object(Motion, "motor_enable")
+    motor_disable = mocker.patch.object(Motion, "motor_disable")
+    set_operation_mode = mocker.patch.object(Motion, "set_operation_mode")
+    move_to_position = mocker.patch.object(Motion, "move_to_position")
+    test_actual_values = [1500, 3000, 0]
+    get_actual_position = mocker.patch.object(
+        Motion, "get_actual_position", side_effect=test_actual_values
+    )
+
+    main_position_ramp()
+
+    connect_servo_ethercat_interface_ip.assert_called_once()
+    set_operation_mode.assert_called_once()
+    set_max_profile_acceleration.assert_called_once()
+    set_max_profile_deceleration.assert_called_once()
+    set_max_profile_velocity.assert_called_once()
+    motor_enable.assert_called_once()
+    for current_target in test_actual_values:
+        move_to_position.assert_any_call(current_target, blocking=True, timeout=2.0)
+    assert move_to_position.call_count == len(test_actual_values)
+    assert get_actual_position.call_count == len(test_actual_values)
+    motor_disable.assert_called_once()
+    disconnect.assert_called_once()
+
+    captured_outputs = capsys.readouterr()
+    all_outputs = captured_outputs.out.split("\n")
+    for i, expected_actual_value in enumerate(test_actual_values):
+        assert all_outputs[i] == f"Actual position: {expected_actual_value}"
