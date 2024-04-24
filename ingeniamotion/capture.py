@@ -1,9 +1,10 @@
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import numpy as np
+from numpy.typing import NDArray
 from ingenialink.exceptions import ILIOError
 from ingenialink.poller import Poller
-from numpy.typing import NDArray
+from ingenialink.dictionary import SubnodeType
 
 from ingeniamotion.disturbance import Disturbance
 from ingeniamotion.enums import (
@@ -12,11 +13,16 @@ from ingeniamotion.enums import (
     MonitoringSoCType,
     MonitoringVersion,
 )
-from ingeniamotion.exceptions import IMMonitoringError, IMRegisterNotExist, IMStatusWordError
+from ingeniamotion.exceptions import (
+    IMMonitoringError,
+    IMRegisterNotExist,
+    IMStatusWordError,
+)
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 from ingeniamotion.monitoring.base_monitoring import Monitoring
 from ingeniamotion.monitoring.monitoring_v1 import MonitoringV1
 from ingeniamotion.monitoring.monitoring_v3 import MonitoringV3
+from ingeniamotion.pdo import PDONetworkManager
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -52,6 +58,7 @@ class Capture(metaclass=MCMetaClass):
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
+        self.pdo = PDONetworkManager(self.mc)
 
     def create_poller(
         self,
@@ -629,9 +636,12 @@ class Capture(metaclass=MCMetaClass):
             IMStatusWordError: If motor is enabled.
 
         """
-        subnodes = self.mc.info.get_subnodes(servo)
-        for axis in range(1, subnodes):
-            if self.mc.configuration.is_motor_enabled(servo=servo, axis=axis):
+        for subnode in [
+            subnode
+            for subnode, subnode_type in self.mc.info.get_subnodes(servo).items()
+            if subnode_type == SubnodeType.MOTION
+        ]:
+            if self.mc.configuration.is_motor_enabled(servo=servo, axis=subnode):
                 raise IMStatusWordError("Motor is enabled")
         self.enable_monitoring(servo=servo)
         self.disable_monitoring(servo=servo)

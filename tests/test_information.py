@@ -2,8 +2,8 @@ import pytest
 
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
-from ingenialink.canopen.network import CanopenNetwork
-from ingenialink.canopen import CAN_DEVICE
+from ingenialink.canopen.network import CanopenNetwork, CAN_DEVICE, CAN_BAUDRATE
+from ingenialink.dictionary import SubnodeType
 
 from ingeniamotion.enums import REG_DTYPE, REG_ACCESS
 from ingeniamotion.information import COMMUNICATION_TYPE
@@ -168,7 +168,9 @@ def test_get_subnodes(motion_controller):
     mc, alias = motion_controller
     subnodes = mc.info.get_subnodes(alias)
 
-    assert subnodes == expected_subnodes
+    assert len(subnodes) == expected_subnodes
+    assert subnodes[0] == SubnodeType.COMMUNICATION
+    assert subnodes[1] == SubnodeType.MOTION
 
 
 @pytest.mark.virtual
@@ -237,3 +239,30 @@ def test_get_slave_id_exception(motion_controller):
     mc, alias = motion_controller
     with pytest.raises(IMException):
         mc.info.get_slave_id(alias)
+
+
+@pytest.mark.virtual
+def test_get_baudrate_success(motion_controller, mocker):
+    mc, _ = motion_controller
+
+    fake_device = CAN_DEVICE.PCAN
+    fake_channel = 0
+    fake_baudrate = CAN_BAUDRATE.Baudrate_1M
+    fake_network = CanopenNetwork(fake_device, fake_channel, fake_baudrate)
+    mocker.patch.object(mc, "_get_network", return_value=fake_network)
+
+    test_baudrate = mc.info.get_baudrate()
+
+    assert fake_baudrate == test_baudrate
+
+
+@pytest.mark.virtual
+def test_get_baudrate_failed(motion_controller, mocker):
+    mc, _ = motion_controller
+
+    mocker.patch.object(mc, "_get_network", return_value=EthercatNetwork("fake_interface_name"))
+    with pytest.raises(IMException) as imexpeption_info:
+        _ = mc.info.get_baudrate()
+
+    expected_message_error = "The servo default is not a CANopen device."
+    assert expected_message_error == imexpeption_info.value.args[0]

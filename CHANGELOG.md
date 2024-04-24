@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.8.0] - 2024-04-23
+### Added
+- PDOs for the EtherCAT protocol.
+- Register Poller using PDOs.
+- Callbacks to notify exceptions in the ProcessDataThread.
+- A method in the PDOPoller to subscribe to exceptions in the ProcessDataThread.
+- Set the watchdog timeout of the PDO exchange.
+
+### Changed
+- The get_subnodes method from the information module now returns a dictionary with the subnodes IDs as keys and their type as values.
+- Set the send_receive_processdata timeout in the ProcessDataThread according to the refresh rate.
+- Cyclic parameter is defined as a RegCyclicType variable instead of a string.
+- The default PDO watchdog timeout is set to 100 ms.
+
+### Removed
+- The comkit module. Now ingenialink methods are use to merge the COM-KIT and CORE dictionaries.
+
 ## [0.7.1] - 2024-03-13
 ### Added
 - Add scan functions with info: scan_servos_ethercat_with_info and scan_servos_canopen_with_info
@@ -27,6 +44,7 @@
 - Add functions to connect to and scan EtherCAT devices using CoE (SDOs).
 - Optional backup registers for Wizard tests.
 - New methods to scan the network and obtain drive info (product code and revision number).
+- Method to load the FW in an ensemble of drives.
 
 ### Fixed
 - check_motor_disabled decorator does not work with positional arguments

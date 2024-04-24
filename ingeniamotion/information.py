@@ -1,18 +1,19 @@
 import os
 from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
 
+from ingenialink import CAN_BAUDRATE
 from ingenialink.eoe.network import EoENetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.register import Register
 from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
+from ingenialink.dictionary import SubnodeType
 import ingenialogger
 
 from ingeniamotion.exceptions import IMRegisterNotExist, IMException
 from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.enums import COMMUNICATION_TYPE
-from ingeniamotion.comkit import create_comkit_dictionary
 
 
 if TYPE_CHECKING:
@@ -144,27 +145,6 @@ class Information(metaclass=MCMetaClass):
         drive = self.mc.servos[servo]
         return register in drive.dictionary.registers(axis)
 
-    @staticmethod
-    def create_comkit_dictionary(
-        coco_dict_path: str, moco_dict_path: str, dest_file: Optional[str] = None
-    ) -> str:
-        """Create a dictionary for COMKIT by merging a COCO dictionary and a MOCO dictionary.
-
-        Args:
-            coco_dict_path : COCO dictionary path.
-            moco_dict_path : MOCO dictionary path.
-            dest_file: Path to store the COMKIT dictionary. If it's not provided the
-                merged dictionary is stored in the temporary system's folder.
-
-        Returns:
-            Path to the COMKIT dictionary.
-
-        Raises:
-            ValueError: If destination file has a wrong extension.
-
-        """
-        return create_comkit_dictionary(coco_dict_path, moco_dict_path, dest_file)
-
     def get_product_name(self, alias: str = DEFAULT_SERVO) -> Optional[str]:
         """Get the product name of the drive.
 
@@ -195,6 +175,20 @@ class Information(metaclass=MCMetaClass):
             return int(drive.target)
         else:
             raise IMException("You need a CANopen communication to use this function")
+
+    def get_baudrate(self, alias: str = DEFAULT_SERVO) -> CAN_BAUDRATE:
+        """Get the baudrate of target servo
+
+        Args:
+            alias: alias of the servo.
+
+        Returns:
+            Baudrate of the drive.
+        """
+        net = self.mc._get_network(alias)
+        if isinstance(net, CanopenNetwork):
+            return CAN_BAUDRATE(net.baudrate)
+        raise IMException(f"The servo {alias} is not a CANopen device.")
 
     def get_ip(self, alias: str = DEFAULT_SERVO) -> str:
         """Get the IP for Ethernet communications.
@@ -277,17 +271,17 @@ class Information(metaclass=MCMetaClass):
             full_name = f"{full_name} ({ip})"
         return full_name
 
-    def get_subnodes(self, alias: str = DEFAULT_SERVO) -> int:
-        """Return the number of subnodes.
+    def get_subnodes(self, alias: str = DEFAULT_SERVO) -> Dict[int, SubnodeType]:
+        """Return a dictionary with the subnodes IDs as keys and their type as values.
 
         Args:
             alias: Drive alias.
 
         Returns:
-            Number of subnodes.
+            Dictionary of subnode ids and their type.
         """
         drive = self.mc.servos[alias]
-        return int(drive.subnodes)
+        return drive.subnodes
 
     def get_categories(self, alias: str) -> Dict[str, str]:
         """Return dictionary categories instance.
@@ -320,20 +314,14 @@ class Information(metaclass=MCMetaClass):
         drive = self.mc.servos[alias]
         return str(os.path.basename(drive.dictionary.path))
 
-    def get_encoded_image_from_dictionary(self, alias: str, axis: int = 0) -> Optional[str]:
+    def get_encoded_image_from_dictionary(self, alias: str) -> Optional[str]:
         """Get the encoded product image from a drive dictionary.
         This function reads a dictionary of a drive, and it parses whether the dictionary file has a
         DriveImage tag and its content.
         Args:
             alias: Alias of the drive.
-            axis: Drive axis. Used when using  COM-KIT.
         Returns:
             The encoded image or NoneType object.
         """
         drive = self.mc.servos[alias]
-        encoded_image: Optional[str] = None
-        if axis == 1:
-            encoded_image = drive.dictionary.moco_image
-        else:
-            encoded_image = drive.dictionary.image
-        return encoded_image
+        return drive.dictionary.image
