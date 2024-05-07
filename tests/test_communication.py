@@ -1,4 +1,5 @@
 import os
+import platform
 import time
 from collections import OrderedDict
 
@@ -81,7 +82,7 @@ def test_connect_servo_comkit_no_dictionary_error(coco_dict_path, read_config):
 
 
 @pytest.mark.smoke
-@pytest.mark.soem
+@pytest.mark.virtual
 def test_get_ifname_from_interface_ip(mocker):
     ip = type("IP", (object,), {"ip": "192.168.2.1", "is_IPv4": True})
     adapter = type(
@@ -91,6 +92,19 @@ def test_get_ifname_from_interface_ip(mocker):
     mc = MotionController()
     ifname = mc.communication.get_ifname_from_interface_ip("192.168.2.1")
     assert ifname == "\\Device\\NPF_{192D1D2F-C684-467D-A637-EC07BD434A63}"
+
+
+@pytest.mark.smoke
+@pytest.mark.virtual
+def test_get_ifname_by_index():
+    mc = MotionController()
+    interface_name_list = mc.communication.get_interface_name_list()
+    assert len(interface_name_list) > 0
+    for index, interface_name in enumerate(interface_name_list):
+        ifname = mc.communication.get_ifname_by_index(index)
+        assert isinstance(ifname, str)
+        if platform.system() == "Linux":
+            assert ifname == interface_name
 
 
 @pytest.mark.skip(reason='This test enters in conflict with "disable_motor_fixture"')
