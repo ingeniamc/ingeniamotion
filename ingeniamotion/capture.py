@@ -2,10 +2,10 @@ from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import numpy as np
 from numpy.typing import NDArray
+
+from ingenialink.dictionary import SubnodeType
 from ingenialink.exceptions import ILIOError
 from ingenialink.poller import Poller
-from ingenialink.dictionary import SubnodeType
-
 from ingeniamotion.disturbance import Disturbance
 from ingeniamotion.enums import (
     MonitoringProcessStage,

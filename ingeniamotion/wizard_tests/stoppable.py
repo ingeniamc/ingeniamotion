@@ -1,7 +1,7 @@
 import typing
-from time import time
 from functools import wraps
-from typing import TypeVar, Callable, Any
+from time import time
+from typing import Callable
 
 
 class StopException(Exception):

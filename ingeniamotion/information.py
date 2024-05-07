@@ -1,20 +1,19 @@
 import os
 from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
 
-from ingenialink import CAN_BAUDRATE
-from ingenialink.eoe.network import EoENetwork
-from ingenialink.ethernet.network import EthernetNetwork
-from ingenialink.canopen.network import CanopenNetwork
-from ingenialink.ethercat.network import EthercatNetwork
-from ingenialink.register import Register
-from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
-from ingenialink.dictionary import SubnodeType
 import ingenialogger
 
-from ingeniamotion.exceptions import IMRegisterNotExist, IMException
-from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
+from ingenialink import CAN_BAUDRATE
+from ingenialink.canopen.network import CanopenNetwork
+from ingenialink.dictionary import SubnodeType
+from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
+from ingenialink.eoe.network import EoENetwork
+from ingenialink.ethercat.network import EthercatNetwork
+from ingenialink.ethernet.network import EthernetNetwork
+from ingenialink.register import Register
 from ingeniamotion.enums import COMMUNICATION_TYPE
-
+from ingeniamotion.exceptions import IMException, IMRegisterNotExist
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -156,7 +155,7 @@ class Information(metaclass=MCMetaClass):
         """
         drive = self.mc.servos[alias]
         product_name = drive.dictionary.part_number
-        if not product_name is None:
+        if product_name is not None:
             return f"{product_name}"
         return None
 

@@ -3,8 +3,8 @@ from typing import TYPE_CHECKING
 
 import ingenialogger
 
+from ingeniamotion.enums import FeedbackPolarity, OperationMode, SensorType, SeverityLevel
 from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
-from ingeniamotion.enums import SensorType, FeedbackPolarity, OperationMode, SeverityLevel
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController

@@ -4,16 +4,15 @@ from enum import IntEnum
 from typing import TYPE_CHECKING, Optional
 
 import ingenialogger
-from ingenialink.exceptions import ILTimeoutError, ILStateError, ILIOError
+
+from ingenialink.exceptions import ILIOError, ILStateError, ILTimeoutError
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
 
-from ingeniamotion.enums import OperationMode, SensorType, SeverityLevel
+from ingeniamotion.enums import CommutationMode, OperationMode, SensorType, SeverityLevel
 from ingeniamotion.exceptions import IMRegisterNotExist
 from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
-from ingeniamotion.exceptions import IMRegisterNotExist
-from ingeniamotion.enums import OperationMode, SeverityLevel, SensorType, CommutationMode
 
 
 class Feedbacks(BaseTest):

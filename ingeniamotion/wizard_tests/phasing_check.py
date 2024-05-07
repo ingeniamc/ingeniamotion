@@ -1,12 +1,12 @@
-from enum import IntEnum
 import time
+from enum import IntEnum
 from typing import TYPE_CHECKING
 
 import ingenialogger
 
+from ingeniamotion.enums import OperationMode, PhasingMode, SensorType, SeverityLevel
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
-from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
-from ingeniamotion.enums import SensorType, OperationMode, PhasingMode, SeverityLevel
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController

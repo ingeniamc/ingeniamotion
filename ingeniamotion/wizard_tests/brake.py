@@ -1,12 +1,12 @@
 from typing import TYPE_CHECKING, Dict, Union
 
 import ingenialogger
-from ingenialink.exceptions import ILError
 
+from ingenialink.exceptions import ILError
+from ingeniamotion.enums import CommutationMode, OperationMode, SeverityLevel
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.wizard_tests.base_test import BaseTest
 from ingeniamotion.wizard_tests.stoppable import StopException
-from ingeniamotion.enums import OperationMode, SeverityLevel, CommutationMode
-from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController

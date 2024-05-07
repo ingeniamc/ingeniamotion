@@ -1,8 +1,8 @@
 from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
 
 import ingenialogger
-from ingenialink.enums.register import REG_DTYPE
 
+from ingenialink.enums.register import REG_DTYPE
 from ingeniamotion.enums import MonitoringSoCConfig, MonitoringSoCType, MonitoringVersion
 from ingeniamotion.exceptions import IMStatusWordError
 from ingeniamotion.metaclass import DEFAULT_SERVO

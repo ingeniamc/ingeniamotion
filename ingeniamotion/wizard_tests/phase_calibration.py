@@ -1,18 +1,19 @@
-from enum import IntEnum
 import time
+from enum import IntEnum
 from typing import TYPE_CHECKING, Optional
+
 import ingenialogger
 
 from ingeniamotion.enums import (
-    PhasingMode,
+    CommutationMode,
     OperationMode,
+    PhasingMode,
     SensorCategory,
     SensorType,
     SeverityLevel,
 )
 from ingeniamotion.exceptions import IMRegisterNotExist
 from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
-from ingeniamotion.enums import CommutationMode
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController

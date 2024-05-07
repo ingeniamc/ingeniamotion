@@ -4,9 +4,9 @@ from typing import TYPE_CHECKING, Optional
 
 import ingenialogger
 
+from ingeniamotion.enums import OperationMode, SensorType, SeverityLevel
 from ingeniamotion.exceptions import IMTimeoutError
 from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
-from ingeniamotion.enums import SensorType, OperationMode, SeverityLevel
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController

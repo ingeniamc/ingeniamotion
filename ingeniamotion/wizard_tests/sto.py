@@ -1,10 +1,10 @@
+from enum import IntEnum
 from typing import TYPE_CHECKING, List
+
 import ingenialogger
 
-from enum import IntEnum
-
-from ingeniamotion.wizard_tests.base_test import BaseTest
 from ingeniamotion.enums import SeverityLevel
+from ingeniamotion.wizard_tests.base_test import BaseTest
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController

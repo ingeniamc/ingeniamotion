@@ -3,9 +3,9 @@ from typing import Dict, Optional, Union
 
 import ingenialogger
 
-from ingeniamotion.enums import SeverityLevel, OperationMode
+from ingeniamotion.enums import OperationMode, SeverityLevel
 from ingeniamotion.exceptions import IMRegisterNotExist
-from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.wizard_tests import stoppable
 from ingeniamotion.wizard_tests.base_test import BaseTest
