@@ -24,7 +24,7 @@ TYPE_MAPPED_REGISTERS_DATA_NO_KEY = List[Union[int, float]]
 
 
 def check_disturbance_disabled(
-    func: Callable[..., Union[int, float, None]]
+    func: Callable[..., Union[int, float, None]],
 ) -> Callable[..., Union[int, float, None]]:
     @wraps(func)
     def wrapper(self, *args, **kwargs):  # type: ignore
@@ -186,7 +186,7 @@ class Disturbance:
             ],
             NDArray[np.int32],
             NDArray[np.float32],
-        ]
+        ],
     ) -> List[TYPE_MAPPED_REGISTERS_DATA_NO_KEY]:
         if isinstance(registers_data, ndarray):
             registers_data = registers_data.tolist()

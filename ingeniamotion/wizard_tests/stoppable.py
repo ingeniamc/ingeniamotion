@@ -12,7 +12,6 @@ T = typing.TypeVar("T")
 
 
 class Stoppable:
-
     is_stopped = False
 
     @staticmethod

@@ -92,7 +92,6 @@ class Phasing(BaseTest):
 
     @BaseTest.stoppable
     def check_input_data(self) -> None:
-
         max_current_drive = self.mc.communication.get_register(
             self.MAX_CURRENT_REGISTER, servo=self.servo, axis=self.axis
         )

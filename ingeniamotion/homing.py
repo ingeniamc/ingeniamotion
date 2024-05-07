@@ -9,7 +9,6 @@ from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
 
 
 class Homing(metaclass=MCMetaClass):
-
     HOMING_MODE_REGISTER = "HOM_MODE"
     HOMING_OFFSET_REGISTER = "HOM_OFFSET"
     HOMING_TIMEOUT_REGISTER = "HOM_SEQ_TIMEOUT"

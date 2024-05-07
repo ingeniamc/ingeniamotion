@@ -13,7 +13,6 @@ if TYPE_CHECKING:
 
 
 class Brake(BaseTest):
-
     BRAKE_OVERRIDE_REGISTER = "MOT_BRAKE_OVERRIDE"
 
     BACKUP_REGISTERS = [
