@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
 
 import ifaddr
 import ingenialogger
-
 from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.dictionary import Interface
@@ -25,8 +24,9 @@ from ingenialink.exceptions import ILError
 from ingenialink.network import NET_DEV_EVT, SlaveInfo
 from ingenialink.servo import DictionaryFactory
 from ingenialink.virtual.network import VirtualNetwork
-from ingeniamotion.exceptions import IMException, IMRegisterWrongAccess
 from virtual_drive.core import VirtualDrive
+
+from ingeniamotion.exceptions import IMException, IMRegisterWrongAccess
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController

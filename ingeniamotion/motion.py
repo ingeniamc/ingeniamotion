@@ -2,7 +2,6 @@ import time
 from typing import TYPE_CHECKING, Generator, Optional, Union
 
 import ingenialogger
-
 from ingenialink.exceptions import ILError
 
 if TYPE_CHECKING:

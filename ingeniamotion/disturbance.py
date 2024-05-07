@@ -3,11 +3,11 @@ from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 
 import ingenialogger
 import numpy as np
+from ingenialink.enums.register import REG_DTYPE, RegCyclicType
+from ingenialink.exceptions import ILValueError
 from numpy import ndarray
 from numpy.typing import NDArray
 
-from ingenialink.enums.register import REG_DTYPE, RegCyclicType
-from ingenialink.exceptions import ILValueError
 from ingeniamotion.enums import MonitoringVersion
 from ingeniamotion.exceptions import IMDisturbanceError, IMStatusWordError
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO

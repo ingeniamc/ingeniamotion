@@ -1,8 +1,8 @@
 from typing import TYPE_CHECKING, Dict, Union
 
 import ingenialogger
-
 from ingenialink.exceptions import ILError
+
 from ingeniamotion.enums import CommutationMode, OperationMode, SeverityLevel
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.wizard_tests.base_test import BaseTest

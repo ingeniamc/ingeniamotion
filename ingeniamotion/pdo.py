@@ -21,6 +21,7 @@ from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.ethercat.servo import EthercatServo
 from ingenialink.exceptions import ILError, ILWrongWorkingCount
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
+
 from ingeniamotion.enums import COMMUNICATION_TYPE
 from ingeniamotion.exceptions import IMException
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO

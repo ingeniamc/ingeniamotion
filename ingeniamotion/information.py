@@ -2,7 +2,6 @@ import os
 from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
 
 import ingenialogger
-
 from ingenialink import CAN_BAUDRATE
 from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.dictionary import SubnodeType
@@ -11,6 +10,7 @@ from ingenialink.eoe.network import EoENetwork
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.register import Register
+
 from ingeniamotion.enums import COMMUNICATION_TYPE
 from ingeniamotion.exceptions import IMException, IMRegisterNotExist
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass

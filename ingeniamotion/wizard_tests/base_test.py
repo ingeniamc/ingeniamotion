@@ -2,8 +2,8 @@ from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
 
 import ingenialogger
-
 from ingenialink.exceptions import ILError
+
 from ingeniamotion.exceptions import IMRegisterNotExist, IMRegisterWrongAccess
 from ingeniamotion.metaclass import DEFAULT_SERVO
 from ingeniamotion.wizard_tests.stoppable import StopException, Stoppable

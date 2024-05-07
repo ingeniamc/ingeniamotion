@@ -3,10 +3,10 @@ from os import path
 from typing import TYPE_CHECKING, List, Optional, Tuple, Union
 
 import ingenialogger
-
 from ingenialink.canopen.network import CAN_BAUDRATE, CanopenNetwork
 from ingenialink.ethernet.servo import EthernetServo
 from ingenialink.exceptions import ILError
+
 from ingeniamotion.enums import (
     CommutationMode,
     FilterNumber,

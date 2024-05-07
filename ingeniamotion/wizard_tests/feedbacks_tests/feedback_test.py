@@ -4,7 +4,6 @@ from enum import IntEnum
 from typing import TYPE_CHECKING, Optional
 
 import ingenialogger
-
 from ingenialink.exceptions import ILIOError, ILStateError, ILTimeoutError
 
 if TYPE_CHECKING:

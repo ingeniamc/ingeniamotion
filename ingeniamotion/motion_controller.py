@@ -3,6 +3,7 @@ from typing import Dict
 
 from ingenialink.network import Network
 from ingenialink.servo import Servo
+
 from ingeniamotion.capture import Capture
 from ingeniamotion.communication import Communication
 from ingeniamotion.configuration import Configuration
