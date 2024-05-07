@@ -295,7 +295,6 @@ class Capture(metaclass=MCMetaClass):
             and disturbance.
 
         """
-        drive = self.mc._get_drive(servo)
         try:
             self.mc.communication.get_register(
                 self.MONITORING_VERSION_REGISTER, servo=servo, axis=0

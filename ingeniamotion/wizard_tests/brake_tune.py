@@ -28,7 +28,8 @@ class ResultBrakeType(IntEnum):
 
 
 class BrakeTune(BaseTest):
-    """A class to perform a brake tuning. It enables and disables a brake through enabling/disabling the motor.
+    """A class to perform a brake tuning. It enables and disables a brake through
+    enabling/disabling the motor.
 
     Args:
         mc: Motion Controller.
@@ -137,6 +138,7 @@ class BrakeTune(BaseTest):
             ResultBrakeType.SUCCESS: "Brake tune is stopped properly",
             ResultBrakeType.FAIL_FEEDBACK_SOURCE: "A brake current feedback source is not set",
             ResultBrakeType.FAIL_CURRENT_MODE: "The brake is not in current mode",
-            ResultBrakeType.FAIL_DICTIONARY: "Brake current control mode is not implemented in the drive",
+            ResultBrakeType.FAIL_DICTIONARY: "Brake current control mode is not implemented "
+            "in the drive",
         }
         return message_options[output]

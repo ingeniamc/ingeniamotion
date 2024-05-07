@@ -1303,7 +1303,8 @@ class Communication(metaclass=MCMetaClass):
                 or map_slave_info.revision_number != mapping[map_slave_id_offset][2]
             ):
                 raise IMException(
-                    f"Wrong ensemble. The slave {map_slave_id} has wrong product code or revision number."
+                    f"Wrong ensemble. The slave {map_slave_id} "
+                    f"has wrong product code or revision number."
                 )
         return first_slave
 
