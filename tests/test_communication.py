@@ -85,13 +85,18 @@ def test_connect_servo_comkit_no_dictionary_error(coco_dict_path, read_config):
 @pytest.mark.virtual
 def test_get_ifname_from_interface_ip(mocker):
     ip = type("IP", (object,), {"ip": "192.168.2.1", "is_IPv4": True})
-    adapter = type(
-        "Adapter", (object,), {"ips": [ip], "name": b"{192D1D2F-C684-467D-A637-EC07BD434A63}"}
-    )
+    if platform.system() == "Linux":
+        name = "eth0"
+    else:
+        name = b"{192D1D2F-C684-467D-A637-EC07BD434A63}"
+    adapter = type("Adapter", (object,), {"ips": [ip], "name": name})
     mocker.patch("ifaddr.get_adapters", return_value=[adapter])
     mc = MotionController()
     ifname = mc.communication.get_ifname_from_interface_ip("192.168.2.1")
-    assert ifname == "\\Device\\NPF_{192D1D2F-C684-467D-A637-EC07BD434A63}"
+    if platform.system() == "Windows":
+        assert ifname == "\\Device\\NPF_{192D1D2F-C684-467D-A637-EC07BD434A63}"
+    else:
+        assert ifname == name
 
 
 @pytest.mark.smoke
