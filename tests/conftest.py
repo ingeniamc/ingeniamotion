@@ -6,9 +6,10 @@ from typing import Dict
 import numpy as np
 import pytest
 from virtual_drive.core import VirtualDrive
+from ingenialink.canopen.network import CAN_DEVICE, CAN_BAUDRATE
 
 from ingeniamotion import MotionController
-from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE, SensorType
+from ingeniamotion.enums import SensorType
 
 ALLOW_PROTOCOLS = ["eoe", "soem", "canopen", "virtual"]
 

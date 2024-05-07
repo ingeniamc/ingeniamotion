@@ -3,7 +3,7 @@ import time
 from collections import OrderedDict
 
 import pytest
-from ingenialink.canopen.network import CanopenNetwork
+from ingenialink.canopen.network import CanopenNetwork, CAN_DEVICE, CAN_BAUDRATE
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.exceptions import ILError
@@ -11,7 +11,6 @@ from ingenialink.network import SlaveInfo
 from ingenialink.servo import SERVO_STATE
 
 from ingeniamotion import MotionController
-from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE
 from ingeniamotion.exceptions import IMException, IMRegisterNotExist, IMRegisterWrongAccess
 
 TEST_ENSEMBLE_FW_FILE = "tests/resources/example_ensemble_fw.zfu"
