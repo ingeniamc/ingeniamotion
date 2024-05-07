@@ -360,11 +360,10 @@ class Communication(metaclass=MCMetaClass):
             index : position of interface selected in
                 :func:`get_interface_name_list`.
         """
-        adapter = ifaddr.get_adapters()[index]
+        adapter = list(ifaddr.get_adapters())[index]
         if RUNNING_ON_WINDOWS:
             return f"\\Device\\NPF_{bytes.decode(adapter.name)}"
-        else:
-            return str(adapter.name)
+        return str(adapter.name)
 
     def get_ifname_from_interface_ip(self, address: str) -> str:
         """Returns interface name based on the address ip of an interface.
