@@ -1,0 +1,4 @@
+[submodule "fsoe_master_python"]
+	path = fsoe_master_python
+	url = git@bitbucket.org:novantamotion/fsoe_master_python.git
+	branch = develop
