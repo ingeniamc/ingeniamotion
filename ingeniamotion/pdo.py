@@ -269,9 +269,10 @@ class PDONetworkManager:
                     duration_error = ""
                     if iteration_duration > self._watchdog_timeout:
                         duration_error = (
-                            f"Last iteration took {iteration_duration * 1000:0.1f} ms which is higher"
-                            f" than the watchdog timeout ({self._watchdog_timeout * 1000:0.1f} ms). Please"
-                            " optimize the callbacks and/or increase the refresh rate/watchdog timeout."
+                            f"Last iteration took {iteration_duration * 1000:0.1f} ms which is "
+                            f"higher than the watchdog timeout "
+                            f"({self._watchdog_timeout * 1000:0.1f} ms). Please optimize the"
+                            f" callbacks and/or increase the refresh rate/watchdog timeout."
                         )
                     if self._notify_exceptions is not None:
                         im_exception = IMException(

@@ -33,7 +33,8 @@ Please update the documentation.
 
 ### Code formatting
 
-- [ ] Use black package to format the code: `black -l 100 ingeniamotion tests`. It is recommended to configure the code editor to automatically format the code using black with a max length line of 100.
+- [ ] Use the ruff package to format the code: `ruff format ingeniamotion tests`.
+- [ ] Use the ruff package to lint the code: `ruff check ingeniamotion`.
 
 ### Others
 

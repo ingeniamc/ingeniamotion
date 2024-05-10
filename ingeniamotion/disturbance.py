@@ -6,7 +6,7 @@ import numpy as np
 from ingenialink.enums.register import REG_DTYPE, RegCyclicType
 from ingenialink.exceptions import ILValueError
 from numpy import ndarray
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import NDArray
 
 from ingeniamotion.enums import MonitoringVersion
 from ingeniamotion.exceptions import IMDisturbanceError, IMStatusWordError
@@ -24,7 +24,7 @@ TYPE_MAPPED_REGISTERS_DATA_NO_KEY = List[Union[int, float]]
 
 
 def check_disturbance_disabled(
-    func: Callable[..., Union[int, float, None]]
+    func: Callable[..., Union[int, float, None]],
 ) -> Callable[..., Union[int, float, None]]:
     @wraps(func)
     def wrapper(self, *args, **kwargs):  # type: ignore
@@ -186,7 +186,7 @@ class Disturbance:
             ],
             NDArray[np.int32],
             NDArray[np.float32],
-        ]
+        ],
     ) -> List[TYPE_MAPPED_REGISTERS_DATA_NO_KEY]:
         if isinstance(registers_data, ndarray):
             registers_data = registers_data.tolist()
