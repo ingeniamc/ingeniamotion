@@ -3,9 +3,9 @@ from typing import Dict, Optional, Union
 
 import ingenialogger
 
-from ingeniamotion.enums import SeverityLevel, OperationMode
+from ingeniamotion.enums import OperationMode, SeverityLevel
 from ingeniamotion.exceptions import IMRegisterNotExist
-from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.wizard_tests import stoppable
 from ingeniamotion.wizard_tests.base_test import BaseTest
@@ -28,7 +28,8 @@ class ResultBrakeType(IntEnum):
 
 
 class BrakeTune(BaseTest):
-    """A class to perform a brake tuning. It enables and disables a brake through enabling/disabling the motor.
+    """A class to perform a brake tuning. It enables and disables a brake through
+    enabling/disabling the motor.
 
     Args:
         mc: Motion Controller.
@@ -137,6 +138,7 @@ class BrakeTune(BaseTest):
             ResultBrakeType.SUCCESS: "Brake tune is stopped properly",
             ResultBrakeType.FAIL_FEEDBACK_SOURCE: "A brake current feedback source is not set",
             ResultBrakeType.FAIL_CURRENT_MODE: "The brake is not in current mode",
-            ResultBrakeType.FAIL_DICTIONARY: "Brake current control mode is not implemented in the drive",
+            ResultBrakeType.FAIL_DICTIONARY: "Brake current control mode is not implemented "
+            "in the drive",
         }
         return message_options[output]

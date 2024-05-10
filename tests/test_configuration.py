@@ -2,13 +2,13 @@ import os
 
 import pytest
 from ingenialink.ethercat.servo import EthercatServo
+from ingenialink.canopen.network import CAN_BAUDRATE
 
 from ingeniamotion.enums import (
     CommutationMode,
     FilterType,
     FilterNumber,
     FilterSignal,
-    CAN_BAUDRATE,
 )
 from ingeniamotion.exceptions import IMException
 from ingeniamotion.configuration import TYPE_SUBNODES

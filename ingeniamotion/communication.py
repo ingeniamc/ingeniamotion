@@ -12,8 +12,6 @@ from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
 
 import ifaddr
 import ingenialogger
-from virtual_drive.core import VirtualDrive
-
 from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.dictionary import Interface
@@ -26,6 +24,8 @@ from ingenialink.exceptions import ILError
 from ingenialink.network import NET_DEV_EVT, SlaveInfo
 from ingenialink.servo import DictionaryFactory
 from ingenialink.virtual.network import VirtualNetwork
+from virtual_drive.core import VirtualDrive
+
 from ingeniamotion.exceptions import IMException, IMRegisterWrongAccess
 
 if TYPE_CHECKING:
@@ -360,11 +360,10 @@ class Communication(metaclass=MCMetaClass):
             index : position of interface selected in
                 :func:`get_interface_name_list`.
         """
-        adapter = ifaddr.get_adapters()[index]
+        adapter = list(ifaddr.get_adapters())[index]
         if RUNNING_ON_WINDOWS:
             return f"\\Device\\NPF_{bytes.decode(adapter.name)}"
-        else:
-            return str(adapter.name)
+        return str(adapter.name)
 
     def get_ifname_from_interface_ip(self, address: str) -> str:
         """Returns interface name based on the address ip of an interface.
@@ -1303,7 +1302,8 @@ class Communication(metaclass=MCMetaClass):
                 or map_slave_info.revision_number != mapping[map_slave_id_offset][2]
             ):
                 raise IMException(
-                    f"Wrong ensemble. The slave {map_slave_id} has wrong product code or revision number."
+                    f"Wrong ensemble. The slave {map_slave_id} "
+                    f"has wrong product code or revision number."
                 )
         return first_slave
 
