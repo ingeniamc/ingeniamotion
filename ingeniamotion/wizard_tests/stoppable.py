@@ -12,7 +12,6 @@ T = typing.TypeVar("T")
 
 
 class Stoppable:
-
     stop_queue = Queue(1)
 
     @staticmethod
