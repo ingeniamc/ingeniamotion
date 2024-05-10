@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+### Fix
+- Bug retrieving interface adapter name in Linux.
+
 ## [0.8.0] - 2024-04-23
 ### Added
 - PDOs for the EtherCAT protocol.
