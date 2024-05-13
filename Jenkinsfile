@@ -114,7 +114,7 @@ pipeline {
                         withCredentials([sshUserPrivateKey(credentialsId: 'Bitbucket SSH', keyFileVariable: 'KEY')]) {
                             bat """
                                 COPY %KEY% C:\\id_rsa
-                                tox -e virtual -- -m virtual --protocol virtual --junitxml=pytest_reports\\pytest_virtual_report.xml
+                                tox -e virtual --junitxml=pytest_reports\\pytest_virtual_report.xml
                             """
                         }
                     }
