@@ -37,7 +37,7 @@ class Stoppable:
 
     def stoppable_sleep(self, timeout: float) -> None:
         try:
-            stop_exception = self.stop_queue.get(block=True, timeout=timeout)
+            stop_exception = self.stop_queue.get(timeout=timeout)
         except Empty:
             pass
         else:
