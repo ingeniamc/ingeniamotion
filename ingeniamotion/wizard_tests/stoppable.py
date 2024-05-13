@@ -12,7 +12,7 @@ T = typing.TypeVar("T")
 
 
 class Stoppable:
-    stop_queue = Queue(1)
+    stop_queue: Queue[StopException] = Queue(1)
 
     @staticmethod
     def stoppable(fun: Callable[..., T]) -> Callable[..., T]:
@@ -29,7 +29,7 @@ class Stoppable:
 
     def stop(self) -> None:
         if not self.stop_queue.full():
-            self.stop_queue.put(StopException, block=False)
+            self.stop_queue.put(StopException(), block=False)
 
     def check_stop(self) -> None:
         if self.stop_queue.full():
