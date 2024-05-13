@@ -1,6 +1,6 @@
 import typing
 from functools import wraps
-from queue import Empty, Queue
+from queue import Empty, Full, Queue
 from typing import Callable
 
 
@@ -24,16 +24,24 @@ class Stoppable:
         return wrapper
 
     def reset_stop(self) -> None:
-        if self.stop_queue.full():
+        try:
             self.stop_queue.get(block=False)
+        except Empty:
+            pass
 
     def stop(self) -> None:
-        if not self.stop_queue.full():
+        try:
             self.stop_queue.put(StopException(), block=False)
+        except Full:
+            pass
 
     def check_stop(self) -> None:
-        if self.stop_queue.full():
-            raise self.stop_queue.get(block=False)
+        try:
+            stop_exception = self.stop_queue.get(block=False)
+        except Empty:
+            pass
+        else:
+            raise stop_exception
 
     def stoppable_sleep(self, timeout: float) -> None:
         try:
