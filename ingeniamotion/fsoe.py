@@ -1,9 +1,9 @@
 from typing import TYPE_CHECKING, Dict
 
 import ingenialogger
-from ingenialink.pdo import RPDOMapItem, TPDOMapItem, RPDOMap, TPDOMap
 
-from fsoe_master.fsoe_master import MasterHandler, Dictionary, DictionaryItem, Watchdog
+from fsoe_master.fsoe_master import Dictionary, DictionaryItem, MasterHandler, Watchdog
+from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 from ingeniamotion.metaclass import DEFAULT_SERVO
 
 if TYPE_CHECKING:
@@ -75,7 +75,8 @@ class FSoEMasterHandler:
         self.safety_master_pdu_map.set_item_bytes(self.__master_handler.get_request())
 
     def set_reply(self) -> None:
-        """Get the FSoE slave response from the Safety Slave PDU PDOMap and set it to the FSoE master handler."""
+        """Get the FSoE slave response from the Safety Slave PDU PDOMap and set it
+        to the FSoE master handler."""
         self.__master_handler.set_reply(self.safety_slave_pdu_map.get_item_bytes())
 
     @property
