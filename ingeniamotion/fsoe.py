@@ -109,21 +109,6 @@ class PDUMapper:
     CRC_O_SIZE_BITS = 16
     CONN_ID_SIZE_BITS = 16
 
-    SAFETY_MASTER_PDU_PDO_ITEMS = [
-        RPDOMapItem(size_bits=FSOE_COMMAND_SIZE_BITS),
-        RPDOMapItem(size_bits=STO_COMMAND_SIZE_BITS),
-        RPDOMapItem(size_bits=STO_COMMAND_PADDING_SIZE_BITS),
-        RPDOMapItem(size_bits=CRC_O_SIZE_BITS),
-        RPDOMapItem(size_bits=CONN_ID_SIZE_BITS),
-    ]
-    SAFETY_SLAVE_PDU_PDO_ITEMS = [
-        TPDOMapItem(size_bits=FSOE_COMMAND_SIZE_BITS),
-        TPDOMapItem(size_bits=STO_COMMAND_SIZE_BITS),
-        TPDOMapItem(size_bits=STO_COMMAND_PADDING_SIZE_BITS),
-        TPDOMapItem(size_bits=CRC_O_SIZE_BITS),
-        TPDOMapItem(size_bits=CONN_ID_SIZE_BITS),
-    ]
-
     @classmethod
     def configure_rpdo_map(cls, rpdo_map: RPDOMap) -> None:
         """Configure the RPDOMap used for the Safety Master PDU.
@@ -133,8 +118,16 @@ class PDUMapper:
 
         """
         rpdo_map.map_register_index = cls.FSOE_RPDO_MAP_1_INDEX
-        for rpdo_map_item in cls.SAFETY_MASTER_PDU_PDO_ITEMS:
-            rpdo_map.add_item(rpdo_map_item)
+        fsoe_command_item = RPDOMapItem(size_bits=cls.FSOE_COMMAND_SIZE_BITS)
+        rpdo_map.add_item(fsoe_command_item)
+        sto_command_item = RPDOMapItem(size_bits=cls.STO_COMMAND_SIZE_BITS)
+        rpdo_map.add_item(sto_command_item)
+        padding_item = RPDOMapItem(size_bits=cls.STO_COMMAND_PADDING_SIZE_BITS)
+        rpdo_map.add_item(padding_item)
+        crc_0_item = RPDOMapItem(size_bits=cls.CRC_O_SIZE_BITS)
+        rpdo_map.add_item(crc_0_item)
+        conn_id_item = RPDOMapItem(size_bits=cls.CONN_ID_SIZE_BITS)
+        rpdo_map.add_item(conn_id_item)
 
     @classmethod
     def configure_tpdo_map(cls, tpdo_map: TPDOMap) -> None:
@@ -145,8 +138,16 @@ class PDUMapper:
 
         """
         tpdo_map.map_register_index = cls.FSOE_TPDO_MAP_1_INDEX
-        for tpdo_map_item in cls.SAFETY_SLAVE_PDU_PDO_ITEMS:
-            tpdo_map.add_item(tpdo_map_item)
+        fsoe_command_item = TPDOMapItem(size_bits=cls.FSOE_COMMAND_SIZE_BITS)
+        tpdo_map.add_item(fsoe_command_item)
+        sto_command_item = TPDOMapItem(size_bits=cls.STO_COMMAND_SIZE_BITS)
+        tpdo_map.add_item(sto_command_item)
+        padding_item = TPDOMapItem(size_bits=cls.STO_COMMAND_PADDING_SIZE_BITS)
+        tpdo_map.add_item(padding_item)
+        crc_0_item = TPDOMapItem(size_bits=cls.CRC_O_SIZE_BITS)
+        tpdo_map.add_item(crc_0_item)
+        conn_id_item = TPDOMapItem(size_bits=cls.CONN_ID_SIZE_BITS)
+        tpdo_map.add_item(conn_id_item)
 
 
 class FSoEMaster:
