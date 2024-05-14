@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- FSoE module.
+
 ### Fix
 - Bug retrieving interface adapter name in Linux.
 - The stoppable_sleep method of the wizard tests does not block the main thread.
