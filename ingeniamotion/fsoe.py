@@ -1,15 +1,25 @@
 from typing import TYPE_CHECKING, Dict
 
+import ingenialogger
+from ingenialink.pdo import RPDOMapItem, TPDOMapItem, RPDOMap, TPDOMap
+
 from fsoe_master.fsoe_master import MasterHandler, Dictionary, DictionaryItem, Watchdog
 from ingeniamotion.metaclass import DEFAULT_SERVO
-
-from ingenialink.pdo import RPDOMapItem, TPDOMapItem, RPDOMap, TPDOMap
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 
 class FSoEMasterHandler:
+    """FSoE Master Handler.
+
+    Args:
+        slave_address: The servo's FSoE address.
+        connection_id: The FSoE connection ID.
+        watchdog_timeout: The FSoE master watchdog timeout in seconds.
+
+    """
+
     KEY0x040STO_COMMAND = 0x040
 
     def __init__(self, slave_address: int, connection_id: int, watchdog_timeout: float):
@@ -35,46 +45,58 @@ class FSoEMasterHandler:
         self.__safety_slave_pdu = TPDOMap()
 
     def start(self) -> None:
+        """Start the FSoE Master handler."""
         self.__master_handler.start()
 
     def configure_pdo_maps(self) -> None:
+        """Start the PDOs used for the Safety PDUs."""
         PDUMapper.configure_rpdo_map(self.safety_master_pdu_map)
         PDUMapper.configure_tpdo_map(self.safety_slave_pdu_map)
         self.get_request()
 
     def _configure_master(self) -> None:
+        """Configure the FSoE master handler."""
         self._map_outputs()
         self._map_inputs()
 
     def _map_outputs(self) -> None:
+        """Configure the FSoE master handler's SafeOutputs."""
         # Phase 1 mapping
         self.__master_handler.master.dictionary_map.add_by_key(self.KEY0x040STO_COMMAND, bits=1)
         self.__master_handler.master.dictionary_map.add_padding(bits=7)
 
     def _map_inputs(self) -> None:
+        """Configure the FSoE master handler's SafeInputs."""
         # Phase 1 mapping
         self.__master_handler.slave.dictionary_map.add_padding(bits=8)
 
     def get_request(self) -> None:
+        """Set the FSoE master handler request to the Safety Master PDU PDOMap"""
         self.safety_master_pdu_map.set_item_bytes(self.__master_handler.get_request())
 
     def set_reply(self) -> None:
+        """Get the FSoE slave response from the Safety Slave PDU PDOMap and set it to the FSoE master handler."""
         self.__master_handler.set_reply(self.safety_slave_pdu_map.get_item_bytes())
 
     @property
     def safety_master_pdu_map(self) -> RPDOMap:
+        """The PDOMap used for the Safety Master PDU."""
         return self.__safety_master_pdu
 
     @property
     def safety_slave_pdu_map(self) -> TPDOMap:
+        """The PDOMap used for the Safety Slave PDU."""
         return self.__safety_slave_pdu
 
     @property
     def watchdog(self) -> Watchdog:
+        """The FSoE master watchdog."""
         return self.__master_handler.watchdog
 
 
 class PDUMapper:
+    """Helper class to configure the Safety PDU PDOMaps."""
+
     FSOE_RPDO_MAP_1 = 0x1700
     FSOE_TPDO_MAP_1 = 0x1B00
 
@@ -86,6 +108,12 @@ class PDUMapper:
 
     @classmethod
     def configure_rpdo_map(cls, rpdo_map: RPDOMap) -> None:
+        """Configure the RPDOMap used for the Safety Master PDU.
+
+        Args:
+            rpdo_map: The RPDOMap instance.
+
+        """
         # Phase 1 mapping
         rpdo_map.map_register_index = cls.FSOE_RPDO_MAP_1
         fsoe_command_item = RPDOMapItem(size_bits=cls.FSOE_COMMAND_SIZE_BITS)
@@ -101,6 +129,12 @@ class PDUMapper:
 
     @classmethod
     def configure_tpdo_map(cls, tpdo_map: TPDOMap) -> None:
+        """Configure the TPDOMap used for the Safety Slave PDU.
+
+        Args:
+            tpdo_map: The TPDOMap instance.
+
+        """
         # Phase 1 mapping
         tpdo_map.map_register_index = cls.FSOE_TPDO_MAP_1
         fsoe_command_item = TPDOMapItem(size_bits=cls.FSOE_COMMAND_SIZE_BITS)
@@ -116,24 +150,50 @@ class PDUMapper:
 
 
 class FSoEMaster:
+    """FSoE Master.
+
+    Args:
+        motion_controller: The MotionController instance.
+
+    """
+
     DEFAULT_WATCHDOG_TIMEOUT_S = 1
     DEFAULT_FSOE_SLAVE_ADDRESS = 0
 
     def __init__(self, motion_controller: "MotionController") -> None:
+        self.logger = ingenialogger.get_logger(__name__)
         self.__mc = motion_controller
         self.__handlers: Dict[str, FSoEMasterHandler] = {}
         self.__latest_connection_id = 1
 
-    def create_fsoe_master_handler(self, servo: str = DEFAULT_SERVO) -> None:
+    def create_fsoe_master_handler(
+        self,
+        servo: str = DEFAULT_SERVO,
+        fsoe_master_watchdog_timeout: float = DEFAULT_WATCHDOG_TIMEOUT_S,
+    ) -> None:
+        """Create an FSoE Master handler linked to a Safe servo drive.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+            fsoe_master_watchdog_timeout: The FSoE master watchdog timeout in seconds.
+
+        """
         # TODO: use function to read the FSoE slave address (INGM-446)
         slave_address = self.DEFAULT_FSOE_SLAVE_ADDRESS
         master_handler = FSoEMasterHandler(
-            slave_address, self.__latest_connection_id, self.DEFAULT_WATCHDOG_TIMEOUT_S
+            slave_address, self.__latest_connection_id, fsoe_master_watchdog_timeout
         )
         self.__handlers[servo] = master_handler
         self.__latest_connection_id += 1
 
-    def start_master(self) -> None:
+    def start_master(self, start_pdos: bool = False) -> None:
+        """Start all the FSoE Master handlers.
+
+        Args:
+            start_pdos: if ``True``, start the PDO exchange, if ``False``
+                the PDO exchange should be started after. ``False`` by default.
+
+        """
         for servo, master_handler in self.__handlers.items():
             master_handler.start()
             master_handler.configure_pdo_maps()
@@ -143,10 +203,18 @@ class FSoEMaster:
         self.__mc.capture.pdo.subscribe_to_send_process_data(self._get_request)
         self.__mc.capture.pdo.subscribe_to_receive_process_data(self._set_reply)
         self.__mc.capture.pdo.subscribe_to_exceptions(self._pdo_thread_exception_handler)
-        self.__mc.capture.pdo.start_pdos()
+        if start_pdos:
+            self.__mc.capture.pdo.start_pdos()
 
-    def stop_master(self) -> None:
-        self.__mc.capture.pdo.stop_pdos()
+    def stop_master(self, stop_pdos: bool = False) -> None:
+        """Stop all the FSoE Master handlers.
+
+        Args:
+            stop_pdos: if ``True``, stop the PDO exchange. ``False`` by default.
+
+        """
+        if stop_pdos:
+            self.__mc.capture.pdo.stop_pdos()
         for servo, master_handler in self.__handlers.items():
             if master_handler.watchdog.is_alive():
                 master_handler.watchdog.stop()
@@ -157,15 +225,20 @@ class FSoEMaster:
         self.__mc.capture.pdo.unsubscribe_to_exceptions(self._pdo_thread_exception_handler)
 
     def _get_request(self) -> None:
+        """Callback method to send the FSoE Master handlers requests to the
+        corresponding FSoE slave."""
         for master_handler in self.__handlers.values():
             master_handler.get_request()
 
     def _set_reply(self) -> None:
+        """Callback method to provide the FSoE Slaves responses to their
+        corresponding FSoE Master handler."""
         for master_handler in self.__handlers.values():
             master_handler.set_reply()
 
     def _pdo_thread_exception_handler(self, exc: Exception) -> None:
-        print(
-            f"An exception occurred during the PDO exchange. The FSoE master will be stopped. Exception: {exc}"
+        """Callback method for the PDO thread exceptions."""
+        self.logger.error(
+            "The FSoE Master lost connection to the FSoE slaves. "
+            f"An exception occurred during the PDO exchange: {exc}"
         )
-        self.stop_master()
