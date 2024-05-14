@@ -50,7 +50,7 @@ class FSoEMasterHandler:
         self.get_request()
 
     def _configure_pdo_maps(self) -> None:
-        """Start the PDOs used for the Safety PDUs."""
+        """Configure the PDOMaps used for the Safety PDUs."""
         PDUMapper.configure_rpdo_map(self.safety_master_pdu_map)
         PDUMapper.configure_tpdo_map(self.safety_slave_pdu_map)
 
@@ -97,8 +97,8 @@ class FSoEMasterHandler:
 class PDUMapper:
     """Helper class to configure the Safety PDU PDOMaps."""
 
-    FSOE_RPDO_MAP_1 = 0x1700
-    FSOE_TPDO_MAP_1 = 0x1B00
+    FSOE_RPDO_MAP_1_INDEX = 0x1700
+    FSOE_TPDO_MAP_1_INDEX = 0x1B00
 
     # Phase 1 mapping
     FSOE_COMMAND_SIZE_BITS = 8
@@ -130,7 +130,7 @@ class PDUMapper:
             rpdo_map: The RPDOMap instance.
 
         """
-        rpdo_map.map_register_index = cls.FSOE_RPDO_MAP_1
+        rpdo_map.map_register_index = cls.FSOE_RPDO_MAP_1_INDEX
         for rpdo_map_item in cls.SAFETY_MASTER_PDU_PDO_ITEMS:
             rpdo_map.add_item(rpdo_map_item)
 
@@ -142,7 +142,7 @@ class PDUMapper:
             tpdo_map: The TPDOMap instance.
 
         """
-        tpdo_map.map_register_index = cls.FSOE_TPDO_MAP_1
+        tpdo_map.map_register_index = cls.FSOE_TPDO_MAP_1_INDEX
         for tpdo_map_item in cls.SAFETY_SLAVE_PDU_PDO_ITEMS:
             tpdo_map.add_item(tpdo_map_item)
 
@@ -194,14 +194,39 @@ class FSoEMaster:
         """
         for servo, master_handler in self.__handlers.items():
             master_handler.start()
-            rpdo_map = master_handler.safety_master_pdu_map
-            tpdo_map = master_handler.safety_slave_pdu_map
-            self.__mc.capture.pdo.set_pdo_maps_to_slave(rpdo_map, tpdo_map, servo)
+        if start_pdos:
+            self.set_pdo_maps_to_slaves()
+            self.subscribe_to_pdo_thead_events()
+            self.__mc.capture.pdo.start_pdos()
+
+    def subscribe_to_pdo_thead_events(self) -> None:
+        """Subscribe to the PDO thread events.
+
+        This allows to send the Safety Master PDU and to retrieve the Safety Slave PDU.
+
+        """
         self.__mc.capture.pdo.subscribe_to_send_process_data(self._get_request)
         self.__mc.capture.pdo.subscribe_to_receive_process_data(self._set_reply)
         self.__mc.capture.pdo.subscribe_to_exceptions(self._pdo_thread_exception_handler)
-        if start_pdos:
-            self.__mc.capture.pdo.start_pdos()
+
+    def unsubscribe_to_pdo_thread_events(self) -> None:
+        """Unsubscribe from the PDO thread events."""
+        self.__mc.capture.pdo.unsubscribe_to_send_process_data(self._get_request)
+        self.__mc.capture.pdo.unsubscribe_to_receive_process_data(self._set_reply)
+        self.__mc.capture.pdo.unsubscribe_to_exceptions(self._pdo_thread_exception_handler)
+
+    def set_pdo_maps_to_slaves(self) -> None:
+        """Set the PDOMaps to be used by the Safety PDUs to the slaves."""
+        for servo, master_handler in self.__handlers.items():
+            rpdo_map = master_handler.safety_master_pdu_map
+            tpdo_map = master_handler.safety_slave_pdu_map
+            self.__mc.capture.pdo.set_pdo_maps_to_slave(rpdo_map, tpdo_map, servo)
+
+    def remove_pdo_maps_from_slaves(self) -> None:
+        """Remove the PDOMaps used by the Safety PDUs from the slaves."""
+        for servo, master_handler in self.__handlers.items():
+            self.__mc.capture.pdo.remove_rpdo_map(servo, master_handler.safety_master_pdu_map)
+            self.__mc.capture.pdo.remove_tpdo_map(servo, master_handler.safety_slave_pdu_map)
 
     def stop_master(self, stop_pdos: bool = False) -> None:
         """Stop all the FSoE Master handlers.
@@ -210,16 +235,13 @@ class FSoEMaster:
             stop_pdos: if ``True``, stop the PDO exchange. ``False`` by default.
 
         """
-        if stop_pdos:
-            self.__mc.capture.pdo.stop_pdos()
         for servo, master_handler in self.__handlers.items():
             if master_handler.watchdog.is_alive():
                 master_handler.watchdog.stop()
-            self.__mc.capture.pdo.remove_rpdo_map(servo, master_handler.safety_master_pdu_map)
-            self.__mc.capture.pdo.remove_tpdo_map(servo, master_handler.safety_slave_pdu_map)
-        self.__mc.capture.pdo.unsubscribe_to_send_process_data(self._get_request)
-        self.__mc.capture.pdo.unsubscribe_to_receive_process_data(self._set_reply)
-        self.__mc.capture.pdo.unsubscribe_to_exceptions(self._pdo_thread_exception_handler)
+        if stop_pdos:
+            self.unsubscribe_to_pdo_thread_events()
+            self.__mc.capture.pdo.stop_pdos()
+            self.remove_pdo_maps_from_slaves()
 
     def _get_request(self) -> None:
         """Callback method to send the FSoE Master handlers requests to the
