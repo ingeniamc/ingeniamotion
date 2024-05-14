@@ -20,21 +20,19 @@ class FSoEMasterHandler:
 
     """
 
-    KEY0x040STO_COMMAND = 0x040
+    STO_COMMAND_KEY = 0x040
+    STO_COMMAND_NAME = "STO_COMMAND"
 
     def __init__(self, slave_address: int, connection_id: int, watchdog_timeout: float):
-        default_dict = Dictionary(
-            [
-                DictionaryItem(
-                    key=self.KEY0x040STO_COMMAND,
-                    name="STO_COMMAND",
-                    data_type=DictionaryItem.DataTypes.BOOL,
-                    typ=DictionaryItem.Types.SAFE_OUTPUT,
-                )
-            ]
+        sto_command_dict_item = DictionaryItem(
+            key=self.STO_COMMAND_KEY,
+            name=self.STO_COMMAND_NAME,
+            data_type=DictionaryItem.DataTypes.BOOL,
+            typ=DictionaryItem.Types.SAFE_OUTPUT,
         )
+        master_handler_dict = Dictionary([sto_command_dict_item])
         self.__master_handler = MasterHandler(
-            dictionary=default_dict,
+            dictionary=master_handler_dict,
             slave_address=slave_address,
             connection_id=connection_id,
             watchdog_timeout_s=watchdog_timeout,
@@ -43,16 +41,18 @@ class FSoEMasterHandler:
         self._configure_master()
         self.__safety_master_pdu = RPDOMap()
         self.__safety_slave_pdu = TPDOMap()
+        self._configure_pdo_maps()
 
     def start(self) -> None:
         """Start the FSoE Master handler."""
         self.__master_handler.start()
+        # Load initial request to the Safety Master PDU PDOMap
+        self.get_request()
 
-    def configure_pdo_maps(self) -> None:
+    def _configure_pdo_maps(self) -> None:
         """Start the PDOs used for the Safety PDUs."""
         PDUMapper.configure_rpdo_map(self.safety_master_pdu_map)
         PDUMapper.configure_tpdo_map(self.safety_slave_pdu_map)
-        self.get_request()
 
     def _configure_master(self) -> None:
         """Configure the FSoE master handler."""
@@ -62,7 +62,7 @@ class FSoEMasterHandler:
     def _map_outputs(self) -> None:
         """Configure the FSoE master handler's SafeOutputs."""
         # Phase 1 mapping
-        self.__master_handler.master.dictionary_map.add_by_key(self.KEY0x040STO_COMMAND, bits=1)
+        self.__master_handler.master.dictionary_map.add_by_key(self.STO_COMMAND_KEY, bits=1)
         self.__master_handler.master.dictionary_map.add_padding(bits=7)
 
     def _map_inputs(self) -> None:
@@ -100,11 +100,27 @@ class PDUMapper:
     FSOE_RPDO_MAP_1 = 0x1700
     FSOE_TPDO_MAP_1 = 0x1B00
 
+    # Phase 1 mapping
     FSOE_COMMAND_SIZE_BITS = 8
     STO_COMMAND_SIZE_BITS = 1
     STO_COMMAND_PADDING_SIZE_BITS = 7
     CRC_O_SIZE_BITS = 16
     CONN_ID_SIZE_BITS = 16
+
+    SAFETY_MASTER_PDU_PDO_ITEMS = [
+        RPDOMapItem(size_bits=FSOE_COMMAND_SIZE_BITS),
+        RPDOMapItem(size_bits=STO_COMMAND_SIZE_BITS),
+        RPDOMapItem(size_bits=STO_COMMAND_PADDING_SIZE_BITS),
+        RPDOMapItem(size_bits=CRC_O_SIZE_BITS),
+        RPDOMapItem(size_bits=CONN_ID_SIZE_BITS),
+    ]
+    SAFETY_SLAVE_PDU_PDO_ITEMS = [
+        TPDOMapItem(size_bits=FSOE_COMMAND_SIZE_BITS),
+        TPDOMapItem(size_bits=STO_COMMAND_SIZE_BITS),
+        TPDOMapItem(size_bits=STO_COMMAND_PADDING_SIZE_BITS),
+        TPDOMapItem(size_bits=CRC_O_SIZE_BITS),
+        TPDOMapItem(size_bits=CONN_ID_SIZE_BITS),
+    ]
 
     @classmethod
     def configure_rpdo_map(cls, rpdo_map: RPDOMap) -> None:
@@ -114,18 +130,9 @@ class PDUMapper:
             rpdo_map: The RPDOMap instance.
 
         """
-        # Phase 1 mapping
         rpdo_map.map_register_index = cls.FSOE_RPDO_MAP_1
-        fsoe_command_item = RPDOMapItem(size_bits=cls.FSOE_COMMAND_SIZE_BITS)
-        rpdo_map.add_item(fsoe_command_item)
-        sto_command_item = RPDOMapItem(size_bits=cls.STO_COMMAND_SIZE_BITS)
-        rpdo_map.add_item(sto_command_item)
-        padding_item = RPDOMapItem(size_bits=cls.STO_COMMAND_PADDING_SIZE_BITS)
-        rpdo_map.add_item(padding_item)
-        crc_0_item = RPDOMapItem(size_bits=cls.CRC_O_SIZE_BITS)
-        rpdo_map.add_item(crc_0_item)
-        conn_id_item = RPDOMapItem(size_bits=cls.CONN_ID_SIZE_BITS)
-        rpdo_map.add_item(conn_id_item)
+        for rpdo_map_item in cls.SAFETY_MASTER_PDU_PDO_ITEMS:
+            rpdo_map.add_item(rpdo_map_item)
 
     @classmethod
     def configure_tpdo_map(cls, tpdo_map: TPDOMap) -> None:
@@ -135,18 +142,9 @@ class PDUMapper:
             tpdo_map: The TPDOMap instance.
 
         """
-        # Phase 1 mapping
         tpdo_map.map_register_index = cls.FSOE_TPDO_MAP_1
-        fsoe_command_item = TPDOMapItem(size_bits=cls.FSOE_COMMAND_SIZE_BITS)
-        tpdo_map.add_item(fsoe_command_item)
-        sto_command_item = TPDOMapItem(size_bits=cls.STO_COMMAND_SIZE_BITS)
-        tpdo_map.add_item(sto_command_item)
-        padding_item = TPDOMapItem(size_bits=cls.STO_COMMAND_PADDING_SIZE_BITS)
-        tpdo_map.add_item(padding_item)
-        crc_0_item = TPDOMapItem(size_bits=cls.CRC_O_SIZE_BITS)
-        tpdo_map.add_item(crc_0_item)
-        conn_id_item = TPDOMapItem(size_bits=cls.CONN_ID_SIZE_BITS)
-        tpdo_map.add_item(conn_id_item)
+        for tpdo_map_item in cls.SAFETY_SLAVE_PDU_PDO_ITEMS:
+            tpdo_map.add_item(tpdo_map_item)
 
 
 class FSoEMaster:
@@ -196,7 +194,6 @@ class FSoEMaster:
         """
         for servo, master_handler in self.__handlers.items():
             master_handler.start()
-            master_handler.configure_pdo_maps()
             rpdo_map = master_handler.safety_master_pdu_map
             tpdo_map = master_handler.safety_slave_pdu_map
             self.__mc.capture.pdo.set_pdo_maps_to_slave(rpdo_map, tpdo_map, servo)
