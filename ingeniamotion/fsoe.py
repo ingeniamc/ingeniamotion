@@ -20,19 +20,9 @@ class FSoEMasterHandler:
 
     """
 
-    STO_COMMAND_KEY = 0x040
-    STO_COMMAND_NAME = "STO_COMMAND"
-
     def __init__(self, slave_address: int, connection_id: int, watchdog_timeout: float):
-        sto_command_dict_item = DictionaryItem(
-            key=self.STO_COMMAND_KEY,
-            name=self.STO_COMMAND_NAME,
-            data_type=DictionaryItem.DataTypes.BOOL,
-            typ=DictionaryItem.Types.SAFE_OUTPUT,
-        )
-        master_handler_dict = Dictionary([sto_command_dict_item])
         self.__master_handler = MasterHandler(
-            dictionary=master_handler_dict,
+            dictionary=self._saco_phase_1_dictionary(),
             slave_address=slave_address,
             connection_id=connection_id,
             watchdog_timeout_s=watchdog_timeout,
@@ -62,7 +52,7 @@ class FSoEMasterHandler:
     def _map_outputs(self) -> None:
         """Configure the FSoE master handler's SafeOutputs."""
         # Phase 1 mapping
-        self.__master_handler.master.dictionary_map.add_by_key(self.STO_COMMAND_KEY, bits=1)
+        self.__master_handler.master.dictionary_map.add_by_key("STO_COMMAND", bits=1)
         self.__master_handler.master.dictionary_map.add_padding(bits=7)
 
     def _map_inputs(self) -> None:
@@ -78,6 +68,17 @@ class FSoEMasterHandler:
         """Get the FSoE slave response from the Safety Slave PDU PDOMap and set it
         to the FSoE master handler."""
         self.__master_handler.set_reply(self.safety_slave_pdu_map.get_item_bytes())
+
+    @staticmethod
+    def _saco_phase_1_dictionary() -> Dictionary:
+        """Get the SaCo phase 1 dictionary instance"""
+        sto_command_dict_item = DictionaryItem(
+            key=0x040,
+            name="STO_COMMAND",
+            data_type=DictionaryItem.DataTypes.BOOL,
+            typ=DictionaryItem.Types.SAFE_OUTPUT,
+        )
+        return Dictionary([sto_command_dict_item])
 
     @property
     def safety_master_pdu_map(self) -> RPDOMap:
@@ -163,7 +164,7 @@ class FSoEMaster:
         self.logger = ingenialogger.get_logger(__name__)
         self.__mc = motion_controller
         self.__handlers: Dict[str, FSoEMasterHandler] = {}
-        self.__latest_connection_id = 1
+        self.__next_connection_id = 1
 
     def create_fsoe_master_handler(
         self,
@@ -180,10 +181,10 @@ class FSoEMaster:
         # TODO: use function to read the FSoE slave address (INGM-446)
         slave_address = self.DEFAULT_FSOE_SLAVE_ADDRESS
         master_handler = FSoEMasterHandler(
-            slave_address, self.__latest_connection_id, fsoe_master_watchdog_timeout
+            slave_address, self.__next_connection_id, fsoe_master_watchdog_timeout
         )
         self.__handlers[servo] = master_handler
-        self.__latest_connection_id += 1
+        self.__next_connection_id += 1
 
     def start_master(self, start_pdos: bool = False) -> None:
         """Start all the FSoE Master handlers.
@@ -193,14 +194,14 @@ class FSoEMaster:
                 the PDO exchange should be started after. ``False`` by default.
 
         """
-        for servo, master_handler in self.__handlers.items():
-            master_handler.start()
         if start_pdos:
             self.set_pdo_maps_to_slaves()
-            self.subscribe_to_pdo_thead_events()
+            self.subscribe_to_pdo_thread_events()
             self.__mc.capture.pdo.start_pdos()
+        for servo, master_handler in self.__handlers.items():
+            master_handler.start()
 
-    def subscribe_to_pdo_thead_events(self) -> None:
+    def subscribe_to_pdo_thread_events(self) -> None:
         """Subscribe to the PDO thread events.
 
         This allows to send the Safety Master PDU and to retrieve the Safety Slave PDU.
@@ -210,7 +211,7 @@ class FSoEMaster:
         self.__mc.capture.pdo.subscribe_to_receive_process_data(self._set_reply)
         self.__mc.capture.pdo.subscribe_to_exceptions(self._pdo_thread_exception_handler)
 
-    def unsubscribe_to_pdo_thread_events(self) -> None:
+    def unsubscribe_from_pdo_thread_events(self) -> None:
         """Unsubscribe from the PDO thread events."""
         self.__mc.capture.pdo.unsubscribe_to_send_process_data(self._get_request)
         self.__mc.capture.pdo.unsubscribe_to_receive_process_data(self._set_reply)
@@ -240,7 +241,7 @@ class FSoEMaster:
             if master_handler.watchdog.is_alive():
                 master_handler.watchdog.stop()
         if stop_pdos:
-            self.unsubscribe_to_pdo_thread_events()
+            self.unsubscribe_from_pdo_thread_events()
             self.__mc.capture.pdo.stop_pdos()
             self.remove_pdo_maps_from_slaves()
 
