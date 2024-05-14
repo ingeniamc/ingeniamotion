@@ -1,6 +1,6 @@
 import typing
 from functools import wraps
-from time import time
+from queue import Empty, Full, Queue
 from typing import Callable
 
 
@@ -12,7 +12,7 @@ T = typing.TypeVar("T")
 
 
 class Stoppable:
-    is_stopped = False
+    stop_queue: Queue[StopException] = Queue(1)
 
     @staticmethod
     def stoppable(fun: Callable[..., T]) -> Callable[..., T]:
@@ -24,16 +24,29 @@ class Stoppable:
         return wrapper
 
     def reset_stop(self) -> None:
-        self.is_stopped = False
+        try:
+            self.stop_queue.get(block=False)
+        except Empty:
+            pass
 
     def stop(self) -> None:
-        self.is_stopped = True
+        try:
+            self.stop_queue.put(StopException(), block=False)
+        except Full:
+            pass
 
     def check_stop(self) -> None:
-        if self.is_stopped:
-            raise StopException
+        try:
+            stop_exception = self.stop_queue.get(block=False)
+        except Empty:
+            pass
+        else:
+            raise stop_exception
 
     def stoppable_sleep(self, timeout: float) -> None:
-        init_time = time()
-        while init_time + timeout > time():
-            self.check_stop()
+        try:
+            stop_exception = self.stop_queue.get(timeout=timeout)
+        except Empty:
+            pass
+        else:
+            raise stop_exception

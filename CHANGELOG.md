@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Fix
 - Bug retrieving interface adapter name in Linux.
+- The stoppable_sleep method of the wizard tests does not block the main thread.
 
 ## [0.8.0] - 2024-04-23
 ### Added
