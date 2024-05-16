@@ -1004,7 +1004,7 @@ class Communication(metaclass=MCMetaClass):
 
     @staticmethod
     def __get_boot_in_app(fw_file: str) -> bool:
-        """Return true if the bootloader is included in the application. (file extension is .sfu)
+        """Return true if the bootloader is included in the application (file extension is .sfu).
 
         Args:
             fw_file: Path to the FW file.
@@ -1021,7 +1021,9 @@ class Communication(metaclass=MCMetaClass):
             )
         return fw_file.endswith(FILE_EXT_SFU)
 
-    def load_firmware_ecat(self, ifname: str, fw_file: str, slave: int = 1) -> None:
+    def load_firmware_ecat(
+        self, ifname: str, fw_file: str, slave: int = 1, boot_in_app: Optional[bool] = None
+    ) -> None:
         """Load firmware via ECAT.
 
         Args:
@@ -1029,6 +1031,8 @@ class Communication(metaclass=MCMetaClass):
                 ``\\Device\\NPF_[...]``.
             fw_file : Firmware file path.
             slave : slave index. ``1`` by default.
+            boot_in_app: true if the bootloader is included in the application, false otherwise.
+                If None, the file extension is used to define it.
 
         Raises:
             FileNotFoundError: If the firmware file cannot be found.
@@ -1040,11 +1044,11 @@ class Communication(metaclass=MCMetaClass):
         """
 
         net = EthercatNetwork(ifname)
+        boot_in_app = self.__get_boot_in_app(fw_file) if boot_in_app is None else boot_in_app
         if fw_file.endswith(self.ENSEMBLE_FIRMWARE_EXTENSION):
-            self.__load_ensemble_fw_ecat(net, fw_file, slave)
+            self.__load_ensemble_fw_ecat(net, fw_file, slave, boot_in_app)
         else:
-            boot_in_app = self.__get_boot_in_app(fw_file)
-            net.load_firmware(fw_file, slave, boot_in_app)
+            net.load_firmware(fw_file, boot_in_app, slave_id=slave)
 
     def load_firmware_ecat_interface_index(
         self, if_index: int, fw_file: str, slave: int = 1
@@ -1267,7 +1271,9 @@ class Communication(metaclass=MCMetaClass):
                 f"Load of FW in slave {slave_id} of ensemble failed. Exception: {exception}"
             )
 
-    def __load_ensemble_fw_ecat(self, net: EthercatNetwork, fw_file: str, slave: int) -> None:
+    def __load_ensemble_fw_ecat(
+        self, net: EthercatNetwork, fw_file: str, slave: int, boot_in_app: bool
+    ) -> None:
         """Load FW to an ensemble of servos through Ethercat.
 
         The FW files that are contained in the fw_file will be loaded by selecting any slave which
@@ -1277,15 +1283,17 @@ class Communication(metaclass=MCMetaClass):
             net: Ethercat network.
             fw_file: Path to the ensemble FW file.
             slave: Slave ID (any slave in the ensemble)
+            boot_in_app: true if the bootloader is included in the application, false otherwise.
         """
         mapping = self.__unzip_ensemble_fw_file(fw_file)
         scanned_slaves = net.scan_slaves_info()
         first_slave_in_ensemble = self.__check_ensemble(scanned_slaves, slave, mapping)
         try:
             for slave_id_offset, fw_file_prod_code in mapping.items():
-                boot_in_app = self.__get_boot_in_app(fw_file_prod_code[0])
                 net.load_firmware(
-                    fw_file_prod_code[0], first_slave_in_ensemble + slave_id_offset, boot_in_app
+                    fw_file_prod_code[0],
+                    boot_in_app,
+                    slave_id=first_slave_in_ensemble + slave_id_offset,
                 )
         except ILError as e:
             raise e
