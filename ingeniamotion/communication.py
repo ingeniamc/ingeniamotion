@@ -1003,7 +1003,7 @@ class Communication(metaclass=MCMetaClass):
 
     @staticmethod
     def __get_boot_in_app(fw_file: str) -> bool:
-        """Return true if the FoE is included in the application (file extension is .sfu)
+        """Return true if the bootloader is included in the application. (file extension is .sfu)
 
         Args:
             fw_file: Path to the FW file.
