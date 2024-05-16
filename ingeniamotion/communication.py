@@ -1044,11 +1044,11 @@ class Communication(metaclass=MCMetaClass):
         """
 
         net = EthercatNetwork(ifname)
-        boot_in_app = self.__get_boot_in_app(fw_file) if boot_in_app is None else boot_in_app
         if fw_file.endswith(self.ENSEMBLE_FIRMWARE_EXTENSION):
             self.__load_ensemble_fw_ecat(net, fw_file, slave, boot_in_app)
         else:
-            net.load_firmware(fw_file, boot_in_app, slave_id=slave)
+            boot_in_app = self.__get_boot_in_app(fw_file) if boot_in_app is None else boot_in_app
+            net.load_firmware(fw_file, boot_in_app, slave)
 
     def load_firmware_ecat_interface_index(
         self, if_index: int, fw_file: str, slave: int = 1
@@ -1272,7 +1272,7 @@ class Communication(metaclass=MCMetaClass):
             )
 
     def __load_ensemble_fw_ecat(
-        self, net: EthercatNetwork, fw_file: str, slave: int, boot_in_app: bool
+        self, net: EthercatNetwork, fw_file: str, slave: int, boot_in_app: Optional[bool]
     ) -> None:
         """Load FW to an ensemble of servos through Ethercat.
 
@@ -1290,10 +1290,15 @@ class Communication(metaclass=MCMetaClass):
         first_slave_in_ensemble = self.__check_ensemble(scanned_slaves, slave, mapping)
         try:
             for slave_id_offset, fw_file_prod_code in mapping.items():
+                boot_in_app_drive = (
+                    self.__get_boot_in_app(fw_file_prod_code[0])
+                    if boot_in_app is None
+                    else boot_in_app
+                )
                 net.load_firmware(
                     fw_file_prod_code[0],
-                    boot_in_app,
-                    slave_id=first_slave_in_ensemble + slave_id_offset,
+                    boot_in_app_drive,
+                    first_slave_in_ensemble + slave_id_offset,
                 )
         except ILError as e:
             raise e
