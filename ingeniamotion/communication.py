@@ -34,6 +34,8 @@ if TYPE_CHECKING:
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 
 RUNNING_ON_WINDOWS = platform.system() == "Windows"
+FILE_EXT_SFU = ".sfu"
+FILE_EXT_LFU = ".lfu"
 
 
 class Communication(metaclass=MCMetaClass):
@@ -1000,6 +1002,25 @@ class Communication(metaclass=MCMetaClass):
                 error_enabled_callback,
             )
 
+    @staticmethod
+    def __get_boot_in_app(fw_file: str) -> bool:
+        """Return true if the FoE is included in the application (file extension is .sfu)
+
+        Args:
+            fw_file: Path to the FW file.
+
+        Returns:
+            True if the FoE is included in the application.
+
+        Raises:
+            ValueError: If the firmware file has the wrong extension.
+        """
+        if not fw_file.endswith((FILE_EXT_SFU, FILE_EXT_LFU)):
+            raise ValueError(
+                f"Firmware file should have extension {FILE_EXT_SFU} or {FILE_EXT_LFU}."
+            )
+        return fw_file.endswith(FILE_EXT_SFU)
+
     def load_firmware_ecat(self, ifname: str, fw_file: str, slave: int = 1) -> None:
         """Load firmware via ECAT.
 
@@ -1011,6 +1032,7 @@ class Communication(metaclass=MCMetaClass):
 
         Raises:
             FileNotFoundError: If the firmware file cannot be found.
+            ValueError: If the firmware file has the wrong extension.
             ingenialink.exceptions.ILFirmwareLoadError: If no slave is detected.
             ingenialink.exceptions.ILFirmwareLoadError: If the FoE write operation is not successful
             NotImplementedError: If FoE is not implemented for the current OS and architecture
@@ -1021,7 +1043,8 @@ class Communication(metaclass=MCMetaClass):
         if fw_file.endswith(self.ENSEMBLE_FIRMWARE_EXTENSION):
             self.__load_ensemble_fw_ecat(net, fw_file, slave)
         else:
-            net.load_firmware(fw_file, slave)
+            boot_in_app = self.__get_boot_in_app(fw_file)
+            net.load_firmware(fw_file, slave, boot_in_app)
 
     def load_firmware_ecat_interface_index(
         self, if_index: int, fw_file: str, slave: int = 1
@@ -1260,7 +1283,10 @@ class Communication(metaclass=MCMetaClass):
         first_slave_in_ensemble = self.__check_ensemble(scanned_slaves, slave, mapping)
         try:
             for slave_id_offset, fw_file_prod_code in mapping.items():
-                net.load_firmware(fw_file_prod_code[0], first_slave_in_ensemble + slave_id_offset)
+                boot_in_app = self.__get_boot_in_app(fw_file_prod_code[0])
+                net.load_firmware(
+                    fw_file_prod_code[0], first_slave_in_ensemble + slave_id_offset, boot_in_app
+                )
         except ILError as e:
             raise e
         finally:
