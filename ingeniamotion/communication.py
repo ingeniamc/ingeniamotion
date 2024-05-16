@@ -1010,7 +1010,7 @@ class Communication(metaclass=MCMetaClass):
             fw_file: Path to the FW file.
 
         Returns:
-            True if the FoE is included in the application.
+            True if the bootloader is included in the application.
 
         Raises:
             ValueError: If the firmware file has the wrong extension.
