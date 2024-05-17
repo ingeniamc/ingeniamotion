@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Set the boot_in_app flag according to the file extension.
+
 ### Fix
 - Bug retrieving interface adapter name in Linux.
 - The stoppable_sleep method of the wizard tests does not block the main thread.
