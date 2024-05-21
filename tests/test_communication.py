@@ -4,7 +4,7 @@ import time
 from collections import OrderedDict
 
 import pytest
-from ingenialink.canopen.network import CanopenNetwork, CAN_DEVICE, CAN_BAUDRATE
+from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.exceptions import ILError
@@ -471,8 +471,8 @@ def test_load_ensemble_fw_ecat(mocker):
         )
         mc.communication.load_firmware_ecat("", TEST_ENSEMBLE_FW_FILE, slave=slave)
         assert len(patch_fw_callback.call_args_list) == 2
-        assert patch_fw_callback.call_args_list[0][0] == (fw_file1, 1)
-        assert patch_fw_callback.call_args_list[1][0] == (fw_file2, 2)
+        assert patch_fw_callback.call_args_list[0][0] == (fw_file1, False, 1)
+        assert patch_fw_callback.call_args_list[1][0] == (fw_file2, False, 2)
 
     for slave in [3, 4]:
         patch_fw_callback = mocker.patch(
@@ -480,8 +480,8 @@ def test_load_ensemble_fw_ecat(mocker):
         )
         mc.communication.load_firmware_ecat("", TEST_ENSEMBLE_FW_FILE, slave=slave)
         assert len(patch_fw_callback.call_args_list) == 2
-        assert patch_fw_callback.call_args_list[0][0] == (fw_file1, 3)
-        assert patch_fw_callback.call_args_list[1][0] == (fw_file2, 4)
+        assert patch_fw_callback.call_args_list[0][0] == (fw_file1, False, 3)
+        assert patch_fw_callback.call_args_list[1][0] == (fw_file2, False, 4)
 
     with pytest.raises(IMException) as exc_info:
         mc.communication.load_firmware_ecat("", TEST_ENSEMBLE_FW_FILE, slave=5)
