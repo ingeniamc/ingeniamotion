@@ -1283,6 +1283,7 @@ class Communication(metaclass=MCMetaClass):
             fw_file: Path to the ensemble FW file.
             slave: Slave ID (any slave in the ensemble)
             boot_in_app: true if the bootloader is included in the application, false otherwise.
+                If None, the file extension is used to define it.
         """
         mapping = self.__unzip_ensemble_fw_file(fw_file)
         scanned_slaves = net.scan_slaves_info()
