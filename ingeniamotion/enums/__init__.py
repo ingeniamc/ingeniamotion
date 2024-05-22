@@ -1,5 +1,8 @@
 from enum import Enum, IntEnum
 
+from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE
+from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
+
 
 class OperationMode(IntEnum):
     """Operation Mode Enum"""
@@ -209,8 +212,3 @@ class FilterNumber(IntEnum):
 
     FILTER1 = 1
     FILTER2 = 2
-
-
-enums = list(globals().keys())
-enums.remove("IntEnum")
-__all__ = enums
