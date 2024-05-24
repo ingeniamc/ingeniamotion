@@ -195,12 +195,12 @@ class FSoEMaster:
                 the PDO exchange should be started after. ``False`` by default.
 
         """
-        if start_pdos:
-            self.set_pdo_maps_to_slaves()
-            self.subscribe_to_pdo_thread_events()
-            self.__mc.capture.pdo.start_pdos()
         for servo, master_handler in self.__handlers.items():
             master_handler.start()
+        self.set_pdo_maps_to_slaves()
+        if start_pdos:
+            self.subscribe_to_pdo_thread_events()
+            self.__mc.capture.pdo.start_pdos()
 
     def subscribe_to_pdo_thread_events(self) -> None:
         """Subscribe to the PDO thread events.
