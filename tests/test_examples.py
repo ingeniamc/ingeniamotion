@@ -9,6 +9,7 @@ from ingenialink.pdo import RPDOMap, TPDOMap
 
 from examples.change_baudrate import change_baudrate
 from examples.change_node_id import change_node_id
+from examples.check_configurations_example import main as main_check_configuration
 from examples.commutation_test_encoders import main as main_commutation_test_encoders
 from examples.connect_ecat_coe import connect_ethercat_coe
 from examples.load_fw_canopen import load_firmware_canopen
@@ -587,6 +588,19 @@ def test_pdo_poller_success(mocker):
     data.assert_called_once()
     stop.assert_called_once()
     disconnect.assert_called_once()
+
+
+@pytest.mark.virtual
+def test_check_configuration(mocker):
+    connect_servo_eoe = mocker.patch.object(Communication, "connect_servo_eoe")
+    disconnect = mocker.patch.object(Communication, "disconnect")
+    check_configuration = mocker.patch.object(Configuration, "check_configuration")
+
+    main_check_configuration()
+
+    assert connect_servo_eoe.call_count == 3
+    assert check_configuration.call_count == 3
+    assert disconnect.call_count == 3
 
 
 @pytest.mark.virtual
