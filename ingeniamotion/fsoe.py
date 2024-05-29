@@ -39,6 +39,14 @@ class FSoEMasterHandler:
         # Load initial request to the Safety Master PDU PDOMap
         self.get_request()
 
+    def stop(self) -> None:
+        """Stop the master handler"""
+        self.__master_handler.stop()
+
+    def delete(self) -> None:
+        """Delete the master handler"""
+        self.__master_handler.delete()
+
     def _configure_pdo_maps(self) -> None:
         """Configure the PDOMaps used for the Safety PDUs."""
         PDUMapper.configure_rpdo_map(self.safety_master_pdu_map)
@@ -97,11 +105,6 @@ class FSoEMasterHandler:
     def safety_slave_pdu_map(self) -> TPDOMap:
         """The PDOMap used for the Safety Slave PDU."""
         return self.__safety_slave_pdu
-
-    @property
-    def watchdog(self) -> Watchdog:
-        """The FSoE master watchdog."""
-        return self.__master_handler.watchdog
 
 
 class PDUMapper:
@@ -217,9 +220,8 @@ class FSoEMaster:
             stop_pdos: if ``True``, stop the PDO exchange. ``False`` by default.
 
         """
-        for servo, master_handler in self.__handlers.items():
-            if master_handler.watchdog.is_alive():
-                master_handler.watchdog.stop()
+        for master_handler in self.__handlers.values():
+            master_handler.stop()
         self._unsubscribe_from_pdo_thread_events()
         self._remove_pdo_maps_from_slaves()
         if stop_pdos:
@@ -244,6 +246,18 @@ class FSoEMaster:
         """
         master_handler = self.__handlers[servo]
         master_handler.sto_activate()
+
+    def _delete_master_handler(self, servo: str = DEFAULT_SERVO) -> None:
+        """Delete the master handler instance
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+
+        """
+        if servo not in self.__handlers:
+            return
+        self.__handlers[servo].delete()
+        del self.__handlers[servo]
 
     def _subscribe_to_pdo_thread_events(self) -> None:
         """Subscribe to the PDO thread events.

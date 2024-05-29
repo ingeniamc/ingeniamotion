@@ -827,6 +827,7 @@ class Communication(metaclass=MCMetaClass):
         del self.mc.servos[servo]
         net_name = self.mc.servo_net.pop(servo)
         servo_count = list(self.mc.servo_net.values()).count(net_name)
+        self.mc.fsoe._delete_master_handler(servo)
         if servo_count == 0:
             del self.mc.net[net_name]
 
