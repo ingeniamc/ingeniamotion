@@ -52,7 +52,7 @@ class FSoEMasterHandler:
     def _map_outputs(self) -> None:
         """Configure the FSoE master handler's SafeOutputs."""
         # Phase 1 mapping
-        self.__master_handler.master.dictionary_map.add_by_key("STO_COMMAND", bits=1)
+        self.__master_handler.master.dictionary_map.add_by_key(0x040, bits=1)
         self.__master_handler.master.dictionary_map.add_padding(bits=7)
 
     def _map_inputs(self) -> None:
@@ -68,6 +68,14 @@ class FSoEMasterHandler:
         """Get the FSoE slave response from the Safety Slave PDU PDOMap and set it
         to the FSoE master handler."""
         self.__master_handler.set_reply(self.safety_slave_pdu_map.get_item_bytes())
+
+    def sto_deactivate(self) -> None:
+        """Set the STO command to deactivate the STO"""
+        self.__master_handler.dictionary.set("STO_COMMAND", True)
+
+    def sto_activate(self) -> None:
+        """Set the STO command to activate the STO"""
+        self.__master_handler.dictionary.set("STO_COMMAND", False)
 
     @staticmethod
     def _saco_phase_1_dictionary() -> Dictionary:
@@ -216,6 +224,26 @@ class FSoEMaster:
         self._remove_pdo_maps_from_slaves()
         if stop_pdos:
             self.__mc.capture.pdo.stop_pdos()
+
+    def sto_deactivate(self, servo: str = DEFAULT_SERVO) -> None:
+        """Deactivate the Safety Torque Off.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+
+        """
+        master_handler = self.__handlers[servo]
+        master_handler.sto_deactivate()
+
+    def sto_activate(self, servo: str = DEFAULT_SERVO) -> None:
+        """Activate the Safety Torque Off.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+
+        """
+        master_handler = self.__handlers[servo]
+        master_handler.sto_activate()
 
     def _subscribe_to_pdo_thread_events(self) -> None:
         """Subscribe to the PDO thread events.

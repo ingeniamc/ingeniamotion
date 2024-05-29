@@ -4,6 +4,7 @@
 ### Added
 - Set the boot_in_app flag according to the file extension.
 - FSoE module.
+- STO example for Safe servo drives.
 
 ### Fix
 - Bug retrieving interface adapter name in Linux.
