@@ -18,7 +18,7 @@ def main(interface_ip, slave_id, dict_path):
     mc.fsoe.create_fsoe_master_handler()
     mc.fsoe.start_master(start_pdos=True)
     # Deactivate the STO and enable the motor
-    #mc.fsoe.sto_deactivate()
+    mc.fsoe.sto_deactivate()
     mc.motion.motor_enable()
     # Wait for the motor to reach a certain velocity (10 rev/s)
     with contextlib.suppress(IMTimeoutError):
