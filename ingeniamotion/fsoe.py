@@ -20,6 +20,9 @@ class FSoEMasterHandler:
 
     """
 
+    STO_COMMAND_KEY = 0x040
+    STO_COMMAND_UID = "STO_COMMAND"
+
     def __init__(self, slave_address: int, connection_id: int, watchdog_timeout: float):
         self.__master_handler = MasterHandler(
             dictionary=self._saco_phase_1_dictionary(),
@@ -52,7 +55,7 @@ class FSoEMasterHandler:
     def _map_outputs(self) -> None:
         """Configure the FSoE master handler's SafeOutputs."""
         # Phase 1 mapping
-        self.__master_handler.master.dictionary_map.add_by_key(0x040, bits=1)
+        self.__master_handler.master.dictionary_map.add_by_key(self.STO_COMMAND_KEY, bits=1)
         self.__master_handler.master.dictionary_map.add_padding(bits=7)
 
     def _map_inputs(self) -> None:
@@ -71,11 +74,11 @@ class FSoEMasterHandler:
 
     def sto_deactivate(self) -> None:
         """Set the STO command to deactivate the STO"""
-        self.__master_handler.dictionary.set("STO_COMMAND", True)
+        self.__master_handler.dictionary.set(self.STO_COMMAND_UID, True)
 
     def sto_activate(self) -> None:
         """Set the STO command to activate the STO"""
-        self.__master_handler.dictionary.set("STO_COMMAND", False)
+        self.__master_handler.dictionary.set(self.STO_COMMAND_UID, False)
 
     @staticmethod
     def _saco_phase_1_dictionary() -> Dictionary:
