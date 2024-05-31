@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Dict
 
 import ingenialogger
-from fsoe_master.fsoe_master import Dictionary, DictionaryItem, MasterHandler, ApplicationParameter
+from fsoe_master.fsoe_master import ApplicationParameter, Dictionary, DictionaryItem, MasterHandler
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 
 from ingeniamotion.metaclass import DEFAULT_SERVO
