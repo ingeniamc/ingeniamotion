@@ -198,7 +198,7 @@ class FSoEMaster:
             fsoe_master_watchdog_timeout: The FSoE master watchdog timeout in seconds.
 
         """
-        slave_address = self.get_safety_address()
+        slave_address = self.get_safety_address(servo)
         master_handler = FSoEMasterHandler(
             slave_address, self.__next_connection_id, fsoe_master_watchdog_timeout
         )
