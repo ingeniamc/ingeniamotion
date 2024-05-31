@@ -9,4 +9,5 @@ Examples
    examples/configuration
    examples/drive_tests
    examples/motion
+   examples/fsoe
 
