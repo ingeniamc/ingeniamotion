@@ -82,7 +82,9 @@ class FSoEMasterHandler:
     def set_reply(self) -> None:
         """Get the FSoE slave response from the Safety Slave PDU PDOMap and set it
         to the FSoE master handler."""
-        self.__master_handler.set_reply(self.safety_slave_pdu_map.get_item_bytes())
+        safety_slave_pdu_bytes = self.safety_slave_pdu_map.get_item_bytes()
+        if int.from_bytes(safety_slave_pdu_bytes, "little") != 0:
+            self.__master_handler.set_reply(safety_slave_pdu_bytes)
 
     def sto_deactivate(self) -> None:
         """Set the STO command to deactivate the STO"""
