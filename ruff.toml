@@ -9,3 +9,6 @@ select = [
     "I", # isort
 ]
 pydocstyle.convention = "google"
+
+[lint.per-file-ignores]
+"ingeniamotion/enums/__init__.py" = ["F401"] # Unused import
