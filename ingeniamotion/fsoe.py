@@ -2,6 +2,8 @@ from typing import TYPE_CHECKING, Dict
 
 import ingenialogger
 from fsoe_master.fsoe_master import Dictionary, DictionaryItem, MasterHandler
+from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
+from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 
 from ingeniamotion.metaclass import DEFAULT_SERVO
@@ -173,7 +175,10 @@ class FSoEMaster:
     """
 
     DEFAULT_WATCHDOG_TIMEOUT_S = 1
-    DEFAULT_FSOE_SLAVE_ADDRESS = 0
+
+    SAFETY_ADDRESS_REGISTER = EthercatRegister(
+        idx=0x4193, subidx=0x00, dtype=REG_DTYPE.U16, access=REG_ACCESS.RW
+    )
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.logger = ingenialogger.get_logger(__name__)
@@ -193,8 +198,7 @@ class FSoEMaster:
             fsoe_master_watchdog_timeout: The FSoE master watchdog timeout in seconds.
 
         """
-        # TODO: use function to read the FSoE slave address (INGM-446)
-        slave_address = self.DEFAULT_FSOE_SLAVE_ADDRESS
+        slave_address = self.get_safety_address(servo)
         master_handler = FSoEMasterHandler(
             slave_address, self.__next_connection_id, fsoe_master_watchdog_timeout
         )
@@ -249,6 +253,33 @@ class FSoEMaster:
         """
         master_handler = self.__handlers[servo]
         master_handler.sto_activate()
+
+    def get_safety_address(self, servo: str = DEFAULT_SERVO) -> int:
+        """Get the drive's FSoE slave address.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+
+        Returns:
+            The FSoE slave address.
+
+        """
+        drive = self.__mc.servos[servo]
+        value = drive.read(self.SAFETY_ADDRESS_REGISTER)
+        if not isinstance(value, int):
+            raise ValueError(f"Wrong safety address value type. Expected int, got {type(value)}")
+        return value
+
+    def set_safety_address(self, address: int, servo: str = DEFAULT_SERVO) -> None:
+        """Set the drive's FSoE slave address.
+
+        Args:
+            address: The address to be set.
+            servo: servo alias to reference it. ``default`` by default.
+
+        """
+        drive = self.__mc.servos[servo]
+        drive.write(self.SAFETY_ADDRESS_REGISTER, data=address)
 
     def _delete_master_handler(self, servo: str = DEFAULT_SERVO) -> None:
         """Delete the master handler instance
