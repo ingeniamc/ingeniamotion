@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Dict
 
 import ingenialogger
-from fsoe_master.fsoe_master import Dictionary, DictionaryItem, MasterHandler
+from fsoe_master.fsoe_master import ApplicationParameter, Dictionary, DictionaryItem, MasterHandler
 from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
 from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
@@ -31,7 +31,9 @@ class FSoEMasterHandler:
             slave_address=slave_address,
             connection_id=connection_id,
             watchdog_timeout_s=watchdog_timeout,
-            application_parameters=[],
+            application_parameters=[
+                ApplicationParameter(name="SAFETY_ADDRESS", initial_value=slave_address, n_bytes=2)
+            ],
         )
         self._configure_master()
         self.__safety_master_pdu = RPDOMap()
