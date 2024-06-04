@@ -17,6 +17,8 @@ def main(interface_ip, slave_id, dict_path):
     # Create and start the FSoE master handler
     mc.fsoe.create_fsoe_master_handler()
     mc.fsoe.start_master(start_pdos=True)
+    # Wait for the master to reach the Data state
+    mc.fsoe.wait_for_state_data()
     # Deactivate the STO
     mc.fsoe.sto_deactivate()
     # Wait for the STO to be deactivated

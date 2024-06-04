@@ -1,4 +1,5 @@
-from typing import TYPE_CHECKING, Dict
+import time
+from typing import TYPE_CHECKING, Dict, Optional
 
 import ingenialogger
 from fsoe_master.fsoe_master import (
@@ -11,6 +12,7 @@ from fsoe_master.fsoe_master import (
 from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
 from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
+from ingeniamotion.exceptions import IMTimeoutError
 
 from ingeniamotion.metaclass import DEFAULT_SERVO
 
@@ -115,6 +117,25 @@ class FSoEMasterHandler:
         # TODO: Update once INGM-458 is done.
         sto_command = self.safety_slave_pdu_map.items[1].raw_data_bits.any()
         return sto_command
+
+    def wait_for_data_state(self, timeout: Optional[float] = None) -> None:
+        """Wait the FSoE master handler to reach the Data state.
+
+        Args:
+            timeout : how many seconds to wait for the FSoE master to reach the
+                Data state, if ``None`` it will wait forever.
+                ``None`` by default.
+
+        Raises:
+            IMTimeoutError: If the Data state is not reached within the timeout.
+
+        """
+        state_reached = False
+        init_time = time.time()
+        while not state_reached:
+            state_reached = self.__master_handler.state == StateData
+            if timeout and (init_time + timeout) < time.time():
+                raise IMTimeoutError("The FSoE Master did not reach the Data state")
 
     @staticmethod
     def _saco_phase_1_dictionary() -> Dictionary:
@@ -319,6 +340,21 @@ class FSoEMaster:
         """
         master_handler = self.__handlers[servo]
         return master_handler.is_sto_active()
+
+    def wait_for_state_data(
+        self, servo: str = DEFAULT_SERVO, timeout: Optional[float] = None
+    ) -> None:
+        """Wait for an FSoE master handler to reach the Data state.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+            timeout : how many seconds to wait for the FSoE master to reach the
+                Data state, if ``None`` it will wait forever.
+                ``None`` by default.
+
+        """
+        master_handler = self.__handlers[servo]
+        master_handler.wait_for_data_state(timeout)
 
     def _delete_master_handler(self, servo: str = DEFAULT_SERVO) -> None:
         """Delete the master handler instance
