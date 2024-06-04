@@ -6,7 +6,6 @@ from fsoe_master.fsoe_master import (
     Dictionary,
     DictionaryItem,
     MasterHandler,
-    State,
     StateData,
 )
 from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
