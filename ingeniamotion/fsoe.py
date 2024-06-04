@@ -12,8 +12,8 @@ from fsoe_master.fsoe_master import (
 from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
 from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
-from ingeniamotion.exceptions import IMTimeoutError
 
+from ingeniamotion.exceptions import IMTimeoutError
 from ingeniamotion.metaclass import DEFAULT_SERVO
 
 if TYPE_CHECKING:
