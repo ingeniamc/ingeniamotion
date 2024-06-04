@@ -1,4 +1,5 @@
 import contextlib
+import time
 
 from ingeniamotion import MotionController
 from ingeniamotion.enums import OperationMode
@@ -17,8 +18,12 @@ def main(interface_ip, slave_id, dict_path):
     # Create and start the FSoE master handler
     mc.fsoe.create_fsoe_master_handler()
     mc.fsoe.start_master(start_pdos=True)
-    # Deactivate the STO and enable the motor
+    # Deactivate the STO
     mc.fsoe.sto_deactivate()
+    # Wait for the STO to be deactivated
+    while mc.fsoe.check_sto_active():
+        time.sleep(0.1)
+    # Enable the motor
     mc.motion.motor_enable()
     # Wait for the motor to reach a certain velocity (10 rev/s)
     target_velocity = 10
@@ -29,6 +34,7 @@ def main(interface_ip, slave_id, dict_path):
     mc.fsoe.stop_master(stop_pdos=True)
     # Disable the motor
     mc.motion.motor_disable()
+    mc.fsoe.sto_activate()
     # Restore the operation mode
     mc.motion.set_operation_mode(current_operation_mode)
     # Disconnect from the servo drive
