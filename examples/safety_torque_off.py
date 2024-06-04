@@ -1,5 +1,4 @@
 import contextlib
-import time
 
 from ingeniamotion import MotionController
 from ingeniamotion.enums import OperationMode
@@ -22,7 +21,7 @@ def main(interface_ip, slave_id, dict_path):
     mc.fsoe.sto_deactivate()
     # Wait for the STO to be deactivated
     while mc.fsoe.check_sto_active():
-        time.sleep(0.1)
+        pass
     # Enable the motor
     mc.motion.motor_enable()
     # Wait for the motor to reach a certain velocity (10 rev/s)
