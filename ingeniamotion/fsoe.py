@@ -86,6 +86,7 @@ class FSoEMasterHandler:
 
     def sto_deactivate(self) -> None:
         """Set the STO command to deactivate the STO"""
+        self.__master_handler.set_fail_safe(False)
         self.__master_handler.dictionary.set(self.STO_COMMAND_UID, True)
 
     def sto_activate(self) -> None:
