@@ -8,6 +8,7 @@ from fsoe_master.fsoe_master import (
     DictionaryItem,
     MasterHandler,
     StateData,
+    DictionaryItemInputOutput,
 )
 from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
 from ingenialink.ethercat.register import EthercatRegister
@@ -82,7 +83,8 @@ class FSoEMasterHandler:
     def _map_inputs(self) -> None:
         """Configure the FSoE master handler's SafeInputs."""
         # Phase 1 mapping
-        self.__master_handler.slave.dictionary_map.add_padding(bits=8)
+        self.__master_handler.slave.dictionary_map.add_by_key(self.STO_COMMAND_KEY, bits=1)
+        self.__master_handler.slave.dictionary_map.add_padding(bits=7)
 
     def get_request(self) -> None:
         """Set the FSoE master handler request to the Safety Master PDU PDOMap"""
@@ -115,8 +117,9 @@ class FSoEMasterHandler:
         fsoe_command = int.from_bytes(self.safety_slave_pdu_map.items[0].raw_data_bytes, "little")
         if fsoe_command != self.PROCESS_DATA_COMMAND:
             return True
-        # TODO: Update once INGM-458 is done.
-        sto_command = self.safety_slave_pdu_map.items[1].raw_data_bits.any()
+        sto_command = self.__master_handler.dictionary.get(self.STO_COMMAND_UID)
+        if not isinstance(sto_command, bool):
+            raise ValueError(f"Wrong value type. Expected type bool, got {type(sto_command)}")
         return sto_command
 
     def wait_for_data_state(self, timeout: Optional[float] = None) -> None:
@@ -141,11 +144,10 @@ class FSoEMasterHandler:
     @staticmethod
     def _saco_phase_1_dictionary() -> Dictionary:
         """Get the SaCo phase 1 dictionary instance"""
-        sto_command_dict_item = DictionaryItem(
+        sto_command_dict_item = DictionaryItemInputOutput(
             key=0x040,
             name="STO_COMMAND",
             data_type=DictionaryItem.DataTypes.BOOL,
-            typ=DictionaryItem.Types.SAFE_OUTPUT,
         )
         return Dictionary([sto_command_dict_item])
 
