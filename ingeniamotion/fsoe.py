@@ -109,9 +109,11 @@ class FSoEMasterHandler:
         """
         if self.__master_handler.state != StateData:
             return True
+        # TODO: Update once INGK-920 is done.
         fsoe_command = int.from_bytes(self.safety_slave_pdu_map.items[0].raw_data_bytes, "little")
         if fsoe_command != self.PROCESS_DATA_COMMAND:
             return True
+        # TODO: Update once INGM-458 is done.
         sto_command = self.safety_slave_pdu_map.items[1].raw_data_bits.any()
         return sto_command
 
