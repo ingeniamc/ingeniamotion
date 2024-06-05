@@ -168,6 +168,11 @@ class PDOPoller:
             )
             self.__mc.capture.pdo.add_pdo_item_to_map(tpdo_map_item, self.__tpdo_map)
 
+    @property
+    def available_samples(self) -> int:
+        """Number of samples in the buffer."""
+        return len(self.__timestamps)
+
 
 class PDONetworkManager:
     """Manage all the PDO functionalities.
