@@ -1,32 +1,33 @@
 from typing import TYPE_CHECKING, Dict, Optional, Union
+
 import ingenialogger
 
 from ingeniamotion.enums import SensorType, SeverityLevel
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
-from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
-from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder1_test import AbsoluteEncoder1Test
-from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental1_test import (
-    DigitalIncremental1Test,
-)
-from ingeniamotion.wizard_tests.feedbacks_tests.digital_hall_test import DigitalHallTest
-from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import SecondarySSITest
-from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder2_test import AbsoluteEncoder2Test
-from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental2_test import (
-    DigitalIncremental2Test,
-)
-from ingeniamotion.wizard_tests.phase_calibration import Phasing
-from ingeniamotion.wizard_tests.phasing_check import PhasingCheck
-from ingeniamotion.wizard_tests.sto import STOTest
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 from ingeniamotion.wizard_tests.brake import Brake
-from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
+from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder1_test import AbsoluteEncoder1Test
+from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder2_test import AbsoluteEncoder2Test
 from ingeniamotion.wizard_tests.feedbacks_tests.dc_feedback_polarity_test import (
     DCFeedbacksPolarityTest,
 )
 from ingeniamotion.wizard_tests.feedbacks_tests.dc_feedback_resolution_test import (
     DCFeedbacksResolutionTest,
 )
+from ingeniamotion.wizard_tests.feedbacks_tests.digital_hall_test import DigitalHallTest
+from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental1_test import (
+    DigitalIncremental1Test,
+)
+from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental2_test import (
+    DigitalIncremental2Test,
+)
+from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
+from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import SecondarySSITest
+from ingeniamotion.wizard_tests.phase_calibration import Phasing
+from ingeniamotion.wizard_tests.phasing_check import PhasingCheck
+from ingeniamotion.wizard_tests.sto import STOTest
 
 
 class DriveTests(metaclass=MCMetaClass):

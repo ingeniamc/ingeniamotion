@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+### Added
+- FSoE module.
+- STO example for Safe servo drives.
+
+### Fix
+- Bug retrieving interface adapter name in Linux.
+- The stoppable_sleep method of the wizard tests does not block the main thread.
+
 ## [0.8.1] - 2024-06-05
 ### Added
 - Function to check if a configuration has been applied to the drive.

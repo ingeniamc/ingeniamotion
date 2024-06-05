@@ -3,22 +3,22 @@ from os import path
 from typing import TYPE_CHECKING, List, Optional, Tuple, Union
 
 import ingenialogger
-from ingenialink.exceptions import ILError
-from ingenialink.canopen.network import CanopenNetwork, CAN_BAUDRATE
+from ingenialink.canopen.network import CAN_BAUDRATE, CanopenNetwork
 from ingenialink.ethernet.servo import EthernetServo
+from ingenialink.exceptions import ILError
 
-from ingeniamotion.homing import Homing
-from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
-from ingeniamotion.exceptions import IMException
-from ingeniamotion.feedbacks import Feedbacks
 from ingeniamotion.enums import (
-    GeneratorMode,
-    PhasingMode,
     CommutationMode,
     FilterNumber,
     FilterSignal,
     FilterType,
+    GeneratorMode,
+    PhasingMode,
 )
+from ingeniamotion.exceptions import IMException
+from ingeniamotion.feedbacks import Feedbacks
+from ingeniamotion.homing import Homing
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
