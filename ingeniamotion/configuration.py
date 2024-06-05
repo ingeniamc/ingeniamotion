@@ -161,6 +161,35 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """
         self.disable_brake_override(servo, axis)
 
+    def check_configuration(
+        self, config_path: str, axis: Optional[int] = None, servo: str = DEFAULT_SERVO
+    ) -> None:
+        """Check if the drive is configured in the same way as the given configuration file.
+        Compares the value of each register in the given file with the corresponding value in the
+        drive.
+
+        Args:
+            config_path : config file path to check.
+            axis : target axis to load configuration.
+                If ``None`` function loads all axis. ``None`` by default.
+            servo : servo alias to reference it. ``default`` by default.
+
+        Raises:
+            FileNotFoundError: If configuration file does not exist.
+            ValueError: If a configuration file from a subnode different from 0
+                is attempted to be loaded to subnode 0.
+            ValueError: If an invalid subnode is provided.
+            ILConfigurationError: If the configuration file differs from the drive state.
+
+        """
+        if not path.isfile(config_path):
+            raise FileNotFoundError(f"{config_path} file does not exist!")
+        servo_inst = self.mc.servos[servo]
+        servo_inst.check_configuration(config_path, subnode=axis)
+        self.logger.info(
+            "Configuration check successfull %s", config_path, drive=self.mc.servo_name(servo)
+        )
+
     def load_configuration(
         self, config_path: str, axis: Optional[int] = None, servo: str = DEFAULT_SERVO
     ) -> None:

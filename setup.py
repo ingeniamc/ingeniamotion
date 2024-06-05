@@ -34,7 +34,7 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        "ingenialink>=7.3.0, < 8.0.0",
+        "ingenialink>=7.3.2, < 8.0.0",
         "ingenialogger>=0.2.1",
         "ifaddr==0.1.7",
     ],
