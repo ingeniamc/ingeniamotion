@@ -1,4 +1,4 @@
-@Library('cicd-lib@0.10') _
+@Library('cicd-lib@0.11') _
 
 def SW_NODE = "windows-slave"
 def ECAT_NODE = "ecat-test"
@@ -13,6 +13,9 @@ def DEFAULT_PYTHON_VERSION = "3.9"
 def TOX_VERSION = "4.12.1"
 
 def SMOKE_TESTS_FLAG = ""
+
+def BRANCH_NAME_MASTER = "master"
+def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
 
 def dockerInstallTox = {
     bat """
@@ -40,7 +43,7 @@ pipeline {
             agent {
                 docker {
                     label "worker"
-                    image "ingeniacontainers.azurecr.io/docker-python:1.4"
+                    image "ingeniacontainers.azurecr.io/docker-python:1.7"
                 }
             }
             stages {
@@ -133,6 +136,7 @@ pipeline {
                         bat """
                             "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
                         """
+                        stash includes: 'dist\\*, docs.zip', name: 'publish_files'
                         archiveArtifacts artifacts: "dist\\*, docs.zip"
                     }
                 }
@@ -389,6 +393,24 @@ pipeline {
                         archiveArtifacts artifacts: '*.xml'
                     }
                 }
+            }
+        }
+        stage('Publish ingeniamotion'){
+            when {
+                beforeAgent true
+                branch BRANCH_NAME_MASTER
+            }
+            agent {
+                docker {
+                    label "worker"
+                    image "ingeniacontainers.azurecr.io/publisher:1.8"
+                }
+            }
+            steps {
+                unstash 'publish_files'
+                unzip zipFile: 'docs.zip', dir: '.'
+                publishDistExt("_docs", DISTEXT_PROJECT_DIR, true)
+                publishPyPi("dist/*")
             }
         }
     }
