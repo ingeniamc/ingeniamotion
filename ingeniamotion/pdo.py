@@ -2,17 +2,7 @@ import threading
 import time
 from collections import deque
 from copy import deepcopy
-from typing import (
-    TYPE_CHECKING,
-    Callable,
-    Deque,
-    Dict,
-    List,
-    Optional,
-    Tuple,
-    Type,
-    Union,
-)
+from typing import TYPE_CHECKING, Callable, Deque, Dict, List, Optional, Tuple, Type, Union
 
 from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.enums.register import RegCyclicType
@@ -65,6 +55,7 @@ class PDOPoller:
         self.__rpdo_map: RPDOMap = self.__mc.capture.pdo.create_empty_rpdo_map()
         self.__fill_rpdo_map()
         self.__exception_callbacks: List[Callable[[IMException], None]] = []
+        self.__lock = threading.Lock()
 
     def start(self) -> None:
         """Start the poller"""
@@ -98,9 +89,11 @@ class PDOPoller:
             the readings values.
 
         """
+        self.__lock.acquire()
         data = deepcopy(self.__buffer)
         time_stamps = deepcopy(self.__timestamps)
         self._clear_buffers()
+        self.__lock.release()
         return time_stamps, data
 
     def add_channels(self, registers: List[Dict[str, Union[int, str]]]) -> None:
@@ -132,10 +125,12 @@ class PDOPoller:
         """
         if self.__start_time is None:
             raise ValueError("The poller has not been started yet.")
+        self.__lock.acquire()
         time_stamp = round(time.time() - self.__start_time, 6)
         self.__timestamps.append(time_stamp)
         for tpdo_index, tpdo_map_item in enumerate(self.__tpdo_map.items):
             self.__buffer[tpdo_index].append(tpdo_map_item.value)
+        self.__lock.release()
 
     def _clear_buffers(self) -> None:
         """Clear the data buffers."""
