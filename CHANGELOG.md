@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.8.1] - 2024-06-05
+### Added
+- Function to check if a configuration has been applied to the drive.
+- Set the boot_in_app flag according to the file extension.
+
 ## [0.8.0] - 2024-04-23
 ### Added
 - PDOs for the EtherCAT protocol.
