@@ -5,6 +5,7 @@
 - Set the boot_in_app flag according to the file extension.
 - FSoE module.
 - STO example for Safe servo drives.
+- Lock mechanism in the PDO Poller.
 
 ### Fix
 - Bug retrieving interface adapter name in Linux.
