@@ -403,7 +403,7 @@ pipeline {
             steps {
                 unstash 'publish_files'
                 unzip zipFile: 'docs.zip', dir: '.'
-                publishDistExt("_docs", DISTEXT_PROJECT_DIR, true)
+                publishDistExt("_docs", DISTEXT_PROJECT_DIR, false)
                 publishPyPi("dist/*")
             }
         }
