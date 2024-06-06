@@ -34,10 +34,10 @@ def test_create_poller(motion_controller):
     expected_signal = [0.0] * int(period / sampling_time)
     time.sleep(sampling_time)
     for i in range(7):
-        time.sleep(period + sampling_time / 10.0)
+        time.sleep(period)
         mc.motion.set_current_quadrature(0.2 * (i + 1), servo=alias)
         expected_signal.extend([0.2 * (i + 1)] * int(period / sampling_time))
-    time.sleep(3 * period)
+    time.sleep(period)
     timestamp, test_data, _ = poller.data
     poller.stop()
     assert np.allclose(np.diff(timestamp), sampling_time, rtol=0.5, atol=0)
