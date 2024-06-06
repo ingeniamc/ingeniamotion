@@ -236,8 +236,8 @@ pipeline {
                                         bat """
                                             move .coverage .coverage_soem
                                         """    
-                                        junit "pytest_reports\\*.xml"
-                                        archiveArtifacts artifacts: 'pytest_reports\\*.xml'
+                                        junit "pytest_reports\\pytest_soem_${SLAVE}_report_py${PYTHON}.xml"
+                                        archiveArtifacts artifacts: "pytest_reports\\pytest_soem_${SLAVE}_report_py${PYTHON}.xml"
                                         stash includes: ".coverage_soem", name: "coverage_report_soem"
                                     }
                                 }
