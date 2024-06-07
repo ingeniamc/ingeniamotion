@@ -1,7 +1,6 @@
 import threading
 import time
 from collections import deque
-from copy import deepcopy
 from typing import TYPE_CHECKING, Callable, Deque, Dict, List, Optional, Tuple, Type, Union
 
 from ingenialink.canopen.network import CanopenNetwork
@@ -48,14 +47,14 @@ class PDOPoller:
         self.__refresh_time = refresh_time
         self.__watchdog_timeout = watchdog_timeout
         self.__buffer_size = buffer_size
-        self.__buffer: List[Deque[Union[int, float]]] = []
-        self.__timestamps: Deque[float] = deque(maxlen=self.__buffer_size)
+        self.__buffer: Deque[tuple[float, List[Union[int, float]]]] = deque(
+            maxlen=self.__buffer_size
+        )
         self.__start_time: Optional[float] = None
         self.__tpdo_map: TPDOMap = self.__mc.capture.pdo.create_empty_tpdo_map()
         self.__rpdo_map: RPDOMap = self.__mc.capture.pdo.create_empty_rpdo_map()
         self.__fill_rpdo_map()
         self.__exception_callbacks: List[Callable[[IMException], None]] = []
-        self.__lock = threading.Lock()
 
     def start(self) -> None:
         """Start the poller"""
@@ -80,7 +79,7 @@ class PDOPoller:
         self.__mc.capture.pdo.remove_tpdo_map(self.__servo, self.__tpdo_map)
 
     @property
-    def data(self) -> Tuple[Deque[float], List[Deque[Union[int, float]]]]:
+    def data(self) -> Tuple[List[float], List[List[Union[int, float]]]]:
         """
         Get the poller data. After the data is retrieved, the data buffers are cleared.
 
@@ -89,11 +88,14 @@ class PDOPoller:
             the readings values.
 
         """
-        self.__lock.acquire()
-        data = deepcopy(self.__buffer)
-        time_stamps = deepcopy(self.__timestamps)
-        self._clear_buffers()
-        self.__lock.release()
+        time_stamps = []
+        data = [[] for _ in range(len(self.__tpdo_map.items))]
+        for _ in range(len(self.__buffer)):
+            time_stamp, data_sample = self.__buffer.popleft()
+            time_stamps.append(time_stamp)
+            for item_index in range(len(self.__tpdo_map.items)):
+                data[item_index].append(data_sample[item_index])
+
         return time_stamps, data
 
     def add_channels(self, registers: List[Dict[str, Union[int, str]]]) -> None:
@@ -104,7 +106,6 @@ class PDOPoller:
             registers : list of registers to add to the Poller.
 
         """
-        self.__buffer = [deque(maxlen=self.__buffer_size) for _ in range(len(registers))]
         self.__fill_tpdo_map(registers)
 
     def subscribe_to_exceptions(self, callback: Callable[[IMException], None]) -> None:
@@ -125,18 +126,11 @@ class PDOPoller:
         """
         if self.__start_time is None:
             raise ValueError("The poller has not been started yet.")
-        self.__lock.acquire()
         time_stamp = round(time.time() - self.__start_time, 6)
-        self.__timestamps.append(time_stamp)
-        for tpdo_index, tpdo_map_item in enumerate(self.__tpdo_map.items):
-            self.__buffer[tpdo_index].append(tpdo_map_item.value)
-        self.__lock.release()
-
-    def _clear_buffers(self) -> None:
-        """Clear the data buffers."""
-        for buffer in self.__buffer:
-            buffer.clear()
-        self.__timestamps.clear()
+        data_sample = []
+        for tpdo_map_item in self.__tpdo_map.items:
+            data_sample.append(tpdo_map_item.value)
+        self.__buffer.append((time_stamp, data_sample))
 
     def __fill_rpdo_map(self) -> None:
         """Fill the RPDO Map with padding"""
@@ -171,7 +165,7 @@ class PDOPoller:
     @property
     def available_samples(self) -> int:
         """Number of samples in the buffer."""
-        return len(self.__timestamps)
+        return len(self.__buffer)
 
 
 class PDONetworkManager:
