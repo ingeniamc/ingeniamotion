@@ -89,7 +89,7 @@ class PDOPoller:
 
         """
         time_stamps = []
-        data = [[] for _ in range(len(self.__tpdo_map.items))]
+        data: List[List[Union[int, float]]] = [[] for _ in range(len(self.__tpdo_map.items))]
         for _ in range(len(self.__buffer)):
             time_stamp, data_sample = self.__buffer.popleft()
             time_stamps.append(time_stamp)
