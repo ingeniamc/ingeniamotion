@@ -111,12 +111,6 @@ class FSoEMasterHandler:
             True if the STO is active. False otherwise.
 
         """
-        if self.__master_handler.state != StateData:
-            return True
-        # TODO: Update once INGK-920 is done.
-        fsoe_command = int.from_bytes(self.safety_slave_pdu_map.items[0].raw_data_bytes, "little")
-        if fsoe_command != self.PROCESS_DATA_COMMAND:
-            return True
         sto_command = self.__master_handler.dictionary.get(self.STO_COMMAND_UID)
         if not isinstance(sto_command, bool):
             raise ValueError(f"Wrong value type. Expected type bool, got {type(sto_command)}")
@@ -148,6 +142,7 @@ class FSoEMasterHandler:
             key=0x040,
             name="STO_COMMAND",
             data_type=DictionaryItem.DataTypes.BOOL,
+            fail_safe_input_value=True,
         )
         return Dictionary([sto_command_dict_item])
 
