@@ -8,6 +8,7 @@
 ### Fix
 - Bug retrieving interface adapter name in Linux.
 - The stoppable_sleep method of the wizard tests does not block the main thread.
+- Set feedbacks to internal generator during brake testing.
 
 ## [0.8.1] - 2024-06-05
 ### Added
