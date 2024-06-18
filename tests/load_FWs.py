@@ -111,7 +111,7 @@ def load_can(drive_conf):
 
 def load_ecat(drive_conf):
     adapter = ifaddr.get_adapters()[drive_conf["index"]]
-    ifname = f'\\Device\\NPF_{bytes.decode(adapter.name)}'
+    ifname = f"\\Device\\NPF_{bytes.decode(adapter.name)}"
     net = EthercatNetwork(ifname)
     try:
         net.load_firmware(drive_conf["fw_file"], drive_conf["boot_in_app"], drive_conf["slave"])
