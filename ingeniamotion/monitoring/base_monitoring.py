@@ -123,6 +123,7 @@ class Monitoring(ABC):
         Raises:
             IMMonitoringError: If register maps fails in the servo.
             IMMonitoringError: If buffer size is not enough for all the registers.
+            IMMonitoringError: If any register is not CYCLIC_TX.
             TypeError: If some parameter has a wrong type.
 
         """

@@ -4,6 +4,7 @@
 ### Added
 - FSoE module.
 - STO example for Safe servo drives.
+- Check that registers to be mapped in monitoring are CYCLIC_TX.
 
 ### Fix
 - Bug retrieving interface adapter name in Linux.
