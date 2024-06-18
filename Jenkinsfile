@@ -1,5 +1,3 @@
-@Library('cicd-lib@0.11') _
-
 def SW_NODE = "windows-slave"
 def ECAT_NODE = "ecat-test"
 def ECAT_NODE_LOCK = "test_execution_lock_ecat"
@@ -110,16 +108,10 @@ pipeline {
                     }
                 }
                 stage("Run virtual drive tests") {
-                    environment {
-                        GIT_SSH_COMMAND = 'ssh -i C:/id_rsa -o StrictHostKeyChecking=no'
-                    }
                     steps {
-                        withCredentials([sshUserPrivateKey(credentialsId: 'Bitbucket SSH', keyFileVariable: 'KEY')]) {
-                            bat """
-                                COPY %KEY% C:\\id_rsa
-                                tox -e virtual -- --junitxml=pytest_reports\\pytest_virtual_report.xml
-                            """
-                        }
+                        bat """
+                            tox -e py${DEFAULT_TOX_PYTHON_VERSION} -- -m virtual --protocol virtual --junitxml=pytest_reports\\pytest_virtual_report.xml
+                        """
                     }
                     post {
                         always {
