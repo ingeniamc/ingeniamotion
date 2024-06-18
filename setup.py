@@ -37,6 +37,7 @@ setuptools.setup(
         "ingenialink>=7.3.2, < 8.0.0",
         "ingenialogger>=0.2.1",
         "ifaddr==0.1.7",
+        "fsoe-master==0.1.0"
     ],
     python_requires=">=3.9",
 )
