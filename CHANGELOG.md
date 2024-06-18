@@ -4,6 +4,7 @@
 ### Added
 - FSoE module.
 - STO example for Safe servo drives.
+- Use only one queue in the PDO Poller to store both the timestamps and the register values.
 - Method to get the available CAN devices.
 
 ### Fix
