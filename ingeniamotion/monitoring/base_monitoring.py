@@ -14,7 +14,7 @@ from ingeniamotion.enums import (
     MonitoringSoCType,
     MonitoringVersion,
 )
-from ingeniamotion.exceptions import IMMonitoringError, IMRegisterWrongCyclic
+from ingeniamotion.exceptions import IMMonitoringError
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
 if TYPE_CHECKING:
