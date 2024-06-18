@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
 
 import ifaddr
 import ingenialogger
-from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE, CanopenNetwork
+from ingenialink.canopen.network import CAN_BAUDRATE, CAN_CHANNELS, CAN_DEVICE, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.dictionary import Interface
 from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
@@ -438,6 +438,27 @@ class Communication(metaclass=MCMetaClass):
 
         """
         return [x.nice_name for x in ifaddr.get_adapters()]
+
+    @staticmethod
+    def get_available_canopen_devices() -> dict[CAN_DEVICE, list[int]]:
+        """Return the list of available CAN devices (those connected and with drivers installed).
+
+        Returns:
+            Dict of available CAN devices and channels. For example:
+            {
+                CAN_DEVICE.KVASER: [0, 1]
+                CAN_DEVICE.PCAN: [0]
+            }
+        """
+        available_devices: dict[CAN_DEVICE, list[int]] = {}
+        for device, channel in CanopenNetwork.get_available_devices():
+            can_device = CAN_DEVICE(device)
+            can_channel = CAN_CHANNELS[device].index(channel)
+            if can_device not in available_devices:
+                available_devices[can_device] = [can_channel]
+            else:
+                available_devices[can_device].append(can_channel)
+        return available_devices
 
     def connect_servo_eoe_service_interface_index(
         self,

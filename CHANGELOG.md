@@ -4,6 +4,7 @@
 ### Added
 - FSoE module.
 - STO example for Safe servo drives.
+- Method to get the available CAN devices.
 
 ### Fix
 - Bug retrieving interface adapter name in Linux.
