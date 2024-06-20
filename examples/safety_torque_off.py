@@ -31,12 +31,12 @@ def main(interface_ip, slave_id, dict_path):
     mc.motion.set_velocity(target_velocity)
     with contextlib.suppress(IMTimeoutError):
         mc.motion.wait_for_velocity(velocity=target_velocity, timeout=5)
+    # Disable the motor
+    mc.motion.motor_disable()
     # Activate the STO
     mc.fsoe.sto_activate()
     # Stop the FSoE master handler
     mc.fsoe.stop_master(stop_pdos=True)
-    # Disable the motor
-    mc.motion.motor_disable()
     # Restore the operation mode
     mc.motion.set_operation_mode(current_operation_mode)
     # Disconnect from the servo drive
