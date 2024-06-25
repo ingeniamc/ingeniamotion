@@ -5,6 +5,7 @@
 - FSoE module.
 - STO example for Safe servo drives.
 - Use only one queue in the PDO Poller to store both the timestamps and the register values.
+- GPIO module.
 
 ### Fix
 - Bug retrieving interface adapter name in Linux.
