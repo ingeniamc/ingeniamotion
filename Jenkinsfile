@@ -6,7 +6,7 @@ def ECAT_NODE_LOCK = "test_execution_lock_ecat"
 def CAN_NODE = "canopen-test"
 def CAN_NODE_LOCK = "test_execution_lock_can"
 
-def DOCKER_IMAGE = "ingeniacontainers.azurecr.io/win-python-builder:1.5"
+def DOCKER_IMAGE = "ingeniacontainers.azurecr.io/win-python-builder:1.4"
 
 def DEFAULT_TOX_PYTHON_VERSION = "39"
 def DEFAULT_PYTHON_VERSION = "3.9"
