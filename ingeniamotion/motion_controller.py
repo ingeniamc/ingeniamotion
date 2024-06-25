@@ -10,6 +10,7 @@ from ingeniamotion.configuration import Configuration
 from ingeniamotion.drive_tests import DriveTests
 from ingeniamotion.errors import Errors
 from ingeniamotion.information import Information
+from ingeniamotion.io import InputsOutputs
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.motion import Motion
 
@@ -35,6 +36,7 @@ class MotionController:
         self.__tests: DriveTests = DriveTests(self)
         self.__errors: Errors = Errors(self)
         self.__info: Information = Information(self)
+        self.__io = InputsOutputs(self)
         if FSOE_MASTER_INSTALLED:
             self.__fsoe: FSoEMaster = FSoEMaster(self)
 
@@ -154,3 +156,8 @@ class MotionController:
         if not FSOE_MASTER_INSTALLED:
             raise NotImplementedError("The FSoE module is not available.")
         return self.__fsoe
+
+    @property
+    def io(self) -> InputsOutputs:
+        """Instance of :class:`~ingeniamotion.io.InputsOutputs` class"""
+        return self.__io
