@@ -15,7 +15,7 @@
   ],
   "soem": [
   {
-    "ifname": "\\Device\\NPF_{51BCF26D-647F-489D-A782-D69CBCB20BD2}",
+    "ifname": "\\Device\\NPF_{B24AA996-414A-4F95-95E6-2828D346209A}",
     "dictionary": "//awe-srv-max-prd/distext/products/EVE-XCR/firmware/2.5.1/eve-xcr-e_eoe_2.5.1.xdf",
     "slave": 1,
     "config_file": "//azr-srv-ingfs1/dist/setups/setup_eve_ecat/1.2.0/config.xml",
@@ -24,7 +24,7 @@
     "boot_in_app": true
   },
   {
-    "ifname": "\\Device\\NPF_{51BCF26D-647F-489D-A782-D69CBCB20BD2}",
+    "ifname": "\\Device\\NPF_{B24AA996-414A-4F95-95E6-2828D346209A}",
     "dictionary": "//awe-srv-max-prd/distext/products/CAP-XCR/firmware/2.5.1/cap-xcr-e_eoe_2.5.1.xdf",
     "slave": 2,
     "config_file": "//azr-srv-ingfs1/dist/setups/setup_cap_ecat/1.1.0/config.xml",
