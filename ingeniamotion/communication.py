@@ -253,14 +253,19 @@ class Communication(metaclass=MCMetaClass):
         if ifname not in self.mc.net:
             self.mc.net[ifname] = EoENetwork(ifname)
         net = self.mc.net[ifname]
-        servo = net.connect_to_slave(
-            slave,
-            ip,
-            dict_path,
-            port,
-            servo_status_listener=servo_status_listener,
-            net_status_listener=net_status_listener,
-        )
+        try:
+            servo = net.connect_to_slave(
+                slave,
+                ip,
+                dict_path,
+                port,
+                servo_status_listener=servo_status_listener,
+                net_status_listener=net_status_listener,
+            )
+        except ILError as e:
+            if len(net.servos) == 0:
+                del self.mc.net[ifname]
+            raise e
         servo.slave = slave  # type: ignore [attr-defined]
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = ifname
@@ -620,12 +625,17 @@ class Communication(metaclass=MCMetaClass):
         if interface_name not in self.mc.net:
             self.mc.net[interface_name] = EthercatNetwork(interface_name)
         net = self.mc.net[interface_name]
-        servo = net.connect_to_slave(
-            slave_id,
-            dict_path,
-            servo_status_listener=servo_status_listener,
-            net_status_listener=net_status_listener,
-        )
+        try:
+            servo = net.connect_to_slave(
+                slave_id,
+                dict_path,
+                servo_status_listener=servo_status_listener,
+                net_status_listener=net_status_listener,
+            )
+        except ILError as e:
+            if len(net.servos) == 0:
+                del self.mc.net[interface_name]
+            raise e
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = interface_name
 
