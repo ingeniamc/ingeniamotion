@@ -5,6 +5,7 @@
 - FSoE module.
 - STO example for Safe servo drives.
 - Use only one queue in the PDO Poller to store both the timestamps and the register values.
+- Check that registers to be mapped in monitoring are CYCLIC_TX.
 - Method to get the available CAN devices.
 
 ### Fix
