@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union
 
 import ingenialogger
 import numpy as np
-from ingenialink.enums.register import REG_DTYPE
+from ingenialink.enums.register import REG_DTYPE, RegCyclicType
 
 from ingeniamotion.enums import (
     MonitoringProcessStage,
@@ -123,6 +123,7 @@ class Monitoring(ABC):
         Raises:
             IMMonitoringError: If register maps fails in the servo.
             IMMonitoringError: If buffer size is not enough for all the registers.
+            IMMonitoringError: If any register is not CYCLIC_TX.
             TypeError: If some parameter has a wrong type.
 
         """
@@ -137,6 +138,10 @@ class Monitoring(ABC):
             if not isinstance(register, str):
                 raise TypeError("Register has to be a string")
             register_obj = self.mc.info.register_info(register, subnode, servo=self.servo)
+            if register_obj.cyclic not in [RegCyclicType.TX, RegCyclicType.TXRX]:
+                raise IMMonitoringError(
+                    f"{register} can not be mapped as a monitoring register (wrong cyclic)"
+                )
             dtype = register_obj.dtype
             channel["dtype"] = dtype
 
