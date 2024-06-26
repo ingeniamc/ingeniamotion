@@ -53,8 +53,8 @@ def connect_eoe(mc, config, alias):
 
 
 def connect_soem(mc, config, alias):
-    mc.communication.connect_servo_ethercat_interface_index(
-        config["index"],
+    mc.communication.connect_servo_ethercat(
+        config["ifname"],
         config["slave"],
         config["dictionary"],
         alias,
