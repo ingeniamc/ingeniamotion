@@ -29,8 +29,8 @@ def connect_to_all_slaves(motion_controller, pytestconfig):
             continue
         alias = f"test{slave_content['slave']}"
         aliases.append(alias)
-        mc.communication.connect_servo_ethercat_interface_index(
-            slave_content["index"],
+        mc.communication.connect_servo_ethercat(
+            slave_content["ifname"],
             slave_content["slave"],
             slave_content["dictionary"],
             alias,
