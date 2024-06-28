@@ -47,5 +47,5 @@ if __name__ == '__main__':
     # Modify these parameters according to your setup
     network_interface_ip = "192.168.2.1"
     ethercat_slave_id = 1
-    dictionary_path = "C://Users//martin.acosta//OneDrive - Novanta//Documents//issues//INGK-911//den-s-net-e_eoe_2.6.0.xdf"
+    dictionary_path = "safe_dict.xdf"
     main(network_interface_ip, ethercat_slave_id, dictionary_path)
