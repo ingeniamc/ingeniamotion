@@ -16,7 +16,7 @@ def main(interface_ip, slave_id, dict_path):
     mc.motion.set_operation_mode(OperationMode.VELOCITY)
     # Create and start the FSoE master handler
     mc.fsoe.create_fsoe_master_handler()
-    mc.fsoe.start_master(start_pdos=True)
+    mc.fsoe.configure_pdos(start_pdos=True)
     # Wait for the master to reach the Data state
     mc.fsoe.wait_for_state_data()
     # Deactivate the STO
@@ -47,5 +47,5 @@ if __name__ == '__main__':
     # Modify these parameters according to your setup
     network_interface_ip = "192.168.2.1"
     ethercat_slave_id = 1
-    dictionary_path = "safe_dict.xdf"
+    dictionary_path = "C://Users//martin.acosta//OneDrive - Novanta//Documents//issues//INGK-911//den-s-net-e_eoe_2.6.0.xdf"
     main(network_interface_ip, ethercat_slave_id, dictionary_path)
