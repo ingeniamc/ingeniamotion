@@ -1056,7 +1056,12 @@ class Communication(metaclass=MCMetaClass):
         return fw_file.endswith(FILE_EXT_SFU)
 
     def load_firmware_ecat(
-        self, ifname: str, fw_file: str, slave: int = 1, boot_in_app: Optional[bool] = None
+        self,
+        ifname: str,
+        fw_file: str,
+        slave: int = 1,
+        boot_in_app: Optional[bool] = None,
+        password: Optional[int] = None,
     ) -> None:
         """Load firmware via ECAT.
 
@@ -1067,6 +1072,8 @@ class Communication(metaclass=MCMetaClass):
             slave : slave index. ``1`` by default.
             boot_in_app: true if the bootloader is included in the application, false otherwise.
                 If None, the file extension is used to define it.
+            password: Password to load the firmware file. If ``None`` the default password will be
+                used.
 
         Raises:
             FileNotFoundError: If the firmware file cannot be found.
@@ -1079,13 +1086,18 @@ class Communication(metaclass=MCMetaClass):
 
         net = EthercatNetwork(ifname)
         if fw_file.endswith(self.ENSEMBLE_FIRMWARE_EXTENSION):
-            self.__load_ensemble_fw_ecat(net, fw_file, slave, boot_in_app)
+            self.__load_ensemble_fw_ecat(net, fw_file, slave, boot_in_app, password)
         else:
             boot_in_app = self.__get_boot_in_app(fw_file) if boot_in_app is None else boot_in_app
-            net.load_firmware(fw_file, boot_in_app, slave)
+            net.load_firmware(fw_file, boot_in_app, slave, password)
 
     def load_firmware_ecat_interface_index(
-        self, if_index: int, fw_file: str, slave: int = 1
+        self,
+        if_index: int,
+        fw_file: str,
+        slave: int = 1,
+        boot_in_app: Optional[bool] = None,
+        password: Optional[int] = None,
     ) -> None:
         """Load firmware via ECAT.
 
@@ -1094,6 +1106,10 @@ class Communication(metaclass=MCMetaClass):
                 :func:`get_interface_name_list`.
             fw_file : Firmware file path.
             slave : slave index. ``1`` by default.
+            boot_in_app: true if the bootloader is included in the application, false otherwise.
+                If ``None``, the file extension is used to define it.
+            password: Password to load the firmware file. If ``None`` the default password will be
+                used.
 
         Raises:
             IndexError: If interface index is out of range.
@@ -1103,7 +1119,9 @@ class Communication(metaclass=MCMetaClass):
             NotImplementedError: If FoE is not implemented for the current OS and architecture
 
         """
-        self.load_firmware_ecat(self.get_ifname_by_index(if_index), fw_file, slave)
+        self.load_firmware_ecat(
+            self.get_ifname_by_index(if_index), fw_file, slave, boot_in_app, password
+        )
 
     def load_firmware_ethernet(
         self, ip: str, fw_file: str, ftp_user: Optional[str] = None, ftp_pwd: Optional[str] = None
@@ -1306,7 +1324,12 @@ class Communication(metaclass=MCMetaClass):
             )
 
     def __load_ensemble_fw_ecat(
-        self, net: EthercatNetwork, fw_file: str, slave: int, boot_in_app: Optional[bool]
+        self,
+        net: EthercatNetwork,
+        fw_file: str,
+        slave: int,
+        boot_in_app: Optional[bool],
+        password: Optional[int],
     ) -> None:
         """Load FW to an ensemble of servos through Ethercat.
 
@@ -1319,6 +1342,8 @@ class Communication(metaclass=MCMetaClass):
             slave: Slave ID (any slave in the ensemble)
             boot_in_app: true if the bootloader is included in the application, false otherwise.
                 If None, the file extension is used to define it.
+            password: Password to load the firmware file. If ``None`` the default password will be
+                used.
         """
         mapping = self.__unzip_ensemble_fw_file(fw_file)
         scanned_slaves = net.scan_slaves_info()
