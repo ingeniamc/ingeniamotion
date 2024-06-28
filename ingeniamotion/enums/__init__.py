@@ -212,3 +212,35 @@ class FilterNumber(IntEnum):
 
     FILTER1 = 1
     FILTER2 = 2
+
+
+class DigitalVoltageLevel(IntEnum):
+    """GPIOs voltage level (HIGH/LOW) enum"""
+
+    HIGH = 1
+    LOW = 0
+
+
+class GPIOPolarity(IntEnum):
+    """GPIOs polarity enum"""
+
+    NORMAL = 0
+    REVERSED = 1
+
+
+class GPI(IntEnum):
+    """GPIs identifier enum"""
+
+    GPI1 = 1
+    GPI2 = 2
+    GPI3 = 3
+    GPI4 = 4
+
+
+class GPO(IntEnum):
+    """GPOs identifier enum"""
+
+    GPO1 = 1
+    GPO2 = 2
+    GPO3 = 3
+    GPO4 = 4

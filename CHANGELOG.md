@@ -7,6 +7,7 @@
 - Use only one queue in the PDO Poller to store both the timestamps and the register values.
 - Check that registers to be mapped in monitoring are CYCLIC_TX.
 - Method to get the available CAN devices.
+- GPIO module.
 
 ### Fix
 - Bug retrieving interface adapter name in Linux.
