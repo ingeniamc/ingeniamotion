@@ -16,7 +16,7 @@ def main(interface_ip, slave_id, dict_path):
     mc.motion.set_operation_mode(OperationMode.VELOCITY)
     # Create and start the FSoE master handler
     mc.fsoe.create_fsoe_master_handler()
-    mc.fsoe.start_master(start_pdos=True)
+    mc.fsoe.configure_pdos(start_pdos=True)
     # Wait for the master to reach the Data state
     mc.fsoe.wait_for_state_data()
     # Deactivate the STO

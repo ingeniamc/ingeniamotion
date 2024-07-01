@@ -49,16 +49,17 @@ class FSoEMasterHandler:
         self.__safety_master_pdu = RPDOMap()
         self.__safety_slave_pdu = TPDOMap()
         self._configure_pdo_maps()
+        self.__running = False
 
-    def start(self) -> None:
+    def _start(self) -> None:
         """Start the FSoE Master handler."""
         self.__master_handler.start()
-        # Load initial request to the Safety Master PDU PDOMap
-        self.get_request()
+        self.__running = True
 
     def stop(self) -> None:
         """Stop the master handler"""
         self.__master_handler.stop()
+        self.__running = False
 
     def delete(self) -> None:
         """Delete the master handler"""
@@ -67,6 +68,10 @@ class FSoEMasterHandler:
     def _configure_pdo_maps(self) -> None:
         """Configure the PDOMaps used for the Safety PDUs."""
         PDUMapper.configure_rpdo_map(self.safety_master_pdu_map)
+        # Set the default initial value to the Safety Master PDU PDOMap
+        self.safety_master_pdu_map.set_item_bytes(
+            int(0).to_bytes(self.safety_master_pdu_map.data_length_bytes, "little")
+        )
         PDUMapper.configure_tpdo_map(self.safety_slave_pdu_map)
 
     def _configure_master(self) -> None:
@@ -88,6 +93,8 @@ class FSoEMasterHandler:
 
     def get_request(self) -> None:
         """Set the FSoE master handler request to the Safety Master PDU PDOMap"""
+        if not self.__running:
+            self._start()
         self.safety_master_pdu_map.set_item_bytes(self.__master_handler.get_request())
 
     def set_reply(self) -> None:
@@ -250,16 +257,14 @@ class FSoEMaster:
         self.__handlers[servo] = master_handler
         self.__next_connection_id += 1
 
-    def start_master(self, start_pdos: bool = False) -> None:
-        """Start all the FSoE Master handlers.
+    def configure_pdos(self, start_pdos: bool = False) -> None:
+        """Configure the PDOs used for the Safety PDUs.
 
         Args:
             start_pdos: if ``True``, start the PDO exchange, if ``False``
                 the PDO exchange should be started after. ``False`` by default.
 
         """
-        for servo, master_handler in self.__handlers.items():
-            master_handler.start()
         self._set_pdo_maps_to_slaves()
         self._subscribe_to_pdo_thread_events()
         if start_pdos:
