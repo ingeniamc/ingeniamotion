@@ -8,6 +8,7 @@
 - Check that registers to be mapped in monitoring are CYCLIC_TX.
 - Method to get the available CAN devices.
 - GPIO module.
+- Optional password for the FOE bootloader.
 
 ### Fix
 - Bug retrieving interface adapter name in Linux.
