@@ -1,11 +1,10 @@
 import time
+from functools import partial
+from threading import Thread
 
 import pytest
 
-from threading import Thread
-from functools import partial
-
-from ingeniamotion.enums import MonitoringSoCType, MonitoringSoCConfig
+from ingeniamotion.enums import MonitoringSoCConfig, MonitoringSoCType
 from ingeniamotion.exceptions import IMMonitoringError
 
 MONITOR_START_CONDITION_TYPE_REGISTER = "MON_CFG_SOC_TYPE"
@@ -157,6 +156,14 @@ def test_monitoring_map_registers_size_exception(monitoring):
 @pytest.mark.smoke
 def test_monitoring_map_registers_fail(monitoring):
     registers = []
+    with pytest.raises(IMMonitoringError):
+        monitoring.map_registers(registers)
+
+
+@pytest.mark.virtual
+@pytest.mark.smoke
+def test_monitoring_map_registers_wrong_cyclic(monitoring):
+    registers = [{"axis": 1, "name": "DRV_STATE_CONTROL"}]
     with pytest.raises(IMMonitoringError):
         monitoring.map_registers(registers)
 

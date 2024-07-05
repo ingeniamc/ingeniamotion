@@ -206,20 +206,22 @@ class Information(metaclass=MCMetaClass):
             raise IMException("You need an Ethernet communication to use this function")
 
     def get_slave_id(self, alias: str = DEFAULT_SERVO) -> int:
-        """Get the slave ID for EoE communications.
+        """Get the EtherCAT slave ID of a given servo.
 
         Args:
             alias: alias of the servo.
 
         Returns:
-            Slave ID of the drive.
+            Slave ID of the servo.
+
         """
         net = self.mc._get_network(alias)
         drive = self.mc.servos[alias]
         if isinstance(net, EoENetwork) and isinstance(drive.target, str):
-            return int(net._configured_slaves[drive.target])
-        else:
-            raise IMException("You need a CANopen communication to use this function")
+            return net._configured_slaves[drive.target]
+        elif isinstance(net, EthercatNetwork) and isinstance(drive.target, int):
+            return drive.target
+        raise IMException(f"The servo {alias} is not an EtherCAT slave.")
 
     def get_name(self, alias: str = DEFAULT_SERVO) -> str:
         """Get the drive's name.

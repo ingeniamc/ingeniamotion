@@ -5,10 +5,15 @@
 - FSoE module.
 - STO example for Safe servo drives.
 - Use only one queue in the PDO Poller to store both the timestamps and the register values.
+- Check that registers to be mapped in monitoring are CYCLIC_TX.
+- Method to get the available CAN devices.
+- GPIO module.
+- Optional password for the FOE bootloader.
 
 ### Fix
 - Bug retrieving interface adapter name in Linux.
 - The stoppable_sleep method of the wizard tests does not block the main thread.
+- Set feedbacks to internal generator during brake testing.
 
 ## [0.8.1] - 2024-06-05
 ### Added

@@ -1,16 +1,16 @@
 import time
 
-import pytest
 import numpy as np
+import pytest
 
-from ingeniamotion.exceptions import IMStatusWordError, IMMonitoringError
 from ingeniamotion.enums import (
-    OperationMode,
-    MonitoringSoCType,
-    MonitoringSoCConfig,
-    MonitoringVersion,
     MonitoringProcessStage,
+    MonitoringSoCConfig,
+    MonitoringSoCType,
+    MonitoringVersion,
+    OperationMode,
 )
+from ingeniamotion.exceptions import IMMonitoringError, IMStatusWordError
 
 
 def __compare_signals(expected_signal, received_signal, fft_tol=0.05):
@@ -32,7 +32,6 @@ def test_create_poller(motion_controller):
     poller = mc.capture.create_poller(registers, alias, sampling_time, buffer_size=64)
     period = 1
     expected_signal = [0.0] * int(period / sampling_time)
-    time.sleep(sampling_time)
     for i in range(7):
         time.sleep(period + sampling_time / 10.0)
         mc.motion.set_current_quadrature(0.2 * (i + 1), servo=alias)

@@ -176,7 +176,7 @@ def test_load_fw_ftp(read_config, script_runner, mocker):
 @pytest.mark.soem
 def test_load_fw_ecat(read_config, script_runner, mocker):
     script_path = "examples/load_fw_ecat.py"
-    interface_index = read_config["index"]
+    interface_index = 0
     slave_id = read_config["slave"]
     fw_file = read_config["fw_file"]
 
