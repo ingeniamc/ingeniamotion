@@ -284,7 +284,7 @@ class Information(metaclass=MCMetaClass):
         drive = self.mc.servos[alias]
         return drive.subnodes
 
-    def get_categories(self, alias: str) -> Dict[str, str]:
+    def get_categories(self, alias: str = DEFAULT_SERVO) -> Dict[str, str]:
         """Return dictionary categories instance.
 
         Args:
@@ -303,7 +303,7 @@ class Information(metaclass=MCMetaClass):
             categories[cat_id] = dictionary_categories.labels(cat_id)["en_US"]
         return categories
 
-    def get_dictionary_file_name(self, alias: str) -> str:
+    def get_dictionary_file_name(self, alias: str = DEFAULT_SERVO) -> str:
         """Return dictionary file name.
 
         Args:
@@ -315,7 +315,7 @@ class Information(metaclass=MCMetaClass):
         drive = self.mc.servos[alias]
         return str(os.path.basename(drive.dictionary.path))
 
-    def get_encoded_image_from_dictionary(self, alias: str) -> Optional[str]:
+    def get_encoded_image_from_dictionary(self, alias: str = DEFAULT_SERVO) -> Optional[str]:
         """Get the encoded product image from a drive dictionary.
         This function reads a dictionary of a drive, and it parses whether the dictionary file has a
         DriveImage tag and its content.
