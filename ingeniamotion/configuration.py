@@ -869,13 +869,13 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
     def get_drive_info_coco_moco(
         self,
-        alias: str = DEFAULT_SERVO,
+        servo: str = DEFAULT_SERVO,
     ) -> Tuple[List[Optional[int]], List[Optional[int]], List[Optional[str]], List[Optional[int]]]:
         """Get product codes, revision numbers, firmware versions and serial numbers from
         COCO and MOCO.
 
         Args:
-            alias: Servo alias.
+            servo: Servo alias.
 
         Returns:
             Product codes (COCO, MOCO).
@@ -892,7 +892,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         for subnode in [0, 1]:
             # Product codes
             try:
-                prod_codes[subnode] = self.get_product_code(alias, subnode)
+                prod_codes[subnode] = self.get_product_code(servo, subnode)
             except (
                 ILError,
                 IMException,
@@ -900,17 +900,17 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
                 self.logger.error(e)
             # Revision numbers
             try:
-                rev_numbers[subnode] = self.get_revision_number(alias, subnode)
+                rev_numbers[subnode] = self.get_revision_number(servo, subnode)
             except (ILError, IMException) as e:
                 self.logger.error(e)
             # FW versions
             try:
-                fw_versions[subnode] = self.get_fw_version(alias, subnode)
+                fw_versions[subnode] = self.get_fw_version(servo, subnode)
             except (ILError, IMException) as e:
                 self.logger.error(e)
             # Serial numbers
             try:
-                serial_number[subnode] = self.get_serial_number(alias, subnode)
+                serial_number[subnode] = self.get_serial_number(servo, subnode)
             except (ILError, IMException) as e:
                 self.logger.error(e)
 

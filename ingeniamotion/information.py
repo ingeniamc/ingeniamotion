@@ -144,108 +144,108 @@ class Information(metaclass=MCMetaClass):
         drive = self.mc.servos[servo]
         return register in drive.dictionary.registers(axis)
 
-    def get_product_name(self, alias: str = DEFAULT_SERVO) -> Optional[str]:
+    def get_product_name(self, servo: str = DEFAULT_SERVO) -> Optional[str]:
         """Get the product name of the drive.
 
         Args:
-            alias: alias of the servo.
+            servo: alias of the servo.
 
         Returns:
             If it exists for example: "EVE-NET-E", "CAP-NET-E", etc.
         """
-        drive = self.mc.servos[alias]
+        drive = self.mc.servos[servo]
         product_name = drive.dictionary.part_number
         if product_name is not None:
             return f"{product_name}"
         return None
 
-    def get_node_id(self, alias: str = DEFAULT_SERVO) -> int:
+    def get_node_id(self, servo: str = DEFAULT_SERVO) -> int:
         """Get the node ID for CANopen communications.
 
         Args:
-            alias: alias of the servo.
+            servo: alias of the servo.
 
         Returns:
             Node ID of the drive.
         """
-        net = self.mc._get_network(alias)
-        drive = self.mc.servos[alias]
+        net = self.mc._get_network(servo)
+        drive = self.mc.servos[servo]
         if isinstance(net, CanopenNetwork):
             return int(drive.target)
         else:
             raise IMException("You need a CANopen communication to use this function")
 
-    def get_baudrate(self, alias: str = DEFAULT_SERVO) -> CAN_BAUDRATE:
+    def get_baudrate(self, servo: str = DEFAULT_SERVO) -> CAN_BAUDRATE:
         """Get the baudrate of target servo
 
         Args:
-            alias: alias of the servo.
+            servo: alias of the servo.
 
         Returns:
             Baudrate of the drive.
         """
-        net = self.mc._get_network(alias)
+        net = self.mc._get_network(servo)
         if isinstance(net, CanopenNetwork):
             return CAN_BAUDRATE(net.baudrate)
-        raise IMException(f"The servo {alias} is not a CANopen device.")
+        raise IMException(f"The servo {servo} is not a CANopen device.")
 
-    def get_ip(self, alias: str = DEFAULT_SERVO) -> str:
+    def get_ip(self, servo: str = DEFAULT_SERVO) -> str:
         """Get the IP for Ethernet communications.
 
         Args:
-            alias: alias of the servo.
+            servo: alias of the servo.
 
         Returns:
             IP of the drive.
         """
-        net = self.mc._get_network(alias)
-        drive = self.mc.servos[alias]
+        net = self.mc._get_network(servo)
+        drive = self.mc.servos[servo]
         if isinstance(net, EthernetNetwork):
             return str(drive.target)
         else:
             raise IMException("You need an Ethernet communication to use this function")
 
-    def get_slave_id(self, alias: str = DEFAULT_SERVO) -> int:
+    def get_slave_id(self, servo: str = DEFAULT_SERVO) -> int:
         """Get the EtherCAT slave ID of a given servo.
 
         Args:
-            alias: alias of the servo.
+            servo: alias of the servo.
 
         Returns:
             Slave ID of the servo.
 
         """
-        net = self.mc._get_network(alias)
-        drive = self.mc.servos[alias]
+        net = self.mc._get_network(servo)
+        drive = self.mc.servos[servo]
         if isinstance(net, EoENetwork) and isinstance(drive.target, str):
             return net._configured_slaves[drive.target]
         elif isinstance(net, EthercatNetwork) and isinstance(drive.target, int):
             return drive.target
-        raise IMException(f"The servo {alias} is not an EtherCAT slave.")
+        raise IMException(f"The servo {servo} is not an EtherCAT slave.")
 
-    def get_name(self, alias: str = DEFAULT_SERVO) -> str:
+    def get_name(self, servo: str = DEFAULT_SERVO) -> str:
         """Get the drive's name.
 
         Args:
-            alias: Alias of the servo.
+            servo: Alias of the servo.
         Returns:
             The name of the drive.
         """
-        drive = self.mc.servos[alias]
+        drive = self.mc.servos[servo]
         drive_name = drive.name
         return f"{drive_name}"
 
-    def get_communication_type(self, alias: str = DEFAULT_SERVO) -> COMMUNICATION_TYPE:
+    def get_communication_type(self, servo: str = DEFAULT_SERVO) -> COMMUNICATION_TYPE:
         """Get the connected drive's communication type.
 
         Args:
-            alias: alias of the connected drive.
+            servo: alias of the connected drive.
 
         Returns:
             CANopen, Ethernet, or EtherCAT.
 
         """
-        drive_network = self.mc._get_network(alias)
+        drive_network = self.mc._get_network(servo)
         if isinstance(drive_network, CanopenNetwork):
             communication_type = COMMUNICATION_TYPE.Canopen
         elif isinstance(drive_network, EthernetNetwork):
@@ -254,46 +254,46 @@ class Information(metaclass=MCMetaClass):
             communication_type = COMMUNICATION_TYPE.Ethercat
         return communication_type
 
-    def get_full_name(self, alias: str = DEFAULT_SERVO) -> str:
+    def get_full_name(self, servo: str = DEFAULT_SERVO) -> str:
         """Return the full name of the drive [Product name] [Name] ([Target]).
 
         Args:
-            alias: Drive alias.
+            servo: Drive alias.
 
         Returns:
             Full name.
         """
-        prod_name = self.get_product_name(alias)
-        name = self.get_name(alias)
+        prod_name = self.get_product_name(servo)
+        name = self.get_name(servo)
         full_name = f"{prod_name} - {name}"
-        net = self.mc._get_network(alias)
+        net = self.mc._get_network(servo)
         if isinstance(net, EthernetNetwork):
-            ip = self.get_ip(alias)
+            ip = self.get_ip(servo)
             full_name = f"{full_name} ({ip})"
         return full_name
 
-    def get_subnodes(self, alias: str = DEFAULT_SERVO) -> Dict[int, SubnodeType]:
+    def get_subnodes(self, servo: str = DEFAULT_SERVO) -> Dict[int, SubnodeType]:
         """Return a dictionary with the subnodes IDs as keys and their type as values.
 
         Args:
-            alias: Drive alias.
+            servo: Drive alias.
 
         Returns:
             Dictionary of subnode ids and their type.
         """
-        drive = self.mc.servos[alias]
+        drive = self.mc.servos[servo]
         return drive.subnodes
 
-    def get_categories(self, alias: str = DEFAULT_SERVO) -> Dict[str, str]:
+    def get_categories(self, servo: str = DEFAULT_SERVO) -> Dict[str, str]:
         """Return dictionary categories instance.
 
         Args:
-            alias: Drive alias.
+            servo: Drive alias.
 
         Returns:
             Categories instance.
         """
-        drive = self.mc.servos[alias]
+        drive = self.mc.servos[servo]
         dictionary_categories = drive.dictionary.categories
         if not dictionary_categories:
             raise IMException("Dictionary categories are not defined.")
@@ -303,26 +303,26 @@ class Information(metaclass=MCMetaClass):
             categories[cat_id] = dictionary_categories.labels(cat_id)["en_US"]
         return categories
 
-    def get_dictionary_file_name(self, alias: str = DEFAULT_SERVO) -> str:
+    def get_dictionary_file_name(self, servo: str = DEFAULT_SERVO) -> str:
         """Return dictionary file name.
 
         Args:
-            alias: Drive alias.
+            servo: Drive alias.
 
         Returns:
             Dictionary file name.
         """
-        drive = self.mc.servos[alias]
+        drive = self.mc.servos[servo]
         return str(os.path.basename(drive.dictionary.path))
 
-    def get_encoded_image_from_dictionary(self, alias: str = DEFAULT_SERVO) -> Optional[str]:
+    def get_encoded_image_from_dictionary(self, servo: str = DEFAULT_SERVO) -> Optional[str]:
         """Get the encoded product image from a drive dictionary.
         This function reads a dictionary of a drive, and it parses whether the dictionary file has a
         DriveImage tag and its content.
         Args:
-            alias: Alias of the drive.
+            servo: Alias of the drive.
         Returns:
             The encoded image or NoneType object.
         """
-        drive = self.mc.servos[alias]
+        drive = self.mc.servos[servo]
         return drive.dictionary.image
