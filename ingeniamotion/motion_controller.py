@@ -9,11 +9,11 @@ from ingeniamotion.communication import Communication
 from ingeniamotion.configuration import Configuration
 from ingeniamotion.drive_tests import DriveTests
 from ingeniamotion.errors import Errors
+from ingeniamotion.fsoe import FSoEMaster
 from ingeniamotion.information import Information
 from ingeniamotion.io import InputsOutputs
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.motion import Motion
-from ingeniamotion.fsoe import FSoEMaster
 
 
 class MotionController:
