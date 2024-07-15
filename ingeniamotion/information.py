@@ -24,6 +24,9 @@ logger = ingenialogger.get_logger(__name__)
 class Information(metaclass=MCMetaClass):
     """Information."""
 
+    PRODUCT_CODE_COMKIT = 0x3214001
+    PART_NUMBER_COMKIT = "COM-KIT"
+
     def __init__(self, motion_controller: "MotionController"):
         self.mc = motion_controller
 
@@ -155,9 +158,9 @@ class Information(metaclass=MCMetaClass):
         """
         drive = self.mc.servos[servo]
         product_name = drive.dictionary.part_number
-        if product_name is not None:
-            return f"{product_name}"
-        return None
+        if self.is_comkit(servo):
+            return f"{product_name} + {self.PART_NUMBER_COMKIT}"
+        return product_name
 
     def get_node_id(self, servo: str = DEFAULT_SERVO) -> int:
         """Get the node ID for CANopen communications.
@@ -326,3 +329,16 @@ class Information(metaclass=MCMetaClass):
         """
         drive = self.mc.servos[servo]
         return drive.dictionary.image
+
+    def is_comkit(self, servo: str = DEFAULT_SERVO) -> bool:
+        """Check if drive is connected via a COM-KIT.
+
+        Args:
+            servo: Alias of the drive.
+
+        Returns:
+            True if using COM-KIT, False otherwise.
+
+        """
+        drive = self.mc.servos[servo]
+        return drive.dictionary.coco_product_code == self.PRODUCT_CODE_COMKIT
