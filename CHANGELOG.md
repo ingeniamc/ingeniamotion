@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+### Added
+- Method to check if drive is connected via a COM-KIT.
+
 ## [0.8.2] - 2024-07-15
 ### Added
 - FSoE module.
@@ -9,7 +13,6 @@
 - Method to get the available CAN devices.
 - GPIO module.
 - Optional password for the FOE bootloader.
-- Method to check if drive is connected via a COM-KIT.
 
 ### Fix
 - Bug retrieving interface adapter name in Linux.
