@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.8.2] - 2024-07-15
 ### Added
 - FSoE module.
 - STO example for Safe servo drives.
