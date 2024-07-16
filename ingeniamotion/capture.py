@@ -1,10 +1,10 @@
 from typing import TYPE_CHECKING, Dict, List, Optional, Union
 
 import numpy as np
-from numpy.typing import NDArray
+from ingenialink.dictionary import SubnodeType
 from ingenialink.exceptions import ILIOError
 from ingenialink.poller import Poller
-from ingenialink.dictionary import SubnodeType
+from numpy.typing import NDArray
 
 from ingeniamotion.disturbance import Disturbance
 from ingeniamotion.enums import (
@@ -295,7 +295,6 @@ class Capture(metaclass=MCMetaClass):
             and disturbance.
 
         """
-        drive = self.mc._get_drive(servo)
         try:
             self.mc.communication.get_register(
                 self.MONITORING_VERSION_REGISTER, servo=servo, axis=0

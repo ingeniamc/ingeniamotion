@@ -136,6 +136,24 @@ pipeline {
                 }
             }
         }
+        stage('Publish ingeniamotion'){
+            when {
+                beforeAgent true
+                branch BRANCH_NAME_MASTER
+            }
+            agent {
+                docker {
+                    label "worker"
+                    image "ingeniacontainers.azurecr.io/publisher:1.8"
+                }
+            }
+            steps {
+                unstash 'publish_files'
+                unzip zipFile: 'docs.zip', dir: '.'
+                publishDistExt("_docs", DISTEXT_PROJECT_DIR, false)
+                publishPyPi("dist/*")
+            }
+        }
         stage('Ecat tests') {
             options {
                 lock(ECAT_NODE_LOCK)
@@ -166,7 +184,7 @@ pipeline {
                             }
                             axis {
                                 name 'PYTHON'
-                                values '39', '310', '311', '312'
+                                values '39', '310', '311'
                             }
                         }
                         excludes {
@@ -230,8 +248,8 @@ pipeline {
                                         bat """
                                             move .coverage .coverage_soem
                                         """    
-                                        junit "pytest_reports\\*.xml"
-                                        archiveArtifacts artifacts: 'pytest_reports\\*.xml'
+                                        junit "pytest_reports\\pytest_soem_${SLAVE}_report_py${PYTHON}.xml"
+                                        archiveArtifacts artifacts: "pytest_reports\\pytest_soem_${SLAVE}_report_py${PYTHON}.xml"
                                         stash includes: ".coverage_soem", name: "coverage_report_soem"
                                     }
                                 }
@@ -275,7 +293,7 @@ pipeline {
                             }
                             axis {
                                 name 'PYTHON'
-                                values '39', '310', '311', '312'
+                                values '39', '310', '311'
                             }
                         }
                         excludes {
@@ -387,24 +405,6 @@ pipeline {
                         archiveArtifacts artifacts: '*.xml'
                     }
                 }
-            }
-        }
-        stage('Publish ingeniamotion'){
-            when {
-                beforeAgent true
-                branch BRANCH_NAME_MASTER
-            }
-            agent {
-                docker {
-                    label "worker"
-                    image "ingeniacontainers.azurecr.io/publisher:1.8"
-                }
-            }
-            steps {
-                unstash 'publish_files'
-                unzip zipFile: 'docs.zip', dir: '.'
-                publishDistExt("_docs", DISTEXT_PROJECT_DIR, false)
-                publishPyPi("dist/*")
             }
         }
     }

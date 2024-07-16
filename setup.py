@@ -19,9 +19,9 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     include_package_data=True,
     package_data={"ingeniamotion": ["py.typed"]},
-    author="Ingenia Motion Control",
+    author="Novanta",
     author_email="support@ingeniamc.com",
-    description="Motion library for Ingenia servo drives",
+    description="Motion library for Novanta servo drives",
     long_description=long_description,
     long_description_content_type="text/x-rst",
     url="https://www.ingeniamc.com",
@@ -34,9 +34,10 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        "ingenialink>=7.3.2, < 8.0.0",
+        "ingenialink>=7.3.3, < 8.0.0",
         "ingenialogger>=0.2.1",
         "ifaddr==0.1.7",
+        "fsoe-master==0.1.1"
     ],
     python_requires=">=3.9",
 )

@@ -19,8 +19,8 @@ import ingeniamotion
 # -- Project information -----------------------------------------------------
 
 project = 'ingeniamotion'
-copyright = '2021, Ingenia Motion Control'
-author = 'Ingenia Motion Control'
+copyright = '2021, Novanta Technologies Spain S.L.'
+author = 'Novanta'
 version = ingeniamotion.__version__
 
 # The full version, including alpha/beta/rc tags

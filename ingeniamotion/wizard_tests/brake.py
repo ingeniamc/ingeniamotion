@@ -3,18 +3,19 @@ from typing import TYPE_CHECKING, Dict, Union
 import ingenialogger
 from ingenialink.exceptions import ILError
 
+from ingeniamotion.enums import CommutationMode, OperationMode, SensorType, SeverityLevel
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.wizard_tests.base_test import BaseTest
 from ingeniamotion.wizard_tests.stoppable import StopException
-from ingeniamotion.enums import OperationMode, SeverityLevel, CommutationMode
-from ingeniamotion.metaclass import DEFAULT_SERVO, DEFAULT_AXIS
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
 
 
 class Brake(BaseTest):
-
     BRAKE_OVERRIDE_REGISTER = "MOT_BRAKE_OVERRIDE"
+
+    PRIMARY_ABSOLUTE_SLAVE_1_PROTOCOL = "FBK_BISS1_SSI1_PROTOCOL"
 
     BACKUP_REGISTERS = [
         "MOT_BRAKE_OVERRIDE",
@@ -22,7 +23,12 @@ class Brake(BaseTest):
         "MOT_PAIR_POLES",
         "COMMU_PHASING_MODE",
         "COMMU_ANGLE_SENSOR",
+        "COMMU_ANGLE_REF_SENSOR",
+        "CL_VEL_FBK_SENSOR",
+        "CL_POS_FBK_SENSOR",
+        "CL_AUX_FBK_SENSOR",
         "MOT_COMMU_MOD",
+        PRIMARY_ABSOLUTE_SLAVE_1_PROTOCOL,
     ]
 
     def __init__(
@@ -43,6 +49,21 @@ class Brake(BaseTest):
         )
         self.mc.motion.set_internal_generator_configuration(
             OperationMode.VOLTAGE, servo=self.servo, axis=self.axis
+        )
+        self.mc.configuration.set_reference_feedback(
+            SensorType.INTGEN, servo=self.servo, axis=self.axis
+        )
+        self.mc.configuration.set_velocity_feedback(
+            SensorType.INTGEN, servo=self.servo, axis=self.axis
+        )
+        self.mc.configuration.set_position_feedback(
+            SensorType.INTGEN, servo=self.servo, axis=self.axis
+        )
+        self.mc.configuration.set_auxiliar_feedback(
+            SensorType.ABS1, servo=self.servo, axis=self.axis
+        )
+        self.mc.communication.set_register(
+            self.PRIMARY_ABSOLUTE_SLAVE_1_PROTOCOL, 1, servo=self.servo, axis=self.axis
         )
 
     def loop(self) -> None:

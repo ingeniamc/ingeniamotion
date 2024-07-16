@@ -1,6 +1,7 @@
-from enum import IntEnum, Enum
-from ingenialink.enums.register import REG_DTYPE, REG_ACCESS
+from enum import Enum, IntEnum
+
 from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE
+from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
 
 
 class OperationMode(IntEnum):
@@ -213,6 +214,33 @@ class FilterNumber(IntEnum):
     FILTER2 = 2
 
 
-enums = list(globals().keys())
-enums.remove("IntEnum")
-__all__ = enums
+class DigitalVoltageLevel(IntEnum):
+    """GPIOs voltage level (HIGH/LOW) enum"""
+
+    HIGH = 1
+    LOW = 0
+
+
+class GPIOPolarity(IntEnum):
+    """GPIOs polarity enum"""
+
+    NORMAL = 0
+    REVERSED = 1
+
+
+class GPI(IntEnum):
+    """GPIs identifier enum"""
+
+    GPI1 = 1
+    GPI2 = 2
+    GPI3 = 3
+    GPI4 = 4
+
+
+class GPO(IntEnum):
+    """GPOs identifier enum"""
+
+    GPO1 = 1
+    GPO2 = 2
+    GPO3 = 3
+    GPO4 = 4

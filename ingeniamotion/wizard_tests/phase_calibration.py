@@ -1,18 +1,19 @@
-from enum import IntEnum
 import time
+from enum import IntEnum
 from typing import TYPE_CHECKING, Optional
+
 import ingenialogger
 
 from ingeniamotion.enums import (
-    PhasingMode,
+    CommutationMode,
     OperationMode,
+    PhasingMode,
     SensorCategory,
     SensorType,
     SeverityLevel,
 )
 from ingeniamotion.exceptions import IMRegisterNotExist
 from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
-from ingeniamotion.enums import CommutationMode
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
@@ -92,7 +93,6 @@ class Phasing(BaseTest):
 
     @BaseTest.stoppable
     def check_input_data(self) -> None:
-
         max_current_drive = self.mc.communication.get_register(
             self.MAX_CURRENT_REGISTER, servo=self.servo, axis=self.axis
         )
@@ -177,10 +177,12 @@ class Phasing(BaseTest):
             self.mc.configuration.get_reference_feedback_category(servo=self.servo, axis=self.axis)
             == SensorCategory.INCREMENTAL
         ):
-            # Delete commutation feedback from backup registers list as commutation feedback is kept the same
+            # Delete commutation feedback from backup registers list as
+            # commutation feedback is kept the same
             fb = self.comm
         else:
-            # Need to restore commutation feedback as in commutation feedback is set the one in reference
+            # Need to restore commutation feedback as in commutation feedback
+            # is set the one in reference
             fb = self.ref
 
         # Check phasing registers mode
@@ -245,7 +247,8 @@ class Phasing(BaseTest):
 
     @BaseTest.stoppable
     def define_phasing_steps(self) -> int:
-        # Doc: Last step is defined as the first angle delta smaller than 3 times the phasing accuracy
+        # Doc: Last step is defined as the first angle delta smaller than 3 times
+        # the phasing accuracy
         delta = 3 * self.pha_accuracy / 1000
 
         # If reference feedback are Halls

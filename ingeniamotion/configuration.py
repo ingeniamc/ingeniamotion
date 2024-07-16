@@ -3,22 +3,22 @@ from os import path
 from typing import TYPE_CHECKING, List, Optional, Tuple, Union
 
 import ingenialogger
-from ingenialink.exceptions import ILError
-from ingenialink.canopen.network import CanopenNetwork, CAN_BAUDRATE
+from ingenialink.canopen.network import CAN_BAUDRATE, CanopenNetwork
 from ingenialink.ethernet.servo import EthernetServo
+from ingenialink.exceptions import ILError
 
-from ingeniamotion.homing import Homing
-from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
-from ingeniamotion.exceptions import IMException
-from ingeniamotion.feedbacks import Feedbacks
 from ingeniamotion.enums import (
-    GeneratorMode,
-    PhasingMode,
     CommutationMode,
     FilterNumber,
     FilterSignal,
     FilterType,
+    GeneratorMode,
+    PhasingMode,
 )
+from ingeniamotion.exceptions import IMException
+from ingeniamotion.feedbacks import Feedbacks
+from ingeniamotion.homing import Homing
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -868,13 +868,14 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         drive.restore_tcp_ip_parameters()
 
     def get_drive_info_coco_moco(
-        self, alias: str
+        self,
+        servo: str = DEFAULT_SERVO,
     ) -> Tuple[List[Optional[int]], List[Optional[int]], List[Optional[str]], List[Optional[int]]]:
         """Get product codes, revision numbers, firmware versions and serial numbers from
         COCO and MOCO.
 
         Args:
-            alias: Servo alias.
+            servo: Servo alias.
 
         Returns:
             Product codes (COCO, MOCO).
@@ -891,7 +892,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         for subnode in [0, 1]:
             # Product codes
             try:
-                prod_codes[subnode] = self.get_product_code(alias, subnode)
+                prod_codes[subnode] = self.get_product_code(servo, subnode)
             except (
                 ILError,
                 IMException,
@@ -899,28 +900,28 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
                 self.logger.error(e)
             # Revision numbers
             try:
-                rev_numbers[subnode] = self.get_revision_number(alias, subnode)
+                rev_numbers[subnode] = self.get_revision_number(servo, subnode)
             except (ILError, IMException) as e:
                 self.logger.error(e)
             # FW versions
             try:
-                fw_versions[subnode] = self.get_fw_version(alias, subnode)
+                fw_versions[subnode] = self.get_fw_version(servo, subnode)
             except (ILError, IMException) as e:
                 self.logger.error(e)
             # Serial numbers
             try:
-                serial_number[subnode] = self.get_serial_number(alias, subnode)
+                serial_number[subnode] = self.get_serial_number(servo, subnode)
             except (ILError, IMException) as e:
                 self.logger.error(e)
 
         return prod_codes, rev_numbers, fw_versions, serial_number
 
     @staticmethod
-    def get_subnode_type(subnode: int) -> TYPE_SUBNODES:
+    def get_subnode_type(axis: int) -> TYPE_SUBNODES:
         """Get a subnode type depending on the axis number.
 
         Args:
-            subnode: Axis number of the drive.
+            axis: Axis number of the drive.
 
         Returns:
             Subnode type.
@@ -928,16 +929,16 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Raises:
             ValueError: For negative subnode values.
         """
-        if subnode < 0:
+        if axis < 0:
             raise ValueError("There are no subnodes with negative values")
-        return TYPE_SUBNODES.COCO if subnode == 0 else TYPE_SUBNODES.MOCO
+        return TYPE_SUBNODES.COCO if axis == 0 else TYPE_SUBNODES.MOCO
 
-    def get_product_code(self, alias: str, subnode: int) -> int:
+    def get_product_code(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
         """Get the product code of a drive.
 
         Args:
-            alias: Alias of the drive.
-            subnode: Axis number of the drive.
+            servo: Alias of the drive.
+            axis: Axis number of the drive.
 
         Returns:
             Product code
@@ -945,20 +946,20 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Raises:
             TypeError: If some read value has a wrong type.
         """
-        product_code_register = self.PRODUCT_ID_REGISTERS[self.get_subnode_type(subnode)]
+        product_code_register = self.PRODUCT_ID_REGISTERS[self.get_subnode_type(axis)]
         product_code_value = self.mc.communication.get_register(
-            product_code_register, alias, axis=subnode
+            product_code_register, servo, axis=axis
         )
         if not isinstance(product_code_value, int):
             raise TypeError("Product code value has to be an integer")
         return product_code_value
 
-    def get_revision_number(self, alias: str, subnode: int) -> int:
+    def get_revision_number(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
         """Get the revision number of a drive.
 
         Args:
-            alias: Alias of the drive.
-            subnode: Axis number of the drive.
+            servo: Alias of the drive.
+            axis: Axis number of the drive.
 
         Returns:
             Revision number
@@ -966,20 +967,20 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Raises:
             TypeError: If some read value has a wrong type.
         """
-        revision_number_register = self.REVISION_NUMBER_REGISTERS[self.get_subnode_type(subnode)]
+        revision_number_register = self.REVISION_NUMBER_REGISTERS[self.get_subnode_type(axis)]
         revision_number_value = self.mc.communication.get_register(
-            revision_number_register, alias, axis=subnode
+            revision_number_register, servo, axis=axis
         )
         if not isinstance(revision_number_value, int):
             raise TypeError("Revision number value has to be an integer")
         return revision_number_value
 
-    def get_serial_number(self, alias: str, subnode: int) -> int:
+    def get_serial_number(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
         """Get the serial number of a drive.
 
         Args:
-            alias: Alias of the drive.
-            subnode: Axis number of the drive.
+            servo: Alias of the drive.
+            axis: Axis number of the drive.
 
         Returns:
             Serial number
@@ -987,20 +988,20 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Raises:
             TypeError: If some read value has a wrong type.
         """
-        serial_number_register = self.SERIAL_NUMBER_REGISTERS[self.get_subnode_type(subnode)]
+        serial_number_register = self.SERIAL_NUMBER_REGISTERS[self.get_subnode_type(axis)]
         serial_number_value = self.mc.communication.get_register(
-            serial_number_register, alias, axis=subnode
+            serial_number_register, servo, axis=axis
         )
         if not isinstance(serial_number_value, int):
             raise TypeError("Serial number value has to be an integer")
         return serial_number_value
 
-    def get_fw_version(self, alias: str, subnode: int) -> str:
+    def get_fw_version(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> str:
         """Get the firmware version of a drive.
 
         Args:
-            alias: Alias of the drive.
-            subnode: Axis number of the drive.
+            servo: Alias of the drive.
+            axis: Axis number of the drive.
 
         Returns:
             Firmware version.
@@ -1008,8 +1009,8 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Raises:
             TypeError: If some read value has a wrong type.
         """
-        fw_register = self.SOFTWARE_VERSION_REGISTERS[self.get_subnode_type(subnode)]
-        fw_value = self.mc.communication.get_register(fw_register, alias, axis=subnode)
+        fw_register = self.SOFTWARE_VERSION_REGISTERS[self.get_subnode_type(axis)]
+        fw_value = self.mc.communication.get_register(fw_register, servo, axis=axis)
         if not isinstance(fw_value, str):
             raise TypeError("Firmware value has to be a string")
         return fw_value
@@ -1055,9 +1056,9 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         if not isinstance(net, CanopenNetwork):
             raise ValueError(f"Servo {servo} is not a CANopen device.")
         vendor_id = self.get_vendor_id(servo)
-        prod_code = self.get_product_code(servo, subnode=0)
-        rev_number = self.get_revision_number(servo, subnode=0)
-        serial_number = self.get_serial_number(servo, subnode=0)
+        prod_code = self.get_product_code(servo, axis=0)
+        rev_number = self.get_revision_number(servo, axis=0)
+        serial_number = self.get_serial_number(servo, axis=0)
         net.change_baudrate(
             int(drive.target), baud_rate, vendor_id, prod_code, rev_number, serial_number
         )
@@ -1078,9 +1079,9 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         if not isinstance(net, CanopenNetwork):
             raise ValueError(f"Servo {servo} is not a CANopen device.")
         vendor_id = self.get_vendor_id(servo)
-        prod_code = self.get_product_code(servo, subnode=0)
-        rev_number = self.get_revision_number(servo, subnode=0)
-        serial_number = self.get_serial_number(servo, subnode=0)
+        prod_code = self.get_product_code(servo, axis=0)
+        rev_number = self.get_revision_number(servo, axis=0)
+        serial_number = self.get_serial_number(servo, axis=0)
         net.change_node_id(
             int(drive.target), node_id, vendor_id, prod_code, rev_number, serial_number
         )
@@ -1237,7 +1238,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """Set commutation mode in the target servo and axis.
 
         Args:
-            rated_current: target commutation mode.
+            commutation_mode: target commutation mode.
             servo: servo alias to reference it. ``default`` by default.
             axis: servo axis. ``1`` by default.
 

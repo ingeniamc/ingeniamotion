@@ -5,10 +5,11 @@ from typing import Dict
 
 import numpy as np
 import pytest
+from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE
 from virtual_drive.core import VirtualDrive
 
 from ingeniamotion import MotionController
-from ingeniamotion.enums import CAN_BAUDRATE, CAN_DEVICE, SensorType
+from ingeniamotion.enums import SensorType
 
 ALLOW_PROTOCOLS = ["eoe", "soem", "canopen", "virtual"]
 
@@ -52,8 +53,8 @@ def connect_eoe(mc, config, alias):
 
 
 def connect_soem(mc, config, alias):
-    mc.communication.connect_servo_ethercat_interface_index(
-        config["index"],
+    mc.communication.connect_servo_ethercat(
+        config["ifname"],
         config["slave"],
         config["dictionary"],
         alias,
@@ -85,6 +86,7 @@ def motion_controller(pytestconfig, read_config):
     elif protocol == "virtual":
         virtual_drive = VirtualDrive(read_config["port"], read_config["dictionary"])
         virtual_drive.start()
+        virtual_drive.set_value_by_id(1, "IO_IN_VALUE", 0xA)
         connect_eoe(mc, read_config, alias)
     else:
         connect_eoe(mc, read_config, alias)

@@ -1,3 +1,4 @@
+import contextlib
 import json
 import platform
 import shutil
@@ -12,9 +13,7 @@ from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
 
 import ifaddr
 import ingenialogger
-from virtual_drive.core import VirtualDrive
-
-from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE, CanopenNetwork
+from ingenialink.canopen.network import CAN_BAUDRATE, CAN_CHANNELS, CAN_DEVICE, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.dictionary import Interface
 from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
@@ -26,6 +25,8 @@ from ingenialink.exceptions import ILError
 from ingenialink.network import NET_DEV_EVT, SlaveInfo
 from ingenialink.servo import DictionaryFactory
 from ingenialink.virtual.network import VirtualNetwork
+from virtual_drive.core import VirtualDrive
+
 from ingeniamotion.exceptions import IMException, IMRegisterWrongAccess
 
 if TYPE_CHECKING:
@@ -252,14 +253,19 @@ class Communication(metaclass=MCMetaClass):
         if ifname not in self.mc.net:
             self.mc.net[ifname] = EoENetwork(ifname)
         net = self.mc.net[ifname]
-        servo = net.connect_to_slave(
-            slave,
-            ip,
-            dict_path,
-            port,
-            servo_status_listener=servo_status_listener,
-            net_status_listener=net_status_listener,
-        )
+        try:
+            servo = net.connect_to_slave(
+                slave,
+                ip,
+                dict_path,
+                port,
+                servo_status_listener=servo_status_listener,
+                net_status_listener=net_status_listener,
+            )
+        except ILError as e:
+            if len(net.servos) == 0:
+                del self.mc.net[ifname]
+            raise e
         servo.slave = slave  # type: ignore [attr-defined]
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = ifname
@@ -362,11 +368,10 @@ class Communication(metaclass=MCMetaClass):
             index : position of interface selected in
                 :func:`get_interface_name_list`.
         """
-        adapter = ifaddr.get_adapters()[index]
+        adapter = list(ifaddr.get_adapters())[index]
         if RUNNING_ON_WINDOWS:
             return f"\\Device\\NPF_{bytes.decode(adapter.name)}"
-        else:
-            return str(adapter.name)
+        return str(adapter.name)
 
     def get_ifname_from_interface_ip(self, address: str) -> str:
         """Returns interface name based on the address ip of an interface.
@@ -438,6 +443,27 @@ class Communication(metaclass=MCMetaClass):
 
         """
         return [x.nice_name for x in ifaddr.get_adapters()]
+
+    @staticmethod
+    def get_available_canopen_devices() -> dict[CAN_DEVICE, list[int]]:
+        """Return the list of available CAN devices (those connected and with drivers installed).
+
+        Returns:
+            Dict of available CAN devices and channels. For example:
+            {
+                CAN_DEVICE.KVASER: [0, 1]
+                CAN_DEVICE.PCAN: [0]
+            }
+        """
+        available_devices: dict[CAN_DEVICE, list[int]] = {}
+        for device, channel in CanopenNetwork.get_available_devices():
+            can_device = CAN_DEVICE(device)
+            can_channel = CAN_CHANNELS[device].index(channel)
+            if can_device not in available_devices:
+                available_devices[can_device] = [can_channel]
+            else:
+                available_devices[can_device].append(can_channel)
+        return available_devices
 
     def connect_servo_eoe_service_interface_index(
         self,
@@ -599,12 +625,17 @@ class Communication(metaclass=MCMetaClass):
         if interface_name not in self.mc.net:
             self.mc.net[interface_name] = EthercatNetwork(interface_name)
         net = self.mc.net[interface_name]
-        servo = net.connect_to_slave(
-            slave_id,
-            dict_path,
-            servo_status_listener=servo_status_listener,
-            net_status_listener=net_status_listener,
-        )
+        try:
+            servo = net.connect_to_slave(
+                slave_id,
+                dict_path,
+                servo_status_listener=servo_status_listener,
+                net_status_listener=net_status_listener,
+            )
+        except ILError as e:
+            if len(net.servos) == 0:
+                del self.mc.net[interface_name]
+            raise e
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = interface_name
 
@@ -828,6 +859,9 @@ class Communication(metaclass=MCMetaClass):
         del self.mc.servos[servo]
         net_name = self.mc.servo_net.pop(servo)
         servo_count = list(self.mc.servo_net.values()).count(net_name)
+        # TODO: Remove once INGK-912 is resolved
+        with contextlib.suppress(NotImplementedError):
+            self.mc.fsoe._delete_master_handler(servo)
         if servo_count == 0:
             del self.mc.net[net_name]
 
@@ -1022,7 +1056,12 @@ class Communication(metaclass=MCMetaClass):
         return fw_file.endswith(FILE_EXT_SFU)
 
     def load_firmware_ecat(
-        self, ifname: str, fw_file: str, slave: int = 1, boot_in_app: Optional[bool] = None
+        self,
+        ifname: str,
+        fw_file: str,
+        slave: int = 1,
+        boot_in_app: Optional[bool] = None,
+        password: Optional[int] = None,
     ) -> None:
         """Load firmware via ECAT.
 
@@ -1033,6 +1072,8 @@ class Communication(metaclass=MCMetaClass):
             slave : slave index. ``1`` by default.
             boot_in_app: true if the bootloader is included in the application, false otherwise.
                 If None, the file extension is used to define it.
+            password: Password to load the firmware file. If ``None`` the default password will be
+                used.
 
         Raises:
             FileNotFoundError: If the firmware file cannot be found.
@@ -1045,13 +1086,18 @@ class Communication(metaclass=MCMetaClass):
 
         net = EthercatNetwork(ifname)
         if fw_file.endswith(self.ENSEMBLE_FIRMWARE_EXTENSION):
-            self.__load_ensemble_fw_ecat(net, fw_file, slave, boot_in_app)
+            self.__load_ensemble_fw_ecat(net, fw_file, slave, boot_in_app, password)
         else:
             boot_in_app = self.__get_boot_in_app(fw_file) if boot_in_app is None else boot_in_app
-            net.load_firmware(fw_file, boot_in_app, slave)
+            net.load_firmware(fw_file, boot_in_app, slave, password)
 
     def load_firmware_ecat_interface_index(
-        self, if_index: int, fw_file: str, slave: int = 1
+        self,
+        if_index: int,
+        fw_file: str,
+        slave: int = 1,
+        boot_in_app: Optional[bool] = None,
+        password: Optional[int] = None,
     ) -> None:
         """Load firmware via ECAT.
 
@@ -1060,6 +1106,10 @@ class Communication(metaclass=MCMetaClass):
                 :func:`get_interface_name_list`.
             fw_file : Firmware file path.
             slave : slave index. ``1`` by default.
+            boot_in_app: true if the bootloader is included in the application, false otherwise.
+                If ``None``, the file extension is used to define it.
+            password: Password to load the firmware file. If ``None`` the default password will be
+                used.
 
         Raises:
             IndexError: If interface index is out of range.
@@ -1069,7 +1119,9 @@ class Communication(metaclass=MCMetaClass):
             NotImplementedError: If FoE is not implemented for the current OS and architecture
 
         """
-        self.load_firmware_ecat(self.get_ifname_by_index(if_index), fw_file, slave)
+        self.load_firmware_ecat(
+            self.get_ifname_by_index(if_index), fw_file, slave, boot_in_app, password
+        )
 
     def load_firmware_ethernet(
         self, ip: str, fw_file: str, ftp_user: Optional[str] = None, ftp_pwd: Optional[str] = None
@@ -1272,7 +1324,12 @@ class Communication(metaclass=MCMetaClass):
             )
 
     def __load_ensemble_fw_ecat(
-        self, net: EthercatNetwork, fw_file: str, slave: int, boot_in_app: Optional[bool]
+        self,
+        net: EthercatNetwork,
+        fw_file: str,
+        slave: int,
+        boot_in_app: Optional[bool],
+        password: Optional[int],
     ) -> None:
         """Load FW to an ensemble of servos through Ethercat.
 
@@ -1285,6 +1342,8 @@ class Communication(metaclass=MCMetaClass):
             slave: Slave ID (any slave in the ensemble)
             boot_in_app: true if the bootloader is included in the application, false otherwise.
                 If None, the file extension is used to define it.
+            password: Password to load the firmware file. If ``None`` the default password will be
+                used.
         """
         mapping = self.__unzip_ensemble_fw_file(fw_file)
         scanned_slaves = net.scan_slaves_info()
@@ -1343,7 +1402,8 @@ class Communication(metaclass=MCMetaClass):
                 or map_slave_info.revision_number != mapping[map_slave_id_offset][2]
             ):
                 raise IMException(
-                    f"Wrong ensemble. The slave {map_slave_id} has wrong product code or revision number."
+                    f"Wrong ensemble. The slave {map_slave_id} "
+                    f"has wrong product code or revision number."
                 )
         return first_slave
 

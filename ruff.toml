@@ -1,0 +1,14 @@
+line-length = 100
+target-version = "py39"
+
+[lint]
+select = [
+    "F", # Pyflakes
+    "E", # pycodestyle
+    "W", # pycodestyle
+    "I", # isort
+]
+pydocstyle.convention = "google"
+
+[lint.per-file-ignores]
+"ingeniamotion/enums/__init__.py" = ["F401"] # Unused import

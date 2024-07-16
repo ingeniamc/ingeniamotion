@@ -9,7 +9,9 @@ from ingeniamotion.communication import Communication
 from ingeniamotion.configuration import Configuration
 from ingeniamotion.drive_tests import DriveTests
 from ingeniamotion.errors import Errors
+from ingeniamotion.fsoe import FSoEMaster
 from ingeniamotion.information import Information
+from ingeniamotion.io import InputsOutputs
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.motion import Motion
 
@@ -28,6 +30,8 @@ class MotionController:
         self.__tests: DriveTests = DriveTests(self)
         self.__errors: Errors = Errors(self)
         self.__info: Information = Information(self)
+        self.__io = InputsOutputs(self)
+        self.__fsoe: FSoEMaster = FSoEMaster(self)
 
     def servo_name(self, servo: str = DEFAULT_SERVO) -> str:
         return "{} ({})".format(self.servos[servo].info["product_code"], servo)
@@ -138,3 +142,13 @@ class MotionController:
     def info(self) -> Information:
         """Instance of :class:`~ingeniamotion.errors.Information` class"""
         return self.__info
+
+    @property
+    def fsoe(self) -> "FSoEMaster":
+        """Instance of :class:`~ingeniamotion.fsoe.FSoEMaster` class"""
+        return self.__fsoe
+
+    @property
+    def io(self) -> InputsOutputs:
+        """Instance of :class:`~ingeniamotion.io.InputsOutputs` class"""
+        return self.__io

@@ -6,9 +6,9 @@ from ingenialink.exceptions import ILError
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
-from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
-from ingeniamotion.enums import OperationMode, SensorType, PhasingMode, GeneratorMode
+from ingeniamotion.enums import GeneratorMode, OperationMode, PhasingMode, SensorType
 from ingeniamotion.exceptions import IMTimeoutError
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 
 
 class Motion(metaclass=MCMetaClass):

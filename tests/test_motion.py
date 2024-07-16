@@ -335,10 +335,8 @@ def test_set_internal_generator_configuration(motion_controller_teardown, op_mod
     assert 1 == mc.configuration.get_motor_pair_poles(servo=alias)
 
 
-# TODO: Remove skip after fixing INGM-349
 @pytest.mark.parametrize("op_mode", [OperationMode.VOLTAGE, OperationMode.CURRENT])
 @pytest.mark.parametrize("direction", [-1, 1])
-@pytest.mark.skip
 def test_internal_generator_saw_tooth_move(motion_controller_teardown, op_mode, direction):
     mc, alias = motion_controller_teardown
     pair_poles = mc.configuration.get_motor_pair_poles(servo=alias)
@@ -347,28 +345,23 @@ def test_internal_generator_saw_tooth_move(motion_controller_teardown, op_mode, 
     mc.motion.motor_enable(servo=alias)
     if op_mode == OperationMode.CURRENT:
         mc.motion.current_quadrature_ramp(1, 1, servo=alias)
-        mc.motion.current_direct_ramp(1, 1, servo=alias)
     else:
         mc.motion.voltage_quadrature_ramp(1, 1, servo=alias)
-        mc.motion.voltage_direct_ramp(1, 1, servo=alias)
     time.sleep(1)
     initial_position = mc.motion.get_actual_position(servo=alias)
-    mc.motion.internal_generator_saw_tooth_move(direction, pair_poles, 1, servo=alias)
-    time.sleep(pair_poles)
-    time.sleep(1)
+    mc.motion.internal_generator_saw_tooth_move(direction, 1, 1, servo=alias)
+    time.sleep(2)
     final_position = mc.motion.get_actual_position(servo=alias)
     total_movement = final_position - initial_position
-    expected_movement = pos_resolution * direction
+    expected_movement = pos_resolution * direction / pair_poles
     assert (
         abs(total_movement - expected_movement)
         < pos_resolution * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
     )
 
 
-# TODO: Remove skip after fixing INGM-349
 @pytest.mark.parametrize("op_mode", [OperationMode.VOLTAGE, OperationMode.CURRENT])
 @pytest.mark.parametrize("direction", [-1, 1])
-@pytest.mark.skip
 def test_internal_generator_constant_move(motion_controller_teardown, op_mode, direction):
     mc, alias = motion_controller_teardown
     pair_poles = mc.configuration.get_motor_pair_poles(servo=alias)
@@ -378,10 +371,8 @@ def test_internal_generator_constant_move(motion_controller_teardown, op_mode, d
     mc.motion.motor_enable(servo=alias)
     if op_mode == OperationMode.CURRENT:
         mc.motion.current_quadrature_ramp(1, 2, servo=alias)
-        mc.motion.current_direct_ramp(1, 2, servo=alias)
     else:
         mc.motion.voltage_quadrature_ramp(1, 2, servo=alias)
-        mc.motion.voltage_direct_ramp(1, 2, servo=alias)
     time.sleep(1)
     mc.motion.internal_generator_constant_move(0, servo=alias)
     initial_position = mc.motion.get_actual_position(servo=alias)

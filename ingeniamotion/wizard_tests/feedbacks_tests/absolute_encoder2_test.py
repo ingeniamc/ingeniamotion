@@ -1,11 +1,10 @@
 from typing import TYPE_CHECKING, List
 
-
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
-from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
-from ingeniamotion.wizard_tests.base_test import BaseTest
 from ingeniamotion.enums import SensorType
+from ingeniamotion.wizard_tests.base_test import BaseTest
+from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
 
 
 class AbsoluteEncoder2Test(Feedbacks):

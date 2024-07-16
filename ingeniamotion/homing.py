@@ -1,15 +1,15 @@
 from typing import TYPE_CHECKING
+
 import ingenialogger
 
-from ingeniamotion.enums import OperationMode, HomingMode
+from ingeniamotion.enums import HomingMode, OperationMode
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
-from ingeniamotion.metaclass import MCMetaClass, DEFAULT_AXIS, DEFAULT_SERVO
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 
 
 class Homing(metaclass=MCMetaClass):
-
     HOMING_MODE_REGISTER = "HOM_MODE"
     HOMING_OFFSET_REGISTER = "HOM_OFFSET"
     HOMING_TIMEOUT_REGISTER = "HOM_SEQ_TIMEOUT"
