@@ -361,11 +361,6 @@ pipeline {
             }
         }
         stage('Publish coverage') {
-            // TODO: Remove when condition when INGM-395 is fixed 
-            when {
-                beforeAgent true
-                expression { false }
-            }
             agent {
                 docker {
                     label SW_NODE
