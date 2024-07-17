@@ -1,4 +1,5 @@
 import time
+from dataclasses import dataclass
 from functools import partial
 from typing import TYPE_CHECKING, Dict, Optional, Callable, List
 
@@ -20,6 +21,15 @@ from ingeniamotion.metaclass import DEFAULT_SERVO
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
+
+
+@dataclass
+class FSoEError:
+    """FSoE Error descriptor"""
+
+    servo: str
+    transition_name: str
+    description: str
 
 
 class FSoEMasterHandler:
@@ -245,7 +255,7 @@ class FSoEMaster:
         self.__mc = motion_controller
         self.__handlers: Dict[str, FSoEMasterHandler] = {}
         self.__next_connection_id = 1
-        self._error_observers: List[Callable[[str, str, str], None]] = []
+        self._error_observers: List[Callable[[FSoEError], None]] = []
 
     def create_fsoe_master_handler(
         self,
@@ -371,7 +381,7 @@ class FSoEMaster:
         master_handler = self.__handlers[servo]
         master_handler.wait_for_data_state(timeout)
 
-    def subscribe_to_errors(self, callback: Callable[[str, str, str], None]) -> None:
+    def subscribe_to_errors(self, callback: Callable[[FSoEError], None]) -> None:
         """Subscribe to the FSoE errors.
 
         Args:
@@ -382,7 +392,7 @@ class FSoEMaster:
             return
         self._error_observers.append(callback)
 
-    def unsubscribe_from_errors(self, callback: Callable[[str, str, str], None]) -> None:
+    def unsubscribe_from_errors(self, callback: Callable[[FSoEError], None]) -> None:
         """Unsubscribe from the FSoE errors.
 
         Args:
@@ -399,10 +409,11 @@ class FSoEMaster:
         Args:
             transition_name: FSoE transition name.
             error_description: FSoE error description.
+            servo: The servo alias.
 
         """
         for callback in self._error_observers:
-            callback(servo, transition_name, error_description)
+            callback(FSoEError(servo, transition_name, error_description))
 
     def _delete_master_handler(self, servo: str = DEFAULT_SERVO) -> None:
         """Delete the master handler instance
