@@ -1,5 +1,6 @@
 import time
-from typing import TYPE_CHECKING, Dict, Optional
+from functools import partial
+from typing import TYPE_CHECKING, Dict, Optional, Callable, List
 
 import ingenialogger
 from fsoe_master.fsoe_master import (
@@ -35,7 +36,13 @@ class FSoEMasterHandler:
     STO_COMMAND_UID = "STO_COMMAND"
     PROCESS_DATA_COMMAND = 0x36
 
-    def __init__(self, slave_address: int, connection_id: int, watchdog_timeout: float):
+    def __init__(
+        self,
+        slave_address: int,
+        connection_id: int,
+        watchdog_timeout: float,
+        report_error_callback: Callable[[str, str], None],
+    ):
         self.__master_handler = MasterHandler(
             dictionary=self._saco_phase_1_dictionary(),
             slave_address=slave_address,
@@ -44,6 +51,7 @@ class FSoEMasterHandler:
             application_parameters=[
                 ApplicationParameter(name="SAFETY_ADDRESS", initial_value=slave_address, n_bytes=2)
             ],
+            report_error_callback=report_error_callback,
         )
         self._configure_master()
         self.__safety_master_pdu = RPDOMap()
@@ -237,6 +245,7 @@ class FSoEMaster:
         self.__mc = motion_controller
         self.__handlers: Dict[str, FSoEMasterHandler] = {}
         self.__next_connection_id = 1
+        self._error_observers: List[Callable[[str, str, str], None]] = []
 
     def create_fsoe_master_handler(
         self,
@@ -252,7 +261,10 @@ class FSoEMaster:
         """
         slave_address = self.get_safety_address(servo)
         master_handler = FSoEMasterHandler(
-            slave_address, self.__next_connection_id, fsoe_master_watchdog_timeout
+            slave_address,
+            self.__next_connection_id,
+            fsoe_master_watchdog_timeout,
+            partial(self._notify_errors, servo=servo),
         )
         self.__handlers[servo] = master_handler
         self.__next_connection_id += 1
@@ -358,6 +370,39 @@ class FSoEMaster:
         """
         master_handler = self.__handlers[servo]
         master_handler.wait_for_data_state(timeout)
+
+    def subscribe_to_errors(self, callback: Callable[[str, str, str], None]) -> None:
+        """Subscribe to the FSoE errors.
+
+        Args:
+            callback: Subscribed callback function.
+
+        """
+        if callback in self._error_observers:
+            return
+        self._error_observers.append(callback)
+
+    def unsubscribe_from_errors(self, callback: Callable[[str, str, str], None]) -> None:
+        """Unsubscribe from the FSoE errors.
+
+        Args:
+            callback: Subscribed callback function.
+
+        """
+        if callback not in self._error_observers:
+            return
+        self._error_observers.remove(callback)
+
+    def _notify_errors(self, transition_name: str, error_description: str, servo: str) -> None:
+        """Notify subscribers when an FSoE error occurs.
+
+        Args:
+            transition_name: FSoE transition name.
+            error_description: FSoE error description.
+
+        """
+        for callback in self._error_observers:
+            callback(servo, transition_name, error_description)
 
     def _delete_master_handler(self, servo: str = DEFAULT_SERVO) -> None:
         """Delete the master handler instance
