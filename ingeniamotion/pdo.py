@@ -601,6 +601,18 @@ class PDONetworkManager:
         self._pdo_thread.stop()
         self._pdo_thread = None
 
+    @property
+    def is_active(self) -> bool:
+        """Check if the PDO thread is active.
+
+        Returns:
+            True if the PDO thread is active. False otherwise.
+
+        """
+        if self._pdo_thread is None:
+            return False
+        return self._pdo_thread.is_alive()
+
     def subscribe_to_send_process_data(self, callback: Callable[[], None]) -> None:
         """Subscribe be notified when the RPDO values will be sent.
 

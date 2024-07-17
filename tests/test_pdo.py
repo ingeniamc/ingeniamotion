@@ -234,10 +234,13 @@ def test_start_pdos(connect_to_all_slaves):
 
     mc.capture.pdo.subscribe_to_send_process_data(send_callback)
     mc.capture.pdo.subscribe_to_receive_process_data(receive_callback)
+    assert not mc.capture.pdo.is_active
     refresh_rate = 0.5
     mc.capture.pdo.start_pdos(refresh_rate=refresh_rate)
+    assert mc.capture.pdo.is_active
     time.sleep(2 * refresh_rate)
     mc.capture.pdo.stop_pdos()
+    assert not mc.capture.pdo.is_active
     for alias in aliases:
         # Check that RPDO are being sent
         assert rpdo_values[alias] == mc.motion.get_operation_mode(servo=alias)
