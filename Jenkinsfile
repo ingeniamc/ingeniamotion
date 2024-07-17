@@ -384,7 +384,7 @@ pipeline {
                             py -${DEFAULT_PYTHON_VERSION} -m tox -e coverage -- .coverage_eoe .coverage_canopen .coverage_virtual .coverage_soem
                         """
 
-                        publishCoverage adapters: [coberturaReportAdapter('coverage.xml')]
+                        recordCoverage(tools: [[parser: 'COBERTURA', pattern: 'coverage.xml']])
                         archiveArtifacts artifacts: '*.xml'
                     }
                 }
