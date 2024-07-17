@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+### Added
+- Property to check if the PDOs are active.
+
 ## [0.8.2] - 2024-07-15
 ### Added
 - FSoE module.
