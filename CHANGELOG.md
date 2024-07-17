@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+### Added
+- Method to get a servo's FSoE master handler state.
+
 ## [0.8.2] - 2024-07-15
 ### Added
 - FSoE module.
