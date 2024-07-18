@@ -12,6 +12,7 @@ def test_fsoe_master_not_installed():
     else:
         pytest.skip("fsoe_master is installed")
     import ingeniamotion
+
     mc = ingeniamotion.MotionController()
     with pytest.raises(NotImplementedError):
         mc.fsoe
