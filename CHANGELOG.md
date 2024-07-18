@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+### Added
+- Method to check if drive is connected via a COM-KIT.
+
 ## [0.8.2] - 2024-07-15
 ### Added
 - FSoE module.
