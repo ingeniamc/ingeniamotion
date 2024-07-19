@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+### Changed
+- Make fsoe_master an optional requirement
+
 ## [0.8.2] - 2024-07-15
 ### Added
 - FSoE module.
