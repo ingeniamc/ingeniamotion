@@ -2,14 +2,21 @@ import time
 from typing import TYPE_CHECKING, Dict, Optional
 
 import ingenialogger
-from fsoe_master.fsoe_master import (
-    ApplicationParameter,
-    Dictionary,
-    DictionaryItem,
-    DictionaryItemInputOutput,
-    MasterHandler,
-    StateData,
-)
+
+try:
+    from fsoe_master.fsoe_master import (
+        ApplicationParameter,
+        Dictionary,
+        DictionaryItem,
+        DictionaryItemInputOutput,
+        MasterHandler,
+        StateData,
+    )
+except ImportError:
+    FSOE_MASTER_INSTALLED = False
+else:
+    FSOE_MASTER_INSTALLED = True
+
 from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
 from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
@@ -36,6 +43,8 @@ class FSoEMasterHandler:
     PROCESS_DATA_COMMAND = 0x36
 
     def __init__(self, slave_address: int, connection_id: int, watchdog_timeout: float):
+        if not FSOE_MASTER_INSTALLED:
+            return
         self.__master_handler = MasterHandler(
             dictionary=self._saco_phase_1_dictionary(),
             slave_address=slave_address,
@@ -143,7 +152,7 @@ class FSoEMasterHandler:
                 raise IMTimeoutError("The FSoE Master did not reach the Data state")
 
     @staticmethod
-    def _saco_phase_1_dictionary() -> Dictionary:
+    def _saco_phase_1_dictionary() -> "Dictionary":
         """Get the SaCo phase 1 dictionary instance"""
         sto_command_dict_item = DictionaryItemInputOutput(
             key=0x040,
