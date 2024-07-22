@@ -10,12 +10,12 @@ from fsoe_master.fsoe_master import (
     DictionaryItem,
     DictionaryItemInputOutput,
     MasterHandler,
-    StateData,
 )
 from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
 from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 
+from ingeniamotion.enums import FSoEState
 from ingeniamotion.exceptions import IMTimeoutError
 from ingeniamotion.metaclass import DEFAULT_SERVO
 
@@ -156,7 +156,7 @@ class FSoEMasterHandler:
         state_reached = False
         init_time = time.time()
         while not state_reached:
-            state_reached = self.__master_handler.state == StateData
+            state_reached = self.state == FSoEState.DATA
             if timeout and (init_time + timeout) < time.time():
                 raise IMTimeoutError("The FSoE Master did not reach the Data state")
 
@@ -180,6 +180,11 @@ class FSoEMasterHandler:
     def safety_slave_pdu_map(self) -> TPDOMap:
         """The PDOMap used for the Safety Slave PDU."""
         return self.__safety_slave_pdu
+
+    @property
+    def state(self) -> FSoEState:
+        """Get the FSoE master state."""
+        return FSoEState(self.__master_handler.state.id)
 
 
 class PDUMapper:
@@ -380,6 +385,19 @@ class FSoEMaster:
         """
         master_handler = self.__handlers[servo]
         master_handler.wait_for_data_state(timeout)
+
+    def get_fsoe_master_state(self, servo: str = DEFAULT_SERVO) -> FSoEState:
+        """Get the servo's FSoE master handler state.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+
+        Returns:
+            The servo's FSoE master handler state.
+
+        """
+        master_handler = self.__handlers[servo]
+        return master_handler.state
 
     def subscribe_to_errors(self, callback: Callable[[FSoEError], None]) -> None:
         """Subscribe to the FSoE errors.
