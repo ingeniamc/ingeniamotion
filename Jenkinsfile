@@ -373,11 +373,6 @@ pipeline {
             }
         }
         stage('Publish coverage') {
-            // TODO: Remove when condition when INGM-395 is fixed 
-            when {
-                beforeAgent true
-                expression { false }
-            }
             agent {
                 docker {
                     label SW_NODE
@@ -401,7 +396,7 @@ pipeline {
                             py -${DEFAULT_PYTHON_VERSION} -m tox -e coverage -- .coverage_eoe .coverage_canopen .coverage_virtual .coverage_soem
                         """
 
-                        publishCoverage adapters: [coberturaReportAdapter('coverage.xml')]
+                        recordCoverage(tools: [[parser: 'COBERTURA', pattern: 'coverage.xml']])
                         archiveArtifacts artifacts: '*.xml'
                     }
                 }
