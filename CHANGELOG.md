@@ -2,6 +2,8 @@
 
 ## [Unreleased]
 ### Added
+- Method to check if drive is connected via a COM-KIT.
+- Property to check if the PDOs are active.
 - Method to get a servo's FSoE master handler state.
 
 ## [0.8.2] - 2024-07-15
