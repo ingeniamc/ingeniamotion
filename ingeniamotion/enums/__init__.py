@@ -244,3 +244,13 @@ class GPO(IntEnum):
     GPO2 = 2
     GPO3 = 3
     GPO4 = 4
+
+
+class FSoEState(IntEnum):
+    """FSoE Master Handler state"""
+
+    RESET = 0
+    SESSION = 1
+    CONNECTION = 2
+    PARAMETER = 3
+    DATA = 4
