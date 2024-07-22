@@ -1,7 +1,7 @@
 import time
 from dataclasses import dataclass
 from functools import partial
-from typing import TYPE_CHECKING, Dict, Optional, Callable, List
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional
 
 import ingenialogger
 from fsoe_master.fsoe_master import (
