@@ -9,7 +9,7 @@ from ingeniamotion.communication import Communication
 from ingeniamotion.configuration import Configuration
 from ingeniamotion.drive_tests import DriveTests
 from ingeniamotion.errors import Errors
-from ingeniamotion.fsoe import FSoEMaster
+from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEMaster
 from ingeniamotion.information import Information
 from ingeniamotion.io import InputsOutputs
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
@@ -31,7 +31,8 @@ class MotionController:
         self.__errors: Errors = Errors(self)
         self.__info: Information = Information(self)
         self.__io = InputsOutputs(self)
-        self.__fsoe: FSoEMaster = FSoEMaster(self)
+        if FSOE_MASTER_INSTALLED:
+            self.__fsoe: FSoEMaster = FSoEMaster(self)
 
     def servo_name(self, servo: str = DEFAULT_SERVO) -> str:
         return "{} ({})".format(self.servos[servo].info["product_code"], servo)
@@ -146,6 +147,12 @@ class MotionController:
     @property
     def fsoe(self) -> "FSoEMaster":
         """Instance of :class:`~ingeniamotion.fsoe.FSoEMaster` class"""
+        if not FSOE_MASTER_INSTALLED:
+            raise NotImplementedError(
+                "The FSoE module is not available. "
+                "Install ingeniamotion with FSoE feature: "
+                "pip install ingeniamotion[FSoE]"
+            )
         return self.__fsoe
 
     @property
