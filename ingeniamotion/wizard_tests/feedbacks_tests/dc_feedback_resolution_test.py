@@ -6,13 +6,13 @@ import ingenialogger
 
 from ingeniamotion.enums import OperationMode, SensorType, SeverityLevel
 from ingeniamotion.exceptions import IMTimeoutError
-from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
+from ingeniamotion.wizard_tests.base_test import BaseTest, DictReportType, TestError
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 
-class DCFeedbacksResolutionTest(BaseTest):
+class DCFeedbacksResolutionTest(BaseTest[DictReportType]):
     MOVEMENT_ERROR_FACTOR = 0.05
     DEFAULT_PROFILE_MAX_VEL = 0.3
     DEFAULT_VELOCITY_PID = {"kp": 0.1, "ki": 10, "kd": 0}

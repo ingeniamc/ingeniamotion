@@ -6,13 +6,13 @@ import ingenialogger
 
 from ingeniamotion.enums import OperationMode, PhasingMode, SensorType, SeverityLevel
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
-from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
+from ingeniamotion.wizard_tests.base_test import BaseTest, DictReportType, TestError
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
 
 
-class PhasingCheck(BaseTest):
+class PhasingCheck(BaseTest[DictReportType]):
     MAX_ALLOWED_ANGLE_MOVE = 15
     INITIAL_ANGLE = 180.0
     INITIAL_ANGLE_HALLS = 240.0

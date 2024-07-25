@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Dict, Generic, List, Optional, TypeVar, Union
 
 import ingenialogger
 from ingenialink.exceptions import ILError
@@ -18,7 +18,12 @@ class TestError(Exception):
     pass
 
 
-class BaseTest(ABC, Stoppable):
+T = TypeVar("T")
+
+DictReportType = Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]
+
+
+class BaseTest(ABC, Stoppable, Generic[T]):
     WARNING_BIT_MASK = 0x0FFFFFFF
 
     def __init__(self) -> None:
@@ -29,7 +34,7 @@ class BaseTest(ABC, Stoppable):
         self.mc: "MotionController"
         self.servo: str = DEFAULT_SERVO
         self.axis: int = 0
-        self.report: Optional[Dict[str, Any]] = None
+        self.report: Optional[T] = None
         self.logger = ingenialogger.get_logger(__name__)
 
     def save_backup_registers(self) -> None:
@@ -83,7 +88,7 @@ class BaseTest(ABC, Stoppable):
 
     def run(
         self,
-    ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[T]:
         self.reset_stop()
         self.save_backup_registers()
         try:
@@ -101,14 +106,12 @@ class BaseTest(ABC, Stoppable):
                 self.restore_backup_registers()
         return self.report
 
-    def generate_report(
-        self, output: Any
-    ) -> Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]:
+    def generate_report(self, output: Any) -> T:
         return {
             "result_severity": self.get_result_severity(output),
             "suggested_registers": self.suggested_registers,
             "result_message": self.get_result_msg(output),
-        }
+        }  # type: ignore [return-value]
 
     @abstractmethod
     def get_result_msg(self, output: Any) -> str:
