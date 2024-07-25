@@ -234,8 +234,7 @@ def load_firmware(pytestconfig, read_config, request):
     protocol = pytestconfig.getoption("--protocol")
     if protocol == "virtual":
         return
-    protocol_contents = read_config[protocol]
-    drive_identifier = protocol_contents["identifier"]
+    drive_identifier = read_config["identifier"]
     drive_idx = None
     client = request.getfixturevalue("connect_to_rack_service")
     config = client.exposed_get_configuration()
@@ -247,5 +246,5 @@ def load_firmware(pytestconfig, read_config, request):
         pytest.fail(f"The drive {drive_identifier} cannot be found on the rack's configuration.")
     drive = config.drives[drive_idx]
     client.exposed_firmware_load(
-        drive_idx, protocol_contents["fw_file"], drive.product_code, drive.serial_number
+        drive_idx, read_config["fw_file"], drive.product_code, drive.serial_number
     )
