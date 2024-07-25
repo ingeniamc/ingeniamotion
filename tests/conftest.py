@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE
 from virtual_drive.core import VirtualDrive
+import rpyc
 
 from ingeniamotion import MotionController
 from ingeniamotion.enums import SensorType
@@ -218,3 +219,33 @@ def load_configuration_after_each_module(pytestconfig, motion_controller, read_c
         mc, alias = motion_controller
         mc.motion.motor_disable(servo=alias)
         mc.configuration.load_configuration(read_config["config_file"], servo=alias)
+
+
+@pytest.fixture(scope="session")
+def connect_to_rack_service():
+    rack_service_port = 33810
+    client = rpyc.connect("localhost", rack_service_port, config={"sync_request_timeout": None})
+    yield client.root
+    client.close()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def load_firmware(pytestconfig, read_config, request):
+    protocol = pytestconfig.getoption("--protocol")
+    if protocol == "virtual":
+        return
+    protocol_contents = read_config[protocol]
+    drive_identifier = protocol_contents["identifier"]
+    drive_idx = None
+    client = request.getfixturevalue("connect_to_rack_service")
+    config = client.exposed_get_configuration()
+    for idx, drive in enumerate(config.drives):
+        if drive_identifier == drive.identifier:
+            drive_idx = idx
+            break
+    if drive_idx is None:
+        pytest.fail(f"The drive {drive_identifier} cannot be found on the rack's configuration.")
+    drive = config.drives[drive_idx]
+    client.exposed_firmware_load(
+        drive_idx, protocol_contents["fw_file"], drive.product_code, drive.serial_number
+    )
