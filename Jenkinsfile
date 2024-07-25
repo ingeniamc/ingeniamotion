@@ -359,11 +359,6 @@ pipeline {
             }
         }
         stage('Publish coverage') {
-            // Remove once stage is fixed
-            when {
-                beforeAgent true
-                expression { false }
-            }
             agent {
                 docker {
                     label SW_NODE
