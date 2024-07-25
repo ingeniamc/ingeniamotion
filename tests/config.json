@@ -1,12 +1,14 @@
 {
   "eoe": [
   {
+    "identifier": "eve-xcr-c",
     "ip": "192.168.2.10",
     "dictionary": "//awe-srv-max-prd/distext/products/EVE-XCR/firmware/2.4.0/eve-xcr-c_eth_2.4.0.xdf",
     "config_file": "//azr-srv-ingfs1/dist/setups/setup_eve_can/1.2.0/config.xml",
     "fw_file": "//awe-srv-max-prd/distext/products/EVE-XCR/firmware/2.0.0/eve-xcr-c_2.4.0.sfu"
   },
   {
+    "identifier": "cap-xcr-c",
     "ip": "192.168.2.11",
     "dictionary": "//awe-srv-max-prd/distext/products/CAP-XCR/firmware/2.4.0/cap-xcr-c_eth_2.4.0.xdf",
     "config_file": "//azr-srv-ingfs1/dist/setups/setup_cap_can/1.1.0/config.xml",
@@ -15,6 +17,7 @@
   ],
   "soem": [
   {
+    "identifier": "eve-xcr-e",
     "ifname": "\\Device\\NPF_{B24AA996-414A-4F95-95E6-2828D346209A}",
     "dictionary": "//awe-srv-max-prd/distext/products/EVE-XCR/firmware/2.5.1/eve-xcr-e_eoe_2.5.1.xdf",
     "slave": 1,
@@ -24,6 +27,7 @@
     "boot_in_app": true
   },
   {
+    "identifier": "cap-xcr-e",
     "ifname": "\\Device\\NPF_{B24AA996-414A-4F95-95E6-2828D346209A}",
     "dictionary": "//awe-srv-max-prd/distext/products/CAP-XCR/firmware/2.5.1/cap-xcr-e_eoe_2.5.1.xdf",
     "slave": 2,
@@ -35,6 +39,7 @@
   ],
   "canopen": [
   {
+    "identifier": "eve-xcr-c",
     "device": "pcan",
     "dictionary": "//awe-srv-max-prd/distext/products/EVE-XCR/firmware/2.4.0/eve-xcr-c_can_2.4.0.xdf",
     "node_id": 20,
@@ -44,6 +49,7 @@
     "fw_file": "//awe-srv-max-prd/distext/products/EVE-XCR/firmware/2.4.0/eve-xcr-c_2.4.0.sfu"
   },
   {
+    "identifier": "cap-xcr-c",
     "device": "pcan",
     "dictionary": "//awe-srv-max-prd/distext/products/CAP-XCR/firmware/2.4.0/cap-xcr-c_can_2.4.0.xdf",
     "node_id": 21,
