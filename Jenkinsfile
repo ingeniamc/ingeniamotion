@@ -168,13 +168,6 @@ pipeline {
                         script {installTox ()}
                     }
                 }
-                stage("Load FW") {
-                    steps {
-                        bat """
-                                venv\\Scripts\\python.exe -m tox -e firmware -- soem
-                            """
-                    }   
-                }
                 stage('Run tests') {
                     matrix {
                         axes {
@@ -272,13 +265,6 @@ pipeline {
                         checkout scm
                         script {installTox ()}
                     }
-                }
-                stage("Load FW") {
-                    steps {
-                        bat """
-                                venv\\Scripts\\python.exe -m tox -e firmware -- canopen
-                            """
-                    }   
                 }
                 stage('Run tests') {
                     matrix {
