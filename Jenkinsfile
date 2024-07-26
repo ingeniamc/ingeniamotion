@@ -177,7 +177,7 @@ pipeline {
                             }
                             axis {
                                 name 'PYTHON'
-                                values '39', '310', '311'
+                                values '39', '310', '311', '312'
                             }
                         }
                         excludes {
@@ -279,7 +279,7 @@ pipeline {
                             }
                             axis {
                                 name 'PYTHON'
-                                values '39', '310', '311'
+                                values '39', '310', '311', '312'
                             }
                         }
                         excludes {
