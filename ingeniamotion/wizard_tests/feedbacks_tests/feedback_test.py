@@ -11,10 +11,10 @@ if TYPE_CHECKING:
 
 from ingeniamotion.enums import CommutationMode, OperationMode, SensorType, SeverityLevel
 from ingeniamotion.exceptions import IMRegisterNotExist
-from ingeniamotion.wizard_tests.base_test import BaseTest, DictReportType, TestError
+from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType, TestError
 
 
-class Feedbacks(BaseTest[DictReportType]):
+class Feedbacks(BaseTest[LegacyDictReportType]):
     """Feedbacks Wizard Class description."""
 
     class ResultType(IntEnum):

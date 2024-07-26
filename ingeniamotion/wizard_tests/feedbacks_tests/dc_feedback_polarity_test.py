@@ -4,13 +4,13 @@ from typing import TYPE_CHECKING
 import ingenialogger
 
 from ingeniamotion.enums import FeedbackPolarity, OperationMode, SensorType, SeverityLevel
-from ingeniamotion.wizard_tests.base_test import BaseTest, DictReportType, TestError
+from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType, TestError
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 
-class DCFeedbacksPolarityTest(BaseTest[DictReportType]):
+class DCFeedbacksPolarityTest(BaseTest[LegacyDictReportType]):
     MOVEMENT_ERROR_FACTOR = 0.05
     CURRENT_RAMP_TOTAL_TIME = 5
     CURRENT_RAMP_INTERVAL = 0.1

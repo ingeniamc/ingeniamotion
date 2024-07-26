@@ -4,13 +4,13 @@ from typing import TYPE_CHECKING, List
 import ingenialogger
 
 from ingeniamotion.enums import SeverityLevel
-from ingeniamotion.wizard_tests.base_test import BaseTest, DictReportType
+from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
 
 
-class STOTest(BaseTest[DictReportType]):
+class STOTest(BaseTest[LegacyDictReportType]):
     """STO test."""
 
     class ResultType(IntEnum):

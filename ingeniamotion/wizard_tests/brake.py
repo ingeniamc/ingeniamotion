@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from ingeniamotion import MotionController
 
 
-class Brake(BaseTest[None]):
+class Brake(BaseTest[None]):  # type: ignore [type-var]
     BRAKE_OVERRIDE_REGISTER = "MOT_BRAKE_OVERRIDE"
 
     PRIMARY_ABSOLUTE_SLAVE_1_PROTOCOL = "FBK_BISS1_SSI1_PROTOCOL"

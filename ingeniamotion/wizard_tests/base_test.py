@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Dict, Generic, List, Optional, TypeVar, Union
 
 import ingenialogger
@@ -18,9 +19,20 @@ class TestError(Exception):
     pass
 
 
-T = TypeVar("T")
+LegacyDictReportType = Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]
 
-DictReportType = Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]
+
+@dataclass
+class ReportBase:
+    """Base class for result reports."""
+
+    result_severity: SeverityLevel
+    """Severity level."""
+    result_message: str
+    """Message explaining the result."""
+
+
+T = TypeVar("T", bound=Union[LegacyDictReportType, ReportBase])
 
 
 class BaseTest(ABC, Stoppable, Generic[T]):
