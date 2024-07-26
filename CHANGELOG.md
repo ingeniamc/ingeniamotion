@@ -7,6 +7,9 @@
 - Method to get a servo's FSoE master handler state.
 - Method to subscribe to the FSoE errors.
 
+### Changed
+- BaseTest class typing
+
 ## [0.8.2] - 2024-07-15
 ### Added
 - FSoE module.
