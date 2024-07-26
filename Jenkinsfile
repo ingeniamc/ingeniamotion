@@ -168,13 +168,6 @@ pipeline {
                         script {installTox ()}
                     }
                 }
-                stage("Load FW") {
-                    steps {
-                        bat """
-                                venv\\Scripts\\python.exe -m tox -e firmware -- soem
-                            """
-                    }   
-                }
                 stage('Run tests') {
                     matrix {
                         axes {
@@ -184,7 +177,7 @@ pipeline {
                             }
                             axis {
                                 name 'PYTHON'
-                                values '39', '310', '311'
+                                values '39', '310', '311', '312'
                             }
                         }
                         excludes {
@@ -273,13 +266,6 @@ pipeline {
                         script {installTox ()}
                     }
                 }
-                stage("Load FW") {
-                    steps {
-                        bat """
-                                venv\\Scripts\\python.exe -m tox -e firmware -- canopen
-                            """
-                    }   
-                }
                 stage('Run tests') {
                     matrix {
                         axes {
@@ -293,7 +279,7 @@ pipeline {
                             }
                             axis {
                                 name 'PYTHON'
-                                values '39', '310', '311'
+                                values '39', '310', '311', '312'
                             }
                         }
                         excludes {
