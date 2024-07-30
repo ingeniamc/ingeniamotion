@@ -13,13 +13,13 @@ from ingeniamotion.enums import (
     SeverityLevel,
 )
 from ingeniamotion.exceptions import IMRegisterNotExist
-from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
+from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType, TestError
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
 
 
-class Phasing(BaseTest):
+class Phasing(BaseTest[LegacyDictReportType]):
     INTERNAL_GENERATOR_VALUE = 3
     INITIAL_ANGLE = 180.0
     INITIAL_ANGLE_HALLS = 240.0

@@ -7,6 +7,9 @@
 - Method to get a servo's FSoE master handler state.
 - Method to subscribe to the FSoE errors.
 
+### Changed
+- BaseTest class typing
+
 ## [0.8.3] - 2024-07-26
 ### Changed
 - Make fsoe_master an optional requirement
