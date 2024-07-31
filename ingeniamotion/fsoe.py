@@ -142,6 +142,15 @@ class FSoEMasterHandler:
         """Set the STO command to activate the STO"""
         self.__master_handler.dictionary.set(self.STO_COMMAND_UID, False)
 
+    def ss1_deactivate(self) -> None:
+        """Set the SS1 command to deactivate the SS1"""
+        self.__master_handler.set_fail_safe(False)
+        self.__master_handler.dictionary.set(self.SS1_COMMAND_UID, True)
+
+    def ss1_activate(self) -> None:
+        """Set the SS1 command to activate the SS1"""
+        self.__master_handler.dictionary.set(self.SS1_COMMAND_UID, False)
+
     def is_sto_active(self) -> bool:
         """Check the STO state.
 
@@ -410,6 +419,26 @@ class FSoEMaster:
         """
         master_handler = self.__handlers[servo]
         master_handler.sto_activate()
+
+    def ss1_deactivate(self, servo: str = DEFAULT_SERVO) -> None:
+        """Deactivate the SS1.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+
+        """
+        master_handler = self.__handlers[servo]
+        master_handler.ss1_deactivate()
+
+    def ss1_activate(self, servo: str = DEFAULT_SERVO) -> None:
+        """Activate the SS1.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+
+        """
+        master_handler = self.__handlers[servo]
+        master_handler.ss1_activate()
 
     def get_safety_address(self, servo: str = DEFAULT_SERVO) -> int:
         """Get the drive's FSoE slave address.
