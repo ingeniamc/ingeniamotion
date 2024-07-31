@@ -19,6 +19,8 @@ def main(interface_ip, slave_id, dict_path):
     mc.fsoe.configure_pdos(start_pdos=True)
     # Wait for the master to reach the Data state
     mc.fsoe.wait_for_state_data()
+    # Deactivate the SS1
+    mc.fsoe.ss1_deactivate()
     # Deactivate the STO
     mc.fsoe.sto_deactivate()
     # Wait for the STO to be deactivated
@@ -33,6 +35,8 @@ def main(interface_ip, slave_id, dict_path):
         mc.motion.wait_for_velocity(velocity=target_velocity, timeout=5)
     # Disable the motor
     mc.motion.motor_disable()
+    # Activate the SS1
+    mc.fsoe.sto_activate()
     # Activate the STO
     mc.fsoe.sto_activate()
     # Stop the FSoE master handler
