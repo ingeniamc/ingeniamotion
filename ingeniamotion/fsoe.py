@@ -205,9 +205,14 @@ class PDUMapper:
     # Phase 1 mapping
     FSOE_COMMAND_SIZE_BITS = 8
     STO_COMMAND_SIZE_BITS = 1
-    STO_COMMAND_PADDING_SIZE_BITS = 7
+    SS1_COMMAND_SIZE_BITS = 1
+    STO_COMMAND_PADDING_SIZE_BITS = 6
+    SBC_COMMAND_SIZE_BITS = 1
+    SBC_COMMAND_PADDING_SIZE_BITS = 7
     CRC_O_SIZE_BITS = 16
     CONN_ID_SIZE_BITS = 16
+    SAFE_INPUTS_SIZE_BITS = 1
+    SAFE_INPUTS_PADDING_SIZE_BITS = 6
 
     @classmethod
     def configure_rpdo_map(cls, rpdo_map: RPDOMap) -> None:
@@ -222,8 +227,14 @@ class PDUMapper:
         rpdo_map.add_item(fsoe_command_item)
         sto_command_item = RPDOMapItem(size_bits=cls.STO_COMMAND_SIZE_BITS)
         rpdo_map.add_item(sto_command_item)
-        padding_item = RPDOMapItem(size_bits=cls.STO_COMMAND_PADDING_SIZE_BITS)
-        rpdo_map.add_item(padding_item)
+        ss1_command_item = RPDOMapItem(size_bits=cls.SS1_COMMAND_SIZE_BITS)
+        rpdo_map.add_item(ss1_command_item)
+        sto_padding_item = RPDOMapItem(size_bits=cls.STO_COMMAND_PADDING_SIZE_BITS)
+        rpdo_map.add_item(sto_padding_item)
+        sbc_command_item = RPDOMapItem(size_bits=cls.SBC_COMMAND_SIZE_BITS)
+        rpdo_map.add_item(sbc_command_item)
+        sbc_padding_item = RPDOMapItem(size_bits=cls.SBC_COMMAND_PADDING_SIZE_BITS)
+        rpdo_map.add_item(sbc_padding_item)
         crc_0_item = RPDOMapItem(size_bits=cls.CRC_O_SIZE_BITS)
         rpdo_map.add_item(crc_0_item)
         conn_id_item = RPDOMapItem(size_bits=cls.CONN_ID_SIZE_BITS)
@@ -242,8 +253,16 @@ class PDUMapper:
         tpdo_map.add_item(fsoe_command_item)
         sto_command_item = TPDOMapItem(size_bits=cls.STO_COMMAND_SIZE_BITS)
         tpdo_map.add_item(sto_command_item)
-        padding_item = TPDOMapItem(size_bits=cls.STO_COMMAND_PADDING_SIZE_BITS)
-        tpdo_map.add_item(padding_item)
+        ss1_command_item = TPDOMapItem(size_bits=cls.SS1_COMMAND_SIZE_BITS)
+        tpdo_map.add_item(ss1_command_item)
+        sto_padding_item = TPDOMapItem(size_bits=cls.STO_COMMAND_PADDING_SIZE_BITS)
+        tpdo_map.add_item(sto_padding_item)
+        sbc_command_item = TPDOMapItem(size_bits=cls.SBC_COMMAND_SIZE_BITS)
+        tpdo_map.add_item(sbc_command_item)
+        safe_inputs_item = TPDOMapItem(size_bits=cls.SAFE_INPUTS_SIZE_BITS)
+        tpdo_map.add_item(safe_inputs_item)
+        safe_inputs_padding_item = TPDOMapItem(size_bits=cls.SAFE_INPUTS_PADDING_SIZE_BITS)
+        tpdo_map.add_item(safe_inputs_padding_item)
         crc_0_item = TPDOMapItem(size_bits=cls.CRC_O_SIZE_BITS)
         tpdo_map.add_item(crc_0_item)
         conn_id_item = TPDOMapItem(size_bits=cls.CONN_ID_SIZE_BITS)
