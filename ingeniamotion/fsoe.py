@@ -21,6 +21,7 @@ else:
 from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
 from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
+from ingenialink.utils._utils import dtype_value
 
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.exceptions import IMTimeoutError
@@ -62,6 +63,7 @@ class FSoEMasterHandler:
         slave_address: int,
         connection_id: int,
         watchdog_timeout: float,
+        application_parameters: List[ApplicationParameter],
         report_error_callback: Callable[[str, str], None],
     ):
         if not FSOE_MASTER_INSTALLED:
@@ -71,9 +73,7 @@ class FSoEMasterHandler:
             slave_address=slave_address,
             connection_id=connection_id,
             watchdog_timeout_s=watchdog_timeout,
-            application_parameters=[
-                ApplicationParameter(name="SAFETY_ADDRESS", initial_value=slave_address, n_bytes=2)
-            ],
+            application_parameters=application_parameters,
             report_error_callback=report_error_callback,
         )
         self._configure_master()
@@ -297,6 +297,41 @@ class FSoEMaster:
     SAFETY_ADDRESS_REGISTER = EthercatRegister(
         idx=0x4193, subidx=0x00, dtype=REG_DTYPE.U16, access=REG_ACCESS.RW
     )
+    SAFE_INPUTS_MAP_REGISTER = EthercatRegister(
+        identifier="SAFE_INPUTS_MAP",
+        idx=0x46D2,
+        subidx=0x00,
+        dtype=REG_DTYPE.U16,
+        access=REG_ACCESS.RW,
+    )
+    STO_ACTIVATE_SBC_REGISTER = EthercatRegister(
+        identifier="STO_ACTIVATE_SBC",
+        idx=0x6643,
+        subidx=0x00,
+        dtype=REG_DTYPE.U32,
+        access=REG_ACCESS.RW,
+    )
+    SS1_TIME_TO_STO_REGISTER = EthercatRegister(
+        identifier="SS1_TIME_TO_STO",
+        idx=0x6651,
+        subidx=0x01,
+        dtype=REG_DTYPE.U16,
+        access=REG_ACCESS.RW,
+    )
+    SS1_ACTIVATE_SBC_REGISTER = EthercatRegister(
+        identifier="SS1_ACTIVATE_SBC",
+        idx=0x6658,
+        subidx=0x01,
+        dtype=REG_DTYPE.U32,
+        access=REG_ACCESS.RW,
+    )
+    SBC_BRAKE_TIME_DELAY_REGISTER = EthercatRegister(
+        identifier="SBC_BRAKE_TIME_DELAY",
+        idx=0x6661,
+        subidx=0x00,
+        dtype=REG_DTYPE.U16,
+        access=REG_ACCESS.RW,
+    )
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.logger = ingenialogger.get_logger(__name__)
@@ -318,10 +353,12 @@ class FSoEMaster:
 
         """
         slave_address = self.get_safety_address(servo)
+        application_parameters = self._get_application_parameters(servo)
         master_handler = FSoEMasterHandler(
             slave_address,
             self.__next_connection_id,
             fsoe_master_watchdog_timeout,
+            application_parameters,
             partial(self._notify_errors, servo=servo),
         )
         self.__handlers[servo] = master_handler
@@ -535,3 +572,23 @@ class FSoEMaster:
             "The FSoE Master lost connection to the FSoE slaves. "
             f"An exception occurred during the PDO exchange: {exc}"
         )
+
+    def _get_application_parameters(self, servo: str) -> List[ApplicationParameter]:
+        """Get values of the application parameters"""
+        drive = self.__mc.servos[servo]
+        application_parameters = []
+        for register in [
+            self.SAFE_INPUTS_MAP_REGISTER,
+            self.STO_ACTIVATE_SBC_REGISTER,
+            self.SS1_TIME_TO_STO_REGISTER,
+            self.SS1_ACTIVATE_SBC_REGISTER,
+            self.SBC_BRAKE_TIME_DELAY_REGISTER,
+        ]:
+            register_size_bytes, _ = dtype_value[register.dtype]
+            application_parameter = ApplicationParameter(
+                name=register.identifier,
+                initial_value=drive.read(register),
+                n_bytes=register_size_bytes,
+            )
+            application_parameters.append(application_parameter)
+        return application_parameters
