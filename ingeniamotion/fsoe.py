@@ -78,14 +78,21 @@ class FSoEMasterHandler:
         self._configure_pdo_maps()
         self.__running = False
 
+        # The saco slave might take a while to answer with a valid command
+        # During it's initialization it will respond with 0's, that are ignored
+        # To avoid triggering additional errors
+        self.__in_initial_reset = False
+
     def _start(self) -> None:
         """Start the FSoE Master handler."""
+        self.__in_initial_reset = True
         self.__master_handler.start()
         self.__running = True
 
     def stop(self) -> None:
         """Stop the master handler"""
         self.__master_handler.stop()
+        self.__in_initial_reset = False
         self.__running = False
 
     def delete(self) -> None:
@@ -127,7 +134,16 @@ class FSoEMasterHandler:
     def set_reply(self) -> None:
         """Get the FSoE slave response from the Safety Slave PDU PDOMap and set it
         to the FSoE master handler."""
-        self.__master_handler.set_reply(self.safety_slave_pdu_map.get_item_bytes())
+        reply = self.safety_slave_pdu_map.get_item_bytes()
+        if self.__in_initial_reset:
+            if reply[0] == 0:
+                # Byte 0 of FSoE frame should always be the command
+                # 0 is not a valid command
+                return
+            else:
+                self.__in_initial_reset = False
+
+        self.__master_handler.set_reply(reply)
 
     def sto_deactivate(self) -> None:
         """Set the STO command to deactivate the STO"""
