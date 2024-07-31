@@ -51,6 +51,10 @@ class FSoEMasterHandler:
 
     STO_COMMAND_KEY = 0x040
     STO_COMMAND_UID = "STO_COMMAND"
+    SS1_COMMAND_KEY = 0x050
+    SS1_COMMAND_UID = "SS1_COMMAND"
+    SBC_COMMAND_KEY = 0x060
+    SBC_COMMAND_UID = "SBC_COMMAND"
     PROCESS_DATA_COMMAND = 0x36
 
     def __init__(
@@ -169,16 +173,27 @@ class FSoEMasterHandler:
             if timeout and (init_time + timeout) < time.time():
                 raise IMTimeoutError("The FSoE Master did not reach the Data state")
 
-    @staticmethod
-    def _saco_phase_1_dictionary() -> "Dictionary":
+    def _saco_phase_1_dictionary(self) -> "Dictionary":
         """Get the SaCo phase 1 dictionary instance"""
         sto_command_dict_item = DictionaryItemInputOutput(
-            key=0x040,
-            name="STO_COMMAND",
+            key=self.STO_COMMAND_KEY,
+            name=self.STO_COMMAND_UID,
             data_type=DictionaryItem.DataTypes.BOOL,
             fail_safe_input_value=True,
         )
-        return Dictionary([sto_command_dict_item])
+        ss1_command_dict_item = DictionaryItemInputOutput(
+            key=self.SS1_COMMAND_KEY,
+            name=self.SS1_COMMAND_UID,
+            data_type=DictionaryItem.DataTypes.BOOL,
+            fail_safe_input_value=True,
+        )
+        sbc_command_dict_item = DictionaryItemInputOutput(
+            key=self.SBC_COMMAND_KEY,
+            name=self.SBC_COMMAND_UID,
+            data_type=DictionaryItem.DataTypes.BOOL,
+            fail_safe_input_value=False,
+        )
+        return Dictionary([sto_command_dict_item, ss1_command_dict_item, sbc_command_dict_item])
 
     @property
     def safety_master_pdu_map(self) -> RPDOMap:
