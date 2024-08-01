@@ -55,6 +55,7 @@ class DCFeedbacksResolutionTest(BaseTest[LegacyDictReportType]):
         kp: Optional[float] = None,
         ki: Optional[float] = None,
         kd: Optional[float] = None,
+        logger_drive_name: Optional[str] = None,
     ):
         if sensor == SensorType.HALLS:
             raise NotImplementedError("This test is not implemented for Hall sensor")
@@ -69,7 +70,10 @@ class DCFeedbacksResolutionTest(BaseTest[LegacyDictReportType]):
             self.test_velocity_pid["kp"] = kp
             self.test_velocity_pid["ki"] = ki or 0
             self.test_velocity_pid["kd"] = kd or 0
-        self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
+        if logger_drive_name is None:
+            self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
+        else:
+            self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=logger_drive_name)
 
     @BaseTest.stoppable
     def setup(self) -> None:

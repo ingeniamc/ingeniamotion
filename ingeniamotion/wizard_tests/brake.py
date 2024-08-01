@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Dict, Union
+from typing import TYPE_CHECKING, Dict, Union, Optional
 
 import ingenialogger
 from ingenialink.exceptions import ILError
@@ -32,13 +32,20 @@ class Brake(BaseTest[None]):  # type: ignore [type-var]
     ]
 
     def __init__(
-        self, mc: "MotionController", servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
+        self,
+        mc: "MotionController",
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+        logger_drive_name: Optional[str] = None,
     ) -> None:
         super().__init__()
         self.mc = mc
         self.servo = servo
         self.axis = axis
-        self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
+        if logger_drive_name is None:
+            self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
+        else:
+            self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=logger_drive_name)
         self.backup_registers_names = self.BACKUP_REGISTERS
 
     def setup(self) -> None:
