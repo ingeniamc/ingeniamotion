@@ -6,7 +6,6 @@ from collections import OrderedDict
 import pytest
 from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
-from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.exceptions import ILError
 from ingenialink.network import SlaveInfo
 from ingenialink.servo import SERVO_STATE
@@ -274,7 +273,8 @@ def test_load_firmware_canopen_exception(motion_controller):
 @pytest.mark.virtual
 def test_boot_mode_and_load_firmware_ethernet_exception(mocker, motion_controller):
     mc, alias = motion_controller
-    mocker.patch.object(mc, "_get_network", return_value=EthercatNetwork("fake_interface_name"))
+
+    mocker.patch.object(mc, "_get_network", return_value=object())
     with pytest.raises(ValueError):
         mc.communication.boot_mode_and_load_firmware_ethernet("fake_fw_file.lfu", servo=alias)
 
@@ -282,7 +282,7 @@ def test_boot_mode_and_load_firmware_ethernet_exception(mocker, motion_controlle
 @pytest.mark.virtual
 def test_load_firmware_moco_exception(mocker, motion_controller):
     mc, alias = motion_controller
-    mocker.patch.object(mc, "_get_network", return_value=EthercatNetwork("fake_interface_name"))
+    mocker.patch.object(mc, "_get_network", return_value=object())
     with pytest.raises(ValueError):
         mc.communication.load_firmware_moco("fake_fw_file.lfu", servo=alias)
 
@@ -329,6 +329,7 @@ def test_scan_servos_canopen(mocker):
 def test_scan_servos_ethercat_with_info(mocker):
     mc = MotionController()
     detected_slaves = OrderedDict({1: SlaveInfo(1234, 123), 2: SlaveInfo(1234, 123)})
+    mocker.patch("ingenialink.ethercat.network.EthercatNetwork.__init__", return_value=None)
     mocker.patch(
         "ingenialink.ethercat.network.EthercatNetwork.scan_slaves_info",
         return_value=detected_slaves,
@@ -340,6 +341,7 @@ def test_scan_servos_ethercat_with_info(mocker):
 def test_scan_servos_ethercat(mocker):
     mc = MotionController()
     detected_slaves = [1, 2]
+    mocker.patch("ingenialink.ethercat.network.EthercatNetwork.__init__", return_value=None)
     mocker.patch(
         "ingenialink.ethercat.network.EthercatNetwork.scan_slaves",
         return_value=detected_slaves,
@@ -462,6 +464,7 @@ def test_load_ensemble_fw_ecat(mocker):
     fw_file1 = os.path.join(temp_path, "cap-net-1-e_2.4.0.lfu")
     fw_file2 = os.path.join(temp_path, "cap-net-2-e_2.4.0.lfu")
     mc = MotionController()
+    mocker.patch("ingenialink.ethercat.network.EthercatNetwork.__init__", return_value=None)
     mocker.patch(
         "ingenialink.ethercat.network.EthercatNetwork.scan_slaves_info", return_value=slaves
     )

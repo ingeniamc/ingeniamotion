@@ -49,9 +49,6 @@ def teardown_for_test_examples(motion_controller, read_config, pytestconfig):
         connect_eoe(mc, read_config, alias)
 
 
-from ingeniamotion.motion import Motion
-
-
 @pytest.mark.eoe
 def test_disturbance_example(read_config, script_runner):
     script_path = "examples/disturbance_example.py"
@@ -485,8 +482,8 @@ def test_ecat_coe_connection_example_success(mocker, capsys):
     assert all_outputs[6] == f"- Interface identifier: {expected_real_name_interface}"
     assert all_outputs[7] == f"- Interface name: {expected_interfaces_name_list[interface_index]}"
     assert all_outputs[8] == f"Found slaves: {expected_slave_list}"
-    assert all_outputs[9] == f"Drive is connected."
-    assert all_outputs[10] == f"The drive has been disconnected."
+    assert all_outputs[9] == "Drive is connected."
+    assert all_outputs[10] == "The drive has been disconnected."
 
 
 @pytest.mark.virtual
@@ -535,6 +532,7 @@ def test_ecat_coe_connection_example_failed(mocker, capsys):
 def test_ecat_coe_connection_example_connection_error(mocker, capsys):
     interface_index = 2
     slave_id = 1
+
     dictionary_path = (
         "\\\\awe-srv-max-prd\\distext\\products\\CAP-NET\\firmware\\2.4.0\\cap-net-e_eoe_2.4.0.xdf"
     )
@@ -547,6 +545,18 @@ def test_ecat_coe_connection_example_connection_error(mocker, capsys):
     def get_ifname_by_index(*args, **kwargs):
         return expected_real_name_interface
 
+    def scan_servos_ethercat(*args, **kwargs):
+        return [1]
+
+    def connect_servo_ethercat(*args, **kwargs):
+        raise ConnectionError(f"could not open interface {expected_real_name_interface}")
+
+    def disconnect(*args, **kwargs):
+        return None
+
+    mocker.patch.object(Communication, "scan_servos_ethercat", scan_servos_ethercat)
+    mocker.patch.object(Communication, "connect_servo_ethercat", connect_servo_ethercat)
+    mocker.patch.object(Communication, "disconnect", disconnect)
     mocker.patch.object(Communication, "get_interface_name_list", get_interface_name_list)
     mocker.patch.object(Communication, "get_ifname_by_index", get_ifname_by_index)
     with pytest.raises(ConnectionError) as e:

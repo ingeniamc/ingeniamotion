@@ -137,8 +137,12 @@ def test_get_name(motion_controller):
 @pytest.mark.virtual
 def test_get_communication_type(mocker, motion_controller, communication, expected_result, args):
     mc, alias = motion_controller
+
+    mocker.patch("ingenialink.ethercat.network.EthercatNetwork.__init__", return_value=None)
+
     if communication != EthernetNetwork:
         mocker.patch.object(mc, "_get_network", return_value=communication(args))
+
     communication_type = mc.info.get_communication_type(alias)
     assert communication_type == expected_result
 
@@ -155,6 +159,9 @@ def test_get_communication_type(mocker, motion_controller, communication, expect
 @pytest.mark.virtual
 def test_get_full_name(mocker, motion_controller, communication, expected_result, args):
     mc, alias = motion_controller
+
+    mocker.patch("ingenialink.ethercat.network.EthercatNetwork.__init__", return_value=None)
+
     if communication != EthernetNetwork:
         mocker.patch.object(mc, "_get_network", return_value=communication(args))
     full_name = mc.info.get_full_name(alias)
@@ -229,6 +236,7 @@ def test_get_node_id_exception(motion_controller):
 @pytest.mark.virtual
 def test_get_ip_exception(mocker, motion_controller):
     mc, alias = motion_controller
+    mocker.patch("ingenialink.ethercat.network.EthercatNetwork.__init__", return_value=None)
     mocker.patch.object(mc, "_get_network", return_value=EthercatNetwork("fake_interface_name"))
     with pytest.raises(IMException):
         mc.info.get_ip(alias)
@@ -260,6 +268,7 @@ def test_get_baudrate_success(motion_controller, mocker):
 def test_get_baudrate_failed(motion_controller, mocker):
     mc, alias = motion_controller
 
+    mocker.patch("ingenialink.ethercat.network.EthercatNetwork.__init__", return_value=None)
     mocker.patch.object(mc, "_get_network", return_value=EthercatNetwork("fake_interface_name"))
     with pytest.raises(IMException) as imexpeption_info:
         _ = mc.info.get_baudrate(alias)
