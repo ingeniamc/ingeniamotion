@@ -1425,10 +1425,14 @@ class Communication(metaclass=MCMetaClass):
             The ID offset (relative position in the ensemble) of the selected slave.
         """
         for slave_id_offset in mapping:
-            _, product_code, revision_number = mapping[slave_id_offset]
-            if product_code == slave_info.product_code and (
-                revision_number & self.ENSEMBLE_SLAVE_REV_NUM_MASK
-            ) == (slave_info.revision_number & self.ENSEMBLE_SLAVE_REV_NUM_MASK):
+            _, mapping_product_code, mapping_revision_number = mapping[slave_id_offset]
+            scanned_product_code = slave_info.product_code
+            scanned_revision_number = slave_info.revision_number
+            if scanned_product_code is None or scanned_revision_number is None:
+                continue
+            if mapping_product_code == scanned_product_code and (
+                mapping_revision_number & self.ENSEMBLE_SLAVE_REV_NUM_MASK
+            ) == (scanned_revision_number & self.ENSEMBLE_SLAVE_REV_NUM_MASK):
                 return slave_id_offset
         raise IMException("The selected drive is not part of the ensemble.")
 
