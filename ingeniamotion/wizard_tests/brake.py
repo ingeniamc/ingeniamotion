@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Dict, Union, Optional
+from typing import TYPE_CHECKING, Dict, Optional, Union
 
 import ingenialogger
 from ingenialink.exceptions import ILError
