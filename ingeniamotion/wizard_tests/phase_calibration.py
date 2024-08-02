@@ -73,6 +73,7 @@ class Phasing(BaseTest[LegacyDictReportType]):
         default_current: bool = True,
         default_timeout: bool = True,
         default_accuracy: bool = True,
+        logger_drive_name: Optional[str] = None,
     ) -> None:
         super().__init__()
         self.mc = mc
@@ -81,7 +82,10 @@ class Phasing(BaseTest[LegacyDictReportType]):
         self.backup_registers_names = self.BACKUP_REGISTERS
         self.comm: Optional[SensorType] = None
         self.ref: Optional[SensorType] = None
-        self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
+        if logger_drive_name is None:
+            self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
+        else:
+            self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=logger_drive_name)
 
         self.default_phasing_current = default_current
         self.default_phasing_timeout = default_timeout

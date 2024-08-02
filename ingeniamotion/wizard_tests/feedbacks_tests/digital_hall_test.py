@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
@@ -21,8 +21,10 @@ class DigitalHallTest(Feedbacks):
 
     SENSOR_TYPE_FEEDBACK_TEST = SensorType.HALLS
 
-    def __init__(self, mc: "MotionController", servo: str, axis: int) -> None:
-        super().__init__(mc, servo, axis)
+    def __init__(
+        self, mc: "MotionController", servo: str, axis: int, logger_drive_name: Optional[str] = None
+    ) -> None:
+        super().__init__(mc, servo, axis, logger_drive_name)
         self.backup_registers_names.extend(self.BACKUP_REGISTERS_HALLS)
 
     @BaseTest.stoppable
