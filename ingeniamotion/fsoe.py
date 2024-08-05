@@ -11,6 +11,7 @@ try:
         Dictionary,
         DictionaryItem,
         DictionaryItemInputOutput,
+        DictionaryItemInput,
         MasterHandler,
     )
 except ImportError:
@@ -56,6 +57,8 @@ class FSoEMasterHandler:
     SS1_COMMAND_UID = "SS1_COMMAND"
     SBC_COMMAND_KEY = 0x060
     SBC_COMMAND_UID = "SBC_COMMAND"
+    SAFE_INPUTS_KEY = 0x070
+    SAFE_INPUTS_UID = "SAFE_INPUTS"
     PROCESS_DATA_COMMAND = 0x36
 
     def __init__(
@@ -114,13 +117,20 @@ class FSoEMasterHandler:
         """Configure the FSoE master handler's SafeOutputs."""
         # Phase 1 mapping
         self.__master_handler.master.dictionary_map.add_by_key(self.STO_COMMAND_KEY, bits=1)
+        self.__master_handler.master.dictionary_map.add_by_key(self.SS1_COMMAND_KEY, bits=1)
+        self.__master_handler.master.dictionary_map.add_padding(bits=6)
+        self.__master_handler.master.dictionary_map.add_by_key(self.SBC_COMMAND_KEY, bits=1)
         self.__master_handler.master.dictionary_map.add_padding(bits=7)
 
     def _map_inputs(self) -> None:
         """Configure the FSoE master handler's SafeInputs."""
         # Phase 1 mapping
         self.__master_handler.slave.dictionary_map.add_by_key(self.STO_COMMAND_KEY, bits=1)
-        self.__master_handler.slave.dictionary_map.add_padding(bits=7)
+        self.__master_handler.slave.dictionary_map.add_by_key(self.SS1_COMMAND_KEY, bits=1)
+        self.__master_handler.slave.dictionary_map.add_padding(bits=6)
+        self.__master_handler.slave.dictionary_map.add_by_key(self.SBC_COMMAND_KEY, bits=1)
+        self.__master_handler.slave.dictionary_map.add_by_key(self.SAFE_INPUTS_KEY, bits=1)
+        self.__master_handler.slave.dictionary_map.add_padding(bits=6)
 
     def get_request(self) -> None:
         """Set the FSoE master handler request to the Safety Master PDU PDOMap"""
@@ -202,7 +212,13 @@ class FSoEMasterHandler:
             data_type=DictionaryItem.DataTypes.BOOL,
             fail_safe_input_value=False,
         )
-        return Dictionary([sto_command_dict_item, ss1_command_dict_item, sbc_command_dict_item])
+        safe_input_dict_item = DictionaryItemInput(
+            key=self.SAFE_INPUTS_KEY,
+            name=self.SAFE_INPUTS_UID,
+            data_type=DictionaryItem.DataTypes.BOOL,
+            fail_safe_value=False,
+        )
+        return Dictionary([sto_command_dict_item, ss1_command_dict_item, sbc_command_dict_item, safe_input_dict_item])
 
     @property
     def safety_master_pdu_map(self) -> RPDOMap:
