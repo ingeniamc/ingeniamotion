@@ -66,7 +66,7 @@ class FSoEMasterHandler:
         slave_address: int,
         connection_id: int,
         watchdog_timeout: float,
-        application_parameters: List[ApplicationParameter],
+        application_parameters: List["ApplicationParameter"],
         report_error_callback: Callable[[str, str], None],
     ):
         if not FSOE_MASTER_INSTALLED:
@@ -625,7 +625,7 @@ class FSoEMaster:
             f"An exception occurred during the PDO exchange: {exc}"
         )
 
-    def _get_application_parameters(self, servo: str) -> List[ApplicationParameter]:
+    def _get_application_parameters(self, servo: str) -> List["ApplicationParameter"]:
         """Get values of the application parameters"""
         drive = self.__mc.servos[servo]
         application_parameters = []
