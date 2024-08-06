@@ -10,8 +10,8 @@ try:
         ApplicationParameter,
         Dictionary,
         DictionaryItem,
-        DictionaryItemInputOutput,
         DictionaryItemInput,
+        DictionaryItemInputOutput,
         MasterHandler,
     )
 except ImportError:
