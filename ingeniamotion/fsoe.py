@@ -218,7 +218,14 @@ class FSoEMasterHandler:
             data_type=DictionaryItem.DataTypes.BOOL,
             fail_safe_value=False,
         )
-        return Dictionary([sto_command_dict_item, ss1_command_dict_item, sbc_command_dict_item, safe_input_dict_item])
+        return Dictionary(
+            [
+                sto_command_dict_item,
+                ss1_command_dict_item,
+                sbc_command_dict_item,
+                safe_input_dict_item,
+            ]
+        )
 
     @property
     def safety_master_pdu_map(self) -> RPDOMap:
