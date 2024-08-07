@@ -32,6 +32,10 @@ if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 
+def print_bytes(name: str, byt: bytes):
+    print(name + "".join("%02X " % b for b in byt))
+
+
 @dataclass
 class FSoEError:
     """FSoE Error descriptor"""
@@ -62,12 +66,12 @@ class FSoEMasterHandler:
     PROCESS_DATA_COMMAND = 0x36
 
     def __init__(
-        self,
-        slave_address: int,
-        connection_id: int,
-        watchdog_timeout: float,
-        application_parameters: List["ApplicationParameter"],
-        report_error_callback: Callable[[str, str], None],
+            self,
+            slave_address: int,
+            connection_id: int,
+            watchdog_timeout: float,
+            application_parameters: List["ApplicationParameter"],
+            report_error_callback: Callable[[str, str], None],
     ):
         if not FSOE_MASTER_INSTALLED:
             return
@@ -143,12 +147,16 @@ class FSoEMasterHandler:
         """Set the FSoE master handler request to the Safety Master PDU PDOMap"""
         if not self.__running:
             self._start()
+
+        request = self.__master_handler.get_request()
+        print_bytes("### Request", request)
         self.safety_master_pdu_map.set_item_bytes(self.__master_handler.get_request())
 
     def set_reply(self) -> None:
         """Get the FSoE slave response from the Safety Slave PDU PDOMap and set it
         to the FSoE master handler."""
         reply = self.safety_slave_pdu_map.get_item_bytes()
+        print_bytes("### Reply", reply)
         if self.__in_initial_reset:
             if reply[0] == 0:
                 # Byte 0 of FSoE frame should always be the command
@@ -396,9 +404,9 @@ class FSoEMaster:
         self._error_observers: List[Callable[[FSoEError], None]] = []
 
     def create_fsoe_master_handler(
-        self,
-        servo: str = DEFAULT_SERVO,
-        fsoe_master_watchdog_timeout: float = DEFAULT_WATCHDOG_TIMEOUT_S,
+            self,
+            servo: str = DEFAULT_SERVO,
+            fsoe_master_watchdog_timeout: float = DEFAULT_WATCHDOG_TIMEOUT_S,
     ) -> None:
         """Create an FSoE Master handler linked to a Safe servo drive.
 
@@ -540,7 +548,7 @@ class FSoEMaster:
         return master_handler.is_sto_active()
 
     def wait_for_state_data(
-        self, servo: str = DEFAULT_SERVO, timeout: Optional[float] = None
+            self, servo: str = DEFAULT_SERVO, timeout: Optional[float] = None
     ) -> None:
         """Wait for an FSoE master handler to reach the Data state.
 
