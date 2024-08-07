@@ -161,6 +161,13 @@ class FSoEMasterHandler:
         """Set the SS1 command to activate the SS1"""
         self.__master_handler.dictionary.set(self.SS1_COMMAND_UID, False)
 
+    def safe_inputs_value(self) -> bool:
+        """Get the safe inputs register value"""
+        safe_inputs_value = self.__master_handler.dictionary.get(self.SAFE_INPUTS_KEY)
+        if not isinstance(safe_inputs_value, bool):
+            raise ValueError(f"Wrong value type. Expected type bool, got {type(safe_inputs_value)}")
+        return safe_inputs_value
+
     def is_sto_active(self) -> bool:
         """Check the STO state.
 
@@ -462,6 +469,19 @@ class FSoEMaster:
         """
         master_handler = self.__handlers[servo]
         master_handler.ss1_activate()
+
+    def get_safety_inputs_value(self, servo: str = DEFAULT_SERVO) -> bool:
+        """Get a drive's safe inputs register value.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+
+        Returns:
+           The safe inputs value.
+
+        """
+        master_handler = self.__handlers[servo]
+        return master_handler.safe_inputs_value()
 
     def get_safety_address(self, servo: str = DEFAULT_SERVO) -> int:
         """Get the drive's FSoE slave address.
