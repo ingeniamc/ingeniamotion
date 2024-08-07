@@ -163,7 +163,7 @@ class FSoEMasterHandler:
 
     def safe_inputs_value(self) -> bool:
         """Get the safe inputs register value"""
-        safe_inputs_value = self.__master_handler.dictionary.get(self.SAFE_INPUTS_KEY)
+        safe_inputs_value = self.__master_handler.dictionary.get(self.SAFE_INPUTS_UID)
         if not isinstance(safe_inputs_value, bool):
             raise ValueError(f"Wrong value type. Expected type bool, got {type(safe_inputs_value)}")
         return safe_inputs_value
