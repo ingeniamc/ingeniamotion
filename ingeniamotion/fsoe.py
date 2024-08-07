@@ -10,6 +10,7 @@ try:
         ApplicationParameter,
         Dictionary,
         DictionaryItem,
+        DictionaryItemInput,
         DictionaryItemInputOutput,
         MasterHandler,
     )
@@ -21,6 +22,7 @@ else:
 from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
 from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
+from ingenialink.utils._utils import dtype_value
 
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.exceptions import IMTimeoutError
@@ -51,6 +53,12 @@ class FSoEMasterHandler:
 
     STO_COMMAND_KEY = 0x040
     STO_COMMAND_UID = "STO_COMMAND"
+    SS1_COMMAND_KEY = 0x050
+    SS1_COMMAND_UID = "SS1_COMMAND"
+    SBC_COMMAND_KEY = 0x060
+    SBC_COMMAND_UID = "SBC_COMMAND"
+    SAFE_INPUTS_KEY = 0x070
+    SAFE_INPUTS_UID = "SAFE_INPUTS"
     PROCESS_DATA_COMMAND = 0x36
 
     def __init__(
@@ -58,6 +66,7 @@ class FSoEMasterHandler:
         slave_address: int,
         connection_id: int,
         watchdog_timeout: float,
+        application_parameters: List["ApplicationParameter"],
         report_error_callback: Callable[[str, str], None],
     ):
         if not FSOE_MASTER_INSTALLED:
@@ -67,9 +76,7 @@ class FSoEMasterHandler:
             slave_address=slave_address,
             connection_id=connection_id,
             watchdog_timeout_s=watchdog_timeout,
-            application_parameters=[
-                ApplicationParameter(name="SAFETY_ADDRESS", initial_value=slave_address, n_bytes=2)
-            ],
+            application_parameters=application_parameters,
             report_error_callback=report_error_callback,
         )
         self._configure_master()
@@ -117,13 +124,20 @@ class FSoEMasterHandler:
         """Configure the FSoE master handler's SafeOutputs."""
         # Phase 1 mapping
         self.__master_handler.master.dictionary_map.add_by_key(self.STO_COMMAND_KEY, bits=1)
+        self.__master_handler.master.dictionary_map.add_by_key(self.SS1_COMMAND_KEY, bits=1)
+        self.__master_handler.master.dictionary_map.add_padding(bits=6)
+        self.__master_handler.master.dictionary_map.add_by_key(self.SBC_COMMAND_KEY, bits=1)
         self.__master_handler.master.dictionary_map.add_padding(bits=7)
 
     def _map_inputs(self) -> None:
         """Configure the FSoE master handler's SafeInputs."""
         # Phase 1 mapping
         self.__master_handler.slave.dictionary_map.add_by_key(self.STO_COMMAND_KEY, bits=1)
-        self.__master_handler.slave.dictionary_map.add_padding(bits=7)
+        self.__master_handler.slave.dictionary_map.add_by_key(self.SS1_COMMAND_KEY, bits=1)
+        self.__master_handler.slave.dictionary_map.add_padding(bits=6)
+        self.__master_handler.slave.dictionary_map.add_by_key(self.SBC_COMMAND_KEY, bits=1)
+        self.__master_handler.slave.dictionary_map.add_by_key(self.SAFE_INPUTS_KEY, bits=1)
+        self.__master_handler.slave.dictionary_map.add_padding(bits=6)
 
     def get_request(self) -> None:
         """Set the FSoE master handler request to the Safety Master PDU PDOMap"""
@@ -153,6 +167,22 @@ class FSoEMasterHandler:
     def sto_activate(self) -> None:
         """Set the STO command to activate the STO"""
         self.__master_handler.dictionary.set(self.STO_COMMAND_UID, False)
+
+    def ss1_deactivate(self) -> None:
+        """Set the SS1 command to deactivate the SS1"""
+        self.__master_handler.set_fail_safe(False)
+        self.__master_handler.dictionary.set(self.SS1_COMMAND_UID, True)
+
+    def ss1_activate(self) -> None:
+        """Set the SS1 command to activate the SS1"""
+        self.__master_handler.dictionary.set(self.SS1_COMMAND_UID, False)
+
+    def safe_inputs_value(self) -> bool:
+        """Get the safe inputs register value"""
+        safe_inputs_value = self.__master_handler.dictionary.get(self.SAFE_INPUTS_UID)
+        if not isinstance(safe_inputs_value, bool):
+            raise ValueError(f"Wrong value type. Expected type bool, got {type(safe_inputs_value)}")
+        return safe_inputs_value
 
     def is_sto_active(self) -> bool:
         """Check the STO state.
@@ -185,16 +215,40 @@ class FSoEMasterHandler:
             if timeout and (init_time + timeout) < time.time():
                 raise IMTimeoutError("The FSoE Master did not reach the Data state")
 
-    @staticmethod
-    def _saco_phase_1_dictionary() -> "Dictionary":
+    def _saco_phase_1_dictionary(self) -> "Dictionary":
         """Get the SaCo phase 1 dictionary instance"""
         sto_command_dict_item = DictionaryItemInputOutput(
-            key=0x040,
-            name="STO_COMMAND",
+            key=self.STO_COMMAND_KEY,
+            name=self.STO_COMMAND_UID,
             data_type=DictionaryItem.DataTypes.BOOL,
             fail_safe_input_value=True,
         )
-        return Dictionary([sto_command_dict_item])
+        ss1_command_dict_item = DictionaryItemInputOutput(
+            key=self.SS1_COMMAND_KEY,
+            name=self.SS1_COMMAND_UID,
+            data_type=DictionaryItem.DataTypes.BOOL,
+            fail_safe_input_value=True,
+        )
+        sbc_command_dict_item = DictionaryItemInputOutput(
+            key=self.SBC_COMMAND_KEY,
+            name=self.SBC_COMMAND_UID,
+            data_type=DictionaryItem.DataTypes.BOOL,
+            fail_safe_input_value=False,
+        )
+        safe_input_dict_item = DictionaryItemInput(
+            key=self.SAFE_INPUTS_KEY,
+            name=self.SAFE_INPUTS_UID,
+            data_type=DictionaryItem.DataTypes.BOOL,
+            fail_safe_value=False,
+        )
+        return Dictionary(
+            [
+                sto_command_dict_item,
+                ss1_command_dict_item,
+                sbc_command_dict_item,
+                safe_input_dict_item,
+            ]
+        )
 
     @property
     def safety_master_pdu_map(self) -> RPDOMap:
@@ -221,9 +275,14 @@ class PDUMapper:
     # Phase 1 mapping
     FSOE_COMMAND_SIZE_BITS = 8
     STO_COMMAND_SIZE_BITS = 1
-    STO_COMMAND_PADDING_SIZE_BITS = 7
+    SS1_COMMAND_SIZE_BITS = 1
+    STO_COMMAND_PADDING_SIZE_BITS = 6
+    SBC_COMMAND_SIZE_BITS = 1
+    SBC_COMMAND_PADDING_SIZE_BITS = 7
     CRC_O_SIZE_BITS = 16
     CONN_ID_SIZE_BITS = 16
+    SAFE_INPUTS_SIZE_BITS = 1
+    SAFE_INPUTS_PADDING_SIZE_BITS = 6
 
     @classmethod
     def configure_rpdo_map(cls, rpdo_map: RPDOMap) -> None:
@@ -238,8 +297,14 @@ class PDUMapper:
         rpdo_map.add_item(fsoe_command_item)
         sto_command_item = RPDOMapItem(size_bits=cls.STO_COMMAND_SIZE_BITS)
         rpdo_map.add_item(sto_command_item)
-        padding_item = RPDOMapItem(size_bits=cls.STO_COMMAND_PADDING_SIZE_BITS)
-        rpdo_map.add_item(padding_item)
+        ss1_command_item = RPDOMapItem(size_bits=cls.SS1_COMMAND_SIZE_BITS)
+        rpdo_map.add_item(ss1_command_item)
+        sto_padding_item = RPDOMapItem(size_bits=cls.STO_COMMAND_PADDING_SIZE_BITS)
+        rpdo_map.add_item(sto_padding_item)
+        sbc_command_item = RPDOMapItem(size_bits=cls.SBC_COMMAND_SIZE_BITS)
+        rpdo_map.add_item(sbc_command_item)
+        sbc_padding_item = RPDOMapItem(size_bits=cls.SBC_COMMAND_PADDING_SIZE_BITS)
+        rpdo_map.add_item(sbc_padding_item)
         crc_0_item = RPDOMapItem(size_bits=cls.CRC_O_SIZE_BITS)
         rpdo_map.add_item(crc_0_item)
         conn_id_item = RPDOMapItem(size_bits=cls.CONN_ID_SIZE_BITS)
@@ -258,8 +323,16 @@ class PDUMapper:
         tpdo_map.add_item(fsoe_command_item)
         sto_command_item = TPDOMapItem(size_bits=cls.STO_COMMAND_SIZE_BITS)
         tpdo_map.add_item(sto_command_item)
-        padding_item = TPDOMapItem(size_bits=cls.STO_COMMAND_PADDING_SIZE_BITS)
-        tpdo_map.add_item(padding_item)
+        ss1_command_item = TPDOMapItem(size_bits=cls.SS1_COMMAND_SIZE_BITS)
+        tpdo_map.add_item(ss1_command_item)
+        sto_padding_item = TPDOMapItem(size_bits=cls.STO_COMMAND_PADDING_SIZE_BITS)
+        tpdo_map.add_item(sto_padding_item)
+        sbc_command_item = TPDOMapItem(size_bits=cls.SBC_COMMAND_SIZE_BITS)
+        tpdo_map.add_item(sbc_command_item)
+        safe_inputs_item = TPDOMapItem(size_bits=cls.SAFE_INPUTS_SIZE_BITS)
+        tpdo_map.add_item(safe_inputs_item)
+        safe_inputs_padding_item = TPDOMapItem(size_bits=cls.SAFE_INPUTS_PADDING_SIZE_BITS)
+        tpdo_map.add_item(safe_inputs_padding_item)
         crc_0_item = TPDOMapItem(size_bits=cls.CRC_O_SIZE_BITS)
         tpdo_map.add_item(crc_0_item)
         conn_id_item = TPDOMapItem(size_bits=cls.CONN_ID_SIZE_BITS)
@@ -278,6 +351,41 @@ class FSoEMaster:
 
     SAFETY_ADDRESS_REGISTER = EthercatRegister(
         idx=0x4193, subidx=0x00, dtype=REG_DTYPE.U16, access=REG_ACCESS.RW
+    )
+    SAFE_INPUTS_MAP_REGISTER = EthercatRegister(
+        identifier="SAFE_INPUTS_MAP",
+        idx=0x46D2,
+        subidx=0x00,
+        dtype=REG_DTYPE.U16,
+        access=REG_ACCESS.RW,
+    )
+    STO_ACTIVATE_SBC_REGISTER = EthercatRegister(
+        identifier="STO_ACTIVATE_SBC",
+        idx=0x6643,
+        subidx=0x00,
+        dtype=REG_DTYPE.U32,
+        access=REG_ACCESS.RW,
+    )
+    SS1_TIME_TO_STO_REGISTER = EthercatRegister(
+        identifier="SS1_TIME_TO_STO",
+        idx=0x6651,
+        subidx=0x01,
+        dtype=REG_DTYPE.U16,
+        access=REG_ACCESS.RW,
+    )
+    SS1_ACTIVATE_SBC_REGISTER = EthercatRegister(
+        identifier="SS1_ACTIVATE_SBC",
+        idx=0x6658,
+        subidx=0x01,
+        dtype=REG_DTYPE.U32,
+        access=REG_ACCESS.RW,
+    )
+    SBC_BRAKE_TIME_DELAY_REGISTER = EthercatRegister(
+        identifier="SBC_BRAKE_TIME_DELAY",
+        idx=0x6661,
+        subidx=0x00,
+        dtype=REG_DTYPE.U16,
+        access=REG_ACCESS.RW,
     )
 
     def __init__(self, motion_controller: "MotionController") -> None:
@@ -300,10 +408,12 @@ class FSoEMaster:
 
         """
         slave_address = self.get_safety_address(servo)
+        application_parameters = self._get_application_parameters(servo)
         master_handler = FSoEMasterHandler(
             slave_address,
             self.__next_connection_id,
             fsoe_master_watchdog_timeout,
+            application_parameters,
             partial(self._notify_errors, servo=servo),
         )
         self.__handlers[servo] = master_handler
@@ -355,6 +465,39 @@ class FSoEMaster:
         """
         master_handler = self.__handlers[servo]
         master_handler.sto_activate()
+
+    def ss1_deactivate(self, servo: str = DEFAULT_SERVO) -> None:
+        """Deactivate the SS1.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+
+        """
+        master_handler = self.__handlers[servo]
+        master_handler.ss1_deactivate()
+
+    def ss1_activate(self, servo: str = DEFAULT_SERVO) -> None:
+        """Activate the SS1.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+
+        """
+        master_handler = self.__handlers[servo]
+        master_handler.ss1_activate()
+
+    def get_safety_inputs_value(self, servo: str = DEFAULT_SERVO) -> bool:
+        """Get a drive's safe inputs register value.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+
+        Returns:
+           The safe inputs value.
+
+        """
+        master_handler = self.__handlers[servo]
+        return master_handler.safe_inputs_value()
 
     def get_safety_address(self, servo: str = DEFAULT_SERVO) -> int:
         """Get the drive's FSoE slave address.
@@ -517,3 +660,23 @@ class FSoEMaster:
             "The FSoE Master lost connection to the FSoE slaves. "
             f"An exception occurred during the PDO exchange: {exc}"
         )
+
+    def _get_application_parameters(self, servo: str) -> List["ApplicationParameter"]:
+        """Get values of the application parameters"""
+        drive = self.__mc.servos[servo]
+        application_parameters = []
+        for register in [
+            self.SAFE_INPUTS_MAP_REGISTER,
+            self.STO_ACTIVATE_SBC_REGISTER,
+            self.SS1_TIME_TO_STO_REGISTER,
+            self.SS1_ACTIVATE_SBC_REGISTER,
+            self.SBC_BRAKE_TIME_DELAY_REGISTER,
+        ]:
+            register_size_bytes, _ = dtype_value[register.dtype]
+            application_parameter = ApplicationParameter(
+                name=register.identifier,
+                initial_value=drive.read(register),
+                n_bytes=register_size_bytes,
+            )
+            application_parameters.append(application_parameter)
+        return application_parameters
