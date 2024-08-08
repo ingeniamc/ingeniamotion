@@ -24,11 +24,11 @@ class InputsOutputs(metaclass=MCMetaClass):
 
     @staticmethod
     def __get_gpio_bit_value(io_register_value: int, gpio_id: Union[GPI, GPO]) -> bool:
-        """Get the the bit value of a specific GPIO.
+        """Get the bit value of a specific GPIO.
 
         Args:
             io_register_value: Register value including the bits of all GPIOs.
-            gpi_id: The GPIO identifier.
+            gpio_id: The GPIO identifier.
 
         Returns:
             GPIO bit value.
@@ -40,7 +40,7 @@ class InputsOutputs(metaclass=MCMetaClass):
     def __set_gpio_bit_value(
         io_register_value: int, gpio_id: Union[GPI, GPO], bit_value: bool
     ) -> int:
-        """Set the the bit value of a specific GPIO.
+        """Set the bit value of a specific GPIO.
 
         Args:
             io_register_value: Register value including the bits of all GPIOs.
@@ -119,7 +119,7 @@ class InputsOutputs(metaclass=MCMetaClass):
             axis : axis that will run the test. 1 by default.
 
         Returns:
-            LOW if the voltage level is 0, HIGH if the voltage level  is 1.
+            LOW if the voltage level is 0, HIGH if the voltage level is 1.
 
         """
         gpi_value = int(
@@ -128,7 +128,7 @@ class InputsOutputs(metaclass=MCMetaClass):
         gpi_bit_value = self.__get_gpio_bit_value(gpi_value, gpi_id)
         gpi_bit_polarity = self.get_gpi_polarity(gpi_id, servo=servo, axis=axis)
 
-        return DigitalVoltageLevel(int(gpi_bit_value ^ gpi_bit_polarity))
+        return DigitalVoltageLevel(int(not gpi_bit_value ^ gpi_bit_polarity))
 
     def get_gpo_polarity(
         self, gpo_id: GPO, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -211,8 +211,7 @@ class InputsOutputs(metaclass=MCMetaClass):
         )
         polarity = self.get_gpo_polarity(gpo_id, servo=servo, axis=axis)
 
-        new_bit_value = bool(voltage_level.value ^ polarity)
-
+        new_bit_value = not bool(voltage_level.value ^ polarity)
         gpos_new_set_point = self.__set_gpio_bit_value(gpos_previous_value, gpo_id, new_bit_value)
         self.mc.communication.set_register(
             self.GPIO_OUT_SET_POINT_REGISTER, gpos_new_set_point, servo=servo, axis=axis
