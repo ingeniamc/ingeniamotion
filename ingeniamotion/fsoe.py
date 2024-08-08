@@ -1,3 +1,4 @@
+import queue
 import time
 from dataclasses import dataclass
 from functools import partial
@@ -94,6 +95,11 @@ class FSoEMasterHandler:
         # To avoid triggering additional errors
         self.__in_initial_reset = False
 
+        self.reply_fifo = queue.Queue(2)
+
+        self.last_reply = b""
+        self.last_request = b""
+
     def _start(self) -> None:
         """Start the FSoE Master handler."""
         self.__in_initial_reset = True
@@ -149,6 +155,7 @@ class FSoEMasterHandler:
             self._start()
 
         request = self.__master_handler.get_request()
+        self.last_request = request
         print_bytes("### Request", request)
         self.safety_master_pdu_map.set_item_bytes(self.__master_handler.get_request())
 
@@ -165,7 +172,12 @@ class FSoEMasterHandler:
             else:
                 self.__in_initial_reset = False
 
-        self.__master_handler.set_reply(reply)
+        self.reply_fifo.put(reply)
+
+        if self.reply_fifo.full():
+            reply = self.reply_fifo.get()
+            self.last_reply = reply
+            self.__master_handler.set_reply(reply)
 
     def sto_deactivate(self) -> None:
         """Set the STO command to deactivate the STO"""

@@ -15,6 +15,13 @@ LAST_ERROR = EthercatRegister(
 )
 
 
+def get_last_error(mc):
+    drive = mc.servos["default"]
+    error = drive.read(LAST_ERROR)
+
+    print(f"Last error {error:x}")
+
+
 def main(interface_ip, slave_id, dict_path):
     """Establish a FSoE connection, deactivate the STO and
     move the motor."""
@@ -28,17 +35,15 @@ def main(interface_ip, slave_id, dict_path):
     mc.motion.set_operation_mode(OperationMode.VELOCITY)
     # Create and start the FSoE master handler
     mc.fsoe.create_fsoe_master_handler()
+    get_last_error(mc)
     mc.fsoe.configure_pdos(start_pdos=True)
+    time.sleep(2)
+    mc.fsoe.sto_deactivate()
     time.sleep(10)
 
     # Stop the FSoE master handler
     mc.fsoe.stop_master(stop_pdos=True)
-
-    # Get last error
-    drive = mc.servos["default"]
-    error = drive.read(LAST_ERROR)
-
-    print(error)
+    get_last_error(mc)
 
     # Restore the operation mode
     mc.motion.set_operation_mode(current_operation_mode)
