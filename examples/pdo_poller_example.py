@@ -1,8 +1,8 @@
-import time
+import contextlib
 from typing import Dict, List, Union
 
-from ingeniamotion.enums import SensorType
-from ingeniamotion.motion_controller import MotionController
+from ingeniamotion import MotionController
+from ingeniamotion.exceptions import IMTimeoutError
 
 
 def set_up_pdo_poller(mc: MotionController) -> None:
@@ -24,9 +24,11 @@ def set_up_pdo_poller(mc: MotionController) -> None:
         },
     ]
 
-    poller = mc.capture.pdo.create_poller(registers)
+    poller = mc.capture.pdo.create_poller(registers, sampling_time=0.01)
     # Waiting time for generating new samples
-    time.sleep(1)
+    with contextlib.suppress(IMTimeoutError):
+        mc.motion.wait_for_velocity(velocity=10, timeout=5)
+
     time_stamps, data = poller.data
     poller.stop()
 
@@ -34,13 +36,17 @@ def set_up_pdo_poller(mc: MotionController) -> None:
     print(f"Actual Position values: {data[0]}")
     print(f"Actual Velocity values: {data[1]}")
 
+    for time_series in data:
+        for value in time_series:
+            assert value == 0
+
 
 def main() -> None:
     mc = MotionController()
     # Modify these parameters to connect a drive
     interface_ip = "192.168.2.1"
     slave_id = 1
-    dictionary_path = "parent_directory/dictionary_file.xdf"
+    dictionary_path = "safe_dict.xdf"
     mc.communication.connect_servo_ethercat_interface_ip(
         interface_ip, slave_id, dictionary_path
     )

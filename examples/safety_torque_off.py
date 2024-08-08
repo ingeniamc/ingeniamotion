@@ -1,8 +1,19 @@
 import contextlib
 
+from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
+from ingenialink.ethercat.register import EthercatRegister
+
 from ingeniamotion import MotionController
 from ingeniamotion.enums import OperationMode
 from ingeniamotion.exceptions import IMTimeoutError
+
+LAST_ERROR = EthercatRegister(
+    identifier="LAST_ERROR",
+    idx=0x400f,
+    subidx=0x00,
+    dtype=REG_DTYPE.U32,
+    access=REG_ACCESS.RO,
+)
 
 
 def main(interface_ip, slave_id, dict_path):
@@ -43,6 +54,11 @@ def main(interface_ip, slave_id, dict_path):
     mc.fsoe.sto_activate()
     # Stop the FSoE master handler
     mc.fsoe.stop_master(stop_pdos=True)
+
+    # Get last error
+    drive = mc.servos["default"]
+    mc.communication.get_register(LAST_ERROR)
+
     # Restore the operation mode
     mc.motion.set_operation_mode(current_operation_mode)
     # Disconnect from the servo drive
