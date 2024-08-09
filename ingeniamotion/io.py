@@ -24,11 +24,11 @@ class InputsOutputs(metaclass=MCMetaClass):
 
     @staticmethod
     def __get_gpio_bit_value(io_register_value: int, gpio_id: Union[GPI, GPO]) -> bool:
-        """Get the the bit value of a specific GPIO.
+        """Get the bit value of a specific GPIO.
 
         Args:
             io_register_value: Register value including the bits of all GPIOs.
-            gpi_id: The GPIO identifier.
+            gpio_id: The GPIO identifier.
 
         Returns:
             GPIO bit value.
@@ -40,11 +40,11 @@ class InputsOutputs(metaclass=MCMetaClass):
     def __set_gpio_bit_value(
         io_register_value: int, gpio_id: Union[GPI, GPO], bit_value: bool
     ) -> int:
-        """Set the the bit value of a specific GPIO.
+        """Set the bit value of a specific GPIO.
 
         Args:
             io_register_value: Register value including the bits of all GPIOs.
-            gpi_id: The GPIO identifier.
+            gpio_id: The GPIO identifier.
             bit_value: Bit value to be set.
 
         Returns:
@@ -113,22 +113,24 @@ class InputsOutputs(metaclass=MCMetaClass):
     ) -> DigitalVoltageLevel:
         """Get the board voltage level (not the logic level at the uC) of a single GPI.
 
+        .. warning::
+            Ensure the polarity is right, if not this function will return a wrong value.
+
         Args:
             gpi_id: the gpi to get the voltage level
             servo : servo alias to reference it. ``default`` by default.
             axis : axis that will run the test. 1 by default.
 
         Returns:
-            LOW if the voltage level is 0, HIGH if the voltage level  is 1.
+            LOW if the voltage level is 0, HIGH if the voltage level is 1.
 
         """
         gpi_value = int(
             self.mc.communication.get_register(self.GPIO_IN_VALUE_REGISTER, servo=servo, axis=axis)
         )
         gpi_bit_value = self.__get_gpio_bit_value(gpi_value, gpi_id)
-        gpi_bit_polarity = self.get_gpi_polarity(gpi_id, servo=servo, axis=axis)
 
-        return DigitalVoltageLevel(int(gpi_bit_value ^ gpi_bit_polarity))
+        return DigitalVoltageLevel(gpi_bit_value)
 
     def get_gpo_polarity(
         self, gpo_id: GPO, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -196,6 +198,9 @@ class InputsOutputs(metaclass=MCMetaClass):
 
             Finally, it checks that GPOs final value matches with the desired GPOs set point
 
+            .. warning::
+                Ensure the polarity is right, if not the output will be wrong.
+
         Args:
             gpo_id: the GPO to be set.
             voltage_level: For each bit, 0 if voltage level is LOW, 1 if voltage level is HIGH
@@ -205,15 +210,15 @@ class InputsOutputs(metaclass=MCMetaClass):
         Raise:
             IMException: if the GPOs final value does not match with the desired GPOs set point.
         """
+        new_target_value = bool(voltage_level.value)
 
         gpos_previous_value = int(
             self.mc.communication.get_register(self.GPIO_OUT_VALUE_REGISTER, servo=servo, axis=axis)
         )
-        polarity = self.get_gpo_polarity(gpo_id, servo=servo, axis=axis)
 
-        new_bit_value = bool(voltage_level.value ^ polarity)
-
-        gpos_new_set_point = self.__set_gpio_bit_value(gpos_previous_value, gpo_id, new_bit_value)
+        gpos_new_set_point = self.__set_gpio_bit_value(
+            gpos_previous_value, gpo_id, new_target_value
+        )
         self.mc.communication.set_register(
             self.GPIO_OUT_SET_POINT_REGISTER, gpos_new_set_point, servo=servo, axis=axis
         )
@@ -221,5 +226,7 @@ class InputsOutputs(metaclass=MCMetaClass):
             self.mc.communication.get_register(self.GPIO_OUT_VALUE_REGISTER, servo=servo, axis=axis)
         )
 
-        if gpos_final_value != gpos_new_set_point:
+        gpo_final_value = self.__get_gpio_bit_value(gpos_final_value, gpo_id)
+
+        if gpo_final_value != new_target_value:
             raise IMException("Unable to set the GPOs set point value.")

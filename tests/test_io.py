@@ -51,19 +51,19 @@ def test_get_gpi_voltage_level(motion_controller):
 
     assert mc.io.get_gpi_voltage_level(GPI.GPI1, servo=alias) == DigitalVoltageLevel.LOW
     mc.io.set_gpi_polarity(GPI.GPI1, GPIOPolarity.REVERSED, servo=alias)
-    assert mc.io.get_gpi_voltage_level(GPI.GPI1, servo=alias) == DigitalVoltageLevel.HIGH
+    assert mc.io.get_gpi_voltage_level(GPI.GPI1, servo=alias) == DigitalVoltageLevel.LOW
 
     assert mc.io.get_gpi_voltage_level(GPI.GPI2, servo=alias) == DigitalVoltageLevel.HIGH
     mc.io.set_gpi_polarity(GPI.GPI2, GPIOPolarity.REVERSED, servo=alias)
-    assert mc.io.get_gpi_voltage_level(GPI.GPI2, servo=alias) == DigitalVoltageLevel.LOW
+    assert mc.io.get_gpi_voltage_level(GPI.GPI2, servo=alias) == DigitalVoltageLevel.HIGH
 
     assert mc.io.get_gpi_voltage_level(GPI.GPI3, servo=alias) == DigitalVoltageLevel.LOW
     mc.io.set_gpi_polarity(GPI.GPI3, GPIOPolarity.REVERSED, servo=alias)
-    assert mc.io.get_gpi_voltage_level(GPI.GPI3, servo=alias) == DigitalVoltageLevel.HIGH
+    assert mc.io.get_gpi_voltage_level(GPI.GPI3, servo=alias) == DigitalVoltageLevel.LOW
 
     assert mc.io.get_gpi_voltage_level(GPI.GPI4, servo=alias) == DigitalVoltageLevel.HIGH
     mc.io.set_gpi_polarity(GPI.GPI4, GPIOPolarity.REVERSED, servo=alias)
-    assert mc.io.get_gpi_voltage_level(GPI.GPI4, servo=alias) == DigitalVoltageLevel.LOW
+    assert mc.io.get_gpi_voltage_level(GPI.GPI4, servo=alias) == DigitalVoltageLevel.HIGH
 
 
 @pytest.mark.parametrize("gpo_id", [GPO.GPO1, GPO.GPO2, GPO.GPO3, GPO.GPO4])
@@ -102,9 +102,9 @@ def test_set_gpo_voltage_level(motion_controller, gpo_id, reg_value):
     mc.io.set_gpo_voltage_level(gpo_id, DigitalVoltageLevel.LOW, servo=alias)
     assert mc.communication.get_register("IO_OUT_VALUE", servo=alias) == 0
     mc.io.set_gpo_polarity(gpo_id, GPIOPolarity.REVERSED, servo=alias)
-    mc.io.set_gpo_voltage_level(gpo_id, DigitalVoltageLevel.LOW, servo=alias)
-    assert mc.communication.get_register("IO_OUT_VALUE", servo=alias) == reg_value
     mc.io.set_gpo_voltage_level(gpo_id, DigitalVoltageLevel.HIGH, servo=alias)
+    assert mc.communication.get_register("IO_OUT_VALUE", servo=alias) == reg_value
+    mc.io.set_gpo_voltage_level(gpo_id, DigitalVoltageLevel.LOW, servo=alias)
     assert mc.communication.get_register("IO_OUT_VALUE", servo=alias) == 0
 
 
