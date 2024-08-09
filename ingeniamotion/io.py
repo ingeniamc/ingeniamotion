@@ -44,7 +44,7 @@ class InputsOutputs(metaclass=MCMetaClass):
 
         Args:
             io_register_value: Register value including the bits of all GPIOs.
-            gpi_id: The GPIO identifier.
+            gpio_id: The GPIO identifier.
             bit_value: Bit value to be set.
 
         Returns:
@@ -126,9 +126,8 @@ class InputsOutputs(metaclass=MCMetaClass):
             self.mc.communication.get_register(self.GPIO_IN_VALUE_REGISTER, servo=servo, axis=axis)
         )
         gpi_bit_value = self.__get_gpio_bit_value(gpi_value, gpi_id)
-        gpi_bit_polarity = self.get_gpi_polarity(gpi_id, servo=servo, axis=axis)
 
-        return DigitalVoltageLevel(int(not gpi_bit_value ^ gpi_bit_polarity))
+        return DigitalVoltageLevel(gpi_bit_value)
 
     def get_gpo_polarity(
         self, gpo_id: GPO, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -205,14 +204,15 @@ class InputsOutputs(metaclass=MCMetaClass):
         Raise:
             IMException: if the GPOs final value does not match with the desired GPOs set point.
         """
+        new_target_value = bool(voltage_level.value)
 
         gpos_previous_value = int(
             self.mc.communication.get_register(self.GPIO_OUT_VALUE_REGISTER, servo=servo, axis=axis)
         )
-        polarity = self.get_gpo_polarity(gpo_id, servo=servo, axis=axis)
 
-        new_bit_value = not bool(voltage_level.value ^ polarity)
-        gpos_new_set_point = self.__set_gpio_bit_value(gpos_previous_value, gpo_id, new_bit_value)
+        gpos_new_set_point = self.__set_gpio_bit_value(
+            gpos_previous_value, gpo_id, new_target_value
+        )
         self.mc.communication.set_register(
             self.GPIO_OUT_SET_POINT_REGISTER, gpos_new_set_point, servo=servo, axis=axis
         )
@@ -220,5 +220,7 @@ class InputsOutputs(metaclass=MCMetaClass):
             self.mc.communication.get_register(self.GPIO_OUT_VALUE_REGISTER, servo=servo, axis=axis)
         )
 
-        if gpos_final_value != gpos_new_set_point:
+        gpo_final_value = self.__get_gpio_bit_value(gpos_final_value, gpo_id)
+
+        if gpo_final_value != new_target_value:
             raise IMException("Unable to set the GPOs set point value.")
