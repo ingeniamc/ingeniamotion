@@ -113,6 +113,9 @@ class InputsOutputs(metaclass=MCMetaClass):
     ) -> DigitalVoltageLevel:
         """Get the board voltage level (not the logic level at the uC) of a single GPI.
 
+        .. warning::
+            Ensure the polarity is right, if not this function will return a wrong value.
+
         Args:
             gpi_id: the gpi to get the voltage level
             servo : servo alias to reference it. ``default`` by default.
@@ -194,6 +197,9 @@ class InputsOutputs(metaclass=MCMetaClass):
             the corresponding bit of the desired GPO.
 
             Finally, it checks that GPOs final value matches with the desired GPOs set point
+
+            .. warning::
+                Ensure the polarity is right, if not the output will be wrong.
 
         Args:
             gpo_id: the GPO to be set.
