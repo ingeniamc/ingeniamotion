@@ -394,6 +394,7 @@ class FSoEMaster:
         self.__handlers: Dict[str, FSoEMasterHandler] = {}
         self.__next_connection_id = 1
         self._error_observers: List[Callable[[FSoEError], None]] = []
+        self.__fsoe_configured = False
 
     def create_fsoe_master_handler(
         self,
@@ -431,6 +432,7 @@ class FSoEMaster:
         self._subscribe_to_pdo_thread_events()
         if start_pdos:
             self.__mc.capture.pdo.start_pdos()
+        self.__fsoe_configured = True
 
     def stop_master(self, stop_pdos: bool = False) -> None:
         """Stop all the FSoE Master handlers.
@@ -439,12 +441,16 @@ class FSoEMaster:
             stop_pdos: if ``True``, stop the PDO exchange. ``False`` by default.
 
         """
-        for master_handler in self.__handlers.values():
-            master_handler.stop()
-        self._unsubscribe_from_pdo_thread_events()
-        self._remove_pdo_maps_from_slaves()
+        if self.__fsoe_configured:
+            for master_handler in self.__handlers.values():
+                master_handler.stop()
+            self._unsubscribe_from_pdo_thread_events()
+            self._remove_pdo_maps_from_slaves()
+        else:
+            self.logger.warning("FSoE master is already stopped")
         if stop_pdos:
             self.__mc.capture.pdo.stop_pdos()
+        self.__fsoe_configured = False
 
     def sto_deactivate(self, servo: str = DEFAULT_SERVO) -> None:
         """Deactivate the Safety Torque Off.
