@@ -456,7 +456,8 @@ class Communication(metaclass=MCMetaClass):
         """
         available_devices: dict[CAN_DEVICE, list[int]] = {}
         can_net = None
-        for net in self.mc.net:
+        for net_key in self.mc.net:
+            net = self.mc.net[net_key]
             if isinstance(net, CanopenNetwork):
                 can_net = net
                 break
