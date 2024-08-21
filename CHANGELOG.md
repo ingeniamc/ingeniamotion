@@ -10,6 +10,9 @@
 ### Changed
 - BaseTest class typing
 
+### Fixed
+- Notify process data before start PDO
+
 ## [0.8.3] - 2024-07-26
 ### Changed
 - Make fsoe_master an optional requirement
