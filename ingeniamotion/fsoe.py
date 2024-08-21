@@ -109,10 +109,6 @@ class FSoEMasterHandler:
     def _configure_pdo_maps(self) -> None:
         """Configure the PDOMaps used for the Safety PDUs."""
         PDUMapper.configure_rpdo_map(self.safety_master_pdu_map)
-        # Set the default initial value to the Safety Master PDU PDOMap
-        self.safety_master_pdu_map.set_item_bytes(
-            int(0).to_bytes(self.safety_master_pdu_map.data_length_bytes, "little")
-        )
         PDUMapper.configure_tpdo_map(self.safety_slave_pdu_map)
 
     def _configure_master(self) -> None:
