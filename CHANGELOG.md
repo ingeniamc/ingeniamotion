@@ -12,6 +12,7 @@
 
 ### Fixed
 - Notify process data before start PDO
+- Adapt changes of function get_available_devices from ingenialink 
 
 ## [0.8.3] - 2024-07-26
 ### Changed
