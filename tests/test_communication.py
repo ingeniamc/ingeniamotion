@@ -4,12 +4,15 @@ import time
 from collections import OrderedDict
 
 import pytest
+from ingenialink.ethernet.network import EthernetNetwork
+from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.exceptions import ILError
 from ingenialink.network import SlaveInfo
 from ingenialink.servo import SERVO_STATE
 
+import ingeniamotion
 from ingeniamotion import MotionController
 from ingeniamotion.exceptions import IMException, IMRegisterNotExist, IMRegisterWrongAccess
 
@@ -548,3 +551,47 @@ def test_load_ensemble_fw_canopen(mocker):
     with pytest.raises(IMException) as exc_info:
         mc.communication.load_firmware_canopen(TEST_ENSEMBLE_FW_FILE, servo="5")
     assert str(exc_info.value) == "The selected drive is not part of the ensemble."
+
+
+@pytest.mark.virtual
+@pytest.mark.smoke
+@pytest.mark.parametrize(
+    "net_types", [[EthernetNetwork, CanopenNetwork], [EthercatNetwork, EthernetNetwork], []]
+)
+def test_get_available_canopen_devices_check_get_available_devices_call(mocker, net_types):
+    mc = ingeniamotion.MotionController()
+    test_net = None
+    for n, n_type in enumerate(net_types):
+        net = mocker.MagicMock(spec=n_type)
+        mc.net[n] = net
+        if n_type == CanopenNetwork:
+            test_net = net
+    patch_get_available_devices = mocker.patch(
+        "ingenialink.canopen.network.CanopenNetwork.get_available_devices"
+    )
+    mc.communication.get_available_canopen_devices()
+    if test_net is not None:
+        assert test_net.get_available_devices.call_count == 1
+        assert patch_get_available_devices.call_count == 0
+    else:
+        assert patch_get_available_devices.call_count == 1
+
+
+@pytest.mark.virtual
+@pytest.mark.smoke
+def test_get_available_canopen_devices(mocker):
+    mc = ingeniamotion.MotionController()
+    mocker.patch(
+        "ingenialink.canopen.network.CanopenNetwork.get_available_devices",
+        return_value=[
+            ("pcan", "PCAN_USBBUS1"),
+            ("pcan", "PCAN_USBBUS2"),
+            ("kvaser", 0),
+            ("kvaser", 1),
+            ("ixxat", 0),
+            ("ixxat", 1),
+        ],
+    )
+    test_output = mc.communication.get_available_canopen_devices()
+    expected_ouput = {CAN_DEVICE.KVASER: [0, 1], CAN_DEVICE.PCAN: [0, 1], CAN_DEVICE.IXXAT: [0, 1]}
+    assert test_output == expected_ouput
