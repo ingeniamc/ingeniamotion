@@ -444,8 +444,7 @@ class Communication(metaclass=MCMetaClass):
         """
         return [x.nice_name for x in ifaddr.get_adapters()]
 
-    @staticmethod
-    def get_available_canopen_devices() -> dict[CAN_DEVICE, list[int]]:
+    def get_available_canopen_devices(self) -> dict[CAN_DEVICE, list[int]]:
         """Return the list of available CAN devices (those connected and with drivers installed).
 
         Returns:
@@ -456,7 +455,14 @@ class Communication(metaclass=MCMetaClass):
             }
         """
         available_devices: dict[CAN_DEVICE, list[int]] = {}
-        for device, channel in CanopenNetwork.get_available_devices():
+        can_net = None
+        for net in self.mc.net:
+            if isinstance(net, CanopenNetwork):
+                can_net = net
+                break
+        if can_net is None:
+            can_net = CanopenNetwork(CAN_DEVICE.KVASER)
+        for device, channel in can_net.get_available_devices():
             can_device = CAN_DEVICE(device)
             can_channel = CAN_CHANNELS[device].index(channel)
             if can_device not in available_devices:
