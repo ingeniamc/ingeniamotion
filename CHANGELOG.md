@@ -12,6 +12,7 @@
 
 ### Fixed
 - Notify process data before start PDO
+- Fix set_gpo_voltage_level and get_gpi_voltage_level functions
 
 ## [0.8.3] - 2024-07-26
 ### Changed
