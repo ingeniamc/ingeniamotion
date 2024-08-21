@@ -13,5 +13,6 @@ Ingenia Motion
    ingeniamotion/fsoe
    ingeniamotion/errors
    ingeniamotion/info
+   ingeniamotion/io
    ingeniamotion/enums
    ingeniamotion/exceptions
