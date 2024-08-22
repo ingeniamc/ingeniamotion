@@ -203,7 +203,7 @@ class FSoEMasterHandler:
             raise ValueError(f"Wrong value type. Expected type bool, got {type(sto_command)}")
         return sto_command
 
-    def __state_change_callback(self, state: "State"):
+    def __state_change_callback(self, state: "State") -> None:
         if state == StateData:
             self.__state_is_data.set()
         else:
