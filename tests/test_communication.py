@@ -367,10 +367,10 @@ def test__check_ensemble():
     product_code = 123456
     slaves = OrderedDict(
         {
-            1: SlaveInfo(product_code, 4660),
-            2: SlaveInfo(product_code, 16781876),
-            4: SlaveInfo(product_code, 4660),
-            5: SlaveInfo(product_code, 16781876),
+            1: SlaveInfo(product_code, 4661),
+            2: SlaveInfo(product_code, 16781878),
+            4: SlaveInfo(product_code, 4662),
+            5: SlaveInfo(product_code, 16781879),
             7: SlaveInfo(654321, 1236),
         }
     )
@@ -413,8 +413,8 @@ def test__check_ensemble_wrong():
 
     slaves = OrderedDict(
         {
-            1: SlaveInfo(product_code, 16781876),
-            2: SlaveInfo(product_code, 4660),
+            1: SlaveInfo(product_code, 16781877),
+            2: SlaveInfo(product_code, 4661),
         }
     )
     with pytest.raises(IMException) as exc_info:
@@ -453,10 +453,10 @@ def test_load_ensemble_fw_ecat(mocker):
     product_code = 123456
     slaves = OrderedDict(
         {
-            1: SlaveInfo(product_code, 4660),
-            2: SlaveInfo(product_code, 16781876),
-            3: SlaveInfo(product_code, 4660),
-            4: SlaveInfo(product_code, 16781876),
+            1: SlaveInfo(product_code, 4661),
+            2: SlaveInfo(product_code, 16781877),
+            3: SlaveInfo(product_code, 4662),
+            4: SlaveInfo(product_code, 16781878),
             5: SlaveInfo(654321, 1236),
         }
     )
@@ -518,10 +518,10 @@ def test_load_ensemble_fw_canopen(mocker):
     product_code = 123456
     slaves_info = OrderedDict(
         {
-            1: SlaveInfo(product_code, 4660),
-            2: SlaveInfo(product_code, 16781876),
-            3: SlaveInfo(product_code, 4660),
-            4: SlaveInfo(product_code, 16781876),
+            1: SlaveInfo(product_code, 4661),
+            2: SlaveInfo(product_code, 16781877),
+            3: SlaveInfo(product_code, 4662),
+            4: SlaveInfo(product_code, 16781878),
             5: SlaveInfo(654321, 1236),
         }
     )
