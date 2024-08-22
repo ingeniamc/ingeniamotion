@@ -1,4 +1,4 @@
-import time
+import threading
 from dataclasses import dataclass
 from functools import partial
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional
@@ -13,7 +13,12 @@ try:
         DictionaryItemInput,
         DictionaryItemInputOutput,
         MasterHandler,
+        StateData,
     )
+
+    if TYPE_CHECKING:
+        from fsoe_master.fsoe_master import State
+
 except ImportError:
     FSOE_MASTER_INSTALLED = False
 else:
@@ -78,12 +83,14 @@ class FSoEMasterHandler:
             watchdog_timeout_s=watchdog_timeout,
             application_parameters=application_parameters,
             report_error_callback=report_error_callback,
+            state_change_callback=self.__state_change_callback,
         )
         self._configure_master()
         self.__safety_master_pdu = RPDOMap()
         self.__safety_slave_pdu = TPDOMap()
         self._configure_pdo_maps()
         self.__running = False
+        self.__state_is_data = threading.Event()
 
         # The saco slave might take a while to answer with a valid command
         # During it's initialization it will respond with 0's, that are ignored
@@ -192,6 +199,12 @@ class FSoEMasterHandler:
             raise ValueError(f"Wrong value type. Expected type bool, got {type(sto_command)}")
         return sto_command
 
+    def __state_change_callback(self, state: "State") -> None:
+        if state == StateData:
+            self.__state_is_data.set()
+        else:
+            self.__state_is_data.clear()
+
     def wait_for_data_state(self, timeout: Optional[float] = None) -> None:
         """Wait the FSoE master handler to reach the Data state.
 
@@ -204,12 +217,8 @@ class FSoEMasterHandler:
             IMTimeoutError: If the Data state is not reached within the timeout.
 
         """
-        state_reached = False
-        init_time = time.time()
-        while not state_reached:
-            state_reached = self.state == FSoEState.DATA
-            if timeout and (init_time + timeout) < time.time():
-                raise IMTimeoutError("The FSoE Master did not reach the Data state")
+        if self.__state_is_data.wait(timeout=timeout) is False:
+            raise IMTimeoutError("The FSoE Master did not reach the Data state")
 
     def _saco_phase_1_dictionary(self) -> "Dictionary":
         """Get the SaCo phase 1 dictionary instance"""
