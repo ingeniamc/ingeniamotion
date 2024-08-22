@@ -13,9 +13,12 @@ try:
         DictionaryItemInput,
         DictionaryItemInputOutput,
         MasterHandler,
-        State,
         StateData,
     )
+
+    if TYPE_CHECKING:
+        from fsoe_master.fsoe_master import State
+
 except ImportError:
     FSOE_MASTER_INSTALLED = False
 else:
@@ -200,7 +203,7 @@ class FSoEMasterHandler:
             raise ValueError(f"Wrong value type. Expected type bool, got {type(sto_command)}")
         return sto_command
 
-    def __state_change_callback(self, state: State):
+    def __state_change_callback(self, state: "State"):
         if state == StateData:
             self.__state_is_data.set()
         else:
