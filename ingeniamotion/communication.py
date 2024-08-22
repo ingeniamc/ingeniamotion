@@ -6,7 +6,6 @@ import subprocess
 import time
 import zipfile
 from collections import OrderedDict
-from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from os import path
 from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
@@ -1303,32 +1302,20 @@ class Communication(metaclass=MCMetaClass):
             slave_id = first_slave_in_ensemble + slave_id_offset
             if slave_id not in connected_drives:
                 net.connect_to_slave(slave_id, dictionary_path)
-        thread_results = {}
-        with ThreadPoolExecutor() as executor:
+        try:
             for slave_id_offset, fw_file_prod_code in mapping.items():
                 slave_id = first_slave_in_ensemble + slave_id_offset
-                thread_results[slave_id] = executor.submit(
-                    net.load_firmware,
+                net.load_firmware(
                     slave_id,
                     fw_file_prod_code[0],
                     status_callback,
                     progress_callback,
                     error_enabled_callback,
                 )
-
-        exception = None
-        for slave_id in thread_results:
-            if slave_id not in connected_drives:
-                net.disconnect_from_slave(connected_drives[slave_id])
-            exception = thread_results[slave_id].exception()
-            break
-
-        shutil.rmtree(self.ENSEMBLE_TEMP_FOLDER)
-
-        if exception is not None:
-            raise IMException(
-                f"Load of FW in slave {slave_id} of ensemble failed. Exception: {exception}"
-            )
+        except ILError as e:
+            raise IMException(f"Load of FW in slave {slave_id} of ensemble failed. Exception: {e}")
+        finally:
+            shutil.rmtree(self.ENSEMBLE_TEMP_FOLDER)
 
     def __load_ensemble_fw_ecat(
         self,
