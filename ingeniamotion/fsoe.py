@@ -261,6 +261,11 @@ class FSoEMasterHandler:
         """Get the FSoE master state."""
         return FSoEState(self.__master_handler.state.id)
 
+    @property
+    def running(self) -> bool:
+        """True if FSoE Master is started, else False"""
+        return self.__running
+
 
 class PDUMapper:
     """Helper class to configure the Safety PDU PDOMaps."""
@@ -390,6 +395,7 @@ class FSoEMaster:
         self.__handlers: Dict[str, FSoEMasterHandler] = {}
         self.__next_connection_id = 1
         self._error_observers: List[Callable[[FSoEError], None]] = []
+        self.__fsoe_configured = False
 
     def create_fsoe_master_handler(
         self,
@@ -427,6 +433,7 @@ class FSoEMaster:
         self._subscribe_to_pdo_thread_events()
         if start_pdos:
             self.__mc.capture.pdo.start_pdos()
+        self.__fsoe_configured = True
 
     def stop_master(self, stop_pdos: bool = False) -> None:
         """Stop all the FSoE Master handlers.
@@ -436,9 +443,14 @@ class FSoEMaster:
 
         """
         for master_handler in self.__handlers.values():
-            master_handler.stop()
-        self._unsubscribe_from_pdo_thread_events()
-        self._remove_pdo_maps_from_slaves()
+            if master_handler.running:
+                master_handler.stop()
+        if self.__fsoe_configured:
+            self._unsubscribe_from_pdo_thread_events()
+            self._remove_pdo_maps_from_slaves()
+        else:
+            self.logger.warning("FSoE master is already stopped")
+        self.__fsoe_configured = False
         if stop_pdos:
             self.__mc.capture.pdo.stop_pdos()
 

@@ -245,6 +245,7 @@ def load_firmware(pytestconfig, read_config, request):
     if drive_idx is None:
         pytest.fail(f"The drive {drive_identifier} cannot be found on the rack's configuration.")
     drive = config.drives[drive_idx]
+    client.exposed_turn_on_ps()
     client.exposed_firmware_load(
         drive_idx, read_config["fw_file"], drive.product_code, drive.serial_number
     )
