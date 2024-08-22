@@ -1397,10 +1397,9 @@ class Communication(metaclass=MCMetaClass):
             if map_slave_id not in scanned_slaves:
                 raise IMException(f"Wrong ensemble. The slave {map_slave_id - 1} is not detected.")
             map_slave_info = scanned_slaves[map_slave_id]
-            if (
-                map_slave_info.product_code != mapping[map_slave_id_offset][1]
-                or map_slave_info.revision_number != mapping[map_slave_id_offset][2]
-            ):
+            if map_slave_info.product_code != mapping[map_slave_id_offset][1] or (
+                map_slave_info.revision_number & self.ENSEMBLE_SLAVE_REV_NUM_MASK
+            ) != (mapping[map_slave_id_offset][2] & self.ENSEMBLE_SLAVE_REV_NUM_MASK):
                 raise IMException(
                     f"Wrong ensemble. The slave {map_slave_id} "
                     f"has wrong product code or revision number."
