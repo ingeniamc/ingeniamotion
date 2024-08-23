@@ -40,6 +40,7 @@ def feedback_test_setup(motion_controller):
     mc.tests.commutation(servo=alias)
 
 
+@pytest.mark.develop
 @pytest.mark.usefixtures("feedback_test_setup")
 def test_digital_halls_test(motion_controller, feedback_list):
     mc, alias = motion_controller
