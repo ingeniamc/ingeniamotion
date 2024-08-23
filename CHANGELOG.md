@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.8.4] - 2024-08-23
 ### Added
 - Method to check if drive is connected via a COM-KIT.
 - Property to check if the PDOs are active.
