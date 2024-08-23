@@ -9,6 +9,8 @@ def main(interface_ip, slave_id, dict_path):
     """Establish a FSoE connection, deactivate the STO and
     move the motor."""
     mc = MotionController()
+    # Configure error channel
+    mc.fsoe.subscribe_to_errors(lambda error: print(error))
     # Connect to the servo drive
     mc.communication.connect_servo_ethercat_interface_ip(interface_ip, slave_id, dict_path)
     current_operation_mode = mc.motion.get_operation_mode()
@@ -18,7 +20,9 @@ def main(interface_ip, slave_id, dict_path):
     mc.fsoe.create_fsoe_master_handler()
     mc.fsoe.configure_pdos(start_pdos=True)
     # Wait for the master to reach the Data state
-    mc.fsoe.wait_for_state_data()
+    mc.fsoe.wait_for_state_data(timeout=10)
+    # Deactivate the SS1
+    mc.fsoe.ss1_deactivate()
     # Deactivate the STO
     mc.fsoe.sto_deactivate()
     # Wait for the STO to be deactivated
@@ -33,6 +37,8 @@ def main(interface_ip, slave_id, dict_path):
         mc.motion.wait_for_velocity(velocity=target_velocity, timeout=5)
     # Disable the motor
     mc.motion.motor_disable()
+    # Activate the SS1
+    mc.fsoe.sto_activate()
     # Activate the STO
     mc.fsoe.sto_activate()
     # Stop the FSoE master handler
