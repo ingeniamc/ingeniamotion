@@ -4,13 +4,15 @@ import time
 from collections import OrderedDict
 
 import pytest
+from ingenialink.ethernet.network import EthernetNetwork
+from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
-from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.exceptions import ILError
 from ingenialink.network import SlaveInfo
 from ingenialink.servo import SERVO_STATE
 
+import ingeniamotion
 from ingeniamotion import MotionController
 from ingeniamotion.exceptions import IMException, IMRegisterNotExist, IMRegisterWrongAccess
 
@@ -274,7 +276,8 @@ def test_load_firmware_canopen_exception(motion_controller):
 @pytest.mark.virtual
 def test_boot_mode_and_load_firmware_ethernet_exception(mocker, motion_controller):
     mc, alias = motion_controller
-    mocker.patch.object(mc, "_get_network", return_value=EthercatNetwork("fake_interface_name"))
+
+    mocker.patch.object(mc, "_get_network", return_value=object())
     with pytest.raises(ValueError):
         mc.communication.boot_mode_and_load_firmware_ethernet("fake_fw_file.lfu", servo=alias)
 
@@ -282,7 +285,7 @@ def test_boot_mode_and_load_firmware_ethernet_exception(mocker, motion_controlle
 @pytest.mark.virtual
 def test_load_firmware_moco_exception(mocker, motion_controller):
     mc, alias = motion_controller
-    mocker.patch.object(mc, "_get_network", return_value=EthercatNetwork("fake_interface_name"))
+    mocker.patch.object(mc, "_get_network", return_value=object())
     with pytest.raises(ValueError):
         mc.communication.load_firmware_moco("fake_fw_file.lfu", servo=alias)
 
@@ -329,6 +332,7 @@ def test_scan_servos_canopen(mocker):
 def test_scan_servos_ethercat_with_info(mocker):
     mc = MotionController()
     detected_slaves = OrderedDict({1: SlaveInfo(1234, 123), 2: SlaveInfo(1234, 123)})
+    mocker.patch("ingenialink.ethercat.network.EthercatNetwork.__init__", return_value=None)
     mocker.patch(
         "ingenialink.ethercat.network.EthercatNetwork.scan_slaves_info",
         return_value=detected_slaves,
@@ -340,6 +344,7 @@ def test_scan_servos_ethercat_with_info(mocker):
 def test_scan_servos_ethercat(mocker):
     mc = MotionController()
     detected_slaves = [1, 2]
+    mocker.patch("ingenialink.ethercat.network.EthercatNetwork.__init__", return_value=None)
     mocker.patch(
         "ingenialink.ethercat.network.EthercatNetwork.scan_slaves",
         return_value=detected_slaves,
@@ -365,10 +370,10 @@ def test__check_ensemble():
     product_code = 123456
     slaves = OrderedDict(
         {
-            1: SlaveInfo(product_code, 4660),
-            2: SlaveInfo(product_code, 16781876),
-            4: SlaveInfo(product_code, 4660),
-            5: SlaveInfo(product_code, 16781876),
+            1: SlaveInfo(product_code, 4661),
+            2: SlaveInfo(product_code, 16781878),
+            4: SlaveInfo(product_code, 4662),
+            5: SlaveInfo(product_code, 16781879),
             7: SlaveInfo(654321, 1236),
         }
     )
@@ -411,8 +416,8 @@ def test__check_ensemble_wrong():
 
     slaves = OrderedDict(
         {
-            1: SlaveInfo(product_code, 16781876),
-            2: SlaveInfo(product_code, 4660),
+            1: SlaveInfo(product_code, 16781877),
+            2: SlaveInfo(product_code, 4661),
         }
     )
     with pytest.raises(IMException) as exc_info:
@@ -451,10 +456,10 @@ def test_load_ensemble_fw_ecat(mocker):
     product_code = 123456
     slaves = OrderedDict(
         {
-            1: SlaveInfo(product_code, 4660),
-            2: SlaveInfo(product_code, 16781876),
-            3: SlaveInfo(product_code, 4660),
-            4: SlaveInfo(product_code, 16781876),
+            1: SlaveInfo(product_code, 4661),
+            2: SlaveInfo(product_code, 16781877),
+            3: SlaveInfo(product_code, 4662),
+            4: SlaveInfo(product_code, 16781878),
             5: SlaveInfo(654321, 1236),
         }
     )
@@ -462,6 +467,7 @@ def test_load_ensemble_fw_ecat(mocker):
     fw_file1 = os.path.join(temp_path, "cap-net-1-e_2.4.0.lfu")
     fw_file2 = os.path.join(temp_path, "cap-net-2-e_2.4.0.lfu")
     mc = MotionController()
+    mocker.patch("ingenialink.ethercat.network.EthercatNetwork.__init__", return_value=None)
     mocker.patch(
         "ingenialink.ethercat.network.EthercatNetwork.scan_slaves_info", return_value=slaves
     )
@@ -515,10 +521,10 @@ def test_load_ensemble_fw_canopen(mocker):
     product_code = 123456
     slaves_info = OrderedDict(
         {
-            1: SlaveInfo(product_code, 4660),
-            2: SlaveInfo(product_code, 16781876),
-            3: SlaveInfo(product_code, 4660),
-            4: SlaveInfo(product_code, 16781876),
+            1: SlaveInfo(product_code, 4661),
+            2: SlaveInfo(product_code, 16781877),
+            3: SlaveInfo(product_code, 4662),
+            4: SlaveInfo(product_code, 16781878),
             5: SlaveInfo(654321, 1236),
         }
     )
@@ -545,3 +551,47 @@ def test_load_ensemble_fw_canopen(mocker):
     with pytest.raises(IMException) as exc_info:
         mc.communication.load_firmware_canopen(TEST_ENSEMBLE_FW_FILE, servo="5")
     assert str(exc_info.value) == "The selected drive is not part of the ensemble."
+
+
+@pytest.mark.virtual
+@pytest.mark.smoke
+@pytest.mark.parametrize(
+    "net_types", [[EthernetNetwork, CanopenNetwork], [EthercatNetwork, EthernetNetwork], []]
+)
+def test_get_available_canopen_devices_check_get_available_devices_call(mocker, net_types):
+    mc = ingeniamotion.MotionController()
+    test_net = None
+    for n, n_type in enumerate(net_types):
+        net = mocker.MagicMock(spec=n_type)
+        mc.net[n] = net
+        if n_type == CanopenNetwork:
+            test_net = net
+    patch_get_available_devices = mocker.patch(
+        "ingenialink.canopen.network.CanopenNetwork.get_available_devices"
+    )
+    mc.communication.get_available_canopen_devices()
+    if test_net is not None:
+        assert test_net.get_available_devices.call_count == 1
+        assert patch_get_available_devices.call_count == 0
+    else:
+        assert patch_get_available_devices.call_count == 1
+
+
+@pytest.mark.virtual
+@pytest.mark.smoke
+def test_get_available_canopen_devices(mocker):
+    mc = ingeniamotion.MotionController()
+    mocker.patch(
+        "ingenialink.canopen.network.CanopenNetwork.get_available_devices",
+        return_value=[
+            ("pcan", "PCAN_USBBUS1"),
+            ("pcan", "PCAN_USBBUS2"),
+            ("kvaser", 0),
+            ("kvaser", 1),
+            ("ixxat", 0),
+            ("ixxat", 1),
+        ],
+    )
+    test_output = mc.communication.get_available_canopen_devices()
+    expected_ouput = {CAN_DEVICE.KVASER: [0, 1], CAN_DEVICE.PCAN: [0, 1], CAN_DEVICE.IXXAT: [0, 1]}
+    assert test_output == expected_ouput

@@ -1,16 +1,16 @@
 from enum import IntEnum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import ingenialogger
 
 from ingeniamotion.enums import FeedbackPolarity, OperationMode, SensorType, SeverityLevel
-from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
+from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType, TestError
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 
-class DCFeedbacksPolarityTest(BaseTest):
+class DCFeedbacksPolarityTest(BaseTest[LegacyDictReportType]):
     MOVEMENT_ERROR_FACTOR = 0.05
     CURRENT_RAMP_TOTAL_TIME = 5
     CURRENT_RAMP_INTERVAL = 0.1
@@ -33,7 +33,14 @@ class DCFeedbacksPolarityTest(BaseTest):
 
     feedback_resolution: int
 
-    def __init__(self, mc: "MotionController", sensor: SensorType, servo: str, axis: int):
+    def __init__(
+        self,
+        mc: "MotionController",
+        sensor: SensorType,
+        servo: str,
+        axis: int,
+        logger_drive_name: Optional[str] = None,
+    ):
         if sensor == SensorType.HALLS:
             raise NotImplementedError("This test is not implemented for Hall sensor")
         super().__init__()
@@ -43,7 +50,10 @@ class DCFeedbacksPolarityTest(BaseTest):
         self.axis = axis
         self.BACKUP_REGISTERS.append(mc.configuration.get_feedback_polarity_register_uid(sensor))
         self.backup_registers_names = self.BACKUP_REGISTERS
-        self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
+        if logger_drive_name is None:
+            self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
+        else:
+            self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=logger_drive_name)
 
     @BaseTest.stoppable
     def setup(self) -> None:

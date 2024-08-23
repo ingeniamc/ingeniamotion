@@ -239,27 +239,21 @@ class PDONetworkManager:
 
         def run(self) -> None:
             """Start the PDO exchange"""
-            try:
-                self._net.start_pdos()
-            except ILError as il_error:
-                self._pd_thread_stop_event.set()
-                if self._notify_exceptions is not None:
-                    im_exception = IMException(
-                        f"Could not start the PDOs due to the following exception: {il_error}"
-                    )
-                    self._notify_exceptions(im_exception)
+            first_iteration = True
             iteration_duration: float = -1
             while not self._pd_thread_stop_event.is_set():
                 time_start = time.perf_counter()
                 if self._notify_send_process_data is not None:
                     self._notify_send_process_data()
                 try:
-                    self._net.send_receive_processdata(self._refresh_rate)
+                    if first_iteration:
+                        self._net.start_pdos()
+                        first_iteration = False
+                    else:
+                        self._net.send_receive_processdata(self._refresh_rate)
                 except ILWrongWorkingCount as il_error:
                     self._pd_thread_stop_event.set()
                     self._net.stop_pdos()
-                    if iteration_duration == -1:
-                        iteration_duration = time.perf_counter() - time_start
                     duration_error = ""
                     if iteration_duration > self._watchdog_timeout:
                         duration_error = (
@@ -272,6 +266,13 @@ class PDONetworkManager:
                         im_exception = IMException(
                             "Stopping the PDO thread due to the following exception:"
                             f" {il_error} {duration_error}"
+                        )
+                        self._notify_exceptions(im_exception)
+                except ILError as il_error:
+                    self._pd_thread_stop_event.set()
+                    if self._notify_exceptions is not None:
+                        im_exception = IMException(
+                            f"Could not start the PDOs due to the following exception: {il_error}"
                         )
                         self._notify_exceptions(im_exception)
                 else:
@@ -600,6 +601,18 @@ class PDONetworkManager:
             raise IMException("The PDO exchange has not started yet.")
         self._pdo_thread.stop()
         self._pdo_thread = None
+
+    @property
+    def is_active(self) -> bool:
+        """Check if the PDO thread is active.
+
+        Returns:
+            True if the PDO thread is active. False otherwise.
+
+        """
+        if self._pdo_thread is None:
+            return False
+        return self._pdo_thread.is_alive()
 
     def subscribe_to_send_process_data(self, callback: Callable[[], None]) -> None:
         """Subscribe be notified when the RPDO values will be sent.

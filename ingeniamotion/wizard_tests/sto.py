@@ -1,16 +1,16 @@
 from enum import IntEnum
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING, List, Optional
 
 import ingenialogger
 
 from ingeniamotion.enums import SeverityLevel
-from ingeniamotion.wizard_tests.base_test import BaseTest
+from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
 
 
-class STOTest(BaseTest):
+class STOTest(BaseTest[LegacyDictReportType]):
     """STO test."""
 
     class ResultType(IntEnum):
@@ -44,12 +44,17 @@ class STOTest(BaseTest):
 
     BACKUP_REGISTERS: List[str] = []
 
-    def __init__(self, mc: "MotionController", servo: str, axis: int) -> None:
+    def __init__(
+        self, mc: "MotionController", servo: str, axis: int, logger_drive_name: Optional[str] = None
+    ) -> None:
         super().__init__()
         self.mc = mc
         self.servo = servo
         self.axis = axis
-        self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
+        if logger_drive_name is None:
+            self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
+        else:
+            self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=logger_drive_name)
         self.backup_registers_names = self.BACKUP_REGISTERS
         self.suggested_registers = {}
         self.TEST_TYPE = self.ResultType

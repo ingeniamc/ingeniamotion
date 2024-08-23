@@ -1,5 +1,5 @@
 from enum import IntEnum
-from typing import Dict
+from typing import Dict, Optional
 
 from ingenialink.network import Network
 from ingenialink.servo import Servo
@@ -31,8 +31,9 @@ class MotionController:
         self.__errors: Errors = Errors(self)
         self.__info: Information = Information(self)
         self.__io = InputsOutputs(self)
+        self.__fsoe: Optional[FSoEMaster] = None
         if FSOE_MASTER_INSTALLED:
-            self.__fsoe: FSoEMaster = FSoEMaster(self)
+            self.__fsoe = FSoEMaster(self)
 
     def servo_name(self, servo: str = DEFAULT_SERVO) -> str:
         return "{} ({})".format(self.servos[servo].info["product_code"], servo)
@@ -147,13 +148,18 @@ class MotionController:
     @property
     def fsoe(self) -> "FSoEMaster":
         """Instance of :class:`~ingeniamotion.fsoe.FSoEMaster` class"""
-        if not FSOE_MASTER_INSTALLED:
+        if self.__fsoe is None:
             raise NotImplementedError(
                 "The FSoE module is not available. "
                 "Install ingeniamotion with FSoE feature: "
                 "pip install ingeniamotion[FSoE]"
             )
         return self.__fsoe
+
+    @property
+    def fsoe_is_installed(self) -> bool:
+        """Indicates if the FSoE Module is available"""
+        return self.__fsoe is not None
 
     @property
     def io(self) -> InputsOutputs:

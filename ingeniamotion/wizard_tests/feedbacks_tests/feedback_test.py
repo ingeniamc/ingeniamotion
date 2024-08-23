@@ -11,10 +11,10 @@ if TYPE_CHECKING:
 
 from ingeniamotion.enums import CommutationMode, OperationMode, SensorType, SeverityLevel
 from ingeniamotion.exceptions import IMRegisterNotExist
-from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
+from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType, TestError
 
 
-class Feedbacks(BaseTest):
+class Feedbacks(BaseTest[LegacyDictReportType]):
     """Feedbacks Wizard Class description."""
 
     class ResultType(IntEnum):
@@ -91,13 +91,18 @@ class Feedbacks(BaseTest):
 
     SENSOR_TYPE_FEEDBACK_TEST: SensorType
 
-    def __init__(self, mc: "MotionController", servo: str, axis: int) -> None:
+    def __init__(
+        self, mc: "MotionController", servo: str, axis: int, logger_drive_name: Optional[str]
+    ) -> None:
         super().__init__()
         self.mc = mc
         self.servo = servo
         self.axis = axis
         self.sensor = self.SENSOR_TYPE_FEEDBACK_TEST
-        self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
+        if logger_drive_name is None:
+            self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
+        else:
+            self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=logger_drive_name)
         self.feedback_resolution: Optional[int] = None
         self.pair_poles: Optional[int] = None
         self.pos_vel_same_feedback = False

@@ -13,13 +13,13 @@ from ingeniamotion.enums import (
     SeverityLevel,
 )
 from ingeniamotion.exceptions import IMRegisterNotExist
-from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
+from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType, TestError
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
 
 
-class Phasing(BaseTest):
+class Phasing(BaseTest[LegacyDictReportType]):
     INTERNAL_GENERATOR_VALUE = 3
     INITIAL_ANGLE = 180.0
     INITIAL_ANGLE_HALLS = 240.0
@@ -73,6 +73,7 @@ class Phasing(BaseTest):
         default_current: bool = True,
         default_timeout: bool = True,
         default_accuracy: bool = True,
+        logger_drive_name: Optional[str] = None,
     ) -> None:
         super().__init__()
         self.mc = mc
@@ -81,7 +82,10 @@ class Phasing(BaseTest):
         self.backup_registers_names = self.BACKUP_REGISTERS
         self.comm: Optional[SensorType] = None
         self.ref: Optional[SensorType] = None
-        self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
+        if logger_drive_name is None:
+            self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
+        else:
+            self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=logger_drive_name)
 
         self.default_phasing_current = default_current
         self.default_phasing_timeout = default_timeout

@@ -6,13 +6,13 @@ import ingenialogger
 
 from ingeniamotion.enums import OperationMode, SensorType, SeverityLevel
 from ingeniamotion.exceptions import IMTimeoutError
-from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
+from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType, TestError
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 
-class DCFeedbacksResolutionTest(BaseTest):
+class DCFeedbacksResolutionTest(BaseTest[LegacyDictReportType]):
     MOVEMENT_ERROR_FACTOR = 0.05
     DEFAULT_PROFILE_MAX_VEL = 0.3
     DEFAULT_VELOCITY_PID = {"kp": 0.1, "ki": 10, "kd": 0}
@@ -55,6 +55,7 @@ class DCFeedbacksResolutionTest(BaseTest):
         kp: Optional[float] = None,
         ki: Optional[float] = None,
         kd: Optional[float] = None,
+        logger_drive_name: Optional[str] = None,
     ):
         if sensor == SensorType.HALLS:
             raise NotImplementedError("This test is not implemented for Hall sensor")
@@ -69,7 +70,10 @@ class DCFeedbacksResolutionTest(BaseTest):
             self.test_velocity_pid["kp"] = kp
             self.test_velocity_pid["ki"] = ki or 0
             self.test_velocity_pid["kd"] = kd or 0
-        self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
+        if logger_drive_name is None:
+            self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
+        else:
+            self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=logger_drive_name)
 
     @BaseTest.stoppable
     def setup(self) -> None:

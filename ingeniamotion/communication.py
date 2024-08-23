@@ -1,4 +1,3 @@
-import contextlib
 import json
 import platform
 import shutil
@@ -6,7 +5,6 @@ import subprocess
 import time
 import zipfile
 from collections import OrderedDict
-from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 from os import path
 from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
@@ -444,8 +442,7 @@ class Communication(metaclass=MCMetaClass):
         """
         return [x.nice_name for x in ifaddr.get_adapters()]
 
-    @staticmethod
-    def get_available_canopen_devices() -> dict[CAN_DEVICE, list[int]]:
+    def get_available_canopen_devices(self) -> dict[CAN_DEVICE, list[int]]:
         """Return the list of available CAN devices (those connected and with drivers installed).
 
         Returns:
@@ -456,7 +453,15 @@ class Communication(metaclass=MCMetaClass):
             }
         """
         available_devices: dict[CAN_DEVICE, list[int]] = {}
-        for device, channel in CanopenNetwork.get_available_devices():
+        can_net = None
+        for net_key in self.mc.net:
+            net = self.mc.net[net_key]
+            if isinstance(net, CanopenNetwork):
+                can_net = net
+                break
+        if can_net is None:
+            can_net = CanopenNetwork(CAN_DEVICE.KVASER)
+        for device, channel in can_net.get_available_devices():
             can_device = CAN_DEVICE(device)
             can_channel = CAN_CHANNELS[device].index(channel)
             if can_device not in available_devices:
@@ -859,8 +864,7 @@ class Communication(metaclass=MCMetaClass):
         del self.mc.servos[servo]
         net_name = self.mc.servo_net.pop(servo)
         servo_count = list(self.mc.servo_net.values()).count(net_name)
-        # TODO: Remove once INGK-912 is resolved
-        with contextlib.suppress(NotImplementedError):
+        if self.mc.fsoe_is_installed:
             self.mc.fsoe._delete_master_handler(servo)
         if servo_count == 0:
             del self.mc.net[net_name]
@@ -1296,32 +1300,20 @@ class Communication(metaclass=MCMetaClass):
             slave_id = first_slave_in_ensemble + slave_id_offset
             if slave_id not in connected_drives:
                 net.connect_to_slave(slave_id, dictionary_path)
-        thread_results = {}
-        with ThreadPoolExecutor() as executor:
+        try:
             for slave_id_offset, fw_file_prod_code in mapping.items():
                 slave_id = first_slave_in_ensemble + slave_id_offset
-                thread_results[slave_id] = executor.submit(
-                    net.load_firmware,
+                net.load_firmware(
                     slave_id,
                     fw_file_prod_code[0],
                     status_callback,
                     progress_callback,
                     error_enabled_callback,
                 )
-
-        exception = None
-        for slave_id in thread_results:
-            if slave_id not in connected_drives:
-                net.disconnect_from_slave(connected_drives[slave_id])
-            exception = thread_results[slave_id].exception()
-            break
-
-        shutil.rmtree(self.ENSEMBLE_TEMP_FOLDER)
-
-        if exception is not None:
-            raise IMException(
-                f"Load of FW in slave {slave_id} of ensemble failed. Exception: {exception}"
-            )
+        except ILError as e:
+            raise IMException(f"Load of FW in slave {slave_id} of ensemble failed. Exception: {e}")
+        finally:
+            shutil.rmtree(self.ENSEMBLE_TEMP_FOLDER)
 
     def __load_ensemble_fw_ecat(
         self,
@@ -1399,7 +1391,9 @@ class Communication(metaclass=MCMetaClass):
             map_slave_info = scanned_slaves[map_slave_id]
             if (
                 map_slave_info.product_code != mapping[map_slave_id_offset][1]
-                or map_slave_info.revision_number != mapping[map_slave_id_offset][2]
+                or map_slave_info.revision_number is None
+                or (map_slave_info.revision_number & self.ENSEMBLE_SLAVE_REV_NUM_MASK)
+                != (mapping[map_slave_id_offset][2] & self.ENSEMBLE_SLAVE_REV_NUM_MASK)
             ):
                 raise IMException(
                     f"Wrong ensemble. The slave {map_slave_id} "
@@ -1425,10 +1419,14 @@ class Communication(metaclass=MCMetaClass):
             The ID offset (relative position in the ensemble) of the selected slave.
         """
         for slave_id_offset in mapping:
-            _, product_code, revision_number = mapping[slave_id_offset]
-            if product_code == slave_info.product_code and (
-                revision_number & self.ENSEMBLE_SLAVE_REV_NUM_MASK
-            ) == (slave_info.revision_number & self.ENSEMBLE_SLAVE_REV_NUM_MASK):
+            _, mapping_product_code, mapping_revision_number = mapping[slave_id_offset]
+            scanned_product_code = slave_info.product_code
+            scanned_revision_number = slave_info.revision_number
+            if scanned_product_code is None or scanned_revision_number is None:
+                continue
+            if mapping_product_code == scanned_product_code and (
+                mapping_revision_number & self.ENSEMBLE_SLAVE_REV_NUM_MASK
+            ) == (scanned_revision_number & self.ENSEMBLE_SLAVE_REV_NUM_MASK):
                 return slave_id_offset
         raise IMException("The selected drive is not part of the ensemble.")
 

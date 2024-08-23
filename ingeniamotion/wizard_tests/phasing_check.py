@@ -1,18 +1,18 @@
 import time
 from enum import IntEnum
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 import ingenialogger
 
 from ingeniamotion.enums import OperationMode, PhasingMode, SensorType, SeverityLevel
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
-from ingeniamotion.wizard_tests.base_test import BaseTest, TestError
+from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType, TestError
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
 
 
-class PhasingCheck(BaseTest):
+class PhasingCheck(BaseTest[LegacyDictReportType]):
     MAX_ALLOWED_ANGLE_MOVE = 15
     INITIAL_ANGLE = 180.0
     INITIAL_ANGLE_HALLS = 240.0
@@ -34,13 +34,20 @@ class PhasingCheck(BaseTest):
     }
 
     def __init__(
-        self, mc: "MotionController", servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
+        self,
+        mc: "MotionController",
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+        logger_drive_name: Optional[str] = None,
     ) -> None:
         super().__init__()
         self.mc = mc
         self.servo = servo
         self.axis = axis
-        self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
+        if logger_drive_name is None:
+            self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
+        else:
+            self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=logger_drive_name)
         self.backup_registers_names = self.BACKUP_REGISTERS
 
     @BaseTest.stoppable

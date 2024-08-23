@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.8.4] - 2024-08-23
+### Added
+- Method to check if drive is connected via a COM-KIT.
+- Property to check if the PDOs are active.
+- Method to get a servo's FSoE master handler state.
+- Method to subscribe to the FSoE errors.
+
+### Changed
+- BaseTest class typing
+- The loading of several CANopen firmware files (ensemble) is done sequentially.
+
+### Fixed
+- Notify process data before start PDO
+- Fix set_gpo_voltage_level and get_gpi_voltage_level functions
+- Adapt changes of function get_available_devices from ingenialink 
+- ZFU file can only install the same firmware
+
 ## [0.8.3] - 2024-07-26
 ### Changed
 - Make fsoe_master an optional requirement

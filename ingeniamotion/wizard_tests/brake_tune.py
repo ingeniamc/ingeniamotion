@@ -8,7 +8,7 @@ from ingeniamotion.exceptions import IMRegisterNotExist
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.wizard_tests import stoppable
-from ingeniamotion.wizard_tests.base_test import BaseTest
+from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType
 
 
 class BrakeRegKey(IntEnum):
@@ -27,7 +27,7 @@ class ResultBrakeType(IntEnum):
     FAIL_DICTIONARY = 3
 
 
-class BrakeTune(BaseTest):
+class BrakeTune(BaseTest[LegacyDictReportType]):
     """A class to perform a brake tuning. It enables and disables a brake through
     enabling/disabling the motor.
 
@@ -56,12 +56,16 @@ class BrakeTune(BaseTest):
         enable_disable_motor_period: float = 1.0,
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
+        logger_drive_name: Optional[str] = None,
     ) -> None:
         super().__init__()
         self.mc = mc
         self.servo = servo
         self.axis = axis
-        self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
+        if logger_drive_name is None:
+            self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
+        else:
+            self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=logger_drive_name)
         self.backup_registers_names = self.BACKUP_REGISTERS
         self.__enable_disable_motor_period = enable_disable_motor_period
 
