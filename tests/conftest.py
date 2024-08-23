@@ -24,18 +24,6 @@ def pytest_addoption(parser):
     parser.addoption("--slave", type="int", default=0, help="Slave index in config.json")
 
 
-def pytest_collection_modifyitems(config, items):
-    protocol = config.getoption("--protocol")
-    negate_protocols = [x for x in ALLOW_PROTOCOLS if x != protocol]
-    skip_by_protocol = pytest.mark.skip(reason="Protocol does not match")
-    for item in items:
-        if protocol in item.keywords:
-            continue
-        for not_protocol in negate_protocols:
-            if not_protocol in item.keywords:
-                item.add_marker(skip_by_protocol)
-
-
 @pytest.fixture(scope="session")
 def read_config(request):
     slave = request.config.getoption("--slave")

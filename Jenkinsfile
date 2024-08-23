@@ -16,7 +16,7 @@ RUN_PYTHON_VERSIONS = ""
 def PYTHON_VERSION_MIN = "py39"
 def PYTHON_VERSION_MAX = "py312"
 
-SMOKE_TESTS_FLAG = ""
+RUN_ONLY_SMOKE_TESTS = false
 
 def BRANCH_NAME_MASTER = "master"
 def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
@@ -24,9 +24,15 @@ def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
 coverage_stashes = []
 
 def runTestHW(protocol, slave) {
+    markers = "protocol"
+
+    if (RUN_ONLY_SMOKE_TESTS) {
+        markers = markers + " and smoke"
+    }
+
     try {
         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
-                "${SMOKE_TESTS_FLAG} " +
+                "-m ${markers} " +
                 "--protocol ${protocol} " +
                 "--slave ${slave} " +
                 "--junitxml=pytest_reports/pytest_${protocol}_${slave}_report_py.xml"
@@ -55,17 +61,17 @@ pipeline {
                 script {
                     if (env.BRANCH_NAME == 'master') {
                         RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
-                        SMOKE_TESTS_FLAG = ""
+                        RUN_ONLY_SMOKE_TESTS = false
                     } else if (env.BRANCH_NAME == 'develop') {
                         RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
-                        SMOKE_TESTS_FLAG = ""
+                        RUN_ONLY_SMOKE_TESTS = false
                     } else if (env.BRANCH_NAME.startsWith('release/')) {
                         RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
-                        SMOKE_TESTS_FLAG = ""
+                        RUN_ONLY_SMOKE_TESTS = false
                     } else {
                         RUN_PYTHON_VERSIONS = "${PYTHON_VERSION_MIN},${PYTHON_VERSION_MAX}"
                         if (params.TESTS == 'Smoke') {
-                            SMOKE_TESTS_FLAG = "-m smoke"
+                            RUN_ONLY_SMOKE_TESTS = true
                         }
                     }
                 }
