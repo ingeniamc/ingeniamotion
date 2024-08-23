@@ -9,6 +9,7 @@
 
 ### Changed
 - BaseTest class typing
+- The loading of several CANopen firmware files (ensemble) is done sequentially.
 
 ### Fixed
 - Notify process data before start PDO
