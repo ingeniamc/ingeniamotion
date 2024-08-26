@@ -11,7 +11,16 @@ from virtual_drive.core import VirtualDrive
 
 from ingeniamotion import MotionController
 from ingeniamotion.enums import SensorType
-from .setup.descriptors import CanOpenSetup, Configs, EoESetup, Setup, SoemSetup, VirtualDriveSetup, HwSetup
+
+from .setup.descriptors import (
+    CanOpenSetup,
+    Configs,
+    EoESetup,
+    HwSetup,
+    Setup,
+    SoemSetup,
+    VirtualDriveSetup,
+)
 
 ALLOW_PROTOCOLS = ["eoe", "soem", "canopen", "virtual"]
 
@@ -122,15 +131,13 @@ def disable_motor_fixture(pytestconfig, motion_controller):
 
 
 @pytest.fixture
-def motion_controller_teardown(motion_controller, pytestconfig, read_config):
+def motion_controller_teardown(motion_controller, pytestconfig, read_config: Setup):
     yield motion_controller
-    protocol = pytestconfig.getoption("--protocol")
-    if protocol == "virtual":
-        return
-    mc, alias = motion_controller
-    mc.motion.motor_disable(servo=alias)
-    mc.configuration.load_configuration(read_config["config_file"], servo=alias)
-    mc.motion.fault_reset(servo=alias)
+    if isinstance(read_config, HwSetup):
+        mc, alias = motion_controller
+        mc.motion.motor_disable(servo=alias)
+        mc.configuration.load_configuration(read_config.config_file, servo=alias)
+        mc.motion.fault_reset(servo=alias)
 
 
 @pytest.fixture
@@ -194,16 +201,16 @@ def pytest_runtest_makereport(item, call):
 
 
 @pytest.fixture(scope="function", autouse=True)
-def load_configuration_if_test_fails(pytestconfig, request, motion_controller, read_config):
+def load_configuration_if_test_fails(pytestconfig, request, motion_controller, read_config: Setup):
     mc, alias = motion_controller
     yield
 
     report = request.node.stash[test_report_key]
     protocol = pytestconfig.getoption("--protocol")
-    if protocol != "virtual" and (
-            report["setup"].failed or ("call" not in report) or report["call"].failed
+    if isinstance(read_config, HwSetup) and (
+        report["setup"].failed or ("call" not in report) or report["call"].failed
     ):
-        mc.configuration.load_configuration(read_config["config_file"], servo=alias)
+        mc.configuration.load_configuration(read_config.config_file, servo=alias)
         mc.motion.fault_reset(servo=alias)
 
 
@@ -221,13 +228,13 @@ def mean_actual_velocity_position(mc, servo, velocity=False, n_samples=200, samp
 
 
 @pytest.fixture(scope="module", autouse=True)
-def load_configuration_after_each_module(pytestconfig, motion_controller, read_config):
+def load_configuration_after_each_module(pytestconfig, motion_controller, read_config: Setup):
     yield motion_controller
-    protocol = pytestconfig.getoption("--protocol")
-    if protocol != "virtual":
+
+    if isinstance(read_config, HwSetup):
         mc, alias = motion_controller
         mc.motion.motor_disable(servo=alias)
-        mc.configuration.load_configuration(read_config["config_file"], servo=alias)
+        mc.configuration.load_configuration(read_config.config_file, servo=alias)
 
 
 @pytest.fixture(scope="session")
@@ -239,10 +246,10 @@ def connect_to_rack_service():
 
 
 @pytest.fixture(scope="session", autouse=True)
-def load_firmware(pytestconfig, read_config, request):
-    protocol = pytestconfig.getoption("--protocol")
-    if protocol == "virtual":
+def load_firmware(pytestconfig, read_config: Setup, request):
+    if not isinstance(read_config, HwSetup):
         return
+
     drive_identifier = read_config.identifier
     drive_idx = None
     client = request.getfixturevalue("connect_to_rack_service")
@@ -256,5 +263,5 @@ def load_firmware(pytestconfig, read_config, request):
     drive = config.drives[drive_idx]
     client.exposed_turn_on_ps()
     client.exposed_firmware_load(
-        drive_idx, read_config["fw_file"], drive.product_code, drive.serial_number
+        drive_idx, read_config.fw_file, drive.product_code, drive.serial_number
     )

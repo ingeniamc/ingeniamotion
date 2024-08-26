@@ -21,8 +21,12 @@ class Setup:
 
 
 @dataclass
-class VirtualDriveSetup(Setup):
+class EthernetSetup(Setup):
     ip: str
+
+
+@dataclass
+class VirtualDriveSetup(EthernetSetup):
     port: int
 
 
@@ -34,8 +38,8 @@ class HwSetup(Setup):
 
 
 @dataclass
-class EoESetup(HwSetup):
-    ip: str
+class EoESetup(HwSetup, EthernetSetup):
+    pass
 
 
 @dataclass
@@ -61,10 +65,7 @@ class Protocol:
 
     @classmethod
     def from_dict(cls, name, contents: Dict):
-        return cls(name, [
-            Setup.from_dict(name, setup)
-            for setup in contents
-        ])
+        return cls(name, [Setup.from_dict(name, setup) for setup in contents])
 
 
 @dataclass
@@ -73,7 +74,6 @@ class Configs:
 
     @classmethod
     def from_dict(cls, contents: Dict):
-        return cls({
-            name: Protocol.from_dict(name, protocol)
-            for name, protocol in contents.items()
-        })
+        return cls(
+            {name: Protocol.from_dict(name, protocol) for name, protocol in contents.items()}
+        )
