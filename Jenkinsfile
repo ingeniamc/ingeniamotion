@@ -24,7 +24,7 @@ def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
 coverage_stashes = []
 
 def runTestHW(protocol, slave) {
-    markers = "protocol"
+    markers = protocol
 
     if (RUN_ONLY_SMOKE_TESTS) {
         markers = markers + " and smoke"
@@ -32,7 +32,7 @@ def runTestHW(protocol, slave) {
 
     try {
         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
-                "-m ${markers} " +
+                "-m \"${markers}\" " +
                 "--protocol ${protocol} " +
                 "--slave ${slave} " +
                 "--junitxml=pytest_reports/pytest_${protocol}_${slave}_report_py.xml"
