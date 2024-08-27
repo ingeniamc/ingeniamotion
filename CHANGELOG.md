@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.8.5] - 2024-08-27
+### Fixed
+- Remove SBC registers that have been removed on FW
+
 ## [0.8.4] - 2024-08-23
 ### Added
 - Method to check if drive is connected via a COM-KIT.
