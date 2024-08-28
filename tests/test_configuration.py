@@ -91,6 +91,7 @@ def remove_file_if_exist():
     if os.path.isfile(file_path):
         os.remove(file_path)
 
+
 @pytest.mark.eoe
 @pytest.mark.soem
 @pytest.mark.canopen
@@ -280,6 +281,7 @@ def test_get_status_word(motion_controller):
     test_value = mc.configuration.get_status_word(servo=alias)
     reg_value = mc.communication.get_register(STATUS_WORD_REGISTER, servo=alias)
     assert test_value == reg_value
+
 
 @pytest.mark.eoe
 @pytest.mark.soem
@@ -511,6 +513,7 @@ def test_is_sto_abnormal_latched(mocker, motion_controller, sto_status_value, ex
     value = mc.configuration.is_sto_abnormal_latched(servo=alias)
     assert value == expected_result
 
+
 @pytest.mark.eoe
 @pytest.mark.soem
 @pytest.mark.canopen
@@ -518,6 +521,7 @@ def test_is_sto_abnormal_latched(mocker, motion_controller, sto_status_value, ex
 def test_store_configuration(motion_controller):
     mc, alias = motion_controller
     mc.configuration.store_configuration(servo=alias)
+
 
 @pytest.mark.eoe
 @pytest.mark.soem

@@ -25,6 +25,7 @@ def test_disturbance_max_sample_size(motion_controller, disturbance):
     )
     assert max_sample_size == value
 
+
 @pytest.mark.eoe
 @pytest.mark.soem
 @pytest.mark.canopen
@@ -38,6 +39,7 @@ def test_set_frequency_divider(motion_controller, disturbance, prescaler):
     )
     assert value == prescaler
 
+
 @pytest.mark.eoe
 @pytest.mark.soem
 @pytest.mark.canopen
@@ -46,6 +48,7 @@ def test_set_frequency_divider_exception(disturbance):
     prescaler = -1
     with pytest.raises(ValueError):
         disturbance.set_frequency_divider(prescaler)
+
 
 @pytest.mark.eoe
 @pytest.mark.soem
@@ -68,6 +71,7 @@ def test_disturbance_map_registers(motion_controller, disturbance, axis, name, e
     value = mc.communication.get_register("DIST_CFG_MAP_REGS", servo=alias, axis=0)
     assert value == 1
 
+
 @pytest.mark.eoe
 @pytest.mark.soem
 @pytest.mark.canopen
@@ -80,6 +84,7 @@ def test_disturbance_number_map_registers(motion_controller, disturbance, number
     disturbance.map_registers(registers)
     value = mc.communication.get_register("DIST_CFG_MAP_REGS", servo=alias, axis=0)
     assert value == number_registers
+
 
 @pytest.mark.eoe
 @pytest.mark.soem
@@ -106,6 +111,7 @@ def test_disturbance_map_registers_empty(disturbance):
     with pytest.raises(IMDisturbanceError):
         disturbance.map_registers(registers)
 
+
 @pytest.mark.eoe
 @pytest.mark.soem
 @pytest.mark.canopen
@@ -121,6 +127,7 @@ def test_write_disturbance_data_buffer_exception(disturbance):
 def test_write_disturbance_data_not_configured(disturbance):
     with pytest.raises(IMDisturbanceError):
         disturbance.write_disturbance_data([0] * 100)
+
 
 @pytest.mark.eoe
 @pytest.mark.soem
