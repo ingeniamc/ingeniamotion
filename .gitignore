@@ -65,3 +65,6 @@ _pdf
 
 #pytest
 .coverage
+
+# Tox
+.tox
