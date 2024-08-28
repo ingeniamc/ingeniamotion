@@ -28,14 +28,15 @@ def runTestHW(protocol, slave) {
         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
                 "${SMOKE_TESTS_FLAG} " +
                 "--protocol ${protocol} " +
-                "--slave ${slave} " +
-                "--junitxml=pytest_reports/pytest_${protocol}_${slave}_report_py.xml"
+                "--slave ${slave} "
     } catch (err) {
         unstable(message: "Tests failed")
     } finally {
         coverage_stash = ".coverage_${protocol}_${slave}"
         bat "move .coverage ${coverage_stash}"
-        junit "pytest_reports\\pytest_${protocol}_${slave}_report_py.xml"
+        junit "pytest_reports\\*.xml"
+        // Delete the junit after publishing it so it not re-published on the next stage
+        bat "del /S /Q pytest_reports\\*.xml"
         stash includes: coverage_stash, name: coverage_stash
         coverage_stashes.add(coverage_stash)
     }
@@ -83,12 +84,12 @@ pipeline {
                 stage('Run no-connection tests') {
                     steps {
                         sh """
-                            python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- -m virtual --protocol virtual --junitxml=pytest_virtual_report.xml
+                            python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- -m virtual --protocol virtual
                         """
                     }
                     post {
                         always {
-                            junit "pytest_virtual_report.xml"
+                            junit "pytest_reports/*.xml"
                         }
                     }
                 }
@@ -125,13 +126,12 @@ pipeline {
                 stage("Run virtual drive tests") {
                     steps {
                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- -m" +
-                                " virtual --protocol virtual " +
-                                "--junitxml=pytest_reports\\pytest_virtual_report.xml"
+                                " virtual --protocol virtual "
                     }
                     post {
                         always {
                             bat "move .coverage .coverage_virtual"
-                            junit "pytest_reports\\pytest_virtual_report.xml"
+                            junit "pytest_reports\\*.xml"
                             stash includes: '.coverage_virtual', name: '.coverage_virtual'
                             script {
                                 coverage_stashes.add(".coverage_virtual")
