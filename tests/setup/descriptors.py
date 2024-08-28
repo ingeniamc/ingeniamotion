@@ -9,11 +9,11 @@ class Setup:
     @classmethod
     def from_dict(cls, protocol_name: str, contents: Dict):
         if protocol_name == "eoe":
-            return EoESetup(**contents)
+            return EoESetup(**contents, load_firmware_with_rack_service=False)
         if protocol_name == "soem":
-            return SoemSetup(**contents)
+            return SoemSetup(**contents, load_firmware_with_rack_service=False)
         if protocol_name == "canopen":
-            return CanOpenSetup(**contents)
+            return CanOpenSetup(**contents, load_firmware_with_rack_service=False)
         if protocol_name == "virtual":
             return VirtualDriveSetup(**contents)
         else:
@@ -35,6 +35,7 @@ class HwSetup(Setup):
     identifier: str
     config_file: str
     fw_file: str
+    load_firmware_with_rack_service: bool
 
 
 @dataclass

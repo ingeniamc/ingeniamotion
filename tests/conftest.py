@@ -238,6 +238,9 @@ def load_firmware(pytestconfig, read_config: Setup, request):
     if not isinstance(read_config, HwSetup):
         return
 
+    if not read_config.load_firmware_with_rack_service:
+        return
+
     drive_identifier = read_config.identifier
     drive_idx = None
     client = request.getfixturevalue("connect_to_rack_service")
