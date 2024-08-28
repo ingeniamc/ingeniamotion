@@ -5,12 +5,22 @@ from typing import Dict
 
 import numpy as np
 import pytest
+import rpyc
 from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE
 from virtual_drive.core import VirtualDrive
-import rpyc
 
 from ingeniamotion import MotionController
 from ingeniamotion.enums import SensorType
+
+from .setup.descriptors import (
+    CanOpenSetup,
+    Configs,
+    EoESetup,
+    HwSetup,
+    Setup,
+    SoemSetup,
+    VirtualDriveSetup,
+)
 
 ALLOW_PROTOCOLS = ["eoe", "soem", "canopen", "virtual"]
 
@@ -26,68 +36,76 @@ def pytest_addoption(parser):
 
 @pytest.fixture(scope="session")
 def read_config(request):
-    slave = request.config.getoption("--slave")
-    protocol = request.config.getoption("--protocol")
     config = "tests/config.json"
     with open(config, "r") as fp:
         contents = json.load(fp)
-    relative_path = contents["virtual"][0]["dictionary"]
-    absolute_path = os.path.join(os.path.abspath(os.getcwd()), relative_path)
-    contents["virtual"][0]["dictionary"] = absolute_path
-    return contents[protocol][slave]
+        data = Configs.from_dict(contents)
+
+    slave = request.config.getoption("--slave")
+    protocol = request.config.getoption("--protocol")
+
+    setup = data.protocols[protocol].setups[slave]
+    if isinstance(setup, VirtualDriveSetup):
+        setup.dictionary = os.path.join(os.path.abspath(os.getcwd()), setup.dictionary)
+
+    return data.protocols[protocol].setups[slave]
 
 
 def connect_eoe(mc, config, alias):
-    mc.communication.connect_servo_eoe(config["ip"], config["dictionary"], alias=alias)
+    mc.communication.connect_servo_eoe(config.ip, config.dictionary, alias=alias)
 
 
-def connect_soem(mc, config, alias):
+def connect_soem(mc, config: SoemSetup, alias):
     mc.communication.connect_servo_ethercat(
-        config["ifname"],
-        config["slave"],
-        config["dictionary"],
+        config.ifname,
+        config.slave,
+        config.dictionary,
         alias,
     )
 
 
-def connect_canopen(mc, config, alias):
-    device = CAN_DEVICE(config["device"])
-    baudrate = CAN_BAUDRATE(config["baudrate"])
+def connect_canopen(mc, config: CanOpenSetup, alias):
+    device = CAN_DEVICE(config.device)
+    baudrate = CAN_BAUDRATE(config.baudrate)
     mc.communication.connect_servo_canopen(
         device,
-        config["dictionary"],
-        config["node_id"],
+        config.dictionary,
+        config.node_id,
         baudrate,
-        config["channel"],
+        config.channel,
         alias=alias,
     )
 
 
 @pytest.fixture(scope="session")
-def motion_controller(pytestconfig, read_config):
+def motion_controller(read_config: Setup):
     alias = "test"
     mc = MotionController()
-    protocol = pytestconfig.getoption("--protocol")
-    if protocol == "soem":
+
+    if isinstance(read_config, SoemSetup):
         connect_soem(mc, read_config, alias)
-    elif protocol == "canopen":
+    elif isinstance(read_config, CanOpenSetup):
         connect_canopen(mc, read_config, alias)
-    elif protocol == "virtual":
-        virtual_drive = VirtualDrive(read_config["port"], read_config["dictionary"])
+    elif isinstance(read_config, VirtualDriveSetup):
+        virtual_drive = VirtualDrive(read_config.port, read_config.dictionary)
         virtual_drive.start()
         virtual_drive.set_value_by_id(1, "IO_IN_VALUE", 0xA)
         connect_eoe(mc, read_config, alias)
-    else:
+    elif isinstance(read_config, EoESetup):
         connect_eoe(mc, read_config, alias)
+    else:
+        raise NotImplementedError
 
-    if protocol != "virtual":
+    if isinstance(read_config, HwSetup):
         mc.configuration.restore_configuration(servo=alias)
-        mc.configuration.load_configuration(read_config["config_file"], servo=alias)
+        mc.configuration.load_configuration(read_config.config_file, servo=alias)
         yield mc, alias
         mc.communication.disconnect(alias)
-    else:
+    elif isinstance(read_config, VirtualDriveSetup):
         yield mc, alias
         virtual_drive.stop()
+    else:
+        raise NotImplementedError
 
 
 @pytest.fixture(autouse=True)
@@ -101,15 +119,13 @@ def disable_motor_fixture(pytestconfig, motion_controller):
 
 
 @pytest.fixture
-def motion_controller_teardown(motion_controller, pytestconfig, read_config):
+def motion_controller_teardown(motion_controller, pytestconfig, read_config: Setup):
     yield motion_controller
-    protocol = pytestconfig.getoption("--protocol")
-    if protocol == "virtual":
-        return
-    mc, alias = motion_controller
-    mc.motion.motor_disable(servo=alias)
-    mc.configuration.load_configuration(read_config["config_file"], servo=alias)
-    mc.motion.fault_reset(servo=alias)
+    if isinstance(read_config, HwSetup):
+        mc, alias = motion_controller
+        mc.motion.motor_disable(servo=alias)
+        mc.configuration.load_configuration(read_config.config_file, servo=alias)
+        mc.motion.fault_reset(servo=alias)
 
 
 @pytest.fixture
@@ -173,16 +189,16 @@ def pytest_runtest_makereport(item, call):
 
 
 @pytest.fixture(scope="function", autouse=True)
-def load_configuration_if_test_fails(pytestconfig, request, motion_controller, read_config):
+def load_configuration_if_test_fails(pytestconfig, request, motion_controller, read_config: Setup):
     mc, alias = motion_controller
     yield
 
     report = request.node.stash[test_report_key]
     protocol = pytestconfig.getoption("--protocol")
-    if protocol != "virtual" and (
+    if isinstance(read_config, HwSetup) and (
         report["setup"].failed or ("call" not in report) or report["call"].failed
     ):
-        mc.configuration.load_configuration(read_config["config_file"], servo=alias)
+        mc.configuration.load_configuration(read_config.config_file, servo=alias)
         mc.motion.fault_reset(servo=alias)
 
 
@@ -200,13 +216,13 @@ def mean_actual_velocity_position(mc, servo, velocity=False, n_samples=200, samp
 
 
 @pytest.fixture(scope="module", autouse=True)
-def load_configuration_after_each_module(pytestconfig, motion_controller, read_config):
+def load_configuration_after_each_module(pytestconfig, motion_controller, read_config: Setup):
     yield motion_controller
-    protocol = pytestconfig.getoption("--protocol")
-    if protocol != "virtual":
+
+    if isinstance(read_config, HwSetup):
         mc, alias = motion_controller
         mc.motion.motor_disable(servo=alias)
-        mc.configuration.load_configuration(read_config["config_file"], servo=alias)
+        mc.configuration.load_configuration(read_config.config_file, servo=alias)
 
 
 @pytest.fixture(scope="session")
@@ -218,11 +234,11 @@ def connect_to_rack_service():
 
 
 @pytest.fixture(scope="session", autouse=True)
-def load_firmware(pytestconfig, read_config, request):
-    protocol = pytestconfig.getoption("--protocol")
-    if protocol == "virtual":
+def load_firmware(pytestconfig, read_config: Setup, request):
+    if not isinstance(read_config, HwSetup):
         return
-    drive_identifier = read_config["identifier"]
+
+    drive_identifier = read_config.identifier
     drive_idx = None
     client = request.getfixturevalue("connect_to_rack_service")
     config = client.exposed_get_configuration()
@@ -235,5 +251,5 @@ def load_firmware(pytestconfig, read_config, request):
     drive = config.drives[drive_idx]
     client.exposed_turn_on_ps()
     client.exposed_firmware_load(
-        drive_idx, read_config["fw_file"], drive.product_code, drive.serial_number
+        drive_idx, read_config.fw_file, drive.product_code, drive.serial_number
     )
