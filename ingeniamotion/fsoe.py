@@ -60,8 +60,6 @@ class FSoEMasterHandler:
     STO_COMMAND_UID = "STO_COMMAND"
     SS1_COMMAND_KEY = 0x050
     SS1_COMMAND_UID = "SS1_COMMAND"
-    SBC_COMMAND_KEY = 0x060
-    SBC_COMMAND_UID = "SBC_COMMAND"
     SAFE_INPUTS_KEY = 0x070
     SAFE_INPUTS_UID = "SAFE_INPUTS"
     PROCESS_DATA_COMMAND = 0x36
@@ -128,8 +126,7 @@ class FSoEMasterHandler:
         # Phase 1 mapping
         self.__master_handler.master.dictionary_map.add_by_key(self.STO_COMMAND_KEY, bits=1)
         self.__master_handler.master.dictionary_map.add_by_key(self.SS1_COMMAND_KEY, bits=1)
-        self.__master_handler.master.dictionary_map.add_padding(bits=6)
-        self.__master_handler.master.dictionary_map.add_by_key(self.SBC_COMMAND_KEY, bits=1)
+        self.__master_handler.master.dictionary_map.add_padding(bits=7)
         self.__master_handler.master.dictionary_map.add_padding(bits=7)
 
     def _map_inputs(self) -> None:
@@ -137,8 +134,7 @@ class FSoEMasterHandler:
         # Phase 1 mapping
         self.__master_handler.slave.dictionary_map.add_by_key(self.STO_COMMAND_KEY, bits=1)
         self.__master_handler.slave.dictionary_map.add_by_key(self.SS1_COMMAND_KEY, bits=1)
-        self.__master_handler.slave.dictionary_map.add_padding(bits=6)
-        self.__master_handler.slave.dictionary_map.add_by_key(self.SBC_COMMAND_KEY, bits=1)
+        self.__master_handler.slave.dictionary_map.add_padding(bits=7)
         self.__master_handler.slave.dictionary_map.add_by_key(self.SAFE_INPUTS_KEY, bits=1)
         self.__master_handler.slave.dictionary_map.add_padding(bits=6)
 
@@ -234,12 +230,6 @@ class FSoEMasterHandler:
             data_type=DictionaryItem.DataTypes.BOOL,
             fail_safe_input_value=True,
         )
-        sbc_command_dict_item = DictionaryItemInputOutput(
-            key=self.SBC_COMMAND_KEY,
-            name=self.SBC_COMMAND_UID,
-            data_type=DictionaryItem.DataTypes.BOOL,
-            fail_safe_input_value=False,
-        )
         safe_input_dict_item = DictionaryItemInput(
             key=self.SAFE_INPUTS_KEY,
             name=self.SAFE_INPUTS_UID,
@@ -250,7 +240,6 @@ class FSoEMasterHandler:
             [
                 sto_command_dict_item,
                 ss1_command_dict_item,
-                sbc_command_dict_item,
                 safe_input_dict_item,
             ]
         )
@@ -369,31 +358,10 @@ class FSoEMaster:
         dtype=REG_DTYPE.U16,
         access=REG_ACCESS.RW,
     )
-    STO_ACTIVATE_SBC_REGISTER = EthercatRegister(
-        identifier="STO_ACTIVATE_SBC",
-        idx=0x6643,
-        subidx=0x00,
-        dtype=REG_DTYPE.U32,
-        access=REG_ACCESS.RW,
-    )
     SS1_TIME_TO_STO_REGISTER = EthercatRegister(
         identifier="SS1_TIME_TO_STO",
         idx=0x6651,
         subidx=0x01,
-        dtype=REG_DTYPE.U16,
-        access=REG_ACCESS.RW,
-    )
-    SS1_ACTIVATE_SBC_REGISTER = EthercatRegister(
-        identifier="SS1_ACTIVATE_SBC",
-        idx=0x6658,
-        subidx=0x01,
-        dtype=REG_DTYPE.U32,
-        access=REG_ACCESS.RW,
-    )
-    SBC_BRAKE_TIME_DELAY_REGISTER = EthercatRegister(
-        identifier="SBC_BRAKE_TIME_DELAY",
-        idx=0x6661,
-        subidx=0x00,
         dtype=REG_DTYPE.U16,
         access=REG_ACCESS.RW,
     )
@@ -684,10 +652,7 @@ class FSoEMaster:
         application_parameters = []
         for register in [
             self.SAFE_INPUTS_MAP_REGISTER,
-            self.STO_ACTIVATE_SBC_REGISTER,
             self.SS1_TIME_TO_STO_REGISTER,
-            self.SS1_ACTIVATE_SBC_REGISTER,
-            self.SBC_BRAKE_TIME_DELAY_REGISTER,
         ]:
             register_size_bytes, _ = dtype_value[register.dtype]
             application_parameter = ApplicationParameter(
