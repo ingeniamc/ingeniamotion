@@ -23,7 +23,9 @@ def __compare_signals(expected_signal, received_signal, fft_tol=0.05):
 
     return np.allclose(fft_received, fft_expected, rtol=0, atol=fft_tol)
 
-
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 def test_create_poller(motion_controller):
     registers = [{"name": "CL_CUR_Q_SET_POINT", "axis": 1}]
     sampling_time = 0.125
@@ -45,9 +47,11 @@ def test_create_poller(motion_controller):
     assert len(received_signal) == len(expected_signal)
     assert __compare_signals(expected_signal, received_signal)
 
-
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 def test_create_monitoring_no_trigger(
-    skip_if_monitoring_not_available, motion_controller, disable_monitoring_disturbance
+        skip_if_monitoring_not_available, motion_controller, disable_monitoring_disturbance
 ):
     registers = [{"name": "CL_POS_REF_VALUE", "axis": 1}]
     mc, alias = motion_controller
@@ -77,29 +81,31 @@ def test_create_monitoring_no_trigger(
     assert len(data[0]) == len(expected_signal)
     assert __compare_signals(expected_signal, data[0])
 
-
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.parametrize(
     "trigger_mode, trigger_config, values_list",
     [
         (
-            MonitoringSoCType.TRIGGER_EVENT_EDGE,
-            MonitoringSoCConfig.TRIGGER_CONFIG_RISING,
-            [0, 0.25, 0.5, 0.75],
+                MonitoringSoCType.TRIGGER_EVENT_EDGE,
+                MonitoringSoCConfig.TRIGGER_CONFIG_RISING,
+                [0, 0.25, 0.5, 0.75],
         ),
         (
-            MonitoringSoCType.TRIGGER_EVENT_EDGE,
-            MonitoringSoCConfig.TRIGGER_CONFIG_FALLING,
-            [0.75, 0.5, 0.25, 0],
+                MonitoringSoCType.TRIGGER_EVENT_EDGE,
+                MonitoringSoCConfig.TRIGGER_CONFIG_FALLING,
+                [0.75, 0.5, 0.25, 0],
         ),
     ],
 )
 def test_create_monitoring_edge_trigger(
-    skip_if_monitoring_not_available,
-    motion_controller,
-    trigger_mode,
-    trigger_config,
-    values_list,
-    disable_monitoring_disturbance,
+        skip_if_monitoring_not_available,
+        motion_controller,
+        trigger_mode,
+        trigger_config,
+        values_list,
+        disable_monitoring_disturbance,
 ):
     register = {"name": "CL_POS_REF_VALUE", "axis": 1}
     mc, alias = motion_controller
@@ -135,18 +141,20 @@ def test_create_monitoring_edge_trigger(
             pass
         value = int(values_list[i] * samples)
         mc.motion.move_to_position(value, alias)
-        expected_signal[i * quarter_num_samples : (i + 1) * quarter_num_samples] = value
+        expected_signal[i * quarter_num_samples: (i + 1) * quarter_num_samples] = value
 
     data = monitoring.read_monitoring_data()
     assert len(data[0]) == len(expected_signal)
     assert __compare_signals(expected_signal, data[0])
 
-
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.parametrize("trigger_delay_rate", [-1 / 4, 1 / 4])
 def test_create_monitoring_trigger_delay(
-    skip_if_monitoring_not_available,
-    motion_controller,
-    trigger_delay_rate,
+        skip_if_monitoring_not_available,
+        motion_controller,
+        trigger_delay_rate,
 ):
     trigger_mode = MonitoringSoCType.TRIGGER_EVENT_EDGE
     trigger_config = MonitoringSoCConfig.TRIGGER_CONFIG_RISING
@@ -187,7 +195,7 @@ def test_create_monitoring_trigger_delay(
             pass
         value = int(values_list[i] * samples)
         mc.motion.move_to_position(value, alias)
-        expected_signal[i * quarter_num_samples : (i + 1) * quarter_num_samples] = value
+        expected_signal[i * quarter_num_samples: (i + 1) * quarter_num_samples] = value
 
     expected_signal = np.roll(expected_signal, -trigger_delay_samples)
     if trigger_delay_samples < 0:
@@ -199,8 +207,11 @@ def test_create_monitoring_trigger_delay(
     assert __compare_signals(expected_signal, data[0])
 
 
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 def test_create_disturbance(
-    skip_if_monitoring_not_available, motion_controller, disable_monitoring_disturbance
+        skip_if_monitoring_not_available, motion_controller, disable_monitoring_disturbance
 ):
     mc, alias = motion_controller
     target_register = "CL_POS_SET_POINT_VALUE"
@@ -241,6 +252,9 @@ def test_mcb_synchronization(mocker, motion_controller):
     disable_mon.assert_called_once_with(servo=alias)
 
 
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 def test_mcb_synchronization_fail(motion_controller):
     mc, alias = motion_controller
@@ -273,9 +287,12 @@ def test_monitoring_max_sample_size(skip_if_monitoring_not_available, motion_con
     assert max_sample_size == value
 
 
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 def test_get_frequency(
-    skip_if_monitoring_not_available, motion_controller, disable_monitoring_disturbance
+        skip_if_monitoring_not_available, motion_controller, disable_monitoring_disturbance
 ):
     mc, alias = motion_controller
     registers = [{"name": "CL_POS_REF_VALUE", "axis": 1}]
@@ -411,15 +428,15 @@ def test_get_monitoring_process_stage_v3(mocker, motion_controller, monitor_stat
 )
 @pytest.mark.virtual
 def test_get_monitoring_process_stage_v1_v2(
-    mocker, motion_controller, monitoring_status, expected_stage
+        mocker, motion_controller, monitoring_status, expected_stage
 ):
     mc, alias = motion_controller
     mocker.patch.object(mc.capture, "get_monitoring_status", return_value=monitoring_status)
     assert (
-        mc.capture.get_monitoring_process_stage(
-            servo=alias, version=MonitoringVersion.MONITORING_V2
-        )
-        == expected_stage
+            mc.capture.get_monitoring_process_stage(
+                servo=alias, version=MonitoringVersion.MONITORING_V2
+            )
+            == expected_stage
     )
 
 

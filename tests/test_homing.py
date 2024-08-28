@@ -63,7 +63,9 @@ def test_set_homing_timeout(motion_controller, homing_timeout):
     test_homing_timeout = mc.communication.get_register(HOMING_TIMEOUT_REGISTER, servo=alias)
     assert test_homing_timeout == homing_timeout
 
-
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.parametrize("homing_offset", [0, 1000])
 @pytest.mark.usefixtures("initial_position")
 def test_homing_on_current_position(motion_controller, homing_offset):
@@ -75,7 +77,9 @@ def test_homing_on_current_position(motion_controller, homing_offset):
         abs=feedback_resolution * RELATIVE_ERROR_ALLOWED,
     ) == mc.motion.get_actual_position(servo=alias)
 
-
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.usefixtures("initial_position")
 @pytest.mark.parametrize("direction", [1, 0])
 def test_homing_on_switch_limit(motion_controller, direction):
@@ -116,7 +120,9 @@ def test_homing_on_switch_limit(motion_controller, direction):
     assert pytest.approx(search_vel) == test_search_vel
     assert test_switch == switch
 
-
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.usefixtures("initial_position")
 def test_homing_on_switch_limit_timeout(motion_controller):
     mc, alias = motion_controller
@@ -168,7 +174,9 @@ def __check_homing_was_successful(mc, alias, timeout_ms):
             return True
     return False
 
-
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.usefixtures("initial_position")
 @pytest.mark.parametrize("direction", [1, 0])
 def test_homing_on_index_pulse(motion_controller, feedback_list, direction):
@@ -212,7 +220,9 @@ def test_homing_on_index_pulse(motion_controller, feedback_list, direction):
             pytest.approx(homing_offset, abs=resolution * RELATIVE_ERROR_ALLOWED) == actual_position
         )
 
-
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.usefixtures("initial_position")
 @pytest.mark.parametrize("direction", [1, 0])
 def test_homing_on_switch_limit_and_index_pulse(motion_controller, direction):

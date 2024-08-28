@@ -248,7 +248,9 @@ def test_set_register_wrong_access(motion_controller):
 def dummy_callback(status, _, axis):
     pass
 
-
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 def test_subscribe_servo_status(mocker, motion_controller):
     mc, alias = motion_controller

@@ -25,7 +25,9 @@ ACTUAL_DIRECT_CURRENT_REGISTER = "CL_CUR_D_VALUE"
 VOLTAGE_QUADRATURE_SET_POINT_REGISTER = "CL_VOL_Q_SET_POINT"
 VOLTAGE_DIRECT_SET_POINT_REGISTER = "CL_VOL_D_SET_POINT"
 
-
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 def test_target_latch(motion_controller):
     mc, alias = motion_controller
     mc.communication.set_register(PROFILER_LATCHING_MODE_REGISTER, 0x40, servo=alias)
@@ -52,7 +54,9 @@ def test_set_operation_mode(motion_controller, operation_mode):
     test_op = mc.communication.get_register(OPERATION_MODE_REGISTER, servo=alias)
     assert operation_mode.value == test_op
 
-
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 @pytest.mark.parametrize("operation_mode", list(OperationMode))
 def test_get_operation_mode(motion_controller, operation_mode):
@@ -61,14 +65,18 @@ def test_get_operation_mode(motion_controller, operation_mode):
     test_op = mc.motion.get_operation_mode(servo=alias)
     assert test_op == operation_mode.value
 
-
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 def test_motor_enable(motion_controller):
     mc, alias = motion_controller
     mc.motion.motor_enable(servo=alias)
     assert mc.configuration.is_motor_enabled(servo=alias)
 
-
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "uid, value, exception_type, message",
@@ -90,7 +98,9 @@ def test_motor_enable_error(motion_controller_teardown, uid, value, exception_ty
         mc.motion.motor_enable(servo=alias)
     assert str(excinfo.value) == "An error occurred enabling motor. Reason: {}".format(message)
 
-
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 def test_motor_enable_with_fault(motion_controller_teardown):
     uid = "DRV_PROT_USER_UNDER_VOLT"
@@ -106,7 +116,9 @@ def test_motor_enable_with_fault(motion_controller_teardown):
         mc.motion.motor_enable(servo=alias)
     assert str(excinfo_2.value) == "An error occurred enabling motor. Reason: {}".format(message)
 
-
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 @pytest.mark.parametrize("enable_motor", [True, False])
 def test_motor_disable(motion_controller, enable_motor):
@@ -116,7 +128,9 @@ def test_motor_disable(motion_controller, enable_motor):
     mc.motion.motor_disable(servo=alias)
     assert not mc.configuration.is_motor_enabled(servo=alias)
 
-
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 def test_motor_disable_with_fault(motion_controller_teardown):
     uid = "DRV_PROT_USER_UNDER_VOLT"
@@ -129,7 +143,9 @@ def test_motor_disable_with_fault(motion_controller_teardown):
     mc.motion.motor_disable(servo=alias)
     assert not mc.configuration.is_motor_enabled(servo=alias)
 
-
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 def test_fault_reset(motion_controller_teardown):
     mc, alias = motion_controller_teardown
@@ -153,7 +169,9 @@ def test_set_position(motion_controller, position_value):
     test_position = mc.communication.get_register(POSITION_SET_POINT_REGISTER, servo=alias)
     assert test_position == position_value
 
-
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 @pytest.mark.parametrize("position_value", [1000, 0, -1000, 4000])
 def test_move_position(motion_controller, position_value):
@@ -166,7 +184,9 @@ def test_move_position(motion_controller, position_value):
     pos_tolerance = pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
     assert pytest.approx(position_value, abs=pos_tolerance) == test_position
 
-
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("velocity_value", [0.5, 1, 0, -0.5])
@@ -176,7 +196,9 @@ def test_set_velocity(motion_controller, velocity_value):
     test_vel = mc.communication.get_register(VELOCITY_SET_POINT_REGISTER, servo=alias)
     assert test_vel == velocity_value
 
-
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 # TODO Update approx error. Well tuned motor is needed.
 @pytest.mark.parametrize("velocity_value", [0.5, 1, 0, -0.5])
@@ -253,7 +275,9 @@ def test_ramp_generator(mocker, init_v, final_v, total_t, t, result):
         test_result = next(generator)
         assert pytest.approx(result_v) == test_result
 
-
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 @pytest.mark.parametrize("position_value", [-4000, -1000, 1000, 4000])
 def test_get_actual_position(motion_controller, position_value):
@@ -269,7 +293,9 @@ def test_get_actual_position(motion_controller, position_value):
         reg_value[sample_ix] = mc.communication.get_register(ACTUAL_POSITION_REGISTER, servo=alias)
     assert np.abs(np.mean(test_position) - np.mean(reg_value)) < 0.5
 
-
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.parametrize("velocity_value", [1, 0, -1])
 def test_get_actual_velocity(motion_controller, velocity_value):
     mc, alias = motion_controller
@@ -325,7 +351,9 @@ def test_wait_for_function_timeout(motion_controller, function):
     final_time = time.time()
     assert pytest.approx(timeout_value, abs=0.1) == final_time - init_time
 
-
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 @pytest.mark.parametrize("op_mode", [OperationMode.VOLTAGE, OperationMode.CURRENT])
 def test_set_internal_generator_configuration(motion_controller_teardown, op_mode):
@@ -334,7 +362,9 @@ def test_set_internal_generator_configuration(motion_controller_teardown, op_mod
     assert op_mode == mc.motion.get_operation_mode(servo=alias)
     assert 1 == mc.configuration.get_motor_pair_poles(servo=alias)
 
-
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.parametrize("op_mode", [OperationMode.VOLTAGE, OperationMode.CURRENT])
 @pytest.mark.parametrize("direction", [-1, 1])
 def test_internal_generator_saw_tooth_move(motion_controller_teardown, op_mode, direction):
@@ -359,7 +389,9 @@ def test_internal_generator_saw_tooth_move(motion_controller_teardown, op_mode, 
         < pos_resolution * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
     )
 
-
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.parametrize("op_mode", [OperationMode.VOLTAGE, OperationMode.CURRENT])
 @pytest.mark.parametrize("direction", [-1, 1])
 def test_internal_generator_constant_move(motion_controller_teardown, op_mode, direction):
