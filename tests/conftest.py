@@ -13,8 +13,9 @@ from ingeniamotion.enums import SensorType
 
 from .setups.descriptors import (
     CanOpenSetup,
+    DriveHwSetup,
     EoESetup,
-    HwSetup,
+    EthercatMultiSlaveSetup,
     Setup,
     SoemSetup,
     VirtualDriveSetup,
@@ -27,10 +28,10 @@ def pytest_addoption(parser):
     parser.addoption(
         "--setup",
         action="store",
-        default="tests.setups.setup.TESTS_SETUP",
+        default="tests.setups.tests_setup.TESTS_SETUP",
         help="Module and location from which to import the setup."
         "It will default to a file that you can create on"
-        "setup.py inside of the folder setups with a variable called TESTS_SETUP"
+        "tests_setup.py inside of the folder setups with a variable called TESTS_SETUP"
         "This variable must define, or must be assigned to a Setup instance",
     )
 
@@ -77,26 +78,38 @@ def motion_controller(read_config: Setup):
     alias = "test"
     mc = MotionController()
 
-    if isinstance(read_config, SoemSetup):
-        connect_soem(mc, read_config, alias)
-    elif isinstance(read_config, CanOpenSetup):
-        connect_canopen(mc, read_config, alias)
+    if isinstance(read_config, DriveHwSetup):
+        if isinstance(read_config, SoemSetup):
+            connect_soem(mc, read_config, alias)
+        elif isinstance(read_config, CanOpenSetup):
+            connect_canopen(mc, read_config, alias)
+        elif isinstance(read_config, EoESetup):
+            connect_eoe(mc, read_config, alias)
+        else:
+            raise NotImplementedError
+
+        mc.configuration.restore_configuration(servo=alias)
+        mc.configuration.load_configuration(read_config.config_file, servo=alias)
+        yield mc, alias
+        mc.communication.disconnect(alias)
+
+    elif isinstance(read_config, EthercatMultiSlaveSetup):
+        aliases = []
+        for drive in read_config.drives:
+            mc.communication.connect_servo_ethercat(
+                interface_name=drive.ifname,
+                slave_id=drive.slave,
+                dict_path=drive.dictionary,
+                alias=drive.identifier,
+            )
+            aliases.append(drive.identifier)
+
+        yield mc, aliases
     elif isinstance(read_config, VirtualDriveSetup):
         virtual_drive = VirtualDrive(read_config.port, read_config.dictionary)
         virtual_drive.start()
         virtual_drive.set_value_by_id(1, "IO_IN_VALUE", 0xA)
         connect_eoe(mc, read_config, alias)
-    elif isinstance(read_config, EoESetup):
-        connect_eoe(mc, read_config, alias)
-    else:
-        raise NotImplementedError
-
-    if isinstance(read_config, HwSetup):
-        mc.configuration.restore_configuration(servo=alias)
-        mc.configuration.load_configuration(read_config.config_file, servo=alias)
-        yield mc, alias
-        mc.communication.disconnect(alias)
-    elif isinstance(read_config, VirtualDriveSetup):
         yield mc, alias
         virtual_drive.stop()
     else:
@@ -107,7 +120,7 @@ def motion_controller(read_config: Setup):
 def disable_motor_fixture(pytestconfig, motion_controller, read_config):
     yield
 
-    if isinstance(read_config, HwSetup):
+    if isinstance(read_config, DriveHwSetup):
         mc, alias = motion_controller
         mc.motion.motor_disable(servo=alias)
         mc.motion.fault_reset(servo=alias)
@@ -116,11 +129,13 @@ def disable_motor_fixture(pytestconfig, motion_controller, read_config):
 @pytest.fixture
 def motion_controller_teardown(motion_controller, pytestconfig, read_config: Setup):
     yield motion_controller
-    if isinstance(read_config, HwSetup):
+    if isinstance(read_config, DriveHwSetup):
         mc, alias = motion_controller
         mc.motion.motor_disable(servo=alias)
         mc.configuration.load_configuration(read_config.config_file, servo=alias)
         mc.motion.fault_reset(servo=alias)
+    else:
+        raise NotImplementedError
 
 
 @pytest.fixture
@@ -190,7 +205,7 @@ def load_configuration_if_test_fails(pytestconfig, request, motion_controller, r
 
     report = request.node.stash[test_report_key]
 
-    if isinstance(read_config, HwSetup) and (
+    if isinstance(read_config, DriveHwSetup) and (
         report["setup"].failed or ("call" not in report) or report["call"].failed
     ):
         mc.configuration.load_configuration(read_config.config_file, servo=alias)
@@ -214,7 +229,7 @@ def mean_actual_velocity_position(mc, servo, velocity=False, n_samples=200, samp
 def load_configuration_after_each_module(pytestconfig, motion_controller, read_config: Setup):
     yield motion_controller
 
-    if isinstance(read_config, HwSetup):
+    if isinstance(read_config, DriveHwSetup):
         mc, alias = motion_controller
         mc.motion.motor_disable(servo=alias)
         mc.configuration.load_configuration(read_config.config_file, servo=alias)
@@ -230,7 +245,7 @@ def connect_to_rack_service():
 
 @pytest.fixture(scope="session", autouse=True)
 def load_firmware(pytestconfig, read_config: Setup, request):
-    if not isinstance(read_config, HwSetup):
+    if not isinstance(read_config, DriveHwSetup):
         return
 
     if not read_config.load_firmware_with_rack_service:

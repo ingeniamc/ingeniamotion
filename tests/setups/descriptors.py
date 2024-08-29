@@ -4,9 +4,7 @@ from typing import Dict, List
 
 @dataclass
 class Setup:
-    dictionary: str
-
-    @classmethod
+    @classmethod  # TODO Remove
     def from_dict(cls, protocol_name: str, contents: Dict):
         if protocol_name == "eoe":
             return EoESetup(**contents, load_firmware_with_rack_service=False)
@@ -27,11 +25,13 @@ class EthernetSetup(Setup):
 
 @dataclass
 class VirtualDriveSetup(EthernetSetup):
+    dictionary: str
     port: int
 
 
 @dataclass
-class HwSetup(Setup):
+class DriveHwSetup(Setup):
+    dictionary: str
     identifier: str
     config_file: str
     fw_file: str
@@ -39,12 +39,12 @@ class HwSetup(Setup):
 
 
 @dataclass
-class EoESetup(HwSetup, EthernetSetup):
+class EoESetup(DriveHwSetup, EthernetSetup):  # TODO Rename to EthernetSetup
     pass
 
 
 @dataclass
-class SoemSetup(HwSetup):
+class SoemSetup(DriveHwSetup):  # TODO Rename to EcatSetup
     ifname: str
     slave: int
     eoe_comm: bool
@@ -52,7 +52,7 @@ class SoemSetup(HwSetup):
 
 
 @dataclass
-class CanOpenSetup(HwSetup):
+class CanOpenSetup(DriveHwSetup):
     device: str
     channel: int
     node_id: int
@@ -60,7 +60,7 @@ class CanOpenSetup(HwSetup):
 
 
 @dataclass
-class Protocol:
+class Protocol:  # TODO Remvoe
     name: str
     setups: List[Setup]
 
@@ -70,7 +70,7 @@ class Protocol:
 
 
 @dataclass
-class Configs:
+class Configs:  # TODO Remvoe
     protocols: Dict[str, Protocol]
 
     @classmethod
@@ -78,3 +78,8 @@ class Configs:
         return cls(
             {name: Protocol.from_dict(name, protocol) for name, protocol in contents.items()}
         )
+
+
+@dataclass
+class EthercatMultiSlaveSetup(Setup):
+    drives: list[SoemSetup]

@@ -204,7 +204,7 @@ pipeline {
                         label CAN_NODE
                     }
                     stages {
-                        stage("CANOpen Everest") {
+                        stage("CanOpen Everest") {
                             steps {
                                 runTestHW("canopen", "CAN_EVE_SETUP")
                             }
@@ -250,6 +250,11 @@ pipeline {
                         stage("Ethercat Capitan") {
                             steps {
                                 runTestHW("soem", "ECAT_CAP_SETUP")
+                            }
+                        }
+                        stage("Ethercat Multislave") {
+                            steps {
+                                runTestHW("soem_multislave", "ECAT_MULTISLAVE_SETUP")
                             }
                         }
                     }

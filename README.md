@@ -42,7 +42,24 @@ tox -e docs
 Run PyTest
 ----------
 
-Fill configuration json ``tests/config.json``.
+Create tests/setups/tests_setup.py file with configuration file 
+Example of a setup:
+
+```python
+from .descriptors import SoemSetup
+
+TESTS_SETUP = SoemSetup(
+    dictionary="//awe-srv-max-prd/distext/products/EVE-XCR/firmware/2.5.1/eve-xcr-e_eoe_2.5.1.xdf",
+    identifier="eve-xcr-e",
+    config_file="//azr-srv-ingfs1/dist/setups/setup_eve_ecat/1.2.0/config.xml",
+    fw_file="//awe-srv-max-prd/distext/products/EVE-XCR/firmware/2.5.1/eve-xcr-e_2.5.1.sfu",
+    ifname="\\Device\\NPF_{B24AA996-414A-4F95-95E6-2828D346209A}",
+    slave=1,
+    eoe_comm=True,
+    boot_in_app=True,
+    load_firmware_with_rack_service=True,
+)
+```
 
 Run tests with target protocol and Python version (eoe, soem or canopen). For example:
 

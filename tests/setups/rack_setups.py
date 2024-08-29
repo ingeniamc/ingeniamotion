@@ -1,4 +1,4 @@
-from .descriptors import CanOpenSetup, EoESetup, SoemSetup
+from .descriptors import CanOpenSetup, EoESetup, EthercatMultiSlaveSetup, SoemSetup
 
 ETH_EVE_SETUP = EoESetup(
     dictionary="//awe-srv-max-prd/distext/products/EVE-XCR/firmware/2.4.0/eve-xcr-c_eth_2.4.0.xdf",
@@ -65,3 +65,5 @@ CAN_CAP_SETUP = CanOpenSetup(
     baudrate=1000000,
     load_firmware_with_rack_service=True,
 )
+
+ECAT_MULTISLAVE_SETUP = EthercatMultiSlaveSetup([ECAT_EVE_SETUP, CAN_EVE_SETUP])
