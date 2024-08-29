@@ -23,8 +23,7 @@ def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
 
 coverage_stashes = []
 
-def runTestHW(protocol, slave) {
-    markers = protocol
+def runTestHW(markers, setup_name) {
 
     if (RUN_ONLY_SMOKE_TESTS) {
         markers = markers + " and smoke"
@@ -33,12 +32,11 @@ def runTestHW(protocol, slave) {
     try {
         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
                 "-m \"${markers}\" " +
-                "--protocol ${protocol} " +
-                "--slave ${slave} "
+                "--setup tests.setups.rack_setups.${setup_name}"
     } catch (err) {
         unstable(message: "Tests failed")
     } finally {
-        coverage_stash = ".coverage_${protocol}_${slave}"
+        coverage_stash = ".coverage_${setup_name}"
         bat "move .coverage ${coverage_stash}"
         junit "pytest_reports\\*.xml"
         // Delete the junit after publishing it so it not re-published on the next stage
@@ -206,28 +204,28 @@ pipeline {
                         label CAN_NODE
                     }
                     stages {
-                        stage("Canopen - Slave 0") {
+                        stage("CANOpen Everest") {
                             steps {
-                                runTestHW("canopen", 0)
+                                runTestHW("canopen", "CAN_EVE_SETUP")
                             }
                         }
-                        stage("Ethernet - Slave 0") {
+                        stage("Ethernet Everest") {
                             steps {
-                                runTestHW("eoe", 0)
+                                runTestHW("eoe", "ETH_EVE_SETUP")
                             }
                         }
-                        stage("Canopen - Slave 1") {
+                        stage("CanOpen Capitan") {
                             steps {
-                                runTestHW("canopen", 1)
+                                runTestHW("canopen", "CAN_CAP_SETUP")
                             }
                         }
-                        stage("Ethernet - Slave 1") {
+                        stage("Ethernet Capitan") {
                             when {
                                 // Remove this after fixing CAP-924
                                 expression { false }
                             }
                             steps {
-                                runTestHW("eoe", 1)
+                                runTestHW("eoe", "ETH_CAP_SETUP")
                             }
                         }
                     }
@@ -240,18 +238,18 @@ pipeline {
                         label ECAT_NODE
                     }
                     stages {
-                        stage("Ethercat - Slave 0") {
+                        stage("Ethercat Everest") {
                             when {
                                 // Remove this after fixing INGM-376
                                 expression { false }
                             }
                             steps {
-                                runTestHW("soem", 0)
+                                runTestHW("soem", "ECAT_EVE_SETUP")
                             }
                         }
-                        stage("Ethercat - Slave 1") {
+                        stage("Ethercat Capitan") {
                             steps {
-                                runTestHW("soem", 1)
+                                runTestHW("soem", "ECAT_CAP_SETUP")
                             }
                         }
                     }

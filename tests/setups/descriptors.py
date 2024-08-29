@@ -46,7 +46,7 @@ class EoESetup(HwSetup, EthernetSetup):
 @dataclass
 class SoemSetup(HwSetup):
     ifname: str
-    slave: str
+    slave: int
     eoe_comm: bool
     boot_in_app: bool
 
