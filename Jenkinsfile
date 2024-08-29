@@ -79,7 +79,7 @@ pipeline {
             }
         }
 
-        stage('Run tests on Linux') {
+        stage('Run virtual drive tests on Linux') {
             agent {
                 docker {
                     label "worker"
@@ -89,9 +89,9 @@ pipeline {
             stages {
                 stage('Run no-connection tests') {
                     steps {
-                        sh """
-                            python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- -m virtual --protocol virtual
-                        """
+                        sh "python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
+                            "-m virtual " +
+                            "--setup tests.setups.virtual_drive.TESTS_SETUP"
                     }
                     post {
                         always {
@@ -101,7 +101,7 @@ pipeline {
                 }
             }
         }
-        stage('Build wheels and documentation') {
+        stage('Build') {
             agent {
                 docker {
                     label SW_NODE
@@ -132,8 +132,7 @@ pipeline {
                 stage("Run unit tests") {
                     steps {
                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
-                                "-m \"not eoe and not soem and not canopen and not virtual\" " +
-                                "--protocol virtual "
+                                "-m \"not eoe and not soem and not canopen and not virtual\" "
                     }
                     post {
                         always {
@@ -150,8 +149,9 @@ pipeline {
                 }
                 stage("Run virtual drive tests") {
                     steps {
-                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- -m" +
-                                " virtual --protocol virtual "
+                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
+                                "-m virtual " +
+                                "--setup tests.setups.virtual_drive.TESTS_SETUP"
                     }
                     post {
                         always {
