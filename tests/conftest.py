@@ -1,5 +1,4 @@
-import json
-import os
+import importlib
 import time
 from typing import Dict
 
@@ -12,9 +11,8 @@ from virtual_drive.core import VirtualDrive
 from ingeniamotion import MotionController
 from ingeniamotion.enums import SensorType
 
-from .setup.descriptors import (
+from .setups.descriptors import (
     CanOpenSetup,
-    Configs,
     EoESetup,
     HwSetup,
     Setup,
@@ -22,33 +20,30 @@ from .setup.descriptors import (
     VirtualDriveSetup,
 )
 
-ALLOW_PROTOCOLS = ["eoe", "soem", "canopen", "virtual"]
-
 test_report_key = pytest.StashKey[Dict[str, pytest.CollectReport]]()
 
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--protocol", action="store", default="eoe", help="eoe, soem", choices=ALLOW_PROTOCOLS
+        "--setup",
+        action="store",
+        default="tests.setups.setup.TESTS_SETUP",
+        help="Module and location from which to import the setup."
+        "It will default to a file that you can create on"
+        "setup.py inside of the folder setups with a variable called TESTS_SETUP"
+        "This variable must define, or must be assigned to a Setup instance",
     )
-    parser.addoption("--slave", type="int", default=0, help="Slave index in config.json")
 
 
 @pytest.fixture(scope="session")
-def read_config(request):
-    config = "tests/config.json"
-    with open(config, "r") as fp:
-        contents = json.load(fp)
-        data = Configs.from_dict(contents)
-
-    slave = request.config.getoption("--slave")
-    protocol = request.config.getoption("--protocol")
-
-    setup = data.protocols[protocol].setups[slave]
-    if isinstance(setup, VirtualDriveSetup):
-        setup.dictionary = os.path.join(os.path.abspath(os.getcwd()), setup.dictionary)
-
-    return data.protocols[protocol].setups[slave]
+def read_config(request) -> Setup:  # TODO Change Name
+    # Get option from argument and split by dots (modules and last variable name)
+    setup_location = request.config.getoption("--setup").split(".")
+    # Dynamically import the python module
+    setup_module = importlib.import_module(".".join(setup_location[:-1]))
+    # Get the variable by variable name
+    setup = getattr(setup_module, setup_location[-1])
+    return setup
 
 
 def connect_eoe(mc, config, alias):
@@ -109,10 +104,10 @@ def motion_controller(read_config: Setup):
 
 
 @pytest.fixture(autouse=True)
-def disable_motor_fixture(pytestconfig, motion_controller):
+def disable_motor_fixture(pytestconfig, motion_controller, read_config):
     yield
-    protocol = pytestconfig.getoption("--protocol")
-    if protocol != "virtual":
+
+    if isinstance(read_config, HwSetup):
         mc, alias = motion_controller
         mc.motion.motor_disable(servo=alias)
         mc.motion.fault_reset(servo=alias)
@@ -194,7 +189,7 @@ def load_configuration_if_test_fails(pytestconfig, request, motion_controller, r
     yield
 
     report = request.node.stash[test_report_key]
-    protocol = pytestconfig.getoption("--protocol")
+
     if isinstance(read_config, HwSetup) and (
         report["setup"].failed or ("call" not in report) or report["call"].failed
     ):

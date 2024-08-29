@@ -29,7 +29,7 @@ from ingeniamotion.motion import Motion
 from ingeniamotion.pdo import PDONetworkManager, PDOPoller
 from tests.conftest import connect_canopen, connect_eoe, connect_soem
 
-from .setup.descriptors import CanOpenSetup, EoESetup, EthernetSetup, Setup, SoemSetup
+from .setups.descriptors import CanOpenSetup, EoESetup, EthernetSetup, Setup, SoemSetup
 
 
 @pytest.fixture

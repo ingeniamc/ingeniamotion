@@ -13,7 +13,7 @@ from ingeniamotion.exceptions import IMException
 
 
 @pytest.fixture
-def connect_to_all_slaves(motion_controller, pytestconfig):
+def connect_to_all_slaves(motion_controller, pytestconfig):  # TODO
     mc, alias = motion_controller
     aliases = [alias]
     protocol = pytestconfig.getoption("--protocol")

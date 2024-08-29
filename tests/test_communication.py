@@ -15,7 +15,7 @@ from ingenialink.servo import SERVO_STATE
 import ingeniamotion
 from ingeniamotion import MotionController
 from ingeniamotion.exceptions import IMException, IMRegisterNotExist, IMRegisterWrongAccess
-from .setup.descriptors import VirtualDriveSetup, EthernetSetup, CanOpenSetup, Setup
+from .setups.descriptors import VirtualDriveSetup, EthernetSetup, CanOpenSetup, Setup
 
 TEST_ENSEMBLE_FW_FILE = "tests/resources/example_ensemble_fw.zfu"
 
