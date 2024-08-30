@@ -15,45 +15,45 @@ from ingenialink.servo import SERVO_STATE
 import ingeniamotion
 from ingeniamotion import MotionController
 from ingeniamotion.exceptions import IMException, IMRegisterNotExist, IMRegisterWrongAccess
-from .setups.descriptors import VirtualDriveSetup, EthernetSetup, CanOpenSetup, Setup
+from .setups.descriptors import VirtualDriveSetup, EthernetSetup, DriveCanOpenSetup, Setup
 
 TEST_ENSEMBLE_FW_FILE = "tests/resources/example_ensemble_fw.zfu"
 
 
 @pytest.mark.virtual
-def test_connect_servo_eoe(read_config: EthernetSetup):
+def test_connect_servo_eoe(tests_setup: EthernetSetup):
     mc = MotionController()
     assert "eoe_test" not in mc.servos
     assert "eoe_test" not in mc.net
-    mc.communication.connect_servo_eoe(read_config.ip, read_config.dictionary, alias="eoe_test")
+    mc.communication.connect_servo_eoe(tests_setup.ip, tests_setup.dictionary, alias="eoe_test")
     assert "eoe_test" in mc.servos and mc.servos["eoe_test"] is not None
     assert "eoe_test" in mc.net and mc.net["eoe_test"] is not None
 
 
 @pytest.mark.virtual
-def test_connect_servo_eoe_no_dictionary_error(read_config: EthernetSetup):
+def test_connect_servo_eoe_no_dictionary_error(tests_setup: EthernetSetup):
     mc = MotionController()
     with pytest.raises(FileNotFoundError):
-        mc.communication.connect_servo_eoe(read_config.ip, "no_dictionary", alias="eoe_test")
+        mc.communication.connect_servo_eoe(tests_setup.ip, "no_dictionary", alias="eoe_test")
 
 
 @pytest.mark.virtual
-def test_connect_servo_ethernet(read_config: EthernetSetup):
+def test_connect_servo_ethernet(tests_setup: EthernetSetup):
     mc = MotionController()
     assert "eoe_test" not in mc.servos
     assert "eoe_test" not in mc.net
     mc.communication.connect_servo_ethernet(
-        read_config.ip, read_config.dictionary, alias="eoe_test"
+        tests_setup.ip, tests_setup.dictionary, alias="eoe_test"
     )
     assert "eoe_test" in mc.servos and mc.servos["eoe_test"] is not None
     assert "eoe_test" in mc.net and mc.net["eoe_test"] is not None
 
 
 @pytest.mark.virtual
-def test_connect_servo_ethernet_no_dictionary_error(read_config: EthernetSetup):
+def test_connect_servo_ethernet_no_dictionary_error(tests_setup: EthernetSetup):
     mc = MotionController()
     with pytest.raises(FileNotFoundError):
-        mc.communication.connect_servo_ethernet(read_config.ip, "no_dictionary", alias="eoe_test")
+        mc.communication.connect_servo_ethernet(tests_setup.ip, "no_dictionary", alias="eoe_test")
 
 
 @pytest.mark.smoke
@@ -65,17 +65,17 @@ def test_connect_servo_ethernet_no_dictionary_error(read_config: EthernetSetup):
         False,
     ],
 )
-def test_connect_servo_comkit_no_dictionary_error(coco_dict_path, read_config: EthernetSetup):
+def test_connect_servo_comkit_no_dictionary_error(coco_dict_path, tests_setup: EthernetSetup):
     mc = MotionController()
     if coco_dict_path:
-        coco_dict_path = read_config.dictionary
+        coco_dict_path = tests_setup.dictionary
         moco_dict_path = "no_dictionary"
     else:
         coco_dict_path = "no_dictionary"
-        moco_dict_path = read_config.dictionary
+        moco_dict_path = tests_setup.dictionary
     with pytest.raises(FileNotFoundError):
         mc.communication.connect_servo_comkit(
-            read_config.ip, coco_dict_path, moco_dict_path, alias="eoe_test"
+            tests_setup.ip, coco_dict_path, moco_dict_path, alias="eoe_test"
         )
 
 
@@ -113,18 +113,18 @@ def test_get_ifname_by_index():
 @pytest.mark.skip(reason='This test enters in conflict with "disable_motor_fixture"')
 @pytest.mark.smoke
 @pytest.mark.canopen
-def test_connect_servo_canopen(read_config: CanOpenSetup):
+def test_connect_servo_canopen(tests_setup: DriveCanOpenSetup):
     mc = MotionController()
     assert "canopen_test" not in mc.servos
     assert "canopen_test" not in mc.net
-    device = CAN_DEVICE(read_config.device)
-    baudrate = CAN_BAUDRATE(read_config.baudrate)
+    device = CAN_DEVICE(tests_setup.device)
+    baudrate = CAN_BAUDRATE(tests_setup.baudrate)
     mc.communication.connect_servo_canopen(
         device,
-        read_config.dictionary,
-        read_config.node_id,
+        tests_setup.dictionary,
+        tests_setup.node_id,
         baudrate,
-        read_config.channel,
+        tests_setup.channel,
         alias="canopen_test",
     )
     assert "canopen_test" in mc.servos and mc.servos["canopen_test"] is not None
@@ -135,22 +135,22 @@ def test_connect_servo_canopen(read_config: CanOpenSetup):
 @pytest.mark.smoke
 @pytest.mark.canopen
 @pytest.mark.skip
-def test_connect_servo_canopen_busy_drive_error(motion_controller, read_config: CanOpenSetup):
+def test_connect_servo_canopen_busy_drive_error(motion_controller, tests_setup: DriveCanOpenSetup):
     mc, alias = motion_controller
     assert "canopen_test" not in mc.servos
     assert "canopen_test" not in mc.servo_net
     assert alias in mc.servos
     assert alias in mc.servo_net
     assert mc.servo_net[alias] in mc.net
-    device = CAN_DEVICE(read_config.device)
-    baudrate = CAN_BAUDRATE(read_config.baudrate)
+    device = CAN_DEVICE(tests_setup.device)
+    baudrate = CAN_BAUDRATE(tests_setup.baudrate)
     with pytest.raises(ILError):
         mc.communication.connect_servo_canopen(
             device,
-            read_config.dictionary,
-            read_config.node_id,
+            tests_setup.dictionary,
+            tests_setup.node_id,
             baudrate,
-            read_config.channel,
+            tests_setup.channel,
             alias="canopen_test",
         )
 
@@ -300,9 +300,9 @@ def test_connect_servo_virtual():
 
 
 @pytest.mark.virtual
-def test_connect_servo_virtual_custom_dictionary(read_config: Setup):
+def test_connect_servo_virtual_custom_dictionary(tests_setup: Setup):
     mc = MotionController()
-    mc.communication.connect_servo_virtual(dict_path=read_config.dictionary, port=1062)
+    mc.communication.connect_servo_virtual(dict_path=tests_setup.dictionary, port=1062)
     assert mc.communication._Communication__virtual_drive is not None
     mc.communication.disconnect()
     assert mc.communication._Communication__virtual_drive is None

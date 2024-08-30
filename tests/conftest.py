@@ -12,12 +12,12 @@ from ingeniamotion import MotionController
 from ingeniamotion.enums import SensorType
 
 from .setups.descriptors import (
-    CanOpenSetup,
+    DriveCanOpenSetup,
     DriveHwSetup,
-    EoESetup,
+    DriveEthernetSetup,
     EthercatMultiSlaveSetup,
     Setup,
-    SoemSetup,
+    DriveEcatSetup,
     VirtualDriveSetup,
 )
 
@@ -37,7 +37,7 @@ def pytest_addoption(parser):
 
 
 @pytest.fixture(scope="session")
-def read_config(request) -> Setup:  # TODO Change Name
+def tests_setup(request) -> Setup:
     # Get option from argument and split by dots (modules and last variable name)
     setup_location = request.config.getoption("--setup").split(".")
     # Dynamically import the python module
@@ -51,7 +51,7 @@ def connect_eoe(mc, config, alias):
     mc.communication.connect_servo_eoe(config.ip, config.dictionary, alias=alias)
 
 
-def connect_soem(mc, config: SoemSetup, alias):
+def connect_soem(mc, config: DriveEcatSetup, alias):
     mc.communication.connect_servo_ethercat(
         config.ifname,
         config.slave,
@@ -60,7 +60,7 @@ def connect_soem(mc, config: SoemSetup, alias):
     )
 
 
-def connect_canopen(mc, config: CanOpenSetup, alias):
+def connect_canopen(mc, config: DriveCanOpenSetup, alias):
     device = CAN_DEVICE(config.device)
     baudrate = CAN_BAUDRATE(config.baudrate)
     mc.communication.connect_servo_canopen(
@@ -74,28 +74,28 @@ def connect_canopen(mc, config: CanOpenSetup, alias):
 
 
 @pytest.fixture(scope="session")
-def motion_controller(read_config: Setup):
+def motion_controller(tests_setup: Setup):
     alias = "test"
     mc = MotionController()
 
-    if isinstance(read_config, DriveHwSetup):
-        if isinstance(read_config, SoemSetup):
-            connect_soem(mc, read_config, alias)
-        elif isinstance(read_config, CanOpenSetup):
-            connect_canopen(mc, read_config, alias)
-        elif isinstance(read_config, EoESetup):
-            connect_eoe(mc, read_config, alias)
+    if isinstance(tests_setup, DriveHwSetup):
+        if isinstance(tests_setup, DriveEcatSetup):
+            connect_soem(mc, tests_setup, alias)
+        elif isinstance(tests_setup, DriveCanOpenSetup):
+            connect_canopen(mc, tests_setup, alias)
+        elif isinstance(tests_setup, DriveEthernetSetup):
+            connect_eoe(mc, tests_setup, alias)
         else:
             raise NotImplementedError
 
         mc.configuration.restore_configuration(servo=alias)
-        mc.configuration.load_configuration(read_config.config_file, servo=alias)
+        mc.configuration.load_configuration(tests_setup.config_file, servo=alias)
         yield mc, alias
         mc.communication.disconnect(alias)
 
-    elif isinstance(read_config, EthercatMultiSlaveSetup):
+    elif isinstance(tests_setup, EthercatMultiSlaveSetup):
         aliases = []
-        for drive in read_config.drives:
+        for drive in tests_setup.drives:
             mc.communication.connect_servo_ethercat(
                 interface_name=drive.ifname,
                 slave_id=drive.slave,
@@ -105,11 +105,11 @@ def motion_controller(read_config: Setup):
             aliases.append(drive.identifier)
 
         yield mc, aliases
-    elif isinstance(read_config, VirtualDriveSetup):
-        virtual_drive = VirtualDrive(read_config.port, read_config.dictionary)
+    elif isinstance(tests_setup, VirtualDriveSetup):
+        virtual_drive = VirtualDrive(tests_setup.port, tests_setup.dictionary)
         virtual_drive.start()
         virtual_drive.set_value_by_id(1, "IO_IN_VALUE", 0xA)
-        connect_eoe(mc, read_config, alias)
+        connect_eoe(mc, tests_setup, alias)
         yield mc, alias
         virtual_drive.stop()
     else:
@@ -117,25 +117,23 @@ def motion_controller(read_config: Setup):
 
 
 @pytest.fixture(autouse=True)
-def disable_motor_fixture(pytestconfig, motion_controller, read_config):
+def disable_motor_fixture(pytestconfig, motion_controller, tests_setup):
     yield
 
-    if isinstance(read_config, DriveHwSetup):
+    if isinstance(tests_setup, DriveHwSetup):
         mc, alias = motion_controller
         mc.motion.motor_disable(servo=alias)
         mc.motion.fault_reset(servo=alias)
 
 
 @pytest.fixture
-def motion_controller_teardown(motion_controller, pytestconfig, read_config: Setup):
+def motion_controller_teardown(motion_controller, pytestconfig, tests_setup: Setup):
     yield motion_controller
-    if isinstance(read_config, DriveHwSetup):
+    if isinstance(tests_setup, DriveHwSetup):
         mc, alias = motion_controller
         mc.motion.motor_disable(servo=alias)
-        mc.configuration.load_configuration(read_config.config_file, servo=alias)
+        mc.configuration.load_configuration(tests_setup.config_file, servo=alias)
         mc.motion.fault_reset(servo=alias)
-    else:
-        raise NotImplementedError
 
 
 @pytest.fixture
@@ -199,16 +197,16 @@ def pytest_runtest_makereport(item, call):
 
 
 @pytest.fixture(scope="function", autouse=True)
-def load_configuration_if_test_fails(pytestconfig, request, motion_controller, read_config: Setup):
+def load_configuration_if_test_fails(pytestconfig, request, motion_controller, tests_setup: Setup):
     mc, alias = motion_controller
     yield
 
     report = request.node.stash[test_report_key]
 
-    if isinstance(read_config, DriveHwSetup) and (
+    if isinstance(tests_setup, DriveHwSetup) and (
         report["setup"].failed or ("call" not in report) or report["call"].failed
     ):
-        mc.configuration.load_configuration(read_config.config_file, servo=alias)
+        mc.configuration.load_configuration(tests_setup.config_file, servo=alias)
         mc.motion.fault_reset(servo=alias)
 
 
@@ -226,13 +224,13 @@ def mean_actual_velocity_position(mc, servo, velocity=False, n_samples=200, samp
 
 
 @pytest.fixture(scope="module", autouse=True)
-def load_configuration_after_each_module(pytestconfig, motion_controller, read_config: Setup):
+def load_configuration_after_each_module(pytestconfig, motion_controller, tests_setup: Setup):
     yield motion_controller
 
-    if isinstance(read_config, DriveHwSetup):
+    if isinstance(tests_setup, DriveHwSetup):
         mc, alias = motion_controller
         mc.motion.motor_disable(servo=alias)
-        mc.configuration.load_configuration(read_config.config_file, servo=alias)
+        mc.configuration.load_configuration(tests_setup.config_file, servo=alias)
 
 
 @pytest.fixture(scope="session")
@@ -244,14 +242,14 @@ def connect_to_rack_service():
 
 
 @pytest.fixture(scope="session", autouse=True)
-def load_firmware(pytestconfig, read_config: Setup, request):
-    if not isinstance(read_config, DriveHwSetup):
+def load_firmware(pytestconfig, tests_setup: Setup, request):
+    if not isinstance(tests_setup, DriveHwSetup):
         return
 
-    if not read_config.load_firmware_with_rack_service:
+    if not tests_setup.load_firmware_with_rack_service:
         return
 
-    drive_identifier = read_config.identifier
+    drive_identifier = tests_setup.identifier
     drive_idx = None
     client = request.getfixturevalue("connect_to_rack_service")
     config = client.exposed_get_configuration()
@@ -264,5 +262,5 @@ def load_firmware(pytestconfig, read_config: Setup, request):
     drive = config.drives[drive_idx]
     client.exposed_turn_on_ps()
     client.exposed_firmware_load(
-        drive_idx, read_config.fw_file, drive.product_code, drive.serial_number
+        drive_idx, tests_setup.fw_file, drive.product_code, drive.serial_number
     )

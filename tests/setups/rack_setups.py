@@ -1,6 +1,11 @@
-from .descriptors import CanOpenSetup, EoESetup, EthercatMultiSlaveSetup, SoemSetup
+from .descriptors import (
+    DriveCanOpenSetup,
+    DriveEthernetSetup,
+    EthercatMultiSlaveSetup,
+    DriveEcatSetup,
+)
 
-ETH_EVE_SETUP = EoESetup(
+ETH_EVE_SETUP = DriveEthernetSetup(
     dictionary="//awe-srv-max-prd/distext/products/EVE-XCR/firmware/2.4.0/eve-xcr-c_eth_2.4.0.xdf",
     ip="192.168.2.10",
     identifier="eve-xcr-c",
@@ -9,7 +14,7 @@ ETH_EVE_SETUP = EoESetup(
     load_firmware_with_rack_service=True,
 )
 
-ETH_CAP_SETUP = EoESetup(
+ETH_CAP_SETUP = DriveEthernetSetup(
     dictionary="//awe-srv-max-prd/distext/products/CAP-XCR/firmware/2.4.0/cap-xcr-c_eth_2.4.0.xdf",
     ip="192.168.2.11",
     identifier="cap-xcr-c",
@@ -18,7 +23,7 @@ ETH_CAP_SETUP = EoESetup(
     load_firmware_with_rack_service=True,
 )
 
-ECAT_EVE_SETUP = SoemSetup(
+ECAT_EVE_SETUP = DriveEcatSetup(
     dictionary="//awe-srv-max-prd/distext/products/EVE-XCR/firmware/2.5.1/eve-xcr-e_eoe_2.5.1.xdf",
     identifier="eve-xcr-e",
     config_file="//azr-srv-ingfs1/dist/setups/setup_eve_ecat/1.2.0/config.xml",
@@ -30,7 +35,7 @@ ECAT_EVE_SETUP = SoemSetup(
     load_firmware_with_rack_service=True,
 )
 
-ECAT_CAP_SETUP = SoemSetup(
+ECAT_CAP_SETUP = DriveEcatSetup(
     dictionary="//awe-srv-max-prd/distext/products/CAP-XCR/firmware/2.5.1/cap-xcr-e_eoe_2.5.1.xdf",
     identifier="cap-xcr-e",
     config_file="//azr-srv-ingfs1/dist/setups/setup_cap_ecat/1.1.0/config.xml",
@@ -42,7 +47,7 @@ ECAT_CAP_SETUP = SoemSetup(
     load_firmware_with_rack_service=True,
 )
 
-CAN_EVE_SETUP = CanOpenSetup(
+CAN_EVE_SETUP = DriveCanOpenSetup(
     dictionary="//awe-srv-max-prd/distext/products/EVE-XCR/firmware/2.4.0/eve-xcr-c_can_2.4.0.xdf",
     identifier="eve-xcr-c",
     config_file="//azr-srv-ingfs1/dist/setups/setup_eve_can/1.2.0/config.xml",
@@ -54,7 +59,7 @@ CAN_EVE_SETUP = CanOpenSetup(
     load_firmware_with_rack_service=True,
 )
 
-CAN_CAP_SETUP = CanOpenSetup(
+CAN_CAP_SETUP = DriveCanOpenSetup(
     dictionary="//awe-srv-max-prd/distext/products/CAP-XCR/firmware/2.4.0/cap-xcr-c_can_2.4.0.xdf",
     identifier="cap-xcr-c",
     config_file="//azr-srv-ingfs1/dist/setups/setup_cap_can/1.1.0/config.xml",
