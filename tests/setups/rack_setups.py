@@ -11,7 +11,7 @@ ETH_EVE_SETUP = DriveEthernetSetup(
     identifier="eve-xcr-c",
     config_file="//azr-srv-ingfs1/dist/setups/setup_eve_can/1.2.0/config.xml",
     fw_file="//awe-srv-max-prd/distext/products/EVE-XCR/firmware/2.4.0/eve-xcr-c_2.4.0.sfu",
-    load_firmware_with_rack_service=True,
+    use_rack_service=True,
 )
 
 ETH_CAP_SETUP = DriveEthernetSetup(
@@ -20,7 +20,7 @@ ETH_CAP_SETUP = DriveEthernetSetup(
     identifier="cap-xcr-c",
     config_file="//azr-srv-ingfs1/dist/setups/setup_cap_can/1.1.0/config.xml",
     fw_file="//awe-srv-max-prd/distext/products/CAP-XCR/firmware/2.4.0/cap-xcr-c_2.4.0.lfu",
-    load_firmware_with_rack_service=True,
+    use_rack_service=True,
 )
 
 ECAT_EVE_SETUP = DriveEcatSetup(
@@ -32,7 +32,7 @@ ECAT_EVE_SETUP = DriveEcatSetup(
     slave=1,
     eoe_comm=True,
     boot_in_app=True,
-    load_firmware_with_rack_service=True,
+    use_rack_service=True,
 )
 
 ECAT_CAP_SETUP = DriveEcatSetup(
@@ -44,7 +44,7 @@ ECAT_CAP_SETUP = DriveEcatSetup(
     slave=2,
     eoe_comm=True,
     boot_in_app=False,
-    load_firmware_with_rack_service=True,
+    use_rack_service=True,
 )
 
 CAN_EVE_SETUP = DriveCanOpenSetup(
@@ -56,7 +56,7 @@ CAN_EVE_SETUP = DriveCanOpenSetup(
     channel=0,
     node_id=20,
     baudrate=1000000,
-    load_firmware_with_rack_service=True,
+    use_rack_service=True,
 )
 
 CAN_CAP_SETUP = DriveCanOpenSetup(
@@ -68,7 +68,7 @@ CAN_CAP_SETUP = DriveCanOpenSetup(
     channel=0,
     node_id=21,
     baudrate=1000000,
-    load_firmware_with_rack_service=True,
+    use_rack_service=True,
 )
 
 ECAT_MULTISLAVE_SETUP = EthercatMultiSlaveSetup([ECAT_EVE_SETUP, CAN_EVE_SETUP])

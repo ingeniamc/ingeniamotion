@@ -37,7 +37,7 @@ def test_set_gpio_bit_value(motion_controller):
 @pytest.mark.virtual
 @pytest.mark.smoke
 def test_set_get_gpi_polarity(motion_controller, gpi_id, polarity):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     mc.io.set_gpi_polarity(gpi_id, polarity, servo=alias)
     assert mc.io.get_gpi_polarity(gpi_id, servo=alias) == polarity
 
@@ -78,7 +78,7 @@ def test_get_gpi_voltage_level(motion_controller):
 @pytest.mark.virtual
 @pytest.mark.smoke
 def test_set_get_gpo_polarity(motion_controller, gpo_id, polarity):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     mc.io.set_gpo_polarity(gpo_id, polarity, servo=alias)
     assert mc.io.get_gpo_polarity(gpo_id, servo=alias) == polarity
 
@@ -96,7 +96,7 @@ def test_set_get_gpo_polarity(motion_controller, gpo_id, polarity):
     ],
 )
 def test_set_gpo_voltage_level(motion_controller, gpo_id, reg_value):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
 
     for map_reg in ["IO_OUT_MAP_1", "IO_OUT_MAP_2", "IO_OUT_MAP_3", "IO_OUT_MAP_4"]:
         mc.communication.set_register(map_reg, 0, servo=alias)
@@ -128,7 +128,7 @@ def test_set_gpo_voltage_level(motion_controller, gpo_id, reg_value):
     ],
 )
 def test_set_gpo_voltage_level_fail(motion_controller, gpo_id):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
 
     mc.communication.set_register("IO_OUT_POLARITY", 0, servo=alias)
     for map_reg in ["IO_OUT_MAP_1", "IO_OUT_MAP_2", "IO_OUT_MAP_3", "IO_OUT_MAP_4"]:

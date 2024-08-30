@@ -40,14 +40,14 @@ from .setups.descriptors import (
 
 @pytest.fixture
 def setup_for_test_examples(motion_controller):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     mc.communication.disconnect(alias)
 
 
 @pytest.fixture
 def teardown_for_test_examples(motion_controller, tests_setup: Setup, pytestconfig):
     yield
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
 
     if isinstance(tests_setup, DriveEcatSetup):
         connect_soem(mc, tests_setup, alias)

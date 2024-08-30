@@ -31,7 +31,7 @@ class DriveHwSetup(Setup):
     identifier: str
     config_file: str
     fw_file: str
-    load_firmware_with_rack_service: bool
+    use_rack_service: bool
 
 
 @dataclass

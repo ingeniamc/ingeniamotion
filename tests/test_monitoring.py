@@ -25,7 +25,7 @@ class ThreadWithReturnValue(Thread):
 
 @pytest.fixture
 def monitoring(skip_if_monitoring_not_available, motion_controller):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     return mc.capture.create_empty_monitoring(alias)
 
 
@@ -51,7 +51,7 @@ def mon_map_registers(skip_if_monitoring_not_available, monitoring):
     ],
 )
 def test_get_trigger_type(motion_controller, monitoring, trigger_type):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     mc.communication.set_register(
         MONITOR_START_CONDITION_TYPE_REGISTER, trigger_type, servo=alias, axis=0
     )
@@ -83,7 +83,7 @@ def test_raise_forced_trigger(
     mon_map_registers,
     disable_monitoring_disturbance,
 ):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     monitoring.set_trigger(MonitoringSoCType.TRIGGER_EVENT_FORCED)
     monitoring.configure_sample_time(sample_t, 0)
     mc.capture.enable_monitoring_disturbance(servo=alias)
@@ -100,7 +100,7 @@ def test_raise_forced_trigger(
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
 def test_raise_forced_trigger_fail(motion_controller, monitoring, disable_monitoring_disturbance):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     monitoring.set_trigger(MonitoringSoCType.TRIGGER_EVENT_AUTO)
     monitoring.configure_sample_time(0.8, 0)
     mc.capture.enable_monitoring_disturbance(servo=alias)
@@ -123,7 +123,7 @@ def test_raise_forced_trigger_fail(motion_controller, monitoring, disable_monito
 def test_read_monitoring_data_forced_trigger(
     motion_controller, monitoring, timeout, sample_t, result, disable_monitoring_disturbance
 ):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     monitoring.set_trigger(MonitoringSoCType.TRIGGER_EVENT_FORCED)
     monitoring.configure_sample_time(sample_t, 0)
     mc.capture.enable_monitoring_disturbance(servo=alias)
@@ -140,7 +140,7 @@ def test_read_monitoring_data_forced_trigger(
 @pytest.mark.smoke
 @pytest.mark.parametrize("prescaler", list(range(2, 11, 2)))
 def test_set_monitoring_frequency(motion_controller, monitoring, prescaler):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     monitoring.set_frequency(prescaler)
     value = mc.communication.get_register(
         monitoring.MONITORING_FREQUENCY_DIVIDER_REGISTER, servo=alias, axis=0
@@ -204,7 +204,7 @@ def test_monitoring_map_registers_wrong_cyclic(monitoring):
 def test_monitoring_set_trigger(
     motion_controller, monitoring, trigger_type, edge_condition, trigger_signal, trigger_value
 ):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     monitoring.set_trigger(trigger_type, edge_condition, trigger_signal, trigger_value)
     value = mc.communication.get_register(
         MONITOR_START_CONDITION_TYPE_REGISTER, servo=alias, axis=0
@@ -247,7 +247,7 @@ def test_monitoring_set_trigger_exceptions(
 @pytest.mark.canopen
 @pytest.mark.smoke
 def test_configure_number_samples(motion_controller, monitoring):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     total_num_samples = 500
     trigger_delay_samples = 100
     monitoring.configure_number_samples(total_num_samples, trigger_delay_samples)
@@ -276,7 +276,7 @@ def test_configure_number_samples_exceptions(monitoring, total_num_samples, trig
 @pytest.mark.canopen
 @pytest.mark.smoke
 def test_configure_sample_time(motion_controller, monitoring):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     total_time = 5
     sampling_freq = 1e4
     monitoring.sampling_freq = sampling_freq
@@ -309,7 +309,7 @@ def test_configure_sample_time_exception(monitoring, total_time, sign):
 @pytest.mark.usefixtures("disable_monitoring_disturbance")
 def test_read_monitoring_data_not_configured(motion_controller, monitoring):
     # TODO Add exception in function for this test case
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     drive = mc._get_drive(alias)
     drive.monitoring_remove_all_mapped_registers()
     mc.capture.enable_monitoring_disturbance(servo=alias)
@@ -341,7 +341,7 @@ def test_read_monitoring_data_timeout(
 ):
     timeout = 2
     sample_t = 0.8
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     monitoring.set_trigger(MonitoringSoCType.TRIGGER_EVENT_FORCED)
     monitoring.configure_sample_time(sample_t, 0)
     mc.capture.enable_monitoring_disturbance(servo=alias)
@@ -361,7 +361,7 @@ def test_read_monitoring_data_no_rearm(
     timeout = 2
     block = True
     wait = 2
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     monitoring.set_trigger(MonitoringSoCType.TRIGGER_EVENT_FORCED)
     monitoring.configure_sample_time(sample_t, 0)
     mc.capture.enable_monitoring_disturbance(servo=alias)
@@ -386,7 +386,7 @@ def test_rearm_monitoring(motion_controller, monitoring, disable_monitoring_dist
     timeout = 2
     block = True
     wait = 2
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     monitoring.set_trigger(MonitoringSoCType.TRIGGER_EVENT_FORCED)
     monitoring.configure_sample_time(sample_t, 0)
     mc.capture.enable_monitoring_disturbance(servo=alias)
@@ -417,7 +417,7 @@ def run_read_monitoring_data_and_stop(monitoring, timeout):
 def test_stop_reading_data(motion_controller, monitoring, disable_monitoring_disturbance):
     sample_t = 0.8
     timeout = 10
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     monitoring.set_trigger(MonitoringSoCType.TRIGGER_EVENT_FORCED)
     monitoring.configure_sample_time(sample_t, 0)
     mc.capture.enable_monitoring_disturbance(servo=alias)
@@ -430,7 +430,7 @@ def test_stop_reading_data(motion_controller, monitoring, disable_monitoring_dis
 @pytest.mark.virtual
 @pytest.mark.smoke
 def test_monitoring_max_sample_size(motion_controller, skip_if_monitoring_not_available):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     target_register = mc.capture.MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER
     axis = 0
     max_sample_size = mc.capture.monitoring_max_sample_size(servo=alias)
@@ -443,7 +443,7 @@ def test_monitoring_max_sample_size(motion_controller, skip_if_monitoring_not_av
 @pytest.mark.smoke
 def test_monitoring_map_registers_invalid_subnode(mocker, motion_controller, monitoring):
     registers = [{"axis": "1", "name": "DRV_AXIS_NUMBER"}]
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=False)
     with pytest.raises(TypeError):
         monitoring.map_registers(registers)
@@ -453,7 +453,7 @@ def test_monitoring_map_registers_invalid_subnode(mocker, motion_controller, mon
 @pytest.mark.smoke
 def test_monitoring_map_registers_invalid_register(mocker, motion_controller, monitoring):
     registers = [{"axis": 1, "name": 1}]
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=False)
     with pytest.raises(TypeError):
         monitoring.map_registers(registers)
@@ -465,7 +465,7 @@ def test_monitoring_map_registers_invalid_number_mapped_registers(
     mocker, motion_controller, monitoring
 ):
     registers = [{"axis": 1, "name": "CL_POS_FBK_VALUE"}]
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=False)
     mocker.patch.object(mc.communication, "get_register", return_value="invalid_value")
     with pytest.raises(TypeError):
@@ -484,7 +484,7 @@ def test_monitoring_map_registers_invalid_number_mapped_registers(
 def test_configure_sample_time_exceptions(
     mocker, motion_controller, monitoring, trigger_delay, expected_exception
 ):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     total_time = 5
     mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=False)
     with pytest.raises(expected_exception):
@@ -493,7 +493,7 @@ def test_configure_sample_time_exceptions(
 
 @pytest.mark.virtual
 def test_get_trigger_type_exception(mocker, motion_controller, monitoring):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     mocker.patch.object(mc.communication, "get_register", return_value="invalid_value")
     with pytest.raises(TypeError):
         monitoring.get_trigger_type()

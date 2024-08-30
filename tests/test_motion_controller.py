@@ -29,7 +29,7 @@ def test_motion_controller():
 @pytest.mark.virtual
 @pytest.mark.smoke
 def test_servo_name(motion_controller):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     prod_code = mc.servos[alias].info["product_code"]
     servo_arg = () if alias == "default" else (alias,)
     name = mc.servo_name(*servo_arg)
@@ -39,7 +39,7 @@ def test_servo_name(motion_controller):
 @pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_register_enum(motion_controller):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     servo_arg = () if alias == "default" else (alias,)
     operation_mode_enum = mc.get_register_enum("DRV_OP_VALUE", *servo_arg)
     operation_mode_values = [op.value for op in operation_mode_enum]
@@ -57,7 +57,7 @@ def test_get_register_enum(motion_controller):
 @pytest.mark.virtual
 @pytest.mark.smoke
 def test_is_alive(motion_controller):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     assert mc.is_alive(alias)
 
 

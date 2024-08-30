@@ -24,6 +24,15 @@ class DriveEnvironmentController(ABC):
         pass
 
     @abstractmethod
+    def set_gpi(self, number: int, value: bool):
+        pass
+
+
+class ManualUserEnvironmentController(ABC):
+    # TODO
+    def reset(self):
+        pass
+
     def set_gpi(self):
         pass
 
@@ -34,7 +43,7 @@ class RackServiceEnvironmentController(DriveEnvironmentController):
     def reset(self):
         pass
 
-    def set_gpi(self):
+    def set_gpi(self, number: int, value: bool):
         # Test gpios in rack with rack service
         # https://novantamotion.atlassian.net/browse/INGM-514
         raise NotImplementedError
