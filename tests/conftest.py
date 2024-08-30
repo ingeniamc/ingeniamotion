@@ -78,7 +78,7 @@ def connect_canopen(mc, config: DriveCanOpenSetup, alias):
 
 
 @pytest.fixture(scope="session")
-def motion_controller(tests_setup: Setup):
+def motion_controller(tests_setup: Setup, pytestconfig):
     alias = "test"
     mc = MotionController()
 
@@ -86,7 +86,7 @@ def motion_controller(tests_setup: Setup):
         if tests_setup.use_rack_service:
             environment = RackServiceEnvironmentController()
         else:
-            environment = ManualUserEnvironmentController()
+            environment = ManualUserEnvironmentController(pytestconfig)
 
         if isinstance(tests_setup, DriveEcatSetup):
             connect_soem(mc, tests_setup, alias)
@@ -98,7 +98,8 @@ def motion_controller(tests_setup: Setup):
             raise NotImplementedError
 
         mc.configuration.restore_configuration(servo=alias)
-        mc.configuration.load_configuration(tests_setup.config_file, servo=alias)
+        if tests_setup.config_file is not None:
+            mc.configuration.load_configuration(tests_setup.config_file, servo=alias)
         yield mc, alias, environment
         environment.reset()
         mc.communication.disconnect(alias)
@@ -107,7 +108,7 @@ def motion_controller(tests_setup: Setup):
         if tests_setup.drives[0].use_rack_service:
             environment = RackServiceEnvironmentController()
         else:
-            environment = ManualUserEnvironmentController()
+            environment = ManualUserEnvironmentController(pytestconfig)
 
         aliases = []
         for drive in tests_setup.drives:
@@ -151,7 +152,8 @@ def motion_controller_teardown(motion_controller, pytestconfig, tests_setup: Set
     if isinstance(tests_setup, DriveHwSetup):
         mc, alias, environment = motion_controller
         mc.motion.motor_disable(servo=alias)
-        mc.configuration.load_configuration(tests_setup.config_file, servo=alias)
+        if tests_setup.config_file is not None:
+            mc.configuration.load_configuration(tests_setup.config_file, servo=alias)
         mc.motion.fault_reset(servo=alias)
 
 
@@ -225,7 +227,8 @@ def load_configuration_if_test_fails(pytestconfig, request, motion_controller, t
     if isinstance(tests_setup, DriveHwSetup) and (
         report["setup"].failed or ("call" not in report) or report["call"].failed
     ):
-        mc.configuration.load_configuration(tests_setup.config_file, servo=alias)
+        if tests_setup.config_file is not None:
+            mc.configuration.load_configuration(tests_setup.config_file, servo=alias)
         mc.motion.fault_reset(servo=alias)
 
 
@@ -249,7 +252,8 @@ def load_configuration_after_each_module(pytestconfig, motion_controller, tests_
     if isinstance(tests_setup, DriveHwSetup):
         mc, alias, environment = motion_controller
         mc.motion.motor_disable(servo=alias)
-        mc.configuration.load_configuration(tests_setup.config_file, servo=alias)
+        if tests_setup.config_file is not None:
+            mc.configuration.load_configuration(tests_setup.config_file, servo=alias)
 
 
 @pytest.fixture(scope="session")

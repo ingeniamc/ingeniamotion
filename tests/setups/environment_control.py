@@ -28,13 +28,28 @@ class DriveEnvironmentController(ABC):
         pass
 
 
-class ManualUserEnvironmentController(ABC):
-    # TODO
+class ManualUserEnvironmentController(DriveEnvironmentController):
+
+    def __init__(self, pytestconfig):
+        self.pytestconfig = pytestconfig
+        self.__capsys = None  # Obtain during test execution. Can not be obtain during fixture creation
+
+    @property
+    def capsys(self):
+        if self.__capsys is None:
+            self.__capsys = self.pytestconfig.pluginmanager.getplugin('capturemanager')
+        return self.__capsys
+
     def reset(self):
         pass
 
-    def set_gpi(self):
-        pass
+    def __request_action_to_user(self, message: str):
+        self.capsys.suspend_global_capture(in_=True)
+        input(f"{message} [ENTER to confirm]")
+        self.capsys.resume_global_capture()
+
+    def set_gpi(self, number: int, value: bool):
+        self.__request_action_to_user(f"Please, set gpi {number} to {value}")
 
 
 class RackServiceEnvironmentController(DriveEnvironmentController):
