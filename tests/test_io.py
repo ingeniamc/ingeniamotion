@@ -51,26 +51,25 @@ def test_get_gpi_voltage_level(motion_controller):
     environment.set_gpi(number=2, value=True)
     environment.set_gpi(number=3, value=False)
     environment.set_gpi(number=4, value=True)
-
-    assert mc.communication.get_register("IO_IN_VALUE", servo=alias) == 0xA
-
     mc.communication.set_register("IO_IN_POLARITY", 0, servo=alias)
+
+    assert mc.communication.get_register("IO_IN_VALUE", servo=alias) == 0b1010
 
     assert mc.io.get_gpi_voltage_level(GPI.GPI1, servo=alias) == DigitalVoltageLevel.LOW
     mc.io.set_gpi_polarity(GPI.GPI1, GPIOPolarity.REVERSED, servo=alias)
-    assert mc.io.get_gpi_voltage_level(GPI.GPI1, servo=alias) == DigitalVoltageLevel.LOW
+    assert mc.io.get_gpi_voltage_level(GPI.GPI1, servo=alias) == DigitalVoltageLevel.HIGH
 
     assert mc.io.get_gpi_voltage_level(GPI.GPI2, servo=alias) == DigitalVoltageLevel.HIGH
     mc.io.set_gpi_polarity(GPI.GPI2, GPIOPolarity.REVERSED, servo=alias)
-    assert mc.io.get_gpi_voltage_level(GPI.GPI2, servo=alias) == DigitalVoltageLevel.HIGH
+    assert mc.io.get_gpi_voltage_level(GPI.GPI2, servo=alias) == DigitalVoltageLevel.LOW
 
     assert mc.io.get_gpi_voltage_level(GPI.GPI3, servo=alias) == DigitalVoltageLevel.LOW
     mc.io.set_gpi_polarity(GPI.GPI3, GPIOPolarity.REVERSED, servo=alias)
-    assert mc.io.get_gpi_voltage_level(GPI.GPI3, servo=alias) == DigitalVoltageLevel.LOW
+    assert mc.io.get_gpi_voltage_level(GPI.GPI3, servo=alias) == DigitalVoltageLevel.HIGH
 
     assert mc.io.get_gpi_voltage_level(GPI.GPI4, servo=alias) == DigitalVoltageLevel.HIGH
     mc.io.set_gpi_polarity(GPI.GPI4, GPIOPolarity.REVERSED, servo=alias)
-    assert mc.io.get_gpi_voltage_level(GPI.GPI4, servo=alias) == DigitalVoltageLevel.HIGH
+    assert mc.io.get_gpi_voltage_level(GPI.GPI4, servo=alias) == DigitalVoltageLevel.LOW
 
 
 @pytest.mark.parametrize("gpo_id", [GPO.GPO1, GPO.GPO2, GPO.GPO3, GPO.GPO4])
