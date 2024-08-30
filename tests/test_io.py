@@ -45,7 +45,14 @@ def test_set_get_gpi_polarity(motion_controller, gpi_id, polarity):
 @pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_gpi_voltage_level(motion_controller):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
+
+    environment.set_gpi(number=1, value=False)
+    environment.set_gpi(number=2, value=True)
+    environment.set_gpi(number=3, value=False)
+    environment.set_gpi(number=4, value=True)
+
+    assert mc.communication.get_register("IO_IN_VALUE", servo=alias) == 0xA
 
     mc.communication.set_register("IO_IN_POLARITY", 0, servo=alias)
 

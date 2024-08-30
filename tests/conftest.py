@@ -13,12 +13,15 @@ from ingeniamotion.enums import SensorType
 
 from .setups.descriptors import (
     DriveCanOpenSetup,
-    DriveHwSetup,
+    DriveEcatSetup,
     DriveEthernetSetup,
+    DriveHwSetup,
     EthercatMultiSlaveSetup,
     Setup,
-    DriveEcatSetup,
     VirtualDriveSetup,
+)
+from .setups.environment_control import (
+    VirtualDriveEnvironmentController,
 )
 
 test_report_key = pytest.StashKey[Dict[str, pytest.CollectReport]]()
@@ -108,9 +111,12 @@ def motion_controller(tests_setup: Setup):
     elif isinstance(tests_setup, VirtualDriveSetup):
         virtual_drive = VirtualDrive(tests_setup.port, tests_setup.dictionary)
         virtual_drive.start()
-        virtual_drive.set_value_by_id(1, "IO_IN_VALUE", 0xA)
         connect_eoe(mc, tests_setup, alias)
-        yield mc, alias
+        environment = VirtualDriveEnvironmentController(virtual_drive)
+
+        yield mc, alias, environment
+
+        environment.reset()
         virtual_drive.stop()
     else:
         raise NotImplementedError
@@ -198,7 +204,7 @@ def pytest_runtest_makereport(item, call):
 
 @pytest.fixture(scope="function", autouse=True)
 def load_configuration_if_test_fails(pytestconfig, request, motion_controller, tests_setup: Setup):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     yield
 
     report = request.node.stash[test_report_key]
