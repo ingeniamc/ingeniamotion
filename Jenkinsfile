@@ -131,8 +131,9 @@ pipeline {
                 stage("Run unit tests") {
                     steps {
                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
-                                "-m \"not eoe and not soem and not canopen and not virtual and not soem_multislave\" "
+                                "-m \"not eoe and not soem and not canopen and not virtual and not soem_multislave\" " +
                                 "--cov=ingeniamotion"
+                    }
                     post {
                         always {
                             bat "move .coverage .coverage_unit_tests"
@@ -150,7 +151,7 @@ pipeline {
                     steps {
                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
                                 "-m virtual " +
-                                "--setup tests.setups.virtual_drive.TESTS_SETUP"  +
+                                "--setup tests.setups.virtual_drive.TESTS_SETUP "  +
                                 "--cov=ingeniamotion"
                     }
                     post {
