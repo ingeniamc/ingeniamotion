@@ -126,7 +126,7 @@ def motion_controller(tests_setup: Setup, pytestconfig):
         virtual_drive = VirtualDrive(tests_setup.port, tests_setup.dictionary)
         virtual_drive.start()
         connect_eoe(mc, tests_setup, alias)
-        environment = VirtualDriveEnvironmentController(virtual_drive)
+        environment = VirtualDriveEnvironmentController(virtual_drive.environment)
 
         yield mc, alias, environment
 

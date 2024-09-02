@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from virtual_drive.core import VirtualDrive
+from virtual_drive.environment import Environment as VirtualDriveEnvironment
 
 
 def set_bit(value, bit):
@@ -67,19 +67,24 @@ class RackServiceEnvironmentController(DriveEnvironmentController):
 class VirtualDriveEnvironmentController(DriveEnvironmentController):
     """Controller of the environment of a Virtual Drive Setup"""
 
-    def __init__(self, virtual_drive: VirtualDrive):
-        self.virtual_drive = virtual_drive
+    def __init__(self, virtual_drive_environment: VirtualDriveEnvironment):
+        self.__env = virtual_drive_environment
         self.reset()
 
     def set_gpi(self, number: int, value: bool):
-        io_value = self.virtual_drive.get_value_by_id(subnode=1, id="IO_IN_VALUE")
-
-        if value:
-            io_value = set_bit(io_value, bit=number - 1)
+        if number == 1:
+            self.__env.gpi_1_status.set(value)
+        elif number == 2:
+            self.__env.gpi_2_status.set(value)
+        elif number == 3:
+            self.__env.gpi_3_status.set(value)
+        elif number == 4:
+            self.__env.gpi_4_status.set(value)
         else:
-            io_value = clear_bit(io_value, bit=number - 1)
-
-        self.virtual_drive.set_value_by_id(subnode=1, id="IO_IN_VALUE", value=io_value)
+            raise ValueError
 
     def reset(self):
-        self.virtual_drive.set_value_by_id(subnode=1, id="IO_IN_VALUE", value=0)
+        self.__env.gpi_1_status.set(False)
+        self.__env.gpi_2_status.set(False)
+        self.__env.gpi_3_status.set(False)
+        self.__env.gpi_4_status.set(False)
