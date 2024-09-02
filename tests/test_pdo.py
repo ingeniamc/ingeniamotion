@@ -208,8 +208,6 @@ def test_start_pdos(motion_controller, tests_setup):
             _, tpdo_map_item = pdo_map_items[alias]
             tpdo_values[alias] = tpdo_map_item.value
 
-    for alias in aliases:
-        mc.motion.get_actual_position(servo=alias)
     mc.capture.pdo.subscribe_to_send_process_data(send_callback)
     mc.capture.pdo.subscribe_to_receive_process_data(receive_callback)
     assert not mc.capture.pdo.is_active
