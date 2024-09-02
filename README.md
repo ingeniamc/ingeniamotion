@@ -42,10 +42,29 @@ tox -e docs
 Run PyTest
 ----------
 
-Fill configuration json ``tests/config.json``.
+Create tests/setups/tests_setup.py file with configuration file.
+This file is ignored by git and won't be uploaded to the repository
+Example of a setup:
 
-Run tests with target protocol and Python version (eoe, soem or canopen). For example:
+```python
+from .descriptors import DriveEcatSetup
+
+TESTS_SETUP = DriveEcatSetup(
+    dictionary="//awe-srv-max-prd/distext/products/EVE-XCR/firmware/2.5.1/eve-xcr-e_eoe_2.5.1.xdf",
+    identifier="eve-xcr-e",
+    config_file="//azr-srv-ingfs1/dist/setups/setup_eve_ecat/1.2.0/config.xml",
+    fw_file="//awe-srv-max-prd/distext/products/EVE-XCR/firmware/2.5.1/eve-xcr-e_2.5.1.sfu",
+    ifname="\\Device\\NPF_{B24AA996-414A-4F95-95E6-2828D346209A}",
+    slave=1,
+    eoe_comm=True,
+    boot_in_app=True,
+    load_firmware_with_rack_service=False,
+)
+```
+
+Run tests selecting the markers that you want and are appropriate for your setup.
+Beware that some tests may not be appropiate for the setup that you have and may fail.
 
 ```bash
-tox -e py39 -- --protocol soem
+tox -e py39 -- -m soem
 ```

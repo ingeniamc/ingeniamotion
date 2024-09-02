@@ -29,7 +29,13 @@ from ingeniamotion.motion import Motion
 from ingeniamotion.pdo import PDONetworkManager, PDOPoller
 from tests.conftest import connect_canopen, connect_eoe, connect_soem
 
-from .setup.descriptors import CanOpenSetup, EoESetup, EthernetSetup, Setup, SoemSetup
+from .setups.descriptors import (
+    DriveCanOpenSetup,
+    DriveEthernetSetup,
+    EthernetSetup,
+    Setup,
+    DriveEcatSetup,
+)
 
 
 @pytest.fixture
@@ -39,62 +45,62 @@ def setup_for_test_examples(motion_controller):
 
 
 @pytest.fixture
-def teardown_for_test_examples(motion_controller, read_config: Setup, pytestconfig):
+def teardown_for_test_examples(motion_controller, tests_setup: Setup, pytestconfig):
     yield
     mc, alias = motion_controller
 
-    if isinstance(read_config, SoemSetup):
-        connect_soem(mc, read_config, alias)
-    elif isinstance(read_config, CanOpenSetup):
-        connect_canopen(mc, read_config, alias)
-    elif isinstance(read_config, EoESetup):
-        connect_eoe(mc, read_config, alias)
+    if isinstance(tests_setup, DriveEcatSetup):
+        connect_soem(mc, tests_setup, alias)
+    elif isinstance(tests_setup, DriveCanOpenSetup):
+        connect_canopen(mc, tests_setup, alias)
+    elif isinstance(tests_setup, DriveEthernetSetup):
+        connect_eoe(mc, tests_setup, alias)
     else:
         raise NotImplementedError
 
 
 @pytest.mark.eoe
-def test_disturbance_example(read_config: EthernetSetup, script_runner):
+def test_disturbance_example(tests_setup: EthernetSetup, script_runner):
     script_path = "examples/disturbance_example.py"
-    ip_address = read_config.ip
-    dictionary = read_config.dictionary
+    ip_address = tests_setup.ip
+    dictionary = tests_setup.dictionary
     result = script_runner.run(script_path, f"--ip={ip_address}", f"--dictionary_path={dictionary}")
     assert result.returncode == 0
 
 
 @pytest.mark.usefixtures("setup_for_test_examples", "teardown_for_test_examples")
 @pytest.mark.canopen
-def test_canopen_example(read_config: CanOpenSetup, script_runner):
+def test_canopen_example(tests_setup: DriveCanOpenSetup, script_runner):
     script_path = "examples/canopen_example.py"
 
     result = script_runner.run(
         script_path,
-        f"--dictionary_path={read_config.dictionary}",
-        f"--node_id={read_config.node_id}",
-        f"--can_transceiver={read_config.device}",
-        f"--can_baudrate={read_config.baudrate}",
-        f"--can_channel={read_config.channel}",
+        f"--dictionary_path={tests_setup.dictionary}",
+        f"--node_id={tests_setup.node_id}",
+        f"--can_transceiver={tests_setup.device}",
+        f"--can_baudrate={tests_setup.baudrate}",
+        f"--can_channel={tests_setup.channel}",
     )
     assert result.returncode == 0
 
 
 @pytest.mark.eoe
-def test_set_get_register_example(read_config: EoESetup, script_runner):
+def test_set_get_register_example(tests_setup: DriveEthernetSetup, script_runner):
     script_path = "examples/set_get_register.py"
     result = script_runner.run(
-        script_path, f"--ip={read_config.ip}", f"--dictionary_path={read_config.dictionary}"
+        script_path, f"--ip={tests_setup.ip}", f"--dictionary_path={tests_setup.dictionary}"
     )
     assert result.returncode == 0
 
 
 @pytest.mark.eoe
-def test_poller_example(read_config: EoESetup, script_runner):
+def test_poller_example(tests_setup: DriveEthernetSetup, script_runner):
     script_path = "examples/poller_example.py"
 
     result = script_runner.run(
         script_path,
-        f"--ip={read_config.ip}",
-        f"--dictionary_path={read_config.dictionary}",
+        f"--ip={tests_setup.ip}",
+        f"--dictionary_path={tests_setup.dictionary}",
         "--close",
     )
     assert result.returncode == 0
@@ -105,7 +111,7 @@ def test_poller_example(read_config: EoESetup, script_runner):
     "mode",
     ["velocity", "torque"],
 )
-def test_velocity_torque_ramp_example(read_config: EoESetup, script_runner, mocker, mode):
+def test_velocity_torque_ramp_example(tests_setup: DriveEthernetSetup, script_runner, mocker, mode):
     script_path = "examples/velocity_torque_ramp.py"
 
     class MockMotion:
@@ -130,26 +136,26 @@ def test_velocity_torque_ramp_example(read_config: EoESetup, script_runner, mock
     mocker.patch.object(MotionController, "motion", MockMotion)
     mocker.patch("time.sleep", return_value=None)
     result = script_runner.run(
-        script_path, mode, read_config.dictionary, f"-ip={read_config.ip}", f"-target_torque={0}"
+        script_path, mode, tests_setup.dictionary, f"-ip={tests_setup.ip}", f"-target_torque={0}"
     )
     assert result.returncode == 0
 
 
 @pytest.mark.eoe
-def test_monitoring_example(read_config: EoESetup, script_runner):
+def test_monitoring_example(tests_setup: DriveEthernetSetup, script_runner):
     script_path = "examples/monitoring_example.py"
 
     result = script_runner.run(
         script_path,
-        f"--ip={read_config.ip}",
-        f"--dictionary_path={read_config.dictionary}",
+        f"--ip={tests_setup.ip}",
+        f"--dictionary_path={tests_setup.dictionary}",
         "--close",
     )
     assert result.returncode == 0
 
 
 @pytest.mark.eoe
-def test_load_fw_ftp(read_config: EoESetup, script_runner, mocker):
+def test_load_fw_ftp(tests_setup: DriveEthernetSetup, script_runner, mocker):
     script_path = "examples/load_fw_ftp.py"
 
     class MockCommunication:
@@ -162,19 +168,19 @@ def test_load_fw_ftp(read_config: EoESetup, script_runner, mocker):
     mocker.patch.object(MotionController, "communication", MockCommunication)
     result = script_runner.run(
         script_path,
-        f"--dictionary_path={read_config.dictionary}",
-        f"--ip={read_config.ip}",
-        f"--firmware_file={read_config.fw_file}",
+        f"--dictionary_path={tests_setup.dictionary}",
+        f"--ip={tests_setup.ip}",
+        f"--firmware_file={tests_setup.fw_file}",
     )
     assert result.returncode == 0
 
 
 @pytest.mark.soem
-def test_load_fw_ecat(read_config: SoemSetup, script_runner, mocker):
+def test_load_fw_ecat(tests_setup: DriveEcatSetup, script_runner, mocker):
     script_path = "examples/load_fw_ecat.py"
     interface_index = 0
-    slave_id = read_config.slave
-    fw_file = read_config.fw_file
+    slave_id = tests_setup.slave
+    fw_file = tests_setup.fw_file
 
     class MockCommunication:
         def load_firmware_ecat_interface_index(self, *args, **kwargs):
@@ -198,7 +204,7 @@ def test_load_fw_ecat(read_config: SoemSetup, script_runner, mocker):
     "feedback",
     ["HALLS", "QEI", "QEI2"],
 )
-def test_feedback_example(read_config: EoESetup, script_runner, mocker, feedback):
+def test_feedback_example(tests_setup: DriveEthernetSetup, script_runner, mocker, feedback):
     script_path = "examples/feedback_test.py"
 
     class MockDriveTests:
@@ -213,13 +219,13 @@ def test_feedback_example(read_config: EoESetup, script_runner, mocker, feedback
 
     mocker.patch.object(MotionController, "tests", MockDriveTests)
     result = script_runner.run(
-        script_path, feedback, read_config.dictionary, f"-ip={read_config.ip}"
+        script_path, feedback, tests_setup.dictionary, f"-ip={tests_setup.ip}"
     )
     assert result.returncode == 0
 
 
 @pytest.mark.eoe
-def test_commutation_test_example(read_config: EoESetup, script_runner, mocker):
+def test_commutation_test_example(tests_setup: DriveEthernetSetup, script_runner, mocker):
     script_path = "examples/commutation_test.py"
 
     class MockDriveTests:
@@ -227,7 +233,7 @@ def test_commutation_test_example(read_config: EoESetup, script_runner, mocker):
             return {"result_message": SeverityLevel.SUCCESS}
 
     mocker.patch.object(MotionController, "tests", MockDriveTests)
-    result = script_runner.run(script_path, read_config.dictionary, f"-ip={read_config.ip}")
+    result = script_runner.run(script_path, tests_setup.dictionary, f"-ip={tests_setup.ip}")
     assert result.returncode == 0
 
 
@@ -236,7 +242,7 @@ def test_commutation_test_example(read_config: EoESetup, script_runner, mocker):
     "override",
     ["disabled", "release", "enable"],
 )
-def test_brake_config_example(read_config: EoESetup, script_runner, mocker, override):
+def test_brake_config_example(tests_setup: DriveEthernetSetup, script_runner, mocker, override):
     script_path = "examples/brake_config.py"
 
     class MockConfiguration:
@@ -251,7 +257,7 @@ def test_brake_config_example(read_config: EoESetup, script_runner, mocker, over
 
     mocker.patch.object(MotionController, "configuration", MockConfiguration)
     result = script_runner.run(
-        script_path, override, read_config.dictionary, f"-ip={read_config.ip}"
+        script_path, override, tests_setup.dictionary, f"-ip={tests_setup.ip}"
     )
     assert result.returncode == 0
 

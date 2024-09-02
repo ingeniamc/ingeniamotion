@@ -1,4 +1,3 @@
-import json
 import random
 import time
 
@@ -10,35 +9,7 @@ from packaging import version
 
 from ingeniamotion.enums import COMMUNICATION_TYPE, OperationMode
 from ingeniamotion.exceptions import IMException
-
-
-@pytest.fixture
-def connect_to_all_slaves(motion_controller, pytestconfig):
-    mc, alias = motion_controller
-    aliases = [alias]
-    protocol = pytestconfig.getoption("--protocol")
-    if protocol != "soem":
-        raise AssertionError("Fixture only available for the soem protocol.")
-    config = "tests/config.json"
-    with open(config, "r") as fp:
-        contents = json.load(fp)
-    protocol_contents = contents[protocol]
-    connected_slave_id = mc.servos[alias].slave_id
-    for slave_content in protocol_contents:
-        if slave_content["slave"] == connected_slave_id:
-            continue
-        alias = f"test{slave_content['slave']}"
-        aliases.append(alias)
-        mc.communication.connect_servo_ethercat(
-            slave_content["ifname"],
-            slave_content["slave"],
-            slave_content["dictionary"],
-            alias,
-        )
-    yield mc, aliases
-    aliases.pop(0)
-    for alias in aliases:
-        mc.communication.disconnect(alias)
+from .setups.descriptors import EthercatMultiSlaveSetup
 
 
 @pytest.mark.soem
@@ -197,9 +168,14 @@ def test_pdos_refresh_rate(motion_controller, refresh_rate):
         mc.capture.pdo.start_pdos(COMMUNICATION_TYPE.Ethercat, refresh_rate)
 
 
-@pytest.mark.soem
-def test_start_pdos(connect_to_all_slaves):
-    mc, aliases = connect_to_all_slaves
+@pytest.mark.soem_multislave
+@pytest.mark.smoke
+def test_start_pdos(motion_controller, tests_setup):
+    if not isinstance(tests_setup, EthercatMultiSlaveSetup):
+        raise ValueError("Invalid setup config for test")
+
+    mc, aliases = motion_controller
+
     pdo_map_items = {}
     initial_operation_modes = {}
     rpdo_values = {}
