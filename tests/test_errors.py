@@ -51,6 +51,9 @@ def force_warning(motion_controller):
 
 
 class TestErrors:
+    @pytest.mark.eoe
+    @pytest.mark.soem
+    @pytest.mark.canopen
     @pytest.mark.smoke
     def test_get_last_error(self, motion_controller, generate_drive_errors):
         mc, alias = motion_controller
@@ -62,12 +65,18 @@ class TestErrors:
         assert subnode is None
         assert warning is None
 
+    @pytest.mark.eoe
+    @pytest.mark.soem
+    @pytest.mark.canopen
     @pytest.mark.smoke
     def test_get_last_buffer_error(self, motion_controller, generate_drive_errors):
         mc, alias = motion_controller
         last_error, subnode, warning = mc.errors.get_last_buffer_error(servo=alias)
         assert last_error == generate_drive_errors[0]
 
+    @pytest.mark.eoe
+    @pytest.mark.soem
+    @pytest.mark.canopen
     @pytest.mark.smoke
     def test_get_buffer_error_by_index(self, motion_controller, generate_drive_errors):
         mc, alias = motion_controller
@@ -76,18 +85,27 @@ class TestErrors:
             last_error, subnode, warning = mc.errors.get_buffer_error_by_index(i, servo=alias)
             assert last_error == generate_drive_errors[i]
 
+    @pytest.mark.eoe
+    @pytest.mark.soem
+    @pytest.mark.canopen
     @pytest.mark.smoke
     def test_get_buffer_error_by_index_exception(self, motion_controller, generate_drive_errors):
         mc, alias = motion_controller
         with pytest.raises(ValueError):
             mc.errors.get_buffer_error_by_index(33, servo=alias)
 
+    @pytest.mark.eoe
+    @pytest.mark.soem
+    @pytest.mark.canopen
     @pytest.mark.smoke
     def test_get_number_total_errors(self, motion_controller, error_number, generate_drive_errors):
         mc, alias = motion_controller
         test_error_number = mc.errors.get_number_total_errors(servo=alias)
         assert test_error_number == error_number + len(generate_drive_errors)
 
+    @pytest.mark.eoe
+    @pytest.mark.soem
+    @pytest.mark.canopen
     @pytest.mark.smoke
     def test_get_all_errors(self, motion_controller, generate_drive_errors):
         mc, alias = motion_controller
@@ -96,6 +114,9 @@ class TestErrors:
             test_code_error, axis, warning = test_all_errors[i]
             assert test_code_error == code_error
 
+    @pytest.mark.eoe
+    @pytest.mark.soem
+    @pytest.mark.canopen
     @pytest.mark.smoke
     def test_is_fault_active(self, motion_controller, generate_drive_errors):
         mc, alias = motion_controller
@@ -103,6 +124,9 @@ class TestErrors:
         mc.motion.fault_reset(servo=alias)
         assert not mc.errors.is_fault_active(servo=alias)
 
+    @pytest.mark.eoe
+    @pytest.mark.soem
+    @pytest.mark.canopen
     @pytest.mark.smoke
     @pytest.mark.usefixtures("force_warning")
     def test_is_warning_active(self, motion_controller):

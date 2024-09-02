@@ -92,6 +92,9 @@ def remove_file_if_exist():
         os.remove(file_path)
 
 
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 @pytest.mark.usefixtures("remove_file_if_exist")
 def test_save_configuration_and_load_configuration(motion_controller):
@@ -280,6 +283,9 @@ def test_get_status_word(motion_controller):
     assert test_value == reg_value
 
 
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 def test_is_motor_enabled_1(motion_controller):
     mc, alias = motion_controller
@@ -444,6 +450,9 @@ def test_check_sto_power_supply(mocker, motion_controller, sto_status_value, exp
     assert value == expected_result
 
 
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_status_value, expected_result",
@@ -505,12 +514,18 @@ def test_is_sto_abnormal_latched(mocker, motion_controller, sto_status_value, ex
     assert value == expected_result
 
 
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 def test_store_configuration(motion_controller):
     mc, alias = motion_controller
     mc.configuration.store_configuration(servo=alias)
 
 
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 def test_restore_configuration(motion_controller):
     mc, alias = motion_controller

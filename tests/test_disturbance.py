@@ -26,6 +26,9 @@ def test_disturbance_max_sample_size(motion_controller, disturbance):
     assert max_sample_size == value
 
 
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 @pytest.mark.parametrize("prescaler", list(range(2, 11, 2)))
 def test_set_frequency_divider(motion_controller, disturbance, prescaler):
@@ -37,6 +40,9 @@ def test_set_frequency_divider(motion_controller, disturbance, prescaler):
     assert value == prescaler
 
 
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 def test_set_frequency_divider_exception(disturbance):
     prescaler = -1
@@ -44,6 +50,9 @@ def test_set_frequency_divider_exception(disturbance):
         disturbance.set_frequency_divider(prescaler)
 
 
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "axis, name, expected_value",
@@ -63,6 +72,9 @@ def test_disturbance_map_registers(motion_controller, disturbance, axis, name, e
     assert value == 1
 
 
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 @pytest.mark.parametrize("number_registers", list(range(1, 17)))
 def test_disturbance_number_map_registers(motion_controller, disturbance, number_registers):
@@ -74,6 +86,9 @@ def test_disturbance_number_map_registers(motion_controller, disturbance, number
     assert value == number_registers
 
 
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 def test_disturbance_map_registers_sample_number(disturbance):
     registers = [{"axis": 1, "name": "CL_POS_SET_POINT_VALUE"}]
@@ -97,6 +112,9 @@ def test_disturbance_map_registers_empty(disturbance):
         disturbance.map_registers(registers)
 
 
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 @pytest.mark.usefixtures("disturbance_map_registers")
 def test_write_disturbance_data_buffer_exception(disturbance):
@@ -111,6 +129,9 @@ def test_write_disturbance_data_not_configured(disturbance):
         disturbance.write_disturbance_data([0] * 100)
 
 
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 def test_write_disturbance_data_enabled(
     motion_controller, disturbance, disable_monitoring_disturbance

@@ -24,6 +24,9 @@ def __compare_signals(expected_signal, received_signal, fft_tol=0.05):
     return np.allclose(fft_received, fft_expected, rtol=0, atol=fft_tol)
 
 
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 def test_create_poller(motion_controller):
     registers = [{"name": "CL_CUR_Q_SET_POINT", "axis": 1}]
     sampling_time = 0.125
@@ -46,6 +49,9 @@ def test_create_poller(motion_controller):
     assert __compare_signals(expected_signal, received_signal)
 
 
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 def test_create_monitoring_no_trigger(
     skip_if_monitoring_not_available, motion_controller, disable_monitoring_disturbance
 ):
@@ -78,6 +84,9 @@ def test_create_monitoring_no_trigger(
     assert __compare_signals(expected_signal, data[0])
 
 
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.parametrize(
     "trigger_mode, trigger_config, values_list",
     [
@@ -142,6 +151,9 @@ def test_create_monitoring_edge_trigger(
     assert __compare_signals(expected_signal, data[0])
 
 
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.parametrize("trigger_delay_rate", [-1 / 4, 1 / 4])
 def test_create_monitoring_trigger_delay(
     skip_if_monitoring_not_available,
@@ -199,6 +211,9 @@ def test_create_monitoring_trigger_delay(
     assert __compare_signals(expected_signal, data[0])
 
 
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 def test_create_disturbance(
     skip_if_monitoring_not_available, motion_controller, disable_monitoring_disturbance
 ):
@@ -241,6 +256,9 @@ def test_mcb_synchronization(mocker, motion_controller):
     disable_mon.assert_called_once_with(servo=alias)
 
 
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 def test_mcb_synchronization_fail(motion_controller):
     mc, alias = motion_controller
@@ -273,6 +291,9 @@ def test_monitoring_max_sample_size(skip_if_monitoring_not_available, motion_con
     assert max_sample_size == value
 
 
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 def test_get_frequency(
     skip_if_monitoring_not_available, motion_controller, disable_monitoring_disturbance

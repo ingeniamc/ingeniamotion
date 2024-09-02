@@ -16,7 +16,7 @@ RUN_PYTHON_VERSIONS = ""
 def PYTHON_VERSION_MIN = "py39"
 def PYTHON_VERSION_MAX = "py312"
 
-SMOKE_TESTS_FLAG = ""
+RUN_ONLY_SMOKE_TESTS = false
 
 def BRANCH_NAME_MASTER = "master"
 def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
@@ -24,9 +24,15 @@ def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
 coverage_stashes = []
 
 def runTestHW(protocol, slave) {
+    markers = protocol
+
+    if (RUN_ONLY_SMOKE_TESTS) {
+        markers = markers + " and smoke"
+    }
+
     try {
         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
-                "${SMOKE_TESTS_FLAG} " +
+                "-m \"${markers}\" " +
                 "--protocol ${protocol} " +
                 "--slave ${slave} "
     } catch (err) {
@@ -56,17 +62,17 @@ pipeline {
                 script {
                     if (env.BRANCH_NAME == 'master') {
                         RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
-                        SMOKE_TESTS_FLAG = ""
+                        RUN_ONLY_SMOKE_TESTS = false
                     } else if (env.BRANCH_NAME == 'develop') {
                         RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
-                        SMOKE_TESTS_FLAG = ""
+                        RUN_ONLY_SMOKE_TESTS = false
                     } else if (env.BRANCH_NAME.startsWith('release/')) {
                         RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
-                        SMOKE_TESTS_FLAG = ""
+                        RUN_ONLY_SMOKE_TESTS = false
                     } else {
                         RUN_PYTHON_VERSIONS = "${PYTHON_VERSION_MIN},${PYTHON_VERSION_MAX}"
                         if (params.TESTS == 'Smoke') {
-                            SMOKE_TESTS_FLAG = "-m smoke"
+                            RUN_ONLY_SMOKE_TESTS = true
                         }
                     }
                 }
@@ -123,6 +129,25 @@ pipeline {
                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e docs"
                     }
                 }
+                stage("Run unit tests") {
+                    steps {
+                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
+                                "-m \"not eoe and not soem and not canopen and not virtual\" " +
+                                "--protocol virtual "
+                    }
+                    post {
+                        always {
+                            bat "move .coverage .coverage_unit_tests"
+                            junit "pytest_reports\\*.xml"
+                            // Delete the junit after publishing it so it not re-published on the next stage
+                            bat "del /S /Q pytest_reports\\*.xml"
+                            stash includes: '.coverage_unit_tests', name: '.coverage_unit_tests'
+                            script {
+                                coverage_stashes.add(".coverage_unit_tests")
+                            }
+                        }
+                    }
+                }
                 stage("Run virtual drive tests") {
                     steps {
                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- -m" +
@@ -132,6 +157,8 @@ pipeline {
                         always {
                             bat "move .coverage .coverage_virtual"
                             junit "pytest_reports\\*.xml"
+                            // Delete the junit after publishing it so it not re-published on the next stage
+                            bat "del /S /Q pytest_reports\\*.xml"
                             stash includes: '.coverage_virtual', name: '.coverage_virtual'
                             script {
                                 coverage_stashes.add(".coverage_virtual")
