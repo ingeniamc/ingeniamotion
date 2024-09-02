@@ -3,14 +3,6 @@ from abc import ABC, abstractmethod
 from virtual_drive.environment import Environment as VirtualDriveEnvironment
 
 
-def set_bit(value, bit):
-    return value | (1 << bit)
-
-
-def clear_bit(value, bit):
-    return value & ~(1 << bit)
-
-
 class DriveEnvironmentController(ABC):
     """Abstract Environment Controller.
 
