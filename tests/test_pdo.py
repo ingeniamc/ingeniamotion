@@ -169,6 +169,7 @@ def test_pdos_refresh_rate(motion_controller, refresh_rate):
 
 
 @pytest.mark.soem_multislave
+@pytest.mark.smoke
 def test_start_pdos(motion_controller, tests_setup):
     if not isinstance(tests_setup, EthercatMultiSlaveSetup):
         raise ValueError("Invalid setup config for test")
