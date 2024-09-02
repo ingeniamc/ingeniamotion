@@ -7,7 +7,7 @@ from ingeniamotion.exceptions import IMException
 @pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_gpio_bit_value(motion_controller):
-    mc, _ = motion_controller
+    mc, _, _ = motion_controller
     base_value = 0xA3  # 1010 0011
     bits = [True, True, False, False, False, True, False, True]
 
@@ -19,7 +19,7 @@ def test_get_gpio_bit_value(motion_controller):
 @pytest.mark.virtual
 @pytest.mark.smoke
 def test_set_gpio_bit_value(motion_controller):
-    mc, _ = motion_controller
+    mc, _, _ = motion_controller
     base_value = 0xA3  # 1010 0011
 
     assert mc.io._InputsOutputs__set_gpio_bit_value(base_value, 1, 0) == 0xA2

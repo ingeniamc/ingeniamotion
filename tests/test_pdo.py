@@ -299,7 +299,7 @@ def dummy_callback(e):
 @pytest.mark.skip("Test randomly fail")
 @pytest.mark.soem
 def test_subscribe_exceptions(motion_controller, mocker):
-    mc, _ = motion_controller
+    mc, _, _ = motion_controller
 
     error_msg = "Test error"
 

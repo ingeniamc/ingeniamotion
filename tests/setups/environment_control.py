@@ -29,15 +29,16 @@ class DriveEnvironmentController(ABC):
 
 
 class ManualUserEnvironmentController(DriveEnvironmentController):
-
     def __init__(self, pytestconfig):
         self.pytestconfig = pytestconfig
-        self.__capsys = None  # Obtain during test execution. Can not be obtain during fixture creation
+        self.__capsys = (
+            None  # Obtain during test execution. Can not be obtain during fixture creation
+        )
 
     @property
     def capsys(self):
         if self.__capsys is None:
-            self.__capsys = self.pytestconfig.pluginmanager.getplugin('capturemanager')
+            self.__capsys = self.pytestconfig.pluginmanager.getplugin("capturemanager")
         return self.__capsys
 
     def reset(self):
