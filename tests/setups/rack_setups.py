@@ -71,4 +71,4 @@ CAN_CAP_SETUP = DriveCanOpenSetup(
     load_firmware_with_rack_service=True,
 )
 
-ECAT_MULTISLAVE_SETUP = EthercatMultiSlaveSetup([ECAT_EVE_SETUP, CAN_EVE_SETUP])
+ECAT_MULTISLAVE_SETUP = EthercatMultiSlaveSetup([ECAT_EVE_SETUP, ECAT_CAP_SETUP])
