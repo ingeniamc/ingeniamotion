@@ -173,7 +173,7 @@ def test_start_pdos(motion_controller, tests_setup):
     if not isinstance(tests_setup, EthercatMultiSlaveSetup):
         raise ValueError("Invalid setup config for test")
 
-    mc, aliases = motion_controller
+    mc, aliases, environment = motion_controller
 
     pdo_map_items = {}
     initial_operation_modes = {}
