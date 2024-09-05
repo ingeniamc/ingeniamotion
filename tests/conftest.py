@@ -10,15 +10,19 @@ from virtual_drive.core import VirtualDrive
 
 from ingeniamotion import MotionController
 from ingeniamotion.enums import SensorType
-
 from .setups.descriptors import (
     DriveCanOpenSetup,
-    DriveHwSetup,
+    DriveEcatSetup,
     DriveEthernetSetup,
+    DriveHwSetup,
     EthercatMultiSlaveSetup,
     Setup,
-    DriveEcatSetup,
     VirtualDriveSetup,
+)
+from .setups.environment_control import (
+    ManualUserEnvironmentController,
+    RackServiceEnvironmentController,
+    VirtualDriveEnvironmentController,
 )
 
 test_report_key = pytest.StashKey[Dict[str, pytest.CollectReport]]()
@@ -74,11 +78,16 @@ def connect_canopen(mc, config: DriveCanOpenSetup, alias):
 
 
 @pytest.fixture(scope="session")
-def motion_controller(tests_setup: Setup):
+def motion_controller(tests_setup: Setup, pytestconfig):
     alias = "test"
     mc = MotionController()
 
     if isinstance(tests_setup, DriveHwSetup):
+        if tests_setup.use_rack_service:
+            environment = RackServiceEnvironmentController()
+        else:
+            environment = ManualUserEnvironmentController(pytestconfig)
+
         if isinstance(tests_setup, DriveEcatSetup):
             connect_soem(mc, tests_setup, alias)
         elif isinstance(tests_setup, DriveCanOpenSetup):
@@ -89,11 +98,18 @@ def motion_controller(tests_setup: Setup):
             raise NotImplementedError
 
         mc.configuration.restore_configuration(servo=alias)
-        mc.configuration.load_configuration(tests_setup.config_file, servo=alias)
-        yield mc, alias
+        if tests_setup.config_file is not None:
+            mc.configuration.load_configuration(tests_setup.config_file, servo=alias)
+        yield mc, alias, environment
+        environment.reset()
         mc.communication.disconnect(alias)
 
     elif isinstance(tests_setup, EthercatMultiSlaveSetup):
+        if tests_setup.drives[0].use_rack_service:
+            environment = RackServiceEnvironmentController()
+        else:
+            environment = ManualUserEnvironmentController(pytestconfig)
+
         aliases = []
         for drive in tests_setup.drives:
             mc.communication.connect_servo_ethercat(
@@ -104,13 +120,17 @@ def motion_controller(tests_setup: Setup):
             )
             aliases.append(drive.identifier)
 
-        yield mc, aliases
+        yield mc, aliases, environment
+        environment.reset()
     elif isinstance(tests_setup, VirtualDriveSetup):
         virtual_drive = VirtualDrive(tests_setup.port, tests_setup.dictionary)
         virtual_drive.start()
-        virtual_drive.set_value_by_id(1, "IO_IN_VALUE", 0xA)
         connect_eoe(mc, tests_setup, alias)
-        yield mc, alias
+        environment = VirtualDriveEnvironmentController(virtual_drive.environment)
+
+        yield mc, alias, environment
+
+        environment.reset()
         virtual_drive.stop()
     else:
         raise NotImplementedError
@@ -121,7 +141,7 @@ def disable_motor_fixture(pytestconfig, motion_controller, tests_setup):
     yield
 
     if isinstance(tests_setup, DriveHwSetup):
-        mc, alias = motion_controller
+        mc, alias, environment = motion_controller
         mc.motion.motor_disable(servo=alias)
         mc.motion.fault_reset(servo=alias)
 
@@ -130,22 +150,23 @@ def disable_motor_fixture(pytestconfig, motion_controller, tests_setup):
 def motion_controller_teardown(motion_controller, pytestconfig, tests_setup: Setup):
     yield motion_controller
     if isinstance(tests_setup, DriveHwSetup):
-        mc, alias = motion_controller
+        mc, alias, environment = motion_controller
         mc.motion.motor_disable(servo=alias)
-        mc.configuration.load_configuration(tests_setup.config_file, servo=alias)
+        if tests_setup.config_file is not None:
+            mc.configuration.load_configuration(tests_setup.config_file, servo=alias)
         mc.motion.fault_reset(servo=alias)
 
 
 @pytest.fixture
 def disable_monitoring_disturbance(motion_controller):
     yield
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     mc.capture.clean_monitoring_disturbance(servo=alias)
 
 
 @pytest.fixture(scope="session")
 def feedback_list(motion_controller):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     fdbk_lst = [
         mc.configuration.get_commutation_feedback(servo=alias),
         mc.configuration.get_reference_feedback(servo=alias),
@@ -158,7 +179,7 @@ def feedback_list(motion_controller):
 
 @pytest.fixture
 def clean_and_restore_feedbacks(motion_controller):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     comm = mc.configuration.get_commutation_feedback(servo=alias)
     ref = mc.configuration.get_reference_feedback(servo=alias)
     vel = mc.configuration.get_velocity_feedback(servo=alias)
@@ -179,7 +200,7 @@ def clean_and_restore_feedbacks(motion_controller):
 
 @pytest.fixture()
 def skip_if_monitoring_not_available(motion_controller):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     try:
         mc.capture._check_version(alias)
     except NotImplementedError:
@@ -198,7 +219,7 @@ def pytest_runtest_makereport(item, call):
 
 @pytest.fixture(scope="function", autouse=True)
 def load_configuration_if_test_fails(pytestconfig, request, motion_controller, tests_setup: Setup):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     yield
 
     report = request.node.stash[test_report_key]
@@ -206,7 +227,8 @@ def load_configuration_if_test_fails(pytestconfig, request, motion_controller, t
     if isinstance(tests_setup, DriveHwSetup) and (
         report["setup"].failed or ("call" not in report) or report["call"].failed
     ):
-        mc.configuration.load_configuration(tests_setup.config_file, servo=alias)
+        if tests_setup.config_file is not None:
+            mc.configuration.load_configuration(tests_setup.config_file, servo=alias)
         mc.motion.fault_reset(servo=alias)
 
 
@@ -228,9 +250,10 @@ def load_configuration_after_each_module(pytestconfig, motion_controller, tests_
     yield motion_controller
 
     if isinstance(tests_setup, DriveHwSetup):
-        mc, alias = motion_controller
+        mc, alias, environment = motion_controller
         mc.motion.motor_disable(servo=alias)
-        mc.configuration.load_configuration(tests_setup.config_file, servo=alias)
+        if tests_setup.config_file is not None:
+            mc.configuration.load_configuration(tests_setup.config_file, servo=alias)
 
 
 @pytest.fixture(scope="session")
@@ -246,7 +269,7 @@ def load_firmware(pytestconfig, tests_setup: Setup, request):
     if not isinstance(tests_setup, DriveHwSetup):
         return
 
-    if not tests_setup.load_firmware_with_rack_service:
+    if not tests_setup.use_rack_service:
         return
 
     drive_identifier = tests_setup.identifier

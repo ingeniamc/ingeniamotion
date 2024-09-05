@@ -136,7 +136,7 @@ def test_connect_servo_canopen(tests_setup: DriveCanOpenSetup):
 @pytest.mark.canopen
 @pytest.mark.skip
 def test_connect_servo_canopen_busy_drive_error(motion_controller, tests_setup: DriveCanOpenSetup):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     assert "canopen_test" not in mc.servos
     assert "canopen_test" not in mc.servo_net
     assert alias in mc.servos
@@ -166,7 +166,7 @@ def test_connect_servo_canopen_busy_drive_error(motion_controller, tests_setup: 
     ],
 )
 def test_get_register(motion_controller, uid, value):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     drive = mc.servos[alias]
     drive.write(uid, value)
     test_value = mc.communication.get_register(uid, servo=alias)
@@ -176,7 +176,7 @@ def test_get_register(motion_controller, uid, value):
 @pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_register_wrong_uid(motion_controller):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     with pytest.raises(IMRegisterNotExist):
         mc.communication.get_register("WRONG_UID", servo=alias)
 
@@ -192,7 +192,7 @@ def test_get_register_wrong_uid(motion_controller):
     ],
 )
 def test_set_register(motion_controller, uid, value):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     drive = mc.servos[alias]
     mc.communication.set_register(uid, value, servo=alias)
     test_value = drive.read(uid)
@@ -202,7 +202,7 @@ def test_set_register(motion_controller, uid, value):
 @pytest.mark.virtual
 @pytest.mark.smoke
 def test_set_register_wrong_uid(motion_controller):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     with pytest.raises(IMRegisterNotExist):
         mc.communication.set_register("WRONG_UID", 2, servo=alias)
 
@@ -224,7 +224,7 @@ def test_set_register_wrong_uid(motion_controller):
     ],
 )
 def test_set_register_wrong_value_type(motion_controller, uid, value, fail):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     if fail:
         with pytest.raises(TypeError):
             mc.communication.set_register(uid, value, servo=alias)
@@ -235,7 +235,7 @@ def test_set_register_wrong_value_type(motion_controller, uid, value, fail):
 @pytest.mark.virtual
 @pytest.mark.smoke
 def test_set_register_wrong_access(motion_controller):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     uid = "DRV_STATE_STATUS"
     value = 0
     with pytest.raises(IMRegisterWrongAccess):
@@ -251,7 +251,7 @@ def dummy_callback(status, _, axis):
 @pytest.mark.canopen
 @pytest.mark.smoke
 def test_subscribe_servo_status(mocker, motion_controller):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     axis = 1
     patch_callback = mocker.patch("tests.test_communication.dummy_callback")
     mc.communication.subscribe_servo_status(patch_callback, alias)
@@ -268,14 +268,14 @@ def test_subscribe_servo_status(mocker, motion_controller):
 
 @pytest.mark.virtual
 def test_load_firmware_canopen_exception(motion_controller):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     with pytest.raises(ValueError):
         mc.communication.load_firmware_canopen("fake_fw_file.lfu", servo=alias)
 
 
 @pytest.mark.virtual
 def test_boot_mode_and_load_firmware_ethernet_exception(mocker, motion_controller):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
 
     mocker.patch.object(mc, "_get_network", return_value=object())
     with pytest.raises(ValueError):
@@ -284,7 +284,7 @@ def test_boot_mode_and_load_firmware_ethernet_exception(mocker, motion_controlle
 
 @pytest.mark.virtual
 def test_load_firmware_moco_exception(mocker, motion_controller):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     mocker.patch.object(mc, "_get_network", return_value=object())
     with pytest.raises(ValueError):
         mc.communication.load_firmware_moco("fake_fw_file.lfu", servo=alias)

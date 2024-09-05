@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass
@@ -29,9 +30,9 @@ class DriveHwSetup(Setup):
 
     dictionary: str
     identifier: str
-    config_file: str
+    config_file: Optional[str]
     fw_file: str
-    load_firmware_with_rack_service: bool
+    use_rack_service: bool
 
 
 @dataclass
