@@ -401,9 +401,16 @@ def test_rearm_monitoring(motion_controller, monitoring, disable_monitoring_dist
 
 
 def run_read_monitoring_data_and_stop(monitoring, timeout):
+    # Set the flag to true to check that the read_monitoring_data
+    # clears it
+    monitoring._read_process_finished = True
     read_monitoring_data_timeout = partial(monitoring.read_monitoring_data, timeout=timeout)
     test_thread = ThreadWithReturnValue(target=read_monitoring_data_timeout)
     test_thread.start()
+    # Wait for read_monitoring_data to clear the flag, indicating that the thread has started
+    while monitoring._read_process_finished:
+        pass
+    # Now the stop reading data set the flag again and the thread stop on the next cycle
     monitoring.stop_reading_data()
     return test_thread.join()
 
