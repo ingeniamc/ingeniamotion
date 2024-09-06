@@ -110,7 +110,7 @@ class TestErrors:
     @pytest.mark.smoke
     def test_get_all_errors(self, motion_controller, generate_drive_errors):
         mc, alias, environment = motion_controller
-        test_all_errors = mc.errors.get_all_errors(servo=alias)
+        test_all_errors = mc.errors.get_all_errors(servo=alias, axis=1)
         for i, code_error in enumerate(generate_drive_errors):
             test_code_error, axis, warning = test_all_errors[i]
             assert test_code_error == code_error
