@@ -263,9 +263,19 @@ def test_start_pdos_number_of_network_exception(mocker, motion_controller):
 
 
 def skip_if_pdo_padding_is_not_available(mc, alias):
+    # Check if monitoring is available (To discard EVE-XCR-E)
+    try:
+        mc.capture._check_version(alias)
+    except NotImplementedError:
+        is_monitoring_available = False
+    else:
+        is_monitoring_available = True
     pdo_poller_fw_version = "2.5.0"
     firmware_version = mc.configuration.get_fw_version(alias, 1)
-    if version.parse(firmware_version) < version.parse(pdo_poller_fw_version):
+    if (
+        version.parse(firmware_version) < version.parse(pdo_poller_fw_version)
+        or not is_monitoring_available
+    ):
         pytest.skip(
             f"PDO poller is available for firmware version {pdo_poller_fw_version} or higher. "
             f"Firmware version found: {firmware_version}"
