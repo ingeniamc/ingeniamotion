@@ -38,6 +38,12 @@ def pytest_addoption(parser):
         "tests_setup.py inside of the folder setups with a variable called TESTS_SETUP"
         "This variable must define, or must be assigned to a Setup instance",
     )
+    parser.addoption(
+        "--job_name",
+        action="store",
+        default=None,
+        help="Name of the executing job. Will be set to rack service to have more info of the logs",
+    )
 
 
 @pytest.fixture(scope="session")
@@ -257,9 +263,10 @@ def load_configuration_after_each_module(pytestconfig, motion_controller, tests_
 
 
 @pytest.fixture(scope="session")
-def connect_to_rack_service():
+def connect_to_rack_service(request):
     rack_service_port = 33810
     client = rpyc.connect("localhost", rack_service_port, config={"sync_request_timeout": None})
+    client.root.set_job_name(request.config.getoption("--job_name"))
     yield client.root
     client.close()
 

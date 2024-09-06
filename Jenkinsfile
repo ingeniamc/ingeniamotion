@@ -33,7 +33,8 @@ def runTestHW(markers, setup_name) {
         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
                 "-m \"${markers}\" " +
                 "--setup tests.setups.rack_setups.${setup_name} " +
-                "--cov=ingeniamotion"
+                "--cov=ingeniamotion " +
+                "--job_name=\"${env.JOB_NAME}-${setup_name}\""
     } catch (err) {
         unstable(message: "Tests failed")
     } finally {
