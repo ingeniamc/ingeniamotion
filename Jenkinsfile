@@ -243,10 +243,6 @@ pipeline {
                     }
                     stages {
                         stage("Ethercat Everest") {
-                            when {
-                                // Remove this after fixing INGM-376
-                                expression { false }
-                            }
                             steps {
                                 runTestHW("soem", "ECAT_EVE_SETUP")
                             }
