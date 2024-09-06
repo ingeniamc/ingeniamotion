@@ -2,6 +2,7 @@ import os
 import platform
 import time
 from collections import OrderedDict
+import tempfile
 
 import pytest
 from ingenialink.ethernet.network import EthernetNetwork
@@ -355,18 +356,24 @@ def test_scan_servos_ethercat(mocker):
 @pytest.mark.virtual
 def test_unzip_ensemble_fw_file():
     mc = MotionController()
-    mapping = mc.communication._Communication__unzip_ensemble_fw_file(TEST_ENSEMBLE_FW_FILE)
-    path = os.path.abspath("ensemble_temp")
-    assert mapping == {
-        0: (os.path.join(path, "cap-net-1-e_2.4.0.lfu"), 123456, 4660),
-        1: (os.path.join(path, "cap-net-2-e_2.4.0.lfu"), 123456, 16781876),
-    }
+    with tempfile.TemporaryDirectory() as ensemble_temp_dir:
+        mapping = mc.communication._Communication__unzip_ensemble_fw_file(
+            TEST_ENSEMBLE_FW_FILE, ensemble_temp_dir
+        )
+
+        assert mapping == {
+            0: (os.path.join(ensemble_temp_dir, "cap-net-1-e_2.4.0.lfu"), 123456, 4660),
+            1: (os.path.join(ensemble_temp_dir, "cap-net-2-e_2.4.0.lfu"), 123456, 16781876),
+        }
 
 
 @pytest.mark.virtual
 def test__check_ensemble():
     mc = MotionController()
-    mapping = mc.communication._Communication__unzip_ensemble_fw_file(TEST_ENSEMBLE_FW_FILE)
+    with tempfile.TemporaryDirectory() as ensemble_temp_dir:
+        mapping = mc.communication._Communication__unzip_ensemble_fw_file(
+            TEST_ENSEMBLE_FW_FILE, ensemble_temp_dir
+        )
     product_code = 123456
     slaves = OrderedDict(
         {
@@ -387,7 +394,11 @@ def test__check_ensemble():
 @pytest.mark.virtual
 def test__check_ensemble_wrong():
     mc = MotionController()
-    mapping = mc.communication._Communication__unzip_ensemble_fw_file(TEST_ENSEMBLE_FW_FILE)
+    with tempfile.TemporaryDirectory() as ensemble_temp_dir:
+        mapping = mc.communication._Communication__unzip_ensemble_fw_file(
+            TEST_ENSEMBLE_FW_FILE, ensemble_temp_dir
+        )
+
     product_code = 123456
     slaves = OrderedDict(
         {
@@ -429,7 +440,10 @@ def test__check_ensemble_wrong():
 @pytest.mark.parametrize("revision_number,expected_id_offset", [(4660, 0), (16781876, 1)])
 def test_check_slave_in_ensemble(revision_number, expected_id_offset):
     mc = MotionController()
-    mapping = mc.communication._Communication__unzip_ensemble_fw_file(TEST_ENSEMBLE_FW_FILE)
+    with tempfile.TemporaryDirectory() as ensemble_temp_dir:
+        mapping = mc.communication._Communication__unzip_ensemble_fw_file(
+            TEST_ENSEMBLE_FW_FILE, ensemble_temp_dir
+        )
     product_code = 123456
     slave_info = SlaveInfo(product_code, revision_number)
 
@@ -441,7 +455,10 @@ def test_check_slave_in_ensemble(revision_number, expected_id_offset):
 @pytest.mark.virtual
 def test_check_slave_in_ensemble_drive_not_in_ensemble():
     mc = MotionController()
-    mapping = mc.communication._Communication__unzip_ensemble_fw_file(TEST_ENSEMBLE_FW_FILE)
+    with tempfile.TemporaryDirectory() as ensemble_temp_dir:
+        mapping = mc.communication._Communication__unzip_ensemble_fw_file(
+            TEST_ENSEMBLE_FW_FILE, ensemble_temp_dir
+        )
     product_code = 654321
     revision_number = 4660
     slave_info = SlaveInfo(product_code, revision_number)
@@ -463,9 +480,7 @@ def test_load_ensemble_fw_ecat(mocker):
             5: SlaveInfo(654321, 1236),
         }
     )
-    temp_path = os.path.abspath("ensemble_temp")
-    fw_file1 = os.path.join(temp_path, "cap-net-1-e_2.4.0.lfu")
-    fw_file2 = os.path.join(temp_path, "cap-net-2-e_2.4.0.lfu")
+
     mc = MotionController()
     mocker.patch("ingenialink.ethercat.network.EthercatNetwork.__init__", return_value=None)
     mocker.patch(
@@ -477,8 +492,13 @@ def test_load_ensemble_fw_ecat(mocker):
         )
         mc.communication.load_firmware_ecat("", TEST_ENSEMBLE_FW_FILE, slave=slave)
         assert len(patch_fw_callback.call_args_list) == 2
-        assert patch_fw_callback.call_args_list[0][0] == (fw_file1, False, 1)
-        assert patch_fw_callback.call_args_list[1][0] == (fw_file2, False, 2)
+        assert patch_fw_callback.call_args_list[0][0][0].endswith("cap-net-1-e_2.4.0.lfu")
+        assert patch_fw_callback.call_args_list[0][0][1] is False
+        assert patch_fw_callback.call_args_list[0][0][2] == 1
+
+        assert patch_fw_callback.call_args_list[1][0][0].endswith("cap-net-2-e_2.4.0.lfu")
+        assert patch_fw_callback.call_args_list[1][0][1] is False
+        assert patch_fw_callback.call_args_list[1][0][2] == 2
 
     for slave in [3, 4]:
         patch_fw_callback = mocker.patch(
@@ -486,8 +506,13 @@ def test_load_ensemble_fw_ecat(mocker):
         )
         mc.communication.load_firmware_ecat("", TEST_ENSEMBLE_FW_FILE, slave=slave)
         assert len(patch_fw_callback.call_args_list) == 2
-        assert patch_fw_callback.call_args_list[0][0] == (fw_file1, False, 3)
-        assert patch_fw_callback.call_args_list[1][0] == (fw_file2, False, 4)
+        assert patch_fw_callback.call_args_list[0][0][0].endswith("cap-net-1-e_2.4.0.lfu")
+        assert patch_fw_callback.call_args_list[0][0][1] is False
+        assert patch_fw_callback.call_args_list[0][0][2] == 3
+
+        assert patch_fw_callback.call_args_list[1][0][0].endswith("cap-net-2-e_2.4.0.lfu")
+        assert patch_fw_callback.call_args_list[1][0][1] is False
+        assert patch_fw_callback.call_args_list[1][0][2] == 4
 
     with pytest.raises(IMException) as exc_info:
         mc.communication.load_firmware_ecat("", TEST_ENSEMBLE_FW_FILE, slave=5)
@@ -528,9 +553,9 @@ def test_load_ensemble_fw_canopen(mocker):
             5: SlaveInfo(654321, 1236),
         }
     )
-    temp_path = os.path.abspath("ensemble_temp")
-    fw_file1 = os.path.join(temp_path, "cap-net-1-e_2.4.0.lfu")
-    fw_file2 = os.path.join(temp_path, "cap-net-2-e_2.4.0.lfu")
+    # temp_path = os.path.abspath("ensemble_temp")
+    # fw_file1 = os.path.join(temp_path, "cap-net-1-e_2.4.0.lfu")
+    # fw_file2 = os.path.join(temp_path, "cap-net-2-e_2.4.0.lfu")
     mocker.patch(
         "ingenialink.canopen.network.CanopenNetwork.scan_slaves_info", return_value=slaves_info
     )
@@ -538,15 +563,21 @@ def test_load_ensemble_fw_canopen(mocker):
         patch_fw_callback = mocker.patch("ingenialink.canopen.network.CanopenNetwork.load_firmware")
         mc.communication.load_firmware_canopen(TEST_ENSEMBLE_FW_FILE, servo=str(slave))
         assert len(patch_fw_callback.call_args_list) == 2
-        assert patch_fw_callback.call_args_list[0][0][:2] == (1, fw_file1)
-        assert patch_fw_callback.call_args_list[1][0][:2] == (2, fw_file2)
+        assert patch_fw_callback.call_args_list[0][0][0] == 1
+        assert patch_fw_callback.call_args_list[0][0][1].endswith("cap-net-1-e_2.4.0.lfu")
+
+        assert patch_fw_callback.call_args_list[1][0][0] == 2
+        assert patch_fw_callback.call_args_list[1][0][1].endswith("cap-net-2-e_2.4.0.lfu")
 
     for slave in [3, 4]:
         patch_fw_callback = mocker.patch("ingenialink.canopen.network.CanopenNetwork.load_firmware")
         mc.communication.load_firmware_canopen(TEST_ENSEMBLE_FW_FILE, servo=str(slave))
         assert len(patch_fw_callback.call_args_list) == 2
-        assert patch_fw_callback.call_args_list[0][0][:2] == (3, fw_file1)
-        assert patch_fw_callback.call_args_list[1][0][:2] == (4, fw_file2)
+        assert patch_fw_callback.call_args_list[0][0][0] == 3
+        assert patch_fw_callback.call_args_list[0][0][1].endswith("cap-net-1-e_2.4.0.lfu")
+
+        assert patch_fw_callback.call_args_list[1][0][0] == 4
+        assert patch_fw_callback.call_args_list[1][0][1].endswith("cap-net-2-e_2.4.0.lfu")
 
     with pytest.raises(IMException) as exc_info:
         mc.communication.load_firmware_canopen(TEST_ENSEMBLE_FW_FILE, servo="5")
