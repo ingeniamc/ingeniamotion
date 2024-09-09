@@ -57,10 +57,11 @@ class TestErrors:
     @pytest.mark.smoke
     def test_get_last_error(self, motion_controller, generate_drive_errors):
         mc, alias, environment = motion_controller
-        last_error, subnode, warning = mc.errors.get_last_error(servo=alias)
+        # Axis 1 needs to be selected due to a bug in EVE-XCR. For more info check INGM-376.
+        last_error, subnode, warning = mc.errors.get_last_error(servo=alias, axis=1)
         assert last_error == generate_drive_errors[0]
         mc.motion.fault_reset(servo=alias)
-        last_error, subnode, warning = mc.errors.get_last_error(servo=alias)
+        last_error, subnode, warning = mc.errors.get_last_error(servo=alias, axis=1)
         assert last_error == 0
         assert subnode is None
         assert warning is None
@@ -109,7 +110,7 @@ class TestErrors:
     @pytest.mark.smoke
     def test_get_all_errors(self, motion_controller, generate_drive_errors):
         mc, alias, environment = motion_controller
-        test_all_errors = mc.errors.get_all_errors(servo=alias)
+        test_all_errors = mc.errors.get_all_errors(servo=alias, axis=1)
         for i, code_error in enumerate(generate_drive_errors):
             test_code_error, axis, warning = test_all_errors[i]
             assert test_code_error == code_error
