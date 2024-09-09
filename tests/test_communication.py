@@ -553,9 +553,6 @@ def test_load_ensemble_fw_canopen(mocker):
             5: SlaveInfo(654321, 1236),
         }
     )
-    # temp_path = os.path.abspath("ensemble_temp")
-    # fw_file1 = os.path.join(temp_path, "cap-net-1-e_2.4.0.lfu")
-    # fw_file2 = os.path.join(temp_path, "cap-net-2-e_2.4.0.lfu")
     mocker.patch(
         "ingenialink.canopen.network.CanopenNetwork.scan_slaves_info", return_value=slaves_info
     )
