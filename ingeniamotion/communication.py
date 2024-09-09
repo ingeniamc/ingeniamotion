@@ -1,14 +1,13 @@
 import json
 import platform
-import shutil
 import subprocess
+import tempfile
 import time
 import zipfile
 from collections import OrderedDict
 from functools import partial
 from os import path
 from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
-import tempfile
 
 import ifaddr
 import ingenialogger
