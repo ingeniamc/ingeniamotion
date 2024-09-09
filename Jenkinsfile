@@ -103,83 +103,86 @@ pipeline {
                     }
                 }
 
-                stage('Build') {
-                    agent {
-                        docker {
-                            label SW_NODE
-                            image WIN_DOCKER_IMAGE
-                        }
-                    }
+                stage('Build and publish') {
                     stages {
-                        stage('Build wheels') {
-                            steps {
-                                bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e build"
+                        stage('Build') {
+                            agent {
+                                docker {
+                                    label SW_NODE
+                                    image WIN_DOCKER_IMAGE
+                                }
                             }
-                        }
-                        stage('Make a static type analysis') {
-                            steps {
-                                bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e type"
-                            }
-                        }
-                        stage('Check formatting') {
-                            steps {
-                                bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e format"
-                            }
-                        }
-                        stage('Generate documentation') {
-                            steps {
-                                bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e docs"
-                            }
-                        }
-                        stage("Run unit tests") {
-                            steps {
-                                bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
-                                        "-m \"not eoe and not soem and not canopen and not virtual and not soem_multislave\" " +
-                                        "--cov=ingeniamotion"
-                            }
-                            post {
-                                always {
-                                    bat "move .coverage .coverage_unit_tests"
-                                    junit "pytest_reports\\*.xml"
-                                    // Delete the junit after publishing it so it not re-published on the next stage
-                                    bat "del /S /Q pytest_reports\\*.xml"
-                                    stash includes: '.coverage_unit_tests', name: '.coverage_unit_tests'
-                                    script {
-                                        coverage_stashes.add(".coverage_unit_tests")
+                            stages {
+                                stage('Build wheels') {
+                                    steps {
+                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e build"
+                                    }
+                                }
+                                stage('Make a static type analysis') {
+                                    steps {
+                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e type"
+                                    }
+                                }
+                                stage('Check formatting') {
+                                    steps {
+                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e format"
+                                    }
+                                }
+                                stage('Generate documentation') {
+                                    steps {
+                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e docs"
+                                    }
+                                }
+                                stage("Run unit tests") {
+                                    steps {
+                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
+                                                "-m \"not eoe and not soem and not canopen and not virtual and not soem_multislave\" " +
+                                                "--cov=ingeniamotion"
+                                    }
+                                    post {
+                                        always {
+                                            bat "move .coverage .coverage_unit_tests"
+                                            junit "pytest_reports\\*.xml"
+                                            // Delete the junit after publishing it so it not re-published on the next stage
+                                            bat "del /S /Q pytest_reports\\*.xml"
+                                            stash includes: '.coverage_unit_tests', name: '.coverage_unit_tests'
+                                            script {
+                                                coverage_stashes.add(".coverage_unit_tests")
+                                            }
+                                        }
+                                    }
+                                }
+                                stage("Run virtual drive tests") {
+                                    steps {
+                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
+                                                "-m virtual " +
+                                                "--setup tests.setups.virtual_drive.TESTS_SETUP "  +
+                                                "--cov=ingeniamotion"
+                                    }
+                                    post {
+                                        always {
+                                            bat "move .coverage .coverage_virtual"
+                                            junit "pytest_reports\\*.xml"
+                                            // Delete the junit after publishing it so it not re-published on the next stage
+                                            bat "del /S /Q pytest_reports\\*.xml"
+                                            stash includes: '.coverage_virtual', name: '.coverage_virtual'
+                                            script {
+                                                coverage_stashes.add(".coverage_virtual")
+                                            }
+                                        }
+                                    }
+                                }
+                                stage('Archive') {
+                                    steps {
+                                        bat """
+                                            "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
+                                        """
+                                        stash includes: 'dist\\*, docs.zip', name: 'publish_files'
+                                        archiveArtifacts artifacts: "dist\\*, docs.zip"
                                     }
                                 }
                             }
                         }
-                        stage("Run virtual drive tests") {
-                            steps {
-                                bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
-                                        "-m virtual " +
-                                        "--setup tests.setups.virtual_drive.TESTS_SETUP "  +
-                                        "--cov=ingeniamotion"
-                            }
-                            post {
-                                always {
-                                    bat "move .coverage .coverage_virtual"
-                                    junit "pytest_reports\\*.xml"
-                                    // Delete the junit after publishing it so it not re-published on the next stage
-                                    bat "del /S /Q pytest_reports\\*.xml"
-                                    stash includes: '.coverage_virtual', name: '.coverage_virtual'
-                                    script {
-                                        coverage_stashes.add(".coverage_virtual")
-                                    }
-                                }
-                            }
-                        }
-                        stage('Archive') {
-                            steps {
-                                bat """
-                                    "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
-                                """
-                                stash includes: 'dist\\*, docs.zip', name: 'publish_files'
-                                archiveArtifacts artifacts: "dist\\*, docs.zip"
-                            }
-                        }
-
                         stage('Publish ingeniamotion') {
                             agent {
                                 docker {
