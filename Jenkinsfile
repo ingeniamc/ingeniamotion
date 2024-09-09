@@ -34,7 +34,7 @@ def runTestHW(markers, setup_name) {
                 "-m \"${markers}\" " +
                 "--setup tests.setups.rack_setups.${setup_name} " +
                 "--cov=ingeniamotion " +
-                "--job_name=\"${env.JOB_NAME}-${setup_name}\""
+                "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${setup_name}\""
     } catch (err) {
         unstable(message: "Tests failed")
     } finally {
