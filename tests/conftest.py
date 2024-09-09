@@ -41,7 +41,7 @@ def pytest_addoption(parser):
     parser.addoption(
         "--job_name",
         action="store",
-        default='Unknown',
+        default='ingeniamotion - Unknown',
         help="Name of the executing job. Will be set to rack service to have more info of the logs",
     )
 
