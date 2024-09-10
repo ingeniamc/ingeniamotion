@@ -229,10 +229,6 @@ pipeline {
                             }
                         }
                         stage("Ethernet Capitan") {
-                            when {
-                                // Remove this after fixing CAP-924
-                                expression { false }
-                            }
                             steps {
                                 runTestHW("eoe", "ETH_CAP_SETUP")
                             }
