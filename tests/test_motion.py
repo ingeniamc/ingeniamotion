@@ -95,39 +95,16 @@ def test_motor_enable(motion_controller):
         ("DRV_PROT_USER_OVER_VOLT", 1, exceptions.ILError, "User Over-voltage detected"),
     ],
 )
-def test_motor_enable_error(motion_controller_teardown, uid, value, exception_type, message):
+def test_motor_enable_with_fault(motion_controller_teardown, uid, value, exception_type, message):
     mc, alias, environment = motion_controller_teardown
     mc.communication.set_register(uid, value, alias)
     with pytest.raises(exception_type) as excinfo:
         mc.motion.motor_enable(servo=alias)
+    if excinfo.type is exceptions.ILIOError:
+        # Retrieving the error code failed. Check INGM-522.
+        with pytest.raises(exception_type) as excinfo:
+            mc.motion.motor_enable(servo=alias)
     assert str(excinfo.value) == "An error occurred enabling motor. Reason: {}".format(message)
-
-
-@pytest.mark.eoe
-@pytest.mark.soem
-@pytest.mark.canopen
-@pytest.mark.smoke
-def test_motor_enable_with_fault(motion_controller_teardown):
-    uid = "DRV_PROT_USER_UNDER_VOLT"
-    value = 100
-    exception_type = exceptions.ILError
-    message = "User Under-voltage detected"
-    mc, alias, environment = motion_controller_teardown
-    mc.communication.set_register(uid, value, alias)
-    with pytest.raises(exception_type) as excinfo_1:
-        mc.motion.motor_enable(servo=alias)
-    if excinfo_1.type is exceptions.ILIOError:
-        # Retrieving the error code failed. Check INGM-522.
-        with pytest.raises(exception_type) as excinfo_1:
-            mc.motion.motor_enable(servo=alias)
-    assert str(excinfo_1.value) == "An error occurred enabling motor. Reason: {}".format(message)
-    with pytest.raises(exception_type) as excinfo_2:
-        mc.motion.motor_enable(servo=alias)
-    if excinfo_2.type is exceptions.ILIOError:
-        # Retrieving the error code failed. Check INGM-522.
-        with pytest.raises(exception_type) as excinfo_2:
-            mc.motion.motor_enable(servo=alias)
-    assert str(excinfo_2.value) == "An error occurred enabling motor. Reason: {}".format(message)
 
 
 @pytest.mark.eoe
