@@ -3,6 +3,7 @@ import time
 import numpy as np
 import pytest
 from ingenialink import exceptions
+from ingenialink.exceptions import ILIOError
 
 from ingeniamotion.enums import OperationMode
 from ingeniamotion.exceptions import IMTimeoutError
@@ -116,9 +117,17 @@ def test_motor_enable_with_fault(motion_controller_teardown):
     mc.communication.set_register(uid, value, alias)
     with pytest.raises(exception_type) as excinfo_1:
         mc.motion.motor_enable(servo=alias)
+    if excinfo_1.type is ILIOError:
+        # Retrieving the error code failed. Check INGM-522.
+        with pytest.raises(exception_type) as excinfo_1:
+            mc.motion.motor_enable(servo=alias)
     assert str(excinfo_1.value) == "An error occurred enabling motor. Reason: {}".format(message)
     with pytest.raises(exception_type) as excinfo_2:
         mc.motion.motor_enable(servo=alias)
+    if excinfo_2.type is ILIOError:
+        # Retrieving the error code failed. Check INGM-522.
+        with pytest.raises(exception_type) as excinfo_2:
+            mc.motion.motor_enable(servo=alias)
     assert str(excinfo_2.value) == "An error occurred enabling motor. Reason: {}".format(message)
 
 
