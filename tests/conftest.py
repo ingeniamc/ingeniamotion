@@ -90,7 +90,9 @@ def motion_controller(tests_setup: Setup, pytestconfig, request):
 
     if isinstance(tests_setup, DriveHwSetup):
         if tests_setup.use_rack_service:
-            environment = RackServiceEnvironmentController(request.getfixturevalue("connect_to_rack_service"))
+            environment = RackServiceEnvironmentController(
+                request.getfixturevalue("connect_to_rack_service")
+            )
         else:
             environment = ManualUserEnvironmentController(pytestconfig)
 

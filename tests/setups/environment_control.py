@@ -48,8 +48,8 @@ class ManualUserEnvironmentController(DriveEnvironmentController):
 class RackServiceEnvironmentController(DriveEnvironmentController):
     """Controller of the environment of Rack Service Setup"""
 
-    def __init__(self, rack_service_client):
-        self.service = rack_service_client.root
+    def __init__(self, rack_service_client_root):
+        self.service = rack_service_client_root
 
     def reset(self):
         self.set_gpi(1, False)

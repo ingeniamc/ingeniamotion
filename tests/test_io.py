@@ -42,6 +42,9 @@ def test_set_get_gpi_polarity(motion_controller, gpi_id, polarity):
     assert mc.io.get_gpi_polarity(gpi_id, servo=alias) == polarity
 
 
+@pytest.mark.eoe
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.virtual
 @pytest.mark.smoke
 def test_get_gpi_voltage_level(motion_controller):
