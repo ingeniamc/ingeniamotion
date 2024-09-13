@@ -48,13 +48,17 @@ class ManualUserEnvironmentController(DriveEnvironmentController):
 class RackServiceEnvironmentController(DriveEnvironmentController):
     """Controller of the environment of Rack Service Setup"""
 
+    def __init__(self, rack_service_client):
+        self.service = rack_service_client.root
+
     def reset(self):
-        pass
+        self.set_gpi(1, False)
+        self.set_gpi(2, False)
+        self.set_gpi(3, False)
+        self.set_gpi(4, False)
 
     def set_gpi(self, number: int, value: bool):
-        # Test gpios in rack with rack service
-        # https://novantamotion.atlassian.net/browse/INGM-514
-        raise NotImplementedError
+        self.service.write_gpio(f"GPI_{number}", int(value))
 
 
 class VirtualDriveEnvironmentController(DriveEnvironmentController):

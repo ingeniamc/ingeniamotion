@@ -84,13 +84,13 @@ def connect_canopen(mc, config: DriveCanOpenSetup, alias):
 
 
 @pytest.fixture(scope="session")
-def motion_controller(tests_setup: Setup, pytestconfig):
+def motion_controller(tests_setup: Setup, pytestconfig, request):
     alias = "test"
     mc = MotionController()
 
     if isinstance(tests_setup, DriveHwSetup):
         if tests_setup.use_rack_service:
-            environment = RackServiceEnvironmentController()
+            environment = RackServiceEnvironmentController(request.getfixturevalue("connect_to_rack_service"))
         else:
             environment = ManualUserEnvironmentController(pytestconfig)
 
