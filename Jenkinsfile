@@ -37,7 +37,7 @@ def runTestHW(markers, setup_name) {
     } catch (err) {
         unstable(message: "Tests failed")
     } finally {
-        coverage_stash = ".coverage_${setup_name}"
+        def coverage_stash = ".coverage_${setup_name}"
         bat "move .coverage ${coverage_stash}"
         junit "pytest_reports\\*.xml"
         // Delete the junit after publishing it so it not re-published on the next stage
