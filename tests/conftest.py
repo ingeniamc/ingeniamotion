@@ -114,7 +114,9 @@ def motion_controller(tests_setup: Setup, pytestconfig, request):
 
     elif isinstance(tests_setup, EthercatMultiSlaveSetup):
         if tests_setup.drives[0].use_rack_service:
-            environment = RackServiceEnvironmentController()
+            environment = RackServiceEnvironmentController(
+                request.getfixturevalue("connect_to_rack_service")
+            )
         else:
             environment = ManualUserEnvironmentController(pytestconfig)
 
