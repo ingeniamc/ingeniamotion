@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+### Fixed
+- Feedback symmetry check calculation.
+
 ## [0.8.5] - 2024-08-27
 ### Fixed
 - Remove SBC registers that have been removed on FW
