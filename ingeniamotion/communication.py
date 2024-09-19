@@ -1,7 +1,7 @@
 import json
 import platform
-import shutil
 import subprocess
+import tempfile
 import time
 import zipfile
 from collections import OrderedDict
@@ -49,7 +49,6 @@ class Communication(metaclass=MCMetaClass):
     PASSWORD_SYSTEM_RESET = 0x72657365
 
     ENSEMBLE_FIRMWARE_EXTENSION = ".zfu"
-    ENSEMBLE_TEMP_FOLDER = "ensemble_temp"
     ENSEMBLE_SLAVE_REV_NUM_MASK = 0x1000000
 
     def __init__(self, motion_controller: "MotionController") -> None:
@@ -1291,29 +1290,32 @@ class Communication(metaclass=MCMetaClass):
         Raises:
             IMException: If the load FW process of any slave failed.
         """
-        mapping = self.__unzip_ensemble_fw_file(fw_file)
-        scanned_slaves = net.scan_slaves_info()
-        first_slave_in_ensemble = self.__check_ensemble(scanned_slaves, int(slave.target), mapping)
-        dictionary_path = slave.dictionary.path
-        connected_drives = {int(slave.target): slave for slave in net.servos}
-        for slave_id_offset in mapping:
-            slave_id = first_slave_in_ensemble + slave_id_offset
-            if slave_id not in connected_drives:
-                net.connect_to_slave(slave_id, dictionary_path)
-        try:
-            for slave_id_offset, fw_file_prod_code in mapping.items():
+        with tempfile.TemporaryDirectory() as ensemble_temp_dir:
+            mapping = self.__unzip_ensemble_fw_file(fw_file, ensemble_temp_dir)
+            scanned_slaves = net.scan_slaves_info()
+            first_slave_in_ensemble = self.__check_ensemble(
+                scanned_slaves, int(slave.target), mapping
+            )
+            dictionary_path = slave.dictionary.path
+            connected_drives = {int(slave.target): slave for slave in net.servos}
+            for slave_id_offset in mapping:
                 slave_id = first_slave_in_ensemble + slave_id_offset
-                net.load_firmware(
-                    slave_id,
-                    fw_file_prod_code[0],
-                    status_callback,
-                    progress_callback,
-                    error_enabled_callback,
+                if slave_id not in connected_drives:
+                    net.connect_to_slave(slave_id, dictionary_path)
+            try:
+                for slave_id_offset, fw_file_prod_code in mapping.items():
+                    slave_id = first_slave_in_ensemble + slave_id_offset
+                    net.load_firmware(
+                        slave_id,
+                        fw_file_prod_code[0],
+                        status_callback,
+                        progress_callback,
+                        error_enabled_callback,
+                    )
+            except ILError as e:
+                raise IMException(
+                    f"Load of FW in slave {slave_id} of ensemble failed. Exception: {e}"
                 )
-        except ILError as e:
-            raise IMException(f"Load of FW in slave {slave_id} of ensemble failed. Exception: {e}")
-        finally:
-            shutil.rmtree(self.ENSEMBLE_TEMP_FOLDER)
 
     def __load_ensemble_fw_ecat(
         self,
@@ -1337,25 +1339,24 @@ class Communication(metaclass=MCMetaClass):
             password: Password to load the firmware file. If ``None`` the default password will be
                 used.
         """
-        mapping = self.__unzip_ensemble_fw_file(fw_file)
-        scanned_slaves = net.scan_slaves_info()
-        first_slave_in_ensemble = self.__check_ensemble(scanned_slaves, slave, mapping)
-        try:
-            for slave_id_offset, fw_file_prod_code in mapping.items():
-                boot_in_app_drive = (
-                    self.__get_boot_in_app(fw_file_prod_code[0])
-                    if boot_in_app is None
-                    else boot_in_app
-                )
-                net.load_firmware(
-                    fw_file_prod_code[0],
-                    boot_in_app_drive,
-                    first_slave_in_ensemble + slave_id_offset,
-                )
-        except ILError as e:
-            raise e
-        finally:
-            shutil.rmtree(self.ENSEMBLE_TEMP_FOLDER)
+        with tempfile.TemporaryDirectory() as ensemble_temp_dir:
+            mapping = self.__unzip_ensemble_fw_file(fw_file, ensemble_temp_dir)
+            scanned_slaves = net.scan_slaves_info()
+            first_slave_in_ensemble = self.__check_ensemble(scanned_slaves, slave, mapping)
+            try:
+                for slave_id_offset, fw_file_prod_code in mapping.items():
+                    boot_in_app_drive = (
+                        self.__get_boot_in_app(fw_file_prod_code[0])
+                        if boot_in_app is None
+                        else boot_in_app
+                    )
+                    net.load_firmware(
+                        fw_file_prod_code[0],
+                        boot_in_app_drive,
+                        first_slave_in_ensemble + slave_id_offset,
+                    )
+            except ILError as e:
+                raise e
 
     def __check_ensemble(
         self,
@@ -1430,11 +1431,14 @@ class Communication(metaclass=MCMetaClass):
                 return slave_id_offset
         raise IMException("The selected drive is not part of the ensemble.")
 
-    def __unzip_ensemble_fw_file(self, fw_file: str) -> dict[int, tuple[str, int, int]]:
+    def __unzip_ensemble_fw_file(
+        self, fw_file: str, unzip_path: str
+    ) -> dict[int, tuple[str, int, int]]:
         """Unzip the ensemble FW file and return the mapping.
 
         Args:
             fw_file: Ensemble FW file to be unzipped.
+            unzip_path: Path where to unzip the ensemble
 
         Raises:
             IMException: If the file extension is incorrect.
@@ -1444,13 +1448,13 @@ class Communication(metaclass=MCMetaClass):
                 Dict{slave_id_offset: (fw_file, product_code, revision_number)}
         """
         with zipfile.ZipFile(fw_file, "r") as zip_ref:
-            zip_ref.extractall(self.ENSEMBLE_TEMP_FOLDER)
-        with open(path.join(self.ENSEMBLE_TEMP_FOLDER, "mapping.json")) as f:
+            zip_ref.extractall(unzip_path)
+        with open(path.join(unzip_path, "mapping.json")) as f:
             mapping_info = json.load(f)
         mapping = {}
         for drive in mapping_info["drives"]:
             slave_id_offset = drive["slave_id_offset"]
-            fw_file = path.join(path.abspath(self.ENSEMBLE_TEMP_FOLDER), drive["fw_file"])
+            fw_file = path.join(path.abspath(unzip_path), drive["fw_file"])
             product_code = drive["product_code"]
             revision_number = drive["revision_number"]
             mapping[slave_id_offset] = fw_file, product_code, revision_number
