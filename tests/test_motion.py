@@ -148,7 +148,12 @@ def test_fault_reset(motion_controller_teardown):
     assert not mc.errors.is_fault_active(servo=alias)
     with pytest.raises(exceptions.ILError):
         mc.motion.motor_enable(servo=alias)
-    assert mc.errors.is_fault_active(servo=alias)
+    try:
+        is_fault_active = mc.errors.is_fault_active(servo=alias)
+    except ILIOError:
+        # Reading the status word failed. Check INGM-526.
+        is_fault_active = mc.errors.is_fault_active(servo=alias)
+    assert is_fault_active
     mc.motion.fault_reset(servo=alias)
     assert not mc.errors.is_fault_active(servo=alias)
 
