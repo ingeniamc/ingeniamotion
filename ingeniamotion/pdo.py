@@ -10,6 +10,7 @@ from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.ethercat.servo import EthercatServo
 from ingenialink.exceptions import ILError, ILWrongWorkingCount
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
+import ingenialogger
 
 from ingeniamotion.enums import COMMUNICATION_TYPE
 from ingeniamotion.exceptions import IMException
@@ -304,6 +305,7 @@ class PDONetworkManager:
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
+        self.logger = ingenialogger.get_logger(__name__)
         self._pdo_thread: Optional[PDONetworkManager.ProcessDataThread] = None
         self._pdo_send_observers: List[Callable[[], None]] = []
         self._pdo_receive_observers: List[Callable[[], None]] = []
@@ -750,5 +752,6 @@ class PDONetworkManager:
         Args:
             exc: Exception that was raised in the PDO process data thread.
         """
+        self.logger.error(exc)
         for callback in self._pdo_exceptions_observers:
             callback(exc)
