@@ -3,6 +3,7 @@ import time
 from collections import deque
 from typing import TYPE_CHECKING, Callable, Deque, Dict, List, Optional, Tuple, Type, Union
 
+import ingenialogger
 from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.enums.register import RegCyclicType
 from ingenialink.ethercat.network import EthercatNetwork
@@ -10,7 +11,6 @@ from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.ethercat.servo import EthercatServo
 from ingenialink.exceptions import ILError, ILWrongWorkingCount
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
-import ingenialogger
 
 from ingeniamotion.enums import COMMUNICATION_TYPE
 from ingeniamotion.exceptions import IMException
