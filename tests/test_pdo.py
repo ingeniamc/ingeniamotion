@@ -301,33 +301,28 @@ def test_create_poller(motion_controller):
     assert len(timestamps) == len(channel_0_data)
 
 
-def dummy_callback(e):
-    pass
-
-
-@pytest.mark.skip("Test randomly fail")
+@pytest.mark.smoke
 @pytest.mark.soem
 def test_subscribe_exceptions(motion_controller, mocker):
     mc, _, _ = motion_controller
 
     error_msg = "Test error"
 
-    def send_receive_processdata(self, *args):
+    def start_pdos(self, *args):
         raise ILWrongWorkingCount(error_msg)
 
-    mocker.patch("ingenialink.ethercat.network.EthercatNetwork.start_pdos")
     mocker.patch("ingenialink.ethercat.network.EthercatNetwork.stop_pdos")
     mocker.patch(
-        "ingenialink.ethercat.network.EthercatNetwork.send_receive_processdata",
-        new=send_receive_processdata,
+        "ingenialink.ethercat.network.EthercatNetwork.start_pdos",
+        new=start_pdos,
     )
-    patch_callback = mocker.patch("tests.test_communication.dummy_callback")
+    patch_callback = mocker.patch("ingeniamotion.pdo.PDONetworkManager._notify_exceptions")
 
     mc.capture.pdo.subscribe_to_exceptions(patch_callback)
     mc.capture.pdo.start_pdos()
 
     t = time.time()
-    timeout = 5
+    timeout = 1
     while not mc.capture.pdo._pdo_thread._pd_thread_stop_event.is_set() and (
         (time.time() - t) < timeout
     ):
@@ -339,3 +334,4 @@ def test_subscribe_exceptions(motion_controller, mocker):
         str(patch_callback.call_args_list[0][0][0])
         == f"Stopping the PDO thread due to the following exception: {error_msg} "
     )
+    mc.capture.pdo.stop_pdos()
