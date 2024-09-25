@@ -90,8 +90,10 @@ def motion_controller(tests_setup: Setup, pytestconfig, request):
 
     if isinstance(tests_setup, DriveHwSetup):
         if tests_setup.use_rack_service:
+            rack_service_client = request.getfixturevalue("connect_to_rack_service")
+            drive_idx, drive = tests_setup.get_rack_drive(rack_service_client)
             environment = RackServiceEnvironmentController(
-                request.getfixturevalue("connect_to_rack_service")
+                rack_service_client, default_drive_idx=drive_idx
             )
         else:
             environment = ManualUserEnvironmentController(pytestconfig)
@@ -283,9 +285,8 @@ def load_firmware(pytestconfig, tests_setup: Setup, request):
     if not tests_setup.use_rack_service:
         return
 
-    drive_idx, drive = tests_setup.get_rack_drive()
-
     client = request.getfixturevalue("connect_to_rack_service")
+    drive_idx, drive = tests_setup.get_rack_drive(client)
 
     client.exposed_turn_on_ps()
     client.exposed_firmware_load(

@@ -1,4 +1,5 @@
 from abc import ABC, abstractmethod
+from typing import Optional
 
 from virtual_drive.environment import Environment as VirtualDriveEnvironment
 
@@ -48,17 +49,17 @@ class ManualUserEnvironmentController(DriveEnvironmentController):
 class RackServiceEnvironmentController(DriveEnvironmentController):
     """Controller of the environment of Rack Service Setup"""
 
-    def __init__(self, rack_service_client_root):
+    def __init__(self, rack_service_client_root, default_drive_idx: Optional[int] = None):
         self.service = rack_service_client_root
+        self.default_drive_idx = default_drive_idx
 
     def reset(self):
-        self.set_gpi(1, False)
-        self.set_gpi(2, False)
-        self.set_gpi(3, False)
-        self.set_gpi(4, False)
+        pass
 
-    def set_gpi(self, number: int, value: bool):
-        self.service.write_gpio(f"GPI_{number}", int(value))
+    def set_gpi(self, number: int, value: bool, drive_idx: Optional[int] = None):
+        if drive_idx is None:
+            drive_idx = self.default_drive_idx
+        self.service.write_drive_gpio(drive_idx, f"GPI_{number}", int(value))
 
 
 class VirtualDriveEnvironmentController(DriveEnvironmentController):
