@@ -1,3 +1,4 @@
+import functools
 from dataclasses import dataclass
 from typing import Optional
 
@@ -33,6 +34,17 @@ class DriveHwSetup(Setup):
     config_file: Optional[str]
     fw_file: str
     use_rack_service: bool
+
+    @functools.cache()
+    def get_rack_drive(self, rack_service_client):
+        config = rack_service_client.exposed_get_configuration()
+        for idx, drive in enumerate(config.drives):
+            if self.identifier == drive.identifier:
+                return idx, drive
+
+        raise ValueError(
+            f"The drive {self.identifier} cannot be found on the rack's configuration."
+        )
 
 
 @dataclass

@@ -283,17 +283,10 @@ def load_firmware(pytestconfig, tests_setup: Setup, request):
     if not tests_setup.use_rack_service:
         return
 
-    drive_identifier = tests_setup.identifier
-    drive_idx = None
+    drive_idx, drive = tests_setup.get_rack_drive()
+
     client = request.getfixturevalue("connect_to_rack_service")
-    config = client.exposed_get_configuration()
-    for idx, drive in enumerate(config.drives):
-        if drive_identifier == drive.identifier:
-            drive_idx = idx
-            break
-    if drive_idx is None:
-        pytest.fail(f"The drive {drive_identifier} cannot be found on the rack's configuration.")
-    drive = config.drives[drive_idx]
+
     client.exposed_turn_on_ps()
     client.exposed_firmware_load(
         drive_idx, tests_setup.fw_file, drive.product_code, drive.serial_number
