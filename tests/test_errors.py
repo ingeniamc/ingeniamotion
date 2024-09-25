@@ -83,7 +83,9 @@ class TestErrors:
         mc, alias, environment = motion_controller
         index_list = [2, 1, 3, 0]
         for i in index_list:
-            last_error, subnode, warning = mc.errors.get_buffer_error_by_index(i, servo=alias)
+            last_error, subnode, warning = mc.errors.get_buffer_error_by_index(
+                i, servo=alias, axis=1
+            )
             assert last_error == generate_drive_errors[i]
 
     @pytest.mark.eoe

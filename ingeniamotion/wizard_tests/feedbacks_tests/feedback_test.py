@@ -127,7 +127,9 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         self.logger.info("SYMMETRY CHECK")
         if not isinstance(self.feedback_resolution, int):
             raise TypeError("Feedbacks has to be set before symetry checking.")
-        error = 100 * abs(positive + negative) / self.feedback_resolution
+        if not isinstance(self.pair_poles, int):
+            raise TypeError("Pole pairs has to be set before symetry checking.")
+        error = (positive + negative) / (self.feedback_resolution / self.pair_poles) * 100
         self.logger.info("Detected symmetry mismatch of: %.3f%%", error)
         error_msg = (
             "ERROR: A mismatch in resolution has been "
