@@ -3,6 +3,7 @@ import time
 from collections import deque
 from typing import TYPE_CHECKING, Callable, Deque, Dict, List, Optional, Tuple, Type, Union
 
+import ingenialogger
 from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.enums.register import RegCyclicType
 from ingenialink.ethercat.network import EthercatNetwork
@@ -304,6 +305,7 @@ class PDONetworkManager:
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
+        self.logger = ingenialogger.get_logger(__name__)
         self._pdo_thread: Optional[PDONetworkManager.ProcessDataThread] = None
         self._pdo_send_observers: List[Callable[[], None]] = []
         self._pdo_receive_observers: List[Callable[[], None]] = []
@@ -750,5 +752,6 @@ class PDONetworkManager:
         Args:
             exc: Exception that was raised in the PDO process data thread.
         """
+        self.logger.error(exc)
         for callback in self._pdo_exceptions_observers:
             callback(exc)
