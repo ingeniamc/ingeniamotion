@@ -84,13 +84,17 @@ def connect_canopen(mc, config: DriveCanOpenSetup, alias):
 
 
 @pytest.fixture(scope="session")
-def motion_controller(tests_setup: Setup, pytestconfig):
+def motion_controller(tests_setup: Setup, pytestconfig, request):
     alias = "test"
     mc = MotionController()
 
     if isinstance(tests_setup, DriveHwSetup):
         if tests_setup.use_rack_service:
-            environment = RackServiceEnvironmentController()
+            rack_service_client = request.getfixturevalue("connect_to_rack_service")
+            drive_idx, drive = tests_setup.get_rack_drive(rack_service_client)
+            environment = RackServiceEnvironmentController(
+                rack_service_client, default_drive_idx=drive_idx
+            )
         else:
             environment = ManualUserEnvironmentController(pytestconfig)
 
@@ -112,7 +116,9 @@ def motion_controller(tests_setup: Setup, pytestconfig):
 
     elif isinstance(tests_setup, EthercatMultiSlaveSetup):
         if tests_setup.drives[0].use_rack_service:
-            environment = RackServiceEnvironmentController()
+            environment = RackServiceEnvironmentController(
+                request.getfixturevalue("connect_to_rack_service")
+            )
         else:
             environment = ManualUserEnvironmentController(pytestconfig)
 
@@ -279,17 +285,9 @@ def load_firmware(pytestconfig, tests_setup: Setup, request):
     if not tests_setup.use_rack_service:
         return
 
-    drive_identifier = tests_setup.identifier
-    drive_idx = None
     client = request.getfixturevalue("connect_to_rack_service")
-    config = client.exposed_get_configuration()
-    for idx, drive in enumerate(config.drives):
-        if drive_identifier == drive.identifier:
-            drive_idx = idx
-            break
-    if drive_idx is None:
-        pytest.fail(f"The drive {drive_identifier} cannot be found on the rack's configuration.")
-    drive = config.drives[drive_idx]
+    drive_idx, drive = tests_setup.get_rack_drive(client)
+
     client.exposed_turn_on_ps()
     client.exposed_firmware_load(
         drive_idx, tests_setup.fw_file, drive.product_code, drive.serial_number

@@ -1,22 +1,23 @@
+import functools
 from dataclasses import dataclass
 from typing import Optional
 
 
-@dataclass
+@dataclass(frozen=True)
 class Setup:
     """Generic setup"""
 
     pass
 
 
-@dataclass
+@dataclass(frozen=True)
 class EthernetSetup(Setup):
     """Any setup that uses Ethernet"""
 
     ip: str
 
 
-@dataclass
+@dataclass(frozen=True)
 class VirtualDriveSetup(EthernetSetup):
     """Setup with virtual drive"""
 
@@ -24,7 +25,7 @@ class VirtualDriveSetup(EthernetSetup):
     port: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class DriveHwSetup(Setup):
     """Setup with physical hw drive"""
 
@@ -34,8 +35,19 @@ class DriveHwSetup(Setup):
     fw_file: str
     use_rack_service: bool
 
+    @functools.lru_cache()
+    def get_rack_drive(self, rack_service_client):
+        config = rack_service_client.exposed_get_configuration()
+        for idx, drive in enumerate(config.drives):
+            if self.identifier == drive.identifier:
+                return idx, drive
 
-@dataclass
+        raise ValueError(
+            f"The drive {self.identifier} cannot be found on the rack's configuration."
+        )
+
+
+@dataclass(frozen=True)
 class DriveEthernetSetup(DriveHwSetup, EthernetSetup):
     """Setup with drive with Ethernet.
 
@@ -45,7 +57,7 @@ class DriveEthernetSetup(DriveHwSetup, EthernetSetup):
     pass
 
 
-@dataclass
+@dataclass(frozen=True)
 class DriveEcatSetup(DriveHwSetup):
     """Setup with drive connected with Ethercat"""
 
@@ -55,7 +67,7 @@ class DriveEcatSetup(DriveHwSetup):
     boot_in_app: bool
 
 
-@dataclass
+@dataclass(frozen=True)
 class DriveCanOpenSetup(DriveHwSetup):
     """Setup with drive connected with canopen"""
 
@@ -65,7 +77,7 @@ class DriveCanOpenSetup(DriveHwSetup):
     baudrate: int
 
 
-@dataclass
+@dataclass(frozen=True)
 class EthercatMultiSlaveSetup(Setup):
     """Setup with multiple drives connected with Ethercat"""
 
