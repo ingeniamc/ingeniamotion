@@ -255,7 +255,7 @@ class Phasing(BaseTest[LegacyDictReportType]):
         # the phasing accuracy
         delta = 3 * self.pha_accuracy / 1000
 
-        # If reference feedback are Halls
+        # If the reference or commutation feedback is a Halls sensor
         if SensorType.HALLS in [self.comm, self.ref]:
             actual_angle = self.INITIAL_ANGLE_HALLS
         else:
