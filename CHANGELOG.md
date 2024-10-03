@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Fixed
 - Feedback symmetry check calculation.
+- Phasing test when the commutation feedback is a Halls sensor.
 
 ## [0.8.5] - 2024-08-27
 ### Fixed
