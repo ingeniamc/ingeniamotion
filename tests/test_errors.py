@@ -35,6 +35,18 @@ def generate_drive_errors(motion_controller):
         except ILError:
             # Sometimes fails with EVE-XCR-E
             mc.communication.set_register(item["register"], old_value, servo=alias)
+
+    all_error_codes = [error[0] for error in mc.errors.get_all_errors(servo=alias)]
+    errors_codes_created = all_error_codes[: len(errors_list)]
+    errors_codes_expected = [error["code"] for error in reversed(errors_list)]
+
+    if errors_codes_created != errors_codes_expected:
+        raise AssertionError(
+            f"The fixture was not able to produce the errors requested\n"
+            f"{list(map(hex, errors_codes_created))} != {list(map(hex, errors_codes_expected))}\n"
+            f"The complete list of error codes is: {list(map(hex, all_error_codes))}\n"
+        )
+
     yield error_code_list[::-1]
     mc.motion.fault_reset(servo=alias)
 
