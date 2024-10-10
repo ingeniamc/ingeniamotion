@@ -48,7 +48,7 @@ def runTestHW(markers, setup_name) {
     }
 }
 
-CRON_SETTINGS = BRANCH_NAME == "cron_build" ? '''H H * * * % TESTS=All'''
+CRON_SETTINGS = BRANCH_NAME == "cron_build" ? '''H H * * * % TESTS=All''' : ""
 
 pipeline {
     agent none
