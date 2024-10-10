@@ -49,7 +49,7 @@ def runTestHW(markers, setup_name) {
 }
 
 /* Build develop every day at 20:00 running all tests */
-CRON_SETTINGS = BRANCH_NAME == "cron_build" ? '''00 20 * * * % TESTS=All''' : ""
+CRON_SETTINGS = BRANCH_NAME == "cron_build" ? '''00 11 * * * % TESTS=All''' : ""
 
 pipeline {
     agent none
