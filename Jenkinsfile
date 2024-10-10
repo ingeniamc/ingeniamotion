@@ -48,8 +48,8 @@ def runTestHW(markers, setup_name) {
     }
 }
 
-/* Build develop every day at 20:00 running all tests */
-CRON_SETTINGS = '''00 13 * * *'''
+/* Build every hour */
+CRON_SETTINGS = '''0 * * * *'''
 
 pipeline {
     agent none
