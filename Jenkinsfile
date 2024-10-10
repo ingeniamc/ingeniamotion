@@ -48,8 +48,13 @@ def runTestHW(markers, setup_name) {
     }
 }
 
+CRON_SETTINGS = BRANCH_NAME == "cron_build" ? '''H H * * * % TESTS=All'''
+
 pipeline {
     agent none
+    triggers {
+        parameterizedCron(CRON_SETTINGS)
+    }
     parameters {
         choice(
                 choices: ['Smoke', 'All'],
