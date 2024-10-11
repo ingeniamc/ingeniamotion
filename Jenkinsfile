@@ -48,8 +48,14 @@ def runTestHW(markers, setup_name) {
     }
 }
 
+/* Build develop everyday at 19:00 UTC (21:00 Barcelona Time), running all tests */
+CRON_SETTINGS = BRANCH_NAME == "develop" ? '''0 19 * * * % TESTS=All''' : ""
+
 pipeline {
     agent none
+    triggers {
+        parameterizedCron(CRON_SETTINGS)
+    }
     parameters {
         choice(
                 choices: ['Smoke', 'All'],
