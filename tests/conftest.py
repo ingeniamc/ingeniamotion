@@ -107,8 +107,8 @@ def motion_controller(tests_setup: Setup, pytestconfig, request):
         else:
             raise NotImplementedError
 
-        mc.configuration.restore_configuration(servo=alias)
         if tests_setup.config_file is not None:
+            mc.configuration.restore_configuration(servo=alias)
             mc.configuration.load_configuration(tests_setup.config_file, servo=alias)
         yield mc, alias, environment
         environment.reset()
