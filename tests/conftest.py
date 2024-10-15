@@ -288,6 +288,8 @@ def load_firmware(pytestconfig, tests_setup: Setup, request):
     client = request.getfixturevalue("connect_to_rack_service")
     drive_idx, drive = tests_setup.get_rack_drive(client)
 
+    client.exposed_turn_off_ps()
+    time.sleep(5)
     client.exposed_turn_on_ps()
     client.exposed_firmware_load(
         drive_idx, tests_setup.fw_file, drive.product_code, drive.serial_number
