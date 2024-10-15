@@ -48,8 +48,14 @@ def runTestHW(markers, setup_name) {
     }
 }
 
+/* Build develop everyday at 19:00 UTC (21:00 Barcelona Time), running all tests */
+CRON_SETTINGS = BRANCH_NAME == "develop" ? '''0 19 * * * % TESTS=All''' : ""
+
 pipeline {
     agent none
+    triggers {
+        parameterizedCron(CRON_SETTINGS)
+    }
     parameters {
         choice(
                 choices: ['Smoke', 'All'],
@@ -229,6 +235,10 @@ pipeline {
                             }
                         }
                         stage("Ethernet Capitan") {
+                            when {
+                                // Remove this after fixing INGK-982
+                                expression { false }
+                            }
                             steps {
                                 runTestHW("eoe", "ETH_CAP_SETUP")
                             }
@@ -244,6 +254,10 @@ pipeline {
                     }
                     stages {
                         stage("Ethercat Everest") {
+                            when {
+                                // Remove this after fixing INGK-983
+                                expression { false }
+                            }
                             steps {
                                 runTestHW("soem", "ECAT_EVE_SETUP")
                             }
