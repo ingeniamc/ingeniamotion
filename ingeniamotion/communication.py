@@ -11,6 +11,9 @@ from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
 
 import ifaddr
 import ingenialogger
+import pysoem
+from canopen.emcy import EmcyError
+
 from ingenialink.canopen.network import CAN_BAUDRATE, CAN_CHANNELS, CAN_DEVICE, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.dictionary import Interface
@@ -989,6 +992,24 @@ class Communication(metaclass=MCMetaClass):
         """
         drive = self.mc._get_drive(servo)
         drive.unsubscribe_from_status(callback)
+
+    def subscribe_emergency_message(
+        self,
+        callback: Callable[[Union[EmcyError, pysoem.Emergency]], None],
+        servo: str = DEFAULT_SERVO,
+    ) -> None:
+        """Subscribe to emergency messages.
+
+        Only available for CANopen and EtherCAT CoE protocols.
+
+        Args:
+            callback :  Callable that takes an EmcyError or a
+            pysoem.Emergency instance as argument.
+            servo : servo alias to reference it. ``default`` by default.
+
+        """
+        drive = self.mc._get_drive(servo)
+        drive.emcy_subscribe(callback)
 
     def load_firmware_canopen(
         self,
