@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Method to subscribe to emergency messages.
+
 ### Fixed
 - Feedback symmetry check calculation.
 - Phasing test when the commutation feedback is a Halls sensor.
