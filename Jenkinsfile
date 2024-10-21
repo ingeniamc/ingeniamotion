@@ -235,6 +235,10 @@ pipeline {
                             }
                         }
                         stage("Ethernet Capitan") {
+                            when {
+                                // Remove this after fixing INGK-982
+                                expression { false }
+                            }
                             steps {
                                 runTestHW("eoe", "ETH_CAP_SETUP")
                             }
@@ -250,6 +254,10 @@ pipeline {
                     }
                     stages {
                         stage("Ethercat Everest") {
+                            when {
+                                // Remove this after fixing INGK-983
+                                expression { false }
+                            }
                             steps {
                                 runTestHW("soem", "ECAT_EVE_SETUP")
                             }
