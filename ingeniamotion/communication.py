@@ -11,8 +11,6 @@ from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
 
 import ifaddr
 import ingenialogger
-import pysoem
-from canopen.emcy import EmcyError
 
 from ingenialink.canopen.network import CAN_BAUDRATE, CAN_CHANNELS, CAN_DEVICE, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
@@ -995,7 +993,7 @@ class Communication(metaclass=MCMetaClass):
 
     def subscribe_emergency_message(
         self,
-        callback: Callable[[Union[EmcyError, pysoem.Emergency]], None],
+        callback: Callable[[Any], None],
         servo: str = DEFAULT_SERVO,
     ) -> None:
         """Subscribe to emergency messages.
