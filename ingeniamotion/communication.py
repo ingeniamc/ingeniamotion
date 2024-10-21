@@ -11,7 +11,6 @@ from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
 
 import ifaddr
 import ingenialogger
-
 from ingenialink.canopen.network import CAN_BAUDRATE, CAN_CHANNELS, CAN_DEVICE, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.dictionary import Interface
