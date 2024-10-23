@@ -646,7 +646,9 @@ def test_subscribe_register_updates(motion_controller):
     register_update_callback = RegisterUpdateTest()
 
     mc, alias, environment = motion_controller
-    mc.communication.subscribe_register_update(register_update_callback.register_update_test, servo=alias)
+    mc.communication.subscribe_register_update(
+        register_update_callback.register_update_test, servo=alias
+    )
 
     previous_reg_value = mc.communication.get_register(user_over_voltage_uid, servo=alias)
     assert register_update_callback.call_count == 1
@@ -661,7 +663,8 @@ def test_subscribe_register_updates(motion_controller):
     assert register_update_callback.register.identifier == user_over_voltage_uid
     assert register_update_callback.register.storage == new_reg_value
 
-    mc.communication.unsubscribe_register_update(register_update_callback.register_update_test, servo=alias)
+    mc.communication.unsubscribe_register_update(
+        register_update_callback.register_update_test, servo=alias
+    )
 
     mc.communication.set_register(user_over_voltage_uid, value=previous_reg_value, servo=alias)
-
