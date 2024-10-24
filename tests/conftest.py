@@ -7,7 +7,6 @@ import pytest
 import rpyc
 from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE
 from ping3 import ping
-from rpyc.lib import Timeout
 from virtual_drive.core import VirtualDrive
 
 from ingeniamotion import MotionController
@@ -308,15 +307,12 @@ def load_firmware(pytestconfig, tests_setup: Setup, request):
             if n_found == number_of_drives:
                 break
         elif isinstance(tests_setup, DriveCanOpenSetup):
-            n_found = len(
-                mc.communication.scan_servos_canopen(
-                    CAN_DEVICE(tests_setup.device),
-                    CAN_BAUDRATE(tests_setup.baudrate),
-                    tests_setup.channel,
-                )
-            )
-            if n_found == number_of_drives:
-                break
+            # Temporal workaround
+            # Canopen transceiver setup generates BUS-off errors when scanning servos
+            # Until the transceiver is not changed or a better method is implemented on rack service
+            # it will wait for some time and assume they are connected
+            time.sleep(60)
+            break
         elif isinstance(tests_setup, DriveEthernetSetup):
             ping_result = ping(dest_addr=tests_setup.ip)
             # The response delay in seconds/milliseconds, False on error and None on timeout.
