@@ -48,17 +48,22 @@ class RegisterUpdateCallbackModifier:
 
     """
 
-    instances: Dict[str, "RegisterUpdateCallbackModifier"] = {}
+    instances: Dict[
+        str, Dict[Callable[[str, Servo, Register], None], "RegisterUpdateCallbackModifier"]
+    ] = {}
 
     def __new__(
         cls, alias: str, callback: Callable[[str, Servo, Register], None]
     ) -> "RegisterUpdateCallbackModifier":
         if alias in cls.instances:
-            return cls.instances[alias]
+            if callback in cls.instances[alias]:
+                return cls.instances[alias][callback]
+        else:
+            cls.instances[alias] = {}
 
         obj = super().__new__(cls)
 
-        cls.instances[alias] = obj
+        cls.instances[alias][callback] = obj
 
         return obj
 
