@@ -27,12 +27,14 @@ class RegisterUpdateTest:
         self.alias = None
         self.servo = None
         self.register = None
+        self.value = None
 
-    def register_update_test(self, alias, servo, register):
+    def register_update_test(self, alias, servo, register, value):
         self.call_count += 1
         self.alias = alias
         self.servo = servo
         self.register = register
+        self.value = value
 
 
 @pytest.mark.virtual
@@ -654,14 +656,14 @@ def test_subscribe_register_updates(motion_controller):
     assert register_update_callback.call_count == 1
     assert register_update_callback.alias == alias
     assert register_update_callback.register.identifier == user_over_voltage_uid
-    assert register_update_callback.register.storage == previous_reg_value
+    assert register_update_callback.value == previous_reg_value
 
     new_reg_value = 100
     mc.communication.set_register(user_over_voltage_uid, value=new_reg_value, servo=alias)
     assert register_update_callback.call_count == 2
     assert register_update_callback.alias == alias
     assert register_update_callback.register.identifier == user_over_voltage_uid
-    assert register_update_callback.register.storage == new_reg_value
+    assert register_update_callback.value == new_reg_value
 
     mc.communication.unsubscribe_register_update(
         register_update_callback.register_update_test, servo=alias

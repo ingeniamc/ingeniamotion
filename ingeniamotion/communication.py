@@ -49,11 +49,17 @@ class RegisterUpdateCallbackModifier:
     """
 
     instances: Dict[
-        str, Dict[Callable[[str, Servo, Register], None], "RegisterUpdateCallbackModifier"]
+        str,
+        Dict[
+            Callable[[str, Servo, Register, Union[int, float, str, bytes]], None],
+            "RegisterUpdateCallbackModifier",
+        ],
     ] = {}
 
     def __new__(
-        cls, alias: str, callback: Callable[[str, Servo, Register], None]
+        cls,
+        alias: str,
+        callback: Callable[[str, Servo, Register, Union[int, float, str, bytes]], None],
     ) -> "RegisterUpdateCallbackModifier":
         if alias in cls.instances:
             if callback in cls.instances[alias]:
@@ -67,11 +73,17 @@ class RegisterUpdateCallbackModifier:
 
         return obj
 
-    def __init__(self, alias: str, callback: Callable[[str, Servo, Register], None]) -> None:
+    def __init__(
+        self,
+        alias: str,
+        callback: Callable[[str, Servo, Register, Union[int, float, str, bytes]], None],
+    ) -> None:
         self.alias = alias
         self.callback = callback
 
-    def modified_callback(self, servo: Servo, register: Register) -> None:
+    def modified_callback(
+        self, servo: Servo, register: Register, value: Union[int, float, str, bytes]
+    ) -> None:
         """This method will be the one subscribed to the register updates.
         When called, the servo alias will be added to the information passed to
         the register update callback.
@@ -81,7 +93,7 @@ class RegisterUpdateCallbackModifier:
             register: The register object.
 
         """
-        return self.callback(self.alias, servo, register)
+        return self.callback(self.alias, servo, register, value)
 
 
 class Communication(metaclass=MCMetaClass):
@@ -1039,7 +1051,7 @@ class Communication(metaclass=MCMetaClass):
 
     def subscribe_register_update(
         self,
-        callback: Callable[[str, Servo, Register], None],
+        callback: Callable[[str, Servo, Register, Union[int, float, str, bytes]], None],
         servo: str = DEFAULT_SERVO,
     ) -> None:
         """Subscribe to register updates.
@@ -1055,7 +1067,7 @@ class Communication(metaclass=MCMetaClass):
 
     def unsubscribe_register_update(
         self,
-        callback: Callable[[str, Servo, Register], None],
+        callback: Callable[[str, Servo, Register, Union[int, float, str, bytes]], None],
         servo: str = DEFAULT_SERVO,
     ) -> None:
         """Unsubscribe from register updates.
@@ -1070,8 +1082,8 @@ class Communication(metaclass=MCMetaClass):
 
     @staticmethod
     def _modify_register_update_callback(
-        servo: str, callback: Callable[[str, Servo, Register], None]
-    ) -> Callable[[Servo, Register], None]:
+        servo: str, callback: Callable[[str, Servo, Register, Union[int, float, str, bytes]], None]
+    ) -> Callable[[Servo, Register, Union[int, float, str, bytes]], None]:
         return RegisterUpdateCallbackModifier(servo, callback).modified_callback
 
     def load_firmware_canopen(
