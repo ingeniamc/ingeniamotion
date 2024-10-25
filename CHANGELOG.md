@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Added
+- Method to subscribe to register value updates.
 - Method to subscribe to emergency messages.
 
 ### Fixed
