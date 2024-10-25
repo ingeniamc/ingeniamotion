@@ -5,9 +5,10 @@ import tempfile
 import time
 import zipfile
 from collections import OrderedDict
+from dataclasses import dataclass
 from functools import partial
 from os import path
-from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 import ifaddr
 import ingenialogger
@@ -21,7 +22,8 @@ from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.exceptions import ILError
 from ingenialink.network import NET_DEV_EVT, SlaveInfo
-from ingenialink.servo import DictionaryFactory
+from ingenialink.register import Register
+from ingenialink.servo import DictionaryFactory, Servo
 from ingenialink.virtual.network import VirtualNetwork
 from virtual_drive.core import VirtualDrive
 
@@ -35,6 +37,14 @@ from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 RUNNING_ON_WINDOWS = platform.system() == "Windows"
 FILE_EXT_SFU = ".sfu"
 FILE_EXT_LFU = ".lfu"
+
+
+@dataclass
+class IMObserver:
+    """Ingeniamotion register update observer"""
+
+    im_callback: Callable[[str, Servo, Register, Union[int, float, str, bytes]], None]
+    alias: str
 
 
 class Communication(metaclass=MCMetaClass):
@@ -55,6 +65,7 @@ class Communication(metaclass=MCMetaClass):
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
         self.__virtual_drive: Optional[VirtualDrive] = None
+        self.register_update_observers: Dict[Servo, List[IMObserver]] = {}
 
     def connect_servo_eoe(
         self,
@@ -989,6 +1000,67 @@ class Communication(metaclass=MCMetaClass):
         """
         drive = self.mc._get_drive(servo)
         drive.unsubscribe_from_status(callback)
+
+    def subscribe_register_update(
+        self,
+        callback: Callable[[str, Servo, Register, Union[int, float, str, bytes]], None],
+        servo: str = DEFAULT_SERVO,
+    ) -> None:
+        """Subscribe to register updates.
+        The callback will be called when a read/write operation occurs.
+
+        Args:
+            callback: Callable that takes a servo alias, Servo and Register instances
+            and the register value as arguments.
+            servo : servo alias to reference it. ``default`` by default.
+
+        """
+        drive = self.mc._get_drive(servo)
+        if drive not in self.register_update_observers:
+            # Servo that has not been subscribed yet
+            self.register_update_observers[drive] = []
+            # Subscribe to ingenialink
+            drive.register_update_subscribe(self._il_register_subscribe_callback)
+
+        self.register_update_observers[drive].append(IMObserver(callback, alias=servo))
+
+    def unsubscribe_register_update(
+        self,
+        callback: Callable[[str, Servo, Register, Union[int, float, str, bytes]], None],
+        servo: str = DEFAULT_SERVO,
+    ) -> None:
+        """Unsubscribe from register updates.
+
+        Args:
+            callback: Subscribed callback.
+            servo : servo alias to reference it. ``default`` by default.
+
+        """
+        drive = self.mc._get_drive(servo)
+        for observer in self.register_update_observers[drive]:
+            if observer.im_callback == callback:
+                self.register_update_observers[drive].remove(observer)
+                break
+
+        if len(self.register_update_observers[drive]) == 0:
+            del self.register_update_observers[drive]
+            # No observers, unsubscribe from ingenialink
+            drive.register_update_unsubscribe(self._il_register_subscribe_callback)
+
+    def _il_register_subscribe_callback(
+        self, servo_instance: Servo, register: Register, value: Union[int, float, str, bytes]
+    ) -> None:
+        """This method will be the one subscribed to ingenialink.
+        When called, the servo alias will be added to the received information.
+
+        Args:
+            servo_instance: The servo instance.
+            register: The register object.
+            value: The updated register value.
+
+        """
+        for observer in self.register_update_observers[servo_instance]:
+            observer.im_callback(observer.alias, servo_instance, register, value)
 
     def load_firmware_canopen(
         self,

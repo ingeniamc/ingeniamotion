@@ -21,6 +21,22 @@ from .setups.descriptors import VirtualDriveSetup, EthernetSetup, DriveCanOpenSe
 TEST_ENSEMBLE_FW_FILE = "tests/resources/example_ensemble_fw.zfu"
 
 
+class RegisterUpdateTest:
+    def __init__(self):
+        self.call_count = 0
+        self.alias = None
+        self.servo = None
+        self.register = None
+        self.value = None
+
+    def register_update_test(self, alias, servo, register, value):
+        self.call_count += 1
+        self.alias = alias
+        self.servo = servo
+        self.register = register
+        self.value = value
+
+
 @pytest.mark.virtual
 def test_connect_servo_eoe(tests_setup: EthernetSetup):
     mc = MotionController()
@@ -623,3 +639,37 @@ def test_get_available_canopen_devices(mocker):
     test_output = mc.communication.get_available_canopen_devices()
     expected_ouput = {CAN_DEVICE.KVASER: [0, 1], CAN_DEVICE.PCAN: [0, 1], CAN_DEVICE.IXXAT: [0, 1]}
     assert test_output == expected_ouput
+
+
+@pytest.mark.virtual
+@pytest.mark.smoke
+def test_subscribe_register_updates(motion_controller):
+    user_over_voltage_uid = "DRV_PROT_USER_OVER_VOLT"
+    register_update_callback = RegisterUpdateTest()
+
+    mc, alias, environment = motion_controller
+    mc.communication.subscribe_register_update(
+        register_update_callback.register_update_test, servo=alias
+    )
+
+    previous_reg_value = mc.communication.get_register(user_over_voltage_uid, servo=alias)
+    assert register_update_callback.call_count == 1
+    assert register_update_callback.alias == alias
+    assert register_update_callback.register.identifier == user_over_voltage_uid
+    assert register_update_callback.value == previous_reg_value
+
+    new_reg_value = 100
+    mc.communication.set_register(user_over_voltage_uid, value=new_reg_value, servo=alias)
+    assert register_update_callback.call_count == 2
+    assert register_update_callback.alias == alias
+    assert register_update_callback.register.identifier == user_over_voltage_uid
+    assert register_update_callback.value == new_reg_value
+
+    mc.communication.unsubscribe_register_update(
+        register_update_callback.register_update_test, servo=alias
+    )
+
+    mc.communication.set_register(user_over_voltage_uid, value=previous_reg_value, servo=alias)
+
+    # The old value has not been propagated after unsubscribing
+    assert register_update_callback.value == new_reg_value
