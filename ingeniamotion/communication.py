@@ -1020,7 +1020,7 @@ class Communication(metaclass=MCMetaClass):
             # Servo that has not been subscribed yet
             self.register_update_observers[drive] = []
             # Subscribe to ingenialink
-            drive.register_update_subscribe(self._il_callback)
+            drive.register_update_subscribe(self._il_register_subscribe_callback)
 
         self.register_update_observers[drive].append(IMObserver(callback, alias=servo))
 
@@ -1045,12 +1045,12 @@ class Communication(metaclass=MCMetaClass):
         if len(self.register_update_observers[drive]) == 0:
             del self.register_update_observers[drive]
             # No observers, unsubscribe from ingenialink
-            drive.register_update_unsubscribe(self._il_callback)
+            drive.register_update_unsubscribe(self._il_register_subscribe_callback)
 
-    def _il_callback(
+    def _il_register_subscribe_callback(
         self, servo_instance: Servo, register: Register, value: Union[int, float, str, bytes]
     ) -> None:
-        """This method will be the one subscribed ingenialink.
+        """This method will be the one subscribed to ingenialink.
         When called, the servo alias will be added to the received information.
 
         Args:

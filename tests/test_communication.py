@@ -670,3 +670,6 @@ def test_subscribe_register_updates(motion_controller):
     )
 
     mc.communication.set_register(user_over_voltage_uid, value=previous_reg_value, servo=alias)
+
+    # The old value has not been propagated after unsubscribing
+    assert register_update_callback.value == new_reg_value
