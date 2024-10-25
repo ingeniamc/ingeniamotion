@@ -5,6 +5,7 @@ import tempfile
 import time
 import zipfile
 from collections import OrderedDict
+from dataclasses import dataclass
 from functools import partial
 from os import path
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
@@ -38,62 +39,12 @@ FILE_EXT_SFU = ".sfu"
 FILE_EXT_LFU = ".lfu"
 
 
-class RegisterUpdateCallbackModifier:
-    """Class that injects the servo alias to the register
-    update callback.
+@dataclass
+class IMObserver:
+    """Ingeniamotion register update observer"""
 
-     Args:
-         alias: Servo alias.
-         callback: Register update callback.
-
-    """
-
-    instances: Dict[
-        str,
-        Dict[
-            Callable[[str, Servo, Register, Union[int, float, str, bytes]], None],
-            "RegisterUpdateCallbackModifier",
-        ],
-    ] = {}
-
-    def __new__(
-        cls,
-        alias: str,
-        callback: Callable[[str, Servo, Register, Union[int, float, str, bytes]], None],
-    ) -> "RegisterUpdateCallbackModifier":
-        if alias in cls.instances:
-            if callback in cls.instances[alias]:
-                return cls.instances[alias][callback]
-        else:
-            cls.instances[alias] = {}
-
-        obj = super().__new__(cls)
-
-        cls.instances[alias][callback] = obj
-
-        return obj
-
-    def __init__(
-        self,
-        alias: str,
-        callback: Callable[[str, Servo, Register, Union[int, float, str, bytes]], None],
-    ) -> None:
-        self.alias = alias
-        self.callback = callback
-
-    def modified_callback(
-        self, servo: Servo, register: Register, value: Union[int, float, str, bytes]
-    ) -> None:
-        """This method will be the one subscribed to the register updates.
-        When called, the servo alias will be added to the information passed to
-        the register update callback.
-
-        Args:
-            servo: The servo instance.
-            register: The register object.
-
-        """
-        return self.callback(self.alias, servo, register, value)
+    im_callback: Callable[[str, Servo, Register, Union[int, float, str, bytes]], None]
+    alias: str
 
 
 class Communication(metaclass=MCMetaClass):
@@ -114,6 +65,7 @@ class Communication(metaclass=MCMetaClass):
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
         self.__virtual_drive: Optional[VirtualDrive] = None
+        self.register_update_observers: Dict[Servo, List[IMObserver]] = {}
 
     def connect_servo_eoe(
         self,
@@ -1058,12 +1010,19 @@ class Communication(metaclass=MCMetaClass):
         The callback will be called when a read/write operation occurs.
 
         Args:
-            callback: Callable that takes a servo alias, Servo and Register instance as arguments.
+            callback: Callable that takes a servo alias, Servo and Register instance and the register value
+            as arguments.
             servo : servo alias to reference it. ``default`` by default.
 
         """
         drive = self.mc._get_drive(servo)
-        drive.register_update_subscribe(self._modify_register_update_callback(servo, callback))
+        if drive not in self.register_update_observers:
+            # Servo that has not been subscribed yet
+            self.register_update_observers[drive] = []
+            # Subscribe to ingenialink
+            drive.register_update_subscribe(self._il_callback)
+
+        self.register_update_observers[drive].append(IMObserver(callback, alias=servo))
 
     def unsubscribe_register_update(
         self,
@@ -1078,13 +1037,30 @@ class Communication(metaclass=MCMetaClass):
 
         """
         drive = self.mc._get_drive(servo)
-        drive.register_update_unsubscribe(self._modify_register_update_callback(servo, callback))
+        for observer in self.register_update_observers[drive]:
+            if observer.im_callback == callback:
+                self.register_update_observers[drive].remove(observer)
+                break
 
-    @staticmethod
-    def _modify_register_update_callback(
-        servo: str, callback: Callable[[str, Servo, Register, Union[int, float, str, bytes]], None]
-    ) -> Callable[[Servo, Register, Union[int, float, str, bytes]], None]:
-        return RegisterUpdateCallbackModifier(servo, callback).modified_callback
+        if len(self.register_update_observers[drive]) == 0:
+            del self.register_update_observers[drive]
+            # No observers, unsubscribe from ingenialink
+            drive.register_update_unsubscribe(self._il_callback)
+
+    def _il_callback(
+        self, servo_instance: Servo, register: Register, value: Union[int, float, str, bytes]
+    ) -> None:
+        """This method will be the one subscribed ingenialink.
+        When called, the servo alias will be added to the received information.
+
+        Args:
+            servo_instance: The servo instance.
+            register: The register object.
+            value: The updated register value.
+
+        """
+        for observer in self.register_update_observers[servo_instance]:
+            observer.im_callback(observer.alias, servo_instance, register, value)
 
     def load_firmware_canopen(
         self,
