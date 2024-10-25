@@ -1010,8 +1010,8 @@ class Communication(metaclass=MCMetaClass):
         The callback will be called when a read/write operation occurs.
 
         Args:
-            callback: Callable that takes a servo alias, Servo and Register instance and the register value
-            as arguments.
+            callback: Callable that takes a servo alias, Servo and Register instances
+            and the register value as arguments.
             servo : servo alias to reference it. ``default`` by default.
 
         """
