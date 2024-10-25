@@ -1026,11 +1026,14 @@ class Communication(metaclass=MCMetaClass):
 
         """
         drive = self.mc._get_drive(servo)
+
+        if len(self.register_update_observers) == 0:
+            # Subscribe to ingenialink
+            drive.register_update_subscribe(self._il_register_subscribe_callback)
+
         if drive not in self.register_update_observers:
             # Servo that has not been subscribed yet
             self.register_update_observers[drive] = []
-            # Subscribe to ingenialink
-            drive.register_update_subscribe(self._il_register_subscribe_callback)
 
         self.register_update_observers[drive].append(
             IMRegisterUpdateObserver(callback, alias=servo)
@@ -1056,6 +1059,8 @@ class Communication(metaclass=MCMetaClass):
 
         if len(self.register_update_observers[drive]) == 0:
             del self.register_update_observers[drive]
+
+        if len(self.register_update_observers) == 0:
             # No observers, unsubscribe from ingenialink
             drive.register_update_unsubscribe(self._il_register_subscribe_callback)
 
@@ -1090,11 +1095,14 @@ class Communication(metaclass=MCMetaClass):
 
         """
         drive = self.mc._get_drive(servo)
+
+        if len(self.emergency_messages_observers) == 0:
+            # Subscribe to ingenialink
+            drive.emcy_subscribe(self._il_emergency_message_callback)
+
         if drive not in self.emergency_messages_observers:
             # Servo that has not been subscribed yet
             self.emergency_messages_observers[drive] = []
-            # Subscribe to ingenialink
-            drive.emcy_subscribe(self._il_emergency_message_callback)
 
         self.emergency_messages_observers[drive].append(
             IMEmergencyMessageObserver(callback, alias=servo)
@@ -1122,6 +1130,8 @@ class Communication(metaclass=MCMetaClass):
 
         if len(self.emergency_messages_observers[drive]) == 0:
             del self.emergency_messages_observers[drive]
+
+        if len(self.emergency_messages_observers) == 0:
             # No observers, unsubscribe from ingenialink
             drive.emcy_unsubscribe(self._il_emergency_message_callback)
 
