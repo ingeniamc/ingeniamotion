@@ -37,6 +37,14 @@ class RegisterUpdateTest:
         self.value = value
 
 
+class EmcyTest:
+    def __init__(self):
+        self.messages = []
+
+    def emcy_callback(self, alias, emcy_msg):
+        self.messages.append((alias, emcy_msg))
+
+
 @pytest.mark.virtual
 def test_connect_servo_eoe(tests_setup: EthernetSetup):
     mc = MotionController()
@@ -673,3 +681,28 @@ def test_subscribe_register_updates(motion_controller):
 
     # The old value has not been propagated after unsubscribing
     assert register_update_callback.value == new_reg_value
+
+
+@pytest.mark.canopen
+@pytest.mark.ethercat
+@pytest.mark.smoke
+def test_emcy_callback(motion_controller):
+    mc, alias, _ = motion_controller
+    emcy_test = EmcyTest()
+    mc.communication.subscribe_emergency_message(emcy_test.emcy_callback, servo=alias)
+    prev_val = mc.communication.get_register("DRV_PROT_USER_OVER_VOLT", axis=1, servo=alias)
+    mc.communication.set_register("DRV_PROT_USER_OVER_VOLT", value=10.0, axis=1, servo=alias)
+    with pytest.raises(ILError):
+        mc.motion.motor_enable(servo=alias)
+    mc.motion.fault_reset(servo=alias)
+    assert len(emcy_test.messages) == 2
+    servo_alias, first_emcy = emcy_test.messages[0]
+    assert servo_alias == alias
+    assert first_emcy.error_code == 0x3231
+    assert first_emcy.get_desc() == "User Over-voltage detected"
+    servo_alias, second_emcy = emcy_test.messages[1]
+    assert servo_alias == alias
+    assert second_emcy.error_code == 0x0000
+    assert second_emcy.get_desc() == "No error"
+    mc.communication.set_register("DRV_PROT_USER_OVER_VOLT", value=prev_val, axis=1, servo=alias)
+    mc.communication.unsubscribe_emergency_message(emcy_test.emcy_callback, servo=alias)
