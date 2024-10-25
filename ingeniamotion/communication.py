@@ -41,10 +41,18 @@ FILE_EXT_LFU = ".lfu"
 
 
 @dataclass
-class IMObserver:
+class IMRegisterUpdateObserver:
     """Ingeniamotion register update observer"""
 
     im_callback: Callable[[str, Servo, Register, Union[int, float, str, bytes]], None]
+    alias: str
+
+
+@dataclass
+class IMEmergencyMessageObserver:
+    """Ingeniamotion emergency message observer"""
+
+    im_callback: Callable[[str, EmergencyMessage], None]
     alias: str
 
 
@@ -66,7 +74,8 @@ class Communication(metaclass=MCMetaClass):
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
         self.__virtual_drive: Optional[VirtualDrive] = None
-        self.register_update_observers: Dict[Servo, List[IMObserver]] = {}
+        self.register_update_observers: Dict[Servo, List[IMRegisterUpdateObserver]] = {}
+        self.emergency_messages_observers: Dict[Servo, List[IMEmergencyMessageObserver]] = {}
 
     def connect_servo_eoe(
         self,
@@ -1023,7 +1032,9 @@ class Communication(metaclass=MCMetaClass):
             # Subscribe to ingenialink
             drive.register_update_subscribe(self._il_register_subscribe_callback)
 
-        self.register_update_observers[drive].append(IMObserver(callback, alias=servo))
+        self.register_update_observers[drive].append(
+            IMRegisterUpdateObserver(callback, alias=servo)
+        )
 
     def unsubscribe_register_update(
         self,
@@ -1065,7 +1076,7 @@ class Communication(metaclass=MCMetaClass):
 
     def subscribe_emergency_message(
         self,
-        callback: Callable[[EmergencyMessage], None],
+        callback: Callable[[str, EmergencyMessage], None],
         servo: str = DEFAULT_SERVO,
     ) -> None:
         """Subscribe to emergency messages.
@@ -1073,16 +1084,25 @@ class Communication(metaclass=MCMetaClass):
         Only available for CANopen and EtherCAT CoE protocols.
 
         Args:
-            callback :  Callable that takes an EmergencyMessage instance as argument.
+            callback :  Callable that takes a servo alias and an EmergencyMessage
+            instance as arguments.
             servo : servo alias to reference it. ``default`` by default.
 
         """
         drive = self.mc._get_drive(servo)
-        drive.emcy_subscribe(callback)
+        if drive not in self.emergency_messages_observers:
+            # Servo that has not been subscribed yet
+            self.emergency_messages_observers[drive] = []
+            # Subscribe to ingenialink
+            drive.emcy_subscribe(self._il_emergency_message_callback)
+
+        self.emergency_messages_observers[drive].append(
+            IMEmergencyMessageObserver(callback, alias=servo)
+        )
 
     def unsubscribe_emergency_message(
         self,
-        callback: Callable[[EmergencyMessage], None],
+        callback: Callable[[str, EmergencyMessage], None],
         servo: str = DEFAULT_SERVO,
     ) -> None:
         """Unsubscribe from emergency messages.
@@ -1095,7 +1115,26 @@ class Communication(metaclass=MCMetaClass):
 
         """
         drive = self.mc._get_drive(servo)
-        drive.emcy_unsubscribe(callback)
+        for observer in self.emergency_messages_observers[drive]:
+            if observer.im_callback == callback:
+                self.emergency_messages_observers[drive].remove(observer)
+                break
+
+        if len(self.emergency_messages_observers[drive]) == 0:
+            del self.emergency_messages_observers[drive]
+            # No observers, unsubscribe from ingenialink
+            drive.emcy_unsubscribe(self._il_emergency_message_callback)
+
+    def _il_emergency_message_callback(self, emergency_message: EmergencyMessage) -> None:
+        """This method will be the one subscribed to ingenialink.
+        When called, the servo alias will be added to the received information.
+
+        Args:
+            emergency_message: The EmergencyMessage  instance.
+
+        """
+        for observer in self.emergency_messages_observers[emergency_message.servo]:
+            observer.im_callback(observer.alias, emergency_message)
 
     def load_firmware_canopen(
         self,
