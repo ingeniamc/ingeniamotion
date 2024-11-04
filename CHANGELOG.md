@@ -4,6 +4,7 @@
 ### Added
 - Method to subscribe to register value updates.
 - Method to subscribe to emergency messages.
+- Method to get a servo's network state.
 
 ### Fixed
 - Feedback symmetry check calculation.
