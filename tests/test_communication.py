@@ -684,7 +684,7 @@ def test_subscribe_register_updates(motion_controller):
 
 
 @pytest.mark.canopen
-@pytest.mark.ethercat
+@pytest.mark.soem
 @pytest.mark.smoke
 def test_emcy_callback(motion_controller):
     mc, alias, _ = motion_controller
