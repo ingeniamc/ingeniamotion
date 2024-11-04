@@ -2,6 +2,7 @@ import pytest
 
 from ingeniamotion.enums import GPI, GPO, DigitalVoltageLevel, GPIOPolarity
 from ingeniamotion.exceptions import IMException
+
 from .setups.rack_setups import CAN_CAP_SETUP, ECAT_CAP_SETUP, ETH_CAP_SETUP
 
 

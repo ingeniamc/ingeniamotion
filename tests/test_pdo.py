@@ -9,6 +9,7 @@ from packaging import version
 
 from ingeniamotion.enums import COMMUNICATION_TYPE, OperationMode
 from ingeniamotion.exceptions import IMException
+
 from .setups.descriptors import EthercatMultiSlaveSetup
 
 

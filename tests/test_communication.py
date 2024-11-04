@@ -1,14 +1,14 @@
 import os
 import platform
+import tempfile
 import time
 from collections import OrderedDict
-import tempfile
 
 import pytest
-from ingenialink.ethernet.network import EthernetNetwork
-from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
+from ingenialink.ethercat.network import EthercatNetwork
+from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.exceptions import ILError
 from ingenialink.network import SlaveInfo
 from ingenialink.servo import SERVO_STATE
@@ -16,7 +16,8 @@ from ingenialink.servo import SERVO_STATE
 import ingeniamotion
 from ingeniamotion import MotionController
 from ingeniamotion.exceptions import IMException, IMRegisterNotExist, IMRegisterWrongAccess
-from .setups.descriptors import VirtualDriveSetup, EthernetSetup, DriveCanOpenSetup, Setup
+
+from .setups.descriptors import DriveCanOpenSetup, EthernetSetup, Setup
 
 TEST_ENSEMBLE_FW_FILE = "tests/resources/example_ensemble_fw.zfu"
 

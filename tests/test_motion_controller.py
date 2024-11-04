@@ -1,16 +1,16 @@
 import pytest
 
-from ingeniamotion.exceptions import IMStatusWordError
 from ingeniamotion import MotionController
-from ingeniamotion.enums import OperationMode
 from ingeniamotion.capture import Capture
-from ingeniamotion.configuration import Configuration
-from ingeniamotion.motion import Motion
 from ingeniamotion.communication import Communication
+from ingeniamotion.configuration import Configuration
 from ingeniamotion.drive_tests import DriveTests
+from ingeniamotion.enums import OperationMode
 from ingeniamotion.errors import Errors
+from ingeniamotion.exceptions import IMStatusWordError
 from ingeniamotion.information import Information
 from ingeniamotion.metaclass import MCMetaClass
+from ingeniamotion.motion import Motion
 
 
 @pytest.mark.virtual

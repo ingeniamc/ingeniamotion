@@ -228,7 +228,7 @@ def test_create_disturbance(
     data_subrange = samples // 4
     for i in range(samples // data_subrange):
         data += [i * data_subrange] * data_subrange
-    dist = mc.capture.create_disturbance(target_register, data, divider, servo=alias)
+    mc.capture.create_disturbance(target_register, data, divider, servo=alias)
     init_time = time.time()
     mc.capture.enable_monitoring_disturbance(servo=alias)
     read_data = []
