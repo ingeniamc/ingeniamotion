@@ -59,7 +59,7 @@ def teardown_for_test_examples(motion_controller, tests_setup: Setup, pytestconf
         raise NotImplementedError
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 def test_disturbance_example(tests_setup: EthernetSetup, script_runner):
     script_path = "examples/disturbance_example.py"
     ip_address = tests_setup.ip
@@ -84,7 +84,7 @@ def test_canopen_example(tests_setup: DriveCanOpenSetup, script_runner):
     assert result.returncode == 0
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 def test_set_get_register_example(tests_setup: DriveEthernetSetup, script_runner):
     script_path = "examples/set_get_register.py"
     result = script_runner.run(
@@ -93,7 +93,7 @@ def test_set_get_register_example(tests_setup: DriveEthernetSetup, script_runner
     assert result.returncode == 0
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 def test_poller_example(tests_setup: DriveEthernetSetup, script_runner):
     script_path = "examples/poller_example.py"
 
@@ -106,7 +106,7 @@ def test_poller_example(tests_setup: DriveEthernetSetup, script_runner):
     assert result.returncode == 0
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.parametrize(
     "mode",
     ["velocity", "torque"],
@@ -141,7 +141,7 @@ def test_velocity_torque_ramp_example(tests_setup: DriveEthernetSetup, script_ru
     assert result.returncode == 0
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 def test_monitoring_example(tests_setup: DriveEthernetSetup, script_runner):
     script_path = "examples/monitoring_example.py"
 
@@ -154,7 +154,7 @@ def test_monitoring_example(tests_setup: DriveEthernetSetup, script_runner):
     assert result.returncode == 0
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 def test_load_fw_ftp(tests_setup: DriveEthernetSetup, script_runner, mocker):
     script_path = "examples/load_fw_ftp.py"
 
@@ -199,7 +199,7 @@ def test_load_fw_ecat(tests_setup: DriveEcatSetup, script_runner, mocker):
     assert result.returncode == 0
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.parametrize(
     "feedback",
     ["HALLS", "QEI", "QEI2"],
@@ -224,7 +224,7 @@ def test_feedback_example(tests_setup: DriveEthernetSetup, script_runner, mocker
     assert result.returncode == 0
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 def test_commutation_test_example(tests_setup: DriveEthernetSetup, script_runner, mocker):
     script_path = "examples/commutation_test.py"
 
@@ -237,7 +237,7 @@ def test_commutation_test_example(tests_setup: DriveEthernetSetup, script_runner
     assert result.returncode == 0
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.parametrize(
     "override",
     ["disabled", "release", "enable"],
