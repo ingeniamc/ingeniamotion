@@ -27,7 +27,7 @@ from ingeniamotion.enums import SeverityLevel
 from ingeniamotion.information import Information
 from ingeniamotion.motion import Motion
 from ingeniamotion.pdo import PDONetworkManager, PDOPoller
-from tests.conftest import connect_canopen, connect_eoe, connect_soem
+from tests.conftest import connect_canopen, connect_ethernet, connect_soem
 
 from .setups.descriptors import (
     DriveCanOpenSetup,
@@ -54,7 +54,7 @@ def teardown_for_test_examples(motion_controller, tests_setup: Setup, pytestconf
     elif isinstance(tests_setup, DriveCanOpenSetup):
         connect_canopen(mc, tests_setup, alias)
     elif isinstance(tests_setup, DriveEthernetSetup):
-        connect_eoe(mc, tests_setup, alias)
+        connect_ethernet(mc, tests_setup, alias)
     else:
         raise NotImplementedError
 

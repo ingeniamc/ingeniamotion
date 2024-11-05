@@ -50,7 +50,9 @@ def test_connect_servo_eoe(tests_setup: EthernetSetup):
     mc = MotionController()
     assert "ethernet_test" not in mc.servos
     assert "ethernet_test" not in mc.net
-    mc.communication.connect_servo_eoe(tests_setup.ip, tests_setup.dictionary, alias="ethernet_test")
+    mc.communication.connect_servo_eoe(
+        tests_setup.ip, tests_setup.dictionary, alias="ethernet_test"
+    )
     assert "ethernet_test" in mc.servos and mc.servos["ethernet_test"] is not None
     assert "ethernet_test" in mc.net and mc.net["ethernet_test"] is not None
 
@@ -78,7 +80,9 @@ def test_connect_servo_ethernet(tests_setup: EthernetSetup):
 def test_connect_servo_ethernet_no_dictionary_error(tests_setup: EthernetSetup):
     mc = MotionController()
     with pytest.raises(FileNotFoundError):
-        mc.communication.connect_servo_ethernet(tests_setup.ip, "no_dictionary", alias="ethernet_test")
+        mc.communication.connect_servo_ethernet(
+            tests_setup.ip, "no_dictionary", alias="ethernet_test"
+        )
 
 
 @pytest.mark.smoke
