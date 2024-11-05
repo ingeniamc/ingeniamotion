@@ -1,6 +1,5 @@
 import json
 import platform
-import subprocess
 import tempfile
 import time
 import zipfile
@@ -12,6 +11,8 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 import ifaddr
 import ingenialogger
+from ping3 import ping
+
 from ingenialink.canopen.network import CAN_BAUDRATE, CAN_CHANNELS, CAN_DEVICE, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.dictionary import Interface
@@ -1297,8 +1298,8 @@ class Communication(metaclass=MCMetaClass):
 
     @staticmethod
     def __ftp_ping(ip: str) -> bool:
-        command = ["ping", ip]
-        return subprocess.call(command) == 0
+        response = ping(ip, timeout=1)
+        return isinstance(response, float)
 
     def boot_mode_and_load_firmware_ethernet(
         self,
