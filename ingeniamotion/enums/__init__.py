@@ -1,9 +1,21 @@
 from enum import Enum, IntEnum
+from typing import Type, TypeVar
 
 from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE
 from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
 
+T = TypeVar("T", bound=Type[Enum])
 
+__all__ = ["CAN_BAUDRATE", "CAN_DEVICE", "REG_ACCESS", "REG_DTYPE"]
+
+
+def export(obj: T) -> T:
+    """Decorator use to explicitly export a class"""
+    __all__.append(obj.__name__)
+    return obj
+
+
+@export
 class OperationMode(IntEnum):
     """Operation Mode Enum"""
 
@@ -25,6 +37,7 @@ class OperationMode(IntEnum):
     CYCLIC_TORQUE = 0x25
 
 
+@export
 class Protocol(IntEnum):
     """Communication protocol"""
 
@@ -32,6 +45,7 @@ class Protocol(IntEnum):
     UDP = 2
 
 
+@export
 class HomingMode(IntEnum):
     """Homing modes"""
 
@@ -44,6 +58,7 @@ class HomingMode(IntEnum):
     NEGATIVE_LIMIT_SWITCH_IDX_PULSE = 6
 
 
+@export
 class MonitoringSoCType(IntEnum):
     """Monitoring start of condition type"""
 
@@ -55,6 +70,7 @@ class MonitoringSoCType(IntEnum):
     """Edge trigger"""
 
 
+@export
 class MonitoringSoCConfig(IntEnum):
     TRIGGER_CONFIG_RISING_OR_FALLING = 0
     """Rising or falling edge trigger"""
@@ -64,6 +80,7 @@ class MonitoringSoCConfig(IntEnum):
     """Falling edge trigger"""
 
 
+@export
 class MonitoringProcessStage(IntEnum):
     """Monitoring process stage"""
 
@@ -79,6 +96,7 @@ class MonitoringProcessStage(IntEnum):
     """End stage"""
 
 
+@export
 class SensorType(IntEnum):
     """Summit series feedback type enum"""
 
@@ -98,6 +116,7 @@ class SensorType(IntEnum):
     """Digital/Incremental encoder 2"""
 
 
+@export
 class SensorCategory(IntEnum):
     """Feedback category enum"""
 
@@ -105,6 +124,7 @@ class SensorCategory(IntEnum):
     INCREMENTAL = 1
 
 
+@export
 class PhasingMode(IntEnum):
     """Phasing modes"""
 
@@ -116,6 +136,7 @@ class PhasingMode(IntEnum):
     """No phasing"""
 
 
+@export
 class GeneratorMode(IntEnum):
     """Generator modes"""
 
@@ -127,6 +148,7 @@ class GeneratorMode(IntEnum):
     """Square"""
 
 
+@export
 class MonitoringVersion(IntEnum):
     """Monitoring version"""
 
@@ -138,6 +160,7 @@ class MonitoringVersion(IntEnum):
     """Monitoring V3 used for Everest and Capitan newer than 1.8.1."""
 
 
+@export
 class SeverityLevel(IntEnum):
     """Test result enum"""
 
@@ -146,12 +169,14 @@ class SeverityLevel(IntEnum):
     FAIL = 2
 
 
+@export
 class COMMUNICATION_TYPE(IntEnum):
     Canopen = 0
     Ethernet = 1
     Ethercat = 2
 
 
+@export
 class FeedbackPolarity(IntEnum):
     """Feedback polarity enum"""
 
@@ -159,6 +184,7 @@ class FeedbackPolarity(IntEnum):
     REVERSED = 1
 
 
+@export
 class CommutationMode(IntEnum):
     """Commutation Mode Enum"""
 
@@ -167,6 +193,7 @@ class CommutationMode(IntEnum):
     SINGLE_PHASE = 2
 
 
+@export
 class FilterType(IntEnum):
     """
     Biquad filter type.
@@ -190,6 +217,7 @@ class FilterType(IntEnum):
     """ High Shelf filter """
 
 
+@export
 class FilterSignal(Enum):
     """Signal to configure filter."""
 
@@ -207,6 +235,7 @@ class FilterSignal(Enum):
     """Current reference."""
 
 
+@export
 class FilterNumber(IntEnum):
     """Filter number (1 or 2)."""
 
@@ -214,6 +243,7 @@ class FilterNumber(IntEnum):
     FILTER2 = 2
 
 
+@export
 class DigitalVoltageLevel(IntEnum):
     """GPIOs voltage level (HIGH/LOW) enum"""
 
@@ -221,6 +251,7 @@ class DigitalVoltageLevel(IntEnum):
     LOW = 0
 
 
+@export
 class GPIOPolarity(IntEnum):
     """GPIOs polarity enum"""
 
@@ -228,6 +259,7 @@ class GPIOPolarity(IntEnum):
     REVERSED = 1
 
 
+@export
 class GPI(IntEnum):
     """GPIs identifier enum"""
 
@@ -237,6 +269,7 @@ class GPI(IntEnum):
     GPI4 = 4
 
 
+@export
 class GPO(IntEnum):
     """GPOs identifier enum"""
 
@@ -246,6 +279,7 @@ class GPO(IntEnum):
     GPO4 = 4
 
 
+@export
 class FSoEState(IntEnum):
     """FSoE Master Handler state"""
 
