@@ -22,7 +22,7 @@ from ingenialink.eoe.network import EoENetwork
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.exceptions import ILError
-from ingenialink.network import NET_DEV_EVT, SlaveInfo
+from ingenialink.network import NET_DEV_EVT, NET_STATE, SlaveInfo
 from ingenialink.register import Register
 from ingenialink.servo import DictionaryFactory, Servo
 from ingenialink.virtual.network import VirtualNetwork
@@ -888,6 +888,23 @@ class Communication(metaclass=MCMetaClass):
             self.mc.fsoe._delete_master_handler(servo)
         if servo_count == 0:
             del self.mc.net[net_name]
+
+    def get_servo_state(self, servo: str = DEFAULT_SERVO) -> NET_STATE:
+        """Get the network state of a servo (connected/disconnected).
+
+        The net_status_listener should be enabled for the servo in order
+        for the state to be updated.
+
+        Args:
+            servo : servo alias to reference it. ``default`` by default.
+
+        Returns:
+            The servo's state.
+
+        """
+        drive = self.mc._get_drive(servo)
+        network = self.mc._get_network(servo)
+        return network.get_servo_state(drive.target)
 
     def get_register(
         self, register: str, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
