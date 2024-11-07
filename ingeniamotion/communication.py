@@ -1,6 +1,5 @@
 import json
 import platform
-import subprocess
 import tempfile
 import time
 import zipfile
@@ -26,6 +25,7 @@ from ingenialink.network import NET_DEV_EVT, NET_STATE, SlaveInfo
 from ingenialink.register import Register
 from ingenialink.servo import DictionaryFactory, Servo
 from ingenialink.virtual.network import VirtualNetwork
+from ping3 import ping
 from virtual_drive.core import VirtualDrive
 
 from ingeniamotion.exceptions import IMException, IMRegisterWrongAccess
@@ -1314,8 +1314,8 @@ class Communication(metaclass=MCMetaClass):
 
     @staticmethod
     def __ftp_ping(ip: str) -> bool:
-        command = ["ping", ip]
-        return subprocess.call(command) == 0
+        response = ping(ip, timeout=1)
+        return isinstance(response, float)
 
     def boot_mode_and_load_firmware_ethernet(
         self,
