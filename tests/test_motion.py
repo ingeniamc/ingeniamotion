@@ -150,7 +150,7 @@ def test_fault_reset(motion_controller_teardown):
         mc.motion.motor_enable(servo=alias)
     try:
         is_fault_active = mc.errors.is_fault_active(servo=alias)
-    except ILIOError:
+    except exceptions.ILIOError:
         # Reading the status word failed. Check INGM-526.
         is_fault_active = mc.errors.is_fault_active(servo=alias)
     assert is_fault_active

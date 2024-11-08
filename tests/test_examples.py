@@ -31,10 +31,10 @@ from tests.conftest import connect_canopen, connect_eoe, connect_soem
 
 from .setups.descriptors import (
     DriveCanOpenSetup,
+    DriveEcatSetup,
     DriveEthernetSetup,
     EthernetSetup,
     Setup,
-    DriveEcatSetup,
 )
 
 
@@ -413,8 +413,8 @@ def test_change_baudrate_success(mocker, capsys):
     assert all_outputs[0] == f"Drive is connected with {baudrate} baudrate."
     assert all_outputs[2] == f"Baudrate has been changed from {baudrate} to {test_new_baudrate}."
     assert (
-        all_outputs[4]
-        == f"Perform a power cycle and reconnect to the drive using the new baud rate: {test_new_baudrate}"
+        all_outputs[4] == "Perform a power cycle and reconnect to the drive using the"
+        f" new baud rate: {test_new_baudrate}"
     )
 
 

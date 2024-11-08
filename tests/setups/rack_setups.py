@@ -1,8 +1,8 @@
 from .descriptors import (
     DriveCanOpenSetup,
+    DriveEcatSetup,
     DriveEthernetSetup,
     EthercatMultiSlaveSetup,
-    DriveEcatSetup,
 )
 
 ETH_EVE_SETUP = DriveEthernetSetup(

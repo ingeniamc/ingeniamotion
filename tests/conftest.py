@@ -11,6 +11,7 @@ from virtual_drive.core import VirtualDrive
 
 from ingeniamotion import MotionController
 from ingeniamotion.enums import SensorType
+
 from .setups.descriptors import (
     DriveCanOpenSetup,
     DriveEcatSetup,

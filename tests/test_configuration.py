@@ -1,17 +1,17 @@
 import os
 
 import pytest
-from ingenialink.ethercat.servo import EthercatServo
 from ingenialink.canopen.network import CAN_BAUDRATE
+from ingenialink.ethercat.servo import EthercatServo
 
+from ingeniamotion.configuration import TYPE_SUBNODES
 from ingeniamotion.enums import (
     CommutationMode,
-    FilterType,
     FilterNumber,
     FilterSignal,
+    FilterType,
 )
 from ingeniamotion.exceptions import IMException
-from ingeniamotion.configuration import TYPE_SUBNODES
 
 BRAKE_OVERRIDE_REGISTER = "MOT_BRAKE_OVERRIDE"
 POSITION_SET_POINT_REGISTER = "CL_POS_SET_POINT_VALUE"

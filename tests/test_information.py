@@ -1,13 +1,12 @@
 import pytest
-
+from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE, CanopenNetwork
+from ingenialink.dictionary import SubnodeType
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
-from ingenialink.canopen.network import CanopenNetwork, CAN_DEVICE, CAN_BAUDRATE
-from ingenialink.dictionary import SubnodeType
 from ingenialink.register import REG_ACCESS, REG_DTYPE
 
+from ingeniamotion.exceptions import IMException, IMRegisterNotExist
 from ingeniamotion.information import COMMUNICATION_TYPE
-from ingeniamotion.exceptions import IMRegisterNotExist, IMException
 
 
 @pytest.mark.virtual
