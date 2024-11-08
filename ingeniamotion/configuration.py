@@ -699,7 +699,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             raise TypeError("STO status value has to be an integer")
         return sto_status
 
-    def is_sto1_active(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
+    def is_sto1_active(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
         """
         Get STO1 bit from STO register
 
@@ -708,15 +708,13 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             axis : servo axis. ``1`` by default.
 
         Returns:
-            return value of STO1 bit.
+            returns True when the STO 1 input is active (bit is 0)
+            returns False when the STO 1 input is inactive (bit is 1)
 
         """
-        if self.get_sto_status(servo, axis) & self.STO1_ACTIVE_BIT:
-            return 1
-        else:
-            return 0
+        return not bool(self.get_sto_status(servo, axis) & self.STO1_ACTIVE_BIT)
 
-    def is_sto2_active(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
+    def is_sto2_active(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
         """
         Get STO2 bit from STO register
 
@@ -725,13 +723,11 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             axis : servo axis. ``1`` by default.
 
         Returns:
-            return value of STO2 bit.
+            returns True when the STO 2 input is active (bit is 0)
+            returns False when the STO 2 input is inactive (bit is 1)
 
         """
-        if self.get_sto_status(servo, axis) & self.STO2_ACTIVE_BIT:
-            return 1
-        else:
-            return 0
+        return not bool(self.get_sto_status(servo, axis) & self.STO2_ACTIVE_BIT)
 
     def check_sto_power_supply(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
         """

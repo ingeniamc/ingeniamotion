@@ -409,32 +409,39 @@ def patch_get_sto_status(mocker, value):
 @pytest.mark.parametrize(
     "sto_status_value, expected_result",
     [
-        (0x4843, 1),
-        (0xF567, 1),
-        (0xFFFF, 1),
-        (0x0000, 0),
-        (0x4766, 0),
-        (0xF6A4, 0),
+        (0x4843, False),
+        (0xF567, False),
+        (0xFFFF, False),
+        (0x0000, True),
+        (0x4766, True),
+        (0xF6A4, True),
     ],
 )
 def test_is_sto1_active(mocker, motion_controller, sto_status_value, expected_result):
     mc, alias, environment = motion_controller
     patch_get_sto_status(mocker, sto_status_value)
     value = mc.configuration.is_sto1_active(servo=alias)
-    assert value == expected_result
+    assert value is expected_result
 
 
 @pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_status_value, expected_result",
-    [(0xA187, 1), (0x31BA, 1), (0xD7DD, 0), (0xFB8, 0), (0xA8DE, 1), (0x99A5, 0)],
+    [
+        (0xA187, False),
+        (0x31BA, False),
+        (0xD7DD, True),
+        (0xFB8, True),
+        (0xA8DE, False),
+        (0x99A5, True),
+    ],
 )
 def test_is_sto2_active(mocker, motion_controller, sto_status_value, expected_result):
     mc, alias, environment = motion_controller
     patch_get_sto_status(mocker, sto_status_value)
     value = mc.configuration.is_sto2_active(servo=alias)
-    assert value == expected_result
+    assert value is expected_result
 
 
 @pytest.mark.virtual

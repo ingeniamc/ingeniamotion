@@ -5,6 +5,9 @@
 - Method to subscribe to register value updates.
 - Method to subscribe to emergency messages.
 
+### Changed
+- is_sto1_active and is_sto2_active return booleans instead of integers
+
 ### Fixed
 - Feedback symmetry check calculation.
 - Phasing test when the commutation feedback is a Halls sensor.
