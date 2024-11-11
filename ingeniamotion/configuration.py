@@ -708,8 +708,8 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             axis : servo axis. ``1`` by default.
 
         Returns:
-            returns True when the STO 1 input is active (bit is 0)
-            returns False when the STO 1 input is inactive (bit is 1)
+            True when the STO 1 input is active (bit is 0).
+            False when the STO 1 input is inactive (bit is 1)
 
         """
         return not bool(self.get_sto_status(servo, axis) & self.STO1_ACTIVE_BIT)
@@ -723,8 +723,8 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             axis : servo axis. ``1`` by default.
 
         Returns:
-            returns True when the STO 2 input is active (bit is 0)
-            returns False when the STO 2 input is inactive (bit is 1)
+            True when the STO 2 input is active (bit is 0).
+            False when the STO 2 input is inactive (bit is 1)
 
         """
         return not bool(self.get_sto_status(servo, axis) & self.STO2_ACTIVE_BIT)
