@@ -6,6 +6,7 @@ import ingenialogger
 from ingenialink.canopen.network import CAN_BAUDRATE, CanopenNetwork
 from ingenialink.ethernet.servo import EthernetServo
 from ingenialink.exceptions import ILError
+from ingenialink.utils._utils import deprecated
 
 from ingeniamotion.enums import (
     CommutationMode,
@@ -255,6 +256,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         drive.restore_parameters(axis)
         self.logger.info("Configuration restored", drive=self.mc.servo_name(servo))
 
+    @deprecated(new_func_name="set_max_profile_acceleration or set_profiler")
     def set_max_acceleration(
         self, acceleration: float, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> None:
@@ -273,11 +275,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             TypeError: If acceleration is not a float.
 
         """
-        self.logger.warning(
-            '"set_max_acceleration" is deprecated. '
-            'Please use "set_max_profile_acceleration" or '
-            '"set_profiler".'
-        )
         self.mc.communication.set_register(
             self.PROFILE_MAX_ACCELERATION_REGISTER, acceleration, servo=servo, axis=axis
         )
@@ -750,9 +747,12 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         else:
             return 0
 
+    @deprecated(new_func_name="is_sto_abnormal_fault")
     def check_sto_abnormal_fault(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
-        """
-        Get abnormal fault bit from STO register
+        """Get abnormal fault bit from STO register.
+
+        .. warning::
+            This function is deprecated. Please use "is_sto_abnormal_fault" instead.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
