@@ -826,6 +826,19 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """
         return self.get_sto_status(servo, axis) == self.STO_LATCHED_STATE
 
+    def is_sto_abnormal_fault(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
+        """Check if the STO of a drive is in abnormal fault.
+
+        Args:
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
+
+        Returns:
+            ``True`` if STO is in abnormal fault, else ``False``.
+
+        """
+        return bool(self.get_sto_status(servo, axis) & self.STO_ABNORMAL_FAULT_BIT)
+
     def change_tcp_ip_parameters(
         self, ip_address: str, subnet_mask: str, gateway: str, servo: str = DEFAULT_SERVO
     ) -> None:
