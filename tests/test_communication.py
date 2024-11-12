@@ -16,9 +16,9 @@ from ingenialink.servo import SERVO_STATE
 import ingeniamotion
 from ingeniamotion import MotionController
 from ingeniamotion.exceptions import (
+    IMFirmwareLoadError,
     IMRegisterNotExist,
     IMRegisterWrongAccess,
-    IMFirmwareLoadError,
 )
 
 from .setups.descriptors import DriveCanOpenSetup, EthernetSetup, Setup
@@ -440,8 +440,8 @@ def test__check_ensemble_wrong():
     with pytest.raises(IMFirmwareLoadError) as exc_info:
         mc.communication._Communication__check_ensemble(slaves, 3, mapping)
     assert (
-        str(exc_info.value)
-        == "The firmware file could not be loaded correctly. The selected drive is not part of the ensemble."
+        str(exc_info.value) == "The firmware file could not be loaded correctly. "
+        "The selected drive is not part of the ensemble."
     )
 
     slaves = OrderedDict(
@@ -453,8 +453,8 @@ def test__check_ensemble_wrong():
     with pytest.raises(IMFirmwareLoadError) as exc_info:
         mc.communication._Communication__check_ensemble(slaves, 1, mapping)
     assert (
-        str(exc_info.value)
-        == "The firmware file could not be loaded correctly. The slave 2 has wrong product code or revision number."
+        str(exc_info.value) == "The firmware file could not be loaded correctly. "
+        "The slave 2 has wrong product code or revision number."
     )
 
     slaves = OrderedDict(
@@ -466,8 +466,8 @@ def test__check_ensemble_wrong():
     with pytest.raises(IMFirmwareLoadError) as exc_info:
         mc.communication._Communication__check_ensemble(slaves, 2, mapping)
     assert (
-        str(exc_info.value)
-        == "The firmware file could not be loaded correctly. The slave 2 is not detected."
+        str(exc_info.value) == "The firmware file could not be loaded correctly. "
+        "The slave 2 is not detected."
     )
 
 
@@ -501,8 +501,8 @@ def test_check_slave_in_ensemble_drive_not_in_ensemble():
     with pytest.raises(IMFirmwareLoadError) as exc_info:
         mc.communication._Communication__check_slave_in_ensemble(slave_info, mapping)
     assert (
-        str(exc_info.value)
-        == "The firmware file could not be loaded correctly. The selected drive is not part of the ensemble."
+        str(exc_info.value) == "The firmware file could not be loaded correctly. "
+        "The selected drive is not part of the ensemble."
     )
 
 
@@ -555,8 +555,8 @@ def test_load_ensemble_fw_ecat(mocker):
     with pytest.raises(IMFirmwareLoadError) as exc_info:
         mc.communication.load_firmware_ecat("", TEST_ENSEMBLE_FW_FILE, slave=5)
     assert (
-        str(exc_info.value)
-        == "The firmware file could not be loaded correctly. The selected drive is not part of the ensemble."
+        str(exc_info.value) == "The firmware file could not be loaded correctly. "
+        "The selected drive is not part of the ensemble."
     )
 
 
@@ -620,8 +620,8 @@ def test_load_ensemble_fw_canopen(mocker):
     with pytest.raises(IMFirmwareLoadError) as exc_info:
         mc.communication.load_firmware_canopen(TEST_ENSEMBLE_FW_FILE, servo="5")
     assert (
-        str(exc_info.value)
-        == "The firmware file could not be loaded correctly. The selected drive is not part of the ensemble."
+        str(exc_info.value) == "The firmware file could not be loaded correctly. "
+        "The selected drive is not part of the ensemble."
     )
 
 
