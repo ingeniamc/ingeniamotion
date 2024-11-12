@@ -1003,7 +1003,7 @@ class Communication(metaclass=MCMetaClass):
         network.unsubscribe_from_status(drive.target, callback)
 
     def subscribe_servo_status(
-        self, callback: Callable[[SERVO_STATE, None, int], Any], servo: str = DEFAULT_SERVO
+        self, callback: Callable[[SERVO_STATE, int], Any], servo: str = DEFAULT_SERVO
     ) -> None:
         """Add a callback to servo status change event.
 
@@ -1016,7 +1016,7 @@ class Communication(metaclass=MCMetaClass):
         drive.subscribe_to_status(callback)
 
     def unsubscribe_servo_status(
-        self, callback: Callable[[SERVO_STATE, None, int], Any], servo: str = DEFAULT_SERVO
+        self, callback: Callable[[SERVO_STATE, int], Any], servo: str = DEFAULT_SERVO
     ) -> None:
         """Remove servo status change event callback.
 
