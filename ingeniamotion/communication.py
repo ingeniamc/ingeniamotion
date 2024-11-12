@@ -28,7 +28,7 @@ from ingenialink.virtual.network import VirtualNetwork
 from ping3 import ping
 from virtual_drive.core import VirtualDrive
 
-from ingeniamotion.exceptions import IMException, IMRegisterWrongAccess
+from ingeniamotion.exceptions import IMFirmwareLoadError, IMRegisterWrongAccess
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -38,6 +38,7 @@ from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 RUNNING_ON_WINDOWS = platform.system() == "Windows"
 FILE_EXT_SFU = ".sfu"
 FILE_EXT_LFU = ".lfu"
+FIRMWARE_FILE_FAIL_MSG = "The firmware file could not be loaded correctly"
 
 
 @dataclass
@@ -1453,7 +1454,7 @@ class Communication(metaclass=MCMetaClass):
             slave: Servo object.
 
         Raises:
-            IMException: If the load FW process of any slave failed.
+            IMFirmwareLoadError: If the load FW process of any slave failed.
         """
         with tempfile.TemporaryDirectory() as ensemble_temp_dir:
             mapping = self.__unzip_ensemble_fw_file(fw_file, ensemble_temp_dir)
@@ -1478,8 +1479,8 @@ class Communication(metaclass=MCMetaClass):
                         error_enabled_callback,
                     )
             except ILError as e:
-                raise IMException(
-                    f"Load of FW in slave {slave_id} of ensemble failed. Exception: {e}"
+                raise IMFirmwareLoadError(
+                    f"{FIRMWARE_FILE_FAIL_MSG} on node {slave_id}. Exception: {e}"
                 )
 
     def __load_ensemble_fw_ecat(
@@ -1507,6 +1508,8 @@ class Communication(metaclass=MCMetaClass):
         with tempfile.TemporaryDirectory() as ensemble_temp_dir:
             mapping = self.__unzip_ensemble_fw_file(fw_file, ensemble_temp_dir)
             scanned_slaves = net.scan_slaves_info()
+            if len(scanned_slaves) == 0:
+                raise IMFirmwareLoadError(f"{FIRMWARE_FILE_FAIL_MSG}. No ECAT slave detected.")
             first_slave_in_ensemble = self.__check_ensemble(scanned_slaves, slave, mapping)
             try:
                 for slave_id_offset, fw_file_prod_code in mapping.items():
@@ -1541,19 +1544,25 @@ class Communication(metaclass=MCMetaClass):
             mapping: Mapping of the ensemble.
 
         Raises:
-            IMException: If the slave ID is not in the scanned slaves list.
-            IMException: If the ensemble described in the mapping can not be found in the list of
-                scanned slaves.
+            IMFirmwareLoadError: If the slave ID is not in the scanned slaves list.
+            IMFirmwareLoadError: If the ensemble described in the mapping can not be
+            found in the list of the scanned slaves.
 
         Returns:
             The ID of the first drive in the ensemble.
         """
+        if slave_id not in scanned_slaves:
+            raise IMFirmwareLoadError(
+                f"{FIRMWARE_FILE_FAIL_MSG}. The slave {slave_id} is not detected."
+            )
         slave_id_offset = self.__check_slave_in_ensemble(scanned_slaves[slave_id], mapping)
         first_slave = slave_id - slave_id_offset
         for map_slave_id_offset in mapping:
             map_slave_id = first_slave + map_slave_id_offset
             if map_slave_id not in scanned_slaves:
-                raise IMException(f"Wrong ensemble. The slave {map_slave_id - 1} is not detected.")
+                raise IMFirmwareLoadError(
+                    f"{FIRMWARE_FILE_FAIL_MSG}. The slave {map_slave_id - 1} is not detected."
+                )
             map_slave_info = scanned_slaves[map_slave_id]
             if (
                 map_slave_info.product_code != mapping[map_slave_id_offset][1]
@@ -1561,8 +1570,8 @@ class Communication(metaclass=MCMetaClass):
                 or (map_slave_info.revision_number & self.ENSEMBLE_SLAVE_REV_NUM_MASK)
                 != (mapping[map_slave_id_offset][2] & self.ENSEMBLE_SLAVE_REV_NUM_MASK)
             ):
-                raise IMException(
-                    f"Wrong ensemble. The slave {map_slave_id} "
+                raise IMFirmwareLoadError(
+                    f"{FIRMWARE_FILE_FAIL_MSG}. The slave {map_slave_id} "
                     f"has wrong product code or revision number."
                 )
         return first_slave
@@ -1579,7 +1588,7 @@ class Communication(metaclass=MCMetaClass):
             mapping: Mapping of the ensemble.
 
         Raises:
-            IMException: If the slave is not part of the ensemble.
+            IMFirmwareLoadError: If the slave is not part of the ensemble.
 
         Returns:
             The ID offset (relative position in the ensemble) of the selected slave.
@@ -1594,7 +1603,9 @@ class Communication(metaclass=MCMetaClass):
                 mapping_revision_number & self.ENSEMBLE_SLAVE_REV_NUM_MASK
             ) == (scanned_revision_number & self.ENSEMBLE_SLAVE_REV_NUM_MASK):
                 return slave_id_offset
-        raise IMException("The selected drive is not part of the ensemble.")
+        raise IMFirmwareLoadError(
+            f"{FIRMWARE_FILE_FAIL_MSG}. The selected drive is not part of the ensemble."
+        )
 
     def __unzip_ensemble_fw_file(
         self, fw_file: str, unzip_path: str
@@ -1604,9 +1615,6 @@ class Communication(metaclass=MCMetaClass):
         Args:
             fw_file: Ensemble FW file to be unzipped.
             unzip_path: Path where to unzip the ensemble
-
-        Raises:
-            IMException: If the file extension is incorrect.
 
         Returns:
             Mapping described in the ensemble FW file.

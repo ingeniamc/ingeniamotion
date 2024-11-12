@@ -15,7 +15,11 @@ from ingenialink.servo import SERVO_STATE
 
 import ingeniamotion
 from ingeniamotion import MotionController
-from ingeniamotion.exceptions import IMException, IMRegisterNotExist, IMRegisterWrongAccess
+from ingeniamotion.exceptions import (
+    IMFirmwareLoadError,
+    IMRegisterNotExist,
+    IMRegisterWrongAccess,
+)
 
 from .setups.descriptors import DriveCanOpenSetup, EthernetSetup, Setup
 
@@ -433,9 +437,12 @@ def test__check_ensemble_wrong():
         }
     )
 
-    with pytest.raises(IMException) as exc_info:
+    with pytest.raises(IMFirmwareLoadError) as exc_info:
         mc.communication._Communication__check_ensemble(slaves, 3, mapping)
-    assert str(exc_info.value) == "The selected drive is not part of the ensemble."
+    assert (
+        str(exc_info.value) == "The firmware file could not be loaded correctly. "
+        "The selected drive is not part of the ensemble."
+    )
 
     slaves = OrderedDict(
         {
@@ -443,11 +450,11 @@ def test__check_ensemble_wrong():
             2: SlaveInfo(654321, 16781876),
         }
     )
-    with pytest.raises(IMException) as exc_info:
+    with pytest.raises(IMFirmwareLoadError) as exc_info:
         mc.communication._Communication__check_ensemble(slaves, 1, mapping)
     assert (
-        str(exc_info.value)
-        == "Wrong ensemble. The slave 2 has wrong product code or revision number."
+        str(exc_info.value) == "The firmware file could not be loaded correctly. "
+        "The slave 2 has wrong product code or revision number."
     )
 
     slaves = OrderedDict(
@@ -456,9 +463,12 @@ def test__check_ensemble_wrong():
             2: SlaveInfo(product_code, 4661),
         }
     )
-    with pytest.raises(IMException) as exc_info:
+    with pytest.raises(IMFirmwareLoadError) as exc_info:
         mc.communication._Communication__check_ensemble(slaves, 2, mapping)
-    assert str(exc_info.value) == "Wrong ensemble. The slave 2 is not detected."
+    assert (
+        str(exc_info.value) == "The firmware file could not be loaded correctly. "
+        "The slave 2 is not detected."
+    )
 
 
 @pytest.mark.virtual
@@ -488,9 +498,12 @@ def test_check_slave_in_ensemble_drive_not_in_ensemble():
     revision_number = 4660
     slave_info = SlaveInfo(product_code, revision_number)
 
-    with pytest.raises(IMException) as exc_info:
+    with pytest.raises(IMFirmwareLoadError) as exc_info:
         mc.communication._Communication__check_slave_in_ensemble(slave_info, mapping)
-    assert str(exc_info.value) == "The selected drive is not part of the ensemble."
+    assert (
+        str(exc_info.value) == "The firmware file could not be loaded correctly. "
+        "The selected drive is not part of the ensemble."
+    )
 
 
 @pytest.mark.virtual
@@ -539,9 +552,12 @@ def test_load_ensemble_fw_ecat(mocker):
         assert patch_fw_callback.call_args_list[1][0][1] is False
         assert patch_fw_callback.call_args_list[1][0][2] == 4
 
-    with pytest.raises(IMException) as exc_info:
+    with pytest.raises(IMFirmwareLoadError) as exc_info:
         mc.communication.load_firmware_ecat("", TEST_ENSEMBLE_FW_FILE, slave=5)
-    assert str(exc_info.value) == "The selected drive is not part of the ensemble."
+    assert (
+        str(exc_info.value) == "The firmware file could not be loaded correctly. "
+        "The selected drive is not part of the ensemble."
+    )
 
 
 @pytest.mark.virtual
@@ -601,9 +617,12 @@ def test_load_ensemble_fw_canopen(mocker):
         assert patch_fw_callback.call_args_list[1][0][0] == 4
         assert patch_fw_callback.call_args_list[1][0][1].endswith("cap-net-2-e_2.4.0.lfu")
 
-    with pytest.raises(IMException) as exc_info:
+    with pytest.raises(IMFirmwareLoadError) as exc_info:
         mc.communication.load_firmware_canopen(TEST_ENSEMBLE_FW_FILE, servo="5")
-    assert str(exc_info.value) == "The selected drive is not part of the ensemble."
+    assert (
+        str(exc_info.value) == "The firmware file could not be loaded correctly. "
+        "The selected drive is not part of the ensemble."
+    )
 
 
 @pytest.mark.virtual

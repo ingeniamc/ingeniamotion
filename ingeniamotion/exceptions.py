@@ -38,3 +38,9 @@ class IMTimeoutError(IMException):
     """Error raised by IngeniaMotion when a timeout has occurred"""
 
     pass
+
+
+class IMFirmwareLoadError(IMException):
+    """Error raised by IngeniaMotion when a firmware file could not be loaded"""
+
+    pass
