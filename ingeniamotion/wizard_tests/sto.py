@@ -66,13 +66,13 @@ class STOTest(BaseTest[LegacyDictReportType]):
         pass
 
     def loop(self) -> ResultType:
-        if self.mc.configuration.is_sto1_active(servo=self.servo, axis=self.axis) == 0:
+        if self.mc.configuration.is_sto1_active(servo=self.servo, axis=self.axis):
             self.logger.info("STO1 bit is LOW")
         # Check STO1 status --> Check bit 0 (0x1 in HEX)
         else:
             self.logger.info("STO1 bit is HIGH")
 
-        if self.mc.configuration.is_sto2_active(servo=self.servo, axis=self.axis) == 0:
+        if self.mc.configuration.is_sto2_active(servo=self.servo, axis=self.axis):
             self.logger.info("STO2 bit is LOW")
         # Check STO2 status --> Check bit 1 (0x2 in HEX)
         else:

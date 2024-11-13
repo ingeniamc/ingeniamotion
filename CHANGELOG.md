@@ -6,6 +6,9 @@
 - Method to subscribe to emergency messages.
 - Method to get a servo's network state.
 
+### Changed
+- is_sto1_active and is_sto2_active return booleans instead of integers
+
 ### Fixed
 - Feedback symmetry check calculation.
 - Phasing test when the commutation feedback is a Halls sensor.
