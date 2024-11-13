@@ -48,7 +48,7 @@ class MACAddressConverter:
 
         """
         if not isinstance(mac_address, int):
-            ValueError(
+            raise ValueError(
                 f"The MAC address has the wrong type. Expected an int, got {type(mac_address)}."
             )
         return ":".join(re.findall("..", "%012x" % mac_address))
