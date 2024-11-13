@@ -44,7 +44,7 @@ def test_set_get_gpi_polarity(motion_controller, gpi_id, polarity):
     assert mc.io.get_gpi_polarity(gpi_id, servo=alias) == polarity
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.virtual
@@ -91,7 +91,7 @@ def test_set_get_gpo_polarity(motion_controller, gpo_id, polarity):
 
 
 @pytest.mark.canopen
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "gpo_id,reg_value",
@@ -123,7 +123,7 @@ def test_set_gpo_voltage_level(motion_controller, gpo_id, reg_value):
 
 
 @pytest.mark.canopen
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "gpo_id",

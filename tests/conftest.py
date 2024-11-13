@@ -59,8 +59,8 @@ def tests_setup(request) -> Setup:
     return setup
 
 
-def connect_eoe(mc, config, alias):
-    mc.communication.connect_servo_eoe(config.ip, config.dictionary, alias=alias)
+def connect_ethernet(mc, config, alias):
+    mc.communication.connect_servo_ethernet(config.ip, config.dictionary, alias=alias)
 
 
 def connect_soem(mc, config: DriveEcatSetup, alias):
@@ -105,7 +105,7 @@ def motion_controller(tests_setup: Setup, pytestconfig, request):
         elif isinstance(tests_setup, DriveCanOpenSetup):
             connect_canopen(mc, tests_setup, alias)
         elif isinstance(tests_setup, DriveEthernetSetup):
-            connect_eoe(mc, tests_setup, alias)
+            connect_ethernet(mc, tests_setup, alias)
         else:
             raise NotImplementedError
 
@@ -139,7 +139,7 @@ def motion_controller(tests_setup: Setup, pytestconfig, request):
     elif isinstance(tests_setup, VirtualDriveSetup):
         virtual_drive = VirtualDrive(tests_setup.port, tests_setup.dictionary)
         virtual_drive.start()
-        connect_eoe(mc, tests_setup, alias)
+        connect_ethernet(mc, tests_setup, alias)
         environment = VirtualDriveEnvironmentController(virtual_drive.environment)
 
         yield mc, alias, environment

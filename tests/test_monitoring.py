@@ -59,7 +59,7 @@ def test_get_trigger_type(motion_controller, monitoring, trigger_type):
     assert test_trigger == trigger_type
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize(
@@ -93,7 +93,7 @@ def test_raise_forced_trigger(
     time.sleep(1)
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
@@ -108,7 +108,7 @@ def test_raise_forced_trigger_fail(motion_controller, monitoring, disable_monito
         monitoring.raise_forced_trigger()
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("mon_set_freq")
@@ -134,7 +134,7 @@ def test_read_monitoring_data_forced_trigger(
         assert len(test_output[0]) == 0
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
@@ -148,7 +148,7 @@ def test_set_monitoring_frequency(motion_controller, monitoring, prescaler):
     assert value == prescaler
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
@@ -183,7 +183,7 @@ def test_monitoring_map_registers_wrong_cyclic(monitoring):
         monitoring.map_registers(registers)
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
@@ -212,7 +212,7 @@ def test_monitoring_set_trigger(
     assert value == trigger_type
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
@@ -242,7 +242,7 @@ def test_monitoring_set_trigger_exceptions(
         monitoring.set_trigger(trigger_type, edge_condition, trigger_signal, trigger_value)
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
@@ -261,7 +261,7 @@ def test_configure_number_samples(motion_controller, monitoring):
     assert value == trigger_delay_samples
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
@@ -271,7 +271,7 @@ def test_configure_number_samples_exceptions(monitoring, total_num_samples, trig
         monitoring.configure_number_samples(total_num_samples, trigger_delay_samples)
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
@@ -294,7 +294,7 @@ def test_configure_sample_time(motion_controller, monitoring):
     assert value == trigger_delay_samples
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
@@ -318,7 +318,7 @@ def test_read_monitoring_data_not_configured(motion_controller, monitoring):
     assert len(test_output[0]) == 0
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
@@ -331,7 +331,7 @@ def test_read_monitoring_data_disabled(monitoring):
     assert len(test_output[0]) == 0
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("mon_set_freq")
@@ -349,7 +349,7 @@ def test_read_monitoring_data_timeout(
     assert len(test_output[0]) == 0
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("mon_set_freq")
@@ -376,7 +376,7 @@ def test_read_monitoring_data_no_rearm(
     assert len(test_output[0]) == 0
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("mon_set_freq")
@@ -415,7 +415,7 @@ def run_read_monitoring_data_and_stop(monitoring, timeout):
     return test_thread.join()
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke

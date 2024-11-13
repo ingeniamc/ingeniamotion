@@ -92,7 +92,7 @@ def remove_file_if_exist():
         os.remove(file_path)
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
@@ -112,7 +112,7 @@ def test_save_configuration_and_load_configuration(motion_controller):
 
 @pytest.mark.usefixtures("remove_file_if_exist")
 @pytest.mark.canopen
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.smoke
 def test_save_configuration_and_load_configuration_nvm_none(motion_controller):
     file_path = "test_file.xcf"
@@ -283,7 +283,7 @@ def test_get_status_word(motion_controller):
     assert test_value == reg_value
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
@@ -457,7 +457,7 @@ def test_check_sto_power_supply(mocker, motion_controller, sto_status_value, exp
     assert value == expected_result
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
@@ -521,7 +521,7 @@ def test_is_sto_abnormal_latched(mocker, motion_controller, sto_status_value, ex
     assert value == expected_result
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
@@ -530,7 +530,7 @@ def test_store_configuration(motion_controller):
     mc.configuration.store_configuration(servo=alias)
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke

@@ -143,7 +143,7 @@ pipeline {
                                 stage("Run unit tests") {
                                     steps {
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
-                                                "-m \"not eoe and not soem and not canopen and not virtual and not soem_multislave\" " +
+                                                "-m \"not ethernet and not soem and not canopen and not virtual and not soem_multislave\" " +
                                                 "--cov=ingeniamotion"
                                     }
                                     post {
@@ -226,7 +226,7 @@ pipeline {
                         }
                         stage("Ethernet Everest") {
                             steps {
-                                runTestHW("eoe", "ETH_EVE_SETUP")
+                                runTestHW("ethernet", "ETH_EVE_SETUP")
                             }
                         }
                         stage("CanOpen Capitan") {
@@ -240,7 +240,7 @@ pipeline {
                                 expression { false }
                             }
                             steps {
-                                runTestHW("eoe", "ETH_CAP_SETUP")
+                                runTestHW("ethernet", "ETH_CAP_SETUP")
                             }
                         }
                     }

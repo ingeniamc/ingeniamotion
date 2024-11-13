@@ -40,7 +40,7 @@ def feedback_test_setup(motion_controller):
     mc.tests.commutation(servo=alias)
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
@@ -56,7 +56,7 @@ def test_digital_halls_test(motion_controller, feedback_list):
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
@@ -72,7 +72,7 @@ def test_incremental_encoder_1_test(motion_controller, feedback_list):
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
@@ -90,7 +90,7 @@ def test_incremental_encoder_2_test(motion_controller, feedback_list):
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
@@ -106,7 +106,7 @@ def test_absolute_encoder_1_test(motion_controller, feedback_list):
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
@@ -122,7 +122,7 @@ def test_absolute_encoder_2_test(motion_controller, feedback_list):
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
@@ -140,7 +140,7 @@ def test_secondary_ssi_test(motion_controller, feedback_list):
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 def test_commutation(motion_controller_teardown):
@@ -149,7 +149,7 @@ def test_commutation(motion_controller_teardown):
     assert results["result_severity"] == SeverityLevel.SUCCESS
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
@@ -159,7 +159,7 @@ def test_commutation_error(motion_controller, force_fault):
         mc.tests.commutation(servo=alias)
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.skip("Skip until is fixed INGM-352")
@@ -170,7 +170,7 @@ def test_phasing_check(motion_controller):
     assert results["result_severity"] == SeverityLevel.SUCCESS
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
@@ -180,7 +180,7 @@ def test_phasing_check_error(motion_controller, force_fault):
         mc.tests.phasing_check(servo=alias)
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
@@ -210,7 +210,7 @@ def test_sto_test_error(mocker, motion_controller, sto_value, message):
     assert results["result_message"] == message
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
@@ -241,7 +241,7 @@ def run_test_and_stop(test):
     test_thread.join()
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")

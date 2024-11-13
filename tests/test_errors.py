@@ -51,7 +51,7 @@ def force_warning(motion_controller):
 
 
 class TestErrors:
-    @pytest.mark.eoe
+    @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
     @pytest.mark.smoke
@@ -66,7 +66,7 @@ class TestErrors:
         assert subnode is None
         assert warning is None
 
-    @pytest.mark.eoe
+    @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
     @pytest.mark.smoke
@@ -75,7 +75,7 @@ class TestErrors:
         last_error, subnode, warning = mc.errors.get_last_buffer_error(servo=alias)
         assert last_error == generate_drive_errors[0]
 
-    @pytest.mark.eoe
+    @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
     @pytest.mark.smoke
@@ -88,7 +88,7 @@ class TestErrors:
             )
             assert last_error == generate_drive_errors[i]
 
-    @pytest.mark.eoe
+    @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
     @pytest.mark.smoke
@@ -97,7 +97,7 @@ class TestErrors:
         with pytest.raises(ValueError):
             mc.errors.get_buffer_error_by_index(33, servo=alias)
 
-    @pytest.mark.eoe
+    @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
     @pytest.mark.smoke
@@ -106,7 +106,7 @@ class TestErrors:
         test_error_number = mc.errors.get_number_total_errors(servo=alias)
         assert test_error_number == error_number + len(generate_drive_errors)
 
-    @pytest.mark.eoe
+    @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
     @pytest.mark.smoke
@@ -117,7 +117,7 @@ class TestErrors:
             test_code_error, axis, warning = test_all_errors[i]
             assert test_code_error == code_error
 
-    @pytest.mark.eoe
+    @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
     @pytest.mark.smoke
@@ -127,7 +127,7 @@ class TestErrors:
         mc.motion.fault_reset(servo=alias)
         assert not mc.errors.is_fault_active(servo=alias)
 
-    @pytest.mark.eoe
+    @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
     @pytest.mark.smoke

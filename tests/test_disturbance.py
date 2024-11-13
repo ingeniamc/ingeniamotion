@@ -26,7 +26,7 @@ def test_disturbance_max_sample_size(motion_controller, disturbance):
     assert max_sample_size == value
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
@@ -40,7 +40,7 @@ def test_set_frequency_divider(motion_controller, disturbance, prescaler):
     assert value == prescaler
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
@@ -50,7 +50,7 @@ def test_set_frequency_divider_exception(disturbance):
         disturbance.set_frequency_divider(prescaler)
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
@@ -72,7 +72,7 @@ def test_disturbance_map_registers(motion_controller, disturbance, axis, name, e
     assert value == 1
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
@@ -86,7 +86,7 @@ def test_disturbance_number_map_registers(motion_controller, disturbance, number
     assert value == number_registers
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
@@ -112,7 +112,7 @@ def test_disturbance_map_registers_empty(disturbance):
         disturbance.map_registers(registers)
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
@@ -129,7 +129,7 @@ def test_write_disturbance_data_not_configured(disturbance):
         disturbance.write_disturbance_data([0] * 100)
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke

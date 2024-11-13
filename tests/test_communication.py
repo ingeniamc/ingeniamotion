@@ -53,41 +53,45 @@ class EmcyTest:
 @pytest.mark.virtual
 def test_connect_servo_eoe(tests_setup: EthernetSetup):
     mc = MotionController()
-    assert "eoe_test" not in mc.servos
-    assert "eoe_test" not in mc.net
-    mc.communication.connect_servo_eoe(tests_setup.ip, tests_setup.dictionary, alias="eoe_test")
-    assert "eoe_test" in mc.servos and mc.servos["eoe_test"] is not None
-    assert "eoe_test" in mc.net and mc.net["eoe_test"] is not None
+    assert "ethernet_test" not in mc.servos
+    assert "ethernet_test" not in mc.net
+    mc.communication.connect_servo_eoe(
+        tests_setup.ip, tests_setup.dictionary, alias="ethernet_test"
+    )
+    assert "ethernet_test" in mc.servos and mc.servos["ethernet_test"] is not None
+    assert "ethernet_test" in mc.net and mc.net["ethernet_test"] is not None
 
 
 @pytest.mark.virtual
 def test_connect_servo_eoe_no_dictionary_error(tests_setup: EthernetSetup):
     mc = MotionController()
     with pytest.raises(FileNotFoundError):
-        mc.communication.connect_servo_eoe(tests_setup.ip, "no_dictionary", alias="eoe_test")
+        mc.communication.connect_servo_eoe(tests_setup.ip, "no_dictionary", alias="ethernet_test")
 
 
 @pytest.mark.virtual
 def test_connect_servo_ethernet(tests_setup: EthernetSetup):
     mc = MotionController()
-    assert "eoe_test" not in mc.servos
-    assert "eoe_test" not in mc.net
+    assert "ethernet_test" not in mc.servos
+    assert "ethernet_test" not in mc.net
     mc.communication.connect_servo_ethernet(
-        tests_setup.ip, tests_setup.dictionary, alias="eoe_test"
+        tests_setup.ip, tests_setup.dictionary, alias="ethernet_test"
     )
-    assert "eoe_test" in mc.servos and mc.servos["eoe_test"] is not None
-    assert "eoe_test" in mc.net and mc.net["eoe_test"] is not None
+    assert "ethernet_test" in mc.servos and mc.servos["ethernet_test"] is not None
+    assert "ethernet_test" in mc.net and mc.net["ethernet_test"] is not None
 
 
 @pytest.mark.virtual
 def test_connect_servo_ethernet_no_dictionary_error(tests_setup: EthernetSetup):
     mc = MotionController()
     with pytest.raises(FileNotFoundError):
-        mc.communication.connect_servo_ethernet(tests_setup.ip, "no_dictionary", alias="eoe_test")
+        mc.communication.connect_servo_ethernet(
+            tests_setup.ip, "no_dictionary", alias="ethernet_test"
+        )
 
 
 @pytest.mark.smoke
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.parametrize(
     "coco_dict_path",
     [
@@ -105,7 +109,7 @@ def test_connect_servo_comkit_no_dictionary_error(coco_dict_path, tests_setup: E
         moco_dict_path = tests_setup.dictionary
     with pytest.raises(FileNotFoundError):
         mc.communication.connect_servo_comkit(
-            tests_setup.ip, coco_dict_path, moco_dict_path, alias="eoe_test"
+            tests_setup.ip, coco_dict_path, moco_dict_path, alias="ethernet_test"
         )
 
 
@@ -276,7 +280,7 @@ def dummy_callback(status, _, axis):
     pass
 
 
-@pytest.mark.eoe
+@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
