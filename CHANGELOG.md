@@ -5,6 +5,7 @@
 - Method to subscribe to register value updates.
 - Method to subscribe to emergency messages.
 - Method to get a servo's network state.
+- Methods to get/set a servo's MAC address.
 
 ### Changed
 - is_sto1_active and is_sto2_active return booleans instead of integers
