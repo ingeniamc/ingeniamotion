@@ -88,10 +88,10 @@ class STOTest(BaseTest[LegacyDictReportType]):
             self.logger.info("STO Power Supply is HIGH")
 
         # Check STO abnormal fault status --> Check bit 3 (0x8 in HEX)
-        sto_abnormal_fault = self.mc.configuration.check_sto_abnormal_fault(
+        sto_abnormal_fault = self.mc.configuration.is_sto_abnormal_fault(
             servo=self.servo, axis=self.axis
         )
-        if sto_abnormal_fault == 0:
+        if not sto_abnormal_fault:
             self.logger.info("STO abnormal fault bit is LOW")
         else:
             self.logger.info("STO abnormal fault bit is HIGH")

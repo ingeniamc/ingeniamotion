@@ -463,12 +463,19 @@ def test_check_sto_power_supply(mocker, motion_controller, sto_status_value, exp
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_status_value, expected_result",
-    [(0x1BAF, 1), (0xD363, 0), (0xAD9D, 1), (0x8D14, 0), (0x9AEE, 1), (0x94A7, 0)],
+    [
+        (0x1BAF, True),
+        (0xD363, False),
+        (0xAD9D, True),
+        (0x8D14, False),
+        (0x9AEE, True),
+        (0x94A7, False),
+    ],
 )
-def test_check_sto_abnormal_fault(mocker, motion_controller, sto_status_value, expected_result):
+def test_is_sto_abnormal_fault(mocker, motion_controller, sto_status_value, expected_result):
     mc, alias, environment = motion_controller
     patch_get_sto_status(mocker, sto_status_value)
-    value = mc.configuration.check_sto_abnormal_fault(servo=alias)
+    value = mc.configuration.is_sto_abnormal_fault(servo=alias)
     assert value == expected_result
 
 
