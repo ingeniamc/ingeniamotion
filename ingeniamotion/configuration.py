@@ -1,7 +1,7 @@
 import re
 from enum import IntEnum
 from os import path
-from typing import TYPE_CHECKING, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, List, Literal, Optional, Tuple, Union, overload
 
 import ingenialogger
 from ingenialink.canopen.network import CAN_BAUDRATE, CanopenNetwork
@@ -928,6 +928,14 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         if not isinstance(drive, EthernetServo):
             raise IMException("TCP IP parameters can only be restored in ethernet servos.")
         drive.restore_tcp_ip_parameters()
+
+    @overload
+    def get_mac_address(self, *, string_format: Literal[True]) -> str:
+        ...
+
+    @overload
+    def get_mac_address(self, *, string_format: Literal[False]) -> int:
+        ...
 
     def get_mac_address(
         self, servo: str = DEFAULT_SERVO, string_format: bool = False
