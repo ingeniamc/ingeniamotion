@@ -4,7 +4,7 @@ import pytest
 from ingenialink.canopen.network import CAN_BAUDRATE
 from ingenialink.ethercat.servo import EthercatServo
 
-from ingeniamotion.configuration import TYPE_SUBNODES
+from ingeniamotion.configuration import TYPE_SUBNODES, MACAddressConverter
 from ingeniamotion.enums import (
     CommutationMode,
     FilterNumber,
@@ -863,3 +863,50 @@ def test_get_subnode_type_exception(motion_controller):
     mc, alias, environment = motion_controller
     with pytest.raises(ValueError):
         mc.configuration.get_subnode_type(-1)
+
+
+@pytest.mark.virtual
+@pytest.mark.smoke
+@pytest.mark.parametrize(
+    "mac_address_str, mac_address_int",
+    [
+        ("49:4e:47:03:02:01", 80600547656193),
+        ("02:01:05:40:03:e9", 2203406304233),
+    ],
+)
+def test_mac_address_convertion(mac_address_str, mac_address_int):
+    assert MACAddressConverter.str_to_int(mac_address_str) == mac_address_int
+    assert MACAddressConverter.int_to_str(mac_address_int) == mac_address_str
+
+
+@pytest.mark.virtual
+@pytest.mark.smoke
+@pytest.mark.parametrize(
+    "invalid_mac_address",
+    [
+        "mac_address",
+        "49-4e-47-03-02-01",
+    ],
+)
+def test_mac_address_str_to_int_convertion_exception(invalid_mac_address):
+    with pytest.raises(ValueError) as excinfo:
+        MACAddressConverter.str_to_int(invalid_mac_address)
+    assert str(excinfo.value) == "The MAC address has an incorrect format."
+
+
+@pytest.mark.virtual
+@pytest.mark.smoke
+@pytest.mark.parametrize(
+    "invalid_mac_address",
+    [
+        125.0,
+        "49:4e:47:03:02:01",
+    ],
+)
+def test_mac_address_int_to_str_convertion_exception(invalid_mac_address):
+    with pytest.raises(ValueError) as excinfo:
+        MACAddressConverter.int_to_str(invalid_mac_address)
+    assert (
+        str(excinfo.value)
+        == f"The MAC address has the wrong type. Expected an int, got {type(invalid_mac_address)}."
+    )

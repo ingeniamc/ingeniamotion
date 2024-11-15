@@ -1,6 +1,7 @@
+import re
 from enum import IntEnum
 from os import path
-from typing import TYPE_CHECKING, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, List, Literal, Optional, Tuple, Union, overload
 
 import ingenialogger
 from ingenialink.canopen.network import CAN_BAUDRATE, CanopenNetwork
@@ -28,6 +29,49 @@ if TYPE_CHECKING:
 class TYPE_SUBNODES(IntEnum):
     COCO = 0
     MOCO = 1
+
+
+class MACAddressConverter:
+    """Class to convert MAC addresses from int to str
+    and vice versa."""
+
+    @staticmethod
+    def int_to_str(mac_address: int) -> str:
+        """Convert a MAC address to the string format
+        XX:XX:XX:XX:XX:XX.
+
+        Args:
+            mac_address: The MAC address as an integer.
+
+        Returns:
+            The MAC address in string format.
+
+        """
+        if not isinstance(mac_address, int):
+            raise ValueError(
+                f"The MAC address has the wrong type. Expected an int, got {type(mac_address)}."
+            )
+        return ":".join(re.findall("..", "%012x" % mac_address))
+
+    @staticmethod
+    def str_to_int(mac_address: str) -> int:
+        """Convert a MAC address in string format to an int.
+
+        Args:
+            mac_address: The MAC address in string format.
+
+        Returns:
+            The MAC address as an integer.
+
+        Raises:
+            ValueError: If the MAC address has the wrong format.
+
+        """
+        try:
+            mac_address_int = int(mac_address.replace(":", ""), 16)
+        except ValueError:
+            raise ValueError("The MAC address has an incorrect format.")
+        return mac_address_int
 
 
 class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
@@ -836,7 +880,12 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         return bool(self.get_sto_status(servo, axis) & self.STO_ABNORMAL_FAULT_BIT)
 
     def change_tcp_ip_parameters(
-        self, ip_address: str, subnet_mask: str, gateway: str, servo: str = DEFAULT_SERVO
+        self,
+        ip_address: str,
+        subnet_mask: str,
+        gateway: str,
+        mac_address: Optional[Union[str, int]] = None,
+        servo: str = DEFAULT_SERVO,
     ) -> None:
         """Change TCP IP parameters and store it.
 
@@ -844,13 +893,17 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             ip_address : IP Address to be changed.
             subnet_mask : Subnet mask to be changed.
             gateway : Gateway to be changed.
+            mac_address: The MAC address to be set. It can be an int or a
+            string with format XX:XX:XX:XX:XX:XX.
             servo : servo alias to reference it. ``default`` by default.
 
         """
         drive = self.mc._get_drive(servo)
         if not isinstance(drive, EthernetServo):
             raise IMException("TCP IP parameters can only be changed in ethernet servos.")
-        drive.change_tcp_ip_parameters(ip_address, subnet_mask, gateway)
+        if isinstance(mac_address, str):
+            mac_address = MACAddressConverter.str_to_int(mac_address)
+        drive.change_tcp_ip_parameters(ip_address, subnet_mask, gateway, mac_address)
 
     def store_tcp_ip_parameters(self, servo: str = DEFAULT_SERVO) -> None:
         """Store TCP IP parameters to non-volatile memory.
@@ -875,6 +928,51 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         if not isinstance(drive, EthernetServo):
             raise IMException("TCP IP parameters can only be restored in ethernet servos.")
         drive.restore_tcp_ip_parameters()
+
+    @overload
+    def get_mac_address(self, *, string_format: Literal[True]) -> str:
+        ...
+
+    @overload
+    def get_mac_address(self, *, string_format: Literal[False]) -> int:
+        ...
+
+    def get_mac_address(
+        self, servo: str = DEFAULT_SERVO, string_format: bool = False
+    ) -> Union[int, str]:
+        """Get the MAC address of a servo.
+
+        Args:
+            servo : servo alias to reference it. ``default`` by default.
+            string_format: If True, return the MAC address in string format.
+
+        Returns:
+            The servo's MAC address.
+
+        """
+        drive = self.mc._get_drive(servo)
+        if not isinstance(drive, EthernetServo):
+            raise IMException("The MAC address can only be read from Ethernet servos.")
+        mac_address = drive.get_mac_address()
+        if string_format:
+            return MACAddressConverter.int_to_str(mac_address)
+        return mac_address
+
+    def set_mac_address(self, mac_address: Union[int, str], servo: str = DEFAULT_SERVO) -> None:
+        """Set the MAC address of the servo.
+
+        Args:
+            mac_address: The MAC address to be set. It can be an int or a
+            string with format XX:XX:XX:XX:XX:XX.
+            servo : servo alias to reference it. ``default`` by default.
+
+        """
+        drive = self.mc._get_drive(servo)
+        if not isinstance(drive, EthernetServo):
+            raise IMException("The MAC address can only be set to Ethernet servos.")
+        if isinstance(mac_address, str):
+            mac_address = MACAddressConverter.str_to_int(mac_address)
+        drive.set_mac_address(mac_address)
 
     def get_drive_info_coco_moco(
         self,
