@@ -930,11 +930,15 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         drive.restore_tcp_ip_parameters()
 
     @overload
-    def get_mac_address(self, *, string_format: Literal[True]) -> str:
+    def get_mac_address(self, servo: str = ..., string_format: Literal[False] = False) -> int:
         ...
 
     @overload
-    def get_mac_address(self, *, string_format: Literal[False]) -> int:
+    def get_mac_address(self, servo: str, string_format: Literal[True]) -> str:
+        ...
+
+    @overload
+    def get_mac_address(self, *, string_format: Literal[True]) -> str:
         ...
 
     def get_mac_address(
