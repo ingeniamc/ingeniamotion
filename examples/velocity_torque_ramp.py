@@ -29,7 +29,7 @@ def velocity_ramp(final_velocity, acceleration, mc):
         mc: MotionController instance.
     """
     done = False
-    mc.configuration.set_max_acceleration(acceleration)
+    mc.configuration.set_max_profile_acceleration(acceleration)
     mc.motion.set_velocity(final_velocity)
     while not done:
         try:

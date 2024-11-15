@@ -256,32 +256,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         drive.restore_parameters(axis)
         self.logger.info("Configuration restored", drive=self.mc.servo_name(servo))
 
-    @deprecated(new_func_name="set_max_profile_acceleration or set_profiler")
-    def set_max_acceleration(
-        self, acceleration: float, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ) -> None:
-        """Update maximum acceleration register.
-
-        .. warning::
-            This function is deprecated. Please use
-            "set_max_profile_acceleration" or "set_profiler" instead.
-
-        Args:
-            acceleration : maximum acceleration in rev/s^2.
-            servo : servo alias to reference it. ``default`` by default.
-            axis : servo axis. ``1`` by default.
-
-        Raises:
-            TypeError: If acceleration is not a float.
-
-        """
-        self.mc.communication.set_register(
-            self.PROFILE_MAX_ACCELERATION_REGISTER, acceleration, servo=servo, axis=axis
-        )
-        self.logger.debug(
-            "Max acceleration set to %s", acceleration, axis=axis, drive=self.mc.servo_name(servo)
-        )
-
     def set_max_profile_acceleration(
         self, acceleration: float, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> None:
