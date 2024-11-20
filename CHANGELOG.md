@@ -17,6 +17,10 @@
 ### Deprecated 
 - check_sto_abnormal_fault in configuration. Use is_sto_abnormal_fault instead.
 
+### Removed
+- The set_max_acceleration (deprecated in v0.5.4).
+
+
 ## [0.8.5] - 2024-08-27
 ### Fixed
 - Remove SBC registers that have been removed on FW

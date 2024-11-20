@@ -162,16 +162,6 @@ def test_set_profiler(motion_controller, acceleration, deceleration, velocity):
 @pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("acceleration", [0, 10, 25])
-def test_set_max_acceleration(motion_controller, acceleration):
-    mc, alias, environment = motion_controller
-    mc.configuration.set_max_acceleration(acceleration, servo=alias)
-    output_value = mc.communication.get_register(PROFILE_MAX_ACCELERATION_REGISTER, servo=alias)
-    assert pytest.approx(acceleration) == output_value
-
-
-@pytest.mark.virtual
-@pytest.mark.smoke
-@pytest.mark.parametrize("acceleration", [0, 10, 25])
 def test_set_max_profile_acceleration(motion_controller, acceleration):
     mc, alias, environment = motion_controller
     mc.configuration.set_max_profile_acceleration(acceleration, servo=alias)
