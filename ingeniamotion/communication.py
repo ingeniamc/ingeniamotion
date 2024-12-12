@@ -379,18 +379,19 @@ class Communication(metaclass=MCMetaClass):
         coco_dict = DictionaryFactory.create_dictionary(coco_dict_path, Interface.ETH)
         self.mc.servos[alias].dictionary += coco_dict
 
-    @staticmethod
-    def __get_adapter_name(index: int) -> str:
+    @classmethod
+    def __get_adapter_name(cls, index: int) -> str:
         """Returns the adapter name of an adapter based on its index.
 
         Args:
             index : position of interface selected in
                 :func:`get_interface_name_list`.
         """
-        adapter = list(ifaddr.get_adapters())[index]
+        adapter_name = cls.get_interface_name_list()[index]
+        adapter_guid = cls.__get_network_adapters()[adapter_name]
         if RUNNING_ON_WINDOWS:
-            return f"\\Device\\NPF_{bytes.decode(adapter.name)}"
-        return str(adapter.name)
+            return f"\\Device\\NPF_{adapter_guid}"
+        return adapter_name
 
     def get_ifname_from_interface_ip(self, address: str) -> str:
         """Returns interface name based on the address ip of an interface.
@@ -453,15 +454,36 @@ class Communication(metaclass=MCMetaClass):
         """
         return self.__get_adapter_name(index)
 
-    @staticmethod
-    def get_interface_name_list() -> List[str]:
+    @classmethod
+    def get_interface_name_list(cls) -> List[str]:
         """Get interface list.
 
         Returns:
             List with interface readable names.
 
         """
-        return [x.nice_name for x in ifaddr.get_adapters()]
+        network_adapters = cls.__get_network_adapters()
+        return list(network_adapters)
+
+    @staticmethod
+    def __get_network_adapters() -> Dict[str, str]:
+        """Get detected network adapters.
+
+        Returns:
+            Dictionary with interface readable names as keys and GUIDs as values.
+
+        """
+        configured_adapters = {x.nice_name: x.name for x in ifaddr.get_adapters()}
+        if RUNNING_ON_WINDOWS:
+            from wmi import WMI
+
+            network_adapters = {
+                o.Name: o.GUID
+                for o in WMI().query("select Name, guid from Win32_NetworkAdapter")
+                if o.GUID is not None
+            }
+            configured_adapters.update(network_adapters)
+        return configured_adapters
 
     def get_available_canopen_devices(self) -> dict[CAN_DEVICE, list[int]]:
         """Return the list of available CAN devices (those connected and with drivers installed).
