@@ -1,9 +1,10 @@
 import json
+import operator
 import platform
 import tempfile
 import time
 import zipfile
-from collections import OrderedDict
+from collections import Counter, OrderedDict
 from dataclasses import dataclass
 from functools import partial
 from os import path
@@ -55,6 +56,15 @@ class IMEmergencyMessageObserver:
 
     im_callback: Callable[[str, EmergencyMessage], None]
     alias: str
+
+
+@dataclass
+class NetworkAdapter:
+    """Class to represent a network adapter."""
+
+    interface_index: int
+    interface_name: str
+    interface_guid: str
 
 
 class Communication(metaclass=MCMetaClass):
@@ -467,23 +477,42 @@ class Communication(metaclass=MCMetaClass):
 
     @staticmethod
     def __get_network_adapters() -> Dict[str, str]:
-        """Get detected network adapters.
+        """Get the detected network adapters.
 
         Returns:
             Dictionary with interface readable names as keys and GUIDs as values.
 
         """
-        configured_adapters = {x.nice_name: x.name for x in ifaddr.get_adapters()}
+        network_adapters = []
+        for adapter in ifaddr.get_adapters():
+            network_adapters.append(NetworkAdapter(adapter.index, adapter.nice_name, adapter.name))
         if RUNNING_ON_WINDOWS:
             from wmi import WMI
 
-            network_adapters = {
-                o.Name: o.GUID
-                for o in WMI().query("select Name, guid from Win32_NetworkAdapter")
+            for adapter in [
+                NetworkAdapter(o.interfaceindex, o.Name, o.GUID)
+                for o in WMI().query("select Name, guid, interfaceindex from Win32_NetworkAdapter")
                 if o.GUID is not None
-            }
-            configured_adapters.update(network_adapters)
-        return configured_adapters
+            ]:
+                if adapter not in network_adapters:
+                    network_adapters.append(adapter)
+
+            interface_name_counter = Counter(
+                [adapter.interface_name for adapter in network_adapters]
+            )
+
+            if interface_name_counter.most_common(1)[0][1] > 1:
+                for adapter in sorted(
+                    network_adapters, key=operator.attrgetter("interface_index"), reverse=True
+                ):
+                    interface_name_count = interface_name_counter[adapter.interface_name]
+                    if interface_name_count == 1:
+                        continue
+                    interface_name_counter[adapter.interface_name] -= 1
+                    adapter.interface_name = (
+                        adapter.interface_name + " #" + str(interface_name_count)
+                    )
+        return {adapter.interface_name: adapter.interface_guid for adapter in network_adapters}
 
     def get_available_canopen_devices(self) -> dict[CAN_DEVICE, list[int]]:
         """Return the list of available CAN devices (those connected and with drivers installed).
