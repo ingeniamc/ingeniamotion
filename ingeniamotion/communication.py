@@ -398,7 +398,7 @@ class Communication(metaclass=MCMetaClass):
                 :func:`get_interface_name_list`.
         """
         adapter_name = cls.get_interface_name_list()[index]
-        adapter_guid = cls.__get_network_adapters()[adapter_name]
+        adapter_guid = cls.get_network_adapters()[adapter_name]
         if RUNNING_ON_WINDOWS:
             return f"\\Device\\NPF_{adapter_guid}"
         return adapter_name
@@ -472,11 +472,11 @@ class Communication(metaclass=MCMetaClass):
             List with interface readable names.
 
         """
-        network_adapters = cls.__get_network_adapters()
+        network_adapters = cls.get_network_adapters()
         return list(network_adapters)
 
     @staticmethod
-    def __get_network_adapters() -> Dict[str, str]:
+    def get_network_adapters() -> Dict[str, str]:
         """Get the detected network adapters.
 
         Returns:
