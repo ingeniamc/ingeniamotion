@@ -485,7 +485,9 @@ class Communication(metaclass=MCMetaClass):
         """
         network_adapters = []
         for adapter in ifaddr.get_adapters():
-            network_adapters.append(NetworkAdapter(adapter.index, adapter.nice_name, adapter.name))
+            network_adapters.append(
+                NetworkAdapter(adapter.index, adapter.nice_name, bytes.decode(adapter.name))
+            )
         if RUNNING_ON_WINDOWS:
             from wmi import WMI
 
