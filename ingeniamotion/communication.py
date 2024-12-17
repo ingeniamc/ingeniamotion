@@ -12,6 +12,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 import ifaddr
 import ingenialogger
+import pythoncom
 from ingenialink.canopen.network import CAN_BAUDRATE, CAN_CHANNELS, CAN_DEVICE, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.dictionary import Interface
@@ -37,6 +38,10 @@ if TYPE_CHECKING:
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 
 RUNNING_ON_WINDOWS = platform.system() == "Windows"
+
+if RUNNING_ON_WINDOWS:
+    from wmi import WMI
+
 FILE_EXT_SFU = ".sfu"
 FILE_EXT_LFU = ".lfu"
 FIRMWARE_FILE_FAIL_MSG = "The firmware file could not be loaded correctly"
@@ -489,7 +494,9 @@ class Communication(metaclass=MCMetaClass):
                 NetworkAdapter(adapter.index, adapter.nice_name, bytes.decode(adapter.name))
             )
         if RUNNING_ON_WINDOWS:
-            from wmi import WMI
+            # When using WMI within threads it is required to initialize the COM objects
+            # https://stackoverflow.com/a/14428972
+            pythoncom.CoInitialize()
 
             for adapter in [
                 NetworkAdapter(o.interfaceindex, o.Name, o.GUID)
