@@ -132,7 +132,7 @@ def test_get_ifname_from_interface_ip(mocker):
     if platform.system() == "Linux":
         name = "eth0"
     else:
-        name = "{192D1D2F-C684-467D-A637-EC07BD434A63}"
+        name = b"{192D1D2F-C684-467D-A637-EC07BD434A63}"
     mock_adapter = MockAdapter(name)
     mocker.patch("ifaddr.get_adapters", return_value=[mock_adapter])
     mc = MotionController()
