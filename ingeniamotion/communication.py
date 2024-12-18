@@ -490,9 +490,11 @@ class Communication(metaclass=MCMetaClass):
         """
         network_adapters = []
         for adapter in ifaddr.get_adapters():
-            network_adapters.append(
-                NetworkAdapter(adapter.index, adapter.nice_name, bytes.decode(adapter.name))
-            )
+            if isinstance(adapter.name, bytes):
+                adapter_guid = bytes.decode(adapter.name)
+            else:
+                adapter_guid = adapter.name
+            network_adapters.append(NetworkAdapter(adapter.index, adapter.nice_name, adapter_guid))
         if RUNNING_ON_WINDOWS:
             # When using WMI within threads it is required to initialize the COM objects
             # https://stackoverflow.com/a/14428972
