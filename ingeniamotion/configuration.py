@@ -1,7 +1,7 @@
 import re
 from enum import IntEnum
 from os import path
-from typing import TYPE_CHECKING, List, Literal, Optional, Tuple, Union, overload
+from typing import TYPE_CHECKING, List, Optional, Tuple, Union
 
 import ingenialogger
 from ingenialink.canopen.network import CAN_BAUDRATE, CanopenNetwork
@@ -903,22 +903,14 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             raise IMException("TCP IP parameters can only be restored in ethernet servos.")
         drive.restore_tcp_ip_parameters()
 
-    @overload
-    def get_mac_address(self, *, string_format: Literal[True]) -> str:
-        ...
-
-    @overload
-    def get_mac_address(self, *, string_format: Literal[False]) -> int:
-        ...
-
     def get_mac_address(
-        self, servo: str = DEFAULT_SERVO, string_format: bool = False
-    ) -> Union[int, str]:
+        self,
+        servo: str = DEFAULT_SERVO,
+    ) -> int:
         """Get the MAC address of a servo.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
-            string_format: If True, return the MAC address in string format.
 
         Returns:
             The servo's MAC address.
@@ -928,9 +920,26 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         if not isinstance(drive, EthernetServo):
             raise IMException("The MAC address can only be read from Ethernet servos.")
         mac_address = drive.get_mac_address()
-        if string_format:
-            return MACAddressConverter.int_to_str(mac_address)
         return mac_address
+
+    def get_mac_address_string(
+        self,
+        servo: str = DEFAULT_SERVO,
+    ) -> str:
+        """Get the MAC address of a servo.
+
+        Args:
+            servo : servo alias to reference it. ``default`` by default.
+
+        Returns:
+            The servo's MAC address in string format.
+
+        """
+        drive = self.mc._get_drive(servo)
+        if not isinstance(drive, EthernetServo):
+            raise IMException("The MAC address can only be read from Ethernet servos.")
+        mac_address = drive.get_mac_address()
+        return MACAddressConverter.int_to_str(mac_address)
 
     def set_mac_address(self, mac_address: Union[int, str], servo: str = DEFAULT_SERVO) -> None:
         """Set the MAC address of the servo.
