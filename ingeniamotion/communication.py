@@ -38,10 +38,6 @@ from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 
 RUNNING_ON_WINDOWS = platform.system() == "Windows"
 
-if RUNNING_ON_WINDOWS:
-    import pythoncom
-    from wmi import WMI
-
 FILE_EXT_SFU = ".sfu"
 FILE_EXT_LFU = ".lfu"
 FIRMWARE_FILE_FAIL_MSG = "The firmware file could not be loaded correctly"
@@ -498,11 +494,18 @@ class Communication(metaclass=MCMetaClass):
         if RUNNING_ON_WINDOWS:
             # When using WMI within threads it is required to initialize the COM objects
             # https://stackoverflow.com/a/14428972
+            # The order of imports is also important
+            # https://stackoverflow.com/a/46606527
+            import pythoncom
+
             pythoncom.CoInitialize()
+            import wmi
 
             for adapter in [
                 NetworkAdapter(o.interfaceindex, o.Name, o.GUID)
-                for o in WMI().query("select Name, guid, interfaceindex from Win32_NetworkAdapter")
+                for o in wmi.WMI().query(
+                    "select Name, guid, interfaceindex from Win32_NetworkAdapter"
+                )
                 if o.GUID is not None
             ]:
                 if adapter not in network_adapters:
