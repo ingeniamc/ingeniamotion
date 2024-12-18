@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 import ifaddr
 import ingenialogger
-import pythoncom
 from ingenialink.canopen.network import CAN_BAUDRATE, CAN_CHANNELS, CAN_DEVICE, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.dictionary import Interface
@@ -40,6 +39,7 @@ from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 RUNNING_ON_WINDOWS = platform.system() == "Windows"
 
 if RUNNING_ON_WINDOWS:
+    import pythoncom
     from wmi import WMI
 
 FILE_EXT_SFU = ".sfu"
