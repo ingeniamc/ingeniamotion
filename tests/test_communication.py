@@ -3,6 +3,7 @@ import platform
 import tempfile
 import time
 from collections import OrderedDict
+from dataclasses import dataclass
 
 import pytest
 from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE, CanopenNetwork
@@ -116,13 +117,24 @@ def test_connect_servo_comkit_no_dictionary_error(coco_dict_path, tests_setup: E
 @pytest.mark.smoke
 @pytest.mark.virtual
 def test_get_ifname_from_interface_ip(mocker):
-    ip = type("IP", (object,), {"ip": "192.168.2.1", "is_IPv4": True})
+    class MockAdapter:
+        @dataclass
+        class IP:
+            ip = "192.168.2.1"
+            is_IPv4 = True
+
+        def __init__(self, interface_name):
+            self.name = interface_name
+            self.nice_name = interface_name
+            self.ips = [self.IP()]
+            self.index = 1
+
     if platform.system() == "Linux":
         name = "eth0"
     else:
         name = b"{192D1D2F-C684-467D-A637-EC07BD434A63}"
-    adapter = type("Adapter", (object,), {"ips": [ip], "name": name})
-    mocker.patch("ifaddr.get_adapters", return_value=[adapter])
+    mock_adapter = MockAdapter(name)
+    mocker.patch("ifaddr.get_adapters", return_value=[mock_adapter])
     mc = MotionController()
     ifname = mc.communication.get_ifname_from_interface_ip("192.168.2.1")
     if platform.system() == "Windows":
