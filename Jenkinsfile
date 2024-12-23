@@ -123,6 +123,8 @@ pipeline {
                                 stage('Build wheels') {
                                     steps {
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e build"
+                                        stash includes: 'dist\\*', name: 'build'
+                                        archiveArtifacts artifacts: "dist\\*"
                                     }
                                 }
                                 stage('Make a static type analysis') {
@@ -138,6 +140,10 @@ pipeline {
                                 stage('Generate documentation') {
                                     steps {
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e docs"
+                                        bat """
+                                            "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
+                                        """
+                                        stash includes: 'docs.zip', name: 'docs'
                                     }
                                 }
                                 stage("Run unit tests") {
@@ -179,33 +185,36 @@ pipeline {
                                         }
                                     }
                                 }
-                                stage('Archive') {
-                                    steps {
-                                        bat """
-                                            "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
-                                        """
-                                        stash includes: 'dist\\*, docs.zip', name: 'publish_files'
-                                        archiveArtifacts artifacts: "dist\\*, docs.zip"
-                                    }
-                                }
                             }
                         }
-                        stage('Publish ingeniamotion') {
-                            when {
+                        stage('Publish documentation') {
+                            /* when {
                                 beforeAgent true
                                 branch BRANCH_NAME_MASTER
+                            } */
+                            agent {
+                                label "worker"
                             }
+                            steps {
+                                unstash 'docs'
+                                unzip zipFile: 'docs.zip', dir: '.'
+                                // publishDistExt("_docs", DISTEXT_PROJECT_DIR, false)
+                            }
+                        }
+                        stage('Publish to pypi') {
+                            /*when {
+                                beforeAgent true
+                                branch BRANCH_NAME_MASTER
+                            }*/
                             agent {
                                 docker {
-                                    label "worker"
+                                    label 'worker'
                                     image "ingeniacontainers.azurecr.io/publisher:1.8"
                                 }
                             }
                             steps {
-                                unstash 'publish_files'
-                                unzip zipFile: 'docs.zip', dir: '.'
-                                publishDistExt("_docs", DISTEXT_PROJECT_DIR, false)
-                                publishPyPi("dist/*")
+                                unstash 'build'
+                                // publishPyPi("dist/*")
                             }
                         }
                     }
