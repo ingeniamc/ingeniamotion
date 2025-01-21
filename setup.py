@@ -44,7 +44,7 @@ setuptools.setup(
         'wmi==1.5.1; platform_system == "Windows"',
     ],
     extras_require={
-        "FSoE": ["fsoe-master==0.1.2"],
+        "FSoE": ["fsoe-master==0.1.3"],
     },
     python_requires=">=3.9",
 )
