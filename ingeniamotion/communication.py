@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 import ifaddr
 import ingenialogger
-from ingenialink import CanBaudrate, CanDevice, NetState
+from ingenialink import CanBaudrate, CanDevice, NetDevEvt, NetState
 from ingenialink.canopen.network import CAN_CHANNELS, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.dictionary import Interface
@@ -23,7 +23,7 @@ from ingenialink.eoe.network import EoENetwork
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.exceptions import ILError
-from ingenialink.network import NET_DEV_EVT, SlaveInfo
+from ingenialink.network import SlaveInfo
 from ingenialink.register import Register
 from ingenialink.servo import DictionaryFactory, Servo
 from ingenialink.virtual.network import VirtualNetwork
@@ -1039,7 +1039,7 @@ class Communication(metaclass=MCMetaClass):
         drive.write(register, value, subnode=axis)
 
     def subscribe_net_status(
-        self, callback: Callable[[NET_DEV_EVT], None], servo: str = DEFAULT_SERVO
+        self, callback: Callable[[NetDevEvt], None], servo: str = DEFAULT_SERVO
     ) -> None:
         """Add a callback to net status change event.
 
@@ -1053,7 +1053,7 @@ class Communication(metaclass=MCMetaClass):
         network.subscribe_to_status(drive.target, callback)
 
     def unsubscribe_net_status(
-        self, callback: Callable[[NET_DEV_EVT], None], servo: str = DEFAULT_SERVO
+        self, callback: Callable[[NetDevEvt], None], servo: str = DEFAULT_SERVO
     ) -> None:
         """Remove net status change event callback.
 
