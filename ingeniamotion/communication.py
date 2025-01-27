@@ -12,7 +12,7 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 import ifaddr
 import ingenialogger
-from ingenialink import CanBaudrate, CanDevice
+from ingenialink import CanBaudrate, CanDevice, NetState
 from ingenialink.canopen.network import CAN_CHANNELS, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.dictionary import Interface
@@ -23,7 +23,7 @@ from ingenialink.eoe.network import EoENetwork
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.exceptions import ILError
-from ingenialink.network import NET_DEV_EVT, NET_STATE, SlaveInfo
+from ingenialink.network import NET_DEV_EVT, SlaveInfo
 from ingenialink.register import Register
 from ingenialink.servo import DictionaryFactory, Servo
 from ingenialink.virtual.network import VirtualNetwork
@@ -953,7 +953,7 @@ class Communication(metaclass=MCMetaClass):
         if servo_count == 0:
             del self.mc.net[net_name]
 
-    def get_servo_state(self, servo: str = DEFAULT_SERVO) -> NET_STATE:
+    def get_servo_state(self, servo: str = DEFAULT_SERVO) -> NetState:
         """Get the network state of a servo (connected/disconnected).
 
         The net_status_listener should be enabled for the servo in order
