@@ -4,7 +4,7 @@ from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.dictionary import SubnodeType
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
-from ingenialink.register import REG_ACCESS, RegDtype
+from ingenialink.register import RegAccess, RegDtype
 
 from ingeniamotion.exceptions import IMException, IMRegisterNotExist
 from ingeniamotion.information import COMMUNICATION_TYPE
@@ -24,7 +24,7 @@ def test_register_info(motion_controller, uid, axis):
     mc, alias, environment = motion_controller
     register = mc.info.register_info(uid, axis, alias)
     assert isinstance(register.dtype, RegDtype)
-    assert isinstance(register.access, REG_ACCESS)
+    assert isinstance(register.access, RegAccess)
     assert isinstance(register.range, tuple)
 
 
@@ -48,10 +48,10 @@ def test_register_type(motion_controller, uid, axis, dtype):
 @pytest.mark.parametrize(
     "uid, axis, access",
     [
-        ("CL_POS_FBK_VALUE", 1, REG_ACCESS.RO),
-        ("CL_VEL_SET_POINT_VALUE", 1, REG_ACCESS.RW),
-        ("PROF_POS_OPTION_CODE", 1, REG_ACCESS.RW),
-        ("PROF_IP_CLEAR_DATA", 1, REG_ACCESS.WO),
+        ("CL_POS_FBK_VALUE", 1, RegAccess.RO),
+        ("CL_VEL_SET_POINT_VALUE", 1, RegAccess.RW),
+        ("PROF_POS_OPTION_CODE", 1, RegAccess.RW),
+        ("PROF_IP_CLEAR_DATA", 1, RegAccess.WO),
     ],
 )
 def test_register_access(motion_controller, uid, axis, access):

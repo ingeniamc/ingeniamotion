@@ -9,7 +9,7 @@ Enums
    :members:
    :undoc-members:
 
-.. autoclass:: REG_ACCESS
+.. autoclass:: RegAccess
    :members:
    :undoc-members:
 

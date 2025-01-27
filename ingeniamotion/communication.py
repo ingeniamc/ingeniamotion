@@ -17,7 +17,7 @@ from ingenialink.canopen.network import CAN_CHANNELS, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.dictionary import Interface
 from ingenialink.emcy import EmergencyMessage
-from ingenialink.enums.register import REG_ACCESS, RegDtype
+from ingenialink.enums.register import RegAccess, RegDtype
 from ingenialink.enums.servo import SERVO_STATE
 from ingenialink.eoe.network import EoENetwork
 from ingenialink.ethercat.network import EthercatNetwork
@@ -1032,7 +1032,7 @@ class Communication(metaclass=MCMetaClass):
             raise TypeError("Value must be an int")
         if register_dtype_value in unsigned_int and (not isinstance(value, int) or value < 0):
             raise TypeError("Value must be an unsigned int")
-        if register_access_type == REG_ACCESS.RO:
+        if register_access_type == RegAccess.RO:
             raise IMRegisterWrongAccess(
                 f"Register: {register} cannot write to a read-only register"
             )
