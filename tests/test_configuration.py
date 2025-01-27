@@ -1,7 +1,7 @@
 import os
 
 import pytest
-from ingenialink.canopen.network import CAN_BAUDRATE
+from ingenialink import CanBaudrate
 from ingenialink.ethercat.servo import EthercatServo
 
 from ingeniamotion.configuration import TYPE_SUBNODES, MACAddressConverter
@@ -608,7 +608,7 @@ def test_get_fw_version(motion_controller):
 def test_change_baudrate_exception(motion_controller):
     mc, alias, environment = motion_controller
     with pytest.raises(ValueError):
-        mc.configuration.change_baudrate(CAN_BAUDRATE.Baudrate_1M, alias)
+        mc.configuration.change_baudrate(CanBaudrate.Baudrate_1M, alias)
 
 
 @pytest.mark.virtual

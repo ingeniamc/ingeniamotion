@@ -68,3 +68,6 @@ _pdf
 
 # Tox
 .tox
+
+# vscode
+.vscode/

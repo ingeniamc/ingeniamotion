@@ -2,7 +2,7 @@ import os
 from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
 
 import ingenialogger
-from ingenialink import CAN_BAUDRATE
+from ingenialink import CanBaudrate
 from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.dictionary import SubnodeType
 from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
@@ -178,7 +178,7 @@ class Information(metaclass=MCMetaClass):
         else:
             raise IMException("You need a CANopen communication to use this function")
 
-    def get_baudrate(self, servo: str = DEFAULT_SERVO) -> CAN_BAUDRATE:
+    def get_baudrate(self, servo: str = DEFAULT_SERVO) -> CanBaudrate:
         """Get the baudrate of target servo
 
         Args:
@@ -189,7 +189,7 @@ class Information(metaclass=MCMetaClass):
         """
         net = self.mc._get_network(servo)
         if isinstance(net, CanopenNetwork):
-            return CAN_BAUDRATE(net.baudrate)
+            return CanBaudrate(net.baudrate)
         raise IMException(f"The servo {servo} is not a CANopen device.")
 
     def get_ip(self, servo: str = DEFAULT_SERVO) -> str:

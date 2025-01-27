@@ -1,6 +1,4 @@
-from typing import Optional
-
-from ingenialink import CAN_BAUDRATE, CAN_DEVICE
+from ingenialink import CAN_DEVICE, CanBaudrate
 
 from ingeniamotion.motion_controller import MotionController
 
@@ -9,7 +7,7 @@ def change_node_id(
     device: CAN_DEVICE,
     channel: int,
     node_id: int,
-    baudrate: CAN_BAUDRATE,
+    baudrate: CanBaudrate,
     dictionary_path: str,
     new_node_id: int,
 ) -> None:
@@ -60,7 +58,7 @@ if __name__ == "__main__":
     channel = 0
     node_id = 20
     new_node_id = 32
-    baudrate = CAN_BAUDRATE.Baudrate_1M
+    baudrate = CanBaudrate.Baudrate_1M
     dictionary_path = "parent_directory/dictionary_file.xdf"
 
     change_node_id(device, channel, node_id, baudrate, dictionary_path, new_node_id)

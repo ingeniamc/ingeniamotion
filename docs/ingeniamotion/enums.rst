@@ -13,7 +13,7 @@ Enums
    :members:
    :undoc-members:
 
-.. autoclass:: CAN_BAUDRATE
+.. autoclass:: CanBaudrate
    :members:
    :undoc-members:
 

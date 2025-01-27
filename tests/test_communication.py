@@ -6,7 +6,8 @@ from collections import OrderedDict
 from dataclasses import dataclass
 
 import pytest
-from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE, CanopenNetwork
+from ingenialink import CanBaudrate
+from ingenialink.canopen.network import CAN_DEVICE, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
@@ -164,7 +165,7 @@ def test_connect_servo_canopen(tests_setup: DriveCanOpenSetup):
     assert "canopen_test" not in mc.servos
     assert "canopen_test" not in mc.net
     device = CAN_DEVICE(tests_setup.device)
-    baudrate = CAN_BAUDRATE(tests_setup.baudrate)
+    baudrate = CanBaudrate(tests_setup.baudrate)
     mc.communication.connect_servo_canopen(
         device,
         tests_setup.dictionary,
@@ -189,7 +190,7 @@ def test_connect_servo_canopen_busy_drive_error(motion_controller, tests_setup: 
     assert alias in mc.servo_net
     assert mc.servo_net[alias] in mc.net
     device = CAN_DEVICE(tests_setup.device)
-    baudrate = CAN_BAUDRATE(tests_setup.baudrate)
+    baudrate = CanBaudrate(tests_setup.baudrate)
     with pytest.raises(ILError):
         mc.communication.connect_servo_canopen(
             device,

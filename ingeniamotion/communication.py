@@ -12,7 +12,8 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 import ifaddr
 import ingenialogger
-from ingenialink.canopen.network import CAN_BAUDRATE, CAN_CHANNELS, CAN_DEVICE, CanopenNetwork
+from ingenialink import CanBaudrate
+from ingenialink.canopen.network import CAN_CHANNELS, CAN_DEVICE, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.dictionary import Interface
 from ingenialink.emcy import EmergencyMessage
@@ -422,8 +423,7 @@ class Communication(metaclass=MCMetaClass):
             index = self._get_interface_index_by_address(address)
         except IndexError:
             raise ValueError(
-                f"Could not found a adapter configured as {address} "
-                f"to connect as EtherCAT master"
+                f"Could not found a adapter configured as {address} to connect as EtherCAT master"
             )
         return self.__get_adapter_name(index)
 
@@ -645,7 +645,7 @@ class Communication(metaclass=MCMetaClass):
         can_device: CAN_DEVICE,
         dict_path: str,
         node_id: int,
-        baudrate: CAN_BAUDRATE = CAN_BAUDRATE.Baudrate_1M,
+        baudrate: CanBaudrate = CanBaudrate.Baudrate_1M,
         channel: int = 0,
         alias: str = DEFAULT_SERVO,
         servo_status_listener: bool = False,
@@ -865,7 +865,7 @@ class Communication(metaclass=MCMetaClass):
     def scan_servos_canopen_with_info(
         self,
         can_device: CAN_DEVICE,
-        baudrate: CAN_BAUDRATE = CAN_BAUDRATE.Baudrate_1M,
+        baudrate: CanBaudrate = CanBaudrate.Baudrate_1M,
         channel: int = 0,
     ) -> OrderedDict[int, SlaveInfo]:
         """Scan CANOpen device network to get all nodes including slave information.
@@ -888,8 +888,7 @@ class Communication(metaclass=MCMetaClass):
 
         if net is None:
             self.logger.warning(
-                "Could not find any nodes in the network."
-                "Device: %s, channel: %s and baudrate: %s.",
+                "Could not find any nodes in the network.Device: %s, channel: %s and baudrate: %s.",
                 can_device,
                 channel,
                 baudrate,
@@ -901,7 +900,7 @@ class Communication(metaclass=MCMetaClass):
     def scan_servos_canopen(
         self,
         can_device: CAN_DEVICE,
-        baudrate: CAN_BAUDRATE = CAN_BAUDRATE.Baudrate_1M,
+        baudrate: CanBaudrate = CanBaudrate.Baudrate_1M,
         channel: int = 0,
     ) -> List[int]:
         """Scan CANOpen device network to get all nodes.
@@ -924,8 +923,7 @@ class Communication(metaclass=MCMetaClass):
 
         if net is None:
             self.logger.warning(
-                "Could not find any nodes in the network."
-                "Device: %s, channel: %s and baudrate: %s.",
+                "Could not find any nodes in the network.Device: %s, channel: %s and baudrate: %s.",
                 can_device,
                 channel,
                 baudrate,

@@ -1,5 +1,6 @@
 import pytest
-from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE, CanopenNetwork
+from ingenialink import CanBaudrate
+from ingenialink.canopen.network import CAN_DEVICE, CanopenNetwork
 from ingenialink.dictionary import SubnodeType
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
@@ -254,7 +255,7 @@ def test_get_baudrate_success(motion_controller, mocker):
 
     fake_device = CAN_DEVICE.PCAN
     fake_channel = 0
-    fake_baudrate = CAN_BAUDRATE.Baudrate_1M
+    fake_baudrate = CanBaudrate.Baudrate_1M
     fake_network = CanopenNetwork(fake_device, fake_channel, fake_baudrate)
     mocker.patch.object(mc, "_get_network", return_value=fake_network)
 

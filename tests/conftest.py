@@ -5,7 +5,8 @@ from typing import Dict
 import numpy as np
 import pytest
 import rpyc
-from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE
+from ingenialink import CanBaudrate
+from ingenialink.canopen.network import CAN_DEVICE
 from ping3 import ping
 from virtual_drive.core import VirtualDrive
 
@@ -74,7 +75,7 @@ def connect_soem(mc, config: DriveEcatSetup, alias):
 
 def connect_canopen(mc, config: DriveCanOpenSetup, alias):
     device = CAN_DEVICE(config.device)
-    baudrate = CAN_BAUDRATE(config.baudrate)
+    baudrate = CanBaudrate(config.baudrate)
     mc.communication.connect_servo_canopen(
         device,
         config.dictionary,
