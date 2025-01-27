@@ -1,9 +1,10 @@
 import json
+import operator
 import platform
 import tempfile
 import time
 import zipfile
-from collections import OrderedDict
+from collections import Counter, OrderedDict
 from dataclasses import dataclass
 from functools import partial
 from os import path
@@ -36,6 +37,7 @@ if TYPE_CHECKING:
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 
 RUNNING_ON_WINDOWS = platform.system() == "Windows"
+
 FILE_EXT_SFU = ".sfu"
 FILE_EXT_LFU = ".lfu"
 FIRMWARE_FILE_FAIL_MSG = "The firmware file could not be loaded correctly"
@@ -55,6 +57,15 @@ class IMEmergencyMessageObserver:
 
     im_callback: Callable[[str, EmergencyMessage], None]
     alias: str
+
+
+@dataclass
+class NetworkAdapter:
+    """Class to represent a network adapter."""
+
+    interface_index: int
+    interface_name: str
+    interface_guid: str
 
 
 class Communication(metaclass=MCMetaClass):
@@ -379,18 +390,19 @@ class Communication(metaclass=MCMetaClass):
         coco_dict = DictionaryFactory.create_dictionary(coco_dict_path, Interface.ETH)
         self.mc.servos[alias].dictionary += coco_dict
 
-    @staticmethod
-    def __get_adapter_name(index: int) -> str:
+    @classmethod
+    def __get_adapter_name(cls, index: int) -> str:
         """Returns the adapter name of an adapter based on its index.
 
         Args:
             index : position of interface selected in
                 :func:`get_interface_name_list`.
         """
-        adapter = list(ifaddr.get_adapters())[index]
+        adapter_name = cls.get_interface_name_list()[index]
+        adapter_guid = cls.get_network_adapters()[adapter_name]
         if RUNNING_ON_WINDOWS:
-            return f"\\Device\\NPF_{bytes.decode(adapter.name)}"
-        return str(adapter.name)
+            return f"\\Device\\NPF_{adapter_guid}"
+        return adapter_name
 
     def get_ifname_from_interface_ip(self, address: str) -> str:
         """Returns interface name based on the address ip of an interface.
@@ -453,15 +465,68 @@ class Communication(metaclass=MCMetaClass):
         """
         return self.__get_adapter_name(index)
 
-    @staticmethod
-    def get_interface_name_list() -> List[str]:
+    @classmethod
+    def get_interface_name_list(cls) -> List[str]:
         """Get interface list.
 
         Returns:
             List with interface readable names.
 
         """
-        return [x.nice_name for x in ifaddr.get_adapters()]
+        network_adapters = cls.get_network_adapters()
+        return list(network_adapters)
+
+    @staticmethod
+    def get_network_adapters() -> Dict[str, str]:
+        """Get the detected network adapters.
+
+        Returns:
+            Dictionary with interface readable names as keys and GUIDs as values.
+
+        """
+        network_adapters = []
+        for adapter in ifaddr.get_adapters():
+            if isinstance(adapter.name, bytes):
+                adapter_guid = bytes.decode(adapter.name)
+            else:
+                adapter_guid = adapter.name
+            network_adapters.append(NetworkAdapter(adapter.index, adapter.nice_name, adapter_guid))
+        if RUNNING_ON_WINDOWS:
+            # When using WMI within threads it is required to initialize the COM objects
+            # https://stackoverflow.com/a/14428972
+            # The order of imports is also important
+            # https://stackoverflow.com/a/46606527
+            import pythoncom
+
+            pythoncom.CoInitialize()
+            import wmi
+
+            for adapter in [
+                NetworkAdapter(o.interfaceindex, o.Name, o.GUID)
+                for o in wmi.WMI().query(
+                    "select Name, guid, interfaceindex from Win32_NetworkAdapter"
+                )
+                if o.GUID is not None
+            ]:
+                if adapter not in network_adapters:
+                    network_adapters.append(adapter)
+
+            interface_name_counter = Counter(
+                [adapter.interface_name for adapter in network_adapters]
+            )
+
+            if interface_name_counter.most_common(1)[0][1] > 1:
+                for adapter in sorted(
+                    network_adapters, key=operator.attrgetter("interface_index"), reverse=True
+                ):
+                    interface_name_count = interface_name_counter[adapter.interface_name]
+                    if interface_name_count == 1:
+                        continue
+                    interface_name_counter[adapter.interface_name] -= 1
+                    adapter.interface_name = (
+                        adapter.interface_name + " #" + str(interface_name_count)
+                    )
+        return {adapter.interface_name: adapter.interface_guid for adapter in network_adapters}
 
     def get_available_canopen_devices(self) -> dict[CAN_DEVICE, list[int]]:
         """Return the list of available CAN devices (those connected and with drivers installed).
