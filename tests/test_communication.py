@@ -13,7 +13,7 @@ from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.exceptions import ILError
 from ingenialink.network import SlaveInfo
-from ingenialink.servo import SERVO_STATE
+from ingenialink.servo import ServoState
 
 import ingeniamotion
 from ingeniamotion import MotionController
@@ -307,7 +307,7 @@ def test_subscribe_servo_status(mocker, motion_controller):
     time.sleep(0.5)
     mc.motion.motor_disable(alias, axis)
     time.sleep(0.5)
-    expected_status = [SERVO_STATE.RDY, SERVO_STATE.ENABLED, SERVO_STATE.DISABLED]
+    expected_status = [ServoState.RDY, ServoState.ENABLED, ServoState.DISABLED]
     for index, call in enumerate(patch_callback.call_args_list):
         assert call[0][0] == expected_status[index]
         assert call[0][2] == axis

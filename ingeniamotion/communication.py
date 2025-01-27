@@ -18,7 +18,7 @@ from ingenialink.canopen.servo import CanopenServo
 from ingenialink.dictionary import Interface
 from ingenialink.emcy import EmergencyMessage
 from ingenialink.enums.register import RegAccess, RegDtype
-from ingenialink.enums.servo import SERVO_STATE
+from ingenialink.enums.servo import ServoState
 from ingenialink.eoe.network import EoENetwork
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
@@ -1067,7 +1067,7 @@ class Communication(metaclass=MCMetaClass):
         network.unsubscribe_from_status(drive.target, callback)
 
     def subscribe_servo_status(
-        self, callback: Callable[[SERVO_STATE, int], Any], servo: str = DEFAULT_SERVO
+        self, callback: Callable[[ServoState, int], Any], servo: str = DEFAULT_SERVO
     ) -> None:
         """Add a callback to servo status change event.
 
@@ -1080,7 +1080,7 @@ class Communication(metaclass=MCMetaClass):
         drive.subscribe_to_status(callback)
 
     def unsubscribe_servo_status(
-        self, callback: Callable[[SERVO_STATE, int], Any], servo: str = DEFAULT_SERVO
+        self, callback: Callable[[ServoState, int], Any], servo: str = DEFAULT_SERVO
     ) -> None:
         """Remove servo status change event callback.
 
