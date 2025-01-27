@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
 
 import ingenialogger
 import numpy as np
-from ingenialink.enums.register import REG_DTYPE, RegCyclicType
+from ingenialink.enums.register import RegCyclicType, RegDtype
 from ingenialink.exceptions import ILValueError
 from numpy import ndarray
 from numpy.typing import NDArray
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
 # Constants for typing
 # TODO: INGM-327
 TYPE_MAPPED_REGISTERS_ALL = Dict[str, Union[str, int, List[float]]]
-TYPE_MAPPED_REGISTERS_NAME_AXIS = Dict[str, Union[str, int, REG_DTYPE]]
+TYPE_MAPPED_REGISTERS_NAME_AXIS = Dict[str, Union[str, int, RegDtype]]
 TYPE_MAPPED_REGISTERS_DATA = Dict[str, List[Union[int, float]]]
 TYPE_MAPPED_REGISTERS_DATA_NO_KEY = List[Union[int, float]]
 
@@ -55,15 +55,15 @@ class Disturbance:
     REGISTER_MAP_OFFSET = 0x800
 
     __data_type_size = {
-        REG_DTYPE.U8: 1,
-        REG_DTYPE.S8: 1,
-        REG_DTYPE.U16: 2,
-        REG_DTYPE.S16: 2,
-        REG_DTYPE.U32: 4,
-        REG_DTYPE.S32: 4,
-        REG_DTYPE.U64: 8,
-        REG_DTYPE.S64: 8,
-        REG_DTYPE.FLOAT: 4,
+        RegDtype.U8: 1,
+        RegDtype.S8: 1,
+        RegDtype.U16: 2,
+        RegDtype.S16: 2,
+        RegDtype.U32: 4,
+        RegDtype.S32: 4,
+        RegDtype.U64: 8,
+        RegDtype.S64: 8,
+        RegDtype.FLOAT: 4,
     }
 
     def __init__(self, mc: "MotionController", servo: str = DEFAULT_SERVO) -> None:
@@ -247,7 +247,7 @@ class Disturbance:
         drive = self.mc.servos[self.servo]
         self.__check_buffer_size_is_enough(adapted_registers_data)
         idx_list = list(range(len(adapted_registers_data)))
-        dtype_list = [REG_DTYPE(x["dtype"]) for x in self.mapped_registers]
+        dtype_list = [RegDtype(x["dtype"]) for x in self.mapped_registers]
         if self._version >= MonitoringVersion.MONITORING_V3:
             drive.disturbance_remove_data()
         try:
@@ -297,7 +297,7 @@ class Disturbance:
         total_buffer_size = 0
         for ch_idx, data in enumerate(registers):
             dtype = self.mapped_registers[ch_idx]["dtype"]
-            if not isinstance(dtype, REG_DTYPE):
+            if not isinstance(dtype, RegDtype):
                 continue
             total_buffer_size += self.__data_type_size[dtype] * len(data)
         if total_buffer_size > self.max_sample_number:

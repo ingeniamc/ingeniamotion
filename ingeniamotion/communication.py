@@ -17,7 +17,7 @@ from ingenialink.canopen.network import CAN_CHANNELS, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.dictionary import Interface
 from ingenialink.emcy import EmergencyMessage
-from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
+from ingenialink.enums.register import REG_ACCESS, RegDtype
 from ingenialink.enums.servo import SERVO_STATE
 from ingenialink.eoe.network import EoENetwork
 from ingenialink.ethercat.network import EthercatNetwork
@@ -992,7 +992,7 @@ class Communication(metaclass=MCMetaClass):
         drive = self.mc.servos[servo]
         register_dtype = self.mc.info.register_type(register, axis, servo=servo)
         value = drive.read(register, subnode=axis)
-        if register_dtype.value <= REG_DTYPE.S64.value and isinstance(value, int):
+        if register_dtype.value <= RegDtype.S64.value and isinstance(value, int):
             return int(value)
         if not isinstance(value, (int, float, str)):
             raise TypeError("Register value is not a correct type of value.")
@@ -1022,11 +1022,11 @@ class Communication(metaclass=MCMetaClass):
         drive = self.mc.servos[servo]
         register_dtype_value = self.mc.info.register_type(register, axis, servo=servo)
         register_access_type = self.mc.info.register_info(register, axis, servo=servo).access
-        signed_int = [REG_DTYPE.S8, REG_DTYPE.S16, REG_DTYPE.S32, REG_DTYPE.S64]
-        unsigned_int = [REG_DTYPE.U8, REG_DTYPE.U16, REG_DTYPE.U32, REG_DTYPE.U64]
-        if register_dtype_value == REG_DTYPE.FLOAT and not isinstance(value, (int, float)):
+        signed_int = [RegDtype.S8, RegDtype.S16, RegDtype.S32, RegDtype.S64]
+        unsigned_int = [RegDtype.U8, RegDtype.U16, RegDtype.U32, RegDtype.U64]
+        if register_dtype_value == RegDtype.FLOAT and not isinstance(value, (int, float)):
             raise TypeError("Value must be a float")
-        if register_dtype_value == REG_DTYPE.STR and not isinstance(value, str):
+        if register_dtype_value == RegDtype.STR and not isinstance(value, str):
             raise TypeError("Value must be a string")
         if register_dtype_value in signed_int and not isinstance(value, int):
             raise TypeError("Value must be an int")

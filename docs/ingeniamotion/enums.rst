@@ -5,7 +5,7 @@ Enums
    :members:
    :undoc-members:
 
-.. autoclass:: REG_DTYPE
+.. autoclass:: RegDtype
    :members:
    :undoc-members:
 

@@ -24,7 +24,7 @@ except ImportError:
 else:
     FSOE_MASTER_INSTALLED = True
 
-from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
+from ingenialink.enums.register import REG_ACCESS, RegDtype
 from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 from ingenialink.utils._utils import dtype_value
@@ -349,20 +349,20 @@ class FSoEMaster:
     DEFAULT_WATCHDOG_TIMEOUT_S = 1
 
     SAFETY_ADDRESS_REGISTER = EthercatRegister(
-        idx=0x4193, subidx=0x00, dtype=REG_DTYPE.U16, access=REG_ACCESS.RW
+        idx=0x4193, subidx=0x00, dtype=RegDtype.U16, access=REG_ACCESS.RW
     )
     SAFE_INPUTS_MAP_REGISTER = EthercatRegister(
         identifier="SAFE_INPUTS_MAP",
         idx=0x46D2,
         subidx=0x00,
-        dtype=REG_DTYPE.U16,
+        dtype=RegDtype.U16,
         access=REG_ACCESS.RW,
     )
     SS1_TIME_TO_STO_REGISTER = EthercatRegister(
         identifier="SS1_TIME_TO_STO",
         idx=0x6651,
         subidx=0x01,
-        dtype=REG_DTYPE.U16,
+        dtype=RegDtype.U16,
         access=REG_ACCESS.RW,
     )
 

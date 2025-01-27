@@ -5,7 +5,7 @@ import ingenialogger
 from ingenialink import CanBaudrate
 from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.dictionary import SubnodeType
-from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
+from ingenialink.enums.register import REG_ACCESS, RegDtype
 from ingenialink.eoe.network import EoENetwork
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
@@ -63,7 +63,7 @@ class Information(metaclass=MCMetaClass):
         register: str,
         axis: int = DEFAULT_AXIS,
         servo: str = DEFAULT_SERVO,
-    ) -> REG_DTYPE:
+    ) -> RegDtype:
         """Return register dtype.
 
         Args:
