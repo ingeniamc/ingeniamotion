@@ -1,10 +1,10 @@
-from ingenialink import CAN_DEVICE, CanBaudrate
+from ingenialink import CanBaudrate, CanDevice
 
 from ingeniamotion.motion_controller import MotionController
 
 
 def change_baudrate(
-    device: CAN_DEVICE,
+    device: CanDevice,
     channel: int,
     node_id: int,
     baudrate: CanBaudrate,
@@ -32,7 +32,7 @@ def change_baudrate(
 
 if __name__ == "__main__":
     # Remember to replace all parameters here
-    device = CAN_DEVICE.KVASER
+    device = CanDevice.KVASER
     channel = 0
     node_id = 20
     baudrate = CanBaudrate.Baudrate_1M

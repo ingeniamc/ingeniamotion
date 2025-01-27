@@ -3,7 +3,7 @@ from typing import Dict
 from unittest.mock import Mock
 
 import pytest
-from ingenialink import CAN_DEVICE, CanBaudrate
+from ingenialink import CanBaudrate, CanDevice
 from ingenialink.exceptions import ILFirmwareLoadError
 from ingenialink.pdo import RPDOMap, TPDOMap
 
@@ -276,7 +276,7 @@ def test_brake_config_example(tests_setup: DriveEthernetSetup, script_runner, mo
 
 @pytest.mark.virtual
 def test_can_bootloader_example_success(mocker, capsys):
-    device = CAN_DEVICE.PCAN
+    device = CanDevice.PCAN
     channel = 0
     baudrate = CanBaudrate.Baudrate_1M
     node_id = 32
@@ -321,7 +321,7 @@ def test_can_bootloader_example_success(mocker, capsys):
 
 @pytest.mark.virtual
 def test_can_bootloader_example_failed(mocker, capsys):
-    device = CAN_DEVICE.PCAN
+    device = CanDevice.PCAN
     channel = 0
     baudrate = CanBaudrate.Baudrate_1M
     node_id = 32
@@ -362,7 +362,7 @@ def test_can_bootloader_example_failed(mocker, capsys):
 
 @pytest.mark.virtual
 def test_change_node_id_success(mocker, capsys):
-    device = CAN_DEVICE.PCAN
+    device = CanDevice.PCAN
     channel = 0
     baudrate = CanBaudrate.Baudrate_1M
     dictionary_path = "test_dictionary.xdf"
@@ -385,7 +385,7 @@ def test_change_node_id_success(mocker, capsys):
 
 @pytest.mark.virtual
 def test_change_node_id_failed(mocker, capsys):
-    device = CAN_DEVICE.PCAN
+    device = CanDevice.PCAN
     channel = 0
     baudrate = CanBaudrate.Baudrate_1M
     dictionary_path = "test_dictionary.xdf"
@@ -407,7 +407,7 @@ def test_change_node_id_failed(mocker, capsys):
 
 @pytest.mark.virtual
 def test_change_baudrate_success(mocker, capsys):
-    device = CAN_DEVICE.PCAN
+    device = CanDevice.PCAN
     channel = 0
     baudrate = CanBaudrate.Baudrate_1M
     node_id = 32
@@ -432,7 +432,7 @@ def test_change_baudrate_success(mocker, capsys):
 
 @pytest.mark.virtual
 def test_change_baudrate_failed(mocker, capsys):
-    device = CAN_DEVICE.PCAN
+    device = CanDevice.PCAN
     channel = 0
     baudrate = CanBaudrate.Baudrate_1M
     node_id = 32

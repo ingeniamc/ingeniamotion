@@ -1,6 +1,6 @@
 import pytest
-from ingenialink import CanBaudrate
-from ingenialink.canopen.network import CAN_DEVICE, CanopenNetwork
+from ingenialink import CanBaudrate, CanDevice
+from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.dictionary import SubnodeType
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
@@ -131,7 +131,7 @@ def test_get_name(motion_controller):
     [
         (EthernetNetwork, COMMUNICATION_TYPE.Ethernet, None),
         (EthercatNetwork, COMMUNICATION_TYPE.Ethercat, "fake_interface_name"),
-        (CanopenNetwork, COMMUNICATION_TYPE.Canopen, CAN_DEVICE.PCAN),
+        (CanopenNetwork, COMMUNICATION_TYPE.Canopen, CanDevice.PCAN),
     ],
 )
 @pytest.mark.virtual
@@ -153,7 +153,7 @@ def test_get_communication_type(mocker, motion_controller, communication, expect
     [
         (EthernetNetwork, "VIRTUAL-DRIVE - Drive (127.0.0.1)", None),
         (EthercatNetwork, "VIRTUAL-DRIVE - Drive", "fake_interface_name"),
-        (CanopenNetwork, "VIRTUAL-DRIVE - Drive", CAN_DEVICE.PCAN),
+        (CanopenNetwork, "VIRTUAL-DRIVE - Drive", CanDevice.PCAN),
     ],
 )
 @pytest.mark.virtual
@@ -253,7 +253,7 @@ def test_get_slave_id_exception(motion_controller):
 def test_get_baudrate_success(motion_controller, mocker):
     mc, alias, environment = motion_controller
 
-    fake_device = CAN_DEVICE.PCAN
+    fake_device = CanDevice.PCAN
     fake_channel = 0
     fake_baudrate = CanBaudrate.Baudrate_1M
     fake_network = CanopenNetwork(fake_device, fake_channel, fake_baudrate)

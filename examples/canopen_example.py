@@ -1,7 +1,7 @@
 import argparse
 
 from ingeniamotion import MotionController
-from ingeniamotion.enums import CAN_DEVICE, CanBaudrate
+from ingeniamotion.enums import CanBaudrate, CanDevice
 
 
 def main(args):
@@ -9,7 +9,7 @@ def main(args):
     mc = MotionController()
 
     # Get list of all node id available
-    can_device = CAN_DEVICE(args.can_transceiver)
+    can_device = CanDevice(args.can_transceiver)
     can_baudrate = CanBaudrate(args.can_baudrate)
     can_channel = args.can_channel
     node_id_list = mc.communication.scan_servos_canopen(can_device, can_baudrate, can_channel)

@@ -12,8 +12,8 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 import ifaddr
 import ingenialogger
-from ingenialink import CanBaudrate
-from ingenialink.canopen.network import CAN_CHANNELS, CAN_DEVICE, CanopenNetwork
+from ingenialink import CanBaudrate, CanDevice
+from ingenialink.canopen.network import CAN_CHANNELS, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.dictionary import Interface
 from ingenialink.emcy import EmergencyMessage
@@ -528,17 +528,17 @@ class Communication(metaclass=MCMetaClass):
                     )
         return {adapter.interface_name: adapter.interface_guid for adapter in network_adapters}
 
-    def get_available_canopen_devices(self) -> dict[CAN_DEVICE, list[int]]:
+    def get_available_canopen_devices(self) -> dict[CanDevice, list[int]]:
         """Return the list of available CAN devices (those connected and with drivers installed).
 
         Returns:
             Dict of available CAN devices and channels. For example:
             {
-                CAN_DEVICE.KVASER: [0, 1]
-                CAN_DEVICE.PCAN: [0]
+                CanDevice.KVASER: [0, 1]
+                CanDevice.PCAN: [0]
             }
         """
-        available_devices: dict[CAN_DEVICE, list[int]] = {}
+        available_devices: dict[CanDevice, list[int]] = {}
         can_net = None
         for net_key in self.mc.net:
             net = self.mc.net[net_key]
@@ -546,9 +546,9 @@ class Communication(metaclass=MCMetaClass):
                 can_net = net
                 break
         if can_net is None:
-            can_net = CanopenNetwork(CAN_DEVICE.KVASER)
+            can_net = CanopenNetwork(CanDevice.KVASER)
         for device, channel in can_net.get_available_devices():
-            can_device = CAN_DEVICE(device)
+            can_device = CanDevice(device)
             can_channel = CAN_CHANNELS[device].index(channel)
             if can_device not in available_devices:
                 available_devices[can_device] = [can_channel]
@@ -642,7 +642,7 @@ class Communication(metaclass=MCMetaClass):
 
     def connect_servo_canopen(
         self,
-        can_device: CAN_DEVICE,
+        can_device: CanDevice,
         dict_path: str,
         node_id: int,
         baudrate: CanBaudrate = CanBaudrate.Baudrate_1M,
@@ -864,7 +864,7 @@ class Communication(metaclass=MCMetaClass):
 
     def scan_servos_canopen_with_info(
         self,
-        can_device: CAN_DEVICE,
+        can_device: CanDevice,
         baudrate: CanBaudrate = CanBaudrate.Baudrate_1M,
         channel: int = 0,
     ) -> OrderedDict[int, SlaveInfo]:
@@ -899,7 +899,7 @@ class Communication(metaclass=MCMetaClass):
 
     def scan_servos_canopen(
         self,
-        can_device: CAN_DEVICE,
+        can_device: CanDevice,
         baudrate: CanBaudrate = CanBaudrate.Baudrate_1M,
         channel: int = 0,
     ) -> List[int]:

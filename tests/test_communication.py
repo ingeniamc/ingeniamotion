@@ -6,8 +6,8 @@ from collections import OrderedDict
 from dataclasses import dataclass
 
 import pytest
-from ingenialink import CanBaudrate
-from ingenialink.canopen.network import CAN_DEVICE, CanopenNetwork
+from ingenialink import CanBaudrate, CanDevice
+from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
@@ -164,7 +164,7 @@ def test_connect_servo_canopen(tests_setup: DriveCanOpenSetup):
     mc = MotionController()
     assert "canopen_test" not in mc.servos
     assert "canopen_test" not in mc.net
-    device = CAN_DEVICE(tests_setup.device)
+    device = CanDevice(tests_setup.device)
     baudrate = CanBaudrate(tests_setup.baudrate)
     mc.communication.connect_servo_canopen(
         device,
@@ -189,7 +189,7 @@ def test_connect_servo_canopen_busy_drive_error(motion_controller, tests_setup: 
     assert alias in mc.servos
     assert alias in mc.servo_net
     assert mc.servo_net[alias] in mc.net
-    device = CAN_DEVICE(tests_setup.device)
+    device = CanDevice(tests_setup.device)
     baudrate = CanBaudrate(tests_setup.baudrate)
     with pytest.raises(ILError):
         mc.communication.connect_servo_canopen(
@@ -362,7 +362,7 @@ def test_scan_servos_canopen_with_info(mocker):
     mocker.patch(
         "ingenialink.canopen.network.CanopenNetwork.scan_slaves_info", return_value=detected_slaves
     )
-    assert mc.communication.scan_servos_canopen_with_info(CAN_DEVICE.KVASER) == detected_slaves
+    assert mc.communication.scan_servos_canopen_with_info(CanDevice.KVASER) == detected_slaves
 
 
 @pytest.mark.virtual
@@ -372,7 +372,7 @@ def test_scan_servos_canopen(mocker):
     mocker.patch(
         "ingenialink.canopen.network.CanopenNetwork.scan_slaves", return_value=detected_slaves
     )
-    assert mc.communication.scan_servos_canopen(CAN_DEVICE.KVASER) == detected_slaves
+    assert mc.communication.scan_servos_canopen(CanDevice.KVASER) == detected_slaves
 
 
 @pytest.mark.virtual
@@ -593,7 +593,7 @@ def test_load_ensemble_fw_canopen(mocker):
         servos[str(node_id)] = MockCanopenServo(node_id)
 
     mc = MotionController()
-    net = CanopenNetwork(CAN_DEVICE.KVASER)
+    net = CanopenNetwork(CanDevice.KVASER)
     net.servos = list(servos.values())
     mocker.patch("ingeniamotion.motion_controller.MotionController._get_network", return_value=net)
     mocker.patch("ingenialink.canopen.network.CanopenNetwork.connect_to_slave")
@@ -682,7 +682,7 @@ def test_get_available_canopen_devices(mocker):
         ],
     )
     test_output = mc.communication.get_available_canopen_devices()
-    expected_ouput = {CAN_DEVICE.KVASER: [0, 1], CAN_DEVICE.PCAN: [0, 1], CAN_DEVICE.IXXAT: [0, 1]}
+    expected_ouput = {CanDevice.KVASER: [0, 1], CanDevice.PCAN: [0, 1], CanDevice.IXXAT: [0, 1]}
     assert test_output == expected_ouput
 
 

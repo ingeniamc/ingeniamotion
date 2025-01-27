@@ -17,6 +17,6 @@ Enums
    :members:
    :undoc-members:
 
-.. autoclass:: CAN_DEVICE
+.. autoclass:: CanDevice
    :members:
    :undoc-members:
