@@ -48,7 +48,7 @@ class PDOPoller:
         self.__refresh_time = refresh_time
         self.__watchdog_timeout = watchdog_timeout
         self.__buffer_size = buffer_size
-        self.__buffer: Deque[tuple[float, List[Union[int, float]]]] = deque(
+        self.__buffer: Deque[tuple[float, List[Union[int, float, bytes]]]] = deque(
             maxlen=self.__buffer_size
         )
         self.__start_time: Optional[float] = None
@@ -80,7 +80,7 @@ class PDOPoller:
         self.__mc.capture.pdo.remove_tpdo_map(self.__servo, self.__tpdo_map)
 
     @property
-    def data(self) -> Tuple[List[float], List[List[Union[int, float]]]]:
+    def data(self) -> Tuple[List[float], List[List[Union[int, float, bytes]]]]:
         """
         Get the poller data. After the data is retrieved, the data buffers are cleared.
 
@@ -90,7 +90,7 @@ class PDOPoller:
 
         """
         time_stamps = []
-        data: List[List[Union[int, float]]] = [[] for _ in range(len(self.__tpdo_map.items))]
+        data: List[List[Union[int, float, bytes]]] = [[] for _ in range(len(self.__tpdo_map.items))]
         for _ in range(len(self.__buffer)):
             time_stamp, data_sample = self.__buffer.popleft()
             time_stamps.append(time_stamp)
