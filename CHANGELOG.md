@@ -7,6 +7,7 @@
 - Method to get a servo's network state.
 - Methods to get/set a servo's MAC address.
 - Retrieve IP-less network adapters information (on Windows).
+- TemperatureSensor and MetaEnum classes.
 
 ### Changed
 - is_sto1_active and is_sto2_active return booleans instead of integers

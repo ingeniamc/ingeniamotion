@@ -29,7 +29,8 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
 
     result_description = {
         ResultType.SUCCESS: "Feedback test pass successfully",
-        ResultType.RESOLUTION_ERROR: "Feedback has a resolution error",
+        ResultType.RESOLUTION_ERROR: "Feedback has a resolution error."
+        " Detected resolution does not match the one specified on the configuration.",
         ResultType.SYMMETRY_ERROR: "Feedback has a symmetry error",
         ResultType.POS_VEL_RATIO_ERROR: "Position to velocity sensor ratio cannot be different "
         "than 1 when both feedback sensors are the same.",
@@ -393,9 +394,7 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         # Check the movement displacement
         if position_displacement == 0:
             error_movement_displacement = (
-                "ERROR: No movement detected. "
-                "Please, review your feedback "
-                "configuration & wiring"
+                "ERROR: No movement detected. Please, review your feedback configuration & wiring"
             )
             raise TestError(error_movement_displacement)
 
