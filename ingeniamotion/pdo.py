@@ -9,7 +9,7 @@ from ingenialink.enums.register import RegCyclicType
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.ethercat.servo import EthercatServo
-from ingenialink.exceptions import ILError, ILWrongWorkingCount
+from ingenialink.exceptions import ILError, ILWrongWorkingCountError
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 
 from ingeniamotion.enums import COMMUNICATION_TYPE
@@ -252,7 +252,7 @@ class PDONetworkManager:
                         first_iteration = False
                     else:
                         self._net.send_receive_processdata(self._refresh_rate)
-                except ILWrongWorkingCount as il_error:
+                except ILWrongWorkingCountError as il_error:
                     self._pd_thread_stop_event.set()
                     self._net.stop_pdos()
                     duration_error = ""
