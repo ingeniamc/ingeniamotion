@@ -509,13 +509,28 @@ def test_is_sto_inactive(mocker, motion_controller, sto_status_value, expected_r
 @pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
-    "sto_status_value, expected_result", [(0x1BF3, False), (0x6B7, False), (0x1F, True)]
+    "sto_status_value, expected_result",
+    [(0x1BF3, False), (0x6B7, False), (0x1D, False), (0x1F, True), (0x1C, True)],
 )
 def test_is_sto_abnormal_latched(mocker, motion_controller, sto_status_value, expected_result):
     mc, alias, environment = motion_controller
     patch_get_sto_status(mocker, sto_status_value)
     value = mc.configuration.is_sto_abnormal_latched(servo=alias)
     assert value == expected_result
+
+
+@pytest.mark.virtual
+@pytest.mark.smoke
+@pytest.mark.parametrize(
+    "sto_status_value",
+    [(0x1D), (0x1E)],
+)
+def test_is_sto_abnormal_latched_exception(mocker, motion_controller, sto_status_value):
+    mc, alias, environment = motion_controller
+    patch_get_sto_status(mocker, sto_status_value)
+    with pytest.raises(IMException) as excinfo:
+        mc.configuration.is_sto_abnormal_latched(servo=alias)
+    assert str(excinfo.value) == "Abnormal STO might be latched."
 
 
 @pytest.mark.ethernet
