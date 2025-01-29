@@ -15,6 +15,7 @@
 ### Fixed
 - Feedback symmetry check calculation.
 - Phasing test when the commutation feedback is a Halls sensor.
+- Abnormal STO Latched check. Add missing cases and add exception for uncertain ones.
 
 ### Deprecated 
 - check_sto_abnormal_fault in configuration. Use is_sto_abnormal_fault instead.
