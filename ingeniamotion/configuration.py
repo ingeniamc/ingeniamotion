@@ -129,7 +129,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
     STO_ACTIVE_STATE = 4
     STO_INACTIVE_STATE = 23
-    STO_LATCHED_STATE = 31
 
     PRODUCT_ID_REGISTERS = {
         TYPE_SUBNODES.COCO: "DRV_ID_PRODUCT_CODE_COCO",
@@ -840,11 +839,12 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Returns:
             ``True`` if STO is abnormal latched, else ``False``.
         """
-        if bool(self.get_sto_status(servo, axis) & self.STO_ABNORMAL_FAULT_BIT) & (
+        sto_status = self.get_sto_status(servo, axis)
+        if bool(sto_status & self.STO_ABNORMAL_FAULT_BIT) & (
             self.is_sto1_active(servo, axis) != self.is_sto2_active(servo, axis)
         ):
             raise IMException("Abnormal STO might be latched.")
-        return bool(self.get_sto_status(servo, axis) & self.STO_ABNORMAL_FAULT_BIT)
+        return bool(sto_status & self.STO_ABNORMAL_FAULT_BIT)
 
     def is_sto_abnormal_fault(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
         """Check if the STO of a drive is in abnormal fault.
