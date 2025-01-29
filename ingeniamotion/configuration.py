@@ -828,17 +828,23 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
     def is_sto_abnormal_latched(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
         """
-        Check if STO is abnormal latched
+        Check if STO is abnormal latched.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
             axis : servo axis. ``1`` by default.
 
+        Raises:
+            IMException: For uncertain Abnormal_STO_latched status
+
         Returns:
             ``True`` if STO is abnormal latched, else ``False``.
-
         """
-        return self.get_sto_status(servo, axis) == self.STO_LATCHED_STATE
+        if bool(self.get_sto_status(servo, axis) & self.STO_ABNORMAL_FAULT_BIT) & (
+            self.is_sto1_active(servo, axis) != self.is_sto2_active(servo, axis)
+        ):
+            raise IMException("Abnormal STO might be latched.")
+        return bool(self.get_sto_status(servo, axis) & self.STO_ABNORMAL_FAULT_BIT)
 
     def is_sto_abnormal_fault(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
         """Check if the STO of a drive is in abnormal fault.
