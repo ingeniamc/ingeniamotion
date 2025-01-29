@@ -510,9 +510,21 @@ def test_is_sto_inactive(mocker, motion_controller, sto_status_value, expected_r
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_status_value, expected_result",
-    [(0x1BF3, False), (0x6B7, False), (0x1D, False), (0x1F, True), (0x1C, True)],
+    [
+        # STO Status Inactive, expected output False
+        (0x1BF3, False),
+        # STO Status Supply Fault, expected output False
+        (0x6B7, False),
+        # STO Status Abnormal STO Latched, expected output True
+        (0x1F, True),
+        # STO Status Abnormal STO Latched, expected output True
+        (0x1C, True),
+    ],
 )
 def test_is_sto_abnormal_latched(mocker, motion_controller, sto_status_value, expected_result):
+    """
+    Test checks for Abnormal STO Latched Status
+    """
     mc, alias, environment = motion_controller
     patch_get_sto_status(mocker, sto_status_value)
     value = mc.configuration.is_sto_abnormal_latched(servo=alias)
@@ -523,9 +535,17 @@ def test_is_sto_abnormal_latched(mocker, motion_controller, sto_status_value, ex
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_status_value",
-    [(0x1D), (0x1E)],
+    [
+        # STO Status Abnormal STO Might be Latched, expected output Exception
+        (0x1D),
+        # STO Status Abnormal STO Might be Latched, expected output Exception
+        (0x1E),
+    ],
 )
 def test_is_sto_abnormal_latched_exception(mocker, motion_controller, sto_status_value):
+    """
+    Test checks for Abnormal STO Might be Latched Status that triggers Exception
+    """
     mc, alias, environment = motion_controller
     patch_get_sto_status(mocker, sto_status_value)
     with pytest.raises(IMException) as excinfo:
