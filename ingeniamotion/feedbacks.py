@@ -425,7 +425,7 @@ class Feedbacks(metaclass=MCMetaClass):
             axis : axis that will run the test. ``1`` by default.
 
         Returns:
-            Resolution of ABS1 encoder.
+            Number of bits that represent single-turn information.
 
         Raises:
             TypeError: If some read value has a wrong type.
@@ -451,7 +451,7 @@ class Feedbacks(metaclass=MCMetaClass):
             axis : axis that will run the test. ``1`` by default.
 
         Returns:
-            Resolution of incremental encoder 1.
+            Number of counts per mechanical revolution.
 
         Raises:
             TypeError: If some read value has a wrong type.
@@ -474,7 +474,7 @@ class Feedbacks(metaclass=MCMetaClass):
             axis : axis that will run the test. ``1`` by default.
 
         Returns:
-            Resolution of digital halls encoder.
+            Number of counts per mechanical revolution.
 
         Raises:
             TypeError: If some read value has a wrong type.
@@ -498,7 +498,7 @@ class Feedbacks(metaclass=MCMetaClass):
             axis : axis that will run the test. ``1`` by default.
 
         Returns:
-            Resolution of secondary SSI encoder.
+            Number of bits that represent single-turn information.
 
         Raises:
             TypeError: If some read value has a wrong type.
@@ -522,7 +522,7 @@ class Feedbacks(metaclass=MCMetaClass):
             axis : axis that will run the test. ``1`` by default.
 
         Returns:
-            Resolution of ABS2 encoder.
+            Number of bits that represent single-turn information.
 
         Raises:
             TypeError: If some read value has a wrong type.
@@ -546,7 +546,7 @@ class Feedbacks(metaclass=MCMetaClass):
             axis : axis that will run the test. ``1`` by default.
 
         Returns:
-            Resolution of incremental encoder 2 encoder.
+            Number of counts per mechanical revolution.
 
         Raises:
             TypeError: If some read value has a wrong type.
@@ -560,21 +560,30 @@ class Feedbacks(metaclass=MCMetaClass):
         return resolution
 
     def __no_feedback_resolution(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
-        """Used for feedbacks that has no resolution.
+        """Used for feedbacks that have no resolution.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
             axis : axis that will run the test. ``1`` by default.
 
         Raises:
-            ValueError: Selected feedback does not have resolution
+            ValueError
         """
-        raise ValueError("Selected feedback does not have resolution")
+        raise ValueError("The selected feedback does not have resolution")
 
     def get_feedback_resolution(
         self, feedback: SensorType, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> int:
         """Reads target feedback resolution in the target servo and axis.
+
+        Resolution units per SensorType:
+            ABS1: Number of bits that represent single-turn information.
+            INTGEN: N/A.
+            QEI: Number of counts per mechanical revolution.
+            HALLS: Number of counts per mechanical revolution.
+            SSI2: Number of bits that represent single-turn information.
+            BISSC2: Number of bits that represent single-turn information.
+            QEI2: Number of counts per mechanical revolution.
 
         Args:
             feedback : target feedback.

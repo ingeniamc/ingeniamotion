@@ -1,12 +1,10 @@
-import platform
-
 import pytest
 
 
 @pytest.mark.virtual
 def test_fsoe_master_not_installed():
     try:
-        import fsoe_master
+        import fsoe_master  # noqa: F401
     except ModuleNotFoundError:
         pass
     else:

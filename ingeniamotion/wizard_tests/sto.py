@@ -66,13 +66,13 @@ class STOTest(BaseTest[LegacyDictReportType]):
         pass
 
     def loop(self) -> ResultType:
-        if self.mc.configuration.is_sto1_active(servo=self.servo, axis=self.axis) == 0:
+        if self.mc.configuration.is_sto1_active(servo=self.servo, axis=self.axis):
             self.logger.info("STO1 bit is LOW")
         # Check STO1 status --> Check bit 0 (0x1 in HEX)
         else:
             self.logger.info("STO1 bit is HIGH")
 
-        if self.mc.configuration.is_sto2_active(servo=self.servo, axis=self.axis) == 0:
+        if self.mc.configuration.is_sto2_active(servo=self.servo, axis=self.axis):
             self.logger.info("STO2 bit is LOW")
         # Check STO2 status --> Check bit 1 (0x2 in HEX)
         else:
@@ -88,10 +88,10 @@ class STOTest(BaseTest[LegacyDictReportType]):
             self.logger.info("STO Power Supply is HIGH")
 
         # Check STO abnormal fault status --> Check bit 3 (0x8 in HEX)
-        sto_abnormal_fault = self.mc.configuration.check_sto_abnormal_fault(
+        sto_abnormal_fault = self.mc.configuration.is_sto_abnormal_fault(
             servo=self.servo, axis=self.axis
         )
-        if sto_abnormal_fault == 0:
+        if not sto_abnormal_fault:
             self.logger.info("STO abnormal fault bit is LOW")
         else:
             self.logger.info("STO abnormal fault bit is HIGH")

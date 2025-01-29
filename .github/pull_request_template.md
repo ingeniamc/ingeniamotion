@@ -34,7 +34,7 @@ Please update the documentation.
 ### Code formatting
 
 - [ ] Use the ruff package to format the code: `ruff format ingeniamotion tests`.
-- [ ] Use the ruff package to lint the code: `ruff check ingeniamotion`.
+- [ ] Use the ruff package to lint the code: `ruff check ingeniamotion tests`.
 
 ### Others
 

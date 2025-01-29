@@ -3,6 +3,7 @@ import time
 from collections import deque
 from typing import TYPE_CHECKING, Callable, Deque, Dict, List, Optional, Tuple, Type, Union
 
+import ingenialogger
 from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.enums.register import RegCyclicType
 from ingenialink.ethercat.network import EthercatNetwork
@@ -47,7 +48,7 @@ class PDOPoller:
         self.__refresh_time = refresh_time
         self.__watchdog_timeout = watchdog_timeout
         self.__buffer_size = buffer_size
-        self.__buffer: Deque[tuple[float, List[Union[int, float]]]] = deque(
+        self.__buffer: Deque[tuple[float, List[Union[int, float, bytes]]]] = deque(
             maxlen=self.__buffer_size
         )
         self.__start_time: Optional[float] = None
@@ -79,7 +80,7 @@ class PDOPoller:
         self.__mc.capture.pdo.remove_tpdo_map(self.__servo, self.__tpdo_map)
 
     @property
-    def data(self) -> Tuple[List[float], List[List[Union[int, float]]]]:
+    def data(self) -> Tuple[List[float], List[List[Union[int, float, bytes]]]]:
         """
         Get the poller data. After the data is retrieved, the data buffers are cleared.
 
@@ -89,7 +90,7 @@ class PDOPoller:
 
         """
         time_stamps = []
-        data: List[List[Union[int, float]]] = [[] for _ in range(len(self.__tpdo_map.items))]
+        data: List[List[Union[int, float, bytes]]] = [[] for _ in range(len(self.__tpdo_map.items))]
         for _ in range(len(self.__buffer)):
             time_stamp, data_sample = self.__buffer.popleft()
             time_stamps.append(time_stamp)
@@ -304,6 +305,7 @@ class PDONetworkManager:
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
+        self.logger = ingenialogger.get_logger(__name__)
         self._pdo_thread: Optional[PDONetworkManager.ProcessDataThread] = None
         self._pdo_send_observers: List[Callable[[], None]] = []
         self._pdo_receive_observers: List[Callable[[], None]] = []
@@ -750,5 +752,6 @@ class PDONetworkManager:
         Args:
             exc: Exception that was raised in the PDO process data thread.
         """
+        self.logger.error(exc)
         for callback in self._pdo_exceptions_observers:
             callback(exc)

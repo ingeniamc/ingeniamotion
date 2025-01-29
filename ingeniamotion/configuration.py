@@ -1,3 +1,4 @@
+import re
 from enum import IntEnum
 from os import path
 from typing import TYPE_CHECKING, List, Optional, Tuple, Union
@@ -6,6 +7,7 @@ import ingenialogger
 from ingenialink.canopen.network import CAN_BAUDRATE, CanopenNetwork
 from ingenialink.ethernet.servo import EthernetServo
 from ingenialink.exceptions import ILError
+from ingenialink.utils._utils import deprecated
 
 from ingeniamotion.enums import (
     CommutationMode,
@@ -27,6 +29,49 @@ if TYPE_CHECKING:
 class TYPE_SUBNODES(IntEnum):
     COCO = 0
     MOCO = 1
+
+
+class MACAddressConverter:
+    """Class to convert MAC addresses from int to str
+    and vice versa."""
+
+    @staticmethod
+    def int_to_str(mac_address: int) -> str:
+        """Convert a MAC address to the string format
+        XX:XX:XX:XX:XX:XX.
+
+        Args:
+            mac_address: The MAC address as an integer.
+
+        Returns:
+            The MAC address in string format.
+
+        """
+        if not isinstance(mac_address, int):
+            raise ValueError(
+                f"The MAC address has the wrong type. Expected an int, got {type(mac_address)}."
+            )
+        return ":".join(re.findall("..", "%012x" % mac_address))
+
+    @staticmethod
+    def str_to_int(mac_address: str) -> int:
+        """Convert a MAC address in string format to an int.
+
+        Args:
+            mac_address: The MAC address in string format.
+
+        Returns:
+            The MAC address as an integer.
+
+        Raises:
+            ValueError: If the MAC address has the wrong format.
+
+        """
+        try:
+            mac_address_int = int(mac_address.replace(":", ""), 16)
+        except ValueError:
+            raise ValueError("The MAC address has an incorrect format.")
+        return mac_address_int
 
 
 class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
@@ -254,36 +299,6 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         drive = self.mc._get_drive(servo)
         drive.restore_parameters(axis)
         self.logger.info("Configuration restored", drive=self.mc.servo_name(servo))
-
-    def set_max_acceleration(
-        self, acceleration: float, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ) -> None:
-        """Update maximum acceleration register.
-
-        .. warning::
-            This function is deprecated. Please use
-            "set_max_profile_acceleration" or "set_profiler" instead.
-
-        Args:
-            acceleration : maximum acceleration in rev/s^2.
-            servo : servo alias to reference it. ``default`` by default.
-            axis : servo axis. ``1`` by default.
-
-        Raises:
-            TypeError: If acceleration is not a float.
-
-        """
-        self.logger.warning(
-            '"set_max_acceleration" is deprecated. '
-            'Please use "set_max_profile_acceleration" or '
-            '"set_profiler".'
-        )
-        self.mc.communication.set_register(
-            self.PROFILE_MAX_ACCELERATION_REGISTER, acceleration, servo=servo, axis=axis
-        )
-        self.logger.debug(
-            "Max acceleration set to %s", acceleration, axis=axis, drive=self.mc.servo_name(servo)
-        )
 
     def set_max_profile_acceleration(
         self, acceleration: float, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -699,7 +714,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             raise TypeError("STO status value has to be an integer")
         return sto_status
 
-    def is_sto1_active(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
+    def is_sto1_active(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
         """
         Get STO1 bit from STO register
 
@@ -708,15 +723,13 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             axis : servo axis. ``1`` by default.
 
         Returns:
-            return value of STO1 bit.
+            True when the STO 1 input is active (bit is 0).
+            False when the STO 1 input is inactive (bit is 1)
 
         """
-        if self.get_sto_status(servo, axis) & self.STO1_ACTIVE_BIT:
-            return 1
-        else:
-            return 0
+        return not bool(self.get_sto_status(servo, axis) & self.STO1_ACTIVE_BIT)
 
-    def is_sto2_active(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
+    def is_sto2_active(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
         """
         Get STO2 bit from STO register
 
@@ -725,13 +738,11 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             axis : servo axis. ``1`` by default.
 
         Returns:
-            return value of STO2 bit.
+            True when the STO 2 input is active (bit is 0).
+            False when the STO 2 input is inactive (bit is 1)
 
         """
-        if self.get_sto_status(servo, axis) & self.STO2_ACTIVE_BIT:
-            return 1
-        else:
-            return 0
+        return not bool(self.get_sto_status(servo, axis) & self.STO2_ACTIVE_BIT)
 
     def check_sto_power_supply(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
         """
@@ -750,9 +761,12 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         else:
             return 0
 
+    @deprecated(new_func_name="is_sto_abnormal_fault")
     def check_sto_abnormal_fault(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
-        """
-        Get abnormal fault bit from STO register
+        """Get abnormal fault bit from STO register.
+
+        .. warning::
+            This function is deprecated. Please use "is_sto_abnormal_fault" instead.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -826,8 +840,26 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """
         return self.get_sto_status(servo, axis) == self.STO_LATCHED_STATE
 
+    def is_sto_abnormal_fault(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
+        """Check if the STO of a drive is in abnormal fault.
+
+        Args:
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
+
+        Returns:
+            ``True`` if STO is in abnormal fault, else ``False``.
+
+        """
+        return bool(self.get_sto_status(servo, axis) & self.STO_ABNORMAL_FAULT_BIT)
+
     def change_tcp_ip_parameters(
-        self, ip_address: str, subnet_mask: str, gateway: str, servo: str = DEFAULT_SERVO
+        self,
+        ip_address: str,
+        subnet_mask: str,
+        gateway: str,
+        mac_address: Optional[Union[str, int]] = None,
+        servo: str = DEFAULT_SERVO,
     ) -> None:
         """Change TCP IP parameters and store it.
 
@@ -835,13 +867,17 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             ip_address : IP Address to be changed.
             subnet_mask : Subnet mask to be changed.
             gateway : Gateway to be changed.
+            mac_address: The MAC address to be set. It can be an int or a
+            string with format XX:XX:XX:XX:XX:XX.
             servo : servo alias to reference it. ``default`` by default.
 
         """
         drive = self.mc._get_drive(servo)
         if not isinstance(drive, EthernetServo):
             raise IMException("TCP IP parameters can only be changed in ethernet servos.")
-        drive.change_tcp_ip_parameters(ip_address, subnet_mask, gateway)
+        if isinstance(mac_address, str):
+            mac_address = MACAddressConverter.str_to_int(mac_address)
+        drive.change_tcp_ip_parameters(ip_address, subnet_mask, gateway, mac_address)
 
     def store_tcp_ip_parameters(self, servo: str = DEFAULT_SERVO) -> None:
         """Store TCP IP parameters to non-volatile memory.
@@ -866,6 +902,60 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         if not isinstance(drive, EthernetServo):
             raise IMException("TCP IP parameters can only be restored in ethernet servos.")
         drive.restore_tcp_ip_parameters()
+
+    def get_mac_address(
+        self,
+        servo: str = DEFAULT_SERVO,
+    ) -> int:
+        """Get the MAC address of a servo.
+
+        Args:
+            servo : servo alias to reference it. ``default`` by default.
+
+        Returns:
+            The servo's MAC address.
+
+        """
+        drive = self.mc._get_drive(servo)
+        if not isinstance(drive, EthernetServo):
+            raise IMException("The MAC address can only be read from Ethernet servos.")
+        mac_address = drive.get_mac_address()
+        return mac_address
+
+    def get_mac_address_string(
+        self,
+        servo: str = DEFAULT_SERVO,
+    ) -> str:
+        """Get the MAC address of a servo.
+
+        Args:
+            servo : servo alias to reference it. ``default`` by default.
+
+        Returns:
+            The servo's MAC address in string format.
+
+        """
+        drive = self.mc._get_drive(servo)
+        if not isinstance(drive, EthernetServo):
+            raise IMException("The MAC address can only be read from Ethernet servos.")
+        mac_address = drive.get_mac_address()
+        return MACAddressConverter.int_to_str(mac_address)
+
+    def set_mac_address(self, mac_address: Union[int, str], servo: str = DEFAULT_SERVO) -> None:
+        """Set the MAC address of the servo.
+
+        Args:
+            mac_address: The MAC address to be set. It can be an int or a
+            string with format XX:XX:XX:XX:XX:XX.
+            servo : servo alias to reference it. ``default`` by default.
+
+        """
+        drive = self.mc._get_drive(servo)
+        if not isinstance(drive, EthernetServo):
+            raise IMException("The MAC address can only be set to Ethernet servos.")
+        if isinstance(mac_address, str):
+            mac_address = MACAddressConverter.str_to_int(mac_address)
+        drive.set_mac_address(mac_address)
 
     def get_drive_info_coco_moco(
         self,

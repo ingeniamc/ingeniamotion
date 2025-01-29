@@ -36,7 +36,7 @@ def test_feedback_test_initialization(
     expected_total_optional = 5
     expected_total_backup_registers = expected_total_mandatory + expected_total_optional
 
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     axis = 1
     feedback_test = feedback_test_type(mc, alias, axis)
 
@@ -63,7 +63,7 @@ def test_feedback_test_initialization(
     ],
 )
 def test_save_backup_registers(motion_controller, feedback_test_type):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     axis = 1
     feedback_test = feedback_test_type(mc, alias, axis)
     mandatory_backup_registers = feedback_test.backup_registers_names

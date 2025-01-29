@@ -11,14 +11,14 @@ def disturbance_map_registers(disturbance, skip_if_monitoring_not_available):
 
 @pytest.fixture
 def disturbance(motion_controller, skip_if_monitoring_not_available):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     return Disturbance(mc, alias)
 
 
 @pytest.mark.virtual
 @pytest.mark.smoke
 def test_disturbance_max_sample_size(motion_controller, disturbance):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     max_sample_size = disturbance.max_sample_number
     value = mc.communication.get_register(
         disturbance.DISTURBANCE_MAXIMUM_SAMPLE_SIZE_REGISTER, servo=alias, axis=0
@@ -26,10 +26,13 @@ def test_disturbance_max_sample_size(motion_controller, disturbance):
     assert max_sample_size == value
 
 
+@pytest.mark.ethernet
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 @pytest.mark.parametrize("prescaler", list(range(2, 11, 2)))
 def test_set_frequency_divider(motion_controller, disturbance, prescaler):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     disturbance.set_frequency_divider(prescaler)
     value = mc.communication.get_register(
         disturbance.DISTURBANCE_FREQUENCY_DIVIDER_REGISTER, servo=alias, axis=0
@@ -37,6 +40,9 @@ def test_set_frequency_divider(motion_controller, disturbance, prescaler):
     assert value == prescaler
 
 
+@pytest.mark.ethernet
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 def test_set_frequency_divider_exception(disturbance):
     prescaler = -1
@@ -44,6 +50,9 @@ def test_set_frequency_divider_exception(disturbance):
         disturbance.set_frequency_divider(prescaler)
 
 
+@pytest.mark.ethernet
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 @pytest.mark.parametrize(
     "axis, name, expected_value",
@@ -54,7 +63,7 @@ def test_set_frequency_divider_exception(disturbance):
     ],
 )
 def test_disturbance_map_registers(motion_controller, disturbance, axis, name, expected_value):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     registers = [{"axis": axis, "name": name}]
     disturbance.map_registers(registers)
     value = mc.communication.get_register("DIST_CFG_REG0_MAP", servo=alias, axis=0)
@@ -63,10 +72,13 @@ def test_disturbance_map_registers(motion_controller, disturbance, axis, name, e
     assert value == 1
 
 
+@pytest.mark.ethernet
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 @pytest.mark.parametrize("number_registers", list(range(1, 17)))
 def test_disturbance_number_map_registers(motion_controller, disturbance, number_registers):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     reg_dict = {"axis": 1, "name": "CL_POS_SET_POINT_VALUE"}
     registers = [reg_dict for _ in range(number_registers)]
     disturbance.map_registers(registers)
@@ -74,6 +86,9 @@ def test_disturbance_number_map_registers(motion_controller, disturbance, number
     assert value == number_registers
 
 
+@pytest.mark.ethernet
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 def test_disturbance_map_registers_sample_number(disturbance):
     registers = [{"axis": 1, "name": "CL_POS_SET_POINT_VALUE"}]
@@ -97,6 +112,9 @@ def test_disturbance_map_registers_empty(disturbance):
         disturbance.map_registers(registers)
 
 
+@pytest.mark.ethernet
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 @pytest.mark.usefixtures("disturbance_map_registers")
 def test_write_disturbance_data_buffer_exception(disturbance):
@@ -111,11 +129,14 @@ def test_write_disturbance_data_not_configured(disturbance):
         disturbance.write_disturbance_data([0] * 100)
 
 
+@pytest.mark.ethernet
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.smoke
 def test_write_disturbance_data_enabled(
     motion_controller, disturbance, disable_monitoring_disturbance
 ):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     mc.capture.enable_monitoring_disturbance(alias)
     with pytest.raises(IMDisturbanceError):
         disturbance.write_disturbance_data([0] * 100)
@@ -125,7 +146,7 @@ def test_write_disturbance_data_enabled(
 @pytest.mark.smoke
 def test_disturbance_map_registers_invalid_subnode(mocker, motion_controller, disturbance):
     registers = [{"axis": "1", "name": "DRV_AXIS_NUMBER"}]
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     mocker.patch.object(mc.capture, "is_disturbance_enabled", return_value=False)
     with pytest.raises(TypeError):
         disturbance.map_registers(registers)
@@ -135,7 +156,7 @@ def test_disturbance_map_registers_invalid_subnode(mocker, motion_controller, di
 @pytest.mark.smoke
 def test_disturbance_map_registers_invalid_register(mocker, motion_controller, disturbance):
     registers = [{"axis": 1, "name": 1}]
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     mocker.patch.object(mc.capture, "is_disturbance_enabled", return_value=False)
     with pytest.raises(TypeError):
         disturbance.map_registers(registers)
@@ -144,7 +165,7 @@ def test_disturbance_map_registers_invalid_register(mocker, motion_controller, d
 @pytest.mark.virtual
 @pytest.mark.smoke
 def test_write_disturbance_data_wrong_data_type(mocker, motion_controller, disturbance):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     mocker.patch.object(mc.capture, "is_disturbance_enabled", return_value=False)
     registers = [{"axis": 1, "name": "CL_POS_SET_POINT_VALUE"}]
     disturbance.map_registers(registers)

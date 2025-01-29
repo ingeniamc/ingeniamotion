@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.9.0] - 2025-01-29
+### Added
+- Method to subscribe to register value updates.
+- Method to subscribe to emergency messages.
+- Method to get a servo's network state.
+- Methods to get/set a servo's MAC address.
+- Retrieve IP-less network adapters information (on Windows).
+
+### Changed
+- is_sto1_active and is_sto2_active return booleans instead of integers
+
+### Fixed
+- Feedback symmetry check calculation.
+- Phasing test when the commutation feedback is a Halls sensor.
+
+### Deprecated 
+- check_sto_abnormal_fault in configuration. Use is_sto_abnormal_fault instead.
+
+### Removed
+- The set_max_acceleration (deprecated in v0.5.4).
+
+
 ## [0.8.5] - 2024-08-27
 ### Fixed
 - Remove SBC registers that have been removed on FW

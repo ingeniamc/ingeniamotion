@@ -31,15 +31,20 @@ setuptools.setup(
     },
     classifiers=[
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        "ingenialink>=7.3.5, < 8.0.0",
+        "ingenialink>=7.4.1, < 8.0.0",
         "ingenialogger>=0.2.1",
         "ifaddr==0.1.7",
+        'wmi==1.5.1; platform_system == "Windows"',
     ],
     extras_require={
-        "FSoE": ["fsoe-master==0.1.2"],
+        "FSoE": ["fsoe-master==0.1.3"],
     },
     python_requires=">=3.9",
 )

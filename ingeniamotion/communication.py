@@ -1,31 +1,35 @@
 import json
+import operator
 import platform
-import shutil
-import subprocess
+import tempfile
 import time
 import zipfile
-from collections import OrderedDict
+from collections import Counter, OrderedDict
+from dataclasses import dataclass
 from functools import partial
 from os import path
-from typing import TYPE_CHECKING, Any, Callable, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 import ifaddr
 import ingenialogger
 from ingenialink.canopen.network import CAN_BAUDRATE, CAN_CHANNELS, CAN_DEVICE, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.dictionary import Interface
+from ingenialink.emcy import EmergencyMessage
 from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
 from ingenialink.enums.servo import SERVO_STATE
 from ingenialink.eoe.network import EoENetwork
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.exceptions import ILError
-from ingenialink.network import NET_DEV_EVT, SlaveInfo
-from ingenialink.servo import DictionaryFactory
+from ingenialink.network import NET_DEV_EVT, NET_STATE, SlaveInfo
+from ingenialink.register import Register
+from ingenialink.servo import DictionaryFactory, Servo
 from ingenialink.virtual.network import VirtualNetwork
+from ping3 import ping
 from virtual_drive.core import VirtualDrive
 
-from ingeniamotion.exceptions import IMException, IMRegisterWrongAccess
+from ingeniamotion.exceptions import IMFirmwareLoadError, IMRegisterWrongAccess
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -33,8 +37,35 @@ if TYPE_CHECKING:
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 
 RUNNING_ON_WINDOWS = platform.system() == "Windows"
+
 FILE_EXT_SFU = ".sfu"
 FILE_EXT_LFU = ".lfu"
+FIRMWARE_FILE_FAIL_MSG = "The firmware file could not be loaded correctly"
+
+
+@dataclass
+class IMRegisterUpdateObserver:
+    """Ingeniamotion register update observer"""
+
+    im_callback: Callable[[str, Servo, Register, Union[int, float, str, bytes]], None]
+    alias: str
+
+
+@dataclass
+class IMEmergencyMessageObserver:
+    """Ingeniamotion emergency message observer"""
+
+    im_callback: Callable[[str, EmergencyMessage], None]
+    alias: str
+
+
+@dataclass
+class NetworkAdapter:
+    """Class to represent a network adapter."""
+
+    interface_index: int
+    interface_name: str
+    interface_guid: str
 
 
 class Communication(metaclass=MCMetaClass):
@@ -49,13 +80,14 @@ class Communication(metaclass=MCMetaClass):
     PASSWORD_SYSTEM_RESET = 0x72657365
 
     ENSEMBLE_FIRMWARE_EXTENSION = ".zfu"
-    ENSEMBLE_TEMP_FOLDER = "ensemble_temp"
     ENSEMBLE_SLAVE_REV_NUM_MASK = 0x1000000
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
         self.__virtual_drive: Optional[VirtualDrive] = None
+        self.register_update_observers: Dict[Servo, List[IMRegisterUpdateObserver]] = {}
+        self.emergency_messages_observers: Dict[Servo, List[IMEmergencyMessageObserver]] = {}
 
     def connect_servo_eoe(
         self,
@@ -358,18 +390,19 @@ class Communication(metaclass=MCMetaClass):
         coco_dict = DictionaryFactory.create_dictionary(coco_dict_path, Interface.ETH)
         self.mc.servos[alias].dictionary += coco_dict
 
-    @staticmethod
-    def __get_adapter_name(index: int) -> str:
+    @classmethod
+    def __get_adapter_name(cls, index: int) -> str:
         """Returns the adapter name of an adapter based on its index.
 
         Args:
             index : position of interface selected in
                 :func:`get_interface_name_list`.
         """
-        adapter = list(ifaddr.get_adapters())[index]
+        adapter_name = cls.get_interface_name_list()[index]
+        adapter_guid = cls.get_network_adapters()[adapter_name]
         if RUNNING_ON_WINDOWS:
-            return f"\\Device\\NPF_{bytes.decode(adapter.name)}"
-        return str(adapter.name)
+            return f"\\Device\\NPF_{adapter_guid}"
+        return adapter_name
 
     def get_ifname_from_interface_ip(self, address: str) -> str:
         """Returns interface name based on the address ip of an interface.
@@ -432,15 +465,68 @@ class Communication(metaclass=MCMetaClass):
         """
         return self.__get_adapter_name(index)
 
-    @staticmethod
-    def get_interface_name_list() -> List[str]:
+    @classmethod
+    def get_interface_name_list(cls) -> List[str]:
         """Get interface list.
 
         Returns:
             List with interface readable names.
 
         """
-        return [x.nice_name for x in ifaddr.get_adapters()]
+        network_adapters = cls.get_network_adapters()
+        return list(network_adapters)
+
+    @staticmethod
+    def get_network_adapters() -> Dict[str, str]:
+        """Get the detected network adapters.
+
+        Returns:
+            Dictionary with interface readable names as keys and GUIDs as values.
+
+        """
+        network_adapters = []
+        for adapter in ifaddr.get_adapters():
+            if isinstance(adapter.name, bytes):
+                adapter_guid = bytes.decode(adapter.name)
+            else:
+                adapter_guid = adapter.name
+            network_adapters.append(NetworkAdapter(adapter.index, adapter.nice_name, adapter_guid))
+        if RUNNING_ON_WINDOWS:
+            # When using WMI within threads it is required to initialize the COM objects
+            # https://stackoverflow.com/a/14428972
+            # The order of imports is also important
+            # https://stackoverflow.com/a/46606527
+            import pythoncom
+
+            pythoncom.CoInitialize()
+            import wmi
+
+            for adapter in [
+                NetworkAdapter(o.interfaceindex, o.Name, o.GUID)
+                for o in wmi.WMI().query(
+                    "select Name, guid, interfaceindex from Win32_NetworkAdapter"
+                )
+                if o.GUID is not None
+            ]:
+                if adapter not in network_adapters:
+                    network_adapters.append(adapter)
+
+            interface_name_counter = Counter(
+                [adapter.interface_name for adapter in network_adapters]
+            )
+
+            if interface_name_counter.most_common(1)[0][1] > 1:
+                for adapter in sorted(
+                    network_adapters, key=operator.attrgetter("interface_index"), reverse=True
+                ):
+                    interface_name_count = interface_name_counter[adapter.interface_name]
+                    if interface_name_count == 1:
+                        continue
+                    interface_name_counter[adapter.interface_name] -= 1
+                    adapter.interface_name = (
+                        adapter.interface_name + " #" + str(interface_name_count)
+                    )
+        return {adapter.interface_name: adapter.interface_guid for adapter in network_adapters}
 
     def get_available_canopen_devices(self) -> dict[CAN_DEVICE, list[int]]:
         """Return the list of available CAN devices (those connected and with drivers installed).
@@ -869,6 +955,23 @@ class Communication(metaclass=MCMetaClass):
         if servo_count == 0:
             del self.mc.net[net_name]
 
+    def get_servo_state(self, servo: str = DEFAULT_SERVO) -> NET_STATE:
+        """Get the network state of a servo (connected/disconnected).
+
+        The net_status_listener should be enabled for the servo in order
+        for the state to be updated.
+
+        Args:
+            servo : servo alias to reference it. ``default`` by default.
+
+        Returns:
+            The servo's state.
+
+        """
+        drive = self.mc._get_drive(servo)
+        network = self.mc._get_network(servo)
+        return network.get_servo_state(drive.target)
+
     def get_register(
         self, register: str, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> Union[int, float, str]:
@@ -966,7 +1069,7 @@ class Communication(metaclass=MCMetaClass):
         network.unsubscribe_from_status(drive.target, callback)
 
     def subscribe_servo_status(
-        self, callback: Callable[[SERVO_STATE, None, int], Any], servo: str = DEFAULT_SERVO
+        self, callback: Callable[[SERVO_STATE, int], Any], servo: str = DEFAULT_SERVO
     ) -> None:
         """Add a callback to servo status change event.
 
@@ -979,7 +1082,7 @@ class Communication(metaclass=MCMetaClass):
         drive.subscribe_to_status(callback)
 
     def unsubscribe_servo_status(
-        self, callback: Callable[[SERVO_STATE, None, int], Any], servo: str = DEFAULT_SERVO
+        self, callback: Callable[[SERVO_STATE, int], Any], servo: str = DEFAULT_SERVO
     ) -> None:
         """Remove servo status change event callback.
 
@@ -990,6 +1093,133 @@ class Communication(metaclass=MCMetaClass):
         """
         drive = self.mc._get_drive(servo)
         drive.unsubscribe_from_status(callback)
+
+    def subscribe_register_update(
+        self,
+        callback: Callable[[str, Servo, Register, Union[int, float, str, bytes]], None],
+        servo: str = DEFAULT_SERVO,
+    ) -> None:
+        """Subscribe to register updates.
+        The callback will be called when a read/write operation occurs.
+
+        Args:
+            callback: Callable that takes a servo alias, Servo and Register instances
+            and the register value as arguments.
+            servo : servo alias to reference it. ``default`` by default.
+
+        """
+        drive = self.mc._get_drive(servo)
+
+        if drive not in self.register_update_observers:
+            # Servo that has not been subscribed yet
+            self.register_update_observers[drive] = []
+            # Subscribe to ingenialink
+            drive.register_update_subscribe(self._il_register_subscribe_callback)
+
+        self.register_update_observers[drive].append(
+            IMRegisterUpdateObserver(callback, alias=servo)
+        )
+
+    def unsubscribe_register_update(
+        self,
+        callback: Callable[[str, Servo, Register, Union[int, float, str, bytes]], None],
+        servo: str = DEFAULT_SERVO,
+    ) -> None:
+        """Unsubscribe from register updates.
+
+        Args:
+            callback: Subscribed callback.
+            servo : servo alias to reference it. ``default`` by default.
+
+        """
+        drive = self.mc._get_drive(servo)
+        for observer in self.register_update_observers[drive]:
+            if observer.im_callback == callback:
+                self.register_update_observers[drive].remove(observer)
+                break
+
+        if len(self.register_update_observers[drive]) == 0:
+            del self.register_update_observers[drive]
+            # No observers, unsubscribe from ingenialink
+            drive.register_update_unsubscribe(self._il_register_subscribe_callback)
+
+    def _il_register_subscribe_callback(
+        self, servo_instance: Servo, register: Register, value: Union[int, float, str, bytes]
+    ) -> None:
+        """This method will be the one subscribed to ingenialink.
+        When called, the servo alias will be added to the received information.
+
+        Args:
+            servo_instance: The servo instance.
+            register: The register object.
+            value: The updated register value.
+
+        """
+        for observer in self.register_update_observers[servo_instance]:
+            observer.im_callback(observer.alias, servo_instance, register, value)
+
+    def subscribe_emergency_message(
+        self,
+        callback: Callable[[str, EmergencyMessage], None],
+        servo: str = DEFAULT_SERVO,
+    ) -> None:
+        """Subscribe to emergency messages.
+
+        Only available for CANopen and EtherCAT CoE protocols.
+
+        Args:
+            callback :  Callable that takes a servo alias and an EmergencyMessage
+            instance as arguments.
+            servo : servo alias to reference it. ``default`` by default.
+
+        """
+        drive = self.mc._get_drive(servo)
+
+        if drive not in self.emergency_messages_observers:
+            # Servo that has not been subscribed yet
+            self.emergency_messages_observers[drive] = []
+            # Subscribe to ingenialink
+            drive.emcy_subscribe(self._il_emergency_message_callback)
+
+        self.emergency_messages_observers[drive].append(
+            IMEmergencyMessageObserver(callback, alias=servo)
+        )
+
+    def unsubscribe_emergency_message(
+        self,
+        callback: Callable[[str, EmergencyMessage], None],
+        servo: str = DEFAULT_SERVO,
+    ) -> None:
+        """Unsubscribe from emergency messages.
+
+        Only available for CANopen and EtherCAT CoE protocols.
+
+        Args:
+            callback : Subscribed callback.
+            servo : servo alias to reference it. ``default`` by default.
+
+        """
+        drive = self.mc._get_drive(servo)
+        for observer in self.emergency_messages_observers[drive]:
+            if observer.im_callback == callback:
+                self.emergency_messages_observers[drive].remove(observer)
+                break
+
+        if len(self.emergency_messages_observers[drive]) == 0:
+            del self.emergency_messages_observers[drive]
+            # No observers, unsubscribe from ingenialink
+            drive.emcy_unsubscribe(self._il_emergency_message_callback)
+
+    def _il_emergency_message_callback(self, emergency_message: EmergencyMessage) -> None:
+        """This method will be the one subscribed to ingenialink.
+        When called, the servo alias will be added to the received information.
+
+        Args:
+            emergency_message: The EmergencyMessage  instance.
+
+        """
+        for observer in self.emergency_messages_observers[emergency_message.servo]:
+            observer.im_callback(observer.alias, emergency_message)
 
     def load_firmware_canopen(
         self,
@@ -1150,8 +1380,8 @@ class Communication(metaclass=MCMetaClass):
 
     @staticmethod
     def __ftp_ping(ip: str) -> bool:
-        command = ["ping", ip]
-        return subprocess.call(command) == 0
+        response = ping(ip, timeout=1)
+        return isinstance(response, float)
 
     def boot_mode_and_load_firmware_ethernet(
         self,
@@ -1289,31 +1519,34 @@ class Communication(metaclass=MCMetaClass):
             slave: Servo object.
 
         Raises:
-            IMException: If the load FW process of any slave failed.
+            IMFirmwareLoadError: If the load FW process of any slave failed.
         """
-        mapping = self.__unzip_ensemble_fw_file(fw_file)
-        scanned_slaves = net.scan_slaves_info()
-        first_slave_in_ensemble = self.__check_ensemble(scanned_slaves, int(slave.target), mapping)
-        dictionary_path = slave.dictionary.path
-        connected_drives = {int(slave.target): slave for slave in net.servos}
-        for slave_id_offset in mapping:
-            slave_id = first_slave_in_ensemble + slave_id_offset
-            if slave_id not in connected_drives:
-                net.connect_to_slave(slave_id, dictionary_path)
-        try:
-            for slave_id_offset, fw_file_prod_code in mapping.items():
+        with tempfile.TemporaryDirectory() as ensemble_temp_dir:
+            mapping = self.__unzip_ensemble_fw_file(fw_file, ensemble_temp_dir)
+            scanned_slaves = net.scan_slaves_info()
+            first_slave_in_ensemble = self.__check_ensemble(
+                scanned_slaves, int(slave.target), mapping
+            )
+            dictionary_path = slave.dictionary.path
+            connected_drives = {int(slave.target): slave for slave in net.servos}
+            for slave_id_offset in mapping:
                 slave_id = first_slave_in_ensemble + slave_id_offset
-                net.load_firmware(
-                    slave_id,
-                    fw_file_prod_code[0],
-                    status_callback,
-                    progress_callback,
-                    error_enabled_callback,
+                if slave_id not in connected_drives:
+                    net.connect_to_slave(slave_id, dictionary_path)
+            try:
+                for slave_id_offset, fw_file_prod_code in mapping.items():
+                    slave_id = first_slave_in_ensemble + slave_id_offset
+                    net.load_firmware(
+                        slave_id,
+                        fw_file_prod_code[0],
+                        status_callback,
+                        progress_callback,
+                        error_enabled_callback,
+                    )
+            except ILError as e:
+                raise IMFirmwareLoadError(
+                    f"{FIRMWARE_FILE_FAIL_MSG} on node {slave_id}. Exception: {e}"
                 )
-        except ILError as e:
-            raise IMException(f"Load of FW in slave {slave_id} of ensemble failed. Exception: {e}")
-        finally:
-            shutil.rmtree(self.ENSEMBLE_TEMP_FOLDER)
 
     def __load_ensemble_fw_ecat(
         self,
@@ -1337,25 +1570,26 @@ class Communication(metaclass=MCMetaClass):
             password: Password to load the firmware file. If ``None`` the default password will be
                 used.
         """
-        mapping = self.__unzip_ensemble_fw_file(fw_file)
-        scanned_slaves = net.scan_slaves_info()
-        first_slave_in_ensemble = self.__check_ensemble(scanned_slaves, slave, mapping)
-        try:
-            for slave_id_offset, fw_file_prod_code in mapping.items():
-                boot_in_app_drive = (
-                    self.__get_boot_in_app(fw_file_prod_code[0])
-                    if boot_in_app is None
-                    else boot_in_app
-                )
-                net.load_firmware(
-                    fw_file_prod_code[0],
-                    boot_in_app_drive,
-                    first_slave_in_ensemble + slave_id_offset,
-                )
-        except ILError as e:
-            raise e
-        finally:
-            shutil.rmtree(self.ENSEMBLE_TEMP_FOLDER)
+        with tempfile.TemporaryDirectory() as ensemble_temp_dir:
+            mapping = self.__unzip_ensemble_fw_file(fw_file, ensemble_temp_dir)
+            scanned_slaves = net.scan_slaves_info()
+            if len(scanned_slaves) == 0:
+                raise IMFirmwareLoadError(f"{FIRMWARE_FILE_FAIL_MSG}. No ECAT slave detected.")
+            first_slave_in_ensemble = self.__check_ensemble(scanned_slaves, slave, mapping)
+            try:
+                for slave_id_offset, fw_file_prod_code in mapping.items():
+                    boot_in_app_drive = (
+                        self.__get_boot_in_app(fw_file_prod_code[0])
+                        if boot_in_app is None
+                        else boot_in_app
+                    )
+                    net.load_firmware(
+                        fw_file_prod_code[0],
+                        boot_in_app_drive,
+                        first_slave_in_ensemble + slave_id_offset,
+                    )
+            except ILError as e:
+                raise e
 
     def __check_ensemble(
         self,
@@ -1375,19 +1609,25 @@ class Communication(metaclass=MCMetaClass):
             mapping: Mapping of the ensemble.
 
         Raises:
-            IMException: If the slave ID is not in the scanned slaves list.
-            IMException: If the ensemble described in the mapping can not be found in the list of
-                scanned slaves.
+            IMFirmwareLoadError: If the slave ID is not in the scanned slaves list.
+            IMFirmwareLoadError: If the ensemble described in the mapping can not be
+            found in the list of the scanned slaves.
 
         Returns:
             The ID of the first drive in the ensemble.
         """
+        if slave_id not in scanned_slaves:
+            raise IMFirmwareLoadError(
+                f"{FIRMWARE_FILE_FAIL_MSG}. The slave {slave_id} is not detected."
+            )
         slave_id_offset = self.__check_slave_in_ensemble(scanned_slaves[slave_id], mapping)
         first_slave = slave_id - slave_id_offset
         for map_slave_id_offset in mapping:
             map_slave_id = first_slave + map_slave_id_offset
             if map_slave_id not in scanned_slaves:
-                raise IMException(f"Wrong ensemble. The slave {map_slave_id - 1} is not detected.")
+                raise IMFirmwareLoadError(
+                    f"{FIRMWARE_FILE_FAIL_MSG}. The slave {map_slave_id - 1} is not detected."
+                )
             map_slave_info = scanned_slaves[map_slave_id]
             if (
                 map_slave_info.product_code != mapping[map_slave_id_offset][1]
@@ -1395,8 +1635,8 @@ class Communication(metaclass=MCMetaClass):
                 or (map_slave_info.revision_number & self.ENSEMBLE_SLAVE_REV_NUM_MASK)
                 != (mapping[map_slave_id_offset][2] & self.ENSEMBLE_SLAVE_REV_NUM_MASK)
             ):
-                raise IMException(
-                    f"Wrong ensemble. The slave {map_slave_id} "
+                raise IMFirmwareLoadError(
+                    f"{FIRMWARE_FILE_FAIL_MSG}. The slave {map_slave_id} "
                     f"has wrong product code or revision number."
                 )
         return first_slave
@@ -1413,7 +1653,7 @@ class Communication(metaclass=MCMetaClass):
             mapping: Mapping of the ensemble.
 
         Raises:
-            IMException: If the slave is not part of the ensemble.
+            IMFirmwareLoadError: If the slave is not part of the ensemble.
 
         Returns:
             The ID offset (relative position in the ensemble) of the selected slave.
@@ -1428,29 +1668,31 @@ class Communication(metaclass=MCMetaClass):
                 mapping_revision_number & self.ENSEMBLE_SLAVE_REV_NUM_MASK
             ) == (scanned_revision_number & self.ENSEMBLE_SLAVE_REV_NUM_MASK):
                 return slave_id_offset
-        raise IMException("The selected drive is not part of the ensemble.")
+        raise IMFirmwareLoadError(
+            f"{FIRMWARE_FILE_FAIL_MSG}. The selected drive is not part of the ensemble."
+        )
 
-    def __unzip_ensemble_fw_file(self, fw_file: str) -> dict[int, tuple[str, int, int]]:
+    def __unzip_ensemble_fw_file(
+        self, fw_file: str, unzip_path: str
+    ) -> dict[int, tuple[str, int, int]]:
         """Unzip the ensemble FW file and return the mapping.
 
         Args:
             fw_file: Ensemble FW file to be unzipped.
-
-        Raises:
-            IMException: If the file extension is incorrect.
+            unzip_path: Path where to unzip the ensemble
 
         Returns:
             Mapping described in the ensemble FW file.
                 Dict{slave_id_offset: (fw_file, product_code, revision_number)}
         """
         with zipfile.ZipFile(fw_file, "r") as zip_ref:
-            zip_ref.extractall(self.ENSEMBLE_TEMP_FOLDER)
-        with open(path.join(self.ENSEMBLE_TEMP_FOLDER, "mapping.json")) as f:
+            zip_ref.extractall(unzip_path)
+        with open(path.join(unzip_path, "mapping.json")) as f:
             mapping_info = json.load(f)
         mapping = {}
         for drive in mapping_info["drives"]:
             slave_id_offset = drive["slave_id_offset"]
-            fw_file = path.join(path.abspath(self.ENSEMBLE_TEMP_FOLDER), drive["fw_file"])
+            fw_file = path.join(path.abspath(unzip_path), drive["fw_file"])
             product_code = drive["product_code"]
             revision_number = drive["revision_number"]
             mapping[slave_id_offset] = fw_file, product_code, revision_number

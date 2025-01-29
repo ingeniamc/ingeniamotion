@@ -1,13 +1,12 @@
 import pytest
-
+from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE, CanopenNetwork
+from ingenialink.dictionary import SubnodeType
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
-from ingenialink.canopen.network import CanopenNetwork, CAN_DEVICE, CAN_BAUDRATE
-from ingenialink.dictionary import SubnodeType
 from ingenialink.register import REG_ACCESS, REG_DTYPE
 
+from ingeniamotion.exceptions import IMException, IMRegisterNotExist
 from ingeniamotion.information import COMMUNICATION_TYPE
-from ingeniamotion.exceptions import IMRegisterNotExist, IMException
 
 
 @pytest.mark.virtual
@@ -21,7 +20,7 @@ from ingeniamotion.exceptions import IMRegisterNotExist, IMException
     ],
 )
 def test_register_info(motion_controller, uid, axis):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     register = mc.info.register_info(uid, axis, alias)
     assert isinstance(register.dtype, REG_DTYPE)
     assert isinstance(register.access, REG_ACCESS)
@@ -39,7 +38,7 @@ def test_register_info(motion_controller, uid, axis):
     ],
 )
 def test_register_type(motion_controller, uid, axis, dtype):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     register_dtype = mc.info.register_type(uid, axis, alias)
     assert register_dtype == dtype
 
@@ -55,7 +54,7 @@ def test_register_type(motion_controller, uid, axis, dtype):
     ],
 )
 def test_register_access(motion_controller, uid, axis, access):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     register_access = mc.info.register_access(uid, axis, alias)
     assert register_access == access
 
@@ -71,7 +70,7 @@ def test_register_access(motion_controller, uid, axis, access):
     ],
 )
 def test_register_range(motion_controller, uid, axis, range):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     register_range = mc.info.register_range(uid, axis, alias)
     assert tuple(register_range) == range
 
@@ -90,7 +89,7 @@ def test_register_range(motion_controller, uid, axis, range):
     ],
 )
 def test_register_exists(motion_controller, uid, axis, exists):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     register_exists = mc.info.register_exists(uid, axis, alias)
     assert register_exists == exists
 
@@ -99,7 +98,7 @@ def test_register_exists(motion_controller, uid, axis, exists):
 def test_get_product_name(motion_controller, mocker):
     expected_product_name = "VIRTUAL-DRIVE"
 
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     product_name = mc.info.get_product_name(alias)
 
     assert product_name == expected_product_name
@@ -109,7 +108,7 @@ def test_get_product_name(motion_controller, mocker):
 def test_get_ip(motion_controller):
     expected_ip = "127.0.0.1"
 
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     ip = mc.info.get_ip(alias)
 
     assert ip == expected_ip
@@ -119,7 +118,7 @@ def test_get_ip(motion_controller):
 def test_get_name(motion_controller):
     expected_name = "Drive"
 
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     name = mc.info.get_name(alias)
 
     assert name == expected_name
@@ -136,7 +135,7 @@ def test_get_name(motion_controller):
 )
 @pytest.mark.virtual
 def test_get_communication_type(mocker, motion_controller, communication, expected_result, args):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
 
     mocker.patch("ingenialink.ethercat.network.EthercatNetwork.__init__", return_value=None)
 
@@ -158,7 +157,7 @@ def test_get_communication_type(mocker, motion_controller, communication, expect
 )
 @pytest.mark.virtual
 def test_get_full_name(mocker, motion_controller, communication, expected_result, args):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
 
     mocker.patch("ingenialink.ethercat.network.EthercatNetwork.__init__", return_value=None)
 
@@ -172,7 +171,7 @@ def test_get_full_name(mocker, motion_controller, communication, expected_result
 def test_get_subnodes(motion_controller):
     expected_subnodes = 2
 
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     subnodes = mc.info.get_subnodes(alias)
 
     assert len(subnodes) == expected_subnodes
@@ -184,7 +183,7 @@ def test_get_subnodes(motion_controller):
 def test_get_categories(motion_controller):
     expected_number_categories = 19
 
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     categories = mc.info.get_categories(alias)
 
     assert len(categories) == expected_number_categories
@@ -194,7 +193,7 @@ def test_get_categories(motion_controller):
 def test_get_dictionary_file_name(motion_controller):
     expected_dictionary_path = "virtual_drive.xdf"
 
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     dictionary_file_name = mc.info.get_dictionary_file_name(alias)
 
     assert dictionary_file_name in expected_dictionary_path
@@ -204,7 +203,7 @@ def test_get_dictionary_file_name(motion_controller):
 def test_get_encoded_image_from_dictionary(motion_controller):
     expected_type_output = str
 
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     encoded_image = mc.info.get_encoded_image_from_dictionary(alias)
 
     assert type(encoded_image) == expected_type_output
@@ -212,14 +211,14 @@ def test_get_encoded_image_from_dictionary(motion_controller):
 
 @pytest.mark.virtual
 def test_register_info_exception(motion_controller):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     with pytest.raises(IMRegisterNotExist):
         mc.info.register_info("non_existing_uid", 1, alias)
 
 
 @pytest.mark.virtual
 def test_get_product_name_none(motion_controller):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     drive = mc._get_drive(alias)
     drive.dictionary.part_number = None
     product_name = mc.info.get_product_name(alias)
@@ -228,14 +227,14 @@ def test_get_product_name_none(motion_controller):
 
 @pytest.mark.virtual
 def test_get_node_id_exception(motion_controller):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     with pytest.raises(IMException):
         mc.info.get_node_id(alias)
 
 
 @pytest.mark.virtual
 def test_get_ip_exception(mocker, motion_controller):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     mocker.patch("ingenialink.ethercat.network.EthercatNetwork.__init__", return_value=None)
     mocker.patch.object(mc, "_get_network", return_value=EthercatNetwork("fake_interface_name"))
     with pytest.raises(IMException):
@@ -244,14 +243,14 @@ def test_get_ip_exception(mocker, motion_controller):
 
 @pytest.mark.virtual
 def test_get_slave_id_exception(motion_controller):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     with pytest.raises(IMException):
         mc.info.get_slave_id(alias)
 
 
 @pytest.mark.virtual
 def test_get_baudrate_success(motion_controller, mocker):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
 
     fake_device = CAN_DEVICE.PCAN
     fake_channel = 0
@@ -266,7 +265,7 @@ def test_get_baudrate_success(motion_controller, mocker):
 
 @pytest.mark.virtual
 def test_get_baudrate_failed(motion_controller, mocker):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
 
     mocker.patch("ingenialink.ethercat.network.EthercatNetwork.__init__", return_value=None)
     mocker.patch.object(mc, "_get_network", return_value=EthercatNetwork("fake_interface_name"))

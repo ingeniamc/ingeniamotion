@@ -2,7 +2,7 @@ import time
 
 import pytest
 
-from ingeniamotion.enums import HomingMode, SensorType, OperationMode
+from ingeniamotion.enums import HomingMode, OperationMode, SensorType
 from tests.conftest import mean_actual_velocity_position
 
 HOMING_MODE_REGISTER = "HOM_MODE"
@@ -24,7 +24,7 @@ RELATIVE_ERROR_ALLOWED = 3e-2
 
 @pytest.fixture
 def initial_position(motion_controller):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
     mc.motion.motor_enable(servo=alias)
     last_pos = mc.motion.get_actual_position(servo=alias)
@@ -38,7 +38,7 @@ def initial_position(motion_controller):
 @pytest.mark.smoke
 @pytest.mark.parametrize("homing_mode", list(HomingMode))
 def test_set_homing_mode(motion_controller, homing_mode):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     mc.configuration.set_homing_mode(homing_mode, servo=alias)
     test_homing_mode = mc.communication.get_register(HOMING_MODE_REGISTER, servo=alias)
     assert test_homing_mode == homing_mode
@@ -48,7 +48,7 @@ def test_set_homing_mode(motion_controller, homing_mode):
 @pytest.mark.smoke
 @pytest.mark.parametrize("homing_offset", [0, 10, 500, -12, -100, 1000])
 def test_set_homing_offset(motion_controller, homing_offset):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     mc.configuration.set_homing_offset(homing_offset, servo=alias)
     test_homing_offset = mc.communication.get_register(HOMING_OFFSET_REGISTER, servo=alias)
     assert test_homing_offset == homing_offset
@@ -58,16 +58,19 @@ def test_set_homing_offset(motion_controller, homing_offset):
 @pytest.mark.smoke
 @pytest.mark.parametrize("homing_timeout", [0, 10, 500, 1000, 5000, 10000])
 def test_set_homing_timeout(motion_controller, homing_timeout):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     mc.configuration.set_homing_timeout(homing_timeout, servo=alias)
     test_homing_timeout = mc.communication.get_register(HOMING_TIMEOUT_REGISTER, servo=alias)
     assert test_homing_timeout == homing_timeout
 
 
+@pytest.mark.ethernet
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.parametrize("homing_offset", [0, 1000])
 @pytest.mark.usefixtures("initial_position")
 def test_homing_on_current_position(motion_controller, homing_offset):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     mc.configuration.homing_on_current_position(homing_offset, servo=alias)
     feedback_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
     assert pytest.approx(
@@ -76,10 +79,13 @@ def test_homing_on_current_position(motion_controller, homing_offset):
     ) == mc.motion.get_actual_position(servo=alias)
 
 
+@pytest.mark.ethernet
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.usefixtures("initial_position")
 @pytest.mark.parametrize("direction", [1, 0])
 def test_homing_on_switch_limit(motion_controller, direction):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     homing_offset = 10
     homing_timeout = 5000
     search_vel = 10.0
@@ -117,9 +123,12 @@ def test_homing_on_switch_limit(motion_controller, direction):
     assert test_switch == switch
 
 
+@pytest.mark.ethernet
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.usefixtures("initial_position")
 def test_homing_on_switch_limit_timeout(motion_controller):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     homing_offset = 10
     homing_timeout = 5000
     search_vel = 10.0
@@ -169,10 +178,13 @@ def __check_homing_was_successful(mc, alias, timeout_ms):
     return False
 
 
+@pytest.mark.ethernet
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.usefixtures("initial_position")
 @pytest.mark.parametrize("direction", [1, 0])
 def test_homing_on_index_pulse(motion_controller, feedback_list, direction):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     homing_offset = 1000
     homing_timeout = 10000
     zero_vel = 0.1
@@ -213,10 +225,13 @@ def test_homing_on_index_pulse(motion_controller, feedback_list, direction):
         )
 
 
+@pytest.mark.ethernet
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.usefixtures("initial_position")
 @pytest.mark.parametrize("direction", [1, 0])
 def test_homing_on_switch_limit_and_index_pulse(motion_controller, direction):
-    mc, alias = motion_controller
+    mc, alias, environment = motion_controller
     homing_offset = 300
     homing_timeout = 3000
     search_vel = 5.0
