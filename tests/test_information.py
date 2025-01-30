@@ -62,7 +62,7 @@ def test_register_access(motion_controller, uid, axis, access):
 
 @pytest.mark.virtual
 @pytest.mark.parametrize(
-    "uid, axis, range",
+    "uid, axis, expected_range",
     [
         ("CL_POS_FBK_VALUE", 1, (-2147483648, 2147483647)),
         ("CL_VEL_SET_POINT_VALUE", 1, (-3.4e38, 3.4e38)),
@@ -70,10 +70,10 @@ def test_register_access(motion_controller, uid, axis, access):
         ("PROF_IP_CLEAR_DATA", 1, (0, 65535)),
     ],
 )
-def test_register_range(motion_controller, uid, axis, range):
+def test_register_range(motion_controller, uid, axis, expected_range):
     mc, alias, environment = motion_controller
     register_range = mc.info.register_range(uid, axis, alias)
-    assert tuple(register_range) == range
+    assert tuple(register_range) == expected_range
 
 
 @pytest.mark.virtual
