@@ -202,12 +202,10 @@ def test_get_dictionary_file_name(motion_controller):
 
 @pytest.mark.virtual
 def test_get_encoded_image_from_dictionary(motion_controller):
-    expected_type_output = str
-
     mc, alias, environment = motion_controller
     encoded_image = mc.info.get_encoded_image_from_dictionary(alias)
 
-    assert type(encoded_image) == expected_type_output
+    assert isinstance(encoded_image, str)
 
 
 @pytest.mark.virtual
