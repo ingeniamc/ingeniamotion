@@ -130,7 +130,7 @@ class MonitoringV3(Monitoring):
     def _check_buffer_size_is_enough(
         self,
         total_samples: int,
-        trigger_delay_samples: int,
+        _: int,
         registers: list[dict[str, Union[int, str, RegDtype]]],
     ) -> None:
         n_sample = total_samples

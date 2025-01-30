@@ -1589,6 +1589,7 @@ class Communication(metaclass=MCMetaClass):
                         fw_file_prod_code[0],
                         boot_in_app_drive,
                         first_slave_in_ensemble + slave_id_offset,
+                        password,
                     )
             except ILError as e:
                 raise e
