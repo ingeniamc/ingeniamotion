@@ -96,24 +96,36 @@ class STOTest(BaseTest[LegacyDictReportType]):
         else:
             self.logger.info("STO abnormal fault bit is HIGH")
 
+        # Check STO abnormal latch status --> Check bits 3(0x8 in HEX), 1(0x2) & 0(0x1)
+        sto_abnormal_latch = self.mc.configuration.is_sto_abnormal_latched(
+            servo=self.servo, axis=self.axis
+        )
+
         # Check STO report --> Check bit 4 (0x10 in HEX)
-        if self.mc.configuration.get_sto_report_bit(servo=self.servo, axis=self.axis) == 0:
+        sto_report_bit = self.mc.configuration.get_sto_report_bit(servo=self.servo, axis=self.axis)
+        if not sto_report_bit:
             self.logger.info("STO report is LOW")
         else:
             self.logger.info("STO report is HIGH")
 
         # Check STO STATE
         if self.mc.configuration.is_sto_active(servo=self.servo, axis=self.axis):
+            # STO Status in Active State --> STO Active
             return self.ResultType.STO_ACTIVE
-        elif self.mc.configuration.is_sto_inactive(servo=self.servo, axis=self.axis):
-            return self.ResultType.STO_INACTIVE
-        elif self.mc.configuration.is_sto_abnormal_latched(servo=self.servo, axis=self.axis):
-            return self.ResultType.STO_ABNORMAL_LATCHED
-        elif sto_abnormal_fault != 0:
-            return self.ResultType.STO_ABNORMAL
-        elif sto_power_supply == 0:
+        elif not sto_power_supply:
+            # STO Supply Fault bit LOW --> STO Supply Fault
             return self.ResultType.STO_ABNORMAL_SUPPLY
+        elif sto_abnormal_fault:
+            # STO Abnormal Fault bit HIGH
+            if sto_abnormal_latch == SeverityLevel.SUCCESS:
+                return self.ResultType.STO_ABNORMAL_LATCHED
+            elif sto_abnormal_latch == SeverityLevel.WARNING:
+                return self.ResultType.STO_ABNORMAL
+        elif self.mc.configuration.is_sto_inactive(servo=self.servo, axis=self.axis):
+            # STO Status in Inactive State --> STO Inactive
+            return self.ResultType.STO_INACTIVE
         else:
+            # STO Unknown state
             return self.ResultType.STO_INPUTS_DIFFER
 
     def get_result_msg(self, output: ResultType) -> str:

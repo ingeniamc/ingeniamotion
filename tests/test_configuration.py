@@ -10,6 +10,7 @@ from ingeniamotion.enums import (
     FilterNumber,
     FilterSignal,
     FilterType,
+    SeverityLevel,
 )
 from ingeniamotion.exceptions import IMException
 
@@ -511,14 +512,18 @@ def test_is_sto_inactive(mocker, motion_controller, sto_status_value, expected_r
 @pytest.mark.parametrize(
     "sto_status_value, expected_result",
     [
-        # STO Status Inactive, expected output False
-        (0x1BF3, False),
-        # STO Status Supply Fault, expected output False
-        (0x6B7, False),
-        # STO Status Abnormal STO Latched, expected output True
-        (0x1F, True),
-        # STO Status Abnormal STO Latched, expected output True
-        (0x1C, True),
+        # STO Status Inactive, expected output SeverityLevel.FAIL
+        (0x1BF3, SeverityLevel.FAIL),
+        # STO Status Supply Fault, expected output SeverityLevel.FAIL
+        (0x6B7, SeverityLevel.FAIL),
+        # STO Status Abnormal STO Latched, expected output SeverityLevel.SUCCESS
+        (0x1F, SeverityLevel.SUCCESS),
+        # STO Status Abnormal STO Latched, expected output SeverityLevel.SUCCESS
+        (0x1C, SeverityLevel.SUCCESS),
+        # STO Status Abnormal STO Might be Latched, expected output SeverityLevel.WARNING
+        (0x1D, SeverityLevel.WARNING),
+        # STO Status Abnormal STO Might be Latched, expected output SeverityLevel.WARNING
+        (0x1E, SeverityLevel.WARNING),
     ],
 )
 def test_is_sto_abnormal_latched(mocker, motion_controller, sto_status_value, expected_result):
@@ -529,28 +534,6 @@ def test_is_sto_abnormal_latched(mocker, motion_controller, sto_status_value, ex
     patch_get_sto_status(mocker, sto_status_value)
     value = mc.configuration.is_sto_abnormal_latched(servo=alias)
     assert value == expected_result
-
-
-@pytest.mark.virtual
-@pytest.mark.smoke
-@pytest.mark.parametrize(
-    "sto_status_value",
-    [
-        # STO Status Abnormal STO Might be Latched, expected output Exception
-        (0x1D),
-        # STO Status Abnormal STO Might be Latched, expected output Exception
-        (0x1E),
-    ],
-)
-def test_is_sto_abnormal_latched_exception(mocker, motion_controller, sto_status_value):
-    """
-    Test checks for Abnormal STO Might be Latched Status that triggers Exception
-    """
-    mc, alias, environment = motion_controller
-    patch_get_sto_status(mocker, sto_status_value)
-    with pytest.raises(IMException) as excinfo:
-        mc.configuration.is_sto_abnormal_latched(servo=alias)
-    assert str(excinfo.value) == "Abnormal STO might be latched."
 
 
 @pytest.mark.ethernet

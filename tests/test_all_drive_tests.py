@@ -197,6 +197,7 @@ def test_sto_test(motion_controller):
     [
         (0x4, "STO Active"),
         (0x1F, "Abnormal STO Latched"),
+        (0xE, "Abnormal STO"),
         (0x73, "Abnormal Supply"),
         (0x5, "STO Inputs Differ"),
     ],

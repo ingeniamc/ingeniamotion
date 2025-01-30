@@ -16,6 +16,7 @@ from ingeniamotion.enums import (
     FilterType,
     GeneratorMode,
     PhasingMode,
+    SeverityLevel,
 )
 from ingeniamotion.exceptions import IMException
 from ingeniamotion.feedbacks import Feedbacks
@@ -825,26 +826,27 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """
         return self.get_sto_status(servo, axis) == self.STO_INACTIVE_STATE
 
-    def is_sto_abnormal_latched(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
+    def is_sto_abnormal_latched(
+        self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
+    ) -> SeverityLevel:
         """
         Check if STO is abnormal latched.
 
         Args:
-            servo : servo alias to reference it. ``default`` by default.
-            axis : servo axis. ``1`` by default.
-
-        Raises:
-            IMException: For uncertain Abnormal_STO_latched status
+            servo (str, optional): servo alias to reference it. Defaults to DEFAULT_SERVO.
+            axis (int, optional): servo axis. Defaults to DEFAULT_AXIS.
 
         Returns:
-            ``True`` if STO is abnormal latched, else ``False``.
+            SeverityLevel: STO Abnormal Latch state. WARNING if status is unclear.
         """
         sto_status = self.get_sto_status(servo, axis)
-        if bool(sto_status & self.STO_ABNORMAL_FAULT_BIT) & (
-            self.is_sto1_active(servo, axis) != self.is_sto2_active(servo, axis)
-        ):
-            raise IMException("Abnormal STO might be latched.")
-        return bool(sto_status & self.STO_ABNORMAL_FAULT_BIT)
+        if bool(sto_status & self.STO_ABNORMAL_FAULT_BIT):
+            if self.is_sto1_active(servo, axis) != self.is_sto2_active(servo, axis):
+                return SeverityLevel.WARNING
+            else:
+                return SeverityLevel.SUCCESS
+        else:
+            return SeverityLevel.FAIL
 
     def is_sto_abnormal_fault(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
         """Check if the STO of a drive is in abnormal fault.
