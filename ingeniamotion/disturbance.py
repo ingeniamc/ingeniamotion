@@ -37,7 +37,7 @@ def check_disturbance_disabled(
     """
 
     @wraps(func)
-    def wrapper(self, *args, **kwargs):  # type: ignore
+    def wrapper(self, *args, **kwargs):  # type: ignore[no-untyped-def]
         disturbance_enabled = self.mc.capture.is_disturbance_enabled(
             servo=self.servo, version=self._version
         )

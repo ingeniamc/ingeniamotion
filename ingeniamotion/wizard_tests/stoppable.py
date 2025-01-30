@@ -18,7 +18,7 @@ class Stoppable:
     @staticmethod
     def stoppable(fun: Callable[..., T]) -> Callable[..., T]:
         @wraps(fun)
-        def wrapper(self, *args, **kwargs):  # type: ignore
+        def wrapper(self, *args, **kwargs):  # type: ignore[no-untyped-def]
             self.check_stop()
             return fun(self, *args, **kwargs)
 

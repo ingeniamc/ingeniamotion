@@ -45,7 +45,7 @@ class MCMetaClass(type):
         """
 
         @wraps(func)
-        def wrapper(self, *args, **kwargs):  # type: ignore
+        def wrapper(self, *args, **kwargs):  # type: ignore[no-untyped-def]
             mc = self.mc
             func_args = inspect.getfullargspec(func).args
             servo_index = func_args.index(cls.SERVO_ARG_NAME)
@@ -66,7 +66,7 @@ class MCMetaClass(type):
         """
 
         @wraps(func)
-        def wrapper(self, *args, **kwargs):  # type: ignore
+        def wrapper(self, *args, **kwargs):  # type: ignore[no-untyped-def]
             mc = self.mc
             func_args = inspect.getfullargspec(func).args
             servo_index = func_args.index(cls.SERVO_ARG_NAME)

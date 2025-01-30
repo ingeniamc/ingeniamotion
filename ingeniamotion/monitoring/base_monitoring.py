@@ -33,7 +33,7 @@ def check_monitoring_disabled(func: Callable[..., None]) -> Callable[..., None]:
     """
 
     @wraps(func)
-    def wrapper(self, *args, **kwargs):  # type: ignore
+    def wrapper(self, *args, **kwargs):  # type: ignore [no-untyped-def]
         monitoring_enabled = self.mc.capture.is_monitoring_enabled(servo=self.servo)
         if monitoring_enabled:
             raise IMMonitoringError("Monitoring is enabled")

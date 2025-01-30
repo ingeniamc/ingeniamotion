@@ -292,4 +292,4 @@ class Errors(metaclass=MCMetaClass):
         """
         drive = self.mc.servos[servo]
         dictionary_errors = drive.errors[error_code & self.ERROR_CODE_BITS]
-        return tuple(dictionary_errors)  # type: ignore
+        return tuple(dictionary_errors)  # type: ignore[return-value]
