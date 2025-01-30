@@ -121,7 +121,8 @@ class MonitoringV1(Monitoring):
             text_is_enabled = "enabled" if is_enabled else "disabled"
             result_text = (
                 "Can't read monitoring data because monitoring is not ready."
-                f" MON_CFG_TRIGGER_REPETITIONS is {trigger_repetitions}. Monitoring is {text_is_enabled}."
+                f" MON_CFG_TRIGGER_REPETITIONS is {trigger_repetitions}. "
+                f"Monitoring is {text_is_enabled}."
             )
         return is_ready, result_text
 

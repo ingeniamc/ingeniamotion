@@ -311,7 +311,8 @@ class Disturbance:
         if total_buffer_size > self.max_sample_number:
             raise IMDisturbanceError(
                 "Number of samples is too high. "
-                f"Demanded size: {total_buffer_size} bytes, buffer max size: {self.max_sample_number} bytes."
+                f"Demanded size: {total_buffer_size} bytes, "
+                f"buffer max size: {self.max_sample_number} bytes."
             )
         self.logger.debug(
             "Demanded size: %d bytes, buffer max size: %d bytes.",
