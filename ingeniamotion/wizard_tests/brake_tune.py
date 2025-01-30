@@ -101,7 +101,7 @@ class BrakeTune(BaseTest[LegacyDictReportType]):
                 self.stoppable_sleep(self.__enable_disable_motor_period / 2)
 
                 reg_values = self.__update_brake_registers_values()
-        except stoppable.StopException:
+        except stoppable.StopExceptionError:
             self.logger.info("Test has been stopped")
             return ResultBrakeType.SUCCESS
 

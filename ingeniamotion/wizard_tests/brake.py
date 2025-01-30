@@ -6,7 +6,7 @@ from ingenialink.exceptions import ILError
 from ingeniamotion.enums import CommutationMode, OperationMode, SensorType, SeverityLevel
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.wizard_tests.base_test import BaseTest
-from ingeniamotion.wizard_tests.stoppable import StopException
+from ingeniamotion.wizard_tests.stoppable import StopExceptionError
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
@@ -99,7 +99,7 @@ class Brake(BaseTest[None]):  # type: ignore [type-var]
         except ILError as err:
             self.finish()
             raise err
-        except StopException:
+        except StopExceptionError:
             self.logger.warning("Test has been stopped")
             self.finish()
 

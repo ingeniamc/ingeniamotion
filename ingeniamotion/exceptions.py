@@ -1,4 +1,4 @@
-class IMException(Exception):
+class IMException(Exception):  # noqa: N818
     """Exceptions raised by IngeniaMotion."""
 
 

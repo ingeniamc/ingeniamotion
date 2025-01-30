@@ -5,7 +5,7 @@ from queue import Empty, Full, Queue
 from typing import Callable
 
 
-class StopException(Exception):
+class StopExceptionError(Exception):
     """Stop exception."""
 
 
@@ -13,7 +13,7 @@ T = typing.TypeVar("T")
 
 
 class Stoppable:
-    stop_queue: Queue[StopException] = Queue(1)
+    stop_queue: Queue[StopExceptionError] = Queue(1)
 
     @staticmethod
     def stoppable(fun: Callable[..., T]) -> Callable[..., T]:
@@ -30,7 +30,7 @@ class Stoppable:
 
     def stop(self) -> None:
         with contextlib.suppress(Full):
-            self.stop_queue.put(StopException(), block=False)
+            self.stop_queue.put(StopExceptionError(), block=False)
 
     def check_stop(self) -> None:
         try:

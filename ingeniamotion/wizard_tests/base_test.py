@@ -7,7 +7,7 @@ from ingenialink.exceptions import ILError
 
 from ingeniamotion.exceptions import IMRegisterNotExist, IMRegisterWrongAccess
 from ingeniamotion.metaclass import DEFAULT_SERVO
-from ingeniamotion.wizard_tests.stoppable import StopException, Stoppable
+from ingeniamotion.wizard_tests.stoppable import StopExceptionError, Stoppable
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
@@ -109,7 +109,7 @@ class BaseTest(ABC, Stoppable, Generic[T]):
             self.report = self.generate_report(output)
         except ILError as err:
             raise err
-        except StopException:
+        except StopExceptionError:
             self.logger.warning("Test has been stopped")
         finally:
             try:
