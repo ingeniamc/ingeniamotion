@@ -11,7 +11,7 @@ from ingeniamotion.drive_tests import DriveTests
 from ingeniamotion.errors import Errors
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEMaster
 from ingeniamotion.information import Information
-from ingeniamotion.io import InputsOutputs
+from ingeniamotion.input_output import InputsOutputs
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.motion import Motion
 
@@ -163,5 +163,5 @@ class MotionController:
 
     @property
     def io(self) -> InputsOutputs:
-        """Instance of :class:`~ingeniamotion.io.InputsOutputs` class."""
+        """Instance of :class:`~ingeniamotion.input_output.InputsOutputs` class."""
         return self.__io
