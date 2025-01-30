@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Dict, Generic, List, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union
 
 import ingenialogger
 from ingenialink.exceptions import ILError
@@ -19,7 +19,7 @@ class TestError(Exception):
     pass
 
 
-LegacyDictReportType = Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]
+LegacyDictReportType = dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]
 
 
 @dataclass
@@ -39,10 +39,10 @@ class BaseTest(ABC, Stoppable, Generic[T]):
     WARNING_BIT_MASK = 0x0FFFFFFF
 
     def __init__(self) -> None:
-        self.backup_registers_names: List[str] = []
-        self.optional_backup_registers_names: List[str] = []
-        self.backup_registers: Dict[int, Dict[str, Union[int, float, str]]] = {}
-        self.suggested_registers: Dict[str, Union[int, float, str]] = {}
+        self.backup_registers_names: list[str] = []
+        self.optional_backup_registers_names: list[str] = []
+        self.backup_registers: dict[int, dict[str, Union[int, float, str]]] = {}
+        self.suggested_registers: dict[str, Union[int, float, str]] = {}
         self.mc: MotionController
         self.servo: str = DEFAULT_SERVO
         self.axis: int = 0
@@ -69,7 +69,7 @@ class BaseTest(ABC, Stoppable, Generic[T]):
         Notes:
         This should only be called by the Wizard.
         """
-        for subnode, registers in self.backup_registers.items():
+        for subnode in self.backup_registers:
             for key, value in self.backup_registers[subnode].items():
                 try:
                     self.mc.communication.set_register(key, value, servo=self.servo, axis=self.axis)

@@ -1,5 +1,5 @@
 from functools import wraps
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import ingenialogger
 import numpy as np
@@ -17,10 +17,10 @@ if TYPE_CHECKING:
 
 # Constants for typing
 # TODO: INGM-327
-TYPE_MAPPED_REGISTERS_ALL = Dict[str, Union[str, int, List[float]]]
-TYPE_MAPPED_REGISTERS_NAME_AXIS = Dict[str, Union[str, int, RegDtype]]
-TYPE_MAPPED_REGISTERS_DATA = Dict[str, List[Union[int, float]]]
-TYPE_MAPPED_REGISTERS_DATA_NO_KEY = List[Union[int, float]]
+TYPE_MAPPED_REGISTERS_ALL = dict[str, Union[str, int, list[float]]]
+TYPE_MAPPED_REGISTERS_NAME_AXIS = dict[str, Union[str, int, RegDtype]]
+TYPE_MAPPED_REGISTERS_DATA = dict[str, list[Union[int, float]]]
+TYPE_MAPPED_REGISTERS_DATA_NO_KEY = list[Union[int, float]]
 
 
 def check_disturbance_disabled(
@@ -70,7 +70,7 @@ class Disturbance:
         super().__init__()
         self.mc = mc
         self.servo = servo
-        self.mapped_registers: List[TYPE_MAPPED_REGISTERS_NAME_AXIS] = []
+        self.mapped_registers: list[TYPE_MAPPED_REGISTERS_NAME_AXIS] = []
         self.sampling_freq: Optional[float] = None
         self._version = mc.capture._check_version(servo)
         self.logger = ingenialogger.get_logger(__name__, drive=mc.servo_name(servo))
@@ -113,7 +113,7 @@ class Disturbance:
     @check_disturbance_disabled
     def map_registers(
         self,
-        registers: Union[TYPE_MAPPED_REGISTERS_NAME_AXIS, List[TYPE_MAPPED_REGISTERS_NAME_AXIS]],
+        registers: Union[TYPE_MAPPED_REGISTERS_NAME_AXIS, list[TYPE_MAPPED_REGISTERS_NAME_AXIS]],
     ) -> float:
         """Map registers to Disturbance. Disturbance must be disabled.
 
@@ -140,7 +140,7 @@ class Disturbance:
         """
         if len(registers) == 0:
             raise IMDisturbanceError("No registers to be mapped.")
-        if not isinstance(registers, List):
+        if not isinstance(registers, list):
             registers = [registers]
         drive = self.mc.servos[self.servo]
         drive.disturbance_remove_all_mapped_registers()
@@ -157,9 +157,7 @@ class Disturbance:
             cyclic = register_obj.cyclic
             if cyclic != RegCyclicType.RX:
                 drive.disturbance_remove_all_mapped_registers()
-                raise IMDisturbanceError(
-                    f"{register} can not be mapped as a disturbance register"
-                )
+                raise IMDisturbanceError(f"{register} can not be mapped as a disturbance register")
             channel["dtype"] = dtype
             drive.disturbance_set_mapped_register(
                 ch_idx,
@@ -175,7 +173,7 @@ class Disturbance:
     @staticmethod
     def __registers_data_adapter(
         registers_data: Union[
-            List[
+            list[
                 Union[
                     int,
                     float,
@@ -187,19 +185,19 @@ class Disturbance:
             NDArray[np.int32],
             NDArray[np.float32],
         ],
-    ) -> List[TYPE_MAPPED_REGISTERS_DATA_NO_KEY]:
+    ) -> list[TYPE_MAPPED_REGISTERS_DATA_NO_KEY]:
         if isinstance(registers_data, ndarray):
             registers_data = registers_data.tolist()
             return [registers_data]  # type: ignore [list-item]
-        elif isinstance(registers_data, List) and all(
-            isinstance(data, List) for data in registers_data
+        elif isinstance(registers_data, list) and all(
+            isinstance(data, list) for data in registers_data
         ):
             return registers_data  # type: ignore [return-value]
-        elif isinstance(registers_data, List) and all(
+        elif isinstance(registers_data, list) and all(
             isinstance(data, (int, float)) for data in registers_data
         ):
             return [registers_data]  # type: ignore [list-item]
-        elif isinstance(registers_data, List) and all(
+        elif isinstance(registers_data, list) and all(
             isinstance(data, ndarray) for data in registers_data
         ):
             for i, x in enumerate(registers_data):
@@ -215,7 +213,7 @@ class Disturbance:
     def write_disturbance_data(
         self,
         registers_data: Union[
-            List[
+            list[
                 Union[
                     int,
                     float,
@@ -256,7 +254,7 @@ class Disturbance:
             raise IMDisturbanceError(e)
 
     def map_registers_and_write_data(
-        self, registers: Union[TYPE_MAPPED_REGISTERS_ALL, List[TYPE_MAPPED_REGISTERS_ALL]]
+        self, registers: Union[TYPE_MAPPED_REGISTERS_ALL, list[TYPE_MAPPED_REGISTERS_ALL]]
     ) -> None:
         """Map registers to Disturbance and write data. Disturbance must be disabled.
 
@@ -279,7 +277,7 @@ class Disturbance:
             IMDisturbanceError: If buffer size is not enough for all the
                 registers and samples.
         """
-        if not isinstance(registers, List):
+        if not isinstance(registers, list):
             registers = [registers]
         registers_keys = []
         registers_data = []
@@ -292,7 +290,7 @@ class Disturbance:
         self.write_disturbance_data(registers_data)
 
     def __check_buffer_size_is_enough(
-        self, registers: List[TYPE_MAPPED_REGISTERS_DATA_NO_KEY]
+        self, registers: list[TYPE_MAPPED_REGISTERS_DATA_NO_KEY]
     ) -> None:
         total_buffer_size = 0
         for ch_idx, data in enumerate(registers):

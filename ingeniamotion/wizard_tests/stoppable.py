@@ -1,3 +1,4 @@
+import contextlib
 import typing
 from functools import wraps
 from queue import Empty, Full, Queue
@@ -24,16 +25,12 @@ class Stoppable:
         return wrapper
 
     def reset_stop(self) -> None:
-        try:
+        with contextlib.suppress(Empty):
             self.stop_queue.get(block=False)
-        except Empty:
-            pass
 
     def stop(self) -> None:
-        try:
+        with contextlib.suppress(Full):
             self.stop_queue.put(StopException(), block=False)
-        except Full:
-            pass
 
     def check_stop(self) -> None:
         try:

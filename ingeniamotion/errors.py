@@ -1,5 +1,5 @@
 from enum import IntEnum
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -64,7 +64,7 @@ class Errors(metaclass=MCMetaClass):
 
     def __parse_error_to_tuple(
         self, error: int, location: ErrorLocation, subnode: Optional[int] = None
-    ) -> Tuple[int, Optional[int], Optional[bool]]:
+    ) -> tuple[int, Optional[int], Optional[bool]]:
         error_code = error & self.ERROR_CODE_BITS
         if error_code == 0:
             return error_code, None, None
@@ -87,7 +87,7 @@ class Errors(metaclass=MCMetaClass):
 
     def __get_error_subnode(
         self, location: ErrorLocation, subnode: Optional[int]
-    ) -> Tuple[int, ErrorLocation]:
+    ) -> tuple[int, ErrorLocation]:
         if location == self.ErrorLocation.SYSTEM:
             if subnode is None:
                 return 0, location
@@ -103,7 +103,7 @@ class Errors(metaclass=MCMetaClass):
 
     def get_last_error(
         self, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
-    ) -> Tuple[int, Optional[int], Optional[bool]]:
+    ) -> tuple[int, Optional[int], Optional[bool]]:
         """Return last servo error.
 
         Args:
@@ -135,7 +135,7 @@ class Errors(metaclass=MCMetaClass):
 
     def get_last_buffer_error(
         self, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
-    ) -> Tuple[int, Optional[int], Optional[bool]]:
+    ) -> tuple[int, Optional[int], Optional[bool]]:
         """Get error code from error buffer last position.
 
         Args:
@@ -159,7 +159,7 @@ class Errors(metaclass=MCMetaClass):
 
     def get_buffer_error_by_index(
         self, index: int, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
-    ) -> Tuple[int, Optional[int], Optional[bool]]:
+    ) -> tuple[int, Optional[int], Optional[bool]]:
         """Get error code from buffer error target index.
 
         Args:
@@ -222,7 +222,7 @@ class Errors(metaclass=MCMetaClass):
 
     def get_all_errors(
         self, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
-    ) -> List[Tuple[int, Optional[int], Optional[bool]]]:
+    ) -> list[tuple[int, Optional[int], Optional[bool]]]:
         """Return List with all error codes.
 
         Args:
@@ -268,7 +268,7 @@ class Errors(metaclass=MCMetaClass):
 
     def get_error_data(
         self, error_code: int, servo: str = DEFAULT_SERVO
-    ) -> Tuple[str, str, str, str]:
+    ) -> tuple[str, str, str, str]:
         """Return error info from target error_code.
 
         Args:

@@ -1,3 +1,5 @@
+import contextlib
+
 import pytest
 from ingenialink.exceptions import ILError
 
@@ -25,10 +27,8 @@ def generate_drive_errors(motion_controller):
         mc.motion.fault_reset(servo=alias)
         old_value = mc.communication.get_register(item["register"], servo=alias)
         mc.communication.set_register(item["register"], item["value"], servo=alias)
-        try:
+        with contextlib.suppress(ILError):
             mc.motion.motor_enable(servo=alias)
-        except ILError:
-            pass
         error_code_list.append(item["code"])
         try:
             mc.communication.set_register(item["register"], old_value, servo=alias)

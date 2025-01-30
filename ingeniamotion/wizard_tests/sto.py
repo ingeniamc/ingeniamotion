@@ -1,5 +1,5 @@
 from enum import IntEnum
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 import ingenialogger
 
@@ -42,7 +42,7 @@ class STOTest(BaseTest[LegacyDictReportType]):
     STO_ABNORMAL_FAULT_BIT = 0x8
     STO_REPORT_BIT = 0x10
 
-    BACKUP_REGISTERS: List[str] = []
+    BACKUP_REGISTERS: list[str] = []
 
     def __init__(
         self, mc: "MotionController", servo: str, axis: int, logger_drive_name: Optional[str] = None

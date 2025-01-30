@@ -88,7 +88,7 @@ class DCFeedbacksPolarityTest(BaseTest[LegacyDictReportType]):
 
     @BaseTest.stoppable
     def increase_current_until_movement(self, initial_position: int, max_current: float) -> int:
-        """Increase motor current until it moves
+        """Increase motor current until it moves.
 
         Args:
             initial_position: initial position
@@ -121,7 +121,7 @@ class DCFeedbacksPolarityTest(BaseTest[LegacyDictReportType]):
 
     @staticmethod
     def calculate_polarity(initial_position: int, final_position: int) -> FeedbackPolarity:
-        """Calculate motor polarity
+        """Calculate motor polarity.
 
         Args:
             initial_position: initial position

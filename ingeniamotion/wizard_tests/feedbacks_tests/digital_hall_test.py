@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
@@ -11,7 +11,7 @@ class DigitalHallTest(Feedbacks):
     HALLS_FILTER_CUTOFF_FREQUENCY = 10
     DIG_HALL_POLE_PAIRS_REGISTER = "FBK_DIGHALL_PAIRPOLES"
 
-    BACKUP_REGISTERS_HALLS: List[str] = [
+    BACKUP_REGISTERS_HALLS: list[str] = [
         "FBK_DIGHALL_POLARITY",
         "FBK_DIGHALL_PAIRPOLES",
         "ERROR_DIGHALL_SEQ_OPTION",

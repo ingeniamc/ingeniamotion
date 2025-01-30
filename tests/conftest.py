@@ -1,6 +1,5 @@
 import importlib
 import time
-from typing import Dict
 
 import numpy as np
 import pytest
@@ -27,7 +26,7 @@ from .setups.environment_control import (
     VirtualDriveEnvironmentController,
 )
 
-test_report_key = pytest.StashKey[Dict[str, pytest.CollectReport]]()
+test_report_key = pytest.StashKey[dict[str, pytest.CollectReport]]()
 
 
 def pytest_addoption(parser):

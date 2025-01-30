@@ -8,7 +8,6 @@ class Setup:
     """Generic setup"""
 
 
-
 @dataclass(frozen=True)
 class EthernetSetup(Setup):
     """Any setup that uses Ethernet"""
@@ -52,7 +51,6 @@ class DriveEthernetSetup(DriveHwSetup, EthernetSetup):
 
     Can be regular Ethernet or ethernet over Ethercat (EoE)
     """
-
 
 
 @dataclass(frozen=True)

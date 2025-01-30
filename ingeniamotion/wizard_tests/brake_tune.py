@@ -1,5 +1,5 @@
 from enum import IntEnum
-from typing import Dict, Optional, Union
+from typing import Optional, Union
 
 import ingenialogger
 
@@ -12,14 +12,14 @@ from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType
 
 
 class BrakeRegKey(IntEnum):
-    """Brake Register Keys for dictionaries"""
+    """Brake Register Keys for dictionaries."""
 
     FEEDBACK_SOURCE = 0
     CONTROL_MODE = 1
 
 
 class ResultBrakeType(IntEnum):
-    """Type of result once a brake tuning is stopped or failed"""
+    """Type of result once a brake tuning is stopped or failed."""
 
     SUCCESS = 0
     FAIL_FEEDBACK_SOURCE = 1
@@ -112,7 +112,7 @@ class BrakeTune(BaseTest[LegacyDictReportType]):
         else:
             return None
 
-    def __update_brake_registers_values(self) -> Dict[BrakeRegKey, Union[int, float, str]]:
+    def __update_brake_registers_values(self) -> dict[BrakeRegKey, Union[int, float, str]]:
         brake_registers_updated = {}
         updated_brake_current_feedback_source = self.mc.communication.get_register(
             self.BRAKE_CURRENT_FEEDBACK_SOURCE, servo=self.servo, axis=self.axis

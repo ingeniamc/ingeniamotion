@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import ingenialogger
 from ingenialink.enums.register import RegDtype
@@ -32,7 +32,7 @@ class MonitoringV3(Monitoring):
         self,
         trigger_mode: MonitoringSoCType,
         edge_condition: Optional[MonitoringSoCConfig] = None,
-        trigger_signal: Optional[Dict[str, str]] = None,
+        trigger_signal: Optional[dict[str, str]] = None,
         trigger_value: Union[int, float, None] = None,
     ) -> None:
         self.mc.communication.set_register(
@@ -86,7 +86,7 @@ class MonitoringV3(Monitoring):
         self.samples_number = total_num_samples
         self.trigger_delay_samples = trigger_delay_samples
 
-    def _check_monitoring_is_ready(self) -> Tuple[bool, Optional[str]]:
+    def _check_monitoring_is_ready(self) -> tuple[bool, Optional[str]]:
         is_enabled = self.mc.capture.is_monitoring_enabled(self.servo)
         result_text = None
         monitoring_stage = self.mc.capture.get_monitoring_process_stage(self.servo, self._version)
@@ -104,7 +104,7 @@ class MonitoringV3(Monitoring):
         self,
         timeout: Optional[float] = None,
         progress_callback: Optional[Callable[[MonitoringProcessStage, float], None]] = None,
-    ) -> List[List[Union[int, float]]]:
+    ) -> list[list[Union[int, float]]]:
         drive = self.mc.servos[self.servo]
         data_array = super().read_monitoring_data(
             timeout=timeout, progress_callback=progress_callback
@@ -131,7 +131,7 @@ class MonitoringV3(Monitoring):
         self,
         total_samples: int,
         trigger_delay_samples: int,
-        registers: List[Dict[str, Union[int, str, RegDtype]]],
+        registers: list[dict[str, Union[int, str, RegDtype]]],
     ) -> None:
         n_sample = total_samples
         max_size = self.max_sample_number

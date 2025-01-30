@@ -154,7 +154,7 @@ def test_set_profiler(motion_controller, acceleration, deceleration, velocity):
         expected_value = mc.communication.get_register(register_dict[key], servo=alias)
         expected_values[key] = expected_value
     mc.configuration.set_profiler(acceleration, deceleration, velocity, servo=alias)
-    for key, value in expected_values.items():
+    for key in expected_values:
         actual_value = mc.communication.get_register(register_dict[key], servo=alias)
         assert pytest.approx(expected_values[key]) == actual_value
 

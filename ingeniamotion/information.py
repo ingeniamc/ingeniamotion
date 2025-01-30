@@ -1,5 +1,5 @@
 import os
-from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import ingenialogger
 from ingenialink import CanBaudrate
@@ -54,9 +54,7 @@ class Information(metaclass=MCMetaClass):
         try:
             return drive.dictionary.registers(axis)[register]
         except KeyError:
-            raise IMRegisterNotExist(
-                f"Register: {register} axis: {axis} not exist in dictionary"
-            )
+            raise IMRegisterNotExist(f"Register: {register} axis: {axis} not exist in dictionary")
 
     def register_type(
         self,
@@ -109,7 +107,7 @@ class Information(metaclass=MCMetaClass):
         register: str,
         axis: int = DEFAULT_AXIS,
         servo: str = DEFAULT_SERVO,
-    ) -> Union[Tuple[None, None], Tuple[int, int], Tuple[float, float], Tuple[str, str]]:
+    ) -> Union[tuple[None, None], tuple[int, int], tuple[float, float], tuple[str, str]]:
         """Return register range.
 
         Args:
@@ -179,7 +177,7 @@ class Information(metaclass=MCMetaClass):
             raise IMException("You need a CANopen communication to use this function")
 
     def get_baudrate(self, servo: str = DEFAULT_SERVO) -> CanBaudrate:
-        """Get the baudrate of target servo
+        """Get the baudrate of target servo.
 
         Args:
             servo: alias of the servo.
@@ -276,7 +274,7 @@ class Information(metaclass=MCMetaClass):
             full_name = f"{full_name} ({ip})"
         return full_name
 
-    def get_subnodes(self, servo: str = DEFAULT_SERVO) -> Dict[int, SubnodeType]:
+    def get_subnodes(self, servo: str = DEFAULT_SERVO) -> dict[int, SubnodeType]:
         """Return a dictionary with the subnodes IDs as keys and their type as values.
 
         Args:
@@ -288,7 +286,7 @@ class Information(metaclass=MCMetaClass):
         drive = self.mc.servos[servo]
         return drive.subnodes
 
-    def get_categories(self, servo: str = DEFAULT_SERVO) -> Dict[str, str]:
+    def get_categories(self, servo: str = DEFAULT_SERVO) -> dict[str, str]:
         """Return dictionary categories instance.
 
         Args:
@@ -302,7 +300,7 @@ class Information(metaclass=MCMetaClass):
         if not dictionary_categories:
             raise IMException("Dictionary categories are not defined.")
         category_ids = dictionary_categories.category_ids
-        categories: Dict[str, str] = {}
+        categories: dict[str, str] = {}
         for cat_id in category_ids:
             categories[cat_id] = dictionary_categories.labels(cat_id)["en_US"]
         return categories

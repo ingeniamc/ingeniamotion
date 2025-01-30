@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
@@ -8,7 +8,7 @@ from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
 
 
 class AbsoluteEncoder2Test(Feedbacks):
-    BACKUP_REGISTERS_BISSC2: List[str] = ["FBK_BISS2_POS_POLARITY"]
+    BACKUP_REGISTERS_BISSC2: list[str] = ["FBK_BISS2_POS_POLARITY"]
 
     FEEDBACK_POLARITY_REGISTER = "FBK_BISS2_POS_POLARITY"
 

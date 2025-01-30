@@ -596,7 +596,7 @@ class Feedbacks(metaclass=MCMetaClass):
         return self.feedback_resolution_functions[feedback](servo, axis)
 
     def get_feedback_polarity_register_uid(self, feedback: SensorType) -> str:
-        """Returns feedback polarity register UID
+        """Returns feedback polarity register UID.
 
         Args:
            feedback: target feedback sensor.
