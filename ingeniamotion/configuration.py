@@ -27,7 +27,7 @@ if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 
-class TYPE_SUBNODES(IntEnum):
+class TYPE_SUBNODES(IntEnum):  # noqa: N801
     COCO = 0
     MOCO = 1
 
