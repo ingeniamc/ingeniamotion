@@ -347,6 +347,7 @@ class Monitoring(ABC):
         Args:
             timeout : maximum time trigger is waited, in seconds.
                 ``None`` by default.
+            progress_callback : callback with progress.
 
         Returns:
             Data of monitoring. Each element of the list is a different register data.

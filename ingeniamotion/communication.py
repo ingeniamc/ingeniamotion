@@ -1515,6 +1515,9 @@ class Communication(metaclass=MCMetaClass):
             net: Canopen network.
             fw_file: Path to the ensemble FW file.
             slave: Servo object.
+            status_callback : callback with status.
+            progress_callback : callback with progress.
+            error_enabled_callback : callback with errors enabled.
 
         Raises:
             IMFirmwareLoadError: If the load FW process of any slave failed.
