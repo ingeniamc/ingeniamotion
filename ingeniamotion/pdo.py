@@ -126,9 +126,7 @@ class PDOPoller:
         if self.__start_time is None:
             raise ValueError("The poller has not been started yet.")
         time_stamp = round(time.time() - self.__start_time, 6)
-        data_sample = []
-        for tpdo_map_item in self.__tpdo_map.items:
-            data_sample.append(tpdo_map_item.value)
+        data_sample = [tpdo_map_item.value for tpdo_map_item in self.__tpdo_map.items]
         self.__buffer.append((time_stamp, data_sample))
 
     def __fill_rpdo_map(self) -> None:
