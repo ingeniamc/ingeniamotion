@@ -122,7 +122,7 @@ def test_get_ifname_from_interface_ip(mocker):
         @dataclass
         class IP:
             ip = "192.168.2.1"
-            is_IPv4 = True
+            is_IPv4 = True  # noqa: N815
 
         def __init__(self, interface_name):
             self.name = interface_name
