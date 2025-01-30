@@ -151,6 +151,7 @@ class Errors(metaclass=MCMetaClass):
                 Error axis.
             is_warning (bool):
                 ``True`` if warning, else ``False``.
+
         Raises:
             ValueError: Index must be less than 32
         """
@@ -175,6 +176,7 @@ class Errors(metaclass=MCMetaClass):
                 Error axis.
             is_warning (bool):
                 ``True`` if warning, else ``False``.
+
         Raises:
             ValueError: Index must be less than 32
             TypeError: If some read value has a wrong type.

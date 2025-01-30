@@ -146,7 +146,8 @@ class FSoEMasterHandler:
 
     def set_reply(self) -> None:
         """Get the FSoE slave response from the Safety Slave PDU PDOMap and set it
-        to the FSoE master handler."""
+        to the FSoE master handler.
+        """
         reply = self.safety_slave_pdu_map.get_item_bytes()
         if self.__in_initial_reset:
             if reply[0] == 0:
@@ -629,13 +630,15 @@ class FSoEMaster:
 
     def _get_request(self) -> None:
         """Callback method to send the FSoE Master handlers requests to the
-        corresponding FSoE slave."""
+        corresponding FSoE slave.
+        """
         for master_handler in self.__handlers.values():
             master_handler.get_request()
 
     def _set_reply(self) -> None:
         """Callback method to provide the FSoE Slaves responses to their
-        corresponding FSoE Master handler."""
+        corresponding FSoE Master handler.
+        """
         for master_handler in self.__handlers.values():
             master_handler.set_reply()
 

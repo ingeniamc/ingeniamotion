@@ -218,7 +218,7 @@ def test_brake_test(motion_controller):
     mc, alias, environment = motion_controller
     pair_poles = mc.configuration.get_motor_pair_poles(servo=alias)
     brake_test = mc.tests.brake_test(servo=alias)
-    assert 1 == mc.configuration.get_motor_pair_poles(servo=alias)
+    assert mc.configuration.get_motor_pair_poles(servo=alias) == 1
     brake_test.finish()
     assert pair_poles == mc.configuration.get_motor_pair_poles(servo=alias)
 

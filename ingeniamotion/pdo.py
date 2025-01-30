@@ -81,8 +81,7 @@ class PDOPoller:
 
     @property
     def data(self) -> Tuple[List[float], List[List[Union[int, float, bytes]]]]:
-        """
-        Get the poller data. After the data is retrieved, the data buffers are cleared.
+        """Get the poller data. After the data is retrieved, the data buffers are cleared.
 
         Returns:
             A tuple with a list of the readings timestamps and a list of lists with
@@ -100,8 +99,7 @@ class PDOPoller:
         return time_stamps, data
 
     def add_channels(self, registers: List[Dict[str, Union[int, str]]]) -> None:
-        """
-        Configure the PDOs with the registers to be read.
+        """Configure the PDOs with the registers to be read.
 
         Args:
             registers : list of registers to add to the Poller.
@@ -298,7 +296,8 @@ class PDONetworkManager:
         @staticmethod
         def high_precision_sleep(duration: float) -> None:
             """Replaces the time.sleep() method in order to obtain
-            more precise sleeping times."""
+            more precise sleeping times.
+            """
             start_time = time.perf_counter()
             while duration - (time.perf_counter() - start_time) > 0:
                 pass
@@ -318,8 +317,7 @@ class PDONetworkManager:
         servo: str = DEFAULT_SERVO,
         value: Optional[Union[int, float]] = None,
     ) -> Union[RPDOMapItem, TPDOMapItem]:
-        """
-        Create a PDOMapItem by specifying a register UID.
+        """Create a PDOMapItem by specifying a register UID.
 
         Args:
             register_uid: Register to be mapped.
@@ -355,8 +353,7 @@ class PDONetworkManager:
         rpdo_map_items: Union[RPDOMapItem, List[RPDOMapItem]],
         tpdo_map_items: Union[TPDOMapItem, List[TPDOMapItem]],
     ) -> Tuple[RPDOMap, TPDOMap]:
-        """
-        Create the RPDO and TPDO maps from PDOMapItems.
+        """Create the RPDO and TPDO maps from PDOMapItems.
 
         Args:
             rpdo_map_items: The RPDOMapItems to be added to a RPDOMap.
@@ -383,8 +380,7 @@ class PDONetworkManager:
         pdo_map_item: Union[RPDOMapItem, TPDOMapItem],
         pdo_map: Union[RPDOMap, TPDOMap],
     ) -> None:
-        """
-        Add a PDOMapItem to a PDOMap.
+        """Add a PDOMapItem to a PDOMap.
 
         Args:
             pdo_map_item: The PDOMapItem.
@@ -403,8 +399,7 @@ class PDONetworkManager:
 
     @staticmethod
     def create_empty_rpdo_map() -> RPDOMap:
-        """
-        Create an empty RPDOMap.
+        """Create an empty RPDOMap.
 
         Returns:
             The empty RPDOMap.
@@ -414,8 +409,7 @@ class PDONetworkManager:
 
     @staticmethod
     def create_empty_tpdo_map() -> TPDOMap:
-        """
-        Create an empty TPDOMap.
+        """Create an empty TPDOMap.
 
         Returns:
             The empty TPDOMap.
@@ -429,8 +423,7 @@ class PDONetworkManager:
         tpdo_maps: Union[TPDOMap, List[TPDOMap]],
         servo: str = DEFAULT_SERVO,
     ) -> None:
-        """
-        Map the PDOMaps to the slave.
+        """Map the PDOMaps to the slave.
 
         Args:
             rpdo_maps: The RPDOMaps to be mapped.
@@ -457,8 +450,7 @@ class PDONetworkManager:
         drive.set_pdo_map_to_slave(rpdo_maps, tpdo_maps)
 
     def clear_pdo_mapping(self, servo: str = DEFAULT_SERVO) -> None:
-        """
-        Clear the PDO mapping within the servo.
+        """Clear the PDO mapping within the servo.
 
         Args:
             servo: servo alias to reference it. ``default`` by default.
@@ -527,8 +519,7 @@ class PDONetworkManager:
         refresh_rate: Optional[float] = None,
         watchdog_timeout: Optional[float] = None,
     ) -> None:
-        """
-        Start the PDO exchange process.
+        """Start the PDO exchange process.
 
         Args:
             network_type: Network type (EtherCAT or CANopen) on which to start the PDO exchange.
@@ -592,8 +583,7 @@ class PDONetworkManager:
         self._pdo_thread.start()
 
     def stop_pdos(self) -> None:
-        """
-        Stop the PDO exchange process.
+        """Stop the PDO exchange process.
 
         Raises:
             IMException: If the PDOs are not active yet.
@@ -683,8 +673,7 @@ class PDONetworkManager:
         watchdog_timeout: Optional[float] = None,
         start: bool = True,
     ) -> PDOPoller:
-        """
-        Create a register Poller using PDOs.
+        """Create a register Poller using PDOs.
 
         Args:
             registers : list of registers to add to the Poller.

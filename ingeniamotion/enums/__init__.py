@@ -222,8 +222,7 @@ class CommutationMode(IntEnum, metaclass=MetaEnum):
 
 @export
 class FilterType(IntEnum, metaclass=MetaEnum):
-    """
-    Biquad filter type.
+    """Biquad filter type.
     """
 
     DISABLED = 0

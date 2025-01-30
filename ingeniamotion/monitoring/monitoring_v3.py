@@ -95,9 +95,7 @@ class MonitoringV3(Monitoring):
             text_is_enabled = "enabled" if is_enabled else "disabled"
             result_text = (
                 "Can't read monitoring data because monitoring is not ready."
-                " Monitoring stage is {}. Monitoring is {}.".format(
-                    monitoring_stage.name, text_is_enabled
-                )
+                f" Monitoring stage is {monitoring_stage.name}. Monitoring is {text_is_enabled}."
             )
         return is_ready, result_text
 

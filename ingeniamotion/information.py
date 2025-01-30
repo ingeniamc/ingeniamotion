@@ -55,7 +55,7 @@ class Information(metaclass=MCMetaClass):
             return drive.dictionary.registers(axis)[register]
         except KeyError:
             raise IMRegisterNotExist(
-                "Register: {} axis: {} not exist in dictionary".format(register, axis)
+                f"Register: {register} axis: {axis} not exist in dictionary"
             )
 
     def register_type(
@@ -231,6 +231,7 @@ class Information(metaclass=MCMetaClass):
 
         Args:
             servo: Alias of the servo.
+
         Returns:
             The name of the drive.
         """
@@ -322,8 +323,10 @@ class Information(metaclass=MCMetaClass):
         """Get the encoded product image from a drive dictionary.
         This function reads a dictionary of a drive, and it parses whether the dictionary file has a
         DriveImage tag and its content.
+
         Args:
             servo: Alias of the drive.
+
         Returns:
             The encoded image or NoneType object.
         """

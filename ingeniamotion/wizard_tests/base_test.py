@@ -43,7 +43,7 @@ class BaseTest(ABC, Stoppable, Generic[T]):
         self.optional_backup_registers_names: List[str] = []
         self.backup_registers: Dict[int, Dict[str, Union[int, float, str]]] = {}
         self.suggested_registers: Dict[str, Union[int, float, str]] = {}
-        self.mc: "MotionController"
+        self.mc: MotionController
         self.servo: str = DEFAULT_SERVO
         self.axis: int = 0
         self.report: Optional[T] = None

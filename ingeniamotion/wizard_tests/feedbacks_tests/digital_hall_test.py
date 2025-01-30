@@ -54,8 +54,7 @@ class DigitalHallTest(Feedbacks):
             self.suggested_registers[filter_freq_uid] = self.HALLS_FILTER_CUTOFF_FREQUENCY
 
             self.logger.info(
-                "Setting a velocity low pass filter at 10 Hz as "
-                "velocity feedback is set to Halls"
+                "Setting a velocity low pass filter at 10 Hz as velocity feedback is set to Halls"
             )
             del self.backup_registers[self.axis][self.VELOCITY_FEEDBACK_FILTER_1_TYPE_REGISTER]
             del self.backup_registers[self.axis][self.VELOCITY_FEEDBACK_FILTER_1_FREQUENCY_REGISTER]

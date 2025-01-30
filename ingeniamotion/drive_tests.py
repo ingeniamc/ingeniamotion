@@ -245,8 +245,7 @@ class DriveTests(metaclass=MCMetaClass):
     def phasing_check(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
-        """
-        Checks servo phasing.
+        """Checks servo phasing.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -270,8 +269,7 @@ class DriveTests(metaclass=MCMetaClass):
     def sto_test(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
-        """
-        Check STO
+        """Check STO
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -293,8 +291,7 @@ class DriveTests(metaclass=MCMetaClass):
         return sto_test.run()
 
     def brake_test(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> Brake:
-        """
-        Run brake test.
+        """Run brake test.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.

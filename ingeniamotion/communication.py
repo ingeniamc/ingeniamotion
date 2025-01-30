@@ -608,6 +608,7 @@ class Communication(metaclass=MCMetaClass):
         Args:
             ifname : interface name. It should have format
                 ``\\Device\\NPF_[...]``.
+
         Returns:
             Drives available in the target interface.
 
@@ -630,6 +631,7 @@ class Communication(metaclass=MCMetaClass):
         Args:
             if_index : interface index in list given by function
                 :func:`get_interface_name_list`.
+
         Returns:
             Drives available in the target interface.
 
@@ -671,7 +673,6 @@ class Communication(metaclass=MCMetaClass):
             ingenialink.exceptions.ILError: If CANOpen device type, node id or channel is incorrect.
 
         """
-
         if not path.isfile(dict_path):
             raise FileNotFoundError(f"Dict file {dict_path} does not exist!")
 
@@ -710,7 +711,6 @@ class Communication(metaclass=MCMetaClass):
             FileNotFoundError: If the dict file doesn't exist.
 
         """
-
         if not path.isfile(dict_path):
             raise FileNotFoundError(f"Dict file {dict_path} does not exist!")
         if interface_name not in self.mc.net:
@@ -825,6 +825,7 @@ class Communication(metaclass=MCMetaClass):
         Args:
             interface_name : interface name. It should have format
                 ``\\Device\\NPF_[...]``.
+
         Returns:
             List of EtherCAT slaves available in the network.
 
@@ -853,6 +854,7 @@ class Communication(metaclass=MCMetaClass):
         Args:
             if_index : interface index in list given by function
                 :func:`get_interface_name_list`.
+
         Returns:
             List of EtherCAT slaves available in the network.
 
@@ -1314,7 +1316,6 @@ class Communication(metaclass=MCMetaClass):
             ingenialink.exceptions.ILFirmwareLoadError: If the FoE write operation is not successful.
 
         """
-
         net = EthercatNetwork(ifname)
         if fw_file.endswith(self.ENSEMBLE_FIRMWARE_EXTENSION):
             self.__load_ensemble_fw_ecat(net, fw_file, slave, boot_in_app, password)

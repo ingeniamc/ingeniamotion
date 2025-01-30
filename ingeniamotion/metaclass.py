@@ -54,7 +54,7 @@ class MCMetaClass(type):
             else:
                 servo = args[servo_index - 1]
             if servo not in mc.servos:
-                raise KeyError("Servo '{}' is not connected".format(servo))
+                raise KeyError(f"Servo '{servo}' is not connected")
             return func(self, *args, **kwargs)
 
         return wrapper

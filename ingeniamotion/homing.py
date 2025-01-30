@@ -208,8 +208,7 @@ class Homing(metaclass=MCMetaClass):
         axis: int = DEFAULT_AXIS,
         motor_enable: bool = True,
     ) -> None:
-        """
-        Do homing on switch limit and index pulse.
+        """Do homing on switch limit and index pulse.
 
         .. note::
             Motor must be well phased before run any homing.

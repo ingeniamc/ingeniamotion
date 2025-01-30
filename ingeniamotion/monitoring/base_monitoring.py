@@ -202,7 +202,6 @@ class Monitoring(ABC):
             IMMonitoringError: If trigger signal is not mapped.
 
         """
-        pass
 
     def _get_reg_index_and_edge_condition_value(
         self, trigger_signal: Dict[str, str], trigger_value: Union[int, float]
@@ -251,7 +250,6 @@ class Monitoring(ABC):
             IMMonitoringError: If buffer size is not enough for all the samples.
 
         """
-        pass
 
     @check_monitoring_disabled
     def configure_sample_time(self, total_time: float, trigger_delay: float) -> None:
@@ -388,7 +386,6 @@ class Monitoring(ABC):
     @abstractmethod
     def rearm_monitoring(self) -> None:
         """Rearm monitoring."""
-        pass
 
     @abstractmethod
     def _check_buffer_size_is_enough(
@@ -410,7 +407,7 @@ class Monitoring(ABC):
         if max_size < size_demand:
             raise IMMonitoringError(
                 "Number of samples is too high or mapped registers are too big. "
-                "Demanded size: {} bytes, buffer max size: {} bytes.".format(size_demand, max_size)
+                f"Demanded size: {size_demand} bytes, buffer max size: {max_size} bytes."
             )
         self.logger.debug(
             "Demanded size: %d bytes, buffer max size: %d bytes.", size_demand, max_size

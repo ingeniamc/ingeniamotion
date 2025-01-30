@@ -189,8 +189,7 @@ class InputsOutputs(metaclass=MCMetaClass):
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
     ) -> None:
-        """
-        Description:
+        """Description:
             Set the board voltage level (not the logic level at the uC) of a single GPO.
 
             This function generates the GPO set point from the actual GPO value and modifies

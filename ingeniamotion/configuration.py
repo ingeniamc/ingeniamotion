@@ -34,7 +34,8 @@ class TYPE_SUBNODES(IntEnum):
 
 class MACAddressConverter:
     """Class to convert MAC addresses from int to str
-    and vice versa."""
+    and vice versa.
+    """
 
     @staticmethod
     def int_to_str(mac_address: int) -> str:
@@ -252,7 +253,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         """
         if not path.isfile(config_path):
-            raise FileNotFoundError("{} file does not exist!".format(config_path))
+            raise FileNotFoundError(f"{config_path} file does not exist!")
         servo_inst = self.mc.servos[servo]
         servo_inst.load_configuration(config_path, subnode=axis)
         self.logger.info(
@@ -616,8 +617,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
     def get_phasing_mode(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> Union[PhasingMode, int]:
-        """
-        Get current phasing mode.
+        """Get current phasing mode.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -641,8 +641,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
     def set_generator_mode(
         self, mode: GeneratorMode, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> None:
-        """
-        Set generator mode.
+        """Set generator mode.
 
         Args:
             mode : generator mode value.
@@ -655,8 +654,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
     def set_motor_pair_poles(
         self, pair_poles: int, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> None:
-        """
-        Set motor pair poles.
+        """Set motor pair poles.
 
         Args:
             pair_poles : motor pair poles-
@@ -673,8 +671,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         )
 
     def get_motor_pair_poles(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
-        """
-        Get motor pair poles.
+        """Get motor pair poles.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -694,8 +691,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         return pair_poles
 
     def get_sto_status(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
-        """
-        Get STO register
+        """Get STO register
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -716,8 +712,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         return sto_status
 
     def is_sto1_active(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
-        """
-        Get STO1 bit from STO register
+        """Get STO1 bit from STO register
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -731,8 +726,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         return not bool(self.get_sto_status(servo, axis) & self.STO1_ACTIVE_BIT)
 
     def is_sto2_active(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
-        """
-        Get STO2 bit from STO register
+        """Get STO2 bit from STO register
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -746,8 +740,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         return not bool(self.get_sto_status(servo, axis) & self.STO2_ACTIVE_BIT)
 
     def check_sto_power_supply(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
-        """
-        Get power supply bit from STO register
+        """Get power supply bit from STO register
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -783,8 +776,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             return 0
 
     def get_sto_report_bit(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
-        """
-        Get report bit from STO register
+        """Get report bit from STO register
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -800,8 +792,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             return 0
 
     def is_sto_active(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
-        """
-        Check if STO is active
+        """Check if STO is active
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -814,8 +805,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         return self.get_sto_status(servo, axis) == self.STO_ACTIVE_STATE
 
     def is_sto_inactive(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
-        """
-        Check if STO is inactive
+        """Check if STO is inactive
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -828,8 +818,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         return self.get_sto_status(servo, axis) == self.STO_INACTIVE_STATE
 
     def is_sto_abnormal_latched(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
-        """
-        Check if STO is abnormal latched
+        """Check if STO is abnormal latched
 
         Args:
             servo : servo alias to reference it. ``default`` by default.

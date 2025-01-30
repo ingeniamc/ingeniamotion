@@ -245,7 +245,7 @@ class Capture(metaclass=MCMetaClass):
     def create_disturbance(
         self,
         register: str,
-        data: Union[List[Union[float, int]], NDArray[np.int_], NDArray[np.float_]],
+        data: Union[List[Union[float, int]], NDArray[np.int_], NDArray[np.float64]],
         freq_divider: int,
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
@@ -537,8 +537,7 @@ class Capture(metaclass=MCMetaClass):
     def get_monitoring_process_stage(
         self, servo: str = DEFAULT_SERVO, version: Optional[MonitoringVersion] = None
     ) -> MonitoringProcessStage:
-        """
-        Return monitoring process stage.
+        """Return monitoring process stage.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -562,8 +561,7 @@ class Capture(metaclass=MCMetaClass):
     def is_frame_available(
         self, servo: str = DEFAULT_SERVO, version: Optional[MonitoringVersion] = None
     ) -> bool:
-        """
-        Check if monitoring has an available frame.
+        """Check if monitoring has an available frame.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -705,7 +703,6 @@ class Capture(metaclass=MCMetaClass):
             TypeError: If some read value has a wrong type.
 
         """
-
         position_velocity_loop_rate = self.mc.configuration.get_position_and_velocity_loop_rate(
             servo=servo, axis=axis
         )

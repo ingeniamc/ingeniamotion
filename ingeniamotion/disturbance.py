@@ -158,7 +158,7 @@ class Disturbance:
             if cyclic != RegCyclicType.RX:
                 drive.disturbance_remove_all_mapped_registers()
                 raise IMDisturbanceError(
-                    "{} can not be mapped as a disturbance register".format(register)
+                    f"{register} can not be mapped as a disturbance register"
                 )
             channel["dtype"] = dtype
             drive.disturbance_set_mapped_register(
@@ -220,12 +220,12 @@ class Disturbance:
                     int,
                     float,
                     NDArray[np.int_],
-                    NDArray[np.float_],
+                    NDArray[np.float64],
                     TYPE_MAPPED_REGISTERS_DATA_NO_KEY,
                 ]
             ],
             NDArray[np.int_],
-            NDArray[np.float_],
+            NDArray[np.float64],
         ],
     ) -> None:
         """Write data in mapped registers. Disturbance must be disabled.
@@ -303,9 +303,7 @@ class Disturbance:
         if total_buffer_size > self.max_sample_number:
             raise IMDisturbanceError(
                 "Number of samples is too high. "
-                "Demanded size: {} bytes, buffer max size: {} bytes.".format(
-                    total_buffer_size, self.max_sample_number
-                )
+                f"Demanded size: {total_buffer_size} bytes, buffer max size: {self.max_sample_number} bytes."
             )
         self.logger.debug(
             "Demanded size: %d bytes, buffer max size: %d bytes.",
