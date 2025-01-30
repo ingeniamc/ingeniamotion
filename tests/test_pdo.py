@@ -3,7 +3,7 @@ import time
 
 import pytest
 from ingenialink.ethercat.network import EthercatNetwork
-from ingenialink.exceptions import ILWrongWorkingCount
+from ingenialink.exceptions import ILWrongWorkingCountError
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 from packaging import version
 
@@ -310,7 +310,7 @@ def test_subscribe_exceptions(motion_controller, mocker):
     error_msg = "Test error"
 
     def start_pdos(self, *args):
-        raise ILWrongWorkingCount(error_msg)
+        raise ILWrongWorkingCountError(error_msg)
 
     mocker.patch("ingenialink.ethercat.network.EthercatNetwork.stop_pdos")
     mocker.patch(

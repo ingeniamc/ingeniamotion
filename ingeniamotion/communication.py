@@ -12,17 +12,18 @@ from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
 import ifaddr
 import ingenialogger
-from ingenialink.canopen.network import CAN_BAUDRATE, CAN_CHANNELS, CAN_DEVICE, CanopenNetwork
+from ingenialink import CanBaudrate, CanDevice, NetDevEvt, NetState
+from ingenialink.canopen.network import CAN_CHANNELS, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.dictionary import Interface
 from ingenialink.emcy import EmergencyMessage
-from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
-from ingenialink.enums.servo import SERVO_STATE
+from ingenialink.enums.register import RegAccess, RegDtype
+from ingenialink.enums.servo import ServoState
 from ingenialink.eoe.network import EoENetwork
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.exceptions import ILError
-from ingenialink.network import NET_DEV_EVT, NET_STATE, SlaveInfo
+from ingenialink.network import SlaveInfo
 from ingenialink.register import Register
 from ingenialink.servo import DictionaryFactory, Servo
 from ingenialink.virtual.network import VirtualNetwork
@@ -422,8 +423,7 @@ class Communication(metaclass=MCMetaClass):
             index = self._get_interface_index_by_address(address)
         except IndexError:
             raise ValueError(
-                f"Could not found a adapter configured as {address} "
-                f"to connect as EtherCAT master"
+                f"Could not found a adapter configured as {address} to connect as EtherCAT master"
             )
         return self.__get_adapter_name(index)
 
@@ -528,17 +528,17 @@ class Communication(metaclass=MCMetaClass):
                     )
         return {adapter.interface_name: adapter.interface_guid for adapter in network_adapters}
 
-    def get_available_canopen_devices(self) -> dict[CAN_DEVICE, list[int]]:
+    def get_available_canopen_devices(self) -> dict[CanDevice, list[int]]:
         """Return the list of available CAN devices (those connected and with drivers installed).
 
         Returns:
             Dict of available CAN devices and channels. For example:
             {
-                CAN_DEVICE.KVASER: [0, 1]
-                CAN_DEVICE.PCAN: [0]
+                CanDevice.KVASER: [0, 1]
+                CanDevice.PCAN: [0]
             }
         """
-        available_devices: dict[CAN_DEVICE, list[int]] = {}
+        available_devices: dict[CanDevice, list[int]] = {}
         can_net = None
         for net_key in self.mc.net:
             net = self.mc.net[net_key]
@@ -546,9 +546,9 @@ class Communication(metaclass=MCMetaClass):
                 can_net = net
                 break
         if can_net is None:
-            can_net = CanopenNetwork(CAN_DEVICE.KVASER)
+            can_net = CanopenNetwork(CanDevice.KVASER)
         for device, channel in can_net.get_available_devices():
-            can_device = CAN_DEVICE(device)
+            can_device = CanDevice(device)
             can_channel = CAN_CHANNELS[device].index(channel)
             if can_device not in available_devices:
                 available_devices[can_device] = [can_channel]
@@ -642,10 +642,10 @@ class Communication(metaclass=MCMetaClass):
 
     def connect_servo_canopen(
         self,
-        can_device: CAN_DEVICE,
+        can_device: CanDevice,
         dict_path: str,
         node_id: int,
-        baudrate: CAN_BAUDRATE = CAN_BAUDRATE.Baudrate_1M,
+        baudrate: CanBaudrate = CanBaudrate.Baudrate_1M,
         channel: int = 0,
         alias: str = DEFAULT_SERVO,
         servo_status_listener: bool = False,
@@ -864,8 +864,8 @@ class Communication(metaclass=MCMetaClass):
 
     def scan_servos_canopen_with_info(
         self,
-        can_device: CAN_DEVICE,
-        baudrate: CAN_BAUDRATE = CAN_BAUDRATE.Baudrate_1M,
+        can_device: CanDevice,
+        baudrate: CanBaudrate = CanBaudrate.Baudrate_1M,
         channel: int = 0,
     ) -> OrderedDict[int, SlaveInfo]:
         """Scan CANOpen device network to get all nodes including slave information.
@@ -888,8 +888,7 @@ class Communication(metaclass=MCMetaClass):
 
         if net is None:
             self.logger.warning(
-                "Could not find any nodes in the network."
-                "Device: %s, channel: %s and baudrate: %s.",
+                "Could not find any nodes in the network.Device: %s, channel: %s and baudrate: %s.",
                 can_device,
                 channel,
                 baudrate,
@@ -900,8 +899,8 @@ class Communication(metaclass=MCMetaClass):
 
     def scan_servos_canopen(
         self,
-        can_device: CAN_DEVICE,
-        baudrate: CAN_BAUDRATE = CAN_BAUDRATE.Baudrate_1M,
+        can_device: CanDevice,
+        baudrate: CanBaudrate = CanBaudrate.Baudrate_1M,
         channel: int = 0,
     ) -> List[int]:
         """Scan CANOpen device network to get all nodes.
@@ -924,8 +923,7 @@ class Communication(metaclass=MCMetaClass):
 
         if net is None:
             self.logger.warning(
-                "Could not find any nodes in the network."
-                "Device: %s, channel: %s and baudrate: %s.",
+                "Could not find any nodes in the network.Device: %s, channel: %s and baudrate: %s.",
                 can_device,
                 channel,
                 baudrate,
@@ -955,7 +953,7 @@ class Communication(metaclass=MCMetaClass):
         if servo_count == 0:
             del self.mc.net[net_name]
 
-    def get_servo_state(self, servo: str = DEFAULT_SERVO) -> NET_STATE:
+    def get_servo_state(self, servo: str = DEFAULT_SERVO) -> NetState:
         """Get the network state of a servo (connected/disconnected).
 
         The net_status_listener should be enabled for the servo in order
@@ -994,7 +992,7 @@ class Communication(metaclass=MCMetaClass):
         drive = self.mc.servos[servo]
         register_dtype = self.mc.info.register_type(register, axis, servo=servo)
         value = drive.read(register, subnode=axis)
-        if register_dtype.value <= REG_DTYPE.S64.value and isinstance(value, int):
+        if register_dtype.value <= RegDtype.S64.value and isinstance(value, int):
             return int(value)
         if not isinstance(value, (int, float, str)):
             raise TypeError("Register value is not a correct type of value.")
@@ -1024,24 +1022,24 @@ class Communication(metaclass=MCMetaClass):
         drive = self.mc.servos[servo]
         register_dtype_value = self.mc.info.register_type(register, axis, servo=servo)
         register_access_type = self.mc.info.register_info(register, axis, servo=servo).access
-        signed_int = [REG_DTYPE.S8, REG_DTYPE.S16, REG_DTYPE.S32, REG_DTYPE.S64]
-        unsigned_int = [REG_DTYPE.U8, REG_DTYPE.U16, REG_DTYPE.U32, REG_DTYPE.U64]
-        if register_dtype_value == REG_DTYPE.FLOAT and not isinstance(value, (int, float)):
+        signed_int = [RegDtype.S8, RegDtype.S16, RegDtype.S32, RegDtype.S64]
+        unsigned_int = [RegDtype.U8, RegDtype.U16, RegDtype.U32, RegDtype.U64]
+        if register_dtype_value == RegDtype.FLOAT and not isinstance(value, (int, float)):
             raise TypeError("Value must be a float")
-        if register_dtype_value == REG_DTYPE.STR and not isinstance(value, str):
+        if register_dtype_value == RegDtype.STR and not isinstance(value, str):
             raise TypeError("Value must be a string")
         if register_dtype_value in signed_int and not isinstance(value, int):
             raise TypeError("Value must be an int")
         if register_dtype_value in unsigned_int and (not isinstance(value, int) or value < 0):
             raise TypeError("Value must be an unsigned int")
-        if register_access_type == REG_ACCESS.RO:
+        if register_access_type == RegAccess.RO:
             raise IMRegisterWrongAccess(
                 f"Register: {register} cannot write to a read-only register"
             )
         drive.write(register, value, subnode=axis)
 
     def subscribe_net_status(
-        self, callback: Callable[[NET_DEV_EVT], None], servo: str = DEFAULT_SERVO
+        self, callback: Callable[[NetDevEvt], None], servo: str = DEFAULT_SERVO
     ) -> None:
         """Add a callback to net status change event.
 
@@ -1055,7 +1053,7 @@ class Communication(metaclass=MCMetaClass):
         network.subscribe_to_status(drive.target, callback)
 
     def unsubscribe_net_status(
-        self, callback: Callable[[NET_DEV_EVT], None], servo: str = DEFAULT_SERVO
+        self, callback: Callable[[NetDevEvt], None], servo: str = DEFAULT_SERVO
     ) -> None:
         """Remove net status change event callback.
 
@@ -1069,7 +1067,7 @@ class Communication(metaclass=MCMetaClass):
         network.unsubscribe_from_status(drive.target, callback)
 
     def subscribe_servo_status(
-        self, callback: Callable[[SERVO_STATE, int], Any], servo: str = DEFAULT_SERVO
+        self, callback: Callable[[ServoState, int], Any], servo: str = DEFAULT_SERVO
     ) -> None:
         """Add a callback to servo status change event.
 
@@ -1082,7 +1080,7 @@ class Communication(metaclass=MCMetaClass):
         drive.subscribe_to_status(callback)
 
     def unsubscribe_servo_status(
-        self, callback: Callable[[SERVO_STATE, int], Any], servo: str = DEFAULT_SERVO
+        self, callback: Callable[[ServoState, int], Any], servo: str = DEFAULT_SERVO
     ) -> None:
         """Remove servo status change event callback.
 

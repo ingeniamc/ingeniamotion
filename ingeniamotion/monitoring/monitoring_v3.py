@@ -1,7 +1,7 @@
 from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union
 
 import ingenialogger
-from ingenialink.enums.register import REG_DTYPE
+from ingenialink.enums.register import RegDtype
 
 from ingeniamotion.enums import (
     MonitoringProcessStage,
@@ -133,7 +133,7 @@ class MonitoringV3(Monitoring):
         self,
         total_samples: int,
         trigger_delay_samples: int,
-        registers: List[Dict[str, Union[int, str, REG_DTYPE]]],
+        registers: List[Dict[str, Union[int, str, RegDtype]]],
     ) -> None:
         n_sample = total_samples
         max_size = self.max_sample_number

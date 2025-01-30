@@ -1,9 +1,10 @@
 import pytest
-from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE, CanopenNetwork
+from ingenialink import CanBaudrate, CanDevice
+from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.dictionary import SubnodeType
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
-from ingenialink.register import REG_ACCESS, REG_DTYPE
+from ingenialink.register import RegAccess, RegDtype
 
 from ingeniamotion.exceptions import IMException, IMRegisterNotExist
 from ingeniamotion.information import COMMUNICATION_TYPE
@@ -22,8 +23,8 @@ from ingeniamotion.information import COMMUNICATION_TYPE
 def test_register_info(motion_controller, uid, axis):
     mc, alias, environment = motion_controller
     register = mc.info.register_info(uid, axis, alias)
-    assert isinstance(register.dtype, REG_DTYPE)
-    assert isinstance(register.access, REG_ACCESS)
+    assert isinstance(register.dtype, RegDtype)
+    assert isinstance(register.access, RegAccess)
     assert isinstance(register.range, tuple)
 
 
@@ -31,10 +32,10 @@ def test_register_info(motion_controller, uid, axis):
 @pytest.mark.parametrize(
     "uid, axis, dtype",
     [
-        ("CL_POS_FBK_VALUE", 1, REG_DTYPE.S32),
-        ("CL_VEL_SET_POINT_VALUE", 1, REG_DTYPE.FLOAT),
-        ("PROF_POS_OPTION_CODE", 1, REG_DTYPE.U16),
-        ("PROF_IP_CLEAR_DATA", 1, REG_DTYPE.U16),
+        ("CL_POS_FBK_VALUE", 1, RegDtype.S32),
+        ("CL_VEL_SET_POINT_VALUE", 1, RegDtype.FLOAT),
+        ("PROF_POS_OPTION_CODE", 1, RegDtype.U16),
+        ("PROF_IP_CLEAR_DATA", 1, RegDtype.U16),
     ],
 )
 def test_register_type(motion_controller, uid, axis, dtype):
@@ -47,10 +48,10 @@ def test_register_type(motion_controller, uid, axis, dtype):
 @pytest.mark.parametrize(
     "uid, axis, access",
     [
-        ("CL_POS_FBK_VALUE", 1, REG_ACCESS.RO),
-        ("CL_VEL_SET_POINT_VALUE", 1, REG_ACCESS.RW),
-        ("PROF_POS_OPTION_CODE", 1, REG_ACCESS.RW),
-        ("PROF_IP_CLEAR_DATA", 1, REG_ACCESS.WO),
+        ("CL_POS_FBK_VALUE", 1, RegAccess.RO),
+        ("CL_VEL_SET_POINT_VALUE", 1, RegAccess.RW),
+        ("PROF_POS_OPTION_CODE", 1, RegAccess.RW),
+        ("PROF_IP_CLEAR_DATA", 1, RegAccess.WO),
     ],
 )
 def test_register_access(motion_controller, uid, axis, access):
@@ -130,7 +131,7 @@ def test_get_name(motion_controller):
     [
         (EthernetNetwork, COMMUNICATION_TYPE.Ethernet, None),
         (EthercatNetwork, COMMUNICATION_TYPE.Ethercat, "fake_interface_name"),
-        (CanopenNetwork, COMMUNICATION_TYPE.Canopen, CAN_DEVICE.PCAN),
+        (CanopenNetwork, COMMUNICATION_TYPE.Canopen, CanDevice.PCAN),
     ],
 )
 @pytest.mark.virtual
@@ -152,7 +153,7 @@ def test_get_communication_type(mocker, motion_controller, communication, expect
     [
         (EthernetNetwork, "VIRTUAL-DRIVE - Drive (127.0.0.1)", None),
         (EthercatNetwork, "VIRTUAL-DRIVE - Drive", "fake_interface_name"),
-        (CanopenNetwork, "VIRTUAL-DRIVE - Drive", CAN_DEVICE.PCAN),
+        (CanopenNetwork, "VIRTUAL-DRIVE - Drive", CanDevice.PCAN),
     ],
 )
 @pytest.mark.virtual
@@ -252,9 +253,9 @@ def test_get_slave_id_exception(motion_controller):
 def test_get_baudrate_success(motion_controller, mocker):
     mc, alias, environment = motion_controller
 
-    fake_device = CAN_DEVICE.PCAN
+    fake_device = CanDevice.PCAN
     fake_channel = 0
-    fake_baudrate = CAN_BAUDRATE.Baudrate_1M
+    fake_baudrate = CanBaudrate.Baudrate_1M
     fake_network = CanopenNetwork(fake_device, fake_channel, fake_baudrate)
     mocker.patch.object(mc, "_get_network", return_value=fake_network)
 

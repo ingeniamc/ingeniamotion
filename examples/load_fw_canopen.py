@@ -1,4 +1,4 @@
-from ingenialink import CAN_BAUDRATE, CAN_DEVICE
+from ingenialink import CanBaudrate, CanDevice
 from ingenialink.exceptions import ILFirmwareLoadError
 
 from ingeniamotion.motion_controller import MotionController
@@ -13,9 +13,9 @@ def progress_log(current_progress: int) -> None:
 
 
 def load_firmware_canopen(
-    device: CAN_DEVICE,
+    device: CanDevice,
     channel: int,
-    baudrate: CAN_BAUDRATE,
+    baudrate: CanBaudrate,
     node_id: int,
     dictionary_path: str,
     fw_path: str,
@@ -55,9 +55,9 @@ def load_firmware_canopen(
 
 if __name__ == "__main__":
     # Remember to replace all parameters here
-    device = CAN_DEVICE.KVASER
+    device = CanDevice.KVASER
     channel = 0
-    baudrate = CAN_BAUDRATE.Baudrate_1M
+    baudrate = CanBaudrate.Baudrate_1M
     node_id = 32
     dictionary_path = "parent_directory/full_dictionary_path.xdf"
     fw_path = "parent_directory/full_firmware_file_path.lfu"
