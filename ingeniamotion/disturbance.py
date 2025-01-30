@@ -26,6 +26,16 @@ TYPE_MAPPED_REGISTERS_DATA_NO_KEY = list[Union[int, float]]
 def check_disturbance_disabled(
     func: Callable[..., Union[int, float, None]],
 ) -> Callable[..., Union[int, float, None]]:
+    """Decorator that checks if disturbance is disabled before calling a function.
+
+    Args:
+        func: The function to called.
+
+    Returns:
+        The decorated function.
+
+    """
+
     @wraps(func)
     def wrapper(self, *args, **kwargs):  # type: ignore
         disturbance_enabled = self.mc.capture.is_disturbance_enabled(

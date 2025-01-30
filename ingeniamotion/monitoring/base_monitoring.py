@@ -22,6 +22,16 @@ if TYPE_CHECKING:
 
 
 def check_monitoring_disabled(func: Callable[..., None]) -> Callable[..., None]:
+    """Decorator that checks if monitoring is disabled before calling a function.
+
+    Args:
+        func: The function to called.
+
+    Returns:
+        The decorated function.
+
+    """
+
     @wraps(func)
     def wrapper(self, *args, **kwargs):  # type: ignore
         monitoring_enabled = self.mc.capture.is_monitoring_enabled(servo=self.servo)
