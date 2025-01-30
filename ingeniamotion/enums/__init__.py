@@ -1,5 +1,5 @@
 from enum import Enum, EnumMeta, IntEnum
-from typing import Type, TypeVar
+from typing import TypeVar
 
 from ingenialink import (
     CAN_BAUDRATE,
