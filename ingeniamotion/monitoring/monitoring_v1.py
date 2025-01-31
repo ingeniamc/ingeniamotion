@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, Optional, Union
 
 import ingenialogger
 from ingenialink.enums.register import RegDtype
+from typing_extensions import override
 
 from ingeniamotion.enums import MonitoringSoCConfig, MonitoringSoCType, MonitoringVersion
 from ingeniamotion.exceptions import IMStatusWordError
@@ -48,6 +49,7 @@ class MonitoringV1(Monitoring):
         raise NotImplementedError("Edge condition is not implementedfor this FW version")
 
     @check_monitoring_disabled
+    @override
     def set_trigger(
         self,
         trigger_mode: Union[MonitoringSoCType, int],
@@ -81,6 +83,7 @@ class MonitoringV1(Monitoring):
         )
 
     @check_monitoring_disabled
+    @override
     def configure_number_samples(self, total_num_samples: int, trigger_delay_samples: int) -> None:
         if trigger_delay_samples > total_num_samples:
             raise ValueError("trigger_delay_samples should be less than total_num_samples")
@@ -139,6 +142,7 @@ class MonitoringV1(Monitoring):
             data_is_ready &= self.mc.capture.is_frame_available(self.servo, version=self._version)
         return data_is_ready
 
+    @override
     def rearm_monitoring(self) -> None:
         self.mc.communication.set_register(
             self.MONITORING_NUMBER_TRIGGER_REPETITIONS_REGISTER, 1, servo=self.servo, axis=0

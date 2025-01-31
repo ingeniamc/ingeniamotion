@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import ingenialogger
 from ingenialink.enums.register import RegDtype
+from typing_extensions import override
 
 from ingeniamotion.enums import (
     MonitoringProcessStage,
@@ -30,6 +31,7 @@ class MonitoringV3(Monitoring):
         self.logger = ingenialogger.get_logger(__name__, drive=mc.servo_name(servo))
 
     @check_monitoring_disabled
+    @override
     def set_trigger(
         self,
         trigger_mode: MonitoringSoCType,
@@ -64,6 +66,7 @@ class MonitoringV3(Monitoring):
         )
 
     @check_monitoring_disabled
+    @override
     def configure_number_samples(self, total_num_samples: int, trigger_delay_samples: int) -> None:
         if trigger_delay_samples > total_num_samples:
             raise ValueError("trigger_delay_samples should be less than total_num_samples")
@@ -88,6 +91,7 @@ class MonitoringV3(Monitoring):
         self.samples_number = total_num_samples
         self.trigger_delay_samples = trigger_delay_samples
 
+    @override
     def _check_monitoring_is_ready(self) -> tuple[bool, Optional[str]]:
         is_enabled = self.mc.capture.is_monitoring_enabled(self.servo)
         result_text = None
@@ -102,6 +106,7 @@ class MonitoringV3(Monitoring):
         return is_ready, result_text
 
     # TODO Study remove progress_callback
+    @override
     def read_monitoring_data(
         self,
         timeout: Optional[float] = None,
@@ -114,6 +119,7 @@ class MonitoringV3(Monitoring):
         drive.monitoring_remove_data()
         return data_array
 
+    @override
     def _check_data_is_ready(self) -> bool:
         monit_nmb_blocks = self.mc.communication.get_register(
             self.MONITORING_ACTUAL_NUMBER_SAMPLES_REGISTER, servo=self.servo, axis=0
@@ -124,11 +130,13 @@ class MonitoringV3(Monitoring):
         data_is_ready &= self.mc.capture.is_frame_available(self.servo, version=self._version)
         return data_is_ready
 
+    @override
     def rearm_monitoring(self) -> None:
         self.mc.communication.set_register(
             self.MONITORING_REARM_REGISTER, 1, servo=self.servo, axis=0
         )
 
+    @override
     def _check_buffer_size_is_enough(
         self,
         total_samples: int,

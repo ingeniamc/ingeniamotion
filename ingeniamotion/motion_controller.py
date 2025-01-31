@@ -36,11 +36,31 @@ class MotionController:
             self.__fsoe = FSoEMaster(self)
 
     def servo_name(self, servo: str = DEFAULT_SERVO) -> str:
+        """Get the servo name.
+
+        Args:
+            servo : servo alias to reference it. ``default`` by default.
+
+        Returns:
+            The servo name.
+
+        """
         return "{} ({})".format(self.servos[servo].info["product_code"], servo)
 
     def get_register_enum(
         self, register: str, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> IntEnum:
+        """Get a register enum.
+
+        Args:
+            register: The register UID.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : axis force read errors in target axis. ``None`` by default.
+
+        Returns:
+            The register enum as an IntEnum.
+
+        """
         drive = self.servos[servo]
         enum_dict = drive.dictionary.registers(axis)[register].enums
         return IntEnum(register, enum_dict)
@@ -104,6 +124,12 @@ class MotionController:
 
     @property
     def servo_net(self) -> dict[str, str]:
+        """Get the servo network dictionary.
+
+        Returns:
+            The servo network dictionary.
+
+        """
         return self.__servo_net
 
     @servo_net.setter

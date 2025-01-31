@@ -177,7 +177,7 @@ class DriveTests(metaclass=MCMetaClass):
         """
         return self.__feedback_test(SensorType.SSI2, servo, axis, apply_changes)
 
-    def get_feedback_test(
+    def __get_feedback_test(
         self, feedback: SensorType, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> Feedbacks:
         return self.__sensors[feedback](self.mc, servo, axis)
@@ -189,7 +189,7 @@ class DriveTests(metaclass=MCMetaClass):
         axis: int = DEFAULT_AXIS,
         apply_changes: bool = True,
     ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
-        output = self.get_feedback_test(feedback, servo, axis).run()
+        output = self.__get_feedback_test(feedback, servo, axis).run()
         if (
             apply_changes
             and output is not None

@@ -476,6 +476,17 @@ class Motion(metaclass=MCMetaClass):
     def ramp_generator(
         init_v: float, final_v: float, total_t: float, interval: Optional[float] = None
     ) -> Generator[float, None, None]:
+        """Generate a ramp.
+
+        Args:
+            init_v: Initial value.
+            final_v: Final value.
+            total_t: Total time.
+            interval: Time between each sample.
+
+        Returns:
+
+        """
         slope = (final_v - init_v) / total_t
         init_time = time.time()
         yield init_v
