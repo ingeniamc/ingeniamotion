@@ -1312,7 +1312,7 @@ class Communication(metaclass=MCMetaClass):
             FileNotFoundError: If the firmware file cannot be found.
             ValueError: If the firmware file has the wrong extension.
             ingenialink.exceptions.ILFirmwareLoadError: If no slave is detected.
-            ingenialink.exceptions.ILFirmwareLoadError: If the FoE write operation is not successful.
+            ingenialink.exceptions.ILFirmwareLoadError: If the FoE write operation fails.
 
         """
 
