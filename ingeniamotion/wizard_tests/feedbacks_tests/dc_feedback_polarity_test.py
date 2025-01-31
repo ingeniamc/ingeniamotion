@@ -17,6 +17,8 @@ class DCFeedbacksPolarityTest(BaseTest[LegacyDictReportType]):
     OPERATION_MODE = OperationMode.CURRENT
 
     class ResultType(IntEnum):
+        """Test result."""
+
         SUCCESS = 0
 
     result_description = {

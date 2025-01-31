@@ -25,6 +25,8 @@ class PhasingCheck(BaseTest[LegacyDictReportType]):
     BACKUP_REGISTERS = ["DRV_OP_CMD", "CL_CUR_Q_SET_POINT", "CL_CUR_D_SET_POINT"]
 
     class ResultType(IntEnum):
+        """Test result."""
+
         SUCCESS = 0
         WRONG_PHASING = -1
 

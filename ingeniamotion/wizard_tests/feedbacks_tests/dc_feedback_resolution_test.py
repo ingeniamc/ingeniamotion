@@ -24,6 +24,8 @@ class DCFeedbacksResolutionTest(BaseTest[LegacyDictReportType]):
     PID_LOG_MSG = "Kp = {kp}, Ki = {ki} and Kd = {kd}"
 
     class ResultType(IntEnum):
+        """Test result."""
+
         SUCCESS = 0
 
     result_description = {

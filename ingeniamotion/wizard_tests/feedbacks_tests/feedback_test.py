@@ -18,12 +18,16 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
     """Feedbacks Wizard Class description."""
 
     class ResultType(IntEnum):
+        """Test result."""
+
         SUCCESS = 0
         RESOLUTION_ERROR = -1
         SYMMETRY_ERROR = -2
         POS_VEL_RATIO_ERROR = -4
 
     class Polarity(IntEnum):
+        """Polarity type."""
+
         NORMAL = 0
         REVERSED = 1
 

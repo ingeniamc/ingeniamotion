@@ -14,6 +14,8 @@ class STOTest(BaseTest[LegacyDictReportType]):
     """STO test."""
 
     class ResultType(IntEnum):
+        """Test result."""
+
         STO_INACTIVE = 0
         STO_ACTIVE = -1
         STO_ABNORMAL_LATCHED = -2
@@ -22,6 +24,8 @@ class STOTest(BaseTest[LegacyDictReportType]):
         STO_INPUTS_DIFFER = -5
 
     class Polarity(IntEnum):
+        """Polarity type."""
+
         NORMAL = 0
         REVERSED = 1
 

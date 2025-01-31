@@ -11,6 +11,8 @@ class Errors(metaclass=MCMetaClass):
     """Errors."""
 
     class ErrorLocation(IntEnum):
+        """Location of a generated error."""
+
         COCO = 0
         MOCO = 1
         SYSTEM = 2

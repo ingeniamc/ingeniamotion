@@ -57,6 +57,8 @@ class Phasing(BaseTest[LegacyDictReportType]):
     ]
 
     class ResultType(IntEnum):
+        """Test result."""
+
         SUCCESS = 0
         FAIL = -1
 
