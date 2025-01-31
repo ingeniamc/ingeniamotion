@@ -4,7 +4,8 @@ from os import path
 from typing import TYPE_CHECKING, List, Optional, Tuple, Union
 
 import ingenialogger
-from ingenialink.canopen.network import CAN_BAUDRATE, CanopenNetwork
+from ingenialink import CanBaudrate
+from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.ethernet.servo import EthernetServo
 from ingenialink.exceptions import ILError
 from ingenialink.utils._utils import deprecated
@@ -1138,7 +1139,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             )
         return vendor_id
 
-    def change_baudrate(self, baud_rate: CAN_BAUDRATE, servo: str = DEFAULT_SERVO) -> None:
+    def change_baudrate(self, baud_rate: CanBaudrate, servo: str = DEFAULT_SERVO) -> None:
         """Change a CANopen device's baudrate.
 
         Args:

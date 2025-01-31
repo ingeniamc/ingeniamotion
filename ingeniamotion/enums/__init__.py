@@ -1,12 +1,29 @@
 from enum import Enum, EnumMeta, IntEnum
 from typing import Type, TypeVar
 
-from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE
-from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
+from ingenialink import (
+    CAN_BAUDRATE,
+    CAN_DEVICE,
+    REG_ACCESS,
+    REG_DTYPE,
+    CanBaudrate,
+    CanDevice,
+    RegAccess,
+    RegDtype,
+)
 
 T = TypeVar("T", bound=Type[Enum])
 
-__all__ = ["CAN_BAUDRATE", "CAN_DEVICE", "REG_ACCESS", "REG_DTYPE"]
+__all__ = [
+    "CAN_BAUDRATE",
+    "CanBaudrate",
+    "CAN_DEVICE",
+    "CanDevice",
+    "REG_ACCESS",
+    "RegAccess",
+    "REG_DTYPE",
+    "RegDtype",
+]
 
 
 def export(obj: T) -> T:

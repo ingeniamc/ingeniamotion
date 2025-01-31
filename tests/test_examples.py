@@ -3,7 +3,7 @@ from typing import Dict
 from unittest.mock import Mock
 
 import pytest
-from ingenialink import CAN_BAUDRATE, CAN_DEVICE
+from ingenialink import CanBaudrate, CanDevice
 from ingenialink.exceptions import ILFirmwareLoadError
 from ingenialink.pdo import RPDOMap, TPDOMap
 
@@ -276,9 +276,9 @@ def test_brake_config_example(tests_setup: DriveEthernetSetup, script_runner, mo
 
 @pytest.mark.virtual
 def test_can_bootloader_example_success(mocker, capsys):
-    device = CAN_DEVICE.PCAN
+    device = CanDevice.PCAN
     channel = 0
-    baudrate = CAN_BAUDRATE.Baudrate_1M
+    baudrate = CanBaudrate.Baudrate_1M
     node_id = 32
     dictionary_path = "test_dictionary.xdf"
     fw_path = "test_fw.lfu"
@@ -321,9 +321,9 @@ def test_can_bootloader_example_success(mocker, capsys):
 
 @pytest.mark.virtual
 def test_can_bootloader_example_failed(mocker, capsys):
-    device = CAN_DEVICE.PCAN
+    device = CanDevice.PCAN
     channel = 0
-    baudrate = CAN_BAUDRATE.Baudrate_1M
+    baudrate = CanBaudrate.Baudrate_1M
     node_id = 32
     dictionary_path = "test_dictionary.xdf"
     fw_path = "test_fw.lfu"
@@ -362,9 +362,9 @@ def test_can_bootloader_example_failed(mocker, capsys):
 
 @pytest.mark.virtual
 def test_change_node_id_success(mocker, capsys):
-    device = CAN_DEVICE.PCAN
+    device = CanDevice.PCAN
     channel = 0
-    baudrate = CAN_BAUDRATE.Baudrate_1M
+    baudrate = CanBaudrate.Baudrate_1M
     dictionary_path = "test_dictionary.xdf"
 
     node_id = 20
@@ -385,9 +385,9 @@ def test_change_node_id_success(mocker, capsys):
 
 @pytest.mark.virtual
 def test_change_node_id_failed(mocker, capsys):
-    device = CAN_DEVICE.PCAN
+    device = CanDevice.PCAN
     channel = 0
-    baudrate = CAN_BAUDRATE.Baudrate_1M
+    baudrate = CanBaudrate.Baudrate_1M
     dictionary_path = "test_dictionary.xdf"
 
     node_id = 20
@@ -407,12 +407,12 @@ def test_change_node_id_failed(mocker, capsys):
 
 @pytest.mark.virtual
 def test_change_baudrate_success(mocker, capsys):
-    device = CAN_DEVICE.PCAN
+    device = CanDevice.PCAN
     channel = 0
-    baudrate = CAN_BAUDRATE.Baudrate_1M
+    baudrate = CanBaudrate.Baudrate_1M
     node_id = 32
     dictionary_path = "test_dictionary.xdf"
-    test_new_baudrate = CAN_BAUDRATE.Baudrate_125K
+    test_new_baudrate = CanBaudrate.Baudrate_125K
 
     mocker.patch.object(Communication, "connect_servo_canopen")
     mocker.patch.object(Communication, "disconnect")
@@ -432,9 +432,9 @@ def test_change_baudrate_success(mocker, capsys):
 
 @pytest.mark.virtual
 def test_change_baudrate_failed(mocker, capsys):
-    device = CAN_DEVICE.PCAN
+    device = CanDevice.PCAN
     channel = 0
-    baudrate = CAN_BAUDRATE.Baudrate_1M
+    baudrate = CanBaudrate.Baudrate_1M
     node_id = 32
     dictionary_path = "test_dictionary.xdf"
     test_new_baudrate = baudrate

@@ -1,15 +1,13 @@
-from typing import Optional
-
-from ingenialink import CAN_BAUDRATE, CAN_DEVICE
+from ingenialink import CanBaudrate, CanDevice
 
 from ingeniamotion.motion_controller import MotionController
 
 
 def change_node_id(
-    device: CAN_DEVICE,
+    device: CanDevice,
     channel: int,
     node_id: int,
-    baudrate: CAN_BAUDRATE,
+    baudrate: CanBaudrate,
     dictionary_path: str,
     new_node_id: int,
 ) -> None:
@@ -56,11 +54,11 @@ if __name__ == "__main__":
     # If you want to connect to a node manually, set the node_id parameter as an integer.
     # Instead, set the node_id parameter as a NoneType value to connect the first detected CAN node.
 
-    device = CAN_DEVICE.KVASER
+    device = CanDevice.KVASER
     channel = 0
     node_id = 20
     new_node_id = 32
-    baudrate = CAN_BAUDRATE.Baudrate_1M
+    baudrate = CanBaudrate.Baudrate_1M
     dictionary_path = "parent_directory/dictionary_file.xdf"
 
     change_node_id(device, channel, node_id, baudrate, dictionary_path, new_node_id)
