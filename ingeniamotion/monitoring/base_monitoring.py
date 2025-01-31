@@ -91,7 +91,9 @@ class Monitoring(ABC):
 
     @check_monitoring_disabled
     def set_frequency(self, prescaler: int) -> None:
-        """Function to define monitoring frequency with a prescaler. Frequency will be
+        """Set the monitoring frequency.
+
+        Function to define monitoring frequency with a prescaler. Frequency will be
         ``Position & velocity loop rate frequency / prescaler``, see
         :func:`ingeniamotion.configuration.Configuration.get_position_and_velocity_loop_rate`
         to know about this frequency. Monitoring must be disabled.
@@ -263,8 +265,10 @@ class Monitoring(ABC):
 
     @check_monitoring_disabled
     def configure_sample_time(self, total_time: float, trigger_delay: float) -> None:
-        """Configure monitoring number of samples defines by sample and trigger
-        delay time. Monitoring must be disabled.
+        """Configure monitoring number of samples.
+
+        It is defined by the sample and trigger delay time.
+        Monitoring must be disabled.
 
         Args:
             total_time : monitoring sample total time, in seconds.

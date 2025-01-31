@@ -28,8 +28,9 @@ class ResultBrakeType(IntEnum):
 
 
 class BrakeTune(BaseTest[LegacyDictReportType]):
-    """A class to perform a brake tuning. It enables and disables a brake through
-    enabling/disabling the motor.
+    """A class to perform a brake tuning.
+
+    It enables and disables a brake through enabling/disabling the motor.
 
     Args:
         mc: Motion Controller.

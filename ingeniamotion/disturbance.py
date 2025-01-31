@@ -95,7 +95,9 @@ class Disturbance:
 
     @check_disturbance_disabled
     def set_frequency_divider(self, divider: int) -> float:
-        """Function to define disturbance frequency with a prescaler. Frequency will be
+        """Function to define disturbance frequency with a prescaler.
+
+        Frequency will be
         ``Position & velocity loop rate frequency / prescaler``,  see
         :func:`ingeniamotion.configuration.Configuration.get_position_and_velocity_loop_rate`
         to know about this frequency. Monitoring/Disturbance must be disabled.

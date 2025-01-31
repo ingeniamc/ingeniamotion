@@ -95,7 +95,9 @@ class Feedbacks(metaclass=MCMetaClass):
     def get_commutation_feedback_category(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> SensorCategory:
-        """Reads commutation feedbacks type {ABSOLUTE or INCREMENTAL}
+        """Get the commutation feedback category.
+
+        Reads commutation feedbacks type {ABSOLUTE or INCREMENTAL}
         in the target servo and axis.
 
         Args:
@@ -168,7 +170,9 @@ class Feedbacks(metaclass=MCMetaClass):
     def get_reference_feedback_category(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> SensorCategory:
-        """Reads reference feedbacks type {ABSOLUTE or INCREMENTAL}
+        """Get the reference feedback category.
+
+        Reads reference feedbacks type {ABSOLUTE or INCREMENTAL}
         in the target servo and axis.
 
         Args:
@@ -241,7 +245,9 @@ class Feedbacks(metaclass=MCMetaClass):
     def get_velocity_feedback_category(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> SensorCategory:
-        """Reads velocity feedbacks type {ABSOLUTE or INCREMENTAL}
+        """Get the velocity feedback category.
+
+        Reads velocity feedbacks type {ABSOLUTE or INCREMENTAL}
         in the target servo and axis.
 
         Args:
@@ -314,7 +320,9 @@ class Feedbacks(metaclass=MCMetaClass):
     def get_position_feedback_category(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> SensorCategory:
-        """Reads position feedbacks type {ABSOLUTE or INCREMENTAL}
+        """Get the position feedback category.
+
+        Reads position feedbacks type {ABSOLUTE or INCREMENTAL}
         in the target servo and axis.
 
         Args:
@@ -387,7 +395,9 @@ class Feedbacks(metaclass=MCMetaClass):
     def get_auxiliar_feedback_category(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> SensorCategory:
-        """Reads auxiliar feedbacks type {ABSOLUTE or INCREMENTAL}
+        """Get the auxiliar feedback category.
+
+        Reads auxiliar feedbacks type {ABSOLUTE or INCREMENTAL}
         in the target servo and axis.
 
         Args:

@@ -319,6 +319,7 @@ class Information(metaclass=MCMetaClass):
 
     def get_encoded_image_from_dictionary(self, servo: str = DEFAULT_SERVO) -> Optional[str]:
         """Get the encoded product image from a drive dictionary.
+
         This function reads a dictionary of a drive, and it parses whether the dictionary file has a
         DriveImage tag and its content.
 

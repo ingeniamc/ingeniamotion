@@ -35,14 +35,16 @@ class TYPE_SUBNODES(IntEnum):  # noqa: N801
 
 
 class MACAddressConverter:
-    """Class to convert MAC addresses from int to str
-    and vice versa.
+    """Class to convert MAC addresses.
+
+    The conversion can be from int to str and vice versa.
     """
 
     @staticmethod
     def int_to_str(mac_address: int) -> str:
-        """Convert a MAC address to the string format
-        XX:XX:XX:XX:XX:XX.
+        """Convert a MAC address to the string format.
+
+        Format: "XX:XX:XX:XX:XX:XX".
 
         Args:
             mac_address: The MAC address as an integer.
@@ -200,7 +202,9 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         )
 
     def default_brake(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> None:
-        """Disable the brake override of the target servo and axis, as
+        """Disable the brake override of the target servo and axis.
+
+         Same as
         :func:`disable_brake_override`.
 
         Args:
@@ -214,6 +218,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         self, config_path: str, axis: Optional[int] = None, servo: str = DEFAULT_SERVO
     ) -> None:
         """Check if the drive is configured in the same way as the given configuration file.
+
         Compares the value of each register in the given file with the corresponding value in the
         drive.
 
@@ -353,6 +358,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         axis: int = DEFAULT_AXIS,
     ) -> None:
         """Set up the acceleration, deceleration and velocity profilers.
+
         All of these parameters are optional, meaning the user can set only one
         if desired. However, At least a minimum of one of these parameters
         is mandatory to call this function.
@@ -539,6 +545,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         self, value: int, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> None:
         """Set power stage frequency from enum value.
+
         See :func: `get_power_stage_frequency_enum`.
 
         Args:
@@ -953,7 +960,9 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         self,
         servo: str = DEFAULT_SERVO,
     ) -> tuple[list[Optional[int]], list[Optional[int]], list[Optional[str]], list[Optional[int]]]:
-        """Get product codes, revision numbers, firmware versions and serial numbers from
+        """Get the drive's information.
+
+        The product codes, revision numbers, firmware versions and serial numbers from
         COCO and MOCO.
 
         Args:

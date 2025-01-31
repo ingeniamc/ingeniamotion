@@ -293,8 +293,9 @@ class PDONetworkManager:
 
         @staticmethod
         def high_precision_sleep(duration: float) -> None:
-            """Replaces the time.sleep() method in order to obtain
-            more precise sleeping times.
+            """Replaces the time.sleep() method.
+
+            This is done in order to obtain more precise sleeping times.
             """
             start_time = time.perf_counter()
             while duration - (time.perf_counter() - start_time) > 0:
@@ -469,8 +470,10 @@ class PDONetworkManager:
         rpdo_map: Optional[RPDOMap] = None,
         rpdo_map_index: Optional[int] = None,
     ) -> None:
-        """Remove a RPDOMap from the RPDOMap list. The RPDOMap instance or
-        the index of the map in the RPDOMap list should be provided.
+        """Remove a RPDOMap from the RPDOMap list.
+
+        The RPDOMap instance or the index of the map in the RPDOMap list
+         should be provided.
 
         Args:
             servo: servo alias to reference it. ``default`` by default.
@@ -493,8 +496,10 @@ class PDONetworkManager:
         tpdo_map: Optional[TPDOMap] = None,
         tpdo_map_index: Optional[int] = None,
     ) -> None:
-        """Remove a TPDOMap from the TPDOMap list. The TPDOMap instance or
-        the index of the map in the TPDOMap list should be provided.
+        """Remove a TPDOMap from the TPDOMap list.
+
+        The TPDOMap instance or the index of the map in the TPDOMap list
+        should be provided.
 
         Args:
             servo: servo alias to reference it. ``default`` by default.

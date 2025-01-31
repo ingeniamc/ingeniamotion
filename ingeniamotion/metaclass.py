@@ -12,8 +12,9 @@ T = TypeVar("T")
 
 
 class MCMetaClass(type):
-    """MotionController submodules metaclass to add servo checker for all
-    the functions that has an argument named servo.
+    """MotionController submodules metaclass.
+
+    It adds a servo checker for all the functions that has an argument named servo.
 
     This class also have other decorators that can be useful for some
     functions, as motor disabled checker.
@@ -25,9 +26,7 @@ class MCMetaClass(type):
     def __new__(
         cls: type["MCMetaClass"], name: str, bases: tuple[type, ...], local: dict[str, Any]
     ) -> "MCMetaClass":
-        """If a function has argument named servo,
-        decorates it with check_servo decorator.
-        """
+        """If a function has argument named servo, decorates it with check_servo decorator."""
         for attr in local:
             value = local[attr]
             if (
@@ -41,6 +40,7 @@ class MCMetaClass(type):
     @classmethod
     def check_servo(cls, func: Callable[..., T]) -> Callable[..., T]:
         """Decorator to check if the servo is connected.
+
         If servo is not connected raises an exception.
         """
 
@@ -62,6 +62,7 @@ class MCMetaClass(type):
     @classmethod
     def check_motor_disabled(cls, func: Callable[..., T]) -> Callable[..., T]:
         """Decorator to check if motor is disabled.
+
         If motor is enabled raises an exception.
         """
 

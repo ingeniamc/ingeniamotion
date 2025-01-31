@@ -145,8 +145,9 @@ class FSoEMasterHandler:
         self.safety_master_pdu_map.set_item_bytes(self.__master_handler.get_request())
 
     def set_reply(self) -> None:
-        """Get the FSoE slave response from the Safety Slave PDU PDOMap and set it
-        to the FSoE master handler.
+        """Get the FSoE slave response.
+
+        It is extracted from the Safety Slave PDU PDOMap and set to the FSoE master handler.
         """
         reply = self.safety_slave_pdu_map.get_item_bytes()
         if self.__in_initial_reset:
@@ -629,14 +630,18 @@ class FSoEMaster:
             self.__mc.capture.pdo.remove_tpdo_map(servo, master_handler.safety_slave_pdu_map)
 
     def _get_request(self) -> None:
-        """Callback method to send the FSoE Master handlers requests to the
+        """Get the FSoE master handlers requests.
+
+        Callback method to send the FSoE Master handlers requests to the
         corresponding FSoE slave.
         """
         for master_handler in self.__handlers.values():
             master_handler.get_request()
 
     def _set_reply(self) -> None:
-        """Callback method to provide the FSoE Slaves responses to their
+        """Set the FSoE Slaves responses.
+
+        Callback method to provide the FSoE Slaves responses to their
         corresponding FSoE Master handler.
         """
         for master_handler in self.__handlers.values():

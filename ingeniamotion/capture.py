@@ -612,7 +612,9 @@ class Capture(metaclass=MCMetaClass):
         drive.disturbance_remove_all_mapped_registers()
 
     def clean_monitoring_disturbance(self, servo: str = DEFAULT_SERVO) -> None:
-        """Disable monitoring/disturbance, remove disturbance and monitoring
+        """Clean the monitoring/disturbance.
+
+        Disable monitoring/disturbance, remove disturbance and monitoring
         mapped registers.
 
         Args:
@@ -624,6 +626,7 @@ class Capture(metaclass=MCMetaClass):
 
     def mcb_synchronization(self, servo: str = DEFAULT_SERVO) -> None:
         """Synchronize MCB, necessary to monitoring and disturbance.
+
         Motor must be disabled.
 
         Args:

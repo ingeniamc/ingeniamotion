@@ -357,7 +357,9 @@ class Motion(metaclass=MCMetaClass):
         init_value: float = 0,
         interval: Optional[float] = None,
     ) -> None:
-        """Given a target value and a time in seconds, changes the current
+        """Generate a current quadrature ramp.
+
+        Given a target value and a time in seconds, changes the current
         quadrature set-point linearly following a ramp. This function is
         blocked until target reached.
 
@@ -386,7 +388,9 @@ class Motion(metaclass=MCMetaClass):
         init_value: float = 0,
         interval: Optional[float] = None,
     ) -> None:
-        """Given a target value and a time in seconds, changes the current
+        """Generate a current direct ramp.
+
+        Given a target value and a time in seconds, changes the current
         direct set-point linearly following a ramp. This function is
         blocked until target reached.
 
@@ -415,7 +419,9 @@ class Motion(metaclass=MCMetaClass):
         init_value: float = 0,
         interval: Optional[float] = None,
     ) -> None:
-        """Given a target value and a time in seconds, changes the voltage
+        """Generate a voltage quadrature ramp.
+
+        Given a target value and a time in seconds, changes the voltage
         quadrature set-point linearly following a ramp. This function is
         blocked until target reached.
 
@@ -444,7 +450,9 @@ class Motion(metaclass=MCMetaClass):
         init_value: float = 0,
         interval: Optional[float] = None,
     ) -> None:
-        """Given a target value and a time in seconds, changes the voltage
+        """Generate a voltage direct ramp.
+
+        Given a target value and a time in seconds, changes the voltage
         direct set-point linearly following a ramp. This function is
         blocked until target reached.
 

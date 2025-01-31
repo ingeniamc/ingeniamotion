@@ -1102,6 +1102,7 @@ class Communication(metaclass=MCMetaClass):
         servo: str = DEFAULT_SERVO,
     ) -> None:
         """Subscribe to register updates.
+
         The callback will be called when a read/write operation occurs.
 
         Args:
@@ -1149,6 +1150,7 @@ class Communication(metaclass=MCMetaClass):
         self, servo_instance: Servo, register: Register, value: Union[int, float, str, bytes]
     ) -> None:
         """This method will be the one subscribed to ingenialink.
+
         When called, the servo alias will be added to the received information.
 
         Args:
@@ -1214,6 +1216,7 @@ class Communication(metaclass=MCMetaClass):
 
     def _il_emergency_message_callback(self, emergency_message: EmergencyMessage) -> None:
         """This method will be the one subscribed to ingenialink.
+
         When called, the servo alias will be added to the received information.
 
         Args:
@@ -1600,7 +1603,9 @@ class Communication(metaclass=MCMetaClass):
         slave_id: int,
         mapping: dict[int, tuple[str, int, int]],
     ) -> int:
-        """Check that a slave is part of the ensemble described in the mapping argument and the
+        """Check the ensemble.
+
+        Check that a slave is part of the ensemble described in the mapping argument and the
         ensemble is complete (all drives described in the mapping are contained in the list of
         scanned slaves).
 
