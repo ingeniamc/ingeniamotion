@@ -115,12 +115,12 @@ class STOTest(BaseTest[LegacyDictReportType]):
         elif not sto_power_supply:
             # STO Supply Fault bit LOW --> STO Supply Fault
             return self.ResultType.STO_ABNORMAL_SUPPLY
-        elif sto_abnormal_fault:
-            # STO Abnormal Fault bit HIGH
-            if sto_abnormal_latch == SeverityLevel.SUCCESS:
-                return self.ResultType.STO_ABNORMAL_LATCHED
-            elif sto_abnormal_latch == SeverityLevel.WARNING:
-                return self.ResultType.STO_ABNORMAL
+        elif sto_abnormal_fault & (sto_abnormal_latch == SeverityLevel.SUCCESS):
+            # STO Abnormal Fault bit HIGH & Latch state
+            return self.ResultType.STO_ABNORMAL_LATCHED
+        elif sto_abnormal_fault & (sto_abnormal_latch == SeverityLevel.WARNING):
+            # STO Abnormal Fault bit HIGH & Might be Latched state
+            return self.ResultType.STO_ABNORMAL
         elif self.mc.configuration.is_sto_inactive(servo=self.servo, axis=self.axis):
             # STO Status in Inactive State --> STO Inactive
             return self.ResultType.STO_INACTIVE
