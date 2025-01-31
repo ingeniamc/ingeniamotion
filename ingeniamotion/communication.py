@@ -802,8 +802,9 @@ class Communication(metaclass=MCMetaClass):
     def scan_servos_ethercat_with_info(
         interface_name: str,
     ) -> OrderedDict[int, SlaveInfo]:
-        r"""Scan a network adapter to get all connected EtherCAT
-        slaves including slave information.
+        r"""Scan a network adapter.
+
+         Get all connected EtherCAT slaves including slave information.
 
         Args:
             interface_name : interface name. It should have format

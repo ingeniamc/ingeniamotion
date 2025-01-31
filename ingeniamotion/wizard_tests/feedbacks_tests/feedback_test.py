@@ -334,7 +334,8 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         return current_position
 
     @BaseTest.stoppable
-    def __current_ramp_up(self) -> None:
+    def current_ramp_up(self) -> None:
+        """Create a current quadrature ramp."""
         rated_current = self.mc.communication.get_register(
             self.RATED_CURRENT_REGISTER, servo=self.servo, axis=self.axis
         )
@@ -376,7 +377,7 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         self.logger.info("Generator gain set to 1")
         self.logger.info("Generator offset set to 0")
         self.logger.info("Generator cycle number set to 1")
-        self.__current_ramp_up()
+        self.current_ramp_up()
         self.__wait_for_movement(self.TIME_BETWEEN_MOVEMENT)
         return self.__get_current_position()
 
