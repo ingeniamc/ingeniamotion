@@ -693,7 +693,7 @@ class Communication(metaclass=MCMetaClass):
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
     ) -> None:
-        """Connect to an EtherCAT slave.
+        """Connect to an EtherCAT slave - CoE.
 
         Args:
             interface_name : interface name. It should have format
@@ -739,7 +739,7 @@ class Communication(metaclass=MCMetaClass):
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
     ) -> None:
-        """Connect to an EtherCAT slave.
+        """Connect to an EtherCAT slave - CoE.
 
         Args:
             if_index : interface index in list given by function
@@ -774,7 +774,7 @@ class Communication(metaclass=MCMetaClass):
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
     ) -> None:
-        """Connect to an EtherCAT slave.
+        """Connect to an EtherCAT slave - CoE.
 
         Args:
             interface_ip : IP of the interface to be connected to.
@@ -800,7 +800,8 @@ class Communication(metaclass=MCMetaClass):
     def scan_servos_ethercat_with_info(
         interface_name: str,
     ) -> OrderedDict[int, SlaveInfo]:
-        """Scan a network adapter to get all connected EtherCAT slaves including slave information.
+        """Scan a network adapter to get all connected EtherCAT
+        slaves including slave information.
 
         Args:
             interface_name : interface name. It should have format
@@ -1311,7 +1312,7 @@ class Communication(metaclass=MCMetaClass):
             FileNotFoundError: If the firmware file cannot be found.
             ValueError: If the firmware file has the wrong extension.
             ingenialink.exceptions.ILFirmwareLoadError: If no slave is detected.
-            ingenialink.exceptions.ILFirmwareLoadError: If the FoE write operation is not successful.
+            ingenialink.exceptions.ILFirmwareLoadError: If the FoE write operation fails.
 
         """
 
