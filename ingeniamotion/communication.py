@@ -801,7 +801,7 @@ class Communication(metaclass=MCMetaClass):
         interface_name: str,
     ) -> OrderedDict[int, SlaveInfo]:
         """Scan a network adapter to get all connected EtherCAT
-        slaves including slave information - CoE.
+        slaves including slave information.
 
         Args:
             interface_name : interface name. It should have format
@@ -821,7 +821,7 @@ class Communication(metaclass=MCMetaClass):
         self,
         interface_name: str,
     ) -> List[int]:
-        """Scan a network adapter to get all connected EtherCAT slaves - CoE.
+        """Scan a network adapter to get all connected EtherCAT slaves.
 
         Args:
             interface_name : interface name. It should have format
@@ -837,7 +837,7 @@ class Communication(metaclass=MCMetaClass):
         return slaves
 
     def scan_servos_ethercat_interface_ip(self, interface_ip: str) -> List[int]:
-        """Scan a network adapter to get all connected EtherCAT slaves - CoE.
+        """Scan a network adapter to get all connected EtherCAT slaves.
 
         Args:
             interface_ip : IP of the interface to be connected to.
@@ -849,7 +849,7 @@ class Communication(metaclass=MCMetaClass):
         return self.scan_servos_ethercat(self.get_ifname_from_interface_ip(interface_ip))
 
     def scan_servos_ethercat_interface_index(self, if_index: int) -> List[int]:
-        """Scan a network adapter to get all connected EtherCAT slaves - CoE.
+        """Scan a network adapter to get all connected EtherCAT slaves.
 
         Args:
             if_index : interface index in list given by function
