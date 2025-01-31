@@ -96,7 +96,7 @@ def test_register_exists(motion_controller, uid, axis, exists):
 
 
 @pytest.mark.virtual
-def test_get_product_name(motion_controller, mocker):
+def test_get_product_name(motion_controller):
     expected_product_name = "VIRTUAL-DRIVE"
 
     mc, alias, environment = motion_controller

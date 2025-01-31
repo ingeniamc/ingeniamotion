@@ -44,7 +44,7 @@ def setup_for_test_examples(motion_controller):
 
 
 @pytest.fixture
-def teardown_for_test_examples(motion_controller, tests_setup: Setup, pytestconfig):
+def teardown_for_test_examples(motion_controller, tests_setup: Setup):
     yield
     mc, alias, environment = motion_controller
 

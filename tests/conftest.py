@@ -150,7 +150,7 @@ def motion_controller(tests_setup: Setup, pytestconfig, request):
 
 
 @pytest.fixture(autouse=True)
-def disable_motor_fixture(pytestconfig, motion_controller, tests_setup):
+def disable_motor_fixture(motion_controller, tests_setup):
     yield
 
     if isinstance(tests_setup, DriveHwSetup):
@@ -160,7 +160,7 @@ def disable_motor_fixture(pytestconfig, motion_controller, tests_setup):
 
 
 @pytest.fixture
-def motion_controller_teardown(motion_controller, pytestconfig, tests_setup: Setup):
+def motion_controller_teardown(motion_controller, tests_setup: Setup):
     yield motion_controller
     if isinstance(tests_setup, DriveHwSetup):
         mc, alias, environment = motion_controller
@@ -221,7 +221,7 @@ def skip_if_monitoring_not_available(motion_controller):
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(item, call):
+def pytest_runtest_makereport(item):
     # execute all other hooks to obtain the report object
     outcome = yield
     rep = outcome.get_result()
@@ -231,7 +231,7 @@ def pytest_runtest_makereport(item, call):
 
 
 @pytest.fixture(scope="function", autouse=True)
-def load_configuration_if_test_fails(pytestconfig, request, motion_controller, tests_setup: Setup):
+def load_configuration_if_test_fails(request, motion_controller, tests_setup: Setup):
     mc, alias, environment = motion_controller
     yield
 
@@ -259,7 +259,7 @@ def mean_actual_velocity_position(mc, servo, velocity=False, n_samples=200, samp
 
 
 @pytest.fixture(scope="module", autouse=True)
-def load_configuration_after_each_module(pytestconfig, motion_controller, tests_setup: Setup):
+def load_configuration_after_each_module(motion_controller, tests_setup: Setup):
     yield motion_controller
 
     if isinstance(tests_setup, DriveHwSetup):
@@ -279,7 +279,7 @@ def connect_to_rack_service(request):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def load_firmware(pytestconfig, tests_setup: Setup, request):
+def load_firmware(tests_setup: Setup, request):
     if not isinstance(tests_setup, DriveHwSetup):
         return
 
