@@ -16,7 +16,7 @@ from ingeniamotion.enums import SeverityLevel
 
 
 class TestError(Exception):
-    pass
+    """Test error exception."""
 
 
 LegacyDictReportType = dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]
@@ -36,6 +36,8 @@ T = TypeVar("T", bound=Union[LegacyDictReportType, ReportBase])
 
 
 class BaseTest(ABC, Stoppable, Generic[T]):
+    """Abstract base Test class."""
+
     WARNING_BIT_MASK = 0x0FFFFFFF
 
     def __init__(self) -> None:

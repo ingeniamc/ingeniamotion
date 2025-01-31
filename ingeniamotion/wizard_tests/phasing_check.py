@@ -13,6 +13,8 @@ if TYPE_CHECKING:
 
 
 class PhasingCheck(BaseTest[LegacyDictReportType]):
+    """Phasing check test class."""
+
     MAX_ALLOWED_ANGLE_MOVE = 15
     INITIAL_ANGLE = 180.0
     INITIAL_ANGLE_HALLS = 240.0

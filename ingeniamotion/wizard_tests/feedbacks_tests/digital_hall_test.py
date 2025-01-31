@@ -8,6 +8,8 @@ from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
 
 
 class DigitalHallTest(Feedbacks):
+    """Digital hall test class."""
+
     HALLS_FILTER_CUTOFF_FREQUENCY = 10
     DIG_HALL_POLE_PAIRS_REGISTER = "FBK_DIGHALL_PAIRPOLES"
 

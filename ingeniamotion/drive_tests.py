@@ -31,6 +31,8 @@ from ingeniamotion.wizard_tests.sto import STOTest
 
 
 class DriveTests(metaclass=MCMetaClass):
+    """Class that contain the tests that can be performed on a drive."""
+
     __sensors = {
         SensorType.ABS1: AbsoluteEncoder1Test,
         SensorType.QEI: DigitalIncremental1Test,

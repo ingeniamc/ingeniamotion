@@ -20,6 +20,8 @@ if TYPE_CHECKING:
 
 
 class Phasing(BaseTest[LegacyDictReportType]):
+    """Phasing test class."""
+
     INTERNAL_GENERATOR_VALUE = 3
     INITIAL_ANGLE = 180.0
     INITIAL_ANGLE_HALLS = 240.0

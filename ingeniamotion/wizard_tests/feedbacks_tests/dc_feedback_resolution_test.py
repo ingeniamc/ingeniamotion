@@ -13,6 +13,8 @@ if TYPE_CHECKING:
 
 
 class DCFeedbacksResolutionTest(BaseTest[LegacyDictReportType]):
+    """DC feedback resolution test class."""
+
     MOVEMENT_ERROR_FACTOR = 0.05
     DEFAULT_PROFILE_MAX_VEL = 0.3
     DEFAULT_VELOCITY_PID = {"kp": 0.1, "ki": 10, "kd": 0}

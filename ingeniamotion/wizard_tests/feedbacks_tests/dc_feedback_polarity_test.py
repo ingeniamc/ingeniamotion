@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 
 
 class DCFeedbacksPolarityTest(BaseTest[LegacyDictReportType]):
+    """DC feedback polarity test class."""
+
     MOVEMENT_ERROR_FACTOR = 0.05
     CURRENT_RAMP_TOTAL_TIME = 5
     CURRENT_RAMP_INTERVAL = 0.1

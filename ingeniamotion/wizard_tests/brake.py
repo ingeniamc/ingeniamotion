@@ -13,6 +13,8 @@ if TYPE_CHECKING:
 
 
 class Brake(BaseTest[None]):  # type: ignore [type-var]
+    """Brake test class."""
+
     BRAKE_OVERRIDE_REGISTER = "MOT_BRAKE_OVERRIDE"
 
     PRIMARY_ABSOLUTE_SLAVE_1_PROTOCOL = "FBK_BISS1_SSI1_PROTOCOL"

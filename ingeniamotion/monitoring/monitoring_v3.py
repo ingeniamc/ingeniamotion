@@ -18,6 +18,8 @@ from ingeniamotion.monitoring.base_monitoring import Monitoring, check_monitorin
 
 
 class MonitoringV3(Monitoring):
+    """Motoring V3 class."""
+
     MONITORING_REARM_REGISTER = "MON_REARM"
     MONITOR_START_CONDITION_CONFIG_REGISTER = "MON_CFG_EOC_TYPE"
     MONITORING_TRIGGER_THRESHOLD_REGISTER = "MON_CFG_RISING_CONDITION"

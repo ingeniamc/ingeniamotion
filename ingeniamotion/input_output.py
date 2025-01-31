@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 
 
 class InputsOutputs(metaclass=MCMetaClass):
+    """Class that contains the GPIO functionalities."""
+
     GPIO_IN_VALUE_REGISTER = "IO_IN_VALUE"
     GPIO_IN_POLARITY_REGISTER = "IO_IN_POLARITY"
 

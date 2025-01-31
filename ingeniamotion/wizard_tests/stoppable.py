@@ -13,6 +13,12 @@ T = typing.TypeVar("T")
 
 
 class Stoppable:
+    """Stoppable class.
+
+    It allows a test to be stoppable.
+
+    """
+
     stop_queue: Queue[StopExceptionError] = Queue(1)
 
     @staticmethod

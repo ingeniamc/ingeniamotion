@@ -14,6 +14,8 @@ from ingeniamotion.monitoring.base_monitoring import Monitoring, check_monitorin
 
 
 class MonitoringV1(Monitoring):
+    """Motoring V1 class."""
+
     EOC_TRIGGER_NUMBER_SAMPLES = 3
 
     TRIGGER_CYCLIC_RISING_EDGE = 2

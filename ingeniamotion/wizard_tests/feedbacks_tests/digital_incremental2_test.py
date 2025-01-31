@@ -7,6 +7,8 @@ from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
 
 
 class DigitalIncremental2Test(Feedbacks):
+    """Digital incremental 2 test class."""
+
     BACKUP_REGISTERS_QEI2: list[str] = ["FBK_DIGENC2_POLARITY"]
 
     FEEDBACK_POLARITY_REGISTER = "FBK_DIGENC2_POLARITY"

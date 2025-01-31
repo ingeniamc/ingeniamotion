@@ -28,6 +28,8 @@ if TYPE_CHECKING:
 
 
 class TYPE_SUBNODES(IntEnum):  # noqa: N801
+    """Subnode type enum."""
+
     COCO = 0
     MOCO = 1
 

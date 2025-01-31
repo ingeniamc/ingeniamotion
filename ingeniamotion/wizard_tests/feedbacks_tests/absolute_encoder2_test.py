@@ -8,6 +8,8 @@ from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
 
 
 class AbsoluteEncoder2Test(Feedbacks):
+    """Absolute encoder 2 test class."""
+
     BACKUP_REGISTERS_BISSC2: list[str] = ["FBK_BISS2_POS_POLARITY"]
 
     FEEDBACK_POLARITY_REGISTER = "FBK_BISS2_POS_POLARITY"
