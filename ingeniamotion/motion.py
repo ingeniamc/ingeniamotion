@@ -485,6 +485,7 @@ class Motion(metaclass=MCMetaClass):
             interval: Time between each sample.
 
         Returns:
+            The ramp generator object.
 
         """
         slope = (final_v - init_v) / total_t

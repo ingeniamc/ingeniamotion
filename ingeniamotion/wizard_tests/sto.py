@@ -2,6 +2,7 @@ from enum import IntEnum
 from typing import TYPE_CHECKING, Optional
 
 import ingenialogger
+from typing_extensions import override
 
 from ingeniamotion.enums import SeverityLevel
 from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType
@@ -63,12 +64,15 @@ class STOTest(BaseTest[LegacyDictReportType]):
         self.suggested_registers = {}
         self.TEST_TYPE = self.ResultType
 
+    @override
     def setup(self) -> None:
         pass
 
+    @override
     def teardown(self) -> None:
         pass
 
+    @override
     def loop(self) -> ResultType:
         if self.mc.configuration.is_sto1_active(servo=self.servo, axis=self.axis):
             self.logger.info("STO1 bit is LOW")
@@ -120,9 +124,11 @@ class STOTest(BaseTest[LegacyDictReportType]):
         else:
             return self.ResultType.STO_INPUTS_DIFFER
 
+    @override
     def get_result_msg(self, output: ResultType) -> str:
         return self.result_description[output]
 
+    @override
     def get_result_severity(self, output: ResultType) -> SeverityLevel:
         if output < self.ResultType.STO_INACTIVE:
             return SeverityLevel.FAIL

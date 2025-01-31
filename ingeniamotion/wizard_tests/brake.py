@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, Optional, Union
 
 import ingenialogger
 from ingenialink.exceptions import ILError
+from typing_extensions import override
 
 from ingeniamotion.enums import CommutationMode, OperationMode, SensorType, SeverityLevel
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
@@ -50,6 +51,7 @@ class Brake(BaseTest[None]):  # type: ignore [type-var]
             self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=logger_drive_name)
         self.backup_registers_names = self.BACKUP_REGISTERS
 
+    @override
     def setup(self) -> None:
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
         self.mc.configuration.disable_brake_override(servo=self.servo, axis=self.axis)
@@ -75,13 +77,21 @@ class Brake(BaseTest[None]):  # type: ignore [type-var]
             self.PRIMARY_ABSOLUTE_SLAVE_1_PROTOCOL, 1, servo=self.servo, axis=self.axis
         )
 
+    @override
     def loop(self) -> None:
         self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
 
+    @override
     def teardown(self) -> None:
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
 
     def finish(self) -> dict[str, Union[SeverityLevel, str]]:
+        """Finish the test.
+
+        Returns:
+            The test result.
+
+        """
         try:
             self.teardown()
         finally:
@@ -92,6 +102,7 @@ class Brake(BaseTest[None]):  # type: ignore [type-var]
             "result_message": self.get_result_msg(output),
         }
 
+    @override
     def run(self) -> None:
         self.reset_stop()
         self.save_backup_registers()
@@ -105,9 +116,11 @@ class Brake(BaseTest[None]):  # type: ignore [type-var]
             self.logger.warning("Test has been stopped")
             self.finish()
 
+    @override
     def get_result_severity(self, output: SeverityLevel) -> SeverityLevel:
         return output
 
+    @override
     def get_result_msg(self, output: SeverityLevel) -> str:
         if output == SeverityLevel.SUCCESS:
             return "Success"

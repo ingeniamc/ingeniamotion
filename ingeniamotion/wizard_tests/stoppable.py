@@ -23,6 +23,16 @@ class Stoppable:
 
     @staticmethod
     def stoppable(fun: Callable[..., T]) -> Callable[..., T]:
+        """Stoppable decorator.
+
+        Args:
+            fun: The function to decorate.
+
+        Returns:
+            The decorated function.
+
+        """
+
         @wraps(fun)
         def wrapper(self, *args, **kwargs):  # type: ignore[no-untyped-def]
             self.check_stop()
@@ -31,14 +41,17 @@ class Stoppable:
         return wrapper
 
     def reset_stop(self) -> None:
+        """Reset the stop."""
         with contextlib.suppress(Empty):
             self.stop_queue.get(block=False)
 
     def stop(self) -> None:
+        """Stop the test."""
         with contextlib.suppress(Full):
             self.stop_queue.put(StopExceptionError(), block=False)
 
     def check_stop(self) -> None:
+        """Check if the test was stopped."""
         try:
             stop_exception = self.stop_queue.get(block=False)
         except Empty:
@@ -47,6 +60,12 @@ class Stoppable:
             raise stop_exception
 
     def stoppable_sleep(self, timeout: float) -> None:
+        """A stoppable sleep.
+
+        Args:
+            timeout: Time to sleep.
+
+        """
         try:
             stop_exception = self.stop_queue.get(timeout=timeout)
         except Empty:

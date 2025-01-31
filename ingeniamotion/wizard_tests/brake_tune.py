@@ -2,6 +2,7 @@ from enum import IntEnum
 from typing import Optional, Union
 
 import ingenialogger
+from typing_extensions import override
 
 from ingeniamotion.enums import OperationMode, SeverityLevel
 from ingeniamotion.exceptions import IMRegisterNotExist
@@ -70,6 +71,7 @@ class BrakeTune(BaseTest[LegacyDictReportType]):
         self.backup_registers_names = self.BACKUP_REGISTERS
         self.__enable_disable_motor_period = enable_disable_motor_period
 
+    @override
     def setup(self) -> None:
         # Make sure Brake override is disabled
         self.mc.configuration.disable_brake_override(servo=self.servo, axis=self.axis)
@@ -80,6 +82,7 @@ class BrakeTune(BaseTest[LegacyDictReportType]):
         # Make sure direct voltage is set to 0v
         self.mc.motion.set_voltage_direct(0, servo=self.servo, axis=self.axis)
 
+    @override
     @BaseTest.stoppable
     def loop(self) -> Optional[ResultBrakeType]:
         try:
@@ -125,10 +128,12 @@ class BrakeTune(BaseTest[LegacyDictReportType]):
         brake_registers_updated[BrakeRegKey.CONTROL_MODE] = updated_brake_control_mode
         return brake_registers_updated
 
+    @override
     def teardown(self) -> None:
         self.logger.info("Disabling brake")
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
 
+    @override
     def get_result_severity(self, output: ResultBrakeType) -> SeverityLevel:
         severity_options = {
             ResultBrakeType.SUCCESS: SeverityLevel.SUCCESS,
@@ -138,6 +143,7 @@ class BrakeTune(BaseTest[LegacyDictReportType]):
         }
         return severity_options[output]
 
+    @override
     def get_result_msg(self, output: ResultBrakeType) -> str:
         message_options = {
             ResultBrakeType.SUCCESS: "Brake tune is stopped properly",
