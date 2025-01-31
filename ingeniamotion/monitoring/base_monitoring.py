@@ -350,7 +350,6 @@ class Monitoring(ABC):
     def _check_data_is_ready(self) -> bool:
         pass
 
-    # TODO Study remove progress_callback
     def read_monitoring_data(
         self,
         timeout: Optional[float] = None,

@@ -50,8 +50,6 @@ class DigitalHallTest(Feedbacks):
             servo=self.servo, axis=self.axis
         )
         # Read velocity feedback, if is HALLS set filter to 10 Hz
-        # TODO: set filter depending on motors rated velocity by the
-        #  following formula: f_halls = w_mechanical * pp * 6
         if velocity_feedback == SensorType.HALLS:
             filter_type_uid = self.VELOCITY_FEEDBACK_FILTER_1_TYPE_REGISTER
             filter_freq_uid = self.VELOCITY_FEEDBACK_FILTER_1_FREQUENCY_REGISTER

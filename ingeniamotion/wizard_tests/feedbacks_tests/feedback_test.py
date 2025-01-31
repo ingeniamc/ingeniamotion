@@ -193,7 +193,6 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
 
     @BaseTest.stoppable
     def __reaction_codes_to_warning(self) -> None:
-        # TODO Add function in errors to disable errors
         # set velocity and position following errors to WARNING = 1
         # ignore failed writes
         following_error_uids = [

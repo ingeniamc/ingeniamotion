@@ -16,7 +16,6 @@ if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 # Constants for typing
-# TODO: INGM-327
 TYPE_MAPPED_REGISTERS_ALL = dict[str, Union[str, int, list[float]]]
 TYPE_MAPPED_REGISTERS_NAME_AXIS = dict[str, Union[str, int, RegDtype]]
 TYPE_MAPPED_REGISTERS_DATA = dict[str, list[Union[int, float]]]
@@ -60,7 +59,7 @@ class Disturbance:
     DISTURBANCE_MAXIMUM_SAMPLE_SIZE_REGISTER = "DIST_MAX_SIZE"
     MONITORING_DISTURBANCE_STATUS_REGISTER = "MON_DIST_STATUS"
 
-    DISTURBANCE_STATUS_ENABLED_BIT = 0x1000  # TODO: Not implemented yet
+    DISTURBANCE_STATUS_ENABLED_BIT = 0x1000
     MONITORING_STATUS_ENABLED_BIT = 0x1
     REGISTER_MAP_OFFSET = 0x800
 

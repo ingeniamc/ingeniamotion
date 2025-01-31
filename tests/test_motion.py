@@ -201,7 +201,6 @@ def test_set_velocity(motion_controller, velocity_value):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
-# TODO Update approx error. Well tuned motor is needed.
 @pytest.mark.parametrize("velocity_value", [0.5, 1, 0, -0.5])
 def test_set_velocity_blocking(motion_controller, velocity_value):
     mc, alias, environment = motion_controller

@@ -105,7 +105,6 @@ class MonitoringV3(Monitoring):
             )
         return is_ready, result_text
 
-    # TODO Study remove progress_callback
     @override
     def read_monitoring_data(
         self,
