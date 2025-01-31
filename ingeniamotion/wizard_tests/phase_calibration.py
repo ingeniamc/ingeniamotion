@@ -272,9 +272,14 @@ class Phasing(BaseTest[LegacyDictReportType]):
             num_of_steps += 1
         return num_of_steps
 
-    @override
     @BaseTest.stoppable
     def set_phasing_mode(self) -> PhasingMode:
+        """Set the phasing mode.
+
+        Returns:
+            The phasing mode.
+
+        """
         ref_category = self.mc.configuration.get_reference_feedback_category(
             servo=self.servo, axis=self.axis
         )

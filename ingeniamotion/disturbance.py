@@ -228,13 +228,13 @@ class Disturbance:
                 Union[
                     int,
                     float,
-                    NDArray[np.int_],
-                    NDArray[np.float64],
+                    NDArray[np.int32],
+                    NDArray[np.float32],
                     TYPE_MAPPED_REGISTERS_DATA_NO_KEY,
                 ]
             ],
-            NDArray[np.int_],
-            NDArray[np.float64],
+            NDArray[np.int32],
+            NDArray[np.float32],
         ],
     ) -> None:
         """Write data in mapped registers. Disturbance must be disabled.
