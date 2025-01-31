@@ -324,7 +324,7 @@ def test_current_ramp_up(motion_controller, test_currents, test_sensor):
 
     mc.communication.set_register(RATED_CURRENT_REGISTER, current_motor, servo=alias, axis=1)
 
-    feedbacks_test.__current_ramp_up()
+    feedbacks_test.current_ramp_up()
 
     current_quadrature = mc.communication.get_register(
         CURRENT_QUADRATURE_SET_POINT_REGISTER, servo=alias, axis=1
