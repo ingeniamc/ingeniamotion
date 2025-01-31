@@ -1,5 +1,7 @@
 from typing import TYPE_CHECKING, Optional
 
+from typing_extensions import override
+
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
 from ingeniamotion.enums import SensorType
@@ -22,6 +24,7 @@ class AbsoluteEncoder2Test(Feedbacks):
         super().__init__(mc, servo, axis, logger_drive_name)
         self.backup_registers_names.extend(self.BACKUP_REGISTERS_BISSC2)
 
+    @override
     @BaseTest.stoppable
     def feedback_setting(self) -> None:
         super().feedback_setting()

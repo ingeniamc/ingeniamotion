@@ -1,5 +1,7 @@
 from typing import TYPE_CHECKING, Optional
 
+from typing_extensions import override
+
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
 from ingeniamotion.enums import SensorType
@@ -29,13 +31,14 @@ class DigitalHallTest(Feedbacks):
         super().__init__(mc, servo, axis, logger_drive_name)
         self.backup_registers_names.extend(self.BACKUP_REGISTERS_HALLS)
 
+    @override
     @BaseTest.stoppable
     def feedback_setting(self) -> None:
-        self.halls_extra_settings()
+        self.__halls_extra_settings()
         super().feedback_setting()
 
     @BaseTest.stoppable
-    def halls_extra_settings(self) -> None:
+    def __halls_extra_settings(self) -> None:
         if self.pair_poles is None:
             raise TypeError("Pair poles has to be an integer")
         self.mc.communication.set_register(
@@ -61,6 +64,7 @@ class DigitalHallTest(Feedbacks):
             del self.backup_registers[self.axis][self.VELOCITY_FEEDBACK_FILTER_1_TYPE_REGISTER]
             del self.backup_registers[self.axis][self.VELOCITY_FEEDBACK_FILTER_1_FREQUENCY_REGISTER]
 
+    @override
     @BaseTest.stoppable
     def suggest_polarity(self, pol: Feedbacks.Polarity) -> None:
         polarity_uid = self.FEEDBACK_POLARITY_REGISTER

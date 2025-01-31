@@ -2,6 +2,7 @@ from enum import IntEnum
 from typing import TYPE_CHECKING, Optional
 
 import ingenialogger
+from typing_extensions import override
 
 from ingeniamotion.enums import FeedbackPolarity, OperationMode, SensorType, SeverityLevel
 from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType, TestError
@@ -59,6 +60,7 @@ class DCFeedbacksPolarityTest(BaseTest[LegacyDictReportType]):
         else:
             self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=logger_drive_name)
 
+    @override
     @BaseTest.stoppable
     def setup(self) -> None:
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
@@ -139,6 +141,7 @@ class DCFeedbacksPolarityTest(BaseTest[LegacyDictReportType]):
             return FeedbackPolarity.REVERSED
         return FeedbackPolarity.NORMAL
 
+    @override
     @BaseTest.stoppable
     def loop(self) -> ResultType:
         rated_current = self.mc.configuration.get_rated_current(servo=self.servo, axis=self.axis)
@@ -154,16 +157,19 @@ class DCFeedbacksPolarityTest(BaseTest[LegacyDictReportType]):
         self.suggested_registers[polarity_uid] = polarity
         return self.ResultType.SUCCESS
 
+    @override
     def teardown(self) -> None:
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
         self.logger.info("Motor disable")
 
+    @override
     def get_result_msg(self, output: ResultType) -> str:
         description = self.result_description.get(output)
         if description is None:
             raise NotImplementedError("Result description not implemented")
         return description
 
+    @override
     def get_result_severity(self, output: ResultType) -> SeverityLevel:
         if output == self.ResultType.SUCCESS:
             return SeverityLevel.SUCCESS

@@ -3,6 +3,7 @@ from enum import IntEnum
 from typing import TYPE_CHECKING, Optional
 
 import ingenialogger
+from typing_extensions import override
 
 from ingeniamotion.enums import OperationMode, SensorType, SeverityLevel
 from ingeniamotion.exceptions import IMTimeoutError
@@ -79,6 +80,7 @@ class DCFeedbacksResolutionTest(BaseTest[LegacyDictReportType]):
         else:
             self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=logger_drive_name)
 
+    @override
     @BaseTest.stoppable
     def setup(self) -> None:
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
@@ -117,6 +119,7 @@ class DCFeedbacksResolutionTest(BaseTest[LegacyDictReportType]):
         self.mc.motion.set_operation_mode(self.OPERATION_MODE, servo=self.servo, axis=self.axis)
         self.logger.info(f"Set operation mode to {self.OPERATION_MODE.name}")
 
+    @override
     @BaseTest.stoppable
     def loop(self) -> ResultType:
         initial_pos = self.mc.motion.get_actual_position(servo=self.servo, axis=self.axis)
@@ -146,16 +149,19 @@ class DCFeedbacksResolutionTest(BaseTest[LegacyDictReportType]):
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
         return self.ResultType.SUCCESS
 
+    @override
     def teardown(self) -> None:
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
         self.logger.info("Motor disable")
 
+    @override
     def get_result_msg(self, output: ResultType) -> str:
         description = self.result_description.get(output)
         if description is None:
             raise NotImplementedError("Result description not implemented")
         return description
 
+    @override
     def get_result_severity(self, output: ResultType) -> SeverityLevel:
         if output == self.ResultType.SUCCESS:
             return SeverityLevel.SUCCESS

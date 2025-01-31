@@ -52,6 +52,7 @@ class BaseTest(ABC, Stoppable, Generic[T]):
         self.logger = ingenialogger.get_logger(__name__)
 
     def save_backup_registers(self) -> None:
+        """Store the value of the backup registers before the test execution."""
         self.backup_registers[self.axis] = {}
         try:
             for uid in self.backup_registers_names:
@@ -82,6 +83,7 @@ class BaseTest(ABC, Stoppable, Generic[T]):
 
     @Stoppable.stoppable
     def show_error_message(self) -> None:
+        """Raise an exception containing the last generated error."""
         error_code, axis, warning = self.mc.errors.get_last_buffer_error(
             servo=self.servo, axis=self.axis
         )
@@ -90,19 +92,20 @@ class BaseTest(ABC, Stoppable, Generic[T]):
 
     @abstractmethod
     def setup(self) -> None:
-        pass
+        """Actions to perform before the test is run."""
 
     @abstractmethod
     def loop(self) -> Any:
-        pass
+        """Actions to perform during the test."""
 
     @abstractmethod
     def teardown(self) -> None:
-        pass
+        """Actions to perform after the test is run."""
 
     def run(
         self,
     ) -> Optional[T]:
+        """Run the test."""
         self.reset_stop()
         self.save_backup_registers()
         try:
@@ -121,6 +124,15 @@ class BaseTest(ABC, Stoppable, Generic[T]):
         return self.report
 
     def generate_report(self, output: Any) -> T:
+        """Generate the test report.
+
+        Args:
+            output: The test output.
+
+        Returns:
+            The test report.
+
+        """
         return {
             "result_severity": self.get_result_severity(output),
             "suggested_registers": self.suggested_registers,
@@ -129,8 +141,24 @@ class BaseTest(ABC, Stoppable, Generic[T]):
 
     @abstractmethod
     def get_result_msg(self, output: Any) -> str:
-        pass
+        """Get the test result message.
+
+        Args:
+            output: The test output.
+
+        Returns:
+            The test result message.
+
+        """
 
     @abstractmethod
     def get_result_severity(self, output: Any) -> SeverityLevel:
-        pass
+        """Get the test result severity.
+
+        Args:
+            output: The test output.
+
+        Returns:
+            The test result severity level.
+
+        """
