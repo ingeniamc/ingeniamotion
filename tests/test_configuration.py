@@ -10,7 +10,7 @@ from ingeniamotion.enums import (
     FilterNumber,
     FilterSignal,
     FilterType,
-    SeverityLevel,
+    STOAbnormalStatus,
 )
 from ingeniamotion.exceptions import IMException
 
@@ -513,17 +513,17 @@ def test_is_sto_inactive(mocker, motion_controller, sto_status_value, expected_r
     "sto_status_value, expected_result",
     [
         # STO Status Inactive, expected output SeverityLevel.FAIL
-        (0x1BF3, SeverityLevel.FAIL),
+        (0x1BF3, STOAbnormalStatus.NOT),
         # STO Status Supply Fault, expected output SeverityLevel.FAIL
-        (0x6B7, SeverityLevel.FAIL),
+        (0x6B7, STOAbnormalStatus.NOT),
         # STO Status Abnormal STO Latched, expected output SeverityLevel.SUCCESS
-        (0x1F, SeverityLevel.SUCCESS),
+        (0x1F, STOAbnormalStatus.ABNORMAL),
         # STO Status Abnormal STO Latched, expected output SeverityLevel.SUCCESS
-        (0x1C, SeverityLevel.SUCCESS),
+        (0x1C, STOAbnormalStatus.ABNORMAL),
         # STO Status Abnormal STO Might be Latched, expected output SeverityLevel.WARNING
-        (0x1D, SeverityLevel.WARNING),
+        (0x1D, STOAbnormalStatus.UNDETERMINATED),
         # STO Status Abnormal STO Might be Latched, expected output SeverityLevel.WARNING
-        (0x1E, SeverityLevel.WARNING),
+        (0x1E, STOAbnormalStatus.UNDETERMINATED),
     ],
 )
 def test_is_sto_abnormal_latched(mocker, motion_controller, sto_status_value, expected_result):
