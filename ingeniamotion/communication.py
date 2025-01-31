@@ -422,8 +422,7 @@ class Communication(metaclass=MCMetaClass):
             index = self._get_interface_index_by_address(address)
         except IndexError:
             raise ValueError(
-                f"Could not found a adapter configured as {address} "
-                f"to connect as EtherCAT master"
+                f"Could not found a adapter configured as {address} to connect as EtherCAT master"
             )
         return self.__get_adapter_name(index)
 
@@ -888,8 +887,7 @@ class Communication(metaclass=MCMetaClass):
 
         if net is None:
             self.logger.warning(
-                "Could not find any nodes in the network."
-                "Device: %s, channel: %s and baudrate: %s.",
+                "Could not find any nodes in the network.Device: %s, channel: %s and baudrate: %s.",
                 can_device,
                 channel,
                 baudrate,
@@ -924,8 +922,7 @@ class Communication(metaclass=MCMetaClass):
 
         if net is None:
             self.logger.warning(
-                "Could not find any nodes in the network."
-                "Device: %s, channel: %s and baudrate: %s.",
+                "Could not find any nodes in the network.Device: %s, channel: %s and baudrate: %s.",
                 can_device,
                 channel,
                 baudrate,
