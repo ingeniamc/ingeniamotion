@@ -834,11 +834,11 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         Check if STO is abnormal latched.
 
         Args:
-            servo (str, optional): servo alias to reference it. ``default`` by default.
-            axis (int, optional): servo axis. ``1`` by default.
+            servo : servo alias to reference it. ``default`` by default.
+            axis : servo axis. ``1`` by default.
 
         Returns:
-            STOAbnormalStatus: STO Abnormal Latch state. WARNING if status is unclear.
+            STOAbnormalStatus: STO Abnormal Latch state.
         """
         sto_status = self.get_sto_status(servo, axis)
         if bool(sto_status & self.STO_ABNORMAL_FAULT_BIT):
