@@ -171,7 +171,7 @@ def motion_controller_teardown(motion_controller, tests_setup: Setup):
 
 
 @pytest.fixture
-def disable_monitoring_disturbance(motion_controller):
+def disable_monitoring_disturbance(skip_if_monitoring_not_available, motion_controller):  # noqa: ARG001
     yield
     mc, alias, environment = motion_controller
     mc.capture.clean_monitoring_disturbance(servo=alias)
