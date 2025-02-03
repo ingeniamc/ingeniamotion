@@ -92,6 +92,7 @@ class TestErrors:
     @pytest.mark.soem
     @pytest.mark.canopen
     @pytest.mark.smoke
+    @pytest.mark.usefixtures("generate_drive_errors")
     def test_get_buffer_error_by_index_exception(self, motion_controller):
         mc, alias, environment = motion_controller
         with pytest.raises(ValueError):
@@ -121,6 +122,7 @@ class TestErrors:
     @pytest.mark.soem
     @pytest.mark.canopen
     @pytest.mark.smoke
+    @pytest.mark.usefixtures("generate_drive_errors")
     def test_is_fault_active(self, motion_controller):
         mc, alias, environment = motion_controller
         assert mc.errors.is_fault_active(servo=alias)
