@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 
 
 class InputsOutputs(metaclass=MCMetaClass):
+    """Class that contains the GPIO functionalities."""
+
     GPIO_IN_VALUE_REGISTER = "IO_IN_VALUE"
     GPIO_IN_POLARITY_REGISTER = "IO_IN_POLARITY"
 
@@ -189,17 +191,15 @@ class InputsOutputs(metaclass=MCMetaClass):
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
     ) -> None:
-        """
-        Description:
-            Set the board voltage level (not the logic level at the uC) of a single GPO.
+        """Set the board voltage level (not the logic level at the uC) of a single GPO.
 
-            This function generates the GPO set point from the actual GPO value and modifies
-            the corresponding bit of the desired GPO.
+        This function generates the GPO set point from the actual GPO value and modifies
+        the corresponding bit of the desired GPO.
 
-            Finally, it checks that GPOs final value matches with the desired GPOs set point
+        Finally, it checks that GPOs final value matches with the desired GPOs set point
 
-            .. warning::
-                Ensure the polarity is right, if not the output will be wrong.
+        .. warning::
+            Ensure the polarity is right, if not the output will be wrong.
 
         Args:
             gpo_id: the GPO to be set.

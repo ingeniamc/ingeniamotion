@@ -1,7 +1,8 @@
-from typing import TYPE_CHECKING, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import ingenialogger
 from ingenialink.enums.register import RegDtype
+from typing_extensions import override
 
 from ingeniamotion.enums import MonitoringSoCConfig, MonitoringSoCType, MonitoringVersion
 from ingeniamotion.exceptions import IMStatusWordError
@@ -14,6 +15,8 @@ from ingeniamotion.monitoring.base_monitoring import Monitoring, check_monitorin
 
 
 class MonitoringV1(Monitoring):
+    """Motoring V1 class."""
+
     EOC_TRIGGER_NUMBER_SAMPLES = 3
 
     TRIGGER_CYCLIC_RISING_EDGE = 2
@@ -46,11 +49,12 @@ class MonitoringV1(Monitoring):
         raise NotImplementedError("Edge condition is not implementedfor this FW version")
 
     @check_monitoring_disabled
+    @override
     def set_trigger(
         self,
         trigger_mode: Union[MonitoringSoCType, int],
         edge_condition: Optional[MonitoringSoCConfig] = None,
-        trigger_signal: Optional[Dict[str, str]] = None,
+        trigger_signal: Optional[dict[str, str]] = None,
         trigger_value: Union[int, float, None] = None,
     ) -> None:
         self.rearm_monitoring()
@@ -79,6 +83,7 @@ class MonitoringV1(Monitoring):
         )
 
     @check_monitoring_disabled
+    @override
     def configure_number_samples(self, total_num_samples: int, trigger_delay_samples: int) -> None:
         if trigger_delay_samples > total_num_samples:
             raise ValueError("trigger_delay_samples should be less than total_num_samples")
@@ -110,7 +115,7 @@ class MonitoringV1(Monitoring):
         self.samples_number = total_num_samples
         self.trigger_delay_samples = trigger_delay_samples
 
-    def _check_monitoring_is_ready(self) -> Tuple[bool, Optional[str]]:
+    def _check_monitoring_is_ready(self) -> tuple[bool, Optional[str]]:
         is_enabled = self.mc.capture.is_monitoring_enabled(self.servo)
         result_text = None
         trigger_repetitions = self.mc.communication.get_register(
@@ -121,9 +126,8 @@ class MonitoringV1(Monitoring):
             text_is_enabled = "enabled" if is_enabled else "disabled"
             result_text = (
                 "Can't read monitoring data because monitoring is not ready."
-                " MON_CFG_TRIGGER_REPETITIONS is {}. Monitoring is {}.".format(
-                    trigger_repetitions, text_is_enabled
-                )
+                f" MON_CFG_TRIGGER_REPETITIONS is {trigger_repetitions}. "
+                f"Monitoring is {text_is_enabled}."
             )
         return is_ready, result_text
 
@@ -138,6 +142,7 @@ class MonitoringV1(Monitoring):
             data_is_ready &= self.mc.capture.is_frame_available(self.servo, version=self._version)
         return data_is_ready
 
+    @override
     def rearm_monitoring(self) -> None:
         self.mc.communication.set_register(
             self.MONITORING_NUMBER_TRIGGER_REPETITIONS_REGISTER, 1, servo=self.servo, axis=0
@@ -147,7 +152,7 @@ class MonitoringV1(Monitoring):
         self,
         total_samples: int,
         trigger_delay_samples: int,
-        registers: List[Dict[str, Union[int, str, RegDtype]]],
+        registers: list[dict[str, Union[int, str, RegDtype]]],
     ) -> None:
         n_sample = max(total_samples - trigger_delay_samples, trigger_delay_samples)
         max_size = self.max_sample_number // 2

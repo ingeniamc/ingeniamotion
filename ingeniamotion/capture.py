@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import numpy as np
 from ingenialink.dictionary import SubnodeType
@@ -62,7 +62,7 @@ class Capture(metaclass=MCMetaClass):
 
     def create_poller(
         self,
-        registers: List[Dict[str, Union[int, str]]],
+        registers: list[dict[str, Union[int, str]]],
         servo: str = DEFAULT_SERVO,
         sampling_time: float = 0.125,
         buffer_size: int = 100,
@@ -161,13 +161,13 @@ class Capture(metaclass=MCMetaClass):
 
     def create_monitoring(
         self,
-        registers: List[Dict[str, Union[int, str]]],
+        registers: list[dict[str, Union[int, str]]],
         prescaler: int,
         sample_time: float,
         trigger_delay: float = 0,
         trigger_mode: MonitoringSoCType = MonitoringSoCType.TRIGGER_EVENT_AUTO,
         trigger_config: Optional[MonitoringSoCConfig] = None,
-        trigger_signal: Optional[Dict[str, Union[int, str]]] = None,
+        trigger_signal: Optional[dict[str, Union[int, str]]] = None,
         trigger_value: Union[float, int, None] = None,
         servo: str = DEFAULT_SERVO,
         start: bool = False,
@@ -245,7 +245,7 @@ class Capture(metaclass=MCMetaClass):
     def create_disturbance(
         self,
         register: str,
-        data: Union[List[Union[float, int]], NDArray[np.int_], NDArray[np.float_]],
+        data: Union[list[Union[float, int]], NDArray[np.int_], NDArray[np.float64]],
         freq_divider: int,
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
@@ -537,8 +537,7 @@ class Capture(metaclass=MCMetaClass):
     def get_monitoring_process_stage(
         self, servo: str = DEFAULT_SERVO, version: Optional[MonitoringVersion] = None
     ) -> MonitoringProcessStage:
-        """
-        Return monitoring process stage.
+        """Return monitoring process stage.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -562,8 +561,7 @@ class Capture(metaclass=MCMetaClass):
     def is_frame_available(
         self, servo: str = DEFAULT_SERVO, version: Optional[MonitoringVersion] = None
     ) -> bool:
-        """
-        Check if monitoring has an available frame.
+        """Check if monitoring has an available frame.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -614,7 +612,9 @@ class Capture(metaclass=MCMetaClass):
         drive.disturbance_remove_all_mapped_registers()
 
     def clean_monitoring_disturbance(self, servo: str = DEFAULT_SERVO) -> None:
-        """Disable monitoring/disturbance, remove disturbance and monitoring
+        """Clean the monitoring/disturbance.
+
+        Disable monitoring/disturbance, remove disturbance and monitoring
         mapped registers.
 
         Args:
@@ -626,6 +626,7 @@ class Capture(metaclass=MCMetaClass):
 
     def mcb_synchronization(self, servo: str = DEFAULT_SERVO) -> None:
         """Synchronize MCB, necessary to monitoring and disturbance.
+
         Motor must be disabled.
 
         Args:
@@ -705,7 +706,6 @@ class Capture(metaclass=MCMetaClass):
             TypeError: If some read value has a wrong type.
 
         """
-
         position_velocity_loop_rate = self.mc.configuration.get_position_and_velocity_loop_rate(
             servo=servo, axis=axis
         )

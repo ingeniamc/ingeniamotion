@@ -5,12 +5,12 @@ from ingeniamotion.exceptions import IMDisturbanceError
 
 
 @pytest.fixture
-def disturbance_map_registers(disturbance, skip_if_monitoring_not_available):
+def disturbance_map_registers(disturbance, skip_if_monitoring_not_available):  # noqa: ARG001
     disturbance.map_registers([{"axis": 1, "name": "CL_TOR_SET_POINT_VALUE"}])
 
 
 @pytest.fixture
-def disturbance(motion_controller, skip_if_monitoring_not_available):
+def disturbance(motion_controller, skip_if_monitoring_not_available):  # noqa: ARG001
     mc, alias, environment = motion_controller
     return Disturbance(mc, alias)
 
@@ -133,9 +133,8 @@ def test_write_disturbance_data_not_configured(disturbance):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
-def test_write_disturbance_data_enabled(
-    motion_controller, disturbance, disable_monitoring_disturbance
-):
+@pytest.mark.usefixtures("disable_monitoring_disturbance")
+def test_write_disturbance_data_enabled(motion_controller, disturbance):
     mc, alias, environment = motion_controller
     mc.capture.enable_monitoring_disturbance(alias)
     with pytest.raises(IMDisturbanceError):
