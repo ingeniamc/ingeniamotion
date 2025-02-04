@@ -10,6 +10,8 @@ from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 
 
 class Homing(metaclass=MCMetaClass):
+    """Class that contains the homing functionalities."""
+
     HOMING_MODE_REGISTER = "HOM_MODE"
     HOMING_OFFSET_REGISTER = "HOM_OFFSET"
     HOMING_TIMEOUT_REGISTER = "HOM_SEQ_TIMEOUT"
@@ -208,8 +210,7 @@ class Homing(metaclass=MCMetaClass):
         axis: int = DEFAULT_AXIS,
         motor_enable: bool = True,
     ) -> None:
-        """
-        Do homing on switch limit and index pulse.
+        """Do homing on switch limit and index pulse.
 
         .. note::
             Motor must be well phased before run any homing.

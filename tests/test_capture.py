@@ -52,9 +52,9 @@ def test_create_poller(motion_controller):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-def test_create_monitoring_no_trigger(
-    skip_if_monitoring_not_available, motion_controller, disable_monitoring_disturbance
-):
+@pytest.mark.usefixtures("disable_monitoring_disturbance")
+@pytest.mark.usefixtures("skip_if_monitoring_not_available")
+def test_create_monitoring_no_trigger(motion_controller):
     registers = [{"name": "CL_POS_REF_VALUE", "axis": 1}]
     mc, alias, environment = motion_controller
     mc.motion.set_operation_mode(OperationMode.VELOCITY, alias)
@@ -87,6 +87,8 @@ def test_create_monitoring_no_trigger(
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
+@pytest.mark.usefixtures("skip_if_monitoring_not_available")
+@pytest.mark.usefixtures("disable_monitoring_disturbance")
 @pytest.mark.parametrize(
     "trigger_mode, trigger_config, values_list",
     [
@@ -103,12 +105,10 @@ def test_create_monitoring_no_trigger(
     ],
 )
 def test_create_monitoring_edge_trigger(
-    skip_if_monitoring_not_available,
     motion_controller,
     trigger_mode,
     trigger_config,
     values_list,
-    disable_monitoring_disturbance,
 ):
     register = {"name": "CL_POS_REF_VALUE", "axis": 1}
     mc, alias, environment = motion_controller
@@ -155,8 +155,8 @@ def test_create_monitoring_edge_trigger(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("trigger_delay_rate", [-1 / 4, 1 / 4])
+@pytest.mark.usefixtures("skip_if_monitoring_not_available")
 def test_create_monitoring_trigger_delay(
-    skip_if_monitoring_not_available,
     motion_controller,
     trigger_delay_rate,
 ):
@@ -214,9 +214,9 @@ def test_create_monitoring_trigger_delay(
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-def test_create_disturbance(
-    skip_if_monitoring_not_available, motion_controller, disable_monitoring_disturbance
-):
+@pytest.mark.usefixtures("skip_if_monitoring_not_available")
+@pytest.mark.usefixtures("disable_monitoring_disturbance")
+def test_create_disturbance(motion_controller):
     mc, alias, environment = motion_controller
     target_register = "CL_POS_SET_POINT_VALUE"
     max_frequency = mc.configuration.get_position_and_velocity_loop_rate(alias)
@@ -269,7 +269,8 @@ def test_mcb_synchronization_fail(motion_controller):
 
 @pytest.mark.virtual
 @pytest.mark.smoke
-def test_disturbance_max_sample_size(skip_if_monitoring_not_available, motion_controller):
+@pytest.mark.usefixtures("skip_if_monitoring_not_available")
+def test_disturbance_max_sample_size(motion_controller):
     mc, alias, environment = motion_controller
     target_register = mc.capture.DISTURBANCE_MAXIMUM_SAMPLE_SIZE_REGISTER
     axis = 0
@@ -281,7 +282,8 @@ def test_disturbance_max_sample_size(skip_if_monitoring_not_available, motion_co
 
 @pytest.mark.virtual
 @pytest.mark.smoke
-def test_monitoring_max_sample_size(skip_if_monitoring_not_available, motion_controller):
+@pytest.mark.usefixtures("skip_if_monitoring_not_available")
+def test_monitoring_max_sample_size(motion_controller):
     mc, alias, environment = motion_controller
     target_register = mc.capture.MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER
     axis = 0
@@ -295,9 +297,9 @@ def test_monitoring_max_sample_size(skip_if_monitoring_not_available, motion_con
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
-def test_get_frequency(
-    skip_if_monitoring_not_available, motion_controller, disable_monitoring_disturbance
-):
+@pytest.mark.usefixtures("disable_monitoring_disturbance")
+@pytest.mark.usefixtures("skip_if_monitoring_not_available")
+def test_get_frequency(motion_controller):
     mc, alias, environment = motion_controller
     registers = [{"name": "CL_POS_REF_VALUE", "axis": 1}]
     max_frequency = mc.configuration.get_position_and_velocity_loop_rate(alias)

@@ -309,7 +309,7 @@ def test_subscribe_exceptions(motion_controller, mocker):
 
     error_msg = "Test error"
 
-    def start_pdos(self, *args):
+    def start_pdos(*_):
         raise ILWrongWorkingCountError(error_msg)
 
     mocker.patch("ingenialink.ethercat.network.EthercatNetwork.stop_pdos")

@@ -1,3 +1,5 @@
+import contextlib
+
 import pytest
 from ingenialink.exceptions import ILError
 
@@ -25,10 +27,8 @@ def generate_drive_errors(motion_controller):
         mc.motion.fault_reset(servo=alias)
         old_value = mc.communication.get_register(item["register"], servo=alias)
         mc.communication.set_register(item["register"], item["value"], servo=alias)
-        try:
+        with contextlib.suppress(ILError):
             mc.motion.motor_enable(servo=alias)
-        except ILError:
-            pass
         error_code_list.append(item["code"])
         try:
             mc.communication.set_register(item["register"], old_value, servo=alias)
@@ -92,7 +92,8 @@ class TestErrors:
     @pytest.mark.soem
     @pytest.mark.canopen
     @pytest.mark.smoke
-    def test_get_buffer_error_by_index_exception(self, motion_controller, generate_drive_errors):
+    @pytest.mark.usefixtures("generate_drive_errors")
+    def test_get_buffer_error_by_index_exception(self, motion_controller):
         mc, alias, environment = motion_controller
         with pytest.raises(ValueError):
             mc.errors.get_buffer_error_by_index(33, servo=alias)
@@ -121,7 +122,8 @@ class TestErrors:
     @pytest.mark.soem
     @pytest.mark.canopen
     @pytest.mark.smoke
-    def test_is_fault_active(self, motion_controller, generate_drive_errors):
+    @pytest.mark.usefixtures("generate_drive_errors")
+    def test_is_fault_active(self, motion_controller):
         mc, alias, environment = motion_controller
         assert mc.errors.is_fault_active(servo=alias)
         mc.motion.fault_reset(servo=alias)

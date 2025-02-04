@@ -1,5 +1,6 @@
 import time
-from typing import TYPE_CHECKING, Generator, Optional, Union
+from collections.abc import Generator
+from typing import TYPE_CHECKING, Optional, Union
 
 import ingenialogger
 from ingenialink.exceptions import ILError
@@ -143,7 +144,7 @@ class Motion(metaclass=MCMetaClass):
             )
             error_id, _, _, error_msg = self.mc.errors.get_error_data(error_code, servo=servo)
             exception_type = type(e)
-            raise exception_type("An error occurred enabling motor. Reason: {}".format(error_msg))
+            raise exception_type(f"An error occurred enabling motor. Reason: {error_msg}")
 
     def motor_disable(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> None:
         """Disable motor.
@@ -255,6 +256,7 @@ class Motion(metaclass=MCMetaClass):
                 will wait forever. ``None`` by default.
             interval : If blocking is enabled, interval of time between
                 actual velocity reads, in seconds. ``None`` by default.
+
         Raises:
             TypeError: If velocity is not a float.
             IMTimeoutError: If the target velocity is not reached in time.
@@ -355,7 +357,9 @@ class Motion(metaclass=MCMetaClass):
         init_value: float = 0,
         interval: Optional[float] = None,
     ) -> None:
-        """Given a target value and a time in seconds, changes the current
+        """Generate a current quadrature ramp.
+
+        Given a target value and a time in seconds, changes the current
         quadrature set-point linearly following a ramp. This function is
         blocked until target reached.
 
@@ -384,7 +388,8 @@ class Motion(metaclass=MCMetaClass):
         init_value: float = 0,
         interval: Optional[float] = None,
     ) -> None:
-        """
+        """Generate a current direct ramp.
+
         Given a target value and a time in seconds, changes the current
         direct set-point linearly following a ramp. This function is
         blocked until target reached.
@@ -414,7 +419,8 @@ class Motion(metaclass=MCMetaClass):
         init_value: float = 0,
         interval: Optional[float] = None,
     ) -> None:
-        """
+        """Generate a voltage quadrature ramp.
+
         Given a target value and a time in seconds, changes the voltage
         quadrature set-point linearly following a ramp. This function is
         blocked until target reached.
@@ -444,7 +450,8 @@ class Motion(metaclass=MCMetaClass):
         init_value: float = 0,
         interval: Optional[float] = None,
     ) -> None:
-        """
+        """Generate a voltage direct ramp.
+
         Given a target value and a time in seconds, changes the voltage
         direct set-point linearly following a ramp. This function is
         blocked until target reached.
@@ -469,6 +476,18 @@ class Motion(metaclass=MCMetaClass):
     def ramp_generator(
         init_v: float, final_v: float, total_t: float, interval: Optional[float] = None
     ) -> Generator[float, None, None]:
+        """Generate a ramp.
+
+        Args:
+            init_v: Initial value.
+            final_v: Final value.
+            total_t: Total time.
+            interval: Time between each sample.
+
+        Returns:
+            The ramp generator object.
+
+        """
         slope = (final_v - init_v) / total_t
         init_time = time.time()
         yield init_v
@@ -481,8 +500,7 @@ class Motion(metaclass=MCMetaClass):
         yield final_v
 
     def get_actual_position(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
-        """
-        Returns actual position register.
+        """Returns actual position register.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -503,8 +521,7 @@ class Motion(metaclass=MCMetaClass):
         return actual_position
 
     def get_actual_velocity(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> float:
-        """
-        Returns actual velocity register.
+        """Returns actual velocity register.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -527,8 +544,7 @@ class Motion(metaclass=MCMetaClass):
     def get_actual_current_direct(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> float:
-        """
-        Returns actual direct current register.
+        """Returns actual direct current register.
 
         Args:
             servo: servo alias to reference it. ``default`` by default.
@@ -551,8 +567,7 @@ class Motion(metaclass=MCMetaClass):
     def get_actual_current_quadrature(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> float:
-        """
-        Returns actual quadrature current register.
+        """Returns actual quadrature current register.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -581,8 +596,7 @@ class Motion(metaclass=MCMetaClass):
         timeout: Optional[float] = None,
         interval: Optional[float] = None,
     ) -> None:
-        """
-        Wait until actual position is equal to a target position, with an error.
+        """Wait until actual position is equal to a target position, with an error.
 
         Args:
             position : target position, in counts.
@@ -629,8 +643,7 @@ class Motion(metaclass=MCMetaClass):
         timeout: Optional[float] = None,
         interval: Optional[float] = None,
     ) -> None:
-        """
-        Wait until actual velocity is equal to a target velocity, with an error.
+        """Wait until actual velocity is equal to a target velocity, with an error.
 
         Args:
             velocity : target velocity, in rev/s.
@@ -671,8 +684,7 @@ class Motion(metaclass=MCMetaClass):
     def set_internal_generator_configuration(
         self, op_mode: OperationMode, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> None:
-        """
-        Set internal generator configuration.
+        """Set internal generator configuration.
 
         .. note::
             This functions affects the following drive registers: **motor pair poles**,
@@ -712,8 +724,7 @@ class Motion(metaclass=MCMetaClass):
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
     ) -> None:
-        """
-        Move motor in internal generator configuration with generator mode saw tooth.
+        """Move motor in internal generator configuration with generator mode saw tooth.
 
         Args:
             direction : ``1`` for positive direction and
@@ -758,8 +769,7 @@ class Motion(metaclass=MCMetaClass):
     def internal_generator_constant_move(
         self, offset: int, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> None:
-        """
-        Move motor in internal generator configuration with generator mode constant.
+        """Move motor in internal generator configuration with generator mode constant.
 
         Args:
             offset : internal generator offset.

@@ -1,5 +1,4 @@
 from collections import deque
-from typing import Dict
 from unittest.mock import Mock
 
 import pytest
@@ -45,7 +44,7 @@ def setup_for_test_examples(motion_controller):
 
 
 @pytest.fixture
-def teardown_for_test_examples(motion_controller, tests_setup: Setup, pytestconfig):
+def teardown_for_test_examples(motion_controller, tests_setup: Setup):
     yield
     mc, alias, environment = motion_controller
 
@@ -462,7 +461,7 @@ def test_ecat_coe_connection_example_success(mocker, capsys):
     expected_interfaces_name_list = ["Interface 1", "Interface 2", "Interface 3"]
     expected_real_name_interface = f"\\Device\\NPF_real_name_interface_{interface_index}"
     test_alias = "default"
-    test_servos: Dict[str, str] = {}
+    test_servos: dict[str, str] = {}
 
     def scan_servos_ethercat(*args, **kwargs):
         return expected_slave_list
@@ -511,7 +510,7 @@ def test_ecat_coe_connection_example_failed(mocker, capsys):
     expected_slave_list = []
     expected_interfaces_name_list = ["Interface 1", "Interface 2", "Interface 3"]
     expected_real_name_interface = f"\\Device\\NPF_real_name_interface_{interface_index}"
-    test_servos: Dict[str, str] = {}
+    test_servos: dict[str, str] = {}
 
     def scan_servos_ethercat(*args, **kwargs):
         return expected_slave_list
