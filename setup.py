@@ -40,7 +40,7 @@ setuptools.setup(
     install_requires=[
         "ingenialink>=7.4.1, < 8.0.0",
         "ingenialogger>=0.2.1",
-        "ifaddr==0.1.7",
+        # "ifaddr==0.1.7",
         'wmi==1.5.1; platform_system == "Windows"',
     ],
     extras_require={

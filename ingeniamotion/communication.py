@@ -10,7 +10,10 @@ from functools import partial
 from os import path
 from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
 
-import ifaddr
+try:
+    pass
+except Exception:
+    pass
 import ingenialogger
 from ingenialink import CanBaudrate, CanDevice, NetDevEvt, NetState
 from ingenialink.canopen.network import CAN_CHANNELS, CanopenNetwork
@@ -441,10 +444,10 @@ class Communication(metaclass=MCMetaClass):
             IndexError: If no adapter matches the IP address.
 
         """
-        for idx, adapter in enumerate(ifaddr.get_adapters()):
-            for ip in adapter.ips:
-                if ip.is_IPv4 and ip.ip == address:
-                    return idx
+        # for idx, adapter in enumerate(ifaddr.get_adapters()):
+        #     for ip in adapter.ips:
+        #         if ip.is_IPv4 and ip.ip == address:
+        #             return idx
         raise IndexError
 
     def get_ifname_by_index(self, index: int) -> str:
@@ -485,12 +488,12 @@ class Communication(metaclass=MCMetaClass):
 
         """
         network_adapters = []
-        for adapter in ifaddr.get_adapters():
-            if isinstance(adapter.name, bytes):
-                adapter_guid = bytes.decode(adapter.name)
-            else:
-                adapter_guid = adapter.name
-            network_adapters.append(NetworkAdapter(adapter.index, adapter.nice_name, adapter_guid))
+        # for adapter in ifaddr.get_adapters():
+        #     if isinstance(adapter.name, bytes):
+        #         adapter_guid = bytes.decode(adapter.name)
+        #     else:
+        #         adapter_guid = adapter.name
+        #     network_adapters.append(NetworkAdapter(adapter.index, adapter.nice_name, adapter_guid))
         if RUNNING_ON_WINDOWS:
             # When using WMI within threads it is required to initialize the COM objects
             # https://stackoverflow.com/a/14428972
