@@ -54,12 +54,12 @@ class BaseTest(ABC, Stoppable, Generic[T]):
     def save_backup_registers(self) -> None:
         """Store the value of the backup registers before the test execution."""
         self.backup_registers[self.axis] = {}
-        try:
-            for uid in self.backup_registers_names:
+        for uid in self.backup_registers_names:
+            try:
                 value = self.mc.communication.get_register(uid, servo=self.servo, axis=self.axis)
                 self.backup_registers[self.axis][uid] = value
-        except IMRegisterNotExist as e:
-            self.logger.warning(e, axis=self.axis)
+            except IMRegisterNotExist as e:  # noqa: PERF203
+                self.logger.warning(e, axis=self.axis)
 
         for uid in self.optional_backup_registers_names:
             if self.mc.info.register_exists(uid, self.axis, self.servo):
@@ -72,14 +72,14 @@ class BaseTest(ABC, Stoppable, Generic[T]):
         Notes:
         This should only be called by the Wizard.
         """
-        try:
-            for subnode in self.backup_registers:
-                for key, value in self.backup_registers[subnode].items():
+        for subnode in self.backup_registers:  # noqa: PERF203
+            for key, value in self.backup_registers[subnode].items():
+                try:
                     self.mc.communication.set_register(key, value, servo=self.servo, axis=self.axis)
-        except IMRegisterNotExist as e:
-            self.logger.warning(e, axis=subnode)
-        except IMRegisterWrongAccess as e:
-            self.logger.warning(e, axis=subnode)
+                except IMRegisterNotExist as e:  # noqa: PERF203
+                    self.logger.warning(e, axis=subnode)
+                except IMRegisterWrongAccess as e:
+                    self.logger.warning(e, axis=subnode)
 
     @Stoppable.stoppable
     def show_error_message(self) -> None:
