@@ -17,7 +17,7 @@ from ingeniamotion.enums import (
     FilterType,
     GeneratorMode,
     PhasingMode,
-    STOAbnormalStatus,
+    STOAbnormalLatchedStatus,
 )
 from ingeniamotion.exceptions import IMException
 from ingeniamotion.feedbacks import Feedbacks
@@ -829,7 +829,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
     def is_sto_abnormal_latched(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ) -> STOAbnormalStatus:
+    ) -> STOAbnormalLatchedStatus:
         """
         Check if STO is abnormal latched.
 
@@ -838,16 +838,16 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             axis : servo axis. ``1`` by default.
 
         Returns:
-            STOAbnormalStatus: STO Abnormal Latch state.
+            STOAbnormalLatchedStatus: STO Abnormal Latch state.
         """
         sto_status = self.get_sto_status(servo, axis)
         if bool(sto_status & self.STO_ABNORMAL_FAULT_BIT):
             if self.is_sto1_active(servo, axis) != self.is_sto2_active(servo, axis):
-                return STOAbnormalStatus.UNDETERMINATED
+                return STOAbnormalLatchedStatus.UNDETERMINATED
             else:
-                return STOAbnormalStatus.ABNORMAL
+                return STOAbnormalLatchedStatus.LATCHED
         else:
-            return STOAbnormalStatus.NOT
+            return STOAbnormalLatchedStatus.NOT_LATCHED
 
     def is_sto_abnormal_fault(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
         """Check if the STO of a drive is in abnormal fault.

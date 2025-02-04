@@ -10,7 +10,7 @@ from ingeniamotion.enums import (
     FilterNumber,
     FilterSignal,
     FilterType,
-    STOAbnormalStatus,
+    STOAbnormalLatchedStatus,
 )
 from ingeniamotion.exceptions import IMException
 
@@ -512,18 +512,18 @@ def test_is_sto_inactive(mocker, motion_controller, sto_status_value, expected_r
 @pytest.mark.parametrize(
     "sto_status_value, expected_result",
     [
-        # STO Status Inactive, expected output SeverityLevel.FAIL
-        (0x1BF3, STOAbnormalStatus.NOT),
-        # STO Status Supply Fault, expected output SeverityLevel.FAIL
-        (0x6B7, STOAbnormalStatus.NOT),
-        # STO Status Abnormal STO Latched, expected output SeverityLevel.SUCCESS
-        (0x1F, STOAbnormalStatus.ABNORMAL),
-        # STO Status Abnormal STO Latched, expected output SeverityLevel.SUCCESS
-        (0x1C, STOAbnormalStatus.ABNORMAL),
-        # STO Status Abnormal STO Might be Latched, expected output SeverityLevel.WARNING
-        (0x1D, STOAbnormalStatus.UNDETERMINATED),
-        # STO Status Abnormal STO Might be Latched, expected output SeverityLevel.WARNING
-        (0x1E, STOAbnormalStatus.UNDETERMINATED),
+        # STO Status Inactive, expected output NOT STO Abnormal Latched
+        (0x1BF3, STOAbnormalLatchedStatus.NOT_LATCHED),
+        # STO Status Supply Fault, expected output NOT STO Abnormal Latched
+        (0x6B7, STOAbnormalLatchedStatus.NOT_LATCHED),
+        # STO Status Abnormal STO Latched, expected output YES STO Abnormal Latched
+        (0x1F, STOAbnormalLatchedStatus.LATCHED),
+        # STO Status Abnormal STO Latched, expected output YES STO Abnormal Latched
+        (0x1C, STOAbnormalLatchedStatus.LATCHED),
+        # STO Status Abnormal STO Might be Latched, expected outpt UNDETERMIANTED STO Abnormal Latch
+        (0x1D, STOAbnormalLatchedStatus.UNDETERMINATED),
+        # STO Status Abnormal STO Might be Latched, expected outpt UNDETERMIANTED STO Abnormal Latch
+        (0x1E, STOAbnormalLatchedStatus.UNDETERMINATED),
     ],
 )
 def test_is_sto_abnormal_latched(mocker, motion_controller, sto_status_value, expected_result):

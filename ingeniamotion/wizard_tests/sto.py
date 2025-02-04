@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, List, Optional
 
 import ingenialogger
 
-from ingeniamotion.enums import SeverityLevel, STOAbnormalStatus
+from ingeniamotion.enums import SeverityLevel, STOAbnormalLatchedStatus
 from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType
 
 if TYPE_CHECKING:
@@ -115,10 +115,10 @@ class STOTest(BaseTest[LegacyDictReportType]):
         elif not sto_power_supply:
             # STO Supply Fault bit LOW --> STO Supply Fault
             return self.ResultType.STO_ABNORMAL_SUPPLY
-        elif sto_abnormal_fault & (sto_abnormal_latch == STOAbnormalStatus.ABNORMAL):
+        elif sto_abnormal_fault & (sto_abnormal_latch == STOAbnormalLatchedStatus.LATCHED):
             # STO Abnormal Fault bit HIGH & Latch state
             return self.ResultType.STO_ABNORMAL_LATCHED
-        elif sto_abnormal_fault & (sto_abnormal_latch == STOAbnormalStatus.UNDETERMINATED):
+        elif sto_abnormal_fault & (sto_abnormal_latch == STOAbnormalLatchedStatus.UNDETERMINATED):
             # STO Abnormal Fault bit HIGH & Might be Latched state
             return self.ResultType.STO_ABNORMAL
         elif self.mc.configuration.is_sto_inactive(servo=self.servo, axis=self.axis):

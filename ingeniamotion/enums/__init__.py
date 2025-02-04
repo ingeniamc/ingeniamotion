@@ -337,9 +337,9 @@ class TemperatureSensor(IntEnum, metaclass=MetaEnum):
 
 
 @export
-class STOAbnormalStatus(IntEnum, metaclass=MetaEnum):
+class STOAbnormalLatchedStatus(IntEnum, metaclass=MetaEnum):
     """STO Abnormal status enum"""
 
-    NOT = 0
-    ABNORMAL = 1
+    NOT_LATCHED = 0
+    LATCHED = 1
     UNDETERMINATED = 2
