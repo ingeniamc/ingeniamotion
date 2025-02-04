@@ -247,7 +247,10 @@ class PDONetworkManager:
                     self._pd_thread_stop_event.set()
                     self._net.stop_pdos()
                     duration_error = ""
-                    if iteration_duration > self._watchdog_timeout:
+                    if (
+                        self._watchdog_timeout is not None
+                        and iteration_duration > self._watchdog_timeout
+                    ):
                         duration_error = (
                             f"Last iteration took {iteration_duration * 1000:0.1f} ms which is "
                             f"higher than the watchdog timeout "
@@ -296,13 +299,15 @@ class PDONetworkManager:
             while duration - (time.perf_counter() - start_time) > 0:
                 pass
 
-        def __set_watchdog_timeout(self):
-            is_watchdog_timeout_manually_set = self._watchdog_timeout is not None
-            if not is_watchdog_timeout_manually_set:
+        def __set_watchdog_timeout(self) -> None:
+            if self._watchdog_timeout is None:
                 self._watchdog_timeout = max(
                     self.DEFAULT_WATCHDOG_TIMEOUT,
                     self._refresh_rate * self.PDO_WATCHDOG_INCREMENT_FACTOR,
                 )
+                is_watchdog_timeout_manually_set = False
+            else:
+                is_watchdog_timeout_manually_set = True
             try:
                 for servo in self._net.servos:
                     servo.set_pdo_watchdog_time(self._watchdog_timeout)
