@@ -205,13 +205,13 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
             "COMMU_ANGLE_INTEGRITY1_OPTION",
             "COMMU_ANGLE_INTEGRITY2_OPTION",
         ]
-        try:
-            for following_error_uid in following_error_uids:
+        for following_error_uid in following_error_uids:
+            try:
                 self.mc.communication.set_register(
                     following_error_uid, 1, servo=self.servo, axis=self.axis
                 )
-        except IMRegisterNotExist as e:
-            self.logger.warning(e)
+            except IMRegisterNotExist as e:  # noqa: PERF203
+                self.logger.warning(e)
 
     @BaseTest.stoppable
     def suggest_polarity(self, pol: Polarity) -> None:
