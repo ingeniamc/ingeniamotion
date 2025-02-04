@@ -3,6 +3,7 @@ from enum import IntEnum
 from typing import TYPE_CHECKING, Optional
 
 import ingenialogger
+from typing_extensions import override
 
 from ingeniamotion.enums import (
     CommutationMode,
@@ -20,6 +21,8 @@ if TYPE_CHECKING:
 
 
 class Phasing(BaseTest[LegacyDictReportType]):
+    """Phasing test class."""
+
     INTERNAL_GENERATOR_VALUE = 3
     INITIAL_ANGLE = 180.0
     INITIAL_ANGLE_HALLS = 240.0
@@ -57,6 +60,8 @@ class Phasing(BaseTest[LegacyDictReportType]):
     ]
 
     class ResultType(IntEnum):
+        """Test result."""
+
         SUCCESS = 0
         FAIL = -1
 
@@ -96,7 +101,7 @@ class Phasing(BaseTest[LegacyDictReportType]):
         self.pha_accuracy: float = 0.0
 
     @BaseTest.stoppable
-    def check_input_data(self) -> None:
+    def __check_input_data(self) -> None:
         max_current_drive = self.mc.communication.get_register(
             self.MAX_CURRENT_REGISTER, servo=self.servo, axis=self.axis
         )
@@ -157,6 +162,7 @@ class Phasing(BaseTest[LegacyDictReportType]):
                     axis=self.axis,
                 )
 
+    @override
     @BaseTest.stoppable
     def setup(self) -> None:
         # Prerequisites:
@@ -191,7 +197,7 @@ class Phasing(BaseTest[LegacyDictReportType]):
 
         # Check phasing registers mode
         self.logger.debug("Checking input data")
-        self.check_input_data()
+        self.__check_input_data()
 
         # Set sinusoidal commutation modulation
         self.mc.configuration.set_commutation_mode(
@@ -231,10 +237,10 @@ class Phasing(BaseTest[LegacyDictReportType]):
         self.pha_accuracy = pha_accuracy
         self.logger.info(f"Set phasing accuracy to {self.pha_accuracy} mº")
 
-        self.reaction_codes_to_warning()
+        self.__reaction_codes_to_warning()
 
     @BaseTest.stoppable
-    def reaction_codes_to_warning(self) -> None:
+    def __reaction_codes_to_warning(self) -> None:
         try:
             self.mc.communication.set_register(
                 "COMMU_ANGLE_INTEGRITY1_OPTION", 1, servo=self.servo, axis=self.axis
@@ -250,7 +256,7 @@ class Phasing(BaseTest[LegacyDictReportType]):
             self.logger.warning("Could not write COMMU_ANGLE_INTEGRITY2_OPTION")
 
     @BaseTest.stoppable
-    def define_phasing_steps(self) -> int:
+    def __define_phasing_steps(self) -> int:
         # Doc: Last step is defined as the first angle delta smaller than 3 times
         # the phasing accuracy
         delta = 3 * self.pha_accuracy / 1000
@@ -268,6 +274,12 @@ class Phasing(BaseTest[LegacyDictReportType]):
 
     @BaseTest.stoppable
     def set_phasing_mode(self) -> PhasingMode:
+        """Set the phasing mode.
+
+        Returns:
+            The phasing mode.
+
+        """
         ref_category = self.mc.configuration.get_reference_feedback_category(
             servo=self.servo, axis=self.axis
         )
@@ -292,11 +304,12 @@ class Phasing(BaseTest[LegacyDictReportType]):
             # Set a forced and then a Non forced
             return PhasingMode.NON_FORCED
 
+    @override
     @BaseTest.stoppable
     def loop(self) -> ResultType:
         self.logger.info("START OF THE TEST", axis=self.axis)
 
-        num_of_steps = self.define_phasing_steps()
+        num_of_steps = self.__define_phasing_steps()
 
         self.logger.info("Enabling motor", axis=self.axis)
         self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
@@ -332,13 +345,16 @@ class Phasing(BaseTest[LegacyDictReportType]):
         }
         return self.ResultType.SUCCESS
 
+    @override
     def teardown(self) -> None:
         self.logger.info("Disabling motor")
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
 
+    @override
     def get_result_msg(self, output: ResultType) -> str:
         return self.result_description[output]
 
+    @override
     def get_result_severity(self, output: ResultType) -> SeverityLevel:
         if output < self.ResultType.SUCCESS:
             return SeverityLevel.FAIL

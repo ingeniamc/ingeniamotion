@@ -53,7 +53,8 @@ def teardown_brake_override(motion_controller):
 
 @pytest.mark.virtual
 @pytest.mark.smoke
-def test_release_brake(motion_controller, teardown_brake_override):
+@pytest.mark.usefixtures("teardown_brake_override")
+def test_release_brake(motion_controller):
     mc, alias, environment = motion_controller
     mc.configuration.release_brake(servo=alias)
     assert (
@@ -64,7 +65,8 @@ def test_release_brake(motion_controller, teardown_brake_override):
 
 @pytest.mark.virtual
 @pytest.mark.smoke
-def test_enable_brake(motion_controller, teardown_brake_override):
+@pytest.mark.usefixtures("teardown_brake_override")
+def test_enable_brake(motion_controller):
     mc, alias, environment = motion_controller
     mc.configuration.enable_brake(servo=alias)
     assert (
@@ -75,7 +77,8 @@ def test_enable_brake(motion_controller, teardown_brake_override):
 
 @pytest.mark.virtual
 @pytest.mark.smoke
-def test_disable_brake_override(motion_controller, teardown_brake_override):
+@pytest.mark.usefixtures("teardown_brake_override")
+def test_disable_brake_override(motion_controller):
     mc, alias, environment = motion_controller
     mc.configuration.disable_brake_override(servo=alias)
     assert (
@@ -154,7 +157,7 @@ def test_set_profiler(motion_controller, acceleration, deceleration, velocity):
         expected_value = mc.communication.get_register(register_dict[key], servo=alias)
         expected_values[key] = expected_value
     mc.configuration.set_profiler(acceleration, deceleration, velocity, servo=alias)
-    for key, value in expected_values.items():
+    for key in expected_values:
         actual_value = mc.communication.get_register(register_dict[key], servo=alias)
         assert pytest.approx(expected_values[key]) == actual_value
 

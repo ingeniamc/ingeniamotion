@@ -1,7 +1,7 @@
 import re
 from enum import IntEnum
 from os import path
-from typing import TYPE_CHECKING, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import ingenialogger
 from ingenialink import CanBaudrate
@@ -27,19 +27,24 @@ if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 
-class TYPE_SUBNODES(IntEnum):
+class TYPE_SUBNODES(IntEnum):  # noqa: N801
+    """Subnode type enum."""
+
     COCO = 0
     MOCO = 1
 
 
 class MACAddressConverter:
-    """Class to convert MAC addresses from int to str
-    and vice versa."""
+    """Class to convert MAC addresses.
+
+    The conversion can be from int to str and vice versa.
+    """
 
     @staticmethod
     def int_to_str(mac_address: int) -> str:
-        """Convert a MAC address to the string format
-        XX:XX:XX:XX:XX:XX.
+        """Convert a MAC address to the string format.
+
+        Format: "XX:XX:XX:XX:XX:XX".
 
         Args:
             mac_address: The MAC address as an integer.
@@ -52,7 +57,7 @@ class MACAddressConverter:
             raise ValueError(
                 f"The MAC address has the wrong type. Expected an int, got {type(mac_address)}."
             )
-        return ":".join(re.findall("..", "%012x" % mac_address))
+        return ":".join(re.findall("..", f"{mac_address:012x}"))
 
     @staticmethod
     def str_to_int(mac_address: str) -> int:
@@ -79,7 +84,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
     """Configuration."""
 
     class BrakeOverride(IntEnum):
-        """Brake override configuration enum"""
+        """Brake override configuration enum."""
 
         OVERRIDE_DISABLED = 0
         RELEASE_BRAKE = 1
@@ -197,7 +202,9 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         )
 
     def default_brake(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> None:
-        """Disable the brake override of the target servo and axis, as
+        """Disable the brake override of the target servo and axis.
+
+         Same as
         :func:`disable_brake_override`.
 
         Args:
@@ -211,6 +218,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         self, config_path: str, axis: Optional[int] = None, servo: str = DEFAULT_SERVO
     ) -> None:
         """Check if the drive is configured in the same way as the given configuration file.
+
         Compares the value of each register in the given file with the corresponding value in the
         drive.
 
@@ -252,7 +260,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
 
         """
         if not path.isfile(config_path):
-            raise FileNotFoundError("{} file does not exist!".format(config_path))
+            raise FileNotFoundError(f"{config_path} file does not exist!")
         servo_inst = self.mc.servos[servo]
         servo_inst.load_configuration(config_path, subnode=axis)
         self.logger.info(
@@ -350,6 +358,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         axis: int = DEFAULT_AXIS,
     ) -> None:
         """Set up the acceleration, deceleration and velocity profilers.
+
         All of these parameters are optional, meaning the user can set only one
         if desired. However, At least a minimum of one of these parameters
         is mandatory to call this function.
@@ -536,6 +545,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         self, value: int, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> None:
         """Set power stage frequency from enum value.
+
         See :func: `get_power_stage_frequency_enum`.
 
         Args:
@@ -616,8 +626,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
     def get_phasing_mode(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> Union[PhasingMode, int]:
-        """
-        Get current phasing mode.
+        """Get current phasing mode.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -641,8 +650,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
     def set_generator_mode(
         self, mode: GeneratorMode, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> None:
-        """
-        Set generator mode.
+        """Set generator mode.
 
         Args:
             mode : generator mode value.
@@ -655,8 +663,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
     def set_motor_pair_poles(
         self, pair_poles: int, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> None:
-        """
-        Set motor pair poles.
+        """Set motor pair poles.
 
         Args:
             pair_poles : motor pair poles-
@@ -673,8 +680,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         )
 
     def get_motor_pair_poles(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
-        """
-        Get motor pair poles.
+        """Get motor pair poles.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -694,8 +700,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         return pair_poles
 
     def get_sto_status(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
-        """
-        Get STO register
+        """Get STO register.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -716,8 +721,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         return sto_status
 
     def is_sto1_active(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
-        """
-        Get STO1 bit from STO register
+        """Get STO1 bit from STO register.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -731,8 +735,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         return not bool(self.get_sto_status(servo, axis) & self.STO1_ACTIVE_BIT)
 
     def is_sto2_active(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
-        """
-        Get STO2 bit from STO register
+        """Get STO2 bit from STO register.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -746,8 +749,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         return not bool(self.get_sto_status(servo, axis) & self.STO2_ACTIVE_BIT)
 
     def check_sto_power_supply(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
-        """
-        Get power supply bit from STO register
+        """Get power supply bit from STO register.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -783,8 +785,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             return 0
 
     def get_sto_report_bit(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
-        """
-        Get report bit from STO register
+        """Get report bit from STO register.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -800,8 +801,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             return 0
 
     def is_sto_active(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
-        """
-        Check if STO is active
+        """Check if STO is active.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -814,8 +814,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         return self.get_sto_status(servo, axis) == self.STO_ACTIVE_STATE
 
     def is_sto_inactive(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
-        """
-        Check if STO is inactive
+        """Check if STO is inactive.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -828,8 +827,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         return self.get_sto_status(servo, axis) == self.STO_INACTIVE_STATE
 
     def is_sto_abnormal_latched(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
-        """
-        Check if STO is abnormal latched
+        """Check if STO is abnormal latched.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -961,8 +959,10 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
     def get_drive_info_coco_moco(
         self,
         servo: str = DEFAULT_SERVO,
-    ) -> Tuple[List[Optional[int]], List[Optional[int]], List[Optional[str]], List[Optional[int]]]:
-        """Get product codes, revision numbers, firmware versions and serial numbers from
+    ) -> tuple[list[Optional[int]], list[Optional[int]], list[Optional[str]], list[Optional[int]]]:
+        """Get the drive's information.
+
+        The product codes, revision numbers, firmware versions and serial numbers from
         COCO and MOCO.
 
         Args:
@@ -975,10 +975,10 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             Serial numbers (COCO, MOCO).
 
         """
-        prod_codes: List[Optional[int]] = [None, None]
-        rev_numbers: List[Optional[int]] = [None, None]
-        fw_versions: List[Optional[str]] = [None, None]
-        serial_number: List[Optional[int]] = [None, None]
+        prod_codes: list[Optional[int]] = [None, None]
+        rev_numbers: list[Optional[int]] = [None, None]
+        fw_versions: list[Optional[str]] = [None, None]
+        serial_number: list[Optional[int]] = [None, None]
 
         for subnode in [0, 1]:
             # Product codes
@@ -1120,10 +1120,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             TypeError: If the read vendor ID has the wrong type.
 
         """
-        if axis == 0:
-            register = self.VENDOR_ID_COCO_REGISTER
-        else:
-            register = self.VENDOR_ID_REGISTER
+        register = self.VENDOR_ID_COCO_REGISTER if axis == 0 else self.VENDOR_ID_REGISTER
         vendor_id = self.mc.communication.get_register(register, servo, axis)
         if not isinstance(vendor_id, int):
             raise TypeError(

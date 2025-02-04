@@ -1,4 +1,6 @@
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
+
+from typing_extensions import override
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
@@ -8,7 +10,9 @@ from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
 
 
 class AbsoluteEncoder2Test(Feedbacks):
-    BACKUP_REGISTERS_BISSC2: List[str] = ["FBK_BISS2_POS_POLARITY"]
+    """Absolute encoder 2 test class."""
+
+    BACKUP_REGISTERS_BISSC2: list[str] = ["FBK_BISS2_POS_POLARITY"]
 
     FEEDBACK_POLARITY_REGISTER = "FBK_BISS2_POS_POLARITY"
 
@@ -20,6 +24,7 @@ class AbsoluteEncoder2Test(Feedbacks):
         super().__init__(mc, servo, axis, logger_drive_name)
         self.backup_registers_names.extend(self.BACKUP_REGISTERS_BISSC2)
 
+    @override
     @BaseTest.stoppable
     def feedback_setting(self) -> None:
         super().feedback_setting()
