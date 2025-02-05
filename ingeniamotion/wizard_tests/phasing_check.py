@@ -3,6 +3,7 @@ from enum import IntEnum
 from typing import TYPE_CHECKING, Optional
 
 import ingenialogger
+from typing_extensions import override
 
 from ingeniamotion.enums import OperationMode, PhasingMode, SensorType, SeverityLevel
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
@@ -13,6 +14,8 @@ if TYPE_CHECKING:
 
 
 class PhasingCheck(BaseTest[LegacyDictReportType]):
+    """Phasing check test class."""
+
     MAX_ALLOWED_ANGLE_MOVE = 15
     INITIAL_ANGLE = 180.0
     INITIAL_ANGLE_HALLS = 240.0
@@ -25,6 +28,8 @@ class PhasingCheck(BaseTest[LegacyDictReportType]):
     BACKUP_REGISTERS = ["DRV_OP_CMD", "CL_CUR_Q_SET_POINT", "CL_CUR_D_SET_POINT"]
 
     class ResultType(IntEnum):
+        """Test result."""
+
         SUCCESS = 0
         WRONG_PHASING = -1
 
@@ -50,6 +55,7 @@ class PhasingCheck(BaseTest[LegacyDictReportType]):
             self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=logger_drive_name)
         self.backup_registers_names = self.BACKUP_REGISTERS
 
+    @override
     @BaseTest.stoppable
     def setup(self) -> None:
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
@@ -58,7 +64,7 @@ class PhasingCheck(BaseTest[LegacyDictReportType]):
         self.mc.motion.set_current_direct(0, servo=self.servo, axis=self.axis)
 
     @BaseTest.stoppable
-    def vary_current_and_check_position(self, current_sign: int, max_current: int) -> ResultType:
+    def __vary_current_and_check_position(self, current_sign: int, max_current: int) -> ResultType:
         init_pos = self.mc.motion.get_actual_position(servo=self.servo, axis=self.axis)
         pos_resolution = self.mc.configuration.get_position_feedback_resolution(
             servo=self.servo, axis=self.axis
@@ -69,7 +75,7 @@ class PhasingCheck(BaseTest[LegacyDictReportType]):
             0, current_sign * max_current, total_time, interval=0.1
         ):
             self.mc.motion.set_current_direct(value, servo=self.servo, axis=self.axis)
-            is_ok = self.check_position(init_pos, pos_resolution)
+            is_ok = self.__check_position(init_pos, pos_resolution)
             if not is_ok:
                 break
         self.mc.motion.set_current_direct(0, servo=self.servo, axis=self.axis)
@@ -78,25 +84,25 @@ class PhasingCheck(BaseTest[LegacyDictReportType]):
         return self.ResultType.SUCCESS
 
     @BaseTest.stoppable
-    def check_position(self, init_pos: int, resolution: int) -> bool:
+    def __check_position(self, init_pos: int, resolution: int) -> bool:
         current_pos = self.mc.motion.get_actual_position(servo=self.servo, axis=self.axis)
         allowed_move = resolution * self.MAX_ALLOWED_ANGLE_MOVE / 360
         result_check = float(abs(current_pos - init_pos)) < allowed_move
         return result_check
 
     @BaseTest.stoppable
-    def analyse_phasing_bit_and_force_to_high(self) -> None:
+    def __analyse_phasing_bit_and_force_to_high(self) -> None:
         if not self.mc.configuration.is_commutation_feedback_aligned(
             servo=self.servo, axis=self.axis
         ):
             phasing_mode = self.mc.configuration.get_phasing_mode(servo=self.servo, axis=self.axis)
             if phasing_mode == PhasingMode.FORCED:
-                self.forced_phasing()
+                self.__forced_phasing()
             else:
-                self.not_forced_phasing()
+                self.__not_forced_phasing()
 
     @BaseTest.stoppable
-    def define_phasing_steps(self) -> int:
+    def __define_phasing_steps(self) -> int:
         pha_accuracy = self.mc.communication.get_register(
             self.PHASING_ACCURACY_REGISTER, servo=self.servo, axis=self.axis
         )
@@ -118,8 +124,8 @@ class PhasingCheck(BaseTest[LegacyDictReportType]):
         return num_of_steps
 
     @BaseTest.stoppable
-    def forced_phasing(self) -> None:
-        num_of_steps = self.define_phasing_steps()
+    def __forced_phasing(self) -> None:
+        num_of_steps = self.__define_phasing_steps()
         phasing_bit_latched = False
         phasing_timeout = self.mc.communication.get_register(
             self.PHASING_TIMEOUT_REGISTER, servo=self.servo, axis=self.axis
@@ -138,7 +144,7 @@ class PhasingCheck(BaseTest[LegacyDictReportType]):
             raise TestError("Motor phasing fail")
 
     @BaseTest.stoppable
-    def not_forced_phasing(self) -> None:
+    def __not_forced_phasing(self) -> None:
         self.logger.info(
             "Increasing slowly current quadrature set-point until phasing bit is latched"
         )
@@ -161,7 +167,7 @@ class PhasingCheck(BaseTest[LegacyDictReportType]):
         self.mc.motion.wait_for_velocity(0, servo=self.servo, axis=self.axis)
 
     @BaseTest.stoppable
-    def check_motor_commutation(self) -> ResultType:
+    def __check_motor_commutation(self) -> ResultType:
         phasing_current = self.mc.communication.get_register(
             self.MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER, servo=self.servo, axis=self.axis
         )
@@ -184,7 +190,7 @@ class PhasingCheck(BaseTest[LegacyDictReportType]):
                 "Slowly increasing Current Direct Set-point until", max_test_current, "A"
             )
         )
-        result = self.vary_current_and_check_position(1, max_test_current)
+        result = self.__vary_current_and_check_position(1, max_test_current)
         if result != self.ResultType.SUCCESS:
             return result
         self.logger.info(
@@ -192,20 +198,24 @@ class PhasingCheck(BaseTest[LegacyDictReportType]):
                 "Slowly decreasing Current Direct Set-point until", -max_test_current, "A"
             )
         )
-        return self.vary_current_and_check_position(-1, max_test_current)
+        return self.__vary_current_and_check_position(-1, max_test_current)
 
+    @override
     @BaseTest.stoppable
     def loop(self) -> ResultType:
         self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
-        self.analyse_phasing_bit_and_force_to_high()
-        return self.check_motor_commutation()
+        self.__analyse_phasing_bit_and_force_to_high()
+        return self.__check_motor_commutation()
 
+    @override
     def teardown(self) -> None:
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
 
+    @override
     def get_result_msg(self, output: ResultType) -> str:
         return self.result_description[output]
 
+    @override
     def get_result_severity(self, output: ResultType) -> SeverityLevel:
         if output < self.ResultType.SUCCESS:
             return SeverityLevel.FAIL

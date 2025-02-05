@@ -7,8 +7,6 @@ from typing import Optional
 class Setup:
     """Generic setup"""
 
-    pass
-
 
 @dataclass(frozen=True)
 class EthernetSetup(Setup):
@@ -35,7 +33,7 @@ class DriveHwSetup(Setup):
     fw_file: str
     use_rack_service: bool
 
-    @functools.lru_cache()
+    @functools.lru_cache
     def get_rack_drive(self, rack_service_client):
         config = rack_service_client.exposed_get_configuration()
         for idx, drive in enumerate(config.drives):
@@ -53,8 +51,6 @@ class DriveEthernetSetup(DriveHwSetup, EthernetSetup):
 
     Can be regular Ethernet or ethernet over Ethercat (EoE)
     """
-
-    pass
 
 
 @dataclass(frozen=True)

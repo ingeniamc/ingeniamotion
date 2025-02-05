@@ -1,3 +1,4 @@
+import contextlib
 import time
 from threading import Thread
 
@@ -197,7 +198,7 @@ def test_sto_test(motion_controller):
     [
         (0x4, "STO Active"),
         (0x1F, "Abnormal STO Latched"),
-        (0x8, "Abnormal STO"),
+        (0xE, "Abnormal STO"),
         (0x73, "Abnormal Supply"),
         (0x5, "STO Inputs Differ"),
     ],
@@ -218,7 +219,7 @@ def test_brake_test(motion_controller):
     mc, alias, environment = motion_controller
     pair_poles = mc.configuration.get_motor_pair_poles(servo=alias)
     brake_test = mc.tests.brake_test(servo=alias)
-    assert 1 == mc.configuration.get_motor_pair_poles(servo=alias)
+    assert mc.configuration.get_motor_pair_poles(servo=alias) == 1
     brake_test.finish()
     assert pair_poles == mc.configuration.get_motor_pair_poles(servo=alias)
 
@@ -226,10 +227,8 @@ def test_brake_test(motion_controller):
 def get_backup_registers(test, mc, alias):
     reg_values = {}
     for reg in test.BACKUP_REGISTERS:
-        try:
+        with contextlib.suppress(IMRegisterNotExist):
             reg_values[reg] = mc.communication.get_register(reg, servo=alias)
-        except IMRegisterNotExist:
-            pass
     return reg_values
 
 

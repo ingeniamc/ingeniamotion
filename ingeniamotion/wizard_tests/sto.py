@@ -1,9 +1,10 @@
 from enum import IntEnum
-from typing import TYPE_CHECKING, List, Optional
+from typing import TYPE_CHECKING, Optional
 
 import ingenialogger
+from typing_extensions import override
 
-from ingeniamotion.enums import SeverityLevel
+from ingeniamotion.enums import SeverityLevel, STOAbnormalLatchedStatus
 from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType
 
 if TYPE_CHECKING:
@@ -14,6 +15,8 @@ class STOTest(BaseTest[LegacyDictReportType]):
     """STO test."""
 
     class ResultType(IntEnum):
+        """Test result."""
+
         STO_INACTIVE = 0
         STO_ACTIVE = -1
         STO_ABNORMAL_LATCHED = -2
@@ -22,6 +25,8 @@ class STOTest(BaseTest[LegacyDictReportType]):
         STO_INPUTS_DIFFER = -5
 
     class Polarity(IntEnum):
+        """Polarity type."""
+
         NORMAL = 0
         REVERSED = 1
 
@@ -42,7 +47,7 @@ class STOTest(BaseTest[LegacyDictReportType]):
     STO_ABNORMAL_FAULT_BIT = 0x8
     STO_REPORT_BIT = 0x10
 
-    BACKUP_REGISTERS: List[str] = []
+    BACKUP_REGISTERS: list[str] = []
 
     def __init__(
         self, mc: "MotionController", servo: str, axis: int, logger_drive_name: Optional[str] = None
@@ -59,12 +64,15 @@ class STOTest(BaseTest[LegacyDictReportType]):
         self.suggested_registers = {}
         self.TEST_TYPE = self.ResultType
 
+    @override
     def setup(self) -> None:
         pass
 
+    @override
     def teardown(self) -> None:
         pass
 
+    @override
     def loop(self) -> ResultType:
         if self.mc.configuration.is_sto1_active(servo=self.servo, axis=self.axis):
             self.logger.info("STO1 bit is LOW")
@@ -96,29 +104,43 @@ class STOTest(BaseTest[LegacyDictReportType]):
         else:
             self.logger.info("STO abnormal fault bit is HIGH")
 
+        # Check STO abnormal latch status --> Check bits 3(0x8 in HEX), 1(0x2) & 0(0x1)
+        sto_abnormal_latch = self.mc.configuration.is_sto_abnormal_latched(
+            servo=self.servo, axis=self.axis
+        )
+
         # Check STO report --> Check bit 4 (0x10 in HEX)
-        if self.mc.configuration.get_sto_report_bit(servo=self.servo, axis=self.axis) == 0:
+        sto_report_bit = self.mc.configuration.get_sto_report_bit(servo=self.servo, axis=self.axis)
+        if not sto_report_bit:
             self.logger.info("STO report is LOW")
         else:
             self.logger.info("STO report is HIGH")
 
         # Check STO STATE
         if self.mc.configuration.is_sto_active(servo=self.servo, axis=self.axis):
+            # STO Status in Active State --> STO Active
             return self.ResultType.STO_ACTIVE
-        elif self.mc.configuration.is_sto_inactive(servo=self.servo, axis=self.axis):
-            return self.ResultType.STO_INACTIVE
-        elif self.mc.configuration.is_sto_abnormal_latched(servo=self.servo, axis=self.axis):
-            return self.ResultType.STO_ABNORMAL_LATCHED
-        elif sto_abnormal_fault != 0:
-            return self.ResultType.STO_ABNORMAL
-        elif sto_power_supply == 0:
+        elif not sto_power_supply:
+            # STO Supply Fault bit LOW --> STO Supply Fault
             return self.ResultType.STO_ABNORMAL_SUPPLY
+        elif sto_abnormal_fault & (sto_abnormal_latch == STOAbnormalLatchedStatus.LATCHED):
+            # STO Abnormal Fault bit HIGH & Latch state
+            return self.ResultType.STO_ABNORMAL_LATCHED
+        elif sto_abnormal_fault & (sto_abnormal_latch == STOAbnormalLatchedStatus.UNDETERMINATED):
+            # STO Abnormal Fault bit HIGH & Might be Latched state
+            return self.ResultType.STO_ABNORMAL
+        elif self.mc.configuration.is_sto_inactive(servo=self.servo, axis=self.axis):
+            # STO Status in Inactive State --> STO Inactive
+            return self.ResultType.STO_INACTIVE
         else:
+            # STO Unknown state
             return self.ResultType.STO_INPUTS_DIFFER
 
+    @override
     def get_result_msg(self, output: ResultType) -> str:
         return self.result_description[output]
 
+    @override
     def get_result_severity(self, output: ResultType) -> SeverityLevel:
         if output < self.ResultType.STO_INACTIVE:
             return SeverityLevel.FAIL

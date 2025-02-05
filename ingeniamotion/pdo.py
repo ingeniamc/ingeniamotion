@@ -1,7 +1,7 @@
 import threading
 import time
 from collections import deque
-from typing import TYPE_CHECKING, Callable, Deque, Dict, List, Optional, Tuple, Type, Union
+from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import ingenialogger
 from ingenialink.canopen.network import CanopenNetwork
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 
 class PDOPoller:
-    """Poll register values using PDOs"""
+    """Poll register values using PDOs."""
 
     def __init__(
         self,
@@ -48,17 +48,17 @@ class PDOPoller:
         self.__refresh_time = refresh_time
         self.__watchdog_timeout = watchdog_timeout
         self.__buffer_size = buffer_size
-        self.__buffer: Deque[tuple[float, List[Union[int, float, bytes]]]] = deque(
+        self.__buffer: deque[tuple[float, list[Union[int, float, bytes]]]] = deque(
             maxlen=self.__buffer_size
         )
         self.__start_time: Optional[float] = None
         self.__tpdo_map: TPDOMap = self.__mc.capture.pdo.create_empty_tpdo_map()
         self.__rpdo_map: RPDOMap = self.__mc.capture.pdo.create_empty_rpdo_map()
         self.__fill_rpdo_map()
-        self.__exception_callbacks: List[Callable[[IMException], None]] = []
+        self.__exception_callbacks: list[Callable[[IMException], None]] = []
 
     def start(self) -> None:
-        """Start the poller"""
+        """Start the poller."""
         self.__mc.capture.pdo.set_pdo_maps_to_slave(
             self.__rpdo_map, self.__tpdo_map, servo=self.__servo
         )
@@ -71,7 +71,7 @@ class PDOPoller:
         )
 
     def stop(self) -> None:
-        """Stop the poller"""
+        """Stop the poller."""
         self.__mc.capture.pdo.stop_pdos()
         self.__mc.capture.pdo.unsubscribe_to_receive_process_data(self._new_data_available)
         for callback in self.__exception_callbacks:
@@ -80,9 +80,8 @@ class PDOPoller:
         self.__mc.capture.pdo.remove_tpdo_map(self.__servo, self.__tpdo_map)
 
     @property
-    def data(self) -> Tuple[List[float], List[List[Union[int, float, bytes]]]]:
-        """
-        Get the poller data. After the data is retrieved, the data buffers are cleared.
+    def data(self) -> tuple[list[float], list[list[Union[int, float, bytes]]]]:
+        """Get the poller data. After the data is retrieved, the data buffers are cleared.
 
         Returns:
             A tuple with a list of the readings timestamps and a list of lists with
@@ -90,7 +89,7 @@ class PDOPoller:
 
         """
         time_stamps = []
-        data: List[List[Union[int, float, bytes]]] = [[] for _ in range(len(self.__tpdo_map.items))]
+        data: list[list[Union[int, float, bytes]]] = [[] for _ in range(len(self.__tpdo_map.items))]
         for _ in range(len(self.__buffer)):
             time_stamp, data_sample = self.__buffer.popleft()
             time_stamps.append(time_stamp)
@@ -99,9 +98,8 @@ class PDOPoller:
 
         return time_stamps, data
 
-    def add_channels(self, registers: List[Dict[str, Union[int, str]]]) -> None:
-        """
-        Configure the PDOs with the registers to be read.
+    def add_channels(self, registers: list[dict[str, Union[int, str]]]) -> None:
+        """Configure the PDOs with the registers to be read.
 
         Args:
             registers : list of registers to add to the Poller.
@@ -128,18 +126,16 @@ class PDOPoller:
         if self.__start_time is None:
             raise ValueError("The poller has not been started yet.")
         time_stamp = round(time.time() - self.__start_time, 6)
-        data_sample = []
-        for tpdo_map_item in self.__tpdo_map.items:
-            data_sample.append(tpdo_map_item.value)
+        data_sample = [tpdo_map_item.value for tpdo_map_item in self.__tpdo_map.items]
         self.__buffer.append((time_stamp, data_sample))
 
     def __fill_rpdo_map(self) -> None:
-        """Fill the RPDO Map with padding"""
+        """Fill the RPDO Map with padding."""
         padding_rpdo_item = RPDOMapItem(size_bits=8)
         padding_rpdo_item.raw_data_bytes = int.to_bytes(0, 1, "little")
         self.__mc.capture.pdo.add_pdo_item_to_map(padding_rpdo_item, self.__rpdo_map)
 
-    def __fill_tpdo_map(self, registers: List[Dict[str, Union[int, str]]]) -> None:
+    def __fill_tpdo_map(self, registers: list[dict[str, Union[int, str]]]) -> None:
         """Fill the TPDO Map with the registers to be polled.
 
         Raises:
@@ -239,7 +235,7 @@ class PDONetworkManager:
             self._pd_thread_stop_event = threading.Event()
 
         def run(self) -> None:
-            """Start the PDO exchange"""
+            """Start the PDO exchange."""
             first_iteration = True
             iteration_duration: float = -1
             while not self._pd_thread_stop_event.is_set():
@@ -290,15 +286,17 @@ class PDONetworkManager:
                     iteration_duration = time.perf_counter() - time_start
 
         def stop(self) -> None:
-            """Stop the PDO exchange"""
+            """Stop the PDO exchange."""
             self._pd_thread_stop_event.set()
             self._net.stop_pdos()
             self.join()
 
         @staticmethod
         def high_precision_sleep(duration: float) -> None:
-            """Replaces the time.sleep() method in order to obtain
-            more precise sleeping times."""
+            """Replaces the time.sleep() method.
+
+            This is done in order to obtain more precise sleeping times.
+            """
             start_time = time.perf_counter()
             while duration - (time.perf_counter() - start_time) > 0:
                 pass
@@ -307,9 +305,9 @@ class PDONetworkManager:
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
         self._pdo_thread: Optional[PDONetworkManager.ProcessDataThread] = None
-        self._pdo_send_observers: List[Callable[[], None]] = []
-        self._pdo_receive_observers: List[Callable[[], None]] = []
-        self._pdo_exceptions_observers: List[Callable[[IMException], None]] = []
+        self._pdo_send_observers: list[Callable[[], None]] = []
+        self._pdo_receive_observers: list[Callable[[], None]] = []
+        self._pdo_exceptions_observers: list[Callable[[IMException], None]] = []
 
     def create_pdo_item(
         self,
@@ -318,8 +316,7 @@ class PDONetworkManager:
         servo: str = DEFAULT_SERVO,
         value: Optional[Union[int, float]] = None,
     ) -> Union[RPDOMapItem, TPDOMapItem]:
-        """
-        Create a PDOMapItem by specifying a register UID.
+        """Create a PDOMapItem by specifying a register UID.
 
         Args:
             register_uid: Register to be mapped.
@@ -335,7 +332,7 @@ class PDONetworkManager:
             AttributeError: If an initial value is not provided for an RPDO register.
 
         """
-        pdo_map_item_dict: Dict[RegCyclicType, Type[Union[RPDOMapItem, TPDOMapItem]]] = {
+        pdo_map_item_dict: dict[RegCyclicType, type[Union[RPDOMapItem, TPDOMapItem]]] = {
             RegCyclicType.RX: RPDOMapItem,
             RegCyclicType.TX: TPDOMapItem,
         }
@@ -352,11 +349,10 @@ class PDONetworkManager:
 
     def create_pdo_maps(
         self,
-        rpdo_map_items: Union[RPDOMapItem, List[RPDOMapItem]],
-        tpdo_map_items: Union[TPDOMapItem, List[TPDOMapItem]],
-    ) -> Tuple[RPDOMap, TPDOMap]:
-        """
-        Create the RPDO and TPDO maps from PDOMapItems.
+        rpdo_map_items: Union[RPDOMapItem, list[RPDOMapItem]],
+        tpdo_map_items: Union[TPDOMapItem, list[TPDOMapItem]],
+    ) -> tuple[RPDOMap, TPDOMap]:
+        """Create the RPDO and TPDO maps from PDOMapItems.
 
         Args:
             rpdo_map_items: The RPDOMapItems to be added to a RPDOMap.
@@ -383,8 +379,7 @@ class PDONetworkManager:
         pdo_map_item: Union[RPDOMapItem, TPDOMapItem],
         pdo_map: Union[RPDOMap, TPDOMap],
     ) -> None:
-        """
-        Add a PDOMapItem to a PDOMap.
+        """Add a PDOMapItem to a PDOMap.
 
         Args:
             pdo_map_item: The PDOMapItem.
@@ -403,8 +398,7 @@ class PDONetworkManager:
 
     @staticmethod
     def create_empty_rpdo_map() -> RPDOMap:
-        """
-        Create an empty RPDOMap.
+        """Create an empty RPDOMap.
 
         Returns:
             The empty RPDOMap.
@@ -414,8 +408,7 @@ class PDONetworkManager:
 
     @staticmethod
     def create_empty_tpdo_map() -> TPDOMap:
-        """
-        Create an empty TPDOMap.
+        """Create an empty TPDOMap.
 
         Returns:
             The empty TPDOMap.
@@ -425,12 +418,11 @@ class PDONetworkManager:
 
     def set_pdo_maps_to_slave(
         self,
-        rpdo_maps: Union[RPDOMap, List[RPDOMap]],
-        tpdo_maps: Union[TPDOMap, List[TPDOMap]],
+        rpdo_maps: Union[RPDOMap, list[RPDOMap]],
+        tpdo_maps: Union[TPDOMap, list[TPDOMap]],
         servo: str = DEFAULT_SERVO,
     ) -> None:
-        """
-        Map the PDOMaps to the slave.
+        """Map the PDOMaps to the slave.
 
         Args:
             rpdo_maps: The RPDOMaps to be mapped.
@@ -457,8 +449,7 @@ class PDONetworkManager:
         drive.set_pdo_map_to_slave(rpdo_maps, tpdo_maps)
 
     def clear_pdo_mapping(self, servo: str = DEFAULT_SERVO) -> None:
-        """
-        Clear the PDO mapping within the servo.
+        """Clear the PDO mapping within the servo.
 
         Args:
             servo: servo alias to reference it. ``default`` by default.
@@ -479,8 +470,10 @@ class PDONetworkManager:
         rpdo_map: Optional[RPDOMap] = None,
         rpdo_map_index: Optional[int] = None,
     ) -> None:
-        """Remove a RPDOMap from the RPDOMap list. The RPDOMap instance or
-        the index of the map in the RPDOMap list should be provided.
+        """Remove a RPDOMap from the RPDOMap list.
+
+        The RPDOMap instance or the index of the map in the RPDOMap list
+         should be provided.
 
         Args:
             servo: servo alias to reference it. ``default`` by default.
@@ -503,8 +496,10 @@ class PDONetworkManager:
         tpdo_map: Optional[TPDOMap] = None,
         tpdo_map_index: Optional[int] = None,
     ) -> None:
-        """Remove a TPDOMap from the TPDOMap list. The TPDOMap instance or
-        the index of the map in the TPDOMap list should be provided.
+        """Remove a TPDOMap from the TPDOMap list.
+
+        The TPDOMap instance or the index of the map in the TPDOMap list
+        should be provided.
 
         Args:
             servo: servo alias to reference it. ``default`` by default.
@@ -527,8 +522,7 @@ class PDONetworkManager:
         refresh_rate: Optional[float] = None,
         watchdog_timeout: Optional[float] = None,
     ) -> None:
-        """
-        Start the PDO exchange process.
+        """Start the PDO exchange process.
 
         Args:
             network_type: Network type (EtherCAT or CANopen) on which to start the PDO exchange.
@@ -592,8 +586,7 @@ class PDONetworkManager:
         self._pdo_thread.start()
 
     def stop_pdos(self) -> None:
-        """
-        Stop the PDO exchange process.
+        """Stop the PDO exchange process.
 
         Raises:
             IMException: If the PDOs are not active yet.
@@ -676,15 +669,14 @@ class PDONetworkManager:
 
     def create_poller(
         self,
-        registers: List[Dict[str, Union[int, str]]],
+        registers: list[dict[str, Union[int, str]]],
         servo: str = DEFAULT_SERVO,
         sampling_time: float = 0.125,
         buffer_size: int = 100,
         watchdog_timeout: Optional[float] = None,
         start: bool = True,
     ) -> PDOPoller:
-        """
-        Create a register Poller using PDOs.
+        """Create a register Poller using PDOs.
 
         Args:
             registers : list of registers to add to the Poller.

@@ -1,46 +1,30 @@
-class IMException(Exception):
-    """Exceptions raised by IngeniaMotion"""
-
-    pass
+class IMException(Exception):  # noqa: N818
+    """Exceptions raised by IngeniaMotion."""
 
 
 class IMMonitoringError(IMException):
-    """Monitoring error raised by IngeniaMotion"""
-
-    pass
+    """Monitoring error raised by IngeniaMotion."""
 
 
 class IMDisturbanceError(IMException):
-    """Disturbance error raised by IngeniaMotion"""
-
-    pass
+    """Disturbance error raised by IngeniaMotion."""
 
 
 class IMStatusWordError(IMException):
-    """Status word error raised by IngeniaMotion"""
-
-    pass
+    """Status word error raised by IngeniaMotion."""
 
 
 class IMRegisterNotExist(IMException):
-    """Error raised by IngeniaMotion when a register not exists"""
-
-    pass
+    """Error raised by IngeniaMotion when a register not exists."""
 
 
 class IMRegisterWrongAccess(IMException):
-    """Error raised by IngeniaMotion when trying to write to a read-only register"""
-
-    pass
+    """Error raised by IngeniaMotion when trying to write to a read-only register."""
 
 
 class IMTimeoutError(IMException):
-    """Error raised by IngeniaMotion when a timeout has occurred"""
-
-    pass
+    """Error raised by IngeniaMotion when a timeout has occurred."""
 
 
 class IMFirmwareLoadError(IMException):
-    """Error raised by IngeniaMotion when a firmware file could not be loaded"""
-
-    pass
+    """Error raised by IngeniaMotion when a firmware file could not be loaded."""

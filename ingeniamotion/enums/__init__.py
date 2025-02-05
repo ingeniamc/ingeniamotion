@@ -1,5 +1,5 @@
 from enum import Enum, EnumMeta, IntEnum
-from typing import Type, TypeVar
+from typing import TypeVar
 
 from ingenialink import (
     CAN_BAUDRATE,
@@ -12,7 +12,7 @@ from ingenialink import (
     RegDtype,
 )
 
-T = TypeVar("T", bound=Type[Enum])
+T = TypeVar("T", bound=type[Enum])
 
 __all__ = [
     "CAN_BAUDRATE",
@@ -27,14 +27,14 @@ __all__ = [
 
 
 def export(obj: T) -> T:
-    """Decorator use to explicitly export a class"""
+    """Decorator use to explicitly export a class."""
     __all__.append(obj.__name__)
     return obj
 
 
 class MetaEnum(EnumMeta):
     def __contains__(cls, item: object) -> bool:
-        """Checks if item exists"""
+        """Checks if item exists."""
         try:
             cls(item)
         except ValueError:
@@ -44,7 +44,7 @@ class MetaEnum(EnumMeta):
 
 @export
 class OperationMode(IntEnum, metaclass=MetaEnum):
-    """Operation Mode Enum"""
+    """Operation Mode Enum."""
 
     VOLTAGE = 0x00
     CURRENT_AMPLIFIER = 0x01
@@ -66,7 +66,7 @@ class OperationMode(IntEnum, metaclass=MetaEnum):
 
 @export
 class Protocol(IntEnum, metaclass=MetaEnum):
-    """Communication protocol"""
+    """Communication protocol."""
 
     TCP = 1
     UDP = 2
@@ -74,7 +74,7 @@ class Protocol(IntEnum, metaclass=MetaEnum):
 
 @export
 class HomingMode(IntEnum, metaclass=MetaEnum):
-    """Homing modes"""
+    """Homing modes."""
 
     CURRENT_POSITION = 0
     POSITIVE_LIMIT_SWITCH = 1
@@ -87,7 +87,7 @@ class HomingMode(IntEnum, metaclass=MetaEnum):
 
 @export
 class MonitoringSoCType(IntEnum, metaclass=MetaEnum):
-    """Monitoring start of condition type"""
+    """Monitoring start of condition type."""
 
     TRIGGER_EVENT_AUTO = 0
     """No trigger"""
@@ -109,7 +109,7 @@ class MonitoringSoCConfig(IntEnum, metaclass=MetaEnum):
 
 @export
 class MonitoringProcessStage(IntEnum, metaclass=MetaEnum):
-    """Monitoring process stage"""
+    """Monitoring process stage."""
 
     INIT_STAGE = 0x0
     """Init stage"""
@@ -125,7 +125,7 @@ class MonitoringProcessStage(IntEnum, metaclass=MetaEnum):
 
 @export
 class SensorType(IntEnum, metaclass=MetaEnum):
-    """Summit series feedback type enum"""
+    """Summit series feedback type enum."""
 
     ABS1 = 1
     """Absolute encoder 1"""
@@ -145,7 +145,7 @@ class SensorType(IntEnum, metaclass=MetaEnum):
 
 @export
 class SensorCategory(IntEnum, metaclass=MetaEnum):
-    """Feedback category enum"""
+    """Feedback category enum."""
 
     ABSOLUTE = 0
     INCREMENTAL = 1
@@ -153,7 +153,7 @@ class SensorCategory(IntEnum, metaclass=MetaEnum):
 
 @export
 class PhasingMode(IntEnum, metaclass=MetaEnum):
-    """Phasing modes"""
+    """Phasing modes."""
 
     NON_FORCED = 0
     """Non forced"""
@@ -165,7 +165,7 @@ class PhasingMode(IntEnum, metaclass=MetaEnum):
 
 @export
 class GeneratorMode(IntEnum, metaclass=MetaEnum):
-    """Generator modes"""
+    """Generator modes."""
 
     CONSTANT = 0
     """Constant"""
@@ -177,7 +177,7 @@ class GeneratorMode(IntEnum, metaclass=MetaEnum):
 
 @export
 class MonitoringVersion(IntEnum, metaclass=MetaEnum):
-    """Monitoring version"""
+    """Monitoring version."""
 
     MONITORING_V1 = 0
     """Monitoring V1 used for Everest 1.8.1 and older."""
@@ -189,7 +189,7 @@ class MonitoringVersion(IntEnum, metaclass=MetaEnum):
 
 @export
 class SeverityLevel(IntEnum, metaclass=MetaEnum):
-    """Test result enum"""
+    """Test result enum."""
 
     SUCCESS = 0
     WARNING = 1
@@ -197,7 +197,7 @@ class SeverityLevel(IntEnum, metaclass=MetaEnum):
 
 
 @export
-class COMMUNICATION_TYPE(IntEnum, metaclass=MetaEnum):
+class COMMUNICATION_TYPE(IntEnum, metaclass=MetaEnum):  # noqa: N801
     Canopen = 0
     Ethernet = 1
     Ethercat = 2
@@ -205,7 +205,7 @@ class COMMUNICATION_TYPE(IntEnum, metaclass=MetaEnum):
 
 @export
 class FeedbackPolarity(IntEnum, metaclass=MetaEnum):
-    """Feedback polarity enum"""
+    """Feedback polarity enum."""
 
     NORMAL = 0
     REVERSED = 1
@@ -213,7 +213,7 @@ class FeedbackPolarity(IntEnum, metaclass=MetaEnum):
 
 @export
 class CommutationMode(IntEnum, metaclass=MetaEnum):
-    """Commutation Mode Enum"""
+    """Commutation Mode Enum."""
 
     SINUSOIDAL = 0
     TRAPEZOIDAL = 1
@@ -222,9 +222,7 @@ class CommutationMode(IntEnum, metaclass=MetaEnum):
 
 @export
 class FilterType(IntEnum, metaclass=MetaEnum):
-    """
-    Biquad filter type.
-    """
+    """Biquad filter type."""
 
     DISABLED = 0
     """ Filter disabled """
@@ -272,7 +270,7 @@ class FilterNumber(IntEnum, metaclass=MetaEnum):
 
 @export
 class DigitalVoltageLevel(IntEnum, metaclass=MetaEnum):
-    """GPIOs voltage level (HIGH/LOW) enum"""
+    """GPIOs voltage level (HIGH/LOW) enum."""
 
     HIGH = 1
     LOW = 0
@@ -280,7 +278,7 @@ class DigitalVoltageLevel(IntEnum, metaclass=MetaEnum):
 
 @export
 class GPIOPolarity(IntEnum, metaclass=MetaEnum):
-    """GPIOs polarity enum"""
+    """GPIOs polarity enum."""
 
     NORMAL = 0
     REVERSED = 1
@@ -288,7 +286,7 @@ class GPIOPolarity(IntEnum, metaclass=MetaEnum):
 
 @export
 class GPI(IntEnum, metaclass=MetaEnum):
-    """GPIs identifier enum"""
+    """GPIs identifier enum."""
 
     GPI1 = 1
     GPI2 = 2
@@ -298,7 +296,7 @@ class GPI(IntEnum, metaclass=MetaEnum):
 
 @export
 class GPO(IntEnum, metaclass=MetaEnum):
-    """GPOs identifier enum"""
+    """GPOs identifier enum."""
 
     GPO1 = 1
     GPO2 = 2
@@ -308,7 +306,7 @@ class GPO(IntEnum, metaclass=MetaEnum):
 
 @export
 class FSoEState(IntEnum, metaclass=MetaEnum):
-    """FSoE Master Handler state"""
+    """FSoE Master Handler state."""
 
     RESET = 0
     SESSION = 1
@@ -318,7 +316,7 @@ class FSoEState(IntEnum, metaclass=MetaEnum):
 
 
 class TemperatureSensor(IntEnum, metaclass=MetaEnum):
-    """Temperature sensor types enum"""
+    """Temperature sensor types enum."""
 
     NTC = 0
     """Negative Temperature Coefficient thermistor"""
@@ -334,3 +332,12 @@ class TemperatureSensor(IntEnum, metaclass=MetaEnum):
     """Temperature Switch"""
     NONE = 6
     """No Temperature sensor"""
+
+
+@export
+class STOAbnormalLatchedStatus(IntEnum, metaclass=MetaEnum):
+    """STO Abnormal Latched Status enum."""
+
+    NOT_LATCHED = 0
+    LATCHED = 1
+    UNDETERMINATED = 2

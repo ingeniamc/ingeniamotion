@@ -104,7 +104,7 @@ def test_motor_enable_with_fault(motion_controller_teardown, uid, value, excepti
         # Retrieving the error code failed. Check INGM-522.
         with pytest.raises(exception_type) as excinfo:
             mc.motion.motor_enable(servo=alias)
-    assert str(excinfo.value) == "An error occurred enabling motor. Reason: {}".format(message)
+    assert str(excinfo.value) == f"An error occurred enabling motor. Reason: {message}"
 
 
 @pytest.mark.ethernet
@@ -201,7 +201,6 @@ def test_set_velocity(motion_controller, velocity_value):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
-# TODO Update approx error. Well tuned motor is needed.
 @pytest.mark.parametrize("velocity_value", [0.5, 1, 0, -0.5])
 def test_set_velocity_blocking(motion_controller, velocity_value):
     mc, alias, environment = motion_controller
@@ -364,7 +363,7 @@ def test_set_internal_generator_configuration(motion_controller_teardown, op_mod
     mc, alias, environment = motion_controller_teardown
     mc.motion.set_internal_generator_configuration(op_mode, servo=alias)
     assert op_mode == mc.motion.get_operation_mode(servo=alias)
-    assert 1 == mc.configuration.get_motor_pair_poles(servo=alias)
+    assert mc.configuration.get_motor_pair_poles(servo=alias) == 1
 
 
 @pytest.mark.ethernet
