@@ -10,6 +10,7 @@ from ingeniamotion.enums import (
     FilterNumber,
     FilterSignal,
     FilterType,
+    STOAbnormalLatchedStatus,
 )
 from ingeniamotion.exceptions import IMException
 
@@ -512,9 +513,26 @@ def test_is_sto_inactive(mocker, motion_controller, sto_status_value, expected_r
 @pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
-    "sto_status_value, expected_result", [(0x1BF3, False), (0x6B7, False), (0x1F, True)]
+    "sto_status_value, expected_result",
+    [
+        # STO Status Inactive, expected output NOT STO Abnormal Latched
+        (0x1BF3, STOAbnormalLatchedStatus.NOT_LATCHED),
+        # STO Status Supply Fault, expected output NOT STO Abnormal Latched
+        (0x6B7, STOAbnormalLatchedStatus.NOT_LATCHED),
+        # STO Status Abnormal STO Latched, expected output YES STO Abnormal Latched
+        (0x1F, STOAbnormalLatchedStatus.LATCHED),
+        # STO Status Abnormal STO Latched, expected output YES STO Abnormal Latched
+        (0x1C, STOAbnormalLatchedStatus.LATCHED),
+        # STO Status Abnormal STO Might be Latched, expected outpt UNDETERMIANTED STO Abnormal Latch
+        (0x1D, STOAbnormalLatchedStatus.UNDETERMINATED),
+        # STO Status Abnormal STO Might be Latched, expected outpt UNDETERMIANTED STO Abnormal Latch
+        (0x1E, STOAbnormalLatchedStatus.UNDETERMINATED),
+    ],
 )
 def test_is_sto_abnormal_latched(mocker, motion_controller, sto_status_value, expected_result):
+    """
+    Test checks for Abnormal STO Latched Status
+    """
     mc, alias, environment = motion_controller
     patch_get_sto_status(mocker, sto_status_value)
     value = mc.configuration.is_sto_abnormal_latched(servo=alias)
