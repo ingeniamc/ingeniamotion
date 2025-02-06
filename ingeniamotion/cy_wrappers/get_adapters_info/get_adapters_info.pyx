@@ -1,7 +1,31 @@
 from GetAdaptersInfo cimport *
 from libc.stdlib cimport malloc, free
+from typing import NamedTuple
+
+class CyAdapter(NamedTuple):
+    ComboIndex: int
+    AdapterName: str
+    Description: str
+    AddressLength: int
+    Address: bytes
 
 cdef class CyGetAdapterInfo:
+    cdef list _parse_adapters(self, IP_ADAPTER_INFO* adapter_info):
+        cdef IP_ADAPTER_INFO* current_adapter = adapter_info
+        adapters_list = []
+
+        while current_adapter:
+            parsed_adapter = CyAdapter(
+                ComboIndex=current_adapter.ComboIndex,
+                AdapterName=current_adapter.AdapterName.decode("utf-8"),
+                Description=current_adapter.Description.decode("utf-8"),
+                AddressLength=current_adapter.AddressLength,
+                Address='-'.join(f"{b:02X}" for b in current_adapter.Address),
+            )
+            adapters_list.append(parsed_adapter)
+            current_adapter = current_adapter.Next
+
+        return adapters_list
 
     def get_adapters_info(self):
         cdef unsigned long dwRetVal  = 0
@@ -24,8 +48,9 @@ cdef class CyGetAdapterInfo:
             free(adapter_info)
             raise OSError("GetAdaptersInfo failed with error code {}".format(dwRetVal))
             
-
+        adapters = self._parse_adapters(adapter_info)
 
         free(adapter_info)
+        return adapters
 
 
