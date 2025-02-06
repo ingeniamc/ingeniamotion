@@ -1,6 +1,7 @@
 """
 Wrapper for GetAdaptersInfo function (iphlpapi.h).
 """
+from libc.time cimport time_t
 
 cdef extern from "windows.h":
     pass
@@ -29,6 +30,23 @@ cdef extern from "iptypes.h":
         MAX_ADAPTER_NAME_LENGTH
         MAX_ADAPTER_ADDRESS_LENGTH
 
+    # https://learn.microsoft.com/en-us/windows/win32/api/iptypes/ns-iptypes-ip_addr_string
+    ctypedef struct _IP_ADDRESS_STRING:
+        char String[64]
+
+    ctypedef struct _IP_MASK_STRING:
+        char String[64]
+
+    # https://learn.microsoft.com/en-us/windows/win32/api/iptypes/ns-iptypes-ip_addr_string
+    ctypedef struct _IP_ADDR_STRING:
+        _IP_ADDR_STRING* Next
+        _IP_ADDRESS_STRING IpAddress
+        _IP_MASK_STRING IpMask
+        unsigned long Context
+
+    ctypedef _IP_ADDR_STRING IP_ADDR_STRING
+    ctypedef _IP_ADDR_STRING* PIP_ADDR_STRING
+
     # https://learn.microsoft.com/en-us/windows/win32/api/iptypes/ns-iptypes-ip_adapter_info
     ctypedef struct _IP_ADAPTER_INFO:
         _IP_ADAPTER_INFO* Next
@@ -41,14 +59,14 @@ cdef extern from "iptypes.h":
         unsigned int Type
         unsigned int DhcpEnabled
         void* CurrentIpAddress
-        char IpAddressList
-        char GatewayList
-        char DhcpServer
+        _IP_ADDR_STRING IpAddressList
+        _IP_ADDR_STRING GatewayList
+        _IP_ADDR_STRING DhcpServer
         int HaveWins
-        char PrimaryWinsServer
-        char SecondaryWinsServer
-        long LeaseObtained
-        long LeaseExpires
+        _IP_ADDR_STRING PrimaryWinsServer
+        _IP_ADDR_STRING SecondaryWinsServer
+        time_t LeaseObtained
+        time_t LeaseExpires
 
     ctypedef _IP_ADAPTER_INFO IP_ADAPTER_INFO
     ctypedef _IP_ADAPTER_INFO* PIP_ADAPTER_INFO

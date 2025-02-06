@@ -1,6 +1,8 @@
 from GetAdaptersInfo cimport *
 from libc.stdlib cimport malloc, free
-from typing import NamedTuple
+from typing import Optional
+import dataclasses
+import cython
 
 cpdef enum CyAdapterType:
     ETHERNET = 0
@@ -12,16 +14,42 @@ cpdef enum CyAdapterType:
     OTHER = 6
     UNKNOWN = 7
 
-class CyAdapter(NamedTuple):
+@cython.cclass
+@dataclasses.dataclass
+class CyIpAddreString:
+    IpAddress: str
+    IpMask: str
+    Context: int
+
+@cython.cclass
+@dataclasses.dataclass
+class CyAdapter:
     ComboIndex: int
     AdapterName: str
     Description: str
     AddressLength: int
-    Address: bytes
+    Address: str
     Index: int
     Type: CyAdapterType
+    DhcpEnabled: int
+    IpAddressList: CyIpAddreString
+    GatewayList: CyIpAddreString
+    DhcpServer: Optional[CyIpAddreString]
+    HaveWins: bool
+    PrimaryWinsServer: CyIpAddreString
+    SecondaryWinsServer: CyIpAddreString
+    LeaseObtained: float
+    LeaseExpires: float
+
 
 cdef class CyGetAdapterInfo:
+    cdef CyIpAddreString _parse_ip_addr_string(self, IP_ADDR_STRING data):
+        return CyIpAddreString(
+            IpAddress=data.IpAddress.String.decode("utf-8"),
+            IpMask=data.IpMask.String.decode("utf-8"),
+            Context=data.Context,
+        )
+
     cdef CyAdapterType _parse_adapter_type(self, IP_ADAPTER_INFO* adapter):
         if adapter.Type == MIB_IF_TYPE_OTHER:
             return CyAdapterType.OTHER
@@ -44,6 +72,10 @@ cdef class CyGetAdapterInfo:
         adapters_list = []
 
         while current_adapter:
+            if current_adapter.DhcpEnabled:
+                dchp_server = self._parse_ip_addr_string(current_adapter.DhcpServer)
+            else:
+                dchp_server = None
             parsed_adapter = CyAdapter(
                 ComboIndex=current_adapter.ComboIndex,
                 AdapterName=current_adapter.AdapterName.decode("utf-8"),
@@ -51,7 +83,16 @@ cdef class CyGetAdapterInfo:
                 AddressLength=current_adapter.AddressLength,
                 Address='-'.join(f"{b:02X}" for b in current_adapter.Address),
                 Index=current_adapter.Index,
-                Type=self._parse_adapter_type(current_adapter)
+                Type=self._parse_adapter_type(current_adapter),
+                DhcpEnabled=current_adapter.DhcpEnabled,
+                IpAddressList=self._parse_ip_addr_string(current_adapter.IpAddressList),
+                GatewayList=self._parse_ip_addr_string(current_adapter.GatewayList),
+                DhcpServer=dchp_server,
+                HaveWins=current_adapter.HaveWins,
+                PrimaryWinsServer=self._parse_ip_addr_string(current_adapter.PrimaryWinsServer),
+                SecondaryWinsServer=self._parse_ip_addr_string(current_adapter.SecondaryWinsServer),
+                LeaseObtained=current_adapter.LeaseObtained,
+                LeaseExpires=current_adapter.LeaseExpires,
             )
             adapters_list.append(parsed_adapter)
             current_adapter = current_adapter.Next
