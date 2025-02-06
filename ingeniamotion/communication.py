@@ -1,10 +1,9 @@
 import json
-import operator
 import platform
 import tempfile
 import time
 import zipfile
-from collections import Counter, OrderedDict
+from collections import OrderedDict
 from dataclasses import dataclass
 from functools import partial
 from os import path
@@ -30,6 +29,7 @@ from ingenialink.virtual.network import VirtualNetwork
 from ping3 import ping
 from virtual_drive.core import VirtualDrive
 
+from ingeniamotion.cy_wrappers.get_adapters_info.get_adapters_info import get_adapters_info
 from ingeniamotion.exceptions import IMFirmwareLoadError, IMRegisterWrongAccess
 
 if TYPE_CHECKING:
@@ -494,40 +494,16 @@ class Communication(metaclass=MCMetaClass):
                 adapter_guid = adapter.name
             network_adapters.append(NetworkAdapter(adapter.index, adapter.nice_name, adapter_guid))
         if RUNNING_ON_WINDOWS:
-            # When using WMI within threads it is required to initialize the COM objects
-            # https://stackoverflow.com/a/14428972
-            # The order of imports is also important
-            # https://stackoverflow.com/a/46606527
-            import pythoncom
-
-            pythoncom.CoInitialize()
-            import wmi
-
-            for adapter in [
-                NetworkAdapter(o.interfaceindex, o.Name, o.GUID)
-                for o in wmi.WMI().query(
-                    "select Name, guid, interfaceindex from Win32_NetworkAdapter"
-                )
-                if o.GUID is not None
-            ]:
-                if adapter not in network_adapters:
-                    network_adapters.append(adapter)
-
-            interface_name_counter = Counter(
-                [adapter.interface_name for adapter in network_adapters]
-            )
-
-            if interface_name_counter.most_common(1)[0][1] > 1:
-                for adapter in sorted(
-                    network_adapters, key=operator.attrgetter("interface_index"), reverse=True
-                ):
-                    interface_name_count = interface_name_counter[adapter.interface_name]
-                    if interface_name_count == 1:
-                        continue
-                    interface_name_counter[adapter.interface_name] -= 1
-                    adapter.interface_name = (
-                        adapter.interface_name + " #" + str(interface_name_count)
+            network_adapters.extend(
+                [
+                    NetworkAdapter(
+                        interface_index=adapter.ComboIndex,
+                        interface_name=adapter.Description,
+                        interface_guid=adapter.AdapterName,
                     )
+                    for adapter in get_adapters_info()
+                ]
+            )
         return {adapter.interface_name: adapter.interface_guid for adapter in network_adapters}
 
     def get_available_canopen_devices(self) -> dict[CanDevice, list[int]]:

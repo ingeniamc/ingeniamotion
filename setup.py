@@ -41,8 +41,6 @@ setuptools.setup(
         "ingenialink>=7.4.1, < 8.0.0",
         "ingenialogger>=0.2.1",
         "ifaddr==0.1.7",
-        "cython>=3.0.11",
-        'wmi==1.5.1; platform_system == "Windows"',
     ],
     extras_require={
         "FSoE": ["fsoe-master==0.1.3"],
