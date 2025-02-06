@@ -12,6 +12,6 @@ extensions = [
 ]
 
 setup(
-    name="GetAdaptersInfo Wrapper",
+    name="CyGetAdaptersInfo",
     ext_modules=cythonize(extensions, compiler_directives={"language_level": "3"}),
 )
