@@ -11,6 +11,16 @@ cdef extern from "winerror.h":
         ERROR_BUFFER_OVERFLOW
         NO_ERROR
 
+cdef extern from "ipifcons.h":
+    enum:
+        MIB_IF_TYPE_OTHER
+        MIB_IF_TYPE_ETHERNET
+        MIB_IF_TYPE_TOKENRING
+        MIB_IF_TYPE_FDDI
+        MIB_IF_TYPE_PPP
+        MIB_IF_TYPE_LOOPBACK
+        MIB_IF_TYPE_SLIP
+
 cdef extern from "iptypes.h":
     # https://microsoft.github.io/windows-docs-rs/doc/windows/Win32/NetworkManagement/IpHelper/index.html
     # Use an enum -> they are defined as constants in "iptypes.h", but they can not be used in the struct (Not allowed in a constant expression)
