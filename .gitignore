@@ -59,6 +59,9 @@ venv
 # Pipenv
 Pipfile.lock
 
+# Cython compilation
+*.cpp
+
 #Sphinx
 _docs
 _pdf

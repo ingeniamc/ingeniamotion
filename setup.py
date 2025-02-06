@@ -2,7 +2,7 @@ import re
 
 import setuptools
 
-with open("docs/what_is_ingeniamotion.rst", "r", encoding="utf-8") as fh:
+with open("docs/what_is_ingeniamotion.rst", encoding="utf-8") as fh:
     long_description = fh.read()
 
 with open("ingeniamotion/__init__.py") as f:
@@ -10,7 +10,7 @@ with open("ingeniamotion/__init__.py") as f:
 
 
 def get_docs_url():
-    return "https://distext.ingeniamc.com/doc/ingeniamotion/{}".format(__version)
+    return f"https://distext.ingeniamc.com/doc/ingeniamotion/{__version}"
 
 
 setuptools.setup(
@@ -40,7 +40,8 @@ setuptools.setup(
     install_requires=[
         "ingenialink>=7.4.1, < 8.0.0",
         "ingenialogger>=0.2.1",
-        # "ifaddr==0.1.7",
+        "ifaddr==0.1.7",
+        "cython>=3.0.11",
         'wmi==1.5.1; platform_system == "Windows"',
     ],
     extras_require={
