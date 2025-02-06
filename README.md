@@ -16,7 +16,6 @@ Requirements
 
 * Python 3.9 or higher
 * [WinPcap](https://www.winpcap.org/install/) 4.1.3
-* [Microsoft Visual C++](https://visualstudio.microsoft.com/visual-cpp-build-tools/) >= 14.0
 
 Installation
 ------------
