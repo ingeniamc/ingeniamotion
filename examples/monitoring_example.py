@@ -7,7 +7,7 @@ from ingeniamotion import MotionController
 from ingeniamotion.enums import MonitoringSoCType, MonitoringSoCConfig
 
 logging.basicConfig(level=logging.DEBUG)
-logging.getLogger('matplotlib.font_manager').disabled = True
+logging.getLogger("matplotlib.font_manager").disabled = True
 
 
 def main(args):
@@ -15,8 +15,7 @@ def main(args):
     mc.communication.connect_servo_eoe(args.ip, args.dictionary_path)
 
     # Monitoring registers
-    registers = [{"axis": 1, "name": "CL_POS_FBK_VALUE"},
-                 {"axis": 1, "name": "CL_VEL_FBK_VALUE"}]
+    registers = [{"axis": 1, "name": "CL_POS_FBK_VALUE"}, {"axis": 1, "name": "CL_VEL_FBK_VALUE"}]
 
     # Servo frequency divisor to set monitoring frequency
     monitoring_prescaler = 25
@@ -37,14 +36,16 @@ def main(args):
     # else, it does nothing
     trigger_value = 0
 
-    monitoring = mc.capture.create_monitoring(registers,
-                                              monitoring_prescaler,
-                                              total_time_s,
-                                              trigger_delay=trigger_delay_s,
-                                              trigger_mode=trigger_mode,
-                                              trigger_config=trigger_config,
-                                              trigger_signal=trigger_signal,
-                                              trigger_value=trigger_value)
+    monitoring = mc.capture.create_monitoring(
+        registers,
+        monitoring_prescaler,
+        total_time_s,
+        trigger_delay=trigger_delay_s,
+        trigger_mode=trigger_mode,
+        trigger_config=trigger_config,
+        trigger_signal=trigger_signal,
+        trigger_value=trigger_value,
+    )
     # Enable Monitoring
     mc.capture.enable_monitoring()
     print("Waiting for trigger")
@@ -53,8 +54,8 @@ def main(args):
     print("Triggered and data read!")
 
     # Calculate abscissa values with total_time_s and trigger_delay_s
-    x_start = -total_time_s/2 + trigger_delay_s
-    x_end = total_time_s/2 + trigger_delay_s
+    x_start = -total_time_s / 2 + trigger_delay_s
+    x_end = total_time_s / 2 + trigger_delay_s
     x_values = np.linspace(x_start, x_end, len(data[0]))
 
     # Plot result
@@ -77,13 +78,13 @@ def main(args):
 
 
 def setup_command():
-    parser = argparse.ArgumentParser(description='Disturbance example')
-    parser.add_argument('--dictionary_path', help='Path to drive dictionary', required=True)
-    parser.add_argument('--ip', help='Drive IP address', required=True)
-    parser.add_argument('--close', help='Close plot after 5 seconds', action='store_true')
+    parser = argparse.ArgumentParser(description="Disturbance example")
+    parser.add_argument("--dictionary_path", help="Path to drive dictionary", required=True)
+    parser.add_argument("--ip", help="Drive IP address", required=True)
+    parser.add_argument("--close", help="Close plot after 5 seconds", action="store_true")
     return parser.parse_args()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = setup_command()
     main(args)

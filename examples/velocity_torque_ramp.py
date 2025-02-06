@@ -10,12 +10,11 @@ TORQUE_CONSTANT = 0.0376
 
 
 def setup_command():
-    parser = argparse.ArgumentParser(description='Run feedback test')
-    parser.add_argument('demo', help='Run demo',
-                        choices=['velocity', 'torque'])
-    parser.add_argument('dictionary_path', help='path to drive dictionary')
-    parser.add_argument('-ip', default="192.168.2.22", help='drive ip address')
-    parser.add_argument('-target_torque', default=0.706, help='Target torque', type=float)
+    parser = argparse.ArgumentParser(description="Run feedback test")
+    parser.add_argument("demo", help="Run demo", choices=["velocity", "torque"])
+    parser.add_argument("dictionary_path", help="path to drive dictionary")
+    parser.add_argument("-ip", default="192.168.2.22", help="drive ip address")
+    parser.add_argument("-target_torque", default=0.706, help="Target torque", type=float)
     return parser.parse_args()
 
 
@@ -96,7 +95,7 @@ def main(args):
     mc.communication.disconnect()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     args = setup_command()
     main(args)
