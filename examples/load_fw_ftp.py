@@ -15,13 +15,13 @@ def main(args):
 
 
 def setup_command():
-    parser = argparse.ArgumentParser(description='Disturbance example')
-    parser.add_argument('--dictionary_path', help='Path to drive dictionary', required=True)
-    parser.add_argument('--ip', help='Drive IP address', required=True)
-    parser.add_argument('--firmware_file', help='Firmware file to be loaded', required=True)
+    parser = argparse.ArgumentParser(description="Disturbance example")
+    parser.add_argument("--dictionary_path", help="Path to drive dictionary", required=True)
+    parser.add_argument("--ip", help="Drive IP address", required=True)
+    parser.add_argument("--firmware_file", help="Firmware file to be loaded", required=True)
     return parser.parse_args()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = setup_command()
     main(args)
