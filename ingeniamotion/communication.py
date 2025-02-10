@@ -938,6 +938,40 @@ class Communication(metaclass=MCMetaClass):
         slaves = net.scan_slaves()
         return slaves
 
+    @staticmethod
+    def scan_servos_ethernet(
+        subnet: str,
+    ) -> list[str]:
+        """Scan Ethernet device network to get all nodes.
+
+        Args:
+            subnet: The subnet in CIDR notation. For instance ``192.168.1.1/24``.
+
+        Returns:
+            List of drive IPs available in the network.
+
+        """
+        net = EthernetNetwork(subnet)
+        slaves = net.scan_slaves()
+        return slaves
+
+    @staticmethod
+    def scan_servos_ethernet_with_info(
+        subnet: str,
+    ) -> OrderedDict[str, SlaveInfo]:
+        """Scan Ethernet device network to get all nodes including drive information.
+
+        Args:
+            subnet: The subnet in CIDR notation. For instance ``192.168.1.1/24``.
+
+        Returns:
+            Dictionary of nodes available in the network and drive information.
+
+        """
+        net = EthernetNetwork(subnet)
+        slaves_info = net.scan_slaves_info()
+        return slaves_info
+
     def disconnect(self, servo: str = DEFAULT_SERVO) -> None:
         """Disconnect servo.
 
