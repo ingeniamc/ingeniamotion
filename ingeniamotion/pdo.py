@@ -312,7 +312,7 @@ class PDONetworkManager:
                 for servo in self._net.servos:
                     servo.set_pdo_watchdog_time(self._watchdog_timeout)
             except AttributeError as e:
-                max_pdo_watchdog = re.findall(r"\d+\.\d+|\d+", e.__str__())
+                max_pdo_watchdog = re.findall("wd_time_ms is limited to (.+) ms", e.__str__())
                 max_pdo_watchdog_ms = None
                 if max_pdo_watchdog is not None and "." in max_pdo_watchdog[0]:
                     max_pdo_watchdog_ms = float(max_pdo_watchdog[0])
