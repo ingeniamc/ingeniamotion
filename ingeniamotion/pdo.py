@@ -314,7 +314,7 @@ class PDONetworkManager:
             except AttributeError as e:
                 max_pdo_watchdog = re.findall("wd_time_ms is limited to (.+) ms", e.__str__())
                 max_pdo_watchdog_ms = None
-                if max_pdo_watchdog is not None and "." in max_pdo_watchdog[0]:
+                if max_pdo_watchdog is not None:
                     max_pdo_watchdog_ms = float(max_pdo_watchdog[0])
                 if is_watchdog_timeout_manually_set:
                     error_msg = "The watchdog timeout is too high."
