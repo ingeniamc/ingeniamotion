@@ -170,6 +170,7 @@ class Configuration(Homing, Feedbacks):
             axis : axis that will run the test. 1 by default.
 
         """
+        self.mc._get_drive(servo)
         self.mc.communication.set_register(
             self.BRAKE_OVERRIDE_REGISTER, self.BrakeOverride.RELEASE_BRAKE, servo=servo, axis=axis
         )
@@ -182,6 +183,7 @@ class Configuration(Homing, Feedbacks):
             axis : axis that will run the test. 1 by default.
 
         """
+        self.mc._get_drive(servo)
         self.mc.communication.set_register(
             self.BRAKE_OVERRIDE_REGISTER, self.BrakeOverride.ENABLE_BRAKE, servo=servo, axis=axis
         )
@@ -194,6 +196,7 @@ class Configuration(Homing, Feedbacks):
             axis : axis that will run the test. 1 by default.
 
         """
+        self.mc._get_drive(servo)
         self.mc.communication.set_register(
             self.BRAKE_OVERRIDE_REGISTER,
             self.BrakeOverride.OVERRIDE_DISABLED,
@@ -212,6 +215,7 @@ class Configuration(Homing, Feedbacks):
             axis : axis that will run the test. 1 by default.
 
         """
+        self.mc._get_drive(servo)
         self.disable_brake_override(servo, axis)
 
     def check_configuration(
@@ -236,10 +240,10 @@ class Configuration(Homing, Feedbacks):
             ILConfigurationError: If the configuration file differs from the drive state.
 
         """
+        drive = self.mc._get_drive(servo)
         if not path.isfile(config_path):
             raise FileNotFoundError(f"{config_path} file does not exist!")
-        servo_inst = self.mc.servos[servo]
-        servo_inst.check_configuration(config_path, subnode=axis)
+        drive.check_configuration(config_path, subnode=axis)
         self.logger.info(
             "Configuration check successfull %s", config_path, drive=self.mc.servo_name(servo)
         )
@@ -259,10 +263,10 @@ class Configuration(Homing, Feedbacks):
             FileNotFoundError: If configuration file does not exist.
 
         """
+        drive = self.mc._get_drive(servo)
         if not path.isfile(config_path):
             raise FileNotFoundError(f"{config_path} file does not exist!")
-        servo_inst = self.mc.servos[servo]
-        servo_inst.load_configuration(config_path, subnode=axis)
+        drive.load_configuration(config_path, subnode=axis)
         self.logger.info(
             "Configuration loaded from %s", config_path, drive=self.mc.servo_name(servo)
         )
@@ -279,8 +283,8 @@ class Configuration(Homing, Feedbacks):
             servo : servo alias to reference it. ``default`` by default.
 
         """
-        servo_inst = self.mc.servos[servo]
-        servo_inst.save_configuration(output_file, subnode=axis)
+        drive = self.mc._get_drive(servo)
+        drive.save_configuration(output_file, subnode=axis)
         self.logger.info("Configuration saved to %s", output_file, drive=self.mc.servo_name(servo))
 
     def store_configuration(self, axis: Optional[int] = None, servo: str = DEFAULT_SERVO) -> None:
@@ -319,6 +323,7 @@ class Configuration(Homing, Feedbacks):
             servo : servo alias to reference it. ``default`` by default.
             axis : servo axis. ``1`` by default.
         """
+        self.mc._get_drive(servo)
         self.mc.communication.set_register(
             self.PROFILE_MAX_ACCELERATION_REGISTER, acceleration, servo=servo, axis=axis
         )
@@ -339,6 +344,7 @@ class Configuration(Homing, Feedbacks):
             servo : servo alias to reference it. ``default`` by default.
             axis : servo axis. ``1`` by default.
         """
+        self.mc._get_drive(servo)
         self.mc.communication.set_register(
             self.PROFILE_MAX_DECELERATION_REGISTER, deceleration, servo=servo, axis=axis
         )
@@ -374,6 +380,7 @@ class Configuration(Homing, Feedbacks):
             TypeError: Missing arguments. All the arguments given were None.
 
         """
+        self.mc._get_drive(servo)
         if acceleration is None and deceleration is None and velocity is None:
             raise TypeError("Missing arguments. At least one argument is required.")
 
@@ -400,6 +407,7 @@ class Configuration(Homing, Feedbacks):
             TypeError: If the read value has the wrong type.
 
         """
+        self.mc._get_drive(servo)
         max_velocity = self.mc.communication.get_register(
             self.MAX_VELOCITY_REGISTER, servo=servo, axis=axis
         )
@@ -421,6 +429,7 @@ class Configuration(Homing, Feedbacks):
             TypeError: If velocity is not a float.
 
         """
+        self.mc._get_drive(servo)
         self.mc.communication.set_register(
             self.MAX_VELOCITY_REGISTER, velocity, servo=servo, axis=axis
         )
@@ -438,6 +447,7 @@ class Configuration(Homing, Feedbacks):
             servo : servo alias to reference it. ``default`` by default.
             axis : servo axis. ``1`` by default.
         """
+        self.mc._get_drive(servo)
         self.mc.communication.set_register(
             self.PROFILE_MAX_VELOCITY_REGISTER, velocity, servo=servo, axis=axis
         )
@@ -461,6 +471,7 @@ class Configuration(Homing, Feedbacks):
             TypeError: If some read value has a wrong type.
 
         """
+        self.mc._get_drive(servo)
         pos_vel_loop_rate = self.mc.communication.get_register(
             self.POSITION_AND_VELOCITY_LOOP_RATE_REGISTER, servo=servo, axis=axis
         )
@@ -482,6 +493,7 @@ class Configuration(Homing, Feedbacks):
             TypeError: If some read value has a wrong type.
 
         """
+        self.mc._get_drive(servo)
         current_loop = self.mc.communication.get_register(
             self.CURRENT_LOOP_RATE_REGISTER, servo=servo, axis=axis
         )
@@ -509,6 +521,7 @@ class Configuration(Homing, Feedbacks):
             TypeError: If some read value has a wrong type.
 
         """
+        self.mc._get_drive(servo)
         pow_stg_freq = self.mc.communication.get_register(
             self.POWER_STAGE_FREQUENCY_SELECTION_REGISTER, servo=servo, axis=axis
         )
@@ -538,6 +551,7 @@ class Configuration(Homing, Feedbacks):
             IntEnum: Enum with power stage frequency available values.
 
         """
+        self.mc._get_drive(servo)
         return self.mc.get_register_enum(self.POWER_STAGE_FREQUENCY_SELECTION_REGISTER, servo, axis)
 
     @MCMetaClass.check_motor_disabled
@@ -575,6 +589,7 @@ class Configuration(Homing, Feedbacks):
             TypeError: If some read value has a wrong type.
 
         """
+        self.mc._get_drive(servo)
         status_word = self.mc.communication.get_register(self.STATUS_WORD_REGISTER, servo, axis)
         if not isinstance(status_word, int):
             raise TypeError("Power stage frequency value has to be an integer")
@@ -591,6 +606,7 @@ class Configuration(Homing, Feedbacks):
             ``True`` if motor is enabled, else ``False``.
 
         """
+        self.mc._get_drive(servo)
         status_word = self.mc.configuration.get_status_word(servo=servo, axis=axis)
         return bool(status_word & self.STATUS_WORD_OPERATION_ENABLED_BIT)
 
@@ -607,6 +623,7 @@ class Configuration(Homing, Feedbacks):
             ``True`` if commutation feedback is aligned, else ``False``.
 
         """
+        self.mc._get_drive(servo)
         status_word = self.mc.configuration.get_status_word(servo=servo, axis=axis)
         return bool(status_word & self.STATUS_WORD_COMMUTATION_FEEDBACK_ALIGNED_BIT)
 
@@ -621,6 +638,7 @@ class Configuration(Homing, Feedbacks):
             axis : servo axis. ``1`` by default.
 
         """
+        self.mc._get_drive(servo)
         self.mc.communication.set_register(self.PHASING_MODE_REGISTER, phasing_mode, servo, axis)
 
     def get_phasing_mode(
@@ -639,6 +657,7 @@ class Configuration(Homing, Feedbacks):
             TypeError: If some read value has a wrong type.
 
         """
+        self.mc._get_drive(servo)
         phasing_mode = self.mc.communication.get_register(self.PHASING_MODE_REGISTER, servo, axis)
         if not isinstance(phasing_mode, int):
             raise TypeError("Phasing mode value has to be an integer")
@@ -658,6 +677,7 @@ class Configuration(Homing, Feedbacks):
             axis : servo axis. ``1`` by default.
 
         """
+        self.mc._get_drive(servo)
         self.mc.communication.set_register(self.GENERATOR_MODE_REGISTER, mode, servo, axis)
 
     def set_motor_pair_poles(
@@ -675,6 +695,7 @@ class Configuration(Homing, Feedbacks):
             ingenialink.exceptions.ILValueError: If pair poles is less than 0.
 
         """
+        self.mc._get_drive(servo)
         self.mc.communication.set_register(
             self.MOTOR_POLE_PAIRS_REGISTER, pair_poles, servo=servo, axis=axis
         )
@@ -692,6 +713,7 @@ class Configuration(Homing, Feedbacks):
         Raises:
             TypeError: If some read value has a wrong type.
         """
+        self.mc._get_drive(servo)
         pair_poles = self.mc.communication.get_register(
             self.MOTOR_POLE_PAIRS_REGISTER, servo=servo, axis=axis
         )
@@ -713,6 +735,7 @@ class Configuration(Homing, Feedbacks):
             TypeError: If some read value has a wrong type.
 
         """
+        self.mc._get_drive(servo)
         sto_status = self.mc.communication.get_register(
             self.STO_STATUS_REGISTER, servo=servo, axis=axis
         )
@@ -732,6 +755,7 @@ class Configuration(Homing, Feedbacks):
             False when the STO 1 input is inactive (bit is 1)
 
         """
+        self.mc._get_drive(servo)
         return not bool(self.get_sto_status(servo, axis) & self.STO1_ACTIVE_BIT)
 
     def is_sto2_active(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
@@ -746,6 +770,7 @@ class Configuration(Homing, Feedbacks):
             False when the STO 2 input is inactive (bit is 1)
 
         """
+        self.mc._get_drive(servo)
         return not bool(self.get_sto_status(servo, axis) & self.STO2_ACTIVE_BIT)
 
     def check_sto_power_supply(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
@@ -759,6 +784,7 @@ class Configuration(Homing, Feedbacks):
             return value of power supply bit.
 
         """
+        self.mc._get_drive(servo)
         if self.get_sto_status(servo, axis) & self.STO_SUPPLY_FAULT_BIT:
             return 1
         else:
@@ -779,6 +805,7 @@ class Configuration(Homing, Feedbacks):
             return value of abnormal fault bit.
 
         """
+        self.mc._get_drive(servo)
         if self.get_sto_status(servo, axis) & self.STO_ABNORMAL_FAULT_BIT:
             return 1
         else:
@@ -795,6 +822,7 @@ class Configuration(Homing, Feedbacks):
             return value of report bit.
 
         """
+        self.mc._get_drive(servo)
         if self.get_sto_status(servo, axis) & self.STO_REPORT_BIT:
             return 1
         else:
@@ -811,6 +839,7 @@ class Configuration(Homing, Feedbacks):
             ``True`` if STO is active, else ``False``.
 
         """
+        self.mc._get_drive(servo)
         return self.get_sto_status(servo, axis) == self.STO_ACTIVE_STATE
 
     def is_sto_inactive(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
@@ -824,6 +853,7 @@ class Configuration(Homing, Feedbacks):
             ``True`` if STO is inactive, else ``False``.
 
         """
+        self.mc._get_drive(servo)
         return self.get_sto_status(servo, axis) == self.STO_INACTIVE_STATE
 
     def is_sto_abnormal_latched(
@@ -838,6 +868,7 @@ class Configuration(Homing, Feedbacks):
         Returns:
             STOAbnormalLatchedStatus: STO Abnormal Latch state.
         """
+        self.mc._get_drive(servo)
         sto_status = self.get_sto_status(servo, axis)
         if bool(sto_status & self.STO_ABNORMAL_FAULT_BIT):
             if self.is_sto1_active(servo, axis) != self.is_sto2_active(servo, axis):
@@ -858,6 +889,7 @@ class Configuration(Homing, Feedbacks):
             ``True`` if STO is in abnormal fault, else ``False``.
 
         """
+        self.mc._get_drive(servo)
         return bool(self.get_sto_status(servo, axis) & self.STO_ABNORMAL_FAULT_BIT)
 
     def change_tcp_ip_parameters(
@@ -983,6 +1015,7 @@ class Configuration(Homing, Feedbacks):
             Serial numbers (COCO, MOCO).
 
         """
+        self.mc._get_drive(servo)
         prod_codes: list[Optional[int]] = [None, None]
         rev_numbers: list[Optional[int]] = [None, None]
         fw_versions: list[Optional[str]] = [None, None]
@@ -1045,6 +1078,7 @@ class Configuration(Homing, Feedbacks):
         Raises:
             TypeError: If some read value has a wrong type.
         """
+        self.mc._get_drive(servo)
         product_code_register = self.PRODUCT_ID_REGISTERS[self.get_subnode_type(axis)]
         product_code_value = self.mc.communication.get_register(
             product_code_register, servo, axis=axis
@@ -1066,6 +1100,7 @@ class Configuration(Homing, Feedbacks):
         Raises:
             TypeError: If some read value has a wrong type.
         """
+        self.mc._get_drive(servo)
         revision_number_register = self.REVISION_NUMBER_REGISTERS[self.get_subnode_type(axis)]
         revision_number_value = self.mc.communication.get_register(
             revision_number_register, servo, axis=axis
@@ -1087,6 +1122,7 @@ class Configuration(Homing, Feedbacks):
         Raises:
             TypeError: If some read value has a wrong type.
         """
+        self.mc._get_drive(servo)
         serial_number_register = self.SERIAL_NUMBER_REGISTERS[self.get_subnode_type(axis)]
         serial_number_value = self.mc.communication.get_register(
             serial_number_register, servo, axis=axis
@@ -1108,6 +1144,7 @@ class Configuration(Homing, Feedbacks):
         Raises:
             TypeError: If some read value has a wrong type.
         """
+        self.mc._get_drive(servo)
         fw_register = self.SOFTWARE_VERSION_REGISTERS[self.get_subnode_type(axis)]
         fw_value = self.mc.communication.get_register(fw_register, servo, axis=axis)
         if not isinstance(fw_value, str):
@@ -1128,6 +1165,7 @@ class Configuration(Homing, Feedbacks):
             TypeError: If the read vendor ID has the wrong type.
 
         """
+        self.mc._get_drive(servo)
         register = self.VENDOR_ID_COCO_REGISTER if axis == 0 else self.VENDOR_ID_REGISTER
         vendor_id = self.mc.communication.get_register(register, servo, axis)
         if not isinstance(vendor_id, int):
@@ -1200,6 +1238,7 @@ class Configuration(Homing, Feedbacks):
             axis: servo axis. ``1`` by default.
 
         """
+        self.mc._get_drive(servo)
         self.mc.communication.set_register(
             self.VELOCITY_LOOP_KP_REGISTER, kp, servo=servo, axis=axis
         )
@@ -1228,6 +1267,7 @@ class Configuration(Homing, Feedbacks):
             axis: servo axis. ``1`` by default.
 
         """
+        self.mc._get_drive(servo)
         self.mc.communication.set_register(
             self.POSITION_LOOP_KP_REGISTER, kp, servo=servo, axis=axis
         )
@@ -1252,6 +1292,7 @@ class Configuration(Homing, Feedbacks):
             TypeError: If some read value has a wrong type.
 
         """
+        self.mc._get_drive(servo)
         rated_current = self.mc.communication.get_register(
             self.RATED_CURRENT_REGISTER, servo=servo, axis=axis
         )
@@ -1273,6 +1314,7 @@ class Configuration(Homing, Feedbacks):
             axis: servo axis. ``1`` by default.
 
         """
+        self.mc._get_drive(servo)
         self.mc.communication.set_register(
             self.RATED_CURRENT_REGISTER, rated_current, servo=servo, axis=axis
         )
@@ -1291,6 +1333,7 @@ class Configuration(Homing, Feedbacks):
             TypeError: If some read value has a wrong type.
 
         """
+        self.mc._get_drive(servo)
         max_current = self.mc.communication.get_register(
             self.MAX_CURRENT_REGISTER, servo=servo, axis=axis
         )
@@ -1317,6 +1360,7 @@ class Configuration(Homing, Feedbacks):
             TypeError: If some read value has a wrong type.
 
         """
+        self.mc._get_drive(servo)
         commutation_mode = self.mc.communication.get_register(
             self.COMMUTATION_MODE_REGISTER, servo, axis
         )
@@ -1339,6 +1383,7 @@ class Configuration(Homing, Feedbacks):
             axis: servo axis. ``1`` by default.
 
         """
+        self.mc._get_drive(servo)
         self.mc.communication.set_register(
             self.COMMUTATION_MODE_REGISTER, commutation_mode, servo, axis
         )
@@ -1357,6 +1402,7 @@ class Configuration(Homing, Feedbacks):
             TypeError: If some read value has a wrong type.
 
         """
+        self.mc._get_drive(servo)
         bus_voltage = self.mc.communication.get_register(self.BUS_VOLTAGE_REGISTER, servo, axis)
         if not isinstance(bus_voltage, float):
             raise TypeError("Bus voltage value has to be a float")
@@ -1377,6 +1423,7 @@ class Configuration(Homing, Feedbacks):
             TypeError: If some read value has a wrong type.
 
         """
+        self.mc._get_drive(servo)
         pos_to_vel_ratio = self.mc.communication.get_register(
             self.POSITION_TO_VELOCITY_RATIO_REGISTER, servo, axis
         )
@@ -1396,6 +1443,7 @@ class Configuration(Homing, Feedbacks):
             axis: servo axis. ``1`` by default.
 
         """
+        self.mc._get_drive(servo)
         self.mc.communication.set_register(
             self.POSITION_TO_VELOCITY_RATIO_REGISTER, pos_to_vel_ratio, servo, axis
         )
@@ -1423,6 +1471,7 @@ class Configuration(Homing, Feedbacks):
             servo: servo alias to reference it. ``default`` by default.
             axis: servo axis. ``1`` by default.
         """
+        self.mc._get_drive(servo)
         arguments = [filter_type, frequency, q_factor, gain]
         registers = [
             self.FILTER_TYPE_REGISTER,
