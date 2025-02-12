@@ -74,6 +74,7 @@ class InputsOutputs:
             Polarity of the specified GPI.
 
         """
+        self.mc._get_drive(servo)
         gpi_polarity = int(
             self.mc.communication.get_register(
                 self.GPIO_IN_POLARITY_REGISTER, servo=servo, axis=axis
@@ -98,6 +99,7 @@ class InputsOutputs:
             axis : axis that will run the test. 1 by default.
 
         """
+        self.mc._get_drive(servo)
         gpis_actual_polarity = int(
             self.mc.communication.get_register(
                 self.GPIO_IN_POLARITY_REGISTER, servo=servo, axis=axis
@@ -127,6 +129,7 @@ class InputsOutputs:
             LOW if the voltage level is 0, HIGH if the voltage level is 1.
 
         """
+        self.mc._get_drive(servo)
         gpi_value = int(
             self.mc.communication.get_register(self.GPIO_IN_VALUE_REGISTER, servo=servo, axis=axis)
         )
@@ -148,6 +151,7 @@ class InputsOutputs:
             Polarity of the specified GPI.
 
         """
+        self.mc._get_drive(servo)
         gpo_polarity = int(
             self.mc.communication.get_register(
                 self.GPIO_OUT_POLARITY_REGISTER, servo=servo, axis=axis
@@ -172,6 +176,7 @@ class InputsOutputs:
             axis : axis that will run the test. 1 by default.
 
         """
+        self.mc._get_drive(servo)
         gpos_actual_polarity = int(
             self.mc.communication.get_register(
                 self.GPIO_OUT_POLARITY_REGISTER, servo=servo, axis=axis
@@ -210,6 +215,7 @@ class InputsOutputs:
         Raise:
             IMException: if the GPOs final value does not match with the desired GPOs set point.
         """
+        self.mc._get_drive(servo)
         new_target_value = bool(voltage_level.value)
 
         gpos_previous_value = int(
