@@ -13,7 +13,7 @@ from ingenialink.ethercat.servo import EthercatServo
 from ingenialink.exceptions import ILError, ILWrongWorkingCountError
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 
-from ingeniamotion.enums import COMMUNICATION_TYPE
+from ingeniamotion.enums import CommunicationType
 from ingeniamotion.exceptions import IMException
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
@@ -544,7 +544,7 @@ class PDONetworkManager:
 
     def start_pdos(
         self,
-        network_type: Optional[COMMUNICATION_TYPE] = None,
+        network_type: Optional[CommunicationType] = None,
         refresh_rate: Optional[float] = None,
         watchdog_timeout: Optional[float] = None,
     ) -> None:
@@ -572,11 +572,11 @@ class PDONetworkManager:
                     " provided."
                 )
             net = next(iter(self.mc.net.values()))
-        elif not isinstance(network_type, COMMUNICATION_TYPE):
+        elif not isinstance(network_type, CommunicationType):
             raise ValueError(
-                f"Wrong value for the network_type argument. Must be of type {COMMUNICATION_TYPE}"
+                f"Wrong value for the network_type argument. Must be of type {CommunicationType}"
             )
-        elif network_type == COMMUNICATION_TYPE.Canopen:
+        elif network_type == CommunicationType.Canopen:
             raise NotImplementedError
         else:
             ethercat_networks = [
@@ -593,7 +593,7 @@ class PDONetworkManager:
                 )
             net = (
                 ethercat_networks[0]
-                if network_type == COMMUNICATION_TYPE.Ethercat
+                if network_type == CommunicationType.Ethercat
                 else canopen_networks[0]
             )
         if self._pdo_thread is not None:

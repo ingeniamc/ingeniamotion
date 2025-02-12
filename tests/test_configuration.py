@@ -4,7 +4,7 @@ import pytest
 from ingenialink import CanBaudrate
 from ingenialink.ethercat.servo import EthercatServo
 
-from ingeniamotion.configuration import SubnodeType, MACAddressConverter
+from ingeniamotion.configuration import MACAddressConverter, SubnodeType
 from ingeniamotion.enums import (
     CommutationMode,
     FilterNumber,

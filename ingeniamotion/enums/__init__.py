@@ -197,7 +197,7 @@ class SeverityLevel(IntEnum, metaclass=MetaEnum):
 
 
 @export
-class COMMUNICATION_TYPE(IntEnum, metaclass=MetaEnum):  # noqa: N801
+class CommunicationType(IntEnum, metaclass=MetaEnum):
     Canopen = 0
     Ethernet = 1
     Ethercat = 2

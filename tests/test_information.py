@@ -7,7 +7,7 @@ from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.register import RegAccess, RegDtype
 
 from ingeniamotion.exceptions import IMException, IMRegisterNotExist
-from ingeniamotion.information import COMMUNICATION_TYPE
+from ingeniamotion.information import CommunicationType
 
 
 @pytest.mark.virtual
@@ -129,9 +129,9 @@ def test_get_name(motion_controller):
 @pytest.mark.parametrize(
     "communication, expected_result, args",
     [
-        (EthernetNetwork, COMMUNICATION_TYPE.Ethernet, None),
-        (EthercatNetwork, COMMUNICATION_TYPE.Ethercat, "fake_interface_name"),
-        (CanopenNetwork, COMMUNICATION_TYPE.Canopen, CanDevice.PCAN),
+        (EthernetNetwork, CommunicationType.Ethernet, None),
+        (EthercatNetwork, CommunicationType.Ethercat, "fake_interface_name"),
+        (CanopenNetwork, CommunicationType.Canopen, CanDevice.PCAN),
     ],
 )
 @pytest.mark.virtual

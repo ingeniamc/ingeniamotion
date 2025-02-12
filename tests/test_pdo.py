@@ -7,7 +7,7 @@ from ingenialink.exceptions import ILWrongWorkingCountError
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 from packaging import version
 
-from ingeniamotion.enums import COMMUNICATION_TYPE, OperationMode
+from ingeniamotion.enums import CommunicationType, OperationMode
 from ingeniamotion.exceptions import IMException
 
 from .setups.descriptors import EthercatMultiSlaveSetup
@@ -160,7 +160,7 @@ def test_pdos_min_refresh_rate(motion_controller):
     mc, alias, environment = motion_controller
     refresh_rate = 0.0001
     with pytest.raises(ValueError):
-        mc.capture.pdo.start_pdos(COMMUNICATION_TYPE.Ethercat, refresh_rate)
+        mc.capture.pdo.start_pdos(CommunicationType.Ethercat, refresh_rate)
 
 
 @pytest.mark.soem
@@ -173,7 +173,7 @@ def test_pdos_watchdog_exception_auto(motion_controller):
     mc, alias, environment = motion_controller
     refresh_rate = 3.5
     mc.capture.pdo.subscribe_to_exceptions(exception_callback)
-    mc.capture.pdo.start_pdos(COMMUNICATION_TYPE.Ethercat, refresh_rate)
+    mc.capture.pdo.start_pdos(CommunicationType.Ethercat, refresh_rate)
     time.sleep(1)
     mc.capture.pdo.unsubscribe_to_exceptions(exception_callback)
     mc.capture.pdo.stop_pdos()
@@ -192,7 +192,7 @@ def test_pdos_watchdog_exception_manual(motion_controller):
     mc, alias, environment = motion_controller
     watchdog_timeout = 7
     mc.capture.pdo.subscribe_to_exceptions(exception_callback)
-    mc.capture.pdo.start_pdos(COMMUNICATION_TYPE.Ethercat, watchdog_timeout=watchdog_timeout)
+    mc.capture.pdo.start_pdos(CommunicationType.Ethercat, watchdog_timeout=watchdog_timeout)
     time.sleep(1)
     mc.capture.pdo.unsubscribe_to_exceptions(exception_callback)
     mc.capture.pdo.stop_pdos()
@@ -276,7 +276,7 @@ def test_stop_pdos_exception(motion_controller):
 def test_start_pdos_not_implemented_exception(motion_controller):
     mc, alias, environment = motion_controller
     with pytest.raises(NotImplementedError):
-        mc.capture.pdo.start_pdos(COMMUNICATION_TYPE.Canopen)
+        mc.capture.pdo.start_pdos(CommunicationType.Canopen)
 
 
 @pytest.mark.soem
@@ -294,7 +294,7 @@ def test_start_pdos_number_of_network_exception(mocker, motion_controller):
     with pytest.raises(ValueError):
         mc.capture.pdo.start_pdos()
     with pytest.raises(IMException):
-        mc.capture.pdo.start_pdos(COMMUNICATION_TYPE.Ethercat)
+        mc.capture.pdo.start_pdos(CommunicationType.Ethercat)
 
 
 def skip_if_pdo_padding_is_not_available(mc, alias):
