@@ -1029,7 +1029,7 @@ class Communication:
             TypeError: If some parameter has a wrong type.
 
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         register_dtype = self.mc.info.register_type(register, axis, servo=servo)
         value = drive.read(register, subnode=axis)
         if register_dtype.value <= RegDtype.S64.value and isinstance(value, int):
@@ -1059,7 +1059,7 @@ class Communication:
             IMRegisterWrongAccess: If the register access is read-only.
 
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         register_dtype_value = self.mc.info.register_type(register, axis, servo=servo)
         register_access_type = self.mc.info.register_info(register, axis, servo=servo).access
         signed_int = [RegDtype.S8, RegDtype.S16, RegDtype.S32, RegDtype.S64]
