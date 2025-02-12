@@ -358,11 +358,11 @@ class PDONetworkManager:
             AttributeError: If an initial value is not provided for an RPDO register.
 
         """
+        drive = self.mc._get_drive(servo)
         pdo_map_item_dict: dict[RegCyclicType, type[Union[RPDOMapItem, TPDOMapItem]]] = {
             RegCyclicType.RX: RPDOMapItem,
             RegCyclicType.TX: TPDOMapItem,
         }
-        drive = self.mc._get_drive(servo)
         register = drive.dictionary.registers(axis)[register_uid]
         if not isinstance(register, EthercatRegister):
             raise ValueError(f"Expected EthercatRegister. Got {type(register)}")
@@ -737,6 +737,7 @@ class PDONetworkManager:
             The poller instance.
 
         """
+        self.mc._get_drive(servo)
         poller = PDOPoller(self.mc, servo, sampling_time, watchdog_timeout, buffer_size)
         poller.add_channels(registers)
         if start:
