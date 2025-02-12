@@ -388,6 +388,7 @@ class FSoEMaster:
             fsoe_master_watchdog_timeout: The FSoE master watchdog timeout in seconds.
 
         """
+        self.__mc._get_drive(servo)
         slave_address = self.get_safety_address(servo)
         application_parameters = self._get_application_parameters(servo)
         master_handler = FSoEMasterHandler(
@@ -440,6 +441,7 @@ class FSoEMaster:
             servo: servo alias to reference it. ``default`` by default.
 
         """
+        self.__mc._get_drive(servo)
         master_handler = self.__handlers[servo]
         master_handler.sto_deactivate()
 
@@ -450,6 +452,7 @@ class FSoEMaster:
             servo: servo alias to reference it. ``default`` by default.
 
         """
+        self.__mc._get_drive(servo)
         master_handler = self.__handlers[servo]
         master_handler.sto_activate()
 
@@ -460,6 +463,7 @@ class FSoEMaster:
             servo: servo alias to reference it. ``default`` by default.
 
         """
+        self.__mc._get_drive(servo)
         master_handler = self.__handlers[servo]
         master_handler.ss1_deactivate()
 
@@ -470,6 +474,7 @@ class FSoEMaster:
             servo: servo alias to reference it. ``default`` by default.
 
         """
+        self.__mc._get_drive(servo)
         master_handler = self.__handlers[servo]
         master_handler.ss1_activate()
 
@@ -483,6 +488,7 @@ class FSoEMaster:
            The safe inputs value.
 
         """
+        self.__mc._get_drive(servo)
         master_handler = self.__handlers[servo]
         return master_handler.safe_inputs_value()
 
@@ -496,7 +502,7 @@ class FSoEMaster:
             The FSoE slave address.
 
         """
-        drive = self.__mc.servos[servo]
+        drive = self.__mc._get_drive(servo)
         value = drive.read(self.SAFETY_ADDRESS_REGISTER)
         if not isinstance(value, int):
             raise ValueError(f"Wrong safety address value type. Expected int, got {type(value)}")
@@ -510,7 +516,7 @@ class FSoEMaster:
             servo: servo alias to reference it. ``default`` by default.
 
         """
-        drive = self.__mc.servos[servo]
+        drive = self.__mc._get_drive(servo)
         drive.write(self.SAFETY_ADDRESS_REGISTER, data=address)
 
     def check_sto_active(self, servo: str = DEFAULT_SERVO) -> bool:
@@ -523,6 +529,7 @@ class FSoEMaster:
             True if the STO is active. False otherwise.
 
         """
+        self.__mc._get_drive(servo)
         master_handler = self.__handlers[servo]
         return master_handler.is_sto_active()
 
@@ -538,6 +545,7 @@ class FSoEMaster:
                 ``None`` by default.
 
         """
+        self.__mc._get_drive(servo)
         master_handler = self.__handlers[servo]
         master_handler.wait_for_data_state(timeout)
 
@@ -551,6 +559,7 @@ class FSoEMaster:
             The servo's FSoE master handler state.
 
         """
+        self.__mc._get_drive(servo)
         master_handler = self.__handlers[servo]
         return master_handler.state
 
