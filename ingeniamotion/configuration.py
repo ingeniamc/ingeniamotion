@@ -1,7 +1,8 @@
 import re
+import warnings
 from enum import IntEnum
 from os import path
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 import ingenialogger
 from ingenialink import CanBaudrate
@@ -1435,3 +1436,20 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
                 continue
             register = reg_template.format(signal.value, number.value)
             self.mc.communication.set_register(register, value, servo, axis)
+
+
+# WARNING: Deprecated aliases
+_DEPRECATED = {
+    "TYPE_SUBNODES": "SubnodeType",
+}
+
+
+def __getattr__(name: str) -> Any:
+    if name in _DEPRECATED:
+        warnings.warn(
+            f"{name} is deprecated, use {_DEPRECATED[name]} instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return globals()[_DEPRECATED[name]]
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
