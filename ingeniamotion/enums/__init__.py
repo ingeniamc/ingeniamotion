@@ -1,5 +1,6 @@
+import warnings
 from enum import Enum, EnumMeta, IntEnum
-from typing import TypeVar
+from typing import Any, TypeVar
 
 from ingenialink import (
     CAN_BAUDRATE,
@@ -341,3 +342,20 @@ class STOAbnormalLatchedStatus(IntEnum, metaclass=MetaEnum):
     NOT_LATCHED = 0
     LATCHED = 1
     UNDETERMINATED = 2
+
+
+# WARNING: Deprecated aliases
+_DEPRECATED = {
+    "COMMUNICATION_TYPE": "CommunicationType",
+}
+
+
+def __getattr__(name: str) -> Any:
+    if name in _DEPRECATED:
+        warnings.warn(
+            f"{name} is deprecated, use {_DEPRECATED[name]} instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return globals()[_DEPRECATED[name]]
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
