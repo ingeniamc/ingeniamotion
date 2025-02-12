@@ -35,7 +35,7 @@ class Homing:
             servo : servo alias to reference it. ``default`` by default.
             axis : servo axis. ``1`` by default.
         """
-        self.__mc._get_drive(servo)
+        self.mc._get_drive(servo)
         self.mc.communication.set_register(self.HOMING_MODE_REGISTER, homing_mode, servo, axis)
 
     def set_homing_offset(
@@ -48,7 +48,7 @@ class Homing:
             servo : servo alias to reference it. ``default`` by default.
             axis : servo axis. ``1`` by default.
         """
-        self.__mc._get_drive(servo)
+        self.mc._get_drive(servo)
         self.mc.communication.set_register(self.HOMING_OFFSET_REGISTER, homing_offset, servo, axis)
 
     def set_homing_timeout(
@@ -61,7 +61,7 @@ class Homing:
             servo : servo alias to reference it. ``default`` by default.
             axis : servo axis. ``1`` by default.
         """
-        self.__mc._get_drive(servo)
+        self.mc._get_drive(servo)
         self.mc.communication.set_register(self.HOMING_TIMEOUT_REGISTER, timeout_ms, servo, axis)
 
     def __check_motor_phasing(self, servo: str, axis: int) -> None:
@@ -82,7 +82,7 @@ class Homing:
             servo : servo alias to reference it. ``default`` by default.
             axis : servo axis. ``1`` by default.
         """
-        self.__mc._get_drive(servo)
+        self.mc._get_drive(servo)
         # Save previous mode
         prev_op_mode = self.mc.motion.get_operation_mode(servo, axis)
 
@@ -126,7 +126,7 @@ class Homing:
             motor_enable : if ``True`` do motor enable. ``True`` by default.
 
         """
-        self.__mc._get_drive(servo)
+        self.mc._get_drive(servo)
         self.mc.motion.set_operation_mode(OperationMode.HOMING, servo, axis)
         if direction > 0:
             # Positive direction
@@ -181,7 +181,7 @@ class Homing:
             axis : servo axis. ``1`` by default.
             motor_enable : if ``True`` do motor enable. ``True`` by default.
         """
-        self.__mc._get_drive(servo)
+        self.mc._get_drive(servo)
         self.mc.motion.set_operation_mode(OperationMode.HOMING, servo, axis)
         if direction > 0:
             # Positive direction
@@ -234,7 +234,7 @@ class Homing:
             axis : servo axis. ``1`` by default.
             motor_enable : if ``True`` do motor enable. ``True`` by default.
         """
-        self.__mc._get_drive(servo)
+        self.mc._get_drive(servo)
         self.mc.motion.set_operation_mode(OperationMode.HOMING, servo, axis)
         if direction > 0:
             # Positive direction
