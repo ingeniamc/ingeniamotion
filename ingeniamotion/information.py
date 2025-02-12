@@ -50,7 +50,7 @@ class Information:
             IMRegisterNotExist: If register does not exist in dictionary.
 
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         try:
             return drive.dictionary.registers(axis)[register]
         except KeyError:
@@ -76,6 +76,7 @@ class Information:
             IMRegisterNotExist: If register does not exist in dictionary.
 
         """
+        self.mc._get_drive(servo)
         register_obj = self.register_info(register, axis=axis, servo=servo)
         return register_obj.dtype
 
@@ -99,6 +100,7 @@ class Information:
             IMRegisterNotExist: If register does not exist in dictionary.
 
         """
+        self.mc._get_drive(servo)
         register_obj = self.register_info(register, axis=axis, servo=servo)
         return register_obj.access
 
@@ -122,6 +124,7 @@ class Information:
             IMRegisterNotExist: If register does not exist in dictionary.
 
         """
+        self.mc._get_drive(servo)
         register_obj = self.register_info(register, axis=axis, servo=servo)
         return register_obj.range
 
@@ -142,7 +145,7 @@ class Information:
             ``True`` if register exists, else ``False``.
 
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         return register in drive.dictionary.registers(axis)
 
     def get_product_name(self, servo: str = DEFAULT_SERVO) -> Optional[str]:
@@ -154,7 +157,7 @@ class Information:
         Returns:
             If it exists for example: "EVE-NET-E", "CAP-NET-E", etc.
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         product_name = drive.dictionary.part_number
         if self.is_comkit(servo):
             return f"{product_name} + {self.PART_NUMBER_COMKIT}"
@@ -169,8 +172,8 @@ class Information:
         Returns:
             Node ID of the drive.
         """
+        drive = self.mc._get_drive(servo)
         net = self.mc._get_network(servo)
-        drive = self.mc.servos[servo]
         if isinstance(net, CanopenNetwork):
             return int(drive.target)
         else:
@@ -185,6 +188,7 @@ class Information:
         Returns:
             Baudrate of the drive.
         """
+        self.mc._get_drive(servo)
         net = self.mc._get_network(servo)
         if isinstance(net, CanopenNetwork):
             return CanBaudrate(net.baudrate)
@@ -199,8 +203,8 @@ class Information:
         Returns:
             IP of the drive.
         """
+        drive = self.mc._get_drive(servo)
         net = self.mc._get_network(servo)
-        drive = self.mc.servos[servo]
         if isinstance(net, EthernetNetwork):
             return str(drive.target)
         else:
@@ -216,8 +220,8 @@ class Information:
             Slave ID of the servo.
 
         """
+        drive = self.mc._get_drive(servo)
         net = self.mc._get_network(servo)
-        drive = self.mc.servos[servo]
         if isinstance(net, EoENetwork) and isinstance(drive.target, str):
             return net._configured_slaves[drive.target]
         elif isinstance(net, EthercatNetwork) and isinstance(drive.target, int):
@@ -233,7 +237,7 @@ class Information:
         Returns:
             The name of the drive.
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         drive_name = drive.name
         return f"{drive_name}"
 
@@ -265,6 +269,7 @@ class Information:
         Returns:
             Full name.
         """
+        self.mc._get_drive(servo)
         prod_name = self.get_product_name(servo)
         name = self.get_name(servo)
         full_name = f"{prod_name} - {name}"
@@ -283,7 +288,7 @@ class Information:
         Returns:
             Dictionary of subnode ids and their type.
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         return drive.subnodes
 
     def get_categories(self, servo: str = DEFAULT_SERVO) -> dict[str, str]:
@@ -295,7 +300,7 @@ class Information:
         Returns:
             Categories instance.
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         dictionary_categories = drive.dictionary.categories
         if not dictionary_categories:
             raise IMException("Dictionary categories are not defined.")
@@ -314,7 +319,7 @@ class Information:
         Returns:
             Dictionary file name.
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         return str(os.path.basename(drive.dictionary.path))
 
     def get_encoded_image_from_dictionary(self, servo: str = DEFAULT_SERVO) -> Optional[str]:
@@ -329,7 +334,7 @@ class Information:
         Returns:
             The encoded image or NoneType object.
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         return drive.dictionary.image
 
     def is_comkit(self, servo: str = DEFAULT_SERVO) -> bool:
@@ -342,5 +347,5 @@ class Information:
             True if using COM-KIT, False otherwise.
 
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         return drive.dictionary.coco_product_code == self.PRODUCT_CODE_COMKIT
