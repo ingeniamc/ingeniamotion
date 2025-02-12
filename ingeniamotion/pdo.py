@@ -1,3 +1,4 @@
+import re
 import threading
 import time
 from collections import deque
@@ -192,7 +193,6 @@ class PDONetworkManager:
 
         DEFAULT_PDO_REFRESH_TIME = 0.01
         MINIMUM_PDO_REFRESH_TIME = 0.001
-        MAXIMUM_PDO_REFRESH_TIME = 4
         DEFAULT_WATCHDOG_TIMEOUT = 0.1
         PDO_WATCHDOG_INCREMENT_FACTOR = 2
         # The time.sleep precision is 13 ms for Windows OS
@@ -216,19 +216,8 @@ class PDONetworkManager:
                 raise ValueError(
                     f"The minimum PDO refresh rate is {self.MINIMUM_PDO_REFRESH_TIME} seconds."
                 )
-            elif refresh_rate > self.MAXIMUM_PDO_REFRESH_TIME:
-                raise ValueError(
-                    f"The maximum PDO refresh rate is {self.MAXIMUM_PDO_REFRESH_TIME} seconds."
-                )
             self._refresh_rate = refresh_rate
-            if watchdog_timeout is None:
-                watchdog_timeout = max(
-                    self.DEFAULT_WATCHDOG_TIMEOUT,
-                    self._refresh_rate * self.PDO_WATCHDOG_INCREMENT_FACTOR,
-                )
             self._watchdog_timeout = watchdog_timeout
-            for servo in self._net.servos:
-                servo.set_pdo_watchdog_time(watchdog_timeout)
             self._notify_send_process_data = notify_send_process_data
             self._notify_receive_process_data = notify_receive_process_data
             self._notify_exceptions = notify_exceptions
@@ -236,6 +225,12 @@ class PDONetworkManager:
 
         def run(self) -> None:
             """Start the PDO exchange."""
+            try:
+                self.__set_watchdog_timeout()
+            except IMException as e:
+                if self._notify_exceptions is not None:
+                    self._notify_exceptions(e)
+                return
             first_iteration = True
             iteration_duration: float = -1
             while not self._pd_thread_stop_event.is_set():
@@ -252,7 +247,10 @@ class PDONetworkManager:
                     self._pd_thread_stop_event.set()
                     self._net.stop_pdos()
                     duration_error = ""
-                    if iteration_duration > self._watchdog_timeout:
+                    if (
+                        self._watchdog_timeout is not None
+                        and iteration_duration > self._watchdog_timeout
+                    ):
                         duration_error = (
                             f"Last iteration took {iteration_duration * 1000:0.1f} ms which is "
                             f"higher than the watchdog timeout "
@@ -300,6 +298,34 @@ class PDONetworkManager:
             start_time = time.perf_counter()
             while duration - (time.perf_counter() - start_time) > 0:
                 pass
+
+        def __set_watchdog_timeout(self) -> None:
+            if self._watchdog_timeout is None:
+                self._watchdog_timeout = max(
+                    self.DEFAULT_WATCHDOG_TIMEOUT,
+                    self._refresh_rate * self.PDO_WATCHDOG_INCREMENT_FACTOR,
+                )
+                is_watchdog_timeout_manually_set = False
+            else:
+                is_watchdog_timeout_manually_set = True
+            try:
+                for servo in self._net.servos:
+                    servo.set_pdo_watchdog_time(self._watchdog_timeout)
+            except AttributeError as e:
+                max_pdo_watchdog = re.findall("wd_time_ms is limited to (.+) ms", e.__str__())
+                max_pdo_watchdog_ms = None
+                if max_pdo_watchdog is not None:
+                    max_pdo_watchdog_ms = float(max_pdo_watchdog[0])
+                if is_watchdog_timeout_manually_set:
+                    error_msg = "The watchdog timeout is too high."
+                    if max_pdo_watchdog_ms is not None:
+                        error_msg += f" The max watchdog timeout is {max_pdo_watchdog_ms} ms."
+                else:
+                    error_msg = "The sampling time is too high."
+                    if max_pdo_watchdog_ms is not None:
+                        max_sampling_time = max_pdo_watchdog_ms / self.PDO_WATCHDOG_INCREMENT_FACTOR
+                        error_msg += f" The max sampling time is {max_sampling_time} ms."
+                raise IMException(error_msg) from e
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
