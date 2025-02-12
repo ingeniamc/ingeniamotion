@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 
 import contextlib
 
-from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
 RUNNING_ON_WINDOWS = platform.system() == "Windows"
 
@@ -71,7 +71,7 @@ class NetworkAdapter:
     interface_guid: str
 
 
-class Communication(metaclass=MCMetaClass):
+class Communication:
     """Communication."""
 
     FORCE_SYSTEM_BOOT_COCO_REGISTER = "DRV_BOOT_COCO_FORCE"

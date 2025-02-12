@@ -9,10 +9,10 @@ if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.enums import GeneratorMode, OperationMode, PhasingMode, SensorType
 from ingeniamotion.exceptions import IMTimeoutError
-from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
 
-class Motion(metaclass=MCMetaClass):
+class Motion:
     """Motion."""
 
     CONTROL_WORD_REGISTER = "DRV_STATE_CONTROL"

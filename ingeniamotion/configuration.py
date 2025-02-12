@@ -81,7 +81,7 @@ class MACAddressConverter:
         return mac_address_int
 
 
-class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
+class Configuration(Homing, Feedbacks):
     """Configuration."""
 
     class BrakeOverride(IntEnum):

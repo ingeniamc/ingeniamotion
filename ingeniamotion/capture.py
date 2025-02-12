@@ -18,7 +18,7 @@ from ingeniamotion.exceptions import (
     IMRegisterNotExist,
     IMStatusWordError,
 )
-from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.monitoring.base_monitoring import Monitoring
 from ingeniamotion.monitoring.monitoring_v1 import MonitoringV1
 from ingeniamotion.monitoring.monitoring_v3 import MonitoringV3
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 
-class Capture(metaclass=MCMetaClass):
+class Capture:
     """Capture."""
 
     DISTURBANCE_STATUS_REGISTER = "DIST_STATUS"

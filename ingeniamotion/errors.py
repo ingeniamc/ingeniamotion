@@ -4,10 +4,10 @@ from typing import TYPE_CHECKING, Optional
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
-from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
 
-class Errors(metaclass=MCMetaClass):
+class Errors:
     """Errors."""
 
     class ErrorLocation(IntEnum):

@@ -13,7 +13,7 @@ from ingenialink.register import Register
 
 from ingeniamotion.enums import COMMUNICATION_TYPE
 from ingeniamotion.exceptions import IMException, IMRegisterNotExist
-from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 logger = ingenialogger.get_logger(__name__)
 
 
-class Information(metaclass=MCMetaClass):
+class Information:
     """Information."""
 
     PRODUCT_CODE_COMKIT = 0x3214001

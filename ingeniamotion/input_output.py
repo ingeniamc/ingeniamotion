@@ -4,13 +4,13 @@ import ingenialogger
 
 from ingeniamotion.enums import GPI, GPO, DigitalVoltageLevel, GPIOPolarity
 from ingeniamotion.exceptions import IMException
-from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 
-class InputsOutputs(metaclass=MCMetaClass):
+class InputsOutputs:
     """Class that contains the GPIO functionalities."""
 
     GPIO_IN_VALUE_REGISTER = "IO_IN_VALUE"
