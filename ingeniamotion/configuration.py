@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 
-class TYPE_SUBNODES(IntEnum):  # noqa: N801
+class SubnodeType(IntEnum):
     """Subnode type enum."""
 
     COCO = 0
@@ -138,20 +138,20 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
     STO_INACTIVE_STATE = 23
 
     PRODUCT_ID_REGISTERS = {
-        TYPE_SUBNODES.COCO: "DRV_ID_PRODUCT_CODE_COCO",
-        TYPE_SUBNODES.MOCO: "DRV_ID_PRODUCT_CODE",
+        SubnodeType.COCO: "DRV_ID_PRODUCT_CODE_COCO",
+        SubnodeType.MOCO: "DRV_ID_PRODUCT_CODE",
     }
     REVISION_NUMBER_REGISTERS = {
-        TYPE_SUBNODES.COCO: "DRV_ID_REVISION_NUMBER_COCO",
-        TYPE_SUBNODES.MOCO: "DRV_ID_REVISION_NUMBER",
+        SubnodeType.COCO: "DRV_ID_REVISION_NUMBER_COCO",
+        SubnodeType.MOCO: "DRV_ID_REVISION_NUMBER",
     }
     SERIAL_NUMBER_REGISTERS = {
-        TYPE_SUBNODES.COCO: "DRV_ID_SERIAL_NUMBER_COCO",
-        TYPE_SUBNODES.MOCO: "DRV_ID_SERIAL_NUMBER",
+        SubnodeType.COCO: "DRV_ID_SERIAL_NUMBER_COCO",
+        SubnodeType.MOCO: "DRV_ID_SERIAL_NUMBER",
     }
     SOFTWARE_VERSION_REGISTERS = {
-        TYPE_SUBNODES.COCO: "DRV_APP_COCO_VERSION",
-        TYPE_SUBNODES.MOCO: "DRV_ID_SOFTWARE_VERSION",
+        SubnodeType.COCO: "DRV_APP_COCO_VERSION",
+        SubnodeType.MOCO: "DRV_ID_SOFTWARE_VERSION",
     }
     VENDOR_ID_COCO_REGISTER = "DRV_ID_VENDOR_ID_COCO"
     VENDOR_ID_REGISTER = "DRV_ID_VENDOR_ID"
@@ -1016,7 +1016,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         return prod_codes, rev_numbers, fw_versions, serial_number
 
     @staticmethod
-    def get_subnode_type(axis: int) -> TYPE_SUBNODES:
+    def get_subnode_type(axis: int) -> SubnodeType:
         """Get a subnode type depending on the axis number.
 
         Args:
@@ -1030,7 +1030,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """
         if axis < 0:
             raise ValueError("There are no subnodes with negative values")
-        return TYPE_SUBNODES.COCO if axis == 0 else TYPE_SUBNODES.MOCO
+        return SubnodeType.COCO if axis == 0 else SubnodeType.MOCO
 
     def get_product_code(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
         """Get the product code of a drive.
