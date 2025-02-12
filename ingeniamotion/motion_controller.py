@@ -91,7 +91,7 @@ class MotionController:
         net_key = self.servo_net[servo]
         return self.net[net_key]
 
-    def _get_drive(self, servo: str) -> Servo:
+    def _get_drive(self, servo: str = DEFAULT_SERVO) -> Servo:
         """Return servo drive instance.
 
         Args:
@@ -101,6 +101,9 @@ class MotionController:
             Servo instance.
 
         """
+        if servo not in self.servos:
+            msg = f"Servo {servo} is not connected"
+            raise KeyError(msg)
         return self.servos[servo]
 
     # Properties
