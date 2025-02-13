@@ -4,7 +4,7 @@ import pytest
 from ingenialink import CanBaudrate
 from ingenialink.ethercat.servo import EthercatServo
 
-from ingeniamotion.configuration import TYPE_SUBNODES, MACAddressConverter
+from ingeniamotion.configuration import MACAddressConverter, SubnodeType
 from ingeniamotion.enums import (
     CommutationMode,
     FilterNumber,
@@ -859,8 +859,8 @@ def test_store_restore_tcp_ip_parameters_exception(mocker, motion_controller, fu
 @pytest.mark.parametrize(
     "subnode, expected_result",
     [
-        (0, TYPE_SUBNODES.COCO),
-        (1, TYPE_SUBNODES.MOCO),
+        (0, SubnodeType.COCO),
+        (1, SubnodeType.MOCO),
     ],
 )
 @pytest.mark.virtual

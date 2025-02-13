@@ -11,7 +11,7 @@ from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.register import Register
 
-from ingeniamotion.enums import COMMUNICATION_TYPE
+from ingeniamotion.enums import CommunicationType
 from ingeniamotion.exceptions import IMException, IMRegisterNotExist
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 
@@ -237,7 +237,7 @@ class Information(metaclass=MCMetaClass):
         drive_name = drive.name
         return f"{drive_name}"
 
-    def get_communication_type(self, servo: str = DEFAULT_SERVO) -> COMMUNICATION_TYPE:
+    def get_communication_type(self, servo: str = DEFAULT_SERVO) -> CommunicationType:
         """Get the connected drive's communication type.
 
         Args:
@@ -249,11 +249,11 @@ class Information(metaclass=MCMetaClass):
         """
         drive_network = self.mc._get_network(servo)
         if isinstance(drive_network, CanopenNetwork):
-            communication_type = COMMUNICATION_TYPE.Canopen
+            communication_type = CommunicationType.Canopen
         elif isinstance(drive_network, EthernetNetwork):
-            communication_type = COMMUNICATION_TYPE.Ethernet
+            communication_type = CommunicationType.Ethernet
         elif isinstance(drive_network, (EoENetwork, EthercatNetwork)):
-            communication_type = COMMUNICATION_TYPE.Ethercat
+            communication_type = CommunicationType.Ethercat
         return communication_type
 
     def get_full_name(self, servo: str = DEFAULT_SERVO) -> str:
