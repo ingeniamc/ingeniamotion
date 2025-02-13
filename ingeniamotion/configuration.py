@@ -577,7 +577,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """
         status_word = self.mc.communication.get_register(self.STATUS_WORD_REGISTER, servo, axis)
         if not isinstance(status_word, int):
-            raise TypeError("Power stage frequency value has to be an integer")
+            raise TypeError("Status word value has to be an integer")
         return status_word
 
     def is_motor_enabled(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
