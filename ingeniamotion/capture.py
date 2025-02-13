@@ -152,7 +152,6 @@ class Capture:
             NotImplementedError: If an wrong monitoring version is requested.
 
         """
-        self.mc._get_drive(servo)
         version = self._check_version(servo)
         if version == MonitoringVersion.MONITORING_V3:
             return MonitoringV3(self.mc, servo)
