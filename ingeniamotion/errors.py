@@ -126,7 +126,6 @@ class Errors:
             TypeError: If some read value has a wrong type.
 
         """
-        self.mc._get_drive(servo)
         error_version = self.__get_error_location(servo)
         subnode, error_location = self.__get_error_subnode(error_version, axis)
         error = self.mc.communication.get_register(
@@ -184,7 +183,6 @@ class Errors:
             ValueError: Index must be less than 32
             TypeError: If some read value has a wrong type.
         """
-        self.mc._get_drive(servo)
         if index >= self.MAXIMUM_ERROR_INDEX:
             raise ValueError("index must be less than 32")
         error_version = self.__get_error_location(servo)
@@ -215,7 +213,6 @@ class Errors:
             TypeError: If some read value has a wrong type.
 
         """
-        self.mc._get_drive(servo)
         error_version = self.__get_error_location(servo)
         subnode, error_location = self.__get_error_subnode(error_version, axis)
         total_number_errors = self.mc.communication.get_register(
@@ -237,7 +234,6 @@ class Errors:
         Returns:
             List of all errors.
         """
-        self.mc._get_drive(servo)
         err_list = []
         err_num = self.get_number_total_errors(servo, axis)
         err_num = min(err_num, self.MAXIMUM_ERROR_INDEX)
@@ -256,7 +252,6 @@ class Errors:
         Returns:
             ``True`` if fault is active, else ``False``.
         """
-        self.mc._get_drive(servo)
         status_word = self.mc.configuration.get_status_word(servo=servo, axis=axis)
         return bool(status_word & self.STATUS_WORD_FAULT_BIT)
 
@@ -270,7 +265,6 @@ class Errors:
         Returns:
             ``True`` if warning is active, else ``False``.
         """
-        self.mc._get_drive(servo)
         status_word = self.mc.configuration.get_status_word(servo=servo, axis=axis)
         return bool(status_word & self.STATUS_WORD_WARNING_BIT)
 

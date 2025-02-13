@@ -228,7 +228,6 @@ class Capture:
              trigger_signal or trigger_value are None.
 
         """
-        self.mc._get_drive(servo)
         self.clean_monitoring(servo=servo)
         monitoring = self.create_empty_monitoring(servo)
         monitoring.set_frequency(prescaler)
@@ -277,7 +276,6 @@ class Capture:
                 registers and samples.
 
         """
-        self.mc._get_drive(servo)
         self.clean_disturbance(servo=servo)
         disturbance = Disturbance(self.mc, servo)
         disturbance.set_frequency_divider(freq_divider)
@@ -333,7 +331,6 @@ class Capture:
             IMMonitoringError: If monitoring can't be enabled.
 
         """
-        self.mc._get_drive(servo)
         self.enable_monitoring(servo=servo)
         self.enable_disturbance(servo=servo)
 
@@ -384,7 +381,6 @@ class Capture:
             servo : servo alias to reference it. ``default`` by default.
 
         """
-        self.mc._get_drive(servo)
         self.disable_monitoring(servo=servo)
         self.disable_disturbance(servo=servo)
 
@@ -443,7 +439,6 @@ class Capture:
             TypeError: If some read value has a wrong type.
 
         """
-        self.mc._get_drive(servo)
         monitoring_disturbance_status = self.mc.communication.get_register(
             self.MONITORING_STATUS_REGISTER, servo=servo, axis=0
         )
@@ -465,7 +460,6 @@ class Capture:
             TypeError: If some read value has a wrong type.
 
         """
-        self.mc._get_drive(servo)
         monitoring_status = self.mc.communication.get_register(
             self.MONITORING_STATUS_REGISTER, servo=servo, axis=0
         )
@@ -491,7 +485,6 @@ class Capture:
             TypeError: If some read value has a wrong type.
 
         """
-        self.mc._get_drive(servo)
         if version is None:
             version = self._check_version(servo)
         if version < MonitoringVersion.MONITORING_V3:
@@ -519,7 +512,6 @@ class Capture:
             IMRegisterNotExist: If the register doesn't exist.
 
         """
-        self.mc._get_drive(servo)
         monitor_status = self.get_monitoring_status(servo)
         return (monitor_status & self.MONITORING_STATUS_ENABLED_BIT) == 1
 
@@ -540,7 +532,6 @@ class Capture:
             IMRegisterNotExist: If the register doesn't exist.
 
         """
-        self.mc._get_drive(servo)
         monitor_status = self.get_disturbance_status(servo, version=version)
         return (monitor_status & self.DISTURBANCE_STATUS_ENABLED_BIT) == 1
 
@@ -561,7 +552,6 @@ class Capture:
             IMRegisterNotExist: If the register doesn't exist.
 
         """
-        self.mc._get_drive(servo)
         if version is None:
             version = self._check_version(servo=servo)
         monitor_status = self.mc.capture.get_monitoring_status(servo=servo)
@@ -586,7 +576,6 @@ class Capture:
             IMRegisterNotExist: If the register doesn't exist.
 
         """
-        self.mc._get_drive(servo)
         if version is None:
             version = self._check_version(servo=servo)
         monitor_status = self.mc.capture.get_monitoring_status(servo=servo)
@@ -633,7 +622,6 @@ class Capture:
             servo : servo alias to reference it. ``default`` by default.
 
         """
-        self.mc._get_drive(servo)
         self.clean_monitoring(servo=servo)
         self.clean_disturbance(servo=servo)
 
@@ -649,7 +637,6 @@ class Capture:
             IMStatusWordError: If motor is enabled.
 
         """
-        self.mc._get_drive(servo)
         for subnode in [
             subnode
             for subnode, subnode_type in self.mc.info.get_subnodes(servo).items()
@@ -673,7 +660,6 @@ class Capture:
             TypeError: If some read value has a wrong type.
 
         """
-        self.mc._get_drive(servo)
         try:
             max_sample_size = self.mc.communication.get_register(
                 self.DISTURBANCE_MAXIMUM_SAMPLE_SIZE_REGISTER, servo=servo, axis=0
@@ -697,7 +683,6 @@ class Capture:
             TypeError: If some read value has a wrong type.
 
         """
-        self.mc._get_drive(servo)
         try:
             max_sample_size = self.mc.communication.get_register(
                 self.MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER, servo=servo, axis=0
@@ -722,7 +707,6 @@ class Capture:
             TypeError: If some read value has a wrong type.
 
         """
-        self.mc._get_drive(servo)
         position_velocity_loop_rate = self.mc.configuration.get_position_and_velocity_loop_rate(
             servo=servo, axis=axis
         )

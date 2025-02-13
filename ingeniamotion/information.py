@@ -76,7 +76,6 @@ class Information:
             IMRegisterNotExist: If register does not exist in dictionary.
 
         """
-        self.mc._get_drive(servo)
         register_obj = self.register_info(register, axis=axis, servo=servo)
         return register_obj.dtype
 
@@ -100,7 +99,6 @@ class Information:
             IMRegisterNotExist: If register does not exist in dictionary.
 
         """
-        self.mc._get_drive(servo)
         register_obj = self.register_info(register, axis=axis, servo=servo)
         return register_obj.access
 
@@ -124,7 +122,6 @@ class Information:
             IMRegisterNotExist: If register does not exist in dictionary.
 
         """
-        self.mc._get_drive(servo)
         register_obj = self.register_info(register, axis=axis, servo=servo)
         return register_obj.range
 
@@ -188,7 +185,6 @@ class Information:
         Returns:
             Baudrate of the drive.
         """
-        self.mc._get_drive(servo)
         net = self.mc._get_network(servo)
         if isinstance(net, CanopenNetwork):
             return CanBaudrate(net.baudrate)
@@ -269,7 +265,6 @@ class Information:
         Returns:
             Full name.
         """
-        self.mc._get_drive(servo)
         prod_name = self.get_product_name(servo)
         name = self.get_name(servo)
         full_name = f"{prod_name} - {name}"

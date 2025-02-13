@@ -52,7 +52,6 @@ class Motion:
             TypeError: If some read value has a wrong type.
 
         """
-        self.mc._get_drive(servo)
         control_word = self.mc.communication.get_register(
             self.CONTROL_WORD_REGISTER, servo=servo, axis=axis
         )
@@ -81,7 +80,6 @@ class Motion:
             axis : servo axis. ``1`` by default.
 
         """
-        self.mc._get_drive(servo)
         self.mc.communication.set_register(
             self.OPERATION_MODE_REGISTER, operation_mode, servo=servo, axis=axis
         )
@@ -116,7 +114,6 @@ class Motion:
             TypeError: If some read value has a wrong type.
 
         """
-        self.mc._get_drive(servo)
         operation_mode = self.mc.communication.get_register(
             self.OPERATION_MODE_DISPLAY_REGISTER, servo=servo, axis=axis
         )
@@ -217,7 +214,6 @@ class Motion:
             IMTimeoutError: If the target position is not reached in time.
 
         """
-        self.mc._get_drive(servo)
         self.mc.communication.set_register(
             self.POSITION_SET_POINT_REGISTER, position, servo=servo, axis=axis
         )
@@ -266,7 +262,6 @@ class Motion:
             IMTimeoutError: If the target velocity is not reached in time.
 
         """
-        self.mc._get_drive(servo)
         self.mc.communication.set_register(
             self.VELOCITY_SET_POINT_REGISTER, velocity, servo=servo, axis=axis
         )
@@ -295,7 +290,6 @@ class Motion:
             TypeError: If current is not a float.
 
         """
-        self.mc._get_drive(servo)
         self.mc.communication.set_register(
             self.CURRENT_QUADRATURE_SET_POINT_REGISTER, current, servo=servo, axis=axis
         )
@@ -314,7 +308,6 @@ class Motion:
             TypeError: If current is not a float.
 
         """
-        self.mc._get_drive(servo)
         self.mc.communication.set_register(
             self.CURRENT_DIRECT_SET_POINT_REGISTER, current, servo=servo, axis=axis
         )
@@ -333,7 +326,6 @@ class Motion:
             TypeError: If voltage is not a float.
 
         """
-        self.mc._get_drive(servo)
         self.mc.communication.set_register(
             self.VOLTAGE_QUADRATURE_SET_POINT_REGISTER, voltage, servo=servo, axis=axis
         )
@@ -352,7 +344,6 @@ class Motion:
             TypeError: If voltage is not a float.
 
         """
-        self.mc._get_drive(servo)
         self.mc.communication.set_register(
             self.VOLTAGE_DIRECT_SET_POINT_REGISTER, voltage, servo=servo, axis=axis
         )
@@ -385,7 +376,6 @@ class Motion:
             TypeError: If target_value or time_s is not a float.
 
         """
-        self.mc._get_drive(servo)
         for value in self.ramp_generator(init_value, target_value, time_s, interval):
             self.set_current_quadrature(value, servo=servo, axis=axis)
 
@@ -417,7 +407,6 @@ class Motion:
             TypeError: If target_value or time_s is not a float.
 
         """
-        self.mc._get_drive(servo)
         for value in self.ramp_generator(init_value, target_value, time_s, interval):
             self.set_current_direct(value, servo=servo, axis=axis)
 
@@ -449,7 +438,6 @@ class Motion:
             TypeError: If target_value or time_s is not a float.
 
         """
-        self.mc._get_drive(servo)
         for value in self.ramp_generator(init_value, target_value, time_s, interval):
             self.set_voltage_quadrature(value, servo=servo, axis=axis)
 
@@ -481,7 +469,6 @@ class Motion:
             TypeError: If target_value or time_s is not a float.
 
         """
-        self.mc._get_drive(servo)
         for value in self.ramp_generator(init_value, target_value, time_s, interval):
             self.set_voltage_direct(value, servo=servo, axis=axis)
 
@@ -526,7 +513,6 @@ class Motion:
             TypeError: If some read value has a wrong type.
 
         """
-        self.mc._get_drive(servo)
         actual_position = self.mc.communication.get_register(
             self.ACTUAL_POSITION_REGISTER, servo=servo, axis=axis
         )
@@ -548,7 +534,6 @@ class Motion:
             TypeError: If some read value has a wrong type.
 
         """
-        self.mc._get_drive(servo)
         actual_velocity = self.mc.communication.get_register(
             self.ACTUAL_VELOCITY_REGISTER, servo=servo, axis=axis
         )
@@ -572,7 +557,6 @@ class Motion:
             TypeError: If some read value has a wrong type.
 
         """
-        self.mc._get_drive(servo)
         actual_current_direct = self.mc.communication.get_register(
             self.ACTUAL_DIRECT_CURRENT_REGISTER, servo=servo, axis=axis
         )
@@ -596,7 +580,6 @@ class Motion:
             TypeError: If some read value has a wrong type.
 
         """
-        self.mc._get_drive(servo)
         actual_current_quadrature = self.mc.communication.get_register(
             self.ACTUAL_QUADRATURE_CURRENT_REGISTER, servo=servo, axis=axis
         )
@@ -631,7 +614,6 @@ class Motion:
             IMTimeoutError: If the target position is not reached in time.
 
         """
-        self.mc._get_drive(servo)
         target_reached = False
         init_time = time.time()
         self.logger.debug(
@@ -679,7 +661,6 @@ class Motion:
             IMTimeoutError: If the target velocity is not reached in time.
 
         """
-        self.mc._get_drive(servo)
         target_reached = False
         init_time = time.time()
         self.logger.debug(
@@ -721,7 +702,6 @@ class Motion:
             ValueError: If operation mode is not set to Current or Voltage.
 
         """
-        self.mc._get_drive(servo)
         if op_mode not in [OperationMode.CURRENT, OperationMode.VOLTAGE]:
             raise ValueError("Operation mode must be Current or Voltage")
         self.set_operation_mode(op_mode, servo=servo, axis=axis)
@@ -760,7 +740,6 @@ class Motion:
             ValueError: If gain is not positive.
 
         """
-        self.mc._get_drive(servo)
         if gain < 0:
             raise ValueError("Gain should be positive")
         self.mc.configuration.set_generator_mode(GeneratorMode.SAW_TOOTH, servo=servo, axis=axis)
@@ -801,7 +780,6 @@ class Motion:
             TypeError: If offset is not an int.
 
         """
-        self.mc._get_drive(servo)
         self.mc.configuration.set_generator_mode(GeneratorMode.CONSTANT, servo=servo, axis=axis)
         self.mc.communication.set_register(self.GENERATOR_GAIN_REGISTER, 0, servo=servo, axis=axis)
         self.mc.communication.set_register(

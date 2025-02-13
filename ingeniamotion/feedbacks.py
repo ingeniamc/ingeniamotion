@@ -67,7 +67,6 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        self.mc._get_drive(servo)
         commutation_feedback = self.mc.communication.get_register(
             self.COMMUTATION_FEEDBACK_REGISTER, servo=servo, axis=axis
         )
@@ -108,7 +107,6 @@ class Feedbacks:
         Returns:
             Category {ABSOLUTE, INCREMENTAL} of the selected feedback.
         """
-        self.mc._get_drive(servo)
         commutation_feedback = self.get_commutation_feedback(servo, axis)
         return self.__feedback_type_dict[commutation_feedback]
 
@@ -124,7 +122,6 @@ class Feedbacks:
         Returns:
             Resolution of the selected feedback.
         """
-        self.mc._get_drive(servo)
         sensor_type = self.get_commutation_feedback(servo, axis)
         return self.feedback_resolution_functions[sensor_type](servo, axis)
 
@@ -145,7 +142,6 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        self.mc._get_drive(servo)
         reference_feedback = self.mc.communication.get_register(
             self.REFERENCE_FEEDBACK_REGISTER, servo=servo, axis=axis
         )
@@ -186,7 +182,6 @@ class Feedbacks:
         Returns:
             Category {ABSOLUTE, INCREMENTAL} of the selected feedback.
         """
-        self.mc._get_drive(servo)
         reference_feedback = self.get_reference_feedback(servo, axis)
         return self.__feedback_type_dict[reference_feedback]
 
@@ -202,7 +197,6 @@ class Feedbacks:
         Returns:
             Resolution of the selected feedback.
         """
-        self.mc._get_drive(servo)
         sensor_type = self.get_reference_feedback(servo, axis)
         return self.feedback_resolution_functions[sensor_type](servo, axis)
 
@@ -223,7 +217,6 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        self.mc._get_drive(servo)
         velocity_feedback = self.mc.communication.get_register(
             self.VELOCITY_FEEDBACK_REGISTER, servo=servo, axis=axis
         )
@@ -245,7 +238,6 @@ class Feedbacks:
         Raises:
             IMStatusWordError: If motor is enabled.
         """
-        self.mc._get_drive(servo)
         self.mc.communication.set_register(
             self.VELOCITY_FEEDBACK_REGISTER, feedback, servo=servo, axis=axis
         )
@@ -265,7 +257,6 @@ class Feedbacks:
         Returns:
             Category {ABSOLUTE, INCREMENTAL} of the selected feedback.
         """
-        self.mc._get_drive(servo)
         velocity_feedback = self.get_velocity_feedback(servo, axis)
         return self.__feedback_type_dict[velocity_feedback]
 
@@ -281,7 +272,6 @@ class Feedbacks:
         Returns:
             Resolution of the selected feedback.
         """
-        self.mc._get_drive(servo)
         sensor_type = self.get_velocity_feedback(servo, axis)
         return self.feedback_resolution_functions[sensor_type](servo, axis)
 
@@ -302,7 +292,6 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        self.mc._get_drive(servo)
         position_feedback = self.mc.communication.get_register(
             self.POSITION_FEEDBACK_REGISTER, servo=servo, axis=axis
         )
@@ -343,7 +332,6 @@ class Feedbacks:
         Returns:
             Category {ABSOLUTE, INCREMENTAL} of the selected feedback.
         """
-        self.mc._get_drive(servo)
         position_feedback = self.get_position_feedback(servo, axis)
         return self.__feedback_type_dict[position_feedback]
 
@@ -359,7 +347,6 @@ class Feedbacks:
         Returns:
             Resolution of the selected feedback.
         """
-        self.mc._get_drive(servo)
         sensor_type = self.get_position_feedback(servo, axis)
         return self.feedback_resolution_functions[sensor_type](servo, axis)
 
@@ -380,7 +367,6 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        self.mc._get_drive(servo)
         auxiliar_feedback = self.mc.communication.get_register(
             self.AUXILIAR_FEEDBACK_REGISTER, servo=servo, axis=axis
         )
@@ -421,7 +407,6 @@ class Feedbacks:
         Returns:
             Category {ABSOLUTE, INCREMENTAL} of the selected feedback.
         """
-        self.mc._get_drive(servo)
         auxiliar_feedback = self.get_auxiliar_feedback(servo, axis)
         return self.__feedback_type_dict[auxiliar_feedback]
 
@@ -437,7 +422,6 @@ class Feedbacks:
         Returns:
             Resolution of the selected feedback.
         """
-        self.mc._get_drive(servo)
         sensor_type = self.get_auxiliar_feedback(servo, axis)
         return self.feedback_resolution_functions[sensor_type](servo, axis)
 
@@ -457,7 +441,6 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        self.mc._get_drive(servo)
         single_turn_bits = self.mc.communication.get_register(
             "FBK_BISS1_SSI1_POS_ST_BITS", servo=servo, axis=axis
         )
@@ -484,7 +467,6 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        self.mc._get_drive(servo)
         resolution = self.mc.communication.get_register(
             "FBK_DIGENC1_RESOLUTION", servo=servo, axis=axis
         )
@@ -508,7 +490,6 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        self.mc._get_drive(servo)
         pair_poles = self.mc.communication.get_register(
             "FBK_DIGHALL_PAIRPOLES", servo=servo, axis=axis
         )
@@ -533,7 +514,6 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        self.mc._get_drive(servo)
         secondary_single_turn_bits = self.mc.communication.get_register(
             "FBK_SSI2_POS_ST_BITS", servo=servo, axis=axis
         )
@@ -558,7 +538,6 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        self.mc._get_drive(servo)
         serial_slave_1_single_turn_bits = self.mc.communication.get_register(
             "FBK_BISS2_POS_ST_BITS", servo=servo, axis=axis
         )
@@ -583,7 +562,6 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        self.mc._get_drive(servo)
         resolution = self.mc.communication.get_register(
             "FBK_DIGENC2_RESOLUTION", servo=servo, axis=axis
         )
@@ -625,7 +603,6 @@ class Feedbacks:
         Returns:
             Resolution of target feedback.
         """
-        self.mc._get_drive(servo)
         return self.feedback_resolution_functions[feedback](servo, axis)
 
     def get_feedback_polarity_register_uid(self, feedback: SensorType) -> str:
@@ -659,7 +636,6 @@ class Feedbacks:
             axis: axis that will run the test. ``1`` by default.
 
         """
-        self.mc._get_drive(servo)
         polarity_register = self.get_feedback_polarity_register_uid(feedback)
         self.mc.communication.set_register(polarity_register, polarity, servo=servo, axis=axis)
         self.logger.debug(
@@ -688,7 +664,6 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        self.mc._get_drive(servo)
         polarity_register = self.get_feedback_polarity_register_uid(feedback)
         raw_polarity = self.mc.communication.get_register(polarity_register, servo=servo, axis=axis)
         if not isinstance(raw_polarity, int):

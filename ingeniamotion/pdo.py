@@ -737,7 +737,6 @@ class PDONetworkManager:
             The poller instance.
 
         """
-        self.mc._get_drive(servo)
         poller = PDOPoller(self.mc, servo, sampling_time, watchdog_timeout, buffer_size)
         poller.add_channels(registers)
         if start:

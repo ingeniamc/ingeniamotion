@@ -79,7 +79,6 @@ class DriveTests:
             TestError: In case the servo or setup configuration makes
                 impossible fulfilling the test
         """
-        self.mc._get_drive(servo)
         return self.__feedback_test(SensorType.HALLS, servo, axis, apply_changes)
 
     def incremental_encoder_1_test(
@@ -115,7 +114,6 @@ class DriveTests:
             TestError: In case the servo or setup configuration makes
                 impossible fulfilling the test
         """
-        self.mc._get_drive(servo)
         return self.__feedback_test(SensorType.QEI, servo, axis, apply_changes)
 
     def incremental_encoder_2_test(
@@ -150,7 +148,6 @@ class DriveTests:
             TestError: In case the servo or setup configuration makes
                 impossible fulfilling the test
         """
-        self.mc._get_drive(servo)
         return self.__feedback_test(SensorType.QEI2, servo, axis, apply_changes)
 
     def absolute_encoder_1_test(
@@ -160,7 +157,6 @@ class DriveTests:
 
         To know more about it see :func:`digital_halls_test`.
         """
-        self.mc._get_drive(servo)
         return self.__feedback_test(SensorType.ABS1, servo, axis, apply_changes)
 
     def absolute_encoder_2_test(
@@ -170,7 +166,6 @@ class DriveTests:
 
         To know more about it see :func:`digital_halls_test`.
         """
-        self.mc._get_drive(servo)
         return self.__feedback_test(SensorType.BISSC2, servo, axis, apply_changes)
 
     def secondary_ssi_test(
@@ -180,13 +175,11 @@ class DriveTests:
 
         To know more about it see :func:`digital_halls_test`.
         """
-        self.mc._get_drive(servo)
         return self.__feedback_test(SensorType.SSI2, servo, axis, apply_changes)
 
     def __get_feedback_test(
         self, feedback: SensorType, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> Feedbacks:
-        self.mc._get_drive(servo)
         return self.__sensors[feedback](self.mc, servo, axis)
 
     def __feedback_test(
@@ -245,7 +238,6 @@ class DriveTests:
                 complete the calibration.
             TypeError: If some parameter has a wrong type.
         """
-        self.mc._get_drive(servo)
         commutation = Phasing(self.mc, servo, axis)
         output = commutation.run()
         if (
@@ -283,7 +275,6 @@ class DriveTests:
                     "result_message": "Phasing process finished successfully"
                 }
         """
-        self.mc._get_drive(servo)
         phasing_check = PhasingCheck(self.mc, servo, axis)
         return phasing_check.run()
 
@@ -308,7 +299,6 @@ class DriveTests:
                     "result_message": "Phasing process finished successfully"
                 }
         """
-        self.mc._get_drive(servo)
         sto_test = STOTest(self.mc, servo, axis)
         return sto_test.run()
 
@@ -322,7 +312,6 @@ class DriveTests:
         Returns:
             Instance of Brake test. Call ``Brake.finish()`` to end the test.
         """
-        self.mc._get_drive(servo)
         brake_test = Brake(self.mc, servo, axis)
         brake_test.run()
         return brake_test
@@ -365,7 +354,6 @@ class DriveTests:
                 impossible fulfilling the test
             TypeError: If some parameter has a wrong type.
         """
-        self.mc._get_drive(servo)
         dc_feedback_polarity_test = DCFeedbacksPolarityTest(self.mc, feedback, servo, axis)
         output = dc_feedback_polarity_test.run()
         if (
@@ -428,7 +416,6 @@ class DriveTests:
             TestError: In case the servo or setup configuration makes
                 impossible fulfilling the test
         """
-        self.mc._get_drive(servo)
         dc_feedback_resolution_test = DCFeedbacksResolutionTest(
             self.mc, feedback, servo, axis, kp=kp, ki=ki, kd=kd
         )
