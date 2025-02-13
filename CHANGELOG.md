@@ -4,6 +4,9 @@
 ### Added
 - Methods to scan Ethernet drives.
 
+### Changed
+- Renamed the `TYPE_SUBNODES` and `COMMUNICATION_TYPE` enums to follow CapWords convention. Old names are still supported, but will soon be deprecated.
+
 ## [0.9.0] - 2025-01-29
 ### Added
 - Method to subscribe to register value updates.
