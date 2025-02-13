@@ -3,10 +3,6 @@ from enum import Enum, EnumMeta, IntEnum
 from typing import Any, TypeVar
 
 from ingenialink import (
-    CAN_BAUDRATE,
-    CAN_DEVICE,
-    REG_ACCESS,
-    REG_DTYPE,
     CanBaudrate,
     CanDevice,
     RegAccess,
@@ -16,13 +12,9 @@ from ingenialink import (
 T = TypeVar("T", bound=type[Enum])
 
 __all__ = [
-    "CAN_BAUDRATE",
     "CanBaudrate",
-    "CAN_DEVICE",
     "CanDevice",
-    "REG_ACCESS",
     "RegAccess",
-    "REG_DTYPE",
     "RegDtype",
 ]
 
@@ -347,6 +339,10 @@ class STOAbnormalLatchedStatus(IntEnum, metaclass=MetaEnum):
 # WARNING: Deprecated aliases
 _DEPRECATED = {
     "COMMUNICATION_TYPE": "CommunicationType",
+    "CAN_DEVICE": "CanDevice",
+    "CAN_BAUDRATE": "CanBaudrate",
+    "REG_DTYPE": "RegDtype",
+    "REG_ACCESS": "RegAccess",
 }
 
 
