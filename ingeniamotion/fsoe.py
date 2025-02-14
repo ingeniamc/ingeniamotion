@@ -426,12 +426,13 @@ class FSoEMaster:
                 master_handler.stop()
         if self.__fsoe_configured:
             self._unsubscribe_from_pdo_thread_events()
-            self._remove_pdo_maps_from_slaves()
         else:
             self.logger.warning("FSoE master is already stopped")
-        self.__fsoe_configured = False
         if stop_pdos:
             self.__mc.capture.pdo.stop_pdos()
+            if self.__fsoe_configured:
+                self._remove_pdo_maps_from_slaves()
+        self.__fsoe_configured = False
 
     def sto_deactivate(self, servo: str = DEFAULT_SERVO) -> None:
         """Deactivate the Safety Torque Off.
