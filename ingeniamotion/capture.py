@@ -18,7 +18,7 @@ from ingeniamotion.exceptions import (
     IMRegisterNotExist,
     IMStatusWordError,
 )
-from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.monitoring.base_monitoring import Monitoring
 from ingeniamotion.monitoring.monitoring_v1 import MonitoringV1
 from ingeniamotion.monitoring.monitoring_v3 import MonitoringV3
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 
-class Capture(metaclass=MCMetaClass):
+class Capture:
     """Capture."""
 
     DISTURBANCE_STATUS_REGISTER = "DIST_STATUS"
@@ -123,7 +123,8 @@ class Capture(metaclass=MCMetaClass):
             TypeError: If some parameter has a wrong type.
 
         """
-        poller = Poller(self.mc.servos[servo], len(registers))
+        drive = self.mc._get_drive(servo)
+        poller = Poller(drive, len(registers))
         poller.configure(sampling_time, buffer_size)
         for index, register in enumerate(registers):
             axis = register.get("axis", DEFAULT_AXIS)
@@ -343,7 +344,7 @@ class Capture(metaclass=MCMetaClass):
             IMMonitoringError: If monitoring can't be enabled.
 
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         drive.monitoring_enable()
         # Check monitoring status
         if not self.is_monitoring_enabled(servo=servo):
@@ -363,11 +364,11 @@ class Capture(metaclass=MCMetaClass):
             IMMonitoringError: If disturbance can't be enabled.
 
         """
+        drive = self.mc._get_drive(servo)
         if version is None:
             version = self._check_version(servo)
         if version < MonitoringVersion.MONITORING_V3:
             return self.enable_monitoring(servo=servo)
-        drive = self.mc.servos[servo]
         drive.disturbance_enable()
         # Check disturbance status
         if not self.is_disturbance_enabled(servo=servo):
@@ -394,11 +395,11 @@ class Capture(metaclass=MCMetaClass):
                 if ``None`` reads from drive. ``None`` by default.
 
         """
+        drive = self.mc._get_drive(servo)
         if version is None:
             version = self._check_version(servo)
         if not self.is_monitoring_enabled(servo=servo):
             return
-        drive = self.mc.servos[servo]
         drive.monitoring_disable()
         if version >= MonitoringVersion.MONITORING_V3:
             drive.monitoring_remove_data()
@@ -414,13 +415,13 @@ class Capture(metaclass=MCMetaClass):
                 if ``None`` reads from drive. ``None`` by default.
 
         """
+        drive = self.mc._get_drive(servo)
         if version is None:
             version = self._check_version(servo)
         if not self.is_disturbance_enabled(servo, version):
             return
         if version < MonitoringVersion.MONITORING_V3:
             return self.disable_monitoring(servo=servo, version=version)
-        drive = self.mc.servos[servo]
         drive.disturbance_disable()
         drive.disturbance_remove_data()
 
@@ -592,8 +593,8 @@ class Capture(metaclass=MCMetaClass):
                 if None reads from drive. ``None`` by default.
 
         """
+        drive = self.mc._get_drive(servo)
         self.disable_monitoring(servo=servo, version=version)
-        drive = self.mc.servos[servo]
         drive.monitoring_remove_all_mapped_registers()
 
     def clean_disturbance(
@@ -607,8 +608,8 @@ class Capture(metaclass=MCMetaClass):
                 if None reads from drive. ``None`` by default.
 
         """
+        drive = self.mc._get_drive(servo)
         self.disable_disturbance(servo=servo, version=version)
-        drive = self.mc.servos[servo]
         drive.disturbance_remove_all_mapped_registers()
 
     def clean_monitoring_disturbance(self, servo: str = DEFAULT_SERVO) -> None:

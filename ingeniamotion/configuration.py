@@ -82,7 +82,7 @@ class MACAddressConverter:
         return mac_address_int
 
 
-class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
+class Configuration(Homing, Feedbacks):
     """Configuration."""
 
     class BrakeOverride(IntEnum):
@@ -237,10 +237,10 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             ILConfigurationError: If the configuration file differs from the drive state.
 
         """
+        drive = self.mc._get_drive(servo)
         if not path.isfile(config_path):
             raise FileNotFoundError(f"{config_path} file does not exist!")
-        servo_inst = self.mc.servos[servo]
-        servo_inst.check_configuration(config_path, subnode=axis)
+        drive.check_configuration(config_path, subnode=axis)
         self.logger.info(
             "Configuration check successfull %s", config_path, drive=self.mc.servo_name(servo)
         )
@@ -260,10 +260,10 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             FileNotFoundError: If configuration file does not exist.
 
         """
+        drive = self.mc._get_drive(servo)
         if not path.isfile(config_path):
             raise FileNotFoundError(f"{config_path} file does not exist!")
-        servo_inst = self.mc.servos[servo]
-        servo_inst.load_configuration(config_path, subnode=axis)
+        drive.load_configuration(config_path, subnode=axis)
         self.logger.info(
             "Configuration loaded from %s", config_path, drive=self.mc.servo_name(servo)
         )
@@ -280,8 +280,8 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             servo : servo alias to reference it. ``default`` by default.
 
         """
-        servo_inst = self.mc.servos[servo]
-        servo_inst.save_configuration(output_file, subnode=axis)
+        drive = self.mc._get_drive(servo)
+        drive.save_configuration(output_file, subnode=axis)
         self.logger.info("Configuration saved to %s", output_file, drive=self.mc.servo_name(servo))
 
     def store_configuration(self, axis: Optional[int] = None, servo: str = DEFAULT_SERVO) -> None:

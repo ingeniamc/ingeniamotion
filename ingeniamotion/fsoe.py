@@ -496,7 +496,7 @@ class FSoEMaster:
             The FSoE slave address.
 
         """
-        drive = self.__mc.servos[servo]
+        drive = self.__mc._get_drive(servo)
         value = drive.read(self.SAFETY_ADDRESS_REGISTER)
         if not isinstance(value, int):
             raise ValueError(f"Wrong safety address value type. Expected int, got {type(value)}")
@@ -510,7 +510,7 @@ class FSoEMaster:
             servo: servo alias to reference it. ``default`` by default.
 
         """
-        drive = self.__mc.servos[servo]
+        drive = self.__mc._get_drive(servo)
         drive.write(self.SAFETY_ADDRESS_REGISTER, data=address)
 
     def check_sto_active(self, servo: str = DEFAULT_SERVO) -> bool:
