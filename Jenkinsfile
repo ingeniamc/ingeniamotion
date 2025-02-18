@@ -92,7 +92,8 @@ pipeline {
                     def sourceJobName = 'ingenialink-python'
 
                     // Get the build number using the Git commit hash
-                    def builds = Jenkins.instance.getItemByFullName(sourceJobName).builds
+                    def jenkinsJob = Jenkins.instance.getItem(sourceJobName)
+                    def builds = jenkinsJob.builds
                     def build = builds.find { it.getEnvironment().get('GIT_COMMIT') == commitHash }
 
                     if (build) {
