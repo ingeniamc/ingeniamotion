@@ -86,28 +86,29 @@ pipeline {
         }
 
         stage('Get Ingenialink Build Number') {
-    steps {
-        script {
-            def commitHash = 'f1094c4'
-            def sourceJobName = 'ingenialink-python'
+            steps {
+                script {
+                    def commitHash = 'f1094c4'
+                    def sourceJobName = 'ingenialink-python'
 
-            def sourceJob = Jenkins.instance.getItemByFullName(sourceJobName)
+                    def sourceJob = Jenkins.instance.getItemByFullName(sourceJobName)
 
-            if (sourceJob) {
-                def builds = sourceJob.builds
-                def build = builds.find { it.getEnvironment().get('GIT_COMMIT') == commitHash }
+                    if (sourceJob) {
+                        def builds = sourceJob.builds
+                        def build = builds.find { it.getEnvironment().get('GIT_COMMIT') == commitHash }
 
-                if (build) {
-                    env.BUILD_NUMBER = build.number.toString()
-                    echo "Found build number: ${env.BUILD_NUMBER}"
-                } else {
-                    error "No build found for commit hash: ${commitHash}"
+                        if (build) {
+                            env.BUILD_NUMBER = build.number.toString()
+                            echo "Found build number: ${env.BUILD_NUMBER}"
+                        } else {
+                            error "No build found for commit hash: ${commitHash}"
+                        }
+                    } else {
+                        error "No job found with the name: ${sourceJobName}"
+                    }
                 }
-            } else {
-                error "No job found with the name: ${sourceJobName}"
             }
         }
-    }
 
         // stage('Build and Tests') {
         //     parallel {
