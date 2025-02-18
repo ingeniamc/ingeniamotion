@@ -89,7 +89,7 @@ pipeline {
             steps {
                 script {
                     def commitHash = 'f1094c4'
-                    def sourceJobName = 'ingenialink-python'
+                    def sourceJobName = 'Novanta Motion - Ingenia - Git/ingenialink-python'
 
                     def sourceJob = Jenkins.instance.getItemByFullName(sourceJobName)
 
