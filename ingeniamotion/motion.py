@@ -11,7 +11,7 @@ from ingeniamotion.enums import GeneratorMode, OperationMode, PhasingMode, Senso
 from ingeniamotion.exceptions import IMTimeoutError
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
-DEFAULT_MOTOR_ERROR_TIMEOUT = 6000
+DEFAULT_MOTOR_ERROR_TIMEOUT_S = 6
 
 
 class Motion:
@@ -130,14 +130,14 @@ class Motion:
         self,
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
-        error_timeout: int = DEFAULT_MOTOR_ERROR_TIMEOUT,
+        error_timeout: float = DEFAULT_MOTOR_ERROR_TIMEOUT_S,
     ) -> None:
         """Enable motor.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
             axis : servo axis. ``1`` by default.
-            error_timeout: Maximum wait for error update in milliseconds.
+            error_timeout: Maximum wait for error update in seconds.
 
         Raises:
             ingenialink.exceptions.ILError: If the servo cannot enable the motor.
@@ -149,21 +149,19 @@ class Motion:
         try:
             drive.enable(subnode=axis)
         except ILError as e:
-            timeout = float(round(error_timeout / 1000))
+            timeout = error_timeout
             start_time = time.time()
             error_raised = False
             while not error_raised and (time.time() < (start_time + timeout)):
                 error_raised = (
                     self.mc.errors.get_number_total_errors(servo=servo, axis=axis) != num_errors
                 )
-                if error_raised:
-                    error_code, subnode, warning = self.mc.errors.get_last_buffer_error(
-                        servo=servo, axis=axis
-                    )
-                    error_id, _, _, error_msg = self.mc.errors.get_error_data(
-                        error_code, servo=servo
-                    )
-            if not error_raised:
+            if error_raised:
+                error_code, subnode, warning = self.mc.errors.get_last_buffer_error(
+                    servo=servo, axis=axis
+                )
+                error_id, _, _, error_msg = self.mc.errors.get_error_data(error_code, servo=servo)
+            else:
                 raise ILTimeoutError(
                     "An error occurred enabling motor. Reason: Error trigger timeout exceeded."
                 )

@@ -115,14 +115,14 @@ def test_motor_enable_with_fault(motion_controller_teardown, uid, value, excepti
     "uid, value, exception_type, message, timeout",
     [
         # Under-Voltage Error is triggered successfully
-        ("DRV_PROT_USER_UNDER_VOLT", 100, exceptions.ILError, "User Under-voltage detected", 6000),
+        ("DRV_PROT_USER_UNDER_VOLT", 100, exceptions.ILError, "User Under-voltage detected", 6),
         # Under-Voltage Error is not triggered due to timeout error
         (
             "DRV_PROT_USER_UNDER_VOLT",
             100,
             exceptions.ILTimeoutError,
             "Error trigger timeout exceeded.",
-            10,
+            0.01,
         ),
     ],
 )
