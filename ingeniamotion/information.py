@@ -12,7 +12,7 @@ from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.register import Register
 
 from ingeniamotion.enums import CommunicationType
-from ingeniamotion.exceptions import IMError, IMRegisterNotExist
+from ingeniamotion.exceptions import IMError, IMRegisterNotExistError
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
 if TYPE_CHECKING:
@@ -54,7 +54,9 @@ class Information:
         try:
             return drive.dictionary.registers(axis)[register]
         except KeyError:
-            raise IMRegisterNotExist(f"Register: {register} axis: {axis} not exist in dictionary")
+            raise IMRegisterNotExistError(
+                f"Register: {register} axis: {axis} not exist in dictionary"
+            )
 
     def register_type(
         self,

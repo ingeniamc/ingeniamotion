@@ -30,7 +30,7 @@ from ingenialink.virtual.network import VirtualNetwork
 from ping3 import ping
 from virtual_drive.core import VirtualDrive
 
-from ingeniamotion.exceptions import IMFirmwareLoadError, IMRegisterWrongAccess
+from ingeniamotion.exceptions import IMFirmwareLoadError, IMRegisterWrongAccessError
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -1073,7 +1073,7 @@ class Communication:
         if register_dtype_value in unsigned_int and (not isinstance(value, int) or value < 0):
             raise TypeError("Value must be an unsigned int")
         if register_access_type == RegAccess.RO:
-            raise IMRegisterWrongAccess(
+            raise IMRegisterWrongAccessError(
                 f"Register: {register} cannot write to a read-only register"
             )
         drive.write(register, value, subnode=axis)

@@ -13,7 +13,7 @@ from ingeniamotion.enums import (
     SensorType,
     SeverityLevel,
 )
-from ingeniamotion.exceptions import IMRegisterNotExist
+from ingeniamotion.exceptions import IMRegisterNotExistError
 from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType, TestError
 
 if TYPE_CHECKING:
@@ -245,14 +245,14 @@ class Phasing(BaseTest[LegacyDictReportType]):
             self.mc.communication.set_register(
                 "COMMU_ANGLE_INTEGRITY1_OPTION", 1, servo=self.servo, axis=self.axis
             )
-        except IMRegisterNotExist:
+        except IMRegisterNotExistError:
             self.logger.warning("Could not write COMMU_ANGLE_INTEGRITY1_OPTION")
 
         try:
             self.mc.communication.set_register(
                 "COMMU_ANGLE_INTEGRITY2_OPTION", 1, servo=self.servo, axis=self.axis
             )
-        except IMRegisterNotExist:
+        except IMRegisterNotExistError:
             self.logger.warning("Could not write COMMU_ANGLE_INTEGRITY2_OPTION")
 
     @BaseTest.stoppable

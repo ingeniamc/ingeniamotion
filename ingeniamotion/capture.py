@@ -15,7 +15,7 @@ from ingeniamotion.enums import (
 )
 from ingeniamotion.exceptions import (
     IMMonitoringError,
-    IMRegisterNotExist,
+    IMRegisterNotExistError,
     IMStatusWordError,
 )
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
@@ -301,7 +301,7 @@ class Capture:
                 self.MONITORING_VERSION_REGISTER, servo=servo, axis=0
             )
             return MonitoringVersion.MONITORING_V3
-        except (IMRegisterNotExist, ILIOError):
+        except (IMRegisterNotExistError, ILIOError):
             # The Monitoring V3 is NOT available
             pass
         try:
@@ -309,13 +309,13 @@ class Capture:
                 self.MONITORING_CURRENT_NUMBER_BYTES_REGISTER, servo=servo, axis=0
             )
             return MonitoringVersion.MONITORING_V2
-        except (IMRegisterNotExist, ILIOError):
+        except (IMRegisterNotExistError, ILIOError):
             # The Monitoring V2 is NOT available
             pass
         try:
             self.mc.communication.get_register(self.MONITORING_STATUS_REGISTER, servo=servo, axis=0)
             return MonitoringVersion.MONITORING_V1
-        except (IMRegisterNotExist, ILIOError):
+        except (IMRegisterNotExistError, ILIOError):
             # Monitoring/disturbance are not available
             raise NotImplementedError(
                 "The monitoring and disturbance features are not available for this drive"
@@ -667,7 +667,7 @@ class Capture:
             if not isinstance(max_sample_size, int):
                 raise TypeError("Maximum sample size has to be an integer")
             return max_sample_size
-        except IMRegisterNotExist:
+        except IMRegisterNotExistError:
             return self.MINIMUM_BUFFER_SIZE
 
     def monitoring_max_sample_size(self, servo: str = DEFAULT_SERVO) -> int:
@@ -690,7 +690,7 @@ class Capture:
             if not isinstance(max_sample_size, int):
                 raise TypeError("Maximum sample size has to be an integer")
             return max_sample_size
-        except IMRegisterNotExist:
+        except IMRegisterNotExistError:
             return self.MINIMUM_BUFFER_SIZE
 
     def get_frequency(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> float:

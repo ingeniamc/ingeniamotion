@@ -6,7 +6,7 @@ from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.register import RegAccess, RegDtype
 
-from ingeniamotion.exceptions import IMError, IMRegisterNotExist
+from ingeniamotion.exceptions import IMError, IMRegisterNotExistError
 from ingeniamotion.information import CommunicationType
 
 
@@ -211,7 +211,7 @@ def test_get_encoded_image_from_dictionary(motion_controller):
 @pytest.mark.virtual
 def test_register_info_exception(motion_controller):
     mc, alias, environment = motion_controller
-    with pytest.raises(IMRegisterNotExist):
+    with pytest.raises(IMRegisterNotExistError):
         mc.info.register_info("non_existing_uid", 1, alias)
 
 

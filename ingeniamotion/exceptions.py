@@ -18,11 +18,11 @@ class IMStatusWordError(IMError):
     """Status word error raised by IngeniaMotion."""
 
 
-class IMRegisterNotExist(IMError):
+class IMRegisterNotExistError(IMError):
     """Error raised by IngeniaMotion when a register not exists."""
 
 
-class IMRegisterWrongAccess(IMError):
+class IMRegisterWrongAccessError(IMError):
     """Error raised by IngeniaMotion when trying to write to a read-only register."""
 
 
@@ -37,6 +37,8 @@ class IMFirmwareLoadError(IMError):
 # WARNING: Deprecated aliases
 _DEPRECATED = {
     "IMException": "IMError",
+    "IMRegisterNotExist": "IMRegisterNotExistError",
+    "IMRegisterWrongAccess": "IMRegisterWrongAccessError",
 }
 
 
