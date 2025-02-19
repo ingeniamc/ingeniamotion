@@ -141,6 +141,7 @@ class Motion(metaclass=MCMetaClass):
 
         Raises:
             ingenialink.exceptions.ILError: If the servo cannot enable the motor.
+            ingenialink.exceptions.ILTimeoutError: If the error was not raised in time.
 
         """
         drive = self.mc.servos[servo]
