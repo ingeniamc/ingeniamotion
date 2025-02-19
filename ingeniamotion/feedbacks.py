@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 
 
-class Feedbacks(metaclass=MCMetaClass):
+class Feedbacks:
     """Feedbacks Wizard Class description."""
 
     __feedback_type_dict = {

@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 
 import contextlib
 
-from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
 RUNNING_ON_WINDOWS = platform.system() == "Windows"
 
@@ -71,7 +71,7 @@ class NetworkAdapter:
     interface_guid: str
 
 
-class Communication(metaclass=MCMetaClass):
+class Communication:
     """Communication."""
 
     FORCE_SYSTEM_BOOT_COCO_REGISTER = "DRV_BOOT_COCO_FORCE"
@@ -1029,7 +1029,7 @@ class Communication(metaclass=MCMetaClass):
             TypeError: If some parameter has a wrong type.
 
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         register_dtype = self.mc.info.register_type(register, axis, servo=servo)
         value = drive.read(register, subnode=axis)
         if register_dtype.value <= RegDtype.S64.value and isinstance(value, int):
@@ -1059,7 +1059,7 @@ class Communication(metaclass=MCMetaClass):
             IMRegisterWrongAccess: If the register access is read-only.
 
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         register_dtype_value = self.mc.info.register_type(register, axis, servo=servo)
         register_access_type = self.mc.info.register_info(register, axis, servo=servo).access
         signed_int = [RegDtype.S8, RegDtype.S16, RegDtype.S32, RegDtype.S64]

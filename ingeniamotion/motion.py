@@ -9,12 +9,12 @@ if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.enums import GeneratorMode, OperationMode, PhasingMode, SensorType
 from ingeniamotion.exceptions import IMTimeoutError
-from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
 DEFAULT_MOTOR_ERROR_TIMEOUT = 6000
 
 
-class Motion(metaclass=MCMetaClass):
+class Motion:
     """Motion."""
 
     CONTROL_WORD_REGISTER = "DRV_STATE_CONTROL"
@@ -144,7 +144,7 @@ class Motion(metaclass=MCMetaClass):
             ingenialink.exceptions.ILTimeoutError: If the error was not raised in time.
 
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         num_errors = self.mc.errors.get_number_total_errors(servo=servo, axis=axis)
         try:
             drive.enable(subnode=axis)
@@ -178,13 +178,13 @@ class Motion(metaclass=MCMetaClass):
             axis : servo axis. ``1`` by default.
 
         """
+        drive = self.mc._get_drive(servo)
         try:
             is_motor_enabled = self.mc.configuration.is_motor_enabled(servo=servo, axis=axis)
         except ILError as e:
             self.logger.info(f"Unable to check if motor is enabled. Reason: {e}")
             return
         if is_motor_enabled:
-            drive = self.mc.servos[servo]
             try:
                 drive.disable(subnode=axis)
             except ILError as e:
@@ -198,7 +198,7 @@ class Motion(metaclass=MCMetaClass):
             axis : servo axis. ``1`` by default.
 
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         try:
             drive.fault_reset(axis)
         except ILError as e:

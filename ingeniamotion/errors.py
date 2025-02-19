@@ -4,10 +4,10 @@ from typing import TYPE_CHECKING, Optional
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
-from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
 
-class Errors(metaclass=MCMetaClass):
+class Errors:
     """Errors."""
 
     class ErrorLocation(IntEnum):
@@ -292,6 +292,6 @@ class Errors(metaclass=MCMetaClass):
             KeyError: The error codes does not exist in the error's dictionary.
 
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         dictionary_errors = drive.errors[error_code & self.ERROR_CODE_BITS]
         return tuple(dictionary_errors)  # type: ignore[return-value]
