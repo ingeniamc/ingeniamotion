@@ -122,7 +122,7 @@ def test_motor_enable_with_fault(motion_controller_teardown, uid, value, excepti
             100,
             exceptions.ILTimeoutError,
             "Error trigger timeout exceeded.",
-            0.01,
+            0.0001,
         ),
     ],
 )
