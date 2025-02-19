@@ -47,7 +47,7 @@ class Information:
             Register object.
 
         Raises:
-            IMRegisterNotExist: If register does not exist in dictionary.
+            IMRegisterNotExistError: If register does not exist in dictionary.
 
         """
         drive = self.mc._get_drive(servo)
@@ -75,7 +75,7 @@ class Information:
             Register dtype.
 
         Raises:
-            IMRegisterNotExist: If register does not exist in dictionary.
+            IMRegisterNotExistError: If register does not exist in dictionary.
 
         """
         register_obj = self.register_info(register, axis=axis, servo=servo)
@@ -98,7 +98,7 @@ class Information:
             Register access.
 
         Raises:
-            IMRegisterNotExist: If register does not exist in dictionary.
+            IMRegisterNotExistError: If register does not exist in dictionary.
 
         """
         register_obj = self.register_info(register, axis=axis, servo=servo)
@@ -121,7 +121,7 @@ class Information:
             Register range, minimum and maximum.
 
         Raises:
-            IMRegisterNotExist: If register does not exist in dictionary.
+            IMRegisterNotExistError: If register does not exist in dictionary.
 
         """
         register_obj = self.register_info(register, axis=axis, servo=servo)

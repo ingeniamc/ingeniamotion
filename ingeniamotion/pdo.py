@@ -560,9 +560,9 @@ class PDONetworkManager:
             ValueError: If the refresh rate is too high.
             ValueError: If the MotionController is connected to more than one Network.
             ValueError: If network_type argument is invalid.
-            IMException: If the MotionController is connected to more than one Network.
+            IMError: If the MotionController is connected to more than one Network.
             ValueError: If there is a type mismatch retrieving the network object.
-            IMException: If the PDOs are already active.
+            IMError: If the PDOs are already active.
 
         """
         if network_type is None:
@@ -615,7 +615,7 @@ class PDONetworkManager:
         """Stop the PDO exchange process.
 
         Raises:
-            IMException: If the PDOs are not active yet.
+            IMError: If the PDOs are not active yet.
 
         """
         if self._pdo_thread is None:

@@ -119,7 +119,7 @@ class Capture:
                 When the property data is read list are reset to a empty list.
 
         Raises:
-            IMRegisterNotExist: If register does not exist in dictionary.
+            IMRegisterNotExistError: If register does not exist in dictionary.
             TypeError: If some parameter has a wrong type.
 
         """
@@ -435,7 +435,7 @@ class Capture:
             Monitoring/Disturbance Status.
 
         Raises:
-            IMRegisterNotExist: If the register doesn't exist.
+            IMRegisterNotExistError: If the register doesn't exist.
             TypeError: If some read value has a wrong type.
 
         """
@@ -456,7 +456,7 @@ class Capture:
             Monitoring Status.
 
         Raises:
-            IMRegisterNotExist: If the register doesn't exist.
+            IMRegisterNotExistError: If the register doesn't exist.
             TypeError: If some read value has a wrong type.
 
         """
@@ -481,7 +481,7 @@ class Capture:
             Disturbance Status.
 
         Raises:
-            IMRegisterNotExist: If the register doesn't exist.
+            IMRegisterNotExistError: If the register doesn't exist.
             TypeError: If some read value has a wrong type.
 
         """
@@ -509,7 +509,7 @@ class Capture:
             True if monitoring is enabled, else False.
 
         Raises:
-            IMRegisterNotExist: If the register doesn't exist.
+            IMRegisterNotExistError: If the register doesn't exist.
 
         """
         monitor_status = self.get_monitoring_status(servo)
@@ -529,7 +529,7 @@ class Capture:
             True if disturbance is enabled, else False.
 
         Raises:
-            IMRegisterNotExist: If the register doesn't exist.
+            IMRegisterNotExistError: If the register doesn't exist.
 
         """
         monitor_status = self.get_disturbance_status(servo, version=version)
@@ -549,7 +549,7 @@ class Capture:
             Current monitoring process stage.
 
         Raises:
-            IMRegisterNotExist: If the register doesn't exist.
+            IMRegisterNotExistError: If the register doesn't exist.
 
         """
         if version is None:
@@ -573,7 +573,7 @@ class Capture:
             True if monitoring has an available frame, else False.
 
         Raises:
-            IMRegisterNotExist: If the register doesn't exist.
+            IMRegisterNotExistError: If the register doesn't exist.
 
         """
         if version is None:

@@ -1025,7 +1025,7 @@ class Communication:
 
         Raises:
             ingenialink.exceptions.ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
+            IMRegisterNotExistError: If the register doesn't exist.
             TypeError: If some parameter has a wrong type.
 
         """
@@ -1055,8 +1055,8 @@ class Communication:
 
         Raises:
             TypeError: If the value is of the wrong type.
-            IMRegisterNotExist: If the register doesn't exist.
-            IMRegisterWrongAccess: If the register access is read-only.
+            IMRegisterNotExistError: If the register doesn't exist.
+            IMRegisterWrongAccessError: If the register access is read-only.
 
         """
         drive = self.mc._get_drive(servo)

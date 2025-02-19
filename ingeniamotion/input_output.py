@@ -208,7 +208,7 @@ class InputsOutputs:
             axis : axis that will run the test. 1 by default.
 
         Raise:
-            IMException: if the GPOs final value does not match with the desired GPOs set point.
+            IMError: if the GPOs final value does not match with the desired GPOs set point.
         """
         new_target_value = bool(voltage_level.value)
 
