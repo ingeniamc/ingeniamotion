@@ -1,7 +1,7 @@
 import pytest
 
 from ingeniamotion.enums import GPI, GPO, DigitalVoltageLevel, GPIOPolarity
-from ingeniamotion.exceptions import IMException
+from ingeniamotion.exceptions import IMError
 
 from .setups.rack_setups import CAN_CAP_SETUP, ECAT_CAP_SETUP, ETH_CAP_SETUP
 
@@ -141,5 +141,5 @@ def test_set_gpo_voltage_level_fail(motion_controller, gpo_id):
     for map_reg in ["IO_OUT_MAP_1", "IO_OUT_MAP_2", "IO_OUT_MAP_3", "IO_OUT_MAP_4"]:
         mc.communication.set_register(map_reg, 3, servo=alias)
 
-    with pytest.raises(IMException):
+    with pytest.raises(IMError):
         mc.io.set_gpo_voltage_level(gpo_id, DigitalVoltageLevel.LOW, servo=alias)

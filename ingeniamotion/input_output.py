@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Union
 import ingenialogger
 
 from ingeniamotion.enums import GPI, GPO, DigitalVoltageLevel, GPIOPolarity
-from ingeniamotion.exceptions import IMException
+from ingeniamotion.exceptions import IMError
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
 if TYPE_CHECKING:
@@ -229,4 +229,4 @@ class InputsOutputs:
         gpo_final_value = self.__get_gpio_bit_value(gpos_final_value, gpo_id)
 
         if gpo_final_value != new_target_value:
-            raise IMException("Unable to set the GPOs set point value.")
+            raise IMError("Unable to set the GPOs set point value.")
