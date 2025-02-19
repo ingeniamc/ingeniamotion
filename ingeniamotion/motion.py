@@ -165,7 +165,7 @@ class Motion(metaclass=MCMetaClass):
                     )
             if not error_raised:
                 raise ILTimeoutError(
-                    "An error occurred enabling motor. Reason: Error trigger timeout exceeded. "
+                    "An error occurred enabling motor. Reason: Error trigger timeout exceeded."
                 )
             exception_type = type(e)
             raise exception_type(f"An error occurred enabling motor. Reason: {error_msg}")
