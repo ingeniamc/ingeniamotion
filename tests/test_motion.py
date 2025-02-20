@@ -1,4 +1,5 @@
 import time
+from typing import Any
 
 import numpy as np
 import pytest
@@ -24,6 +25,25 @@ CURRENT_DIRECT_SET_POINT_REGISTER = "CL_CUR_D_SET_POINT"
 ACTUAL_DIRECT_CURRENT_REGISTER = "CL_CUR_D_VALUE"
 VOLTAGE_QUADRATURE_SET_POINT_REGISTER = "CL_VOL_Q_SET_POINT"
 VOLTAGE_DIRECT_SET_POINT_REGISTER = "CL_VOL_D_SET_POINT"
+
+
+def delayed_function_return(delay_s: int, first_response: Any, delayed_response: Any):
+    """Generates two different returns, second one after a delay.
+
+    Args:
+        delay_s: Delay for second return in seconds.
+        first_response: Return before delay.
+        delayed_response: Return after delay.
+
+    Yields:
+        Any: Return specified as an argument.
+    """
+    start_time = time.time()
+    while True:
+        if time.time() - start_time < delay_s:
+            yield first_response
+        else:
+            yield delayed_response
 
 
 @pytest.mark.ethernet
@@ -104,6 +124,44 @@ def test_motor_enable_with_fault(motion_controller_teardown, uid, value, excepti
         # Retrieving the error code failed. Check INGM-522.
         with pytest.raises(exception_type) as excinfo:
             mc.motion.motor_enable(servo=alias)
+    assert str(excinfo.value) == f"An error occurred enabling motor. Reason: {message}"
+
+
+@pytest.mark.ethernet
+@pytest.mark.soem
+@pytest.mark.canopen
+@pytest.mark.smoke
+@pytest.mark.parametrize(
+    "uid, value, exception_type, message, timeout",
+    [
+        # Under-Voltage Error is not triggered due to timeout error
+        (
+            "DRV_PROT_USER_UNDER_VOLT",
+            100,
+            exceptions.ILTimeoutError,
+            "Error trigger timeout exceeded.",
+            2,
+        ),
+        # Under-Voltage Error is triggered successfully
+        ("DRV_PROT_USER_UNDER_VOLT", 100, exceptions.ILError, "User Under-voltage detected", 6),
+    ],
+)
+def test_motor_enable_with_delayed_fault(
+    mocker, motion_controller_teardown, uid, value, exception_type, message, timeout
+):
+    mc, alias, environment = motion_controller_teardown
+    # Mock function response with delay
+    num_errors_before_test = mc.errors.get_number_total_errors(servo=alias, axis=1)
+    patch_get_number_total_errors = mocker.patch(
+        "ingeniamotion.errors.Errors.get_number_total_errors"
+    )
+    patch_get_number_total_errors.side_effect = delayed_function_return(
+        4, num_errors_before_test, num_errors_before_test + 1
+    )
+
+    mc.communication.set_register(uid, value, alias)
+    with pytest.raises(exception_type) as excinfo:
+        mc.motion.motor_enable(servo=alias, error_timeout=timeout)
     assert str(excinfo.value) == f"An error occurred enabling motor. Reason: {message}"
 
 
