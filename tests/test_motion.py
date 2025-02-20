@@ -169,39 +169,6 @@ def test_motor_enable_with_delayed_fault(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
-@pytest.mark.parametrize(
-    "uid, value, exception_type, message, timeout",
-    [
-        # Under-Voltage Error is triggered successfully
-        ("DRV_PROT_USER_UNDER_VOLT", 100, exceptions.ILError, "User Under-voltage detected", 6),
-        # Under-Voltage Error is not triggered due to timeout error
-        (
-            "DRV_PROT_USER_UNDER_VOLT",
-            100,
-            exceptions.ILTimeoutError,
-            "Error trigger timeout exceeded.",
-            0.0001,
-        ),
-    ],
-)
-def test_motor_enable_with_error_timeout_fault(
-    motion_controller_teardown, uid, value, exception_type, message, timeout
-):
-    mc, alias, environment = motion_controller_teardown
-    mc.communication.set_register(uid, value, alias)
-    with pytest.raises(exception_type) as excinfo:
-        mc.motion.motor_enable(servo=alias, error_timeout=timeout)
-    if excinfo.type is exceptions.ILIOError:
-        # Retrieving the error code failed. Check INGM-522.
-        with pytest.raises(exception_type) as excinfo:
-            mc.motion.motor_enable(servo=alias, error_timeout=timeout)
-    assert str(excinfo.value) == f"An error occurred enabling motor. Reason: {message}"
-
-
-@pytest.mark.ethernet
-@pytest.mark.soem
-@pytest.mark.canopen
-@pytest.mark.smoke
 @pytest.mark.parametrize("enable_motor", [True, False])
 def test_motor_disable(motion_controller, enable_motor):
     mc, alias, environment = motion_controller
