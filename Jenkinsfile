@@ -125,7 +125,7 @@ pipeline {
                         error "No job found with the name: ${sourceJobName} or it's not a multibranch project"
                     }
 
-                    def workspaceDir = build_number.workspace
+                    def workspaceDir = build_number.workspace.toString()
                     echo "workspaceDir: ${workspaceDir}"
                     def destDir = "ingenialink_wheels"
 
