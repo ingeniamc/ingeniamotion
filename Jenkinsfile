@@ -98,21 +98,16 @@ pipeline {
                     if (sourceJob && sourceJob instanceof org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject) {
                         def foundBuild = null
 
-                        sourceJob.getAllJobs().each { branchJob ->
-                            def fullBranchName = sourceJob.fullName + '/' + branchJob.name
-                            def branch = Jenkins.instance.getItemByFullName(fullBranchName)
-
-                            if (branch) {
-                                branch.builds.each { build ->
-                                    def envVars = build.getEnvironment(TaskListener.NULL)
-                                    if (envVars['GIT_COMMIT'] == commitHash) {
-                                        foundBuild = build
-                                        return false
-                                    }
+                        sourceJob.jobs.each { branchJob ->
+                            branchJob.builds.each { build ->
+                                def envVars = build.getEnvironment(TaskListener.NULL)
+                                if (envVars['GIT_COMMIT'] == commitHash) {
+                                    foundBuild = build
+                                    return false
                                 }
                             }
                         }
-
+                        
                         if (foundBuild) {
                             env.BUILD_NUMBER = foundBuild.number.toString()
                             echo "Found build number: ${env.BUILD_NUMBER}"
