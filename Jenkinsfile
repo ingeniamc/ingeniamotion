@@ -101,28 +101,18 @@ pipeline {
                         sourceJob.getAllJobs().each { branchJob ->
                             def fullBranchName = sourceJob.fullName + '/' + branchJob.name
                             def branch = Jenkins.instance.getItemByFullName(fullBranchName)
-                            echo "branch: ${branch}"
 
                             if (branch) {
                                 branch.builds.each { build ->
-                                    def envVars = build.getEnvironment(TaskListener.NULL)
-
                                     def changeSets = build.changeSets
                                     changeSets.each { changeSet ->
                                         changeSet.items.each { item ->
                                             def gitCommit = item.commitId
-                                            echo "git commit: ${gitCommit}"
                                             if (gitCommit == commitHash) {
                                                 foundBuild = build
                                                 return false
                                             }
                                         }
-                                    }
-                                
-                                    def git_commit = envVars['GIT_COMMIT']
-                                    if (envVars['GIT_COMMIT'] == commitHash) {
-                                        foundBuild = build
-                                        return false
                                     }
                                 }
                             }
