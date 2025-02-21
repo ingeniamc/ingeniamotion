@@ -88,7 +88,7 @@ pipeline {
         stage('Get Ingenialink Build Number') {
             steps {
                 script {
-                    def commitHash = 'f1094c4'
+                    def commitHash = '9a7744deea3382995603d0c41b6daae565f81038'
                     def sourceJobName = 'Novanta Motion - Ingenia - Git/ingenialink-python'
 
                     def sourceJob = Jenkins.instance.getItemByFullName(sourceJobName)
@@ -101,6 +101,7 @@ pipeline {
                         sourceJob.getAllJobs().each { branchJob ->
                             def fullBranchName = sourceJob.fullName + '/' + branchJob.name
                             def branch = Jenkins.instance.getItemByFullName(fullBranchName)
+                            echo "branch: ${branch}"
 
                             if (branch) {
                                 branch.builds.each { build ->
