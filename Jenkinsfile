@@ -98,13 +98,18 @@ pipeline {
                     if (sourceJob && sourceJob instanceof org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject) {
                         def foundBuild = null
 
-                        sourceJob.getItems().each { branchJob ->
-                            def builds = branchJob.builds
-                            def build = builds.find { it.getEnvironment().get('GIT_COMMIT') == commitHash }
+                        sourceJob.getAllJobs().each { branchJob ->
+                            def fullBranchName = sourceJob.fullName + '/' + branchJob.name
+                            def branch = Jenkins.instance.getItemByFullName(fullBranchName)
 
-                            if (build) {
-                                foundBuild = build
-                                return false
+                            if (branch) {
+                                branch.builds.each { build ->
+                                    def envVars = build.getEnvironment(TaskListener.NULL)
+                                    if (envVars['GIT_COMMIT'] == commitHash) {
+                                        foundBuild = build
+                                        return false
+                                    }
+                                }
                             }
                         }
 
