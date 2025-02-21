@@ -125,10 +125,7 @@ pipeline {
                         error "No job found with the name: ${sourceJobName} or it's not a multibranch project"
                     }
 
-                    def workspaceDir = build_number.workspace
-                    echo "workspaceDir: ${workspaceDir}"
                     def destDir = "ingenialink_wheels"
-
                     copyArtifacts(
                         projectName: 'OtherProjectName',
                         selector: specific(build_number), // Replace with actual build number
@@ -136,7 +133,6 @@ pipeline {
                         target: destDir
                     )
                     echo "Wheel files copied successfully to ${destDir}."
-                    
                 }
             }
         }
