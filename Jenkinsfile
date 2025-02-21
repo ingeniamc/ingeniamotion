@@ -116,30 +116,41 @@ pipeline {
                         }
 
                         if (foundBuild) {
-                            def build_number = foundBuild.number.toString()
-                            echo "Found build number: ${build_number}"
-
-                            node {
-                                def workspaceDir = foundBuild.getArtifactsDir().toString()
-                                echo "workspaceDir: ${workspaceDir}"
-                                def destDir = "ingenialink_wheels"
-
-                                bat """
-                                    xcopy /Y "${workspaceDir}\\dist\\*.whl" "${destDir}\\"
-                                    echo Wheel file(s) copied from ${workspaceDir}\\dist to ${destDir}
-                                """
-                            }
-
+                            def buildNumber = foundBuild.number.toString()
+                            def workspaceDir = foundBuild.getArtifactsDir().toString()
+                            echo "Found build number: ${buildNumber}"
+                            echo "Workspace directory: ${workspaceDir}"
+                            env.BUILD_NUMBER_ENV = buildNumber
+                            env.WORKSPACE_DIR_ENV = workspaceDir
                         } else {
                             error "No build found for commit hash: ${commitHash}"
                         }
                     } else {
                         error "No job found with the name: ${sourceJobName} or it's not a multibranch project"
                     }
-
                     
+                }
+            }
+        }
 
-                    
+        stage('Copy Ingenialink Wheel Files') {
+            steps {
+                script {
+                    def buildNumber = env.BUILD_NUMBER_ENV
+                    def workspaceDir = env.WORKSPACE_DIR_ENV
+
+                    if (buildNumber && workspaceDir) {
+                        node {
+                            def destDir = "ingenialink_wheels"
+
+                            bat """
+                                xcopy /Y "${workspaceDir}\\dist\\*.whl" "${destDir}\\"
+                                echo Wheel file(s) copied from ${workspaceDir}\\dist to ${destDir}
+                            """
+                        }
+                    } else {
+                        error "No build number or workspace directory found in environment variables"
+                    }
                 }
             }
         }
