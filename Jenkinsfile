@@ -107,11 +107,17 @@ pipeline {
                                 branch.builds.each { build ->
                                     def envVars = build.getEnvironment(TaskListener.NULL)
 
-                                    build.getChangeSets().each {
-                                        def commit_hash = it.getRevision()
-                                        echo "commit_hash: ${commit_hash}"
+                                    def changeSets = build.changeSets
+                                    changeSets.each { changeSet ->
+                                        changeSet.items.each { item ->
+                                            def gitCommit = item.commitId
+                                            echo "git commit: ${gitCommit}"
+                                            if (gitCommit == commitHash) {
+                                                foundBuild = build
+                                                return false
+                                            }
+                                        }
                                     }
-                                    
                                 
                                     def git_commit = envVars['GIT_COMMIT']
                                     if (envVars['GIT_COMMIT'] == commitHash) {
