@@ -118,6 +118,16 @@ pipeline {
                         if (foundBuild) {
                             def build_number = foundBuild.number.toString()
                             echo "Found build number: ${build_number}"
+
+                            def workspaceDir = foundBuild.getArtifactsDir().toString()
+                            echo "workspaceDir: ${workspaceDir}"
+                            def destDir = "ingenialink_wheels"
+
+                            bat """
+                                xcopy /Y "${workspaceDir}\\dist\\*.whl" "${destDir}\\"
+                                echo Wheel file(s) copied from ${workspaceDir}\\dist to ${destDir}
+                            """
+
                         } else {
                             error "No build found for commit hash: ${commitHash}"
                         }
@@ -125,14 +135,7 @@ pipeline {
                         error "No job found with the name: ${sourceJobName} or it's not a multibranch project"
                     }
 
-                    def workspaceDir = foundBuild.getArtifactsDir().toString()
-                    echo "workspaceDir: ${workspaceDir}"
-                    def destDir = "ingenialink_wheels"
-
-                    bat """
-                        xcopy /Y "${workspaceDir}\\dist\\*.whl" "${destDir}\\"
-                        echo Wheel file(s) copied from ${workspaceDir}\\dist to ${destDir}
-                    """
+                    
 
                     
                 }
