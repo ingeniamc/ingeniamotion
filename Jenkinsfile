@@ -107,18 +107,6 @@ pipeline {
                                 branch.builds.each { build ->
                                     def envVars = build.getEnvironment(TaskListener.NULL)
 
-                                    // def changeSets = build.changeSets
-                                    // changeSets.each { changeSet ->
-                                    //     changeSet.items.each { item ->
-                                    //         def gitCommit = item.commitId
-                                    //         echo "git commit: ${gitCommit}"
-                                    //         if (gitCommit == commitHash) {
-                                    //             foundBuild = build
-                                    //             return false
-                                    //         }
-                                    //     }
-                                    // }
-
                                     def log = build.getLog()
                                     def gitCommit = null
                                     log.eachLine { line ->
