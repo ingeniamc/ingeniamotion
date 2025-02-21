@@ -136,22 +136,21 @@ pipeline {
         stage('Copy Ingenialink Wheel Files') {
             steps {
                 script {
+                    def destDir = "ingenialink_wheels"
                     def buildNumber = env.BUILD_NUMBER_ENV
                     def workspaceDir = env.WORKSPACE_DIR_ENV
 
                     if (buildNumber && workspaceDir) {
-                        def destDir = "ingenialink_wheels"
-                        def sourcePath = new File("${workspaceDir}/dist")
-                        def destPath = new File(destDir)
+                        node {
+                            dir("${workspaceDir}/dist") {
+                                stash includes: '*.whl', name: 'wheels'
+                            }
 
-                        if (!destPath.exists()) {
-                            destPath.mkdirs()
-                        }
+                            unstash 'wheels'
 
-                        sourcePath.eachFile { file ->
-                            if (file.name.endsWith('.whl')) {
-                                file.copyTo(new File(destPath, file.name))
-                                echo "Copied ${file.name} to ${destDir}"
+                            dir(destDir) {
+                                sh 'mv *.whl ./'
+                                echo "Wheel file(s) copied to ${destDir} directory"
                             }
                         }
                     } else {
