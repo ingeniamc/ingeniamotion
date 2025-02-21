@@ -134,20 +134,19 @@ pipeline {
         }
 
         stage('Copy Ingenialink Wheel Files') {
+            agent { label 'windows' }
             steps {
                 script {
                     def buildNumber = env.BUILD_NUMBER_ENV
                     def workspaceDir = env.WORKSPACE_DIR_ENV
 
                     if (buildNumber && workspaceDir) {
-                        node {
-                            def destDir = "ingenialink_wheels"
+                        def destDir = "ingenialink_wheels"
 
-                            bat """
-                                xcopy /Y "${workspaceDir}\\dist\\*.whl" "${destDir}\\"
-                                echo Wheel file(s) copied from ${workspaceDir}\\dist to ${destDir}
-                            """
-                        }
+                        bat """
+                            xcopy /Y "${workspaceDir}\\dist\\*.whl" "${destDir}\\"
+                            echo Wheel file(s) copied from ${workspaceDir}\\dist to ${destDir}
+                        """
                     } else {
                         error "No build number or workspace directory found in environment variables"
                     }
