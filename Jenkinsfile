@@ -118,7 +118,7 @@ pipeline {
                         if (foundBuild) {
                             def buildNumber = foundBuild.number.toString()
                             def workspaceDir = foundBuild.getArtifactsDir().toString()
-                            echo "Artifacts in ${build.getArtifactsDir()}:"
+                            echo "Artifacts in ${foundBuild.getArtifactsDir()}:"
                             foundBuild.artifacts.each { artifact ->
                                 echo artifact.relativePath
                             }
