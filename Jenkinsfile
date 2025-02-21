@@ -90,10 +90,7 @@ pipeline {
                 script {
                     def commitHash = '9a7744deea3382995603d0c41b6daae565f81038'
                     def sourceJobName = 'Novanta Motion - Ingenia - Git/ingenialink-python'
-
                     def sourceJob = Jenkins.instance.getItemByFullName(sourceJobName)
-
-                    echo "sourceJob: ${sourceJob}"
 
                     if (sourceJob && sourceJob instanceof org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject) {
                         def foundBuild = null
@@ -119,14 +116,26 @@ pipeline {
                         }
 
                         if (foundBuild) {
-                            env.BUILD_NUMBER = foundBuild.number.toString()
-                            echo "Found build number: ${env.BUILD_NUMBER}"
+                            def build_number = foundBuild.number.toString()
+                            echo "Found build number: ${build_number}"
                         } else {
                             error "No build found for commit hash: ${commitHash}"
                         }
                     } else {
                         error "No job found with the name: ${sourceJobName} or it's not a multibranch project"
                     }
+
+                    def workspaceDir = build_number.workspace
+                    echo "workspaceDir: ${workspaceDir}"
+                    def destDir = "ingenialink_wheels"
+
+                    copyArtifacts(
+                        projectName: 'OtherProjectName',
+                        selector: specific(build_number), // Replace with actual build number
+                        filter: 'dist/*.whl',
+                        target: destDir
+                    )
+                    echo "Wheel files copied successfully to ${destDir}."
                     
                 }
             }
