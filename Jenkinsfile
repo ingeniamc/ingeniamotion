@@ -119,7 +119,7 @@ pipeline {
                             def build_number = foundBuild.number.toString()
                             echo "Found build number: ${build_number}"
 
-                            def workspaceDir = foundBuild.workspace.toString()
+                            def workspaceDir = foundBuild.getArtifactsDir().toString()
                             echo "workspaceDir: ${workspaceDir}"
                             def destDir = "ingenialink_wheels"
 
