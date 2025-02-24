@@ -123,12 +123,13 @@ pipeline {
                             echo "Found build number: ${buildNumber}"
                             echo "Workspace directory: ${workspaceDir}"
 
-                            echo "Artifacts in ${workspaceDir}:"
-                            foundBuild.artifacts.each { artifact ->
-                                echo artifact.fileName
-                            }
+                            // echo "Artifacts in ${workspaceDir}:"
+                            // foundBuild.artifacts.each { artifact ->
+                            //     echo artifact.fileName
+                            // }
                             env.BUILD_NUMBER_ENV = buildNumber
                             env.BRANCH = foundBranch.toString()
+                            env.WORKSPACE_DIR_ENV = workspaceDir
                         } else {
                             error "No build found for commit hash: ${commitHash}"
                         }
@@ -143,12 +144,19 @@ pipeline {
         stage('Copy Ingenialink Wheel Files') {
             steps {
                 script {
+                    def destDir = "ingenialink_wheels"
                     def buildNumber = env.BUILD_NUMBER_ENV
+                    def workspaceDir = env.WORKSPACE_DIR_ENV
                     def branch = env.BRANCH
+
                     if (buildNumber && branch) {
-                        node {
-                            copyArtifacts filter: '*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber)
-                        }
+                        echo "Destination directory: ${destDir}"
+                        echo "Copying artifacts from ${workspaceDir} to ${destinationDir}"
+                        bat "XCOPY ${workspaceDir} ${destinationDir} /E /I /Y"
+
+                        // node {
+                        //     copyArtifacts filter: '*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber)
+                        // }
                     } else {
                         error "No build number or workspace directory found in environment variables"
                     }
