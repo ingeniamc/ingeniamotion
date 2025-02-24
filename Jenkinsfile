@@ -120,15 +120,8 @@ pipeline {
                             def buildNumber = foundBuild.number.toString()
                             def workspaceDir = foundBuild.getArtifactsDir().toString()
                             
-                            // echo "Found build number: ${buildNumber}"
-                            // echo "Workspace directory: ${workspaceDir}"
-
-                            echo "Stash artifacts from build number ${buildNumber}, directory ${workspaceDir}"
-                            node {
-                                dir(workspaceDir) {
-                                    stash includes: '**/*', name: 'artifacts'
-                                }
-                            }
+                            echo "Found build number: ${buildNumber}"
+                            echo "Workspace directory: ${workspaceDir}"
 
                             // echo "Artifacts in ${workspaceDir}:"
                             // foundBuild.artifacts.each { artifact ->
@@ -144,6 +137,20 @@ pipeline {
                         error "No job found with the name: ${sourceJobName} or it's not a multibranch project"
                     }
                     
+                }
+            }
+        }
+
+        stage('Stash Artifacts') {
+            agent any  // Specify the agent to run this stage
+            steps {
+                script {
+                    def workspaceDir = env.WORKSPACE_DIR_ENV
+
+                    echo "Stash artifacts from build number ${buildNumber}, directory ${workspaceDir}"
+                    dir(workspaceDir) {
+                        stash includes: '**/*', name: 'artifacts'
+                    }
                 }
             }
         }
