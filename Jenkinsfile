@@ -111,19 +111,9 @@ pipeline {
                                     changeSets.each { changeSet ->
                                         changeSet.items.each { item ->
                                             if (item.commitId == commitHash) {
-                                                echo "fullBranchName: ${fullBranchName}, result: ${build.result}, ${item.commitId}, ${build.number.toString()}, ${branch.builds}"
                                                 foundBuild = build
                                                 foundBranch = fullBranchName
-                                                // return false
-
-                                                def firstBuild = branch.builds.first()
-                                                def firstBuildchangeSets = build.changeSets
-                                                echo "firstBuildchangeSets: ${firstBuildchangeSets}"
-                                                firstBuildchangeSets.each { firstBuildchangeSet ->
-                                                    firstBuildchangeSet.items.each { firstBuilditem ->
-                                                        echo "firstBuilditem.commitId: ${firstBuilditem.commitId}"
-                                                    }
-                                                }
+                                                return false
                                             }
                                         }
                                     }
