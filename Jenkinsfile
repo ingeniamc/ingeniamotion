@@ -94,10 +94,13 @@ pipeline {
 
                     if (sourceJob && sourceJob instanceof org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject) {
                         def foundBuild = null
+                        def foundBranch = null
 
                         sourceJob.getAllJobs().each { branchJob ->
                             def fullBranchName = sourceJob.fullName + '/' + branchJob.name
                             def branch = Jenkins.instance.getItemByFullName(fullBranchName)
+
+                            echo "Checking branch: ${branch.toString()}"
 
                             if (branch) {
                                 branch.builds.each { build ->
@@ -107,6 +110,7 @@ pipeline {
                                             def gitCommit = item.commitId
                                             if (gitCommit == commitHash) {
                                                 foundBuild = build
+                                                foundBranch = branch
                                                 return false
                                             }
                                         }
