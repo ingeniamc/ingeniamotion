@@ -23,10 +23,6 @@ def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
 
 coverage_stashes = []
 
-def escapeSpaces(String input) {
-    return input.replaceAll(" ", "%20")
-}
-
 def runTestHW(markers, setup_name) {
 
     if (RUN_ONLY_SMOKE_TESTS) {
@@ -89,11 +85,29 @@ pipeline {
             }
         }
 
-        stage('Get Ingenialink Build Number') {
+        stage('Read Ingenialink Commit Hash') {
             steps {
                 script {
+                    def toxIniContent = readFile('tox.ini')
+                    def matcher = toxIniContent =~ /ingenialink-python@([a-f0-9]{40})/
+                    env.INGENIALINK_COMMIT_HASH = matcher ? matcher[0][1] : null
+                    if (env.INGENIALINK_COMMIT_HASH) {
+                        echo "Commit Hash: ${env.INGENIALINK_COMMIT_HASH}"
+                    } else {
+                        error "Commit hash not found in tox.ini"
+                    }
+                }
+            }
+        }
+
+        stage('Get Ingenialink Build Number') {
+            steps {
+                when {
+                    expression { return env.COMMIT_HASH != '' }
+                }
+                script {
                     def destDir = "ingenialink_wheels/"
-                    def commitHash = 'e04221273edd2458bbc6f96cf1a83f06987d5bdd'
+                    // def commitHash = '9160029940c8fa67ee6a68284bbf2e625030d114'
                     def sourceJobName = 'Novanta Motion - Ingenia - Git/ingenialink-python'
                     def sourceJob = Jenkins.instance.getItemByFullName(sourceJobName)
 
@@ -110,7 +124,7 @@ pipeline {
                                     def changeSets = build.changeSets
                                     changeSets.each { changeSet ->
                                         changeSet.items.each { item ->
-                                            if (item.commitId == commitHash) {
+                                            if (item.commitId == env.COMMIT_HASH) {
                                                 foundBuild = build
                                                 foundBranch = fullBranchName
                                                 return false
@@ -137,6 +151,9 @@ pipeline {
 
         stage('Copy Ingenialink Wheel Files') {
             steps {
+                when {
+                    expression { return env.COMMIT_HASH != '' }
+                }
                 script {
                     def destDir = "ingenialink_wheels"
                     def buildNumber = env.BUILD_NUMBER_ENV
