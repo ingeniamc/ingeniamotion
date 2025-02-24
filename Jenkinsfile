@@ -120,7 +120,7 @@ pipeline {
                                                 def firstBuildchangeSets = build.changeSets
                                                 echo "firstBuildchangeSets: ${firstBuildchangeSets}"
                                                 firstBuildchangeSets.each { firstBuildchangeSet ->
-                                                    changeSet.items.each { firstBuilditem ->
+                                                    firstBuildchangeSet.items.each { firstBuilditem ->
                                                         echo "firstBuild.commitId: ${firstBuild.commitId}"
                                                     }
                                                 }
