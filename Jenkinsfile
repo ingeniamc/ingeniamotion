@@ -128,6 +128,7 @@ pipeline {
                             foundBuild.artifacts.each { artifact ->
                                 echo artifact.fileName
                                 echo artifact.relativePath
+                                echo artifact.displayPath
                             }
                             env.BUILD_NUMBER_ENV = buildNumber
                             env.BRANCH = foundBranch.toString()
