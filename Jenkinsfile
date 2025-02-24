@@ -177,7 +177,7 @@ pipeline {
 
                     if (buildNumber && branch) {
                         node {
-                            copyArtifacts filter: '**/*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber), target=destDir
+                            copyArtifacts filter: '**/*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber), target: destDir
                         }
                     } else {
                         error "No build number or workspace directory found in environment variables"
