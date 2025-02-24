@@ -111,11 +111,11 @@ pipeline {
                                     def changeSets = build.changeSets
                                     changeSets.each { changeSet ->
                                         changeSet.items.each { item ->
-                                            if (item.commitId == commitHash && build.result == 'SUCCESS') {
+                                            if (item.commitId == commitHash) {
                                                 echo "fullBranchName: ${fullBranchName}, result: ${build.result}, ${build.result.toString()}"
                                                 foundBuild = build
                                                 foundBranch = fullBranchName
-                                                return false
+                                                // return false
                                             }
                                         }
                                     }
