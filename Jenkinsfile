@@ -124,8 +124,10 @@ pipeline {
                             // echo "Workspace directory: ${workspaceDir}"
 
                             echo "Stash artifacts from build number ${buildNumber}, directory ${workspaceDir}"
-                            dir(workspaceDir) {
-                                stash includes: '**/*', name: 'artifacts'
+                            node {
+                                dir(workspaceDir) {
+                                    stash includes: '**/*', name: 'artifacts'
+                                }
                             }
 
                             // echo "Artifacts in ${workspaceDir}:"
