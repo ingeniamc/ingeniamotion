@@ -104,7 +104,7 @@ pipeline {
         stage('Get Ingenialink Build Number') {
             steps {
                 when {
-                    expression { return env.COMMIT_HASH != '' }
+                    expression { return env.INGENIALINK_COMMIT_HASH != '' }
                 }
                 script {
                     def destDir = "ingenialink_wheels/"
@@ -125,7 +125,7 @@ pipeline {
                                     def changeSets = build.changeSets
                                     changeSets.each { changeSet ->
                                         changeSet.items.each { item ->
-                                            if (item.commitId == env.COMMIT_HASH) {
+                                            if (item.commitId == env.INGENIALINK_COMMIT_HASH) {
                                                 foundBuild = build
                                                 foundBranch = fullBranchName
                                                 return false
@@ -153,7 +153,7 @@ pipeline {
         stage('Copy Ingenialink Wheel Files') {
             steps {
                 when {
-                    expression { return env.COMMIT_HASH != '' }
+                    expression { return env.INGENIALINK_COMMIT_HASH != '' }
                 }
                 script {
                     def destDir = "ingenialink_wheels"
