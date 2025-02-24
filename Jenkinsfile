@@ -110,15 +110,12 @@ pipeline {
                                     def changeSets = build.changeSets
                                     changeSets.each { changeSet ->
                                         changeSet.items.each { item ->
-                                            echo "fullBranchName: ${fullBranchName}, result: ${build.result}, ${item.commitId}"
-                                            // if (item.commitId == commitHash) {
-                                            //     echo "changeSets: ${changeSets}"
-                                            //     if (build.result.toString() == "SUCCESS") {
-                                            //         foundBuild = build
-                                            //         foundBranch = fullBranchName
-                                            //     // return false
-                                            //     }
-                                            // }
+                                            if (item.commitId == commitHash) {
+                                                echo "fullBranchName: ${fullBranchName}, result: ${build.result}, ${item.commitId}, ${builds}"
+                                                foundBuild = build
+                                                foundBranch = fullBranchName
+                                                // return false
+                                            }
                                         }
                                     }
                                 }
