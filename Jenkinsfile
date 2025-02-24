@@ -122,14 +122,12 @@ pipeline {
                             
                             echo "Found build number: ${buildNumber}"
                             echo "Workspace directory: ${workspaceDir}"
-                            echo "Branch name: ${foundBuild.parent}"
 
                             // echo "Artifacts in ${workspaceDir}:"
                             // foundBuild.artifacts.each { artifact ->
                             //     echo artifact
                             // }
                             env.BUILD_NUMBER_ENV = buildNumber
-                            env.WORKSPACE_DIR_ENV = workspaceDir
                             env.BRANCH = foundBranch.toString()
                         } else {
                             error "No build found for commit hash: ${commitHash}"
@@ -146,9 +144,8 @@ pipeline {
             steps {
                 script {
                     def buildNumber = env.BUILD_NUMBER_ENV
-                    def workspaceDir = env.WORKSPACE_DIR_ENV
                     def branch = env.BRANCH
-                    if (buildNumber && workspaceDir) {
+                    if (buildNumber && branch) {
                         node {
                             copyArtifacts filter: '*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber)
                         }
