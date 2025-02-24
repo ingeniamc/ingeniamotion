@@ -150,9 +150,8 @@ pipeline {
                     def branch = env.BRANCH
 
                     if (buildNumber && branch) {
-                        echo "Destination directory: ${destDir}"
-                        echo "Copying artifacts from ${workspaceDir} to ${destinationDir}"
-                        bat "XCOPY ${workspaceDir} ${destinationDir} /E /I /Y"
+                        echo "Copying artifacts from ${workspaceDir} to ${destDir}"
+                        bat "XCOPY ${workspaceDir} ${destDir} /E /I /Y"
 
                         // node {
                         //     copyArtifacts filter: '*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber)
