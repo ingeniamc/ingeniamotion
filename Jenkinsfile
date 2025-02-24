@@ -142,7 +142,7 @@ pipeline {
         }
 
         stage('Stash Artifacts') {
-            agent any  // Specify the agent to run this stage
+            agent none  // Specify the agent to run this stage
             steps {
                 script {
                     def workspaceDir = env.WORKSPACE_DIR_ENV
