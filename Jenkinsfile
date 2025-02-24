@@ -143,13 +143,15 @@ pipeline {
 
         stage('Copy Artifacts Manually') {
             steps {
-                def destDir = "ingenialink_wheels/"
-                def workspaceDir = env.WORKSPACE_DIR_ENV
+                script {
+                    def destDir = "ingenialink_wheels/"
+                    def workspaceDir = env.WORKSPACE_DIR_ENV
 
-                sh """
-                cp ${workspaceDir}/ingenialink-7.4.1-cp39-cp39-win_amd64.whl ${destDir}
-                cp ${workspaceDir}/ingenialink-7.4.1-cp312-cp312-win_amd64.whl ${destDir}
-                """
+                    sh """
+                    cp ${workspaceDir}/ingenialink-7.4.1-cp39-cp39-win_amd64.whl ${destDir}
+                    cp ${workspaceDir}/ingenialink-7.4.1-cp312-cp312-win_amd64.whl ${destDir}
+                    """
+                }
             }
         }
 
