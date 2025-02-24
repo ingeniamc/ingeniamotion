@@ -152,7 +152,7 @@ pipeline {
                     def branch = env.BRANCH
 
                     if (buildNumber && workspaceDir) {
-                        copyArtifacts filter: '*.whl', fingerprintArtifacts: true, projectName: "${branch.displayName}", selector: specific(buildNumber)
+                        copyArtifacts filter: '*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber)
                         // node {
                         //     dir("${workspaceDir}/dist") {
                         //         stash includes: '*.whl', name: 'wheels'
