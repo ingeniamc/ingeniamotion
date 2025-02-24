@@ -141,25 +141,37 @@ pipeline {
             }
         }
 
-        stage('Copy Ingenialink Wheel Files') {
-            agent any
+        stage('Copy Artifacts Manually') {
             steps {
-                script {
-                    def destDir = "ingenialink_wheels"
-                    def buildNumber = env.BUILD_NUMBER_ENV
-                    def workspaceDir = env.WORKSPACE_DIR_ENV
-                    def branch = env.BRANCH
+                def destDir = "ingenialink_wheels/"
+                def workspaceDir = env.WORKSPACE_DIR_ENV
 
-                    if (buildNumber && branch) {
-                        node {
-                            copyArtifacts filter: '*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber)
-                        }
-                    } else {
-                        error "No build number or workspace directory found in environment variables"
-                    }
-                }
+                sh """
+                cp ${workspaceDir}/ingenialink-7.4.1-cp39-cp39-win_amd64.whl ${destDir}
+                cp ${workspaceDir}/ingenialink-7.4.1-cp312-cp312-win_amd64.whl ${destDir}
+                """
             }
         }
+
+        // stage('Copy Ingenialink Wheel Files') {
+        //     agent any
+        //     steps {
+        //         script {
+        //             def destDir = "ingenialink_wheels"
+        //             def buildNumber = env.BUILD_NUMBER_ENV
+        //             def workspaceDir = env.WORKSPACE_DIR_ENV
+        //             def branch = env.BRANCH
+
+        //             if (buildNumber && branch) {
+        //                 node {
+        //                     copyArtifacts filter: '*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber)
+        //                 }
+        //             } else {
+        //                 error "No build number or workspace directory found in environment variables"
+        //             }
+        //         }
+        //     }
+        // }
 
         // stage('Build and Tests') {
         //     parallel {
