@@ -142,6 +142,12 @@ pipeline {
         }
 
         stage('Copy Ingenialink Wheel Files') {
+            agent {
+                docker {
+                    label SW_NODE
+                    image WIN_DOCKER_IMAGE
+                }
+            }
             steps {
                 script {
                     def destDir = "ingenialink_wheels"
