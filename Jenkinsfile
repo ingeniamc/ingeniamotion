@@ -149,7 +149,9 @@ pipeline {
                     def buildNumber = env.BUILD_NUMBER_ENV
 
                     echo "Stash artifacts from build number ${buildNumber}, directory ${workspaceDir}"
-                    sh "ls -l ${workspaceDir}"  // List the contents of the directory
+                    node {
+                        sh "ls -l ${workspaceDir}"  // List the contents of the directory
+                    }
                 }
             }
         }
