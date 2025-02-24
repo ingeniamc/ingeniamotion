@@ -130,6 +130,7 @@ pipeline {
 
                             echo "Branch name: ${foundBranch}"
                             echo "Branch display name: ${foundBranch.displayName}"
+                            echo "Full project name: ${fullProjectName}"
 
                             echo "Artifacts in ${workspaceDir}:"
                             foundBuild.artifacts.each { artifact ->
