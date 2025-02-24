@@ -153,13 +153,13 @@ pipeline {
                 script {
                     def destDir = "ingenialink_wheels/"
                     // def workspaceDir = escapeSpaces(env.WORKSPACE_DIR_ENV)
-                    def workspaceDir = "../ingenialink-python/branches/PR-530/builds/81/archive"
+                    def workspaceDir = env.WORKSPACE_DIR_ENV
 
                     node {
                         sh """
                         mkdir -p ${destDir}
-                        cp ${workspaceDir}/dist/ingenialink-7.4.1-cp39-cp39-win_amd64.whl ${destDir}
-                        cp ${workspaceDir}/dist_py312/ingenialink-7.4.1-cp312-cp312-win_amd64.whl ${destDir}
+                        cp "${workspaceDir}/dist/ingenialink-7.4.1-cp39-cp39-win_amd64.whl" ${destDir}
+                        cp "${workspaceDir}/dist_py312/ingenialink-7.4.1-cp312-cp312-win_amd64.whl" ${destDir}
                         """
                     }
                 }
