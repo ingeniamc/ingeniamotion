@@ -107,13 +107,15 @@ pipeline {
 
                             if (branch) {
                                 branch.builds.reverse().each { build ->  // Reverse to start from the latest build
-                                    def changeSets = build.changeSets
-                                    changeSets.each { changeSet ->
-                                        changeSet.items.each { item ->
-                                            if (item.commitId == commitHash) {
-                                                foundBuild = build
-                                                foundBranch = fullBranchName
-                                                return false
+                                    if (build.result == hudson.model.Result.SUCCESS) {  // Check if the build was successful
+                                        def changeSets = build.changeSets
+                                        changeSets.each { changeSet ->
+                                            changeSet.items.each { item ->
+                                                if (item.commitId == commitHash) {
+                                                    foundBuild = build
+                                                    foundBranch = fullBranchName
+                                                    return false
+                                                }
                                             }
                                         }
                                     }
