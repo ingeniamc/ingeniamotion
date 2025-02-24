@@ -101,12 +101,11 @@ pipeline {
                             def branch = Jenkins.instance.getItemByFullName(fullBranchName)
 
                             if (branch) {
-                                branch.builds.each { build ->
+                                branch.builds.findAll().reverse().each { build ->  // Reverse to start from the latest build
                                     def changeSets = build.changeSets
                                     changeSets.each { changeSet ->
                                         changeSet.items.each { item ->
-                                            def gitCommit = item.commitId
-                                            if (gitCommit == commitHash) {
+                                            if (item.commitId == commitHash) {
                                                 foundBuild = build
                                                 foundBranch = branch
                                                 return false
@@ -120,10 +119,10 @@ pipeline {
                         if (foundBuild) {
                             def buildNumber = foundBuild.number.toString()
                             def workspaceDir = foundBuild.getArtifactsDir().toString()
+                            
                             echo "Found build number: ${buildNumber}"
                             echo "Workspace directory: ${workspaceDir}"
-
-                            
+                            echo "Branch name: ${foundBuild.parent}"
 
                             // echo "Artifacts in ${workspaceDir}:"
                             // foundBuild.artifacts.each { artifact ->
