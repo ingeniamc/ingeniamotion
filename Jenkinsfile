@@ -95,7 +95,7 @@ pipeline {
                     if (!env.INGENIALINK_COMMIT_HASH.isEmpty()) {
                         echo "Ingenialink commit Hash: ${env.INGENIALINK_COMMIT_HASH}"
                     } else {
-                        error "Ingenialink commit hash not found in tox.ini"
+                        echo "Ingenialink commit hash not found in tox.ini"
                     }
                 }
             }
