@@ -118,12 +118,13 @@ pipeline {
                         if (foundBuild) {
                             def buildNumber = foundBuild.number.toString()
                             def workspaceDir = foundBuild.getArtifactsDir().toString()
-                            echo "Artifacts in ${foundBuild.getArtifactsDir()}:"
-                            foundBuild.artifacts.each { artifact ->
-                                echo artifact.relativePath
-                            }
-                            echo "Found build number: ${buildNumber}"
-                            echo "Workspace directory: ${workspaceDir}"
+                            echo "Arifacts dir: ${foundBuild.artifactsDir}"
+                            // echo "Artifacts in ${foundBuild.getArtifactsDir()}:"
+                            // foundBuild.artifacts.each { artifact ->
+                            //     echo artifact.relativePath
+                            // }
+                            // echo "Found build number: ${buildNumber}"
+                            // echo "Workspace directory: ${workspaceDir}"
                             env.BUILD_NUMBER_ENV = buildNumber
                             env.WORKSPACE_DIR_ENV = workspaceDir
                         } else {
