@@ -121,10 +121,12 @@ pipeline {
                             echo "Found build number: ${buildNumber}"
                             echo "Workspace directory: ${workspaceDir}"
 
-                            echo "Artifacts in ${workspaceDir}:"
-                            foundBuild.artifacts.each { artifact ->
-                                echo artifact
-                            }
+                            copyArtifacts filter: '*.whl', fingerprintArtifacts: true, projectName: sourceJobName, selector: specific(buildNumber)
+
+                            // echo "Artifacts in ${workspaceDir}:"
+                            // foundBuild.artifacts.each { artifact ->
+                            //     echo artifact
+                            // }
                             env.BUILD_NUMBER_ENV = buildNumber
                             env.WORKSPACE_DIR_ENV = workspaceDir
                         } else {
@@ -138,32 +140,32 @@ pipeline {
             }
         }
 
-        stage('Copy Ingenialink Wheel Files') {
-            steps {
-                script {
-                    def destDir = "ingenialink_wheels"
-                    def buildNumber = env.BUILD_NUMBER_ENV
-                    def workspaceDir = env.WORKSPACE_DIR_ENV
+        // stage('Copy Ingenialink Wheel Files') {
+        //     steps {
+        //         script {
+        //             def destDir = "ingenialink_wheels"
+        //             def buildNumber = env.BUILD_NUMBER_ENV
+        //             def workspaceDir = env.WORKSPACE_DIR_ENV
 
-                    if (buildNumber && workspaceDir) {
-                        node {
-                            dir("${workspaceDir}/dist") {
-                                stash includes: '*.whl', name: 'wheels'
-                            }
+        //             if (buildNumber && workspaceDir) {
+        //                 node {
+        //                     dir("${workspaceDir}/dist") {
+        //                         stash includes: '*.whl', name: 'wheels'
+        //                     }
 
-                            unstash 'wheels'
+        //                     unstash 'wheels'
 
-                            dir(destDir) {
-                                sh 'mv *.whl ./'
-                                echo "Wheel file(s) copied to ${destDir} directory"
-                            }
-                        }
-                    } else {
-                        error "No build number or workspace directory found in environment variables"
-                    }
-                }
-            }
-        }
+        //                     dir(destDir) {
+        //                         sh 'mv *.whl ./'
+        //                         echo "Wheel file(s) copied to ${destDir} directory"
+        //                     }
+        //                 }
+        //             } else {
+        //                 error "No build number or workspace directory found in environment variables"
+        //             }
+        //         }
+        //     }
+        // }
 
         // stage('Build and Tests') {
         //     parallel {
