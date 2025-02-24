@@ -102,10 +102,10 @@ pipeline {
         }
 
         stage('Get Ingenialink Build Number') {
+            when {
+                expression { env.INGENIALINK_COMMIT_HASH != null }
+            }
             steps {
-                when {
-                    expression { env.INGENIALINK_COMMIT_HASH != null }
-                }
                 script {
                     def destDir = "ingenialink_wheels/"
                     // def commitHash = '9160029940c8fa67ee6a68284bbf2e625030d114'
@@ -151,10 +151,10 @@ pipeline {
         }
 
         stage('Copy Ingenialink Wheel Files') {
+            when {
+                expression { env.INGENIALINK_COMMIT_HASH != null }
+            }
             steps {
-                when {
-                    expression { env.INGENIALINK_COMMIT_HASH != null }
-                }
                 script {
                     def destDir = "ingenialink_wheels"
                     def buildNumber = env.BUILD_NUMBER_ENV
