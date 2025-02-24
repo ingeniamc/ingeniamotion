@@ -88,6 +88,7 @@ pipeline {
         stage('Get Ingenialink Build Number') {
             steps {
                 script {
+                    def destDir = "ingenialink_wheels/"
                     def commitHash = 'e04221273edd2458bbc6f96cf1a83f06987d5bdd'
                     def sourceJobName = 'Novanta Motion - Ingenia - Git/ingenialink-python'
                     def sourceJob = Jenkins.instance.getItemByFullName(sourceJobName)
@@ -123,9 +124,12 @@ pipeline {
                             echo "Found build number: ${buildNumber}"
                             echo "Workspace directory: ${workspaceDir}"
 
-                            echo "Artifacts in ${workspaceDir}:"
-                            foundBuild.artifacts.each { artifact ->
-                                echo artifact.fileName
+                            node {
+                                sh "mkdir -p ${destDir}"
+                                echo "Artifacts in ${workspaceDir}:"
+                                foundBuild.artifacts.each { artifact ->
+                                    echo artifact.fileName
+                                }
                             }
                             env.BUILD_NUMBER_ENV = buildNumber
                             env.BRANCH = foundBranch.toString()
@@ -141,22 +145,22 @@ pipeline {
             }
         }
 
-        stage('Copy Artifacts Manually') {
-            steps {
-                script {
-                    def destDir = "ingenialink_wheels/"
-                    def workspaceDir = env.WORKSPACE_DIR_ENV.replace(" ", "\\ ")
+        // stage('Copy Artifacts Manually') {
+        //     steps {
+        //         script {
+        //             def destDir = "ingenialink_wheels/"
+        //             def workspaceDir = env.WORKSPACE_DIR_ENV.replace(" ", "\\ ")
 
-                    node {
-                        sh """
-                        mkdir -p ${destDir}
-                        cp ${workspaceDir}/ingenialink-7.4.1-cp39-cp39-win_amd64.whl ${destDir}
-                        cp ${workspaceDir}/ingenialink-7.4.1-cp312-cp312-win_amd64.whl ${destDir}
-                        """
-                    }
-                }
-            }
-        }
+        //             node {
+        //                 sh """
+        //                 mkdir -p ${destDir}
+        //                 cp ${workspaceDir}/ingenialink-7.4.1-cp39-cp39-win_amd64.whl ${destDir}
+        //                 cp ${workspaceDir}/ingenialink-7.4.1-cp312-cp312-win_amd64.whl ${destDir}
+        //                 """
+        //             }
+        //         }
+        //     }
+        // }
 
         // stage('Copy Ingenialink Wheel Files') {
         //     agent any
