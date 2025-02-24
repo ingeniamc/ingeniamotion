@@ -145,7 +145,8 @@ pipeline {
             agent none  // Specify the agent to run this stage
             steps {
                 script {
-                    def workspaceDir = env.WORKSPACE_DIR_ENV
+                    // def workspaceDir = env.WORKSPACE_DIR_ENV
+                    def workspaceDir = env.WORKSPACE_DIR_ENV.replace(' ', '\\ ')
                     def buildNumber = env.BUILD_NUMBER_ENV
 
                     echo "Stash artifacts from build number ${buildNumber}, directory ${workspaceDir}"
