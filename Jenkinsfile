@@ -114,7 +114,7 @@ pipeline {
                                         changeSet.items.each { item ->
                                             if (item.commitId == commitHash) {
                                                 foundBuild = build
-                                                foundBranch = branch
+                                                foundBranch = fullBranchName
                                                 return false
                                             }
                                         }
@@ -131,8 +131,6 @@ pipeline {
                             echo "Workspace directory: ${workspaceDir}"
 
                             echo "Branch name: ${foundBranch}"
-                            echo "Branch display name: ${foundBranch.displayName}"
-                            echo "Full project name: ${fullProjectName}"
 
                             echo "Artifacts in ${workspaceDir}:"
                             foundBuild.artifacts.each { artifact ->
@@ -141,7 +139,7 @@ pipeline {
                                 echo artifact.displayPath
                             }
                             env.BUILD_NUMBER_ENV = buildNumber
-                            env.BRANCH = foundBranch.toString()
+                            env.BRANCH = foundBranch
                             env.WORKSPACE_DIR_ENV = workspaceDir
                         } else {
                             error "No build found for commit hash: ${commitHash}"
@@ -180,6 +178,8 @@ pipeline {
                     def buildNumber = env.BUILD_NUMBER_ENV
                     def workspaceDir = env.WORKSPACE_DIR_ENV
                     def branch = env.BRANCH
+
+                    echo "copying artifacts from ${branch}"
 
                     if (buildNumber && branch) {
                         node {
