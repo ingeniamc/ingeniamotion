@@ -140,7 +140,7 @@ pipeline {
                             env.BRANCH = foundBranch
                             env.BUILD_NUMBER_ENV = foundBuild.number.toString()
                         } else {
-                            error "No build found for commit hash: ${commitHash}"
+                            error "No build found for commit hash: ${env.INGENIALINK_COMMIT_HASH}"
                         }
                     } else {
                         error "No job found with the name: ${sourceJobName} or it's not a multibranch project"
