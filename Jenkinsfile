@@ -82,8 +82,7 @@ pipeline {
                 '''
             }
         }
-    }
-    stages {
+
         stage("Set env") {
             steps {
                 script {
