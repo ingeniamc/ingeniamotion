@@ -114,11 +114,15 @@ pipeline {
                                                 echo "fullBranchName: ${fullBranchName}, result: ${build.result}, ${item.commitId}, ${build.number.toString()}, ${branch.builds}"
                                                 foundBuild = build
                                                 foundBranch = fullBranchName
+                                                // return false
 
                                                 def firstBuild = branch.builds.first()
                                                 def firstBuildchangeSets = build.changeSets
                                                 echo "firstBuildchangeSets: ${firstBuildchangeSets}"
-                                                // return false
+                                                firstBuildchangeSets.each { firstBuildchangeSet ->
+                                                    changeSet.items.each { firstBuilditem ->
+                                                    echo "firstBuild.commitId: ${firstBuild.commitId}"
+                                                }
                                             }
                                         }
                                     }
