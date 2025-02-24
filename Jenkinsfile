@@ -105,8 +105,6 @@ pipeline {
                             def fullBranchName = sourceJob.fullName + '/' + branchJob.name
                             def branch = Jenkins.instance.getItemByFullName(fullBranchName)
 
-                            echo "branchJob.name: ${branchJob.name}"
-
                             if (branch) {
                                 branch.builds.reverse().each { build ->  // Reverse to start from the latest build
                                     def changeSets = build.changeSets
@@ -129,15 +127,11 @@ pipeline {
                             
                             echo "Found build number: ${buildNumber}"
                             echo "Workspace directory: ${workspaceDir}"
-
-                            echo "Branch name: ${foundBranch}"
-
                             echo "Artifacts in ${workspaceDir}:"
                             foundBuild.artifacts.each { artifact ->
-                                echo artifact.fileName
                                 echo artifact.relativePath
-                                echo artifact.displayPath
                             }
+
                             env.BUILD_NUMBER_ENV = buildNumber
                             env.BRANCH = foundBranch
                             env.WORKSPACE_DIR_ENV = workspaceDir
@@ -183,7 +177,7 @@ pipeline {
 
                     if (buildNumber && branch) {
                         node {
-                            copyArtifacts filter: '*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber)
+                            copyArtifacts filter: '**/*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber)
                         }
                     } else {
                         error "No build number or workspace directory found in environment variables"
