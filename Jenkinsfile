@@ -121,7 +121,8 @@ pipeline {
                                                 echo "firstBuildchangeSets: ${firstBuildchangeSets}"
                                                 firstBuildchangeSets.each { firstBuildchangeSet ->
                                                     changeSet.items.each { firstBuilditem ->
-                                                    echo "firstBuild.commitId: ${firstBuild.commitId}"
+                                                        echo "firstBuild.commitId: ${firstBuild.commitId}"
+                                                    }
                                                 }
                                             }
                                         }
