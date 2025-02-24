@@ -131,7 +131,7 @@ pipeline {
                             // }
                             env.BUILD_NUMBER_ENV = buildNumber
                             env.WORKSPACE_DIR_ENV = workspaceDir
-                            env.BRANCH = foundBranch
+                            env.BRANCH = foundBranch.toString()
                         } else {
                             error "No build found for commit hash: ${commitHash}"
                         }
