@@ -107,6 +107,7 @@ pipeline {
 
                             if (branch) {
                                 branch.builds.reverse().each { build ->  // Reverse to start from the latest build
+                                    echo "fullBranchName: ${fullBranchName}, result: ${build.result}, ${build.result.toString()}"
                                     if (build.result.toString() == "SUCCESS") {  // Check if the build was successful
                                         def changeSets = build.changeSets
                                         changeSets.each { changeSet ->
