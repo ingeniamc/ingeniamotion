@@ -147,6 +147,7 @@ pipeline {
                 script {
                     // def workspaceDir = env.WORKSPACE_DIR_ENV
                     def workspaceDir = env.WORKSPACE_DIR_ENV.replace(' ', '\\ ')
+                    def workspaceDir = env.WORKSPACE_DIR_ENV.replace('archive', 'artifact')
                     def buildNumber = env.BUILD_NUMBER_ENV
 
                     echo "Stash artifacts from build number ${buildNumber}, directory ${workspaceDir}"
