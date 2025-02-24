@@ -146,6 +146,7 @@ pipeline {
             steps {
                 script {
                     def workspaceDir = env.WORKSPACE_DIR_ENV
+                    def buildNumber = env.BUILD_NUMBER_ENV
 
                     echo "Stash artifacts from build number ${buildNumber}, directory ${workspaceDir}"
                     dir(workspaceDir) {
