@@ -122,19 +122,8 @@ pipeline {
                         }
 
                         if (foundBuild) {
-                            def buildNumber = foundBuild.number.toString()
-                            def workspaceDir = foundBuild.getArtifactsDir().toString()
-                            
-                            echo "Found build number: ${buildNumber}"
-                            echo "Workspace directory: ${workspaceDir}"
-                            echo "Artifacts in ${workspaceDir}:"
-                            foundBuild.artifacts.each { artifact ->
-                                echo artifact.relativePath
-                            }
-
-                            env.BUILD_NUMBER_ENV = buildNumber
                             env.BRANCH = foundBranch
-                            env.WORKSPACE_DIR_ENV = workspaceDir
+                            env.BUILD_NUMBER_ENV = foundBuild.number.toString()
                         } else {
                             error "No build found for commit hash: ${commitHash}"
                         }
@@ -142,25 +131,6 @@ pipeline {
                         error "No job found with the name: ${sourceJobName} or it's not a multibranch project"
                     }
                     
-                }
-            }
-        }
-
-        stage('Copy Artifacts Manually') {
-            steps {
-                script {
-                    def destDir = "ingenialink_wheels/"
-                    // def workspaceDir = escapeSpaces(env.WORKSPACE_DIR_ENV)
-                    def workspaceDir = env.WORKSPACE_DIR_ENV
-                    def branch = env.BRANCH
-
-                    node {
-                        sh """
-                        mkdir -p ${destDir}
-                        cp "${branch}/dist/ingenialink-7.4.1-cp39-cp39-win_amd64.whl" ${destDir}
-                        cp "${branch}/dist_py312/ingenialink-7.4.1-cp312-cp312-win_amd64.whl" ${destDir}
-                        """
-                    }
                 }
             }
         }
