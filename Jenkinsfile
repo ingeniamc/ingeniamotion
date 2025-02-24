@@ -105,6 +105,8 @@ pipeline {
                             def fullBranchName = sourceJob.fullName + '/' + branchJob.name
                             def branch = Jenkins.instance.getItemByFullName(fullBranchName)
 
+                            echo "branchJob.name: ${branchJob.name}"
+
                             if (branch) {
                                 branch.builds.reverse().each { build ->  // Reverse to start from the latest build
                                     def changeSets = build.changeSets
