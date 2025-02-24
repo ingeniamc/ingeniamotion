@@ -101,7 +101,7 @@ pipeline {
                             def branch = Jenkins.instance.getItemByFullName(fullBranchName)
 
                             if (branch) {
-                                branch.builds.findAll().reverse().each { build ->  // Reverse to start from the latest build
+                                branch.builds.reverse().each { build ->  // Reverse to start from the latest build
                                     def changeSets = build.changeSets
                                     changeSets.each { changeSet ->
                                         changeSet.items.each { item ->
