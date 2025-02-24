@@ -142,12 +142,7 @@ pipeline {
         }
 
         stage('Copy Ingenialink Wheel Files') {
-            agent {
-                docker {
-                    label SW_NODE
-                    image WIN_DOCKER_IMAGE
-                }
-            }
+            agent any
             steps {
                 script {
                     def destDir = "ingenialink_wheels"
@@ -157,8 +152,12 @@ pipeline {
 
                     if (buildNumber && branch) {
                         echo "Copying artifacts from ${workspaceDir} to ${destDir}"
-                        node {
+
+                        if (isWindows()) {
+                            echo "Running on a Windows node"
                             bat "XCOPY ${workspaceDir} ${destDir} /E /I /Y"
+                        } else {
+                            sh "cp -r ${workspaceDir} ${destDir}"
                         }
 
                         // node {
