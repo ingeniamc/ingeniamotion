@@ -93,9 +93,9 @@ pipeline {
                     def matcher = toxIniContent =~ /ingenialink-python@([a-f0-9]{40})/
                     env.INGENIALINK_COMMIT_HASH = matcher ? matcher[0][1] : null
                     if (env.INGENIALINK_COMMIT_HASH) {
-                        echo "Commit Hash: ${env.INGENIALINK_COMMIT_HASH}"
+                        echo "Ingenialink commit Hash: ${env.INGENIALINK_COMMIT_HASH}"
                     } else {
-                        error "Commit hash not found in tox.ini"
+                        error "Ingenialink commit hash not found in tox.ini"
                     }
                 }
             }
@@ -104,7 +104,7 @@ pipeline {
         stage('Get Ingenialink Build Number') {
             steps {
                 when {
-                    expression { return env.INGENIALINK_COMMIT_HASH != '' }
+                    expression { env.INGENIALINK_COMMIT_HASH }
                 }
                 script {
                     def destDir = "ingenialink_wheels/"
@@ -153,7 +153,7 @@ pipeline {
         stage('Copy Ingenialink Wheel Files') {
             steps {
                 when {
-                    expression { return env.INGENIALINK_COMMIT_HASH != '' }
+                    expression { env.INGENIALINK_COMMIT_HASH }
                 }
                 script {
                     def destDir = "ingenialink_wheels"
