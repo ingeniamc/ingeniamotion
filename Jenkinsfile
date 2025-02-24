@@ -133,6 +133,11 @@ pipeline {
                                 echo artifact.fileName
                                 echo artifact.relativePath
                                 echo artifact.displayPath
+
+                                def artifactPath = "${workspaceDir}/${artifact.relativePath}"
+                                echo "artifactPath: ${artifactPath}"
+                                // Check if the artifact exists
+                                def artifactFile = new File(artifactPath)
                             }
                             env.BUILD_NUMBER_ENV = buildNumber
                             env.BRANCH = foundBranch.toString()
