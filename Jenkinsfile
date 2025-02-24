@@ -107,19 +107,19 @@ pipeline {
 
                             if (branch) {
                                 branch.builds.reverse().each { build ->  // Reverse to start from the latest build
-                                    // if (build.result.toString() == "SUCCESS") {  // Check if the build was successful
                                     def changeSets = build.changeSets
                                     changeSets.each { changeSet ->
                                         changeSet.items.each { item ->
                                             if (item.commitId == commitHash) {
                                                 echo "fullBranchName: ${fullBranchName}, result: ${build.result}, ${build.result.toString()}"
-                                                foundBuild = build
-                                                foundBranch = fullBranchName
+                                                if (build.result.toString() == "SUCCESS") {
+                                                    foundBuild = build
+                                                    foundBranch = fullBranchName
                                                 // return false
+                                                }
                                             }
                                         }
                                     }
-                                    // }
                                 }
                             }
                         }
