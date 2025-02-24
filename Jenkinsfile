@@ -151,7 +151,9 @@ pipeline {
 
                     if (buildNumber && branch) {
                         echo "Copying artifacts from ${workspaceDir} to ${destDir}"
-                        bat "XCOPY ${workspaceDir} ${destDir} /E /I /Y"
+                        node {
+                            bat "XCOPY ${workspaceDir} ${destDir} /E /I /Y"
+                        }
 
                         // node {
                         //     copyArtifacts filter: '*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber)
