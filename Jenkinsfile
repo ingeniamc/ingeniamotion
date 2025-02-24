@@ -170,8 +170,11 @@ pipeline {
                 script {
                     node {
                         sh """
-                        echo "Contents of /var/jenkins_home/jobs/:"
-                        ls -R /var/jenkins_home/jobs/
+                        echo "Contents of .:"
+                        ls -R .
+
+                        echo "Contents of ..:"
+                        ls -R ../
                         """
                     }
                 }
