@@ -66,23 +66,7 @@ pipeline {
                 name: 'TESTS'
         )
     }
-    environment {
-        JENKINS_HOME_DIR = '/var/jenkins_home'
-    }
     stages {
-        stage('Check Directory') {
-            agent any
-            steps {
-                sh '''
-                if [ -d ${JENKINS_HOME_DIR} ]; then
-                    echo "Directory exists: ${JENKINS_HOME_DIR}"
-                else
-                    echo "Directory does not exist: ${JENKINS_HOME_DIR}"
-                fi
-                '''
-            }
-        }
-
         stage("Set env") {
             steps {
                 script {
@@ -144,6 +128,9 @@ pipeline {
                             echo "Found build number: ${buildNumber}"
                             echo "Workspace directory: ${workspaceDir}"
 
+                            echo "Branch name: ${foundBranch}"
+                            echo "Branch display name: ${foundBranch.displayName}"
+
                             echo "Artifacts in ${workspaceDir}:"
                             foundBuild.artifacts.each { artifact ->
                                 echo artifact.fileName
@@ -164,43 +151,43 @@ pipeline {
             }
         }
 
-        stage('Copy Artifacts Manually') {
-            steps {
-                script {
-                    def destDir = "ingenialink_wheels/"
-                    // def workspaceDir = escapeSpaces(env.WORKSPACE_DIR_ENV)
-                    def workspaceDir = env.WORKSPACE_DIR_ENV
-
-                    node {
-                        sh """
-                        mkdir -p ${destDir}
-                        cp "${workspaceDir}/dist/ingenialink-7.4.1-cp39-cp39-win_amd64.whl" ${destDir}
-                        cp "${workspaceDir}/dist_py312/ingenialink-7.4.1-cp312-cp312-win_amd64.whl" ${destDir}
-                        """
-                    }
-                }
-            }
-        }
-
-        // stage('Copy Ingenialink Wheel Files') {
-        //     agent any
+        // stage('Copy Artifacts Manually') {
         //     steps {
         //         script {
-        //             def destDir = "ingenialink_wheels"
-        //             def buildNumber = env.BUILD_NUMBER_ENV
+        //             def destDir = "ingenialink_wheels/"
+        //             // def workspaceDir = escapeSpaces(env.WORKSPACE_DIR_ENV)
         //             def workspaceDir = env.WORKSPACE_DIR_ENV
-        //             def branch = env.BRANCH
 
-        //             if (buildNumber && branch) {
-        //                 node {
-        //                     copyArtifacts filter: '*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber)
-        //                 }
-        //             } else {
-        //                 error "No build number or workspace directory found in environment variables"
+        //             node {
+        //                 sh """
+        //                 mkdir -p ${destDir}
+        //                 cp "${workspaceDir}/dist/ingenialink-7.4.1-cp39-cp39-win_amd64.whl" ${destDir}
+        //                 cp "${workspaceDir}/dist_py312/ingenialink-7.4.1-cp312-cp312-win_amd64.whl" ${destDir}
+        //                 """
         //             }
         //         }
         //     }
         // }
+
+        stage('Copy Ingenialink Wheel Files') {
+            agent any
+            steps {
+                script {
+                    def destDir = "ingenialink_wheels"
+                    def buildNumber = env.BUILD_NUMBER_ENV
+                    def workspaceDir = env.WORKSPACE_DIR_ENV
+                    def branch = env.BRANCH
+
+                    if (buildNumber && branch) {
+                        node {
+                            copyArtifacts filter: '*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber)
+                        }
+                    } else {
+                        error "No build number or workspace directory found in environment variables"
+                    }
+                }
+            }
+        }
 
         // stage('Build and Tests') {
         //     parallel {
