@@ -106,12 +106,12 @@ pipeline {
                             def branch = Jenkins.instance.getItemByFullName(fullBranchName)
 
                             if (branch) {
-                                branch.builds.reverse().each { build ->  // Reverse to start from the latest build
+                                branch.builds.each { build ->
                                     def changeSets = build.changeSets
-                                    echo "changeSets: ${changeSets}"
                                     changeSets.each { changeSet ->
                                         changeSet.items.each { item ->
                                             if (item.commitId == commitHash) {
+                                                echo "changeSets: ${changeSets}"
                                                 echo "fullBranchName: ${fullBranchName}, result: ${build.result}, ${build.result.toString()}"
                                                 if (build.result.toString() == "SUCCESS") {
                                                     foundBuild = build
