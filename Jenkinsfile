@@ -107,8 +107,7 @@ pipeline {
 
                             if (branch) {
                                 branch.builds.reverse().each { build ->  // Reverse to start from the latest build
-                                    echo "fullBranchName: ${fullBranchName}, result: ${build.result}"
-                                    if (build.result == "SUCCESS") {  // Check if the build was successful
+                                    if (build.result == hudson.model.Result.SUCCESS) {  // Check if the build was successful
                                         def changeSets = build.changeSets
                                         changeSets.each { changeSet ->
                                             changeSet.items.each { item ->
