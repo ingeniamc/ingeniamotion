@@ -141,51 +141,25 @@ pipeline {
             }
         }
 
-        stage('Stash Artifacts') {
-            agent none  // Specify the agent to run this stage
+        stage('Copy Ingenialink Wheel Files') {
+            agent any
             steps {
                 script {
-                    // def workspaceDir = env.WORKSPACE_DIR_ENV
-                    def workspaceDir = env.WORKSPACE_DIR_ENV.replace(' ', '\\ ')
-                    def workspaceDir = env.WORKSPACE_DIR_ENV.replace('archive', 'artifact')
+                    def destDir = "ingenialink_wheels"
                     def buildNumber = env.BUILD_NUMBER_ENV
+                    def workspaceDir = env.WORKSPACE_DIR_ENV
+                    def branch = env.BRANCH
 
-                    echo "Stash artifacts from build number ${buildNumber}, directory ${workspaceDir}"
-                    node {
-                        sh "ls -l ${workspaceDir}"  // List the contents of the directory
+                    if (buildNumber && branch) {
+                        node {
+                            copyArtifacts filter: '*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber)
+                        }
+                    } else {
+                        error "No build number or workspace directory found in environment variables"
                     }
                 }
             }
         }
-
-        // stage('Copy Ingenialink Wheel Files') {
-        //     agent any
-        //     steps {
-        //         script {
-        //             def destDir = "ingenialink_wheels"
-        //             def buildNumber = env.BUILD_NUMBER_ENV
-        //             def workspaceDir = env.WORKSPACE_DIR_ENV
-        //             def branch = env.BRANCH
-
-        //             if (buildNumber && branch) {
-        //                 echo "Copying artifacts from ${workspaceDir} to ${destDir}"
-
-        //                 if (isWindows()) {
-        //                     echo "Running on a Windows node"
-        //                     bat "XCOPY ${workspaceDir} ${destDir} /E /I /Y"
-        //                 } else {
-        //                     sh "cp -r ${workspaceDir} ${destDir}"
-        //                 }
-
-        //                 // node {
-        //                 //     copyArtifacts filter: '*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber)
-        //                 // }
-        //             } else {
-        //                 error "No build number or workspace directory found in environment variables"
-        //             }
-        //         }
-        //     }
-        // }
 
         // stage('Build and Tests') {
         //     parallel {
