@@ -327,8 +327,9 @@ def test_read_monitoring_data_not_configured(motion_controller, monitoring):
 @pytest.mark.usefixtures("mon_map_registers")
 def test_read_monitoring_data_disabled(monitoring):
     monitoring.configure_sample_time(0.8, 0)
-    test_output = monitoring.read_monitoring_data()
-    assert len(test_output[0]) == 0
+    with pytest.raises(IMMonitoringError) as exc:
+        monitoring.read_monitoring_data()
+    assert str(exc.value) == "Cannot read monitoring data. Monitoring is disabled."
 
 
 @pytest.mark.ethernet

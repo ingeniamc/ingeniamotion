@@ -366,6 +366,8 @@ class Monitoring(ABC):
             Data of monitoring. Each element of the list is a different register data.
 
         """
+        if not self.mc.capture.is_monitoring_enabled(servo=self.servo):
+            raise IMMonitoringError("Cannot read monitoring data. Monitoring is disabled.")
         drive = self.mc.servos[self.servo]
         self._read_process_finished = False
         is_ready, result_text = self._check_monitoring_is_ready()
