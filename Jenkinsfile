@@ -146,7 +146,7 @@ pipeline {
                         node {
                             copyArtifacts filter: '**/*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber), target: destDir
                         }
-                        stash includes: "${distDir}\\**\\*", name: 'ingenialink_wheels'
+                        stash includes: "${destDir}\\**\\*", name: 'ingenialink_wheels'
                     } else {
                         error "No build number or workspace directory found in environment variables"
                     }
