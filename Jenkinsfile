@@ -23,6 +23,10 @@ def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
 
 coverage_stashes = []
 
+def isWindows() {
+    return System.getProperty("os.name").toLowerCase().contains("win")
+}
+
 def runTestHW(markers, setup_name) {
 
     if (RUN_ONLY_SMOKE_TESTS) {
