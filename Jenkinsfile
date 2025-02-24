@@ -23,6 +23,10 @@ def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
 
 coverage_stashes = []
 
+def escapeSpaces(String input) {
+    return input.replaceAll(" ", "%20")
+}
+
 def runTestHW(markers, setup_name) {
 
     if (RUN_ONLY_SMOKE_TESTS) {
@@ -148,7 +152,7 @@ pipeline {
             steps {
                 script {
                     def destDir = "ingenialink_wheels/"
-                    def workspaceDir = env.WORKSPACE_DIR_ENV.replace(" ", "\\ ")
+                    def workspaceDir = escapeSpaces(env.WORKSPACE_DIR_ENV)
 
                     node {
                         sh """
