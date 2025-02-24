@@ -509,3 +509,8 @@ def test_get_trigger_type_exception(mocker, motion_controller, monitoring):
     mocker.patch.object(mc.communication, "get_register", return_value="invalid_value")
     with pytest.raises(TypeError):
         monitoring.get_trigger_type()
+
+
+@pytest.mark.skip("Check INGM-584")
+def test_dummy():
+    pass

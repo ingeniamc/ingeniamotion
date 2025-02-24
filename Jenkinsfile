@@ -155,15 +155,12 @@ pipeline {
                                     post {
                                         always {
                                             bat "move .coverage .coverage_unit_tests"
+                                            junit "pytest_reports\\*.xml"
+                                            // Delete the junit after publishing it so it not re-published on the next stage
+                                            bat "del /S /Q pytest_reports\\*.xml"
                                             stash includes: '.coverage_unit_tests', name: '.coverage_unit_tests'
                                             script {
                                                 coverage_stashes.add(".coverage_unit_tests")
-                                                def pytest_reports = findFiles(glob: 'pytest_reports/*.xml')
-                                                if (pytest_reports.length > 0) {
-                                                    junit "pytest_reports\\*.xml"
-                                                    // Delete the junit after publishing it so it not re-published on the next stage
-                                                    bat "del /S /Q pytest_reports\\*.xml"
-                                                }
                                             }
                                         }
                                     }
