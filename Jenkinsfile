@@ -100,8 +100,6 @@ pipeline {
                             def fullBranchName = sourceJob.fullName + '/' + branchJob.name
                             def branch = Jenkins.instance.getItemByFullName(fullBranchName)
 
-                            echo "Checking branch: ${branch.displayName}"
-
                             if (branch) {
                                 branch.builds.each { build ->
                                     def changeSets = build.changeSets
@@ -110,7 +108,7 @@ pipeline {
                                             def gitCommit = item.commitId
                                             if (gitCommit == commitHash) {
                                                 foundBuild = build
-                                                foundBranch = branch.displayName
+                                                foundBranch = branch
                                                 return false
                                             }
                                         }
@@ -125,7 +123,7 @@ pipeline {
                             echo "Found build number: ${buildNumber}"
                             echo "Workspace directory: ${workspaceDir}"
 
-                            copyArtifacts filter: '*.whl', fingerprintArtifacts: true, projectName: "${sourceJobName}/${foundBranch}", selector: specific(buildNumber)
+                            
 
                             // echo "Artifacts in ${workspaceDir}:"
                             // foundBuild.artifacts.each { artifact ->
@@ -133,6 +131,7 @@ pipeline {
                             // }
                             env.BUILD_NUMBER_ENV = buildNumber
                             env.WORKSPACE_DIR_ENV = workspaceDir
+                            env.BRANCH = foundBranch
                         } else {
                             error "No build found for commit hash: ${commitHash}"
                         }
@@ -144,32 +143,34 @@ pipeline {
             }
         }
 
-        // stage('Copy Ingenialink Wheel Files') {
-        //     steps {
-        //         script {
-        //             def destDir = "ingenialink_wheels"
-        //             def buildNumber = env.BUILD_NUMBER_ENV
-        //             def workspaceDir = env.WORKSPACE_DIR_ENV
+        stage('Copy Ingenialink Wheel Files') {
+            steps {
+                script {
+                    def destDir = "ingenialink_wheels"
+                    def buildNumber = env.BUILD_NUMBER_ENV
+                    def workspaceDir = env.WORKSPACE_DIR_ENV
+                    def branch = env.BRANCH
 
-        //             if (buildNumber && workspaceDir) {
-        //                 node {
-        //                     dir("${workspaceDir}/dist") {
-        //                         stash includes: '*.whl', name: 'wheels'
-        //                     }
+                    if (buildNumber && workspaceDir) {
+                        copyArtifacts filter: '*.whl', fingerprintArtifacts: true, projectName: "${branch.displayName}", selector: specific(buildNumber)
+                        // node {
+                        //     dir("${workspaceDir}/dist") {
+                        //         stash includes: '*.whl', name: 'wheels'
+                        //     }
 
-        //                     unstash 'wheels'
+                        //     unstash 'wheels'
 
-        //                     dir(destDir) {
-        //                         sh 'mv *.whl ./'
-        //                         echo "Wheel file(s) copied to ${destDir} directory"
-        //                     }
-        //                 }
-        //             } else {
-        //                 error "No build number or workspace directory found in environment variables"
-        //             }
-        //         }
-        //     }
-        // }
+                        //     dir(destDir) {
+                        //         sh 'mv *.whl ./'
+                        //         echo "Wheel file(s) copied to ${destDir} directory"
+                        //     }
+                        // }
+                    } else {
+                        error "No build number or workspace directory found in environment variables"
+                    }
+                }
+            }
+        }
 
         // stage('Build and Tests') {
         //     parallel {
