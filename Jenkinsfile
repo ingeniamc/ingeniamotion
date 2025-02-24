@@ -132,6 +132,7 @@ pipeline {
                             foundBuild.artifacts.each { artifact ->
                                 echo artifact.fileName
                                 echo artifact.relativePath
+                                echo artifact.displayPath
                             }
                             env.BUILD_NUMBER_ENV = buildNumber
                             env.BRANCH = foundBranch.toString()
@@ -151,13 +152,14 @@ pipeline {
             steps {
                 script {
                     def destDir = "ingenialink_wheels/"
-                    def workspaceDir = env.WORKSPACE_DIR_ENV
+                    // def workspaceDir = escapeSpaces(env.WORKSPACE_DIR_ENV)
+                    def workspaceDir = "../ingenialink-python/branches/PR-530/builds/81/archive"
 
                     node {
                         sh """
                         mkdir -p ${destDir}
-                        cp "../ingenialink-python/branches/PR-530/builds/81/archive/dist/ingenialink-7.4.1-cp39-cp39-win_amd64.whl" ${destDir}
-                        cp "../ingenialink-python/branches/PR-530/builds/81/archive/dist_py312/ingenialink-7.4.1-cp312-cp312-win_amd64.whl" ${destDir}
+                        cp ${workspaceDir}/dist/ingenialink-7.4.1-cp39-cp39-win_amd64.whl ${destDir}
+                        cp ${workspaceDir}/dist_py312/ingenialink-7.4.1-cp312-cp312-win_amd64.whl ${destDir}
                         """
                     }
                 }
