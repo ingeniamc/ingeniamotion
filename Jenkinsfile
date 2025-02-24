@@ -88,7 +88,7 @@ pipeline {
         stage('Get Ingenialink Build Number') {
             steps {
                 script {
-                    def commitHash = '9a7744deea3382995603d0c41b6daae565f81038'
+                    def commitHash = 'e04221273edd2458bbc6f96cf1a83f06987d5bdd'
                     def sourceJobName = 'Novanta Motion - Ingenia - Git/ingenialink-python'
                     def sourceJob = Jenkins.instance.getItemByFullName(sourceJobName)
 
