@@ -108,6 +108,7 @@ pipeline {
                             if (branch) {
                                 branch.builds.reverse().each { build ->  // Reverse to start from the latest build
                                     def changeSets = build.changeSets
+                                    echo "changeSets: ${changeSets}"
                                     changeSets.each { changeSet ->
                                         changeSet.items.each { item ->
                                             if (item.commitId == commitHash) {
