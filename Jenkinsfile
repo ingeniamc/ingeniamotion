@@ -13,7 +13,7 @@ DEFAULT_PYTHON_VERSION = "3.9"
 
 ALL_PYTHON_VERSIONS = "py39,py310,py311,py312"
 RUN_PYTHON_VERSIONS = ""
-def PYTHON_VERSION_MIN = "py39"
+PYTHON_VERSION_MIN = "py39"
 def PYTHON_VERSION_MAX = "py312"
 
 RUN_ONLY_SMOKE_TESTS = false
@@ -53,7 +53,7 @@ def runTestHW(markers, setup_name) {
 
     def firstIteration = true
     def pythonVersions = RUN_PYTHON_VERSIONS.split(',')
-    
+
     pythonVersions.each { version ->
         def wheelFile = getIngenialinkArtifactWheelPath(version)
         env.INGENIALINK_INSTALL_PATH = wheelFile
