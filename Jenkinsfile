@@ -100,7 +100,7 @@ pipeline {
                             def fullBranchName = sourceJob.fullName + '/' + branchJob.name
                             def branch = Jenkins.instance.getItemByFullName(fullBranchName)
 
-                            echo "Checking branch: ${branch.name}"
+                            echo "Checking branch: ${branch.displayName}"
 
                             if (branch) {
                                 branch.builds.each { build ->
