@@ -128,26 +128,10 @@ pipeline {
                             echo "Found build number: ${buildNumber}"
                             echo "Workspace directory: ${workspaceDir}"
 
-                            node {
-                                def targetSubDir = "${env.WORKSPACE}/ingenialink_wheels" // Target subdirectory path
-                                sh "mkdir -p ${targetSubDir}" // Create the subdirectory if it doesn't exist
-                                echo "Target subdirectory created."
-                            }
-
                             echo "Artifacts in ${workspaceDir}:"
                             foundBuild.artifacts.each { artifact ->
                                 echo artifact.fileName
                                 echo artifact.relativePath
-                                echo artifact.displayPath
-
-                                def source = new File(artifact)
-                                def destination = new File(targetSubDir, artifact.name)
-                                echo "Copying ${source} to ${destination}"
-                                destination.withOutputStream { out ->
-                                    source.withInputStream { inStream ->
-                                        out << inStream
-                                    }
-                                }
                             }
                             env.BUILD_NUMBER_ENV = buildNumber
                             env.BRANCH = foundBranch.toString()
