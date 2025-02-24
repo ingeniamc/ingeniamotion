@@ -23,10 +23,6 @@ def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
 
 coverage_stashes = []
 
-def isWindows() {
-    return System.getProperty("os.name").toLowerCase().contains("win")
-}
-
 def runTestHW(markers, setup_name) {
 
     if (RUN_ONLY_SMOKE_TESTS) {
@@ -124,8 +120,13 @@ pipeline {
                             def buildNumber = foundBuild.number.toString()
                             def workspaceDir = foundBuild.getArtifactsDir().toString()
                             
-                            echo "Found build number: ${buildNumber}"
-                            echo "Workspace directory: ${workspaceDir}"
+                            // echo "Found build number: ${buildNumber}"
+                            // echo "Workspace directory: ${workspaceDir}"
+
+                            echo "Stash artifacts from build number ${buildNumber}, directory ${workspaceDir}"
+                            dir(workspaceDir) {
+                                stash includes: '**/*', name: 'artifacts'
+                            }
 
                             // echo "Artifacts in ${workspaceDir}:"
                             // foundBuild.artifacts.each { artifact ->
@@ -145,34 +146,34 @@ pipeline {
             }
         }
 
-        stage('Copy Ingenialink Wheel Files') {
-            agent any
-            steps {
-                script {
-                    def destDir = "ingenialink_wheels"
-                    def buildNumber = env.BUILD_NUMBER_ENV
-                    def workspaceDir = env.WORKSPACE_DIR_ENV
-                    def branch = env.BRANCH
+        // stage('Copy Ingenialink Wheel Files') {
+        //     agent any
+        //     steps {
+        //         script {
+        //             def destDir = "ingenialink_wheels"
+        //             def buildNumber = env.BUILD_NUMBER_ENV
+        //             def workspaceDir = env.WORKSPACE_DIR_ENV
+        //             def branch = env.BRANCH
 
-                    if (buildNumber && branch) {
-                        echo "Copying artifacts from ${workspaceDir} to ${destDir}"
+        //             if (buildNumber && branch) {
+        //                 echo "Copying artifacts from ${workspaceDir} to ${destDir}"
 
-                        if (isWindows()) {
-                            echo "Running on a Windows node"
-                            bat "XCOPY ${workspaceDir} ${destDir} /E /I /Y"
-                        } else {
-                            sh "cp -r ${workspaceDir} ${destDir}"
-                        }
+        //                 if (isWindows()) {
+        //                     echo "Running on a Windows node"
+        //                     bat "XCOPY ${workspaceDir} ${destDir} /E /I /Y"
+        //                 } else {
+        //                     sh "cp -r ${workspaceDir} ${destDir}"
+        //                 }
 
-                        // node {
-                        //     copyArtifacts filter: '*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber)
-                        // }
-                    } else {
-                        error "No build number or workspace directory found in environment variables"
-                    }
-                }
-            }
-        }
+        //                 // node {
+        //                 //     copyArtifacts filter: '*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber)
+        //                 // }
+        //             } else {
+        //                 error "No build number or workspace directory found in environment variables"
+        //             }
+        //         }
+        //     }
+        // }
 
         // stage('Build and Tests') {
         //     parallel {
