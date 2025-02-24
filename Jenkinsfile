@@ -128,10 +128,8 @@ pipeline {
                             echo "Found build number: ${buildNumber}"
                             echo "Workspace directory: ${workspaceDir}"
 
-                            def targetSubDir = new File(env.WORKSPACE, "ingenialink_wheels")
-                            if (!targetSubDir.exists()) {
-                                targetSubDir.mkdirs()
-                            }
+                            def targetSubDir = "${env.WORKSPACE}/ingenialink_wheels" // Target subdirectory path
+                            sh "mkdir -p ${targetSubDir}" // Create the subdirectory if it doesn't exist
                             echo "Target subdirectory created."
 
                             echo "Artifacts in ${workspaceDir}:"
