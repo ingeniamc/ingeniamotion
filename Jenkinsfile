@@ -88,13 +88,15 @@ pipeline {
         stage('Read Ingenialink Commit Hash') {
             steps {
                 script {
-                    def toxIniContent = readFile('tox.ini')
-                    def matcher = toxIniContent =~ /ingenialink-python@([a-f0-9]{40})/
-                    env.INGENIALINK_COMMIT_HASH = matcher ? matcher[0][1] : null
-                    if (env.INGENIALINK_COMMIT_HASH) {
-                        echo "Commit Hash: ${env.INGENIALINK_COMMIT_HASH}"
-                    } else {
-                        error "Commit hash not found in tox.ini"
+                    node {
+                        def toxIniContent = readFile('tox.ini')
+                        def matcher = toxIniContent =~ /ingenialink-python@([a-f0-9]{40})/
+                        env.INGENIALINK_COMMIT_HASH = matcher ? matcher[0][1] : null
+                        if (env.INGENIALINK_COMMIT_HASH) {
+                            echo "Commit Hash: ${env.INGENIALINK_COMMIT_HASH}"
+                        } else {
+                            error "Commit hash not found in tox.ini"
+                        }
                     }
                 }
             }
