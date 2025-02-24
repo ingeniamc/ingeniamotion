@@ -145,7 +145,7 @@ pipeline {
             steps {
                 script {
                     def destDir = "ingenialink_wheels/"
-                    def workspaceDir = env.WORKSPACE_DIR_ENV.replace(" ", "\\ "
+                    def workspaceDir = env.WORKSPACE_DIR_ENV.replace(" ", "\\ ")
 
                     node {
                         sh """
