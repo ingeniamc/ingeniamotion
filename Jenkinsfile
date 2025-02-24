@@ -128,9 +128,9 @@ pipeline {
                             echo "Found build number: ${buildNumber}"
                             echo "Workspace directory: ${workspaceDir}"
 
-                            node {
-                                sh "if [ -d ${workspaceDir} ]; then echo 'Directory exists'; else echo 'Directory does not exist'; fi"
-                            }
+                            def currentWorkspaceDir = pwd()
+
+                            echo "currentWorkspaceDir: ${currentWorkspaceDir}"
 
                             echo "Artifacts in ${workspaceDir}:"
                             foundBuild.artifacts.each { artifact ->
