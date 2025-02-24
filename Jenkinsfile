@@ -92,7 +92,7 @@ pipeline {
                     def toxIniContent = readFile('tox.ini')
                     def matcher = toxIniContent =~ /ingenialink-python@([a-f0-9]{40})/
                     env.INGENIALINK_COMMIT_HASH = matcher ? matcher[0][1] : null
-                    if (env.INGENIALINK_COMMIT_HASH) {
+                    if (env.INGENIALINK_COMMIT_HASH != null) {
                         echo "Ingenialink commit Hash: ${env.INGENIALINK_COMMIT_HASH}"
                     } else {
                         error "Ingenialink commit hash not found in tox.ini"
