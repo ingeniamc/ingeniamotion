@@ -125,7 +125,7 @@ pipeline {
 
                             echo "Artifacts in ${workspaceDir}:"
                             foundBuild.artifacts.each { artifact ->
-                                echo artifact
+                                echo artifact.fileName
                             }
                             env.BUILD_NUMBER_ENV = buildNumber
                             env.BRANCH = foundBranch.toString()
