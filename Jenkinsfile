@@ -111,7 +111,7 @@ pipeline {
                                     changeSets.each { changeSet ->
                                         changeSet.items.each { item ->
                                             if (item.commitId == commitHash) {
-                                                echo "fullBranchName: ${fullBranchName}, result: ${build.result}, ${item.commitId}, ${builds}"
+                                                echo "fullBranchName: ${fullBranchName}, result: ${build.result}, ${item.commitId}, ${branch.builds}"
                                                 foundBuild = build
                                                 foundBranch = fullBranchName
                                                 // return false
