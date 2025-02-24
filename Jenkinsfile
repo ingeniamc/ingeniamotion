@@ -146,27 +146,13 @@ pipeline {
         stage('Copy Ingenialink Wheel Files') {
             steps {
                 script {
-                    def destDir = "ingenialink_wheels"
                     def buildNumber = env.BUILD_NUMBER_ENV
                     def workspaceDir = env.WORKSPACE_DIR_ENV
                     def branch = env.BRANCH
-
                     if (buildNumber && workspaceDir) {
                         node {
                             copyArtifacts filter: '*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber)
                         }
-                        // node {
-                        //     dir("${workspaceDir}/dist") {
-                        //         stash includes: '*.whl', name: 'wheels'
-                        //     }
-
-                        //     unstash 'wheels'
-
-                        //     dir(destDir) {
-                        //         sh 'mv *.whl ./'
-                        //         echo "Wheel file(s) copied to ${destDir} directory"
-                        //     }
-                        // }
                     } else {
                         error "No build number or workspace directory found in environment variables"
                     }
