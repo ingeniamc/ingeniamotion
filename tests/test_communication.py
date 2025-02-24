@@ -19,8 +19,8 @@ import ingeniamotion
 from ingeniamotion import MotionController
 from ingeniamotion.exceptions import (
     IMFirmwareLoadError,
-    IMRegisterNotExist,
-    IMRegisterWrongAccess,
+    IMRegisterNotExistError,
+    IMRegisterWrongAccessError,
 )
 
 from .setups.descriptors import DriveCanOpenSetup, EthernetSetup, Setup
@@ -221,7 +221,7 @@ def test_get_register(motion_controller, uid, value):
 @pytest.mark.smoke
 def test_get_register_wrong_uid(motion_controller):
     mc, alias, environment = motion_controller
-    with pytest.raises(IMRegisterNotExist):
+    with pytest.raises(IMRegisterNotExistError):
         mc.communication.get_register("WRONG_UID", servo=alias)
 
 
@@ -247,7 +247,7 @@ def test_set_register(motion_controller, uid, value):
 @pytest.mark.smoke
 def test_set_register_wrong_uid(motion_controller):
     mc, alias, environment = motion_controller
-    with pytest.raises(IMRegisterNotExist):
+    with pytest.raises(IMRegisterNotExistError):
         mc.communication.set_register("WRONG_UID", 2, servo=alias)
 
 
@@ -282,7 +282,7 @@ def test_set_register_wrong_access(motion_controller):
     mc, alias, environment = motion_controller
     uid = "DRV_STATE_STATUS"
     value = 0
-    with pytest.raises(IMRegisterWrongAccess):
+    with pytest.raises(IMRegisterWrongAccessError):
         mc.communication.set_register(uid, value, servo=alias)
 
 

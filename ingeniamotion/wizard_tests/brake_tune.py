@@ -5,7 +5,7 @@ import ingenialogger
 from typing_extensions import override
 
 from ingeniamotion.enums import OperationMode, SeverityLevel
-from ingeniamotion.exceptions import IMRegisterNotExist
+from ingeniamotion.exceptions import IMRegisterNotExistError
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.wizard_tests import stoppable
@@ -87,7 +87,7 @@ class BrakeTune(BaseTest[LegacyDictReportType]):
     def loop(self) -> Optional[ResultBrakeType]:
         try:
             reg_values = self.__update_brake_registers_values()
-        except IMRegisterNotExist:
+        except IMRegisterNotExistError:
             return ResultBrakeType.FAIL_DICTIONARY
         # Register values to avoid meanwhile the test is being executed
         no_brake_current_feedback_source = 0

@@ -30,7 +30,7 @@ from ingenialink.virtual.network import VirtualNetwork
 from ping3 import ping
 from virtual_drive.core import VirtualDrive
 
-from ingeniamotion.exceptions import IMFirmwareLoadError, IMRegisterWrongAccess
+from ingeniamotion.exceptions import IMFirmwareLoadError, IMRegisterWrongAccessError
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -1025,7 +1025,7 @@ class Communication:
 
         Raises:
             ingenialink.exceptions.ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
+            IMRegisterNotExistError: If the register doesn't exist.
             TypeError: If some parameter has a wrong type.
 
         """
@@ -1055,8 +1055,8 @@ class Communication:
 
         Raises:
             TypeError: If the value is of the wrong type.
-            IMRegisterNotExist: If the register doesn't exist.
-            IMRegisterWrongAccess: If the register access is read-only.
+            IMRegisterNotExistError: If the register doesn't exist.
+            IMRegisterWrongAccessError: If the register access is read-only.
 
         """
         drive = self.mc._get_drive(servo)
@@ -1073,7 +1073,7 @@ class Communication:
         if register_dtype_value in unsigned_int and (not isinstance(value, int) or value < 0):
             raise TypeError("Value must be an unsigned int")
         if register_access_type == RegAccess.RO:
-            raise IMRegisterWrongAccess(
+            raise IMRegisterWrongAccessError(
                 f"Register: {register} cannot write to a read-only register"
             )
         drive.write(register, value, subnode=axis)

@@ -6,7 +6,7 @@ import pytest
 from ingenialink import exceptions
 
 from ingeniamotion.enums import SensorType, SeverityLevel
-from ingeniamotion.exceptions import IMRegisterNotExist
+from ingeniamotion.exceptions import IMRegisterNotExistError
 from ingeniamotion.wizard_tests.base_test import TestError
 from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder1_test import AbsoluteEncoder1Test
 from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder2_test import AbsoluteEncoder2Test
@@ -227,7 +227,7 @@ def test_brake_test(motion_controller):
 def get_backup_registers(test, mc, alias):
     reg_values = {}
     for reg in test.BACKUP_REGISTERS:
-        with contextlib.suppress(IMRegisterNotExist):
+        with contextlib.suppress(IMRegisterNotExistError):
             reg_values[reg] = mc.communication.get_register(reg, servo=alias)
     return reg_values
 

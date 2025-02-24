@@ -12,7 +12,7 @@ from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.register import Register
 
 from ingeniamotion.enums import CommunicationType
-from ingeniamotion.exceptions import IMException, IMRegisterNotExist
+from ingeniamotion.exceptions import IMError, IMRegisterNotExistError
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
 if TYPE_CHECKING:
@@ -47,14 +47,16 @@ class Information:
             Register object.
 
         Raises:
-            IMRegisterNotExist: If register does not exist in dictionary.
+            IMRegisterNotExistError: If register does not exist in dictionary.
 
         """
         drive = self.mc._get_drive(servo)
         try:
             return drive.dictionary.registers(axis)[register]
         except KeyError:
-            raise IMRegisterNotExist(f"Register: {register} axis: {axis} not exist in dictionary")
+            raise IMRegisterNotExistError(
+                f"Register: {register} axis: {axis} not exist in dictionary"
+            )
 
     def register_type(
         self,
@@ -73,7 +75,7 @@ class Information:
             Register dtype.
 
         Raises:
-            IMRegisterNotExist: If register does not exist in dictionary.
+            IMRegisterNotExistError: If register does not exist in dictionary.
 
         """
         register_obj = self.register_info(register, axis=axis, servo=servo)
@@ -96,7 +98,7 @@ class Information:
             Register access.
 
         Raises:
-            IMRegisterNotExist: If register does not exist in dictionary.
+            IMRegisterNotExistError: If register does not exist in dictionary.
 
         """
         register_obj = self.register_info(register, axis=axis, servo=servo)
@@ -119,7 +121,7 @@ class Information:
             Register range, minimum and maximum.
 
         Raises:
-            IMRegisterNotExist: If register does not exist in dictionary.
+            IMRegisterNotExistError: If register does not exist in dictionary.
 
         """
         register_obj = self.register_info(register, axis=axis, servo=servo)
@@ -174,7 +176,7 @@ class Information:
         if isinstance(net, CanopenNetwork):
             return int(drive.target)
         else:
-            raise IMException("You need a CANopen communication to use this function")
+            raise IMError("You need a CANopen communication to use this function")
 
     def get_baudrate(self, servo: str = DEFAULT_SERVO) -> CanBaudrate:
         """Get the baudrate of target servo.
@@ -188,7 +190,7 @@ class Information:
         net = self.mc._get_network(servo)
         if isinstance(net, CanopenNetwork):
             return CanBaudrate(net.baudrate)
-        raise IMException(f"The servo {servo} is not a CANopen device.")
+        raise IMError(f"The servo {servo} is not a CANopen device.")
 
     def get_ip(self, servo: str = DEFAULT_SERVO) -> str:
         """Get the IP for Ethernet communications.
@@ -204,7 +206,7 @@ class Information:
         if isinstance(net, EthernetNetwork):
             return str(drive.target)
         else:
-            raise IMException("You need an Ethernet communication to use this function")
+            raise IMError("You need an Ethernet communication to use this function")
 
     def get_slave_id(self, servo: str = DEFAULT_SERVO) -> int:
         """Get the EtherCAT slave ID of a given servo.
@@ -222,7 +224,7 @@ class Information:
             return net._configured_slaves[drive.target]
         elif isinstance(net, EthercatNetwork) and isinstance(drive.target, int):
             return drive.target
-        raise IMException(f"The servo {servo} is not an EtherCAT slave.")
+        raise IMError(f"The servo {servo} is not an EtherCAT slave.")
 
     def get_name(self, servo: str = DEFAULT_SERVO) -> str:
         """Get the drive's name.
@@ -298,7 +300,7 @@ class Information:
         drive = self.mc._get_drive(servo)
         dictionary_categories = drive.dictionary.categories
         if not dictionary_categories:
-            raise IMException("Dictionary categories are not defined.")
+            raise IMError("Dictionary categories are not defined.")
         category_ids = dictionary_categories.category_ids
         categories: dict[str, str] = {}
         for cat_id in category_ids:

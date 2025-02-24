@@ -20,7 +20,7 @@ from ingeniamotion.enums import (
     PhasingMode,
     STOAbnormalLatchedStatus,
 )
-from ingeniamotion.exceptions import IMException
+from ingeniamotion.exceptions import IMError
 from ingeniamotion.feedbacks import Feedbacks
 from ingeniamotion.homing import Homing
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
@@ -882,7 +882,7 @@ class Configuration(Homing, Feedbacks):
         """
         drive = self.mc._get_drive(servo)
         if not isinstance(drive, EthernetServo):
-            raise IMException("TCP IP parameters can only be changed in ethernet servos.")
+            raise IMError("TCP IP parameters can only be changed in ethernet servos.")
         if isinstance(mac_address, str):
             mac_address = MACAddressConverter.str_to_int(mac_address)
         drive.change_tcp_ip_parameters(ip_address, subnet_mask, gateway, mac_address)
@@ -896,7 +896,7 @@ class Configuration(Homing, Feedbacks):
         """
         drive = self.mc._get_drive(servo)
         if not isinstance(drive, EthernetServo):
-            raise IMException("TCP IP parameters can only be stored in ethernet servos.")
+            raise IMError("TCP IP parameters can only be stored in ethernet servos.")
         drive.store_tcp_ip_parameters()
 
     def restore_tcp_ip_parameters(self, servo: str = DEFAULT_SERVO) -> None:
@@ -908,7 +908,7 @@ class Configuration(Homing, Feedbacks):
         """
         drive = self.mc._get_drive(servo)
         if not isinstance(drive, EthernetServo):
-            raise IMException("TCP IP parameters can only be restored in ethernet servos.")
+            raise IMError("TCP IP parameters can only be restored in ethernet servos.")
         drive.restore_tcp_ip_parameters()
 
     def get_mac_address(
@@ -926,7 +926,7 @@ class Configuration(Homing, Feedbacks):
         """
         drive = self.mc._get_drive(servo)
         if not isinstance(drive, EthernetServo):
-            raise IMException("The MAC address can only be read from Ethernet servos.")
+            raise IMError("The MAC address can only be read from Ethernet servos.")
         mac_address = drive.get_mac_address()
         return mac_address
 
@@ -945,7 +945,7 @@ class Configuration(Homing, Feedbacks):
         """
         drive = self.mc._get_drive(servo)
         if not isinstance(drive, EthernetServo):
-            raise IMException("The MAC address can only be read from Ethernet servos.")
+            raise IMError("The MAC address can only be read from Ethernet servos.")
         mac_address = drive.get_mac_address()
         return MACAddressConverter.int_to_str(mac_address)
 
@@ -960,7 +960,7 @@ class Configuration(Homing, Feedbacks):
         """
         drive = self.mc._get_drive(servo)
         if not isinstance(drive, EthernetServo):
-            raise IMException("The MAC address can only be set to Ethernet servos.")
+            raise IMError("The MAC address can only be set to Ethernet servos.")
         if isinstance(mac_address, str):
             mac_address = MACAddressConverter.str_to_int(mac_address)
         drive.set_mac_address(mac_address)
@@ -995,23 +995,23 @@ class Configuration(Homing, Feedbacks):
                 prod_codes[subnode] = self.get_product_code(servo, subnode)
             except (
                 ILError,
-                IMException,
+                IMError,
             ) as e:
                 self.logger.error(e)
             # Revision numbers
             try:
                 rev_numbers[subnode] = self.get_revision_number(servo, subnode)
-            except (ILError, IMException) as e:
+            except (ILError, IMError) as e:
                 self.logger.error(e)
             # FW versions
             try:
                 fw_versions[subnode] = self.get_fw_version(servo, subnode)
-            except (ILError, IMException) as e:
+            except (ILError, IMError) as e:
                 self.logger.error(e)
             # Serial numbers
             try:
                 serial_number[subnode] = self.get_serial_number(servo, subnode)
-            except (ILError, IMException) as e:
+            except (ILError, IMError) as e:
                 self.logger.error(e)
 
         return prod_codes, rev_numbers, fw_versions, serial_number

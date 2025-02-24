@@ -8,7 +8,7 @@ from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 from packaging import version
 
 from ingeniamotion.enums import CommunicationType, OperationMode
-from ingeniamotion.exceptions import IMException
+from ingeniamotion.exceptions import IMError
 
 from .setups.descriptors import EthercatMultiSlaveSetup
 
@@ -268,7 +268,7 @@ def test_start_pdos(motion_controller, tests_setup):
 @pytest.mark.soem
 def test_stop_pdos_exception(motion_controller):
     mc, alias, environment = motion_controller
-    with pytest.raises(IMException):
+    with pytest.raises(IMError):
         mc.capture.pdo.stop_pdos()
 
 
@@ -293,7 +293,7 @@ def test_start_pdos_number_of_network_exception(mocker, motion_controller):
     mocker.patch.object(mc, "_MotionController__net", mock_net)
     with pytest.raises(ValueError):
         mc.capture.pdo.start_pdos()
-    with pytest.raises(IMException):
+    with pytest.raises(IMError):
         mc.capture.pdo.start_pdos(CommunicationType.Ethercat)
 
 

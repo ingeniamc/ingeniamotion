@@ -11,7 +11,7 @@ if TYPE_CHECKING:
     from ingeniamotion import MotionController
 
 from ingeniamotion.enums import CommutationMode, OperationMode, SensorType, SeverityLevel
-from ingeniamotion.exceptions import IMRegisterNotExist
+from ingeniamotion.exceptions import IMRegisterNotExistError
 from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType, TestError
 
 
@@ -210,7 +210,7 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
                 self.mc.communication.set_register(
                     following_error_uid, 1, servo=self.servo, axis=self.axis
                 )
-            except IMRegisterNotExist as e:  # noqa: PERF203
+            except IMRegisterNotExistError as e:  # noqa: PERF203
                 self.logger.warning(e)
 
     @BaseTest.stoppable
