@@ -89,92 +89,91 @@ pipeline {
             }
         }
 
-        // stage('Get Ingenialink Build Number') {
-        //     steps {
-        //         script {
-        //             def destDir = "ingenialink_wheels/"
-        //             def commitHash = 'e04221273edd2458bbc6f96cf1a83f06987d5bdd'
-        //             def sourceJobName = 'Novanta Motion - Ingenia - Git/ingenialink-python'
-        //             def sourceJob = Jenkins.instance.getItemByFullName(sourceJobName)
-
-        //             if (sourceJob && sourceJob instanceof org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject) {
-        //                 def foundBuild = null
-        //                 def foundBranch = null
-
-        //                 sourceJob.getAllJobs().each { branchJob ->
-        //                     def fullBranchName = sourceJob.fullName + '/' + branchJob.name
-        //                     def branch = Jenkins.instance.getItemByFullName(fullBranchName)
-
-        //                     if (branch) {
-        //                         branch.builds.reverse().each { build ->  // Reverse to start from the latest build
-        //                             def changeSets = build.changeSets
-        //                             changeSets.each { changeSet ->
-        //                                 changeSet.items.each { item ->
-        //                                     if (item.commitId == commitHash) {
-        //                                         foundBuild = build
-        //                                         foundBranch = branch
-        //                                         return false
-        //                                     }
-        //                                 }
-        //                             }
-        //                         }
-        //                     }
-        //                 }
-
-        //                 if (foundBuild) {
-        //                     def buildNumber = foundBuild.number.toString()
-        //                     def workspaceDir = foundBuild.getArtifactsDir().toString()
-                            
-        //                     echo "Found build number: ${buildNumber}"
-        //                     echo "Workspace directory: ${workspaceDir}"
-
-        //                     echo "Artifacts in ${workspaceDir}:"
-        //                     foundBuild.artifacts.each { artifact ->
-        //                         echo artifact.fileName
-        //                         echo artifact.relativePath
-        //                         echo artifact.displayPath
-        //                     }
-        //                     env.BUILD_NUMBER_ENV = buildNumber
-        //                     env.BRANCH = foundBranch.toString()
-        //                     env.WORKSPACE_DIR_ENV = workspaceDir
-        //                 } else {
-        //                     error "No build found for commit hash: ${commitHash}"
-        //                 }
-        //             } else {
-        //                 error "No job found with the name: ${sourceJobName} or it's not a multibranch project"
-        //             }
-                    
-        //         }
-        //     }
-        // }
-
-        // stage('Copy Artifacts Manually') {
-        //     steps {
-        //         script {
-        //             def destDir = "ingenialink_wheels/"
-        //             def workspaceDir = env.WORKSPACE_DIR_ENV
-
-        //             node {
-        //                 sh """
-        //                 mkdir -p ${destDir}
-        //                 cp "${workspaceDir}/dist/ingenialink-7.4.1-cp39-cp39-win_amd64.whl" ${destDir}
-        //                 cp "${workspaceDir}/dist_py312/ingenialink-7.4.1-cp312-cp312-win_amd64.whl" ${destDir}
-        //                 """
-        //             }
-        //         }
-        //     }
-        // }
-
-        stage('Check Directory') {
+        stage('Get Ingenialink Build Number') {
             steps {
                 script {
+                    def destDir = "ingenialink_wheels/"
+                    def commitHash = 'e04221273edd2458bbc6f96cf1a83f06987d5bdd'
+                    def sourceJobName = 'Novanta Motion - Ingenia - Git/ingenialink-python'
+                    def sourceJob = Jenkins.instance.getItemByFullName(sourceJobName)
+
+                    if (sourceJob && sourceJob instanceof org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject) {
+                        def foundBuild = null
+                        def foundBranch = null
+
+                        sourceJob.getAllJobs().each { branchJob ->
+                            def fullBranchName = sourceJob.fullName + '/' + branchJob.name
+                            def branch = Jenkins.instance.getItemByFullName(fullBranchName)
+
+                            if (branch) {
+                                branch.builds.reverse().each { build ->  // Reverse to start from the latest build
+                                    def changeSets = build.changeSets
+                                    changeSets.each { changeSet ->
+                                        changeSet.items.each { item ->
+                                            if (item.commitId == commitHash) {
+                                                foundBuild = build
+                                                foundBranch = branch
+                                                return false
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (foundBuild) {
+                            def buildNumber = foundBuild.number.toString()
+                            def workspaceDir = foundBuild.getArtifactsDir().toString()
+                            
+                            echo "Found build number: ${buildNumber}"
+                            echo "Workspace directory: ${workspaceDir}"
+
+                            node {
+                                def targetSubDir = "${env.WORKSPACE}/ingenialink_wheels" // Target subdirectory path
+                                sh "mkdir -p ${targetSubDir}" // Create the subdirectory if it doesn't exist
+                                echo "Target subdirectory created."
+                            }
+
+                            echo "Artifacts in ${workspaceDir}:"
+                            foundBuild.artifacts.each { artifact ->
+                                echo artifact.fileName
+                                echo artifact.relativePath
+                                echo artifact.displayPath
+
+                                def source = new File(artifact)
+                                def destination = new File(targetSubDir, artifact.name)
+                                echo "Copying ${source} to ${destination}"
+                                destination.withOutputStream { out ->
+                                    source.withInputStream { inStream ->
+                                        out << inStream
+                                    }
+                                }
+                            }
+                            env.BUILD_NUMBER_ENV = buildNumber
+                            env.BRANCH = foundBranch.toString()
+                            env.WORKSPACE_DIR_ENV = workspaceDir
+                        } else {
+                            error "No build found for commit hash: ${commitHash}"
+                        }
+                    } else {
+                        error "No job found with the name: ${sourceJobName} or it's not a multibranch project"
+                    }
+                    
+                }
+            }
+        }
+
+        stage('Copy Artifacts Manually') {
+            steps {
+                script {
+                    def destDir = "ingenialink_wheels/"
+                    def workspaceDir = env.WORKSPACE_DIR_ENV
+
                     node {
                         sh """
-                        echo "Contents of .:"
-                        ls -R .
-
-                        echo "Contents of ..:"
-                        ls -R ../
+                        mkdir -p ${destDir}
+                        cp "../ingenialink-python/branches/PR-530/builds/81/archive/dist/ingenialink-7.4.1-cp39-cp39-win_amd64.whl" ${destDir}
+                        cp "../ingenialink-python/branches/PR-530/builds/81/archive/dist_py312/ingenialink-7.4.1-cp312-cp312-win_amd64.whl" ${destDir}
                         """
                     }
                 }
