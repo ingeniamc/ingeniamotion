@@ -148,8 +148,8 @@ pipeline {
                     def workspaceDir = env.WORKSPACE_DIR_ENV
 
                     node {
-
                         sh """
+                        mkdir -p ${destDir}
                         cp ${workspaceDir}/ingenialink-7.4.1-cp39-cp39-win_amd64.whl ${destDir}
                         cp ${workspaceDir}/ingenialink-7.4.1-cp312-cp312-win_amd64.whl ${destDir}
                         """
