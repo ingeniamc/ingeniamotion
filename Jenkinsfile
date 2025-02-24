@@ -21,7 +21,29 @@ RUN_ONLY_SMOKE_TESTS = false
 def BRANCH_NAME_MASTER = "master"
 def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
 
+INGENIALINK_WHEELS_DIR = "ingenialink_wheels"
+
 coverage_stashes = []
+
+def getIngenialinkArtifactWheelPath(python_version) {
+    if (!env.INGENIALINK_COMMIT_HASH.isEmpty()) {
+        unstash 'ingenialink_wheels'
+        script {
+            def distDir = python_version == PYTHON_VERSION_MIN ? "dist" : "dist_${python_version}"
+            distDir = "${INGENIALINK_WHEELS_DIR}\\${distDir}"
+            def result = bat(script: "dir ${distDir} /b /a-d", returnStdout: true).trim()
+            def files = result.split(/[\r\n]+/)    
+            def wheelFile = files.find { it.endsWith('.whl') }
+            if (wheelFile == null) {
+                error "No .whl file found in the dist directory. Directory contents:\n${result}"            
+            }
+            return "${distDir}\\${wheelFile}"
+        }
+    }
+    else {
+        return ""
+    }
+}
 
 def runTestHW(markers, setup_name) {
 
@@ -29,22 +51,32 @@ def runTestHW(markers, setup_name) {
         markers = markers + " and smoke"
     }
 
-    try {
-        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
-                "-m \"${markers}\" " +
-                "--setup tests.setups.rack_setups.${setup_name} " +
-                "--cov=ingeniamotion " +
-                "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${setup_name}\""
-    } catch (err) {
-        unstable(message: "Tests failed")
-    } finally {
-        def coverage_stash = ".coverage_${setup_name}"
-        bat "move .coverage ${coverage_stash}"
-        junit "pytest_reports\\*.xml"
-        // Delete the junit after publishing it so it not re-published on the next stage
-        bat "del /S /Q pytest_reports\\*.xml"
-        stash includes: coverage_stash, name: coverage_stash
-        coverage_stashes.add(coverage_stash)
+    def firstIteration = true
+    def pythonVersions = RUN_PYTHON_VERSIONS.split(',')
+    
+    pythonVersions.each { version ->
+        def wheelFile = getIngenialinkArtifactWheelPath(version)
+        env.INGENIALINK_INSTALL_PATH = wheelFile
+        try {
+            bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
+                    "-m \"${markers}\" " +
+                    "--setup tests.setups.rack_setups.${setup_name} " +
+                    "--cov=ingeniamotion " +
+                    "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${setup_name}\""
+        } catch (err) {
+            unstable(message: "Tests failed")
+        } finally {
+            if (firstIteration) {
+                def coverage_stash = ".coverage_${setup_name}"
+                bat "move .coverage ${coverage_stash}"
+                junit "pytest_reports\\*.xml"
+                // Delete the junit after publishing it so it not re-published on the next stage
+                bat "del /S /Q pytest_reports\\*.xml"
+                stash includes: coverage_stash, name: coverage_stash
+                coverage_stashes.add(coverage_stash)
+                firstIteration = false
+            }
+        }
     }
 }
 
@@ -107,8 +139,6 @@ pipeline {
             }
             steps {
                 script {
-                    def destDir = "ingenialink_wheels/"
-                    // def commitHash = '9160029940c8fa67ee6a68284bbf2e625030d114'
                     def sourceJobName = 'Novanta Motion - Ingenia - Git/ingenialink-python'
                     def sourceJob = Jenkins.instance.getItemByFullName(sourceJobName)
 
@@ -156,14 +186,13 @@ pipeline {
             }
             steps {
                 script {
-                    def destDir = "ingenialink_wheels"
                     def buildNumber = env.BUILD_NUMBER_ENV
                     def branch = env.BRANCH
 
                     if (buildNumber && branch) {
                         node {
-                            copyArtifacts filter: '**/*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber), target: destDir
-                            stash includes: "${destDir}\\**\\*", name: 'ingenialink_wheels'
+                            copyArtifacts filter: '**/*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber), target: INGENIALINK_WHEELS_DIR
+                            stash includes: "${INGENIALINK_WHEELS_DIR}\\**\\*", name: 'ingenialink_wheels'
                         }
                     } else {
                         error "No build number or workspace directory found in environment variables"
@@ -172,206 +201,206 @@ pipeline {
             }
         }
 
-        // stage('Build and Tests') {
-        //     parallel {
-        //         stage('Virtual drive tests on Linux') {
-        //             agent {
-        //                 docker {
-        //                     label "worker"
-        //                     image LIN_DOCKER_IMAGE
-        //                 }
-        //             }
-        //             stages {
-        //                 stage('Run no-connection tests') {
-        //                     steps {
-        //                         sh "python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
-        //                             "-m virtual " +
-        //                             "--setup tests.setups.virtual_drive.TESTS_SETUP"
-        //                     }
-        //                     post {
-        //                         always {
-        //                             junit "pytest_reports/*.xml"
-        //                         }
-        //                     }
-        //                 }
-        //             }
-        //         }
+        stage('Build and Tests') {
+            parallel {
+                // stage('Virtual drive tests on Linux') {
+                //     agent {
+                //         docker {
+                //             label "worker"
+                //             image LIN_DOCKER_IMAGE
+                //         }
+                //     }
+                //     stages {
+                //         stage('Run no-connection tests') {
+                //             steps {
+                //                 sh "python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
+                //                     "-m virtual " +
+                //                     "--setup tests.setups.virtual_drive.TESTS_SETUP"
+                //             }
+                //             post {
+                //                 always {
+                //                     junit "pytest_reports/*.xml"
+                //                 }
+                //             }
+                //         }
+                //     }
+                // }
 
-        //         stage('Build and publish') {
-        //             stages {
-        //                 stage('Build') {
-        //                     agent {
-        //                         docker {
-        //                             label SW_NODE
-        //                             image WIN_DOCKER_IMAGE
-        //                         }
-        //                     }
-        //                     stages {
-        //                         stage('Build wheels') {
-        //                             steps {
-        //                                 bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e build"
-        //                                 stash includes: 'dist\\*', name: 'build'
-        //                                 archiveArtifacts artifacts: "dist\\*"
-        //                             }
-        //                         }
-        //                         stage('Make a static type analysis') {
-        //                             steps {
-        //                                 bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e type"
-        //                             }
-        //                         }
-        //                         stage('Check formatting') {
-        //                             steps {
-        //                                 bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e format"
-        //                             }
-        //                         }
-        //                         stage('Generate documentation') {
-        //                             steps {
-        //                                 bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e docs"
-        //                                 bat """
-        //                                     "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
-        //                                 """
-        //                                 stash includes: 'docs.zip', name: 'docs'
-        //                             }
-        //                         }
-        //                         stage("Run unit tests") {
-        //                             steps {
-        //                                 bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
-        //                                         "-m \"not ethernet and not soem and not canopen and not virtual and not soem_multislave\" " +
-        //                                         "--cov=ingeniamotion"
-        //                             }
-        //                             post {
-        //                                 always {
-        //                                     bat "move .coverage .coverage_unit_tests"
-        //                                     junit "pytest_reports\\*.xml"
-        //                                     // Delete the junit after publishing it so it not re-published on the next stage
-        //                                     bat "del /S /Q pytest_reports\\*.xml"
-        //                                     stash includes: '.coverage_unit_tests', name: '.coverage_unit_tests'
-        //                                     script {
-        //                                         coverage_stashes.add(".coverage_unit_tests")
-        //                                     }
-        //                                 }
-        //                             }
-        //                         }
-        //                         stage("Run virtual drive tests") {
-        //                             steps {
-        //                                 bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
-        //                                         "-m virtual " +
-        //                                         "--setup tests.setups.virtual_drive.TESTS_SETUP "  +
-        //                                         "--cov=ingeniamotion"
-        //                             }
-        //                             post {
-        //                                 always {
-        //                                     bat "move .coverage .coverage_virtual"
-        //                                     junit "pytest_reports\\*.xml"
-        //                                     // Delete the junit after publishing it so it not re-published on the next stage
-        //                                     bat "del /S /Q pytest_reports\\*.xml"
-        //                                     stash includes: '.coverage_virtual', name: '.coverage_virtual'
-        //                                     script {
-        //                                         coverage_stashes.add(".coverage_virtual")
-        //                                     }
-        //                                 }
-        //                             }
-        //                         }
-        //                     }
-        //                 }
-        //                 stage('Publish documentation') {
-        //                     when {
-        //                         beforeAgent true
-        //                         branch BRANCH_NAME_MASTER
-        //                     }
-        //                     agent {
-        //                         label "worker"
-        //                     }
-        //                     steps {
-        //                         unstash 'docs'
-        //                         unzip zipFile: 'docs.zip', dir: '.'
-        //                         publishDistExt("_docs", DISTEXT_PROJECT_DIR, false)
-        //                     }
-        //                 }
-        //                 stage('Publish to pypi') {
-        //                     when {
-        //                         beforeAgent true
-        //                         branch BRANCH_NAME_MASTER
-        //                     }
-        //                     agent {
-        //                         docker {
-        //                             label 'worker'
-        //                             image "ingeniacontainers.azurecr.io/publisher:1.8"
-        //                         }
-        //                     }
-        //                     steps {
-        //                         unstash 'build'
-        //                         publishPyPi("dist/*")
-        //                     }
-        //                 }
-        //             }
-        //         }
+                // stage('Build and publish') {
+                //     stages {
+                //         stage('Build') {
+                //             agent {
+                //                 docker {
+                //                     label SW_NODE
+                //                     image WIN_DOCKER_IMAGE
+                //                 }
+                //             }
+                //             stages {
+                //                 stage('Build wheels') {
+                //                     steps {
+                //                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e build"
+                //                         stash includes: 'dist\\*', name: 'build'
+                //                         archiveArtifacts artifacts: "dist\\*"
+                //                     }
+                //                 }
+                //                 stage('Make a static type analysis') {
+                //                     steps {
+                //                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e type"
+                //                     }
+                //                 }
+                //                 stage('Check formatting') {
+                //                     steps {
+                //                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e format"
+                //                     }
+                //                 }
+                //                 stage('Generate documentation') {
+                //                     steps {
+                //                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e docs"
+                //                         bat """
+                //                             "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
+                //                         """
+                //                         stash includes: 'docs.zip', name: 'docs'
+                //                     }
+                //                 }
+                //                 stage("Run unit tests") {
+                //                     steps {
+                //                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
+                //                                 "-m \"not ethernet and not soem and not canopen and not virtual and not soem_multislave\" " +
+                //                                 "--cov=ingeniamotion"
+                //                     }
+                //                     post {
+                //                         always {
+                //                             bat "move .coverage .coverage_unit_tests"
+                //                             junit "pytest_reports\\*.xml"
+                //                             // Delete the junit after publishing it so it not re-published on the next stage
+                //                             bat "del /S /Q pytest_reports\\*.xml"
+                //                             stash includes: '.coverage_unit_tests', name: '.coverage_unit_tests'
+                //                             script {
+                //                                 coverage_stashes.add(".coverage_unit_tests")
+                //                             }
+                //                         }
+                //                     }
+                //                 }
+                //                 stage("Run virtual drive tests") {
+                //                     steps {
+                //                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
+                //                                 "-m virtual " +
+                //                                 "--setup tests.setups.virtual_drive.TESTS_SETUP "  +
+                //                                 "--cov=ingeniamotion"
+                //                     }
+                //                     post {
+                //                         always {
+                //                             bat "move .coverage .coverage_virtual"
+                //                             junit "pytest_reports\\*.xml"
+                //                             // Delete the junit after publishing it so it not re-published on the next stage
+                //                             bat "del /S /Q pytest_reports\\*.xml"
+                //                             stash includes: '.coverage_virtual', name: '.coverage_virtual'
+                //                             script {
+                //                                 coverage_stashes.add(".coverage_virtual")
+                //                             }
+                //                         }
+                //                     }
+                //                 }
+                //             }
+                //         }
+                //         stage('Publish documentation') {
+                //             when {
+                //                 beforeAgent true
+                //                 branch BRANCH_NAME_MASTER
+                //             }
+                //             agent {
+                //                 label "worker"
+                //             }
+                //             steps {
+                //                 unstash 'docs'
+                //                 unzip zipFile: 'docs.zip', dir: '.'
+                //                 publishDistExt("_docs", DISTEXT_PROJECT_DIR, false)
+                //             }
+                //         }
+                //         stage('Publish to pypi') {
+                //             when {
+                //                 beforeAgent true
+                //                 branch BRANCH_NAME_MASTER
+                //             }
+                //             agent {
+                //                 docker {
+                //                     label 'worker'
+                //                     image "ingeniacontainers.azurecr.io/publisher:1.8"
+                //                 }
+                //             }
+                //             steps {
+                //                 unstash 'build'
+                //                 publishPyPi("dist/*")
+                //             }
+                //         }
+                //     }
+                // }
 
-        //         stage('HW Tests CanOpen and Ethernet') {
-        //             options {
-        //                 lock(CAN_NODE_LOCK)
-        //             }
-        //             agent {
-        //                 label CAN_NODE
-        //             }
-        //             stages {
-        //                 stage("CanOpen Everest") {
-        //                     steps {
-        //                         runTestHW("canopen", "CAN_EVE_SETUP")
-        //                     }
-        //                 }
-        //                 stage("Ethernet Everest") {
-        //                     steps {
-        //                         runTestHW("ethernet", "ETH_EVE_SETUP")
-        //                     }
-        //                 }
-        //                 stage("CanOpen Capitan") {
-        //                     steps {
-        //                         runTestHW("canopen", "CAN_CAP_SETUP")
-        //                     }
-        //                 }
-        //                 stage("Ethernet Capitan") {
-        //                     when {
-        //                         // Remove this after fixing INGK-982
-        //                         expression { false }
-        //                     }
-        //                     steps {
-        //                         runTestHW("ethernet", "ETH_CAP_SETUP")
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //         stage('Hw Tests Ethercat') {
-        //             options {
-        //                 lock(ECAT_NODE_LOCK)
-        //             }
-        //             agent {
-        //                 label ECAT_NODE
-        //             }
-        //             stages {
-        //                 stage("Ethercat Everest") {
-        //                     when {
-        //                         // Remove this after fixing INGK-983
-        //                         expression { false }
-        //                     }
-        //                     steps {
-        //                         runTestHW("soem", "ECAT_EVE_SETUP")
-        //                     }
-        //                 }
-        //                 stage("Ethercat Capitan") {
-        //                     steps {
-        //                         runTestHW("soem", "ECAT_CAP_SETUP")
-        //                     }
-        //                 }
-        //                 stage("Ethercat Multislave") {
-        //                     steps {
-        //                         runTestHW("soem_multislave", "ECAT_MULTISLAVE_SETUP")
-        //                     }
-        //                 }
-        //             }
-        //         }
-        //     }
-        // }
+                stage('HW Tests CanOpen and Ethernet') {
+                    options {
+                        lock(CAN_NODE_LOCK)
+                    }
+                    agent {
+                        label CAN_NODE
+                    }
+                    stages {
+                        stage("CanOpen Everest") {
+                            steps {
+                                runTestHW("canopen", "CAN_EVE_SETUP")
+                            }
+                        }
+                        stage("Ethernet Everest") {
+                            steps {
+                                runTestHW("ethernet", "ETH_EVE_SETUP")
+                            }
+                        }
+                        stage("CanOpen Capitan") {
+                            steps {
+                                runTestHW("canopen", "CAN_CAP_SETUP")
+                            }
+                        }
+                        stage("Ethernet Capitan") {
+                            when {
+                                // Remove this after fixing INGK-982
+                                expression { false }
+                            }
+                            steps {
+                                runTestHW("ethernet", "ETH_CAP_SETUP")
+                            }
+                        }
+                    }
+                }
+                stage('Hw Tests Ethercat') {
+                    options {
+                        lock(ECAT_NODE_LOCK)
+                    }
+                    agent {
+                        label ECAT_NODE
+                    }
+                    stages {
+                        stage("Ethercat Everest") {
+                            when {
+                                // Remove this after fixing INGK-983
+                                expression { false }
+                            }
+                            steps {
+                                runTestHW("soem", "ECAT_EVE_SETUP")
+                            }
+                        }
+                        stage("Ethercat Capitan") {
+                            steps {
+                                runTestHW("soem", "ECAT_CAP_SETUP")
+                            }
+                        }
+                        stage("Ethercat Multislave") {
+                            steps {
+                                runTestHW("soem_multislave", "ECAT_MULTISLAVE_SETUP")
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         // stage('Publish coverage') {
         //     agent {
