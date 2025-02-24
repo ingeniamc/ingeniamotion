@@ -66,6 +66,23 @@ pipeline {
                 name: 'TESTS'
         )
     }
+    environment {
+        JENKINS_HOME_DIR = '/var/jenkins_home'
+    }
+    stages {
+        stage('Check Directory') {
+            agent any
+            steps {
+                sh '''
+                if [ -d ${JENKINS_HOME_DIR} ]; then
+                    echo "Directory exists: ${JENKINS_HOME_DIR}"
+                else
+                    echo "Directory does not exist: ${JENKINS_HOME_DIR}"
+                fi
+                '''
+            }
+        }
+    }
     stages {
         stage("Set env") {
             steps {
@@ -127,10 +144,6 @@ pipeline {
                             
                             echo "Found build number: ${buildNumber}"
                             echo "Workspace directory: ${workspaceDir}"
-
-                            def currentWorkspaceDir = pwd()
-
-                            echo "currentWorkspaceDir: ${currentWorkspaceDir}"
 
                             echo "Artifacts in ${workspaceDir}:"
                             foundBuild.artifacts.each { artifact ->
