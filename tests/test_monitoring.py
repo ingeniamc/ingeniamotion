@@ -307,16 +307,17 @@ def test_configure_sample_time_exception(monitoring, total_time, sign):
         monitoring.configure_sample_time(total_time, trigger_delay)
 
 
-@pytest.mark.skip("Check if channels are configured is not implemented yet")
-@pytest.mark.usefixtures("disable_monitoring_disturbance")
-def test_read_monitoring_data_not_configured(motion_controller, monitoring):
-    mc, alias, environment = motion_controller
-    drive = mc._get_drive(alias)
-    drive.monitoring_remove_all_mapped_registers()
-    mc.capture.enable_monitoring_disturbance(servo=alias)
-    monitoring.samples_number = monitoring.max_sample_number
-    test_output = monitoring.read_monitoring_data()
-    assert len(test_output[0]) == 0
+@pytest.mark.ethernet
+@pytest.mark.soem
+@pytest.mark.canopen
+@pytest.mark.smoke
+@pytest.mark.usefixtures("skip_if_monitoring_not_available")
+def test_enable_monitoring_no_mapped_registers(motion_controller):
+    mc, alias, _ = motion_controller
+    mc.capture.clean_monitoring(alias)
+    with pytest.raises(IMMonitoringError) as exc:
+        mc.capture.enable_monitoring(servo=alias)
+    assert str(exc.value) == "There are no registers mapped for monitoring."
 
 
 @pytest.mark.ethernet
