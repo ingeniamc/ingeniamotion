@@ -110,7 +110,7 @@ pipeline {
                                             def gitCommit = item.commitId
                                             if (gitCommit == commitHash) {
                                                 foundBuild = build
-                                                foundBranch = branch
+                                                foundBranch = branch.displayName
                                                 return false
                                             }
                                         }
@@ -125,7 +125,7 @@ pipeline {
                             echo "Found build number: ${buildNumber}"
                             echo "Workspace directory: ${workspaceDir}"
 
-                            copyArtifacts filter: '*.whl', fingerprintArtifacts: true, projectName: sourceJobName, selector: specific(buildNumber)
+                            copyArtifacts filter: '*.whl', fingerprintArtifacts: true, projectName: "${sourceJobName}/${foundBranch}", selector: specific(buildNumber)
 
                             // echo "Artifacts in ${workspaceDir}:"
                             // foundBuild.artifacts.each { artifact ->
