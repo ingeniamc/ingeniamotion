@@ -1,7 +1,8 @@
 import re
+import warnings
 from enum import IntEnum
 from os import path
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Any, Optional, Union
 
 import ingenialogger
 from ingenialink import CanBaudrate
@@ -19,7 +20,7 @@ from ingeniamotion.enums import (
     PhasingMode,
     STOAbnormalLatchedStatus,
 )
-from ingeniamotion.exceptions import IMException
+from ingeniamotion.exceptions import IMError
 from ingeniamotion.feedbacks import Feedbacks
 from ingeniamotion.homing import Homing
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
@@ -28,7 +29,7 @@ if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 
-class TYPE_SUBNODES(IntEnum):  # noqa: N801
+class SubnodeType(IntEnum):
     """Subnode type enum."""
 
     COCO = 0
@@ -81,7 +82,7 @@ class MACAddressConverter:
         return mac_address_int
 
 
-class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
+class Configuration(Homing, Feedbacks):
     """Configuration."""
 
     class BrakeOverride(IntEnum):
@@ -138,20 +139,20 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
     STO_INACTIVE_STATE = 23
 
     PRODUCT_ID_REGISTERS = {
-        TYPE_SUBNODES.COCO: "DRV_ID_PRODUCT_CODE_COCO",
-        TYPE_SUBNODES.MOCO: "DRV_ID_PRODUCT_CODE",
+        SubnodeType.COCO: "DRV_ID_PRODUCT_CODE_COCO",
+        SubnodeType.MOCO: "DRV_ID_PRODUCT_CODE",
     }
     REVISION_NUMBER_REGISTERS = {
-        TYPE_SUBNODES.COCO: "DRV_ID_REVISION_NUMBER_COCO",
-        TYPE_SUBNODES.MOCO: "DRV_ID_REVISION_NUMBER",
+        SubnodeType.COCO: "DRV_ID_REVISION_NUMBER_COCO",
+        SubnodeType.MOCO: "DRV_ID_REVISION_NUMBER",
     }
     SERIAL_NUMBER_REGISTERS = {
-        TYPE_SUBNODES.COCO: "DRV_ID_SERIAL_NUMBER_COCO",
-        TYPE_SUBNODES.MOCO: "DRV_ID_SERIAL_NUMBER",
+        SubnodeType.COCO: "DRV_ID_SERIAL_NUMBER_COCO",
+        SubnodeType.MOCO: "DRV_ID_SERIAL_NUMBER",
     }
     SOFTWARE_VERSION_REGISTERS = {
-        TYPE_SUBNODES.COCO: "DRV_APP_COCO_VERSION",
-        TYPE_SUBNODES.MOCO: "DRV_ID_SOFTWARE_VERSION",
+        SubnodeType.COCO: "DRV_APP_COCO_VERSION",
+        SubnodeType.MOCO: "DRV_ID_SOFTWARE_VERSION",
     }
     VENDOR_ID_COCO_REGISTER = "DRV_ID_VENDOR_ID_COCO"
     VENDOR_ID_REGISTER = "DRV_ID_VENDOR_ID"
@@ -236,10 +237,10 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             ILConfigurationError: If the configuration file differs from the drive state.
 
         """
+        drive = self.mc._get_drive(servo)
         if not path.isfile(config_path):
             raise FileNotFoundError(f"{config_path} file does not exist!")
-        servo_inst = self.mc.servos[servo]
-        servo_inst.check_configuration(config_path, subnode=axis)
+        drive.check_configuration(config_path, subnode=axis)
         self.logger.info(
             "Configuration check successfull %s", config_path, drive=self.mc.servo_name(servo)
         )
@@ -259,10 +260,10 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             FileNotFoundError: If configuration file does not exist.
 
         """
+        drive = self.mc._get_drive(servo)
         if not path.isfile(config_path):
             raise FileNotFoundError(f"{config_path} file does not exist!")
-        servo_inst = self.mc.servos[servo]
-        servo_inst.load_configuration(config_path, subnode=axis)
+        drive.load_configuration(config_path, subnode=axis)
         self.logger.info(
             "Configuration loaded from %s", config_path, drive=self.mc.servo_name(servo)
         )
@@ -279,8 +280,8 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
             servo : servo alias to reference it. ``default`` by default.
 
         """
-        servo_inst = self.mc.servos[servo]
-        servo_inst.save_configuration(output_file, subnode=axis)
+        drive = self.mc._get_drive(servo)
+        drive.save_configuration(output_file, subnode=axis)
         self.logger.info("Configuration saved to %s", output_file, drive=self.mc.servo_name(servo))
 
     def store_configuration(self, axis: Optional[int] = None, servo: str = DEFAULT_SERVO) -> None:
@@ -577,7 +578,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """
         status_word = self.mc.communication.get_register(self.STATUS_WORD_REGISTER, servo, axis)
         if not isinstance(status_word, int):
-            raise TypeError("Power stage frequency value has to be an integer")
+            raise TypeError("Status word value has to be an integer")
         return status_word
 
     def is_motor_enabled(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> bool:
@@ -881,7 +882,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """
         drive = self.mc._get_drive(servo)
         if not isinstance(drive, EthernetServo):
-            raise IMException("TCP IP parameters can only be changed in ethernet servos.")
+            raise IMError("TCP IP parameters can only be changed in ethernet servos.")
         if isinstance(mac_address, str):
             mac_address = MACAddressConverter.str_to_int(mac_address)
         drive.change_tcp_ip_parameters(ip_address, subnet_mask, gateway, mac_address)
@@ -895,7 +896,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """
         drive = self.mc._get_drive(servo)
         if not isinstance(drive, EthernetServo):
-            raise IMException("TCP IP parameters can only be stored in ethernet servos.")
+            raise IMError("TCP IP parameters can only be stored in ethernet servos.")
         drive.store_tcp_ip_parameters()
 
     def restore_tcp_ip_parameters(self, servo: str = DEFAULT_SERVO) -> None:
@@ -907,7 +908,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """
         drive = self.mc._get_drive(servo)
         if not isinstance(drive, EthernetServo):
-            raise IMException("TCP IP parameters can only be restored in ethernet servos.")
+            raise IMError("TCP IP parameters can only be restored in ethernet servos.")
         drive.restore_tcp_ip_parameters()
 
     def get_mac_address(
@@ -925,7 +926,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """
         drive = self.mc._get_drive(servo)
         if not isinstance(drive, EthernetServo):
-            raise IMException("The MAC address can only be read from Ethernet servos.")
+            raise IMError("The MAC address can only be read from Ethernet servos.")
         mac_address = drive.get_mac_address()
         return mac_address
 
@@ -944,7 +945,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """
         drive = self.mc._get_drive(servo)
         if not isinstance(drive, EthernetServo):
-            raise IMException("The MAC address can only be read from Ethernet servos.")
+            raise IMError("The MAC address can only be read from Ethernet servos.")
         mac_address = drive.get_mac_address()
         return MACAddressConverter.int_to_str(mac_address)
 
@@ -959,7 +960,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """
         drive = self.mc._get_drive(servo)
         if not isinstance(drive, EthernetServo):
-            raise IMException("The MAC address can only be set to Ethernet servos.")
+            raise IMError("The MAC address can only be set to Ethernet servos.")
         if isinstance(mac_address, str):
             mac_address = MACAddressConverter.str_to_int(mac_address)
         drive.set_mac_address(mac_address)
@@ -994,29 +995,29 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
                 prod_codes[subnode] = self.get_product_code(servo, subnode)
             except (
                 ILError,
-                IMException,
+                IMError,
             ) as e:
                 self.logger.error(e)
             # Revision numbers
             try:
                 rev_numbers[subnode] = self.get_revision_number(servo, subnode)
-            except (ILError, IMException) as e:
+            except (ILError, IMError) as e:
                 self.logger.error(e)
             # FW versions
             try:
                 fw_versions[subnode] = self.get_fw_version(servo, subnode)
-            except (ILError, IMException) as e:
+            except (ILError, IMError) as e:
                 self.logger.error(e)
             # Serial numbers
             try:
                 serial_number[subnode] = self.get_serial_number(servo, subnode)
-            except (ILError, IMException) as e:
+            except (ILError, IMError) as e:
                 self.logger.error(e)
 
         return prod_codes, rev_numbers, fw_versions, serial_number
 
     @staticmethod
-    def get_subnode_type(axis: int) -> TYPE_SUBNODES:
+    def get_subnode_type(axis: int) -> SubnodeType:
         """Get a subnode type depending on the axis number.
 
         Args:
@@ -1030,7 +1031,7 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
         """
         if axis < 0:
             raise ValueError("There are no subnodes with negative values")
-        return TYPE_SUBNODES.COCO if axis == 0 else TYPE_SUBNODES.MOCO
+        return SubnodeType.COCO if axis == 0 else SubnodeType.MOCO
 
     def get_product_code(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
         """Get the product code of a drive.
@@ -1435,3 +1436,20 @@ class Configuration(Homing, Feedbacks, metaclass=MCMetaClass):
                 continue
             register = reg_template.format(signal.value, number.value)
             self.mc.communication.set_register(register, value, servo, axis)
+
+
+# WARNING: Deprecated aliases
+_DEPRECATED = {
+    "TYPE_SUBNODES": "SubnodeType",
+}
+
+
+def __getattr__(name: str) -> Any:
+    if name in _DEPRECATED:
+        warnings.warn(
+            f"{name} is deprecated, use {_DEPRECATED[name]} instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return globals()[_DEPRECATED[name]]
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

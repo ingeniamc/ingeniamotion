@@ -3,16 +3,18 @@ from collections.abc import Generator
 from typing import TYPE_CHECKING, Optional, Union
 
 import ingenialogger
-from ingenialink.exceptions import ILError
+from ingenialink.exceptions import ILError, ILTimeoutError
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.enums import GeneratorMode, OperationMode, PhasingMode, SensorType
 from ingeniamotion.exceptions import IMTimeoutError
-from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
+
+DEFAULT_MOTOR_ERROR_TIMEOUT_S = 6
 
 
-class Motion(metaclass=MCMetaClass):
+class Motion:
     """Motion."""
 
     CONTROL_WORD_REGISTER = "DRV_STATE_CONTROL"
@@ -124,25 +126,45 @@ class Motion(metaclass=MCMetaClass):
         except ValueError:
             return operation_mode
 
-    def motor_enable(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> None:
+    def motor_enable(
+        self,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+        error_timeout: float = DEFAULT_MOTOR_ERROR_TIMEOUT_S,
+    ) -> None:
         """Enable motor.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
             axis : servo axis. ``1`` by default.
+            error_timeout: Maximum wait for error update in seconds.
 
         Raises:
             ingenialink.exceptions.ILError: If the servo cannot enable the motor.
+            ingenialink.exceptions.ILTimeoutError: If the error was not raised in time.
 
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
+        num_errors = self.mc.errors.get_number_total_errors(servo=servo, axis=axis)
         try:
             drive.enable(subnode=axis)
         except ILError as e:
-            error_code, subnode, warning = self.mc.errors.get_last_buffer_error(
-                servo=servo, axis=axis
-            )
-            error_id, _, _, error_msg = self.mc.errors.get_error_data(error_code, servo=servo)
+            timeout = error_timeout
+            start_time = time.time()
+            error_raised = False
+            while not error_raised and (time.time() < (start_time + timeout)):
+                error_raised = (
+                    self.mc.errors.get_number_total_errors(servo=servo, axis=axis) != num_errors
+                )
+            if error_raised:
+                error_code, subnode, warning = self.mc.errors.get_last_buffer_error(
+                    servo=servo, axis=axis
+                )
+                error_id, _, _, error_msg = self.mc.errors.get_error_data(error_code, servo=servo)
+            else:
+                raise ILTimeoutError(
+                    "An error occurred enabling motor. Reason: Error trigger timeout exceeded."
+                )
             exception_type = type(e)
             raise exception_type(f"An error occurred enabling motor. Reason: {error_msg}")
 
@@ -154,13 +176,13 @@ class Motion(metaclass=MCMetaClass):
             axis : servo axis. ``1`` by default.
 
         """
+        drive = self.mc._get_drive(servo)
         try:
             is_motor_enabled = self.mc.configuration.is_motor_enabled(servo=servo, axis=axis)
         except ILError as e:
             self.logger.info(f"Unable to check if motor is enabled. Reason: {e}")
             return
         if is_motor_enabled:
-            drive = self.mc.servos[servo]
             try:
                 drive.disable(subnode=axis)
             except ILError as e:
@@ -174,7 +196,7 @@ class Motion(metaclass=MCMetaClass):
             axis : servo axis. ``1`` by default.
 
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         try:
             drive.fault_reset(axis)
         except ILError as e:

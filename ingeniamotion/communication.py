@@ -30,14 +30,14 @@ from ping3 import ping
 from virtual_drive.core import VirtualDrive
 
 from ingeniamotion.cy_wrappers.get_adapters_info.get_adapters_info import get_adapters_info
-from ingeniamotion.exceptions import IMFirmwareLoadError, IMRegisterWrongAccess
+from ingeniamotion.exceptions import IMFirmwareLoadError, IMRegisterWrongAccessError
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 import contextlib
 
-from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
 RUNNING_ON_WINDOWS = platform.system() == "Windows"
 
@@ -71,7 +71,7 @@ class NetworkAdapter:
     interface_guid: str
 
 
-class Communication(metaclass=MCMetaClass):
+class Communication:
     """Communication."""
 
     FORCE_SYSTEM_BOOT_COCO_REGISTER = "DRV_BOOT_COCO_FORCE"
@@ -914,6 +914,40 @@ class Communication(metaclass=MCMetaClass):
         slaves = net.scan_slaves()
         return slaves
 
+    @staticmethod
+    def scan_servos_ethernet(
+        subnet: str,
+    ) -> list[str]:
+        """Scan Ethernet device network to get all nodes.
+
+        Args:
+            subnet: The subnet in CIDR notation. For instance ``192.168.1.1/24``.
+
+        Returns:
+            List of drive IPs available in the network.
+
+        """
+        net = EthernetNetwork(subnet)
+        slaves = net.scan_slaves()
+        return slaves
+
+    @staticmethod
+    def scan_servos_ethernet_with_info(
+        subnet: str,
+    ) -> OrderedDict[str, SlaveInfo]:
+        """Scan Ethernet device network to get all nodes including drive information.
+
+        Args:
+            subnet: The subnet in CIDR notation. For instance ``192.168.1.1/24``.
+
+        Returns:
+            Dictionary of nodes available in the network and drive information.
+
+        """
+        net = EthernetNetwork(subnet)
+        slaves_info = net.scan_slaves_info()
+        return slaves_info
+
     def disconnect(self, servo: str = DEFAULT_SERVO) -> None:
         """Disconnect servo.
 
@@ -967,11 +1001,11 @@ class Communication(metaclass=MCMetaClass):
 
         Raises:
             ingenialink.exceptions.ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
+            IMRegisterNotExistError: If the register doesn't exist.
             TypeError: If some parameter has a wrong type.
 
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         register_dtype = self.mc.info.register_type(register, axis, servo=servo)
         value = drive.read(register, subnode=axis)
         if register_dtype.value <= RegDtype.S64.value and isinstance(value, int):
@@ -997,11 +1031,11 @@ class Communication(metaclass=MCMetaClass):
 
         Raises:
             TypeError: If the value is of the wrong type.
-            IMRegisterNotExist: If the register doesn't exist.
-            IMRegisterWrongAccess: If the register access is read-only.
+            IMRegisterNotExistError: If the register doesn't exist.
+            IMRegisterWrongAccessError: If the register access is read-only.
 
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         register_dtype_value = self.mc.info.register_type(register, axis, servo=servo)
         register_access_type = self.mc.info.register_info(register, axis, servo=servo).access
         signed_int = [RegDtype.S8, RegDtype.S16, RegDtype.S32, RegDtype.S64]
@@ -1015,7 +1049,7 @@ class Communication(metaclass=MCMetaClass):
         if register_dtype_value in unsigned_int and (not isinstance(value, int) or value < 0):
             raise TypeError("Value must be an unsigned int")
         if register_access_type == RegAccess.RO:
-            raise IMRegisterWrongAccess(
+            raise IMRegisterWrongAccessError(
                 f"Register: {register} cannot write to a read-only register"
             )
         drive.write(register, value, subnode=axis)

@@ -1,5 +1,14 @@
 # Changelog
 
+## [Unreleased]
+### Added
+- Methods to scan Ethernet drives.
+- Error-raised timeout to motor_enable
+
+### Changed
+- Renamed the `TYPE_SUBNODES` and `COMMUNICATION_TYPE` enums to follow CapWords convention. Old names are still supported, but will soon be deprecated.
+- Renamed the `IMException`, `IMRegisterNotExist` and `IMRegisterWrongAccess` exceptions to `IMError`, `IMRegisterNotExistError` and `IMRegisterWrongAccessError` respectively. Old names are still supported, but will soon be deprecated.
+
 ## [0.9.0] - 2025-01-29
 ### Added
 - Method to subscribe to register value updates.

@@ -6,10 +6,10 @@ from ingeniamotion.enums import HomingMode, OperationMode
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
-from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
 
-class Homing(metaclass=MCMetaClass):
+class Homing:
     """Class that contains the homing functionalities."""
 
     HOMING_MODE_REGISTER = "HOM_MODE"

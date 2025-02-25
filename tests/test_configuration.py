@@ -4,7 +4,7 @@ import pytest
 from ingenialink import CanBaudrate
 from ingenialink.ethercat.servo import EthercatServo
 
-from ingeniamotion.configuration import TYPE_SUBNODES, MACAddressConverter
+from ingeniamotion.configuration import MACAddressConverter, SubnodeType
 from ingeniamotion.enums import (
     CommutationMode,
     FilterNumber,
@@ -12,7 +12,7 @@ from ingeniamotion.enums import (
     FilterType,
     STOAbnormalLatchedStatus,
 )
-from ingeniamotion.exceptions import IMException
+from ingeniamotion.exceptions import IMError
 
 BRAKE_OVERRIDE_REGISTER = "MOT_BRAKE_OVERRIDE"
 POSITION_SET_POINT_REGISTER = "CL_POS_SET_POINT_VALUE"
@@ -835,7 +835,7 @@ def test_get_phasing_mode_invalid(mocker, motion_controller):
 def test_change_tcp_ip_parameters_exception(mocker, motion_controller):
     mc, alias, environment = motion_controller
     mocker.patch.object(mc, "_get_drive", return_value=EthercatServo)
-    with pytest.raises(IMException):
+    with pytest.raises(IMError):
         mc.configuration.change_tcp_ip_parameters(
             "192.168.2.22", "255.255.0.0", "192.168.2.1", servo=alias
         )
@@ -852,15 +852,15 @@ def test_change_tcp_ip_parameters_exception(mocker, motion_controller):
 def test_store_restore_tcp_ip_parameters_exception(mocker, motion_controller, function):
     mc, alias, environment = motion_controller
     mocker.patch.object(mc, "_get_drive", return_value=EthercatServo)
-    with pytest.raises(IMException):
+    with pytest.raises(IMError):
         getattr(mc.configuration, function)(servo=alias)
 
 
 @pytest.mark.parametrize(
     "subnode, expected_result",
     [
-        (0, TYPE_SUBNODES.COCO),
-        (1, TYPE_SUBNODES.MOCO),
+        (0, SubnodeType.COCO),
+        (1, SubnodeType.MOCO),
     ],
 )
 @pytest.mark.virtual

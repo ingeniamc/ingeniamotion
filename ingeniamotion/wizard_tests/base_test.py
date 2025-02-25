@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union
 import ingenialogger
 from ingenialink.exceptions import ILError
 
-from ingeniamotion.exceptions import IMRegisterNotExist, IMRegisterWrongAccess
+from ingeniamotion.exceptions import IMRegisterNotExistError, IMRegisterWrongAccessError
 from ingeniamotion.metaclass import DEFAULT_SERVO
 from ingeniamotion.wizard_tests.stoppable import StopExceptionError, Stoppable
 
@@ -58,7 +58,7 @@ class BaseTest(ABC, Stoppable, Generic[T]):
             try:
                 value = self.mc.communication.get_register(uid, servo=self.servo, axis=self.axis)
                 self.backup_registers[self.axis][uid] = value
-            except IMRegisterNotExist as e:  # noqa: PERF203
+            except IMRegisterNotExistError as e:  # noqa: PERF203
                 self.logger.warning(e, axis=self.axis)
 
         for uid in self.optional_backup_registers_names:
@@ -76,9 +76,9 @@ class BaseTest(ABC, Stoppable, Generic[T]):
             for key, value in self.backup_registers[subnode].items():
                 try:
                     self.mc.communication.set_register(key, value, servo=self.servo, axis=self.axis)
-                except IMRegisterNotExist as e:  # noqa: PERF203
+                except IMRegisterNotExistError as e:  # noqa: PERF203
                     self.logger.warning(e, axis=subnode)
-                except IMRegisterWrongAccess as e:
+                except IMRegisterWrongAccessError as e:
                     self.logger.warning(e, axis=subnode)
 
     @Stoppable.stoppable

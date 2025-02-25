@@ -63,14 +63,15 @@ def test_is_alive(motion_controller):
 
 @pytest.mark.virtual
 class TestMetaclass:
-    class DummyClass(metaclass=MCMetaClass):
+    class DummyClass:
         mc = MotionController()
 
         def is_motor_enabled(self, servo: str, axis: int):
+            self.mc._get_drive(servo)
             return servo == "a" and axis == 1
 
         def __init__(self):
-            self.mc.servos = ["a", "b"]
+            self.mc.servos = {"a": None, "b": None}
             self.mc.configuration.is_motor_enabled = self.is_motor_enabled
 
         @MCMetaClass.check_motor_disabled

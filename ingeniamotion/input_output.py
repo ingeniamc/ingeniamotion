@@ -3,14 +3,14 @@ from typing import TYPE_CHECKING, Union
 import ingenialogger
 
 from ingeniamotion.enums import GPI, GPO, DigitalVoltageLevel, GPIOPolarity
-from ingeniamotion.exceptions import IMException
-from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
+from ingeniamotion.exceptions import IMError
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 
-class InputsOutputs(metaclass=MCMetaClass):
+class InputsOutputs:
     """Class that contains the GPIO functionalities."""
 
     GPIO_IN_VALUE_REGISTER = "IO_IN_VALUE"
@@ -208,7 +208,7 @@ class InputsOutputs(metaclass=MCMetaClass):
             axis : axis that will run the test. 1 by default.
 
         Raise:
-            IMException: if the GPOs final value does not match with the desired GPOs set point.
+            IMError: if the GPOs final value does not match with the desired GPOs set point.
         """
         new_target_value = bool(voltage_level.value)
 
@@ -229,4 +229,4 @@ class InputsOutputs(metaclass=MCMetaClass):
         gpo_final_value = self.__get_gpio_bit_value(gpos_final_value, gpo_id)
 
         if gpo_final_value != new_target_value:
-            raise IMException("Unable to set the GPOs set point value.")
+            raise IMError("Unable to set the GPOs set point value.")

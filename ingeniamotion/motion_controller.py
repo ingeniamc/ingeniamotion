@@ -45,7 +45,8 @@ class MotionController:
             The servo name.
 
         """
-        return "{} ({})".format(self.servos[servo].info["product_code"], servo)
+        drive = self._get_drive(servo)
+        return "{} ({})".format(drive.info["product_code"], servo)
 
     def get_register_enum(
         self, register: str, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -61,7 +62,7 @@ class MotionController:
             The register enum as an IntEnum.
 
         """
-        drive = self.servos[servo]
+        drive = self._get_drive(servo)
         enum_dict = drive.dictionary.registers(axis)[register].enums
         return IntEnum(register, enum_dict)
 
@@ -91,7 +92,7 @@ class MotionController:
         net_key = self.servo_net[servo]
         return self.net[net_key]
 
-    def _get_drive(self, servo: str) -> Servo:
+    def _get_drive(self, servo: str = DEFAULT_SERVO) -> Servo:
         """Return servo drive instance.
 
         Args:
@@ -101,6 +102,9 @@ class MotionController:
             Servo instance.
 
         """
+        if servo not in self.servos:
+            msg = f"Servo {servo} is not connected"
+            raise KeyError(msg)
         return self.servos[servo]
 
     # Properties

@@ -41,9 +41,7 @@ def main() -> None:
     interface_ip = "192.168.2.1"
     slave_id = 1
     dictionary_path = "parent_directory/dictionary_file.xdf"
-    mc.communication.connect_servo_ethercat_interface_ip(
-        interface_ip, slave_id, dictionary_path
-    )
+    mc.communication.connect_servo_ethercat_interface_ip(interface_ip, slave_id, dictionary_path)
     set_up_pdo_poller(mc)
     mc.communication.disconnect()
     print("The drive has been disconnected.")

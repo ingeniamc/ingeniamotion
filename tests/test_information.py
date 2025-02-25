@@ -6,8 +6,8 @@ from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.register import RegAccess, RegDtype
 
-from ingeniamotion.exceptions import IMException, IMRegisterNotExist
-from ingeniamotion.information import COMMUNICATION_TYPE
+from ingeniamotion.exceptions import IMError, IMRegisterNotExistError
+from ingeniamotion.information import CommunicationType
 
 
 @pytest.mark.virtual
@@ -129,9 +129,9 @@ def test_get_name(motion_controller):
 @pytest.mark.parametrize(
     "communication, expected_result, args",
     [
-        (EthernetNetwork, COMMUNICATION_TYPE.Ethernet, None),
-        (EthercatNetwork, COMMUNICATION_TYPE.Ethercat, "fake_interface_name"),
-        (CanopenNetwork, COMMUNICATION_TYPE.Canopen, CanDevice.PCAN),
+        (EthernetNetwork, CommunicationType.Ethernet, None),
+        (EthercatNetwork, CommunicationType.Ethercat, "fake_interface_name"),
+        (CanopenNetwork, CommunicationType.Canopen, CanDevice.PCAN),
     ],
 )
 @pytest.mark.virtual
@@ -211,7 +211,7 @@ def test_get_encoded_image_from_dictionary(motion_controller):
 @pytest.mark.virtual
 def test_register_info_exception(motion_controller):
     mc, alias, environment = motion_controller
-    with pytest.raises(IMRegisterNotExist):
+    with pytest.raises(IMRegisterNotExistError):
         mc.info.register_info("non_existing_uid", 1, alias)
 
 
@@ -227,7 +227,7 @@ def test_get_product_name_none(motion_controller):
 @pytest.mark.virtual
 def test_get_node_id_exception(motion_controller):
     mc, alias, environment = motion_controller
-    with pytest.raises(IMException):
+    with pytest.raises(IMError):
         mc.info.get_node_id(alias)
 
 
@@ -236,14 +236,14 @@ def test_get_ip_exception(mocker, motion_controller):
     mc, alias, environment = motion_controller
     mocker.patch("ingenialink.ethercat.network.EthercatNetwork.__init__", return_value=None)
     mocker.patch.object(mc, "_get_network", return_value=EthercatNetwork("fake_interface_name"))
-    with pytest.raises(IMException):
+    with pytest.raises(IMError):
         mc.info.get_ip(alias)
 
 
 @pytest.mark.virtual
 def test_get_slave_id_exception(motion_controller):
     mc, alias, environment = motion_controller
-    with pytest.raises(IMException):
+    with pytest.raises(IMError):
         mc.info.get_slave_id(alias)
 
 
@@ -268,7 +268,7 @@ def test_get_baudrate_failed(motion_controller, mocker):
 
     mocker.patch("ingenialink.ethercat.network.EthercatNetwork.__init__", return_value=None)
     mocker.patch.object(mc, "_get_network", return_value=EthercatNetwork("fake_interface_name"))
-    with pytest.raises(IMException) as imexpeption_info:
+    with pytest.raises(IMError) as imexpeption_info:
         _ = mc.info.get_baudrate(alias)
 
     expected_message_error = "The servo test is not a CANopen device."

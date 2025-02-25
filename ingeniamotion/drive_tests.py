@@ -6,7 +6,7 @@ from ingeniamotion.enums import SensorType, SeverityLevel
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
-from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.wizard_tests.brake import Brake
 from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder1_test import AbsoluteEncoder1Test
 from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder2_test import AbsoluteEncoder2Test
@@ -30,7 +30,7 @@ from ingeniamotion.wizard_tests.phasing_check import PhasingCheck
 from ingeniamotion.wizard_tests.sto import STOTest
 
 
-class DriveTests(metaclass=MCMetaClass):
+class DriveTests:
     """Class that contain the tests that can be performed on a drive."""
 
     __sensors = {
