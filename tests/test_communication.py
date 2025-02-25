@@ -1,5 +1,6 @@
 import os
 import platform
+import re
 import tempfile
 import time
 from collections import OrderedDict
@@ -23,7 +24,7 @@ from ingeniamotion.exceptions import (
     IMRegisterWrongAccessError,
 )
 
-from .setups.descriptors import DriveCanOpenSetup, EthernetSetup, Setup
+from .setups.descriptors import DriveCanOpenSetup, DriveEcatSetup, EthernetSetup, Setup
 
 TEST_ENSEMBLE_FW_FILE = "tests/resources/example_ensemble_fw.zfu"
 
@@ -50,6 +51,39 @@ class EmcyTest:
 
     def emcy_callback(self, alias, emcy_msg):
         self.messages.append((alias, emcy_msg))
+
+
+@pytest.mark.smoke
+@pytest.mark.canopen
+@pytest.mark.ethernet
+@pytest.mark.skipif(
+    platform.system() != "Windows",
+    reason=f"Skipping test, only available on Windows, platform={platform.system()}",
+)
+def test_get_network_adapters(mocker, tests_setup: Setup):
+    """Tests networks adapters with Windows platform."""
+    if not isinstance(tests_setup, DriveEcatSetup):
+        pytest.skip(f"Skipping because test setup is {type(tests_setup)}")
+
+    match = re.search(r"\{[^}]*\}", tests_setup.ifname)
+    expected_adapter_address = match.group(0) if match else None
+    assert expected_adapter_address is not None
+
+    get_adapters_addresses_spy = mocker.spy(
+        "ingenialink.get_adapters_addresses.get_adapters_addresses"
+    )
+
+    mc = MotionController()
+    assert get_adapters_addresses_spy.call_count == 0
+    adapters = mc.communication.get_network_adapters()
+    assert get_adapters_addresses_spy.call_count == 1
+
+    expected_adapter_address_found = False
+    for interface_guid in adapters.values():
+        if interface_guid == expected_adapter_address:
+            expected_adapter_address_found = True
+            break
+    assert expected_adapter_address_found is True
 
 
 @pytest.mark.virtual
