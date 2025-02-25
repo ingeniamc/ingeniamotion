@@ -149,7 +149,7 @@ class Capture:
             Not configured instance of monitoring.
 
         Raises:
-            NotImplementedError: If an wrong monitoring version is requested.
+            NotImplementedError: If a wrong monitoring version is requested.
 
         """
         version = self._check_version(servo)

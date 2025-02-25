@@ -88,6 +88,7 @@ class Monitoring(ABC):
         self.max_sample_number = mc.capture.monitoring_max_sample_size(servo)
         self.data = None
         self._version: Optional[MonitoringVersion] = None
+        self.rearm_monitoring()
 
     @check_monitoring_disabled
     def set_frequency(self, prescaler: int) -> None:

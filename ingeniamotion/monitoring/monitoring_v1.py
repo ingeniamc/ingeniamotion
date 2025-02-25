@@ -57,7 +57,6 @@ class MonitoringV1(Monitoring):
         trigger_signal: Optional[dict[str, str]] = None,
         trigger_value: Union[int, float, None] = None,
     ) -> None:
-        self.rearm_monitoring()
         if trigger_mode == MonitoringSoCType.TRIGGER_EVENT_EDGE:
             if trigger_signal is None or trigger_value is None:
                 raise TypeError("trigger_signal or trigger_value are None")
