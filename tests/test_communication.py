@@ -63,6 +63,9 @@ class EmcyTest:
         self.messages.append((alias, emcy_msg))
 
 
+@pytest.mark.ethernet
+@pytest.mark.canopen
+@pytest.mark.smoke
 def test_get_network_adapters(adapters_module):
     """Tests networks adapters with Windows platform."""
     addresses = adapters_module.get_adapters_addresses()
