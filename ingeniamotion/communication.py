@@ -29,7 +29,6 @@ from ingenialink.virtual.network import VirtualNetwork
 from ping3 import ping
 from virtual_drive.core import VirtualDrive
 
-from ingeniamotion.cy_wrappers.get_adapters_info.get_adapters_info import get_adapters_info
 from ingeniamotion.exceptions import IMFirmwareLoadError, IMRegisterWrongAccessError
 
 if TYPE_CHECKING:
@@ -40,6 +39,9 @@ import contextlib
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
 RUNNING_ON_WINDOWS = platform.system() == "Windows"
+
+if RUNNING_ON_WINDOWS:
+    from ingenialink.get_adapters_addresses import AdapterFamily, ScanFlags, get_adapters_addresses
 
 FILE_EXT_SFU = ".sfu"
 FILE_EXT_LFU = ".lfu"
@@ -497,11 +499,18 @@ class Communication:
             network_adapters.extend(
                 [
                     NetworkAdapter(
-                        interface_index=adapter.ComboIndex,
+                        interface_index=adapter.IfIndex,
                         interface_name=adapter.Description,
                         interface_guid=adapter.AdapterName,
                     )
-                    for adapter in get_adapters_info()
+                    for adapter in get_adapters_addresses(
+                        adapter_families=AdapterFamily.INET,
+                        scan_flags=[
+                            ScanFlags.INCLUDE_PREFIX,
+                            ScanFlags.INCLUDE_ALL_INTERFACES,
+                        ],
+                    )
+                    if adapter.IfType == 6 and len(adapter.FirstUnicastAddress)
                 ]
             )
         return {adapter.interface_name: adapter.interface_guid for adapter in network_adapters}
