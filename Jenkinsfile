@@ -66,12 +66,13 @@ def runTestHW(markers, setup_name) {
         } catch (err) {
             unstable(message: "Tests failed")
         } finally {
+            junit "pytest_reports\\*.xml"
+            // Delete the junit after publishing it so it not re-published on the next stage
+            bat "del /S /Q pytest_reports\\*.xml"
+            
             if (firstIteration) {
                 def coverage_stash = ".coverage_${setup_name}"
                 bat "move .coverage ${coverage_stash}"
-                junit "pytest_reports\\*.xml"
-                // Delete the junit after publishing it so it not re-published on the next stage
-                bat "del /S /Q pytest_reports\\*.xml"
                 stash includes: coverage_stash, name: coverage_stash
                 coverage_stashes.add(coverage_stash)
                 firstIteration = false
