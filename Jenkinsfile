@@ -25,6 +25,13 @@ INGENIALINK_WHEELS_DIR = "ingenialink_wheels"
 
 coverage_stashes = []
 
+// Run this before any tox command that requires develop ingenialink installation and that 
+// may run in parallel/after with HW tests, because HW tests alter its value
+def restoreIngenialinkWheelEnvVar() {
+    env.INGENIALINK_INSTALL_PATH = null
+}
+    
+
 def getIngenialinkArtifactWheelPath(python_version) {
     if (!env.INGENIALINK_COMMIT_HASH.isEmpty()) {
         unstash 'ingenialink_wheels'
@@ -56,12 +63,14 @@ def runTestHW(markers, setup_name) {
 
     pythonVersions.each { version ->
         def wheelFile = getIngenialinkArtifactWheelPath(version)
+        env.INGENIALINK_INSTALL_PATH = wheelFile
         try {
-            bat "INGENIALINK_INSTALL_PATH=${wheelFile} py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
+            bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
                     "-m \"${markers}\" " +
                     "--setup tests.setups.rack_setups.${setup_name} " +
                     "--cov=ingeniamotion " +
                     "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${setup_name}\""
+            env.remove('INGENIALINK_INSTALL_PATH')
         } catch (err) {
             unstable(message: "Tests failed")
         } finally {
@@ -244,6 +253,9 @@ pipeline {
                                 }
                                 stage('Make a static type analysis') {
                                     steps {
+                                        script {
+                                            restoreIngenialinkWheelEnvVar()
+                                        }
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e type"
                                     }
                                 }
@@ -254,6 +266,9 @@ pipeline {
                                 }
                                 stage('Generate documentation') {
                                     steps {
+                                        script {
+                                            restoreIngenialinkWheelEnvVar()
+                                        }
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e docs"
                                         bat """
                                             "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
