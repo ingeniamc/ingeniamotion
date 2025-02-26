@@ -28,7 +28,7 @@ coverage_stashes = []
 // Run this before any tox command that requires develop ingenialink installation and that 
 // may run in parallel/after with HW tests, because HW tests alter its value
 def restoreIngenialinkWheelEnvVar() {
-    env.remove('INGENIALINK_INSTALL_PATH')
+    env.INGENIALINK_INSTALL_PATH = env.ORG_INGENIALINK_INSTALL_PATH
 }
     
 
@@ -130,7 +130,16 @@ pipeline {
             steps {
                 script {
                     def toxIniContent = readFile('tox.ini')
-                    def matcher = toxIniContent =~ /ingenialink-python@([a-f0-9]{40})/
+                    def matcher = toxIniContent =~ /ingenialink\s*=\s*\{env:INGENIALINK_INSTALL_PATH:(.*)\}/
+                    // Save the full url
+                    if (matcher.find()) {
+                        env.ORG_INGENIALINK_INSTALL_PATH = matcher.group(1)
+                    }
+                    else {
+                        env.ORG_INGENIALINK_INSTALL_PATH = null
+                    }
+                    // Save the commit hash
+                    matcher = toxIniContent =~ /ingenialink-python@([a-f0-9]{40})/
                     env.INGENIALINK_COMMIT_HASH = matcher ? matcher[0][1] : ""
                     if (!env.INGENIALINK_COMMIT_HASH.isEmpty()) {
                         echo "Ingenialink commit Hash: ${env.INGENIALINK_COMMIT_HASH}"
