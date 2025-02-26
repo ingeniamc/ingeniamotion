@@ -56,9 +56,8 @@ def runTestHW(markers, setup_name) {
 
     pythonVersions.each { version ->
         def wheelFile = getIngenialinkArtifactWheelPath(version)
-        env.INGENIALINK_INSTALL_PATH = wheelFile
         try {
-            bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
+            bat "INGENIALINK_INSTALL_PATH=${wheelFile} py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
                     "-m \"${markers}\" " +
                     "--setup tests.setups.rack_setups.${setup_name} " +
                     "--cov=ingeniamotion " +
@@ -69,7 +68,6 @@ def runTestHW(markers, setup_name) {
             junit "pytest_reports\\*.xml"
             // Delete the junit after publishing it so it not re-published on the next stage
             bat "del /S /Q pytest_reports\\*.xml"
-            
             if (firstIteration) {
                 def coverage_stash = ".coverage_${setup_name}"
                 bat "move .coverage ${coverage_stash}"
