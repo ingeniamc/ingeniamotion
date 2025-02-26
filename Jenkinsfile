@@ -28,7 +28,7 @@ coverage_stashes = []
 // Run this before any tox command that requires develop ingenialink installation and that 
 // may run in parallel/after with HW tests, because HW tests alter its value
 def restoreIngenialinkWheelEnvVar() {
-    env.INGENIALINK_INSTALL_PATH = null
+    env.remove('INGENIALINK_INSTALL_PATH')
 }
     
 
