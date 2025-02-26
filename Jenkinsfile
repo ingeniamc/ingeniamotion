@@ -287,6 +287,9 @@ pipeline {
                                 }
                                 stage("Run unit tests") {
                                     steps {
+                                        script {
+                                            restoreIngenialinkWheelEnvVar()
+                                        }
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
                                                 "-m \"not ethernet and not soem and not canopen and not virtual and not soem_multislave\" " +
                                                 "--cov=ingeniamotion"
@@ -306,6 +309,9 @@ pipeline {
                                 }
                                 stage("Run virtual drive tests") {
                                     steps {
+                                        script {
+                                            restoreIngenialinkWheelEnvVar()
+                                        }
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
                                                 "-m virtual " +
                                                 "--setup tests.setups.virtual_drive.TESTS_SETUP "  +
