@@ -175,6 +175,10 @@ pipeline {
                                         // TODO: remove hardcoded build number
                                         if (build.number.toString() == "3") {
                                             def changeSets = build.changeSets
+
+                                            def envVars = build.getEnvironment()
+                                            echo "envVars: ${envVars}"
+                                            echo "git commit: ${envVars['GIT_COMMIT'}"
                                             
                                             def buildData = build.getAction(Class.forName('hudson.plugins.git.util.BuildData'))
                                             if (buildData) {
