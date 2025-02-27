@@ -178,9 +178,8 @@ pipeline {
 
                                             def envVars = build.getEnvironment()
                                             echo "envVars: ${envVars}"
-                                            echo "git commit: ${envVars['GIT_COMMIT']}"
                                             
-                                            def buildData = build.getAction(Class.forName('hudson.plugins.git.util.BuildData'))
+                                            def buildData = build.getAction(hudson.plugins.git.util.BuildData.class)
                                             if (buildData) {
                                                 def revision = buildData.lastBuiltRevision
                                                 echo "revision: ${revision}"
