@@ -178,7 +178,7 @@ pipeline {
 
                                             def envVars = build.getEnvironment()
                                             echo "envVars: ${envVars}"
-                                            echo "git commit: ${envVars['GIT_COMMIT'}"
+                                            echo "git commit: ${envVars['GIT_COMMIT']}"
                                             
                                             def buildData = build.getAction(Class.forName('hudson.plugins.git.util.BuildData'))
                                             if (buildData) {
