@@ -176,15 +176,14 @@ pipeline {
                                         if (build.number.toString() == "3") {
                                             def changeSets = build.changeSets
 
-                                            def envVars = build.getEnvironment()
-                                            echo "envVars: ${envVars}"
-                                            
-                                            def buildData = build.getAction(hudson.plugins.git.util.BuildData.class)
-                                            if (buildData) {
-                                                def revision = buildData.lastBuiltRevision
-                                                echo "revision: ${revision}"
-                                                def buildCommitSHA = revision.getSha1()
-                                                echo "buildCommitSHA: ${buildCommitSHA}"
+                                            def allBuildData = build.getActions(hudson.plugins.git.util.BuildData.class)
+                                            allBuildData.each { buildData ->
+                                                if (buildData) {
+                                                    def revision = buildData.lastBuiltRevision
+                                                    echo "revision: ${revision}"
+                                                    def buildCommitSHA = revision.getSha1()
+                                                    echo "buildCommitSHA: ${buildCommitSHA}"
+                                                }
                                             }
 
                                             changeSets.each { changeSet ->
