@@ -31,7 +31,7 @@ def restoreIngenialinkWheelEnvVar() {
     env.INGENIALINK_INSTALL_PATH = env.ORG_INGENIALINK_INSTALL_PATH
 }
 
-def getBranchCommitHashFromArtifactTxt(branchName, buildNumber):
+def getBranchCommitHashFromArtifactTxt(branchName, buildNumber) {
     script {
         node {
             copyArtifacts filter: 'git_commit_hash.txt', fingerprintArtifacts: true, projectName: "${branchName}", selector: specific(buildNumber)
@@ -41,6 +41,7 @@ def getBranchCommitHashFromArtifactTxt(branchName, buildNumber):
         bat 'del git_commit_hash.txt'
         return ingenialinkCommitHash
     }
+}
     
 
 def getIngenialinkArtifactWheelPath(python_version) {
