@@ -174,29 +174,11 @@ pipeline {
 
                                         // TODO: remove hardcoded build number
                                         if (build.number.toString() == "3") {
-                                            def changeSets = build.changeSets
-
                                             def allBuildData = build.getActions(hudson.plugins.git.util.BuildData.class)
                                             allBuildData.each { buildData ->
                                                 if (buildData) {
                                                     def revision = buildData.lastBuiltRevision
-                                                    echo "revision: ${revision}"
-                                                    def buildCommitSHA = revision.getSha1()
-                                                    echo "buildCommitSHA: ${buildCommitSHA}"
-                                                }
-                                            }
-
-                                            changeSets.each { changeSet ->
-                                                echo "changeSet: ${changeSet}"
-                                                changeSet.items.each { item ->
-                                                    echo "commitId: ${item.commitId}"
-                                                }
-                                            }
-
-                                            
-                                            changeSets.each { changeSet ->
-                                                changeSet.items.each { item ->
-                                                    if (item.commitId == env.INGENIALINK_COMMIT_HASH) {
+                                                    if (revision.getSha1() == env.INGENIALINK_COMMIT_HASH) {
                                                         foundBuild = build
                                                         foundBranch = fullBranchName
                                                         return false
