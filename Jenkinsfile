@@ -176,8 +176,14 @@ pipeline {
                                         if (build.number.toString() == "3") {
                                             def changeSets = build.changeSets
 
-                                            echo "changeSets: ${changeSets}"
+                                            changeSets.each { changeSet ->
+                                                echo "changeSet: ${changeSet}"
+                                                changeSet.items.each { item ->
+                                                    echo "commitId: ${item.commitId}"
+                                                }
+                                            }
 
+                                            
                                             changeSets.each { changeSet ->
                                                 changeSet.items.each { item ->
                                                     if (item.commitId == env.INGENIALINK_COMMIT_HASH) {
