@@ -168,8 +168,11 @@ pipeline {
 
                             if (branch) {
                                 branch.builds.each { build ->
-                                    def ingenialinkEnvVars = build.getEnvironment()
-                                    if (ingenialinkEnvVars.ORGINAL_GIT_COMMIT_HASH == env.INGENIALINK_COMMIT_HASH) {
+                                    copyArtifacts filter: 'git_commit_hash.txt', fingerprintArtifacts: true, projectName: "${fullBranchName}", selector: specific(build.number.toString())
+                                    def ingenialinkCommitHash = readFile('git_commit_hash.txt').trim()
+                                    echo "ingenialinkCommitHash: ${ingenialinkCommitHash}"
+                                    bat 'del git_commit_hash.txt'
+                                    if (ingenialinkCommitHash == env.INGENIALINK_COMMIT_HASH) {
                                             foundBuild = build
                                             foundBranch = fullBranchName
                                             return false
