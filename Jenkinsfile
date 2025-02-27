@@ -179,7 +179,8 @@ pipeline {
                                                 if (buildData) {
                                                     def revision = buildData.lastBuiltRevision
                                                     echo "revision: ${revision}"
-                                                    if (revision == env.INGENIALINK_COMMIT_HASH) {
+                                                    echo "revision.getSha1(): ${revision.getSha1()}"
+                                                    if (revision.getSha1() == env.INGENIALINK_COMMIT_HASH) {
                                                         foundBuild = build
                                                         foundBranch = fullBranchName
                                                         return false
