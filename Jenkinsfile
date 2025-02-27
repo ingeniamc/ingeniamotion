@@ -183,7 +183,7 @@ pipeline {
                                             if (buildData) {
                                                 def revision = buildData.lastBuiltRevision
                                                 echo "revision: ${revision}"
-                                                def buildCommitSHA = revision.SHA1
+                                                def buildCommitSHA = revision.getSha1()
                                                 echo "buildCommitSHA: ${buildCommitSHA}"
                                             }
 
