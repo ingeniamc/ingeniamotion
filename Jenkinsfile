@@ -164,32 +164,23 @@ pipeline {
 
                         sourceJob.getAllJobs().each { branchJob ->
                             def fullBranchName = sourceJob.fullName + '/' + branchJob.name
+                            def branch = Jenkins.instance.getItemByFullName(fullBranchName)
 
-                            // TODO: remove hardcoded PR
-                            if (branchJob.name == "PR-538") {
-                                def branch = Jenkins.instance.getItemByFullName(fullBranchName)
-
-                                if (branch) {
-                                    branch.builds.each { build ->
-
-                                        // TODO: remove hardcoded build number
-                                        if (build.number.toString() == "3") {
-                                            def allBuildData = build.getActions(hudson.plugins.git.util.BuildData.class)
-                                            allBuildData.each { buildData ->
-                                                if (buildData) {
-                                                    def revision = buildData.lastBuiltRevision
-                                                    if (revision.getSha1() == env.INGENIALINK_COMMIT_HASH) {
-                                                        foundBuild = build
-                                                        foundBranch = fullBranchName
-                                                        return false
-                                                    }
-                                                }
+                            if (branch) {
+                                branch.builds.each { build ->
+                                    def allBuildData = build.getActions(hudson.plugins.git.util.BuildData.class)
+                                    allBuildData.each { buildData ->
+                                        if (buildData) {
+                                            def revision = buildData.lastBuiltRevision
+                                            if (revision.getSha1() == env.INGENIALINK_COMMIT_HASH) {
+                                                foundBuild = build
+                                                foundBranch = fullBranchName
+                                                return false
                                             }
                                         }
                                     }
                                 }
                             }
-
                             
                         }
 
