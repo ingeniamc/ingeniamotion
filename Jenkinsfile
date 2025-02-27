@@ -155,6 +155,8 @@ pipeline {
             }
             steps {
                 script {
+                    import hudson.plugins.git.util.BuildData
+
                     def sourceJobName = 'Novanta Motion - Ingenia - Git/ingenialink-python'
                     def sourceJob = Jenkins.instance.getItemByFullName(sourceJobName)
 
@@ -175,6 +177,12 @@ pipeline {
                                         // TODO: remove hardcoded build number
                                         if (build.number.toString() == "3") {
                                             def changeSets = build.changeSets
+
+                                            def buildData = build.getAction(BuildData.class)
+                                            if (buildData) {
+                                                def revision = buildData.lastBuiltRevision
+                                                echo "revision: ${revision}"
+                                            }
 
                                             changeSets.each { changeSet ->
                                                 echo "changeSet: ${changeSet}"
