@@ -500,6 +500,9 @@ class Communication:
                 adapter_guid = adapter.name
             network_adapters.append(NetworkAdapter(adapter.index, adapter.nice_name, adapter_guid))
         if RUNNING_ON_WINDOWS:
+            ethernet_adapter_type = (
+                6  # https://learn.microsoft.com/en-us/windows/win32/api/ifdef/ns-ifdef-net_luid_lh
+            )
             network_adapters.extend(
                 [
                     NetworkAdapter(
@@ -514,7 +517,7 @@ class Communication:
                             ScanFlags.INCLUDE_ALL_INTERFACES,
                         ],
                     )
-                    if adapter.IfType == 6 and len(adapter.FirstUnicastAddress)
+                    if adapter.IfType == ethernet_adapter_type and len(adapter.FirstUnicastAddress)
                 ]
             )
         return {adapter.interface_name: adapter.interface_guid for adapter in network_adapters}
