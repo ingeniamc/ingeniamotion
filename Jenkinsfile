@@ -168,17 +168,24 @@ pipeline {
 
                             if (branch) {
                                 branch.builds.each { build ->
-                                    def allBuildData = build.getActions(hudson.plugins.git.util.BuildData.class)
-                                    allBuildData.each { buildData ->
-                                        if (buildData) {
-                                            def revision = buildData.lastBuiltRevision
-                                            if (revision.getSha1().name() == env.INGENIALINK_COMMIT_HASH) {
-                                                foundBuild = build
-                                                foundBranch = fullBranchName
-                                                return false
-                                            }
-                                        }
+                                    def ingenialinkEnvVars = build.getEnvironment()
+                                    if (ingenialinkEnvVars.ORGINAL_GIT_COMMIT_HASH == env.INGENIALINK_COMMIT_HASH) {
+                                            foundBuild = build
+                                            foundBranch = fullBranchName
+                                            return false
                                     }
+
+                                    // def allBuildData = build.getActions(hudson.plugins.git.util.BuildData.class)
+                                    // allBuildData.each { buildData ->
+                                    //     if (buildData) {
+                                    //         def revision = buildData.lastBuiltRevision
+                                    //         if (revision.getSha1().name() == env.INGENIALINK_COMMIT_HASH) {
+                                    //             foundBuild = build
+                                    //             foundBranch = fullBranchName
+                                    //             return false
+                                    //         }
+                                    //     }
+                                    // }
                                 }
                             }
                         }
