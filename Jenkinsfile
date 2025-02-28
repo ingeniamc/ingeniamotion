@@ -168,27 +168,22 @@ pipeline {
 
                             if (branch) {
                                 branch.builds.each { build ->
-                                    def ingenialinkEnvVars = build.getEnvironment(Jenkins.instance.createTaskListener())
-                                    if (branchJob.name == "PR-524" && foundBuild.number.toString() == "42") {
-                                        echo "ingenialinkEnvVars: ${ingenialinkEnvVars}"
+                                    def ingenialinkGitCommitHash = null
+                                    def description = build.getDescription() // All variables in the description should be separated by ;
+                                    if (description) {
+                                        def ingenialinkBuildVars = description.split(';').collectEntries { entry ->
+                                            def (key, value) = entry.split('=')
+                                            if key == "ORGINAL_GIT_COMMIT_HASH" {
+                                                ingenialinkGitCommitHash = value
+                                                return false
+                                            }
+                                        }
                                     }
-                                    if (ingenialinkEnvVars.ORGINAL_GIT_COMMIT_HASH == env.INGENIALINK_COMMIT_HASH) {
+                                    if (ingenialinkGitCommitHash == env.INGENIALINK_COMMIT_HASH) {
                                             foundBuild = build
                                             foundBranch = fullBranchName
                                             return false
                                     }
-
-                                    // def allBuildData = build.getActions(hudson.plugins.git.util.BuildData.class)
-                                    // allBuildData.each { buildData ->
-                                    //     if (buildData) {
-                                    //         def revision = buildData.lastBuiltRevision
-                                    //         if (revision.getSha1().name() == env.INGENIALINK_COMMIT_HASH) {
-                                    //             foundBuild = build
-                                    //             foundBranch = fullBranchName
-                                    //             return false
-                                    //         }
-                                    //     }
-                                    // }
                                 }
                             }
                         }
