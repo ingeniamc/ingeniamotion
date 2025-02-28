@@ -173,7 +173,7 @@ pipeline {
                                     if (description) {
                                         def ingenialinkBuildVars = description.split(';').collectEntries { entry ->
                                             def (key, value) = entry.split('=')
-                                            if key == "ORGINAL_GIT_COMMIT_HASH" {
+                                            if (key == "ORGINAL_GIT_COMMIT_HASH") {
                                                 ingenialinkGitCommitHash = value
                                                 return false
                                             }
