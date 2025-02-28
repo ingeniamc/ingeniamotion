@@ -161,30 +161,32 @@ pipeline {
                     if (sourceJob && sourceJob instanceof org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject) {
                         def foundBuild = null
                         def foundBranch = null
-
-                        sourceJob.getAllJobs().each { branchJob ->
+                        for (branchJob in sourceJob.getAllJobs()) {
                             def fullBranchName = sourceJob.fullName + '/' + branchJob.name
                             def branch = Jenkins.instance.getItemByFullName(fullBranchName)
 
                             if (branch) {
-                                branch.builds.each { build ->
+                                for (build in branch.builds) {
                                     def ingenialinkGitCommitHash = null
                                     def description = build.getDescription() // All variables in the description should be separated by ;
                                     if (description) {
-                                        def ingenialinkBuildVars = description.split(';').collectEntries { entry ->
+                                        for (entry in description.split(';')) {
                                             def (key, value) = entry.split('=')
                                             if (key == "ORGINAL_GIT_COMMIT_HASH") {
                                                 ingenialinkGitCommitHash = value
-                                                return false
+                                                break
                                             }
                                         }
                                     }
                                     if (ingenialinkGitCommitHash == env.INGENIALINK_COMMIT_HASH) {
-                                            foundBuild = build
-                                            foundBranch = fullBranchName
-                                            return false
+                                        foundBuild = build
+                                        foundBranch = fullBranchName
+                                        break
                                     }
                                 }
+                            }
+                            if (foundBuild) {
+                                break
                             }
                         }
 
