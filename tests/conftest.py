@@ -150,8 +150,8 @@ def motion_controller(tests_setup: Setup, pytestconfig, request):
 
         environment.reset()
         virtual_drive.stop()
-
-    raise NotImplementedError
+    else:
+        raise NotImplementedError
 
 
 @pytest.fixture(autouse=True)
