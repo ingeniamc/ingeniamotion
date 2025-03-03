@@ -233,7 +233,7 @@ class PDONetworkManager:
                 return
             self._notify_receive_process_data_callable()
 
-        def _notify_exceptions(self, exception: Exception) -> None:
+        def _notify_exceptions(self, exception: IMError) -> None:
             if self._notify_exceptions_callable is None:
                 return
             self._notify_exceptions_callable(exception)
