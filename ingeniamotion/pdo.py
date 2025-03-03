@@ -243,7 +243,7 @@ class PDONetworkManager:
             try:
                 self.__set_watchdog_timeout()
             except IMError as e:
-                self.__notify_exception(exception=e)
+                self._notify_exceptions(exception=e)
                 return
             first_iteration = True
             iteration_duration: float = -1
@@ -272,7 +272,7 @@ class PDONetworkManager:
                         )
                         else ""
                     )
-                    self.__notify_exception(
+                    self._notify_exceptions(
                         exception=IMError(
                             "Stopping the PDO thread due to the following exception:"
                             f" {il_error} {duration_error}"
@@ -280,7 +280,7 @@ class PDONetworkManager:
                     )
                 except ILError as il_error:
                     self._pd_thread_stop_event.set()
-                    self.__notify_exception(
+                    self._notify_exceptions(
                         exception=IMError(
                             f"Could not start the PDOs due to the following exception: {il_error}"
                         )
