@@ -391,8 +391,7 @@ class Monitoring(ABC):
     def _fill_data(self, data_array: list[list[Union[int, float]]]) -> None:
         drive = self.mc.servos[self.servo]
         for ch_idx, channel in enumerate(self.mapped_registers):
-            dtype = channel["dtype"]
-            tmp_monitor_data = drive.monitoring_channel_data(ch_idx, RegDtype(dtype))
+            tmp_monitor_data = drive.monitoring_channel_data(ch_idx)
             data_array[ch_idx] += tmp_monitor_data
 
     def stop_reading_data(self) -> None:
