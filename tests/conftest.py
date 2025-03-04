@@ -1,5 +1,8 @@
 import importlib
+import sys
 import time
+from pathlib import Path
+from typing import Optional, Union
 
 import numpy as np
 import pytest
@@ -11,7 +14,32 @@ from virtual_drive.core import VirtualDrive
 from ingeniamotion import MotionController
 from ingeniamotion.enums import SensorType
 
-from .setups.descriptors import (
+
+def dynamic_import(module_path: Union[Path, str], import_name: Optional[Union[str, list[str]]]):
+    if not isinstance(module_path, Path):
+        module_path = Path(module_path)
+    absolute_module_path = module_path.with_suffix(".py").resolve()
+    module_name = absolute_module_path.stem  # Get the module name without the .py extension
+
+    # Check if the module is already loaded
+    if module_name in sys.modules:
+        module = sys.modules[module_name]
+    # Load the module
+    else:
+        spec = importlib.util.spec_from_file_location(module_name, absolute_module_path)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        sys.modules[module_name] = module
+
+    # Get the method/variable
+    if import_name is None:
+        return module
+    if not isinstance(import_name, list):
+        return getattr(module, import_name)
+    return [getattr(module, n) for n in import_name]
+
+
+(
     DriveCanOpenSetup,
     DriveEcatSetup,
     DriveEthernetSetup,
@@ -19,11 +47,29 @@ from .setups.descriptors import (
     EthercatMultiSlaveSetup,
     Setup,
     VirtualDriveSetup,
+) = dynamic_import(
+    module_path="tests/setups/descriptors",
+    import_name=[
+        "DriveCanOpenSetup",
+        "DriveEcatSetup",
+        "DriveEthernetSetup",
+        "DriveHwSetup",
+        "EthercatMultiSlaveSetup",
+        "Setup",
+        "VirtualDriveSetup",
+    ],
 )
-from .setups.environment_control import (
+(
     ManualUserEnvironmentController,
     RackServiceEnvironmentController,
     VirtualDriveEnvironmentController,
+) = dynamic_import(
+    module_path="tests/setups/environment_control",
+    import_name=[
+        "ManualUserEnvironmentController",
+        "RackServiceEnvironmentController",
+        "VirtualDriveEnvironmentController",
+    ],
 )
 
 test_report_key = pytest.StashKey[dict[str, pytest.CollectReport]]()
@@ -49,13 +95,8 @@ def pytest_addoption(parser):
 
 @pytest.fixture(scope="session")
 def tests_setup(request) -> Setup:
-    # Get option from argument and split by dots (modules and last variable name)
-    setup_location = request.config.getoption("--setup").split(".")
-    # Dynamically import the python module
-    setup_module = importlib.import_module(".".join(setup_location[:-1]))
-    # Get the variable by variable name
-    setup = getattr(setup_module, setup_location[-1])
-    return setup
+    setup_location = Path(request.config.getoption("--setup").replace(".", "/"))
+    return dynamic_import(module_path=setup_location.parent, import_name=setup_location.name)
 
 
 def connect_ethernet(mc, config, alias):

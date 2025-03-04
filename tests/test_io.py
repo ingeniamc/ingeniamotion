@@ -2,8 +2,12 @@ import pytest
 
 from ingeniamotion.enums import GPI, GPO, DigitalVoltageLevel, GPIOPolarity
 from ingeniamotion.exceptions import IMError
+from tests.conftest import dynamic_import
 
-from .setups.rack_setups import CAN_CAP_SETUP, ECAT_CAP_SETUP, ETH_CAP_SETUP
+CAN_CAP_SETUP, ECAT_CAP_SETUP, ETH_CAP_SETUP = dynamic_import(
+    module_path="tests/setups/rack_setups",
+    import_name=["CAN_CAP_SETUP", "ECAT_CAP_SETUP", "ETH_CAP_SETUP"],
+)
 
 
 @pytest.mark.virtual
