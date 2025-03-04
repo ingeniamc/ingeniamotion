@@ -172,7 +172,7 @@ pipeline {
                                     if (description) {
                                         for (entry in description.split(';')) {
                                             def (key, value) = entry.split('=')
-                                            if (key == "ORGINAL_GIT_COMMIT_HASH") {
+                                            if (key == "ORIGINAL_GIT_COMMIT_HASH") {
                                                 ingenialinkGitCommitHash = value
                                                 break
                                             }
