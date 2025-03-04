@@ -22,14 +22,15 @@ def dynamic_import(module_path: Union[Path, str], import_name: Optional[Union[st
     module_name = absolute_module_path.stem  # Get the module name without the .py extension
 
     # Check if the module is already loaded
-    if module_name in sys.modules:
-        module = sys.modules[module_name]
+    sys_module_name = module_path.with_suffix("").as_posix().replace("/", ".")
+    if sys_module_name in sys.modules:
+        module = sys.modules[sys_module_name]
     # Load the module
     else:
         spec = importlib.util.spec_from_file_location(module_name, absolute_module_path)
         module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(module)
-        sys.modules[module_name] = module
+        sys.modules[sys_module_name] = module
 
     # Get the method/variable
     if import_name is None:
