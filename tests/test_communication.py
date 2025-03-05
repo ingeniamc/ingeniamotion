@@ -56,12 +56,9 @@ class EmcyTest:
 @pytest.mark.smoke
 @pytest.mark.canopen
 @pytest.mark.ethernet
-@pytest.mark.skipif(
-    platform.system() != "Windows",
-    reason=f"Skipping test, only available on Windows, platform={platform.system()}",
-)
 def test_get_network_adapters(mocker, tests_setup: Setup):
     """Tests networks adapters with Windows platform."""
+    is_windows = platform.system() != "Windows"
     if not isinstance(tests_setup, DriveEcatSetup):
         pytest.skip(f"Skipping because test setup is {type(tests_setup)}")
 
@@ -69,14 +66,18 @@ def test_get_network_adapters(mocker, tests_setup: Setup):
     expected_adapter_address = match.group(0) if match else None
     assert expected_adapter_address is not None
 
-    get_adapters_addresses_spy = mocker.spy(
-        "ingenialink.get_adapters_addresses.get_adapters_addresses"
+    get_adapters_addresses_spy = (
+        None
+        if not is_windows
+        else mocker.spy("ingenialink.get_adapters_addresses.get_adapters_addresses")
     )
 
     mc = MotionController()
-    assert get_adapters_addresses_spy.call_count == 0
+    if get_adapters_addresses_spy is not None:
+        assert get_adapters_addresses_spy.call_count == 0
     adapters = mc.communication.get_network_adapters()
-    assert get_adapters_addresses_spy.call_count == 1
+    if get_adapters_addresses_spy is not None:
+        assert get_adapters_addresses_spy.call_count == 1
 
     expected_adapter_address_found = False
     for interface_guid in adapters.values():
