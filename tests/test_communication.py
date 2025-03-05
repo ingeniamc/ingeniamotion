@@ -1,5 +1,6 @@
 import os
 import platform
+import sys
 import tempfile
 import time
 from collections import OrderedDict
@@ -321,7 +322,8 @@ def dummy_callback(status, _, axis):
 def test_subscribe_servo_status(mocker, motion_controller):
     mc, alias, environment = motion_controller
     axis = 1
-    patch_callback = mocker.patch("tests.test_communication.dummy_callback")
+    current_module = sys.modules[__name__]
+    patch_callback = mocker.patch.object(current_module, "dummy_callback")
     mc.communication.subscribe_servo_status(patch_callback, alias)
     time.sleep(0.5)
     mc.motion.motor_enable(alias, axis)
