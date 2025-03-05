@@ -182,6 +182,8 @@ class PDONetworkManager:
             refresh_rate: Determines how often (seconds) the PDO values will be updated.
             watchdog_timeout: The PDO watchdog time. If not provided it will be set proportional
              to the refresh rate.
+            pd_thread_finished_event: event to be set if the thread finishes.
+                It could be because it is stopped or because there is an error.
             notify_send_process_data: Callback to notify when process data is about to be sent.
             notify_receive_process_data: Callback to notify when process data is received.
             notify_exceptions: Callback to notify when an exception is raised.
@@ -204,11 +206,15 @@ class PDONetworkManager:
             net: EthercatNetwork,
             refresh_rate: Optional[float],
             watchdog_timeout: Optional[float],
+            pd_thread_finished_event: threading.Event,
             notify_send_process_data: Optional[Callable[[], None]] = None,
             notify_receive_process_data: Optional[Callable[[], None]] = None,
             notify_exceptions: Optional[Callable[[IMError], None]] = None,
         ) -> None:
             super().__init__()
+            # This event should be set whenever the thread finishes, so as to notify the model
+            self.__pd_thread_finished_event = pd_thread_finished_event
+
             self._net = net
             if refresh_rate is None:
                 refresh_rate = self.DEFAULT_PDO_REFRESH_TIME
@@ -223,6 +229,10 @@ class PDONetworkManager:
             self._notify_exceptions = notify_exceptions
             self._pd_thread_stop_event = threading.Event()
 
+        def __set_thread_finished_event(self) -> None:
+            if not self.__pd_thread_finished_event.is_set():
+                self.__pd_thread_finished_event.set()
+
         def run(self) -> None:
             """Start the PDO exchange."""
             try:
@@ -230,6 +240,7 @@ class PDONetworkManager:
             except IMError as e:
                 if self._notify_exceptions is not None:
                     self._notify_exceptions(e)
+                self.__set_thread_finished_event()
                 return
             first_iteration = True
             iteration_duration: float = -1
@@ -263,6 +274,7 @@ class PDONetworkManager:
                             f" {il_error} {duration_error}"
                         )
                         self._notify_exceptions(im_exception)
+                    self.__set_thread_finished_event()
                 except ILError as il_error:
                     self._pd_thread_stop_event.set()
                     if self._notify_exceptions is not None:
@@ -270,6 +282,7 @@ class PDONetworkManager:
                             f"Could not start the PDOs due to the following exception: {il_error}"
                         )
                         self._notify_exceptions(im_exception)
+                    self.__set_thread_finished_event()
                 else:
                     if self._notify_receive_process_data is not None:
                         self._notify_receive_process_data()
@@ -287,6 +300,7 @@ class PDONetworkManager:
             """Stop the PDO exchange."""
             self._pd_thread_stop_event.set()
             self._net.stop_pdos()
+            self.__set_thread_finished_event()
             self.join()
 
         @staticmethod
@@ -331,6 +345,7 @@ class PDONetworkManager:
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
         self._pdo_thread: Optional[PDONetworkManager.ProcessDataThread] = None
+        self._pdo_thread_finished_event: threading.Event = threading.Event()
         self._pdo_send_observers: list[Callable[[], None]] = []
         self._pdo_receive_observers: list[Callable[[], None]] = []
         self._pdo_exceptions_observers: list[Callable[[IMError], None]] = []
@@ -602,12 +617,13 @@ class PDONetworkManager:
         if not isinstance(net, EthercatNetwork):
             raise ValueError(f"Expected EthercatNetwork. Got {type(net)}")
         self._pdo_thread = self.ProcessDataThread(
-            net,
-            refresh_rate,
-            watchdog_timeout,
-            self._notify_send_process_data,
-            self._notify_receive_process_data,
-            self._notify_exceptions,
+            net=net,
+            refresh_rate=refresh_rate,
+            watchdog_timeout=watchdog_timeout,
+            pd_thread_finished_event=self._pdo_thread_finished_event,
+            notify_send_process_data=self._notify_send_process_data,
+            notify_receive_process_data=self._notify_receive_process_data,
+            notify_exceptions=self._notify_exceptions,
         )
         self._pdo_thread.start()
 
@@ -621,7 +637,7 @@ class PDONetworkManager:
         if self._pdo_thread is None:
             raise IMError("The PDO exchange has not started yet.")
         self._pdo_thread.stop()
-        self._pdo_thread = None
+        self.__reset_pdo_thread_reference(force_reset=True)
 
     @property
     def is_active(self) -> bool:
@@ -770,6 +786,16 @@ class PDONetworkManager:
         Args:
             exc: Exception that was raised in the PDO process data thread.
         """
+        # If there has been an error starting the thread, remove the reference to it
+        self.__reset_pdo_thread_reference()
         self.logger.error(exc)
         for callback in self._pdo_exceptions_observers:
             callback(exc)
+
+    def __reset_pdo_thread_reference(self, force_reset: bool = False) -> None:
+        if self._pdo_thread_finished_event.is_set():
+            self._pdo_thread_finished_event.clear()
+            self._pdo_thread = None
+            return
+        if force_reset:
+            self._pdo_thread = None
