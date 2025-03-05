@@ -136,7 +136,7 @@ def test_write_disturbance_data_not_configured(disturbance):
 @pytest.mark.usefixtures("disable_monitoring_disturbance")
 def test_write_disturbance_data_enabled(motion_controller, disturbance):
     mc, alias, environment = motion_controller
-    mc.capture.enable_monitoring_disturbance(alias)
+    mc.capture.enable_disturbance(alias)
     with pytest.raises(IMDisturbanceError):
         disturbance.write_disturbance_data([0] * 100)
 

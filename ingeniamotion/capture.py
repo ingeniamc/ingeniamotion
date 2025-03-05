@@ -345,6 +345,8 @@ class Capture:
 
         """
         drive = self.mc._get_drive(servo)
+        if drive.monitoring_get_num_mapped_registers() == 0:
+            raise IMMonitoringError("There are no registers mapped for monitoring.")
         drive.monitoring_enable()
         # Check monitoring status
         if not self.is_monitoring_enabled(servo=servo):
