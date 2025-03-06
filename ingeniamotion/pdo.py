@@ -182,8 +182,6 @@ class PDONetworkManager:
             refresh_rate: Determines how often (seconds) the PDO values will be updated.
             watchdog_timeout: The PDO watchdog time. If not provided it will be set proportional
              to the refresh rate.
-            pd_thread_finished_event: event to be set if the thread finishes.
-                It could be because it is stopped or because there is an error.
             notify_send_process_data: Callback to notify when process data is about to be sent.
             notify_receive_process_data: Callback to notify when process data is received.
             notify_exceptions: Callback to notify when an exception is raised.
@@ -206,14 +204,11 @@ class PDONetworkManager:
             net: EthercatNetwork,
             refresh_rate: Optional[float],
             watchdog_timeout: Optional[float],
-            pd_thread_finished_event: threading.Event,
             notify_send_process_data: Callable[[], None],
             notify_receive_process_data: Callable[[], None],
-            notify_exceptions: Callable[[IMError], None]],
+            notify_exceptions: Callable[[IMError], None],
         ) -> None:
             super().__init__()
-            # This event should be set whenever the thread finishes, so as to notify the model
-            self.__pd_thread_finished_event = pd_thread_finished_event
 
             self._net = net
             if refresh_rate is None:
@@ -229,16 +224,11 @@ class PDONetworkManager:
             self._notify_exceptions = notify_exceptions
             self._pd_thread_stop_event = threading.Event()
 
-        def __set_thread_finished_event(self) -> None:
-            if not self.__pd_thread_finished_event.is_set():
-                self.__pd_thread_finished_event.set()
-
         def run(self) -> None:
             """Start the PDO exchange."""
             try:
                 self.__set_watchdog_timeout()
             except IMError as e:
-                self.__set_thread_finished_event()
                 self._notify_exceptions(e)
                 return
             first_iteration = True
@@ -253,7 +243,6 @@ class PDONetworkManager:
                     else:
                         self._net.send_receive_processdata(self._refresh_rate)
                 except ILWrongWorkingCountError as il_error:
-                    self.__set_thread_finished_event()
                     self._pd_thread_stop_event.set()
                     self._net.stop_pdos()
                     duration_error = ""
@@ -267,16 +256,19 @@ class PDONetworkManager:
                             f"({self._watchdog_timeout * 1000:0.1f} ms). Please optimize the"
                             f" callbacks and/or increase the refresh rate/watchdog timeout."
                         )
-                    self._notify_exceptions(IMError(
-                        "Stopping the PDO thread due to the following exception:"
-                        f" {il_error} {duration_error}"
-                    ))
+                    self._notify_exceptions(
+                        IMError(
+                            "Stopping the PDO thread due to the following exception:"
+                            f" {il_error} {duration_error}"
+                        )
+                    )
                 except ILError as il_error:
-                    self.__set_thread_finished_event()
                     self._pd_thread_stop_event.set()
-                    self._notify_exceptions(IMError(
-                        f"Could not start the PDOs due to the following exception: {il_error}"
-                    ))
+                    self._notify_exceptions(
+                        IMError(
+                            f"Could not start the PDOs due to the following exception: {il_error}"
+                        )
+                    )
                 else:
                     self._notify_receive_process_data()
                     while (
@@ -293,7 +285,6 @@ class PDONetworkManager:
             """Stop the PDO exchange."""
             self._pd_thread_stop_event.set()
             self._net.stop_pdos()
-            self.__set_thread_finished_event()
             self.join()
 
         @staticmethod
@@ -338,7 +329,6 @@ class PDONetworkManager:
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
         self._pdo_thread: Optional[PDONetworkManager.ProcessDataThread] = None
-        self._pdo_thread_finished_event: threading.Event = threading.Event()
         self._pdo_send_observers: list[Callable[[], None]] = []
         self._pdo_receive_observers: list[Callable[[], None]] = []
         self._pdo_exceptions_observers: list[Callable[[IMError], None]] = []
@@ -613,7 +603,6 @@ class PDONetworkManager:
             net=net,
             refresh_rate=refresh_rate,
             watchdog_timeout=watchdog_timeout,
-            pd_thread_finished_event=self._pdo_thread_finished_event,
             notify_send_process_data=self._notify_send_process_data,
             notify_receive_process_data=self._notify_receive_process_data,
             notify_exceptions=self._notify_exceptions,
@@ -630,7 +619,7 @@ class PDONetworkManager:
         if self._pdo_thread is None:
             raise IMError("The PDO exchange has not started yet.")
         self._pdo_thread.stop()
-        self.__reset_pdo_thread_reference(force_reset=True)
+        self._pdo_thread = None
 
     @property
     def is_active(self) -> bool:
@@ -782,12 +771,4 @@ class PDONetworkManager:
         self.logger.error(exc)
         for callback in self._pdo_exceptions_observers:
             callback(exc)
-        self._pdo_thread = None # If there has been an error, remove the pdo thread reference
-
-    def __reset_pdo_thread_reference(self, force_reset: bool = False) -> None:
-        if self._pdo_thread_finished_event.is_set():
-            self._pdo_thread_finished_event.clear()
-            self._pdo_thread = None
-            return
-        if force_reset:
-            self._pdo_thread = None
+        self._pdo_thread = None  # If there has been an error, remove the pdo thread reference
