@@ -207,9 +207,9 @@ class PDONetworkManager:
             refresh_rate: Optional[float],
             watchdog_timeout: Optional[float],
             pd_thread_finished_event: threading.Event,
-            notify_send_process_data: Optional[Callable[[], None]] = None,
-            notify_receive_process_data: Optional[Callable[[], None]] = None,
-            notify_exceptions: Optional[Callable[[IMError], None]] = None,
+            notify_send_process_data: Callable[[], None],
+            notify_receive_process_data: Callable[[], None],
+            notify_exceptions: Callable[[IMError], None]],
         ) -> None:
             super().__init__()
             # This event should be set whenever the thread finishes, so as to notify the model
@@ -239,15 +239,13 @@ class PDONetworkManager:
                 self.__set_watchdog_timeout()
             except IMError as e:
                 self.__set_thread_finished_event()
-                if self._notify_exceptions is not None:
-                    self._notify_exceptions(e)
+                self._notify_exceptions(e)
                 return
             first_iteration = True
             iteration_duration: float = -1
             while not self._pd_thread_stop_event.is_set():
                 time_start = time.perf_counter()
-                if self._notify_send_process_data is not None:
-                    self._notify_send_process_data()
+                self._notify_send_process_data()
                 try:
                     if first_iteration:
                         self._net.start_pdos()
@@ -269,23 +267,18 @@ class PDONetworkManager:
                             f"({self._watchdog_timeout * 1000:0.1f} ms). Please optimize the"
                             f" callbacks and/or increase the refresh rate/watchdog timeout."
                         )
-                    if self._notify_exceptions is not None:
-                        im_exception = IMError(
-                            "Stopping the PDO thread due to the following exception:"
-                            f" {il_error} {duration_error}"
-                        )
-                        self._notify_exceptions(im_exception)
+                    self._notify_exceptions(IMError(
+                        "Stopping the PDO thread due to the following exception:"
+                        f" {il_error} {duration_error}"
+                    ))
                 except ILError as il_error:
                     self.__set_thread_finished_event()
                     self._pd_thread_stop_event.set()
-                    if self._notify_exceptions is not None:
-                        im_exception = IMError(
-                            f"Could not start the PDOs due to the following exception: {il_error}"
-                        )
-                        self._notify_exceptions(im_exception)
+                    self._notify_exceptions(IMError(
+                        f"Could not start the PDOs due to the following exception: {il_error}"
+                    ))
                 else:
-                    if self._notify_receive_process_data is not None:
-                        self._notify_receive_process_data()
+                    self._notify_receive_process_data()
                     while (
                         remaining_loop_time := self._refresh_rate
                         - (time.perf_counter() - time_start)
@@ -789,8 +782,7 @@ class PDONetworkManager:
         self.logger.error(exc)
         for callback in self._pdo_exceptions_observers:
             callback(exc)
-        # If there has been an error starting the thread, remove the reference to it
-        self.__reset_pdo_thread_reference()
+        self._pdo_thread = None # If there has been an error, remove the pdo thread reference
 
     def __reset_pdo_thread_reference(self, force_reset: bool = False) -> None:
         if self._pdo_thread_finished_event.is_set():
