@@ -176,7 +176,6 @@ def test_pdos_watchdog_exception_auto(motion_controller):
     mc.capture.pdo.start_pdos(CommunicationType.Ethercat, refresh_rate)
     time.sleep(1)
     mc.capture.pdo.unsubscribe_to_exceptions(exception_callback)
-    mc.capture.pdo.stop_pdos()
     assert len(exceptions) > 0
     exception = exceptions[0]
     assert str(exception) == "The sampling time is too high. The max sampling time is 3276.75 ms."
@@ -195,7 +194,6 @@ def test_pdos_watchdog_exception_manual(motion_controller):
     mc.capture.pdo.start_pdos(CommunicationType.Ethercat, watchdog_timeout=watchdog_timeout)
     time.sleep(1)
     mc.capture.pdo.unsubscribe_to_exceptions(exception_callback)
-    mc.capture.pdo.stop_pdos()
     assert len(exceptions) > 0
     exception = exceptions[0]
     assert (

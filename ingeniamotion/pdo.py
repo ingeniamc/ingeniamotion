@@ -238,9 +238,9 @@ class PDONetworkManager:
             try:
                 self.__set_watchdog_timeout()
             except IMError as e:
+                self.__set_thread_finished_event()
                 if self._notify_exceptions is not None:
                     self._notify_exceptions(e)
-                self.__set_thread_finished_event()
                 return
             first_iteration = True
             iteration_duration: float = -1
@@ -255,6 +255,7 @@ class PDONetworkManager:
                     else:
                         self._net.send_receive_processdata(self._refresh_rate)
                 except ILWrongWorkingCountError as il_error:
+                    self.__set_thread_finished_event()
                     self._pd_thread_stop_event.set()
                     self._net.stop_pdos()
                     duration_error = ""
@@ -274,15 +275,14 @@ class PDONetworkManager:
                             f" {il_error} {duration_error}"
                         )
                         self._notify_exceptions(im_exception)
-                    self.__set_thread_finished_event()
                 except ILError as il_error:
+                    self.__set_thread_finished_event()
                     self._pd_thread_stop_event.set()
                     if self._notify_exceptions is not None:
                         im_exception = IMError(
                             f"Could not start the PDOs due to the following exception: {il_error}"
                         )
                         self._notify_exceptions(im_exception)
-                    self.__set_thread_finished_event()
                 else:
                     if self._notify_receive_process_data is not None:
                         self._notify_receive_process_data()
@@ -786,11 +786,11 @@ class PDONetworkManager:
         Args:
             exc: Exception that was raised in the PDO process data thread.
         """
-        # If there has been an error starting the thread, remove the reference to it
-        self.__reset_pdo_thread_reference()
         self.logger.error(exc)
         for callback in self._pdo_exceptions_observers:
             callback(exc)
+        # If there has been an error starting the thread, remove the reference to it
+        self.__reset_pdo_thread_reference()
 
     def __reset_pdo_thread_reference(self, force_reset: bool = False) -> None:
         if self._pdo_thread_finished_event.is_set():
