@@ -74,35 +74,25 @@ class STOTest(BaseTest[LegacyDictReportType]):
 
     @override
     def loop(self) -> ResultType:
-        if self.mc.configuration.is_sto1_active(servo=self.servo, axis=self.axis):
-            self.logger.info("STO1 bit is LOW")
         # Check STO1 status --> Check bit 0 (0x1 in HEX)
-        else:
-            self.logger.info("STO1 bit is HIGH")
+        sto1_active = self.mc.configuration.is_sto1_active(servo=self.servo, axis=self.axis)
+        self.logger.info(f"STO1 bit is {'LOW' if sto1_active else 'HIGH'}")
 
-        if self.mc.configuration.is_sto2_active(servo=self.servo, axis=self.axis):
-            self.logger.info("STO2 bit is LOW")
         # Check STO2 status --> Check bit 1 (0x2 in HEX)
-        else:
-            self.logger.info("STO2 bit is HIGH")
+        sto2_active = self.mc.configuration.is_sto2_active(servo=self.servo, axis=self.axis)
+        self.logger.info(f"STO2 bit is {'LOW' if sto2_active else 'HIGH'}")
 
         # Check STO supply fault status --> Check bit 2 (0x4 in HEX)
         sto_power_supply = self.mc.configuration.check_sto_power_supply(
             servo=self.servo, axis=self.axis
         )
-        if sto_power_supply == 0:
-            self.logger.info("STO Power Supply is LOW")
-        else:
-            self.logger.info("STO Power Supply is HIGH")
+        self.logger.info(f"STO Power Supply is {'LOW' if sto_power_supply == 0 else 'HIGH'}")
 
         # Check STO abnormal fault status --> Check bit 3 (0x8 in HEX)
         sto_abnormal_fault = self.mc.configuration.is_sto_abnormal_fault(
             servo=self.servo, axis=self.axis
         )
-        if not sto_abnormal_fault:
-            self.logger.info("STO abnormal fault bit is LOW")
-        else:
-            self.logger.info("STO abnormal fault bit is HIGH")
+        self.logger.info(f"STO abnormal fault bit is {'LOW' if sto_abnormal_fault else 'HIGH'}")
 
         # Check STO abnormal latch status --> Check bits 3(0x8 in HEX), 1(0x2) & 0(0x1)
         sto_abnormal_latch = self.mc.configuration.is_sto_abnormal_latched(
@@ -111,10 +101,7 @@ class STOTest(BaseTest[LegacyDictReportType]):
 
         # Check STO report --> Check bit 4 (0x10 in HEX)
         sto_report_bit = self.mc.configuration.get_sto_report_bit(servo=self.servo, axis=self.axis)
-        if not sto_report_bit:
-            self.logger.info("STO report is LOW")
-        else:
-            self.logger.info("STO report is HIGH")
+        self.logger.info(f"STO report is {'LOW' if sto_report_bit else 'HIGH'}")
 
         # Check STO STATE
         if self.mc.configuration.is_sto_active(servo=self.servo, axis=self.axis):
@@ -132,9 +119,8 @@ class STOTest(BaseTest[LegacyDictReportType]):
         elif self.mc.configuration.is_sto_inactive(servo=self.servo, axis=self.axis):
             # STO Status in Inactive State --> STO Inactive
             return self.ResultType.STO_INACTIVE
-        else:
-            # STO Unknown state
-            return self.ResultType.STO_INPUTS_DIFFER
+        # STO Unknown state
+        return self.ResultType.STO_INPUTS_DIFFER
 
     @override
     def get_result_msg(self, output: ResultType) -> str:

@@ -126,6 +126,17 @@ def connect_canopen(mc, config: DriveCanOpenSetup, alias):
     )
 
 
+def __connect_to_servo_with_protocol(mc, tests_setup, alias):
+    if isinstance(tests_setup, DriveEcatSetup):
+        connect_soem(mc, tests_setup, alias)
+    elif isinstance(tests_setup, DriveCanOpenSetup):
+        connect_canopen(mc, tests_setup, alias)
+    elif isinstance(tests_setup, DriveEthernetSetup):
+        connect_ethernet(mc, tests_setup, alias)
+    else:
+        raise NotImplementedError
+
+
 @pytest.fixture(scope="session")
 def motion_controller(tests_setup: Setup, pytestconfig, request):
     alias = "test"
@@ -141,14 +152,7 @@ def motion_controller(tests_setup: Setup, pytestconfig, request):
         else:
             environment = ManualUserEnvironmentController(pytestconfig)
 
-        if isinstance(tests_setup, DriveEcatSetup):
-            connect_soem(mc, tests_setup, alias)
-        elif isinstance(tests_setup, DriveCanOpenSetup):
-            connect_canopen(mc, tests_setup, alias)
-        elif isinstance(tests_setup, DriveEthernetSetup):
-            connect_ethernet(mc, tests_setup, alias)
-        else:
-            raise NotImplementedError
+        __connect_to_servo_with_protocol(mc, tests_setup, alias)
 
         if tests_setup.config_file is not None:
             mc.configuration.restore_configuration(servo=alias)
@@ -177,6 +181,7 @@ def motion_controller(tests_setup: Setup, pytestconfig, request):
 
         yield mc, aliases, environment
         environment.reset()
+
     elif isinstance(tests_setup, VirtualDriveSetup):
         virtual_drive = VirtualDrive(tests_setup.port, tests_setup.dictionary)
         virtual_drive.start()
