@@ -1,5 +1,6 @@
 import os
 import platform
+import re
 import tempfile
 import time
 from collections import OrderedDict
@@ -23,18 +24,7 @@ from ingeniamotion.exceptions import (
     IMRegisterWrongAccessError,
 )
 
-from .setups.descriptors import DriveCanOpenSetup, EthernetSetup, Setup
-
-
-@pytest.fixture
-def adapters_module():
-    current_platform = platform.system()
-    if current_platform == "Windows":
-        import ingenialink.get_adapters_addresses as adapters
-
-        return adapters
-    pytest.skip(f"Skipping test, only available on Windows, platform={current_platform}")
-
+from .setups.descriptors import DriveCanOpenSetup, DriveEcatSetup, EthernetSetup, Setup
 
 TEST_ENSEMBLE_FW_FILE = "tests/resources/example_ensemble_fw.zfu"
 
@@ -63,13 +53,38 @@ class EmcyTest:
         self.messages.append((alias, emcy_msg))
 
 
-@pytest.mark.ethernet
-@pytest.mark.canopen
 @pytest.mark.smoke
-def test_get_network_adapters(adapters_module):
+@pytest.mark.canopen
+@pytest.mark.ethernet
+def test_get_network_adapters(mocker, tests_setup: Setup):
     """Tests networks adapters with Windows platform."""
-    addresses = adapters_module.get_adapters_addresses()
-    assert not len(addresses)
+    is_windows = platform.system() != "Windows"
+    if not isinstance(tests_setup, DriveEcatSetup):
+        pytest.skip(f"Skipping because test setup is {type(tests_setup)}")
+
+    match = re.search(r"\{[^}]*\}", tests_setup.ifname)
+    expected_adapter_address = match.group(0) if match else None
+    assert expected_adapter_address is not None
+
+    get_adapters_addresses_spy = (
+        None
+        if not is_windows
+        else mocker.spy("ingenialink.get_adapters_addresses.get_adapters_addresses")
+    )
+
+    mc = MotionController()
+    if get_adapters_addresses_spy is not None:
+        assert get_adapters_addresses_spy.call_count == 0
+    adapters = mc.communication.get_network_adapters()
+    if get_adapters_addresses_spy is not None:
+        assert get_adapters_addresses_spy.call_count == 1
+
+    expected_adapter_address_found = False
+    for interface_guid in adapters.values():
+        if interface_guid == expected_adapter_address:
+            expected_adapter_address_found = True
+            break
+    assert expected_adapter_address_found is True
 
 
 @pytest.mark.virtual
