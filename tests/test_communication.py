@@ -26,7 +26,7 @@ from ingeniamotion.exceptions import (
 )
 from tests.conftest import dynamic_import
 
-DriveCanOpenSetup, EthernetSetup, Setup = dynamic_import(
+DriveCanOpenSetup, DriveEcatSetup, EthernetSetup, Setup = dynamic_import(
     module_path="tests/setups/descriptors",
     import_name=["DriveCanOpenSetup", "DriveEcatSetup", "EthernetSetup", "Setup"],
 )
