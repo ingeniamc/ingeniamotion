@@ -116,6 +116,38 @@ class Monitoring(ABC):
             self.MONITORING_FREQUENCY_DIVIDER_REGISTER, prescaler, servo=self.servo, axis=0
         )
 
+    def __set_registers_dtype(
+        self, registers: list[dict[str, Union[int, str, RegDtype]]]
+    ) -> list[dict[str, Union[int, str, RegDtype]]]:
+        """Sets the appropriate type for each register.
+
+        Args:
+            registers: List of registers to map.
+
+        Raises:
+            TypeError: If the subnode is not an integer.
+            TypeError: If the register is not a string.
+            IMMonitoringError: If the register cannot be mapped as a monitoring register.
+
+        Returns:
+            register with dtype information.
+        """
+        for channel in registers:
+            subnode = channel.get("axis", DEFAULT_AXIS)
+            if not isinstance(subnode, int):
+                raise TypeError("Subnode has to be an integer")
+            register = channel["name"]
+            if not isinstance(register, str):
+                raise TypeError("Register has to be a string")
+            register_obj = self.mc.info.register_info(register, subnode, servo=self.servo)
+            if register_obj.cyclic not in [RegCyclicType.TX, RegCyclicType.TXRX]:
+                raise IMMonitoringError(
+                    f"{register} can not be mapped as a monitoring register (wrong cyclic)"
+                )
+            dtype = register_obj.dtype
+            channel["dtype"] = dtype
+        return registers
+
     @check_monitoring_disabled
     def map_registers(self, registers: list[dict[str, Union[int, str, RegDtype]]]) -> None:
         """Map registers to monitoring. Monitoring must be disabled.
@@ -141,22 +173,7 @@ class Monitoring(ABC):
         """
         drive = self.mc.servos[self.servo]
         drive.monitoring_remove_all_mapped_registers()
-
-        for channel in registers:
-            subnode = channel.get("axis", DEFAULT_AXIS)
-            if not isinstance(subnode, int):
-                raise TypeError("Subnode has to be an integer")
-            register = channel["name"]
-            if not isinstance(register, str):
-                raise TypeError("Register has to be a string")
-            register_obj = self.mc.info.register_info(register, subnode, servo=self.servo)
-            if register_obj.cyclic not in [RegCyclicType.TX, RegCyclicType.TXRX]:
-                raise IMMonitoringError(
-                    f"{register} can not be mapped as a monitoring register (wrong cyclic)"
-                )
-            dtype = register_obj.dtype
-            channel["dtype"] = dtype
-
+        registers = self.__set_registers_dtype(registers=registers)
         self._check_buffer_size_is_enough(
             self.samples_number, self.trigger_delay_samples, registers
         )

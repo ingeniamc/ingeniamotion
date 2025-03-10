@@ -15,6 +15,7 @@ select = [
     "UP", # pyupgrade
     "T10", # Flake8 Debugger
     "C4", # flake8 comprehensions
+    "C90", # mccabe complexity
     "A", # flake8 builtins shadowing
     "ISC", # flake8 implicit string concatenation
     "LOG", # flake8 logging
