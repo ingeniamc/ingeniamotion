@@ -219,10 +219,25 @@ class PDONetworkManager:
                 )
             self._refresh_rate = refresh_rate
             self._watchdog_timeout = watchdog_timeout
-            self._notify_send_process_data = notify_send_process_data
-            self._notify_receive_process_data = notify_receive_process_data
-            self._notify_exceptions = notify_exceptions
+            self._notify_send_process_data_callable = notify_send_process_data
+            self._notify_receive_process_data_callable = notify_receive_process_data
+            self._notify_exceptions_callable = notify_exceptions
             self._pd_thread_stop_event = threading.Event()
+
+        def _notify_send_process_data(self) -> None:
+            if self._notify_send_process_data_callable is None:
+                return
+            self._notify_send_process_data_callable()
+
+        def _notify_receive_process_data(self) -> None:
+            if self._notify_receive_process_data_callable is None:
+                return
+            self._notify_receive_process_data_callable()
+
+        def _notify_exceptions(self, exception: IMError) -> None:
+            if self._notify_exceptions_callable is None:
+                return
+            self._notify_exceptions_callable(exception)
 
         def run(self) -> None:
             """Start the PDO exchange."""
@@ -245,17 +260,19 @@ class PDONetworkManager:
                 except ILWrongWorkingCountError as il_error:
                     self._pd_thread_stop_event.set()
                     self._net.stop_pdos()
-                    duration_error = ""
-                    if (
-                        self._watchdog_timeout is not None
-                        and iteration_duration > self._watchdog_timeout
-                    ):
-                        duration_error = (
+                    duration_error = (
+                        (
                             f"Last iteration took {iteration_duration * 1000:0.1f} ms which is "
                             f"higher than the watchdog timeout "
                             f"({self._watchdog_timeout * 1000:0.1f} ms). Please optimize the"
                             f" callbacks and/or increase the refresh rate/watchdog timeout."
                         )
+                        if (
+                            self._watchdog_timeout is not None
+                            and iteration_duration > self._watchdog_timeout
+                        )
+                        else ""
+                    )
                     self._notify_exceptions(
                         IMError(
                             "Stopping the PDO thread due to the following exception:"
