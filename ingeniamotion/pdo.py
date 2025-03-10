@@ -204,11 +204,12 @@ class PDONetworkManager:
             net: EthercatNetwork,
             refresh_rate: Optional[float],
             watchdog_timeout: Optional[float],
-            notify_send_process_data: Optional[Callable[[], None]] = None,
-            notify_receive_process_data: Optional[Callable[[], None]] = None,
-            notify_exceptions: Optional[Callable[[IMError], None]] = None,
+            notify_send_process_data: Callable[[], None],
+            notify_receive_process_data: Callable[[], None],
+            notify_exceptions: Callable[[IMError], None],
         ) -> None:
             super().__init__()
+
             self._net = net
             if refresh_rate is None:
                 refresh_rate = self.DEFAULT_PDO_REFRESH_TIME
@@ -218,32 +219,17 @@ class PDONetworkManager:
                 )
             self._refresh_rate = refresh_rate
             self._watchdog_timeout = watchdog_timeout
-            self._notify_send_process_data_callable = notify_send_process_data
-            self._notify_receive_process_data_callable = notify_receive_process_data
-            self._notify_exceptions_callable = notify_exceptions
+            self._notify_send_process_data = notify_send_process_data
+            self._notify_receive_process_data = notify_receive_process_data
+            self._notify_exceptions = notify_exceptions
             self._pd_thread_stop_event = threading.Event()
-
-        def _notify_send_process_data(self) -> None:
-            if self._notify_send_process_data_callable is None:
-                return
-            self._notify_send_process_data_callable()
-
-        def _notify_receive_process_data(self) -> None:
-            if self._notify_receive_process_data_callable is None:
-                return
-            self._notify_receive_process_data_callable()
-
-        def _notify_exceptions(self, exception: IMError) -> None:
-            if self._notify_exceptions_callable is None:
-                return
-            self._notify_exceptions_callable(exception)
 
         def run(self) -> None:
             """Start the PDO exchange."""
             try:
                 self.__set_watchdog_timeout()
             except IMError as e:
-                self._notify_exceptions(exception=e)
+                self._notify_exceptions(e)
                 return
             first_iteration = True
             iteration_duration: float = -1
@@ -273,7 +259,7 @@ class PDONetworkManager:
                         else ""
                     )
                     self._notify_exceptions(
-                        exception=IMError(
+                        IMError(
                             "Stopping the PDO thread due to the following exception:"
                             f" {il_error} {duration_error}"
                         )
@@ -281,7 +267,7 @@ class PDONetworkManager:
                 except ILError as il_error:
                     self._pd_thread_stop_event.set()
                     self._notify_exceptions(
-                        exception=IMError(
+                        IMError(
                             f"Could not start the PDOs due to the following exception: {il_error}"
                         )
                     )
@@ -616,12 +602,12 @@ class PDONetworkManager:
         if not isinstance(net, EthercatNetwork):
             raise ValueError(f"Expected EthercatNetwork. Got {type(net)}")
         self._pdo_thread = self.ProcessDataThread(
-            net,
-            refresh_rate,
-            watchdog_timeout,
-            self._notify_send_process_data,
-            self._notify_receive_process_data,
-            self._notify_exceptions,
+            net=net,
+            refresh_rate=refresh_rate,
+            watchdog_timeout=watchdog_timeout,
+            notify_send_process_data=self._notify_send_process_data,
+            notify_receive_process_data=self._notify_receive_process_data,
+            notify_exceptions=self._notify_exceptions,
         )
         self._pdo_thread.start()
 
@@ -787,3 +773,4 @@ class PDONetworkManager:
         self.logger.error(exc)
         for callback in self._pdo_exceptions_observers:
             callback(exc)
+        self._pdo_thread = None  # If there has been an error, remove the pdo thread reference
