@@ -27,7 +27,7 @@ Please describe the tests that you ran to verify your changes if it applies.
 Please update the documentation.
 
 - [ ] Update docstrings of every function, method or class that change.
-- [ ] USe [type hints](https://docs.python.org/3/library/typing.html) for every function and argument.
+- [ ] Use [type hints](https://docs.python.org/3/library/typing.html) for every function and argument.
 - [ ] Build documentation locally to verify changes.
 - [ ] Add the changes at the `[Unreleased]` section of the [CHANGELOG](CHANGELOG.md).
 
