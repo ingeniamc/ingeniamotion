@@ -26,17 +26,6 @@ from ingeniamotion.exceptions import (
 )
 from tests.setups.descriptors import DriveCanOpenSetup, DriveEcatSetup, EthernetSetup, Setup
 
-
-@pytest.fixture
-def adapters_module():
-    current_platform = platform.system()
-    if current_platform == "Windows":
-        import ingenialink.get_adapters_addresses as adapters
-
-        return adapters
-    pytest.skip(f"Skipping test, only available on Windows, platform={current_platform}")
-
-
 TEST_ENSEMBLE_FW_FILE = "tests/resources/example_ensemble_fw.zfu"
 
 
