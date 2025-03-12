@@ -28,6 +28,8 @@ from .setups.environment_control import (
 
 test_report_key = pytest.StashKey[dict[str, pytest.CollectReport]]()
 
+SLEEP_BETWEEN_POWER_CYCLE_S = 5
+
 
 def pytest_addoption(parser):
     parser.addoption(
@@ -296,7 +298,7 @@ def load_firmware(tests_setup: Setup, request):
 
     # Reboot drive
     client.exposed_turn_off_ps()
-    time.sleep(1)
+    time.sleep(SLEEP_BETWEEN_POWER_CYCLE_S)
     client.exposed_turn_on_ps()
 
     # Wait for all drives to turn-on, for 90 seconds
