@@ -9,11 +9,7 @@ from packaging import version
 
 from ingeniamotion.enums import CommunicationType, OperationMode
 from ingeniamotion.exceptions import IMError
-from tests.conftest import dynamic_import
-
-EthercatMultiSlaveSetup = dynamic_import(
-    module_path="tests/setups/descriptors", import_name="EthercatMultiSlaveSetup"
-)
+from tests.setups.descriptors import EthercatMultiSlaveSetup
 
 
 @pytest.mark.soem

@@ -6,6 +6,18 @@ from ingenialink import CanBaudrate, CanDevice
 from ingenialink.exceptions import ILFirmwareLoadError
 from ingenialink.pdo import RPDOMap, TPDOMap
 
+from examples.change_baudrate import change_baudrate
+from examples.change_node_id import change_node_id
+from examples.commutation_test_encoders import main as main_commutation_test_encoders
+from examples.connect_ecat_coe import connect_ethercat_coe
+from examples.load_fw_canopen import load_firmware_canopen
+from examples.load_save_config_register_changes import (
+    main as main_load_save_config_register_changes,
+)
+from examples.load_save_configuration import main as main_load_save_configuration
+from examples.pdo_poller_example import main as set_up_pdo_poller
+from examples.position_ramp import main as main_position_ramp
+from examples.process_data_object import main as main_process_data_object
 from ingeniamotion import MotionController
 from ingeniamotion.communication import Communication
 from ingeniamotion.configuration import Configuration
@@ -14,42 +26,13 @@ from ingeniamotion.enums import SeverityLevel
 from ingeniamotion.information import Information
 from ingeniamotion.motion import Motion
 from ingeniamotion.pdo import PDONetworkManager, PDOPoller
-from tests.conftest import connect_canopen, connect_ethernet, connect_soem, dynamic_import
-
-DriveCanOpenSetup, DriveEcatSetup, DriveEthernetSetup, EthernetSetup, Setup = dynamic_import(
-    module_path="tests/setups/descriptors",
-    import_name=[
-        "DriveCanOpenSetup",
-        "DriveEcatSetup",
-        "DriveEthernetSetup",
-        "EthernetSetup",
-        "Setup",
-    ],
-)
-
-change_baudrate = dynamic_import(
-    module_path="examples/change_baudrate", import_name="change_baudrate"
-)
-change_node_id = dynamic_import(module_path="examples/change_node_id", import_name="change_node_id")
-main_commutation_test_encoders = dynamic_import(
-    module_path="examples/commutation_test_encoders", import_name="main"
-)
-connect_ethercat_coe = dynamic_import(
-    module_path="examples/connect_ecat_coe", import_name="connect_ethercat_coe"
-)
-load_firmware_canopen = dynamic_import(
-    module_path="examples/load_fw_canopen", import_name="load_firmware_canopen"
-)
-main_load_save_config_register_changes = dynamic_import(
-    module_path="examples/load_save_config_register_changes", import_name="main"
-)
-main_load_save_configuration = dynamic_import(
-    module_path="examples/load_save_configuration", import_name="main"
-)
-set_up_pdo_poller = dynamic_import(module_path="examples/pdo_poller_example", import_name="main")
-main_position_ramp = dynamic_import(module_path="examples/position_ramp", import_name="main")
-main_process_data_object = dynamic_import(
-    module_path="examples/process_data_object", import_name="main"
+from tests.conftest import connect_canopen, connect_ethernet, connect_soem
+from tests.setups.descriptors import (
+    DriveCanOpenSetup,
+    DriveEcatSetup,
+    DriveEthernetSetup,
+    EthernetSetup,
+    Setup,
 )
 
 

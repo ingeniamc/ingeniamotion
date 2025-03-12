@@ -24,12 +24,7 @@ from ingeniamotion.exceptions import (
     IMRegisterNotExistError,
     IMRegisterWrongAccessError,
 )
-from tests.conftest import dynamic_import
-
-DriveCanOpenSetup, DriveEcatSetup, EthernetSetup, Setup = dynamic_import(
-    module_path="tests/setups/descriptors",
-    import_name=["DriveCanOpenSetup", "DriveEcatSetup", "EthernetSetup", "Setup"],
-)
+from tests.setups.descriptors import DriveCanOpenSetup, DriveEcatSetup, EthernetSetup, Setup
 
 
 @pytest.fixture

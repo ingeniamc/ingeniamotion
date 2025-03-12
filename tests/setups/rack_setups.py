@@ -1,13 +1,8 @@
-from tests.conftest import dynamic_import
-
-DriveCanOpenSetup, DriveEcatSetup, DriveEthernetSetup, EthercatMultiSlaveSetup = dynamic_import(
-    module_path="tests/setups/descriptors",
-    import_name=[
-        "DriveCanOpenSetup",
-        "DriveEcatSetup",
-        "DriveEthernetSetup",
-        "EthercatMultiSlaveSetup",
-    ],
+from tests.setups.descriptors import (
+    DriveCanOpenSetup,
+    DriveEcatSetup,
+    DriveEthernetSetup,
+    EthercatMultiSlaveSetup,
 )
 
 ETH_EVE_SETUP = DriveEthernetSetup(
