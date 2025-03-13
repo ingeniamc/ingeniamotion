@@ -301,7 +301,7 @@ pipeline {
                                             restoreIngenialinkWheelEnvVar()
                                         }
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
-                                                "-m \"not ethernet and not soem and not canopen and not virtual and not soem_multislave\" "
+                                                "-m \"not ethernet and not soem and not canopen and not virtual and not soem_multislave\" " +
                                                 "--cov "
                                     }
                                     post {
@@ -324,7 +324,7 @@ pipeline {
                                         }
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
                                                 "-m virtual " +
-                                                "--setup tests.setups.virtual_drive.TESTS_SETUP "
+                                                "--setup tests.setups.virtual_drive.TESTS_SETUP " +
                                                 "--cov "
                                     }
                                     post {
