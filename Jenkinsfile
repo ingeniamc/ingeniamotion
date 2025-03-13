@@ -236,6 +236,9 @@ pipeline {
                     stages {
                         stage('Run no-connection tests') {
                             steps {
+                                script {
+                                    restoreIngenialinkWheelEnvVar()
+                                }
                                 sh "python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
                                     "-m virtual " +
                                     "--setup tests.setups.virtual_drive.TESTS_SETUP"
