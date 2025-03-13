@@ -1,11 +1,6 @@
 [run]
 relative_files = True
 omit = tests/*
-source =
-    .tox/py39/Lib/site-packages/ingeniamotion
-    .tox/py310/Lib/site-packages/ingeniamotion
-    .tox/py311/Lib/site-packages/ingeniamotion
-    .tox/py312/Lib/site-packages/ingeniamotion
 
 ; Specify that all these paths should be considered as a single package, otherwise
 ; it would duplicate the lines for each python version that has coverage data
