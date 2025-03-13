@@ -1,4 +1,4 @@
-from .descriptors import (
+from tests.setups.descriptors import (
     DriveCanOpenSetup,
     DriveEcatSetup,
     DriveEthernetSetup,

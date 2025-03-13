@@ -9,8 +9,7 @@ from packaging import version
 
 from ingeniamotion.enums import CommunicationType, OperationMode
 from ingeniamotion.exceptions import IMError
-
-from .setups.descriptors import EthercatMultiSlaveSetup
+from tests.setups.descriptors import EthercatMultiSlaveSetup
 
 
 @pytest.mark.soem

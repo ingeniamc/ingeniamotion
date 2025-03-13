@@ -68,7 +68,6 @@ def runTestHW(markers, setup_name) {
             bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
                     "-m \"${markers}\" " +
                     "--setup tests.setups.rack_setups.${setup_name} " +
-                    "--cov=ingeniamotion " +
                     "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${setup_name}\""
         } catch (err) {
             unstable(message: "Tests failed")
@@ -237,6 +236,9 @@ pipeline {
                     stages {
                         stage('Run no-connection tests') {
                             steps {
+                                script {
+                                    restoreIngenialinkWheelEnvVar()
+                                }
                                 sh "python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
                                     "-m virtual " +
                                     "--setup tests.setups.virtual_drive.TESTS_SETUP"
@@ -298,8 +300,7 @@ pipeline {
                                             restoreIngenialinkWheelEnvVar()
                                         }
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
-                                                "-m \"not ethernet and not soem and not canopen and not virtual and not soem_multislave\" " +
-                                                "--cov=ingeniamotion"
+                                                "-m \"not ethernet and not soem and not canopen and not virtual and not soem_multislave\" "
                                     }
                                     post {
                                         always {
@@ -321,8 +322,7 @@ pipeline {
                                         }
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
                                                 "-m virtual " +
-                                                "--setup tests.setups.virtual_drive.TESTS_SETUP "  +
-                                                "--cov=ingeniamotion"
+                                                "--setup tests.setups.virtual_drive.TESTS_SETUP "
                                     }
                                     post {
                                         always {
