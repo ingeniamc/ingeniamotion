@@ -353,19 +353,8 @@ class FSoEMaster:
     SAFETY_ADDRESS_REGISTER = EthercatRegister(
         idx=0x4193, subidx=0x00, dtype=RegDtype.U16, access=RegAccess.RW
     )
-    SAFE_INPUTS_MAP_REGISTER = EthercatRegister(
-        identifier="SAFE_INPUTS_MAP",
-        idx=0x46D2,
-        subidx=0x00,
-        dtype=RegDtype.U16,
-        access=RegAccess.RW,
-    )
-    SS1_TIME_TO_STO_REGISTER = EthercatRegister(
-        identifier="SS1_TIME_TO_STO",
-        idx=0x6651,
-        subidx=0x01,
-        dtype=RegDtype.U16,
-        access=RegAccess.RW,
+    CONFIGURED_MODULE_IDENT_1_REGISTER = EthercatRegister(
+        idx=0xF030, subidx=0x01, dtype=RegDtype.U32, access=RegAccess.RW
     )
 
     def __init__(self, motion_controller: "MotionController") -> None:
@@ -658,16 +647,21 @@ class FSoEMaster:
     def _get_application_parameters(self, servo: str) -> list["ApplicationParameter"]:
         """Get values of the application parameters."""
         drive = self.__mc.servos[servo]
+
+        moudle_ident = drive.read(self.CONFIGURED_MODULE_IDENT_1_REGISTER)
+        safety_module = drive.dictionary.get_safety_module(module_ident=moudle_ident)
+
         application_parameters = []
-        for register in [
-            self.SAFE_INPUTS_MAP_REGISTER,
-            self.SS1_TIME_TO_STO_REGISTER,
-        ]:
+        for param in safety_module.application_parameters:
+            register = self.__mc.communication.get_register(
+                register=param.uid, servo=servo, axis=4
+            )  # TODO: safety subnode should not be hardcoded
             register_size_bytes, _ = dtype_value[register.dtype]
-            application_parameter = ApplicationParameter(
-                name=register.identifier,
-                initial_value=drive.read(register),
-                n_bytes=register_size_bytes,
+            application_parameters.append(
+                ApplicationParameter(
+                    name=register.identifier,
+                    initial_value=drive.read(register),
+                    n_bytes=register_size_bytes,
+                )
             )
-            application_parameters.append(application_parameter)
         return application_parameters
