@@ -645,11 +645,20 @@ class FSoEMaster:
         )
 
     def _get_application_parameters(self, servo: str) -> list["ApplicationParameter"]:
-        """Get values of the application parameters."""
+        """Get values of the application parameters.
+
+        Returns:
+            List of application parameters.
+
+        Raises:
+            NotImplementedError: if the safety module uses SRA.
+        """
         drive = self.__mc.servos[servo]
 
         moudle_ident = drive.read(self.CONFIGURED_MODULE_IDENT_1_REGISTER)
         safety_module = drive.dictionary.get_safety_module(module_ident=moudle_ident)
+        if safety_module.uses_sra:
+            raise NotImplementedError("Safety module with SRA is not available.")
 
         application_parameters = []
         for param in safety_module.application_parameters:
