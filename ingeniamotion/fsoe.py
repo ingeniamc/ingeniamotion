@@ -24,6 +24,7 @@ except ImportError:
 else:
     FSOE_MASTER_INSTALLED = True
 
+from ingenialink.dictionary import DictionarySafetyModule
 from ingenialink.enums.register import RegAccess, RegDtype
 from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
@@ -503,6 +504,37 @@ class FSoEMaster:
         drive = self.__mc._get_drive(servo)
         drive.write(self.SAFETY_ADDRESS_REGISTER, data=address)
 
+    def __get_configured_module_ident_1(self, servo: str = DEFAULT_SERVO) -> int:
+        """Gets the configured Module Ident 1.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+
+        Returns:
+            Configured Module Ident 1.
+        """
+        drive = self.__mc._get_drive(servo)
+        return drive.read(self.CONFIGURED_MODULE_IDENT_1_REGISTER)
+
+    def __get_safety_module(self, servo: str = DEFAULT_SERVO) -> DictionarySafetyModule:
+        """Gets the configured Module Ident 1.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+
+        Returns:
+            Safety module.
+
+        Raises:
+            NotImplementedError: if the safety module uses SRA.
+        """
+        drive = self.__mc._get_drive(servo)
+        module_ident = self.__get_configured_module_ident_1(servo=servo)
+        safety_module = drive.dictionary.get_safety_module(module_ident=module_ident)
+        if safety_module.uses_sra:
+            raise NotImplementedError("Safety module with SRA is not available.")
+        return safety_module
+
     def check_sto_active(self, servo: str = DEFAULT_SERVO) -> bool:
         """Check if the STO is active in a given servo.
 
@@ -649,16 +681,9 @@ class FSoEMaster:
 
         Returns:
             List of application parameters.
-
-        Raises:
-            NotImplementedError: if the safety module uses SRA.
         """
         drive = self.__mc.servos[servo]
-
-        moudle_ident = drive.read(self.CONFIGURED_MODULE_IDENT_1_REGISTER)
-        safety_module = drive.dictionary.get_safety_module(module_ident=moudle_ident)
-        if safety_module.uses_sra:
-            raise NotImplementedError("Safety module with SRA is not available.")
+        safety_module = self.__get_safety_module(servo=servo)
 
         application_parameters = []
         for param in safety_module.application_parameters:
