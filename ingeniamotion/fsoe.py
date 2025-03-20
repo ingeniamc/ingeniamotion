@@ -687,9 +687,9 @@ class FSoEMaster:
 
         application_parameters = []
         for param in safety_module.application_parameters:
-            register = self.__mc.communication.get_register(
-                register=param.uid, servo=servo, axis=4
-            )  # TODO: safety subnode should not be hardcoded
+            register = self.__mc.info.register_info(
+                register=param.uid, axis=4, servo=servo
+            )  # Safety subnode should not be hardcoded
             register_size_bytes, _ = dtype_value[register.dtype]
             application_parameters.append(
                 ApplicationParameter(
