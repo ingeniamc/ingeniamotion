@@ -25,8 +25,6 @@ else:
     FSOE_MASTER_INSTALLED = True
 
 from ingenialink.dictionary import DictionarySafetyModule
-from ingenialink.enums.register import RegAccess, RegDtype
-from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 from ingenialink.utils._utils import dtype_value
 
@@ -351,12 +349,8 @@ class FSoEMaster:
 
     DEFAULT_WATCHDOG_TIMEOUT_S = 1
 
-    SAFETY_ADDRESS_REGISTER = EthercatRegister(
-        idx=0x4193, subidx=0x00, dtype=RegDtype.U16, access=RegAccess.RW
-    )
-    CONFIGURED_MODULE_IDENT_1_REGISTER = EthercatRegister(
-        idx=0xF030, subidx=0x01, dtype=RegDtype.U32, access=RegAccess.RW
-    )
+    FSOE_TOTAL_ERROR = "FSOE_TOTAL_ERROR"
+    MDP_CONFIGURED_MODULE_1 = "MDP_CONFIGURED_MODULE_1"
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.logger = ingenialogger.get_logger(__name__)
@@ -488,7 +482,7 @@ class FSoEMaster:
 
         """
         drive = self.__mc._get_drive(servo)
-        value = drive.read(self.SAFETY_ADDRESS_REGISTER)
+        value = drive.read(self.FSOE_TOTAL_ERROR)
         if not isinstance(value, int):
             raise ValueError(f"Wrong safety address value type. Expected int, got {type(value)}")
         return value
@@ -502,7 +496,7 @@ class FSoEMaster:
 
         """
         drive = self.__mc._get_drive(servo)
-        drive.write(self.SAFETY_ADDRESS_REGISTER, data=address)
+        drive.write(self.FSOE_TOTAL_ERROR, data=address)
 
     def __get_configured_module_ident_1(self, servo: str = DEFAULT_SERVO) -> int:
         """Gets the configured Module Ident 1.
@@ -514,7 +508,7 @@ class FSoEMaster:
             Configured Module Ident 1.
         """
         drive = self.__mc._get_drive(servo)
-        return drive.read(self.CONFIGURED_MODULE_IDENT_1_REGISTER)
+        return drive.read(reg=self.MDP_CONFIGURED_MODULE_1, subnode=0)
 
     def __get_safety_module(self, servo: str = DEFAULT_SERVO) -> DictionarySafetyModule:
         """Gets the configured Module Ident 1.
@@ -687,9 +681,7 @@ class FSoEMaster:
 
         application_parameters = []
         for param in safety_module.application_parameters:
-            register = self.__mc.info.register_info(
-                register=param.uid, axis=4, servo=servo
-            )  # Safety subnode should not be hardcoded
+            register = self.__mc.info.register_info(register=param.uid, axis=0, servo=servo)
             register_size_bytes, _ = dtype_value[register.dtype]
             application_parameters.append(
                 ApplicationParameter(
