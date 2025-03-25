@@ -1,7 +1,7 @@
 import threading
 from dataclasses import dataclass
 from functools import partial
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import ingenialogger
 
@@ -498,7 +498,9 @@ class FSoEMaster:
         drive = self.__mc._get_drive(servo)
         drive.write(self.FSOE_TOTAL_ERROR, data=address)
 
-    def __get_configured_module_ident_1(self, servo: str = DEFAULT_SERVO) -> int:
+    def __get_configured_module_ident_1(
+        self, servo: str = DEFAULT_SERVO
+    ) -> Union[int, float, str, bytes]:
         """Gets the configured Module Ident 1.
 
         Args:
@@ -523,7 +525,7 @@ class FSoEMaster:
             NotImplementedError: if the safety module uses SRA.
         """
         drive = self.__mc._get_drive(servo)
-        module_ident = self.__get_configured_module_ident_1(servo=servo)
+        module_ident = int(self.__get_configured_module_ident_1(servo=servo))
         safety_module = drive.dictionary.get_safety_module(module_ident=module_ident)
         if safety_module.uses_sra:
             raise NotImplementedError("Safety module with SRA is not available.")
