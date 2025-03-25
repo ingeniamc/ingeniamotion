@@ -76,10 +76,6 @@ class BaseTest(ABC, Stoppable, Generic[T]):
             for key, value in self.backup_registers[subnode].items():
                 try:
                     self.mc.communication.set_register(key, value, servo=self.servo, axis=self.axis)
-                    # From FW>=2.7.3, to set the operation mode a motor enable is needed
-                    if key == self.mc.motion.OPERATION_MODE_REGISTER:
-                        self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
-                        self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
                 except IMRegisterNotExistError as e:  # noqa: PERF203
                     self.logger.warning(e, axis=subnode)
                 except IMRegisterWrongAccessError as e:
