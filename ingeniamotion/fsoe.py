@@ -481,8 +481,7 @@ class FSoEMaster:
             The FSoE slave address.
 
         """
-        drive = self.__mc._get_drive(servo)
-        value = drive.read(self.FSOE_TOTAL_ERROR)
+        value = self.__mc.communication.get_register(register=self.FSOE_TOTAL_ERROR, servo=servo)
         if not isinstance(value, int):
             raise ValueError(f"Wrong safety address value type. Expected int, got {type(value)}")
         return value
@@ -495,8 +494,9 @@ class FSoEMaster:
             servo: servo alias to reference it. ``default`` by default.
 
         """
-        drive = self.__mc._get_drive(servo)
-        drive.write(self.FSOE_TOTAL_ERROR, data=address)
+        self.__mc.communication.set_register(
+            register=self.FSOE_TOTAL_ERROR, value=address, servo=servo
+        )
 
     def __get_configured_module_ident_1(
         self, servo: str = DEFAULT_SERVO
@@ -509,8 +509,9 @@ class FSoEMaster:
         Returns:
             Configured Module Ident 1.
         """
-        drive = self.__mc._get_drive(servo)
-        return drive.read(reg=self.MDP_CONFIGURED_MODULE_1, subnode=0)
+        return self.__mc.communication.get_register(
+            register=self.MDP_CONFIGURED_MODULE_1, servo=servo, axis=0
+        )
 
     def __get_safety_module(self, servo: str = DEFAULT_SERVO) -> DictionarySafetyModule:
         """Gets the configured Module Ident 1.
