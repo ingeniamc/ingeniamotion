@@ -156,7 +156,7 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
             raise TypeError("Pair poles has to be set before resolution checking.")
         if self.feedback_resolution is None:
             raise TypeError("Feedback resolution has to be set before resolution checking.")
-        displacement = displacement * self.pair_poles
+        displacement = displacement
         self.logger.info("RESOLUTION CHECK")
         self.logger.info("Theoretical resolution: %.0f", self.feedback_resolution)
         self.logger.info("Detected resolution (pos): %.0f", abs(displacement))
@@ -257,9 +257,9 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         self.feedback_setting()
 
         self.mc.motion.set_internal_generator_configuration(
-            OperationMode.CURRENT, servo=self.servo, axis=self.axis
+            OperationMode.CURRENT, servo=self.servo, axis=self.axis, pole_pair=self.pair_poles
         )
-        self.logger.info("Set pair poles to 1")
+        self.logger.info(f"Pole pairs set to {self.pair_poles}")
         self.logger.info("Mode of operation set to Current mode")
         self.logger.info("Set phasing mode to No phasing")
         self.logger.info("Target quadrature current set to zero")

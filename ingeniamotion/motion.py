@@ -704,7 +704,11 @@ class Motion:
                 raise IMTimeoutError("Velocity was not reached in time")
 
     def set_internal_generator_configuration(
-        self, op_mode: OperationMode, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
+        self,
+        op_mode: OperationMode,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+        poles_pair: int = 1,
     ) -> None:
         """Set internal generator configuration.
 
@@ -719,6 +723,7 @@ class Motion:
              for internal generator configuration.
             servo : servo alias to reference it. ``default`` by default.
             axis : servo axis. ``1`` by default.
+            poles_pair: motor poles pair. ``1`` by default.
 
         Raises:
             ValueError: If operation mode is not set to Current or Voltage.
@@ -727,7 +732,7 @@ class Motion:
         if op_mode not in [OperationMode.CURRENT, OperationMode.VOLTAGE]:
             raise ValueError("Operation mode must be Current or Voltage")
         self.set_operation_mode(op_mode, servo=servo, axis=axis)
-        self.mc.configuration.set_motor_pair_poles(1, servo=servo, axis=axis)
+        self.mc.configuration.set_motor_pair_poles(poles_pair, servo=servo, axis=axis)
         self.mc.configuration.set_phasing_mode(PhasingMode.NO_PHASING, servo=servo, axis=axis)
         if op_mode == OperationMode.CURRENT:
             self.set_current_quadrature(0, servo=servo, axis=axis)
