@@ -529,7 +529,7 @@ class FSoEMaster:
         module_ident = int(self.__get_configured_module_ident_1(servo=servo))
         safety_module = drive.dictionary.get_safety_module(module_ident=module_ident)
         if safety_module.uses_sra:
-            raise NotImplementedError("Safety module with SRA is not available.")
+            self.logger.warning("Safety module with SRA is not available.")
         return safety_module
 
     def check_sto_active(self, servo: str = DEFAULT_SERVO) -> bool:
@@ -678,9 +678,15 @@ class FSoEMaster:
 
         Returns:
             List of application parameters.
+
+        Raises:
+            NotImplementedError: if the safety module has SRA.
         """
         drive = self.__mc.servos[servo]
         safety_module = self.__get_safety_module(servo=servo)
+
+        if safety_module.uses_sra:
+            raise NotImplementedError("Safety module with SRA is not available.")
 
         application_parameters = []
         for param in safety_module.application_parameters:
