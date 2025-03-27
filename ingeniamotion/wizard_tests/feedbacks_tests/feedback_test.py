@@ -260,7 +260,7 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         self.__set_positioning_register_values()
         # Default resolution multiplier
         self.__set_resolution_multiplier()
-        # Read pole pairs and set to 1 for an electrical revolution
+        # Read pole pairs to perform a full revolution
         self.pair_poles = self.mc.configuration.get_motor_pair_poles(
             servo=self.servo, axis=self.axis
         )
