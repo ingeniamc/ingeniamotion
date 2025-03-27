@@ -1134,9 +1134,15 @@ class Configuration(Homing, Feedbacks):
 
         Raises:
             TypeError: If the read vendor ID has the wrong type.
+            ValueError: If axis ID not in [0, 1].
 
         """
-        register = self.VENDOR_ID_COCO_REGISTER if axis == 0 else self.VENDOR_ID_REGISTER
+        if axis == 0:
+            register = self.VENDOR_ID_COCO_REGISTER
+        elif axis == 1:
+            register = self.VENDOR_ID_REGISTER
+        else:
+            raise ValueError(f"Vendor ID cannot be retrieved for {axis=}")
         vendor_id = self.mc.communication.get_register(register, servo, axis)
         if not isinstance(vendor_id, int):
             raise TypeError(
