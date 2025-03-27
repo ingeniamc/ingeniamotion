@@ -861,6 +861,7 @@ def test_store_restore_tcp_ip_parameters_exception(mocker, motion_controller, fu
     [
         (0, SubnodeType.COCO),
         (1, SubnodeType.MOCO),
+        (4, SubnodeType.SACO),
     ],
 )
 @pytest.mark.virtual
