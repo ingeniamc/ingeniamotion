@@ -8,6 +8,7 @@
 ### Changed
 - Renamed the `TYPE_SUBNODES` and `COMMUNICATION_TYPE` enums to follow CapWords convention. Old names are still supported, but will soon be deprecated.
 - Renamed the `IMException`, `IMRegisterNotExist` and `IMRegisterWrongAccess` exceptions to `IMError`, `IMRegisterNotExistError` and `IMRegisterWrongAccessError` respectively. Old names are still supported, but will soon be deprecated.
+- Feedback test to perform a full revolution.
 
 ## [0.9.0] - 2025-01-29
 ### Added
