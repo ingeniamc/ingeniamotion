@@ -34,6 +34,7 @@ class SubnodeType(IntEnum):
 
     COCO = 0
     MOCO = 1
+    SACO = 4
 
 
 class MACAddressConverter:
@@ -1031,7 +1032,7 @@ class Configuration(Homing, Feedbacks):
         """
         if axis < 0:
             raise ValueError("There are no subnodes with negative values")
-        return SubnodeType.COCO if axis == 0 else SubnodeType.MOCO
+        return SubnodeType(axis)
 
     def get_product_code(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
         """Get the product code of a drive.
