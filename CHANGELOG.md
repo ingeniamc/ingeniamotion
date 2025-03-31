@@ -4,6 +4,7 @@
 ### Added
 - Methods to scan Ethernet drives.
 - Error-raised timeout to motor_enable
+- No-GIL support for EtherCAT functions.
 
 ### Changed
 - Renamed the `TYPE_SUBNODES` and `COMMUNICATION_TYPE` enums to follow CapWords convention. Old names are still supported, but will soon be deprecated.
