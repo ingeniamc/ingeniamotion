@@ -1,7 +1,7 @@
 import threading
 from dataclasses import dataclass
 from functools import partial
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import ingenialogger
 
@@ -24,8 +24,7 @@ except ImportError:
 else:
     FSOE_MASTER_INSTALLED = True
 
-from ingenialink.enums.register import RegAccess, RegDtype
-from ingenialink.ethercat.register import EthercatRegister
+from ingenialink.dictionary import DictionarySafetyModule
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 from ingenialink.utils._utils import dtype_value
 
@@ -350,23 +349,8 @@ class FSoEMaster:
 
     DEFAULT_WATCHDOG_TIMEOUT_S = 1
 
-    SAFETY_ADDRESS_REGISTER = EthercatRegister(
-        idx=0x4193, subidx=0x00, dtype=RegDtype.U16, access=RegAccess.RW
-    )
-    SAFE_INPUTS_MAP_REGISTER = EthercatRegister(
-        identifier="SAFE_INPUTS_MAP",
-        idx=0x46D2,
-        subidx=0x00,
-        dtype=RegDtype.U16,
-        access=RegAccess.RW,
-    )
-    SS1_TIME_TO_STO_REGISTER = EthercatRegister(
-        identifier="SS1_TIME_TO_STO",
-        idx=0x6651,
-        subidx=0x01,
-        dtype=RegDtype.U16,
-        access=RegAccess.RW,
-    )
+    __FSOE_TOTAL_ERROR = "FSOE_TOTAL_ERROR"
+    __MDP_CONFIGURED_MODULE_1 = "MDP_CONFIGURED_MODULE_1"
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.logger = ingenialogger.get_logger(__name__)
@@ -497,8 +481,7 @@ class FSoEMaster:
             The FSoE slave address.
 
         """
-        drive = self.__mc._get_drive(servo)
-        value = drive.read(self.SAFETY_ADDRESS_REGISTER)
+        value = self.__mc.communication.get_register(register=self.__FSOE_TOTAL_ERROR, servo=servo)
         if not isinstance(value, int):
             raise ValueError(f"Wrong safety address value type. Expected int, got {type(value)}")
         return value
@@ -511,8 +494,43 @@ class FSoEMaster:
             servo: servo alias to reference it. ``default`` by default.
 
         """
+        self.__mc.communication.set_register(
+            register=self.__FSOE_TOTAL_ERROR, value=address, servo=servo
+        )
+
+    def __get_configured_module_ident_1(
+        self, servo: str = DEFAULT_SERVO
+    ) -> Union[int, float, str, bytes]:
+        """Gets the configured Module Ident 1.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+
+        Returns:
+            Configured Module Ident 1.
+        """
+        return self.__mc.communication.get_register(
+            register=self.__MDP_CONFIGURED_MODULE_1, servo=servo, axis=0
+        )
+
+    def __get_safety_module(self, servo: str = DEFAULT_SERVO) -> DictionarySafetyModule:
+        """Gets the configured Module Ident 1.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+
+        Returns:
+            Safety module.
+
+        Raises:
+            NotImplementedError: if the safety module uses SRA.
+        """
         drive = self.__mc._get_drive(servo)
-        drive.write(self.SAFETY_ADDRESS_REGISTER, data=address)
+        module_ident = int(self.__get_configured_module_ident_1(servo=servo))
+        safety_module = drive.dictionary.get_safety_module(module_ident=module_ident)
+        if safety_module.uses_sra:
+            self.logger.warning("Safety module with SRA is not available.")
+        return safety_module
 
     def check_sto_active(self, servo: str = DEFAULT_SERVO) -> bool:
         """Check if the STO is active in a given servo.
@@ -656,18 +674,29 @@ class FSoEMaster:
         )
 
     def _get_application_parameters(self, servo: str) -> list["ApplicationParameter"]:
-        """Get values of the application parameters."""
+        """Get values of the application parameters.
+
+        Returns:
+            List of application parameters.
+
+        Raises:
+            NotImplementedError: if the safety module has SRA.
+        """
         drive = self.__mc.servos[servo]
+        safety_module = self.__get_safety_module(servo=servo)
+
+        if safety_module.uses_sra:
+            raise NotImplementedError("Safety module with SRA is not available.")
+
         application_parameters = []
-        for register in [
-            self.SAFE_INPUTS_MAP_REGISTER,
-            self.SS1_TIME_TO_STO_REGISTER,
-        ]:
+        for param in safety_module.application_parameters:
+            register = self.__mc.info.register_info(register=param.uid, axis=0, servo=servo)
             register_size_bytes, _ = dtype_value[register.dtype]
-            application_parameter = ApplicationParameter(
-                name=register.identifier,
-                initial_value=drive.read(register),
-                n_bytes=register_size_bytes,
+            application_parameters.append(
+                ApplicationParameter(
+                    name=register.identifier,
+                    initial_value=drive.read(register),
+                    n_bytes=register_size_bytes,
+                )
             )
-            application_parameters.append(application_parameter)
         return application_parameters
