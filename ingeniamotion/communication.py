@@ -19,7 +19,7 @@ from ingenialink.emcy import EmergencyMessage
 from ingenialink.enums.register import RegAccess, RegDtype
 from ingenialink.enums.servo import ServoState
 from ingenialink.eoe.network import EoENetwork
-from ingenialink.ethercat.network import EthercatNetwork
+from ingenialink.ethercat.network import EthercatNetwork, GilReleaseConfig
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.exceptions import ILError
 from ingenialink.network import SlaveInfo
@@ -687,6 +687,7 @@ class Communication:
         alias: str = DEFAULT_SERVO,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
+        gil_release_config: GilReleaseConfig = GilReleaseConfig(),
     ) -> None:
         r"""Connect to an EtherCAT slave - CoE.
 
@@ -700,6 +701,7 @@ class Communication:
                 its status, errors, faults, etc.
             net_status_listener : Toggle the listener of the network
                 status, connection and disconnection.
+            gil_release_config: GIL release configuration.
 
         Raises:
             FileNotFoundError: If the dict file doesn't exist.
@@ -708,7 +710,9 @@ class Communication:
         if not path.isfile(dict_path):
             raise FileNotFoundError(f"Dict file {dict_path} does not exist!")
         if interface_name not in self.mc.net:
-            self.mc.net[interface_name] = EthercatNetwork(interface_name)
+            self.mc.net[interface_name] = EthercatNetwork(
+                interface_name, gil_release_config=gil_release_config
+            )
         net = self.mc.net[interface_name]
         try:
             servo = net.connect_to_slave(
@@ -792,7 +796,7 @@ class Communication:
 
     @staticmethod
     def scan_servos_ethercat_with_info(
-        interface_name: str,
+        interface_name: str, gil_release_config: GilReleaseConfig = GilReleaseConfig()
     ) -> OrderedDict[int, SlaveInfo]:
         r"""Scan a network adapter.
 
@@ -801,6 +805,7 @@ class Communication:
         Args:
             interface_name : interface name. It should have format
                 ``\\Device\\NPF_[...]``.
+            gil_release_config: GIL release configuration.
 
         Returns:
             Dictionary of nodes available in the network and slave information.
@@ -808,19 +813,19 @@ class Communication:
         Raises:
             TypeError: If some parameter has a wrong type.
         """
-        net = EthercatNetwork(interface_name)
+        net = EthercatNetwork(interface_name, gil_release_config=gil_release_config)
         slaves_info = net.scan_slaves_info()
         return slaves_info
 
     def scan_servos_ethercat(
-        self,
-        interface_name: str,
+        self, interface_name: str, gil_release_config: GilReleaseConfig = GilReleaseConfig()
     ) -> list[int]:
         r"""Scan a network adapter to get all connected EtherCAT slaves.
 
         Args:
             interface_name : interface name. It should have format
                 ``\\Device\\NPF_[...]``.
+            gil_release_config: GIL release configuration.
 
         Returns:
             List of EtherCAT slaves available in the network.
@@ -828,7 +833,7 @@ class Communication:
         Raises:
             TypeError: If some parameter has a wrong type.
         """
-        net = EthercatNetwork(interface_name)
+        net = EthercatNetwork(interface_name, gil_release_config=gil_release_config)
         slaves = net.scan_slaves()
         return slaves
 
@@ -1329,6 +1334,7 @@ class Communication:
         slave: int = 1,
         boot_in_app: Optional[bool] = None,
         password: Optional[int] = None,
+        gil_release_config: GilReleaseConfig = GilReleaseConfig(),
     ) -> None:
         r"""Load firmware via ECAT.
 
@@ -1341,6 +1347,7 @@ class Communication:
                 If None, the file extension is used to define it.
             password: Password to load the firmware file. If ``None`` the default password will be
                 used.
+            gil_release_config: GIL release config.
 
         Raises:
             FileNotFoundError: If the firmware file cannot be found.
@@ -1349,7 +1356,7 @@ class Communication:
             ingenialink.exceptions.ILFirmwareLoadError: If the FoE write operation fails.
 
         """
-        net = EthercatNetwork(ifname)
+        net = EthercatNetwork(ifname, gil_release_config=gil_release_config)
         if fw_file.endswith(self.ENSEMBLE_FIRMWARE_EXTENSION):
             self.__load_ensemble_fw_ecat(net, fw_file, slave, boot_in_app, password)
         else:
