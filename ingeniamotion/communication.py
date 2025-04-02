@@ -1370,6 +1370,7 @@ class Communication:
         slave: int = 1,
         boot_in_app: Optional[bool] = None,
         password: Optional[int] = None,
+        gil_release_config: GilReleaseConfig = GilReleaseConfig(),
     ) -> None:
         """Load firmware via ECAT.
 
@@ -1382,6 +1383,7 @@ class Communication:
                 If ``None``, the file extension is used to define it.
             password: Password to load the firmware file. If ``None`` the default password will be
                 used.
+            gil_release_config: GIL release config.
 
         Raises:
             IndexError: If interface index is out of range.
@@ -1392,7 +1394,12 @@ class Communication:
 
         """
         self.load_firmware_ecat(
-            self.get_ifname_by_index(if_index), fw_file, slave, boot_in_app, password
+            self.get_ifname_by_index(if_index),
+            fw_file,
+            slave,
+            boot_in_app,
+            password,
+            gil_release_config=gil_release_config,
         )
 
     def load_firmware_ethernet(
