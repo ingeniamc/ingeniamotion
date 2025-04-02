@@ -736,6 +736,7 @@ class Communication:
         alias: str = DEFAULT_SERVO,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
+        gil_release_config: GilReleaseConfig = GilReleaseConfig(),
     ) -> None:
         """Connect to an EtherCAT slave - CoE.
 
@@ -749,6 +750,7 @@ class Communication:
                 its status, errors, faults, etc.
             net_status_listener : Toggle the listener of the network
                 status, connection and disconnection.
+            gil_release_config: GIL release configuration.
 
         Raises:
             IndexError: If interface index is out of range.
@@ -761,6 +763,7 @@ class Communication:
             alias,
             servo_status_listener,
             net_status_listener,
+            gil_release_config=gil_release_config,
         )
 
     def connect_servo_ethercat_interface_ip(
@@ -771,6 +774,7 @@ class Communication:
         alias: str = DEFAULT_SERVO,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
+        gil_release_config: GilReleaseConfig = GilReleaseConfig(),
     ) -> None:
         """Connect to an EtherCAT slave - CoE.
 
@@ -783,6 +787,7 @@ class Communication:
                 its status, errors, faults, etc.
             net_status_listener : Toggle the listener of the network
                 status, connection and disconnection.
+            gil_release_config: GIL release configuration.
 
         """
         self.connect_servo_ethercat(
@@ -792,6 +797,7 @@ class Communication:
             alias,
             servo_status_listener,
             net_status_listener,
+            gil_release_config=gil_release_config,
         )
 
     @staticmethod
