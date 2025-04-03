@@ -20,6 +20,7 @@ class Feedbacks:
         SensorType.BISSC2: SensorCategory.ABSOLUTE,
         SensorType.QEI2: SensorCategory.INCREMENTAL,
         SensorType.INTGEN: SensorCategory.ABSOLUTE,
+        SensorType.SINCOS: SensorCategory.INCREMENTAL,
     }
 
     __feedback_polarity_register_dict = {
@@ -29,6 +30,7 @@ class Feedbacks:
         SensorType.SSI2: "FBK_SSI2_POS_POLARITY",
         SensorType.BISSC2: "FBK_BISS2_POS_POLARITY",
         SensorType.QEI2: "FBK_DIGENC2_POLARITY",
+        SensorType.SINCOS: "FBK_SINCOS_POLARITY",
     }
 
     COMMUTATION_FEEDBACK_REGISTER = "COMMU_ANGLE_SENSOR"
@@ -47,6 +49,7 @@ class Feedbacks:
             SensorType.SSI2: self.get_secondary_ssi_resolution,
             SensorType.BISSC2: self.get_absolute_encoder_2_resolution,
             SensorType.QEI2: self.get_incremental_encoder_2_resolution,
+            SensorType.SINCOS: self.get_sincos_encoder_resolution,
             SensorType.INTGEN: self.__no_feedback_resolution,
         }
 
@@ -564,6 +567,29 @@ class Feedbacks:
         """
         resolution = self.mc.communication.get_register(
             "FBK_DIGENC2_RESOLUTION", servo=servo, axis=axis
+        )
+        if not isinstance(resolution, int):
+            raise TypeError("Resolution value has to be an integer")
+        return resolution
+
+    def get_sincos_encoder_resolution(
+        self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
+    ) -> int:
+        """Reads the SinCos encoder resolution in the target servo and axis.
+
+        Args:
+            servo : servo alias to reference it. ``default`` by default.
+            axis : axis that will run the test. ``1`` by default.
+
+        Returns:
+            Number of counts per mechanical revolution.
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+
+        """
+        resolution = self.mc.communication.get_register(
+            "FBK_SINCOS_RESOLUTION", servo=servo, axis=axis
         )
         if not isinstance(resolution, int):
             raise TypeError("Resolution value has to be an integer")
