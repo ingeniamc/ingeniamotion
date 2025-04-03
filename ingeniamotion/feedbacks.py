@@ -1,3 +1,4 @@
+import typing
 from typing import TYPE_CHECKING, Optional, Union
 
 import ingenialogger
@@ -591,9 +592,15 @@ class Feedbacks:
         resolution = self.mc.communication.get_register(
             "FBK_SINCOS_RESOLUTION", servo=servo, axis=axis
         )
+        multiplier_reg_value = self.mc.communication.get_register(
+            "FBK_SINCOS_MULT_FACTOR", servo=servo, axis=axis
+        )
         if not isinstance(resolution, int):
             raise TypeError("Resolution value has to be an integer")
-        return resolution
+        if not isinstance(multiplier_reg_value, int):
+            raise TypeError("Multiplier factor value has to be an integer")
+        multiplier_factor = typing.cast(int, 2**multiplier_reg_value)
+        return resolution * multiplier_factor
 
     def __no_feedback_resolution(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:  # noqa: ARG002
         """Used for feedbacks that have no resolution.
@@ -620,6 +627,7 @@ class Feedbacks:
             SSI2: Number of bits that represent single-turn information.
             BISSC2: Number of bits that represent single-turn information.
             QEI2: Number of counts per mechanical revolution.
+            SINCOS: Number of counts per mechanical revolution.
 
         Args:
             feedback : target feedback.
