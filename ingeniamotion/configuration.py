@@ -1139,7 +1139,7 @@ class Configuration(Homing, Feedbacks):
         """
         if axis == 0:
             register = self.VENDOR_ID_COCO_REGISTER
-        elif axis == 1:
+        elif axis in [1, 2]:
             register = self.VENDOR_ID_REGISTER
         else:
             raise ValueError(f"Vendor ID cannot be retrieved for {axis=}")
