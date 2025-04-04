@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 import ingenialogger
 from ingenialink import CanBaudrate
 from ingenialink.canopen.network import CanopenNetwork
+from ingenialink.dictionary import SubnodeType as DictSubNodeType
 from ingenialink.ethernet.servo import EthernetServo
 from ingenialink.exceptions import ILError
 from ingenialink.utils._utils import deprecated
@@ -1139,10 +1140,12 @@ class Configuration(Homing, Feedbacks):
         """
         if axis == 0:
             register = self.VENDOR_ID_COCO_REGISTER
-        elif axis in [1, 2]:
-            register = self.VENDOR_ID_REGISTER
         else:
-            raise ValueError(f"Vendor ID cannot be retrieved for {axis=}")
+            drive = self.mc._get_drive(servo)
+            if drive.dictionary.subnodes[axis] is DictSubNodeType.MOTION:
+                register = self.VENDOR_ID_REGISTER
+            else:
+                raise ValueError(f"Vendor ID cannot be retrieved for {axis=}")
         vendor_id = self.mc.communication.get_register(register, servo, axis)
         if not isinstance(vendor_id, int):
             raise TypeError(
