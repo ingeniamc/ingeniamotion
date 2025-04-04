@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 import ingenialogger
 from ingenialink import CanBaudrate
 from ingenialink.canopen.network import CanopenNetwork
+from ingenialink.dictionary import SubnodeType as DictSubNodeType
 from ingenialink.ethernet.servo import EthernetServo
 from ingenialink.exceptions import ILError
 from ingenialink.utils._utils import deprecated
@@ -34,6 +35,7 @@ class SubnodeType(IntEnum):
 
     COCO = 0
     MOCO = 1
+    SACO = 4
 
 
 class MACAddressConverter:
@@ -141,6 +143,7 @@ class Configuration(Homing, Feedbacks):
     PRODUCT_ID_REGISTERS = {
         SubnodeType.COCO: "DRV_ID_PRODUCT_CODE_COCO",
         SubnodeType.MOCO: "DRV_ID_PRODUCT_CODE",
+        SubnodeType.SACO: "FSOE_PRODUCT_CODE",
     }
     REVISION_NUMBER_REGISTERS = {
         SubnodeType.COCO: "DRV_ID_REVISION_NUMBER_COCO",
@@ -149,10 +152,12 @@ class Configuration(Homing, Feedbacks):
     SERIAL_NUMBER_REGISTERS = {
         SubnodeType.COCO: "DRV_ID_SERIAL_NUMBER_COCO",
         SubnodeType.MOCO: "DRV_ID_SERIAL_NUMBER",
+        SubnodeType.SACO: "FSOE_SERIAL_NUMBER",
     }
     SOFTWARE_VERSION_REGISTERS = {
         SubnodeType.COCO: "DRV_APP_COCO_VERSION",
         SubnodeType.MOCO: "DRV_ID_SOFTWARE_VERSION",
+        SubnodeType.SACO: "FSOE_SOFTWARE_VERSION",
     }
     VENDOR_ID_COCO_REGISTER = "DRV_ID_VENDOR_ID_COCO"
     VENDOR_ID_REGISTER = "DRV_ID_VENDOR_ID"
@@ -1031,7 +1036,7 @@ class Configuration(Homing, Feedbacks):
         """
         if axis < 0:
             raise ValueError("There are no subnodes with negative values")
-        return SubnodeType.COCO if axis == 0 else SubnodeType.MOCO
+        return SubnodeType(axis)
 
     def get_product_code(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
         """Get the product code of a drive.
@@ -1067,7 +1072,10 @@ class Configuration(Homing, Feedbacks):
         Raises:
             TypeError: If some read value has a wrong type.
         """
-        revision_number_register = self.REVISION_NUMBER_REGISTERS[self.get_subnode_type(axis)]
+        subnode_type = self.get_subnode_type(axis)
+        if subnode_type == SubnodeType.SACO:
+            raise ValueError(f"Cannot retrieve revision number of {subnode_type}.")
+        revision_number_register = self.REVISION_NUMBER_REGISTERS[subnode_type]
         revision_number_value = self.mc.communication.get_register(
             revision_number_register, servo, axis=axis
         )
@@ -1127,9 +1135,19 @@ class Configuration(Homing, Feedbacks):
 
         Raises:
             TypeError: If the read vendor ID has the wrong type.
+            ValueError: if the provided axis does not exist.
+            ValueError: If axis ID not of type communication/motion.
 
         """
-        register = self.VENDOR_ID_COCO_REGISTER if axis == 0 else self.VENDOR_ID_REGISTER
+        drive = self.mc._get_drive(servo)
+        if axis == 0:
+            register = self.VENDOR_ID_COCO_REGISTER
+        elif axis not in drive.dictionary.subnodes:
+            raise ValueError(f"{axis=} does not exist.")
+        elif drive.dictionary.subnodes[axis] is DictSubNodeType.MOTION:
+            register = self.VENDOR_ID_REGISTER
+        else:
+            raise ValueError(f"Vendor ID cannot be retrieved for {axis=}")
         vendor_id = self.mc.communication.get_register(register, servo, axis)
         if not isinstance(vendor_id, int):
             raise TypeError(
