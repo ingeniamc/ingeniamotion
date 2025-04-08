@@ -171,7 +171,7 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
             raise TypeError("Feedback resolution has to be set before resolution checking.")
         self.logger.info("RESOLUTION CHECK")
         self.logger.info("Theoretical resolution: %.0f", self.feedback_resolution)
-        self.logger.info("Detected resolution (pos): %.0f", abs(displacement))
+        self.logger.info("Measured resolution (pos): %.0f", abs(displacement))
         displacement_value = abs(self.feedback_resolution - abs(displacement))
         error = 100 * displacement_value / self.feedback_resolution
         self.logger.info("Detected mismatch of: %.3f%%", error)
