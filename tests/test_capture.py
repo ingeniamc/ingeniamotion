@@ -376,9 +376,13 @@ def test_check_monitoring_version_not_available(mocker, motion_controller):
 @pytest.mark.virtual
 def test_enable_monitoring_exception(mocker, motion_controller):
     mc, alias, environment = motion_controller
-    monitoring = mc.capture.create_empty_monitoring(alias)
+    mc.capture.create_monitoring(
+        [{"axis": 1, "name": "CL_POS_FBK_VALUE"}],
+        prescaler=10,
+        sample_time=0.1,
+        servo=alias,
+    )
     mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=False)
-    monitoring.map_registers([{"axis": 1, "name": "CL_POS_FBK_VALUE"}])
     with pytest.raises(IMMonitoringError):
         mc.capture.enable_monitoring(servo=alias)
 
