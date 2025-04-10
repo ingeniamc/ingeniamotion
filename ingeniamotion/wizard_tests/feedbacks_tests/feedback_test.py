@@ -10,9 +10,18 @@ from typing_extensions import override
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
 
-from ingeniamotion.enums import CommutationMode, OperationMode, SensorType, SeverityLevel
+from ingeniamotion.enums import (
+    CommutationMode,
+    OperationMode,
+    SensorType,
+    SeverityLevel,
+)
 from ingeniamotion.exceptions import IMRegisterNotExistError
-from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType, TestError
+from ingeniamotion.wizard_tests.base_test import (
+    BaseTest,
+    LegacyDictReportType,
+    TestError,
+)
 
 
 class Feedbacks(BaseTest[LegacyDictReportType]):
@@ -98,7 +107,11 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
     SENSOR_TYPE_FEEDBACK_TEST: SensorType
 
     def __init__(
-        self, mc: "MotionController", servo: str, axis: int, logger_drive_name: Optional[str]
+        self,
+        mc: "MotionController",
+        servo: str,
+        axis: int,
+        logger_drive_name: Optional[str],
     ) -> None:
         super().__init__()
         self.mc = mc
@@ -156,10 +169,9 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
             raise TypeError("Pair poles has to be set before resolution checking.")
         if self.feedback_resolution is None:
             raise TypeError("Feedback resolution has to be set before resolution checking.")
-        displacement = displacement * self.pair_poles
         self.logger.info("RESOLUTION CHECK")
         self.logger.info("Theoretical resolution: %.0f", self.feedback_resolution)
-        self.logger.info("Detected resolution (pos): %.0f", abs(displacement))
+        self.logger.info("Measured resolution (pos): %.0f", abs(displacement))
         displacement_value = abs(self.feedback_resolution - abs(displacement))
         error = 100 * displacement_value / self.feedback_resolution
         self.logger.info("Detected mismatch of: %.3f%%", error)
@@ -183,7 +195,10 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         self.mc.configuration.set_auxiliar_feedback(self.sensor, servo=self.servo, axis=self.axis)
         # Set Polarity to 0
         self.mc.communication.set_register(
-            self.FEEDBACK_POLARITY_REGISTER, self.Polarity.NORMAL, servo=self.servo, axis=self.axis
+            self.FEEDBACK_POLARITY_REGISTER,
+            self.Polarity.NORMAL,
+            servo=self.servo,
+            axis=self.axis,
         )
         # Depending on the type of the feedback, calculate the correct
         # feedback resolution
@@ -244,7 +259,7 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         self.__set_positioning_register_values()
         # Default resolution multiplier
         self.__set_resolution_multiplier()
-        # Read pole pairs and set to 1 for an electrical revolution
+        # Read pole pairs to perform a full revolution
         self.pair_poles = self.mc.configuration.get_motor_pair_poles(
             servo=self.servo, axis=self.axis
         )
@@ -257,9 +272,12 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         self.feedback_setting()
 
         self.mc.motion.set_internal_generator_configuration(
-            OperationMode.CURRENT, servo=self.servo, axis=self.axis
+            OperationMode.CURRENT,
+            servo=self.servo,
+            axis=self.axis,
+            pair_poles=self.pair_poles,
         )
-        self.logger.info("Set pair poles to 1")
+        self.logger.info(f"Pole pairs set to {self.pair_poles}")
         self.logger.info("Mode of operation set to Current mode")
         self.logger.info("Set phasing mode to No phasing")
         self.logger.info("Target quadrature current set to zero")
@@ -275,19 +293,28 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
             self.POSITIONING_OPTION_CODE_REGISTER, servo=self.servo, axis=self.axis
         ):
             self.mc.communication.set_register(
-                self.POSITIONING_OPTION_CODE_REGISTER, 0, servo=self.servo, axis=self.axis
+                self.POSITIONING_OPTION_CODE_REGISTER,
+                0,
+                servo=self.servo,
+                axis=self.axis,
             )
         if self.mc.info.register_exists(
             self.MIN_POSITION_RANGE_LIMIT_REGISTER, servo=self.servo, axis=self.axis
         ):
             self.mc.communication.set_register(
-                self.MIN_POSITION_RANGE_LIMIT_REGISTER, 0, servo=self.servo, axis=self.axis
+                self.MIN_POSITION_RANGE_LIMIT_REGISTER,
+                0,
+                servo=self.servo,
+                axis=self.axis,
             )
         if self.mc.info.register_exists(
             self.MAX_POSITION_RANGE_LIMIT_REGISTER, servo=self.servo, axis=self.axis
         ):
             self.mc.communication.set_register(
-                self.MAX_POSITION_RANGE_LIMIT_REGISTER, 0, servo=self.servo, axis=self.axis
+                self.MAX_POSITION_RANGE_LIMIT_REGISTER,
+                0,
+                servo=self.servo,
+                axis=self.axis,
             )
 
     def __set_resolution_multiplier(self) -> None:
@@ -342,7 +369,9 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         if not isinstance(rated_current, float):
             raise TypeError("Rated current has to be a float")
         nominal_current = self.mc.communication.get_register(
-            self.MAXIMUM_CONTINUOUS_CURRENT_DRIVE_PROTECTION, servo=self.servo, axis=self.axis
+            self.MAXIMUM_CONTINUOUS_CURRENT_DRIVE_PROTECTION,
+            servo=self.servo,
+            axis=self.axis,
         )
         if not isinstance(nominal_current, float):
             raise TypeError("Nominal current has to be a float")
