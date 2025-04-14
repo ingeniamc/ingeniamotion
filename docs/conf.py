@@ -36,7 +36,6 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx_autodoc_typehints',
     'sphinx.ext.intersphinx',
-    'rst2pdf.pdfbuilder',
     'm2r2'
 ]
 
