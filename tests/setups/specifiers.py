@@ -1,7 +1,10 @@
+from dataclasses import dataclass
 from enum import Enum, auto
 from functools import cached_property
 from pathlib import Path
 from typing import Optional, Union
+
+from ingenialink.ethernet.network import VIRTUAL_DRIVE_DICTIONARY
 
 from tests.setups.descriptors import (
     DriveCanOpenSetup,
@@ -9,6 +12,7 @@ from tests.setups.descriptors import (
     DriveEthernetSetup,
     EthercatMultiSlaveSetup,
     Setup,
+    VirtualDriveSetup,
 )
 from tests.setups.rack_service_client import PartNumber, RackServiceClient
 
@@ -217,8 +221,6 @@ class RackServiceSpecifier:
                 ifname=network.ifname,
                 slave=network.slave,
                 boot_in_app=network.boot_in_app,
-                use_rack_service=True,  # TODO:remove
-                eoe_comm=True,  # TODO:remove
             )
             drives.append(ecat_drive)
         return EthercatMultiSlaveSetup(drives=drives)
@@ -255,11 +257,7 @@ class RackServiceSpecifier:
         }
 
         if self._interface is Interface.ETHERNET:
-            return DriveEthernetSetup(
-                **args,
-                ip=network.ip,
-                use_rack_service=True,  # TODO:remove
-            )
+            return DriveEthernetSetup(**args, ip=network.ip)
         elif self._interface is Interface.CANOPEN:
             return DriveCanOpenSetup(
                 **args,
@@ -267,18 +265,25 @@ class RackServiceSpecifier:
                 channel=network.channel,
                 node_id=network.node_id,
                 baudrate=network.baudrate,
-                use_rack_service=True,  # TODO:remove
             )
         elif self._interface is Interface.ETHERCAT:
             return DriveEcatSetup(
-                **args,
-                ifname=network.ifname,
-                slave=network.slave,
-                boot_in_app=network.boot_in_app,
-                use_rack_service=True,  # TODO:remove
-                eoe_comm=True,  # TODO:remove
+                **args, ifname=network.ifname, slave=network.slave, boot_in_app=network.boot_in_app
             )
 
         raise RuntimeError(
             f"No descriptor for part number {self._part_number}, interface {self._interface}"
         )
+
+
+@dataclass(frozen=True)
+class VirtualDriveSpecifier:
+    ip: str
+    port: int
+
+    @cached_property
+    def dictionary(self) -> Path:
+        return Path(VIRTUAL_DRIVE_DICTIONARY)
+
+    def get_descriptor(self) -> VirtualDriveSetup:
+        return VirtualDriveSetup(ip=self.ip, dictionary=self.dictionary, port=self.port)

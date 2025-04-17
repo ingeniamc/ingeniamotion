@@ -7,7 +7,6 @@ from typing import Optional
 
 import numpy as np
 import pytest
-import rpyc
 from ingenialink import CanBaudrate, CanDevice
 from ping3 import ping
 from virtual_drive.core import VirtualDrive
@@ -24,10 +23,10 @@ from tests.setups.descriptors import (
     VirtualDriveSetup,
 )
 from tests.setups.environment_control import (
-    ManualUserEnvironmentController,
     RackServiceEnvironmentController,
     VirtualDriveEnvironmentController,
 )
+from tests.setups.rack_service_client import RackServiceClient
 
 # Pytest runs with importlib import mode, which means that it will run the tests with the installed
 # version of the package. Therefore, modules that are not included in the package cannot be imported
@@ -150,7 +149,12 @@ def tests_setup(request) -> Setup:
         module_name=setup_location.parent.name,
         module_path=setup_location.parent.with_suffix(".py").resolve(),
     )
-    return getattr(setup_module, setup_location.name)
+    specifier = getattr(setup_module, setup_location.name)
+
+    if isinstance(tests_setup, DriveHwSetup):
+        rack_service_client = request.getfixturevalue("connect_to_rack_service")
+        specifier.rack_service_client = rack_service_client
+    return specifier.get_descriptor()
 
 
 def connect_ethernet(mc, config, alias):
@@ -196,14 +200,11 @@ def motion_controller(tests_setup: Setup, pytestconfig, request):
     mc = MotionController()
 
     if isinstance(tests_setup, DriveHwSetup):
-        if tests_setup.use_rack_service:
-            rack_service_client = request.getfixturevalue("connect_to_rack_service")
-            drive_idx, drive = tests_setup.get_rack_drive(rack_service_client)
-            environment = RackServiceEnvironmentController(
-                rack_service_client, default_drive_idx=drive_idx
-            )
-        else:
-            environment = ManualUserEnvironmentController(pytestconfig)
+        rack_service_client = request.getfixturevalue("connect_to_rack_service")
+        drive_idx, drive = tests_setup.get_rack_drive(rack_service_client)
+        environment = RackServiceEnvironmentController(
+            rack_service_client, default_drive_idx=drive_idx
+        )
 
         __connect_to_servo_with_protocol(mc, tests_setup, alias)
 
@@ -215,12 +216,9 @@ def motion_controller(tests_setup: Setup, pytestconfig, request):
         mc.communication.disconnect(alias)
 
     elif isinstance(tests_setup, EthercatMultiSlaveSetup):
-        if tests_setup.drives[0].use_rack_service:
-            environment = RackServiceEnvironmentController(
-                request.getfixturevalue("connect_to_rack_service")
-            )
-        else:
-            environment = ManualUserEnvironmentController(pytestconfig)
+        environment = RackServiceEnvironmentController(
+            request.getfixturevalue("connect_to_rack_service")
+        )
 
         aliases = []
         for drive in tests_setup.drives:
@@ -371,11 +369,9 @@ def load_configuration_after_each_module(motion_controller, tests_setup: Setup):
 
 @pytest.fixture(scope="session")
 def connect_to_rack_service(request):
-    rack_service_port = 33810
-    client = rpyc.connect("localhost", rack_service_port, config={"sync_request_timeout": None})
-    client.root.set_job_name(request.config.getoption("--job_name"))
-    yield client.root
-    client.close()
+    rack_service_client = RackServiceClient(job_name=request.config.getoption("--job_name"))
+    yield rack_service_client.client
+    rack_service_client.close()
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -383,16 +379,13 @@ def load_firmware(tests_setup: Setup, request):
     if not isinstance(tests_setup, DriveHwSetup):
         return
 
-    if not tests_setup.use_rack_service:
-        return
-
     client = request.getfixturevalue("connect_to_rack_service")
-    number_of_drives = len(client.exposed_get_configuration().drives)
+    number_of_drives = len(client.configuration.drives)
 
     # Reboot drive
-    client.exposed_turn_off_ps()
+    client.turn_off_ps()
     time.sleep(SLEEP_BETWEEN_POWER_CYCLE_S)
-    client.exposed_turn_on_ps()
+    client.turn_on_ps()
 
     # Wait for all drives to turn-on, for 90 seconds
     timeout = 90
@@ -423,6 +416,4 @@ def load_firmware(tests_setup: Setup, request):
 
     # Load firmware (if necessary, if it's already loaded it will do nothing)
     drive_idx, drive = tests_setup.get_rack_drive(client)
-    client.exposed_firmware_load(
-        drive_idx, tests_setup.fw_file, drive.product_code, drive.serial_number
-    )
+    client.firmware_load(drive_idx, tests_setup.fw_file, drive.product_code, drive.serial_number)

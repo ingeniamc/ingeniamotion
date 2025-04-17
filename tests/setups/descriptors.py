@@ -31,7 +31,6 @@ class DriveHwSetup(Setup):
     identifier: str
     config_file: Optional[str]
     fw_file: str
-    use_rack_service: bool
 
     @functools.lru_cache
     def get_rack_drive(self, rack_service_client):
@@ -59,7 +58,6 @@ class DriveEcatSetup(DriveHwSetup):
 
     ifname: str
     slave: int
-    eoe_comm: bool
     boot_in_app: bool
 
 
