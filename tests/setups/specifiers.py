@@ -44,7 +44,7 @@ def get_network_from_drive(drive: object, interface: Interface) -> object:
     raise RuntimeError(f"No network can be retrieved for {interface=}")
 
 
-class RackServiceSpecifier:
+class RackServiceConfigSpecifier:
     """Generic specifier."""
 
     def __init__(
@@ -137,7 +137,7 @@ class RackServiceSpecifier:
         dictionary_file: Optional[Path] = None,
         dictionary_firmware_version: Optional[str] = None,
         rack_service_client: Optional[RackServiceClient] = None,
-    ) -> "RackServiceSpecifier":
+    ) -> "RackServiceConfigSpecifier":
         """Used to specify a setup where a local firmware file will be loaded.
 
         Args:
@@ -152,7 +152,7 @@ class RackServiceSpecifier:
             rack_service_client: rack service client.
 
         Returns:
-            RackServiceSpecifier instance.
+            RackServiceConfigSpecifier instance.
 
         Raises:
             RuntimeError: if dictionary file and dictionary firmware version are not provided.
@@ -184,7 +184,7 @@ class RackServiceSpecifier:
         config_file: Path,
         firmware_version: str,
         rack_service_client: Optional[RackServiceClient] = None,
-    ) -> "RackServiceSpecifier":
+    ) -> "RackServiceConfigSpecifier":
         """Used to specify a setup with frozen ATT firmware.
 
         Args:
@@ -197,7 +197,7 @@ class RackServiceSpecifier:
                 Rack service client should be specified afterwards to resolve them.
 
         Returns:
-            RackServiceSpecifier instance.
+            RackServiceConfigSpecifier instance.
         """
         return cls(
             part_number=part_number,

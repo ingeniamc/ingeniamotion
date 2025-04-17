@@ -27,6 +27,7 @@ from tests.setups.environment_control import (
     VirtualDriveEnvironmentController,
 )
 from tests.setups.rack_service_client import RackServiceClient
+from tests.setups.specifiers import RackServiceConfigSpecifier
 
 # Pytest runs with importlib import mode, which means that it will run the tests with the installed
 # version of the package. Therefore, modules that are not included in the package cannot be imported
@@ -151,7 +152,7 @@ def tests_setup(request) -> Setup:
     )
     specifier = getattr(setup_module, setup_location.name)
 
-    if isinstance(tests_setup, DriveHwSetup):
+    if isinstance(tests_setup, RackServiceConfigSpecifier):
         rack_service_client = request.getfixturevalue("connect_to_rack_service")
         specifier.rack_service_client = rack_service_client
     return specifier.get_descriptor()
