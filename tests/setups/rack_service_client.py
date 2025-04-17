@@ -101,10 +101,10 @@ class RackServiceClient:
         raise ValueError(f"Drive {part_number_value} cannot be found on the rack's configuration.")
 
     def get_dictionary(self, firmware_version: str) -> Path:  # noqa: ARG002
-        return Path(".")  # TODO: INGM-541
+        return Path(".")  # INGM-541:
 
     def get_firmware(self, firmware_version: str) -> Path:  # noqa: ARG002
-        return Path(".")  # TODO: INGM-541
+        return Path(".")  # INGM-541:
 
     def teardown(self) -> None:
         """Closes the connection to the rack service."""

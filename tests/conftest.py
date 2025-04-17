@@ -196,7 +196,7 @@ def __connect_to_servo_with_protocol(mc, tests_setup, alias):
 
 
 @pytest.fixture(scope="session")
-def motion_controller(tests_setup: Setup, pytestconfig, request):
+def motion_controller(tests_setup: Setup, request):
     alias = "test"
     mc = MotionController()
 
