@@ -47,7 +47,7 @@ class DriveHwConfigSpecifier(SetupSpecifier):
     """Path to configuration file."""
 
 
-@dataclass
+@dataclass(frozen=True)
 class MultiDriveConfigSpecifier(SetupSpecifier):
     """General multidrive configuration specifier."""
 

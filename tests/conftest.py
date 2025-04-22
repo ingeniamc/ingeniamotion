@@ -8,7 +8,6 @@ from typing import Optional
 import numpy as np
 import pytest
 from ingenialink import CanBaudrate, CanDevice
-from ingenialogger import get_logger
 from ping3 import ping
 from virtual_drive.core import VirtualDrive
 
@@ -43,8 +42,6 @@ from tests.setups.specifiers import (
 # The issue is solved by dynamically importing them before the tests start. All modules that should
 # be imported and ARE NOT part of the package should be specified here
 _DYNAMIC_MODULES_IMPORT = ["tests", "examples"]
-
-logger = get_logger(__name__)
 
 
 def import_module_from_local_path(
@@ -440,7 +437,6 @@ def load_firmware(setup_specifier: SetupSpecifier, setup_descriptor: SetupDescri
             raise NotImplementedError
 
     # Load firmware (if necessary, if it's already loaded it will do nothing)
-    logger.warning(f"{setup_descriptor=}")
     client.client.firmware_load(
         setup_descriptor.rack_drive_idx,
         setup_descriptor.fw_file.as_posix(),
