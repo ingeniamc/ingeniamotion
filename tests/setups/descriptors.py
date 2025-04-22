@@ -4,12 +4,12 @@ from typing import Optional
 
 
 @dataclass(frozen=True)
-class Setup:
+class SetupDescriptor:
     """Generic setup"""
 
 
 @dataclass(frozen=True)
-class EthernetSetup(Setup):
+class EthernetSetup(SetupDescriptor):
     """Any setup that uses Ethernet"""
 
     ip: str
@@ -24,7 +24,7 @@ class VirtualDriveSetup(EthernetSetup):
 
 
 @dataclass(frozen=True)
-class DriveHwSetup(Setup):
+class DriveHwSetup(SetupDescriptor):
     """Setup with physical hw drive"""
 
     dictionary: str
@@ -72,7 +72,7 @@ class DriveCanOpenSetup(DriveHwSetup):
 
 
 @dataclass(frozen=True)
-class EthercatMultiSlaveSetup(Setup):
+class EthercatMultiSlaveSetup(SetupDescriptor):
     """Setup with multiple drives connected with Ethercat"""
 
     drives: list[DriveEcatSetup]

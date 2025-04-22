@@ -1,3 +1,4 @@
+import time
 from enum import Enum
 from functools import cached_property
 from pathlib import Path
@@ -23,6 +24,8 @@ class RackServiceClient:
     """Rack service client.
 
     Handles all the interactions with the reack service."""
+
+    _SLEEP_BETWEEN_POWER_CYCLE_S: float = 5
 
     def __init__(
         self,
@@ -105,6 +108,11 @@ class RackServiceClient:
 
     def get_firmware(self, firmware_version: str) -> Path:  # noqa: ARG002
         return Path(".")  # INGM-541:
+
+    def power_cycle(self) -> None:
+        self.client.turn_off_ps()
+        time.sleep(self._SLEEP_BETWEEN_POWER_CYCLE_S)
+        self.client.turn_on_ps()
 
     def teardown(self) -> None:
         """Closes the connection to the rack service."""

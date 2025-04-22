@@ -4,14 +4,12 @@ from tests.setups.specifiers import RackServiceConfigSpecifier
 
 if __name__ == "__main__":
     specifier: RackServiceConfigSpecifier = ECAT_CAP_SETUP
-    print("starting connection")
     client: RackServiceClient = RackServiceClient(job_name="jp_test")
-    print("connected")
 
     specifier.rack_service_client = client
 
     descriptor = specifier.get_descriptor()
 
-    print(descriptor)
+    print(descriptor)  # noqa: T201
 
     client.teardown()
