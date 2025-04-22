@@ -21,6 +21,7 @@ from tests.setups.descriptors import (
     EthercatMultiSlaveSetup,
     SetupDescriptor,
     VirtualDriveSetup,
+    descriptor_from_specifier,
 )
 from tests.setups.environment_control import (
     RackServiceEnvironmentController,
@@ -148,17 +149,19 @@ def setup_specifier(request) -> SetupSpecifier:
         module_name=setup_location.parent.name,
         module_path=setup_location.parent.with_suffix(".py").resolve(),
     )
-    specifier = getattr(setup_module, setup_location.name)
-
-    if isinstance(specifier, RackServiceConfigSpecifier):
-        rack_service_client = request.getfixturevalue("connect_to_rack_service")
-        specifier.set_rack_service_client(rack_service_client)
-    return specifier
+    return getattr(setup_module, setup_location.name)
 
 
 @pytest.fixture(scope="session")
-def setup_descriptor(setup_specifier) -> SetupSpecifier:
-    return setup_specifier.descriptor
+def setup_descriptor(setup_specifier, request) -> SetupSpecifier:
+    rack_service_client = (
+        request.getfixturevalue("connect_to_rack_service")
+        if isinstance(setup_specifier, RackServiceConfigSpecifier)
+        else None
+    )
+    return descriptor_from_specifier(
+        specifier=setup_specifier, rack_service_client=rack_service_client
+    )
 
 
 def connect_ethernet(mc, config, alias):
@@ -199,27 +202,29 @@ def __connect_to_servo_with_protocol(mc, descriptor, alias):
 
 
 @pytest.fixture(scope="session")
-def motion_controller(setup_specifier: SetupSpecifier, setup_descriptor: SetupDescriptor):
+def motion_controller(setup_descriptor: SetupDescriptor, request):
     alias = "test"
     mc = MotionController()
 
     if isinstance(setup_descriptor, DriveHwSetup):
-        drive_idx, drive = setup_specifier.rack_drive
+        client = request.getfixturevalue("connect_to_rack_service")
         environment = RackServiceEnvironmentController(
-            setup_specifier.rack_service_client.client, default_drive_idx=drive_idx
+            client.client,
+            default_drive_idx=setup_descriptor.rack_drive_idx,
         )
 
         __connect_to_servo_with_protocol(mc, setup_descriptor, alias)
 
         if setup_descriptor.config_file is not None:
             mc.configuration.restore_configuration(servo=alias)
-            mc.configuration.load_configuration(setup_specifier.config_file, servo=alias)
+            mc.configuration.load_configuration(setup_descriptor.config_file, servo=alias)
         yield mc, alias, environment
         environment.reset()
         mc.communication.disconnect(alias)
 
     elif isinstance(setup_descriptor, EthercatMultiSlaveSetup):
-        environment = RackServiceEnvironmentController(setup_specifier.rack_service_client.client)
+        client = request.getfixturevalue("connect_to_rack_service")
+        environment = RackServiceEnvironmentController(client.client)
 
         aliases = []
         for drive in setup_descriptor.drives:
@@ -376,14 +381,16 @@ def connect_to_rack_service(request):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def load_firmware(setup_specifier: SetupSpecifier, setup_descriptor: SetupDescriptor):
-    if not isinstance(setup_specifier, RackServiceConfigSpecifier):
+def load_firmware(setup_descriptor: SetupDescriptor, request):
+    if not isinstance(setup_descriptor, DriveHwSetup):
         return
 
-    number_of_drives = len(setup_specifier.rack_service_client.configuration.drives)
+    client = request.getfixturevalue("connect_to_rack_service")
+
+    number_of_drives = len(client.configuration.drives)
 
     # Reboot drive
-    setup_specifier.rack_service_client.power_cycle()
+    client.power_cycle()
 
     # Wait for all drives to turn-on, for 90 seconds
     timeout = 90
@@ -413,7 +420,9 @@ def load_firmware(setup_specifier: SetupSpecifier, setup_descriptor: SetupDescri
             raise NotImplementedError
 
     # Load firmware (if necessary, if it's already loaded it will do nothing)
-    drive_idx, drive = setup_specifier.rack_drive
-    setup_specifier.rack_service_client.client.firmware_load(
-        drive_idx, setup_specifier.fw_file, drive.product_code, drive.serial_number
+    client.client.firmware_load(
+        setup_descriptor.rack_drive_idx,
+        setup_descriptor.fw_file,
+        setup_descriptor.rack_drive.product_code,
+        setup_descriptor.rack_drive.serial_number,
     )
