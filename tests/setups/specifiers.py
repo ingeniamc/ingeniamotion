@@ -26,8 +26,18 @@ class SetupSpecifier:
 
 
 @dataclass(frozen=True)
-class RackServiceConfigSpecifier(SetupSpecifier):
-    """Generic specifier."""
+class VirtualDriveSpecifier(SetupSpecifier):
+    ip: str
+    port: int
+
+    @cached_property
+    def dictionary(self) -> Path:
+        return Path(VIRTUAL_DRIVE_DICTIONARY)
+
+
+@dataclass(frozen=True)
+class DriveHwConfigSpecifier(SetupSpecifier):
+    """Configuration of a physical hardware drive."""
 
     part_number: Union[PartNumber, list[PartNumber]]
     """Drive part number to test. If multislave, provide a list."""
@@ -35,6 +45,49 @@ class RackServiceConfigSpecifier(SetupSpecifier):
     """Desired communication interface with the drive."""
     config_file: Optional[Path]
     """Path to configuration file."""
+
+
+@dataclass
+class MultiDriveConfigSpecifier(SetupSpecifier):
+    """General multidrive configuration specifier."""
+
+    specifiers: list[DriveHwConfigSpecifier]
+
+    def __post_init__(self):
+        for specifier in self.specifiers:
+            if specifier.interface is not Interface.ETHERCAT:
+                raise RuntimeError(
+                    f"Multiple part numbers can only be provided for {Interface.ETHERCAT}"
+                )
+
+
+@dataclass(frozen=True)
+class LocalDriveConfigSpecifier(DriveHwConfigSpecifier):
+    """Local drive configuration specifier."""
+
+    dictionary: Path
+    """Path to dictionary."""
+    firmware_file: Path
+    """Path to firmware file"""
+    revision_number: Optional[int] = None
+    """Revision number of the local drive."""
+    firmware_version: Optional[str] = None
+    """Firmware version of the local drive."""
+    serial_number: Optional[str] = None
+    """Serial number of the local drive."""
+
+
+@dataclass(frozen=True)
+class MultiLocalDriveConfigSpecifier(MultiDriveConfigSpecifier):
+    """Local configuration specifier with multiple drives connected."""
+
+    specifiers: list[LocalDriveConfigSpecifier]
+
+
+@dataclass(frozen=True)
+class RackServiceConfigSpecifier(DriveHwConfigSpecifier):
+    """Rack service drive configuration specifier."""
+
     dictionary: Union[Path, PromisedFilePath]
     """Path to dictionary. If promise is used, the specified firmware version
     should be used to retrieve it with rack service client.
@@ -43,16 +96,6 @@ class RackServiceConfigSpecifier(SetupSpecifier):
     """Path to firmware file. If promise is used, the specified firmware version
     should be used to retrieve it with rack service client.
     """
-
-    def __post_init__(self):
-        if self.is_multislave and self.interface is not Interface.ETHERCAT:
-            raise RuntimeError(
-                f"Multiple part numbers can only be provided for {Interface.ETHERCAT}"
-            )
-
-    @cached_property
-    def is_multislave(self) -> bool:
-        return isinstance(self.part_number, list)
 
     @classmethod
     def from_local_firmware(
@@ -129,10 +172,7 @@ class RackServiceConfigSpecifier(SetupSpecifier):
 
 
 @dataclass(frozen=True)
-class VirtualDriveSpecifier(SetupSpecifier):
-    ip: str
-    port: int
+class MultiRackServiceConfigSpecifier(MultiDriveConfigSpecifier):
+    """Rack service configuration specifier with multiple drives connected."""
 
-    @cached_property
-    def dictionary(self) -> Path:
-        return Path(VIRTUAL_DRIVE_DICTIONARY)
+    specifiers: list[RackServiceConfigSpecifier]

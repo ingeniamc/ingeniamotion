@@ -25,11 +25,17 @@ from tests.setups.descriptors import (
     descriptor_from_specifier,
 )
 from tests.setups.environment_control import (
+    ManualUserEnvironmentController,
     RackServiceEnvironmentController,
     VirtualDriveEnvironmentController,
 )
 from tests.setups.rack_service_client import RackServiceClient
-from tests.setups.specifiers import RackServiceConfigSpecifier, SetupSpecifier
+from tests.setups.specifiers import (
+    LocalDriveConfigSpecifier,
+    MultiLocalDriveConfigSpecifier,
+    RackServiceConfigSpecifier,
+    SetupSpecifier,
+)
 
 # Pytest runs with importlib import mode, which means that it will run the tests with the installed
 # version of the package. Therefore, modules that are not included in the package cannot be imported
@@ -205,16 +211,21 @@ def __connect_to_servo_with_protocol(mc, descriptor, alias):
 
 
 @pytest.fixture(scope="session")
-def motion_controller(setup_descriptor: SetupDescriptor, request):
+def motion_controller(
+    setup_specifier: SetupSpecifier, setup_descriptor: SetupDescriptor, pytestconfig, request
+):
     alias = "test"
     mc = MotionController()
 
     if isinstance(setup_descriptor, DriveHwSetup):
-        client = request.getfixturevalue("connect_to_rack_service")
-        environment = RackServiceEnvironmentController(
-            client.client,
-            default_drive_idx=setup_descriptor.rack_drive_idx,
-        )
+        if isinstance(setup_specifier, (LocalDriveConfigSpecifier, MultiLocalDriveConfigSpecifier)):
+            environment = ManualUserEnvironmentController(pytestconfig)
+        else:
+            client = request.getfixturevalue("connect_to_rack_service")
+            environment = RackServiceEnvironmentController(
+                client.client,
+                default_drive_idx=setup_descriptor.rack_drive_idx,
+            )
 
         __connect_to_servo_with_protocol(mc, setup_descriptor, alias)
 
@@ -226,8 +237,11 @@ def motion_controller(setup_descriptor: SetupDescriptor, request):
         mc.communication.disconnect(alias)
 
     elif isinstance(setup_descriptor, EthercatMultiSlaveSetup):
-        client = request.getfixturevalue("connect_to_rack_service")
-        environment = RackServiceEnvironmentController(client.client)
+        if isinstance(setup_specifier, (LocalDriveConfigSpecifier, MultiLocalDriveConfigSpecifier)):
+            environment = ManualUserEnvironmentController(pytestconfig)
+        else:
+            client = request.getfixturevalue("connect_to_rack_service")
+            environment = RackServiceEnvironmentController(client.client)
 
         aliases = []
         for drive in setup_descriptor.drives:
@@ -380,12 +394,15 @@ def load_configuration_after_each_module(motion_controller, setup_descriptor: Se
 def connect_to_rack_service(request):
     rack_service_client = RackServiceClient(job_name=request.config.getoption("--job_name"))
     yield rack_service_client
-    rack_service_client.close()
+    rack_service_client.teardown()
 
 
 @pytest.fixture(scope="session", autouse=True)
-def load_firmware(setup_descriptor: SetupDescriptor, request):
+def load_firmware(setup_specifier: SetupSpecifier, setup_descriptor: SetupDescriptor, request):
     if not isinstance(setup_descriptor, DriveHwSetup):
+        return
+
+    if isinstance(setup_specifier, (LocalDriveConfigSpecifier, MultiLocalDriveConfigSpecifier)):
         return
 
     client = request.getfixturevalue("connect_to_rack_service")

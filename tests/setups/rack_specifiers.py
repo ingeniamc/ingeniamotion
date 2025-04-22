@@ -1,6 +1,11 @@
 from pathlib import Path
 
-from tests.setups.specifiers import Interface, PartNumber, RackServiceConfigSpecifier
+from tests.setups.specifiers import (
+    Interface,
+    MultiRackServiceConfigSpecifier,
+    PartNumber,
+    RackServiceConfigSpecifier,
+)
 
 # INGM-541: use from_frozen_firmware(firmware_version=2.4.0)
 ETH_EVE_SETUP = RackServiceConfigSpecifier.from_local_firmware(
@@ -78,4 +83,8 @@ CAN_CAP_SETUP = RackServiceConfigSpecifier.from_local_firmware(
     firmware_file=Path(
         "//azr-srv-ingfs1/pool/distext/products/CAP-XCR/firmware/2.4.0/cap-xcr-c_2.4.0.lfu"
     ),
+)
+
+ECAT_MULTISLAVE_SETUP = MultiRackServiceConfigSpecifier(
+    specifiers=[ECAT_EVE_SETUP, ECAT_CAP_SETUP],
 )
