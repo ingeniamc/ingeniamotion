@@ -138,7 +138,9 @@ def descriptor_from_specifier(
         isinstance(specifier, (RackServiceConfigSpecifier, MultiRackServiceConfigSpecifier))
         and rack_service_client is None
     ):
-        raise RuntimeError("Rack service client must be provided for RackServiceConfigSpecifier")
+        raise RuntimeError(
+            "Rack service client must be provided for rack service configuration specifier."
+        )
 
     is_multidrive_config = isinstance(specifier, MultiDriveConfigSpecifier)
     eval_specifiers = specifier.specifiers if is_multidrive_config else [specifier]

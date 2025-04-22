@@ -32,6 +32,7 @@ from tests.setups.rack_service_client import RackServiceClient
 from tests.setups.specifiers import (
     LocalDriveConfigSpecifier,
     MultiLocalDriveConfigSpecifier,
+    MultiRackServiceConfigSpecifier,
     RackServiceConfigSpecifier,
     SetupSpecifier,
 )
@@ -160,11 +161,11 @@ def setup_specifier(request) -> SetupSpecifier:
 
 @pytest.fixture(scope="session")
 def setup_descriptor(setup_specifier, request) -> SetupSpecifier:
-    rack_service_client = (
-        request.getfixturevalue("connect_to_rack_service")
-        if isinstance(setup_specifier, RackServiceConfigSpecifier)
-        else None
-    )
+    if isinstance(setup_specifier, (RackServiceConfigSpecifier, MultiRackServiceConfigSpecifier)):
+        rack_service_client = request.getfixturevalue("connect_to_rack_service")
+    else:
+        rack_service_client = None
+
     return descriptor_from_specifier(
         specifier=setup_specifier, rack_service_client=rack_service_client
     )
