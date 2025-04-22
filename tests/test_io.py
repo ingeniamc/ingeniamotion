@@ -48,10 +48,10 @@ def test_set_get_gpi_polarity(motion_controller, gpi_id, polarity):
 @pytest.mark.canopen
 @pytest.mark.virtual
 @pytest.mark.smoke
-def test_get_gpi_voltage_level(motion_controller, tests_setup):
+def test_get_gpi_voltage_level(motion_controller, setup_specifier):
     mc, alias, environment = motion_controller
 
-    if tests_setup in [ETH_CAP_SETUP, ECAT_CAP_SETUP, CAN_CAP_SETUP]:
+    if setup_specifier in [ETH_CAP_SETUP, ECAT_CAP_SETUP, CAN_CAP_SETUP]:
         pytest.skip("Capitan rack setups do not have gpio control")
 
     environment.set_gpi(number=1, value=False)

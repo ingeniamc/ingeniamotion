@@ -142,7 +142,7 @@ def pytest_sessionstart(session):
 
 
 @pytest.fixture(scope="session")
-def tests_setup(request) -> SetupSpecifier:
+def setup_specifier(request) -> SetupSpecifier:
     setup_location = Path(request.config.getoption("--setup").replace(".", "/"))
     setup_module = import_module_from_local_path(
         module_name=setup_location.parent.name,
@@ -152,13 +152,13 @@ def tests_setup(request) -> SetupSpecifier:
 
     if isinstance(specifier, RackServiceConfigSpecifier):
         rack_service_client = request.getfixturevalue("connect_to_rack_service")
-        specifier.rack_service_client = rack_service_client
+        specifier.set_rack_service_client(rack_service_client)
     return specifier
 
 
 @pytest.fixture(scope="session")
-def setup_descriptor(tests_setup) -> SetupSpecifier:
-    return tests_setup.descriptor
+def setup_descriptor(setup_specifier) -> SetupSpecifier:
+    return setup_specifier.descriptor
 
 
 def connect_ethernet(mc, config, alias):
@@ -199,27 +199,27 @@ def __connect_to_servo_with_protocol(mc, descriptor, alias):
 
 
 @pytest.fixture(scope="session")
-def motion_controller(tests_setup: SetupSpecifier, setup_descriptor: SetupDescriptor):
+def motion_controller(setup_specifier: SetupSpecifier, setup_descriptor: SetupDescriptor):
     alias = "test"
     mc = MotionController()
 
     if isinstance(setup_descriptor, DriveHwSetup):
-        drive_idx, drive = tests_setup.rack_drive
+        drive_idx, drive = setup_specifier.rack_drive
         environment = RackServiceEnvironmentController(
-            tests_setup.rack_service_client.client, default_drive_idx=drive_idx
+            setup_specifier.rack_service_client.client, default_drive_idx=drive_idx
         )
 
         __connect_to_servo_with_protocol(mc, setup_descriptor, alias)
 
         if setup_descriptor.config_file is not None:
             mc.configuration.restore_configuration(servo=alias)
-            mc.configuration.load_configuration(tests_setup.config_file, servo=alias)
+            mc.configuration.load_configuration(setup_specifier.config_file, servo=alias)
         yield mc, alias, environment
         environment.reset()
         mc.communication.disconnect(alias)
 
     elif isinstance(setup_descriptor, EthercatMultiSlaveSetup):
-        environment = RackServiceEnvironmentController(tests_setup.rack_service_client.client)
+        environment = RackServiceEnvironmentController(setup_specifier.rack_service_client.client)
 
         aliases = []
         for drive in setup_descriptor.drives:
@@ -376,14 +376,14 @@ def connect_to_rack_service(request):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def load_firmware(tests_setup: SetupSpecifier, setup_descriptor: SetupDescriptor):
-    if not isinstance(tests_setup, RackServiceConfigSpecifier):
+def load_firmware(setup_specifier: SetupSpecifier, setup_descriptor: SetupDescriptor):
+    if not isinstance(setup_specifier, RackServiceConfigSpecifier):
         return
 
-    number_of_drives = len(tests_setup.rack_service_client.configuration.drives)
+    number_of_drives = len(setup_specifier.rack_service_client.configuration.drives)
 
     # Reboot drive
-    tests_setup.rack_service_client.power_cycle()
+    setup_specifier.rack_service_client.power_cycle()
 
     # Wait for all drives to turn-on, for 90 seconds
     timeout = 90
@@ -413,7 +413,7 @@ def load_firmware(tests_setup: SetupSpecifier, setup_descriptor: SetupDescriptor
             raise NotImplementedError
 
     # Load firmware (if necessary, if it's already loaded it will do nothing)
-    drive_idx, drive = tests_setup.rack_drive
-    tests_setup.rack_service_client.client.firmware_load(
-        drive_idx, tests_setup.fw_file, drive.product_code, drive.serial_number
+    drive_idx, drive = setup_specifier.rack_drive
+    setup_specifier.rack_service_client.client.firmware_load(
+        drive_idx, setup_specifier.fw_file, drive.product_code, drive.serial_number
     )

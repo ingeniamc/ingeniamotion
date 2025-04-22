@@ -77,7 +77,7 @@ class RackServiceConfigSpecifier(SetupSpecifier):
     If promise is used, it should be resolved once the rack service client is set.
     """
     __rack_service_client: Optional[RackServiceClient] = field(default=None, init=False)
-    """Rack service client, should be set with property setter if needed."""
+    """Rack service client, should be set with `set_rack_service_client`."""
 
     def __post_init__(self):
         if self.is_multislave and self.interface is not Interface.ETHERCAT:
@@ -95,8 +95,7 @@ class RackServiceConfigSpecifier(SetupSpecifier):
             raise ValueError("Rack service client has not been set yet.")
         return self.__rack_service_client
 
-    @rack_service_client.setter
-    def rack_service_client(self, rack_service_client: RackServiceClient) -> None:
+    def set_rack_service_client(self, rack_service_client: RackServiceClient) -> None:
         if self.__rack_service_client is not None:
             raise ValueError("Rack service client has already been set.")
         object.__setattr__(self, "__rack_service_client", rack_service_client)
