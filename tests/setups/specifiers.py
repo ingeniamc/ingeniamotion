@@ -33,7 +33,7 @@ class RackServiceConfigSpecifier(SetupSpecifier):
     """Drive part number to test. If multislave, provide a list."""
     interface: Interface
     """Desired communication interface with the drive."""
-    config_file: Path
+    config_file: Optional[Path]
     """Path to configuration file."""
     dictionary: Union[Path, PromisedFilePath]
     """Path to dictionary. If promise is used, the specified firmware version
@@ -59,7 +59,7 @@ class RackServiceConfigSpecifier(SetupSpecifier):
         cls,
         part_number: Union[PartNumber, list[PartNumber]],
         interface: Interface,
-        config_file: Path,
+        config_file: Optional[Path],
         firmware_file: Path,
         dictionary_file: Optional[Path] = None,
         dictionary_firmware_version: Optional[str] = None,
@@ -105,7 +105,7 @@ class RackServiceConfigSpecifier(SetupSpecifier):
         cls,
         part_number: Union[PartNumber, list[PartNumber]],
         interface: Interface,
-        config_file: Path,
+        config_file: Optional[Path],
         firmware_version: str,
     ) -> "RackServiceConfigSpecifier":
         """Used to specify a setup with frozen ATT firmware.

@@ -22,7 +22,7 @@ class EthernetSetup(SetupDescriptor):
 class VirtualDriveSetup(EthernetSetup):
     """Setup with virtual drive"""
 
-    dictionary: str
+    dictionary: Path
     port: int
 
 
@@ -30,10 +30,10 @@ class VirtualDriveSetup(EthernetSetup):
 class DriveHwSetup(SetupDescriptor):
     """Setup with physical hw drive"""
 
-    dictionary: str
+    dictionary: Path
     identifier: str
-    config_file: Optional[str]
-    fw_file: str
+    config_file: Optional[Path]
+    fw_file: Path
     rack_drive_idx: int
     rack_drive: object
 
