@@ -439,7 +439,7 @@ def load_firmware(setup_specifier: SetupSpecifier, setup_descriptor: SetupDescri
     # Load firmware (if necessary, if it's already loaded it will do nothing)
     client.client.firmware_load(
         setup_descriptor.rack_drive_idx,
-        setup_descriptor.fw_file.as_posix(),
+        setup_descriptor.fw_file,
         setup_descriptor.rack_drive.product_code,
         setup_descriptor.rack_drive.serial_number,
     )
