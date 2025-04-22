@@ -152,7 +152,7 @@ def tests_setup(request) -> Setup:
     )
     specifier = getattr(setup_module, setup_location.name)
 
-    if isinstance(tests_setup, RackServiceConfigSpecifier):
+    if isinstance(specifier, RackServiceConfigSpecifier):
         rack_service_client = request.getfixturevalue("connect_to_rack_service")
         specifier.rack_service_client = rack_service_client
     return specifier.get_descriptor()
