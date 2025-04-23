@@ -394,22 +394,53 @@ def connect_to_rack_service(request):
     rack_service_client.teardown()
 
 
+def __load_fw_with_protocol(mc, descriptor):
+    if isinstance(descriptor, DriveEcatSetup):
+        mc.communication.load_firmware_ecat(
+            ifname=descriptor.ifname,
+            fw_file=descriptor.fw_file,
+            slave=descriptor.slave,
+            boot_in_app=descriptor.boot_in_app,
+        )
+    elif isinstance(descriptor, DriveCanOpenSetup):
+        mc.communication.load_firmware_canopen(fw_file=descriptor.fw_file)
+    elif isinstance(descriptor, DriveEthernetSetup):
+        mc.communication.load_firmware_ethernet(ip=descriptor.ip, fw_file=descriptor.fw_file)
+    else:
+        raise NotImplementedError(
+            f"Firmware loading not implemented for descriptor {type(descriptor)}"
+        )
+
+
 @pytest.fixture(scope="session", autouse=True)
 def load_firmware(setup_specifier: SetupSpecifier, setup_descriptor: SetupDescriptor, request):
-    if not isinstance(setup_descriptor, DriveHwSetup):
+    if isinstance(setup_descriptor, VirtualDriveSetup):
         return
 
     if isinstance(setup_specifier, (LocalDriveConfigSpecifier, MultiLocalDriveConfigSpecifier)):
+        mc = MotionController()
+        descriptors = (
+            setup_descriptor.drives
+            if isinstance(setup_specifier, MultiLocalDriveConfigSpecifier)
+            else [setup_descriptor]
+        )
+        for descriptor in descriptors:
+            __load_fw_with_protocol(mc=mc, descriptor=descriptor)
         return
 
     client = request.getfixturevalue("connect_to_rack_service")
-    # Reboot drive
-    client.power_cycle()
+    client.power_cycle()  # Reboot drive
 
     # Load firmware (if necessary, if it's already loaded it will do nothing)
-    client.client.firmware_load(
-        setup_descriptor.rack_drive_idx,
-        setup_descriptor.fw_file.as_posix(),
-        setup_descriptor.rack_drive.product_code,
-        setup_descriptor.rack_drive.serial_number,
+    descriptors = (
+        setup_descriptor.drives
+        if isinstance(setup_specifier, MultiRackServiceConfigSpecifier)
+        else [setup_descriptor]
     )
+    for descriptor in descriptors:
+        client.client.firmware_load(
+            descriptor.rack_drive_idx,
+            descriptor.fw_file.as_posix(),
+            descriptor.rack_drive.product_code,
+            descriptor.rack_drive.serial_number,
+        )
