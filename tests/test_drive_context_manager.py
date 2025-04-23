@@ -12,7 +12,6 @@ def _read_user_over_voltage_uid(mc, alias):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.skip()
 def test_drive_context_manager(motion_controller):
     mc, alias, _ = motion_controller
     context = DriveContextManager(motion_controller=mc, alias=alias)
@@ -33,6 +32,9 @@ def test_drive_context_manager(motion_controller):
 class TestDriveContextFixture:
     original_value = None
 
+    @pytest.mark.ethernet
+    @pytest.mark.soem
+    @pytest.mark.canopen
     @pytest.mark.dependency(name="test_change_register_without_context")
     def test_change_register_without_context(self, motion_controller):
         mc, alias, _ = motion_controller
@@ -47,6 +49,9 @@ class TestDriveContextFixture:
         )
         assert _read_user_over_voltage_uid(mc, alias) == new_reg_value
 
+    @pytest.mark.ethernet
+    @pytest.mark.soem
+    @pytest.mark.canopen
     @pytest.mark.dependency(
         name="test_read_register_if_changed_without_context",
         depends=["test_read_register_if_changed_without_context"],
@@ -58,6 +63,9 @@ class TestDriveContextFixture:
         assert _read_user_over_voltage_uid(mc, alias) != TestDriveContextFixture.original_value
         TestDriveContextFixture.original_value = None
 
+    @pytest.mark.ethernet
+    @pytest.mark.soem
+    @pytest.mark.canopen
     @pytest.mark.dependency(
         name="test_change_register_with_context",
         depends=["test_read_register_if_changed_without_context"],
@@ -76,6 +84,9 @@ class TestDriveContextFixture:
         )
         assert _read_user_over_voltage_uid(mc, alias) == new_reg_value
 
+    @pytest.mark.ethernet
+    @pytest.mark.soem
+    @pytest.mark.canopen
     @pytest.mark.dependency(
         name="test_read_register_if_changed_with_context",
         depends=["test_change_register_with_context"],
