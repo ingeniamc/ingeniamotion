@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional, Union, cast
 
 from ingenialink.enums.register import RegAccess
 from ingenialink.exceptions import ILIOError
@@ -26,7 +26,7 @@ class DriveContextManager:
         self._axis: Optional[int] = axis
 
         self._original_register_values: dict[int, dict[str, Union[int, float, str]]] = {}
-        self._registers_changed: dict[int, dict[str, Union[int, float, str]]] = {}
+        self._registers_changed: dict[int, dict[str, Union[int, float, str, bytes]]] = {}
 
     @property
     def drive(self) -> Servo:
@@ -50,7 +50,7 @@ class DriveContextManager:
         """
         if register.subnode not in self._registers_changed:
             self._registers_changed[register.subnode] = {}
-        self._registers_changed[register.subnode][register.identifier] = value
+        self._registers_changed[register.subnode][cast("str", register.identifier)] = value
 
     def _store_register_data(self) -> None:
         """It subscribes to register update callbacks and saves the value of all registers."""
@@ -92,6 +92,6 @@ class DriveContextManager:
         """Saves the drive values."""
         self._store_register_data()
 
-    def __exit__(self, exc_type, exc_value, traceback) -> None:
+    def __exit__(self, exc_type, exc_value, traceback) -> None:  # type: ignore [no-untyped-def]
         """Restores the drive values."""
         self._restore_register_data()
