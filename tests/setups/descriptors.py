@@ -106,7 +106,7 @@ def _get_dictionary_and_firmware_file(
     firmware_file = (
         specifier.firmware_file
         if isinstance(specifier.firmware_file, Path)
-        else rack_service_client.get_firmware(specifier.firmware_file.firmware_version)
+        else specifier.firmware_file.firmware_version
     )
     return dictionary, firmware_file
 

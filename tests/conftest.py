@@ -439,8 +439,8 @@ def load_firmware(setup_specifier: SetupSpecifier, setup_descriptor: SetupDescri
     )
     for descriptor in descriptors:
         client.client.firmware_load(
-            descriptor.rack_drive_idx,
-            descriptor.fw_file.as_posix(),
-            descriptor.rack_drive.product_code,
-            descriptor.rack_drive.serial_number,
+            drive_idx=descriptor.rack_drive_idx,
+            revision_number=descriptor.fw_file,
+            product_code=descriptor.rack_drive.product_code,
+            serial_number=descriptor.rack_drive.serial_number,
         )
