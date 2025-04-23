@@ -83,5 +83,5 @@ class TestDriveContextFixture:
     def test_read_register_if_changed_with_context(self, motion_controller):
         mc, alias, _ = motion_controller
         assert TestDriveContextFixture.original_value is not None
-        # Drive context manager didn't restore the value
+        # Drive context manager restored the value, so it should be the original one
         assert _read_user_over_voltage_uid(mc, alias) == TestDriveContextFixture.original_value
