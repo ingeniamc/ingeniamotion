@@ -23,9 +23,10 @@ class PartNumber(Enum):
 class RackServiceClient:
     """Rack service client.
 
-    Handles all the interactions with the reack service."""
+    Handles all the interactions with the rack service."""
 
     _SLEEP_BETWEEN_POWER_CYCLE_S: float = 5
+    _DRIVES_TURN_ON_TIMEOUT_S: float = 90
 
     def __init__(
         self,
@@ -85,6 +86,35 @@ class RackServiceClient:
         """
         client.close()
 
+    @property
+    def are_nodes_ready(self) -> bool:
+        """Returns True if all nodes have started, False otherwise."""
+        network = self.configuration.networks[0]
+        all_nodes_started, _ = network.all_nodes_started()
+        return all_nodes_started
+
+    def power_cycle(self, wait_for_drives: bool = True) -> None:
+        """Performs a power cycle and waits for all drives to turn on.
+
+        Args:
+            wait_for_drives: True to wait for drives to turn on, False otherwise.
+                Defaults to True.
+        """
+        self.client.turn_off_ps()
+        time.sleep(self._SLEEP_BETWEEN_POWER_CYCLE_S)
+        self.client.turn_on_ps()
+
+        if not wait_for_drives:
+            return
+
+        wait_until = time.time() + self._DRIVES_TURN_ON_TIMEOUT_S
+        while time.time() < wait_until:
+            if self.are_nodes_ready:
+                return
+        raise TimeoutError(
+            f"Could not find drives in {self._DRIVES_TURN_ON_TIMEOUT_S} after rebooting"
+        )
+
     def get_drive(self, part_number: PartNumber) -> tuple[int, object]:
         """Retrieves a drive from the rack.
 
@@ -104,15 +134,12 @@ class RackServiceClient:
         raise ValueError(f"Drive {part_number_value} cannot be found on the rack's configuration.")
 
     def get_dictionary(self, firmware_version: str) -> Path:  # noqa: ARG002
-        return Path(".")  # INGM-541:
+        return Path(".")  # INGM-541: retrieve dictionary
 
     def get_firmware(self, firmware_version: str) -> Path:  # noqa: ARG002
-        return Path(".")  # INGM-541:
-
-    def power_cycle(self) -> None:
-        self.client.turn_off_ps()
-        time.sleep(self._SLEEP_BETWEEN_POWER_CYCLE_S)
-        self.client.turn_on_ps()
+        return Path(
+            "."
+        )  # INGM-541: retrieve firmware / remove and just send revision number in fw loading
 
     def teardown(self) -> None:
         """Closes the connection to the rack service."""

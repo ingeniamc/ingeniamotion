@@ -114,7 +114,7 @@ def _get_dictionary_and_firmware_file(
 def descriptor_from_specifier(
     specifier: SetupSpecifier, rack_service_client: Optional[RackServiceClient]
 ) -> SetupDescriptor:
-    """Returns the setup descriptor that corresponds to an specifier.
+    """Returns the setup descriptor that corresponds to a specifier.
 
     Args:
         specifier: setup specifier.

@@ -8,7 +8,6 @@ from typing import Optional
 import numpy as np
 import pytest
 from ingenialink import CanBaudrate, CanDevice
-from ping3 import ping
 from virtual_drive.core import VirtualDrive
 
 from ingeniamotion import MotionController
@@ -404,38 +403,8 @@ def load_firmware(setup_specifier: SetupSpecifier, setup_descriptor: SetupDescri
         return
 
     client = request.getfixturevalue("connect_to_rack_service")
-
-    number_of_drives = len(client.configuration.drives)
-
     # Reboot drive
     client.power_cycle()
-
-    # Wait for all drives to turn-on, for 90 seconds
-    timeout = 90
-    wait_until = time.time() + timeout
-    mc = MotionController()
-    while True:
-        if time.time() >= wait_until:
-            raise TimeoutError(f"Could not find drives in {timeout} after rebooting")
-
-        if isinstance(setup_descriptor, DriveEcatSetup):
-            n_found = len(mc.communication.scan_servos_ethercat(setup_descriptor.ifname))
-            if n_found == number_of_drives:
-                break
-        elif isinstance(setup_descriptor, DriveCanOpenSetup):
-            # Temporal workaround
-            # Canopen transceiver setup generates BUS-off errors when scanning servos
-            # Until the transceiver is not changed or a better method is implemented on rack service
-            # it will wait for some time and assume they are connected
-            time.sleep(60)
-            break
-        elif isinstance(setup_descriptor, DriveEthernetSetup):
-            ping_result = ping(dest_addr=setup_descriptor.ip)
-            # The response delay in seconds/milliseconds, False on error and None on timeout.
-            if isinstance(ping_result, float):
-                break
-        else:
-            raise NotImplementedError
 
     # Load firmware (if necessary, if it's already loaded it will do nothing)
     client.client.firmware_load(
