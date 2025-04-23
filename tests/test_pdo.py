@@ -202,8 +202,8 @@ def test_pdos_watchdog_exception_manual(motion_controller):
 
 @pytest.mark.soem_multislave
 @pytest.mark.smoke
-def test_start_pdos(motion_controller, tests_setup):
-    if not isinstance(tests_setup, EthercatMultiSlaveSetup):
+def test_start_pdos(motion_controller, setup_descriptor):
+    if not isinstance(setup_descriptor, EthercatMultiSlaveSetup):
         raise ValueError("Invalid setup config for test")
 
     mc, aliases, environment = motion_controller

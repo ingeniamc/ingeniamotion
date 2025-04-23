@@ -24,7 +24,12 @@ from ingeniamotion.exceptions import (
     IMRegisterNotExistError,
     IMRegisterWrongAccessError,
 )
-from tests.setups.descriptors import DriveCanOpenSetup, DriveEcatSetup, EthernetSetup, Setup
+from tests.setups.descriptors import (
+    DriveCanOpenSetup,
+    DriveEcatSetup,
+    EthernetSetup,
+    SetupDescriptor,
+)
 
 TEST_ENSEMBLE_FW_FILE = "tests/resources/example_ensemble_fw.zfu"
 
@@ -56,13 +61,13 @@ class EmcyTest:
 @pytest.mark.smoke
 @pytest.mark.canopen
 @pytest.mark.ethernet
-def test_get_network_adapters(mocker, tests_setup: Setup):
+def test_get_network_adapters(mocker, setup_descriptor: SetupDescriptor):
     """Tests networks adapters with Windows platform."""
     is_windows = platform.system() != "Windows"
-    if not isinstance(tests_setup, DriveEcatSetup):
-        pytest.skip(f"Skipping because test setup is {type(tests_setup)}")
+    if not isinstance(setup_descriptor, DriveEcatSetup):
+        pytest.skip(f"Skipping because test setup is {type(setup_descriptor)}")
 
-    match = re.search(r"\{[^}]*\}", tests_setup.ifname)
+    match = re.search(r"\{[^}]*\}", setup_descriptor.ifname)
     expected_adapter_address = match.group(0) if match else None
     assert expected_adapter_address is not None
 
@@ -88,42 +93,44 @@ def test_get_network_adapters(mocker, tests_setup: Setup):
 
 
 @pytest.mark.virtual
-def test_connect_servo_eoe(tests_setup: EthernetSetup):
+def test_connect_servo_eoe(setup_descriptor: EthernetSetup):
     mc = MotionController()
     assert "ethernet_test" not in mc.servos
     assert "ethernet_test" not in mc.net
     mc.communication.connect_servo_eoe(
-        tests_setup.ip, tests_setup.dictionary, alias="ethernet_test"
+        setup_descriptor.ip, setup_descriptor.dictionary, alias="ethernet_test"
     )
     assert "ethernet_test" in mc.servos and mc.servos["ethernet_test"] is not None
     assert "ethernet_test" in mc.net and mc.net["ethernet_test"] is not None
 
 
 @pytest.mark.virtual
-def test_connect_servo_eoe_no_dictionary_error(tests_setup: EthernetSetup):
+def test_connect_servo_eoe_no_dictionary_error(setup_descriptor: EthernetSetup):
     mc = MotionController()
     with pytest.raises(FileNotFoundError):
-        mc.communication.connect_servo_eoe(tests_setup.ip, "no_dictionary", alias="ethernet_test")
+        mc.communication.connect_servo_eoe(
+            setup_descriptor.ip, "no_dictionary", alias="ethernet_test"
+        )
 
 
 @pytest.mark.virtual
-def test_connect_servo_ethernet(tests_setup: EthernetSetup):
+def test_connect_servo_ethernet(setup_descriptor: EthernetSetup):
     mc = MotionController()
     assert "ethernet_test" not in mc.servos
     assert "ethernet_test" not in mc.net
     mc.communication.connect_servo_ethernet(
-        tests_setup.ip, tests_setup.dictionary, alias="ethernet_test"
+        setup_descriptor.ip, setup_descriptor.dictionary, alias="ethernet_test"
     )
     assert "ethernet_test" in mc.servos and mc.servos["ethernet_test"] is not None
     assert "ethernet_test" in mc.net and mc.net["ethernet_test"] is not None
 
 
 @pytest.mark.virtual
-def test_connect_servo_ethernet_no_dictionary_error(tests_setup: EthernetSetup):
+def test_connect_servo_ethernet_no_dictionary_error(setup_descriptor: EthernetSetup):
     mc = MotionController()
     with pytest.raises(FileNotFoundError):
         mc.communication.connect_servo_ethernet(
-            tests_setup.ip, "no_dictionary", alias="ethernet_test"
+            setup_descriptor.ip, "no_dictionary", alias="ethernet_test"
         )
 
 
@@ -136,17 +143,17 @@ def test_connect_servo_ethernet_no_dictionary_error(tests_setup: EthernetSetup):
         False,
     ],
 )
-def test_connect_servo_comkit_no_dictionary_error(coco_dict_path, tests_setup: EthernetSetup):
+def test_connect_servo_comkit_no_dictionary_error(coco_dict_path, setup_descriptor: EthernetSetup):
     mc = MotionController()
     if coco_dict_path:
-        coco_dict_path = tests_setup.dictionary
+        coco_dict_path = setup_descriptor.dictionary
         moco_dict_path = "no_dictionary"
     else:
         coco_dict_path = "no_dictionary"
-        moco_dict_path = tests_setup.dictionary
+        moco_dict_path = setup_descriptor.dictionary
     with pytest.raises(FileNotFoundError):
         mc.communication.connect_servo_comkit(
-            tests_setup.ip, coco_dict_path, moco_dict_path, alias="ethernet_test"
+            setup_descriptor.ip, coco_dict_path, moco_dict_path, alias="ethernet_test"
         )
 
 
@@ -192,18 +199,18 @@ def test_get_ifname_by_index():
 @pytest.mark.skip(reason='This test enters in conflict with "disable_motor_fixture"')
 @pytest.mark.smoke
 @pytest.mark.canopen
-def test_connect_servo_canopen(tests_setup: DriveCanOpenSetup):
+def test_connect_servo_canopen(setup_descriptor: DriveCanOpenSetup):
     mc = MotionController()
     assert "canopen_test" not in mc.servos
     assert "canopen_test" not in mc.net
-    device = CanDevice(tests_setup.device)
-    baudrate = CanBaudrate(tests_setup.baudrate)
+    device = CanDevice(setup_descriptor.device)
+    baudrate = CanBaudrate(setup_descriptor.baudrate)
     mc.communication.connect_servo_canopen(
         device,
-        tests_setup.dictionary,
-        tests_setup.node_id,
+        setup_descriptor.dictionary,
+        setup_descriptor.node_id,
         baudrate,
-        tests_setup.channel,
+        setup_descriptor.channel,
         alias="canopen_test",
     )
     assert "canopen_test" in mc.servos and mc.servos["canopen_test"] is not None
@@ -214,22 +221,24 @@ def test_connect_servo_canopen(tests_setup: DriveCanOpenSetup):
 @pytest.mark.smoke
 @pytest.mark.canopen
 @pytest.mark.skip
-def test_connect_servo_canopen_busy_drive_error(motion_controller, tests_setup: DriveCanOpenSetup):
+def test_connect_servo_canopen_busy_drive_error(
+    motion_controller, setup_descriptor: DriveCanOpenSetup
+):
     mc, alias, environment = motion_controller
     assert "canopen_test" not in mc.servos
     assert "canopen_test" not in mc.servo_net
     assert alias in mc.servos
     assert alias in mc.servo_net
     assert mc.servo_net[alias] in mc.net
-    device = CanDevice(tests_setup.device)
-    baudrate = CanBaudrate(tests_setup.baudrate)
+    device = CanDevice(setup_descriptor.device)
+    baudrate = CanBaudrate(setup_descriptor.baudrate)
     with pytest.raises(ILError):
         mc.communication.connect_servo_canopen(
             device,
-            tests_setup.dictionary,
-            tests_setup.node_id,
+            setup_descriptor.dictionary,
+            setup_descriptor.node_id,
             baudrate,
-            tests_setup.channel,
+            setup_descriptor.channel,
             alias="canopen_test",
         )
 
@@ -380,9 +389,9 @@ def test_connect_servo_virtual():
 
 
 @pytest.mark.virtual
-def test_connect_servo_virtual_custom_dictionary(tests_setup: Setup):
+def test_connect_servo_virtual_custom_dictionary(setup_descriptor: SetupDescriptor):
     mc = MotionController()
-    mc.communication.connect_servo_virtual(dict_path=tests_setup.dictionary, port=1062)
+    mc.communication.connect_servo_virtual(dict_path=setup_descriptor.dictionary, port=1062)
     assert mc.communication._Communication__virtual_drive is not None
     mc.communication.disconnect()
     assert mc.communication._Communication__virtual_drive is None

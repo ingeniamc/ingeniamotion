@@ -19,14 +19,14 @@ def test_fsoe_master_not_installed():
 
 
 @pytest.mark.fsoe
-def test_fsoe_master_get_application_parameters(tests_setup):
+def test_fsoe_master_get_application_parameters(setup_descriptor):
     mc = MotionController()
     assert isinstance(mc.fsoe, FSoEMaster)
-    servo = tests_setup.identifier
+    servo = setup_descriptor.identifier
     mc.communication.connect_servo_ethercat(
-        interface_name=tests_setup.ifname,
-        slave_id=tests_setup.slave,
-        dict_path=tests_setup.dictionary,
+        interface_name=setup_descriptor.ifname,
+        slave_id=setup_descriptor.slave,
+        dict_path=setup_descriptor.dictionary,
         alias=servo,
     )
     application_parameters = mc.fsoe._get_application_parameters(servo=servo)

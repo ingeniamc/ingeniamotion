@@ -7,9 +7,7 @@ from typing import Optional
 
 import numpy as np
 import pytest
-import rpyc
 from ingenialink import CanBaudrate, CanDevice
-from ping3 import ping
 from virtual_drive.core import VirtualDrive
 
 from ingeniamotion import MotionController
@@ -20,13 +18,22 @@ from tests.setups.descriptors import (
     DriveEthernetSetup,
     DriveHwSetup,
     EthercatMultiSlaveSetup,
-    Setup,
+    SetupDescriptor,
     VirtualDriveSetup,
+    descriptor_from_specifier,
 )
 from tests.setups.environment_control import (
     ManualUserEnvironmentController,
     RackServiceEnvironmentController,
     VirtualDriveEnvironmentController,
+)
+from tests.setups.rack_service_client import RackServiceClient
+from tests.setups.specifiers import (
+    LocalDriveConfigSpecifier,
+    MultiLocalDriveConfigSpecifier,
+    MultiRackServiceConfigSpecifier,
+    RackServiceConfigSpecifier,
+    SetupSpecifier,
 )
 
 # Pytest runs with importlib import mode, which means that it will run the tests with the installed
@@ -109,8 +116,6 @@ def dynamic_loader(module_path: Path) -> None:
 
 test_report_key = pytest.StashKey[dict[str, pytest.CollectReport]]()
 
-SLEEP_BETWEEN_POWER_CYCLE_S = 5
-
 
 def pytest_addoption(parser):
     parser.addoption(
@@ -144,13 +149,25 @@ def pytest_sessionstart(session):
 
 
 @pytest.fixture(scope="session")
-def tests_setup(request) -> Setup:
+def setup_specifier(request) -> SetupSpecifier:
     setup_location = Path(request.config.getoption("--setup").replace(".", "/"))
     setup_module = import_module_from_local_path(
         module_name=setup_location.parent.name,
         module_path=setup_location.parent.with_suffix(".py").resolve(),
     )
     return getattr(setup_module, setup_location.name)
+
+
+@pytest.fixture(scope="session")
+def setup_descriptor(setup_specifier, request) -> SetupSpecifier:
+    if isinstance(setup_specifier, (RackServiceConfigSpecifier, MultiRackServiceConfigSpecifier)):
+        rack_service_client = request.getfixturevalue("connect_to_rack_service")
+    else:
+        rack_service_client = None
+
+    return descriptor_from_specifier(
+        specifier=setup_specifier, rack_service_client=rack_service_client
+    )
 
 
 def connect_ethernet(mc, config, alias):
@@ -179,51 +196,52 @@ def connect_canopen(mc, config: DriveCanOpenSetup, alias):
     )
 
 
-def __connect_to_servo_with_protocol(mc, tests_setup, alias):
-    if isinstance(tests_setup, DriveEcatSetup):
-        connect_soem(mc, tests_setup, alias)
-    elif isinstance(tests_setup, DriveCanOpenSetup):
-        connect_canopen(mc, tests_setup, alias)
-    elif isinstance(tests_setup, DriveEthernetSetup):
-        connect_ethernet(mc, tests_setup, alias)
+def __connect_to_servo_with_protocol(mc, descriptor, alias):
+    if isinstance(descriptor, DriveEcatSetup):
+        connect_soem(mc, descriptor, alias)
+    elif isinstance(descriptor, DriveCanOpenSetup):
+        connect_canopen(mc, descriptor, alias)
+    elif isinstance(descriptor, DriveEthernetSetup):
+        connect_ethernet(mc, descriptor, alias)
     else:
         raise NotImplementedError
 
 
 @pytest.fixture(scope="session")
-def motion_controller(tests_setup: Setup, pytestconfig, request):
+def motion_controller(
+    setup_specifier: SetupSpecifier, setup_descriptor: SetupDescriptor, pytestconfig, request
+):
     alias = "test"
     mc = MotionController()
 
-    if isinstance(tests_setup, DriveHwSetup):
-        if tests_setup.use_rack_service:
-            rack_service_client = request.getfixturevalue("connect_to_rack_service")
-            drive_idx, drive = tests_setup.get_rack_drive(rack_service_client)
-            environment = RackServiceEnvironmentController(
-                rack_service_client, default_drive_idx=drive_idx
-            )
-        else:
+    if isinstance(setup_descriptor, DriveHwSetup):
+        if isinstance(setup_specifier, (LocalDriveConfigSpecifier, MultiLocalDriveConfigSpecifier)):
             environment = ManualUserEnvironmentController(pytestconfig)
+        else:
+            client = request.getfixturevalue("connect_to_rack_service")
+            environment = RackServiceEnvironmentController(
+                client.client,
+                default_drive_idx=setup_descriptor.rack_drive_idx,
+            )
 
-        __connect_to_servo_with_protocol(mc, tests_setup, alias)
+        __connect_to_servo_with_protocol(mc, setup_descriptor, alias)
 
-        if tests_setup.config_file is not None:
+        if setup_descriptor.config_file is not None:
             mc.configuration.restore_configuration(servo=alias)
-            mc.configuration.load_configuration(tests_setup.config_file, servo=alias)
+            mc.configuration.load_configuration(setup_descriptor.config_file, servo=alias)
         yield mc, alias, environment
         environment.reset()
         mc.communication.disconnect(alias)
 
-    elif isinstance(tests_setup, EthercatMultiSlaveSetup):
-        if tests_setup.drives[0].use_rack_service:
-            environment = RackServiceEnvironmentController(
-                request.getfixturevalue("connect_to_rack_service")
-            )
-        else:
+    elif isinstance(setup_descriptor, EthercatMultiSlaveSetup):
+        if isinstance(setup_specifier, (LocalDriveConfigSpecifier, MultiLocalDriveConfigSpecifier)):
             environment = ManualUserEnvironmentController(pytestconfig)
+        else:
+            client = request.getfixturevalue("connect_to_rack_service")
+            environment = RackServiceEnvironmentController(client.client)
 
         aliases = []
-        for drive in tests_setup.drives:
+        for drive in setup_descriptor.drives:
             mc.communication.connect_servo_ethercat(
                 interface_name=drive.ifname,
                 slave_id=drive.slave,
@@ -235,10 +253,10 @@ def motion_controller(tests_setup: Setup, pytestconfig, request):
         yield mc, aliases, environment
         environment.reset()
 
-    elif isinstance(tests_setup, VirtualDriveSetup):
-        virtual_drive = VirtualDrive(tests_setup.port, tests_setup.dictionary)
+    elif isinstance(setup_descriptor, VirtualDriveSetup):
+        virtual_drive = VirtualDrive(setup_descriptor.port, setup_descriptor.dictionary)
         virtual_drive.start()
-        connect_ethernet(mc, tests_setup, alias)
+        connect_ethernet(mc, setup_descriptor, alias)
         environment = VirtualDriveEnvironmentController(virtual_drive.environment)
 
         yield mc, alias, environment
@@ -250,23 +268,23 @@ def motion_controller(tests_setup: Setup, pytestconfig, request):
 
 
 @pytest.fixture(autouse=True)
-def disable_motor_fixture(motion_controller, tests_setup):
+def disable_motor_fixture(motion_controller, setup_descriptor):
     yield
 
-    if isinstance(tests_setup, DriveHwSetup):
+    if isinstance(setup_descriptor, DriveHwSetup):
         mc, alias, environment = motion_controller
         mc.motion.motor_disable(servo=alias)
         mc.motion.fault_reset(servo=alias)
 
 
 @pytest.fixture
-def motion_controller_teardown(motion_controller, tests_setup: Setup):
+def motion_controller_teardown(motion_controller, setup_descriptor: SetupDescriptor):
     yield motion_controller
-    if isinstance(tests_setup, DriveHwSetup):
+    if isinstance(setup_descriptor, DriveHwSetup):
         mc, alias, environment = motion_controller
         mc.motion.motor_disable(servo=alias)
-        if tests_setup.config_file is not None:
-            mc.configuration.load_configuration(tests_setup.config_file, servo=alias)
+        if setup_descriptor.config_file is not None:
+            mc.configuration.load_configuration(setup_descriptor.config_file, servo=alias)
         mc.motion.fault_reset(servo=alias)
 
 
@@ -331,17 +349,17 @@ def pytest_runtest_makereport(item):
 
 
 @pytest.fixture(scope="function", autouse=True)
-def load_configuration_if_test_fails(request, motion_controller, tests_setup: Setup):
+def load_configuration_if_test_fails(request, motion_controller, setup_descriptor: SetupDescriptor):
     mc, alias, environment = motion_controller
     yield
 
     report = request.node.stash[test_report_key]
 
-    if isinstance(tests_setup, DriveHwSetup) and (
+    if isinstance(setup_descriptor, DriveHwSetup) and (
         report["setup"].failed or ("call" not in report) or report["call"].failed
     ):
-        if tests_setup.config_file is not None:
-            mc.configuration.load_configuration(tests_setup.config_file, servo=alias)
+        if setup_descriptor.config_file is not None:
+            mc.configuration.load_configuration(setup_descriptor.config_file, servo=alias)
         mc.motion.fault_reset(servo=alias)
 
 
@@ -359,70 +377,70 @@ def mean_actual_velocity_position(mc, servo, velocity=False, n_samples=200, samp
 
 
 @pytest.fixture(scope="module", autouse=True)
-def load_configuration_after_each_module(motion_controller, tests_setup: Setup):
+def load_configuration_after_each_module(motion_controller, setup_descriptor: SetupDescriptor):
     yield motion_controller
 
-    if isinstance(tests_setup, DriveHwSetup):
+    if isinstance(setup_descriptor, DriveHwSetup):
         mc, alias, environment = motion_controller
         mc.motion.motor_disable(servo=alias)
-        if tests_setup.config_file is not None:
-            mc.configuration.load_configuration(tests_setup.config_file, servo=alias)
+        if setup_descriptor.config_file is not None:
+            mc.configuration.load_configuration(setup_descriptor.config_file, servo=alias)
 
 
 @pytest.fixture(scope="session")
 def connect_to_rack_service(request):
-    rack_service_port = 33810
-    client = rpyc.connect("localhost", rack_service_port, config={"sync_request_timeout": None})
-    client.root.set_job_name(request.config.getoption("--job_name"))
-    yield client.root
-    client.close()
+    rack_service_client = RackServiceClient(job_name=request.config.getoption("--job_name"))
+    yield rack_service_client
+    rack_service_client.teardown()
+
+
+def __load_fw_with_protocol(mc, descriptor):
+    if isinstance(descriptor, DriveEcatSetup):
+        mc.communication.load_firmware_ecat(
+            ifname=descriptor.ifname,
+            fw_file=descriptor.fw_file,
+            slave=descriptor.slave,
+            boot_in_app=descriptor.boot_in_app,
+        )
+    elif isinstance(descriptor, DriveCanOpenSetup):
+        mc.communication.load_firmware_canopen(fw_file=descriptor.fw_file)
+    elif isinstance(descriptor, DriveEthernetSetup):
+        mc.communication.load_firmware_ethernet(ip=descriptor.ip, fw_file=descriptor.fw_file)
+    else:
+        raise NotImplementedError(
+            f"Firmware loading not implemented for descriptor {type(descriptor)}"
+        )
 
 
 @pytest.fixture(scope="session", autouse=True)
-def load_firmware(tests_setup: Setup, request):
-    if not isinstance(tests_setup, DriveHwSetup):
+def load_firmware(setup_specifier: SetupSpecifier, setup_descriptor: SetupDescriptor, request):
+    if isinstance(setup_descriptor, VirtualDriveSetup):
         return
 
-    if not tests_setup.use_rack_service:
+    if isinstance(setup_specifier, (LocalDriveConfigSpecifier, MultiLocalDriveConfigSpecifier)):
+        mc = MotionController()
+        descriptors = (
+            setup_descriptor.drives
+            if isinstance(setup_specifier, MultiLocalDriveConfigSpecifier)
+            else [setup_descriptor]
+        )
+        for descriptor in descriptors:
+            __load_fw_with_protocol(mc=mc, descriptor=descriptor)
         return
 
     client = request.getfixturevalue("connect_to_rack_service")
-    number_of_drives = len(client.exposed_get_configuration().drives)
-
-    # Reboot drive
-    client.exposed_turn_off_ps()
-    time.sleep(SLEEP_BETWEEN_POWER_CYCLE_S)
-    client.exposed_turn_on_ps()
-
-    # Wait for all drives to turn-on, for 90 seconds
-    timeout = 90
-    wait_until = time.time() + timeout
-    mc = MotionController()
-    while True:
-        if time.time() >= wait_until:
-            raise TimeoutError(f"Could not find drives in {timeout} after rebooting")
-
-        if isinstance(tests_setup, DriveEcatSetup):
-            n_found = len(mc.communication.scan_servos_ethercat(tests_setup.ifname))
-            if n_found == number_of_drives:
-                break
-        elif isinstance(tests_setup, DriveCanOpenSetup):
-            # Temporal workaround
-            # Canopen transceiver setup generates BUS-off errors when scanning servos
-            # Until the transceiver is not changed or a better method is implemented on rack service
-            # it will wait for some time and assume they are connected
-            time.sleep(60)
-            break
-        elif isinstance(tests_setup, DriveEthernetSetup):
-            ping_result = ping(dest_addr=tests_setup.ip)
-            # The response delay in seconds/milliseconds, False on error and None on timeout.
-            if isinstance(ping_result, float):
-                break
-        else:
-            raise NotImplementedError
+    client.power_cycle()  # Reboot drive
 
     # Load firmware (if necessary, if it's already loaded it will do nothing)
-    drive_idx, drive = tests_setup.get_rack_drive(client)
-    client.exposed_firmware_load(
-        drive_idx, tests_setup.fw_file, drive.product_code, drive.serial_number
+    descriptors = (
+        setup_descriptor.drives
+        if isinstance(setup_specifier, MultiRackServiceConfigSpecifier)
+        else [setup_descriptor]
     )
+    for descriptor in descriptors:
+        client.client.firmware_load(
+            descriptor.rack_drive_idx,
+            descriptor.fw_file.as_posix(),
+            descriptor.rack_drive.product_code,
+            descriptor.rack_drive.serial_number,
+        )
