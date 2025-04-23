@@ -96,12 +96,16 @@ def _get_network_from_drive(drive: object, interface: Interface) -> object:
 
 
 def _get_dictionary_and_firmware_file(
-    specifier: SetupSpecifier, rack_service_client: RackServiceClient
+    specifier: SetupSpecifier,
+    rack_service_client: RackServiceClient,
+    rack_drive_idx: int,
 ) -> tuple[Path, Path]:
     dictionary = (
         specifier.dictionary
         if isinstance(specifier.dictionary, Path)
-        else rack_service_client.get_dictionary(specifier.dictionary.firmware_version)
+        else rack_service_client.get_dictionary(
+            rack_drive_idx, specifier.dictionary.firmware_version
+        )
     )
     firmware_file = (
         specifier.firmware_file
@@ -150,7 +154,9 @@ def descriptor_from_specifier(
         # Common arguments for DriveHwSetup
         rack_drive_idx, rack_drive = rack_service_client.get_drive(eval_specifier.part_number)
         dictionary, firmware_file = _get_dictionary_and_firmware_file(
-            specifier=eval_specifier, rack_service_client=rack_service_client
+            specifier=eval_specifier,
+            rack_service_client=rack_service_client,
+            rack_drive_idx=rack_drive_idx,
         )
         args = {
             "dictionary": dictionary,
