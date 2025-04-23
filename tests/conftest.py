@@ -475,8 +475,17 @@ def load_firmware(setup_specifier: SetupSpecifier, setup_descriptor: SetupDescri
 
 @pytest.fixture
 def drive_context_manager(motion_controller):
-    mc, alias, _ = motion_controller
-    context_manager = DriveContextManager(mc, alias)
-    context_manager.__enter__()
-    yield context_manager
-    context_manager.__exit__(None, None, None)
+    """Drive context manager.
+
+    It is in charge of returning the drive to the values it had before the tests,
+    if the test alters it."""
+    mc, aliases, _ = motion_controller
+    if isinstance(aliases, str):
+        aliases = [aliases]
+
+    context_managers = [DriveContextManager(mc, alias) for alias in aliases]
+    for context_manager in context_managers:
+        context_manager.__enter__()
+    yield
+    for context_manager in context_managers:
+        context_manager.__exit__(None, None, None)
