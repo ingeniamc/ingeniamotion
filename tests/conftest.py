@@ -1,4 +1,5 @@
 import importlib
+import re
 import sys
 import time
 from pathlib import Path
@@ -8,6 +9,7 @@ from typing import Optional
 import numpy as np
 import pytest
 from ingenialink import CanBaudrate, CanDevice
+from packaging import version
 from virtual_drive.core import VirtualDrive
 
 from ingeniamotion import MotionController
@@ -42,6 +44,8 @@ from tests.setups.specifiers import (
 # The issue is solved by dynamically importing them before the tests start. All modules that should
 # be imported and ARE NOT part of the package should be specified here
 _DYNAMIC_MODULES_IMPORT = ["tests", "examples"]
+
+_SERVO_ALIAS = "test"
 
 
 def import_module_from_local_path(
@@ -208,10 +212,18 @@ def __connect_to_servo_with_protocol(mc, descriptor, alias):
 
 
 @pytest.fixture(scope="session")
+def servo_alias() -> str:
+    return _SERVO_ALIAS
+
+
+@pytest.fixture(scope="session")
 def motion_controller(
-    setup_specifier: SetupSpecifier, setup_descriptor: SetupDescriptor, pytestconfig, request
+    servo_alias,
+    setup_specifier: SetupSpecifier,
+    setup_descriptor: SetupDescriptor,
+    pytestconfig,
+    request,
 ):
-    alias = "test"
     mc = MotionController()
 
     if isinstance(setup_descriptor, DriveHwSetup):
@@ -224,14 +236,14 @@ def motion_controller(
                 default_drive_idx=setup_descriptor.rack_drive_idx,
             )
 
-        __connect_to_servo_with_protocol(mc, setup_descriptor, alias)
+        __connect_to_servo_with_protocol(mc, setup_descriptor, servo_alias)
 
         if setup_descriptor.config_file is not None:
-            mc.configuration.restore_configuration(servo=alias)
-            mc.configuration.load_configuration(setup_descriptor.config_file, servo=alias)
-        yield mc, alias, environment
+            mc.configuration.restore_configuration(servo=servo_alias)
+            mc.configuration.load_configuration(setup_descriptor.config_file, servo=servo_alias)
+        yield mc, servo_alias, environment
         environment.reset()
-        mc.communication.disconnect(alias)
+        mc.communication.disconnect(servo_alias)
 
     elif isinstance(setup_descriptor, EthercatMultiSlaveSetup):
         if isinstance(setup_specifier, (LocalDriveConfigSpecifier, MultiLocalDriveConfigSpecifier)):
@@ -256,10 +268,10 @@ def motion_controller(
     elif isinstance(setup_descriptor, VirtualDriveSetup):
         virtual_drive = VirtualDrive(setup_descriptor.port, setup_descriptor.dictionary)
         virtual_drive.start()
-        connect_ethernet(mc, setup_descriptor, alias)
+        connect_ethernet(mc, setup_descriptor, servo_alias)
         environment = VirtualDriveEnvironmentController(virtual_drive.environment)
 
-        yield mc, alias, environment
+        yield mc, servo_alias, environment
 
         environment.reset()
         virtual_drive.stop()
@@ -394,18 +406,45 @@ def connect_to_rack_service(request):
     rack_service_client.teardown()
 
 
-def __load_fw_with_protocol(mc, descriptor):
+def _read_fw_version(alias: str, motion_controller: MotionController):
+    _, _, fw_version, _ = motion_controller.configuration.get_drive_info_coco_moco(servo=alias)
+    return fw_version
+
+
+@pytest.fixture
+def servo_fw_version(servo_alias: str, motion_controller: MotionController):
+    return _read_fw_version(alias=servo_alias, motion_controller=motion_controller)
+
+
+def is_fw_already_uploaded(alias: str, mc: MotionController, firmware_file: Path) -> bool:
+    current_fw_version = _read_fw_version(alias=alias, motion_controller=mc)[0]
+
+    match = re.search(r"_(\d+\.\d+\.\d+)", firmware_file.stem)
+    if match is None:
+        return False
+    file_fw_version = match.group(1)
+    try:
+        return version.parse(file_fw_version) == version.parse(current_fw_version)
+    except version.InvalidVersion:
+        return False
+
+
+def __load_fw_with_protocol(mc: MotionController, descriptor: SetupDescriptor, alias: str):
+    if is_fw_already_uploaded(alias=alias, mc=mc, firmware_file=descriptor.fw_file):
+        return
     if isinstance(descriptor, DriveEcatSetup):
         mc.communication.load_firmware_ecat(
             ifname=descriptor.ifname,
-            fw_file=descriptor.fw_file,
+            fw_file=descriptor.fw_file.as_posix(),
             slave=descriptor.slave,
             boot_in_app=descriptor.boot_in_app,
         )
     elif isinstance(descriptor, DriveCanOpenSetup):
-        mc.communication.load_firmware_canopen(fw_file=descriptor.fw_file)
+        mc.communication.load_firmware_canopen(fw_file=descriptor.fw_file.as_posix(), servo=alias)
     elif isinstance(descriptor, DriveEthernetSetup):
-        mc.communication.load_firmware_ethernet(ip=descriptor.ip, fw_file=descriptor.fw_file)
+        mc.communication.load_firmware_ethernet(
+            ip=descriptor.ip, fw_file=descriptor.fw_file.as_posix()
+        )
     else:
         raise NotImplementedError(
             f"Firmware loading not implemented for descriptor {type(descriptor)}"
@@ -413,19 +452,25 @@ def __load_fw_with_protocol(mc, descriptor):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def load_firmware(setup_specifier: SetupSpecifier, setup_descriptor: SetupDescriptor, request):
+def load_firmware(
+    setup_specifier: SetupSpecifier,
+    setup_descriptor: SetupDescriptor,
+    request,
+    motion_controller,
+    servo_alias: str,
+):
     if isinstance(setup_descriptor, VirtualDriveSetup):
         return
 
     if isinstance(setup_specifier, (LocalDriveConfigSpecifier, MultiLocalDriveConfigSpecifier)):
-        mc = MotionController()
+        mc, alias, environment = motion_controller
         descriptors = (
             setup_descriptor.drives
             if isinstance(setup_specifier, MultiLocalDriveConfigSpecifier)
             else [setup_descriptor]
         )
         for descriptor in descriptors:
-            __load_fw_with_protocol(mc=mc, descriptor=descriptor)
+            __load_fw_with_protocol(mc=mc, descriptor=descriptor, alias=servo_alias)
         return
 
     client = request.getfixturevalue("connect_to_rack_service")
