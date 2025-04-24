@@ -53,7 +53,7 @@ class DriveContextManager:
         self._registers_changed[register.subnode][cast("str", register.identifier)] = value
 
     def _store_register_data(self) -> None:
-        """It saves the value of all registers and subscribes to register update callbacks."""
+        """Saves the value of all registers."""
         drive = self.drive
         axes = list(drive.dictionary.subnodes) if self._axis is None else [self._axis]
         for axis in axes:
@@ -69,16 +69,8 @@ class DriveContextManager:
                     continue
                 self._original_register_values[axis][uid] = register_value
 
-        self._mc.communication.subscribe_register_update(
-            self._register_update_callback, servo=self._alias
-        )
-
     def _restore_register_data(self) -> None:
-        """Unsubscribes from register updates and restores the drive values."""
-        self._mc.communication.unsubscribe_register_update(
-            self._register_update_callback, servo=self._alias
-        )
-
+        """Restores the drive values."""
         for axis, registers in self._registers_changed.items():
             for uid, current_value in registers.items():
                 restore_value = self._original_register_values[axis].get(uid, None)
@@ -89,9 +81,15 @@ class DriveContextManager:
                 )
 
     def __enter__(self) -> None:
-        """Saves the drive values."""
+        """Subscribes to register update callbacks and saves the drive values."""
         self._store_register_data()
+        self._mc.communication.subscribe_register_update(
+            self._register_update_callback, servo=self._alias
+        )
 
     def __exit__(self, exc_type, exc_value, traceback) -> None:  # type: ignore [no-untyped-def]
-        """Restores the drive values."""
+        """Unsubscribes from register updates and restores the drive values."""
+        self._mc.communication.unsubscribe_register_update(
+            self._register_update_callback, servo=self._alias
+        )
         self._restore_register_data()
