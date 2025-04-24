@@ -53,11 +53,7 @@ class DriveContextManager:
         self._registers_changed[register.subnode][cast("str", register.identifier)] = value
 
     def _store_register_data(self) -> None:
-        """It subscribes to register update callbacks and saves the value of all registers."""
-        self._mc.communication.subscribe_register_update(
-            self._register_update_callback, servo=self._alias
-        )
-
+        """It saves the value of all registers and subscribes to register update callbacks."""
         drive = self.drive
         axes = list(drive.dictionary.subnodes) if self._axis is None else [self._axis]
         for axis in axes:
@@ -72,6 +68,10 @@ class DriveContextManager:
                 except ILIOError:
                     continue
                 self._original_register_values[axis][uid] = register_value
+
+        self._mc.communication.subscribe_register_update(
+            self._register_update_callback, servo=self._alias
+        )
 
     def _restore_register_data(self) -> None:
         """Unsubscribes from register updates and restores the drive values."""
