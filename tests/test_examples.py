@@ -26,7 +26,7 @@ from ingeniamotion.enums import SeverityLevel
 from ingeniamotion.information import Information
 from ingeniamotion.motion import Motion
 from ingeniamotion.pdo import PDONetworkManager, PDOPoller
-from tests.conftest import connect_canopen, connect_ethernet, connect_soem
+from tests.tests_toolkit.network_utils import connect_canopen, connect_ethernet, connect_soem
 from tests.tests_toolkit.setups.descriptors import (
     DriveCanOpenSetup,
     DriveEcatSetup,
