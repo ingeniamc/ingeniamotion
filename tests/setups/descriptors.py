@@ -2,9 +2,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+from ingenialink.dictionary import Interface
+
 from tests.setups.rack_service_client import RackServiceClient
 from tests.setups.specifiers import (
-    Interface,
     MultiDriveConfigSpecifier,
     MultiRackServiceConfigSpecifier,
     RackServiceConfigSpecifier,
@@ -80,11 +81,11 @@ class EthercatMultiSlaveSetup(SetupDescriptor):
 
 
 def _get_network_from_drive(drive: object, interface: Interface) -> object:
-    if interface is Interface.CANOPEN:
+    if interface is Interface.CAN:
         attribute = "node_id"
-    elif interface is Interface.ETHERNET:
+    elif interface is Interface.ETH:
         attribute = "ip"
-    elif interface is Interface.ETHERCAT:
+    elif interface is Interface.ECAT:
         attribute = "ifname"
     else:
         raise RuntimeError(f"No network associated with {interface=}")
