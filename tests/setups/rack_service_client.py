@@ -137,7 +137,7 @@ class RackServiceClient:
     def get_dictionary(
         self, rack_drive_idx: int, firmware_version: str, interface: Interface
     ) -> Path:
-        return self.client.get_dictionary(rack_drive_idx, firmware_version, interface)
+        return self.client.get_dictionary(rack_drive_idx, firmware_version, interface.value)
 
     def teardown(self) -> None:
         """Closes the connection to the rack service."""
