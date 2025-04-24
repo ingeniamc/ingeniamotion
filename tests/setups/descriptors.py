@@ -169,9 +169,9 @@ def descriptor_from_specifier(
         }
         network = _get_network_from_drive(drive=rack_drive, interface=eval_specifier.interface)
 
-        if eval_specifier.interface is Interface.ETHERNET:
+        if eval_specifier.interface is Interface.ETH:
             descriptor = DriveEthernetSetup(**args, ip=network.ip)
-        elif eval_specifier.interface is Interface.CANOPEN:
+        elif eval_specifier.interface is Interface.CAN:
             descriptor = DriveCanOpenSetup(
                 **args,
                 device=network.device,
@@ -179,7 +179,7 @@ def descriptor_from_specifier(
                 node_id=network.node_id,
                 baudrate=network.baudrate,
             )
-        elif eval_specifier.interface is Interface.ETHERCAT:
+        elif eval_specifier.interface is Interface.ECAT:
             descriptor = DriveEcatSetup(
                 **args, ifname=network.ifname, slave=network.slave, boot_in_app=network.boot_in_app
             )
