@@ -104,7 +104,7 @@ def _get_dictionary_and_firmware_file(
         specifier.dictionary
         if isinstance(specifier.dictionary, Path)
         else rack_service_client.get_dictionary(
-            rack_drive_idx, specifier.dictionary.firmware_version
+            rack_drive_idx, specifier.dictionary.firmware_version, specifier.interface
         )
     )
     firmware_file = (
