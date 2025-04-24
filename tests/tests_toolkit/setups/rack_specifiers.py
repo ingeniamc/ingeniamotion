@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from tests.setups.specifiers import (
+from tests.tests_toolkit.setups.specifiers import (
     Interface,
     MultiRackServiceConfigSpecifier,
     PartNumber,

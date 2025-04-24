@@ -67,7 +67,7 @@ def runTestHW(markers, setup_name) {
         try {
             bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
                     "-m \"${markers}\" " +
-                    "--setup tests.setups.rack_specifiers.${setup_name} " +
+                    "--setup tests.tests_toolkit.setups.rack_specifiers.${setup_name} " +
                     "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${setup_name}\""
         } catch (err) {
             unstable(message: "Tests failed")
@@ -241,7 +241,7 @@ pipeline {
                                 }
                                 sh "python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
                                     "-m virtual " +
-                                    "--setup tests.setups.virtual_drive.TESTS_SETUP"
+                                    "--setup tests.tests_toolkit.setups.virtual_drive.TESTS_SETUP"
                             }
                             post {
                                 always {
@@ -322,7 +322,7 @@ pipeline {
                                         }
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
                                                 "-m virtual " +
-                                                "--setup tests.setups.virtual_drive.TESTS_SETUP "
+                                                "--setup tests.tests_toolkit.setups.virtual_drive.TESTS_SETUP "
                                     }
                                     post {
                                         always {

@@ -6,7 +6,7 @@ from typing import Optional, Union
 
 from ingenialink.ethernet.network import VIRTUAL_DRIVE_DICTIONARY
 
-from tests.setups.rack_service_client import PartNumber
+from tests.tests_toolkit.setups.rack_service_client import PartNumber
 
 
 class Interface(Enum):

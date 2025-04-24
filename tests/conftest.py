@@ -12,7 +12,7 @@ from virtual_drive.core import VirtualDrive
 
 from ingeniamotion import MotionController
 from ingeniamotion.enums import SensorType
-from tests.setups.descriptors import (
+from tests.tests_toolkit.setups.descriptors import (
     DriveCanOpenSetup,
     DriveEcatSetup,
     DriveEthernetSetup,
@@ -22,13 +22,13 @@ from tests.setups.descriptors import (
     VirtualDriveSetup,
     descriptor_from_specifier,
 )
-from tests.setups.environment_control import (
+from tests.tests_toolkit.setups.environment_control import (
     ManualUserEnvironmentController,
     RackServiceEnvironmentController,
     VirtualDriveEnvironmentController,
 )
-from tests.setups.rack_service_client import RackServiceClient
-from tests.setups.specifiers import (
+from tests.tests_toolkit.setups.rack_service_client import RackServiceClient
+from tests.tests_toolkit.setups.specifiers import (
     LocalDriveConfigSpecifier,
     MultiLocalDriveConfigSpecifier,
     MultiRackServiceConfigSpecifier,
