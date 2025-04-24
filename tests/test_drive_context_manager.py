@@ -54,7 +54,7 @@ class TestDriveContextFixture:
     @pytest.mark.canopen
     @pytest.mark.dependency(
         name="test_read_register_if_changed_without_context",
-        depends=["test_read_register_if_changed_without_context"],
+        depends=["test_change_register_without_context"],
     )
     def test_read_register_if_changed_without_context(self, motion_controller):
         mc, alias, _ = motion_controller
