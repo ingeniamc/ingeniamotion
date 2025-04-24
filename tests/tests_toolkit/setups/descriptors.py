@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
-from tests.tests_toolkit.setups.rack_service_client import RackServiceClient
+from tests.tests_toolkit.rack_service_client import RackServiceClient
 from tests.tests_toolkit.setups.specifiers import (
     Interface,
     MultiDriveConfigSpecifier,

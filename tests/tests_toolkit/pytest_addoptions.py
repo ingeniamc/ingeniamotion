@@ -8,3 +8,9 @@ def pytest_addoption(parser):
         "tests_setup.py inside of the folder setups with a variable called TESTS_SETUP"
         "This variable must define, or must be assigned to a Setup instance",
     )
+    parser.addoption(
+        "--job_name",
+        action="store",
+        default="test-toolkit Unknown",
+        help="Name of the executing job. Will be set to rack service to have more info of the logs",
+    )
