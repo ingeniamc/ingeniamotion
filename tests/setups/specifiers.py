@@ -260,6 +260,8 @@ class RackServiceConfigSpecifier(DriveHwConfigSpecifier):
         )
 
     def __eq__(self, other):
+        if not all(hasattr(obj, "part_number") for obj in [self, other]):
+            return False
         return self.part_number == other.part_number
 
 
