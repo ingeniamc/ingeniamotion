@@ -2,7 +2,7 @@ from dataclasses import dataclass
 from enum import Enum, auto
 from functools import cached_property
 from pathlib import Path
-from typing import Optional, Union
+from typing import Any, Optional, Union
 
 from ingenialink.ethernet.network import VIRTUAL_DRIVE_DICTIONARY
 
@@ -39,8 +39,6 @@ class VirtualDriveSpecifier(SetupSpecifier):
 class DriveHwConfigSpecifier(SetupSpecifier):
     """Configuration of a physical hardware drive."""
 
-    part_number: Union[PartNumber, list[PartNumber]]
-    """Drive part number to test. If multislave, provide a list."""
     interface: Interface
     """Desired communication interface with the drive."""
     config_file: Optional[Path]
@@ -69,12 +67,107 @@ class LocalDriveConfigSpecifier(DriveHwConfigSpecifier):
     """Path to dictionary."""
     firmware_file: Path
     """Path to firmware file"""
+    identifier: str
+    """Drive identifier."""
+    interface_data: dict[str, Any]
+    """Dictionary with necessay data for each particular interface.
+    Class methods should be used to fill this dictionary.
+    """
     revision_number: Optional[int] = None
     """Revision number of the local drive."""
     firmware_version: Optional[str] = None
     """Firmware version of the local drive."""
     serial_number: Optional[str] = None
     """Serial number of the local drive."""
+
+    @classmethod
+    def from_ethernet_configuration(
+        cls,
+        interface: Interface,
+        config_file: Optional[Path],
+        dictionary: Path,
+        firmware_file: Path,
+        identifier: str,
+        ip: str,
+        revision_number: Optional[int] = None,
+        firmware_version: Optional[str] = None,
+        serial_number: Optional[str] = None,
+    ):
+        return cls(
+            interface=interface,
+            config_file=config_file,
+            dictionary=dictionary,
+            firmware_file=firmware_file,
+            identifier=identifier,
+            interface_data={"ip": ip},
+            revision_number=revision_number,
+            firmware_version=firmware_version,
+            serial_number=serial_number,
+        )
+
+    @classmethod
+    def from_canopen_configuration(
+        cls,
+        interface: Interface,
+        config_file: Optional[Path],
+        dictionary: Path,
+        firmware_file: Path,
+        identifier: str,
+        device: str,
+        channel: int,
+        node_id: int,
+        baudrate: int,
+        revision_number: Optional[int] = None,
+        firmware_version: Optional[str] = None,
+        serial_number: Optional[str] = None,
+    ):
+        return cls(
+            interface=interface,
+            config_file=config_file,
+            dictionary=dictionary,
+            firmware_file=firmware_file,
+            identifier=identifier,
+            interface_data={
+                "device": device,
+                "channel": channel,
+                "node_id": node_id,
+                "baudrate": baudrate,
+            },
+            revision_number=revision_number,
+            firmware_version=firmware_version,
+            serial_number=serial_number,
+        )
+
+    @classmethod
+    def from_ethercat_configuration(
+        cls,
+        interface: Interface,
+        config_file: Optional[Path],
+        dictionary: Path,
+        firmware_file: Path,
+        identifier: str,
+        ifname: str,
+        slave: int,
+        boot_in_app: bool,
+        revision_number: Optional[int] = None,
+        firmware_version: Optional[str] = None,
+        serial_number: Optional[str] = None,
+    ):
+        return cls(
+            interface=interface,
+            config_file=config_file,
+            dictionary=dictionary,
+            firmware_file=firmware_file,
+            identifier=identifier,
+            interface_data={
+                "ifname": ifname,
+                "slave": slave,
+                "boot_in_app": boot_in_app,
+            },
+            revision_number=revision_number,
+            firmware_version=firmware_version,
+            serial_number=serial_number,
+        )
 
 
 @dataclass(frozen=True)
@@ -88,6 +181,8 @@ class MultiLocalDriveConfigSpecifier(MultiDriveConfigSpecifier):
 class RackServiceConfigSpecifier(DriveHwConfigSpecifier):
     """Rack service drive configuration specifier."""
 
+    part_number: Union[PartNumber, list[PartNumber]]
+    """Drive part number to test. If multislave, provide a list."""
     dictionary: Union[Path, PromisedFilePath]
     """Path to dictionary. If promise is used, the specified firmware version
     should be used to retrieve it with rack service client.
