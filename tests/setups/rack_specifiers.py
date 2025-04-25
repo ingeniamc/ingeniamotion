@@ -26,14 +26,14 @@ ECAT_EVE_SETUP = RackServiceConfigSpecifier.from_frozen_firmware(
     part_number=PartNumber.EVE_XCR_E,
     interface=Interface.ECAT,
     config_file=Path("//azr-srv-ingfs1/dist/setups/setup_eve_ecat/1.2.0/config.xml"),
-    firmware_version="2.5.1",
+    firmware_version="2.6.0",
 )
 
 ECAT_CAP_SETUP = RackServiceConfigSpecifier.from_frozen_firmware(
     part_number=PartNumber.CAP_XCR_E,
     interface=Interface.ECAT,
     config_file=Path("//azr-srv-ingfs1/dist/setups/setup_cap_ecat/1.1.0/config.xml"),
-    firmware_version="2.5.1",
+    firmware_version="2.6.0",
 )
 
 CAN_EVE_SETUP = RackServiceConfigSpecifier.from_frozen_firmware(
