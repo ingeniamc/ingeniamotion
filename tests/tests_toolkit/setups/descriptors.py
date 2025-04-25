@@ -5,7 +5,9 @@ from typing import Optional
 from tests.tests_toolkit.rack_service_client import RackServiceClient
 from tests.tests_toolkit.setups.specifiers import (
     Interface,
+    LocalDriveConfigSpecifier,
     MultiDriveConfigSpecifier,
+    MultiLocalDriveConfigSpecifier,
     MultiRackServiceConfigSpecifier,
     RackServiceConfigSpecifier,
     SetupSpecifier,
@@ -41,8 +43,8 @@ class DriveHwSetup(SetupDescriptor):
     identifier: str
     config_file: Optional[Path]
     fw_file: Path
-    rack_drive_idx: int
-    rack_drive: object
+    rack_drive_idx: Optional[int]
+    rack_drive: Optional[object]
 
 
 @dataclass(frozen=True)
@@ -111,6 +113,37 @@ def _get_dictionary_and_firmware_file(
     return dictionary, firmware_file
 
 
+def _descriptor_from_local_hw_specifier(specifier: SetupSpecifier) -> SetupDescriptor:
+    is_multidrive_config = isinstance(specifier, MultiDriveConfigSpecifier)
+    eval_specifiers = specifier.specifiers if is_multidrive_config else [specifier]
+
+    descriptors = []
+    for eval_specifier in eval_specifiers:
+        if eval_specifier.interface is Interface.ETHERNET:
+            descriptor_instance = DriveEthernetSetup
+        elif eval_specifier.interface is Interface.CANOPEN:
+            descriptor_instance = DriveCanOpenSetup
+        elif eval_specifier.interface is Interface.ETHERCAT:
+            descriptor_instance = DriveEcatSetup
+        else:
+            raise RuntimeError(f"No descriptor for specifier {eval_specifier}")
+        descriptors.append(
+            descriptor_instance(
+                dictionary=eval_specifier.dictionary,
+                identifier=eval_specifier.identifier,
+                config_file=eval_specifier.config_file,
+                fw_file=eval_specifier.firmware_file,
+                rack_drive_idx=None,
+                rack_drive=None,
+                **eval_specifier.interface_data,
+            )
+        )
+
+    if is_multidrive_config:
+        return EthercatMultiSlaveSetup(drives=descriptors)
+    return descriptors[0]
+
+
 def descriptor_from_specifier(
     specifier: SetupSpecifier, rack_service_client: Optional[RackServiceClient]
 ) -> SetupDescriptor:
@@ -133,6 +166,9 @@ def descriptor_from_specifier(
         return VirtualDriveSetup(
             ip=specifier.ip, dictionary=specifier.dictionary, port=specifier.port
         )
+
+    if isinstance(specifier, (LocalDriveConfigSpecifier, MultiLocalDriveConfigSpecifier)):
+        return _descriptor_from_local_hw_specifier(specifier=specifier)
 
     if (
         isinstance(specifier, (RackServiceConfigSpecifier, MultiRackServiceConfigSpecifier))

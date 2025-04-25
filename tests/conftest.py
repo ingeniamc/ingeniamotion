@@ -1,11 +1,14 @@
+import re
 import time
 from pathlib import Path
 
 import numpy as np
 import pytest
+from packaging import version
 from virtual_drive.core import VirtualDrive
 
 from ingeniamotion import MotionController
+from ingeniamotion.drive_context_manager import DriveContextManager
 from tests.tests_toolkit import dynamic_loader
 from tests.tests_toolkit.network_utils import connect_ethernet, connect_to_servo_with_protocol
 from tests.tests_toolkit.setups.descriptors import (
@@ -158,18 +161,39 @@ def mean_actual_velocity_position(mc, servo, velocity=False, n_samples=200, samp
 
 
 # TODO: remove
-def __load_fw_with_protocol(mc, descriptor):
+def _read_fw_version(alias: str, motion_controller: MotionController):
+    _, _, fw_version, _ = motion_controller.configuration.get_drive_info_coco_moco(servo=alias)
+    return fw_version
+
+
+def is_fw_already_uploaded(alias: str, mc: MotionController, firmware_file: Path) -> bool:
+    current_fw_version = _read_fw_version(alias=alias, motion_controller=mc)[0]
+    match = re.search(r"_(\d+\.\d+\.\d+)", firmware_file.stem)
+    if match is None:
+        return False
+    file_fw_version = match.group(1)
+    try:
+        return version.parse(file_fw_version) == version.parse(current_fw_version)
+    except version.InvalidVersion:
+        return False
+
+
+def __load_fw_with_protocol(mc: MotionController, descriptor: SetupDescriptor, alias: str):
+    if is_fw_already_uploaded(alias=alias, mc=mc, firmware_file=descriptor.fw_file):
+        return
     if isinstance(descriptor, DriveEcatSetup):
         mc.communication.load_firmware_ecat(
             ifname=descriptor.ifname,
-            fw_file=descriptor.fw_file,
+            fw_file=descriptor.fw_file.as_posix(),
             slave=descriptor.slave,
             boot_in_app=descriptor.boot_in_app,
         )
     elif isinstance(descriptor, DriveCanOpenSetup):
-        mc.communication.load_firmware_canopen(fw_file=descriptor.fw_file)
+        mc.communication.load_firmware_canopen(fw_file=descriptor.fw_file.as_posix(), servo=alias)
     elif isinstance(descriptor, DriveEthernetSetup):
-        mc.communication.load_firmware_ethernet(ip=descriptor.ip, fw_file=descriptor.fw_file)
+        mc.communication.load_firmware_ethernet(
+            ip=descriptor.ip, fw_file=descriptor.fw_file.as_posix()
+        )
     else:
         raise NotImplementedError(
             f"Firmware loading not implemented for descriptor {type(descriptor)}"
@@ -184,13 +208,16 @@ def load_firmware(setup_specifier: SetupSpecifier, setup_descriptor: SetupDescri
 
     if isinstance(setup_specifier, (LocalDriveConfigSpecifier, MultiLocalDriveConfigSpecifier)):
         mc = MotionController()
-        descriptors = (
-            setup_descriptor.drives
-            if isinstance(setup_specifier, MultiLocalDriveConfigSpecifier)
-            else [setup_descriptor]
-        )
-        for descriptor in descriptors:
-            __load_fw_with_protocol(mc=mc, descriptor=descriptor)
+        if isinstance(setup_specifier, MultiLocalDriveConfigSpecifier):
+            descriptors = setup_descriptor.drives
+            aliases = [drive.identifier for drive in setup_descriptor.drives]
+        else:
+            descriptors = [setup_descriptor]
+            aliases = ["test"]
+        for descriptor, alias in zip(descriptors, aliases):
+            connect_to_servo_with_protocol(mc, setup_descriptor, alias)
+            __load_fw_with_protocol(mc=mc, descriptor=descriptor, alias=alias)
+            mc.communication.disconnect(alias)
         return
 
     client = request.getfixturevalue("connect_to_rack_service")
@@ -209,3 +236,21 @@ def load_firmware(setup_specifier: SetupSpecifier, setup_descriptor: SetupDescri
             descriptor.rack_drive.product_code,
             descriptor.rack_drive.serial_number,
         )
+
+
+@pytest.fixture
+def drive_context_manager(motion_controller):
+    """Drive context manager.
+
+    It is in charge of returning the drive to the values it had before the tests,
+    if the test alters it."""
+    mc, aliases, _ = motion_controller
+    if isinstance(aliases, str):
+        aliases = [aliases]
+
+    context_managers = [DriveContextManager(mc, alias) for alias in aliases]
+    for context_manager in context_managers:
+        context_manager.__enter__()
+    yield
+    for context_manager in context_managers:
+        context_manager.__exit__(None, None, None)
