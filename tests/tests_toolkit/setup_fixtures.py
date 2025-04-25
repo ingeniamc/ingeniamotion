@@ -4,6 +4,7 @@ import pytest
 from virtual_drive.core import VirtualDrive
 
 from ingeniamotion import MotionController
+from ingeniamotion.drive_context_manager import DriveContextManager
 from ingeniamotion.enums import SensorType
 from tests.tests_toolkit import import_module_from_local_path
 from tests.tests_toolkit.network_utils import (
@@ -195,13 +196,16 @@ def load_firmware(setup_specifier: SetupSpecifier, setup_descriptor: SetupDescri
 
     if isinstance(setup_specifier, (LocalDriveConfigSpecifier, MultiLocalDriveConfigSpecifier)):
         mc = MotionController()
-        descriptors = (
-            setup_descriptor.drives
-            if isinstance(setup_specifier, MultiLocalDriveConfigSpecifier)
-            else [setup_descriptor]
-        )
-        for descriptor in descriptors:
-            load_firmware_with_protocol(mc=mc, descriptor=descriptor)
+        if isinstance(setup_specifier, MultiLocalDriveConfigSpecifier):
+            descriptors = setup_descriptor.drives
+            aliases = [drive.identifier for drive in setup_descriptor.drives]
+        else:
+            descriptors = [setup_descriptor]
+            aliases = ["test"]
+        for descriptor, alias in zip(descriptors, aliases):
+            connect_to_servo_with_protocol(mc, setup_descriptor, alias)
+            load_firmware_with_protocol(mc=mc, descriptor=descriptor, alias=alias)
+            mc.communication.disconnect(alias)
         return
 
     client = request.getfixturevalue("connect_to_rack_service")
@@ -220,3 +224,21 @@ def load_firmware(setup_specifier: SetupSpecifier, setup_descriptor: SetupDescri
             descriptor.rack_drive.product_code,
             descriptor.rack_drive.serial_number,
         )
+
+
+@pytest.fixture
+def drive_context_manager(motion_controller):
+    """Drive context manager.
+
+    It is in charge of returning the drive to the values it had before the tests,
+    if the test alters it."""
+    mc, aliases, _ = motion_controller
+    if isinstance(aliases, str):
+        aliases = [aliases]
+
+    context_managers = [DriveContextManager(mc, alias) for alias in aliases]
+    for context_manager in context_managers:
+        context_manager.__enter__()
+    yield
+    for context_manager in context_managers:
+        context_manager.__exit__(None, None, None)
