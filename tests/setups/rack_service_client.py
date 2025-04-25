@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Optional
 
 import rpyc
+from ingenialink.dictionary import Interface
 from rpyc.core.protocol import Connection
 from rpyc.core.service import Service
 
@@ -133,13 +134,10 @@ class RackServiceClient:
                 return idx, drive
         raise ValueError(f"Drive {part_number_value} cannot be found on the rack's configuration.")
 
-    def get_dictionary(self, firmware_version: str) -> Path:  # noqa: ARG002
-        return Path(".")  # INGM-541: retrieve dictionary
-
-    def get_firmware(self, firmware_version: str) -> Path:  # noqa: ARG002
-        return Path(
-            "."
-        )  # INGM-541: retrieve firmware / remove and just send revision number in fw loading
+    def get_dictionary(
+        self, rack_drive_idx: int, firmware_version: str, interface: Interface
+    ) -> Path:
+        return self.client.get_dictionary(rack_drive_idx, firmware_version, interface.value)
 
     def teardown(self) -> None:
         """Closes the connection to the rack service."""
