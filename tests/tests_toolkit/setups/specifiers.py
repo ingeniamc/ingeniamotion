@@ -83,7 +83,6 @@ class LocalDriveConfigSpecifier(DriveHwConfigSpecifier):
     @classmethod
     def from_ethernet_configuration(
         cls,
-        interface: Interface,
         config_file: Optional[Path],
         dictionary: Path,
         firmware_file: Path,
@@ -94,7 +93,7 @@ class LocalDriveConfigSpecifier(DriveHwConfigSpecifier):
         serial_number: Optional[str] = None,
     ):
         return cls(
-            interface=interface,
+            interface=Interface.ETHERNET,
             config_file=config_file,
             dictionary=dictionary,
             firmware_file=firmware_file,
@@ -108,7 +107,6 @@ class LocalDriveConfigSpecifier(DriveHwConfigSpecifier):
     @classmethod
     def from_canopen_configuration(
         cls,
-        interface: Interface,
         config_file: Optional[Path],
         dictionary: Path,
         firmware_file: Path,
@@ -122,7 +120,7 @@ class LocalDriveConfigSpecifier(DriveHwConfigSpecifier):
         serial_number: Optional[str] = None,
     ):
         return cls(
-            interface=interface,
+            interface=Interface.CANOPEN,
             config_file=config_file,
             dictionary=dictionary,
             firmware_file=firmware_file,
@@ -141,7 +139,6 @@ class LocalDriveConfigSpecifier(DriveHwConfigSpecifier):
     @classmethod
     def from_ethercat_configuration(
         cls,
-        interface: Interface,
         config_file: Optional[Path],
         dictionary: Path,
         firmware_file: Path,
@@ -154,7 +151,7 @@ class LocalDriveConfigSpecifier(DriveHwConfigSpecifier):
         serial_number: Optional[str] = None,
     ):
         return cls(
-            interface=interface,
+            interface=Interface.ETHERCAT,
             config_file=config_file,
             dictionary=dictionary,
             firmware_file=firmware_file,
