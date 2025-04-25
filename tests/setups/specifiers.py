@@ -259,6 +259,9 @@ class RackServiceConfigSpecifier(DriveHwConfigSpecifier):
             firmware_file=PromisedFilePath(firmware_version),
         )
 
+    def __eq__(self, other):
+        return self.part_number == other.part_number
+
 
 @dataclass(frozen=True)
 class MultiRackServiceConfigSpecifier(MultiDriveConfigSpecifier):
