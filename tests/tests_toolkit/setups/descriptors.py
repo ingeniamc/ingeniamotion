@@ -2,6 +2,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
 
+from ingenialink.dictionary import Interface
+
 from tests.tests_toolkit.rack_service_client import RackServiceClient
 from tests.tests_toolkit.setups.specifiers import (
     Interface,
@@ -82,11 +84,11 @@ class EthercatMultiSlaveSetup(SetupDescriptor):
 
 
 def _get_network_from_drive(drive: object, interface: Interface) -> object:
-    if interface is Interface.CANOPEN:
+    if interface is Interface.CAN:
         attribute = "node_id"
-    elif interface is Interface.ETHERNET:
+    elif interface is Interface.ETH:
         attribute = "ip"
-    elif interface is Interface.ETHERCAT:
+    elif interface is Interface.ECAT:
         attribute = "ifname"
     else:
         raise RuntimeError(f"No network associated with {interface=}")
@@ -98,17 +100,21 @@ def _get_network_from_drive(drive: object, interface: Interface) -> object:
 
 
 def _get_dictionary_and_firmware_file(
-    specifier: SetupSpecifier, rack_service_client: RackServiceClient
+    specifier: SetupSpecifier,
+    rack_service_client: RackServiceClient,
+    rack_drive_idx: int,
 ) -> tuple[Path, Path]:
     dictionary = (
         specifier.dictionary
         if isinstance(specifier.dictionary, Path)
-        else rack_service_client.get_dictionary(specifier.dictionary.firmware_version)
+        else rack_service_client.get_dictionary(
+            rack_drive_idx, specifier.dictionary.firmware_version, specifier.interface
+        )
     )
     firmware_file = (
         specifier.firmware_file
         if isinstance(specifier.firmware_file, Path)
-        else rack_service_client.get_firmware(specifier.firmware_file.firmware_version)
+        else specifier.firmware_file.firmware_version
     )
     return dictionary, firmware_file
 
@@ -186,7 +192,9 @@ def descriptor_from_specifier(
         # Common arguments for DriveHwSetup
         rack_drive_idx, rack_drive = rack_service_client.get_drive(eval_specifier.part_number)
         dictionary, firmware_file = _get_dictionary_and_firmware_file(
-            specifier=eval_specifier, rack_service_client=rack_service_client
+            specifier=eval_specifier,
+            rack_service_client=rack_service_client,
+            rack_drive_idx=rack_drive_idx,
         )
         args = {
             "dictionary": dictionary,
@@ -198,9 +206,9 @@ def descriptor_from_specifier(
         }
         network = _get_network_from_drive(drive=rack_drive, interface=eval_specifier.interface)
 
-        if eval_specifier.interface is Interface.ETHERNET:
+        if eval_specifier.interface is Interface.ETH:
             descriptor = DriveEthernetSetup(**args, ip=network.ip)
-        elif eval_specifier.interface is Interface.CANOPEN:
+        elif eval_specifier.interface is Interface.CAN:
             descriptor = DriveCanOpenSetup(
                 **args,
                 device=network.device,
@@ -208,7 +216,7 @@ def descriptor_from_specifier(
                 node_id=network.node_id,
                 baudrate=network.baudrate,
             )
-        elif eval_specifier.interface is Interface.ETHERCAT:
+        elif eval_specifier.interface is Interface.ECAT:
             descriptor = DriveEcatSetup(
                 **args, ifname=network.ifname, slave=network.slave, boot_in_app=network.boot_in_app
             )

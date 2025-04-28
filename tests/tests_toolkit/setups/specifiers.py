@@ -1,18 +1,12 @@
 from dataclasses import dataclass
-from enum import Enum, auto
 from functools import cached_property
 from pathlib import Path
 from typing import Any, Optional, Union
 
+from ingenialink.dictionary import Interface
 from ingenialink.ethernet.network import VIRTUAL_DRIVE_DICTIONARY
 
 from tests.tests_toolkit.rack_service_client import PartNumber
-
-
-class Interface(Enum):
-    CANOPEN = auto()
-    ETHERNET = auto()
-    ETHERCAT = auto()
 
 
 class PromisedFilePath:
@@ -53,9 +47,9 @@ class MultiDriveConfigSpecifier(SetupSpecifier):
 
     def __post_init__(self):
         for specifier in self.specifiers:
-            if specifier.interface is not Interface.ETHERCAT:
+            if specifier.interface is not Interface.ECAT:
                 raise RuntimeError(
-                    f"Multiple part numbers can only be provided for {Interface.ETHERCAT}"
+                    f"Multiple part numbers can only be provided for {Interface.ECAT}"
                 )
 
 
@@ -93,7 +87,7 @@ class LocalDriveConfigSpecifier(DriveHwConfigSpecifier):
         serial_number: Optional[str] = None,
     ):
         return cls(
-            interface=Interface.ETHERNET,
+            interface=Interface.ETH,
             config_file=config_file,
             dictionary=dictionary,
             firmware_file=firmware_file,
@@ -120,7 +114,7 @@ class LocalDriveConfigSpecifier(DriveHwConfigSpecifier):
         serial_number: Optional[str] = None,
     ):
         return cls(
-            interface=Interface.CANOPEN,
+            interface=Interface.CAN,
             config_file=config_file,
             dictionary=dictionary,
             firmware_file=firmware_file,
@@ -151,7 +145,7 @@ class LocalDriveConfigSpecifier(DriveHwConfigSpecifier):
         serial_number: Optional[str] = None,
     ):
         return cls(
-            interface=Interface.ETHERCAT,
+            interface=Interface.ETH,
             config_file=config_file,
             dictionary=dictionary,
             firmware_file=firmware_file,
@@ -261,6 +255,11 @@ class RackServiceConfigSpecifier(DriveHwConfigSpecifier):
             dictionary=PromisedFilePath(firmware_version),
             firmware_file=PromisedFilePath(firmware_version),
         )
+
+    def __eq__(self, other):
+        if not all(hasattr(obj, "part_number") for obj in [self, other]):
+            return False
+        return self.part_number == other.part_number
 
 
 @dataclass(frozen=True)

@@ -218,12 +218,16 @@ def load_firmware(setup_specifier: SetupSpecifier, setup_descriptor: SetupDescri
         else [setup_descriptor]
     )
     for descriptor in descriptors:
-        client.client.firmware_load(
-            descriptor.rack_drive_idx,
-            descriptor.fw_file.as_posix(),
-            descriptor.rack_drive.product_code,
-            descriptor.rack_drive.serial_number,
-        )
+        load_firmware_args = {
+            "drive_idx": descriptor.rack_drive_idx,
+            "product_code": descriptor.rack_drive.product_code,
+            "serial_number": descriptor.rack_drive.serial_number,
+        }
+        if isinstance(descriptor.fw_file, Path):
+            load_firmware_args["file"] = descriptor.fw_file.as_posix()
+        else:
+            load_firmware_args["revision_number"] = descriptor.fw_file
+        client.client.firmware_load(**load_firmware_args)
 
 
 @pytest.fixture
