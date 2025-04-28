@@ -2,7 +2,7 @@ import pytest
 
 from ingeniamotion.enums import GPI, GPO, DigitalVoltageLevel, GPIOPolarity
 from ingeniamotion.exceptions import IMError
-from tests.tests_toolkit.setups.rack_specifiers import CAN_CAP_SETUP, ECAT_CAP_SETUP, ETH_CAP_SETUP
+from tests.setups.rack_specifiers import CAN_CAP_SETUP, ECAT_CAP_SETUP, ETH_CAP_SETUP
 
 
 @pytest.mark.virtual
