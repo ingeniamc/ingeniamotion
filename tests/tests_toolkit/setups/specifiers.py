@@ -145,7 +145,7 @@ class LocalDriveConfigSpecifier(DriveHwConfigSpecifier):
         serial_number: Optional[str] = None,
     ):
         return cls(
-            interface=Interface.ETH,
+            interface=Interface.ECAT,
             config_file=config_file,
             dictionary=dictionary,
             firmware_file=firmware_file,

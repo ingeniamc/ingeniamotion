@@ -65,7 +65,7 @@ class DriveContextManager:
                     register_value = self._mc.communication.get_register(
                         register=uid, servo=self._alias, axis=axis
                     )
-                except ILIOError:
+                except (ILIOError, TypeError):
                     continue
                 self._original_register_values[axis][uid] = register_value
 
