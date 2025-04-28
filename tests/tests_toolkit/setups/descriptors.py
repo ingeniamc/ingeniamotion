@@ -6,7 +6,6 @@ from ingenialink.dictionary import Interface
 
 from tests.tests_toolkit.rack_service_client import RackServiceClient
 from tests.tests_toolkit.setups.specifiers import (
-    Interface,
     LocalDriveConfigSpecifier,
     MultiDriveConfigSpecifier,
     MultiLocalDriveConfigSpecifier,
