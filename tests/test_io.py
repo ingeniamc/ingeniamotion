@@ -51,15 +51,6 @@ def test_set_get_gpi_polarity(motion_controller, gpi_id, polarity):
 def test_get_gpi_voltage_level(motion_controller, setup_specifier):
     mc, alias, environment = motion_controller
 
-    import ingenialogger
-
-    logger = ingenialogger.get_logger(__name__)
-    logger.warning(f"specifier: {setup_specifier}")
-    logger.warning(f"specifier type: {type(setup_specifier)}")
-    logger.warning(f"ETH_CAP_SETUP: {type(ETH_CAP_SETUP)}, {ETH_CAP_SETUP}")
-    logger.warning(f"ECAT_CAP_SETUP: {type(ECAT_CAP_SETUP)}, {ECAT_CAP_SETUP}")
-    logger.warning(f"CAN_CAP_SETUP: {type(CAN_CAP_SETUP)}, {CAN_CAP_SETUP}")
-
     if setup_specifier in [ETH_CAP_SETUP, ECAT_CAP_SETUP, CAN_CAP_SETUP]:
         pytest.skip("Capitan rack setups do not have gpio control")
 
