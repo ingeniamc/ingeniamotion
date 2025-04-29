@@ -3,6 +3,7 @@ import pytest
 from ingeniamotion.enums import GPI, GPO, DigitalVoltageLevel, GPIOPolarity
 from ingeniamotion.exceptions import IMError
 from tests.setups.rack_specifiers import CAN_CAP_SETUP, ECAT_CAP_SETUP, ETH_CAP_SETUP
+from tests.tests_toolkit.setups import MultiRackServiceConfigSpecifier, RackServiceConfigSpecifier
 
 
 @pytest.mark.virtual
@@ -50,6 +51,11 @@ def test_set_get_gpi_polarity(motion_controller, gpi_id, polarity):
 @pytest.mark.smoke
 def test_get_gpi_voltage_level(motion_controller, setup_specifier):
     mc, alias, environment = motion_controller
+
+    if not isinstance(
+        setup_specifier, (RackServiceConfigSpecifier, MultiRackServiceConfigSpecifier)
+    ):
+        pytest.skip("Skipping test for local configurations")
 
     if setup_specifier in [ETH_CAP_SETUP, ECAT_CAP_SETUP, CAN_CAP_SETUP]:
         pytest.skip("Capitan rack setups do not have gpio control")
