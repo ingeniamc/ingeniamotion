@@ -4,8 +4,8 @@ from typing import Optional
 
 from ingenialink.dictionary import Interface
 
-from tests.setups.rack_service_client import RackServiceClient
-from tests.setups.specifiers import (
+from tests.tests_toolkit.rack_service_client import RackServiceClient
+from tests.tests_toolkit.setups.specifiers import (
     LocalDriveConfigSpecifier,
     MultiDriveConfigSpecifier,
     MultiLocalDriveConfigSpecifier,
@@ -124,11 +124,11 @@ def _descriptor_from_local_hw_specifier(specifier: SetupSpecifier) -> SetupDescr
 
     descriptors = []
     for eval_specifier in eval_specifiers:
-        if eval_specifier.interface is Interface.ETHERNET:
+        if eval_specifier.interface is Interface.ETH:
             descriptor_instance = DriveEthernetSetup
-        elif eval_specifier.interface is Interface.CANOPEN:
+        elif eval_specifier.interface is Interface.CAN:
             descriptor_instance = DriveCanOpenSetup
-        elif eval_specifier.interface is Interface.ETHERCAT:
+        elif eval_specifier.interface is Interface.ECAT:
             descriptor_instance = DriveEcatSetup
         else:
             raise RuntimeError(f"No descriptor for specifier {eval_specifier}")

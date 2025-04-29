@@ -2,7 +2,7 @@ from pathlib import Path
 
 from ingenialink.dictionary import Interface
 
-from tests.setups.specifiers import (
+from tests.tests_toolkit.setups.specifiers import (
     MultiRackServiceConfigSpecifier,
     PartNumber,
     RackServiceConfigSpecifier,

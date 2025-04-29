@@ -9,6 +9,7 @@ def _read_user_over_voltage_uid(mc, alias):
     return mc.communication.get_register(_USER_OVER_VOLTAGE_UID, servo=alias)
 
 
+@pytest.mark.smoke
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
@@ -32,6 +33,7 @@ def test_drive_context_manager(motion_controller):
 class TestDriveContextFixture:
     original_value = None
 
+    @pytest.mark.smoke
     @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
@@ -49,6 +51,7 @@ class TestDriveContextFixture:
         )
         assert _read_user_over_voltage_uid(mc, alias) == new_reg_value
 
+    @pytest.mark.smoke
     @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
@@ -63,6 +66,7 @@ class TestDriveContextFixture:
         assert _read_user_over_voltage_uid(mc, alias) != TestDriveContextFixture.original_value
         TestDriveContextFixture.original_value = None
 
+    @pytest.mark.smoke
     @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
@@ -84,6 +88,7 @@ class TestDriveContextFixture:
         )
         assert _read_user_over_voltage_uid(mc, alias) == new_reg_value
 
+    @pytest.mark.smoke
     @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen

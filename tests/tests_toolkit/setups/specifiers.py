@@ -6,7 +6,7 @@ from typing import Any, Optional, Union
 from ingenialink.dictionary import Interface
 from ingenialink.ethernet.network import VIRTUAL_DRIVE_DICTIONARY
 
-from tests.setups.rack_service_client import PartNumber
+from tests.tests_toolkit.rack_service_client import PartNumber
 
 
 class PromisedFilePath:
@@ -77,7 +77,6 @@ class LocalDriveConfigSpecifier(DriveHwConfigSpecifier):
     @classmethod
     def from_ethernet_configuration(
         cls,
-        interface: Interface,
         config_file: Optional[Path],
         dictionary: Path,
         firmware_file: Path,
@@ -88,7 +87,7 @@ class LocalDriveConfigSpecifier(DriveHwConfigSpecifier):
         serial_number: Optional[str] = None,
     ):
         return cls(
-            interface=interface,
+            interface=Interface.ETH,
             config_file=config_file,
             dictionary=dictionary,
             firmware_file=firmware_file,
@@ -102,7 +101,6 @@ class LocalDriveConfigSpecifier(DriveHwConfigSpecifier):
     @classmethod
     def from_canopen_configuration(
         cls,
-        interface: Interface,
         config_file: Optional[Path],
         dictionary: Path,
         firmware_file: Path,
@@ -116,7 +114,7 @@ class LocalDriveConfigSpecifier(DriveHwConfigSpecifier):
         serial_number: Optional[str] = None,
     ):
         return cls(
-            interface=interface,
+            interface=Interface.CAN,
             config_file=config_file,
             dictionary=dictionary,
             firmware_file=firmware_file,
@@ -135,7 +133,6 @@ class LocalDriveConfigSpecifier(DriveHwConfigSpecifier):
     @classmethod
     def from_ethercat_configuration(
         cls,
-        interface: Interface,
         config_file: Optional[Path],
         dictionary: Path,
         firmware_file: Path,
@@ -148,7 +145,7 @@ class LocalDriveConfigSpecifier(DriveHwConfigSpecifier):
         serial_number: Optional[str] = None,
     ):
         return cls(
-            interface=interface,
+            interface=Interface.ECAT,
             config_file=config_file,
             dictionary=dictionary,
             firmware_file=firmware_file,

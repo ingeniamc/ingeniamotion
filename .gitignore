@@ -71,3 +71,6 @@ _pdf
 
 # vscode
 .vscode/
+
+# tests setups
+tests/setups/tests_setup.py

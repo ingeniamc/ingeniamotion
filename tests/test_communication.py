@@ -24,7 +24,7 @@ from ingeniamotion.exceptions import (
     IMRegisterNotExistError,
     IMRegisterWrongAccessError,
 )
-from tests.setups.descriptors import (
+from tests.tests_toolkit.setups.descriptors import (
     DriveCanOpenSetup,
     DriveEcatSetup,
     EthernetSetup,

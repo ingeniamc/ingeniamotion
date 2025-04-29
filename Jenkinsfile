@@ -241,7 +241,7 @@ pipeline {
                                 }
                                 sh "python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
                                     "-m virtual " +
-                                    "--setup tests.setups.virtual_drive.TESTS_SETUP"
+                                    "--setup tests.tests_toolkit.setups.virtual_drive.TESTS_SETUP"
                             }
                             post {
                                 always {
@@ -322,7 +322,7 @@ pipeline {
                                         }
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
                                                 "-m virtual " +
-                                                "--setup tests.setups.virtual_drive.TESTS_SETUP "
+                                                "--setup tests.tests_toolkit.setups.virtual_drive.TESTS_SETUP "
                                     }
                                     post {
                                         always {

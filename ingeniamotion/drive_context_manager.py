@@ -59,7 +59,7 @@ class DriveContextManager:
         for axis in axes:
             self._original_register_values[axis] = {}
             for uid, register in drive.dictionary.registers(subnode=axis).items():
-                if register.access == RegAccess.WO:
+                if register.access in [RegAccess.WO, RegAccess.RO]:
                     continue
                 try:
                     register_value = self._mc.communication.get_register(
