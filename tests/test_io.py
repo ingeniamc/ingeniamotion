@@ -43,7 +43,6 @@ def test_set_get_gpi_polarity(motion_controller, gpi_id, polarity):
     assert mc.io.get_gpi_polarity(gpi_id, servo=alias) == polarity
 
 
-@pytest.mark.skip("Skip until is fixed INGM-605")
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
