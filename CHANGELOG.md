@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.9.1] - 2025-04-30
 ### Added
 - Methods to scan Ethernet drives.
 - Error-raised timeout to motor_enable
