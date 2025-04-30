@@ -205,6 +205,10 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         self.feedback_resolution = self.mc.configuration.get_feedback_resolution(
             self.sensor, servo=self.servo, axis=self.axis
         )
+        if self.feedback_resolution == 0:
+            raise ValueError(
+                "The feedback resolution must be greater than 0. Please adjust it accordingly."
+            )
 
     @BaseTest.stoppable
     def __reaction_codes_to_warning(self) -> None:
