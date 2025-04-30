@@ -5,6 +5,14 @@ import pytest
 from ingenialink import CanBaudrate, CanDevice
 from ingenialink.exceptions import ILFirmwareLoadError
 from ingenialink.pdo import RPDOMap, TPDOMap
+from summit_testing_framework.network_utils import connect_canopen, connect_ethernet, connect_soem
+from summit_testing_framework.setups.descriptors import (
+    DriveCanOpenSetup,
+    DriveEcatSetup,
+    DriveEthernetSetup,
+    EthernetSetup,
+    SetupDescriptor,
+)
 
 from examples.change_baudrate import change_baudrate
 from examples.change_node_id import change_node_id
@@ -26,14 +34,6 @@ from ingeniamotion.enums import SeverityLevel
 from ingeniamotion.information import Information
 from ingeniamotion.motion import Motion
 from ingeniamotion.pdo import PDONetworkManager, PDOPoller
-from tests.tests_toolkit.network_utils import connect_canopen, connect_ethernet, connect_soem
-from tests.tests_toolkit.setups.descriptors import (
-    DriveCanOpenSetup,
-    DriveEcatSetup,
-    DriveEthernetSetup,
-    EthernetSetup,
-    SetupDescriptor,
-)
 
 
 @pytest.fixture

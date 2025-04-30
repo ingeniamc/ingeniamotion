@@ -6,10 +6,10 @@ from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.exceptions import ILWrongWorkingCountError
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 from packaging import version
+from summit_testing_framework.setups.descriptors import EthercatMultiSlaveSetup
 
 from ingeniamotion.enums import CommunicationType, OperationMode
 from ingeniamotion.exceptions import IMError
-from tests.tests_toolkit.setups.descriptors import EthercatMultiSlaveSetup
 
 
 @pytest.mark.soem

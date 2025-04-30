@@ -16,6 +16,12 @@ from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.exceptions import ILError
 from ingenialink.network import SlaveInfo
 from ingenialink.servo import ServoState
+from summit_testing_framework.setups.descriptors import (
+    DriveCanOpenSetup,
+    DriveEcatSetup,
+    EthernetSetup,
+    SetupDescriptor,
+)
 
 import ingeniamotion
 from ingeniamotion import MotionController
@@ -23,12 +29,6 @@ from ingeniamotion.exceptions import (
     IMFirmwareLoadError,
     IMRegisterNotExistError,
     IMRegisterWrongAccessError,
-)
-from tests.tests_toolkit.setups.descriptors import (
-    DriveCanOpenSetup,
-    DriveEcatSetup,
-    EthernetSetup,
-    SetupDescriptor,
 )
 
 TEST_ENSEMBLE_FW_FILE = "tests/resources/example_ensemble_fw.zfu"

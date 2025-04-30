@@ -3,12 +3,11 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-
-from tests.tests_toolkit import dynamic_loader
+from summit_testing_framework import dynamic_loader
 
 pytest_plugins = [
-    "tests.tests_toolkit.pytest_addoptions",
-    "tests.tests_toolkit.setup_fixtures",
+    "summit_testing_framework.pytest_addoptions",
+    "summit_testing_framework.setup_fixtures",
 ]
 
 # Pytest runs with importlib import mode, which means that it will run the tests with the installed

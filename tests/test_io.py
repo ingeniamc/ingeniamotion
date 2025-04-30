@@ -1,9 +1,12 @@
 import pytest
+from summit_testing_framework.setups import (
+    MultiRackServiceConfigSpecifier,
+    RackServiceConfigSpecifier,
+)
 
 from ingeniamotion.enums import GPI, GPO, DigitalVoltageLevel, GPIOPolarity
 from ingeniamotion.exceptions import IMError
 from tests.setups.rack_specifiers import CAN_CAP_SETUP, ECAT_CAP_SETUP, ETH_CAP_SETUP
-from tests.tests_toolkit.setups import MultiRackServiceConfigSpecifier, RackServiceConfigSpecifier
 
 
 @pytest.mark.virtual
