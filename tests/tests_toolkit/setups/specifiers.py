@@ -13,6 +13,9 @@ class PromisedFilePath:
     def __init__(self, firmware_version: str):
         self.firmware_version = firmware_version
 
+    def __eq__(self, other):
+        return self.firmware_version == other.firmware_version
+
 
 @dataclass(frozen=True)
 class SetupSpecifier:
@@ -255,11 +258,6 @@ class RackServiceConfigSpecifier(DriveHwConfigSpecifier):
             dictionary=PromisedFilePath(firmware_version),
             firmware_file=PromisedFilePath(firmware_version),
         )
-
-    def __eq__(self, other):
-        if not all(hasattr(obj, "part_number") for obj in [self, other]):
-            return False
-        return self.part_number == other.part_number
 
 
 @dataclass(frozen=True)
