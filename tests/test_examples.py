@@ -5,7 +5,11 @@ import pytest
 from ingenialink import CanBaudrate, CanDevice
 from ingenialink.exceptions import ILFirmwareLoadError
 from ingenialink.pdo import RPDOMap, TPDOMap
-from summit_testing_framework.network_utils import connect_canopen, connect_ethernet, connect_soem
+from summit_testing_framework.network_utils import (
+    connect_canopen_with_mc,
+    connect_ethercat_with_mc,
+    connect_ethernet_with_mc,
+)
 from summit_testing_framework.setups.descriptors import (
     DriveCanOpenSetup,
     DriveEcatSetup,
@@ -48,11 +52,11 @@ def teardown_for_test_examples(motion_controller, setup_descriptor: SetupDescrip
     mc, alias, environment = motion_controller
 
     if isinstance(setup_descriptor, DriveEcatSetup):
-        connect_soem(mc, setup_descriptor, alias)
+        connect_ethercat_with_mc(mc, setup_descriptor, alias)
     elif isinstance(setup_descriptor, DriveCanOpenSetup):
-        connect_canopen(mc, setup_descriptor, alias)
+        connect_canopen_with_mc(mc, setup_descriptor, alias)
     elif isinstance(setup_descriptor, DriveEthernetSetup):
-        connect_ethernet(mc, setup_descriptor, alias)
+        connect_ethernet_with_mc(mc, setup_descriptor, alias)
     else:
         raise NotImplementedError
 
