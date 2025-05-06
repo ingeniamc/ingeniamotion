@@ -4,7 +4,6 @@ import pytest
 from virtual_drive.core import VirtualDrive
 
 from ingeniamotion import MotionController
-from ingeniamotion.drive_context_manager import DriveContextManager
 from ingeniamotion.enums import SensorType
 from tests.tests_toolkit import import_module_from_local_path
 from tests.tests_toolkit.network_utils import (
@@ -228,21 +227,3 @@ def load_firmware(setup_specifier: SetupSpecifier, setup_descriptor: SetupDescri
         else:
             load_firmware_args["revision_number"] = descriptor.fw_file
         client.client.firmware_load(**load_firmware_args)
-
-
-@pytest.fixture
-def drive_context_manager(motion_controller):
-    """Drive context manager.
-
-    It is in charge of returning the drive to the values it had before the tests,
-    if the test alters it."""
-    mc, aliases, _ = motion_controller
-    if isinstance(aliases, str):
-        aliases = [aliases]
-
-    context_managers = [DriveContextManager(mc, alias) for alias in aliases]
-    for context_manager in context_managers:
-        context_manager.__enter__()
-    yield
-    for context_manager in context_managers:
-        context_manager.__exit__(None, None, None)

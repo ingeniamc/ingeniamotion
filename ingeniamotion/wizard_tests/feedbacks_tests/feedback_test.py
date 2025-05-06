@@ -4,7 +4,7 @@ from enum import IntEnum
 from typing import TYPE_CHECKING, Optional
 
 import ingenialogger
-from ingenialink.exceptions import ILIOError, ILStateError, ILTimeoutError
+from ingenialink.exceptions import ILConfigurationError, ILIOError, ILStateError, ILTimeoutError
 from typing_extensions import override
 
 if TYPE_CHECKING:
@@ -205,6 +205,10 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         self.feedback_resolution = self.mc.configuration.get_feedback_resolution(
             self.sensor, servo=self.servo, axis=self.axis
         )
+        if self.feedback_resolution == 0:
+            raise ILConfigurationError(
+                "The feedback resolution must be greater than 0. Please adjust it accordingly."
+            )
 
     @BaseTest.stoppable
     def __reaction_codes_to_warning(self) -> None:
