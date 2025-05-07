@@ -50,7 +50,7 @@ def update_position_value_using_pdo(mc: MotionController) -> None:
     # Map the PDO maps to the slave
     mc.capture.pdo.set_pdo_maps_to_slave(rpdo_map, tpdo_map)
     # Start the PDO exchange
-    # Make sure to set an appropriate refresh rate considering the execution time of the send and 
+    # Make sure to set an appropriate refresh rate considering the execution time of the send and
     # receive process data callbacks.
     mc.capture.pdo.start_pdos(refresh_rate=0.1)
     time.sleep(waiting_time_for_pdo_exchange)

@@ -1,46 +1,53 @@
-class IMException(Exception):
-    """Exceptions raised by IngeniaMotion"""
-
-    pass
+import warnings
+from typing import Any
 
 
-class IMMonitoringError(IMException):
-    """Monitoring error raised by IngeniaMotion"""
-
-    pass
+class IMError(Exception):
+    """Exceptions raised by IngeniaMotion."""
 
 
-class IMDisturbanceError(IMException):
-    """Disturbance error raised by IngeniaMotion"""
-
-    pass
+class IMMonitoringError(IMError):
+    """Monitoring error raised by IngeniaMotion."""
 
 
-class IMStatusWordError(IMException):
-    """Status word error raised by IngeniaMotion"""
-
-    pass
+class IMDisturbanceError(IMError):
+    """Disturbance error raised by IngeniaMotion."""
 
 
-class IMRegisterNotExist(IMException):
-    """Error raised by IngeniaMotion when a register not exists"""
-
-    pass
+class IMStatusWordError(IMError):
+    """Status word error raised by IngeniaMotion."""
 
 
-class IMRegisterWrongAccess(IMException):
-    """Error raised by IngeniaMotion when trying to write to a read-only register"""
-
-    pass
+class IMRegisterNotExistError(IMError):
+    """Error raised by IngeniaMotion when a register not exists."""
 
 
-class IMTimeoutError(IMException):
-    """Error raised by IngeniaMotion when a timeout has occurred"""
-
-    pass
+class IMRegisterWrongAccessError(IMError):
+    """Error raised by IngeniaMotion when trying to write to a read-only register."""
 
 
-class IMFirmwareLoadError(IMException):
-    """Error raised by IngeniaMotion when a firmware file could not be loaded"""
+class IMTimeoutError(IMError):
+    """Error raised by IngeniaMotion when a timeout has occurred."""
 
-    pass
+
+class IMFirmwareLoadError(IMError):
+    """Error raised by IngeniaMotion when a firmware file could not be loaded."""
+
+
+# WARNING: Deprecated aliases
+_DEPRECATED = {
+    "IMException": "IMError",
+    "IMRegisterNotExist": "IMRegisterNotExistError",
+    "IMRegisterWrongAccess": "IMRegisterWrongAccessError",
+}
+
+
+def __getattr__(name: str) -> Any:
+    if name in _DEPRECATED:
+        warnings.warn(
+            f"{name} is deprecated, use {_DEPRECATED[name]} instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return globals()[_DEPRECATED[name]]
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

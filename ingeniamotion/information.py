@@ -1,19 +1,19 @@
 import os
-from typing import TYPE_CHECKING, Dict, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import ingenialogger
-from ingenialink import CAN_BAUDRATE
+from ingenialink import CanBaudrate
 from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.dictionary import SubnodeType
-from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
+from ingenialink.enums.register import RegAccess, RegDtype
 from ingenialink.eoe.network import EoENetwork
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.register import Register
 
-from ingeniamotion.enums import COMMUNICATION_TYPE
-from ingeniamotion.exceptions import IMException, IMRegisterNotExist
-from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
+from ingeniamotion.enums import CommunicationType
+from ingeniamotion.exceptions import IMError, IMRegisterNotExistError
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 logger = ingenialogger.get_logger(__name__)
 
 
-class Information(metaclass=MCMetaClass):
+class Information:
     """Information."""
 
     PRODUCT_CODE_COMKIT = 0x3214001
@@ -47,15 +47,15 @@ class Information(metaclass=MCMetaClass):
             Register object.
 
         Raises:
-            IMRegisterNotExist: If register does not exist in dictionary.
+            IMRegisterNotExistError: If register does not exist in dictionary.
 
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         try:
             return drive.dictionary.registers(axis)[register]
         except KeyError:
-            raise IMRegisterNotExist(
-                "Register: {} axis: {} not exist in dictionary".format(register, axis)
+            raise IMRegisterNotExistError(
+                f"Register: {register} axis: {axis} not exist in dictionary"
             )
 
     def register_type(
@@ -63,7 +63,7 @@ class Information(metaclass=MCMetaClass):
         register: str,
         axis: int = DEFAULT_AXIS,
         servo: str = DEFAULT_SERVO,
-    ) -> REG_DTYPE:
+    ) -> RegDtype:
         """Return register dtype.
 
         Args:
@@ -75,7 +75,7 @@ class Information(metaclass=MCMetaClass):
             Register dtype.
 
         Raises:
-            IMRegisterNotExist: If register does not exist in dictionary.
+            IMRegisterNotExistError: If register does not exist in dictionary.
 
         """
         register_obj = self.register_info(register, axis=axis, servo=servo)
@@ -86,7 +86,7 @@ class Information(metaclass=MCMetaClass):
         register: str,
         axis: int = DEFAULT_AXIS,
         servo: str = DEFAULT_SERVO,
-    ) -> REG_ACCESS:
+    ) -> RegAccess:
         """Return register access.
 
         Args:
@@ -98,7 +98,7 @@ class Information(metaclass=MCMetaClass):
             Register access.
 
         Raises:
-            IMRegisterNotExist: If register does not exist in dictionary.
+            IMRegisterNotExistError: If register does not exist in dictionary.
 
         """
         register_obj = self.register_info(register, axis=axis, servo=servo)
@@ -109,7 +109,7 @@ class Information(metaclass=MCMetaClass):
         register: str,
         axis: int = DEFAULT_AXIS,
         servo: str = DEFAULT_SERVO,
-    ) -> Union[Tuple[None, None], Tuple[int, int], Tuple[float, float], Tuple[str, str]]:
+    ) -> Union[tuple[None, None], tuple[int, int], tuple[float, float], tuple[str, str]]:
         """Return register range.
 
         Args:
@@ -121,7 +121,7 @@ class Information(metaclass=MCMetaClass):
             Register range, minimum and maximum.
 
         Raises:
-            IMRegisterNotExist: If register does not exist in dictionary.
+            IMRegisterNotExistError: If register does not exist in dictionary.
 
         """
         register_obj = self.register_info(register, axis=axis, servo=servo)
@@ -144,7 +144,7 @@ class Information(metaclass=MCMetaClass):
             ``True`` if register exists, else ``False``.
 
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         return register in drive.dictionary.registers(axis)
 
     def get_product_name(self, servo: str = DEFAULT_SERVO) -> Optional[str]:
@@ -156,7 +156,7 @@ class Information(metaclass=MCMetaClass):
         Returns:
             If it exists for example: "EVE-NET-E", "CAP-NET-E", etc.
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         product_name = drive.dictionary.part_number
         if self.is_comkit(servo):
             return f"{product_name} + {self.PART_NUMBER_COMKIT}"
@@ -171,15 +171,15 @@ class Information(metaclass=MCMetaClass):
         Returns:
             Node ID of the drive.
         """
+        drive = self.mc._get_drive(servo)
         net = self.mc._get_network(servo)
-        drive = self.mc.servos[servo]
         if isinstance(net, CanopenNetwork):
             return int(drive.target)
         else:
-            raise IMException("You need a CANopen communication to use this function")
+            raise IMError("You need a CANopen communication to use this function")
 
-    def get_baudrate(self, servo: str = DEFAULT_SERVO) -> CAN_BAUDRATE:
-        """Get the baudrate of target servo
+    def get_baudrate(self, servo: str = DEFAULT_SERVO) -> CanBaudrate:
+        """Get the baudrate of target servo.
 
         Args:
             servo: alias of the servo.
@@ -189,8 +189,8 @@ class Information(metaclass=MCMetaClass):
         """
         net = self.mc._get_network(servo)
         if isinstance(net, CanopenNetwork):
-            return CAN_BAUDRATE(net.baudrate)
-        raise IMException(f"The servo {servo} is not a CANopen device.")
+            return CanBaudrate(net.baudrate)
+        raise IMError(f"The servo {servo} is not a CANopen device.")
 
     def get_ip(self, servo: str = DEFAULT_SERVO) -> str:
         """Get the IP for Ethernet communications.
@@ -201,12 +201,12 @@ class Information(metaclass=MCMetaClass):
         Returns:
             IP of the drive.
         """
+        drive = self.mc._get_drive(servo)
         net = self.mc._get_network(servo)
-        drive = self.mc.servos[servo]
         if isinstance(net, EthernetNetwork):
             return str(drive.target)
         else:
-            raise IMException("You need an Ethernet communication to use this function")
+            raise IMError("You need an Ethernet communication to use this function")
 
     def get_slave_id(self, servo: str = DEFAULT_SERVO) -> int:
         """Get the EtherCAT slave ID of a given servo.
@@ -218,27 +218,28 @@ class Information(metaclass=MCMetaClass):
             Slave ID of the servo.
 
         """
+        drive = self.mc._get_drive(servo)
         net = self.mc._get_network(servo)
-        drive = self.mc.servos[servo]
         if isinstance(net, EoENetwork) and isinstance(drive.target, str):
             return net._configured_slaves[drive.target]
         elif isinstance(net, EthercatNetwork) and isinstance(drive.target, int):
             return drive.target
-        raise IMException(f"The servo {servo} is not an EtherCAT slave.")
+        raise IMError(f"The servo {servo} is not an EtherCAT slave.")
 
     def get_name(self, servo: str = DEFAULT_SERVO) -> str:
         """Get the drive's name.
 
         Args:
             servo: Alias of the servo.
+
         Returns:
             The name of the drive.
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         drive_name = drive.name
         return f"{drive_name}"
 
-    def get_communication_type(self, servo: str = DEFAULT_SERVO) -> COMMUNICATION_TYPE:
+    def get_communication_type(self, servo: str = DEFAULT_SERVO) -> CommunicationType:
         """Get the connected drive's communication type.
 
         Args:
@@ -250,11 +251,11 @@ class Information(metaclass=MCMetaClass):
         """
         drive_network = self.mc._get_network(servo)
         if isinstance(drive_network, CanopenNetwork):
-            communication_type = COMMUNICATION_TYPE.Canopen
+            communication_type = CommunicationType.Canopen
         elif isinstance(drive_network, EthernetNetwork):
-            communication_type = COMMUNICATION_TYPE.Ethernet
+            communication_type = CommunicationType.Ethernet
         elif isinstance(drive_network, (EoENetwork, EthercatNetwork)):
-            communication_type = COMMUNICATION_TYPE.Ethercat
+            communication_type = CommunicationType.Ethercat
         return communication_type
 
     def get_full_name(self, servo: str = DEFAULT_SERVO) -> str:
@@ -275,7 +276,7 @@ class Information(metaclass=MCMetaClass):
             full_name = f"{full_name} ({ip})"
         return full_name
 
-    def get_subnodes(self, servo: str = DEFAULT_SERVO) -> Dict[int, SubnodeType]:
+    def get_subnodes(self, servo: str = DEFAULT_SERVO) -> dict[int, SubnodeType]:
         """Return a dictionary with the subnodes IDs as keys and their type as values.
 
         Args:
@@ -284,10 +285,10 @@ class Information(metaclass=MCMetaClass):
         Returns:
             Dictionary of subnode ids and their type.
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         return drive.subnodes
 
-    def get_categories(self, servo: str = DEFAULT_SERVO) -> Dict[str, str]:
+    def get_categories(self, servo: str = DEFAULT_SERVO) -> dict[str, str]:
         """Return dictionary categories instance.
 
         Args:
@@ -296,12 +297,12 @@ class Information(metaclass=MCMetaClass):
         Returns:
             Categories instance.
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         dictionary_categories = drive.dictionary.categories
         if not dictionary_categories:
-            raise IMException("Dictionary categories are not defined.")
+            raise IMError("Dictionary categories are not defined.")
         category_ids = dictionary_categories.category_ids
-        categories: Dict[str, str] = {}
+        categories: dict[str, str] = {}
         for cat_id in category_ids:
             categories[cat_id] = dictionary_categories.labels(cat_id)["en_US"]
         return categories
@@ -315,19 +316,22 @@ class Information(metaclass=MCMetaClass):
         Returns:
             Dictionary file name.
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         return str(os.path.basename(drive.dictionary.path))
 
     def get_encoded_image_from_dictionary(self, servo: str = DEFAULT_SERVO) -> Optional[str]:
         """Get the encoded product image from a drive dictionary.
+
         This function reads a dictionary of a drive, and it parses whether the dictionary file has a
         DriveImage tag and its content.
+
         Args:
             servo: Alias of the drive.
+
         Returns:
             The encoded image or NoneType object.
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         return drive.dictionary.image
 
     def is_comkit(self, servo: str = DEFAULT_SERVO) -> bool:
@@ -340,5 +344,5 @@ class Information(metaclass=MCMetaClass):
             True if using COM-KIT, False otherwise.
 
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         return drive.dictionary.coco_product_code == self.PRODUCT_CODE_COMKIT

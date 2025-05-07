@@ -13,7 +13,7 @@ DEFAULT_PYTHON_VERSION = "3.9"
 
 ALL_PYTHON_VERSIONS = "py39,py310,py311,py312"
 RUN_PYTHON_VERSIONS = ""
-def PYTHON_VERSION_MIN = "py39"
+PYTHON_VERSION_MIN = "py39"
 def PYTHON_VERSION_MAX = "py312"
 
 RUN_ONLY_SMOKE_TESTS = false
@@ -21,7 +21,36 @@ RUN_ONLY_SMOKE_TESTS = false
 def BRANCH_NAME_MASTER = "master"
 def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
 
+INGENIALINK_WHEELS_DIR = "ingenialink_wheels"
+
 coverage_stashes = []
+
+// Run this before any tox command that requires develop ingenialink installation and that 
+// may run in parallel/after with HW tests, because HW tests alter its value
+def restoreIngenialinkWheelEnvVar() {
+    env.INGENIALINK_INSTALL_PATH = env.ORG_INGENIALINK_INSTALL_PATH
+}
+    
+
+def getIngenialinkArtifactWheelPath(python_version) {
+    if (!env.INGENIALINK_COMMIT_HASH.isEmpty()) {
+        unstash 'ingenialink_wheels'
+        script {
+            def distDir = python_version == PYTHON_VERSION_MIN ? "dist" : "dist_${python_version}"
+            distDir = "${INGENIALINK_WHEELS_DIR}\\${distDir}"
+            def result = bat(script: "dir ${distDir} /b /a-d", returnStdout: true).trim()
+            def files = result.split(/[\r\n]+/)    
+            def wheelFile = files.find { it.endsWith('.whl') }
+            if (wheelFile == null) {
+                error "No .whl file found in the dist directory. Directory contents:\n${result}"            
+            }
+            return "${distDir}\\${wheelFile}"
+        }
+    }
+    else {
+        return ""
+    }
+}
 
 def runTestHW(markers, setup_name) {
 
@@ -29,22 +58,31 @@ def runTestHW(markers, setup_name) {
         markers = markers + " and smoke"
     }
 
-    try {
-        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
-                "-m \"${markers}\" " +
-                "--setup tests.setups.rack_setups.${setup_name} " +
-                "--cov=ingeniamotion " +
-                "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${setup_name}\""
-    } catch (err) {
-        unstable(message: "Tests failed")
-    } finally {
-        def coverage_stash = ".coverage_${setup_name}"
-        bat "move .coverage ${coverage_stash}"
-        junit "pytest_reports\\*.xml"
-        // Delete the junit after publishing it so it not re-published on the next stage
-        bat "del /S /Q pytest_reports\\*.xml"
-        stash includes: coverage_stash, name: coverage_stash
-        coverage_stashes.add(coverage_stash)
+    def firstIteration = true
+    def pythonVersions = RUN_PYTHON_VERSIONS.split(',')
+
+    pythonVersions.each { version ->
+        def wheelFile = getIngenialinkArtifactWheelPath(version)
+        env.INGENIALINK_INSTALL_PATH = wheelFile
+        try {
+            bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
+                    "-m \"${markers}\" " +
+                    "--setup tests.setups.rack_specifiers.${setup_name} " +
+                    "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${setup_name}\""
+        } catch (err) {
+            unstable(message: "Tests failed")
+        } finally {
+            junit "pytest_reports\\*.xml"
+            // Delete the junit after publishing it so it not re-published on the next stage
+            bat "del /S /Q pytest_reports\\*.xml"
+            if (firstIteration) {
+                def coverage_stash = ".coverage_${setup_name}"
+                bat "move .coverage ${coverage_stash}"
+                stash includes: coverage_stash, name: coverage_stash
+                coverage_stashes.add(coverage_stash)
+                firstIteration = false
+            }
+        }
     }
 }
 
@@ -85,6 +123,107 @@ pipeline {
             }
         }
 
+        stage('Read Ingenialink Commit Hash') {
+            agent any
+            steps {
+                script {
+                    def toxIniContent = readFile('tox.ini')
+                    def matcher = toxIniContent =~ /ingenialink\s*=\s*\{env:INGENIALINK_INSTALL_PATH:(.*)\}/
+                    // Save the full url
+                    if (matcher.find()) {
+                        env.ORG_INGENIALINK_INSTALL_PATH = matcher.group(1)
+                    }
+                    else {
+                        env.ORG_INGENIALINK_INSTALL_PATH = null
+                    }
+                    // Save the commit hash
+                    matcher = toxIniContent =~ /ingenialink-python@([a-f0-9]{40})/
+                    env.INGENIALINK_COMMIT_HASH = matcher ? matcher[0][1] : ""
+                    if (!env.INGENIALINK_COMMIT_HASH.isEmpty()) {
+                        echo "Ingenialink commit Hash: ${env.INGENIALINK_COMMIT_HASH}"
+                    } else {
+                        echo "Ingenialink commit hash not found in tox.ini"
+                    }
+                }
+            }
+        }
+
+        stage('Get Ingenialink Build Number') {
+            when {
+                expression { !env.INGENIALINK_COMMIT_HASH.isEmpty() }
+            }
+            steps {
+                script {
+                    def sourceJobName = 'Novanta Motion - Ingenia - Git/ingenialink-python'
+                    def sourceJob = Jenkins.instance.getItemByFullName(sourceJobName)
+
+                    if (sourceJob && sourceJob instanceof org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject) {
+                        def foundBuild = null
+                        def foundBranch = null
+                        for (branchJob in sourceJob.getAllJobs()) {
+                            def fullBranchName = sourceJob.fullName + '/' + branchJob.name
+                            def branch = Jenkins.instance.getItemByFullName(fullBranchName)
+
+                            if (branch) {
+                                for (build in branch.builds) {
+                                    def ingenialinkGitCommitHash = null
+                                    def description = build.getDescription() // All variables in the description should be separated by ;
+                                    if (description) {
+                                        for (entry in description.split(';')) {
+                                            def (key, value) = entry.split('=')
+                                            if (key == "ORIGINAL_GIT_COMMIT_HASH") {
+                                                ingenialinkGitCommitHash = value
+                                                break
+                                            }
+                                        }
+                                    }
+                                    if (ingenialinkGitCommitHash == env.INGENIALINK_COMMIT_HASH) {
+                                        foundBuild = build
+                                        foundBranch = fullBranchName
+                                        break
+                                    }
+                                }
+                            }
+                            if (foundBuild) {
+                                break
+                            }
+                        }
+
+                        if (foundBuild) {
+                            env.BRANCH = foundBranch
+                            env.BUILD_NUMBER_ENV = foundBuild.number.toString()
+                        } else {
+                            error "No build found for commit hash: ${env.INGENIALINK_COMMIT_HASH}"
+                        }
+                    } else {
+                        error "No job found with the name: ${sourceJobName} or it's not a multibranch project"
+                    }
+                    
+                }
+            }
+        }
+
+        stage('Copy Ingenialink Wheel Files') {
+            when {
+                expression { !env.INGENIALINK_COMMIT_HASH.isEmpty() }
+            }
+            steps {
+                script {
+                    def buildNumber = env.BUILD_NUMBER_ENV
+                    def branch = env.BRANCH
+
+                    if (buildNumber && branch) {
+                        node {
+                            copyArtifacts filter: '**/*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber), target: INGENIALINK_WHEELS_DIR
+                            stash includes: "${INGENIALINK_WHEELS_DIR}\\**\\*", name: 'ingenialink_wheels'
+                        }
+                    } else {
+                        error "No build number or workspace directory found in environment variables"
+                    }
+                }
+            }
+        }
+
         stage('Build and Tests') {
             parallel {
                 stage('Virtual drive tests on Linux') {
@@ -97,9 +236,12 @@ pipeline {
                     stages {
                         stage('Run no-connection tests') {
                             steps {
+                                script {
+                                    restoreIngenialinkWheelEnvVar()
+                                }
                                 sh "python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
                                     "-m virtual " +
-                                    "--setup tests.setups.virtual_drive.TESTS_SETUP"
+                                    "--setup tests.tests_toolkit.setups.virtual_drive.TESTS_SETUP"
                             }
                             post {
                                 always {
@@ -129,6 +271,9 @@ pipeline {
                                 }
                                 stage('Make a static type analysis') {
                                     steps {
+                                        script {
+                                            restoreIngenialinkWheelEnvVar()
+                                        }
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e type"
                                     }
                                 }
@@ -139,6 +284,9 @@ pipeline {
                                 }
                                 stage('Generate documentation') {
                                     steps {
+                                        script {
+                                            restoreIngenialinkWheelEnvVar()
+                                        }
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e docs"
                                         bat """
                                             "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
@@ -148,9 +296,11 @@ pipeline {
                                 }
                                 stage("Run unit tests") {
                                     steps {
+                                        script {
+                                            restoreIngenialinkWheelEnvVar()
+                                        }
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
-                                                "-m \"not ethernet and not soem and not canopen and not virtual and not soem_multislave\" " +
-                                                "--cov=ingeniamotion"
+                                                "-m \"not ethernet and not soem and not fsoe and not canopen and not virtual and not soem_multislave\" "
                                     }
                                     post {
                                         always {
@@ -167,10 +317,12 @@ pipeline {
                                 }
                                 stage("Run virtual drive tests") {
                                     steps {
+                                        script {
+                                            restoreIngenialinkWheelEnvVar()
+                                        }
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
                                                 "-m virtual " +
-                                                "--setup tests.setups.virtual_drive.TESTS_SETUP "  +
-                                                "--cov=ingeniamotion"
+                                                "--setup tests.tests_toolkit.setups.virtual_drive.TESTS_SETUP "
                                     }
                                     post {
                                         always {

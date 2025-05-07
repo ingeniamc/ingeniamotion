@@ -49,7 +49,7 @@ def main(interface_ip, slave_id, dict_path):
     mc.communication.disconnect()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     # Modify these parameters according to your setup
     network_interface_ip = "192.168.2.1"
     ethercat_slave_id = 1

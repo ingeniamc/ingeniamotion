@@ -1,7 +1,7 @@
 import threading
 from dataclasses import dataclass
 from functools import partial
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional
+from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import ingenialogger
 
@@ -24,8 +24,7 @@ except ImportError:
 else:
     FSOE_MASTER_INSTALLED = True
 
-from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
-from ingenialink.ethercat.register import EthercatRegister
+from ingenialink.dictionary import DictionarySafetyModule
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 from ingenialink.utils._utils import dtype_value
 
@@ -39,7 +38,7 @@ if TYPE_CHECKING:
 
 @dataclass
 class FSoEError:
-    """FSoE Error descriptor"""
+    """FSoE Error descriptor."""
 
     servo: str
     transition_name: str
@@ -69,7 +68,7 @@ class FSoEMasterHandler:
         slave_address: int,
         connection_id: int,
         watchdog_timeout: float,
-        application_parameters: List["ApplicationParameter"],
+        application_parameters: list["ApplicationParameter"],
         report_error_callback: Callable[[str, str], None],
     ):
         if not FSOE_MASTER_INSTALLED:
@@ -102,13 +101,13 @@ class FSoEMasterHandler:
         self.__running = True
 
     def stop(self) -> None:
-        """Stop the master handler"""
+        """Stop the master handler."""
         self.__master_handler.stop()
         self.__in_initial_reset = False
         self.__running = False
 
     def delete(self) -> None:
-        """Delete the master handler"""
+        """Delete the master handler."""
         self.__master_handler.delete()
 
     def _configure_pdo_maps(self) -> None:
@@ -139,14 +138,16 @@ class FSoEMasterHandler:
         self.__master_handler.slave.dictionary_map.add_padding(bits=6)
 
     def get_request(self) -> None:
-        """Set the FSoE master handler request to the Safety Master PDU PDOMap"""
+        """Set the FSoE master handler request to the Safety Master PDU PDOMap."""
         if not self.__running:
             self._start()
         self.safety_master_pdu_map.set_item_bytes(self.__master_handler.get_request())
 
     def set_reply(self) -> None:
-        """Get the FSoE slave response from the Safety Slave PDU PDOMap and set it
-        to the FSoE master handler."""
+        """Get the FSoE slave response.
+
+        It is extracted from the Safety Slave PDU PDOMap and set to the FSoE master handler.
+        """
         reply = self.safety_slave_pdu_map.get_item_bytes()
         if self.__in_initial_reset:
             if reply[0] == 0:
@@ -159,25 +160,25 @@ class FSoEMasterHandler:
         self.__master_handler.set_reply(reply)
 
     def sto_deactivate(self) -> None:
-        """Set the STO command to deactivate the STO"""
+        """Set the STO command to deactivate the STO."""
         self.__master_handler.set_fail_safe(False)
         self.__master_handler.dictionary.set(self.STO_COMMAND_UID, True)
 
     def sto_activate(self) -> None:
-        """Set the STO command to activate the STO"""
+        """Set the STO command to activate the STO."""
         self.__master_handler.dictionary.set(self.STO_COMMAND_UID, False)
 
     def ss1_deactivate(self) -> None:
-        """Set the SS1 command to deactivate the SS1"""
+        """Set the SS1 command to deactivate the SS1."""
         self.__master_handler.set_fail_safe(False)
         self.__master_handler.dictionary.set(self.SS1_COMMAND_UID, True)
 
     def ss1_activate(self) -> None:
-        """Set the SS1 command to activate the SS1"""
+        """Set the SS1 command to activate the SS1."""
         self.__master_handler.dictionary.set(self.SS1_COMMAND_UID, False)
 
     def safe_inputs_value(self) -> bool:
-        """Get the safe inputs register value"""
+        """Get the safe inputs register value."""
         safe_inputs_value = self.__master_handler.dictionary.get(self.SAFE_INPUTS_UID)
         if not isinstance(safe_inputs_value, bool):
             raise ValueError(f"Wrong value type. Expected type bool, got {type(safe_inputs_value)}")
@@ -217,7 +218,7 @@ class FSoEMasterHandler:
             raise IMTimeoutError("The FSoE Master did not reach the Data state")
 
     def _saco_phase_1_dictionary(self) -> "Dictionary":
-        """Get the SaCo phase 1 dictionary instance"""
+        """Get the SaCo phase 1 dictionary instance."""
         sto_command_dict_item = DictionaryItemInputOutput(
             key=self.STO_COMMAND_KEY,
             name=self.STO_COMMAND_UID,
@@ -261,7 +262,7 @@ class FSoEMasterHandler:
 
     @property
     def running(self) -> bool:
-        """True if FSoE Master is started, else False"""
+        """True if FSoE Master is started, else False."""
         return self.__running
 
 
@@ -348,30 +349,15 @@ class FSoEMaster:
 
     DEFAULT_WATCHDOG_TIMEOUT_S = 1
 
-    SAFETY_ADDRESS_REGISTER = EthercatRegister(
-        idx=0x4193, subidx=0x00, dtype=REG_DTYPE.U16, access=REG_ACCESS.RW
-    )
-    SAFE_INPUTS_MAP_REGISTER = EthercatRegister(
-        identifier="SAFE_INPUTS_MAP",
-        idx=0x46D2,
-        subidx=0x00,
-        dtype=REG_DTYPE.U16,
-        access=REG_ACCESS.RW,
-    )
-    SS1_TIME_TO_STO_REGISTER = EthercatRegister(
-        identifier="SS1_TIME_TO_STO",
-        idx=0x6651,
-        subidx=0x01,
-        dtype=REG_DTYPE.U16,
-        access=REG_ACCESS.RW,
-    )
+    __FSOE_TOTAL_ERROR = "FSOE_TOTAL_ERROR"
+    __MDP_CONFIGURED_MODULE_1 = "MDP_CONFIGURED_MODULE_1"
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.logger = ingenialogger.get_logger(__name__)
         self.__mc = motion_controller
-        self.__handlers: Dict[str, FSoEMasterHandler] = {}
+        self.__handlers: dict[str, FSoEMasterHandler] = {}
         self.__next_connection_id = 1
-        self._error_observers: List[Callable[[FSoEError], None]] = []
+        self._error_observers: list[Callable[[FSoEError], None]] = []
         self.__fsoe_configured = False
 
     def create_fsoe_master_handler(
@@ -424,12 +410,13 @@ class FSoEMaster:
                 master_handler.stop()
         if self.__fsoe_configured:
             self._unsubscribe_from_pdo_thread_events()
-            self._remove_pdo_maps_from_slaves()
         else:
             self.logger.warning("FSoE master is already stopped")
-        self.__fsoe_configured = False
         if stop_pdos:
             self.__mc.capture.pdo.stop_pdos()
+            if self.__fsoe_configured:
+                self._remove_pdo_maps_from_slaves()
+        self.__fsoe_configured = False
 
     def sto_deactivate(self, servo: str = DEFAULT_SERVO) -> None:
         """Deactivate the Safety Torque Off.
@@ -494,8 +481,7 @@ class FSoEMaster:
             The FSoE slave address.
 
         """
-        drive = self.__mc.servos[servo]
-        value = drive.read(self.SAFETY_ADDRESS_REGISTER)
+        value = self.__mc.communication.get_register(register=self.__FSOE_TOTAL_ERROR, servo=servo)
         if not isinstance(value, int):
             raise ValueError(f"Wrong safety address value type. Expected int, got {type(value)}")
         return value
@@ -508,8 +494,43 @@ class FSoEMaster:
             servo: servo alias to reference it. ``default`` by default.
 
         """
-        drive = self.__mc.servos[servo]
-        drive.write(self.SAFETY_ADDRESS_REGISTER, data=address)
+        self.__mc.communication.set_register(
+            register=self.__FSOE_TOTAL_ERROR, value=address, servo=servo
+        )
+
+    def __get_configured_module_ident_1(
+        self, servo: str = DEFAULT_SERVO
+    ) -> Union[int, float, str, bytes]:
+        """Gets the configured Module Ident 1.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+
+        Returns:
+            Configured Module Ident 1.
+        """
+        return self.__mc.communication.get_register(
+            register=self.__MDP_CONFIGURED_MODULE_1, servo=servo, axis=0
+        )
+
+    def __get_safety_module(self, servo: str = DEFAULT_SERVO) -> DictionarySafetyModule:
+        """Gets the configured Module Ident 1.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+
+        Returns:
+            Safety module.
+
+        Raises:
+            NotImplementedError: if the safety module uses SRA.
+        """
+        drive = self.__mc._get_drive(servo)
+        module_ident = int(self.__get_configured_module_ident_1(servo=servo))
+        safety_module = drive.dictionary.get_safety_module(module_ident=module_ident)
+        if safety_module.uses_sra:
+            self.logger.warning("Safety module with SRA is not available.")
+        return safety_module
 
     def check_sto_active(self, servo: str = DEFAULT_SERVO) -> bool:
         """Check if the STO is active in a given servo.
@@ -587,7 +608,7 @@ class FSoEMaster:
             callback(FSoEError(servo, transition_name, error_description))
 
     def _delete_master_handler(self, servo: str = DEFAULT_SERVO) -> None:
-        """Delete the master handler instance
+        """Delete the master handler instance.
 
         Args:
             servo: servo alias to reference it. ``default`` by default.
@@ -628,14 +649,20 @@ class FSoEMaster:
             self.__mc.capture.pdo.remove_tpdo_map(servo, master_handler.safety_slave_pdu_map)
 
     def _get_request(self) -> None:
-        """Callback method to send the FSoE Master handlers requests to the
-        corresponding FSoE slave."""
+        """Get the FSoE master handlers requests.
+
+        Callback method to send the FSoE Master handlers requests to the
+        corresponding FSoE slave.
+        """
         for master_handler in self.__handlers.values():
             master_handler.get_request()
 
     def _set_reply(self) -> None:
-        """Callback method to provide the FSoE Slaves responses to their
-        corresponding FSoE Master handler."""
+        """Set the FSoE Slaves responses.
+
+        Callback method to provide the FSoE Slaves responses to their
+        corresponding FSoE Master handler.
+        """
         for master_handler in self.__handlers.values():
             master_handler.set_reply()
 
@@ -646,19 +673,30 @@ class FSoEMaster:
             f"An exception occurred during the PDO exchange: {exc}"
         )
 
-    def _get_application_parameters(self, servo: str) -> List["ApplicationParameter"]:
-        """Get values of the application parameters"""
+    def _get_application_parameters(self, servo: str) -> list["ApplicationParameter"]:
+        """Get values of the application parameters.
+
+        Returns:
+            List of application parameters.
+
+        Raises:
+            NotImplementedError: if the safety module has SRA.
+        """
         drive = self.__mc.servos[servo]
+        safety_module = self.__get_safety_module(servo=servo)
+
+        if safety_module.uses_sra:
+            raise NotImplementedError("Safety module with SRA is not available.")
+
         application_parameters = []
-        for register in [
-            self.SAFE_INPUTS_MAP_REGISTER,
-            self.SS1_TIME_TO_STO_REGISTER,
-        ]:
+        for param in safety_module.application_parameters:
+            register = self.__mc.info.register_info(register=param.uid, axis=0, servo=servo)
             register_size_bytes, _ = dtype_value[register.dtype]
-            application_parameter = ApplicationParameter(
-                name=register.identifier,
-                initial_value=drive.read(register),
-                n_bytes=register_size_bytes,
+            application_parameters.append(
+                ApplicationParameter(
+                    name=register.identifier,
+                    initial_value=drive.read(register),
+                    n_bytes=register_size_bytes,
+                )
             )
-            application_parameters.append(application_parameter)
         return application_parameters

@@ -25,8 +25,10 @@ def main(args):
     # A = signal_amplitude (Amplitude)
     # t = sample_period*i (time)
     # w = signal_frequency*2*math.pi (angular frequency)
-    data = [int(signal_amplitude * math.sin(sample_period * i * signal_frequency * 2 * math.pi))
-            for i in range(n_samples)]
+    data = [
+        int(signal_amplitude * math.sin(sample_period * i * signal_frequency * 2 * math.pi))
+        for i in range(n_samples)
+    ]
 
     # Call function create_disturbance to configure a disturbance
     dist = mc.capture.create_disturbance(target_register, data, divider)
@@ -47,12 +49,12 @@ def main(args):
 
 
 def setup_command():
-    parser = argparse.ArgumentParser(description='Disturbance example')
-    parser.add_argument('--dictionary_path', help='Path to drive dictionary', required=True)
-    parser.add_argument('--ip', help='Drive IP address', required=True)
+    parser = argparse.ArgumentParser(description="Disturbance example")
+    parser.add_argument("--dictionary_path", help="Path to drive dictionary", required=True)
+    parser.add_argument("--ip", help="Drive IP address", required=True)
     return parser.parse_args()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     args = setup_command()
     main(args)

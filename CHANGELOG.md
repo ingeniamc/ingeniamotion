@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.9.1] - 2025-05-07
+### Added
+- Methods to scan Ethernet drives.
+- Error-raised timeout to motor_enable
+- No-GIL support for EtherCAT functions.
+- TemperatureSensor and MetaEnum classes.
+
+### Changed
+- Renamed the `TYPE_SUBNODES` and `COMMUNICATION_TYPE` enums to follow CapWords convention. Old names are still supported, but will soon be deprecated.
+- Renamed the `IMException`, `IMRegisterNotExist` and `IMRegisterWrongAccess` exceptions to `IMError`, `IMRegisterNotExistError` and `IMRegisterWrongAccessError` respectively. Old names are still supported, but will soon be deprecated.
+- Feedback test to perform a full revolution.
+
+### Fixed
+- Abnormal STO Latched check. Add missing cases and change return type to enum.
+
 ## [0.9.0] - 2025-01-29
 ### Added
 - Method to subscribe to register value updates.

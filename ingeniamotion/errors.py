@@ -1,16 +1,18 @@
 from enum import IntEnum
-from typing import TYPE_CHECKING, List, Optional, Tuple
+from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
-from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
 
-class Errors(metaclass=MCMetaClass):
+class Errors:
     """Errors."""
 
     class ErrorLocation(IntEnum):
+        """Location of a generated error."""
+
         COCO = 0
         MOCO = 1
         SYSTEM = 2
@@ -64,7 +66,7 @@ class Errors(metaclass=MCMetaClass):
 
     def __parse_error_to_tuple(
         self, error: int, location: ErrorLocation, subnode: Optional[int] = None
-    ) -> Tuple[int, Optional[int], Optional[bool]]:
+    ) -> tuple[int, Optional[int], Optional[bool]]:
         error_code = error & self.ERROR_CODE_BITS
         if error_code == 0:
             return error_code, None, None
@@ -87,7 +89,7 @@ class Errors(metaclass=MCMetaClass):
 
     def __get_error_subnode(
         self, location: ErrorLocation, subnode: Optional[int]
-    ) -> Tuple[int, ErrorLocation]:
+    ) -> tuple[int, ErrorLocation]:
         if location == self.ErrorLocation.SYSTEM:
             if subnode is None:
                 return 0, location
@@ -103,7 +105,7 @@ class Errors(metaclass=MCMetaClass):
 
     def get_last_error(
         self, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
-    ) -> Tuple[int, Optional[int], Optional[bool]]:
+    ) -> tuple[int, Optional[int], Optional[bool]]:
         """Return last servo error.
 
         Args:
@@ -135,7 +137,7 @@ class Errors(metaclass=MCMetaClass):
 
     def get_last_buffer_error(
         self, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
-    ) -> Tuple[int, Optional[int], Optional[bool]]:
+    ) -> tuple[int, Optional[int], Optional[bool]]:
         """Get error code from error buffer last position.
 
         Args:
@@ -151,6 +153,7 @@ class Errors(metaclass=MCMetaClass):
                 Error axis.
             is_warning (bool):
                 ``True`` if warning, else ``False``.
+
         Raises:
             ValueError: Index must be less than 32
         """
@@ -158,7 +161,7 @@ class Errors(metaclass=MCMetaClass):
 
     def get_buffer_error_by_index(
         self, index: int, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
-    ) -> Tuple[int, Optional[int], Optional[bool]]:
+    ) -> tuple[int, Optional[int], Optional[bool]]:
         """Get error code from buffer error target index.
 
         Args:
@@ -175,6 +178,7 @@ class Errors(metaclass=MCMetaClass):
                 Error axis.
             is_warning (bool):
                 ``True`` if warning, else ``False``.
+
         Raises:
             ValueError: Index must be less than 32
             TypeError: If some read value has a wrong type.
@@ -220,7 +224,7 @@ class Errors(metaclass=MCMetaClass):
 
     def get_all_errors(
         self, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
-    ) -> List[Tuple[int, Optional[int], Optional[bool]]]:
+    ) -> list[tuple[int, Optional[int], Optional[bool]]]:
         """Return List with all error codes.
 
         Args:
@@ -266,7 +270,7 @@ class Errors(metaclass=MCMetaClass):
 
     def get_error_data(
         self, error_code: int, servo: str = DEFAULT_SERVO
-    ) -> Tuple[str, str, str, str]:
+    ) -> tuple[str, str, str, str]:
         """Return error info from target error_code.
 
         Args:
@@ -288,6 +292,6 @@ class Errors(metaclass=MCMetaClass):
             KeyError: The error codes does not exist in the error's dictionary.
 
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         dictionary_errors = drive.errors[error_code & self.ERROR_CODE_BITS]
-        return tuple(dictionary_errors)  # type: ignore
+        return tuple(dictionary_errors)  # type: ignore[return-value]

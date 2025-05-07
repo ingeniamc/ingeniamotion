@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Dict, Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import ingenialogger
 
@@ -6,7 +6,7 @@ from ingeniamotion.enums import SensorType, SeverityLevel
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
-from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.wizard_tests.brake import Brake
 from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder1_test import AbsoluteEncoder1Test
 from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder2_test import AbsoluteEncoder2Test
@@ -25,12 +25,15 @@ from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental2_test import
 )
 from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
 from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import SecondarySSITest
+from ingeniamotion.wizard_tests.feedbacks_tests.sincos_encoder_test import SinCosEncoderTest
 from ingeniamotion.wizard_tests.phase_calibration import Phasing
 from ingeniamotion.wizard_tests.phasing_check import PhasingCheck
 from ingeniamotion.wizard_tests.sto import STOTest
 
 
-class DriveTests(metaclass=MCMetaClass):
+class DriveTests:
+    """Class that contain the tests that can be performed on a drive."""
+
     __sensors = {
         SensorType.ABS1: AbsoluteEncoder1Test,
         SensorType.QEI: DigitalIncremental1Test,
@@ -38,6 +41,7 @@ class DriveTests(metaclass=MCMetaClass):
         SensorType.SSI2: SecondarySSITest,
         SensorType.BISSC2: AbsoluteEncoder2Test,
         SensorType.QEI2: DigitalIncremental2Test,
+        SensorType.SINCOS: SinCosEncoderTest,
     }
 
     def __init__(self, motion_controller: "MotionController") -> None:
@@ -46,8 +50,10 @@ class DriveTests(metaclass=MCMetaClass):
 
     def digital_halls_test(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS, apply_changes: bool = True
-    ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
-        """Executes the digital halls feedback test given a target servo and
+    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+        """Run the digital halls test.
+
+        Executes the digital halls feedback test given a target servo and
         axis. By default test will make changes in some drive registers like
         feedback polarity and others suggested registers. To avoid it, set
         ``apply_changes`` to ``False``.
@@ -79,8 +85,10 @@ class DriveTests(metaclass=MCMetaClass):
 
     def incremental_encoder_1_test(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS, apply_changes: bool = True
-    ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
-        """Executes the incremental encoder 1 feedback test given a target servo
+    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+        """Run the incremental encoder 1 test.
+
+        Executes the incremental encoder 1 feedback test given a target servo
         and axis. By default test will make changes in some drive registers
         like feedback polarity and other suggested registers. To avoid it, set
         ``apply_changes`` to ``False``.
@@ -112,9 +120,10 @@ class DriveTests(metaclass=MCMetaClass):
 
     def incremental_encoder_2_test(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS, apply_changes: bool = True
-    ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
-        """Executes incremental encoder 2 feedback test given a target servo
-        and axis. By default test will make changes in some drive registers
+    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+        """Executes incremental encoder 2 feedback test given a target servo and axis.
+
+        By default test will make changes in some drive registers
         like feedback polarity and other suggested registers. To avoid it,
         set ``apply_changes`` to ``False``.
 
@@ -145,29 +154,67 @@ class DriveTests(metaclass=MCMetaClass):
 
     def absolute_encoder_1_test(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS, apply_changes: bool = True
-    ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
         """Executes absolute encoder 1 feedback test given a target servo and axis.
+
         To know more about it see :func:`digital_halls_test`.
         """
         return self.__feedback_test(SensorType.ABS1, servo, axis, apply_changes)
 
     def absolute_encoder_2_test(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS, apply_changes: bool = True
-    ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
         """Executes absolute encoder 2 feedback test given a target servo and axis.
+
         To know more about it see :func:`digital_halls_test`.
         """
         return self.__feedback_test(SensorType.BISSC2, servo, axis, apply_changes)
 
     def secondary_ssi_test(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS, apply_changes: bool = True
-    ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
         """Executes secondary SSI feedback test given a target servo and axis.
+
         To know more about it see :func:`digital_halls_test`.
         """
         return self.__feedback_test(SensorType.SSI2, servo, axis, apply_changes)
 
-    def get_feedback_test(
+    def sincos_encoder_test(
+        self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS, apply_changes: bool = True
+    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+        """Run the SinCos encoder test.
+
+        Executes the SinCos feedback test given a target servo
+        and axis. By default test will make changes in some drive registers
+        like feedback polarity and other suggested registers. To avoid it, set
+        ``apply_changes`` to ``False``.
+
+        Args:
+            servo : servo alias to reference it. ``default`` by default.
+            axis : axis that will run the test. ``1`` by default.
+            apply_changes : if ``True``, test applies changes to the
+                servo, if ``False`` it does not. ``True`` by default.
+
+        Returns:
+            Dictionary with the result of the test::
+
+                {
+                    # (int) Result code
+                    "result_severity": 0,
+                    # (dict) Suggested register values
+                    "suggested_registers":
+                        {"FBK_SINCOS_POLARITY": 0},
+                    # (str) Human readable result message
+                    "result_message": "Feedback test pass successfully"
+                }
+
+        Raises:
+            TestError: In case the servo or setup configuration makes
+                impossible fulfilling the test
+        """
+        return self.__feedback_test(SensorType.SINCOS, servo, axis, apply_changes)
+
+    def __get_feedback_test(
         self, feedback: SensorType, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> Feedbacks:
         return self.__sensors[feedback](self.mc, servo, axis)
@@ -178,14 +225,14 @@ class DriveTests(metaclass=MCMetaClass):
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
         apply_changes: bool = True,
-    ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
-        output = self.get_feedback_test(feedback, servo, axis).run()
+    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+        output = self.__get_feedback_test(feedback, servo, axis).run()
         if (
             apply_changes
             and output is not None
             and output["result_severity"] == SeverityLevel.SUCCESS
         ):
-            if not isinstance(output["suggested_registers"], Dict):
+            if not isinstance(output["suggested_registers"], dict):
                 raise TypeError("Suggested registers has to be a dictionary")
             for key, value in output["suggested_registers"].items():
                 self.mc.communication.set_register(key, value, servo=servo, axis=axis)
@@ -196,8 +243,10 @@ class DriveTests(metaclass=MCMetaClass):
 
     def commutation(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS, apply_changes: bool = True
-    ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
-        """Executes a commutation calibration given a target servo and axis.
+    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+        """Run the commutation calibration test.
+
+        Executes a commutation calibration given a target servo and axis.
         By default commutation will make changes in some drive registers
         like commutation angle offset and other suggested registers.
         To avoid it, set ``apply_changes`` to ``False``.
@@ -233,7 +282,7 @@ class DriveTests(metaclass=MCMetaClass):
             and output is not None
             and output["result_severity"] == SeverityLevel.SUCCESS
         ):
-            if not isinstance(output["suggested_registers"], Dict):
+            if not isinstance(output["suggested_registers"], dict):
                 raise TypeError("Suggested registers have to be a dictionary")
             for key, value in output["suggested_registers"].items():
                 self.mc.communication.set_register(key, value, servo=servo, axis=axis)
@@ -244,9 +293,8 @@ class DriveTests(metaclass=MCMetaClass):
 
     def phasing_check(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
-        """
-        Checks servo phasing.
+    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+        """Checks servo phasing.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -269,9 +317,8 @@ class DriveTests(metaclass=MCMetaClass):
 
     def sto_test(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
-        """
-        Check STO
+    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+        """Check STO.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -293,8 +340,7 @@ class DriveTests(metaclass=MCMetaClass):
         return sto_test.run()
 
     def brake_test(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> Brake:
-        """
-        Run brake test.
+        """Run brake test.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -313,8 +359,10 @@ class DriveTests(metaclass=MCMetaClass):
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
         apply_changes: bool = True,
-    ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
-        """Executes polarity feedback test for single phase motors given a target servo
+    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+        """Run the polarity feedback single phase test.
+
+        Executes polarity feedback test for single phase motors given a target servo
         and axis. By default, test will make changes in feedback polarity. To avoid it,
         set ``apply_changes`` to ``False``.
 
@@ -350,7 +398,7 @@ class DriveTests(metaclass=MCMetaClass):
             and output is not None
             and output["result_severity"] == SeverityLevel.SUCCESS
         ):
-            if not isinstance(output["suggested_registers"], Dict):
+            if not isinstance(output["suggested_registers"], dict):
                 raise TypeError("Suggested registers have to be a dictionary")
             for key, value in output["suggested_registers"].items():
                 self.mc.communication.set_register(key, value, servo=servo, axis=axis)
@@ -369,8 +417,10 @@ class DriveTests(metaclass=MCMetaClass):
         kp: Optional[float] = None,
         ki: Optional[float] = None,
         kd: Optional[float] = None,
-    ) -> Optional[Dict[str, Union[SeverityLevel, Dict[str, Union[int, float, str]], str]]]:
-        """Executes resolution feedback test for single phase motors given a target servo
+    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+        """Run the resolution feedback single phase test.
+
+        Executes resolution feedback test for single phase motors given a target servo
         and axis. This test needs a human check to ensure the feedback is well configured.
         The test will move the motor with the number of counts set in the feedback resolution,
         if the motor does not move exactly one revolution this means that

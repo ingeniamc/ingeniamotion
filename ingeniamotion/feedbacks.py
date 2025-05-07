@@ -1,3 +1,4 @@
+import typing
 from typing import TYPE_CHECKING, Optional, Union
 
 import ingenialogger
@@ -9,7 +10,7 @@ if TYPE_CHECKING:
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 
 
-class Feedbacks(metaclass=MCMetaClass):
+class Feedbacks:
     """Feedbacks Wizard Class description."""
 
     __feedback_type_dict = {
@@ -20,6 +21,7 @@ class Feedbacks(metaclass=MCMetaClass):
         SensorType.BISSC2: SensorCategory.ABSOLUTE,
         SensorType.QEI2: SensorCategory.INCREMENTAL,
         SensorType.INTGEN: SensorCategory.ABSOLUTE,
+        SensorType.SINCOS: SensorCategory.INCREMENTAL,
     }
 
     __feedback_polarity_register_dict = {
@@ -29,6 +31,7 @@ class Feedbacks(metaclass=MCMetaClass):
         SensorType.SSI2: "FBK_SSI2_POS_POLARITY",
         SensorType.BISSC2: "FBK_BISS2_POS_POLARITY",
         SensorType.QEI2: "FBK_DIGENC2_POLARITY",
+        SensorType.SINCOS: "FBK_SINCOS_POLARITY",
     }
 
     COMMUTATION_FEEDBACK_REGISTER = "COMMU_ANGLE_SENSOR"
@@ -47,6 +50,7 @@ class Feedbacks(metaclass=MCMetaClass):
             SensorType.SSI2: self.get_secondary_ssi_resolution,
             SensorType.BISSC2: self.get_absolute_encoder_2_resolution,
             SensorType.QEI2: self.get_incremental_encoder_2_resolution,
+            SensorType.SINCOS: self.get_sincos_encoder_resolution,
             SensorType.INTGEN: self.__no_feedback_resolution,
         }
 
@@ -95,7 +99,9 @@ class Feedbacks(metaclass=MCMetaClass):
     def get_commutation_feedback_category(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> SensorCategory:
-        """Reads commutation feedbacks type {ABSOLUTE or INCREMENTAL}
+        """Get the commutation feedback category.
+
+        Reads commutation feedbacks type {ABSOLUTE or INCREMENTAL}
         in the target servo and axis.
 
         Args:
@@ -168,7 +174,9 @@ class Feedbacks(metaclass=MCMetaClass):
     def get_reference_feedback_category(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> SensorCategory:
-        """Reads reference feedbacks type {ABSOLUTE or INCREMENTAL}
+        """Get the reference feedback category.
+
+        Reads reference feedbacks type {ABSOLUTE or INCREMENTAL}
         in the target servo and axis.
 
         Args:
@@ -241,7 +249,9 @@ class Feedbacks(metaclass=MCMetaClass):
     def get_velocity_feedback_category(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> SensorCategory:
-        """Reads velocity feedbacks type {ABSOLUTE or INCREMENTAL}
+        """Get the velocity feedback category.
+
+        Reads velocity feedbacks type {ABSOLUTE or INCREMENTAL}
         in the target servo and axis.
 
         Args:
@@ -314,7 +324,9 @@ class Feedbacks(metaclass=MCMetaClass):
     def get_position_feedback_category(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> SensorCategory:
-        """Reads position feedbacks type {ABSOLUTE or INCREMENTAL}
+        """Get the position feedback category.
+
+        Reads position feedbacks type {ABSOLUTE or INCREMENTAL}
         in the target servo and axis.
 
         Args:
@@ -387,7 +399,9 @@ class Feedbacks(metaclass=MCMetaClass):
     def get_auxiliar_feedback_category(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> SensorCategory:
-        """Reads auxiliar feedbacks type {ABSOLUTE or INCREMENTAL}
+        """Get the auxiliar feedback category.
+
+        Reads auxiliar feedbacks type {ABSOLUTE or INCREMENTAL}
         in the target servo and axis.
 
         Args:
@@ -559,7 +573,36 @@ class Feedbacks(metaclass=MCMetaClass):
             raise TypeError("Resolution value has to be an integer")
         return resolution
 
-    def __no_feedback_resolution(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
+    def get_sincos_encoder_resolution(
+        self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
+    ) -> int:
+        """Reads the SinCos encoder resolution in the target servo and axis.
+
+        Args:
+            servo : servo alias to reference it. ``default`` by default.
+            axis : axis that will run the test. ``1`` by default.
+
+        Returns:
+            Number of counts per mechanical revolution.
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+
+        """
+        resolution = self.mc.communication.get_register(
+            "FBK_SINCOS_RESOLUTION", servo=servo, axis=axis
+        )
+        multiplier_reg_value = self.mc.communication.get_register(
+            "FBK_SINCOS_MULT_FACTOR", servo=servo, axis=axis
+        )
+        if not isinstance(resolution, int):
+            raise TypeError("Resolution value has to be an integer")
+        if not isinstance(multiplier_reg_value, int):
+            raise TypeError("Multiplier factor value has to be an integer")
+        multiplier_factor = typing.cast(int, 2**multiplier_reg_value)
+        return resolution * multiplier_factor
+
+    def __no_feedback_resolution(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:  # noqa: ARG002
         """Used for feedbacks that have no resolution.
 
         Args:
@@ -584,6 +627,7 @@ class Feedbacks(metaclass=MCMetaClass):
             SSI2: Number of bits that represent single-turn information.
             BISSC2: Number of bits that represent single-turn information.
             QEI2: Number of counts per mechanical revolution.
+            SINCOS: Number of counts per mechanical revolution.
 
         Args:
             feedback : target feedback.
@@ -596,7 +640,7 @@ class Feedbacks(metaclass=MCMetaClass):
         return self.feedback_resolution_functions[feedback](servo, axis)
 
     def get_feedback_polarity_register_uid(self, feedback: SensorType) -> str:
-        """Returns feedback polarity register UID
+        """Returns feedback polarity register UID.
 
         Args:
            feedback: target feedback sensor.

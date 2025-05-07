@@ -1,42 +1,51 @@
 import json
-import operator
 import platform
 import tempfile
 import time
 import zipfile
-from collections import Counter, OrderedDict
+from collections import OrderedDict
 from dataclasses import dataclass
 from functools import partial
 from os import path
-from typing import TYPE_CHECKING, Any, Callable, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import ifaddr
 import ingenialogger
-from ingenialink.canopen.network import CAN_BAUDRATE, CAN_CHANNELS, CAN_DEVICE, CanopenNetwork
+from ingenialink import CanBaudrate, CanDevice, NetDevEvt, NetState
+from ingenialink.canopen.network import CAN_CHANNELS, CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.dictionary import Interface
 from ingenialink.emcy import EmergencyMessage
-from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
-from ingenialink.enums.servo import SERVO_STATE
+from ingenialink.enums.register import RegAccess, RegDtype
+from ingenialink.enums.servo import ServoState
 from ingenialink.eoe.network import EoENetwork
-from ingenialink.ethercat.network import EthercatNetwork
+from ingenialink.ethercat.network import EthercatNetwork, GilReleaseConfig
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.exceptions import ILError
-from ingenialink.network import NET_DEV_EVT, NET_STATE, SlaveInfo
+from ingenialink.network import SlaveInfo
 from ingenialink.register import Register
 from ingenialink.servo import DictionaryFactory, Servo
 from ingenialink.virtual.network import VirtualNetwork
 from ping3 import ping
 from virtual_drive.core import VirtualDrive
 
-from ingeniamotion.exceptions import IMFirmwareLoadError, IMRegisterWrongAccess
+from ingeniamotion.exceptions import IMFirmwareLoadError, IMRegisterWrongAccessError
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
-from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
+import contextlib
+
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
 RUNNING_ON_WINDOWS = platform.system() == "Windows"
+
+if RUNNING_ON_WINDOWS:
+    from ingenialink.get_adapters_addresses import (  # type: ignore [import]
+        AdapterFamily,
+        ScanFlags,
+        get_adapters_addresses,
+    )
 
 FILE_EXT_SFU = ".sfu"
 FILE_EXT_LFU = ".lfu"
@@ -45,7 +54,7 @@ FIRMWARE_FILE_FAIL_MSG = "The firmware file could not be loaded correctly"
 
 @dataclass
 class IMRegisterUpdateObserver:
-    """Ingeniamotion register update observer"""
+    """Ingeniamotion register update observer."""
 
     im_callback: Callable[[str, Servo, Register, Union[int, float, str, bytes]], None]
     alias: str
@@ -53,7 +62,7 @@ class IMRegisterUpdateObserver:
 
 @dataclass
 class IMEmergencyMessageObserver:
-    """Ingeniamotion emergency message observer"""
+    """Ingeniamotion emergency message observer."""
 
     im_callback: Callable[[str, EmergencyMessage], None]
     alias: str
@@ -68,7 +77,7 @@ class NetworkAdapter:
     interface_guid: str
 
 
-class Communication(metaclass=MCMetaClass):
+class Communication:
     """Communication."""
 
     FORCE_SYSTEM_BOOT_COCO_REGISTER = "DRV_BOOT_COCO_FORCE"
@@ -86,8 +95,8 @@ class Communication(metaclass=MCMetaClass):
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
         self.__virtual_drive: Optional[VirtualDrive] = None
-        self.register_update_observers: Dict[Servo, List[IMRegisterUpdateObserver]] = {}
-        self.emergency_messages_observers: Dict[Servo, List[IMEmergencyMessageObserver]] = {}
+        self.register_update_observers: dict[Servo, list[IMRegisterUpdateObserver]] = {}
+        self.emergency_messages_observers: dict[Servo, list[IMEmergencyMessageObserver]] = {}
 
     def connect_servo_eoe(
         self,
@@ -98,7 +107,7 @@ class Communication(metaclass=MCMetaClass):
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
     ) -> None:
-        """Connect to target servo by Ethernet over EtherCAT
+        """Connect to target servo by Ethernet over EtherCAT.
 
         Args:
             ip : servo IP.
@@ -137,7 +146,7 @@ class Communication(metaclass=MCMetaClass):
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
     ) -> None:
-        """Connect to target servo by Ethernet
+        """Connect to target servo by Ethernet.
 
         Args:
             ip : servo IP
@@ -253,7 +262,7 @@ class Communication(metaclass=MCMetaClass):
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
     ) -> None:
-        """Connect to target servo by Ethernet over EtherCAT
+        r"""Connect to target servo by Ethernet over EtherCAT.
 
         Args:
             ifname : interface name. It should have format
@@ -311,7 +320,7 @@ class Communication(metaclass=MCMetaClass):
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
     ) -> None:
-        """Connect to target servo by Ethernet over EtherCAT
+        """Connect to target servo by Ethernet over EtherCAT.
 
         Args:
             interface_ip : IP of the interface to be connected to.
@@ -356,7 +365,7 @@ class Communication(metaclass=MCMetaClass):
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
     ) -> None:
-        """Connect to target servo using a COM-KIT
+        """Connect to target servo using a COM-KIT.
 
         Args:
             ip : servo IP
@@ -422,8 +431,7 @@ class Communication(metaclass=MCMetaClass):
             index = self._get_interface_index_by_address(address)
         except IndexError:
             raise ValueError(
-                f"Could not found a adapter configured as {address} "
-                f"to connect as EtherCAT master"
+                f"Could not found a adapter configured as {address} to connect as EtherCAT master"
             )
         return self.__get_adapter_name(index)
 
@@ -466,7 +474,7 @@ class Communication(metaclass=MCMetaClass):
         return self.__get_adapter_name(index)
 
     @classmethod
-    def get_interface_name_list(cls) -> List[str]:
+    def get_interface_name_list(cls) -> list[str]:
         """Get interface list.
 
         Returns:
@@ -477,7 +485,7 @@ class Communication(metaclass=MCMetaClass):
         return list(network_adapters)
 
     @staticmethod
-    def get_network_adapters() -> Dict[str, str]:
+    def get_network_adapters() -> dict[str, str]:
         """Get the detected network adapters.
 
         Returns:
@@ -492,53 +500,39 @@ class Communication(metaclass=MCMetaClass):
                 adapter_guid = adapter.name
             network_adapters.append(NetworkAdapter(adapter.index, adapter.nice_name, adapter_guid))
         if RUNNING_ON_WINDOWS:
-            # When using WMI within threads it is required to initialize the COM objects
-            # https://stackoverflow.com/a/14428972
-            # The order of imports is also important
-            # https://stackoverflow.com/a/46606527
-            import pythoncom
-
-            pythoncom.CoInitialize()
-            import wmi
-
-            for adapter in [
-                NetworkAdapter(o.interfaceindex, o.Name, o.GUID)
-                for o in wmi.WMI().query(
-                    "select Name, guid, interfaceindex from Win32_NetworkAdapter"
-                )
-                if o.GUID is not None
-            ]:
-                if adapter not in network_adapters:
-                    network_adapters.append(adapter)
-
-            interface_name_counter = Counter(
-                [adapter.interface_name for adapter in network_adapters]
+            ethernet_adapter_type = (
+                6  # https://learn.microsoft.com/en-us/windows/win32/api/ifdef/ns-ifdef-net_luid_lh
             )
-
-            if interface_name_counter.most_common(1)[0][1] > 1:
-                for adapter in sorted(
-                    network_adapters, key=operator.attrgetter("interface_index"), reverse=True
-                ):
-                    interface_name_count = interface_name_counter[adapter.interface_name]
-                    if interface_name_count == 1:
-                        continue
-                    interface_name_counter[adapter.interface_name] -= 1
-                    adapter.interface_name = (
-                        adapter.interface_name + " #" + str(interface_name_count)
+            network_adapters.extend(
+                [
+                    NetworkAdapter(
+                        interface_index=adapter.IfIndex,
+                        interface_name=adapter.Description,
+                        interface_guid=adapter.AdapterName,
                     )
+                    for adapter in get_adapters_addresses(
+                        adapter_families=AdapterFamily.INET,
+                        scan_flags=[
+                            ScanFlags.INCLUDE_PREFIX,
+                            ScanFlags.INCLUDE_ALL_INTERFACES,
+                        ],
+                    )
+                    if adapter.IfType == ethernet_adapter_type and len(adapter.FirstUnicastAddress)
+                ]
+            )
         return {adapter.interface_name: adapter.interface_guid for adapter in network_adapters}
 
-    def get_available_canopen_devices(self) -> dict[CAN_DEVICE, list[int]]:
+    def get_available_canopen_devices(self) -> dict[CanDevice, list[int]]:
         """Return the list of available CAN devices (those connected and with drivers installed).
 
         Returns:
             Dict of available CAN devices and channels. For example:
             {
-                CAN_DEVICE.KVASER: [0, 1]
-                CAN_DEVICE.PCAN: [0]
+                CanDevice.KVASER: [0, 1]
+                CanDevice.PCAN: [0]
             }
         """
-        available_devices: dict[CAN_DEVICE, list[int]] = {}
+        available_devices: dict[CanDevice, list[int]] = {}
         can_net = None
         for net_key in self.mc.net:
             net = self.mc.net[net_key]
@@ -546,9 +540,9 @@ class Communication(metaclass=MCMetaClass):
                 can_net = net
                 break
         if can_net is None:
-            can_net = CanopenNetwork(CAN_DEVICE.KVASER)
+            can_net = CanopenNetwork(CanDevice.KVASER)
         for device, channel in can_net.get_available_devices():
-            can_device = CAN_DEVICE(device)
+            can_device = CanDevice(device)
             can_channel = CAN_CHANNELS[device].index(channel)
             if can_device not in available_devices:
                 available_devices[can_device] = [can_channel]
@@ -567,7 +561,7 @@ class Communication(metaclass=MCMetaClass):
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
     ) -> None:
-        """Connect to target servo by Ethernet over EtherCAT
+        """Connect to target servo by Ethernet over EtherCAT.
 
         Args:
             if_index : interface index in list given by function
@@ -602,12 +596,13 @@ class Communication(metaclass=MCMetaClass):
             net_status_listener,
         )
 
-    def scan_servos_eoe_service(self, ifname: str) -> List[int]:
-        """Return a List of available servos.
+    def scan_servos_eoe_service(self, ifname: str) -> list[int]:
+        r"""Return a List of available servos.
 
         Args:
             ifname : interface name. It should have format
                 ``\\Device\\NPF_[...]``.
+
         Returns:
             Drives available in the target interface.
 
@@ -620,16 +615,17 @@ class Communication(metaclass=MCMetaClass):
             raise NotImplementedError("EoE service only works on windows.")
         net = self.mc.net[ifname] if ifname in self.mc.net else EoENetwork(ifname)
         slaves = net.scan_slaves()
-        if not isinstance(slaves, List):
+        if not isinstance(slaves, list):
             raise TypeError("Slaves are not saved in a list")
         return slaves
 
-    def scan_servos_eoe_service_interface_index(self, if_index: int) -> List[int]:
+    def scan_servos_eoe_service_interface_index(self, if_index: int) -> list[int]:
         """Return a list of available servos.
 
         Args:
             if_index : interface index in list given by function
                 :func:`get_interface_name_list`.
+
         Returns:
             Drives available in the target interface.
 
@@ -642,10 +638,10 @@ class Communication(metaclass=MCMetaClass):
 
     def connect_servo_canopen(
         self,
-        can_device: CAN_DEVICE,
+        can_device: CanDevice,
         dict_path: str,
         node_id: int,
-        baudrate: CAN_BAUDRATE = CAN_BAUDRATE.Baudrate_1M,
+        baudrate: CanBaudrate = CanBaudrate.Baudrate_1M,
         channel: int = 0,
         alias: str = DEFAULT_SERVO,
         servo_status_listener: bool = False,
@@ -671,7 +667,6 @@ class Communication(metaclass=MCMetaClass):
             ingenialink.exceptions.ILError: If CANOpen device type, node id or channel is incorrect.
 
         """
-
         if not path.isfile(dict_path):
             raise FileNotFoundError(f"Dict file {dict_path} does not exist!")
 
@@ -692,8 +687,9 @@ class Communication(metaclass=MCMetaClass):
         alias: str = DEFAULT_SERVO,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
+        gil_release_config: GilReleaseConfig = GilReleaseConfig(),
     ) -> None:
-        """Connect to an EtherCAT slave.
+        r"""Connect to an EtherCAT slave - CoE.
 
         Args:
             interface_name : interface name. It should have format
@@ -705,16 +701,18 @@ class Communication(metaclass=MCMetaClass):
                 its status, errors, faults, etc.
             net_status_listener : Toggle the listener of the network
                 status, connection and disconnection.
+            gil_release_config: GIL release configuration.
 
         Raises:
             FileNotFoundError: If the dict file doesn't exist.
 
         """
-
         if not path.isfile(dict_path):
             raise FileNotFoundError(f"Dict file {dict_path} does not exist!")
         if interface_name not in self.mc.net:
-            self.mc.net[interface_name] = EthercatNetwork(interface_name)
+            self.mc.net[interface_name] = EthercatNetwork(
+                interface_name, gil_release_config=gil_release_config
+            )
         net = self.mc.net[interface_name]
         try:
             servo = net.connect_to_slave(
@@ -738,8 +736,9 @@ class Communication(metaclass=MCMetaClass):
         alias: str = DEFAULT_SERVO,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
+        gil_release_config: GilReleaseConfig = GilReleaseConfig(),
     ) -> None:
-        """Connect to an EtherCAT slave.
+        """Connect to an EtherCAT slave - CoE.
 
         Args:
             if_index : interface index in list given by function
@@ -751,6 +750,7 @@ class Communication(metaclass=MCMetaClass):
                 its status, errors, faults, etc.
             net_status_listener : Toggle the listener of the network
                 status, connection and disconnection.
+            gil_release_config: GIL release configuration.
 
         Raises:
             IndexError: If interface index is out of range.
@@ -763,6 +763,7 @@ class Communication(metaclass=MCMetaClass):
             alias,
             servo_status_listener,
             net_status_listener,
+            gil_release_config=gil_release_config,
         )
 
     def connect_servo_ethercat_interface_ip(
@@ -773,8 +774,9 @@ class Communication(metaclass=MCMetaClass):
         alias: str = DEFAULT_SERVO,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
+        gil_release_config: GilReleaseConfig = GilReleaseConfig(),
     ) -> None:
-        """Connect to an EtherCAT slave.
+        """Connect to an EtherCAT slave - CoE.
 
         Args:
             interface_ip : IP of the interface to be connected to.
@@ -785,6 +787,7 @@ class Communication(metaclass=MCMetaClass):
                 its status, errors, faults, etc.
             net_status_listener : Toggle the listener of the network
                 status, connection and disconnection.
+            gil_release_config: GIL release configuration.
 
         """
         self.connect_servo_ethercat(
@@ -794,17 +797,21 @@ class Communication(metaclass=MCMetaClass):
             alias,
             servo_status_listener,
             net_status_listener,
+            gil_release_config=gil_release_config,
         )
 
     @staticmethod
     def scan_servos_ethercat_with_info(
-        interface_name: str,
+        interface_name: str, gil_release_config: GilReleaseConfig = GilReleaseConfig()
     ) -> OrderedDict[int, SlaveInfo]:
-        """Scan a network adapter to get all connected EtherCAT slaves including slave information.
+        r"""Scan a network adapter.
+
+         Get all connected EtherCAT slaves including slave information.
 
         Args:
             interface_name : interface name. It should have format
                 ``\\Device\\NPF_[...]``.
+            gil_release_config: GIL release configuration.
 
         Returns:
             Dictionary of nodes available in the network and slave information.
@@ -812,30 +819,31 @@ class Communication(metaclass=MCMetaClass):
         Raises:
             TypeError: If some parameter has a wrong type.
         """
-        net = EthercatNetwork(interface_name)
+        net = EthercatNetwork(interface_name, gil_release_config=gil_release_config)
         slaves_info = net.scan_slaves_info()
         return slaves_info
 
     def scan_servos_ethercat(
-        self,
-        interface_name: str,
-    ) -> List[int]:
-        """Scan a network adapter to get all connected EtherCAT slaves.
+        self, interface_name: str, gil_release_config: GilReleaseConfig = GilReleaseConfig()
+    ) -> list[int]:
+        r"""Scan a network adapter to get all connected EtherCAT slaves.
 
         Args:
             interface_name : interface name. It should have format
                 ``\\Device\\NPF_[...]``.
+            gil_release_config: GIL release configuration.
+
         Returns:
             List of EtherCAT slaves available in the network.
 
         Raises:
             TypeError: If some parameter has a wrong type.
         """
-        net = EthercatNetwork(interface_name)
+        net = EthercatNetwork(interface_name, gil_release_config=gil_release_config)
         slaves = net.scan_slaves()
         return slaves
 
-    def scan_servos_ethercat_interface_ip(self, interface_ip: str) -> List[int]:
+    def scan_servos_ethercat_interface_ip(self, interface_ip: str) -> list[int]:
         """Scan a network adapter to get all connected EtherCAT slaves.
 
         Args:
@@ -847,12 +855,13 @@ class Communication(metaclass=MCMetaClass):
         """
         return self.scan_servos_ethercat(self.get_ifname_from_interface_ip(interface_ip))
 
-    def scan_servos_ethercat_interface_index(self, if_index: int) -> List[int]:
+    def scan_servos_ethercat_interface_index(self, if_index: int) -> list[int]:
         """Scan a network adapter to get all connected EtherCAT slaves.
 
         Args:
             if_index : interface index in list given by function
                 :func:`get_interface_name_list`.
+
         Returns:
             List of EtherCAT slaves available in the network.
 
@@ -864,8 +873,8 @@ class Communication(metaclass=MCMetaClass):
 
     def scan_servos_canopen_with_info(
         self,
-        can_device: CAN_DEVICE,
-        baudrate: CAN_BAUDRATE = CAN_BAUDRATE.Baudrate_1M,
+        can_device: CanDevice,
+        baudrate: CanBaudrate = CanBaudrate.Baudrate_1M,
         channel: int = 0,
     ) -> OrderedDict[int, SlaveInfo]:
         """Scan CANOpen device network to get all nodes including slave information.
@@ -888,8 +897,7 @@ class Communication(metaclass=MCMetaClass):
 
         if net is None:
             self.logger.warning(
-                "Could not find any nodes in the network."
-                "Device: %s, channel: %s and baudrate: %s.",
+                "Could not find any nodes in the network.Device: %s, channel: %s and baudrate: %s.",
                 can_device,
                 channel,
                 baudrate,
@@ -900,10 +908,10 @@ class Communication(metaclass=MCMetaClass):
 
     def scan_servos_canopen(
         self,
-        can_device: CAN_DEVICE,
-        baudrate: CAN_BAUDRATE = CAN_BAUDRATE.Baudrate_1M,
+        can_device: CanDevice,
+        baudrate: CanBaudrate = CanBaudrate.Baudrate_1M,
         channel: int = 0,
-    ) -> List[int]:
+    ) -> list[int]:
         """Scan CANOpen device network to get all nodes.
 
         Args:
@@ -924,8 +932,7 @@ class Communication(metaclass=MCMetaClass):
 
         if net is None:
             self.logger.warning(
-                "Could not find any nodes in the network."
-                "Device: %s, channel: %s and baudrate: %s.",
+                "Could not find any nodes in the network.Device: %s, channel: %s and baudrate: %s.",
                 can_device,
                 channel,
                 baudrate,
@@ -933,6 +940,40 @@ class Communication(metaclass=MCMetaClass):
             return []
         slaves = net.scan_slaves()
         return slaves
+
+    @staticmethod
+    def scan_servos_ethernet(
+        subnet: str,
+    ) -> list[str]:
+        """Scan Ethernet device network to get all nodes.
+
+        Args:
+            subnet: The subnet in CIDR notation. For instance ``192.168.1.1/24``.
+
+        Returns:
+            List of drive IPs available in the network.
+
+        """
+        net = EthernetNetwork(subnet)
+        slaves = net.scan_slaves()
+        return slaves
+
+    @staticmethod
+    def scan_servos_ethernet_with_info(
+        subnet: str,
+    ) -> OrderedDict[str, SlaveInfo]:
+        """Scan Ethernet device network to get all nodes including drive information.
+
+        Args:
+            subnet: The subnet in CIDR notation. For instance ``192.168.1.1/24``.
+
+        Returns:
+            Dictionary of nodes available in the network and drive information.
+
+        """
+        net = EthernetNetwork(subnet)
+        slaves_info = net.scan_slaves_info()
+        return slaves_info
 
     def disconnect(self, servo: str = DEFAULT_SERVO) -> None:
         """Disconnect servo.
@@ -955,7 +996,7 @@ class Communication(metaclass=MCMetaClass):
         if servo_count == 0:
             del self.mc.net[net_name]
 
-    def get_servo_state(self, servo: str = DEFAULT_SERVO) -> NET_STATE:
+    def get_servo_state(self, servo: str = DEFAULT_SERVO) -> NetState:
         """Get the network state of a servo (connected/disconnected).
 
         The net_status_listener should be enabled for the servo in order
@@ -987,14 +1028,14 @@ class Communication(metaclass=MCMetaClass):
 
         Raises:
             ingenialink.exceptions.ILAccessError: If the register access is write-only.
-            IMRegisterNotExist: If the register doesn't exist.
+            IMRegisterNotExistError: If the register doesn't exist.
             TypeError: If some parameter has a wrong type.
 
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         register_dtype = self.mc.info.register_type(register, axis, servo=servo)
         value = drive.read(register, subnode=axis)
-        if register_dtype.value <= REG_DTYPE.S64.value and isinstance(value, int):
+        if register_dtype.value <= RegDtype.S64.value and isinstance(value, int):
             return int(value)
         if not isinstance(value, (int, float, str)):
             raise TypeError("Register value is not a correct type of value.")
@@ -1017,31 +1058,31 @@ class Communication(metaclass=MCMetaClass):
 
         Raises:
             TypeError: If the value is of the wrong type.
-            IMRegisterNotExist: If the register doesn't exist.
-            IMRegisterWrongAccess: If the register access is read-only.
+            IMRegisterNotExistError: If the register doesn't exist.
+            IMRegisterWrongAccessError: If the register access is read-only.
 
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         register_dtype_value = self.mc.info.register_type(register, axis, servo=servo)
         register_access_type = self.mc.info.register_info(register, axis, servo=servo).access
-        signed_int = [REG_DTYPE.S8, REG_DTYPE.S16, REG_DTYPE.S32, REG_DTYPE.S64]
-        unsigned_int = [REG_DTYPE.U8, REG_DTYPE.U16, REG_DTYPE.U32, REG_DTYPE.U64]
-        if register_dtype_value == REG_DTYPE.FLOAT and not isinstance(value, (int, float)):
+        signed_int = [RegDtype.S8, RegDtype.S16, RegDtype.S32, RegDtype.S64]
+        unsigned_int = [RegDtype.U8, RegDtype.U16, RegDtype.U32, RegDtype.U64]
+        if register_dtype_value == RegDtype.FLOAT and not isinstance(value, (int, float)):
             raise TypeError("Value must be a float")
-        if register_dtype_value == REG_DTYPE.STR and not isinstance(value, str):
+        if register_dtype_value == RegDtype.STR and not isinstance(value, str):
             raise TypeError("Value must be a string")
         if register_dtype_value in signed_int and not isinstance(value, int):
             raise TypeError("Value must be an int")
         if register_dtype_value in unsigned_int and (not isinstance(value, int) or value < 0):
             raise TypeError("Value must be an unsigned int")
-        if register_access_type == REG_ACCESS.RO:
-            raise IMRegisterWrongAccess(
+        if register_access_type == RegAccess.RO:
+            raise IMRegisterWrongAccessError(
                 f"Register: {register} cannot write to a read-only register"
             )
         drive.write(register, value, subnode=axis)
 
     def subscribe_net_status(
-        self, callback: Callable[[NET_DEV_EVT], None], servo: str = DEFAULT_SERVO
+        self, callback: Callable[[NetDevEvt], None], servo: str = DEFAULT_SERVO
     ) -> None:
         """Add a callback to net status change event.
 
@@ -1055,7 +1096,7 @@ class Communication(metaclass=MCMetaClass):
         network.subscribe_to_status(drive.target, callback)
 
     def unsubscribe_net_status(
-        self, callback: Callable[[NET_DEV_EVT], None], servo: str = DEFAULT_SERVO
+        self, callback: Callable[[NetDevEvt], None], servo: str = DEFAULT_SERVO
     ) -> None:
         """Remove net status change event callback.
 
@@ -1069,7 +1110,7 @@ class Communication(metaclass=MCMetaClass):
         network.unsubscribe_from_status(drive.target, callback)
 
     def subscribe_servo_status(
-        self, callback: Callable[[SERVO_STATE, int], Any], servo: str = DEFAULT_SERVO
+        self, callback: Callable[[ServoState, int], Any], servo: str = DEFAULT_SERVO
     ) -> None:
         """Add a callback to servo status change event.
 
@@ -1082,7 +1123,7 @@ class Communication(metaclass=MCMetaClass):
         drive.subscribe_to_status(callback)
 
     def unsubscribe_servo_status(
-        self, callback: Callable[[SERVO_STATE, int], Any], servo: str = DEFAULT_SERVO
+        self, callback: Callable[[ServoState, int], Any], servo: str = DEFAULT_SERVO
     ) -> None:
         """Remove servo status change event callback.
 
@@ -1100,6 +1141,7 @@ class Communication(metaclass=MCMetaClass):
         servo: str = DEFAULT_SERVO,
     ) -> None:
         """Subscribe to register updates.
+
         The callback will be called when a read/write operation occurs.
 
         Args:
@@ -1147,6 +1189,7 @@ class Communication(metaclass=MCMetaClass):
         self, servo_instance: Servo, register: Register, value: Union[int, float, str, bytes]
     ) -> None:
         """This method will be the one subscribed to ingenialink.
+
         When called, the servo alias will be added to the received information.
 
         Args:
@@ -1212,6 +1255,7 @@ class Communication(metaclass=MCMetaClass):
 
     def _il_emergency_message_callback(self, emergency_message: EmergencyMessage) -> None:
         """This method will be the one subscribed to ingenialink.
+
         When called, the servo alias will be added to the received information.
 
         Args:
@@ -1296,8 +1340,9 @@ class Communication(metaclass=MCMetaClass):
         slave: int = 1,
         boot_in_app: Optional[bool] = None,
         password: Optional[int] = None,
+        gil_release_config: GilReleaseConfig = GilReleaseConfig(),
     ) -> None:
-        """Load firmware via ECAT.
+        r"""Load firmware via ECAT.
 
         Args:
             ifname : interface name. It should have format
@@ -1308,17 +1353,16 @@ class Communication(metaclass=MCMetaClass):
                 If None, the file extension is used to define it.
             password: Password to load the firmware file. If ``None`` the default password will be
                 used.
+            gil_release_config: GIL release config.
 
         Raises:
             FileNotFoundError: If the firmware file cannot be found.
             ValueError: If the firmware file has the wrong extension.
             ingenialink.exceptions.ILFirmwareLoadError: If no slave is detected.
-            ingenialink.exceptions.ILFirmwareLoadError: If the FoE write operation is not successful
-            NotImplementedError: If FoE is not implemented for the current OS and architecture
+            ingenialink.exceptions.ILFirmwareLoadError: If the FoE write operation fails.
 
         """
-
-        net = EthercatNetwork(ifname)
+        net = EthercatNetwork(ifname, gil_release_config=gil_release_config)
         if fw_file.endswith(self.ENSEMBLE_FIRMWARE_EXTENSION):
             self.__load_ensemble_fw_ecat(net, fw_file, slave, boot_in_app, password)
         else:
@@ -1332,6 +1376,7 @@ class Communication(metaclass=MCMetaClass):
         slave: int = 1,
         boot_in_app: Optional[bool] = None,
         password: Optional[int] = None,
+        gil_release_config: GilReleaseConfig = GilReleaseConfig(),
     ) -> None:
         """Load firmware via ECAT.
 
@@ -1344,6 +1389,7 @@ class Communication(metaclass=MCMetaClass):
                 If ``None``, the file extension is used to define it.
             password: Password to load the firmware file. If ``None`` the default password will be
                 used.
+            gil_release_config: GIL release config.
 
         Raises:
             IndexError: If interface index is out of range.
@@ -1354,7 +1400,12 @@ class Communication(metaclass=MCMetaClass):
 
         """
         self.load_firmware_ecat(
-            self.get_ifname_by_index(if_index), fw_file, slave, boot_in_app, password
+            self.get_ifname_by_index(if_index),
+            fw_file,
+            slave,
+            boot_in_app,
+            password,
+            gil_release_config=gil_release_config,
         )
 
     def load_firmware_ethernet(
@@ -1431,15 +1482,13 @@ class Communication(metaclass=MCMetaClass):
         drive = self.mc._get_drive(servo)
         net.stop_status_listener()
         drive.stop_status_listener()
-        try:
+        with contextlib.suppress(ILError):
             self.mc.communication.set_register(
                 self.FORCE_SYSTEM_BOOT_COCO_REGISTER,
                 self.PASSWORD_FORCE_BOOT_COCO,
                 servo=servo,
                 axis=0,
             )
-        except ILError:
-            pass
         self.disconnect(servo)
 
     def load_firmware_moco(
@@ -1517,6 +1566,9 @@ class Communication(metaclass=MCMetaClass):
             net: Canopen network.
             fw_file: Path to the ensemble FW file.
             slave: Servo object.
+            status_callback : callback with status.
+            progress_callback : callback with progress.
+            error_enabled_callback : callback with errors enabled.
 
         Raises:
             IMFirmwareLoadError: If the load FW process of any slave failed.
@@ -1587,6 +1639,7 @@ class Communication(metaclass=MCMetaClass):
                         fw_file_prod_code[0],
                         boot_in_app_drive,
                         first_slave_in_ensemble + slave_id_offset,
+                        password,
                     )
             except ILError as e:
                 raise e
@@ -1597,7 +1650,9 @@ class Communication(metaclass=MCMetaClass):
         slave_id: int,
         mapping: dict[int, tuple[str, int, int]],
     ) -> int:
-        """Check that a slave is part of the ensemble described in the mapping argument and the
+        """Check the ensemble.
+
+        Check that a slave is part of the ensemble described in the mapping argument and the
         ensemble is complete (all drives described in the mapping are contained in the list of
         scanned slaves).
 

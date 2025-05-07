@@ -5,18 +5,18 @@ Enums
    :members:
    :undoc-members:
 
-.. autoclass:: REG_DTYPE
+.. autoclass:: RegDtype
    :members:
    :undoc-members:
 
-.. autoclass:: REG_ACCESS
+.. autoclass:: RegAccess
    :members:
    :undoc-members:
 
-.. autoclass:: CAN_BAUDRATE
+.. autoclass:: CanBaudrate
    :members:
    :undoc-members:
 
-.. autoclass:: CAN_DEVICE
+.. autoclass:: CanDevice
    :members:
    :undoc-members:

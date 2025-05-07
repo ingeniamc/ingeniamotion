@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Dict, List, Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import numpy as np
 from ingenialink.dictionary import SubnodeType
@@ -15,10 +15,10 @@ from ingeniamotion.enums import (
 )
 from ingeniamotion.exceptions import (
     IMMonitoringError,
-    IMRegisterNotExist,
+    IMRegisterNotExistError,
     IMStatusWordError,
 )
-from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.monitoring.base_monitoring import Monitoring
 from ingeniamotion.monitoring.monitoring_v1 import MonitoringV1
 from ingeniamotion.monitoring.monitoring_v3 import MonitoringV3
@@ -28,7 +28,7 @@ if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 
-class Capture(metaclass=MCMetaClass):
+class Capture:
     """Capture."""
 
     DISTURBANCE_STATUS_REGISTER = "DIST_STATUS"
@@ -62,7 +62,7 @@ class Capture(metaclass=MCMetaClass):
 
     def create_poller(
         self,
-        registers: List[Dict[str, Union[int, str]]],
+        registers: list[dict[str, Union[int, str]]],
         servo: str = DEFAULT_SERVO,
         sampling_time: float = 0.125,
         buffer_size: int = 100,
@@ -119,11 +119,12 @@ class Capture(metaclass=MCMetaClass):
                 When the property data is read list are reset to a empty list.
 
         Raises:
-            IMRegisterNotExist: If register does not exist in dictionary.
+            IMRegisterNotExistError: If register does not exist in dictionary.
             TypeError: If some parameter has a wrong type.
 
         """
-        poller = Poller(self.mc.servos[servo], len(registers))
+        drive = self.mc._get_drive(servo)
+        poller = Poller(drive, len(registers))
         poller.configure(sampling_time, buffer_size)
         for index, register in enumerate(registers):
             axis = register.get("axis", DEFAULT_AXIS)
@@ -161,13 +162,13 @@ class Capture(metaclass=MCMetaClass):
 
     def create_monitoring(
         self,
-        registers: List[Dict[str, Union[int, str]]],
+        registers: list[dict[str, Union[int, str]]],
         prescaler: int,
         sample_time: float,
         trigger_delay: float = 0,
         trigger_mode: MonitoringSoCType = MonitoringSoCType.TRIGGER_EVENT_AUTO,
         trigger_config: Optional[MonitoringSoCConfig] = None,
-        trigger_signal: Optional[Dict[str, Union[int, str]]] = None,
+        trigger_signal: Optional[dict[str, Union[int, str]]] = None,
         trigger_value: Union[float, int, None] = None,
         servo: str = DEFAULT_SERVO,
         start: bool = False,
@@ -245,7 +246,7 @@ class Capture(metaclass=MCMetaClass):
     def create_disturbance(
         self,
         register: str,
-        data: Union[List[Union[float, int]], NDArray[np.int_], NDArray[np.float_]],
+        data: Union[list[Union[float, int]], NDArray[np.int_], NDArray[np.float64]],
         freq_divider: int,
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
@@ -300,7 +301,7 @@ class Capture(metaclass=MCMetaClass):
                 self.MONITORING_VERSION_REGISTER, servo=servo, axis=0
             )
             return MonitoringVersion.MONITORING_V3
-        except (IMRegisterNotExist, ILIOError):
+        except (IMRegisterNotExistError, ILIOError):
             # The Monitoring V3 is NOT available
             pass
         try:
@@ -308,13 +309,13 @@ class Capture(metaclass=MCMetaClass):
                 self.MONITORING_CURRENT_NUMBER_BYTES_REGISTER, servo=servo, axis=0
             )
             return MonitoringVersion.MONITORING_V2
-        except (IMRegisterNotExist, ILIOError):
+        except (IMRegisterNotExistError, ILIOError):
             # The Monitoring V2 is NOT available
             pass
         try:
             self.mc.communication.get_register(self.MONITORING_STATUS_REGISTER, servo=servo, axis=0)
             return MonitoringVersion.MONITORING_V1
-        except (IMRegisterNotExist, ILIOError):
+        except (IMRegisterNotExistError, ILIOError):
             # Monitoring/disturbance are not available
             raise NotImplementedError(
                 "The monitoring and disturbance features are not available for this drive"
@@ -343,7 +344,9 @@ class Capture(metaclass=MCMetaClass):
             IMMonitoringError: If monitoring can't be enabled.
 
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
+        if drive.monitoring_get_num_mapped_registers() == 0:
+            raise IMMonitoringError("There are no registers mapped for monitoring.")
         drive.monitoring_enable()
         # Check monitoring status
         if not self.is_monitoring_enabled(servo=servo):
@@ -363,11 +366,11 @@ class Capture(metaclass=MCMetaClass):
             IMMonitoringError: If disturbance can't be enabled.
 
         """
+        drive = self.mc._get_drive(servo)
         if version is None:
             version = self._check_version(servo)
         if version < MonitoringVersion.MONITORING_V3:
             return self.enable_monitoring(servo=servo)
-        drive = self.mc.servos[servo]
         drive.disturbance_enable()
         # Check disturbance status
         if not self.is_disturbance_enabled(servo=servo):
@@ -394,11 +397,11 @@ class Capture(metaclass=MCMetaClass):
                 if ``None`` reads from drive. ``None`` by default.
 
         """
+        drive = self.mc._get_drive(servo)
         if version is None:
             version = self._check_version(servo)
         if not self.is_monitoring_enabled(servo=servo):
             return
-        drive = self.mc.servos[servo]
         drive.monitoring_disable()
         if version >= MonitoringVersion.MONITORING_V3:
             drive.monitoring_remove_data()
@@ -414,13 +417,13 @@ class Capture(metaclass=MCMetaClass):
                 if ``None`` reads from drive. ``None`` by default.
 
         """
+        drive = self.mc._get_drive(servo)
         if version is None:
             version = self._check_version(servo)
         if not self.is_disturbance_enabled(servo, version):
             return
         if version < MonitoringVersion.MONITORING_V3:
             return self.disable_monitoring(servo=servo, version=version)
-        drive = self.mc.servos[servo]
         drive.disturbance_disable()
         drive.disturbance_remove_data()
 
@@ -434,7 +437,7 @@ class Capture(metaclass=MCMetaClass):
             Monitoring/Disturbance Status.
 
         Raises:
-            IMRegisterNotExist: If the register doesn't exist.
+            IMRegisterNotExistError: If the register doesn't exist.
             TypeError: If some read value has a wrong type.
 
         """
@@ -455,7 +458,7 @@ class Capture(metaclass=MCMetaClass):
             Monitoring Status.
 
         Raises:
-            IMRegisterNotExist: If the register doesn't exist.
+            IMRegisterNotExistError: If the register doesn't exist.
             TypeError: If some read value has a wrong type.
 
         """
@@ -480,7 +483,7 @@ class Capture(metaclass=MCMetaClass):
             Disturbance Status.
 
         Raises:
-            IMRegisterNotExist: If the register doesn't exist.
+            IMRegisterNotExistError: If the register doesn't exist.
             TypeError: If some read value has a wrong type.
 
         """
@@ -508,7 +511,7 @@ class Capture(metaclass=MCMetaClass):
             True if monitoring is enabled, else False.
 
         Raises:
-            IMRegisterNotExist: If the register doesn't exist.
+            IMRegisterNotExistError: If the register doesn't exist.
 
         """
         monitor_status = self.get_monitoring_status(servo)
@@ -528,7 +531,7 @@ class Capture(metaclass=MCMetaClass):
             True if disturbance is enabled, else False.
 
         Raises:
-            IMRegisterNotExist: If the register doesn't exist.
+            IMRegisterNotExistError: If the register doesn't exist.
 
         """
         monitor_status = self.get_disturbance_status(servo, version=version)
@@ -537,8 +540,7 @@ class Capture(metaclass=MCMetaClass):
     def get_monitoring_process_stage(
         self, servo: str = DEFAULT_SERVO, version: Optional[MonitoringVersion] = None
     ) -> MonitoringProcessStage:
-        """
-        Return monitoring process stage.
+        """Return monitoring process stage.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -549,7 +551,7 @@ class Capture(metaclass=MCMetaClass):
             Current monitoring process stage.
 
         Raises:
-            IMRegisterNotExist: If the register doesn't exist.
+            IMRegisterNotExistError: If the register doesn't exist.
 
         """
         if version is None:
@@ -562,8 +564,7 @@ class Capture(metaclass=MCMetaClass):
     def is_frame_available(
         self, servo: str = DEFAULT_SERVO, version: Optional[MonitoringVersion] = None
     ) -> bool:
-        """
-        Check if monitoring has an available frame.
+        """Check if monitoring has an available frame.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -574,7 +575,7 @@ class Capture(metaclass=MCMetaClass):
             True if monitoring has an available frame, else False.
 
         Raises:
-            IMRegisterNotExist: If the register doesn't exist.
+            IMRegisterNotExistError: If the register doesn't exist.
 
         """
         if version is None:
@@ -594,8 +595,8 @@ class Capture(metaclass=MCMetaClass):
                 if None reads from drive. ``None`` by default.
 
         """
+        drive = self.mc._get_drive(servo)
         self.disable_monitoring(servo=servo, version=version)
-        drive = self.mc.servos[servo]
         drive.monitoring_remove_all_mapped_registers()
 
     def clean_disturbance(
@@ -609,12 +610,14 @@ class Capture(metaclass=MCMetaClass):
                 if None reads from drive. ``None`` by default.
 
         """
+        drive = self.mc._get_drive(servo)
         self.disable_disturbance(servo=servo, version=version)
-        drive = self.mc.servos[servo]
         drive.disturbance_remove_all_mapped_registers()
 
     def clean_monitoring_disturbance(self, servo: str = DEFAULT_SERVO) -> None:
-        """Disable monitoring/disturbance, remove disturbance and monitoring
+        """Clean the monitoring/disturbance.
+
+        Disable monitoring/disturbance, remove disturbance and monitoring
         mapped registers.
 
         Args:
@@ -626,6 +629,7 @@ class Capture(metaclass=MCMetaClass):
 
     def mcb_synchronization(self, servo: str = DEFAULT_SERVO) -> None:
         """Synchronize MCB, necessary to monitoring and disturbance.
+
         Motor must be disabled.
 
         Args:
@@ -665,7 +669,7 @@ class Capture(metaclass=MCMetaClass):
             if not isinstance(max_sample_size, int):
                 raise TypeError("Maximum sample size has to be an integer")
             return max_sample_size
-        except IMRegisterNotExist:
+        except IMRegisterNotExistError:
             return self.MINIMUM_BUFFER_SIZE
 
     def monitoring_max_sample_size(self, servo: str = DEFAULT_SERVO) -> int:
@@ -688,7 +692,7 @@ class Capture(metaclass=MCMetaClass):
             if not isinstance(max_sample_size, int):
                 raise TypeError("Maximum sample size has to be an integer")
             return max_sample_size
-        except IMRegisterNotExist:
+        except IMRegisterNotExistError:
             return self.MINIMUM_BUFFER_SIZE
 
     def get_frequency(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> float:
@@ -705,7 +709,6 @@ class Capture(metaclass=MCMetaClass):
             TypeError: If some read value has a wrong type.
 
         """
-
         position_velocity_loop_rate = self.mc.configuration.get_position_and_velocity_loop_rate(
             servo=servo, axis=axis
         )

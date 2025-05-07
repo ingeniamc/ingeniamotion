@@ -1,17 +1,20 @@
 import time
-from typing import TYPE_CHECKING, Generator, Optional, Union
+from collections.abc import Generator
+from typing import TYPE_CHECKING, Optional, Union
 
 import ingenialogger
-from ingenialink.exceptions import ILError
+from ingenialink.exceptions import ILError, ILTimeoutError
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.enums import GeneratorMode, OperationMode, PhasingMode, SensorType
 from ingeniamotion.exceptions import IMTimeoutError
-from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
+
+DEFAULT_MOTOR_ERROR_TIMEOUT_S = 6
 
 
-class Motion(metaclass=MCMetaClass):
+class Motion:
     """Motion."""
 
     CONTROL_WORD_REGISTER = "DRV_STATE_CONTROL"
@@ -123,27 +126,47 @@ class Motion(metaclass=MCMetaClass):
         except ValueError:
             return operation_mode
 
-    def motor_enable(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> None:
+    def motor_enable(
+        self,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+        error_timeout: float = DEFAULT_MOTOR_ERROR_TIMEOUT_S,
+    ) -> None:
         """Enable motor.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
             axis : servo axis. ``1`` by default.
+            error_timeout: Maximum wait for error update in seconds.
 
         Raises:
             ingenialink.exceptions.ILError: If the servo cannot enable the motor.
+            ingenialink.exceptions.ILTimeoutError: If the error was not raised in time.
 
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
+        num_errors = self.mc.errors.get_number_total_errors(servo=servo, axis=axis)
         try:
             drive.enable(subnode=axis)
         except ILError as e:
-            error_code, subnode, warning = self.mc.errors.get_last_buffer_error(
-                servo=servo, axis=axis
-            )
-            error_id, _, _, error_msg = self.mc.errors.get_error_data(error_code, servo=servo)
+            timeout = error_timeout
+            start_time = time.time()
+            error_raised = False
+            while not error_raised and (time.time() < (start_time + timeout)):
+                error_raised = (
+                    self.mc.errors.get_number_total_errors(servo=servo, axis=axis) != num_errors
+                )
+            if error_raised:
+                error_code, subnode, warning = self.mc.errors.get_last_buffer_error(
+                    servo=servo, axis=axis
+                )
+                error_id, _, _, error_msg = self.mc.errors.get_error_data(error_code, servo=servo)
+            else:
+                raise ILTimeoutError(
+                    "An error occurred enabling motor. Reason: Error trigger timeout exceeded."
+                )
             exception_type = type(e)
-            raise exception_type("An error occurred enabling motor. Reason: {}".format(error_msg))
+            raise exception_type(f"An error occurred enabling motor. Reason: {error_msg}")
 
     def motor_disable(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> None:
         """Disable motor.
@@ -153,13 +176,13 @@ class Motion(metaclass=MCMetaClass):
             axis : servo axis. ``1`` by default.
 
         """
+        drive = self.mc._get_drive(servo)
         try:
             is_motor_enabled = self.mc.configuration.is_motor_enabled(servo=servo, axis=axis)
         except ILError as e:
             self.logger.info(f"Unable to check if motor is enabled. Reason: {e}")
             return
         if is_motor_enabled:
-            drive = self.mc.servos[servo]
             try:
                 drive.disable(subnode=axis)
             except ILError as e:
@@ -173,7 +196,7 @@ class Motion(metaclass=MCMetaClass):
             axis : servo axis. ``1`` by default.
 
         """
-        drive = self.mc.servos[servo]
+        drive = self.mc._get_drive(servo)
         try:
             drive.fault_reset(axis)
         except ILError as e:
@@ -255,6 +278,7 @@ class Motion(metaclass=MCMetaClass):
                 will wait forever. ``None`` by default.
             interval : If blocking is enabled, interval of time between
                 actual velocity reads, in seconds. ``None`` by default.
+
         Raises:
             TypeError: If velocity is not a float.
             IMTimeoutError: If the target velocity is not reached in time.
@@ -355,7 +379,9 @@ class Motion(metaclass=MCMetaClass):
         init_value: float = 0,
         interval: Optional[float] = None,
     ) -> None:
-        """Given a target value and a time in seconds, changes the current
+        """Generate a current quadrature ramp.
+
+        Given a target value and a time in seconds, changes the current
         quadrature set-point linearly following a ramp. This function is
         blocked until target reached.
 
@@ -384,7 +410,8 @@ class Motion(metaclass=MCMetaClass):
         init_value: float = 0,
         interval: Optional[float] = None,
     ) -> None:
-        """
+        """Generate a current direct ramp.
+
         Given a target value and a time in seconds, changes the current
         direct set-point linearly following a ramp. This function is
         blocked until target reached.
@@ -414,7 +441,8 @@ class Motion(metaclass=MCMetaClass):
         init_value: float = 0,
         interval: Optional[float] = None,
     ) -> None:
-        """
+        """Generate a voltage quadrature ramp.
+
         Given a target value and a time in seconds, changes the voltage
         quadrature set-point linearly following a ramp. This function is
         blocked until target reached.
@@ -444,7 +472,8 @@ class Motion(metaclass=MCMetaClass):
         init_value: float = 0,
         interval: Optional[float] = None,
     ) -> None:
-        """
+        """Generate a voltage direct ramp.
+
         Given a target value and a time in seconds, changes the voltage
         direct set-point linearly following a ramp. This function is
         blocked until target reached.
@@ -469,6 +498,18 @@ class Motion(metaclass=MCMetaClass):
     def ramp_generator(
         init_v: float, final_v: float, total_t: float, interval: Optional[float] = None
     ) -> Generator[float, None, None]:
+        """Generate a ramp.
+
+        Args:
+            init_v: Initial value.
+            final_v: Final value.
+            total_t: Total time.
+            interval: Time between each sample.
+
+        Returns:
+            The ramp generator object.
+
+        """
         slope = (final_v - init_v) / total_t
         init_time = time.time()
         yield init_v
@@ -481,8 +522,7 @@ class Motion(metaclass=MCMetaClass):
         yield final_v
 
     def get_actual_position(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
-        """
-        Returns actual position register.
+        """Returns actual position register.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -503,8 +543,7 @@ class Motion(metaclass=MCMetaClass):
         return actual_position
 
     def get_actual_velocity(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> float:
-        """
-        Returns actual velocity register.
+        """Returns actual velocity register.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
@@ -527,8 +566,7 @@ class Motion(metaclass=MCMetaClass):
     def get_actual_current_direct(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> float:
-        """
-        Returns actual direct current register.
+        """Returns actual direct current register.
 
         Args:
             servo: servo alias to reference it. ``default`` by default.
@@ -551,8 +589,7 @@ class Motion(metaclass=MCMetaClass):
     def get_actual_current_quadrature(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> float:
-        """
-        Returns actual quadrature current register.
+        """Returns actual quadrature current register.
 
         Args:
             servo (str): servo alias to reference it. ``default`` by default.
@@ -581,8 +618,7 @@ class Motion(metaclass=MCMetaClass):
         timeout: Optional[float] = None,
         interval: Optional[float] = None,
     ) -> None:
-        """
-        Wait until actual position is equal to a target position, with an error.
+        """Wait until actual position is equal to a target position, with an error.
 
         Args:
             position : target position, in counts.
@@ -629,8 +665,7 @@ class Motion(metaclass=MCMetaClass):
         timeout: Optional[float] = None,
         interval: Optional[float] = None,
     ) -> None:
-        """
-        Wait until actual velocity is equal to a target velocity, with an error.
+        """Wait until actual velocity is equal to a target velocity, with an error.
 
         Args:
             velocity : target velocity, in rev/s.
@@ -669,10 +704,13 @@ class Motion(metaclass=MCMetaClass):
                 raise IMTimeoutError("Velocity was not reached in time")
 
     def set_internal_generator_configuration(
-        self, op_mode: OperationMode, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
+        self,
+        op_mode: OperationMode,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+        pair_poles: int = 1,
     ) -> None:
-        """
-        Set internal generator configuration.
+        """Set internal generator configuration.
 
         .. note::
             This functions affects the following drive registers: **motor pair poles**,
@@ -685,6 +723,7 @@ class Motion(metaclass=MCMetaClass):
              for internal generator configuration.
             servo : servo alias to reference it. ``default`` by default.
             axis : servo axis. ``1`` by default.
+            pair_poles: motor poles pair. ``1`` by default.
 
         Raises:
             ValueError: If operation mode is not set to Current or Voltage.
@@ -693,7 +732,7 @@ class Motion(metaclass=MCMetaClass):
         if op_mode not in [OperationMode.CURRENT, OperationMode.VOLTAGE]:
             raise ValueError("Operation mode must be Current or Voltage")
         self.set_operation_mode(op_mode, servo=servo, axis=axis)
-        self.mc.configuration.set_motor_pair_poles(1, servo=servo, axis=axis)
+        self.mc.configuration.set_motor_pair_poles(pair_poles, servo=servo, axis=axis)
         self.mc.configuration.set_phasing_mode(PhasingMode.NO_PHASING, servo=servo, axis=axis)
         if op_mode == OperationMode.CURRENT:
             self.set_current_quadrature(0, servo=servo, axis=axis)
@@ -712,8 +751,7 @@ class Motion(metaclass=MCMetaClass):
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
     ) -> None:
-        """
-        Move motor in internal generator configuration with generator mode saw tooth.
+        """Move motor in internal generator configuration with generator mode saw tooth.
 
         Args:
             direction : ``1`` for positive direction and
@@ -758,8 +796,7 @@ class Motion(metaclass=MCMetaClass):
     def internal_generator_constant_move(
         self, offset: int, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> None:
-        """
-        Move motor in internal generator configuration with generator mode constant.
+        """Move motor in internal generator configuration with generator mode constant.
 
         Args:
             offset : internal generator offset.

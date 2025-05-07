@@ -45,8 +45,9 @@ tox -e docs
 Run PyTest
 ----------
 
-Create tests/setups/tests_setup.py file with configuration file.
-This file is ignored by git and won't be uploaded to the repository
+Create *tests/setups/tests_setup.py* file with configuration file.
+
+This file is ignored by git and won't be uploaded to the repository.
 Example of a setup:
 
 ```python
@@ -65,9 +66,33 @@ TESTS_SETUP = DriveEcatSetup(
 )
 ```
 
+To obtain *ifname* setting, can run the following:
+
+```python
+from ingeniamotion.communication import Communication
+
+def main() -> None:
+    network_adapters = Communication.get_network_adapters()
+    for adapter_name, adapter_guid in network_adapters.items():
+        print(f"{adapter_name}: {adapter_guid}")
+
+if __name__ == "__main__":
+    main()
+```
+
+This will print a list of adapters, select the one that you are currently using (check your network settings).
+
 Run tests selecting the markers that you want and are appropriate for your setup.
 Beware that some tests may not be appropiate for the setup that you have and may fail.
 
 ```bash
 tox -e py39 -- -m soem
+```
+
+This will use the default *ingenialink* installation from *[develop]* setting. If you want to send a custom wheel or a different commit, you can do it by changing *INGENIALINK_INSTALL_PATH* variable.
+
+For example, to send a custom wheel:
+
+```python
+INGENIALINK_INSTALL_PATH=dist/ingenialink-7.4.1-cp39-cp39-win_amd64.whl tox -e py39
 ```

@@ -1,28 +1,35 @@
 import os
 import platform
+import re
+import sys
 import tempfile
 import time
 from collections import OrderedDict
 from dataclasses import dataclass
 
 import pytest
-from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE, CanopenNetwork
+from ingenialink import CanBaudrate, CanDevice
+from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.exceptions import ILError
 from ingenialink.network import SlaveInfo
-from ingenialink.servo import SERVO_STATE
+from ingenialink.servo import ServoState
 
 import ingeniamotion
 from ingeniamotion import MotionController
 from ingeniamotion.exceptions import (
     IMFirmwareLoadError,
-    IMRegisterNotExist,
-    IMRegisterWrongAccess,
+    IMRegisterNotExistError,
+    IMRegisterWrongAccessError,
 )
-
-from .setups.descriptors import DriveCanOpenSetup, EthernetSetup, Setup
+from tests.tests_toolkit.setups.descriptors import (
+    DriveCanOpenSetup,
+    DriveEcatSetup,
+    EthernetSetup,
+    SetupDescriptor,
+)
 
 TEST_ENSEMBLE_FW_FILE = "tests/resources/example_ensemble_fw.zfu"
 
@@ -51,43 +58,79 @@ class EmcyTest:
         self.messages.append((alias, emcy_msg))
 
 
+@pytest.mark.smoke
+@pytest.mark.canopen
+@pytest.mark.ethernet
+def test_get_network_adapters(mocker, setup_descriptor: SetupDescriptor):
+    """Tests networks adapters with Windows platform."""
+    is_windows = platform.system() != "Windows"
+    if not isinstance(setup_descriptor, DriveEcatSetup):
+        pytest.skip(f"Skipping because test setup is {type(setup_descriptor)}")
+
+    match = re.search(r"\{[^}]*\}", setup_descriptor.ifname)
+    expected_adapter_address = match.group(0) if match else None
+    assert expected_adapter_address is not None
+
+    get_adapters_addresses_spy = (
+        None
+        if not is_windows
+        else mocker.spy("ingenialink.get_adapters_addresses.get_adapters_addresses")
+    )
+
+    mc = MotionController()
+    if get_adapters_addresses_spy is not None:
+        assert get_adapters_addresses_spy.call_count == 0
+    adapters = mc.communication.get_network_adapters()
+    if get_adapters_addresses_spy is not None:
+        assert get_adapters_addresses_spy.call_count == 1
+
+    expected_adapter_address_found = False
+    for interface_guid in adapters.values():
+        if interface_guid == expected_adapter_address:
+            expected_adapter_address_found = True
+            break
+    assert expected_adapter_address_found is True
+
+
 @pytest.mark.virtual
-def test_connect_servo_eoe(tests_setup: EthernetSetup):
+def test_connect_servo_eoe(setup_descriptor: EthernetSetup):
     mc = MotionController()
     assert "ethernet_test" not in mc.servos
     assert "ethernet_test" not in mc.net
     mc.communication.connect_servo_eoe(
-        tests_setup.ip, tests_setup.dictionary, alias="ethernet_test"
+        setup_descriptor.ip, setup_descriptor.dictionary, alias="ethernet_test"
     )
     assert "ethernet_test" in mc.servos and mc.servos["ethernet_test"] is not None
     assert "ethernet_test" in mc.net and mc.net["ethernet_test"] is not None
 
 
 @pytest.mark.virtual
-def test_connect_servo_eoe_no_dictionary_error(tests_setup: EthernetSetup):
+def test_connect_servo_eoe_no_dictionary_error(setup_descriptor: EthernetSetup):
     mc = MotionController()
     with pytest.raises(FileNotFoundError):
-        mc.communication.connect_servo_eoe(tests_setup.ip, "no_dictionary", alias="ethernet_test")
+        mc.communication.connect_servo_eoe(
+            setup_descriptor.ip, "no_dictionary", alias="ethernet_test"
+        )
 
 
 @pytest.mark.virtual
-def test_connect_servo_ethernet(tests_setup: EthernetSetup):
+def test_connect_servo_ethernet(setup_descriptor: EthernetSetup):
     mc = MotionController()
     assert "ethernet_test" not in mc.servos
     assert "ethernet_test" not in mc.net
     mc.communication.connect_servo_ethernet(
-        tests_setup.ip, tests_setup.dictionary, alias="ethernet_test"
+        setup_descriptor.ip, setup_descriptor.dictionary, alias="ethernet_test"
     )
     assert "ethernet_test" in mc.servos and mc.servos["ethernet_test"] is not None
     assert "ethernet_test" in mc.net and mc.net["ethernet_test"] is not None
 
 
 @pytest.mark.virtual
-def test_connect_servo_ethernet_no_dictionary_error(tests_setup: EthernetSetup):
+def test_connect_servo_ethernet_no_dictionary_error(setup_descriptor: EthernetSetup):
     mc = MotionController()
     with pytest.raises(FileNotFoundError):
         mc.communication.connect_servo_ethernet(
-            tests_setup.ip, "no_dictionary", alias="ethernet_test"
+            setup_descriptor.ip, "no_dictionary", alias="ethernet_test"
         )
 
 
@@ -100,17 +143,17 @@ def test_connect_servo_ethernet_no_dictionary_error(tests_setup: EthernetSetup):
         False,
     ],
 )
-def test_connect_servo_comkit_no_dictionary_error(coco_dict_path, tests_setup: EthernetSetup):
+def test_connect_servo_comkit_no_dictionary_error(coco_dict_path, setup_descriptor: EthernetSetup):
     mc = MotionController()
     if coco_dict_path:
-        coco_dict_path = tests_setup.dictionary
+        coco_dict_path = setup_descriptor.dictionary
         moco_dict_path = "no_dictionary"
     else:
         coco_dict_path = "no_dictionary"
-        moco_dict_path = tests_setup.dictionary
+        moco_dict_path = setup_descriptor.dictionary
     with pytest.raises(FileNotFoundError):
         mc.communication.connect_servo_comkit(
-            tests_setup.ip, coco_dict_path, moco_dict_path, alias="ethernet_test"
+            setup_descriptor.ip, coco_dict_path, moco_dict_path, alias="ethernet_test"
         )
 
 
@@ -121,7 +164,7 @@ def test_get_ifname_from_interface_ip(mocker):
         @dataclass
         class IP:
             ip = "192.168.2.1"
-            is_IPv4 = True
+            is_IPv4 = True  # noqa: N815
 
         def __init__(self, interface_name):
             self.name = interface_name
@@ -129,10 +172,7 @@ def test_get_ifname_from_interface_ip(mocker):
             self.ips = [self.IP()]
             self.index = 1
 
-    if platform.system() == "Linux":
-        name = "eth0"
-    else:
-        name = b"{192D1D2F-C684-467D-A637-EC07BD434A63}"
+    name = "eth0" if platform.system() == "Linux" else b"{192D1D2F-C684-467D-A637-EC07BD434A63}"
     mock_adapter = MockAdapter(name)
     mocker.patch("ifaddr.get_adapters", return_value=[mock_adapter])
     mc = MotionController()
@@ -159,18 +199,18 @@ def test_get_ifname_by_index():
 @pytest.mark.skip(reason='This test enters in conflict with "disable_motor_fixture"')
 @pytest.mark.smoke
 @pytest.mark.canopen
-def test_connect_servo_canopen(tests_setup: DriveCanOpenSetup):
+def test_connect_servo_canopen(setup_descriptor: DriveCanOpenSetup):
     mc = MotionController()
     assert "canopen_test" not in mc.servos
     assert "canopen_test" not in mc.net
-    device = CAN_DEVICE(tests_setup.device)
-    baudrate = CAN_BAUDRATE(tests_setup.baudrate)
+    device = CanDevice(setup_descriptor.device)
+    baudrate = CanBaudrate(setup_descriptor.baudrate)
     mc.communication.connect_servo_canopen(
         device,
-        tests_setup.dictionary,
-        tests_setup.node_id,
+        setup_descriptor.dictionary,
+        setup_descriptor.node_id,
         baudrate,
-        tests_setup.channel,
+        setup_descriptor.channel,
         alias="canopen_test",
     )
     assert "canopen_test" in mc.servos and mc.servos["canopen_test"] is not None
@@ -181,22 +221,24 @@ def test_connect_servo_canopen(tests_setup: DriveCanOpenSetup):
 @pytest.mark.smoke
 @pytest.mark.canopen
 @pytest.mark.skip
-def test_connect_servo_canopen_busy_drive_error(motion_controller, tests_setup: DriveCanOpenSetup):
+def test_connect_servo_canopen_busy_drive_error(
+    motion_controller, setup_descriptor: DriveCanOpenSetup
+):
     mc, alias, environment = motion_controller
     assert "canopen_test" not in mc.servos
     assert "canopen_test" not in mc.servo_net
     assert alias in mc.servos
     assert alias in mc.servo_net
     assert mc.servo_net[alias] in mc.net
-    device = CAN_DEVICE(tests_setup.device)
-    baudrate = CAN_BAUDRATE(tests_setup.baudrate)
+    device = CanDevice(setup_descriptor.device)
+    baudrate = CanBaudrate(setup_descriptor.baudrate)
     with pytest.raises(ILError):
         mc.communication.connect_servo_canopen(
             device,
-            tests_setup.dictionary,
-            tests_setup.node_id,
+            setup_descriptor.dictionary,
+            setup_descriptor.node_id,
             baudrate,
-            tests_setup.channel,
+            setup_descriptor.channel,
             alias="canopen_test",
         )
 
@@ -223,7 +265,7 @@ def test_get_register(motion_controller, uid, value):
 @pytest.mark.smoke
 def test_get_register_wrong_uid(motion_controller):
     mc, alias, environment = motion_controller
-    with pytest.raises(IMRegisterNotExist):
+    with pytest.raises(IMRegisterNotExistError):
         mc.communication.get_register("WRONG_UID", servo=alias)
 
 
@@ -249,7 +291,7 @@ def test_set_register(motion_controller, uid, value):
 @pytest.mark.smoke
 def test_set_register_wrong_uid(motion_controller):
     mc, alias, environment = motion_controller
-    with pytest.raises(IMRegisterNotExist):
+    with pytest.raises(IMRegisterNotExistError):
         mc.communication.set_register("WRONG_UID", 2, servo=alias)
 
 
@@ -284,7 +326,7 @@ def test_set_register_wrong_access(motion_controller):
     mc, alias, environment = motion_controller
     uid = "DRV_STATE_STATUS"
     value = 0
-    with pytest.raises(IMRegisterWrongAccess):
+    with pytest.raises(IMRegisterWrongAccessError):
         mc.communication.set_register(uid, value, servo=alias)
 
 
@@ -299,14 +341,15 @@ def dummy_callback(status, _, axis):
 def test_subscribe_servo_status(mocker, motion_controller):
     mc, alias, environment = motion_controller
     axis = 1
-    patch_callback = mocker.patch("tests.test_communication.dummy_callback")
+    current_module = sys.modules[__name__]
+    patch_callback = mocker.patch.object(current_module, "dummy_callback")
     mc.communication.subscribe_servo_status(patch_callback, alias)
     time.sleep(0.5)
     mc.motion.motor_enable(alias, axis)
     time.sleep(0.5)
     mc.motion.motor_disable(alias, axis)
     time.sleep(0.5)
-    expected_status = [SERVO_STATE.RDY, SERVO_STATE.ENABLED, SERVO_STATE.DISABLED]
+    expected_status = [ServoState.RDY, ServoState.ENABLED, ServoState.DISABLED]
     for index, call in enumerate(patch_callback.call_args_list):
         assert call[0][0] == expected_status[index]
         assert call[0][2] == axis
@@ -346,9 +389,9 @@ def test_connect_servo_virtual():
 
 
 @pytest.mark.virtual
-def test_connect_servo_virtual_custom_dictionary(tests_setup: Setup):
+def test_connect_servo_virtual_custom_dictionary(setup_descriptor: SetupDescriptor):
     mc = MotionController()
-    mc.communication.connect_servo_virtual(dict_path=tests_setup.dictionary, port=1062)
+    mc.communication.connect_servo_virtual(dict_path=setup_descriptor.dictionary, port=1062)
     assert mc.communication._Communication__virtual_drive is not None
     mc.communication.disconnect()
     assert mc.communication._Communication__virtual_drive is None
@@ -361,7 +404,7 @@ def test_scan_servos_canopen_with_info(mocker):
     mocker.patch(
         "ingenialink.canopen.network.CanopenNetwork.scan_slaves_info", return_value=detected_slaves
     )
-    assert mc.communication.scan_servos_canopen_with_info(CAN_DEVICE.KVASER) == detected_slaves
+    assert mc.communication.scan_servos_canopen_with_info(CanDevice.KVASER) == detected_slaves
 
 
 @pytest.mark.virtual
@@ -371,7 +414,7 @@ def test_scan_servos_canopen(mocker):
     mocker.patch(
         "ingenialink.canopen.network.CanopenNetwork.scan_slaves", return_value=detected_slaves
     )
-    assert mc.communication.scan_servos_canopen(CAN_DEVICE.KVASER) == detected_slaves
+    assert mc.communication.scan_servos_canopen(CanDevice.KVASER) == detected_slaves
 
 
 @pytest.mark.virtual
@@ -592,7 +635,7 @@ def test_load_ensemble_fw_canopen(mocker):
         servos[str(node_id)] = MockCanopenServo(node_id)
 
     mc = MotionController()
-    net = CanopenNetwork(CAN_DEVICE.KVASER)
+    net = CanopenNetwork(CanDevice.KVASER)
     net.servos = list(servos.values())
     mocker.patch("ingeniamotion.motion_controller.MotionController._get_network", return_value=net)
     mocker.patch("ingenialink.canopen.network.CanopenNetwork.connect_to_slave")
@@ -681,7 +724,7 @@ def test_get_available_canopen_devices(mocker):
         ],
     )
     test_output = mc.communication.get_available_canopen_devices()
-    expected_ouput = {CAN_DEVICE.KVASER: [0, 1], CAN_DEVICE.PCAN: [0, 1], CAN_DEVICE.IXXAT: [0, 1]}
+    expected_ouput = {CanDevice.KVASER: [0, 1], CanDevice.PCAN: [0, 1], CanDevice.IXXAT: [0, 1]}
     assert test_output == expected_ouput
 
 

@@ -1,10 +1,11 @@
 from enum import IntEnum
-from typing import Dict, Optional, Union
+from typing import Optional, Union
 
 import ingenialogger
+from typing_extensions import override
 
 from ingeniamotion.enums import OperationMode, SeverityLevel
-from ingeniamotion.exceptions import IMRegisterNotExist
+from ingeniamotion.exceptions import IMRegisterNotExistError
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.wizard_tests import stoppable
@@ -12,14 +13,14 @@ from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType
 
 
 class BrakeRegKey(IntEnum):
-    """Brake Register Keys for dictionaries"""
+    """Brake Register Keys for dictionaries."""
 
     FEEDBACK_SOURCE = 0
     CONTROL_MODE = 1
 
 
 class ResultBrakeType(IntEnum):
-    """Type of result once a brake tuning is stopped or failed"""
+    """Type of result once a brake tuning is stopped or failed."""
 
     SUCCESS = 0
     FAIL_FEEDBACK_SOURCE = 1
@@ -28,8 +29,9 @@ class ResultBrakeType(IntEnum):
 
 
 class BrakeTune(BaseTest[LegacyDictReportType]):
-    """A class to perform a brake tuning. It enables and disables a brake through
-    enabling/disabling the motor.
+    """A class to perform a brake tuning.
+
+    It enables and disables a brake through enabling/disabling the motor.
 
     Args:
         mc: Motion Controller.
@@ -69,6 +71,7 @@ class BrakeTune(BaseTest[LegacyDictReportType]):
         self.backup_registers_names = self.BACKUP_REGISTERS
         self.__enable_disable_motor_period = enable_disable_motor_period
 
+    @override
     def setup(self) -> None:
         # Make sure Brake override is disabled
         self.mc.configuration.disable_brake_override(servo=self.servo, axis=self.axis)
@@ -79,11 +82,12 @@ class BrakeTune(BaseTest[LegacyDictReportType]):
         # Make sure direct voltage is set to 0v
         self.mc.motion.set_voltage_direct(0, servo=self.servo, axis=self.axis)
 
+    @override
     @BaseTest.stoppable
     def loop(self) -> Optional[ResultBrakeType]:
         try:
             reg_values = self.__update_brake_registers_values()
-        except IMRegisterNotExist:
+        except IMRegisterNotExistError:
             return ResultBrakeType.FAIL_DICTIONARY
         # Register values to avoid meanwhile the test is being executed
         no_brake_current_feedback_source = 0
@@ -101,7 +105,7 @@ class BrakeTune(BaseTest[LegacyDictReportType]):
                 self.stoppable_sleep(self.__enable_disable_motor_period / 2)
 
                 reg_values = self.__update_brake_registers_values()
-        except stoppable.StopException:
+        except stoppable.StopExceptionError:
             self.logger.info("Test has been stopped")
             return ResultBrakeType.SUCCESS
 
@@ -112,7 +116,7 @@ class BrakeTune(BaseTest[LegacyDictReportType]):
         else:
             return None
 
-    def __update_brake_registers_values(self) -> Dict[BrakeRegKey, Union[int, float, str]]:
+    def __update_brake_registers_values(self) -> dict[BrakeRegKey, Union[int, float, str]]:
         brake_registers_updated = {}
         updated_brake_current_feedback_source = self.mc.communication.get_register(
             self.BRAKE_CURRENT_FEEDBACK_SOURCE, servo=self.servo, axis=self.axis
@@ -124,10 +128,12 @@ class BrakeTune(BaseTest[LegacyDictReportType]):
         brake_registers_updated[BrakeRegKey.CONTROL_MODE] = updated_brake_control_mode
         return brake_registers_updated
 
+    @override
     def teardown(self) -> None:
         self.logger.info("Disabling brake")
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
 
+    @override
     def get_result_severity(self, output: ResultBrakeType) -> SeverityLevel:
         severity_options = {
             ResultBrakeType.SUCCESS: SeverityLevel.SUCCESS,
@@ -137,6 +143,7 @@ class BrakeTune(BaseTest[LegacyDictReportType]):
         }
         return severity_options[output]
 
+    @override
     def get_result_msg(self, output: ResultBrakeType) -> str:
         message_options = {
             ResultBrakeType.SUCCESS: "Brake tune is stopped properly",

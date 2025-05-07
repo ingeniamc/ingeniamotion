@@ -1,7 +1,8 @@
-from typing import TYPE_CHECKING, Callable, Dict, List, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import ingenialogger
-from ingenialink.enums.register import REG_DTYPE
+from ingenialink.enums.register import RegDtype
+from typing_extensions import override
 
 from ingeniamotion.enums import (
     MonitoringProcessStage,
@@ -18,6 +19,8 @@ from ingeniamotion.monitoring.base_monitoring import Monitoring, check_monitorin
 
 
 class MonitoringV3(Monitoring):
+    """Motoring V3 class."""
+
     MONITORING_REARM_REGISTER = "MON_REARM"
     MONITOR_START_CONDITION_CONFIG_REGISTER = "MON_CFG_EOC_TYPE"
     MONITORING_TRIGGER_THRESHOLD_REGISTER = "MON_CFG_RISING_CONDITION"
@@ -28,11 +31,12 @@ class MonitoringV3(Monitoring):
         self.logger = ingenialogger.get_logger(__name__, drive=mc.servo_name(servo))
 
     @check_monitoring_disabled
+    @override
     def set_trigger(
         self,
         trigger_mode: MonitoringSoCType,
         edge_condition: Optional[MonitoringSoCConfig] = None,
-        trigger_signal: Optional[Dict[str, str]] = None,
+        trigger_signal: Optional[dict[str, str]] = None,
         trigger_value: Union[int, float, None] = None,
     ) -> None:
         self.mc.communication.set_register(
@@ -62,6 +66,7 @@ class MonitoringV3(Monitoring):
         )
 
     @check_monitoring_disabled
+    @override
     def configure_number_samples(self, total_num_samples: int, trigger_delay_samples: int) -> None:
         if trigger_delay_samples > total_num_samples:
             raise ValueError("trigger_delay_samples should be less than total_num_samples")
@@ -86,7 +91,8 @@ class MonitoringV3(Monitoring):
         self.samples_number = total_num_samples
         self.trigger_delay_samples = trigger_delay_samples
 
-    def _check_monitoring_is_ready(self) -> Tuple[bool, Optional[str]]:
+    @override
+    def _check_monitoring_is_ready(self) -> tuple[bool, Optional[str]]:
         is_enabled = self.mc.capture.is_monitoring_enabled(self.servo)
         result_text = None
         monitoring_stage = self.mc.capture.get_monitoring_process_stage(self.servo, self._version)
@@ -95,18 +101,16 @@ class MonitoringV3(Monitoring):
             text_is_enabled = "enabled" if is_enabled else "disabled"
             result_text = (
                 "Can't read monitoring data because monitoring is not ready."
-                " Monitoring stage is {}. Monitoring is {}.".format(
-                    monitoring_stage.name, text_is_enabled
-                )
+                f" Monitoring stage is {monitoring_stage.name}. Monitoring is {text_is_enabled}."
             )
         return is_ready, result_text
 
-    # TODO Study remove progress_callback
+    @override
     def read_monitoring_data(
         self,
         timeout: Optional[float] = None,
         progress_callback: Optional[Callable[[MonitoringProcessStage, float], None]] = None,
-    ) -> List[List[Union[int, float]]]:
+    ) -> list[list[Union[int, float]]]:
         drive = self.mc.servos[self.servo]
         data_array = super().read_monitoring_data(
             timeout=timeout, progress_callback=progress_callback
@@ -114,6 +118,7 @@ class MonitoringV3(Monitoring):
         drive.monitoring_remove_data()
         return data_array
 
+    @override
     def _check_data_is_ready(self) -> bool:
         monit_nmb_blocks = self.mc.communication.get_register(
             self.MONITORING_ACTUAL_NUMBER_SAMPLES_REGISTER, servo=self.servo, axis=0
@@ -124,16 +129,18 @@ class MonitoringV3(Monitoring):
         data_is_ready &= self.mc.capture.is_frame_available(self.servo, version=self._version)
         return data_is_ready
 
+    @override
     def rearm_monitoring(self) -> None:
         self.mc.communication.set_register(
             self.MONITORING_REARM_REGISTER, 1, servo=self.servo, axis=0
         )
 
+    @override
     def _check_buffer_size_is_enough(
         self,
         total_samples: int,
-        trigger_delay_samples: int,
-        registers: List[Dict[str, Union[int, str, REG_DTYPE]]],
+        _: int,
+        registers: list[dict[str, Union[int, str, RegDtype]]],
     ) -> None:
         n_sample = total_samples
         max_size = self.max_sample_number

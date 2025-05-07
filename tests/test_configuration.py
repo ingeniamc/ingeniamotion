@@ -1,17 +1,18 @@
 import os
 
 import pytest
-from ingenialink.canopen.network import CAN_BAUDRATE
+from ingenialink import CanBaudrate
 from ingenialink.ethercat.servo import EthercatServo
 
-from ingeniamotion.configuration import TYPE_SUBNODES, MACAddressConverter
+from ingeniamotion.configuration import MACAddressConverter, SubnodeType
 from ingeniamotion.enums import (
     CommutationMode,
     FilterNumber,
     FilterSignal,
     FilterType,
+    STOAbnormalLatchedStatus,
 )
-from ingeniamotion.exceptions import IMException
+from ingeniamotion.exceptions import IMError
 
 BRAKE_OVERRIDE_REGISTER = "MOT_BRAKE_OVERRIDE"
 POSITION_SET_POINT_REGISTER = "CL_POS_SET_POINT_VALUE"
@@ -53,7 +54,8 @@ def teardown_brake_override(motion_controller):
 
 @pytest.mark.virtual
 @pytest.mark.smoke
-def test_release_brake(motion_controller, teardown_brake_override):
+@pytest.mark.usefixtures("teardown_brake_override")
+def test_release_brake(motion_controller):
     mc, alias, environment = motion_controller
     mc.configuration.release_brake(servo=alias)
     assert (
@@ -64,7 +66,8 @@ def test_release_brake(motion_controller, teardown_brake_override):
 
 @pytest.mark.virtual
 @pytest.mark.smoke
-def test_enable_brake(motion_controller, teardown_brake_override):
+@pytest.mark.usefixtures("teardown_brake_override")
+def test_enable_brake(motion_controller):
     mc, alias, environment = motion_controller
     mc.configuration.enable_brake(servo=alias)
     assert (
@@ -75,7 +78,8 @@ def test_enable_brake(motion_controller, teardown_brake_override):
 
 @pytest.mark.virtual
 @pytest.mark.smoke
-def test_disable_brake_override(motion_controller, teardown_brake_override):
+@pytest.mark.usefixtures("teardown_brake_override")
+def test_disable_brake_override(motion_controller):
     mc, alias, environment = motion_controller
     mc.configuration.disable_brake_override(servo=alias)
     assert (
@@ -154,7 +158,7 @@ def test_set_profiler(motion_controller, acceleration, deceleration, velocity):
         expected_value = mc.communication.get_register(register_dict[key], servo=alias)
         expected_values[key] = expected_value
     mc.configuration.set_profiler(acceleration, deceleration, velocity, servo=alias)
-    for key, value in expected_values.items():
+    for key in expected_values:
         actual_value = mc.communication.get_register(register_dict[key], servo=alias)
         assert pytest.approx(expected_values[key]) == actual_value
 
@@ -509,9 +513,26 @@ def test_is_sto_inactive(mocker, motion_controller, sto_status_value, expected_r
 @pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize(
-    "sto_status_value, expected_result", [(0x1BF3, False), (0x6B7, False), (0x1F, True)]
+    "sto_status_value, expected_result",
+    [
+        # STO Status Inactive, expected output NOT STO Abnormal Latched
+        (0x1BF3, STOAbnormalLatchedStatus.NOT_LATCHED),
+        # STO Status Supply Fault, expected output NOT STO Abnormal Latched
+        (0x6B7, STOAbnormalLatchedStatus.NOT_LATCHED),
+        # STO Status Abnormal STO Latched, expected output YES STO Abnormal Latched
+        (0x1F, STOAbnormalLatchedStatus.LATCHED),
+        # STO Status Abnormal STO Latched, expected output YES STO Abnormal Latched
+        (0x1C, STOAbnormalLatchedStatus.LATCHED),
+        # STO Status Abnormal STO Might be Latched, expected outpt UNDETERMIANTED STO Abnormal Latch
+        (0x1D, STOAbnormalLatchedStatus.UNDETERMINATED),
+        # STO Status Abnormal STO Might be Latched, expected outpt UNDETERMIANTED STO Abnormal Latch
+        (0x1E, STOAbnormalLatchedStatus.UNDETERMINATED),
+    ],
 )
 def test_is_sto_abnormal_latched(mocker, motion_controller, sto_status_value, expected_result):
+    """
+    Test checks for Abnormal STO Latched Status
+    """
     mc, alias, environment = motion_controller
     patch_get_sto_status(mocker, sto_status_value)
     value = mc.configuration.is_sto_abnormal_latched(servo=alias)
@@ -608,7 +629,7 @@ def test_get_fw_version(motion_controller):
 def test_change_baudrate_exception(motion_controller):
     mc, alias, environment = motion_controller
     with pytest.raises(ValueError):
-        mc.configuration.change_baudrate(CAN_BAUDRATE.Baudrate_1M, alias)
+        mc.configuration.change_baudrate(CanBaudrate.Baudrate_1M, alias)
 
 
 @pytest.mark.virtual
@@ -814,7 +835,7 @@ def test_get_phasing_mode_invalid(mocker, motion_controller):
 def test_change_tcp_ip_parameters_exception(mocker, motion_controller):
     mc, alias, environment = motion_controller
     mocker.patch.object(mc, "_get_drive", return_value=EthercatServo)
-    with pytest.raises(IMException):
+    with pytest.raises(IMError):
         mc.configuration.change_tcp_ip_parameters(
             "192.168.2.22", "255.255.0.0", "192.168.2.1", servo=alias
         )
@@ -831,15 +852,16 @@ def test_change_tcp_ip_parameters_exception(mocker, motion_controller):
 def test_store_restore_tcp_ip_parameters_exception(mocker, motion_controller, function):
     mc, alias, environment = motion_controller
     mocker.patch.object(mc, "_get_drive", return_value=EthercatServo)
-    with pytest.raises(IMException):
+    with pytest.raises(IMError):
         getattr(mc.configuration, function)(servo=alias)
 
 
 @pytest.mark.parametrize(
     "subnode, expected_result",
     [
-        (0, TYPE_SUBNODES.COCO),
-        (1, TYPE_SUBNODES.MOCO),
+        (0, SubnodeType.COCO),
+        (1, SubnodeType.MOCO),
+        (4, SubnodeType.SACO),
     ],
 )
 @pytest.mark.virtual

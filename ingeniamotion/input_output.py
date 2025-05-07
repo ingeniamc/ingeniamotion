@@ -3,14 +3,16 @@ from typing import TYPE_CHECKING, Union
 import ingenialogger
 
 from ingeniamotion.enums import GPI, GPO, DigitalVoltageLevel, GPIOPolarity
-from ingeniamotion.exceptions import IMException
-from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
+from ingeniamotion.exceptions import IMError
+from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 
-class InputsOutputs(metaclass=MCMetaClass):
+class InputsOutputs:
+    """Class that contains the GPIO functionalities."""
+
     GPIO_IN_VALUE_REGISTER = "IO_IN_VALUE"
     GPIO_IN_POLARITY_REGISTER = "IO_IN_POLARITY"
 
@@ -189,17 +191,15 @@ class InputsOutputs(metaclass=MCMetaClass):
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
     ) -> None:
-        """
-        Description:
-            Set the board voltage level (not the logic level at the uC) of a single GPO.
+        """Set the board voltage level (not the logic level at the uC) of a single GPO.
 
-            This function generates the GPO set point from the actual GPO value and modifies
-            the corresponding bit of the desired GPO.
+        This function generates the GPO set point from the actual GPO value and modifies
+        the corresponding bit of the desired GPO.
 
-            Finally, it checks that GPOs final value matches with the desired GPOs set point
+        Finally, it checks that GPOs final value matches with the desired GPOs set point
 
-            .. warning::
-                Ensure the polarity is right, if not the output will be wrong.
+        .. warning::
+            Ensure the polarity is right, if not the output will be wrong.
 
         Args:
             gpo_id: the GPO to be set.
@@ -208,7 +208,7 @@ class InputsOutputs(metaclass=MCMetaClass):
             axis : axis that will run the test. 1 by default.
 
         Raise:
-            IMException: if the GPOs final value does not match with the desired GPOs set point.
+            IMError: if the GPOs final value does not match with the desired GPOs set point.
         """
         new_target_value = bool(voltage_level.value)
 
@@ -229,4 +229,4 @@ class InputsOutputs(metaclass=MCMetaClass):
         gpo_final_value = self.__get_gpio_bit_value(gpos_final_value, gpo_id)
 
         if gpo_final_value != new_target_value:
-            raise IMException("Unable to set the GPOs set point value.")
+            raise IMError("Unable to set the GPOs set point value.")

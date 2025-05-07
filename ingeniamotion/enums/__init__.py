@@ -1,23 +1,43 @@
-from enum import Enum, IntEnum
-from typing import Type, TypeVar
+import warnings
+from enum import Enum, EnumMeta, IntEnum
+from typing import Any, TypeVar
 
-from ingenialink.canopen.network import CAN_BAUDRATE, CAN_DEVICE
-from ingenialink.enums.register import REG_ACCESS, REG_DTYPE
+from ingenialink import (
+    CanBaudrate,
+    CanDevice,
+    RegAccess,
+    RegDtype,
+)
 
-T = TypeVar("T", bound=Type[Enum])
+T = TypeVar("T", bound=type[Enum])
 
-__all__ = ["CAN_BAUDRATE", "CAN_DEVICE", "REG_ACCESS", "REG_DTYPE"]
+__all__ = [
+    "CanBaudrate",
+    "CanDevice",
+    "RegAccess",
+    "RegDtype",
+]
 
 
 def export(obj: T) -> T:
-    """Decorator use to explicitly export a class"""
+    """Decorator use to explicitly export a class."""
     __all__.append(obj.__name__)
     return obj
 
 
+class MetaEnum(EnumMeta):
+    def __contains__(cls, item: object) -> bool:
+        """Checks if item exists."""
+        try:
+            cls(item)
+        except ValueError:
+            return False
+        return True
+
+
 @export
-class OperationMode(IntEnum):
-    """Operation Mode Enum"""
+class OperationMode(IntEnum, metaclass=MetaEnum):
+    """Operation Mode Enum."""
 
     VOLTAGE = 0x00
     CURRENT_AMPLIFIER = 0x01
@@ -38,16 +58,16 @@ class OperationMode(IntEnum):
 
 
 @export
-class Protocol(IntEnum):
-    """Communication protocol"""
+class Protocol(IntEnum, metaclass=MetaEnum):
+    """Communication protocol."""
 
     TCP = 1
     UDP = 2
 
 
 @export
-class HomingMode(IntEnum):
-    """Homing modes"""
+class HomingMode(IntEnum, metaclass=MetaEnum):
+    """Homing modes."""
 
     CURRENT_POSITION = 0
     POSITIVE_LIMIT_SWITCH = 1
@@ -59,8 +79,8 @@ class HomingMode(IntEnum):
 
 
 @export
-class MonitoringSoCType(IntEnum):
-    """Monitoring start of condition type"""
+class MonitoringSoCType(IntEnum, metaclass=MetaEnum):
+    """Monitoring start of condition type."""
 
     TRIGGER_EVENT_AUTO = 0
     """No trigger"""
@@ -71,7 +91,7 @@ class MonitoringSoCType(IntEnum):
 
 
 @export
-class MonitoringSoCConfig(IntEnum):
+class MonitoringSoCConfig(IntEnum, metaclass=MetaEnum):
     TRIGGER_CONFIG_RISING_OR_FALLING = 0
     """Rising or falling edge trigger"""
     TRIGGER_CONFIG_RISING = 1
@@ -81,8 +101,8 @@ class MonitoringSoCConfig(IntEnum):
 
 
 @export
-class MonitoringProcessStage(IntEnum):
-    """Monitoring process stage"""
+class MonitoringProcessStage(IntEnum, metaclass=MetaEnum):
+    """Monitoring process stage."""
 
     INIT_STAGE = 0x0
     """Init stage"""
@@ -97,8 +117,8 @@ class MonitoringProcessStage(IntEnum):
 
 
 @export
-class SensorType(IntEnum):
-    """Summit series feedback type enum"""
+class SensorType(IntEnum, metaclass=MetaEnum):
+    """Summit series feedback type enum."""
 
     ABS1 = 1
     """Absolute encoder 1"""
@@ -114,19 +134,21 @@ class SensorType(IntEnum):
     """Absolute encoder 2"""
     QEI2 = 8
     """Digital/Incremental encoder 2"""
+    SINCOS = 10
+    """SinCos encoder 1"""
 
 
 @export
-class SensorCategory(IntEnum):
-    """Feedback category enum"""
+class SensorCategory(IntEnum, metaclass=MetaEnum):
+    """Feedback category enum."""
 
     ABSOLUTE = 0
     INCREMENTAL = 1
 
 
 @export
-class PhasingMode(IntEnum):
-    """Phasing modes"""
+class PhasingMode(IntEnum, metaclass=MetaEnum):
+    """Phasing modes."""
 
     NON_FORCED = 0
     """Non forced"""
@@ -137,8 +159,8 @@ class PhasingMode(IntEnum):
 
 
 @export
-class GeneratorMode(IntEnum):
-    """Generator modes"""
+class GeneratorMode(IntEnum, metaclass=MetaEnum):
+    """Generator modes."""
 
     CONSTANT = 0
     """Constant"""
@@ -149,8 +171,8 @@ class GeneratorMode(IntEnum):
 
 
 @export
-class MonitoringVersion(IntEnum):
-    """Monitoring version"""
+class MonitoringVersion(IntEnum, metaclass=MetaEnum):
+    """Monitoring version."""
 
     MONITORING_V1 = 0
     """Monitoring V1 used for Everest 1.8.1 and older."""
@@ -161,8 +183,8 @@ class MonitoringVersion(IntEnum):
 
 
 @export
-class SeverityLevel(IntEnum):
-    """Test result enum"""
+class SeverityLevel(IntEnum, metaclass=MetaEnum):
+    """Test result enum."""
 
     SUCCESS = 0
     WARNING = 1
@@ -170,23 +192,23 @@ class SeverityLevel(IntEnum):
 
 
 @export
-class COMMUNICATION_TYPE(IntEnum):
+class CommunicationType(IntEnum, metaclass=MetaEnum):
     Canopen = 0
     Ethernet = 1
     Ethercat = 2
 
 
 @export
-class FeedbackPolarity(IntEnum):
-    """Feedback polarity enum"""
+class FeedbackPolarity(IntEnum, metaclass=MetaEnum):
+    """Feedback polarity enum."""
 
     NORMAL = 0
     REVERSED = 1
 
 
 @export
-class CommutationMode(IntEnum):
-    """Commutation Mode Enum"""
+class CommutationMode(IntEnum, metaclass=MetaEnum):
+    """Commutation Mode Enum."""
 
     SINUSOIDAL = 0
     TRAPEZOIDAL = 1
@@ -194,10 +216,8 @@ class CommutationMode(IntEnum):
 
 
 @export
-class FilterType(IntEnum):
-    """
-    Biquad filter type.
-    """
+class FilterType(IntEnum, metaclass=MetaEnum):
+    """Biquad filter type."""
 
     DISABLED = 0
     """ Filter disabled """
@@ -236,7 +256,7 @@ class FilterSignal(Enum):
 
 
 @export
-class FilterNumber(IntEnum):
+class FilterNumber(IntEnum, metaclass=MetaEnum):
     """Filter number (1 or 2)."""
 
     FILTER1 = 1
@@ -244,24 +264,24 @@ class FilterNumber(IntEnum):
 
 
 @export
-class DigitalVoltageLevel(IntEnum):
-    """GPIOs voltage level (HIGH/LOW) enum"""
+class DigitalVoltageLevel(IntEnum, metaclass=MetaEnum):
+    """GPIOs voltage level (HIGH/LOW) enum."""
 
     HIGH = 1
     LOW = 0
 
 
 @export
-class GPIOPolarity(IntEnum):
-    """GPIOs polarity enum"""
+class GPIOPolarity(IntEnum, metaclass=MetaEnum):
+    """GPIOs polarity enum."""
 
     NORMAL = 0
     REVERSED = 1
 
 
 @export
-class GPI(IntEnum):
-    """GPIs identifier enum"""
+class GPI(IntEnum, metaclass=MetaEnum):
+    """GPIs identifier enum."""
 
     GPI1 = 1
     GPI2 = 2
@@ -270,8 +290,8 @@ class GPI(IntEnum):
 
 
 @export
-class GPO(IntEnum):
-    """GPOs identifier enum"""
+class GPO(IntEnum, metaclass=MetaEnum):
+    """GPOs identifier enum."""
 
     GPO1 = 1
     GPO2 = 2
@@ -280,11 +300,60 @@ class GPO(IntEnum):
 
 
 @export
-class FSoEState(IntEnum):
-    """FSoE Master Handler state"""
+class FSoEState(IntEnum, metaclass=MetaEnum):
+    """FSoE Master Handler state."""
 
     RESET = 0
     SESSION = 1
     CONNECTION = 2
     PARAMETER = 3
     DATA = 4
+
+
+class TemperatureSensor(IntEnum, metaclass=MetaEnum):
+    """Temperature sensor types enum."""
+
+    NTC = 0
+    """Negative Temperature Coefficient thermistor"""
+    PTC = 1
+    """Postive Temperature Coefficient thermistor"""
+    LINEAR = 2
+    """Linear thermistor"""
+    RTD = 3
+    """Resistance Temperature Detector"""
+    SILICON = 4
+    """Silicon Temperature sensor"""
+    SWITCH = 5
+    """Temperature Switch"""
+    NONE = 6
+    """No Temperature sensor"""
+
+
+@export
+class STOAbnormalLatchedStatus(IntEnum, metaclass=MetaEnum):
+    """STO Abnormal Latched Status enum."""
+
+    NOT_LATCHED = 0
+    LATCHED = 1
+    UNDETERMINATED = 2
+
+
+# WARNING: Deprecated aliases
+_DEPRECATED = {
+    "COMMUNICATION_TYPE": "CommunicationType",
+    "CAN_DEVICE": "CanDevice",
+    "CAN_BAUDRATE": "CanBaudrate",
+    "REG_DTYPE": "RegDtype",
+    "REG_ACCESS": "RegAccess",
+}
+
+
+def __getattr__(name: str) -> Any:
+    if name in _DEPRECATED:
+        warnings.warn(
+            f"{name} is deprecated, use {_DEPRECATED[name]} instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return globals()[_DEPRECATED[name]]
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
