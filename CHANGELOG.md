@@ -5,11 +5,15 @@
 - Methods to scan Ethernet drives.
 - Error-raised timeout to motor_enable
 - No-GIL support for EtherCAT functions.
+- TemperatureSensor and MetaEnum classes.
 
 ### Changed
 - Renamed the `TYPE_SUBNODES` and `COMMUNICATION_TYPE` enums to follow CapWords convention. Old names are still supported, but will soon be deprecated.
 - Renamed the `IMException`, `IMRegisterNotExist` and `IMRegisterWrongAccess` exceptions to `IMError`, `IMRegisterNotExistError` and `IMRegisterWrongAccessError` respectively. Old names are still supported, but will soon be deprecated.
 - Feedback test to perform a full revolution.
+
+### Fixed
+- Abnormal STO Latched check. Add missing cases and change return type to enum.
 
 ## [0.9.0] - 2025-01-29
 ### Added
@@ -18,7 +22,6 @@
 - Method to get a servo's network state.
 - Methods to get/set a servo's MAC address.
 - Retrieve IP-less network adapters information (on Windows).
-- TemperatureSensor and MetaEnum classes.
 
 ### Changed
 - is_sto1_active and is_sto2_active return booleans instead of integers
@@ -26,7 +29,6 @@
 ### Fixed
 - Feedback symmetry check calculation.
 - Phasing test when the commutation feedback is a Halls sensor.
-- Abnormal STO Latched check. Add missing cases and change return type to enum.
 
 ### Deprecated 
 - check_sto_abnormal_fault in configuration. Use is_sto_abnormal_fault instead.
