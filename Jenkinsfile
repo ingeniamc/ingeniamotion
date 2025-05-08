@@ -52,7 +52,7 @@ def getIngenialinkArtifactWheelPath(python_version) {
     }
 }
 
-def runTestHW(markers, setup_name, extraenvs = []) {
+def runTestHW(markers, setup_name) {
 
     if (RUN_ONLY_SMOKE_TESTS) {
         markers = markers + " and smoke"
@@ -64,12 +64,8 @@ def runTestHW(markers, setup_name, extraenvs = []) {
     pythonVersions.each { version ->
         def wheelFile = getIngenialinkArtifactWheelPath(version)
         env.INGENIALINK_INSTALL_PATH = wheelFile
-
-        envs = extraenvs.clone()
-        envs.add(version)
-
         try {
-            bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${envs.join(',')} -- " +
+            bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
                     "-m \"${markers}\" " +
                     "--setup tests.setups.rack_specifiers.${setup_name} " +
                     "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${setup_name}\""
@@ -434,7 +430,7 @@ pipeline {
                         //}
                         stage("Safety Denali") {
                             steps {
-                                runTestHW("fsoe", "ECAT_DEN_S_PHASE1_SETUP", ["fsoe"])
+                                runTestHW("fsoe", "ECAT_DEN_S_PHASE1_SETUP")
                             }
                         }
                         stage("Ethercat Multislave") {
