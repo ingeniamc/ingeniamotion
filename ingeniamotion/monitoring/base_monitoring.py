@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import ingenialogger
 import numpy as np
-from ingenialink.enums.register import RegCyclicType, RegDtype
+from ingenialink.enums.register import RegDtype
 
 from ingeniamotion.enums import (
     MonitoringProcessStage,
@@ -140,7 +140,7 @@ class Monitoring(ABC):
             if not isinstance(register, str):
                 raise TypeError("Register has to be a string")
             register_obj = self.mc.info.register_info(register, subnode, servo=self.servo)
-            if register_obj.cyclic not in [RegCyclicType.TX, RegCyclicType.RXTX]:
+            if not register_obj.is_monitoreable:
                 raise IMMonitoringError(
                     f"{register} can not be mapped as a monitoring register (wrong cyclic)"
                 )
