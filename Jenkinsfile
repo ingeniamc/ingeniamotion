@@ -428,6 +428,11 @@ pipeline {
                                 runTestHW("soem", "ECAT_CAP_SETUP")
                             }
                         }
+                        stage("Safety Denali") {
+                            steps {
+                                runTestHW("fsoe", "ECAT_DEN_S_PHASE1_SETUP")
+                            }
+                        }
                         stage("Ethercat Multislave") {
                             steps {
                                 runTestHW("soem_multislave", "ECAT_MULTISLAVE_SETUP")
