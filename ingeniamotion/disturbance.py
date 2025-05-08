@@ -170,11 +170,7 @@ class Disturbance:
                 raise IMDisturbanceError(f"{register} can not be mapped as a disturbance register")
             channel["dtype"] = dtype
             drive.disturbance_set_mapped_register(
-                ch_idx,
-                register_obj.mapped_address,
-                subnode,
-                dtype.value,
-                self.__data_type_size[dtype],
+                channel=ch_idx, uid=register, size=self.__data_type_size[dtype], axis=subnode
             )
             self.mapped_registers.append(channel)
             total_sample_size += self.__data_type_size[dtype]
