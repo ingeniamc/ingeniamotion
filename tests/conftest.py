@@ -34,17 +34,15 @@ def pytest_sessionstart(session):
 
 
 @pytest.fixture
-def disable_monitoring_disturbance(skip_if_monitoring_not_available, motion_controller):  # noqa: ARG001
+def disable_monitoring_disturbance(skip_if_monitoring_not_available, motion_controller, alias):  # noqa: ARG001
     yield
-    mc, alias, environment = motion_controller
-    mc.capture.clean_monitoring_disturbance(servo=alias)
+    motion_controller.capture.clean_monitoring_disturbance(servo=alias)
 
 
 @pytest.fixture()
-def skip_if_monitoring_not_available(motion_controller):
-    mc, alias, environment = motion_controller
+def skip_if_monitoring_not_available(motion_controller, alias):
     try:
-        mc.capture._check_version(alias)
+        motion_controller.capture._check_version(alias)
     except NotImplementedError:
         pytest.skip("Monitoring is not available")
 

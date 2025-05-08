@@ -222,9 +222,9 @@ def test_connect_servo_canopen(setup_descriptor: DriveCanOpenSetup):
 @pytest.mark.canopen
 @pytest.mark.skip
 def test_connect_servo_canopen_busy_drive_error(
-    motion_controller, setup_descriptor: DriveCanOpenSetup
+    motion_controller, alias, setup_descriptor: DriveCanOpenSetup
 ):
-    mc, alias, environment = motion_controller
+    mc = motion_controller
     assert "canopen_test" not in mc.servos
     assert "canopen_test" not in mc.servo_net
     assert alias in mc.servos
@@ -253,8 +253,8 @@ def test_connect_servo_canopen_busy_drive_error(
         ("PROF_POS_OPTION_CODE", 1),
     ],
 )
-def test_get_register(motion_controller, uid, value):
-    mc, alias, environment = motion_controller
+def test_get_register(motion_controller, alias, uid, value):
+    mc = motion_controller
     drive = mc.servos[alias]
     drive.write(uid, value)
     test_value = mc.communication.get_register(uid, servo=alias)
@@ -263,8 +263,8 @@ def test_get_register(motion_controller, uid, value):
 
 @pytest.mark.virtual
 @pytest.mark.smoke
-def test_get_register_wrong_uid(motion_controller):
-    mc, alias, environment = motion_controller
+def test_get_register_wrong_uid(motion_controller, alias):
+    mc = motion_controller
     with pytest.raises(IMRegisterNotExistError):
         mc.communication.get_register("WRONG_UID", servo=alias)
 
@@ -279,8 +279,8 @@ def test_get_register_wrong_uid(motion_controller):
         ("PROF_POS_OPTION_CODE", 54),
     ],
 )
-def test_set_register(motion_controller, uid, value):
-    mc, alias, environment = motion_controller
+def test_set_register(motion_controller, alias, uid, value):
+    mc = motion_controller
     drive = mc.servos[alias]
     mc.communication.set_register(uid, value, servo=alias)
     test_value = drive.read(uid)
@@ -289,8 +289,8 @@ def test_set_register(motion_controller, uid, value):
 
 @pytest.mark.virtual
 @pytest.mark.smoke
-def test_set_register_wrong_uid(motion_controller):
-    mc, alias, environment = motion_controller
+def test_set_register_wrong_uid(motion_controller, alias):
+    mc = motion_controller
     with pytest.raises(IMRegisterNotExistError):
         mc.communication.set_register("WRONG_UID", 2, servo=alias)
 
@@ -311,8 +311,8 @@ def test_set_register_wrong_uid(motion_controller):
         ("PROF_POS_OPTION_CODE", "54", True),
     ],
 )
-def test_set_register_wrong_value_type(motion_controller, uid, value, fail):
-    mc, alias, environment = motion_controller
+def test_set_register_wrong_value_type(motion_controller, alias, uid, value, fail):
+    mc = motion_controller
     if fail:
         with pytest.raises(TypeError):
             mc.communication.set_register(uid, value, servo=alias)
@@ -322,8 +322,8 @@ def test_set_register_wrong_value_type(motion_controller, uid, value, fail):
 
 @pytest.mark.virtual
 @pytest.mark.smoke
-def test_set_register_wrong_access(motion_controller):
-    mc, alias, environment = motion_controller
+def test_set_register_wrong_access(motion_controller, alias):
+    mc = motion_controller
     uid = "DRV_STATE_STATUS"
     value = 0
     with pytest.raises(IMRegisterWrongAccessError):
@@ -338,8 +338,8 @@ def dummy_callback(status, _, axis):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
-def test_subscribe_servo_status(mocker, motion_controller):
-    mc, alias, environment = motion_controller
+def test_subscribe_servo_status(mocker, motion_controller, alias):
+    mc = motion_controller
     axis = 1
     current_module = sys.modules[__name__]
     patch_callback = mocker.patch.object(current_module, "dummy_callback")
@@ -356,15 +356,15 @@ def test_subscribe_servo_status(mocker, motion_controller):
 
 
 @pytest.mark.virtual
-def test_load_firmware_canopen_exception(motion_controller):
-    mc, alias, environment = motion_controller
+def test_load_firmware_canopen_exception(motion_controller, alias):
+    mc = motion_controller
     with pytest.raises(ValueError):
         mc.communication.load_firmware_canopen("fake_fw_file.lfu", servo=alias)
 
 
 @pytest.mark.virtual
-def test_boot_mode_and_load_firmware_ethernet_exception(mocker, motion_controller):
-    mc, alias, environment = motion_controller
+def test_boot_mode_and_load_firmware_ethernet_exception(mocker, motion_controller, alias):
+    mc = motion_controller
 
     mocker.patch.object(mc, "_get_network", return_value=object())
     with pytest.raises(ValueError):
@@ -372,8 +372,8 @@ def test_boot_mode_and_load_firmware_ethernet_exception(mocker, motion_controlle
 
 
 @pytest.mark.virtual
-def test_load_firmware_moco_exception(mocker, motion_controller):
-    mc, alias, environment = motion_controller
+def test_load_firmware_moco_exception(mocker, motion_controller, alias):
+    mc = motion_controller
     mocker.patch.object(mc, "_get_network", return_value=object())
     with pytest.raises(ValueError):
         mc.communication.load_firmware_moco("fake_fw_file.lfu", servo=alias)
@@ -730,11 +730,11 @@ def test_get_available_canopen_devices(mocker):
 
 @pytest.mark.virtual
 @pytest.mark.smoke
-def test_subscribe_register_updates(motion_controller):
+def test_subscribe_register_updates(motion_controller, alias):
     user_over_voltage_uid = "DRV_PROT_USER_OVER_VOLT"
     register_update_callback = RegisterUpdateTest()
 
-    mc, alias, environment = motion_controller
+    mc = motion_controller
     mc.communication.subscribe_register_update(
         register_update_callback.register_update_test, servo=alias
     )
@@ -765,8 +765,8 @@ def test_subscribe_register_updates(motion_controller):
 @pytest.mark.canopen
 @pytest.mark.soem
 @pytest.mark.smoke
-def test_emcy_callback(motion_controller):
-    mc, alias, _ = motion_controller
+def test_emcy_callback(motion_controller, alias):
+    mc = motion_controller
     emcy_test = EmcyTest()
     mc.communication.subscribe_emergency_message(emcy_test.emcy_callback, servo=alias)
     prev_val = mc.communication.get_register("DRV_PROT_USER_OVER_VOLT", axis=1, servo=alias)

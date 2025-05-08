@@ -11,8 +11,8 @@ from tests.setups.rack_specifiers import CAN_CAP_SETUP, ECAT_CAP_SETUP, ETH_CAP_
 
 @pytest.mark.virtual
 @pytest.mark.smoke
-def test_get_gpio_bit_value(motion_controller):
-    mc, _, _ = motion_controller
+def test_get_gpio_bit_value(motion_controller, alias):
+    mc = motion_controller
     base_value = 0xA3  # 1010 0011
     bits = [True, True, False, False, False, True, False, True]
 
@@ -23,8 +23,8 @@ def test_get_gpio_bit_value(motion_controller):
 
 @pytest.mark.virtual
 @pytest.mark.smoke
-def test_set_gpio_bit_value(motion_controller):
-    mc, _, _ = motion_controller
+def test_set_gpio_bit_value(motion_controller, alias):
+    mc = motion_controller
     base_value = 0xA3  # 1010 0011
 
     assert mc.io._InputsOutputs__set_gpio_bit_value(base_value, 1, 0) == 0xA2
@@ -41,8 +41,8 @@ def test_set_gpio_bit_value(motion_controller):
 @pytest.mark.parametrize("polarity", [GPIOPolarity.NORMAL, GPIOPolarity.REVERSED])
 @pytest.mark.virtual
 @pytest.mark.smoke
-def test_set_get_gpi_polarity(motion_controller, gpi_id, polarity):
-    mc, alias, environment = motion_controller
+def test_set_get_gpi_polarity(motion_controller, alias, gpi_id, polarity):
+    mc = motion_controller
     mc.io.set_gpi_polarity(gpi_id, polarity, servo=alias)
     assert mc.io.get_gpi_polarity(gpi_id, servo=alias) == polarity
 
@@ -52,8 +52,8 @@ def test_set_get_gpi_polarity(motion_controller, gpi_id, polarity):
 @pytest.mark.canopen
 @pytest.mark.virtual
 @pytest.mark.smoke
-def test_get_gpi_voltage_level(motion_controller, setup_specifier):
-    mc, alias, environment = motion_controller
+def test_get_gpi_voltage_level(motion_controller, alias, environment, setup_specifier):
+    mc = motion_controller
 
     if not isinstance(
         setup_specifier, (RackServiceConfigSpecifier, MultiRackServiceConfigSpecifier)
@@ -92,8 +92,8 @@ def test_get_gpi_voltage_level(motion_controller, setup_specifier):
 @pytest.mark.parametrize("polarity", [GPIOPolarity.NORMAL, GPIOPolarity.REVERSED])
 @pytest.mark.virtual
 @pytest.mark.smoke
-def test_set_get_gpo_polarity(motion_controller, gpo_id, polarity):
-    mc, alias, environment = motion_controller
+def test_set_get_gpo_polarity(motion_controller, alias, gpo_id, polarity):
+    mc = motion_controller
     mc.io.set_gpo_polarity(gpo_id, polarity, servo=alias)
     assert mc.io.get_gpo_polarity(gpo_id, servo=alias) == polarity
 
@@ -110,8 +110,8 @@ def test_set_get_gpo_polarity(motion_controller, gpo_id, polarity):
         (GPO.GPO4, 8),
     ],
 )
-def test_set_gpo_voltage_level(motion_controller, gpo_id, reg_value):
-    mc, alias, environment = motion_controller
+def test_set_gpo_voltage_level(motion_controller, alias, gpo_id, reg_value):
+    mc = motion_controller
 
     for map_reg in ["IO_OUT_MAP_1", "IO_OUT_MAP_2", "IO_OUT_MAP_3", "IO_OUT_MAP_4"]:
         mc.communication.set_register(map_reg, 0, servo=alias)
@@ -142,8 +142,8 @@ def test_set_gpo_voltage_level(motion_controller, gpo_id, reg_value):
         GPO.GPO4,
     ],
 )
-def test_set_gpo_voltage_level_fail(motion_controller, gpo_id):
-    mc, alias, environment = motion_controller
+def test_set_gpo_voltage_level_fail(motion_controller, alias, gpo_id):
+    mc = motion_controller
 
     mc.communication.set_register("IO_OUT_POLARITY", 0, servo=alias)
     for map_reg in ["IO_OUT_MAP_1", "IO_OUT_MAP_2", "IO_OUT_MAP_3", "IO_OUT_MAP_4"]:
