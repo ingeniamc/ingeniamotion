@@ -19,6 +19,7 @@ class PartNumber(Enum):
     EVE_XCR_E = "EVE-XCR-E"
     CAP_XCR_C = "CAP-XCR-C"
     CAP_XCR_E = "CAP-XCR-E"
+    DEN_S_NET_E = "DEN-S-NET-E"
 
 
 class RackServiceClient:
