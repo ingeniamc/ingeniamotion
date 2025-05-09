@@ -23,6 +23,8 @@ def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
 
 INGENIALINK_WHEELS_DIR = "ingenialink_wheels"
 
+def FSOE_INSTALL_VERSION = "fsoe-master==0.1.3"
+
 coverage_stashes = []
 
 // Run this before any tox command that requires develop ingenialink installation and that 
@@ -52,7 +54,13 @@ def getIngenialinkArtifactWheelPath(python_version) {
     }
 }
 
-def runTestHW(markers, setup_name) {
+def runTestHW(markers, setup_name, install_fsoe = false) {
+
+    if (install_fsoe) {
+        env.FSOE_PACKAGE = FSOE_INSTALL_VERSION
+    } else {
+        env.FSOE_PACKAGE = null
+    }
 
     if (RUN_ONLY_SMOKE_TESTS) {
         markers = markers + " and smoke"
@@ -430,7 +438,7 @@ pipeline {
                         //}
                         stage("Safety Denali") {
                             steps {
-                                runTestHW("fsoe", "ECAT_DEN_S_PHASE1_SETUP")
+                                runTestHW("fsoe", "ECAT_DEN_S_PHASE1_SETUP", true)
                             }
                         }
                         stage("Ethercat Multislave") {
