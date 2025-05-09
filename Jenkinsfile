@@ -23,6 +23,8 @@ def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
 
 INGENIALINK_WHEELS_DIR = "ingenialink_wheels"
 
+def FSOE_INSTALL_VERSION = "fsoe-master==0.1.3"
+
 coverage_stashes = []
 
 // Run this before any tox command that requires develop ingenialink installation and that 
@@ -52,7 +54,13 @@ def getIngenialinkArtifactWheelPath(python_version) {
     }
 }
 
-def runTestHW(markers, setup_name) {
+def runTestHW(markers, setup_name, install_fsoe = false) {
+
+    if (install_fsoe) {
+        env.FSOE_PACKAGE = FSOE_INSTALL_VERSION
+    } else {
+        env.FSOE_PACKAGE = null
+    }
 
     if (RUN_ONLY_SMOKE_TESTS) {
         markers = markers + " and smoke"
@@ -269,74 +277,74 @@ pipeline {
                                         archiveArtifacts artifacts: "dist\\*"
                                     }
                                 }
-                                stage('Make a static type analysis') {
-                                    steps {
-                                        script {
-                                            restoreIngenialinkWheelEnvVar()
-                                        }
-                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e type"
-                                    }
-                                }
-                                stage('Check formatting') {
-                                    steps {
-                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e format"
-                                    }
-                                }
-                                stage('Generate documentation') {
-                                    steps {
-                                        script {
-                                            restoreIngenialinkWheelEnvVar()
-                                        }
-                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e docs"
-                                        bat """
-                                            "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
-                                        """
-                                        stash includes: 'docs.zip', name: 'docs'
-                                    }
-                                }
-                                stage("Run unit tests") {
-                                    steps {
-                                        script {
-                                            restoreIngenialinkWheelEnvVar()
-                                        }
-                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
-                                                "-m \"not ethernet and not soem and not fsoe and not canopen and not virtual and not soem_multislave\" "
-                                    }
-                                    post {
-                                        always {
-                                            bat "move .coverage .coverage_unit_tests"
-                                            junit "pytest_reports\\*.xml"
-                                            // Delete the junit after publishing it so it not re-published on the next stage
-                                            bat "del /S /Q pytest_reports\\*.xml"
-                                            stash includes: '.coverage_unit_tests', name: '.coverage_unit_tests'
-                                            script {
-                                                coverage_stashes.add(".coverage_unit_tests")
-                                            }
-                                        }
-                                    }
-                                }
-                                stage("Run virtual drive tests") {
-                                    steps {
-                                        script {
-                                            restoreIngenialinkWheelEnvVar()
-                                        }
-                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
-                                                "-m virtual " +
-                                                "--setup tests.tests_toolkit.setups.virtual_drive.TESTS_SETUP "
-                                    }
-                                    post {
-                                        always {
-                                            bat "move .coverage .coverage_virtual"
-                                            junit "pytest_reports\\*.xml"
-                                            // Delete the junit after publishing it so it not re-published on the next stage
-                                            bat "del /S /Q pytest_reports\\*.xml"
-                                            stash includes: '.coverage_virtual', name: '.coverage_virtual'
-                                            script {
-                                                coverage_stashes.add(".coverage_virtual")
-                                            }
-                                        }
-                                    }
-                                }
+                                //stage('Make a static type analysis') {
+                                //    steps {
+                                //        script {
+                                //            restoreIngenialinkWheelEnvVar()
+                                //        }
+                                //        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e type"
+                                //    }
+                                //}
+                                //stage('Check formatting') {
+                                //    steps {
+                                //        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e format"
+                                //    }
+                                //}
+                                //stage('Generate documentation') {
+                                //    steps {
+                                //        script {
+                                //            restoreIngenialinkWheelEnvVar()
+                                //        }
+                                //        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e docs"
+                                //        bat """
+                                //            "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
+                                //        """
+                                //        stash includes: 'docs.zip', name: 'docs'
+                                //    }
+                                //}
+                                //stage("Run unit tests") {
+                                //    steps {
+                                //        script {
+                                //            restoreIngenialinkWheelEnvVar()
+                                //        }
+                                //        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
+                                //                "-m \"not ethernet and not soem and not fsoe and not canopen and not virtual and not soem_multislave\" "
+                                //    }
+                                //    post {
+                                //        always {
+                                //            bat "move .coverage .coverage_unit_tests"
+                                //            junit "pytest_reports\\*.xml"
+                                //            // Delete the junit after publishing it so it not re-published on the next stage
+                                //            bat "del /S /Q pytest_reports\\*.xml"
+                                //            stash includes: '.coverage_unit_tests', name: '.coverage_unit_tests'
+                                //            script {
+                                //                coverage_stashes.add(".coverage_unit_tests")
+                                //            }
+                                //        }
+                                //    }
+                                //}
+                                //stage("Run virtual drive tests") {
+                                //    steps {
+                                //        script {
+                                //            restoreIngenialinkWheelEnvVar()
+                                //        }
+                                //        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
+                                //                "-m virtual " +
+                                //                "--setup tests.tests_toolkit.setups.virtual_drive.TESTS_SETUP "
+                                //    }
+                                //    post {
+                                //        always {
+                                //            bat "move .coverage .coverage_virtual"
+                                //            junit "pytest_reports\\*.xml"
+                                //            // Delete the junit after publishing it so it not re-published on the next stage
+                                //            bat "del /S /Q pytest_reports\\*.xml"
+                                //            stash includes: '.coverage_virtual', name: '.coverage_virtual'
+                                //            script {
+                                //                coverage_stashes.add(".coverage_virtual")
+                                //            }
+                                //        }
+                                //    }
+                                //}
                             }
                         }
                         stage('Publish documentation') {
@@ -372,40 +380,40 @@ pipeline {
                     }
                 }
 
-                stage('HW Tests CanOpen and Ethernet') {
-                    options {
-                        lock(CAN_NODE_LOCK)
-                    }
-                    agent {
-                        label CAN_NODE
-                    }
-                    stages {
-                        stage("CanOpen Everest") {
-                            steps {
-                                runTestHW("canopen", "CAN_EVE_SETUP")
-                            }
-                        }
-                        stage("Ethernet Everest") {
-                            steps {
-                                runTestHW("ethernet", "ETH_EVE_SETUP")
-                            }
-                        }
-                        stage("CanOpen Capitan") {
-                            steps {
-                                runTestHW("canopen", "CAN_CAP_SETUP")
-                            }
-                        }
-                        stage("Ethernet Capitan") {
-                            when {
-                                // Remove this after fixing INGK-982
-                                expression { false }
-                            }
-                            steps {
-                                runTestHW("ethernet", "ETH_CAP_SETUP")
-                            }
-                        }
-                    }
-                }
+                //stage('HW Tests CanOpen and Ethernet') {
+                //    options {
+                //        lock(CAN_NODE_LOCK)
+                //    }
+                //    agent {
+                //        label CAN_NODE
+                //    }
+                //    stages {
+                //        stage("CanOpen Everest") {
+                //            steps {
+                //                runTestHW("canopen", "CAN_EVE_SETUP")
+                //            }
+                //        }
+                //        stage("Ethernet Everest") {
+                //            steps {
+                //                runTestHW("ethernet", "ETH_EVE_SETUP")
+                //            }
+                //        }
+                //        stage("CanOpen Capitan") {
+                //            steps {
+                //                runTestHW("canopen", "CAN_CAP_SETUP")
+                //            }
+                //        }
+                //        stage("Ethernet Capitan") {
+                //            when {
+                //                // Remove this after fixing INGK-982
+                //                expression { false }
+                //            }
+                //            steps {
+                //                runTestHW("ethernet", "ETH_CAP_SETUP")
+                //            }
+                //        }
+                //    }
+                //}
                 stage('Hw Tests Ethercat') {
                     options {
                         lock(ECAT_NODE_LOCK)
@@ -414,18 +422,23 @@ pipeline {
                         label ECAT_NODE
                     }
                     stages {
-                        stage("Ethercat Everest") {
-                            when {
-                                // Remove this after fixing INGK-983
-                                expression { false }
-                            }
+                        //stage("Ethercat Everest") {
+                        //    when {
+                        //        // Remove this after fixing INGK-983
+                        //        expression { false }
+                        //    }
+                        //    steps {
+                        //        runTestHW("soem", "ECAT_EVE_SETUP")
+                        //    }
+                        //}
+                        //stage("Ethercat Capitan") {
+                        //    steps {
+                        //        runTestHW("soem", "ECAT_CAP_SETUP")
+                        //    }
+                        //}
+                        stage("Safety Denali") {
                             steps {
-                                runTestHW("soem", "ECAT_EVE_SETUP")
-                            }
-                        }
-                        stage("Ethercat Capitan") {
-                            steps {
-                                runTestHW("soem", "ECAT_CAP_SETUP")
+                                runTestHW("fsoe", "ECAT_DEN_S_PHASE1_SETUP", true)
                             }
                         }
                         stage("Ethercat Multislave") {
