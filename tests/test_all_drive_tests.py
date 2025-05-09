@@ -27,125 +27,117 @@ MAXIMUM_CONTINUOUS_CURRENT_DRIVE_PROTECTION = "DRV_PROT_MAN_MAX_CONT_CURRENT_VAL
 
 
 @pytest.fixture
-def force_fault(motion_controller):
-    mc, alias, environment = motion_controller
+def force_fault(motion_controller, alias):
     uid = "DRV_PROT_USER_UNDER_VOLT"
-    mc.communication.set_register(uid, 100, alias)
+    motion_controller.communication.set_register(uid, 100, alias)
     yield exceptions.ILError
-    mc.communication.set_register(uid, 10, alias)
+    motion_controller.communication.set_register(uid, 10, alias)
 
 
 @pytest.fixture(scope="module")
-def feedback_test_setup(motion_controller):
-    mc, alias, environment = motion_controller
-    mc.tests.commutation(servo=alias)
+def feedback_test_setup(motion_controller, alias):
+    motion_controller.tests.commutation(servo=alias)
 
 
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
-def test_digital_halls_test(motion_controller, feedback_list):
-    mc, alias, environment = motion_controller
-    commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
+def test_digital_halls_test(motion_controller, alias, feedback_list):
+    commutation_fdbk = motion_controller.configuration.get_commutation_feedback(servo=alias)
     if SensorType.HALLS in feedback_list:
-        results = mc.tests.digital_halls_test(servo=alias)
+        results = motion_controller.tests.digital_halls_test(servo=alias)
         assert results["result_severity"] == SeverityLevel.SUCCESS
     else:
         with pytest.raises(TestError):
-            mc.tests.digital_halls_test(servo=alias)
-    assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
+            motion_controller.tests.digital_halls_test(servo=alias)
+    assert commutation_fdbk == motion_controller.configuration.get_commutation_feedback(servo=alias)
 
 
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
-def test_incremental_encoder_1_test(motion_controller, feedback_list):
-    mc, alias, environment = motion_controller
-    commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
+def test_incremental_encoder_1_test(motion_controller, alias, feedback_list):
+    commutation_fdbk = motion_controller.configuration.get_commutation_feedback(servo=alias)
     if SensorType.QEI in feedback_list:
-        results = mc.tests.incremental_encoder_1_test(servo=alias)
+        results = motion_controller.tests.incremental_encoder_1_test(servo=alias)
         assert results["result_severity"] == SeverityLevel.SUCCESS
     else:
         with pytest.raises(TestError):
-            mc.tests.incremental_encoder_1_test(servo=alias)
-    assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
+            motion_controller.tests.incremental_encoder_1_test(servo=alias)
+    assert commutation_fdbk == motion_controller.configuration.get_commutation_feedback(servo=alias)
 
 
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
-def test_incremental_encoder_2_test(motion_controller, feedback_list):
-    mc, alias, environment = motion_controller
-    if not mc.info.register_exists("FBK_DIGENC2_RESOLUTION", servo=alias):
+def test_incremental_encoder_2_test(motion_controller, alias, feedback_list):
+    if not motion_controller.info.register_exists("FBK_DIGENC2_RESOLUTION", servo=alias):
         pytest.skip("Incremental encoder 2 is not available")
-    commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
+    commutation_fdbk = motion_controller.configuration.get_commutation_feedback(servo=alias)
     if SensorType.QEI2 in feedback_list:
-        results = mc.tests.incremental_encoder_2_test(servo=alias)
+        results = motion_controller.tests.incremental_encoder_2_test(servo=alias)
         assert results["result_severity"] == SeverityLevel.SUCCESS
     else:
         with pytest.raises(TestError):
-            mc.tests.incremental_encoder_2_test(servo=alias)
-    assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
+            motion_controller.tests.incremental_encoder_2_test(servo=alias)
+    assert commutation_fdbk == motion_controller.configuration.get_commutation_feedback(servo=alias)
 
 
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
-def test_absolute_encoder_1_test(motion_controller, feedback_list):
-    mc, alias, environment = motion_controller
-    commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
+def test_absolute_encoder_1_test(motion_controller, alias, feedback_list):
+    commutation_fdbk = motion_controller.configuration.get_commutation_feedback(servo=alias)
     if SensorType.ABS1 in feedback_list:
-        results = mc.tests.absolute_encoder_1_test(servo=alias)
+        results = motion_controller.tests.absolute_encoder_1_test(servo=alias)
         assert results["result_severity"] == SeverityLevel.SUCCESS
     else:
         with pytest.raises(TestError):
-            mc.tests.absolute_encoder_1_test(servo=alias)
-    assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
+            motion_controller.tests.absolute_encoder_1_test(servo=alias)
+    assert commutation_fdbk == motion_controller.configuration.get_commutation_feedback(servo=alias)
 
 
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
-def test_absolute_encoder_2_test(motion_controller, feedback_list):
-    mc, alias, environment = motion_controller
-    commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
+def test_absolute_encoder_2_test(motion_controller, alias, feedback_list):
+    commutation_fdbk = motion_controller.configuration.get_commutation_feedback(servo=alias)
     if SensorType.BISSC2 in feedback_list:
-        results = mc.tests.absolute_encoder_2_test(servo=alias)
+        results = motion_controller.tests.absolute_encoder_2_test(servo=alias)
         assert results["result_severity"] == SeverityLevel.SUCCESS
     else:
         with pytest.raises(TestError):
-            mc.tests.absolute_encoder_2_test(servo=alias)
-    assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
+            motion_controller.tests.absolute_encoder_2_test(servo=alias)
+    assert commutation_fdbk == motion_controller.configuration.get_commutation_feedback(servo=alias)
 
 
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
-def test_secondary_ssi_test(motion_controller, feedback_list):
-    mc, alias, environment = motion_controller
-    commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
+def test_secondary_ssi_test(motion_controller, alias, feedback_list):
+    commutation_fdbk = motion_controller.configuration.get_commutation_feedback(servo=alias)
     if SensorType.QEI in feedback_list:
         pytest.skip("Can not run the test. Incremental encoder 1 and SSI 2 share pins.")
     if SensorType.SSI2 in feedback_list:
-        results = mc.tests.secondary_ssi_test(servo=alias)
+        results = motion_controller.tests.secondary_ssi_test(servo=alias)
         assert results["result_severity"] == SeverityLevel.SUCCESS
     else:
         with pytest.raises(TestError):
-            mc.tests.secondary_ssi_test(servo=alias)
-    assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
+            motion_controller.tests.secondary_ssi_test(servo=alias)
+    assert commutation_fdbk == motion_controller.configuration.get_commutation_feedback(servo=alias)
 
 
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-def test_commutation(motion_controller_teardown):
-    mc, alias, environment = motion_controller_teardown
+def test_commutation(alias, motion_controller_teardown):
+    mc = motion_controller_teardown
     results = mc.tests.commutation(servo=alias)
     assert results["result_severity"] == SeverityLevel.SUCCESS
 
@@ -154,20 +146,18 @@ def test_commutation(motion_controller_teardown):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
-def test_commutation_error(motion_controller, force_fault):
-    mc, alias, environment = motion_controller
+def test_commutation_error(motion_controller, alias, force_fault):
     with pytest.raises(force_fault):
-        mc.tests.commutation(servo=alias)
+        motion_controller.tests.commutation(servo=alias)
 
 
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.skip("Skip until is fixed INGM-352")
-def test_phasing_check(motion_controller):
-    mc, alias, environment = motion_controller
-    mc.tests.commutation(servo=alias)
-    results = mc.tests.phasing_check(servo=alias)
+def test_phasing_check(motion_controller, alias):
+    motion_controller.tests.commutation(servo=alias)
+    results = motion_controller.tests.phasing_check(servo=alias)
     assert results["result_severity"] == SeverityLevel.SUCCESS
 
 
@@ -175,19 +165,17 @@ def test_phasing_check(motion_controller):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
-def test_phasing_check_error(motion_controller, force_fault):
-    mc, alias, environment = motion_controller
+def test_phasing_check_error(motion_controller, alias, force_fault):
     with pytest.raises(force_fault):
-        mc.tests.phasing_check(servo=alias)
+        motion_controller.tests.phasing_check(servo=alias)
 
 
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
-def test_sto_test(motion_controller):
-    mc, alias, environment = motion_controller
-    results = mc.tests.sto_test(servo=alias)
+def test_sto_test(motion_controller, alias):
+    results = motion_controller.tests.sto_test(servo=alias)
     assert results["result_severity"] == SeverityLevel.SUCCESS
 
 
@@ -203,10 +191,9 @@ def test_sto_test(motion_controller):
         (0x5, "STO Inputs Differ"),
     ],
 )
-def test_sto_test_error(mocker, motion_controller, sto_value, message):
+def test_sto_test_error(mocker, motion_controller, alias, sto_value, message):
     mocker.patch("ingeniamotion.configuration.Configuration.get_sto_status", return_value=sto_value)
-    mc, alias, environment = motion_controller
-    results = mc.tests.sto_test(servo=alias)
+    results = motion_controller.tests.sto_test(servo=alias)
     assert results["result_severity"] == SeverityLevel.FAIL
     assert results["result_message"] == message
 
@@ -215,8 +202,8 @@ def test_sto_test_error(mocker, motion_controller, sto_value, message):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
-def test_brake_test(motion_controller):
-    mc, alias, environment = motion_controller
+def test_brake_test(motion_controller, alias):
+    mc = motion_controller
     pair_poles = mc.configuration.get_motor_pair_poles(servo=alias)
     brake_test = mc.tests.brake_test(servo=alias)
     assert mc.configuration.get_motor_pair_poles(servo=alias) == 1
@@ -255,8 +242,8 @@ def run_test_and_stop(test):
         SecondarySSITest,
     ],
 )
-def test_feedback_stop(motion_controller, feedback_class):
-    mc, alias, environment = motion_controller
+def test_feedback_stop(motion_controller, alias, feedback_class):
+    mc = motion_controller
     test = feedback_class(mc, alias, 1)
     reg_values = get_backup_registers(test, mc, alias)
     run_test_and_stop(test)
@@ -265,8 +252,8 @@ def test_feedback_stop(motion_controller, feedback_class):
 
 
 @pytest.mark.virtual
-def test_commutation_stop(motion_controller):
-    mc, alias, environment = motion_controller
+def test_commutation_stop(motion_controller, alias):
+    mc = motion_controller
     test = Phasing(mc, alias, 1)
     reg_values = get_backup_registers(test, mc, alias)
     run_test_and_stop(test)
@@ -275,8 +262,8 @@ def test_commutation_stop(motion_controller):
 
 
 @pytest.mark.virtual
-def test_phasing_check_stop(motion_controller):
-    mc, alias, environment = motion_controller
+def test_phasing_check_stop(motion_controller, alias):
+    mc = motion_controller
     test = PhasingCheck(mc, alias, 1)
     reg_values = get_backup_registers(test, mc, alias)
     run_test_and_stop(test)
@@ -297,8 +284,8 @@ def test_phasing_check_stop(motion_controller):
         SensorType.QEI2,
     ],
 )
-def test_current_ramp_up(motion_controller, test_currents, test_sensor):
-    mc, alias, environment = motion_controller
+def test_current_ramp_up(motion_controller, alias, test_currents, test_sensor):
+    mc = motion_controller
 
     axis = 1
     test_feedback_options = {
