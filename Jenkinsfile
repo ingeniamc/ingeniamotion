@@ -25,26 +25,23 @@ INGENIALINK_WHEELS_DIR = "ingenialink_wheels"
 
 coverage_stashes = []
 
-// Run this before any tox command that requires develop ingenialink installation and that 
+// Run this before any tox command that requires develop ingenialink installation and that
 // may run in parallel/after with HW tests, because HW tests alter its value
 def restoreIngenialinkWheelEnvVar() {
     env.INGENIALINK_INSTALL_PATH = env.ORG_INGENIALINK_INSTALL_PATH
 }
-    
+
 
 def getIngenialinkArtifactWheelPath(python_version) {
     if (!env.INGENIALINK_COMMIT_HASH.isEmpty()) {
-        unstash 'ingenialink_wheels'
         script {
-            def distDir = python_version == PYTHON_VERSION_MIN ? "dist" : "dist_${python_version}"
-            distDir = "${INGENIALINK_WHEELS_DIR}\\${distDir}"
-            def result = bat(script: "dir ${distDir} /b /a-d", returnStdout: true).trim()
-            def files = result.split(/[\r\n]+/)    
-            def wheelFile = files.find { it.endsWith('.whl') }
-            if (wheelFile == null) {
-                error "No .whl file found in the dist directory. Directory contents:\n${result}"            
+            def pythonVersionTag = "cp${python_version.replace('py', '')}"
+            def files = findFiles(glob: "${INGENIALINK_WHEELS_DIR}/**/*${pythonVersionTag}*.whl")
+            if (files.length == 0) {
+                error "No .whl file found for Python version ${python_version} in the dist directory."
             }
-            return "${distDir}\\${wheelFile}"
+            def wheelFile = files[0].name
+            return "${INGENIALINK_WHEELS_DIR}\\dist\\${wheelFile}"
         }
     }
     else {
@@ -53,7 +50,7 @@ def getIngenialinkArtifactWheelPath(python_version) {
 }
 
 def runTestHW(markers, setup_name) {
-
+    unstash 'ingenialink_wheels'
     if (RUN_ONLY_SMOKE_TESTS) {
         markers = markers + " and smoke"
     }
@@ -198,7 +195,7 @@ pipeline {
                     } else {
                         error "No job found with the name: ${sourceJobName} or it's not a multibranch project"
                     }
-                    
+
                 }
             }
         }
