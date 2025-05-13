@@ -35,13 +35,12 @@ def restoreIngenialinkWheelEnvVar() {
 def getIngenialinkArtifactWheelPath(python_version) {
     if (!env.INGENIALINK_COMMIT_HASH.isEmpty()) {
         script {
-            def result = bat(script: "dir ${INGENIALINK_WHEELS_DIR}\\dist /b /a-d", returnStdout: true).trim()
-            def files = result.split(/[\r\n]+/)
             def pythonVersionTag = "cp${python_version.replace('py', '')}"
-            def wheelFile = files.find { it.endsWith('.whl') && it.contains(pythonVersionTag) }
-            if (wheelFile == null) {
-                error "No .whl file found in the dist directory. Directory contents:\n${result}"
+            def files = findFiles(glob: "${INGENIALINK_WHEELS_DIR}/**/*${pythonVersionTag}*.whl")
+            if (files.length == 0) {
+                error "No .whl file found for Python version ${python_version} in the dist directory."
             }
+            def wheelFile = files[0].name
             return "${INGENIALINK_WHEELS_DIR}\\dist\\${wheelFile}"
         }
     }
