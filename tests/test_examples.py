@@ -39,8 +39,7 @@ from ingeniamotion.pdo import PDONetworkManager, PDOPoller
 
 
 @pytest.fixture
-def setup_for_test_examples(motion_controller, alias):
-    mc = motion_controller
+def setup_for_test_examples(mc, alias):
     mc.communication.disconnect(alias)
 
 

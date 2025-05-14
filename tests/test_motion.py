@@ -49,8 +49,7 @@ def delayed_function_return(delay_s: int, first_response: Any, delayed_response:
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-def test_target_latch(motion_controller, alias):
-    mc = motion_controller
+def test_target_latch(mc, alias):
     mc.communication.set_register(PROFILER_LATCHING_MODE_REGISTER, 0x40, servo=alias)
     mc.motion.motor_enable(servo=alias)
     pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
@@ -69,8 +68,7 @@ def test_target_latch(motion_controller, alias):
 @pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("operation_mode", list(OperationMode))
-def test_set_operation_mode(motion_controller, alias, operation_mode):
-    mc = motion_controller
+def test_set_operation_mode(mc, alias, operation_mode):
     mc.motion.set_operation_mode(operation_mode, servo=alias)
     test_op = mc.communication.get_register(OPERATION_MODE_REGISTER, servo=alias)
     assert operation_mode.value == test_op
@@ -81,8 +79,7 @@ def test_set_operation_mode(motion_controller, alias, operation_mode):
 @pytest.mark.canopen
 @pytest.mark.smoke
 @pytest.mark.parametrize("operation_mode", list(OperationMode))
-def test_get_operation_mode(motion_controller, alias, operation_mode):
-    mc = motion_controller
+def test_get_operation_mode(mc, alias, operation_mode):
     mc.communication.set_register(OPERATION_MODE_REGISTER, operation_mode, servo=alias)
     test_op = mc.motion.get_operation_mode(servo=alias)
     assert test_op == operation_mode.value
@@ -92,8 +89,7 @@ def test_get_operation_mode(motion_controller, alias, operation_mode):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
-def test_motor_enable(motion_controller, alias):
-    mc = motion_controller
+def test_motor_enable(mc, alias):
     mc.motion.motor_enable(servo=alias)
     assert mc.configuration.is_motor_enabled(servo=alias)
 
@@ -172,8 +168,7 @@ def test_motor_enable_with_delayed_fault(
 @pytest.mark.canopen
 @pytest.mark.smoke
 @pytest.mark.parametrize("enable_motor", [True, False])
-def test_motor_disable(motion_controller, alias, enable_motor):
-    mc = motion_controller
+def test_motor_disable(mc, alias, enable_motor):
     if enable_motor:
         mc.motion.motor_enable(servo=alias)
     mc.motion.motor_disable(servo=alias)
@@ -221,8 +216,7 @@ def test_fault_reset(motion_controller_teardown, alias):
 @pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("position_value", [1000, 0, -1000, 4000])
-def test_set_position(motion_controller, alias, position_value):
-    mc = motion_controller
+def test_set_position(mc, alias, position_value):
     mc.motion.move_to_position(position_value, servo=alias, target_latch=False, blocking=False)
     test_position = mc.communication.get_register(POSITION_SET_POINT_REGISTER, servo=alias)
     assert test_position == position_value
@@ -233,8 +227,7 @@ def test_set_position(motion_controller, alias, position_value):
 @pytest.mark.canopen
 @pytest.mark.smoke
 @pytest.mark.parametrize("position_value", [1000, 0, -1000, 4000])
-def test_move_position(motion_controller, alias, position_value):
-    mc = motion_controller
+def test_move_position(mc, alias, position_value):
     pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
     mc.motion.motor_enable(servo=alias)
@@ -250,8 +243,7 @@ def test_move_position(motion_controller, alias, position_value):
 @pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("velocity_value", [0.5, 1, 0, -0.5])
-def test_set_velocity(motion_controller, alias, velocity_value):
-    mc = motion_controller
+def test_set_velocity(mc, alias, velocity_value):
     mc.motion.set_velocity(velocity_value, servo=alias, target_latch=False)
     test_vel = mc.communication.get_register(VELOCITY_SET_POINT_REGISTER, servo=alias)
     assert test_vel == velocity_value
@@ -262,8 +254,7 @@ def test_set_velocity(motion_controller, alias, velocity_value):
 @pytest.mark.canopen
 @pytest.mark.smoke
 @pytest.mark.parametrize("velocity_value", [0.5, 1, 0, -0.5])
-def test_set_velocity_blocking(motion_controller, alias, velocity_value):
-    mc = motion_controller
+def test_set_velocity_blocking(mc, alias, velocity_value):
     mc.motion.set_operation_mode(OperationMode.PROFILE_VELOCITY, servo=alias)
     mc.motion.motor_enable(servo=alias)
     mc.motion.set_velocity(velocity_value, servo=alias, blocking=True, timeout=10)
@@ -275,8 +266,7 @@ def test_set_velocity_blocking(motion_controller, alias, velocity_value):
 @pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("current_value", [0.5, 1, 0, -0.5])
-def test_set_current_quadrature(motion_controller, alias, current_value):
-    mc = motion_controller
+def test_set_current_quadrature(mc, alias, current_value):
     mc.motion.set_current_quadrature(current_value, servo=alias)
     test_current = mc.communication.get_register(CURRENT_QUADRATURE_SET_POINT_REGISTER, servo=alias)
     assert pytest.approx(current_value) == test_current
@@ -285,8 +275,7 @@ def test_set_current_quadrature(motion_controller, alias, current_value):
 @pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("current_value", [0.5, 1, 0, -0.5])
-def test_set_current_direct(motion_controller, alias, current_value):
-    mc = motion_controller
+def test_set_current_direct(mc, alias, current_value):
     mc.motion.set_current_direct(current_value, servo=alias)
     test_current = mc.communication.get_register(CURRENT_DIRECT_SET_POINT_REGISTER, servo=alias)
     assert pytest.approx(current_value) == test_current
@@ -295,8 +284,7 @@ def test_set_current_direct(motion_controller, alias, current_value):
 @pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("voltage_value", [0.5, 1, 0, -0.5])
-def test_set_voltage_quadrature(motion_controller, alias, voltage_value):
-    mc = motion_controller
+def test_set_voltage_quadrature(mc, alias, voltage_value):
     mc.motion.set_voltage_quadrature(voltage_value, servo=alias)
     test_voltage = mc.communication.get_register(VOLTAGE_QUADRATURE_SET_POINT_REGISTER, servo=alias)
     assert pytest.approx(voltage_value) == test_voltage
@@ -305,8 +293,7 @@ def test_set_voltage_quadrature(motion_controller, alias, voltage_value):
 @pytest.mark.virtual
 @pytest.mark.smoke
 @pytest.mark.parametrize("voltage_value", [0.5, 1, 0, -0.5])
-def test_set_voltage_direct(motion_controller, alias, voltage_value):
-    mc = motion_controller
+def test_set_voltage_direct(mc, alias, voltage_value):
     mc.motion.set_voltage_direct(voltage_value, servo=alias)
     test_voltage = mc.communication.get_register(VOLTAGE_DIRECT_SET_POINT_REGISTER, servo=alias)
     assert pytest.approx(voltage_value) == test_voltage
@@ -341,8 +328,7 @@ def test_ramp_generator(mocker, init_v, final_v, total_t, t, result):
 @pytest.mark.canopen
 @pytest.mark.smoke
 @pytest.mark.parametrize("position_value", [-4000, -1000, 1000, 4000])
-def test_get_actual_position(motion_controller, alias, position_value):
-    mc = motion_controller
+def test_get_actual_position(mc, alias, position_value):
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
     mc.motion.motor_enable(servo=alias)
     mc.motion.move_to_position(position_value, servo=alias, blocking=True, timeout=10)
@@ -359,8 +345,7 @@ def test_get_actual_position(motion_controller, alias, position_value):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("velocity_value", [1, 0, -1])
-def test_get_actual_velocity(motion_controller, alias, velocity_value):
-    mc = motion_controller
+def test_get_actual_velocity(mc, alias, velocity_value):
     mc.motion.set_operation_mode(OperationMode.PROFILE_VELOCITY, servo=alias)
     mc.motion.motor_enable(servo=alias)
     mc.motion.set_velocity(velocity_value, servo=alias, blocking=True, timeout=10)
@@ -376,8 +361,7 @@ def test_get_actual_velocity(motion_controller, alias, velocity_value):
 
 @pytest.mark.virtual
 @pytest.mark.smoke
-def test_get_actual_current_direct(mocker, motion_controller, alias):
-    mc = motion_controller
+def test_get_actual_current_direct(mocker, mc, alias):
     patch_get_register = mocker.patch("ingeniamotion.communication.Communication.get_register")
     patch_get_register.return_value = 2.0
     mc.motion.get_actual_current_direct(servo=alias)
@@ -386,8 +370,7 @@ def test_get_actual_current_direct(mocker, motion_controller, alias):
 
 @pytest.mark.virtual
 @pytest.mark.smoke
-def test_get_actual_current_quadrature(mocker, motion_controller, alias):
-    mc = motion_controller
+def test_get_actual_current_quadrature(mocker, mc, alias):
     patch_get_register = mocker.patch("ingeniamotion.communication.Communication.get_register")
     patch_get_register.return_value = 2.0
     mc.motion.get_actual_current_quadrature(servo=alias)
@@ -404,9 +387,8 @@ def test_get_actual_current_quadrature(mocker, motion_controller, alias):
     ],
 )
 @pytest.mark.virtual
-def test_wait_for_function_timeout(motion_controller, alias, function):
+def test_wait_for_function_timeout(mc, alias, function):
     timeout_value = 2
-    mc = motion_controller
     init_time = time.time()
     with pytest.raises(IMTimeoutError):
         getattr(mc.motion, function)(1000, servo=alias, timeout=timeout_value)
@@ -498,15 +480,13 @@ def test_internal_generator_constant_move(motion_controller_teardown, alias, op_
     ],
 )
 @pytest.mark.virtual
-def test_wrong_type_exception(mocker, motion_controller, alias, function):
-    mc = motion_controller
+def test_wrong_type_exception(mocker, mc, alias, function):
     mocker.patch.object(mc.communication, "get_register", return_value="invalid_value")
     with pytest.raises(TypeError):
         getattr(mc.motion, function)(servo=alias)
 
 
 @pytest.mark.virtual
-def test_set_internal_generator_configuration_exception(motion_controller, alias):
-    mc = motion_controller
+def test_set_internal_generator_configuration_exception(mc, alias):
     with pytest.raises(ValueError):
         mc.motion.set_internal_generator_configuration(OperationMode.VELOCITY, servo=alias)

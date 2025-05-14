@@ -30,13 +30,10 @@ from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import (
         (DigitalHallTest, 27),
     ],
 )
-def test_feedback_test_initialization(
-    motion_controller, alias, feedback_test_type, expected_total_mandatory
-):
+def test_feedback_test_initialization(mc, alias, feedback_test_type, expected_total_mandatory):
     expected_total_optional = 5
     expected_total_backup_registers = expected_total_mandatory + expected_total_optional
 
-    mc = motion_controller
     axis = 1
     feedback_test = feedback_test_type(mc, alias, axis)
 
@@ -62,8 +59,7 @@ def test_feedback_test_initialization(
         DigitalHallTest,
     ],
 )
-def test_save_backup_registers(motion_controller, alias, feedback_test_type):
-    mc = motion_controller
+def test_save_backup_registers(mc, alias, feedback_test_type):
     axis = 1
     feedback_test = feedback_test_type(mc, alias, axis)
     mandatory_backup_registers = feedback_test.backup_registers_names
