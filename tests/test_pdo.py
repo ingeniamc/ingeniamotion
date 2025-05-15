@@ -193,39 +193,37 @@ def test_start_pdos(mc, alias, setup_descriptor):
     if not isinstance(setup_descriptor, EthercatMultiSlaveSetup):
         raise ValueError("Invalid setup config for test")
 
-    mc, aliases, environment = mc
-
     pdo_map_items = {}
     initial_operation_modes = {}
     rpdo_values = {}
     tpdo_values = {}
-    for alias in aliases:
+    for a in alias:
         rpdo_map = mc.capture.pdo.create_empty_rpdo_map()
         tpdo_map = mc.capture.pdo.create_empty_tpdo_map()
-        initial_operation_mode = mc.motion.get_operation_mode(servo=alias)
+        initial_operation_mode = mc.motion.get_operation_mode(servo=a)
         operation_mode = mc.capture.pdo.create_pdo_item(
-            "DRV_OP_CMD", servo=alias, value=initial_operation_mode.value
+            "DRV_OP_CMD", servo=a, value=initial_operation_mode.value
         )
-        actual_position = mc.capture.pdo.create_pdo_item("CL_POS_FBK_VALUE", servo=alias)
+        actual_position = mc.capture.pdo.create_pdo_item("CL_POS_FBK_VALUE", servo=a)
         mc.capture.pdo.add_pdo_item_to_map(operation_mode, rpdo_map)
         mc.capture.pdo.add_pdo_item_to_map(actual_position, tpdo_map)
-        mc.capture.pdo.set_pdo_maps_to_slave(rpdo_map, tpdo_map, servo=alias)
-        pdo_map_items[alias] = (operation_mode, actual_position)
+        mc.capture.pdo.set_pdo_maps_to_slave(rpdo_map, tpdo_map, servo=a)
+        pdo_map_items[a] = (operation_mode, actual_position)
         random_op_mode = random.choice(
             [op_mode for op_mode in OperationMode if op_mode != initial_operation_mode]
         )
-        initial_operation_modes[alias] = initial_operation_mode
-        rpdo_values[alias] = random_op_mode
+        initial_operation_modes[a] = initial_operation_mode
+        rpdo_values[a] = random_op_mode
 
     def send_callback():
-        for alias in aliases:
-            rpdo_map_item, _ = pdo_map_items[alias]
-            rpdo_map_item.value = rpdo_values[alias].value
+        for a in alias:
+            rpdo_map_item, _ = pdo_map_items[a]
+            rpdo_map_item.value = rpdo_values[a].value
 
     def receive_callback():
-        for alias in aliases:
-            _, tpdo_map_item = pdo_map_items[alias]
-            tpdo_values[alias] = tpdo_map_item.value
+        for a in alias:
+            _, tpdo_map_item = pdo_map_items[a]
+            tpdo_values[a] = tpdo_map_item.value
 
     mc.capture.pdo.subscribe_to_send_process_data(send_callback)
     mc.capture.pdo.subscribe_to_receive_process_data(receive_callback)
@@ -236,17 +234,15 @@ def test_start_pdos(mc, alias, setup_descriptor):
     time.sleep(2 * refresh_rate)
     mc.capture.pdo.stop_pdos()
     assert not mc.capture.pdo.is_active
-    for alias in aliases:
+    for a in alias:
         # Check that RPDO are being sent
-        assert rpdo_values[alias] == mc.motion.get_operation_mode(servo=alias)
+        assert rpdo_values[a] == mc.motion.get_operation_mode(servo=a)
         # Check that TPDO are being received
-        assert pytest.approx(tpdo_values[alias], abs=2) == mc.motion.get_actual_position(
-            servo=alias
-        )
+        assert pytest.approx(tpdo_values[a], abs=2) == mc.motion.get_actual_position(servo=a)
         # Restore the initial operation mode
-        mc.motion.set_operation_mode(initial_operation_modes[alias], servo=alias)
-        mc.capture.pdo.remove_rpdo_map(alias, rpdo_map_index=0)
-        mc.capture.pdo.remove_tpdo_map(alias, tpdo_map_index=0)
+        mc.motion.set_operation_mode(initial_operation_modes[a], servo=a)
+        mc.capture.pdo.remove_rpdo_map(a, rpdo_map_index=0)
+        mc.capture.pdo.remove_tpdo_map(a, tpdo_map_index=0)
 
 
 @pytest.mark.soem
