@@ -389,13 +389,6 @@ pipeline {
                         label CAN_NODE
                     }
                     stages {
-                        stage('Clean Ingenialink Wheels Dir') {
-                            steps {
-                                script {
-                                    clearIngenialinkWheelDir()
-                                }
-                            }
-                        }
                         stage("CanOpen Everest") {
                             steps {
                                 runTestHW("canopen", "CAN_EVE_SETUP")
@@ -430,13 +423,6 @@ pipeline {
                         label ECAT_NODE
                     }
                     stages {
-                        stage('Clean Ingenialink Wheels Dir') {
-                            steps {
-                                script {
-                                    clearIngenialinkWheelDir()
-                                }
-                            }
-                        }
                         stage("Ethercat Everest") {
                             when {
                                 // Remove this after fixing INGK-983
