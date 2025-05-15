@@ -231,11 +231,6 @@ pipeline {
                         }
                     }
                     stages {
-                        stage('clean workspace') {
-                            steps {
-                                cleanWs()
-                            }
-                        }
                         stage('Run no-connection tests') {
                             steps {
                                 script {
@@ -264,11 +259,6 @@ pipeline {
                                 }
                             }
                             stages {
-                                stage('clean workspace') {
-                                    steps {
-                                        cleanWs()
-                                    }
-                                }
                                 stage('Build wheels') {
                                     steps {
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e build"
@@ -387,11 +377,6 @@ pipeline {
                         label CAN_NODE
                     }
                     stages {
-                        stage('clean workspace') {
-                            steps {
-                                cleanWs()
-                            }
-                        }
                         stage("CanOpen Everest") {
                             steps {
                                 runTestHW("canopen", "CAN_EVE_SETUP")
@@ -426,11 +411,6 @@ pipeline {
                         label ECAT_NODE
                     }
                     stages {
-                        stage('clean workspace') {
-                            steps {
-                                cleanWs()
-                            }
-                        }
                         stage("Ethercat Everest") {
                             when {
                                 // Remove this after fixing INGK-983
