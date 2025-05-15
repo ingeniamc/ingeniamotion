@@ -217,6 +217,7 @@ pipeline {
             }
             steps {
                 script {
+                    clearIngenialinkWheelDir()
                     def buildNumber = env.BUILD_NUMBER_ENV
                     def branch = env.BRANCH
 
