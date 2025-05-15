@@ -217,12 +217,12 @@ pipeline {
             }
             steps {
                 script {
-                    clearIngenialinkWheelDir()
                     def buildNumber = env.BUILD_NUMBER_ENV
                     def branch = env.BRANCH
 
                     if (buildNumber && branch) {
                         node {
+                            clearIngenialinkWheelDir()
                             copyArtifacts filter: '**/*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber), target: INGENIALINK_WHEELS_DIR
                             stash includes: "${INGENIALINK_WHEELS_DIR}\\**\\*", name: 'ingenialink_wheels'
                         }
