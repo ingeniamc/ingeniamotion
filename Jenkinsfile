@@ -31,6 +31,17 @@ def restoreIngenialinkWheelEnvVar() {
     env.INGENIALINK_INSTALL_PATH = env.ORG_INGENIALINK_INSTALL_PATH
 }
 
+def clearIngenialinkWheelDir() {
+    if (fileExists(INGENIALINK_WHEELS_DIR)) {
+        echo "Removing ${INGENIALINK_WHEELS_DIR} directory..."
+        dir(INGENIALINK_WHEELS_DIR) {
+            deleteDir()
+        }
+    } else {
+        echo "${INGENIALINK_WHEELS_DIR} directory does not exist"
+    }
+}
+
 
 def getIngenialinkArtifactWheelPath(python_version) {
     if (!env.INGENIALINK_COMMIT_HASH.isEmpty()) {
@@ -377,6 +388,13 @@ pipeline {
                         label CAN_NODE
                     }
                     stages {
+                        stage('Clean Ingenialink Wheels Dir') {
+                            steps {
+                                script {
+                                    clearIngenialinkWheelDir()
+                                }
+                            }
+                        }
                         stage("CanOpen Everest") {
                             steps {
                                 runTestHW("canopen", "CAN_EVE_SETUP")
@@ -411,6 +429,13 @@ pipeline {
                         label ECAT_NODE
                     }
                     stages {
+                        stage('Clean Ingenialink Wheels Dir') {
+                            steps {
+                                script {
+                                    clearIngenialinkWheelDir()
+                                }
+                            }
+                        }
                         stage("Ethercat Everest") {
                             when {
                                 // Remove this after fixing INGK-983
