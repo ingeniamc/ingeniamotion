@@ -1,8 +1,7 @@
 from pathlib import Path
 
 from ingenialink.dictionary import Interface
-
-from tests.tests_toolkit.setups.specifiers import (
+from summit_testing_framework.setups.specifiers import (
     MultiRackServiceConfigSpecifier,
     PartNumber,
     RackServiceConfigSpecifier,

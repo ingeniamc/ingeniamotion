@@ -31,6 +31,17 @@ def restoreIngenialinkWheelEnvVar() {
     env.INGENIALINK_INSTALL_PATH = env.ORG_INGENIALINK_INSTALL_PATH
 }
 
+def clearIngenialinkWheelDir() {
+    if (fileExists(INGENIALINK_WHEELS_DIR)) {
+        echo "Removing ${INGENIALINK_WHEELS_DIR} directory..."
+        dir(INGENIALINK_WHEELS_DIR) {
+            deleteDir()
+        }
+    } else {
+        echo "${INGENIALINK_WHEELS_DIR} directory does not exist"
+    }
+}
+
 
 def getIngenialinkArtifactWheelPath(python_version) {
     if (!env.INGENIALINK_COMMIT_HASH.isEmpty()) {
@@ -211,6 +222,7 @@ pipeline {
 
                     if (buildNumber && branch) {
                         node {
+                            clearIngenialinkWheelDir()
                             copyArtifacts filter: '**/*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber), target: INGENIALINK_WHEELS_DIR
                             stash includes: "${INGENIALINK_WHEELS_DIR}\\**\\*", name: 'ingenialink_wheels'
                         }
@@ -238,7 +250,7 @@ pipeline {
                                 }
                                 sh "python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
                                     "-m virtual " +
-                                    "--setup tests.tests_toolkit.setups.virtual_drive.TESTS_SETUP"
+                                    "--setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP"
                             }
                             post {
                                 always {
@@ -319,7 +331,7 @@ pipeline {
                                         }
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
                                                 "-m virtual " +
-                                                "--setup tests.tests_toolkit.setups.virtual_drive.TESTS_SETUP "
+                                                "--setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP "
                                     }
                                     post {
                                         always {
