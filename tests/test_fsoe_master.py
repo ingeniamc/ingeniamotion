@@ -32,3 +32,36 @@ def test_fsoe_master_get_application_parameters(setup_descriptor):
     )
     application_parameters = mc.fsoe._get_application_parameters(servo=servo)
     assert len(application_parameters)
+
+
+@pytest.mark.fsoe
+@pytest.mark.smoke
+def test_deactivate_sto(mc, alias):
+    # Configure error channel
+    mc.fsoe.subscribe_to_errors(lambda error: print(error))
+    # Connect to the servo drive
+    # Create and start the FSoE master handler
+    mc.fsoe.create_fsoe_master_handler()
+    mc.fsoe.configure_pdos(start_pdos=True)
+    # Wait for the master to reach the Data state
+    mc.fsoe.wait_for_state_data(timeout=10)
+    # Deactivate the SS1
+    mc.fsoe.ss1_deactivate()
+    # Deactivate the STO
+    mc.fsoe.sto_deactivate()
+    # Wait for the STO to be deactivated
+    while mc.fsoe.check_sto_active():
+        pass
+    # Enable the motor
+    mc.motion.motor_enable()
+    # Disable the motor
+    mc.motion.motor_disable()
+    # Activate the SS1
+    mc.fsoe.sto_activate()
+    # Activate the STO
+    mc.fsoe.sto_activate()
+    # Stop the FSoE master handler
+    mc.fsoe.stop_master(stop_pdos=True)
+
+    # https://novantamotion.atlassian.net/browse/INGM-624
+    mc.fsoe._delete_master_handler()
