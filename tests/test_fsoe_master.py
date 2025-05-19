@@ -19,6 +19,7 @@ def test_fsoe_master_not_installed():
 
 
 @pytest.mark.fsoe
+@pytest.mark.smoke
 def test_fsoe_master_get_application_parameters(setup_descriptor):
     mc = MotionController()
     assert isinstance(mc.fsoe, FSoEMaster)

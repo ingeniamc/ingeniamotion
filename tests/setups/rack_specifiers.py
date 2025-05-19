@@ -36,6 +36,13 @@ ECAT_CAP_SETUP = RackServiceConfigSpecifier.from_frozen_firmware(
     firmware_version="2.6.0",
 )
 
+ECAT_DEN_S_PHASE1_SETUP = RackServiceConfigSpecifier.from_frozen_firmware(
+    part_number=PartNumber.DEN_S_NET_E,
+    interface=Interface.ECAT,
+    config_file=None,
+    firmware_version="2.7.4",
+)
+
 CAN_EVE_SETUP = RackServiceConfigSpecifier.from_frozen_firmware(
     part_number=PartNumber.EVE_XCR_C,
     interface=Interface.CAN,
