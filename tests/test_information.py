@@ -243,8 +243,5 @@ def test_get_baudrate_success(mc, alias, mocker):
 def test_get_baudrate_failed(mc, alias, mocker):
     mocker.patch("ingenialink.ethercat.network.EthercatNetwork.__init__", return_value=None)
     mocker.patch.object(mc, "_get_network", return_value=EthercatNetwork("fake_interface_name"))
-    with pytest.raises(IMError) as imexpeption_info:
+    with pytest.raises(IMError, match=f"The servo {alias} is not a CANopen device."):
         _ = mc.info.get_baudrate(alias)
-
-    expected_message_error = "The servo test is not a CANopen device."
-    assert expected_message_error == imexpeption_info.value.args[0]
