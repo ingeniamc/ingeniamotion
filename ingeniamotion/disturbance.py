@@ -164,7 +164,7 @@ class Disturbance:
                 raise TypeError("Register key has to be a string")
             register_obj = self.mc.info.register_info(register, subnode, servo=self.servo)
             dtype = register_obj.dtype
-            if not register_obj.is_monitoreable:
+            if register_obj.monitoring is None:
                 drive.disturbance_remove_all_mapped_registers()
                 raise IMDisturbanceError(f"{register} can not be mapped as a disturbance register")
             channel["dtype"] = dtype

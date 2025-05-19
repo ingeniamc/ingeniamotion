@@ -140,9 +140,9 @@ class Monitoring(ABC):
             if not isinstance(register, str):
                 raise TypeError("Register has to be a string")
             register_obj = self.mc.info.register_info(register, subnode, servo=self.servo)
-            if not register_obj.is_monitoreable or (
-                register_obj.is_monitoreable
-                and register_obj.monitoring[-1] not in [RegCyclicType.TX, RegCyclicType.RXTX]
+            if register_obj.monitoring is None or (
+                register_obj.monitoring is not None
+                and register_obj.monitoring.cyclic not in [RegCyclicType.TX, RegCyclicType.RXTX]
             ):
                 raise IMMonitoringError(
                     f"{register} can not be mapped as a monitoring register (wrong cyclic)"
