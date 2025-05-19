@@ -79,6 +79,12 @@ This will use the default *ingenialink* installation from *[develop]* setting. I
 
 For example, to send a custom wheel:
 
-```python
+```bash
 INGENIALINK_INSTALL_PATH=dist/ingenialink-7.4.1-cp39-cp39-win_amd64.whl tox -e py39
+```
+
+To install *FSoE*, do the same with *FSOE_PACKAGE*:
+
+```bash
+FSOE_PACKAGE=".[FSoE]" tox -e py39
 ```
