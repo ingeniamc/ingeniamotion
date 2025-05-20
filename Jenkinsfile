@@ -75,27 +75,27 @@ def runTestHW(markers, setup_name, install_fsoe = false) {
 
     pythonVersions.each { version ->
         def wheelFile = getIngenialinkArtifactWheelPath(version)
-        withEnv(["INGENIALINK_INSTALL_PATH=${wheelFile}", "FSOE_PACKAGE=${fsoe_package}"]) {
-            try {
-                bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
-                        "-m \"${markers}\" " +
-                        "--setup tests.setups.rack_specifiers.${setup_name} " +
-                        "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${setup_name}\""
-            } catch (err) {
-                unstable(message: "Tests failed")
-            } finally {
-                junit "pytest_reports\\*.xml"
-                // Delete the junit after publishing it so it not re-published on the next stage
-                bat "del /S /Q pytest_reports\\*.xml"
-                if (firstIteration) {
-                    def coverage_stash = ".coverage_${setup_name}"
-                    bat "move .coverage ${coverage_stash}"
-                    stash includes: coverage_stash, name: coverage_stash
-                    coverage_stashes.add(coverage_stash)
-                    firstIteration = false
-                }
+        // withEnv(["INGENIALINK_INSTALL_PATH=${wheelFile}", "FSOE_PACKAGE=${fsoe_package}"]) {
+        try {
+            bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
+                    "-m \"${markers}\" " +
+                    "--setup tests.setups.rack_specifiers.${setup_name} " +
+                    "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${setup_name}\""
+        } catch (err) {
+            unstable(message: "Tests failed")
+        } finally {
+            junit "pytest_reports\\*.xml"
+            // Delete the junit after publishing it so it not re-published on the next stage
+            bat "del /S /Q pytest_reports\\*.xml"
+            if (firstIteration) {
+                def coverage_stash = ".coverage_${setup_name}"
+                bat "move .coverage ${coverage_stash}"
+                stash includes: coverage_stash, name: coverage_stash
+                coverage_stashes.add(coverage_stash)
+                firstIteration = false
             }
         }
+        // }
     }
 }
 
