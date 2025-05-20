@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import ingenialogger
 import numpy as np
-from ingenialink.enums.register import RegCyclicType, RegDtype
+from ingenialink.enums.register import RegDtype
 from ingenialink.exceptions import ILValueError
 from numpy import ndarray
 from numpy.typing import NDArray
@@ -164,17 +164,12 @@ class Disturbance:
                 raise TypeError("Register key has to be a string")
             register_obj = self.mc.info.register_info(register, subnode, servo=self.servo)
             dtype = register_obj.dtype
-            cyclic = register_obj.cyclic
-            if cyclic != RegCyclicType.RX:
+            if register_obj.monitoring is None:
                 drive.disturbance_remove_all_mapped_registers()
                 raise IMDisturbanceError(f"{register} can not be mapped as a disturbance register")
             channel["dtype"] = dtype
             drive.disturbance_set_mapped_register(
-                ch_idx,
-                register_obj.mapped_address,
-                subnode,
-                dtype.value,
-                self.__data_type_size[dtype],
+                channel=ch_idx, uid=register, size=self.__data_type_size[dtype], axis=subnode
             )
             self.mapped_registers.append(channel)
             total_sample_size += self.__data_type_size[dtype]
