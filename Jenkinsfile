@@ -26,8 +26,8 @@ ORG_INGENIALINK_INSTALL_PATH = null
 INGENIALINK_WHEELS_DIR = "ingenialink_wheels"
 
 // Update the commit or set it to empty to use release version from tox.ini
-SUMMIT_TESTING_FRAMEWORK_COMMIT = "4074f567690e49bb7517f5f1fac34365ea8dd8f5"
 SUMMIT_TESTING_FRAMEWORK_REPO = "summit-testing-framework.git"
+SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH = "4074f567690e49bb7517f5f1fac34365ea8dd8f5"
 
 FSOE_INSTALL_VERSION = ".[FSoE]"
 
@@ -61,6 +61,15 @@ def getIngenialinkArtifactWheelPath(python_version) {
     }
     else {
         return ""
+    }
+}
+
+def getSummitTestingFrameworkCommit() {
+    if (!SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty()) {
+        return "git+ssh://git@${GIT_CLOUD.replace(":", "/")}/${SUMMIT_TESTING_FRAMEWORK_REPO}.git@${SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH}"
+    }
+    else {
+        return null
     }
 }
 
@@ -137,6 +146,15 @@ pipeline {
                             RUN_ONLY_SMOKE_TESTS = true
                         }
                     }
+                }
+            }
+        }
+
+        stage ('Set Summit Testing Framework Installation') {
+            agent any
+            steps {
+                script {
+                    env.SUMMIT_TESTING_FRAMEWORK = getSummitTestingFrameworkCommit()
                 }
             }
         }
