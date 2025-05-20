@@ -29,11 +29,6 @@ FSOE_INSTALL_VERSION = ".[FSoE]"
 
 coverage_stashes = []
 
-// Run this before any tox command that requires develop ingenialink installation and that
-// may run in parallel/after with HW tests, because HW tests alter its value
-def restoreIngenialinkWheelEnvVar() {
-    env.INGENIALINK_INSTALL_PATH = ORG_INGENIALINK_INSTALL_PATH
-}
 
 def clearIngenialinkWheelDir() {
     if (fileExists(INGENIALINK_WHEELS_DIR)) {
@@ -65,12 +60,11 @@ def getIngenialinkArtifactWheelPath(python_version) {
 }
 
 def runTestHW(markers, setup_name, install_fsoe = false) {
-
+    def fsoe_package = null
     if (install_fsoe) {
-        env.FSOE_PACKAGE = FSOE_INSTALL_VERSION
-    } else {
-        env.FSOE_PACKAGE = null
+        fsoe_package = FSOE_INSTALL_VERSION
     }
+
     unstash 'ingenialink_wheels'
     if (RUN_ONLY_SMOKE_TESTS) {
         markers = markers + " and smoke"
@@ -81,24 +75,25 @@ def runTestHW(markers, setup_name, install_fsoe = false) {
 
     pythonVersions.each { version ->
         def wheelFile = getIngenialinkArtifactWheelPath(version)
-        env.INGENIALINK_INSTALL_PATH = wheelFile
-        try {
-            bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
-                    "-m \"${markers}\" " +
-                    "--setup tests.setups.rack_specifiers.${setup_name} " +
-                    "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${setup_name}\""
-        } catch (err) {
-            unstable(message: "Tests failed")
-        } finally {
-            junit "pytest_reports\\*.xml"
-            // Delete the junit after publishing it so it not re-published on the next stage
-            bat "del /S /Q pytest_reports\\*.xml"
-            if (firstIteration) {
-                def coverage_stash = ".coverage_${setup_name}"
-                bat "move .coverage ${coverage_stash}"
-                stash includes: coverage_stash, name: coverage_stash
-                coverage_stashes.add(coverage_stash)
-                firstIteration = false
+        withEnv(["INGENIALINK_INSTALL_PATH=${wheelFile}", "FSOE_PACKAGE=${fsoe_package}"]) {
+            try {
+                bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
+                        "-m \"${markers}\" " +
+                        "--setup tests.setups.rack_specifiers.${setup_name} " +
+                        "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${setup_name}\""
+            } catch (err) {
+                unstable(message: "Tests failed")
+            } finally {
+                junit "pytest_reports\\*.xml"
+                // Delete the junit after publishing it so it not re-published on the next stage
+                bat "del /S /Q pytest_reports\\*.xml"
+                if (firstIteration) {
+                    def coverage_stash = ".coverage_${setup_name}"
+                    bat "move .coverage ${coverage_stash}"
+                    stash includes: coverage_stash, name: coverage_stash
+                    coverage_stashes.add(coverage_stash)
+                    firstIteration = false
+                }
             }
         }
     }
@@ -255,9 +250,6 @@ pipeline {
                     stages {
                         stage('Run no-connection tests') {
                             steps {
-                                script {
-                                    restoreIngenialinkWheelEnvVar()
-                                }
                                 sh "python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
                                     "-m virtual " +
                                     "--setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP"
@@ -289,10 +281,6 @@ pipeline {
                                     }
                                 }
                                 stage('Make a static type analysis') {
-                                    steps {
-                                        script {
-                                            restoreIngenialinkWheelEnvVar()
-                                        }
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e type"
                                     }
                                 }
@@ -303,9 +291,6 @@ pipeline {
                                 }
                                 stage('Generate documentation') {
                                     steps {
-                                        script {
-                                            restoreIngenialinkWheelEnvVar()
-                                        }
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e docs"
                                         bat """
                                             "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
@@ -315,9 +300,6 @@ pipeline {
                                 }
                                 stage("Run unit tests") {
                                     steps {
-                                        script {
-                                            restoreIngenialinkWheelEnvVar()
-                                        }
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
                                                 "-m \"not ethernet and not soem and not fsoe and not canopen and not virtual and not soem_multislave\" "
                                     }
@@ -336,9 +318,6 @@ pipeline {
                                 }
                                 stage("Run virtual drive tests") {
                                     steps {
-                                        script {
-                                            restoreIngenialinkWheelEnvVar()
-                                        }
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
                                                 "-m virtual " +
                                                 "--setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP "
