@@ -35,7 +35,8 @@ def force_fault(mc, alias):
 
 
 @pytest.fixture(scope="module")
-def feedback_test_setup(mc, alias):
+def feedback_test_setup(_motion_controller_creator, alias):
+    mc = _motion_controller_creator
     mc.tests.commutation(servo=alias)
 
 
