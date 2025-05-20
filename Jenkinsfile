@@ -255,9 +255,6 @@ pipeline {
                     stages {
                         stage('Run no-connection tests') {
                             steps {
-                                script {
-                                    restoreIngenialinkWheelEnvVar()
-                                }
                                 sh "python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
                                     "-m virtual " +
                                     "--setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP"
@@ -290,9 +287,6 @@ pipeline {
                                 }
                                 stage('Make a static type analysis') {
                                     steps {
-                                        script {
-                                            restoreIngenialinkWheelEnvVar()
-                                        }
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e type"
                                     }
                                 }
@@ -303,9 +297,6 @@ pipeline {
                                 }
                                 stage('Generate documentation') {
                                     steps {
-                                        script {
-                                            restoreIngenialinkWheelEnvVar()
-                                        }
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e docs"
                                         bat """
                                             "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
@@ -315,9 +306,6 @@ pipeline {
                                 }
                                 stage("Run unit tests") {
                                     steps {
-                                        script {
-                                            restoreIngenialinkWheelEnvVar()
-                                        }
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
                                                 "-m \"not ethernet and not soem and not fsoe and not canopen and not virtual and not soem_multislave\" "
                                     }
@@ -336,9 +324,6 @@ pipeline {
                                 }
                                 stage("Run virtual drive tests") {
                                     steps {
-                                        script {
-                                            restoreIngenialinkWheelEnvVar()
-                                        }
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
                                                 "-m virtual " +
                                                 "--setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP "
