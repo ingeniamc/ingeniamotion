@@ -51,36 +51,22 @@ This file is ignored by git and won't be uploaded to the repository.
 Example of a setup:
 
 ```python
-from .descriptors import DriveEcatSetup
+from pathlib import Path
 
-TESTS_SETUP = DriveEcatSetup(
-    dictionary="//awe-srv-max-prd/distext/products/EVE-XCR/firmware/2.5.1/eve-xcr-e_eoe_2.5.1.xdf",
-    identifier="eve-xcr-e",
-    config_file="//azr-srv-ingfs1/dist/setups/setup_eve_ecat/1.2.0/config.xml",
-    fw_file="//awe-srv-max-prd/distext/products/EVE-XCR/firmware/2.5.1/eve-xcr-e_2.5.1.sfu",
-    ifname="\\Device\\NPF_{B24AA996-414A-4F95-95E6-2828D346209A}",
+from summit_testing_framework.setups import LocalDriveConfigSpecifier
+
+DEN_NET_E_SETUP = LocalDriveConfigSpecifier.from_ethercat_configuration(
+    identifier="den-net-e",
+    dictionary=Path("C://Users//some.user//Downloads//den-net-e_eoe_2.7.3.xdf"),
+    config_file=Path("C://Users//some.user//Downloads//den_net_e.xcf"),
+    firmware_file=Path("C://Users//some.user//Downloads//den-net-e_2.7.3.lfu"),
+    ifname="\\Device\\NPF_{675921D7-B64A-4997-9211-D18E2A6DC96A}",
     slave=1,
-    eoe_comm=True,
-    boot_in_app=True,
-    load_firmware_with_rack_service=False,
+    boot_in_app=False,
 )
 ```
 
-To obtain *ifname* setting, can run the following:
-
-```python
-from ingeniamotion.communication import Communication
-
-def main() -> None:
-    network_adapters = Communication.get_network_adapters()
-    for adapter_name, adapter_guid in network_adapters.items():
-        print(f"{adapter_name}: {adapter_guid}")
-
-if __name__ == "__main__":
-    main()
-```
-
-This will print a list of adapters, select the one that you are currently using (check your network settings).
+For more information, check `summit-testing-framework` documentation.
 
 Run tests selecting the markers that you want and are appropriate for your setup.
 Beware that some tests may not be appropiate for the setup that you have and may fail.
