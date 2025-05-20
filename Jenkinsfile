@@ -68,9 +68,14 @@ def getSummitTestingFrameworkCommit() {
     if (!SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty()) {
         return "git+ssh://git@${GIT_CLOUD.replace(":", "/")}/${SUMMIT_TESTING_FRAMEWORK_REPO}@${SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH}"
     }
-    else {
-        return null
+
+    def toxIniContent = readFile('tox.ini')
+    def matcher = toxIniContent =~ /summit_testing_framework\s*=\s*\{env:SUMMIT_TESTING_FRAMEWORK:(.*)\}/
+    // Save the full url
+    if (matcher.find()) {
+        return matcher.group(1)
     }
+    return null
 }
 
 def runTestHW(markers, setup_name, install_fsoe = false) {
@@ -159,7 +164,7 @@ pipeline {
             }
         }
 
-        stage('Read Ingenialink Commit Hash') {
+        stage('Read Ingenialink and Commit Hash') {
             agent any
             steps {
                 script {
