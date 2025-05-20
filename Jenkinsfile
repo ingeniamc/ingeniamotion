@@ -66,7 +66,7 @@ def getIngenialinkArtifactWheelPath(python_version) {
 
 def getSummitTestingFrameworkCommit() {
     if (!SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty()) {
-        return "git+ssh://git@${GIT_CLOUD.replace(":", "/")}/${SUMMIT_TESTING_FRAMEWORK_REPO}.git@${SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH}"
+        return "git+ssh://git@${GIT_CLOUD.replace(":", "/")}/${SUMMIT_TESTING_FRAMEWORK_REPO}@${SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH}"
     }
     else {
         return null
