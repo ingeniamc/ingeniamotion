@@ -3,12 +3,11 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-
-from tests.tests_toolkit import dynamic_loader
+from summit_testing_framework import dynamic_loader
 
 pytest_plugins = [
-    "tests.tests_toolkit.pytest_addoptions",
-    "tests.tests_toolkit.setup_fixtures",
+    "summit_testing_framework.pytest_addoptions",
+    "summit_testing_framework.setup_fixtures",
 ]
 
 # Pytest runs with importlib import mode, which means that it will run the tests with the installed
@@ -35,15 +34,13 @@ def pytest_sessionstart(session):
 
 
 @pytest.fixture
-def disable_monitoring_disturbance(skip_if_monitoring_not_available, motion_controller):  # noqa: ARG001
+def disable_monitoring_disturbance(skip_if_monitoring_not_available, mc, alias):  # noqa: ARG001
     yield
-    mc, alias, environment = motion_controller
     mc.capture.clean_monitoring_disturbance(servo=alias)
 
 
 @pytest.fixture()
-def skip_if_monitoring_not_available(motion_controller):
-    mc, alias, environment = motion_controller
+def skip_if_monitoring_not_available(mc, alias):
     try:
         mc.capture._check_version(alias)
     except NotImplementedError:
