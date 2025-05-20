@@ -23,6 +23,10 @@ def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
 
 INGENIALINK_WHEELS_DIR = "ingenialink_wheels"
 
+// Update the commit or set it to empty to use release version from tox.ini
+SUMMIT_TESTING_FRAMEWORK_COMMIT = "4074f567690e49bb7517f5f1fac34365ea8dd8f5"
+SUMMIT_TESTING_FRAMEWORK_REPO = "summit-testing-framework.git"
+
 FSOE_INSTALL_VERSION = ".[FSoE]"
 
 coverage_stashes = []
