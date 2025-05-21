@@ -316,9 +316,9 @@ pipeline {
                         stage('Run no-connection tests') {
                             steps {
                                 withCredentials([sshUserPrivateKey(credentialsId: 'Bitbucket SSH', keyFileVariable: 'KEY')]) {
-                                    sh "git clone git@$GIT_CLOUD/$SUMMIT_TESTING_FRAMEWORK_REPO"
+                                    sh "GIT_SSH_COMMAND='ssh -i $KEY' git clone git@$GIT_CLOUD/$SUMMIT_TESTING_FRAMEWORK_REPO"
                                     sh """
-                                        python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- \
+                                        GIT_SSH_COMMAND='ssh -i $KEY' python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- \
                                             -m virtual \
                                             --setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP
                                     """
