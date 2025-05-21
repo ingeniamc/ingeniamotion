@@ -64,6 +64,7 @@ def getIngenialinkArtifactWheelPath(python_version) {
     }
 }
 
+
 def getSummitTestingFrameworkCommit() {
     if (!SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty()) {
         return "git+ssh://git@${GIT_CLOUD.replace(":", "/")}/${SUMMIT_TESTING_FRAMEWORK_REPO}@${SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH}"
@@ -77,6 +78,21 @@ def getSummitTestingFrameworkCommit() {
     }
     return null
 }
+
+
+def loadSSHKeys() {
+    if (env.BRANCH_NAME == 'master' || env.BRANCH_NAME.startsWith('release/')) {
+        echo 'Installing libraries without access to bitbucket repositories'
+    }  else {
+        echo 'Loading SSH key for libraries referenced to bitbucket on development'
+        withCredentials([sshUserPrivateKey(credentialsId: 'Bitbucket SSH', keyFileVariable: 'KEY')]) {
+            bat """
+                COPY %KEY% C:\\id_rsa
+            """
+        }
+    }
+}
+
 
 def runTestHW(markers, setup_name, install_fsoe = false) {
     def fsoe_package = null
@@ -276,6 +292,19 @@ pipeline {
                         }
                     }
                     stages {
+                        stage('Load ssh keys') {
+                            environment {
+                                GIT_SSH_COMMAND = 'ssh -i C:/id_rsa -o StrictHostKeyChecking=no'
+                            }
+                            when {
+                                expression { !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
+                            }
+                            steps {
+                                script {
+                                    loadSSHKeys()
+                                }
+                            }
+                        }
                         stage('Run no-connection tests') {
                             steps {
                                 sh "python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
@@ -325,6 +354,19 @@ pipeline {
                                             "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
                                         """
                                         stash includes: 'docs.zip', name: 'docs'
+                                    }
+                                }
+                                stage('Load ssh keys') {
+                                    environment {
+                                        GIT_SSH_COMMAND = 'ssh -i C:/id_rsa -o StrictHostKeyChecking=no'
+                                    }
+                                    when {
+                                        expression { !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
+                                    }
+                                    steps {
+                                        script {
+                                            loadSSHKeys()
+                                        }
                                     }
                                 }
                                 stage("Run unit tests") {
@@ -407,6 +449,19 @@ pipeline {
                         label CAN_NODE
                     }
                     stages {
+                        stage('Load ssh keys') {
+                            environment {
+                                GIT_SSH_COMMAND = 'ssh -i C:/id_rsa -o StrictHostKeyChecking=no'
+                            }
+                            when {
+                                expression { !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
+                            }
+                            steps {
+                                script {
+                                    loadSSHKeys()
+                                }
+                            }
+                        }
                         stage("CanOpen Everest") {
                             steps {
                                 runTestHW("canopen", "CAN_EVE_SETUP")
@@ -441,6 +496,19 @@ pipeline {
                         label ECAT_NODE
                     }
                     stages {
+                        stage('Load ssh keys') {
+                            environment {
+                                GIT_SSH_COMMAND = 'ssh -i C:/id_rsa -o StrictHostKeyChecking=no'
+                            }
+                            when {
+                                expression { !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
+                            }
+                            steps {
+                                script {
+                                    loadSSHKeys()
+                                }
+                            }
+                        }
                         stage("Ethercat Everest") {
                             when {
                                 // Remove this after fixing INGK-983
