@@ -302,9 +302,9 @@ pipeline {
                     stages {
                         stage('Run no-connection tests') {
                             steps {
-                                if (!SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty() && !env.SUMMIT_TESTING_FRAMEWORK.isEmpty()) {
-                                    sh 'export GIT_SSH_COMMAND="ssh -i .ssh/id_rsa -o StrictHostKeyChecking=no"'
-                                    script {
+                                script {
+                                    if (!SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty() && !env.SUMMIT_TESTING_FRAMEWORK.isEmpty()) {
+                                        sh 'export GIT_SSH_COMMAND="ssh -i .ssh/id_rsa -o StrictHostKeyChecking=no"'
                                         loadSSHKeys(false)
                                     }
                                 }
