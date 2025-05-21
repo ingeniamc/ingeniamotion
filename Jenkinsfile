@@ -92,10 +92,10 @@ def loadSSHKeys(windows_node = true) {
                     COPY %KEY% %USERPROFILE%\\.ssh\\id_rsa
                 """
             } else {
-                sh 'mkdir -p .ssh'
-                sh 'cp $KEY .ssh/id_rsa'
-                sh 'chmod 600 .ssh/id_rsa'
-                sh 'ssh-keyscan -H bitbucket.org >> .ssh/known_hosts'
+                sh 'mkdir -p /root/.ssh'
+                sh 'cp $KEY /root/.ssh/id_rsa'
+                sh 'chmod 600 /root/.ssh/id_rsa'
+                sh 'ssh-keyscan -H bitbucket.org >> /root/.ssh/known_hosts'
             }
         }
     }
@@ -304,13 +304,15 @@ pipeline {
                             steps {
                                 script {
                                     if (!SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty() && !env.SUMMIT_TESTING_FRAMEWORK.isEmpty()) {
-                                        sh 'export GIT_SSH_COMMAND="ssh -i .ssh/id_rsa -o StrictHostKeyChecking=no"'
                                         loadSSHKeys(false)
                                     }
-                                }
-                                sh "python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
-                                    "-m virtual " +
-                                    "--setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP"
+                                }                                
+                                sh '''
+                                    export GIT_SSH_COMMAND="ssh -i /root/.ssh/id_rsa -o StrictHostKeyChecking=no"
+                                    python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- \
+                                        -m virtual \
+                                        --setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP
+                                '''
                             }
                             post {
                                 always {
