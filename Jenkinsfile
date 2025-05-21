@@ -323,7 +323,7 @@ pipeline {
                                 //         loadSSHKeys(false, true)
                                 //     }
                                 // } 
-                                sh 'git clone git@$GIT_CLOUD/${SUMMIT_TESTING_FRAMEWORK_REPO}'      
+                                sh 'git clone git@$GIT_CLOUD/$SUMMIT_TESTING_FRAMEWORK_REPO'      
                                 sh """
                                     python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- \
                                         -m virtual \
