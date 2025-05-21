@@ -72,7 +72,6 @@ def getSummitTestingFrameworkCommit() {
 
     def toxIniContent = readFile('tox.ini')
     def matcher = toxIniContent =~ /summit_testing_framework\s*=\s*\{env:SUMMIT_TESTING_FRAMEWORK:(.*)\}/
-    // Save the full url
     if (matcher.find()) {
         return matcher.group(1)
     }
@@ -304,15 +303,28 @@ pipeline {
                         }
                     }
                     stages {
-                        stage('Run no-connection tests') {
+                        stage('Load ssh keys') {
+                            environment {
+                                GIT_SSH_COMMAND = 'ssh -i /tmp/ssh/id_rsa -o UserKnownHostsFile=/tmp/ssh/known_hosts -o StrictHostKeyChecking=yes'
+                            }
+                            when {
+                                expression { !SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty() && !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
+                            }
                             steps {
                                 script {
-                                    if (!SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty() && !env.SUMMIT_TESTING_FRAMEWORK.isEmpty()) {
-                                        loadSSHKeys(false, true)
-                                    }
-                                }                                
+                                    loadSSHKeys(false, true)
+                                }
+                            }
+                        }
+                        stage('Run no-connection tests') {
+                            steps {
+                                // script {
+                                //     if (!SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty() && !env.SUMMIT_TESTING_FRAMEWORK.isEmpty()) {
+                                //         loadSSHKeys(false, true)
+                                //     }
+                                // } 
+                                sh 'git clone git@$GIT_CLOUD/${SUMMIT_TESTING_FRAMEWORK_REPO}'      
                                 sh """
-                                    export GIT_SSH_COMMAND="ssh -i /tmp/ssh/id_rsa -o UserKnownHostsFile=/tmp/ssh/known_hosts -o StrictHostKeyChecking=yes"
                                     python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- \
                                         -m virtual \
                                         --setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP
