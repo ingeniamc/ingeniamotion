@@ -1,4 +1,5 @@
 import pytest
+from ingenialink.emcy import EmergencyMessage
 
 from ingeniamotion.fsoe import FSoEMaster
 from ingeniamotion.motion_controller import MotionController
@@ -34,9 +35,20 @@ def test_fsoe_master_get_application_parameters(setup_descriptor):
     assert len(application_parameters)
 
 
+def emergency_handler(servo_alias: str, message: "EmergencyMessage"):
+    if message.error_code == 0xFF43:
+        # Cyclic timeout Ethercat PDO lifeguard
+        # is a typical error code when the pdos are stopped
+        # Ignore
+        return
+    raise RuntimeError(f"Emergency message received from {servo_alias}: {message}")
+
+
 @pytest.mark.fsoe
 @pytest.mark.smoke
 def test_deactivate_sto(mc, alias):
+    mc.communication.subscribe_emergency_message(emergency_handler)
+
     # Configure error channel
     mc.fsoe.subscribe_to_errors(lambda error: print(error))
     # Connect to the servo drive
