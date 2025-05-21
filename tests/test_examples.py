@@ -44,9 +44,9 @@ def setup_for_test_examples(mc, alias):
 
 
 @pytest.fixture
-def teardown_for_test_examples(interface_controller, setup_descriptor: SetupDescriptor):
+def teardown_for_test_examples(setup_manager, setup_descriptor: SetupDescriptor):
     yield
-    _, net, _, _ = interface_controller
+    _, net, _, _ = setup_manager
     connect_to_servo_with_protocol(descriptor=setup_descriptor, net=net)
 
 
