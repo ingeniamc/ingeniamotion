@@ -349,39 +349,48 @@ pipeline {
                                 }
                             }
                             stages {
-                                stage('Build wheels') {
-                                    steps {
-                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e build"
-                                        stash includes: 'dist\\*', name: 'build'
-                                        archiveArtifacts artifacts: "dist\\*"
+                                // stage('Build wheels') {
+                                //     steps {
+                                //         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e build"
+                                //         stash includes: 'dist\\*', name: 'build'
+                                //         archiveArtifacts artifacts: "dist\\*"
+                                //     }
+                                // }
+                                // stage('Make a static type analysis') {
+                                //     steps {
+                                //         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e type"
+                                //     }
+                                // }
+                                // stage('Check formatting') {
+                                //     steps {
+                                //         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e format"
+                                //     }
+                                // }
+                                // stage('Generate documentation') {
+                                //     steps {
+                                //         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e docs"
+                                //         bat """
+                                //             "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
+                                //         """
+                                //         stash includes: 'docs.zip', name: 'docs'
+                                //     }
+                                // }
+                                stage('Load ssh keys') {
+                                    when {
+                                        expression { !SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty() && !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
                                     }
-                                }
-                                stage('Make a static type analysis') {
                                     steps {
-                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e type"
-                                    }
-                                }
-                                stage('Check formatting') {
-                                    steps {
-                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e format"
-                                    }
-                                }
-                                stage('Generate documentation') {
-                                    steps {
-                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e docs"
-                                        bat """
-                                            "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
-                                        """
-                                        stash includes: 'docs.zip', name: 'docs'
+                                        script {
+                                            loadSSHKeys(true, false)
+                                        }
                                     }
                                 }
                                 stage("Run unit tests") {
+                                    environment {
+                                        GIT_SSH_COMMAND = 'ssh -i USERPROFILE%\\.ssh\\id_rsa -o StrictHostKeyChecking=no'
+                                    }
                                     steps {
-                                        script {
-                                            if (!SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty() && !env.SUMMIT_TESTING_FRAMEWORK.isEmpty()) {
-                                                loadSSHKeys(true, true)
-                                            }
-                                        }
+                                        bat "git clone git@$GIT_CLOUD/$SUMMIT_TESTING_FRAMEWORK_REPO"
                                         bat """
                                             set "GIT_SSH_COMMAND=ssh -i %TEMP%\\ssh\\id_rsa -o StrictHostKeyChecking=no"
                                             py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- ^
