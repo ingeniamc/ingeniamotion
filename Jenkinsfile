@@ -80,15 +80,21 @@ def getSummitTestingFrameworkCommit() {
 }
 
 
-def loadSSHKeys() {
+def loadSSHKeys(windows_node = true) {
     if (env.BRANCH_NAME == 'master' || env.BRANCH_NAME.startsWith('release/')) {
         echo 'Installing libraries without access to bitbucket repositories'
     }  else {
         echo 'Loading SSH key for libraries referenced to bitbucket on development'
         withCredentials([sshUserPrivateKey(credentialsId: 'Bitbucket SSH', keyFileVariable: 'KEY')]) {
-            bat """
-                COPY %KEY% C:\\id_rsa
-            """
+            if (windows_node) {
+                bat """
+                    COPY %KEY% C:\\id_rsa
+                """
+            } else {
+                sh """
+                    cp "$KEY" /id_rsa
+                """
+            }
         }
     }
 }
@@ -301,7 +307,7 @@ pipeline {
                             }
                             steps {
                                 script {
-                                    loadSSHKeys()
+                                    loadSSHKeys(false)
                                 }
                             }
                         }
