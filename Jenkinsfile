@@ -305,7 +305,7 @@ pipeline {
                                 GIT_SSH_COMMAND = 'ssh -i .ssh/id_rsa -o StrictHostKeyChecking=no'
                             }
                             when {
-                                expression { !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
+                                expression { !SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty() && !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
                             }
                             steps {
                                 script {
@@ -369,7 +369,7 @@ pipeline {
                                         GIT_SSH_COMMAND = 'ssh -i USERPROFILE%\\.ssh\\id_rsa -o StrictHostKeyChecking=no'
                                     }
                                     when {
-                                        expression { !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
+                                        expression { !SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty() && !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
                                     }
                                     steps {
                                         script {
@@ -462,7 +462,7 @@ pipeline {
                                 GIT_SSH_COMMAND = 'ssh -i USERPROFILE%\\.ssh\\id_rsa -o StrictHostKeyChecking=no'
                             }
                             when {
-                                expression { !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
+                                expression { !SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty() && !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
                             }
                             steps {
                                 script {
@@ -509,7 +509,7 @@ pipeline {
                                 GIT_SSH_COMMAND = 'ssh -i USERPROFILE%\\.ssh\\id_rsa -o StrictHostKeyChecking=no'
                             }
                             when {
-                                expression { !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
+                                expression { !SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty() && !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
                             }
                             steps {
                                 script {
