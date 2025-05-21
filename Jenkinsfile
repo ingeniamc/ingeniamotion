@@ -305,14 +305,14 @@ pipeline {
                     stages {
                         stage('Load ssh keys') {
                             environment {
-                                GIT_SSH_COMMAND = 'ssh -i /tmp/ssh/id_rsa -o UserKnownHostsFile=/tmp/ssh/known_hosts -o StrictHostKeyChecking=yes'
+                                GIT_SSH_COMMAND = 'ssh -i .ssh/id_rsa -o StrictHostKeyChecking=yes'
                             }
                             when {
                                 expression { !SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty() && !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
                             }
                             steps {
                                 script {
-                                    loadSSHKeys(false, true)
+                                    loadSSHKeys(false, false)
                                 }
                             }
                         }
@@ -323,7 +323,7 @@ pipeline {
                                 //         loadSSHKeys(false, true)
                                 //     }
                                 // } 
-                                sh 'git clone git@$GIT_CLOUD/$SUMMIT_TESTING_FRAMEWORK_REPO'      
+                                sh "git clone git@$GIT_CLOUD/$SUMMIT_TESTING_FRAMEWORK_REPO"
                                 sh """
                                     python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- \
                                         -m virtual \
