@@ -481,7 +481,9 @@ class FSoEMaster:
             The FSoE slave address.
 
         """
-        value = self.__mc.communication.get_register(register=self.__FSOE_MANUF_SAFETY_ADDRESS, servo=servo)
+        value = self.__mc.communication.get_register(
+            register=self.__FSOE_MANUF_SAFETY_ADDRESS, servo=servo
+        )
         if not isinstance(value, int):
             raise ValueError(f"Wrong safety address value type. Expected int, got {type(value)}")
         return value
