@@ -304,9 +304,6 @@ pipeline {
                     }
                     stages {
                         stage('Load ssh keys') {
-                            environment {
-                                GIT_SSH_COMMAND = 'ssh -i .ssh/id_rsa -o StrictHostKeyChecking=yes'
-                            }
                             when {
                                 expression { !SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty() && !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
                             }
@@ -317,6 +314,9 @@ pipeline {
                             }
                         }
                         stage('Run no-connection tests') {
+                            environment {
+                                GIT_SSH_COMMAND = 'ssh -i .ssh/id_rsa -o StrictHostKeyChecking=yes'
+                            }
                             steps {
                                 // script {
                                 //     if (!SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty() && !env.SUMMIT_TESTING_FRAMEWORK.isEmpty()) {
