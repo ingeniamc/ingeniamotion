@@ -87,11 +87,15 @@ def loadSSHKeys(windows_node = true, docker_node = false) {
         withCredentials([sshUserPrivateKey(credentialsId: 'Bitbucket SSH', keyFileVariable: 'KEY')]) {
             if (windows_node) {
                 def sshDir = docker_node ? '%TEMP%\\ssh' : '%USERPROFILE%\\.ssh'
-                bat "mkdir ${sshDir}"
+                bat """
+                    if not exist "${sshDir}" (
+                        mkdir "${sshDir}"
+                    )
+                """
                 bat "COPY %KEY% ${sshDir}\\id_rsa"
             } else {
                 def sshDir = docker_node ? '/tmp/ssh' : '.ssh'
-                sh "mkdir -p ${sshDir}"
+                sh "[ -d \"${sshDir}\" ] || mkdir -p \"${sshDir}\""
                 sh "cp \$KEY ${sshDir}/id_rsa"
                 sh "chmod 600 ${sshDir}/id_rsa"
                 sh "ssh-keyscan -H bitbucket.org >> ${sshDir}/known_hosts"
