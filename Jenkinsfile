@@ -91,9 +91,8 @@ def loadSSHKeys(windows_node = true) {
                     COPY %KEY% C:\\id_rsa
                 """
             } else {
-                sh """
-                    cp "$KEY" /id_rsa
-                """
+                sh 'cp $KEY .ssh/id_rsa'
+                sh 'ssh-keyscan -H bitbucket.org >> .ssh/known_hosts'
             }
         }
     }
@@ -300,7 +299,7 @@ pipeline {
                     stages {
                         stage('Load ssh keys') {
                             environment {
-                                GIT_SSH_COMMAND = 'ssh -i C:/id_rsa -o StrictHostKeyChecking=no'
+                                GIT_SSH_COMMAND = 'ssh -i .ssh/id_rsa -o StrictHostKeyChecking=no'
                             }
                             when {
                                 expression { !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
