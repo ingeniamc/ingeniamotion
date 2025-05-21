@@ -4,6 +4,7 @@ from functools import partial
 from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import ingenialogger
+from ingenialink.ethercat.servo import EthercatServo
 
 try:
     from fsoe_master.fsoe_master import (
@@ -63,11 +64,19 @@ class FSoEMasterHandler:
     SAFE_INPUTS_UID = "SAFE_INPUTS"
     PROCESS_DATA_COMMAND = 0x36
 
+    __FSOE_MANUF_SAFETY_ADDRESS = "FSOE_MANUF_SAFETY_ADDRESS"
+
+    DEFAULT_WATCHDOG_TIMEOUT_S = 1
+
+    # Pending
+    __servo: EthercatServo
+
     def __init__(
         self,
+        *,
         slave_address: int,
         connection_id: int,
-        watchdog_timeout: float,
+        watchdog_timeout: float = DEFAULT_WATCHDOG_TIMEOUT_S,
         application_parameters: list["ApplicationParameter"],
         report_error_callback: Callable[[str, str], None],
     ):
@@ -137,6 +146,17 @@ class FSoEMasterHandler:
         self.__master_handler.slave.dictionary_map.add_by_key(self.SAFE_INPUTS_KEY, bits=1)
         self.__master_handler.slave.dictionary_map.add_padding(bits=6)
 
+    def set_pdo_maps_to_slave(self) -> None:
+        """Set the PDOMaps to be used by the Safety PDUs to the slave."""
+        self.__servo.set_pdo_map_to_slave(
+            rpdo_maps=[self.safety_master_pdu_map], tpdo_maps=[self.safety_slave_pdu_map]
+        )
+
+    def remove_pdo_maps_from_slave(self) -> None:
+        """Remove the PDOMaps used by the Safety PDUs from the slave."""
+        self.__servo.remove_rpdo_map(self.safety_master_pdu_map)
+        self.__servo.remove_tpdo_map(self.safety_slave_pdu_map)
+
     def get_request(self) -> None:
         """Set the FSoE master handler request to the Safety Master PDU PDOMap."""
         if not self.__running:
@@ -183,6 +203,31 @@ class FSoEMasterHandler:
         if not isinstance(safe_inputs_value, bool):
             raise ValueError(f"Wrong value type. Expected type bool, got {type(safe_inputs_value)}")
         return safe_inputs_value
+
+    def get_safety_address(self) -> int:
+        """Get the drive's FSoE slave address.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+
+        Returns:
+            The FSoE slave address.
+
+        """
+        value = self.__servo.read(self.__FSOE_MANUF_SAFETY_ADDRESS)
+        if not isinstance(value, int):
+            raise ValueError(f"Wrong safety address value type. Expected int, got {type(value)}")
+        return value
+
+    def set_safety_address(self, address: int) -> None:
+        """Set the drive's FSoE slave address.
+
+        Args:
+            address: The address to be set.
+            servo: servo alias to reference it. ``default`` by default.
+
+        """
+        self.__servo.write(self.__FSOE_MANUF_SAFETY_ADDRESS, address)
 
     def is_sto_active(self) -> bool:
         """Check the STO state.
@@ -347,9 +392,6 @@ class FSoEMaster:
 
     """
 
-    DEFAULT_WATCHDOG_TIMEOUT_S = 1
-
-    __FSOE_MANUF_SAFETY_ADDRESS = "FSOE_MANUF_SAFETY_ADDRESS"
     __MDP_CONFIGURED_MODULE_1 = "MDP_CONFIGURED_MODULE_1"
 
     def __init__(self, motion_controller: "MotionController") -> None:
@@ -363,7 +405,7 @@ class FSoEMaster:
     def create_fsoe_master_handler(
         self,
         servo: str = DEFAULT_SERVO,
-        fsoe_master_watchdog_timeout: float = DEFAULT_WATCHDOG_TIMEOUT_S,
+        fsoe_master_watchdog_timeout: float = FSoEMasterHandler.DEFAULT_WATCHDOG_TIMEOUT_S,
     ) -> None:
         """Create an FSoE Master handler linked to a Safe servo drive.
 
@@ -375,11 +417,11 @@ class FSoEMaster:
         slave_address = self.get_safety_address(servo)
         application_parameters = self._get_application_parameters(servo)
         master_handler = FSoEMasterHandler(
-            slave_address,
-            self.__next_connection_id,
-            fsoe_master_watchdog_timeout,
-            application_parameters,
-            partial(self._notify_errors, servo=servo),
+            slave_address=slave_address,
+            connection_id=self.__next_connection_id,
+            watchdog_timeout=fsoe_master_watchdog_timeout,
+            application_parameters=application_parameters,
+            report_error_callback=partial(self._notify_errors, servo=servo),
         )
         self.__handlers[servo] = master_handler
         self.__next_connection_id += 1
@@ -481,12 +523,8 @@ class FSoEMaster:
             The FSoE slave address.
 
         """
-        value = self.__mc.communication.get_register(
-            register=self.__FSOE_MANUF_SAFETY_ADDRESS, servo=servo
-        )
-        if not isinstance(value, int):
-            raise ValueError(f"Wrong safety address value type. Expected int, got {type(value)}")
-        return value
+        master_handler = self.__handlers[servo]
+        return master_handler.get_safety_address()
 
     def set_safety_address(self, address: int, servo: str = DEFAULT_SERVO) -> None:
         """Set the drive's FSoE slave address.
@@ -496,9 +534,8 @@ class FSoEMaster:
             servo: servo alias to reference it. ``default`` by default.
 
         """
-        self.__mc.communication.set_register(
-            register=self.__FSOE_MANUF_SAFETY_ADDRESS, value=address, servo=servo
-        )
+        master_handler = self.__handlers[servo]
+        return master_handler.set_safety_address(address)
 
     def __get_configured_module_ident_1(
         self, servo: str = DEFAULT_SERVO
@@ -639,16 +676,13 @@ class FSoEMaster:
 
     def _set_pdo_maps_to_slaves(self) -> None:
         """Set the PDOMaps to be used by the Safety PDUs to the slaves."""
-        for servo, master_handler in self.__handlers.items():
-            rpdo_map = master_handler.safety_master_pdu_map
-            tpdo_map = master_handler.safety_slave_pdu_map
-            self.__mc.capture.pdo.set_pdo_maps_to_slave(rpdo_map, tpdo_map, servo)
+        for master_handler in self.__handlers.values():
+            master_handler.set_pdo_maps_to_slave()
 
     def _remove_pdo_maps_from_slaves(self) -> None:
         """Remove the PDOMaps used by the Safety PDUs from the slaves."""
-        for servo, master_handler in self.__handlers.items():
-            self.__mc.capture.pdo.remove_rpdo_map(servo, master_handler.safety_master_pdu_map)
-            self.__mc.capture.pdo.remove_tpdo_map(servo, master_handler.safety_slave_pdu_map)
+        for master_handler in self.__handlers.values():
+            master_handler.remove_pdo_maps_from_slave()
 
     def _get_request(self) -> None:
         """Get the FSoE master handlers requests.
