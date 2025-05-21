@@ -303,32 +303,26 @@ pipeline {
                         }
                     }
                     stages {
-                        stage('Load ssh keys') {
-                            when {
-                                expression { !SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty() && !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
-                            }
-                            steps {
-                                script {
-                                    loadSSHKeys(false, false)
-                                }
-                            }
-                        }
+                        // stage('Load ssh keys') {
+                        //     when {
+                        //         expression { !SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty() && !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
+                        //     }
+                        //     steps {
+                        //         script {
+                        //             loadSSHKeys(false, false)
+                        //         }
+                        //     }
+                        // }
                         stage('Run no-connection tests') {
-                            environment {
-                                GIT_SSH_COMMAND = 'ssh -i .ssh/id_rsa -o StrictHostKeyChecking=yes'
-                            }
                             steps {
-                                // script {
-                                //     if (!SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty() && !env.SUMMIT_TESTING_FRAMEWORK.isEmpty()) {
-                                //         loadSSHKeys(false, true)
-                                //     }
-                                // } 
-                                sh "git clone git@$GIT_CLOUD/$SUMMIT_TESTING_FRAMEWORK_REPO"
-                                sh """
-                                    python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- \
-                                        -m virtual \
-                                        --setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP
-                                """
+                                withCredentials([sshUserPrivateKey(credentialsId: 'Bitbucket SSH', keyFileVariable: 'KEY')]) {
+                                    sh "git clone git@$GIT_CLOUD/$SUMMIT_TESTING_FRAMEWORK_REPO"
+                                    sh """
+                                        python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- \
+                                            -m virtual \
+                                            --setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP
+                                    """
+                                }
                             }
                             post {
                                 always {
