@@ -43,6 +43,9 @@ def error_handler(error: FSoEError):
     raise RuntimeError(f"FSoE error received: {error}")
 
 
+# TODO Pending add more tests for the FSoE master API, check it not broke
+
+
 @pytest.mark.fsoe
 @pytest.mark.smoke
 def test_fsoe_master_get_application_parameters(mc, alias):

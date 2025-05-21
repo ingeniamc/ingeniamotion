@@ -64,7 +64,7 @@ class FSoEMasterHandler:
     SAFE_INPUTS_UID = "SAFE_INPUTS"
     PROCESS_DATA_COMMAND = 0x36
 
-    __FSOE_MANUF_SAFETY_ADDRESS = "FSOE_MANUF_SAFETY_ADDRESS"
+    FSOE_MANUF_SAFETY_ADDRESS = "FSOE_MANUF_SAFETY_ADDRESS"
 
     DEFAULT_WATCHDOG_TIMEOUT_S = 1
 
@@ -214,10 +214,8 @@ class FSoEMasterHandler:
             The FSoE slave address.
 
         """
-        value = self.__servo.read(self.__FSOE_MANUF_SAFETY_ADDRESS)
-        if not isinstance(value, int):
-            raise ValueError(f"Wrong safety address value type. Expected int, got {type(value)}")
-        return value
+        # https://novantamotion.atlassian.net/browse/INGK-1090
+        return self.__master_handler.master.session.slave_address.value
 
     def set_safety_address(self, address: int) -> None:
         """Set the drive's FSoE slave address.
@@ -227,7 +225,8 @@ class FSoEMasterHandler:
             servo: servo alias to reference it. ``default`` by default.
 
         """
-        self.__servo.write(self.__FSOE_MANUF_SAFETY_ADDRESS, address)
+        self.__servo.write(self.FSOE_MANUF_SAFETY_ADDRESS, address)
+        self.__master_handler.set_slave_address(address)
 
     def is_sto_active(self) -> bool:
         """Check the STO state.
@@ -417,7 +416,7 @@ class FSoEMaster:
         node = self.__mc.servos[servo]
         if not isinstance(node, EthercatServo):
             raise TypeError("Functional Safety over Ethercat is only available for Ethercat servos")
-        slave_address = self.get_safety_address(servo)
+        slave_address = self._get_safety_address_from_drive(servo)
         application_parameters = self._get_application_parameters(servo)
         master_handler = FSoEMasterHandler(
             node,
@@ -429,6 +428,21 @@ class FSoEMaster:
         )
         self.__handlers[servo] = master_handler
         self.__next_connection_id += 1
+
+    def _get_safety_address_from_drive(self, servo: str = DEFAULT_SERVO) -> int:
+        """Get the drive's FSoE slave address configured in the drive.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+
+        Returns:
+            The FSoE slave address.
+
+        """
+        value = self.__mc.communication.get_register(FSoEMasterHandler.FSOE_MANUF_SAFETY_ADDRESS, servo)
+        if not isinstance(value, int):
+            raise ValueError(f"Wrong safety address value type. Expected int, got {type(value)}")
+        return value
 
     def configure_pdos(self, start_pdos: bool = False) -> None:
         """Configure the PDOs used for the Safety PDUs.
