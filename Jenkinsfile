@@ -311,12 +311,12 @@ pipeline {
                                         loadSSHKeys(false, true)
                                     }
                                 }                                
-                                sh '''
+                                sh """
                                     export GIT_SSH_COMMAND="ssh -i /tmp/ssh/id_rsa -o UserKnownHostsFile=/tmp/ssh/known_hosts -o StrictHostKeyChecking=yes"
                                     python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- \
                                         -m virtual \
                                         --setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP
-                                '''
+                                """
                             }
                             post {
                                 always {
