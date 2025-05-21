@@ -91,6 +91,7 @@ def loadSSHKeys(windows_node = true) {
                     COPY %KEY% C:\\id_rsa
                 """
             } else {
+                sh 'mkdir -p .ssh'
                 sh 'cp $KEY .ssh/id_rsa'
                 sh 'ssh-keyscan -H bitbucket.org >> .ssh/known_hosts'
             }
