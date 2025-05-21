@@ -44,9 +44,9 @@ def setup_for_test_examples(mc, alias):
 
 
 @pytest.fixture
-def teardown_for_test_examples(interface_controller, setup_descriptor: SetupDescriptor):
+def teardown_for_test_examples(setup_manager, setup_descriptor: SetupDescriptor):
     yield
-    _, net, _, _ = interface_controller
+    _, net, _, _ = setup_manager
     connect_to_servo_with_protocol(descriptor=setup_descriptor, net=net)
 
 
@@ -193,7 +193,7 @@ def test_load_fw_ecat(setup_descriptor: DriveEcatSetup, script_runner, mocker):
     script_path = "examples/load_fw_ecat.py"
     interface_index = 0
     slave_id = setup_descriptor.slave
-    fw_file = setup_descriptor.fw_file
+    fw_file = setup_descriptor.fw_data.fw_file
 
     class MockCommunication:
         def load_firmware_ecat_interface_index(self, *args, **kwargs):
