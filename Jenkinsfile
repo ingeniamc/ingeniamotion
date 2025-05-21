@@ -80,22 +80,26 @@ def getSummitTestingFrameworkCommit() {
 }
 
 
-def loadSSHKeys(windows_node = true) {
+def loadSSHKeys(windows_node = true, docker_node = false) {
     if (env.BRANCH_NAME == 'master' || env.BRANCH_NAME.startsWith('release/')) {
         echo 'Installing libraries without access to bitbucket repositories'
     }  else {
         echo 'Loading SSH key for libraries referenced to bitbucket on development'
         withCredentials([sshUserPrivateKey(credentialsId: 'Bitbucket SSH', keyFileVariable: 'KEY')]) {
             if (windows_node) {
+                def sshDir = docker_node ? '%TEMP%\\ssh' : '%USERPROFILE%\\.ssh'
                 bat """
-                    mkdir %USERPROFILE%\\.ssh
-                    COPY %KEY% %USERPROFILE%\\.ssh\\id_rsa
+                    mkdir ${sshDir}
+                    COPY %KEY% ${sshDir}\\id_rsa
                 """
             } else {
-                sh 'mkdir -p /root/.ssh'
-                sh 'cp $KEY /root/.ssh/id_rsa'
-                sh 'chmod 600 /root/.ssh/id_rsa'
-                sh 'ssh-keyscan -H bitbucket.org >> /root/.ssh/known_hosts'
+                def sshDir = docker_node ? '/tmp/ssh' : '.ssh'
+                sh """
+                    mkdir -p ${sshDir}
+                    cp \$KEY ${sshDir}/id_rsa
+                    chmod 600 ${sshDir}/id_rsa
+                    ssh-keyscan -H bitbucket.org >> ${sshDir}/known_hosts
+                """
             }
         }
     }
@@ -304,11 +308,11 @@ pipeline {
                             steps {
                                 script {
                                     if (!SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty() && !env.SUMMIT_TESTING_FRAMEWORK.isEmpty()) {
-                                        loadSSHKeys(false)
+                                        loadSSHKeys(false, true)
                                     }
                                 }                                
                                 sh '''
-                                    export GIT_SSH_COMMAND="ssh -i /root/.ssh/id_rsa -o StrictHostKeyChecking=no"
+                                    export GIT_SSH_COMMAND="ssh -i /tmp/ssh/id_rsa -o UserKnownHostsFile=/tmp/ssh/known_hosts -o StrictHostKeyChecking=yes"
                                     python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- \
                                         -m virtual \
                                         --setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP
@@ -359,20 +363,18 @@ pipeline {
                                         stash includes: 'docs.zip', name: 'docs'
                                     }
                                 }
-                                stage('Load ssh keys') {
-                                    when {
-                                        expression { !SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty() && !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
-                                    }
-                                    steps {
-                                        script {
-                                            loadSSHKeys()
-                                        }
-                                    }
-                                }
                                 stage("Run unit tests") {
                                     steps {
-                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
-                                                "-m \"not ethernet and not soem and not fsoe and not canopen and not virtual and not soem_multislave\" "
+                                        script {
+                                            if (!SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty() && !env.SUMMIT_TESTING_FRAMEWORK.isEmpty()) {
+                                                loadSSHKeys(true, true)
+                                            }
+                                        }
+                                        bat """
+                                            set "GIT_SSH_COMMAND=ssh -i %TEMP%\\ssh\\id_rsa -o StrictHostKeyChecking=no"
+                                            py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- ^
+                                            -m "not ethernet and not soem and not fsoe and not canopen and not virtual and not soem_multislave"
+                                        """
                                     }
                                     post {
                                         always {
