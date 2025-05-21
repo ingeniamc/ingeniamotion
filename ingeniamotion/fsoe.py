@@ -68,11 +68,9 @@ class FSoEMasterHandler:
 
     DEFAULT_WATCHDOG_TIMEOUT_S = 1
 
-    # Pending
-    __servo: EthercatServo
-
     def __init__(
         self,
+        servo: EthercatServo,
         *,
         slave_address: int,
         connection_id: int,
@@ -82,6 +80,8 @@ class FSoEMasterHandler:
     ):
         if not FSOE_MASTER_INSTALLED:
             return
+
+        self.__servo = servo
         self.__master_handler = MasterHandler(
             dictionary=self._saco_phase_1_dictionary(),
             slave_address=slave_address,
@@ -414,9 +414,13 @@ class FSoEMaster:
             fsoe_master_watchdog_timeout: The FSoE master watchdog timeout in seconds.
 
         """
+        node = self.__mc.servos[servo]
+        if not isinstance(node, EthercatServo):
+            raise TypeError("Functional Safety over Ethercat is only available for Ethercat servos")
         slave_address = self.get_safety_address(servo)
         application_parameters = self._get_application_parameters(servo)
         master_handler = FSoEMasterHandler(
+            node,
             slave_address=slave_address,
             connection_id=self.__next_connection_id,
             watchdog_timeout=fsoe_master_watchdog_timeout,
