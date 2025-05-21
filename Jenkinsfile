@@ -88,12 +88,14 @@ def loadSSHKeys(windows_node = true) {
         withCredentials([sshUserPrivateKey(credentialsId: 'Bitbucket SSH', keyFileVariable: 'KEY')]) {
             if (windows_node) {
                 bat """
-                    COPY %KEY% C:\\id_rsa
+                    mkdir %USERPROFILE%\\.ssh
+                    COPY %KEY% %USERPROFILE%\\.ssh\\id_rsa
                 """
             } else {
-                sh 'mkdir -p .ssh'
-                sh 'cp $KEY .ssh/id_rsa'
-                sh 'ssh-keyscan -H bitbucket.org >> .ssh/known_hosts'
+                sh 'mkdir -p ~/.ssh'
+                sh 'cp $KEY ~/.ssh/id_rsa'
+                sh 'chmod 600 ~/.ssh/id_rsa'
+                sh 'ssh-keyscan -H bitbucket.org >> ~/.ssh/known_hosts'
             }
         }
     }
@@ -300,7 +302,7 @@ pipeline {
                     stages {
                         stage('Load ssh keys') {
                             environment {
-                                GIT_SSH_COMMAND = 'ssh -i .ssh/id_rsa -o StrictHostKeyChecking=no'
+                                GIT_SSH_COMMAND = 'ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no'
                             }
                             when {
                                 expression { !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
@@ -364,7 +366,7 @@ pipeline {
                                 }
                                 stage('Load ssh keys') {
                                     environment {
-                                        GIT_SSH_COMMAND = 'ssh -i C:/id_rsa -o StrictHostKeyChecking=no'
+                                        GIT_SSH_COMMAND = 'ssh -i USERPROFILE%\\.ssh\\id_rsa -o StrictHostKeyChecking=no'
                                     }
                                     when {
                                         expression { !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
@@ -457,7 +459,7 @@ pipeline {
                     stages {
                         stage('Load ssh keys') {
                             environment {
-                                GIT_SSH_COMMAND = 'ssh -i C:/id_rsa -o StrictHostKeyChecking=no'
+                                GIT_SSH_COMMAND = 'ssh -i USERPROFILE%\\.ssh\\id_rsa -o StrictHostKeyChecking=no'
                             }
                             when {
                                 expression { !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
@@ -504,7 +506,7 @@ pipeline {
                     stages {
                         stage('Load ssh keys') {
                             environment {
-                                GIT_SSH_COMMAND = 'ssh -i C:/id_rsa -o StrictHostKeyChecking=no'
+                                GIT_SSH_COMMAND = 'ssh -i USERPROFILE%\\.ssh\\id_rsa -o StrictHostKeyChecking=no'
                             }
                             when {
                                 expression { !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
