@@ -386,7 +386,6 @@ pipeline {
                                         GIT_SSH_COMMAND = 'ssh -i USERPROFILE%\\.ssh\\id_rsa -o StrictHostKeyChecking=no'
                                     }
                                     steps {
-                                        bat "git clone git@$GIT_CLOUD/$SUMMIT_TESTING_FRAMEWORK_REPO"
                                         bat """
                                             py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- ^
                                             -m "not ethernet and not soem and not fsoe and not canopen and not virtual and not soem_multislave"
