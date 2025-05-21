@@ -1,8 +1,12 @@
-import pytest
-from ingenialink.emcy import EmergencyMessage
+from typing import TYPE_CHECKING
 
-from ingeniamotion.fsoe import FSoEMaster
+import pytest
+
+from ingeniamotion.fsoe import FSoEError, FSoEMaster
 from ingeniamotion.motion_controller import MotionController
+
+if TYPE_CHECKING:
+    from ingenialink.emcy import EmergencyMessage
 
 
 @pytest.mark.virtual
@@ -44,13 +48,17 @@ def emergency_handler(servo_alias: str, message: "EmergencyMessage"):
     raise RuntimeError(f"Emergency message received from {servo_alias}: {message}")
 
 
+def error_handler(error: FSoEError):
+    raise RuntimeError(f"FSoE error received: {error}")
+
+
 @pytest.mark.fsoe
 @pytest.mark.smoke
-def test_deactivate_sto(mc, alias):
+def test_deactivate_sto(mc):
     mc.communication.subscribe_emergency_message(emergency_handler)
 
     # Configure error channel
-    mc.fsoe.subscribe_to_errors(lambda error: print(error))
+    mc.fsoe.subscribe_to_errors(error_handler)
     # Connect to the servo drive
     # Create and start the FSoE master handler
     mc.fsoe.create_fsoe_master_handler()
