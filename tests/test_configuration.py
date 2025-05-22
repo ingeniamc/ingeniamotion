@@ -505,8 +505,7 @@ def test_is_sto_abnormal_latched(mocker, mc, alias, sto_status_value, expected_r
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
-def test_store_configuration(_motion_controller_creator, alias):
-    mc = _motion_controller_creator  # use mc fixture: https://novantamotion.atlassian.net/browse/INGK-1096
+def test_store_configuration(mc, alias):
     mc.configuration.store_configuration(servo=alias)
 
 
@@ -514,8 +513,7 @@ def test_store_configuration(_motion_controller_creator, alias):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.smoke
-def test_restore_configuration(_motion_controller_creator, alias):
-    mc = _motion_controller_creator  # use mc fixture: https://novantamotion.atlassian.net/browse/INGK-1096
+def test_restore_configuration(mc, alias):
     mc.configuration.restore_configuration(servo=alias)
 
 
