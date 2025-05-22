@@ -205,14 +205,10 @@ class FSoEMasterHandler:
         return safe_inputs_value
 
     def get_safety_address(self) -> int:
-        """Get the drive's FSoE slave address.
-
-        Args:
-            servo: servo alias to reference it. ``default`` by default.
+        """Get the FSoE slave address configured on the master.
 
         Returns:
             The FSoE slave address.
-
         """
         # https://novantamotion.atlassian.net/browse/INGK-1090
         value = self._master_handler.master.session.slave_address.value
@@ -221,12 +217,10 @@ class FSoEMasterHandler:
         return value
 
     def set_safety_address(self, address: int) -> None:
-        """Set the drive's FSoE slave address.
+        """Set the drive's FSoE slave address to the master and the slave.
 
         Args:
             address: The address to be set.
-            servo: servo alias to reference it. ``default`` by default.
-
         """
         self.__servo.write(self.FSOE_MANUF_SAFETY_ADDRESS, address)
         self._master_handler.set_slave_address(address)
