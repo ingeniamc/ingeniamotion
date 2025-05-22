@@ -82,7 +82,7 @@ class FSoEMasterHandler:
             return
 
         self.__servo = servo
-        self.__master_handler = MasterHandler(
+        self._master_handler = MasterHandler(
             dictionary=self._saco_phase_1_dictionary(),
             slave_address=slave_address,
             connection_id=connection_id,
@@ -106,18 +106,18 @@ class FSoEMasterHandler:
     def _start(self) -> None:
         """Start the FSoE Master handler."""
         self.__in_initial_reset = True
-        self.__master_handler.start()
+        self._master_handler.start()
         self.__running = True
 
     def stop(self) -> None:
         """Stop the master handler."""
-        self.__master_handler.stop()
+        self._master_handler.stop()
         self.__in_initial_reset = False
         self.__running = False
 
     def delete(self) -> None:
         """Delete the master handler."""
-        self.__master_handler.delete()
+        self._master_handler.delete()
 
     def _configure_pdo_maps(self) -> None:
         """Configure the PDOMaps used for the Safety PDUs."""
@@ -132,19 +132,19 @@ class FSoEMasterHandler:
     def _map_outputs(self) -> None:
         """Configure the FSoE master handler's SafeOutputs."""
         # Phase 1 mapping
-        self.__master_handler.master.dictionary_map.add_by_key(self.STO_COMMAND_KEY, bits=1)
-        self.__master_handler.master.dictionary_map.add_by_key(self.SS1_COMMAND_KEY, bits=1)
-        self.__master_handler.master.dictionary_map.add_padding(bits=7)
-        self.__master_handler.master.dictionary_map.add_padding(bits=7)
+        self._master_handler.master.dictionary_map.add_by_key(self.STO_COMMAND_KEY, bits=1)
+        self._master_handler.master.dictionary_map.add_by_key(self.SS1_COMMAND_KEY, bits=1)
+        self._master_handler.master.dictionary_map.add_padding(bits=7)
+        self._master_handler.master.dictionary_map.add_padding(bits=7)
 
     def _map_inputs(self) -> None:
         """Configure the FSoE master handler's SafeInputs."""
         # Phase 1 mapping
-        self.__master_handler.slave.dictionary_map.add_by_key(self.STO_COMMAND_KEY, bits=1)
-        self.__master_handler.slave.dictionary_map.add_by_key(self.SS1_COMMAND_KEY, bits=1)
-        self.__master_handler.slave.dictionary_map.add_padding(bits=7)
-        self.__master_handler.slave.dictionary_map.add_by_key(self.SAFE_INPUTS_KEY, bits=1)
-        self.__master_handler.slave.dictionary_map.add_padding(bits=6)
+        self._master_handler.slave.dictionary_map.add_by_key(self.STO_COMMAND_KEY, bits=1)
+        self._master_handler.slave.dictionary_map.add_by_key(self.SS1_COMMAND_KEY, bits=1)
+        self._master_handler.slave.dictionary_map.add_padding(bits=7)
+        self._master_handler.slave.dictionary_map.add_by_key(self.SAFE_INPUTS_KEY, bits=1)
+        self._master_handler.slave.dictionary_map.add_padding(bits=6)
 
     def set_pdo_maps_to_slave(self) -> None:
         """Set the PDOMaps to be used by the Safety PDUs to the slave."""
@@ -161,7 +161,7 @@ class FSoEMasterHandler:
         """Set the FSoE master handler request to the Safety Master PDU PDOMap."""
         if not self.__running:
             self._start()
-        self.safety_master_pdu_map.set_item_bytes(self.__master_handler.get_request())
+        self.safety_master_pdu_map.set_item_bytes(self._master_handler.get_request())
 
     def set_reply(self) -> None:
         """Get the FSoE slave response.
@@ -177,29 +177,29 @@ class FSoEMasterHandler:
             else:
                 self.__in_initial_reset = False
 
-        self.__master_handler.set_reply(reply)
+        self._master_handler.set_reply(reply)
 
     def sto_deactivate(self) -> None:
         """Set the STO command to deactivate the STO."""
-        self.__master_handler.set_fail_safe(False)
-        self.__master_handler.dictionary.set(self.STO_COMMAND_UID, True)
+        self._master_handler.set_fail_safe(False)
+        self._master_handler.dictionary.set(self.STO_COMMAND_UID, True)
 
     def sto_activate(self) -> None:
         """Set the STO command to activate the STO."""
-        self.__master_handler.dictionary.set(self.STO_COMMAND_UID, False)
+        self._master_handler.dictionary.set(self.STO_COMMAND_UID, False)
 
     def ss1_deactivate(self) -> None:
         """Set the SS1 command to deactivate the SS1."""
-        self.__master_handler.set_fail_safe(False)
-        self.__master_handler.dictionary.set(self.SS1_COMMAND_UID, True)
+        self._master_handler.set_fail_safe(False)
+        self._master_handler.dictionary.set(self.SS1_COMMAND_UID, True)
 
     def ss1_activate(self) -> None:
         """Set the SS1 command to activate the SS1."""
-        self.__master_handler.dictionary.set(self.SS1_COMMAND_UID, False)
+        self._master_handler.dictionary.set(self.SS1_COMMAND_UID, False)
 
     def safe_inputs_value(self) -> bool:
         """Get the safe inputs register value."""
-        safe_inputs_value = self.__master_handler.dictionary.get(self.SAFE_INPUTS_UID)
+        safe_inputs_value = self._master_handler.dictionary.get(self.SAFE_INPUTS_UID)
         if not isinstance(safe_inputs_value, bool):
             raise ValueError(f"Wrong value type. Expected type bool, got {type(safe_inputs_value)}")
         return safe_inputs_value
@@ -215,7 +215,10 @@ class FSoEMasterHandler:
 
         """
         # https://novantamotion.atlassian.net/browse/INGK-1090
-        return self.__master_handler.master.session.slave_address.value
+        value = self._master_handler.master.session.slave_address.value
+        if not isinstance(value, int):
+            raise TypeError("Unexpected type for slave address")
+        return value
 
     def set_safety_address(self, address: int) -> None:
         """Set the drive's FSoE slave address.
@@ -226,7 +229,7 @@ class FSoEMasterHandler:
 
         """
         self.__servo.write(self.FSOE_MANUF_SAFETY_ADDRESS, address)
-        self.__master_handler.set_slave_address(address)
+        self._master_handler.set_slave_address(address)
 
     def is_sto_active(self) -> bool:
         """Check the STO state.
@@ -235,7 +238,7 @@ class FSoEMasterHandler:
             True if the STO is active. False otherwise.
 
         """
-        sto_command = self.__master_handler.dictionary.get(self.STO_COMMAND_UID)
+        sto_command = self._master_handler.dictionary.get(self.STO_COMMAND_UID)
         if not isinstance(sto_command, bool):
             raise ValueError(f"Wrong value type. Expected type bool, got {type(sto_command)}")
         return sto_command
@@ -302,7 +305,7 @@ class FSoEMasterHandler:
     @property
     def state(self) -> FSoEState:
         """Get the FSoE master state."""
-        return FSoEState(self.__master_handler.state.id)
+        return FSoEState(self._master_handler.state.id)
 
     @property
     def running(self) -> bool:
@@ -396,7 +399,7 @@ class FSoEMaster:
     def __init__(self, motion_controller: "MotionController") -> None:
         self.logger = ingenialogger.get_logger(__name__)
         self.__mc = motion_controller
-        self.__handlers: dict[str, FSoEMasterHandler] = {}
+        self._handlers: dict[str, FSoEMasterHandler] = {}
         self.__next_connection_id = 1
         self._error_observers: list[Callable[[FSoEError], None]] = []
         self.__fsoe_configured = False
@@ -426,7 +429,7 @@ class FSoEMaster:
             application_parameters=application_parameters,
             report_error_callback=partial(self._notify_errors, servo=servo),
         )
-        self.__handlers[servo] = master_handler
+        self._handlers[servo] = master_handler
         self.__next_connection_id += 1
 
     def _get_safety_address_from_drive(self, servo: str = DEFAULT_SERVO) -> int:
@@ -439,7 +442,9 @@ class FSoEMaster:
             The FSoE slave address.
 
         """
-        value = self.__mc.communication.get_register(FSoEMasterHandler.FSOE_MANUF_SAFETY_ADDRESS, servo)
+        value = self.__mc.communication.get_register(
+            FSoEMasterHandler.FSOE_MANUF_SAFETY_ADDRESS, servo
+        )
         if not isinstance(value, int):
             raise ValueError(f"Wrong safety address value type. Expected int, got {type(value)}")
         return value
@@ -465,7 +470,7 @@ class FSoEMaster:
             stop_pdos: if ``True``, stop the PDO exchange. ``False`` by default.
 
         """
-        for master_handler in self.__handlers.values():
+        for master_handler in self._handlers.values():
             if master_handler.running:
                 master_handler.stop()
         if self.__fsoe_configured:
@@ -485,7 +490,7 @@ class FSoEMaster:
             servo: servo alias to reference it. ``default`` by default.
 
         """
-        master_handler = self.__handlers[servo]
+        master_handler = self._handlers[servo]
         master_handler.sto_deactivate()
 
     def sto_activate(self, servo: str = DEFAULT_SERVO) -> None:
@@ -495,7 +500,7 @@ class FSoEMaster:
             servo: servo alias to reference it. ``default`` by default.
 
         """
-        master_handler = self.__handlers[servo]
+        master_handler = self._handlers[servo]
         master_handler.sto_activate()
 
     def ss1_deactivate(self, servo: str = DEFAULT_SERVO) -> None:
@@ -505,7 +510,7 @@ class FSoEMaster:
             servo: servo alias to reference it. ``default`` by default.
 
         """
-        master_handler = self.__handlers[servo]
+        master_handler = self._handlers[servo]
         master_handler.ss1_deactivate()
 
     def ss1_activate(self, servo: str = DEFAULT_SERVO) -> None:
@@ -515,7 +520,7 @@ class FSoEMaster:
             servo: servo alias to reference it. ``default`` by default.
 
         """
-        master_handler = self.__handlers[servo]
+        master_handler = self._handlers[servo]
         master_handler.ss1_activate()
 
     def get_safety_inputs_value(self, servo: str = DEFAULT_SERVO) -> bool:
@@ -528,7 +533,7 @@ class FSoEMaster:
            The safe inputs value.
 
         """
-        master_handler = self.__handlers[servo]
+        master_handler = self._handlers[servo]
         return master_handler.safe_inputs_value()
 
     def get_safety_address(self, servo: str = DEFAULT_SERVO) -> int:
@@ -541,7 +546,7 @@ class FSoEMaster:
             The FSoE slave address.
 
         """
-        master_handler = self.__handlers[servo]
+        master_handler = self._handlers[servo]
         return master_handler.get_safety_address()
 
     def set_safety_address(self, address: int, servo: str = DEFAULT_SERVO) -> None:
@@ -552,7 +557,7 @@ class FSoEMaster:
             servo: servo alias to reference it. ``default`` by default.
 
         """
-        master_handler = self.__handlers[servo]
+        master_handler = self._handlers[servo]
         return master_handler.set_safety_address(address)
 
     def __get_configured_module_ident_1(
@@ -599,7 +604,7 @@ class FSoEMaster:
             True if the STO is active. False otherwise.
 
         """
-        master_handler = self.__handlers[servo]
+        master_handler = self._handlers[servo]
         return master_handler.is_sto_active()
 
     def wait_for_state_data(
@@ -614,7 +619,7 @@ class FSoEMaster:
                 ``None`` by default.
 
         """
-        master_handler = self.__handlers[servo]
+        master_handler = self._handlers[servo]
         master_handler.wait_for_data_state(timeout)
 
     def get_fsoe_master_state(self, servo: str = DEFAULT_SERVO) -> FSoEState:
@@ -627,7 +632,7 @@ class FSoEMaster:
             The servo's FSoE master handler state.
 
         """
-        master_handler = self.__handlers[servo]
+        master_handler = self._handlers[servo]
         return master_handler.state
 
     def subscribe_to_errors(self, callback: Callable[[FSoEError], None]) -> None:
@@ -671,10 +676,10 @@ class FSoEMaster:
             servo: servo alias to reference it. ``default`` by default.
 
         """
-        if servo not in self.__handlers:
+        if servo not in self._handlers:
             return
-        self.__handlers[servo].delete()
-        del self.__handlers[servo]
+        self._handlers[servo].delete()
+        del self._handlers[servo]
 
     def _subscribe_to_pdo_thread_events(self) -> None:
         """Subscribe to the PDO thread events.
@@ -694,12 +699,12 @@ class FSoEMaster:
 
     def _set_pdo_maps_to_slaves(self) -> None:
         """Set the PDOMaps to be used by the Safety PDUs to the slaves."""
-        for master_handler in self.__handlers.values():
+        for master_handler in self._handlers.values():
             master_handler.set_pdo_maps_to_slave()
 
     def _remove_pdo_maps_from_slaves(self) -> None:
         """Remove the PDOMaps used by the Safety PDUs from the slaves."""
-        for master_handler in self.__handlers.values():
+        for master_handler in self._handlers.values():
             master_handler.remove_pdo_maps_from_slave()
 
     def _get_request(self) -> None:
@@ -708,7 +713,7 @@ class FSoEMaster:
         Callback method to send the FSoE Master handlers requests to the
         corresponding FSoE slave.
         """
-        for master_handler in self.__handlers.values():
+        for master_handler in self._handlers.values():
             master_handler.get_request()
 
     def _set_reply(self) -> None:
@@ -717,7 +722,7 @@ class FSoEMaster:
         Callback method to provide the FSoE Slaves responses to their
         corresponding FSoE Master handler.
         """
-        for master_handler in self.__handlers.values():
+        for master_handler in self._handlers.values():
             master_handler.set_reply()
 
     def _pdo_thread_exception_handler(self, exc: Exception) -> None:
