@@ -5,6 +5,8 @@ import numpy as np
 import pytest
 from summit_testing_framework import dynamic_loader
 
+from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
+
 pytest_plugins = [
     "summit_testing_framework.pytest_addoptions",
     "summit_testing_framework.setup_fixtures",
@@ -16,6 +18,9 @@ pytest_plugins = [
 # The issue is solved by dynamically importing them before the tests start. All modules that should
 # be imported and ARE NOT part of the package should be specified here
 _DYNAMIC_MODULES_IMPORT = ["tests", "examples"]
+
+if FSOE_MASTER_INSTALLED:
+    _DYNAMIC_MODULES_IMPORT.append("fsoe_master")
 
 test_report_key = pytest.StashKey[dict[str, pytest.CollectReport]]()
 
