@@ -1,11 +1,14 @@
 from typing import TYPE_CHECKING
 
 import pytest
-from fsoe_master import fsoe_master
 
 from ingeniamotion.enums import FSoEState
-from ingeniamotion.fsoe import FSoEError, FSoEMaster
+from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError, FSoEMaster
 from ingeniamotion.motion_controller import MotionController
+
+if FSOE_MASTER_INSTALLED:
+    from fsoe_master import fsoe_master
+
 
 if TYPE_CHECKING:
     from ingenialink.emcy import EmergencyMessage
@@ -107,20 +110,36 @@ def test_safety_address(mc_with_fsoe, alias):
     assert mc.fsoe.get_safety_address() == 0x7453
 
 
+def mc_state_to_fsoe_master_state(state: FSoEState):
+    return {
+        FSoEState.RESET: fsoe_master.StateReset,
+        FSoEState.SESSION: fsoe_master.StateSession,
+        FSoEState.CONNECTION: fsoe_master.StateConnection,
+        FSoEState.PARAMETER: fsoe_master.StateParameter,
+        FSoEState.DATA: fsoe_master.StateData,
+    }[state]
+
+
 @pytest.mark.parametrize(
-    "state_class, state_enum",
+    "state_enum",
     [
-        (fsoe_master.StateReset, FSoEState.RESET),
-        (fsoe_master.StateSession, FSoEState.SESSION),
-        (fsoe_master.StateConnection, FSoEState.CONNECTION),
-        (fsoe_master.StateParameter, FSoEState.PARAMETER),
-        (fsoe_master.StateData, FSoEState.DATA),
+        FSoEState.RESET,
+        FSoEState.SESSION,
+        FSoEState.CONNECTION,
+        FSoEState.PARAMETER,
+        FSoEState.DATA,
     ],
 )
-def test_get_master_state(mocker, mc_with_fsoe, state_class, state_enum):
+def test_get_master_state(mocker, mc_with_fsoe, state_enum):
     mc = mc_with_fsoe
 
-    mocker.patch("fsoe_master.fsoe_master.MasterHandler.state", state_class)
+    # Master state is obtained as function
+    # and not on the parametrize
+    # to avoid depending on the optionally installed module
+    # on pytest collection
+    fsoe_master_state = mc_state_to_fsoe_master_state(state_enum)
+
+    mocker.patch("fsoe_master.fsoe_master.MasterHandler.state", fsoe_master_state)
 
     assert mc.fsoe.get_fsoe_master_state() == state_enum
 
