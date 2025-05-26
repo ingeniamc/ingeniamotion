@@ -1,9 +1,11 @@
 import threading
+from collections.abc import Iterator
 from dataclasses import dataclass
 from functools import partial
 from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import ingenialogger
+from ingenialink.ethercat.dictionary import EthercatDictionaryV2
 from ingenialink.ethercat.servo import EthercatServo
 from typing_extensions import override
 
@@ -28,7 +30,7 @@ except ImportError:
 else:
     FSOE_MASTER_INSTALLED = True
 
-from ingenialink.dictionary import DictionarySafetyModule
+from ingenialink.dictionary import DictionarySafetyModule, DictionaryV3
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 from ingenialink.utils._utils import dtype_value
 
@@ -89,6 +91,92 @@ class SafetyParameterDirectValidation(SafetyParameter):
         self.fsoe_application_parameter.set(value)
 
 
+@dataclass()
+class SafetyFunction:
+    """Base class for Safety Functions.
+
+    Wraps input/output items and parameters used by the FSoE Master handler.
+    """
+
+    io: tuple[DictionaryItem, ...]
+    parameters: tuple[SafetyParameter, ...]
+
+    @classmethod
+    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafetyFunction"]:
+        """Get the safety function instances for a given FSoE master handler."""
+        yield from STOFunction.for_handler(handler)
+        yield from SS1Function.for_handler(handler)
+        yield from SafeInputsFunction.for_handler(handler)
+
+    @classmethod
+    def _get_required_input_output(
+        cls, hander: "FSoEMasterHandler", uid: str
+    ) -> DictionaryItemInputOutput:
+        """Get the required input/output item from the handler's dictionary."""
+        item = hander.dictionary.name_map.get(uid)
+        if not isinstance(item, DictionaryItemInputOutput):
+            raise TypeError(
+                f"Expected DictionaryItemInputOutput {uid} on the safe dictionary, got {type(item)}"
+            )
+        return item
+
+    @classmethod
+    def _get_required_input(cls, handler: "FSoEMasterHandler", uid: str) -> DictionaryItemInput:
+        """Get the required input item from the handler's dictionary."""
+        item = handler.dictionary.name_map.get(uid)
+        if not isinstance(item, DictionaryItemInput):
+            raise TypeError(
+                f"Expected DictionaryItemInput {uid} on the safe dictionary, got {type(item)}"
+            )
+        return item
+
+
+@dataclass()
+class STOFunction(SafetyFunction):
+    """Safe Torque Off Safety Function."""
+
+    STO_COMMAND_UID = "STO_COMMAND"
+
+    command: DictionaryItemInputOutput
+
+    @override
+    @classmethod
+    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["STOFunction"]:
+        sto_command = cls._get_required_input_output(handler, cls.STO_COMMAND_UID)
+        yield cls(command=sto_command, io=(sto_command,), parameters=())
+
+
+@dataclass()
+class SS1Function(SafetyFunction):
+    """Safe Stop 1 Safety Function."""
+
+    SS1_COMMAND_UID = "SS1_COMMAND"
+
+    command: DictionaryItemInputOutput
+
+    @override
+    @classmethod
+    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SS1Function"]:
+        ss1_command = cls._get_required_input_output(handler, cls.SS1_COMMAND_UID)
+        yield cls(
+            command=ss1_command, io=(ss1_command,), parameters=()
+        )  #  TODO review IO and params
+
+
+@dataclass()
+class SafeInputsFunction(SafetyFunction):
+    """Safe Inputs Safety Function."""
+
+    SAFE_INPUTS_UID = "SAFE_INPUTS"
+
+    value: DictionaryItemInput
+
+    @classmethod
+    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafeInputsFunction"]:
+        safe_inputs = cls._get_required_input(handler, cls.SAFE_INPUTS_UID)
+        yield cls(value=safe_inputs, io=(safe_inputs,), parameters=())  #  TODO review IO and params
+
+
 @dataclass
 class FSoEError:
     """FSoE Error descriptor."""
@@ -109,7 +197,7 @@ class FSoEMasterHandler:
     """
 
     STO_COMMAND_KEY = 0x040
-    STO_COMMAND_UID = "STO_COMMAND"
+    STO_COMMAND_UID = "STO_COMMAND"  # TODO Use safety function
     SS1_COMMAND_KEY = 0x050
     SS1_COMMAND_UID = "SS1_COMMAND"
     SAFE_INPUTS_KEY = 0x070
@@ -132,6 +220,7 @@ class FSoEMasterHandler:
     ):
         if not FSOE_MASTER_INSTALLED:
             return
+        self.__servo = servo
 
         # Parameters that are part of the system
         self.safety_parameters: list[SafetyParameter] = []
@@ -147,15 +236,20 @@ class FSoEMasterHandler:
 
             if safety_module.uses_sra:
                 sp = SafetyParameter(register, servo)
+                # Pending add SRA CRC Parameter
+                # https://novantamotion.atlassian.net/browse/INGM-621
             else:
                 sp = SafetyParameterDirectValidation(register, servo)
                 fsoe_application_parameters.append(sp.fsoe_application_parameter)
 
             self.safety_parameters.append(sp)
 
-        self.__servo = servo
+        self.dictionary = self.create_safe_dictionary(servo)
+
+        self.safety_functions = tuple(SafetyFunction.for_handler(self))
+
         self._master_handler = MasterHandler(
-            dictionary=self._saco_phase_1_dictionary(),
+            dictionary=self.dictionary,
             slave_address=slave_address,
             connection_id=connection_id,
             watchdog_timeout_s=watchdog_timeout,
@@ -330,23 +424,41 @@ class FSoEMasterHandler:
         if self.__state_is_data.wait(timeout=timeout) is False:
             raise IMTimeoutError("The FSoE Master did not reach the Data state")
 
-    def _saco_phase_1_dictionary(self) -> "Dictionary":
+    @classmethod
+    def create_safe_dictionary(cls, servo: "EthercatServo") -> "Dictionary":
+        """Create a dictionary with the safe inputs and outputs.
+
+        Returns:
+            A Dictionary instance with the safe inputs and outputs.
+
+        """
+        if isinstance(servo.dictionary, EthercatDictionaryV2):
+            # Dictionary V2 only supports SaCo phase 1
+            return cls._saco_phase_1_dictionary()
+        if isinstance(servo.dictionary, DictionaryV3):
+            # TODO Implement and add tests with another setup
+            raise NotImplementedError
+        else:
+            raise NotImplementedError
+
+    @classmethod
+    def _saco_phase_1_dictionary(cls) -> "Dictionary":
         """Get the SaCo phase 1 dictionary instance."""
         sto_command_dict_item = DictionaryItemInputOutput(
-            key=self.STO_COMMAND_KEY,
-            name=self.STO_COMMAND_UID,
+            key=cls.STO_COMMAND_KEY,
+            name=cls.STO_COMMAND_UID,
             data_type=DictionaryItem.DataTypes.BOOL,
             fail_safe_input_value=True,
         )
         ss1_command_dict_item = DictionaryItemInputOutput(
-            key=self.SS1_COMMAND_KEY,
-            name=self.SS1_COMMAND_UID,
+            key=cls.SS1_COMMAND_KEY,
+            name=cls.SS1_COMMAND_UID,
             data_type=DictionaryItem.DataTypes.BOOL,
             fail_safe_input_value=True,
         )
         safe_input_dict_item = DictionaryItemInput(
-            key=self.SAFE_INPUTS_KEY,
-            name=self.SAFE_INPUTS_UID,
+            key=cls.SAFE_INPUTS_KEY,
+            name=cls.SAFE_INPUTS_UID,
             data_type=DictionaryItem.DataTypes.BOOL,
             fail_safe_value=False,
         )
