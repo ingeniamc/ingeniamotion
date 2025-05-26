@@ -5,10 +5,13 @@ from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import ingenialogger
 from ingenialink.ethercat.servo import EthercatServo
+from typing_extensions import override
 
 try:
     from fsoe_master.fsoe_master import (
-        ApplicationParameter,
+        ApplicationParameter as FSoEApplicationParameter,
+    )
+    from fsoe_master.fsoe_master import (
         Dictionary,
         DictionaryItem,
         DictionaryItemInput,
@@ -34,7 +37,56 @@ from ingeniamotion.exceptions import IMTimeoutError
 from ingeniamotion.metaclass import DEFAULT_SERVO
 
 if TYPE_CHECKING:
+    from ingenialink.register import Register
+
     from ingeniamotion.motion_controller import MotionController
+
+
+class SafetyParameter:
+    """Safety Parameter.
+
+    Represents a parameter that modifies how the safety application works.
+
+    Base test is used for modules that use SRA CRC Check mechanism.
+    """
+
+    def __init__(self, register: "Register", servo: "EthercatServo"):
+        self.__register = register
+        self.__servo = servo
+
+        self.__value = servo.read(register)
+
+    def get(self) -> Union[int, float, str, bytes]:
+        """Get the value of the safety parameter."""
+        return self.__value
+
+    def set(self, value: Union[int, float, str, bytes]) -> None:
+        """Set the value of the safety parameter."""
+        self.__servo.write(self.__register, value)
+        self.__value = value
+
+
+class SafetyParameterDirectValidation(SafetyParameter):
+    """Safety Parameter with direct validation via FSoE.
+
+    Safety Parameter that is validated directly via FSoE in application
+     state instead of SRA CRC Check
+    """
+
+    def __init__(self, register: "Register", drive: "EthercatServo"):
+        super().__init__(register, drive)
+
+        self.fsoe_application_parameter = FSoEApplicationParameter(
+            name=register.identifier,
+            initial_value=self.get(),
+            # https://novantamotion.atlassian.net/browse/INGK-1104
+            n_bytes=dtype_value[register.dtype][0],
+        )
+
+    @override
+    def set(self, value: Union[int, float, str, bytes]) -> None:
+        super().set(value)
+        self.fsoe_application_parameter.set(value)
 
 
 @dataclass
@@ -72,14 +124,34 @@ class FSoEMasterHandler:
         self,
         servo: EthercatServo,
         *,
+        safety_module: DictionarySafetyModule,
         slave_address: int,
         connection_id: int,
         watchdog_timeout: float = DEFAULT_WATCHDOG_TIMEOUT_S,
-        application_parameters: list["ApplicationParameter"],
         report_error_callback: Callable[[str, str], None],
     ):
         if not FSOE_MASTER_INSTALLED:
             return
+
+        # Parameters that are part of the system
+        self.safety_parameters: list[SafetyParameter] = []
+
+        # Parameters that will be transmitted during the fsoe parameter state
+        fsoe_application_parameters: list[FSoEApplicationParameter] = []
+
+        if safety_module.uses_sra:
+            raise NotImplementedError("Safety module with SRA is not available.")
+
+        for app_parameter in safety_module.application_parameters:
+            register = servo.dictionary.registers(subnode=1)[app_parameter.uid]
+
+            if safety_module.uses_sra:
+                sp = SafetyParameter(register, servo)
+            else:
+                sp = SafetyParameterDirectValidation(register, servo)
+                fsoe_application_parameters.append(sp.fsoe_application_parameter)
+
+            self.safety_parameters.append(sp)
 
         self.__servo = servo
         self._master_handler = MasterHandler(
@@ -87,7 +159,7 @@ class FSoEMasterHandler:
             slave_address=slave_address,
             connection_id=connection_id,
             watchdog_timeout_s=watchdog_timeout,
-            application_parameters=application_parameters,
+            application_parameters=fsoe_application_parameters,
             report_error_callback=report_error_callback,
             state_change_callback=self.__state_change_callback,
         )
@@ -402,7 +474,7 @@ class FSoEMaster:
         self,
         servo: str = DEFAULT_SERVO,
         fsoe_master_watchdog_timeout: float = FSoEMasterHandler.DEFAULT_WATCHDOG_TIMEOUT_S,
-    ) -> None:
+    ) -> FSoEMasterHandler:
         """Create an FSoE Master handler linked to a Safe servo drive.
 
         Args:
@@ -414,17 +486,18 @@ class FSoEMaster:
         if not isinstance(node, EthercatServo):
             raise TypeError("Functional Safety over Ethercat is only available for Ethercat servos")
         slave_address = self._get_safety_address_from_drive(servo)
-        application_parameters = self._get_application_parameters(servo)
+
         master_handler = FSoEMasterHandler(
             node,
+            safety_module=self.__get_safety_module(servo=servo),
             slave_address=slave_address,
             connection_id=self.__next_connection_id,
             watchdog_timeout=fsoe_master_watchdog_timeout,
-            application_parameters=application_parameters,
             report_error_callback=partial(self._notify_errors, servo=servo),
         )
         self._handlers[servo] = master_handler
         self.__next_connection_id += 1
+        return master_handler
 
     def _get_safety_address_from_drive(self, servo: str = DEFAULT_SERVO) -> int:
         """Get the drive's FSoE slave address configured in the drive.
@@ -725,31 +798,3 @@ class FSoEMaster:
             "The FSoE Master lost connection to the FSoE slaves. "
             f"An exception occurred during the PDO exchange: {exc}"
         )
-
-    def _get_application_parameters(self, servo: str) -> list["ApplicationParameter"]:
-        """Get values of the application parameters.
-
-        Returns:
-            List of application parameters.
-
-        Raises:
-            NotImplementedError: if the safety module has SRA.
-        """
-        drive = self.__mc.servos[servo]
-        safety_module = self.__get_safety_module(servo=servo)
-
-        if safety_module.uses_sra:
-            raise NotImplementedError("Safety module with SRA is not available.")
-
-        application_parameters = []
-        for param in safety_module.application_parameters:
-            register = self.__mc.info.register_info(register=param.uid, axis=1, servo=servo)
-            register_size_bytes, _ = dtype_value[register.dtype]
-            application_parameters.append(
-                ApplicationParameter(
-                    name=register.identifier,
-                    initial_value=drive.read(register),
-                    n_bytes=register_size_bytes,
-                )
-            )
-        return application_parameters

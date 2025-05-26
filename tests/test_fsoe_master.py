@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 import pytest
 
 from ingeniamotion.enums import FSoEState
-from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError, FSoEMaster
+from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError
 from ingeniamotion.motion_controller import MotionController
 from tests.conftest import timeout_loop
 
@@ -49,15 +49,6 @@ def error_handler(error: FSoEError):
     raise RuntimeError(f"FSoE error received: {error}")
 
 
-@pytest.mark.fsoe
-@pytest.mark.smoke
-def test_fsoe_master_get_application_parameters(mc, alias):
-    assert isinstance(mc.fsoe, FSoEMaster)
-
-    application_parameters = mc.fsoe._get_application_parameters(servo=alias)
-    assert len(application_parameters)
-
-
 @pytest.fixture()
 def mc_with_fsoe(mc):
     # Subscribe to emergency messages
@@ -65,16 +56,24 @@ def mc_with_fsoe(mc):
     # Configure error channel
     mc.fsoe.subscribe_to_errors(error_handler)
     # Create and start the FSoE master handler
-    mc.fsoe.create_fsoe_master_handler()
-    yield mc
+    handler = mc.fsoe.create_fsoe_master_handler()
+    yield mc, handler
     # IM should be notified and clear references when a servo is disconnected from ingenialink
     # https://novantamotion.atlassian.net/browse/INGM-624
     mc.fsoe._delete_master_handler()
 
 
+@pytest.mark.fsoe
+@pytest.mark.smoke
+def test_fsoe_master_get_safety_parameters(mc_with_fsoe):
+    mc, handler = mc_with_fsoe
+
+    assert len(handler.safety_parameters) != 0
+
+
 @pytest.fixture()
 def mc_state_data(mc_with_fsoe):
-    mc = mc_with_fsoe
+    mc, handler = mc_with_fsoe
 
     mc.fsoe.configure_pdos(start_pdos=True)
     # Wait for the master to reach the Data state
@@ -100,7 +99,7 @@ def test_safe_inputs_value(mc_state_data):
 @pytest.mark.fsoe
 @pytest.mark.smoke
 def test_safety_address(mc_with_fsoe, alias):
-    mc = mc_with_fsoe
+    mc, handler = mc_with_fsoe
 
     master_handler = mc.fsoe._handlers[alias]
 
@@ -138,7 +137,7 @@ def mc_state_to_fsoe_master_state(state: FSoEState):
     ],
 )
 def test_get_master_state(mocker, mc_with_fsoe, state_enum):
-    mc = mc_with_fsoe
+    mc, handler = mc_with_fsoe
 
     # Master state is obtained as function
     # and not on the parametrize
