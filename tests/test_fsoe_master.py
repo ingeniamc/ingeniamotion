@@ -4,6 +4,7 @@ import pytest
 
 from ingeniamotion.fsoe import FSoEError, FSoEMaster
 from ingeniamotion.motion_controller import MotionController
+from tests.conftest import timeout_loop
 
 if TYPE_CHECKING:
     from ingenialink.emcy import EmergencyMessage
@@ -79,8 +80,11 @@ def test_deactivate_sto(mc_with_fsoe):
     # Deactivate the STO
     mc.fsoe.sto_deactivate()
     # Wait for the STO to be deactivated
-    while mc.fsoe.check_sto_active():
-        pass
+    for _ in timeout_loop(
+        timeout_sec=5, other=RuntimeError("Timeout waiting for STO deactivation")
+    ):
+        if not mc.fsoe.check_sto_active():
+            break
     # Enable the motor
     mc.motion.motor_enable()
     # Disable the motor
