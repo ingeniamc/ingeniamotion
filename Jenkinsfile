@@ -318,7 +318,7 @@ pipeline {
                             steps {
                                 withCredentials([sshUserPrivateKey(credentialsId: 'Bitbucket SSH', keyFileVariable: 'KEY')]) {
                                     
-                                    sh 'GIT_SSH="ssh -i $KEY" git clone git@$GIT_CLOUD/summit-testing-framework.git'
+                                    sh 'GIT_SSH_COMMAND="ssh -i $KEY" git clone git@$GIT_CLOUD/summit-testing-framework.git'
 
                                     sh """
                                         GIT_SSH_COMMAND='ssh -i $KEY' python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- \
