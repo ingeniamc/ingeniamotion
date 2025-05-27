@@ -320,7 +320,7 @@ pipeline {
                                     
                                     sh '''
                                         export GIT_SSH_COMMAND="ssh -i $KEY"
-                                        git clone git@$GIT_CLOUD/$SUMMIT_TESTING_FRAMEWORK_REPO
+                                        git clone git@$GIT_CLOUD/summit-testing-framework.git
                                     '''
 
                                     sh """
