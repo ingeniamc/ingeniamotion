@@ -27,7 +27,7 @@ INGENIALINK_WHEELS_DIR = "ingenialink_wheels"
 
 // Update the commit or set it to empty to use release version from tox.ini
 SUMMIT_TESTING_FRAMEWORK_REPO = "summit-testing-framework.git"
-SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH = "4074f567690e49bb7517f5f1fac34365ea8dd8f5"
+SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH = "a8ecb20c1301b27e767d106789abf807a9632972"
 
 FSOE_INSTALL_VERSION = ".[FSoE]"
 
