@@ -166,7 +166,7 @@ def test_load_fw_ftp(setup_descriptor: DriveEthernetSetup, script_runner, mocker
             script_path,
             f"--dictionary_path={setup_descriptor.dictionary}",
             f"--ip={setup_descriptor.ip}",
-            f"--firmware_file={setup_descriptor.fw_file}",
+            f"--firmware_file={setup_descriptor.fw_data.fw_file}",
         ]
     )
     assert result.returncode == 0
