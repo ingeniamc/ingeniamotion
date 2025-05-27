@@ -387,7 +387,7 @@ pipeline {
                                     steps {
                                         bat """
                                             py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- ^
-                                            -m "not ethernet and not soem and not fsoe and not canopen and not virtual and not soem_multislave"
+                                            -m "not ethernet and not soem and not fsoe and not canopen and not virtual and not soem_multislave and not skip_testing_framework"
                                         """
                                     }
                                     post {
@@ -478,6 +478,7 @@ pipeline {
                         stage("CanOpen Everest") {
                             steps {
                                 runTestHW("canopen", "CAN_EVE_SETUP")
+                                runTestHW("canopen and skip_testing_framework", "CAN_EVE_SETUP")
                             }
                         }
                         stage("Ethernet Everest") {
@@ -488,6 +489,7 @@ pipeline {
                         stage("CanOpen Capitan") {
                             steps {
                                 runTestHW("canopen", "CAN_CAP_SETUP")
+                                runTestHW("canopen and skip_testing_framework", "CAN_EVE_SETUP")
                             }
                         }
                         stage("Ethernet Capitan") {

@@ -5,15 +5,11 @@ import pytest
 from ingenialink import CanBaudrate, CanDevice
 from ingenialink.exceptions import ILFirmwareLoadError
 from ingenialink.pdo import RPDOMap, TPDOMap
-from summit_testing_framework.network_utils import (
-    connect_to_servo_with_protocol,
-)
 from summit_testing_framework.setups.descriptors import (
     DriveCanOpenSetup,
     DriveEcatSetup,
     DriveEthernetSetup,
     EthernetSetup,
-    SetupDescriptor,
 )
 
 from examples.change_baudrate import change_baudrate
@@ -38,18 +34,6 @@ from ingeniamotion.motion import Motion
 from ingeniamotion.pdo import PDONetworkManager, PDOPoller
 
 
-@pytest.fixture
-def setup_for_test_examples(mc, alias):
-    mc.communication.disconnect(alias)
-
-
-@pytest.fixture
-def teardown_for_test_examples(setup_manager, setup_descriptor: SetupDescriptor):
-    yield
-    _, net, _, _ = setup_manager
-    connect_to_servo_with_protocol(descriptor=setup_descriptor, net=net)
-
-
 @pytest.mark.ethernet
 def test_disturbance_example(setup_descriptor: EthernetSetup, script_runner):
     script_path = "examples/disturbance_example.py"
@@ -61,8 +45,8 @@ def test_disturbance_example(setup_descriptor: EthernetSetup, script_runner):
     assert result.returncode == 0
 
 
-@pytest.mark.usefixtures("setup_for_test_examples", "teardown_for_test_examples")
 @pytest.mark.canopen
+@pytest.mark.skip_testing_framework
 def test_canopen_example(setup_descriptor: DriveCanOpenSetup, script_runner):
     script_path = "examples/canopen_example.py"
 
