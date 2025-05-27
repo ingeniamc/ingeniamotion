@@ -191,107 +191,107 @@ pipeline {
             }
         }
 
-        stage('Read Ingenialink and Commit Hash') {
-            agent any
-            steps {
-                script {
-                    def toxIniContent = readFile('tox.ini')
-                    def matcher = toxIniContent =~ /ingenialink\s*=\s*\{env:INGENIALINK_INSTALL_PATH:(.*)\}/
-                    // Save the full url
-                    if (matcher.find()) {
-                        ORG_INGENIALINK_INSTALL_PATH = matcher.group(1)
-                    }
-                    else {
-                        ORG_INGENIALINK_INSTALL_PATH = null
-                    }
-                    // Save the commit hash
-                    matcher = toxIniContent =~ /ingenialink-python@([a-f0-9]{40})/
-                    INGENIALINK_COMMIT_HASH = matcher ? matcher[0][1] : ""
-                    if (!INGENIALINK_COMMIT_HASH.isEmpty()) {
-                        echo "Ingenialink commit Hash: ${INGENIALINK_COMMIT_HASH}"
-                    } else {
-                        echo "Ingenialink commit hash not found in tox.ini"
-                    }
-                }
-            }
-        }
+        // stage('Read Ingenialink and Commit Hash') {
+        //     agent any
+        //     steps {
+        //         script {
+        //             def toxIniContent = readFile('tox.ini')
+        //             def matcher = toxIniContent =~ /ingenialink\s*=\s*\{env:INGENIALINK_INSTALL_PATH:(.*)\}/
+        //             // Save the full url
+        //             if (matcher.find()) {
+        //                 ORG_INGENIALINK_INSTALL_PATH = matcher.group(1)
+        //             }
+        //             else {
+        //                 ORG_INGENIALINK_INSTALL_PATH = null
+        //             }
+        //             // Save the commit hash
+        //             matcher = toxIniContent =~ /ingenialink-python@([a-f0-9]{40})/
+        //             INGENIALINK_COMMIT_HASH = matcher ? matcher[0][1] : ""
+        //             if (!INGENIALINK_COMMIT_HASH.isEmpty()) {
+        //                 echo "Ingenialink commit Hash: ${INGENIALINK_COMMIT_HASH}"
+        //             } else {
+        //                 echo "Ingenialink commit hash not found in tox.ini"
+        //             }
+        //         }
+        //     }
+        // }
 
-        stage('Get Ingenialink Build Number') {
-            when {
-                expression { !INGENIALINK_COMMIT_HASH.isEmpty() }
-            }
-            steps {
-                script {
-                    def sourceJobName = 'Novanta Motion - Ingenia - Git/ingenialink-python'
-                    def sourceJob = Jenkins.instance.getItemByFullName(sourceJobName)
+        // stage('Get Ingenialink Build Number') {
+        //     when {
+        //         expression { !INGENIALINK_COMMIT_HASH.isEmpty() }
+        //     }
+        //     steps {
+        //         script {
+        //             def sourceJobName = 'Novanta Motion - Ingenia - Git/ingenialink-python'
+        //             def sourceJob = Jenkins.instance.getItemByFullName(sourceJobName)
 
-                    if (sourceJob && sourceJob instanceof org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject) {
-                        def foundBuild = null
-                        def foundBranch = null
-                        for (branchJob in sourceJob.getAllJobs()) {
-                            def fullBranchName = sourceJob.fullName + '/' + branchJob.name
-                            def branch = Jenkins.instance.getItemByFullName(fullBranchName)
+        //             if (sourceJob && sourceJob instanceof org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject) {
+        //                 def foundBuild = null
+        //                 def foundBranch = null
+        //                 for (branchJob in sourceJob.getAllJobs()) {
+        //                     def fullBranchName = sourceJob.fullName + '/' + branchJob.name
+        //                     def branch = Jenkins.instance.getItemByFullName(fullBranchName)
 
-                            if (branch) {
-                                for (build in branch.builds) {
-                                    def ingenialinkGitCommitHash = null
-                                    def description = build.getDescription() // All variables in the description should be separated by ;
-                                    if (description) {
-                                        for (entry in description.split(';')) {
-                                            def (key, value) = entry.split('=')
-                                            if (key == "ORIGINAL_GIT_COMMIT_HASH") {
-                                                ingenialinkGitCommitHash = value
-                                                break
-                                            }
-                                        }
-                                    }
-                                    if (ingenialinkGitCommitHash == INGENIALINK_COMMIT_HASH) {
-                                        foundBuild = build
-                                        foundBranch = fullBranchName
-                                        break
-                                    }
-                                }
-                            }
-                            if (foundBuild) {
-                                break
-                            }
-                        }
+        //                     if (branch) {
+        //                         for (build in branch.builds) {
+        //                             def ingenialinkGitCommitHash = null
+        //                             def description = build.getDescription() // All variables in the description should be separated by ;
+        //                             if (description) {
+        //                                 for (entry in description.split(';')) {
+        //                                     def (key, value) = entry.split('=')
+        //                                     if (key == "ORIGINAL_GIT_COMMIT_HASH") {
+        //                                         ingenialinkGitCommitHash = value
+        //                                         break
+        //                                     }
+        //                                 }
+        //                             }
+        //                             if (ingenialinkGitCommitHash == INGENIALINK_COMMIT_HASH) {
+        //                                 foundBuild = build
+        //                                 foundBranch = fullBranchName
+        //                                 break
+        //                             }
+        //                         }
+        //                     }
+        //                     if (foundBuild) {
+        //                         break
+        //                     }
+        //                 }
 
-                        if (foundBuild) {
-                            env.BRANCH = foundBranch
-                            env.BUILD_NUMBER_ENV = foundBuild.number.toString()
-                        } else {
-                            error "No build found for commit hash: ${INGENIALINK_COMMIT_HASH}"
-                        }
-                    } else {
-                        error "No job found with the name: ${sourceJobName} or it's not a multibranch project"
-                    }
+        //                 if (foundBuild) {
+        //                     env.BRANCH = foundBranch
+        //                     env.BUILD_NUMBER_ENV = foundBuild.number.toString()
+        //                 } else {
+        //                     error "No build found for commit hash: ${INGENIALINK_COMMIT_HASH}"
+        //                 }
+        //             } else {
+        //                 error "No job found with the name: ${sourceJobName} or it's not a multibranch project"
+        //             }
 
-                }
-            }
-        }
+        //         }
+        //     }
+        // }
 
-        stage('Copy Ingenialink Wheel Files') {
-            when {
-                expression { !INGENIALINK_COMMIT_HASH.isEmpty() }
-            }
-            steps {
-                script {
-                    def buildNumber = env.BUILD_NUMBER_ENV
-                    def branch = env.BRANCH
+        // stage('Copy Ingenialink Wheel Files') {
+        //     when {
+        //         expression { !INGENIALINK_COMMIT_HASH.isEmpty() }
+        //     }
+        //     steps {
+        //         script {
+        //             def buildNumber = env.BUILD_NUMBER_ENV
+        //             def branch = env.BRANCH
 
-                    if (buildNumber && branch) {
-                        node {
-                            clearIngenialinkWheelDir()
-                            copyArtifacts filter: '**/*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber), target: INGENIALINK_WHEELS_DIR
-                            stash includes: "${INGENIALINK_WHEELS_DIR}\\**\\*", name: 'ingenialink_wheels'
-                        }
-                    } else {
-                        error "No build number or workspace directory found in environment variables"
-                    }
-                }
-            }
-        }
+        //             if (buildNumber && branch) {
+        //                 node {
+        //                     clearIngenialinkWheelDir()
+        //                     copyArtifacts filter: '**/*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber), target: INGENIALINK_WHEELS_DIR
+        //                     stash includes: "${INGENIALINK_WHEELS_DIR}\\**\\*", name: 'ingenialink_wheels'
+        //                 }
+        //             } else {
+        //                 error "No build number or workspace directory found in environment variables"
+        //             }
+        //         }
+        //     }
+        // }
 
         stage('Build and Tests') {
             parallel {
@@ -300,6 +300,7 @@ pipeline {
                         docker {
                             label "worker"
                             image LIN_DOCKER_IMAGE
+                            args '--user root'
                         }
                     }
                     stages {
@@ -316,7 +317,9 @@ pipeline {
                         stage('Run no-connection tests') {
                             steps {
                                 withCredentials([sshUserPrivateKey(credentialsId: 'Bitbucket SSH', keyFileVariable: 'KEY')]) {
-                                    sh 'GIT_SSH_COMMAND="ssh -i $KEY" git clone git@$GIT_CLOUD/summit-testing-framework.git'
+                                    withEnv(["GIT_SSH_COMMAND='ssh -i $KEY'"]) {
+                                        sh "git clone git@$GIT_CLOUD/$SUMMIT_TESTING_FRAMEWORK_REPO"
+                                    }
                                     sh """
                                         GIT_SSH_COMMAND='ssh -i $KEY' python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- \
                                             -m virtual \
