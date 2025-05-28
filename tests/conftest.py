@@ -19,6 +19,7 @@ pytest_plugins = [
 # be imported and ARE NOT part of the package should be specified here
 _DYNAMIC_MODULES_IMPORT = ["tests", "examples"]
 
+
 test_report_key = pytest.StashKey[dict[str, pytest.CollectReport]]()
 
 
