@@ -1,5 +1,7 @@
 import time
+from collections.abc import Iterator
 from pathlib import Path
+from typing import Callable, Optional, Union
 
 import numpy as np
 import pytest
@@ -69,3 +71,45 @@ def mean_actual_velocity_position(mc, servo, velocity=False, n_samples=200, samp
         samples[sample_idx] = value
         time.sleep(sampling_period)
     return np.mean(samples)
+
+
+# https://novantamotion.atlassian.net/browse/CIT-401
+def timeout_loop(
+    timeout_sec: float, other: Optional[Union[Exception, Callable[[], Exception]]] = None
+) -> Iterator[int]:
+    """Timeout Loop
+
+    If the timeout is reached, a custom exception can be thrown, from other argument
+
+    Args:
+        timeout_sec: Maximum seconds to iterate on the loop
+        other: Exception to be thrown if timeout is reached
+            Also accepts a function that returns an exception.
+
+    Examples:
+
+        .. code-block:: python
+
+            for iteration in timeout_loop(
+                timeout_sec=0.5,
+                other=AssertionError("Timeout reached")
+            ):
+                print(f"Iteration {iteration} with timeout")
+                sleep(1)
+    """
+    iteration = 1
+    start_time = time.time()
+    timeout_time = start_time + timeout_sec
+
+    while True:
+        if time.time() > timeout_time:
+            if other is not None:
+                if isinstance(other, BaseException):
+                    raise other
+                else:
+                    raise other()
+            else:
+                break
+
+        yield iteration
+        iteration += 1

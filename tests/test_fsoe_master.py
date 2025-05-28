@@ -5,6 +5,7 @@ import pytest
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError, FSoEMaster
 from ingeniamotion.motion_controller import MotionController
+from tests.conftest import timeout_loop
 
 if FSOE_MASTER_INSTALLED:
     from fsoe_master import fsoe_master
@@ -154,8 +155,11 @@ def test_motor_enable(mc_state_data):
     # Deactivate the STO
     mc.fsoe.sto_deactivate()
     # Wait for the STO to be deactivated
-    while mc.fsoe.check_sto_active():
-        pass
+    for _ in timeout_loop(
+        timeout_sec=5, other=RuntimeError("Timeout waiting for STO deactivation")
+    ):
+        if not mc.fsoe.check_sto_active():
+            break
     # Enable the motor
     mc.motion.motor_enable()
     # Disable the motor
