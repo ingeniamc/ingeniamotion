@@ -227,7 +227,7 @@ def test_create_disturbance(mc, alias):
         data += [i * data_subrange] * data_subrange
     mc.capture.create_disturbance(target_register, data, divider, servo=alias)
     init_time = time.time()
-    mc.capture.enable_monitoring_disturbance(servo=alias)
+    mc.capture.enable_disturbance(servo=alias)
     read_data = []
     dist_timestamp = np.arange(samples) * period
     read_timestamp = []
