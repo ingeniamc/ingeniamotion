@@ -210,11 +210,7 @@ class FSoEMasterHandler:
         Returns:
             The FSoE slave address.
         """
-        # https://novantamotion.atlassian.net/browse/INGK-1090
-        value = self._master_handler.master.session.slave_address.value
-        if not isinstance(value, int):
-            raise TypeError("Unexpected type for slave address")
-        return value
+        return self._master_handler.get_slave_address()
 
     def set_safety_address(self, address: int) -> None:
         """Set the drive's FSoE slave address to the master and the slave.
