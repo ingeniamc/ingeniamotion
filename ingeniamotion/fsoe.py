@@ -349,7 +349,7 @@ class FSoEMaster:
 
     DEFAULT_WATCHDOG_TIMEOUT_S = 1
 
-    __FSOE_TOTAL_ERROR = "FSOE_TOTAL_ERROR"
+    __FSOE_MANUF_SAFETY_ADDRESS = "FSOE_MANUF_SAFETY_ADDRESS"
     __MDP_CONFIGURED_MODULE_1 = "MDP_CONFIGURED_MODULE_1"
 
     def __init__(self, motion_controller: "MotionController") -> None:
@@ -481,7 +481,9 @@ class FSoEMaster:
             The FSoE slave address.
 
         """
-        value = self.__mc.communication.get_register(register=self.__FSOE_TOTAL_ERROR, servo=servo)
+        value = self.__mc.communication.get_register(
+            register=self.__FSOE_MANUF_SAFETY_ADDRESS, servo=servo
+        )
         if not isinstance(value, int):
             raise ValueError(f"Wrong safety address value type. Expected int, got {type(value)}")
         return value
@@ -495,7 +497,7 @@ class FSoEMaster:
 
         """
         self.__mc.communication.set_register(
-            register=self.__FSOE_TOTAL_ERROR, value=address, servo=servo
+            register=self.__FSOE_MANUF_SAFETY_ADDRESS, value=address, servo=servo
         )
 
     def __get_configured_module_ident_1(
@@ -690,7 +692,7 @@ class FSoEMaster:
 
         application_parameters = []
         for param in safety_module.application_parameters:
-            register = self.__mc.info.register_info(register=param.uid, axis=0, servo=servo)
+            register = self.__mc.info.register_info(register=param.uid, axis=1, servo=servo)
             register_size_bytes, _ = dtype_value[register.dtype]
             application_parameters.append(
                 ApplicationParameter(
