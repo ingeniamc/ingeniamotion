@@ -86,6 +86,8 @@ def mc_state_data(mc_with_fsoe):
     mc.fsoe.stop_master(stop_pdos=True)
 
 
+@pytest.mark.fsoe
+@pytest.mark.smoke
 def test_safe_inputs_value(mc_state_data):
     mc = mc_state_data
 
@@ -95,6 +97,8 @@ def test_safe_inputs_value(mc_state_data):
     assert value == 0
 
 
+@pytest.mark.fsoe
+@pytest.mark.smoke
 def test_safety_address(mc_with_fsoe, alias):
     mc = mc_with_fsoe
 
@@ -121,6 +125,8 @@ def mc_state_to_fsoe_master_state(state: FSoEState):
     }[state]
 
 
+@pytest.mark.fsoe
+@pytest.mark.smoke
 @pytest.mark.parametrize(
     "state_enum",
     [
