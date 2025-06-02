@@ -135,6 +135,7 @@ class SafetyFunction:
 class STOFunction(SafetyFunction):
     """Safe Torque Off Safety Function."""
 
+    COMMAND_KEY = 0x040
     STO_COMMAND_UID = "STO_COMMAND"
 
     command: DictionaryItemInputOutput
@@ -150,14 +151,15 @@ class STOFunction(SafetyFunction):
 class SS1Function(SafetyFunction):
     """Safe Stop 1 Safety Function."""
 
-    SS1_COMMAND_UID = "SS1_COMMAND"
+    COMMAND_KEY = 0x050
+    COMMAND_UID = "SS1_COMMAND"
 
     command: DictionaryItemInputOutput
 
     @override
     @classmethod
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SS1Function"]:
-        ss1_command = cls._get_required_input_output(handler, cls.SS1_COMMAND_UID)
+        ss1_command = cls._get_required_input_output(handler, cls.COMMAND_UID)
         yield cls(
             command=ss1_command, io=(ss1_command,), parameters=()
         )  #  TODO review IO and params
@@ -167,6 +169,7 @@ class SS1Function(SafetyFunction):
 class SafeInputsFunction(SafetyFunction):
     """Safe Inputs Safety Function."""
 
+    SAFE_INPUTS_KEY = 0x070
     SAFE_INPUTS_UID = "SAFE_INPUTS"
 
     value: DictionaryItemInput
@@ -195,14 +198,6 @@ class FSoEMasterHandler:
         watchdog_timeout: The FSoE master watchdog timeout in seconds.
 
     """
-
-    STO_COMMAND_KEY = 0x040
-    STO_COMMAND_UID = "STO_COMMAND"  # TODO Use safety function
-    SS1_COMMAND_KEY = 0x050
-    SS1_COMMAND_UID = "SS1_COMMAND"
-    SAFE_INPUTS_KEY = 0x070
-    SAFE_INPUTS_UID = "SAFE_INPUTS"
-    PROCESS_DATA_COMMAND = 0x36
 
     FSOE_MANUF_SAFETY_ADDRESS = "FSOE_MANUF_SAFETY_ADDRESS"
 
@@ -298,18 +293,20 @@ class FSoEMasterHandler:
     def _map_outputs(self) -> None:
         """Configure the FSoE master handler's SafeOutputs."""
         # Phase 1 mapping
-        self._master_handler.master.dictionary_map.add_by_key(self.STO_COMMAND_KEY, bits=1)
-        self._master_handler.master.dictionary_map.add_by_key(self.SS1_COMMAND_KEY, bits=1)
+        self._master_handler.master.dictionary_map.add_by_key(STOFunction.COMMAND_KEY, bits=1)
+        self._master_handler.master.dictionary_map.add_by_key(SS1Function.COMMAND_KEY, bits=1)
         self._master_handler.master.dictionary_map.add_padding(bits=7)
         self._master_handler.master.dictionary_map.add_padding(bits=7)
 
     def _map_inputs(self) -> None:
         """Configure the FSoE master handler's SafeInputs."""
         # Phase 1 mapping
-        self._master_handler.slave.dictionary_map.add_by_key(self.STO_COMMAND_KEY, bits=1)
-        self._master_handler.slave.dictionary_map.add_by_key(self.SS1_COMMAND_KEY, bits=1)
+        self._master_handler.slave.dictionary_map.add_by_key(STOFunction.COMMAND_KEY, bits=1)
+        self._master_handler.slave.dictionary_map.add_by_key(SS1Function.COMMAND_KEY, bits=1)
         self._master_handler.slave.dictionary_map.add_padding(bits=7)
-        self._master_handler.slave.dictionary_map.add_by_key(self.SAFE_INPUTS_KEY, bits=1)
+        self._master_handler.slave.dictionary_map.add_by_key(
+            SafeInputsFunction.SAFE_INPUTS_KEY, bits=1
+        )
         self._master_handler.slave.dictionary_map.add_padding(bits=6)
 
     def set_pdo_maps_to_slave(self) -> None:
@@ -348,24 +345,24 @@ class FSoEMasterHandler:
     def sto_deactivate(self) -> None:
         """Set the STO command to deactivate the STO."""
         self._master_handler.set_fail_safe(False)
-        self._master_handler.dictionary.set(self.STO_COMMAND_UID, True)
+        self._master_handler.dictionary.set(STOFunction.COMMAND_KEY, True)
 
     def sto_activate(self) -> None:
         """Set the STO command to activate the STO."""
-        self._master_handler.dictionary.set(self.STO_COMMAND_UID, False)
+        self._master_handler.dictionary.set(STOFunction.COMMAND_KEY, False)
 
     def ss1_deactivate(self) -> None:
         """Set the SS1 command to deactivate the SS1."""
         self._master_handler.set_fail_safe(False)
-        self._master_handler.dictionary.set(self.SS1_COMMAND_UID, True)
+        self._master_handler.dictionary.set(SS1Function.COMMAND_KEY, True)
 
     def ss1_activate(self) -> None:
         """Set the SS1 command to activate the SS1."""
-        self._master_handler.dictionary.set(self.SS1_COMMAND_UID, False)
+        self._master_handler.dictionary.set(SS1Function.COMMAND_KEY, False)
 
     def safe_inputs_value(self) -> bool:
         """Get the safe inputs register value."""
-        safe_inputs_value = self._master_handler.dictionary.get(self.SAFE_INPUTS_UID)
+        safe_inputs_value = self._master_handler.dictionary.get(SafeInputsFunction.SAFE_INPUTS_KEY)
         if not isinstance(safe_inputs_value, bool):
             raise ValueError(f"Wrong value type. Expected type bool, got {type(safe_inputs_value)}")
         return safe_inputs_value
@@ -398,7 +395,7 @@ class FSoEMasterHandler:
             True if the STO is active. False otherwise.
 
         """
-        sto_command = self._master_handler.dictionary.get(self.STO_COMMAND_UID)
+        sto_command = self._master_handler.dictionary.get(STOFunction.COMMAND_KEY)
         if not isinstance(sto_command, bool):
             raise ValueError(f"Wrong value type. Expected type bool, got {type(sto_command)}")
         return sto_command
@@ -445,20 +442,20 @@ class FSoEMasterHandler:
     def _saco_phase_1_dictionary(cls) -> "Dictionary":
         """Get the SaCo phase 1 dictionary instance."""
         sto_command_dict_item = DictionaryItemInputOutput(
-            key=cls.STO_COMMAND_KEY,
-            name=cls.STO_COMMAND_UID,
+            key=STOFunction.COMMAND_KEY,
+            name=STOFunction.STO_COMMAND_UID,
             data_type=DictionaryItem.DataTypes.BOOL,
             fail_safe_input_value=True,
         )
         ss1_command_dict_item = DictionaryItemInputOutput(
-            key=cls.SS1_COMMAND_KEY,
-            name=cls.SS1_COMMAND_UID,
+            key=SS1Function.COMMAND_KEY,
+            name=SS1Function.COMMAND_UID,
             data_type=DictionaryItem.DataTypes.BOOL,
             fail_safe_input_value=True,
         )
         safe_input_dict_item = DictionaryItemInput(
-            key=cls.SAFE_INPUTS_KEY,
-            name=cls.SAFE_INPUTS_UID,
+            key=SafeInputsFunction.SAFE_INPUTS_KEY,
+            name=SafeInputsFunction.SAFE_INPUTS_UID,
             data_type=DictionaryItem.DataTypes.BOOL,
             fail_safe_value=False,
         )
