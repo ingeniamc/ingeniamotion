@@ -88,8 +88,3 @@ To install *FSoE*, do the same with *FSOE_PACKAGE*:
 ```bash
 FSOE_PACKAGE=".[FSoE]" tox -e py39
 ```
-
-To install developement version of *summit-testing-builder* use the repo-url along with the commit specified in *JenkinsFile.SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH*. If not specified, the release version will be installed.
-```bash
-SUMMIT_TESTING_FRAMEWORK="repo-url@commit_hash" tox -e py39
-```

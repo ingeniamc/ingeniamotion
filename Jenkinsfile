@@ -25,10 +25,6 @@ INGENIALINK_COMMIT_HASH = ""
 ORG_INGENIALINK_INSTALL_PATH = null
 INGENIALINK_WHEELS_DIR = "ingenialink_wheels"
 
-// Update the commit or set it to empty to use release version from tox.ini
-SUMMIT_TESTING_FRAMEWORK_REPO = "summit-testing-framework.git"
-SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH = "a8ecb20c1301b27e767d106789abf807a9632972"
-
 FSOE_INSTALL_VERSION = ".[FSoE]"
 
 coverage_stashes = []
@@ -63,47 +59,6 @@ def getIngenialinkArtifactWheelPath(python_version) {
         return ""
     }
 }
-
-
-def getSummitTestingFrameworkCommit() {
-    if (!SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty()) {
-        return "git+ssh://git@${GIT_CLOUD.replace(":", "/")}/${SUMMIT_TESTING_FRAMEWORK_REPO}@${SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH}"
-    }
-
-    def toxIniContent = readFile('tox.ini')
-    def matcher = toxIniContent =~ /summit_testing_framework\s*=\s*\{env:SUMMIT_TESTING_FRAMEWORK:(.*)\}/
-    if (matcher.find()) {
-        return matcher.group(1)
-    }
-    return null
-}
-
-
-def loadSSHKeys(windows_node = true, docker_node = false) {
-    if (env.BRANCH_NAME == 'master' || env.BRANCH_NAME.startsWith('release/')) {
-        echo 'Installing libraries without access to bitbucket repositories'
-    }  else {
-        echo 'Loading SSH key for libraries referenced to bitbucket on development'
-        withCredentials([sshUserPrivateKey(credentialsId: 'Bitbucket SSH', keyFileVariable: 'KEY')]) {
-            if (windows_node) {
-                def sshDir = docker_node ? '%TEMP%\\ssh' : '%USERPROFILE%\\.ssh'
-                bat """
-                    if not exist "${sshDir}" (
-                        mkdir "${sshDir}"
-                    )
-                """
-                bat "COPY %KEY% ${sshDir}\\id_rsa"
-            } else {
-                def sshDir = docker_node ? '/tmp/ssh' : '.ssh'
-                sh "[ -d \"${sshDir}\" ] || mkdir -p \"${sshDir}\""
-                sh "cp \$KEY ${sshDir}/id_rsa"
-                sh "chmod 600 ${sshDir}/id_rsa"
-                sh "ssh-keyscan -H bitbucket.org >> ${sshDir}/known_hosts"
-            }
-        }
-    }
-}
-
 
 def runTestHW(markers, setup_name, install_fsoe = false) {
     def fsoe_package = null
@@ -182,16 +137,7 @@ pipeline {
             }
         }
 
-        stage ('Set Summit Testing Framework Installation') {
-            agent any
-            steps {
-                script {
-                    env.SUMMIT_TESTING_FRAMEWORK = getSummitTestingFrameworkCommit()
-                }
-            }
-        }
-
-        stage('Read Ingenialink and Commit Hash') {
+        stage('Read Ingenialink Commit Hash') {
             agent any
             steps {
                 script {
@@ -300,32 +246,14 @@ pipeline {
                         docker {
                             label "worker"
                             image LIN_DOCKER_IMAGE
-                            args '--user root'
                         }
                     }
                     stages {
-                        // stage('Load ssh keys') {
-                        //     when {
-                        //         expression { !SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty() && !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
-                        //     }
-                        //     steps {
-                        //         script {
-                        //             loadSSHKeys(false, false)
-                        //         }
-                        //     }
-                        // }
                         stage('Run no-connection tests') {
                             steps {
-                                withCredentials([sshUserPrivateKey(credentialsId: 'Bitbucket SSH', keyFileVariable: 'KEY')]) {
-                                    
-                                    sh 'GIT_SSH_COMMAND="ssh -i $KEY" git clone git@$GIT_CLOUD/summit-testing-framework.git'
-
-                                    sh """
-                                        GIT_SSH_COMMAND='ssh -i $KEY' python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- \
-                                            -m virtual \
-                                            --setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP
-                                    """
-                                }
+                                sh "python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
+                                    "-m virtual " +
+                                    "--setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP"
                             }
                             post {
                                 always {
@@ -346,46 +274,33 @@ pipeline {
                                 }
                             }
                             stages {
-                                // stage('Build wheels') {
-                                //     steps {
-                                //         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e build"
-                                //         stash includes: 'dist\\*', name: 'build'
-                                //         archiveArtifacts artifacts: "dist\\*"
-                                //     }
-                                // }
-                                // stage('Make a static type analysis') {
-                                //     steps {
-                                //         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e type"
-                                //     }
-                                // }
-                                // stage('Check formatting') {
-                                //     steps {
-                                //         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e format"
-                                //     }
-                                // }
-                                // stage('Generate documentation') {
-                                //     steps {
-                                //         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e docs"
-                                //         bat """
-                                //             "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
-                                //         """
-                                //         stash includes: 'docs.zip', name: 'docs'
-                                //     }
-                                // }
-                                stage('Load ssh keys') {
-                                    when {
-                                        expression { !SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty() && !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
-                                    }
+                                stage('Build wheels') {
                                     steps {
-                                        script {
-                                            loadSSHKeys(true, false)
-                                        }
+                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e build"
+                                        stash includes: 'dist\\*', name: 'build'
+                                        archiveArtifacts artifacts: "dist\\*"
+                                    }
+                                }
+                                stage('Make a static type analysis') {
+                                    steps {
+                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e type"
+                                    }
+                                }
+                                stage('Check formatting') {
+                                    steps {
+                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e format"
+                                    }
+                                }
+                                stage('Generate documentation') {
+                                    steps {
+                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e docs"
+                                        bat """
+                                            "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
+                                        """
+                                        stash includes: 'docs.zip', name: 'docs'
                                     }
                                 }
                                 stage("Run unit tests") {
-                                    environment {
-                                        GIT_SSH_COMMAND = 'ssh -i USERPROFILE%\\.ssh\\id_rsa -o StrictHostKeyChecking=no'
-                                    }
                                     steps {
                                         bat """
                                             py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- ^
@@ -467,16 +382,6 @@ pipeline {
                         label CAN_NODE
                     }
                     stages {
-                        stage('Load ssh keys') {
-                            when {
-                                expression { !SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty() && !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
-                            }
-                            steps {
-                                script {
-                                    loadSSHKeys()
-                                }
-                            }
-                        }
                         stage("CanOpen Everest") {
                             steps {
                                 runTestHW("canopen", "CAN_EVE_SETUP")
@@ -513,16 +418,6 @@ pipeline {
                         label ECAT_NODE
                     }
                     stages {
-                        stage('Load ssh keys') {
-                            when {
-                                expression { !SUMMIT_TESTING_FRAMEWORK_COMMIT_HASH.isEmpty() && !env.SUMMIT_TESTING_FRAMEWORK.isEmpty() }
-                            }
-                            steps {
-                                script {
-                                    loadSSHKeys()
-                                }
-                            }
-                        }
                         stage("Ethercat Everest") {
                             when {
                                 // Remove this after fixing INGK-983
