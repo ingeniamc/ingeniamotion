@@ -130,6 +130,13 @@ class SafetyFunction:
             )
         return item
 
+    @classmethod
+    def _get_required_parameter(cls, handler: "FSoEMasterHandler", uid: str) -> SafetyParameter:
+        """Get the required parameter from the handler's safety parameters."""
+        if uid not in handler.safety_parameters:
+            raise KeyError(f"Safety parameter {uid} not found in the handler's safety parameters")
+        return handler.safety_parameters[uid]
+
 
 @dataclass()
 class STOFunction(SafetyFunction):
@@ -154,15 +161,22 @@ class SS1Function(SafetyFunction):
     COMMAND_KEY = 0x050
     COMMAND_UID = "SS1_COMMAND"
 
+    TIME_TO_STO_UID = "FSOE_SS1_TIME_TO_STO_1"
+
     command: DictionaryItemInputOutput
+    time_to_sto: SafetyParameter
 
     @override
     @classmethod
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SS1Function"]:
         ss1_command = cls._get_required_input_output(handler, cls.COMMAND_UID)
+        time_to_sto = cls._get_required_parameter(handler, cls.TIME_TO_STO_UID)
         yield cls(
-            command=ss1_command, io=(ss1_command,), parameters=()
-        )  #  TODO review IO and params
+            command=ss1_command,
+            time_to_sto=time_to_sto,
+            io=(ss1_command,),
+            parameters=(time_to_sto,),
+        )
 
 
 @dataclass()
@@ -172,12 +186,16 @@ class SafeInputsFunction(SafetyFunction):
     SAFE_INPUTS_KEY = 0x070
     SAFE_INPUTS_UID = "SAFE_INPUTS"
 
+    INPUTS_MAP_UID = "FSOE_SAFE_INPUTS_MAP"
+
     value: DictionaryItemInput
+    map: SafetyParameter
 
     @classmethod
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafeInputsFunction"]:
         safe_inputs = cls._get_required_input(handler, cls.SAFE_INPUTS_UID)
-        yield cls(value=safe_inputs, io=(safe_inputs,), parameters=())  #  TODO review IO and params
+        inputs_map = cls._get_required_parameter(handler, cls.INPUTS_MAP_UID)
+        yield cls(value=safe_inputs, map=inputs_map, io=(safe_inputs,), parameters=(inputs_map,))
 
 
 @dataclass
@@ -218,7 +236,8 @@ class FSoEMasterHandler:
         self.__servo = servo
 
         # Parameters that are part of the system
-        self.safety_parameters: list[SafetyParameter] = []
+        # UID as key
+        self.safety_parameters: dict[str, SafetyParameter] = {}
 
         # Parameters that will be transmitted during the fsoe parameter state
         fsoe_application_parameters: list[FSoEApplicationParameter] = []
@@ -237,7 +256,7 @@ class FSoEMasterHandler:
                 sp = SafetyParameterDirectValidation(register, servo)
                 fsoe_application_parameters.append(sp.fsoe_application_parameter)
 
-            self.safety_parameters.append(sp)
+            self.safety_parameters[app_parameter.uid] = sp
 
         self.dictionary = self.create_safe_dictionary(servo)
 
