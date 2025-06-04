@@ -98,7 +98,7 @@ class SafetyFunction:
     Wraps input/output items and parameters used by the FSoE Master handler.
     """
 
-    io: tuple[DictionaryItem, ...]
+    io: tuple["DictionaryItem", ...]
     parameters: tuple[SafetyParameter, ...]
 
     @classmethod
@@ -111,7 +111,7 @@ class SafetyFunction:
     @classmethod
     def _get_required_input_output(
         cls, hander: "FSoEMasterHandler", uid: str
-    ) -> DictionaryItemInputOutput:
+    ) -> "DictionaryItemInputOutput":
         """Get the required input/output item from the handler's dictionary."""
         item = hander.dictionary.name_map.get(uid)
         if not isinstance(item, DictionaryItemInputOutput):
@@ -121,7 +121,7 @@ class SafetyFunction:
         return item
 
     @classmethod
-    def _get_required_input(cls, handler: "FSoEMasterHandler", uid: str) -> DictionaryItemInput:
+    def _get_required_input(cls, handler: "FSoEMasterHandler", uid: str) -> "DictionaryItemInput":
         """Get the required input item from the handler's dictionary."""
         item = handler.dictionary.name_map.get(uid)
         if not isinstance(item, DictionaryItemInput):
@@ -145,7 +145,7 @@ class STOFunction(SafetyFunction):
     COMMAND_KEY = 0x040
     STO_COMMAND_UID = "STO_COMMAND"
 
-    command: DictionaryItemInputOutput
+    command: "DictionaryItemInputOutput"
 
     @override
     @classmethod
@@ -163,7 +163,7 @@ class SS1Function(SafetyFunction):
 
     TIME_TO_STO_UID = "FSOE_SS1_TIME_TO_STO_1"
 
-    command: DictionaryItemInputOutput
+    command: "DictionaryItemInputOutput"
     time_to_sto: SafetyParameter
 
     @override
@@ -188,7 +188,7 @@ class SafeInputsFunction(SafetyFunction):
 
     INPUTS_MAP_UID = "FSOE_SAFE_INPUTS_MAP"
 
-    value: DictionaryItemInput
+    value: "DictionaryItemInput"
     map: SafetyParameter
 
     @classmethod
