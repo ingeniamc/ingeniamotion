@@ -1,10 +1,13 @@
 import threading
 from collections.abc import Iterator
 from dataclasses import dataclass
-from functools import partial
-from typing import TYPE_CHECKING, Callable, Optional, Union
+from functools import lru_cache, partial
+from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union
 
 import ingenialogger
+from ingenialink import RegDtype
+from ingenialink.canopen.register import CanopenRegister
+from ingenialink.enums.register import RegCyclicType
 from ingenialink.ethercat.dictionary import EthercatDictionaryV2
 from ingenialink.ethercat.servo import EthercatServo
 from typing_extensions import override
@@ -14,10 +17,12 @@ try:
         ApplicationParameter as FSoEApplicationParameter,
     )
     from fsoe_master.fsoe_master import (
+        DataType,
         Dictionary,
         DictionaryItem,
         DictionaryItemInput,
         DictionaryItemInputOutput,
+        DictionaryItemOutput,
         MasterHandler,
         StateData,
     )
@@ -138,12 +143,14 @@ class SafetyFunction:
         return handler.safety_parameters[uid]
 
 
+SAFE_INSTANCE_TYPE = TypeVar("SAFE_INSTANCE_TYPE", bound="SafetyFunction")
+
+
 @dataclass()
 class STOFunction(SafetyFunction):
     """Safe Torque Off Safety Function."""
 
-    COMMAND_KEY = 0x040
-    STO_COMMAND_UID = "STO_COMMAND"
+    STO_COMMAND_UID = "FSOE_STO"
 
     command: "DictionaryItemInputOutput"
 
@@ -158,8 +165,7 @@ class STOFunction(SafetyFunction):
 class SS1Function(SafetyFunction):
     """Safe Stop 1 Safety Function."""
 
-    COMMAND_KEY = 0x050
-    COMMAND_UID = "SS1_COMMAND"
+    COMMAND_UID = "FSOE_SS1_1"
 
     TIME_TO_STO_UID = "FSOE_SS1_TIME_TO_STO_1"
 
@@ -183,8 +189,7 @@ class SS1Function(SafetyFunction):
 class SafeInputsFunction(SafetyFunction):
     """Safe Inputs Safety Function."""
 
-    SAFE_INPUTS_KEY = 0x070
-    SAFE_INPUTS_UID = "SAFE_INPUTS"
+    SAFE_INPUTS_UID = "FSOE_SAFE_INPUTS_VALUE"
 
     INPUTS_MAP_UID = "FSOE_SAFE_INPUTS_MAP"
 
@@ -218,6 +223,7 @@ class FSoEMasterHandler:
     """
 
     FSOE_MANUF_SAFETY_ADDRESS = "FSOE_MANUF_SAFETY_ADDRESS"
+    FSOE_DICTIONARY_CATEGORY = "FSOE"
 
     DEFAULT_WATCHDOG_TIMEOUT_S = 1
 
@@ -312,19 +318,27 @@ class FSoEMasterHandler:
     def _map_outputs(self) -> None:
         """Configure the FSoE master handler's SafeOutputs."""
         # Phase 1 mapping
-        self._master_handler.master.dictionary_map.add_by_key(STOFunction.COMMAND_KEY, bits=1)
-        self._master_handler.master.dictionary_map.add_by_key(SS1Function.COMMAND_KEY, bits=1)
+        self._master_handler.master.dictionary_map.add(
+            self.get_function_instance(STOFunction).command, bits=1
+        )
+        self._master_handler.master.dictionary_map.add(
+            self.get_function_instance(SS1Function).command, bits=1
+        )
         self._master_handler.master.dictionary_map.add_padding(bits=7)
         self._master_handler.master.dictionary_map.add_padding(bits=7)
 
     def _map_inputs(self) -> None:
         """Configure the FSoE master handler's SafeInputs."""
         # Phase 1 mapping
-        self._master_handler.slave.dictionary_map.add_by_key(STOFunction.COMMAND_KEY, bits=1)
-        self._master_handler.slave.dictionary_map.add_by_key(SS1Function.COMMAND_KEY, bits=1)
+        self._master_handler.slave.dictionary_map.add(
+            self.get_function_instance(STOFunction).command, bits=1
+        )
+        self._master_handler.slave.dictionary_map.add(
+            self.get_function_instance(SS1Function).command, bits=1
+        )
         self._master_handler.slave.dictionary_map.add_padding(bits=7)
-        self._master_handler.slave.dictionary_map.add_by_key(
-            SafeInputsFunction.SAFE_INPUTS_KEY, bits=1
+        self._master_handler.slave.dictionary_map.add(
+            self.get_function_instance(SafeInputsFunction).value, bits=1
         )
         self._master_handler.slave.dictionary_map.add_padding(bits=6)
 
@@ -361,27 +375,56 @@ class FSoEMasterHandler:
 
         self._master_handler.set_reply(reply)
 
+    def get_function_instance(
+        self, type_: type[SAFE_INSTANCE_TYPE], instance: Optional[int] = None
+    ) -> SAFE_INSTANCE_TYPE:
+        funcs = [func for func in self.safety_functions if isinstance(func, type_)]
+
+        if isinstance(instance, int):
+            return funcs[instance]
+        else:
+            if len(funcs) != 1:
+                raise ValueError(
+                    f"Expected exactly one instance of {type_.__name__}, got {len(funcs)}"
+                )
+            return funcs[0]
+
+    @lru_cache  # TODO Replace by weak lru decorator
+    def sto_function(self) -> STOFunction:
+        """Get the Safe Torque Off function."""
+        return self.get_function_instance(STOFunction)
+
+    @lru_cache  # TODO Replace by weak lru decorator
+    def ss1_function(self) -> SS1Function:
+        """Get the Safe Stop 1 function."""
+        return self.get_function_instance(SS1Function)
+
+    @lru_cache
+    def safe_inputs_function(self) -> SafeInputsFunction:
+        """Get the Safe Inputs function."""
+        return self.get_function_instance(SafeInputsFunction)
+
     def sto_deactivate(self) -> None:
         """Set the STO command to deactivate the STO."""
         self._master_handler.set_fail_safe(False)
-        self._master_handler.dictionary.set(STOFunction.COMMAND_KEY, True)
+        self.sto_function().command.set(True)
 
     def sto_activate(self) -> None:
         """Set the STO command to activate the STO."""
-        self._master_handler.dictionary.set(STOFunction.COMMAND_KEY, False)
+        self.sto_function().command.set(False)
 
     def ss1_deactivate(self) -> None:
         """Set the SS1 command to deactivate the SS1."""
         self._master_handler.set_fail_safe(False)
-        self._master_handler.dictionary.set(SS1Function.COMMAND_KEY, True)
+        self.ss1_function().command.set(True)
 
     def ss1_activate(self) -> None:
         """Set the SS1 command to activate the SS1."""
-        self._master_handler.dictionary.set(SS1Function.COMMAND_KEY, False)
+        self.ss1_function().command.set(False)
 
     def safe_inputs_value(self) -> bool:
         """Get the safe inputs register value."""
-        safe_inputs_value = self._master_handler.dictionary.get(SafeInputsFunction.SAFE_INPUTS_KEY)
+        safe_inputs_value = self.safe_inputs_function().value.get()
         if not isinstance(safe_inputs_value, bool):
             raise ValueError(f"Wrong value type. Expected type bool, got {type(safe_inputs_value)}")
         return safe_inputs_value
@@ -414,7 +457,7 @@ class FSoEMasterHandler:
             True if the STO is active. False otherwise.
 
         """
-        sto_command = self._master_handler.dictionary.get(STOFunction.COMMAND_KEY)
+        sto_command = self.sto_function().command.get()
         if not isinstance(sto_command, bool):
             raise ValueError(f"Wrong value type. Expected type bool, got {type(sto_command)}")
         return sto_command
@@ -452,6 +495,7 @@ class FSoEMasterHandler:
             # Dictionary V2 only supports SaCo phase 1
             return cls._saco_phase_1_dictionary()
         if isinstance(servo.dictionary, DictionaryV3):
+            return cls._create_safe_dictionary_from_v3(servo.dictionary)
             # TODO Implement and add tests with another setup
             raise NotImplementedError
         else:
@@ -461,19 +505,21 @@ class FSoEMasterHandler:
     def _saco_phase_1_dictionary(cls) -> "Dictionary":
         """Get the SaCo phase 1 dictionary instance."""
         sto_command_dict_item = DictionaryItemInputOutput(
-            key=STOFunction.COMMAND_KEY,
+            # Arbitrary key, could be removed
+            # https://novantamotion.atlassian.net/browse/INGK-1112
+            key=1,
             name=STOFunction.STO_COMMAND_UID,
             data_type=DictionaryItem.DataTypes.BOOL,
             fail_safe_input_value=True,
         )
         ss1_command_dict_item = DictionaryItemInputOutput(
-            key=SS1Function.COMMAND_KEY,
+            key=2,
             name=SS1Function.COMMAND_UID,
             data_type=DictionaryItem.DataTypes.BOOL,
             fail_safe_input_value=True,
         )
         safe_input_dict_item = DictionaryItemInput(
-            key=SafeInputsFunction.SAFE_INPUTS_KEY,
+            key=3,
             name=SafeInputsFunction.SAFE_INPUTS_UID,
             data_type=DictionaryItem.DataTypes.BOOL,
             fail_safe_value=False,
@@ -485,6 +531,122 @@ class FSoEMasterHandler:
                 safe_input_dict_item,
             ]
         )
+
+    @classmethod
+    def _create_safe_dictionary_from_v3(cls, dictionary: "DictionaryV3") -> "Dictionary":
+        """Create a dictionary with the safe inputs and outputs from a DictionaryV3 instance.
+
+        Args:
+            dictionary: The DictionaryV3 instance.
+
+        Returns:
+            A FSOE Dictionary instance with the safe inputs and outputs.
+
+        """
+        items = []
+        for register in dictionary.registers(subnode=1).values():
+            if register.cat_id != cls.FSOE_DICTIONARY_CATEGORY:
+                continue
+
+            if not isinstance(register, CanopenRegister):
+                # Type could be narrowed to EthercatRegister
+                # After this bugfix:
+                # https://novantamotion.atlassian.net/browse/INGK-1111
+                raise TypeError
+
+            identifier = register.identifier
+            if identifier is None:
+                continue
+
+            if identifier.startswith(("FSOE_SLAVE_FRAME", "FSOE_MASTER_FRAME")):
+                # Elements of the standard FSoE frame are not added to the safe data dictionary
+                continue
+
+            if register.pdo_access in (
+                RegCyclicType.SAFETY_OUTPUT,
+                RegCyclicType.SAFETY_INPUT_OUTPUT,
+                RegCyclicType.SAFETY_INPUT,
+            ):
+                items.append(cls._create_fsoe_dict_item_from_reg(register))
+
+        return Dictionary(items)
+
+    @classmethod
+    def _create_fsoe_dict_item_from_reg(cls, reg: "CanopenRegister") -> "DictionaryItem":
+        # Create an arbitrary unique numeric key for the item
+        # https://novantamotion.atlassian.net/browse/INGK-1112
+        key = reg.idx * 1000 + reg.subidx
+
+        data_typ = cls._reg_dtype_to_fsoe_data_type(reg.dtype)
+
+        if reg.pdo_access == RegCyclicType.SAFETY_INPUT:
+            return DictionaryItemInput(
+                key,
+                name=reg.identifier,
+                data_type=data_typ,
+                fail_safe_value=cls.__fsoe_input_data_type_default(data_typ, DictionaryItemInput),
+            )
+        elif reg.pdo_access == RegCyclicType.SAFETY_INPUT_OUTPUT:
+            return DictionaryItemInputOutput(
+                key,
+                name=reg.identifier,
+                data_type=data_typ,
+                fail_safe_input_value=cls.__fsoe_input_data_type_default(
+                    data_typ, DictionaryItemInputOutput
+                ),
+            )
+        elif reg.pdo_access == RegCyclicType.SAFETY_OUTPUT:
+            return DictionaryItemOutput(
+                key,
+                name=reg.identifier,
+                data_type=data_typ,
+            )
+
+        raise NotImplementedError
+
+    @classmethod
+    def _reg_dtype_to_fsoe_data_type(cls, typ: "RegDtype") -> "DataType":
+        if typ == RegDtype.U8:
+            return DataType.UINT8
+        if typ == RegDtype.U16:
+            return DataType.UINT16
+        if typ == RegDtype.U32:
+            return DataType.UINT32
+        if typ == RegDtype.S8:
+            return DataType.INT8
+        if typ == RegDtype.S16:
+            return DataType.INT16
+        if typ == RegDtype.S32:
+            return DataType.INT32
+        if typ == RegDtype.FLOAT:
+            return DataType.FLOAT
+        if typ == RegDtype.BOOL:
+            return DataType.BOOL
+
+        raise NotImplementedError(f"Unsupported register data type for FSoE: {typ}")
+
+    @classmethod
+    def __fsoe_input_data_type_default(
+        cls, data_typ: "DataType", item_type: type["DictionaryItem"]
+    ) -> Union[int, float, str, bytes]:
+        if data_typ == DataType.BOOL:
+            if item_type == DictionaryItemInput:
+                return False
+            if item_type == DictionaryItemInputOutput:
+                return True
+
+        if data_typ in (
+            DataType.UINT8,
+            DataType.UINT16,
+            DataType.UINT32,
+            DataType.INT8,
+            DataType.INT16,
+            DataType.INT32,
+            DataType.FLOAT,
+        ):
+            return 0
+
+        raise NotImplementedError(f"Unsupported data type for FSoE: {data_typ}")
 
     @property
     def safety_master_pdu_map(self) -> RPDOMap:
