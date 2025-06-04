@@ -1,7 +1,7 @@
 import threading
 from collections.abc import Iterator
 from dataclasses import dataclass
-from functools import lru_cache, partial
+from functools import partial
 from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union
 
 import ingenialogger
@@ -39,6 +39,7 @@ from ingenialink.dictionary import DictionarySafetyModule, DictionaryV3
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 from ingenialink.utils._utils import dtype_value
 
+from ingeniamotion._utils import weak_lru
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.exceptions import IMTimeoutError
 from ingeniamotion.metaclass import DEFAULT_SERVO
@@ -196,6 +197,7 @@ class SafeInputsFunction(SafetyFunction):
     value: "DictionaryItemInput"
     map: SafetyParameter
 
+    @override
     @classmethod
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafeInputsFunction"]:
         safe_inputs = cls._get_required_input(handler, cls.SAFE_INPUTS_UID)
@@ -376,30 +378,37 @@ class FSoEMasterHandler:
         self._master_handler.set_reply(reply)
 
     def get_function_instance(
-        self, type_: type[SAFE_INSTANCE_TYPE], instance: Optional[int] = None
+        self, typ: type[SAFE_INSTANCE_TYPE], instance: Optional[int] = None
     ) -> SAFE_INSTANCE_TYPE:
-        funcs = [func for func in self.safety_functions if isinstance(func, type_)]
+        """Get the instance of a safety function.
+
+        Args:
+            typ: The type of the safety function to get.
+            instance: The index of the instance to get.
+                If None, if there's a single instance, it returns it.
+        """
+        funcs = [func for func in self.safety_functions if isinstance(func, typ)]
 
         if isinstance(instance, int):
             return funcs[instance]
         else:
             if len(funcs) != 1:
                 raise ValueError(
-                    f"Expected exactly one instance of {type_.__name__}, got {len(funcs)}"
+                    f"Expected exactly one instance of {typ.__name__}, got {len(funcs)}"
                 )
             return funcs[0]
 
-    @lru_cache  # TODO Replace by weak lru decorator
+    @weak_lru()
     def sto_function(self) -> STOFunction:
         """Get the Safe Torque Off function."""
         return self.get_function_instance(STOFunction)
 
-    @lru_cache  # TODO Replace by weak lru decorator
+    @weak_lru()
     def ss1_function(self) -> SS1Function:
         """Get the Safe Stop 1 function."""
         return self.get_function_instance(SS1Function)
 
-    @lru_cache
+    @weak_lru()
     def safe_inputs_function(self) -> SafeInputsFunction:
         """Get the Safe Inputs function."""
         return self.get_function_instance(SafeInputsFunction)
@@ -491,13 +500,12 @@ class FSoEMasterHandler:
             A Dictionary instance with the safe inputs and outputs.
 
         """
-        if isinstance(servo.dictionary, EthercatDictionaryV2):
+        dictionary = servo.dictionary
+        if isinstance(dictionary, EthercatDictionaryV2):
             # Dictionary V2 only supports SaCo phase 1
             return cls._saco_phase_1_dictionary()
-        if isinstance(servo.dictionary, DictionaryV3):
-            return cls._create_safe_dictionary_from_v3(servo.dictionary)
-            # TODO Implement and add tests with another setup
-            raise NotImplementedError
+        if isinstance(dictionary, DictionaryV3):
+            return cls._create_safe_dictionary_from_v3(dictionary)
         else:
             raise NotImplementedError
 
