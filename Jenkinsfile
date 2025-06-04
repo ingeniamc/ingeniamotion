@@ -16,8 +16,6 @@ RUN_PYTHON_VERSIONS = ""
 PYTHON_VERSION_MIN = "py39"
 def PYTHON_VERSION_MAX = "py312"
 
-RUN_ONLY_SMOKE_TESTS = false
-
 def BRANCH_NAME_MASTER = "master"
 def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
 
@@ -67,9 +65,6 @@ def runTestHW(run_identifier, markers, setup_name, install_fsoe = false) {
     }
 
     unstash 'ingenialink_wheels'
-    if (RUN_ONLY_SMOKE_TESTS) {
-        markers = markers + " and smoke"
-    }
 
     def pythonVersions = RUN_PYTHON_VERSIONS.split(',')
 
@@ -80,8 +75,7 @@ def runTestHW(run_identifier, markers, setup_name, install_fsoe = false) {
                 bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
                         "-m \"${markers}\" " +
                         "--setup tests.setups.rack_specifiers.${setup_name} " +
-                        "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\" " +
-                        "--allow-no-tests"
+                        "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\" "
             } catch (err) {
                 unstable(message: "Tests failed")
             } finally {
@@ -99,7 +93,7 @@ def runTestHW(run_identifier, markers, setup_name, install_fsoe = false) {
 }
 
 /* Build develop everyday at 19:00 UTC (21:00 Barcelona Time), running all tests */
-CRON_SETTINGS = BRANCH_NAME == "develop" ? '''0 19 * * * % TESTS=All''' : ""
+CRON_SETTINGS = BRANCH_NAME == "develop" ? '''0 19 * * * % PYTHON_VERSIONS=All''' : ""
 
 pipeline {
     agent none
@@ -108,8 +102,8 @@ pipeline {
     }
     parameters {
         choice(
-                choices: ['Smoke', 'All'],
-                name: 'TESTS'
+                choices: ['MIN', 'MIN_MAX', 'All'],
+                name: 'PYTHON_VERSIONS'
         )
     }
     stages {
@@ -118,17 +112,15 @@ pipeline {
                 script {
                     if (env.BRANCH_NAME == 'master') {
                         RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
-                        RUN_ONLY_SMOKE_TESTS = false
-                    } else if (env.BRANCH_NAME == 'develop') {
-                        RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
-                        RUN_ONLY_SMOKE_TESTS = false
                     } else if (env.BRANCH_NAME.startsWith('release/')) {
                         RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
-                        RUN_ONLY_SMOKE_TESTS = false
                     } else {
-                        RUN_PYTHON_VERSIONS = "${PYTHON_VERSION_MIN},${PYTHON_VERSION_MAX}"
-                        if (params.TESTS == 'Smoke') {
-                            RUN_ONLY_SMOKE_TESTS = true
+                        if (env.PYTHON_VERSIONS == "MIN_MAX") {
+                          RUN_PYTHON_VERSIONS = "${PYTHON_VERSION_MIN},${PYTHON_VERSION_MAX}"
+                        } else if (env.PYTHON_VERSIONS == "MIN") {
+                          RUN_PYTHON_VERSIONS = PYTHON_VERSION_MIN
+                        } else {
+                          RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
                         }
                     }
                 }
