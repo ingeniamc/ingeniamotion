@@ -60,7 +60,7 @@ def getIngenialinkArtifactWheelPath(python_version) {
     }
 }
 
-def runTestHW(markers, setup_name, install_fsoe = false) {
+def runTestHW(run_identifier, markers, setup_name, install_fsoe = false) {
     def fsoe_package = null
     if (install_fsoe) {
         fsoe_package = FSOE_INSTALL_VERSION
@@ -71,7 +71,6 @@ def runTestHW(markers, setup_name, install_fsoe = false) {
         markers = markers + " and smoke"
     }
 
-    def firstIteration = true
     def pythonVersions = RUN_PYTHON_VERSIONS.split(',')
 
     pythonVersions.each { version ->
@@ -81,20 +80,18 @@ def runTestHW(markers, setup_name, install_fsoe = false) {
                 bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
                         "-m \"${markers}\" " +
                         "--setup tests.setups.rack_specifiers.${setup_name} " +
-                        "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${setup_name}\""
+                        "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\""
             } catch (err) {
                 unstable(message: "Tests failed")
             } finally {
                 junit "pytest_reports\\*.xml"
                 // Delete the junit after publishing it so it not re-published on the next stage
                 bat "del /S /Q pytest_reports\\*.xml"
-                if (firstIteration) {
-                    def coverage_stash = ".coverage_${setup_name}"
-                    bat "move .coverage ${coverage_stash}"
-                    stash includes: coverage_stash, name: coverage_stash
-                    coverage_stashes.add(coverage_stash)
-                    firstIteration = false
-                }
+                // Save the coverage so it can be unified and published later
+                def coverage_stash = ".coverage_${run_identifier}_${version}"
+                bat "move .coverage ${coverage_stash}"
+                stash includes: coverage_stash, name: coverage_stash
+                coverage_stashes.add(coverage_stash)
             }
         }
     }
@@ -384,19 +381,19 @@ pipeline {
                     stages {
                         stage("CanOpen Everest") {
                             steps {
-                                runTestHW("canopen", "CAN_EVE_SETUP")
-                                runTestHW("canopen and skip_testing_framework", "CAN_EVE_SETUP")
+                                runTestHW("canopen_everest", "canopen", "CAN_EVE_SETUP")
+                                runTestHW("canopen_everest_no_framework", "canopen and skip_testing_framework", "CAN_EVE_SETUP")
                             }
                         }
                         stage("Ethernet Everest") {
                             steps {
-                                runTestHW("ethernet", "ETH_EVE_SETUP")
+                                runTestHW("ethernet_everest", "ethernet", "ETH_EVE_SETUP")
                             }
                         }
                         stage("CanOpen Capitan") {
                             steps {
-                                runTestHW("canopen", "CAN_CAP_SETUP")
-                                runTestHW("canopen and skip_testing_framework", "CAN_EVE_SETUP")
+                                runTestHW("canopen_capitan", "canopen", "CAN_CAP_SETUP")
+                                runTestHW("canopen_capitan_no_framework", "canopen and skip_testing_framework", "CAN_EVE_SETUP")
                             }
                         }
                         stage("Ethernet Capitan") {
@@ -405,7 +402,7 @@ pipeline {
                                 expression { false }
                             }
                             steps {
-                                runTestHW("ethernet", "ETH_CAP_SETUP")
+                                runTestHW("ethernet capitan", "ethernet", "ETH_CAP_SETUP")
                             }
                         }
                     }
@@ -424,22 +421,22 @@ pipeline {
                                 expression { false }
                             }
                             steps {
-                                runTestHW("soem", "ECAT_EVE_SETUP")
+                                runTestHW("ethercat_everest", "soem", "ECAT_EVE_SETUP")
                             }
                         }
                         stage("Ethercat Capitan") {
                             steps {
-                                runTestHW("soem", "ECAT_CAP_SETUP")
+                                runTestHW("ethercat_capitan", "soem", "ECAT_CAP_SETUP")
                             }
                         }
                         stage("Safety Denali") {
                             steps {
-                                runTestHW("fsoe", "ECAT_DEN_S_PHASE1_SETUP", true)
+                                runTestHW("fsoe_phase1", "fsoe", "ECAT_DEN_S_PHASE1_SETUP", true)
                             }
                         }
                         stage("Ethercat Multislave") {
                             steps {
-                                runTestHW("soem_multislave", "ECAT_MULTISLAVE_SETUP")
+                                runTestHW("ethercat_multislave", "soem_multislave", "ECAT_MULTISLAVE_SETUP")
                             }
                         }
                     }
