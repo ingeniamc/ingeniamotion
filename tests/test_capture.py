@@ -227,7 +227,7 @@ def test_create_disturbance(mc, alias):
         data += [i * data_subrange] * data_subrange
     mc.capture.create_disturbance(target_register, data, divider, servo=alias)
     init_time = time.time()
-    mc.capture.enable_monitoring_disturbance(servo=alias)
+    mc.capture.enable_disturbance(servo=alias)
     read_data = []
     dist_timestamp = np.arange(samples) * period
     read_timestamp = []
@@ -243,7 +243,6 @@ def test_create_disturbance(mc, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_mcb_synchronization(mocker, mc, alias):
     enable_mon = mocker.patch("ingeniamotion.capture.Capture.enable_monitoring")
     disable_mon = mocker.patch("ingeniamotion.capture.Capture.disable_monitoring")
@@ -255,7 +254,6 @@ def test_mcb_synchronization(mocker, mc, alias):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 def test_mcb_synchronization_fail(mc, alias):
     mc.motion.motor_enable(servo=alias)
     with pytest.raises(IMStatusWordError):
@@ -263,7 +261,6 @@ def test_mcb_synchronization_fail(mc, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("skip_if_monitoring_not_available")
 def test_disturbance_max_sample_size(mc, alias):
     target_register = mc.capture.DISTURBANCE_MAXIMUM_SAMPLE_SIZE_REGISTER
@@ -275,7 +272,6 @@ def test_disturbance_max_sample_size(mc, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("skip_if_monitoring_not_available")
 def test_monitoring_max_sample_size(mc, alias):
     target_register = mc.capture.MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER
@@ -289,7 +285,6 @@ def test_monitoring_max_sample_size(mc, alias):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 @pytest.mark.usefixtures("disable_monitoring_disturbance")
 @pytest.mark.usefixtures("skip_if_monitoring_not_available")
 def test_get_frequency(mc, alias):

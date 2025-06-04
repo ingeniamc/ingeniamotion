@@ -51,7 +51,6 @@ class TestErrors:
     @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
-    @pytest.mark.smoke
     def test_get_last_error(self, mc, alias, generate_drive_errors):
         # Axis 1 needs to be selected due to a bug in EVE-XCR. For more info check INGM-376.
         last_error, subnode, warning = mc.errors.get_last_error(servo=alias, axis=1)
@@ -65,7 +64,6 @@ class TestErrors:
     @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
-    @pytest.mark.smoke
     def test_get_last_buffer_error(self, mc, alias, generate_drive_errors):
         last_error, subnode, warning = mc.errors.get_last_buffer_error(servo=alias)
         assert last_error == generate_drive_errors[0]
@@ -73,7 +71,6 @@ class TestErrors:
     @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
-    @pytest.mark.smoke
     def test_get_buffer_error_by_index(self, mc, alias, generate_drive_errors):
         index_list = [2, 1, 3, 0]
         for i in index_list:
@@ -85,7 +82,6 @@ class TestErrors:
     @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
-    @pytest.mark.smoke
     @pytest.mark.usefixtures("generate_drive_errors")
     def test_get_buffer_error_by_index_exception(self, mc, alias):
         with pytest.raises(ValueError):
@@ -94,7 +90,6 @@ class TestErrors:
     @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
-    @pytest.mark.smoke
     def test_get_number_total_errors(self, mc, alias, error_number, generate_drive_errors):
         test_error_number = mc.errors.get_number_total_errors(servo=alias)
         assert test_error_number == error_number + len(generate_drive_errors)
@@ -102,7 +97,6 @@ class TestErrors:
     @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
-    @pytest.mark.smoke
     def test_get_all_errors(self, mc, alias, generate_drive_errors):
         test_all_errors = mc.errors.get_all_errors(servo=alias, axis=1)
         for i, code_error in enumerate(generate_drive_errors):
@@ -112,7 +106,6 @@ class TestErrors:
     @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
-    @pytest.mark.smoke
     @pytest.mark.usefixtures("generate_drive_errors")
     def test_is_fault_active(self, mc, alias):
         assert mc.errors.is_fault_active(servo=alias)
@@ -122,7 +115,6 @@ class TestErrors:
     @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
-    @pytest.mark.smoke
     @pytest.mark.usefixtures("force_warning")
     def test_is_warning_active(self, mc, alias):
         assert mc.errors.is_warning_active(servo=alias)
@@ -130,7 +122,6 @@ class TestErrors:
         assert not mc.errors.is_warning_active(servo=alias)
 
     @pytest.mark.virtual
-    @pytest.mark.smoke
     @pytest.mark.parametrize(
         "error_code, affected_module, error_type, error_msg",
         [
@@ -157,7 +148,6 @@ class TestErrors:
             "get_number_total_errors",
         ],
     )
-    @pytest.mark.smoke
     @pytest.mark.virtual
     def test_wrong_type_exception(self, mocker, mc, alias, function):
         mocker.patch.object(mc.communication, "get_register", return_value="invalid_value")
