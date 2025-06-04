@@ -16,8 +16,6 @@ RUN_PYTHON_VERSIONS = ""
 PYTHON_VERSION_MIN = "py39"
 def PYTHON_VERSION_MAX = "py312"
 
-RUN_ONLY_SMOKE_TESTS = false
-
 def BRANCH_NAME_MASTER = "master"
 def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
 
@@ -60,18 +58,14 @@ def getIngenialinkArtifactWheelPath(python_version) {
     }
 }
 
-def runTestHW(markers, setup_name, install_fsoe = false) {
+def runTestHW(run_identifier, markers, setup_name, install_fsoe = false) {
     def fsoe_package = null
     if (install_fsoe) {
         fsoe_package = FSOE_INSTALL_VERSION
     }
 
     unstash 'ingenialink_wheels'
-    if (RUN_ONLY_SMOKE_TESTS) {
-        markers = markers + " and smoke"
-    }
 
-    def firstIteration = true
     def pythonVersions = RUN_PYTHON_VERSIONS.split(',')
 
     pythonVersions.each { version ->
@@ -81,27 +75,25 @@ def runTestHW(markers, setup_name, install_fsoe = false) {
                 bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
                         "-m \"${markers}\" " +
                         "--setup tests.setups.rack_specifiers.${setup_name} " +
-                        "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${setup_name}\""
+                        "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\" "
             } catch (err) {
                 unstable(message: "Tests failed")
             } finally {
                 junit "pytest_reports\\*.xml"
                 // Delete the junit after publishing it so it not re-published on the next stage
                 bat "del /S /Q pytest_reports\\*.xml"
-                if (firstIteration) {
-                    def coverage_stash = ".coverage_${setup_name}"
-                    bat "move .coverage ${coverage_stash}"
-                    stash includes: coverage_stash, name: coverage_stash
-                    coverage_stashes.add(coverage_stash)
-                    firstIteration = false
-                }
+                // Save the coverage so it can be unified and published later
+                def coverage_stash = ".coverage_${run_identifier}_${version}"
+                bat "move .coverage ${coverage_stash}"
+                stash includes: coverage_stash, name: coverage_stash
+                coverage_stashes.add(coverage_stash)
             }
         }
     }
 }
 
 /* Build develop everyday at 19:00 UTC (21:00 Barcelona Time), running all tests */
-CRON_SETTINGS = BRANCH_NAME == "develop" ? '''0 19 * * * % TESTS=All''' : ""
+CRON_SETTINGS = BRANCH_NAME == "develop" ? '''0 19 * * * % PYTHON_VERSIONS=All''' : ""
 
 pipeline {
     agent none
@@ -110,8 +102,8 @@ pipeline {
     }
     parameters {
         choice(
-                choices: ['Smoke', 'All'],
-                name: 'TESTS'
+                choices: ['MIN', 'MIN_MAX', 'All'],
+                name: 'PYTHON_VERSIONS'
         )
     }
     stages {
@@ -120,17 +112,15 @@ pipeline {
                 script {
                     if (env.BRANCH_NAME == 'master') {
                         RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
-                        RUN_ONLY_SMOKE_TESTS = false
-                    } else if (env.BRANCH_NAME == 'develop') {
-                        RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
-                        RUN_ONLY_SMOKE_TESTS = false
                     } else if (env.BRANCH_NAME.startsWith('release/')) {
                         RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
-                        RUN_ONLY_SMOKE_TESTS = false
                     } else {
-                        RUN_PYTHON_VERSIONS = "${PYTHON_VERSION_MIN},${PYTHON_VERSION_MAX}"
-                        if (params.TESTS == 'Smoke') {
-                            RUN_ONLY_SMOKE_TESTS = true
+                        if (env.PYTHON_VERSIONS == "MIN_MAX") {
+                          RUN_PYTHON_VERSIONS = "${PYTHON_VERSION_MIN},${PYTHON_VERSION_MAX}"
+                        } else if (env.PYTHON_VERSIONS == "MIN") {
+                          RUN_PYTHON_VERSIONS = PYTHON_VERSION_MIN
+                        } else {
+                          RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
                         }
                     }
                 }
@@ -302,8 +292,10 @@ pipeline {
                                 }
                                 stage("Run unit tests") {
                                     steps {
-                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
-                                                "-m \"not ethernet and not soem and not fsoe and not canopen and not virtual and not soem_multislave\" "
+                                        bat """
+                                            py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- ^
+                                            -m "not ethernet and not soem and not fsoe and not canopen and not virtual and not soem_multislave and not skip_testing_framework"
+                                        """
                                     }
                                     post {
                                         always {
@@ -382,17 +374,19 @@ pipeline {
                     stages {
                         stage("CanOpen Everest") {
                             steps {
-                                runTestHW("canopen", "CAN_EVE_SETUP")
+                                runTestHW("canopen_everest", "canopen", "CAN_EVE_SETUP")
+                                runTestHW("canopen_everest_no_framework", "canopen and skip_testing_framework", "CAN_EVE_SETUP")
                             }
                         }
                         stage("Ethernet Everest") {
                             steps {
-                                runTestHW("ethernet", "ETH_EVE_SETUP")
+                                runTestHW("ethernet_everest", "ethernet", "ETH_EVE_SETUP")
                             }
                         }
                         stage("CanOpen Capitan") {
                             steps {
-                                runTestHW("canopen", "CAN_CAP_SETUP")
+                                runTestHW("canopen_capitan", "canopen", "CAN_CAP_SETUP")
+                                runTestHW("canopen_capitan_no_framework", "canopen and skip_testing_framework", "CAN_EVE_SETUP")
                             }
                         }
                         stage("Ethernet Capitan") {
@@ -401,7 +395,7 @@ pipeline {
                                 expression { false }
                             }
                             steps {
-                                runTestHW("ethernet", "ETH_CAP_SETUP")
+                                runTestHW("ethernet capitan", "ethernet", "ETH_CAP_SETUP")
                             }
                         }
                     }
@@ -420,22 +414,22 @@ pipeline {
                                 expression { false }
                             }
                             steps {
-                                runTestHW("soem", "ECAT_EVE_SETUP")
+                                runTestHW("ethercat_everest", "soem", "ECAT_EVE_SETUP")
                             }
                         }
                         stage("Ethercat Capitan") {
                             steps {
-                                runTestHW("soem", "ECAT_CAP_SETUP")
+                                runTestHW("ethercat_capitan", "soem", "ECAT_CAP_SETUP")
                             }
                         }
                         stage("Safety Denali") {
                             steps {
-                                runTestHW("fsoe", "ECAT_DEN_S_PHASE1_SETUP", true)
+                                runTestHW("fsoe_phase1", "fsoe", "ECAT_DEN_S_PHASE1_SETUP", true)
                             }
                         }
                         stage("Ethercat Multislave") {
                             steps {
-                                runTestHW("soem_multislave", "ECAT_MULTISLAVE_SETUP")
+                                runTestHW("ethercat_multislave", "soem_multislave", "ECAT_MULTISLAVE_SETUP")
                             }
                         }
                     }

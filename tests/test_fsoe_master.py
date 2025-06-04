@@ -50,7 +50,6 @@ def error_handler(error: FSoEError):
 
 
 @pytest.mark.fsoe
-@pytest.mark.smoke
 def test_fsoe_master_get_application_parameters(mc, alias):
     assert isinstance(mc.fsoe, FSoEMaster)
 
@@ -87,7 +86,6 @@ def mc_state_data(mc_with_fsoe):
 
 
 @pytest.mark.fsoe
-@pytest.mark.smoke
 def test_safe_inputs_value(mc_state_data):
     mc = mc_state_data
 
@@ -98,7 +96,6 @@ def test_safe_inputs_value(mc_state_data):
 
 
 @pytest.mark.fsoe
-@pytest.mark.smoke
 def test_safety_address(mc_with_fsoe, alias):
     mc = mc_with_fsoe
 
@@ -126,7 +123,6 @@ def mc_state_to_fsoe_master_state(state: FSoEState):
 
 
 @pytest.mark.fsoe
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "state_enum",
     [
@@ -152,7 +148,6 @@ def test_get_master_state(mocker, mc_with_fsoe, state_enum):
 
 
 @pytest.mark.fsoe
-@pytest.mark.smoke
 def test_motor_enable(mc_state_data):
     mc = mc_state_data
 
