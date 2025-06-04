@@ -80,7 +80,8 @@ def runTestHW(run_identifier, markers, setup_name, install_fsoe = false) {
                 bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
                         "-m \"${markers}\" " +
                         "--setup tests.setups.rack_specifiers.${setup_name} " +
-                        "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\""
+                        "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\" " +
+                        "--allow-no-tests"
             } catch (err) {
                 unstable(message: "Tests failed")
             } finally {
