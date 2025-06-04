@@ -34,7 +34,6 @@ def initial_position(mc, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize("homing_mode", list(HomingMode))
 def test_set_homing_mode(mc, alias, homing_mode):
     mc.configuration.set_homing_mode(homing_mode, servo=alias)
@@ -43,7 +42,6 @@ def test_set_homing_mode(mc, alias, homing_mode):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize("homing_offset", [0, 10, 500, -12, -100, 1000])
 def test_set_homing_offset(mc, alias, homing_offset):
     mc.configuration.set_homing_offset(homing_offset, servo=alias)
@@ -52,7 +50,6 @@ def test_set_homing_offset(mc, alias, homing_offset):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize("homing_timeout", [0, 10, 500, 1000, 5000, 10000])
 def test_set_homing_timeout(mc, alias, homing_timeout):
     mc.configuration.set_homing_timeout(homing_timeout, servo=alias)

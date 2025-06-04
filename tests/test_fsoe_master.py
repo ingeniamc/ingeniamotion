@@ -45,7 +45,6 @@ def error_handler(error: FSoEError):
 
 
 @pytest.mark.fsoe
-@pytest.mark.smoke
 def test_fsoe_master_get_application_parameters(mc, alias):
     assert isinstance(mc.fsoe, FSoEMaster)
 
@@ -68,7 +67,6 @@ def mc_with_fsoe(mc):
 
 
 @pytest.mark.fsoe
-@pytest.mark.smoke
 def test_deactivate_sto(mc_with_fsoe):
     mc = mc_with_fsoe
 

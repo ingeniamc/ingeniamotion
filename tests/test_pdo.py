@@ -188,7 +188,6 @@ def test_pdos_watchdog_exception_manual(mc):
 
 
 @pytest.mark.soem_multislave
-@pytest.mark.smoke
 def test_start_pdos(mc, alias, setup_descriptor):
     if not isinstance(setup_descriptor, EthercatMultiSlaveSetup):
         raise ValueError("Invalid setup config for test")
@@ -311,7 +310,6 @@ def test_create_poller(mc, alias):
     assert len(timestamps) == len(channel_0_data)
 
 
-@pytest.mark.smoke
 @pytest.mark.soem
 def test_subscribe_exceptions(mc, mocker):
     error_msg = "Test error"

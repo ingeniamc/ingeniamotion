@@ -146,7 +146,6 @@ def test_commutation(alias, motion_controller_teardown):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 def test_commutation_error(mc, alias, force_fault):
     with pytest.raises(force_fault):
         mc.tests.commutation(servo=alias)
@@ -165,7 +164,6 @@ def test_phasing_check(mc, alias):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 def test_phasing_check_error(mc, alias, force_fault):
     with pytest.raises(force_fault):
         mc.tests.phasing_check(servo=alias)
@@ -174,14 +172,12 @@ def test_phasing_check_error(mc, alias, force_fault):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 def test_sto_test(mc, alias):
     results = mc.tests.sto_test(servo=alias)
     assert results["result_severity"] == SeverityLevel.SUCCESS
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_value, message",
     [
@@ -202,7 +198,6 @@ def test_sto_test_error(mocker, mc, alias, sto_value, message):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 def test_brake_test(mc, alias):
     pair_poles = mc.configuration.get_motor_pair_poles(servo=alias)
     brake_test = mc.tests.brake_test(servo=alias)
