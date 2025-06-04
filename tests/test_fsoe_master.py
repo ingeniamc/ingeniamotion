@@ -2,9 +2,14 @@ from typing import TYPE_CHECKING
 
 import pytest
 
-from ingeniamotion.fsoe import FSoEError, FSoEMaster
+from ingeniamotion.enums import FSoEState
+from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError, FSoEMaster
 from ingeniamotion.motion_controller import MotionController
 from tests.conftest import timeout_loop
+
+if FSOE_MASTER_INSTALLED:
+    from fsoe_master import fsoe_master
+
 
 if TYPE_CHECKING:
     from ingenialink.emcy import EmergencyMessage
@@ -67,14 +72,90 @@ def mc_with_fsoe(mc):
     mc.fsoe._delete_master_handler()
 
 
-@pytest.mark.fsoe
-@pytest.mark.smoke
-def test_deactivate_sto(mc_with_fsoe):
+@pytest.fixture()
+def mc_state_data(mc_with_fsoe):
     mc = mc_with_fsoe
 
     mc.fsoe.configure_pdos(start_pdos=True)
     # Wait for the master to reach the Data state
     mc.fsoe.wait_for_state_data(timeout=10)
+
+    yield mc
+
+    # Stop the FSoE master handler
+    mc.fsoe.stop_master(stop_pdos=True)
+
+
+@pytest.mark.fsoe
+@pytest.mark.smoke
+def test_safe_inputs_value(mc_state_data):
+    mc = mc_state_data
+
+    value = mc.fsoe.get_safety_inputs_value()
+
+    # Assume safe inputs are disconnected on the setup
+    assert value == 0
+
+
+@pytest.mark.fsoe
+@pytest.mark.smoke
+def test_safety_address(mc_with_fsoe, alias):
+    mc = mc_with_fsoe
+
+    master_handler = mc.fsoe._handlers[alias]
+
+    mc.fsoe.set_safety_address(0x7453)
+    # Setting the safety address has effects on the master
+    assert master_handler._master_handler.master.session.slave_address.value == 0x7453
+
+    # And on the slave
+    assert mc.communication.get_register("FSOE_MANUF_SAFETY_ADDRESS") == 0x7453
+
+    # The getter also works
+    assert mc.fsoe.get_safety_address() == 0x7453
+
+
+def mc_state_to_fsoe_master_state(state: FSoEState):
+    return {
+        FSoEState.RESET: fsoe_master.StateReset,
+        FSoEState.SESSION: fsoe_master.StateSession,
+        FSoEState.CONNECTION: fsoe_master.StateConnection,
+        FSoEState.PARAMETER: fsoe_master.StateParameter,
+        FSoEState.DATA: fsoe_master.StateData,
+    }[state]
+
+
+@pytest.mark.fsoe
+@pytest.mark.smoke
+@pytest.mark.parametrize(
+    "state_enum",
+    [
+        FSoEState.RESET,
+        FSoEState.SESSION,
+        FSoEState.CONNECTION,
+        FSoEState.PARAMETER,
+        FSoEState.DATA,
+    ],
+)
+def test_get_master_state(mocker, mc_with_fsoe, state_enum):
+    mc = mc_with_fsoe
+
+    # Master state is obtained as function
+    # and not on the parametrize
+    # to avoid depending on the optionally installed module
+    # on pytest collection
+    fsoe_master_state = mc_state_to_fsoe_master_state(state_enum)
+
+    mocker.patch("fsoe_master.fsoe_master.MasterHandler.state", fsoe_master_state)
+
+    assert mc.fsoe.get_fsoe_master_state() == state_enum
+
+
+@pytest.mark.fsoe
+@pytest.mark.smoke
+def test_motor_enable(mc_state_data):
+    mc = mc_state_data
+
     # Deactivate the SS1
     mc.fsoe.ss1_deactivate()
     # Deactivate the STO
@@ -93,5 +174,3 @@ def test_deactivate_sto(mc_with_fsoe):
     mc.fsoe.sto_activate()
     # Activate the STO
     mc.fsoe.sto_activate()
-    # Stop the FSoE master handler
-    mc.fsoe.stop_master(stop_pdos=True)
