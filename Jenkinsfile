@@ -92,8 +92,8 @@ def runTestHW(run_identifier, markers, setup_name, install_fsoe = false) {
     }
 }
 
-/* Build develop everyday at 19:00 UTC (21:00 Barcelona Time), running all tests */
-CRON_SETTINGS = BRANCH_NAME == "develop" ? '''0 19 * * * % PYTHON_VERSIONS=All''' : ""
+/* Build develop everyday 3 times starting at 19:00 UTC (21:00 Barcelona Time), running all python versions */
+CRON_SETTINGS = BRANCH_NAME == "develop" ? '''0 19,21,23 * * * % PYTHON_VERSIONS=All''' : ""
 
 pipeline {
     agent none
