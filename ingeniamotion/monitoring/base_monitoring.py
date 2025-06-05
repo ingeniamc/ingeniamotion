@@ -140,7 +140,10 @@ class Monitoring(ABC):
             if not isinstance(register, str):
                 raise TypeError("Register has to be a string")
             register_obj = self.mc.info.register_info(register, subnode, servo=self.servo)
-            if register_obj.cyclic not in [RegCyclicType.TX, RegCyclicType.RXTX]:
+            if register_obj.monitoring is None or (
+                register_obj.monitoring is not None
+                and register_obj.monitoring.cyclic not in [RegCyclicType.TX, RegCyclicType.RXTX]
+            ):
                 raise IMMonitoringError(
                     f"{register} can not be mapped as a monitoring register (wrong cyclic)"
                 )
@@ -188,13 +191,8 @@ class Monitoring(ABC):
             if not isinstance(channel["dtype"], RegDtype):
                 raise TypeError("dtype has to be of type RegDtype")
             dtype = channel["dtype"]
-            register_obj = self.mc.info.register_info(register, subnode, servo=self.servo)
             drive.monitoring_set_mapped_register(
-                ch_idx,
-                register_obj.mapped_address,
-                subnode,
-                dtype.value,
-                self._data_type_size[dtype],
+                channel=ch_idx, uid=register, size=self._data_type_size[dtype], axis=subnode
             )
 
         num_mon_reg = self.mc.communication.get_register(
