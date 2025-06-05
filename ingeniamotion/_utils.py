@@ -25,6 +25,8 @@ def weak_lru(maxsize: int = 128, typed: bool = False) -> Callable[..., Any]:
         def wrapper(self: Any, /, *args: Any, **kwargs: Any) -> Any:
             return _func(ref(self), *args, **kwargs)
 
+        wrapper.cache_clear = _func.cache_clear  # type: ignore[attr-defined]
+
         return wrapper
 
     return decorator

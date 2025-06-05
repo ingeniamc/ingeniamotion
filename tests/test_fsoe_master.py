@@ -3,7 +3,13 @@ from typing import TYPE_CHECKING
 import pytest
 
 from ingeniamotion.enums import FSoEState
-from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError
+from ingeniamotion.fsoe import (
+    FSOE_MASTER_INSTALLED,
+    FSoEError,
+    SafeInputsFunction,
+    SS1Function,
+    STOFunction,
+)
 from ingeniamotion.motion_controller import MotionController
 from tests.conftest import timeout_loop
 
@@ -64,11 +70,62 @@ def mc_with_fsoe(mc):
 
 
 @pytest.mark.fsoe
-@pytest.mark.smoke
 def test_fsoe_master_get_safety_parameters(mc_with_fsoe):
     mc, handler = mc_with_fsoe
 
     assert len(handler.safety_parameters) != 0
+
+
+@pytest.mark.fsoe
+def test_mandatory_safety_functions(mc_with_fsoe):
+    mc, handler = mc_with_fsoe
+
+    safety_functions_by_types = handler.safety_functions_by_type()
+
+    sto_instances = safety_functions_by_types[STOFunction]
+    assert len(sto_instances) == 1
+
+    ss1_instances = safety_functions_by_types[SS1Function]
+    assert len(ss1_instances) >= 1
+
+    si_instances = safety_functions_by_types[SafeInputsFunction]
+    assert len(si_instances) == 1
+
+
+@pytest.mark.fsoe
+def test_getter_of_safety_functions(mc_with_fsoe):
+    mc, handler = mc_with_fsoe
+
+    sto_function = STOFunction(command=None, io=None, parameters=None)
+    ss1_function_1 = SS1Function(command=None, time_to_sto=None, io=None, parameters=None)
+    ss1_function_2 = SS1Function(command=None, time_to_sto=None, io=None, parameters=None)
+
+    handler.safety_functions = (sto_function, ss1_function_1, ss1_function_2)
+    handler.get_function_instance.cache_clear()
+
+    # Single instance of STOFunction
+    assert handler.get_function_instance(STOFunction) is sto_function
+    assert handler.get_function_instance(STOFunction, instance=1) is sto_function
+
+    # Multiple instances of SS1Function
+    with pytest.raises(ValueError) as error:
+        # Must specify the instance
+        handler.get_function_instance(SS1Function)
+    assert (
+        error.value.args[0]
+        == "Multiple SS1Function instances found (2). Specify the instance number."
+    )
+
+    with pytest.raises(IndexError) as error:
+        # Instance 0 does not exist
+        handler.get_function_instance(SS1Function, instance=0)
+    assert error.value.args[0] == "Master handler does not contain SS1Function instance 0"
+    assert handler.get_function_instance(SS1Function, instance=1) is ss1_function_1
+    assert handler.get_function_instance(SS1Function, instance=2) is ss1_function_2
+    with pytest.raises(IndexError) as error:
+        # Instance 3 does not exist
+        handler.get_function_instance(SS1Function, instance=3)
+    assert error.value.args[0] == "Master handler does not contain SS1Function instance 3"
 
 
 @pytest.fixture()

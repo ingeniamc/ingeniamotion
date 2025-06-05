@@ -2,7 +2,7 @@ import threading
 from collections.abc import Iterator
 from dataclasses import dataclass
 from functools import partial
-from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union, overload
 
 import ingenialogger
 from ingenialink import RegDtype
@@ -377,6 +377,22 @@ class FSoEMasterHandler:
 
         self._master_handler.set_reply(reply)
 
+    @weak_lru()
+    def safety_functions_by_type(self) -> dict[type[SafetyFunction], list[SafetyFunction]]:
+        """Get a dictionary with the safety functions grouped by type."""
+        return {
+            type(sf): [
+                sf_of_type
+                for sf_of_type in self.safety_functions
+                if isinstance(sf_of_type, type(sf))
+            ]
+            for sf in self.safety_functions
+        }
+
+    @overload  # type: ignore[misc]
+    def get_function_instance(self, typ: type[SAFE_INSTANCE_TYPE]) -> SAFE_INSTANCE_TYPE: ...
+
+    @weak_lru()
     def get_function_instance(
         self, typ: type[SAFE_INSTANCE_TYPE], instance: Optional[int] = None
     ) -> SAFE_INSTANCE_TYPE:
@@ -390,11 +406,16 @@ class FSoEMasterHandler:
         funcs = [func for func in self.safety_functions if isinstance(func, typ)]
 
         if isinstance(instance, int):
-            return funcs[instance]
+            # First instance is 1
+            index = instance - 1
+            if index < 0 or index >= len(funcs):
+                raise IndexError(f"Master handler does not contain SS1Function instance {instance}")
+            return funcs[index]
         else:
             if len(funcs) != 1:
                 raise ValueError(
-                    f"Expected exactly one instance of {typ.__name__}, got {len(funcs)}"
+                    f"Multiple {typ.__name__} instances found ({len(funcs)}). "
+                    f"Specify the instance number."
                 )
             return funcs[0]
 
