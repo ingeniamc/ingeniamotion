@@ -58,7 +58,6 @@ class EmcyTest:
         self.messages.append((alias, emcy_msg))
 
 
-@pytest.mark.smoke
 @pytest.mark.canopen
 @pytest.mark.ethernet
 def test_get_network_adapters(mocker, setup_descriptor: SetupDescriptor):
@@ -134,7 +133,6 @@ def test_connect_servo_ethernet_no_dictionary_error(setup_descriptor: EthernetSe
         )
 
 
-@pytest.mark.smoke
 @pytest.mark.ethernet
 @pytest.mark.parametrize(
     "coco_dict_path",
@@ -157,7 +155,6 @@ def test_connect_servo_comkit_no_dictionary_error(coco_dict_path, setup_descript
         )
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_get_ifname_from_interface_ip(mocker):
     class MockAdapter:
@@ -183,7 +180,6 @@ def test_get_ifname_from_interface_ip(mocker):
         assert ifname == name
 
 
-@pytest.mark.smoke
 @pytest.mark.virtual
 def test_get_ifname_by_index():
     mc = MotionController()
@@ -197,7 +193,6 @@ def test_get_ifname_by_index():
 
 
 @pytest.mark.skip(reason='This test enters in conflict with "disable_motor_fixture"')
-@pytest.mark.smoke
 @pytest.mark.canopen
 def test_connect_servo_canopen(setup_descriptor: DriveCanOpenSetup):
     mc = MotionController()
@@ -218,7 +213,6 @@ def test_connect_servo_canopen(setup_descriptor: DriveCanOpenSetup):
     mc.net["canopen_test"].disconnect()
 
 
-@pytest.mark.smoke
 @pytest.mark.canopen
 @pytest.mark.skip
 def test_connect_servo_canopen_busy_drive_error(mc, alias, setup_descriptor: DriveCanOpenSetup):
@@ -241,7 +235,6 @@ def test_connect_servo_canopen_busy_drive_error(mc, alias, setup_descriptor: Dri
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "uid, value",
     [
@@ -258,14 +251,12 @@ def test_get_register(mc, alias, uid, value):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_get_register_wrong_uid(mc, alias):
     with pytest.raises(IMRegisterNotExistError):
         mc.communication.get_register("WRONG_UID", servo=alias)
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "uid, value",
     [
@@ -282,14 +273,12 @@ def test_set_register(mc, alias, uid, value):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_set_register_wrong_uid(mc, alias):
     with pytest.raises(IMRegisterNotExistError):
         mc.communication.set_register("WRONG_UID", 2, servo=alias)
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "uid, value, fail",
     [
@@ -313,7 +302,6 @@ def test_set_register_wrong_value_type(mc, alias, uid, value, fail):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_set_register_wrong_access(mc, alias):
     uid = "DRV_STATE_STATUS"
     value = 0
@@ -328,7 +316,6 @@ def dummy_callback(status, _, axis):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 def test_subscribe_servo_status(mocker, mc, alias):
     axis = 1
     current_module = sys.modules[__name__]
@@ -671,7 +658,6 @@ def test_load_ensemble_fw_canopen(mocker):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "net_types", [[EthernetNetwork, CanopenNetwork], [EthercatNetwork, EthernetNetwork], []]
 )
@@ -695,7 +681,6 @@ def test_get_available_canopen_devices_check_get_available_devices_call(mocker, 
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_get_available_canopen_devices(mocker):
     mc = ingeniamotion.MotionController()
     mocker.patch(
@@ -715,7 +700,6 @@ def test_get_available_canopen_devices(mocker):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_subscribe_register_updates(mc, alias):
     user_over_voltage_uid = "DRV_PROT_USER_OVER_VOLT"
     register_update_callback = RegisterUpdateTest()
@@ -749,7 +733,6 @@ def test_subscribe_register_updates(mc, alias):
 
 @pytest.mark.canopen
 @pytest.mark.soem
-@pytest.mark.smoke
 def test_emcy_callback(mc, alias):
     emcy_test = EmcyTest()
     mc.communication.subscribe_emergency_message(emcy_test.emcy_callback, servo=alias)

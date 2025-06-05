@@ -66,7 +66,6 @@ def test_target_latch(mc, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize("operation_mode", list(OperationMode))
 def test_set_operation_mode(mc, alias, operation_mode):
     mc.motion.set_operation_mode(operation_mode, servo=alias)
@@ -77,7 +76,6 @@ def test_set_operation_mode(mc, alias, operation_mode):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 @pytest.mark.parametrize("operation_mode", list(OperationMode))
 def test_get_operation_mode(mc, alias, operation_mode):
     mc.communication.set_register(OPERATION_MODE_REGISTER, operation_mode, servo=alias)
@@ -88,7 +86,6 @@ def test_get_operation_mode(mc, alias, operation_mode):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 def test_motor_enable(mc, alias):
     mc.motion.motor_enable(servo=alias)
     assert mc.configuration.is_motor_enabled(servo=alias)
@@ -97,7 +94,6 @@ def test_motor_enable(mc, alias):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "uid, value, exception_type, message",
     [
@@ -128,7 +124,6 @@ def test_motor_enable_with_fault(
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "uid, value, exception_type, message, timeout",
     [
@@ -166,7 +161,6 @@ def test_motor_enable_with_delayed_fault(
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 @pytest.mark.parametrize("enable_motor", [True, False])
 def test_motor_disable(mc, alias, enable_motor):
     if enable_motor:
@@ -178,7 +172,6 @@ def test_motor_disable(mc, alias, enable_motor):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 def test_motor_disable_with_fault(motion_controller_teardown, alias):
     uid = "DRV_PROT_USER_UNDER_VOLT"
     value = 100
@@ -194,7 +187,6 @@ def test_motor_disable_with_fault(motion_controller_teardown, alias):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 def test_fault_reset(motion_controller_teardown, alias):
     mc = motion_controller_teardown
     uid = "DRV_PROT_USER_UNDER_VOLT"
@@ -214,7 +206,6 @@ def test_fault_reset(motion_controller_teardown, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize("position_value", [1000, 0, -1000, 4000])
 def test_set_position(mc, alias, position_value):
     mc.motion.move_to_position(position_value, servo=alias, target_latch=False, blocking=False)
@@ -225,7 +216,6 @@ def test_set_position(mc, alias, position_value):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 @pytest.mark.parametrize("position_value", [1000, 0, -1000, 4000])
 def test_move_position(mc, alias, position_value):
     pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
@@ -241,7 +231,6 @@ def test_move_position(mc, alias, position_value):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize("velocity_value", [0.5, 1, 0, -0.5])
 def test_set_velocity(mc, alias, velocity_value):
     mc.motion.set_velocity(velocity_value, servo=alias, target_latch=False)
@@ -252,7 +241,6 @@ def test_set_velocity(mc, alias, velocity_value):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 @pytest.mark.parametrize("velocity_value", [0.5, 1, 0, -0.5])
 def test_set_velocity_blocking(mc, alias, velocity_value):
     mc.motion.set_operation_mode(OperationMode.PROFILE_VELOCITY, servo=alias)
@@ -264,7 +252,6 @@ def test_set_velocity_blocking(mc, alias, velocity_value):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize("current_value", [0.5, 1, 0, -0.5])
 def test_set_current_quadrature(mc, alias, current_value):
     mc.motion.set_current_quadrature(current_value, servo=alias)
@@ -273,7 +260,6 @@ def test_set_current_quadrature(mc, alias, current_value):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize("current_value", [0.5, 1, 0, -0.5])
 def test_set_current_direct(mc, alias, current_value):
     mc.motion.set_current_direct(current_value, servo=alias)
@@ -282,7 +268,6 @@ def test_set_current_direct(mc, alias, current_value):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize("voltage_value", [0.5, 1, 0, -0.5])
 def test_set_voltage_quadrature(mc, alias, voltage_value):
     mc.motion.set_voltage_quadrature(voltage_value, servo=alias)
@@ -291,7 +276,6 @@ def test_set_voltage_quadrature(mc, alias, voltage_value):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize("voltage_value", [0.5, 1, 0, -0.5])
 def test_set_voltage_direct(mc, alias, voltage_value):
     mc.motion.set_voltage_direct(voltage_value, servo=alias)
@@ -300,7 +284,6 @@ def test_set_voltage_direct(mc, alias, voltage_value):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "init_v, final_v, total_t, t, result",
     [
@@ -326,7 +309,6 @@ def test_ramp_generator(mocker, init_v, final_v, total_t, t, result):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 @pytest.mark.parametrize("position_value", [-4000, -1000, 1000, 4000])
 def test_get_actual_position(mc, alias, position_value):
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
@@ -360,7 +342,6 @@ def test_get_actual_velocity(mc, alias, velocity_value):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_get_actual_current_direct(mocker, mc, alias):
     patch_get_register = mocker.patch("ingeniamotion.communication.Communication.get_register")
     patch_get_register.return_value = 2.0
@@ -369,7 +350,6 @@ def test_get_actual_current_direct(mocker, mc, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_get_actual_current_quadrature(mocker, mc, alias):
     patch_get_register = mocker.patch("ingeniamotion.communication.Communication.get_register")
     patch_get_register.return_value = 2.0
@@ -399,7 +379,6 @@ def test_wait_for_function_timeout(mc, alias, function):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 @pytest.mark.parametrize("op_mode", [OperationMode.VOLTAGE, OperationMode.CURRENT])
 def test_set_internal_generator_configuration(motion_controller_teardown, alias, op_mode):
     mc = motion_controller_teardown

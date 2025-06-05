@@ -60,7 +60,6 @@ def skip_if_qei2_is_not_available(mc, alias, sensor=SensorType.QEI2):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_commutation_feedback(mc, alias, sensor):
@@ -70,7 +69,6 @@ def test_get_commutation_feedback(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_set_commutation_feedback(mc, alias, sensor):
@@ -80,7 +78,6 @@ def test_set_commutation_feedback(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor, category", SENSOR_TYPE_AND_CATEGORY)
 def test_get_commutation_feedback_category(mc, alias, sensor, category):
@@ -90,7 +87,6 @@ def test_get_commutation_feedback_category(mc, alias, sensor, category):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_commutation_feedback_resolution(mc, alias, sensor):
@@ -106,7 +102,6 @@ def test_get_commutation_feedback_resolution(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_reference_feedback(mc, alias, sensor):
@@ -116,7 +111,6 @@ def test_get_reference_feedback(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_set_reference_feedback(mc, alias, sensor):
@@ -126,7 +120,6 @@ def test_set_reference_feedback(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor, category", SENSOR_TYPE_AND_CATEGORY)
 def test_get_reference_feedback_category(mc, alias, sensor, category):
@@ -136,7 +129,6 @@ def test_get_reference_feedback_category(mc, alias, sensor, category):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_reference_feedback_resolution(mc, alias, sensor):
@@ -152,7 +144,6 @@ def test_get_reference_feedback_resolution(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_velocity_feedback(mc, alias, sensor):
@@ -162,7 +153,6 @@ def test_get_velocity_feedback(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_set_velocity_feedback(mc, alias, sensor):
@@ -172,7 +162,6 @@ def test_set_velocity_feedback(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor, category", SENSOR_TYPE_AND_CATEGORY)
 def test_get_velocity_feedback_category(mc, alias, sensor, category):
@@ -182,7 +171,6 @@ def test_get_velocity_feedback_category(mc, alias, sensor, category):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_velocity_feedback_resolution(mc, alias, sensor):
@@ -198,7 +186,6 @@ def test_get_velocity_feedback_resolution(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_position_feedback(mc, alias, sensor):
@@ -208,7 +195,6 @@ def test_get_position_feedback(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_set_position_feedback(mc, alias, sensor):
@@ -218,7 +204,6 @@ def test_set_position_feedback(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor, category", SENSOR_TYPE_AND_CATEGORY)
 def test_get_position_feedback_category(mc, alias, sensor, category):
@@ -228,7 +213,6 @@ def test_get_position_feedback_category(mc, alias, sensor, category):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_position_feedback_resolution(mc, alias, sensor):
@@ -244,7 +228,6 @@ def test_get_position_feedback_resolution(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize(
     "sensor",
@@ -264,7 +247,6 @@ def test_get_auxiliar_feedback(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize(
     "sensor",
@@ -284,7 +266,6 @@ def test_set_auxiliar_feedback(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize(
     "sensor, category",
@@ -304,7 +285,6 @@ def test_get_auxiliar_feedback_category(mc, alias, sensor, category):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize(
     "sensor",
@@ -330,7 +310,6 @@ def test_get_auxiliar_feedback_resolution(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("restore_resolution_registers")
 @pytest.mark.parametrize("single_turn, resolution", ABSOLUTE_ENCODER_RESOLUTION_TEST_VALUES)
 def test_get_absolute_encoder_1_resolution(mc, alias, single_turn, resolution):
@@ -340,7 +319,6 @@ def test_get_absolute_encoder_1_resolution(mc, alias, single_turn, resolution):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("restore_resolution_registers")
 @pytest.mark.parametrize("resolution", INCREMENTAL_ENCODER_RESOLUTION_TEST_VALUES)
 def test_get_incremental_encoder_1_resolution(mc, alias, resolution):
@@ -350,7 +328,6 @@ def test_get_incremental_encoder_1_resolution(mc, alias, resolution):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("restore_resolution_registers")
 @pytest.mark.parametrize("pair_poles, resolution", [(1, 6), (10, 60), (4, 24)])
 def test_get_digital_halls_resolution(mc, alias, pair_poles, resolution):
@@ -360,7 +337,6 @@ def test_get_digital_halls_resolution(mc, alias, pair_poles, resolution):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("restore_resolution_registers")
 @pytest.mark.parametrize("single_turn, resolution", ABSOLUTE_ENCODER_RESOLUTION_TEST_VALUES)
 def test_get_secondary_ssi_resolution(mc, alias, single_turn, resolution):
@@ -370,7 +346,6 @@ def test_get_secondary_ssi_resolution(mc, alias, single_turn, resolution):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("restore_resolution_registers")
 @pytest.mark.parametrize("single_turn, resolution", ABSOLUTE_ENCODER_RESOLUTION_TEST_VALUES)
 def test_get_absolute_encoder_2_resolution(mc, alias, single_turn, resolution):
@@ -380,7 +355,6 @@ def test_get_absolute_encoder_2_resolution(mc, alias, single_turn, resolution):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("restore_resolution_registers")
 @pytest.mark.parametrize("resolution", INCREMENTAL_ENCODER_RESOLUTION_TEST_VALUES)
 def test_get_incremental_encoder_2_resolution(mc, alias, resolution):
@@ -391,14 +365,12 @@ def test_get_incremental_encoder_2_resolution(mc, alias, resolution):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_instance_sensor_type(mc, alias):
     test_feedback = mc.configuration.get_commutation_feedback(servo=alias)
     assert isinstance(test_feedback, SensorType)
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "sensor, register",
     [
