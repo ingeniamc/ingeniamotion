@@ -23,6 +23,7 @@ try:
         DictionaryItemInput,
         DictionaryItemInputOutput,
         DictionaryItemOutput,
+        DictionaryMap,
         MasterHandler,
         StateData,
     )
@@ -279,7 +280,13 @@ class FSoEMasterHandler:
             report_error_callback=report_error_callback,
             state_change_callback=self.__state_change_callback,
         )
-        self._configure_master()
+
+        self.__map = PDUMap(
+            outputs=self._master_handler.master.dictionary_map,
+            inputs=self._master_handler.slave.dictionary_map,
+        )
+        self._map_default_inputs()
+        self._map_default_outputs()
         self.__safety_master_pdu = RPDOMap()
         self.__safety_slave_pdu = TPDOMap()
         self._configure_pdo_maps()
@@ -309,40 +316,31 @@ class FSoEMasterHandler:
 
     def _configure_pdo_maps(self) -> None:
         """Configure the PDOMaps used for the Safety PDUs."""
-        PDUMapper.configure_rpdo_map(self.safety_master_pdu_map)
-        PDUMapper.configure_tpdo_map(self.safety_slave_pdu_map)
+        PDUMap.configure_rpdo_map(self.safety_master_pdu_map)
+        PDUMap.configure_tpdo_map(self.safety_slave_pdu_map)
 
-    def _configure_master(self) -> None:
-        """Configure the FSoE master handler."""
-        self._map_outputs()
-        self._map_inputs()
+    @property
+    def map(self) -> "PDUMap":
+        return self.__map
 
-    def _map_outputs(self) -> None:
+    def _map_default_outputs(self) -> None:
         """Configure the FSoE master handler's SafeOutputs."""
         # Phase 1 mapping
-        self._master_handler.master.dictionary_map.add(
-            self.get_function_instance(STOFunction).command, bits=1
-        )
-        self._master_handler.master.dictionary_map.add(
-            self.get_function_instance(SS1Function).command, bits=1
-        )
-        self._master_handler.master.dictionary_map.add_padding(bits=7)
-        self._master_handler.master.dictionary_map.add_padding(bits=7)
+        # TODO Read from drive??, move to pdumapper?
+        self.__map.append_output(self.get_function_instance(STOFunction).command)
+        self.__map.append_output(self.get_function_instance(SS1Function).command)
+        self.__map.append_output_padding(bits=6)
 
-    def _map_inputs(self) -> None:
+    def _map_default_inputs(self) -> None:
         """Configure the FSoE master handler's SafeInputs."""
         # Phase 1 mapping
-        self._master_handler.slave.dictionary_map.add(
-            self.get_function_instance(STOFunction).command, bits=1
-        )
-        self._master_handler.slave.dictionary_map.add(
-            self.get_function_instance(SS1Function).command, bits=1
-        )
-        self._master_handler.slave.dictionary_map.add_padding(bits=7)
-        self._master_handler.slave.dictionary_map.add(
-            self.get_function_instance(SafeInputsFunction).value, bits=1
-        )
-        self._master_handler.slave.dictionary_map.add_padding(bits=6)
+        # TODO Read from drive??, move to pdumapper?
+        self.__map.append_input(self.get_function_instance(STOFunction).command)
+        self.__map.append_input(self.get_function_instance(SS1Function).command)
+        self.__map.append_input_padding(bits=6)
+        self.__map.append_input(self.get_function_instance(SS1Function).command)
+        self.__map.append_input(self.get_function_instance(SafeInputsFunction).value)
+        self.__map.append_input_padding(bits=6)
 
     def set_pdo_maps_to_slave(self) -> None:
         """Set the PDOMaps to be used by the Safety PDUs to the slave."""
@@ -701,9 +699,10 @@ class FSoEMasterHandler:
         return self.__running
 
 
-class PDUMapper:
+class PDUMap:
     """Helper class to configure the Safety PDU PDOMaps."""
 
+    # TODO Refactor contants
     FSOE_RPDO_MAP_1_INDEX = 0x1700
     FSOE_TPDO_MAP_1_INDEX = 0x1B00
 
@@ -719,6 +718,33 @@ class PDUMapper:
     SAFE_INPUTS_SIZE_BITS = 1
     SAFE_INPUTS_PADDING_SIZE_BITS = 6
 
+    def __init__(
+        self,
+        outputs: "DictionaryMap",
+        inputs: "DictionaryMap",
+    ) -> None:
+        self.__outputs = outputs
+        self.__inputs = inputs
+
+    def append_output(
+        self, element: Union[DictionaryItemOutput, DictionaryItemInputOutput]
+    ) -> None:
+        """Map an output element to the end of the Safety Master PDU."""
+        self.__outputs.add(element, bits=element.data_type)
+
+    def append_output_padding(self, bits: int) -> None:
+        """Add padding to the end of the Safety Master PDU."""
+        self.__outputs.add_padding(bits=bits)
+
+    def append_input(self, element: Union[DictionaryItemInput, DictionaryItemInputOutput]) -> None:
+        """Map an input element to the end of the Safety Slave PDU."""
+        self.__inputs.add(element, bits=element.data_type)
+
+    def append_input_padding(self, bits: int) -> None:
+        """Add padding to the end of the Safety Slave PDU."""
+        self.__inputs.add_padding(bits=bits)
+
+    # TODO Refactor
     @classmethod
     def configure_rpdo_map(cls, rpdo_map: RPDOMap) -> None:
         """Configure the RPDOMap used for the Safety Master PDU.
