@@ -14,7 +14,7 @@ class ExpensiveCalculator:
         return x * self.factor
 
 
-@pytest.mark.no_connection
+@pytest.mark.virtual
 def test_weak_lru_cache():
     calc = ExpensiveCalculator(10)
 
