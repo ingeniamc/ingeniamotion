@@ -17,13 +17,27 @@ try:
         ApplicationParameter as FSoEApplicationParameter,
     )
     from fsoe_master.fsoe_master import (
-        DataType,
-        Dictionary,
-        DictionaryItem,
-        DictionaryItemInput,
-        DictionaryItemInputOutput,
-        DictionaryItemOutput,
-        DictionaryMap,
+        DataType as FSoEDataType,
+    )
+    from fsoe_master.fsoe_master import (
+        Dictionary as FSoEDictionary,
+    )
+    from fsoe_master.fsoe_master import (
+        DictionaryItem as FSoEDictionaryItem,
+    )
+    from fsoe_master.fsoe_master import (
+        DictionaryItemInput as FSoEDictionaryItemInput,
+    )
+    from fsoe_master.fsoe_master import (
+        DictionaryItemInputOutput as FSoEDictionaryItemInputOutput,
+    )
+    from fsoe_master.fsoe_master import (
+        DictionaryItemOutput as FSoEDictionaryItemOutput,
+    )
+    from fsoe_master.fsoe_master import (
+        DictionaryMap as FSoEDictionaryMap,
+    )
+    from fsoe_master.fsoe_master import (
         MasterHandler,
         StateData,
     )
@@ -36,8 +50,8 @@ except ImportError:
 else:
     FSOE_MASTER_INSTALLED = True
 
-from ingenialink.dictionary import DictionarySafetyModule, DictionaryV3
-from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
+from ingenialink.dictionary import Dictionary, DictionarySafetyModule, DictionaryV3
+from ingenialink.pdo import PDOMap, PDOMapItem, RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 from ingenialink.utils._utils import dtype_value
 
 from ingeniamotion._utils import weak_lru
@@ -105,7 +119,7 @@ class SafetyFunction:
     Wraps input/output items and parameters used by the FSoE Master handler.
     """
 
-    io: tuple["DictionaryItem", ...]
+    io: tuple["FSoEDictionaryItem", ...]
     parameters: tuple[SafetyParameter, ...]
 
     @classmethod
@@ -118,20 +132,22 @@ class SafetyFunction:
     @classmethod
     def _get_required_input_output(
         cls, hander: "FSoEMasterHandler", uid: str
-    ) -> "DictionaryItemInputOutput":
+    ) -> "FSoEDictionaryItemInputOutput":
         """Get the required input/output item from the handler's dictionary."""
         item = hander.dictionary.name_map.get(uid)
-        if not isinstance(item, DictionaryItemInputOutput):
+        if not isinstance(item, FSoEDictionaryItemInputOutput):
             raise TypeError(
                 f"Expected DictionaryItemInputOutput {uid} on the safe dictionary, got {type(item)}"
             )
         return item
 
     @classmethod
-    def _get_required_input(cls, handler: "FSoEMasterHandler", uid: str) -> "DictionaryItemInput":
+    def _get_required_input(
+        cls, handler: "FSoEMasterHandler", uid: str
+    ) -> "FSoEDictionaryItemInput":
         """Get the required input item from the handler's dictionary."""
         item = handler.dictionary.name_map.get(uid)
-        if not isinstance(item, DictionaryItemInput):
+        if not isinstance(item, FSoEDictionaryItemInput):
             raise TypeError(
                 f"Expected DictionaryItemInput {uid} on the safe dictionary, got {type(item)}"
             )
@@ -152,14 +168,14 @@ SAFE_INSTANCE_TYPE = TypeVar("SAFE_INSTANCE_TYPE", bound="SafetyFunction")
 class STOFunction(SafetyFunction):
     """Safe Torque Off Safety Function."""
 
-    STO_COMMAND_UID = "FSOE_STO"
+    COMMAND_UID = "FSOE_STO"
 
-    command: "DictionaryItemInputOutput"
+    command: "FSoEDictionaryItemInputOutput"
 
     @override
     @classmethod
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["STOFunction"]:
-        sto_command = cls._get_required_input_output(handler, cls.STO_COMMAND_UID)
+        sto_command = cls._get_required_input_output(handler, cls.COMMAND_UID)
         yield cls(command=sto_command, io=(sto_command,), parameters=())
 
 
@@ -171,7 +187,7 @@ class SS1Function(SafetyFunction):
 
     TIME_TO_STO_UID = "FSOE_SS1_TIME_TO_STO_1"
 
-    command: "DictionaryItemInputOutput"
+    command: "FSoEDictionaryItemInputOutput"
     time_to_sto: SafetyParameter
 
     @override
@@ -195,7 +211,7 @@ class SafeInputsFunction(SafetyFunction):
 
     INPUTS_MAP_UID = "FSOE_SAFE_INPUTS_MAP"
 
-    value: "DictionaryItemInput"
+    value: "FSoEDictionaryItemInput"
     map: SafetyParameter
 
     @override
@@ -281,7 +297,7 @@ class FSoEMasterHandler:
             state_change_callback=self.__state_change_callback,
         )
 
-        self.__map = PDUMap(
+        self.__map = PDUMaps(
             outputs=self._master_handler.master.dictionary_map,
             inputs=self._master_handler.slave.dictionary_map,
         )
@@ -316,11 +332,12 @@ class FSoEMasterHandler:
 
     def _configure_pdo_maps(self) -> None:
         """Configure the PDOMaps used for the Safety PDUs."""
-        PDUMap.configure_rpdo_map(self.safety_master_pdu_map)
-        PDUMap.configure_tpdo_map(self.safety_slave_pdu_map)
+        PDUMaps.configure_rpdo_map(self.safety_master_pdu_map)
+        PDUMaps.configure_tpdo_map(self.safety_slave_pdu_map)
 
     @property
-    def map(self) -> "PDUMap":
+    def map(self) -> "PDUMaps":
+        """Get the PDUMap used for the Safety PDUs."""
         return self.__map
 
     def _map_default_outputs(self) -> None:
@@ -512,7 +529,7 @@ class FSoEMasterHandler:
             raise IMTimeoutError("The FSoE Master did not reach the Data state")
 
     @classmethod
-    def create_safe_dictionary(cls, servo: "EthercatServo") -> "Dictionary":
+    def create_safe_dictionary(cls, servo: "EthercatServo") -> "FSoEDictionary":
         """Create a dictionary with the safe inputs and outputs.
 
         Returns:
@@ -529,29 +546,29 @@ class FSoEMasterHandler:
             raise NotImplementedError
 
     @classmethod
-    def _saco_phase_1_dictionary(cls) -> "Dictionary":
+    def _saco_phase_1_dictionary(cls) -> "FSoEDictionary":
         """Get the SaCo phase 1 dictionary instance."""
-        sto_command_dict_item = DictionaryItemInputOutput(
+        sto_command_dict_item = FSoEDictionaryItemInputOutput(
             # Arbitrary key, could be removed
             # https://novantamotion.atlassian.net/browse/INGK-1112
             key=1,
-            name=STOFunction.STO_COMMAND_UID,
-            data_type=DictionaryItem.DataTypes.BOOL,
+            name=STOFunction.COMMAND_UID,
+            data_type=FSoEDictionaryItem.DataTypes.BOOL,
             fail_safe_input_value=True,
         )
-        ss1_command_dict_item = DictionaryItemInputOutput(
+        ss1_command_dict_item = FSoEDictionaryItemInputOutput(
             key=2,
             name=SS1Function.COMMAND_UID,
-            data_type=DictionaryItem.DataTypes.BOOL,
+            data_type=FSoEDictionaryItem.DataTypes.BOOL,
             fail_safe_input_value=True,
         )
-        safe_input_dict_item = DictionaryItemInput(
+        safe_input_dict_item = FSoEDictionaryItemInput(
             key=3,
             name=SafeInputsFunction.SAFE_INPUTS_UID,
-            data_type=DictionaryItem.DataTypes.BOOL,
+            data_type=FSoEDictionaryItem.DataTypes.BOOL,
             fail_safe_value=False,
         )
-        return Dictionary(
+        return FSoEDictionary(
             [
                 sto_command_dict_item,
                 ss1_command_dict_item,
@@ -560,7 +577,7 @@ class FSoEMasterHandler:
         )
 
     @classmethod
-    def _create_safe_dictionary_from_v3(cls, dictionary: "DictionaryV3") -> "Dictionary":
+    def _create_safe_dictionary_from_v3(cls, dictionary: "DictionaryV3") -> "FSoEDictionary":
         """Create a dictionary with the safe inputs and outputs from a DictionaryV3 instance.
 
         Args:
@@ -596,10 +613,10 @@ class FSoEMasterHandler:
             ):
                 items.append(cls._create_fsoe_dict_item_from_reg(register))
 
-        return Dictionary(items)
+        return FSoEDictionary(items)
 
     @classmethod
-    def _create_fsoe_dict_item_from_reg(cls, reg: "CanopenRegister") -> "DictionaryItem":
+    def _create_fsoe_dict_item_from_reg(cls, reg: "CanopenRegister") -> "FSoEDictionaryItem":
         # Create an arbitrary unique numeric key for the item
         # https://novantamotion.atlassian.net/browse/INGK-1112
         key = reg.idx * 1000 + reg.subidx
@@ -607,23 +624,25 @@ class FSoEMasterHandler:
         data_typ = cls._reg_dtype_to_fsoe_data_type(reg.dtype)
 
         if reg.pdo_access == RegCyclicType.SAFETY_INPUT:
-            return DictionaryItemInput(
+            return FSoEDictionaryItemInput(
                 key,
                 name=reg.identifier,
                 data_type=data_typ,
-                fail_safe_value=cls.__fsoe_input_data_type_default(data_typ, DictionaryItemInput),
+                fail_safe_value=cls.__fsoe_input_data_type_default(
+                    data_typ, FSoEDictionaryItemInput
+                ),
             )
         elif reg.pdo_access == RegCyclicType.SAFETY_INPUT_OUTPUT:
-            return DictionaryItemInputOutput(
+            return FSoEDictionaryItemInputOutput(
                 key,
                 name=reg.identifier,
                 data_type=data_typ,
                 fail_safe_input_value=cls.__fsoe_input_data_type_default(
-                    data_typ, DictionaryItemInputOutput
+                    data_typ, FSoEDictionaryItemInputOutput
                 ),
             )
         elif reg.pdo_access == RegCyclicType.SAFETY_OUTPUT:
-            return DictionaryItemOutput(
+            return FSoEDictionaryItemOutput(
                 key,
                 name=reg.identifier,
                 data_type=data_typ,
@@ -632,47 +651,47 @@ class FSoEMasterHandler:
         raise NotImplementedError
 
     @classmethod
-    def _reg_dtype_to_fsoe_data_type(cls, typ: "RegDtype") -> "DataType":
+    def _reg_dtype_to_fsoe_data_type(cls, typ: "RegDtype") -> "FSoEDataType":
         if typ == RegDtype.U8:
-            return DataType.UINT8
+            return FSoEDataType.UINT8
         if typ == RegDtype.U16:
-            return DataType.UINT16
+            return FSoEDataType.UINT16
         if typ == RegDtype.U32:
-            return DataType.UINT32
+            return FSoEDataType.UINT32
         if typ == RegDtype.S8:
-            return DataType.INT8
+            return FSoEDataType.INT8
         if typ == RegDtype.S16:
-            return DataType.INT16
+            return FSoEDataType.INT16
         if typ == RegDtype.S32:
-            return DataType.INT32
+            return FSoEDataType.INT32
         if typ == RegDtype.FLOAT:
-            return DataType.FLOAT
+            return FSoEDataType.FLOAT
         if typ == RegDtype.BOOL:
-            return DataType.BOOL
+            return FSoEDataType.BOOL
 
         raise NotImplementedError(f"Unsupported register data type for FSoE: {typ}")
 
     @classmethod
     def __fsoe_input_data_type_default(
-        cls, data_typ: "DataType", item_type: type["DictionaryItem"]
+        cls, data_typ: "FSoEDataType", item_type: type["FSoEDictionaryItem"]
     ) -> Union[int, float, str, bytes]:
-        if data_typ == DataType.BOOL:
-            if item_type == DictionaryItemInput:
+        if data_typ == FSoEDataType.BOOL:
+            if item_type == FSoEDictionaryItemInput:
                 # Inputs are assumed to be Low on safe-state
                 return False
-            if item_type == DictionaryItemInputOutput:
+            if item_type == FSoEDictionaryItemInputOutput:
                 # Input-Outputs are typically safe commands,
                 # whose safe-state is being active
                 return True
 
         if data_typ in (
-            DataType.UINT8,
-            DataType.UINT16,
-            DataType.UINT32,
-            DataType.INT8,
-            DataType.INT16,
-            DataType.INT32,
-            DataType.FLOAT,
+            FSoEDataType.UINT8,
+            FSoEDataType.UINT16,
+            FSoEDataType.UINT32,
+            FSoEDataType.INT8,
+            FSoEDataType.INT16,
+            FSoEDataType.INT32,
+            FSoEDataType.FLOAT,
         ):
             return 0
 
@@ -699,7 +718,33 @@ class FSoEMasterHandler:
         return self.__running
 
 
-class PDUMap:
+@dataclass()
+class FSoEFrameElements:
+    command_uid: str
+    _crcs_uid: str
+    connection_id_uid: str
+
+    def get_crc_uid(self, data_slot_i: int) -> str:
+        """Get the CRC element name for the given data slot index."""
+        # TODO: Handle case where data_slot_i is not in the dictionary
+        return self._crcs_uid.format(i=data_slot_i)
+
+
+MASTER_FRAME_ELEMENTS = FSoEFrameElements(
+    command_uid="FSOE_MASTER_FRAME_ELEM_CMD",
+    _crcs_uid="FSOE_MASTER_FRAME_ELEM_CRC{i}",
+    connection_id_uid="FSOE_MASTER_FRAME_ELEM_CONNID",
+)
+
+
+SLAVE_FRAME_ELEMENTS = FSoEFrameElements(
+    command_uid="FSOE_SLAVE_FRAME_ELEM_CMD",
+    _crcs_uid="FSOE_SLAVE_FRAME_ELEM_CRC{i}",
+    connection_id_uid="FSOE_SLAVE_FRAME_ELEM_CONNID",
+)
+
+
+class PDUMaps:
     """Helper class to configure the Safety PDU PDOMaps."""
 
     # TODO Refactor contants
@@ -720,29 +765,156 @@ class PDUMap:
 
     def __init__(
         self,
-        outputs: "DictionaryMap",
-        inputs: "DictionaryMap",
+        outputs: "FSoEDictionaryMap",
+        inputs: "FSoEDictionaryMap",
     ) -> None:
-        self.__outputs = outputs
-        self.__inputs = inputs
+        self.outputs = outputs
+        self.inputs = inputs
+
+    @classmethod
+    def empty(cls, dictionary: "FSoEDictionary") -> "PDUMaps":
+        """Create an empty PDUMaps instance with the given dictionary."""
+        return cls(
+            outputs=FSoEDictionaryMap(
+                dictionary,
+                item_types_accepted={FSoEDictionaryItemOutput, FSoEDictionaryItemInputOutput},
+            ),
+            inputs=FSoEDictionaryMap(
+                dictionary,
+                item_types_accepted={FSoEDictionaryItemInput, FSoEDictionaryItemInputOutput},
+            ),
+        )
 
     def append_output(
-        self, element: Union[DictionaryItemOutput, DictionaryItemInputOutput]
+        self, element: Union[FSoEDictionaryItemOutput, FSoEDictionaryItemInputOutput]
     ) -> None:
         """Map an output element to the end of the Safety Master PDU."""
-        self.__outputs.add(element, bits=element.data_type)
+        self.outputs.add(element)
 
     def append_output_padding(self, bits: int) -> None:
         """Add padding to the end of the Safety Master PDU."""
-        self.__outputs.add_padding(bits=bits)
+        self.outputs.add_padding(bits=bits)
 
-    def append_input(self, element: Union[DictionaryItemInput, DictionaryItemInputOutput]) -> None:
+    def append_input(
+        self, element: Union[FSoEDictionaryItemInput, FSoEDictionaryItemInputOutput]
+    ) -> None:
         """Map an input element to the end of the Safety Slave PDU."""
-        self.__inputs.add(element, bits=element.data_type)
+        self.inputs.add(element)
 
     def append_input_padding(self, bits: int) -> None:
         """Add padding to the end of the Safety Slave PDU."""
-        self.__inputs.add_padding(bits=bits)
+        self.inputs.add_padding(bits=bits)
+
+    # TODO create functions to intelligently add inputs and outputs
+    #  Or create a PDUMaps from a set of inputs and outputs or complete safety functions
+    # TODO Add rule validation to the PDUMaps. STO Must be first element
+
+    def _create_rpdo_item(
+        self,
+        servo_dictionary: "Dictionary",
+        uid: str,
+        item_type: type[PDOMapItem],
+    ) -> PDOMapItem:
+        reg = servo_dictionary.get_register(uid)
+        if not isinstance(reg, CanopenRegister):
+            # Type could be narrowed to EthercatRegister
+            # After this bugfix:
+            # https://novantamotion.atlassian.net/browse/INGK-1111
+            raise TypeError
+        return item_type(reg)
+
+        # TODO PUSH FIX and PR OF I/O and RX/TX on ingenialink
+
+    def __fill_pdo_map(
+        self,
+        dict_map: "FSoEDictionaryMap",
+        servo_dictionary: "Dictionary",
+        pdo_map: PDOMap,
+        pdo_item_type: type[PDOMapItem],
+        frame_elements: FSoEFrameElements,
+    ) -> None:
+        # Initial FSoE command
+        pdo_map.add_item(
+            self._create_rpdo_item(servo_dictionary, frame_elements.command_uid, pdo_item_type)
+        )
+
+        data_slot_i = 0
+
+        # The minimum bits for the initial data slot is 8 bits
+        slot_bit_maximum = 8
+
+        for item in dict_map._items:  # TODO Add iterator to DictionaryMap
+            if slot_bit_maximum == 8 and item.position_bits + item.bits >= slot_bit_maximum:
+                # Since there's enough data to fill the initial slot of 8 bits,
+                # it will be of 16 bits instead
+                slot_bit_maximum = 16
+
+            if item.position_bits >= slot_bit_maximum:
+                # This item must go in the next data slot
+                # Add a CRC item, and update to the next data slot
+                pdo_map.add_item(
+                    self._create_rpdo_item(
+                        servo_dictionary, frame_elements.get_crc_uid(data_slot_i), pdo_item_type
+                    )
+                )
+                data_slot_i += 1
+                slot_bit_maximum += 16
+
+            if item.position_bits + item.bits <= slot_bit_maximum:
+                # The item fits in the current slot, add it
+                if item.item is None:
+                    # Padding item
+                    pdo_map.add_item(RPDOMapItem(size_bits=item.bits))
+                else:
+                    # I/O item
+                    pdo_map.add_item(
+                        self._create_rpdo_item(servo_dictionary, item.item.name, pdo_item_type)
+                    )
+            else:
+                # The item must go in the current slot, and on the next one
+                # Have a virtual padding with the remaining bits
+                raise NotImplementedError  # TODO
+
+        # Last CRC
+        pdo_map.add_item(
+            self._create_rpdo_item(
+                servo_dictionary, frame_elements.get_crc_uid(data_slot_i), pdo_item_type
+            )
+        )
+
+        # Connection ID
+        pdo_map.add_item(
+            self._create_rpdo_item(
+                servo_dictionary, frame_elements.connection_id_uid, pdo_item_type
+            )
+        )
+
+    def create_rpdo_map(self, servo_dictionary: "Dictionary") -> RPDOMap:
+        rpdo_map = RPDOMap()
+        rpdo_map.map_register_index = self.FSOE_RPDO_MAP_1_INDEX
+
+        self.__fill_pdo_map(
+            self.outputs,
+            servo_dictionary=servo_dictionary,
+            pdo_map=rpdo_map,
+            pdo_item_type=RPDOMapItem,
+            frame_elements=MASTER_FRAME_ELEMENTS,
+        )
+        return rpdo_map
+
+    def create_tpdo_map(self, servo_dictionary: "Dictionary") -> TPDOMap:
+        """Create the TPDOMap used for the Safety Slave PDU."""
+        tpdo_map = TPDOMap()
+        tpdo_map.map_register_index = self.FSOE_RPDO_MAP_1_INDEX
+
+        self.__fill_pdo_map(
+            self.inputs,
+            servo_dictionary=servo_dictionary,
+            pdo_map=tpdo_map,
+            pdo_item_type=TPDOMapItem,
+            frame_elements=SLAVE_FRAME_ELEMENTS,
+        )
+        return tpdo_map
 
     # TODO Refactor
     @classmethod

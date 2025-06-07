@@ -1,17 +1,22 @@
 from typing import TYPE_CHECKING
 
 import pytest
+from ingenialink.dictionary import DictionaryV3, Interface
+from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import (
     FSOE_MASTER_INSTALLED,
     FSoEError,
+    FSoEMasterHandler,
+    PDUMaps,
     SafeInputsFunction,
     SS1Function,
     STOFunction,
 )
 from ingeniamotion.motion_controller import MotionController
 from tests.conftest import timeout_loop
+from tests.dictionaries import SAMPLE_SAFE_DICTIONARY
 
 if FSOE_MASTER_INSTALLED:
     from fsoe_master import fsoe_master
@@ -226,3 +231,104 @@ def test_motor_enable(mc_state_data):
     mc.fsoe.sto_activate()
     # Activate the STO
     mc.fsoe.sto_activate()
+
+
+class TestPduMapper:
+    @pytest.fixture()
+    def sample_safe_dictionary(self):
+        safe_dict = DictionaryV3(SAMPLE_SAFE_DICTIONARY, interface=Interface.ECAT)
+        fsoe_dict = FSoEMasterHandler._create_safe_dictionary_from_v3(safe_dict)
+
+        return safe_dict, fsoe_dict
+
+    def test_create_map_phase_1(self, sample_safe_dictionary):
+        safe_dict, fsoe_dict = sample_safe_dictionary
+        maps = PDUMaps.empty(fsoe_dict)
+
+        maps.append_output(fsoe_dict.name_map[STOFunction.COMMAND_UID])
+        maps.append_output(fsoe_dict.name_map[SS1Function.COMMAND_UID])
+        maps.append_output_padding(bits=6 + 8)
+
+        maps.append_input(fsoe_dict.name_map[STOFunction.COMMAND_UID])
+        maps.append_input(fsoe_dict.name_map[SS1Function.COMMAND_UID])
+        maps.append_input_padding(bits=6)
+        maps.append_input(fsoe_dict.name_map[SafeInputsFunction.SAFE_INPUTS_UID])
+        maps.append_input_padding(bits=7)
+
+        rpdo = maps.create_rpdo_map(safe_dict)
+        assert isinstance(rpdo, RPDOMap)
+        assert isinstance(rpdo.items[0], RPDOMapItem)
+
+        assert rpdo.items[0].register.identifier == "FSOE_MASTER_FRAME_ELEM_CMD"
+        assert rpdo.items[0].register.idx == 0x6770
+        assert rpdo.items[0].register.subidx == 0x01
+        assert rpdo.items[0].size_bits == 8
+
+        assert rpdo.items[1].register.identifier == "FSOE_STO"
+        assert rpdo.items[1].register.idx == 0x6640
+        assert rpdo.items[1].register.subidx == 0x0
+        assert rpdo.items[1].size_bits == 1
+
+        assert rpdo.items[2].register.identifier == "FSOE_SS1_1"
+        assert rpdo.items[2].register.idx == 0x6650
+        assert rpdo.items[2].register.subidx == 0x1
+        assert rpdo.items[2].size_bits == 1
+
+        assert rpdo.items[3].register.identifier == "PADDING"
+        assert rpdo.items[3].register.idx == 0
+        assert rpdo.items[3].register.subidx == 0
+        assert rpdo.items[3].size_bits == 14
+
+        assert rpdo.items[4].register.identifier == "FSOE_MASTER_FRAME_ELEM_CRC0"
+        assert rpdo.items[4].register.idx == 0x6770
+        assert rpdo.items[4].register.subidx == 0x03
+        assert rpdo.items[4].size_bits == 16
+
+        assert rpdo.items[5].register.identifier == "FSOE_MASTER_FRAME_ELEM_CONNID"
+        assert rpdo.items[5].register.idx == 0x6770
+        assert rpdo.items[5].register.subidx == 0x02
+        assert rpdo.items[5].size_bits == 16
+
+        tpdo = maps.create_tpdo_map(safe_dict)
+        assert isinstance(tpdo, TPDOMap)
+        assert isinstance(tpdo.items[0], TPDOMapItem)
+
+        assert tpdo.items[0].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CMD"
+        assert tpdo.items[0].register.idx == 0x6760
+        assert tpdo.items[0].register.subidx == 0x01
+        assert tpdo.items[0].size_bits == 8
+
+        assert tpdo.items[1].register.identifier == "FSOE_STO"
+        assert tpdo.items[1].register.idx == 0x6640
+        assert tpdo.items[1].register.subidx == 0x0
+        assert tpdo.items[1].size_bits == 1
+
+        assert tpdo.items[2].register.identifier == "FSOE_SS1_1"
+        assert tpdo.items[2].register.idx == 0x6650
+        assert tpdo.items[2].register.subidx == 0x1
+        assert tpdo.items[2].size_bits == 1
+
+        assert tpdo.items[3].register.identifier == "PADDING"
+        assert tpdo.items[3].register.idx == 0
+        assert tpdo.items[3].register.subidx == 0
+        assert tpdo.items[3].size_bits == 6
+
+        assert tpdo.items[4].register.identifier == "FSOE_SAFE_INPUTS_VALUE"
+        assert tpdo.items[4].register.idx == 0x46D1
+        assert tpdo.items[4].register.subidx == 0x0
+        assert tpdo.items[4].size_bits == 1
+
+        assert tpdo.items[5].register.identifier == "PADDING"
+        assert tpdo.items[5].register.idx == 0
+        assert tpdo.items[5].register.subidx == 0
+        assert tpdo.items[5].size_bits == 7
+
+        assert tpdo.items[6].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC0"
+        assert tpdo.items[6].register.idx == 0x6760
+        assert tpdo.items[6].register.subidx == 0x03
+        assert tpdo.items[6].size_bits == 16
+
+        assert tpdo.items[7].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CONNID"
+        assert tpdo.items[7].register.idx == 0x6760
+        assert tpdo.items[7].register.subidx == 0x02
+        assert tpdo.items[7].size_bits == 16
