@@ -300,7 +300,7 @@ class FSoEMasterHandler:
             state_change_callback=self.__state_change_callback,
         )
 
-        self.__map = PDUMaps(
+        self.__maps = PDUMaps(
             outputs=self._master_handler.master.dictionary_map,
             inputs=self._master_handler.slave.dictionary_map,
         )
@@ -338,35 +338,42 @@ class FSoEMasterHandler:
         self._master_handler.delete()
 
     @property
-    def map(self) -> "PDUMaps":
+    def maps(self) -> "PDUMaps":
         """Get the PDUMap used for the Safety PDUs."""
-        return self.__map
+        return self.__maps
 
-    # TODO Set map
+    def set_maps(self, map: "PDUMaps") -> None:
+        """Set new PDUMaps for the Safety PDUs."""
+        if self.__running:
+            raise RuntimeError("Cannot set map while the FSoE Master is running")
+
+        self._master_handler.master.dictionary_map = map.outputs
+        self._master_handler.slave.dictionary_map = map.inputs
 
     def _map_default_outputs(self) -> None:
         """Configure the FSoE master handler's SafeOutputs."""
         # Phase 1 mapping
         # TODO Read from drive??, move to pdumapper?
-        self.__map.append_output(self.get_function_instance(STOFunction).command)
-        self.__map.append_output(self.get_function_instance(SS1Function).command)
-        self.__map.append_output_padding(bits=6)
+        #  This exists but we need a way to read a pdo map from the drive in IL
+        self.__maps.append_output(self.get_function_instance(STOFunction).command)
+        self.__maps.append_output(self.get_function_instance(SS1Function).command)
+        self.__maps.append_output_padding(bits=6)
 
     def _map_default_inputs(self) -> None:
         """Configure the FSoE master handler's SafeInputs."""
         # Phase 1 mapping
         # TODO Read from drive??, move to pdumapper?
-        self.__map.append_input(self.get_function_instance(STOFunction).command)
-        self.__map.append_input(self.get_function_instance(SS1Function).command)
-        self.__map.append_input_padding(bits=6)
-        self.__map.append_input(self.get_function_instance(SS1Function).command)
-        self.__map.append_input(self.get_function_instance(SafeInputsFunction).value)
-        self.__map.append_input_padding(bits=6)
+        self.__maps.append_input(self.get_function_instance(STOFunction).command)
+        self.__maps.append_input(self.get_function_instance(SS1Function).command)
+        self.__maps.append_input_padding(bits=6)
+        self.__maps.append_input(self.get_function_instance(SS1Function).command)
+        self.__maps.append_input(self.get_function_instance(SafeInputsFunction).value)
+        self.__maps.append_input_padding(bits=6)
 
     def configure_pdo_maps(self) -> None:
         """Configure the PDOMaps used for the Safety PDUs according to the map."""
-        self.__map.fill_rpdo_map(self.safety_master_pdu_map, self.dictionary)
-        self.__map.fill_tpdo_map(self.safety_slave_pdu_map, self.dictionary)
+        self.__maps.fill_rpdo_map(self.safety_master_pdu_map, self.dictionary)
+        self.__maps.fill_tpdo_map(self.safety_slave_pdu_map, self.dictionary)
 
     def set_pdo_maps_to_slave(self) -> None:
         """Set the PDOMaps to be used by the Safety PDUs to the slave."""
@@ -433,7 +440,9 @@ class FSoEMasterHandler:
             # First instance is 1
             index = instance - 1
             if index < 0 or index >= len(funcs):
-                raise IndexError(f"Master handler does not contain {typ.__name__} instance {instance}")
+                raise IndexError(
+                    f"Master handler does not contain {typ.__name__} instance {instance}"
+                )
             return funcs[index]
         else:
             if len(funcs) != 1:
@@ -817,12 +826,12 @@ class PDUMaps:
             )
             for valid_bit in range(valid_byte * 8, (valid_byte + 1) * 8)
         )
-        dictionary: "FSoEDictionary" = dictionary_map.dictionary
+        dictionary: FSoEDictionary = dictionary_map.dictionary
         position_bits = 0
         for item in pdo_map.items:
             if position_bits in valid_bits:
                 # The item is a safe data item
-                if item.register is None:
+                if item.register.idx == 0:
                     # Padding item
                     dictionary_map.add_padding(item.size_bits)
                 else:
@@ -840,6 +849,7 @@ class PDUMaps:
         pdu_maps = cls.empty(dictionary)
         cls.__fill_dictionary_map_from_pdo(rpdo, pdu_maps.outputs)
         cls.__fill_dictionary_map_from_pdo(tpdo, pdu_maps.inputs)
+        return pdu_maps
 
     def append_output(
         self, element: Union[FSoEDictionaryItemOutput, FSoEDictionaryItemInputOutput]

@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from ingenialink.dictionary import DictionaryV3, Interface
-from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
+from ingenialink.pdo import RPDOMap, TPDOMap
 
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import (
@@ -335,6 +335,14 @@ class TestPduMapper:
         assert tpdo.items[7].size_bits == 16
 
         recreated_pdu_maps = PDUMaps.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
+        assert (
+            recreated_pdu_maps.outputs.get_text_representation()
+            == maps.outputs.get_text_representation()
+        )
+        assert (
+            recreated_pdu_maps.inputs.get_text_representation()
+            == maps.inputs.get_text_representation()
+        )
         # TODO Check they are the same
 
     @pytest.mark.parametrize(
@@ -348,4 +356,6 @@ class TestPduMapper:
         ],
     )
     def test_get_safety_bytes_range_from_pdo_length(self, pdo_length, frame_data_bytes):
-        assert frame_data_bytes == PDUMaps._PDUMaps__get_safety_bytes_range_from_pdo_length(pdo_length)
+        assert frame_data_bytes == PDUMaps._PDUMaps__get_safety_bytes_range_from_pdo_length(
+            pdo_length
+        )
