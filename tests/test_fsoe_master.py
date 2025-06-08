@@ -255,9 +255,11 @@ class TestPduMapper:
         maps.append_input(fsoe_dict.name_map[SafeInputsFunction.SAFE_INPUTS_UID])
         maps.append_input_padding(bits=7)
 
-        rpdo = maps.create_rpdo_map(safe_dict)
-        assert isinstance(rpdo, RPDOMap)
-        assert isinstance(rpdo.items[0], RPDOMapItem)
+        rpdo = RPDOMap()
+        # Registers that are present in the map,
+        # are cleared when the map is filled
+        rpdo.add_registers(safe_dict.get_register("DRV_OP_CMD"))
+        maps.fill_rpdo_map(rpdo, safe_dict)
 
         assert rpdo.items[0].register.identifier == "FSOE_MASTER_FRAME_ELEM_CMD"
         assert rpdo.items[0].register.idx == 0x6770
@@ -289,9 +291,8 @@ class TestPduMapper:
         assert rpdo.items[5].register.subidx == 0x02
         assert rpdo.items[5].size_bits == 16
 
-        tpdo = maps.create_tpdo_map(safe_dict)
-        assert isinstance(tpdo, TPDOMap)
-        assert isinstance(tpdo.items[0], TPDOMapItem)
+        tpdo = TPDOMap()
+        maps.fill_tpdo_map(tpdo, safe_dict)
 
         assert tpdo.items[0].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CMD"
         assert tpdo.items[0].register.idx == 0x6760
@@ -332,3 +333,19 @@ class TestPduMapper:
         assert tpdo.items[7].register.idx == 0x6760
         assert tpdo.items[7].register.subidx == 0x02
         assert tpdo.items[7].size_bits == 16
+
+        recreated_pdu_maps = PDUMaps.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
+        # TODO Check they are the same
+
+    @pytest.mark.parametrize(
+        "pdo_length, frame_data_bytes",
+        [
+            (6, (1,)),
+            (7, (1, 2)),
+            (11, (1, 2, 5, 6)),
+            (15, (1, 2, 5, 6, 9, 10)),
+            (19, (1, 2, 5, 6, 9, 10, 13, 14)),
+        ],
+    )
+    def test_get_safety_bytes_range_from_pdo_length(self, pdo_length, frame_data_bytes):
+        assert frame_data_bytes == PDUMaps._PDUMaps__get_safety_bytes_range_from_pdo_length(pdo_length)
