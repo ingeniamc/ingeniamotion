@@ -304,6 +304,8 @@ class FSoEMasterHandler:
             outputs=self._master_handler.master.dictionary_map,
             inputs=self._master_handler.slave.dictionary_map,
         )
+        # Replace by reading the pdo maps of the servo
+        # https://novantamotion.atlassian.net/browse/INGK-1114
         self._map_default_inputs()
         self._map_default_outputs()
         self.__safety_master_pdu = RPDOMap()
@@ -342,19 +344,17 @@ class FSoEMasterHandler:
         """Get the PDUMap used for the Safety PDUs."""
         return self.__maps
 
-    def set_maps(self, map: "PDUMaps") -> None:
+    def set_maps(self, maps: "PDUMaps") -> None:
         """Set new PDUMaps for the Safety PDUs."""
         if self.__running:
             raise RuntimeError("Cannot set map while the FSoE Master is running")
 
-        self._master_handler.master.dictionary_map = map.outputs
-        self._master_handler.slave.dictionary_map = map.inputs
+        self._master_handler.master.dictionary_map = maps.outputs
+        self._master_handler.slave.dictionary_map = maps.inputs
 
     def _map_default_outputs(self) -> None:
         """Configure the FSoE master handler's SafeOutputs."""
         # Phase 1 mapping
-        # TODO Read from drive??, move to pdumapper?
-        #  This exists but we need a way to read a pdo map from the drive in IL
         self.__maps.append_output(self.get_function_instance(STOFunction).command)
         self.__maps.append_output(self.get_function_instance(SS1Function).command)
         self.__maps.append_output_padding(bits=6)
@@ -362,7 +362,6 @@ class FSoEMasterHandler:
     def _map_default_inputs(self) -> None:
         """Configure the FSoE master handler's SafeInputs."""
         # Phase 1 mapping
-        # TODO Read from drive??, move to pdumapper?
         self.__maps.append_input(self.get_function_instance(STOFunction).command)
         self.__maps.append_input(self.get_function_instance(SS1Function).command)
         self.__maps.append_input_padding(bits=6)
@@ -744,13 +743,17 @@ class FSoEMasterHandler:
 
 @dataclass()
 class FSoEFrameElements:
+    """FSoE Frame Elements.
+
+    Indicates uids of elements that compose the FSoE frame, excluding the safe data.
+    """
+
     command_uid: str
     _crcs_uid: str
     connection_id_uid: str
 
     def get_crc_uid(self, data_slot_i: int) -> str:
         """Get the CRC element name for the given data slot index."""
-        # TODO: Handle case where data_slot_i is not in the dictionary
         return self._crcs_uid.format(i=data_slot_i)
 
 
@@ -795,7 +798,9 @@ class PDUMaps:
 
     @staticmethod
     def __get_safety_bytes_range_from_pdo_length(pdo_byte_lenght: int) -> tuple[int, ...]:
-        """Get the range of bytes that belong to the safe data in a PDO map according to its length."""
+        """Get the range of bytes that belong to the safe data in a PDO map
+        according to its length.
+        """
         if pdo_byte_lenght < 6:
             raise ValueError("pdo_lenght must be at least 6")
         elif pdo_byte_lenght == 6:
@@ -873,7 +878,6 @@ class PDUMaps:
 
     # TODO create functions to intelligently add inputs and outputs
     #  Or create a PDUMaps from a set of inputs and outputs or complete safety functions
-    # TODO Add rule validation to the PDUMaps. STO Must be first element
 
     def _create_rpdo_item(
         self,
@@ -888,8 +892,6 @@ class PDUMaps:
             # https://novantamotion.atlassian.net/browse/INGK-1111
             raise TypeError
         return item_type(reg)
-
-        # TODO PUSH FIX and PR OF I/O and RX/TX on ingenialink
 
     def __fill_pdo_map(
         self,
@@ -921,11 +923,15 @@ class PDUMaps:
             if item.position_bits >= slot_bit_maximum:
                 # This item must go in the next data slot
                 # Add a CRC item, and update to the next data slot
-                pdo_map.add_item(
-                    self._create_rpdo_item(
+                try:
+                    crc_item = self._create_rpdo_item(
                         servo_dictionary, frame_elements.get_crc_uid(data_slot_i), pdo_item_type
                     )
-                )
+                except KeyError as e:
+                    raise NotImplementedError(
+                        f"No CRC found for data slot {data_slot_i}. Probably the PDU Map is wide"
+                    ) from e
+                pdo_map.add_item(crc_item)
                 data_slot_i += 1
                 slot_bit_maximum += 16
 
@@ -946,11 +952,15 @@ class PDUMaps:
                 raise NotImplementedError  # TODO
 
         # Last CRC
-        pdo_map.add_item(
-            self._create_rpdo_item(
+        try:
+            crc_item = self._create_rpdo_item(
                 servo_dictionary, frame_elements.get_crc_uid(data_slot_i), pdo_item_type
             )
-        )
+        except KeyError as e:
+            raise NotImplementedError(
+                f"No CRC found for data slot {data_slot_i}. Probably the PDU Map is wide"
+            ) from e
+        pdo_map.add_item(crc_item)
 
         # Connection ID
         pdo_map.add_item(
