@@ -55,7 +55,7 @@ class SafetyParameter:
 
     Represents a parameter that modifies how the safety application works.
 
-    Base test is used for modules that use SRA CRC Check mechanism.
+    Base class is used for modules that use SRA CRC Check mechanism.
     """
 
     def __init__(self, register: "Register", servo: "EthercatServo"):
@@ -409,7 +409,7 @@ class FSoEMasterHandler:
             # First instance is 1
             index = instance - 1
             if index < 0 or index >= len(funcs):
-                raise IndexError(f"Master handler does not contain SS1Function instance {instance}")
+                raise IndexError(f"Master handler does not contain {typ.__name__} instance {instance}")
             return funcs[index]
         else:
             if len(funcs) != 1:
@@ -660,8 +660,11 @@ class FSoEMasterHandler:
     ) -> Union[int, float, str, bytes]:
         if data_typ == DataType.BOOL:
             if item_type == DictionaryItemInput:
+                # Inputs are assumed to be Low on safe-state
                 return False
             if item_type == DictionaryItemInputOutput:
+                # Input-Outputs are typically safe commands,
+                # whose safe-state is being active
                 return True
 
         if data_typ in (
