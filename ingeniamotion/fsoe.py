@@ -879,11 +879,12 @@ class PDUMaps:
     # TODO create functions to intelligently add inputs and outputs
     #  Or create a PDUMaps from a set of inputs and outputs or complete safety functions
 
-    def _create_rpdo_item(
+    def __create_pdo_item(
         self,
         servo_dictionary: "Dictionary",
         uid: str,
         item_type: type[PDOMapItem],
+        size_bits: Optional[int] = None,
     ) -> PDOMapItem:
         reg = servo_dictionary.get_register(uid)
         if not isinstance(reg, CanopenRegister):
@@ -891,7 +892,23 @@ class PDUMaps:
             # After this bugfix:
             # https://novantamotion.atlassian.net/browse/INGK-1111
             raise TypeError
-        return item_type(reg)
+        return item_type(reg, size_bits)
+
+    def __get_crc_item(
+        self,
+        data_slot_i: int,
+        frame_elements: FSoEFrameElements,
+        pdo_item_type: type[PDOMapItem],
+        servo_dictionary: "Dictionary",
+    ) -> PDOMapItem:
+        try:
+            return self.__create_pdo_item(
+                servo_dictionary, frame_elements.get_crc_uid(data_slot_i), pdo_item_type
+            )
+        except KeyError as e:
+            raise NotImplementedError(
+                f"No CRC found for data slot {data_slot_i}. Probably the PDU Map is wide"
+            ) from e
 
     def __fill_pdo_map(
         self,
@@ -906,7 +923,7 @@ class PDUMaps:
 
         # Initial FSoE command
         pdo_map.add_item(
-            self._create_rpdo_item(servo_dictionary, frame_elements.command_uid, pdo_item_type)
+            self.__create_pdo_item(servo_dictionary, frame_elements.command_uid, pdo_item_type)
         )
 
         data_slot_i = 0
@@ -916,22 +933,18 @@ class PDUMaps:
 
         for item in dict_map:
             if slot_bit_maximum == 8 and item.position_bits + item.bits >= slot_bit_maximum:
-                # Since there's enough data to fill the initial slot of 8 bits,
+                # Since there's enough data to overflow the initial slot of 8 bits,
                 # it will be of 16 bits instead
                 slot_bit_maximum = 16
 
             if item.position_bits >= slot_bit_maximum:
                 # This item must go in the next data slot
                 # Add a CRC item, and update to the next data slot
-                try:
-                    crc_item = self._create_rpdo_item(
-                        servo_dictionary, frame_elements.get_crc_uid(data_slot_i), pdo_item_type
+                pdo_map.add_item(
+                    self.__get_crc_item(
+                        data_slot_i, frame_elements, pdo_item_type, servo_dictionary
                     )
-                except KeyError as e:
-                    raise NotImplementedError(
-                        f"No CRC found for data slot {data_slot_i}. Probably the PDU Map is wide"
-                    ) from e
-                pdo_map.add_item(crc_item)
+                )
                 data_slot_i += 1
                 slot_bit_maximum += 16
 
@@ -943,29 +956,47 @@ class PDUMaps:
                 else:
                     # I/O item
                     pdo_map.add_item(
-                        self._create_rpdo_item(servo_dictionary, item.item.name, pdo_item_type)
+                        self.__create_pdo_item(servo_dictionary, item.item.name, pdo_item_type)
                     )
             else:
                 # The item must go in the current slot, and on the next one
                 # Have a virtual padding with the remaining bits
                 # As described on ETG5120 Section 5.3.3
-                raise NotImplementedError  # TODO
+                if item.bits != 32:
+                    raise NotImplementedError(
+                        f"For overflowing data slots, only 32 bit variables are supported ({item.bits})"
+                    )
+                if item.position_bits % 16 != 0:
+                    raise NotImplementedError(
+                        f"For overflowing data slots, the position bits must be a multiple of 16 ({item.position_bits})"
+                    )
+                # I/O item, cut at 16 bits
+                pdo_map.add_item(
+                    self.__create_pdo_item(
+                        servo_dictionary, item.item.name, pdo_item_type, size_bits=16
+                    )
+                )
+                # CRC item
+                pdo_map.add_item(
+                    self.__get_crc_item(
+                        data_slot_i, frame_elements, pdo_item_type, servo_dictionary
+                    )
+                )
+                data_slot_i += 1
+                # Padding item
+                pdo_map.add_item(pdo_item_type(size_bits=16))
 
         # Last CRC
-        try:
-            crc_item = self._create_rpdo_item(
-                servo_dictionary, frame_elements.get_crc_uid(data_slot_i), pdo_item_type
-            )
-        except KeyError as e:
-            raise NotImplementedError(
-                f"No CRC found for data slot {data_slot_i}. Probably the PDU Map is wide"
-            ) from e
-        pdo_map.add_item(crc_item)
+        pdo_map.add_item(
+            self.__get_crc_item(data_slot_i, frame_elements, pdo_item_type, servo_dictionary),
+        )
 
         # Connection ID
         pdo_map.add_item(
-            self._create_rpdo_item(
-                servo_dictionary, frame_elements.connection_id_uid, pdo_item_type
+            self.__create_pdo_item(
+                servo_dictionary,
+                frame_elements.connection_id_uid,
+                pdo_item_type,
             )
         )
 

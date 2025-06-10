@@ -241,7 +241,7 @@ class TestPduMapper:
 
         return safe_dict, fsoe_dict
 
-    def test_create_map_phase_1(self, sample_safe_dictionary):
+    def test_map_phase_1(self, sample_safe_dictionary):
         safe_dict, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
 
@@ -343,7 +343,42 @@ class TestPduMapper:
             recreated_pdu_maps.inputs.get_text_representation()
             == maps.inputs.get_text_representation()
         )
-        # TODO Check they are the same
+
+    def test_map_8_safe_bits(self, sample_safe_dictionary):
+        # TODO
+        return
+
+    def test_map_with_32_bit_vars(self, sample_safe_dictionary):
+        safe_dict, fsoe_dict = sample_safe_dictionary
+        maps = PDUMaps.empty(fsoe_dict)
+
+        # TODO Add variables of 16 bits previously, with pytest params?
+
+        # Append a 32-bit variable
+        maps.append_input(fsoe_dict.name_map["FSOE_SAFE_POSITION"])
+
+        # Create the rpdo map
+        tpdo = TPDOMap()
+        maps.fill_tpdo_map(tpdo, safe_dict)
+
+        assert tpdo.items[0].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CMD"
+        assert tpdo.items[0].size_bits == 8
+
+        assert tpdo.items[1].register.identifier == "FSOE_SAFE_POSITION"
+        assert tpdo.items[1].size_bits == 16
+
+        assert tpdo.items[2].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC0"
+        assert tpdo.items[2].size_bits == 16
+
+        # On this padding, the 32-bit variable will continue to be transmitted
+        assert tpdo.items[3].register.identifier == "PADDING"
+        assert tpdo.items[3].size_bits == 16
+
+        assert tpdo.items[4].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC1"
+        assert tpdo.items[4].size_bits == 16
+
+        assert tpdo.items[5].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CONNID"
+        assert tpdo.items[5].size_bits == 16
 
     @pytest.mark.parametrize(
         "pdo_length, frame_data_bytes",

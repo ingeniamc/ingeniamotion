@@ -103,7 +103,7 @@
       </Category>
     </Categories>
     <Devices>
-      <ETHDevice firmwareVersion="dev34d1f2" ProductCode="58790914" PartNumber="DEN-S-NET-E" RevisionNumber="327680">
+      <ETHDevice firmwareVersion="dev0558bb" ProductCode="58790914" PartNumber="DEN-S-NET-E" RevisionNumber="327680">
         <Subnodes>
           <Subnode index="0">Communication</Subnode>
           <Subnode index="1">Motion</Subnode>
@@ -642,7 +642,7 @@
           <MCBRegister address="0x0014" subnode="1" address_type="NVM" access="rw" dtype="u16" id="DRV_OP_CMD" units="none" pdo_access="CYCLIC_RX" desc="User requested mode of operation" default="0000" cat_id="TARGET" axis="1">
             <MonDistV3 address="0x0014" subnode="1" cyclic="CYCLIC_RX"/>
             <Labels>
-              <Label lang="en_US">Operation mode</Label>
+              <Label lang="en_US">Modes of operation</Label>
             </Labels>
             <BitFields>
               <BitField name="OPERATION_MODE" start="0" end="3"/>
@@ -669,7 +669,7 @@
           <MCBRegister address="0x0015" subnode="1" address_type="NVM_NONE" access="r" dtype="u16" id="DRV_OP_VALUE" units="none" pdo_access="CYCLIC_TX" desc="Indicates the mode of operation applied in the drive" default="0000" cat_id="REPORTING" axis="1">
             <MonDistV3 address="0x0015" subnode="1" cyclic="CYCLIC_TX"/>
             <Labels>
-              <Label lang="en_US">Operation mode display</Label>
+              <Label lang="en_US">Modes of operation display</Label>
             </Labels>
             <BitFields>
               <BitField name="OPERATION_MODE" start="0" end="3"/>
@@ -738,7 +738,7 @@
           <MCBRegister address="0x0021" subnode="1" address_type="NVM_NONE" access="rw" dtype="float" id="CL_VEL_SET_POINT_VALUE" units="rev/s" pdo_access="CYCLIC_RX" desc="User velocity set-point for velocity modes" default="00000000" cat_id="TARGET" axis="1">
             <MonDistV3 address="0x0021" subnode="1" cyclic="CYCLIC_RX"/>
             <Labels>
-              <Label lang="en_US">Velocity set-point</Label>
+              <Label lang="en_US">Target velocity</Label>
             </Labels>
           </MCBRegister>
           <MCBRegister address="0x0022" subnode="1" address_type="NVM_NONE" access="rw" dtype="float" id="CL_TOR_SET_POINT_VALUE" units="Nm" pdo_access="CYCLIC_RX" desc="" default="00000000" cat_id="TARGET" axis="1">
@@ -747,10 +747,10 @@
               <Label lang="en_US">Torque set-point</Label>
             </Labels>
           </MCBRegister>
-          <MCBRegister address="0x0024" subnode="1" address_type="NVM" access="rw" dtype="u16" id="PROF_POS_OPTION_CODE" units="none" pdo_access="CYCLIC_RX" desc="Positioning option code as per CiA402 (0x60F2)&#13;&#10;&#13;&#10;Bits 0, 1 - Relative option (not implemented)&#13;&#10;Bits 2, 3 - Change immediately option (not implemented)&#13;&#10;Bits 4, 5 - Request response option (not implemented)&#13;&#10;Bits 6, 7 - Rotary axis direction option" default="0000" cat_id="OTHERS" axis="1">
+          <MCBRegister address="0x0024" subnode="1" address_type="NVM" access="rw" dtype="u16" id="PROF_POS_OPTION_CODE" units="none" pdo_access="CYCLIC_RX" desc="Position option code as per CiA402 (0x60F2)&#13;&#10;&#13;&#10;Bits 0, 1 - Relative option (not implemented)&#13;&#10;Bits 2, 3 - Change immediately option (not implemented)&#13;&#10;Bits 4, 5 - Request response option (not implemented)&#13;&#10;Bits 6, 7 - Rotary axis direction option" default="0000" cat_id="OTHERS" axis="1">
             <MonDistV3 address="0x0024" subnode="1" cyclic="CYCLIC_RX"/>
             <Labels>
-              <Label lang="en_US">Positioning option code</Label>
+              <Label lang="en_US">Position option code</Label>
             </Labels>
           </MCBRegister>
           <MCBRegister address="0x0025" subnode="1" address_type="NVM" access="rw" dtype="float" id="PROF_MAX_VEL" units="rev/s" pdo_access="CYCLIC_RX" desc="By default indicates the profile velocity used in profile position mode." default="0000a041" cat_id="PROFILER" axis="1">
@@ -780,13 +780,13 @@
           <MCBRegister address="0x0030" subnode="1" address_type="NVM_NONE" access="r" dtype="s32" id="CL_POS_FBK_VALUE" units="cnt" pdo_access="CYCLIC_TX" desc="Position obtained from position feedback sensor in counts" default="00000000" cat_id="REPORTING" axis="1">
             <MonDistV3 address="0x0030" subnode="1" cyclic="CYCLIC_TX"/>
             <Labels>
-              <Label lang="en_US">Actual position</Label>
+              <Label lang="en_US">Position actual value</Label>
             </Labels>
           </MCBRegister>
           <MCBRegister address="0x0031" subnode="1" address_type="NVM_NONE" access="r" dtype="float" id="CL_VEL_FBK_VALUE" units="rev/s" pdo_access="CYCLIC_TX" desc="Velocity obtained from velocity feedback sensor in revolution per second" default="00000000" cat_id="REPORTING" axis="1">
             <MonDistV3 address="0x0031" subnode="1" cyclic="CYCLIC_TX"/>
             <Labels>
-              <Label lang="en_US">Actual velocity</Label>
+              <Label lang="en_US">Velocity actual value</Label>
             </Labels>
           </MCBRegister>
           <MCBRegister address="0x0033" subnode="1" address_type="NVM_NONE" access="r" dtype="u32" id="CL_AUX_FBK_VALUE" units="cnt" pdo_access="CYCLIC_TX" desc="Raw value of selected auxiliar feedback" default="00000000" cat_id="OTHERS" axis="1">
@@ -1153,7 +1153,7 @@
           <MCBRegister address="0x009A" subnode="1" address_type="NVM" access="rw" dtype="float" id="MOT_RATED_TORQUE" units="Nm" pdo_access="CYCLIC_RX" desc="Indicates the continuous torque of the actuator / system" default="0000803f" cat_id="MOTOR" axis="1">
             <MonDistV3 address="0x009A" subnode="1" cyclic="CYCLIC_RX"/>
             <Labels>
-              <Label lang="en_US">Rated torque</Label>
+              <Label lang="en_US">Motor rated torque</Label>
             </Labels>
           </MCBRegister>
           <MCBRegister address="0x009B" subnode="1" address_type="NVM_NONE" access="r" dtype="float" id="CL_TOR_CMD_VALUE" units="Nm" pdo_access="CYCLIC_TX" desc="Torque command in torque control loop." default="00000000" cat_id="CONTROL" axis="1">
@@ -1165,7 +1165,7 @@
           <MCBRegister address="0x0100" subnode="1" address_type="NVM" access="rw" dtype="float" id="MOT_RATED_CURRENT" units="A" pdo_access="CYCLIC_RX" desc="Indicates the continuous current of the actuator / system" default="0000a040" cat_id="PROTECTIONS" axis="1">
             <MonDistV3 address="0x0100" subnode="1" cyclic="CYCLIC_RX"/>
             <Labels>
-              <Label lang="en_US">Rated current</Label>
+              <Label lang="en_US">Motor rated current</Label>
             </Labels>
           </MCBRegister>
           <MCBRegister address="0x0101" subnode="1" address_type="NVM" access="rw" dtype="float" id="DRV_PROT_I2T_PEAK_VALUE" units="A" pdo_access="CONFIG" desc="User peak current" default="00002041" cat_id="PROTECTIONS" axis="1">
@@ -1210,7 +1210,7 @@
           </MCBRegister>
           <MCBRegister address="0x010C" subnode="1" address_type="NVM" access="rw" dtype="u16" id="MOT_PROT_TEMP_B2585" units="ºK" pdo_access="CONFIG" desc="NTC: B(25/85) parameter from datasheet&#13;&#10;PTC: Not used&#13;&#10;Others: Not used" default="0000" cat_id="MOTOR" axis="1">
             <Labels>
-              <Label lang="en_US">Motor temp. sensor β (25-85)</Label>
+              <Label lang="en_US">Motor temp. sensor Beta (25-85)</Label>
             </Labels>
           </MCBRegister>
           <MCBRegister address="0x010D" subnode="1" address_type="NVM" access="rw" dtype="u32" id="MOT_PROT_TEMP_EXT_RES" units="Ω" pdo_access="CONFIG" desc="NTC: Resistance in ohms connected to NTC for making the voltage divider&#13;&#10;PTC: Resistance in ohms connected to PTC for making the voltage divider&#13;&#10;Others: Not used." default="72060000" cat_id="MOTOR" axis="1">
@@ -1552,7 +1552,7 @@
           <MCBRegister address="0x01E0" subnode="1" address_type="NVM" access="rw" dtype="float" id="CL_CUR_REF_MAX" units="A" pdo_access="CYCLIC_RX" desc="User allowed maximum current" default="00002041" cat_id="LIMITS" axis="1">
             <MonDistV3 address="0x01E0" subnode="1" cyclic="CYCLIC_RX"/>
             <Labels>
-              <Label lang="en_US">Max. current</Label>
+              <Label lang="en_US">Max current</Label>
             </Labels>
           </MCBRegister>
           <MCBRegister address="0x01E2" subnode="1" address_type="NVM_NONE" access="r" dtype="s32" id="CL_POS_ERROR_FOLLOWING" units="cnt" pdo_access="CYCLIC_TX" desc="Position control loop error" default="00000000" cat_id="REPORTING" axis="1">
@@ -1611,7 +1611,7 @@
           <MCBRegister address="0x01ED" subnode="1" address_type="NVM" access="rw" dtype="u32" id="CL_POS_ERROR_TIMEOUT" units="ms" pdo_access="CYCLIC_RX" desc="Indicates the maximum time in which the difference between demand and actual position is allowed to be outside the position window." default="00000000" cat_id="THRESHOLDS" axis="1">
             <MonDistV3 address="0x01ED" subnode="1" cyclic="CYCLIC_RX"/>
             <Labels>
-              <Label lang="en_US">Position following error timeout</Label>
+              <Label lang="en_US">Following error time out</Label>
             </Labels>
           </MCBRegister>
           <MCBRegister address="0x01EE" subnode="1" address_type="NVM_NONE" access="r" dtype="float" id="CL_ERROR_FOLLOWING_1" units="none" pdo_access="CYCLIC_TX" desc="Difference between demand and actual value of active operation mode variables." default="00000000" cat_id="REPORTING" axis="1">
@@ -1772,7 +1772,6 @@
             <Enumerations>
               <Enum value="0">BiSS C</Enum>
               <Enum value="1">SSI</Enum>
-              <Enum value="2">Endat2.2</Enum>
               <Enum value="3">Serial Synchronous 1</Enum>
             </Enumerations>
           </MCBRegister>
@@ -1806,7 +1805,6 @@
               <Enum value="2">Zettlex - SSI1</Enum>
               <Enum value="3">BiSS-C BP3</Enum>
               <Enum value="4">BiSS-C BP3 Gray</Enum>
-              <Enum value="5">Endat2.2</Enum>
             </Enumerations>
           </MCBRegister>
           <MCBRegister address="0x0375" subnode="1" address_type="NVM" access="rw" dtype="u16" id="FBK_BISS1_SSI1_POS_BITS" units="none" pdo_access="CONFIG" desc="Size in bits of position information block in serial absolute feedback frame" default="1600" cat_id="FEEDBACK" axis="1">
@@ -1829,7 +1827,7 @@
           </MCBRegister>
           <MCBRegister address="0x0378" subnode="1" address_type="NVM" access="rw" dtype="u16" id="FBK_SSI2_FRAME_SIZE" units="none" pdo_access="CONFIG" desc="Defines the size in bits of the frame to be read from the Secondary BiSS-C / SSI slave 1 interface" default="1800" cat_id="FEEDBACK" axis="1">
             <Labels>
-              <Label lang="en_US">Secondary Absolute Slave 1 -  Frame size</Label>
+              <Label lang="en_US">Secondary Absolute Slave 1 - Frame size</Label>
             </Labels>
             <Range min="10" max="64"/>
           </MCBRegister>
@@ -1849,7 +1847,7 @@
           </MCBRegister>
           <MCBRegister address="0x037C" subnode="1" address_type="NVM" access="rw" dtype="u16" id="FBK_SSI2_FRAME_TYPE" units="none" pdo_access="CONFIG" desc="Selects the frame type of the Secondary BiSS-C / SSI slave 1 feedback sensor" default="0000" cat_id="FEEDBACK" axis="1">
             <Labels>
-              <Label lang="en_US">Secondary Absolute Slave 1 -  Frame type</Label>
+              <Label lang="en_US">Secondary Absolute Slave 1 - Frame type</Label>
             </Labels>
             <Enumerations>
               <Enum value="0">Raw</Enum>
@@ -2176,7 +2174,7 @@
           </MCBRegister>
           <MCBRegister address="0x043F" subnode="1" address_type="NVM_NONE" access="r" dtype="u16" id="FBK_SSI2_CRC_BITS" units="none" pdo_access="CONFIG" desc="Secondary BiSS-C / SSI slave 1 number of CRC bits" default="0000" cat_id="FEEDBACK" axis="1">
             <Labels>
-              <Label lang="en_US">Secondary Absolute Slave 1 - CRC number of bits</Label>
+              <Label lang="en_US">Secondary Absolute Slave 1 - CRC number of bits</Label>
             </Labels>
           </MCBRegister>
           <MCBRegister address="0x0440" subnode="1" address_type="NVM_NONE" access="rw" dtype="u16" id="FBK_BISS1_SSI1_ITF_ADDR" units="none" pdo_access="CONFIG" desc="This register allow to select the address of the register to be accessed by bidirectional Biss-C." default="0000" cat_id="FEEDBACK" axis="1">
@@ -3338,7 +3336,7 @@
               <Label lang="en_US">Revision number</Label>
             </Labels>
           </MCBRegister>
-          <MCBRegister address="0x06E4" subnode="1" address_type="NVM_NONE" access="r" dtype="str" id="DRV_ID_SOFTWARE_VERSION" units="none" pdo_access="CONFIG" desc="Public software release version" default="646576333464316632" cat_id="IDENTIFICATION" axis="1">
+          <MCBRegister address="0x06E4" subnode="1" address_type="NVM_NONE" access="r" dtype="str" id="DRV_ID_SOFTWARE_VERSION" units="none" pdo_access="CONFIG" desc="Public software release version" default="646576303535386262" cat_id="IDENTIFICATION" axis="1">
             <Labels>
               <Label lang="en_US">Software version</Label>
             </Labels>
@@ -3510,7 +3508,7 @@
           </MCBRegister>
           <MCBRegister address="0x0736" subnode="1" address_type="NVM_NONE" access="r" dtype="u16" id="DRV_PROT_PRIM_TEMP_B2585" units="ºK" pdo_access="CONFIG" desc="NTC: B(25/85) parameter from datasheet&#13;&#10;Others: Not used" default="6b0d" cat_id="INTERNAL" axis="1">
             <Labels>
-              <Label lang="en_US">Power stage temp. sensor 1 β</Label>
+              <Label lang="en_US">Power stage temp. sensor 1 Beta</Label>
             </Labels>
           </MCBRegister>
           <MCBRegister address="0x0737" subnode="1" address_type="NVM_NONE" access="r" dtype="u32" id="DRV_PROT_PRIM_TEMP_EXT_RES" units="Ω" pdo_access="CONFIG" desc="NTC &amp; PTC: Resistance value in ohms connected to sensor for making the voltage divider&#13;&#10;Other: Not used" default="10270000" cat_id="INTERNAL" axis="1">
@@ -3566,7 +3564,7 @@
           </MCBRegister>
           <MCBRegister address="0x0748" subnode="1" address_type="NVM_NONE" access="r" dtype="u16" id="DRV_PROT_RED_TEMP_B2585" units="ºK" pdo_access="CONFIG" desc="NTC: B(25/85) parameter from datasheet&#13;&#10;PTC: Not used&#13;&#10;Other: Not used" default="6b0d" cat_id="INTERNAL" axis="1">
             <Labels>
-              <Label lang="en_US">Power stage temp. sensor 2 β</Label>
+              <Label lang="en_US">Power stage temp. sensor 2 Beta</Label>
             </Labels>
           </MCBRegister>
           <MCBRegister address="0x0749" subnode="1" address_type="NVM_NONE" access="r" dtype="u32" id="DRV_PROT_RED_TEMP_EXT_RES" units="Ω" pdo_access="CONFIG" desc="NTC &amp; PTC: Resistance value in ohms connected to the sensor for making the voltage divider&#13;&#10;Others: Not used" default="10270000" cat_id="INTERNAL" axis="1">
@@ -4053,7 +4051,7 @@
           </Error>
         </Errors>
       </ETHDevice>
-      <ECATDevice firmwareVersion="dev34d1f2" ProductCode="58790914" PartNumber="DEN-S-NET-E" RevisionNumber="327680">
+      <ECATDevice firmwareVersion="dev0558bb" ProductCode="58790914" PartNumber="DEN-S-NET-E" RevisionNumber="327680">
         <CANopenObjects>
           <CANopenObject id="ETG_DRV_ID_DEVICE_TYPE" index="0x1000" datatype="VAR">
             <Subitems>
@@ -5515,7 +5513,7 @@
               <Subitem subindex="0" address_type="NVM" access="rw" dtype="u16" id="DRV_OP_CMD" pdo_access="CYCLIC_RX" desc="User requested mode of operation" units="none" default="0000" cat_id="TARGET" axis="1">
                 <MonDistV3 address="0x0014" subnode="1" cyclic="CYCLIC_RX"/>
                 <Labels>
-                  <Label lang="en_US">Operation mode</Label>
+                  <Label lang="en_US">Modes of operation</Label>
                 </Labels>
                 <BitFields>
                   <BitField name="OPERATION_MODE" start="0" end="3"/>
@@ -5546,7 +5544,7 @@
               <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="u16" id="DRV_OP_VALUE" pdo_access="CYCLIC_TX" desc="Indicates the mode of operation applied in the drive" units="none" default="0000" cat_id="REPORTING" axis="1">
                 <MonDistV3 address="0x0015" subnode="1" cyclic="CYCLIC_TX"/>
                 <Labels>
-                  <Label lang="en_US">Operation mode display</Label>
+                  <Label lang="en_US">Modes of operation display</Label>
                 </Labels>
                 <BitFields>
                   <BitField name="OPERATION_MODE" start="0" end="3"/>
@@ -5647,7 +5645,7 @@
               <Subitem subindex="0" address_type="NVM_NONE" access="rw" dtype="float" id="CL_VEL_SET_POINT_VALUE" pdo_access="CYCLIC_RX" desc="User velocity set-point for velocity modes" units="rev/s" default="00000000" cat_id="TARGET" axis="1">
                 <MonDistV3 address="0x0021" subnode="1" cyclic="CYCLIC_RX"/>
                 <Labels>
-                  <Label lang="en_US">Velocity set-point</Label>
+                  <Label lang="en_US">Target velocity</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -5664,10 +5662,10 @@
           </CANopenObject>
           <CANopenObject id="PROF_POS_OPTION_CODE" index="0x2024" datatype="VAR" axis="1">
             <Subitems>
-              <Subitem subindex="0" address_type="NVM" access="rw" dtype="u16" id="PROF_POS_OPTION_CODE" pdo_access="CYCLIC_RX" desc="Positioning option code as per CiA402 (0x60F2)&#13;&#10;&#13;&#10;Bits 0, 1 - Relative option (not implemented)&#13;&#10;Bits 2, 3 - Change immediately option (not implemented)&#13;&#10;Bits 4, 5 - Request response option (not implemented)&#13;&#10;Bits 6, 7 - Rotary axis direction option" units="none" default="0000" cat_id="OTHERS" axis="1">
+              <Subitem subindex="0" address_type="NVM" access="rw" dtype="u16" id="PROF_POS_OPTION_CODE" pdo_access="CYCLIC_RX" desc="Position option code as per CiA402 (0x60F2)&#13;&#10;&#13;&#10;Bits 0, 1 - Relative option (not implemented)&#13;&#10;Bits 2, 3 - Change immediately option (not implemented)&#13;&#10;Bits 4, 5 - Request response option (not implemented)&#13;&#10;Bits 6, 7 - Rotary axis direction option" units="none" default="0000" cat_id="OTHERS" axis="1">
                 <MonDistV3 address="0x0024" subnode="1" cyclic="CYCLIC_RX"/>
                 <Labels>
-                  <Label lang="en_US">Positioning option code</Label>
+                  <Label lang="en_US">Position option code</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -5717,7 +5715,7 @@
               <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="s32" id="CL_POS_FBK_VALUE" pdo_access="CYCLIC_TX" desc="Position obtained from position feedback sensor in counts" units="cnt" default="00000000" cat_id="REPORTING" axis="1">
                 <MonDistV3 address="0x0030" subnode="1" cyclic="CYCLIC_TX"/>
                 <Labels>
-                  <Label lang="en_US">Actual position</Label>
+                  <Label lang="en_US">Position actual value</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -5727,7 +5725,7 @@
               <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="float" id="CL_VEL_FBK_VALUE" pdo_access="CYCLIC_TX" desc="Velocity obtained from velocity feedback sensor in revolution per second" units="rev/s" default="00000000" cat_id="REPORTING" axis="1">
                 <MonDistV3 address="0x0031" subnode="1" cyclic="CYCLIC_TX"/>
                 <Labels>
-                  <Label lang="en_US">Actual velocity</Label>
+                  <Label lang="en_US">Velocity actual value</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -6338,7 +6336,7 @@
               <Subitem subindex="0" address_type="NVM" access="rw" dtype="float" id="MOT_RATED_TORQUE" pdo_access="CYCLIC_RX" desc="Indicates the continuous torque of the actuator / system" units="Nm" default="0000803f" cat_id="MOTOR" axis="1">
                 <MonDistV3 address="0x009A" subnode="1" cyclic="CYCLIC_RX"/>
                 <Labels>
-                  <Label lang="en_US">Rated torque</Label>
+                  <Label lang="en_US">Motor rated torque</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -6358,7 +6356,7 @@
               <Subitem subindex="0" address_type="NVM" access="rw" dtype="float" id="MOT_RATED_CURRENT" pdo_access="CYCLIC_RX" desc="Indicates the continuous current of the actuator / system" units="A" default="0000a040" cat_id="PROTECTIONS" axis="1">
                 <MonDistV3 address="0x0100" subnode="1" cyclic="CYCLIC_RX"/>
                 <Labels>
-                  <Label lang="en_US">Rated current</Label>
+                  <Label lang="en_US">Motor rated current</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -6431,7 +6429,7 @@
             <Subitems>
               <Subitem subindex="0" address_type="NVM" access="rw" dtype="u16" id="MOT_PROT_TEMP_B2585" pdo_access="CONFIG" desc="NTC: B(25/85) parameter from datasheet&#13;&#10;PTC: Not used&#13;&#10;Others: Not used" units="ºK" default="0000" cat_id="MOTOR" axis="1">
                 <Labels>
-                  <Label lang="en_US">Motor temp. sensor β (25-85)</Label>
+                  <Label lang="en_US">Motor temp. sensor Beta (25-85)</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -6989,7 +6987,7 @@
               <Subitem subindex="0" address_type="NVM" access="rw" dtype="float" id="CL_CUR_REF_MAX" pdo_access="CYCLIC_RX" desc="User allowed maximum current" units="A" default="00002041" cat_id="LIMITS" axis="1">
                 <MonDistV3 address="0x01E0" subnode="1" cyclic="CYCLIC_RX"/>
                 <Labels>
-                  <Label lang="en_US">Max. current</Label>
+                  <Label lang="en_US">Max current</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -7088,7 +7086,7 @@
               <Subitem subindex="0" address_type="NVM" access="rw" dtype="u32" id="CL_POS_ERROR_TIMEOUT" pdo_access="CYCLIC_RX" desc="Indicates the maximum time in which the difference between demand and actual position is allowed to be outside the position window." units="ms" default="00000000" cat_id="THRESHOLDS" axis="1">
                 <MonDistV3 address="0x01ED" subnode="1" cyclic="CYCLIC_RX"/>
                 <Labels>
-                  <Label lang="en_US">Position following error timeout</Label>
+                  <Label lang="en_US">Following error time out</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -7345,7 +7343,6 @@
                 <Enumerations>
                   <Enum value="0">BiSS C</Enum>
                   <Enum value="1">SSI</Enum>
-                  <Enum value="2">Endat2.2</Enum>
                   <Enum value="3">Serial Synchronous 1</Enum>
                 </Enumerations>
               </Subitem>
@@ -7395,7 +7392,6 @@
                   <Enum value="2">Zettlex - SSI1</Enum>
                   <Enum value="3">BiSS-C BP3</Enum>
                   <Enum value="4">BiSS-C BP3 Gray</Enum>
-                  <Enum value="5">Endat2.2</Enum>
                 </Enumerations>
               </Subitem>
             </Subitems>
@@ -7434,7 +7430,7 @@
             <Subitems>
               <Subitem subindex="0" address_type="NVM" access="rw" dtype="u16" id="FBK_SSI2_FRAME_SIZE" pdo_access="CONFIG" desc="Defines the size in bits of the frame to be read from the Secondary BiSS-C / SSI slave 1 interface" units="none" default="1800" cat_id="FEEDBACK" axis="1">
                 <Labels>
-                  <Label lang="en_US">Secondary Absolute Slave 1 -  Frame size</Label>
+                  <Label lang="en_US">Secondary Absolute Slave 1 - Frame size</Label>
                 </Labels>
                 <Range min="10" max="64"/>
               </Subitem>
@@ -7466,7 +7462,7 @@
             <Subitems>
               <Subitem subindex="0" address_type="NVM" access="rw" dtype="u16" id="FBK_SSI2_FRAME_TYPE" pdo_access="CONFIG" desc="Selects the frame type of the Secondary BiSS-C / SSI slave 1 feedback sensor" units="none" default="0000" cat_id="FEEDBACK" axis="1">
                 <Labels>
-                  <Label lang="en_US">Secondary Absolute Slave 1 -  Frame type</Label>
+                  <Label lang="en_US">Secondary Absolute Slave 1 - Frame type</Label>
                 </Labels>
                 <Enumerations>
                   <Enum value="0">Raw</Enum>
@@ -7977,7 +7973,7 @@
             <Subitems>
               <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="u16" id="FBK_SSI2_CRC_BITS" pdo_access="CONFIG" desc="Secondary BiSS-C / SSI slave 1 number of CRC bits" units="none" default="0000" cat_id="FEEDBACK" axis="1">
                 <Labels>
-                  <Label lang="en_US">Secondary Absolute Slave 1 - CRC number of bits</Label>
+                  <Label lang="en_US">Secondary Absolute Slave 1 - CRC number of bits</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -9771,7 +9767,7 @@
           </CANopenObject>
           <CANopenObject id="DRV_ID_SOFTWARE_VERSION" index="0x26E4" datatype="VAR" axis="1">
             <Subitems>
-              <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="str" id="DRV_ID_SOFTWARE_VERSION" pdo_access="CONFIG" desc="Public software release version" units="none" default="646576333464316632" cat_id="IDENTIFICATION" axis="1">
+              <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="str" id="DRV_ID_SOFTWARE_VERSION" pdo_access="CONFIG" desc="Public software release version" units="none" default="646576303535386262" cat_id="IDENTIFICATION" axis="1">
                 <Labels>
                   <Label lang="en_US">Software version</Label>
                 </Labels>
@@ -10079,7 +10075,7 @@
             <Subitems>
               <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="u16" id="DRV_PROT_PRIM_TEMP_B2585" pdo_access="CONFIG" desc="NTC: B(25/85) parameter from datasheet&#13;&#10;Others: Not used" units="ºK" default="6b0d" cat_id="INTERNAL" axis="1">
                 <Labels>
-                  <Label lang="en_US">Power stage temp. sensor 1 β</Label>
+                  <Label lang="en_US">Power stage temp. sensor 1 Beta</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -10175,7 +10171,7 @@
             <Subitems>
               <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="u16" id="DRV_PROT_RED_TEMP_B2585" pdo_access="CONFIG" desc="NTC: B(25/85) parameter from datasheet&#13;&#10;PTC: Not used&#13;&#10;Other: Not used" units="ºK" default="6b0d" cat_id="INTERNAL" axis="1">
                 <Labels>
-                  <Label lang="en_US">Power stage temp. sensor 2 β</Label>
+                  <Label lang="en_US">Power stage temp. sensor 2 Beta</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -11647,7 +11643,7 @@
             <Subitems>
               <Subitem subindex="0" address_type="NVM_INDIRECT" access="rw" dtype="s8" id="DS402_DRV_OP_CMD" pdo_access="CYCLIC_RX" desc="User requested ecat mode of operation" units="none" default="ff" cat_id="CIA402" axis="1">
                 <Labels>
-                  <Label lang="en_US">Operation mode</Label>
+                  <Label lang="en_US">Modes of operation</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -11656,7 +11652,7 @@
             <Subitems>
               <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="s8" id="DS402_DRV_OP_VALUE" pdo_access="CYCLIC_TX" desc="Indicates the mode of operation applied in the drive" units="none" default="ff" cat_id="CIA402" axis="1">
                 <Labels>
-                  <Label lang="en_US">Operation mode display</Label>
+                  <Label lang="en_US">Modes of operation display</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -11674,7 +11670,7 @@
             <Subitems>
               <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="s32" id="DS402_CL_POS_FBK_VALUE" pdo_access="CYCLIC_TX" desc="Position obtained from position feedback sensor in counts" units="cnt" default="00000000" cat_id="CIA402" axis="1">
                 <Labels>
-                  <Label lang="en_US">Actual position</Label>
+                  <Label lang="en_US">Position actual value</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -11692,7 +11688,7 @@
             <Subitems>
               <Subitem subindex="0" address_type="NVM_INDIRECT" access="rw" dtype="u16" id="DS402_CL_POS_ERROR_TIMEOUT" pdo_access="CYCLIC_RX" desc="Indicates the maximum time the difference between demand and actual position is allowed to be outside the position window." units="ms" default="0000" cat_id="CIA402" axis="1">
                 <Labels>
-                  <Label lang="en_US">Position following error timeout</Label>
+                  <Label lang="en_US">Following error time out</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -11701,7 +11697,7 @@
             <Subitems>
               <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="s32" id="DS402_CL_VEL_FBK_VALUE" pdo_access="CYCLIC_TX" desc="" units="mrev/s" default="00000000" cat_id="CIA402" axis="1">
                 <Labels>
-                  <Label lang="en_US">Actual velocity</Label>
+                  <Label lang="en_US">Velocity actual value</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -11737,7 +11733,7 @@
             <Subitems>
               <Subitem subindex="0" address_type="NVM_INDIRECT" access="rw" dtype="u16" id="DS402_CL_CUR_REF_MAX" pdo_access="CYCLIC_RX" desc="User allowed maximum current" units="‰ rated current" default="c05d" cat_id="CIA402" axis="1">
                 <Labels>
-                  <Label lang="en_US">Max. current</Label>
+                  <Label lang="en_US">Max current</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -11755,7 +11751,7 @@
             <Subitems>
               <Subitem subindex="0" address_type="NVM_INDIRECT" access="rw" dtype="u32" id="DS402_MOT_RATED_CURRENT" pdo_access="CONFIG" desc="Indicates the continuous current of the actuator / system" units="mA" default="10270000" cat_id="CIA402" axis="1">
                 <Labels>
-                  <Label lang="en_US">Rated current</Label>
+                  <Label lang="en_US">Motor rated current</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -11764,7 +11760,7 @@
             <Subitems>
               <Subitem subindex="0" address_type="NVM_INDIRECT" access="rw" dtype="u32" id="DS402_MOT_RATED_TORQUE" pdo_access="CONFIG" desc="" units="mNm" default="e8030000" cat_id="CIA402" axis="1">
                 <Labels>
-                  <Label lang="en_US">Rated torque</Label>
+                  <Label lang="en_US">Motor rated torque</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -11791,7 +11787,7 @@
             <Subitems>
               <Subitem subindex="0" address_type="NVM_NONE" access="rw" dtype="s32" id="DS402_CL_POS_SET_POINTVALUE" pdo_access="CYCLIC_RX" desc="User position set-point in counts" units="cnt" default="00000000" cat_id="CIA402" axis="1">
                 <Labels>
-                  <Label lang="en_US">Position set-point</Label>
+                  <Label lang="en_US">Target position</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -11819,7 +11815,7 @@
             <Subitems>
               <Subitem subindex="0" address_type="NVM_INDIRECT" access="rw" dtype="s32" id="DS402_HOM_OFFSET" pdo_access="CYCLIC_RX" desc="Offset position in counts applied to indicate the location of 0 once the homing condition is detected" units="cnt" default="00000000" cat_id="CIA402" axis="1">
                 <Labels>
-                  <Label lang="en_US">Homing offset</Label>
+                  <Label lang="en_US">Home offset</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -11874,7 +11870,7 @@
             <Subitems>
               <Subitem subindex="0" address_type="NVM_INDIRECT" access="rw" dtype="s8" id="DS402_HOM_MODE" pdo_access="CYCLIC_RX" desc="Indicates the homing mode used for 0 detection" units="none" default="25" cat_id="CIA402" axis="1">
                 <Labels>
-                  <Label lang="en_US">Homing mode</Label>
+                  <Label lang="en_US">Homing method</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -11883,7 +11879,7 @@
             <Subitems>
               <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="u8" id="DS402_HOM_SPEED" pdo_access="CONFIG" desc="" units="none" default="02" cat_id="CIA402" axis="1">
                 <Labels>
-                  <Label lang="en_US">Homing search velocities</Label>
+                  <Label lang="en_US">Homing speed</Label>
                 </Labels>
               </Subitem>
               <Subitem subindex="1" address_type="NVM_INDIRECT" access="rw" dtype="u32" id="DS402_HOM_SPEED_SEARCH" pdo_access="CYCLIC_RX" desc="Velocity used to look for a limit condition during a homing sequence." units="mrev/s" default="00000000" cat_id="CIA402" axis="1">
@@ -11902,7 +11898,7 @@
             <Subitems>
               <Subitem subindex="0" address_type="NVM_NONE" access="rw" dtype="s32" id="DS402_CL_VEL_CMD_OFFSET" pdo_access="CYCLIC_RX" desc="User input offset added at the input of the velocity PID controller" units="rev/s" default="00000000" cat_id="CIA402" axis="1">
                 <Labels>
-                  <Label lang="en_US">Velocity loop input offset</Label>
+                  <Label lang="en_US">Velocity offset</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -11923,14 +11919,14 @@
                   <Label lang="en_US">Subindex 000</Label>
                 </Labels>
               </Subitem>
-              <Subitem subindex="1" address_type="NVM_NONE" access="rw" dtype="u8" id="DS402_PROF_IP_TIME_MANTISSA" pdo_access="CYCLIC_RX" desc="It is used to indicate the interpolation time period between set-point values." units="none" default="01" cat_id="CIA402" axis="1">
+              <Subitem subindex="1" address_type="NVM_NONE" access="rw" dtype="u8" id="DS402_PROF_IP_TIME_MANTISSA" pdo_access="CYCLIC_RX" desc="It is used to indicate the interpolation time period between set-point values (mantissa value)." units="none" default="01" cat_id="CIA402" axis="1">
                 <Labels>
-                  <Label lang="en_US">Interpolation time mantissa</Label>
+                  <Label lang="en_US">Interpolation time period value</Label>
                 </Labels>
               </Subitem>
-              <Subitem subindex="2" address_type="NVM_NONE" access="rw" dtype="s8" id="DS402_PROF_IP_TIME_EXP" pdo_access="CYCLIC_RX" desc="It is used to indicate the interpolation time period between set-point values." units="none" default="fd" cat_id="CIA402" axis="1">
+              <Subitem subindex="2" address_type="NVM_NONE" access="rw" dtype="s8" id="DS402_PROF_IP_TIME_EXP" pdo_access="CYCLIC_RX" desc="It is used to indicate the interpolation time period between set-point values (exponent value)." units="none" default="fd" cat_id="CIA402" axis="1">
                 <Labels>
-                  <Label lang="en_US">Interpolation time exponent</Label>
+                  <Label lang="en_US">Interpolation time index</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -11939,7 +11935,7 @@
             <Subitems>
               <Subitem subindex="0" address_type="NVM_INDIRECT" access="rw" dtype="u16" id="DS402_CL_POS_REF_OPTION" pdo_access="CYCLIC_RX" desc="" units="none" default="0000" cat_id="CIA402" axis="1">
                 <Labels>
-                  <Label lang="en_US">Positioning option code</Label>
+                  <Label lang="en_US">Position option code</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -11948,7 +11944,7 @@
             <Subitems>
               <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="s32" id="DS402_CL_POS_ERROR_FOLLOWING" pdo_access="CYCLIC_TX" desc="Difference between demand and actual position in counts" units="cnt" default="00000000" cat_id="CIA402" axis="1">
                 <Labels>
-                  <Label lang="en_US">Position following error</Label>
+                  <Label lang="en_US">Following error actual value</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -11957,7 +11953,7 @@
             <Subitems>
               <Subitem subindex="0" address_type="NVM_NONE" access="rw" dtype="s32" id="DS402_CL_VEL_SET_POINTVALUE" pdo_access="CYCLIC_RX" desc="User velocity set-point for velocity modes" units="rev/s" default="00000000" cat_id="CIA402" axis="1">
                 <Labels>
-                  <Label lang="en_US">Velocity set-point</Label>
+                  <Label lang="en_US">Target velocity</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -12060,6 +12056,11 @@
                   <Label lang="en_US">FSoE Slave CRC_0</Label>
                 </Labels>
               </Subitem>
+              <Subitem subindex="4" address_type="NVM_NONE" access="r" dtype="u16" id="FSOE_SLAVE_FRAME_ELEM_CRC1" pdo_access="CYCLIC_SI" desc="FSoE Slave CRC_1" units="none" default="0000" cat_id="FSOE" axis="1">
+                <Labels>
+                  <Label lang="en_US">FSoE Slave CRC_1</Label>
+                </Labels>
+              </Subitem>
             </Subitems>
           </CANopenObject>
           <CANopenObject id="FSOE_MASTER_FRAME_ELEM" index="0x6770" datatype="RECORD" axis="1">
@@ -12082,6 +12083,11 @@
               <Subitem subindex="3" address_type="NVM_NONE" access="r" dtype="u16" id="FSOE_MASTER_FRAME_ELEM_CRC0" pdo_access="CYCLIC_SO" desc="FSoE Master CRC_0" units="none" default="0000" cat_id="FSOE" axis="1">
                 <Labels>
                   <Label lang="en_US">FSoE Master CRC_0</Label>
+                </Labels>
+              </Subitem>
+              <Subitem subindex="4" address_type="NVM_NONE" access="r" dtype="u16" id="FSOE_MASTER_FRAME_ELEM_CRC1" pdo_access="CYCLIC_SO" desc="FSoE Master CRC_1" units="none" default="0000" cat_id="FSOE" axis="1">
+                <Labels>
+                  <Label lang="en_US">FSoE Master CRC_1</Label>
                 </Labels>
               </Subitem>
             </Subitems>
