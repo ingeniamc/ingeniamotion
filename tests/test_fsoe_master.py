@@ -1,7 +1,10 @@
 from typing import TYPE_CHECKING
 
 import pytest
+from ingenialink import RegAccess, RegDtype
 from ingenialink.dictionary import DictionaryV3, Interface
+from ingenialink.enums.register import RegCyclicType
+from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.pdo import RPDOMap, TPDOMap
 
 from ingeniamotion.enums import FSoEState
@@ -234,9 +237,54 @@ def test_motor_enable(mc_state_data):
 
 
 class TestPduMapper:
+    AXIS_1 = 1
+    TEST_SI_U16_UID = "TEST_SI_U16"
+    TEST_SI_U8_UID = "TEST_SI_U8"
+
     @pytest.fixture()
     def sample_safe_dictionary(self):
         safe_dict = DictionaryV3(SAMPLE_SAFE_DICTIONARY, interface=Interface.ECAT)
+
+        # Add sample registers
+        safe_dict._registers[self.AXIS_1][self.TEST_SI_U16_UID] = EthercatRegister(
+            idx=0xF000,
+            subidx=0,
+            dtype=RegDtype.U16,
+            access=RegAccess.RO,
+            identifier=self.TEST_SI_U16_UID,
+            pdo_access=RegCyclicType.SAFETY_INPUT,
+            cat_id="FSOE",
+        )
+        safe_dict._registers[self.AXIS_1][self.TEST_SI_U8_UID] = EthercatRegister(
+            idx=0xF001,
+            subidx=0,
+            dtype=RegDtype.U8,
+            access=RegAccess.RO,
+            identifier=self.TEST_SI_U8_UID,
+            pdo_access=RegCyclicType.SAFETY_INPUT,
+            cat_id="FSOE",
+        )
+
+        # Add more CRC registers
+        safe_dict._registers[self.AXIS_1]["FSOE_SLAVE_FRAME_ELEM_CRC2"] = EthercatRegister(
+            idx=0xF002,
+            subidx=0,
+            dtype=RegDtype.U16,
+            access=RegAccess.RO,
+            identifier="FSOE_SLAVE_FRAME_ELEM_CRC2",
+            pdo_access=RegCyclicType.SAFETY_INPUT,
+            cat_id="FSOE",
+        )
+        safe_dict._registers[self.AXIS_1]["FSOE_SLAVE_FRAME_ELEM_CRC3"] = EthercatRegister(
+            idx=0xF003,
+            subidx=0,
+            dtype=RegDtype.U16,
+            access=RegAccess.RO,
+            identifier="FSOE_SLAVE_FRAME_ELEM_CRC3",
+            pdo_access=RegCyclicType.SAFETY_INPUT,
+            cat_id="FSOE",
+        )
+
         fsoe_dict = FSoEMasterHandler._create_safe_dictionary_from_v3(safe_dict)
 
         return safe_dict, fsoe_dict
@@ -334,6 +382,8 @@ class TestPduMapper:
         assert tpdo.items[7].register.subidx == 0x02
         assert tpdo.items[7].size_bits == 16
 
+        assert len(tpdo.items) == 8
+
         recreated_pdu_maps = PDUMaps.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
         assert (
             recreated_pdu_maps.outputs.get_text_representation()
@@ -345,14 +395,45 @@ class TestPduMapper:
         )
 
     def test_map_8_safe_bits(self, sample_safe_dictionary):
-        # TODO
-        return
+        safe_dict, fsoe_dict = sample_safe_dictionary
+        maps = PDUMaps.empty(fsoe_dict)
+
+        maps.append_input(fsoe_dict.name_map[self.TEST_SI_U8_UID])
+
+        # Create the rpdo map
+        tpdo = TPDOMap()
+        maps.fill_tpdo_map(tpdo, safe_dict)
+
+        assert tpdo.items[0].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CMD"
+        assert tpdo.items[0].size_bits == 8
+
+        assert tpdo.items[1].register.identifier == "TEST_SI_U8"
+        assert tpdo.items[1].size_bits == 8
+
+        assert tpdo.items[2].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC0"
+        assert tpdo.items[2].size_bits == 16
+
+        assert tpdo.items[3].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CONNID"
+        assert tpdo.items[3].size_bits == 16
+
+        assert len(tpdo.items) == 4
+
+        rpdo = RPDOMap()
+        maps.fill_rpdo_map(rpdo, safe_dict)
+
+        recreated_pdu_maps = PDUMaps.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
+        assert (
+                recreated_pdu_maps.outputs.get_text_representation()
+                == maps.outputs.get_text_representation()
+        )
+        assert (
+                recreated_pdu_maps.inputs.get_text_representation()
+                == maps.inputs.get_text_representation()
+        )
 
     def test_map_with_32_bit_vars(self, sample_safe_dictionary):
         safe_dict, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
-
-        # TODO Add variables of 16 bits previously, with pytest params?
 
         # Append a 32-bit variable
         maps.append_input(fsoe_dict.name_map["FSOE_SAFE_POSITION"])
@@ -379,6 +460,201 @@ class TestPduMapper:
 
         assert tpdo.items[5].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CONNID"
         assert tpdo.items[5].size_bits == 16
+
+        assert len(tpdo.items) == 6
+
+        rpdo = RPDOMap()
+        maps.fill_rpdo_map(rpdo, safe_dict)
+
+        recreated_pdu_maps = PDUMaps.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
+        assert (
+                recreated_pdu_maps.outputs.get_text_representation()
+                == maps.outputs.get_text_representation()
+        )
+        assert (
+                recreated_pdu_maps.inputs.get_text_representation()
+                == maps.inputs.get_text_representation()
+        )
+
+
+    def test_map_with_32_bit_vars_offset_8(self, sample_safe_dictionary):
+        safe_dict, fsoe_dict = sample_safe_dictionary
+        maps = PDUMaps.empty(fsoe_dict)
+
+        # Add a first 8-bit variable that will shift the 32-bit variable
+        maps.append_input(fsoe_dict.name_map[self.TEST_SI_U8_UID])
+        # Append a 32-bit variable
+        maps.append_input(fsoe_dict.name_map["FSOE_SAFE_POSITION"])
+        maps.append_input_padding(bits=8)
+
+        # Create the rpdo map
+        tpdo = TPDOMap()
+        maps.fill_tpdo_map(tpdo, safe_dict)
+
+        assert tpdo.items[0].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CMD"
+        assert tpdo.items[0].size_bits == 8
+
+        assert tpdo.items[1].register.identifier == "TEST_SI_U8"
+        assert tpdo.items[1].size_bits == 8
+
+        # Variable cut to what fills on the slot (8 bits of 32 bits, 24 remaining)
+        assert tpdo.items[2].register.identifier == "FSOE_SAFE_POSITION"
+        assert tpdo.items[2].size_bits == 8
+
+        assert tpdo.items[3].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC0"
+        assert tpdo.items[3].size_bits == 16
+
+        # On this padding, the 32-bit variable will continue to be transmitted
+        # (16 bits of 32 bits, 8 remaining)
+        assert tpdo.items[4].register.identifier == "PADDING"
+        assert tpdo.items[4].size_bits == 16
+
+        assert tpdo.items[5].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC1"
+        assert tpdo.items[5].size_bits == 16
+
+        # On this padding, the 32-bit variable will continue to be transmitted
+        # (8 bits of 32 bits, 0 remaining)
+        assert tpdo.items[6].register.identifier == "PADDING"
+        assert tpdo.items[6].size_bits == 8
+
+        # 8 bits of regular padding to fill the 16 bits of the data last slot.
+        assert tpdo.items[7].register.identifier == "PADDING"
+        assert tpdo.items[7].size_bits == 8
+
+        assert tpdo.items[8].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC2"
+        assert tpdo.items[8].size_bits == 16
+
+        assert tpdo.items[9].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CONNID"
+        assert tpdo.items[9].size_bits == 16
+
+        assert len(tpdo.items) == 10
+
+        rpdo = RPDOMap()
+        maps.fill_rpdo_map(rpdo, safe_dict)
+
+        recreated_pdu_maps = PDUMaps.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
+        assert (
+                recreated_pdu_maps.outputs.get_text_representation()
+                == maps.outputs.get_text_representation()
+        )
+        assert (
+                recreated_pdu_maps.inputs.get_text_representation()
+                == maps.inputs.get_text_representation()
+        )
+
+
+    def test_map_with_32_bit_vars_offset_16(self, sample_safe_dictionary):
+        safe_dict, fsoe_dict = sample_safe_dictionary
+        maps = PDUMaps.empty(fsoe_dict)
+
+        # Add a first 16-bit variable that will shift the 32-bit variable
+        maps.append_input(fsoe_dict.name_map[self.TEST_SI_U16_UID])
+        # Append a 32-bit variable
+        maps.append_input(fsoe_dict.name_map["FSOE_SAFE_POSITION"])
+
+        # Create the rpdo map
+        tpdo = TPDOMap()
+        maps.fill_tpdo_map(tpdo, safe_dict)
+
+        assert tpdo.items[0].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CMD"
+        assert tpdo.items[0].size_bits == 8
+
+        assert tpdo.items[1].register.identifier == "TEST_SI_U16"
+        assert tpdo.items[1].size_bits == 16
+
+        assert tpdo.items[2].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC0"
+        assert tpdo.items[2].size_bits == 16
+
+        # Variable cut to what fills on the slot (16 bits of 32 bits, 16 remaining)
+        assert tpdo.items[3].register.identifier == "FSOE_SAFE_POSITION"
+        assert tpdo.items[3].size_bits == 16
+
+        assert tpdo.items[4].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC1"
+        assert tpdo.items[4].size_bits == 16
+
+        # On this padding, the 32-bit variable will continue to be transmitted
+        # (16 bits of 32 bits, 16 remaining)
+        assert tpdo.items[5].register.identifier == "PADDING"
+        assert tpdo.items[5].size_bits == 16
+
+        assert tpdo.items[6].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC2"
+        assert tpdo.items[6].size_bits == 16
+
+        assert tpdo.items[7].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CONNID"
+        assert tpdo.items[7].size_bits == 16
+
+        assert len(tpdo.items) == 8
+
+        rpdo = RPDOMap()
+        maps.fill_rpdo_map(rpdo, safe_dict)
+
+        recreated_pdu_maps = PDUMaps.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
+        assert (
+                recreated_pdu_maps.outputs.get_text_representation()
+                == maps.outputs.get_text_representation()
+        )
+        assert (
+                recreated_pdu_maps.inputs.get_text_representation()
+                == maps.inputs.get_text_representation()
+        )
+
+
+    def test_map_with_16_bit_vars_offset_8(self, sample_safe_dictionary):
+        safe_dict, fsoe_dict = sample_safe_dictionary
+        maps = PDUMaps.empty(fsoe_dict)
+
+        # Add a first 8-bit variable that will shift the 16-bit variable
+        maps.append_input(fsoe_dict.name_map[self.TEST_SI_U8_UID])
+        # Append a 32-bit variable
+        maps.append_input(fsoe_dict.name_map[self.TEST_SI_U16_UID])
+
+        # Create the rpdo map
+        tpdo = TPDOMap()
+        maps.fill_tpdo_map(tpdo, safe_dict)
+
+        assert tpdo.items[0].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CMD"
+        assert tpdo.items[0].size_bits == 8
+
+        assert tpdo.items[1].register.identifier == "TEST_SI_U8"
+        assert tpdo.items[1].size_bits == 8
+
+        # Variable cut to what fills on the slot (8 bits of 16 bits, 8 remaining)
+        assert tpdo.items[2].register.identifier == "TEST_SI_U16"
+        assert tpdo.items[2].size_bits == 8
+
+        assert tpdo.items[3].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC0"
+        assert tpdo.items[3].size_bits == 16
+
+        # On this padding, the 32-bit variable will continue to be transmitted
+        # (8 bits of 16 bits, 0 remaining)
+        assert tpdo.items[4].register.identifier == "PADDING"
+        assert tpdo.items[4].size_bits == 8
+
+        # Additional padding added automatically, not explicitly on the map
+        assert tpdo.items[5].register.identifier == "PADDING"
+        assert tpdo.items[5].size_bits == 8
+
+        assert tpdo.items[6].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC1"
+        assert tpdo.items[6].size_bits == 16
+
+        assert tpdo.items[7].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CONNID"
+        assert tpdo.items[7].size_bits == 16
+
+        assert len(tpdo.items) == 8
+
+        rpdo = RPDOMap()
+        maps.fill_rpdo_map(rpdo, safe_dict)
+
+        recreated_pdu_maps = PDUMaps.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
+        assert (
+                recreated_pdu_maps.outputs.get_text_representation()
+                == maps.outputs.get_text_representation()
+        )
+        assert (
+                recreated_pdu_maps.inputs.get_text_representation()
+                == maps.inputs.get_text_representation()
+        )
+
 
     @pytest.mark.parametrize(
         "pdo_length, frame_data_bytes",

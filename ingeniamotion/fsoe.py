@@ -774,6 +774,9 @@ SLAVE_FRAME_ELEMENTS = FSoEFrameElements(
 class PDUMaps:
     """Helper class to configure the Safety PDU PDOMaps."""
 
+    __SLOT_WIDHT = 16
+    """Number of bits in a data slot of the Safety PDU."""
+
     def __init__(
         self,
         outputs: "FSoEDictionaryMap",
@@ -833,18 +836,45 @@ class PDUMaps:
         )
         dictionary: FSoEDictionary = dictionary_map.dictionary
         position_bits = 0
-        for item in pdo_map.items:
+
+        # Number of bits of variables that are in multiple data slots
+        # That will be on future virtual padding
+        pending_virtual_padding_bits = 0
+
+        for pdo_item in pdo_map.items:
             if position_bits in valid_bits:
                 # The item is a safe data item
-                if item.register.idx == 0:
+                if pdo_item.register.idx == 0:
                     # Padding item
-                    dictionary_map.add_padding(item.size_bits)
+
+                    if pending_virtual_padding_bits == 0:
+                        # Regular padding item
+                        dictionary_map.add_padding(pdo_item.size_bits)
+                    else:
+                        # Virtual padding bits must not be added on the mapping,
+                        # since they are already accounted on the fsoe map variable
+                        if pending_virtual_padding_bits >= pdo_item.size_bits:
+                            # There are not enough bits on this padding to fit all the remaining virtual ones
+                            # Or is exactly the same size
+                            pending_virtual_padding_bits -= pdo_item.size_bits
+                        else:
+                            # The padding is larger than the pending virtual bits
+                            # All the virtual padding is already accounted, and some more must be added
+                            dictionary_map.add_padding(
+                                pdo_item.size_bits - pending_virtual_padding_bits
+                            )
+                            pending_virtual_padding_bits = 0
+
                 else:
                     # Register item
-                    register = item.register
-                    dictionary_map.add(dictionary.name_map[register.identifier])
+                    register = pdo_item.register
+                    fsoe_item = dictionary.name_map[register.identifier]
+                    pending_virtual_padding_bits = fsoe_item.data_type.bits - pdo_item.size_bits
+                    dictionary_map.add(fsoe_item)
 
-            position_bits += item.size_bits
+            position_bits += pdo_item.size_bits
+
+        dictionary_map.merge_adjacent_paddings()
 
     @classmethod
     def from_rpdo_tpdo(
@@ -894,6 +924,22 @@ class PDUMaps:
             raise TypeError
         return item_type(reg, size_bits)
 
+    def __create_pdo_safe_data_item(
+        self,
+        servo_dictionary: "Dictionary",
+        item: FSoEDictionaryItem,
+        item_type: type[PDOMapItem],
+        size_bits: Optional[int] = None,
+    ) -> PDOMapItem:
+        if item.item is None:
+            # Padding item
+            return item_type(size_bits=item.bits)
+        else:
+            # I/O item
+            return self.__create_pdo_item(
+                servo_dictionary, item.item.name, item_type, size_bits=size_bits
+            )
+
     def __get_crc_item(
         self,
         data_slot_i: int,
@@ -935,7 +981,7 @@ class PDUMaps:
             if slot_bit_maximum == 8 and item.position_bits + item.bits >= slot_bit_maximum:
                 # Since there's enough data to overflow the initial slot of 8 bits,
                 # it will be of 16 bits instead
-                slot_bit_maximum = 16
+                slot_bit_maximum = self.__SLOT_WIDHT
 
             if item.position_bits >= slot_bit_maximum:
                 # This item must go in the next data slot
@@ -946,45 +992,45 @@ class PDUMaps:
                     )
                 )
                 data_slot_i += 1
-                slot_bit_maximum += 16
+                slot_bit_maximum += self.__SLOT_WIDHT
 
             if item.position_bits + item.bits <= slot_bit_maximum:
                 # The item fits in the current slot, add it
-                if item.item is None:
-                    # Padding item
-                    pdo_map.add_item(RPDOMapItem(size_bits=item.bits))
-                else:
-                    # I/O item
-                    pdo_map.add_item(
-                        self.__create_pdo_item(servo_dictionary, item.item.name, pdo_item_type)
-                    )
+                pdo_map.add_item(
+                    self.__create_pdo_safe_data_item(servo_dictionary, item, pdo_item_type)
+                )
             else:
                 # The item must go in the current slot, and on the next one
                 # Have a virtual padding with the remaining bits
                 # As described on ETG5120 Section 5.3.3
-                if item.bits != 32:
-                    raise NotImplementedError(
-                        f"For overflowing data slots, only 32 bit variables are supported ({item.bits})"
-                    )
-                if item.position_bits % 16 != 0:
-                    raise NotImplementedError(
-                        f"For overflowing data slots, the position bits must be a multiple of 16 ({item.position_bits})"
-                    )
-                # I/O item, cut at 16 bits
+
+                # Number of bits that will be used in the current slot,
+                # taking into account that it may start in the middle of the slot
+                item_bits_in_slot = self.__SLOT_WIDHT - item.position_bits % self.__SLOT_WIDHT
+
+                # Add I/O item, cut to the bits that fit in the current slot
                 pdo_map.add_item(
-                    self.__create_pdo_item(
-                        servo_dictionary, item.item.name, pdo_item_type, size_bits=16
+                    self.__create_pdo_safe_data_item(
+                        servo_dictionary, item, pdo_item_type, size_bits=item_bits_in_slot
                     )
                 )
-                # CRC item
-                pdo_map.add_item(
-                    self.__get_crc_item(
-                        data_slot_i, frame_elements, pdo_item_type, servo_dictionary
+
+                # There are remaining bits that must be mapped into virtual paddings
+                remaining_bits_to_map = item.bits - item_bits_in_slot
+
+                while remaining_bits_to_map > 0:
+                    # Add CRC item
+                    pdo_map.add_item(
+                        self.__get_crc_item(
+                            data_slot_i, frame_elements, pdo_item_type, servo_dictionary
+                        )
                     )
-                )
-                data_slot_i += 1
-                # Padding item
-                pdo_map.add_item(pdo_item_type(size_bits=16))
+                    data_slot_i += 1
+                    slot_bit_maximum += self.__SLOT_WIDHT
+                    bits_to_map_in_this_slot = min(remaining_bits_to_map, self.__SLOT_WIDHT)
+                    # Virtual Padding item
+                    pdo_map.add_item(pdo_item_type(size_bits=bits_to_map_in_this_slot))
+                    remaining_bits_to_map -= bits_to_map_in_this_slot
 
         # Last CRC
         pdo_map.add_item(
@@ -1001,6 +1047,7 @@ class PDUMaps:
         )
 
     def fill_rpdo_map(self, rpdo_map: RPDOMap, servo_dictionary: "Dictionary") -> None:
+        self.outputs.complete_with_padding()
         self.__fill_pdo_map(
             self.outputs,
             servo_dictionary=servo_dictionary,
@@ -1011,6 +1058,7 @@ class PDUMaps:
 
     def fill_tpdo_map(self, tpdo_map: TPDOMap, servo_dictionary: "Dictionary") -> None:
         """Create the TPDOMap used for the Safety Slave PDU."""
+        self.inputs.complete_with_padding()
         self.__fill_pdo_map(
             self.inputs,
             servo_dictionary=servo_dictionary,
