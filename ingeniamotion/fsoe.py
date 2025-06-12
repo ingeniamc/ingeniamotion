@@ -749,24 +749,24 @@ class FSoEFrameElements:
     """
 
     command_uid: str
-    _crcs_uid: str
+    _crcs_prefix: str
     connection_id_uid: str
 
     def get_crc_uid(self, data_slot_i: int) -> str:
         """Get the CRC element name for the given data slot index."""
-        return self._crcs_uid.format(i=data_slot_i)
+        return f"{self._crcs_prefix}{data_slot_i}"
 
 
 MASTER_FRAME_ELEMENTS = FSoEFrameElements(
     command_uid="FSOE_MASTER_FRAME_ELEM_CMD",
-    _crcs_uid="FSOE_MASTER_FRAME_ELEM_CRC{i}",
+    _crcs_prefix="FSOE_MASTER_FRAME_ELEM_CRC",
     connection_id_uid="FSOE_MASTER_FRAME_ELEM_CONNID",
 )
 
 
 SLAVE_FRAME_ELEMENTS = FSoEFrameElements(
     command_uid="FSOE_SLAVE_FRAME_ELEM_CMD",
-    _crcs_uid="FSOE_SLAVE_FRAME_ELEM_CRC{i}",
+    _crcs_prefix="FSOE_SLAVE_FRAME_ELEM_CRC",
     connection_id_uid="FSOE_SLAVE_FRAME_ELEM_CONNID",
 )
 
@@ -943,18 +943,42 @@ class PDUMaps:
         item_type: type[PDOMapItem],
         size_bits: Optional[int] = None,
     ) -> PDOMapItem:
-        reg = servo_dictionary.get_register(uid)
-        if not isinstance(reg, CanopenRegister):
-            # Type could be narrowed to EthercatRegister
-            # After this bugfix:
-            # https://novantamotion.atlassian.net/browse/INGK-1111
-            raise TypeError
-        return item_type(reg, size_bits)
+        if isinstance(servo_dictionary, EthercatDictionaryV2):
+            # Dictionary V2 only supports SaCo phase 1
+            # That does do not configure the pdo maps.
+            # Padding items are enough to fill the map
+            if uid == MASTER_FRAME_ELEMENTS.command_uid or uid == SLAVE_FRAME_ELEMENTS.command_uid:
+                return item_type(size_bits=8)
+            if (
+                uid == MASTER_FRAME_ELEMENTS.connection_id_uid
+                or uid == SLAVE_FRAME_ELEMENTS.connection_id_uid
+            ):
+                return item_type(size_bits=16)
+            if uid.startswith(
+                (MASTER_FRAME_ELEMENTS._crcs_prefix, SLAVE_FRAME_ELEMENTS._crcs_prefix)
+            ):
+                return item_type(size_bits=16)
+            if uid in [
+                STOFunction.COMMAND_UID,
+                SS1Function.COMMAND_UID,
+                SafeInputsFunction.SAFE_INPUTS_UID,
+            ]:
+                return item_type(size_bits=1)
+
+            raise NotImplementedError(f"Unknown FSoE item UID for Dictionary V2: {uid}")
+        else:
+            reg = servo_dictionary.get_register(uid)
+            if not isinstance(reg, CanopenRegister):
+                # Type could be narrowed to EthercatRegister
+                # After this bugfix:
+                # https://novantamotion.atlassian.net/browse/INGK-1111
+                raise TypeError
+            return item_type(reg, size_bits)
 
     def __create_pdo_safe_data_item(
         self,
         servo_dictionary: "Dictionary",
-        item: FSoEDictionaryItem,
+        item: "FSoEDictionaryItem",
         item_type: type[PDOMapItem],
         size_bits: Optional[int] = None,
     ) -> PDOMapItem:
