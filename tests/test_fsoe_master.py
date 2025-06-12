@@ -634,7 +634,8 @@ class TestPduMapper:
             == maps.inputs.get_text_representation()
         )
 
-    def test_map_with_16_bit_vars_offset_8(self, sample_safe_dictionary):
+    @pytest.mark.parametrize("unify_pdo_mapping", [True, False])
+    def test_map_with_16_bit_vars_offset_8(self, sample_safe_dictionary, unify_pdo_mapping: bool):
         safe_dict, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
 
@@ -677,6 +678,12 @@ class TestPduMapper:
 
         assert len(tpdo.items) == 8
 
+        # The 2 8-bit padding, virtual and non-virtual may come unified
+        # It should produce the same result
+        if unify_pdo_mapping:
+            tpdo.items[4].size_bits = 16  # Expand previous
+            del tpdo.items[5]  # Remove the other padding
+
         rpdo = RPDOMap()
         maps.fill_rpdo_map(rpdo, safe_dict)
 
@@ -717,15 +724,15 @@ class TestPduMapper:
         maps.insert_in_best_position(sp)
         maps.insert_in_best_position(si)
 
-        assert maps.inputs.get_text_representation() == (
-            "Item                                     | Position bytes..bits | Size bytes..bits    \n"
-            "FSOE_STO                                 | 0..0                 | 0..1                \n"
-            "FSOE_SAFE_INPUTS_VALUE                   | 0..1                 | 0..1                \n"
-            "Padding                                  | 0..2                 | 0..6                \n"
-            "FSOE_SAFE_POSITION                       | 1..0                 | 4..0                "
+        assert maps.inputs.get_text_representation(item_space=30) == (
+            "Item                           | Position bytes..bits | Size bytes..bits    \n"
+            "FSOE_STO                       | 0..0                 | 0..1                \n"
+            "FSOE_SAFE_INPUTS_VALUE         | 0..1                 | 0..1                \n"
+            "Padding                        | 0..2                 | 0..6                \n"
+            "FSOE_SAFE_POSITION             | 1..0                 | 4..0                "
         )
 
-        assert maps.outputs.get_text_representation() == (
-            "Item                                     | Position bytes..bits | Size bytes..bits    \n"
-            "FSOE_STO                                 | 0..0                 | 0..1                "
+        assert maps.outputs.get_text_representation(item_space=30) == (
+            "Item                           | Position bytes..bits | Size bytes..bits    \n"
+            "FSOE_STO                       | 0..0                 | 0..1                "
         )

@@ -927,7 +927,7 @@ class PDUMaps:
                             pending_virtual_padding_bits -= pdo_item.size_bits
                         else:
                             # The padding is larger than the pending virtual bits
-                            # All the virtual padding is already accounted,
+                            # All the virtual padding are already accounted,
                             # and some more must be added
                             dictionary_map.add_padding(
                                 pdo_item.size_bits - pending_virtual_padding_bits
