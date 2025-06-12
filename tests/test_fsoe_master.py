@@ -293,15 +293,15 @@ class TestPduMapper:
         safe_dict, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
 
-        maps.append_output(fsoe_dict.name_map[STOFunction.COMMAND_UID])
-        maps.append_output(fsoe_dict.name_map[SS1Function.COMMAND_UID])
-        maps.append_output_padding(bits=6 + 8)
+        maps.outputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
+        maps.outputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID])
+        maps.outputs.add_padding(bits=6 + 8)
 
-        maps.append_input(fsoe_dict.name_map[STOFunction.COMMAND_UID])
-        maps.append_input(fsoe_dict.name_map[SS1Function.COMMAND_UID])
-        maps.append_input_padding(bits=6)
-        maps.append_input(fsoe_dict.name_map[SafeInputsFunction.SAFE_INPUTS_UID])
-        maps.append_input_padding(bits=7)
+        maps.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
+        maps.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID])
+        maps.inputs.add_padding(bits=6)
+        maps.inputs.add(fsoe_dict.name_map[SafeInputsFunction.SAFE_INPUTS_UID])
+        maps.inputs.add_padding(bits=7)
 
         rpdo = RPDOMap()
         # Registers that are present in the map,
@@ -398,7 +398,7 @@ class TestPduMapper:
         safe_dict, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
 
-        maps.append_input(fsoe_dict.name_map[self.TEST_SI_U8_UID])
+        maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
 
         # Create the rpdo map
         tpdo = TPDOMap()
@@ -423,12 +423,12 @@ class TestPduMapper:
 
         recreated_pdu_maps = PDUMaps.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
         assert (
-                recreated_pdu_maps.outputs.get_text_representation()
-                == maps.outputs.get_text_representation()
+            recreated_pdu_maps.outputs.get_text_representation()
+            == maps.outputs.get_text_representation()
         )
         assert (
-                recreated_pdu_maps.inputs.get_text_representation()
-                == maps.inputs.get_text_representation()
+            recreated_pdu_maps.inputs.get_text_representation()
+            == maps.inputs.get_text_representation()
         )
 
     def test_map_with_32_bit_vars(self, sample_safe_dictionary):
@@ -436,7 +436,7 @@ class TestPduMapper:
         maps = PDUMaps.empty(fsoe_dict)
 
         # Append a 32-bit variable
-        maps.append_input(fsoe_dict.name_map["FSOE_SAFE_POSITION"])
+        maps.inputs.add(fsoe_dict.name_map["FSOE_SAFE_POSITION"])
 
         # Create the rpdo map
         tpdo = TPDOMap()
@@ -468,24 +468,23 @@ class TestPduMapper:
 
         recreated_pdu_maps = PDUMaps.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
         assert (
-                recreated_pdu_maps.outputs.get_text_representation()
-                == maps.outputs.get_text_representation()
+            recreated_pdu_maps.outputs.get_text_representation()
+            == maps.outputs.get_text_representation()
         )
         assert (
-                recreated_pdu_maps.inputs.get_text_representation()
-                == maps.inputs.get_text_representation()
+            recreated_pdu_maps.inputs.get_text_representation()
+            == maps.inputs.get_text_representation()
         )
-
 
     def test_map_with_32_bit_vars_offset_8(self, sample_safe_dictionary):
         safe_dict, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
 
         # Add a first 8-bit variable that will shift the 32-bit variable
-        maps.append_input(fsoe_dict.name_map[self.TEST_SI_U8_UID])
+        maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
         # Append a 32-bit variable
-        maps.append_input(fsoe_dict.name_map["FSOE_SAFE_POSITION"])
-        maps.append_input_padding(bits=8)
+        maps.inputs.add(fsoe_dict.name_map["FSOE_SAFE_POSITION"])
+        maps.inputs.add_padding(bits=8)
 
         # Create the rpdo map
         tpdo = TPDOMap()
@@ -534,23 +533,22 @@ class TestPduMapper:
 
         recreated_pdu_maps = PDUMaps.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
         assert (
-                recreated_pdu_maps.outputs.get_text_representation()
-                == maps.outputs.get_text_representation()
+            recreated_pdu_maps.outputs.get_text_representation()
+            == maps.outputs.get_text_representation()
         )
         assert (
-                recreated_pdu_maps.inputs.get_text_representation()
-                == maps.inputs.get_text_representation()
+            recreated_pdu_maps.inputs.get_text_representation()
+            == maps.inputs.get_text_representation()
         )
-
 
     def test_map_with_32_bit_vars_offset_16(self, sample_safe_dictionary):
         safe_dict, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
 
         # Add a first 16-bit variable that will shift the 32-bit variable
-        maps.append_input(fsoe_dict.name_map[self.TEST_SI_U16_UID])
+        maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U16_UID])
         # Append a 32-bit variable
-        maps.append_input(fsoe_dict.name_map["FSOE_SAFE_POSITION"])
+        maps.inputs.add(fsoe_dict.name_map["FSOE_SAFE_POSITION"])
 
         # Create the rpdo map
         tpdo = TPDOMap()
@@ -590,23 +588,22 @@ class TestPduMapper:
 
         recreated_pdu_maps = PDUMaps.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
         assert (
-                recreated_pdu_maps.outputs.get_text_representation()
-                == maps.outputs.get_text_representation()
+            recreated_pdu_maps.outputs.get_text_representation()
+            == maps.outputs.get_text_representation()
         )
         assert (
-                recreated_pdu_maps.inputs.get_text_representation()
-                == maps.inputs.get_text_representation()
+            recreated_pdu_maps.inputs.get_text_representation()
+            == maps.inputs.get_text_representation()
         )
-
 
     def test_map_with_16_bit_vars_offset_8(self, sample_safe_dictionary):
         safe_dict, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
 
         # Add a first 8-bit variable that will shift the 16-bit variable
-        maps.append_input(fsoe_dict.name_map[self.TEST_SI_U8_UID])
+        maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
         # Append a 32-bit variable
-        maps.append_input(fsoe_dict.name_map[self.TEST_SI_U16_UID])
+        maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U16_UID])
 
         # Create the rpdo map
         tpdo = TPDOMap()
@@ -647,14 +644,13 @@ class TestPduMapper:
 
         recreated_pdu_maps = PDUMaps.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
         assert (
-                recreated_pdu_maps.outputs.get_text_representation()
-                == maps.outputs.get_text_representation()
+            recreated_pdu_maps.outputs.get_text_representation()
+            == maps.outputs.get_text_representation()
         )
         assert (
-                recreated_pdu_maps.inputs.get_text_representation()
-                == maps.inputs.get_text_representation()
+            recreated_pdu_maps.inputs.get_text_representation()
+            == maps.inputs.get_text_representation()
         )
-
 
     @pytest.mark.parametrize(
         "pdo_length, frame_data_bytes",

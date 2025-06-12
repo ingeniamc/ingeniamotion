@@ -355,19 +355,19 @@ class FSoEMasterHandler:
     def _map_default_outputs(self) -> None:
         """Configure the FSoE master handler's SafeOutputs."""
         # Phase 1 mapping
-        self.__maps.append_output(self.get_function_instance(STOFunction).command)
-        self.__maps.append_output(self.get_function_instance(SS1Function).command)
-        self.__maps.append_output_padding(bits=6)
+        self.__maps.outputs.add(self.get_function_instance(STOFunction).command)
+        self.__maps.outputs.add(self.get_function_instance(SS1Function).command)
+        self.__maps.outputs.add_padding(bits=6)
 
     def _map_default_inputs(self) -> None:
         """Configure the FSoE master handler's SafeInputs."""
         # Phase 1 mapping
-        self.__maps.append_input(self.get_function_instance(STOFunction).command)
-        self.__maps.append_input(self.get_function_instance(SS1Function).command)
-        self.__maps.append_input_padding(bits=6)
-        self.__maps.append_input(self.get_function_instance(SS1Function).command)
-        self.__maps.append_input(self.get_function_instance(SafeInputsFunction).value)
-        self.__maps.append_input_padding(bits=6)
+        self.__maps.inputs.add(self.get_function_instance(STOFunction).command)
+        self.__maps.inputs.add(self.get_function_instance(SS1Function).command)
+        self.__maps.inputs.add_padding(bits=6)
+        self.__maps.inputs.add(self.get_function_instance(SS1Function).command)
+        self.__maps.inputs.add(self.get_function_instance(SafeInputsFunction).value)
+        self.__maps.inputs.add_padding(bits=6)
 
     def configure_pdo_maps(self) -> None:
         """Configure the PDOMaps used for the Safety PDUs according to the map."""
@@ -799,10 +799,70 @@ class PDUMaps:
             ),
         )
 
+    def insert_in_best_position(self, element: "FSoEDictionaryItem") -> None:
+        """Insert I/O in any best position of the maps.
+
+        Args:
+            element: element to add
+        """
+        if isinstance(element, FSoEDictionaryItemOutput):
+            self.outputs.insert_in_best_position(element)
+        if isinstance(element, FSoEDictionaryItemInput):
+            self.inputs.insert_in_best_position(element)
+        if isinstance(element, FSoEDictionaryItemInputOutput):
+            self.inputs.insert_in_best_position(element)
+            self.outputs.insert_in_best_position(element)
+
+    def insert_safety_function(self, safety_function: "SafetyFunction") -> None:
+        """Insert all elements of the safety function on the maps.
+
+        Args:
+            safety_function: Safety function
+        """
+        for io in safety_function.io:
+            self.insert_in_best_position(io)
+
+    @classmethod
+    def from_rpdo_tpdo(
+        cls, rpdo: RPDOMap, tpdo: TPDOMap, dictionary: "FSoEDictionary"
+    ) -> "PDUMaps":
+        """Create a PDUMaps instance from the given RPDO and TPDO maps."""
+        pdu_maps = cls.empty(dictionary)
+        cls.__fill_dictionary_map_from_pdo(rpdo, pdu_maps.outputs)
+        cls.__fill_dictionary_map_from_pdo(tpdo, pdu_maps.inputs)
+        return pdu_maps
+
+    def fill_rpdo_map(self, rpdo_map: RPDOMap, servo_dictionary: "Dictionary") -> None:
+        """Fill the RPDOMap used for the Safety Master PDU."""
+        self.outputs.complete_with_padding()
+        self.__fill_pdo_map(
+            self.outputs,
+            servo_dictionary=servo_dictionary,
+            pdo_map=rpdo_map,
+            pdo_item_type=RPDOMapItem,
+            frame_elements=MASTER_FRAME_ELEMENTS,
+        )
+
+    def fill_tpdo_map(self, tpdo_map: TPDOMap, servo_dictionary: "Dictionary") -> None:
+        """Fill the TPDOMap used for the Safety Slave PDU."""
+        self.inputs.complete_with_padding()
+        self.__fill_pdo_map(
+            self.inputs,
+            servo_dictionary=servo_dictionary,
+            pdo_map=tpdo_map,
+            pdo_item_type=TPDOMapItem,
+            frame_elements=SLAVE_FRAME_ELEMENTS,
+        )
+
     @staticmethod
     def __get_safety_bytes_range_from_pdo_length(pdo_byte_lenght: int) -> tuple[int, ...]:
-        """Get the range of bytes that belong to the safe data in a PDO map
-        according to its length.
+        """Get the bytes that belong to the safe data in a PDO map according to its length.
+
+        Args:
+            pdo_byte_lenght: byte length of the PDO map
+
+        Returns:
+            Tuple containing all byte indexes of the PDO map that belong to safe data
         """
         if pdo_byte_lenght < 6:
             raise ValueError("pdo_lenght must be at least 6")
@@ -810,10 +870,8 @@ class PDUMaps:
             # Shortest PDOMap is 6 bytes, containing only one data byte
             return (1,)
         else:
-            # The contains slots of 2 bytes of data
-
             # The total bytes of data is the Pdo map length
-            # minus the 1 byte for the command and 2 bytes for the connection ID
+            # minus 1 byte for the command and 2 bytes for the connection ID
             # divided by 4, since each data slot has 2 bytes of data and 2 bytes of CRC
             total_data_slots = (pdo_byte_lenght - 3) // 4
             return tuple(
@@ -854,12 +912,14 @@ class PDUMaps:
                         # Virtual padding bits must not be added on the mapping,
                         # since they are already accounted on the fsoe map variable
                         if pending_virtual_padding_bits >= pdo_item.size_bits:
-                            # There are not enough bits on this padding to fit all the remaining virtual ones
+                            # There are not enough bits on this padding
+                            # to fit all the remaining virtual ones
                             # Or is exactly the same size
                             pending_virtual_padding_bits -= pdo_item.size_bits
                         else:
                             # The padding is larger than the pending virtual bits
-                            # All the virtual padding is already accounted, and some more must be added
+                            # All the virtual padding is already accounted,
+                            # and some more must be added
                             dictionary_map.add_padding(
                                 pdo_item.size_bits - pending_virtual_padding_bits
                             )
@@ -875,39 +935,6 @@ class PDUMaps:
             position_bits += pdo_item.size_bits
 
         dictionary_map.merge_adjacent_paddings()
-
-    @classmethod
-    def from_rpdo_tpdo(
-        cls, rpdo: RPDOMap, tpdo: TPDOMap, dictionary: "FSoEDictionary"
-    ) -> "PDUMaps":
-        """Create a PDUMaps instance from the given RPDO and TPDO maps."""
-        pdu_maps = cls.empty(dictionary)
-        cls.__fill_dictionary_map_from_pdo(rpdo, pdu_maps.outputs)
-        cls.__fill_dictionary_map_from_pdo(tpdo, pdu_maps.inputs)
-        return pdu_maps
-
-    def append_output(
-        self, element: Union[FSoEDictionaryItemOutput, FSoEDictionaryItemInputOutput]
-    ) -> None:
-        """Map an output element to the end of the Safety Master PDU."""
-        self.outputs.add(element)
-
-    def append_output_padding(self, bits: int) -> None:
-        """Add padding to the end of the Safety Master PDU."""
-        self.outputs.add_padding(bits=bits)
-
-    def append_input(
-        self, element: Union[FSoEDictionaryItemInput, FSoEDictionaryItemInputOutput]
-    ) -> None:
-        """Map an input element to the end of the Safety Slave PDU."""
-        self.inputs.add(element)
-
-    def append_input_padding(self, bits: int) -> None:
-        """Add padding to the end of the Safety Slave PDU."""
-        self.inputs.add_padding(bits=bits)
-
-    # TODO create functions to intelligently add inputs and outputs
-    #  Or create a PDUMaps from a set of inputs and outputs or complete safety functions
 
     def __create_pdo_item(
         self,
@@ -1044,27 +1071,6 @@ class PDUMaps:
                 frame_elements.connection_id_uid,
                 pdo_item_type,
             )
-        )
-
-    def fill_rpdo_map(self, rpdo_map: RPDOMap, servo_dictionary: "Dictionary") -> None:
-        self.outputs.complete_with_padding()
-        self.__fill_pdo_map(
-            self.outputs,
-            servo_dictionary=servo_dictionary,
-            pdo_map=rpdo_map,
-            pdo_item_type=RPDOMapItem,
-            frame_elements=MASTER_FRAME_ELEMENTS,
-        )
-
-    def fill_tpdo_map(self, tpdo_map: TPDOMap, servo_dictionary: "Dictionary") -> None:
-        """Create the TPDOMap used for the Safety Slave PDU."""
-        self.inputs.complete_with_padding()
-        self.__fill_pdo_map(
-            self.inputs,
-            servo_dictionary=servo_dictionary,
-            pdo_map=tpdo_map,
-            pdo_item_type=TPDOMapItem,
-            frame_elements=SLAVE_FRAME_ELEMENTS,
         )
 
 
