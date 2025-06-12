@@ -704,3 +704,28 @@ class TestPduMapper:
         assert frame_data_bytes == PDUMaps._PDUMaps__get_safety_bytes_range_from_pdo_length(
             pdo_length
         )
+
+    def test_insert_in_best_position(self, sample_safe_dictionary):
+        safe_dict, fsoe_dict = sample_safe_dictionary
+        maps = PDUMaps.empty(fsoe_dict)
+
+        si = fsoe_dict.name_map[SafeInputsFunction.SAFE_INPUTS_UID]
+        sp = fsoe_dict.name_map["FSOE_SAFE_POSITION"]
+        sto = fsoe_dict.name_map[STOFunction.COMMAND_UID]
+
+        maps.insert_in_best_position(sto)
+        maps.insert_in_best_position(sp)
+        maps.insert_in_best_position(si)
+
+        assert maps.inputs.get_text_representation() == (
+            "Item                                     | Position bytes..bits | Size bytes..bits    \n"
+            "FSOE_STO                                 | 0..0                 | 0..1                \n"
+            "FSOE_SAFE_INPUTS_VALUE                   | 0..1                 | 0..1                \n"
+            "Padding                                  | 0..2                 | 0..6                \n"
+            "FSOE_SAFE_POSITION                       | 1..0                 | 4..0                "
+        )
+
+        assert maps.outputs.get_text_representation() == (
+            "Item                                     | Position bytes..bits | Size bytes..bits    \n"
+            "FSOE_STO                                 | 0..0                 | 0..1                "
+        )

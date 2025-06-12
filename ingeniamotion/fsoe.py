@@ -798,7 +798,7 @@ class PDUMaps:
             ),
         )
 
-    def copy(self):
+    def copy(self) -> "PDUMaps":
         """Create a copy of the PDUMaps instance."""
         return PDUMaps(
             outputs=self.outputs.copy(),
@@ -811,13 +811,16 @@ class PDUMaps:
         Args:
             element: element to add
         """
+        align_to = 1
+        if element.data_type.bits > 8:
+            align_to = 8
         if isinstance(element, FSoEDictionaryItemOutput):
-            self.outputs.insert_in_best_position(element)
+            self.outputs.insert_in_best_position(element, align_to)
         if isinstance(element, FSoEDictionaryItemInput):
-            self.inputs.insert_in_best_position(element)
+            self.inputs.insert_in_best_position(element, align_to)
         if isinstance(element, FSoEDictionaryItemInputOutput):
-            self.inputs.insert_in_best_position(element)
-            self.outputs.insert_in_best_position(element)
+            self.inputs.insert_in_best_position(element, align_to)
+            self.outputs.insert_in_best_position(element, align_to)
 
     def insert_safety_function(self, safety_function: "SafetyFunction") -> None:
         """Insert all elements of the safety function on the maps.
