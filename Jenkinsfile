@@ -59,7 +59,7 @@ def getIngenialinkArtifactWheelPath(python_version) {
 }
 
 def runTestHW(run_identifier, markers, setup_name, install_fsoe = false) {
-    timeout(time: 1, unit: 'HOUR') {
+    timeout(time: 1, unit: 'HOURS') {
         def fsoe_package = null
         if (install_fsoe) {
             fsoe_package = FSOE_INSTALL_VERSION
