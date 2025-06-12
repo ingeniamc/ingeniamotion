@@ -236,6 +236,44 @@ def test_motor_enable(mc_state_data):
     mc.fsoe.sto_activate()
 
 
+@pytest.mark.fsoe
+def test_copy_modify_and_set_map(mc_with_fsoe):
+    mc, handler = mc_with_fsoe
+
+    # Obtain one safety input
+    si = handler.safe_inputs_function().value
+
+    # Create a copy of the map
+    new_maps = handler.maps.copy()
+
+    # The new map can be modified
+    new_maps.inputs.remove(si)
+    assert new_maps.inputs.get_text_representation() == (
+        "Item                                     | Position bytes..bits | Size bytes..bits    \n"
+        "FSOE_STO                                 | 0..0                 | 0..1                \n"
+        "FSOE_SS1_1                               | 0..1                 | 0..1                \n"
+        "Padding                                  | 0..2                 | 0..7                \n"
+        "Padding                                  | 1..1                 | 0..6                "
+    )
+
+    # Without affecting the original map of the handler
+    assert handler.maps.inputs.get_text_representation() == (
+        "Item                                     | Position bytes..bits | Size bytes..bits    \n"
+        "FSOE_STO                                 | 0..0                 | 0..1                \n"
+        "FSOE_SS1_1                               | 0..1                 | 0..1                \n"
+        "Padding                                  | 0..2                 | 0..7                \n"
+        "FSOE_SAFE_INPUTS_VALUE                   | 1..1                 | 0..1                \n"
+        "Padding                                  | 1..2                 | 0..6                "
+    )
+
+    # The new map can be set to the handler
+    handler.set_maps(new_maps)
+
+    # And is set to the backend of the real master
+    assert handler._master_handler.master.dictionary_map == new_maps.outputs
+    assert handler._master_handler.slave.dictionary_map == new_maps.inputs
+
+
 class TestPduMapper:
     AXIS_1 = 1
     TEST_SI_U16_UID = "TEST_SI_U16"

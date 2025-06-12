@@ -364,8 +364,7 @@ class FSoEMasterHandler:
         # Phase 1 mapping
         self.__maps.inputs.add(self.get_function_instance(STOFunction).command)
         self.__maps.inputs.add(self.get_function_instance(SS1Function).command)
-        self.__maps.inputs.add_padding(bits=6)
-        self.__maps.inputs.add(self.get_function_instance(SS1Function).command)
+        self.__maps.inputs.add_padding(bits=7)
         self.__maps.inputs.add(self.get_function_instance(SafeInputsFunction).value)
         self.__maps.inputs.add_padding(bits=6)
 
@@ -797,6 +796,13 @@ class PDUMaps:
                 dictionary,
                 item_types_accepted={FSoEDictionaryItemInput, FSoEDictionaryItemInputOutput},
             ),
+        )
+
+    def copy(self):
+        """Create a copy of the PDUMaps instance."""
+        return PDUMaps(
+            outputs=self.outputs.copy(),
+            inputs=self.inputs.copy(),
         )
 
     def insert_in_best_position(self, element: "FSoEDictionaryItem") -> None:
