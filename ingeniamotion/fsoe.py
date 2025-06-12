@@ -357,7 +357,7 @@ class FSoEMasterHandler:
         # Phase 1 mapping
         self.__maps.outputs.add(self.get_function_instance(STOFunction).command)
         self.__maps.outputs.add(self.get_function_instance(SS1Function).command)
-        self.__maps.outputs.add_padding(bits=6)
+        self.__maps.outputs.add_padding(bits=6 + 8)
 
     def _map_default_inputs(self) -> None:
         """Configure the FSoE master handler's SafeInputs."""
@@ -371,8 +371,8 @@ class FSoEMasterHandler:
 
     def configure_pdo_maps(self) -> None:
         """Configure the PDOMaps used for the Safety PDUs according to the map."""
-        self.__maps.fill_rpdo_map(self.safety_master_pdu_map, self.dictionary)
-        self.__maps.fill_tpdo_map(self.safety_slave_pdu_map, self.dictionary)
+        self.__maps.fill_rpdo_map(self.safety_master_pdu_map, self.__servo.dictionary)
+        self.__maps.fill_tpdo_map(self.safety_slave_pdu_map, self.__servo.dictionary)
 
     def set_pdo_maps_to_slave(self) -> None:
         """Set the PDOMaps to be used by the Safety PDUs to the slave."""
