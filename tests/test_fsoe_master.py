@@ -327,6 +327,7 @@ class TestPduMapper:
 
         return safe_dict, fsoe_dict
 
+    @pytest.mark.fsoe
     def test_map_phase_1(self, sample_safe_dictionary):
         safe_dict, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
@@ -432,6 +433,7 @@ class TestPduMapper:
             == maps.inputs.get_text_representation()
         )
 
+    @pytest.mark.fsoe
     def test_map_8_safe_bits(self, sample_safe_dictionary):
         safe_dict, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
@@ -469,6 +471,7 @@ class TestPduMapper:
             == maps.inputs.get_text_representation()
         )
 
+    @pytest.mark.fsoe
     def test_map_with_32_bit_vars(self, sample_safe_dictionary):
         safe_dict, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
@@ -514,6 +517,7 @@ class TestPduMapper:
             == maps.inputs.get_text_representation()
         )
 
+    @pytest.mark.fsoe
     def test_map_with_32_bit_vars_offset_8(self, sample_safe_dictionary):
         safe_dict, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
@@ -579,6 +583,7 @@ class TestPduMapper:
             == maps.inputs.get_text_representation()
         )
 
+    @pytest.mark.fsoe
     def test_map_with_32_bit_vars_offset_16(self, sample_safe_dictionary):
         safe_dict, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
@@ -634,6 +639,7 @@ class TestPduMapper:
             == maps.inputs.get_text_representation()
         )
 
+    @pytest.mark.fsoe
     @pytest.mark.parametrize("unify_pdo_mapping", [True, False])
     def test_map_with_16_bit_vars_offset_8(self, sample_safe_dictionary, unify_pdo_mapping: bool):
         safe_dict, fsoe_dict = sample_safe_dictionary
@@ -697,6 +703,7 @@ class TestPduMapper:
             == maps.inputs.get_text_representation()
         )
 
+    @pytest.mark.fsoe
     @pytest.mark.parametrize(
         "pdo_length, frame_data_bytes",
         [
@@ -712,6 +719,7 @@ class TestPduMapper:
             pdo_length
         )
 
+    @pytest.mark.fsoe
     def test_insert_in_best_position(self, sample_safe_dictionary):
         safe_dict, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
