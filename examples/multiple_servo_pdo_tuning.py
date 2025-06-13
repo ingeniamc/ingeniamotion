@@ -4,23 +4,23 @@ from typing import Union
 
 import matplotlib.pyplot as plt
 from ingenialink.pdo import RPDOMapItem, TPDOMapItem
-from ingeniamotion.enums import FilterType, OperationMode
+from ingeniamotion.enums import OperationMode
 from ingeniamotion.motion_controller import MotionController
 
 SRV_1: str = "1"
 SRV_2: str = "2"
 
-PDO_REFRESH_RATE: float = 0.001  # seconds
-CAPTURE_TIME: int = 10  # seconds
+PDO_REFRESH_RATE_S = 0.001
+CAPTURE_TIME_S = 10
 
-SQUARE_WAVE_AMPLITUDE_A: float = 5
-SQUARE_WAVE_AMPLITUDE_B: float = -5
-SQUARE_WAVE_FREQUENCY: float = 0.1
-SQUARE_WAVE_DUTY_CYCLE: float = 0.5
+SQUARE_WAVE_AMPLITUDE_A = 5
+SQUARE_WAVE_AMPLITUDE_B = -5
+SQUARE_WAVE_FREQUENCY_Hz = 0.1
+SQUARE_WAVE_DUTY_CYCLE = 0.5
 
-TORQUE_SET_POINT_REGISTER: str = "CL_TOR_SET_POINT_VALUE"
-POSITION_SET_POINT_REGISTER: str = "CL_POS_SET_POINT_VALUE"
-VELOCITY_SET_POINT_REGISTER: str = "CL_VEL_SET_POINT_VALUE"
+TORQUE_SET_POINT_REGISTER = "CL_TOR_SET_POINT_VALUE"
+POSITION_SET_POINT_REGISTER = "CL_POS_SET_POINT_VALUE"
+VELOCITY_SET_POINT_REGISTER = "CL_VEL_SET_POINT_VALUE"
 
 VELOCITY_ACTUAL_REGISTER = "CL_VEL_FBK_VALUE"
 POSITION_ACTUAL_REGISTER = "CL_POS_FBK_VALUE"
@@ -28,31 +28,43 @@ TORQUE_ACTUAL_REGISTER = "CL_TOR_FBK_VALUE"
 
 
 def configure_servo(operation_mode: OperationMode, mc: MotionController, servo: str) -> None:
-    """Configure the servo with the initial configuration."""
+    """Configure the servo with the initial configuration.
 
+    Args:
+        operation_mode: Operation mode to set for the servo.
+        mc: MotionController instance to use for the configuration.
+        servo: The servo identifier
+
+    """
     mc.motion.set_operation_mode(operation_mode, servo)
     mc.communication.set_register(VELOCITY_SET_POINT_REGISTER, 0, servo)
     mc.communication.set_register(TORQUE_SET_POINT_REGISTER, 0, servo)
 
 
 class SquareWave:
-    """Class to create a square wave signal."""
-
     def __init__(
         self,
         amplitude_a: float,
         amplitude_b: float,
         frequency: float,
         duty_cycle: float,
-        phy: float = 0,
+        phase_shift: float = 0,
     ) -> None:
+        """Class to create a square wave signal.
+
+        Args:
+            amplitude_a: Amplitude of the square wave when low.
+            amplitude_b: Amplitude of the square wave when high.
+            frequency: signal frequency in Hz.
+            duty_cycle: Duty cycle of the square wave (0 to 1).
+            phase_shift: Phase shift of the square wave in seconds (default is 0).
+        """
         self.amplitude_a: float = amplitude_a
         self.amplitude_b: float = amplitude_b
         self.frequency: float = frequency
         self.time_period: float = 1 / frequency
-        self.current_time: float = 0
         self.duty_cycle: float = duty_cycle
-        self.phy: float = phy
+        self.phase_shift: float = phase_shift
 
     def get_value(self, current_time: float) -> float:
         """Get the current value of the square wave.
@@ -63,7 +75,9 @@ class SquareWave:
         Returns:
             float: The current value of the square wave.
         """
-        if ((current_time + self.phy) % self.time_period) < (self.time_period * self.duty_cycle):
+        if ((current_time + self.phase_shift) % self.time_period) < (
+            self.time_period * self.duty_cycle
+        ):
             return self.amplitude_a
         else:
             return self.amplitude_b
@@ -77,7 +91,13 @@ class PlotPoints:
         self.ys: list[float] = []
 
     def add_point(self, x: float, y: float) -> None:
-        """Add a point to the plot."""
+        """Add a point to the plot.
+
+        Args:
+            x: The x coordinate of the point.
+            y: The y coordinate of the point.
+
+        """
         self.xs.append(x)
         self.ys.append(y)
 
@@ -109,7 +129,7 @@ class PDOCallbacks:
         self.wave: SquareWave = SquareWave(
             amplitude_a=SQUARE_WAVE_AMPLITUDE_A,
             amplitude_b=SQUARE_WAVE_AMPLITUDE_B,
-            frequency=SQUARE_WAVE_FREQUENCY,
+            frequency=SQUARE_WAVE_FREQUENCY_Hz,
             duty_cycle=SQUARE_WAVE_DUTY_CYCLE,
         )
         self.init_t: Union[float, None] = None
@@ -124,15 +144,24 @@ class PDOCallbacks:
         amplitude_b: Union[float, None] = None,
         frequency: Union[float, None] = None,
         duty_cycle: Union[float, None] = None,
-        phy: Union[float, None] = None,
+        phase_shift: Union[float, None] = None,
     ) -> None:
-        """Update the square wave parameters."""
+        """Update the square wave parameters.
+
+        Args:
+            amplitude_a: Amplitude of the square wave when low.
+            amplitude_b: Amplitude of the square wave when high.
+            frequency: signal frequency in Hz.
+            duty_cycle: Duty cycle of the square wave (0 to 1).
+            phase_shift: Phase shift of the square wave in seconds (default is 0).
+
+        """
         if amplitude_a is None:
             amplitude_a = SQUARE_WAVE_AMPLITUDE_A
         if amplitude_b is None:
             amplitude_b = SQUARE_WAVE_AMPLITUDE_B
         if frequency is None:
-            frequency = SQUARE_WAVE_FREQUENCY
+            frequency = SQUARE_WAVE_FREQUENCY_Hz
         if duty_cycle is None:
             duty_cycle = SQUARE_WAVE_DUTY_CYCLE
         self.wave = SquareWave(
@@ -140,7 +169,7 @@ class PDOCallbacks:
             amplitude_b=amplitude_b,
             frequency=frequency,
             duty_cycle=duty_cycle,
-            phy=phy or 0,
+            phase_shift=phase_shift or 0,
         )
 
     def notify_output_value(self) -> None:
@@ -210,7 +239,12 @@ def configure_pdos(pdo_config: PDOConfig, mc: MotionController, servo: str) -> P
 
 
 def plot_data(pdo_callbacks_1: PDOCallbacks, pdo_callbacks_2: PDOCallbacks) -> None:
-    """Plot the data from the PDO callbacks."""
+    """Plot the data from the PDO callbacks.
+
+    Args:
+        pdo_callbacks_1: PDOCallbacks for servo 1.
+        pdo_callbacks_2: PDOCallbacks for servo 2.
+    """
     plt.figure("Input")
     plt.plot(*pdo_callbacks_1.data_input_1.get_points(), label="Servo 1")
     plt.plot(*pdo_callbacks_2.data_input_1.get_points(), label="Servo 2")
@@ -238,10 +272,16 @@ def plot_data(pdo_callbacks_1: PDOCallbacks, pdo_callbacks_2: PDOCallbacks) -> N
     plt.show()
 
 
-def main() -> None:
-    """Main function to run the script."""
-    mc: MotionController = MotionController()
-    ifname: str = "\\Device\\NPF_{7B84A7B7-2506-44FE-89C3-D97DA2FD2869}"
+def main(network_interface_ip: str, dictionary_path_1: str, dictionary_path_2: str) -> None:
+    """Main function to run the script.
+
+    Args:
+        network_interface_ip: IP address of the network interface to connect to the servos.
+        dictionary_path_1: Path to the dictionary file for servo 1.
+        dictionary_path_2: Path to the dictionary file for servo 2.
+
+    """
+    mc = MotionController()
 
     pdos_1: PDOConfig = PDOConfig(
         INPUT_REGISTER=POSITION_SET_POINT_REGISTER,
@@ -256,8 +296,12 @@ def main() -> None:
         OUTPUT_3_REGISTER=TORQUE_ACTUAL_REGISTER,
     )
 
-    mc.communication.connect_servo_ethercat(ifname, 1, "dictionary_path_1.xdf", SRV_1)
-    mc.communication.connect_servo_ethercat(ifname, 2, "dictionary_path_2.xdf", SRV_2)
+    mc.communication.connect_servo_ethercat_interface_ip(
+        network_interface_ip, 1, dictionary_path_1, SRV_1
+    )
+    mc.communication.connect_servo_ethercat_interface_ip(
+        network_interface_ip, 2, dictionary_path_2, SRV_2
+    )
 
     configure_servo(OperationMode.POSITION, mc, SRV_1)
     configure_servo(OperationMode.VELOCITY, mc, SRV_2)
@@ -268,8 +312,8 @@ def main() -> None:
     pdo_callbacks_2: PDOCallbacks = configure_pdos(pdos_2, mc, SRV_2)
     pdo_callbacks_1.update_wave(amplitude_a=1000, amplitude_b=0, frequency=0.1)
 
-    mc.capture.pdo.start_pdos(refresh_rate=PDO_REFRESH_RATE)
-    time.sleep(CAPTURE_TIME)
+    mc.capture.pdo.start_pdos(refresh_rate=PDO_REFRESH_RATE_S)
+    time.sleep(CAPTURE_TIME_S)
     mc.capture.pdo.stop_pdos()
 
     mc.motion.motor_disable(SRV_1)
@@ -282,4 +326,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    # Modify these parameters according to your setup
+    network_interface_ip = "192.168.2.1"
+    dictionary_path_1 = "dictionary_path_1.xdf"
+    dictionary_path_2 = "dictionary_path_2.xdf"
+    main(network_interface_ip, dictionary_path_1, dictionary_path_2)
