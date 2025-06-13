@@ -59,34 +59,36 @@ def getIngenialinkArtifactWheelPath(python_version) {
 }
 
 def runTestHW(run_identifier, markers, setup_name, install_fsoe = false) {
-    def fsoe_package = null
-    if (install_fsoe) {
-        fsoe_package = FSOE_INSTALL_VERSION
-    }
+    timeout(time: 1, unit: 'HOURS') {
+        def fsoe_package = null
+        if (install_fsoe) {
+            fsoe_package = FSOE_INSTALL_VERSION
+        }
 
-    unstash 'ingenialink_wheels'
+        unstash 'ingenialink_wheels'
 
-    def pythonVersions = RUN_PYTHON_VERSIONS.split(',')
+        def pythonVersions = RUN_PYTHON_VERSIONS.split(',')
 
-    pythonVersions.each { version ->
-        def wheelFile = getIngenialinkArtifactWheelPath(version)
-        withEnv(["INGENIALINK_INSTALL_PATH=${wheelFile}", "FSOE_PACKAGE=${fsoe_package}"]) {
-            try {
-                bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
-                        "-m \"${markers}\" " +
-                        "--setup tests.setups.rack_specifiers.${setup_name} " +
-                        "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\" "
-            } catch (err) {
-                unstable(message: "Tests failed")
-            } finally {
-                junit "pytest_reports\\*.xml"
-                // Delete the junit after publishing it so it not re-published on the next stage
-                bat "del /S /Q pytest_reports\\*.xml"
-                // Save the coverage so it can be unified and published later
-                def coverage_stash = ".coverage_${run_identifier}_${version}"
-                bat "move .coverage ${coverage_stash}"
-                stash includes: coverage_stash, name: coverage_stash
-                coverage_stashes.add(coverage_stash)
+        pythonVersions.each { version ->
+            def wheelFile = getIngenialinkArtifactWheelPath(version)
+            withEnv(["INGENIALINK_INSTALL_PATH=${wheelFile}", "FSOE_PACKAGE=${fsoe_package}"]) {
+                try {
+                    bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
+                            "-m \"${markers}\" " +
+                            "--setup tests.setups.rack_specifiers.${setup_name} " +
+                            "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\" "
+                } catch (err) {
+                    unstable(message: "Tests failed")
+                } finally {
+                    junit "pytest_reports\\*.xml"
+                    // Delete the junit after publishing it so it not re-published on the next stage
+                    bat "del /S /Q pytest_reports\\*.xml"
+                    // Save the coverage so it can be unified and published later
+                    def coverage_stash = ".coverage_${run_identifier}_${version}"
+                    bat "move .coverage ${coverage_stash}"
+                    stash includes: coverage_stash, name: coverage_stash
+                    coverage_stashes.add(coverage_stash)
+                }
             }
         }
     }
