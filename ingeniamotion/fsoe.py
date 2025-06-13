@@ -254,7 +254,7 @@ class FSoEMasterHandler:
             raise NotImplementedError("Safety module with SRA is not available.")
 
         for app_parameter in safety_module.application_parameters:
-            register = servo.dictionary.registers(subnode=1)[app_parameter.uid]
+            register = servo.dictionary.get_register(app_parameter.uid)
 
             if safety_module.uses_sra:
                 sp = SafetyParameter(register, servo)
