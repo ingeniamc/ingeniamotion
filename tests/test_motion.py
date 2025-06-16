@@ -283,7 +283,6 @@ def test_set_voltage_direct(mc, alias, voltage_value):
     assert pytest.approx(voltage_value) == test_voltage
 
 
-@pytest.mark.virtual
 @pytest.mark.parametrize(
     "init_v, final_v, total_t, t, result",
     [

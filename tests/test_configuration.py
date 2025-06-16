@@ -772,7 +772,6 @@ def test_get_subnode_type_exception(mc):
         mc.configuration.get_subnode_type(-1)
 
 
-@pytest.mark.virtual
 @pytest.mark.parametrize(
     "mac_address_str, mac_address_int",
     [
@@ -785,7 +784,6 @@ def test_mac_address_convertion(mac_address_str, mac_address_int):
     assert MACAddressConverter.int_to_str(mac_address_int) == mac_address_str
 
 
-@pytest.mark.virtual
 @pytest.mark.parametrize(
     "invalid_mac_address",
     [
@@ -799,7 +797,6 @@ def test_mac_address_str_to_int_convertion_exception(invalid_mac_address):
     assert str(excinfo.value) == "The MAC address has an incorrect format."
 
 
-@pytest.mark.virtual
 @pytest.mark.parametrize(
     "invalid_mac_address",
     [

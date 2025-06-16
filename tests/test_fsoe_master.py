@@ -15,7 +15,6 @@ if TYPE_CHECKING:
     from ingenialink.emcy import EmergencyMessage
 
 
-@pytest.mark.virtual
 def test_fsoe_master_not_installed():
     try:
         import fsoe_master  # noqa: F401
