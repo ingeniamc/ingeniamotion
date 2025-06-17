@@ -378,6 +378,8 @@ class TestPduMapper:
         assert rpdo.items[5].register.subidx == 0x02
         assert rpdo.items[5].size_bits == 16
 
+        assert len(rpdo.items) == 6
+
         tpdo = TPDOMap()
         maps.fill_tpdo_map(tpdo, safe_dict)
 

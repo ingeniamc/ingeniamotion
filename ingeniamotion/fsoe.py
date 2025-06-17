@@ -748,24 +748,24 @@ class FSoEFrameElements:
     """
 
     command_uid: str
-    _crcs_prefix: str
+    crcs_prefix: str
     connection_id_uid: str
 
     def get_crc_uid(self, data_slot_i: int) -> str:
         """Get the CRC element name for the given data slot index."""
-        return f"{self._crcs_prefix}{data_slot_i}"
+        return f"{self.crcs_prefix}{data_slot_i}"
 
 
 MASTER_FRAME_ELEMENTS = FSoEFrameElements(
     command_uid="FSOE_MASTER_FRAME_ELEM_CMD",
-    _crcs_prefix="FSOE_MASTER_FRAME_ELEM_CRC",
+    crcs_prefix="FSOE_MASTER_FRAME_ELEM_CRC",
     connection_id_uid="FSOE_MASTER_FRAME_ELEM_CONNID",
 )
 
 
 SLAVE_FRAME_ELEMENTS = FSoEFrameElements(
     command_uid="FSOE_SLAVE_FRAME_ELEM_CMD",
-    _crcs_prefix="FSOE_SLAVE_FRAME_ELEM_CRC",
+    crcs_prefix="FSOE_SLAVE_FRAME_ELEM_CRC",
     connection_id_uid="FSOE_SLAVE_FRAME_ELEM_CONNID",
 )
 
@@ -808,6 +808,9 @@ class PDUMaps:
     def insert_in_best_position(self, element: "FSoEDictionaryItem") -> None:
         """Insert I/O in any best position of the maps.
 
+        Finds unused space in the map and insert them there.
+        If not unused space is found, it appends the item to the end of the map.
+
         Args:
             element: element to add
         """
@@ -816,11 +819,13 @@ class PDUMaps:
             align_to = 8
         if isinstance(element, FSoEDictionaryItemOutput):
             self.outputs.insert_in_best_position(element, align_to)
-        if isinstance(element, FSoEDictionaryItemInput):
+        elif isinstance(element, FSoEDictionaryItemInput):
             self.inputs.insert_in_best_position(element, align_to)
-        if isinstance(element, FSoEDictionaryItemInputOutput):
+        elif isinstance(element, FSoEDictionaryItemInputOutput):
             self.inputs.insert_in_best_position(element, align_to)
             self.outputs.insert_in_best_position(element, align_to)
+        else:
+            raise TypeError(f"Unknown IO Element type: {type(element)}")
 
     def insert_safety_function(self, safety_function: "SafetyFunction") -> None:
         """Insert all elements of the safety function on the maps.
@@ -964,7 +969,7 @@ class PDUMaps:
             ):
                 return item_type(size_bits=16)
             if uid.startswith(
-                (MASTER_FRAME_ELEMENTS._crcs_prefix, SLAVE_FRAME_ELEMENTS._crcs_prefix)
+                (MASTER_FRAME_ELEMENTS.crcs_prefix, SLAVE_FRAME_ELEMENTS.crcs_prefix)
             ):
                 return item_type(size_bits=16)
             if uid in [
