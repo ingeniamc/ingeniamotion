@@ -409,7 +409,9 @@ class FSoEMasterHandler:
             # First instance is 1
             index = instance - 1
             if index < 0 or index >= len(funcs):
-                raise IndexError(f"Master handler does not contain {typ.__name__} instance {instance}")
+                raise IndexError(
+                    f"Master handler does not contain {typ.__name__} instance {instance}"
+                )
             return funcs[index]
         else:
             if len(funcs) != 1:
