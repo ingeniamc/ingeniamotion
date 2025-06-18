@@ -13,7 +13,6 @@ from ingeniamotion.metaclass import MCMetaClass
 from ingeniamotion.motion import Motion
 
 
-@pytest.mark.virtual
 def test_motion_controller():
     mc = MotionController()
     assert isinstance(mc.configuration, Configuration)
@@ -54,7 +53,6 @@ def test_is_alive(mc, alias):
     assert mc.is_alive(alias)
 
 
-@pytest.mark.virtual
 class TestMetaclass:
     class DummyClass:
         mc = MotionController()
@@ -71,7 +69,6 @@ class TestMetaclass:
         def dummy_func(self, servo: str, axis: int):
             pass
 
-    @pytest.mark.virtual
     @pytest.mark.parametrize(
         "servo, axis, error",
         [
@@ -89,7 +86,6 @@ class TestMetaclass:
             with pytest.raises(error):
                 dummy_class.dummy_func(servo=servo, axis=axis)
 
-    @pytest.mark.virtual
     @pytest.mark.parametrize(
         "servo, axis, error",
         [
