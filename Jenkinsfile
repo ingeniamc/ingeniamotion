@@ -99,6 +99,9 @@ CRON_SETTINGS = BRANCH_NAME == "develop" ? '''0 19,21,23 * * * % PYTHON_VERSIONS
 
 pipeline {
     agent none
+    options {
+        timestamps()
+    }
     triggers {
         parameterizedCron(CRON_SETTINGS)
     }
