@@ -364,9 +364,9 @@ class FSoEMasterHandler:
         # Phase 1 mapping
         self.__maps.inputs.add(self.get_function_instance(STOFunction).command)
         self.__maps.inputs.add(self.get_function_instance(SS1Function).command)
-        self.__maps.inputs.add_padding(bits=7)
-        self.__maps.inputs.add(self.get_function_instance(SafeInputsFunction).value)
         self.__maps.inputs.add_padding(bits=6)
+        self.__maps.inputs.add(self.get_function_instance(SafeInputsFunction).value)
+        self.__maps.inputs.add_padding(bits=7)
 
     def configure_pdo_maps(self) -> None:
         """Configure the PDOMaps used for the Safety PDUs according to the map."""
