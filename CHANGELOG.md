@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.9.2] - 2025-06-DD
+### Fixed
+- Restored Monitoring V1 functionality.
+
 ## [0.9.1] - 2025-05-07
 ### Added
 - Methods to scan Ethernet drives.
