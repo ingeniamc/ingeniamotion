@@ -1,11 +1,18 @@
 import time
-from collections.abc import Iterator
+from collections.abc import Generator, Iterator
 from pathlib import Path
 from typing import Callable, Optional, Union
 
 import numpy as np
 import pytest
+from pytest import FixtureRequest
 from summit_testing_framework import dynamic_loader
+from summit_testing_framework.setups.descriptors import (
+    DriveHwSetup,
+    EthercatMultiSlaveSetup,
+    SetupDescriptor,
+)
+from summit_testing_framework.setups.specifiers import SetupSpecifier, VirtualDriveSpecifier
 
 pytest_plugins = [
     "summit_testing_framework.pytest_addoptions",
@@ -113,3 +120,79 @@ def timeout_loop(
 
         yield iteration
         iteration += 1
+
+
+@pytest.fixture(scope="module", autouse=True)
+def load_configuration_after_each_module(
+    request: FixtureRequest, setup_descriptor: SetupDescriptor, setup_specifier: SetupSpecifier
+) -> Generator[None, None, None]:
+    """Loads the drive configuration.
+
+    Args:
+        request: request.
+        setup_descriptor: setup descriptor.
+        setup_specifier: setup specifier.
+
+    Raises:
+        ValueError: if the configuration cannot be loaded for the descriptor.
+    """
+    run_fixture = not isinstance(setup_specifier, VirtualDriveSpecifier)
+    if run_fixture:
+        try:
+            alias = request.getfixturevalue("alias")
+            mc = request.getfixturevalue("_motion_controller_creator")
+        # If servo is not connected
+        except Exception:
+            return
+
+    yield
+    if not run_fixture:
+        return
+
+    if not isinstance(setup_descriptor, (DriveHwSetup, EthercatMultiSlaveSetup)):
+        raise ValueError(f"Configuration cannot be loaded for {setup_descriptor=}")
+    aliases = [alias] if isinstance(alias, str) else alias
+    descriptors = (
+        setup_descriptor.drives
+        if isinstance(setup_descriptor, EthercatMultiSlaveSetup)
+        else [setup_descriptor]
+    )
+    for eval_alias, descriptor in zip(aliases, descriptors):
+        mc.motion.motor_disable(servo=eval_alias)
+        if descriptor.config_file is not None:
+            mc.configuration.load_configuration(descriptor.config_file.as_posix(), servo=eval_alias)
+
+
+@pytest.fixture(autouse=True)
+def disable_motor_fixture(
+    request: FixtureRequest, setup_descriptor: SetupDescriptor, setup_specifier: SetupSpecifier
+) -> Generator[None, None, None]:
+    """Disables the motor on pytest session end.
+
+    Args:
+        request: request.
+        setup_descriptor: setup descriptor.
+        setup_specifier: setup specifier.
+
+    Raises:
+        ValueError: if the motor cannot be disabled for the setup descriptor.
+    """
+    run_fixture = not isinstance(setup_specifier, VirtualDriveSpecifier)
+    if run_fixture:
+        try:
+            alias = request.getfixturevalue("alias")
+            mc = request.getfixturevalue("_motion_controller_creator")
+        # If servo is not connected
+        except Exception:
+            return
+
+    yield
+    if not run_fixture:
+        return
+
+    if not isinstance(setup_descriptor, (DriveHwSetup, EthercatMultiSlaveSetup)):
+        raise ValueError(f"Cannot disable motor for {setup_descriptor=}")
+    aliases = [alias] if isinstance(alias, str) else alias
+    for eval_alias in aliases:
+        mc.motion.motor_disable(servo=eval_alias)
+        mc.motion.fault_reset(servo=eval_alias)
