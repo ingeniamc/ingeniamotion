@@ -6,6 +6,9 @@
 - Created PDUMaps that parses pdos and converts them to pdos.
 - Added methods to intelligently add i/o on the map.
 
+### Fixed
+- Safety map and safe inputs reading
+
 ## [0.9.1] - 2025-05-07
 ### Added
 - Methods to scan Ethernet drives.
