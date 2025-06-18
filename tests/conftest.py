@@ -122,6 +122,7 @@ def timeout_loop(
         iteration += 1
 
 
+# https://novantamotion.atlassian.net/browse/INGM-640
 @pytest.fixture(scope="module", autouse=True)
 def load_configuration_after_each_module(request: FixtureRequest) -> Generator[None, None, None]:
     """Loads the drive configuration.
@@ -164,6 +165,7 @@ def load_configuration_after_each_module(request: FixtureRequest) -> Generator[N
             mc.configuration.load_configuration(descriptor.config_file.as_posix(), servo=eval_alias)
 
 
+# https://novantamotion.atlassian.net/browse/INGM-640
 @pytest.fixture(autouse=True)
 def disable_motor_fixture(request: FixtureRequest) -> Generator[None, None, None]:
     """Disables the motor on pytest session end.
