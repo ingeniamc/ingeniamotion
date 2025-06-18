@@ -124,8 +124,10 @@ pipeline {
                           RUN_PYTHON_VERSIONS = "${PYTHON_VERSION_MIN},${PYTHON_VERSION_MAX}"
                         } else if (env.PYTHON_VERSIONS == "MIN") {
                           RUN_PYTHON_VERSIONS = PYTHON_VERSION_MIN
-                        } else {
+                        } else if (env.PYTHON_VERSIONS == "All") {
                           RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
+                        } else { // Branch-indexing
+                          RUN_PYTHON_VERSIONS = PYTHON_VERSION_MIN
                         }
                     }
                 }
