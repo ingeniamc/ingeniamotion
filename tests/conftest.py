@@ -123,22 +123,23 @@ def timeout_loop(
 
 
 @pytest.fixture(scope="module", autouse=True)
-def load_configuration_after_each_module(
-    request: FixtureRequest, setup_descriptor: SetupDescriptor, setup_specifier: SetupSpecifier
-) -> Generator[None, None, None]:
+def load_configuration_after_each_module(request: FixtureRequest) -> Generator[None, None, None]:
     """Loads the drive configuration.
 
     Args:
         request: request.
-        setup_descriptor: setup descriptor.
-        setup_specifier: setup specifier.
 
     Raises:
         ValueError: if the configuration cannot be loaded for the descriptor.
     """
-    run_fixture = not isinstance(setup_specifier, VirtualDriveSpecifier)
+    try:
+        setup_specifier: SetupSpecifier = request.getfixturevalue("setup_specifier")
+        run_fixture = not isinstance(setup_specifier, VirtualDriveSpecifier)
+    except Exception:
+        run_fixture = False
     if run_fixture:
         try:
+            setup_descriptor: SetupDescriptor = request.getfixturevalue("setup_descriptor")
             alias = request.getfixturevalue("alias")
             mc = request.getfixturevalue("_motion_controller_creator")
         # If servo is not connected
@@ -164,22 +165,23 @@ def load_configuration_after_each_module(
 
 
 @pytest.fixture(autouse=True)
-def disable_motor_fixture(
-    request: FixtureRequest, setup_descriptor: SetupDescriptor, setup_specifier: SetupSpecifier
-) -> Generator[None, None, None]:
+def disable_motor_fixture(request: FixtureRequest) -> Generator[None, None, None]:
     """Disables the motor on pytest session end.
 
     Args:
         request: request.
-        setup_descriptor: setup descriptor.
-        setup_specifier: setup specifier.
 
     Raises:
         ValueError: if the motor cannot be disabled for the setup descriptor.
     """
-    run_fixture = not isinstance(setup_specifier, VirtualDriveSpecifier)
+    try:
+        setup_specifier: SetupSpecifier = request.getfixturevalue("setup_specifier")
+        run_fixture = not isinstance(setup_specifier, VirtualDriveSpecifier)
+    except Exception:
+        run_fixture = False
     if run_fixture:
         try:
+            setup_descriptor: SetupDescriptor = request.getfixturevalue("setup_descriptor")
             alias = request.getfixturevalue("alias")
             mc = request.getfixturevalue("_motion_controller_creator")
         # If servo is not connected
