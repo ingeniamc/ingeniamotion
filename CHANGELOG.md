@@ -1,5 +1,9 @@
 # Changelog
 
+# Unreleased
+### Fixed
+- Wait for the PDO Thread to finish before exiting operational state
+
 ## [0.9.1] - 2025-05-07
 ### Added
 - Methods to scan Ethernet drives.
