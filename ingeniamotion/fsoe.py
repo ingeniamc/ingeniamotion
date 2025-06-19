@@ -1,18 +1,28 @@
 import threading
+from collections.abc import Iterator
 from dataclasses import dataclass
 from functools import partial
-from typing import TYPE_CHECKING, Callable, Optional, Union
+from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union, overload
 
 import ingenialogger
+from ingenialink import RegDtype
+from ingenialink.canopen.register import CanopenRegister
+from ingenialink.enums.register import RegCyclicType
+from ingenialink.ethercat.dictionary import EthercatDictionaryV2
 from ingenialink.ethercat.servo import EthercatServo
+from typing_extensions import override
 
 try:
     from fsoe_master.fsoe_master import (
-        ApplicationParameter,
+        ApplicationParameter as FSoEApplicationParameter,
+    )
+    from fsoe_master.fsoe_master import (
+        DataType,
         Dictionary,
         DictionaryItem,
         DictionaryItemInput,
         DictionaryItemInputOutput,
+        DictionaryItemOutput,
         MasterHandler,
         StateData,
     )
@@ -25,16 +35,174 @@ except ImportError:
 else:
     FSOE_MASTER_INSTALLED = True
 
-from ingenialink.dictionary import DictionarySafetyModule
+from ingenialink.dictionary import DictionarySafetyModule, DictionaryV3
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 from ingenialink.utils._utils import dtype_value
 
+from ingeniamotion._utils import weak_lru
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.exceptions import IMTimeoutError
 from ingeniamotion.metaclass import DEFAULT_SERVO
 
 if TYPE_CHECKING:
+    from ingenialink.register import Register
+
     from ingeniamotion.motion_controller import MotionController
+
+
+class SafetyParameter:
+    """Safety Parameter.
+
+    Represents a parameter that modifies how the safety application works.
+
+    Base class is used for modules that use SRA CRC Check mechanism.
+    """
+
+    def __init__(self, register: "Register", servo: "EthercatServo"):
+        self.__register = register
+        self.__servo = servo
+
+        self.__value = servo.read(register)
+
+    def get(self) -> Union[int, float, str, bytes]:
+        """Get the value of the safety parameter."""
+        return self.__value
+
+    def set(self, value: Union[int, float, str, bytes]) -> None:
+        """Set the value of the safety parameter."""
+        self.__servo.write(self.__register, value)
+        self.__value = value
+
+
+class SafetyParameterDirectValidation(SafetyParameter):
+    """Safety Parameter with direct validation via FSoE.
+
+    Safety Parameter that is validated directly via FSoE in application
+     state instead of SRA CRC Check
+    """
+
+    def __init__(self, register: "Register", drive: "EthercatServo"):
+        super().__init__(register, drive)
+
+        self.fsoe_application_parameter = FSoEApplicationParameter(
+            name=register.identifier,
+            initial_value=self.get(),
+            # https://novantamotion.atlassian.net/browse/INGK-1104
+            n_bytes=dtype_value[register.dtype][0],
+        )
+
+    @override
+    def set(self, value: Union[int, float, str, bytes]) -> None:
+        super().set(value)
+        self.fsoe_application_parameter.set(value)
+
+
+@dataclass()
+class SafetyFunction:
+    """Base class for Safety Functions.
+
+    Wraps input/output items and parameters used by the FSoE Master handler.
+    """
+
+    io: tuple["DictionaryItem", ...]
+    parameters: tuple[SafetyParameter, ...]
+
+    @classmethod
+    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafetyFunction"]:
+        """Get the safety function instances for a given FSoE master handler."""
+        yield from STOFunction.for_handler(handler)
+        yield from SS1Function.for_handler(handler)
+        yield from SafeInputsFunction.for_handler(handler)
+
+    @classmethod
+    def _get_required_input_output(
+        cls, hander: "FSoEMasterHandler", uid: str
+    ) -> "DictionaryItemInputOutput":
+        """Get the required input/output item from the handler's dictionary."""
+        item = hander.dictionary.name_map.get(uid)
+        if not isinstance(item, DictionaryItemInputOutput):
+            raise TypeError(
+                f"Expected DictionaryItemInputOutput {uid} on the safe dictionary, got {type(item)}"
+            )
+        return item
+
+    @classmethod
+    def _get_required_input(cls, handler: "FSoEMasterHandler", uid: str) -> "DictionaryItemInput":
+        """Get the required input item from the handler's dictionary."""
+        item = handler.dictionary.name_map.get(uid)
+        if not isinstance(item, DictionaryItemInput):
+            raise TypeError(
+                f"Expected DictionaryItemInput {uid} on the safe dictionary, got {type(item)}"
+            )
+        return item
+
+    @classmethod
+    def _get_required_parameter(cls, handler: "FSoEMasterHandler", uid: str) -> SafetyParameter:
+        """Get the required parameter from the handler's safety parameters."""
+        if uid not in handler.safety_parameters:
+            raise KeyError(f"Safety parameter {uid} not found in the handler's safety parameters")
+        return handler.safety_parameters[uid]
+
+
+SAFE_INSTANCE_TYPE = TypeVar("SAFE_INSTANCE_TYPE", bound="SafetyFunction")
+
+
+@dataclass()
+class STOFunction(SafetyFunction):
+    """Safe Torque Off Safety Function."""
+
+    STO_COMMAND_UID = "FSOE_STO"
+
+    command: "DictionaryItemInputOutput"
+
+    @override
+    @classmethod
+    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["STOFunction"]:
+        sto_command = cls._get_required_input_output(handler, cls.STO_COMMAND_UID)
+        yield cls(command=sto_command, io=(sto_command,), parameters=())
+
+
+@dataclass()
+class SS1Function(SafetyFunction):
+    """Safe Stop 1 Safety Function."""
+
+    COMMAND_UID = "FSOE_SS1_1"
+
+    TIME_TO_STO_UID = "FSOE_SS1_TIME_TO_STO_1"
+
+    command: "DictionaryItemInputOutput"
+    time_to_sto: SafetyParameter
+
+    @override
+    @classmethod
+    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SS1Function"]:
+        ss1_command = cls._get_required_input_output(handler, cls.COMMAND_UID)
+        time_to_sto = cls._get_required_parameter(handler, cls.TIME_TO_STO_UID)
+        yield cls(
+            command=ss1_command,
+            time_to_sto=time_to_sto,
+            io=(ss1_command,),
+            parameters=(time_to_sto,),
+        )
+
+
+@dataclass()
+class SafeInputsFunction(SafetyFunction):
+    """Safe Inputs Safety Function."""
+
+    SAFE_INPUTS_UID = "FSOE_SAFE_INPUTS_VALUE"
+
+    INPUTS_MAP_UID = "FSOE_SAFE_INPUTS_MAP"
+
+    value: "DictionaryItemInput"
+    map: SafetyParameter
+
+    @override
+    @classmethod
+    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafeInputsFunction"]:
+        safe_inputs = cls._get_required_input(handler, cls.SAFE_INPUTS_UID)
+        inputs_map = cls._get_required_parameter(handler, cls.INPUTS_MAP_UID)
+        yield cls(value=safe_inputs, map=inputs_map, io=(safe_inputs,), parameters=(inputs_map,))
 
 
 @dataclass
@@ -56,15 +224,8 @@ class FSoEMasterHandler:
 
     """
 
-    STO_COMMAND_KEY = 0x040
-    STO_COMMAND_UID = "STO_COMMAND"
-    SS1_COMMAND_KEY = 0x050
-    SS1_COMMAND_UID = "SS1_COMMAND"
-    SAFE_INPUTS_KEY = 0x070
-    SAFE_INPUTS_UID = "SAFE_INPUTS"
-    PROCESS_DATA_COMMAND = 0x36
-
     FSOE_MANUF_SAFETY_ADDRESS = "FSOE_MANUF_SAFETY_ADDRESS"
+    FSOE_DICTIONARY_CATEGORY = "FSOE"
 
     DEFAULT_WATCHDOG_TIMEOUT_S = 1
 
@@ -72,22 +233,49 @@ class FSoEMasterHandler:
         self,
         servo: EthercatServo,
         *,
+        safety_module: DictionarySafetyModule,
         slave_address: int,
         connection_id: int,
         watchdog_timeout: float = DEFAULT_WATCHDOG_TIMEOUT_S,
-        application_parameters: list["ApplicationParameter"],
         report_error_callback: Callable[[str, str], None],
     ):
         if not FSOE_MASTER_INSTALLED:
             return
-
         self.__servo = servo
+
+        # Parameters that are part of the system
+        # UID as key
+        self.safety_parameters: dict[str, SafetyParameter] = {}
+
+        # Parameters that will be transmitted during the fsoe parameter state
+        fsoe_application_parameters: list[FSoEApplicationParameter] = []
+
+        if safety_module.uses_sra:
+            raise NotImplementedError("Safety module with SRA is not available.")
+
+        for app_parameter in safety_module.application_parameters:
+            register = servo.dictionary.get_register(app_parameter.uid)
+
+            if safety_module.uses_sra:
+                sp = SafetyParameter(register, servo)
+                # Pending add SRA CRC Parameter
+                # https://novantamotion.atlassian.net/browse/INGM-621
+            else:
+                sp = SafetyParameterDirectValidation(register, servo)
+                fsoe_application_parameters.append(sp.fsoe_application_parameter)
+
+            self.safety_parameters[app_parameter.uid] = sp
+
+        self.dictionary = self.create_safe_dictionary(servo)
+
+        self.safety_functions = tuple(SafetyFunction.for_handler(self))
+
         self._master_handler = MasterHandler(
-            dictionary=self._saco_phase_1_dictionary(),
+            dictionary=self.dictionary,
             slave_address=slave_address,
             connection_id=connection_id,
             watchdog_timeout_s=watchdog_timeout,
-            application_parameters=application_parameters,
+            application_parameters=fsoe_application_parameters,
             report_error_callback=report_error_callback,
             state_change_callback=self.__state_change_callback,
         )
@@ -132,18 +320,28 @@ class FSoEMasterHandler:
     def _map_outputs(self) -> None:
         """Configure the FSoE master handler's SafeOutputs."""
         # Phase 1 mapping
-        self._master_handler.master.dictionary_map.add_by_key(self.STO_COMMAND_KEY, bits=1)
-        self._master_handler.master.dictionary_map.add_by_key(self.SS1_COMMAND_KEY, bits=1)
+        self._master_handler.master.dictionary_map.add(
+            self.get_function_instance(STOFunction).command, bits=1
+        )
+        self._master_handler.master.dictionary_map.add(
+            self.get_function_instance(SS1Function).command, bits=1
+        )
         self._master_handler.master.dictionary_map.add_padding(bits=7)
         self._master_handler.master.dictionary_map.add_padding(bits=7)
 
     def _map_inputs(self) -> None:
         """Configure the FSoE master handler's SafeInputs."""
         # Phase 1 mapping
-        self._master_handler.slave.dictionary_map.add_by_key(self.STO_COMMAND_KEY, bits=1)
-        self._master_handler.slave.dictionary_map.add_by_key(self.SS1_COMMAND_KEY, bits=1)
+        self._master_handler.slave.dictionary_map.add(
+            self.get_function_instance(STOFunction).command, bits=1
+        )
+        self._master_handler.slave.dictionary_map.add(
+            self.get_function_instance(SS1Function).command, bits=1
+        )
         self._master_handler.slave.dictionary_map.add_padding(bits=7)
-        self._master_handler.slave.dictionary_map.add_by_key(self.SAFE_INPUTS_KEY, bits=1)
+        self._master_handler.slave.dictionary_map.add(
+            self.get_function_instance(SafeInputsFunction).value, bits=1
+        )
         self._master_handler.slave.dictionary_map.add_padding(bits=6)
 
     def set_pdo_maps_to_slave(self) -> None:
@@ -179,27 +377,86 @@ class FSoEMasterHandler:
 
         self._master_handler.set_reply(reply)
 
+    @weak_lru()
+    def safety_functions_by_type(self) -> dict[type[SafetyFunction], list[SafetyFunction]]:
+        """Get a dictionary with the safety functions grouped by type."""
+        return {
+            type(sf): [
+                sf_of_type
+                for sf_of_type in self.safety_functions
+                if isinstance(sf_of_type, type(sf))
+            ]
+            for sf in self.safety_functions
+        }
+
+    @overload  # type: ignore[misc]
+    def get_function_instance(self, typ: type[SAFE_INSTANCE_TYPE]) -> SAFE_INSTANCE_TYPE: ...
+
+    @weak_lru()
+    def get_function_instance(
+        self, typ: type[SAFE_INSTANCE_TYPE], instance: Optional[int] = None
+    ) -> SAFE_INSTANCE_TYPE:
+        """Get the instance of a safety function.
+
+        Args:
+            typ: The type of the safety function to get.
+            instance: The index of the instance to get.
+                If None, if there's a single instance, it returns it.
+        """
+        funcs = [func for func in self.safety_functions if isinstance(func, typ)]
+
+        if isinstance(instance, int):
+            # First instance is 1
+            index = instance - 1
+            if index < 0 or index >= len(funcs):
+                raise IndexError(
+                    f"Master handler does not contain {typ.__name__} instance {instance}"
+                )
+            return funcs[index]
+        else:
+            if len(funcs) != 1:
+                raise ValueError(
+                    f"Multiple {typ.__name__} instances found ({len(funcs)}). "
+                    f"Specify the instance number."
+                )
+            return funcs[0]
+
+    @weak_lru()
+    def sto_function(self) -> STOFunction:
+        """Get the Safe Torque Off function."""
+        return self.get_function_instance(STOFunction)
+
+    @weak_lru()
+    def ss1_function(self) -> SS1Function:
+        """Get the Safe Stop 1 function."""
+        return self.get_function_instance(SS1Function)
+
+    @weak_lru()
+    def safe_inputs_function(self) -> SafeInputsFunction:
+        """Get the Safe Inputs function."""
+        return self.get_function_instance(SafeInputsFunction)
+
     def sto_deactivate(self) -> None:
         """Set the STO command to deactivate the STO."""
         self._master_handler.set_fail_safe(False)
-        self._master_handler.dictionary.set(self.STO_COMMAND_UID, True)
+        self.sto_function().command.set(True)
 
     def sto_activate(self) -> None:
         """Set the STO command to activate the STO."""
-        self._master_handler.dictionary.set(self.STO_COMMAND_UID, False)
+        self.sto_function().command.set(False)
 
     def ss1_deactivate(self) -> None:
         """Set the SS1 command to deactivate the SS1."""
         self._master_handler.set_fail_safe(False)
-        self._master_handler.dictionary.set(self.SS1_COMMAND_UID, True)
+        self.ss1_function().command.set(True)
 
     def ss1_activate(self) -> None:
         """Set the SS1 command to activate the SS1."""
-        self._master_handler.dictionary.set(self.SS1_COMMAND_UID, False)
+        self.ss1_function().command.set(False)
 
     def safe_inputs_value(self) -> bool:
         """Get the safe inputs register value."""
-        safe_inputs_value = self._master_handler.dictionary.get(self.SAFE_INPUTS_UID)
+        safe_inputs_value = self.safe_inputs_function().value.get()
         if not isinstance(safe_inputs_value, bool):
             raise ValueError(f"Wrong value type. Expected type bool, got {type(safe_inputs_value)}")
         return safe_inputs_value
@@ -232,7 +489,7 @@ class FSoEMasterHandler:
             True if the STO is active. False otherwise.
 
         """
-        sto_command = self._master_handler.dictionary.get(self.STO_COMMAND_UID)
+        sto_command = self.sto_function().command.get()
         if not isinstance(sto_command, bool):
             raise ValueError(f"Wrong value type. Expected type bool, got {type(sto_command)}")
         return sto_command
@@ -258,23 +515,43 @@ class FSoEMasterHandler:
         if self.__state_is_data.wait(timeout=timeout) is False:
             raise IMTimeoutError("The FSoE Master did not reach the Data state")
 
-    def _saco_phase_1_dictionary(self) -> "Dictionary":
+    @classmethod
+    def create_safe_dictionary(cls, servo: "EthercatServo") -> "Dictionary":
+        """Create a dictionary with the safe inputs and outputs.
+
+        Returns:
+            A Dictionary instance with the safe inputs and outputs.
+
+        """
+        dictionary = servo.dictionary
+        if isinstance(dictionary, EthercatDictionaryV2):
+            # Dictionary V2 only supports SaCo phase 1
+            return cls._saco_phase_1_dictionary()
+        if isinstance(dictionary, DictionaryV3):
+            return cls._create_safe_dictionary_from_v3(dictionary)
+        else:
+            raise NotImplementedError
+
+    @classmethod
+    def _saco_phase_1_dictionary(cls) -> "Dictionary":
         """Get the SaCo phase 1 dictionary instance."""
         sto_command_dict_item = DictionaryItemInputOutput(
-            key=self.STO_COMMAND_KEY,
-            name=self.STO_COMMAND_UID,
+            # Arbitrary key, could be removed
+            # https://novantamotion.atlassian.net/browse/INGK-1112
+            key=1,
+            name=STOFunction.STO_COMMAND_UID,
             data_type=DictionaryItem.DataTypes.BOOL,
             fail_safe_input_value=True,
         )
         ss1_command_dict_item = DictionaryItemInputOutput(
-            key=self.SS1_COMMAND_KEY,
-            name=self.SS1_COMMAND_UID,
+            key=2,
+            name=SS1Function.COMMAND_UID,
             data_type=DictionaryItem.DataTypes.BOOL,
             fail_safe_input_value=True,
         )
         safe_input_dict_item = DictionaryItemInput(
-            key=self.SAFE_INPUTS_KEY,
-            name=self.SAFE_INPUTS_UID,
+            key=3,
+            name=SafeInputsFunction.SAFE_INPUTS_UID,
             data_type=DictionaryItem.DataTypes.BOOL,
             fail_safe_value=False,
         )
@@ -285,6 +562,125 @@ class FSoEMasterHandler:
                 safe_input_dict_item,
             ]
         )
+
+    @classmethod
+    def _create_safe_dictionary_from_v3(cls, dictionary: "DictionaryV3") -> "Dictionary":
+        """Create a dictionary with the safe inputs and outputs from a DictionaryV3 instance.
+
+        Args:
+            dictionary: The DictionaryV3 instance.
+
+        Returns:
+            A FSOE Dictionary instance with the safe inputs and outputs.
+
+        """
+        items = []
+        for register in dictionary.registers(subnode=1).values():
+            if register.cat_id != cls.FSOE_DICTIONARY_CATEGORY:
+                continue
+
+            if not isinstance(register, CanopenRegister):
+                # Type could be narrowed to EthercatRegister
+                # After this bugfix:
+                # https://novantamotion.atlassian.net/browse/INGK-1111
+                raise TypeError
+
+            identifier = register.identifier
+            if identifier is None:
+                continue
+
+            if identifier.startswith(("FSOE_SLAVE_FRAME", "FSOE_MASTER_FRAME")):
+                # Elements of the standard FSoE frame are not added to the safe data dictionary
+                continue
+
+            if register.pdo_access in (
+                RegCyclicType.SAFETY_OUTPUT,
+                RegCyclicType.SAFETY_INPUT_OUTPUT,
+                RegCyclicType.SAFETY_INPUT,
+            ):
+                items.append(cls._create_fsoe_dict_item_from_reg(register))
+
+        return Dictionary(items)
+
+    @classmethod
+    def _create_fsoe_dict_item_from_reg(cls, reg: "CanopenRegister") -> "DictionaryItem":
+        # Create an arbitrary unique numeric key for the item
+        # https://novantamotion.atlassian.net/browse/INGK-1112
+        key = reg.idx * 1000 + reg.subidx
+
+        data_typ = cls._reg_dtype_to_fsoe_data_type(reg.dtype)
+
+        if reg.pdo_access == RegCyclicType.SAFETY_INPUT:
+            return DictionaryItemInput(
+                key,
+                name=reg.identifier,
+                data_type=data_typ,
+                fail_safe_value=cls.__fsoe_input_data_type_default(data_typ, DictionaryItemInput),
+            )
+        elif reg.pdo_access == RegCyclicType.SAFETY_INPUT_OUTPUT:
+            return DictionaryItemInputOutput(
+                key,
+                name=reg.identifier,
+                data_type=data_typ,
+                fail_safe_input_value=cls.__fsoe_input_data_type_default(
+                    data_typ, DictionaryItemInputOutput
+                ),
+            )
+        elif reg.pdo_access == RegCyclicType.SAFETY_OUTPUT:
+            return DictionaryItemOutput(
+                key,
+                name=reg.identifier,
+                data_type=data_typ,
+            )
+
+        raise NotImplementedError
+
+    @classmethod
+    def _reg_dtype_to_fsoe_data_type(cls, typ: "RegDtype") -> "DataType":
+        if typ == RegDtype.U8:
+            return DataType.UINT8
+        if typ == RegDtype.U16:
+            return DataType.UINT16
+        if typ == RegDtype.U32:
+            return DataType.UINT32
+        if typ == RegDtype.S8:
+            return DataType.INT8
+        if typ == RegDtype.S16:
+            return DataType.INT16
+        if typ == RegDtype.S32:
+            return DataType.INT32
+        if typ == RegDtype.FLOAT:
+            return DataType.FLOAT
+        if typ == RegDtype.BOOL:
+            return DataType.BOOL
+
+        raise NotImplementedError(f"Unsupported register data type for FSoE: {typ}")
+
+    @classmethod
+    def __fsoe_input_data_type_default(
+        cls, data_typ: "DataType", item_type: type["DictionaryItem"]
+    ) -> Union[int, float, str, bytes]:
+        if data_typ == DataType.BOOL:
+            if item_type == DictionaryItemInput:
+                # Inputs are assumed to be Low on safe-state
+                return False
+            if item_type == DictionaryItemInputOutput:
+                # Input-Outputs are typically safe commands,
+                # whose safe-state is being active
+                return True
+
+        if data_typ in (
+            DataType.UINT8,
+            DataType.UINT16,
+            DataType.UINT32,
+            DataType.INT8,
+            DataType.INT16,
+            DataType.INT32,
+            DataType.FLOAT,
+        ):
+            return 0
+
+        raise NotImplementedError(f"Unsupported data type for FSoE: {data_typ}")
 
     @property
     def safety_master_pdu_map(self) -> RPDOMap:
@@ -402,7 +798,7 @@ class FSoEMaster:
         self,
         servo: str = DEFAULT_SERVO,
         fsoe_master_watchdog_timeout: float = FSoEMasterHandler.DEFAULT_WATCHDOG_TIMEOUT_S,
-    ) -> None:
+    ) -> FSoEMasterHandler:
         """Create an FSoE Master handler linked to a Safe servo drive.
 
         Args:
@@ -414,17 +810,18 @@ class FSoEMaster:
         if not isinstance(node, EthercatServo):
             raise TypeError("Functional Safety over Ethercat is only available for Ethercat servos")
         slave_address = self._get_safety_address_from_drive(servo)
-        application_parameters = self._get_application_parameters(servo)
+
         master_handler = FSoEMasterHandler(
             node,
+            safety_module=self.__get_safety_module(servo=servo),
             slave_address=slave_address,
             connection_id=self.__next_connection_id,
             watchdog_timeout=fsoe_master_watchdog_timeout,
-            application_parameters=application_parameters,
             report_error_callback=partial(self._notify_errors, servo=servo),
         )
         self._handlers[servo] = master_handler
         self.__next_connection_id += 1
+        return master_handler
 
     def _get_safety_address_from_drive(self, servo: str = DEFAULT_SERVO) -> int:
         """Get the drive's FSoE slave address configured in the drive.
@@ -725,31 +1122,3 @@ class FSoEMaster:
             "The FSoE Master lost connection to the FSoE slaves. "
             f"An exception occurred during the PDO exchange: {exc}"
         )
-
-    def _get_application_parameters(self, servo: str) -> list["ApplicationParameter"]:
-        """Get values of the application parameters.
-
-        Returns:
-            List of application parameters.
-
-        Raises:
-            NotImplementedError: if the safety module has SRA.
-        """
-        drive = self.__mc.servos[servo]
-        safety_module = self.__get_safety_module(servo=servo)
-
-        if safety_module.uses_sra:
-            raise NotImplementedError("Safety module with SRA is not available.")
-
-        application_parameters = []
-        for param in safety_module.application_parameters:
-            register = self.__mc.info.register_info(register=param.uid, axis=1, servo=servo)
-            register_size_bytes, _ = dtype_value[register.dtype]
-            application_parameters.append(
-                ApplicationParameter(
-                    name=register.identifier,
-                    initial_value=drive.read(register),
-                    n_bytes=register_size_bytes,
-                )
-            )
-        return application_parameters

@@ -1,6 +1,9 @@
 # Changelog
 
 # Unreleased
+### Added
+- Added Model for safety functions and safe parameters.
+
 ### Fixed
 - Wait for the PDO Thread to finish before exiting operational state
 
