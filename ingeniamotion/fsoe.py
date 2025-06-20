@@ -244,8 +244,8 @@ class FSoEMasterHandler:
     FSOE_MANUF_SAFETY_ADDRESS = "FSOE_MANUF_SAFETY_ADDRESS"
     FSOE_DICTIONARY_CATEGORY = "FSOE"
 
-    FSOE_RPDO_MAP_1_INDEX = 0x1700
-    FSOE_TPDO_MAP_1_INDEX = 0x1B00
+    __FSOE_RPDO_MAP_1 = "ETG_COMMS_RPDO_MAP256_TOTAL"
+    __FSOE_TPDO_MAP_1 = "ETG_COMMS_TPDO_MAP256_TOTAL"
 
     DEFAULT_WATCHDOG_TIMEOUT_S = 1
 
@@ -262,6 +262,14 @@ class FSoEMasterHandler:
         if not FSOE_MASTER_INSTALLED:
             return
         self.__servo = servo
+        self.__running = False
+
+        self.__state_is_data = threading.Event()
+
+        # The saco slave might take a while to answer with a valid command
+        # During it's initialization it will respond with 0's, that are ignored
+        # To avoid triggering additional errors
+        self.__in_initial_reset = False
 
         # Parameters that are part of the system
         # UID as key
@@ -300,26 +308,13 @@ class FSoEMasterHandler:
             state_change_callback=self.__state_change_callback,
         )
 
-        self.__maps = PDUMaps(
-            outputs=self._master_handler.master.dictionary_map,
-            inputs=self._master_handler.slave.dictionary_map,
-        )
-        # Replace by reading the pdo maps of the servo
-        # https://novantamotion.atlassian.net/browse/INGK-1114
-        self._map_default_inputs()
-        self._map_default_outputs()
-        self.__safety_master_pdu = RPDOMap()
-        self.__safety_master_pdu.map_register_index = self.FSOE_RPDO_MAP_1_INDEX
-        self.__safety_slave_pdu = TPDOMap()
-        self.__safety_slave_pdu.map_register_index = self.FSOE_TPDO_MAP_1_INDEX
-        self.configure_pdo_maps()
-        self.__running = False
-        self.__state_is_data = threading.Event()
+        self.__safety_master_pdu = servo.read_rpdo_map_from_slave(self.__FSOE_RPDO_MAP_1, 1)
+        self.__safety_slave_pdu = servo.read_tpdo_map_from_slave(self.__FSOE_TPDO_MAP_1, 1)
 
-        # The saco slave might take a while to answer with a valid command
-        # During it's initialization it will respond with 0's, that are ignored
-        # To avoid triggering additional errors
-        self.__in_initial_reset = False
+        self.__maps = PDUMaps.from_rpdo_tpdo(
+            self.__safety_master_pdu, self.__safety_slave_pdu, dictionary=self.dictionary
+        )
+        self.set_maps(self.__maps)
 
     def _start(self) -> None:
         """Start the FSoE Master handler."""
