@@ -10,7 +10,6 @@ from tests.setups.rack_specifiers import CAN_CAP_SETUP, ECAT_CAP_SETUP, ETH_CAP_
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_get_gpio_bit_value(mc):
     base_value = 0xA3  # 1010 0011
     bits = [True, True, False, False, False, True, False, True]
@@ -21,7 +20,6 @@ def test_get_gpio_bit_value(mc):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_set_gpio_bit_value(mc):
     base_value = 0xA3  # 1010 0011
 
@@ -38,7 +36,6 @@ def test_set_gpio_bit_value(mc):
 @pytest.mark.parametrize("gpi_id", [GPI.GPI1, GPI.GPI2, GPI.GPI3, GPI.GPI4])
 @pytest.mark.parametrize("polarity", [GPIOPolarity.NORMAL, GPIOPolarity.REVERSED])
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_set_get_gpi_polarity(mc, alias, gpi_id, polarity):
     mc.io.set_gpi_polarity(gpi_id, polarity, servo=alias)
     assert mc.io.get_gpi_polarity(gpi_id, servo=alias) == polarity
@@ -48,7 +45,6 @@ def test_set_get_gpi_polarity(mc, alias, gpi_id, polarity):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_get_gpi_voltage_level(mc, alias, environment, setup_specifier):
     if not isinstance(
         setup_specifier, (RackServiceConfigSpecifier, MultiRackServiceConfigSpecifier)
@@ -86,7 +82,6 @@ def test_get_gpi_voltage_level(mc, alias, environment, setup_specifier):
 @pytest.mark.parametrize("gpo_id", [GPO.GPO1, GPO.GPO2, GPO.GPO3, GPO.GPO4])
 @pytest.mark.parametrize("polarity", [GPIOPolarity.NORMAL, GPIOPolarity.REVERSED])
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_set_get_gpo_polarity(mc, alias, gpo_id, polarity):
     mc.io.set_gpo_polarity(gpo_id, polarity, servo=alias)
     assert mc.io.get_gpo_polarity(gpo_id, servo=alias) == polarity
@@ -94,7 +89,6 @@ def test_set_get_gpo_polarity(mc, alias, gpo_id, polarity):
 
 @pytest.mark.canopen
 @pytest.mark.ethernet
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "gpo_id,reg_value",
     [
@@ -124,7 +118,6 @@ def test_set_gpo_voltage_level(mc, alias, gpo_id, reg_value):
 
 @pytest.mark.canopen
 @pytest.mark.ethernet
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "gpo_id",
     [

@@ -1,5 +1,14 @@
 # Changelog
 
+# Unreleased
+### Added
+- Added Model for safety functions and safe parameters.
+- Created PDUMaps that parses pdos and converts them to pdos.
+- Added methods to intelligently add i/o on the map.
+
+### Fixed
+- Wait for the PDO Thread to finish before exiting operational state
+
 ## [0.9.1] - 2025-05-07
 ### Added
 - Methods to scan Ethernet drives.

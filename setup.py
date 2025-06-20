@@ -43,7 +43,7 @@ setuptools.setup(
         "ifaddr==0.1.7",
     ],
     extras_require={
-        "FSoE": ["fsoe-master==0.1.4"],
+        "FSoE": ["fsoe_master==0.1.4+g74acfd6"],
     },
     python_requires=">=3.9",
 )

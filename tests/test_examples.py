@@ -5,15 +5,11 @@ import pytest
 from ingenialink import CanBaudrate, CanDevice
 from ingenialink.exceptions import ILFirmwareLoadError
 from ingenialink.pdo import RPDOMap, TPDOMap
-from summit_testing_framework.network_utils import (
-    connect_to_servo_with_protocol,
-)
 from summit_testing_framework.setups.descriptors import (
     DriveCanOpenSetup,
     DriveEcatSetup,
     DriveEthernetSetup,
     EthernetSetup,
-    SetupDescriptor,
 )
 
 from examples.change_baudrate import change_baudrate
@@ -38,18 +34,6 @@ from ingeniamotion.motion import Motion
 from ingeniamotion.pdo import PDONetworkManager, PDOPoller
 
 
-@pytest.fixture
-def setup_for_test_examples(mc, alias):
-    mc.communication.disconnect(alias)
-
-
-@pytest.fixture
-def teardown_for_test_examples(interface_controller, setup_descriptor: SetupDescriptor):
-    yield
-    _, net, _, _ = interface_controller
-    connect_to_servo_with_protocol(descriptor=setup_descriptor, net=net)
-
-
 @pytest.mark.ethernet
 def test_disturbance_example(setup_descriptor: EthernetSetup, script_runner):
     script_path = "examples/disturbance_example.py"
@@ -61,8 +45,8 @@ def test_disturbance_example(setup_descriptor: EthernetSetup, script_runner):
     assert result.returncode == 0
 
 
-@pytest.mark.usefixtures("setup_for_test_examples", "teardown_for_test_examples")
 @pytest.mark.canopen
+@pytest.mark.skip_testing_framework
 def test_canopen_example(setup_descriptor: DriveCanOpenSetup, script_runner):
     script_path = "examples/canopen_example.py"
 
@@ -182,7 +166,7 @@ def test_load_fw_ftp(setup_descriptor: DriveEthernetSetup, script_runner, mocker
             script_path,
             f"--dictionary_path={setup_descriptor.dictionary}",
             f"--ip={setup_descriptor.ip}",
-            f"--firmware_file={setup_descriptor.fw_file}",
+            f"--firmware_file={setup_descriptor.fw_data.fw_file}",
         ]
     )
     assert result.returncode == 0
@@ -193,7 +177,7 @@ def test_load_fw_ecat(setup_descriptor: DriveEcatSetup, script_runner, mocker):
     script_path = "examples/load_fw_ecat.py"
     interface_index = 0
     slave_id = setup_descriptor.slave
-    fw_file = setup_descriptor.fw_file
+    fw_file = setup_descriptor.fw_data.fw_file
 
     class MockCommunication:
         def load_firmware_ecat_interface_index(self, *args, **kwargs):
@@ -281,7 +265,6 @@ def test_brake_config_example(
     assert result.returncode == 0
 
 
-@pytest.mark.virtual
 def test_can_bootloader_example_success(mocker, capsys):
     device = CanDevice.PCAN
     channel = 0
@@ -326,7 +309,6 @@ def test_can_bootloader_example_success(mocker, capsys):
     assert all_outputs[7] == "Drive is disconnected."
 
 
-@pytest.mark.virtual
 def test_can_bootloader_example_failed(mocker, capsys):
     device = CanDevice.PCAN
     channel = 0
@@ -367,7 +349,6 @@ def test_can_bootloader_example_failed(mocker, capsys):
     assert all_outputs[5] == "Drive is disconnected."
 
 
-@pytest.mark.virtual
 def test_change_node_id_success(mocker, capsys):
     device = CanDevice.PCAN
     channel = 0
@@ -390,7 +371,6 @@ def test_change_node_id_success(mocker, capsys):
     assert all_outputs[6] == f"Now the drive is connected with {test_new_node_id} as a node ID."
 
 
-@pytest.mark.virtual
 def test_change_node_id_failed(mocker, capsys):
     device = CanDevice.PCAN
     channel = 0
@@ -412,7 +392,6 @@ def test_change_node_id_failed(mocker, capsys):
     assert all_outputs[3] == f"This drive already has this node ID: {node_id}."
 
 
-@pytest.mark.virtual
 def test_change_baudrate_success(mocker, capsys):
     device = CanDevice.PCAN
     channel = 0
@@ -437,7 +416,6 @@ def test_change_baudrate_success(mocker, capsys):
     )
 
 
-@pytest.mark.virtual
 def test_change_baudrate_failed(mocker, capsys):
     device = CanDevice.PCAN
     channel = 0
@@ -458,7 +436,6 @@ def test_change_baudrate_failed(mocker, capsys):
     assert all_outputs[2] == f"This drive already has this baudrate: {baudrate}."
 
 
-@pytest.mark.virtual
 def test_ecat_coe_connection_example_success(mocker, capsys):
     interface_index = 2
     slave_id = 1
@@ -508,7 +485,6 @@ def test_ecat_coe_connection_example_success(mocker, capsys):
     assert all_outputs[10] == "The drive has been disconnected."
 
 
-@pytest.mark.virtual
 def test_ecat_coe_connection_example_failed(mocker, capsys):
     interface_index = 2
     slave_id = 1
@@ -550,7 +526,6 @@ def test_ecat_coe_connection_example_failed(mocker, capsys):
     )
 
 
-@pytest.mark.virtual
 def test_ecat_coe_connection_example_connection_error(mocker, capsys):
     interface_index = 2
     slave_id = 1
@@ -596,7 +571,6 @@ def test_ecat_coe_connection_example_connection_error(mocker, capsys):
     assert e.value.args[0] == f"could not open interface {expected_real_name_interface}"
 
 
-@pytest.mark.virtual
 def test_pdo_poller_success(mocker):
     connect_servo_ethercat_interface_ip = mocker.patch.object(
         Communication, "connect_servo_ethercat_interface_ip"
@@ -621,7 +595,6 @@ def test_pdo_poller_success(mocker):
     disconnect.assert_called_once()
 
 
-@pytest.mark.virtual
 def test_load_save_configuration(mocker):
     connect_servo_ethercat_interface_index = mocker.patch.object(
         Communication, "connect_servo_ethercat_interface_index"
@@ -638,7 +611,6 @@ def test_load_save_configuration(mocker):
     disconnect.assert_called_once()
 
 
-@pytest.mark.virtual
 def test_load_save_configuration_register_changes_success(mocker, capsys):
     mocker.patch.object(Communication, "connect_servo_ethercat_interface_index")
     mocker.patch.object(Communication, "disconnect")
@@ -667,7 +639,6 @@ def test_load_save_configuration_register_changes_success(mocker, capsys):
     )
 
 
-@pytest.mark.virtual
 def test_load_save_configuration_register_changes_failed(mocker, capsys):
     mocker.patch.object(Communication, "connect_servo_ethercat_interface_index")
     mocker.patch.object(Communication, "disconnect")
@@ -685,7 +656,6 @@ def test_load_save_configuration_register_changes_failed(mocker, capsys):
     assert all_outputs[1] == "This max. velocity value is already set."
 
 
-@pytest.mark.virtual
 def test_process_data_object(mocker):
     connect_servo_ethercat_interface_ip = mocker.patch.object(
         Communication, "connect_servo_ethercat_interface_ip"
@@ -747,7 +717,6 @@ def test_process_data_object(mocker):
         assert order_mock.method_calls[current_function][0] == expected_function_name
 
 
-@pytest.mark.virtual
 def test_commutation_test(mocker):
     connect_servo_ethercat_interface_ip = mocker.patch.object(
         Communication, "connect_servo_ethercat_interface_ip"
@@ -779,7 +748,6 @@ def test_commutation_test(mocker):
     disconnect.assert_called_once()
 
 
-@pytest.mark.virtual
 def test_position_ramp(mocker, capsys):
     connect_servo_ethercat_interface_ip = mocker.patch.object(
         Communication, "connect_servo_ethercat_interface_ip"

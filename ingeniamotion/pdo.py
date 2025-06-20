@@ -286,8 +286,8 @@ class PDONetworkManager:
         def stop(self) -> None:
             """Stop the PDO exchange."""
             self._pd_thread_stop_event.set()
-            self._net.stop_pdos()
             self.join()
+            self._net.stop_pdos()
 
         @staticmethod
         def high_precision_sleep(duration: float) -> None:
@@ -366,7 +366,7 @@ class PDONetworkManager:
         register = drive.dictionary.registers(axis)[register_uid]
         if not isinstance(register, EthercatRegister):
             raise ValueError(f"Expected EthercatRegister. Got {type(register)}")
-        pdo_map_item = pdo_map_item_dict[register.cyclic](register)
+        pdo_map_item = pdo_map_item_dict[register.pdo_access](register)
         if isinstance(pdo_map_item, RPDOMapItem):
             if value is None:
                 raise AttributeError("A initial value is required for a RPDO.")

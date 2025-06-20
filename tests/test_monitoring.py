@@ -39,7 +39,6 @@ def mon_map_registers(skip_if_monitoring_not_available, monitoring):  # noqa: AR
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "trigger_type",
     [
@@ -94,7 +93,6 @@ def test_raise_forced_trigger(
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
 @pytest.mark.usefixtures("disable_monitoring_disturbance")
@@ -133,7 +131,6 @@ def test_read_monitoring_data_forced_trigger(mc, alias, monitoring, timeout, sam
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 @pytest.mark.parametrize("prescaler", list(range(2, 11, 2)))
 def test_set_monitoring_frequency(mc, alias, monitoring, prescaler):
     monitoring.set_frequency(prescaler)
@@ -146,7 +143,6 @@ def test_set_monitoring_frequency(mc, alias, monitoring, prescaler):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 def test_set_monitoring_frequency_exception(monitoring):
     prescaler = 0.5
     with pytest.raises(ValueError):
@@ -154,7 +150,6 @@ def test_set_monitoring_frequency_exception(monitoring):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_monitoring_map_registers_size_exception(monitoring):
     registers = [{"axis": 1, "name": "CL_POS_FBK_VALUE"}]
     monitoring.samples_number = monitoring.max_sample_number
@@ -163,7 +158,6 @@ def test_monitoring_map_registers_size_exception(monitoring):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_monitoring_map_registers_fail(monitoring):
     registers = []
     with pytest.raises(IMMonitoringError):
@@ -171,7 +165,6 @@ def test_monitoring_map_registers_fail(monitoring):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_monitoring_map_registers_wrong_cyclic(monitoring):
     registers = [{"axis": 1, "name": "DRV_STATE_CONTROL"}]
     with pytest.raises(IMMonitoringError):
@@ -181,7 +174,6 @@ def test_monitoring_map_registers_wrong_cyclic(monitoring):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 @pytest.mark.usefixtures("mon_map_registers")
 @pytest.mark.parametrize(
     "trigger_type, edge_condition, trigger_signal, trigger_value",
@@ -215,7 +207,6 @@ def test_monitoring_set_trigger(
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 @pytest.mark.usefixtures("mon_map_registers")
 @pytest.mark.parametrize(
     "trigger_type, edge_condition, trigger_signal, trigger_value",
@@ -245,7 +236,6 @@ def test_monitoring_set_trigger_exceptions(
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 def test_configure_number_samples(mc, alias, monitoring):
     total_num_samples = 500
     trigger_delay_samples = 100
@@ -263,7 +253,6 @@ def test_configure_number_samples(mc, alias, monitoring):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 @pytest.mark.parametrize("total_num_samples, trigger_delay_samples", [(500, 510), (510, -500)])
 def test_configure_number_samples_exceptions(monitoring, total_num_samples, trigger_delay_samples):
     with pytest.raises(ValueError):
@@ -273,7 +262,6 @@ def test_configure_number_samples_exceptions(monitoring, total_num_samples, trig
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 def test_configure_sample_time(mc, alias, monitoring):
     total_time = 5
     sampling_freq = 1e4
@@ -295,7 +283,6 @@ def test_configure_sample_time(mc, alias, monitoring):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 @pytest.mark.parametrize("total_time, sign", [(5, 1), (5, -1)])
 def test_configure_sample_time_exception(monitoring, total_time, sign):
     trigger_delay = sign * ((total_time // 2) + 1)
@@ -306,7 +293,6 @@ def test_configure_sample_time_exception(monitoring, total_time, sign):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 @pytest.mark.usefixtures("skip_if_monitoring_not_available")
 def test_enable_monitoring_no_mapped_registers(mc, alias):
     mc.capture.clean_monitoring(alias)
@@ -318,7 +304,6 @@ def test_enable_monitoring_no_mapped_registers(mc, alias):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
 def test_read_monitoring_data_disabled(monitoring):
@@ -411,7 +396,6 @@ def run_read_monitoring_data_and_stop(monitoring, timeout):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
 @pytest.mark.usefixtures("disable_monitoring_disturbance")
@@ -428,7 +412,6 @@ def test_stop_reading_data(mc, alias, monitoring):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("skip_if_monitoring_not_available")
 def test_monitoring_max_sample_size(mc, alias):
     target_register = mc.capture.MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER
@@ -440,7 +423,6 @@ def test_monitoring_max_sample_size(mc, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_monitoring_map_registers_invalid_subnode(mocker, mc, monitoring):
     registers = [{"axis": "1", "name": "DRV_AXIS_NUMBER"}]
     mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=False)
@@ -449,7 +431,6 @@ def test_monitoring_map_registers_invalid_subnode(mocker, mc, monitoring):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_monitoring_map_registers_invalid_register(mocker, mc, monitoring):
     registers = [{"axis": 1, "name": 1}]
     mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=False)
@@ -458,7 +439,6 @@ def test_monitoring_map_registers_invalid_register(mocker, mc, monitoring):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_monitoring_map_registers_invalid_number_mapped_registers(mocker, mc, monitoring):
     registers = [{"axis": 1, "name": "CL_POS_FBK_VALUE"}]
     mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=False)
@@ -475,7 +455,6 @@ def test_monitoring_map_registers_invalid_number_mapped_registers(mocker, mc, mo
     ],
 )
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_configure_sample_time_exceptions(
     mocker, mc, monitoring, trigger_delay, expected_exception
 ):

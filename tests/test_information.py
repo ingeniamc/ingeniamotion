@@ -117,7 +117,6 @@ def test_get_name(mc, alias):
     assert name == expected_name
 
 
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "communication, expected_result, args",
     [
@@ -137,7 +136,6 @@ def test_get_communication_type(mocker, mc, alias, communication, expected_resul
     assert communication_type == expected_result
 
 
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "communication, expected_result, args",
     [

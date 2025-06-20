@@ -52,7 +52,6 @@ def teardown_brake_override(mc, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("teardown_brake_override")
 def test_release_brake(mc, alias):
     mc.configuration.release_brake(servo=alias)
@@ -63,7 +62,6 @@ def test_release_brake(mc, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("teardown_brake_override")
 def test_enable_brake(mc, alias):
     mc.configuration.enable_brake(servo=alias)
@@ -74,7 +72,6 @@ def test_enable_brake(mc, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.usefixtures("teardown_brake_override")
 def test_disable_brake_override(mc, alias):
     mc.configuration.disable_brake_override(servo=alias)
@@ -95,7 +92,6 @@ def remove_file_if_exist():
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 @pytest.mark.usefixtures("remove_file_if_exist")
 def test_save_configuration_and_load_configuration(mc, alias):
     file_path = "test_file.xcf"
@@ -112,7 +108,6 @@ def test_save_configuration_and_load_configuration(mc, alias):
 @pytest.mark.usefixtures("remove_file_if_exist")
 @pytest.mark.canopen
 @pytest.mark.ethernet
-@pytest.mark.smoke
 def test_save_configuration_and_load_configuration_nvm_none(mc, alias):
     file_path = "test_file.xcf"
     old_value = mc.communication.get_register(POSITION_SET_POINT_REGISTER, servo=alias)
@@ -126,14 +121,12 @@ def test_save_configuration_and_load_configuration_nvm_none(mc, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_set_profiler_exception(mc, alias):
     with pytest.raises(TypeError):
         mc.configuration.set_profiler(None, None, None, servo=alias)
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "acceleration, deceleration, velocity",
     [(0, 0, 0), (15, 20, 25), (1, None, None), (None, 1, None), (None, None, 1)],
@@ -155,7 +148,6 @@ def test_set_profiler(mc, alias, acceleration, deceleration, velocity):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize("acceleration", [0, 10, 25])
 def test_set_max_profile_acceleration(mc, alias, acceleration):
     mc.configuration.set_max_profile_acceleration(acceleration, servo=alias)
@@ -164,7 +156,6 @@ def test_set_max_profile_acceleration(mc, alias, acceleration):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize("deceleration", [0, 10, 25])
 def test_set_max_deceleration(mc, alias, deceleration):
     mc.configuration.set_max_profile_deceleration(deceleration, servo=alias)
@@ -173,7 +164,6 @@ def test_set_max_deceleration(mc, alias, deceleration):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize("velocity", [0, 10, 25])
 def test_set_max_velocity(mc, alias, velocity):
     mc.configuration.set_max_velocity(velocity, servo=alias)
@@ -182,7 +172,6 @@ def test_set_max_velocity(mc, alias, velocity):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize("velocity", [0, 10, 25])
 def test_set_max_profile_velocity(mc, alias, velocity):
     mc.configuration.set_max_profile_velocity(velocity, servo=alias)
@@ -191,7 +180,6 @@ def test_set_max_profile_velocity(mc, alias, velocity):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_get_position_and_velocity_loop_rate(mc, alias):
     test_value = mc.configuration.get_position_and_velocity_loop_rate(servo=alias)
     reg_value = mc.communication.get_register(POSITION_AND_VELOCITY_LOOP_RATE_REGISTER, servo=alias)
@@ -199,7 +187,6 @@ def test_get_position_and_velocity_loop_rate(mc, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_get_current_loop_rate(mc, alias):
     test_value = mc.configuration.get_current_loop_rate(servo=alias)
     reg_value = mc.communication.get_register(CURRENT_LOOP_RATE_REGISTER, servo=alias)
@@ -207,13 +194,11 @@ def test_get_current_loop_rate(mc, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_get_power_stage_frequency(mc, alias):
     mc.configuration.get_power_stage_frequency(servo=alias)
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_get_power_stage_frequency_raw(mc, alias):
     test_value = mc.configuration.get_power_stage_frequency(servo=alias, raw=True)
     pow_stg_freq = mc.communication.get_register(
@@ -223,13 +208,11 @@ def test_get_power_stage_frequency_raw(mc, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_get_power_stage_frequency_enum(mc, alias):
     mc.configuration.get_power_stage_frequency_enum(servo=alias)
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize("input_value", [0, 1, 2, 3])
 def test_set_power_stage_frequency(motion_controller_teardown, alias, input_value):
     input_value = 0
@@ -242,7 +225,6 @@ def test_set_power_stage_frequency(motion_controller_teardown, alias, input_valu
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_get_power_stage_frequency_exception(mocker, mc, alias):
     mocker.patch("ingeniamotion.communication.Communication.get_register", return_value=5)
     with pytest.raises(ValueError):
@@ -250,7 +232,6 @@ def test_get_power_stage_frequency_exception(mocker, mc, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_get_status_word(mc, alias):
     test_value = mc.configuration.get_status_word(servo=alias)
     reg_value = mc.communication.get_register(STATUS_WORD_REGISTER, servo=alias)
@@ -260,7 +241,6 @@ def test_get_status_word(mc, alias):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 def test_is_motor_enabled_1(mc, alias):
     mc.motion.motor_disable(alias)
     assert not mc.configuration.is_motor_enabled(servo=alias)
@@ -271,7 +251,6 @@ def test_is_motor_enabled_1(mc, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "status_word_value, expected_result",
     [
@@ -292,7 +271,6 @@ def test_is_motor_enabled_2(mocker, mc, alias, status_word_value, expected_resul
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "status_word_value, expected_result",
     [
@@ -313,7 +291,6 @@ def test_is_commutation_feedback_aligned(mocker, mc, alias, status_word_value, e
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_set_phasing_mode(mc, alias):
     input_value = 0
     mc.configuration.set_phasing_mode(input_value, servo=alias)
@@ -322,7 +299,6 @@ def test_set_phasing_mode(mc, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_get_phasing_mode(mc, alias):
     test_value = mc.configuration.get_phasing_mode(servo=alias)
     reg_value = mc.communication.get_register(PHASING_MODE_REGISTER, servo=alias)
@@ -330,7 +306,6 @@ def test_get_phasing_mode(mc, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_set_generator_mode(mc, alias):
     input_value = 0
     mc.configuration.set_generator_mode(input_value, servo=alias)
@@ -339,7 +314,6 @@ def test_set_generator_mode(mc, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_set_motor_pair_poles(motion_controller_teardown, alias):
     input_value = 0
     mc = motion_controller_teardown
@@ -349,7 +323,6 @@ def test_set_motor_pair_poles(motion_controller_teardown, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_get_motor_pair_poles(mc, alias):
     test_value = mc.configuration.get_motor_pair_poles(servo=alias)
     reg_value = mc.communication.get_register(MOTOR_POLE_PAIRS_REGISTER, servo=alias)
@@ -357,7 +330,6 @@ def test_get_motor_pair_poles(mc, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_get_sto_status(mc, alias):
     test_value = mc.configuration.get_sto_status(servo=alias)
     reg_value = mc.communication.get_register(STO_STATUS_REGISTER, servo=alias)
@@ -369,7 +341,6 @@ def patch_get_sto_status(mocker, value):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_status_value, expected_result",
     [
@@ -388,7 +359,6 @@ def test_is_sto1_active(mocker, mc, alias, sto_status_value, expected_result):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_status_value, expected_result",
     [
@@ -407,7 +377,6 @@ def test_is_sto2_active(mocker, mc, alias, sto_status_value, expected_result):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_status_value, expected_result",
     [(0xFAC4, 1), (0x1AE1, 0), (0xD9CA, 0), (0xEE94, 1), (0xAE9F, 1), (0x478B, 0)],
@@ -421,7 +390,6 @@ def test_check_sto_power_supply(mocker, mc, alias, sto_status_value, expected_re
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_status_value, expected_result",
     [
@@ -440,7 +408,6 @@ def test_is_sto_abnormal_fault(mocker, mc, alias, sto_status_value, expected_res
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_status_value, expected_result",
     [(0xF29C, 1), (0xF440, 0), (0xD1A7, 0), (0x86D7, 1), (0x2A43, 0), (0x33E6, 0)],
@@ -452,7 +419,6 @@ def test_get_sto_report_bit(mocker, mc, alias, sto_status_value, expected_result
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_status_value, expected_result", [(0x13A0, False), (0x7648, False), (0x4, True)]
 )
@@ -463,7 +429,6 @@ def test_is_sto_active(mocker, mc, alias, sto_status_value, expected_result):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_status_value, expected_result", [(0xC18A, False), (0x742C, False), (0x17, True)]
 )
@@ -474,7 +439,6 @@ def test_is_sto_inactive(mocker, mc, alias, sto_status_value, expected_result):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "sto_status_value, expected_result",
     [
@@ -504,18 +468,14 @@ def test_is_sto_abnormal_latched(mocker, mc, alias, sto_status_value, expected_r
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
-def test_store_configuration(_motion_controller_creator, alias):
-    mc = _motion_controller_creator  # use mc fixture: https://novantamotion.atlassian.net/browse/INGK-1096
+def test_store_configuration(mc, alias):
     mc.configuration.store_configuration(servo=alias)
 
 
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
-def test_restore_configuration(_motion_controller_creator, alias):
-    mc = _motion_controller_creator  # use mc fixture: https://novantamotion.atlassian.net/browse/INGK-1096
+def test_restore_configuration(mc, alias):
     mc.configuration.restore_configuration(servo=alias)
 
 
@@ -607,7 +567,6 @@ def test_change_node_id_exception(mc, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_set_velocity_pid(motion_controller_teardown, alias):
     mc = motion_controller_teardown
     kp_test = 1
@@ -623,7 +582,6 @@ def test_set_velocity_pid(motion_controller_teardown, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_set_position_pid(motion_controller_teardown, alias):
     mc = motion_controller_teardown
     kp_test = 1
@@ -639,7 +597,6 @@ def test_set_position_pid(motion_controller_teardown, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_get_set_rated_current(mc, alias):
     initial_rated_current = mc.communication.get_register(RATED_CURRENT_REGISTER, servo=alias)
     read_rated_current = mc.configuration.get_rated_current(alias)
@@ -653,7 +610,6 @@ def test_get_set_rated_current(mc, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 def test_get_max_current(mc, alias):
     real_max_current = mc.communication.get_register(MAX_CURRENT_REGISTER, servo=alias)
     test_max_current = mc.configuration.get_max_current(alias)
@@ -816,8 +772,6 @@ def test_get_subnode_type_exception(mc):
         mc.configuration.get_subnode_type(-1)
 
 
-@pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "mac_address_str, mac_address_int",
     [
@@ -830,8 +784,6 @@ def test_mac_address_convertion(mac_address_str, mac_address_int):
     assert MACAddressConverter.int_to_str(mac_address_int) == mac_address_str
 
 
-@pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "invalid_mac_address",
     [
@@ -845,8 +797,6 @@ def test_mac_address_str_to_int_convertion_exception(invalid_mac_address):
     assert str(excinfo.value) == "The MAC address has an incorrect format."
 
 
-@pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "invalid_mac_address",
     [
