@@ -2,7 +2,7 @@ import threading
 from collections.abc import Iterator
 from dataclasses import dataclass
 from functools import partial
-from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union, overload
+from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union, cast, overload
 
 import ingenialogger
 from ingenialink import RegDtype
@@ -496,7 +496,7 @@ class FSoEMasterHandler:
         Returns:
             The FSoE slave address.
         """
-        return self._master_handler.get_slave_address()
+        return cast(int, self._master_handler.get_slave_address())
 
     def set_safety_address(self, address: int) -> None:
         """Set the drive's FSoE slave address to the master and the slave.
