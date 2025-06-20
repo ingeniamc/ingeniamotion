@@ -468,16 +468,14 @@ def test_is_sto_abnormal_latched(mocker, mc, alias, sto_status_value, expected_r
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-def test_store_configuration(_motion_controller_creator, alias):
-    mc = _motion_controller_creator  # use mc fixture: https://novantamotion.atlassian.net/browse/INGK-1096
+def test_store_configuration(mc, alias):
     mc.configuration.store_configuration(servo=alias)
 
 
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-def test_restore_configuration(_motion_controller_creator, alias):
-    mc = _motion_controller_creator  # use mc fixture: https://novantamotion.atlassian.net/browse/INGK-1096
+def test_restore_configuration(mc, alias):
     mc.configuration.restore_configuration(servo=alias)
 
 
@@ -774,7 +772,6 @@ def test_get_subnode_type_exception(mc):
         mc.configuration.get_subnode_type(-1)
 
 
-@pytest.mark.virtual
 @pytest.mark.parametrize(
     "mac_address_str, mac_address_int",
     [
@@ -787,7 +784,6 @@ def test_mac_address_convertion(mac_address_str, mac_address_int):
     assert MACAddressConverter.int_to_str(mac_address_int) == mac_address_str
 
 
-@pytest.mark.virtual
 @pytest.mark.parametrize(
     "invalid_mac_address",
     [
@@ -801,7 +797,6 @@ def test_mac_address_str_to_int_convertion_exception(invalid_mac_address):
     assert str(excinfo.value) == "The MAC address has an incorrect format."
 
 
-@pytest.mark.virtual
 @pytest.mark.parametrize(
     "invalid_mac_address",
     [
