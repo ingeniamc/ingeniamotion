@@ -17,12 +17,27 @@ try:
         ApplicationParameter as FSoEApplicationParameter,
     )
     from fsoe_master.fsoe_master import (
-        DataType,
-        Dictionary,
-        DictionaryItem,
-        DictionaryItemInput,
-        DictionaryItemInputOutput,
-        DictionaryItemOutput,
+        DataType as FSoEDataType,
+    )
+    from fsoe_master.fsoe_master import (
+        Dictionary as FSoEDictionary,
+    )
+    from fsoe_master.fsoe_master import (
+        DictionaryItem as FSoEDictionaryItem,
+    )
+    from fsoe_master.fsoe_master import (
+        DictionaryItemInput as FSoEDictionaryItemInput,
+    )
+    from fsoe_master.fsoe_master import (
+        DictionaryItemInputOutput as FSoEDictionaryItemInputOutput,
+    )
+    from fsoe_master.fsoe_master import (
+        DictionaryItemOutput as FSoEDictionaryItemOutput,
+    )
+    from fsoe_master.fsoe_master import (
+        DictionaryMap as FSoEDictionaryMap,
+    )
+    from fsoe_master.fsoe_master import (
         MasterHandler,
         StateData,
     )
@@ -35,8 +50,8 @@ except ImportError:
 else:
     FSOE_MASTER_INSTALLED = True
 
-from ingenialink.dictionary import DictionarySafetyModule, DictionaryV3
-from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
+from ingenialink.dictionary import Dictionary, DictionarySafetyModule, DictionaryV3
+from ingenialink.pdo import PDOMap, PDOMapItem, RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 from ingenialink.utils._utils import dtype_value
 
 from ingeniamotion._utils import weak_lru
@@ -104,7 +119,7 @@ class SafetyFunction:
     Wraps input/output items and parameters used by the FSoE Master handler.
     """
 
-    io: tuple["DictionaryItem", ...]
+    io: tuple["FSoEDictionaryItem", ...]
     parameters: tuple[SafetyParameter, ...]
 
     @classmethod
@@ -117,20 +132,22 @@ class SafetyFunction:
     @classmethod
     def _get_required_input_output(
         cls, hander: "FSoEMasterHandler", uid: str
-    ) -> "DictionaryItemInputOutput":
+    ) -> "FSoEDictionaryItemInputOutput":
         """Get the required input/output item from the handler's dictionary."""
         item = hander.dictionary.name_map.get(uid)
-        if not isinstance(item, DictionaryItemInputOutput):
+        if not isinstance(item, FSoEDictionaryItemInputOutput):
             raise TypeError(
                 f"Expected DictionaryItemInputOutput {uid} on the safe dictionary, got {type(item)}"
             )
         return item
 
     @classmethod
-    def _get_required_input(cls, handler: "FSoEMasterHandler", uid: str) -> "DictionaryItemInput":
+    def _get_required_input(
+        cls, handler: "FSoEMasterHandler", uid: str
+    ) -> "FSoEDictionaryItemInput":
         """Get the required input item from the handler's dictionary."""
         item = handler.dictionary.name_map.get(uid)
-        if not isinstance(item, DictionaryItemInput):
+        if not isinstance(item, FSoEDictionaryItemInput):
             raise TypeError(
                 f"Expected DictionaryItemInput {uid} on the safe dictionary, got {type(item)}"
             )
@@ -151,14 +168,14 @@ SAFE_INSTANCE_TYPE = TypeVar("SAFE_INSTANCE_TYPE", bound="SafetyFunction")
 class STOFunction(SafetyFunction):
     """Safe Torque Off Safety Function."""
 
-    STO_COMMAND_UID = "FSOE_STO"
+    COMMAND_UID = "FSOE_STO"
 
-    command: "DictionaryItemInputOutput"
+    command: "FSoEDictionaryItemInputOutput"
 
     @override
     @classmethod
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["STOFunction"]:
-        sto_command = cls._get_required_input_output(handler, cls.STO_COMMAND_UID)
+        sto_command = cls._get_required_input_output(handler, cls.COMMAND_UID)
         yield cls(command=sto_command, io=(sto_command,), parameters=())
 
 
@@ -170,7 +187,7 @@ class SS1Function(SafetyFunction):
 
     TIME_TO_STO_UID = "FSOE_SS1_TIME_TO_STO_1"
 
-    command: "DictionaryItemInputOutput"
+    command: "FSoEDictionaryItemInputOutput"
     time_to_sto: SafetyParameter
 
     @override
@@ -194,7 +211,7 @@ class SafeInputsFunction(SafetyFunction):
 
     INPUTS_MAP_UID = "FSOE_SAFE_INPUTS_MAP"
 
-    value: "DictionaryItemInput"
+    value: "FSoEDictionaryItemInput"
     map: SafetyParameter
 
     @override
@@ -226,6 +243,9 @@ class FSoEMasterHandler:
 
     FSOE_MANUF_SAFETY_ADDRESS = "FSOE_MANUF_SAFETY_ADDRESS"
     FSOE_DICTIONARY_CATEGORY = "FSOE"
+
+    FSOE_RPDO_MAP_1_INDEX = 0x1700
+    FSOE_TPDO_MAP_1_INDEX = 0x1B00
 
     DEFAULT_WATCHDOG_TIMEOUT_S = 1
 
@@ -279,10 +299,20 @@ class FSoEMasterHandler:
             report_error_callback=report_error_callback,
             state_change_callback=self.__state_change_callback,
         )
-        self._configure_master()
+
+        self.__maps = PDUMaps(
+            outputs=self._master_handler.master.dictionary_map,
+            inputs=self._master_handler.slave.dictionary_map,
+        )
+        # Replace by reading the pdo maps of the servo
+        # https://novantamotion.atlassian.net/browse/INGK-1114
+        self._map_default_inputs()
+        self._map_default_outputs()
         self.__safety_master_pdu = RPDOMap()
+        self.__safety_master_pdu.map_register_index = self.FSOE_RPDO_MAP_1_INDEX
         self.__safety_slave_pdu = TPDOMap()
-        self._configure_pdo_maps()
+        self.__safety_slave_pdu.map_register_index = self.FSOE_TPDO_MAP_1_INDEX
+        self.configure_pdo_maps()
         self.__running = False
         self.__state_is_data = threading.Event()
 
@@ -294,6 +324,8 @@ class FSoEMasterHandler:
     def _start(self) -> None:
         """Start the FSoE Master handler."""
         self.__in_initial_reset = True
+        self.configure_pdo_maps()
+        self.set_pdo_maps_to_slave()
         self._master_handler.start()
         self.__running = True
 
@@ -307,42 +339,39 @@ class FSoEMasterHandler:
         """Delete the master handler."""
         self._master_handler.delete()
 
-    def _configure_pdo_maps(self) -> None:
-        """Configure the PDOMaps used for the Safety PDUs."""
-        PDUMapper.configure_rpdo_map(self.safety_master_pdu_map)
-        PDUMapper.configure_tpdo_map(self.safety_slave_pdu_map)
+    @property
+    def maps(self) -> "PDUMaps":
+        """Get the PDUMap used for the Safety PDUs."""
+        return self.__maps
 
-    def _configure_master(self) -> None:
-        """Configure the FSoE master handler."""
-        self._map_outputs()
-        self._map_inputs()
+    def set_maps(self, maps: "PDUMaps") -> None:
+        """Set new PDUMaps for the Safety PDUs."""
+        if self.__running:
+            raise RuntimeError("Cannot set map while the FSoE Master is running")
 
-    def _map_outputs(self) -> None:
+        self._master_handler.master.dictionary_map = maps.outputs
+        self._master_handler.slave.dictionary_map = maps.inputs
+
+    def _map_default_outputs(self) -> None:
         """Configure the FSoE master handler's SafeOutputs."""
         # Phase 1 mapping
-        self._master_handler.master.dictionary_map.add(
-            self.get_function_instance(STOFunction).command, bits=1
-        )
-        self._master_handler.master.dictionary_map.add(
-            self.get_function_instance(SS1Function).command, bits=1
-        )
-        self._master_handler.master.dictionary_map.add_padding(bits=7)
-        self._master_handler.master.dictionary_map.add_padding(bits=7)
+        self.__maps.outputs.add(self.get_function_instance(STOFunction).command)
+        self.__maps.outputs.add(self.get_function_instance(SS1Function).command)
+        self.__maps.outputs.add_padding(bits=6 + 8)
 
-    def _map_inputs(self) -> None:
+    def _map_default_inputs(self) -> None:
         """Configure the FSoE master handler's SafeInputs."""
         # Phase 1 mapping
-        self._master_handler.slave.dictionary_map.add(
-            self.get_function_instance(STOFunction).command, bits=1
-        )
-        self._master_handler.slave.dictionary_map.add(
-            self.get_function_instance(SS1Function).command, bits=1
-        )
-        self._master_handler.slave.dictionary_map.add_padding(bits=7)
-        self._master_handler.slave.dictionary_map.add(
-            self.get_function_instance(SafeInputsFunction).value, bits=1
-        )
-        self._master_handler.slave.dictionary_map.add_padding(bits=6)
+        self.__maps.inputs.add(self.get_function_instance(STOFunction).command)
+        self.__maps.inputs.add(self.get_function_instance(SS1Function).command)
+        self.__maps.inputs.add_padding(bits=7)
+        self.__maps.inputs.add(self.get_function_instance(SafeInputsFunction).value)
+        self.__maps.inputs.add_padding(bits=6)
+
+    def configure_pdo_maps(self) -> None:
+        """Configure the PDOMaps used for the Safety PDUs according to the map."""
+        self.__maps.fill_rpdo_map(self.safety_master_pdu_map, self.__servo.dictionary)
+        self.__maps.fill_tpdo_map(self.safety_slave_pdu_map, self.__servo.dictionary)
 
     def set_pdo_maps_to_slave(self) -> None:
         """Set the PDOMaps to be used by the Safety PDUs to the slave."""
@@ -516,7 +545,7 @@ class FSoEMasterHandler:
             raise IMTimeoutError("The FSoE Master did not reach the Data state")
 
     @classmethod
-    def create_safe_dictionary(cls, servo: "EthercatServo") -> "Dictionary":
+    def create_safe_dictionary(cls, servo: "EthercatServo") -> "FSoEDictionary":
         """Create a dictionary with the safe inputs and outputs.
 
         Returns:
@@ -533,29 +562,29 @@ class FSoEMasterHandler:
             raise NotImplementedError
 
     @classmethod
-    def _saco_phase_1_dictionary(cls) -> "Dictionary":
+    def _saco_phase_1_dictionary(cls) -> "FSoEDictionary":
         """Get the SaCo phase 1 dictionary instance."""
-        sto_command_dict_item = DictionaryItemInputOutput(
+        sto_command_dict_item = FSoEDictionaryItemInputOutput(
             # Arbitrary key, could be removed
             # https://novantamotion.atlassian.net/browse/INGK-1112
             key=1,
-            name=STOFunction.STO_COMMAND_UID,
-            data_type=DictionaryItem.DataTypes.BOOL,
+            name=STOFunction.COMMAND_UID,
+            data_type=FSoEDictionaryItem.DataTypes.BOOL,
             fail_safe_input_value=True,
         )
-        ss1_command_dict_item = DictionaryItemInputOutput(
+        ss1_command_dict_item = FSoEDictionaryItemInputOutput(
             key=2,
             name=SS1Function.COMMAND_UID,
-            data_type=DictionaryItem.DataTypes.BOOL,
+            data_type=FSoEDictionaryItem.DataTypes.BOOL,
             fail_safe_input_value=True,
         )
-        safe_input_dict_item = DictionaryItemInput(
+        safe_input_dict_item = FSoEDictionaryItemInput(
             key=3,
             name=SafeInputsFunction.SAFE_INPUTS_UID,
-            data_type=DictionaryItem.DataTypes.BOOL,
+            data_type=FSoEDictionaryItem.DataTypes.BOOL,
             fail_safe_value=False,
         )
-        return Dictionary(
+        return FSoEDictionary(
             [
                 sto_command_dict_item,
                 ss1_command_dict_item,
@@ -564,7 +593,7 @@ class FSoEMasterHandler:
         )
 
     @classmethod
-    def _create_safe_dictionary_from_v3(cls, dictionary: "DictionaryV3") -> "Dictionary":
+    def _create_safe_dictionary_from_v3(cls, dictionary: "DictionaryV3") -> "FSoEDictionary":
         """Create a dictionary with the safe inputs and outputs from a DictionaryV3 instance.
 
         Args:
@@ -600,10 +629,10 @@ class FSoEMasterHandler:
             ):
                 items.append(cls._create_fsoe_dict_item_from_reg(register))
 
-        return Dictionary(items)
+        return FSoEDictionary(items)
 
     @classmethod
-    def _create_fsoe_dict_item_from_reg(cls, reg: "CanopenRegister") -> "DictionaryItem":
+    def _create_fsoe_dict_item_from_reg(cls, reg: "CanopenRegister") -> "FSoEDictionaryItem":
         # Create an arbitrary unique numeric key for the item
         # https://novantamotion.atlassian.net/browse/INGK-1112
         key = reg.idx * 1000 + reg.subidx
@@ -611,23 +640,25 @@ class FSoEMasterHandler:
         data_typ = cls._reg_dtype_to_fsoe_data_type(reg.dtype)
 
         if reg.pdo_access == RegCyclicType.SAFETY_INPUT:
-            return DictionaryItemInput(
+            return FSoEDictionaryItemInput(
                 key,
                 name=reg.identifier,
                 data_type=data_typ,
-                fail_safe_value=cls.__fsoe_input_data_type_default(data_typ, DictionaryItemInput),
+                fail_safe_value=cls.__fsoe_input_data_type_default(
+                    data_typ, FSoEDictionaryItemInput
+                ),
             )
         elif reg.pdo_access == RegCyclicType.SAFETY_INPUT_OUTPUT:
-            return DictionaryItemInputOutput(
+            return FSoEDictionaryItemInputOutput(
                 key,
                 name=reg.identifier,
                 data_type=data_typ,
                 fail_safe_input_value=cls.__fsoe_input_data_type_default(
-                    data_typ, DictionaryItemInputOutput
+                    data_typ, FSoEDictionaryItemInputOutput
                 ),
             )
         elif reg.pdo_access == RegCyclicType.SAFETY_OUTPUT:
-            return DictionaryItemOutput(
+            return FSoEDictionaryItemOutput(
                 key,
                 name=reg.identifier,
                 data_type=data_typ,
@@ -636,47 +667,47 @@ class FSoEMasterHandler:
         raise NotImplementedError
 
     @classmethod
-    def _reg_dtype_to_fsoe_data_type(cls, typ: "RegDtype") -> "DataType":
+    def _reg_dtype_to_fsoe_data_type(cls, typ: "RegDtype") -> "FSoEDataType":
         if typ == RegDtype.U8:
-            return DataType.UINT8
+            return FSoEDataType.UINT8
         if typ == RegDtype.U16:
-            return DataType.UINT16
+            return FSoEDataType.UINT16
         if typ == RegDtype.U32:
-            return DataType.UINT32
+            return FSoEDataType.UINT32
         if typ == RegDtype.S8:
-            return DataType.INT8
+            return FSoEDataType.INT8
         if typ == RegDtype.S16:
-            return DataType.INT16
+            return FSoEDataType.INT16
         if typ == RegDtype.S32:
-            return DataType.INT32
+            return FSoEDataType.INT32
         if typ == RegDtype.FLOAT:
-            return DataType.FLOAT
+            return FSoEDataType.FLOAT
         if typ == RegDtype.BOOL:
-            return DataType.BOOL
+            return FSoEDataType.BOOL
 
         raise NotImplementedError(f"Unsupported register data type for FSoE: {typ}")
 
     @classmethod
     def __fsoe_input_data_type_default(
-        cls, data_typ: "DataType", item_type: type["DictionaryItem"]
+        cls, data_typ: "FSoEDataType", item_type: type["FSoEDictionaryItem"]
     ) -> Union[int, float, str, bytes]:
-        if data_typ == DataType.BOOL:
-            if item_type == DictionaryItemInput:
+        if data_typ == FSoEDataType.BOOL:
+            if item_type == FSoEDictionaryItemInput:
                 # Inputs are assumed to be Low on safe-state
                 return False
-            if item_type == DictionaryItemInputOutput:
+            if item_type == FSoEDictionaryItemInputOutput:
                 # Input-Outputs are typically safe commands,
                 # whose safe-state is being active
                 return True
 
         if data_typ in (
-            DataType.UINT8,
-            DataType.UINT16,
-            DataType.UINT32,
-            DataType.INT8,
-            DataType.INT16,
-            DataType.INT32,
-            DataType.FLOAT,
+            FSoEDataType.UINT8,
+            FSoEDataType.UINT16,
+            FSoEDataType.UINT32,
+            FSoEDataType.INT8,
+            FSoEDataType.INT16,
+            FSoEDataType.INT32,
+            FSoEDataType.FLOAT,
         ):
             return 0
 
@@ -684,12 +715,18 @@ class FSoEMasterHandler:
 
     @property
     def safety_master_pdu_map(self) -> RPDOMap:
-        """The PDOMap used for the Safety Master PDU."""
+        """The PDOMap used for the Safety Master PDU.
+
+        The PDOMap might not be up to date, call configure_pdo_maps first
+        """
         return self.__safety_master_pdu
 
     @property
     def safety_slave_pdu_map(self) -> TPDOMap:
-        """The PDOMap used for the Safety Slave PDU."""
+        """The PDOMap used for the Safety Slave PDU.
+
+        The PDOMap might not be up to date, call configure_pdo_maps first
+        """
         return self.__safety_slave_pdu
 
     @property
@@ -703,77 +740,376 @@ class FSoEMasterHandler:
         return self.__running
 
 
-class PDUMapper:
+@dataclass()
+class FSoEFrameElements:
+    """FSoE Frame Elements.
+
+    Indicates uids of elements that compose the FSoE frame, excluding the safe data.
+    """
+
+    command_uid: str
+    crcs_prefix: str
+    connection_id_uid: str
+
+    def get_crc_uid(self, data_slot_i: int) -> str:
+        """Get the CRC element name for the given data slot index."""
+        return f"{self.crcs_prefix}{data_slot_i}"
+
+
+MASTER_FRAME_ELEMENTS = FSoEFrameElements(
+    command_uid="FSOE_MASTER_FRAME_ELEM_CMD",
+    crcs_prefix="FSOE_MASTER_FRAME_ELEM_CRC",
+    connection_id_uid="FSOE_MASTER_FRAME_ELEM_CONNID",
+)
+
+
+SLAVE_FRAME_ELEMENTS = FSoEFrameElements(
+    command_uid="FSOE_SLAVE_FRAME_ELEM_CMD",
+    crcs_prefix="FSOE_SLAVE_FRAME_ELEM_CRC",
+    connection_id_uid="FSOE_SLAVE_FRAME_ELEM_CONNID",
+)
+
+
+class PDUMaps:
     """Helper class to configure the Safety PDU PDOMaps."""
 
-    FSOE_RPDO_MAP_1_INDEX = 0x1700
-    FSOE_TPDO_MAP_1_INDEX = 0x1B00
+    __SLOT_WIDHT = 16
+    """Number of bits in a data slot of the Safety PDU."""
 
-    # Phase 1 mapping
-    FSOE_COMMAND_SIZE_BITS = 8
-    STO_COMMAND_SIZE_BITS = 1
-    SS1_COMMAND_SIZE_BITS = 1
-    STO_COMMAND_PADDING_SIZE_BITS = 6
-    SBC_COMMAND_SIZE_BITS = 1
-    SBC_COMMAND_PADDING_SIZE_BITS = 7
-    CRC_O_SIZE_BITS = 16
-    CONN_ID_SIZE_BITS = 16
-    SAFE_INPUTS_SIZE_BITS = 1
-    SAFE_INPUTS_PADDING_SIZE_BITS = 6
+    def __init__(
+        self,
+        outputs: "FSoEDictionaryMap",
+        inputs: "FSoEDictionaryMap",
+    ) -> None:
+        self.outputs = outputs
+        self.inputs = inputs
 
     @classmethod
-    def configure_rpdo_map(cls, rpdo_map: RPDOMap) -> None:
-        """Configure the RPDOMap used for the Safety Master PDU.
+    def empty(cls, dictionary: "FSoEDictionary") -> "PDUMaps":
+        """Create an empty PDUMaps instance with the given dictionary."""
+        return cls(
+            outputs=FSoEDictionaryMap(
+                dictionary,
+                item_types_accepted={FSoEDictionaryItemOutput, FSoEDictionaryItemInputOutput},
+            ),
+            inputs=FSoEDictionaryMap(
+                dictionary,
+                item_types_accepted={FSoEDictionaryItemInput, FSoEDictionaryItemInputOutput},
+            ),
+        )
+
+    def copy(self) -> "PDUMaps":
+        """Create a copy of the PDUMaps instance."""
+        return PDUMaps(
+            outputs=self.outputs.copy(),
+            inputs=self.inputs.copy(),
+        )
+
+    def insert_in_best_position(self, element: "FSoEDictionaryItem") -> None:
+        """Insert I/O in any best position of the maps.
+
+        Finds unused space in the map and insert them there.
+        If not unused space is found, it appends the item to the end of the map.
 
         Args:
-            rpdo_map: The RPDOMap instance.
-
+            element: element to add
         """
-        rpdo_map.map_register_index = cls.FSOE_RPDO_MAP_1_INDEX
-        fsoe_command_item = RPDOMapItem(size_bits=cls.FSOE_COMMAND_SIZE_BITS)
-        rpdo_map.add_item(fsoe_command_item)
-        sto_command_item = RPDOMapItem(size_bits=cls.STO_COMMAND_SIZE_BITS)
-        rpdo_map.add_item(sto_command_item)
-        ss1_command_item = RPDOMapItem(size_bits=cls.SS1_COMMAND_SIZE_BITS)
-        rpdo_map.add_item(ss1_command_item)
-        sto_padding_item = RPDOMapItem(size_bits=cls.STO_COMMAND_PADDING_SIZE_BITS)
-        rpdo_map.add_item(sto_padding_item)
-        sbc_command_item = RPDOMapItem(size_bits=cls.SBC_COMMAND_SIZE_BITS)
-        rpdo_map.add_item(sbc_command_item)
-        sbc_padding_item = RPDOMapItem(size_bits=cls.SBC_COMMAND_PADDING_SIZE_BITS)
-        rpdo_map.add_item(sbc_padding_item)
-        crc_0_item = RPDOMapItem(size_bits=cls.CRC_O_SIZE_BITS)
-        rpdo_map.add_item(crc_0_item)
-        conn_id_item = RPDOMapItem(size_bits=cls.CONN_ID_SIZE_BITS)
-        rpdo_map.add_item(conn_id_item)
+        align_to = 1
+        if element.data_type.bits > 8:
+            align_to = 8
+        if isinstance(element, FSoEDictionaryItemOutput):
+            self.outputs.insert_in_best_position(element, align_to)
+        elif isinstance(element, FSoEDictionaryItemInput):
+            self.inputs.insert_in_best_position(element, align_to)
+        elif isinstance(element, FSoEDictionaryItemInputOutput):
+            self.inputs.insert_in_best_position(element, align_to)
+            self.outputs.insert_in_best_position(element, align_to)
+        else:
+            raise TypeError(f"Unknown IO Element type: {type(element)}")
+
+    def insert_safety_function(self, safety_function: "SafetyFunction") -> None:
+        """Insert all elements of the safety function on the maps.
+
+        Args:
+            safety_function: Safety function
+        """
+        for io in safety_function.io:
+            self.insert_in_best_position(io)
 
     @classmethod
-    def configure_tpdo_map(cls, tpdo_map: TPDOMap) -> None:
-        """Configure the TPDOMap used for the Safety Slave PDU.
+    def from_rpdo_tpdo(
+        cls, rpdo: RPDOMap, tpdo: TPDOMap, dictionary: "FSoEDictionary"
+    ) -> "PDUMaps":
+        """Create a PDUMaps instance from the given RPDO and TPDO maps."""
+        pdu_maps = cls.empty(dictionary)
+        cls.__fill_dictionary_map_from_pdo(rpdo, pdu_maps.outputs)
+        cls.__fill_dictionary_map_from_pdo(tpdo, pdu_maps.inputs)
+        return pdu_maps
+
+    def fill_rpdo_map(self, rpdo_map: RPDOMap, servo_dictionary: "Dictionary") -> None:
+        """Fill the RPDOMap used for the Safety Master PDU."""
+        self.outputs.complete_with_padding()
+        self.__fill_pdo_map(
+            self.outputs,
+            servo_dictionary=servo_dictionary,
+            pdo_map=rpdo_map,
+            pdo_item_type=RPDOMapItem,
+            frame_elements=MASTER_FRAME_ELEMENTS,
+        )
+
+    def fill_tpdo_map(self, tpdo_map: TPDOMap, servo_dictionary: "Dictionary") -> None:
+        """Fill the TPDOMap used for the Safety Slave PDU."""
+        self.inputs.complete_with_padding()
+        self.__fill_pdo_map(
+            self.inputs,
+            servo_dictionary=servo_dictionary,
+            pdo_map=tpdo_map,
+            pdo_item_type=TPDOMapItem,
+            frame_elements=SLAVE_FRAME_ELEMENTS,
+        )
+
+    @staticmethod
+    def __get_safety_bytes_range_from_pdo_length(pdo_byte_lenght: int) -> tuple[int, ...]:
+        """Get the bytes that belong to the safe data in a PDO map according to its length.
 
         Args:
-            tpdo_map: The TPDOMap instance.
+            pdo_byte_lenght: byte length of the PDO map
 
+        Returns:
+            Tuple containing all byte indexes of the PDO map that belong to safe data
         """
-        tpdo_map.map_register_index = cls.FSOE_TPDO_MAP_1_INDEX
-        fsoe_command_item = TPDOMapItem(size_bits=cls.FSOE_COMMAND_SIZE_BITS)
-        tpdo_map.add_item(fsoe_command_item)
-        sto_command_item = TPDOMapItem(size_bits=cls.STO_COMMAND_SIZE_BITS)
-        tpdo_map.add_item(sto_command_item)
-        ss1_command_item = TPDOMapItem(size_bits=cls.SS1_COMMAND_SIZE_BITS)
-        tpdo_map.add_item(ss1_command_item)
-        sto_padding_item = TPDOMapItem(size_bits=cls.STO_COMMAND_PADDING_SIZE_BITS)
-        tpdo_map.add_item(sto_padding_item)
-        sbc_command_item = TPDOMapItem(size_bits=cls.SBC_COMMAND_SIZE_BITS)
-        tpdo_map.add_item(sbc_command_item)
-        safe_inputs_item = TPDOMapItem(size_bits=cls.SAFE_INPUTS_SIZE_BITS)
-        tpdo_map.add_item(safe_inputs_item)
-        safe_inputs_padding_item = TPDOMapItem(size_bits=cls.SAFE_INPUTS_PADDING_SIZE_BITS)
-        tpdo_map.add_item(safe_inputs_padding_item)
-        crc_0_item = TPDOMapItem(size_bits=cls.CRC_O_SIZE_BITS)
-        tpdo_map.add_item(crc_0_item)
-        conn_id_item = TPDOMapItem(size_bits=cls.CONN_ID_SIZE_BITS)
-        tpdo_map.add_item(conn_id_item)
+        if pdo_byte_lenght < 6:
+            raise ValueError("pdo_lenght must be at least 6")
+        elif pdo_byte_lenght == 6:
+            # Shortest PDOMap is 6 bytes, containing only one data byte
+            return (1,)
+        else:
+            # The total bytes of data is the Pdo map length
+            # minus 1 byte for the command and 2 bytes for the connection ID
+            # divided by 4, since each data slot has 2 bytes of data and 2 bytes of CRC
+            total_data_slots = (pdo_byte_lenght - 3) // 4
+            return tuple(
+                byt
+                for slot_i in range(total_data_slots)
+                for byt in (1 + slot_i * 4, 2 + slot_i * 4)
+            )
+
+    @classmethod
+    def __fill_dictionary_map_from_pdo(
+        cls, pdo_map: PDOMap, dictionary_map: "FSoEDictionaryMap"
+    ) -> None:
+        """Fill the dictionary map with items from the given PDOMap."""
+        valid_bits = tuple(
+            valid_bit
+            for valid_byte in cls.__get_safety_bytes_range_from_pdo_length(
+                pdo_map.data_length_bytes
+            )
+            for valid_bit in range(valid_byte * 8, (valid_byte + 1) * 8)
+        )
+        dictionary: FSoEDictionary = dictionary_map.dictionary
+        position_bits = 0
+
+        # Number of bits of variables that are in multiple data slots
+        # That will be on future virtual padding
+        pending_virtual_padding_bits = 0
+
+        for pdo_item in pdo_map.items:
+            if position_bits in valid_bits:
+                # The item is a safe data item
+                if pdo_item.register.idx == 0:
+                    # Padding item
+
+                    if pending_virtual_padding_bits == 0:
+                        # Regular padding item
+                        dictionary_map.add_padding(pdo_item.size_bits)
+                    else:
+                        # Virtual padding bits must not be added on the mapping,
+                        # since they are already accounted on the fsoe map variable
+                        if pending_virtual_padding_bits >= pdo_item.size_bits:
+                            # There are not enough bits on this padding
+                            # to fit all the remaining virtual ones
+                            # Or is exactly the same size
+                            pending_virtual_padding_bits -= pdo_item.size_bits
+                        else:
+                            # The padding is larger than the pending virtual bits
+                            # All the virtual padding are already accounted,
+                            # and some more must be added
+                            dictionary_map.add_padding(
+                                pdo_item.size_bits - pending_virtual_padding_bits
+                            )
+                            pending_virtual_padding_bits = 0
+
+                else:
+                    # Register item
+                    register = pdo_item.register
+                    fsoe_item = dictionary.name_map[register.identifier]
+                    pending_virtual_padding_bits = fsoe_item.data_type.bits - pdo_item.size_bits
+                    dictionary_map.add(fsoe_item)
+
+            position_bits += pdo_item.size_bits
+
+        dictionary_map.merge_adjacent_paddings()
+
+    def __create_pdo_item(
+        self,
+        servo_dictionary: "Dictionary",
+        uid: str,
+        item_type: type[PDOMapItem],
+        size_bits: Optional[int] = None,
+    ) -> PDOMapItem:
+        if isinstance(servo_dictionary, EthercatDictionaryV2):
+            # Dictionary V2 only supports SaCo phase 1
+            # That does do not configure the pdo maps.
+            # Padding items are enough to fill the map
+            if uid == MASTER_FRAME_ELEMENTS.command_uid or uid == SLAVE_FRAME_ELEMENTS.command_uid:
+                return item_type(size_bits=8)
+            if (
+                uid == MASTER_FRAME_ELEMENTS.connection_id_uid
+                or uid == SLAVE_FRAME_ELEMENTS.connection_id_uid
+            ):
+                return item_type(size_bits=16)
+            if uid.startswith(
+                (MASTER_FRAME_ELEMENTS.crcs_prefix, SLAVE_FRAME_ELEMENTS.crcs_prefix)
+            ):
+                return item_type(size_bits=16)
+            if uid in [
+                STOFunction.COMMAND_UID,
+                SS1Function.COMMAND_UID,
+                SafeInputsFunction.SAFE_INPUTS_UID,
+            ]:
+                return item_type(size_bits=1)
+
+            raise NotImplementedError(f"Unknown FSoE item UID for Dictionary V2: {uid}")
+        else:
+            reg = servo_dictionary.get_register(uid)
+            if not isinstance(reg, CanopenRegister):
+                # Type could be narrowed to EthercatRegister
+                # After this bugfix:
+                # https://novantamotion.atlassian.net/browse/INGK-1111
+                raise TypeError
+            return item_type(reg, size_bits)
+
+    def __create_pdo_safe_data_item(
+        self,
+        servo_dictionary: "Dictionary",
+        item: "FSoEDictionaryItem",
+        item_type: type[PDOMapItem],
+        size_bits: Optional[int] = None,
+    ) -> PDOMapItem:
+        if item.item is None:
+            # Padding item
+            return item_type(size_bits=item.bits)
+        else:
+            # I/O item
+            return self.__create_pdo_item(
+                servo_dictionary, item.item.name, item_type, size_bits=size_bits
+            )
+
+    def __get_crc_item(
+        self,
+        data_slot_i: int,
+        frame_elements: FSoEFrameElements,
+        pdo_item_type: type[PDOMapItem],
+        servo_dictionary: "Dictionary",
+    ) -> PDOMapItem:
+        try:
+            return self.__create_pdo_item(
+                servo_dictionary, frame_elements.get_crc_uid(data_slot_i), pdo_item_type
+            )
+        except KeyError as e:
+            raise NotImplementedError(
+                f"No CRC found for data slot {data_slot_i}. Probably the PDU Map is wide"
+            ) from e
+
+    def __fill_pdo_map(
+        self,
+        dict_map: "FSoEDictionaryMap",
+        servo_dictionary: "Dictionary",
+        pdo_map: PDOMap,
+        pdo_item_type: type[PDOMapItem],
+        frame_elements: FSoEFrameElements,
+    ) -> None:
+        # Remove any existing items in the PDOMap
+        pdo_map.items.clear()
+
+        # Initial FSoE command
+        pdo_map.add_item(
+            self.__create_pdo_item(servo_dictionary, frame_elements.command_uid, pdo_item_type)
+        )
+
+        data_slot_i = 0
+
+        # The minimum bits for the initial data slot is 8 bits
+        slot_bit_maximum = 8
+
+        for item in dict_map:
+            if slot_bit_maximum == 8 and item.position_bits + item.bits >= slot_bit_maximum:
+                # Since there's enough data to overflow the initial slot of 8 bits,
+                # it will be of 16 bits instead
+                slot_bit_maximum = self.__SLOT_WIDHT
+
+            if item.position_bits >= slot_bit_maximum:
+                # This item must go in the next data slot
+                # Add a CRC item, and update to the next data slot
+                pdo_map.add_item(
+                    self.__get_crc_item(
+                        data_slot_i, frame_elements, pdo_item_type, servo_dictionary
+                    )
+                )
+                data_slot_i += 1
+                slot_bit_maximum += self.__SLOT_WIDHT
+
+            if item.position_bits + item.bits <= slot_bit_maximum:
+                # The item fits in the current slot, add it
+                pdo_map.add_item(
+                    self.__create_pdo_safe_data_item(servo_dictionary, item, pdo_item_type)
+                )
+            else:
+                # The item must go in the current slot, and on the next one
+                # Have a virtual padding with the remaining bits
+                # As described on ETG5120 Section 5.3.3
+
+                # Number of bits that will be used in the current slot,
+                # taking into account that it may start in the middle of the slot
+                item_bits_in_slot = self.__SLOT_WIDHT - item.position_bits % self.__SLOT_WIDHT
+
+                # Add I/O item, cut to the bits that fit in the current slot
+                pdo_map.add_item(
+                    self.__create_pdo_safe_data_item(
+                        servo_dictionary, item, pdo_item_type, size_bits=item_bits_in_slot
+                    )
+                )
+
+                # There are remaining bits that must be mapped into virtual paddings
+                remaining_bits_to_map = item.bits - item_bits_in_slot
+
+                while remaining_bits_to_map > 0:
+                    # Add CRC item
+                    pdo_map.add_item(
+                        self.__get_crc_item(
+                            data_slot_i, frame_elements, pdo_item_type, servo_dictionary
+                        )
+                    )
+                    data_slot_i += 1
+                    slot_bit_maximum += self.__SLOT_WIDHT
+                    bits_to_map_in_this_slot = min(remaining_bits_to_map, self.__SLOT_WIDHT)
+                    # Virtual Padding item
+                    pdo_map.add_item(pdo_item_type(size_bits=bits_to_map_in_this_slot))
+                    remaining_bits_to_map -= bits_to_map_in_this_slot
+
+        # Last CRC
+        pdo_map.add_item(
+            self.__get_crc_item(data_slot_i, frame_elements, pdo_item_type, servo_dictionary),
+        )
+
+        # Connection ID
+        pdo_map.add_item(
+            self.__create_pdo_item(
+                servo_dictionary,
+                frame_elements.connection_id_uid,
+                pdo_item_type,
+            )
+        )
 
 
 class FSoEMaster:
