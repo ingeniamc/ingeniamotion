@@ -151,6 +151,7 @@ def mc_state_data(mc_with_fsoe):
     mc.fsoe.stop_master(stop_pdos=True)
 
 
+@pytest.mark.fsoe
 def test_start_and_stop_multiple_times(mc_with_fsoe):
     mc, handler = mc_with_fsoe
 
