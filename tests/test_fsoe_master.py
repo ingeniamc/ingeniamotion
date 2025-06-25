@@ -1,3 +1,4 @@
+import time
 from typing import TYPE_CHECKING
 
 import pytest
@@ -147,6 +148,22 @@ def mc_state_data(mc_with_fsoe):
 
     # Stop the FSoE master handler
     mc.fsoe.stop_master(stop_pdos=True)
+
+
+@pytest.mark.fsoe
+def test_start_and_stop_multiple_times(mc_with_fsoe):
+    mc, handler = mc_with_fsoe
+
+    # Any fsoe error during the start/stop process
+    # will fail the test because of error_handler
+
+    for i in range(4):
+        mc.fsoe.configure_pdos(start_pdos=True)
+        mc.fsoe.wait_for_state_data(timeout=10)
+        assert handler.state == FSoEState.DATA
+        time.sleep(1)
+        assert handler.state == FSoEState.DATA
+        mc.fsoe.stop_master(stop_pdos=True)
 
 
 @pytest.mark.fsoe
