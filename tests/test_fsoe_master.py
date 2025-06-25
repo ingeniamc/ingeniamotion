@@ -251,8 +251,8 @@ def test_copy_modify_and_set_map(mc_with_fsoe):
         "Item                                     | Position bytes..bits | Size bytes..bits    \n"
         "FSOE_STO                                 | 0..0                 | 0..1                \n"
         "FSOE_SS1_1                               | 0..1                 | 0..1                \n"
-        "Padding                                  | 0..2                 | 0..7                \n"
-        "Padding                                  | 1..1                 | 0..6                "
+        "Padding                                  | 0..2                 | 0..6                \n"
+        "Padding                                  | 1..0                 | 0..7                "
     )
 
     # Without affecting the original map of the handler
@@ -260,9 +260,9 @@ def test_copy_modify_and_set_map(mc_with_fsoe):
         "Item                                     | Position bytes..bits | Size bytes..bits    \n"
         "FSOE_STO                                 | 0..0                 | 0..1                \n"
         "FSOE_SS1_1                               | 0..1                 | 0..1                \n"
-        "Padding                                  | 0..2                 | 0..7                \n"
-        "FSOE_SAFE_INPUTS_VALUE                   | 1..1                 | 0..1                \n"
-        "Padding                                  | 1..2                 | 0..6                "
+        "Padding                                  | 0..2                 | 0..6                \n"
+        "FSOE_SAFE_INPUTS_VALUE                   | 1..0                 | 0..1                \n"
+        "Padding                                  | 1..1                 | 0..7                "
     )
 
     # The new map can be set to the handler

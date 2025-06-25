@@ -7,6 +7,7 @@
 - Added methods to intelligently add i/o on the map.
 
 ### Fixed
+- Safety map and safe inputs reading
 - Wait for the PDO Thread to finish before exiting operational state
 
 ## [0.9.1] - 2025-05-07
