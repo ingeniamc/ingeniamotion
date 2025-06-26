@@ -339,7 +339,7 @@ class TestPduMapper:
             cat_id="FSOE",
         )
 
-        fsoe_dict = FSoEMasterHandler._create_safe_dictionary_from_v3(safe_dict)
+        fsoe_dict = FSoEMasterHandler.create_safe_dictionary(safe_dict)
 
         return safe_dict, fsoe_dict
 

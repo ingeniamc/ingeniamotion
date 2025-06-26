@@ -6,6 +6,9 @@
 - Created PDUMaps that parses pdos and converts them to pdos.
 - Added methods to intelligently add i/o on the map.
 
+### Changed
+- Read safety pdo maps from drive instead of hardcoding them.
+
 ### Fixed
 - Safety map and safe inputs reading
 - Wait for the PDO Thread to finish before exiting operational state
