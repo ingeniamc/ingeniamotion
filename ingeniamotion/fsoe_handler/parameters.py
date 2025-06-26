@@ -9,6 +9,8 @@ if TYPE_CHECKING:
     from ingenialink.ethercat.servo import EthercatServo
     from ingenialink.register import Register
 
+__all__ = ["SafetyParameter", "SafetyParameterDirectValidation"]
+
 
 class SafetyParameter:
     """Safety Parameter.

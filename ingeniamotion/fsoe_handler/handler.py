@@ -38,6 +38,8 @@ if TYPE_CHECKING:
 
 SAFE_INSTANCE_TYPE = TypeVar("SAFE_INSTANCE_TYPE", bound="SafetyFunction")
 
+__all__ = ["FSoEMasterHandler"]
+
 
 class FSoEMasterHandler:
     """FSoE Master Handler.

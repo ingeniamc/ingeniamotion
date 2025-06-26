@@ -7,9 +7,11 @@ from ingenialink.dictionary import DictionarySafetyModule
 from ingenialink.ethercat.servo import EthercatServo
 
 from ingeniamotion.enums import FSoEState
-from ingeniamotion.fsoe_handler.handler import FSoEMasterHandler
-from ingeniamotion.metaclass import DEFAULT_SERVO
 from ingeniamotion.fsoe_handler.fsoe import FSOE_MASTER_INSTALLED
+from ingeniamotion.metaclass import DEFAULT_SERVO
+
+if FSOE_MASTER_INSTALLED:
+    from ingeniamotion.fsoe_handler.handler import FSoEMasterHandler
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -45,10 +47,8 @@ class FSoEMaster:
         self.__fsoe_configured = False
 
     def create_fsoe_master_handler(
-        self,
-        servo: str = DEFAULT_SERVO,
-        fsoe_master_watchdog_timeout: float = FSoEMasterHandler.DEFAULT_WATCHDOG_TIMEOUT_S,
-    ) -> FSoEMasterHandler:
+        self, servo: str = DEFAULT_SERVO, fsoe_master_watchdog_timeout: Optional[float] = None
+    ) -> "FSoEMasterHandler":
         """Create an FSoE Master handler linked to a Safe servo drive.
 
         Args:
@@ -56,6 +56,8 @@ class FSoEMaster:
             fsoe_master_watchdog_timeout: The FSoE master watchdog timeout in seconds.
 
         """
+        if fsoe_master_watchdog_timeout is None:
+            fsoe_master_watchdog_timeout = FSoEMasterHandler.DEFAULT_WATCHDOG_TIMEOUT_S
         node = self.__mc.servos[servo]
         if not isinstance(node, EthercatServo):
             raise TypeError("Functional Safety over Ethercat is only available for Ethercat servos")

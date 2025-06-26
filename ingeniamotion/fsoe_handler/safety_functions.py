@@ -14,6 +14,13 @@ from ingeniamotion.fsoe_handler.parameters import SafetyParameter
 if TYPE_CHECKING:
     from ingeniamotion.fsoe_handler.handler import FSoEMasterHandler
 
+__all__ = [
+    "SafetyFunction",
+    "STOFunction",
+    "SS1Function",
+    "SafeInputsFunction",
+]
+
 
 @dataclass()
 class SafetyFunction:

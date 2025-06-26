@@ -48,6 +48,7 @@ ignore = [
 ]
 
 [lint.per-file-ignores]
+"__init__.py" = ["F403"] # Import with wildcard (*)
 "tests/*" = [
     "D", # Docstring rules
 ]

@@ -23,6 +23,8 @@ from ingeniamotion.fsoe_handler.safety_functions import (
 if TYPE_CHECKING:
     from ingenialink.dictionary import Dictionary
 
+__all__ = ["PDUMaps"]
+
 
 @dataclass()
 class FSoEFrameElements:

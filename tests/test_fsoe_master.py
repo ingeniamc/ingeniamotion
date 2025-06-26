@@ -12,6 +12,8 @@ from ingeniamotion.fsoe import (
     FSOE_MASTER_INSTALLED,
     FSoEError,
     FSoEMasterHandler,
+)
+from ingeniamotion.fsoe_handler import (
     PDUMaps,
     SafeInputsFunction,
     SS1Function,
