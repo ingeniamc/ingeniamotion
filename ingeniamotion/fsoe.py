@@ -349,7 +349,7 @@ class FSoEMaster:
 
     DEFAULT_WATCHDOG_TIMEOUT_S = 1
 
-    __FSOE_TOTAL_ERROR = "FSOE_TOTAL_ERROR"
+    __FSOE_TOTAL_ERROR = "FSOE_MANUF_SAFETY_ADDRESS"
     __MDP_CONFIGURED_MODULE_1 = "MDP_CONFIGURED_MODULE_1"
 
     def __init__(self, motion_controller: "MotionController") -> None:
