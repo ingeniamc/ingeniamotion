@@ -4,15 +4,15 @@ from typing import TYPE_CHECKING
 
 from typing_extensions import override
 
-from ingeniamotion.fsoe_handler.fsoe import (
+from ingeniamotion.fsoe_master.fsoe import (
     FSoEDictionaryItem,
     FSoEDictionaryItemInput,
     FSoEDictionaryItemInputOutput,
 )
-from ingeniamotion.fsoe_handler.parameters import SafetyParameter
+from ingeniamotion.fsoe_master.parameters import SafetyParameter
 
 if TYPE_CHECKING:
-    from ingeniamotion.fsoe_handler.handler import FSoEMasterHandler
+    from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
 
 __all__ = [
     "SafetyFunction",

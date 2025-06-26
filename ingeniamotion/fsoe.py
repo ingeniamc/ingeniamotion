@@ -7,11 +7,11 @@ from ingenialink.dictionary import DictionarySafetyModule
 from ingenialink.ethercat.servo import EthercatServo
 
 from ingeniamotion.enums import FSoEState
-from ingeniamotion.fsoe_handler.fsoe import FSOE_MASTER_INSTALLED
+from ingeniamotion.fsoe_master.fsoe import FSOE_MASTER_INSTALLED
 from ingeniamotion.metaclass import DEFAULT_SERVO
 
 if FSOE_MASTER_INSTALLED:
-    from ingeniamotion.fsoe_handler.handler import FSoEMasterHandler
+    from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController

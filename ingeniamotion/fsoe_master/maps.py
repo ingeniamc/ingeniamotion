@@ -5,7 +5,7 @@ from ingenialink.canopen.register import CanopenRegister
 from ingenialink.ethercat.dictionary import EthercatDictionaryV2
 from ingenialink.pdo import PDOMap, PDOMapItem, RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 
-from ingeniamotion.fsoe_handler.fsoe import (
+from ingeniamotion.fsoe_master.fsoe import (
     FSoEDictionary,
     FSoEDictionaryItem,
     FSoEDictionaryItemInput,
@@ -13,7 +13,7 @@ from ingeniamotion.fsoe_handler.fsoe import (
     FSoEDictionaryItemOutput,
     FSoEDictionaryMap,
 )
-from ingeniamotion.fsoe_handler.safety_functions import (
+from ingeniamotion.fsoe_master.safety_functions import (
     SafeInputsFunction,
     SafetyFunction,
     SS1Function,

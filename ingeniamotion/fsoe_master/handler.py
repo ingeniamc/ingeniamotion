@@ -1,5 +1,5 @@
 import threading
-from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union, overload, cast
+from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union, cast, overload
 
 from ingenialink import RegDtype
 from ingenialink.canopen.register import CanopenRegister
@@ -11,7 +11,7 @@ from ingenialink.pdo import RPDOMap, TPDOMap
 from ingeniamotion._utils import weak_lru
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.exceptions import IMTimeoutError
-from ingeniamotion.fsoe_handler.fsoe import (
+from ingeniamotion.fsoe_master.fsoe import (
     FSOE_MASTER_INSTALLED,
     BaseMasterHandler,
     FSoEApplicationParameter,
@@ -24,9 +24,9 @@ from ingeniamotion.fsoe_handler.fsoe import (
     State,
     StateData,
 )
-from ingeniamotion.fsoe_handler.maps import PDUMaps
-from ingeniamotion.fsoe_handler.parameters import SafetyParameter, SafetyParameterDirectValidation
-from ingeniamotion.fsoe_handler.safety_functions import (
+from ingeniamotion.fsoe_master.maps import PDUMaps
+from ingeniamotion.fsoe_master.parameters import SafetyParameter, SafetyParameterDirectValidation
+from ingeniamotion.fsoe_master.safety_functions import (
     SafeInputsFunction,
     SafetyFunction,
     SS1Function,

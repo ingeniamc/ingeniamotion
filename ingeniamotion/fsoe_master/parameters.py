@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Union
 from ingenialink.utils._utils import dtype_value
 from typing_extensions import override
 
-from ingeniamotion.fsoe_handler.fsoe import FSoEApplicationParameter
+from ingeniamotion.fsoe_master.fsoe import FSoEApplicationParameter
 
 if TYPE_CHECKING:
     from ingenialink.ethercat.servo import EthercatServo
