@@ -8,7 +8,7 @@ import ingenialogger
 from ingenialink import RegDtype
 from ingenialink.canopen.register import CanopenRegister
 from ingenialink.enums.register import RegCyclicType
-from ingenialink.ethercat.dictionary import EthercatDictionaryV2
+from ingenialink.ethercat.dictionary import EthercatDictionary, EthercatDictionaryV2
 from ingenialink.ethercat.servo import EthercatServo
 from typing_extensions import override
 
@@ -50,7 +50,7 @@ except ImportError:
 else:
     FSOE_MASTER_INSTALLED = True
 
-from ingenialink.dictionary import Dictionary, DictionarySafetyModule, DictionaryV3
+from ingenialink.dictionary import Dictionary, DictionarySafetyModule
 from ingenialink.pdo import PDOMap, PDOMapItem, RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 from ingenialink.utils._utils import dtype_value
 
@@ -244,8 +244,8 @@ class FSoEMasterHandler:
     FSOE_MANUF_SAFETY_ADDRESS = "FSOE_MANUF_SAFETY_ADDRESS"
     FSOE_DICTIONARY_CATEGORY = "FSOE"
 
-    FSOE_RPDO_MAP_1_INDEX = 0x1700
-    FSOE_TPDO_MAP_1_INDEX = 0x1B00
+    __FSOE_RPDO_MAP_1 = "ETG_COMMS_RPDO_MAP256_TOTAL"
+    __FSOE_TPDO_MAP_1 = "ETG_COMMS_TPDO_MAP256_TOTAL"
 
     DEFAULT_WATCHDOG_TIMEOUT_S = 1
 
@@ -262,6 +262,14 @@ class FSoEMasterHandler:
         if not FSOE_MASTER_INSTALLED:
             return
         self.__servo = servo
+        self.__running = False
+
+        self.__state_is_data = threading.Event()
+
+        # The saco slave might take a while to answer with a valid command
+        # During it's initialization it will respond with 0's, that are ignored
+        # To avoid triggering additional errors
+        self.__in_initial_reset = False
 
         # Parameters that are part of the system
         # UID as key
@@ -286,7 +294,7 @@ class FSoEMasterHandler:
 
             self.safety_parameters[app_parameter.uid] = sp
 
-        self.dictionary = self.create_safe_dictionary(servo)
+        self.dictionary = self.create_safe_dictionary(servo.dictionary)
 
         self.safety_functions = tuple(SafetyFunction.for_handler(self))
 
@@ -300,26 +308,13 @@ class FSoEMasterHandler:
             state_change_callback=self.__state_change_callback,
         )
 
-        self.__maps = PDUMaps(
-            outputs=self._master_handler.master.dictionary_map,
-            inputs=self._master_handler.slave.dictionary_map,
-        )
-        # Replace by reading the pdo maps of the servo
-        # https://novantamotion.atlassian.net/browse/INGK-1114
-        self._map_default_inputs()
-        self._map_default_outputs()
-        self.__safety_master_pdu = RPDOMap()
-        self.__safety_master_pdu.map_register_index = self.FSOE_RPDO_MAP_1_INDEX
-        self.__safety_slave_pdu = TPDOMap()
-        self.__safety_slave_pdu.map_register_index = self.FSOE_TPDO_MAP_1_INDEX
-        self.configure_pdo_maps()
-        self.__running = False
-        self.__state_is_data = threading.Event()
+        self.__safety_master_pdu = servo.read_rpdo_map_from_slave(self.__FSOE_RPDO_MAP_1, 1)
+        self.__safety_slave_pdu = servo.read_tpdo_map_from_slave(self.__FSOE_TPDO_MAP_1, 1)
 
-        # The saco slave might take a while to answer with a valid command
-        # During it's initialization it will respond with 0's, that are ignored
-        # To avoid triggering additional errors
-        self.__in_initial_reset = False
+        self.__maps = PDUMaps.from_rpdo_tpdo(
+            self.__safety_master_pdu, self.__safety_slave_pdu, dictionary=self.dictionary
+        )
+        self.set_maps(self.__maps)
 
     def _start(self) -> None:
         """Start the FSoE Master handler."""
@@ -351,22 +346,6 @@ class FSoEMasterHandler:
 
         self._master_handler.master.dictionary_map = maps.outputs
         self._master_handler.slave.dictionary_map = maps.inputs
-
-    def _map_default_outputs(self) -> None:
-        """Configure the FSoE master handler's SafeOutputs."""
-        # Phase 1 mapping
-        self.__maps.outputs.add(self.get_function_instance(STOFunction).command)
-        self.__maps.outputs.add(self.get_function_instance(SS1Function).command)
-        self.__maps.outputs.add_padding(bits=6 + 8)
-
-    def _map_default_inputs(self) -> None:
-        """Configure the FSoE master handler's SafeInputs."""
-        # Phase 1 mapping
-        self.__maps.inputs.add(self.get_function_instance(STOFunction).command)
-        self.__maps.inputs.add(self.get_function_instance(SS1Function).command)
-        self.__maps.inputs.add_padding(bits=7)
-        self.__maps.inputs.add(self.get_function_instance(SafeInputsFunction).value)
-        self.__maps.inputs.add_padding(bits=6)
 
     def configure_pdo_maps(self) -> None:
         """Configure the PDOMaps used for the Safety PDUs according to the map."""
@@ -541,62 +520,13 @@ class FSoEMasterHandler:
             raise IMTimeoutError("The FSoE Master did not reach the Data state")
 
     @classmethod
-    def create_safe_dictionary(cls, servo: "EthercatServo") -> "FSoEDictionary":
-        """Create a dictionary with the safe inputs and outputs.
+    def create_safe_dictionary(cls, dictionary: "EthercatDictionary") -> "FSoEDictionary":
+        """Create a FSoEdictionary with the safe inputs and outputs.
+
+        Creates the FSoE dictionary from the servo's dictionary.
 
         Returns:
             A Dictionary instance with the safe inputs and outputs.
-
-        """
-        dictionary = servo.dictionary
-        if isinstance(dictionary, EthercatDictionaryV2):
-            # Dictionary V2 only supports SaCo phase 1
-            return cls._saco_phase_1_dictionary()
-        if isinstance(dictionary, DictionaryV3):
-            return cls._create_safe_dictionary_from_v3(dictionary)
-        else:
-            raise NotImplementedError
-
-    @classmethod
-    def _saco_phase_1_dictionary(cls) -> "FSoEDictionary":
-        """Get the SaCo phase 1 dictionary instance."""
-        sto_command_dict_item = FSoEDictionaryItemInputOutput(
-            # Arbitrary key, could be removed
-            # https://novantamotion.atlassian.net/browse/INGK-1112
-            key=1,
-            name=STOFunction.COMMAND_UID,
-            data_type=FSoEDictionaryItem.DataTypes.BOOL,
-            fail_safe_input_value=True,
-        )
-        ss1_command_dict_item = FSoEDictionaryItemInputOutput(
-            key=2,
-            name=SS1Function.COMMAND_UID,
-            data_type=FSoEDictionaryItem.DataTypes.BOOL,
-            fail_safe_input_value=True,
-        )
-        safe_input_dict_item = FSoEDictionaryItemInput(
-            key=3,
-            name=SafeInputsFunction.SAFE_INPUTS_UID,
-            data_type=FSoEDictionaryItem.DataTypes.BOOL,
-            fail_safe_value=False,
-        )
-        return FSoEDictionary(
-            [
-                sto_command_dict_item,
-                ss1_command_dict_item,
-                safe_input_dict_item,
-            ]
-        )
-
-    @classmethod
-    def _create_safe_dictionary_from_v3(cls, dictionary: "DictionaryV3") -> "FSoEDictionary":
-        """Create a dictionary with the safe inputs and outputs from a DictionaryV3 instance.
-
-        Args:
-            dictionary: The DictionaryV3 instance.
-
-        Returns:
-            A FSOE Dictionary instance with the safe inputs and outputs.
 
         """
         items = []

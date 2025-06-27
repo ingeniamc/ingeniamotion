@@ -1,3 +1,4 @@
+import time
 from typing import TYPE_CHECKING
 
 import pytest
@@ -150,6 +151,22 @@ def mc_state_data(mc_with_fsoe):
 
 
 @pytest.mark.fsoe
+def test_start_and_stop_multiple_times(mc_with_fsoe):
+    mc, handler = mc_with_fsoe
+
+    # Any fsoe error during the start/stop process
+    # will fail the test because of error_handler
+
+    for i in range(4):
+        mc.fsoe.configure_pdos(start_pdos=True)
+        mc.fsoe.wait_for_state_data(timeout=10)
+        assert handler.state == FSoEState.DATA
+        time.sleep(1)
+        assert handler.state == FSoEState.DATA
+        mc.fsoe.stop_master(stop_pdos=True)
+
+
+@pytest.mark.fsoe
 def test_safe_inputs_value(mc_state_data):
     mc = mc_state_data
 
@@ -251,8 +268,8 @@ def test_copy_modify_and_set_map(mc_with_fsoe):
         "Item                                     | Position bytes..bits | Size bytes..bits    \n"
         "FSOE_STO                                 | 0..0                 | 0..1                \n"
         "FSOE_SS1_1                               | 0..1                 | 0..1                \n"
-        "Padding                                  | 0..2                 | 0..7                \n"
-        "Padding                                  | 1..1                 | 0..6                "
+        "Padding                                  | 0..2                 | 0..6                \n"
+        "Padding                                  | 1..0                 | 0..7                "
     )
 
     # Without affecting the original map of the handler
@@ -260,9 +277,9 @@ def test_copy_modify_and_set_map(mc_with_fsoe):
         "Item                                     | Position bytes..bits | Size bytes..bits    \n"
         "FSOE_STO                                 | 0..0                 | 0..1                \n"
         "FSOE_SS1_1                               | 0..1                 | 0..1                \n"
-        "Padding                                  | 0..2                 | 0..7                \n"
-        "FSOE_SAFE_INPUTS_VALUE                   | 1..1                 | 0..1                \n"
-        "Padding                                  | 1..2                 | 0..6                "
+        "Padding                                  | 0..2                 | 0..6                \n"
+        "FSOE_SAFE_INPUTS_VALUE                   | 1..0                 | 0..1                \n"
+        "Padding                                  | 1..1                 | 0..7                "
     )
 
     # The new map can be set to the handler
@@ -322,7 +339,7 @@ class TestPduMapper:
             cat_id="FSOE",
         )
 
-        fsoe_dict = FSoEMasterHandler._create_safe_dictionary_from_v3(safe_dict)
+        fsoe_dict = FSoEMasterHandler.create_safe_dictionary(safe_dict)
 
         return safe_dict, fsoe_dict
 
