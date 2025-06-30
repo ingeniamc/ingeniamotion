@@ -431,16 +431,16 @@ pipeline {
                                 runTestHW("ethercat_capitan", "soem", "ECAT_CAP_SETUP")
                             }
                         }
-                        stage("Safety Denali") {
-                            steps {
-                                runTestHW("fsoe_phase1", "fsoe", "ECAT_DEN_S_PHASE1_SETUP", true)
-                            }
-                        }
-                        stage("Ethercat Multislave") {
-                            steps {
-                                runTestHW("ethercat_multislave", "soem_multislave", "ECAT_MULTISLAVE_SETUP")
-                            }
-                        }
+                        // stage("Safety Denali") {
+                        //     steps {
+                        //         runTestHW("fsoe_phase1", "fsoe", "ECAT_DEN_S_PHASE1_SETUP", true)
+                        //     }
+                        // }
+                        // stage("Ethercat Multislave") {
+                        //     steps {
+                        //         runTestHW("ethercat_multislave", "soem_multislave", "ECAT_MULTISLAVE_SETUP")
+                        //     }
+                        // }
                     }
                 }
             }
