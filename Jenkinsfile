@@ -240,138 +240,138 @@ pipeline {
 
         stage('Build and Tests') {
             parallel {
-                stage('Virtual drive tests on Linux') {
-                    agent {
-                        docker {
-                            label "worker"
-                            image LIN_DOCKER_IMAGE
-                        }
-                    }
-                    stages {
-                        stage('Run no-connection tests') {
-                            steps {
-                                sh "python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
-                                    "-m virtual " +
-                                    "--setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP"
-                            }
-                            post {
-                                always {
-                                    junit "pytest_reports/*.xml"
-                                }
-                            }
-                        }
-                    }
-                }
+                // stage('Virtual drive tests on Linux') {
+                //     agent {
+                //         docker {
+                //             label "worker"
+                //             image LIN_DOCKER_IMAGE
+                //         }
+                //     }
+                //     stages {
+                //         stage('Run no-connection tests') {
+                //             steps {
+                //                 sh "python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
+                //                     "-m virtual " +
+                //                     "--setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP"
+                //             }
+                //             post {
+                //                 always {
+                //                     junit "pytest_reports/*.xml"
+                //                 }
+                //             }
+                //         }
+                //     }
+                // }
 
-                stage('Build and publish') {
-                    stages {
-                        stage('Build') {
-                            agent {
-                                docker {
-                                    label SW_NODE
-                                    image WIN_DOCKER_IMAGE
-                                }
-                            }
-                            stages {
-                                // stage('Build wheels') {
-                                //     steps {
-                                //         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e build"
-                                //         stash includes: 'dist\\*', name: 'build'
-                                //         archiveArtifacts artifacts: "dist\\*"
-                                //     }
-                                // }
-                                // stage('Make a static type analysis') {
-                                //     steps {
-                                //         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e type"
-                                //     }
-                                // }
-                                // stage('Check formatting') {
-                                //     steps {
-                                //         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e format"
-                                //     }
-                                // }
-                                // stage('Generate documentation') {
-                                //     steps {
-                                //         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e docs"
-                                //         bat """
-                                //             "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
-                                //         """
-                                //         stash includes: 'docs.zip', name: 'docs'
-                                //     }
-                                // }
-                                stage("Run unit tests") {
-                                    steps {
-                                        bat """
-                                            py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- ^
-                                            -m "not ethernet and not soem and not fsoe and not canopen and not virtual and not soem_multislave and not skip_testing_framework"
-                                        """
-                                    }
-                                    post {
-                                        always {
-                                            bat "move .coverage .coverage_unit_tests"
-                                            junit "pytest_reports\\*.xml"
-                                            // Delete the junit after publishing it so it not re-published on the next stage
-                                            bat "del /S /Q pytest_reports\\*.xml"
-                                            stash includes: '.coverage_unit_tests', name: '.coverage_unit_tests'
-                                            script {
-                                                coverage_stashes.add(".coverage_unit_tests")
-                                            }
-                                        }
-                                    }
-                                }
-                                stage("Run virtual drive tests") {
-                                    steps {
-                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
-                                                "-m virtual " +
-                                                "--setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP "
-                                    }
-                                    post {
-                                        always {
-                                            bat "move .coverage .coverage_virtual"
-                                            junit "pytest_reports\\*.xml"
-                                            // Delete the junit after publishing it so it not re-published on the next stage
-                                            bat "del /S /Q pytest_reports\\*.xml"
-                                            stash includes: '.coverage_virtual', name: '.coverage_virtual'
-                                            script {
-                                                coverage_stashes.add(".coverage_virtual")
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        stage('Publish documentation') {
-                            when {
-                                beforeAgent true
-                                branch BRANCH_NAME_MASTER
-                            }
-                            agent {
-                                label "worker"
-                            }
-                            steps {
-                                unstash 'docs'
-                                unzip zipFile: 'docs.zip', dir: '.'
-                                publishDistExt("_docs", DISTEXT_PROJECT_DIR, false)
-                            }
-                        }
-                        stage('Publish to pypi') {
-                            when {
-                                beforeAgent true
-                                branch BRANCH_NAME_MASTER
-                            }
-                            agent {
-                                docker {
-                                    label 'worker'
-                                    image "ingeniacontainers.azurecr.io/publisher:1.8"
-                                }
-                            }
-                            steps {
-                                unstash 'build'
-                                publishPyPi("dist/*")
-                            }
-                        }
-                    }
-                }
+                // stage('Build and publish') {
+                //     stages {
+                //         stage('Build') {
+                //             agent {
+                //                 docker {
+                //                     label SW_NODE
+                //                     image WIN_DOCKER_IMAGE
+                //                 }
+                //             }
+                //             stages {
+                //                 // stage('Build wheels') {
+                //                 //     steps {
+                //                 //         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e build"
+                //                 //         stash includes: 'dist\\*', name: 'build'
+                //                 //         archiveArtifacts artifacts: "dist\\*"
+                //                 //     }
+                //                 // }
+                //                 // stage('Make a static type analysis') {
+                //                 //     steps {
+                //                 //         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e type"
+                //                 //     }
+                //                 // }
+                //                 // stage('Check formatting') {
+                //                 //     steps {
+                //                 //         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e format"
+                //                 //     }
+                //                 // }
+                //                 // stage('Generate documentation') {
+                //                 //     steps {
+                //                 //         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e docs"
+                //                 //         bat """
+                //                 //             "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
+                //                 //         """
+                //                 //         stash includes: 'docs.zip', name: 'docs'
+                //                 //     }
+                //                 // }
+                //                 stage("Run unit tests") {
+                //                     steps {
+                //                         bat """
+                //                             py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- ^
+                //                             -m "not ethernet and not soem and not fsoe and not canopen and not virtual and not soem_multislave and not skip_testing_framework"
+                //                         """
+                //                     }
+                //                     post {
+                //                         always {
+                //                             bat "move .coverage .coverage_unit_tests"
+                //                             junit "pytest_reports\\*.xml"
+                //                             // Delete the junit after publishing it so it not re-published on the next stage
+                //                             bat "del /S /Q pytest_reports\\*.xml"
+                //                             stash includes: '.coverage_unit_tests', name: '.coverage_unit_tests'
+                //                             script {
+                //                                 coverage_stashes.add(".coverage_unit_tests")
+                //                             }
+                //                         }
+                //                     }
+                //                 }
+                //                 stage("Run virtual drive tests") {
+                //                     steps {
+                //                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
+                //                                 "-m virtual " +
+                //                                 "--setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP "
+                //                     }
+                //                     post {
+                //                         always {
+                //                             bat "move .coverage .coverage_virtual"
+                //                             junit "pytest_reports\\*.xml"
+                //                             // Delete the junit after publishing it so it not re-published on the next stage
+                //                             bat "del /S /Q pytest_reports\\*.xml"
+                //                             stash includes: '.coverage_virtual', name: '.coverage_virtual'
+                //                             script {
+                //                                 coverage_stashes.add(".coverage_virtual")
+                //                             }
+                //                         }
+                //                     }
+                //                 }
+                //             }
+                //         }
+                //         stage('Publish documentation') {
+                //             when {
+                //                 beforeAgent true
+                //                 branch BRANCH_NAME_MASTER
+                //             }
+                //             agent {
+                //                 label "worker"
+                //             }
+                //             steps {
+                //                 unstash 'docs'
+                //                 unzip zipFile: 'docs.zip', dir: '.'
+                //                 publishDistExt("_docs", DISTEXT_PROJECT_DIR, false)
+                //             }
+                //         }
+                //         stage('Publish to pypi') {
+                //             when {
+                //                 beforeAgent true
+                //                 branch BRANCH_NAME_MASTER
+                //             }
+                //             agent {
+                //                 docker {
+                //                     label 'worker'
+                //                     image "ingeniacontainers.azurecr.io/publisher:1.8"
+                //                 }
+                //             }
+                //             steps {
+                //                 unstash 'build'
+                //                 publishPyPi("dist/*")
+                //             }
+                //         }
+                //     }
+                // }
 
                 // stage('HW Tests CanOpen and Ethernet') {
                 //     options {
@@ -446,26 +446,26 @@ pipeline {
             }
         }
 
-        stage('Publish coverage') {
-            agent {
-                docker {
-                    label SW_NODE
-                    image WIN_DOCKER_IMAGE
-                }
-            }
-            steps {
-                script {
-                    def coverage_files = ""
+        // stage('Publish coverage') {
+        //     agent {
+        //         docker {
+        //             label SW_NODE
+        //             image WIN_DOCKER_IMAGE
+        //         }
+        //     }
+        //     steps {
+        //         script {
+        //             def coverage_files = ""
 
-                    for (coverage_stash in coverage_stashes) {
-                        unstash coverage_stash
-                        coverage_files += " " + coverage_stash
-                    }
-                    bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e coverage -- ${coverage_files}"
-                }
-                recordCoverage(tools: [[parser: 'COBERTURA', pattern: 'coverage.xml']])
-                archiveArtifacts artifacts: '*.xml'
-            }
-        }
+        //             for (coverage_stash in coverage_stashes) {
+        //                 unstash coverage_stash
+        //                 coverage_files += " " + coverage_stash
+        //             }
+        //             bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e coverage -- ${coverage_files}"
+        //         }
+        //         recordCoverage(tools: [[parser: 'COBERTURA', pattern: 'coverage.xml']])
+        //         archiveArtifacts artifacts: '*.xml'
+        //     }
+        // }
     }
 }
