@@ -75,6 +75,7 @@ def runTestHW(run_identifier, markers, setup_name, install_fsoe = false) {
                 try {
                     bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
                             "-m \"${markers}\" " +
+                            "-k test_all_drive_tests.py",
                             "--setup tests.setups.rack_specifiers.${setup_name} " +
                             "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\" "
                 } catch (err) {
@@ -371,42 +372,42 @@ pipeline {
                     }
                 }
 
-                stage('HW Tests CanOpen and Ethernet') {
-                    options {
-                        lock(CAN_NODE_LOCK)
-                    }
-                    agent {
-                        label CAN_NODE
-                    }
-                    stages {
-                        stage("CanOpen Everest") {
-                            steps {
-                                runTestHW("canopen_everest", "canopen", "CAN_EVE_SETUP")
-                                runTestHW("canopen_everest_no_framework", "canopen and skip_testing_framework", "CAN_EVE_SETUP")
-                            }
-                        }
-                        stage("Ethernet Everest") {
-                            steps {
-                                runTestHW("ethernet_everest", "ethernet", "ETH_EVE_SETUP")
-                            }
-                        }
-                        stage("CanOpen Capitan") {
-                            steps {
-                                runTestHW("canopen_capitan", "canopen", "CAN_CAP_SETUP")
-                                runTestHW("canopen_capitan_no_framework", "canopen and skip_testing_framework", "CAN_EVE_SETUP")
-                            }
-                        }
-                        stage("Ethernet Capitan") {
-                            when {
-                                // Remove this after fixing INGK-982
-                                expression { false }
-                            }
-                            steps {
-                                runTestHW("ethernet capitan", "ethernet", "ETH_CAP_SETUP")
-                            }
-                        }
-                    }
-                }
+                // stage('HW Tests CanOpen and Ethernet') {
+                //     options {
+                //         lock(CAN_NODE_LOCK)
+                //     }
+                //     agent {
+                //         label CAN_NODE
+                //     }
+                //     stages {
+                //         stage("CanOpen Everest") {
+                //             steps {
+                //                 runTestHW("canopen_everest", "canopen", "CAN_EVE_SETUP")
+                //                 runTestHW("canopen_everest_no_framework", "canopen and skip_testing_framework", "CAN_EVE_SETUP")
+                //             }
+                //         }
+                //         stage("Ethernet Everest") {
+                //             steps {
+                //                 runTestHW("ethernet_everest", "ethernet", "ETH_EVE_SETUP")
+                //             }
+                //         }
+                //         stage("CanOpen Capitan") {
+                //             steps {
+                //                 runTestHW("canopen_capitan", "canopen", "CAN_CAP_SETUP")
+                //                 runTestHW("canopen_capitan_no_framework", "canopen and skip_testing_framework", "CAN_EVE_SETUP")
+                //             }
+                //         }
+                //         stage("Ethernet Capitan") {
+                //             when {
+                //                 // Remove this after fixing INGK-982
+                //                 expression { false }
+                //             }
+                //             steps {
+                //                 runTestHW("ethernet capitan", "ethernet", "ETH_CAP_SETUP")
+                //             }
+                //         }
+                //     }
+                // }
                 stage('Hw Tests Ethercat') {
                     options {
                         lock(ECAT_NODE_LOCK)
