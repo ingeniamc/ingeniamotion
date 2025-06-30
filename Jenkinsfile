@@ -58,6 +58,17 @@ def getIngenialinkArtifactWheelPath(python_version) {
     }
 }
 
+def clearWiresharkLogs() {
+    bat(script: 'del /f wireshark\\*.pcap', returnStatus: true)
+}
+
+def archiveWiresharkLogs() {
+    def wireshark_file = "wireshark\\*.pcap"
+    if (fileExists(wireshark_file)) {
+        archiveArtifacts artifacts: wireshark_file
+    }
+}
+
 def runTestHW(run_identifier, markers, setup_name, install_fsoe = false) {
     timeout(time: 1, unit: 'HOURS') {
         def fsoe_package = null
@@ -75,8 +86,6 @@ def runTestHW(run_identifier, markers, setup_name, install_fsoe = false) {
                 try {
                     bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
                             "-m \"${markers}\" " +
-                            "-k test_all_drive_tests.py " +
-                            "--count 3 " +
                             "--setup tests.setups.rack_specifiers.${setup_name} " +
                             "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\" "
                 } catch (err) {
@@ -417,6 +426,9 @@ pipeline {
                         label ECAT_NODE
                     }
                     stages {
+                        stage ("Clear Wireshark logs") {
+                            clearWiresharkLogs()
+                        }
                         stage("Ethercat Everest") {
                             when {
                                 // Remove this after fixing INGK-983
@@ -441,6 +453,10 @@ pipeline {
                         //         runTestHW("ethercat_multislave", "soem_multislave", "ECAT_MULTISLAVE_SETUP")
                         //     }
                         // }
+                        stage('Archive and remove Wireshark logs') {
+                            archiveWiresharkLogs()
+                            clearWiresharkLogs()
+                        }
                     }
                 }
             }

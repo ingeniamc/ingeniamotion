@@ -1,5 +1,9 @@
+import contextlib
+import platform
+import subprocess
 import time
 from collections.abc import Generator, Iterator
+from datetime import datetime
 from pathlib import Path
 from typing import Callable, Optional, Union
 
@@ -8,6 +12,7 @@ import pytest
 from pytest import FixtureRequest
 from summit_testing_framework import dynamic_loader
 from summit_testing_framework.setups.descriptors import (
+    DriveEcatSetup,
     DriveHwSetup,
     EthercatMultiSlaveSetup,
     SetupDescriptor,
@@ -200,3 +205,45 @@ def disable_motor_fixture(request: FixtureRequest) -> Generator[None, None, None
     for eval_alias in aliases:
         mc.motion.motor_disable(servo=eval_alias)
         mc.motion.fault_reset(servo=eval_alias)
+
+
+@pytest.fixture(scope="session")
+def wireshark_path(setup_descriptor: SetupDescriptor) -> Path:
+    wireshark_dir = Path("wireshark").resolve()
+    wireshark_dir.mkdir(exist_ok=True)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    return Path(rf"{wireshark_dir}\{setup_descriptor.identifier}_{timestamp}.pcap")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def tshark_capture(
+    setup_descriptor: SetupDescriptor, wireshark_path: Path, request: FixtureRequest
+):
+    if platform.system() != "Windows" or not isinstance(setup_descriptor, DriveEcatSetup):
+        yield
+        return
+
+    # Define the tshark command
+    tshark_cmd = [
+        r"C:\Program Files\Wireshark\tshark.exe",
+        "-i",
+        setup_descriptor.ifname,
+        "-w",
+        wireshark_path.as_posix(),
+    ]
+
+    # Start tshark
+    tshark_proc = subprocess.Popen(tshark_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    time.sleep(3)  # Wait for tshark to open
+
+    yield  # Run the tests
+
+    # Stop tshark
+    tshark_proc.terminate()
+    tshark_proc.wait()
+
+    # Remove the log if there were no errors while executing the tests
+    session_outcome = getattr(request.session, "testsfailed", 1)
+    if session_outcome == 0:
+        with contextlib.suppress(Exception):
+            wireshark_path.unlink()
