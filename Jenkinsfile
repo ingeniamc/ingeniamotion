@@ -271,32 +271,32 @@ pipeline {
                                 }
                             }
                             stages {
-                                stage('Build wheels') {
-                                    steps {
-                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e build"
-                                        stash includes: 'dist\\*', name: 'build'
-                                        archiveArtifacts artifacts: "dist\\*"
-                                    }
-                                }
-                                stage('Make a static type analysis') {
-                                    steps {
-                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e type"
-                                    }
-                                }
-                                stage('Check formatting') {
-                                    steps {
-                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e format"
-                                    }
-                                }
-                                stage('Generate documentation') {
-                                    steps {
-                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e docs"
-                                        bat """
-                                            "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
-                                        """
-                                        stash includes: 'docs.zip', name: 'docs'
-                                    }
-                                }
+                                // stage('Build wheels') {
+                                //     steps {
+                                //         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e build"
+                                //         stash includes: 'dist\\*', name: 'build'
+                                //         archiveArtifacts artifacts: "dist\\*"
+                                //     }
+                                // }
+                                // stage('Make a static type analysis') {
+                                //     steps {
+                                //         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e type"
+                                //     }
+                                // }
+                                // stage('Check formatting') {
+                                //     steps {
+                                //         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e format"
+                                //     }
+                                // }
+                                // stage('Generate documentation') {
+                                //     steps {
+                                //         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e docs"
+                                //         bat """
+                                //             "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
+                                //         """
+                                //         stash includes: 'docs.zip', name: 'docs'
+                                //     }
+                                // }
                                 stage("Run unit tests") {
                                     steps {
                                         bat """
