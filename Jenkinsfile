@@ -427,7 +427,9 @@ pipeline {
                     }
                     stages {
                         stage ("Clear Wireshark logs") {
-                            clearWiresharkLogs()
+                            steps {
+                                clearWiresharkLogs()
+                            }
                         }
                         stage("Ethercat Everest") {
                             when {
@@ -454,8 +456,10 @@ pipeline {
                         //     }
                         // }
                         stage('Archive and remove Wireshark logs') {
-                            archiveWiresharkLogs()
-                            clearWiresharkLogs()
+                            steps {
+                                archiveWiresharkLogs()
+                                clearWiresharkLogs()
+                            }
                         }
                     }
                 }
