@@ -23,6 +23,8 @@ INGENIALINK_COMMIT_HASH = ""
 ORG_INGENIALINK_INSTALL_PATH = null
 INGENIALINK_WHEELS_DIR = "ingenialink_wheels"
 
+WIRESHARK_DIR = "wireshark"
+
 FSOE_INSTALL_VERSION = ".[FSoE]"
 
 coverage_stashes = []
@@ -59,14 +61,11 @@ def getIngenialinkArtifactWheelPath(python_version) {
 }
 
 def clearWiresharkLogs() {
-    bat(script: 'del /f wireshark\\*.pcap', returnStatus: true)
+    bat(script: 'del /f "%WIRESHARK_DIR%\\*.pcap"', returnStatus: true)
 }
 
 def archiveWiresharkLogs() {
-    def wireshark_file = "wireshark\\*.pcap"
-    if (fileExists(wireshark_file)) {
-        archiveArtifacts artifacts: wireshark_file
-    }
+    archiveArtifacts artifacts: "${WIRESHARK_DIR}\\*", allowEmptyArchive: true
 }
 
 def runTestHW(run_identifier, markers, setup_name, install_fsoe = false) {
@@ -86,6 +85,7 @@ def runTestHW(run_identifier, markers, setup_name, install_fsoe = false) {
                 try {
                     bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
                             "-m \"${markers}\" " +
+                            "-k test_all_drive_tests " + 
                             "--setup tests.setups.rack_specifiers.${setup_name} " +
                             "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\" "
                 } catch (err) {
