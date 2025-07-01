@@ -100,7 +100,7 @@ class FSoEMaster:
                 the PDO exchange should be started after. ``False`` by default.
 
         """
-        self._set_pdo_maps_to_slaves()
+        self._configure_and_set_pdo_maps_to_slaves()
         self._subscribe_to_pdo_thread_events()
         if start_pdos:
             self.__mc.capture.pdo.start_pdos()
@@ -340,9 +340,10 @@ class FSoEMaster:
         self.__mc.capture.pdo.unsubscribe_to_receive_process_data(self._set_reply)
         self.__mc.capture.pdo.unsubscribe_to_exceptions(self._pdo_thread_exception_handler)
 
-    def _set_pdo_maps_to_slaves(self) -> None:
-        """Set the PDOMaps to be used by the Safety PDUs to the slaves."""
+    def _configure_and_set_pdo_maps_to_slaves(self) -> None:
+        """Configure the PDOMaps used by the Safety PDUs in the slaves."""
         for master_handler in self._handlers.values():
+            master_handler.configure_pdo_maps()
             master_handler.set_pdo_maps_to_slave()
 
     def _remove_pdo_maps_from_slaves(self) -> None:
