@@ -1,3 +1,4 @@
+import contextlib
 import platform
 import subprocess
 import time
@@ -247,8 +248,8 @@ def tshark_capture(
     tshark_proc.terminate()
     tshark_proc.wait()
 
-    # # Remove the log if there were no errors while executing the tests
-    # session_outcome = getattr(request.session, "testsfailed", 1)
-    # if session_outcome == 0:
-    #     with contextlib.suppress(Exception):
-    #         wireshark_path.unlink()
+    # Remove the log if there were no errors while executing the tests
+    session_outcome = getattr(request.session, "testsfailed", 1)
+    if session_outcome == 0:
+        with contextlib.suppress(Exception):
+            wireshark_path.unlink()

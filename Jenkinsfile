@@ -85,7 +85,6 @@ def runTestHW(run_identifier, markers, setup_name, install_fsoe = false) {
                 try {
                     bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
                             "-m \"${markers}\" " +
-                            "-k test_all_drive_tests " + 
                             "--setup tests.setups.rack_specifiers.${setup_name} " +
                             "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\" "
                 } catch (err) {
