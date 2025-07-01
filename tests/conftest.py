@@ -208,10 +208,16 @@ def disable_motor_fixture(request: FixtureRequest) -> Generator[None, None, None
 
 @pytest.fixture(scope="session")
 def wireshark_path(setup_descriptor: SetupDescriptor) -> Path:
+    if isinstance(setup_descriptor, EthercatMultiSlaveSetup):
+        part_number = "_".join([descriptor.identifier for descriptor in setup_descriptor.drives])
+    elif isinstance(setup_descriptor, DriveEcatSetup):
+        part_number = setup_descriptor.identifier
+    else:
+        raise ValueError(f"No wireshark log for {setup_descriptor}")
     wireshark_dir = Path("wireshark").resolve()
     wireshark_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    return Path(rf"{wireshark_dir}\{setup_descriptor.identifier}_{timestamp}.pcap")
+    return Path(rf"{wireshark_dir}\{part_number}_{timestamp}.pcap")
 
 
 @pytest.fixture(scope="session", autouse=True)
