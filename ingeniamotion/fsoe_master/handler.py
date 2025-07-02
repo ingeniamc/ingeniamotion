@@ -126,11 +126,9 @@ class FSoEMasterHandler:
         )
         self.set_maps(self.__maps)
 
-    def _start(self) -> None:
-        """Start the FSoE Master handler."""
+    def __start_on_first_request(self) -> None:
+        """Start the FSoE Master handler on first request."""
         self.__in_initial_reset = True
-        self.configure_pdo_maps()
-        self.set_pdo_maps_to_slave()
         self._master_handler.start()
         self.__running = True
 
@@ -159,8 +157,15 @@ class FSoEMasterHandler:
 
     def configure_pdo_maps(self) -> None:
         """Configure the PDOMaps used for the Safety PDUs according to the map."""
+        # Fill the RPDOMap and TPDOMap with the items from the maps
         self.__maps.fill_rpdo_map(self.safety_master_pdu_map, self.__servo.dictionary)
         self.__maps.fill_tpdo_map(self.safety_slave_pdu_map, self.__servo.dictionary)
+
+        # Update the PDO map items that are listed as safety parameters
+        for item in self.safety_master_pdu_map.items + self.safety_slave_pdu_map.items:
+            uid = item.register.identifier
+            if uid in self.safety_parameters:
+                self.safety_parameters[uid].set(item.register_mapping)
 
     def set_pdo_maps_to_slave(self) -> None:
         """Set the PDOMaps to be used by the Safety PDUs to the slave."""
@@ -176,7 +181,7 @@ class FSoEMasterHandler:
     def get_request(self) -> None:
         """Set the FSoE master handler request to the Safety Master PDU PDOMap."""
         if not self.__running:
-            self._start()
+            self.__start_on_first_request()
         self.safety_master_pdu_map.set_item_bytes(self._master_handler.get_request())
 
     def set_reply(self) -> None:
