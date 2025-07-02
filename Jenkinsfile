@@ -24,6 +24,7 @@ ORG_INGENIALINK_INSTALL_PATH = null
 INGENIALINK_WHEELS_DIR = "ingenialink_wheels"
 
 WIRESHARK_DIR = "wireshark"
+USE_WIRESHARK_LOGGING = ""
 
 FSOE_INSTALL_VERSION = ".[FSoE]"
 
@@ -68,7 +69,7 @@ def archiveWiresharkLogs() {
     archiveArtifacts artifacts: "${WIRESHARK_DIR}\\*", allowEmptyArchive: true
 }
 
-def runTestHW(run_identifier, markers, setup_name, install_fsoe = false) {
+def runTestHW(run_identifier, markers, setup_name, install_fsoe = false, extra_args = "") {
     timeout(time: 1, unit: 'HOURS') {
         def fsoe_package = null
         if (install_fsoe) {
@@ -86,7 +87,8 @@ def runTestHW(run_identifier, markers, setup_name, install_fsoe = false) {
                     bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
                             "-m \"${markers}\" " +
                             "--setup tests.setups.rack_specifiers.${setup_name} " +
-                            "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\" "
+                            "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\" " +
+                            "${extra_args}"
                 } catch (err) {
                     unstable(message: "Tests failed")
                 } finally {
@@ -117,9 +119,10 @@ pipeline {
     }
     parameters {
         choice(
-                choices: ['MIN', 'MIN_MAX', 'All'],
+                choices: ['MIN', 'MAX', 'MIN_MAX', 'All'],
                 name: 'PYTHON_VERSIONS'
         )
+        booleanParam(name: 'WIRESHARK_LOGGING', defaultValue: true, description: 'Enable Wireshark logging')
     }
     stages {
         stage("Set env") {
@@ -134,11 +137,19 @@ pipeline {
                           RUN_PYTHON_VERSIONS = "${PYTHON_VERSION_MIN},${PYTHON_VERSION_MAX}"
                         } else if (env.PYTHON_VERSIONS == "MIN") {
                           RUN_PYTHON_VERSIONS = PYTHON_VERSION_MIN
+                        } else if (env.PYTHON_VERSIONS == "MAX") {
+                          RUN_PYTHON_VERSIONS = PYTHON_VERSION_MAX
                         } else if (env.PYTHON_VERSIONS == "All") {
                           RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
                         } else { // Branch-indexing
                           RUN_PYTHON_VERSIONS = PYTHON_VERSION_MIN
                         }
+                    }
+
+                    if (params.WIRESHARK_LOGGING) {
+                        USE_WIRESHARK_LOGGING = "--run_wireshark"
+                    } else {
+                        USE_WIRESHARK_LOGGING = ""
                     }
                 }
             }
@@ -436,26 +447,27 @@ pipeline {
                                 expression { false }
                             }
                             steps {
-                                runTestHW("ethercat_everest", "soem", "ECAT_EVE_SETUP")
+                                // TODO: implement run wireshark as jenkins choice
+                                runTestHW("ethercat_everest", "soem", "ECAT_EVE_SETUP", false, USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("Ethercat Capitan") {
                             steps {
-                                runTestHW("ethercat_capitan", "soem", "ECAT_CAP_SETUP")
+                                runTestHW("ethercat_capitan", "soem", "ECAT_CAP_SETUP", false, USE_WIRESHARK_LOGGING)
                                 archiveWiresharkLogs()
                                 clearWiresharkLogs()
                             }
                         }
                         stage("Safety Denali") {
                             steps {
-                                runTestHW("fsoe_phase1", "fsoe", "ECAT_DEN_S_PHASE1_SETUP", true)
+                                runTestHW("fsoe_phase1", "fsoe", "ECAT_DEN_S_PHASE1_SETUP", true, USE_WIRESHARK_LOGGING)
                                 archiveWiresharkLogs()
                                 clearWiresharkLogs()
                             }
                         }
                         stage("Ethercat Multislave") {
                             steps {
-                                runTestHW("ethercat_multislave", "soem_multislave", "ECAT_MULTISLAVE_SETUP")
+                                runTestHW("ethercat_multislave", "soem_multislave", "ECAT_MULTISLAVE_SETUP", false, USE_WIRESHARK_LOGGING)
                                 archiveWiresharkLogs()
                                 clearWiresharkLogs()
                             }
