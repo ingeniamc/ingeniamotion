@@ -123,6 +123,10 @@ pipeline {
                 name: 'PYTHON_VERSIONS'
         )
         booleanParam(name: 'WIRESHARK_LOGGING', defaultValue: true, description: 'Enable Wireshark logging')
+        choice(
+                choices: ['function', 'module', 'session'],
+                name: 'WIRESHARK_LOGGING_SCOPE'
+        )
     }
     stages {
         stage("Set env") {
