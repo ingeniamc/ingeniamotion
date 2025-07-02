@@ -39,6 +39,12 @@ extensions = [
     'm2r2'
 ]
 
+autodoc_default_options = {
+    'members': True,
+    "undoc-members": True,
+    'show-inheritance': True,
+}
+
 autodoc_member_order = 'bysource'
 
 # Add any paths that contain templates here, relative to this directory.

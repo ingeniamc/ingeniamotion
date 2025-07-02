@@ -12,11 +12,6 @@ from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import (
     FSOE_MASTER_INSTALLED,
     FSoEError,
-    FSoEMasterHandler,
-    PDUMaps,
-    SafeInputsFunction,
-    SS1Function,
-    STOFunction,
 )
 from ingeniamotion.motion_controller import MotionController
 from tests.conftest import timeout_loop
@@ -24,6 +19,14 @@ from tests.dictionaries import SAMPLE_SAFE_DICTIONARY
 
 if FSOE_MASTER_INSTALLED:
     from fsoe_master import fsoe_master
+
+    from ingeniamotion.fsoe_master import (
+        FSoEMasterHandler,
+        PDUMaps,
+        SafeInputsFunction,
+        SS1Function,
+        STOFunction,
+    )
 
 
 if TYPE_CHECKING:
