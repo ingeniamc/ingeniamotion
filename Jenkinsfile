@@ -82,7 +82,7 @@ def runTestHW(run_identifier, markers, setup_name, install_fsoe = false, extra_a
 
         pythonVersions.each { version ->
             def wheelFile = getIngenialinkArtifactWheelPath(version)
-            withEnv(["INGENIALINK_INSTALL_PATH=${wheelFile}", "FSOE_PACKAGE=${fsoe_package}"]) {
+            withEnv(["INGENIALINK_INSTALL_PATH=${wheelFile}", "FSOE_PACKAGE=${fsoe_package}", "WIRESHARK_SCOPE=${params.WIRESHARK_LOGGING_SCOPE}", "CLEAR_WIRESHARK_LOG_IF_SUCCESSFUL=${CLEAR_SUCCESSFUL_WIRESHARK_LOGS}"]) {
                 try {
                     bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
                             "-m \"${markers}\" " +
@@ -127,6 +127,7 @@ pipeline {
                 choices: ['function', 'module', 'session'],
                 name: 'WIRESHARK_LOGGING_SCOPE'
         )
+        booleanParam(name: 'CLEAR_SUCCESSFUL_WIRESHARK_LOGS', defaultValue: true, description: 'Clears Wireshark logs if the test passed')
     }
     stages {
         stage("Set env") {
