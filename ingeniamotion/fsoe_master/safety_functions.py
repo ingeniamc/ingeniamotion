@@ -41,6 +41,9 @@ class SafetyFunction:
         yield from SOSFunction.for_handler(handler)
         yield from SS2Function.for_handler(handler)
         yield from SOutFunction.for_handler(handler)
+        yield from SPFunction.for_handler(handler)
+        yield from SPFunction.for_handler(handler)
+        yield from SVFunction.for_handler(handler)
 
     @classmethod
     def _explore_instances(cls) -> Iterator[int]:
@@ -250,3 +253,51 @@ class SOutFunction(SafetyFunction):
             io=(command,),
             parameters=(time_delay,),
         )
+
+
+@dataclass()
+class SPFunction(SafetyFunction):
+    """Safe Position Safety Function."""
+
+    ACTUAL_VALUE_UID = "FSOE_SAFE_POSITION"
+    TOLERANCE_UID = "FSOE_POSITION_TOLERANCE"
+
+    value: FSoEDictionaryItemInput
+    tolerance: SafetyParameter
+
+    @classmethod
+    @override
+    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SPFunction"]:
+        value = cls._get_required_input(handler, cls.ACTUAL_VALUE_UID)
+        tolerance = cls._get_required_parameter(handler, cls.TOLERANCE_UID)
+        yield cls(value=value, tolerance=tolerance, io=(value,), parameters=(tolerance,))
+
+
+@dataclass()
+class SVFunction(SafetyFunction):
+    """Safe Velocity Safety Function."""
+
+    ACTUAL_VALUE_UID = "FSOE_SAFE_VELOCITY"
+
+    value: FSoEDictionaryItemInput
+
+    @classmethod
+    @override
+    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SVFunction"]:
+        value = cls._get_required_input(handler, cls.ACTUAL_VALUE_UID)
+        yield cls(value=value, io=(value,), parameters=())
+
+
+@dataclass()
+class SAFunction(SafetyFunction):
+    """Safe Acceleration Safety Function."""
+
+    ACTUAL_VALUE_UID = "FSOE_SAFE_ACCELERATION"
+
+    value: FSoEDictionaryItemInput
+
+    @classmethod
+    @override
+    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SAFunction"]:
+        value = cls._get_required_input(handler, cls.ACTUAL_VALUE_UID)
+        yield cls(value=value, io=(value,), parameters=())
