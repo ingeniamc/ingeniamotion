@@ -25,6 +25,7 @@ INGENIALINK_WHEELS_DIR = "ingenialink_wheels"
 
 WIRESHARK_DIR = "wireshark"
 USE_WIRESHARK_LOGGING = ""
+START_WIRESHARK_TIMEOUT_S = 5.0
 
 FSOE_INSTALL_VERSION = ".[FSoE]"
 
@@ -82,7 +83,7 @@ def runTestHW(run_identifier, markers, setup_name, install_fsoe = false, extra_a
 
         pythonVersions.each { version ->
             def wheelFile = getIngenialinkArtifactWheelPath(version)
-            withEnv(["INGENIALINK_INSTALL_PATH=${wheelFile}", "FSOE_PACKAGE=${fsoe_package}", "WIRESHARK_SCOPE=${params.WIRESHARK_LOGGING_SCOPE}", "CLEAR_WIRESHARK_LOG_IF_SUCCESSFUL=${CLEAR_SUCCESSFUL_WIRESHARK_LOGS}"]) {
+            withEnv(["INGENIALINK_INSTALL_PATH=${wheelFile}", "FSOE_PACKAGE=${fsoe_package}", "WIRESHARK_SCOPE=${params.WIRESHARK_LOGGING_SCOPE}", "CLEAR_WIRESHARK_LOG_IF_SUCCESSFUL=${CLEAR_SUCCESSFUL_WIRESHARK_LOGS}", "START_WIRESHARK_TIMEOUT_S=${START_WIRESHARK_TIMEOUT_S}"]) {
                 try {
                     bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
                             "-m \"${markers}\" " +
