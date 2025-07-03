@@ -244,15 +244,16 @@ class SOutFunction(SafetyFunction):
 
     @classmethod
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafetyFunction"]:
-        command = cls._get_required_input_output(handler, cls.COMMAND_UID)
-        time_delay = cls._get_required_parameter(handler, cls.TIME_DELAY_UID)
+        for _ in cls._explore_instances():
+            command = cls._get_required_input_output(handler, cls.COMMAND_UID)
+            time_delay = cls._get_required_parameter(handler, cls.TIME_DELAY_UID)
 
-        yield cls(
-            command=command,
-            time_delay=time_delay,
-            io=(command,),
-            parameters=(time_delay,),
-        )
+            yield cls(
+                command=command,
+                time_delay=time_delay,
+                io=(command,),
+                parameters=(time_delay,),
+            )
 
 
 @dataclass()
@@ -268,9 +269,10 @@ class SPFunction(SafetyFunction):
     @classmethod
     @override
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SPFunction"]:
-        value = cls._get_required_input(handler, cls.ACTUAL_VALUE_UID)
-        tolerance = cls._get_required_parameter(handler, cls.TOLERANCE_UID)
-        yield cls(value=value, tolerance=tolerance, io=(value,), parameters=(tolerance,))
+        for _ in cls._explore_instances():
+            value = cls._get_required_input(handler, cls.ACTUAL_VALUE_UID)
+            tolerance = cls._get_required_parameter(handler, cls.TOLERANCE_UID)
+            yield cls(value=value, tolerance=tolerance, io=(value,), parameters=(tolerance,))
 
 
 @dataclass()
@@ -284,8 +286,9 @@ class SVFunction(SafetyFunction):
     @classmethod
     @override
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SVFunction"]:
-        value = cls._get_required_input(handler, cls.ACTUAL_VALUE_UID)
-        yield cls(value=value, io=(value,), parameters=())
+        for _ in cls._explore_instances():
+            value = cls._get_required_input(handler, cls.ACTUAL_VALUE_UID)
+            yield cls(value=value, io=(value,), parameters=())
 
 
 @dataclass()
@@ -299,5 +302,6 @@ class SAFunction(SafetyFunction):
     @classmethod
     @override
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SAFunction"]:
-        value = cls._get_required_input(handler, cls.ACTUAL_VALUE_UID)
-        yield cls(value=value, io=(value,), parameters=())
+        for _ in cls._explore_instances():
+            value = cls._get_required_input(handler, cls.ACTUAL_VALUE_UID)
+            yield cls(value=value, io=(value,), parameters=())
