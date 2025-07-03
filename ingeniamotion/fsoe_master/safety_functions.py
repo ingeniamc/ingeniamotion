@@ -187,14 +187,12 @@ class SS2Function(SafetyFunction):
 
     COMMAND_UID = "FSOE_SS2_{i}"
     TIME_TO_SOS_UID = "FSOE_SS2_TIME_TO_SOS_{i}"
-    TIME_TO_VELOCITY_ZERO_UID = "FSOE_SS2_TIME_FOR_VEL_ZERO_{i}"
     DECELERATION_LIMIT_UID = "FSOE_SS2_DEC_LIMIT_{i}"
     TIME_DELAY_DECELERATION_LIMIT_UID = "FSOE_SS2_TIME_DELAY_DEC_{i}"
     ERROR_REACTION_UID = "FSOE_SS2_ERROR_REACTION_{i}"
 
     command: "FSoEDictionaryItemInputOutput"
     time_to_sos: "SafetyParameter"
-    time_to_velocity_zero: "SafetyParameter"
     deceleration_limit: "SafetyParameter"
     time_delay_deceleration_limit: "SafetyParameter"
     error_reaction: "SafetyParameter"
@@ -205,9 +203,6 @@ class SS2Function(SafetyFunction):
         for i in cls._explore_instances():
             command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i))
             time_to_sos = cls._get_required_parameter(handler, cls.TIME_TO_SOS_UID.format(i))
-            time_to_velocity_zero = cls._get_required_parameter(
-                handler, cls.TIME_TO_VELOCITY_ZERO_UID.format(i)
-            )
             deceleration_limit = cls._get_required_parameter(
                 handler, cls.DECELERATION_LIMIT_UID.format(i)
             )
@@ -218,14 +213,12 @@ class SS2Function(SafetyFunction):
             yield cls(
                 command=command,
                 time_to_sos=time_to_sos,
-                time_to_velocity_zero=time_to_velocity_zero,
                 deceleration_limit=deceleration_limit,
                 time_delay_deceleration_limit=time_delay_deceleration_limit,
                 error_reaction=error_reaction,
                 io=(command,),
                 parameters=(
                     time_to_sos,
-                    time_to_velocity_zero,
                     deceleration_limit,
                     time_delay_deceleration_limit,
                     error_reaction,
