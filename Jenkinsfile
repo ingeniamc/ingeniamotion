@@ -458,23 +458,32 @@ pipeline {
                         }
                         stage("Ethercat Capitan") {
                             steps {
-                                runTestHW("ethercat_capitan", "soem", "ECAT_CAP_SETUP", false, USE_WIRESHARK_LOGGING)
-                                archiveWiresharkLogs()
-                                clearWiresharkLogs()
+                                try {
+                                    runTestHW("ethercat_capitan", "soem", "ECAT_CAP_SETUP", false, USE_WIRESHARK_LOGGING)
+                                } finally {
+                                    archiveWiresharkLogs()
+                                    clearWiresharkLogs()
+                                }
                             }
                         }
                         stage("Safety Denali") {
                             steps {
-                                runTestHW("fsoe_phase1", "fsoe", "ECAT_DEN_S_PHASE1_SETUP", true, USE_WIRESHARK_LOGGING)
-                                archiveWiresharkLogs()
-                                clearWiresharkLogs()
+                                try {
+                                    runTestHW("fsoe_phase1", "fsoe", "ECAT_DEN_S_PHASE1_SETUP", true, USE_WIRESHARK_LOGGING)
+                                } finally {
+                                    archiveWiresharkLogs()
+                                    clearWiresharkLogs()
+                                }
                             }
                         }
                         stage("Ethercat Multislave") {
                             steps {
-                                runTestHW("ethercat_multislave", "soem_multislave", "ECAT_MULTISLAVE_SETUP", false, USE_WIRESHARK_LOGGING)
-                                archiveWiresharkLogs()
-                                clearWiresharkLogs()
+                                try {
+                                    runTestHW("ethercat_multislave", "soem_multislave", "ECAT_MULTISLAVE_SETUP", false, USE_WIRESHARK_LOGGING)
+                                } finally {
+                                    archiveWiresharkLogs()
+                                    clearWiresharkLogs()
+                                }
                             }
                         }
                     }
