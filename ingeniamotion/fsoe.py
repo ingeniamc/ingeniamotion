@@ -47,11 +47,15 @@ class FSoEMaster:
         self.__fsoe_configured = False
 
     def create_fsoe_master_handler(
-        self, servo: str = DEFAULT_SERVO, fsoe_master_watchdog_timeout: Optional[float] = None
+        self,
+        use_sra: bool,
+        servo: str = DEFAULT_SERVO,
+        fsoe_master_watchdog_timeout: Optional[float] = None,
     ) -> "FSoEMasterHandler":
         """Create an FSoE Master handler linked to a Safe servo drive.
 
         Args:
+            use_sra: True to use SRA, False otherwise.
             servo: servo alias to reference it. ``default`` by default.
             fsoe_master_watchdog_timeout: The FSoE master watchdog timeout in seconds.
 
@@ -62,6 +66,8 @@ class FSoEMaster:
         if not isinstance(node, EthercatServo):
             raise TypeError("Functional Safety over Ethercat is only available for Ethercat servos")
         slave_address = self._get_safety_address_from_drive(servo)
+
+        self.__set_configured_module_ident_1(use_sra=use_sra, servo=servo)
 
         master_handler = FSoEMasterHandler(
             node,
@@ -216,6 +222,32 @@ class FSoEMaster:
         """
         return self.__mc.communication.get_register(
             register=self.__MDP_CONFIGURED_MODULE_1, servo=servo, axis=0
+        )
+
+    def __set_configured_module_ident_1(self, use_sra: bool, servo: str = DEFAULT_SERVO) -> None:
+        """Sets the configured Module Ident.
+
+        Args:
+            use_sra: True to use SRA, False otherwise.
+            servo: servo alias to reference it. ``default`` by default.
+
+        Raises:
+            RuntimeError: if module ident value to write can not be retrieved.
+        """
+        drive = self.__mc._get_drive(servo)
+        module_ident = None
+        for safety_module in drive.dictionary.safety_modules.values():
+            if use_sra and safety_module.uses_sra:
+                module_ident = safety_module.module_ident
+            if not use_sra and not safety_module.uses_sra:
+                module_ident = safety_module.module_ident
+            if module_ident is not None:
+                break
+        if module_ident is None:
+            raise RuntimeError("Module ident value to write could not be retrieved.")
+
+        self.__mc.communication.set_register(
+            register=self.__MDP_CONFIGURED_MODULE_1, value=module_ident, servo=servo, axis=0
         )
 
     def __get_safety_module(self, servo: str = DEFAULT_SERVO) -> DictionarySafetyModule:
