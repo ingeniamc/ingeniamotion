@@ -75,5 +75,8 @@ _pdf
 # tests setups
 tests/setups/tests_setup.py
 
+# Environment files
+.env
+
 # Wireshark logs
 wireshark/
