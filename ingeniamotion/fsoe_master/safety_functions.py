@@ -120,8 +120,8 @@ class SS1Function(SafetyFunction):
     @classmethod
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SS1Function"]:
         for i in cls._explore_instances():
-            ss1_command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i))
-            time_to_sto = cls._get_required_parameter(handler, cls.TIME_TO_STO_UID.format(i))
+            ss1_command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i=i))
+            time_to_sto = cls._get_required_parameter(handler, cls.TIME_TO_STO_UID.format(i=i))
             yield cls(
                 command=ss1_command,
                 time_to_sto=time_to_sto,
@@ -165,12 +165,12 @@ class SOSFunction(SafetyFunction):
     @classmethod
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SOSFunction"]:
         for i in cls._explore_instances():
-            command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i))
+            command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i=i))
             position_zero_window = cls._get_required_parameter(
-                handler, cls.POSITION_ZERO_WINDOW_UID.format(i)
+                handler, cls.POSITION_ZERO_WINDOW_UID.format(i=i)
             )
             velocity_zero_window = cls._get_required_parameter(
-                handler, cls.VELOCITY_ZERO_WINDOW_UID.format(i)
+                handler, cls.VELOCITY_ZERO_WINDOW_UID.format(i=i)
             )
             yield cls(
                 command=command,
@@ -201,15 +201,15 @@ class SS2Function(SafetyFunction):
     @classmethod
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafetyFunction"]:
         for i in cls._explore_instances():
-            command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i))
-            time_to_sos = cls._get_required_parameter(handler, cls.TIME_TO_SOS_UID.format(i))
+            command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i=i))
+            time_to_sos = cls._get_required_parameter(handler, cls.TIME_TO_SOS_UID.format(i=i))
             deceleration_limit = cls._get_required_parameter(
-                handler, cls.DECELERATION_LIMIT_UID.format(i)
+                handler, cls.DECELERATION_LIMIT_UID.format(i=i)
             )
             time_delay_deceleration_limit = cls._get_required_parameter(
                 handler, cls.TIME_DELAY_DECELERATION_LIMIT_UID.format()
             )
-            error_reaction = cls._get_required_parameter(handler, cls.ERROR_REACTION_UID.format(i))
+            error_reaction = cls._get_required_parameter(handler, cls.ERROR_REACTION_UID.format(i=i))
             yield cls(
                 command=command,
                 time_to_sos=time_to_sos,
