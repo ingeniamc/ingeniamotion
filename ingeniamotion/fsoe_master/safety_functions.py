@@ -44,6 +44,7 @@ class SafetyFunction:
         yield from SPFunction.for_handler(handler)
         yield from SPFunction.for_handler(handler)
         yield from SVFunction.for_handler(handler)
+        yield from SAFunction.for_handler(handler)
 
     @classmethod
     def _explore_instances(cls) -> Iterator[int]:
