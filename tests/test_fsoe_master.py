@@ -78,7 +78,7 @@ def mc_with_fsoe(mc):
 
 
 @pytest.mark.fsoe
-def test_creste_fsoe_master_handler(mc, alias):
+def test_create_fsoe_master_handler(mc, alias):
     master = FSoEMaster(mc)
 
     safety_module = master._FSoEMaster__get_safety_module(servo=alias)
