@@ -459,31 +459,37 @@ pipeline {
                         }
                         stage("Ethercat Capitan") {
                             steps {
-                                try {
-                                    runTestHW("ethercat_capitan", "soem", "ECAT_CAP_SETUP", false, USE_WIRESHARK_LOGGING)
-                                } finally {
-                                    archiveWiresharkLogs()
-                                    clearWiresharkLogs()
+                                script {
+                                    try {
+                                        runTestHW("ethercat_capitan", "soem", "ECAT_CAP_SETUP", false, USE_WIRESHARK_LOGGING)
+                                    } finally {
+                                        archiveWiresharkLogs()
+                                        clearWiresharkLogs()
+                                    }
                                 }
                             }
                         }
                         stage("Safety Denali") {
                             steps {
-                                try {
-                                    runTestHW("fsoe_phase1", "fsoe", "ECAT_DEN_S_PHASE1_SETUP", true, USE_WIRESHARK_LOGGING)
-                                } finally {
-                                    archiveWiresharkLogs()
-                                    clearWiresharkLogs()
+                                script {
+                                    try {
+                                        runTestHW("fsoe_phase1", "fsoe", "ECAT_DEN_S_PHASE1_SETUP", true, USE_WIRESHARK_LOGGING)
+                                    } finally {
+                                        archiveWiresharkLogs()
+                                        clearWiresharkLogs()
+                                    }
                                 }
                             }
                         }
                         stage("Ethercat Multislave") {
                             steps {
-                                try {
-                                    runTestHW("ethercat_multislave", "soem_multislave", "ECAT_MULTISLAVE_SETUP", false, USE_WIRESHARK_LOGGING)
-                                } finally {
-                                    archiveWiresharkLogs()
-                                    clearWiresharkLogs()
+                                script {
+                                    try {
+                                        runTestHW("ethercat_multislave", "soem_multislave", "ECAT_MULTISLAVE_SETUP", false, USE_WIRESHARK_LOGGING)
+                                    } finally {
+                                        archiveWiresharkLogs()
+                                        clearWiresharkLogs()
+                                    }
                                 }
                             }
                         }
