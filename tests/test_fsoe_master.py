@@ -78,20 +78,23 @@ def mc_with_fsoe(mc):
 
 
 @pytest.mark.fsoe
-def test_create_fsoe_master_handler(mc, alias):
+def test_create_fsoe_master_handler(mc, servo, alias):
     master = FSoEMaster(mc)
+
+    module_ident = servo.read(FSoEMasterHandler.MDP_CONFIGURED_MODULE_1, subnode=0)
+    safety_module = servo.dictionary.get_safety_module(module_ident=module_ident)
 
     safety_module = master._FSoEMaster__get_safety_module(servo=alias)
 
     if safety_module.uses_sra:
-        master.create_fsoe_master_handler(use_sra=False)
-        new_safety_module = master._FSoEMaster__get_safety_module(servo=alias)
+        handler = master.create_fsoe_master_handler(use_sra=False)
+        new_safety_module = handler._FSoEMasterHandler__get_safety_module(servo=alias)
         assert new_safety_module.uses_sra is False
 
     else:
         # https://novantamotion.atlassian.net/browse/INGM-621
         with pytest.raises(NotImplementedError, match="Safety module with SRA is not available."):
-            master.create_fsoe_master_handler(use_sra=True)
+            handler = master.create_fsoe_master_handler(use_sra=True)
         new_safety_module = master._FSoEMaster__get_safety_module(servo=alias)
         assert new_safety_module.uses_sra is True
 

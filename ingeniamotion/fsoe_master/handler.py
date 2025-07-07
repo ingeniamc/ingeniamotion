@@ -53,6 +53,7 @@ class FSoEMasterHandler:
 
     FSOE_MANUF_SAFETY_ADDRESS = "FSOE_MANUF_SAFETY_ADDRESS"
     FSOE_DICTIONARY_CATEGORY = "FSOE"
+    MDP_CONFIGURED_MODULE_1 = "MDP_CONFIGURED_MODULE_1"
 
     __FSOE_RPDO_MAP_1 = "ETG_COMMS_RPDO_MAP256_TOTAL"
     __FSOE_TPDO_MAP_1 = "ETG_COMMS_TPDO_MAP256_TOTAL"
@@ -63,7 +64,7 @@ class FSoEMasterHandler:
         self,
         servo: EthercatServo,
         *,
-        safety_module: DictionarySafetyModule,
+        use_sra: bool,
         slave_address: int,
         connection_id: int,
         watchdog_timeout: float = DEFAULT_WATCHDOG_TIMEOUT_S,
@@ -88,6 +89,10 @@ class FSoEMasterHandler:
         # Parameters that will be transmitted during the fsoe parameter state
         fsoe_application_parameters: list[FSoEApplicationParameter] = []
 
+        # Set MDP module
+        self.__set_configured_module_ident_1(use_sra=use_sra)
+
+        safety_module = self.__get_safety_module()
         if safety_module.uses_sra:
             raise NotImplementedError("Safety module with SRA is not available.")
 
@@ -125,6 +130,58 @@ class FSoEMasterHandler:
             self.__safety_master_pdu, self.__safety_slave_pdu, dictionary=self.dictionary
         )
         self.set_maps(self.__maps)
+
+    def __set_configured_module_ident_1(self, use_sra: bool) -> None:
+        """Sets the configured Module Ident.
+
+        Args:
+            use_sra: True to use SRA, False otherwise.
+            servo: servo alias to reference it. ``default`` by default.
+
+        Raises:
+            RuntimeError: if module ident value to write can not be retrieved.
+        """
+        module_ident = None
+        for safety_module in self.__servo.dictionary.safety_modules.values():
+            if use_sra and safety_module.uses_sra:
+                module_ident = safety_module.module_ident
+            if not use_sra and not safety_module.uses_sra:
+                module_ident = safety_module.module_ident
+            if module_ident is not None:
+                break
+        if module_ident is None:
+            raise RuntimeError("Module ident value to write could not be retrieved.")
+
+        self.__servo.write(self.MDP_CONFIGURED_MODULE_1, data=module_ident, subnode=0)
+
+    def __get_configured_module_ident_1(self) -> Union[int, float, str, bytes]:
+        """Gets the configured Module Ident 1.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+
+        Returns:
+            Configured Module Ident 1.
+        """
+        return self.__servo.read(self.MDP_CONFIGURED_MODULE_1, subnode=0)
+
+    def __get_safety_module(self) -> DictionarySafetyModule:
+        """Gets the configured Module Ident 1.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+
+        Returns:
+            Safety module.
+
+        Raises:
+            NotImplementedError: if the safety module uses SRA.
+        """
+        module_ident = int(self.__get_configured_module_ident_1(servo=self.__servo))
+        safety_module = self.__servo.dictionary.get_safety_module(module_ident=module_ident)
+        if safety_module.uses_sra:
+            self.logger.warning("Safety module with SRA is not available.")
+        return safety_module
 
     def __start_on_first_request(self) -> None:
         """Start the FSoE Master handler on first request."""
@@ -290,7 +347,7 @@ class FSoEMasterHandler:
         Returns:
             The FSoE slave address.
         """
-        return cast(int, self._master_handler.get_slave_address())
+        return cast("int", self._master_handler.get_slave_address())
 
     def set_safety_address(self, address: int) -> None:
         """Set the drive's FSoE slave address to the master and the slave.
