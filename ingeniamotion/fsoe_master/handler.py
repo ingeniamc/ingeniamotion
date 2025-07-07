@@ -93,9 +93,7 @@ class FSoEMasterHandler:
         fsoe_application_parameters: list[FSoEApplicationParameter] = []
 
         # Set MDP module
-        self.__set_configured_module_ident_1(use_sra=use_sra)
-
-        safety_module = self.__get_safety_module()
+        safety_module = self.__set_configured_module_ident_1(use_sra=use_sra)
         if safety_module.uses_sra:
             raise NotImplementedError("Safety module with SRA is not available.")
 
@@ -134,12 +132,15 @@ class FSoEMasterHandler:
         )
         self.set_maps(self.__maps)
 
-    def __set_configured_module_ident_1(self, use_sra: bool) -> None:
+    def __set_configured_module_ident_1(self, use_sra: bool) -> DictionarySafetyModule:
         """Sets the configured Module Ident.
 
         Args:
             use_sra: True to use SRA, False otherwise.
             servo: servo alias to reference it. ``default`` by default.
+
+        Returns:
+            Module Ident that has been set.
 
         Raises:
             RuntimeError: if module ident value to write can not be retrieved.
@@ -156,6 +157,8 @@ class FSoEMasterHandler:
             raise RuntimeError("Module ident value to write could not be retrieved.")
 
         self.__servo.write(self.MDP_CONFIGURED_MODULE_1, data=module_ident, subnode=0)
+
+        return self.__servo.dictionary.get_safety_module(module_ident=module_ident)
 
     def __get_configured_module_ident_1(self) -> Union[int, float, str, bytes]:
         """Gets the configured Module Ident 1.
