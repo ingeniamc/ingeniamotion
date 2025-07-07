@@ -146,6 +146,7 @@ class FSoEMasterHandler:
             RuntimeError: if module ident value to write can not be retrieved.
         """
         module_ident = None
+        # https://novantamotion.atlassian.net/browse/INGM-657
         for safety_module in self.__servo.dictionary.safety_modules.values():
             if use_sra and safety_module.uses_sra:
                 module_ident = safety_module.module_ident
