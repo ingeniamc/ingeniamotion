@@ -9,10 +9,7 @@ from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.pdo import RPDOMap, TPDOMap
 
 from ingeniamotion.enums import FSoEState
-from ingeniamotion.fsoe import (
-    FSOE_MASTER_INSTALLED,
-    FSoEError,
-)
+from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError, FSoEMaster
 from ingeniamotion.motion_controller import MotionController
 from tests.conftest import timeout_loop
 from tests.dictionaries import SAMPLE_SAFE_DICTIONARY
@@ -73,11 +70,33 @@ def mc_with_fsoe(mc):
     # Configure error channel
     mc.fsoe.subscribe_to_errors(error_handler)
     # Create and start the FSoE master handler
-    handler = mc.fsoe.create_fsoe_master_handler()
+    handler = mc.fsoe.create_fsoe_master_handler(use_sra=False)
     yield mc, handler
     # IM should be notified and clear references when a servo is disconnected from ingenialink
     # https://novantamotion.atlassian.net/browse/INGM-624
     mc.fsoe._delete_master_handler()
+
+
+@pytest.mark.fsoe
+def test_create_fsoe_master_handler(mc, servo, alias):
+    master = FSoEMaster(mc)
+
+    module_ident = servo.read(FSoEMasterHandler.MDP_CONFIGURED_MODULE_1, subnode=0)
+    safety_module = servo.dictionary.get_safety_module(module_ident=module_ident)
+
+    if safety_module.uses_sra:
+        handler = master.create_fsoe_master_handler(use_sra=False)
+        new_safety_module = handler._FSoEMasterHandler__get_safety_module(servo=alias)
+        assert new_safety_module.uses_sra is False
+
+    else:
+        # https://novantamotion.atlassian.net/browse/INGM-621
+        with pytest.raises(NotImplementedError, match="Safety module with SRA is not available."):
+            handler = master.create_fsoe_master_handler(use_sra=True)
+
+        module_ident = servo.read(FSoEMasterHandler.MDP_CONFIGURED_MODULE_1, subnode=0)
+        new_safety_module = servo.dictionary.get_safety_module(module_ident=module_ident)
+        assert new_safety_module.uses_sra is True
 
 
 @pytest.mark.fsoe
