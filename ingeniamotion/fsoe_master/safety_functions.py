@@ -51,11 +51,7 @@ class SafetyFunction:
         """Explore instances of the safety function."""
         i = 1
         while True:
-            try:
-                yield i
-            except KeyError:
-                # If a KeyError is raised, it means the instance does not exist
-                break
+            yield i
             i += 1
 
     @classmethod
@@ -64,6 +60,8 @@ class SafetyFunction:
     ) -> "FSoEDictionaryItemInputOutput":
         """Get the required input/output item from the handler's dictionary."""
         item = hander.dictionary.name_map.get(uid)
+        if item is None:
+            raise KeyError(f"Dictionary item {uid} not found in the handler's dictionary")
         if not isinstance(item, FSoEDictionaryItemInputOutput):
             raise TypeError(
                 f"Expected DictionaryItemInputOutput {uid} on the safe dictionary, got {type(item)}"
@@ -76,6 +74,8 @@ class SafetyFunction:
     ) -> "FSoEDictionaryItemInput":
         """Get the required input item from the handler's dictionary."""
         item = handler.dictionary.name_map.get(uid)
+        if item is None:
+            raise KeyError(f"Dictionary item {uid} not found in the handler's dictionary")
         if not isinstance(item, FSoEDictionaryItemInput):
             raise TypeError(
                 f"Expected DictionaryItemInput {uid} on the safe dictionary, got {type(item)}"
@@ -120,14 +120,17 @@ class SS1Function(SafetyFunction):
     @classmethod
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SS1Function"]:
         for i in cls._explore_instances():
-            ss1_command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i=i))
-            time_to_sto = cls._get_required_parameter(handler, cls.TIME_TO_STO_UID.format(i=i))
-            yield cls(
-                command=ss1_command,
-                time_to_sto=time_to_sto,
-                io=(ss1_command,),
-                parameters=(time_to_sto,),
-            )
+            try:
+                ss1_command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i=i))
+                time_to_sto = cls._get_required_parameter(handler, cls.TIME_TO_STO_UID.format(i=i))
+                yield cls(
+                    command=ss1_command,
+                    time_to_sto=time_to_sto,
+                    io=(ss1_command,),
+                    parameters=(time_to_sto,),
+                )
+            except KeyError:  # noqa: PERF203
+                break
 
 
 @dataclass()
@@ -165,20 +168,23 @@ class SOSFunction(SafetyFunction):
     @classmethod
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SOSFunction"]:
         for i in cls._explore_instances():
-            command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i=i))
-            position_zero_window = cls._get_required_parameter(
-                handler, cls.POSITION_ZERO_WINDOW_UID.format(i=i)
-            )
-            velocity_zero_window = cls._get_required_parameter(
-                handler, cls.VELOCITY_ZERO_WINDOW_UID.format(i=i)
-            )
-            yield cls(
-                command=command,
-                position_zero_window=position_zero_window,
-                velocity_zero_window=velocity_zero_window,
-                io=(command,),
-                parameters=(position_zero_window, velocity_zero_window),
-            )
+            try:
+                command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i=i))
+                position_zero_window = cls._get_required_parameter(
+                    handler, cls.POSITION_ZERO_WINDOW_UID.format(i=i)
+                )
+                velocity_zero_window = cls._get_required_parameter(
+                    handler, cls.VELOCITY_ZERO_WINDOW_UID.format(i=i)
+                )
+                yield cls(
+                    command=command,
+                    position_zero_window=position_zero_window,
+                    velocity_zero_window=velocity_zero_window,
+                    io=(command,),
+                    parameters=(position_zero_window, velocity_zero_window),
+                )
+            except KeyError:  # noqa: PERF203
+                break
 
 
 @dataclass()
@@ -201,29 +207,34 @@ class SS2Function(SafetyFunction):
     @classmethod
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafetyFunction"]:
         for i in cls._explore_instances():
-            command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i=i))
-            time_to_sos = cls._get_required_parameter(handler, cls.TIME_TO_SOS_UID.format(i=i))
-            deceleration_limit = cls._get_required_parameter(
-                handler, cls.DECELERATION_LIMIT_UID.format(i=i)
-            )
-            time_delay_deceleration_limit = cls._get_required_parameter(
-                handler, cls.TIME_DELAY_DECELERATION_LIMIT_UID.format()
-            )
-            error_reaction = cls._get_required_parameter(handler, cls.ERROR_REACTION_UID.format(i=i))
-            yield cls(
-                command=command,
-                time_to_sos=time_to_sos,
-                deceleration_limit=deceleration_limit,
-                time_delay_deceleration_limit=time_delay_deceleration_limit,
-                error_reaction=error_reaction,
-                io=(command,),
-                parameters=(
-                    time_to_sos,
-                    deceleration_limit,
-                    time_delay_deceleration_limit,
-                    error_reaction,
-                ),
-            )
+            try:
+                command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i=i))
+                time_to_sos = cls._get_required_parameter(handler, cls.TIME_TO_SOS_UID.format(i=i))
+                deceleration_limit = cls._get_required_parameter(
+                    handler, cls.DECELERATION_LIMIT_UID.format(i=i)
+                )
+                time_delay_deceleration_limit = cls._get_required_parameter(
+                    handler, cls.TIME_DELAY_DECELERATION_LIMIT_UID.format()
+                )
+                error_reaction = cls._get_required_parameter(
+                    handler, cls.ERROR_REACTION_UID.format(i=i)
+                )
+                yield cls(
+                    command=command,
+                    time_to_sos=time_to_sos,
+                    deceleration_limit=deceleration_limit,
+                    time_delay_deceleration_limit=time_delay_deceleration_limit,
+                    error_reaction=error_reaction,
+                    io=(command,),
+                    parameters=(
+                        time_to_sos,
+                        deceleration_limit,
+                        time_delay_deceleration_limit,
+                        error_reaction,
+                    ),
+                )
+            except KeyError:  # noqa: PERF203
+                break
 
 
 @dataclass()
@@ -239,15 +250,18 @@ class SOutFunction(SafetyFunction):
     @classmethod
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafetyFunction"]:
         for _ in cls._explore_instances():
-            command = cls._get_required_input_output(handler, cls.COMMAND_UID)
-            time_delay = cls._get_required_parameter(handler, cls.TIME_DELAY_UID)
+            try:
+                command = cls._get_required_input_output(handler, cls.COMMAND_UID)
+                time_delay = cls._get_required_parameter(handler, cls.TIME_DELAY_UID)
 
-            yield cls(
-                command=command,
-                time_delay=time_delay,
-                io=(command,),
-                parameters=(time_delay,),
-            )
+                yield cls(
+                    command=command,
+                    time_delay=time_delay,
+                    io=(command,),
+                    parameters=(time_delay,),
+                )
+            except KeyError:  # noqa: PERF203
+                break
 
 
 @dataclass()
@@ -264,9 +278,12 @@ class SPFunction(SafetyFunction):
     @override
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SPFunction"]:
         for _ in cls._explore_instances():
-            value = cls._get_required_input(handler, cls.ACTUAL_VALUE_UID)
-            tolerance = cls._get_required_parameter(handler, cls.TOLERANCE_UID)
-            yield cls(value=value, tolerance=tolerance, io=(value,), parameters=(tolerance,))
+            try:
+                value = cls._get_required_input(handler, cls.ACTUAL_VALUE_UID)
+                tolerance = cls._get_required_parameter(handler, cls.TOLERANCE_UID)
+                yield cls(value=value, tolerance=tolerance, io=(value,), parameters=(tolerance,))
+            except KeyError:  # noqa: PERF203
+                break
 
 
 @dataclass()
@@ -280,9 +297,11 @@ class SVFunction(SafetyFunction):
     @classmethod
     @override
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SVFunction"]:
-        for _ in cls._explore_instances():
+        try:
             value = cls._get_required_input(handler, cls.ACTUAL_VALUE_UID)
             yield cls(value=value, io=(value,), parameters=())
+        except KeyError:
+            return
 
 
 @dataclass()
@@ -296,6 +315,8 @@ class SAFunction(SafetyFunction):
     @classmethod
     @override
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SAFunction"]:
-        for _ in cls._explore_instances():
+        try:
             value = cls._get_required_input(handler, cls.ACTUAL_VALUE_UID)
             yield cls(value=value, io=(value,), parameters=())
+        except KeyError:
+            return
