@@ -41,7 +41,7 @@ from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 RUNNING_ON_WINDOWS = platform.system() == "Windows"
 
 if RUNNING_ON_WINDOWS:
-    from ingenialink.get_adapters_addresses import (  # type: ignore [import]
+    from ingenialink.get_adapters_addresses import (  # type: ignore [import-not-found]
         AdapterFamily,
         ScanFlags,
         get_adapters_addresses,

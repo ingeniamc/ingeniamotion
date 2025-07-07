@@ -1,6 +1,7 @@
 import threading
 from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union, cast, overload
 
+import ingenialogger
 from ingenialink import RegDtype
 from ingenialink.canopen.register import CanopenRegister
 from ingenialink.dictionary import DictionarySafetyModule
@@ -72,6 +73,8 @@ class FSoEMasterHandler:
     ):
         if not FSOE_MASTER_INSTALLED:
             return
+        self.logger = ingenialogger.get_logger(__name__)
+
         self.__servo = servo
         self.__running = False
 
@@ -177,7 +180,7 @@ class FSoEMasterHandler:
         Raises:
             NotImplementedError: if the safety module uses SRA.
         """
-        module_ident = int(self.__get_configured_module_ident_1(servo=self.__servo))
+        module_ident = int(self.__get_configured_module_ident_1())
         safety_module = self.__servo.dictionary.get_safety_module(module_ident=module_ident)
         if safety_module.uses_sra:
             self.logger.warning("Safety module with SRA is not available.")
