@@ -93,7 +93,9 @@ def test_create_fsoe_master_handler(mc, servo, alias):
         # https://novantamotion.atlassian.net/browse/INGM-621
         with pytest.raises(NotImplementedError, match="Safety module with SRA is not available."):
             handler = master.create_fsoe_master_handler(use_sra=True)
-        new_safety_module = master._FSoEMasterHandler__get_safety_module(servo=alias)
+
+        module_ident = servo.read(FSoEMasterHandler.MDP_CONFIGURED_MODULE_1, subnode=0)
+        new_safety_module = servo.dictionary.get_safety_module(module_ident=module_ident)
         assert new_safety_module.uses_sra is True
 
 
