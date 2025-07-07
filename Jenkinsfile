@@ -408,7 +408,7 @@ pipeline {
                     stages {
                         stage("CanOpen Everest") {
                             steps {
-                                runTestHW("canopen_everest", "canopen", "CAN_EVE_SETUP")
+                                runTestHW("canopen_everest", "canopen and not skip_testing_framework", "CAN_EVE_SETUP")
                                 runTestHW("canopen_everest_no_framework", "canopen and skip_testing_framework", "CAN_EVE_SETUP")
                             }
                         }
@@ -419,7 +419,7 @@ pipeline {
                         }
                         stage("CanOpen Capitan") {
                             steps {
-                                runTestHW("canopen_capitan", "canopen", "CAN_CAP_SETUP")
+                                runTestHW("canopen_capitan", "canopen and not skip_testing_framework", "CAN_CAP_SETUP")
                                 runTestHW("canopen_capitan_no_framework", "canopen and skip_testing_framework", "CAN_EVE_SETUP")
                             }
                         }
