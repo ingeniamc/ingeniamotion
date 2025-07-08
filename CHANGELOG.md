@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.9.2] - 2025-06-DD
+## [0.9.2] - 2025-07-08
 ### Fixed
 - Restored Monitoring V1 functionality.
 
