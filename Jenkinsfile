@@ -406,6 +406,11 @@ pipeline {
                         label CAN_NODE
                     }
                     stages {
+                        stage ("Clear Wireshark logs") {
+                            steps {
+                                clearWiresharkLogs()
+                            }
+                        }
                         stage("CanOpen Everest") {
                             steps {
                                 runTestHW("canopen_everest", "canopen and not skip_testing_framework", "CAN_EVE_SETUP")
@@ -414,7 +419,14 @@ pipeline {
                         }
                         stage("Ethernet Everest") {
                             steps {
-                                runTestHW("ethernet_everest", "ethernet", "ETH_EVE_SETUP")
+                                script {
+                                    try {
+                                        runTestHW("ethernet_everest", "ethernet", "ETH_EVE_SETUP", false, USE_WIRESHARK_LOGGING)
+                                    } finally {
+                                        archiveWiresharkLogs()
+                                        clearWiresharkLogs()
+                                    }
+                                }
                             }
                         }
                         stage("CanOpen Capitan") {
@@ -429,7 +441,14 @@ pipeline {
                                 expression { false }
                             }
                             steps {
-                                runTestHW("ethernet capitan", "ethernet", "ETH_CAP_SETUP")
+                                script {
+                                    try {
+                                        runTestHW("ethernet capitan", "ethernet", "ETH_CAP_SETUP", false, USE_WIRESHARK_LOGGING)
+                                    } finally {
+                                        archiveWiresharkLogs()
+                                        clearWiresharkLogs()
+                                    }
+                                }
                             }
                         }
                     }
@@ -453,7 +472,6 @@ pipeline {
                                 expression { false }
                             }
                             steps {
-                                // TODO: implement run wireshark as jenkins choice
                                 runTestHW("ethercat_everest", "soem", "ECAT_EVE_SETUP", false, USE_WIRESHARK_LOGGING)
                             }
                         }
