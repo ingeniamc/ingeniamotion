@@ -67,7 +67,7 @@ def clearWiresharkLogs() {
 }
 
 def archiveWiresharkLogs() {
-    archiveArtifacts artifacts: "${WIRESHARK_DIR}\\*", allowEmptyArchive: true
+    archiveArtifacts artifacts: "${WIRESHARK_DIR}\\*.pcap", allowEmptyArchive: true
 }
 
 def runTestHW(run_identifier, markers, setup_name, install_fsoe = false, extra_args = "") {
