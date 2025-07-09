@@ -78,25 +78,33 @@ def mc_with_fsoe(mc):
 
 
 @pytest.mark.fsoe
-def test_create_fsoe_master_handler(mc, servo, alias):
+def test_create_fsoe_master_handler_without_sra(mc, servo):
+    master = FSoEMaster(mc)
+    handler = master.create_fsoe_master_handler(use_sra=False)
+    safety_module = handler._FSoEMasterHandler__get_safety_module()
+
+    assert safety_module.uses_sra is False
+    assert handler._sra_crc is None
+
+    dict_app_parameters = servo.dictionary.safety_modules
+    assert len(handler.safety_parameters) == len(dict_app_parameters)
+    assert len(handler._master_handler.master.application_parameters) == len(dict_app_parameters)
+
+
+@pytest.mark.fsoe
+def test_create_fsoe_master_handler_with_sra(mc, servo):
     master = FSoEMaster(mc)
 
-    module_ident = servo.read(FSoEMasterHandler.MDP_CONFIGURED_MODULE_1, subnode=0)
-    safety_module = servo.dictionary.get_safety_module(module_ident=module_ident)
+    handler = master.create_fsoe_master_handler(use_sra=True)
 
-    if safety_module.uses_sra:
-        handler = master.create_fsoe_master_handler(use_sra=False)
-        new_safety_module = handler._FSoEMasterHandler__get_safety_module(servo=alias)
-        assert new_safety_module.uses_sra is False
+    safety_module = handler._FSoEMasterHandler__get_safety_module()
+    assert safety_module.uses_sra is True
+    assert isinstance(handler._sra_crc, int)
 
-    else:
-        # https://novantamotion.atlassian.net/browse/INGM-621
-        with pytest.raises(NotImplementedError, match="Safety module with SRA is not available."):
-            handler = master.create_fsoe_master_handler(use_sra=True)
-
-        module_ident = servo.read(FSoEMasterHandler.MDP_CONFIGURED_MODULE_1, subnode=0)
-        new_safety_module = servo.dictionary.get_safety_module(module_ident=module_ident)
-        assert new_safety_module.uses_sra is True
+    dict_app_parameters = servo.dictionary.safety_modules
+    assert len(dict_app_parameters) > 1
+    assert len(handler.safety_parameters) == len(dict_app_parameters)
+    assert len(handler._master_handler.master.application_parameters) == 1
 
 
 @pytest.mark.fsoe

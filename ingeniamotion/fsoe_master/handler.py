@@ -8,6 +8,7 @@ from ingenialink.dictionary import DictionarySafetyModule
 from ingenialink.enums.register import RegCyclicType
 from ingenialink.ethercat.servo import EthercatServo
 from ingenialink.pdo import RPDOMap, TPDOMap
+from ingenialink.utils._utils import convert_dtype_to_bytes, dtype_value
 
 from ingeniamotion._utils import weak_lru
 from ingeniamotion.enums import FSoEState
@@ -24,6 +25,7 @@ from ingeniamotion.fsoe_master.fsoe import (
     FSoEDictionaryItemOutput,
     State,
     StateData,
+    calculate_sra_crc,
 )
 from ingeniamotion.fsoe_master.maps import PDUMaps
 from ingeniamotion.fsoe_master.parameters import SafetyParameter, SafetyParameterDirectValidation
@@ -94,8 +96,6 @@ class FSoEMasterHandler:
 
         # Set MDP module
         safety_module = self.__set_configured_module_ident_1(use_sra=use_sra)
-        if safety_module.uses_sra:
-            raise NotImplementedError("Safety module with SRA is not available.")
 
         for app_parameter in safety_module.application_parameters:
             register = servo.dictionary.get_register(app_parameter.uid)
@@ -109,6 +109,18 @@ class FSoEMasterHandler:
                 fsoe_application_parameters.append(sp.fsoe_application_parameter)
 
             self.safety_parameters[app_parameter.uid] = sp
+
+        # If SRA is used, use a single application parameter with CRC computation
+        self._sra_crc: Optional[int] = None
+        if safety_module.uses_sra:
+            self._sra_crc = self._calculate_sra_crc()
+            fsoe_application_parameters.append(
+                FSoEApplicationParameter(
+                    name="SRA_CRC",
+                    initial_value=self._sra_crc,  # https://novantamotion.atlassian.net/browse/INGK-1104
+                    n_bytes=dtype_value[register.dtype][0],
+                )
+            )
 
         self.dictionary = self.create_safe_dictionary(servo.dictionary)
 
@@ -131,6 +143,18 @@ class FSoEMasterHandler:
             self.__safety_master_pdu, self.__safety_slave_pdu, dictionary=self.dictionary
         )
         self.set_maps(self.__maps)
+
+    def _calculate_sra_crc(self) -> int:
+        parameters_values = [
+            int.from_bytes(
+                convert_dtype_to_bytes(data=param.get(), dtype=param.register.dtype), "little"
+            )
+            for param in self.safety_parameters.values()
+        ]
+        if not len(parameters_values):
+            raise RuntimeError("There are no application parameters, SRA CRC can not be computed.")
+
+        return calculate_sra_crc(parameters_values)
 
     def __set_configured_module_ident_1(self, use_sra: bool) -> DictionarySafetyModule:
         """Sets the configured Module Ident.
