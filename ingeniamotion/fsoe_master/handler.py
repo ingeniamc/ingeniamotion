@@ -6,7 +6,7 @@ from ingenialink.canopen.register import CanopenRegister
 from ingenialink.dictionary import DictionarySafetyModule
 from ingenialink.enums.register import RegCyclicType
 from ingenialink.ethercat.servo import EthercatServo
-from ingenialink.pdo import RPDOMap, TPDOMap
+from ingenialink.pdo import PDOMap, RPDOMap, TPDOMap
 
 from ingeniamotion._utils import weak_lru
 from ingeniamotion.enums import FSoEState
@@ -167,7 +167,7 @@ class FSoEMasterHandler:
             # It is only set to the master
             # It will be set on the slave when set_pdo_maps_to_slave is called
             if safety_param.register.idx == self.__safety_master_pdu.map_register_index:
-                pdo_map = self.__safety_master_pdu
+                pdo_map: PDOMap = self.__safety_master_pdu
             elif safety_param.register.idx == self.__safety_slave_pdu.map_register_index:
                 pdo_map = self.__safety_slave_pdu
             else:
