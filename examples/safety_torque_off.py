@@ -6,8 +6,7 @@ from ingeniamotion.exceptions import IMTimeoutError
 
 
 def main(interface_ip, slave_id, dict_path):
-    """Establish a FSoE connection, deactivate the STO and
-    move the motor."""
+    """Establish a FSoE connection, deactivate the STO and move the motor."""
     mc = MotionController()
     # Configure error channel
     mc.fsoe.subscribe_to_errors(lambda error: print(error))
@@ -17,7 +16,7 @@ def main(interface_ip, slave_id, dict_path):
     # Set the Operation mode to Velocity
     mc.motion.set_operation_mode(OperationMode.VELOCITY)
     # Create and start the FSoE master handler
-    mc.fsoe.create_fsoe_master_handler()
+    mc.fsoe.create_fsoe_master_handler(use_sra=False)
     mc.fsoe.configure_pdos(start_pdos=True)
     # Wait for the master to reach the Data state
     mc.fsoe.wait_for_state_data(timeout=10)
