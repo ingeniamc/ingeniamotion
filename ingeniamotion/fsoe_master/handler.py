@@ -78,7 +78,8 @@ class FSoEMasterHandler:
         self.logger = ingenialogger.get_logger(__name__)
 
         self.__servo = servo
-        self.__running = False
+        self.__running: bool = False
+        self.__uses_sra: bool = use_sra
 
         self.__state_is_data = threading.Event()
 
@@ -95,7 +96,7 @@ class FSoEMasterHandler:
         fsoe_application_parameters: list[FSoEApplicationParameter] = []
 
         # Set MDP module
-        safety_module = self.__set_configured_module_ident_1(use_sra=use_sra)
+        safety_module = self.__set_configured_module_ident_1()
 
         for app_parameter in safety_module.application_parameters:
             register = servo.dictionary.get_register(app_parameter.uid)
@@ -112,7 +113,7 @@ class FSoEMasterHandler:
 
         # If SRA is used, use a single application parameter with CRC computation
         self._sra_crc: Optional[int] = None
-        if safety_module.uses_sra:
+        if self.__uses_sra:
             self._sra_crc = self._calculate_sra_crc()
             fsoe_application_parameters.append(
                 FSoEApplicationParameter(
@@ -145,6 +146,18 @@ class FSoEMasterHandler:
         self.set_maps(self.__maps)
 
     def _calculate_sra_crc(self) -> int:
+        """Calculates SRA CRC for the application parameters.
+
+        Raises:
+            RuntimeError: if SRA calculation is requested without using SRA.
+            RuntimeError: if there are no application parameters to calculate the SRA.
+
+        Returns:
+            sra crc.
+        """
+        if not self.__uses_sra:
+            raise RuntimeError("Requested SRA CRC calculation when SRA is not being used.")
+
         parameters_values = [
             int.from_bytes(
                 convert_dtype_to_bytes(data=param.get(), dtype=param.register.dtype), "little"
@@ -156,12 +169,8 @@ class FSoEMasterHandler:
 
         return calculate_sra_crc(parameters_values)
 
-    def __set_configured_module_ident_1(self, use_sra: bool) -> DictionarySafetyModule:
+    def __set_configured_module_ident_1(self) -> DictionarySafetyModule:
         """Sets the configured Module Ident.
-
-        Args:
-            use_sra: True to use SRA, False otherwise.
-            servo: servo alias to reference it. ``default`` by default.
 
         Returns:
             Module Ident that has been set.
@@ -172,9 +181,9 @@ class FSoEMasterHandler:
         module_ident = None
         # https://novantamotion.atlassian.net/browse/INGM-657
         for safety_module in self.__servo.dictionary.safety_modules.values():
-            if use_sra and safety_module.uses_sra:
+            if self.__uses_sra and safety_module.uses_sra:
                 module_ident = safety_module.module_ident
-            if not use_sra and not safety_module.uses_sra:
+            if not self.__uses_sra and not safety_module.uses_sra:
                 module_ident = safety_module.module_ident
             if module_ident is not None:
                 break
