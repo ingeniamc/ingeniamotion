@@ -42,9 +42,12 @@ class SafetyFunction:
         yield from SS2Function.for_handler(handler)
         yield from SOutFunction.for_handler(handler)
         yield from SPFunction.for_handler(handler)
-        yield from SPFunction.for_handler(handler)
         yield from SVFunction.for_handler(handler)
         yield from SAFunction.for_handler(handler)
+        yield from SafeHomingFunction.for_handler(handler)
+        yield from SLSFunction.for_handler(handler)
+        yield from SSRFunction.for_handler(handler)
+        yield from SLPFunction.for_handler(handler)
 
     @classmethod
     def _explore_instances(cls) -> Iterator[int]:
@@ -320,3 +323,135 @@ class SAFunction(SafetyFunction):
             yield cls(value=value, io=(value,), parameters=())
         except KeyError:
             return
+
+
+@dataclass()
+class SafeHomingFunction(SafetyFunction):
+    """Safe Homing Safety Function."""
+
+    COMMAND_UID = "FSOE_SAFE_HOMING"
+    HOMING_REF_UID = "FSOE_SAFE_HOMING_REFERENCE"
+
+    command: FSoEDictionaryItemInputOutput
+    homing_ref: SafetyParameter
+
+    @classmethod
+    @override
+    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafeHomingFunction"]:
+        try:
+            command = cls._get_required_input_output(handler, cls.COMMAND_UID)
+            homing_ref = cls._get_required_parameter(handler, cls.HOMING_REF_UID)
+            yield cls(
+                command=command, homing_ref=homing_ref, io=(command,), parameters=(homing_ref,)
+            )
+        except KeyError:
+            return
+
+
+@dataclass()
+class SLSFunction(SafetyFunction):
+    """Safe Limited Speed Safety Function."""
+
+    COMMAND_UID = "FSOE_SLS_CMD_{i}"
+    VELOCITY_LIMIT_UID = "FSOE_SLS_VELOCITY_LIMIT_{i}"
+    ERROR_REACTION_UID = "FSOE_SLS_ERROR_REACTION_{i}"
+
+    command: FSoEDictionaryItemInputOutput
+    speed_limit: SafetyParameter
+    error_reaction: SafetyParameter
+
+    @classmethod
+    @override
+    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SLSFunction"]:
+        for i in cls._explore_instances():
+            try:
+                command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i=i))
+                velocity_limit = cls._get_required_parameter(
+                    handler, cls.VELOCITY_LIMIT_UID.format(i=i)
+                )
+                error_reaction = cls._get_required_parameter(
+                    handler, cls.ERROR_REACTION_UID.format(i=i)
+                )
+                yield cls(
+                    command=command,
+                    speed_limit=velocity_limit,
+                    error_reaction=error_reaction,
+                    io=(command,),
+                    parameters=(velocity_limit, error_reaction),
+                )
+            except KeyError:
+                return
+
+
+@dataclass()
+class SSRFunction(SafetyFunction):
+    """Safe Speed Range Safety Function."""
+
+    COMMAND_UID = "FSOE_SSR_CMD_{i}"
+    UPPER_LIMIT_UID = "FSOE_SSR_UPPER_LIMIT_{i}"
+    LOWER_LIMIT_UID = "FSOE_SSR_LOWER_LIMIT_{i}"
+    ERROR_REACTION_UID = "FSOE_SSR_ERROR_REACTION_{i}"
+
+    command: FSoEDictionaryItemInputOutput
+    upper_limit: SafetyParameter
+    lower_limit: SafetyParameter
+    error_reaction: SafetyParameter
+
+    @classmethod
+    @override
+    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafetyFunction"]:
+        for i in cls._explore_instances():
+            try:
+                command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i=i))
+                upper_limit = cls._get_required_parameter(handler, cls.UPPER_LIMIT_UID.format(i=i))
+                lower_limit = cls._get_required_parameter(handler, cls.LOWER_LIMIT_UID.format(i=i))
+                error_reaction = cls._get_required_parameter(
+                    handler, cls.ERROR_REACTION_UID.format(i=i)
+                )
+                yield cls(
+                    command=command,
+                    upper_limit=upper_limit,
+                    lower_limit=lower_limit,
+                    error_reaction=error_reaction,
+                    io=(command,),
+                    parameters=(upper_limit, lower_limit, error_reaction),
+                )
+            except KeyError:
+                return
+
+
+@dataclass()
+class SLPFunction(SafetyFunction):
+    """Safe Limited Speed Safety Function."""
+
+    COMMAND_UID = "FSOE_SLP_COMMAND_{i}"
+    UPPER_LIMIT_UID = "FSOE_SLP_UPPER_LIMIT_{i}"
+    LOWER_LIMIT_UID = "FSOE_SLP_LOWER_LIMIT_{i}"
+    ERROR_REACTION_UID = "FSOE_SLP_ERROR_REACTION_{i}"
+
+    command: FSoEDictionaryItemInputOutput
+    upper_limit: SafetyParameter
+    lower_limit: SafetyParameter
+    error_reaction: SafetyParameter
+
+    @classmethod
+    @override
+    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafetyFunction"]:
+        for i in cls._explore_instances():
+            try:
+                command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i=i))
+                upper_limit = cls._get_required_parameter(handler, cls.UPPER_LIMIT_UID.format(i=i))
+                lower_limit = cls._get_required_parameter(handler, cls.LOWER_LIMIT_UID.format(i=i))
+                error_reaction = cls._get_required_parameter(
+                    handler, cls.ERROR_REACTION_UID.format(i=i)
+                )
+                yield cls(
+                    command=command,
+                    upper_limit=upper_limit,
+                    lower_limit=lower_limit,
+                    error_reaction=error_reaction,
+                    io=(command,),
+                    parameters=(upper_limit, lower_limit, error_reaction),
+                )
+            except KeyError:
+                return
