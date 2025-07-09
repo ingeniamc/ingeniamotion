@@ -161,11 +161,29 @@ class FSoEMasterHandler:
         self.__maps.fill_rpdo_map(self.safety_master_pdu_map, self.__servo.dictionary)
         self.__maps.fill_tpdo_map(self.safety_slave_pdu_map, self.__servo.dictionary)
 
-        # Update the PDO map items that are listed as safety parameters
-        for item in self.safety_master_pdu_map.items + self.safety_slave_pdu_map.items:
-            uid = item.register.identifier
-            if uid in self.safety_parameters:
-                self.safety_parameters[uid].set(item.register_mapping)
+        # https://novantamotion.atlassian.net/browse/INGK-1135
+        for safety_param in self.safety_parameters.values():
+            # Update safety parameters that are elements of the pdo maps.
+            # It is only set to the master
+            # It will be set on the slave when set_pdo_maps_to_slave is called
+            if safety_param.register.idx == self.__safety_master_pdu.map_register_index:
+                pdo_map = self.__safety_master_pdu
+            elif safety_param.register.idx == self.__safety_slave_pdu.map_register_index:
+                pdo_map = self.__safety_slave_pdu
+            else:
+                continue
+
+            subidx = safety_param.register.subidx
+            if subidx == 0:
+                safety_param.set_without_updating(len(pdo_map.items))
+                continue
+
+            item_idx = subidx - 1
+            if item_idx >= len(pdo_map.items):
+                new_param_val = 0
+            else:
+                new_param_val = pdo_map.items[item_idx].register_mapping
+            safety_param.set_without_updating(new_param_val)
 
     def set_pdo_maps_to_slave(self) -> None:
         """Set the PDOMaps to be used by the Safety PDUs to the slave."""

@@ -40,6 +40,10 @@ class SafetyParameter:
         self.__servo.write(self.__register, value)
         self.__value = value
 
+    def set_without_updating(self, value: Union[int, float, str, bytes]) -> None:
+        """Set the value of the safety parameter without updating the drive internal value."""
+        self.__value = value
+
 
 class SafetyParameterDirectValidation(SafetyParameter):
     """Safety Parameter with direct validation via FSoE.
