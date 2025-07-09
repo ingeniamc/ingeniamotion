@@ -77,6 +77,20 @@ def mc_with_fsoe(mc):
     mc.fsoe._delete_master_handler()
 
 
+@pytest.fixture()
+def mc_with_fsoe_with_sra(mc):
+    # Subscribe to emergency messages
+    mc.communication.subscribe_emergency_message(emergency_handler)
+    # Configure error channel
+    mc.fsoe.subscribe_to_errors(error_handler)
+    # Create and start the FSoE master handler
+    handler = mc.fsoe.create_fsoe_master_handler(use_sra=True)
+    yield mc, handler
+    # IM should be notified and clear references when a servo is disconnected from ingenialink
+    # https://novantamotion.atlassian.net/browse/INGM-624
+    mc.fsoe._delete_master_handler()
+
+
 @pytest.mark.fsoe
 def test_create_fsoe_master_handler_without_sra(mc, servo):
     master = FSoEMaster(mc)
@@ -167,6 +181,20 @@ def test_getter_of_safety_functions(mc_with_fsoe):
 
 
 @pytest.fixture()
+def mc_state_data_with_sra(mc_with_fsoe_with_sra):
+    mc, handler = mc_with_fsoe_with_sra
+
+    mc.fsoe.configure_pdos(start_pdos=True)
+    # Wait for the master to reach the Data state
+    mc.fsoe.wait_for_state_data(timeout=10)
+
+    yield mc
+
+    # Stop the FSoE master handler
+    mc.fsoe.stop_master(stop_pdos=True)
+
+
+@pytest.fixture()
 def mc_state_data(mc_with_fsoe):
     mc, handler = mc_with_fsoe
 
@@ -199,6 +227,16 @@ def test_start_and_stop_multiple_times(mc_with_fsoe):
 @pytest.mark.fsoe
 def test_safe_inputs_value(mc_state_data):
     mc = mc_state_data
+
+    value = mc.fsoe.get_safety_inputs_value()
+
+    # Assume safe inputs are disconnected on the setup
+    assert value == 0
+
+
+@pytest.mark.fsoe
+def test_safe_inputs_value_with_sra(mc_state_data_with_sra):
+    mc = mc_state_data_with_sra
 
     value = mc.fsoe.get_safety_inputs_value()
 
