@@ -7,15 +7,20 @@ from ingenialink.dictionary import DictionaryV3, Interface
 from ingenialink.enums.register import RegCyclicType
 from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.pdo import RPDOMap, TPDOMap
+from ingenialink.servo import DictionaryFactory
 
 from ingeniamotion.enums import FSoEState
-from ingeniamotion.fsoe import (
-    FSOE_MASTER_INSTALLED,
-    FSoEError,
+from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError, FSoEMaster
+from ingeniamotion.fsoe_master.safety_functions import (
+    SAFunction,
+    SOSFunction,
+    SPFunction,
+    SS2Function,
+    SVFunction,
 )
 from ingeniamotion.motion_controller import MotionController
 from tests.conftest import timeout_loop
-from tests.dictionaries import SAMPLE_SAFE_DICTIONARY
+from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
 
 if FSOE_MASTER_INSTALLED:
     from fsoe_master import fsoe_master
@@ -24,6 +29,7 @@ if FSOE_MASTER_INSTALLED:
         FSoEMasterHandler,
         PDUMaps,
         SafeInputsFunction,
+        SafetyFunction,
         SS1Function,
         STOFunction,
     )
@@ -73,7 +79,21 @@ def mc_with_fsoe(mc):
     # Configure error channel
     mc.fsoe.subscribe_to_errors(error_handler)
     # Create and start the FSoE master handler
-    handler = mc.fsoe.create_fsoe_master_handler()
+    handler = mc.fsoe.create_fsoe_master_handler(use_sra=False)
+    yield mc, handler
+    # IM should be notified and clear references when a servo is disconnected from ingenialink
+    # https://novantamotion.atlassian.net/browse/INGM-624
+    mc.fsoe._delete_master_handler()
+
+
+@pytest.fixture()
+def mc_with_fsoe_with_sra(mc):
+    # Subscribe to emergency messages
+    mc.communication.subscribe_emergency_message(emergency_handler)
+    # Configure error channel
+    mc.fsoe.subscribe_to_errors(error_handler)
+    # Create and start the FSoE master handler
+    handler = mc.fsoe.create_fsoe_master_handler(use_sra=True)
     yield mc, handler
     # IM should be notified and clear references when a servo is disconnected from ingenialink
     # https://novantamotion.atlassian.net/browse/INGM-624
@@ -81,10 +101,88 @@ def mc_with_fsoe(mc):
 
 
 @pytest.mark.fsoe
+def test_create_fsoe_master_handler_without_sra(mc, servo):
+    master = FSoEMaster(mc)
+    handler = master.create_fsoe_master_handler(use_sra=False)
+    safety_module = handler._FSoEMasterHandler__get_safety_module()
+
+    assert safety_module.uses_sra is False
+    assert handler._sra_crc is None
+
+    dict_app_parameters = servo.dictionary.safety_modules
+    assert len(handler.safety_parameters) == len(dict_app_parameters)
+    assert len(handler._master_handler.master.application_parameters) == len(dict_app_parameters)
+
+
+@pytest.mark.fsoe
+def test_create_fsoe_master_handler_with_sra(mc, servo):
+    master = FSoEMaster(mc)
+
+    handler = master.create_fsoe_master_handler(use_sra=True)
+
+    safety_module = handler._FSoEMasterHandler__get_safety_module()
+    assert safety_module.uses_sra is True
+    assert isinstance(handler._sra_crc, int)
+
+    dict_app_parameters = servo.dictionary.safety_modules
+    assert len(dict_app_parameters) > 1
+    assert len(handler.safety_parameters) == len(dict_app_parameters)
+    assert len(handler._master_handler.master.application_parameters) == 1
+
+
+@pytest.mark.fsoe
 def test_fsoe_master_get_safety_parameters(mc_with_fsoe):
     mc, handler = mc_with_fsoe
 
     assert len(handler.safety_parameters) != 0
+
+
+class MockSafetyParameter:
+    def __init__(self):
+        pass
+
+
+class MockHandler:
+    def __init__(self, dictionary: str, module_uid: int):
+        xdf = DictionaryFactory.create_dictionary(dictionary, interface=Interface.ECAT)
+        self.dictionary = FSoEMasterHandler.create_safe_dictionary(xdf)
+
+        self.safety_parameters = {
+            app_parameter.uid: MockSafetyParameter()
+            for app_parameter in xdf.get_safety_module(module_uid).application_parameters
+        }
+
+
+@pytest.mark.fsoe
+def test_detect_safety_functions_ph1():
+    handler = MockHandler(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, 0x3800000)
+
+    sf_types = [type(sf) for sf in SafetyFunction.for_handler(handler)]
+
+    assert sf_types == [STOFunction, SS1Function, SafeInputsFunction]
+
+
+@pytest.mark.fsoe
+def test_detect_safety_functions_ph2():
+    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00000)
+
+    sf_types = [type(sf) for sf in SafetyFunction.for_handler(handler)]
+
+    assert sf_types == [
+        STOFunction,
+        SS1Function,
+        SafeInputsFunction,
+        SOSFunction,
+        SS2Function,
+        # SOutFunction, Not implemented yet
+        SPFunction,
+        SVFunction,
+        SAFunction,
+        # SafeHomingFunction, Not Implemented yet
+        # SLSFunction,  Not Implemented yet
+        # SSRFunction,  Not Implemented yet
+        # SLPFunction, Not Implemented yet
+    ]
 
 
 @pytest.mark.fsoe
@@ -140,6 +238,20 @@ def test_getter_of_safety_functions(mc_with_fsoe):
 
 
 @pytest.fixture()
+def mc_state_data_with_sra(mc_with_fsoe_with_sra):
+    mc, handler = mc_with_fsoe_with_sra
+
+    mc.fsoe.configure_pdos(start_pdos=True)
+    # Wait for the master to reach the Data state
+    mc.fsoe.wait_for_state_data(timeout=10)
+
+    yield mc
+
+    # Stop the FSoE master handler
+    mc.fsoe.stop_master(stop_pdos=True)
+
+
+@pytest.fixture()
 def mc_state_data(mc_with_fsoe):
     mc, handler = mc_with_fsoe
 
@@ -172,6 +284,16 @@ def test_start_and_stop_multiple_times(mc_with_fsoe):
 @pytest.mark.fsoe
 def test_safe_inputs_value(mc_state_data):
     mc = mc_state_data
+
+    value = mc.fsoe.get_safety_inputs_value()
+
+    # Assume safe inputs are disconnected on the setup
+    assert value == 0
+
+
+@pytest.mark.fsoe
+def test_safe_inputs_value_with_sra(mc_state_data_with_sra):
+    mc = mc_state_data_with_sra
 
     value = mc.fsoe.get_safety_inputs_value()
 
@@ -300,7 +422,7 @@ class TestPduMapper:
 
     @pytest.fixture()
     def sample_safe_dictionary(self):
-        safe_dict = DictionaryV3(SAMPLE_SAFE_DICTIONARY, interface=Interface.ECAT)
+        safe_dict = DictionaryV3(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, interface=Interface.ECAT)
 
         # Add sample registers
         safe_dict._registers[self.AXIS_1][self.TEST_SI_U16_UID] = EthercatRegister(

@@ -1,12 +1,14 @@
 import threading
 from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union, cast, overload
 
+import ingenialogger
 from ingenialink import RegDtype
 from ingenialink.canopen.register import CanopenRegister
 from ingenialink.dictionary import DictionarySafetyModule
 from ingenialink.enums.register import RegCyclicType
 from ingenialink.ethercat.servo import EthercatServo
 from ingenialink.pdo import PDOMap, RPDOMap, TPDOMap
+from ingenialink.utils._utils import convert_dtype_to_bytes, dtype_value
 
 from ingeniamotion._utils import weak_lru
 from ingeniamotion.enums import FSoEState
@@ -23,6 +25,7 @@ from ingeniamotion.fsoe_master.fsoe import (
     FSoEDictionaryItemOutput,
     State,
     StateData,
+    calculate_sra_crc,
 )
 from ingeniamotion.fsoe_master.maps import PDUMaps
 from ingeniamotion.fsoe_master.parameters import SafetyParameter, SafetyParameterDirectValidation
@@ -53,6 +56,7 @@ class FSoEMasterHandler:
 
     FSOE_MANUF_SAFETY_ADDRESS = "FSOE_MANUF_SAFETY_ADDRESS"
     FSOE_DICTIONARY_CATEGORY = "FSOE"
+    MDP_CONFIGURED_MODULE_1 = "MDP_CONFIGURED_MODULE_1"
 
     __FSOE_RPDO_MAP_1 = "ETG_COMMS_RPDO_MAP256_TOTAL"
     __FSOE_TPDO_MAP_1 = "ETG_COMMS_TPDO_MAP256_TOTAL"
@@ -63,7 +67,7 @@ class FSoEMasterHandler:
         self,
         servo: EthercatServo,
         *,
-        safety_module: DictionarySafetyModule,
+        use_sra: bool,
         slave_address: int,
         connection_id: int,
         watchdog_timeout: float = DEFAULT_WATCHDOG_TIMEOUT_S,
@@ -71,8 +75,11 @@ class FSoEMasterHandler:
     ):
         if not FSOE_MASTER_INSTALLED:
             return
+        self.logger = ingenialogger.get_logger(__name__)
+
         self.__servo = servo
-        self.__running = False
+        self.__running: bool = False
+        self.__uses_sra: bool = use_sra
 
         self.__state_is_data = threading.Event()
 
@@ -88,8 +95,8 @@ class FSoEMasterHandler:
         # Parameters that will be transmitted during the fsoe parameter state
         fsoe_application_parameters: list[FSoEApplicationParameter] = []
 
-        if safety_module.uses_sra:
-            raise NotImplementedError("Safety module with SRA is not available.")
+        # Set MDP module
+        safety_module = self.__set_configured_module_ident_1()
 
         for app_parameter in safety_module.application_parameters:
             register = servo.dictionary.get_register(app_parameter.uid)
@@ -103,6 +110,18 @@ class FSoEMasterHandler:
                 fsoe_application_parameters.append(sp.fsoe_application_parameter)
 
             self.safety_parameters[app_parameter.uid] = sp
+
+        # If SRA is used, use a single application parameter with CRC computation
+        self._sra_crc: Optional[int] = None
+        if self.__uses_sra:
+            self._sra_crc = self._calculate_sra_crc()
+            fsoe_application_parameters.append(
+                FSoEApplicationParameter(
+                    name="SRA_CRC",
+                    initial_value=self._sra_crc,  # https://novantamotion.atlassian.net/browse/INGK-1104
+                    n_bytes=dtype_value[register.dtype][0],
+                )
+            )
 
         self.dictionary = self.create_safe_dictionary(servo.dictionary)
 
@@ -125,6 +144,84 @@ class FSoEMasterHandler:
             self.__safety_master_pdu, self.__safety_slave_pdu, dictionary=self.dictionary
         )
         self.set_maps(self.__maps)
+
+    def _calculate_sra_crc(self) -> int:
+        """Calculates SRA CRC for the application parameters.
+
+        Raises:
+            RuntimeError: if SRA calculation is requested without using SRA.
+            RuntimeError: if there are no application parameters to calculate the SRA.
+
+        Returns:
+            sra crc.
+        """
+        if not self.__uses_sra:
+            raise RuntimeError("Requested SRA CRC calculation when SRA is not being used.")
+
+        parameters_values = [
+            int.from_bytes(
+                convert_dtype_to_bytes(data=param.get(), dtype=param.register.dtype), "little"
+            )
+            for param in self.safety_parameters.values()
+        ]
+        if not len(parameters_values):
+            raise RuntimeError("There are no application parameters, SRA CRC can not be computed.")
+
+        return calculate_sra_crc(parameters_values)
+
+    def __set_configured_module_ident_1(self) -> DictionarySafetyModule:
+        """Sets the configured Module Ident.
+
+        Returns:
+            Module Ident that has been set.
+
+        Raises:
+            RuntimeError: if module ident value to write can not be retrieved.
+        """
+        module_ident = None
+        # https://novantamotion.atlassian.net/browse/INGM-657
+        for safety_module in self.__servo.dictionary.safety_modules.values():
+            if self.__uses_sra and safety_module.uses_sra:
+                module_ident = safety_module.module_ident
+            if not self.__uses_sra and not safety_module.uses_sra:
+                module_ident = safety_module.module_ident
+            if module_ident is not None:
+                break
+        if module_ident is None:
+            raise RuntimeError("Module ident value to write could not be retrieved.")
+
+        self.__servo.write(self.MDP_CONFIGURED_MODULE_1, data=module_ident, subnode=0)
+
+        return self.__servo.dictionary.get_safety_module(module_ident=module_ident)
+
+    def __get_configured_module_ident_1(self) -> Union[int, float, str, bytes]:
+        """Gets the configured Module Ident 1.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+
+        Returns:
+            Configured Module Ident 1.
+        """
+        return self.__servo.read(self.MDP_CONFIGURED_MODULE_1, subnode=0)
+
+    def __get_safety_module(self) -> DictionarySafetyModule:
+        """Gets the configured Module Ident 1.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+
+        Returns:
+            Safety module.
+
+        Raises:
+            NotImplementedError: if the safety module uses SRA.
+        """
+        module_ident = int(self.__get_configured_module_ident_1())
+        safety_module = self.__servo.dictionary.get_safety_module(module_ident=module_ident)
+        if safety_module.uses_sra:
+            self.logger.warning("Safety module with SRA is not available.")
+        return safety_module
 
     def __start_on_first_request(self) -> None:
         """Start the FSoE Master handler on first request."""
@@ -308,7 +405,7 @@ class FSoEMasterHandler:
         Returns:
             The FSoE slave address.
         """
-        return cast(int, self._master_handler.get_slave_address())
+        return cast("int", self._master_handler.get_slave_address())
 
     def set_safety_address(self, address: int) -> None:
         """Set the drive's FSoE slave address to the master and the slave.

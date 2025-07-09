@@ -11,6 +11,7 @@ __all__ = [
     "BaseMasterHandler",
     "StateData",
     "State",
+    "calculate_sra_crc",
 ]
 
 try:
@@ -41,7 +42,7 @@ try:
     from fsoe_master.fsoe_master import (
         MasterHandler as BaseMasterHandler,
     )
-    from fsoe_master.fsoe_master import State, StateData
+    from fsoe_master.fsoe_master import State, StateData, calculate_sra_crc
 
 
 except ImportError:

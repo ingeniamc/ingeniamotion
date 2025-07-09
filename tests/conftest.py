@@ -145,7 +145,7 @@ def load_configuration_after_each_module(request: FixtureRequest) -> Generator[N
             mc = request.getfixturevalue("_motion_controller_creator")
         # If servo is not connected
         except Exception:
-            return
+            run_fixture = False
 
     yield
     if not run_fixture:
@@ -188,7 +188,7 @@ def disable_motor_fixture(request: FixtureRequest) -> Generator[None, None, None
             mc = request.getfixturevalue("_motion_controller_creator")
         # If servo is not connected
         except Exception:
-            return
+            run_fixture = False
 
     yield
     if not run_fixture:

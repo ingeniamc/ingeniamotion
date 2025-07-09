@@ -1,9 +1,8 @@
 from dataclasses import dataclass
 from functools import partial
-from typing import TYPE_CHECKING, Callable, Optional, Union
+from typing import TYPE_CHECKING, Callable, Optional
 
 import ingenialogger
-from ingenialink.dictionary import DictionarySafetyModule
 from ingenialink.ethercat.servo import EthercatServo
 
 from ingeniamotion.enums import FSoEState
@@ -36,8 +35,6 @@ class FSoEMaster:
 
     """
 
-    __MDP_CONFIGURED_MODULE_1 = "MDP_CONFIGURED_MODULE_1"
-
     def __init__(self, motion_controller: "MotionController") -> None:
         self.logger = ingenialogger.get_logger(__name__)
         self.__mc = motion_controller
@@ -47,11 +44,15 @@ class FSoEMaster:
         self.__fsoe_configured = False
 
     def create_fsoe_master_handler(
-        self, servo: str = DEFAULT_SERVO, fsoe_master_watchdog_timeout: Optional[float] = None
+        self,
+        use_sra: bool,
+        servo: str = DEFAULT_SERVO,
+        fsoe_master_watchdog_timeout: Optional[float] = None,
     ) -> "FSoEMasterHandler":
         """Create an FSoE Master handler linked to a Safe servo drive.
 
         Args:
+            use_sra: True to use SRA, False otherwise.
             servo: servo alias to reference it. ``default`` by default.
             fsoe_master_watchdog_timeout: The FSoE master watchdog timeout in seconds.
 
@@ -65,7 +66,7 @@ class FSoEMaster:
 
         master_handler = FSoEMasterHandler(
             node,
-            safety_module=self.__get_safety_module(servo=servo),
+            use_sra=use_sra,
             slave_address=slave_address,
             connection_id=self.__next_connection_id,
             watchdog_timeout=fsoe_master_watchdog_timeout,
@@ -202,40 +203,6 @@ class FSoEMaster:
         """
         master_handler = self._handlers[servo]
         return master_handler.set_safety_address(address)
-
-    def __get_configured_module_ident_1(
-        self, servo: str = DEFAULT_SERVO
-    ) -> Union[int, float, str, bytes]:
-        """Gets the configured Module Ident 1.
-
-        Args:
-            servo: servo alias to reference it. ``default`` by default.
-
-        Returns:
-            Configured Module Ident 1.
-        """
-        return self.__mc.communication.get_register(
-            register=self.__MDP_CONFIGURED_MODULE_1, servo=servo, axis=0
-        )
-
-    def __get_safety_module(self, servo: str = DEFAULT_SERVO) -> DictionarySafetyModule:
-        """Gets the configured Module Ident 1.
-
-        Args:
-            servo: servo alias to reference it. ``default`` by default.
-
-        Returns:
-            Safety module.
-
-        Raises:
-            NotImplementedError: if the safety module uses SRA.
-        """
-        drive = self.__mc._get_drive(servo)
-        module_ident = int(self.__get_configured_module_ident_1(servo=servo))
-        safety_module = drive.dictionary.get_safety_module(module_ident=module_ident)
-        if safety_module.uses_sra:
-            self.logger.warning("Safety module with SRA is not available.")
-        return safety_module
 
     def check_sto_active(self, servo: str = DEFAULT_SERVO) -> bool:
         """Check if the STO is active in a given servo.
