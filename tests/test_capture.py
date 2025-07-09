@@ -244,11 +244,11 @@ def test_create_disturbance(mc, alias):
 
 @pytest.mark.virtual
 def test_mcb_synchronization(mocker, mc, alias):
-    enable_mon = mocker.patch("ingeniamotion.capture.Capture.enable_monitoring")
-    disable_mon = mocker.patch("ingeniamotion.capture.Capture.disable_monitoring")
+    enable_mon = mocker.patch("ingenialink.servo.Servo.monitoring_enable")
+    disable_mon = mocker.patch("ingenialink.servo.Servo.monitoring_disable")
     mc.capture.mcb_synchronization(servo=alias)
-    enable_mon.assert_called_once_with(servo=alias)
-    disable_mon.assert_called_once_with(servo=alias)
+    enable_mon.assert_called_once()
+    disable_mon.assert_called_once()
 
 
 @pytest.mark.ethernet

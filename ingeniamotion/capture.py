@@ -646,8 +646,9 @@ class Capture:
         ]:
             if self.mc.configuration.is_motor_enabled(servo=servo, axis=subnode):
                 raise IMStatusWordError("Motor is enabled")
-        self.enable_monitoring(servo=servo)
-        self.disable_monitoring(servo=servo)
+        drive = self.mc._get_drive(servo)
+        drive.monitoring_enable()
+        drive.monitoring_disable()
 
     def disturbance_max_sample_size(self, servo: str = DEFAULT_SERVO) -> int:
         """Return disturbance max size, in bytes.
