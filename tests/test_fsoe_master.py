@@ -7,12 +7,20 @@ from ingenialink.dictionary import DictionaryV3, Interface
 from ingenialink.enums.register import RegCyclicType
 from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.pdo import RPDOMap, TPDOMap
+from ingenialink.servo import DictionaryFactory
 
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError, FSoEMaster
+from ingeniamotion.fsoe_master.safety_functions import (
+    SAFunction,
+    SOSFunction,
+    SPFunction,
+    SS2Function,
+    SVFunction,
+)
 from ingeniamotion.motion_controller import MotionController
 from tests.conftest import timeout_loop
-from tests.dictionaries import SAMPLE_SAFE_DICTIONARY
+from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
 
 if FSOE_MASTER_INSTALLED:
     from fsoe_master import fsoe_master
@@ -21,6 +29,7 @@ if FSOE_MASTER_INSTALLED:
         FSoEMasterHandler,
         PDUMaps,
         SafeInputsFunction,
+        SafetyFunction,
         SS1Function,
         STOFunction,
     )
@@ -126,6 +135,54 @@ def test_fsoe_master_get_safety_parameters(mc_with_fsoe):
     mc, handler = mc_with_fsoe
 
     assert len(handler.safety_parameters) != 0
+
+
+class MockSafetyParameter:
+    def __init__(self):
+        pass
+
+
+class MockHandler:
+    def __init__(self, dictionary: str, module_uid: int):
+        xdf = DictionaryFactory.create_dictionary(dictionary, interface=Interface.ECAT)
+        self.dictionary = FSoEMasterHandler.create_safe_dictionary(xdf)
+
+        self.safety_parameters = {
+            app_parameter.uid: MockSafetyParameter()
+            for app_parameter in xdf.get_safety_module(module_uid).application_parameters
+        }
+
+
+@pytest.mark.fsoe
+def test_detect_safety_functions_ph1():
+    handler = MockHandler(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, 0x3800000)
+
+    sf_types = [type(sf) for sf in SafetyFunction.for_handler(handler)]
+
+    assert sf_types == [STOFunction, SS1Function, SafeInputsFunction]
+
+
+@pytest.mark.fsoe
+def test_detect_safety_functions_ph2():
+    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00000)
+
+    sf_types = [type(sf) for sf in SafetyFunction.for_handler(handler)]
+
+    assert sf_types == [
+        STOFunction,
+        SS1Function,
+        SafeInputsFunction,
+        SOSFunction,
+        SS2Function,
+        # SOutFunction, Not implemented yet
+        SPFunction,
+        SVFunction,
+        SAFunction,
+        # SafeHomingFunction, Not Implemented yet
+        # SLSFunction,  Not Implemented yet
+        # SSRFunction,  Not Implemented yet
+        # SLPFunction, Not Implemented yet
+    ]
 
 
 @pytest.mark.fsoe
@@ -365,7 +422,7 @@ class TestPduMapper:
 
     @pytest.fixture()
     def sample_safe_dictionary(self):
-        safe_dict = DictionaryV3(SAMPLE_SAFE_DICTIONARY, interface=Interface.ECAT)
+        safe_dict = DictionaryV3(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, interface=Interface.ECAT)
 
         # Add sample registers
         safe_dict._registers[self.AXIS_1][self.TEST_SI_U16_UID] = EthercatRegister(
