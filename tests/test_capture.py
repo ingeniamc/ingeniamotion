@@ -243,8 +243,7 @@ def test_create_disturbance(mc, alias):
 
 
 @pytest.mark.virtual
-def test_mcb_synchronization(mocker, motion_controller):
-    mc, alias, environment = motion_controller
+def test_mcb_synchronization(mocker, mc, alias):
     enable_mon = mocker.patch("ingenialink.servo.Servo.monitoring_enable")
     disable_mon = mocker.patch("ingenialink.servo.Servo.monitoring_disable")
     mc.capture.mcb_synchronization(servo=alias)
