@@ -146,9 +146,12 @@ class FSoEMasterHandler:
     def _calculate_sra_crc(self) -> int:
         """Calculates SRA CRC for the application parameters.
 
+        SRA calculation needs as input a list of uint16 values:
+            * The safety parameters are aggregated into a single byte array according to their dtype
+            * The resulting array is split into chunks of uint16 data
+
         Raises:
             RuntimeError: if SRA calculation is requested without using SRA.
-            RuntimeError: if there are no application parameters to calculate the SRA.
 
         Returns:
             sra crc.
@@ -156,16 +159,21 @@ class FSoEMasterHandler:
         if not self.__uses_sra:
             raise RuntimeError("Requested SRA CRC calculation when SRA is not being used.")
 
-        parameters_values = [
-            int.from_bytes(
-                convert_dtype_to_bytes(data=param.get(), dtype=param.register.dtype), "little"
-            )
-            for param in self.safety_parameters.values()
-        ]
-        if not len(parameters_values):
-            raise RuntimeError("There are no application parameters, SRA CRC can not be computed.")
+        data = bytearray()
+        for param in self.safety_parameters.values():
+            bytes_data = convert_dtype_to_bytes(data=param.get(), dtype=param.register.dtype)
+            data.extend(bytes_data)
 
-        return cast("int", calculate_sra_crc(parameters_values))
+        # Pad if odd number of bytes
+        if len(data) % 2 != 0:
+            data.append(0)
+
+        # Convert to list of uint16 values
+        serialized_data = [
+            int.from_bytes(data[i : i + 2], "little") for i in range(0, len(data), 2)
+        ]
+
+        return cast("int", calculate_sra_crc(serialized_data))
 
     def __set_configured_module_ident_1(self) -> DictionarySafetyModule:
         """Sets the configured Module Ident.
