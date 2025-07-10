@@ -92,7 +92,7 @@ def mc_with_fsoe_with_sra(mc):
     mc.fsoe._delete_master_handler()
 
 
-@pytest.mark.fsoe_skip
+@pytest.mark.fsoe
 @pytest.mark.parametrize("use_sra", [False, True])
 def test_create_fsoe_master_handler(mc, use_sra):
     master = FSoEMaster(mc)
@@ -116,6 +116,8 @@ def test_create_fsoe_master_handler(mc, use_sra):
     # If SRA is used, a single parameter with the CRC value of all application parameters is passed
     else:
         assert len(handler._master_handler.master.application_parameters) == 1
+
+    master._delete_master_handler()
 
 
 @pytest.mark.fsoe
@@ -221,7 +223,7 @@ def test_start_and_stop_multiple_times(mc_with_fsoe):
         mc.fsoe.stop_master(stop_pdos=True)
 
 
-@pytest.mark.fsoe_skip
+@pytest.mark.fsoe
 @pytest.mark.parametrize("mc_instance", ["mc_state_data", "mc_state_data_with_sra"])
 def test_safe_inputs_value(request, mc_instance):
     mc = request.getfixturevalue(mc_instance)
