@@ -13,6 +13,7 @@ __all__ = ["SafetyParameter", "SafetyParameterDirectValidation"]
 
 PARAM_VALUE_TYPE = Union[int, float, str, bytes]
 
+
 class SafetyParameter:
     """Safety Parameter.
 
