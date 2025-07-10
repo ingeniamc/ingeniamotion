@@ -165,7 +165,7 @@ class FSoEMasterHandler:
         if not len(parameters_values):
             raise RuntimeError("There are no application parameters, SRA CRC can not be computed.")
 
-        return calculate_sra_crc(parameters_values)
+        return cast("int", calculate_sra_crc(parameters_values))
 
     def __set_configured_module_ident_1(self) -> DictionarySafetyModule:
         """Sets the configured Module Ident.
@@ -264,7 +264,7 @@ class FSoEMasterHandler:
 
         if self.__uses_sra:
             sra_crc = self._calculate_sra_crc()
-            self._sra_fsoe_application_parameter.set(sra_crc)
+            self._sra_fsoe_application_parameter.set(sra_crc)  # type: ignore[union-attr]
 
     def set_pdo_maps_to_slave(self) -> None:
         """Set the PDOMaps to be used by the Safety PDUs to the slave."""
