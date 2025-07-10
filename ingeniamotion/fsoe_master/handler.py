@@ -112,7 +112,7 @@ class FSoEMasterHandler:
             self.safety_parameters[app_parameter.uid] = sp
 
         # If SRA is used, use a single application parameter with CRC computation
-        self._sra_crc: Optional[int] = None
+        self._sra_fsoe_application_parameter: Optional[FSoEApplicationParameter] = None
         if self.__uses_sra:
             self._sra_fsoe_application_parameter = FSoEApplicationParameter(
                 name="SRA_CRC",
