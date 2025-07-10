@@ -103,8 +103,6 @@ class FSoEMasterHandler:
 
             if safety_module.uses_sra:
                 sp = SafetyParameter(register, servo)
-                # Pending add SRA CRC Parameter
-                # https://novantamotion.atlassian.net/browse/INGM-621
             else:
                 sp = SafetyParameterDirectValidation(register, servo)
                 fsoe_application_parameters.append(sp.fsoe_application_parameter)
@@ -112,16 +110,14 @@ class FSoEMasterHandler:
             self.safety_parameters[app_parameter.uid] = sp
 
         # If SRA is used, use a single application parameter with CRC computation
-        self._sra_crc: Optional[int] = None
+        self._sra_fsoe_application_parameter: Optional[FSoEApplicationParameter] = None
         if self.__uses_sra:
-            self._sra_crc = self._calculate_sra_crc()
-            fsoe_application_parameters.append(
-                FSoEApplicationParameter(
-                    name="SRA_CRC",
-                    initial_value=self._sra_crc,  # https://novantamotion.atlassian.net/browse/INGK-1104
-                    n_bytes=dtype_value[register.dtype][0],
-                )
+            self._sra_fsoe_application_parameter = FSoEApplicationParameter(
+                name="SRA_CRC",
+                initial_value=self._calculate_sra_crc(),  # https://novantamotion.atlassian.net/browse/INGK-1104
+                n_bytes=dtype_value[register.dtype][0],
             )
+            fsoe_application_parameters.append(self._sra_fsoe_application_parameter)
 
         self.dictionary = self.create_safe_dictionary(servo.dictionary)
 
@@ -148,9 +144,12 @@ class FSoEMasterHandler:
     def _calculate_sra_crc(self) -> int:
         """Calculates SRA CRC for the application parameters.
 
+        SRA calculation needs as input a list of uint16 values:
+            * The safety parameters are aggregated into a single byte array according to their dtype
+            * The resulting array is split into chunks of uint16 data
+
         Raises:
             RuntimeError: if SRA calculation is requested without using SRA.
-            RuntimeError: if there are no application parameters to calculate the SRA.
 
         Returns:
             sra crc.
@@ -158,16 +157,21 @@ class FSoEMasterHandler:
         if not self.__uses_sra:
             raise RuntimeError("Requested SRA CRC calculation when SRA is not being used.")
 
-        parameters_values = [
-            int.from_bytes(
-                convert_dtype_to_bytes(data=param.get(), dtype=param.register.dtype), "little"
-            )
-            for param in self.safety_parameters.values()
-        ]
-        if not len(parameters_values):
-            raise RuntimeError("There are no application parameters, SRA CRC can not be computed.")
+        data = bytearray()
+        for param in self.safety_parameters.values():
+            bytes_data = convert_dtype_to_bytes(data=param.get(), dtype=param.register.dtype)
+            data.extend(bytes_data)
 
-        return calculate_sra_crc(parameters_values)
+        # Pad if odd number of bytes
+        if len(data) % 2 != 0:
+            data.append(0)
+
+        # Convert to list of uint16 values
+        serialized_data = [
+            int.from_bytes(data[i : i + 2], "little") for i in range(0, len(data), 2)
+        ]
+
+        return cast("int", calculate_sra_crc(serialized_data))
 
     def __set_configured_module_ident_1(self) -> DictionarySafetyModule:
         """Sets the configured Module Ident.
@@ -263,6 +267,10 @@ class FSoEMasterHandler:
             uid = item.register.identifier
             if uid in self.safety_parameters:
                 self.safety_parameters[uid].set(item.register_mapping)
+
+        if self.__uses_sra:
+            sra_crc = self._calculate_sra_crc()
+            self._sra_fsoe_application_parameter.set(sra_crc)  # type: ignore[union-attr]
 
     def set_pdo_maps_to_slave(self) -> None:
         """Set the PDOMaps to be used by the Safety PDUs to the slave."""

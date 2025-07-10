@@ -33,6 +33,7 @@ if FSOE_MASTER_INSTALLED:
         SS1Function,
         STOFunction,
     )
+    from ingeniamotion.fsoe_master.fsoe import FSoEApplicationParameter
 
 
 if TYPE_CHECKING:
@@ -101,33 +102,31 @@ def mc_with_fsoe_with_sra(mc):
 
 
 @pytest.mark.fsoe
-def test_create_fsoe_master_handler_without_sra(mc, servo):
+@pytest.mark.parametrize("use_sra", [False, True])
+def test_create_fsoe_master_handler(mc, use_sra):
     master = FSoEMaster(mc)
-    handler = master.create_fsoe_master_handler(use_sra=False)
+    handler = master.create_fsoe_master_handler(use_sra=use_sra)
     safety_module = handler._FSoEMasterHandler__get_safety_module()
 
-    assert safety_module.uses_sra is False
-    assert handler._sra_crc is None
+    assert safety_module.uses_sra is use_sra
+    if not use_sra:
+        assert handler._sra_fsoe_application_parameter is None
+    else:
+        assert isinstance(handler._sra_fsoe_application_parameter, FSoEApplicationParameter)
 
-    dict_app_parameters = servo.dictionary.safety_modules
-    assert len(handler.safety_parameters) == len(dict_app_parameters)
-    assert len(handler._master_handler.master.application_parameters) == len(dict_app_parameters)
+    assert len(safety_module.application_parameters) > 1
+    assert len(handler.safety_parameters) == len(safety_module.application_parameters)
 
+    # If SRA is not used, all safety parameters are passed
+    if not use_sra:
+        assert len(handler._master_handler.master.application_parameters) == len(
+            safety_module.application_parameters
+        )
+    # If SRA is used, a single parameter with the CRC value of all application parameters is passed
+    else:
+        assert len(handler._master_handler.master.application_parameters) == 1
 
-@pytest.mark.fsoe
-def test_create_fsoe_master_handler_with_sra(mc, servo):
-    master = FSoEMaster(mc)
-
-    handler = master.create_fsoe_master_handler(use_sra=True)
-
-    safety_module = handler._FSoEMasterHandler__get_safety_module()
-    assert safety_module.uses_sra is True
-    assert isinstance(handler._sra_crc, int)
-
-    dict_app_parameters = servo.dictionary.safety_modules
-    assert len(dict_app_parameters) > 1
-    assert len(handler.safety_parameters) == len(dict_app_parameters)
-    assert len(handler._master_handler.master.application_parameters) == 1
+    master._delete_master_handler()
 
 
 @pytest.mark.fsoe
@@ -282,19 +281,9 @@ def test_start_and_stop_multiple_times(mc_with_fsoe):
 
 
 @pytest.mark.fsoe
-def test_safe_inputs_value(mc_state_data):
-    mc = mc_state_data
-
-    value = mc.fsoe.get_safety_inputs_value()
-
-    # Assume safe inputs are disconnected on the setup
-    assert value == 0
-
-
-@pytest.mark.fsoe
-def test_safe_inputs_value_with_sra(mc_state_data_with_sra):
-    mc = mc_state_data_with_sra
-
+@pytest.mark.parametrize("mc_instance", ["mc_state_data", "mc_state_data_with_sra"])
+def test_safe_inputs_value(request, mc_instance):
+    mc = request.getfixturevalue(mc_instance)
     value = mc.fsoe.get_safety_inputs_value()
 
     # Assume safe inputs are disconnected on the setup

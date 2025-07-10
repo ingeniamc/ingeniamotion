@@ -38,12 +38,12 @@ setuptools.setup(
         "Operating System :: OS Independent",
     ],
     install_requires=[
-        "ingenialink>=7.4.2, < 8.0.0",
+        "ingenialink>=7.4.3, < 8.0.0",
         "ingenialogger>=0.2.1",
         "ifaddr==0.1.7",
     ],
     extras_require={
-        "FSoE": ["fsoe_master==0.1.4+pr66b3"],
+        "FSoE": ["fsoe_master==0.1.4+pr69b3"],
     },
     python_requires=">=3.9",
 )
