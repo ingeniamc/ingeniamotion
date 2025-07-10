@@ -114,14 +114,12 @@ class FSoEMasterHandler:
         # If SRA is used, use a single application parameter with CRC computation
         self._sra_crc: Optional[int] = None
         if self.__uses_sra:
-            self._sra_crc = self._calculate_sra_crc()
-            fsoe_application_parameters.append(
-                FSoEApplicationParameter(
-                    name="SRA_CRC",
-                    initial_value=self._sra_crc,  # https://novantamotion.atlassian.net/browse/INGK-1104
-                    n_bytes=dtype_value[register.dtype][0],
-                )
+            self._sra_fsoe_application_parameter = FSoEApplicationParameter(
+                name="SRA_CRC",
+                initial_value=self._calculate_sra_crc(),  # https://novantamotion.atlassian.net/browse/INGK-1104
+                n_bytes=dtype_value[register.dtype][0],
             )
+            fsoe_application_parameters.append(self._sra_fsoe_application_parameter)
 
         self.dictionary = self.create_safe_dictionary(servo.dictionary)
 
@@ -263,6 +261,10 @@ class FSoEMasterHandler:
             uid = item.register.identifier
             if uid in self.safety_parameters:
                 self.safety_parameters[uid].set(item.register_mapping)
+
+        if self.__uses_sra:
+            sra_crc = self._calculate_sra_crc()
+            self._sra_fsoe_application_parameter.set(sra_crc)
 
     def set_pdo_maps_to_slave(self) -> None:
         """Set the PDOMaps to be used by the Safety PDUs to the slave."""
