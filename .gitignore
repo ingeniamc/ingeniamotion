@@ -74,3 +74,12 @@ _pdf
 
 # tests setups
 tests/setups/tests_setup.py
+
+# ATT downloaded files
+resources/
+
+# Environment files
+.env
+
+# Wireshark logs
+wireshark/

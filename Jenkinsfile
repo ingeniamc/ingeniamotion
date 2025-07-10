@@ -23,6 +23,10 @@ INGENIALINK_COMMIT_HASH = ""
 ORG_INGENIALINK_INSTALL_PATH = null
 INGENIALINK_WHEELS_DIR = "ingenialink_wheels"
 
+WIRESHARK_DIR = "wireshark"
+USE_WIRESHARK_LOGGING = ""
+START_WIRESHARK_TIMEOUT_S = 10.0
+
 FSOE_INSTALL_VERSION = ".[FSoE]"
 
 coverage_stashes = []
@@ -58,39 +62,53 @@ def getIngenialinkArtifactWheelPath(python_version) {
     }
 }
 
-def runTestHW(run_identifier, markers, setup_name, install_fsoe = false) {
-    timeout(time: 1, unit: 'HOURS') {
-        def fsoe_package = null
-        if (install_fsoe) {
-            fsoe_package = FSOE_INSTALL_VERSION
-        }
+def clearWiresharkLogs() {
+    bat(script: 'del /f "%WIRESHARK_DIR%\\*.pcap"', returnStatus: true)
+}
 
-        unstash 'ingenialink_wheels'
+def archiveWiresharkLogs() {
+    archiveArtifacts artifacts: "${WIRESHARK_DIR}\\*.pcap", allowEmptyArchive: true
+}
 
-        def pythonVersions = RUN_PYTHON_VERSIONS.split(',')
+def runTestHW(run_identifier, markers, setup_name, install_fsoe = false, extra_args = "") {
+    try {
+        timeout(time: 1, unit: 'HOURS') {
+            def fsoe_package = null
+            if (install_fsoe) {
+                fsoe_package = FSOE_INSTALL_VERSION
+            }
 
-        pythonVersions.each { version ->
-            def wheelFile = getIngenialinkArtifactWheelPath(version)
-            withEnv(["INGENIALINK_INSTALL_PATH=${wheelFile}", "FSOE_PACKAGE=${fsoe_package}"]) {
-                try {
-                    bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
-                            "-m \"${markers}\" " +
-                            "--setup tests.setups.rack_specifiers.${setup_name} " +
-                            "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\" "
-                } catch (err) {
-                    unstable(message: "Tests failed")
-                } finally {
-                    junit "pytest_reports\\*.xml"
-                    // Delete the junit after publishing it so it not re-published on the next stage
-                    bat "del /S /Q pytest_reports\\*.xml"
-                    // Save the coverage so it can be unified and published later
-                    def coverage_stash = ".coverage_${run_identifier}_${version}"
-                    bat "move .coverage ${coverage_stash}"
-                    stash includes: coverage_stash, name: coverage_stash
-                    coverage_stashes.add(coverage_stash)
+            unstash 'ingenialink_wheels'
+
+            def pythonVersions = RUN_PYTHON_VERSIONS.split(',')
+
+            pythonVersions.each { version ->
+                def wheelFile = getIngenialinkArtifactWheelPath(version)
+                withEnv(["INGENIALINK_INSTALL_PATH=${wheelFile}", "FSOE_PACKAGE=${fsoe_package}", "WIRESHARK_SCOPE=${params.WIRESHARK_LOGGING_SCOPE}", "CLEAR_WIRESHARK_LOG_IF_SUCCESSFUL=${CLEAR_SUCCESSFUL_WIRESHARK_LOGS}", "START_WIRESHARK_TIMEOUT_S=${START_WIRESHARK_TIMEOUT_S}"]) {
+                    try {
+                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
+                                "-m \"${markers}\" " +
+                                "--setup tests.setups.rack_specifiers.${setup_name} " +
+                                "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\" " +
+                                "${extra_args}"
+                    } catch (err) {
+                        unstable(message: "Tests failed")
+                    } finally {
+                        junit "pytest_reports\\*.xml"
+                        // Delete the junit after publishing it so it not re-published on the next stage
+                        bat "del /S /Q pytest_reports\\*.xml"
+                        // Save the coverage so it can be unified and published later
+                        def coverage_stash = ".coverage_${run_identifier}_${version}"
+                        bat "move .coverage ${coverage_stash}"
+                        stash includes: coverage_stash, name: coverage_stash
+                        coverage_stashes.add(coverage_stash)
+                    }
                 }
             }
         }
+    } finally {
+        archiveWiresharkLogs()
+        clearWiresharkLogs()
     }
 }
 
@@ -107,9 +125,15 @@ pipeline {
     }
     parameters {
         choice(
-                choices: ['MIN', 'MIN_MAX', 'All'],
+                choices: ['MIN', 'MAX', 'MIN_MAX', 'All'],
                 name: 'PYTHON_VERSIONS'
         )
+        booleanParam(name: 'WIRESHARK_LOGGING', defaultValue: true, description: 'Enable Wireshark logging')
+        choice(
+                choices: ['function', 'module', 'session'],
+                name: 'WIRESHARK_LOGGING_SCOPE'
+        )
+        booleanParam(name: 'CLEAR_SUCCESSFUL_WIRESHARK_LOGS', defaultValue: true, description: 'Clears Wireshark logs if the test passed')
     }
     stages {
         stage("Set env") {
@@ -124,11 +148,19 @@ pipeline {
                           RUN_PYTHON_VERSIONS = "${PYTHON_VERSION_MIN},${PYTHON_VERSION_MAX}"
                         } else if (env.PYTHON_VERSIONS == "MIN") {
                           RUN_PYTHON_VERSIONS = PYTHON_VERSION_MIN
+                        } else if (env.PYTHON_VERSIONS == "MAX") {
+                          RUN_PYTHON_VERSIONS = PYTHON_VERSION_MAX
                         } else if (env.PYTHON_VERSIONS == "All") {
                           RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
                         } else { // Branch-indexing
                           RUN_PYTHON_VERSIONS = PYTHON_VERSION_MIN
                         }
+                    }
+
+                    if (params.WIRESHARK_LOGGING) {
+                        USE_WIRESHARK_LOGGING = "--run_wireshark"
+                    } else {
+                        USE_WIRESHARK_LOGGING = ""
                     }
                 }
             }
@@ -379,20 +411,25 @@ pipeline {
                         label CAN_NODE
                     }
                     stages {
+                        stage ("Clear Wireshark logs") {
+                            steps {
+                                clearWiresharkLogs()
+                            }
+                        }
                         stage("CanOpen Everest") {
                             steps {
-                                runTestHW("canopen_everest", "canopen", "CAN_EVE_SETUP")
+                                runTestHW("canopen_everest", "canopen and not skip_testing_framework", "CAN_EVE_SETUP")
                                 runTestHW("canopen_everest_no_framework", "canopen and skip_testing_framework", "CAN_EVE_SETUP")
                             }
                         }
                         stage("Ethernet Everest") {
                             steps {
-                                runTestHW("ethernet_everest", "ethernet", "ETH_EVE_SETUP")
+                                runTestHW("ethernet_everest", "ethernet", "ETH_EVE_SETUP", false, USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("CanOpen Capitan") {
                             steps {
-                                runTestHW("canopen_capitan", "canopen", "CAN_CAP_SETUP")
+                                runTestHW("canopen_capitan", "canopen and not skip_testing_framework", "CAN_CAP_SETUP")
                                 runTestHW("canopen_capitan_no_framework", "canopen and skip_testing_framework", "CAN_EVE_SETUP")
                             }
                         }
@@ -402,7 +439,7 @@ pipeline {
                                 expression { false }
                             }
                             steps {
-                                runTestHW("ethernet capitan", "ethernet", "ETH_CAP_SETUP")
+                                runTestHW("ethernet capitan", "ethernet", "ETH_CAP_SETUP", false, USE_WIRESHARK_LOGGING)
                             }
                         }
                     }
@@ -415,28 +452,33 @@ pipeline {
                         label ECAT_NODE
                     }
                     stages {
+                        stage ("Clear Wireshark logs") {
+                            steps {
+                                clearWiresharkLogs()
+                            }
+                        }
                         stage("Ethercat Everest") {
                             when {
                                 // Remove this after fixing INGK-983
                                 expression { false }
                             }
                             steps {
-                                runTestHW("ethercat_everest", "soem", "ECAT_EVE_SETUP")
+                                runTestHW("ethercat_everest", "soem", "ECAT_EVE_SETUP", false, USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("Ethercat Capitan") {
                             steps {
-                                runTestHW("ethercat_capitan", "soem", "ECAT_CAP_SETUP")
+                                runTestHW("ethercat_capitan", "soem", "ECAT_CAP_SETUP", false, USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("Safety Denali") {
                             steps {
-                                runTestHW("fsoe_phase1", "fsoe", "ECAT_DEN_S_PHASE1_SETUP", true)
+                                runTestHW("fsoe_phase1", "fsoe", "ECAT_DEN_S_PHASE1_SETUP", true, USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("Ethercat Multislave") {
                             steps {
-                                runTestHW("ethercat_multislave", "soem_multislave", "ECAT_MULTISLAVE_SETUP")
+                                runTestHW("ethercat_multislave", "soem_multislave", "ECAT_MULTISLAVE_SETUP", false, USE_WIRESHARK_LOGGING)
                             }
                         }
                     }
