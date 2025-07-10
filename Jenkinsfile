@@ -19,9 +19,6 @@ def PYTHON_VERSION_MAX = "py312"
 def BRANCH_NAME_MASTER = "master"
 def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
 
-INGENIALINK_COMMIT_HASH = ""
-INGENIALINK_WHEELS_DIR = "ingenialink_wheels"
-
 WIRESHARK_DIR = "wireshark"
 USE_WIRESHARK_LOGGING = ""
 START_WIRESHARK_TIMEOUT_S = 10.0
@@ -46,8 +43,6 @@ def runTestHW(run_identifier, markers, setup_name, install_fsoe = false, extra_a
             if (install_fsoe) {
                 fsoe_package = FSOE_INSTALL_VERSION
             }
-
-            unstash 'ingenialink_wheels'
 
             def pythonVersions = RUN_PYTHON_VERSIONS.split(',')
 
