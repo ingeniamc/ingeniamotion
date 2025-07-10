@@ -16,10 +16,20 @@ if TYPE_CHECKING:
     from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
 
 __all__ = [
-    "SafetyFunction",
-    "STOFunction",
-    "SS1Function",
+    "SafeHomingFunction",
     "SafeInputsFunction",
+    "SafetyFunction",
+    "SAFunction",
+    "SLPFunction",
+    "SLSFunction",
+    "SOSFunction",
+    "SOutFunction",
+    "SPFunction",
+    "SS1Function",
+    "SS2Function",
+    "SSRFunction",
+    "STOFunction",
+    "SVFunction",
 ]
 
 
@@ -256,6 +266,7 @@ class SOutFunction(SafetyFunction):
     command: FSoEDictionaryItemInputOutput
     # time_delay: SafetyParameter
 
+    @override
     @classmethod
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafetyFunction"]:
         for _ in cls._explore_instances():

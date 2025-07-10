@@ -11,13 +11,6 @@ from ingenialink.servo import DictionaryFactory
 
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError, FSoEMaster
-from ingeniamotion.fsoe_master.safety_functions import (
-    SAFunction,
-    SOSFunction,
-    SPFunction,
-    SS2Function,
-    SVFunction,
-)
 from ingeniamotion.motion_controller import MotionController
 from tests.conftest import timeout_loop
 from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
@@ -30,8 +23,13 @@ if FSOE_MASTER_INSTALLED:
         PDUMaps,
         SafeInputsFunction,
         SafetyFunction,
+        SAFunction,
+        SOSFunction,
+        SPFunction,
         SS1Function,
+        SS2Function,
         STOFunction,
+        SVFunction,
     )
     from ingeniamotion.fsoe_master.fsoe import FSoEApplicationParameter
 
