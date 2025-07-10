@@ -45,10 +45,10 @@ def main(interface_ip, slave_id, dict_path):
     inputs.add_padding(5)
     inputs.add(safe_inputs.value)
     inputs.add_padding(7)
-    # inputs.add(sa.value)
+    #inputs.add(sa.value)
 
     # Configure Parameters
-    safe_inputs.map.set(2)  # Linked to SS1 Instance
+    # safe_inputs.map.set(2)  # Linked to SS1 Instance
 
     # Configure the pdos the FSoE master handler
     mc.fsoe.configure_pdos()

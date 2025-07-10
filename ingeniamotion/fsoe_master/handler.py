@@ -1,5 +1,5 @@
 import threading
-from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union, cast, overload
+from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union, cast, overload, Iterator
 
 import ingenialogger
 from ingenialink import RegDtype
@@ -28,7 +28,11 @@ from ingeniamotion.fsoe_master.fsoe import (
     calculate_sra_crc,
 )
 from ingeniamotion.fsoe_master.maps import PDUMaps
-from ingeniamotion.fsoe_master.parameters import SafetyParameter, SafetyParameterDirectValidation
+from ingeniamotion.fsoe_master.parameters import (
+    SafetyParameter,
+    SafetyParameterDirectValidation,
+    PARAM_VALUE_TYPE,
+)
 from ingeniamotion.fsoe_master.safety_functions import (
     SafeInputsFunction,
     SafetyFunction,
@@ -284,9 +288,19 @@ class FSoEMasterHandler:
 
     def set_pdo_maps_to_slave(self) -> None:
         """Set the PDOMaps to be used by the Safety PDUs to the slave."""
+        # This function only assigns but does not update the values of the PDOMaps.
+        # https://novantamotion.atlassian.net/browse/INGK-1140
         self.__servo.set_pdo_map_to_slave(
             rpdo_maps=[self.safety_master_pdu_map], tpdo_maps=[self.safety_slave_pdu_map]
         )
+
+        self.safety_master_pdu_map.write_to_slave()
+        self.safety_slave_pdu_map.write_to_slave()
+
+        for param, master_value, slave_value in self.get_mismatched_parameters():
+            print(
+                f"{param.register.identifier:<40} {master_value == slave_value:<8} {master_value:08X} {slave_value:08X} "
+            )
 
     def remove_pdo_maps_from_slave(self) -> None:
         """Remove the PDOMaps used by the Safety PDUs from the slave."""
@@ -297,7 +311,9 @@ class FSoEMasterHandler:
         """Set the FSoE master handler request to the Safety Master PDU PDOMap."""
         if not self.__running:
             self.__start_on_first_request()
-        self.safety_master_pdu_map.set_item_bytes(self._master_handler.get_request())
+        req = self._master_handler.get_request()
+        print_bytes(req)
+        self.safety_master_pdu_map.set_item_bytes(req)
 
     def set_reply(self) -> None:
         """Get the FSoE slave response.
@@ -305,6 +321,7 @@ class FSoEMasterHandler:
         It is extracted from the Safety Slave PDU PDOMap and set to the FSoE master handler.
         """
         reply = self.safety_slave_pdu_map.get_item_bytes()
+        print_bytes(reply)
         if self.__in_initial_reset:
             if reply[0] == 0:
                 # Byte 0 of FSoE frame should always be the command
@@ -314,6 +331,22 @@ class FSoEMasterHandler:
                 self.__in_initial_reset = False
 
         self._master_handler.set_reply(reply)
+
+    def get_mismatched_parameters(
+        self,
+    ) -> Iterator[tuple[SafetyParameter, PARAM_VALUE_TYPE, PARAM_VALUE_TYPE]]:
+        """Get parameters that are mismatched between the master and the slave.
+
+        Additional method, with more contextual information than SRA or direct validation.
+        to check parameters that are mismatched between the master and the slave.
+
+        Yields:
+            Mismatched parameters as tuples of (SafetyParameter, master_value, slave_value).
+        """
+        for param in self.safety_parameters.values():
+            mismatched, master_value, slave_value = param.is_mismatched()
+            if mismatched:
+                yield param, master_value, slave_value
 
     @weak_lru()
     def safety_functions_by_type(self) -> dict[type[SafetyFunction], list[SafetyFunction]]:
@@ -594,3 +627,7 @@ class FSoEMasterHandler:
     def running(self) -> bool:
         """True if FSoE Master is started, else False."""
         return self.__running
+
+
+def print_bytes(byt: bytes):
+    pass

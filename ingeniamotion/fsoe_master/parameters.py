@@ -11,6 +11,7 @@ if TYPE_CHECKING:
 
 __all__ = ["SafetyParameter", "SafetyParameterDirectValidation"]
 
+PARAM_VALUE_TYPE = Union[int, float, str, bytes]
 
 class SafetyParameter:
     """Safety Parameter.
@@ -31,16 +32,26 @@ class SafetyParameter:
         """Get the register associated with the safety parameter."""
         return self.__register
 
-    def get(self) -> Union[int, float, str, bytes]:
+    def get(self) -> PARAM_VALUE_TYPE:
         """Get the value of the safety parameter."""
         return self.__value
 
-    def set(self, value: Union[int, float, str, bytes]) -> None:
+    def set(self, value: PARAM_VALUE_TYPE) -> None:
         """Set the value of the safety parameter."""
         self.__servo.write(self.__register, value)
         self.__value = value
 
-    def set_without_updating(self, value: Union[int, float, str, bytes]) -> None:
+    def is_mismatched(self) -> tuple[bool, PARAM_VALUE_TYPE, PARAM_VALUE_TYPE]:
+        """Check if the safety parameter value is mismatched.
+
+        Returns:
+            A tuple with a boolean indicating if the value is mismatched,
+            the master parameter value, and the value on the slave,
+        """
+        slave_value = self.__servo.read(self.__register)
+        return self.__value != slave_value, self.__value, slave_value
+
+    def set_without_updating(self, value: PARAM_VALUE_TYPE) -> None:
         """Set the value of the safety parameter without updating the drive internal value."""
         self.__value = value
 
