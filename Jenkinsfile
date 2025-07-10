@@ -20,7 +20,6 @@ def BRANCH_NAME_MASTER = "master"
 def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
 
 INGENIALINK_COMMIT_HASH = ""
-ORG_INGENIALINK_INSTALL_PATH = null
 INGENIALINK_WHEELS_DIR = "ingenialink_wheels"
 
 WIRESHARK_DIR = "wireshark"
@@ -31,36 +30,6 @@ FSOE_INSTALL_VERSION = ".[FSoE]"
 
 coverage_stashes = []
 
-
-
-def clearIngenialinkWheelDir() {
-    if (fileExists(INGENIALINK_WHEELS_DIR)) {
-        echo "Removing ${INGENIALINK_WHEELS_DIR} directory..."
-        dir(INGENIALINK_WHEELS_DIR) {
-            deleteDir()
-        }
-    } else {
-        echo "${INGENIALINK_WHEELS_DIR} directory does not exist"
-    }
-}
-
-
-def getIngenialinkArtifactWheelPath(python_version) {
-    if (!INGENIALINK_COMMIT_HASH.isEmpty()) {
-        script {
-            def pythonVersionTag = "cp${python_version.replace('py', '')}"
-            def files = findFiles(glob: "${INGENIALINK_WHEELS_DIR}/**/*${pythonVersionTag}*.whl")
-            if (files.length == 0) {
-                error "No .whl file found for Python version ${python_version} in the dist directory."
-            }
-            def wheelFile = files[0].name
-            return "${INGENIALINK_WHEELS_DIR}\\dist\\${wheelFile}"
-        }
-    }
-    else {
-        return ""
-    }
-}
 
 def clearWiresharkLogs() {
     bat(script: 'del /f "%WIRESHARK_DIR%\\*.pcap"', returnStatus: true)
@@ -83,8 +52,7 @@ def runTestHW(run_identifier, markers, setup_name, install_fsoe = false, extra_a
             def pythonVersions = RUN_PYTHON_VERSIONS.split(',')
 
             pythonVersions.each { version ->
-                def wheelFile = getIngenialinkArtifactWheelPath(version)
-                withEnv(["INGENIALINK_INSTALL_PATH=${wheelFile}", "FSOE_PACKAGE=${fsoe_package}", "WIRESHARK_SCOPE=${params.WIRESHARK_LOGGING_SCOPE}", "CLEAR_WIRESHARK_LOG_IF_SUCCESSFUL=${params.CLEAR_SUCCESSFUL_WIRESHARK_LOGS}", "START_WIRESHARK_TIMEOUT_S=${START_WIRESHARK_TIMEOUT_S}"]) {
+                withEnv(["FSOE_PACKAGE=${fsoe_package}", "WIRESHARK_SCOPE=${params.WIRESHARK_LOGGING_SCOPE}", "CLEAR_WIRESHARK_LOG_IF_SUCCESSFUL=${params.CLEAR_SUCCESSFUL_WIRESHARK_LOGS}", "START_WIRESHARK_TIMEOUT_S=${START_WIRESHARK_TIMEOUT_S}"]) {
                     try {
                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
                                 "-m \"${markers}\" " +
@@ -161,108 +129,6 @@ pipeline {
                         USE_WIRESHARK_LOGGING = "--run_wireshark"
                     } else {
                         USE_WIRESHARK_LOGGING = ""
-                    }
-                }
-            }
-        }
-
-        stage('Read Ingenialink Commit Hash') {
-            agent any
-            steps {
-                script {
-                    def toxIniContent = readFile('tox.ini')
-                    def matcher = toxIniContent =~ /ingenialink\s*=\s*\{env:INGENIALINK_INSTALL_PATH:(.*)\}/
-                    // Save the full url
-                    if (matcher.find()) {
-                        ORG_INGENIALINK_INSTALL_PATH = matcher.group(1)
-                    }
-                    else {
-                        ORG_INGENIALINK_INSTALL_PATH = null
-                    }
-                    // Save the commit hash
-                    matcher = toxIniContent =~ /ingenialink-python@([a-f0-9]{40})/
-                    INGENIALINK_COMMIT_HASH = matcher ? matcher[0][1] : ""
-                    if (!INGENIALINK_COMMIT_HASH.isEmpty()) {
-                        echo "Ingenialink commit Hash: ${INGENIALINK_COMMIT_HASH}"
-                    } else {
-                        echo "Ingenialink commit hash not found in tox.ini"
-                    }
-                }
-            }
-        }
-
-        stage('Get Ingenialink Build Number') {
-            when {
-                expression { !INGENIALINK_COMMIT_HASH.isEmpty() }
-            }
-            steps {
-                script {
-                    def sourceJobName = 'Novanta Motion - Ingenia - Git/ingenialink-python'
-                    def sourceJob = Jenkins.instance.getItemByFullName(sourceJobName)
-
-                    if (sourceJob && sourceJob instanceof org.jenkinsci.plugins.workflow.multibranch.WorkflowMultiBranchProject) {
-                        def foundBuild = null
-                        def foundBranch = null
-                        for (branchJob in sourceJob.getAllJobs()) {
-                            def fullBranchName = sourceJob.fullName + '/' + branchJob.name
-                            def branch = Jenkins.instance.getItemByFullName(fullBranchName)
-
-                            if (branch) {
-                                for (build in branch.builds) {
-                                    def ingenialinkGitCommitHash = null
-                                    def description = build.getDescription() // All variables in the description should be separated by ;
-                                    if (description) {
-                                        for (entry in description.split(';')) {
-                                            def (key, value) = entry.split('=')
-                                            if (key == "ORIGINAL_GIT_COMMIT_HASH") {
-                                                ingenialinkGitCommitHash = value
-                                                break
-                                            }
-                                        }
-                                    }
-                                    if (ingenialinkGitCommitHash == INGENIALINK_COMMIT_HASH) {
-                                        foundBuild = build
-                                        foundBranch = fullBranchName
-                                        break
-                                    }
-                                }
-                            }
-                            if (foundBuild) {
-                                break
-                            }
-                        }
-
-                        if (foundBuild) {
-                            env.BRANCH = foundBranch
-                            env.BUILD_NUMBER_ENV = foundBuild.number.toString()
-                        } else {
-                            error "No build found for commit hash: ${INGENIALINK_COMMIT_HASH}"
-                        }
-                    } else {
-                        error "No job found with the name: ${sourceJobName} or it's not a multibranch project"
-                    }
-
-                }
-            }
-        }
-
-        stage('Copy Ingenialink Wheel Files') {
-            when {
-                expression { !INGENIALINK_COMMIT_HASH.isEmpty() }
-            }
-            steps {
-                script {
-                    def buildNumber = env.BUILD_NUMBER_ENV
-                    def branch = env.BRANCH
-
-                    if (buildNumber && branch) {
-                        node {
-                            clearIngenialinkWheelDir()
-                            copyArtifacts filter: '**/*.whl', fingerprintArtifacts: true, projectName: "${branch}", selector: specific(buildNumber), target: INGENIALINK_WHEELS_DIR
-                            stash includes: "${INGENIALINK_WHEELS_DIR}\\**\\*", name: 'ingenialink_wheels'
-                        }
-                    } else {
-                        error "No build number or workspace directory found in environment variables"
                     }
                 }
             }
