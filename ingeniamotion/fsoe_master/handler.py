@@ -103,8 +103,6 @@ class FSoEMasterHandler:
 
             if safety_module.uses_sra:
                 sp = SafetyParameter(register, servo)
-                # Pending add SRA CRC Parameter
-                # https://novantamotion.atlassian.net/browse/INGM-621
             else:
                 sp = SafetyParameterDirectValidation(register, servo)
                 fsoe_application_parameters.append(sp.fsoe_application_parameter)
