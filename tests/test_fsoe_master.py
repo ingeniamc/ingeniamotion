@@ -94,7 +94,7 @@ def mc_with_fsoe_with_sra(mc):
 
 @pytest.mark.fsoe
 @pytest.mark.parametrize("use_sra", [False, True])
-def test_create_fsoe_master_handler(mc, servo, use_sra):
+def test_create_fsoe_master_handler(mc, use_sra):
     master = FSoEMaster(mc)
     handler = master.create_fsoe_master_handler(use_sra=use_sra)
     safety_module = handler._FSoEMasterHandler__get_safety_module()
@@ -105,14 +105,13 @@ def test_create_fsoe_master_handler(mc, servo, use_sra):
     else:
         assert isinstance(handler._sra_fsoe_application_parameter, FSoEApplicationParameter)
 
-    dict_app_parameters = servo.dictionary.safety_modules
-    assert len(dict_app_parameters) > 1
-    assert len(handler.safety_parameters) == len(dict_app_parameters)
+    assert len(safety_module.application_parameters) > 1
+    assert len(handler.safety_parameters) == len(safety_module.application_parameters)
 
     # If SRA is not used, all safety parameters are passed
     if not use_sra:
         assert len(handler._master_handler.master.application_parameters) == len(
-            dict_app_parameters
+            safety_module.application_parameters
         )
     # If SRA is used, a single parameter with the CRC value of all application parameters is passed
     else:
