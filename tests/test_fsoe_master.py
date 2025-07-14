@@ -420,7 +420,7 @@ class TestPduMapper:
 
     @pytest.fixture()
     def sample_safe_dictionary(self):
-        safe_dict = DictionaryV3(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, interface=Interface.ECAT)
+        safe_dict = DictionaryV3(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, interface=Interface.ECAT)
 
         # Add sample registers
         safe_dict._registers[self.AXIS_1][self.TEST_SI_U16_UID] = EthercatRegister(
