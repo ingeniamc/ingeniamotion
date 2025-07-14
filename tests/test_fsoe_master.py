@@ -24,6 +24,7 @@ if FSOE_MASTER_INSTALLED:
         SS1Function,
         STOFunction,
     )
+    from ingeniamotion.fsoe_master.fsoe import FSoEApplicationParameter
 
 
 if TYPE_CHECKING:
@@ -77,26 +78,46 @@ def mc_with_fsoe(mc):
     mc.fsoe._delete_master_handler()
 
 
+@pytest.fixture()
+def mc_with_fsoe_with_sra(mc):
+    # Subscribe to emergency messages
+    mc.communication.subscribe_emergency_message(emergency_handler)
+    # Configure error channel
+    mc.fsoe.subscribe_to_errors(error_handler)
+    # Create and start the FSoE master handler
+    handler = mc.fsoe.create_fsoe_master_handler(use_sra=True)
+    yield mc, handler
+    # IM should be notified and clear references when a servo is disconnected from ingenialink
+    # https://novantamotion.atlassian.net/browse/INGM-624
+    mc.fsoe._delete_master_handler()
+
+
 @pytest.mark.fsoe
-def test_create_fsoe_master_handler(mc, servo, alias):
+@pytest.mark.parametrize("use_sra", [False, True])
+def test_create_fsoe_master_handler(mc, use_sra):
     master = FSoEMaster(mc)
+    handler = master.create_fsoe_master_handler(use_sra=use_sra)
+    safety_module = handler._FSoEMasterHandler__get_safety_module()
 
-    module_ident = servo.read(FSoEMasterHandler.MDP_CONFIGURED_MODULE_1, subnode=0)
-    safety_module = servo.dictionary.get_safety_module(module_ident=module_ident)
-
-    if safety_module.uses_sra:
-        handler = master.create_fsoe_master_handler(use_sra=False)
-        new_safety_module = handler._FSoEMasterHandler__get_safety_module(servo=alias)
-        assert new_safety_module.uses_sra is False
-
+    assert safety_module.uses_sra is use_sra
+    if not use_sra:
+        assert handler._sra_fsoe_application_parameter is None
     else:
-        # https://novantamotion.atlassian.net/browse/INGM-621
-        with pytest.raises(NotImplementedError, match="Safety module with SRA is not available."):
-            handler = master.create_fsoe_master_handler(use_sra=True)
+        assert isinstance(handler._sra_fsoe_application_parameter, FSoEApplicationParameter)
 
-        module_ident = servo.read(FSoEMasterHandler.MDP_CONFIGURED_MODULE_1, subnode=0)
-        new_safety_module = servo.dictionary.get_safety_module(module_ident=module_ident)
-        assert new_safety_module.uses_sra is True
+    assert len(safety_module.application_parameters) > 1
+    assert len(handler.safety_parameters) == len(safety_module.application_parameters)
+
+    # If SRA is not used, all safety parameters are passed
+    if not use_sra:
+        assert len(handler._master_handler.master.application_parameters) == len(
+            safety_module.application_parameters
+        )
+    # If SRA is used, a single parameter with the CRC value of all application parameters is passed
+    else:
+        assert len(handler._master_handler.master.application_parameters) == 1
+
+    master._delete_master_handler()
 
 
 @pytest.mark.fsoe
@@ -159,6 +180,20 @@ def test_getter_of_safety_functions(mc_with_fsoe):
 
 
 @pytest.fixture()
+def mc_state_data_with_sra(mc_with_fsoe_with_sra):
+    mc, handler = mc_with_fsoe_with_sra
+
+    mc.fsoe.configure_pdos(start_pdos=True)
+    # Wait for the master to reach the Data state
+    mc.fsoe.wait_for_state_data(timeout=10)
+
+    yield mc
+
+    # Stop the FSoE master handler
+    mc.fsoe.stop_master(stop_pdos=True)
+
+
+@pytest.fixture()
 def mc_state_data(mc_with_fsoe):
     mc, handler = mc_with_fsoe
 
@@ -189,9 +224,9 @@ def test_start_and_stop_multiple_times(mc_with_fsoe):
 
 
 @pytest.mark.fsoe
-def test_safe_inputs_value(mc_state_data):
-    mc = mc_state_data
-
+@pytest.mark.parametrize("mc_instance", ["mc_state_data", "mc_state_data_with_sra"])
+def test_safe_inputs_value(request, mc_instance):
+    mc = request.getfixturevalue(mc_instance)
     value = mc.fsoe.get_safety_inputs_value()
 
     # Assume safe inputs are disconnected on the setup
