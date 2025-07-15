@@ -84,7 +84,7 @@ class BaseTest(ABC, Stoppable, Generic[T]):
     @Stoppable.stoppable
     def show_error_message(self) -> None:
         """Raise an exception containing the last generated error."""
-        error_code, axis, warning = self.mc.errors.get_last_buffer_error(
+        error_code, _axis, _warning = self.mc.errors.get_last_buffer_error(
             servo=self.servo, axis=self.axis
         )
         *_, error_msg = self.mc.errors.get_error_data(error_code, servo=self.servo)

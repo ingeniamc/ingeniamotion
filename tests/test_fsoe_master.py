@@ -122,14 +122,14 @@ def test_create_fsoe_master_handler(mc, use_sra):
 
 @pytest.mark.fsoe
 def test_fsoe_master_get_safety_parameters(mc_with_fsoe):
-    mc, handler = mc_with_fsoe
+    _mc, handler = mc_with_fsoe
 
     assert len(handler.safety_parameters) != 0
 
 
 @pytest.mark.fsoe
 def test_mandatory_safety_functions(mc_with_fsoe):
-    mc, handler = mc_with_fsoe
+    _mc, handler = mc_with_fsoe
 
     safety_functions_by_types = handler.safety_functions_by_type()
 
@@ -145,7 +145,7 @@ def test_mandatory_safety_functions(mc_with_fsoe):
 
 @pytest.mark.fsoe
 def test_getter_of_safety_functions(mc_with_fsoe):
-    mc, handler = mc_with_fsoe
+    _mc, handler = mc_with_fsoe
 
     sto_function = STOFunction(command=None, io=None, parameters=None)
     ss1_function_1 = SS1Function(command=None, time_to_sto=None, io=None, parameters=None)
@@ -181,7 +181,7 @@ def test_getter_of_safety_functions(mc_with_fsoe):
 
 @pytest.fixture()
 def mc_state_data_with_sra(mc_with_fsoe_with_sra):
-    mc, handler = mc_with_fsoe_with_sra
+    mc, _handler = mc_with_fsoe_with_sra
 
     mc.fsoe.configure_pdos(start_pdos=True)
     # Wait for the master to reach the Data state
@@ -195,7 +195,7 @@ def mc_state_data_with_sra(mc_with_fsoe_with_sra):
 
 @pytest.fixture()
 def mc_state_data(mc_with_fsoe):
-    mc, handler = mc_with_fsoe
+    mc, _handler = mc_with_fsoe
 
     mc.fsoe.configure_pdos(start_pdos=True)
     # Wait for the master to reach the Data state
@@ -235,7 +235,7 @@ def test_safe_inputs_value(request, mc_instance):
 
 @pytest.mark.fsoe
 def test_safety_address(mc_with_fsoe, alias):
-    mc, handler = mc_with_fsoe
+    mc, _handler = mc_with_fsoe
 
     master_handler = mc.fsoe._handlers[alias]
 
@@ -272,7 +272,7 @@ def mc_state_to_fsoe_master_state(state: FSoEState):
     ],
 )
 def test_get_master_state(mocker, mc_with_fsoe, state_enum):
-    mc, handler = mc_with_fsoe
+    mc, _handler = mc_with_fsoe
 
     # Master state is obtained as function
     # and not on the parametrize
@@ -311,7 +311,7 @@ def test_motor_enable(mc_state_data):
 
 @pytest.mark.fsoe
 def test_copy_modify_and_set_map(mc_with_fsoe):
-    mc, handler = mc_with_fsoe
+    _mc, handler = mc_with_fsoe
 
     # Obtain one safety input
     si = handler.safe_inputs_function().value
@@ -796,7 +796,7 @@ class TestPduMapper:
 
     @pytest.mark.fsoe
     def test_insert_in_best_position(self, sample_safe_dictionary):
-        safe_dict, fsoe_dict = sample_safe_dictionary
+        _safe_dict, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
 
         si = fsoe_dict.name_map[SafeInputsFunction.SAFE_INPUTS_UID]
