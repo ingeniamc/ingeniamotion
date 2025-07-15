@@ -610,7 +610,7 @@ class Feedbacks:
             axis : axis that will run the test. ``1`` by default.
 
         Raises:
-            ValueError
+            ValueError: If the selected feedback does not have resolution.
         """
         raise ValueError("The selected feedback does not have resolution")
 

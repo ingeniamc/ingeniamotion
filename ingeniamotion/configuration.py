@@ -53,6 +53,9 @@ class MACAddressConverter:
         Args:
             mac_address: The MAC address as an integer.
 
+        Raises:
+            ValueError: If the MAC address is not an int.
+
         Returns:
             The MAC address in string format.
 
@@ -884,6 +887,9 @@ class Configuration(Homing, Feedbacks):
             string with format XX:XX:XX:XX:XX:XX.
             servo : servo alias to reference it. ``default`` by default.
 
+        Raises:
+            IMError: If the servo is not an Ethernet servo.
+
         """
         drive = self.mc._get_drive(servo)
         if not isinstance(drive, EthernetServo):
@@ -898,6 +904,9 @@ class Configuration(Homing, Feedbacks):
         Args:
             servo : servo alias to reference it. ``default`` by default.
 
+        Raises:
+            IMError: If the servo is not an Ethernet servo.
+
         """
         drive = self.mc._get_drive(servo)
         if not isinstance(drive, EthernetServo):
@@ -909,6 +918,9 @@ class Configuration(Homing, Feedbacks):
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
+
+        Raises:
+            IMError: If the servo is not an Ethernet servo.
 
         """
         drive = self.mc._get_drive(servo)
@@ -924,6 +936,9 @@ class Configuration(Homing, Feedbacks):
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
+
+        Raises:
+            IMError: If the servo is not an Ethernet servo.
 
         Returns:
             The servo's MAC address.
@@ -944,6 +959,9 @@ class Configuration(Homing, Feedbacks):
         Args:
             servo : servo alias to reference it. ``default`` by default.
 
+        Raises:
+            IMError: If the servo is not an Ethernet servo.
+
         Returns:
             The servo's MAC address in string format.
 
@@ -961,6 +979,10 @@ class Configuration(Homing, Feedbacks):
             mac_address: The MAC address to be set. It can be an int or a
             string with format XX:XX:XX:XX:XX:XX.
             servo : servo alias to reference it. ``default`` by default.
+
+        Raises:
+            IMError: If the servo is not an Ethernet servo.
+            TypeError: If the MAC address is not a string or an int.
 
         """
         drive = self.mc._get_drive(servo)
@@ -1071,6 +1093,7 @@ class Configuration(Homing, Feedbacks):
 
         Raises:
             TypeError: If some read value has a wrong type.
+            ValueError: If the subnode type is SACO, as it does not have a revision number.
         """
         subnode_type = self.get_subnode_type(axis)
         if subnode_type == SubnodeType.SACO:

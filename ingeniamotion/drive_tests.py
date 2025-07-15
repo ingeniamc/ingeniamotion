@@ -134,17 +134,7 @@ class DriveTests:
                 servo, if ``False`` it does not. ``True`` by default.
 
         Returns:
-            Dictionary with the result of the test::
-
-                {
-                    # (int) Result code
-                    "result_severity": 0,
-                    # (dict) Suggested register values
-                    "suggested_registers":
-                        {"FBK_DIGENC2_POLARITY": 0},
-                    # (str) Human readable result message
-                    "result_message": "Feedback test pass successfully"
-                }
+            Results of the test
 
         Raises:
             TestError: In case the servo or setup configuration makes
@@ -158,6 +148,10 @@ class DriveTests:
         """Executes absolute encoder 1 feedback test given a target servo and axis.
 
         To know more about it see :func:`digital_halls_test`.
+
+
+        Returns:
+            Results of the test
         """
         return self.__feedback_test(SensorType.ABS1, servo, axis, apply_changes)
 
@@ -167,6 +161,10 @@ class DriveTests:
         """Executes absolute encoder 2 feedback test given a target servo and axis.
 
         To know more about it see :func:`digital_halls_test`.
+
+
+        Returns:
+            Results of the test
         """
         return self.__feedback_test(SensorType.BISSC2, servo, axis, apply_changes)
 
@@ -176,6 +174,9 @@ class DriveTests:
         """Executes secondary SSI feedback test given a target servo and axis.
 
         To know more about it see :func:`digital_halls_test`.
+
+        Returns:
+            Results of the test
         """
         return self.__feedback_test(SensorType.SSI2, servo, axis, apply_changes)
 

@@ -51,11 +51,16 @@ class FSoEMaster:
     ) -> "FSoEMasterHandler":
         """Create an FSoE Master handler linked to a Safe servo drive.
 
+        Raises:
+            TypeError: If the servo is not an EthercatServo.
+
         Args:
             use_sra: True to use SRA, False otherwise.
             servo: servo alias to reference it. ``default`` by default.
             fsoe_master_watchdog_timeout: The FSoE master watchdog timeout in seconds.
 
+        Returns:
+            An instance of FSoEMasterHandler.
         """
         if fsoe_master_watchdog_timeout is None:
             fsoe_master_watchdog_timeout = FSoEMasterHandler.DEFAULT_WATCHDOG_TIMEOUT_S
@@ -81,6 +86,9 @@ class FSoEMaster:
 
         Args:
             servo: servo alias to reference it. ``default`` by default.
+
+        Raises:
+            ValueError: On unexpected safety address value type.
 
         Returns:
             The FSoE slave address.

@@ -506,8 +506,8 @@ class Motion:
             total_t: Total time.
             interval: Time between each sample.
 
-        Returns:
-            The ramp generator object.
+        Yields:
+            Ramp values from initial to final value.
 
         """
         slope = (final_v - init_v) / total_t

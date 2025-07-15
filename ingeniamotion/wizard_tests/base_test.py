@@ -83,7 +83,12 @@ class BaseTest(ABC, Stoppable, Generic[T]):
 
     @Stoppable.stoppable
     def show_error_message(self) -> None:
-        """Raise an exception containing the last generated error."""
+        """Raise an exception containing the last generated error.
+
+        Raises:
+            TestError: If there is an error in the buffer,
+                it raises a TestError with the error message.
+        """
         error_code, _axis, _warning = self.mc.errors.get_last_buffer_error(
             servo=self.servo, axis=self.axis
         )
@@ -105,7 +110,12 @@ class BaseTest(ABC, Stoppable, Generic[T]):
     def run(
         self,
     ) -> Optional[T]:
-        """Run the test."""
+        """Run the test.
+
+        Returns:
+            The test report, which contains the result severity,
+                suggested registers, and result message.
+        """
         self.reset_stop()
         self.save_backup_registers()
         try:

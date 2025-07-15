@@ -279,6 +279,9 @@ class Phasing(BaseTest[LegacyDictReportType]):
         Returns:
             The phasing mode.
 
+        Raises:
+            TestError: If the commutation feedback is set to internal generator.
+
         """
         ref_category = self.mc.configuration.get_reference_feedback_category(
             servo=self.servo, axis=self.axis

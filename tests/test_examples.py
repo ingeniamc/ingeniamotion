@@ -39,9 +39,11 @@ def test_disturbance_example(setup_descriptor: EthernetSetup, script_runner):
     script_path = "examples/disturbance_example.py"
     ip_address = setup_descriptor.ip
     dictionary = setup_descriptor.dictionary
-    result = script_runner.run(
-        [script_path, f"--ip={ip_address}", f"--dictionary_path={dictionary}"]
-    )
+    result = script_runner.run([
+        script_path,
+        f"--ip={ip_address}",
+        f"--dictionary_path={dictionary}",
+    ])
     assert result.returncode == 0
 
 
@@ -50,29 +52,25 @@ def test_disturbance_example(setup_descriptor: EthernetSetup, script_runner):
 def test_canopen_example(setup_descriptor: DriveCanOpenSetup, script_runner):
     script_path = "examples/canopen_example.py"
 
-    result = script_runner.run(
-        [
-            script_path,
-            f"--dictionary_path={setup_descriptor.dictionary}",
-            f"--node_id={setup_descriptor.node_id}",
-            f"--can_transceiver={setup_descriptor.device}",
-            f"--can_baudrate={setup_descriptor.baudrate}",
-            f"--can_channel={setup_descriptor.channel}",
-        ]
-    )
+    result = script_runner.run([
+        script_path,
+        f"--dictionary_path={setup_descriptor.dictionary}",
+        f"--node_id={setup_descriptor.node_id}",
+        f"--can_transceiver={setup_descriptor.device}",
+        f"--can_baudrate={setup_descriptor.baudrate}",
+        f"--can_channel={setup_descriptor.channel}",
+    ])
     assert result.returncode == 0
 
 
 @pytest.mark.ethernet
 def test_set_get_register_example(setup_descriptor: DriveEthernetSetup, script_runner):
     script_path = "examples/set_get_register.py"
-    result = script_runner.run(
-        [
-            script_path,
-            f"--ip={setup_descriptor.ip}",
-            f"--dictionary_path={setup_descriptor.dictionary}",
-        ]
-    )
+    result = script_runner.run([
+        script_path,
+        f"--ip={setup_descriptor.ip}",
+        f"--dictionary_path={setup_descriptor.dictionary}",
+    ])
     assert result.returncode == 0
 
 
@@ -80,14 +78,12 @@ def test_set_get_register_example(setup_descriptor: DriveEthernetSetup, script_r
 def test_poller_example(setup_descriptor: DriveEthernetSetup, script_runner):
     script_path = "examples/poller_example.py"
 
-    result = script_runner.run(
-        [
-            script_path,
-            f"--ip={setup_descriptor.ip}",
-            f"--dictionary_path={setup_descriptor.dictionary}",
-            "--close",
-        ]
-    )
+    result = script_runner.run([
+        script_path,
+        f"--ip={setup_descriptor.ip}",
+        f"--dictionary_path={setup_descriptor.dictionary}",
+        "--close",
+    ])
     assert result.returncode == 0
 
 
@@ -122,15 +118,13 @@ def test_velocity_torque_ramp_example(
 
     mocker.patch.object(MotionController, "motion", MockMotion)
     mocker.patch("time.sleep", return_value=None)
-    result = script_runner.run(
-        [
-            script_path,
-            mode,
-            setup_descriptor.dictionary,
-            f"-ip={setup_descriptor.ip}",
-            f"-target_torque={0}",
-        ]
-    )
+    result = script_runner.run([
+        script_path,
+        mode,
+        setup_descriptor.dictionary,
+        f"-ip={setup_descriptor.ip}",
+        f"-target_torque={0}",
+    ])
     assert result.returncode == 0
 
 
@@ -138,14 +132,12 @@ def test_velocity_torque_ramp_example(
 def test_monitoring_example(setup_descriptor: DriveEthernetSetup, script_runner):
     script_path = "examples/monitoring_example.py"
 
-    result = script_runner.run(
-        [
-            script_path,
-            f"--ip={setup_descriptor.ip}",
-            f"--dictionary_path={setup_descriptor.dictionary}",
-            "--close",
-        ]
-    )
+    result = script_runner.run([
+        script_path,
+        f"--ip={setup_descriptor.ip}",
+        f"--dictionary_path={setup_descriptor.dictionary}",
+        "--close",
+    ])
     assert result.returncode == 0
 
 
@@ -161,14 +153,12 @@ def test_load_fw_ftp(setup_descriptor: DriveEthernetSetup, script_runner, mocker
             pass
 
     mocker.patch.object(MotionController, "communication", MockCommunication)
-    result = script_runner.run(
-        [
-            script_path,
-            f"--dictionary_path={setup_descriptor.dictionary}",
-            f"--ip={setup_descriptor.ip}",
-            f"--firmware_file={setup_descriptor.fw_data.fw_file}",
-        ]
-    )
+    result = script_runner.run([
+        script_path,
+        f"--dictionary_path={setup_descriptor.dictionary}",
+        f"--ip={setup_descriptor.ip}",
+        f"--firmware_file={setup_descriptor.fw_data.fw_file}",
+    ])
     assert result.returncode == 0
 
 
@@ -187,14 +177,12 @@ def test_load_fw_ecat(setup_descriptor: DriveEcatSetup, script_runner, mocker):
             pass
 
     mocker.patch.object(MotionController, "communication", MockCommunication)
-    result = script_runner.run(
-        [
-            script_path,
-            f"--interface_index={interface_index}",
-            f"--slave_id={slave_id}",
-            f"--firmware_file={fw_file}",
-        ]
-    )
+    result = script_runner.run([
+        script_path,
+        f"--interface_index={interface_index}",
+        f"--slave_id={slave_id}",
+        f"--firmware_file={fw_file}",
+    ])
     assert result.returncode == 0
 
 
@@ -217,9 +205,12 @@ def test_feedback_example(setup_descriptor: DriveEthernetSetup, script_runner, m
             return {"result_message": SeverityLevel.SUCCESS}
 
     mocker.patch.object(MotionController, "tests", MockDriveTests)
-    result = script_runner.run(
-        [script_path, feedback, setup_descriptor.dictionary, f"-ip={setup_descriptor.ip}"]
-    )
+    result = script_runner.run([
+        script_path,
+        feedback,
+        setup_descriptor.dictionary,
+        f"-ip={setup_descriptor.ip}",
+    ])
     assert result.returncode == 0
 
 
@@ -232,9 +223,11 @@ def test_commutation_test_example(setup_descriptor: DriveEthernetSetup, script_r
             return {"result_message": SeverityLevel.SUCCESS}
 
     mocker.patch.object(MotionController, "tests", MockDriveTests)
-    result = script_runner.run(
-        [script_path, setup_descriptor.dictionary, f"-ip={setup_descriptor.ip}"]
-    )
+    result = script_runner.run([
+        script_path,
+        setup_descriptor.dictionary,
+        f"-ip={setup_descriptor.ip}",
+    ])
     assert result.returncode == 0
 
 
@@ -259,9 +252,12 @@ def test_brake_config_example(
             pass
 
     mocker.patch.object(MotionController, "configuration", MockConfiguration)
-    result = script_runner.run(
-        [script_path, override, setup_descriptor.dictionary, f"-ip={setup_descriptor.ip}"]
-    )
+    result = script_runner.run([
+        script_path,
+        override,
+        setup_descriptor.dictionary,
+        f"-ip={setup_descriptor.ip}",
+    ])
     assert result.returncode == 0
 
 

@@ -32,7 +32,11 @@ class SafetyParameter:
         return self.__register
 
     def get(self) -> Union[int, float, str, bytes]:
-        """Get the value of the safety parameter."""
+        """Get the value of the safety parameter.
+
+        Returns:
+            The value of the safety parameter.
+        """
         return self.__value
 
     def set(self, value: Union[int, float, str, bytes]) -> None:

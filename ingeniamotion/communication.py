@@ -1627,6 +1627,9 @@ class Communication:
                 If None, the file extension is used to define it.
             password: Password to load the firmware file. If ``None`` the default password will be
                 used.
+
+        Raises:
+            IMFirmwareLoadError: If the load FW process of any slave failed.
         """
         with tempfile.TemporaryDirectory() as ensemble_temp_dir:
             mapping = self.__unzip_ensemble_fw_file(fw_file, ensemble_temp_dir)

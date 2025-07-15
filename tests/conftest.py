@@ -93,6 +93,9 @@ def timeout_loop(
         other: Exception to be thrown if timeout is reached
             Also accepts a function that returns an exception.
 
+    Yields:
+        int: The current iteration number.
+
     Examples:
 
         .. code-block:: python

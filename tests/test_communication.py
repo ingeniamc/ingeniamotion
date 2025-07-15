@@ -426,15 +426,13 @@ def test__check_ensemble():
             TEST_ENSEMBLE_FW_FILE, ensemble_temp_dir
         )
     product_code = 123456
-    slaves = OrderedDict(
-        {
-            1: SlaveInfo(product_code, 4661),
-            2: SlaveInfo(product_code, 16781878),
-            4: SlaveInfo(product_code, 4662),
-            5: SlaveInfo(product_code, 16781879),
-            7: SlaveInfo(654321, 1236),
-        }
-    )
+    slaves = OrderedDict({
+        1: SlaveInfo(product_code, 4661),
+        2: SlaveInfo(product_code, 16781878),
+        4: SlaveInfo(product_code, 4662),
+        5: SlaveInfo(product_code, 16781879),
+        7: SlaveInfo(654321, 1236),
+    })
     for slave_id in [1, 2]:
         assert mc.communication._Communication__check_ensemble(slaves, slave_id, mapping) == 1
 
@@ -450,13 +448,11 @@ def test__check_ensemble_wrong():
         )
 
     product_code = 123456
-    slaves = OrderedDict(
-        {
-            1: SlaveInfo(product_code, 4660),
-            2: SlaveInfo(product_code, 16781876),
-            3: SlaveInfo(654321, 1236),
-        }
-    )
+    slaves = OrderedDict({
+        1: SlaveInfo(product_code, 4660),
+        2: SlaveInfo(product_code, 16781876),
+        3: SlaveInfo(654321, 1236),
+    })
 
     with pytest.raises(IMFirmwareLoadError) as exc_info:
         mc.communication._Communication__check_ensemble(slaves, 3, mapping)
@@ -465,12 +461,10 @@ def test__check_ensemble_wrong():
         "The selected drive is not part of the ensemble."
     )
 
-    slaves = OrderedDict(
-        {
-            1: SlaveInfo(product_code, 4660),
-            2: SlaveInfo(654321, 16781876),
-        }
-    )
+    slaves = OrderedDict({
+        1: SlaveInfo(product_code, 4660),
+        2: SlaveInfo(654321, 16781876),
+    })
     with pytest.raises(IMFirmwareLoadError) as exc_info:
         mc.communication._Communication__check_ensemble(slaves, 1, mapping)
     assert (
@@ -478,12 +472,10 @@ def test__check_ensemble_wrong():
         "The slave 2 has wrong product code or revision number."
     )
 
-    slaves = OrderedDict(
-        {
-            1: SlaveInfo(product_code, 16781877),
-            2: SlaveInfo(product_code, 4661),
-        }
-    )
+    slaves = OrderedDict({
+        1: SlaveInfo(product_code, 16781877),
+        2: SlaveInfo(product_code, 4661),
+    })
     with pytest.raises(IMFirmwareLoadError) as exc_info:
         mc.communication._Communication__check_ensemble(slaves, 2, mapping)
     assert (
@@ -527,15 +519,13 @@ def test_check_slave_in_ensemble_drive_not_in_ensemble():
 
 def test_load_ensemble_fw_ecat(mocker):
     product_code = 123456
-    slaves = OrderedDict(
-        {
-            1: SlaveInfo(product_code, 4661),
-            2: SlaveInfo(product_code, 16781877),
-            3: SlaveInfo(product_code, 4662),
-            4: SlaveInfo(product_code, 16781878),
-            5: SlaveInfo(654321, 1236),
-        }
-    )
+    slaves = OrderedDict({
+        1: SlaveInfo(product_code, 4661),
+        2: SlaveInfo(product_code, 16781877),
+        3: SlaveInfo(product_code, 4662),
+        4: SlaveInfo(product_code, 16781878),
+        5: SlaveInfo(654321, 1236),
+    })
 
     mc = MotionController()
     mocker.patch("ingenialink.ethercat.network.EthercatNetwork.__init__", return_value=None)
@@ -602,15 +592,13 @@ def test_load_ensemble_fw_canopen(mocker):
     mc.servos = servos
 
     product_code = 123456
-    slaves_info = OrderedDict(
-        {
-            1: SlaveInfo(product_code, 4661),
-            2: SlaveInfo(product_code, 16781877),
-            3: SlaveInfo(product_code, 4662),
-            4: SlaveInfo(product_code, 16781878),
-            5: SlaveInfo(654321, 1236),
-        }
-    )
+    slaves_info = OrderedDict({
+        1: SlaveInfo(product_code, 4661),
+        2: SlaveInfo(product_code, 16781877),
+        3: SlaveInfo(product_code, 4662),
+        4: SlaveInfo(product_code, 16781878),
+        5: SlaveInfo(654321, 1236),
+    })
     mocker.patch(
         "ingenialink.canopen.network.CanopenNetwork.scan_slaves_info", return_value=slaves_info
     )

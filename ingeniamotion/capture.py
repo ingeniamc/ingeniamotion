@@ -295,6 +295,9 @@ class Capture:
             NotImplementedError: If the drive does not support monitoring
             and disturbance.
 
+        Returns:
+            MonitoringVersion: The version of the monitoring.
+
         """
         try:
             self.mc.communication.get_register(

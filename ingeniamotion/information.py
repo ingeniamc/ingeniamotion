@@ -168,6 +168,9 @@ class Information:
         Args:
             servo: alias of the servo.
 
+        Raises:
+            IMError: If the servo is not a CANopen device.
+
         Returns:
             Node ID of the drive.
         """
@@ -184,6 +187,9 @@ class Information:
         Args:
             servo: alias of the servo.
 
+        Raises:
+            IMError: If the servo is not a CANopen device.
+
         Returns:
             Baudrate of the drive.
         """
@@ -197,6 +203,9 @@ class Information:
 
         Args:
             servo: alias of the servo.
+
+        Raises:
+            IMError: If the servo is not an Ethernet device.
 
         Returns:
             IP of the drive.
@@ -213,6 +222,9 @@ class Information:
 
         Args:
             servo: alias of the servo.
+
+        Raises:
+            IMError: If the servo is not an EtherCAT slave.
 
         Returns:
             Slave ID of the servo.
@@ -295,6 +307,9 @@ class Information:
 
         Args:
             servo: Drive alias.
+
+        Raises:
+            IMError: If dictionary categories are not defined.
 
         Returns:
             Categories instance.
