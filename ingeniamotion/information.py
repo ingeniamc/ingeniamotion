@@ -256,6 +256,8 @@ class Information:
             communication_type = CommunicationType.Ethernet
         elif isinstance(drive_network, (EoENetwork, EthercatNetwork)):
             communication_type = CommunicationType.Ethercat
+        else:
+            raise NotImplementedError("Unknown communication type.")
         return communication_type
 
     def get_full_name(self, servo: str = DEFAULT_SERVO) -> str:

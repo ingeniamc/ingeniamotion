@@ -1585,19 +1585,25 @@ class Communication:
                 slave_id = first_slave_in_ensemble + slave_id_offset
                 if slave_id not in connected_drives:
                     net.connect_to_slave(slave_id, dictionary_path)
+
+            load_fw_slave_id: Optional[int] = None
             try:
                 for slave_id_offset, fw_file_prod_code in mapping.items():
-                    slave_id = first_slave_in_ensemble + slave_id_offset
+                    load_fw_slave_id = first_slave_in_ensemble + slave_id_offset
                     net.load_firmware(
-                        slave_id,
+                        load_fw_slave_id,
                         fw_file_prod_code[0],
                         status_callback,
                         progress_callback,
                         error_enabled_callback,
                     )
             except ILError as e:
+                if load_fw_slave_id is None:
+                    raise IMFirmwareLoadError(
+                        f"{FIRMWARE_FILE_FAIL_MSG}. No slave detected in the ensemble."
+                    )
                 raise IMFirmwareLoadError(
-                    f"{FIRMWARE_FILE_FAIL_MSG} on node {slave_id}. Exception: {e}"
+                    f"{FIRMWARE_FILE_FAIL_MSG} on node {load_fw_slave_id}. Exception: {e}"
                 )
 
     def __load_ensemble_fw_ecat(

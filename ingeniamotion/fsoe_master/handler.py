@@ -8,7 +8,7 @@ from ingenialink.dictionary import DictionarySafetyModule
 from ingenialink.enums.register import RegCyclicType
 from ingenialink.ethercat.servo import EthercatServo
 from ingenialink.pdo import RPDOMap, TPDOMap
-from ingenialink.utils._utils import convert_dtype_to_bytes, dtype_value
+from ingenialink.utils._utils import convert_dtype_to_bytes
 
 from ingeniamotion._utils import weak_lru
 from ingeniamotion.enums import FSoEState
@@ -114,8 +114,8 @@ class FSoEMasterHandler:
         if self.__uses_sra:
             self._sra_fsoe_application_parameter = FSoEApplicationParameter(
                 name="SRA_CRC",
-                initial_value=self._calculate_sra_crc(),  # https://novantamotion.atlassian.net/browse/INGK-1104
-                n_bytes=dtype_value[register.dtype][0],
+                initial_value=self._calculate_sra_crc(),
+                n_bytes=4,
             )
             fsoe_application_parameters.append(self._sra_fsoe_application_parameter)
 
