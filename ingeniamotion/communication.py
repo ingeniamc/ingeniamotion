@@ -507,7 +507,7 @@ class Communication:
                 6  # https://learn.microsoft.com/en-us/windows/win32/api/ifdef/ns-ifdef-net_luid_lh
             )
             for adapter in get_adapters_addresses(
-                adapter_families=AdapterFamily.INET,
+                adapter_families=AdapterFamily.UNSPEC,
                 scan_flags=[
                     ScanFlags.INCLUDE_PREFIX,
                     ScanFlags.INCLUDE_ALL_INTERFACES,
