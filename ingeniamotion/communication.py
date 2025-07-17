@@ -485,8 +485,11 @@ class Communication:
         return list(network_adapters)
 
     @staticmethod
-    def get_network_adapters() -> dict[str, str]:
+    def get_network_adapters(disable_adapters_filters: bool = False) -> dict[str, str]:
         """Get the detected network adapters.
+
+        Args:
+            disable_adapters_filters: If True, it will not filter the adapters. Defaults to False.
 
         Returns:
             Dictionary with interface readable names as keys and GUIDs as values.
@@ -503,23 +506,25 @@ class Communication:
             ethernet_adapter_type = (
                 6  # https://learn.microsoft.com/en-us/windows/win32/api/ifdef/ns-ifdef-net_luid_lh
             )
-            network_adapters.extend(
-                [
-                    NetworkAdapter(
-                        interface_index=adapter.IfIndex,
-                        interface_name=adapter.Description,
-                        interface_guid=adapter.AdapterName,
+            for adapter in get_adapters_addresses(
+                adapter_families=AdapterFamily.INET,
+                scan_flags=[
+                    ScanFlags.INCLUDE_PREFIX,
+                    ScanFlags.INCLUDE_ALL_INTERFACES,
+                ],
+            ):
+                if disable_adapters_filters:
+                    add_adapter = True
+                else:
+                    add_adapter = adapter.IfType == ethernet_adapter_type
+                if add_adapter:
+                    network_adapters.append(
+                        NetworkAdapter(
+                            interface_index=adapter.IfIndex,
+                            interface_name=adapter.Description,
+                            interface_guid=adapter.AdapterName,
+                        )
                     )
-                    for adapter in get_adapters_addresses(
-                        adapter_families=AdapterFamily.INET,
-                        scan_flags=[
-                            ScanFlags.INCLUDE_PREFIX,
-                            ScanFlags.INCLUDE_ALL_INTERFACES,
-                        ],
-                    )
-                    if adapter.IfType == ethernet_adapter_type
-                ]
-            )
         return {adapter.interface_name: adapter.interface_guid for adapter in network_adapters}
 
     def get_available_canopen_devices(self) -> dict[CanDevice, list[int]]:
