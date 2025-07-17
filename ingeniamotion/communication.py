@@ -517,7 +517,7 @@ class Communication:
                             ScanFlags.INCLUDE_ALL_INTERFACES,
                         ],
                     )
-                    if adapter.IfType == ethernet_adapter_type and len(adapter.FirstUnicastAddress)
+                    if adapter.IfType == ethernet_adapter_type
                 ]
             )
         return {adapter.interface_name: adapter.interface_guid for adapter in network_adapters}
