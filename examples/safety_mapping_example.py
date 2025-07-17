@@ -3,8 +3,13 @@ import time
 from ingeniamotion import MotionController
 import argparse
 
-from ingeniamotion.fsoe_master import STOFunction, SS1Function, PDUMaps
-from ingeniamotion.fsoe_master.safety_functions import SS2Function, SafeInputsFunction, SAFunction
+from ingeniamotion.fsoe_master import STOFunction, SS1Function, PDUMaps, SOSFunction
+from ingeniamotion.fsoe_master.safety_functions import (
+    SS2Function,
+    SafeInputsFunction,
+    SAFunction,
+    SVFunction,
+)
 
 
 def main(interface_ip, slave_id, dict_path):
@@ -24,6 +29,8 @@ def main(interface_ip, slave_id, dict_path):
     ss1 = handler.get_function_instance(SS1Function)
     ss2 = handler.get_function_instance(SS2Function, instance=1)
     sa = handler.get_function_instance(SAFunction)
+    sv = handler.get_function_instance(SVFunction)
+    sos = handler.get_function_instance(SOSFunction)
 
     # The handler comes with a default mapping read from the drive.
     # Clear it to create a new one
@@ -34,18 +41,24 @@ def main(interface_ip, slave_id, dict_path):
     outputs = handler.maps.outputs
     outputs.add(sto.command)
     outputs.add(ss1.command)
+    outputs.add(sos.command)
     outputs.add(ss2.command)
-    outputs.add_padding(5 + 8)
+    outputs.add_padding(4+8)
+
 
     # Configure Inputs Map
     inputs = handler.maps.inputs
     inputs.add(sto.command)
     inputs.add(ss1.command)
-    inputs.add(ss2.command)
-    inputs.add_padding(5)
+    inputs.add_padding(6)
     inputs.add(safe_inputs.value)
     inputs.add_padding(7)
-    #inputs.add(sa.value)
+
+    # Print the maps to check the configuration
+    print("Inputs Map:")
+    print(inputs.get_text_representation())
+    print("Outputs Map:")
+    print(outputs.get_text_representation())
 
     # Configure Parameters
     # safe_inputs.map.set(2)  # Linked to SS1 Instance
@@ -55,7 +68,9 @@ def main(interface_ip, slave_id, dict_path):
 
     # After reconfiguring the maps and configuring the pdos,
     # The PDOs can be printed to check the mapping
+    print("Outputs PDO Map:")
     print(handler.safety_master_pdu_map.get_text_representation())
+    print("Inputs PDO Map:")
     print(handler.safety_slave_pdu_map.get_text_representation())
 
     # Start pdo transmission
@@ -65,7 +80,13 @@ def main(interface_ip, slave_id, dict_path):
     mc.fsoe.wait_for_state_data(timeout=10)
 
     # Stay 5 seconds in Data state
-    time.sleep(5)
+    for i in range(5):
+        time.sleep(1)
+        # During this time, commands can be changed
+        sto.command.set(1)
+        ss1.command.set(1)
+        # And inputs can be read
+        print(f"Safe Inputs Value: {safe_inputs.value.get()}")
 
     # Stop the FSoE master handler
     mc.fsoe.stop_master(stop_pdos=True)
@@ -74,6 +95,9 @@ def main(interface_ip, slave_id, dict_path):
 
 
 if __name__ == "__main__":
+    # Example of how to run the script:
+    # py -3.9 safety_mapping_example.py --interface_ip 192.168.2.1 --dictionary_path "C:\dictionary\evs-s-net-e_1.2.3_v3.xdf"
+
     parser = argparse.ArgumentParser(description="Safety Mapping Example")
     parser.add_argument(
         "--interface_ip", help="Interface IP of the network device to use", required=True, type=str

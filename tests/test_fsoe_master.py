@@ -461,7 +461,7 @@ class TestPduMapper:
         maps = PDUMaps.empty(fsoe_dict)
 
         maps.outputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
-        maps.outputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID])
+        maps.outputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
         maps.outputs.add_padding(bits=6 + 8)
 
         maps.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])

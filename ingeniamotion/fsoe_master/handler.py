@@ -303,11 +303,8 @@ class FSoEMasterHandler:
             rpdo_maps=[self.safety_master_pdu_map], tpdo_maps=[self.safety_slave_pdu_map]
         )
 
-        self.safety_master_pdu_map.write_to_slave()
-        self.safety_slave_pdu_map.write_to_slave()
-
-        for param, master_value, slave_value in self.get_mismatched_parameters():
-            pass
+        self.safety_master_pdu_map.write_to_slave(max_pdo_items_for_padding=45)
+        self.safety_slave_pdu_map.write_to_slave(max_pdo_items_for_padding=45)
 
     def remove_pdo_maps_from_slave(self) -> None:
         """Remove the PDOMaps used by the Safety PDUs from the slave."""
@@ -319,7 +316,6 @@ class FSoEMasterHandler:
         if not self.__running:
             self.__start_on_first_request()
         req = self._master_handler.get_request()
-        print_bytes(req)
         self.safety_master_pdu_map.set_item_bytes(req)
 
     def set_reply(self) -> None:
@@ -328,7 +324,6 @@ class FSoEMasterHandler:
         It is extracted from the Safety Slave PDU PDOMap and set to the FSoE master handler.
         """
         reply = self.safety_slave_pdu_map.get_item_bytes()
-        print_bytes(reply)
         if self.__in_initial_reset:
             if reply[0] == 0:
                 # Byte 0 of FSoE frame should always be the command
@@ -634,7 +629,3 @@ class FSoEMasterHandler:
     def running(self) -> bool:
         """True if FSoE Master is started, else False."""
         return self.__running
-
-
-def print_bytes(byt: bytes):
-    pass
