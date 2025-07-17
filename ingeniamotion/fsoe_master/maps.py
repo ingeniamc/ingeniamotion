@@ -276,9 +276,10 @@ class PDUMaps:
                 or uid == SLAVE_FRAME_ELEMENTS.connection_id_uid
             ):
                 return item_type(size_bits=16)
-            if uid.startswith(
-                (MASTER_FRAME_ELEMENTS.crcs_prefix, SLAVE_FRAME_ELEMENTS.crcs_prefix)
-            ):
+            if uid.startswith((
+                MASTER_FRAME_ELEMENTS.crcs_prefix,
+                SLAVE_FRAME_ELEMENTS.crcs_prefix,
+            )):
                 return item_type(size_bits=16)
             if uid in [
                 STOFunction.COMMAND_UID,
