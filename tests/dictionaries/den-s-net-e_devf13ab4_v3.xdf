@@ -11979,24 +11979,6 @@
               </Subitem>
             </Subitems>
           </CANopenObject>
-          <CANopenObject id="FSOE_POSITION_UNIT" index="0x6601" datatype="VAR" axis="1">
-            <Subitems>
-              <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="u32" id="FSOE_POSITION_UNIT" pdo_access="CONFIG" desc="" units="none" default="0000b400" cat_id="FSOE" axis="1">
-                <Labels>
-                  <Label lang="en_US">Position Unit</Label>
-                </Labels>
-              </Subitem>
-            </Subitems>
-          </CANopenObject>
-          <CANopenObject id="FSOE_SAFE_POSITION" index="0x6611" datatype="VAR" axis="1">
-            <Subitems>
-              <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="s32" id="FSOE_SAFE_POSITION" pdo_access="CYCLIC_SI" desc="" units="none" default="00000000" cat_id="FSOE" axis="1">
-                <Labels>
-                  <Label lang="en_US">Safe Position Actual Value</Label>
-                </Labels>
-              </Subitem>
-            </Subitems>
-          </CANopenObject>
           <CANopenObject id="FSOE_STO" index="0x6640" datatype="VAR" axis="1">
             <Subitems>
               <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="bit" id="FSOE_STO" pdo_access="CYCLIC_SISO" desc="Safe Torque Off Safety function. &#10;Commands the STO when writing. Reports the STO status when reading." units="none" default="01" cat_id="FSOE" axis="1">

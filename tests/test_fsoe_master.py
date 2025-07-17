@@ -202,9 +202,20 @@ def test_mandatory_safety_functions(mc_with_fsoe):
 def test_getter_of_safety_functions(mc_with_fsoe):
     mc, handler = mc_with_fsoe
 
+    # ruff: noqa: ERA001
     sto_function = STOFunction(command=None, io=None, parameters=None)
-    ss1_function_1 = SS1Function(command=None, time_to_sto=None, io=None, parameters=None)
-    ss1_function_2 = SS1Function(command=None, time_to_sto=None, io=None, parameters=None)
+    ss1_function_1 = SS1Function(
+        command=None,
+        # time_to_sto=None,
+        io=None,
+        parameters=None,
+    )
+    ss1_function_2 = SS1Function(
+        command=None,
+        # time_to_sto=None,
+        io=None,
+        parameters=None,
+    )
 
     handler.safety_functions = (sto_function, ss1_function_1, ss1_function_2)
     handler.get_function_instance.cache_clear()
@@ -409,7 +420,7 @@ class TestPduMapper:
 
     @pytest.fixture()
     def sample_safe_dictionary(self):
-        safe_dict = DictionaryV3(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, interface=Interface.ECAT)
+        safe_dict = DictionaryV3(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, interface=Interface.ECAT)
 
         # Add sample registers
         safe_dict._registers[self.AXIS_1][self.TEST_SI_U16_UID] = EthercatRegister(
@@ -465,7 +476,7 @@ class TestPduMapper:
         maps.outputs.add_padding(bits=6 + 8)
 
         maps.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
-        maps.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID])
+        maps.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
         maps.inputs.add_padding(bits=6)
         maps.inputs.add(fsoe_dict.name_map[SafeInputsFunction.SAFE_INPUTS_UID])
         maps.inputs.add_padding(bits=7)
