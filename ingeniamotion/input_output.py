@@ -207,7 +207,7 @@ class InputsOutputs:
             servo : servo alias to reference it. ``default`` by default.
             axis : axis that will run the test. 1 by default.
 
-        Raise:
+        Raises:
             IMError: if the GPOs final value does not match with the desired GPOs set point.
         """
         new_target_value = bool(voltage_level.value)

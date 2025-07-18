@@ -103,7 +103,7 @@ class Disturbance:
         Args:
             divider : determines disturbance frequency. It must be ``1`` or higher.
 
-        Return:
+        Returns:
             Sample period in seconds.
 
         Raises:

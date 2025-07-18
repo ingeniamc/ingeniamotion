@@ -38,7 +38,11 @@ class FSoEFrameElements:
     connection_id_uid: str
 
     def get_crc_uid(self, data_slot_i: int) -> str:
-        """Get the CRC element name for the given data slot index."""
+        """Get the CRC element name for the given data slot index.
+
+        Returns:
+            The CRC element name for the given data slot index.
+        """
         return f"{self.crcs_prefix}{data_slot_i}"
 
 
@@ -72,7 +76,11 @@ class PDUMaps:
 
     @classmethod
     def empty(cls, dictionary: "FSoEDictionary") -> "PDUMaps":
-        """Create an empty PDUMaps instance with the given dictionary."""
+        """Create an empty PDUMaps instance with the given dictionary.
+
+        Returns:
+            PDUMaps instance with empty outputs and inputs maps.
+        """
         return cls(
             outputs=FSoEDictionaryMap(
                 dictionary,
@@ -85,7 +93,11 @@ class PDUMaps:
         )
 
     def copy(self) -> "PDUMaps":
-        """Create a copy of the PDUMaps instance."""
+        """Create a copy of the PDUMaps instance.
+
+        Returns:
+            A new PDUMaps instance with copies of the outputs and inputs maps.
+        """
         return PDUMaps(
             outputs=self.outputs.copy(),
             inputs=self.inputs.copy(),
@@ -99,6 +111,9 @@ class PDUMaps:
 
         Args:
             element: element to add
+
+        Raises:
+            TypeError: if the element is not of a valid type.
         """
         align_to = 1
         if element.data_type.bits > 8:
@@ -126,7 +141,11 @@ class PDUMaps:
     def from_rpdo_tpdo(
         cls, rpdo: RPDOMap, tpdo: TPDOMap, dictionary: "FSoEDictionary"
     ) -> "PDUMaps":
-        """Create a PDUMaps instance from the given RPDO and TPDO maps."""
+        """Create a PDUMaps instance from the given RPDO and TPDO maps.
+
+        Returns:
+            PDUMaps instance with the RPDO and TPDO maps filled.
+        """
         pdu_maps = cls.empty(dictionary)
         cls.__fill_dictionary_map_from_pdo(rpdo, pdu_maps.outputs)
         cls.__fill_dictionary_map_from_pdo(tpdo, pdu_maps.inputs)
@@ -155,25 +174,28 @@ class PDUMaps:
         )
 
     @staticmethod
-    def __get_safety_bytes_range_from_pdo_length(pdo_byte_lenght: int) -> tuple[int, ...]:
+    def __get_safety_bytes_range_from_pdo_length(pdo_byte_length: int) -> tuple[int, ...]:
         """Get the bytes that belong to the safe data in a PDO map according to its length.
 
         Args:
-            pdo_byte_lenght: byte length of the PDO map
+            pdo_byte_length: byte length of the PDO map
+
+        Raises:
+            ValueError: if pdo_byte_lenght is less than 6
 
         Returns:
             Tuple containing all byte indexes of the PDO map that belong to safe data
         """
-        if pdo_byte_lenght < 6:
+        if pdo_byte_length < 6:
             raise ValueError("pdo_lenght must be at least 6")
-        elif pdo_byte_lenght == 6:
+        elif pdo_byte_length == 6:
             # Shortest PDOMap is 6 bytes, containing only one data byte
             return (1,)
         else:
             # The total bytes of data is the Pdo map length
             # minus 1 byte for the command and 2 bytes for the connection ID
             # divided by 4, since each data slot has 2 bytes of data and 2 bytes of CRC
-            total_data_slots = (pdo_byte_lenght - 3) // 4
+            total_data_slots = (pdo_byte_length - 3) // 4
             return tuple(
                 byt
                 for slot_i in range(total_data_slots)
@@ -254,9 +276,10 @@ class PDUMaps:
                 or uid == SLAVE_FRAME_ELEMENTS.connection_id_uid
             ):
                 return item_type(size_bits=16)
-            if uid.startswith(
-                (MASTER_FRAME_ELEMENTS.crcs_prefix, SLAVE_FRAME_ELEMENTS.crcs_prefix)
-            ):
+            if uid.startswith((
+                MASTER_FRAME_ELEMENTS.crcs_prefix,
+                SLAVE_FRAME_ELEMENTS.crcs_prefix,
+            )):
                 return item_type(size_bits=16)
             if uid in [
                 STOFunction.COMMAND_UID,
