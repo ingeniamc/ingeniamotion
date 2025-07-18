@@ -2,14 +2,18 @@ import time
 
 from ingeniamotion import MotionController
 import argparse
+from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 
-from ingeniamotion.fsoe_master import STOFunction, SS1Function, PDUMaps, SOSFunction
-from ingeniamotion.fsoe_master.safety_functions import (
-    SS2Function,
-    SafeInputsFunction,
-    SAFunction,
-    SVFunction,
-)
+if FSOE_MASTER_INSTALLED:
+    from ingeniamotion.fsoe_master import (
+        STOFunction,
+        SS1Function,
+        SOSFunction,
+        SS2Function,
+        SafeInputsFunction,
+        SAFunction,
+        SVFunction,
+    )
 
 
 def main(interface_ip, slave_id, dict_path):
@@ -43,8 +47,7 @@ def main(interface_ip, slave_id, dict_path):
     outputs.add(ss1.command)
     outputs.add(sos.command)
     outputs.add(ss2.command)
-    outputs.add_padding(4+8)
-
+    outputs.add_padding(4 + 8)
 
     # Configure Inputs Map
     inputs = handler.maps.inputs
