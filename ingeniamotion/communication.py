@@ -498,7 +498,7 @@ class Communication:
                 adapter_guid = adapter.name
             network_adapters.append(NetworkAdapter(adapter.index, adapter.nice_name, adapter_guid))
         if RUNNING_ON_WINDOWS:
-            if not EthercatNetwork.pysoem_available:
+            if not EthercatNetwork.pysoem_available():
                 logger.warning("npcap not available, network adapters list will not be complete")
             else:
                 network_adapters.extend(
