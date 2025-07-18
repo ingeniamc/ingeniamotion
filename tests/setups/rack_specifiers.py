@@ -50,6 +50,18 @@ ECAT_DEN_S_PHASE1_SETUP = RackServiceConfigSpecifier.from_firmware(
     dictionary=DictionaryVersion("2.7.4", DictionaryType.XDF_V2),
 )
 
+ECAT_DEN_S_PHASE2_SETUP = RackServiceConfigSpecifier.from_firmware(
+    part_number=PartNumber.DEN_S_NET_E,
+    interface=Interface.ECAT,
+    config_file=None,
+    firmware=Path(
+        "//azr-srv-ingfs1/dist/products/i050_summit/i056_den-s-net-e/release_candidate/safety_1.1.0.4/den-s-net-e_2.8.0.lfu"
+    ),
+    dictionary=Path(
+        "//azr-srv-ingfs1/dist/products/i050_summit/i056_den-s-net-e/release_candidate/safety_1.1.0.4/den-s-net-e_safety_1.1.0.004_v3.xdf"
+    ),
+)
+
 CAN_EVE_SETUP = RackServiceConfigSpecifier.from_firmware(
     part_number=PartNumber.EVE_XCR_C,
     interface=Interface.CAN,
