@@ -60,6 +60,7 @@ class FSoEMasterHandler:
 
     __FSOE_RPDO_MAP_1 = "ETG_COMMS_RPDO_MAP256_TOTAL"
     __FSOE_TPDO_MAP_1 = "ETG_COMMS_TPDO_MAP256_TOTAL"
+    __FSOE_SAFETY_PROJECT_CRC = "FSOE_SAFETY_PROJECT_CRC"
 
     DEFAULT_WATCHDOG_TIMEOUT_S = 1
 
@@ -183,8 +184,18 @@ class FSoEMasterHandler:
             RuntimeError: if module ident value to write can not be retrieved.
         """
         module_ident = None
-        # https://novantamotion.atlassian.net/browse/INGM-657
+        skip_application_parameter = DictionarySafetyModule.ApplicationParameter(
+            uid=self.__FSOE_SAFETY_PROJECT_CRC
+        )
         for safety_module in self.__servo.dictionary.safety_modules.values():
+            # FSOE_SAFETY_PROJECT_CRC should only be used by masters that do
+            # not support SRA calculation
+            if skip_application_parameter in safety_module.application_parameters:
+                self.logger.warning(
+                    "Safety module has the application parameter "
+                    f"{self.__FSOE_SAFETY_PROJECT_CRC}, skipping it."
+                )
+                continue
             if self.__uses_sra and safety_module.uses_sra:
                 module_ident = safety_module.module_ident
             if not self.__uses_sra and not safety_module.uses_sra:
