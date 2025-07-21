@@ -332,13 +332,13 @@ pipeline {
                                 runTestHW("ethercat_capitan", "soem", "ECAT_CAP_SETUP", false, USE_WIRESHARK_LOGGING)
                             }
                         }
-                        stage("Safety Denali Phase 1") {
+                        stage("Safety Denali Phase I") {
                             steps {
                                 runTestHW("fsoe_phase1", "fsoe", "ECAT_DEN_S_PHASE1_SETUP", true, USE_WIRESHARK_LOGGING)
                            
                             }
                         }
-                        stage("Safety Denali Phase 2") {
+                        stage("Safety Denali Phase II") {
                             steps {
                                 runTestHW("fsoe_phase2", "fsoe", "ECAT_DEN_S_PHASE2_SETUP", true, USE_WIRESHARK_LOGGING)
                            
