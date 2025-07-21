@@ -1,9 +1,10 @@
+import logging
 import time
 from typing import TYPE_CHECKING
 
 import pytest
 from ingenialink import RegAccess, RegDtype
-from ingenialink.dictionary import DictionaryV3, Interface
+from ingenialink.dictionary import DictionarySafetyModule, DictionaryV3, Interface
 from ingenialink.enums.register import RegCyclicType
 from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.pdo import RPDOMap, TPDOMap
@@ -118,6 +119,62 @@ def test_create_fsoe_master_handler(mc, use_sra):
         assert len(handler._master_handler.master.application_parameters) == 1
 
     master._delete_master_handler()
+
+
+@pytest.mark.fsoe
+def test_set_configured_module_ident_1(mocker, mc_with_fsoe_with_sra, caplog):
+    _, handler = mc_with_fsoe_with_sra
+
+    def create_mock_safety_module(module_ident, uses_sra=True, has_project_crc=False):
+        if has_project_crc:
+            params = [
+                DictionarySafetyModule.ApplicationParameter(
+                    uid=handler._FSoEMasterHandler__FSOE_SAFETY_PROJECT_CRC
+                )
+            ]
+        else:
+            params = [DictionarySafetyModule.ApplicationParameter(uid="DUMMY_PARAM")]
+
+        return DictionarySafetyModule(
+            module_ident=module_ident,
+            uses_sra=uses_sra,
+            application_parameters=params,
+        )
+
+    # Do not write mocked values to the servo
+    mocker.patch.object(handler._FSoEMasterHandler__servo, "write")
+    mock_safety_modules = {
+        1: create_mock_safety_module(module_ident=1, uses_sra=True, has_project_crc=True)
+    }
+    mocker.patch.object(
+        handler._FSoEMasterHandler__servo.dictionary,
+        "safety_modules",
+        mock_safety_modules,
+    )
+
+    caplog.set_level(logging.WARNING)
+    with pytest.raises(
+        RuntimeError,
+        match="Module ident value to write could not be retrieved.",
+    ):
+        handler._FSoEMasterHandler__set_configured_module_ident_1()
+    expected_warning = (
+        f"Safety module has the application parameter "
+        f"{handler._FSoEMasterHandler__FSOE_SAFETY_PROJECT_CRC}, skipping it."
+    )
+    assert expected_warning in caplog.text
+
+    # Use a proper safety module
+    mock_safety_modules = {
+        2: create_mock_safety_module(module_ident=2, uses_sra=True, has_project_crc=False)
+    }
+    mocker.patch.object(
+        handler._FSoEMasterHandler__servo.dictionary,
+        "safety_modules",
+        mock_safety_modules,
+    )
+    result = handler._FSoEMasterHandler__set_configured_module_ident_1()
+    assert result == mock_safety_modules[2]
 
 
 @pytest.mark.fsoe
