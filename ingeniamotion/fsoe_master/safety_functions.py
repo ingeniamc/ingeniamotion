@@ -66,7 +66,11 @@ class SafetyFunction:
 
     @classmethod
     def _explore_instances(cls) -> Iterator[int]:
-        """Explore instances of the safety function."""
+        """Explore instances of the safety function.
+
+        Yields:
+            int: An increasing integer starting from 1, representing the instance index.
+        """
         i = 1
         while True:
             yield i
