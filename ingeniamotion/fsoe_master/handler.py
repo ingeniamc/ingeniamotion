@@ -8,7 +8,7 @@ from ingenialink.dictionary import DictionarySafetyModule
 from ingenialink.enums.register import RegCyclicType
 from ingenialink.ethercat.servo import EthercatServo
 from ingenialink.pdo import RPDOMap, TPDOMap
-from ingenialink.utils._utils import convert_dtype_to_bytes, dtype_value
+from ingenialink.utils._utils import convert_dtype_to_bytes
 
 from ingeniamotion._utils import weak_lru
 from ingeniamotion.enums import FSoEState
@@ -60,6 +60,7 @@ class FSoEMasterHandler:
 
     __FSOE_RPDO_MAP_1 = "ETG_COMMS_RPDO_MAP256_TOTAL"
     __FSOE_TPDO_MAP_1 = "ETG_COMMS_TPDO_MAP256_TOTAL"
+    __FSOE_SAFETY_PROJECT_CRC = "FSOE_SAFETY_PROJECT_CRC"
 
     DEFAULT_WATCHDOG_TIMEOUT_S = 1
 
@@ -114,8 +115,8 @@ class FSoEMasterHandler:
         if self.__uses_sra:
             self._sra_fsoe_application_parameter = FSoEApplicationParameter(
                 name="SRA_CRC",
-                initial_value=self._calculate_sra_crc(),  # https://novantamotion.atlassian.net/browse/INGK-1104
-                n_bytes=dtype_value[register.dtype][0],
+                initial_value=self._calculate_sra_crc(),
+                n_bytes=4,
             )
             fsoe_application_parameters.append(self._sra_fsoe_application_parameter)
 
@@ -183,8 +184,18 @@ class FSoEMasterHandler:
             RuntimeError: if module ident value to write can not be retrieved.
         """
         module_ident = None
-        # https://novantamotion.atlassian.net/browse/INGM-657
+        skip_application_parameter = DictionarySafetyModule.ApplicationParameter(
+            uid=self.__FSOE_SAFETY_PROJECT_CRC
+        )
         for safety_module in self.__servo.dictionary.safety_modules.values():
+            # FSOE_SAFETY_PROJECT_CRC should only be used by masters that do
+            # not support SRA calculation
+            if skip_application_parameter in safety_module.application_parameters:
+                self.logger.warning(
+                    "Safety module has the application parameter "
+                    f"{self.__FSOE_SAFETY_PROJECT_CRC}, skipping it."
+                )
+                continue
             if self.__uses_sra and safety_module.uses_sra:
                 module_ident = safety_module.module_ident
             if not self.__uses_sra and not safety_module.uses_sra:
@@ -249,7 +260,11 @@ class FSoEMasterHandler:
         return self.__maps
 
     def set_maps(self, maps: "PDUMaps") -> None:
-        """Set new PDUMaps for the Safety PDUs."""
+        """Set new PDUMaps for the Safety PDUs.
+
+        Raises:
+            RuntimeError: If the FSoE Master is running.
+        """
         if self.__running:
             raise RuntimeError("Cannot set map while the FSoE Master is running")
 
@@ -307,7 +322,12 @@ class FSoEMasterHandler:
 
     @weak_lru()
     def safety_functions_by_type(self) -> dict[type[SafetyFunction], list[SafetyFunction]]:
-        """Get a dictionary with the safety functions grouped by type."""
+        """Get a dictionary with the safety functions grouped by type.
+
+        Returns:
+            A dictionary where the keys are the types of safety functions
+                and the values are lists of instances of that type.
+        """
         return {
             type(sf): [
                 sf_of_type
@@ -326,10 +346,18 @@ class FSoEMasterHandler:
     ) -> SAFE_INSTANCE_TYPE:
         """Get the instance of a safety function.
 
+        Raises:
+            IndexError: If the instance index is out of range of the available instances.
+            ValueError: If multiple instances of the type are found and
+                no instance index is specified.
+
         Args:
             typ: The type of the safety function to get.
             instance: The index of the instance to get.
                 If None, if there's a single instance, it returns it.
+
+        Returns:
+            The instance of the safety function of the specified type.
         """
         funcs = [func for func in self.safety_functions if isinstance(func, typ)]
 
@@ -351,17 +379,29 @@ class FSoEMasterHandler:
 
     @weak_lru()
     def sto_function(self) -> STOFunction:
-        """Get the Safe Torque Off function."""
+        """Get the Safe Torque Off function.
+
+        Returns:
+            The Safe Torque Off function instance.
+        """
         return self.get_function_instance(STOFunction)
 
     @weak_lru()
     def ss1_function(self) -> SS1Function:
-        """Get the Safe Stop 1 function."""
+        """Get the Safe Stop 1 function.
+
+        Returns:
+            The Safe Stop 1 function instance.
+        """
         return self.get_function_instance(SS1Function)
 
     @weak_lru()
     def safe_inputs_function(self) -> SafeInputsFunction:
-        """Get the Safe Inputs function."""
+        """Get the Safe Inputs function.
+
+        Returns:
+            The Safe Inputs function instance.
+        """
         return self.get_function_instance(SafeInputsFunction)
 
     def sto_deactivate(self) -> None:
@@ -383,7 +423,14 @@ class FSoEMasterHandler:
         self.ss1_function().command.set(False)
 
     def safe_inputs_value(self) -> bool:
-        """Get the safe inputs register value."""
+        """Get the safe inputs register value.
+
+        Raises:
+            ValueError: On unexpected value type.
+
+        Returns:
+            The safe inputs value as a boolean.
+        """
         safe_inputs_value = self.safe_inputs_function().value.get()
         if not isinstance(safe_inputs_value, bool):
             raise ValueError(f"Wrong value type. Expected type bool, got {type(safe_inputs_value)}")
@@ -408,6 +455,9 @@ class FSoEMasterHandler:
 
     def is_sto_active(self) -> bool:
         """Check the STO state.
+
+        Raises:
+            ValueError: On unexpected value type.
 
         Returns:
             True if the STO is active. False otherwise.
@@ -444,6 +494,9 @@ class FSoEMasterHandler:
         """Create a FSoEdictionary with the safe inputs and outputs.
 
         Creates the FSoE dictionary from the servo's dictionary.
+
+        Raises:
+            TypeError: If the register is not of type CanopenRegister.
 
         Returns:
             A Dictionary instance with the safe inputs and outputs.

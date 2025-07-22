@@ -208,9 +208,9 @@ def test_start_pdos(mc, alias, setup_descriptor):
         mc.capture.pdo.add_pdo_item_to_map(actual_position, tpdo_map)
         mc.capture.pdo.set_pdo_maps_to_slave(rpdo_map, tpdo_map, servo=a)
         pdo_map_items[a] = (operation_mode, actual_position)
-        random_op_mode = random.choice(
-            [op_mode for op_mode in OperationMode if op_mode != initial_operation_mode]
-        )
+        random_op_mode = random.choice([
+            op_mode for op_mode in OperationMode if op_mode != initial_operation_mode
+        ])
         initial_operation_modes[a] = initial_operation_mode
         rpdo_values[a] = random_op_mode
 

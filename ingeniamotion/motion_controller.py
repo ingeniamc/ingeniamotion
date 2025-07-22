@@ -101,6 +101,9 @@ class MotionController:
         Returns:
             Servo instance.
 
+        Raises:
+            KeyError: If the servo is not connected.
+
         """
         if servo not in self.servos:
             msg = f"Servo {servo} is not connected"

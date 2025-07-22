@@ -599,7 +599,7 @@ class Feedbacks:
             raise TypeError("Resolution value has to be an integer")
         if not isinstance(multiplier_reg_value, int):
             raise TypeError("Multiplier factor value has to be an integer")
-        multiplier_factor = typing.cast(int, 2**multiplier_reg_value)
+        multiplier_factor = typing.cast("int", 2**multiplier_reg_value)
         return resolution * multiplier_factor
 
     def __no_feedback_resolution(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:  # noqa: ARG002
@@ -610,7 +610,7 @@ class Feedbacks:
             axis : axis that will run the test. ``1`` by default.
 
         Raises:
-            ValueError
+            ValueError: If the selected feedback does not have resolution.
         """
         raise ValueError("The selected feedback does not have resolution")
 

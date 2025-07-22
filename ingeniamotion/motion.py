@@ -157,10 +157,10 @@ class Motion:
                     self.mc.errors.get_number_total_errors(servo=servo, axis=axis) != num_errors
                 )
             if error_raised:
-                error_code, subnode, warning = self.mc.errors.get_last_buffer_error(
+                error_code, _subnode, _warning = self.mc.errors.get_last_buffer_error(
                     servo=servo, axis=axis
                 )
-                error_id, _, _, error_msg = self.mc.errors.get_error_data(error_code, servo=servo)
+                _error_id, _, _, error_msg = self.mc.errors.get_error_data(error_code, servo=servo)
             else:
                 raise ILTimeoutError(
                     "An error occurred enabling motor. Reason: Error trigger timeout exceeded."
@@ -506,8 +506,8 @@ class Motion:
             total_t: Total time.
             interval: Time between each sample.
 
-        Returns:
-            The ramp generator object.
+        Yields:
+            Ramp values from initial to final value.
 
         """
         slope = (final_v - init_v) / total_t
