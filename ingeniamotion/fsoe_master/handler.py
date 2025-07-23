@@ -8,7 +8,7 @@ from ingenialink.canopen.register import CanopenRegister
 from ingenialink.dictionary import DictionarySafetyModule
 from ingenialink.enums.register import RegCyclicType
 from ingenialink.ethercat.servo import EthercatServo
-from ingenialink.pdo import PDOMap, RPDOMap, TPDOMap
+from ingenialink.pdo import RPDOMap, TPDOMap
 from ingenialink.utils._utils import convert_dtype_to_bytes
 
 from ingeniamotion._utils import weak_lru
@@ -63,8 +63,8 @@ class FSoEMasterHandler:
     FSOE_DICTIONARY_CATEGORY = "FSOE"
     MDP_CONFIGURED_MODULE_1 = "MDP_CONFIGURED_MODULE_1"
 
-    __FSOE_RPDO_MAP_1 = "ETG_COMMS_RPDO_MAP256_TOTAL"
-    __FSOE_TPDO_MAP_1 = "ETG_COMMS_TPDO_MAP256_TOTAL"
+    __FSOE_RPDO_MAP_1 = "ETG_COMMS_RPDO_MAP256"
+    __FSOE_TPDO_MAP_1 = "ETG_COMMS_TPDO_MAP256"
     __FSOE_SAFETY_PROJECT_CRC = "FSOE_SAFETY_PROJECT_CRC"
 
     DEFAULT_WATCHDOG_TIMEOUT_S = 1
@@ -282,33 +282,15 @@ class FSoEMasterHandler:
         self.__maps.fill_rpdo_map(self.safety_master_pdu_map, self.__servo.dictionary)
         self.__maps.fill_tpdo_map(self.safety_slave_pdu_map, self.__servo.dictionary)
 
-        # https://novantamotion.atlassian.net/browse/INGK-1135
-        for safety_param in self.safety_parameters.values():
-            # Update safety parameters that are elements of the pdo maps.
-            # It is only set to the master
-            # It will be set on the slave when set_pdo_maps_to_slave is called
-            if safety_param.register.idx == self.__safety_master_pdu.map_register_index:
-                pdo_map: PDOMap = self.__safety_master_pdu
-            elif safety_param.register.idx == self.__safety_slave_pdu.map_register_index:
-                pdo_map = self.__safety_slave_pdu
-            else:
-                continue
-
-            subidx = safety_param.register.subidx
-            if subidx == 0:
-                safety_param.set_without_updating(len(pdo_map.items))
-                continue
-
-            item_idx = subidx - 1
-            if item_idx >= len(pdo_map.items):
-                new_param_val = 0
-            else:
-                new_param_val = pdo_map.items[item_idx].register_mapping
-            safety_param.set_without_updating(new_param_val)
-
-        if self.__uses_sra:
-            sra_crc = self._calculate_sra_crc()
-            self._sra_fsoe_application_parameter.set(sra_crc)  # type: ignore[union-attr]
+        # Update the pdo maps elements that are safe parameters
+        for pdu_map in (self.safety_master_pdu_map, self.safety_slave_pdu_map):
+            for register, mapping_value in pdu_map.map_register_values().items():
+                if register.identifier in self.safety_parameters:
+                    if mapping_value is None:
+                        # Set parameter to zero if it is not mapped
+                        # Although fw should ignore this parameter, it is better to reduce noise associated to it
+                        mapping_value = 0
+                    self.safety_parameters[register.identifier].set_without_updating(mapping_value)
 
     def set_pdo_maps_to_slave(self) -> None:
         """Set the PDOMaps to be used by the Safety PDUs to the slave."""
