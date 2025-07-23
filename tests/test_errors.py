@@ -65,7 +65,7 @@ class TestErrors:
     @pytest.mark.soem
     @pytest.mark.canopen
     def test_get_last_buffer_error(self, mc, alias, generate_drive_errors):
-        last_error, subnode, warning = mc.errors.get_last_buffer_error(servo=alias)
+        last_error, _subnode, _warning = mc.errors.get_last_buffer_error(servo=alias)
         assert last_error == generate_drive_errors[0]
 
     @pytest.mark.ethernet
@@ -74,7 +74,7 @@ class TestErrors:
     def test_get_buffer_error_by_index(self, mc, alias, generate_drive_errors):
         index_list = [2, 1, 3, 0]
         for i in index_list:
-            last_error, subnode, warning = mc.errors.get_buffer_error_by_index(
+            last_error, _subnode, _warning = mc.errors.get_buffer_error_by_index(
                 i, servo=alias, axis=1
             )
             assert last_error == generate_drive_errors[i]
@@ -100,7 +100,7 @@ class TestErrors:
     def test_get_all_errors(self, mc, alias, generate_drive_errors):
         test_all_errors = mc.errors.get_all_errors(servo=alias, axis=1)
         for i, code_error in enumerate(generate_drive_errors):
-            test_code_error, axis, warning = test_all_errors[i]
+            test_code_error, _axis, _warning = test_all_errors[i]
             assert test_code_error == code_error
 
     @pytest.mark.ethernet

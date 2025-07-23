@@ -34,7 +34,11 @@ class SafetyParameter:
         return self.__register
 
     def get(self) -> PARAM_VALUE_TYPE:
-        """Get the value of the safety parameter."""
+        """Get the value of the safety parameter.
+
+        Returns:
+            The value of the safety parameter.
+        """
         return self.__value
 
     def set(self, value: PARAM_VALUE_TYPE) -> None:

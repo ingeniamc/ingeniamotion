@@ -45,7 +45,11 @@ class SafetyFunction:
 
     @classmethod
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafetyFunction"]:
-        """Get the safety function instances for a given FSoE master handler."""
+        """Get the safety function instances for a given FSoE master handler.
+
+        Yields:
+            All safety function instances available for the handler.
+        """
         yield from STOFunction.for_handler(handler)
         yield from SS1Function.for_handler(handler)
         yield from SafeInputsFunction.for_handler(handler)
@@ -62,7 +66,11 @@ class SafetyFunction:
 
     @classmethod
     def _explore_instances(cls) -> Iterator[int]:
-        """Explore instances of the safety function."""
+        """Explore instances of the safety function.
+
+        Yields:
+            int: An increasing integer starting from 1, representing the instance index.
+        """
         i = 1
         while True:
             yield i
@@ -72,7 +80,15 @@ class SafetyFunction:
     def _get_required_input_output(
         cls, hander: "FSoEMasterHandler", uid: str
     ) -> "FSoEDictionaryItemInputOutput":
-        """Get the required input/output item from the handler's dictionary."""
+        """Get the required input/output item from the handler's dictionary.
+
+        Raises:
+            KeyError: if the item is not found.
+            TypeError: if the item is not of type FSoEDictionaryItemInputOutput.
+
+        Returns:
+            FSoEDictionaryItemInputOutput: The required input/output item.
+        """
         item = hander.dictionary.name_map.get(uid)
         if item is None:
             raise KeyError(f"Dictionary item {uid} not found in the handler's dictionary")
@@ -86,7 +102,15 @@ class SafetyFunction:
     def _get_required_input(
         cls, handler: "FSoEMasterHandler", uid: str
     ) -> "FSoEDictionaryItemInput":
-        """Get the required input item from the handler's dictionary."""
+        """Get the required input item from the handler's dictionary.
+
+        Raises:
+            KeyError: if the item is not found.
+            TypeError: if the item is not of type FSoEDictionaryItemInput.
+
+        Returns:
+            FSoEDictionaryItemInput: The required input item.
+        """
         item = handler.dictionary.name_map.get(uid)
         if item is None:
             raise KeyError(f"Dictionary item {uid} not found in the handler's dictionary")
@@ -98,7 +122,14 @@ class SafetyFunction:
 
     @classmethod
     def _get_required_parameter(cls, handler: "FSoEMasterHandler", uid: str) -> SafetyParameter:
-        """Get the required parameter from the handler's safety parameters."""
+        """Get the required parameter from the handler's safety parameters.
+
+        Raises:
+             KeyError: if the parameter is not found.
+
+        Returns:
+                SafetyParameter: The required safety parameter.
+        """
         if uid not in handler.safety_parameters:
             raise KeyError(f"Safety parameter {uid} not found in the handler's safety parameters")
         return handler.safety_parameters[uid]

@@ -1,9 +1,10 @@
+import logging
 import time
 from typing import TYPE_CHECKING
 
 import pytest
 from ingenialink import RegAccess, RegDtype
-from ingenialink.dictionary import DictionaryV3, Interface
+from ingenialink.dictionary import DictionarySafetyModule, DictionaryV3, Interface
 from ingenialink.enums.register import RegCyclicType
 from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.pdo import RPDOMap, TPDOMap
@@ -128,8 +129,64 @@ def test_create_fsoe_master_handler(mc, use_sra):
 
 
 @pytest.mark.fsoe
+def test_set_configured_module_ident_1(mocker, mc_with_fsoe_with_sra, caplog):
+    _, handler = mc_with_fsoe_with_sra
+
+    def create_mock_safety_module(module_ident, uses_sra=True, has_project_crc=False):
+        if has_project_crc:
+            params = [
+                DictionarySafetyModule.ApplicationParameter(
+                    uid=handler._FSoEMasterHandler__FSOE_SAFETY_PROJECT_CRC
+                )
+            ]
+        else:
+            params = [DictionarySafetyModule.ApplicationParameter(uid="DUMMY_PARAM")]
+
+        return DictionarySafetyModule(
+            module_ident=module_ident,
+            uses_sra=uses_sra,
+            application_parameters=params,
+        )
+
+    # Do not write mocked values to the servo
+    mocker.patch.object(handler._FSoEMasterHandler__servo, "write")
+    mock_safety_modules = {
+        1: create_mock_safety_module(module_ident=1, uses_sra=True, has_project_crc=True)
+    }
+    mocker.patch.object(
+        handler._FSoEMasterHandler__servo.dictionary,
+        "safety_modules",
+        mock_safety_modules,
+    )
+
+    caplog.set_level(logging.WARNING)
+    with pytest.raises(
+        RuntimeError,
+        match="Module ident value to write could not be retrieved.",
+    ):
+        handler._FSoEMasterHandler__set_configured_module_ident_1()
+    expected_warning = (
+        f"Safety module has the application parameter "
+        f"{handler._FSoEMasterHandler__FSOE_SAFETY_PROJECT_CRC}, skipping it."
+    )
+    assert expected_warning in caplog.text
+
+    # Use a proper safety module
+    mock_safety_modules = {
+        2: create_mock_safety_module(module_ident=2, uses_sra=True, has_project_crc=False)
+    }
+    mocker.patch.object(
+        handler._FSoEMasterHandler__servo.dictionary,
+        "safety_modules",
+        mock_safety_modules,
+    )
+    result = handler._FSoEMasterHandler__set_configured_module_ident_1()
+    assert result == mock_safety_modules[2]
+
+
+@pytest.mark.fsoe
 def test_fsoe_master_get_safety_parameters(mc_with_fsoe):
-    mc, handler = mc_with_fsoe
+    _mc, handler = mc_with_fsoe
 
     assert len(handler.safety_parameters) != 0
 
@@ -184,7 +241,7 @@ def test_detect_safety_functions_ph2():
 
 @pytest.mark.fsoe
 def test_mandatory_safety_functions(mc_with_fsoe):
-    mc, handler = mc_with_fsoe
+    _mc, handler = mc_with_fsoe
 
     safety_functions_by_types = handler.safety_functions_by_type()
 
@@ -200,7 +257,7 @@ def test_mandatory_safety_functions(mc_with_fsoe):
 
 @pytest.mark.fsoe
 def test_getter_of_safety_functions(mc_with_fsoe):
-    mc, handler = mc_with_fsoe
+    _mc, handler = mc_with_fsoe
 
     # ruff: noqa: ERA001
     sto_function = STOFunction(command=None, io=None, parameters=None)
@@ -247,7 +304,7 @@ def test_getter_of_safety_functions(mc_with_fsoe):
 
 @pytest.fixture()
 def mc_state_data_with_sra(mc_with_fsoe_with_sra):
-    mc, handler = mc_with_fsoe_with_sra
+    mc, _handler = mc_with_fsoe_with_sra
 
     mc.fsoe.configure_pdos(start_pdos=True)
     # Wait for the master to reach the Data state
@@ -261,7 +318,7 @@ def mc_state_data_with_sra(mc_with_fsoe_with_sra):
 
 @pytest.fixture()
 def mc_state_data(mc_with_fsoe):
-    mc, handler = mc_with_fsoe
+    mc, _handler = mc_with_fsoe
 
     mc.fsoe.configure_pdos(start_pdos=True)
     # Wait for the master to reach the Data state
@@ -301,7 +358,7 @@ def test_safe_inputs_value(request, mc_instance):
 
 @pytest.mark.fsoe
 def test_safety_address(mc_with_fsoe, alias):
-    mc, handler = mc_with_fsoe
+    mc, _handler = mc_with_fsoe
 
     master_handler = mc.fsoe._handlers[alias]
 
@@ -338,7 +395,7 @@ def mc_state_to_fsoe_master_state(state: FSoEState):
     ],
 )
 def test_get_master_state(mocker, mc_with_fsoe, state_enum):
-    mc, handler = mc_with_fsoe
+    mc, _handler = mc_with_fsoe
 
     # Master state is obtained as function
     # and not on the parametrize
@@ -377,7 +434,7 @@ def test_motor_enable(mc_state_data):
 
 @pytest.mark.fsoe
 def test_copy_modify_and_set_map(mc_with_fsoe):
-    mc, handler = mc_with_fsoe
+    _mc, handler = mc_with_fsoe
 
     # Obtain one safety input
     si = handler.safe_inputs_function().value
@@ -862,7 +919,7 @@ class TestPduMapper:
 
     @pytest.mark.fsoe
     def test_insert_in_best_position(self, sample_safe_dictionary):
-        safe_dict, fsoe_dict = sample_safe_dictionary
+        _safe_dict, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
 
         si = fsoe_dict.name_map[SafeInputsFunction.SAFE_INPUTS_UID]

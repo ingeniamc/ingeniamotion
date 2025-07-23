@@ -1,3 +1,4 @@
+preview = true
 line-length = 100
 target-version = "py39"
 
@@ -45,6 +46,7 @@ ignore = [
     "D104", # Missing docstring in public package
     "D107", # Missing docstring in __init__
     "COM812", # Trailing comma. Already enforced by the formatter.
+    "DOC502" # Raises documented in docstring that are not explicit in the code
 ]
 
 [lint.per-file-ignores]

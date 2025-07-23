@@ -503,23 +503,21 @@ class Communication:
             ethernet_adapter_type = (
                 6  # https://learn.microsoft.com/en-us/windows/win32/api/ifdef/ns-ifdef-net_luid_lh
             )
-            network_adapters.extend(
-                [
-                    NetworkAdapter(
-                        interface_index=adapter.IfIndex,
-                        interface_name=adapter.Description,
-                        interface_guid=adapter.AdapterName,
-                    )
-                    for adapter in get_adapters_addresses(
-                        adapter_families=AdapterFamily.INET,
-                        scan_flags=[
-                            ScanFlags.INCLUDE_PREFIX,
-                            ScanFlags.INCLUDE_ALL_INTERFACES,
-                        ],
-                    )
-                    if adapter.IfType == ethernet_adapter_type and len(adapter.FirstUnicastAddress)
-                ]
-            )
+            network_adapters.extend([
+                NetworkAdapter(
+                    interface_index=adapter.IfIndex,
+                    interface_name=adapter.Description,
+                    interface_guid=adapter.AdapterName,
+                )
+                for adapter in get_adapters_addresses(
+                    adapter_families=AdapterFamily.INET,
+                    scan_flags=[
+                        ScanFlags.INCLUDE_PREFIX,
+                        ScanFlags.INCLUDE_ALL_INTERFACES,
+                    ],
+                )
+                if adapter.IfType == ethernet_adapter_type and len(adapter.FirstUnicastAddress)
+            ])
         return {adapter.interface_name: adapter.interface_guid for adapter in network_adapters}
 
     def get_available_canopen_devices(self) -> dict[CanDevice, list[int]]:
@@ -1585,19 +1583,25 @@ class Communication:
                 slave_id = first_slave_in_ensemble + slave_id_offset
                 if slave_id not in connected_drives:
                     net.connect_to_slave(slave_id, dictionary_path)
+
+            load_fw_slave_id: Optional[int] = None
             try:
                 for slave_id_offset, fw_file_prod_code in mapping.items():
-                    slave_id = first_slave_in_ensemble + slave_id_offset
+                    load_fw_slave_id = first_slave_in_ensemble + slave_id_offset
                     net.load_firmware(
-                        slave_id,
+                        load_fw_slave_id,
                         fw_file_prod_code[0],
                         status_callback,
                         progress_callback,
                         error_enabled_callback,
                     )
             except ILError as e:
+                if load_fw_slave_id is None:
+                    raise IMFirmwareLoadError(
+                        f"{FIRMWARE_FILE_FAIL_MSG}. No slave detected in the ensemble."
+                    )
                 raise IMFirmwareLoadError(
-                    f"{FIRMWARE_FILE_FAIL_MSG} on node {slave_id}. Exception: {e}"
+                    f"{FIRMWARE_FILE_FAIL_MSG} on node {load_fw_slave_id}. Exception: {e}"
                 )
 
     def __load_ensemble_fw_ecat(
@@ -1621,6 +1625,9 @@ class Communication:
                 If None, the file extension is used to define it.
             password: Password to load the firmware file. If ``None`` the default password will be
                 used.
+
+        Raises:
+            IMFirmwareLoadError: If the load FW process of any slave failed.
         """
         with tempfile.TemporaryDirectory() as ensemble_temp_dir:
             mapping = self.__unzip_ensemble_fw_file(fw_file, ensemble_temp_dir)
