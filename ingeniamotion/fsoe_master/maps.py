@@ -283,7 +283,7 @@ class PDUMaps:
                 return item_type(size_bits=16)
             if uid in [
                 STOFunction.COMMAND_UID,
-                SS1Function.COMMAND_UID,
+                SS1Function.COMMAND_UID.format(i=1),
                 SafeInputsFunction.SAFE_INPUTS_UID,
             ]:
                 return item_type(size_bits=1)
