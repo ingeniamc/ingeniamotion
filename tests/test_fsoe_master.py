@@ -12,6 +12,15 @@ from ingenialink.servo import DictionaryFactory
 
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError, FSoEMaster
+from ingeniamotion.fsoe_master.frame_elements import (
+    MASTER_FRAME_ELEMENTS,
+    SLAVE_FRAME_ELEMENTS,
+)
+from ingeniamotion.fsoe_master.maps_validator import (
+    FSoEFrameConstructionError,
+    InvalidFSoEFrameRule,
+    PDOMapValidator,
+)
 from ingeniamotion.motion_controller import MotionController
 from tests.conftest import timeout_loop
 from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
@@ -942,3 +951,80 @@ class TestPduMapper:
             "Item                           | Position bytes..bits | Size bytes..bits    \n"
             "FSOE_STO                       | 0..0                 | 0..1                "
         )
+
+    def test_validate_cmd_field_first(self, sample_safe_dictionary):
+        """Test that valid FSoE frames pass validation."""
+        safe_dict, fsoe_dict = sample_safe_dictionary
+
+        maps = PDUMaps.empty(fsoe_dict)
+        maps.outputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
+        maps.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
+
+        rpdo = RPDOMap()
+        tpdo = TPDOMap()
+        maps.fill_rpdo_map(rpdo, safe_dict)
+        maps.fill_tpdo_map(tpdo, safe_dict)
+
+        for pdo_map, frame_element in zip(
+            [rpdo, tpdo], [MASTER_FRAME_ELEMENTS, SLAVE_FRAME_ELEMENTS]
+        ):
+            validator = PDOMapValidator()
+            errors = validator.validate_fsoe_frame_rules(pdo_map, frame_element)
+            assert errors == []
+            for rule_validator in validator._rule_validators:
+                assert rule_validator.is_valid is True
+
+    def test_validate_cmd_field_fails_if_map_is_empty(self):
+        """Test that empty FSoE frames fails to validate."""
+        empty_rpdo = RPDOMap()
+        empty_tpdo = TPDOMap()
+
+        validator = PDOMapValidator()
+        for pdo_map, frame_element in zip(
+            [empty_rpdo, empty_tpdo], [MASTER_FRAME_ELEMENTS, SLAVE_FRAME_ELEMENTS]
+        ):
+            errors = validator.validate_fsoe_frame_rules(pdo_map, frame_element)
+            assert len(errors) == 1
+            error = errors[0]
+            assert isinstance(error, InvalidFSoEFrameRule)
+            assert error.error == "PDO map is empty - no CMD field found"
+            for rule_validator in validator._rule_validators:
+                assert rule_validator.is_valid is False
+            validator.reset()
+
+    def test_validate_cmd_field_fails_if_not_first(self, mocker, sample_safe_dictionary):
+        """Test that FSoE frames fail validation if CMD field is not first."""
+        safe_dict, fsoe_dict = sample_safe_dictionary
+
+        maps = PDUMaps.empty(fsoe_dict)
+
+        rpdo = RPDOMap()
+        tpdo = TPDOMap()
+
+        # Create a mock PDO item with non-CMD identifier
+        fake_identifier = "FAKE_NON_CMD_ITEM"
+        mock_item = mocker.MagicMock()
+        mock_item.register.identifier = fake_identifier
+        mocker.patch.object(maps, "_PDUMaps__create_pdo_item", return_value=mock_item)
+
+        # This will already validate the FSoE frame rules, catch the error to evaluate them afterwards
+        with pytest.raises(FSoEFrameConstructionError):
+            maps.fill_rpdo_map(rpdo, safe_dict)
+        with pytest.raises(FSoEFrameConstructionError):
+            maps.fill_tpdo_map(tpdo, safe_dict)
+
+        validator = PDOMapValidator()
+        for pdo_map, frame_element in zip(
+            [rpdo, tpdo], [MASTER_FRAME_ELEMENTS, SLAVE_FRAME_ELEMENTS]
+        ):
+            errors = validator.validate_fsoe_frame_rules(pdo_map, frame_element)
+            assert len(errors) == 1
+            error = errors[0]
+            assert isinstance(error, InvalidFSoEFrameRule)
+            assert error.error == (
+                f"First PDO item must be CMD field '{frame_element.command_uid}', "
+                f"but found '{fake_identifier}'"
+            )
+            for rule_validator in validator._rule_validators:
+                assert rule_validator.is_valid is False
+            validator.reset()
