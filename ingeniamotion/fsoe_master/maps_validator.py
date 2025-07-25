@@ -66,7 +66,7 @@ class FSoEFrameRuleValidator(ABC):
     Provides a common interface for validating FSoE frame rules.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._exceptions: list[InvalidFSoEFrameRule] = []
         self.__validated: bool = False
 
@@ -156,7 +156,7 @@ class PDOMapValidator:
     Validates that the PDO map follows the rules for FSoE frame construction.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self._rule_validators: list[FSoEFrameRuleValidator] = [CmdFieldFirstValidator()]
         self._exceptions: list[InvalidFSoEFrameRule] = []
         self.__validated: bool = False
