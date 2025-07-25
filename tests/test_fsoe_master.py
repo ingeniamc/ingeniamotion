@@ -953,6 +953,7 @@ class TestPduMapper:
             "FSOE_STO                       | 0..0                 | 0..1                "
         )
 
+    @pytest.mark.fsoe
     def test_validate_cmd_field_fails_if_not_first(self, mocker, sample_safe_dictionary):
         """Test that FSoE frames fail validation if CMD field is not first."""
         safe_dict, fsoe_dict = sample_safe_dictionary
@@ -974,7 +975,14 @@ class TestPduMapper:
             SLAVE_FRAME_ELEMENTS, command_uid="FAKE_SLAVE_CMD"
         )
 
+        # Only validate the CMD field first rule
         validator = PDOMapValidator()
+        validator._rule_to_validators = {
+            FSoEFrameRules.CMD_FIELD_FIRST: validator._rule_to_validators[
+                FSoEFrameRules.CMD_FIELD_FIRST
+            ],
+        }
+
         for pdo_map, frame_element, fake_frame_element in zip(
             [rpdo, tpdo],
             [MASTER_FRAME_ELEMENTS, SLAVE_FRAME_ELEMENTS],
@@ -995,6 +1003,7 @@ class TestPduMapper:
             assert validator._rule_to_validators[FSoEFrameRules.CMD_FIELD_FIRST].is_valid is False
             validator.reset()
 
+    @pytest.mark.fsoe
     def test_validate_conn_id_field_fails_if_not_last(self, mocker, sample_safe_dictionary):
         """Test that FSoE frames fail validation if CONN_ID field is not last."""
         safe_dict, fsoe_dict = sample_safe_dictionary
@@ -1016,7 +1025,14 @@ class TestPduMapper:
             SLAVE_FRAME_ELEMENTS, connection_id_uid="FAKE_SLAVE_CONNID"
         )
 
+        # Only validate the CONN_ID field last rule
         validator = PDOMapValidator()
+        validator._rule_to_validators = {
+            FSoEFrameRules.CONN_ID_FIELD_LAST: validator._rule_to_validators[
+                FSoEFrameRules.CONN_ID_FIELD_LAST
+            ],
+        }
+
         for pdo_map, frame_element, fake_frame_element in zip(
             [rpdo, tpdo],
             [MASTER_FRAME_ELEMENTS, SLAVE_FRAME_ELEMENTS],
@@ -1039,12 +1055,52 @@ class TestPduMapper:
             )
             validator.reset()
 
+    @pytest.mark.fsoe
+    def test_validate_safe_data_blocks_invalid_size(self, mocker, sample_safe_dictionary):
+        """Test that SafeDataBlocksValidator fails when safe data blocks are not 16 bits."""
+        safe_dict, fsoe_dict = sample_safe_dictionary
+        maps = PDUMaps.empty(fsoe_dict)
+        tpdo = TPDOMap()
+
+        # Create a map with safe data blocks that are not 16 bits
+        maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])  # 8 bits
+        maps.inputs.add_padding(bits=16)  # 16 bits padding
+
+        # Mock the validation so that it can be tested by the validator
+        with mocker.patch.object(PDUMaps, "_PDUMaps__validate_map", return_value=None):
+            maps.fill_tpdo_map(tpdo, safe_dict)
+
+        # Only validate the safe data blocks rule
+        validator = PDOMapValidator()
+        validator._rule_to_validators = {
+            FSoEFrameRules.SAFE_DATA_BLOCKS_VALID: validator._rule_to_validators[
+                FSoEFrameRules.SAFE_DATA_BLOCKS_VALID
+            ],
+        }
+
+        exceptions = validator.validate_fsoe_frame_rules(tpdo, SLAVE_FRAME_ELEMENTS)
+        assert len(exceptions) == 1
+        assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID in exceptions
+        rule_exceptions = exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
+        assert isinstance(rule_exceptions, list)
+        assert len(rule_exceptions) == 1
+        exception = rule_exceptions[0]
+        assert isinstance(exception, InvalidFSoEFrameRule)
+        assert "Safe data block 0 must be 16 bits, found 32" in exception.exception
+        assert exception.position is not None
+        assert exception.position == 0
+        assert (
+            validator._rule_to_validators[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID].is_valid is False
+        )
+
+    @pytest.mark.fsoe
     def test_validate_fsoe_frame_rules_fails_if_map_is_empty(self):
         """Test that empty FSoE frames fails to validate."""
         # Rules that should fail for empty maps
         expected_invalid_rules = [
             FSoEFrameRules.CMD_FIELD_FIRST,
             FSoEFrameRules.CONN_ID_FIELD_LAST,
+            FSoEFrameRules.SAFE_DATA_BLOCKS_VALID,
         ]
 
         empty_rpdo = RPDOMap()
@@ -1055,6 +1111,8 @@ class TestPduMapper:
             [empty_rpdo, empty_tpdo], [MASTER_FRAME_ELEMENTS, SLAVE_FRAME_ELEMENTS]
         ):
             exceptions = validator.validate_fsoe_frame_rules(pdo_map, frame_element)
+
+            assert len(exceptions) == len(expected_invalid_rules)
 
             for invalid_rule in expected_invalid_rules:
                 assert invalid_rule in exceptions
@@ -1067,6 +1125,7 @@ class TestPduMapper:
                 assert validator._rule_to_validators[invalid_rule].is_valid is False
             validator.reset()
 
+    @pytest.mark.fsoe
     def test_validate_fsoe_frame_rules(self, sample_safe_dictionary):
         """Test that FSoE frames pass all validation rules."""
         safe_dict, fsoe_dict = sample_safe_dictionary

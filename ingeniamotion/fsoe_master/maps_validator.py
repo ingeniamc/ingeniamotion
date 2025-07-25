@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Optional
 
-from ingenialink.pdo import PDOMap
+from ingenialink.pdo import PDOMap, PDOMapItem
 from ingenialogger import get_logger
 from typing_extensions import override
 
@@ -13,19 +13,23 @@ logger = get_logger(__name__)
 
 
 class FSoEFrameRules(Enum):
-    """Enumeration of FSoE frame rules."""
+    """FSoE frame rules."""
 
     CMD_FIELD_FIRST = "CMD field must be the first item in the PDO map"
     CONN_ID_FIELD_LAST = "ConnID field must be the last item in the PDO map"
+    SAFE_DATA_BLOCKS_VALID = (
+        "Frame must contain 1-8 blocks of safe data, each 16-bit (except single block may be 8-bit)"
+    )
 
 
 @dataclass
 class InvalidFSoEFrameRule:
-    """Data class to hold information about an invalid FSoE frame rule."""
+    """Information about an invalid FSoE frame rule."""
 
     rule: FSoEFrameRules  # The rule that was violated
     exception: str  # Description of the error
     suggestion: Optional[str] = None  # Suggestion for fixing the error
+    position: Optional[int] = None  # Position information where the rule is invalid
 
 
 class FSoEFrameConstructionError(Exception):
@@ -160,6 +164,164 @@ class ConnIDFieldLastValidator(FSoEFrameRuleValidator):
             )
 
 
+class SafeDataBlocksValidator(FSoEFrameRuleValidator):
+    """Validator for safe data blocks rule: 1-8 blocks, each 16-bit.
+
+    If the frame contains only one block, it may be either 8 bits or 16 bits.
+
+    Each safe data block is followed by a CRC_N, where N is the block index starting from 0.
+    """
+
+    def _get_safe_data_blocks(
+        self, pdo_map: PDOMap, frame_elements: FSoEFrameElements
+    ) -> tuple[bool, list[tuple[int, list[PDOMapItem], Optional[PDOMapItem]]]]:
+        """Get safe data blocks from the PDO map.
+
+        A frame element consists of:
+
+            [CMD][Safe Data 0][CRC0][Safe Data 1][CRC1][...][Data Slot N][CRCN][Connection ID]
+
+        Therefore, safe data blocks are all items that are not the CMD, CONN_ID, or CRCs.
+
+        Each safety data is a 16-bit block separated by CRCs.
+
+        Returns:
+            tuple of exceptions flag and a list of tuples containing the index and PDOMapItems
+            that are safe data blocks.
+        """
+        safe_data_blocks: list[tuple[int, list[PDOMapItem], Optional[PDOMapItem]]] = []
+        current_block: list[PDOMapItem] = []
+        block_idx = 0
+
+        for item in pdo_map.items:
+            if item.register.identifier is None:
+                self._exceptions.append(
+                    InvalidFSoEFrameRule(
+                        rule=FSoEFrameRules.SAFE_DATA_BLOCKS_VALID,
+                        exception="PDO item has no register identifier",
+                        suggestion="Ensure all PDO items have valid register identifiers.",
+                    )
+                )
+                return True, []
+
+            # Skip CMD (it's at the beginning)
+            # Skip Connection ID (it's at the end)
+            if item.register.identifier in (
+                frame_elements.command_uid,
+                frame_elements.connection_id_uid,
+            ):
+                continue
+
+            # If the item is a CRC, it indicates the end of a safe data block
+            if item.register.identifier.startswith(frame_elements.crcs_prefix):
+                if not len(current_block):
+                    self._exceptions.append(
+                        InvalidFSoEFrameRule(
+                            rule=FSoEFrameRules.SAFE_DATA_BLOCKS_VALID,
+                            exception=f"Unexpected CRC item '{item.register.identifier}' "
+                            "without preceding safe data block",
+                            suggestion="Ensure each CRC is preceded by a safe data block.",
+                            position=block_idx,
+                        )
+                    )
+                    return True, []
+                if frame_elements.get_crc_uid(block_idx) != item.register.identifier:
+                    crc_item = None
+                else:
+                    crc_item = item
+                safe_data_blocks.append((block_idx, current_block, crc_item))
+                block_idx += 1
+                current_block = []
+            else:
+                current_block.append(item)
+
+        if len(current_block) > 0:
+            safe_data_blocks.append((block_idx, current_block, None))
+
+        return False, safe_data_blocks
+
+    @override
+    def _validate(self, pdo_map: PDOMap, frame_elements: FSoEFrameElements) -> None:
+        if not pdo_map.items:
+            self._exceptions.append(
+                InvalidFSoEFrameRule(
+                    rule=FSoEFrameRules.SAFE_DATA_BLOCKS_VALID,
+                    exception="PDO map is empty - no safe data blocks found",
+                )
+            )
+            return
+
+        exception_retrieving_blocks, safe_data_blocks = self._get_safe_data_blocks(
+            pdo_map, frame_elements
+        )
+        if exception_retrieving_blocks:
+            return
+        if not safe_data_blocks:
+            self._exceptions.append(
+                InvalidFSoEFrameRule(
+                    rule=FSoEFrameRules.SAFE_DATA_BLOCKS_VALID,
+                    exception="No safe data blocks found in PDO map",
+                    suggestion="Add safe data items to the frame.",
+                )
+            )
+            return
+
+        # Frames may contain 1 to 8 blocks of safe data (payload)
+        n_safe_data_blocks = len(safe_data_blocks)
+        if n_safe_data_blocks < 1 or n_safe_data_blocks > 8:
+            self._exceptions.append(
+                InvalidFSoEFrameRule(
+                    rule=FSoEFrameRules.SAFE_DATA_BLOCKS_VALID,
+                    exception=f"Expected 1-8 safe data blocks, found {n_safe_data_blocks}",
+                    suggestion="Ensure the PDO map contains between 1 and 8 safe data blocks.",
+                )
+            )
+            return
+
+        # Validate each safe data block
+        for block_idx, block_items, crc_item in safe_data_blocks:
+            # Each safe data block is followed by a CRC_N,
+            # where N is the block index starting from 0
+            if crc_item is None:
+                self._exceptions.append(
+                    InvalidFSoEFrameRule(
+                        rule=FSoEFrameRules.SAFE_DATA_BLOCKS_VALID,
+                        exception=f"Missing CRC for safe data block {block_idx}",
+                        suggestion="Ensure each safe data block is followed by a CRC item.",
+                        position=block_idx,
+                    )
+                )
+                return
+
+            block_size_bits = sum(item.size_bits for item in block_items)
+            # If the frame contains only one block, it may be either 8 bits or 16 bits
+            if n_safe_data_blocks == 1:
+                if block_size_bits not in (8, 16):
+                    self._exceptions.append(
+                        InvalidFSoEFrameRule(
+                            rule=FSoEFrameRules.SAFE_DATA_BLOCKS_VALID,
+                            exception="Single safe data block must be 8 or 16 bits, "
+                            f"found {block_size_bits}",
+                            suggestion="Ensure the single safe data block is either 8 or 16 bits.",
+                            position=block_idx,
+                        )
+                    )
+                    return
+            # Each safe data block must be 16 bits
+            else:
+                if block_size_bits != 16:
+                    self._exceptions.append(
+                        InvalidFSoEFrameRule(
+                            rule=FSoEFrameRules.SAFE_DATA_BLOCKS_VALID,
+                            exception=f"Safe data block {block_idx} must be 16 bits, "
+                            f"found {block_size_bits}",
+                            suggestion="Ensure all safe data blocks are 16 bits.",
+                            position=block_idx,
+                        )
+                    )
+                    return
+
+
 class PDOMapValidator:
     """Validator for FSoE PDO Maps.
 
@@ -171,6 +333,7 @@ class PDOMapValidator:
         self._rule_to_validators: dict[FSoEFrameRules, FSoEFrameRuleValidator] = {
             FSoEFrameRules.CMD_FIELD_FIRST: CmdFieldFirstValidator(),
             FSoEFrameRules.CONN_ID_FIELD_LAST: ConnIDFieldLastValidator(),
+            FSoEFrameRules.SAFE_DATA_BLOCKS_VALID: SafeDataBlocksValidator(),
         }
         self._exceptions: dict[FSoEFrameRules, list[InvalidFSoEFrameRule]] = {}
         self.__validated: bool = False
