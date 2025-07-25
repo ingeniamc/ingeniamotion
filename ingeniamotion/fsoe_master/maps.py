@@ -131,10 +131,10 @@ class PDUMaps:
             frame_elements: Frame elements for the specific frame type
 
         Raises:
-            FSoEFrameConstructionError: if the PDO map does not follow FSoE frame construction rules.
+            FSoEFrameConstructionError: if PDO map does not follow FSoE frame construction rules.
         """
         errors = PDOMapValidator().validate_fsoe_frame_rules(pdo_map, frame_elements)
-        if errors:
+        if errors != {}:
             raise FSoEFrameConstructionError(errors)
 
     def fill_rpdo_map(self, rpdo_map: RPDOMap, servo_dictionary: "Dictionary") -> None:

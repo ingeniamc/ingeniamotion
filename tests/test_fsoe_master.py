@@ -1,3 +1,4 @@
+import dataclasses
 import logging
 import time
 from typing import TYPE_CHECKING
@@ -17,7 +18,7 @@ from ingeniamotion.fsoe_master.frame_elements import (
     SLAVE_FRAME_ELEMENTS,
 )
 from ingeniamotion.fsoe_master.maps_validator import (
-    FSoEFrameConstructionError,
+    FSoEFrameRules,
     InvalidFSoEFrameRule,
     PDOMapValidator,
 )
@@ -952,8 +953,122 @@ class TestPduMapper:
             "FSOE_STO                       | 0..0                 | 0..1                "
         )
 
-    def test_validate_cmd_field_first(self, sample_safe_dictionary):
-        """Test that valid FSoE frames pass validation."""
+    def test_validate_cmd_field_fails_if_not_first(self, mocker, sample_safe_dictionary):
+        """Test that FSoE frames fail validation if CMD field is not first."""
+        safe_dict, fsoe_dict = sample_safe_dictionary
+        maps = PDUMaps.empty(fsoe_dict)
+        rpdo = RPDOMap()
+        tpdo = TPDOMap()
+
+        # Mock the validation so that it can be tested by the validator
+        # Otherwise, fill_rpdo_map and fill_tpdo_map will raise an error
+        with mocker.patch.object(PDUMaps, "_PDUMaps__validate_map", return_value=None):
+            maps.fill_rpdo_map(rpdo, safe_dict)
+            maps.fill_tpdo_map(tpdo, safe_dict)
+
+        # Mock the frame elements for validation to expect different CMD fields
+        fake_master_elements = dataclasses.replace(
+            MASTER_FRAME_ELEMENTS, command_uid="FAKE_MASTER_CMD"
+        )
+        fake_slave_elements = dataclasses.replace(
+            SLAVE_FRAME_ELEMENTS, command_uid="FAKE_SLAVE_CMD"
+        )
+
+        validator = PDOMapValidator()
+        for pdo_map, frame_element, fake_frame_element in zip(
+            [rpdo, tpdo],
+            [MASTER_FRAME_ELEMENTS, SLAVE_FRAME_ELEMENTS],
+            [fake_master_elements, fake_slave_elements],
+        ):
+            exceptions = validator.validate_fsoe_frame_rules(pdo_map, fake_frame_element)
+            assert len(exceptions) == 1
+            assert FSoEFrameRules.CMD_FIELD_FIRST in exceptions
+            rule_exceptions = exceptions[FSoEFrameRules.CMD_FIELD_FIRST]
+            assert isinstance(rule_exceptions, list)
+            assert len(rule_exceptions) == 1
+            exception = rule_exceptions[0]
+            assert isinstance(exception, InvalidFSoEFrameRule)
+            assert exception.exception == (
+                f"First PDO item must be CMD field '{fake_frame_element.command_uid}', "
+                f"but found '{frame_element.command_uid}'"
+            )
+            assert validator._rule_to_validators[FSoEFrameRules.CMD_FIELD_FIRST].is_valid is False
+            validator.reset()
+
+    def test_validate_conn_id_field_fails_if_not_last(self, mocker, sample_safe_dictionary):
+        """Test that FSoE frames fail validation if CONN_ID field is not last."""
+        safe_dict, fsoe_dict = sample_safe_dictionary
+        maps = PDUMaps.empty(fsoe_dict)
+        rpdo = RPDOMap()
+        tpdo = TPDOMap()
+
+        # Mock the validation so that it can be tested by the validator
+        # Otherwise, fill_rpdo_map and fill_tpdo_map will raise an error
+        with mocker.patch.object(PDUMaps, "_PDUMaps__validate_map", return_value=None):
+            maps.fill_rpdo_map(rpdo, safe_dict)
+            maps.fill_tpdo_map(tpdo, safe_dict)
+
+        # Mock the frame elements for validation to expect different CONNID fields
+        fake_master_elements = dataclasses.replace(
+            MASTER_FRAME_ELEMENTS, connection_id_uid="FAKE_MASTER_CONNID"
+        )
+        fake_slave_elements = dataclasses.replace(
+            SLAVE_FRAME_ELEMENTS, connection_id_uid="FAKE_SLAVE_CONNID"
+        )
+
+        validator = PDOMapValidator()
+        for pdo_map, frame_element, fake_frame_element in zip(
+            [rpdo, tpdo],
+            [MASTER_FRAME_ELEMENTS, SLAVE_FRAME_ELEMENTS],
+            [fake_master_elements, fake_slave_elements],
+        ):
+            exceptions = validator.validate_fsoe_frame_rules(pdo_map, fake_frame_element)
+            assert len(exceptions) == 1
+            assert FSoEFrameRules.CONN_ID_FIELD_LAST in exceptions
+            rule_exceptions = exceptions[FSoEFrameRules.CONN_ID_FIELD_LAST]
+            assert isinstance(rule_exceptions, list)
+            assert len(rule_exceptions) == 1
+            exception = rule_exceptions[0]
+            assert isinstance(exception, InvalidFSoEFrameRule)
+            assert exception.exception == (
+                f"Last PDO item must be CONN_ID field '{fake_frame_element.connection_id_uid}', "
+                f"but found '{frame_element.connection_id_uid}'"
+            )
+            assert (
+                validator._rule_to_validators[FSoEFrameRules.CONN_ID_FIELD_LAST].is_valid is False
+            )
+            validator.reset()
+
+    def test_validate_fsoe_frame_rules_fails_if_map_is_empty(self):
+        """Test that empty FSoE frames fails to validate."""
+        # Rules that should fail for empty maps
+        expected_invalid_rules = [
+            FSoEFrameRules.CMD_FIELD_FIRST,
+            FSoEFrameRules.CONN_ID_FIELD_LAST,
+        ]
+
+        empty_rpdo = RPDOMap()
+        empty_tpdo = TPDOMap()
+
+        validator = PDOMapValidator()
+        for pdo_map, frame_element in zip(
+            [empty_rpdo, empty_tpdo], [MASTER_FRAME_ELEMENTS, SLAVE_FRAME_ELEMENTS]
+        ):
+            exceptions = validator.validate_fsoe_frame_rules(pdo_map, frame_element)
+
+            for invalid_rule in expected_invalid_rules:
+                assert invalid_rule in exceptions
+                rule_exceptions = exceptions[invalid_rule]
+                assert isinstance(rule_exceptions, list)
+                assert len(rule_exceptions) == 1
+                exception = rule_exceptions[0]
+                assert isinstance(exception, InvalidFSoEFrameRule)
+                assert "PDO map is empty" in exception.exception
+                assert validator._rule_to_validators[invalid_rule].is_valid is False
+            validator.reset()
+
+    def test_validate_fsoe_frame_rules(self, sample_safe_dictionary):
+        """Test that FSoE frames pass all validation rules."""
         safe_dict, fsoe_dict = sample_safe_dictionary
 
         maps = PDUMaps.empty(fsoe_dict)
@@ -969,62 +1084,7 @@ class TestPduMapper:
             [rpdo, tpdo], [MASTER_FRAME_ELEMENTS, SLAVE_FRAME_ELEMENTS]
         ):
             validator = PDOMapValidator()
-            errors = validator.validate_fsoe_frame_rules(pdo_map, frame_element)
-            assert errors == []
-            for rule_validator in validator._rule_validators:
-                assert rule_validator.is_valid is True
-
-    def test_validate_cmd_field_fails_if_map_is_empty(self):
-        """Test that empty FSoE frames fails to validate."""
-        empty_rpdo = RPDOMap()
-        empty_tpdo = TPDOMap()
-
-        validator = PDOMapValidator()
-        for pdo_map, frame_element in zip(
-            [empty_rpdo, empty_tpdo], [MASTER_FRAME_ELEMENTS, SLAVE_FRAME_ELEMENTS]
-        ):
-            errors = validator.validate_fsoe_frame_rules(pdo_map, frame_element)
-            assert len(errors) == 1
-            error = errors[0]
-            assert isinstance(error, InvalidFSoEFrameRule)
-            assert error.error == "PDO map is empty - no CMD field found"
-            for rule_validator in validator._rule_validators:
-                assert rule_validator.is_valid is False
-            validator.reset()
-
-    def test_validate_cmd_field_fails_if_not_first(self, mocker, sample_safe_dictionary):
-        """Test that FSoE frames fail validation if CMD field is not first."""
-        safe_dict, fsoe_dict = sample_safe_dictionary
-
-        maps = PDUMaps.empty(fsoe_dict)
-
-        rpdo = RPDOMap()
-        tpdo = TPDOMap()
-
-        # Create a mock PDO item with non-CMD identifier
-        fake_identifier = "FAKE_NON_CMD_ITEM"
-        mock_item = mocker.MagicMock()
-        mock_item.register.identifier = fake_identifier
-        mocker.patch.object(maps, "_PDUMaps__create_pdo_item", return_value=mock_item)
-
-        # This will already validate the FSoE frame rules, catch the error to evaluate them afterwards
-        with pytest.raises(FSoEFrameConstructionError):
-            maps.fill_rpdo_map(rpdo, safe_dict)
-        with pytest.raises(FSoEFrameConstructionError):
-            maps.fill_tpdo_map(tpdo, safe_dict)
-
-        validator = PDOMapValidator()
-        for pdo_map, frame_element in zip(
-            [rpdo, tpdo], [MASTER_FRAME_ELEMENTS, SLAVE_FRAME_ELEMENTS]
-        ):
-            errors = validator.validate_fsoe_frame_rules(pdo_map, frame_element)
-            assert len(errors) == 1
-            error = errors[0]
-            assert isinstance(error, InvalidFSoEFrameRule)
-            assert error.error == (
-                f"First PDO item must be CMD field '{frame_element.command_uid}', "
-                f"but found '{fake_identifier}'"
-            )
-            for rule_validator in validator._rule_validators:
-                assert rule_validator.is_valid is False
-            validator.reset()
+            exceptions = validator.validate_fsoe_frame_rules(pdo_map, frame_element)
+            assert exceptions == {}
+            for rule in FSoEFrameRules:
+                assert validator._rule_to_validators[rule].is_valid is True
