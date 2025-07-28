@@ -17,6 +17,11 @@ from ingeniamotion.fsoe_master.frame_elements import (
     MASTER_FRAME_ELEMENTS,
     SLAVE_FRAME_ELEMENTS,
 )
+from ingeniamotion.fsoe_master.fsoe import (
+    FSoEDictionaryItemInput,
+    FSoEDictionaryItemInputOutput,
+    FSoEDictionaryMap,
+)
 from ingeniamotion.fsoe_master.maps_validator import (
     FSoEFrameRules,
     InvalidFSoEFrameRule,
@@ -1087,11 +1092,164 @@ class TestPduMapper:
         exception = rule_exceptions[0]
         assert isinstance(exception, InvalidFSoEFrameRule)
         assert "Safe data block 0 must be 16 bits, found 32" in exception.exception
-        assert exception.position is not None
         assert exception.position == 0
         assert (
             validator._rule_to_validators[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID].is_valid is False
         )
+
+    class MockFSoEDictionaryMap(FSoEDictionaryMap):
+        """Mock FSoEDictionaryMap that skips padding completion for testing."""
+
+        def complete_with_padding(self):
+            return
+
+    @pytest.mark.fsoe
+    def test_validate_safe_data_blocks_single_block_invalid_size(
+        self, mocker, sample_safe_dictionary
+    ):
+        """Test that SafeDataBlocksValidator fails when single block is not 8 or 16 bits."""
+        safe_dict, fsoe_dict = sample_safe_dictionary
+        maps = PDUMaps.empty(fsoe_dict)
+        tpdo = TPDOMap()
+
+        # Replace the inputs with a mock that doesn't do padding
+        original_inputs = maps.inputs
+        mock_inputs = TestPduMapper.MockFSoEDictionaryMap(
+            fsoe_dict,
+            item_types_accepted={FSoEDictionaryItemInput, FSoEDictionaryItemInputOutput},
+        )
+        for item in original_inputs:
+            mock_inputs.add(item)
+        maps.inputs = mock_inputs
+
+        # Add only a 1-bit safe input (single block, but not 8 or 16 bits)
+        maps.inputs.add(fsoe_dict.name_map[SafeInputsFunction.SAFE_INPUTS_UID])  # 1 bit
+
+        # Mock the validation so that it can be tested by the validator
+        with mocker.patch.object(PDUMaps, "_PDUMaps__validate_map", return_value=None):
+            maps.fill_tpdo_map(tpdo, safe_dict)
+
+        # Only validate the safe data blocks rule
+        validator = PDOMapValidator()
+        validator._rule_to_validators = {
+            FSoEFrameRules.SAFE_DATA_BLOCKS_VALID: validator._rule_to_validators[
+                FSoEFrameRules.SAFE_DATA_BLOCKS_VALID
+            ],
+        }
+
+        exceptions = validator.validate_fsoe_frame_rules(tpdo, SLAVE_FRAME_ELEMENTS)
+        assert len(exceptions) == 1
+        assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID in exceptions
+        rule_exceptions = exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
+        assert isinstance(rule_exceptions, list)
+        assert len(rule_exceptions) == 1
+        exception = rule_exceptions[0]
+        assert isinstance(exception, InvalidFSoEFrameRule)
+        assert exception.exception == "Single safe data block must be 8 or 16 bits, found 1"
+        assert exception.position == 0
+        assert (
+            validator._rule_to_validators[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID].is_valid is False
+        )
+
+    @pytest.mark.fsoe
+    def test_validate_safe_data_blocks_too_many_blocks(self, mocker):
+        """Test that SafeDataBlocksValidator fails when there are more than 8 safe data blocks."""
+        # Add 9 different 16-bit safe inputs -> 9 blocks
+        safe_dict = DictionaryV3(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, interface=Interface.ECAT)
+        for idx in range(9):
+            test_uid = f"TEST_SI_U16_{idx}"
+            safe_dict._registers[self.AXIS_1][test_uid] = EthercatRegister(
+                idx=0xF010 + idx,
+                subidx=0,
+                dtype=RegDtype.U16,
+                access=RegAccess.RO,
+                identifier=test_uid,
+                pdo_access=RegCyclicType.SAFETY_INPUT,
+                cat_id="FSOE",
+            )
+        # Check the CRCs that are already present in the sample dictionary and add the missing ones
+        existing_crcs = [
+            key
+            for key in safe_dict._registers[self.AXIS_1]
+            if key.startswith("FSOE_SLAVE_FRAME_ELEM_CRC")
+        ]
+        added_crc = 0
+        for idx in range(9):
+            crc_uid = f"FSOE_SLAVE_FRAME_ELEM_CRC{idx}"
+            if crc_uid in existing_crcs:
+                continue
+            safe_dict._registers[self.AXIS_1][crc_uid] = EthercatRegister(
+                idx=0x6760,
+                subidx=len(existing_crcs) + added_crc,
+                dtype=RegDtype.U16,
+                access=RegAccess.RO,
+                identifier=crc_uid,
+                pdo_access=RegCyclicType.SAFETY_INPUT,
+                cat_id="FSOE",
+            )
+            added_crc += 1
+        # Create safe dictionary
+        fsoe_dict = FSoEMasterHandler.create_safe_dictionary(safe_dict)
+
+        maps = PDUMaps.empty(fsoe_dict)
+        tpdo = TPDOMap()
+
+        for idx in range(9):
+            test_uid = f"TEST_SI_U16_{idx}"
+            maps.inputs.add(fsoe_dict.name_map[test_uid])
+
+        # Mock the validation so that it can be tested by the validator
+        with mocker.patch.object(PDUMaps, "_PDUMaps__validate_map", return_value=None):
+            maps.fill_tpdo_map(tpdo, safe_dict)
+
+        # Only validate the safe data blocks rule
+        validator = PDOMapValidator()
+        validator._rule_to_validators = {
+            FSoEFrameRules.SAFE_DATA_BLOCKS_VALID: validator._rule_to_validators[
+                FSoEFrameRules.SAFE_DATA_BLOCKS_VALID
+            ],
+        }
+
+        exceptions = validator.validate_fsoe_frame_rules(tpdo, SLAVE_FRAME_ELEMENTS)
+        assert len(exceptions) == 1
+        assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID in exceptions
+        rule_exceptions = exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
+        assert isinstance(rule_exceptions, list)
+        assert len(rule_exceptions) == 1
+        exception = rule_exceptions[0]
+        assert isinstance(exception, InvalidFSoEFrameRule)
+        assert "Expected 1-8 safe data blocks, found 9" in exception.exception
+        assert exception.position is None
+        assert (
+            validator._rule_to_validators[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID].is_valid is False
+        )
+
+    @pytest.mark.fsoe
+    def test_validate_safe_data_blocks_valid_cases(self, mocker, sample_safe_dictionary):
+        """Test that SafeDataBlocksValidator passes for valid safe data block configurations."""
+        safe_dict, fsoe_dict = sample_safe_dictionary
+
+        for items_to_add in [
+            [self.TEST_SI_U8_UID],  # single 8-bit block
+            [self.TEST_SI_U16_UID],  # single 16-bit block
+            [self.TEST_SI_U16_UID, "FSOE_SAFE_POSITION"],  # multiple 16-bit blocks
+        ]:
+            maps = PDUMaps.empty(fsoe_dict)
+            tpdo = TPDOMap()
+            for item_uid in items_to_add:
+                maps.inputs.add(fsoe_dict.name_map[item_uid])
+
+            # Mock the validation so that it can be tested by the validator
+            with mocker.patch.object(PDUMaps, "_PDUMaps__validate_map", return_value=None):
+                maps.fill_tpdo_map(tpdo, safe_dict)
+
+            validator = PDOMapValidator()
+            exceptions = validator.validate_fsoe_frame_rules(tpdo, SLAVE_FRAME_ELEMENTS)
+            assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID not in exceptions
+            assert (
+                validator._rule_to_validators[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID].is_valid
+                is True
+            )
 
     @pytest.mark.fsoe
     def test_validate_fsoe_frame_rules_fails_if_map_is_empty(self):
