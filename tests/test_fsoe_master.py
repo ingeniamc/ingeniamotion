@@ -12,16 +12,6 @@ from ingenialink.servo import DictionaryFactory
 
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError, FSoEMaster
-from ingeniamotion.fsoe_master.fsoe import (
-    FSoEDictionaryItemInput,
-    FSoEDictionaryItemInputOutput,
-    FSoEDictionaryMap,
-)
-from ingeniamotion.fsoe_master.maps_validator import (
-    FSoEDictionaryMapValidator,
-    FSoEFrameRules,
-    InvalidFSoEFrameRule,
-)
 from ingeniamotion.motion_controller import MotionController
 from tests.conftest import timeout_loop
 from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
@@ -42,7 +32,17 @@ if FSOE_MASTER_INSTALLED:
         STOFunction,
         SVFunction,
     )
-    from ingeniamotion.fsoe_master.fsoe import FSoEApplicationParameter
+    from ingeniamotion.fsoe_master.fsoe import (
+        FSoEApplicationParameter,
+        FSoEDictionaryItemInput,
+        FSoEDictionaryItemInputOutput,
+        FSoEDictionaryMap,
+    )
+    from ingeniamotion.fsoe_master.maps_validator import (
+        FSoEDictionaryMapValidator,
+        FSoEFrameRules,
+        InvalidFSoEFrameRule,
+    )
 
 
 if TYPE_CHECKING:
