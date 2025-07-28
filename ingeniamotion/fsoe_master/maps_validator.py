@@ -127,6 +127,10 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
 
         Args:
             dictionary_map: The dictionary map to get safe data blocks from.
+
+        Returns:
+            A list of safe data blocks, where each block is a list of tuples containing the
+            bit length and the corresponding dictionary item.
         """
         data_slots: list[
             list[
