@@ -15,8 +15,6 @@ logger = get_logger(__name__)
 class FSoEFrameRules(Enum):
     """FSoE frame rules."""
 
-    CMD_FIELD_FIRST = "CMD field must be the first item in the PDO map"
-    CONN_ID_FIELD_LAST = "ConnID field must be the last item in the PDO map"
     SAFE_DATA_BLOCKS_VALID = (
         "Frame must contain 1-8 blocks of safe data, each 16-bit (except single block may be 8-bit)"
     )
@@ -105,63 +103,6 @@ class FSoEFrameRuleValidator(ABC):
         """Reset the validator state."""
         self._exceptions = []
         self.__validated = False
-
-
-class CmdFieldFirstValidator(FSoEFrameRuleValidator):
-    """Validator for the rule: Each FSoE frame must begin with a CMD field."""
-
-    @override
-    def _validate(self, pdo_map: PDOMap, frame_elements: FSoEFrameElements) -> None:
-        if not pdo_map.items:
-            self._exceptions.append(
-                InvalidFSoEFrameRule(
-                    rule=FSoEFrameRules.CMD_FIELD_FIRST,
-                    exception="PDO map is empty - no CMD field found",
-                )
-            )
-            return
-
-        first_item = pdo_map.items[0]
-
-        # Check if first item is the CMD field
-        if first_item.register.identifier != frame_elements.command_uid:
-            self._exceptions.append(
-                InvalidFSoEFrameRule(
-                    rule=FSoEFrameRules.CMD_FIELD_FIRST,
-                    exception=f"First PDO item must be CMD field '{frame_elements.command_uid}', "
-                    f"but found '{first_item.register.identifier}'",
-                    suggestion="Ensure the first item in the PDO map is the CMD field.",
-                )
-            )
-
-
-class ConnIDFieldLastValidator(FSoEFrameRuleValidator):
-    """Validator for the rule: Each FSoE frame must end with a ConnID field."""
-
-    @override
-    def _validate(self, pdo_map: PDOMap, frame_elements: FSoEFrameElements) -> None:
-        if not pdo_map.items:
-            self._exceptions.append(
-                InvalidFSoEFrameRule(
-                    rule=FSoEFrameRules.CONN_ID_FIELD_LAST,
-                    exception="PDO map is empty - no CONN_ID field found",
-                )
-            )
-            return
-
-        last_item = pdo_map.items[-1]
-
-        # Check if last item is the CONN_ID field
-        if last_item.register.identifier != frame_elements.connection_id_uid:
-            self._exceptions.append(
-                InvalidFSoEFrameRule(
-                    rule=FSoEFrameRules.CONN_ID_FIELD_LAST,
-                    exception="Last PDO item must be CONN_ID field "
-                    f"'{frame_elements.connection_id_uid}'"
-                    f", but found '{last_item.register.identifier}'",
-                    suggestion="Ensure the last item in the PDO map is the CONN_ID field.",
-                )
-            )
 
 
 class SafeDataBlocksValidator(FSoEFrameRuleValidator):
@@ -331,8 +272,6 @@ class PDOMapValidator:
     def __init__(self) -> None:
         """Initialize the PDOMapValidator."""
         self._rule_to_validators: dict[FSoEFrameRules, FSoEFrameRuleValidator] = {
-            FSoEFrameRules.CMD_FIELD_FIRST: CmdFieldFirstValidator(),
-            FSoEFrameRules.CONN_ID_FIELD_LAST: ConnIDFieldLastValidator(),
             FSoEFrameRules.SAFE_DATA_BLOCKS_VALID: SafeDataBlocksValidator(),
         }
         self._exceptions: dict[FSoEFrameRules, list[InvalidFSoEFrameRule]] = {}
