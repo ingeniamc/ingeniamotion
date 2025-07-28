@@ -22,6 +22,7 @@ class FSoEFrameRules(Enum):
     SAFE_DATA_BLOCKS_VALID = (
         "Frame must contain 1-8 blocks of safe data, each 16-bit (except single block may be 8-bit)"
     )
+    OBJECTS_IN_FRAME = "A frame can contain up to 45 objects in total"
 
 
 @dataclass
@@ -111,6 +112,9 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
     Each safe data block is followed by a CRC_N, where N is the block index starting from 0.
     """
 
+    __SLOT_WIDHT: int = 16
+    __MAX_FRAME_OBJECTS: int = 45
+
     def _safe_data_blocks_from_dictionary_map(
         self, dictionary_map: FSoEDictionaryMap
     ) -> list[
@@ -153,31 +157,30 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
             ]
         ] = []
         slot_bit_maximum = 8
-        slot_width = 16
 
         # Same logic as in PDUMaps.__fill_pdo_map
         for item in dictionary_map:
             if slot_bit_maximum == 8 and item.position_bits + item.bits >= slot_bit_maximum:
-                slot_bit_maximum = slot_width
+                slot_bit_maximum = self.__SLOT_WIDHT
 
             if item.position_bits >= slot_bit_maximum:
                 if current_slot_items:
                     data_slots.append(current_slot_items)
                     current_slot_items = []
-                slot_bit_maximum += slot_width
+                slot_bit_maximum += self.__SLOT_WIDHT
 
             if item.position_bits + item.bits <= slot_bit_maximum:
                 current_slot_items.append((item.bits, item))
             else:
-                item_bits_in_slot = slot_width - item.position_bits % slot_width
+                item_bits_in_slot = self.__SLOT_WIDHT - item.position_bits % self.__SLOT_WIDHT
                 current_slot_items.append((item_bits_in_slot, item))
                 data_slots.append(current_slot_items)
                 current_slot_items = []
 
                 remaining_bits_to_map = item.bits - item_bits_in_slot
                 while remaining_bits_to_map > 0:
-                    slot_bit_maximum += slot_width
-                    bits_to_map_in_this_slot = min(remaining_bits_to_map, slot_width)
+                    slot_bit_maximum += self.__SLOT_WIDHT
+                    bits_to_map_in_this_slot = min(remaining_bits_to_map, self.__SLOT_WIDHT)
                     current_slot_items.append((bits_to_map_in_this_slot, item))
                     data_slots.append(current_slot_items)
                     current_slot_items = []
@@ -188,9 +191,27 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
 
         return data_slots
 
-    @override
-    def _validate(self, dictionary_map: FSoEDictionaryMap) -> None:
-        safe_data_blocks = self._safe_data_blocks_from_dictionary_map(dictionary_map)
+    def _validate_safe_data_blocks_size(
+        self,
+        safe_data_blocks: list[
+            list[
+                tuple[
+                    int,
+                    Union[
+                        FSoEDictionaryItemOutput,
+                        FSoEDictionaryItemInput,
+                        FSoEDictionaryItemInputOutput,
+                    ],
+                ]
+            ]
+        ],
+    ) -> None:
+        """Validate the size of safe data blocks in the dictionary map.
+
+        Args:
+            dictionary_map: The dictionary map to validate.
+            safe_data_blocks: The list of safe data blocks to validate.
+        """
         n_safe_data_blocks = len(safe_data_blocks)
 
         if n_safe_data_blocks == 0:
@@ -239,6 +260,51 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
                         )
                     )
                     return
+
+    def _validate_objects_in_frame(
+        self,
+        dictionary_map: FSoEDictionaryMap,
+        safe_data_blocks: list[
+            list[
+                tuple[
+                    int,
+                    Union[
+                        FSoEDictionaryItemOutput,
+                        FSoEDictionaryItemInput,
+                        FSoEDictionaryItemInputOutput,
+                    ],
+                ]
+            ]
+        ],
+    ) -> None:
+        """Validate the number of objects in the frame.
+
+        1 object used for CMD
+        1 object used for CONN_ID
+        1 objects used per register mapped
+        1 object used for each safe data block CRC
+
+        Args:
+            dictionary_map: The dictionary map to validate.
+            safe_data_blocks: The list of safe data blocks to validate.
+        """
+        n_crcs = len(safe_data_blocks)  # One CRC per safe data block
+        n_registers = len(dictionary_map._items)
+
+        total_objects = 1 + n_registers + n_crcs + 1  # CMD, registers, CRCs, CONN_ID
+        if total_objects > self.__MAX_FRAME_OBJECTS:
+            self._exceptions.append(
+                InvalidFSoEFrameRule(
+                    rule=FSoEFrameRules.OBJECTS_IN_FRAME,
+                    exception=f"Total objects in frame exceeds limit: {total_objects} > {self.__MAX_FRAME_OBJECTS}",
+                )
+            )
+
+    @override
+    def _validate(self, dictionary_map: FSoEDictionaryMap) -> None:
+        safe_data_blocks = self._safe_data_blocks_from_dictionary_map(dictionary_map)
+        self._validate_safe_data_blocks_size(safe_data_blocks)
+        self._validate_objects_in_frame(dictionary_map, safe_data_blocks)
 
 
 class FSoEDictionaryMapValidator:
