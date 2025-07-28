@@ -1,5 +1,6 @@
 import threading
 from collections.abc import Iterator
+from random import randint
 from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union, cast, overload
 
 import ingenialogger
@@ -133,6 +134,9 @@ class FSoEMasterHandler:
             self.set_safety_address(slave_address)
         if slave_address is None:
             slave_address = self.get_safety_address_from_slave()
+
+        if connection_id is None:
+            connection_id = randint(1, 0xFFFF_FFFF)
 
         self._master_handler = BaseMasterHandler(
             dictionary=self.dictionary,
