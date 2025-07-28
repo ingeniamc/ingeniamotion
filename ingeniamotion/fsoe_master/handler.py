@@ -6,7 +6,7 @@ import ingenialogger
 from ingenialink import RegDtype
 from ingenialink.canopen.register import CanopenRegister
 from ingenialink.dictionary import DictionarySafetyModule
-from ingenialink.enums.register import RegCyclicType
+from ingenialink.enums.register import RegAccess, RegCyclicType
 from ingenialink.ethercat.servo import EthercatServo
 from ingenialink.pdo import RPDOMap, TPDOMap
 from ingenialink.utils._utils import convert_dtype_to_bytes
@@ -139,11 +139,21 @@ class FSoEMasterHandler:
             state_change_callback=self.__state_change_callback,
         )
 
-        self.__safety_master_pdu = servo.read_rpdo_map_from_slave(self.__FSOE_RPDO_MAP_1, 1)
-        self.__safety_slave_pdu = servo.read_tpdo_map_from_slave(self.__FSOE_TPDO_MAP_1, 1)
+        master_map_object = self.__servo.dictionary.get_object(self.__FSOE_RPDO_MAP_1, 1)
+        slave_map_object = self.__servo.dictionary.get_object(self.__FSOE_TPDO_MAP_1, 1)
+
+        self.__safety_master_pdu = servo.read_rpdo_map_from_slave(master_map_object)
+        self.__safety_slave_pdu = servo.read_tpdo_map_from_slave(slave_map_object)
+
+        # https://novantamotion.atlassian.net/browse/INGM-669
+        self.__map_editable = (master_map_object.registers[0].access == RegAccess.RW) and (
+            slave_map_object.registers[0].access == RegAccess.RW
+        )
 
         self.__maps = PDUMaps.from_rpdo_tpdo(
-            self.__safety_master_pdu, self.__safety_slave_pdu, dictionary=self.dictionary
+            self.__safety_master_pdu,
+            self.__safety_slave_pdu,
+            dictionary=self.dictionary,
         )
         self.set_maps(self.__maps)
 
@@ -275,6 +285,7 @@ class FSoEMasterHandler:
 
         self._master_handler.master.dictionary_map = maps.outputs
         self._master_handler.slave.dictionary_map = maps.inputs
+        self.__maps = maps
 
     def configure_pdo_maps(self) -> None:
         """Configure the PDOMaps used for the Safety PDUs according to the map."""
@@ -288,7 +299,8 @@ class FSoEMasterHandler:
                 if register.identifier in self.safety_parameters:
                     if mapping_value is None:
                         # Set parameter to zero if it is not mapped
-                        # Although fw should ignore this parameter, it is better to reduce noise associated to it
+                        # Although fw should ignore this parameter,
+                        # it is better to reduce noise associated to it
                         mapping_value = 0
                     self.safety_parameters[register.identifier].set_without_updating(mapping_value)
 
@@ -300,8 +312,9 @@ class FSoEMasterHandler:
             rpdo_maps=[self.safety_master_pdu_map], tpdo_maps=[self.safety_slave_pdu_map]
         )
 
-        self.safety_master_pdu_map.write_to_slave(max_pdo_items_for_padding=45)
-        self.safety_slave_pdu_map.write_to_slave(max_pdo_items_for_padding=45)
+        if self.__map_editable:
+            self.safety_master_pdu_map.write_to_slave(padding=True)
+            self.safety_slave_pdu_map.write_to_slave(padding=True)
 
     def remove_pdo_maps_from_slave(self) -> None:
         """Remove the PDOMaps used by the Safety PDUs from the slave."""
