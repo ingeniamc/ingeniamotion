@@ -1,14 +1,10 @@
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional
 
 from ingenialink.canopen.register import CanopenRegister
 from ingenialink.ethercat.dictionary import EthercatDictionaryV2
 from ingenialink.pdo import PDOMap, PDOMapItem, RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 
-from ingeniamotion.fsoe_master.frame_elements import (
-    MASTER_FRAME_ELEMENTS,
-    SLAVE_FRAME_ELEMENTS,
-    FSoEFrameElements,
-)
 from ingeniamotion.fsoe_master.fsoe import (
     FSoEDictionary,
     FSoEDictionaryItem,
@@ -17,7 +13,6 @@ from ingeniamotion.fsoe_master.fsoe import (
     FSoEDictionaryItemOutput,
     FSoEDictionaryMap,
 )
-from ingeniamotion.fsoe_master.maps_validator import FSoEFrameConstructionError, PDOMapValidator
 from ingeniamotion.fsoe_master.safety_functions import (
     SafeInputsFunction,
     SafetyFunction,
@@ -29,6 +24,40 @@ if TYPE_CHECKING:
     from ingenialink.dictionary import Dictionary
 
 __all__ = ["PDUMaps"]
+
+
+@dataclass()
+class FSoEFrameElements:
+    """FSoE Frame Elements.
+
+    Indicates uids of elements that compose the FSoE frame, excluding the safe data.
+    """
+
+    command_uid: str
+    crcs_prefix: str
+    connection_id_uid: str
+
+    def get_crc_uid(self, data_slot_i: int) -> str:
+        """Get the CRC element name for the given data slot index.
+
+        Returns:
+            The CRC element name for the given data slot index.
+        """
+        return f"{self.crcs_prefix}{data_slot_i}"
+
+
+MASTER_FRAME_ELEMENTS = FSoEFrameElements(
+    command_uid="FSOE_MASTER_FRAME_ELEM_CMD",
+    crcs_prefix="FSOE_MASTER_FRAME_ELEM_CRC",
+    connection_id_uid="FSOE_MASTER_FRAME_ELEM_CONNID",
+)
+
+
+SLAVE_FRAME_ELEMENTS = FSoEFrameElements(
+    command_uid="FSOE_SLAVE_FRAME_ELEM_CMD",
+    crcs_prefix="FSOE_SLAVE_FRAME_ELEM_CRC",
+    connection_id_uid="FSOE_SLAVE_FRAME_ELEM_CONNID",
+)
 
 
 class PDUMaps:
@@ -122,21 +151,6 @@ class PDUMaps:
         cls.__fill_dictionary_map_from_pdo(tpdo, pdu_maps.inputs)
         return pdu_maps
 
-    @staticmethod
-    def __validate_map(pdo_map: PDOMap, frame_elements: FSoEFrameElements) -> None:
-        """Validate the given PDO map against FSoE frame rules.
-
-        Args:
-            pdo_map: PDO map to validate
-            frame_elements: Frame elements for the specific frame type
-
-        Raises:
-            FSoEFrameConstructionError: if PDO map does not follow FSoE frame construction rules.
-        """
-        errors = PDOMapValidator().validate_fsoe_frame_rules(pdo_map, frame_elements)
-        if errors != {}:
-            raise FSoEFrameConstructionError(errors)
-
     def fill_rpdo_map(self, rpdo_map: RPDOMap, servo_dictionary: "Dictionary") -> None:
         """Fill the RPDOMap used for the Safety Master PDU."""
         self.outputs.complete_with_padding()
@@ -147,7 +161,6 @@ class PDUMaps:
             pdo_item_type=RPDOMapItem,
             frame_elements=MASTER_FRAME_ELEMENTS,
         )
-        PDUMaps.__validate_map(rpdo_map, MASTER_FRAME_ELEMENTS)
 
     def fill_tpdo_map(self, tpdo_map: TPDOMap, servo_dictionary: "Dictionary") -> None:
         """Fill the TPDOMap used for the Safety Slave PDU."""
@@ -159,7 +172,6 @@ class PDUMaps:
             pdo_item_type=TPDOMapItem,
             frame_elements=SLAVE_FRAME_ELEMENTS,
         )
-        PDUMaps.__validate_map(tpdo_map, SLAVE_FRAME_ELEMENTS)
 
     @staticmethod
     def __get_safety_bytes_range_from_pdo_length(pdo_byte_length: int) -> tuple[int, ...]:
