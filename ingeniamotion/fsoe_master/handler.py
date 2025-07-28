@@ -74,8 +74,8 @@ class FSoEMasterHandler:
         servo: EthercatServo,
         *,
         use_sra: bool,
-        slave_address: int,
-        connection_id: int,
+        slave_address: Optional[int] = None,
+        connection_id: Optional[int] = None,
         watchdog_timeout: float = DEFAULT_WATCHDOG_TIMEOUT_S,
         report_error_callback: Callable[[str, str], None],
     ):
@@ -128,6 +128,11 @@ class FSoEMasterHandler:
         self.dictionary = self.create_safe_dictionary(servo.dictionary)
 
         self.safety_functions = tuple(SafetyFunction.for_handler(self))
+
+        if slave_address is not None:
+            self.set_safety_address(slave_address)
+        if slave_address is None:
+            slave_address = self.get_safety_address_from_slave()
 
         self._master_handler = BaseMasterHandler(
             dictionary=self.dictionary,
@@ -492,6 +497,14 @@ class FSoEMasterHandler:
         """
         self.__servo.write(self.FSOE_MANUF_SAFETY_ADDRESS, address)
         self._master_handler.set_slave_address(address)
+
+    def get_safety_address_from_slave(self) -> int:
+        """Get the FSoE slave address configured on the slave.
+
+        Returns:
+            The FSoE slave address.
+        """
+        return cast("int", self.__servo.read(self.FSOE_MANUF_SAFETY_ADDRESS))
 
     def is_sto_active(self) -> bool:
         """Check the STO state.
