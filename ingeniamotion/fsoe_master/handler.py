@@ -150,16 +150,16 @@ class FSoEMasterHandler:
             if slave_address is not None:
                 self.set_safety_address(slave_address)
 
-            master_map_object = self.__servo.dictionary.get_object(self.__FSOE_RPDO_MAP_1, 1)
-            slave_map_object = self.__servo.dictionary.get_object(self.__FSOE_TPDO_MAP_1, 1)
+            self.__master_map_object = self.__servo.dictionary.get_object(self.__FSOE_RPDO_MAP_1, 1)
+            self.__slave_map_object = self.__servo.dictionary.get_object(self.__FSOE_TPDO_MAP_1, 1)
 
-            self.__safety_master_pdu = servo.read_rpdo_map_from_slave(master_map_object)
-            self.__safety_slave_pdu = servo.read_tpdo_map_from_slave(slave_map_object)
+            self.__safety_master_pdu = servo.read_rpdo_map_from_slave(self.__master_map_object)
+            self.__safety_slave_pdu = servo.read_tpdo_map_from_slave(self.__slave_map_object)
 
             # https://novantamotion.atlassian.net/browse/INGM-669
-            self.__map_editable = (master_map_object.registers[0].access == RegAccess.RW) and (
-                slave_map_object.registers[0].access == RegAccess.RW
-            )
+            self.__map_editable = (
+                self.__master_map_object.registers[0].access == RegAccess.RW
+            ) and (self.__slave_map_object.registers[0].access == RegAccess.RW)
 
             self.__maps = PDUMaps.from_rpdo_tpdo(
                 self.__safety_master_pdu,
@@ -374,7 +374,7 @@ class FSoEMasterHandler:
             if mismatched:
                 yield param, master_value, slave_value
 
-    def write_safe_parameters(self):
+    def write_safe_parameters(self) -> None:
         """Write the safety parameters to the FSoE master handler.
 
         Warnings:
@@ -382,8 +382,8 @@ class FSoEMasterHandler:
             They are configured during configure_pdo_maps.
         """
         pdu_map_registers = [
-            *self.__safety_master_pdu.map_object.registers,
-            *self.__safety_slave_pdu.map_object.registers,
+            *self.__master_map_object.registers,
+            *self.__slave_map_object.registers,
         ]
         for param in self.safety_parameters.values():
             if param.register in pdu_map_registers:
