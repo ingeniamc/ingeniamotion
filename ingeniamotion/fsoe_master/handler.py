@@ -484,6 +484,20 @@ class FSoEMasterHandler:
         """
         return self.get_function_instance(SafeInputsFunction)
 
+    def set_fail_safe(self, fail_safe: bool) -> None:
+        """Set the fail-safe mode of the FSoE master handler.
+
+        When is on data state and fail-safe is active safe outputs will be sent but slaves
+        should not take action.
+
+        By standard, the fail-safe mode is activated when the master is not in Data state.
+
+        Args:
+            fail_safe: If True, the fail-safe mode is activated.
+                If False, the fail-safe mode is deactivated.
+        """
+        self._master_handler.set_fail_safe(fail_safe)
+
     def sto_deactivate(self) -> None:
         """Set the STO command to deactivate the STO."""
         self._master_handler.set_fail_safe(False)
