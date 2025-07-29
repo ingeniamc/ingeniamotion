@@ -144,11 +144,19 @@ class FSoEMasterHandler:
             self.__slave_map_object.registers[0].access == RegAccess.RW
         )
 
-        self.__maps = PDUMaps.from_rpdo_tpdo(
-            self.__safety_master_pdu,
-            self.__safety_slave_pdu,
-            dictionary=self.dictionary,
-        )
+        try:
+            self.__maps = PDUMaps.from_rpdo_tpdo(
+                self.__safety_master_pdu,
+                self.__safety_slave_pdu,
+                dictionary=self.dictionary,
+            )
+        except Exception as e:
+            self.logger.error(
+                "Error creating FSoE PDUMaps from RPDO and TPDO on the drive. "
+                "Falling back to a default map.",
+                exc_info=e,
+            )
+            self.__maps = PDUMaps.default(self.dictionary)
 
         self._master_handler = BaseMasterHandler(
             dictionary=self.dictionary,
