@@ -132,6 +132,7 @@ def test_create_fsoe_master_handler_use_sra(mc, use_sra):
     master._delete_master_handler()
 
 
+@pytest.mark.fsoe
 def test_create_fsoe_handler_from_invalid_pdo_maps(caplog):
     mock_servo = MockServo(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY)
     mock_servo.write("ETG_COMMS_RPDO_MAP256_6", 0x123456)  # Invalid pdo map value
