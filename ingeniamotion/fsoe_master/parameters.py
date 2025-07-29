@@ -60,6 +60,10 @@ class SafetyParameter:
         """Set the value of the safety parameter without updating the drive internal value."""
         self.__value = value
 
+    def set_to_slave(self):
+        """Set the value of the safety parameter to the slave."""
+        self.__servo.write(self.__register, self.__value)
+
 
 class SafetyParameterDirectValidation(SafetyParameter):
     """Safety Parameter with direct validation via FSoE.

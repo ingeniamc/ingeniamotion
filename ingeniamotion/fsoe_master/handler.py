@@ -374,6 +374,23 @@ class FSoEMasterHandler:
             if mismatched:
                 yield param, master_value, slave_value
 
+    def write_safe_parameters(self):
+        """Write the safety parameters to the FSoE master handler.
+
+        Warnings:
+            PDO Maps that are safe parameters are not written here.
+            They are configured during configure_pdo_maps.
+        """
+        pdu_map_registers = [
+            *self.__safety_master_pdu.map_object.registers,
+            *self.__safety_slave_pdu.map_object.registers,
+        ]
+        for param in self.safety_parameters.values():
+            if param.register in pdu_map_registers:
+                # Are configured during configure_pdo_maps
+                continue
+            param.set_to_slave()
+
     @weak_lru()
     def safety_functions_by_type(self) -> dict[type[SafetyFunction], list[SafetyFunction]]:
         """Get a dictionary with the safety functions grouped by type.
