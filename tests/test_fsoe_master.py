@@ -39,6 +39,7 @@ if FSOE_MASTER_INSTALLED:
         FSoEDictionaryMapValidator,
         FSoEFrameRules,
         InvalidFSoEFrameRule,
+        PaddingBlockValidator,
         SafeDataBlocksValidator,
     )
 
@@ -976,7 +977,7 @@ class TestPduMapper:
         exception = exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
         assert isinstance(exception, InvalidFSoEFrameRule)
         assert f"Safe data block 0 must be 16 bits, found {dummy_slot_width}" in exception.exception
-        assert exception.position == 0
+        assert exception.position == [0]
         assert validator._validators[0].is_valid is False
 
     @pytest.mark.fsoe
@@ -1073,6 +1074,26 @@ class TestPduMapper:
             assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID not in exceptions
             for _validator in validator._validators:
                 assert _validator.is_valid is True
+
+    @pytest.mark.fsoe
+    def test_validate_safe_data_padding_blocks(self, sample_safe_dictionary):
+        """Test that SafeDataPaddingBlocksValidator fails when padding blocks are not 8 bits."""
+        _, fsoe_dict = sample_safe_dictionary
+        maps = PDUMaps.empty(fsoe_dict)
+
+        maps.inputs.add_padding(bits=32)
+
+        # Only validate the safe data blocks rule
+        validator = FSoEDictionaryMapValidator()
+        validator._validators = [PaddingBlockValidator()]
+        exceptions = validator.validate_dictionary_map_fsoe_frame_rules(maps.inputs)
+        assert len(exceptions) == 1
+        assert FSoEFrameRules.PADDING_BLOCKS_VALID in exceptions
+        exception = exceptions[FSoEFrameRules.PADDING_BLOCKS_VALID]
+        assert isinstance(exception, InvalidFSoEFrameRule)
+        assert "Padding block size must range from 1 to 16 bits, found 32" in exception.exception
+        assert exception.position == [0]
+        assert validator._validators[0].is_valid is False
 
     @pytest.mark.fsoe
     def test_validate_dictionary_map_fsoe_frame_rules(self, sample_safe_dictionary):

@@ -19,6 +19,7 @@ class FSoEFrameRules(Enum):
         "Frame must contain 1-8 blocks of safe data, each 16-bit (except single block may be 8-bit)"
     )
     OBJECTS_IN_FRAME = "A frame can contain up to 45 objects in total"
+    PADDING_BLOCKS_VALID = "Padding blocks may range from 1 to 16 bits"
 
 
 @dataclass
@@ -27,7 +28,9 @@ class InvalidFSoEFrameRule:
 
     rule: FSoEFrameRules  # The rule that was violated
     exception: str  # Description of the error
-    position: Optional[int] = None  # Position information where the rule is invalid
+    position: Optional[list[int]] = (
+        None  # Dictionary item position in bits where the rule is invalid
+    )
 
 
 class FSoEFrameConstructionError(Exception):
@@ -84,7 +87,7 @@ class FSoEFrameRuleValidator(ABC):
 
     def validate(
         self, dictionary_map: FSoEDictionaryMap
-    ) -> dict[FSoEFrameRules, InvalidFSoEFrameRule]:
+    ) -> dict[FSoEFrameRules, Optional[InvalidFSoEFrameRule]]:
         """Validate the FSoE frame rules.
 
         Args:
@@ -116,7 +119,7 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
 
     __MAX_FRAME_OBJECTS: int = 45
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             rules=[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID, FSoEFrameRules.OBJECTS_IN_FRAME]
         )
@@ -132,6 +135,15 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
             else:
                 slot_size_bits += item.bits if item else 0
         return slot_size_bits
+
+    @staticmethod
+    def __get_items_position_in_data_block(
+        items: list[tuple[Optional[int], Optional["FSoEDictionaryItem"]]],
+    ) -> Optional[list[int]]:
+        positions = [item.position_bits for _, item in items if item is not None]
+        if not positions:
+            return None
+        return positions
 
     def _validate_safe_data_blocks_size(
         self,
@@ -178,7 +190,9 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
                         rule=FSoEFrameRules.SAFE_DATA_BLOCKS_VALID,
                         exception="Single safe data block must be 16 bits or less "
                         f"(completed with padding), found {slot_size_bits}",
-                        position=data_slot_i,
+                        position=SafeDataBlocksValidator.__get_items_position_in_data_block(
+                            slot_items
+                        ),
                     )
                     return
             # Each safe data block must be 16 bits
@@ -188,7 +202,9 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
                         rule=FSoEFrameRules.SAFE_DATA_BLOCKS_VALID,
                         exception=f"Safe data block {data_slot_i} must be 16 bits, "
                         f"found {slot_size_bits}",
-                        position=data_slot_i,
+                        position=SafeDataBlocksValidator.__get_items_position_in_data_block(
+                            slot_items
+                        ),
                     )
                     return
             # It can be smaller, because it will be padded to 16 bits when creating the PDO frame
@@ -197,7 +213,7 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
                     rule=FSoEFrameRules.SAFE_DATA_BLOCKS_VALID,
                     exception=f"Safe data block {data_slot_i} must be 16 bits, "
                     f"found {slot_size_bits}",
-                    position=data_slot_i,
+                    position=SafeDataBlocksValidator.__get_items_position_in_data_block(slot_items),
                 )
                 return
             # It can be smaller, because it will be padded to 16 bits when creating the PDO frame
@@ -206,7 +222,7 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
                     rule=FSoEFrameRules.SAFE_DATA_BLOCKS_VALID,
                     exception=f"Last safe data block {data_slot_i} must be 16 bits or less "
                     f"(completed with padding), found {slot_size_bits}",
-                    position=data_slot_i,
+                    position=SafeDataBlocksValidator.__get_items_position_in_data_block(slot_items),
                 )
                 return
 
@@ -251,10 +267,39 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
     @override
     def _validate(self, dictionary_map: FSoEDictionaryMap) -> None:
         safe_data_blocks = list(
-            PDUMaps._generate_slot_structure(dictionary_map, PDUMaps._PDUMaps__SLOT_WIDTH)
+            PDUMaps._generate_slot_structure(dictionary_map, PDUMaps._PDUMaps__SLOT_WIDTH)  # type: ignore[attr-defined]
         )
         self._validate_safe_data_blocks_size(safe_data_blocks)
         self._validate_objects_in_frame(dictionary_map, safe_data_blocks)
+
+
+class PaddingBlockValidator(FSoEFrameRuleValidator):
+    """Validator for padding blocks in FSoE frames.
+
+    Validates that the size of padding blocks range from 1 to 16 bits.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(rules=[FSoEFrameRules.PADDING_BLOCKS_VALID])
+
+    @override
+    def _validate(self, dictionary_map: FSoEDictionaryMap) -> None:
+        """Validate the padding blocks in the FSoE frame.
+
+        Args:
+            dictionary_map: The dictionary map to validate.
+        """
+        for item in dictionary_map:
+            # Not a padding block
+            if item.item is not None:
+                continue
+            if item.bits < 1 or item.bits > 16:
+                self._exceptions[FSoEFrameRules.PADDING_BLOCKS_VALID] = InvalidFSoEFrameRule(
+                    rule=FSoEFrameRules.PADDING_BLOCKS_VALID,
+                    exception=f"Padding block size must range from 1 to 16 bits, found {item.bits}",
+                    position=[item.position_bits],
+                )
+                return
 
 
 class FSoEDictionaryMapValidator:
@@ -265,7 +310,10 @@ class FSoEDictionaryMapValidator:
 
     def __init__(self) -> None:
         """Initialize the FSoEDictionaryMapValidator."""
-        self._validators: list[FSoEFrameRuleValidator] = [SafeDataBlocksValidator()]
+        self._validators: list[FSoEFrameRuleValidator] = [
+            SafeDataBlocksValidator(),
+            PaddingBlockValidator(),
+        ]
         self._exceptions: dict[FSoEFrameRules, InvalidFSoEFrameRule] = {}
         self._validated_rules: list[FSoEFrameRules] = []
 
@@ -304,5 +352,5 @@ class FSoEDictionaryMapValidator:
             self._validated_rules.extend(validator.rules)
             for rule in validator.rules:
                 if exceptions[rule] is not None:
-                    self._exceptions[rule] = exceptions[rule]
+                    self._exceptions[rule] = exceptions[rule]  # type: ignore[assignment]
         return self.exceptions
