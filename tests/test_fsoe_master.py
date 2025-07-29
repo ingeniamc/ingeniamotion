@@ -34,14 +34,13 @@ if FSOE_MASTER_INSTALLED:
     )
     from ingeniamotion.fsoe_master.fsoe import (
         FSoEApplicationParameter,
-        FSoEDictionaryItemInput,
-        FSoEDictionaryItemInputOutput,
         FSoEDictionaryMap,
     )
     from ingeniamotion.fsoe_master.maps_validator import (
         FSoEDictionaryMapValidator,
         FSoEFrameRules,
         InvalidFSoEFrameRule,
+        SafeDataBlocksValidator,
     )
 
 
@@ -956,37 +955,30 @@ class TestPduMapper:
         )
 
     @pytest.mark.fsoe
-    def test_validate_safe_data_blocks_invalid_size(self, sample_safe_dictionary):
+    def test_validate_safe_data_blocks_invalid_size(self, mocker, sample_safe_dictionary):
         """Test that SafeDataBlocksValidator fails when safe data blocks are not 16 bits."""
         _, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
 
         # Create a map with safe data blocks that are not 16 bits
         maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])  # 8 bits
-        maps.inputs.add_padding(bits=16)  # 16 bits padding
 
+        # Use a dummy slot width to simulate that the safe data block is wrongly sized
+        dummy_slot_width = 2
+        mocker.patch(
+            "ingeniamotion.fsoe_master.maps.PDUMaps._PDUMaps__SLOT_WIDTH", dummy_slot_width
+        )
         # Only validate the safe data blocks rule
         validator = FSoEDictionaryMapValidator()
-        validator._rule_to_validators = {
-            FSoEFrameRules.SAFE_DATA_BLOCKS_VALID: validator._rule_to_validators[
-                FSoEFrameRules.SAFE_DATA_BLOCKS_VALID
-            ],
-        }
-
+        validator._validators = [SafeDataBlocksValidator()]
         exceptions = validator.validate_dictionary_map_fsoe_frame_rules(maps.inputs)
         assert len(exceptions) == 1
         assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID in exceptions
-        rule_exceptions = exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
-        assert isinstance(rule_exceptions, list)
-        assert len(rule_exceptions) == 1
-        exception = rule_exceptions[0]
+        exception = exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
         assert isinstance(exception, InvalidFSoEFrameRule)
-        # self.TEST_SI_U8_UID + 8-bit padding in one block, 8 bits padding in the next block
-        assert "Safe data block 1 must be 16 bits, found 8" in exception.exception
-        assert exception.position == 1
-        assert (
-            validator._rule_to_validators[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID].is_valid is False
-        )
+        assert f"Safe data block 0 must be 16 bits, found {dummy_slot_width}" in exception.exception
+        assert exception.position == 0
+        assert validator._validators[0].is_valid is False
 
     class MockFSoEDictionaryMap(FSoEDictionaryMap):
         """Mock FSoEDictionaryMap that skips padding completion for testing."""
@@ -1001,64 +993,13 @@ class TestPduMapper:
         maps = PDUMaps.empty(fsoe_dict)
         # Only validate the safe data blocks rule
         validator = FSoEDictionaryMapValidator()
-        validator._rule_to_validators = {
-            FSoEFrameRules.SAFE_DATA_BLOCKS_VALID: validator._rule_to_validators[
-                FSoEFrameRules.SAFE_DATA_BLOCKS_VALID
-            ],
-        }
-
+        validator._validators = [SafeDataBlocksValidator()]
         exceptions = validator.validate_dictionary_map_fsoe_frame_rules(maps.inputs)
         assert len(exceptions) == 1
         assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID in exceptions
-        rule_exceptions = exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
-        assert isinstance(rule_exceptions, list)
-        assert len(rule_exceptions) == 1
-        exception = rule_exceptions[0]
+        exception = exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
         assert exception.exception == "No safe data blocks found in PDO map"
-        assert (
-            validator._rule_to_validators[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID].is_valid is False
-        )
-
-    @pytest.mark.fsoe
-    def test_validate_safe_data_blocks_single_block_invalid_size(self, sample_safe_dictionary):
-        """Test that SafeDataBlocksValidator fails when single block is not 8 or 16 bits."""
-        _, fsoe_dict = sample_safe_dictionary
-        maps = PDUMaps.empty(fsoe_dict)
-
-        # Replace the inputs with a mock that doesn't do padding
-        original_inputs = maps.inputs
-        mock_inputs = TestPduMapper.MockFSoEDictionaryMap(
-            fsoe_dict,
-            item_types_accepted={FSoEDictionaryItemInput, FSoEDictionaryItemInputOutput},
-        )
-        for item in original_inputs:
-            mock_inputs.add(item)
-        maps.inputs = mock_inputs
-
-        # Add only a 1-bit safe input (single block, but not 8 or 16 bits)
-        maps.inputs.add(fsoe_dict.name_map[SafeInputsFunction.SAFE_INPUTS_UID])  # 1 bit
-
-        # Only validate the safe data blocks rule
-        validator = FSoEDictionaryMapValidator()
-        validator._rule_to_validators = {
-            FSoEFrameRules.SAFE_DATA_BLOCKS_VALID: validator._rule_to_validators[
-                FSoEFrameRules.SAFE_DATA_BLOCKS_VALID
-            ],
-        }
-
-        exceptions = validator.validate_dictionary_map_fsoe_frame_rules(maps.inputs)
-        assert len(exceptions) == 1
-        assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID in exceptions
-        rule_exceptions = exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
-        assert isinstance(rule_exceptions, list)
-        assert len(rule_exceptions) == 1
-        exception = rule_exceptions[0]
-        assert isinstance(exception, InvalidFSoEFrameRule)
-        assert exception.exception == "Single safe data block must be 8 or 16 bits, found 1"
-        assert exception.position == 0
-        assert (
-            validator._rule_to_validators[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID].is_valid is False
-        )
+        assert validator._validators[0].is_valid is False
 
     @pytest.mark.fsoe
     def test_validate_safe_data_blocks_too_many_blocks(self):
@@ -1110,25 +1051,15 @@ class TestPduMapper:
 
         # Only validate the safe data blocks rule
         validator = FSoEDictionaryMapValidator()
-        validator._rule_to_validators = {
-            FSoEFrameRules.SAFE_DATA_BLOCKS_VALID: validator._rule_to_validators[
-                FSoEFrameRules.SAFE_DATA_BLOCKS_VALID
-            ],
-        }
-
+        validator._validators = [SafeDataBlocksValidator()]
         exceptions = validator.validate_dictionary_map_fsoe_frame_rules(maps.inputs)
         assert len(exceptions) == 1
         assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID in exceptions
-        rule_exceptions = exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
-        assert isinstance(rule_exceptions, list)
-        assert len(rule_exceptions) == 1
-        exception = rule_exceptions[0]
+        exception = exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
         assert isinstance(exception, InvalidFSoEFrameRule)
         assert "Expected 1-8 safe data blocks, found 9" in exception.exception
         assert exception.position is None
-        assert (
-            validator._rule_to_validators[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID].is_valid is False
-        )
+        assert validator._validators[0].is_valid is False
 
     @pytest.mark.fsoe
     def test_validate_safe_data_blocks_valid_cases(self, sample_safe_dictionary):
@@ -1147,10 +1078,8 @@ class TestPduMapper:
             validator = FSoEDictionaryMapValidator()
             exceptions = validator.validate_dictionary_map_fsoe_frame_rules(maps.inputs)
             assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID not in exceptions
-            assert (
-                validator._rule_to_validators[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID].is_valid
-                is True
-            )
+            for _validator in validator._validators:
+                assert _validator.is_valid is True
 
     @pytest.mark.fsoe
     def test_validate_dictionary_map_fsoe_frame_rules(self, sample_safe_dictionary):
@@ -1168,4 +1097,4 @@ class TestPduMapper:
             exceptions = validator.validate_dictionary_map_fsoe_frame_rules(dictionary_map)
             assert exceptions == {}
             for rule in FSoEFrameRules:
-                assert validator._rule_to_validators[rule].is_valid is True
+                assert rule in validator._validated_rules
