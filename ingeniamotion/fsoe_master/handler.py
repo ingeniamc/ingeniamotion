@@ -133,6 +133,23 @@ class FSoEMasterHandler:
         if connection_id is None:
             connection_id = randint(1, 0xFFFF)
 
+        self.__master_map_object = self.__servo.dictionary.get_object(self.__FSOE_RPDO_MAP_1, 1)
+        self.__slave_map_object = self.__servo.dictionary.get_object(self.__FSOE_TPDO_MAP_1, 1)
+
+        self.__safety_master_pdu = servo.read_rpdo_map_from_slave(self.__master_map_object)
+        self.__safety_slave_pdu = servo.read_tpdo_map_from_slave(self.__slave_map_object)
+
+        # https://novantamotion.atlassian.net/browse/INGM-669
+        self.__map_editable = (self.__master_map_object.registers[0].access == RegAccess.RW) and (
+            self.__slave_map_object.registers[0].access == RegAccess.RW
+        )
+
+        self.__maps = PDUMaps.from_rpdo_tpdo(
+            self.__safety_master_pdu,
+            self.__safety_slave_pdu,
+            dictionary=self.dictionary,
+        )
+
         self._master_handler = BaseMasterHandler(
             dictionary=self.dictionary,
             slave_address=slave_address
@@ -150,22 +167,6 @@ class FSoEMasterHandler:
             if slave_address is not None:
                 self.set_safety_address(slave_address)
 
-            self.__master_map_object = self.__servo.dictionary.get_object(self.__FSOE_RPDO_MAP_1, 1)
-            self.__slave_map_object = self.__servo.dictionary.get_object(self.__FSOE_TPDO_MAP_1, 1)
-
-            self.__safety_master_pdu = servo.read_rpdo_map_from_slave(self.__master_map_object)
-            self.__safety_slave_pdu = servo.read_tpdo_map_from_slave(self.__slave_map_object)
-
-            # https://novantamotion.atlassian.net/browse/INGM-669
-            self.__map_editable = (
-                self.__master_map_object.registers[0].access == RegAccess.RW
-            ) and (self.__slave_map_object.registers[0].access == RegAccess.RW)
-
-            self.__maps = PDUMaps.from_rpdo_tpdo(
-                self.__safety_master_pdu,
-                self.__safety_slave_pdu,
-                dictionary=self.dictionary,
-            )
             self.set_maps(self.__maps)
         except Exception as ex:
             self._master_handler.delete()
