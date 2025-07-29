@@ -139,8 +139,7 @@ class FSoEMasterHandler:
         self.__safety_master_pdu = servo.read_rpdo_map_from_slave(self.__master_map_object)
         self.__safety_slave_pdu = servo.read_tpdo_map_from_slave(self.__slave_map_object)
 
-        # https://novantamotion.atlassian.net/browse/INGM-669
-        self.__map_editable = (self.__master_map_object.registers[0].access == RegAccess.RW) and (
+        map_editable = (self.__master_map_object.registers[0].access == RegAccess.RW) and (
             self.__slave_map_object.registers[0].access == RegAccess.RW
         )
 
@@ -158,6 +157,10 @@ class FSoEMasterHandler:
             )
             self.__maps = PDUMaps.default(self.dictionary)
 
+        if not map_editable:
+            self.__maps.inputs._lock()
+            self.__maps.outputs._lock()
+
         self._master_handler = BaseMasterHandler(
             dictionary=self.dictionary,
             slave_address=slave_address
@@ -168,6 +171,7 @@ class FSoEMasterHandler:
             application_parameters=fsoe_application_parameters,
             report_error_callback=report_error_callback,
             state_change_callback=self.__state_change_callback,
+            dictionary_map_is_editable=map_editable,
         )
 
         # If anything else fails on the constructor, ensure the master handler is deleted
@@ -335,7 +339,7 @@ class FSoEMasterHandler:
             rpdo_maps=[self.safety_master_pdu_map], tpdo_maps=[self.safety_slave_pdu_map]
         )
 
-        if self.__map_editable:
+        if self.__maps.editable:
             self.safety_master_pdu_map.write_to_slave(padding=True)
             self.safety_slave_pdu_map.write_to_slave(padding=True)
 

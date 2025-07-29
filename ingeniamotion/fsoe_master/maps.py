@@ -114,6 +114,11 @@ class PDUMaps:
             inputs=self.inputs.copy(),
         )
 
+    @property
+    def editable(self) -> bool:
+        """Indicates if the PDU maps can be edited."""
+        return not (self.outputs.locked or self.inputs.locked)
+
     def insert_in_best_position(self, element: "FSoEDictionaryItem") -> None:
         """Insert I/O in any best position of the maps.
 

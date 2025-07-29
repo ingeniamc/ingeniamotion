@@ -448,6 +448,36 @@ def test_modify_safe_parameters():
         handler.delete()
 
 
+@pytest.mark.fsoe
+def test_ph1_non_editable_mapping():
+    mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
+
+    # TODO also run test for ph2
+    # TODO REMOVE. Why are they RW??
+    for obj in [
+        mock_servo.dictionary.get_object("ETG_COMMS_RPDO_MAP256", 1),
+        mock_servo.dictionary.get_object("ETG_COMMS_TPDO_MAP256", 1),
+    ]:
+        for reg in obj.registers:
+            reg._access = RegAccess.RO
+
+    try:
+        handler = FSoEMasterHandler(mock_servo, use_sra=True, report_error_callback=error_handler)
+        assert handler.maps.editable is False
+
+        with pytest.raises(fsoe_master.FSOEMasterMappingLockedException):
+            handler.maps.inputs.clear()
+
+        new_maps = handler.maps.copy()
+        assert new_maps.editable is False
+
+        with pytest.raises(fsoe_master.FSOEMasterMappingLockedException):
+            new_maps.outputs.clear()
+
+    finally:
+        handler.delete()
+
+
 @pytest.fixture()
 def mc_state_data_with_sra(mc_with_fsoe_with_sra):
     mc, _handler = mc_with_fsoe_with_sra
