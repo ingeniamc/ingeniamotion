@@ -34,7 +34,6 @@ if FSOE_MASTER_INSTALLED:
     )
     from ingeniamotion.fsoe_master.fsoe import (
         FSoEApplicationParameter,
-        FSoEDictionaryMap,
     )
     from ingeniamotion.fsoe_master.maps_validator import (
         FSoEDictionaryMapValidator,
@@ -979,12 +978,6 @@ class TestPduMapper:
         assert f"Safe data block 0 must be 16 bits, found {dummy_slot_width}" in exception.exception
         assert exception.position == 0
         assert validator._validators[0].is_valid is False
-
-    class MockFSoEDictionaryMap(FSoEDictionaryMap):
-        """Mock FSoEDictionaryMap that skips padding completion for testing."""
-
-        def complete_with_padding(self):
-            return
 
     @pytest.mark.fsoe
     def test_validate_safe_data_blocks_pdu_empty(self, sample_safe_dictionary):
