@@ -130,17 +130,14 @@ class FSoEMasterHandler:
 
         self.safety_functions = tuple(SafetyFunction.for_handler(self))
 
-        if slave_address is not None:
-            self.set_safety_address(slave_address)
-        if slave_address is None:
-            slave_address = self.get_safety_address_from_slave()
-
         if connection_id is None:
-            connection_id = randint(1, 0xFFFF_FFFF)
+            connection_id = randint(1, 0xFFFF)
 
         self._master_handler = BaseMasterHandler(
             dictionary=self.dictionary,
-            slave_address=slave_address,
+            slave_address=slave_address
+            if slave_address is not None
+            else self.get_safety_address_from_slave(),
             connection_id=connection_id,
             watchdog_timeout_s=watchdog_timeout,
             application_parameters=fsoe_application_parameters,
@@ -148,23 +145,31 @@ class FSoEMasterHandler:
             state_change_callback=self.__state_change_callback,
         )
 
-        master_map_object = self.__servo.dictionary.get_object(self.__FSOE_RPDO_MAP_1, 1)
-        slave_map_object = self.__servo.dictionary.get_object(self.__FSOE_TPDO_MAP_1, 1)
+        # If anything else fails on the constructor, ensure the master handler is deleted
+        try:
+            if slave_address is not None:
+                self.set_safety_address(slave_address)
 
-        self.__safety_master_pdu = servo.read_rpdo_map_from_slave(master_map_object)
-        self.__safety_slave_pdu = servo.read_tpdo_map_from_slave(slave_map_object)
+            master_map_object = self.__servo.dictionary.get_object(self.__FSOE_RPDO_MAP_1, 1)
+            slave_map_object = self.__servo.dictionary.get_object(self.__FSOE_TPDO_MAP_1, 1)
 
-        # https://novantamotion.atlassian.net/browse/INGM-669
-        self.__map_editable = (master_map_object.registers[0].access == RegAccess.RW) and (
-            slave_map_object.registers[0].access == RegAccess.RW
-        )
+            self.__safety_master_pdu = servo.read_rpdo_map_from_slave(master_map_object)
+            self.__safety_slave_pdu = servo.read_tpdo_map_from_slave(slave_map_object)
 
-        self.__maps = PDUMaps.from_rpdo_tpdo(
-            self.__safety_master_pdu,
-            self.__safety_slave_pdu,
-            dictionary=self.dictionary,
-        )
-        self.set_maps(self.__maps)
+            # https://novantamotion.atlassian.net/browse/INGM-669
+            self.__map_editable = (master_map_object.registers[0].access == RegAccess.RW) and (
+                slave_map_object.registers[0].access == RegAccess.RW
+            )
+
+            self.__maps = PDUMaps.from_rpdo_tpdo(
+                self.__safety_master_pdu,
+                self.__safety_slave_pdu,
+                dictionary=self.dictionary,
+            )
+            self.set_maps(self.__maps)
+        except Exception as ex:
+            self._master_handler.delete()
+            raise ex
 
     def _calculate_sra_crc(self) -> int:
         """Calculates SRA CRC for the application parameters.
