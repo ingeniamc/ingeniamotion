@@ -500,7 +500,7 @@ class FSoEMasterHandler:
 
     def sto_deactivate(self) -> None:
         """Set the STO command to deactivate the STO."""
-        self._master_handler.set_fail_safe(False)
+        self.set_fail_safe(False)
         self.sto_function().command.set(True)
 
     def sto_activate(self) -> None:
@@ -509,7 +509,7 @@ class FSoEMasterHandler:
 
     def ss1_deactivate(self) -> None:
         """Set the SS1 command to deactivate the SS1."""
-        self._master_handler.set_fail_safe(False)
+        self.set_fail_safe(False)
         self.ss1_function().command.set(True)
 
     def ss1_activate(self) -> None:

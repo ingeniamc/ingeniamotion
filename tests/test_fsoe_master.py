@@ -469,6 +469,9 @@ def mc_state_data(mc_with_fsoe):
     # Wait for the master to reach the Data state
     mc.fsoe.wait_for_state_data(timeout=10)
 
+    # Remove fail-safe state
+    mc.fsoe.set_fail_safe(False)
+
     yield mc
 
     # Stop the FSoE master handler
