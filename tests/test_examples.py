@@ -231,6 +231,18 @@ def test_commutation_test_example(setup_descriptor: DriveEthernetSetup, script_r
     assert result.returncode == 0
 
 
+@pytest.mark.fsoe
+def test_safety_mapping_example(setup_descriptor: DriveEcatSetup, script_runner) -> None:
+    script_path = "examples/safety_mapping_example.py"
+    result = script_runner.run([
+        script_path,
+        f"--interface_ip={setup_descriptor.ifname}",
+        f"--slave_id={setup_descriptor.slave}",
+        f"--dictionary_path={setup_descriptor.dictionary}",
+    ])
+    assert result.returncode == 0, f"Script failed with stderr:\n{result.stderr}"
+
+
 @pytest.mark.ethernet
 @pytest.mark.parametrize(
     "override",
