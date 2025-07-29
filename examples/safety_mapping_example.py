@@ -1,17 +1,17 @@
+import argparse
 import time
 
-from ingeniamotion import MotionController
-import argparse
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
+from ingeniamotion.motion_controller import MotionController
 
 if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master import (
-        STOFunction,
-        SS1Function,
-        SOSFunction,
-        SS2Function,
         SafeInputsFunction,
         SAFunction,
+        SOSFunction,
+        SS1Function,
+        SS2Function,
+        STOFunction,
         SVFunction,
     )
 
@@ -22,12 +22,11 @@ def main(interface_ip, slave_id, dict_path):
     # Configure error channel
     mc.fsoe.subscribe_to_errors(lambda error: print(error))
     # Connect to the servo drive
-    mc.communication.connect_servo_ethercat_interface_ip(interface_ip, slave_id, dict_path)
+    mc.communication.connect_servo_ethercat(interface_ip, slave_id, dict_path)
 
     # Create and start the FSoE master handler
-    handler = mc.fsoe.create_fsoe_master_handler(use_sra=False)
+    handler = mc.fsoe.create_fsoe_master_handler(use_sra=True)
 
-    # Get the safety functions instances
     sto = handler.get_function_instance(STOFunction)
     safe_inputs = handler.get_function_instance(SafeInputsFunction)
     ss1 = handler.get_function_instance(SS1Function)
