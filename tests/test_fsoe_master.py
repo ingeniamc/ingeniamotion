@@ -401,6 +401,7 @@ def test_getter_of_safety_functions(mc_with_fsoe):
     assert error.value.args[0] == "Master handler does not contain SS1Function instance 3"
 
 
+@pytest.mark.fsoe
 def test_modify_safe_parameters():
     mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
     try:
