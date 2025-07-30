@@ -63,8 +63,8 @@ class FSoEMasterHandler:
     FSOE_DICTIONARY_CATEGORY = "FSOE"
     MDP_CONFIGURED_MODULE_1 = "MDP_CONFIGURED_MODULE_1"
 
-    __FSOE_RPDO_MAP_1 = "ETG_COMMS_RPDO_MAP256"
-    __FSOE_TPDO_MAP_1 = "ETG_COMMS_TPDO_MAP256"
+    __FSOE_RPDO_MAP_UID = "ETG_COMMS_RPDO_MAP256"
+    __FSOE_TPDO_MAP_UID = "ETG_COMMS_TPDO_MAP256"
     __FSOE_SAFETY_PROJECT_CRC = "FSOE_SAFETY_PROJECT_CRC"
 
     DEFAULT_WATCHDOG_TIMEOUT_S = 1
@@ -139,8 +139,8 @@ class FSoEMasterHandler:
             state_change_callback=self.__state_change_callback,
         )
 
-        master_map_object = self.__servo.dictionary.get_object(self.__FSOE_RPDO_MAP_1, 1)
-        slave_map_object = self.__servo.dictionary.get_object(self.__FSOE_TPDO_MAP_1, 1)
+        master_map_object = self.__servo.dictionary.get_object(self.__FSOE_RPDO_MAP_UID, 1)
+        slave_map_object = self.__servo.dictionary.get_object(self.__FSOE_TPDO_MAP_UID, 1)
 
         self.__safety_master_pdu = servo.read_rpdo_map_from_slave(master_map_object)
         self.__safety_slave_pdu = servo.read_tpdo_map_from_slave(slave_map_object)
