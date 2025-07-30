@@ -298,7 +298,11 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
         """
         for data_slot_i, slot_items in safe_data_blocks:
             for bits_in_slot, item in slot_items:
-                if bits_in_slot is None or bits_in_slot == item.bits:
+                # bits_in_slot == None and bits_in_slot == item.bits:
+                #      the item is fully contained in the current safe data block
+                # item == None: the item is a virtual padding block,
+                # which fits in the current safe data block
+                if bits_in_slot is None or item is None or bits_in_slot == item.bits:
                     continue
                 # If the item != 32 bits, it cannot be split across multiple safe data blocks
                 # 16 bit is checked by ObjectsAlignedValidator
@@ -494,7 +498,7 @@ class FSoEDictionaryMapValidator:
         Returns:
             Dictionary of validation errors for the FSoE frame.
         """
-        rules_to_validate = set(rules) if rules is not None else list(FSoEFrameRules)
+        rules_to_validate = list(set(rules)) if rules is not None else list(FSoEFrameRules)
         for rule in rules_to_validate:
             if rule in self._validated_rules:
                 logger.warning("Validation already performed, returning cached exceptions.")
