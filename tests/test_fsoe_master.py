@@ -1043,7 +1043,6 @@ class TestPduMapper:
             test_uid = f"TEST_SI_U16_{idx}"
             maps.inputs.add(fsoe_dict.name_map[test_uid])
 
-        # Only validate the safe data blocks rule
         validator = FSoEDictionaryMapValidator()
         exceptions = validator.validate_dictionary_map_fsoe_frame_rules(
             maps.inputs, rules=[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
@@ -1085,7 +1084,6 @@ class TestPduMapper:
 
         maps.inputs.add_padding(bits=32)
 
-        # Only validate the safe data blocks rule
         validator = FSoEDictionaryMapValidator()
         exceptions = validator.validate_dictionary_map_fsoe_frame_rules(
             maps.inputs, rules=[FSoEFrameRules.PADDING_BLOCKS_VALID]
@@ -1097,6 +1095,19 @@ class TestPduMapper:
         assert "Padding block size must range from 1 to 16 bits, found 32" in exception.exception
         assert exception.position == [0]
         assert validator.is_rule_valid(FSoEFrameRules.PADDING_BLOCKS_VALID) is False
+
+        # Check that the rule passes when the padding block is <= 16 bits
+        for padding in range(1, 17):
+            maps.inputs.clear()
+            maps.inputs.add_padding(bits=padding)
+            validator.reset()
+            assert not validator.exceptions
+            assert FSoEFrameRules.PADDING_BLOCKS_VALID not in validator._validated_rules
+            validator.validate_dictionary_map_fsoe_frame_rules(
+                maps.inputs, rules=[FSoEFrameRules.PADDING_BLOCKS_VALID]
+            )
+            assert not validator.exceptions
+            assert validator.is_rule_valid(FSoEFrameRules.PADDING_BLOCKS_VALID) is True
 
     @pytest.mark.fsoe
     def test_validate_safe_data_objects_word_aligned(self, sample_safe_dictionary):
@@ -1118,6 +1129,20 @@ class TestPduMapper:
         assert "Object must be word-aligned, found at bit position 8" in exception.exception
         assert exception.position == [8]
         assert validator.is_rule_valid(FSoEFrameRules.OBJECTS_ALIGNED) is False
+
+        # Check that the rule passes when the object is word-aligned
+        maps.inputs.clear()
+        maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
+        maps.inputs.add_padding(bits=8)
+        maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U16_UID])
+        validator.reset()
+        assert not validator.exceptions
+        assert FSoEFrameRules.OBJECTS_ALIGNED not in validator._validated_rules
+        validator.validate_dictionary_map_fsoe_frame_rules(
+            maps.inputs, rules=[FSoEFrameRules.OBJECTS_ALIGNED]
+        )
+        assert not validator.exceptions
+        assert validator.is_rule_valid(FSoEFrameRules.OBJECTS_ALIGNED) is True
 
     @pytest.mark.fsoe
     def test_validate_dictionary_map_fsoe_frame_rules(self, sample_safe_dictionary):

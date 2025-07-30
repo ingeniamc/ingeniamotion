@@ -63,11 +63,11 @@ class FSoEFrameRuleValidator(ABC):
     """
 
     def __init__(self, rules: list[FSoEFrameRules]) -> None:
-        self._exceptions: dict[FSoEFrameRules, Optional[InvalidFSoEFrameRule]] = dict.fromkeys(
-            rules, None
-        )
         self.__validated: bool = False
         self.rules: list[FSoEFrameRules] = rules
+        self._exceptions: dict[FSoEFrameRules, Optional[InvalidFSoEFrameRule]] = dict.fromkeys(
+            self.rules, None
+        )
 
     @property
     def is_valid(self) -> bool:
@@ -106,8 +106,8 @@ class FSoEFrameRuleValidator(ABC):
 
     def reset(self) -> None:
         """Reset the validator state."""
-        self._exceptions = {}
         self.__validated = False
+        self._exceptions = dict.fromkeys(self.rules, None)
 
 
 class SafeDataBlocksValidator(FSoEFrameRuleValidator):
@@ -334,8 +334,8 @@ class FSoEDictionaryMapValidator:
             PaddingBlockValidator(),
             ObjectsAlignedValidator(),
         ]
-        self._exceptions: dict[FSoEFrameRules, InvalidFSoEFrameRule] = {}
         self._validated_rules: dict[FSoEFrameRules, bool] = {}
+        self._exceptions: dict[FSoEFrameRules, InvalidFSoEFrameRule] = {}
 
     @property
     def exceptions(self) -> dict[FSoEFrameRules, InvalidFSoEFrameRule]:
