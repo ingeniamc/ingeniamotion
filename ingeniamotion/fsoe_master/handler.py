@@ -1,11 +1,12 @@
 import threading
+from collections.abc import Iterator
 from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union, cast, overload
 
 import ingenialogger
 from ingenialink import RegDtype
 from ingenialink.canopen.register import CanopenRegister
 from ingenialink.dictionary import DictionarySafetyModule
-from ingenialink.enums.register import RegCyclicType
+from ingenialink.enums.register import RegAccess, RegCyclicType
 from ingenialink.ethercat.servo import EthercatServo
 from ingenialink.pdo import RPDOMap, TPDOMap
 from ingenialink.utils._utils import convert_dtype_to_bytes
@@ -28,7 +29,11 @@ from ingeniamotion.fsoe_master.fsoe import (
     calculate_sra_crc,
 )
 from ingeniamotion.fsoe_master.maps import PDUMaps
-from ingeniamotion.fsoe_master.parameters import SafetyParameter, SafetyParameterDirectValidation
+from ingeniamotion.fsoe_master.parameters import (
+    PARAM_VALUE_TYPE,
+    SafetyParameter,
+    SafetyParameterDirectValidation,
+)
 from ingeniamotion.fsoe_master.safety_functions import (
     SafeInputsFunction,
     SafetyFunction,
@@ -58,8 +63,8 @@ class FSoEMasterHandler:
     FSOE_DICTIONARY_CATEGORY = "FSOE"
     MDP_CONFIGURED_MODULE_1 = "MDP_CONFIGURED_MODULE_1"
 
-    __FSOE_RPDO_MAP_1 = "ETG_COMMS_RPDO_MAP256_TOTAL"
-    __FSOE_TPDO_MAP_1 = "ETG_COMMS_TPDO_MAP256_TOTAL"
+    __FSOE_RPDO_MAP_UID = "ETG_COMMS_RPDO_MAP256"
+    __FSOE_TPDO_MAP_UID = "ETG_COMMS_TPDO_MAP256"
     __FSOE_SAFETY_PROJECT_CRC = "FSOE_SAFETY_PROJECT_CRC"
 
     DEFAULT_WATCHDOG_TIMEOUT_S = 1
@@ -134,11 +139,21 @@ class FSoEMasterHandler:
             state_change_callback=self.__state_change_callback,
         )
 
-        self.__safety_master_pdu = servo.read_rpdo_map_from_slave(self.__FSOE_RPDO_MAP_1, 1)
-        self.__safety_slave_pdu = servo.read_tpdo_map_from_slave(self.__FSOE_TPDO_MAP_1, 1)
+        master_map_object = self.__servo.dictionary.get_object(self.__FSOE_RPDO_MAP_UID, 1)
+        slave_map_object = self.__servo.dictionary.get_object(self.__FSOE_TPDO_MAP_UID, 1)
+
+        self.__safety_master_pdu = servo.read_rpdo_map_from_slave(master_map_object)
+        self.__safety_slave_pdu = servo.read_tpdo_map_from_slave(slave_map_object)
+
+        # https://novantamotion.atlassian.net/browse/INGM-669
+        self.__map_editable = (master_map_object.registers[0].access == RegAccess.RW) and (
+            slave_map_object.registers[0].access == RegAccess.RW
+        )
 
         self.__maps = PDUMaps.from_rpdo_tpdo(
-            self.__safety_master_pdu, self.__safety_slave_pdu, dictionary=self.dictionary
+            self.__safety_master_pdu,
+            self.__safety_slave_pdu,
+            dictionary=self.dictionary,
         )
         self.set_maps(self.__maps)
 
@@ -270,6 +285,7 @@ class FSoEMasterHandler:
 
         self._master_handler.master.dictionary_map = maps.outputs
         self._master_handler.slave.dictionary_map = maps.inputs
+        self.__maps = maps
 
     def configure_pdo_maps(self) -> None:
         """Configure the PDOMaps used for the Safety PDUs according to the map."""
@@ -277,21 +293,28 @@ class FSoEMasterHandler:
         self.__maps.fill_rpdo_map(self.safety_master_pdu_map, self.__servo.dictionary)
         self.__maps.fill_tpdo_map(self.safety_slave_pdu_map, self.__servo.dictionary)
 
-        # Update the PDO map items that are listed as safety parameters
-        for item in self.safety_master_pdu_map.items + self.safety_slave_pdu_map.items:
-            uid = item.register.identifier
-            if uid in self.safety_parameters:
-                self.safety_parameters[uid].set(item.register_mapping)
-
-        if self.__uses_sra:
-            sra_crc = self._calculate_sra_crc()
-            self._sra_fsoe_application_parameter.set(sra_crc)  # type: ignore[union-attr]
+        # Update the pdo maps elements that are safe parameters
+        for pdu_map in (self.safety_master_pdu_map, self.safety_slave_pdu_map):
+            for register, mapping_value in pdu_map.map_register_values().items():
+                if register.identifier in self.safety_parameters:
+                    if mapping_value is None:
+                        # Set parameter to zero if it is not mapped
+                        # Although fw should ignore this parameter,
+                        # it is better to reduce noise associated to it
+                        mapping_value = 0
+                    self.safety_parameters[register.identifier].set_without_updating(mapping_value)
 
     def set_pdo_maps_to_slave(self) -> None:
         """Set the PDOMaps to be used by the Safety PDUs to the slave."""
+        # This function only assigns but does not update the values of the PDOMaps.
+        # https://novantamotion.atlassian.net/browse/INGK-1140
         self.__servo.set_pdo_map_to_slave(
             rpdo_maps=[self.safety_master_pdu_map], tpdo_maps=[self.safety_slave_pdu_map]
         )
+
+        if self.__map_editable:
+            self.safety_master_pdu_map.write_to_slave(padding=True)
+            self.safety_slave_pdu_map.write_to_slave(padding=True)
 
     def remove_pdo_maps_from_slave(self) -> None:
         """Remove the PDOMaps used by the Safety PDUs from the slave."""
@@ -302,7 +325,8 @@ class FSoEMasterHandler:
         """Set the FSoE master handler request to the Safety Master PDU PDOMap."""
         if not self.__running:
             self.__start_on_first_request()
-        self.safety_master_pdu_map.set_item_bytes(self._master_handler.get_request())
+        req = self._master_handler.get_request()
+        self.safety_master_pdu_map.set_item_bytes(req)
 
     def set_reply(self) -> None:
         """Get the FSoE slave response.
@@ -319,6 +343,22 @@ class FSoEMasterHandler:
                 self.__in_initial_reset = False
 
         self._master_handler.set_reply(reply)
+
+    def get_mismatched_parameters(
+        self,
+    ) -> Iterator[tuple[SafetyParameter, PARAM_VALUE_TYPE, PARAM_VALUE_TYPE]]:
+        """Get parameters that are mismatched between the master and the slave.
+
+        Additional method, with more contextual information than SRA or direct validation.
+        to check parameters that are mismatched between the master and the slave.
+
+        Yields:
+            Mismatched parameters as tuples of (SafetyParameter, master_value, slave_value).
+        """
+        for param in self.safety_parameters.values():
+            mismatched, master_value, slave_value = param.is_mismatched()
+            if mismatched:
+                yield param, master_value, slave_value
 
     @weak_lru()
     def safety_functions_by_type(self) -> dict[type[SafetyFunction], list[SafetyFunction]]:
