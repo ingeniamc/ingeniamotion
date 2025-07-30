@@ -449,15 +449,15 @@ def test_modify_safe_parameters():
 
 
 @pytest.mark.fsoe
-@pytest.mark.parametrize("dictionary, editable", [
-    (SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, False),
-    (SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, True)
-])
+@pytest.mark.parametrize(
+    "dictionary, editable",
+    [(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, False), (SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, True)],
+)
 def test_mapping_locked(dictionary, editable):
     mock_servo = MockServo(dictionary)
 
     if not editable:
-        # First xdf v3 and esi files of phase 1 had the PDOs set to RW
+        # First xdf v3 and esi files of phase 1 had the PDOs set to RW as a mistake
         # for XDF V2, the hard-coded pdo maps are created with RO access
         for obj in [
             mock_servo.dictionary.get_object("ETG_COMMS_RPDO_MAP256", 1),
