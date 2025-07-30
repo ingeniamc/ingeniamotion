@@ -1,6 +1,7 @@
 import time
 
 import pytest
+from ingenialogger import get_logger
 
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 from ingeniamotion.motion_controller import MotionController
@@ -35,6 +36,8 @@ def error_handler(error) -> None:
 #     yield
 #     mc.fsoe._delete_master_handler()
 
+logger = get_logger(__name__)
+
 
 def common_test(mc, handler):
     # Get the safety functions instances
@@ -67,19 +70,19 @@ def common_test(mc, handler):
     inputs.add_padding(7)
 
     # Print the maps to check the configuration
-    print("Inputs Map:")
-    print(inputs.get_text_representation())
-    print("Outputs Map:")
-    print(outputs.get_text_representation())
+    logger.info("Inputs Map:")
+    logger.info(inputs.get_text_representation())
+    logger.info("Outputs Map:")
+    logger.info(outputs.get_text_representation())
 
     mc.fsoe.configure_pdos()
 
     # After reconfiguring the maps and configuring the pdos,
     # The PDOs can be printed to check the mapping
-    print("Outputs PDO Map:")
-    print(handler.safety_master_pdu_map.get_text_representation())
-    print("Inputs PDO Map:")
-    print(handler.safety_slave_pdu_map.get_text_representation())
+    logger.info("Outputs PDO Map:")
+    logger.info(handler.safety_master_pdu_map.get_text_representation())
+    logger.info("Inputs PDO Map:")
+    logger.info(handler.safety_slave_pdu_map.get_text_representation())
 
     # Start pdo transmission
     mc.capture.pdo.start_pdos()
@@ -93,27 +96,48 @@ def common_test(mc, handler):
         sto.command.set(1)
         ss1.command.set(1)
         # And inputs can be read
-        print(f"Safe Inputs Value: {safe_inputs.value.get()}")
+        logger.info(f"Safe Inputs Value: {safe_inputs.value.get()}")
 
     # Stop the FSoE master handler
+    logger.info("stopping master handler")
     mc.fsoe.stop_master(stop_pdos=True)
+    logger.info("master handler stopped")
     mc.fsoe._delete_master_handler()
+    logger.info("master handler deleted")
 
 
 @pytest.mark.fsoe
-def test_mappings(setup_descriptor) -> None:
+def test_mappings_no_fixture(setup_descriptor) -> None:
     mc = MotionController()
-    # mc.communication.subscribe_emergency_message(emergency_handler)
     # Configure error channel
     mc.communication.connect_servo_ethercat(
         setup_descriptor.ifname, setup_descriptor.slave, setup_descriptor.dictionary
     )
-    mc.fsoe.subscribe_to_errors(lambda error: print(error))
+    # start_time = time.time()
+    # while time.time() - start_time < 2:
+    #     time.sleep(0.1)
+    mc.communication.subscribe_emergency_message(emergency_handler)
+    mc.fsoe.subscribe_to_errors(lambda error: logger.error(error))
     handler = mc.fsoe.create_fsoe_master_handler(use_sra=True)
     common_test(mc, handler)
 
 
 @pytest.mark.fsoe
-def test_mappings_with_fixture(mc_with_fsoe_with_sra) -> None:
+def test_mappings_with_mc_and_fsoe_fixture(mc_with_fsoe_with_sra) -> None:
+    # start_time = time.time()
+    # while time.time() - start_time < 2:
+    #     time.sleep(0.1)
+
     mc, handler = mc_with_fsoe_with_sra
     common_test(mc, handler)
+
+
+@pytest.mark.fsoe
+def test_mappings_with_mc_fixture(mc) -> None:
+    mc.communication.subscribe_emergency_message(emergency_handler)
+    # Configure error channel
+    mc.fsoe.subscribe_to_errors(lambda error: logger.error(error))
+    # Create and start the FSoE master handler
+    handler = mc.fsoe.create_fsoe_master_handler(use_sra=True)
+    common_test(mc, handler)
+    mc.fsoe._delete_master_handler()
