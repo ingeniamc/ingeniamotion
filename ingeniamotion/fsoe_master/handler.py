@@ -1,4 +1,5 @@
 import threading
+from collections.abc import Iterator
 from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union, cast, overload
 
 import ingenialogger
@@ -7,7 +8,7 @@ from ingenialink.canopen.register import CanopenRegister
 from ingenialink.dictionary import DictionarySafetyModule
 from ingenialink.enums.register import RegCyclicType
 from ingenialink.ethercat.servo import EthercatServo
-from ingenialink.pdo import RPDOMap, TPDOMap
+from ingenialink.pdo import PDOMap, RPDOMap, TPDOMap
 from ingenialink.utils._utils import convert_dtype_to_bytes
 
 from ingeniamotion._utils import weak_lru
@@ -28,7 +29,11 @@ from ingeniamotion.fsoe_master.fsoe import (
     calculate_sra_crc,
 )
 from ingeniamotion.fsoe_master.maps import PDUMaps
-from ingeniamotion.fsoe_master.parameters import SafetyParameter, SafetyParameterDirectValidation
+from ingeniamotion.fsoe_master.parameters import (
+    PARAM_VALUE_TYPE,
+    SafetyParameter,
+    SafetyParameterDirectValidation,
+)
 from ingeniamotion.fsoe_master.safety_functions import (
     SafeInputsFunction,
     SafetyFunction,
@@ -277,11 +282,29 @@ class FSoEMasterHandler:
         self.__maps.fill_rpdo_map(self.safety_master_pdu_map, self.__servo.dictionary)
         self.__maps.fill_tpdo_map(self.safety_slave_pdu_map, self.__servo.dictionary)
 
-        # Update the PDO map items that are listed as safety parameters
-        for item in self.safety_master_pdu_map.items + self.safety_slave_pdu_map.items:
-            uid = item.register.identifier
-            if uid in self.safety_parameters:
-                self.safety_parameters[uid].set(item.register_mapping)
+        # https://novantamotion.atlassian.net/browse/INGK-1135
+        for safety_param in self.safety_parameters.values():
+            # Update safety parameters that are elements of the pdo maps.
+            # It is only set to the master
+            # It will be set on the slave when set_pdo_maps_to_slave is called
+            if safety_param.register.idx == self.__safety_master_pdu.map_register_index:
+                pdo_map: PDOMap = self.__safety_master_pdu
+            elif safety_param.register.idx == self.__safety_slave_pdu.map_register_index:
+                pdo_map = self.__safety_slave_pdu
+            else:
+                continue
+
+            subidx = safety_param.register.subidx
+            if subidx == 0:
+                safety_param.set_without_updating(len(pdo_map.items))
+                continue
+
+            item_idx = subidx - 1
+            if item_idx >= len(pdo_map.items):
+                new_param_val = 0
+            else:
+                new_param_val = pdo_map.items[item_idx].register_mapping
+            safety_param.set_without_updating(new_param_val)
 
         if self.__uses_sra:
             sra_crc = self._calculate_sra_crc()
@@ -289,9 +312,14 @@ class FSoEMasterHandler:
 
     def set_pdo_maps_to_slave(self) -> None:
         """Set the PDOMaps to be used by the Safety PDUs to the slave."""
+        # This function only assigns but does not update the values of the PDOMaps.
+        # https://novantamotion.atlassian.net/browse/INGK-1140
         self.__servo.set_pdo_map_to_slave(
             rpdo_maps=[self.safety_master_pdu_map], tpdo_maps=[self.safety_slave_pdu_map]
         )
+
+        self.safety_master_pdu_map.write_to_slave(max_pdo_items_for_padding=45)
+        self.safety_slave_pdu_map.write_to_slave(max_pdo_items_for_padding=45)
 
     def remove_pdo_maps_from_slave(self) -> None:
         """Remove the PDOMaps used by the Safety PDUs from the slave."""
@@ -302,7 +330,8 @@ class FSoEMasterHandler:
         """Set the FSoE master handler request to the Safety Master PDU PDOMap."""
         if not self.__running:
             self.__start_on_first_request()
-        self.safety_master_pdu_map.set_item_bytes(self._master_handler.get_request())
+        req = self._master_handler.get_request()
+        self.safety_master_pdu_map.set_item_bytes(req)
 
     def set_reply(self) -> None:
         """Get the FSoE slave response.
@@ -319,6 +348,22 @@ class FSoEMasterHandler:
                 self.__in_initial_reset = False
 
         self._master_handler.set_reply(reply)
+
+    def get_mismatched_parameters(
+        self,
+    ) -> Iterator[tuple[SafetyParameter, PARAM_VALUE_TYPE, PARAM_VALUE_TYPE]]:
+        """Get parameters that are mismatched between the master and the slave.
+
+        Additional method, with more contextual information than SRA or direct validation.
+        to check parameters that are mismatched between the master and the slave.
+
+        Yields:
+            Mismatched parameters as tuples of (SafetyParameter, master_value, slave_value).
+        """
+        for param in self.safety_parameters.values():
+            mismatched, master_value, slave_value = param.is_mismatched()
+            if mismatched:
+                yield param, master_value, slave_value
 
     @weak_lru()
     def safety_functions_by_type(self) -> dict[type[SafetyFunction], list[SafetyFunction]]:
