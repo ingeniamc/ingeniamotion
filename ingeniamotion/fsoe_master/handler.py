@@ -316,9 +316,10 @@ class FSoEMasterHandler:
 
     def configure_pdo_maps(self) -> None:
         """Configure the PDOMaps used for the Safety PDUs according to the map."""
-        # Fill the RPDOMap and TPDOMap with the items from the maps
-        self.__maps.fill_rpdo_map(self.safety_master_pdu_map, self.__servo.dictionary)
-        self.__maps.fill_tpdo_map(self.safety_slave_pdu_map, self.__servo.dictionary)
+        if self.__maps.editable:
+            # Fill the RPDOMap and TPDOMap with the items from the maps
+            self.__maps.fill_rpdo_map(self.safety_master_pdu_map, self.__servo.dictionary)
+            self.__maps.fill_tpdo_map(self.safety_slave_pdu_map, self.__servo.dictionary)
 
         # Update the pdo maps elements that are safe parameters
         for pdu_map in (self.safety_master_pdu_map, self.safety_slave_pdu_map):
