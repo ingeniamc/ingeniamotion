@@ -39,8 +39,6 @@ if FSOE_MASTER_INSTALLED:
         FSoEDictionaryMapValidator,
         FSoEFrameRules,
         InvalidFSoEFrameRule,
-        PaddingBlockValidator,
-        SafeDataBlocksValidator,
     )
 
 
@@ -970,15 +968,16 @@ class TestPduMapper:
         )
         # Only validate the safe data blocks rule
         validator = FSoEDictionaryMapValidator()
-        validator._validators = [SafeDataBlocksValidator()]
-        exceptions = validator.validate_dictionary_map_fsoe_frame_rules(maps.inputs)
+        exceptions = validator.validate_dictionary_map_fsoe_frame_rules(
+            maps.inputs, rules=[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
+        )
         assert len(exceptions) == 1
         assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID in exceptions
         exception = exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
         assert isinstance(exception, InvalidFSoEFrameRule)
         assert f"Safe data block 0 must be 16 bits, found {dummy_slot_width}" in exception.exception
         assert exception.position == [0]
-        assert validator._validators[0].is_valid is False
+        assert validator.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is False
 
     @pytest.mark.fsoe
     def test_validate_safe_data_blocks_pdu_empty(self, sample_safe_dictionary):
@@ -987,13 +986,14 @@ class TestPduMapper:
         maps = PDUMaps.empty(fsoe_dict)
         # Only validate the safe data blocks rule
         validator = FSoEDictionaryMapValidator()
-        validator._validators = [SafeDataBlocksValidator()]
-        exceptions = validator.validate_dictionary_map_fsoe_frame_rules(maps.inputs)
+        exceptions = validator.validate_dictionary_map_fsoe_frame_rules(
+            maps.inputs, rules=[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
+        )
         assert len(exceptions) == 1
         assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID in exceptions
         exception = exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
         assert exception.exception == "No safe data blocks found in PDO map"
-        assert validator._validators[0].is_valid is False
+        assert validator.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is False
 
     @pytest.mark.fsoe
     def test_validate_safe_data_blocks_too_many_blocks(self):
@@ -1045,15 +1045,16 @@ class TestPduMapper:
 
         # Only validate the safe data blocks rule
         validator = FSoEDictionaryMapValidator()
-        validator._validators = [SafeDataBlocksValidator()]
-        exceptions = validator.validate_dictionary_map_fsoe_frame_rules(maps.inputs)
+        exceptions = validator.validate_dictionary_map_fsoe_frame_rules(
+            maps.inputs, rules=[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
+        )
         assert len(exceptions) == 1
         assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID in exceptions
         exception = exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
         assert isinstance(exception, InvalidFSoEFrameRule)
         assert "Expected 1-8 safe data blocks, found 9" in exception.exception
         assert exception.position is None
-        assert validator._validators[0].is_valid is False
+        assert validator.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is False
 
     @pytest.mark.fsoe
     def test_validate_safe_data_blocks_valid_cases(self, sample_safe_dictionary):
@@ -1072,12 +1073,13 @@ class TestPduMapper:
             validator = FSoEDictionaryMapValidator()
             exceptions = validator.validate_dictionary_map_fsoe_frame_rules(maps.inputs)
             assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID not in exceptions
-            for _validator in validator._validators:
-                assert _validator.is_valid is True
+            assert len(validator._validated_rules) == len(FSoEFrameRules)
+            for rule in FSoEFrameRules:
+                assert validator.is_rule_valid(rule) is True
 
     @pytest.mark.fsoe
     def test_validate_safe_data_padding_blocks(self, sample_safe_dictionary):
-        """Test that SafeDataPaddingBlocksValidator fails when padding blocks are not 8 bits."""
+        """Test that PaddingBlockValidator fails when padding blocks are not 8 bits."""
         _, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
 
@@ -1085,15 +1087,37 @@ class TestPduMapper:
 
         # Only validate the safe data blocks rule
         validator = FSoEDictionaryMapValidator()
-        validator._validators = [PaddingBlockValidator()]
-        exceptions = validator.validate_dictionary_map_fsoe_frame_rules(maps.inputs)
+        exceptions = validator.validate_dictionary_map_fsoe_frame_rules(
+            maps.inputs, rules=[FSoEFrameRules.PADDING_BLOCKS_VALID]
+        )
         assert len(exceptions) == 1
         assert FSoEFrameRules.PADDING_BLOCKS_VALID in exceptions
         exception = exceptions[FSoEFrameRules.PADDING_BLOCKS_VALID]
         assert isinstance(exception, InvalidFSoEFrameRule)
         assert "Padding block size must range from 1 to 16 bits, found 32" in exception.exception
         assert exception.position == [0]
-        assert validator._validators[0].is_valid is False
+        assert validator.is_rule_valid(FSoEFrameRules.PADDING_BLOCKS_VALID) is False
+
+    @pytest.mark.fsoe
+    def test_validate_safe_data_objects_word_aligned(self, sample_safe_dictionary):
+        """Test that validation fails when safe data objects >= 16 bits are not word aligned."""
+        _, fsoe_dict = sample_safe_dictionary
+        maps = PDUMaps.empty(fsoe_dict)
+
+        maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
+        maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U16_UID])
+
+        validator = FSoEDictionaryMapValidator()
+        exceptions = validator.validate_dictionary_map_fsoe_frame_rules(
+            maps.inputs, rules=[FSoEFrameRules.OBJECTS_ALIGNED]
+        )
+        assert len(exceptions) == 1
+        assert FSoEFrameRules.OBJECTS_ALIGNED in exceptions
+        exception = exceptions[FSoEFrameRules.OBJECTS_ALIGNED]
+        assert isinstance(exception, InvalidFSoEFrameRule)
+        assert "Object must be word-aligned, found at bit position 8" in exception.exception
+        assert exception.position == [8]
+        assert validator.is_rule_valid(FSoEFrameRules.OBJECTS_ALIGNED) is False
 
     @pytest.mark.fsoe
     def test_validate_dictionary_map_fsoe_frame_rules(self, sample_safe_dictionary):
@@ -1110,5 +1134,6 @@ class TestPduMapper:
             validator = FSoEDictionaryMapValidator()
             exceptions = validator.validate_dictionary_map_fsoe_frame_rules(dictionary_map)
             assert exceptions == {}
+            assert len(validator._validated_rules) == len(FSoEFrameRules)
             for rule in FSoEFrameRules:
-                assert rule in validator._validated_rules
+                assert validator.is_rule_valid(rule) is True

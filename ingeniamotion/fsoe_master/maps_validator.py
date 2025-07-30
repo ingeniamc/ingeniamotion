@@ -20,6 +20,7 @@ class FSoEFrameRules(Enum):
     )
     OBJECTS_IN_FRAME = "A frame can contain up to 45 objects in total"
     PADDING_BLOCKS_VALID = "Padding blocks may range from 1 to 16 bits"
+    OBJECTS_ALIGNED = "16-bit and larger objects must be word-aligned within the payload"
 
 
 @dataclass
@@ -284,11 +285,6 @@ class PaddingBlockValidator(FSoEFrameRuleValidator):
 
     @override
     def _validate(self, dictionary_map: FSoEDictionaryMap) -> None:
-        """Validate the padding blocks in the FSoE frame.
-
-        Args:
-            dictionary_map: The dictionary map to validate.
-        """
         for item in dictionary_map:
             # Not a padding block
             if item.item is not None:
@@ -302,6 +298,29 @@ class PaddingBlockValidator(FSoEFrameRuleValidator):
                 return
 
 
+class ObjectsAlignedValidator(FSoEFrameRuleValidator):
+    """Validator for object alignment in FSoE frames.
+
+    Validates that 16-bit and larger objects are word-aligned within the payload.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(rules=[FSoEFrameRules.OBJECTS_ALIGNED])
+
+    @override
+    def _validate(self, dictionary_map: FSoEDictionaryMap) -> None:
+        for item in dictionary_map:
+            if item.bits >= 16 and item.position_bits % 16 != 0:
+                self._exceptions[FSoEFrameRules.OBJECTS_ALIGNED] = InvalidFSoEFrameRule(
+                    rule=FSoEFrameRules.OBJECTS_ALIGNED,
+                    exception=(
+                        f"Object must be word-aligned, found at bit position {item.position_bits}"
+                    ),
+                    position=[item.position_bits],
+                )
+                return
+
+
 class FSoEDictionaryMapValidator:
     """Validator for FSoE Dictionary Maps.
 
@@ -310,12 +329,13 @@ class FSoEDictionaryMapValidator:
 
     def __init__(self) -> None:
         """Initialize the FSoEDictionaryMapValidator."""
-        self._validators: list[FSoEFrameRuleValidator] = [
+        self.__validators: list[FSoEFrameRuleValidator] = [
             SafeDataBlocksValidator(),
             PaddingBlockValidator(),
+            ObjectsAlignedValidator(),
         ]
         self._exceptions: dict[FSoEFrameRules, InvalidFSoEFrameRule] = {}
-        self._validated_rules: list[FSoEFrameRules] = []
+        self._validated_rules: dict[FSoEFrameRules, bool] = {}
 
     @property
     def exceptions(self) -> dict[FSoEFrameRules, InvalidFSoEFrameRule]:
@@ -328,29 +348,50 @@ class FSoEDictionaryMapValidator:
 
     def reset(self) -> None:
         """Reset the validator state."""
-        for validator in self._validators:
+        for validator in self.__validators:
             validator.reset()
         self._exceptions = {}
-        self._validated_rules = []
+        self._validated_rules = {}
+
+    def is_rule_valid(self, rule: FSoEFrameRules) -> bool:
+        """Check if a specific rule has been validated and is valid.
+
+        Args:
+            rule: The FSoE frame rule to check.
+
+        Returns:
+            True if the rule is valid, False otherwise.
+        """
+        if rule not in self._validated_rules:
+            logger.warning(f"Rule {rule} has not been validated yet.")
+            return False
+        return self._validated_rules[rule]
 
     def validate_dictionary_map_fsoe_frame_rules(
-        self, dictionary_map: FSoEDictionaryMap
+        self, dictionary_map: FSoEDictionaryMap, rules: Optional[list[FSoEFrameRules]] = None
     ) -> dict[FSoEFrameRules, InvalidFSoEFrameRule]:
         """Validate that the FSoE dictionary map follows FSoE frame construction rules.
 
         Args:
             dictionary_map: The dictionary map to validate.
+            rules: Optional list of specific rules to validate. If None, all rules are validated.
 
         Returns:
             Dictionary of validation errors for the FSoE frame.
         """
-        if self._validated_rules:
-            logger.warning("Validation already performed, returning cached exceptions.")
-            return self.exceptions
-        for validator in self._validators:
-            exceptions = validator.validate(dictionary_map)
-            self._validated_rules.extend(validator.rules)
-            for rule in validator.rules:
-                if exceptions[rule] is not None:
-                    self._exceptions[rule] = exceptions[rule]  # type: ignore[assignment]
+        rules_to_validate = set(rules) if rules is not None else list(FSoEFrameRules)
+        for rule in rules_to_validate:
+            if rule in self._validated_rules:
+                logger.warning("Validation already performed, returning cached exceptions.")
+                continue
+            for validator in self.__validators:
+                if rule not in validator.rules:
+                    continue
+                exceptions = validator.validate(dictionary_map)
+                for evaluated_rule in validator.rules:
+                    self._validated_rules[evaluated_rule] = validator.is_valid
+                    if exceptions[evaluated_rule] is not None:
+                        self._exceptions[evaluated_rule] = exceptions[evaluated_rule]  # type: ignore[assignment]
+                # Only one validator can contain the rule
+                break
         return self.exceptions
