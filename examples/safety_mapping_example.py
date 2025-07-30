@@ -1,23 +1,36 @@
+import argparse
 import time
 
 from ingeniamotion import MotionController
-import argparse
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 
 if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master import (
-        STOFunction,
-        SS1Function,
-        SOSFunction,
-        SS2Function,
         SafeInputsFunction,
         SAFunction,
+        SOSFunction,
+        SS1Function,
+        SS2Function,
+        STOFunction,
         SVFunction,
+    )
+    from ingeniamotion.fsoe_master.maps_validator import (
+        FSoEDictionaryMapValidator,
+        FSoEFrameConstructionError,
     )
 
 
-def main(interface_ip, slave_id, dict_path):
-    """Establish a FSoE connection, deactivate the STO and move the motor."""
+def main(interface_ip, slave_id, dict_path) -> None:
+    """Establish a FSoE connection, deactivate the STO and move the motor.
+
+    Args:
+        interface_ip: IP address of the network interface to use.
+        slave_id (int): ID of the servo drive to connect to.
+        dict_path: Path to the drive dictionary file.
+
+    Raises:
+        FSoEFrameConstructionError: If the FSoE frame construction is invalid.
+    """
     mc = MotionController()
     # Configure error channel
     mc.fsoe.subscribe_to_errors(lambda error: print(error))
@@ -56,6 +69,19 @@ def main(interface_ip, slave_id, dict_path):
     inputs.add_padding(6)
     inputs.add(safe_inputs.value)
     inputs.add_padding(7)
+
+    # Check that the maps are valid
+    validator = FSoEDictionaryMapValidator()
+    for dictionary_map, map_description in zip(
+        [handler.maps.inputs, handler.maps.outputs], ["Inputs Map", "Outputs Map"]
+    ):
+        validator.reset()
+        print(f"Validating {map_description}")
+        exceptions = validator.validate(dictionary_map, rules_to_validate=None)
+        if exceptions:
+            print(f"Validation failed for {map_description}:")
+            raise FSoEFrameConstructionError(exceptions)
+        print(f"{map_description} is valid.")
 
     # Print the maps to check the configuration
     print("Inputs Map:")
