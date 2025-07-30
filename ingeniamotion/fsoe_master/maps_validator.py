@@ -6,8 +6,13 @@ from typing import Optional
 from ingenialogger import get_logger
 from typing_extensions import override
 
-from ingeniamotion.fsoe_master.fsoe import FSoEDictionaryItem, FSoEDictionaryMap
+from ingeniamotion.fsoe_master.fsoe import (
+    FSoEDictionaryItem,
+    FSoEDictionaryItemOutput,
+    FSoEDictionaryMap,
+)
 from ingeniamotion.fsoe_master.maps import PDUMaps
+from ingeniamotion.fsoe_master.safety_functions import STOFunction
 
 logger = get_logger(__name__)
 
@@ -21,6 +26,9 @@ class FSoEFrameRules(Enum):
     OBJECTS_IN_FRAME = "A frame can contain up to 45 objects in total"
     PADDING_BLOCKS_VALID = "Padding blocks may range from 1 to 16 bits"
     OBJECTS_ALIGNED = "16-bit and larger objects must be word-aligned within the payload"
+    STO_COMMAND_FIRST = (
+        "The STO command must always be mapped to the first position in the Safe Outputs payload"
+    )
 
 
 @dataclass
@@ -321,6 +329,29 @@ class ObjectsAlignedValidator(FSoEFrameRuleValidator):
                 return
 
 
+class STOCommandFirstValidator(FSoEFrameRuleValidator):
+    """Validator for the STO command position in FSoE frames.
+
+    Validates that the STO command is always mapped to the first position in Safe Outputs.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(rules=[FSoEFrameRules.STO_COMMAND_FIRST])
+
+    @override
+    def _validate(self, dictionary_map: FSoEDictionaryMap) -> None:
+        if FSoEDictionaryItemOutput not in dictionary_map.item_types_accepted:
+            return
+
+        first_item = dictionary_map._items[0]
+        if first_item.item is None or first_item.item.name != STOFunction.COMMAND_UID:
+            self._exceptions[FSoEFrameRules.STO_COMMAND_FIRST] = InvalidFSoEFrameRule(
+                rule=FSoEFrameRules.STO_COMMAND_FIRST,
+                exception="STO command must be mapped to the first position in Safe Outputs",
+                position=[first_item.position_bits],
+            )
+
+
 class FSoEDictionaryMapValidator:
     """Validator for FSoE Dictionary Maps.
 
@@ -333,6 +364,7 @@ class FSoEDictionaryMapValidator:
             SafeDataBlocksValidator(),
             PaddingBlockValidator(),
             ObjectsAlignedValidator(),
+            STOCommandFirstValidator(),
         ]
         self._validated_rules: dict[FSoEFrameRules, bool] = {}
         self._exceptions: dict[FSoEFrameRules, InvalidFSoEFrameRule] = {}

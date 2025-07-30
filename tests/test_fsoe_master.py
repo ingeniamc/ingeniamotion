@@ -1145,6 +1145,46 @@ class TestPduMapper:
         assert validator.is_rule_valid(FSoEFrameRules.OBJECTS_ALIGNED) is True
 
     @pytest.mark.fsoe
+    def test_validato_sto_command_first_in_outputs(self, sample_safe_dictionary):
+        """Test that STO command is the first item in the outputs map."""
+        _, fsoe_dict = sample_safe_dictionary
+        maps = PDUMaps.empty(fsoe_dict)
+        maps.outputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
+        maps.outputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
+        # STO command can be anywhere in the inputs map
+        maps.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
+        maps.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
+
+        # Rule fails when validating the outputs
+        validator = FSoEDictionaryMapValidator()
+        exceptions = validator.validate_dictionary_map_fsoe_frame_rules(
+            maps.outputs, rules=[FSoEFrameRules.STO_COMMAND_FIRST]
+        )
+        assert len(exceptions) == 1
+        assert FSoEFrameRules.STO_COMMAND_FIRST in exceptions
+        exception = exceptions[FSoEFrameRules.STO_COMMAND_FIRST]
+        assert isinstance(exception, InvalidFSoEFrameRule)
+        assert (
+            "STO command must be mapped to the first position in Safe Outputs"
+            in exception.exception
+        )
+        assert exception.position == [0]
+        assert validator.is_rule_valid(FSoEFrameRules.STO_COMMAND_FIRST) is False
+        # Check that rule passes when validating the inputs
+        validator.reset()
+        validator.validate_dictionary_map_fsoe_frame_rules(maps.inputs)
+        assert not validator.exceptions
+        assert validator.is_rule_valid(FSoEFrameRules.STO_COMMAND_FIRST) is True
+
+        maps.outputs.clear()
+        maps.outputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
+        maps.outputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
+        validator.reset()
+        validator.validate_dictionary_map_fsoe_frame_rules(maps.outputs)
+        assert not validator.exceptions
+        assert validator.is_rule_valid(FSoEFrameRules.STO_COMMAND_FIRST) is True
+
+    @pytest.mark.fsoe
     def test_validate_dictionary_map_fsoe_frame_rules(self, sample_safe_dictionary):
         """Test that FSoE frames pass all validation rules."""
         _, fsoe_dict = sample_safe_dictionary
