@@ -98,6 +98,30 @@ class Communication:
         self.register_update_observers: dict[Servo, list[IMRegisterUpdateObserver]] = {}
         self.emergency_messages_observers: dict[Servo, list[IMEmergencyMessageObserver]] = {}
 
+        # List that holds information about whether or not a servo is disconnecting
+        # This is used to avoid sending a disconnect event when the servo is already
+        # being disconnected by direct user action (calls net.disconnect_from_slave)
+        self.__disconnecting: set[str] = set()
+
+    def __disconnect_callback(self, servo: Servo) -> None:
+        servo_identifier = None
+        for servo_id, servo in self.mc.servos.items():
+            if servo.target == servo.target:
+                servo_identifier = servo_id
+                break
+
+        if servo_identifier is None:
+            raise ValueError("Servo not found in the communication controller.")
+
+        # Servo is being disconnected using Communication.disconnect_from_slave, do not
+        # disconnect again
+        if servo_identifier in self.__disconnecting:
+            return
+
+        # Servo is being disconnected by the user, disconnect from the servo
+        self.__disconnecting.add(servo_identifier)
+        self.disconnect(servo=servo_identifier)
+
     def connect_servo_eoe(
         self,
         ip: str,
@@ -718,6 +742,7 @@ class Communication:
                 dict_path,
                 servo_status_listener=servo_status_listener,
                 net_status_listener=net_status_listener,
+                disconnect_callback=self.__disconnect_callback,
             )
         except ILError as e:
             if len(net.servos) == 0:
@@ -982,10 +1007,22 @@ class Communication:
         """
         drive = self.mc._get_drive(servo)
         network = self.mc._get_network(servo)
-        network.disconnect_from_slave(drive)
-        if isinstance(network, VirtualNetwork) and self.__virtual_drive:
-            self.__virtual_drive.stop()
-            self.__virtual_drive = None
+
+        # Disconnection has been triggered by the interface
+        if servo not in self.__disconnecting:
+            self.__disconnecting.add(servo)
+            network.disconnect_from_slave(drive)
+            if isinstance(network, VirtualNetwork) and self.__virtual_drive:
+                self.__virtual_drive.stop()
+                self.__virtual_drive = None
+        # If the disconnection has been triggered by the user, the network should also be
+        # handled by the user
+        elif isinstance(network, VirtualNetwork) and self.__virtual_drive:
+            self.logger.warning(
+                f"Servo {servo} is being disconnected without using the interface. "
+                f"Make sure to stop the virtual network manually."
+            )
+
         del self.mc.servos[servo]
         net_name = self.mc.servo_net.pop(servo)
         servo_count = list(self.mc.servo_net.values()).count(net_name)
@@ -993,6 +1030,8 @@ class Communication:
             self.mc.fsoe._delete_master_handler(servo)
         if servo_count == 0:
             del self.mc.net[net_name]
+
+        self.__disconnecting.remove(servo)
 
     def get_servo_state(self, servo: str = DEFAULT_SERVO) -> NetState:
         """Get the network state of a servo (connected/disconnected).
