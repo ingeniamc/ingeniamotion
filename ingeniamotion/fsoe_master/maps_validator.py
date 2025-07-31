@@ -6,12 +6,12 @@ from typing import Optional
 from ingenialogger import get_logger
 from typing_extensions import override
 
+from ingeniamotion.fsoe_master.frame import FSoEFrame
 from ingeniamotion.fsoe_master.fsoe import (
     FSoEDictionaryItemOutput,
     FSoEDictionaryMap,
     FSoEDictionaryMappedItem,
 )
-from ingeniamotion.fsoe_master.maps import PDUMaps
 from ingeniamotion.fsoe_master.safety_functions import STOFunction
 
 logger = get_logger(__name__)
@@ -51,7 +51,10 @@ class FSoEFrameRuleValidatorOutput:
     rules: list[FSoEFrameRules]
     """List of FSoE frame rules that were validated."""
     exceptions: dict[FSoEFrameRules, InvalidFSoEFrameRule]
-    """Exceptions raised during validation. If no exception was raised for a rule, it won't be present in the dictionary."""
+    """Exceptions raised during validation.
+
+    If no exception was raised for a rule, it won't be present in the dictionary.
+    """
 
     def is_rule_valid(self, rule: FSoEFrameRules) -> bool:
         """Check if a specific rule is valid.
@@ -75,19 +78,17 @@ class FSoEFrameConstructionError(Exception):
 
     _ERROR_MESSAGE: str = "PDO map validation failed with errors"
 
-    def __init__(self, validation_errors: dict[FSoEFrameRules, list[InvalidFSoEFrameRule]]):
+    def __init__(self, validation_errors: FSoEFrameRuleValidatorOutput) -> None:
         """Initialize with validation errors.
 
         Args:
-            validation_errors: List of validation errors to include in the message
+            validation_errors: The validation output containing the rules and exceptions.
         """
         error_details = []
-        for idx, (rule, errors) in enumerate(validation_errors.items(), 1):
+        for idx, (rule, exception) in enumerate(validation_errors.exceptions.items(), 1):
             error_detail = f"  {idx}. Rule: {rule}\n"
-            for error in errors:
-                error_detail += f"     Error: {error.exception}\n"
+            error_detail += f"     Error: {exception.exception}\n"
             error_details.append(error_detail)
-
         full_message = f"{self._ERROR_MESSAGE}:\n" + "\n".join(error_details)
         super().__init__(full_message)
 
@@ -117,7 +118,7 @@ class FSoEFrameRuleValidator(ABC):
             rules: Optional list of specific rules to validate. If None, all rules are validated.
 
         Returns:
-            FSoEFrameRuleValidatorOutput: The output of the validation containing the rules and exceptions.
+            The output of the validation containing the rules and exceptions.
 
         Raises:
             ValueError: If no valid rules are provided for evaluation.
@@ -171,7 +172,7 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
 
         Note:
             The only way in which the safe data blocks can have invalid size is if there is a bug in
-            the PDUMaps._generate_slot_structure method, which should always return safe data blocks
+            the FSoEFrame.generate_slot_structure method, which should always return safe data blocks
             with the correct size.
 
         Args:
@@ -341,7 +342,7 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
         self, dictionary_map: FSoEDictionaryMap, rules: list[FSoEFrameRules]
     ) -> FSoEFrameRuleValidatorOutput:
         safe_data_blocks = list(
-            PDUMaps._generate_slot_structure(dictionary_map, PDUMaps._PDUMaps__SLOT_WIDTH)  # type: ignore[attr-defined]
+            FSoEFrame.generate_slot_structure(dictionary_map, FSoEFrame._FSoEFrame__SLOT_WIDTH)  # type: ignore[attr-defined]
         )
 
         exceptions: dict[FSoEFrameRules, InvalidFSoEFrameRule] = {}
@@ -452,16 +453,24 @@ class FSoEDictionaryMapValidator:
         ]
 
     def validate_dictionary_map_fsoe_frame_rules(
-        self, dictionary_map: FSoEDictionaryMap, rules: Optional[list[FSoEFrameRules]] = None
+        self,
+        dictionary_map: FSoEDictionaryMap,
+        rules: Optional[list[FSoEFrameRules]] = None,
+        raise_exceptions: bool = False,
     ) -> FSoEFrameRuleValidatorOutput:
         """Validate that the FSoE dictionary map follows FSoE frame construction rules.
 
         Args:
             dictionary_map: The dictionary map to validate.
-            rules: Optional list of specific rules to validate. If None, all rules are validated.
+            rules: List of specific rules to validate. If None, all rules are validated.
+            raise_exceptions: If True, raises an exception if any rule is invalid.
+                If False, returns the validation output with exceptions. Defaults to False.
 
         Returns:
             The output of the validation containing the rules and exceptions.
+
+        Raises:
+            FSoEFrameConstructionError: if raise_exceptions is True and any rule is invalid.
         """
         rules_to_validate = list(set(rules)) if rules is not None else list(FSoEFrameRules)
         exceptions: dict[FSoEFrameRules, InvalidFSoEFrameRule] = {}
@@ -470,4 +479,8 @@ class FSoEDictionaryMapValidator:
                 continue
             output = validator.validate(dictionary_map, rules_to_validate)
             exceptions.update(output.exceptions)
-        return FSoEFrameRuleValidatorOutput(rules=rules_to_validate, exceptions=exceptions)
+
+        result = FSoEFrameRuleValidatorOutput(rules=rules_to_validate, exceptions=exceptions)
+        if raise_exceptions and result.exceptions:
+            raise FSoEFrameConstructionError(validation_errors=result)
+        return result
