@@ -36,6 +36,7 @@ if FSOE_MASTER_INSTALLED:
         STOFunction,
         SVFunction,
     )
+    from ingeniamotion.fsoe_master.frame import FSoEFrame
     from ingeniamotion.fsoe_master.fsoe import (
         FSoEApplicationParameter,
     )
@@ -1226,6 +1227,75 @@ class TestPduMapper:
             output = maps.are_inputs_valid(rules=[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID])
             assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID not in output.exceptions
             assert output.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is True
+
+    @pytest.mark.fsoe
+    def test_validate_number_of_objects_in_frame(self, sample_safe_dictionary):
+        """Test that SafeDataBlocksValidator fails if the number of objects is exceeded."""
+        safe_dict, fsoe_dict = sample_safe_dictionary
+        maps = PDUMaps.empty(fsoe_dict)
+
+        for idx in range(45):
+            test_uid = f"TEST_SI_BOOL_{idx}"
+            safe_dict._registers[self.AXIS_1][test_uid] = EthercatRegister(
+                idx=0xF010 + idx,
+                subidx=0,
+                dtype=RegDtype.BOOL,
+                access=RegAccess.RO,
+                identifier=test_uid,
+                pdo_access=RegCyclicType.SAFETY_INPUT,
+                cat_id="FSOE",
+            )
+        # Check the CRCs that are already present in the sample dictionary and add the missing ones
+        existing_crcs = [
+            key
+            for key in safe_dict._registers[self.AXIS_1]
+            if key.startswith("FSOE_SLAVE_FRAME_ELEM_CRC")
+        ]
+        added_crc = 0
+        for idx in range(45):
+            crc_uid = f"FSOE_SLAVE_FRAME_ELEM_CRC{idx}"
+            if crc_uid in existing_crcs:
+                continue
+            safe_dict._registers[self.AXIS_1][crc_uid] = EthercatRegister(
+                idx=0x6760,
+                subidx=len(existing_crcs) + added_crc,
+                dtype=RegDtype.U16,
+                access=RegAccess.RO,
+                identifier=crc_uid,
+                pdo_access=RegCyclicType.SAFETY_INPUT,
+                cat_id="FSOE",
+            )
+            added_crc += 1
+        # Create safe dictionary
+        fsoe_dict = FSoEMasterHandler.create_safe_dictionary(safe_dict)
+
+        maps = PDUMaps.empty(fsoe_dict)
+
+        test_si_bool_items = []
+        for idx in range(45):
+            test_uid = f"TEST_SI_BOOL_{idx}"
+            item = maps.inputs.add(fsoe_dict.name_map[test_uid])
+            test_si_bool_items.append(item)
+
+        # Expected data blocks
+        # CMD + DATA BLOCKS + CRC + CONNID
+        data_blocks = FSoEFrame.generate_slot_structure(
+            dict_map=maps.inputs, slot_width=FSoEFrame._FSoEFrame__SLOT_WIDTH
+        )
+        expected_crcs = len(list(data_blocks))
+        n_objects = 1 + len(maps.inputs._items) + expected_crcs + 1
+
+        output = maps.are_inputs_valid(
+            rules=[FSoEFrameRules.OBJECTS_IN_FRAME, FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
+        )
+        assert len(output.exceptions) == 1
+        assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID not in output.exceptions
+        assert FSoEFrameRules.OBJECTS_IN_FRAME in output.exceptions
+        exception = output.exceptions[FSoEFrameRules.OBJECTS_IN_FRAME]
+        assert isinstance(exception, InvalidFSoEFrameRule)
+        assert exception.exception == (f"Total objects in frame exceeds limit: {n_objects} > 45")
+        assert exception.items == test_si_bool_items
+        assert output.is_rule_valid(FSoEFrameRules.OBJECTS_IN_FRAME) is False
 
     @pytest.mark.fsoe
     def test_validate_safe_data_padding_blocks(self, sample_safe_dictionary):

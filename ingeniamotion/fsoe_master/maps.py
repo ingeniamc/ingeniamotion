@@ -20,12 +20,11 @@ from ingeniamotion.fsoe_master.maps_validator import (
     FSoEFrameRules,
     FSoEFrameRuleValidatorOutput,
 )
-from ingeniamotion.fsoe_master.safety_functions import (
-    SafetyFunction,
-)
 
 if TYPE_CHECKING:
     from ingenialink.dictionary import Dictionary
+
+    from ingeniamotion.fsoe_master.safety_functions import SafetyFunction
 
 __all__ = ["PDUMaps"]
 

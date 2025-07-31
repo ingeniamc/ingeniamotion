@@ -172,8 +172,8 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
 
         Note:
             The only way in which the safe data blocks can have invalid size is if there is a bug in
-            the FSoEFrame.generate_slot_structure method, which should always return safe data blocks
-            with the correct size.
+            the FSoEFrame.generate_slot_structure method, which should always return safe data
+            blocks with the correct size.
 
         Args:
             dictionary_map: The dictionary map to validate.
@@ -268,12 +268,6 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
         1 object used for CONN_ID
         1 objects used per register mapped
         1 object used for each safe data block CRC
-
-        Note:
-            This rule will never fail if _validate_safe_data_blocks_size is called first
-            If the safe data blocks are valid, then the number of objects in the frame
-            will always be valid as well.
-            If not, then there will be an overflow error when trying to write the PDU.
 
         Args:
             dictionary_map: The dictionary map to validate.
