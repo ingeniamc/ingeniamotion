@@ -1008,20 +1008,11 @@ class Communication:
         drive = self.mc._get_drive(servo)
         network = self.mc._get_network(servo)
 
-        # Disconnection has been triggered by the interface
-        if servo not in self.__disconnecting:
-            self.__disconnecting.add(servo)
-            network.disconnect_from_slave(drive)
-            if isinstance(network, VirtualNetwork) and self.__virtual_drive:
-                self.__virtual_drive.stop()
-                self.__virtual_drive = None
-        # If the disconnection has been triggered by the user, the network should also be
-        # handled by the user
-        elif isinstance(network, VirtualNetwork) and self.__virtual_drive:
-            self.logger.warning(
-                f"Servo {servo} is being disconnected without using the interface. "
-                f"Make sure to stop the virtual network manually."
-            )
+        self.__disconnecting.add(servo)
+        network.disconnect_from_slave(drive)
+        if isinstance(network, VirtualNetwork) and self.__virtual_drive:
+            self.__virtual_drive.stop()
+            self.__virtual_drive = None
 
         del self.mc.servos[servo]
         net_name = self.mc.servo_net.pop(servo)
