@@ -119,7 +119,6 @@ class Communication:
             return
 
         # Servo is being disconnected by the user, disconnect from the servo
-        self.__disconnecting.add(servo_identifier)
         self.disconnect(servo=servo_identifier)
 
     def connect_servo_eoe(
