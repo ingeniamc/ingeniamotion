@@ -1,14 +1,18 @@
 import logging
+import random
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Union
 
 import pytest
-from ingenialink import RegAccess, RegDtype
-from ingenialink.dictionary import DictionarySafetyModule, Interface
+from ingenialink import RegAccess, RegDtype, Servo
+from ingenialink.dictionary import CanOpenObject, DictionarySafetyModule, Interface
 from ingenialink.enums.register import RegCyclicType
 from ingenialink.ethercat.register import EthercatRegister
+from ingenialink.ethercat.servo import EthercatServo
 from ingenialink.pdo import RPDOMap, TPDOMap
+from ingenialink.register import Register
 from ingenialink.servo import DictionaryFactory
+from ingenialink.utils._utils import convert_dtype_to_bytes
 
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError, FSoEMaster
@@ -203,6 +207,42 @@ class MockSafetyParameter:
         pass
 
 
+class MockServo(Servo):
+    interface = Interface.ECAT
+
+    def __init__(self, dictionary_path: str):
+        super().__init__(target=1, dictionary_path=dictionary_path)
+
+        self.current_values = {
+            register: convert_dtype_to_bytes(register.default, register.dtype)
+            for register in self.dictionary.all_registers()
+        }
+
+    def _write_raw(self, register: Register, data: bytes, **kwargs: Any):
+        self.current_values[register] = data
+
+    def _read_raw(self, reg: Register, **kwargs: Any) -> bytes:
+        return self.current_values[reg]
+
+    def read_complete_access(
+        self, reg: Union[str, Register, CanOpenObject], *args, **kwargs
+    ) -> bytes:
+        if not isinstance(reg, CanOpenObject):
+            raise NotImplementedError
+
+        value = bytearray()
+
+        for register in reg:
+            value += self.current_values[register]
+            if register.subidx == 0:
+                value += b"\00"  # Padding after first u8 element
+
+        return bytes(value)
+
+    read_rpdo_map_from_slave = EthercatServo.read_rpdo_map_from_slave
+    read_tpdo_map_from_slave = EthercatServo.read_tpdo_map_from_slave
+
+
 class MockHandler:
     def __init__(self, dictionary: str, module_uid: int):
         xdf = DictionaryFactory.create_dictionary(dictionary, interface=Interface.ECAT)
@@ -212,6 +252,65 @@ class MockHandler:
             app_parameter.uid: MockSafetyParameter()
             for app_parameter in xdf.get_safety_module(module_uid).application_parameters
         }
+
+
+@pytest.mark.fsoe
+def test_constructor_set_slave_address():
+    mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
+    try:
+        handler = FSoEMasterHandler(
+            mock_servo, use_sra=True, slave_address=0x7412, report_error_callback=error_handler
+        )
+
+        assert mock_servo.read(FSoEMasterHandler.FSOE_MANUF_SAFETY_ADDRESS) == 0x7412
+        assert handler._master_handler.get_slave_address() == 0x7412
+    finally:
+        handler.delete()
+
+
+@pytest.mark.fsoe
+def test_constructor_inherit_slave_address():
+    mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
+    try:
+        # Set the slave address in the servo
+        mock_servo.write(FSoEMasterHandler.FSOE_MANUF_SAFETY_ADDRESS, 0x4986)
+
+        handler = FSoEMasterHandler(mock_servo, use_sra=True, report_error_callback=error_handler)
+
+        assert mock_servo.read(FSoEMasterHandler.FSOE_MANUF_SAFETY_ADDRESS) == 0x4986
+    finally:
+        handler.delete()
+
+
+@pytest.mark.fsoe
+def test_constructor_set_connection_id():
+    mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
+    try:
+        handler = FSoEMasterHandler(
+            mock_servo,
+            use_sra=True,
+            connection_id=0x3742,
+            report_error_callback=error_handler,
+        )
+        assert handler._master_handler.master.session.connection_id.value == 0x3742
+    finally:
+        handler.delete()
+
+
+@pytest.mark.fsoe
+def test_constructor_random_connection_id():
+    mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
+
+    random.seed(0x1234)
+    try:
+        handler = FSoEMasterHandler(
+            mock_servo,
+            use_sra=True,
+            report_error_callback=error_handler,
+        )
+        assert handler._master_handler.master.session.connection_id.value == 0xED9A
+    finally:
+        handler.delete()
 
 
 @pytest.mark.fsoe
@@ -307,6 +406,28 @@ def test_getter_of_safety_functions(mc_with_fsoe):
         # Instance 3 does not exist
         handler.get_function_instance(SS1Function, instance=3)
     assert error.value.args[0] == "Master handler does not contain SS1Function instance 3"
+
+
+@pytest.mark.fsoe
+def test_modify_safe_parameters():
+    mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
+    try:
+        handler = FSoEMasterHandler(mock_servo, use_sra=True, report_error_callback=error_handler)
+
+        input_map = handler.get_function_instance(SafeInputsFunction).map
+        map_uid = SafeInputsFunction.INPUTS_MAP_UID
+
+        input_map.set(1)
+        assert mock_servo.read(map_uid) == 1
+
+        input_map.set_without_updating(1234)
+        assert mock_servo.read(map_uid) == 1
+
+        handler.write_safe_parameters()
+        assert mock_servo.read(map_uid) == 1234
+
+    finally:
+        handler.delete()
 
 
 @pytest.fixture()

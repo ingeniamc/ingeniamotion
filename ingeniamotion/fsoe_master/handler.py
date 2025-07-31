@@ -1,5 +1,6 @@
 import threading
 from collections.abc import Iterator
+from random import randint
 from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union, cast, overload
 
 import ingenialogger
@@ -74,8 +75,8 @@ class FSoEMasterHandler:
         servo: EthercatServo,
         *,
         use_sra: bool,
-        slave_address: int,
-        connection_id: int,
+        slave_address: Optional[int] = None,
+        connection_id: Optional[int] = None,
         watchdog_timeout: float = DEFAULT_WATCHDOG_TIMEOUT_S,
         report_error_callback: Callable[[str, str], None],
     ):
@@ -129,9 +130,14 @@ class FSoEMasterHandler:
 
         self.safety_functions = tuple(SafetyFunction.for_handler(self))
 
+        if connection_id is None:
+            connection_id = randint(1, 0xFFFF)
+
         self._master_handler = BaseMasterHandler(
             dictionary=self.dictionary,
-            slave_address=slave_address,
+            slave_address=slave_address
+            if slave_address is not None
+            else self.get_safety_address_from_slave(),
             connection_id=connection_id,
             watchdog_timeout_s=watchdog_timeout,
             application_parameters=fsoe_application_parameters,
@@ -139,23 +145,35 @@ class FSoEMasterHandler:
             state_change_callback=self.__state_change_callback,
         )
 
-        master_map_object = self.__servo.dictionary.get_object(self.__FSOE_RPDO_MAP_UID, 1)
-        slave_map_object = self.__servo.dictionary.get_object(self.__FSOE_TPDO_MAP_UID, 1)
+        # If anything else fails on the constructor, ensure the master handler is deleted
+        try:
+            if slave_address is not None:
+                self.set_safety_address(slave_address)
 
-        self.__safety_master_pdu = servo.read_rpdo_map_from_slave(master_map_object)
-        self.__safety_slave_pdu = servo.read_tpdo_map_from_slave(slave_map_object)
+            self.__master_map_object = self.__servo.dictionary.get_object(
+                self.__FSOE_RPDO_MAP_UID, 1
+            )
+            self.__slave_map_object = self.__servo.dictionary.get_object(
+                self.__FSOE_TPDO_MAP_UID, 1
+            )
 
-        # https://novantamotion.atlassian.net/browse/INGM-669
-        self.__map_editable = (master_map_object.registers[0].access == RegAccess.RW) and (
-            slave_map_object.registers[0].access == RegAccess.RW
-        )
+            self.__safety_master_pdu = servo.read_rpdo_map_from_slave(self.__master_map_object)
+            self.__safety_slave_pdu = servo.read_tpdo_map_from_slave(self.__slave_map_object)
 
-        self.__maps = PDUMaps.from_rpdo_tpdo(
-            self.__safety_master_pdu,
-            self.__safety_slave_pdu,
-            dictionary=self.dictionary,
-        )
-        self.set_maps(self.__maps)
+            # https://novantamotion.atlassian.net/browse/INGM-669
+            self.__map_editable = (
+                self.__master_map_object.registers[0].access == RegAccess.RW
+            ) and (self.__slave_map_object.registers[0].access == RegAccess.RW)
+
+            self.__maps = PDUMaps.from_rpdo_tpdo(
+                self.__safety_master_pdu,
+                self.__safety_slave_pdu,
+                dictionary=self.dictionary,
+            )
+            self.set_maps(self.__maps)
+        except Exception as ex:
+            self._master_handler.delete()
+            raise ex
 
     def _calculate_sra_crc(self) -> int:
         """Calculates SRA CRC for the application parameters.
@@ -360,6 +378,23 @@ class FSoEMasterHandler:
             if mismatched:
                 yield param, master_value, slave_value
 
+    def write_safe_parameters(self) -> None:
+        """Write the safety parameters to the FSoE master handler.
+
+        Warnings:
+            PDO Maps that are safe parameters are not written here.
+            They are configured during configure_pdo_maps.
+        """
+        pdu_map_registers = [
+            *self.__master_map_object.registers,
+            *self.__slave_map_object.registers,
+        ]
+        for param in self.safety_parameters.values():
+            if param.register in pdu_map_registers:
+                # Are configured during configure_pdo_maps
+                continue
+            param.set_to_slave()
+
     @weak_lru()
     def safety_functions_by_type(self) -> dict[type[SafetyFunction], list[SafetyFunction]]:
         """Get a dictionary with the safety functions grouped by type.
@@ -492,6 +527,14 @@ class FSoEMasterHandler:
         """
         self.__servo.write(self.FSOE_MANUF_SAFETY_ADDRESS, address)
         self._master_handler.set_slave_address(address)
+
+    def get_safety_address_from_slave(self) -> int:
+        """Get the FSoE slave address configured on the slave.
+
+        Returns:
+            The FSoE slave address.
+        """
+        return cast("int", self.__servo.read(self.FSOE_MANUF_SAFETY_ADDRESS))
 
     def is_sto_active(self) -> bool:
         """Check the STO state.
