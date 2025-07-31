@@ -678,6 +678,26 @@ class TestPduMapper:
             == maps.inputs.get_text_representation()
         )
 
+    def test_empty_map_8_bits(self, sample_safe_dictionary):
+        safe_dict, fsoe_dict = sample_safe_dictionary
+        maps = PDUMaps.empty(fsoe_dict)
+        tpdo = TPDOMap()
+        maps.fill_tpdo_map(tpdo, safe_dict)
+
+        assert tpdo.items[0].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CMD"
+        assert tpdo.items[0].size_bits == 8
+
+        assert tpdo.items[1].register.identifier == "PADDING"
+        assert tpdo.items[1].size_bits == 8
+
+        assert tpdo.items[2].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC0"
+        assert tpdo.items[2].size_bits == 16
+
+        assert tpdo.items[3].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CONNID"
+        assert tpdo.items[3].size_bits == 16
+
+        assert len(tpdo.items) == 4
+
     @pytest.mark.fsoe
     def test_map_with_32_bit_vars(self, sample_safe_dictionary):
         safe_dict, fsoe_dict = sample_safe_dictionary
