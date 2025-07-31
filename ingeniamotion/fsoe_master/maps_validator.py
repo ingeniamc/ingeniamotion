@@ -38,9 +38,7 @@ class InvalidFSoEFrameRule:
 
     rule: FSoEFrameRules  # The rule that was violated
     exception: str  # Description of the error
-    position: Optional[list[int]] = (
-        None  # Dictionary item position in bits where the rule is invalid
-    )
+    items: list[FSoEDictionaryMappedItem]  # Dictionary item that caused the rule to be invalid
 
 
 class FSoEFrameConstructionError(Exception):
@@ -156,15 +154,6 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
                 slot_size_bits += item.bits if item else 0
         return slot_size_bits
 
-    @staticmethod
-    def __get_items_position_in_data_block(
-        items: list[tuple[Optional[int], Optional["FSoEDictionaryMappedItem"]]],
-    ) -> Optional[list[int]]:
-        positions = [item.position_bits for _, item in items if item is not None]
-        if not positions:
-            return None
-        return positions
-
     def _validate_safe_data_blocks_size(
         self,
         safe_data_blocks: list[
@@ -188,6 +177,7 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
             self._exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID] = InvalidFSoEFrameRule(
                 rule=FSoEFrameRules.SAFE_DATA_BLOCKS_VALID,
                 exception="No safe data blocks found in PDO map",
+                items=[],
             )
             return
 
@@ -196,6 +186,12 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
             self._exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID] = InvalidFSoEFrameRule(
                 rule=FSoEFrameRules.SAFE_DATA_BLOCKS_VALID,
                 exception=f"Expected 1-8 safe data blocks, found {n_safe_data_blocks}",
+                items=[
+                    item
+                    for _, slot_items in safe_data_blocks
+                    for _, item in slot_items
+                    if item is not None
+                ],
             )
             return
 
@@ -210,9 +206,7 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
                         rule=FSoEFrameRules.SAFE_DATA_BLOCKS_VALID,
                         exception="Single safe data block must be 16 bits or less "
                         f"(completed with padding), found {slot_size_bits}",
-                        position=SafeDataBlocksValidator.__get_items_position_in_data_block(
-                            slot_items
-                        ),
+                        items=[item for _, item in slot_items if item is not None],
                     )
                     return
             # Each safe data block must be 16 bits
@@ -222,9 +216,7 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
                         rule=FSoEFrameRules.SAFE_DATA_BLOCKS_VALID,
                         exception=f"Safe data block {data_slot_i} must be 16 bits, "
                         f"found {slot_size_bits}",
-                        position=SafeDataBlocksValidator.__get_items_position_in_data_block(
-                            slot_items
-                        ),
+                        items=[item for _, item in slot_items if item is not None],
                     )
                     return
             # It can be smaller, because it will be padded to 16 bits when creating the PDO frame
@@ -233,7 +225,7 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
                     rule=FSoEFrameRules.SAFE_DATA_BLOCKS_VALID,
                     exception=f"Safe data block {data_slot_i} must be 16 bits, "
                     f"found {slot_size_bits}",
-                    position=SafeDataBlocksValidator.__get_items_position_in_data_block(slot_items),
+                    items=[item for _, item in slot_items if item is not None],
                 )
                 return
             # It can be smaller, because it will be padded to 16 bits when creating the PDO frame
@@ -242,7 +234,7 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
                     rule=FSoEFrameRules.SAFE_DATA_BLOCKS_VALID,
                     exception=f"Last safe data block {data_slot_i} must be 16 bits or less "
                     f"(completed with padding), found {slot_size_bits}",
-                    position=SafeDataBlocksValidator.__get_items_position_in_data_block(slot_items),
+                    items=[item for _, item in slot_items if item is not None],
                 )
                 return
 
@@ -281,7 +273,7 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
                     "Total objects in frame exceeds limit: "
                     f"{n_objects} > {self.__MAX_FRAME_OBJECTS}"
                 ),
-                position=None,
+                items=[item for item in dictionary_map if item is not None],
             )
 
     def _validate_size_of_split_objects(
@@ -314,9 +306,7 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
                                 f"Data slot {data_slot_i} contains an object that is not "
                                 "32 bits, it cannot be split across multiple safe data blocks"
                             ),
-                            position=SafeDataBlocksValidator.__get_items_position_in_data_block(
-                                slot_items
-                            ),
+                            items=[item for _, item in slot_items if item is not None],
                         )
                     )
                     return
@@ -377,7 +367,7 @@ class PaddingBlockValidator(FSoEFrameRuleValidator):
                 self._exceptions[FSoEFrameRules.PADDING_BLOCKS_VALID] = InvalidFSoEFrameRule(
                     rule=FSoEFrameRules.PADDING_BLOCKS_VALID,
                     exception=f"Padding block size must range from 1 to 16 bits, found {item.bits}",
-                    position=[item.position_bits],
+                    items=[item] if item is not None else [],
                 )
                 return
 
@@ -406,7 +396,7 @@ class ObjectsAlignedValidator(FSoEFrameRuleValidator):
                     exception=(
                         f"Object must be word-aligned, found at bit position {item.position_bits}"
                     ),
-                    position=[item.position_bits],
+                    items=[item] if item is not None else [],
                 )
                 return
 
@@ -435,7 +425,7 @@ class STOCommandFirstValidator(FSoEFrameRuleValidator):
             self._exceptions[FSoEFrameRules.STO_COMMAND_FIRST] = InvalidFSoEFrameRule(
                 rule=FSoEFrameRules.STO_COMMAND_FIRST,
                 exception="STO command must be mapped to the first position in Safe Outputs",
-                position=[first_item.position_bits],
+                items=[first_item] if first_item is not None else [],
             )
 
 

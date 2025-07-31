@@ -1080,7 +1080,7 @@ class TestPduMapper:
         maps = PDUMaps.empty(fsoe_dict)
 
         # Create a map with safe data blocks that are not 16 bits
-        maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])  # 8 bits
+        test_st_u8_item = maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])  # 8 bits
 
         # Use a dummy slot width to simulate that the safe data block is wrongly sized
         dummy_slot_width = 2
@@ -1097,7 +1097,7 @@ class TestPduMapper:
         exception = exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
         assert isinstance(exception, InvalidFSoEFrameRule)
         assert f"Safe data block 0 must be 16 bits, found {dummy_slot_width}" in exception.exception
-        assert exception.position == [0]
+        assert exception.items == [test_st_u8_item]
         assert validator.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is False
 
     @pytest.mark.fsoe
@@ -1160,9 +1160,11 @@ class TestPduMapper:
 
         maps = PDUMaps.empty(fsoe_dict)
 
+        test_si_u16_items = []
         for idx in range(9):
             test_uid = f"TEST_SI_U16_{idx}"
-            maps.inputs.add(fsoe_dict.name_map[test_uid])
+            item = maps.inputs.add(fsoe_dict.name_map[test_uid])
+            test_si_u16_items.append(item)
 
         validator = FSoEDictionaryMapValidator()
         exceptions = validator.validate_dictionary_map_fsoe_frame_rules(
@@ -1173,7 +1175,7 @@ class TestPduMapper:
         exception = exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
         assert isinstance(exception, InvalidFSoEFrameRule)
         assert "Expected 1-8 safe data blocks, found 9" in exception.exception
-        assert exception.position is None
+        assert exception.items == test_si_u16_items
         assert validator.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is False
 
     @pytest.mark.fsoe
@@ -1182,11 +1184,11 @@ class TestPduMapper:
         _, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
 
-        maps.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
-        maps.inputs.add_padding(bits=6)
-        maps.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
-        maps.inputs.add(fsoe_dict.name_map[SS2Function.COMMAND_UID.format(i=1)])
-        maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
+        sto_item = maps.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
+        padding_item = maps.inputs.add_padding(bits=6)
+        ss1_item = maps.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
+        ss2_item = maps.inputs.add(fsoe_dict.name_map[SS2Function.COMMAND_UID.format(i=1)])
+        test_si_u8_item = maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
 
         # Test that rule fails because the 8-bit object is split across blocks
         validator = FSoEDictionaryMapValidator()
@@ -1201,7 +1203,13 @@ class TestPduMapper:
             "Data slot 0 contains an object that is not "
             "32 bits, it cannot be split across multiple safe data blocks"
         )
-        assert exception.position == [0, 1, 7, 8, 9]  # All items in the first block
+        assert exception.items == [
+            sto_item,
+            padding_item,
+            ss1_item,
+            ss2_item,
+            test_si_u8_item,
+        ]  # All items in the first block
         assert validator.is_rule_valid(FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED) is False
 
         # Test that rule passes when the object is not split
@@ -1246,7 +1254,7 @@ class TestPduMapper:
         _, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
 
-        maps.inputs.add_padding(bits=32)
+        padding_item = maps.inputs.add_padding(bits=32)
 
         validator = FSoEDictionaryMapValidator()
         exceptions = validator.validate_dictionary_map_fsoe_frame_rules(
@@ -1257,7 +1265,7 @@ class TestPduMapper:
         exception = exceptions[FSoEFrameRules.PADDING_BLOCKS_VALID]
         assert isinstance(exception, InvalidFSoEFrameRule)
         assert "Padding block size must range from 1 to 16 bits, found 32" in exception.exception
-        assert exception.position == [0]
+        assert exception.items == [padding_item]
         assert validator.is_rule_valid(FSoEFrameRules.PADDING_BLOCKS_VALID) is False
 
         # Check that the rule passes when the padding block is <= 16 bits
@@ -1280,7 +1288,7 @@ class TestPduMapper:
         maps = PDUMaps.empty(fsoe_dict)
 
         maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
-        maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U16_UID])
+        test_si_u16_item = maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U16_UID])
 
         validator = FSoEDictionaryMapValidator()
         exceptions = validator.validate_dictionary_map_fsoe_frame_rules(
@@ -1291,7 +1299,7 @@ class TestPduMapper:
         exception = exceptions[FSoEFrameRules.OBJECTS_ALIGNED]
         assert isinstance(exception, InvalidFSoEFrameRule)
         assert "Object must be word-aligned, found at bit position 8" in exception.exception
-        assert exception.position == [8]
+        assert exception.items == [test_si_u16_item]
         assert validator.is_rule_valid(FSoEFrameRules.OBJECTS_ALIGNED) is False
 
         # Check that the rule passes when the object is word-aligned
@@ -1313,7 +1321,7 @@ class TestPduMapper:
         """Test that STO command is the first item in the outputs map."""
         _, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
-        maps.outputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
+        ss1_item = maps.outputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
         maps.outputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
         # STO command can be anywhere in the inputs map
         maps.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
@@ -1332,7 +1340,7 @@ class TestPduMapper:
             "STO command must be mapped to the first position in Safe Outputs"
             in exception.exception
         )
-        assert exception.position == [0]
+        assert exception.items == [ss1_item]
         assert validator.is_rule_valid(FSoEFrameRules.STO_COMMAND_FIRST) is False
         # Check that rule passes when validating the inputs
         validator.reset()
