@@ -981,7 +981,7 @@ class TestPduMapper:
 
     @pytest.mark.fsoe
     def test_validate_safe_data_blocks_pdu_empty(self, sample_safe_dictionary):
-        """Test that SafeDataBlocksValidator passes when no safe data blocks are present."""
+        """Test that SafeDataBlocksValidator does not pass when no safe data blocks are present."""
         _, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
         # Only validate the safe data blocks rule
@@ -1121,7 +1121,7 @@ class TestPduMapper:
 
     @pytest.mark.fsoe
     def test_validate_safe_data_padding_blocks(self, sample_safe_dictionary):
-        """Test that PaddingBlockValidator fails when padding blocks are not 8 bits."""
+        """Test that PaddingBlockValidator fails when padding blocks are not between 1-16 bits."""
         _, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
 
@@ -1188,7 +1188,7 @@ class TestPduMapper:
         assert validator.is_rule_valid(FSoEFrameRules.OBJECTS_ALIGNED) is True
 
     @pytest.mark.fsoe
-    def test_validato_sto_command_first_in_outputs(self, sample_safe_dictionary):
+    def test_validate_sto_command_first_in_outputs(self, sample_safe_dictionary):
         """Test that STO command is the first item in the outputs map."""
         _, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
