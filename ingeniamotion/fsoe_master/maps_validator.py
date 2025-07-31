@@ -7,9 +7,9 @@ from ingenialogger import get_logger
 from typing_extensions import override
 
 from ingeniamotion.fsoe_master.fsoe import (
-    FSoEDictionaryItem,
     FSoEDictionaryItemOutput,
     FSoEDictionaryMap,
+    FSoEDictionaryMappedItem,
 )
 from ingeniamotion.fsoe_master.maps import PDUMaps
 from ingeniamotion.fsoe_master.safety_functions import STOFunction
@@ -146,7 +146,7 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
 
     @staticmethod
     def __get_bits_in_data_block(
-        items: list[tuple[Optional[int], Optional["FSoEDictionaryItem"]]],
+        items: list[tuple[Optional[int], Optional["FSoEDictionaryMappedItem"]]],
     ) -> int:
         slot_size_bits = 0
         for bits_in_slot, item in items:
@@ -158,7 +158,7 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
 
     @staticmethod
     def __get_items_position_in_data_block(
-        items: list[tuple[Optional[int], Optional["FSoEDictionaryItem"]]],
+        items: list[tuple[Optional[int], Optional["FSoEDictionaryMappedItem"]]],
     ) -> Optional[list[int]]:
         positions = [item.position_bits for _, item in items if item is not None]
         if not positions:
@@ -168,7 +168,7 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
     def _validate_safe_data_blocks_size(
         self,
         safe_data_blocks: list[
-            tuple[int, list[tuple[Optional[int], Optional["FSoEDictionaryItem"]]]]
+            tuple[int, list[tuple[Optional[int], Optional["FSoEDictionaryMappedItem"]]]]
         ],
     ) -> None:
         """Validate the size of safe data blocks in the dictionary map.
@@ -250,7 +250,7 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
         self,
         dictionary_map: FSoEDictionaryMap,
         safe_data_blocks: list[
-            tuple[int, list[tuple[Optional[int], Optional["FSoEDictionaryItem"]]]]
+            tuple[int, list[tuple[Optional[int], Optional["FSoEDictionaryMappedItem"]]]]
         ],
     ) -> None:
         """Validate the number of objects in the frame.
@@ -287,7 +287,7 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
     def _validate_size_of_split_objects(
         self,
         safe_data_blocks: list[
-            tuple[int, list[tuple[Optional[int], Optional["FSoEDictionaryItem"]]]]
+            tuple[int, list[tuple[Optional[int], Optional["FSoEDictionaryMappedItem"]]]]
         ],
     ) -> None:
         """Validate that only 32-bit objects may be split across multiple safe data blocks.

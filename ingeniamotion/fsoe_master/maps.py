@@ -13,6 +13,7 @@ from ingeniamotion.fsoe_master.fsoe import (
     FSoEDictionaryItemInputOutput,
     FSoEDictionaryItemOutput,
     FSoEDictionaryMap,
+    FSoEDictionaryMappedItem,
 )
 from ingeniamotion.fsoe_master.safety_functions import (
     SafeInputsFunction,
@@ -334,7 +335,7 @@ class PDUMaps:
     @staticmethod
     def _generate_slot_structure(
         dict_map: "FSoEDictionaryMap", slot_width: int
-    ) -> Iterator[tuple[int, list[tuple[Optional[int], Optional["FSoEDictionaryItem"]]]]]:
+    ) -> Iterator[tuple[int, list[tuple[Optional[int], Optional["FSoEDictionaryMappedItem"]]]]]:
         """Generate the slot structure for a dictionary map.
 
         Args:
@@ -353,7 +354,7 @@ class PDUMaps:
 
         # List of items that will be in the current slot
         # (bits in the slot, item)
-        current_slot_items: list[tuple[Optional[int], Optional[FSoEDictionaryItem]]] = []
+        current_slot_items: list[tuple[Optional[int], Optional[FSoEDictionaryMappedItem]]] = []
 
         for item in dict_map:
             if slot_bit_maximum == 8 and item.position_bits + item.bits >= slot_bit_maximum:

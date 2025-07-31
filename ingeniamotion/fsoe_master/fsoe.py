@@ -8,6 +8,7 @@ __all__ = [
     "FSoEDictionaryItemInputOutput",
     "FSoEDictionaryItemOutput",
     "FSoEDictionaryMap",
+    "FSoEDictionaryMappedItem",
     "BaseMasterHandler",
     "StateData",
     "State",
@@ -38,6 +39,9 @@ try:
     )
     from fsoe_master.fsoe_master import (
         DictionaryMap as FSoEDictionaryMap,
+    )
+    from fsoe_master.fsoe_master import (
+        DictionaryMappedItem as FSoEDictionaryMappedItem,
     )
     from fsoe_master.fsoe_master import (
         MasterHandler as BaseMasterHandler,
