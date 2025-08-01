@@ -77,13 +77,22 @@ def error_handler(error: FSoEError):
 
 
 @pytest.fixture()
-def mc_with_fsoe(mc):
+def fsoe_states():
+    states = []
+    return states
+
+
+@pytest.fixture()
+def mc_with_fsoe(mc, fsoe_states):
+    def add_state(state: FSoEState):
+        fsoe_states.append(state)
+
     # Subscribe to emergency messages
     mc.communication.subscribe_emergency_message(emergency_handler)
     # Configure error channel
     mc.fsoe.subscribe_to_errors(error_handler)
     # Create and start the FSoE master handler
-    handler = mc.fsoe.create_fsoe_master_handler(use_sra=False)
+    handler = mc.fsoe.create_fsoe_master_handler(use_sra=False, state_change_callback=add_state)
     yield mc, handler
     # IM should be notified and clear references when a servo is disconnected from ingenialink
     # https://novantamotion.atlassian.net/browse/INGM-624
@@ -91,13 +100,16 @@ def mc_with_fsoe(mc):
 
 
 @pytest.fixture()
-def mc_with_fsoe_with_sra(mc):
+def mc_with_fsoe_with_sra(mc, fsoe_states):
+    def add_state(state: FSoEState):
+        fsoe_states.append(state)
+
     # Subscribe to emergency messages
     mc.communication.subscribe_emergency_message(emergency_handler)
     # Configure error channel
     mc.fsoe.subscribe_to_errors(error_handler)
     # Create and start the FSoE master handler
-    handler = mc.fsoe.create_fsoe_master_handler(use_sra=True)
+    handler = mc.fsoe.create_fsoe_master_handler(use_sra=True, state_change_callback=add_state)
     yield mc, handler
     # IM should be notified and clear references when a servo is disconnected from ingenialink
     # https://novantamotion.atlassian.net/browse/INGM-624
@@ -456,6 +468,9 @@ def mc_state_data_with_sra(mc_with_fsoe_with_sra):
     # Wait for the master to reach the Data state
     mc.fsoe.wait_for_state_data(timeout=10)
 
+    # Remove fail-safe state
+    mc.fsoe.set_fail_safe(False)
+
     yield mc
 
     # Stop the FSoE master handler
@@ -477,6 +492,16 @@ def mc_state_data(mc_with_fsoe):
 
     # Stop the FSoE master handler
     mc.fsoe.stop_master(stop_pdos=True)
+
+
+def test_pass_through_states(mc_state_data, fsoe_states):  # noqa: ARG001
+    assert fsoe_states == [
+        FSoEState.RESET,
+        FSoEState.SESSION,
+        FSoEState.CONNECTION,
+        FSoEState.PARAMETER,
+        FSoEState.DATA,
+    ]
 
 
 @pytest.mark.fsoe
