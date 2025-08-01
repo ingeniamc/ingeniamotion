@@ -79,11 +79,13 @@ class FSoEMasterHandler:
         connection_id: Optional[int] = None,
         watchdog_timeout: float = DEFAULT_WATCHDOG_TIMEOUT_S,
         report_error_callback: Callable[[str, str], None],
+        state_change_callback: Optional[Callable[[State], None]] = None,
     ):
         if not FSOE_MASTER_INSTALLED:
             return
         self.logger = ingenialogger.get_logger(__name__)
 
+        self.__state_change_callback = state_change_callback
         self.__servo = servo
         self.__running: bool = False
         self.__uses_sra: bool = use_sra
@@ -167,7 +169,7 @@ class FSoEMasterHandler:
             watchdog_timeout_s=watchdog_timeout,
             application_parameters=fsoe_application_parameters,
             report_error_callback=report_error_callback,
-            state_change_callback=self.__state_change_callback,
+            state_change_callback=self.__internal_state_change_callback,
         )
 
         # If anything else fails on the constructor, ensure the master handler is deleted
@@ -570,11 +572,14 @@ class FSoEMasterHandler:
             raise ValueError(f"Wrong value type. Expected type bool, got {type(sto_command)}")
         return sto_command
 
-    def __state_change_callback(self, state: "State") -> None:
+    def __internal_state_change_callback(self, state: "State") -> None:
         if state == StateData:
             self.__state_is_data.set()
         else:
             self.__state_is_data.clear()
+
+        if self.__state_change_callback:
+            self.__state_change_callback(state)
 
     def wait_for_data_state(self, timeout: Optional[float] = None) -> None:
         """Wait the FSoE master handler to reach the Data state.
