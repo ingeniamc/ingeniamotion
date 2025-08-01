@@ -124,9 +124,7 @@ class PDUMaps:
         """
         return self.__validate_dictionary_map(self.outputs, rules, raise_exceptions)
 
-    def is_map_valid(
-        self, rules: Optional[list[FSoEFrameRules]] = None, raise_exceptions: bool = False
-    ) -> dict[str, FSoEFrameRuleValidatorOutput]:
+    def validate(self) -> bool:
         """Check if the map is valid.
 
         Args:
@@ -135,13 +133,11 @@ class PDUMaps:
                 If False, returns the validation output with exceptions. Defaults to False.
 
         Returns:
-            Dictionary with the validation output for inputs and outputs maps.
-            The keys are "inputs" and "outputs".
+            True if the maps are valid.
         """
-        return {
-            "inputs": self.are_inputs_valid(rules, raise_exceptions),
-            "outputs": self.are_outputs_valid(rules, raise_exceptions),
-        }
+        self.are_inputs_valid(rules=None, raise_exceptions=True)
+        self.are_outputs_valid(rules=None, raise_exceptions=True)
+        return True
 
     def insert_in_best_position(self, element: "FSoEDictionaryItem") -> None:
         """Insert I/O in any best position of the maps.

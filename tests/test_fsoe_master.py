@@ -1385,9 +1385,5 @@ class TestPduMapper:
         maps.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
         maps.inputs.add_padding(7)
 
-        output = maps.is_map_valid()
-        for output_key in ["inputs", "outputs"]:
-            assert not output[output_key].exceptions
-            assert len(output[output_key].rules) == len(FSoEFrameRules)
-            for rule in FSoEFrameRules:
-                assert output[output_key].is_rule_valid(rule) is True
+        is_valid = maps.validate()
+        assert is_valid is True
