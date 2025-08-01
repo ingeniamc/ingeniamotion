@@ -1171,10 +1171,10 @@ class TestPduMapper:
         _, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
 
-        sto_item = maps.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
-        padding_item = maps.inputs.add_padding(bits=6)
-        ss1_item = maps.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
-        ss2_item = maps.inputs.add(fsoe_dict.name_map[SS2Function.COMMAND_UID.format(i=1)])
+        maps.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
+        maps.inputs.add_padding(bits=6)
+        maps.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
+        maps.inputs.add(fsoe_dict.name_map[SS2Function.COMMAND_UID.format(i=1)])
         test_si_u8_item = maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
 
         # Test that rule fails because the 8-bit object is split across blocks
