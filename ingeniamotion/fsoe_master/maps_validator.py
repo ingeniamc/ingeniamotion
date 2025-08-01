@@ -209,7 +209,7 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
                         FSoEFrameRules.SAFE_DATA_BLOCKS_VALID: InvalidFSoEFrameRule(
                             rule=FSoEFrameRules.SAFE_DATA_BLOCKS_VALID,
                             exception="Single safe data block must be 16 bits or less "
-                            f"(completed with padding), found {slot_size_bits}",
+                            f"with padding. Found {slot_size_bits}",
                             items=[item for _, item in slot_items if item is not None],
                         )
                     }
@@ -219,8 +219,8 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
                     return {
                         FSoEFrameRules.SAFE_DATA_BLOCKS_VALID: InvalidFSoEFrameRule(
                             rule=FSoEFrameRules.SAFE_DATA_BLOCKS_VALID,
-                            exception=f"Safe data block {data_slot_i} must be 16 bits, "
-                            f"found {slot_size_bits}",
+                            exception=f"Safe data block {data_slot_i} must be 16 bits. "
+                            f"Found {slot_size_bits}",
                             items=[item for _, item in slot_items if item is not None],
                         )
                     }
@@ -230,7 +230,7 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
                     FSoEFrameRules.SAFE_DATA_BLOCKS_VALID: InvalidFSoEFrameRule(
                         rule=FSoEFrameRules.SAFE_DATA_BLOCKS_VALID,
                         exception=f"Last safe data block {data_slot_i} must be 16 bits or less "
-                        f"(completed with padding), found {slot_size_bits}",
+                        f"with padding. Found {slot_size_bits}",
                         items=[item for _, item in slot_items if item is not None],
                     )
                 }
