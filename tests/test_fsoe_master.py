@@ -1121,7 +1121,7 @@ class TestPduMapper:
         assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID in output.exceptions
         exception = output.exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
         assert isinstance(exception, InvalidFSoEFrameRule)
-        assert f"Safe data block 0 must be 16 bits, found {dummy_slot_width}" in exception.exception
+        assert f"Safe data block 0 must be 16 bits. Found {dummy_slot_width}" in exception.exception
         assert exception.items == [test_st_u8_item]
         assert output.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is False
 
