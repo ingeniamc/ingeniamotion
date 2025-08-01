@@ -135,7 +135,7 @@ class PDUMaps:
                 If False, returns the validation output with exceptions. Defaults to False.
 
         Returns:
-            Dictiionary with the validation output for inputs and outputs maps.
+            Dictionary with the validation output for inputs and outputs maps.
             The keys are "inputs" and "outputs".
         """
         return {

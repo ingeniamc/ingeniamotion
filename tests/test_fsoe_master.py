@@ -1099,16 +1099,12 @@ class TestPduMapper:
 
     @pytest.mark.fsoe
     def test_validate_safe_data_blocks_pdu_empty(self, sample_safe_dictionary):
-        """Test that SafeDataBlocksValidator does not pass when no safe data blocks are present."""
+        """Test that SafeDataBlocksValidator passes when no safe data blocks are present."""
         _, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
-        # Only validate the safe data blocks rule
         output = maps.are_inputs_valid(rules=[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID])
-        assert len(output.exceptions) == 1
-        assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID in output.exceptions
-        exception = output.exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
-        assert exception.exception == "No safe data blocks found in PDO map"
-        assert output.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is False
+        assert len(output.exceptions) == 0
+        assert output.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is True
 
     @pytest.mark.fsoe
     def test_validate_safe_data_blocks_too_many_blocks(self):
@@ -1188,16 +1184,10 @@ class TestPduMapper:
         exception = output.exceptions[FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED]
         assert isinstance(exception, InvalidFSoEFrameRule)
         assert exception.exception == (
-            "Data slot 0 contains an object that is not "
-            "32 bits, it cannot be split across multiple safe data blocks"
+            "Make sure that 8 bit objects belong to the same data block. "
+            f"Data slot 0 contains split object {test_si_u8_item.item.name}."
         )
-        assert exception.items == [
-            sto_item,
-            padding_item,
-            ss1_item,
-            ss2_item,
-            test_si_u8_item,
-        ]  # All items in the first block
+        assert exception.items == [test_si_u8_item]  # Split item
         assert output.is_rule_valid(FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED) is False
 
         # Test that rule passes when the object is not split

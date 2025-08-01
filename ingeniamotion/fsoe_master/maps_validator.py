@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, auto
 from typing import Optional
 
 from ingenialogger import get_logger
@@ -20,16 +20,12 @@ logger = get_logger(__name__)
 class FSoEFrameRules(Enum):
     """FSoE frame rules."""
 
-    SAFE_DATA_BLOCKS_VALID = (
-        "Frame must contain 1-8 blocks of safe data, each 16-bit (except single block may be 8-bit)"
-    )
-    OBJECTS_IN_FRAME = "A frame can contain up to 45 objects in total"
-    PADDING_BLOCKS_VALID = "Padding blocks may range from 1 to 16 bits"
-    OBJECTS_ALIGNED = "16-bit and larger objects must be word-aligned within the payload"
-    OBJECTS_SPLIT_RESTRICTED = "Only 32-bit objects may be split across multiple safe data blocks"
-    STO_COMMAND_FIRST = (
-        "The STO command must always be mapped to the first position in the Safe Outputs payload"
-    )
+    OBJECTS_ALIGNED = auto()
+    OBJECTS_IN_FRAME = auto()
+    STO_COMMAND_FIRST = auto()
+    PADDING_BLOCKS_VALID = auto()
+    SAFE_DATA_BLOCKS_VALID = auto()
+    OBJECTS_SPLIT_RESTRICTED = auto()
 
 
 @dataclass(frozen=True)
@@ -76,7 +72,7 @@ class FSoEFrameRuleValidatorOutput:
 class FSoEFrameConstructionError(Exception):
     """FSoE frame construction exceptions."""
 
-    _ERROR_MESSAGE: str = "PDO map validation failed with errors"
+    _ERROR_MESSAGE: str = "Map validation failed with errors"
 
     def __init__(self, validation_errors: FSoEFrameRuleValidatorOutput) -> None:
         """Initialize with validation errors.
@@ -184,17 +180,12 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
         """
         n_safe_data_blocks = len(safe_data_blocks)
 
+        # PDO map will be valid if the map is empty (check `test_empty_map_8_bits` test)
         if n_safe_data_blocks == 0:
-            return {
-                FSoEFrameRules.SAFE_DATA_BLOCKS_VALID: InvalidFSoEFrameRule(
-                    rule=FSoEFrameRules.SAFE_DATA_BLOCKS_VALID,
-                    exception="No safe data blocks found in PDO map",
-                    items=[],
-                )
-            }
+            return {}
 
         # Frames may contain 1 to 8 blocks of safe data (payload)
-        if n_safe_data_blocks < 1 or n_safe_data_blocks > 8:
+        if n_safe_data_blocks > 8:
             return {
                 FSoEFrameRules.SAFE_DATA_BLOCKS_VALID: InvalidFSoEFrameRule(
                     rule=FSoEFrameRules.SAFE_DATA_BLOCKS_VALID,
@@ -233,16 +224,6 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
                             items=[item for _, item in slot_items if item is not None],
                         )
                     }
-            # It can be smaller, because it will be padded to 16 bits when creating the PDO frame
-            elif slot_size_bits > 16:
-                return {
-                    FSoEFrameRules.SAFE_DATA_BLOCKS_VALID: InvalidFSoEFrameRule(
-                        rule=FSoEFrameRules.SAFE_DATA_BLOCKS_VALID,
-                        exception=f"Safe data block {data_slot_i} must be 16 bits, "
-                        f"found {slot_size_bits}",
-                        items=[item for _, item in slot_items if item is not None],
-                    )
-                }
             # It can be smaller, because it will be padded to 16 bits when creating the PDO frame
             elif slot_size_bits > 16:
                 return {
@@ -323,10 +304,10 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
                         FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED: InvalidFSoEFrameRule(
                             rule=FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED,
                             exception=(
-                                f"Data slot {data_slot_i} contains an object that is not "
-                                "32 bits, it cannot be split across multiple safe data blocks"
+                                f"Make sure that 8 bit objects belong to the same data block. "
+                                f"Data slot {data_slot_i} contains split object {item.item.name}."
                             ),
-                            items=[item for _, item in slot_items if item is not None],
+                            items=[item],
                         )
                     }
         return {}
