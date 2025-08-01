@@ -44,7 +44,6 @@ def mc_with_fsoe(mc) -> Generator[tuple[MotionController, FSoEMasterHandler], No
     handler = mc.fsoe.create_fsoe_master_handler(use_sra=False)
     yield mc, handler
     # IM should be notified and clear references when a servo is disconnected from ingenialink
-    # https://novantamotion.atlassian.net/browse/INGM-624
     mc.fsoe._delete_master_handler()
 
 
@@ -58,7 +57,7 @@ def mc_with_fsoe_with_sra(mc) -> Generator[tuple[MotionController, FSoEMasterHan
     handler = mc.fsoe.create_fsoe_master_handler(use_sra=True)
     yield mc, handler
     # IM should be notified and clear references when a servo is disconnected from ingenialink
-    # https://novantamotion.atlassian.net/browse/INGM-624
+    mc.fsoe.stop_master(stop_pdos=True)
     mc.fsoe._delete_master_handler()
 
 
