@@ -32,17 +32,17 @@ def test_map_all_safety_functions(
     for sf in SafetyFunction.for_handler(handler):
         if hasattr(sf, "command"):
             handler.maps.insert_in_best_position(sf.command)
-            # inputs.add(sf.command)
         else:
             handler.maps.insert_in_best_position(sf.value)
-            # inputs.add(sf.value)
 
     # Check that the maps are valid
     handler.maps.validate()
-
     mc.fsoe.configure_pdos()
     mc.capture.pdo.start_pdos()
     mc.fsoe.wait_for_state_data(timeout=10)
+    # Stay 3 seconds in Data state
+    for i in range(3):
+        time.sleep(1)
     mc.fsoe.stop_master(stop_pdos=True)
 
 
