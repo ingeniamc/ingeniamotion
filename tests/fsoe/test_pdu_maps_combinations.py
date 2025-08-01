@@ -4,16 +4,52 @@ import pytest
 from ingenialogger import get_logger
 
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
+from ingeniamotion.motion_controller import MotionController
 
 if FSOE_MASTER_INSTALLED:
     import ingeniamotion.fsoe_master.safety_functions as safety_functions
+    from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
+    from ingeniamotion.fsoe_master.safety_functions import SafetyFunction
 
 
 logger = get_logger(__name__)
 
 
-@pytest.mark.fsoe
-def test_mappings_with_mc_and_fsoe_fixture(mc_with_fsoe_with_sra) -> None:
+@pytest.mark.fsoe_phase_II
+def test_map_all_safety_functions(
+    mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler],
+) -> None:
+    mc, handler = mc_with_fsoe_with_sra
+
+    inputs = handler.maps.inputs
+    outputs = handler.maps.outputs
+
+    # The handler comes with a default mapping read from the drive.
+    # Clear it to create a new one
+    inputs.clear()
+    outputs.clear()
+
+    for sf in SafetyFunction.for_handler(handler):
+        if hasattr(sf, "command"):
+            handler.maps.insert_in_best_position(sf.command)
+            # inputs.add(sf.command)
+        else:
+            handler.maps.insert_in_best_position(sf.value)
+            # inputs.add(sf.value)
+
+    # Check that the maps are valid
+    handler.maps.validate()
+
+    mc.fsoe.configure_pdos()
+    mc.capture.pdo.start_pdos()
+    mc.fsoe.wait_for_state_data(timeout=10)
+    mc.fsoe.stop_master(stop_pdos=True)
+
+
+@pytest.mark.fsoe_phase_II
+def test_mappings_with_mc_and_fsoe_fixture(
+    mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler],
+) -> None:
     mc, handler = mc_with_fsoe_with_sra
     # Get the safety functions instances
     sto = handler.get_function_instance(safety_functions.STOFunction)
@@ -48,6 +84,9 @@ def test_mappings_with_mc_and_fsoe_fixture(mc_with_fsoe_with_sra) -> None:
     logger.info("Outputs Map:")
     logger.info(outputs.get_text_representation())
 
+    # Check that the maps are valid
+    handler.maps.validate()
+
     mc.fsoe.configure_pdos()
 
     # After reconfiguring the maps and configuring the pdos,
@@ -71,9 +110,4 @@ def test_mappings_with_mc_and_fsoe_fixture(mc_with_fsoe_with_sra) -> None:
         # And inputs can be read
         logger.info(f"Safe Inputs Value: {safe_inputs.value.get()}")
 
-    # Stop the FSoE master handler
-    logger.info("stopping master handler")
     mc.fsoe.stop_master(stop_pdos=True)
-    logger.info("master handler stopped")
-    mc.fsoe._delete_master_handler()
-    logger.info("master handler deleted")

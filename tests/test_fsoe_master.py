@@ -111,7 +111,8 @@ def mc_with_fsoe_with_sra(mc):
     mc.fsoe._delete_master_handler()
 
 
-@pytest.mark.fsoe
+@pytest.mark.fsoe_phase_I
+@pytest.mark.fsoe_phase_II
 @pytest.mark.parametrize("use_sra", [False, True])
 def test_create_fsoe_master_handler_use_sra(mc, use_sra):
     master = FSoEMaster(mc)
@@ -139,7 +140,8 @@ def test_create_fsoe_master_handler_use_sra(mc, use_sra):
     master._delete_master_handler()
 
 
-@pytest.mark.fsoe
+@pytest.mark.fsoe_phase_I
+@pytest.mark.fsoe_phase_II
 def test_create_fsoe_handler_from_invalid_pdo_maps(caplog):
     mock_servo = MockServo(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY)
     mock_servo.write("ETG_COMMS_RPDO_MAP256_6", 0x123456)  # Invalid pdo map value
@@ -164,7 +166,8 @@ def test_create_fsoe_handler_from_invalid_pdo_maps(caplog):
         handler.delete()
 
 
-@pytest.mark.fsoe
+@pytest.mark.fsoe_phase_I
+@pytest.mark.fsoe_phase_II
 def test_set_configured_module_ident_1(mocker, mc_with_fsoe_with_sra, caplog):
     _, handler = mc_with_fsoe_with_sra
 
@@ -220,7 +223,8 @@ def test_set_configured_module_ident_1(mocker, mc_with_fsoe_with_sra, caplog):
     assert result == mock_safety_modules[2]
 
 
-@pytest.mark.fsoe
+@pytest.mark.fsoe_phase_I
+@pytest.mark.fsoe_phase_II
 def test_fsoe_master_get_safety_parameters(mc_with_fsoe):
     _mc, handler = mc_with_fsoe
 
@@ -279,7 +283,8 @@ class MockHandler:
         }
 
 
-@pytest.mark.fsoe
+@pytest.mark.fsoe_phase_I
+@pytest.mark.fsoe_phase_II
 def test_constructor_set_slave_address():
     mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
     try:
@@ -293,7 +298,8 @@ def test_constructor_set_slave_address():
         handler.delete()
 
 
-@pytest.mark.fsoe
+@pytest.mark.fsoe_phase_I
+@pytest.mark.fsoe_phase_II
 def test_constructor_inherit_slave_address():
     mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
     try:
@@ -307,7 +313,8 @@ def test_constructor_inherit_slave_address():
         handler.delete()
 
 
-@pytest.mark.fsoe
+@pytest.mark.fsoe_phase_I
+@pytest.mark.fsoe_phase_II
 def test_constructor_set_connection_id():
     mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
     try:
@@ -322,7 +329,8 @@ def test_constructor_set_connection_id():
         handler.delete()
 
 
-@pytest.mark.fsoe
+@pytest.mark.fsoe_phase_I
+@pytest.mark.fsoe_phase_II
 def test_constructor_random_connection_id():
     mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
 
@@ -338,7 +346,8 @@ def test_constructor_random_connection_id():
         handler.delete()
 
 
-@pytest.mark.fsoe
+@pytest.mark.fsoe_phase_I
+@pytest.mark.fsoe_phase_II
 def test_detect_safety_functions_ph1():
     handler = MockHandler(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, 0x3800000)
 
@@ -347,7 +356,8 @@ def test_detect_safety_functions_ph1():
     assert sf_types == [STOFunction, SS1Function, SafeInputsFunction]
 
 
-@pytest.mark.fsoe
+@pytest.mark.fsoe_phase_I
+@pytest.mark.fsoe_phase_II
 def test_detect_safety_functions_ph2():
     handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00000)
 
@@ -370,7 +380,8 @@ def test_detect_safety_functions_ph2():
     ]
 
 
-@pytest.mark.fsoe
+@pytest.mark.fsoe_phase_I
+@pytest.mark.fsoe_phase_II
 def test_mandatory_safety_functions(mc_with_fsoe):
     _mc, handler = mc_with_fsoe
 
@@ -386,7 +397,8 @@ def test_mandatory_safety_functions(mc_with_fsoe):
     assert len(si_instances) == 1
 
 
-@pytest.mark.fsoe
+@pytest.mark.fsoe_phase_I
+@pytest.mark.fsoe_phase_II
 def test_getter_of_safety_functions(mc_with_fsoe):
     _mc, handler = mc_with_fsoe
 
@@ -433,7 +445,8 @@ def test_getter_of_safety_functions(mc_with_fsoe):
     assert error.value.args[0] == "Master handler does not contain SS1Function instance 3"
 
 
-@pytest.mark.fsoe
+@pytest.mark.fsoe_phase_I
+@pytest.mark.fsoe_phase_II
 def test_modify_safe_parameters():
     mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
     try:
@@ -486,7 +499,8 @@ def mc_state_data(mc_with_fsoe):
     mc.fsoe.stop_master(stop_pdos=True)
 
 
-@pytest.mark.fsoe
+@pytest.mark.fsoe_phase_I
+@pytest.mark.fsoe_phase_II
 def test_start_and_stop_multiple_times(mc_with_fsoe):
     mc, handler = mc_with_fsoe
 
@@ -502,7 +516,8 @@ def test_start_and_stop_multiple_times(mc_with_fsoe):
         mc.fsoe.stop_master(stop_pdos=True)
 
 
-@pytest.mark.fsoe
+@pytest.mark.fsoe_phase_I
+@pytest.mark.fsoe_phase_II
 @pytest.mark.parametrize("mc_instance", ["mc_state_data", "mc_state_data_with_sra"])
 def test_safe_inputs_value(request, mc_instance):
     mc = request.getfixturevalue(mc_instance)
@@ -512,7 +527,8 @@ def test_safe_inputs_value(request, mc_instance):
     assert value == 0
 
 
-@pytest.mark.fsoe
+@pytest.mark.fsoe_phase_I
+@pytest.mark.fsoe_phase_II
 def test_safety_address(mc_with_fsoe, alias):
     mc, _handler = mc_with_fsoe
 
@@ -539,7 +555,8 @@ def mc_state_to_fsoe_master_state(state: FSoEState):
     }[state]
 
 
-@pytest.mark.fsoe
+@pytest.mark.fsoe_phase_I
+@pytest.mark.fsoe_phase_II
 @pytest.mark.parametrize(
     "state_enum",
     [
@@ -564,7 +581,8 @@ def test_get_master_state(mocker, mc_with_fsoe, state_enum):
     assert mc.fsoe.get_fsoe_master_state() == state_enum
 
 
-@pytest.mark.fsoe
+@pytest.mark.fsoe_phase_I
+@pytest.mark.fsoe_phase_II
 def test_motor_enable(mc_state_data):
     mc = mc_state_data
 
@@ -588,7 +606,8 @@ def test_motor_enable(mc_state_data):
     mc.fsoe.sto_activate()
 
 
-@pytest.mark.fsoe
+@pytest.mark.fsoe_phase_I
+@pytest.mark.fsoe_phase_II
 def test_copy_modify_and_set_map(mc_with_fsoe):
     _mc, handler = mc_with_fsoe
 
@@ -681,7 +700,8 @@ class TestPduMapper:
 
         return safe_dict, fsoe_dict
 
-    @pytest.mark.fsoe
+    @pytest.mark.fsoe_phase_I
+    @pytest.mark.fsoe_phase_II
     def test_map_phase_1(self, sample_safe_dictionary):
         safe_dict, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
@@ -789,7 +809,8 @@ class TestPduMapper:
             == maps.inputs.get_text_representation()
         )
 
-    @pytest.mark.fsoe
+    @pytest.mark.fsoe_phase_I
+    @pytest.mark.fsoe_phase_II
     def test_map_8_safe_bits(self, sample_safe_dictionary):
         safe_dict, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
@@ -827,7 +848,8 @@ class TestPduMapper:
             == maps.inputs.get_text_representation()
         )
 
-    @pytest.mark.fsoe
+    @pytest.mark.fsoe_phase_I
+    @pytest.mark.fsoe_phase_II
     def test_map_with_32_bit_vars(self, sample_safe_dictionary):
         safe_dict, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
@@ -873,7 +895,8 @@ class TestPduMapper:
             == maps.inputs.get_text_representation()
         )
 
-    @pytest.mark.fsoe
+    @pytest.mark.fsoe_phase_I
+    @pytest.mark.fsoe_phase_II
     def test_map_with_32_bit_vars_offset_8(self, sample_safe_dictionary):
         safe_dict, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
@@ -939,7 +962,8 @@ class TestPduMapper:
             == maps.inputs.get_text_representation()
         )
 
-    @pytest.mark.fsoe
+    @pytest.mark.fsoe_phase_I
+    @pytest.mark.fsoe_phase_II
     def test_map_with_32_bit_vars_offset_16(self, sample_safe_dictionary):
         safe_dict, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
@@ -995,7 +1019,8 @@ class TestPduMapper:
             == maps.inputs.get_text_representation()
         )
 
-    @pytest.mark.fsoe
+    @pytest.mark.fsoe_phase_I
+    @pytest.mark.fsoe_phase_II
     @pytest.mark.parametrize("unify_pdo_mapping", [True, False])
     def test_map_with_16_bit_vars_offset_8(self, sample_safe_dictionary, unify_pdo_mapping: bool):
         safe_dict, fsoe_dict = sample_safe_dictionary
@@ -1059,7 +1084,8 @@ class TestPduMapper:
             == maps.inputs.get_text_representation()
         )
 
-    @pytest.mark.fsoe
+    @pytest.mark.fsoe_phase_I
+    @pytest.mark.fsoe_phase_II
     @pytest.mark.parametrize(
         "pdo_length, frame_data_bytes",
         [
@@ -1075,7 +1101,8 @@ class TestPduMapper:
             pdo_length
         )
 
-    @pytest.mark.fsoe
+    @pytest.mark.fsoe_phase_I
+    @pytest.mark.fsoe_phase_II
     def test_insert_in_best_position(self, sample_safe_dictionary):
         _safe_dict, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
@@ -1101,7 +1128,8 @@ class TestPduMapper:
             "FSOE_STO                       | 0..0                 | 0..1                "
         )
 
-    @pytest.mark.fsoe
+    @pytest.mark.fsoe_phase_I
+    @pytest.mark.fsoe_phase_II
     def test_validate_safe_data_blocks_invalid_size(self, mocker, sample_safe_dictionary):
         """Test that SafeDataBlocksValidator fails when safe data blocks are not 16 bits."""
         _, fsoe_dict = sample_safe_dictionary
@@ -1121,11 +1149,12 @@ class TestPduMapper:
         assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID in output.exceptions
         exception = output.exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
         assert isinstance(exception, InvalidFSoEFrameRule)
-        assert f"Safe data block 0 must be 16 bits, found {dummy_slot_width}" in exception.exception
+        assert f"Safe data block 0 must be 16 bits. Found {dummy_slot_width}" in exception.exception
         assert exception.items == [test_st_u8_item]
         assert output.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is False
 
-    @pytest.mark.fsoe
+    @pytest.mark.fsoe_phase_I
+    @pytest.mark.fsoe_phase_II
     def test_validate_safe_data_blocks_pdu_empty(self, sample_safe_dictionary):
         """Test that SafeDataBlocksValidator passes when no safe data blocks are present."""
         _, fsoe_dict = sample_safe_dictionary
@@ -1134,7 +1163,8 @@ class TestPduMapper:
         assert len(output.exceptions) == 0
         assert output.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is True
 
-    @pytest.mark.fsoe
+    @pytest.mark.fsoe_phase_I
+    @pytest.mark.fsoe_phase_II
     def test_validate_safe_data_blocks_too_many_blocks(self):
         """Test that SafeDataBlocksValidator fails when there are more than 8 safe data blocks."""
         # Add 9 different 16-bit safe inputs -> 9 blocks
@@ -1193,7 +1223,8 @@ class TestPduMapper:
         assert exception.items == test_si_u16_items
         assert output.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is False
 
-    @pytest.mark.fsoe
+    @pytest.mark.fsoe_phase_I
+    @pytest.mark.fsoe_phase_II
     def test_validate_safe_data_blocks_objects_split_across_blocks(self, sample_safe_dictionary):
         """Test that SafeDataBlocksValidator fails when <= 16 bits objects are split."""
         _, fsoe_dict = sample_safe_dictionary
@@ -1228,7 +1259,8 @@ class TestPduMapper:
         assert not output.exceptions
         assert output.is_rule_valid(FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED) is True
 
-    @pytest.mark.fsoe
+    @pytest.mark.fsoe_phase_I
+    @pytest.mark.fsoe_phase_II
     def test_validate_safe_data_blocks_valid_cases(self, sample_safe_dictionary):
         """Test that SafeDataBlocksValidator passes for valid safe data block configurations."""
         _, fsoe_dict = sample_safe_dictionary
@@ -1246,7 +1278,8 @@ class TestPduMapper:
             assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID not in output.exceptions
             assert output.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is True
 
-    @pytest.mark.fsoe
+    @pytest.mark.fsoe_phase_I
+    @pytest.mark.fsoe_phase_II
     def test_validate_number_of_objects_in_frame(self, sample_safe_dictionary):
         """Test that SafeDataBlocksValidator fails if the number of objects is exceeded."""
         safe_dict, fsoe_dict = sample_safe_dictionary
@@ -1315,7 +1348,8 @@ class TestPduMapper:
         assert exception.items == test_si_bool_items
         assert output.is_rule_valid(FSoEFrameRules.OBJECTS_IN_FRAME) is False
 
-    @pytest.mark.fsoe
+    @pytest.mark.fsoe_phase_I
+    @pytest.mark.fsoe_phase_II
     def test_validate_safe_data_padding_blocks(self, sample_safe_dictionary):
         """Test that PaddingBlockValidator fails when padding blocks are not between 1-16 bits."""
         _, fsoe_dict = sample_safe_dictionary
@@ -1340,7 +1374,8 @@ class TestPduMapper:
             assert not output.exceptions
             assert output.is_rule_valid(FSoEFrameRules.PADDING_BLOCKS_VALID) is True
 
-    @pytest.mark.fsoe
+    @pytest.mark.fsoe_phase_I
+    @pytest.mark.fsoe_phase_II
     def test_validate_safe_data_objects_word_aligned(self, sample_safe_dictionary):
         """Test that validation fails when safe data objects >= 16 bits are not word aligned."""
         _, fsoe_dict = sample_safe_dictionary
@@ -1354,7 +1389,11 @@ class TestPduMapper:
         assert FSoEFrameRules.OBJECTS_ALIGNED in output.exceptions
         exception = output.exceptions[FSoEFrameRules.OBJECTS_ALIGNED]
         assert isinstance(exception, InvalidFSoEFrameRule)
-        assert "Object must be word-aligned, found at bit position 8" in exception.exception
+        assert exception.exception == (
+            "Objects larger than 16-bit must be word-aligned. "
+            f"Object '{test_si_u16_item.item.name}' found at position 8, "
+            f"next alignment is at 16."
+        )
         assert exception.items == [test_si_u16_item]
         assert output.is_rule_valid(FSoEFrameRules.OBJECTS_ALIGNED) is False
 
@@ -1367,7 +1406,8 @@ class TestPduMapper:
         assert not output.exceptions
         assert output.is_rule_valid(FSoEFrameRules.OBJECTS_ALIGNED) is True
 
-    @pytest.mark.fsoe
+    @pytest.mark.fsoe_phase_I
+    @pytest.mark.fsoe_phase_II
     def test_validate_sto_command_first_in_outputs(self, sample_safe_dictionary):
         """Test that STO command is the first item in the outputs map."""
         _, fsoe_dict = sample_safe_dictionary
@@ -1402,7 +1442,8 @@ class TestPduMapper:
         assert not output.exceptions
         assert output.is_rule_valid(FSoEFrameRules.STO_COMMAND_FIRST) is True
 
-    @pytest.mark.fsoe
+    @pytest.mark.fsoe_phase_I
+    @pytest.mark.fsoe_phase_II
     def test_validate_dictionary_map_fsoe_frame_rules(self, sample_safe_dictionary):
         """Test that FSoE frames pass all validation rules."""
         _, fsoe_dict = sample_safe_dictionary

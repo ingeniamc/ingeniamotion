@@ -35,7 +35,9 @@ def error_handler(error: FSoEError) -> None:
 
 
 @pytest.fixture
-def mc_with_fsoe(mc) -> Generator[tuple[MotionController, FSoEMasterHandler], None, None]:
+def mc_with_fsoe(
+    mc: MotionController,
+) -> Generator[tuple[MotionController, FSoEMasterHandler], None, None]:
     # Subscribe to emergency messages
     mc.communication.subscribe_emergency_message(emergency_handler)
     # Configure error channel
@@ -43,12 +45,13 @@ def mc_with_fsoe(mc) -> Generator[tuple[MotionController, FSoEMasterHandler], No
     # Create and start the FSoE master handler
     handler = mc.fsoe.create_fsoe_master_handler(use_sra=False)
     yield mc, handler
-    # IM should be notified and clear references when a servo is disconnected from ingenialink
     mc.fsoe._delete_master_handler()
 
 
 @pytest.fixture
-def mc_with_fsoe_with_sra(mc) -> Generator[tuple[MotionController, FSoEMasterHandler], None, None]:
+def mc_with_fsoe_with_sra(
+    mc: MotionController,
+) -> Generator[tuple[MotionController, FSoEMasterHandler], None, None]:
     # Subscribe to emergency messages
     mc.communication.subscribe_emergency_message(emergency_handler)
     # Configure error channel
@@ -56,14 +59,12 @@ def mc_with_fsoe_with_sra(mc) -> Generator[tuple[MotionController, FSoEMasterHan
     # Create and start the FSoE master handler
     handler = mc.fsoe.create_fsoe_master_handler(use_sra=True)
     yield mc, handler
-    # IM should be notified and clear references when a servo is disconnected from ingenialink
-    mc.fsoe.stop_master(stop_pdos=True)
     mc.fsoe._delete_master_handler()
 
 
 @pytest.fixture
 def mc_state_data_with_sra(
-    mc_with_fsoe_with_sra,
+    mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler],
 ) -> Generator[MotionController, None, None]:
     mc, _handler = mc_with_fsoe_with_sra
 
@@ -78,7 +79,9 @@ def mc_state_data_with_sra(
 
 
 @pytest.fixture
-def mc_state_data(mc_with_fsoe) -> Generator[MotionController, None, None]:
+def mc_state_data(
+    mc_with_fsoe: tuple[MotionController, FSoEMasterHandler],
+) -> Generator[MotionController, None, None]:
     mc, _handler = mc_with_fsoe
 
     mc.fsoe.configure_pdos(start_pdos=True)

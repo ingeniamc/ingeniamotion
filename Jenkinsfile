@@ -194,7 +194,7 @@ pipeline {
                                     steps {
                                         bat """
                                             py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- ^
-                                            -m "not ethernet and not soem and not fsoe and not canopen and not virtual and not soem_multislave and not skip_testing_framework"
+                                            -m "not ethernet and not soem and not fsoe_phase_I and not fsoe_phase_II and not canopen and not virtual and not soem_multislave and not skip_testing_framework"
                                         """
                                     }
                                     post {
@@ -334,13 +334,13 @@ pipeline {
                         }
                         stage("Safety Denali Phase I") {
                             steps {
-                                runTestHW("fsoe_phase1", "fsoe", "ECAT_DEN_S_PHASE1_SETUP", true, USE_WIRESHARK_LOGGING)
+                                runTestHW("fsoe_phase1", "fsoe_phase_I", "ECAT_DEN_S_PHASE1_SETUP", true, USE_WIRESHARK_LOGGING)
                            
                             }
                         }
                         stage("Safety Denali Phase II") {
                             steps {
-                                runTestHW("fsoe_phase2", "fsoe", "ECAT_DEN_S_PHASE2_SETUP", true, USE_WIRESHARK_LOGGING)
+                                runTestHW("fsoe_phase2", "fsoe_phase_II", "ECAT_DEN_S_PHASE2_SETUP", true, USE_WIRESHARK_LOGGING)
                            
                             }
                         }

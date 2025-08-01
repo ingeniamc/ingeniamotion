@@ -11,6 +11,7 @@ from ingeniamotion.fsoe_master.fsoe import (
     FSoEDictionaryItemOutput,
     FSoEDictionaryMap,
     FSoEDictionaryMappedItem,
+    align_bits,
 )
 from ingeniamotion.fsoe_master.safety_functions import STOFunction
 
@@ -373,12 +374,16 @@ class ObjectsAlignedValidator(FSoEFrameRuleValidator):
         exceptions: dict[FSoEFrameRules, InvalidFSoEFrameRule] = {}
         for item in dictionary_map:
             if item.bits >= 16 and item.position_bits % 16 != 0:
+                object_name = item.item.name if item.item else "padding"
+                next_alignment = align_bits(item.position_bits, 16)
                 exceptions[FSoEFrameRules.OBJECTS_ALIGNED] = InvalidFSoEFrameRule(
                     rule=FSoEFrameRules.OBJECTS_ALIGNED,
                     exception=(
-                        f"Object must be word-aligned, found at bit position {item.position_bits}"
+                        "Objects larger than 16-bit must be word-aligned. "
+                        f"Object '{object_name}' found at position {item.position_bits}, "
+                        f"next alignment is at {next_alignment}."
                     ),
-                    items=[item] if item is not None else [],
+                    items=[item],
                 )
         return FSoEFrameRuleValidatorOutput(rules=rules, exceptions=exceptions)
 
