@@ -16,8 +16,17 @@ if FSOE_MASTER_INSTALLED:
     )
 
 
-def main(interface_ip, slave_id, dict_path):
-    """Establish a FSoE connection, deactivate the STO and move the motor."""
+def main(interface_ip, slave_id, dict_path) -> None:
+    """Establish a FSoE connection, deactivate the STO and move the motor.
+
+    Args:
+        interface_ip: IP address of the network interface to use.
+        slave_id (int): ID of the servo drive to connect to.
+        dict_path: Path to the drive dictionary file.
+
+    Raises:
+        FSoEFrameConstructionError: If the FSoE frame construction is invalid.
+    """
     mc = MotionController()
     # Configure error channel
     mc.fsoe.subscribe_to_errors(lambda error: print(error))
@@ -56,6 +65,9 @@ def main(interface_ip, slave_id, dict_path):
     inputs.add(safe_inputs.value)
     inputs.add_padding(7)
 
+    # Check that the maps are valid
+    handler.maps.validate()
+
     # Print the maps to check the configuration
     print("Inputs Map:")
     print(inputs.get_text_representation())
@@ -80,6 +92,9 @@ def main(interface_ip, slave_id, dict_path):
 
     # Wait for the master to reach the Data state
     mc.fsoe.wait_for_state_data(timeout=10)
+
+    # Remove fail-safe mode. Output commands will be applied by the slaves
+    mc.fsoe.set_fail_safe(False)
 
     # Stay 5 seconds in Data state
     for i in range(5):

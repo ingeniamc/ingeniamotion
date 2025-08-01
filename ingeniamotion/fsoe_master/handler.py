@@ -133,6 +133,31 @@ class FSoEMasterHandler:
         if connection_id is None:
             connection_id = randint(1, 0xFFFF)
 
+        self.__master_map_object = self.__servo.dictionary.get_object(self.__FSOE_RPDO_MAP_UID, 1)
+        self.__slave_map_object = self.__servo.dictionary.get_object(self.__FSOE_TPDO_MAP_UID, 1)
+
+        self.__safety_master_pdu = servo.read_rpdo_map_from_slave(self.__master_map_object)
+        self.__safety_slave_pdu = servo.read_tpdo_map_from_slave(self.__slave_map_object)
+
+        # https://novantamotion.atlassian.net/browse/INGM-669
+        self.__map_editable = (self.__master_map_object.registers[0].access == RegAccess.RW) and (
+            self.__slave_map_object.registers[0].access == RegAccess.RW
+        )
+
+        try:
+            self.__maps = PDUMaps.from_rpdo_tpdo(
+                self.__safety_master_pdu,
+                self.__safety_slave_pdu,
+                dictionary=self.dictionary,
+            )
+        except Exception as e:
+            self.logger.error(
+                "Error creating FSoE PDUMaps from RPDO and TPDO on the drive. "
+                "Falling back to a default map.",
+                exc_info=e,
+            )
+            self.__maps = PDUMaps.default(self.dictionary)
+
         self._master_handler = BaseMasterHandler(
             dictionary=self.dictionary,
             slave_address=slave_address
@@ -150,26 +175,6 @@ class FSoEMasterHandler:
             if slave_address is not None:
                 self.set_safety_address(slave_address)
 
-            self.__master_map_object = self.__servo.dictionary.get_object(
-                self.__FSOE_RPDO_MAP_UID, 1
-            )
-            self.__slave_map_object = self.__servo.dictionary.get_object(
-                self.__FSOE_TPDO_MAP_UID, 1
-            )
-
-            self.__safety_master_pdu = servo.read_rpdo_map_from_slave(self.__master_map_object)
-            self.__safety_slave_pdu = servo.read_tpdo_map_from_slave(self.__slave_map_object)
-
-            # https://novantamotion.atlassian.net/browse/INGM-669
-            self.__map_editable = (
-                self.__master_map_object.registers[0].access == RegAccess.RW
-            ) and (self.__slave_map_object.registers[0].access == RegAccess.RW)
-
-            self.__maps = PDUMaps.from_rpdo_tpdo(
-                self.__safety_master_pdu,
-                self.__safety_slave_pdu,
-                dictionary=self.dictionary,
-            )
             self.set_maps(self.__maps)
         except Exception as ex:
             self._master_handler.delete()
@@ -479,9 +484,23 @@ class FSoEMasterHandler:
         """
         return self.get_function_instance(SafeInputsFunction)
 
+    def set_fail_safe(self, fail_safe: bool) -> None:
+        """Set the fail-safe mode of the FSoE master handler.
+
+        When is on data state and fail-safe is active safe outputs will be sent but slaves
+        should not take action.
+
+        By standard, the fail-safe mode is activated when the master is not in Data state.
+
+        Args:
+            fail_safe: If True, the fail-safe mode is activated.
+                If False, the fail-safe mode is deactivated.
+        """
+        self._master_handler.set_fail_safe(fail_safe)
+
     def sto_deactivate(self) -> None:
         """Set the STO command to deactivate the STO."""
-        self._master_handler.set_fail_safe(False)
+        self.set_fail_safe(False)
         self.sto_function().command.set(True)
 
     def sto_activate(self) -> None:
@@ -490,7 +509,7 @@ class FSoEMasterHandler:
 
     def ss1_deactivate(self) -> None:
         """Set the SS1 command to deactivate the SS1."""
-        self._master_handler.set_fail_safe(False)
+        self.set_fail_safe(False)
         self.ss1_function().command.set(True)
 
     def ss1_activate(self) -> None:
