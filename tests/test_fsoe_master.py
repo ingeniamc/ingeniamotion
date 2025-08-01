@@ -106,7 +106,7 @@ def mc_with_fsoe_with_sra(mc):
 
 @pytest.mark.fsoe
 @pytest.mark.parametrize("use_sra", [False, True])
-def test_create_fsoe_master_handler(mc, use_sra):
+def test_create_fsoe_master_handler_use_sra(mc, use_sra):
     master = FSoEMaster(mc)
     handler = master.create_fsoe_master_handler(use_sra=use_sra)
     safety_module = handler._FSoEMasterHandler__get_safety_module()
@@ -130,6 +130,31 @@ def test_create_fsoe_master_handler(mc, use_sra):
         assert len(handler._master_handler.master.application_parameters) == 1
 
     master._delete_master_handler()
+
+
+@pytest.mark.fsoe
+def test_create_fsoe_handler_from_invalid_pdo_maps(caplog):
+    mock_servo = MockServo(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY)
+    mock_servo.write("ETG_COMMS_RPDO_MAP256_6", 0x123456)  # Invalid pdo map value
+
+    caplog.set_level(logging.ERROR)
+    try:
+        handler = FSoEMasterHandler(mock_servo, use_sra=True, report_error_callback=error_handler)
+
+        # An error has been logged
+        logger_error = caplog.records[-1]
+        assert logger_error.levelno == logging.ERROR
+        assert (
+            logger_error.message == "Error creating FSoE PDUMaps from RPDO and TPDO on the drive. "
+            "Falling back to a default map."
+        )
+
+        # And the default minimal map is used
+        assert len(handler.maps.inputs._items) == 0
+        assert len(handler.maps.outputs._items) == 1
+        assert handler.maps.outputs._items[0].item.name == "FSOE_STO"
+    finally:
+        handler.delete()
 
 
 @pytest.mark.fsoe
