@@ -62,6 +62,17 @@ class PDUMaps:
             ),
         )
 
+    @classmethod
+    def default(cls, dictionary: "FSoEDictionary") -> "PDUMaps":
+        """Create a default PDUMaps instance with the default dictionary.
+
+        Returns:
+            PDUMaps instance with the minimum required items for the PDU maps.
+        """
+        maps = cls.empty(dictionary)
+        maps.outputs.add(dictionary.name_map[STOFunction.COMMAND_UID])
+        return maps
+
     def copy(self) -> "PDUMaps":
         """Create a copy of the PDUMaps instance.
 
