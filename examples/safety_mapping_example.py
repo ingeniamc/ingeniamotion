@@ -67,7 +67,7 @@ def main(interface_ip, slave_id, dict_path) -> None:
     inputs.add_padding(7)
 
     # Check that the maps are valid
-    handler.maps.is_map_valid(raise_exceptions=True)
+    handler.maps.validate()
 
     # Print the maps to check the configuration
     print("Inputs Map:")
