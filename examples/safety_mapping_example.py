@@ -82,6 +82,9 @@ def main(interface_ip, slave_id, dict_path):
     # Wait for the master to reach the Data state
     mc.fsoe.wait_for_state_data(timeout=10)
 
+    # Remove fail-safe mode. Output commands will be applied by the slaves
+    mc.fsoe.set_fail_safe(False)
+
     # Stay 5 seconds in Data state
     for i in range(5):
         time.sleep(1)
