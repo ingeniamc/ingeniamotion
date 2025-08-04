@@ -83,3 +83,6 @@ resources/
 
 # Wireshark logs
 wireshark/
+
+# FSoE maps
+fsoe_maps/
