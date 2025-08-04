@@ -1,10 +1,12 @@
-from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional
 
-from ingenialink.canopen.register import CanopenRegister
-from ingenialink.ethercat.dictionary import EthercatDictionaryV2
-from ingenialink.pdo import PDOMap, PDOMapItem, RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
+from ingenialink.pdo import PDOMap, RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 
+from ingeniamotion.fsoe_master.frame import (
+    MASTER_FRAME_ELEMENTS,
+    SLAVE_FRAME_ELEMENTS,
+    FSoEFrame,
+)
 from ingeniamotion.fsoe_master.fsoe import (
     FSoEDictionary,
     FSoEDictionaryItem,
@@ -13,57 +15,25 @@ from ingeniamotion.fsoe_master.fsoe import (
     FSoEDictionaryItemOutput,
     FSoEDictionaryMap,
 )
-from ingeniamotion.fsoe_master.safety_functions import (
-    SafeInputsFunction,
-    SafetyFunction,
-    SS1Function,
-    STOFunction,
+from ingeniamotion.fsoe_master.maps_validator import (
+    FSoEDictionaryMapValidator,
+    FSoEFrameRules,
+    FSoEFrameRuleValidatorOutput,
 )
+from ingeniamotion.fsoe_master.safety_functions import STOFunction
 
 if TYPE_CHECKING:
     from ingenialink.dictionary import Dictionary
 
+    from ingeniamotion.fsoe_master.safety_functions import SafetyFunction
+
 __all__ = ["PDUMaps"]
-
-
-@dataclass()
-class FSoEFrameElements:
-    """FSoE Frame Elements.
-
-    Indicates uids of elements that compose the FSoE frame, excluding the safe data.
-    """
-
-    command_uid: str
-    crcs_prefix: str
-    connection_id_uid: str
-
-    def get_crc_uid(self, data_slot_i: int) -> str:
-        """Get the CRC element name for the given data slot index.
-
-        Returns:
-            The CRC element name for the given data slot index.
-        """
-        return f"{self.crcs_prefix}{data_slot_i}"
-
-
-MASTER_FRAME_ELEMENTS = FSoEFrameElements(
-    command_uid="FSOE_MASTER_FRAME_ELEM_CMD",
-    crcs_prefix="FSOE_MASTER_FRAME_ELEM_CRC",
-    connection_id_uid="FSOE_MASTER_FRAME_ELEM_CONNID",
-)
-
-
-SLAVE_FRAME_ELEMENTS = FSoEFrameElements(
-    command_uid="FSOE_SLAVE_FRAME_ELEM_CMD",
-    crcs_prefix="FSOE_SLAVE_FRAME_ELEM_CRC",
-    connection_id_uid="FSOE_SLAVE_FRAME_ELEM_CONNID",
-)
 
 
 class PDUMaps:
     """Helper class to configure the Safety PDU PDOMaps."""
 
-    __SLOT_WIDHT = 16
+    __SLOT_WIDTH = 16
     """Number of bits in a data slot of the Safety PDU."""
 
     def __init__(
@@ -73,6 +43,7 @@ class PDUMaps:
     ) -> None:
         self.outputs = outputs
         self.inputs = inputs
+        self.__validator: FSoEDictionaryMapValidator = FSoEDictionaryMapValidator()
 
     @classmethod
     def empty(cls, dictionary: "FSoEDictionary") -> "PDUMaps":
@@ -113,6 +84,77 @@ class PDUMaps:
             outputs=self.outputs.copy(),
             inputs=self.inputs.copy(),
         )
+
+    @property
+    def editable(self) -> bool:
+        """Indicates if the PDU maps can be edited."""
+        return not (self.outputs.locked or self.inputs.locked)
+
+    def __validate_dictionary_map(
+        self,
+        dictionary_map: "FSoEDictionaryMap",
+        rules: Optional[list[FSoEFrameRules]],
+        raise_exceptions: bool,
+    ) -> FSoEFrameRuleValidatorOutput:
+        """Validate the given dictionary map against the specified rules.
+
+        Args:
+            dictionary_map: The dictionary map to validate.
+            rules: Optional list of specific rules to validate. If None, all rules are validated.
+            raise_exceptions: If True, raises an exception if any rule is invalid.
+                If False, returns the validation output with exceptions. Defaults to False.
+
+        Returns:
+            The output of the validation containing the rules and exceptions.
+        """
+        return self.__validator.validate_dictionary_map_fsoe_frame_rules(
+            dictionary_map, rules, raise_exceptions
+        )
+
+    def are_inputs_valid(
+        self, rules: Optional[list[FSoEFrameRules]] = None, raise_exceptions: bool = False
+    ) -> FSoEFrameRuleValidatorOutput:
+        """Check if the inputs map is valid.
+
+        Args:
+            rules: list of specific rules to validate. If None, all rules are validated.
+            raise_exceptions: If True, raises an exception if any rule is invalid.
+                If False, returns the validation output with exceptions. Defaults to False.
+
+        Returns:
+            The output of the validation containing the rules and exceptions.
+        """
+        return self.__validate_dictionary_map(self.inputs, rules, raise_exceptions)
+
+    def are_outputs_valid(
+        self, rules: Optional[list[FSoEFrameRules]] = None, raise_exceptions: bool = False
+    ) -> FSoEFrameRuleValidatorOutput:
+        """Check if the outputs map is valid.
+
+        Args:
+            rules: list of specific rules to validate. If None, all rules are validated.
+            raise_exceptions: If True, raises an exception if any rule is invalid.
+                If False, returns the validation output with exceptions. Defaults to False.
+
+        Returns:
+            The output of the validation containing the rules and exceptions.
+        """
+        return self.__validate_dictionary_map(self.outputs, rules, raise_exceptions)
+
+    def validate(self) -> bool:
+        """Check if the map is valid.
+
+        Args:
+            rules: list of specific rules to validate. If None, all rules are validated.
+            raise_exceptions: If True, raises an exception if any rule is invalid.
+                If False, returns the validation output with exceptions. Defaults to False.
+
+        Returns:
+            True if the maps are valid.
+        """
+        self.are_inputs_valid(rules=None, raise_exceptions=True)
+        self.are_outputs_valid(rules=None, raise_exceptions=True)
+        return True
 
     def insert_in_best_position(self, element: "FSoEDictionaryItem") -> None:
         """Insert I/O in any best position of the maps.
@@ -165,7 +207,7 @@ class PDUMaps:
     def fill_rpdo_map(self, rpdo_map: RPDOMap, servo_dictionary: "Dictionary") -> None:
         """Fill the RPDOMap used for the Safety Master PDU."""
         self.outputs.complete_with_padding()
-        self.__fill_pdo_map(
+        FSoEFrame.fill_pdo_map(
             self.outputs,
             servo_dictionary=servo_dictionary,
             pdo_map=rpdo_map,
@@ -176,7 +218,7 @@ class PDUMaps:
     def fill_tpdo_map(self, tpdo_map: TPDOMap, servo_dictionary: "Dictionary") -> None:
         """Fill the TPDOMap used for the Safety Slave PDU."""
         self.inputs.complete_with_padding()
-        self.__fill_pdo_map(
+        FSoEFrame.fill_pdo_map(
             self.inputs,
             servo_dictionary=servo_dictionary,
             pdo_map=tpdo_map,
@@ -268,165 +310,3 @@ class PDUMaps:
             position_bits += pdo_item.size_bits
 
         dictionary_map.merge_adjacent_paddings()
-
-    def __create_pdo_item(
-        self,
-        servo_dictionary: "Dictionary",
-        uid: str,
-        item_type: type[PDOMapItem],
-        size_bits: Optional[int] = None,
-    ) -> PDOMapItem:
-        if isinstance(servo_dictionary, EthercatDictionaryV2):
-            # Dictionary V2 only supports SaCo phase 1
-            # That does do not configure the pdo maps.
-            # Padding items are enough to fill the map
-            if uid == MASTER_FRAME_ELEMENTS.command_uid or uid == SLAVE_FRAME_ELEMENTS.command_uid:
-                return item_type(size_bits=8)
-            if (
-                uid == MASTER_FRAME_ELEMENTS.connection_id_uid
-                or uid == SLAVE_FRAME_ELEMENTS.connection_id_uid
-            ):
-                return item_type(size_bits=16)
-            if uid.startswith((
-                MASTER_FRAME_ELEMENTS.crcs_prefix,
-                SLAVE_FRAME_ELEMENTS.crcs_prefix,
-            )):
-                return item_type(size_bits=16)
-            if uid in [
-                STOFunction.COMMAND_UID,
-                SS1Function.COMMAND_UID.format(i=1),
-                SafeInputsFunction.SAFE_INPUTS_UID,
-            ]:
-                return item_type(size_bits=1)
-
-            raise NotImplementedError(f"Unknown FSoE item UID for Dictionary V2: {uid}")
-        else:
-            reg = servo_dictionary.get_register(uid)
-            if not isinstance(reg, CanopenRegister):
-                # Type could be narrowed to EthercatRegister
-                # After this bugfix:
-                # https://novantamotion.atlassian.net/browse/INGK-1111
-                raise TypeError
-            return item_type(reg, size_bits)
-
-    def __create_pdo_safe_data_item(
-        self,
-        servo_dictionary: "Dictionary",
-        item: "FSoEDictionaryItem",
-        item_type: type[PDOMapItem],
-        size_bits: Optional[int] = None,
-    ) -> PDOMapItem:
-        if item.item is None:
-            # Padding item
-            return item_type(size_bits=item.bits)
-        else:
-            # I/O item
-            return self.__create_pdo_item(
-                servo_dictionary, item.item.name, item_type, size_bits=size_bits
-            )
-
-    def __get_crc_item(
-        self,
-        data_slot_i: int,
-        frame_elements: FSoEFrameElements,
-        pdo_item_type: type[PDOMapItem],
-        servo_dictionary: "Dictionary",
-    ) -> PDOMapItem:
-        try:
-            return self.__create_pdo_item(
-                servo_dictionary, frame_elements.get_crc_uid(data_slot_i), pdo_item_type
-            )
-        except KeyError as e:
-            raise NotImplementedError(
-                f"No CRC found for data slot {data_slot_i}. Probably the PDU Map is wide"
-            ) from e
-
-    def __fill_pdo_map(
-        self,
-        dict_map: "FSoEDictionaryMap",
-        servo_dictionary: "Dictionary",
-        pdo_map: PDOMap,
-        pdo_item_type: type[PDOMapItem],
-        frame_elements: FSoEFrameElements,
-    ) -> None:
-        # Remove any existing items in the PDOMap
-        pdo_map.items.clear()
-
-        # Initial FSoE command
-        pdo_map.add_item(
-            self.__create_pdo_item(servo_dictionary, frame_elements.command_uid, pdo_item_type)
-        )
-
-        data_slot_i = 0
-
-        # The minimum bits for the initial data slot is 8 bits
-        slot_bit_maximum = 8
-
-        for item in dict_map:
-            if slot_bit_maximum == 8 and item.position_bits + item.bits >= slot_bit_maximum:
-                # Since there's enough data to overflow the initial slot of 8 bits,
-                # it will be of 16 bits instead
-                slot_bit_maximum = self.__SLOT_WIDHT
-
-            if item.position_bits >= slot_bit_maximum:
-                # This item must go in the next data slot
-                # Add a CRC item, and update to the next data slot
-                pdo_map.add_item(
-                    self.__get_crc_item(
-                        data_slot_i, frame_elements, pdo_item_type, servo_dictionary
-                    )
-                )
-                data_slot_i += 1
-                slot_bit_maximum += self.__SLOT_WIDHT
-
-            if item.position_bits + item.bits <= slot_bit_maximum:
-                # The item fits in the current slot, add it
-                pdo_map.add_item(
-                    self.__create_pdo_safe_data_item(servo_dictionary, item, pdo_item_type)
-                )
-            else:
-                # The item must go in the current slot, and on the next one
-                # Have a virtual padding with the remaining bits
-                # As described on ETG5120 Section 5.3.3
-
-                # Number of bits that will be used in the current slot,
-                # taking into account that it may start in the middle of the slot
-                item_bits_in_slot = self.__SLOT_WIDHT - item.position_bits % self.__SLOT_WIDHT
-
-                # Add I/O item, cut to the bits that fit in the current slot
-                pdo_map.add_item(
-                    self.__create_pdo_safe_data_item(
-                        servo_dictionary, item, pdo_item_type, size_bits=item_bits_in_slot
-                    )
-                )
-
-                # There are remaining bits that must be mapped into virtual paddings
-                remaining_bits_to_map = item.bits - item_bits_in_slot
-
-                while remaining_bits_to_map > 0:
-                    # Add CRC item
-                    pdo_map.add_item(
-                        self.__get_crc_item(
-                            data_slot_i, frame_elements, pdo_item_type, servo_dictionary
-                        )
-                    )
-                    data_slot_i += 1
-                    slot_bit_maximum += self.__SLOT_WIDHT
-                    bits_to_map_in_this_slot = min(remaining_bits_to_map, self.__SLOT_WIDHT)
-                    # Virtual Padding item
-                    pdo_map.add_item(pdo_item_type(size_bits=bits_to_map_in_this_slot))
-                    remaining_bits_to_map -= bits_to_map_in_this_slot
-
-        # Last CRC
-        pdo_map.add_item(
-            self.__get_crc_item(data_slot_i, frame_elements, pdo_item_type, servo_dictionary),
-        )
-
-        # Connection ID
-        pdo_map.add_item(
-            self.__create_pdo_item(
-                servo_dictionary,
-                frame_elements.connection_id_uid,
-                pdo_item_type,
-            )
-        )
