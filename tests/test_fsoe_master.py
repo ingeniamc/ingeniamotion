@@ -1119,8 +1119,8 @@ class TestPduMapper:
             "Item                           | Position bytes..bits | Size bytes..bits    \n"
             "FSOE_STO                       | 0..0                 | 0..1                \n"
             "FSOE_SAFE_INPUTS_VALUE         | 0..1                 | 0..1                \n"
-            "Padding                        | 0..2                 | 0..6                \n"
-            "FSOE_SAFE_POSITION             | 1..0                 | 4..0                "
+            "Padding                        | 0..2                 | 1..6                \n"
+            "FSOE_SAFE_POSITION             | 2..0                 | 4..0                "
         )
 
         assert maps.outputs.get_text_representation(item_space=30) == (
