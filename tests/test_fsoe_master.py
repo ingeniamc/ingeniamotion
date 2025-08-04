@@ -827,6 +827,7 @@ class TestPduMapper:
             == maps.inputs.get_text_representation()
         )
 
+    @pytest.mark.fsoe
     def test_empty_map_8_bits(self, sample_safe_dictionary):
         safe_dict, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
