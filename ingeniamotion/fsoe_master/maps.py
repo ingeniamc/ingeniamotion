@@ -85,6 +85,11 @@ class PDUMaps:
             inputs=self.inputs.copy(),
         )
 
+    @property
+    def editable(self) -> bool:
+        """Indicates if the PDU maps can be edited."""
+        return not (self.outputs.locked or self.inputs.locked)
+
     def __validate_dictionary_map(
         self,
         dictionary_map: "FSoEDictionaryMap",
