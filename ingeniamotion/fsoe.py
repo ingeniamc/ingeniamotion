@@ -101,8 +101,10 @@ class FSoEMaster:
 
         """
         for master_handler in self._handlers.values():
+            self.logger.info(f"Is master handler running? {master_handler.running}")
             if master_handler.running:
                 master_handler.stop()
+                self.logger.info("FSoE Master handlerstopped.")
         if self.__fsoe_configured:
             self._unsubscribe_from_pdo_thread_events()
         else:
