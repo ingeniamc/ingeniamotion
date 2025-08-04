@@ -1,14 +1,18 @@
 import logging
+import random
 import time
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Union
 
 import pytest
-from ingenialink import RegAccess, RegDtype
-from ingenialink.dictionary import DictionarySafetyModule, Interface
+from ingenialink import RegAccess, RegDtype, Servo
+from ingenialink.dictionary import CanOpenObject, DictionarySafetyModule, Interface
 from ingenialink.enums.register import RegCyclicType
 from ingenialink.ethercat.register import EthercatRegister
+from ingenialink.ethercat.servo import EthercatServo
 from ingenialink.pdo import RPDOMap, TPDOMap
+from ingenialink.register import Register
 from ingenialink.servo import DictionaryFactory
+from ingenialink.utils._utils import convert_dtype_to_bytes
 
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError, FSoEMaster
@@ -32,11 +36,11 @@ if FSOE_MASTER_INSTALLED:
         STOFunction,
         SVFunction,
     )
+    from ingeniamotion.fsoe_master.frame import FSoEFrame
     from ingeniamotion.fsoe_master.fsoe import (
         FSoEApplicationParameter,
     )
     from ingeniamotion.fsoe_master.maps_validator import (
-        FSoEDictionaryMapValidator,
         FSoEFrameRules,
         InvalidFSoEFrameRule,
     )
@@ -109,7 +113,7 @@ def mc_with_fsoe_with_sra(mc):
 
 @pytest.mark.fsoe
 @pytest.mark.parametrize("use_sra", [False, True])
-def test_create_fsoe_master_handler(mc, use_sra):
+def test_create_fsoe_master_handler_use_sra(mc, use_sra):
     master = FSoEMaster(mc)
     handler = master.create_fsoe_master_handler(use_sra=use_sra)
     safety_module = handler._FSoEMasterHandler__get_safety_module()
@@ -133,6 +137,31 @@ def test_create_fsoe_master_handler(mc, use_sra):
         assert len(handler._master_handler.master.application_parameters) == 1
 
     master._delete_master_handler()
+
+
+@pytest.mark.fsoe
+def test_create_fsoe_handler_from_invalid_pdo_maps(caplog):
+    mock_servo = MockServo(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY)
+    mock_servo.write("ETG_COMMS_RPDO_MAP256_6", 0x123456)  # Invalid pdo map value
+
+    caplog.set_level(logging.ERROR)
+    try:
+        handler = FSoEMasterHandler(mock_servo, use_sra=True, report_error_callback=error_handler)
+
+        # An error has been logged
+        logger_error = caplog.records[-1]
+        assert logger_error.levelno == logging.ERROR
+        assert (
+            logger_error.message == "Error creating FSoE PDUMaps from RPDO and TPDO on the drive. "
+            "Falling back to a default map."
+        )
+
+        # And the default minimal map is used
+        assert len(handler.maps.inputs._items) == 0
+        assert len(handler.maps.outputs._items) == 1
+        assert handler.maps.outputs._items[0].item.name == "FSOE_STO"
+    finally:
+        handler.delete()
 
 
 @pytest.mark.fsoe
@@ -203,6 +232,42 @@ class MockSafetyParameter:
         pass
 
 
+class MockServo(Servo):
+    interface = Interface.ECAT
+
+    def __init__(self, dictionary_path: str):
+        super().__init__(target=1, dictionary_path=dictionary_path)
+
+        self.current_values = {
+            register: convert_dtype_to_bytes(register.default, register.dtype)
+            for register in self.dictionary.all_registers()
+        }
+
+    def _write_raw(self, register: Register, data: bytes, **kwargs: Any):
+        self.current_values[register] = data
+
+    def _read_raw(self, reg: Register, **kwargs: Any) -> bytes:
+        return self.current_values[reg]
+
+    def read_complete_access(
+        self, reg: Union[str, Register, CanOpenObject], *args, **kwargs
+    ) -> bytes:
+        if not isinstance(reg, CanOpenObject):
+            raise NotImplementedError
+
+        value = bytearray()
+
+        for register in reg:
+            value += self.current_values[register]
+            if register.subidx == 0:
+                value += b"\00"  # Padding after first u8 element
+
+        return bytes(value)
+
+    read_rpdo_map_from_slave = EthercatServo.read_rpdo_map_from_slave
+    read_tpdo_map_from_slave = EthercatServo.read_tpdo_map_from_slave
+
+
 class MockHandler:
     def __init__(self, dictionary: str, module_uid: int):
         xdf = DictionaryFactory.create_dictionary(dictionary, interface=Interface.ECAT)
@@ -212,6 +277,65 @@ class MockHandler:
             app_parameter.uid: MockSafetyParameter()
             for app_parameter in xdf.get_safety_module(module_uid).application_parameters
         }
+
+
+@pytest.mark.fsoe
+def test_constructor_set_slave_address():
+    mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
+    try:
+        handler = FSoEMasterHandler(
+            mock_servo, use_sra=True, slave_address=0x7412, report_error_callback=error_handler
+        )
+
+        assert mock_servo.read(FSoEMasterHandler.FSOE_MANUF_SAFETY_ADDRESS) == 0x7412
+        assert handler._master_handler.get_slave_address() == 0x7412
+    finally:
+        handler.delete()
+
+
+@pytest.mark.fsoe
+def test_constructor_inherit_slave_address():
+    mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
+    try:
+        # Set the slave address in the servo
+        mock_servo.write(FSoEMasterHandler.FSOE_MANUF_SAFETY_ADDRESS, 0x4986)
+
+        handler = FSoEMasterHandler(mock_servo, use_sra=True, report_error_callback=error_handler)
+
+        assert mock_servo.read(FSoEMasterHandler.FSOE_MANUF_SAFETY_ADDRESS) == 0x4986
+    finally:
+        handler.delete()
+
+
+@pytest.mark.fsoe
+def test_constructor_set_connection_id():
+    mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
+    try:
+        handler = FSoEMasterHandler(
+            mock_servo,
+            use_sra=True,
+            connection_id=0x3742,
+            report_error_callback=error_handler,
+        )
+        assert handler._master_handler.master.session.connection_id.value == 0x3742
+    finally:
+        handler.delete()
+
+
+@pytest.mark.fsoe
+def test_constructor_random_connection_id():
+    mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
+
+    random.seed(0x1234)
+    try:
+        handler = FSoEMasterHandler(
+            mock_servo,
+            use_sra=True,
+            report_error_callback=error_handler,
+        )
+        assert handler._master_handler.master.session.connection_id.value == 0xED9A
+    finally:
+        handler.delete()
 
 
 @pytest.mark.fsoe
@@ -309,6 +433,28 @@ def test_getter_of_safety_functions(mc_with_fsoe):
     assert error.value.args[0] == "Master handler does not contain SS1Function instance 3"
 
 
+@pytest.mark.fsoe
+def test_modify_safe_parameters():
+    mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
+    try:
+        handler = FSoEMasterHandler(mock_servo, use_sra=True, report_error_callback=error_handler)
+
+        input_map = handler.get_function_instance(SafeInputsFunction).map
+        map_uid = SafeInputsFunction.INPUTS_MAP_UID
+
+        input_map.set(1)
+        assert mock_servo.read(map_uid) == 1
+
+        input_map.set_without_updating(1234)
+        assert mock_servo.read(map_uid) == 1
+
+        handler.write_safe_parameters()
+        assert mock_servo.read(map_uid) == 1234
+
+    finally:
+        handler.delete()
+
+
 @pytest.fixture()
 def mc_state_data_with_sra(mc_with_fsoe_with_sra):
     mc, _handler = mc_with_fsoe_with_sra
@@ -330,6 +476,9 @@ def mc_state_data(mc_with_fsoe):
     mc.fsoe.configure_pdos(start_pdos=True)
     # Wait for the master to reach the Data state
     mc.fsoe.wait_for_state_data(timeout=10)
+
+    # Remove fail-safe state
+    mc.fsoe.set_fail_safe(False)
 
     yield mc
 
@@ -979,41 +1128,31 @@ class TestPduMapper:
         maps = PDUMaps.empty(fsoe_dict)
 
         # Create a map with safe data blocks that are not 16 bits
-        maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])  # 8 bits
+        test_st_u8_item = maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])  # 8 bits
 
         # Use a dummy slot width to simulate that the safe data block is wrongly sized
         dummy_slot_width = 2
         mocker.patch(
-            "ingeniamotion.fsoe_master.maps.PDUMaps._PDUMaps__SLOT_WIDTH", dummy_slot_width
+            "ingeniamotion.fsoe_master.maps.FSoEFrame._FSoEFrame__SLOT_WIDTH", dummy_slot_width
         )
         # Only validate the safe data blocks rule
-        validator = FSoEDictionaryMapValidator()
-        exceptions = validator.validate_dictionary_map_fsoe_frame_rules(
-            maps.inputs, rules=[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
-        )
-        assert len(exceptions) == 1
-        assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID in exceptions
-        exception = exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
+        output = maps.are_inputs_valid(rules=[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID])
+        assert len(output.exceptions) == 1
+        assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID in output.exceptions
+        exception = output.exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
         assert isinstance(exception, InvalidFSoEFrameRule)
-        assert f"Safe data block 0 must be 16 bits, found {dummy_slot_width}" in exception.exception
-        assert exception.position == [0]
-        assert validator.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is False
+        assert f"Safe data block 0 must be 16 bits. Found {dummy_slot_width}" in exception.exception
+        assert exception.items == [test_st_u8_item]
+        assert output.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is False
 
     @pytest.mark.fsoe
     def test_validate_safe_data_blocks_pdu_empty(self, sample_safe_dictionary):
         """Test that SafeDataBlocksValidator passes when no safe data blocks are present."""
         _, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
-        # Only validate the safe data blocks rule
-        validator = FSoEDictionaryMapValidator()
-        exceptions = validator.validate_dictionary_map_fsoe_frame_rules(
-            maps.inputs, rules=[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
-        )
-        assert len(exceptions) == 1
-        assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID in exceptions
-        exception = exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
-        assert exception.exception == "No safe data blocks found in PDO map"
-        assert validator.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is False
+        output = maps.are_inputs_valid(rules=[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID])
+        assert len(output.exceptions) == 0
+        assert output.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is True
 
     @pytest.mark.fsoe
     def test_validate_safe_data_blocks_too_many_blocks(self):
@@ -1059,21 +1198,20 @@ class TestPduMapper:
 
         maps = PDUMaps.empty(fsoe_dict)
 
+        test_si_u16_items = []
         for idx in range(9):
             test_uid = f"TEST_SI_U16_{idx}"
-            maps.inputs.add(fsoe_dict.name_map[test_uid])
+            item = maps.inputs.add(fsoe_dict.name_map[test_uid])
+            test_si_u16_items.append(item)
 
-        validator = FSoEDictionaryMapValidator()
-        exceptions = validator.validate_dictionary_map_fsoe_frame_rules(
-            maps.inputs, rules=[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
-        )
-        assert len(exceptions) == 1
-        assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID in exceptions
-        exception = exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
+        output = maps.are_inputs_valid(rules=[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID])
+        assert len(output.exceptions) == 1
+        assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID in output.exceptions
+        exception = output.exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
         assert isinstance(exception, InvalidFSoEFrameRule)
         assert "Expected 1-8 safe data blocks, found 9" in exception.exception
-        assert exception.position is None
-        assert validator.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is False
+        assert exception.items == test_si_u16_items
+        assert output.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is False
 
     @pytest.mark.fsoe
     def test_validate_safe_data_blocks_objects_split_across_blocks(self, sample_safe_dictionary):
@@ -1085,23 +1223,20 @@ class TestPduMapper:
         maps.inputs.add_padding(bits=6)
         maps.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
         maps.inputs.add(fsoe_dict.name_map[SS2Function.COMMAND_UID.format(i=1)])
-        maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
+        test_si_u8_item = maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
 
         # Test that rule fails because the 8-bit object is split across blocks
-        validator = FSoEDictionaryMapValidator()
-        exceptions = validator.validate_dictionary_map_fsoe_frame_rules(
-            maps.inputs, rules=[FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED]
-        )
-        assert len(exceptions) == 1
-        assert FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED in exceptions
-        exception = exceptions[FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED]
+        output = maps.are_inputs_valid(rules=[FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED])
+        assert len(output.exceptions) == 1
+        assert FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED in output.exceptions
+        exception = output.exceptions[FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED]
         assert isinstance(exception, InvalidFSoEFrameRule)
         assert exception.exception == (
-            "Data slot 0 contains an object that is not "
-            "32 bits, it cannot be split across multiple safe data blocks"
+            "Make sure that 8 bit objects belong to the same data block. "
+            f"Data slot 0 contains split object {test_si_u8_item.item.name}."
         )
-        assert exception.position == [0, 1, 7, 8, 9]  # All items in the first block
-        assert validator.is_rule_valid(FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED) is False
+        assert exception.items == [test_si_u8_item]  # Split item
+        assert output.is_rule_valid(FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED) is False
 
         # Test that rule passes when the object is not split
         maps.inputs.clear()
@@ -1109,14 +1244,9 @@ class TestPduMapper:
         maps.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
         maps.inputs.add(fsoe_dict.name_map[SS2Function.COMMAND_UID.format(i=1)])
         maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
-        validator.reset()
-        assert not validator.exceptions
-        assert FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED not in validator._validated_rules
-        validator.validate_dictionary_map_fsoe_frame_rules(
-            maps.inputs, rules=[FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED]
-        )
-        assert not validator.exceptions
-        assert validator.is_rule_valid(FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED) is True
+        output = maps.are_inputs_valid(rules=[FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED])
+        assert not output.exceptions
+        assert output.is_rule_valid(FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED) is True
 
     @pytest.mark.fsoe
     def test_validate_safe_data_blocks_valid_cases(self, sample_safe_dictionary):
@@ -1132,45 +1262,103 @@ class TestPduMapper:
             for item_uid in items_to_add:
                 maps.inputs.add(fsoe_dict.name_map[item_uid])
 
-            validator = FSoEDictionaryMapValidator()
-            exceptions = validator.validate_dictionary_map_fsoe_frame_rules(
-                maps.inputs, rules=[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
+            output = maps.are_inputs_valid(rules=[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID])
+            assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID not in output.exceptions
+            assert output.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is True
+
+    @pytest.mark.fsoe
+    def test_validate_number_of_objects_in_frame(self, sample_safe_dictionary):
+        """Test that SafeDataBlocksValidator fails if the number of objects is exceeded."""
+        safe_dict, fsoe_dict = sample_safe_dictionary
+        maps = PDUMaps.empty(fsoe_dict)
+
+        for idx in range(45):
+            test_uid = f"TEST_SI_BOOL_{idx}"
+            safe_dict._registers[self.AXIS_1][test_uid] = EthercatRegister(
+                idx=0xF010 + idx,
+                subidx=0,
+                dtype=RegDtype.BOOL,
+                access=RegAccess.RO,
+                identifier=test_uid,
+                pdo_access=RegCyclicType.SAFETY_INPUT,
+                cat_id="FSOE",
             )
-            assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID not in exceptions
-            assert validator.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is True
+        # Check the CRCs that are already present in the sample dictionary and add the missing ones
+        existing_crcs = [
+            key
+            for key in safe_dict._registers[self.AXIS_1]
+            if key.startswith("FSOE_SLAVE_FRAME_ELEM_CRC")
+        ]
+        added_crc = 0
+        for idx in range(45):
+            crc_uid = f"FSOE_SLAVE_FRAME_ELEM_CRC{idx}"
+            if crc_uid in existing_crcs:
+                continue
+            safe_dict._registers[self.AXIS_1][crc_uid] = EthercatRegister(
+                idx=0x6760,
+                subidx=len(existing_crcs) + added_crc,
+                dtype=RegDtype.U16,
+                access=RegAccess.RO,
+                identifier=crc_uid,
+                pdo_access=RegCyclicType.SAFETY_INPUT,
+                cat_id="FSOE",
+            )
+            added_crc += 1
+        # Create safe dictionary
+        fsoe_dict = FSoEMasterHandler.create_safe_dictionary(safe_dict)
+
+        maps = PDUMaps.empty(fsoe_dict)
+
+        test_si_bool_items = []
+        for idx in range(45):
+            test_uid = f"TEST_SI_BOOL_{idx}"
+            item = maps.inputs.add(fsoe_dict.name_map[test_uid])
+            test_si_bool_items.append(item)
+
+        # Expected data blocks
+        # CMD + DATA BLOCKS + CRC + CONNID
+        data_blocks = FSoEFrame.generate_slot_structure(
+            dict_map=maps.inputs, slot_width=FSoEFrame._FSoEFrame__SLOT_WIDTH
+        )
+        expected_crcs = len(list(data_blocks))
+        n_objects = 1 + len(maps.inputs._items) + expected_crcs + 1
+
+        output = maps.are_inputs_valid(
+            rules=[FSoEFrameRules.OBJECTS_IN_FRAME, FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
+        )
+        assert len(output.exceptions) == 1
+        assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID not in output.exceptions
+        assert FSoEFrameRules.OBJECTS_IN_FRAME in output.exceptions
+        exception = output.exceptions[FSoEFrameRules.OBJECTS_IN_FRAME]
+        assert isinstance(exception, InvalidFSoEFrameRule)
+        assert exception.exception == (f"Total objects in frame exceeds limit: {n_objects} > 45")
+        assert exception.items == test_si_bool_items
+        assert output.is_rule_valid(FSoEFrameRules.OBJECTS_IN_FRAME) is False
 
     @pytest.mark.fsoe
     def test_validate_safe_data_padding_blocks(self, sample_safe_dictionary):
-        """Test that PaddingBlockValidator fails when padding blocks are not 8 bits."""
+        """Test that PaddingBlockValidator fails when padding blocks are not between 1-16 bits."""
         _, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
 
-        maps.inputs.add_padding(bits=32)
+        padding_item = maps.inputs.add_padding(bits=32)
 
-        validator = FSoEDictionaryMapValidator()
-        exceptions = validator.validate_dictionary_map_fsoe_frame_rules(
-            maps.inputs, rules=[FSoEFrameRules.PADDING_BLOCKS_VALID]
-        )
-        assert len(exceptions) == 1
-        assert FSoEFrameRules.PADDING_BLOCKS_VALID in exceptions
-        exception = exceptions[FSoEFrameRules.PADDING_BLOCKS_VALID]
+        output = maps.are_inputs_valid(rules=[FSoEFrameRules.PADDING_BLOCKS_VALID])
+        assert len(output.exceptions) == 1
+        assert FSoEFrameRules.PADDING_BLOCKS_VALID in output.exceptions
+        exception = output.exceptions[FSoEFrameRules.PADDING_BLOCKS_VALID]
         assert isinstance(exception, InvalidFSoEFrameRule)
         assert "Padding block size must range from 1 to 16 bits, found 32" in exception.exception
-        assert exception.position == [0]
-        assert validator.is_rule_valid(FSoEFrameRules.PADDING_BLOCKS_VALID) is False
+        assert exception.items == [padding_item]
+        assert output.is_rule_valid(FSoEFrameRules.PADDING_BLOCKS_VALID) is False
 
         # Check that the rule passes when the padding block is <= 16 bits
         for padding in range(1, 17):
             maps.inputs.clear()
             maps.inputs.add_padding(bits=padding)
-            validator.reset()
-            assert not validator.exceptions
-            assert FSoEFrameRules.PADDING_BLOCKS_VALID not in validator._validated_rules
-            validator.validate_dictionary_map_fsoe_frame_rules(
-                maps.inputs, rules=[FSoEFrameRules.PADDING_BLOCKS_VALID]
-            )
-            assert not validator.exceptions
-            assert validator.is_rule_valid(FSoEFrameRules.PADDING_BLOCKS_VALID) is True
+            output = maps.are_inputs_valid(rules=[FSoEFrameRules.PADDING_BLOCKS_VALID])
+            assert not output.exceptions
+            assert output.is_rule_valid(FSoEFrameRules.PADDING_BLOCKS_VALID) is True
 
     @pytest.mark.fsoe
     def test_validate_safe_data_objects_word_aligned(self, sample_safe_dictionary):
@@ -1179,77 +1367,60 @@ class TestPduMapper:
         maps = PDUMaps.empty(fsoe_dict)
 
         maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
-        maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U16_UID])
+        test_si_u16_item = maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U16_UID])
 
-        validator = FSoEDictionaryMapValidator()
-        exceptions = validator.validate_dictionary_map_fsoe_frame_rules(
-            maps.inputs, rules=[FSoEFrameRules.OBJECTS_ALIGNED]
-        )
-        assert len(exceptions) == 1
-        assert FSoEFrameRules.OBJECTS_ALIGNED in exceptions
-        exception = exceptions[FSoEFrameRules.OBJECTS_ALIGNED]
+        output = maps.are_inputs_valid(rules=[FSoEFrameRules.OBJECTS_ALIGNED])
+        assert len(output.exceptions) == 1
+        assert FSoEFrameRules.OBJECTS_ALIGNED in output.exceptions
+        exception = output.exceptions[FSoEFrameRules.OBJECTS_ALIGNED]
         assert isinstance(exception, InvalidFSoEFrameRule)
         assert "Object must be word-aligned, found at bit position 8" in exception.exception
-        assert exception.position == [8]
-        assert validator.is_rule_valid(FSoEFrameRules.OBJECTS_ALIGNED) is False
+        assert exception.items == [test_si_u16_item]
+        assert output.is_rule_valid(FSoEFrameRules.OBJECTS_ALIGNED) is False
 
         # Check that the rule passes when the object is word-aligned
         maps.inputs.clear()
         maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
         maps.inputs.add_padding(bits=8)
         maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U16_UID])
-        validator.reset()
-        assert not validator.exceptions
-        assert FSoEFrameRules.OBJECTS_ALIGNED not in validator._validated_rules
-        validator.validate_dictionary_map_fsoe_frame_rules(
-            maps.inputs, rules=[FSoEFrameRules.OBJECTS_ALIGNED]
-        )
-        assert not validator.exceptions
-        assert validator.is_rule_valid(FSoEFrameRules.OBJECTS_ALIGNED) is True
+        output = maps.are_inputs_valid(rules=[FSoEFrameRules.OBJECTS_ALIGNED])
+        assert not output.exceptions
+        assert output.is_rule_valid(FSoEFrameRules.OBJECTS_ALIGNED) is True
 
     @pytest.mark.fsoe
-    def test_validato_sto_command_first_in_outputs(self, sample_safe_dictionary):
+    def test_validate_sto_command_first_in_outputs(self, sample_safe_dictionary):
         """Test that STO command is the first item in the outputs map."""
         _, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
-        maps.outputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
+        ss1_item = maps.outputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
         maps.outputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
         # STO command can be anywhere in the inputs map
         maps.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
         maps.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
 
         # Rule fails when validating the outputs
-        validator = FSoEDictionaryMapValidator()
-        exceptions = validator.validate_dictionary_map_fsoe_frame_rules(
-            maps.outputs, rules=[FSoEFrameRules.STO_COMMAND_FIRST]
-        )
-        assert len(exceptions) == 1
-        assert FSoEFrameRules.STO_COMMAND_FIRST in exceptions
-        exception = exceptions[FSoEFrameRules.STO_COMMAND_FIRST]
+        output = maps.are_outputs_valid(rules=[FSoEFrameRules.STO_COMMAND_FIRST])
+        assert len(output.exceptions) == 1
+        assert FSoEFrameRules.STO_COMMAND_FIRST in output.exceptions
+        exception = output.exceptions[FSoEFrameRules.STO_COMMAND_FIRST]
         assert isinstance(exception, InvalidFSoEFrameRule)
         assert (
             "STO command must be mapped to the first position in Safe Outputs"
             in exception.exception
         )
-        assert exception.position == [0]
-        assert validator.is_rule_valid(FSoEFrameRules.STO_COMMAND_FIRST) is False
+        assert exception.items == [ss1_item]
+        assert output.is_rule_valid(FSoEFrameRules.STO_COMMAND_FIRST) is False
         # Check that rule passes when validating the inputs
-        validator.reset()
-        validator.validate_dictionary_map_fsoe_frame_rules(
-            maps.inputs, rules=[FSoEFrameRules.STO_COMMAND_FIRST]
-        )
-        assert not validator.exceptions
-        assert validator.is_rule_valid(FSoEFrameRules.STO_COMMAND_FIRST) is True
+        output = maps.are_inputs_valid(rules=[FSoEFrameRules.STO_COMMAND_FIRST])
+        assert not output.exceptions
+        assert output.is_rule_valid(FSoEFrameRules.STO_COMMAND_FIRST) is True
 
         maps.outputs.clear()
         maps.outputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
         maps.outputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
-        validator.reset()
-        validator.validate_dictionary_map_fsoe_frame_rules(
-            maps.outputs, rules=[FSoEFrameRules.STO_COMMAND_FIRST]
-        )
-        assert not validator.exceptions
-        assert validator.is_rule_valid(FSoEFrameRules.STO_COMMAND_FIRST) is True
+        output = maps.are_outputs_valid(rules=[FSoEFrameRules.STO_COMMAND_FIRST])
+        assert not output.exceptions
+        assert output.is_rule_valid(FSoEFrameRules.STO_COMMAND_FIRST) is True
 
     @pytest.mark.fsoe
     def test_validate_dictionary_map_fsoe_frame_rules(self, sample_safe_dictionary):
@@ -1262,10 +1433,5 @@ class TestPduMapper:
         maps.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
         maps.inputs.add_padding(7)
 
-        for dictionary_map in [maps.outputs, maps.inputs]:
-            validator = FSoEDictionaryMapValidator()
-            exceptions = validator.validate_dictionary_map_fsoe_frame_rules(dictionary_map)
-            assert exceptions == {}
-            assert len(validator._validated_rules) == len(FSoEFrameRules)
-            for rule in FSoEFrameRules:
-                assert validator.is_rule_valid(rule) is True
+        is_valid = maps.validate()
+        assert is_valid is True

@@ -14,10 +14,6 @@ if FSOE_MASTER_INSTALLED:
         STOFunction,
         SVFunction,
     )
-    from ingeniamotion.fsoe_master.maps_validator import (
-        FSoEDictionaryMapValidator,
-        FSoEFrameConstructionError,
-    )
 
 
 def main(interface_ip, slave_id, dict_path) -> None:
@@ -71,17 +67,7 @@ def main(interface_ip, slave_id, dict_path) -> None:
     inputs.add_padding(7)
 
     # Check that the maps are valid
-    validator = FSoEDictionaryMapValidator()
-    for dictionary_map, map_description in zip(
-        [handler.maps.inputs, handler.maps.outputs], ["Inputs Map", "Outputs Map"]
-    ):
-        validator.reset()
-        print(f"Validating {map_description}")
-        exceptions = validator.validate(dictionary_map, rules_to_validate=None)
-        if exceptions:
-            print(f"Validation failed for {map_description}:")
-            raise FSoEFrameConstructionError(exceptions)
-        print(f"{map_description} is valid.")
+    handler.maps.validate()
 
     # Print the maps to check the configuration
     print("Inputs Map:")
@@ -107,6 +93,9 @@ def main(interface_ip, slave_id, dict_path) -> None:
 
     # Wait for the master to reach the Data state
     mc.fsoe.wait_for_state_data(timeout=10)
+
+    # Remove fail-safe mode. Output commands will be applied by the slaves
+    mc.fsoe.set_fail_safe(False)
 
     # Stay 5 seconds in Data state
     for i in range(5):

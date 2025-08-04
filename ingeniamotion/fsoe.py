@@ -67,12 +67,10 @@ class FSoEMaster:
         node = self.__mc.servos[servo]
         if not isinstance(node, EthercatServo):
             raise TypeError("Functional Safety over Ethercat is only available for Ethercat servos")
-        slave_address = self._get_safety_address_from_drive(servo)
 
         master_handler = FSoEMasterHandler(
             node,
             use_sra=use_sra,
-            slave_address=slave_address,
             connection_id=self.__next_connection_id,
             watchdog_timeout=fsoe_master_watchdog_timeout,
             report_error_callback=partial(self._notify_errors, servo=servo),
@@ -80,26 +78,6 @@ class FSoEMaster:
         self._handlers[servo] = master_handler
         self.__next_connection_id += 1
         return master_handler
-
-    def _get_safety_address_from_drive(self, servo: str = DEFAULT_SERVO) -> int:
-        """Get the drive's FSoE slave address configured in the drive.
-
-        Args:
-            servo: servo alias to reference it. ``default`` by default.
-
-        Raises:
-            ValueError: On unexpected safety address value type.
-
-        Returns:
-            The FSoE slave address.
-
-        """
-        value = self.__mc.communication.get_register(
-            FSoEMasterHandler.FSOE_MANUF_SAFETY_ADDRESS, servo
-        )
-        if not isinstance(value, int):
-            raise ValueError(f"Wrong safety address value type. Expected int, got {type(value)}")
-        return value
 
     def configure_pdos(self, start_pdos: bool = False) -> None:
         """Configure the PDOs used for the Safety PDUs.
@@ -239,6 +217,17 @@ class FSoEMaster:
         """
         master_handler = self._handlers[servo]
         master_handler.wait_for_data_state(timeout)
+
+    def set_fail_safe(self, fail_safe: bool, servo: str = DEFAULT_SERVO) -> None:
+        """Set the fail-safe mode of the FSoE master handler.
+
+        Args:
+            fail_safe: True to set the fail-safe mode, False to remove it.
+            servo: servo alias to reference it. ``default`` by default.
+
+        """
+        master_handler = self._handlers[servo]
+        master_handler.set_fail_safe(fail_safe)
 
     def get_fsoe_master_state(self, servo: str = DEFAULT_SERVO) -> FSoEState:
         """Get the servo's FSoE master handler state.
