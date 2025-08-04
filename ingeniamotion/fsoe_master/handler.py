@@ -79,7 +79,7 @@ class FSoEMasterHandler:
         connection_id: Optional[int] = None,
         watchdog_timeout: float = DEFAULT_WATCHDOG_TIMEOUT_S,
         report_error_callback: Callable[[str, str], None],
-        state_change_callback: Optional[Callable[[State], None]] = None,
+        state_change_callback: Optional[Callable[[FSoEState], None]] = None,
     ):
         if not FSOE_MASTER_INSTALLED:
             return
@@ -584,7 +584,7 @@ class FSoEMasterHandler:
             self.__state_is_data.clear()
 
         if self.__state_change_callback:
-            self.__state_change_callback(state)
+            self.__state_change_callback(FSoEState(state.id))
 
     def wait_for_data_state(self, timeout: Optional[float] = None) -> None:
         """Wait the FSoE master handler to reach the Data state.
