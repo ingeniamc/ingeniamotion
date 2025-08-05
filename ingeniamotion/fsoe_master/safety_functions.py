@@ -157,7 +157,7 @@ class SS1Function(SafetyFunction):
     TIME_TO_STO_UID = "FSOE_SS1_TIME_TO_STO_{i}"
 
     command: "FSoEDictionaryItemInputOutput"
-    # time_to_sto: SafetyParameter
+    time_to_sto: SafetyParameter
 
     @override
     @classmethod
@@ -165,14 +165,12 @@ class SS1Function(SafetyFunction):
         for i in cls._explore_instances():
             try:
                 ss1_command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i=i))
-                # time_to_sto =
-                # cls._get_required_parameter(handler, cls.TIME_TO_STO_UID.format(i=i))
+                time_to_sto = cls._get_required_parameter(handler, cls.TIME_TO_STO_UID.format(i=i))
                 yield cls(
                     command=ss1_command,
-                    # time_to_sto=time_to_sto,
+                    time_to_sto=time_to_sto,
                     io=(ss1_command,),
-                    parameters=(),
-                    # parameters=(time_to_sto,),
+                    parameters=(time_to_sto,),
                 )
             except KeyError:  # noqa: PERF203
                 break
@@ -206,8 +204,8 @@ class SOSFunction(SafetyFunction):
     VELOCITY_ZERO_WINDOW_UID = "FSOE_SOS_VEL_ZERO_WINDOW_{i}"
 
     command: "FSoEDictionaryItemInputOutput"
-    # position_zero_window: SafetyParameter
-    # velocity_zero_window: SafetyParameter
+    position_zero_window: SafetyParameter
+    velocity_zero_window: SafetyParameter
 
     @override
     @classmethod
@@ -215,19 +213,18 @@ class SOSFunction(SafetyFunction):
         for i in cls._explore_instances():
             try:
                 command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i=i))
-                # position_zero_window = cls._get_required_parameter(
-                #    handler, cls.POSITION_ZERO_WINDOW_UID.format(i=i)
-                # )
-                # velocity_zero_window = cls._get_required_parameter(
-                #    handler, cls.VELOCITY_ZERO_WINDOW_UID.format(i=i)
-                # )
+                position_zero_window = cls._get_required_parameter(
+                    handler, cls.POSITION_ZERO_WINDOW_UID.format(i=i)
+                )
+                velocity_zero_window = cls._get_required_parameter(
+                    handler, cls.VELOCITY_ZERO_WINDOW_UID.format(i=i)
+                )
                 yield cls(
                     command=command,
-                    # position_zero_window=position_zero_window,
-                    # velocity_zero_window=velocity_zero_window,
+                    position_zero_window=position_zero_window,
+                    velocity_zero_window=velocity_zero_window,
                     io=(command,),
-                    parameters=(),
-                    # parameters=(position_zero_window, velocity_zero_window),
+                    parameters=(position_zero_window, velocity_zero_window),
                 )
             except KeyError:  # noqa: PERF203
                 break
@@ -244,10 +241,10 @@ class SS2Function(SafetyFunction):
     ERROR_REACTION_UID = "FSOE_SS2_ERROR_REACTION_{i}"
 
     command: "FSoEDictionaryItemInputOutput"
-    # time_to_sos: "SafetyParameter"
-    # deceleration_limit: "SafetyParameter"
-    # time_delay_deceleration_limit: "SafetyParameter"
-    # error_reaction: "SafetyParameter"
+    time_to_sos: "SafetyParameter"
+    deceleration_limit: "SafetyParameter"
+    time_delay_deceleration_limit: "SafetyParameter"
+    error_reaction: "SafetyParameter"
 
     @override
     @classmethod
@@ -255,31 +252,29 @@ class SS2Function(SafetyFunction):
         for i in cls._explore_instances():
             try:
                 command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i=i))
-                # time_to_sos =
-                # cls._get_required_parameter(handler, cls.TIME_TO_SOS_UID.format(i=i))
-                # deceleration_limit = cls._get_required_parameter(
-                #    handler, cls.DECELERATION_LIMIT_UID.format(i=i)
-                # )
-                # time_delay_deceleration_limit = cls._get_required_parameter(
-                #    handler, cls.TIME_DELAY_DECELERATION_LIMIT_UID.format()
-                # )
-                # error_reaction = cls._get_required_parameter(
-                #    handler, cls.ERROR_REACTION_UID.format(i=i)
-                # )
+                time_to_sos = cls._get_required_parameter(handler, cls.TIME_TO_SOS_UID.format(i=i))
+                deceleration_limit = cls._get_required_parameter(
+                    handler, cls.DECELERATION_LIMIT_UID.format(i=i)
+                )
+                time_delay_deceleration_limit = cls._get_required_parameter(
+                    handler, cls.TIME_DELAY_DECELERATION_LIMIT_UID.format(i=i)
+                )
+                error_reaction = cls._get_required_parameter(
+                    handler, cls.ERROR_REACTION_UID.format(i=i)
+                )
                 yield cls(
                     command=command,
-                    # time_to_sos=time_to_sos,
-                    # deceleration_limit=deceleration_limit,
-                    # time_delay_deceleration_limit=time_delay_deceleration_limit,
-                    # error_reaction=error_reaction,
+                    time_to_sos=time_to_sos,
+                    deceleration_limit=deceleration_limit,
+                    time_delay_deceleration_limit=time_delay_deceleration_limit,
+                    error_reaction=error_reaction,
                     io=(command,),
-                    parameters=(),
-                    # parameters=(
-                    #    time_to_sos,
-                    #    deceleration_limit,
-                    #    time_delay_deceleration_limit,
-                    #    error_reaction,
-                    # ),
+                    parameters=(
+                        time_to_sos,
+                        deceleration_limit,
+                        time_delay_deceleration_limit,
+                        error_reaction,
+                    ),
                 )
             except KeyError:  # noqa: PERF203
                 break
@@ -293,7 +288,7 @@ class SOutFunction(SafetyFunction):
     TIME_DELAY_UID = "FSOE_SBC_BRAKE_TIME_DELAY"
 
     command: FSoEDictionaryItemInputOutput
-    # time_delay: SafetyParameter
+    time_delay: SafetyParameter
 
     @override
     @classmethod
@@ -301,14 +296,13 @@ class SOutFunction(SafetyFunction):
         for _ in cls._explore_instances():
             try:
                 command = cls._get_required_input_output(handler, cls.COMMAND_UID)
-                # time_delay = cls._get_required_parameter(handler, cls.TIME_DELAY_UID)
+                time_delay = cls._get_required_parameter(handler, cls.TIME_DELAY_UID)
 
                 yield cls(
                     command=command,
-                    # time_delay=time_delay,
+                    time_delay=time_delay,
                     io=(command,),
-                    parameters=(),
-                    # parameters=(time_delay,),
+                    parameters=(time_delay,),
                 )
             except KeyError:  # noqa: PERF203
                 break
@@ -322,21 +316,15 @@ class SPFunction(SafetyFunction):
     TOLERANCE_UID = "FSOE_POSITION_TOLERANCE"
 
     value: FSoEDictionaryItemInput
-    # tolerance: SafetyParameter
+    tolerance: SafetyParameter
 
     @classmethod
     @override
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SPFunction"]:
         try:
             value = cls._get_required_input(handler, cls.ACTUAL_VALUE_UID)
-            # tolerance = cls._get_required_parameter(handler, cls.TOLERANCE_UID)
-            yield cls(
-                value=value,
-                # tolerance=tolerance,
-                io=(value,),
-                parameters=(),
-                # parameters=(tolerance,)
-            )
+            tolerance = cls._get_required_parameter(handler, cls.TOLERANCE_UID)
+            yield cls(value=value, tolerance=tolerance, io=(value,), parameters=(tolerance,))
         except KeyError:  # noqa: PERF203
             return
 
@@ -367,20 +355,16 @@ class SafeHomingFunction(SafetyFunction):
     HOMING_REF_UID = "FSOE_SAFE_HOMING_REFERENCE"
 
     command: FSoEDictionaryItemInputOutput
-    # homing_ref: SafetyParameter
+    homing_ref: SafetyParameter
 
     @classmethod
     @override
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafeHomingFunction"]:
         try:
             command = cls._get_required_input_output(handler, cls.COMMAND_UID)
-            # homing_ref = cls._get_required_parameter(handler, cls.HOMING_REF_UID)
+            homing_ref = cls._get_required_parameter(handler, cls.HOMING_REF_UID)
             yield cls(
-                command=command,
-                # homing_ref=homing_ref,
-                io=(command,),
-                parameters=(),
-                # parameters=(homing_ref,)
+                command=command, homing_ref=homing_ref, io=(command,), parameters=(homing_ref,)
             )
         except KeyError:
             return
@@ -395,8 +379,8 @@ class SLSFunction(SafetyFunction):
     ERROR_REACTION_UID = "FSOE_SLS_ERROR_REACTION_{i}"
 
     command: FSoEDictionaryItemInputOutput
-    # speed_limit: SafetyParameter
-    # error_reaction: SafetyParameter
+    speed_limit: SafetyParameter
+    error_reaction: SafetyParameter
 
     @classmethod
     @override
@@ -404,19 +388,18 @@ class SLSFunction(SafetyFunction):
         for i in cls._explore_instances():
             try:
                 command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i=i))
-                # velocity_limit = cls._get_required_parameter(
-                #    handler, cls.VELOCITY_LIMIT_UID.format(i=i)
-                # )
-                # error_reaction = cls._get_required_parameter(
-                #    handler, cls.ERROR_REACTION_UID.format(i=i)
-                # )
+                velocity_limit = cls._get_required_parameter(
+                    handler, cls.VELOCITY_LIMIT_UID.format(i=i)
+                )
+                error_reaction = cls._get_required_parameter(
+                    handler, cls.ERROR_REACTION_UID.format(i=i)
+                )
                 yield cls(
                     command=command,
-                    # speed_limit=velocity_limit,
-                    # error_reaction=error_reaction,
+                    speed_limit=velocity_limit,
+                    error_reaction=error_reaction,
                     io=(command,),
-                    parameters=(),
-                    # parameters=(velocity_limit, error_reaction),
+                    parameters=(velocity_limit, error_reaction),
                 )
             except KeyError:
                 return
@@ -432,9 +415,9 @@ class SSRFunction(SafetyFunction):
     ERROR_REACTION_UID = "FSOE_SSR_ERROR_REACTION_{i}"
 
     command: FSoEDictionaryItemInputOutput
-    # upper_limit: SafetyParameter
-    # lower_limit: SafetyParameter
-    # error_reaction: SafetyParameter
+    upper_limit: SafetyParameter
+    lower_limit: SafetyParameter
+    error_reaction: SafetyParameter
 
     @classmethod
     @override
@@ -442,21 +425,18 @@ class SSRFunction(SafetyFunction):
         for i in cls._explore_instances():
             try:
                 command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i=i))
-                # upper_limit =
-                # cls._get_required_parameter(handler, cls.UPPER_LIMIT_UID.format(i=i))
-                # lower_limit =
-                # cls._get_required_parameter(handler, cls.LOWER_LIMIT_UID.format(i=i))
-                # error_reaction = cls._get_required_parameter(
-                # handler, cls.ERROR_REACTION_UID.format(i=i)
-                # )
+                upper_limit = cls._get_required_parameter(handler, cls.UPPER_LIMIT_UID.format(i=i))
+                lower_limit = cls._get_required_parameter(handler, cls.LOWER_LIMIT_UID.format(i=i))
+                error_reaction = cls._get_required_parameter(
+                    handler, cls.ERROR_REACTION_UID.format(i=i)
+                )
                 yield cls(
                     command=command,
-                    # upper_limit=upper_limit,
-                    # lower_limit=lower_limit,
-                    # error_reaction=error_reaction,
+                    upper_limit=upper_limit,
+                    lower_limit=lower_limit,
+                    error_reaction=error_reaction,
                     io=(command,),
-                    parameters=(),
-                    # parameters=(upper_limit, lower_limit, error_reaction),
+                    parameters=(upper_limit, lower_limit, error_reaction),
                 )
             except KeyError:
                 return
@@ -472,9 +452,9 @@ class SLPFunction(SafetyFunction):
     ERROR_REACTION_UID = "FSOE_SLP_ERROR_REACTION_{i}"
 
     command: FSoEDictionaryItemInputOutput
-    # upper_limit: SafetyParameter
-    # lower_limit: SafetyParameter
-    # error_reaction: SafetyParameter
+    upper_limit: SafetyParameter
+    lower_limit: SafetyParameter
+    error_reaction: SafetyParameter
 
     @classmethod
     @override
@@ -482,21 +462,18 @@ class SLPFunction(SafetyFunction):
         for i in cls._explore_instances():
             try:
                 command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i=i))
-                # upper_limit =
-                # cls._get_required_parameter(handler, cls.UPPER_LIMIT_UID.format(i=i))
-                # lower_limit =
-                # cls._get_required_parameter(handler, cls.LOWER_LIMIT_UID.format(i=i))
-                # error_reaction = cls._get_required_parameter(
-                # handler, cls.ERROR_REACTION_UID.format(i=i)
-                # )
+                upper_limit = cls._get_required_parameter(handler, cls.UPPER_LIMIT_UID.format(i=i))
+                lower_limit = cls._get_required_parameter(handler, cls.LOWER_LIMIT_UID.format(i=i))
+                error_reaction = cls._get_required_parameter(
+                    handler, cls.ERROR_REACTION_UID.format(i=i)
+                )
                 yield cls(
                     command=command,
-                    # upper_limit=upper_limit,
-                    # lower_limit=lower_limit,
-                    # error_reaction=error_reaction,
+                    upper_limit=upper_limit,
+                    lower_limit=lower_limit,
+                    error_reaction=error_reaction,
                     io=(command,),
-                    parameters=(),
-                    # parameters=(upper_limit, lower_limit, error_reaction),
+                    parameters=(upper_limit, lower_limit, error_reaction),
                 )
             except KeyError:
                 return
