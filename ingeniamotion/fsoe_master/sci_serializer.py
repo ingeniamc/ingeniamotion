@@ -155,22 +155,168 @@ class Groups(XMLParsedElement):
 
 
 @dataclass(frozen=True)
+class DeviceInfo(XMLParsedElement):
+    """Class to represent info from a device in the ESI file."""
+
+    preop_timeout: str
+    safeop_timeout: str
+    back_to_init_timeout: str
+    back_to_safeop_timeout: str
+    request_timeout: str
+    response_timeout: str
+    dpram_size: str
+    sm_count: str
+    fmmu_count: str
+
+    ELEMENT: str = "Info"
+
+    __TIMEOUT_ELEMENT: str = "Timeout"
+
+    __STATEMACHINE_ELEMENT: str = "StateMachine"
+    __PREOP_TIMEOUT_ELEMENT: str = "PreopTimeout"
+    __SAFEOP_TIMEOUT_ELEMENT: str = "SafeopOpTimeout"
+    __BACK_TO_INIT_TIMEOUT_ELEMENT: str = "BackToInitTimeout"
+    __BACK_TO_SAFEOP_TIMEOUT_ELEMENT: str = "BackToSafeopTimeout"
+
+    __MAILBOX_ELEMENT: str = "Mailbox"
+    __REQUEST_TIMEOUT_ELEMENT: str = "RequestTimeout"
+    __RESPONSE_TIMEOUT_ELEMENT: str = "ResponseTimeout"
+
+    __ETHERCAT_CONTROLLER_ELEMENT: str = "EtherCATController"
+    __DPRAM_SIZE_ELEMENT: str = "DpramSize"
+    __SMCOUNT_ELEMENT: str = "SmCount"
+    __FMMU_COUNT_ELEMENT: str = "FmmuCount"
+
+    @classmethod
+    def from_element(cls, element: ElementTree.Element) -> "DeviceInfo":
+        """Create a DeviceInfo instance from an XML element.
+
+        Returns:
+            class instance created from the XML element.
+        """
+        state_machine = cls._find_and_check(element, cls.__STATEMACHINE_ELEMENT)
+        state_machine_timeout = cls._find_and_check(state_machine, cls.__TIMEOUT_ELEMENT)
+        mailbox_element = cls._find_and_check(element, cls.__MAILBOX_ELEMENT)
+        mailbox_timeout = cls._find_and_check(mailbox_element, cls.__TIMEOUT_ELEMENT)
+        ethercat_controller = cls._find_and_check(element, cls.__ETHERCAT_CONTROLLER_ELEMENT)
+
+        return cls(
+            preop_timeout=cls._read_element(
+                cls, state_machine_timeout, cls.__PREOP_TIMEOUT_ELEMENT
+            ),
+            safeop_timeout=cls._read_element(
+                cls, state_machine_timeout, cls.__SAFEOP_TIMEOUT_ELEMENT
+            ),
+            back_to_init_timeout=cls._read_element(
+                cls, state_machine_timeout, cls.__BACK_TO_INIT_TIMEOUT_ELEMENT
+            ),
+            back_to_safeop_timeout=cls._read_element(
+                cls, state_machine_timeout, cls.__BACK_TO_SAFEOP_TIMEOUT_ELEMENT
+            ),
+            request_timeout=cls._read_element(cls, mailbox_timeout, cls.__REQUEST_TIMEOUT_ELEMENT),
+            response_timeout=cls._read_element(
+                cls, mailbox_timeout, cls.__RESPONSE_TIMEOUT_ELEMENT
+            ),
+            dpram_size=cls._read_element(cls, ethercat_controller, cls.__DPRAM_SIZE_ELEMENT),
+            sm_count=cls._read_element(cls, ethercat_controller, cls.__SMCOUNT_ELEMENT),
+            fmmu_count=cls._read_element(cls, ethercat_controller, cls.__FMMU_COUNT_ELEMENT),
+        )
+
+    def to_sci(self) -> ElementTree.Element:
+        """Convert the DeviceInfo instance to a SCI XML element.
+
+        Returns:
+            DeviceInfo XML element.
+        """
+        root = ElementTree.Element(self.ELEMENT)
+        state_machine = ElementTree.SubElement(root, self.__STATEMACHINE_ELEMENT)
+        state_machine_timeout = ElementTree.SubElement(state_machine, self.__TIMEOUT_ELEMENT)
+        ElementTree.SubElement(
+            state_machine_timeout, self.__PREOP_TIMEOUT_ELEMENT
+        ).text = self.preop_timeout
+        ElementTree.SubElement(
+            state_machine_timeout, self.__SAFEOP_TIMEOUT_ELEMENT
+        ).text = self.safeop_timeout
+        ElementTree.SubElement(
+            state_machine_timeout, self.__BACK_TO_INIT_TIMEOUT_ELEMENT
+        ).text = self.back_to_init_timeout
+        ElementTree.SubElement(
+            state_machine_timeout, self.__BACK_TO_SAFEOP_TIMEOUT_ELEMENT
+        ).text = self.back_to_safeop_timeout
+        mailbox = ElementTree.SubElement(root, self.__MAILBOX_ELEMENT)
+        mailbox_timeout = ElementTree.SubElement(mailbox, self.__TIMEOUT_ELEMENT)
+        ElementTree.SubElement(
+            mailbox_timeout, self.__REQUEST_TIMEOUT_ELEMENT
+        ).text = self.request_timeout
+        ElementTree.SubElement(
+            mailbox_timeout, self.__RESPONSE_TIMEOUT_ELEMENT
+        ).text = self.response_timeout
+        ethercat_controller = ElementTree.SubElement(root, self.__ETHERCAT_CONTROLLER_ELEMENT)
+        ElementTree.SubElement(
+            ethercat_controller, self.__DPRAM_SIZE_ELEMENT
+        ).text = self.dpram_size
+        ElementTree.SubElement(ethercat_controller, self.__SMCOUNT_ELEMENT).text = self.sm_count
+        ElementTree.SubElement(
+            ethercat_controller, self.__FMMU_COUNT_ELEMENT
+        ).text = self.fmmu_count
+        return root
+
+
+@dataclass(frozen=True)
+class DeviceProfile(XMLParsedElement):
+    """Class to represent a device profile in the ESI file."""
+
+    profile_no: str
+    # TODO: continue parsing stuff
+
+    ELEMENT = "Profile"
+    __PROFILE_NO_ELEMENT: str = "ProfileNo"
+
+    @classmethod
+    def from_element(cls, element: ElementTree.Element) -> "DeviceProfile":
+        """Create a DeviceProfile instance from an XML element.
+
+        Returns:
+            class instance created from the XML element.
+        """
+        return cls(
+            profile_no=cls._read_element(cls, element, cls.__PROFILE_NO_ELEMENT),
+        )
+
+    def to_sci(self) -> ElementTree.Element:
+        """Convert the DeviceProfile instance to a SCI XML element.
+
+        Returns:
+            DeviceProfile XML element.
+        """
+        root = ElementTree.Element(self.ELEMENT)
+        ElementTree.SubElement(root, self.__PROFILE_NO_ELEMENT).text = self.profile_no
+        return root
+
+
+@dataclass(frozen=True)
 class Device(XMLParsedElement):
     """Class to represent a device in the ESI file."""
 
+    physics: str
     device_type: str
     product_code: str
     revision_no: str
     name: str
     name_lcid: str
-    # TODO: continue parsing stuff
+
+    info: DeviceInfo
+    group_type: str
+    profile: DeviceProfile
 
     ELEMENT: str = "Device"
+    __PHYSICS_ATTR: str = "Physics"
     __TYPE_ELEMENT: str = "Type"
     __PRODUCT_CODE_ATTR: str = "ProductCode"
     __REVISION_NO_ATTR: str = "RevisionNo"
     __NAME_ELEMENT: str = "Name"
     __NAME_LCID_ATTR: str = "LcId"
+    __GROUP_TYPE_ATTR: str = "GroupType"
 
     @classmethod
     def from_element(cls, element: ElementTree.Element) -> "Device":
@@ -182,11 +328,15 @@ class Device(XMLParsedElement):
         type_element = cls._find_and_check(element, cls.__TYPE_ELEMENT)
         name_element = cls._find_and_check(element, cls.__NAME_ELEMENT)
         return cls(
+            physics=element.attrib[cls.__PHYSICS_ATTR],
             device_type=cls._read_element(cls, element, cls.__TYPE_ELEMENT),
             product_code=type_element.attrib[cls.__PRODUCT_CODE_ATTR],
             revision_no=type_element.attrib[cls.__REVISION_NO_ATTR],
             name=name_element.text,
             name_lcid=name_element.attrib[cls.__NAME_LCID_ATTR],
+            info=DeviceInfo.from_element(cls._find_and_check(element, DeviceInfo.ELEMENT)),
+            group_type=cls._read_element(cls, element, cls.__GROUP_TYPE_ATTR),
+            profile=DeviceProfile.from_element(cls._find_and_check(element, DeviceProfile.ELEMENT)),
         )
 
     def to_sci(self) -> ElementTree.Element:
@@ -196,6 +346,7 @@ class Device(XMLParsedElement):
             Device XML element.
         """
         root = ElementTree.Element(self.ELEMENT)
+        root.set(self.__PHYSICS_ATTR, self.physics)
         type_element = ElementTree.SubElement(root, self.__TYPE_ELEMENT)
         type_element.text = self.device_type
         type_element.set(self.__PRODUCT_CODE_ATTR, self.product_code)
@@ -203,6 +354,9 @@ class Device(XMLParsedElement):
         name_element = ElementTree.SubElement(root, self.__NAME_ELEMENT)
         name_element.text = self.name
         name_element.set(self.__NAME_LCID_ATTR, self.name_lcid)
+        root.append(self.info.to_sci())
+        ElementTree.SubElement(root, self.__GROUP_TYPE_ATTR).text = self.group_type
+        root.append(self.profile.to_sci())
         return root
 
 
