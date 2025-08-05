@@ -1,4 +1,5 @@
 # ruff: noqa: ERA001, PERF203
+import dataclasses
 from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
@@ -32,6 +33,11 @@ __all__ = [
 ]
 
 
+def safety_field(uid: str, name: str) -> dataclasses.Field:
+    """Create a dataclass field with metadata for safety functions."""
+    return dataclasses.field(metadata={"uid": uid, "name": name})
+
+
 @dataclass()
 class SafetyFunction:
     """Base class for Safety Functions.
@@ -63,6 +69,25 @@ class SafetyFunction:
         yield from SLPFunction.for_handler(handler)
 
     @classmethod
+    def _create_instance(cls, handler: "FSoEMasterHandler") -> Iterator["SafetyFunction"]:
+        ios: dict[dataclasses.Field, FSoEDictionaryItem] = {}
+        parameters: dict[dataclasses.Field, FSoEDictionaryItem] = {}
+        for field in dataclasses.fields(cls):
+            if field.type == FSoEDictionaryItemInputOutput:
+                ios[field] = cls._get_required_input_output(handler, field.metadata["uid"])
+            elif field.type == FSoEDictionaryItemInput:
+                ios[field] = cls._get_required_input(handler, field.metadata["uid"])
+            elif field.type == SafetyParameter:
+                parameters[field] = cls._get_required_parameter(handler, field.metadata["uid"])
+
+        yield cls(
+            io=tuple(ios.values()),  # TODO Convert to dict
+            parameters=tuple(parameters.values()),
+            **{field.name: ios[field] for field, io in ios.items()},
+            **{field.name: parameters[field] for field, parameter in parameters.items()},
+        )
+
+    @classmethod
     def _explore_instances(cls) -> Iterator[int]:
         """Explore instances of the safety function.
 
@@ -77,7 +102,7 @@ class SafetyFunction:
     @classmethod
     def _get_required_input_output(
         cls, hander: "FSoEMasterHandler", uid: str
-    ) -> "FSoEDictionaryItemInputOutput":
+    ) -> FSoEDictionaryItemInputOutput:
         """Get the required input/output item from the handler's dictionary.
 
         Raises:
@@ -137,15 +162,12 @@ class SafetyFunction:
 class STOFunction(SafetyFunction):
     """Safe Torque Off Safety Function."""
 
-    COMMAND_UID = "FSOE_STO"
-
-    command: "FSoEDictionaryItemInputOutput"
+    command: FSoEDictionaryItemInputOutput = safety_field(uid="FSOE_STO", name="Command")
 
     @override
     @classmethod
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["STOFunction"]:
-        sto_command = cls._get_required_input_output(handler, cls.COMMAND_UID)
-        yield cls(command=sto_command, io=(sto_command,), parameters=())
+        yield from cls._create_instance(handler)
 
 
 @dataclass()
@@ -156,7 +178,7 @@ class SS1Function(SafetyFunction):
 
     TIME_TO_STO_UID = "FSOE_SS1_TIME_TO_STO_{i}"
 
-    command: "FSoEDictionaryItemInputOutput"
+    command: FSoEDictionaryItemInputOutput
     time_to_sto: SafetyParameter
 
     @override
@@ -203,7 +225,7 @@ class SOSFunction(SafetyFunction):
     POSITION_ZERO_WINDOW_UID = "FSOE_SOS_POS_ZERO_WINDOW_{i}"
     VELOCITY_ZERO_WINDOW_UID = "FSOE_SOS_VEL_ZERO_WINDOW_{i}"
 
-    command: "FSoEDictionaryItemInputOutput"
+    command: FSoEDictionaryItemInputOutput
     position_zero_window: SafetyParameter
     velocity_zero_window: SafetyParameter
 
@@ -240,7 +262,7 @@ class SS2Function(SafetyFunction):
     TIME_DELAY_DECELERATION_LIMIT_UID = "FSOE_SS2_TIME_DELAY_DEC_{i}"
     ERROR_REACTION_UID = "FSOE_SS2_ERROR_REACTION_{i}"
 
-    command: "FSoEDictionaryItemInputOutput"
+    command: FSoEDictionaryItemInputOutput
     time_to_sos: "SafetyParameter"
     deceleration_limit: "SafetyParameter"
     time_delay_deceleration_limit: "SafetyParameter"
