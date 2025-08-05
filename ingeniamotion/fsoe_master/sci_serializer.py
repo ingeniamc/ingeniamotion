@@ -22,11 +22,20 @@ class EsiFileParseError(Exception):
 class XMLParsedElement(XMLBase):
     """Base class for XML elements parsed from ESI files."""
 
-    def _read_element(self, root: ElementTree.Element, element: str) -> None:
+    def _read_element(self, root: ElementTree.Element, element: str) -> str:
         found_element = self._find_and_check(root, element)
         if found_element.text is None:
             raise EsiFileParseError(f"'{element}' is empty")
         return found_element.text.strip()
+
+    def _read_optional_element(self, root: ElementTree.Element, element: str) -> str:
+        try:
+            found_element = self._find_and_check(root, element)
+            if found_element.text is None:
+                return None
+            return found_element.text.strip()
+        except Exception:
+            return None
 
 
 @dataclass(frozen=True)
@@ -263,11 +272,140 @@ class DeviceInfo(XMLParsedElement):
 
 
 @dataclass(frozen=True)
+class DictionaryDataType(XMLParsedElement):
+    """Class to represent a data type in the profile dictionary."""
+
+    name: str
+    bit_size: str
+
+    ELEMENT: str = "DataType"
+    __NAME_ELEMENT: str = "Name"
+    __BITSIZE_ELEMENT: str = "BitSize"
+    # TODO: are extra elements
+
+    @classmethod
+    def from_element(cls, element: ElementTree.Element) -> "DictionaryDataType":
+        """Create a DictionaryDataType instance from an XML element.
+
+        Returns:
+            class instance created from the XML element.
+        """
+        return cls(
+            name=cls._read_element(cls, element, cls.__NAME_ELEMENT),
+            bit_size=cls._read_element(cls, element, cls.__BITSIZE_ELEMENT),
+        )
+
+    def to_sci(self) -> ElementTree.Element:
+        """Convert the DictionaryDataType instance to a SCI XML element.
+
+        Returns:
+            DictionaryDataType XML element.
+        """
+        root = ElementTree.Element(self.ELEMENT)
+        ElementTree.SubElement(root, self.__NAME_ELEMENT).text = self.name
+        ElementTree.SubElement(root, self.__BITSIZE_ELEMENT).text = self.bit_size
+        return root
+
+
+@dataclass(frozen=True)
+class DictionaryObject(XMLParsedElement):
+    """Class to represent an object in the profile dictionary."""
+
+    index: str
+    name: str
+    type: str
+    bit_size: str
+
+    ELEMENT: str = "Object"
+    __INDEX_ELEMENT: str = "Index"
+    __NAME_ELEMENT: str = "Name"
+    __TYPE_ELEMENT: str = "Type"
+    __BITSIZE_ELEMENT: str = "BitSize"
+
+    # TODO: are extra elements
+
+    @classmethod
+    def from_element(cls, element: ElementTree.Element) -> "DictionaryObject":
+        """Create a DictionaryObject instance from an XML element.
+
+        Returns:
+            class instance created from the XML element.
+        """
+        return cls(
+            index=cls._read_element(cls, element, cls.__INDEX_ELEMENT),
+            name=cls._read_element(cls, element, cls.__NAME_ELEMENT),
+            type=cls._read_element(cls, element, cls.__TYPE_ELEMENT),
+            bit_size=cls._read_element(cls, element, cls.__BITSIZE_ELEMENT),
+        )
+
+    def to_sci(self) -> ElementTree.Element:
+        """Convert the DictionaryObject instance to a SCI XML element.
+
+        Returns:
+            DictionaryObject XML element.
+        """
+        root = ElementTree.Element(self.ELEMENT)
+        ElementTree.SubElement(root, self.__INDEX_ELEMENT).text = self.index
+        ElementTree.SubElement(root, self.__NAME_ELEMENT).text = self.name
+        ElementTree.SubElement(root, self.__TYPE_ELEMENT).text = self.type
+        ElementTree.SubElement(root, self.__BITSIZE_ELEMENT).text = self.bit_size
+        return root
+
+
+@dataclass(frozen=True)
+class ProfileDictionary(XMLParsedElement):
+    """Class to represent a profile dictionary in the ESI file."""
+
+    datatypes: list[DictionaryDataType]
+    objects: list[DictionaryObject]
+
+    ELEMENT: str = "Dictionary"
+    __DATATYPES_ELEMENT: str = "DataTypes"
+    __OBJECTS_ELEMENT: str = "Objects"
+
+    @classmethod
+    def from_element(cls, element: ElementTree.Element) -> "ProfileDictionary":
+        """Create a ProfileDictionary instance from an XML element.
+
+        Returns:
+            class instance created from the XML element.
+        """
+        datatypes_element = cls._find_and_check(element, cls.__DATATYPES_ELEMENT)
+        datatypes = [
+            DictionaryDataType.from_element(dt)
+            for dt in cls._findall_and_check(datatypes_element, DictionaryDataType.ELEMENT)
+        ]
+        objects_elements = cls._find_and_check(element, cls.__OBJECTS_ELEMENT)
+        objects = [
+            DictionaryObject.from_element(obj)
+            for obj in cls._findall_and_check(objects_elements, DictionaryObject.ELEMENT)
+        ]
+        return cls(datatypes=datatypes, objects=objects)
+
+    def to_sci(self) -> ElementTree.Element:
+        """Convert the ProfileDictionary instance to a SCI XML element.
+
+        Returns:
+            ProfileDictionary XML element.
+        """
+        root = ElementTree.Element(self.ELEMENT)
+        datatypes_element = ElementTree.SubElement(root, self.__DATATYPES_ELEMENT)
+        for data_type in self.datatypes:
+            datatype_element = ElementTree.SubElement(datatypes_element, DictionaryDataType.ELEMENT)
+            datatype_element.append(data_type.to_sci())
+        objects_element = ElementTree.SubElement(root, self.__OBJECTS_ELEMENT)
+        for obj in self.objects:
+            obj_element = ElementTree.SubElement(objects_element, DictionaryObject.ELEMENT)
+            obj_element.append(obj.to_sci())
+        return root
+
+
+@dataclass(frozen=True)
 class DeviceProfile(XMLParsedElement):
     """Class to represent a device profile in the ESI file."""
 
     profile_no: str
-    # TODO: continue parsing stuff
+    dictionary: ProfileDictionary
 
     ELEMENT = "Profile"
     __PROFILE_NO_ELEMENT: str = "ProfileNo"
@@ -281,6 +419,9 @@ class DeviceProfile(XMLParsedElement):
         """
         return cls(
             profile_no=cls._read_element(cls, element, cls.__PROFILE_NO_ELEMENT),
+            dictionary=ProfileDictionary.from_element(
+                cls._find_and_check(element, ProfileDictionary.ELEMENT)
+            ),
         )
 
     def to_sci(self) -> ElementTree.Element:
@@ -291,6 +432,7 @@ class DeviceProfile(XMLParsedElement):
         """
         root = ElementTree.Element(self.ELEMENT)
         ElementTree.SubElement(root, self.__PROFILE_NO_ELEMENT).text = self.profile_no
+        root.append(self.dictionary.to_sci())
         return root
 
 
