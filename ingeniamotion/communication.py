@@ -238,6 +238,7 @@ class Communication:
             connection_timeout,
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
+            disconnect_callback=self.__disconnect_callback,
         )
 
         self.mc.servos[alias] = servo
@@ -267,6 +268,7 @@ class Communication:
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
             is_eoe=is_eoe,
+            disconnect_callback=self.__disconnect_callback,
         )
 
         self.mc.servos[alias] = servo
@@ -321,6 +323,7 @@ class Communication:
                 port,
                 servo_status_listener=servo_status_listener,
                 net_status_listener=net_status_listener,
+                disconnect_callback=self.__disconnect_callback,
             )
         except ILError as e:
             if len(net.servos) == 0:
@@ -694,7 +697,13 @@ class Communication:
             self.mc.net[net_key] = CanopenNetwork(can_device, channel, baudrate)
         net = self.mc.net[net_key]
 
-        servo = net.connect_to_slave(node_id, dict_path, servo_status_listener, net_status_listener)
+        servo = net.connect_to_slave(
+            node_id,
+            dict_path,
+            servo_status_listener,
+            net_status_listener,
+            disconnect_callback=self.__disconnect_callback,
+        )
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = net_key
 
@@ -1595,7 +1604,9 @@ class Communication:
             for slave_id_offset in mapping:
                 slave_id = first_slave_in_ensemble + slave_id_offset
                 if slave_id not in connected_drives:
-                    net.connect_to_slave(slave_id, dictionary_path)
+                    net.connect_to_slave(
+                        slave_id, dictionary_path, disconnect_callback=self.__disconnect_callback
+                    )
 
             load_fw_slave_id: Optional[int] = None
             try:
