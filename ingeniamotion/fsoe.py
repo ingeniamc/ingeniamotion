@@ -218,6 +218,17 @@ class FSoEMaster:
         master_handler = self._handlers[servo]
         master_handler.wait_for_data_state(timeout)
 
+    def set_fail_safe(self, fail_safe: bool, servo: str = DEFAULT_SERVO) -> None:
+        """Set the fail-safe mode of the FSoE master handler.
+
+        Args:
+            fail_safe: True to set the fail-safe mode, False to remove it.
+            servo: servo alias to reference it. ``default`` by default.
+
+        """
+        master_handler = self._handlers[servo]
+        master_handler.set_fail_safe(fail_safe)
+
     def get_fsoe_master_state(self, servo: str = DEFAULT_SERVO) -> FSoEState:
         """Get the servo's FSoE master handler state.
 

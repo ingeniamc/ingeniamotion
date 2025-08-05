@@ -5,6 +5,7 @@
 - Added Model for safety functions and safe parameters.
 - Created PDUMaps that parses pdos and converts them to pdos.
 - Added methods to intelligently add i/o on the map.
+- Created FSoEDictionaryMapValidator that validates PDUMaps.
 - Added method to safely disconnect drive is disconnection is performed using the network.
 
 ### Changed
