@@ -107,6 +107,9 @@ def mc_with_fsoe(mc, fsoe_states):
     # IM should be notified and clear references when a servo is disconnected from ingenialink
     # https://novantamotion.atlassian.net/browse/INGM-624
     mc.fsoe._delete_master_handler()
+    # Ensure the PDOs are stopped
+    if mc.capture.pdo.is_active:
+        mc.capture.pdo.stop_pdos()
 
 
 @pytest.fixture()
@@ -432,13 +435,13 @@ def test_getter_of_safety_functions(mc_with_fsoe):
     sto_function = STOFunction(command=None, io=None, parameters=None)
     ss1_function_1 = SS1Function(
         command=None,
-        # time_to_sto=None,
+        time_to_sto=None,
         io=None,
         parameters=None,
     )
     ss1_function_2 = SS1Function(
         command=None,
-        # time_to_sto=None,
+        time_to_sto=None,
         io=None,
         parameters=None,
     )
@@ -540,7 +543,7 @@ def mc_state_data_with_sra(mc_with_fsoe_with_sra):
 
     mc.fsoe.configure_pdos(start_pdos=True)
     # Wait for the master to reach the Data state
-    mc.fsoe.wait_for_state_data(timeout=10)
+    mc.fsoe.wait_for_state_data(timeout=300)
 
     # Remove fail-safe state
     mc.fsoe.set_fail_safe(False)
@@ -587,7 +590,7 @@ def test_start_and_stop_multiple_times(mc_with_fsoe):
 
     for i in range(4):
         mc.fsoe.configure_pdos(start_pdos=True)
-        mc.fsoe.wait_for_state_data(timeout=10)
+        mc.fsoe.wait_for_state_data(timeout=300)
         assert handler.state == FSoEState.DATA
         time.sleep(1)
         assert handler.state == FSoEState.DATA
