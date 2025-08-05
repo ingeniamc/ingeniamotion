@@ -63,7 +63,7 @@ class SafetyFunction:
     Wraps input/output items and parameters used by the FSoE Master handler.
     """
 
-    io: dict[SafetyFieldMetadata, FSoEDictionaryItem]
+    ios: dict[SafetyFieldMetadata, FSoEDictionaryItem]
     parameters: dict[SafetyFieldMetadata, SafetyParameter]
 
     @classmethod
@@ -90,7 +90,7 @@ class SafetyFunction:
     def _create_instance(
         cls, handler: "FSoEMasterHandler", instance_i: Optional[int] = None
     ) -> Iterator["SafetyFunction"]:
-        io: dict[SafetyFieldMetadata, FSoEDictionaryItem] = {}
+        ios: dict[SafetyFieldMetadata, FSoEDictionaryItem] = {}
         parameters: dict[SafetyFieldMetadata, SafetyParameter] = {}
         for field in dataclasses.fields(cls):
             if "uid" not in field.metadata:
@@ -101,16 +101,16 @@ class SafetyFunction:
                 uid = uid.format(i=instance_i)
 
             if field.type == FSoEDictionaryItemInputOutput:
-                io[metadata] = cls._get_required_input_output(handler, uid)
+                ios[metadata] = cls._get_required_input_output(handler, uid)
             elif field.type == FSoEDictionaryItemInput:
-                io[metadata] = cls._get_required_input(handler, uid)
+                ios[metadata] = cls._get_required_input(handler, uid)
             elif field.type == SafetyParameter:
                 parameters[metadata] = cls._get_required_parameter(handler, uid)
 
         yield cls(
-            io=io,
+            ios=ios,
             parameters=parameters,
-            **{field.attr_name: io for field, io in io.items()},
+            **{field.attr_name: io for field, io in ios.items()},
             **{field.attr_name: parameter for field, parameter in parameters.items()},
         )
 
@@ -118,8 +118,11 @@ class SafetyFunction:
     def _explore_instances(cls, handler: "FSoEMasterHandler") -> Iterator["SafetyFunction"]:
         """Explore instances of the safety function.
 
+        Tries to create instances of each safety functions according to the availability of
+        the input/output items and parameters in the handler's dictionary.
+
         Yields:
-            int: An increasing integer starting from 1, representing the instance index.
+            int: Instances of the safety function available for the handler.
         """
         # Check if the instance is single-instance
         try:
