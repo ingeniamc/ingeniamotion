@@ -26,13 +26,16 @@ if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master import (
         FSoEMasterHandler,
         PDUMaps,
+        SafeHomingFunction,
         SafeInputsFunction,
         SafetyFunction,
-        SAFunction,
+        SLPFunction,
+        SLSFunction,
         SOSFunction,
         SPFunction,
         SS1Function,
         SS2Function,
+        SSRFunction,
         STOFunction,
         SVFunction,
     )
@@ -374,11 +377,34 @@ def test_detect_safety_functions_ph2():
         # SOutFunction, Not implemented yet
         SPFunction,
         SVFunction,
-        SAFunction,
-        # SafeHomingFunction, Not Implemented yet
-        # SLSFunction,  Not Implemented yet
-        # SSRFunction,  Not Implemented yet
-        # SLPFunction, Not Implemented yet
+        SafeHomingFunction,
+        # SLS
+        SLSFunction,
+        SLSFunction,
+        SLSFunction,
+        SLSFunction,
+        SLSFunction,
+        SLSFunction,
+        SLSFunction,
+        SLSFunction,
+        # SSR
+        SSRFunction,
+        SSRFunction,
+        SSRFunction,
+        SSRFunction,
+        SSRFunction,
+        SSRFunction,
+        SSRFunction,
+        SSRFunction,
+        # SLP
+        SLPFunction,
+        SLPFunction,
+        SLPFunction,
+        SLPFunction,
+        SLPFunction,
+        SLPFunction,
+        SLPFunction,
+        SLPFunction,
     ]
 
 
@@ -531,7 +557,7 @@ def mc_state_data(mc_with_fsoe):
 
     mc.fsoe.configure_pdos(start_pdos=True)
     # Wait for the master to reach the Data state
-    mc.fsoe.wait_for_state_data(timeout=10)
+    mc.fsoe.wait_for_state_data(timeout=300)
 
     # Remove fail-safe state
     mc.fsoe.set_fail_safe(False)

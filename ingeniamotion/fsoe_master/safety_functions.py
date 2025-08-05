@@ -19,7 +19,6 @@ __all__ = [
     "SafeHomingFunction",
     "SafeInputsFunction",
     "SafetyFunction",
-    "SAFunction",
     "SLPFunction",
     "SLSFunction",
     "SOSFunction",
@@ -58,7 +57,6 @@ class SafetyFunction:
         yield from SOutFunction.for_handler(handler)
         yield from SPFunction.for_handler(handler)
         yield from SVFunction.for_handler(handler)
-        yield from SAFunction.for_handler(handler)
         yield from SafeHomingFunction.for_handler(handler)
         yield from SLSFunction.for_handler(handler)
         yield from SSRFunction.for_handler(handler)
@@ -362,24 +360,6 @@ class SVFunction(SafetyFunction):
 
 
 @dataclass()
-class SAFunction(SafetyFunction):
-    """Safe Acceleration Safety Function."""
-
-    ACTUAL_VALUE_UID = "FSOE_SAFE_ACCELERATION"
-
-    value: FSoEDictionaryItemInput
-
-    @classmethod
-    @override
-    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SAFunction"]:
-        try:
-            value = cls._get_required_input(handler, cls.ACTUAL_VALUE_UID)
-            yield cls(value=value, io=(value,), parameters=())
-        except KeyError:
-            return
-
-
-@dataclass()
 class SafeHomingFunction(SafetyFunction):
     """Safe Homing Safety Function."""
 
@@ -446,7 +426,7 @@ class SLSFunction(SafetyFunction):
 class SSRFunction(SafetyFunction):
     """Safe Speed Range Safety Function."""
 
-    COMMAND_UID = "FSOE_SSR_CMD_{i}"
+    COMMAND_UID = "FSOE_SSR_COMMAND_{i}"
     UPPER_LIMIT_UID = "FSOE_SSR_UPPER_LIMIT_{i}"
     LOWER_LIMIT_UID = "FSOE_SSR_LOWER_LIMIT_{i}"
     ERROR_REACTION_UID = "FSOE_SSR_ERROR_REACTION_{i}"
