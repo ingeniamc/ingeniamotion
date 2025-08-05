@@ -478,7 +478,7 @@ def test_modify_safe_parameters():
         handler = FSoEMasterHandler(mock_servo, use_sra=True, report_error_callback=error_handler)
 
         input_map = handler.get_function_instance(SafeInputsFunction).map
-        map_uid = SafeInputsFunction.INPUTS_MAP_UID
+        map_uid = "FSOE_SAFE_INPUTS_MAP"
 
         input_map.set(1)
         assert mock_servo.read(map_uid) == 1
@@ -1294,7 +1294,7 @@ class TestPduMapper:
         maps.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
         maps.inputs.add_padding(bits=6)
         maps.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
-        maps.inputs.add(fsoe_dict.name_map[SS2Function.COMMAND_UID.format(i=1)])
+        maps.inputs.add(fsoe_dict.name_map["FSOE_SS2_1"])
         test_si_u8_item = maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
 
         # Test that rule fails because the 8-bit object is split across blocks
@@ -1314,7 +1314,7 @@ class TestPduMapper:
         maps.inputs.clear()
         maps.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
         maps.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
-        maps.inputs.add(fsoe_dict.name_map[SS2Function.COMMAND_UID.format(i=1)])
+        maps.inputs.add(fsoe_dict.name_map["FSOE_SS2_1"])
         maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
         output = maps.are_inputs_valid(rules=[FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED])
         assert not output.exceptions
