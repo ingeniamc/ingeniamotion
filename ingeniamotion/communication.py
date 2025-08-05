@@ -98,6 +98,27 @@ class Communication:
         self.register_update_observers: dict[Servo, list[IMRegisterUpdateObserver]] = {}
         self.emergency_messages_observers: dict[Servo, list[IMEmergencyMessageObserver]] = {}
 
+    def __disconnect_callback(self, servo: Servo) -> None:
+        alias = None
+        for servo_alias, servo in self.mc.servos.items():
+            if servo.target == servo.target:
+                alias = servo_alias
+                break
+        if alias is None:
+            raise ValueError("Servo not found in the communication controller.")
+
+        network = self.mc._get_network(alias)
+        if isinstance(network, VirtualNetwork) and self.__virtual_drive:
+            self.__virtual_drive.stop()
+            self.__virtual_drive = None
+        del self.mc.servos[alias]
+        net_name = self.mc.servo_net.pop(alias)
+        servo_count = list(self.mc.servo_net.values()).count(net_name)
+        if self.mc.fsoe_is_installed:
+            self.mc.fsoe._delete_master_handler(alias)
+        if servo_count == 0:
+            del self.mc.net[net_name]
+
     def connect_servo_eoe(
         self,
         ip: str,
@@ -217,6 +238,7 @@ class Communication:
             connection_timeout,
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
+            disconnect_callback=self.__disconnect_callback,
         )
 
         self.mc.servos[alias] = servo
@@ -246,6 +268,7 @@ class Communication:
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
             is_eoe=is_eoe,
+            disconnect_callback=self.__disconnect_callback,
         )
 
         self.mc.servos[alias] = servo
@@ -300,6 +323,7 @@ class Communication:
                 port,
                 servo_status_listener=servo_status_listener,
                 net_status_listener=net_status_listener,
+                disconnect_callback=self.__disconnect_callback,
             )
         except ILError as e:
             if len(net.servos) == 0:
@@ -673,7 +697,13 @@ class Communication:
             self.mc.net[net_key] = CanopenNetwork(can_device, channel, baudrate)
         net = self.mc.net[net_key]
 
-        servo = net.connect_to_slave(node_id, dict_path, servo_status_listener, net_status_listener)
+        servo = net.connect_to_slave(
+            node_id,
+            dict_path,
+            servo_status_listener,
+            net_status_listener,
+            disconnect_callback=self.__disconnect_callback,
+        )
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = net_key
 
@@ -718,6 +748,7 @@ class Communication:
                 dict_path,
                 servo_status_listener=servo_status_listener,
                 net_status_listener=net_status_listener,
+                disconnect_callback=self.__disconnect_callback,
             )
         except ILError as e:
             if len(net.servos) == 0:
@@ -982,17 +1013,8 @@ class Communication:
         """
         drive = self.mc._get_drive(servo)
         network = self.mc._get_network(servo)
+        # This will call `__disconnect_callback` to complete the disconnection
         network.disconnect_from_slave(drive)
-        if isinstance(network, VirtualNetwork) and self.__virtual_drive:
-            self.__virtual_drive.stop()
-            self.__virtual_drive = None
-        del self.mc.servos[servo]
-        net_name = self.mc.servo_net.pop(servo)
-        servo_count = list(self.mc.servo_net.values()).count(net_name)
-        if self.mc.fsoe_is_installed:
-            self.mc.fsoe._delete_master_handler(servo)
-        if servo_count == 0:
-            del self.mc.net[net_name]
 
     def get_servo_state(self, servo: str = DEFAULT_SERVO) -> NetState:
         """Get the network state of a servo (connected/disconnected).
@@ -1582,7 +1604,9 @@ class Communication:
             for slave_id_offset in mapping:
                 slave_id = first_slave_in_ensemble + slave_id_offset
                 if slave_id not in connected_drives:
-                    net.connect_to_slave(slave_id, dictionary_path)
+                    net.connect_to_slave(
+                        slave_id, dictionary_path, disconnect_callback=self.__disconnect_callback
+                    )
 
             load_fw_slave_id: Optional[int] = None
             try:

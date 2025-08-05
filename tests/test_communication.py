@@ -123,6 +123,28 @@ def test_connect_servo_ethernet(setup_descriptor: EthernetSetup):
     assert "ethernet_test" in mc.net and mc.net["ethernet_test"] is not None
 
 
+@pytest.mark.ethercat
+@pytest.mark.skip_testing_framework
+def test_mc_disconnects_with_disconnection_callback(setup_descriptor: DriveEcatSetup, alias: str):
+    mc = MotionController()
+    mc.communication.connect_servo_ethercat(
+        interface_name=setup_descriptor.ifname,
+        slave_id=setup_descriptor.slave,
+        dict_path=setup_descriptor.dictionary.as_posix(),
+        alias=alias,
+    )
+
+    servo = mc._get_drive(servo=alias)
+    network = mc._get_network(servo=alias)
+    assert alias in mc.servos
+    assert alias in mc.servo_net
+
+    # Servo should be disconnected even if it is disconnected by the user
+    network.disconnect_from_slave(servo)
+    assert alias not in mc.servos
+    assert alias not in mc.servo_net
+
+
 @pytest.mark.virtual
 def test_connect_servo_ethernet_no_dictionary_error(setup_descriptor: EthernetSetup):
     mc = MotionController()
