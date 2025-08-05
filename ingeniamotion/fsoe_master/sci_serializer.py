@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Optional
 from xml.etree import ElementTree
 
 from ingenialink.dictionary import XMLBase
@@ -28,14 +29,18 @@ class XMLParsedElement(XMLBase):
             raise EsiFileParseError(f"'{element}' is empty")
         return found_element.text.strip()
 
+    @classmethod
+    def _find_and_check_optional(
+        cls, root: ElementTree.Element, path: str
+    ) -> Optional[ElementTree.Element]:
+        element = root.find(path)
+        return element
+
     def _read_optional_element(self, root: ElementTree.Element, element: str) -> str:
-        try:
-            found_element = self._find_and_check(root, element)
-            if found_element.text is None:
-                return None
-            return found_element.text.strip()
-        except Exception:
+        found_element = self._find_and_check_optional(root, element)
+        if found_element is None or found_element.text is None:
             return None
+        return found_element.text.strip()
 
 
 @dataclass(frozen=True)
@@ -272,14 +277,212 @@ class DeviceInfo(XMLParsedElement):
 
 
 @dataclass(frozen=True)
+class ArrayInfo(XMLParsedElement):
+    """Class to represent array information in the profile dictionary."""
+
+    lbound: str
+    elements: str
+
+    ELEMENT: str = "ArrayInfo"
+    __LBOUND_ELEMENT: str = "LBound"
+    __ELEMENTS_ELEMENT: str = "Elements"
+
+    @classmethod
+    def from_element(cls, element: ElementTree.Element) -> "ArrayInfo":
+        """Create an ArrayInfo instance from an XML element.
+
+        Returns:
+            class instance created from the XML element.
+        """
+        return cls(
+            lbound=cls._read_element(cls, element, cls.__LBOUND_ELEMENT),
+            elements=cls._read_element(cls, element, cls.__ELEMENTS_ELEMENT),
+        )
+
+    def to_sci(self) -> ElementTree.Element:
+        """Convert the ArrayInfo instance to a SCI XML element.
+
+        Returns:
+            ArrayInfo XML element.
+        """
+        root = ElementTree.Element(self.ELEMENT)
+        ElementTree.SubElement(root, self.__LBOUND_ELEMENT).text = self.lbound
+        ElementTree.SubElement(root, self.__ELEMENTS_ELEMENT).text = self.elements
+        return root
+
+
+@dataclass(frozen=True)
+class AccessFlag(XMLParsedElement):
+    """Class to represent an access flag in the profile dictionary."""
+
+    value: str
+    read_restrictions: Optional[str]
+    write_restrictions: Optional[str]
+
+    ELEMENT: str = "Access"
+    __READ_RESTRICTIONS_ATTR: str = "ReadRestrictions"
+    __WRITE_RESTRICTIONS_ATTR: str = "WriteRestrictions"
+
+    @classmethod
+    def from_element(cls, element: ElementTree.Element) -> "AccessFlag":
+        """Create an AccessFlag instance from an XML element.
+
+        Returns:
+            class instance created from the XML element.
+        """
+        a = 0
+        return cls(
+            value=element.text.strip(),
+            read_restrictions=element.attrib.get(cls.__READ_RESTRICTIONS_ATTR, None),
+            write_restrictions=element.attrib.get(cls.__WRITE_RESTRICTIONS_ATTR, None),
+        )
+
+    def to_sci(self) -> ElementTree.Element:
+        """Convert the AccessFlag instance to a SCI XML element.
+
+        Returns:
+            AccessFlag XML element.
+        """
+        root = ElementTree.Element(self.ELEMENT)
+        root.text = self.value
+        # TODO: attributes are not properly parsed
+        if self.read_restrictions is not None:
+            root.set(self.__READ_RESTRICTIONS_ATTR, self.read_restrictions)
+        if self.write_restrictions is not None:
+            root.set(self.__WRITE_RESTRICTIONS_ATTR, self.write_restrictions)
+        return root
+
+
+@dataclass(frozen=True)
+class SubItemFlags(XMLParsedElement):
+    """Class to represent flags for a subitem in the profile dictionary."""
+
+    access: Optional[AccessFlag]
+
+    ELEMENT: str = "Flags"
+    __CATEGORY_ELEMENT: str = "Category"
+    __PDO_MAPPING_ELEMENT: str = "PdoMapping"
+    __ATTRIBS_ELEMENT: str = "Attribute"
+    __BACKUP_ELEMENT: str = "Backup"
+    __SETTING_ELEMENT: str = "Setting"
+
+    @classmethod
+    def from_element(cls, element: ElementTree.Element) -> "SubItemFlags":
+        """Create a SubItemFlags instance from an XML element.
+
+        Returns:
+            class instance created from the XML element.
+        """
+        access_element = cls._find_and_check_optional(element, AccessFlag.ELEMENT)
+        return cls(
+            access=AccessFlag.from_element(access_element) if access_element is not None else None
+        )
+
+    def to_sci(self) -> ElementTree.Element:
+        """Convert the SubItemFlags instance to a SCI XML element.
+
+        Returns:
+            SubItemFlags XML element.
+        """
+        root = ElementTree.Element(self.ELEMENT)
+        if self.access is not None:
+            root.append(self.access.to_sci())
+        return root
+
+
+@dataclass(frozen=True)
+class Subitem(XMLParsedElement):
+    """Class to represent a subitem in the profile dictionary."""
+
+    subidx: Optional[str]
+    name: str
+    type: str
+    bit_size: str
+    bit_offs: str
+    default_str: Optional[str]
+    default_data: Optional[str]
+    min_value: Optional[str]
+    max_value: Optional[str]
+    default_value: Optional[str]
+    flags: Optional[SubItemFlags]
+
+    ELEMENT: str = "SubItem"
+    __SUBIDX_ELEMENT: str = "SubIdx"
+    __NAME_ELEMENT: str = "Name"
+    __TYPE_ELEMENT: str = "Type"
+    __BITSIZE_ELEMENT: str = "BitSize"
+    __BITOFFS_ELEMENT: str = "BitOffs"
+    __DEFAULT_STR_ELEMENT: str = "DefaultString"
+    __DEFAULT_DATA_ELEMENT: str = "DefaultData"
+    __MIN_VALUE_ELEMENT: str = "MinValue"
+    __MAX_VALUE_ELEMENT: str = "MaxValue"
+    __DEFAULT_VALUE_ELEMENT: str = "DefaultValue"
+
+    @classmethod
+    def from_element(cls, element: ElementTree.Element) -> "Subitem":
+        """Create a Subitem instance from an XML element.
+
+        Returns:
+            class instance created from the XML element.
+        """
+        flags_element = cls._find_and_check_optional(element, SubItemFlags.ELEMENT)
+        return cls(
+            subidx=cls._read_optional_element(cls, element, cls.__SUBIDX_ELEMENT),
+            name=cls._read_element(cls, element, cls.__NAME_ELEMENT),
+            type=cls._read_element(cls, element, cls.__TYPE_ELEMENT),
+            bit_size=cls._read_element(cls, element, cls.__BITSIZE_ELEMENT),
+            bit_offs=cls._read_element(cls, element, cls.__BITOFFS_ELEMENT),
+            default_str=cls._read_optional_element(cls, element, cls.__DEFAULT_STR_ELEMENT),
+            default_data=cls._read_optional_element(cls, element, cls.__DEFAULT_DATA_ELEMENT),
+            min_value=cls._read_optional_element(cls, element, cls.__MIN_VALUE_ELEMENT),
+            max_value=cls._read_optional_element(cls, element, cls.__MAX_VALUE_ELEMENT),
+            default_value=cls._read_optional_element(cls, element, cls.__DEFAULT_VALUE_ELEMENT),
+            flags=SubItemFlags.from_element(flags_element) if flags_element is not None else None,
+        )
+
+    def to_sci(self) -> ElementTree.Element:
+        """Convert the Subitem instance to a SCI XML element.
+
+        Returns:
+            Subitem XML element.
+        """
+        root = ElementTree.Element(self.ELEMENT)
+        if self.subidx is not None:
+            ElementTree.SubElement(root, self.__SUBIDX_ELEMENT).text = self.subidx
+        ElementTree.SubElement(root, self.__NAME_ELEMENT).text = self.name
+        ElementTree.SubElement(root, self.__TYPE_ELEMENT).text = self.type
+        ElementTree.SubElement(root, self.__BITSIZE_ELEMENT).text = self.bit_size
+        ElementTree.SubElement(root, self.__BITOFFS_ELEMENT).text = self.bit_offs
+        if self.default_str is not None:
+            ElementTree.SubElement(root, self.__DEFAULT_STR_ELEMENT).text = self.default_str
+        if self.default_data is not None:
+            ElementTree.SubElement(root, self.__DEFAULT_DATA_ELEMENT).text = self.default_data
+        if self.min_value is not None:
+            ElementTree.SubElement(root, self.__MIN_VALUE_ELEMENT).text = self.min_value
+        if self.max_value is not None:
+            ElementTree.SubElement(root, self.__MAX_VALUE_ELEMENT).text = self.max_value
+        if self.default_value is not None:
+            ElementTree.SubElement(root, self.__DEFAULT_VALUE_ELEMENT).text = self.default_value
+        if self.flags is not None:
+            root.append(self.flags.to_sci())
+        return root
+
+
+@dataclass(frozen=True)
 class DictionaryDataType(XMLParsedElement):
     """Class to represent a data type in the profile dictionary."""
 
+    index: Optional[str]
     name: str
+    base_type: Optional[str]
     bit_size: str
+    array_info: Optional[ArrayInfo]
+    subitem: Optional[Subitem]
 
     ELEMENT: str = "DataType"
+    __INDEX_ELEMENT: str = "Index"
     __NAME_ELEMENT: str = "Name"
+    __BASE_TYPE_ELEMENT: str = "BaseType"
     __BITSIZE_ELEMENT: str = "BitSize"
     # TODO: are extra elements
 
@@ -290,9 +493,17 @@ class DictionaryDataType(XMLParsedElement):
         Returns:
             class instance created from the XML element.
         """
+        array_info_element = cls._find_and_check_optional(element, ArrayInfo.ELEMENT)
+        subitem_element = cls._find_and_check_optional(element, Subitem.ELEMENT)
         return cls(
+            index=cls._read_optional_element(cls, element, cls.__INDEX_ELEMENT),
             name=cls._read_element(cls, element, cls.__NAME_ELEMENT),
+            base_type=cls._read_optional_element(cls, element, cls.__BASE_TYPE_ELEMENT),
             bit_size=cls._read_element(cls, element, cls.__BITSIZE_ELEMENT),
+            array_info=ArrayInfo.from_element(array_info_element)
+            if array_info_element is not None
+            else None,
+            subitem=Subitem.from_element(subitem_element) if subitem_element is not None else None,
         )
 
     def to_sci(self) -> ElementTree.Element:
@@ -302,8 +513,16 @@ class DictionaryDataType(XMLParsedElement):
             DictionaryDataType XML element.
         """
         root = ElementTree.Element(self.ELEMENT)
+        if self.index is not None:
+            ElementTree.SubElement(root, self.__INDEX_ELEMENT).text = self.index
         ElementTree.SubElement(root, self.__NAME_ELEMENT).text = self.name
+        if self.base_type is not None:
+            ElementTree.SubElement(root, self.__BASE_TYPE_ELEMENT).text = self.base_type
         ElementTree.SubElement(root, self.__BITSIZE_ELEMENT).text = self.bit_size
+        if self.array_info is not None:
+            root.append(self.array_info.to_sci())
+        if self.subitem is not None:
+            root.append(self.subitem.to_sci())
         return root
 
 
