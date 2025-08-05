@@ -7,7 +7,6 @@ from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master import (
         SafeInputsFunction,
-        SAFunction,
         SOSFunction,
         SS1Function,
         SS2Function,
@@ -41,7 +40,6 @@ def main(interface_ip, slave_id, dict_path) -> None:
     safe_inputs = handler.get_function_instance(SafeInputsFunction)
     ss1 = handler.get_function_instance(SS1Function)
     ss2 = handler.get_function_instance(SS2Function, instance=1)
-    sa = handler.get_function_instance(SAFunction)
     sv = handler.get_function_instance(SVFunction)
     sos = handler.get_function_instance(SOSFunction)
 
