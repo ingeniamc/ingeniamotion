@@ -33,8 +33,13 @@ class XMLParsedElement(XMLBase):
     def _find_and_check_optional(
         cls, root: ElementTree.Element, path: str
     ) -> Optional[ElementTree.Element]:
-        element = root.find(path)
-        return element
+        return root.find(path)
+
+    @classmethod
+    def _findall_and_check_optional(
+        cls, root: ElementTree.Element, path: str
+    ) -> Optional[list[ElementTree.Element]]:
+        return root.findall(path)
 
     def _read_optional_element(self, root: ElementTree.Element, element: str) -> str:
         found_element = self._find_and_check_optional(root, element)
@@ -477,7 +482,7 @@ class DictionaryDataType(XMLParsedElement):
     base_type: Optional[str]
     bit_size: str
     array_info: Optional[ArrayInfo]
-    subitem: Optional[Subitem]
+    subitems: Optional[list[Subitem]]
 
     ELEMENT: str = "DataType"
     __INDEX_ELEMENT: str = "Index"
@@ -494,7 +499,7 @@ class DictionaryDataType(XMLParsedElement):
             class instance created from the XML element.
         """
         array_info_element = cls._find_and_check_optional(element, ArrayInfo.ELEMENT)
-        subitem_element = cls._find_and_check_optional(element, Subitem.ELEMENT)
+        subitem_elements = cls._findall_and_check_optional(element, Subitem.ELEMENT)
         return cls(
             index=cls._read_optional_element(cls, element, cls.__INDEX_ELEMENT),
             name=cls._read_element(cls, element, cls.__NAME_ELEMENT),
@@ -503,7 +508,9 @@ class DictionaryDataType(XMLParsedElement):
             array_info=ArrayInfo.from_element(array_info_element)
             if array_info_element is not None
             else None,
-            subitem=Subitem.from_element(subitem_element) if subitem_element is not None else None,
+            subitems=[Subitem.from_element(el) for el in subitem_elements]
+            if subitem_elements
+            else None,
         )
 
     def to_sci(self) -> ElementTree.Element:
@@ -521,8 +528,9 @@ class DictionaryDataType(XMLParsedElement):
         ElementTree.SubElement(root, self.__BITSIZE_ELEMENT).text = self.bit_size
         if self.array_info is not None:
             root.append(self.array_info.to_sci())
-        if self.subitem is not None:
-            root.append(self.subitem.to_sci())
+        if self.subitems is not None:
+            for subitem in self.subitems:
+                root.append(subitem.to_sci())
         return root
 
 
