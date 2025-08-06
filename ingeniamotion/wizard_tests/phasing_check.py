@@ -73,13 +73,15 @@ class PhasingCheck(BaseTest[LegacyDictReportType]):
             servo=self.servo, axis=self.axis
         )
         total_time = max_current / self.CURRENT_SLOPE
-        for value in self.mc.motion.ramp_generator(
-            0, current_sign * max_current, total_time, interval=0.1
-        ):
-            self.mc.motion.set_current_direct(value, servo=self.servo, axis=self.axis)
-            if not self.__validate_motion_state(init_pos, pos_resolution):
-                return self.ResultType.WRONG_PHASING
-        self.mc.motion.set_current_direct(0, servo=self.servo, axis=self.axis)
+        try:
+            for value in self.mc.motion.ramp_generator(
+                0, current_sign * max_current, total_time, interval=0.1
+            ):
+                self.mc.motion.set_current_direct(value, servo=self.servo, axis=self.axis)
+                if not self.__validate_motion_state(init_pos, pos_resolution):
+                    return self.ResultType.WRONG_PHASING
+        finally:
+            self.mc.motion.set_current_direct(0, servo=self.servo, axis=self.axis)
         return self.ResultType.SUCCESS
 
     def __validate_motion_state(self, init_pos: int, pos_resolution: int) -> bool:
