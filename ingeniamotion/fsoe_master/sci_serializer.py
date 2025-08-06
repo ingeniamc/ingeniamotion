@@ -1134,20 +1134,116 @@ class EsiFile(XMLBase):
         except FileNotFoundError as e:
             raise FileNotFoundError(f"There is not any esi file in the path: {self.path}") from e
 
-        root = tree.getroot()
-        self.vendor = Vendor.from_element(self._find_and_check(root, Vendor.ELEMENT))
-        self.descriptions = Descriptions.from_element(
-            self._find_and_check(root, Descriptions.ELEMENT)
-        )
+        self.root = tree.getroot()
+        # self.vendor = Vendor.from_element(self._find_and_check(self.root, Vendor.ELEMENT))
+        # self.descriptions = Descriptions.from_element(
+        #     self._find_and_check(self.root, Descriptions.ELEMENT)
+        # )
 
 
-class FSoEDictionaryMapSciSerializer:
+class FSoEDictionaryMapSciSerializer(XMLBase):
     """Class to handle serialization and deserialization of FSoE dictionary maps."""
+
+    __VERSION_ELEMENT: str = "Version"
+    __DESCRIPTIONS_ELEMENT: str = "Descriptions"
+    __DEVICES_ELEMENT: str = "Devices"
+    __DEVICE_ELEMENT: str = "Device"
+
+    # Safety Modules
+    __MODULES_ELEMENT: str = "Modules"
+    __MODULE_ELEMENT: str = "Module"
+    __MODULE_TYPE_ELEMENT: str = "Type"
+    __MODULE_IDENT_ELEMENT: str = "ModuleIdent"
+
+    # Slots
+    __SLOTS_ELEMENT: str = "Slots"
+    __SLOT_ELEMENT: str = "Slot"
+    __SLOT_NAME_ELEMENT: str = "Name"
+    __SLOT_MODULE_IDENT_ELEMENT: str = "ModuleIdent"
+    __SLOT_MODULE_IDENT_DEFAULT_ATTR: str = "Default"
 
     def __init__(self, esi_file: Path):
         if not esi_file.exists():
             raise FileNotFoundError(f"ESI file {esi_file} does not exist.")
         self.esi_file: EsiFile = EsiFile(esi_file)
+
+    def _get_module_ident_from_module(self, safety_module: ElementTree.Element) -> int:
+        """Get the module identifier from the module element.
+
+        Returns:
+            Module identifier as an integer.
+        """
+        type_element = self._find_and_check(safety_module, self.__MODULE_TYPE_ELEMENT)
+        module_ident = type_element.attrib[self.__MODULE_IDENT_ELEMENT]
+        return int(module_ident.replace("#x", "0x"), 16)
+
+    def _filter_slots_by_module_ident(self, root: ElementTree.Element, module_ident: int) -> None:
+        """Filter slots based on the configured module identifier.
+
+        Args:
+            root: The root XML element.
+            module_ident: The module identifier to filter by.
+        """
+        devices_element = self._find_and_check(root, self.__DEVICES_ELEMENT)
+        device_element = self._find_and_check(devices_element, self.__DEVICE_ELEMENT)
+        slots_element = self._find_and_check(device_element, self.__SLOTS_ELEMENT)
+
+        for slot in self._findall_and_check(slots_element, self.__SLOT_ELEMENT):
+            # Remove all module idents
+            for remove_module_ident in self._findall_and_check(
+                slot, self.__SLOT_MODULE_IDENT_ELEMENT
+            ):
+                slot.remove(remove_module_ident)
+
+            # Add the corresponding module ident
+            ElementTree.SubElement(slot, self.__SLOT_NAME_ELEMENT).text = "Slot 1"
+            module_ident_element = ElementTree.SubElement(slot, self.__SLOT_MODULE_IDENT_ELEMENT)
+            module_ident_element.text = str(hex(module_ident).replace("0x", "#x"))
+            module_ident_element.set(self.__SLOT_MODULE_IDENT_DEFAULT_ATTR, "1")
+
+    def _filter_safety_modules(self, handler: FSoEMasterHandler, root: ElementTree.Element) -> None:
+        """Filter safety modules based on the configured module identifier.
+
+        Args:
+            handler: The FSoE master handler.
+
+        Raises:
+            EsiFileParseError: If no safety modules are found or if the configured module is
+                not found in the ESI file.
+            EsiFileParseError: if no safety module matching the configured module is found.
+        """
+        # Find the module used by the handler
+        # configured_module = int(handler.__get_configured_module_ident_1())
+        # return configured_module
+        module_ident_used = int("0x3b00002", 16)
+
+        description_element = self._find_and_check(root, self.__DESCRIPTIONS_ELEMENT)
+        modules_element = self._find_and_check(description_element, self.__MODULES_ELEMENT)
+
+        # Loop over the ESI modules and remove those not matching the configured module
+        remove = []
+        modules = self._findall_and_check(modules_element, self.__MODULE_ELEMENT)
+        n_modules = len(modules)
+        if n_modules == 0:
+            raise EsiFileParseError(
+                "No safety modules found in the ESI file. "
+                "Please ensure the ESI file contains valid safety module definitions."
+            )
+        for module in modules:
+            module_ident = self._get_module_ident_from_module(module)
+            if module_ident != module_ident_used:
+                remove.append(module)
+
+        if len(remove) == n_modules:
+            raise EsiFileParseError(
+                f"No safety modules found in the ESI file with identifier {module_ident_used}. "
+                "Please ensure the ESI file contains valid safety module definitions."
+            )
+
+        for remove_module in remove:
+            modules_element.remove(remove_module)
+
+        self._filter_slots_by_module_ident(description_element, module_ident_used)
 
     def serialize_mapping_to_sci(self, handler: FSoEMasterHandler) -> ElementTree.ElementTree:
         """Serialize the FSoE mapping to a .sci file.
@@ -1163,13 +1259,28 @@ class FSoEDictionaryMapSciSerializer:
             FileNotFoundError: If the ESI file does not exist.
         """
         # Create the root SCI XML structure
-        root = ElementTree.Element("EtherCATInfo")
-        root.set("Version", "1.9")
-        root.set("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
-        root.set("xsi:noNamespaceSchemaLocation", "EtherCATInfo.xsd")
+        # root = ElementTree.Element("EtherCATInfo")
+        # root.set("Version", "1.9")
+        # root.set("xmlns:xsi", "http://www.w3.org/2001/XMLSchema-instance")
+        # root.set("xsi:noNamespaceSchemaLocation", "EtherCATInfo.xsd")
 
-        root.append(self.esi_file.vendor.to_sci())
-        root.append(self.esi_file.descriptions.to_sci())
+        # root.append(self.esi_file.vendor.to_sci())
+        # root.append(self.esi_file.descriptions.to_sci())
+
+        root = self.esi_file.root
+        root.set(self.__VERSION_ELEMENT, "1.9")
+
+        vendor_elem = root.find("Vendor")
+        id_elem = vendor_elem.find("Id")
+        if id_elem is not None and id_elem.text:
+            # Convert hex to decimal
+            id_elem.text = str(int(id_elem.text.replace("#x", "0x"), 16))
+        # Convert image data to uppercase if needed
+        img_elem = vendor_elem.find("ImageData16x14")
+        if img_elem is not None and img_elem.text:
+            img_elem.text = img_elem.text.upper()
+
+        self._filter_safety_modules(handler, root)
 
         tree = ElementTree.ElementTree(root)
         ElementTree.indent(root)
