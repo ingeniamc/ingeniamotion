@@ -835,6 +835,136 @@ class DeviceProfile(XMLParsedElement):
 
 
 @dataclass(frozen=True)
+class Fmmu(XMLParsedElement):
+    """Class to represent an FMMU in the ESI file."""
+
+    fmmu: str
+    fmmu_oponly: Optional[str]
+    fmmu_sm: Optional[str]
+    fmmu_su: Optional[str]
+
+    ELEMENT: str = "Fmmu"
+    __OPONLY_ATTR: str = "OpOnly"
+    __SM_ATTR: str = "Sm"
+    __SU_ATTR: str = "Su"
+
+    @classmethod
+    def from_element(cls, element: ElementTree.Element) -> "Fmmu":
+        """Create a Fmmu instance from an XML element.
+
+        Returns:
+            class instance created from the XML element.
+        """
+        return cls(
+            fmmu=element.text.strip(),
+            fmmu_oponly=element.attrib.get(cls.__OPONLY_ATTR, None),
+            fmmu_sm=element.attrib.get(cls.__SM_ATTR, None),
+            fmmu_su=element.attrib.get(cls.__SU_ATTR, None),
+        )
+
+    def to_sci(self) -> ElementTree.Element:
+        """Convert the Fmmu instance to a SCI XML element.
+
+        Returns:
+            Fmmu XML element.
+        """
+        root = ElementTree.Element(self.ELEMENT)
+        root.text = self.fmmu
+        if self.fmmu_oponly is not None:
+            root.set(self.__OPONLY_ATTR, self.fmmu_oponly)
+        if self.fmmu_sm is not None:
+            root.set(self.__SM_ATTR, self.fmmu_sm)
+        if self.fmmu_su is not None:
+            root.set(self.__SU_ATTR, self.fmmu_su)
+        return root
+
+
+@dataclass(frozen=True)
+class SyncManager(XMLParsedElement):
+    """Class to represent a SyncManager in the ESI file."""
+
+    sm: str
+    min_size: Optional[str]
+    max_size: Optional[str]
+    default_size: Optional[str]
+    start_address: Optional[str]
+    control_byte: Optional[str]
+    enable: Optional[str]
+    one_byte_mode: Optional[str]
+    virtual: Optional[str]
+    watchdog: Optional[str]
+    oponly: Optional[str]
+    fixed_assignment: Optional[str]
+
+    ELEMENT: str = "Sm"
+    __MIN_SIZE_ATTR: str = "MinSize"
+    __MAX_SIZE_ATTR: str = "MaxSize"
+    __DEFAULT_SIZE_ATTR: str = "DefaultSize"
+    __START_ADDRESS_ATTR: str = "StartAddress"
+    __CONTROL_BYTE_ATTR: str = "ControlByte"
+    __ENABLE_ATTR: str = "Enable"
+    __ONE_BYTE_MODE_ATTR: str = "OneByteMode"
+    __VIRTUAL_ATTR: str = "Virtual"
+    __WATCHDOG_ATTR: str = "Watchdog"
+    __OPONLY_ATTR: str = "OpOnly"
+    __FIXED_ASSIGNMENT_ATTR: str = "FixedAssignment"
+
+    @classmethod
+    def from_element(cls, element: ElementTree.Element) -> "SyncManager":
+        """Create a SyncManager instance from an XML element.
+
+        Returns:
+            class instance created from the XML element.
+        """
+        return cls(
+            sm=element.text.strip(),
+            min_size=element.attrib.get(cls.__MIN_SIZE_ATTR, None),
+            max_size=element.attrib.get(cls.__MAX_SIZE_ATTR, None),
+            default_size=element.attrib.get(cls.__DEFAULT_SIZE_ATTR, None),
+            start_address=element.attrib.get(cls.__START_ADDRESS_ATTR, None),
+            control_byte=element.attrib.get(cls.__CONTROL_BYTE_ATTR, None),
+            enable=element.attrib.get(cls.__ENABLE_ATTR, None),
+            one_byte_mode=element.attrib.get(cls.__ONE_BYTE_MODE_ATTR, None),
+            virtual=element.attrib.get(cls.__VIRTUAL_ATTR, None),
+            watchdog=element.attrib.get(cls.__WATCHDOG_ATTR, None),
+            oponly=element.attrib.get(cls.__OPONLY_ATTR, None),
+            fixed_assignment=element.attrib.get(cls.__FIXED_ASSIGNMENT_ATTR, None),
+        )
+
+    def to_sci(self) -> ElementTree.Element:
+        """Convert the SyncManager instance to a SCI XML element.
+
+        Returns:
+            SyncManager XML element.
+        """
+        root = ElementTree.Element(self.ELEMENT)
+        root.text = self.sm
+        if self.min_size is not None:
+            root.set(self.__MIN_SIZE_ATTR, self.min_size)
+        if self.max_size is not None:
+            root.set(self.__MAX_SIZE_ATTR, self.max_size)
+        if self.default_size is not None:
+            root.set(self.__DEFAULT_SIZE_ATTR, self.default_size)
+        if self.start_address is not None:
+            root.set(self.__START_ADDRESS_ATTR, self.start_address)
+        if self.control_byte is not None:
+            root.set(self.__CONTROL_BYTE_ATTR, self.control_byte)
+        if self.enable is not None:
+            root.set(self.__ENABLE_ATTR, self.enable)
+        if self.one_byte_mode is not None:
+            root.set(self.__ONE_BYTE_MODE_ATTR, self.one_byte_mode)
+        if self.virtual is not None:
+            root.set(self.__VIRTUAL_ATTR, self.virtual)
+        if self.watchdog is not None:
+            root.set(self.__WATCHDOG_ATTR, self.watchdog)
+        if self.oponly is not None:
+            root.set(self.__OPONLY_ATTR, self.oponly)
+        if self.fixed_assignment is not None:
+            root.set(self.__FIXED_ASSIGNMENT_ATTR, self.fixed_assignment)
+        return root
+
+
+@dataclass(frozen=True)
 class Device(XMLParsedElement):
     """Class to represent a device in the ESI file."""
 
@@ -848,6 +978,8 @@ class Device(XMLParsedElement):
     info: DeviceInfo
     group_type: str
     profile: DeviceProfile
+    fmmu: Optional[list[Fmmu]]
+    sm: Optional[list[SyncManager]]
 
     ELEMENT: str = "Device"
     __PHYSICS_ATTR: str = "Physics"
@@ -867,6 +999,8 @@ class Device(XMLParsedElement):
         """
         type_element = cls._find_and_check(element, cls.__TYPE_ELEMENT)
         name_element = cls._find_and_check(element, cls.__NAME_ELEMENT)
+        fmmu_elements = cls._findall_and_check_optional(element, Fmmu.ELEMENT)
+        sm_elements = cls._findall_and_check_optional(element, SyncManager.ELEMENT)
         return cls(
             physics=element.attrib[cls.__PHYSICS_ATTR],
             device_type=cls._read_element(cls, element, cls.__TYPE_ELEMENT),
@@ -877,6 +1011,12 @@ class Device(XMLParsedElement):
             info=DeviceInfo.from_element(cls._find_and_check(element, DeviceInfo.ELEMENT)),
             group_type=cls._read_element(cls, element, cls.__GROUP_TYPE_ATTR),
             profile=DeviceProfile.from_element(cls._find_and_check(element, DeviceProfile.ELEMENT)),
+            fmmu=[Fmmu.from_element(fmmu) for fmmu in fmmu_elements]
+            if fmmu_elements is not None
+            else None,
+            sm=[SyncManager.from_element(sm) for sm in sm_elements]
+            if sm_elements is not None
+            else None,
         )
 
     def to_sci(self) -> ElementTree.Element:
@@ -897,6 +1037,12 @@ class Device(XMLParsedElement):
         root.append(self.info.to_sci())
         ElementTree.SubElement(root, self.__GROUP_TYPE_ATTR).text = self.group_type
         root.append(self.profile.to_sci())
+        if self.fmmu is not None:
+            for fmmu in self.fmmu:
+                root.append(fmmu.to_sci())
+        if self.sm is not None:
+            for sm in self.sm:
+                root.append(sm.to_sci())
         return root
 
 
