@@ -1111,6 +1111,26 @@ class Descriptions(XMLParsedElement):
         return root
 
 
+def read_xml_file(file_path: Path) -> ElementTree.Element:
+    """Read the content of an XML file.
+
+    Args:
+        file_path: Path to the XML file.
+
+    Raises:
+        FileNotFoundError: If the XML file does not exist.
+
+    Returns:
+        The root element of the parsed XML tree.
+    """
+    try:
+        with open(file_path, encoding="utf-8") as xml_file:
+            tree = ElementTree.parse(xml_file)
+    except FileNotFoundError as e:
+        raise FileNotFoundError(f"There is not any XML file in the path: {file_path}") from e
+    return tree.getroot()
+
+
 class EsiFile(XMLBase):
     """Class to handle ESI file operations."""
 
@@ -1120,21 +1140,7 @@ class EsiFile(XMLBase):
         self.vendor: Vendor
         self.descriptions: Descriptions
 
-        self._read_esi_file()
-
-    def _read_esi_file(self) -> None:
-        """Read the content of an ESI file.
-
-        Raises:
-            FileNotFoundError: If the ESI file does not exist.
-        """
-        try:
-            with open(self.path, encoding="utf-8") as esi_file:
-                tree = ElementTree.parse(esi_file)
-        except FileNotFoundError as e:
-            raise FileNotFoundError(f"There is not any esi file in the path: {self.path}") from e
-
-        self.root = tree.getroot()
+        self.root = read_xml_file(self.path)
         # self.vendor = Vendor.from_element(self._find_and_check(self.root, Vendor.ELEMENT))
         # self.descriptions = Descriptions.from_element(
         #     self._find_and_check(self.root, Descriptions.ELEMENT)
@@ -1165,6 +1171,7 @@ class FSoEDictionaryMapSciSerializer(XMLBase):
     def __init__(self, esi_file: Path):
         if not esi_file.exists():
             raise FileNotFoundError(f"ESI file {esi_file} does not exist.")
+        self._esi_file_path: Path = esi_file
         self.esi_file: EsiFile = EsiFile(esi_file)
 
     def _get_module_ident_from_module(self, safety_module: ElementTree.Element) -> int:
@@ -1213,8 +1220,7 @@ class FSoEDictionaryMapSciSerializer(XMLBase):
             EsiFileParseError: if no safety module matching the configured module is found.
         """
         # Find the module used by the handler
-        # configured_module = int(handler.__get_configured_module_ident_1())
-        # return configured_module
+        # module_ident_used = int(handler.__get_configured_module_ident_1())
         module_ident_used = int("0x3b00002", 16)
 
         description_element = self._find_and_check(root, self.__DESCRIPTIONS_ELEMENT)
@@ -1267,7 +1273,7 @@ class FSoEDictionaryMapSciSerializer(XMLBase):
         # root.append(self.esi_file.vendor.to_sci())
         # root.append(self.esi_file.descriptions.to_sci())
 
-        root = self.esi_file.root
+        root = read_xml_file(self._esi_file_path)
         root.set(self.__VERSION_ELEMENT, "1.9")
 
         vendor_elem = root.find("Vendor")
