@@ -350,7 +350,6 @@ class AccessFlag(XMLParsedElement):
         """
         root = ElementTree.Element(self.ELEMENT)
         root.text = self.value
-        # TODO: attributes are not properly parsed
         if self.read_restrictions is not None:
             root.set(self.__READ_RESTRICTIONS_ATTR, self.read_restrictions)
         if self.write_restrictions is not None:
@@ -363,6 +362,11 @@ class SubItemFlags(XMLParsedElement):
     """Class to represent flags for a subitem in the profile dictionary."""
 
     access: Optional[AccessFlag]
+    category: Optional[str]
+    pdo_mapping: Optional[str]
+    attribute: Optional[str]
+    backup: Optional[str]
+    setting: Optional[str]
 
     ELEMENT: str = "Flags"
     __CATEGORY_ELEMENT: str = "Category"
@@ -380,7 +384,12 @@ class SubItemFlags(XMLParsedElement):
         """
         access_element = cls._find_and_check_optional(element, AccessFlag.ELEMENT)
         return cls(
-            access=AccessFlag.from_element(access_element) if access_element is not None else None
+            access=AccessFlag.from_element(access_element) if access_element is not None else None,
+            category=cls._read_optional_element(cls, element, cls.__CATEGORY_ELEMENT),
+            pdo_mapping=cls._read_optional_element(cls, element, cls.__PDO_MAPPING_ELEMENT),
+            attribute=cls._read_optional_element(cls, element, cls.__ATTRIBS_ELEMENT),
+            backup=cls._read_optional_element(cls, element, cls.__BACKUP_ELEMENT),
+            setting=cls._read_optional_element(cls, element, cls.__SETTING_ELEMENT),
         )
 
     def to_sci(self) -> ElementTree.Element:
@@ -392,6 +401,18 @@ class SubItemFlags(XMLParsedElement):
         root = ElementTree.Element(self.ELEMENT)
         if self.access is not None:
             root.append(self.access.to_sci())
+        if self.category is not None:
+            ElementTree.SubElement(root, self.__CATEGORY_ELEMENT).text = self.category
+        if self.pdo_mapping is not None:
+            ElementTree.SubElement(
+                root, self.__PDO_MAPPING_ELEMENT
+            ).text = self.pdo_mapping.upper()  # Capital letters for SCI format
+        if self.attribute is not None:
+            ElementTree.SubElement(root, self.__ATTRIBS_ELEMENT).text = self.attribute
+        if self.backup is not None:
+            ElementTree.SubElement(root, self.__BACKUP_ELEMENT).text = self.backup
+        if self.setting is not None:
+            ElementTree.SubElement(root, self.__SETTING_ELEMENT).text = self.setting
         return root
 
 
