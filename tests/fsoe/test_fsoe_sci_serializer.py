@@ -12,7 +12,7 @@ from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 
 if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master.sci_serializer import (
-        FSoEDictionaryMapSciSerializer,
+        SCISerializer,
         read_xml_file,
     )
 
@@ -41,24 +41,22 @@ def test_sci_serializes_single_safety_module(setup_specifier: DriveHwConfigSpeci
     def __find_safety_modules(root: ElementTree.Element) -> list[ElementTree.Element]:
         description_element = XMLBase._find_and_check(
             root,
-            FSoEDictionaryMapSciSerializer._FSoEDictionaryMapSciSerializer__DESCRIPTIONS_ELEMENT,
+            SCISerializer._SCISerializer__DESCRIPTIONS_ELEMENT,
         )
         modules_element = XMLBase._find_and_check(
             description_element,
-            FSoEDictionaryMapSciSerializer._FSoEDictionaryMapSciSerializer__MODULES_ELEMENT,
+            SCISerializer._SCISerializer__MODULES_ELEMENT,
         )
         return XMLBase._findall_and_check(
             modules_element,
-            FSoEDictionaryMapSciSerializer._FSoEDictionaryMapSciSerializer__MODULE_ELEMENT,
+            SCISerializer._SCISerializer__MODULE_ELEMENT,
         )
 
     handler = None  # TODO: use handler from fixture
     # module_ident_used = int(handler.__get_configured_module_ident_1())
     module_ident_used = int("0x3b00002", 16)
 
-    serializer: FSoEDictionaryMapSciSerializer = FSoEDictionaryMapSciSerializer(
-        esi_file=setup_specifier.extra_data["esi_file"]
-    )
+    serializer: SCISerializer = SCISerializer(esi_file=setup_specifier.extra_data["esi_file"])
     esi_root: ElementTree.Element = read_xml_file(setup_specifier.extra_data["esi_file"])
     sci_root: ElementTree.Element = serializer.serialize_mapping_to_sci(handler=handler).getroot()
 
@@ -82,7 +80,7 @@ def test_save_sci_mapping(
 ) -> None:
     """Test saving the FSoE mapping to a .sci file."""
     # _, handler = mc_with_fsoe_with_sra
-    serializer = FSoEDictionaryMapSciSerializer(esi_file=setup_specifier.extra_data["esi_file"])
+    serializer = SCISerializer(esi_file=setup_specifier.extra_data["esi_file"])
     sci_file = Path("C:\\git_repo\\ingeniamotion\\sci_files") / "test_mapping.sci"
     serializer.save_mapping_to_sci(
         handler=None,
