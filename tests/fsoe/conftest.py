@@ -1,10 +1,9 @@
-import tempfile
 from collections.abc import Generator
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
 
+from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError
 from ingeniamotion.motion_controller import MotionController
 
@@ -16,20 +15,7 @@ if TYPE_CHECKING:
     from ingenialink.emcy import EmergencyMessage
 
 
-@pytest.fixture
-def temp_mapping_file() -> Generator[Path, None, None]:
-    """Creates an empty mapping file.
-
-    Yields:
-        mapping file path.
-    """
-    with tempfile.NamedTemporaryFile(suffix=".lfu", delete=False) as tmp:
-        temp_path = Path(tmp.name)
-    yield temp_path
-    temp_path.unlink
-
-
-def emergency_handler(servo_alias: str, message: "EmergencyMessage") -> None:
+def emergency_handler(servo_alias: str, message: "EmergencyMessage"):
     if message.error_code == 0xFF43:
         # Cyclic timeout Ethercat PDO lifeguard
         # is a typical error code when the pdos are stopped
@@ -45,35 +31,49 @@ def emergency_handler(servo_alias: str, message: "EmergencyMessage") -> None:
     raise RuntimeError(f"Emergency message received from {servo_alias}: {message}")
 
 
-def error_handler(error: FSoEError) -> None:
+def error_handler(error: FSoEError):
     raise RuntimeError(f"FSoE error received: {error}")
 
 
-@pytest.fixture
+@pytest.fixture()
+def fsoe_states() -> list[FSoEState]:
+    states = []
+    return states
+
+
+@pytest.fixture()
 def mc_with_fsoe(
-    mc: MotionController,
+    mc: MotionController, fsoe_states: list[FSoEState]
 ) -> Generator[tuple[MotionController, FSoEMasterHandler], None, None]:
+    def add_state(state: FSoEState):
+        fsoe_states.append(state)
+
     # Subscribe to emergency messages
     mc.communication.subscribe_emergency_message(emergency_handler)
     # Configure error channel
     mc.fsoe.subscribe_to_errors(error_handler)
     # Create and start the FSoE master handler
-    handler = mc.fsoe.create_fsoe_master_handler(use_sra=False)
+    handler = mc.fsoe.create_fsoe_master_handler(use_sra=False, state_change_callback=add_state)
     yield mc, handler
+    # Delete the master handler
     mc.fsoe._delete_master_handler()
 
 
-@pytest.fixture
+@pytest.fixture()
 def mc_with_fsoe_with_sra(
-    mc: MotionController,
+    mc: MotionController, fsoe_states: list[FSoEState]
 ) -> Generator[tuple[MotionController, FSoEMasterHandler], None, None]:
+    def add_state(state: FSoEState):
+        fsoe_states.append(state)
+
     # Subscribe to emergency messages
     mc.communication.subscribe_emergency_message(emergency_handler)
     # Configure error channel
     mc.fsoe.subscribe_to_errors(error_handler)
     # Create and start the FSoE master handler
-    handler = mc.fsoe.create_fsoe_master_handler(use_sra=True)
+    handler = mc.fsoe.create_fsoe_master_handler(use_sra=True, state_change_callback=add_state)
     yield mc, handler
+    # Delete the master handler
     mc.fsoe._delete_master_handler()
 
 
@@ -86,6 +86,8 @@ def mc_state_data_with_sra(
     mc.fsoe.configure_pdos(start_pdos=True)
     # Wait for the master to reach the Data state
     mc.fsoe.wait_for_state_data(timeout=10)
+    # Remove fail-safe state
+    mc.fsoe.set_fail_safe(False)
 
     yield mc
 
@@ -102,6 +104,8 @@ def mc_state_data(
     mc.fsoe.configure_pdos(start_pdos=True)
     # Wait for the master to reach the Data state
     mc.fsoe.wait_for_state_data(timeout=10)
+    # Remove fail-safe state
+    mc.fsoe.set_fail_safe(False)
 
     yield mc
 
