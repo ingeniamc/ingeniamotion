@@ -121,7 +121,7 @@ class SCISerializer(XMLBase):
     __MAILBOX_ELEMENT: str = "Mailbox"
     __COE_ELEMENT: str = "CoE"
 
-    def __init__(self):
+    def __init__(self) -> None:
         pass
 
     def __set_sci_vendor(self, root: ElementTree.Element) -> None:
