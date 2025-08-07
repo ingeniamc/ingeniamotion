@@ -84,30 +84,40 @@ def error_handler(error: FSoEError):
 
 
 @pytest.fixture()
-def mc_with_fsoe(mc):
+def fsoe_states():
+    states = []
+    return states
+
+
+@pytest.fixture()
+def mc_with_fsoe(mc, fsoe_states):
+    def add_state(state: FSoEState):
+        fsoe_states.append(state)
+
     # Subscribe to emergency messages
     mc.communication.subscribe_emergency_message(emergency_handler)
     # Configure error channel
     mc.fsoe.subscribe_to_errors(error_handler)
     # Create and start the FSoE master handler
-    handler = mc.fsoe.create_fsoe_master_handler(use_sra=False)
+    handler = mc.fsoe.create_fsoe_master_handler(use_sra=False, state_change_callback=add_state)
     yield mc, handler
-    # IM should be notified and clear references when a servo is disconnected from ingenialink
-    # https://novantamotion.atlassian.net/browse/INGM-624
+    # Delete the master handler
     mc.fsoe._delete_master_handler()
 
 
 @pytest.fixture()
-def mc_with_fsoe_with_sra(mc):
+def mc_with_fsoe_with_sra(mc, fsoe_states):
+    def add_state(state: FSoEState):
+        fsoe_states.append(state)
+
     # Subscribe to emergency messages
     mc.communication.subscribe_emergency_message(emergency_handler)
     # Configure error channel
     mc.fsoe.subscribe_to_errors(error_handler)
     # Create and start the FSoE master handler
-    handler = mc.fsoe.create_fsoe_master_handler(use_sra=True)
+    handler = mc.fsoe.create_fsoe_master_handler(use_sra=True, state_change_callback=add_state)
     yield mc, handler
-    # IM should be notified and clear references when a servo is disconnected from ingenialink
-    # https://novantamotion.atlassian.net/browse/INGM-624
+    # Delete the master handler
     mc.fsoe._delete_master_handler()
 
 
@@ -468,6 +478,47 @@ def test_modify_safe_parameters():
         handler.delete()
 
 
+@pytest.mark.fsoe
+@pytest.mark.parametrize(
+    "dictionary, editable",
+    [(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, False), (SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, True)],
+)
+def test_mapping_locked(dictionary, editable):
+    mock_servo = MockServo(dictionary)
+
+    if not editable:
+        # First xdf v3 and esi files of phase 1 had the PDOs set to RW as a mistake
+        # for XDF V2, the hard-coded pdo maps are created with RO access
+        for obj in [
+            mock_servo.dictionary.get_object("ETG_COMMS_RPDO_MAP256", 1),
+            mock_servo.dictionary.get_object("ETG_COMMS_TPDO_MAP256", 1),
+        ]:
+            for reg in obj.registers:
+                reg._access = RegAccess.RO
+
+    try:
+        handler = FSoEMasterHandler(mock_servo, use_sra=True, report_error_callback=error_handler)
+        assert handler.maps.editable is editable
+
+        if editable:
+            handler.maps.inputs.clear()
+        else:
+            with pytest.raises(fsoe_master.FSOEMasterMappingLockedException):
+                handler.maps.inputs.clear()
+
+        new_maps = handler.maps.copy()
+        assert new_maps.editable is editable
+
+        if editable:
+            new_maps.outputs.clear()
+        else:
+            with pytest.raises(fsoe_master.FSOEMasterMappingLockedException):
+                new_maps.outputs.clear()
+
+    finally:
+        handler.delete()
+
+
 @pytest.fixture()
 def mc_state_data_with_sra(mc_with_fsoe_with_sra):
     mc, _handler = mc_with_fsoe_with_sra
@@ -475,6 +526,9 @@ def mc_state_data_with_sra(mc_with_fsoe_with_sra):
     mc.fsoe.configure_pdos(start_pdos=True)
     # Wait for the master to reach the Data state
     mc.fsoe.wait_for_state_data(timeout=10)
+
+    # Remove fail-safe state
+    mc.fsoe.set_fail_safe(False)
 
     yield mc
 
@@ -497,6 +551,27 @@ def mc_state_data(mc_with_fsoe):
 
     # Stop the FSoE master handler
     mc.fsoe.stop_master(stop_pdos=True)
+
+
+@pytest.mark.fsoe
+def test_pass_through_states(mc_state_data, fsoe_states):  # noqa: ARG001
+    assert fsoe_states == [
+        FSoEState.SESSION,
+        FSoEState.CONNECTION,
+        FSoEState.PARAMETER,
+        FSoEState.DATA,
+    ]
+
+
+@pytest.mark.fsoe_phase_I
+@pytest.mark.fsoe_phase_II
+def test_pass_through_states(mc_state_data, fsoe_states):  # noqa: ARG001
+    assert fsoe_states == [
+        FSoEState.SESSION,
+        FSoEState.CONNECTION,
+        FSoEState.PARAMETER,
+        FSoEState.DATA,
+    ]
 
 
 @pytest.mark.fsoe_phase_I
@@ -847,6 +922,28 @@ class TestPduMapper:
             recreated_pdu_maps.inputs.get_text_representation()
             == maps.inputs.get_text_representation()
         )
+
+    @pytest.mark.fsoe_phase_I
+    @pytest.mark.fsoe_phase_II
+    def test_empty_map_8_bits(self, sample_safe_dictionary):
+        safe_dict, fsoe_dict = sample_safe_dictionary
+        maps = PDUMaps.empty(fsoe_dict)
+        tpdo = TPDOMap()
+        maps.fill_tpdo_map(tpdo, safe_dict)
+
+        assert tpdo.items[0].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CMD"
+        assert tpdo.items[0].size_bits == 8
+
+        assert tpdo.items[1].register.identifier == "PADDING"
+        assert tpdo.items[1].size_bits == 8
+
+        assert tpdo.items[2].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC0"
+        assert tpdo.items[2].size_bits == 16
+
+        assert tpdo.items[3].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CONNID"
+        assert tpdo.items[3].size_bits == 16
+
+        assert len(tpdo.items) == 4
 
     @pytest.mark.fsoe_phase_I
     @pytest.mark.fsoe_phase_II
