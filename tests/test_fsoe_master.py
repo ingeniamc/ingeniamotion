@@ -104,8 +104,7 @@ def mc_with_fsoe(mc, fsoe_states):
     # Create and start the FSoE master handler
     handler = mc.fsoe.create_fsoe_master_handler(use_sra=False, state_change_callback=add_state)
     yield mc, handler
-    # IM should be notified and clear references when a servo is disconnected from ingenialink
-    # https://novantamotion.atlassian.net/browse/INGM-624
+    # Delete the master handler
     mc.fsoe._delete_master_handler()
     # Ensure the PDOs are stopped
     # https://novantamotion.atlassian.net/browse/CIT-494
@@ -125,8 +124,7 @@ def mc_with_fsoe_with_sra(mc, fsoe_states):
     # Create and start the FSoE master handler
     handler = mc.fsoe.create_fsoe_master_handler(use_sra=True, state_change_callback=add_state)
     yield mc, handler
-    # IM should be notified and clear references when a servo is disconnected from ingenialink
-    # https://novantamotion.atlassian.net/browse/INGM-624
+    # Delete the master handler
     mc.fsoe._delete_master_handler()
 
 
@@ -926,6 +924,27 @@ class TestPduMapper:
             recreated_pdu_maps.inputs.get_text_representation()
             == maps.inputs.get_text_representation()
         )
+
+    @pytest.mark.fsoe
+    def test_empty_map_8_bits(self, sample_safe_dictionary):
+        safe_dict, fsoe_dict = sample_safe_dictionary
+        maps = PDUMaps.empty(fsoe_dict)
+        tpdo = TPDOMap()
+        maps.fill_tpdo_map(tpdo, safe_dict)
+
+        assert tpdo.items[0].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CMD"
+        assert tpdo.items[0].size_bits == 8
+
+        assert tpdo.items[1].register.identifier == "PADDING"
+        assert tpdo.items[1].size_bits == 8
+
+        assert tpdo.items[2].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC0"
+        assert tpdo.items[2].size_bits == 16
+
+        assert tpdo.items[3].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CONNID"
+        assert tpdo.items[3].size_bits == 16
+
+        assert len(tpdo.items) == 4
 
     @pytest.mark.fsoe
     def test_map_with_32_bit_vars(self, sample_safe_dictionary):

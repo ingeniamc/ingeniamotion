@@ -65,23 +65,29 @@ class PhasingCheck(BaseTest[LegacyDictReportType]):
 
     @BaseTest.stoppable
     def __vary_current_and_check_position(self, current_sign: int, max_current: int) -> ResultType:
+        self.logger.info(
+            f"Slowly increasing Current Direct Set-point until {current_sign * max_current} A"
+        )
         init_pos = self.mc.motion.get_actual_position(servo=self.servo, axis=self.axis)
         pos_resolution = self.mc.configuration.get_position_feedback_resolution(
             servo=self.servo, axis=self.axis
         )
-        is_ok = True
         total_time = max_current / self.CURRENT_SLOPE
-        for value in self.mc.motion.ramp_generator(
-            0, current_sign * max_current, total_time, interval=0.1
-        ):
-            self.mc.motion.set_current_direct(value, servo=self.servo, axis=self.axis)
-            is_ok = self.__check_position(init_pos, pos_resolution)
-            if not is_ok:
-                break
-        self.mc.motion.set_current_direct(0, servo=self.servo, axis=self.axis)
-        if not is_ok:
-            return self.ResultType.WRONG_PHASING
+        try:
+            for value in self.mc.motion.ramp_generator(
+                0, current_sign * max_current, total_time, interval=0.1
+            ):
+                self.mc.motion.set_current_direct(value, servo=self.servo, axis=self.axis)
+                if not self.__validate_motion_state(init_pos, pos_resolution):
+                    return self.ResultType.WRONG_PHASING
+        finally:
+            self.mc.motion.set_current_direct(0, servo=self.servo, axis=self.axis)
         return self.ResultType.SUCCESS
+
+    def __validate_motion_state(self, init_pos: int, pos_resolution: int) -> bool:
+        if self.mc.errors.is_fault_active(servo=self.servo, axis=self.axis):
+            raise TestError("The drive is in fault state")
+        return self.__check_position(init_pos, pos_resolution)
 
     @BaseTest.stoppable
     def __check_position(self, init_pos: int, resolution: int) -> bool:
@@ -184,20 +190,9 @@ class PhasingCheck(BaseTest[LegacyDictReportType]):
         # With Halls only, this test makes no sense
         if ref_feedback == SensorType.HALLS and comm_feedback == SensorType.HALLS:
             return self.ResultType.SUCCESS
-
-        self.logger.info(
-            "{} {} {}".format(
-                "Slowly increasing Current Direct Set-point until", max_test_current, "A"
-            )
-        )
         result = self.__vary_current_and_check_position(1, max_test_current)
         if result != self.ResultType.SUCCESS:
             return result
-        self.logger.info(
-            "{} {} {}".format(
-                "Slowly decreasing Current Direct Set-point until", -max_test_current, "A"
-            )
-        )
         return self.__vary_current_and_check_position(-1, max_test_current)
 
     @override
