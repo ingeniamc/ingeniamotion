@@ -48,6 +48,7 @@ class FSoEMaster:
         use_sra: bool,
         servo: str = DEFAULT_SERVO,
         fsoe_master_watchdog_timeout: Optional[float] = None,
+        state_change_callback: Optional[Callable[[FSoEState], None]] = None,
     ) -> "FSoEMasterHandler":
         """Create an FSoE Master handler linked to a Safe servo drive.
 
@@ -58,6 +59,8 @@ class FSoEMaster:
             use_sra: True to use SRA, False otherwise.
             servo: servo alias to reference it. ``default`` by default.
             fsoe_master_watchdog_timeout: The FSoE master watchdog timeout in seconds.
+            state_change_callback: Optional callback to be called when the
+                FSoE master handler state changes.
 
         Returns:
             An instance of FSoEMasterHandler.
@@ -74,6 +77,7 @@ class FSoEMaster:
             connection_id=self.__next_connection_id,
             watchdog_timeout=fsoe_master_watchdog_timeout,
             report_error_callback=partial(self._notify_errors, servo=servo),
+            state_change_callback=state_change_callback,
         )
         self._handlers[servo] = master_handler
         self.__next_connection_id += 1

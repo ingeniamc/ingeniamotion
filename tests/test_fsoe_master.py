@@ -84,30 +84,40 @@ def error_handler(error: FSoEError):
 
 
 @pytest.fixture()
-def mc_with_fsoe(mc):
+def fsoe_states():
+    states = []
+    return states
+
+
+@pytest.fixture()
+def mc_with_fsoe(mc, fsoe_states):
+    def add_state(state: FSoEState):
+        fsoe_states.append(state)
+
     # Subscribe to emergency messages
     mc.communication.subscribe_emergency_message(emergency_handler)
     # Configure error channel
     mc.fsoe.subscribe_to_errors(error_handler)
     # Create and start the FSoE master handler
-    handler = mc.fsoe.create_fsoe_master_handler(use_sra=False)
+    handler = mc.fsoe.create_fsoe_master_handler(use_sra=False, state_change_callback=add_state)
     yield mc, handler
-    # IM should be notified and clear references when a servo is disconnected from ingenialink
-    # https://novantamotion.atlassian.net/browse/INGM-624
+    # Delete the master handler
     mc.fsoe._delete_master_handler()
 
 
 @pytest.fixture()
-def mc_with_fsoe_with_sra(mc):
+def mc_with_fsoe_with_sra(mc, fsoe_states):
+    def add_state(state: FSoEState):
+        fsoe_states.append(state)
+
     # Subscribe to emergency messages
     mc.communication.subscribe_emergency_message(emergency_handler)
     # Configure error channel
     mc.fsoe.subscribe_to_errors(error_handler)
     # Create and start the FSoE master handler
-    handler = mc.fsoe.create_fsoe_master_handler(use_sra=True)
+    handler = mc.fsoe.create_fsoe_master_handler(use_sra=True, state_change_callback=add_state)
     yield mc, handler
-    # IM should be notified and clear references when a servo is disconnected from ingenialink
-    # https://novantamotion.atlassian.net/browse/INGM-624
+    # Delete the master handler
     mc.fsoe._delete_master_handler()
 
 
@@ -504,6 +514,9 @@ def mc_state_data_with_sra(mc_with_fsoe_with_sra):
     # Wait for the master to reach the Data state
     mc.fsoe.wait_for_state_data(timeout=10)
 
+    # Remove fail-safe state
+    mc.fsoe.set_fail_safe(False)
+
     yield mc
 
     # Stop the FSoE master handler
@@ -525,6 +538,16 @@ def mc_state_data(mc_with_fsoe):
 
     # Stop the FSoE master handler
     mc.fsoe.stop_master(stop_pdos=True)
+
+
+@pytest.mark.fsoe
+def test_pass_through_states(mc_state_data, fsoe_states):  # noqa: ARG001
+    assert fsoe_states == [
+        FSoEState.SESSION,
+        FSoEState.CONNECTION,
+        FSoEState.PARAMETER,
+        FSoEState.DATA,
+    ]
 
 
 @pytest.mark.fsoe
@@ -867,6 +890,27 @@ class TestPduMapper:
             recreated_pdu_maps.inputs.get_text_representation()
             == maps.inputs.get_text_representation()
         )
+
+    @pytest.mark.fsoe
+    def test_empty_map_8_bits(self, sample_safe_dictionary):
+        safe_dict, fsoe_dict = sample_safe_dictionary
+        maps = PDUMaps.empty(fsoe_dict)
+        tpdo = TPDOMap()
+        maps.fill_tpdo_map(tpdo, safe_dict)
+
+        assert tpdo.items[0].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CMD"
+        assert tpdo.items[0].size_bits == 8
+
+        assert tpdo.items[1].register.identifier == "PADDING"
+        assert tpdo.items[1].size_bits == 8
+
+        assert tpdo.items[2].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC0"
+        assert tpdo.items[2].size_bits == 16
+
+        assert tpdo.items[3].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CONNID"
+        assert tpdo.items[3].size_bits == 16
+
+        assert len(tpdo.items) == 4
 
     @pytest.mark.fsoe
     def test_map_with_32_bit_vars(self, sample_safe_dictionary):
