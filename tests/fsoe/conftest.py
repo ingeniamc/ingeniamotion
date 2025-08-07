@@ -7,12 +7,11 @@ from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError
 from ingeniamotion.motion_controller import MotionController
 
-if FSOE_MASTER_INSTALLED:
-    from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
-
-
 if TYPE_CHECKING:
     from ingenialink.emcy import EmergencyMessage
+
+    if FSOE_MASTER_INSTALLED:
+        from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
 
 
 def emergency_handler(servo_alias: str, message: "EmergencyMessage"):
@@ -44,7 +43,7 @@ def fsoe_states() -> list[FSoEState]:
 @pytest.fixture()
 def mc_with_fsoe(
     mc: MotionController, fsoe_states: list[FSoEState]
-) -> Generator[tuple[MotionController, FSoEMasterHandler], None, None]:
+) -> Generator[tuple[MotionController, "FSoEMasterHandler"], None, None]:
     def add_state(state: FSoEState):
         fsoe_states.append(state)
 
@@ -62,7 +61,7 @@ def mc_with_fsoe(
 @pytest.fixture()
 def mc_with_fsoe_with_sra(
     mc: MotionController, fsoe_states: list[FSoEState]
-) -> Generator[tuple[MotionController, FSoEMasterHandler], None, None]:
+) -> Generator[tuple[MotionController, "FSoEMasterHandler"], None, None]:
     def add_state(state: FSoEState):
         fsoe_states.append(state)
 
@@ -79,7 +78,7 @@ def mc_with_fsoe_with_sra(
 
 @pytest.fixture
 def mc_state_data_with_sra(
-    mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler],
+    mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
 ) -> Generator[MotionController, None, None]:
     mc, _handler = mc_with_fsoe_with_sra
 
@@ -97,7 +96,7 @@ def mc_state_data_with_sra(
 
 @pytest.fixture
 def mc_state_data(
-    mc_with_fsoe: tuple[MotionController, FSoEMasterHandler],
+    mc_with_fsoe: tuple[MotionController, "FSoEMasterHandler"],
 ) -> Generator[MotionController, None, None]:
     mc, _handler = mc_with_fsoe
 

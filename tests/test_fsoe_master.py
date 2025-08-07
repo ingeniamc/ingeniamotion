@@ -15,7 +15,7 @@ from ingenialink.servo import DictionaryFactory
 from ingenialink.utils._utils import convert_dtype_to_bytes
 
 from ingeniamotion.enums import FSoEState
-from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEMaster
+from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError, FSoEMaster
 from ingeniamotion.motion_controller import MotionController
 from tests.conftest import timeout_loop
 from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
@@ -57,6 +57,10 @@ def test_fsoe_master_not_installed():
     mc = MotionController()
     with pytest.raises(NotImplementedError):
         mc.fsoe
+
+
+def error_handler(error: FSoEError):
+    raise RuntimeError(f"FSoE error received: {error}")
 
 
 @pytest.mark.fsoe
