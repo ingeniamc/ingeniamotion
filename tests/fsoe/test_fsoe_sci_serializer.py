@@ -12,6 +12,11 @@ from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 from ingeniamotion.motion_controller import MotionController
 
 if FSOE_MASTER_INSTALLED:
+    from ingeniamotion.fsoe_master import (
+        SafeInputsFunction,
+        SS1Function,
+        STOFunction,
+    )
     from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
     from ingeniamotion.fsoe_master.sci_serializer import (
         SCISerializer,
@@ -86,15 +91,27 @@ def test_save_sci_mapping(
 ) -> None:
     """Test saving the FSoE mapping to a .sci file."""
     _, handler = mc_with_fsoe_with_sra
-    serializer = SCISerializer(esi_file=setup_specifier.extra_data["esi_file"])
-    # sci_file = (
-    #     Path("C:\\Program Files (x86)\\Beckhoff\\TwinCAT\3.1\\Config\\Io\\EtherCAT")
-    #     / "test_mapping.sci"
-    # )
-    sci_file = Path(
-        "C:\\Program Files (x86)\\Beckhoff\\TwinCAT\\3.1\\Config\\Io\\EtherCAT\\test_mapping.sci"
-    )
 
+    sto = handler.get_function_instance(STOFunction)
+    safe_inputs = handler.get_function_instance(SafeInputsFunction)
+    ss1 = handler.get_function_instance(SS1Function)
+
+    handler.maps.inputs.clear()
+    handler.maps.inputs.add_padding(8)
+    handler.maps.inputs.add(safe_inputs.value)
+    handler.maps.inputs.add_padding(7)
+
+    handler.maps.outputs.clear()
+    handler.maps.outputs.add(sto.command)
+    handler.maps.outputs.add_padding(1)
+    handler.maps.outputs.add(ss1.command)
+    handler.maps.outputs.add_padding(7)
+
+    handler.maps.validate()
+    handler.configure_pdo_maps()
+
+    serializer = SCISerializer(esi_file=setup_specifier.extra_data["esi_file"])
+    sci_file = temp_sci_files_dir / "test_mapping.sci"
     serializer.save_mapping_to_sci(
         handler=handler,
         filename=sci_file,

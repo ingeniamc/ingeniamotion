@@ -138,14 +138,28 @@ class SCISerializer(XMLBase):
 
         Args:
             root: The root XML element.
+
+        Raises:
+            EsiFileParseError: If the vendor ID element is missing in the ESI file.
+            EsiFileParseError: If the vendor image data element is missing in the ESI file.
         """
         vendor_elem = self._find_and_check(root, self.__VENDOR_ELEMENT)
         id_elem = self._find_and_check(vendor_elem, self.__VENDOR_ID_ELEMENT)
+        if id_elem.text is None:
+            raise EsiFileParseError(
+                "Vendor ID element is missing in the ESI file. "
+                "Please ensure the ESI file contains a valid Vendor ID."
+            )
         # Convert hex to decimal
         id_elem.text = str(int(id_elem.text.replace("#x", "0x"), 16))
 
         # Convert image data to uppercase
         img_elem = self._find_and_check(vendor_elem, self.__VENDOR_IMAGE_DATA_ELEMENT)
+        if img_elem.text is None:
+            raise EsiFileParseError(
+                "Vendor image data element is missing in the ESI file. "
+                "Please ensure the ESI file contains a valid Vendor image data."
+            )
         img_elem.text = img_elem.text.upper()
 
     def _get_module_ident_from_module(self, safety_module: ElementTree.Element) -> int:
@@ -213,7 +227,7 @@ class SCISerializer(XMLBase):
                 "Please ensure the ESI file contains valid safety module definitions."
             )
 
-        module_ident_used = int(handler._FSoEMasterHandler__get_configured_module_ident_1())
+        module_ident_used = int(handler._FSoEMasterHandler__get_configured_module_ident_1())  # type: ignore[attr-defined]
         for module in modules:
             module_ident = self._get_module_ident_from_module(module)
             if module_ident != module_ident_used:
