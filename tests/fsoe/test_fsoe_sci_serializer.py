@@ -87,7 +87,14 @@ def test_save_sci_mapping(
     """Test saving the FSoE mapping to a .sci file."""
     _, handler = mc_with_fsoe_with_sra
     serializer = SCISerializer(esi_file=setup_specifier.extra_data["esi_file"])
-    sci_file = Path("C:\\git_repo\\ingeniamotion\\sci_files") / "test_mapping.sci"
+    # sci_file = (
+    #     Path("C:\\Program Files (x86)\\Beckhoff\\TwinCAT\3.1\\Config\\Io\\EtherCAT")
+    #     / "test_mapping.sci"
+    # )
+    sci_file = Path(
+        "C:\\Program Files (x86)\\Beckhoff\\TwinCAT\\3.1\\Config\\Io\\EtherCAT\\test_mapping.sci"
+    )
+
     serializer.save_mapping_to_sci(
         handler=handler,
         filename=sci_file,
