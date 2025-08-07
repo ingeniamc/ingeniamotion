@@ -40,7 +40,7 @@ def temp_sci_files_dir() -> Generator[Path, None, None]:
 @pytest.mark.fsoe
 def test_sci_serializes_single_safety_module(
     setup_specifier: DriveHwConfigSpecifier,
-    mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler],
+    mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
 ) -> None:
     """Test that the SCI serializer serializes only the safety module being used.
 
@@ -86,7 +86,7 @@ def test_sci_serializes_single_safety_module(
 @pytest.mark.fsoe
 def test_save_sci_mapping(
     temp_sci_files_dir: Path,
-    mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler],
+    mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
     setup_specifier: DriveHwConfigSpecifier,
 ) -> None:
     """Test saving the FSoE mapping to a .sci file."""
