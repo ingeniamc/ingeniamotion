@@ -1,7 +1,7 @@
 import logging
 import random
 import time
-from typing import Any, Union
+from typing import TYPE_CHECKING, Any, Union
 
 import pytest
 from ingenialink import RegAccess, RegDtype, Servo
@@ -46,6 +46,10 @@ if FSOE_MASTER_INSTALLED:
     )
 
 
+if TYPE_CHECKING:
+    from ingenialink.emcy import EmergencyMessage
+
+
 def test_fsoe_master_not_installed():
     try:
         import fsoe_master  # noqa: F401
@@ -59,8 +63,62 @@ def test_fsoe_master_not_installed():
         mc.fsoe
 
 
+def emergency_handler(servo_alias: str, message: "EmergencyMessage"):
+    if message.error_code == 0xFF43:
+        # Cyclic timeout Ethercat PDO lifeguard
+        # is a typical error code when the pdos are stopped
+        # Ignore
+        return
+
+    if message.error_code == 0:
+        # When drive goes to Operational again
+        # No error is thrown
+        # https://novantamotion.atlassian.net/browse/INGM-627
+        return
+
+    raise RuntimeError(f"Emergency message received from {servo_alias}: {message}")
+
+
 def error_handler(error: FSoEError):
     raise RuntimeError(f"FSoE error received: {error}")
+
+
+@pytest.fixture()
+def fsoe_states():
+    states = []
+    return states
+
+
+@pytest.fixture()
+def mc_with_fsoe(mc, fsoe_states):
+    def add_state(state: FSoEState):
+        fsoe_states.append(state)
+
+    # Subscribe to emergency messages
+    mc.communication.subscribe_emergency_message(emergency_handler)
+    # Configure error channel
+    mc.fsoe.subscribe_to_errors(error_handler)
+    # Create and start the FSoE master handler
+    handler = mc.fsoe.create_fsoe_master_handler(use_sra=False, state_change_callback=add_state)
+    yield mc, handler
+    # Delete the master handler
+    mc.fsoe._delete_master_handler()
+
+
+@pytest.fixture()
+def mc_with_fsoe_with_sra(mc, fsoe_states):
+    def add_state(state: FSoEState):
+        fsoe_states.append(state)
+
+    # Subscribe to emergency messages
+    mc.communication.subscribe_emergency_message(emergency_handler)
+    # Configure error channel
+    mc.fsoe.subscribe_to_errors(error_handler)
+    # Create and start the FSoE master handler
+    handler = mc.fsoe.create_fsoe_master_handler(use_sra=True, state_change_callback=add_state)
+    yield mc, handler
+    # Delete the master handler
+    mc.fsoe._delete_master_handler()
 
 
 @pytest.mark.fsoe
@@ -446,6 +504,40 @@ def test_mapping_locked(dictionary, editable):
 
     finally:
         handler.delete()
+
+
+@pytest.fixture()
+def mc_state_data_with_sra(mc_with_fsoe_with_sra):
+    mc, _handler = mc_with_fsoe_with_sra
+
+    mc.fsoe.configure_pdos(start_pdos=True)
+    # Wait for the master to reach the Data state
+    mc.fsoe.wait_for_state_data(timeout=10)
+
+    # Remove fail-safe state
+    mc.fsoe.set_fail_safe(False)
+
+    yield mc
+
+    # Stop the FSoE master handler
+    mc.fsoe.stop_master(stop_pdos=True)
+
+
+@pytest.fixture()
+def mc_state_data(mc_with_fsoe):
+    mc, _handler = mc_with_fsoe
+
+    mc.fsoe.configure_pdos(start_pdos=True)
+    # Wait for the master to reach the Data state
+    mc.fsoe.wait_for_state_data(timeout=10)
+
+    # Remove fail-safe state
+    mc.fsoe.set_fail_safe(False)
+
+    yield mc
+
+    # Stop the FSoE master handler
+    mc.fsoe.stop_master(stop_pdos=True)
 
 
 @pytest.mark.fsoe
