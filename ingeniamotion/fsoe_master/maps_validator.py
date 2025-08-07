@@ -304,7 +304,8 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
                             rule=FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED,
                             exception=(
                                 f"Make sure that 8 bit objects belong to the same data block. "
-                                f"Data slot {data_slot_i} contains split object {item.item.name}."
+                                f"Data slot {data_slot_i} contains split object "
+                                f"{item.item.name if item.item is not None else 'PADDING'}."
                             ),
                             items=[item],
                         )
