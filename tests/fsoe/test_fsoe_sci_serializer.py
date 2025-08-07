@@ -9,8 +9,10 @@ from ingenialink.dictionary import XMLBase
 from summit_testing_framework.setups.specifiers import DriveHwConfigSpecifier
 
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
+from ingeniamotion.motion_controller import MotionController
 
 if FSOE_MASTER_INSTALLED:
+    from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
     from ingeniamotion.fsoe_master.sci_serializer import (
         SCISerializer,
         read_xml_file,
@@ -31,7 +33,10 @@ def temp_sci_files_dir() -> Generator[Path, None, None]:
 
 
 @pytest.mark.fsoe
-def test_sci_serializes_single_safety_module(setup_specifier: DriveHwConfigSpecifier) -> None:
+def test_sci_serializes_single_safety_module(
+    setup_specifier: DriveHwConfigSpecifier,
+    mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler],
+) -> None:
     """Test that the SCI serializer serializes only the safety module being used.
 
     ESI files can contain multiple safety modules, but the SCI file should only
@@ -52,9 +57,8 @@ def test_sci_serializes_single_safety_module(setup_specifier: DriveHwConfigSpeci
             SCISerializer._SCISerializer__MODULE_ELEMENT,
         )
 
-    handler = None  # TODO: use handler from fixture
-    # module_ident_used = int(handler.__get_configured_module_ident_1())
-    module_ident_used = int("0x3b00002", 16)
+    _, handler = mc_with_fsoe_with_sra
+    module_ident_used = int(handler._FSoEMasterHandler__get_configured_module_ident_1())
 
     serializer: SCISerializer = SCISerializer(esi_file=setup_specifier.extra_data["esi_file"])
     esi_root: ElementTree.Element = read_xml_file(setup_specifier.extra_data["esi_file"])
@@ -65,7 +69,9 @@ def test_sci_serializes_single_safety_module(setup_specifier: DriveHwConfigSpeci
 
     # All safety modules are present in the ESI file (same than dictionary)
     assert len(esi_safety_modules) > 1
-    # TODO: with servo connection check that the number of safety modules in ESI are the same than in dictionary
+    assert len(esi_safety_modules) == len(
+        handler._FSoEMasterHandler__servo.dictionary.safety_modules
+    )
 
     # Only the safety module being used is present in the SCI file
     assert len(sci_safety_modules) == 1
@@ -75,15 +81,15 @@ def test_sci_serializes_single_safety_module(setup_specifier: DriveHwConfigSpeci
 @pytest.mark.fsoe
 def test_save_sci_mapping(
     temp_sci_files_dir: Path,
-    # mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler],
+    mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler],
     setup_specifier: DriveHwConfigSpecifier,
 ) -> None:
     """Test saving the FSoE mapping to a .sci file."""
-    # _, handler = mc_with_fsoe_with_sra
+    _, handler = mc_with_fsoe_with_sra
     serializer = SCISerializer(esi_file=setup_specifier.extra_data["esi_file"])
     sci_file = Path("C:\\git_repo\\ingeniamotion\\sci_files") / "test_mapping.sci"
     serializer.save_mapping_to_sci(
-        handler=None,
+        handler=handler,
         filename=sci_file,
         override=True,
     )

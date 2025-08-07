@@ -3,25 +3,17 @@ from pathlib import Path
 from typing import Optional
 from xml.etree import ElementTree
 
-from ingenialink.dictionary import Interface, XMLBase
-from ingenialink.pdo import RPDOMap, TPDOMap
-from ingenialink.servo import DictionaryFactory
+from ingenialink.dictionary import XMLBase
+from ingenialink.pdo import PDOMapItem
 from ingenialink.utils._utils import convert_dtype_to_bytes
 
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
-from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
 
 if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master import (
         FSoEMasterHandler,
-        PDUMaps,
-        SS1Function,
-        SS2Function,
-        STOFunction,
     )
     from ingeniamotion.fsoe_master.frame import MASTER_FRAME_ELEMENTS, SLAVE_FRAME_ELEMENTS
-    from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
-    from ingeniamotion.fsoe_master.maps import PDUMaps
 
 
 class EsiFileParseError(Exception):
@@ -66,6 +58,29 @@ class MappedPDO(XMLBase):
     __SUB_INDEX_ELEMENT: str = "SubIndex"
     __DATA_ELEMENT: str = "Data"
     __DATA_ADAPT_AUTOMATICALLY_ATTR: str = "AdaptAutomatically"
+
+    @classmethod
+    def from_pdo_item(cls, item: PDOMapItem) -> "MappedPDO":
+        """Create a MappedPDO instance from a PDOMapItem.
+
+        Args:
+            item: The PDOMapItem to convert.
+
+        Returns:
+            An instance of MappedPDO.
+        """
+        if item.register.default is None:
+            data = int.to_bytes(0, 1, "little")  # padding
+        else:
+            data = convert_dtype_to_bytes(item.register.default, item.register.dtype)
+        return cls(
+            complete_access="true",
+            transition="PS",  # The PS transition is when the device goes from PreOP to SafeOP
+            index=str(item.register.idx),
+            subindex=str(item.register.subidx),
+            data=data.hex(),
+            data_adapt_automatically=None,
+        )
 
     def serialize(self) -> ElementTree.Element:
         """Serialize the MappedPDO instance to an XML element.
@@ -191,22 +206,20 @@ class SCISerializer(XMLBase):
                 not found in the ESI file.
             EsiFileParseError: if no safety module matching the configured module is found.
         """
-        # Find the module used by the handler
-        # module_ident_used = int(handler.__get_configured_module_ident_1())
-        module_ident_used = int("0x3b00002", 16)
-
         description_element = self._find_and_check(root, self.__DESCRIPTIONS_ELEMENT)
         modules_element = self._find_and_check(description_element, self.__MODULES_ELEMENT)
+        modules = self._findall_and_check(modules_element, self.__MODULE_ELEMENT)
 
         # Loop over the ESI modules and remove those not matching the configured module
         remove = []
-        modules = self._findall_and_check(modules_element, self.__MODULE_ELEMENT)
         n_modules = len(modules)
         if n_modules == 0:
             raise EsiFileParseError(
                 "No safety modules found in the ESI file. "
                 "Please ensure the ESI file contains valid safety module definitions."
             )
+
+        module_ident_used = int(handler._FSoEMasterHandler__get_configured_module_ident_1())
         for module in modules:
             module_ident = self._get_module_ident_from_module(module)
             if module_ident != module_ident_used:
@@ -223,32 +236,23 @@ class SCISerializer(XMLBase):
 
         self._filter_slots_by_module_ident(description_element, module_ident_used)
 
-    def _set_pdo_data(self, handler: FSoEMasterHandler, root: ElementTree.Element) -> None:
-        """Set the PDO data in the SCI file.
+    def __get_mapping_from_handler(self, handler: FSoEMasterHandler) -> dict[str, list[PDOMapItem]]:
+        """Get the mapping from the FSoE master handler.
+
+        It gets the mapped registers for inputs and outputs, excluding
+        CMD, CRCs, and CONNID.
 
         Args:
             handler: The FSoE master handler.
-            root: The root XML element.
-        """
-        # TODO: use handler maps
-        safe_dict = DictionaryFactory.create_dictionary(
-            SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, interface=Interface.ECAT
-        )
-        fsoe_dict = FSoEMasterHandler.create_safe_dictionary(safe_dict)
-        maps = PDUMaps.empty(fsoe_dict)
-        maps.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
-        maps.inputs.add_padding(bits=6)
-        maps.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
-        maps.inputs.add(fsoe_dict.name_map[SS2Function.COMMAND_UID.format(i=1)])
-        tpdo = TPDOMap()
-        maps.fill_tpdo_map(tpdo, safe_dict)
-        rpdo = RPDOMap()
 
-        # Get the mapped registers ignoring
-        # CMD, CRCs and CONNID
+        Returns:
+            A dictionary with the mapped registers for inputs and outputs.
+        """
         mapped_registers = {}
         for map_key, pdo_map, frame_elements in zip(
-            ["inputs", "outputs"], [tpdo, rpdo], [SLAVE_FRAME_ELEMENTS, MASTER_FRAME_ELEMENTS]
+            ["inputs", "outputs"],
+            [handler.safety_slave_pdu_map, handler.safety_slave_pdu_map],
+            [SLAVE_FRAME_ELEMENTS, MASTER_FRAME_ELEMENTS],
         ):
             mapped_registers[map_key] = []
             for item in pdo_map.items:
@@ -259,7 +263,15 @@ class SCISerializer(XMLBase):
                 ):
                     continue
                 mapped_registers[map_key].append(item)
+        return mapped_registers
 
+    def _set_startup_commands(self, handler: FSoEMasterHandler, root: ElementTree.Element) -> None:
+        """Set the startup commands in the SCI file.
+
+        Args:
+            handler: The FSoE master handler.
+            root: The root XML element.
+        """
         description_element = self._find_and_check(root, self.__DESCRIPTIONS_ELEMENT)
         devices_element = self._find_and_check(description_element, self.__DEVICES_ELEMENT)
         device_element = self._find_and_check(devices_element, self.__DEVICE_ELEMENT)
@@ -267,22 +279,10 @@ class SCISerializer(XMLBase):
         coe_element = self._find_and_check(mailbox_element, self.__COE_ELEMENT)
 
         # Write the setup commands
-        # The PS transition is when the device goes from PreOP to SafeOP
+        mapped_registers = self.__get_mapping_from_handler(handler)
         for items in mapped_registers.values():
             for item in items:
-                if item.register.default is None:
-                    data = int.to_bytes(0, 1, "little")  # padding
-                else:
-                    data = convert_dtype_to_bytes(item.register.default, item.register.dtype)
-                mapped_pdo = MappedPDO(
-                    complete_access="true",
-                    transition="PS",
-                    index=str(item.register.idx),
-                    subindex=str(item.register.subidx),
-                    data=data.hex(),
-                    data_adapt_automatically=None,
-                )
-                coe_element.append(mapped_pdo.serialize())
+                coe_element.append(MappedPDO.from_pdo_item(item).serialize())
 
     def serialize_mapping_to_sci(self, handler: FSoEMasterHandler) -> ElementTree.ElementTree:
         """Serialize the FSoE mapping to a .sci file.
@@ -303,7 +303,7 @@ class SCISerializer(XMLBase):
         root.set(self.__VERSION_ELEMENT, "1.9")
         self.__set_sci_vendor(root)
         self._filter_safety_modules(handler, root)
-        self._set_pdo_data(handler, root)
+        self._set_startup_commands(handler, root)
 
         tree = ElementTree.ElementTree(root)
         ElementTree.indent(root)
