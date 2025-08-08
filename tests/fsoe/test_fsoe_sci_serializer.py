@@ -92,7 +92,7 @@ def test_sci_serializes_single_safety_module(
     assert sci_serializer._get_module_ident_from_module(sci_safety_modules[0]) == module_ident_used
 
 
-@pytest.mark.fsoe
+@pytest.mark.fsoe_phase2
 def test_save_sci_mapping(
     temp_sci_files_dir: Path,
     mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
