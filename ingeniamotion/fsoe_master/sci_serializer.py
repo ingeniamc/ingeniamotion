@@ -1,3 +1,4 @@
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional
@@ -104,6 +105,14 @@ class SCISerializer(XMLBase):
     __VENDOR_ID_ELEMENT: str = "Id"
     __VENDOR_IMAGE_DATA_ELEMENT: str = "ImageData16x14"
 
+    # SCI
+    __SCI_ELEMENT: str = "Sci"
+    __SCI_VERSION_ATTR: str = "SciVersion"
+    __NAME_ELEMENT: str = "Name"
+    __GUID_ELEMENT: str = "Guid"
+    __CREATED_BY_ELEMENT: str = "CreatedBy"
+    __COMPANY_ELEMENT: str = "Company"
+
     # Safety Modules
     __MODULES_ELEMENT: str = "Modules"
     __MODULE_ELEMENT: str = "Module"
@@ -152,6 +161,28 @@ class SCISerializer(XMLBase):
                 "Please ensure the ESI file contains a valid Vendor image data."
             )
         img_elem.text = img_elem.text.upper()
+
+    def __set_sci_info(self, root: ElementTree.Element, part_number: Optional[str] = None) -> None:
+        """Set the SCI file information.
+
+        Args:
+            root: The root XML element.
+            part_number: Optional part number for the device.
+        """
+        description_element = self._find_and_check(root, self.__DESCRIPTIONS_ELEMENT)
+        devices_element = self._find_and_check(description_element, self.__DEVICES_ELEMENT)
+        device_element = self._find_and_check(devices_element, self.__DEVICE_ELEMENT)
+
+        sci_element = ElementTree.Element(self.__SCI_ELEMENT)
+        sci_element.set(self.__SCI_VERSION_ATTR, "1.0.13")
+        ElementTree.SubElement(sci_element, self.__NAME_ELEMENT).text = (
+            "Drive 1" if part_number is None else f"Drive 1 ({part_number})"
+        )
+        ElementTree.SubElement(sci_element, self.__GUID_ELEMENT).text = str(uuid.uuid4())
+        created_by_element = ElementTree.SubElement(sci_element, self.__CREATED_BY_ELEMENT)
+        ElementTree.SubElement(created_by_element, self.__COMPANY_ELEMENT).text = "Novanta"
+
+        device_element.insert(0, sci_element)  # Insert as first child
 
     def _get_module_ident_from_module(self, safety_module: ElementTree.Element) -> int:
         """Get the module identifier from the module element.
@@ -253,7 +284,12 @@ class SCISerializer(XMLBase):
             coe_element.append(StartupCommand.from_pdo_map(pdo_map).serialize())
 
     def serialize_mapping_to_sci(
-        self, esi_file: Path, rpdo: PDOMap, tpdo: PDOMap, module_ident: int
+        self,
+        esi_file: Path,
+        rpdo: PDOMap,
+        tpdo: PDOMap,
+        module_ident: int,
+        part_number: Optional[str] = None,
     ) -> ElementTree.ElementTree:
         """Serialize the FSoE mapping to a .sci file.
 
@@ -262,6 +298,7 @@ class SCISerializer(XMLBase):
             rpdo: The RPDO map to serialize.
             tpdo: The TPDO map to serialize.
             module_ident: The module identifier.
+            part_number: Optional part number for the device.
 
         Returns:
             XML data.
@@ -277,6 +314,7 @@ class SCISerializer(XMLBase):
 
         root.set(self.__VERSION_ELEMENT, "1.9")
         self.__set_sci_vendor(root)
+        self.__set_sci_info(root, part_number=part_number)
         self._filter_safety_modules(module_ident=module_ident, root=root)
         self._set_startup_commands(rpdo=rpdo, tpdo=tpdo, root=root)
 
@@ -291,6 +329,7 @@ class SCISerializer(XMLBase):
         rpdo: PDOMap,
         tpdo: PDOMap,
         module_ident: int,
+        part_number: Optional[str] = None,
         override: bool = False,
     ) -> None:
         """Save the current mapping to a .sci file.
@@ -301,6 +340,7 @@ class SCISerializer(XMLBase):
             rpdo: The RPDO map to save.
             tpdo: The TPDO map to save.
             module_ident: The module identifier.
+            part_number: Optional part number for the device.
             override: If True, will overwrite existing file. Defaults to False.
 
         Raises:
@@ -313,7 +353,11 @@ class SCISerializer(XMLBase):
         sci_file.parent.mkdir(parents=True, exist_ok=True)
 
         mapping_data = self.serialize_mapping_to_sci(
-            esi_file=esi_file, rpdo=rpdo, tpdo=tpdo, module_ident=module_ident
+            esi_file=esi_file,
+            rpdo=rpdo,
+            tpdo=tpdo,
+            module_ident=module_ident,
+            part_number=part_number,
         )
         with sci_file.open("wb") as f:
             mapping_data.write(f, encoding="utf-8", xml_declaration=True)

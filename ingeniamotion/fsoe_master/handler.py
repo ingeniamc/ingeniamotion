@@ -191,12 +191,15 @@ class FSoEMasterHandler:
         # SCI serializer
         self._sci_serializer = SCISerializer()
 
-    def serialize_mapping_to_sci(self, esi_file: Path, sci_file: Path) -> None:
+    def serialize_mapping_to_sci(
+        self, esi_file: Path, sci_file: Path, override: bool = False
+    ) -> None:
         """Serialize the mapping from ESI to SCI format.
 
         Args:
             esi_file: Path to the ESI file.
             sci_file: Path to the SCI file.
+            override: True to override the SCI file if it exists, False otherwise.
         """
         self._sci_serializer.save_mapping_to_sci(
             esi_file=esi_file,
@@ -204,6 +207,8 @@ class FSoEMasterHandler:
             rpdo=self.__safety_master_pdu,
             tpdo=self.__safety_slave_pdu,
             module_ident=int(self.__get_configured_module_ident_1()),
+            part_number=self.__servo.dictionary.part_number,
+            override=override,
         )
 
     def _calculate_sra_crc(self) -> int:
