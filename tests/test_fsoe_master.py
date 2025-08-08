@@ -587,16 +587,6 @@ def mc_state_data(mc_with_fsoe):
     mc.fsoe.stop_master(stop_pdos=True)
 
 
-@pytest.mark.fsoe
-def test_pass_through_states(mc_state_data, fsoe_states):  # noqa: ARG001
-    assert fsoe_states == [
-        FSoEState.SESSION,
-        FSoEState.CONNECTION,
-        FSoEState.PARAMETER,
-        FSoEState.DATA,
-    ]
-
-
 @pytest.mark.fsoe_phase_I
 @pytest.mark.fsoe_phase_II
 def test_pass_through_states(mc_state_data, fsoe_states):  # noqa: ARG001
