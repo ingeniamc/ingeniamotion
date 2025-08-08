@@ -69,8 +69,9 @@ def test_sci_serializes_single_safety_module(
     _, handler = mc_with_fsoe_with_sra
     module_ident_used = int(handler._FSoEMasterHandler__get_configured_module_ident_1())
 
+    sci_serializer: SCISerializer = SCISerializer()
     esi_root: ElementTree.Element = read_xml_file(setup_specifier_with_esi.extra_data["esi_file"])
-    sci_root: ElementTree.Element = handler._sci_serializer.serialize_mapping_to_sci(
+    sci_root: ElementTree.Element = sci_serializer.serialize_mapping_to_sci(
         esi_file=setup_specifier_with_esi.extra_data["esi_file"],
         rpdo=handler._FSoEMasterHandler__safety_master_pdu,
         tpdo=handler._FSoEMasterHandler__safety_slave_pdu,
@@ -88,10 +89,7 @@ def test_sci_serializes_single_safety_module(
 
     # Only the safety module being used is present in the SCI file
     assert len(sci_safety_modules) == 1
-    assert (
-        handler._sci_serializer._get_module_ident_from_module(sci_safety_modules[0])
-        == module_ident_used
-    )
+    assert sci_serializer._get_module_ident_from_module(sci_safety_modules[0]) == module_ident_used
 
 
 @pytest.mark.fsoe

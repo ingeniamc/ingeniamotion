@@ -188,9 +188,6 @@ class FSoEMasterHandler:
             self._master_handler.delete()
             raise ex
 
-        # SCI serializer
-        self._sci_serializer = SCISerializer()
-
     def serialize_mapping_to_sci(
         self, esi_file: Path, sci_file: Path, override: bool = False
     ) -> None:
@@ -201,7 +198,7 @@ class FSoEMasterHandler:
             sci_file: Path to the SCI file.
             override: True to override the SCI file if it exists, False otherwise.
         """
-        self._sci_serializer.save_mapping_to_sci(
+        SCISerializer().save_mapping_to_sci(
             esi_file=esi_file,
             sci_file=sci_file,
             rpdo=self.__safety_master_pdu,
