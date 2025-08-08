@@ -26,13 +26,16 @@ if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master import (
         FSoEMasterHandler,
         PDUMaps,
+        SafeHomingFunction,
         SafeInputsFunction,
         SafetyFunction,
-        SAFunction,
+        SLPFunction,
+        SLSFunction,
         SOSFunction,
         SPFunction,
         SS1Function,
         SS2Function,
+        SSRFunction,
         STOFunction,
         SVFunction,
     )
@@ -103,6 +106,10 @@ def mc_with_fsoe(mc, fsoe_states):
     yield mc, handler
     # Delete the master handler
     mc.fsoe._delete_master_handler()
+    # Ensure the PDOs are stopped
+    # https://novantamotion.atlassian.net/browse/CIT-494
+    if mc.capture.pdo.is_active:
+        mc.capture.pdo.stop_pdos()
 
 
 @pytest.fixture()
@@ -372,11 +379,34 @@ def test_detect_safety_functions_ph2():
         # SOutFunction, Not implemented yet
         SPFunction,
         SVFunction,
-        SAFunction,
-        # SafeHomingFunction, Not Implemented yet
-        # SLSFunction,  Not Implemented yet
-        # SSRFunction,  Not Implemented yet
-        # SLPFunction, Not Implemented yet
+        SafeHomingFunction,
+        # SLS
+        SLSFunction,
+        SLSFunction,
+        SLSFunction,
+        SLSFunction,
+        SLSFunction,
+        SLSFunction,
+        SLSFunction,
+        SLSFunction,
+        # SSR
+        SSRFunction,
+        SSRFunction,
+        SSRFunction,
+        SSRFunction,
+        SSRFunction,
+        SSRFunction,
+        SSRFunction,
+        SSRFunction,
+        # SLP
+        SLPFunction,
+        SLPFunction,
+        SLPFunction,
+        SLPFunction,
+        SLPFunction,
+        SLPFunction,
+        SLPFunction,
+        SLPFunction,
     ]
 
 
@@ -404,13 +434,13 @@ def test_getter_of_safety_functions(mc_with_fsoe):
     sto_function = STOFunction(command=None, io=None, parameters=None)
     ss1_function_1 = SS1Function(
         command=None,
-        # time_to_sto=None,
+        time_to_sto=None,
         io=None,
         parameters=None,
     )
     ss1_function_2 = SS1Function(
         command=None,
-        # time_to_sto=None,
+        time_to_sto=None,
         io=None,
         parameters=None,
     )
@@ -506,13 +536,17 @@ def test_mapping_locked(dictionary, editable):
         handler.delete()
 
 
+TIMEOUT_FOR_DATA_SRA = 3
+TIMEOUT_FOR_DATA = 30
+
+
 @pytest.fixture()
 def mc_state_data_with_sra(mc_with_fsoe_with_sra):
     mc, _handler = mc_with_fsoe_with_sra
 
     mc.fsoe.configure_pdos(start_pdos=True)
     # Wait for the master to reach the Data state
-    mc.fsoe.wait_for_state_data(timeout=10)
+    mc.fsoe.wait_for_state_data(timeout=TIMEOUT_FOR_DATA_SRA)
 
     # Remove fail-safe state
     mc.fsoe.set_fail_safe(False)
@@ -529,7 +563,7 @@ def mc_state_data(mc_with_fsoe):
 
     mc.fsoe.configure_pdos(start_pdos=True)
     # Wait for the master to reach the Data state
-    mc.fsoe.wait_for_state_data(timeout=10)
+    mc.fsoe.wait_for_state_data(timeout=TIMEOUT_FOR_DATA)
 
     # Remove fail-safe state
     mc.fsoe.set_fail_safe(False)
@@ -559,7 +593,7 @@ def test_start_and_stop_multiple_times(mc_with_fsoe):
 
     for i in range(4):
         mc.fsoe.configure_pdos(start_pdos=True)
-        mc.fsoe.wait_for_state_data(timeout=10)
+        mc.fsoe.wait_for_state_data(timeout=TIMEOUT_FOR_DATA)
         assert handler.state == FSoEState.DATA
         time.sleep(1)
         assert handler.state == FSoEState.DATA

@@ -1,9 +1,9 @@
 from typing import TYPE_CHECKING, Union
 
-from ingenialink.utils._utils import dtype_value
+from ingenialink import RegDtype
 from typing_extensions import override
 
-from ingeniamotion.fsoe_master.fsoe import FSoEApplicationParameter
+from ingeniamotion.fsoe_master.fsoe import FSoEApplicationParameter, FSoEDataType
 
 if TYPE_CHECKING:
     from ingenialink.ethercat.register import EthercatRegister
@@ -65,6 +65,18 @@ class SafetyParameter:
         self.__servo.write(self.__register, self.__value)
 
 
+IL_TO_FSOE_DATATYPES = {
+    RegDtype.BOOL: FSoEDataType.BOOL,
+    RegDtype.FLOAT: FSoEDataType.FLOAT,
+    RegDtype.U8: FSoEDataType.UINT8,
+    RegDtype.U16: FSoEDataType.UINT16,
+    RegDtype.U32: FSoEDataType.UINT32,
+    RegDtype.S8: FSoEDataType.INT8,
+    RegDtype.S16: FSoEDataType.INT16,
+    RegDtype.S32: FSoEDataType.INT32,
+}
+
+
 class SafetyParameterDirectValidation(SafetyParameter):
     """Safety Parameter with direct validation via FSoE.
 
@@ -78,8 +90,7 @@ class SafetyParameterDirectValidation(SafetyParameter):
         self.fsoe_application_parameter = FSoEApplicationParameter(
             name=register.identifier,
             initial_value=self.get(),
-            # https://novantamotion.atlassian.net/browse/INGK-1104
-            n_bytes=dtype_value[register.dtype][0],
+            data_type=IL_TO_FSOE_DATATYPES[register.dtype],
         )
 
     @override
