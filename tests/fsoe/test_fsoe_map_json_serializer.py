@@ -10,7 +10,7 @@ from ingeniamotion.motion_controller import MotionController
 
 if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
-    from tests.fsoe.conftest import FSoERandomMappingGenerator
+    from tests.fsoe.map_generator import FSoERandomMappingGenerator
     from tests.fsoe.map_json_serializer import FSoEDictionaryMapJSONSerializer
 
 
@@ -30,14 +30,14 @@ def temp_mapping_files_dir() -> Generator[Path, None, None]:
 @pytest.mark.fsoe_phase_II
 def test_save_load_random_mapping(
     mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler],
-    mapping_generator: FSoERandomMappingGenerator,
+    map_generator: FSoERandomMappingGenerator,
     temp_mapping_files_dir: Path,
 ) -> None:
     _, handler = mc_with_fsoe_with_sra
     mapping_file = temp_mapping_files_dir / "test_mapping.json"
 
     # Generate a random mapping to save it
-    original_mapping = mapping_generator.generate_and_save_random_mapping(
+    original_mapping = map_generator.generate_and_save_random_mapping(
         handler=handler, max_items=5, random_paddings=True, filename=mapping_file, seed=42
     )
     assert mapping_file.exists()

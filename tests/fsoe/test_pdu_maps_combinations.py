@@ -46,7 +46,7 @@ def random_max_items() -> int:
 @pytest.mark.parametrize("iteration", range(1))  # Run 5 times
 def test_map_safety_input_output_random(
     mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler],
-    mapping_generator: FSoERandomMappingGenerator,
+    map_generator: FSoERandomMappingGenerator,
     fsoe_maps_dir: Path,
     random_seed: int,
     random_max_items: int,
@@ -60,7 +60,7 @@ def test_map_safety_input_output_random(
     )
 
     # Generate a random mapping
-    mapping_generator.generate_and_save_random_mapping(
+    map_generator.generate_and_save_random_mapping(
         handler=handler,
         max_items=random_max_items,
         random_paddings=random_paddings,
@@ -95,7 +95,7 @@ def test_map_safety_input_output_random(
 @pytest.mark.fsoe_phase_II
 def test_map_safety_input_output_fixed_combination(
     mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler],
-    mapping_generator: FSoERandomMappingGenerator,
+    map_generator: FSoERandomMappingGenerator,
 ) -> None:
     mc, handler = mc_with_fsoe_with_sra
 
@@ -103,7 +103,7 @@ def test_map_safety_input_output_fixed_combination(
     random_paddings = True
     random_seed = 229
 
-    mapping_generator.generate_random_mapping(
+    map_generator.generate_random_mapping(
         handler=handler,
         max_items=max_items,
         random_paddings=random_paddings,
