@@ -90,7 +90,7 @@ def main(interface_ip, slave_id, dict_path) -> None:
     mc.capture.pdo.start_pdos()
 
     # Wait for the master to reach the Data state
-    mc.fsoe.wait_for_state_data(timeout=10)
+    mc.fsoe.wait_for_state_data(timeout=30)
 
     # Remove fail-safe mode. Output commands will be applied by the slaves
     mc.fsoe.set_fail_safe(False)
