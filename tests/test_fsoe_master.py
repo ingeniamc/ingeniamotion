@@ -1488,36 +1488,44 @@ class TestPduMapper:
 
     @pytest.mark.fsoe
     def test_validate_sto_command_first_in_outputs(self, sample_safe_dictionary):
-        """Test that STO command is the first item in the outputs map."""
+        """Test that STO command is the first item in the maps."""
         _, fsoe_dict = sample_safe_dictionary
         maps = PDUMaps.empty(fsoe_dict)
-        ss1_item = maps.outputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
+        ss1_item_outputs = maps.outputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
         maps.outputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
         # STO command can be anywhere in the inputs map
-        maps.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
+        ss1_item_inputs = maps.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
         maps.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
 
-        # Rule fails when validating the outputs
         output = maps.are_outputs_valid(rules=[FSoEFrameRules.STO_COMMAND_FIRST])
         assert len(output.exceptions) == 1
         assert FSoEFrameRules.STO_COMMAND_FIRST in output.exceptions
         exception = output.exceptions[FSoEFrameRules.STO_COMMAND_FIRST]
         assert isinstance(exception, InvalidFSoEFrameRule)
-        assert (
-            "STO command must be mapped to the first position in Safe Outputs"
-            in exception.exception
-        )
-        assert exception.items == [ss1_item]
+        assert "STO command must be mapped to the first position" in exception.exception
+        assert exception.items == [ss1_item_outputs]
         assert output.is_rule_valid(FSoEFrameRules.STO_COMMAND_FIRST) is False
-        # Check that rule passes when validating the inputs
+
         output = maps.are_inputs_valid(rules=[FSoEFrameRules.STO_COMMAND_FIRST])
-        assert not output.exceptions
-        assert output.is_rule_valid(FSoEFrameRules.STO_COMMAND_FIRST) is True
+        assert len(output.exceptions) == 1
+        assert FSoEFrameRules.STO_COMMAND_FIRST in output.exceptions
+        exception = output.exceptions[FSoEFrameRules.STO_COMMAND_FIRST]
+        assert isinstance(exception, InvalidFSoEFrameRule)
+        assert "STO command must be mapped to the first position" in exception.exception
+        assert exception.items == [ss1_item_inputs]
+        assert output.is_rule_valid(FSoEFrameRules.STO_COMMAND_FIRST) is False
 
         maps.outputs.clear()
         maps.outputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
         maps.outputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
         output = maps.are_outputs_valid(rules=[FSoEFrameRules.STO_COMMAND_FIRST])
+        assert not output.exceptions
+        assert output.is_rule_valid(FSoEFrameRules.STO_COMMAND_FIRST) is True
+
+        maps.inputs.clear()
+        maps.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
+        maps.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
+        output = maps.are_inputs_valid(rules=[FSoEFrameRules.STO_COMMAND_FIRST])
         assert not output.exceptions
         assert output.is_rule_valid(FSoEFrameRules.STO_COMMAND_FIRST) is True
 
