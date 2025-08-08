@@ -65,7 +65,7 @@ def setup_specifier_with_esi(
                 rack_drive_idx=setup_descriptor.rack_drive_idx,
                 firmware_version=setup_specifier.extra_data[__EXTRA_DATA_ESI_FILE_KEY].fw_version,
                 file_type=ATTFileType.esi,
-                directory=att_resources_dir,
+                directory=att_resources_dir.resolve(),
             )
         else:
             raise ValueError(
