@@ -90,6 +90,21 @@ class SafetyFunction:
     def _create_instance(
         cls, handler: "FSoEMasterHandler", instance_i: Optional[int] = None
     ) -> Iterator["SafetyFunction"]:
+        """Create an instance of the safety function.
+
+        Args:
+            handler: The FSoE master handler to use.
+            instance_i: The instance index to use for the safety function.
+                Formatted into the UID if provided.
+                If not the function is assumed to be single-instance.
+
+        Raises:
+            KeyError: If the required input/output items
+                or parameters are not found in the handler's dictionary.
+
+        Yields:
+            Iterator[SafetyFunction]: An iterator yielding the safety function instance.
+        """
         ios: dict[SafetyFieldMetadata, FSoEDictionaryItem] = {}
         parameters: dict[SafetyFieldMetadata, SafetyParameter] = {}
         for field in dataclasses.fields(cls):
