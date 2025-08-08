@@ -1478,6 +1478,7 @@ class TestPduMapper:
         exception = output.exceptions[FSoEFrameRules.STO_COMMAND_FIRST]
         assert isinstance(exception, InvalidFSoEFrameRule)
         assert "STO command must be mapped to the first position" in exception.exception
+        assert exception.items == [ss1_item_inputs]
         assert output.is_rule_valid(FSoEFrameRules.STO_COMMAND_FIRST) is False
 
         maps.outputs.clear()
