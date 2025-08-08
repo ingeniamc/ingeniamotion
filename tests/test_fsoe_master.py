@@ -53,6 +53,24 @@ if TYPE_CHECKING:
     from ingenialink.emcy import EmergencyMessage
 
 
+# Global error flag for thread-safe error detection
+_fsoe_error_occurred = False
+_fsoe_error_message = ""
+
+
+def reset_fsoe_error_flag():
+    """Reset the FSoE error flag for a new test."""
+    global _fsoe_error_occurred, _fsoe_error_message
+    _fsoe_error_occurred = False
+    _fsoe_error_message = ""
+
+
+def check_fsoe_error_flag():
+    """Check if any FSoE error occurred and fail the test if so."""
+    if _fsoe_error_occurred:
+        pytest.fail(_fsoe_error_message)
+
+
 def test_fsoe_master_not_installed():
     try:
         import fsoe_master  # noqa: F401
@@ -79,11 +97,15 @@ def emergency_handler(servo_alias: str, message: "EmergencyMessage"):
         # https://novantamotion.atlassian.net/browse/INGM-627
         return
 
-    raise RuntimeError(f"Emergency message received from {servo_alias}: {message}")
+    global _fsoe_error_occurred, _fsoe_error_message
+    _fsoe_error_occurred = True
+    _fsoe_error_message = f"Emergency message received from {servo_alias}: {message}"
 
 
 def error_handler(error: FSoEError):
-    raise RuntimeError(f"FSoE error received: {error}")
+    global _fsoe_error_occurred, _fsoe_error_message
+    _fsoe_error_occurred = True
+    _fsoe_error_message = f"FSoE error received: {error}"
 
 
 @pytest.fixture()
@@ -110,6 +132,7 @@ def mc_with_fsoe(mc, fsoe_states):
     # https://novantamotion.atlassian.net/browse/CIT-494
     if mc.capture.pdo.is_active:
         mc.capture.pdo.stop_pdos()
+    check_fsoe_error_flag()
 
 
 @pytest.fixture()
@@ -126,6 +149,7 @@ def mc_with_fsoe_with_sra(mc, fsoe_states):
     yield mc, handler
     # Delete the master handler
     mc.fsoe._delete_master_handler()
+    check_fsoe_error_flag()
 
 
 @pytest.mark.fsoe_phase_I
