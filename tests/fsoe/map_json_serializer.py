@@ -2,18 +2,13 @@ import json
 from pathlib import Path
 from typing import Union
 
-from ingenialogger import get_logger
-
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 
 if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
 
 
-logger = get_logger(__name__)
-
-
-class FSoEDictionaryMapSerializer:
+class FSoEDictionaryMapJSONSerializer:
     """Class to handle serialization and deserialization of FSoE dictionary maps."""
 
     @staticmethod
@@ -91,7 +86,7 @@ class FSoEDictionaryMapSerializer:
         Raises:
             FileExistsError: If override is False and the file already exists.
         """
-        mapping_data = FSoEDictionaryMapSerializer.serialize_mapping_to_dict(handler)
+        mapping_data = FSoEDictionaryMapJSONSerializer.serialize_mapping_to_dict(handler)
         if override:
             filename.unlink(missing_ok=True)
         if filename.exists():
@@ -117,4 +112,4 @@ class FSoEDictionaryMapSerializer:
 
         with open(filename) as f:
             mapping_data = json.load(f)
-        FSoEDictionaryMapSerializer.load_mapping_from_dict(handler, mapping_data)
+        FSoEDictionaryMapJSONSerializer.load_mapping_from_dict(handler, mapping_data)

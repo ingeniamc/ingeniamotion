@@ -10,8 +10,8 @@ from ingeniamotion.motion_controller import MotionController
 
 if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
-    from ingeniamotion.fsoe_master.map_serializer import FSoEDictionaryMapSerializer
     from tests.fsoe.conftest import FSoERandomMappingGenerator
+    from tests.fsoe.map_json_serializer import FSoEDictionaryMapJSONSerializer
 
 
 @pytest.fixture
@@ -52,10 +52,10 @@ def test_save_load_random_mapping(
     handler.maps.outputs.clear()
     assert len(handler.maps.inputs._items) == 0
     assert len(handler.maps.outputs._items) == 0
-    FSoEDictionaryMapSerializer.load_mapping_from_json(handler, mapping_file)
+    FSoEDictionaryMapJSONSerializer.load_mapping_from_json(handler, mapping_file)
     assert len(handler.maps.inputs._items) == n_original_inputs
     assert len(handler.maps.outputs._items) == n_original_outputs
 
     # Verify the loaded mapping matches the original
-    loaded_mapping = FSoEDictionaryMapSerializer.serialize_mapping_to_dict(handler)
+    loaded_mapping = FSoEDictionaryMapJSONSerializer.serialize_mapping_to_dict(handler)
     assert loaded_mapping == original_mapping
