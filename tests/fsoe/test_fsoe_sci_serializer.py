@@ -43,7 +43,7 @@ def temp_sci_files_dir() -> Generator[Path, None, None]:
 
 @pytest.mark.fsoe
 def test_sci_serializes_single_safety_module(
-    setup_specifier: DriveHwConfigSpecifier,
+    setup_specifier_with_esi: DriveHwConfigSpecifier,
     mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
 ) -> None:
     """Test that the SCI serializer serializes only the safety module being used.
@@ -69,9 +69,9 @@ def test_sci_serializes_single_safety_module(
     _, handler = mc_with_fsoe_with_sra
     module_ident_used = int(handler._FSoEMasterHandler__get_configured_module_ident_1())
 
-    esi_root: ElementTree.Element = read_xml_file(setup_specifier.extra_data["esi_file"])
+    esi_root: ElementTree.Element = read_xml_file(setup_specifier_with_esi.extra_data["esi_file"])
     sci_root: ElementTree.Element = handler._sci_serializer.serialize_mapping_to_sci(
-        esi_file=setup_specifier.extra_data["esi_file"],
+        esi_file=setup_specifier_with_esi.extra_data["esi_file"],
         rpdo=handler._FSoEMasterHandler__safety_master_pdu,
         tpdo=handler._FSoEMasterHandler__safety_slave_pdu,
         module_ident=module_ident_used,
@@ -98,7 +98,7 @@ def test_sci_serializes_single_safety_module(
 def test_save_sci_mapping(
     temp_sci_files_dir: Path,
     mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
-    setup_specifier: DriveHwConfigSpecifier,
+    setup_specifier_with_esi: DriveHwConfigSpecifier,
 ) -> None:
     """Test saving the FSoE mapping to a .sci file."""
     _, handler = mc_with_fsoe_with_sra
@@ -123,6 +123,6 @@ def test_save_sci_mapping(
 
     sci_file = temp_sci_files_dir / "test_mapping.sci"
     handler.serialize_mapping_to_sci(
-        esi_file=setup_specifier.extra_data["esi_file"], sci_file=sci_file
+        esi_file=setup_specifier_with_esi.extra_data["esi_file"], sci_file=sci_file
     )
     assert sci_file.exists()
