@@ -4,7 +4,6 @@ from collections.abc import Generator
 from pathlib import Path
 
 import pytest
-from ingenialink.ethercat.servo import EthercatServo
 
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 from ingeniamotion.motion_controller import MotionController
@@ -26,12 +25,6 @@ def temp_mapping_files_dir() -> Generator[Path, None, None]:
     yield temp_dir
     if temp_dir.exists() and temp_dir.is_dir():
         shutil.rmtree(temp_dir.as_posix())
-
-
-@pytest.fixture(scope="session")
-def safe_dict(servo: EthercatServo) -> Path:
-    """Returns the path to the safe dictionary file."""
-    return FSoEMasterHandler.create_safe_dictionary(servo.dictionary)
 
 
 @pytest.mark.fsoe_phase2
