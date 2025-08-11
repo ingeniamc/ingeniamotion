@@ -7,7 +7,6 @@ from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master import (
         SafeInputsFunction,
-        SAFunction,
         SOSFunction,
         SS1Function,
         SS2Function,
@@ -41,7 +40,6 @@ def main(interface_ip, slave_id, dict_path) -> None:
     safe_inputs = handler.get_function_instance(SafeInputsFunction)
     ss1 = handler.get_function_instance(SS1Function)
     ss2 = handler.get_function_instance(SS2Function, instance=1)
-    sa = handler.get_function_instance(SAFunction)
     sv = handler.get_function_instance(SVFunction)
     sos = handler.get_function_instance(SOSFunction)
 
@@ -92,7 +90,7 @@ def main(interface_ip, slave_id, dict_path) -> None:
     mc.capture.pdo.start_pdos()
 
     # Wait for the master to reach the Data state
-    mc.fsoe.wait_for_state_data(timeout=10)
+    mc.fsoe.wait_for_state_data(timeout=30)
 
     # Remove fail-safe mode. Output commands will be applied by the slaves
     mc.fsoe.set_fail_safe(False)
