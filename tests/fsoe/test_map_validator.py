@@ -7,7 +7,9 @@ from ingeniamotion.motion_controller import MotionController
 
 if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
-    from ingeniamotion.fsoe_master.maps_validator import FSoEFrameConstructionError
+    from ingeniamotion.fsoe_master.maps_validator import (
+        FSoEFrameConstructionError,
+    )
     from tests.fsoe.map_generator import FSoERandomMappingGenerator
 
 
@@ -28,8 +30,8 @@ def test_random_map_validation(
         fsoe_maps_dir / f"test_mapping_{random_max_items}_{random_paddings}_{random_seed}.json"
     )
 
-    map_generator.generate_and_save_random_mapping(
-        handler=handler,
+    maps = map_generator.generate_and_save_random_mapping(
+        dictionary=handler.dictionary,
         max_items=random_max_items,
         random_paddings=random_paddings,
         seed=random_seed,
@@ -39,7 +41,7 @@ def test_random_map_validation(
     assert mapping_file.exists()
 
     try:
-        handler.maps.validate()
+        maps.validate()
         mapping_file.unlink()
         assert not mapping_file.exists()
     except FSoEFrameConstructionError:

@@ -32,15 +32,19 @@ def test_map_safety_input_output_random(
     )
 
     # Generate a random mapping
-    map_generator.generate_and_save_random_mapping(
-        handler=handler,
+    maps = map_generator.generate_and_save_random_mapping(
+        dictionary=handler.dictionary,
         max_items=random_max_items,
         random_paddings=random_paddings,
         seed=random_seed,
         filename=mapping_file,
         override=True,
     )
-    handler.maps.validate()
+    maps.validate()
+
+    handler.maps.inputs.clear()
+    handler.maps.outputs.clear()
+    handler.set_maps(maps)
 
     mc.fsoe.configure_pdos(start_pdos=True)
     mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
@@ -120,14 +124,16 @@ def test_mappings_with_mc_and_fsoe_fixture(
     mc.fsoe.configure_pdos(start_pdos=True)
 
     # Wait for the master to reach the Data state
-    mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
+    try:
+        mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
 
-    for i in range(5):
-        time.sleep(1)
-        # During this time, commands can be changed
-        sto.command.set(1)
-        ss1.command.set(1)
-        # And inputs can be read
-        safe_inputs.value.get()
-
-    mc.fsoe.stop_master(stop_pdos=True)
+        for i in range(5):
+            time.sleep(1)
+            # During this time, commands can be changed
+            sto.command.set(1)
+            ss1.command.set(1)
+            # And inputs can be read
+            safe_inputs.value.get()
+    except TimeoutError as e:
+        mc.fsoe.stop_master(stop_pdos=True)
+        raise e

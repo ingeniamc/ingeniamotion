@@ -1,24 +1,24 @@
 import random
 from pathlib import Path
-from typing import Union
 
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 
 if FSOE_MASTER_INSTALLED:
     import ingeniamotion.fsoe_master.safety_functions as safety_functions
     from ingeniamotion.fsoe_master.fsoe import (
+        FSoEDictionary,
         FSoEDictionaryItem,
         FSoEDictionaryItemInput,
         FSoEDictionaryItemOutput,
         FSoEDictionaryMap,
         align_bits,
     )
-    from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
+    from ingeniamotion.fsoe_master.maps import PDUMaps
     from tests.fsoe.map_json_serializer import FSoEDictionaryMapJSONSerializer
 
 
 class FSoERandomMappingGenerator:
-    """Class to generate random mappings for FSoE master handler."""
+    """Class to generate random PDU mappings."""
 
     @staticmethod
     def _insert_item_according_to_fsoe_rules(
@@ -116,12 +116,12 @@ class FSoERandomMappingGenerator:
 
     @staticmethod
     def _add_random_item_to_map(
-        handler: FSoEMasterHandler, item: FSoEDictionaryItem, random_paddings: bool
+        maps: PDUMaps, item: FSoEDictionaryItem, random_paddings: bool
     ) -> None:
         """Add a random item to the map with optional padding.
 
         Args:
-            handler: The FSoE master handler.
+            maps: The PDU maps.
             item: The item that will be added to the map.
             random_paddings: True to add random paddings to the mapping.
         """
@@ -134,83 +134,85 @@ class FSoERandomMappingGenerator:
             # Add the item + padding
             if isinstance(item, FSoEDictionaryItemInput):
                 added = FSoERandomMappingGenerator._insert_item_according_to_fsoe_rules(
-                    handler.maps.inputs, item
+                    maps.inputs, item
                 )
                 if added:
                     FSoERandomMappingGenerator._insert_padding_according_to_fsoe_rules(
-                        handler.maps.inputs, padding_size
+                        maps.inputs, padding_size
                     )
             elif isinstance(item, FSoEDictionaryItemOutput):
                 added = FSoERandomMappingGenerator._insert_item_according_to_fsoe_rules(
-                    handler.maps.outputs, item
+                    maps.outputs, item
                 )
                 if added:
                     FSoERandomMappingGenerator._insert_padding_according_to_fsoe_rules(
-                        handler.maps.outputs, padding_size
+                        maps.outputs, padding_size
                     )
             else:
                 input_added = FSoERandomMappingGenerator._insert_item_according_to_fsoe_rules(
-                    handler.maps.inputs, item
+                    maps.inputs, item
                 )
                 output_added = FSoERandomMappingGenerator._insert_item_according_to_fsoe_rules(
-                    handler.maps.outputs, item
+                    maps.outputs, item
                 )
 
                 # FSoEDictionaryItemInputOutput - add padding to random map, not to both
                 if random.choice([True, False]):
                     if input_added:
                         FSoERandomMappingGenerator._insert_padding_according_to_fsoe_rules(
-                            handler.maps.inputs, padding_size
+                            maps.inputs, padding_size
                         )
                 elif output_added:
                     FSoERandomMappingGenerator._insert_padding_according_to_fsoe_rules(
-                        handler.maps.outputs, padding_size
+                        maps.outputs, padding_size
                     )
         else:
             # Insert the item in the best position without padding
-            handler.maps.insert_in_best_position(item)
+            maps.insert_in_best_position(item)
 
     @staticmethod
     def generate_random_mapping(
-        handler: FSoEMasterHandler,
+        dictionary: "FSoEDictionary",
         max_items: int,
         random_paddings: bool,
         seed: int = None,
-    ) -> None:
+    ) -> PDUMaps:
         """Generate a random mapping of safety functions, adding 1 of each data type randomly.
 
         When a data type is finished, continue with the remaining ones.
 
         Args:
-            handler: The FSoE master handler.
+            dictionary: The FSoE dictionary.
             max_items: Maximum number of items to add to the mapping.
             random_paddings: True to add random paddings to the mapping.
                 Insert in best position will be used otherwise.
             seed: Optional random seed for reproducibility.
                 If None, a fixed seed will be used.
+
+        Returns:
+            PDUMaps: The generated PDU maps with the random mapping.
         """
         if seed is not None:
             random.seed(seed)
 
         # Clear existing mappings
-        handler.maps.inputs.clear()
-        handler.maps.outputs.clear()
+        maps = PDUMaps.empty(dictionary=dictionary)
 
         items_added = 0
 
         # Sort the safety inputs and outputs according to their data type
         safety_io = {}
-        for io in handler.dictionary.name_map.values():
+        for io in dictionary.name_map.values():
             if io.data_type not in safety_io:
                 safety_io[io.data_type] = []
             safety_io[io.data_type].append(io)
 
         # According to FSoE Frame construction rules, STO must be the first item in the outputs map
-        if safety_functions.STOFunction.COMMAND_UID in handler.dictionary.name_map:
+        if safety_functions.STOFunction.COMMAND_UID in dictionary.name_map:
             # Add the STO command to the outputs map first
-            sto_command = handler.dictionary.name_map[safety_functions.STOFunction.COMMAND_UID]
+            sto_command = dictionary.name_map[safety_functions.STOFunction.COMMAND_UID]
             FSoERandomMappingGenerator._add_random_item_to_map(
-                handler=handler, item=sto_command, random_paddings=random_paddings
+                maps=maps, item=sto_command, random_paddings=random_paddings
             )
             safety_io[sto_command.data_type].remove(sto_command)
             items_added += 1
@@ -231,24 +233,26 @@ class FSoERandomMappingGenerator:
 
             # Add the item to the mapping
             FSoERandomMappingGenerator._add_random_item_to_map(
-                handler=handler, item=selected_item, random_paddings=random_paddings
+                maps=maps, item=selected_item, random_paddings=random_paddings
             )
             safety_io[selected_type].remove(selected_item)  # Item already added
             items_added += 1
 
+        return maps
+
     @staticmethod
     def generate_and_save_random_mapping(
-        handler: FSoEMasterHandler,
+        dictionary: "FSoEDictionary",
         max_items: int,
         random_paddings: bool,
         filename: Path,
         override: bool = False,
         seed: int = None,
-    ) -> dict[str, list[dict[str, Union[str, int]]]]:
+    ) -> PDUMaps:
         """Generate a random mapping and save it to a JSON file for reproducible testing.
 
         Args:
-            handler: The FSoE master handler.
+            dictionary: The FSoE dictionary.
             max_items: Maximum number of items to add to the mapping.
             random_paddings: True to add random paddings to the mapping.
             filename: Path to the JSON file to save the mapping.
@@ -257,11 +261,10 @@ class FSoERandomMappingGenerator:
                 If None, a fixed seed will be used.
 
         Returns:
-            Dictionary containing the generated mapping data.
+            The generated PDU maps.
         """
-        FSoERandomMappingGenerator.generate_random_mapping(
-            handler, max_items, random_paddings, seed
+        maps = FSoERandomMappingGenerator.generate_random_mapping(
+            dictionary, max_items, random_paddings, seed
         )
-        return FSoEDictionaryMapJSONSerializer.save_mapping_to_json(
-            handler, filename, override=override
-        )
+        FSoEDictionaryMapJSONSerializer.save_mapping_to_json(maps, filename, override=override)
+        return maps

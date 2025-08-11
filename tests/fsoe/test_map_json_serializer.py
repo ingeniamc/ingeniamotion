@@ -4,6 +4,7 @@ from collections.abc import Generator
 from pathlib import Path
 
 import pytest
+from ingenialink.ethercat.servo import EthercatServo
 
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 from ingeniamotion.motion_controller import MotionController
@@ -27,6 +28,12 @@ def temp_mapping_files_dir() -> Generator[Path, None, None]:
         shutil.rmtree(temp_dir.as_posix())
 
 
+@pytest.fixture(scope="session")
+def safe_dict(servo: EthercatServo) -> Path:
+    """Returns the path to the safe dictionary file."""
+    return FSoEMasterHandler.create_safe_dictionary(servo.dictionary)
+
+
 @pytest.mark.fsoe_phase2
 def test_save_load_random_mapping(
     mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler],
@@ -38,10 +45,19 @@ def test_save_load_random_mapping(
 
     # Generate a random mapping to save it
     original_mapping = map_generator.generate_and_save_random_mapping(
-        handler=handler, max_items=5, random_paddings=True, filename=mapping_file, seed=42
+        dictionary=handler.dictionary,
+        max_items=5,
+        random_paddings=True,
+        filename=mapping_file,
+        seed=42,
     )
+    original_json = FSoEDictionaryMapJSONSerializer.serialize_mapping_to_dict(original_mapping)
     assert mapping_file.exists()
+
     # Check that there is something in the mapping
+    handler.maps.inputs.clear()
+    handler.maps.outputs.clear()
+    handler.set_maps(original_mapping)
     n_original_inputs = len(handler.maps.inputs._items)
     n_original_outputs = len(handler.maps.outputs._items)
     assert n_original_inputs > 0
@@ -52,10 +68,13 @@ def test_save_load_random_mapping(
     handler.maps.outputs.clear()
     assert len(handler.maps.inputs._items) == 0
     assert len(handler.maps.outputs._items) == 0
-    FSoEDictionaryMapJSONSerializer.load_mapping_from_json(handler, mapping_file)
+    new_mapping = FSoEDictionaryMapJSONSerializer.load_mapping_from_json(
+        handler.dictionary, mapping_file
+    )
+    handler.set_maps(new_mapping)
     assert len(handler.maps.inputs._items) == n_original_inputs
     assert len(handler.maps.outputs._items) == n_original_outputs
+    new_json = FSoEDictionaryMapJSONSerializer.serialize_mapping_to_dict(new_mapping)
 
     # Verify the loaded mapping matches the original
-    loaded_mapping = FSoEDictionaryMapJSONSerializer.serialize_mapping_to_dict(handler)
-    assert loaded_mapping == original_mapping
+    assert new_json == original_json

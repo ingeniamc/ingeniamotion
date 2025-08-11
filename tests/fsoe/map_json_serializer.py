@@ -1,11 +1,14 @@
 import json
 from pathlib import Path
-from typing import Union
+from typing import TYPE_CHECKING, Union
 
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 
+if TYPE_CHECKING:
+    from ingeniamotion.fsoe_master.fsoe import FSoEDictionaryMap
+
 if FSOE_MASTER_INSTALLED:
-    from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
+    from ingeniamotion.fsoe_master.maps import PDUMaps
 
 
 class FSoEDictionaryMapJSONSerializer:
@@ -13,12 +16,12 @@ class FSoEDictionaryMapJSONSerializer:
 
     @staticmethod
     def serialize_mapping_to_dict(
-        handler: FSoEMasterHandler,
+        maps: PDUMaps,
     ) -> dict[str, list[dict[str, Union[str, int]]]]:
         """Serialize the current mapping to a dictionary for JSON storage.
 
         Args:
-            handler: The FSoE master handler with the mapping to serialize.
+            maps: The PDU maps with the mapping to serialize.
 
         Returns:
             Dictionary containing the serialized mapping data.
@@ -26,9 +29,7 @@ class FSoEDictionaryMapJSONSerializer:
         mapping_data: dict[str, list[dict[str, Union[str, int]]]] = {"inputs": [], "outputs": []}
 
         # Serialize inputs and outputs mapping
-        for item_key, item in zip(
-            ["inputs", "outputs"], [handler.maps.inputs, handler.maps.outputs]
-        ):
+        for item_key, item in zip(["inputs", "outputs"], [maps.inputs, maps.outputs]):
             for item in item:
                 # FSoE dictionary item
                 if hasattr(item, "uid"):
@@ -48,38 +49,39 @@ class FSoEDictionaryMapJSONSerializer:
 
     @staticmethod
     def load_mapping_from_dict(
-        handler: FSoEMasterHandler, mapping_data: dict[str, list[dict[str, Union[str, int]]]]
-    ) -> None:
-        """Loads a mapping from a dictionary into the FSoE master handler.
+        dictionary: "FSoEDictionaryMap", mapping_data: dict[str, list[dict[str, Union[str, int]]]]
+    ) -> PDUMaps:
+        """Loads a mapping from a dictionary into the PDU maps.
 
         Args:
-            handler: The FSoE master handler to load the mapping into.
+            dictionary: The FSoE dictionary.
             mapping_data: Dictionary containing the serialized mapping data.
+
+        Returns:
+            PDUMaps: The PDU maps with the loaded mapping.
         """
         # Clear existing mappings
-        handler.maps.inputs.clear()
-        handler.maps.outputs.clear()
+        maps = PDUMaps.empty(dictionary=dictionary)
 
         # Load inputs and outputs mapping
-        for item_key, item in zip(
-            ["inputs", "outputs"], [handler.maps.inputs, handler.maps.outputs]
-        ):
+        for item_key, item in zip(["inputs", "outputs"], [maps.inputs, maps.outputs]):
             for item_data in mapping_data[item_key]:
                 if item_data["type"] == "item":
-                    if item_data["uid"] in handler.dictionary.name_map:
-                        fsoe_item = handler.dictionary.name_map[item_data["uid"]]
+                    if item_data["uid"] in dictionary.name_map:
+                        fsoe_item = dictionary.name_map[item_data["uid"]]
                         item.add(fsoe_item)
                 elif item_data["type"] == "padding":
                     item.add_padding(item_data["bits"])
+        return maps
 
     @staticmethod
     def save_mapping_to_json(
-        handler: FSoEMasterHandler, filename: Path, override: bool = False
+        maps: PDUMaps, filename: Path, override: bool = False
     ) -> dict[str, list[dict[str, Union[str, int]]]]:
         """Save the current mapping to a JSON file.
 
         Args:
-            handler: The FSoE master handler with the mapping to save.
+            maps: The PDU maps with the mapping to save.
             filename: Path to the JSON file to save.
             override: If True, will overwrite existing file. Defaults to False.
 
@@ -89,7 +91,7 @@ class FSoEDictionaryMapJSONSerializer:
         Raises:
             FileExistsError: If override is False and the file already exists.
         """
-        mapping_data = FSoEDictionaryMapJSONSerializer.serialize_mapping_to_dict(handler)
+        mapping_data = FSoEDictionaryMapJSONSerializer.serialize_mapping_to_dict(maps)
         if override:
             filename.unlink(missing_ok=True)
         if filename.exists():
@@ -101,12 +103,15 @@ class FSoEDictionaryMapJSONSerializer:
         return mapping_data
 
     @staticmethod
-    def load_mapping_from_json(handler: FSoEMasterHandler, filename: Path) -> None:
-        """Load a mapping from a JSON file into the FSoE master handler.
+    def load_mapping_from_json(dictionary: "FSoEDictionaryMap", filename: Path) -> PDUMaps:
+        """Load a mapping from a JSON file into the FSoE dictionary.
 
         Args:
-            handler: The FSoE master handler to load the mapping into.
+            dictionary: The FSoE dictionary.
             filename: Path to the JSON file to load.
+
+        Returns:
+            PDUMaps: The PDU maps with the loaded mapping.
 
         Raises:
             FileNotFoundError: If the mapping file does not exist.
@@ -116,4 +121,4 @@ class FSoEDictionaryMapJSONSerializer:
 
         with open(filename) as f:
             mapping_data = json.load(f)
-        FSoEDictionaryMapJSONSerializer.load_mapping_from_dict(handler, mapping_data)
+        return FSoEDictionaryMapJSONSerializer.load_mapping_from_dict(dictionary, mapping_data)
