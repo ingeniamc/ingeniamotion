@@ -24,6 +24,7 @@ USE_WIRESHARK_LOGGING = ""
 START_WIRESHARK_TIMEOUT_S = 10.0
 
 FSOE_INSTALL_VERSION = ".[FSoE]"
+FSOE_MAPS_DIR = "fsoe_maps"
 
 coverage_stashes = []
 
@@ -335,13 +336,25 @@ pipeline {
                         stage("Safety Denali Phase I") {
                             steps {
                                 runTestHW("fsoe_phase1", "fsoe", "ECAT_DEN_S_PHASE1_SETUP", true, USE_WIRESHARK_LOGGING)
-
                             }
                         }
                         stage("Safety Denali Phase II") {
                             steps {
                                 runTestHW("fsoe_phase2", "fsoe or fsoe_phase2", "ECAT_DEN_S_PHASE2_SETUP", true, USE_WIRESHARK_LOGGING)
-                           
+
+                                script {
+                                    def fsoeMapsDirExists = fileExists(FSOE_MAPS_DIR)
+                                    if (fsoeMapsDirExists) {
+                                        def result = bat(script: 'dir /b "${FSOE_MAPS_DIR}" 2>nul | find /c /v ""', returnStdout: true).trim()
+                                        def fileCount = result as Integer
+                                        if (fileCount > 0) {
+                                            unstable(message: "FSoE maps directory contains ${fileCount} files. There are invalid mapping combinations.")
+                                            echo "Warning: ${FSOE_MAPS_DIR} directory is not empty. Found ${fileCount} files."
+                                            // Archive the content for debugging
+                                            archiveArtifacts artifacts: '${FSOE_MAPS_DIR}/**', allowEmptyArchive: true
+                                        }
+                                    }
+                                }
                             }
                         }
                         stage("Ethercat Multislave") {
@@ -375,5 +388,6 @@ pipeline {
                 archiveArtifacts artifacts: '*.xml'
             }
         }
-    }
+
+        
 }
