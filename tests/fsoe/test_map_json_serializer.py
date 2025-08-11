@@ -27,7 +27,7 @@ def temp_mapping_files_dir() -> Generator[Path, None, None]:
         shutil.rmtree(temp_dir.as_posix())
 
 
-@pytest.mark.fsoe_phase_II
+@pytest.mark.fsoe_phase2
 def test_save_load_random_mapping(
     mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler],
     map_generator: FSoERandomMappingGenerator,

@@ -231,7 +231,7 @@ def test_commutation_test_example(setup_descriptor: DriveEthernetSetup, script_r
     assert result.returncode == 0
 
 
-@pytest.mark.fsoe_phase_II
+@pytest.mark.fsoe_phase2
 def test_safety_mapping_example(setup_descriptor: DriveEcatSetup, script_runner) -> None:
     script_path = "examples/safety_mapping_example.py"
     result = script_runner.run([

@@ -1,6 +1,4 @@
-import tempfile
 from collections.abc import Generator
-from pathlib import Path
 
 import pytest
 
@@ -16,19 +14,6 @@ from tests.test_fsoe_master import (
 
 if FSOE_MASTER_INSTALLED:
     from tests.fsoe.map_generator import FSoERandomMappingGenerator
-
-
-@pytest.fixture
-def temp_mapping_file() -> Generator[Path, None, None]:
-    """Creates an empty mapping file.
-
-    Yields:
-        mapping file path.
-    """
-    with tempfile.NamedTemporaryFile(suffix=".lfu", delete=False) as tmp:
-        temp_path = Path(tmp.name)
-    yield temp_path
-    temp_path.unlink
 
 
 @pytest.fixture
