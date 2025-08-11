@@ -27,7 +27,7 @@ def test_random_map_validation(
     _, handler = mc_with_fsoe_with_sra
 
     mapping_file = (
-        fsoe_maps_dir / f"test_mapping_{random_max_items}_{random_paddings}_{random_seed}.json"
+        fsoe_maps_dir / f"mapping_{random_max_items}_{random_paddings}_{random_seed}.json"
     )
 
     maps = map_generator.generate_and_save_random_mapping(

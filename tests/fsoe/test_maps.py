@@ -2,6 +2,7 @@ import time
 from pathlib import Path
 
 import pytest
+from summit_testing_framework.setups.specifiers import DriveHwConfigSpecifier
 
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 from ingeniamotion.motion_controller import MotionController
@@ -23,13 +24,16 @@ def test_map_safety_input_output_random(
     random_seed: int,
     random_max_items: int,
     random_paddings: bool,
+    setup_specifier_with_esi: DriveHwConfigSpecifier,
     iteration: int,  # noqa: ARG001
 ) -> None:
     mc, handler = mc_with_fsoe_with_sra
 
     mapping_file = (
-        fsoe_maps_dir / f"test_mapping_{random_max_items}_{random_paddings}_{random_seed}.json"
+        fsoe_maps_dir / f"mapping_{random_max_items}_{random_paddings}_{random_seed}.json"
     )
+
+    sci_file = fsoe_maps_dir / f"mapping_{random_max_items}_{random_paddings}_{random_seed}.sci"
 
     # Generate a random mapping
     maps = map_generator.generate_and_save_random_mapping(
@@ -46,7 +50,11 @@ def test_map_safety_input_output_random(
     handler.maps.outputs.clear()
     handler.set_maps(maps)
 
+    handler.serialize_mapping_to_sci(
+        esi_file=setup_specifier_with_esi.extra_data["esi_file"], sci_file=sci_file, override=False
+    )
     mc.fsoe.configure_pdos(start_pdos=True)
+
     mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
 
     # Stay 3 seconds in Data state
@@ -55,11 +63,15 @@ def test_map_safety_input_output_random(
     mc.fsoe.stop_master(stop_pdos=True)
 
     mapping_file.unlink()
+    sci_file.unlink()
 
 
 @pytest.mark.fsoe_phase2
 def test_map_all_safety_functions(
-    mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler], timeout_for_data_sra: float
+    mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler],
+    timeout_for_data_sra: float,
+    fsoe_maps_dir: Path,
+    setup_specifier_with_esi: DriveHwConfigSpecifier,
 ) -> None:
     """Test that handler mapping ."""
     mc, handler = mc_with_fsoe_with_sra
@@ -77,6 +89,11 @@ def test_map_all_safety_functions(
 
     # Check that the maps are valid
     handler.maps.validate()
+    sci_file = fsoe_maps_dir / "complete_mapping.sci"
+    handler.serialize_mapping_to_sci(
+        esi_file=setup_specifier_with_esi.extra_data["esi_file"], sci_file=sci_file, override=False
+    )
+
     mc.fsoe.configure_pdos(start_pdos=True)
     mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
     # Stay 3 seconds in Data state
