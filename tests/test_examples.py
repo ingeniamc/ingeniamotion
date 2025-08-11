@@ -236,7 +236,7 @@ def test_safety_mapping_example(setup_descriptor: DriveEcatSetup, script_runner)
     script_path = "examples/safety_mapping_example.py"
     result = script_runner.run([
         script_path,
-        f"--interface_ip={setup_descriptor.ifname}",
+        f"--ifname={setup_descriptor.ifname}",
         f"--slave_id={setup_descriptor.slave}",
         f"--dictionary_path={setup_descriptor.dictionary}",
     ])

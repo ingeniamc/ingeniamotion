@@ -15,11 +15,12 @@ if FSOE_MASTER_INSTALLED:
     )
 
 
-def main(interface_ip, slave_id, dict_path) -> None:
-    """Establish a FSoE connection, deactivate the STO and move the motor.
+def main(ifname, slave_id, dict_path) -> None:
+    r"""Establish a FSoE connection, deactivate the STO and move the motor.
 
     Args:
-        interface_ip: IP address of the network interface to use.
+        ifname : interface name. It should have format
+                ``\\Device\\NPF_[...]``.
         slave_id (int): ID of the servo drive to connect to.
         dict_path: Path to the drive dictionary file.
 
@@ -30,7 +31,7 @@ def main(interface_ip, slave_id, dict_path) -> None:
     # Configure error channel
     mc.fsoe.subscribe_to_errors(lambda error: print(error))
     # Connect to the servo drive
-    mc.communication.connect_servo_ethercat(interface_ip, slave_id, dict_path)
+    mc.communication.connect_servo_ethercat(ifname, slave_id, dict_path)
 
     # Create and start the FSoE master handler
     handler = mc.fsoe.create_fsoe_master_handler(use_sra=True)
@@ -111,11 +112,11 @@ def main(interface_ip, slave_id, dict_path) -> None:
 
 if __name__ == "__main__":
     # Example of how to run the script:
-    # py -3.9 safety_mapping_example.py --interface_ip 192.168.2.1 --dictionary_path "C:\dictionary\evs-s-net-e_1.2.3_v3.xdf"
+    # py -3.9 safety_mapping_example.py --ifname "\\Device\\NPF_{675921D7-B64A-4997-9211-D18E2A6DC96A}" --dictionary_path "C:\dictionary\evs-s-net-e_1.2.3_v3.xdf"
 
     parser = argparse.ArgumentParser(description="Safety Mapping Example")
     parser.add_argument(
-        "--interface_ip", help="Interface IP of the network device to use", required=True, type=str
+        "--ifname", help="Interface name ``\\Device\\NPF_[...]``", required=True, type=str
     )
     parser.add_argument(
         "--slave_id", help="Path to drive dictionary", required=False, default=1, type=int
@@ -126,4 +127,4 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    main(args.interface_ip, args.slave_id, args.dictionary_path)
+    main(args.ifname, args.slave_id, args.dictionary_path)
