@@ -3,7 +3,6 @@ import time
 from pathlib import Path
 
 import pytest
-from ingenialogger import get_logger
 
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 from ingeniamotion.motion_controller import MotionController
@@ -13,9 +12,6 @@ if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
     from ingeniamotion.fsoe_master.safety_functions import SafetyFunction
     from tests.fsoe.conftest import FSoERandomMappingGenerator
-
-
-logger = get_logger(__name__)
 
 
 @pytest.fixture(scope="session")
@@ -48,6 +44,7 @@ def test_map_safety_input_output_random(
     mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler],
     map_generator: FSoERandomMappingGenerator,
     fsoe_maps_dir: Path,
+    timeout_for_data_sra: float,
     random_seed: int,
     random_max_items: int,
     random_paddings: bool,
@@ -70,23 +67,12 @@ def test_map_safety_input_output_random(
     )
     handler.maps.validate()
 
-    mc.fsoe.configure_pdos()
+    mc.fsoe.configure_pdos(start_pdos=True)
+    mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
 
-    # After reconfiguring the maps and configuring the pdos,
-    # The PDOs can be printed to check the mapping
-    logger.info("Outputs PDO Map:")
-    logger.info(handler.safety_master_pdu_map.get_text_representation())
-    logger.info("Inputs PDO Map:")
-    logger.info(handler.safety_slave_pdu_map.get_text_representation())
-
-    mc.capture.pdo.start_pdos()
-    logger.info("PDOs started")
-    mc.fsoe.wait_for_state_data(timeout=10)
-    logger.info("FSoE Master reached Data state")
     # Stay 3 seconds in Data state
     for i in range(3):
         time.sleep(1)
-    logger.info("Stopping FSoE Master handler")
     mc.fsoe.stop_master(stop_pdos=True)
 
     mapping_file.unlink()
@@ -114,18 +100,16 @@ def test_map_safety_input_output_fixed_combination(
 
 @pytest.mark.fsoe_phase_II
 def test_map_all_safety_functions(
-    mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler],
+    mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler], timeout_for_data_sra: float
 ) -> None:
+    """Test that handler mapping ."""
     mc, handler = mc_with_fsoe_with_sra
-
     inputs = handler.maps.inputs
     outputs = handler.maps.outputs
 
-    # The handler comes with a default mapping read from the drive.
-    # Clear it to create a new one
+    # Set the new mapping
     inputs.clear()
     outputs.clear()
-
     for sf in SafetyFunction.for_handler(handler):
         if hasattr(sf, "command"):
             handler.maps.insert_in_best_position(sf.command)
@@ -134,15 +118,8 @@ def test_map_all_safety_functions(
 
     # Check that the maps are valid
     handler.maps.validate()
-    mc.fsoe.configure_pdos()
-
-    logger.info("Outputs PDO Map:")
-    logger.info(handler.safety_master_pdu_map.get_text_representation())
-    logger.info("Inputs PDO Map:")
-    logger.info(handler.safety_slave_pdu_map.get_text_representation())
-
-    mc.capture.pdo.start_pdos()
-    mc.fsoe.wait_for_state_data(timeout=10)
+    mc.fsoe.configure_pdos(start_pdos=True)
+    mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
     # Stay 3 seconds in Data state
     for i in range(3):
         time.sleep(1)
@@ -152,7 +129,7 @@ def test_map_all_safety_functions(
 # TODO: remove, already in safety mapping example
 @pytest.mark.fsoe_phase_II
 def test_mappings_with_mc_and_fsoe_fixture(
-    mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler],
+    mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler], timeout_for_data_sra: float
 ) -> None:
     mc, handler = mc_with_fsoe_with_sra
     # Get the safety functions instances
@@ -182,37 +159,18 @@ def test_mappings_with_mc_and_fsoe_fixture(
     inputs.add(safe_inputs.value)
     inputs.add_padding(7)
 
-    # Print the maps to check the configuration
-    logger.info("Inputs Map:")
-    logger.info(inputs.get_text_representation())
-    logger.info("Outputs Map:")
-    logger.info(outputs.get_text_representation())
-
     # Check that the maps are valid
     handler.maps.validate()
 
-    mc.fsoe.configure_pdos()
-
-    # After reconfiguring the maps and configuring the pdos,
-    # The PDOs can be printed to check the mapping
-    logger.info("Outputs PDO Map:")
-    logger.info(handler.safety_master_pdu_map.get_text_representation())
-    logger.info("Inputs PDO Map:")
-    logger.info(handler.safety_slave_pdu_map.get_text_representation())
-
-    # Start pdo transmission
-    mc.capture.pdo.start_pdos()
+    mc.fsoe.configure_pdos(start_pdos=True)
 
     # Wait for the master to reach the Data state
-    mc.fsoe.wait_for_state_data(timeout=10)
+    mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
 
     for i in range(5):
         time.sleep(1)
         # During this time, commands can be changed
         sto.command.set(1)
         ss1.command.set(1)
-        # And inputs can be read
-        logger.info(f"Safe Inputs Value: {safe_inputs.value.get()}")
 
-    logger.info("Test finished. Stopping FSoE Master handler")
     mc.fsoe.stop_master(stop_pdos=True)
