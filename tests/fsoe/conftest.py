@@ -10,6 +10,7 @@ from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 from tests.test_fsoe_master import (
     TIMEOUT_FOR_DATA,
     TIMEOUT_FOR_DATA_SRA,
+    fsoe_error_monitor,  # noqa: F401
     fsoe_states,  # noqa: F401
     mc_with_fsoe_with_sra,  # noqa: F401
 )
@@ -18,6 +19,25 @@ if FSOE_MASTER_INSTALLED:
     from tests.fsoe.map_generator import FSoERandomMappingGenerator
 
 FSOE_MAPS_DIR = "fsoe_maps"
+
+
+# https://novantamotion.atlassian.net/browse/INGM-682
+"""
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item, call):
+    # Let pytest run the test and generate the report first
+    outcome = yield
+    report = outcome.get_result()
+
+    if call.when == "call":
+        check_error = getattr(item, "_check_error", None)
+        if check_error:
+            check_error()
+        error_message = getattr(item, "_error_message", None)
+        if error_message:
+            report.outcome = "failed"
+            report.longrepr = error_message
+"""
 
 
 @pytest.fixture(scope="module")

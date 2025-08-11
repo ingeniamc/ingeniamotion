@@ -65,12 +65,6 @@ def reset_fsoe_error_flag():
     _fsoe_error_message = ""
 
 
-def check_fsoe_error_flag():
-    """Check if any FSoE error occurred and fail the test if so."""
-    if _fsoe_error_occurred:
-        pytest.fail(_fsoe_error_message)
-
-
 def test_fsoe_master_not_installed():
     try:
         import fsoe_master  # noqa: F401
@@ -108,6 +102,18 @@ def error_handler(error: FSoEError):
     _fsoe_error_message = f"FSoE error received: {error}"
 
 
+@pytest.fixture(autouse=True)
+def fsoe_error_monitor(request):
+    reset_fsoe_error_flag()
+
+    def check_error():
+        if _fsoe_error_occurred:
+            request.node._error_message = _fsoe_error_message
+
+    request.node._check_error = check_error
+    yield
+
+
 @pytest.fixture()
 def fsoe_states():
     states = []
@@ -132,7 +138,6 @@ def mc_with_fsoe(mc, fsoe_states):
     # https://novantamotion.atlassian.net/browse/CIT-494
     if mc.capture.pdo.is_active:
         mc.capture.pdo.stop_pdos()
-    check_fsoe_error_flag()
 
 
 @pytest.fixture()
@@ -147,9 +152,9 @@ def mc_with_fsoe_with_sra(mc, fsoe_states):
     # Create and start the FSoE master handler
     handler = mc.fsoe.create_fsoe_master_handler(use_sra=True, state_change_callback=add_state)
     yield mc, handler
+
     # Delete the master handler
     mc.fsoe._delete_master_handler()
-    check_fsoe_error_flag()
 
 
 @pytest.mark.fsoe
