@@ -334,7 +334,7 @@ pipeline {
                         }
                         stage("Safety Denali Phase I") {
                             steps {
-                                runTestHW("fsoe_phase1", "fsoe_phase1", "ECAT_DEN_S_PHASE1_SETUP", true, USE_WIRESHARK_LOGGING)
+                                runTestHW("fsoe_phase1", "fsoe", "ECAT_DEN_S_PHASE1_SETUP", true, USE_WIRESHARK_LOGGING)
 
                             }
                         }
