@@ -348,9 +348,6 @@ pipeline {
                                         def result = bat(script: 'dir /b "${FSOE_MAPS_DIR}" 2>nul | find /c /v ""', returnStdout: true).trim()
                                         def fileCount = result as Integer
                                         if (fileCount > 0) {
-                                            unstable(message: "FSoE maps directory contains ${fileCount} files. There are invalid mapping combinations.")
-                                            echo "Warning: ${FSOE_MAPS_DIR} directory is not empty. Found ${fileCount} files."
-                                            // Archive the content for debugging
                                             archiveArtifacts artifacts: '${FSOE_MAPS_DIR}/**', allowEmptyArchive: true
                                         }
                                     }

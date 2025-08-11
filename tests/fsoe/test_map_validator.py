@@ -14,7 +14,7 @@ if FSOE_MASTER_INSTALLED:
 
 
 @pytest.mark.fsoe_phase2
-@pytest.mark.parametrize("iteration", range(30))  # Run 30 times
+@pytest.mark.parametrize("iteration", range(100))  # Run 30 times
 def test_random_map_validation(
     mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler],
     map_generator: FSoERandomMappingGenerator,
@@ -44,5 +44,5 @@ def test_random_map_validation(
         maps.validate()
         mapping_file.unlink()
         assert not mapping_file.exists()
-    except FSoEFrameConstructionError:
-        pass
+    except FSoEFrameConstructionError as e:
+        pytest.fail(f"Map validation failed with error: {e}. ")
