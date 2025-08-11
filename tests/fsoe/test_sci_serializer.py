@@ -106,7 +106,8 @@ def test_save_sci_mapping(
     ss1 = handler.get_function_instance(SS1Function)
 
     handler.maps.inputs.clear()
-    handler.maps.inputs.add_padding(8)
+    handler.maps.inputs.add(sto.command)
+    handler.maps.inputs.add_padding(7)
     handler.maps.inputs.add(safe_inputs.value)
     handler.maps.inputs.add_padding(7)
 
