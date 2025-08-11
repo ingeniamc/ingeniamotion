@@ -75,13 +75,16 @@ class FSoEDictionaryMapJSONSerializer:
     @staticmethod
     def save_mapping_to_json(
         handler: FSoEMasterHandler, filename: Path, override: bool = False
-    ) -> None:
+    ) -> dict[str, list[dict[str, Union[str, int]]]]:
         """Save the current mapping to a JSON file.
 
         Args:
             handler: The FSoE master handler with the mapping to save.
             filename: Path to the JSON file to save.
             override: If True, will overwrite existing file. Defaults to False.
+
+        Returns:
+            Dictionary containing the generated mapping data.
 
         Raises:
             FileExistsError: If override is False and the file already exists.
@@ -95,6 +98,7 @@ class FSoEDictionaryMapJSONSerializer:
         filename.parent.mkdir(parents=True, exist_ok=True)
         with open(filename, "w") as f:
             json.dump(mapping_data, f, indent=2)
+        return mapping_data
 
     @staticmethod
     def load_mapping_from_json(handler: FSoEMasterHandler, filename: Path) -> None:

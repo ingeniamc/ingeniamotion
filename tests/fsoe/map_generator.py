@@ -1,5 +1,6 @@
 import random
 from pathlib import Path
+from typing import Union
 
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 
@@ -243,7 +244,7 @@ class FSoERandomMappingGenerator:
         filename: Path,
         override: bool = False,
         seed: int = None,
-    ) -> dict:
+    ) -> dict[str, list[dict[str, Union[str, int]]]]:
         """Generate a random mapping and save it to a JSON file for reproducible testing.
 
         Args:
@@ -261,5 +262,6 @@ class FSoERandomMappingGenerator:
         FSoERandomMappingGenerator.generate_random_mapping(
             handler, max_items, random_paddings, seed
         )
-        FSoEDictionaryMapJSONSerializer.save_mapping_to_json(handler, filename, override=override)
-        return FSoEDictionaryMapJSONSerializer.serialize_mapping_to_dict(handler)
+        return FSoEDictionaryMapJSONSerializer.save_mapping_to_json(
+            handler, filename, override=override
+        )

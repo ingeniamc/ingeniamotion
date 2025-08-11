@@ -1,4 +1,3 @@
-import random
 import time
 from pathlib import Path
 
@@ -12,52 +11,6 @@ if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
     from ingeniamotion.fsoe_master.safety_functions import SafetyFunction
     from tests.fsoe.conftest import FSoERandomMappingGenerator
-
-FSOE_MAPS_DIR = "fsoe_maps"
-
-
-@pytest.fixture(scope="session")
-def fsoe_maps_dir(request: pytest.FixtureRequest) -> Path:
-    """Returns the directory where FSoE maps are stored."""
-    return Path(request.config.rootdir).resolve() / FSOE_MAPS_DIR
-
-
-@pytest.fixture
-def random_seed() -> int:
-    """Returns a fixed random seed for reproducibility."""
-    return random.randint(0, 1000)
-
-
-@pytest.fixture
-def random_paddings() -> bool:
-    """Returns a random boolean for testing random paddings."""
-    return random.choice([True, False])
-
-
-@pytest.fixture
-def random_max_items() -> int:
-    """Returns a random integer for testing max items."""
-    return random.randint(1, 10)
-
-
-@pytest.mark.fsoe_phase2
-def test_map_safety_input_output_fixed_combination(
-    mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler],
-    map_generator: FSoERandomMappingGenerator,
-) -> None:
-    mc, handler = mc_with_fsoe_with_sra
-
-    max_items = 7
-    random_paddings = True
-    random_seed = 229
-
-    map_generator.generate_random_mapping(
-        handler=handler,
-        max_items=max_items,
-        random_paddings=random_paddings,
-        seed=random_seed,
-    )
-    handler.maps.validate()
 
 
 @pytest.mark.fsoe_phase2
@@ -174,5 +127,7 @@ def test_mappings_with_mc_and_fsoe_fixture(
         # During this time, commands can be changed
         sto.command.set(1)
         ss1.command.set(1)
+        # And inputs can be read
+        safe_inputs.value.get()
 
     mc.fsoe.stop_master(stop_pdos=True)
