@@ -335,12 +335,13 @@ pipeline {
                         }
                         stage("Safety Denali Phase I") {
                             steps {
-                                runTestHW("fsoe_phase1", "fsoe", "ECAT_DEN_S_PHASE1_SETUP", true, USE_WIRESHARK_LOGGING)
+                                runTestHW("fsoe_phase1", "fsoe and not skip_testing_framework", "ECAT_DEN_S_PHASE1_SETUP", true, USE_WIRESHARK_LOGGING)
+                                runTestHW("fsoe_phase1", "fsoe and skip_testing_framework", "ECAT_DEN_S_PHASE1_SETUP", true, USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("Safety Denali Phase II") {
                             steps {
-                                runTestHW("fsoe_phase2", "fsoe or fsoe_phase2", "ECAT_DEN_S_PHASE2_SETUP", true, USE_WIRESHARK_LOGGING)
+                                runTestHW("fsoe_phase2", "(fsoe or fsoe_phase2) and not skip_testing_framework", "ECAT_DEN_S_PHASE2_SETUP", true, USE_WIRESHARK_LOGGING)
 
                                 script {
                                     def fsoeMapsDirExists = fileExists(FSOE_MAPS_DIR)
@@ -352,6 +353,8 @@ pipeline {
                                         }
                                     }
                                 }
+
+                                runTestHW("fsoe_phase2", "(fsoe or fsoe_phase2) and ", "ECAT_DEN_S_PHASE2_SETUP", true, USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("Ethercat Multislave") {
