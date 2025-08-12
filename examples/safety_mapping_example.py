@@ -86,28 +86,29 @@ def main(ifname, slave_id, dict_path) -> None:
     print("Inputs PDO Map:")
     print(handler.safety_slave_pdu_map.get_text_representation())
 
-    # Start pdo transmission
-    mc.capture.pdo.start_pdos()
+    try:
+        # Start pdo transmission
+        mc.capture.pdo.start_pdos()
 
-    # Wait for the master to reach the Data state
-    mc.fsoe.wait_for_state_data(timeout=30)
+        # Wait for the master to reach the Data state
+        mc.fsoe.wait_for_state_data(timeout=5)
 
-    # Remove fail-safe mode. Output commands will be applied by the slaves
-    mc.fsoe.set_fail_safe(False)
+        # Remove fail-safe mode. Output commands will be applied by the slaves
+        mc.fsoe.set_fail_safe(False)
 
-    # Stay 5 seconds in Data state
-    for i in range(5):
-        time.sleep(1)
-        # During this time, commands can be changed
-        sto.command.set(1)
-        ss1.command.set(1)
-        # And inputs can be read
-        print(f"Safe Inputs Value: {safe_inputs.value.get()}")
-
-    # Stop the FSoE master handler
-    mc.fsoe.stop_master(stop_pdos=True)
-    # Disconnect from the servo drive
-    mc.communication.disconnect()
+        # Stay 5 seconds in Data state
+        for i in range(5):
+            time.sleep(1)
+            # During this time, commands can be changed
+            sto.command.set(1)
+            ss1.command.set(1)
+            # And inputs can be read
+            print(f"Safe Inputs Value: {safe_inputs.value.get()}")
+    finally:
+        # Stop the FSoE master handler
+        mc.fsoe.stop_master(stop_pdos=True)
+        # Disconnect from the servo drive
+        mc.communication.disconnect()
 
 
 if __name__ == "__main__":

@@ -24,6 +24,7 @@ from examples.load_save_configuration import main as main_load_save_configuratio
 from examples.pdo_poller_example import main as set_up_pdo_poller
 from examples.position_ramp import main as main_position_ramp
 from examples.process_data_object import main as main_process_data_object
+from examples.safety_mapping_example import main as main_safety_mapping_example
 from ingeniamotion import MotionController
 from ingeniamotion.communication import Communication
 from ingeniamotion.configuration import Configuration
@@ -233,15 +234,12 @@ def test_commutation_test_example(setup_descriptor: DriveEthernetSetup, script_r
 
 @pytest.mark.fsoe_phase2
 @pytest.mark.skip_testing_framework
-def test_safety_mapping_example(setup_descriptor: DriveEcatSetup, script_runner) -> None:
-    script_path = "examples/safety_mapping_example.py"
-    result = script_runner.run([
-        script_path,
-        f"--ifname={setup_descriptor.ifname}",
-        f"--slave_id={setup_descriptor.slave}",
-        f"--dictionary_path={setup_descriptor.dictionary}",
-    ])
-    assert result.returncode == 0, f"Script failed with stderr:\n{result.stderr}"
+def test_safety_mapping_example(setup_descriptor: DriveEcatSetup) -> None:
+    main_safety_mapping_example(
+        ifname=setup_descriptor.ifname,
+        slave_id=setup_descriptor.slave,
+        dict_path=setup_descriptor.dictionary,
+    )
 
 
 @pytest.mark.ethernet
