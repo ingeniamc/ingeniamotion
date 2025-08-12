@@ -388,6 +388,5 @@ pipeline {
                 archiveArtifacts artifacts: '*.xml'
             }
         }
-
-        
+    }
 }
