@@ -42,6 +42,8 @@ if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master.frame import FSoEFrame
     from ingeniamotion.fsoe_master.fsoe import (
         FSoEApplicationParameter,
+        FSoEDictionaryItemInput,
+        FSoEDictionaryItemInputOutput,
     )
     from ingeniamotion.fsoe_master.maps_validator import (
         FSoEFrameRules,
@@ -359,9 +361,51 @@ def test_constructor_random_connection_id():
 def test_detect_safety_functions_ph1():
     handler = MockHandler(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, 0x3800000)
 
-    sf_types = [type(sf) for sf in SafetyFunction.for_handler(handler)]
+    sf = list(SafetyFunction.for_handler(handler))
+    sf_types = [type(sf) for sf in sf]
 
     assert sf_types == [STOFunction, SS1Function, SafeInputsFunction]
+
+    # STO
+    sto = sf[0]
+    assert isinstance(sto, STOFunction)
+    assert isinstance(sto.command, FSoEDictionaryItemInputOutput)
+    assert sto.parameters == {}
+    assert len(sto.ios) == 1
+    for metadata, io in sto.ios.items():
+        assert io == sto.command
+        assert metadata.display_name == "Command"
+        assert metadata.uid == "FSOE_STO"
+
+    # SS1
+    ss1 = sf[1]
+    assert isinstance(ss1, SS1Function)
+    assert isinstance(ss1.command, FSoEDictionaryItemInputOutput)
+    assert len(ss1.parameters) == 1
+    for metadata, parameter in ss1.parameters.items():
+        assert parameter == ss1.time_to_sto
+        assert metadata.display_name == "Time to STO"
+        assert metadata.uid == "FSOE_SS1_TIME_TO_STO_{i}"
+    assert len(ss1.ios) == 1
+    for metadata, io in ss1.ios.items():
+        assert io == ss1.command
+        assert metadata.display_name == "Command"
+        assert metadata.uid == "FSOE_SS1_{i}"
+
+    # Safe inputs
+    si = sf[2]
+    assert isinstance(si, SafeInputsFunction)
+    assert isinstance(si.value, FSoEDictionaryItemInput)
+    assert len(si.parameters) == 1
+    for metadata, parameter in si.parameters.items():
+        assert parameter == si.map
+        assert metadata.display_name == "Map"
+        assert metadata.uid == "FSOE_SAFE_INPUTS_MAP"
+    assert len(si.ios) == 1
+    for metadata, io in si.ios.items():
+        assert io == si.value
+        assert metadata.display_name == "Value"
+        assert metadata.uid == "FSOE_SAFE_INPUTS_VALUE"
 
 
 @pytest.mark.fsoe
@@ -431,17 +475,17 @@ def test_getter_of_safety_functions(mc_with_fsoe):
     _mc, handler = mc_with_fsoe
 
     # ruff: noqa: ERA001
-    sto_function = STOFunction(command=None, io=None, parameters=None)
+    sto_function = STOFunction(command=None, ios=None, parameters=None)
     ss1_function_1 = SS1Function(
         command=None,
         time_to_sto=None,
-        io=None,
+        ios=None,
         parameters=None,
     )
     ss1_function_2 = SS1Function(
         command=None,
         time_to_sto=None,
-        io=None,
+        ios=None,
         parameters=None,
     )
 
@@ -480,7 +524,7 @@ def test_modify_safe_parameters():
         handler = FSoEMasterHandler(mock_servo, use_sra=True, report_error_callback=error_handler)
 
         input_map = handler.get_function_instance(SafeInputsFunction).map
-        map_uid = SafeInputsFunction.INPUTS_MAP_UID
+        map_uid = "FSOE_SAFE_INPUTS_MAP"
 
         input_map.set(1)
         assert mock_servo.read(map_uid) == 1
@@ -1321,7 +1365,7 @@ class TestPduMapper:
         maps.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
         maps.inputs.add_padding(bits=6)
         maps.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
-        maps.inputs.add(fsoe_dict.name_map[SS2Function.COMMAND_UID.format(i=1)])
+        maps.inputs.add(fsoe_dict.name_map["FSOE_SS2_1"])
         test_si_u8_item = maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
 
         # Test that rule fails because the 8-bit object is split across blocks
@@ -1341,7 +1385,7 @@ class TestPduMapper:
         maps.inputs.clear()
         maps.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
         maps.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
-        maps.inputs.add(fsoe_dict.name_map[SS2Function.COMMAND_UID.format(i=1)])
+        maps.inputs.add(fsoe_dict.name_map["FSOE_SS2_1"])
         maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
         output = maps.are_inputs_valid(rules=[FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED])
         assert not output.exceptions
