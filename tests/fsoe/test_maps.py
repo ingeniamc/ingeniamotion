@@ -1,5 +1,6 @@
 import time
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 from summit_testing_framework.setups.specifiers import DriveHwConfigSpecifier
@@ -9,17 +10,19 @@ from ingeniamotion.motion_controller import MotionController
 
 if FSOE_MASTER_INSTALLED:
     import ingeniamotion.fsoe_master.safety_functions as safety_functions
-    from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
     from ingeniamotion.fsoe_master.safety_functions import SafetyFunction
-    from tests.fsoe.conftest import FSoERandomMappingGenerator
     from tests.fsoe.map_json_serializer import FSoEDictionaryMapJSONSerializer
+
+    if TYPE_CHECKING:
+        from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
+        from tests.fsoe.conftest import FSoERandomMappingGenerator
 
 
 @pytest.mark.fsoe_phase2
 @pytest.mark.parametrize("iteration", range(1))  # Run 5 times
 def test_map_safety_input_output_random(
-    mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler],
-    map_generator: FSoERandomMappingGenerator,
+    mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
+    map_generator: "FSoERandomMappingGenerator",
     fsoe_maps_dir: Path,
     timeout_for_data_sra: float,
     random_seed: int,
@@ -69,7 +72,7 @@ def test_map_safety_input_output_random(
 
 @pytest.mark.fsoe_phase2
 def test_map_all_safety_functions(
-    mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler],
+    mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
     timeout_for_data_sra: float,
     fsoe_maps_dir: Path,
     setup_specifier_with_esi: DriveHwConfigSpecifier,
@@ -112,7 +115,7 @@ def test_map_all_safety_functions(
 
 @pytest.mark.fsoe_phase2
 def test_fixed_mapping_combination(
-    mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler], timeout_for_data_sra: float
+    mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"], timeout_for_data_sra: float
 ) -> None:
     mc, handler = mc_with_fsoe_with_sra
     # Get the safety functions instances

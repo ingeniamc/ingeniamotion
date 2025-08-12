@@ -2,6 +2,7 @@ import shutil
 import tempfile
 from collections.abc import Generator
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -10,8 +11,10 @@ from ingeniamotion.motion_controller import MotionController
 
 if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
-    from tests.fsoe.map_generator import FSoERandomMappingGenerator
     from tests.fsoe.map_json_serializer import FSoEDictionaryMapJSONSerializer
+
+    if TYPE_CHECKING:
+        from tests.fsoe.map_generator import FSoERandomMappingGenerator
 
 
 @pytest.fixture
@@ -29,8 +32,8 @@ def temp_mapping_files_dir() -> Generator[Path, None, None]:
 
 @pytest.mark.fsoe_phase2
 def test_save_load_random_mapping(
-    mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler],
-    map_generator: FSoERandomMappingGenerator,
+    mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
+    map_generator: "FSoERandomMappingGenerator",
     temp_mapping_files_dir: Path,
 ) -> None:
     _, handler = mc_with_fsoe_with_sra

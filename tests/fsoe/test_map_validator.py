@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 import pytest
 
@@ -6,18 +7,20 @@ from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 from ingeniamotion.motion_controller import MotionController
 
 if FSOE_MASTER_INSTALLED:
-    from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
     from ingeniamotion.fsoe_master.maps_validator import (
         FSoEFrameConstructionError,
     )
-    from tests.fsoe.map_generator import FSoERandomMappingGenerator
+
+    if TYPE_CHECKING:
+        from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
+        from tests.fsoe.map_generator import FSoERandomMappingGenerator
 
 
 @pytest.mark.fsoe_phase2
 @pytest.mark.parametrize("iteration", range(100))  # Run 30 times
 def test_random_map_validation(
-    mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler],
-    map_generator: FSoERandomMappingGenerator,
+    mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
+    map_generator: "FSoERandomMappingGenerator",
     fsoe_maps_dir: Path,
     random_seed: int,
     random_max_items: int,

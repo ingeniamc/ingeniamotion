@@ -22,7 +22,7 @@ class FSoERandomMappingGenerator:
 
     @staticmethod
     def _insert_item_according_to_fsoe_rules(
-        dictionary_map: FSoEDictionaryMap, item: FSoEDictionaryItem
+        dictionary_map: "FSoEDictionaryMap", item: "FSoEDictionaryItem"
     ) -> bool:
         """Insert the item into the appropriate map according to FSoE rules.
 
@@ -71,7 +71,7 @@ class FSoERandomMappingGenerator:
 
     @staticmethod
     def _insert_padding_according_to_fsoe_rules(
-        dictionary_map: FSoEDictionaryMap, padding_size: int
+        dictionary_map: "FSoEDictionaryMap", padding_size: int
     ) -> None:
         """Insert padding into the dictionary map according to FSoE rules.
 
@@ -116,7 +116,7 @@ class FSoERandomMappingGenerator:
 
     @staticmethod
     def _add_random_item_to_map(
-        maps: PDUMaps, item: FSoEDictionaryItem, random_paddings: bool
+        maps: "PDUMaps", item: "FSoEDictionaryItem", random_paddings: bool
     ) -> None:
         """Add a random item to the map with optional padding.
 
@@ -176,7 +176,7 @@ class FSoERandomMappingGenerator:
         max_items: int,
         random_paddings: bool,
         seed: int = None,
-    ) -> PDUMaps:
+    ) -> "PDUMaps":
         """Generate a random mapping of safety functions, adding 1 of each data type randomly.
 
         When a data type is finished, continue with the remaining ones.
@@ -248,7 +248,7 @@ class FSoERandomMappingGenerator:
         filename: Path,
         override: bool = False,
         seed: int = None,
-    ) -> PDUMaps:
+    ) -> "PDUMaps":
         """Generate a random mapping and save it to a JSON file for reproducible testing.
 
         Args:

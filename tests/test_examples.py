@@ -235,12 +235,54 @@ def test_commutation_test_example(setup_descriptor: DriveEthernetSetup, script_r
 @pytest.mark.skip_testing_framework
 def test_safety_mapping_example(setup_descriptor: DriveEcatSetup, script_runner) -> None:
     script_path = "examples/safety_mapping_example.py"
-    result = script_runner.run([
+    # result = script_runner.run([
+    #     script_path,
+    #     f"--ifname={setup_descriptor.ifname}",
+    #     f"--slave_id={setup_descriptor.slave}",
+    #     f"--dictionary_path={setup_descriptor.dictionary}",
+    # ])
+    cmd = [
+        sys.executable,  # Use the same Python interpreter
         script_path,
         f"--ifname={setup_descriptor.ifname}",
-        f"--slave_id={setup_descriptor.slave}",
+        f"--slave_id={setup_descriptor.slave_id}",
         f"--dictionary_path={setup_descriptor.dictionary}",
-    ])
+    ]
+
+    print(f"Running command: {' '.join(cmd)}")
+
+    try:
+        # Run the subprocess
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=60,  # 60 second timeout
+        )
+
+        # Print the output
+        if result.stdout:
+            print("STDOUT:")
+            print(result.stdout)
+
+        if result.stderr:
+            print("STDERR:")
+            print(result.stderr)
+
+        # Check the return code
+        if result.returncode == 0:
+            print(f"✅ Script executed successfully (return code: {result.returncode})")
+            return True
+        else:
+            print(f"❌ Script failed with return code: {result.returncode}")
+            return False
+
+    except subprocess.TimeoutExpired:
+        print("❌ Script execution timed out after 60 seconds")
+        return False
+    except Exception as e:
+        print(f"❌ Error running script: {e}")
+        return False
     assert result.returncode == 0, f"Script failed with stderr:\n{result.stderr}"
 
 

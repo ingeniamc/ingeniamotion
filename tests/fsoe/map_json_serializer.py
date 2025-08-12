@@ -16,7 +16,7 @@ class FSoEDictionaryMapJSONSerializer:
 
     @staticmethod
     def serialize_mapping_to_dict(
-        maps: PDUMaps,
+        maps: "PDUMaps",
     ) -> dict[str, list[dict[str, Union[str, int]]]]:
         """Serialize the current mapping to a dictionary for JSON storage.
 
@@ -50,7 +50,7 @@ class FSoEDictionaryMapJSONSerializer:
     @staticmethod
     def load_mapping_from_dict(
         dictionary: "FSoEDictionaryMap", mapping_data: dict[str, list[dict[str, Union[str, int]]]]
-    ) -> PDUMaps:
+    ) -> "PDUMaps":
         """Loads a mapping from a dictionary into the PDU maps.
 
         Args:
@@ -76,7 +76,7 @@ class FSoEDictionaryMapJSONSerializer:
 
     @staticmethod
     def save_mapping_to_json(
-        maps: PDUMaps, filename: Path, override: bool = False
+        maps: "PDUMaps", filename: Path, override: bool = False
     ) -> dict[str, list[dict[str, Union[str, int]]]]:
         """Save the current mapping to a JSON file.
 
@@ -103,7 +103,7 @@ class FSoEDictionaryMapJSONSerializer:
         return mapping_data
 
     @staticmethod
-    def load_mapping_from_json(dictionary: "FSoEDictionaryMap", filename: Path) -> PDUMaps:
+    def load_mapping_from_json(dictionary: "FSoEDictionaryMap", filename: Path) -> "PDUMaps":
         """Load a mapping from a JSON file into the FSoE dictionary.
 
         Args:
