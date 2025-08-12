@@ -10,10 +10,10 @@ from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 from ingeniamotion.motion_controller import MotionController
 
 if FSOE_MASTER_INSTALLED:
-    from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
     from tests.fsoe.map_json_serializer import FSoEDictionaryMapJSONSerializer
 
     if TYPE_CHECKING:
+        from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
         from tests.fsoe.map_generator import FSoERandomMappingGenerator
 
 
