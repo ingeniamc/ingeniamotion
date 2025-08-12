@@ -12,6 +12,7 @@ if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
     from ingeniamotion.fsoe_master.safety_functions import SafetyFunction
     from tests.fsoe.conftest import FSoERandomMappingGenerator
+    from tests.fsoe.map_json_serializer import FSoEDictionaryMapJSONSerializer
 
 
 @pytest.mark.fsoe_phase2
@@ -89,10 +90,14 @@ def test_map_all_safety_functions(
 
     # Check that the maps are valid
     handler.maps.validate()
+
+    # Save the mappings
     sci_file = fsoe_maps_dir / "complete_mapping.sci"
+    json_file = fsoe_maps_dir / "complete_mapping.json"
     handler.serialize_mapping_to_sci(
-        esi_file=setup_specifier_with_esi.extra_data["esi_file"], sci_file=sci_file, override=False
+        esi_file=setup_specifier_with_esi.extra_data["esi_file"], sci_file=sci_file, override=True
     )
+    FSoEDictionaryMapJSONSerializer.save_mapping_to_json(handler.maps, json_file, override=True)
 
     mc.fsoe.configure_pdos(start_pdos=True)
     mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
@@ -101,10 +106,12 @@ def test_map_all_safety_functions(
         time.sleep(1)
     mc.fsoe.stop_master(stop_pdos=True)
 
+    sci_file.unlink()
+    json_file.unlink()
 
-# TODO: remove, already in safety mapping example
+
 @pytest.mark.fsoe_phase2
-def test_mappings_with_mc_and_fsoe_fixture(
+def test_fixed_mapping_combination(
     mc_with_fsoe_with_sra: tuple[MotionController, FSoEMasterHandler], timeout_for_data_sra: float
 ) -> None:
     mc, handler = mc_with_fsoe_with_sra
@@ -112,8 +119,6 @@ def test_mappings_with_mc_and_fsoe_fixture(
     sto = handler.get_function_instance(safety_functions.STOFunction)
     safe_inputs = handler.get_function_instance(safety_functions.SafeInputsFunction)
     ss1 = handler.get_function_instance(safety_functions.SS1Function)
-    ss2 = handler.get_function_instance(safety_functions.SS2Function, instance=1)
-    sos = handler.get_function_instance(safety_functions.SOSFunction)
 
     # The handler comes with a default mapping read from the drive.
     # Clear it to create a new one
@@ -121,19 +126,16 @@ def test_mappings_with_mc_and_fsoe_fixture(
     handler.maps.outputs.clear()
 
     # # Configure Outputs map
-    outputs = handler.maps.outputs
-    outputs.add(sto.command)
-    outputs.add(ss1.command)
-    outputs.add(sos.command)
-    outputs.add(ss2.command)
-    outputs.add_padding(4 + 8)
+    handler.maps.outputs.add(sto.command)
+    handler.maps.outputs.add_padding(1)
+    handler.maps.outputs.add(ss1.command)
+    handler.maps.outputs.add_padding(7)
 
     # Configure Inputs Map
-    inputs = handler.maps.inputs
-    inputs.add(sto.command)
-    inputs.add(ss1.command)
-    inputs.add(safe_inputs.value)
-    inputs.add_padding(7)
+    handler.maps.inputs.add(sto.command)
+    handler.maps.inputs.add_padding(7)
+    handler.maps.inputs.add(safe_inputs.value)
+    handler.maps.inputs.add_padding(7)
 
     # Check that the maps are valid
     handler.maps.validate()

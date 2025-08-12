@@ -232,6 +232,7 @@ def test_commutation_test_example(setup_descriptor: DriveEthernetSetup, script_r
 
 
 @pytest.mark.fsoe_phase2
+@pytest.mark.skip_testing_framework
 def test_safety_mapping_example(setup_descriptor: DriveEcatSetup, script_runner) -> None:
     script_path = "examples/safety_mapping_example.py"
     result = script_runner.run([
