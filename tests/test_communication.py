@@ -123,7 +123,7 @@ def test_connect_servo_ethernet(setup_descriptor: EthernetSetup):
     assert "ethernet_test" in mc.net and mc.net["ethernet_test"] is not None
 
 
-@pytest.mark.ethercat
+@pytest.mark.soem
 @pytest.mark.skip_testing_framework
 def test_mc_disconnects_with_disconnection_callback(setup_descriptor: DriveEcatSetup, alias: str):
     mc = MotionController()
