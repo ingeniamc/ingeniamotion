@@ -192,9 +192,9 @@ class FSoEMasterHandler:
             raise ex
 
     @property
-    def net(self) -> EthercatNetwork:
+    def net(self) -> "EthercatNetwork":
         """Returns the Ethercat network instance."""
-        return self._net
+        return self.__net
 
     def serialize_mapping_to_sci(
         self, esi_file: Path, sci_file: Path, override: bool = False
