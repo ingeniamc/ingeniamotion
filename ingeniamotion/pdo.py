@@ -200,7 +200,7 @@ class PDONetworkManager:
 
     def __get_drive_and_network(self, servo: str) -> tuple[EthercatServo, EthercatNetwork]:
         drive = self.__mc._get_drive(servo)
-        net = self.__mc._get_network(servo=servo)
+        net = self.__mc.get_network(servo=servo)
         return cast("EthercatServo", drive), cast("EthercatNetwork", net)
 
     def create_pdo_item(

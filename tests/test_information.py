@@ -130,7 +130,7 @@ def test_get_communication_type(mocker, mc, alias, communication, expected_resul
     mocker.patch("ingenialink.ethercat.network.EthercatNetwork.__init__", return_value=None)
 
     if communication != EthernetNetwork:
-        mocker.patch.object(mc, "_get_network", return_value=communication(args))
+        mocker.patch.object(mc, "get_network", return_value=communication(args))
 
     communication_type = mc.info.get_communication_type(alias)
     assert communication_type == expected_result
@@ -149,7 +149,7 @@ def test_get_full_name(mocker, mc, alias, communication, expected_result, args):
     mocker.patch("ingenialink.ethercat.network.EthercatNetwork.__init__", return_value=None)
 
     if communication != EthernetNetwork:
-        mocker.patch.object(mc, "_get_network", return_value=communication(args))
+        mocker.patch.object(mc, "get_network", return_value=communication(args))
     full_name = mc.info.get_full_name(alias)
     assert full_name == expected_result
 
@@ -213,7 +213,7 @@ def test_get_node_id_exception(mc, alias):
 @pytest.mark.virtual
 def test_get_ip_exception(mocker, mc, alias):
     mocker.patch("ingenialink.ethercat.network.EthercatNetwork.__init__", return_value=None)
-    mocker.patch.object(mc, "_get_network", return_value=EthercatNetwork("fake_interface_name"))
+    mocker.patch.object(mc, "get_network", return_value=EthercatNetwork("fake_interface_name"))
     with pytest.raises(IMError):
         mc.info.get_ip(alias)
 
@@ -230,7 +230,7 @@ def test_get_baudrate_success(mc, alias, mocker):
     fake_channel = 0
     fake_baudrate = CanBaudrate.Baudrate_1M
     fake_network = CanopenNetwork(fake_device, fake_channel, fake_baudrate)
-    mocker.patch.object(mc, "_get_network", return_value=fake_network)
+    mocker.patch.object(mc, "get_network", return_value=fake_network)
 
     test_baudrate = mc.info.get_baudrate(alias)
 
@@ -240,6 +240,6 @@ def test_get_baudrate_success(mc, alias, mocker):
 @pytest.mark.virtual
 def test_get_baudrate_failed(mc, alias, mocker):
     mocker.patch("ingenialink.ethercat.network.EthercatNetwork.__init__", return_value=None)
-    mocker.patch.object(mc, "_get_network", return_value=EthercatNetwork("fake_interface_name"))
+    mocker.patch.object(mc, "get_network", return_value=EthercatNetwork("fake_interface_name"))
     with pytest.raises(IMError, match=f"The servo {alias} is not a CANopen device."):
         _ = mc.info.get_baudrate(alias)

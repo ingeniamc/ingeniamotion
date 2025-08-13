@@ -59,7 +59,7 @@ class EmcyTest:
 
 @pytest.mark.canopen
 @pytest.mark.ethernet
-def test_get_network_adapters(mocker, setup_descriptor: SetupDescriptor):
+def testget_network_adapters(mocker, setup_descriptor: SetupDescriptor):
     """Tests networks adapters with Windows platform."""
     is_windows = platform.system() != "Windows"
     if not isinstance(setup_descriptor, DriveEcatSetup):
@@ -135,7 +135,7 @@ def test_mc_disconnects_with_disconnection_callback(setup_descriptor: DriveEcatS
     )
 
     servo = mc._get_drive(servo=alias)
-    network = mc._get_network(servo=alias)
+    network = mc.get_network(servo=alias)
     assert alias in mc.servos
     assert alias in mc.servo_net
 
@@ -359,14 +359,14 @@ def test_load_firmware_canopen_exception(mc, alias):
 
 @pytest.mark.virtual
 def test_boot_mode_and_load_firmware_ethernet_exception(mocker, mc, alias):
-    mocker.patch.object(mc, "_get_network", return_value=object())
+    mocker.patch.object(mc, "get_network", return_value=object())
     with pytest.raises(ValueError):
         mc.communication.boot_mode_and_load_firmware_ethernet("fake_fw_file.lfu", servo=alias)
 
 
 @pytest.mark.virtual
 def test_load_firmware_moco_exception(mocker, mc, alias):
-    mocker.patch.object(mc, "_get_network", return_value=object())
+    mocker.patch.object(mc, "get_network", return_value=object())
     with pytest.raises(ValueError):
         mc.communication.load_firmware_moco("fake_fw_file.lfu", servo=alias)
 
@@ -607,7 +607,7 @@ def test_load_ensemble_fw_canopen(mocker):
     mc = MotionController()
     net = CanopenNetwork(CanDevice.KVASER)
     net.servos = list(servos.values())
-    mocker.patch("ingeniamotion.motion_controller.MotionController._get_network", return_value=net)
+    mocker.patch("ingeniamotion.motion_controller.MotionController.get_network", return_value=net)
     mocker.patch("ingenialink.canopen.network.CanopenNetwork.connect_to_slave")
     mocker.patch("ingenialink.canopen.network.CanopenNetwork.disconnect_from_slave")
     mc._get_drive = lambda x: servos[x]

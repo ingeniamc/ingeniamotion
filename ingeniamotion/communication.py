@@ -107,7 +107,7 @@ class Communication:
         if alias is None:
             raise ValueError("Servo not found in the communication controller.")
 
-        network = self.mc._get_network(alias)
+        network = self.mc.get_network(alias)
         if isinstance(network, VirtualNetwork) and self.__virtual_drive:
             self.__virtual_drive.stop()
             self.__virtual_drive = None
@@ -1012,7 +1012,7 @@ class Communication:
 
         """
         drive = self.mc._get_drive(servo)
-        network = self.mc._get_network(servo)
+        network = self.mc.get_network(servo)
         # This will call `__disconnect_callback` to complete the disconnection
         network.disconnect_from_slave(drive)
 
@@ -1030,7 +1030,7 @@ class Communication:
 
         """
         drive = self.mc._get_drive(servo)
-        network = self.mc._get_network(servo)
+        network = self.mc.get_network(servo)
         return network.get_servo_state(drive.target)
 
     def get_register(
@@ -1111,7 +1111,7 @@ class Communication:
             servo : servo alias to reference it. ``default`` by default.
 
         """
-        network = self.mc._get_network(servo)
+        network = self.mc.get_network(servo)
         drive = self.mc._get_drive(servo)
         network.subscribe_to_status(drive.target, callback)
 
@@ -1125,7 +1125,7 @@ class Communication:
             servo : servo alias to reference it. ``default`` by default.
 
         """
-        network = self.mc._get_network(servo)
+        network = self.mc.get_network(servo)
         drive = self.mc._get_drive(servo)
         network.unsubscribe_from_status(drive.target, callback)
 
@@ -1306,7 +1306,7 @@ class Communication:
             ValueError: If servo is not connected via CANopen.
 
         """
-        net = self.mc._get_network(servo)
+        net = self.mc.get_network(servo)
         drive = self.mc._get_drive(servo)
         if not isinstance(net, CanopenNetwork):
             raise ValueError("Target servo is not connected via CANopen")
@@ -1477,7 +1477,7 @@ class Communication:
             ValueError: If servo is not connected via Ethernet.
 
         """
-        net = self.mc._get_network(servo)
+        net = self.mc.get_network(servo)
         drive = self.mc._get_drive(servo)
         ip = str(drive.target)
         if not isinstance(net, EthernetNetwork):
@@ -1498,7 +1498,7 @@ class Communication:
             servo : servo alias to reference it. ``default`` by default.
 
         """
-        net = self.mc._get_network(servo)
+        net = self.mc.get_network(servo)
         drive = self.mc._get_drive(servo)
         net.stop_status_listener()
         drive.stop_status_listener()
@@ -1533,7 +1533,7 @@ class Communication:
         default_node = 10
         default_subnode = 1
         default_port = 1061
-        net = self.mc._get_network(servo)
+        net = self.mc.get_network(servo)
         drive = self.mc._get_drive(servo)
         ip = str(drive.target)
         if not isinstance(net, EthernetNetwork):
@@ -1547,7 +1547,7 @@ class Communication:
             servo : servo alias to reference it. ``default`` by default.
 
         """
-        net = self.mc._get_network(servo)
+        net = self.mc.get_network(servo)
         drive = self.mc._get_drive(servo)
         net.stop_status_listener()
         drive.stop_status_listener()
