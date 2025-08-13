@@ -91,7 +91,7 @@ pipeline {
                 choices: ['MIN', 'MAX', 'MIN_MAX', 'All'],
                 name: 'PYTHON_VERSIONS'
         )
-        booleanParam(name: 'WIRESHARK_LOGGING', defaultValue: true, description: 'Enable Wireshark logging')
+        booleanParam(name: 'WIRESHARK_LOGGING', defaultValue: false, description: 'Enable Wireshark logging')
         choice(
                 choices: ['function', 'module', 'session'],
                 name: 'WIRESHARK_LOGGING_SCOPE'
