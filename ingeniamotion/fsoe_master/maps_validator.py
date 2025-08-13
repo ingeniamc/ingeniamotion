@@ -258,7 +258,7 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
             Dictionary containing any validation errors found.
         """
         n_crcs = len(safe_data_blocks)  # One CRC per safe data block
-        n_registers = len(dictionary_map._items)
+        n_registers = len(dictionary_map)
 
         n_objects = 1 + n_registers + n_crcs + 1  # CMD, registers, CRCs, CONN_ID
         if n_objects > self.__MAX_FRAME_OBJECTS:
@@ -331,6 +331,7 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
         return FSoEFrameRuleValidatorOutput(rules=rules, exceptions=exceptions)
 
 
+# TODO: decide if this rule is needed  # noqa: TD002, TD003
 class PaddingBlockValidator(FSoEFrameRuleValidator):
     """Validator for padding blocks in FSoE frames.
 
@@ -373,6 +374,9 @@ class ObjectsAlignedValidator(FSoEFrameRuleValidator):
     ) -> FSoEFrameRuleValidatorOutput:
         exceptions: dict[FSoEFrameRules, InvalidFSoEFrameRule] = {}
         for item in dictionary_map:
+            # Ignore paddings for alignment check
+            if item.item is None:
+                continue
             if item.bits >= 16 and item.position_bits % 16 != 0:
                 object_name = item.item.name if item.item else "padding"
                 next_alignment = align_bits(item.position_bits, 16)
@@ -423,7 +427,6 @@ class FSoEDictionaryMapValidator:
         """Initialize the FSoEDictionaryMapValidator."""
         self.__validators: list[FSoEFrameRuleValidator] = [
             SafeDataBlocksValidator(),
-            PaddingBlockValidator(),
             ObjectsAlignedValidator(),
             STOCommandFirstValidator(),
         ]

@@ -343,17 +343,18 @@ pipeline {
                                 runTestHW("fsoe_phase2", "(fsoe or fsoe_phase2) and not skip_testing_framework", "ECAT_DEN_S_PHASE2_SETUP", true, USE_WIRESHARK_LOGGING)
 
                                 script {
-                                    def fsoeMapsDirExists = fileExists(FSOE_MAPS_DIR)
-                                    if (fsoeMapsDirExists) {
-                                        def result = bat(script: 'dir /b "${FSOE_MAPS_DIR}" 2>nul | find /c /v ""', returnStdout: true).trim()
+                                    if (fileExists(FSOE_MAPS_DIR)) {
+                                        def result = bat(script: 'dir /b "%FSOE_MAPS_DIR%\\*.*" | find /c /v ""', returnStdout: true).trim()
                                         def fileCount = result as Integer
                                         if (fileCount > 0) {
-                                            archiveArtifacts artifacts: '${FSOE_MAPS_DIR}/**', allowEmptyArchive: true
+                                            echo "Number of failed maps: ${fileCount / 2}"
+                                            archiveArtifacts artifacts: "${FSOE_MAPS_DIR}\\**", allowEmptyArchive: true
+                                            bat(script: 'del /f "%FSOE_MAPS_DIR%\\**"', returnStatus: true)
                                         }
                                     }
                                 }
 
-                                runTestHW("fsoe_phase2", "(fsoe or fsoe_phase2) and ", "ECAT_DEN_S_PHASE2_SETUP", true, USE_WIRESHARK_LOGGING)
+                                runTestHW("fsoe_phase2", "(fsoe or fsoe_phase2) and skip_testing_framework", "ECAT_DEN_S_PHASE2_SETUP", true, USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("Ethercat Multislave") {

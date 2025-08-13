@@ -33,7 +33,7 @@ class FSoERandomMappingGenerator:
         Returns:
             True if item was added, False otherwise.
         """
-        if not len(dictionary_map._items):
+        if not len(dictionary_map):
             dictionary_map.add(item)
             return True
 
@@ -79,7 +79,7 @@ class FSoERandomMappingGenerator:
             dictionary_map: The FSoE dictionary map.
             padding_size: The size of the padding to insert in bits.
         """
-        if not len(dictionary_map._items):
+        if not len(dictionary_map):
             dictionary_map.add_padding(padding_size)
             return
 
@@ -207,9 +207,8 @@ class FSoERandomMappingGenerator:
                 safety_io[io.data_type] = []
             safety_io[io.data_type].append(io)
 
-        # According to FSoE Frame construction rules, STO must be the first item in the outputs map
+        # According to FSoE Frame construction rules, STO must be the first item
         if safety_functions.STOFunction.COMMAND_UID in dictionary.name_map:
-            # Add the STO command to the outputs map first
             sto_command = dictionary.name_map[safety_functions.STOFunction.COMMAND_UID]
             FSoERandomMappingGenerator._add_random_item_to_map(
                 maps=maps, item=sto_command, random_paddings=random_paddings
