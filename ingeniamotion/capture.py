@@ -5,7 +5,7 @@ from ingenialink.dictionary import SubnodeType
 from ingenialink.exceptions import ILIOError
 from ingenialink.poller import Poller
 from numpy.typing import NDArray
-
+import warnings
 from ingeniamotion.disturbance import Disturbance
 from ingeniamotion.enums import (
     MonitoringProcessStage,
@@ -58,7 +58,20 @@ class Capture:
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
-        self.pdo = PDONetworkManager(self.mc)
+        self._pdo = PDONetworkManager(self.mc)
+        
+    @property
+    def pdo(self) -> PDONetworkManager:
+        """Returns the PDONetworkManager instance.
+        
+        WARNING: This method is deprecated.
+        """
+        warnings.warn(
+            f"mc.capture.pdo is deprecated, use pdo_manager from network instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self._pdo
 
     def create_poller(
         self,
