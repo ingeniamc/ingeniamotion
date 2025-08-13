@@ -175,7 +175,7 @@ class Information:
             Node ID of the drive.
         """
         drive = self.mc._get_drive(servo)
-        net = self.mc.get_network(servo)
+        net = self.mc._get_network(servo)
         if isinstance(net, CanopenNetwork):
             return int(drive.target)
         else:
@@ -193,7 +193,7 @@ class Information:
         Returns:
             Baudrate of the drive.
         """
-        net = self.mc.get_network(servo)
+        net = self.mc._get_network(servo)
         if isinstance(net, CanopenNetwork):
             return CanBaudrate(net.baudrate)
         raise IMError(f"The servo {servo} is not a CANopen device.")
@@ -211,7 +211,7 @@ class Information:
             IP of the drive.
         """
         drive = self.mc._get_drive(servo)
-        net = self.mc.get_network(servo)
+        net = self.mc._get_network(servo)
         if isinstance(net, EthernetNetwork):
             return str(drive.target)
         else:
@@ -231,7 +231,7 @@ class Information:
 
         """
         drive = self.mc._get_drive(servo)
-        net = self.mc.get_network(servo)
+        net = self.mc._get_network(servo)
         if isinstance(net, EoENetwork) and isinstance(drive.target, str):
             return net._configured_slaves[drive.target]
         elif isinstance(net, EthercatNetwork) and isinstance(drive.target, int):
@@ -261,7 +261,7 @@ class Information:
             CANopen, Ethernet, or EtherCAT.
 
         """
-        drive_network = self.mc.get_network(servo)
+        drive_network = self.mc._get_network(servo)
         if isinstance(drive_network, CanopenNetwork):
             communication_type = CommunicationType.Canopen
         elif isinstance(drive_network, EthernetNetwork):
@@ -284,7 +284,7 @@ class Information:
         prod_name = self.get_product_name(servo)
         name = self.get_name(servo)
         full_name = f"{prod_name} - {name}"
-        net = self.mc.get_network(servo)
+        net = self.mc._get_network(servo)
         if isinstance(net, EthernetNetwork):
             ip = self.get_ip(servo)
             full_name = f"{full_name} ({ip})"

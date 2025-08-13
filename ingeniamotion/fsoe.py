@@ -72,7 +72,7 @@ class FSoEMaster:
         node = self.__mc.servos[servo]
         if not isinstance(node, EthercatServo):
             raise TypeError("Functional Safety over Ethercat is only available for Ethercat servos")
-        net = cast("EthercatNetwork", self.__mc.get_network(servo=servo))
+        net = cast("EthercatNetwork", self.__mc._get_network(servo=servo))
 
         master_handler = FSoEMasterHandler(
             servo=node,

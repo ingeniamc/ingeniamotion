@@ -1190,7 +1190,7 @@ class Configuration(Homing, Feedbacks):
 
         """
         drive = self.mc._get_drive(servo)
-        net = self.mc.get_network(servo)
+        net = self.mc._get_network(servo)
         if not isinstance(net, CanopenNetwork):
             raise ValueError(f"Servo {servo} is not a CANopen device.")
         vendor_id = self.get_vendor_id(servo)
@@ -1213,7 +1213,7 @@ class Configuration(Homing, Feedbacks):
 
         """
         drive = self.mc._get_drive(servo)
-        net = self.mc.get_network(servo)
+        net = self.mc._get_network(servo)
         if not isinstance(net, CanopenNetwork):
             raise ValueError(f"Servo {servo} is not a CANopen device.")
         vendor_id = self.get_vendor_id(servo)
