@@ -1,8 +1,8 @@
 import time
-from typing import Dict, List, Union
+from typing import Union
 
-from ingeniamotion.enums import SensorType
 from ingeniamotion.motion_controller import MotionController
+from ingeniamotion.pdo import PDOPoller
 
 
 def set_up_pdo_poller(mc: MotionController) -> None:
@@ -13,7 +13,7 @@ def set_up_pdo_poller(mc: MotionController) -> None:
     Args:
         mc: The controller where there are all functions to perform a PDO poller.
     """
-    registers: List[Dict[str, Union[int, str]]] = [
+    registers: list[dict[str, Union[int, str]]] = [
         {
             "name": "CL_POS_FBK_VALUE",
             "axis": 1,
@@ -24,7 +24,7 @@ def set_up_pdo_poller(mc: MotionController) -> None:
         },
     ]
 
-    poller = mc.capture.pdo.create_poller(registers)
+    poller = PDOPoller.create_poller(mc=mc, registers=registers)
     # Waiting time for generating new samples
     time.sleep(1)
     time_stamps, data = poller.data
