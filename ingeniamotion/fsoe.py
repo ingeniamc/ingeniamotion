@@ -96,9 +96,10 @@ class FSoEMaster:
 
         """
         self._configure_and_set_pdo_maps_to_slaves()
-        self._subscribe_to_pdo_thread_events()
         if start_pdos:
-            self.__mc.capture.pdo.start_pdos()
+            for handler in self._handlers.values():
+                if not handler.net.pdo_manager.is_active:
+                    handler.net.activate_pdos()
         self.__fsoe_configured = True
 
     def stop_master(self, stop_pdos: bool = False) -> None:
@@ -111,12 +112,12 @@ class FSoEMaster:
         for master_handler in self._handlers.values():
             if master_handler.running:
                 master_handler.stop()
-        if self.__fsoe_configured:
-            self._unsubscribe_from_pdo_thread_events()
-        else:
+        if not self.__fsoe_configured:
             self.logger.warning("FSoE master is already stopped")
         if stop_pdos:
-            self.__mc.capture.pdo.stop_pdos()
+            for handler in self._handlers.values():
+                if handler.net.pdo_manager.is_active:
+                    handler.net.deactivate_pdos()
             if self.__fsoe_configured:
                 self._remove_pdo_maps_from_slaves()
         self.__fsoe_configured = False
@@ -296,22 +297,6 @@ class FSoEMaster:
         self._handlers[servo].delete()
         del self._handlers[servo]
 
-    def _subscribe_to_pdo_thread_events(self) -> None:
-        """Subscribe to the PDO thread events.
-
-        This allows to send the Safety Master PDU and to retrieve the Safety Slave PDU.
-
-        """
-        self.__mc.capture.pdo.subscribe_to_send_process_data(self._get_request)
-        self.__mc.capture.pdo.subscribe_to_receive_process_data(self._set_reply)
-        self.__mc.capture.pdo.subscribe_to_exceptions(self._pdo_thread_exception_handler)
-
-    def _unsubscribe_from_pdo_thread_events(self) -> None:
-        """Unsubscribe from the PDO thread events."""
-        self.__mc.capture.pdo.unsubscribe_to_send_process_data(self._get_request)
-        self.__mc.capture.pdo.unsubscribe_to_receive_process_data(self._set_reply)
-        self.__mc.capture.pdo.unsubscribe_to_exceptions(self._pdo_thread_exception_handler)
-
     def _configure_and_set_pdo_maps_to_slaves(self) -> None:
         """Configure the PDOMaps used by the Safety PDUs in the slaves."""
         for master_handler in self._handlers.values():
@@ -322,28 +307,3 @@ class FSoEMaster:
         """Remove the PDOMaps used by the Safety PDUs from the slaves."""
         for master_handler in self._handlers.values():
             master_handler.remove_pdo_maps_from_slave()
-
-    def _get_request(self) -> None:
-        """Get the FSoE master handlers requests.
-
-        Callback method to send the FSoE Master handlers requests to the
-        corresponding FSoE slave.
-        """
-        for master_handler in self._handlers.values():
-            master_handler.get_request()
-
-    def _set_reply(self) -> None:
-        """Set the FSoE Slaves responses.
-
-        Callback method to provide the FSoE Slaves responses to their
-        corresponding FSoE Master handler.
-        """
-        for master_handler in self._handlers.values():
-            master_handler.set_reply()
-
-    def _pdo_thread_exception_handler(self, exc: Exception) -> None:
-        """Callback method for the PDO thread exceptions."""
-        self.logger.error(
-            "The FSoE Master lost connection to the FSoE slaves. "
-            f"An exception occurred during the PDO exchange: {exc}"
-        )
