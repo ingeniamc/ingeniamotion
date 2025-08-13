@@ -1,17 +1,12 @@
-import re
-import threading
 import time
 from collections import deque
 from typing import TYPE_CHECKING, Callable, Optional, Union
 
-import ingenialogger
 from ingenialink.canopen.network import CanopenNetwork
-from ingenialink.enums.register import RegCyclicType
 from ingenialink.ethercat.network import EthercatNetwork
-from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.ethercat.servo import EthercatServo
-from ingenialink.exceptions import ILError, ILWrongWorkingCountError
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
+from ingenialink.pdo_network_manager import PDONetworkManager as INGKPDONetworkManager
 
 from ingeniamotion.enums import CommunicationType
 from ingeniamotion.exceptions import IMError
@@ -171,169 +166,42 @@ class PDONetworkManager:
 
     Args:
         mc: The MotionController.
-
     """
 
-    class ProcessDataThread(threading.Thread):
-        """Manage the PDO exchange.
-
-        Args:
-            net: The EthercatNetwork instance where the PDOs will be active.
-            refresh_rate: Determines how often (seconds) the PDO values will be updated.
-            watchdog_timeout: The PDO watchdog time. If not provided it will be set proportional
-             to the refresh rate.
-            notify_send_process_data: Callback to notify when process data is about to be sent.
-            notify_receive_process_data: Callback to notify when process data is received.
-            notify_exceptions: Callback to notify when an exception is raised.
-
-        Raises:
-            ValueError: If the provided refresh rate is unfeasible.
-
-        """
-
-        DEFAULT_PDO_REFRESH_TIME = 0.01
-        MINIMUM_PDO_REFRESH_TIME = 0.001
-        DEFAULT_WATCHDOG_TIMEOUT = 0.1
-        PDO_WATCHDOG_INCREMENT_FACTOR = 2
-        # The time.sleep precision is 13 ms for Windows OS
-        # https://stackoverflow.com/questions/1133857/how-accurate-is-pythons-time-sleep
-        WINDOWS_TIME_SLEEP_PRECISION = 0.013
-
-        def __init__(
-            self,
-            net: EthercatNetwork,
-            refresh_rate: Optional[float],
-            watchdog_timeout: Optional[float],
-            notify_send_process_data: Callable[[], None],
-            notify_receive_process_data: Callable[[], None],
-            notify_exceptions: Callable[[IMError], None],
-        ) -> None:
-            super().__init__()
-
-            self._net = net
-            if refresh_rate is None:
-                refresh_rate = self.DEFAULT_PDO_REFRESH_TIME
-            elif refresh_rate < self.MINIMUM_PDO_REFRESH_TIME:
-                raise ValueError(
-                    f"The minimum PDO refresh rate is {self.MINIMUM_PDO_REFRESH_TIME} seconds."
-                )
-            self._refresh_rate = refresh_rate
-            self._watchdog_timeout = watchdog_timeout
-            self._notify_send_process_data = notify_send_process_data
-            self._notify_receive_process_data = notify_receive_process_data
-            self._notify_exceptions = notify_exceptions
-            self._pd_thread_stop_event = threading.Event()
-
-        def run(self) -> None:
-            """Start the PDO exchange."""
-            try:
-                self.__set_watchdog_timeout()
-            except IMError as e:
-                self._notify_exceptions(e)
-                return
-            first_iteration = True
-            iteration_duration: float = -1
-            while not self._pd_thread_stop_event.is_set():
-                time_start = time.perf_counter()
-                self._notify_send_process_data()
-                try:
-                    if first_iteration:
-                        self._net.start_pdos()
-                        first_iteration = False
-                    else:
-                        self._net.send_receive_processdata(self._refresh_rate)
-                except ILWrongWorkingCountError as il_error:
-                    self._pd_thread_stop_event.set()
-                    self._net.stop_pdos()
-                    duration_error = (
-                        (
-                            f"Last iteration took {iteration_duration * 1000:0.1f} ms which is "
-                            f"higher than the watchdog timeout "
-                            f"({self._watchdog_timeout * 1000:0.1f} ms). Please optimize the"
-                            f" callbacks and/or increase the refresh rate/watchdog timeout."
-                        )
-                        if (
-                            self._watchdog_timeout is not None
-                            and iteration_duration > self._watchdog_timeout
-                        )
-                        else ""
-                    )
-                    self._notify_exceptions(
-                        IMError(
-                            "Stopping the PDO thread due to the following exception:"
-                            f" {il_error} {duration_error}"
-                        )
-                    )
-                except ILError as il_error:
-                    self._pd_thread_stop_event.set()
-                    self._notify_exceptions(
-                        IMError(
-                            f"Could not start the PDOs due to the following exception: {il_error}"
-                        )
-                    )
-                else:
-                    self._notify_receive_process_data()
-                    while (
-                        remaining_loop_time := self._refresh_rate
-                        - (time.perf_counter() - time_start)
-                    ) > 0:
-                        if remaining_loop_time > self.WINDOWS_TIME_SLEEP_PRECISION:
-                            time.sleep(self.WINDOWS_TIME_SLEEP_PRECISION)
-                        else:
-                            self.high_precision_sleep(remaining_loop_time)
-                    iteration_duration = time.perf_counter() - time_start
-
-        def stop(self) -> None:
-            """Stop the PDO exchange."""
-            self._pd_thread_stop_event.set()
-            self.join()
-            self._net.stop_pdos()
-
-        @staticmethod
-        def high_precision_sleep(duration: float) -> None:
-            """Replaces the time.sleep() method.
-
-            This is done in order to obtain more precise sleeping times.
-            """
-            start_time = time.perf_counter()
-            while duration - (time.perf_counter() - start_time) > 0:
-                pass
-
-        def __set_watchdog_timeout(self) -> None:
-            if self._watchdog_timeout is None:
-                self._watchdog_timeout = max(
-                    self.DEFAULT_WATCHDOG_TIMEOUT,
-                    self._refresh_rate * self.PDO_WATCHDOG_INCREMENT_FACTOR,
-                )
-                is_watchdog_timeout_manually_set = False
-            else:
-                is_watchdog_timeout_manually_set = True
-            try:
-                for servo in self._net.servos:
-                    servo.set_pdo_watchdog_time(self._watchdog_timeout)
-            except AttributeError as e:
-                max_pdo_watchdog = re.findall("wd_time_ms is limited to (.+) ms", e.__str__())
-                max_pdo_watchdog_ms = None
-                if max_pdo_watchdog is not None:
-                    max_pdo_watchdog_ms = float(max_pdo_watchdog[0])
-                if is_watchdog_timeout_manually_set:
-                    error_msg = "The watchdog timeout is too high."
-                    if max_pdo_watchdog_ms is not None:
-                        error_msg += f" The max watchdog timeout is {max_pdo_watchdog_ms} ms."
-                else:
-                    error_msg = "The sampling time is too high."
-                    if max_pdo_watchdog_ms is not None:
-                        max_sampling_time = max_pdo_watchdog_ms / self.PDO_WATCHDOG_INCREMENT_FACTOR
-                        error_msg += f" The max sampling time is {max_sampling_time} ms."
-                raise IMError(error_msg) from e
-
     def __init__(self, motion_controller: "MotionController") -> None:
-        self.mc = motion_controller
-        self.logger = ingenialogger.get_logger(__name__)
-        self._pdo_thread: Optional[PDONetworkManager.ProcessDataThread] = None
-        self._pdo_send_observers: list[Callable[[], None]] = []
-        self._pdo_receive_observers: list[Callable[[], None]] = []
-        self._pdo_exceptions_observers: list[Callable[[IMError], None]] = []
+        self.__mc = motion_controller
+        self.__pdo_thread_status: bool = False
+
+        # Reference to the network that has started the PDOs
+        self.__net: Optional[EthercatNetwork] = None
+
+        # Save the callbacks to add/remove, manage them when there is a reference to the network
+        self.__send_process_data_add_callback: list[Callable[[], None]] = []
+        self.__receive_process_data_add_callback: list[Callable[[], None]] = []
+        self.__exception_add_callback: list[Callable[[], None]] = []
+        self.__send_process_data_remove_callback: list[Callable[[], None]] = []
+        self.__receive_process_data_remove_callback: list[Callable[[], None]] = []
+        self.__exception_remove_callback: list[Callable[[], None]] = []
+
+    def __assign_net(self, net: EthercatNetwork) -> None:
+        self.__net = net
+        for callback in self.__send_process_data_add_callback:
+            self.__net.pdo_manager.subscribe_to_send_process_data(callback)
+        for callback in self.__receive_process_data_add_callback:
+            self.__net.pdo_manager.subscribe_to_receive_process_data(callback)
+        for callback in self.__exception_add_callback:
+            self.__net.pdo_manager.subscribe_to_exceptions(callback)
+        for callback in self.__send_process_data_remove_callback:
+            self.__net.pdo_manager.unsubscribe_to_send_process_data(callback)
+        for callback in self.__receive_process_data_remove_callback:
+            self.__net.pdo_manager.unsubscribe_to_receive_process_data(callback)
+        for callback in self.__exception_remove_callback:
+            self.__net.pdo_manager.unsubscribe_to_exceptions(callback)
+
+    def __get_drive_and_network(self, servo: str) -> tuple[EthercatServo, EthercatNetwork]:
+        drive: EthercatServo = self.__mc._get_drive(servo)
+        net: EthercatNetwork = self.__mc._get_network(servo=servo)
+        return drive, net
 
     def create_pdo_item(
         self,
@@ -356,21 +224,11 @@ class PDONetworkManager:
         Raises:
             ValueError: If there is a type mismatch retrieving the register object.
             AttributeError: If an initial value is not provided for an RPDO register.
-
         """
-        drive = self.mc._get_drive(servo)
-        pdo_map_item_dict: dict[RegCyclicType, type[Union[RPDOMapItem, TPDOMapItem]]] = {
-            RegCyclicType.RX: RPDOMapItem,
-            RegCyclicType.TX: TPDOMapItem,
-        }
-        register = drive.dictionary.registers(axis)[register_uid]
-        if not isinstance(register, EthercatRegister):
-            raise ValueError(f"Expected EthercatRegister. Got {type(register)}")
-        pdo_map_item = pdo_map_item_dict[register.pdo_access](register)
-        if isinstance(pdo_map_item, RPDOMapItem):
-            if value is None:
-                raise AttributeError("A initial value is required for a RPDO.")
-            pdo_map_item.value = value
+        drive, net = self.__get_drive_and_network(servo)
+        pdo_map_item = net.pdo_manager.create_pdo_item(
+            register_uid=register_uid, axis=axis, servo=drive, value=value
+        )
         return pdo_map_item
 
     def create_pdo_maps(
@@ -388,16 +246,9 @@ class PDONetworkManager:
             RPDO and TPDO maps.
 
         """
-        rpdo_map = self.create_empty_rpdo_map()
-        tpdo_map = self.create_empty_tpdo_map()
-        if not isinstance(rpdo_map_items, list):
-            rpdo_map_items = [rpdo_map_items]
-        if not isinstance(tpdo_map_items, list):
-            tpdo_map_items = [tpdo_map_items]
-        for rpdo_map_item in rpdo_map_items:
-            self.add_pdo_item_to_map(rpdo_map_item, rpdo_map)
-        for tpdo_map_item in tpdo_map_items:
-            self.add_pdo_item_to_map(tpdo_map_item, tpdo_map)
+        rpdo_map, tpdo_map = INGKPDONetworkManager.create_pdo_maps(
+            rpdo_map_items=rpdo_map_items, tpdo_map_items=tpdo_map_items
+        )
         return rpdo_map, tpdo_map
 
     @staticmethod
@@ -416,11 +267,7 @@ class PDONetworkManager:
             ValueError: If an TPDOItem is tried to be added to a RPDOMap.
 
         """
-        if isinstance(pdo_map_item, RPDOMapItem) and not isinstance(pdo_map, RPDOMap):
-            raise ValueError("Cannot add a RPDOItem to a TPDOMap")
-        if isinstance(pdo_map_item, TPDOMapItem) and not isinstance(pdo_map, TPDOMap):
-            raise ValueError("Cannot add a TPDOItem to a RPDOMap")
-        pdo_map.add_item(pdo_map_item)
+        INGKPDONetworkManager.add_pdo_item_to_map(pdo_map_item=pdo_map_item, pdo_map=pdo_map)
 
     @staticmethod
     def create_empty_rpdo_map() -> RPDOMap:
@@ -430,7 +277,7 @@ class PDONetworkManager:
             The empty RPDOMap.
 
         """
-        return RPDOMap()
+        return INGKPDONetworkManager.create_empty_rpdo_map()
 
     @staticmethod
     def create_empty_tpdo_map() -> TPDOMap:
@@ -440,7 +287,7 @@ class PDONetworkManager:
             The empty TPDOMap.
 
         """
-        return TPDOMap()
+        return INGKPDONetworkManager.create_empty_tpdo_map()
 
     def set_pdo_maps_to_slave(
         self,
@@ -459,20 +306,9 @@ class PDONetworkManager:
             ValueError: If there is a type mismatch retrieving the drive object.
             ValueError: If not all elements of the RPDO map list are instances of a RPDO map.
             ValueError: If not all elements of the TPDO map list are instances of a TPDO map.
-
         """
-        drive = self.mc._get_drive(servo)
-        if not isinstance(drive, EthercatServo):
-            raise ValueError(f"Expected an EthercatServo. Got {type(drive)}")
-        if not isinstance(rpdo_maps, list):
-            rpdo_maps = [rpdo_maps]
-        if not isinstance(tpdo_maps, list):
-            tpdo_maps = [tpdo_maps]
-        if not all(isinstance(rpdo_map, RPDOMap) for rpdo_map in rpdo_maps):
-            raise ValueError("Not all elements of the RPDO map list are instances of a RPDO map")
-        if not all(isinstance(tpdo_map, TPDOMap) for tpdo_map in tpdo_maps):
-            raise ValueError("Not all elements of the TPDO map list are instances of a TPDO map")
-        drive.set_pdo_map_to_slave(rpdo_maps, tpdo_maps)
+        drive, net = self.__get_drive_and_network(servo)
+        net.pdo_manager.set_pdo_maps_to_slave(rpdo_maps=rpdo_maps, tpdo_maps=tpdo_maps, servo=drive)
 
     def clear_pdo_mapping(self, servo: str = DEFAULT_SERVO) -> None:
         """Clear the PDO mapping within the servo.
@@ -484,11 +320,8 @@ class PDONetworkManager:
             ValueError: If there is a type mismatch retrieving the drive object.
 
         """
-        drive = self.mc._get_drive(servo)
-        if not isinstance(drive, EthercatServo):
-            raise ValueError(f"Expected an EthercatServo. Got {type(drive)}")
-        drive.reset_rpdo_mapping()
-        drive.reset_tpdo_mapping()
+        drive, net = self.__get_drive_and_network(servo)
+        net.pdo_manager.clear_pdo_mapping(servo=drive)
 
     def remove_rpdo_map(
         self,
@@ -509,12 +342,11 @@ class PDONetworkManager:
         Raises:
             ValueError: If the RPDOMap instance is not in the RPDOMap list.
             IndexError: If the index is out of range.
-
         """
-        drive = self.mc._get_drive(servo)
-        if not isinstance(drive, EthercatServo):
-            raise ValueError(f"Expected an EthercatServo. Got {type(drive)}")
-        drive.remove_rpdo_map(rpdo_map, rpdo_map_index)
+        drive, net = self.__get_drive_and_network(servo)
+        net.pdo_manager.remove_rpdo_map(
+            servo=drive, rpdo_map=rpdo_map, rpdo_map_index=rpdo_map_index
+        )
 
     def remove_tpdo_map(
         self,
@@ -537,10 +369,10 @@ class PDONetworkManager:
             IndexError: If the index is out of range.
 
         """
-        drive = self.mc._get_drive(servo)
-        if not isinstance(drive, EthercatServo):
-            raise ValueError(f"Expected an EthercatServo. Got {type(drive)}")
-        drive.remove_tpdo_map(tpdo_map, tpdo_map_index)
+        drive, net = self.__get_drive_and_network(servo)
+        net.pdo_manager.remove_tpdo_map(
+            servo=drive, tpdo_map=tpdo_map, tpdo_map_index=tpdo_map_index
+        )
 
     def start_pdos(
         self,
@@ -563,15 +395,14 @@ class PDONetworkManager:
             IMError: If the MotionController is connected to more than one Network.
             ValueError: If there is a type mismatch retrieving the network object.
             IMError: If the PDOs are already active.
-
         """
         if network_type is None:
-            if len(self.mc.net) > 1:
+            if len(self.__mc.net) > 1:
                 raise ValueError(
                     "There is more than one network created. The network_type argument must be"
                     " provided."
                 )
-            net = next(iter(self.mc.net.values()))
+            net = next(iter(self.__mc.net.values()))
         elif not isinstance(network_type, CommunicationType):
             raise ValueError(
                 f"Wrong value for the network_type argument. Must be of type {CommunicationType}"
@@ -580,10 +411,12 @@ class PDONetworkManager:
             raise NotImplementedError
         else:
             ethercat_networks = [
-                network for network in self.mc.net.values() if isinstance(network, EthercatNetwork)
+                network
+                for network in self.__mc.net.values()
+                if isinstance(network, EthercatNetwork)
             ]
             canopen_networks = [
-                network for network in self.mc.net.values() if isinstance(network, CanopenNetwork)
+                network for network in self.__mc.net.values() if isinstance(network, CanopenNetwork)
             ]
             if len(ethercat_networks) > 1 or len(canopen_networks) > 1:
                 raise IMError(
@@ -596,20 +429,14 @@ class PDONetworkManager:
                 if network_type == CommunicationType.Ethercat
                 else canopen_networks[0]
             )
-        if self._pdo_thread is not None:
-            self.stop_pdos()
-            raise IMError("PDOs are already active.")
         if not isinstance(net, EthercatNetwork):
             raise ValueError(f"Expected EthercatNetwork. Got {type(net)}")
-        self._pdo_thread = self.ProcessDataThread(
-            net=net,
-            refresh_rate=refresh_rate,
-            watchdog_timeout=watchdog_timeout,
-            notify_send_process_data=self._notify_send_process_data,
-            notify_receive_process_data=self._notify_receive_process_data,
-            notify_exceptions=self._notify_exceptions,
-        )
-        self._pdo_thread.start()
+        self.__assign_net(net=net)
+        self.__net.subscribe_to_pdo_thread_status(callback=self.__pdo_thread_status_callback)
+        self.__net.activate_pdos(refresh_rate=refresh_rate, watchdog_timeout=watchdog_timeout)
+
+    def __pdo_thread_status_callback(self, status: bool) -> None:
+        self.__pdo_thread_status = status
 
     def stop_pdos(self) -> None:
         """Stop the PDO exchange process.
@@ -618,10 +445,8 @@ class PDONetworkManager:
             IMError: If the PDOs are not active yet.
 
         """
-        if self._pdo_thread is None:
-            raise IMError("The PDO exchange has not started yet.")
-        self._pdo_thread.stop()
-        self._pdo_thread = None
+        self.__net.deactivate_pdos()
+        self.__net = None
 
     @property
     def is_active(self) -> bool:
@@ -629,33 +454,30 @@ class PDONetworkManager:
 
         Returns:
             True if the PDO thread is active. False otherwise.
-
         """
-        if self._pdo_thread is None:
-            return False
-        return self._pdo_thread.is_alive()
+        return self.__pdo_thread_status
 
     def subscribe_to_send_process_data(self, callback: Callable[[], None]) -> None:
         """Subscribe be notified when the RPDO values will be sent.
 
         Args:
             callback: Callback function.
-
         """
-        if callback in self._pdo_send_observers:
-            return
-        self._pdo_send_observers.append(callback)
+        if self.__net is not None:
+            self.__net.pdo_manager.subscribe_to_send_process_data(callback)
+        else:
+            self.__send_process_data_add_callback.append(callback)
 
     def subscribe_to_receive_process_data(self, callback: Callable[[], None]) -> None:
         """Subscribe be notified when the TPDO values are received.
 
         Args:
             callback: Callback function.
-
         """
-        if callback in self._pdo_receive_observers:
-            return
-        self._pdo_receive_observers.append(callback)
+        if self.__net is not None:
+            self.__net.pdo_manager.subscribe_to_receive_process_data(callback)
+        else:
+            self.__receive_process_data_add_callback.append(callback)
 
     def subscribe_to_exceptions(self, callback: Callable[[IMError], None]) -> None:
         """Subscribe be notified when there is an exception in the PDO process data thread.
@@ -665,22 +487,22 @@ class PDONetworkManager:
 
         Args:
             callback: Callback function.
-
         """
-        if callback in self._pdo_exceptions_observers:
-            return
-        self._pdo_exceptions_observers.append(callback)
+        if self.__net is not None:
+            self.__net.pdo_manager.subscribe_to_exceptions(callback)
+        else:
+            self.__exception_add_callback.append(callback)
 
     def unsubscribe_to_send_process_data(self, callback: Callable[[], None]) -> None:
         """Unsubscribe from the send process data notifications.
 
         Args:
             callback: Subscribed callback function.
-
         """
-        if callback not in self._pdo_send_observers:
-            return
-        self._pdo_send_observers.remove(callback)
+        if self.__net is not None:
+            self.__net.pdo_manager.unsubscribe_to_send_process_data(callback)
+        else:
+            self.__send_process_data_remove_callback.append(callback)
 
     def unsubscribe_to_receive_process_data(self, callback: Callable[[], None]) -> None:
         """Unsubscribe from the receive process data notifications.
@@ -689,9 +511,10 @@ class PDONetworkManager:
             callback: Subscribed callback function.
 
         """
-        if callback not in self._pdo_receive_observers:
-            return
-        self._pdo_receive_observers.remove(callback)
+        if self.__net is not None:
+            self.__net.pdo_manager.unsubscribe_to_receive_process_data(callback)
+        else:
+            self.__receive_process_data_remove_callback.append(callback)
 
     def create_poller(
         self,
@@ -737,7 +560,7 @@ class PDONetworkManager:
             The poller instance.
 
         """
-        poller = PDOPoller(self.mc, servo, sampling_time, watchdog_timeout, buffer_size)
+        poller = PDOPoller(self.__mc, servo, sampling_time, watchdog_timeout, buffer_size)
         poller.add_channels(registers)
         if start:
             poller.start()
@@ -750,27 +573,7 @@ class PDONetworkManager:
             callback: Subscribed callback function.
 
         """
-        if callback not in self._pdo_exceptions_observers:
-            return
-        self._pdo_exceptions_observers.remove(callback)
-
-    def _notify_send_process_data(self) -> None:
-        """Notify subscribers that the RPDO values will be sent."""
-        for callback in self._pdo_send_observers:
-            callback()
-
-    def _notify_receive_process_data(self) -> None:
-        """Notify subscribers that the TPDO values were received."""
-        for callback in self._pdo_receive_observers:
-            callback()
-
-    def _notify_exceptions(self, exc: IMError) -> None:
-        """Notify subscribers that there were an exception.
-
-        Args:
-            exc: Exception that was raised in the PDO process data thread.
-        """
-        self.logger.error(exc)
-        for callback in self._pdo_exceptions_observers:
-            callback(exc)
-        self._pdo_thread = None  # If there has been an error, remove the pdo thread reference
+        if self.__net is not None:
+            self.__net.pdo_manager.unsubscribe_to_exceptions(callback)
+        else:
+            self.__exception_remove_callback.append(callback)
