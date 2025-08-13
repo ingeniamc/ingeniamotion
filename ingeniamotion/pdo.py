@@ -1,10 +1,11 @@
 import time
 from collections import deque
-from typing import TYPE_CHECKING, Callable, Optional, Union
+from typing import TYPE_CHECKING, Callable, Optional, Union, cast
 
 from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethercat.servo import EthercatServo
+from ingenialink.exceptions import ILError
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 from ingenialink.pdo_network_manager import PDONetworkManager as INGKPDONetworkManager
 
@@ -51,7 +52,7 @@ class PDOPoller:
         self.__tpdo_map: TPDOMap = self.__mc.capture.pdo.create_empty_tpdo_map()
         self.__rpdo_map: RPDOMap = self.__mc.capture.pdo.create_empty_rpdo_map()
         self.__fill_rpdo_map()
-        self.__exception_callbacks: list[Callable[[IMError], None]] = []
+        self.__exception_callbacks: list[Callable[[ILError], None]] = []
 
     def start(self) -> None:
         """Start the poller."""
@@ -103,7 +104,7 @@ class PDOPoller:
         """
         self.__fill_tpdo_map(registers)
 
-    def subscribe_to_exceptions(self, callback: Callable[[IMError], None]) -> None:
+    def subscribe_to_exceptions(self, callback: Callable[[ILError], None]) -> None:
         """Get notified when an exception occurs on the PDO thread.
 
         Args:
@@ -178,30 +179,29 @@ class PDONetworkManager:
         # Save the callbacks to add/remove, manage them when there is a reference to the network
         self.__send_process_data_add_callback: list[Callable[[], None]] = []
         self.__receive_process_data_add_callback: list[Callable[[], None]] = []
-        self.__exception_add_callback: list[Callable[[], None]] = []
+        self.__exception_add_callback: list[Callable[[ILError], None]] = []
         self.__send_process_data_remove_callback: list[Callable[[], None]] = []
         self.__receive_process_data_remove_callback: list[Callable[[], None]] = []
-        self.__exception_remove_callback: list[Callable[[], None]] = []
+        self.__exception_remove_callback: list[Callable[[ILError], None]] = []
 
-    def __assign_net(self, net: EthercatNetwork) -> None:
-        self.__net = net
+    def __evaluate_subscriptions(self, net: EthercatNetwork) -> None:
         for callback in self.__send_process_data_add_callback:
-            self.__net.pdo_manager.subscribe_to_send_process_data(callback)
+            net.pdo_manager.subscribe_to_send_process_data(callback)
         for callback in self.__receive_process_data_add_callback:
-            self.__net.pdo_manager.subscribe_to_receive_process_data(callback)
-        for callback in self.__exception_add_callback:
-            self.__net.pdo_manager.subscribe_to_exceptions(callback)
+            net.pdo_manager.subscribe_to_receive_process_data(callback)
+        for exception_callback in self.__exception_add_callback:
+            net.pdo_manager.subscribe_to_exceptions(exception_callback)
         for callback in self.__send_process_data_remove_callback:
-            self.__net.pdo_manager.unsubscribe_to_send_process_data(callback)
+            net.pdo_manager.unsubscribe_to_send_process_data(callback)
         for callback in self.__receive_process_data_remove_callback:
-            self.__net.pdo_manager.unsubscribe_to_receive_process_data(callback)
-        for callback in self.__exception_remove_callback:
-            self.__net.pdo_manager.unsubscribe_to_exceptions(callback)
+            net.pdo_manager.unsubscribe_to_receive_process_data(callback)
+        for exception_callback in self.__exception_remove_callback:
+            net.pdo_manager.unsubscribe_to_exceptions(exception_callback)
 
     def __get_drive_and_network(self, servo: str) -> tuple[EthercatServo, EthercatNetwork]:
-        drive: EthercatServo = self.__mc._get_drive(servo)
-        net: EthercatNetwork = self.__mc._get_network(servo=servo)
-        return drive, net
+        drive = self.__mc._get_drive(servo)
+        net = self.__mc._get_network(servo=servo)
+        return cast("EthercatServo", drive), cast("EthercatNetwork", net)
 
     def create_pdo_item(
         self,
@@ -431,7 +431,8 @@ class PDONetworkManager:
             )
         if not isinstance(net, EthercatNetwork):
             raise ValueError(f"Expected EthercatNetwork. Got {type(net)}")
-        self.__assign_net(net=net)
+        self.__evaluate_subscriptions(net=net)
+        self.__net = net
         self.__net.subscribe_to_pdo_thread_status(callback=self.__pdo_thread_status_callback)
         self.__net.activate_pdos(refresh_rate=refresh_rate, watchdog_timeout=watchdog_timeout)
 
@@ -445,6 +446,8 @@ class PDONetworkManager:
             IMError: If the PDOs are not active yet.
 
         """
+        if self.__net is None:
+            raise IMError("PDOs are not active yet.")
         self.__net.deactivate_pdos()
         self.__net = None
 
@@ -479,7 +482,7 @@ class PDONetworkManager:
         else:
             self.__receive_process_data_add_callback.append(callback)
 
-    def subscribe_to_exceptions(self, callback: Callable[[IMError], None]) -> None:
+    def subscribe_to_exceptions(self, callback: Callable[[ILError], None]) -> None:
         """Subscribe be notified when there is an exception in the PDO process data thread.
 
         If a callback is subscribed, the PDO exchange process is paused when an exception is raised.
@@ -566,7 +569,7 @@ class PDONetworkManager:
             poller.start()
         return poller
 
-    def unsubscribe_to_exceptions(self, callback: Callable[[IMError], None]) -> None:
+    def unsubscribe_to_exceptions(self, callback: Callable[[ILError], None]) -> None:
         """Unsubscribe from the exceptions in the process data notifications.
 
         Args:
