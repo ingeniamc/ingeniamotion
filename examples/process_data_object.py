@@ -1,9 +1,14 @@
 import time
 from functools import partial
+from typing import TYPE_CHECKING
 
 from ingenialink.pdo import RPDOMapItem, TPDOMapItem
 
 from ingeniamotion.motion_controller import MotionController
+
+if TYPE_CHECKING:
+    from ingenialink.ethercat.network import EthercatNetwork
+    from ingenialink.ethercat.servo import EthercatServo
 
 
 def notify_actual_value(actual_position: TPDOMapItem) -> None:
@@ -26,36 +31,40 @@ def update_position_set_point(position_set_point: RPDOMapItem) -> None:
     print(f"Position set-point: {position_set_point.value}")
 
 
-def update_position_value_using_pdo(mc: MotionController) -> None:
+def update_position_value_using_pdo(
+    mc: MotionController, net: "EthercatNetwork", servo: "EthercatServo"
+) -> None:
     """Updates the position of a motor using PDOs.
 
     Args:
         mc : Controller with all the functions needed to perform a PDO exchange.
+        net: Ethercat network instance.
+        servo: Ethercat servo instance.
     """
     waiting_time_for_pdo_exchange = 5
     # Create a RPDO map item
     initial_position_value = mc.motion.get_actual_position()
-    position_set_point = mc.capture.pdo.create_pdo_item(
+    position_set_point = net.pdo_manager.create_pdo_item(
         "CL_POS_SET_POINT_VALUE", value=initial_position_value
     )
     # Create a TPDO map item
-    actual_position = mc.capture.pdo.create_pdo_item("CL_POS_FBK_VALUE")
+    actual_position = net.pdo_manager.create_pdo_item("CL_POS_FBK_VALUE")
     # Create the RPDO and TPDO maps
-    rpdo_map, tpdo_map = mc.capture.pdo.create_pdo_maps([position_set_point], [actual_position])
+    rpdo_map, tpdo_map = net.pdo_manager.create_pdo_maps([position_set_point], [actual_position])
     # Callbacks subscriptions for TPDO and RPDO map items
-    mc.capture.pdo.subscribe_to_receive_process_data(partial(notify_actual_value, actual_position))
-    mc.capture.pdo.subscribe_to_send_process_data(
+    net.pdo_manager.subscribe_to_receive_process_data(partial(notify_actual_value, actual_position))
+    net.pdo_manager.subscribe_to_send_process_data(
         partial(update_position_set_point, position_set_point)
     )
     # Map the PDO maps to the slave
-    mc.capture.pdo.set_pdo_maps_to_slave(rpdo_map, tpdo_map)
+    net.pdo_manager.set_pdo_maps_to_slave(rpdo_map, tpdo_map)
     # Start the PDO exchange
     # Make sure to set an appropriate refresh rate considering the execution time of the send and
     # receive process data callbacks.
-    mc.capture.pdo.start_pdos(refresh_rate=0.1)
+    net.activate_pdos(refresh_rate=0.1)
     time.sleep(waiting_time_for_pdo_exchange)
     # Stop the PDO exchange
-    mc.capture.pdo.stop_pdos()
+    net.deactivate_pdos()
 
 
 def main() -> None:
@@ -66,11 +75,13 @@ def main() -> None:
     interface_ip = "192.168.2.1"
     slave_id = 1
     dictionary_path = "parent_directory/dictionary_file.xdf"
-    mc.communication.connect_servo_ethercat_interface_ip(interface_ip, slave_id, dictionary_path)
+    net, servo = mc.communication.connect_servo_ethercat_interface_ip(
+        interface_ip, slave_id, dictionary_path
+    )
     print("Drive is connected.")
     mc.motion.motor_enable()
     print("Motor is enabled.")
-    update_position_value_using_pdo(mc)
+    update_position_value_using_pdo(mc=mc, net=net, servo=servo)
     mc.motion.motor_disable()
     print("Motor is disabled.")
     mc.communication.disconnect()
