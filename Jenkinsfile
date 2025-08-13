@@ -325,12 +325,14 @@ pipeline {
                                 expression { false }
                             }
                             steps {
-                                runTestHW("ethercat_everest", "soem", "ECAT_EVE_SETUP", false, USE_WIRESHARK_LOGGING)
+                                runTestHW("ethercat_everest", "soem and not skip_testing_framework", "ECAT_EVE_SETUP", false, USE_WIRESHARK_LOGGING)
+                                 runTestHW("ethercat_everest", "soem and skip_testing_framework", "ECAT_EVE_SETUP", false, USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("Ethercat Capitan") {
                             steps {
-                                runTestHW("ethercat_capitan", "soem", "ECAT_CAP_SETUP", false, USE_WIRESHARK_LOGGING)
+                                runTestHW("ethercat_capitan", "soem and not skip_testing_framework", "ECAT_CAP_SETUP", false, USE_WIRESHARK_LOGGING)
+                                runTestHW("ethercat_capitan", "soem and skip_testing_framework", "ECAT_CAP_SETUP", false, USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("Safety Denali Phase I") {
