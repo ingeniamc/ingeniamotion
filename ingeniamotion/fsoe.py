@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from functools import partial
-from typing import TYPE_CHECKING, Callable, Optional
+from typing import TYPE_CHECKING, Callable, Optional, cast
 
 import ingenialogger
 from ingenialink.ethercat.servo import EthercatServo
@@ -13,6 +13,8 @@ if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
 
 if TYPE_CHECKING:
+    from ingenialink.ethercat.network import EthercatNetwork
+
     from ingeniamotion.motion_controller import MotionController
 
 __all__ = ["FSOE_MASTER_INSTALLED", "FSoEMaster", "FSoEError"]
@@ -70,9 +72,11 @@ class FSoEMaster:
         node = self.__mc.servos[servo]
         if not isinstance(node, EthercatServo):
             raise TypeError("Functional Safety over Ethercat is only available for Ethercat servos")
+        net = cast("EthercatNetwork", self.__mc.get_network(servo=servo))
 
         master_handler = FSoEMasterHandler(
-            node,
+            servo=node,
+            net=net,
             use_sra=use_sra,
             connection_id=self.__next_connection_id,
             watchdog_timeout=fsoe_master_watchdog_timeout,

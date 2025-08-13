@@ -46,6 +46,7 @@ from ingeniamotion.fsoe_master.sci_serializer import SCISerializer
 
 if TYPE_CHECKING:
     from ingenialink.ethercat.dictionary import EthercatDictionary
+    from ingenialink.ethercat.network import EthercatNetwork
 
 SAFE_INSTANCE_TYPE = TypeVar("SAFE_INSTANCE_TYPE", bound="SafetyFunction")
 
@@ -75,6 +76,7 @@ class FSoEMasterHandler:
     def __init__(
         self,
         servo: EthercatServo,
+        net: "EthercatNetwork",
         *,
         use_sra: bool,
         slave_address: Optional[int] = None,
@@ -89,6 +91,7 @@ class FSoEMasterHandler:
 
         self.__state_change_callback = state_change_callback
         self.__servo = servo
+        self.__net = net
         self.__running: bool = False
         self.__uses_sra: bool = use_sra
 
