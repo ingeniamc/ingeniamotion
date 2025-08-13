@@ -112,8 +112,8 @@ def mc_with_fsoe(mc, fsoe_states):
     mc.fsoe._delete_master_handler()
     # Ensure the PDOs are stopped
     # https://novantamotion.atlassian.net/browse/CIT-494
-    if mc.capture.pdo.is_active:
-        mc.capture.pdo.stop_pdos()
+    if handler.net.pdo_manager.is_active:
+        handler.net.deactivate_pdos()
 
 
 @pytest.fixture()
