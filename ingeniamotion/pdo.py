@@ -41,7 +41,7 @@ class PDOPoller:
         """
         super().__init__()
         self.__mc = mc
-        self.__servo = servo
+        self.__servo = cast("EthercatServo", self.__mc._get_drive(servo=servo))
         self.__net = cast("EthercatNetwork", self.__mc.get_network(servo=servo))
         self.__refresh_time = refresh_time
         self.__watchdog_timeout = watchdog_timeout
@@ -76,6 +76,64 @@ class PDOPoller:
             self.__net.pdo_manager.unsubscribe_to_exceptions(callback)
         self.__net.pdo_manager.remove_rpdo_map(self.__servo, self.__rpdo_map)
         self.__net.pdo_manager.remove_tpdo_map(self.__servo, self.__tpdo_map)
+
+    @classmethod
+    def create_poller(
+        cls,
+        mc: "MotionController",
+        registers: list[dict[str, Union[int, str]]],
+        servo: str = DEFAULT_SERVO,
+        sampling_time: float = 0.125,
+        buffer_size: int = 100,
+        watchdog_timeout: Optional[float] = None,
+        start: bool = True,
+    ) -> "PDOPoller":
+        """Create a register Poller using PDOs.
+
+        Args:
+            mc: MotionController instance.
+            registers : list of registers to add to the Poller.
+                Dicts should have the follow format:
+
+                .. code-block:: python
+
+                    [
+                        { # Poller register one
+                            "name": "CL_POS_FBK_VALUE",  # Register name.
+                            "axis": 1  # Register axis.
+                            # If it has no axis field, by default axis 1.
+                        },
+                        { # Poller register two
+                            "name": "CL_VEL_FBK_VALUE",  # Register name.
+                            "axis": 1  # Register axis.
+                            # If it has no axis field, by default axis 1.
+                        }
+                    ]
+            servo: servo alias to reference it. ``default`` by default.
+            sampling_time: period of the sampling in seconds.
+                By default ``0.125`` seconds.
+            watchdog_timeout: The PDO watchdog time. If not provided it will be set proportional
+             to the refresh rate.
+            buffer_size: number maximum of sample for each data read.
+                ``100`` by default.
+            start: if ``True``, function starts poller, if ``False``
+                poller should be started after. ``True`` by default.
+
+        Returns:
+            The poller instance.
+
+        """
+        poller = cls(
+            mc=mc,
+            servo=servo,
+            refresh_time=sampling_time,
+            watchdog_timeout=watchdog_timeout,
+            buffer_size=buffer_size,
+        )
+        poller.add_channels(registers)
+        if start:
+            poller.start()
+        return poller
 
     @property
     def data(self) -> tuple[list[float], list[list[Union[int, float, bytes]]]]:
@@ -564,11 +622,15 @@ class PDONetworkManager:
             The poller instance.
 
         """
-        poller = PDOPoller(self.__mc, servo, sampling_time, watchdog_timeout, buffer_size)
-        poller.add_channels(registers)
-        if start:
-            poller.start()
-        return poller
+        return PDOPoller.create_poller(
+            mc=self.__mc,
+            registers=registers,
+            servo=servo,
+            sampling_time=sampling_time,
+            watchdog_timeout=watchdog_timeout,
+            buffer_size=buffer_size,
+            start=start,
+        )
 
     def unsubscribe_to_exceptions(self, callback: Callable[[ILError], None]) -> None:
         """Unsubscribe from the exceptions in the process data notifications.
