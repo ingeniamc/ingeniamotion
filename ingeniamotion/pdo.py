@@ -42,6 +42,7 @@ class PDOPoller:
         super().__init__()
         self.__mc = mc
         self.__servo = servo
+        self.__net = cast("EthercatNetwork", self.__mc.get_network(servo=servo))
         self.__refresh_time = refresh_time
         self.__watchdog_timeout = watchdog_timeout
         self.__buffer_size = buffer_size
@@ -49,32 +50,32 @@ class PDOPoller:
             maxlen=self.__buffer_size
         )
         self.__start_time: Optional[float] = None
-        self.__tpdo_map: TPDOMap = self.__mc.capture.pdo.create_empty_tpdo_map()
-        self.__rpdo_map: RPDOMap = self.__mc.capture.pdo.create_empty_rpdo_map()
+        self.__tpdo_map: TPDOMap = self.__net.pdo_manager.create_empty_tpdo_map()
+        self.__rpdo_map: RPDOMap = self.__net.pdo_manager.create_empty_rpdo_map()
         self.__fill_rpdo_map()
         self.__exception_callbacks: list[Callable[[ILError], None]] = []
 
     def start(self) -> None:
         """Start the poller."""
-        self.__mc.capture.pdo.set_pdo_maps_to_slave(
+        self.__net.pdo_manager.set_pdo_maps_to_slave(
             self.__rpdo_map, self.__tpdo_map, servo=self.__servo
         )
-        self.__mc.capture.pdo.subscribe_to_receive_process_data(self._new_data_available)
+        self.__net.pdo_manager.subscribe_to_receive_process_data(self._new_data_available)
         for callback in self.__exception_callbacks:
-            self.__mc.capture.pdo.subscribe_to_exceptions(callback)
+            self.__net.pdo_manager.subscribe_to_exceptions(callback)
         self.__start_time = time.time()
-        self.__mc.capture.pdo.start_pdos(
+        self.__net.activate_pdos(
             refresh_rate=self.__refresh_time, watchdog_timeout=self.__watchdog_timeout
         )
 
     def stop(self) -> None:
         """Stop the poller."""
-        self.__mc.capture.pdo.stop_pdos()
-        self.__mc.capture.pdo.unsubscribe_to_receive_process_data(self._new_data_available)
+        self.__net.deactivate_pdos()
+        self.__net.pdo_manager.unsubscribe_to_receive_process_data(self._new_data_available)
         for callback in self.__exception_callbacks:
-            self.__mc.capture.pdo.unsubscribe_to_exceptions(callback)
-        self.__mc.capture.pdo.remove_rpdo_map(self.__servo, self.__rpdo_map)
-        self.__mc.capture.pdo.remove_tpdo_map(self.__servo, self.__tpdo_map)
+            self.__net.pdo_manager.unsubscribe_to_exceptions(callback)
+        self.__net.pdo_manager.remove_rpdo_map(self.__servo, self.__rpdo_map)
+        self.__net.pdo_manager.remove_tpdo_map(self.__servo, self.__tpdo_map)
 
     @property
     def data(self) -> tuple[list[float], list[list[Union[int, float, bytes]]]]:
@@ -130,7 +131,7 @@ class PDOPoller:
         """Fill the RPDO Map with padding."""
         padding_rpdo_item = RPDOMapItem(size_bits=8)
         padding_rpdo_item.raw_data_bytes = int.to_bytes(0, 1, "little")
-        self.__mc.capture.pdo.add_pdo_item_to_map(padding_rpdo_item, self.__rpdo_map)
+        self.__net.pdo_manager.add_pdo_item_to_map(padding_rpdo_item, self.__rpdo_map)
 
     def __fill_tpdo_map(self, registers: list[dict[str, Union[int, str]]]) -> None:
         """Fill the TPDO Map with the registers to be polled.
@@ -151,10 +152,10 @@ class PDOPoller:
                 raise ValueError(
                     f"Wrong type for the 'axis' field. Expected 'int', got: {type(axis)}"
                 )
-            tpdo_map_item = self.__mc.capture.pdo.create_pdo_item(
+            tpdo_map_item = self.__net.pdo_manager.create_pdo_item(
                 name, axis=axis, servo=self.__servo
             )
-            self.__mc.capture.pdo.add_pdo_item_to_map(tpdo_map_item, self.__tpdo_map)
+            self.__net.pdo_manager.add_pdo_item_to_map(tpdo_map_item, self.__tpdo_map)
 
     @property
     def available_samples(self) -> int:
