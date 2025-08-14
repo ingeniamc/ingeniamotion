@@ -381,6 +381,9 @@ class FSoEMasterHandler:
         self.__net.pdo_manager.subscribe_to_send_process_data(self.get_request)
         self.__net.pdo_manager.subscribe_to_receive_process_data(self.set_reply)
 
+        self.safety_master_pdu_map.subscribe_to_process_data_event(self.get_request)
+        self.safety_slave_pdu_map.subscribe_to_process_data_event(self.set_reply)
+
         if self.__maps.editable:
             self.safety_master_pdu_map.write_to_slave(padding=True)
             self.safety_slave_pdu_map.write_to_slave(padding=True)
