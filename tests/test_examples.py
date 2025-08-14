@@ -568,6 +568,7 @@ def test_ecat_coe_connection_example_connection_error(mocker, capsys):
     assert e.value.args[0] == f"could not open interface {expected_real_name_interface}"
 
 
+@pytest.mark.soem
 def test_pdo_poller_success(mocker):
     connect_servo_ethercat_interface_ip = mocker.patch.object(
         Communication,
