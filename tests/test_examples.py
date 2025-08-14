@@ -234,7 +234,18 @@ def test_commutation_test_example(setup_descriptor: DriveEthernetSetup, script_r
 
 @pytest.mark.fsoe_phase2
 @pytest.mark.skip_testing_framework
-def test_safety_mapping_example(setup_descriptor: DriveEcatSetup) -> None:
+@pytest.mark.flaky(
+    reruns=1, reruns_delay=1
+)  # https://novantamotion.atlassian.net/browse/SACOAPP-255
+def test_safety_mapping_example(setup_descriptor: DriveEcatSetup, mocker) -> None:
+    def _raise_error_callback(error):
+        raise error
+
+    mocker.patch(
+        "examples.safety_mapping_example._error_callback",
+        side_effect=_raise_error_callback,
+    )
+
     main_safety_mapping_example(
         ifname=setup_descriptor.ifname,
         slave_id=setup_descriptor.slave,

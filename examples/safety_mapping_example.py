@@ -15,6 +15,10 @@ if FSOE_MASTER_INSTALLED:
     )
 
 
+def _error_callback(error):
+    print(error)
+
+
 def main(ifname, slave_id, dict_path) -> None:
     r"""Establish a FSoE connection, deactivate the STO and move the motor.
 
@@ -29,7 +33,7 @@ def main(ifname, slave_id, dict_path) -> None:
     """
     mc = MotionController()
     # Configure error channel
-    mc.fsoe.subscribe_to_errors(lambda error: print(error))
+    mc.fsoe.subscribe_to_errors(_error_callback)
     # Connect to the servo drive
     mc.communication.connect_servo_ethercat(ifname, slave_id, dict_path)
 
@@ -105,10 +109,15 @@ def main(ifname, slave_id, dict_path) -> None:
             # And inputs can be read
             print(f"Safe Inputs Value: {safe_inputs.value.get()}")
     finally:
-        # Stop the FSoE master handler
-        mc.fsoe.stop_master(stop_pdos=True)
-        # Disconnect from the servo drive
-        mc.communication.disconnect()
+        # If there has been a failure and it tries to remove the PDO maps, it may fail
+        # if the servo is not in preop state
+        try:
+            # Stop the FSoE master handler
+            if mc.capture.pdo.is_active:
+                mc.fsoe.stop_master(stop_pdos=True)
+        finally:
+            # Disconnect from the servo drive
+            mc.communication.disconnect()
 
 
 if __name__ == "__main__":

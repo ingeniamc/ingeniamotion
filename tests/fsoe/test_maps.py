@@ -77,8 +77,15 @@ def test_map_safety_input_output_random(
     except Exception as e:
         warnings.warn(f"Failed to reach data state with random mapping: {e}")
     finally:
-        if mc.capture.pdo.is_active:
-            mc.fsoe.stop_master(stop_pdos=True)
+        # If there has been a failure and it tries to remove the PDO maps, it may fail
+        # if the servo is not in preop state
+        try:
+            # Stop the FSoE master handler
+            if mc.capture.pdo.is_active:
+                mc.fsoe.stop_master(stop_pdos=True)
+        finally:
+            # Disconnect from the servo drive
+            mc.communication.disconnect()
 
 
 @pytest.mark.fsoe_phase2
@@ -133,8 +140,15 @@ def test_map_all_safety_functions(
     except Exception as e:
         warnings.warn(f"Failed to reach data state with all safety functions: {e}")
     finally:
-        if mc.capture.pdo.is_active:
-            mc.fsoe.stop_master(stop_pdos=True)
+        # If there has been a failure and it tries to remove the PDO maps, it may fail
+        # if the servo is not in preop state
+        try:
+            # Stop the FSoE master handler
+            if mc.capture.pdo.is_active:
+                mc.fsoe.stop_master(stop_pdos=True)
+        finally:
+            # Disconnect from the servo drive
+            mc.communication.disconnect()
 
 
 @pytest.mark.fsoe_phase2
@@ -189,5 +203,12 @@ def test_fixed_mapping_combination(
     except TimeoutError as e:
         pytest.fail(f"Failed to reach data state: {e}")
     finally:
-        if mc.capture.pdo.is_active:
-            mc.fsoe.stop_master(stop_pdos=True)
+        # If there has been a failure and it tries to remove the PDO maps, it may fail
+        # if the servo is not in preop state
+        try:
+            # Stop the FSoE master handler
+            if mc.capture.pdo.is_active:
+                mc.fsoe.stop_master(stop_pdos=True)
+        finally:
+            # Disconnect from the servo drive
+            mc.communication.disconnect()
