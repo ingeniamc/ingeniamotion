@@ -142,7 +142,10 @@ def timeout_loop(
 
 # https://novantamotion.atlassian.net/browse/INGM-640
 @pytest.fixture(scope="module", autouse=True)
-def load_configuration_after_each_module(request: FixtureRequest) -> Generator[None, None, None]:
+def load_configuration_after_each_module(
+    request: FixtureRequest,
+    pytestconfig: pytest.Config,
+) -> Generator[None, None, None]:
     """Loads the drive configuration.
 
     Args:
@@ -153,8 +156,11 @@ def load_configuration_after_each_module(request: FixtureRequest) -> Generator[N
     """
     try:
         # If pytest is running with skip framework, do not run the fixture
-        markers = [mark.name for mark in request.node.iter_markers()]
-        if __SKIP_TESTING_FRAMEWORK_MARKER in markers:
+        markers = pytestconfig.getoption("-m")
+        if (
+            __SKIP_TESTING_FRAMEWORK_MARKER in markers
+            and f"not {__SKIP_TESTING_FRAMEWORK_MARKER}" not in markers
+        ):
             run_fixture = False
         else:
             setup_specifier: SetupSpecifier = request.getfixturevalue("setup_specifier")
