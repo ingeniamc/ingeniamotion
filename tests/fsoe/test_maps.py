@@ -91,10 +91,18 @@ def test_map_all_safety_functions(
     """Test that data state can be reached by mapping everything."""
     mc, handler = mc_with_fsoe_with_sra
 
-    # Set the new mapping
     handler.maps.inputs.clear()
     handler.maps.outputs.clear()
+
+    # Set the new mapping
+    # STO must be mapped in the first position
+    sto = handler.get_function_instance(safety_functions.STOFunction)
+    handler.maps.inputs.add(sto.command)
+    handler.maps.outputs.add(sto.command)
+    # Add the rest of the safety functions
     for sf in SafetyFunction.for_handler(handler):
+        if isinstance(sf, safety_functions.STOFunction):
+            continue  # STO is already added
         if hasattr(sf, "command"):
             handler.maps.insert_in_best_position(sf.command)
         else:
@@ -114,15 +122,18 @@ def test_map_all_safety_functions(
     )
     FSoEDictionaryMapJSONSerializer.save_mapping_to_json(handler.maps, json_file, override=True)
 
-    mc.fsoe.configure_pdos(start_pdos=True)
-    mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
-    # Stay 3 seconds in Data state
-    for i in range(3):
-        time.sleep(1)
-    mc.fsoe.stop_master(stop_pdos=True)
-
-    sci_file.unlink()
-    json_file.unlink()
+    try:
+        mc.fsoe.configure_pdos(start_pdos=True)
+        mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
+        # Stay 3 seconds in Data state
+        for i in range(3):
+            time.sleep(1)
+        sci_file.unlink()
+        json_file.unlink()
+    except Exception as e:
+        pytest.fail(f"Failed to reach data state random mapping: {e}")
+    finally:
+        mc.fsoe.stop_master(stop_pdos=True)
 
 
 @pytest.mark.fsoe_phase2
@@ -140,7 +151,7 @@ def test_fixed_mapping_combination(
     handler.maps.inputs.clear()
     handler.maps.outputs.clear()
 
-    # # Configure Outputs map
+    # Configure Outputs map
     handler.maps.outputs.add(sto.command)
     handler.maps.outputs.add_padding(1)
     handler.maps.outputs.add(ss1.command)
