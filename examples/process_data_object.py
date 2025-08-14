@@ -3,7 +3,9 @@ from functools import partial
 from typing import TYPE_CHECKING
 
 from ingenialink.pdo import RPDOMapItem, TPDOMapItem
+from ingenialink.pdo_network_manager import PDONetworkManager
 
+from ingeniamotion.metaclass import DEFAULT_AXIS
 from ingeniamotion.motion_controller import MotionController
 
 if TYPE_CHECKING:
@@ -44,20 +46,22 @@ def update_position_value_using_pdo(
     waiting_time_for_pdo_exchange = 5
     # Create a RPDO map item
     initial_position_value = mc.motion.get_actual_position()
-    position_set_point = net.pdo_manager.create_pdo_item(
-        "CL_POS_SET_POINT_VALUE", value=initial_position_value
+    position_set_point = PDONetworkManager.create_pdo_item(
+        "CL_POS_SET_POINT_VALUE", servo=servo, value=initial_position_value, axis=DEFAULT_AXIS
     )
     # Create a TPDO map item
-    actual_position = net.pdo_manager.create_pdo_item("CL_POS_FBK_VALUE")
+    actual_position = PDONetworkManager.create_pdo_item(
+        "CL_POS_FBK_VALUE", servo=servo, axis=DEFAULT_AXIS
+    )
     # Create the RPDO and TPDO maps
-    rpdo_map, tpdo_map = net.pdo_manager.create_pdo_maps([position_set_point], [actual_position])
+    rpdo_map, tpdo_map = PDONetworkManager.create_pdo_maps([position_set_point], [actual_position])
     # Callbacks subscriptions for TPDO and RPDO map items
     net.pdo_manager.subscribe_to_receive_process_data(partial(notify_actual_value, actual_position))
     net.pdo_manager.subscribe_to_send_process_data(
         partial(update_position_set_point, position_set_point)
     )
     # Map the PDO maps to the slave
-    net.pdo_manager.set_pdo_maps_to_slave(rpdo_map, tpdo_map)
+    net.pdo_manager.set_pdo_maps_to_slave(rpdo_map, tpdo_map, servo=servo)
     # Start the PDO exchange
     # Make sure to set an appropriate refresh rate considering the execution time of the send and
     # receive process data callbacks.
