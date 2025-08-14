@@ -77,11 +77,12 @@ def test_map_safety_input_output_random(
     except Exception as e:
         pytest.fail(f"Failed to reach data state random mapping: {e}")
     finally:
-        mc.fsoe.stop_master(stop_pdos=True)
+        if mc.capture.pdo.is_active:
+            mc.fsoe.stop_master(stop_pdos=True)
 
 
 @pytest.mark.fsoe_phase2
-@pytest.mark.xfail(reason="Maybe mapping with all safety functions is not valid", strict=True)
+# @pytest.mark.xfail(reason="Maybe mapping with all safety functions is not valid")
 def test_map_all_safety_functions(
     mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
     timeout_for_data_sra: float,
@@ -133,7 +134,8 @@ def test_map_all_safety_functions(
     except Exception as e:
         pytest.fail(f"Failed to reach data state random mapping: {e}")
     finally:
-        mc.fsoe.stop_master(stop_pdos=True)
+        if mc.capture.pdo.is_active:
+            mc.fsoe.stop_master(stop_pdos=True)
 
 
 @pytest.mark.fsoe_phase2
@@ -185,4 +187,5 @@ def test_fixed_mapping_combination(
     except TimeoutError as e:
         pytest.fail(f"Failed to reach data state: {e}")
     finally:
-        mc.fsoe.stop_master(stop_pdos=True)
+        if mc.capture.pdo.is_active:
+            mc.fsoe.stop_master(stop_pdos=True)
