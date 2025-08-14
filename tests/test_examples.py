@@ -3,6 +3,7 @@ from unittest.mock import Mock
 
 import pytest
 from ingenialink import CanBaudrate, CanDevice
+from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.exceptions import ILFirmwareLoadError
 from ingenialink.pdo import RPDOMap, TPDOMap
 from summit_testing_framework.setups.descriptors import (
@@ -569,13 +570,15 @@ def test_ecat_coe_connection_example_connection_error(mocker, capsys):
 
 def test_pdo_poller_success(mocker):
     connect_servo_ethercat_interface_ip = mocker.patch.object(
-        Communication, "connect_servo_ethercat_interface_ip"
+        Communication,
+        "connect_servo_ethercat_interface_ip",
+        return_value=(None, EthercatNetwork(interface_name="mock_interface")),
     )
     disconnect = mocker.patch.object(Communication, "disconnect")
+    get_drive = mocker.patch.object(MotionController, "_get_drive")
+    get_network = mocker.patch.object(MotionController, "_get_network")
     mock_pdo_poller = PDOPoller(MotionController(), "mock_alias", 0.1, None, 100)
-    create_poller = mocker.patch.object(
-        PDONetworkManager, "create_poller", return_value=mock_pdo_poller
-    )
+    create_poller = mocker.patch.object(PDOPoller, "create_poller", return_value=mock_pdo_poller)
     mock_poller_data = (deque([0.1, 0.2]), [deque([1, 2]), deque([0.0, 0.0])])
     data = mocker.patch.object(
         PDOPoller, "data", new_callable=mocker.PropertyMock, return_value=mock_poller_data
@@ -586,6 +589,8 @@ def test_pdo_poller_success(mocker):
 
     connect_servo_ethercat_interface_ip.assert_called_once()
     create_poller.assert_called_once()
+    get_drive.assert_called_once()
+    get_network.assert_called_once()
     data.assert_called_once()
     stop.assert_called_once()
     disconnect.assert_called_once()
