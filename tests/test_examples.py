@@ -658,6 +658,7 @@ def test_load_save_configuration_register_changes_failed(mocker, capsys):
     assert all_outputs[1] == "This max. velocity value is already set."
 
 
+@pytest.mark.soem
 def test_process_data_object(mocker):
     connect_servo_ethercat_interface_ip = mocker.patch.object(
         Communication,
