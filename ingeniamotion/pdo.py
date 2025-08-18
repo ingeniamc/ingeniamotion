@@ -60,7 +60,7 @@ class PDOPoller:
         self.__net.pdo_manager.set_pdo_maps_to_slave(
             self.__rpdo_map, self.__tpdo_map, servo=self.__servo
         )
-        self.__net.pdo_manager.subscribe_to_receive_process_data(self._new_data_available)
+        self.__tpdo_map.subscribe_to_process_data_event(self._new_data_available)
         for callback in self.__exception_callbacks:
             self.__net.pdo_manager.subscribe_to_exceptions(callback)
         self.__start_time = time.time()
@@ -71,7 +71,7 @@ class PDOPoller:
     def stop(self) -> None:
         """Stop the poller."""
         self.__net.deactivate_pdos()
-        self.__net.pdo_manager.unsubscribe_to_receive_process_data(self._new_data_available)
+        self.__tpdo_map.unsubscribe_to_process_data_event()
         for callback in self.__exception_callbacks:
             self.__net.pdo_manager.unsubscribe_to_exceptions(callback)
         self.__net.pdo_manager.remove_rpdo_map(self.__servo, self.__rpdo_map)
@@ -236,24 +236,14 @@ class PDONetworkManager:
         self.__net: Optional[EthercatNetwork] = None
 
         # Save the callbacks to add/remove, manage them when there is a reference to the network
-        self.__send_process_data_add_callback: list[Callable[[], None]] = []
-        self.__receive_process_data_add_callback: list[Callable[[], None]] = []
+        self.__send_process_data_callbacks: list[Callable[[], None]] = []
+        self.__receive_process_data_callbacks: list[Callable[[], None]] = []
         self.__exception_add_callback: list[Callable[[ILError], None]] = []
-        self.__send_process_data_remove_callback: list[Callable[[], None]] = []
-        self.__receive_process_data_remove_callback: list[Callable[[], None]] = []
         self.__exception_remove_callback: list[Callable[[ILError], None]] = []
 
-    def __evaluate_subscriptions(self, net: EthercatNetwork) -> None:
-        for callback in self.__send_process_data_add_callback:
-            net.pdo_manager.subscribe_to_send_process_data(callback)
-        for callback in self.__receive_process_data_add_callback:
-            net.pdo_manager.subscribe_to_receive_process_data(callback)
+    def __evaluate_net_subscriptions(self, net: EthercatNetwork) -> None:
         for exception_callback in self.__exception_add_callback:
             net.pdo_manager.subscribe_to_exceptions(exception_callback)
-        for callback in self.__send_process_data_remove_callback:
-            net.pdo_manager.unsubscribe_to_send_process_data(callback)
-        for callback in self.__receive_process_data_remove_callback:
-            net.pdo_manager.unsubscribe_to_receive_process_data(callback)
         for exception_callback in self.__exception_remove_callback:
             net.pdo_manager.unsubscribe_to_exceptions(exception_callback)
 
@@ -368,6 +358,13 @@ class PDONetworkManager:
         """
         drive, net = self.__get_drive_and_network(servo)
         net.pdo_manager.set_pdo_maps_to_slave(rpdo_maps=rpdo_maps, tpdo_maps=tpdo_maps, servo=drive)
+
+        _rpdo_maps = [rpdo_maps] if isinstance(rpdo_maps, RPDOMap) else rpdo_maps
+        _tpdo_maps = [tpdo_maps] if isinstance(tpdo_maps, TPDOMap) else tpdo_maps
+        for rpdo_map in _rpdo_maps:
+            rpdo_map.subscribe_to_process_data_event(self.__notify_send_process_data)
+        for tpdo_map in _tpdo_maps:
+            tpdo_map.subscribe_to_process_data_event(self.__notify_receive_process_data)
 
     def clear_pdo_mapping(self, servo: str = DEFAULT_SERVO) -> None:
         """Clear the PDO mapping within the servo.
@@ -490,7 +487,7 @@ class PDONetworkManager:
             )
         if not isinstance(net, EthercatNetwork):
             raise ValueError(f"Expected EthercatNetwork. Got {type(net)}")
-        self.__evaluate_subscriptions(net=net)
+        self.__evaluate_net_subscriptions(net=net)
         self.__net = net
         self.__net.subscribe_to_pdo_thread_status(callback=self.__pdo_thread_status_callback)
         self.__net.activate_pdos(refresh_rate=refresh_rate, watchdog_timeout=watchdog_timeout)
@@ -519,16 +516,34 @@ class PDONetworkManager:
         """
         return self.__pdo_thread_status
 
+    def __notify_send_process_data(self) -> None:
+        """Notify the send process data callbacks.
+
+        In the new implementation, each RPDO map will notify to its subscriber.
+        To maintain the previous behavior, notifications from all PDO maps will
+        be sent to all subscribers.
+        """
+        for callback in self.__send_process_data_callbacks:
+            callback()
+
+    def __notify_receive_process_data(self) -> None:
+        """Notify the receive process data callbacks.
+
+        In the new implementation, each TPDO map will notify to its subscriber.
+        To maintain the previous behavior, notifications from all PDO maps will
+        be sent to all subscribers.
+        """
+        for callback in self.__receive_process_data_callbacks:
+            callback()
+
     def subscribe_to_send_process_data(self, callback: Callable[[], None]) -> None:
         """Subscribe be notified when the RPDO values will be sent.
 
         Args:
             callback: Callback function.
         """
-        if self.__net is not None:
-            self.__net.pdo_manager.subscribe_to_send_process_data(callback)
-        else:
-            self.__send_process_data_add_callback.append(callback)
+        if callback not in self.__send_process_data_callbacks:
+            self.__send_process_data_callbacks.append(callback)
 
     def subscribe_to_receive_process_data(self, callback: Callable[[], None]) -> None:
         """Subscribe be notified when the TPDO values are received.
@@ -536,10 +551,8 @@ class PDONetworkManager:
         Args:
             callback: Callback function.
         """
-        if self.__net is not None:
-            self.__net.pdo_manager.subscribe_to_receive_process_data(callback)
-        else:
-            self.__receive_process_data_add_callback.append(callback)
+        if callback not in self.__receive_process_data_callbacks:
+            self.__receive_process_data_callbacks.append(callback)
 
     def subscribe_to_exceptions(self, callback: Callable[[ILError], None]) -> None:
         """Subscribe be notified when there is an exception in the PDO process data thread.
@@ -561,10 +574,8 @@ class PDONetworkManager:
         Args:
             callback: Subscribed callback function.
         """
-        if self.__net is not None:
-            self.__net.pdo_manager.unsubscribe_to_send_process_data(callback)
-        else:
-            self.__send_process_data_remove_callback.append(callback)
+        if callback in self.__send_process_data_callbacks:
+            self.__send_process_data_callbacks.remove(callback)
 
     def unsubscribe_to_receive_process_data(self, callback: Callable[[], None]) -> None:
         """Unsubscribe from the receive process data notifications.
@@ -573,10 +584,8 @@ class PDONetworkManager:
             callback: Subscribed callback function.
 
         """
-        if self.__net is not None:
-            self.__net.pdo_manager.unsubscribe_to_receive_process_data(callback)
-        else:
-            self.__receive_process_data_remove_callback.append(callback)
+        if callback in self.__receive_process_data_callbacks:
+            self.__receive_process_data_callbacks.remove(callback)
 
     def create_poller(
         self,

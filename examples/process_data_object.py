@@ -56,10 +56,8 @@ def update_position_value_using_pdo(
     # Create the RPDO and TPDO maps
     rpdo_map, tpdo_map = PDONetworkManager.create_pdo_maps([position_set_point], [actual_position])
     # Callbacks subscriptions for TPDO and RPDO map items
-    net.pdo_manager.subscribe_to_receive_process_data(partial(notify_actual_value, actual_position))
-    net.pdo_manager.subscribe_to_send_process_data(
-        partial(update_position_set_point, position_set_point)
-    )
+    tpdo_map.subscribe_to_process_data_event(partial(notify_actual_value, actual_position))
+    rpdo_map.subscribe_to_process_data_event(partial(update_position_set_point, position_set_point))
     # Map the PDO maps to the slave
     net.pdo_manager.set_pdo_maps_to_slave(rpdo_map, tpdo_map, servo=servo)
     # Start the PDO exchange

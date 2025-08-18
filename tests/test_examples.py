@@ -679,11 +679,8 @@ def test_process_data_object(mocker):
     activate_pdos = mocker.patch.object(EthercatNetwork, "activate_pdos")
     deactivate_pdos = mocker.patch.object(EthercatNetwork, "deactivate_pdos")
     mocker.patch.object(Motion, "get_actual_position")
-    subscribe_to_receive_process_data = mocker.patch(
-        "examples.process_data_object.PDONetworkManager.subscribe_to_receive_process_data"
-    )
-    subscribe_to_send_process_data = mocker.patch(
-        "examples.process_data_object.PDONetworkManager.subscribe_to_send_process_data"
+    subscribe_to_process_data_event = mocker.patch(
+        "ingenialink.pdo.PDOMap.subscribe_to_process_data_event"
     )
 
     mocks_to_attach = {
@@ -692,8 +689,7 @@ def test_process_data_object(mocker):
         "create_pdo_item": create_pdo_item,
         "create_pdo_maps": create_pdo_maps,
         "set_pdo_maps_to_slave": set_pdo_maps_to_slave,
-        "subscribe_to_receive_process_data": subscribe_to_receive_process_data,
-        "subscribe_to_send_process_data": subscribe_to_send_process_data,
+        "subscribe_to_process_data_event": subscribe_to_process_data_event,
         "activate_pdos": activate_pdos,
         "deactivate_pdos": deactivate_pdos,
         "motor_disable": motor_disable,
@@ -713,8 +709,8 @@ def test_process_data_object(mocker):
         "create_pdo_item",
         "create_pdo_item",
         "create_pdo_maps",
-        "subscribe_to_receive_process_data",
-        "subscribe_to_send_process_data",
+        "subscribe_to_process_data_event",
+        "subscribe_to_process_data_event",
         "set_pdo_maps_to_slave",
         "activate_pdos",
         "deactivate_pdos",

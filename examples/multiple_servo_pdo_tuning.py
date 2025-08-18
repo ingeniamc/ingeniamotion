@@ -241,8 +241,8 @@ def configure_pdos(
 
     pdo_callbacks: PDOCallbacks = PDOCallbacks(output_1, output_2, output_3, input_1, servo)
 
-    net.pdo_manager.subscribe_to_receive_process_data(pdo_callbacks.notify_output_value)
-    net.pdo_manager.subscribe_to_send_process_data(pdo_callbacks.update_input_values)
+    tpdo_map.subscribe_to_process_data_event(pdo_callbacks.notify_output_value)
+    rpdo_map.subscribe_to_process_data_event(pdo_callbacks.update_input_values)
     net.pdo_manager.set_pdo_maps_to_slave(rpdo_map, tpdo_map, servo=servo)
 
     return pdo_callbacks

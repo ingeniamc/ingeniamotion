@@ -325,8 +325,8 @@ class FSoEMasterHandler:
         self.__running = False
 
         # Unsubscribe from PDO events
-        self.net.pdo_manager.unsubscribe_to_send_process_data(self.get_request)
-        self.net.pdo_manager.unsubscribe_to_receive_process_data(self.set_reply)
+        self.safety_master_pdu_map.unsubscribe_to_process_data_event()
+        self.safety_slave_pdu_map.unsubscribe_to_process_data_event()
 
     def delete(self) -> None:
         """Delete the master handler."""
@@ -377,10 +377,6 @@ class FSoEMasterHandler:
         )
 
         # Subscribe to events
-        # https://novantamotion.atlassian.net/browse/INGM-667
-        self.__net.pdo_manager.subscribe_to_send_process_data(self.get_request)
-        self.__net.pdo_manager.subscribe_to_receive_process_data(self.set_reply)
-
         self.safety_master_pdu_map.subscribe_to_process_data_event(self.get_request)
         self.safety_slave_pdu_map.subscribe_to_process_data_event(self.set_reply)
 

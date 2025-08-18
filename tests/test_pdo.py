@@ -17,6 +17,7 @@ from ingeniamotion.pdo import PDOPoller
 
 if TYPE_CHECKING:
     from ingenialink.ethercat.servo import EthercatServo
+    from ingenialink.pdo import PDOMap
 
     from ingeniamotion.motion_controller import MotionController
 
@@ -232,6 +233,8 @@ def test_start_pdos(
     initial_operation_modes = {}
     rpdo_values = {}
     tpdo_values = {}
+    rpdo_maps: dict[str, PDOMap] = {}
+    tpdo_maps: dict[str, PDOMap] = {}
     for s, a in zip(servo, alias):
         rpdo_map = PDONetworkManager.create_empty_rpdo_map()
         tpdo_map = PDONetworkManager.create_empty_tpdo_map()
@@ -251,6 +254,8 @@ def test_start_pdos(
         ])
         initial_operation_modes[a] = initial_operation_mode
         rpdo_values[a] = random_op_mode
+        rpdo_maps[a] = rpdo_map
+        tpdo_maps[a] = tpdo_map
 
     def send_callback():
         for a in alias:
@@ -262,8 +267,10 @@ def test_start_pdos(
             _, tpdo_map_item = pdo_map_items[a]
             tpdo_values[a] = tpdo_map_item.value
 
-    net.pdo_manager.subscribe_to_send_process_data(send_callback)
-    net.pdo_manager.subscribe_to_receive_process_data(receive_callback)
+    for a in alias:
+        rpdo_maps[a].subscribe_to_process_data_event(send_callback)
+        tpdo_maps[a].subscribe_to_process_data_event(receive_callback)
+
     assert not net.pdo_manager.is_active
     refresh_rate = 0.5
     net.activate_pdos(refresh_rate=refresh_rate)
