@@ -124,9 +124,9 @@ def test_map_all_safety_functions(
     sci_file = fsoe_maps_dir / "complete_mapping.sci"
     json_file = fsoe_maps_dir / "complete_mapping.json"
     handler.serialize_mapping_to_sci(
-        esi_file=setup_specifier_with_esi.extra_data["esi_file"], sci_file=sci_file, override=False
+        esi_file=setup_specifier_with_esi.extra_data["esi_file"], sci_file=sci_file, override=True
     )
-    FSoEDictionaryMapJSONSerializer.save_mapping_to_json(handler.maps, json_file, override=False)
+    FSoEDictionaryMapJSONSerializer.save_mapping_to_json(handler.maps, json_file, override=True)
 
     try:
         mc.fsoe.configure_pdos(start_pdos=True)
