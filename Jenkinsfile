@@ -88,6 +88,10 @@ pipeline {
     }
     parameters {
         choice(
+                choices: ['MIN', 'MAX', 'MIN_MAX', 'All'],
+                name: 'PYTHON_VERSIONS'
+        )
+        choice(
             choices: [
                 '.*',
                 'virtual_drive_tests',
