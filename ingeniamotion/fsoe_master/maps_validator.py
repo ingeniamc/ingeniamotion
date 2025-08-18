@@ -8,7 +8,6 @@ from typing_extensions import override
 
 from ingeniamotion.fsoe_master.frame import FSoEFrame
 from ingeniamotion.fsoe_master.fsoe import (
-    FSoEDictionaryItemOutput,
     FSoEDictionaryMap,
     FSoEDictionaryMappedItem,
 )
@@ -305,7 +304,8 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
                             rule=FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED,
                             exception=(
                                 f"Make sure that 8 bit objects belong to the same data block. "
-                                f"Data slot {data_slot_i} contains split object {item.item.name}."
+                                f"Data slot {data_slot_i} contains split object "
+                                f"{item.item.name if item.item is not None else 'PADDING'}."
                             ),
                             items=[item],
                         )
@@ -386,7 +386,7 @@ class ObjectsAlignedValidator(FSoEFrameRuleValidator):
 class STOCommandFirstValidator(FSoEFrameRuleValidator):
     """Validator for the STO command position in FSoE frames.
 
-    Validates that the STO command is always mapped to the first position in Safe Outputs.
+    Validates that the STO command is always mapped to the first position.
     """
 
     def __init__(self) -> None:
@@ -397,15 +397,11 @@ class STOCommandFirstValidator(FSoEFrameRuleValidator):
         self, dictionary_map: FSoEDictionaryMap, rules: list[FSoEFrameRules]
     ) -> FSoEFrameRuleValidatorOutput:
         exceptions: dict[FSoEFrameRules, InvalidFSoEFrameRule] = {}
-        # Only validate if the dictionary map contains outputs
-        if FSoEDictionaryItemOutput not in dictionary_map.item_types_accepted:
-            return FSoEFrameRuleValidatorOutput(rules=rules, exceptions=exceptions)
-
         first_item = dictionary_map._items[0]
         if first_item.item is None or first_item.item.name != STOFunction.COMMAND_UID:
             exceptions[FSoEFrameRules.STO_COMMAND_FIRST] = InvalidFSoEFrameRule(
                 rule=FSoEFrameRules.STO_COMMAND_FIRST,
-                exception="STO command must be mapped to the first position in Safe Outputs",
+                exception="STO command must be mapped to the first position",
                 items=[first_item] if first_item is not None else [],
             )
 
