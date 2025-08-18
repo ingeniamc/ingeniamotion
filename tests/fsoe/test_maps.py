@@ -1,6 +1,3 @@
-import os
-import subprocess
-import sys
 import time
 import warnings
 from pathlib import Path
@@ -21,30 +18,6 @@ if FSOE_MASTER_INSTALLED:
         from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
         from ingeniamotion.fsoe_master.maps import PDUMaps
         from tests.fsoe.conftest import FSoERandomMappingGenerator
-
-
-def run_in_subprocess(test_name, reruns=2, delay=5):
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            for attempt in range(reruns + 1):
-                print(f"\n🔁 Attempt {attempt + 1} for {test_name}")
-                result = subprocess.run(
-                    [sys.executable, "-m", "pytest", "-k", test_name], cwd=os.getcwd()
-                )
-                if result.returncode == 0:
-                    print("✅ Test passed")
-                    return
-                else:
-                    print("❌ Test failed")
-                    if attempt < reruns:
-                        import time
-
-                        time.sleep(delay)
-            pytest.fail(f"{test_name} failed after {reruns + 1} attempts")
-
-        return wrapper
-
-    return decorator
 
 
 def _check_mappings_have_the_same_length(maps: "PDUMaps") -> None:
@@ -82,7 +55,7 @@ def test_map_safety_input_output_random(
         random_paddings=random_paddings,
         seed=random_seed,
         filename=json_file,
-        override=False,
+        override=True,
     )
     # Maps must be of the same size
     _check_mappings_have_the_same_length(maps)
@@ -93,7 +66,7 @@ def test_map_safety_input_output_random(
     handler.maps.outputs.clear()
     handler.set_maps(maps)
     handler.serialize_mapping_to_sci(
-        esi_file=setup_specifier_with_esi.extra_data["esi_file"], sci_file=sci_file, override=False
+        esi_file=setup_specifier_with_esi.extra_data["esi_file"], sci_file=sci_file, override=True
     )
 
     try:
@@ -151,9 +124,9 @@ def test_map_all_safety_functions(
     sci_file = fsoe_maps_dir / "complete_mapping.sci"
     json_file = fsoe_maps_dir / "complete_mapping.json"
     handler.serialize_mapping_to_sci(
-        esi_file=setup_specifier_with_esi.extra_data["esi_file"], sci_file=sci_file, override=True
+        esi_file=setup_specifier_with_esi.extra_data["esi_file"], sci_file=sci_file, override=False
     )
-    FSoEDictionaryMapJSONSerializer.save_mapping_to_json(handler.maps, json_file, override=True)
+    FSoEDictionaryMapJSONSerializer.save_mapping_to_json(handler.maps, json_file, override=False)
 
     try:
         mc.fsoe.configure_pdos(start_pdos=True)
