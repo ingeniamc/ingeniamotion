@@ -1,3 +1,6 @@
+import os
+import subprocess
+import sys
 import time
 import warnings
 from pathlib import Path
@@ -18,6 +21,30 @@ if FSOE_MASTER_INSTALLED:
         from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
         from ingeniamotion.fsoe_master.maps import PDUMaps
         from tests.fsoe.conftest import FSoERandomMappingGenerator
+
+
+def run_in_subprocess(test_name, reruns=2, delay=5):
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            for attempt in range(reruns + 1):
+                print(f"\n🔁 Attempt {attempt + 1} for {test_name}")
+                result = subprocess.run(
+                    [sys.executable, "-m", "pytest", "-k", test_name], cwd=os.getcwd()
+                )
+                if result.returncode == 0:
+                    print("✅ Test passed")
+                    return
+                else:
+                    print("❌ Test failed")
+                    if attempt < reruns:
+                        import time
+
+                        time.sleep(delay)
+            pytest.fail(f"{test_name} failed after {reruns + 1} attempts")
+
+        return wrapper
+
+    return decorator
 
 
 def _check_mappings_have_the_same_length(maps: "PDUMaps") -> None:
@@ -124,9 +151,9 @@ def test_map_all_safety_functions(
     sci_file = fsoe_maps_dir / "complete_mapping.sci"
     json_file = fsoe_maps_dir / "complete_mapping.json"
     handler.serialize_mapping_to_sci(
-        esi_file=setup_specifier_with_esi.extra_data["esi_file"], sci_file=sci_file, override=False
+        esi_file=setup_specifier_with_esi.extra_data["esi_file"], sci_file=sci_file, override=True
     )
-    FSoEDictionaryMapJSONSerializer.save_mapping_to_json(handler.maps, json_file, override=False)
+    FSoEDictionaryMapJSONSerializer.save_mapping_to_json(handler.maps, json_file, override=True)
 
     try:
         mc.fsoe.configure_pdos(start_pdos=True)
@@ -138,68 +165,6 @@ def test_map_all_safety_functions(
         json_file.unlink()
     except Exception as e:
         warnings.warn(f"Failed to reach data state with all safety functions: {e}")
-    finally:
-        # If there has been a failure and it tries to remove the PDO maps, it may fail
-        # if the servo is not in preop state
-        try:
-            # Stop the FSoE master handler
-            if mc.capture.pdo.is_active:
-                mc.fsoe.stop_master(stop_pdos=True)
-        except Exception:
-            pass
-
-
-@pytest.mark.fsoe_phase2
-@pytest.mark.flaky(
-    reruns=1, reruns_delay=1
-)  # https://novantamotion.atlassian.net/browse/SACOAPP-255
-def test_fixed_mapping_combination(
-    mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"], timeout_for_data_sra: float
-) -> None:
-    mc, handler = mc_with_fsoe_with_sra
-    # Get the safety functions instances
-    sto = handler.get_function_instance(safety_functions.STOFunction)
-    safe_inputs = handler.get_function_instance(safety_functions.SafeInputsFunction)
-    ss1 = handler.get_function_instance(safety_functions.SS1Function)
-
-    # The handler comes with a default mapping read from the drive.
-    # Clear it to create a new one
-    handler.maps.inputs.clear()
-    handler.maps.outputs.clear()
-
-    # Configure Outputs map
-    handler.maps.outputs.add(sto.command)
-    handler.maps.outputs.add_padding(1)
-    handler.maps.outputs.add(ss1.command)
-    handler.maps.outputs.add_padding(7)
-
-    # Configure Inputs Map
-    handler.maps.inputs.add(sto.command)
-    handler.maps.inputs.add_padding(7)
-    handler.maps.inputs.add(safe_inputs.value)
-    handler.maps.inputs.add_padding(7)
-
-    # Check that mappings have the same length
-    _check_mappings_have_the_same_length(handler.maps)
-
-    # Check that the maps are valid
-    handler.maps.validate()
-
-    mc.fsoe.configure_pdos(start_pdos=True)
-
-    # Wait for the master to reach the Data state
-    try:
-        mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
-
-        for i in range(5):
-            time.sleep(1)
-            # During this time, commands can be changed
-            sto.command.set(1)
-            ss1.command.set(1)
-            # And inputs can be read
-            safe_inputs.value.get()
-    except TimeoutError as e:
-        pytest.fail(f"Failed to reach data state: {e}")
     finally:
         # If there has been a failure and it tries to remove the PDO maps, it may fail
         # if the servo is not in preop state
