@@ -32,10 +32,10 @@ class FSoEDictionaryMapJSONSerializer:
         for item_key, item in zip(["inputs", "outputs"], [maps.inputs, maps.outputs]):
             for item in item:
                 # FSoE dictionary item
-                if hasattr(item, "uid"):
+                if item.item is not None:
                     item_data = {
                         "type": "item",
-                        "uid": item.uid,
+                        "uid": item.item.name,
                     }
                 # Padding
                 else:
