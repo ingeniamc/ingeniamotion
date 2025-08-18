@@ -1472,32 +1472,6 @@ class TestPduMapper:
         assert output.is_rule_valid(FSoEFrameRules.OBJECTS_IN_FRAME) is False
 
     @pytest.mark.fsoe
-    @pytest.mark.skip("TODO: decide if this rule is needed")
-    def test_validate_safe_data_padding_blocks(self, sample_safe_dictionary):
-        """Test that PaddingBlockValidator fails when padding blocks are not between 1-16 bits."""
-        _, fsoe_dict = sample_safe_dictionary
-        maps = PDUMaps.empty(fsoe_dict)
-
-        padding_item = maps.inputs.add_padding(bits=32)
-
-        output = maps.are_inputs_valid(rules=[FSoEFrameRules.PADDING_BLOCKS_VALID])
-        assert len(output.exceptions) == 1
-        assert FSoEFrameRules.PADDING_BLOCKS_VALID in output.exceptions
-        exception = output.exceptions[FSoEFrameRules.PADDING_BLOCKS_VALID]
-        assert isinstance(exception, InvalidFSoEFrameRule)
-        assert "Padding block size must range from 1 to 16 bits, found 32" in exception.exception
-        assert exception.items == [padding_item]
-        assert output.is_rule_valid(FSoEFrameRules.PADDING_BLOCKS_VALID) is False
-
-        # Check that the rule passes when the padding block is <= 16 bits
-        for padding in range(1, 17):
-            maps.inputs.clear()
-            maps.inputs.add_padding(bits=padding)
-            output = maps.are_inputs_valid(rules=[FSoEFrameRules.PADDING_BLOCKS_VALID])
-            assert not output.exceptions
-            assert output.is_rule_valid(FSoEFrameRules.PADDING_BLOCKS_VALID) is True
-
-    @pytest.mark.fsoe
     def test_validate_safe_data_objects_word_aligned(self, sample_safe_dictionary):
         """Test that validation fails when safe data objects >= 16 bits are not word aligned."""
         _, fsoe_dict = sample_safe_dictionary

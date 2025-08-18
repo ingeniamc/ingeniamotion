@@ -23,7 +23,6 @@ class FSoEFrameRules(Enum):
     OBJECTS_ALIGNED = auto()
     OBJECTS_IN_FRAME = auto()
     STO_COMMAND_FIRST = auto()
-    PADDING_BLOCKS_VALID = auto()
     SAFE_DATA_BLOCKS_VALID = auto()
     OBJECTS_SPLIT_RESTRICTED = auto()
 
@@ -328,34 +327,6 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
             exceptions.update(self._validate_objects_in_frame(dictionary_map, safe_data_blocks))
         if FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED in rules:
             exceptions.update(self._validate_size_of_split_objects(safe_data_blocks))
-        return FSoEFrameRuleValidatorOutput(rules=rules, exceptions=exceptions)
-
-
-# TODO: decide if this rule is needed  # noqa: TD002, TD003
-class PaddingBlockValidator(FSoEFrameRuleValidator):
-    """Validator for padding blocks in FSoE frames.
-
-    Validates that the size of padding blocks range from 1 to 16 bits.
-    """
-
-    def __init__(self) -> None:
-        super().__init__(rules=[FSoEFrameRules.PADDING_BLOCKS_VALID])
-
-    @override
-    def _validate(
-        self, dictionary_map: FSoEDictionaryMap, rules: list[FSoEFrameRules]
-    ) -> FSoEFrameRuleValidatorOutput:
-        exceptions: dict[FSoEFrameRules, InvalidFSoEFrameRule] = {}
-        for item in dictionary_map:
-            # Not a padding block
-            if item.item is not None:
-                continue
-            if item.bits < 1 or item.bits > 16:
-                exceptions[FSoEFrameRules.PADDING_BLOCKS_VALID] = InvalidFSoEFrameRule(
-                    rule=FSoEFrameRules.PADDING_BLOCKS_VALID,
-                    exception=f"Padding block size must range from 1 to 16 bits, found {item.bits}",
-                    items=[item] if item is not None else [],
-                )
         return FSoEFrameRuleValidatorOutput(rules=rules, exceptions=exceptions)
 
 
