@@ -53,7 +53,7 @@ def runTestHW(run_identifier, markers, setup_name, install_fsoe = false, extra_a
                                 "-m \"${markers}\" " +
                                 "--setup tests.setups.rack_specifiers.${setup_name} " +
                                 "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\" " +
-                                "-o -v -s log_cli=True" +
+                                "-o log_cli=True" +
                                 "${extra_args}"
                     } catch (err) {
                         unstable(message: "Tests failed")
