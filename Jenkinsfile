@@ -353,9 +353,8 @@ pipeline {
                         }
                         stage("Ethernet Capitan") {
                             when {
-                                expression {
-                                    "ethernet_capitan" ==~ params.run_test_stages
-                                }
+                                // Remove this after fixing INGK-982
+                                expression { false }
                             }
                             steps {
                                 runTestHW("ethernet_capitan", "ethernet", "ETH_CAP_SETUP", false, USE_WIRESHARK_LOGGING)
