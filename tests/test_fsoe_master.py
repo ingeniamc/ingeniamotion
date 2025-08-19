@@ -128,7 +128,7 @@ def fsoe_states():
     return states
 
 
-def __set_default_phase2_mapping(handler: FSoEMasterHandler) -> None:
+def __set_default_phase2_mapping(handler: "FSoEMasterHandler") -> None:
     sto = handler.get_function_instance(STOFunction)
     safe_inputs = handler.get_function_instance(SafeInputsFunction)
     ss1 = handler.get_function_instance(SS1Function)
