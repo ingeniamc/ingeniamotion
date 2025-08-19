@@ -289,6 +289,14 @@ pipeline {
                 }
 
                 stage('HW Tests CanOpen and Ethernet') {
+                    when {
+                        beforeOptions true
+                        beforeAgent true
+                        expression {
+                            "canopen" ==~ params.run_test_stages ||
+                            "ethernet" ==~ params.run_test_stages
+                        }
+                    }
                     options {
                         lock(CAN_NODE_LOCK)
                     }
@@ -363,6 +371,14 @@ pipeline {
                     }
                 }
                 stage('Hw Tests Ethercat') {
+                    when {
+                        beforeOptions true
+                        beforeAgent true
+                        expression {
+                            "ethercat" ==~ params.run_test_stages ||
+                            "fsoe" ==~ params.run_test_stages
+                        }
+                    }
                     options {
                         lock(ECAT_NODE_LOCK)
                     }
