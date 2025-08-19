@@ -128,6 +128,24 @@ def fsoe_states():
     return states
 
 
+def __set_default_phase2_mapping(handler: FSoEMasterHandler) -> None:
+    sto = handler.get_function_instance(STOFunction)
+    safe_inputs = handler.get_function_instance(SafeInputsFunction)
+    ss1 = handler.get_function_instance(SS1Function)
+
+    handler.maps.outputs.clear()
+    handler.maps.outputs.add(sto.command)
+    handler.maps.outputs.add(ss1.command)
+    handler.maps.outputs.add_padding(6)
+
+    handler.maps.inputs.clear()
+    handler.maps.inputs.add(sto.command)
+    handler.maps.inputs.add(ss1.command)
+    handler.maps.inputs.add_padding(6)
+    handler.maps.inputs.add(safe_inputs.value)
+    handler.maps.inputs.add_padding(7)
+
+
 @pytest.fixture()
 def mc_with_fsoe(mc, fsoe_states):
     def add_state(state: FSoEState):
@@ -139,6 +157,9 @@ def mc_with_fsoe(mc, fsoe_states):
     mc.fsoe.subscribe_to_errors(error_handler)
     # Create and start the FSoE master handler
     handler = mc.fsoe.create_fsoe_master_handler(use_sra=False, state_change_callback=add_state)
+    # If phase II, initialize the handler with the default mapping
+    if handler.maps.editable:
+        __set_default_phase2_mapping(handler)
     yield mc, handler
     # Delete the master handler
     mc.fsoe._delete_master_handler()
@@ -159,6 +180,9 @@ def mc_with_fsoe_with_sra(mc, fsoe_states):
     mc.fsoe.subscribe_to_errors(error_handler)
     # Create and start the FSoE master handler
     handler = mc.fsoe.create_fsoe_master_handler(use_sra=True, state_change_callback=add_state)
+    # If phase II, initialize the handler with the default mapping
+    if handler.maps.editable:
+        __set_default_phase2_mapping(handler)
     yield mc, handler
 
     # Delete the master handler
@@ -726,22 +750,6 @@ def test_motor_enable(mc_state_data):
 @pytest.mark.fsoe
 def test_copy_modify_and_set_map(mc_with_fsoe):
     _mc, handler = mc_with_fsoe
-
-    sto = handler.get_function_instance(STOFunction)
-    safe_inputs = handler.get_function_instance(SafeInputsFunction)
-    ss1 = handler.get_function_instance(SS1Function)
-
-    handler.maps.outputs.clear()
-    handler.maps.outputs.add(sto.command)
-    handler.maps.outputs.add(ss1.command)
-    handler.maps.outputs.add_padding(6)
-
-    handler.maps.inputs.clear()
-    handler.maps.inputs.add(sto.command)
-    handler.maps.inputs.add(ss1.command)
-    handler.maps.inputs.add_padding(6)
-    handler.maps.inputs.add(safe_inputs.value)
-    handler.maps.inputs.add_padding(7)
 
     # Obtain one safety input
     si = handler.safe_inputs_function().value
