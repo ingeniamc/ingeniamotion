@@ -294,7 +294,13 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
                 #      the item is fully contained in the current safe data block
                 # item == None: the item is a virtual padding block,
                 # which fits in the current safe data block
-                if bits_in_slot is None or item is None or bits_in_slot == item.bits:
+                # item.item == None: the item is a padding block, it can be split
+                if (
+                    bits_in_slot is None
+                    or item is None
+                    or bits_in_slot == item.bits
+                    or item.item is None
+                ):
                     continue
                 # If the item != 32 bits, it cannot be split across multiple safe data blocks
                 # 16 bit is checked by ObjectsAlignedValidator
@@ -304,8 +310,7 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
                             rule=FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED,
                             exception=(
                                 f"Make sure that 8 bit objects belong to the same data block. "
-                                f"Data slot {data_slot_i} contains split object "
-                                f"{item.item.name if item.item is not None else 'PADDING'}."
+                                f"Data slot {data_slot_i} contains split object {item.item.name}."
                             ),
                             items=[item],
                         )
