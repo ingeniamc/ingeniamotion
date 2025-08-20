@@ -147,3 +147,50 @@ def test_map_all_safety_functions(
                 mc.fsoe.stop_master(stop_pdos=True)
         except Exception:
             pass
+
+
+# TODO: remove
+@pytest.mark.fsoe_phase2
+def test_fixed_mapping_combination(
+    mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
+    timeout_for_data_sra: float,
+    fsoe_maps_dir: Path,
+    setup_specifier_with_esi: DriveHwConfigSpecifier,
+) -> None:
+    mc, handler = mc_with_fsoe_with_sra
+
+    sci_file = fsoe_maps_dir / "test_map.sci"
+
+    mapping = FSoEDictionaryMapJSONSerializer.load_mapping_from_json(
+        handler.dictionary, fsoe_maps_dir / "mapping_7_True_186.json"
+    )
+    handler.set_maps(mapping)
+
+    # Check that mappings have the same length
+    _check_mappings_have_the_same_length(handler.maps)
+
+    # Check that the maps are valid
+    handler.maps.validate()
+    handler.serialize_mapping_to_sci(
+        esi_file=setup_specifier_with_esi.extra_data["esi_file"], sci_file=sci_file, override=True
+    )
+
+    mc.fsoe.configure_pdos(start_pdos=True)
+
+    # Wait for the master to reach the Data state
+    try:
+        mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
+
+        for i in range(5):
+            time.sleep(1)
+    except TimeoutError as e:
+        pytest.fail(f"Failed to reach data state: {e}")
+    finally:
+        # If there has been a failure and it tries to remove the PDO maps, it may fail
+        # if the servo is not in preop state
+        try:
+            # Stop the FSoE master handler
+            if mc.capture.pdo.is_active:
+                mc.fsoe.stop_master(stop_pdos=True)
+        except Exception:
+            pass
