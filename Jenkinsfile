@@ -391,9 +391,8 @@ pipeline {
                         }
                         stage("Ethercat Everest") {
                             when {
-                                expression {
-                                    "ethercat_everest" ==~ params.run_test_stages
-                                }
+                                // Remove this after fixing INGK-983
+                                expression { false }
                             }
                             steps {
                                 runTestHW("ethercat_everest", "soem", "ECAT_EVE_SETUP", false, USE_WIRESHARK_LOGGING)
