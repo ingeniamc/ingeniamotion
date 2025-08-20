@@ -293,7 +293,14 @@ pipeline {
                         beforeOptions true
                         beforeAgent true
                         expression {
-                          "canopen" ==~ params.run_test_stages || "ethernet" ==~ params.run_test_stages
+                          [
+                            "canopen_everest",
+                            "canopen_everest_no_framework",
+                            "canopen_capitan",
+                            "canopen_capitan_no_framework",
+                            "ethernet_everest",
+                            "ethernet_capitan"
+                          ].any { it ==~ params.run_test_stages }
                         }
                     }
                     options {
@@ -374,7 +381,13 @@ pipeline {
                         beforeOptions true
                         beforeAgent true
                         expression {
-                          "ethercat" ==~ params.run_test_stages || "fsoe" ==~ params.run_test_stages
+                          [
+                            "ethercat",
+                            "ethercat_capitan",
+                            "ethercat_multislave",
+                            "fsoe_phase1",
+                            "fsoe_phase2"
+                          ].any { it ==~ params.run_test_stages }
                         }
                     }
                     options {
