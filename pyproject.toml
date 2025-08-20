@@ -57,3 +57,27 @@ include = ["ingeniamotion"]
 
 [tool.setuptools.package-data]
 ingeniamotion = ["py.typed"]
+
+# Dependencies to run poe tasks
+[tool.poetry.group.dev]
+optional = true
+[tool.poetry.group.dev.dependencies]
+poethepoet = {extras = ["poetry-plugin"], version = "^0.35.0"}
+
+# Dependencies for build wheel tasks
+[tool.poetry.group.build]
+optional = true
+[tool.poetry.group.build.dependencies]
+twine = "==6.1.0"
+
+# -----------------------------------------------------------------------
+#                                   TASKS
+# -----------------------------------------------------------------------
+
+# ----------------------------- Build wheel -----------------------------
+[tool.poe.tasks.build]
+help = "Build wheels"
+sequence = [
+    { cmd = "poetry build"},
+    { cmd = "twine check dist/*"}
+]

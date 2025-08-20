@@ -75,6 +75,38 @@ def runTestHW(run_identifier, markers, setup_name, install_fsoe = false, extra_a
     }
 }
 
+def runPython(command, py_version = DEFAULT_PYTHON_VERSION) {
+    if (isUnix()) {
+        sh "python${py_version} -I -m ${command}"
+    } else {
+        bat "py -${py_version} -I -m ${command}"
+    }
+}
+
+def createVirtualEnvironments(String pythonVersionList = "") {
+    runPython("pip install poetry==2.1.3", DEFAULT_PYTHON_VERSION)
+    def versions = pythonVersionList?.trim() ? pythonVersionList : RUN_PYTHON_VERSIONS
+    def pythonVersions = versions.split(',')
+    pythonVersions.each { version ->
+        def venvName = ".venv${version}"
+        if (isUnix()) {
+            sh """
+                python${version} -m venv --without-pip ${venvName}
+                . ${venvName}/bin/activate
+                poetry sync --all-groups
+                deactivate
+            """
+        } else {
+            bat """
+                py -${version} -m venv ${venvName}
+                call ${venvName}/Scripts/activate
+                poetry sync --all-groups
+                deactivate
+            """
+        }
+    }
+}
+
 /* Build develop everyday 3 times starting at 19:00 UTC (21:00 Barcelona Time), running all python versions */
 CRON_SETTINGS = BRANCH_NAME == "develop" ? '''0 19,21,23 * * * % PYTHON_VERSIONS=All''' : ""
 
@@ -188,12 +220,23 @@ pipeline {
                                 }
                             }
                             stages {
+                                stage('Create virtual environments') {
+                                    steps {
+                                        script {
+                                            createVirtualEnvironments(DEFAULT_PYTHON_VERSION)
+                                        }
+                                    }
+                                }
                                 stage('Build wheels') {
                                     environment {
                                         SETUPTOOLS_SCM_PRETEND_VERSION = getPythonVersionForPr()
                                     }
                                     steps {
-                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e build"
+                                        bat """
+                                            call .venv${DEFAULT_PYTHON_VERSION}/Scripts/activate
+                                            poetry run poe build
+                                            deactivate
+                                        """
                                         stash includes: 'dist\\*', name: 'build'
                                         archiveArtifacts artifacts: "dist\\*"
                                     }
