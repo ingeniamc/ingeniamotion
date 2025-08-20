@@ -1,9 +1,8 @@
 # ruff: noqa: ERA001, PERF203
+import dataclasses
 from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import TYPE_CHECKING
-
-from typing_extensions import override
+from typing import TYPE_CHECKING, Optional
 
 from ingeniamotion.fsoe_master.fsoe import (
     FSoEDictionaryItem,
@@ -32,6 +31,31 @@ __all__ = [
 ]
 
 
+@dataclass(frozen=True)
+class SafetyFieldMetadata:
+    """Metadata for safety fields.
+
+    Attributes:
+        uid: Unique identifier for the safety field.
+            May include an instance index, e.g. `FSOE_SS1_{i}`.
+        display_name: Name of the safety field for documentation and display.
+        attr_name: Attribute name of the field in the SafetyFunction class.
+    """
+
+    uid: str
+    display_name: str
+    attr_name: str
+
+
+def safety_field(uid: str, display_name: str):  # type: ignore[no-untyped-def]
+    """Create a dataclass field with metadata for safety functions.
+
+    Returns:
+        dataclass field with safety metadata
+    """
+    return dataclasses.field(metadata={"uid": uid, "display_name": display_name})
+
+
 @dataclass()
 class SafetyFunction:
     """Base class for Safety Functions.
@@ -39,8 +63,8 @@ class SafetyFunction:
     Wraps input/output items and parameters used by the FSoE Master handler.
     """
 
-    io: tuple["FSoEDictionaryItem", ...]
-    parameters: tuple[SafetyParameter, ...]
+    ios: dict[SafetyFieldMetadata, FSoEDictionaryItem]
+    parameters: dict[SafetyFieldMetadata, SafetyParameter]
 
     @classmethod
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafetyFunction"]:
@@ -49,35 +73,92 @@ class SafetyFunction:
         Yields:
             All safety function instances available for the handler.
         """
-        yield from STOFunction.for_handler(handler)
-        yield from SS1Function.for_handler(handler)
-        yield from SafeInputsFunction.for_handler(handler)
-        yield from SOSFunction.for_handler(handler)
-        yield from SS2Function.for_handler(handler)
-        yield from SOutFunction.for_handler(handler)
-        yield from SPFunction.for_handler(handler)
-        yield from SVFunction.for_handler(handler)
-        yield from SafeHomingFunction.for_handler(handler)
-        yield from SLSFunction.for_handler(handler)
-        yield from SSRFunction.for_handler(handler)
-        yield from SLPFunction.for_handler(handler)
+        yield from STOFunction._explore_instances(handler)
+        yield from SS1Function._explore_instances(handler)
+        yield from SafeInputsFunction._explore_instances(handler)
+        yield from SOSFunction._explore_instances(handler)
+        yield from SS2Function._explore_instances(handler)
+        yield from SOutFunction._explore_instances(handler)
+        yield from SPFunction._explore_instances(handler)
+        yield from SVFunction._explore_instances(handler)
+        yield from SafeHomingFunction._explore_instances(handler)
+        yield from SLSFunction._explore_instances(handler)
+        yield from SSRFunction._explore_instances(handler)
+        yield from SLPFunction._explore_instances(handler)
 
     @classmethod
-    def _explore_instances(cls) -> Iterator[int]:
-        """Explore instances of the safety function.
+    def _create_instance(
+        cls, handler: "FSoEMasterHandler", instance_i: Optional[int] = None
+    ) -> Iterator["SafetyFunction"]:
+        """Create an instance of the safety function.
+
+        Args:
+            handler: The FSoE master handler to use.
+            instance_i: The instance index to use for the safety function.
+                Formatted into the UID if provided.
+                If not the function is assumed to be single-instance.
+
+        Raises:
+            KeyError: If the required input/output items
+                or parameters are not found in the handler's dictionary.
 
         Yields:
-            int: An increasing integer starting from 1, representing the instance index.
+            Iterator[SafetyFunction]: An iterator yielding the safety function instance.
         """
+        ios: dict[SafetyFieldMetadata, FSoEDictionaryItem] = {}
+        parameters: dict[SafetyFieldMetadata, SafetyParameter] = {}
+        for field in dataclasses.fields(cls):
+            if "uid" not in field.metadata:
+                continue
+            metadata = SafetyFieldMetadata(**field.metadata, attr_name=field.name)
+            uid = metadata.uid
+            if instance_i:
+                uid = uid.format(i=instance_i)
+
+            if field.type == FSoEDictionaryItemInputOutput:
+                ios[metadata] = cls._get_required_input_output(handler, uid)
+            elif field.type == FSoEDictionaryItemInput:
+                ios[metadata] = cls._get_required_input(handler, uid)
+            elif field.type == SafetyParameter:
+                parameters[metadata] = cls._get_required_parameter(handler, uid)
+
+        yield cls(
+            ios=ios,
+            parameters=parameters,
+            **{field.attr_name: io for field, io in ios.items()},
+            **{field.attr_name: parameter for field, parameter in parameters.items()},
+        )
+
+    @classmethod
+    def _explore_instances(cls, handler: "FSoEMasterHandler") -> Iterator["SafetyFunction"]:
+        """Explore instances of the safety function.
+
+        Tries to create instances of each safety functions according to the availability of
+        the input/output items and parameters in the handler's dictionary.
+
+        Yields:
+            int: Instances of the safety function available for the handler.
+        """
+        # Check if the instance is single-instance
+        try:
+            yield from cls._create_instance(handler)
+            return
+        except KeyError:
+            pass
+
+        # If not single-instance, explore instances until a KeyError is raised.
         i = 1
-        while True:
-            yield i
-            i += 1
+        try:
+            while True:
+                yield from cls._create_instance(handler, instance_i=i)
+                i += 1
+        except KeyError:
+            return
 
     @classmethod
     def _get_required_input_output(
         cls, hander: "FSoEMasterHandler", uid: str
-    ) -> "FSoEDictionaryItemInputOutput":
+    ) -> FSoEDictionaryItemInputOutput:
         """Get the required input/output item from the handler's dictionary.
 
         Raises:
@@ -97,9 +178,7 @@ class SafetyFunction:
         return item
 
     @classmethod
-    def _get_required_input(
-        cls, handler: "FSoEMasterHandler", uid: str
-    ) -> "FSoEDictionaryItemInput":
+    def _get_required_input(cls, handler: "FSoEMasterHandler", uid: str) -> FSoEDictionaryItemInput:
         """Get the required input item from the handler's dictionary.
 
         Raises:
@@ -139,13 +218,7 @@ class STOFunction(SafetyFunction):
 
     COMMAND_UID = "FSOE_STO"
 
-    command: "FSoEDictionaryItemInputOutput"
-
-    @override
-    @classmethod
-    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["STOFunction"]:
-        sto_command = cls._get_required_input_output(handler, cls.COMMAND_UID)
-        yield cls(command=sto_command, io=(sto_command,), parameters=())
+    command: FSoEDictionaryItemInputOutput = safety_field(uid=COMMAND_UID, display_name="Command")
 
 
 @dataclass()
@@ -154,26 +227,10 @@ class SS1Function(SafetyFunction):
 
     COMMAND_UID = "FSOE_SS1_{i}"
 
-    TIME_TO_STO_UID = "FSOE_SS1_TIME_TO_STO_{i}"
-
-    command: "FSoEDictionaryItemInputOutput"
-    time_to_sto: SafetyParameter
-
-    @override
-    @classmethod
-    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SS1Function"]:
-        for i in cls._explore_instances():
-            try:
-                ss1_command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i=i))
-                time_to_sto = cls._get_required_parameter(handler, cls.TIME_TO_STO_UID.format(i=i))
-                yield cls(
-                    command=ss1_command,
-                    time_to_sto=time_to_sto,
-                    io=(ss1_command,),
-                    parameters=(time_to_sto,),
-                )
-            except KeyError:  # noqa: PERF203
-                break
+    command: FSoEDictionaryItemInputOutput = safety_field(uid=COMMAND_UID, display_name="Command")
+    time_to_sto: SafetyParameter = safety_field(
+        uid="FSOE_SS1_TIME_TO_STO_{i}", display_name="Time to STO"
+    )
 
 
 @dataclass()
@@ -181,299 +238,131 @@ class SafeInputsFunction(SafetyFunction):
     """Safe Inputs Safety Function."""
 
     SAFE_INPUTS_UID = "FSOE_SAFE_INPUTS_VALUE"
-
-    INPUTS_MAP_UID = "FSOE_SAFE_INPUTS_MAP"
-
-    value: "FSoEDictionaryItemInput"
-    map: SafetyParameter
-
-    @override
-    @classmethod
-    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafeInputsFunction"]:
-        safe_inputs = cls._get_required_input(handler, cls.SAFE_INPUTS_UID)
-        inputs_map = cls._get_required_parameter(handler, cls.INPUTS_MAP_UID)
-        yield cls(value=safe_inputs, map=inputs_map, io=(safe_inputs,), parameters=(inputs_map,))
+    value: FSoEDictionaryItemInput = safety_field(uid=SAFE_INPUTS_UID, display_name="Value")
+    map: SafetyParameter = safety_field(uid="FSOE_SAFE_INPUTS_MAP", display_name="Map")
 
 
 @dataclass()
 class SOSFunction(SafetyFunction):
     """Safe Operation Stop Safety Function."""
 
-    COMMAND_UID = "FSOE_SOS_{i}"
-    POSITION_ZERO_WINDOW_UID = "FSOE_SOS_POS_ZERO_WINDOW_{i}"
-    VELOCITY_ZERO_WINDOW_UID = "FSOE_SOS_VEL_ZERO_WINDOW_{i}"
-
-    command: "FSoEDictionaryItemInputOutput"
-    position_zero_window: SafetyParameter
-    velocity_zero_window: SafetyParameter
-
-    @override
-    @classmethod
-    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SOSFunction"]:
-        for i in cls._explore_instances():
-            try:
-                command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i=i))
-                position_zero_window = cls._get_required_parameter(
-                    handler, cls.POSITION_ZERO_WINDOW_UID.format(i=i)
-                )
-                velocity_zero_window = cls._get_required_parameter(
-                    handler, cls.VELOCITY_ZERO_WINDOW_UID.format(i=i)
-                )
-                yield cls(
-                    command=command,
-                    position_zero_window=position_zero_window,
-                    velocity_zero_window=velocity_zero_window,
-                    io=(command,),
-                    parameters=(position_zero_window, velocity_zero_window),
-                )
-            except KeyError:  # noqa: PERF203
-                break
+    command: FSoEDictionaryItemInputOutput = safety_field(
+        uid="FSOE_SOS_{i}", display_name="Command"
+    )
+    position_zero_window: SafetyParameter = safety_field(
+        uid="FSOE_SOS_POS_ZERO_WINDOW_{i}", display_name="Position Zero Window"
+    )
+    velocity_zero_window: SafetyParameter = safety_field(
+        uid="FSOE_SOS_VEL_ZERO_WINDOW_{i}", display_name="Velocity Zero Window"
+    )
 
 
 @dataclass()
 class SS2Function(SafetyFunction):
     """Safe Stop 2 Safety Function."""
 
-    COMMAND_UID = "FSOE_SS2_{i}"
-    TIME_TO_SOS_UID = "FSOE_SS2_TIME_TO_SOS_{i}"
-    DECELERATION_LIMIT_UID = "FSOE_SS2_DEC_LIMIT_{i}"
-    TIME_DELAY_DECELERATION_LIMIT_UID = "FSOE_SS2_TIME_DELAY_DEC_{i}"
-    ERROR_REACTION_UID = "FSOE_SS2_ERROR_REACTION_{i}"
-
-    command: "FSoEDictionaryItemInputOutput"
-    time_to_sos: "SafetyParameter"
-    deceleration_limit: "SafetyParameter"
-    time_delay_deceleration_limit: "SafetyParameter"
-    error_reaction: "SafetyParameter"
-
-    @override
-    @classmethod
-    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafetyFunction"]:
-        for i in cls._explore_instances():
-            try:
-                command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i=i))
-                time_to_sos = cls._get_required_parameter(handler, cls.TIME_TO_SOS_UID.format(i=i))
-                deceleration_limit = cls._get_required_parameter(
-                    handler, cls.DECELERATION_LIMIT_UID.format(i=i)
-                )
-                time_delay_deceleration_limit = cls._get_required_parameter(
-                    handler, cls.TIME_DELAY_DECELERATION_LIMIT_UID.format(i=i)
-                )
-                error_reaction = cls._get_required_parameter(
-                    handler, cls.ERROR_REACTION_UID.format(i=i)
-                )
-                yield cls(
-                    command=command,
-                    time_to_sos=time_to_sos,
-                    deceleration_limit=deceleration_limit,
-                    time_delay_deceleration_limit=time_delay_deceleration_limit,
-                    error_reaction=error_reaction,
-                    io=(command,),
-                    parameters=(
-                        time_to_sos,
-                        deceleration_limit,
-                        time_delay_deceleration_limit,
-                        error_reaction,
-                    ),
-                )
-            except KeyError:  # noqa: PERF203
-                break
+    command: FSoEDictionaryItemInputOutput = safety_field(
+        uid="FSOE_SS2_{i}", display_name="Command"
+    )
+    time_to_sos: SafetyParameter = safety_field(
+        uid="FSOE_SS2_TIME_TO_SOS_{i}", display_name="Time to SOS"
+    )
+    deceleration_limit: SafetyParameter = safety_field(
+        uid="FSOE_SS2_DEC_LIMIT_{i}", display_name="Deceleration Limit"
+    )
+    time_delay_deceleration_limit: SafetyParameter = safety_field(
+        uid="FSOE_SS2_TIME_DELAY_DEC_{i}", display_name="Time Delay Deceleration Limit"
+    )
+    error_reaction: SafetyParameter = safety_field(
+        uid="FSOE_SS2_ERROR_REACTION_{i}", display_name="Error Reaction"
+    )
 
 
 @dataclass()
 class SOutFunction(SafetyFunction):
     """Safe Output Safety Function."""
 
-    COMMAND_UID = "FSOE_SBC"
-    TIME_DELAY_UID = "FSOE_SBC_BRAKE_TIME_DELAY"
-
-    command: FSoEDictionaryItemInputOutput
-    time_delay: SafetyParameter
-
-    @override
-    @classmethod
-    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafetyFunction"]:
-        for _ in cls._explore_instances():
-            try:
-                command = cls._get_required_input_output(handler, cls.COMMAND_UID)
-                time_delay = cls._get_required_parameter(handler, cls.TIME_DELAY_UID)
-
-                yield cls(
-                    command=command,
-                    time_delay=time_delay,
-                    io=(command,),
-                    parameters=(time_delay,),
-                )
-            except KeyError:  # noqa: PERF203
-                break
+    command: FSoEDictionaryItemInputOutput = safety_field(
+        uid="FSOE_SBC_OUT", display_name="Command"
+    )
+    time_delay: SafetyParameter = safety_field(uid="FSOE_SBC_TIME_DELAY", display_name="Time Delay")
 
 
 @dataclass()
 class SPFunction(SafetyFunction):
     """Safe Position Safety Function."""
 
-    ACTUAL_VALUE_UID = "FSOE_SAFE_POSITION"
-    TOLERANCE_UID = "FSOE_POSITION_TOLERANCE"
-
-    value: FSoEDictionaryItemInput
-    tolerance: SafetyParameter
-
-    @classmethod
-    @override
-    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SPFunction"]:
-        try:
-            value = cls._get_required_input(handler, cls.ACTUAL_VALUE_UID)
-            tolerance = cls._get_required_parameter(handler, cls.TOLERANCE_UID)
-            yield cls(value=value, tolerance=tolerance, io=(value,), parameters=(tolerance,))
-        except KeyError:  # noqa: PERF203
-            return
+    value: FSoEDictionaryItemInput = safety_field(uid="FSOE_SAFE_POSITION", display_name="Value")
+    tolerance: SafetyParameter = safety_field(
+        uid="FSOE_POSITION_TOLERANCE", display_name="Tolerance"
+    )
 
 
 @dataclass()
 class SVFunction(SafetyFunction):
     """Safe Velocity Safety Function."""
 
-    ACTUAL_VALUE_UID = "FSOE_SAFE_VELOCITY"
-
-    value: FSoEDictionaryItemInput
-
-    @classmethod
-    @override
-    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SVFunction"]:
-        try:
-            value = cls._get_required_input(handler, cls.ACTUAL_VALUE_UID)
-            yield cls(value=value, io=(value,), parameters=())
-        except KeyError:
-            return
+    value: FSoEDictionaryItemInput = safety_field("FSOE_SAFE_VELOCITY", display_name="Value")
 
 
 @dataclass()
 class SafeHomingFunction(SafetyFunction):
     """Safe Homing Safety Function."""
 
-    COMMAND_UID = "FSOE_SAFE_HOMING"
-    HOMING_REF_UID = "FSOE_SAFE_HOMING_REFERENCE"
-
-    command: FSoEDictionaryItemInputOutput
-    homing_ref: SafetyParameter
-
-    @classmethod
-    @override
-    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafeHomingFunction"]:
-        try:
-            command = cls._get_required_input_output(handler, cls.COMMAND_UID)
-            homing_ref = cls._get_required_parameter(handler, cls.HOMING_REF_UID)
-            yield cls(
-                command=command, homing_ref=homing_ref, io=(command,), parameters=(homing_ref,)
-            )
-        except KeyError:
-            return
+    command: FSoEDictionaryItemInputOutput = safety_field(
+        uid="FSOE_SAFE_HOMING", display_name="Command"
+    )
+    homing_ref: SafetyParameter = safety_field(
+        uid="FSOE_SAFE_HOMING_REFERENCE", display_name="Reference"
+    )
 
 
 @dataclass()
 class SLSFunction(SafetyFunction):
     """Safe Limited Speed Safety Function."""
 
-    COMMAND_UID = "FSOE_SLS_CMD_{i}"
-    VELOCITY_LIMIT_UID = "FSOE_SLS_VELOCITY_LIMIT_{i}"
-    ERROR_REACTION_UID = "FSOE_SLS_ERROR_REACTION_{i}"
-
-    command: FSoEDictionaryItemInputOutput
-    speed_limit: SafetyParameter
-    error_reaction: SafetyParameter
-
-    @classmethod
-    @override
-    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SLSFunction"]:
-        for i in cls._explore_instances():
-            try:
-                command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i=i))
-                velocity_limit = cls._get_required_parameter(
-                    handler, cls.VELOCITY_LIMIT_UID.format(i=i)
-                )
-                error_reaction = cls._get_required_parameter(
-                    handler, cls.ERROR_REACTION_UID.format(i=i)
-                )
-                yield cls(
-                    command=command,
-                    speed_limit=velocity_limit,
-                    error_reaction=error_reaction,
-                    io=(command,),
-                    parameters=(velocity_limit, error_reaction),
-                )
-            except KeyError:
-                return
+    command: FSoEDictionaryItemInputOutput = safety_field(
+        uid="FSOE_SLS_CMD_{i}", display_name="Command"
+    )
+    velocity_limit: SafetyParameter = safety_field(
+        uid="FSOE_SLS_VELOCITY_LIMIT_{i}", display_name="Limit"
+    )
+    error_reaction: SafetyParameter = safety_field(
+        uid="FSOE_SLS_ERROR_REACTION_{i}", display_name="Error Reaction"
+    )
 
 
 @dataclass()
 class SSRFunction(SafetyFunction):
     """Safe Speed Range Safety Function."""
 
-    COMMAND_UID = "FSOE_SSR_COMMAND_{i}"
-    UPPER_LIMIT_UID = "FSOE_SSR_UPPER_LIMIT_{i}"
-    LOWER_LIMIT_UID = "FSOE_SSR_LOWER_LIMIT_{i}"
-    ERROR_REACTION_UID = "FSOE_SSR_ERROR_REACTION_{i}"
-
-    command: FSoEDictionaryItemInputOutput
-    upper_limit: SafetyParameter
-    lower_limit: SafetyParameter
-    error_reaction: SafetyParameter
-
-    @classmethod
-    @override
-    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafetyFunction"]:
-        for i in cls._explore_instances():
-            try:
-                command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i=i))
-                upper_limit = cls._get_required_parameter(handler, cls.UPPER_LIMIT_UID.format(i=i))
-                lower_limit = cls._get_required_parameter(handler, cls.LOWER_LIMIT_UID.format(i=i))
-                error_reaction = cls._get_required_parameter(
-                    handler, cls.ERROR_REACTION_UID.format(i=i)
-                )
-                yield cls(
-                    command=command,
-                    upper_limit=upper_limit,
-                    lower_limit=lower_limit,
-                    error_reaction=error_reaction,
-                    io=(command,),
-                    parameters=(upper_limit, lower_limit, error_reaction),
-                )
-            except KeyError:
-                return
+    command: FSoEDictionaryItemInputOutput = safety_field(
+        uid="FSOE_SSR_COMMAND_{i}", display_name="Command"
+    )
+    upper_limit: SafetyParameter = safety_field(
+        uid="FSOE_SSR_UPPER_LIMIT_{i}", display_name="Upper Limit"
+    )
+    lower_limit: SafetyParameter = safety_field(
+        uid="FSOE_SSR_LOWER_LIMIT_{i}", display_name="Lower Limit"
+    )
+    error_reaction: SafetyParameter = safety_field(
+        uid="FSOE_SSR_ERROR_REACTION_{i}", display_name="Error Reaction"
+    )
 
 
 @dataclass()
 class SLPFunction(SafetyFunction):
     """Safe Limited Speed Safety Function."""
 
-    COMMAND_UID = "FSOE_SLP_COMMAND_{i}"
-    UPPER_LIMIT_UID = "FSOE_SLP_UPPER_LIMIT_{i}"
-    LOWER_LIMIT_UID = "FSOE_SLP_LOWER_LIMIT_{i}"
-    ERROR_REACTION_UID = "FSOE_SLP_ERROR_REACTION_{i}"
-
-    command: FSoEDictionaryItemInputOutput
-    upper_limit: SafetyParameter
-    lower_limit: SafetyParameter
-    error_reaction: SafetyParameter
-
-    @classmethod
-    @override
-    def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafetyFunction"]:
-        for i in cls._explore_instances():
-            try:
-                command = cls._get_required_input_output(handler, cls.COMMAND_UID.format(i=i))
-                upper_limit = cls._get_required_parameter(handler, cls.UPPER_LIMIT_UID.format(i=i))
-                lower_limit = cls._get_required_parameter(handler, cls.LOWER_LIMIT_UID.format(i=i))
-                error_reaction = cls._get_required_parameter(
-                    handler, cls.ERROR_REACTION_UID.format(i=i)
-                )
-                yield cls(
-                    command=command,
-                    upper_limit=upper_limit,
-                    lower_limit=lower_limit,
-                    error_reaction=error_reaction,
-                    io=(command,),
-                    parameters=(upper_limit, lower_limit, error_reaction),
-                )
-            except KeyError:
-                return
+    command: FSoEDictionaryItemInputOutput = safety_field(
+        uid="FSOE_SLP_COMMAND_{i}", display_name="Command"
+    )
+    upper_limit: SafetyParameter = safety_field(
+        uid="FSOE_SLP_UPPER_LIMIT_{i}", display_name="Upper Limit"
+    )
+    lower_limit: SafetyParameter = safety_field(
+        uid="FSOE_SLP_LOWER_LIMIT_{i}", display_name="Lower Limit"
+    )
+    error_reaction: SafetyParameter = safety_field(
+        uid="FSOE_SLP_ERROR_REACTION_{i}", display_name="Error Reaction"
+    )

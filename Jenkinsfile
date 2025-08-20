@@ -92,10 +92,31 @@ pipeline {
                 choices: ['MIN', 'MAX', 'MIN_MAX', 'All'],
                 name: 'PYTHON_VERSIONS'
         )
+        choice(
+            choices: [
+                '.*',
+                'virtual_drive_tests',
+                'canopen_.*',
+                'ethernet_.*',
+                'canopen_everest.*',
+                'canopen_capitan.*',
+                'ethernet_everest.*',
+                'ethernet_capitan.*',
+                'ethercat_.*',
+                'ethercat_everest.*',
+                'ethercat_capitan.*',
+                'ethercat_multislave.*',
+                'fsoe_.*',
+                'fsoe_phase1.*',
+                'fsoe_phase2.*'
+            ],
+            name: 'run_test_stages',
+            description: 'Regex pattern for which testing stage or substage to run (e.g. "fsoe_.*", "ethercat_everest", ".*" for all)'
+        )
         booleanParam(name: 'WIRESHARK_LOGGING', defaultValue: true, description: 'Enable Wireshark logging')
         choice(
-                choices: ['function', 'module', 'session'],
-                name: 'WIRESHARK_LOGGING_SCOPE'
+            choices: ['function', 'module', 'session'],
+            name: 'WIRESHARK_LOGGING_SCOPE'
         )
         booleanParam(name: 'CLEAR_SUCCESSFUL_WIRESHARK_LOGS', defaultValue: true, description: 'Clears Wireshark logs if the test passed')
     }
@@ -133,6 +154,9 @@ pipeline {
         stage('Build and Tests') {
             parallel {
                 stage('Virtual drive tests on Linux') {
+                    when {
+                        expression { "virtual_drive_tests" ==~ params.run_test_stages }
+                    }
                     agent {
                         docker {
                             label "worker"
@@ -266,6 +290,14 @@ pipeline {
                 }
 
                 stage('HW Tests CanOpen and Ethernet') {
+                    when {
+                        beforeOptions true
+                        beforeAgent true
+                        expression {
+                          params.run_test_stages.contains("canopen") ||
+                          params.run_test_stages.contains("ethernet")
+                        }
+                    }
                     options {
                         lock(CAN_NODE_LOCK)
                     }
@@ -279,19 +311,52 @@ pipeline {
                             }
                         }
                         stage("CanOpen Everest") {
+                            when {
+                                expression {
+                                    "canopen_everest" ==~ params.run_test_stages
+                                }
+                            }
                             steps {
                                 runTestHW("canopen_everest", "canopen and not skip_testing_framework", "CAN_EVE_SETUP")
+                            }
+                        }
+                        stage("CanOpen Everest (skip_testing_framework)") {
+                            when {
+                                expression {
+                                    "canopen_everest_no_framework" ==~ params.run_test_stages
+                                }
+                            }
+                            steps {
                                 runTestHW("canopen_everest_no_framework", "canopen and skip_testing_framework", "CAN_EVE_SETUP")
                             }
                         }
                         stage("Ethernet Everest") {
+                            when {
+                                expression {
+                                    "ethernet_everest" ==~ params.run_test_stages
+                                }
+                            }
                             steps {
                                 runTestHW("ethernet_everest", "ethernet", "ETH_EVE_SETUP", false, USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("CanOpen Capitan") {
+                            when {
+                                expression {
+                                    "canopen_capitan" ==~ params.run_test_stages
+                                }
+                            }
                             steps {
                                 runTestHW("canopen_capitan", "canopen and not skip_testing_framework", "CAN_CAP_SETUP")
+                            }
+                        }
+                        stage("CanOpen Capitan (skip_testing_framework)") {
+                            when {
+                                expression {
+                                    "canopen_capitan_no_framework" ==~ params.run_test_stages
+                                }
+                            }
+                            steps {
                                 runTestHW("canopen_capitan_no_framework", "canopen and skip_testing_framework", "CAN_EVE_SETUP")
                             }
                         }
@@ -301,12 +366,20 @@ pipeline {
                                 expression { false }
                             }
                             steps {
-                                runTestHW("ethernet capitan", "ethernet", "ETH_CAP_SETUP", false, USE_WIRESHARK_LOGGING)
+                                runTestHW("ethernet_capitan", "ethernet", "ETH_CAP_SETUP", false, USE_WIRESHARK_LOGGING)
                             }
                         }
                     }
                 }
                 stage('Hw Tests Ethercat') {
+                    when {
+                        beforeOptions true
+                        beforeAgent true
+                        expression {
+                            params.run_test_stages.contains("ethercat") ||
+                            params.run_test_stages.contains("fsoe")
+                        }
+                    }
                     options {
                         lock(ECAT_NODE_LOCK)
                     }
@@ -321,8 +394,9 @@ pipeline {
                         }
                         stage("Ethercat Everest") {
                             when {
-                                // Remove this after fixing INGK-983
-                                expression { false }
+                                expression {
+                                    "ethercat_everest" ==~ params.run_test_stages
+                                }
                             }
                             steps {
                                 runTestHW("ethercat_everest", "soem and not skip_testing_framework", "ECAT_EVE_SETUP", false, USE_WIRESHARK_LOGGING)
@@ -330,17 +404,32 @@ pipeline {
                             }
                         }
                         stage("Ethercat Capitan") {
+                            when {
+                                expression {
+                                    "ethercat_capitan" ==~ params.run_test_stages
+                                }
+                            }
                             steps {
                                 runTestHW("ethercat_capitan", "soem and not skip_testing_framework", "ECAT_CAP_SETUP", false, USE_WIRESHARK_LOGGING)
                                 runTestHW("ethercat_capitan", "soem and skip_testing_framework", "ECAT_CAP_SETUP", false, USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("Safety Denali Phase I") {
+                            when {
+                                expression {
+                                    "fsoe_phase1" ==~ params.run_test_stages
+                                }
+                            }
                             steps {
                                 runTestHW("fsoe_phase1", "fsoe and not skip_testing_framework", "ECAT_DEN_S_PHASE1_SETUP", true, USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("Safety Denali Phase II") {
+                            when {
+                                expression {
+                                    "fsoe_phase2" ==~ params.run_test_stages
+                                }
+                            }
                             steps {
                                 runTestHW("fsoe_phase2", "(fsoe or fsoe_phase2) and not skip_testing_framework", "ECAT_DEN_S_PHASE2_SETUP", true, USE_WIRESHARK_LOGGING)
 
@@ -361,6 +450,11 @@ pipeline {
                             }
                         }
                         stage("Ethercat Multislave") {
+                            when {
+                                expression {
+                                    "ethercat_multislave" ==~ params.run_test_stages
+                                }
+                            }
                             steps {
                                 runTestHW("ethercat_multislave", "soem_multislave", "ECAT_MULTISLAVE_SETUP", false, USE_WIRESHARK_LOGGING)
                             }
