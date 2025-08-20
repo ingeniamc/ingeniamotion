@@ -6,8 +6,7 @@ from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethercat.servo import EthercatServo
 from ingenialink.exceptions import ILError
-from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
-from ingenialink.pdo_network_manager import PDONetworkManager as INGKPDONetworkManager
+from ingenialink.pdo import PDOMap, RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 
 from ingeniamotion.enums import CommunicationType
 from ingeniamotion.exceptions import IMError
@@ -50,16 +49,14 @@ class PDOPoller:
             maxlen=self.__buffer_size
         )
         self.__start_time: Optional[float] = None
-        self.__tpdo_map: TPDOMap = self.__net.pdo_manager.create_empty_tpdo_map()
-        self.__rpdo_map: RPDOMap = self.__net.pdo_manager.create_empty_rpdo_map()
+        self.__tpdo_map: TPDOMap = TPDOMap()
+        self.__rpdo_map: RPDOMap = RPDOMap()
         self.__fill_rpdo_map()
         self.__exception_callbacks: list[Callable[[ILError], None]] = []
 
     def start(self) -> None:
         """Start the poller."""
-        self.__net.pdo_manager.set_pdo_maps_to_slave(
-            self.__rpdo_map, self.__tpdo_map, servo=self.__servo
-        )
+        self.__servo.set_pdo_map_to_slave(rpdo_maps=self.__rpdo_map, tpdo_maps=self.__tpdo_map)
         self.__net.pdo_manager.subscribe_to_receive_process_data(self._new_data_available)
         for callback in self.__exception_callbacks:
             self.__net.pdo_manager.subscribe_to_exceptions(callback)
@@ -74,8 +71,8 @@ class PDOPoller:
         self.__net.pdo_manager.unsubscribe_to_receive_process_data(self._new_data_available)
         for callback in self.__exception_callbacks:
             self.__net.pdo_manager.unsubscribe_to_exceptions(callback)
-        self.__net.pdo_manager.remove_rpdo_map(self.__servo, self.__rpdo_map)
-        self.__net.pdo_manager.remove_tpdo_map(self.__servo, self.__tpdo_map)
+        self.__servo.remove_rpdo_map(rpdo_map=self.__rpdo_map)
+        self.__servo.remove_tpdo_map(tpdo_map=self.__tpdo_map)
 
     @classmethod
     def create_poller(
@@ -189,7 +186,7 @@ class PDOPoller:
         """Fill the RPDO Map with padding."""
         padding_rpdo_item = RPDOMapItem(size_bits=8)
         padding_rpdo_item.raw_data_bytes = int.to_bytes(0, 1, "little")
-        self.__net.pdo_manager.add_pdo_item_to_map(padding_rpdo_item, self.__rpdo_map)
+        self.__rpdo_map.add_item(padding_rpdo_item)
 
     def __fill_tpdo_map(self, registers: list[dict[str, Union[int, str]]]) -> None:
         """Fill the TPDO Map with the registers to be polled.
@@ -210,10 +207,10 @@ class PDOPoller:
                 raise ValueError(
                     f"Wrong type for the 'axis' field. Expected 'int', got: {type(axis)}"
                 )
-            tpdo_map_item = self.__net.pdo_manager.create_pdo_item(
-                name, axis=axis, servo=self.__servo
+            tpdo_map_item = PDOMap.create_item_from_register_uid(
+                uid=name, axis=axis, dictionary=self.__servo.dictionary
             )
-            self.__net.pdo_manager.add_pdo_item_to_map(tpdo_map_item, self.__tpdo_map)
+            self.__tpdo_map.add_item(tpdo_map_item)
 
     @property
     def available_samples(self) -> int:
@@ -284,14 +281,13 @@ class PDONetworkManager:
             ValueError: If there is a type mismatch retrieving the register object.
             AttributeError: If an initial value is not provided for an RPDO register.
         """
-        drive, net = self.__get_drive_and_network(servo)
-        pdo_map_item = net.pdo_manager.create_pdo_item(
-            register_uid=register_uid, axis=axis, servo=drive, value=value
+        drive = self.__mc._get_drive(servo=servo)
+        return PDOMap.create_item_from_register_uid(
+            uid=register_uid, axis=axis, dictionary=drive.dictionary, value=value
         )
-        return pdo_map_item
 
+    @staticmethod
     def create_pdo_maps(
-        self,
         rpdo_map_items: Union[RPDOMapItem, list[RPDOMapItem]],
         tpdo_map_items: Union[TPDOMapItem, list[TPDOMapItem]],
     ) -> tuple[RPDOMap, TPDOMap]:
@@ -305,28 +301,9 @@ class PDONetworkManager:
             RPDO and TPDO maps.
 
         """
-        rpdo_map, tpdo_map = INGKPDONetworkManager.create_pdo_maps(
-            rpdo_map_items=rpdo_map_items, tpdo_map_items=tpdo_map_items
-        )
+        rpdo_map = RPDOMap.from_pdo_items(rpdo_map_items)
+        tpdo_map = TPDOMap.from_pdo_items(tpdo_map_items)
         return rpdo_map, tpdo_map
-
-    @staticmethod
-    def add_pdo_item_to_map(
-        pdo_map_item: Union[RPDOMapItem, TPDOMapItem],
-        pdo_map: Union[RPDOMap, TPDOMap],
-    ) -> None:
-        """Add a PDOMapItem to a PDOMap.
-
-        Args:
-            pdo_map_item: The PDOMapItem.
-            pdo_map: The PDOMap to add the PDOMapItem.
-
-        Raises:
-            ValueError: If an RPDOItem is tried to be added to a TPDOMap.
-            ValueError: If an TPDOItem is tried to be added to a RPDOMap.
-
-        """
-        INGKPDONetworkManager.add_pdo_item_to_map(pdo_map_item=pdo_map_item, pdo_map=pdo_map)
 
     @staticmethod
     def create_empty_rpdo_map() -> RPDOMap:
@@ -336,7 +313,7 @@ class PDONetworkManager:
             The empty RPDOMap.
 
         """
-        return INGKPDONetworkManager.create_empty_rpdo_map()
+        return RPDOMap()
 
     @staticmethod
     def create_empty_tpdo_map() -> TPDOMap:
@@ -346,7 +323,7 @@ class PDONetworkManager:
             The empty TPDOMap.
 
         """
-        return INGKPDONetworkManager.create_empty_tpdo_map()
+        return TPDOMap()
 
     def set_pdo_maps_to_slave(
         self,
@@ -366,8 +343,14 @@ class PDONetworkManager:
             ValueError: If not all elements of the RPDO map list are instances of a RPDO map.
             ValueError: If not all elements of the TPDO map list are instances of a TPDO map.
         """
-        drive, net = self.__get_drive_and_network(servo)
-        net.pdo_manager.set_pdo_maps_to_slave(rpdo_maps=rpdo_maps, tpdo_maps=tpdo_maps, servo=drive)
+        drive = self.__mc._get_drive(servo=servo)
+        if not isinstance(drive, EthercatServo):
+            raise ValueError(f"Expected an EthercatServo. Got {type(drive)}")
+        if not all(isinstance(rpdo_map, RPDOMap) for rpdo_map in rpdo_maps):
+            raise ValueError("Not all elements of the RPDO map list are instances of a RPDO map")
+        if not all(isinstance(tpdo_map, TPDOMap) for tpdo_map in tpdo_maps):
+            raise ValueError("Not all elements of the TPDO map list are instances of a TPDO map")
+        drive.set_pdo_map_to_slave(rpdo_maps=rpdo_maps, tpdo_maps=tpdo_maps)
 
     def clear_pdo_mapping(self, servo: str = DEFAULT_SERVO) -> None:
         """Clear the PDO mapping within the servo.
@@ -402,10 +385,8 @@ class PDONetworkManager:
             ValueError: If the RPDOMap instance is not in the RPDOMap list.
             IndexError: If the index is out of range.
         """
-        drive, net = self.__get_drive_and_network(servo)
-        net.pdo_manager.remove_rpdo_map(
-            servo=drive, rpdo_map=rpdo_map, rpdo_map_index=rpdo_map_index
-        )
+        drive, _ = self.__get_drive_and_network(servo)
+        drive.remove_rpdo_map(rpdo_map=rpdo_map, rpdo_map_index=rpdo_map_index)
 
     def remove_tpdo_map(
         self,
@@ -428,10 +409,8 @@ class PDONetworkManager:
             IndexError: If the index is out of range.
 
         """
-        drive, net = self.__get_drive_and_network(servo)
-        net.pdo_manager.remove_tpdo_map(
-            servo=drive, tpdo_map=tpdo_map, tpdo_map_index=tpdo_map_index
-        )
+        drive, _ = self.__get_drive_and_network(servo)
+        drive.remove_tpdo_map(tpdo_map=tpdo_map, tpdo_map_index=tpdo_map_index)
 
     def start_pdos(
         self,

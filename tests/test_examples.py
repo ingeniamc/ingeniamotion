@@ -32,7 +32,7 @@ from ingeniamotion.drive_tests import DriveTests
 from ingeniamotion.enums import SeverityLevel
 from ingeniamotion.information import Information
 from ingeniamotion.motion import Motion
-from ingeniamotion.pdo import PDOPoller
+from ingeniamotion.pdo import PDONetworkManager, PDOPoller
 
 
 @pytest.mark.ethernet
@@ -668,14 +668,11 @@ def test_process_data_object(mocker):
     disconnect = mocker.patch.object(Communication, "disconnect")
     motor_enable = mocker.patch.object(Motion, "motor_enable")
     motor_disable = mocker.patch.object(Motion, "motor_disable")
-    create_pdo_item = mocker.patch("examples.process_data_object.PDONetworkManager.create_pdo_item")
-    create_pdo_maps = mocker.patch(
-        "examples.process_data_object.PDONetworkManager.create_pdo_maps",
-        return_value=(RPDOMap(), TPDOMap),
+    create_pdo_item = mocker.patch.object(PDONetworkManager, "create_pdo_item")
+    create_pdo_maps = mocker.patch.object(
+        PDONetworkManager, "create_pdo_maps", return_value=(RPDOMap(), TPDOMap())
     )
-    set_pdo_maps_to_slave = mocker.patch(
-        "examples.process_data_object.PDONetworkManager.set_pdo_maps_to_slave"
-    )
+    set_pdo_maps_to_slave = mocker.patch.object(PDONetworkManager, "set_pdo_maps_to_slave")
     activate_pdos = mocker.patch.object(EthercatNetwork, "activate_pdos")
     deactivate_pdos = mocker.patch.object(EthercatNetwork, "deactivate_pdos")
     mocker.patch.object(Motion, "get_actual_position")
