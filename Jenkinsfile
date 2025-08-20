@@ -255,8 +255,9 @@ pipeline {
                                 }
                                 stage('Generate documentation') {
                                     steps {
-                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e docs"
                                         bat """
+                                            call .venv${DEFAULT_PYTHON_VERSION}/Scripts/activate
+                                            poetry run poe docs
                                             "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
                                         """
                                         stash includes: 'docs.zip', name: 'docs'
