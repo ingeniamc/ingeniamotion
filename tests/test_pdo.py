@@ -209,16 +209,19 @@ def test_start_pdos(
             _, tpdo_map_item = pdo_map_items[a]
             tpdo_values[a] = tpdo_map_item.value
 
-    net.pdo_manager.subscribe_to_send_process_data(send_callback)
-    net.pdo_manager.subscribe_to_receive_process_data(receive_callback)
-    assert not net.pdo_manager.is_active
     refresh_rate = 0.5
-    net.activate_pdos(refresh_rate=refresh_rate)
-    assert net.pdo_manager.is_active
-    time.sleep(2 * refresh_rate)
-    net.deactivate_pdos()
-    assert not net.pdo_manager.is_active
     for s, a in zip(servo, alias):
+        mc.capture.pdo.subscribe_to_send_process_data(send_callback, servo=a)
+        mc.capture.pdo.subscribe_to_receive_process_data(receive_callback, servo=a)
+        assert not mc.capture.pdo.is_active(servo=a)
+        mc.capture.pdo.start_pdos(refresh_rate=refresh_rate, servo=a)
+        assert mc.capture.pdo.is_active(servo=a)
+        time.sleep(2 * refresh_rate)
+        mc.capture.pdo.stop_pdos(servo=a)
+        assert not mc.capture.pdo.is_active(servo=a)
+
+        # TODO: check that pdos are still active after first drive removal, they will only be full deactivated if all servos are removed
+
         # Check that RPDO are being sent
         assert rpdo_values[a] == mc.motion.get_operation_mode(servo=a)
         # Check that TPDO are being received
