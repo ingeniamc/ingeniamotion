@@ -293,8 +293,7 @@ pipeline {
                         beforeOptions true
                         beforeAgent true
                         expression {
-                          params.run_test_stages.contains("canopen") ||
-                          params.run_test_stages.contains("ethernet")
+                          "canopen" ==~ params.run_test_stages || "ethernet" ==~ params.run_test_stages
                         }
                     }
                     options {
@@ -375,8 +374,7 @@ pipeline {
                         beforeOptions true
                         beforeAgent true
                         expression {
-                            params.run_test_stages.contains("ethercat") ||
-                            params.run_test_stages.contains("fsoe")
+                          "ethercat" ==~ params.run_test_stages || "fsoe" ==~ params.run_test_stages
                         }
                     }
                     options {
