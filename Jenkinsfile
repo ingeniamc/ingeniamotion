@@ -242,7 +242,10 @@ pipeline {
                                 }
                                 stage('Make a static type analysis') {
                                     steps {
-                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e type"
+                                        bat """
+                                            call .venv${DEFAULT_PYTHON_VERSION}/Scripts/activate
+                                            poetry run poe type
+                                        """
                                     }
                                 }
                                 stage('Check formatting') {
