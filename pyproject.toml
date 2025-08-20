@@ -70,6 +70,12 @@ optional = true
 [tool.poetry.group.build.dependencies]
 twine = "==6.1.0"
 
+# Dependencies for format task
+[tool.poetry.group.format]
+optional = true
+[tool.poetry.group.format.dependencies]
+ruff = "==0.9.2"
+
 # -----------------------------------------------------------------------
 #                                   TASKS
 # -----------------------------------------------------------------------
@@ -81,3 +87,29 @@ sequence = [
     { cmd = "poetry build"},
     { cmd = "twine check dist/*"}
 ]
+
+# ----------------------------- Ruff format -----------------------------
+[tool.poe.tasks.ruff-format-check]
+help = "Format check with ruff"
+cmd = "ruff format --check ingeniamotion tests examples"
+
+[tool.poe.tasks.ruff-check]
+help = "Check with ruff"
+cmd = "ruff check ingeniamotion tests"
+
+[tool.poe.tasks.format]
+help     = "Check format"
+sequence = ["ruff-format-check", "ruff-check"]
+
+# ----------------------------- Ruff reformat -----------------------------
+[tool.poe.tasks.ruff-format]
+help = "Format files with ruff"
+cmd = "ruff format ingeniamotion tests examples"
+
+[tool.poe.tasks.ruff-check-fix]
+help = "Fix lint errors"
+cmd = "ruff check --fix ingeniamotion tests"
+
+[tool.poe.tasks.reformat]
+help     = "Reformat files and fix lint errors"
+sequence = ["ruff-format", "ruff-check-fix"]

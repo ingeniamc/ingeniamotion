@@ -235,7 +235,6 @@ pipeline {
                                         bat """
                                             call .venv${DEFAULT_PYTHON_VERSION}/Scripts/activate
                                             poetry run poe build
-                                            deactivate
                                         """
                                         stash includes: 'dist\\*', name: 'build'
                                         archiveArtifacts artifacts: "dist\\*"
@@ -248,7 +247,10 @@ pipeline {
                                 }
                                 stage('Check formatting') {
                                     steps {
-                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e format"
+                                        bat """
+                                            call .venv${DEFAULT_PYTHON_VERSION}/Scripts/activate
+                                            poetry run poe format
+                                        """
                                     }
                                 }
                                 stage('Generate documentation') {
