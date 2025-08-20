@@ -1,4 +1,4 @@
-@Library('cicd-lib@0.12') _
+@Library('cicd-lib@0.15') _
 
 def SW_NODE = "windows-slave"
 def ECAT_NODE = "ecat-test"
@@ -189,6 +189,9 @@ pipeline {
                             }
                             stages {
                                 stage('Build wheels') {
+                                    environment {
+                                        SETUPTOOLS_SCM_PRETEND_VERSION = getPythonVersionForPr()
+                                    }
                                     steps {
                                         bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e build"
                                         stash includes: 'dist\\*', name: 'build'

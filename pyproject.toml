@@ -1,0 +1,59 @@
+[project]
+dynamic = ["version", "urls"]
+
+name = "ingeniamotion"
+description = "Motion library for Novanta servo drives"
+authors = [
+  { name = "Novanta", email = "support@ingeniamc.com" }
+]
+readme = { file = "README.md", content-type = "text/markdown" }
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+]
+
+requires-python = ">=3.9"
+
+dependencies = [
+    "ingenialink>=7.4.3, < 8.0.0",
+    "ingenialogger>=0.2.1",
+    "ifaddr==0.1.7",
+]
+
+[project.optional-dependencies]
+fsoe = ["fsoe_master==0.1.4+pr75b2"]
+
+[tool.poetry]
+version = "0.9.2"  # base version
+
+[[tool.poetry.source]]
+name = "PyPI"
+priority = "primary"
+
+[[tool.poetry.source]]
+name = "ingenia"
+url = "http://pypi.ingenia/simple"
+priority = "supplemental"
+
+[build-system]
+requires = ["setuptools==75.6.0", "setuptools_scm[toml]>=8", "wheel==0.42.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+version_scheme = "only-version"
+local_scheme = "node-and-date"
+write_to = "ingeniamotion/_version.py"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["ingeniamotion"]
+
+[tool.setuptools.package-data]
+ingeniamotion = ["py.typed"]
