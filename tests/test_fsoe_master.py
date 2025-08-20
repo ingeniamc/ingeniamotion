@@ -1588,19 +1588,9 @@ class TestPduMapper:
         assert is_valid is True
 
     @pytest.mark.fsoe
-    def test_insert_safety_function(self, sample_safe_dictionary):
-        class LocalMockHandler:
-            def __init__(self, safe_dict, fsoe_dict, module_uid):
-                xdf = safe_dict
-                self.dictionary = fsoe_dict
+    def test_insert_safety_function(self):
+        handler = MockHandler(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, 0x3800000)
 
-                self.safety_parameters = {
-                    app_parameter.uid: MockSafetyParameter()
-                    for app_parameter in xdf.get_safety_module(module_uid).application_parameters
-                }
-
-        _safe_dict, _fsoe_dict = sample_safe_dictionary
-        handler = LocalMockHandler(_safe_dict, _fsoe_dict, 0x3B00000)
         sto_func = None
         for sf in SafetyFunction.for_handler(handler):
             if isinstance(sf, STOFunction):
@@ -1608,7 +1598,7 @@ class TestPduMapper:
         if not sto_func:
             raise ValueError("STO not found")
 
-        maps = PDUMaps.empty(_fsoe_dict)
+        maps = PDUMaps.empty(handler.dictionary)
         maps.insert_safety_function(sto_func)
         assert maps.inputs.get_text_representation(item_space=30) == (
             "Item                           | Position bytes..bits | Size bytes..bits    \n"
