@@ -11,10 +11,10 @@ def WIN_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/win-python-builder:1.6"
 
 DEFAULT_PYTHON_VERSION = "3.9"
 
-ALL_PYTHON_VERSIONS = "py39,py310,py311,py312"
+ALL_PYTHON_VERSIONS = "3.9,3.10,3.11,3.12"
 RUN_PYTHON_VERSIONS = ""
-PYTHON_VERSION_MIN = "py39"
-def PYTHON_VERSION_MAX = "py312"
+PYTHON_VERSION_MIN = "3.9"
+def PYTHON_VERSION_MAX = "3.12"
 
 def BRANCH_NAME_MASTER = "master"
 def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
@@ -223,7 +223,7 @@ pipeline {
                                 stage('Create virtual environments') {
                                     steps {
                                         script {
-                                            createVirtualEnvironments(DEFAULT_PYTHON_VERSION)
+                                            createVirtualEnvironments()
                                         }
                                     }
                                 }
@@ -268,10 +268,15 @@ pipeline {
                                 }
                                 stage("Run unit tests") {
                                     steps {
-                                        bat """
-                                            py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- ^
-                                            -m "not ethernet and not soem and not fsoe and not fsoe_phase2 and not canopen and not virtual and not soem_multislave and not skip_testing_framework"
-                                        """
+                                        script {
+                                            def pythonVersions = RUN_PYTHON_VERSIONS.split(',')
+                                            pythonVersions.each { version ->
+                                                bat """
+                                                    call .venv${version}/Scripts/activate
+                                                    poetry run poe tests --import-mode=importlib --cov=ingeniamotion --junitxml=pytest_reports/junit-tests-${version}.xml --junit-prefix=${version} -m "not ethernet and not soem and not fsoe and not fsoe_phase2 and not canopen and not virtual and not soem_multislave and not skip_testing_framework"
+                                                """
+                                            }
+                                        }
                                     }
                                     post {
                                         always {

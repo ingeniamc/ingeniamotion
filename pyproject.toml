@@ -94,6 +94,19 @@ optional = true
 [tool.poetry.group.type.dependencies]
 mypy = "==1.10.0"
 
+# Dependencies for tests task
+[tool.poetry.group.tests]
+optional = true
+[tool.poetry.group.tests.dependencies]
+pytest = "==8.4.1"
+pytest-env = "==1.1.5"
+pytest-cov = "==2.12.1"
+pytest-mock = "==3.6.1"
+pytest-console-scripts = "==1.4.1"
+matplotlib = "==3.8.2"
+summit-testing-framework = "==0.1.4+gabbc726"
+ingenialink = "==7.4.3+gabce05ac"
+
 # -----------------------------------------------------------------------
 #                                   TASKS
 # -----------------------------------------------------------------------
@@ -141,3 +154,7 @@ cmd = "python -I -m sphinx -E -b html docs _docs"
 [tool.poe.tasks.type]
 help = "Run type checks"
 cmd = "mypy ingeniamotion"
+
+# ----------------------------- Run unit tests -----------------------------
+[tool.poe.tasks.tests]
+cmd = "python -I -m pytest tests"
