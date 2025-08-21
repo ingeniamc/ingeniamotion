@@ -1,4 +1,4 @@
-@Library('cicd-lib@0.15') _
+@Library('cicd-lib@0.16') _
 
 def SW_NODE = "windows-slave"
 def ECAT_NODE = "ecat-test"
@@ -356,20 +356,32 @@ pipeline {
                                 publishDistExt("_docs", DISTEXT_PROJECT_DIR, false)
                             }
                         }
-                        stage('Publish to pypi') {
-                            when {
-                                beforeAgent true
-                                branch BRANCH_NAME_MASTER
-                            }
+                        stage('Publish wheels') {
                             agent {
                                 docker {
                                     label 'worker'
                                     image "ingeniacontainers.azurecr.io/publisher:1.8"
                                 }
                             }
-                            steps {
-                                unstash 'build'
-                                publishPyPi("dist/*")
+                            stages {
+                                stage('Unstash build') {
+                                    steps {
+                                        unstash 'build'
+                                    }
+                                }
+                                stage('Publish Ingenia PyPi') {
+                                    steps {
+                                        publishIngeniaPyPi('dist/*')
+                                    }
+                                }
+                                stage('Publish PyPi') {
+                                    when {
+                                        branch 'master'
+                                    }
+                                    steps {
+                                        publishPyPi('dist/*')
+                                    }
+                                }
                             }
                         }
                     }
