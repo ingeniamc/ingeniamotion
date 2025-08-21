@@ -1,19 +1,31 @@
 import random
 import time
+from collections.abc import Generator
 from typing import TYPE_CHECKING
 
 import pytest
 from ingenialink.ethercat.network import EthercatNetwork
-from ingenialink.exceptions import ILError, ILWrongWorkingCountError
+from ingenialink.exceptions import ILWrongWorkingCountError
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 from packaging import version
 
 from ingeniamotion.enums import CommunicationType, OperationMode
+from ingeniamotion.exceptions import IMError
 from ingeniamotion.metaclass import DEFAULT_AXIS
 from ingeniamotion.motion_controller import MotionController
 
 if TYPE_CHECKING:
     from ingenialink.ethercat.servo import EthercatServo
+
+
+@pytest.fixture
+def pdos_teardown(mc: "MotionController") -> Generator[None, None, None]:
+    yield
+    servos = list(mc.capture.pdo._PDONetworkManager__servo_to_nets.keys())
+    for servo in servos:
+        if servo not in mc.capture.pdo._PDONetworkManager__servo_to_nets:
+            continue
+        mc.capture.pdo.stop_pdos(servo=servo)
 
 
 @pytest.mark.soem
@@ -125,14 +137,18 @@ def test_set_pdo_maps_to_slave_exception(
 
 
 @pytest.mark.soem
-def test_pdos_min_refresh_rate(mc: "MotionController", alias: str) -> None:
+def test_pdos_min_refresh_rate(mc: "MotionController", alias: str, pdos_teardown: None) -> None:  # noqa: ARG001
     refresh_rate = 0.0001
     with pytest.raises(ValueError):
         mc.capture.pdo.start_pdos(refresh_rate=refresh_rate, servo=alias)
 
 
 @pytest.mark.soem
-def test_pdos_watchdog_exception_auto(mc: "MotionController", alias: str) -> None:
+def test_pdos_watchdog_exception_auto(
+    mc: "MotionController",
+    alias: str,
+    pdos_teardown: None,  # noqa: ARG001
+) -> None:
     exceptions = []
 
     def exception_callback(exc):
@@ -149,7 +165,11 @@ def test_pdos_watchdog_exception_auto(mc: "MotionController", alias: str) -> Non
 
 
 @pytest.mark.soem
-def test_pdos_watchdog_exception_manual(mc: "MotionController", alias: str) -> None:
+def test_pdos_watchdog_exception_manual(
+    mc: "MotionController",
+    alias: str,
+    pdos_teardown: None,  # noqa: ARG001
+) -> None:
     exceptions = []
 
     def exception_callback(exc):
@@ -160,19 +180,16 @@ def test_pdos_watchdog_exception_manual(mc: "MotionController", alias: str) -> N
     mc.capture.pdo.start_pdos(watchdog_timeout=watchdog_timeout, servo=alias)
     time.sleep(1)
     mc.capture.pdo.unsubscribe_to_exceptions(exception_callback, servo=alias)
-    assert len(exceptions) > 0
-    exception = exceptions[0]
+    assert len(exceptions) == 1
     assert (
-        str(exception) == "The watchdog timeout is too high. The max watchdog timeout is 6553.5 ms."
+        str(exceptions[0])
+        == "The watchdog timeout is too high. The max watchdog timeout is 6553.5 ms."
     )
 
 
 @pytest.mark.soem_multislave
 def test_start_pdos(  # noqa: C901
-    mc: "MotionController",
-    servo: list["EthercatServo"],
-    net: list["EthercatNetwork"],
-    alias: list[str],
+    mc: "MotionController", servo: list["EthercatServo"], alias: list[str]
 ) -> None:
     rpdo_values = {}
     tpdo_values = {}
@@ -207,11 +224,6 @@ def test_start_pdos(  # noqa: C901
         for a in alias:
             _, tpdo_map_item = pdo_map_items[a]
             tpdo_values[a] = tpdo_map_item.value
-
-    # Verify that both servos are connected to the same network
-    interface_name = net[0].interface_name
-    for n, a in zip(net, alias):
-        assert n.interface_name == interface_name
 
     # Activate the PDOs
     refresh_rate = 0.5
@@ -252,9 +264,16 @@ def test_start_pdos(  # noqa: C901
 
 
 @pytest.mark.soem
-def test_stop_pdos_exception(net: "EthercatNetwork") -> None:
-    with pytest.raises(ILError):
-        net.deactivate_pdos()
+def test_stop_pdos_exception(mc: "MotionController", alias: str) -> None:
+    with pytest.raises(IMError, match=f"PDOs are not active yet for servo {alias}"):
+        mc.capture.pdo.stop_pdos(servo=alias)
+
+
+@pytest.mark.soem
+def test_start_pdos_exception(mc: "MotionController", alias: str, pdos_teardown: None) -> None:  # noqa: ARG001
+    mc.capture.pdo.start_pdos(servo=alias)
+    with pytest.raises(IMError, match=f"Servo '{alias}' is already active."):
+        mc.capture.pdo.start_pdos(servo=alias)
 
 
 @pytest.mark.soem
@@ -280,7 +299,11 @@ def test_start_pdos_wrong_network_type_exception(mc: "MotionController", alias: 
 
 
 @pytest.mark.soem
-def test_start_pdos_for_multiple_networks(mocker, mc: "MotionController") -> None:
+def test_start_pdos_for_multiple_networks(
+    mocker,
+    mc: "MotionController",
+    pdos_teardown: None,  # noqa: ARG001
+) -> None:
     mock_net = {"ifname1": EthercatNetwork("ifname1"), "ifname2": EthercatNetwork("ifname2")}
     mock_servo_net = {"servo1": "ifname1", "servo2": "ifname2"}
     mocker.patch.object(mc, "_MotionController__net", mock_net)
@@ -298,7 +321,11 @@ def test_start_pdos_for_multiple_networks(mocker, mc: "MotionController") -> Non
 
 
 @pytest.mark.soem
-def test_start_pdos_for_multiple_servos_in_same_network(mocker, mc: "MotionController") -> None:
+def test_start_pdos_for_multiple_servos_in_same_network(
+    mocker,
+    mc: "MotionController",
+    pdos_teardown: None,  # noqa: ARG001
+) -> None:
     mock_net = {"ifname1": EthercatNetwork("ifname1")}
     mock_servo_net = {"servo1": "ifname1", "servo2": "ifname1"}
     mocker.patch.object(mc, "_MotionController__net", mock_net)
@@ -343,7 +370,7 @@ def skip_if_pdo_padding_is_not_available(mc: "MotionController", alias: str) -> 
 
 
 @pytest.mark.soem
-def test_create_poller(mc: "MotionController", alias: str) -> None:
+def test_create_poller(mc: "MotionController", alias: str, pdos_teardown: None) -> None:  # noqa: ARG001
     skip_if_pdo_padding_is_not_available(mc, alias)
     registers = [{"name": "CL_POS_FBK_VALUE", "axis": 1}, {"name": "CL_VEL_FBK_VALUE", "axis": 1}]
     sampling_time = 0.25

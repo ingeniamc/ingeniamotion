@@ -170,7 +170,6 @@ class PDONetworkTracker:
     """Tracks which servos have required activation or deactivation from a network."""
 
     network: "EthercatNetwork"  # Ethercat network
-    alias: str  # Alias for the network
 
     __active_servos: list[str] = field(default_factory=list)
     __pdo_thread_status: bool = False
@@ -194,11 +193,10 @@ class PDONetworkTracker:
                 to the refresh rate. Defaults to None.
 
         Raises:
-            ValueError: If the servo is already active.
+            IMError: If the servo is already active.
         """
         if self.is_servo_active(servo):
-            raise ValueError(f"Servo '{servo}' is already active.")
-        self.__active_servos.append(servo)
+            raise IMError(f"Servo '{servo}' is already active.")
 
         if not self.__subscribed_to_thread_status:
             self.network.subscribe_to_pdo_thread_status(callback=self.__pdo_thread_status_callback)
@@ -207,6 +205,9 @@ class PDONetworkTracker:
         # It may already be active if other servo in the network activated it
         if not self.is_active:
             self.network.activate_pdos(refresh_rate=refresh_rate, watchdog_timeout=watchdog_timeout)
+
+        # If there were no exceptions while activating the PDOs, add the servo to the active list
+        self.__active_servos.append(servo)
 
     def remove_active_servo(self, servo: str) -> None:
         """Remove a servo from the list of active servos.
@@ -218,10 +219,10 @@ class PDONetworkTracker:
             servo: The servo alias.
 
         Raises:
-            ValueError: If the servo is not active.
+            IMError: If the servo is not active.
         """
         if not self.is_servo_active(servo):
-            raise ValueError(f"Servo '{servo}' is not active.")
+            raise IMError(f"Servo '{servo}' is not active.")
 
         self.__active_servos.remove(servo)
         if not self.has_active_servos() and self.is_active:
@@ -246,6 +247,14 @@ class PDONetworkTracker:
             True if the PDO thread is active. False otherwise.
         """
         return self.__pdo_thread_status
+
+    def teardown(self) -> None:
+        """Unsubscribes from network exceptions."""
+        if self.__subscribed_to_thread_status:
+            self.network.unsubscribe_from_pdo_thread_status(
+                callback=self.__pdo_thread_status_callback
+            )
+            self.__subscribed_to_thread_status = False
 
     def __call__(self) -> "EthercatNetwork":
         """Make the instance callable and return the network.
@@ -304,7 +313,7 @@ class PDONetworkManager:
         """
         self.__servo_to_nets[servo] = alias
         if alias not in self.__nets:
-            self.__nets[alias] = PDONetworkTracker(network=net, alias=alias)
+            self.__nets[alias] = PDONetworkTracker(network=net)
         return self.__nets[alias]
 
     def __get_network_tracker(self, servo: str) -> PDONetworkTracker:
@@ -314,6 +323,21 @@ class PDONetworkManager:
         if net_alias not in self.__nets:
             raise ValueError(f"Network '{net_alias}' is not registered.")
         return self.__nets[net_alias]
+
+    def __remove_network_tracker(self, servo: str) -> None:
+        if servo not in self.__servo_to_nets:
+            raise ValueError(f"Servo '{servo}' is not registered.")
+        net_alias = self.__servo_to_nets[servo]
+
+        # Check if other servo contains the network
+        for servo_alias, servo_net_alias in self.__servo_to_nets.items():
+            if servo_net_alias == net_alias and servo_alias != servo:
+                raise ValueError(
+                    f"Can not delete network {servo_net_alias} "
+                    f"because servo '{servo_alias}' is using it"
+                )
+        self.__nets[net_alias].teardown()
+        self.__nets.pop(net_alias)
 
     def __evaluate_subscriptions(self, net: EthercatNetwork, alias: str) -> None:  # noqa: C901
         for servo, callbacks in self.__send_process_data_add_callback.items():
@@ -559,9 +583,13 @@ class PDONetworkManager:
             IMError: If the PDOs are not active yet.
         """
         if servo not in self.__servo_to_nets:
-            raise IMError("PDOs are not active yet.")
+            raise IMError(f"PDOs are not active yet for servo {servo}.")
         tracker = self.__get_network_tracker(servo=servo)
         tracker.remove_active_servo(servo=servo)
+        # If it was the only servo using the tracker, remove the network tracker
+        if not tracker.is_active:
+            self.__remove_network_tracker(servo=servo)
+        self.__servo_to_nets.pop(servo)
 
     def is_active(self, servo: str = DEFAULT_SERVO) -> bool:
         """Check if the PDO thread is active.
