@@ -37,7 +37,7 @@ priority = "primary"
 
 [[tool.poetry.source]]
 name = "ingenia"
-url = "http://pypi.ingenia/simple"
+url = "http://pypi.novanta.com/simple"
 priority = "supplemental"
 
 [build-system]

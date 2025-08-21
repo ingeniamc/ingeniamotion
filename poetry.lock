@@ -1084,7 +1084,7 @@ files = [
 
 [package.source]
 type = "legacy"
-url = "http://pypi.ingenia/simple"
+url = "http://pypi.novanta.com/simple"
 reference = "ingenia"
 
 [[package]]
@@ -1276,7 +1276,7 @@ requests = ">=2.25.0,<3"
 
 [package.source]
 type = "legacy"
-url = "http://pypi.ingenia/simple"
+url = "http://pypi.novanta.com/simple"
 reference = "ingenia"
 
 [[package]]
@@ -1308,7 +1308,7 @@ scipy = "1.12.0"
 
 [package.source]
 type = "legacy"
-url = "http://pypi.ingenia/simple"
+url = "http://pypi.novanta.com/simple"
 reference = "ingenia"
 
 [[package]]
@@ -4051,7 +4051,7 @@ rpyc = "6.0.0"
 
 [package.source]
 type = "legacy"
-url = "http://pypi.ingenia/simple"
+url = "http://pypi.novanta.com/simple"
 reference = "ingenia"
 
 [[package]]
@@ -4603,4 +4603,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "a5a236344cf425886d55d81bfefc3593fe007499e72aba7b49c6b4891c8ee8d6"
+content-hash = "9ca1aed0cf688328aefaf3b96e4119dbe515c618fc659902b25b324c283e7b07"
