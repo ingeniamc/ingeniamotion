@@ -192,14 +192,29 @@ pipeline {
                         docker {
                             label "worker"
                             image LIN_DOCKER_IMAGE
+                            args '-u root:root'
                         }
                     }
                     stages {
+                        stage('Create virtual environments') {
+                            steps {
+                                script {
+                                    createVirtualEnvironments()
+                                }
+                            }
+                        }
                         stage('Run no-connection tests') {
                             steps {
-                                sh "python${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
-                                    "-m virtual " +
-                                    "--setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP"
+                                script {
+                                    def pythonVersions = RUN_PYTHON_VERSIONS.split(',')
+                                    pythonVersions.each { version ->
+                                        sh """
+                                            . .venv${version}/bin/activate
+                                            poetry run poe tests --junitxml=pytest_reports/junit-tests-${version}.xml --junit-prefix=${version} -m virtual --setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP
+                                            deactivate
+                                        """
+                                    }
+                                }
                             }
                             post {
                                 always {
@@ -293,9 +308,15 @@ pipeline {
                                 }
                                 stage("Run virtual drive tests") {
                                     steps {
-                                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${RUN_PYTHON_VERSIONS} -- " +
-                                                "-m virtual " +
-                                                "--setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP "
+                                        script {
+                                            def pythonVersions = RUN_PYTHON_VERSIONS.split(',')
+                                            pythonVersions.each { version ->
+                                                bat """
+                                                    call .venv${version}/Scripts/activate
+                                                    poetry run poe tests --import-mode=importlib --cov=ingeniamotion --junitxml=pytest_reports/junit-tests-${version}.xml --junit-prefix=${version} -m virtual --setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP
+                                                """
+                                            }
+                                        }
                                     }
                                     post {
                                         always {
