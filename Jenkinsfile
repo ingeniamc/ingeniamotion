@@ -23,8 +23,6 @@ WIRESHARK_DIR = "wireshark"
 USE_WIRESHARK_LOGGING = ""
 START_WIRESHARK_TIMEOUT_S = 10.0
 
-FSOE_INSTALL_VERSION = ".[FSoE]"
-
 coverage_stashes = []
 
 def reassignFilePermissions() {
