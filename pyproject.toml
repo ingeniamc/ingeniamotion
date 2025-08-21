@@ -104,8 +104,8 @@ pytest-cov = "==2.12.1"
 pytest-mock = "==3.6.1"
 pytest-console-scripts = "==1.4.1"
 matplotlib = "==3.8.2"
-summit-testing-framework = "==0.1.4+gabbc726"
-ingenialink = "==7.4.3+gabce05ac"
+summit-testing-framework = "==0.1.5"
+ingenialink = "==7.5.0+g407d70502"
 
 # -----------------------------------------------------------------------
 #                                   TASKS
