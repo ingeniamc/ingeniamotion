@@ -207,7 +207,8 @@ class PDONetworkTracker:
             self.network.activate_pdos(refresh_rate=refresh_rate, watchdog_timeout=watchdog_timeout)
 
         # If there were no exceptions while activating the PDOs, add the servo to the active list
-        self.__active_servos.append(servo)
+        if self.is_active:
+            self.__active_servos.append(servo)
 
     def remove_active_servo(self, servo: str) -> None:
         """Remove a servo from the list of active servos.
@@ -592,19 +593,16 @@ class PDONetworkManager:
         self.__servo_to_nets.pop(servo)
 
     def is_active(self, servo: str = DEFAULT_SERVO) -> bool:
-        """Check if the PDO thread is active.
+        """Check if the PDO thread is active for the network to which the servo is connected.
 
         Args:
             servo: servo alias to reference it. ``DEFAULT_SERVO`` by default.
 
         Returns:
             True if the PDO thread is active. False otherwise.
-
-        Raises:
-            IMError: If the PDOs are not active yet.
         """
         if servo not in self.__servo_to_nets:
-            raise IMError(f"PDOs are not active yet for servo {servo}.")
+            return False
         tracker = self.__get_network_tracker(servo=servo)
         return tracker.is_servo_active(servo=servo)
 

@@ -18,10 +18,14 @@ from ingeniamotion.motion_controller import MotionController
 def pdos_teardown(mc: "MotionController") -> Generator[None, None, None]:
     yield
     servos = list(mc.capture.pdo._PDONetworkManager__servo_to_nets.keys())
-    for servo in servos:
-        if servo not in mc.capture.pdo._PDONetworkManager__servo_to_nets:
-            continue
-        mc.capture.pdo.stop_pdos(servo=servo)
+    try:
+        for servo in servos:
+            if servo not in mc.capture.pdo._PDONetworkManager__servo_to_nets:
+                continue
+            mc.capture.pdo.stop_pdos(servo=servo)
+    except Exception:
+        mc.capture.pdo._PDONetworkManager__servo_to_nets = {}
+        mc.capture.pdo._PDONetworkManager__nets = {}
 
 
 @pytest.mark.soem
@@ -133,18 +137,14 @@ def test_set_pdo_maps_to_slave_exception(
 
 
 @pytest.mark.soem
-def test_pdos_min_refresh_rate(mc: "MotionController", alias: str, pdos_teardown: None) -> None:  # noqa: ARG001
+def test_pdos_min_refresh_rate(mc: "MotionController", alias: str) -> None:
     refresh_rate = 0.0001
-    with pytest.raises(ValueError):
+    with pytest.raises(ValueError, match="The minimum PDO refresh rate is 0.001 seconds"):
         mc.capture.pdo.start_pdos(refresh_rate=refresh_rate, servo=alias)
 
 
 @pytest.mark.soem
-def test_pdos_watchdog_exception_auto(
-    mc: "MotionController",
-    alias: str,
-    pdos_teardown: None,  # noqa: ARG001
-) -> None:
+def test_pdos_watchdog_exception_auto(mc: "MotionController", alias: str) -> None:
     exceptions = []
 
     def exception_callback(exc):
