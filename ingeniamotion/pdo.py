@@ -1,7 +1,7 @@
 import time
-from collections import deque
-from dataclasses import dataclass
-from typing import TYPE_CHECKING, Callable, Optional, Union, cast
+from collections import defaultdict, deque
+from dataclasses import dataclass, field
+from typing import TYPE_CHECKING, Callable, Optional, Union
 
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethercat.servo import EthercatServo
@@ -40,8 +40,7 @@ class PDOPoller:
         """
         super().__init__()
         self.__mc = mc
-        self.__servo = cast("EthercatServo", self.__mc._get_drive(servo=servo))
-        self.__net = cast("EthercatNetwork", self.__mc._get_network(servo=servo))
+        self.__servo = servo
         self.__refresh_time = refresh_time
         self.__watchdog_timeout = watchdog_timeout
         self.__buffer_size = buffer_size
@@ -56,81 +55,29 @@ class PDOPoller:
 
     def start(self) -> None:
         """Start the poller."""
-        self.__servo.set_pdo_map_to_slave(rpdo_maps=[self.__rpdo_map], tpdo_maps=[self.__tpdo_map])
-        self.__net.pdo_manager.subscribe_to_receive_process_data(self._new_data_available)
+        self.__mc.capture.pdo.set_pdo_maps_to_slave(
+            rpdo_maps=self.__rpdo_map, tpdo_maps=self.__tpdo_map, servo=self.__servo
+        )
+        self.__mc.capture.pdo.subscribe_to_receive_process_data(self._new_data_available)
         for callback in self.__exception_callbacks:
-            self.__net.pdo_manager.subscribe_to_exceptions(callback)
+            self.__mc.capture.pdo.subscribe_to_exceptions(callback, servo=self.__servo)
         self.__start_time = time.time()
-        self.__net.activate_pdos(
-            refresh_rate=self.__refresh_time, watchdog_timeout=self.__watchdog_timeout
+        self.__mc.capture.pdo.start_pdos(
+            refresh_rate=self.__refresh_time,
+            watchdog_timeout=self.__watchdog_timeout,
+            servo=self.__servo,
         )
 
     def stop(self) -> None:
         """Stop the poller."""
-        self.__net.deactivate_pdos()
-        self.__net.pdo_manager.unsubscribe_to_receive_process_data(self._new_data_available)
-        for callback in self.__exception_callbacks:
-            self.__net.pdo_manager.unsubscribe_to_exceptions(callback)
-        self.__servo.remove_rpdo_map(rpdo_map=self.__rpdo_map)
-        self.__servo.remove_tpdo_map(tpdo_map=self.__tpdo_map)
-
-    @classmethod
-    def create_poller(
-        cls,
-        mc: "MotionController",
-        registers: list[dict[str, Union[int, str]]],
-        servo: str = DEFAULT_SERVO,
-        sampling_time: float = 0.125,
-        buffer_size: int = 100,
-        watchdog_timeout: Optional[float] = None,
-        start: bool = True,
-    ) -> "PDOPoller":
-        """Create a register Poller using PDOs.
-
-        Args:
-            mc: MotionController instance.
-            registers : list of registers to add to the Poller.
-                Dicts should have the follow format:
-
-                .. code-block:: python
-
-                    [
-                        { # Poller register one
-                            "name": "CL_POS_FBK_VALUE",  # Register name.
-                            "axis": 1  # Register axis.
-                            # If it has no axis field, by default axis 1.
-                        },
-                        { # Poller register two
-                            "name": "CL_VEL_FBK_VALUE",  # Register name.
-                            "axis": 1  # Register axis.
-                            # If it has no axis field, by default axis 1.
-                        }
-                    ]
-            servo: servo alias to reference it. ``default`` by default.
-            sampling_time: period of the sampling in seconds.
-                By default ``0.125`` seconds.
-            watchdog_timeout: The PDO watchdog time. If not provided it will be set proportional
-             to the refresh rate.
-            buffer_size: number maximum of sample for each data read.
-                ``100`` by default.
-            start: if ``True``, function starts poller, if ``False``
-                poller should be started after. ``True`` by default.
-
-        Returns:
-            The poller instance.
-
-        """
-        poller = cls(
-            mc=mc,
-            servo=servo,
-            refresh_time=sampling_time,
-            watchdog_timeout=watchdog_timeout,
-            buffer_size=buffer_size,
+        self.__mc.capture.pdo.stop_pdos(servo=self.__servo)
+        self.__mc.capture.pdo.unsubscribe_to_receive_process_data(
+            self._new_data_available, servo=self.__servo
         )
-        poller.add_channels(registers)
-        if start:
-            poller.start()
-        return poller
+        for callback in self.__exception_callbacks:
+            self.__mc.capture.pdo.unsubscribe_to_exceptions(callback, servo=self.__servo)
+        self.__mc.capture.pdo.remove_rpdo_map(servo=self.__servo, rpdo_map=self.__rpdo_map)
+        self.__mc.capture.pdo.remove_tpdo_map(servo=self.__servo, tpdo_map=self.__tpdo_map)
 
     @property
     def data(self) -> tuple[list[float], list[list[Union[int, float, bytes]]]]:
@@ -207,8 +154,8 @@ class PDOPoller:
                 raise ValueError(
                     f"Wrong type for the 'axis' field. Expected 'int', got: {type(axis)}"
                 )
-            tpdo_map_item = PDOMap.create_item_from_register_uid(
-                uid=name, axis=axis, dictionary=self.__servo.dictionary
+            tpdo_map_item = self.__mc.capture.pdo.create_pdo_item(
+                register_uid=name, axis=axis, servo=self.__servo
             )
             self.__tpdo_map.add_item(tpdo_map_item)
 
@@ -225,7 +172,7 @@ class PDONetworkTracker:
     network: "EthercatNetwork"  # Ethercat network
     alias: str  # Alias for the network
 
-    __active_servos: list[str]
+    __active_servos: list[str] = field(default_factory=list)
     __pdo_thread_status: bool = False
     __subscribed_to_thread_status: bool = False
 
@@ -319,16 +266,28 @@ class PDONetworkManager:
     def __init__(self, motion_controller: "MotionController") -> None:
         self.__mc = motion_controller
 
-        self.__servo_to_nets: dict[str, str]  # servo alias to net alias
+        self.__servo_to_nets: dict[str, str] = {}  # servo alias to net alias
         self.__nets: dict[str, PDONetworkTracker] = {}  # net alias to PDONetworkTracker
 
         # Save the callbacks to add/remove, manage them when there is a reference to the network
-        self.__send_process_data_add_callback: dict[str, list[Callable[[], None]]] = []
-        self.__receive_process_data_add_callback: dict[str, list[Callable[[], None]]] = []
-        self.__exception_add_callback: dict[str, list[Callable[[ILError], None]]] = []
-        self.__send_process_data_remove_callback: dict[str, list[Callable[[], None]]] = []
-        self.__receive_process_data_remove_callback: dict[str, list[Callable[[], None]]] = []
-        self.__exception_remove_callback: dict[str, list[Callable[[ILError], None]]] = []
+        self.__send_process_data_add_callback: dict[str, list[Callable[[], None]]] = defaultdict(
+            list
+        )
+        self.__receive_process_data_add_callback: dict[str, list[Callable[[], None]]] = defaultdict(
+            list
+        )
+        self.__exception_add_callback: dict[str, list[Callable[[ILError], None]]] = defaultdict(
+            list
+        )
+        self.__send_process_data_remove_callback: dict[str, list[Callable[[], None]]] = defaultdict(
+            list
+        )
+        self.__receive_process_data_remove_callback: dict[str, list[Callable[[], None]]] = (
+            defaultdict(list)
+        )
+        self.__exception_remove_callback: dict[str, list[Callable[[ILError], None]]] = defaultdict(
+            list
+        )
 
     def __add_network_tracker_for_servo(
         self, net: "EthercatNetwork", alias: str, servo: str
@@ -357,30 +316,36 @@ class PDONetworkManager:
         return self.__nets[net_alias]
 
     def __evaluate_subscriptions(self, net: EthercatNetwork, alias: str) -> None:  # noqa: C901
-        for servo, callback in self.__send_process_data_add_callback.items():
+        for servo, callbacks in self.__send_process_data_add_callback.items():
             if servo != alias:
                 continue
-            net.pdo_manager.subscribe_to_send_process_data(callback)
-        for servo, callback in self.__receive_process_data_add_callback.items():
+            for callback in callbacks:
+                net.pdo_manager.subscribe_to_send_process_data(callback)
+        for servo, callbacks in self.__receive_process_data_add_callback.items():
             if servo != alias:
                 continue
-            net.pdo_manager.subscribe_to_receive_process_data(callback)
-        for servo, exception_callback in self.__exception_add_callback.items():
+            for callback in callbacks:
+                net.pdo_manager.subscribe_to_receive_process_data(callback)
+        for servo, exception_callbacks in self.__exception_add_callback.items():
             if servo != alias:
                 continue
-            net.pdo_manager.subscribe_to_exceptions(exception_callback)
-        for servo, callback in self.__send_process_data_remove_callback.items():
+            for exception_callback in exception_callbacks:
+                net.pdo_manager.subscribe_to_exceptions(exception_callback)
+        for servo, callbacks in self.__send_process_data_remove_callback.items():
             if servo != alias:
                 continue
-            net.pdo_manager.unsubscribe_to_send_process_data(callback)
-        for servo, callback in self.__receive_process_data_remove_callback.items():
+            for callback in callbacks:
+                net.pdo_manager.unsubscribe_to_send_process_data(callback)
+        for servo, callbacks in self.__receive_process_data_remove_callback.items():
             if servo != alias:
                 continue
-            net.pdo_manager.unsubscribe_to_receive_process_data(callback)
-        for servo, exception_callback in self.__exception_remove_callback.items():
+            for callback in callbacks:
+                net.pdo_manager.unsubscribe_to_receive_process_data(callback)
+        for servo, exception_callbacks in self.__exception_remove_callback.items():
             if servo != alias:
                 continue
-            net.pdo_manager.unsubscribe_to_exceptions(exception_callback)
+            for exception_callback in exception_callbacks:
+                net.pdo_manager.unsubscribe_to_exceptions(exception_callback)
 
     def create_pdo_item(
         self,
@@ -627,9 +592,9 @@ class PDONetworkManager:
         """
         if servo in self.__servo_to_nets:
             tracker = self.__get_network_tracker(servo=servo)
-            tracker.pdo_manager.subscribe_to_send_process_data(callback)
+            tracker.network.pdo_manager.subscribe_to_send_process_data(callback)
         else:
-            self.__send_process_data_add_callback[servo] = callback
+            self.__send_process_data_add_callback[servo].append(callback)
 
     def subscribe_to_receive_process_data(
         self, callback: Callable[[], None], servo: str = DEFAULT_SERVO
@@ -643,9 +608,9 @@ class PDONetworkManager:
         """
         if servo in self.__servo_to_nets:
             tracker = self.__get_network_tracker(servo=servo)
-            tracker.pdo_manager.subscribe_to_receive_process_data(callback)
+            tracker.network.pdo_manager.subscribe_to_receive_process_data(callback)
         else:
-            self.__receive_process_data_add_callback[servo] = callback
+            self.__receive_process_data_add_callback[servo].append(callback)
 
     def subscribe_to_exceptions(
         self, callback: Callable[[ILError], None], servo: str = DEFAULT_SERVO
@@ -662,9 +627,9 @@ class PDONetworkManager:
         """
         if servo in self.__servo_to_nets:
             tracker = self.__get_network_tracker(servo=servo)
-            tracker.pdo_manager.subscribe_to_exceptions(callback)
+            tracker.network.pdo_manager.subscribe_to_exceptions(callback)
         else:
-            self.__exception_add_callback[servo] = callback
+            self.__exception_add_callback[servo].append(callback)
 
     def unsubscribe_to_send_process_data(
         self, callback: Callable[[], None], servo: str = DEFAULT_SERVO
@@ -681,9 +646,9 @@ class PDONetworkManager:
         """
         if servo in self.__servo_to_nets:
             tracker = self.__get_network_tracker(servo=servo)
-            tracker.pdo_manager.unsubscribe_to_send_process_data(callback)
+            tracker.network.pdo_manager.unsubscribe_to_send_process_data(callback)
         else:
-            self.__send_process_data_remove_callback[servo] = callback
+            self.__send_process_data_remove_callback[servo].append(callback)
 
     def unsubscribe_to_receive_process_data(
         self, callback: Callable[[], None], servo: str = DEFAULT_SERVO
@@ -698,9 +663,9 @@ class PDONetworkManager:
         """
         if servo in self.__servo_to_nets:
             tracker = self.__get_network_tracker(servo=servo)
-            tracker.pdo_manager.unsubscribe_to_receive_process_data(callback)
+            tracker.network.pdo_manager.unsubscribe_to_receive_process_data(callback)
         else:
-            self.__receive_process_data_remove_callback[servo] = callback
+            self.__receive_process_data_remove_callback[servo].append(callback)
 
     def create_poller(
         self,
@@ -746,15 +711,17 @@ class PDONetworkManager:
             The poller instance.
 
         """
-        return PDOPoller.create_poller(
+        poller = PDOPoller(
             mc=self.__mc,
-            registers=registers,
             servo=servo,
-            sampling_time=sampling_time,
+            refresh_time=sampling_time,
             watchdog_timeout=watchdog_timeout,
             buffer_size=buffer_size,
-            start=start,
         )
+        poller.add_channels(registers)
+        if start:
+            poller.start()
+        return poller
 
     def unsubscribe_to_exceptions(
         self, callback: Callable[[ILError], None], servo: str = DEFAULT_SERVO
@@ -769,6 +736,6 @@ class PDONetworkManager:
         """
         if servo in self.__servo_to_nets:
             tracker = self.__get_network_tracker(servo=servo)
-            tracker.pdo_manager.unsubscribe_to_exceptions(callback)
+            tracker.network.pdo_manager.unsubscribe_to_exceptions(callback)
         else:
-            self.__exception_remove_callback[servo] = callback
+            self.__exception_remove_callback[servo].append(callback)

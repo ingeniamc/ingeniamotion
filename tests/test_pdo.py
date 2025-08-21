@@ -6,19 +6,15 @@ import pytest
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.exceptions import ILError, ILWrongWorkingCountError
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
-from ingenialink.pdo_network_manager import PDONetworkManager
 from packaging import version
 from summit_testing_framework.setups.descriptors import EthercatMultiSlaveSetup
 
 from ingeniamotion.enums import CommunicationType, OperationMode
-from ingeniamotion.exceptions import IMError
 from ingeniamotion.metaclass import DEFAULT_AXIS
-from ingeniamotion.pdo import PDOPoller
+from ingeniamotion.motion_controller import MotionController
 
 if TYPE_CHECKING:
     from ingenialink.ethercat.servo import EthercatServo
-
-    from ingeniamotion.motion_controller import MotionController
 
 
 @pytest.mark.soem
@@ -50,14 +46,14 @@ def test_create_rpdo_item_no_initial_value(mc: "MotionController", alias: str) -
 
 @pytest.mark.soem
 def test_create_empty_rpdo_map(mc: "MotionController") -> None:
-    rpdo_map = mc.capture.pdo.create_rpdo_map()
+    rpdo_map = mc.capture.pdo.create_empty_rpdo_map()
     assert isinstance(rpdo_map, RPDOMap)
     assert len(rpdo_map.items) == 0
 
 
 @pytest.mark.soem
 def test_create_empty_tpdo_map(mc: "MotionController") -> None:
-    tpdo_map = mc.capture.pdo.create_tpdo_map()
+    tpdo_map = mc.capture.pdo.create_empty_tpdo_map()
     assert isinstance(tpdo_map, TPDOMap)
     assert len(tpdo_map.items) == 0
 
@@ -112,10 +108,18 @@ def test_set_pdo_maps_to_slave_exception(
     rx_maps = []
     tx_maps = []
     for map_type in rpdo_maps:
-        pdo_map = RPDOMap.from_empty() if map_type == "rpdo" else TPDOMap.from_empty()
+        pdo_map = (
+            mc.capture.pdo.create_empty_rpdo_map()
+            if map_type == "rpdo"
+            else mc.capture.pdo.create_empty_tpdo_map()
+        )
         rx_maps.append(pdo_map)
     for map_type in tpdo_maps:
-        pdo_map = RPDOMap.from_empty() if map_type == "rpdo" else TPDOMap.from_empty()
+        pdo_map = (
+            mc.capture.pdo.create_empty_rpdo_map()
+            if map_type == "rpdo"
+            else mc.capture.pdo.create_empty_tpdo_map()
+        )
         tx_maps.append(pdo_map)
     with pytest.raises(ValueError):
         mc.capture.pdo.set_pdo_maps_to_slave(rx_maps, tx_maps, servo=alias)
@@ -167,7 +171,6 @@ def test_pdos_watchdog_exception_manual(net: "EthercatNetwork"):
 @pytest.mark.soem_multislave
 def test_start_pdos(
     mc: "MotionController",
-    net: "EthercatNetwork",
     servo: list["EthercatServo"],
     alias: list[str],
     setup_descriptor,
@@ -180,8 +183,8 @@ def test_start_pdos(
     rpdo_values = {}
     tpdo_values = {}
     for s, a in zip(servo, alias):
-        rpdo_map = RPDOMap.from_empty()
-        tpdo_map = TPDOMap.from_empty()
+        rpdo_map = mc.capture.pdo.create_empty_rpdo_map()
+        tpdo_map = mc.capture.pdo.create_empty_tpdo_map()
         initial_operation_mode = mc.motion.get_operation_mode(servo=a)
         operation_mode = mc.capture.pdo.create_pdo_item(
             "DRV_OP_CMD", servo=a, value=initial_operation_mode.value, axis=DEFAULT_AXIS
@@ -191,7 +194,7 @@ def test_start_pdos(
         )
         rpdo_map.add_item(operation_mode)
         tpdo_map.add_item(actual_position)
-        PDONetworkManager.set_pdo_maps_to_slave(rpdo_map, tpdo_map, servo=s)
+        mc.capture.pdo.set_pdo_maps_to_slave(rpdo_map, tpdo_map, servo=a)
         pdo_map_items[a] = (operation_mode, actual_position)
         random_op_mode = random.choice([
             op_mode for op_mode in OperationMode if op_mode != initial_operation_mode
@@ -240,27 +243,67 @@ def test_stop_pdos_exception(net: "EthercatNetwork") -> None:
 
 @pytest.mark.soem
 def test_start_pdos_not_implemented_exception(mc: "MotionController") -> None:
-    # WARNING: deprecated method
     with pytest.raises(NotImplementedError):
         mc.capture.pdo.start_pdos(CommunicationType.Canopen)
 
 
-@pytest.mark.soem
-def test_start_pdos_wrong_network_type_exception(mc: "MotionController") -> None:
-    # WARNING: deprecated method
-    with pytest.raises(ValueError):
-        mc.capture.pdo.start_pdos("ethernet")
-
-
-@pytest.mark.soem
-def test_start_pdos_number_of_network_exception(mocker, mc: "MotionController") -> None:
-    # WARNING: deprecated method
-    mock_net = {"ifname1": EthercatNetwork("ifname1"), "ifname2": EthercatNetwork("ifname2")}
-    mocker.patch.object(mc, "_MotionController__net", mock_net)
-    with pytest.raises(ValueError):
+@pytest.mark.virtual
+def test_start_pdos_no_network() -> None:
+    mc = MotionController()
+    with pytest.raises(
+        ValueError, match="No network created. Please create a network before starting PDOs."
+    ):
         mc.capture.pdo.start_pdos()
-    with pytest.raises(IMError):
-        mc.capture.pdo.start_pdos(CommunicationType.Ethercat)
+
+
+@pytest.mark.virtual
+def test_start_pdos_wrong_network_type_exception(mc: "MotionController", alias: str) -> None:
+    """Error is raised if the servo to start the PDOs is not connected to an EtherCAT network."""
+    with pytest.raises(ValueError):
+        mc.capture.pdo.start_pdos(servo=alias)
+
+
+@pytest.mark.soem
+def test_start_pdos_for_multiple_networks(mocker, mc: "MotionController") -> None:
+    mock_net = {"ifname1": EthercatNetwork("ifname1"), "ifname2": EthercatNetwork("ifname2")}
+    mock_servo_net = {"servo1": "ifname1", "servo2": "ifname2"}
+    mocker.patch.object(mc, "_MotionController__net", mock_net)
+    mocker.patch.object(mc, "_MotionController__servo_net", mock_servo_net)
+    mocker.patch.object(EthercatNetwork, "activate_pdos")
+
+    assert not len(mc.capture.pdo._PDONetworkManager__nets)
+    mc.capture.pdo.start_pdos(servo="servo1")
+    assert len(mc.capture.pdo._PDONetworkManager__nets) == 1
+    assert "ifname1" in mc.capture.pdo._PDONetworkManager__nets
+
+    mc.capture.pdo.start_pdos(servo="servo2")
+    assert len(mc.capture.pdo._PDONetworkManager__nets) == 2
+    assert "ifname2" in mc.capture.pdo._PDONetworkManager__nets
+
+
+@pytest.mark.soem
+def test_start_pdos_for_multiple_servos_in_same_network(mocker, mc: "MotionController") -> None:
+    mock_net = {"ifname1": EthercatNetwork("ifname1")}
+    mock_servo_net = {"servo1": "ifname1", "servo2": "ifname1"}
+    mocker.patch.object(mc, "_MotionController__net", mock_net)
+    mocker.patch.object(mc, "_MotionController__servo_net", mock_servo_net)
+    mocker.patch.object(EthercatNetwork, "activate_pdos")
+
+    assert not len(mc.capture.pdo._PDONetworkManager__nets)
+    assert not len(mc.capture.pdo._PDONetworkManager__servo_to_nets)
+    mc.capture.pdo.start_pdos(servo="servo1")
+    assert len(mc.capture.pdo._PDONetworkManager__nets) == 1
+    assert len(mc.capture.pdo._PDONetworkManager__servo_to_nets) == 1
+    assert "ifname1" in mc.capture.pdo._PDONetworkManager__nets
+    assert mc.capture.pdo._PDONetworkManager__servo_to_nets == {"servo1": "ifname1"}
+
+    mc.capture.pdo.start_pdos(servo="servo2")
+    assert len(mc.capture.pdo._PDONetworkManager__nets) == 1
+    assert len(mc.capture.pdo._PDONetworkManager__servo_to_nets) == 2
+    assert mc.capture.pdo._PDONetworkManager__servo_to_nets == {
+        "servo1": "ifname1",
+        "servo2": "ifname1",
+    }
 
 
 def skip_if_pdo_padding_is_not_available(mc: "MotionController", alias: str) -> None:
@@ -290,8 +333,8 @@ def test_create_poller(mc: "MotionController", alias: str) -> None:
     sampling_time = 0.25
     samples_target = 4
     sleep_time = (samples_target - 0.5) * sampling_time
-    poller = PDOPoller.create_poller(
-        mc=mc, registers=registers, servo=alias, sampling_time=sampling_time
+    poller = mc.capture.pdo.create_poller(
+        registers=registers, servo=alias, sampling_time=sampling_time
     )
     time.sleep(sleep_time)
     poller.stop()
