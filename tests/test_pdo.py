@@ -1,7 +1,6 @@
 import random
 import time
 from collections.abc import Generator
-from typing import TYPE_CHECKING
 
 import pytest
 from ingenialink.ethercat.network import EthercatNetwork
@@ -13,9 +12,6 @@ from ingeniamotion.enums import CommunicationType, OperationMode
 from ingeniamotion.exceptions import IMError
 from ingeniamotion.metaclass import DEFAULT_AXIS
 from ingeniamotion.motion_controller import MotionController
-
-if TYPE_CHECKING:
-    from ingenialink.ethercat.servo import EthercatServo
 
 
 @pytest.fixture
@@ -189,13 +185,13 @@ def test_pdos_watchdog_exception_manual(
 
 @pytest.mark.soem_multislave
 def test_start_pdos(  # noqa: C901
-    mc: "MotionController", servo: list["EthercatServo"], alias: list[str]
+    mc: "MotionController", alias: list[str]
 ) -> None:
     rpdo_values = {}
     tpdo_values = {}
     pdo_map_items = {}
     initial_operation_modes = {}
-    for s, a in zip(servo, alias):
+    for a in alias:
         rpdo_map = mc.capture.pdo.create_empty_rpdo_map()
         tpdo_map = mc.capture.pdo.create_empty_tpdo_map()
         initial_operation_mode = mc.motion.get_operation_mode(servo=a)
@@ -227,7 +223,7 @@ def test_start_pdos(  # noqa: C901
 
     # Activate the PDOs
     refresh_rate = 0.5
-    for s, a in zip(servo, alias):
+    for a in alias:
         mc.capture.pdo.subscribe_to_send_process_data(send_callback, servo=a)
         mc.capture.pdo.subscribe_to_receive_process_data(receive_callback, servo=a)
         assert not mc.capture.pdo.is_active(servo=a)
@@ -236,10 +232,10 @@ def test_start_pdos(  # noqa: C901
 
     # Stop the PDOs
     time.sleep(2 * refresh_rate)
-    n_servos = len(servo)
-    for idx, (s, a) in enumerate(zip(servo, alias)):
+    n_servos = len(alias)
+    for idx, a in enumerate(alias):
         # Servo and network should be active
-        net_tracker = mc.capture.pdo._PDONetworkManager__get_network_tracker(servo=alias)
+        net_tracker = mc.capture.pdo._PDONetworkManager__get_network_tracker(servo=a)
         assert mc.capture.pdo.is_active(servo=a)
         assert net_tracker.network.is_active
 
@@ -259,8 +255,8 @@ def test_start_pdos(  # noqa: C901
         assert pytest.approx(tpdo_values[a], abs=2) == mc.motion.get_actual_position(servo=a)
         # Restore the initial operation mode
         mc.motion.set_operation_mode(initial_operation_modes[a], servo=a)
-        s.remove_rpdo_map(rpdo_map_index=0)
-        s.remove_tpdo_map(tpdo_map_index=0)
+        mc.capture.pdo.remove_rpdo_map(a, rpdo_map_index=0)
+        mc.capture.pdo.remove_tpdo_map(a, tpdo_map_index=0)
 
 
 @pytest.mark.soem
