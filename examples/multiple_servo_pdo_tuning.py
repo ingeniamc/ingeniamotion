@@ -1,16 +1,12 @@
 import time
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Union
+from typing import Union
 
 import matplotlib.pyplot as plt
 from ingenialink.pdo import RPDOMapItem, TPDOMapItem
 
 from ingeniamotion.enums import OperationMode
 from ingeniamotion.motion_controller import MotionController
-
-if TYPE_CHECKING:
-    from ingenialink.ethercat.network import EthercatNetwork
-    from ingenialink.ethercat.servo import EthercatServo
 
 SRV_1: str = "1"
 SRV_2: str = "2"
@@ -209,41 +205,38 @@ class PDOConfig:
     OUTPUT_3_REGISTER: str
 
 
-def configure_pdos(
-    pdo_config: PDOConfig, mc: MotionController, net: "EthercatNetwork", servo: "EthercatServo"
-) -> PDOCallbacks:
+def configure_pdos(pdo_config: PDOConfig, mc: MotionController, servo: str) -> PDOCallbacks:
     """Updates the position of a motor using PDOs.
 
     Args:
         pdo_config: PDOs registers.
         mc: Controller with all the functions needed to perform a PDO exchange.
-        net: The EtherCAT network.
-        servo: The EtherCAT servo.
+        servo: The servo identifier.
 
     Returns:
         PDOCallbacks: The callbacks for the PDO exchange.
     """
     init_value = mc.communication.get_register(pdo_config.INPUT_REGISTER, servo)
-    input_1: RPDOMapItem = net.pdo_manager.create_pdo_item(
+    input_1: RPDOMapItem = mc.capture.pdo.create_pdo_item(
         pdo_config.INPUT_REGISTER, value=init_value, servo=servo
     )
-    output_1: TPDOMapItem = net.pdo_manager.create_pdo_item(
+    output_1: TPDOMapItem = mc.capture.pdo.create_pdo_item(
         pdo_config.OUTPUT_1_REGISTER, servo=servo
     )
-    output_2: TPDOMapItem = net.pdo_manager.create_pdo_item(
+    output_2: TPDOMapItem = mc.capture.pdo.create_pdo_item(
         pdo_config.OUTPUT_2_REGISTER, servo=servo
     )
-    output_3: TPDOMapItem = net.pdo_manager.create_pdo_item(
+    output_3: TPDOMapItem = mc.capture.pdo.create_pdo_item(
         pdo_config.OUTPUT_3_REGISTER, servo=servo
     )
 
-    rpdo_map, tpdo_map = net.pdo_manager.create_pdo_maps([input_1], [output_1, output_2, output_3])
+    rpdo_map, tpdo_map = mc.capture.pdo.create_pdo_maps([input_1], [output_1, output_2, output_3])
 
     pdo_callbacks: PDOCallbacks = PDOCallbacks(output_1, output_2, output_3, input_1, servo)
 
     tpdo_map.subscribe_to_process_data_event(pdo_callbacks.notify_output_value)
     rpdo_map.subscribe_to_process_data_event(pdo_callbacks.update_input_values)
-    net.pdo_manager.set_pdo_maps_to_slave(rpdo_map, tpdo_map, servo=servo)
+    mc.capture.pdo.set_pdo_maps_to_slave(rpdo_map, tpdo_map, servo=servo)
 
     return pdo_callbacks
 
@@ -306,10 +299,10 @@ def main(network_interface_ip: str, dictionary_path_1: str, dictionary_path_2: s
         OUTPUT_3_REGISTER=TORQUE_ACTUAL_REGISTER,
     )
 
-    net_1, servo_1 = mc.communication.connect_servo_ethercat_interface_ip(
+    mc.communication.connect_servo_ethercat_interface_ip(
         network_interface_ip, 1, dictionary_path_1, SRV_1
     )
-    net_2, servo_2 = mc.communication.connect_servo_ethercat_interface_ip(
+    mc.communication.connect_servo_ethercat_interface_ip(
         network_interface_ip, 2, dictionary_path_2, SRV_2
     )
 
@@ -318,15 +311,15 @@ def main(network_interface_ip: str, dictionary_path_1: str, dictionary_path_2: s
     mc.motion.motor_enable(SRV_1)
     mc.motion.motor_enable(SRV_2)
 
-    pdo_callbacks_1: PDOCallbacks = configure_pdos(pdos_1, mc, net_1, servo_1)
-    pdo_callbacks_2: PDOCallbacks = configure_pdos(pdos_2, mc, net_2, servo_2)
+    pdo_callbacks_1: PDOCallbacks = configure_pdos(pdos_1, mc, SRV_1)
+    pdo_callbacks_2: PDOCallbacks = configure_pdos(pdos_2, mc, SRV_2)
     pdo_callbacks_1.update_wave(amplitude_a=1000, amplitude_b=0, frequency=0.1)
 
-    net_1.activate_pdos(refresh_rate=PDO_REFRESH_RATE_S)
-    net_2.activate_pdos(refresh_rate=PDO_REFRESH_RATE_S)
+    mc.capture.pdo.start_pdos(refresh_rate=PDO_REFRESH_RATE_S, servo=SRV_1)
+    mc.capture.pdo.start_pdos(refresh_rate=PDO_REFRESH_RATE_S, servo=SRV_2)
     time.sleep(CAPTURE_TIME_S)
-    net_1.deactivate_pdos()
-    net_2.deactivate_pdos()
+    mc.capture.pdo.stop_pdos(servo=SRV_1)
+    mc.capture.pdo.stop_pdos(servo=SRV_2)
 
     mc.motion.motor_disable(SRV_1)
     mc.motion.motor_disable(SRV_2)

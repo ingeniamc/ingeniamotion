@@ -30,7 +30,7 @@ def main(interface_ip, slave_id, dict_path) -> None:
     # Configure error channel
     mc.fsoe.subscribe_to_errors(lambda error: print(error))
     # Connect to the servo drive
-    net, _ = mc.communication.connect_servo_ethercat_interface_ip(interface_ip, slave_id, dict_path)
+    mc.communication.connect_servo_ethercat_interface_ip(interface_ip, slave_id, dict_path)
 
     # Create and start the FSoE master handler
     handler = mc.fsoe.create_fsoe_master_handler(use_sra=False)
@@ -87,7 +87,7 @@ def main(interface_ip, slave_id, dict_path) -> None:
     print(handler.safety_slave_pdu_map.get_text_representation())
 
     # Start pdo transmission
-    net.activate_pdos()
+    mc.capture.pdo.start_pdos()
 
     # Wait for the master to reach the Data state
     mc.fsoe.wait_for_state_data(timeout=30)

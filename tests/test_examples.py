@@ -32,7 +32,7 @@ from ingeniamotion.drive_tests import DriveTests
 from ingeniamotion.enums import SeverityLevel
 from ingeniamotion.information import Information
 from ingeniamotion.motion import Motion
-from ingeniamotion.pdo import PDOPoller
+from ingeniamotion.pdo import PDONetworkManager, PDOPoller
 
 
 @pytest.mark.ethernet
@@ -576,10 +576,10 @@ def test_pdo_poller_success(mocker):
         return_value=(EthercatNetwork(interface_name="mock_interface"), None),
     )
     disconnect = mocker.patch.object(Communication, "disconnect")
-    get_drive = mocker.patch.object(MotionController, "_get_drive")
-    get_network = mocker.patch.object(MotionController, "_get_network")
     mock_pdo_poller = PDOPoller(MotionController(), "mock_alias", 0.1, None, 100)
-    create_poller = mocker.patch.object(PDOPoller, "create_poller", return_value=mock_pdo_poller)
+    create_poller = mocker.patch.object(
+        PDONetworkManager, "create_poller", return_value=mock_pdo_poller
+    )
     mock_poller_data = (deque([0.1, 0.2]), [deque([1, 2]), deque([0.0, 0.0])])
     data = mocker.patch.object(
         PDOPoller, "data", new_callable=mocker.PropertyMock, return_value=mock_poller_data
@@ -590,8 +590,6 @@ def test_pdo_poller_success(mocker):
 
     connect_servo_ethercat_interface_ip.assert_called_once()
     create_poller.assert_called_once()
-    get_drive.assert_called_once()
-    get_network.assert_called_once()
     data.assert_called_once()
     stop.assert_called_once()
     disconnect.assert_called_once()
@@ -668,19 +666,19 @@ def test_process_data_object(mocker):
     disconnect = mocker.patch.object(Communication, "disconnect")
     motor_enable = mocker.patch.object(Motion, "motor_enable")
     motor_disable = mocker.patch.object(Motion, "motor_disable")
-    create_pdo_item = mocker.patch("examples.process_data_object.PDONetworkManager.create_pdo_item")
-    create_pdo_maps = mocker.patch(
-        "examples.process_data_object.PDONetworkManager.create_pdo_maps",
-        return_value=(RPDOMap(), TPDOMap),
+    create_pdo_item = mocker.patch.object(PDONetworkManager, "create_pdo_item")
+    create_pdo_maps = mocker.patch.object(
+        PDONetworkManager, "create_pdo_maps", return_value=(RPDOMap(), TPDOMap())
     )
-    set_pdo_maps_to_slave = mocker.patch(
-        "examples.process_data_object.PDONetworkManager.set_pdo_maps_to_slave"
-    )
-    activate_pdos = mocker.patch.object(EthercatNetwork, "activate_pdos")
-    deactivate_pdos = mocker.patch.object(EthercatNetwork, "deactivate_pdos")
+    set_pdo_maps_to_slave = mocker.patch.object(PDONetworkManager, "set_pdo_maps_to_slave")
+    start_pdos = mocker.patch.object(PDONetworkManager, "start_pdos")
+    stop_pdos = mocker.patch.object(PDONetworkManager, "stop_pdos")
     mocker.patch.object(Motion, "get_actual_position")
-    subscribe_to_process_data_event = mocker.patch(
-        "ingenialink.pdo.PDOMap.subscribe_to_process_data_event"
+    subscribe_to_receive_process_data = mocker.patch.object(
+        PDONetworkManager, "subscribe_to_receive_process_data"
+    )
+    subscribe_to_send_process_data = mocker.patch.object(
+        PDONetworkManager, "subscribe_to_send_process_data"
     )
 
     mocks_to_attach = {
@@ -689,9 +687,10 @@ def test_process_data_object(mocker):
         "create_pdo_item": create_pdo_item,
         "create_pdo_maps": create_pdo_maps,
         "set_pdo_maps_to_slave": set_pdo_maps_to_slave,
-        "subscribe_to_process_data_event": subscribe_to_process_data_event,
-        "activate_pdos": activate_pdos,
-        "deactivate_pdos": deactivate_pdos,
+        "subscribe_to_receive_process_data": subscribe_to_receive_process_data,
+        "subscribe_to_send_process_data": subscribe_to_send_process_data,
+        "start_pdos": start_pdos,
+        "stop_pdos": stop_pdos,
         "motor_disable": motor_disable,
         "disconnect": disconnect,
     }
@@ -712,8 +711,8 @@ def test_process_data_object(mocker):
         "subscribe_to_process_data_event",
         "subscribe_to_process_data_event",
         "set_pdo_maps_to_slave",
-        "activate_pdos",
-        "deactivate_pdos",
+        "start_pdos",
+        "stop_pdos",
         "motor_disable",
         "disconnect",
     ]

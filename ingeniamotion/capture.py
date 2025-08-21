@@ -1,4 +1,3 @@
-import warnings
 from typing import TYPE_CHECKING, Optional, Union
 
 import numpy as np
@@ -59,20 +58,7 @@ class Capture:
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
-        self._pdo = PDONetworkManager(self.mc)
-
-    @property
-    def pdo(self) -> PDONetworkManager:
-        """Returns the PDONetworkManager instance.
-
-        WARNING: This method is deprecated.
-        """
-        warnings.warn(
-            "mc.capture.pdo is deprecated, use pdo_manager from network instead",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        return self._pdo
+        self.pdo = PDONetworkManager(self.mc)
 
     def create_poller(
         self,
