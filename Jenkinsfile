@@ -27,6 +27,11 @@ FSOE_INSTALL_VERSION = ".[FSoE]"
 
 coverage_stashes = []
 
+def reassignFilePermissions() {
+    if (isUnix()) {
+        sh 'chmod -R 777 .'
+    }
+}
 
 def clearWiresharkLogs() {
     bat(script: 'del /f "%WIRESHARK_DIR%\\*.pcap"', returnStatus: true)
@@ -222,6 +227,11 @@ pipeline {
                                     junit "pytest_reports/*.xml"
                                 }
                             }
+                        }
+                    }
+                    post {
+                        always {
+                            reassignFilePermissions()
                         }
                     }
                 }
