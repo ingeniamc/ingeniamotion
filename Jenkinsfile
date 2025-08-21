@@ -369,9 +369,9 @@ pipeline {
                                         unstash 'build'
                                     }
                                 }
-                                stage('Publish Ingenia PyPi') {
+                                stage('Publish Novanta PyPi') {
                                     steps {
-                                        publishIngeniaPyPi('dist/*')
+                                        publishNovantaPypi('dist/*')
                                     }
                                 }
                                 stage('Publish PyPi') {
