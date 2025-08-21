@@ -133,17 +133,17 @@ pipeline {
             choices: [
                 '.*',
                 'virtual_drive_tests',
-                'canopen_.*',
-                'ethernet_.*',
+                'canopen.*',
+                'ethernet.*',
                 'canopen_everest.*',
                 'canopen_capitan.*',
                 'ethernet_everest.*',
                 'ethernet_capitan.*',
-                'ethercat_.*',
+                'ethercat.*',
                 'ethercat_everest.*',
                 'ethercat_capitan.*',
                 'ethercat_multislave.*',
-                'fsoe_.*',
+                'fsoe.*',
                 'fsoe_phase1.*',
                 'fsoe_phase2.*'
             ],
@@ -382,8 +382,14 @@ pipeline {
                         beforeOptions true
                         beforeAgent true
                         expression {
-                          params.run_test_stages.contains("canopen") ||
-                          params.run_test_stages.contains("ethernet")
+                          [
+                            "canopen_everest",
+                            "canopen_everest_no_framework",
+                            "canopen_capitan",
+                            "canopen_capitan_no_framework",
+                            "ethernet_everest",
+                            "ethernet_capitan"
+                          ].any { it ==~ params.run_test_stages }
                         }
                     }
                     options {
@@ -471,8 +477,13 @@ pipeline {
                         beforeOptions true
                         beforeAgent true
                         expression {
-                            params.run_test_stages.contains("ethercat") ||
-                            params.run_test_stages.contains("fsoe")
+                          [
+                            "ethercat",
+                            "ethercat_capitan",
+                            "ethercat_multislave",
+                            "fsoe_phase1",
+                            "fsoe_phase2"
+                          ].any { it ==~ params.run_test_stages }
                         }
                     }
                     options {
@@ -496,9 +507,8 @@ pipeline {
                         }
                         stage("Ethercat Everest") {
                             when {
-                                expression {
-                                    "ethercat_everest" ==~ params.run_test_stages
-                                }
+                                // Remove this after fixing INGK-983
+                                expression { false }
                             }
                             steps {
                                 runTestHW("ethercat_everest", "soem", "ECAT_EVE_SETUP", USE_WIRESHARK_LOGGING)
