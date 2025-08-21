@@ -126,41 +126,41 @@ def test_set_pdo_maps_to_slave_exception(
 
 
 @pytest.mark.soem
-def test_pdos_min_refresh_rate(net: "EthercatNetwork"):
+def test_pdos_min_refresh_rate(mc: "MotionController", alias: str) -> None:
     refresh_rate = 0.0001
     with pytest.raises(ValueError):
-        net.activate_pdos(refresh_rate=refresh_rate)
+        mc.capture.pdo.start_pdos(refresh_rate=refresh_rate, servo=alias)
 
 
 @pytest.mark.soem
-def test_pdos_watchdog_exception_auto(net: "EthercatNetwork"):
+def test_pdos_watchdog_exception_auto(mc: "MotionController", alias: str) -> None:
     exceptions = []
 
     def exception_callback(exc):
         exceptions.append(exc)
 
     refresh_rate = 3.5
-    net.pdo_manager.subscribe_to_exceptions(exception_callback)
-    net.activate_pdos(refresh_rate=refresh_rate)
+    mc.capture.pdo.subscribe_to_exceptions(exception_callback, servo=alias)
+    mc.capture.pdo.start_pdos(refresh_rate=refresh_rate, servo=alias)
     time.sleep(1)
-    net.pdo_manager.unsubscribe_to_exceptions(exception_callback)
+    mc.capture.pdo.unsubscribe_to_exceptions(exception_callback, servo=alias)
     assert len(exceptions) > 0
     exception = exceptions[0]
     assert str(exception) == "The sampling time is too high. The max sampling time is 3276.75 ms."
 
 
 @pytest.mark.soem
-def test_pdos_watchdog_exception_manual(net: "EthercatNetwork"):
+def test_pdos_watchdog_exception_manual(mc: "MotionController", alias: str) -> None:
     exceptions = []
 
     def exception_callback(exc):
         exceptions.append(exc)
 
     watchdog_timeout = 7
-    net.pdo_manager.subscribe_to_exceptions(exception_callback)
-    net.activate_pdos(watchdog_timeout=watchdog_timeout)
+    mc.capture.pdo.subscribe_to_exceptions(exception_callback, servo=alias)
+    mc.capture.pdo.start_pdos(watchdog_timeout=watchdog_timeout, servo=alias)
     time.sleep(1)
-    net.pdo_manager.unsubscribe_to_exceptions(exception_callback)
+    mc.capture.pdo.unsubscribe_to_exceptions(exception_callback, servo=alias)
     assert len(exceptions) > 0
     exception = exceptions[0]
     assert (
@@ -347,7 +347,7 @@ def test_create_poller(mc: "MotionController", alias: str) -> None:
 
 
 @pytest.mark.soem
-def test_subscribe_exceptions(net: "EthercatNetwork", mocker) -> None:
+def test_subscribe_exceptions(mc: "MotionController", alias: str, mocker) -> None:
     error_msg = "Test error"
 
     def start_pdos(*_):
@@ -362,11 +362,13 @@ def test_subscribe_exceptions(net: "EthercatNetwork", mocker) -> None:
         "ingenialink.pdo_network_manager.PDONetworkManager._notify_exceptions"
     )
 
-    net.pdo_manager.subscribe_to_exceptions(patch_callback)
-    net.activate_pdos()
+    mc.capture.pdo.subscribe_to_exceptions(patch_callback, servo=alias)
+    mc.capture.pdo.start_pdos(servo=alias)
 
     t = time.time()
     timeout = 1
+    net_tracker = mc.capture.pdo._PDONetworkManager__get_network_tracker(servo=alias)
+    net = net_tracker.network
     while not net.pdo_manager._pdo_thread._pd_thread_stop_event.is_set() and (
         (time.time() - t) < timeout
     ):
@@ -378,4 +380,4 @@ def test_subscribe_exceptions(net: "EthercatNetwork", mocker) -> None:
         str(patch_callback.call_args_list[0][0][0])
         == f"Stopping the PDO thread due to the following exception: {error_msg} "
     )
-    net.deactivate_pdos()
+    mc.capture.pdo.stop_pdos(servo=alias)

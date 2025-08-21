@@ -2,7 +2,6 @@ import time
 from typing import Union
 
 from ingeniamotion.motion_controller import MotionController
-from ingeniamotion.pdo import PDOPoller
 
 
 def set_up_pdo_poller(mc: MotionController) -> None:
@@ -24,7 +23,7 @@ def set_up_pdo_poller(mc: MotionController) -> None:
         },
     ]
 
-    poller = PDOPoller.create_poller(mc=mc, registers=registers)
+    poller = mc.capture.pdo.create_poller(registers=registers)
     # Waiting time for generating new samples
     time.sleep(1)
     time_stamps, data = poller.data
