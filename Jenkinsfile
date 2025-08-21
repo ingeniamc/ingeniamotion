@@ -36,24 +36,25 @@ def archiveWiresharkLogs() {
     archiveArtifacts artifacts: "${WIRESHARK_DIR}\\*.pcap", allowEmptyArchive: true
 }
 
-def runTestHW(run_identifier, markers, setup_name, install_fsoe = false, extra_args = "") {
+def runTestHW(run_identifier, markers, setup_name, extra_args = "") {
     try {
         timeout(time: 1, unit: 'HOURS') {
-            def fsoe_package = null
-            if (install_fsoe) {
-                fsoe_package = FSOE_INSTALL_VERSION
-            }
-
             def pythonVersions = RUN_PYTHON_VERSIONS.split(',')
-
             pythonVersions.each { version ->
-                withEnv(["FSOE_PACKAGE=${fsoe_package}", "WIRESHARK_SCOPE=${params.WIRESHARK_LOGGING_SCOPE}", "CLEAR_WIRESHARK_LOG_IF_SUCCESSFUL=${params.CLEAR_SUCCESSFUL_WIRESHARK_LOGS}", "START_WIRESHARK_TIMEOUT_S=${START_WIRESHARK_TIMEOUT_S}"]) {
+                withEnv(["WIRESHARK_SCOPE=${params.WIRESHARK_LOGGING_SCOPE}", "CLEAR_WIRESHARK_LOG_IF_SUCCESSFUL=${params.CLEAR_SUCCESSFUL_WIRESHARK_LOGS}", "START_WIRESHARK_TIMEOUT_S=${START_WIRESHARK_TIMEOUT_S}"]) {
                     try {
-                        bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e ${version} -- " +
-                                "-m \"${markers}\" " +
-                                "--setup tests.setups.rack_specifiers.${setup_name} " +
-                                "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\" " +
-                                "${extra_args}"
+                        bat """
+                            call .venv${version}/Scripts/activate
+                            poetry run poe tests ^
+                                --import-mode=importlib ^
+                                --cov=ingeniamotion ^
+                                --junitxml=pytest_reports/junit-tests-${version}.xml ^
+                                --junit-prefix=${version} ^
+                                -m \"${markers}\" ^
+                                --setup tests.setups.rack_specifiers.${setup_name} ^
+                                --job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\" ^
+                                ${extra_args}
+                        """
                     } catch (err) {
                         unstable(message: "Tests failed")
                     } finally {
@@ -100,7 +101,7 @@ def createVirtualEnvironments(String pythonVersionList = "") {
             bat """
                 py -${version} -m venv ${venvName}
                 call ${venvName}/Scripts/activate
-                poetry sync --all-groups
+                poetry sync --all-groups --extras fsoe
                 deactivate
             """
         }
@@ -387,6 +388,13 @@ pipeline {
                                 clearWiresharkLogs()
                             }
                         }
+                        stage('Create virtual environments') {
+                            steps {
+                                script {
+                                    createVirtualEnvironments()
+                                }
+                            }
+                        }
                         stage("CanOpen Everest") {
                             when {
                                 expression {
@@ -414,7 +422,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTestHW("ethernet_everest", "ethernet", "ETH_EVE_SETUP", false, USE_WIRESHARK_LOGGING)
+                                runTestHW("ethernet_everest", "ethernet", "ETH_EVE_SETUP", USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("CanOpen Capitan") {
@@ -443,7 +451,7 @@ pipeline {
                                 expression { false }
                             }
                             steps {
-                                runTestHW("ethernet_capitan", "ethernet", "ETH_CAP_SETUP", false, USE_WIRESHARK_LOGGING)
+                                runTestHW("ethernet_capitan", "ethernet", "ETH_CAP_SETUP", USE_WIRESHARK_LOGGING)
                             }
                         }
                     }
@@ -469,6 +477,13 @@ pipeline {
                                 clearWiresharkLogs()
                             }
                         }
+                        stage('Create virtual environments') {
+                            steps {
+                                script {
+                                    createVirtualEnvironments()
+                                }
+                            }
+                        }
                         stage("Ethercat Everest") {
                             when {
                                 expression {
@@ -476,7 +491,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTestHW("ethercat_everest", "soem", "ECAT_EVE_SETUP", false, USE_WIRESHARK_LOGGING)
+                                runTestHW("ethercat_everest", "soem", "ECAT_EVE_SETUP", USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("Ethercat Capitan") {
@@ -486,7 +501,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTestHW("ethercat_capitan", "soem", "ECAT_CAP_SETUP", false, USE_WIRESHARK_LOGGING)
+                                runTestHW("ethercat_capitan", "soem", "ECAT_CAP_SETUP", USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("Safety Denali Phase I") {
@@ -496,7 +511,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTestHW("fsoe_phase1", "fsoe", "ECAT_DEN_S_PHASE1_SETUP", true, USE_WIRESHARK_LOGGING)
+                                runTestHW("fsoe_phase1", "fsoe", "ECAT_DEN_S_PHASE1_SETUP", USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("Safety Denali Phase II") {
@@ -506,7 +521,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTestHW("fsoe_phase2", "fsoe or fsoe_phase2", "ECAT_DEN_S_PHASE2_SETUP", true, USE_WIRESHARK_LOGGING)
+                                runTestHW("fsoe_phase2", "fsoe or fsoe_phase2", "ECAT_DEN_S_PHASE2_SETUP", USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("Ethercat Multislave") {
@@ -516,7 +531,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTestHW("ethercat_multislave", "soem_multislave", "ECAT_MULTISLAVE_SETUP", false, USE_WIRESHARK_LOGGING)
+                                runTestHW("ethercat_multislave", "soem_multislave", "ECAT_MULTISLAVE_SETUP", USE_WIRESHARK_LOGGING)
                             }
                         }
                     }
