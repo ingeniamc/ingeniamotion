@@ -7,7 +7,6 @@ from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.exceptions import ILError, ILWrongWorkingCountError
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 from packaging import version
-from summit_testing_framework.setups.descriptors import EthercatMultiSlaveSetup
 
 from ingeniamotion.enums import CommunicationType, OperationMode
 from ingeniamotion.metaclass import DEFAULT_AXIS
@@ -169,19 +168,16 @@ def test_pdos_watchdog_exception_manual(mc: "MotionController", alias: str) -> N
 
 
 @pytest.mark.soem_multislave
-def test_start_pdos(
+def test_start_pdos(  # noqa: C901
     mc: "MotionController",
     servo: list["EthercatServo"],
+    net: list["EthercatNetwork"],
     alias: list[str],
-    setup_descriptor,
 ) -> None:
-    if not isinstance(setup_descriptor, EthercatMultiSlaveSetup):
-        raise ValueError("Invalid setup config for test")
-
-    pdo_map_items = {}
-    initial_operation_modes = {}
     rpdo_values = {}
     tpdo_values = {}
+    pdo_map_items = {}
+    initial_operation_modes = {}
     for s, a in zip(servo, alias):
         rpdo_map = mc.capture.pdo.create_empty_rpdo_map()
         tpdo_map = mc.capture.pdo.create_empty_tpdo_map()
@@ -212,6 +208,12 @@ def test_start_pdos(
             _, tpdo_map_item = pdo_map_items[a]
             tpdo_values[a] = tpdo_map_item.value
 
+    # Verify that both servos are connected to the same network
+    interface_name = net[0].interface_name
+    for n, a in zip(net, alias):
+        assert n.interface_name == interface_name
+
+    # Activate the PDOs
     refresh_rate = 0.5
     for s, a in zip(servo, alias):
         mc.capture.pdo.subscribe_to_send_process_data(send_callback, servo=a)
@@ -219,11 +221,25 @@ def test_start_pdos(
         assert not mc.capture.pdo.is_active(servo=a)
         mc.capture.pdo.start_pdos(refresh_rate=refresh_rate, servo=a)
         assert mc.capture.pdo.is_active(servo=a)
-        time.sleep(2 * refresh_rate)
+
+    # Stop the PDOs
+    time.sleep(2 * refresh_rate)
+    n_servos = len(servo)
+    for idx, (s, a) in enumerate(zip(servo, alias)):
+        # Servo and network should be active
+        net_tracker = mc.capture.pdo._PDONetworkManager__get_network_tracker(servo=alias)
+        assert mc.capture.pdo.is_active(servo=a)
+        assert net_tracker.network.is_active
+
         mc.capture.pdo.stop_pdos(servo=a)
         assert not mc.capture.pdo.is_active(servo=a)
 
-        # TODO: check that pdos are still active after first drive removal, they will only be full deactivated if all servos are removed
+        # PDOs should still be active after first drive removal,
+        # they will only be full deactivated if all servos are removed
+        if idx == 0:
+            assert net_tracker.network.is_active
+        elif idx == n_servos - 1:
+            assert not net_tracker.network.is_active
 
         # Check that RPDO are being sent
         assert rpdo_values[a] == mc.motion.get_operation_mode(servo=a)

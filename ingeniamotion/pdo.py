@@ -578,7 +578,7 @@ class PDONetworkManager:
         if servo not in self.__servo_to_nets:
             raise IMError(f"PDOs are not active yet for servo {servo}.")
         tracker = self.__get_network_tracker(servo=servo)
-        return tracker.is_active
+        return tracker.is_servo_active(servo=servo)
 
     def subscribe_to_send_process_data(
         self, callback: Callable[[], None], servo: str = DEFAULT_SERVO
