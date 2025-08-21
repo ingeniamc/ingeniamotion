@@ -554,7 +554,12 @@ pipeline {
                         unstash coverage_stash
                         coverage_files += " " + coverage_stash
                     }
-                    bat "py -${DEFAULT_PYTHON_VERSION} -m tox -e coverage -- ${coverage_files}"
+                    createVirtualEnvironments(DEFAULT_PYTHON_VERSION)
+                    bat """
+                        call .venv${DEFAULT_PYTHON_VERSION}/Scripts/activate
+                        poetry run poe cov-combine --${coverage_files}
+                        poetry run poe cov-report
+                    """
                 }
                 recordCoverage(tools: [[parser: 'COBERTURA', pattern: 'coverage.xml']])
                 archiveArtifacts artifacts: '*.xml'

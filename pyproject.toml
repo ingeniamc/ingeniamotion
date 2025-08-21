@@ -158,3 +158,11 @@ cmd = "mypy ingeniamotion"
 # ----------------------------- Run unit tests -----------------------------
 [tool.poe.tasks.tests]
 cmd = "python -I -m pytest tests"
+
+# ----------------------------- Coverage combine -----------------------------
+[tool.poe.tasks.cov-combine]
+cmd = "python -I -m coverage combine"
+
+# ----------------------------- Coverage report -----------------------------
+[tool.poe.tasks.cov-report]
+cmd = "python -I -m coverage xml"
