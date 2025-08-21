@@ -371,7 +371,7 @@ pipeline {
                                 }
                                 stage('Publish Novanta PyPi') {
                                     steps {
-                                        publishNovantaPypi('dist/*')
+                                        publishNovantaPyPi('dist/*')
                                     }
                                 }
                                 stage('Publish PyPi') {
