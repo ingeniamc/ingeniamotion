@@ -140,7 +140,10 @@ class Monitoring(ABC):
             if not isinstance(register, str):
                 raise TypeError("Register has to be a string")
             register_obj = self.mc.info.register_info(register, subnode, servo=self.servo)
-            if register_obj.cyclic not in [RegCyclicType.TX, RegCyclicType.RXTX]:
+            if register_obj.monitoring is None or (
+                register_obj.monitoring is not None
+                and register_obj.monitoring.cyclic not in [RegCyclicType.TX, RegCyclicType.RXTX]
+            ):
                 raise IMMonitoringError(
                     f"{register} can not be mapped as a monitoring register (wrong cyclic)"
                 )
@@ -188,13 +191,8 @@ class Monitoring(ABC):
             if not isinstance(channel["dtype"], RegDtype):
                 raise TypeError("dtype has to be of type RegDtype")
             dtype = channel["dtype"]
-            register_obj = self.mc.info.register_info(register, subnode, servo=self.servo)
             drive.monitoring_set_mapped_register(
-                ch_idx,
-                register_obj.mapped_address,
-                subnode,
-                dtype.value,
-                self._data_type_size[dtype],
+                channel=ch_idx, uid=register, size=self._data_type_size[dtype], axis=subnode
             )
 
         num_mon_reg = self.mc.communication.get_register(
@@ -252,7 +250,11 @@ class Monitoring(ABC):
 
     @staticmethod
     def _unpack_trigger_value(value: Union[int, float], dtype: RegDtype) -> int:
-        """Converts any value from its dtype to an UINT32."""
+        """Converts any value from its dtype to an UINT32.
+
+        Returns:
+            The value converted to integer
+        """
         if dtype == RegDtype.U16:
             return int(np.array([int(value)], dtype="int64").astype("uint16")[0])
         if dtype == RegDtype.U32:
@@ -379,6 +381,9 @@ class Monitoring(ABC):
                 ``None`` by default.
             progress_callback : callback with progress.
 
+        Raises:
+            IMMonitoringError: If monitoring is disabled.
+
         Returns:
             Data of monitoring. Each element of the list is a different register data.
 
@@ -473,6 +478,9 @@ class Monitoring(ABC):
                 (or until the timeout) If ``False``, function try to raise the
                 trigger only once.
             timeout : blocking timeout in seconds. ``5`` by default.
+
+        Raises:
+            IMMonitoringError: If monitoring trigger type is not Forced Trigger.
 
         Returns:
             Return ``True`` if trigger is raised, else ``False``.

@@ -25,3 +25,8 @@ Process Data object Example
 ---------------------------
 
 .. literalinclude:: ../../examples/process_data_object.py
+
+Multiple Servo PDO Tuning Example
+---------------------------------
+
+`Example link <https://github.com/ingeniamc/ingeniamotion/blob/master/examples/multiple_servo_pdo_tuning.py>`_

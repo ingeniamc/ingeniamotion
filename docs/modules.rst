@@ -11,8 +11,9 @@ Ingenia Motion
    ingeniamotion/drive_tests
    ingeniamotion/motion
    ingeniamotion/fsoe
+
    ingeniamotion/errors
    ingeniamotion/info
-   ingeniamotion/io
+   ingeniamotion/input_output
    ingeniamotion/enums
    ingeniamotion/exceptions

@@ -96,6 +96,27 @@ class Communication:
         self.register_update_observers: dict[Servo, list[IMRegisterUpdateObserver]] = {}
         self.emergency_messages_observers: dict[Servo, list[IMEmergencyMessageObserver]] = {}
 
+    def __disconnect_callback(self, servo: Servo) -> None:
+        alias = None
+        for servo_alias, servo in self.mc.servos.items():
+            if servo.target == servo.target:
+                alias = servo_alias
+                break
+        if alias is None:
+            raise ValueError("Servo not found in the communication controller.")
+
+        network = self.mc._get_network(alias)
+        if isinstance(network, VirtualNetwork) and self.__virtual_drive:
+            self.__virtual_drive.stop()
+            self.__virtual_drive = None
+        del self.mc.servos[alias]
+        net_name = self.mc.servo_net.pop(alias)
+        servo_count = list(self.mc.servo_net.values()).count(net_name)
+        if self.mc.fsoe_is_installed:
+            self.mc.fsoe._delete_master_handler(alias)
+        if servo_count == 0:
+            del self.mc.net[net_name]
+
     def connect_servo_eoe(
         self,
         ip: str,
@@ -215,6 +236,7 @@ class Communication:
             connection_timeout,
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
+            disconnect_callback=self.__disconnect_callback,
         )
 
         self.mc.servos[alias] = servo
@@ -244,6 +266,7 @@ class Communication:
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
             is_eoe=is_eoe,
+            disconnect_callback=self.__disconnect_callback,
         )
 
         self.mc.servos[alias] = servo
@@ -298,6 +321,7 @@ class Communication:
                 port,
                 servo_status_listener=servo_status_listener,
                 net_status_listener=net_status_listener,
+                disconnect_callback=self.__disconnect_callback,
             )
         except ILError as e:
             if len(net.servos) == 0:
@@ -501,8 +525,8 @@ class Communication:
             if not EthercatNetwork.pysoem_available():
                 logger.warning("npcap not available, network adapters list will not be complete")
             else:
-                network_adapters.extend(
-                    [
+                network_adapters.extend([
+
                         NetworkAdapter(
                             interface_index=adapter[0],
                             interface_name=adapter[2],
@@ -666,7 +690,13 @@ class Communication:
             self.mc.net[net_key] = CanopenNetwork(can_device, channel, baudrate)
         net = self.mc.net[net_key]
 
-        servo = net.connect_to_slave(node_id, dict_path, servo_status_listener, net_status_listener)
+        servo = net.connect_to_slave(
+            node_id,
+            dict_path,
+            servo_status_listener,
+            net_status_listener,
+            disconnect_callback=self.__disconnect_callback,
+        )
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = net_key
 
@@ -711,6 +741,7 @@ class Communication:
                 dict_path,
                 servo_status_listener=servo_status_listener,
                 net_status_listener=net_status_listener,
+                disconnect_callback=self.__disconnect_callback,
             )
         except ILError as e:
             if len(net.servos) == 0:
@@ -975,17 +1006,8 @@ class Communication:
         """
         drive = self.mc._get_drive(servo)
         network = self.mc._get_network(servo)
+        # This will call `__disconnect_callback` to complete the disconnection
         network.disconnect_from_slave(drive)
-        if isinstance(network, VirtualNetwork) and self.__virtual_drive:
-            self.__virtual_drive.stop()
-            self.__virtual_drive = None
-        del self.mc.servos[servo]
-        net_name = self.mc.servo_net.pop(servo)
-        servo_count = list(self.mc.servo_net.values()).count(net_name)
-        if self.mc.fsoe_is_installed:
-            self.mc.fsoe._delete_master_handler(servo)
-        if servo_count == 0:
-            del self.mc.net[net_name]
 
     def get_servo_state(self, servo: str = DEFAULT_SERVO) -> NetState:
         """Get the network state of a servo (connected/disconnected).
@@ -1575,20 +1597,28 @@ class Communication:
             for slave_id_offset in mapping:
                 slave_id = first_slave_in_ensemble + slave_id_offset
                 if slave_id not in connected_drives:
-                    net.connect_to_slave(slave_id, dictionary_path)
+                    net.connect_to_slave(
+                        slave_id, dictionary_path, disconnect_callback=self.__disconnect_callback
+                    )
+
+            load_fw_slave_id: Optional[int] = None
             try:
                 for slave_id_offset, fw_file_prod_code in mapping.items():
-                    slave_id = first_slave_in_ensemble + slave_id_offset
+                    load_fw_slave_id = first_slave_in_ensemble + slave_id_offset
                     net.load_firmware(
-                        slave_id,
+                        load_fw_slave_id,
                         fw_file_prod_code[0],
                         status_callback,
                         progress_callback,
                         error_enabled_callback,
                     )
             except ILError as e:
+                if load_fw_slave_id is None:
+                    raise IMFirmwareLoadError(
+                        f"{FIRMWARE_FILE_FAIL_MSG}. No slave detected in the ensemble."
+                    )
                 raise IMFirmwareLoadError(
-                    f"{FIRMWARE_FILE_FAIL_MSG} on node {slave_id}. Exception: {e}"
+                    f"{FIRMWARE_FILE_FAIL_MSG} on node {load_fw_slave_id}. Exception: {e}"
                 )
 
     def __load_ensemble_fw_ecat(
@@ -1612,6 +1642,9 @@ class Communication:
                 If None, the file extension is used to define it.
             password: Password to load the firmware file. If ``None`` the default password will be
                 used.
+
+        Raises:
+            IMFirmwareLoadError: If the load FW process of any slave failed.
         """
         with tempfile.TemporaryDirectory() as ensemble_temp_dir:
             mapping = self.__unzip_ensemble_fw_file(fw_file, ensemble_temp_dir)

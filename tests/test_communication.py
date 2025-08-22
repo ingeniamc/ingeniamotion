@@ -16,19 +16,18 @@ from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.exceptions import ILError
 from ingenialink.network import SlaveInfo
 from ingenialink.servo import ServoState
+from summit_testing_framework.setups.descriptors import (
+    DriveCanOpenSetup,
+    DriveEcatSetup,
+    EthernetSetup,
+    SetupDescriptor,
+)
 
-import ingeniamotion
 from ingeniamotion import MotionController
 from ingeniamotion.exceptions import (
     IMFirmwareLoadError,
     IMRegisterNotExistError,
     IMRegisterWrongAccessError,
-)
-from tests.tests_toolkit.setups.descriptors import (
-    DriveCanOpenSetup,
-    DriveEcatSetup,
-    EthernetSetup,
-    SetupDescriptor,
 )
 
 TEST_ENSEMBLE_FW_FILE = "tests/resources/example_ensemble_fw.zfu"
@@ -58,7 +57,6 @@ class EmcyTest:
         self.messages.append((alias, emcy_msg))
 
 
-@pytest.mark.smoke
 @pytest.mark.canopen
 @pytest.mark.ethernet
 def test_get_network_adapters(mocker, setup_descriptor: SetupDescriptor):
@@ -125,6 +123,28 @@ def test_connect_servo_ethernet(setup_descriptor: EthernetSetup):
     assert "ethernet_test" in mc.net and mc.net["ethernet_test"] is not None
 
 
+@pytest.mark.ethercat
+@pytest.mark.skip_testing_framework
+def test_mc_disconnects_with_disconnection_callback(setup_descriptor: DriveEcatSetup, alias: str):
+    mc = MotionController()
+    mc.communication.connect_servo_ethercat(
+        interface_name=setup_descriptor.ifname,
+        slave_id=setup_descriptor.slave,
+        dict_path=setup_descriptor.dictionary.as_posix(),
+        alias=alias,
+    )
+
+    servo = mc._get_drive(servo=alias)
+    network = mc._get_network(servo=alias)
+    assert alias in mc.servos
+    assert alias in mc.servo_net
+
+    # Servo should be disconnected even if it is disconnected by the user
+    network.disconnect_from_slave(servo)
+    assert alias not in mc.servos
+    assert alias not in mc.servo_net
+
+
 @pytest.mark.virtual
 def test_connect_servo_ethernet_no_dictionary_error(setup_descriptor: EthernetSetup):
     mc = MotionController()
@@ -134,7 +154,6 @@ def test_connect_servo_ethernet_no_dictionary_error(setup_descriptor: EthernetSe
         )
 
 
-@pytest.mark.smoke
 @pytest.mark.ethernet
 @pytest.mark.parametrize(
     "coco_dict_path",
@@ -157,8 +176,6 @@ def test_connect_servo_comkit_no_dictionary_error(coco_dict_path, setup_descript
         )
 
 
-@pytest.mark.smoke
-@pytest.mark.virtual
 def test_get_ifname_from_interface_ip(mocker):
     class MockAdapter:
         @dataclass
@@ -183,8 +200,6 @@ def test_get_ifname_from_interface_ip(mocker):
         assert ifname == name
 
 
-@pytest.mark.smoke
-@pytest.mark.virtual
 def test_get_ifname_by_index():
     mc = MotionController()
     interface_name_list = mc.communication.get_interface_name_list()
@@ -197,7 +212,6 @@ def test_get_ifname_by_index():
 
 
 @pytest.mark.skip(reason='This test enters in conflict with "disable_motor_fixture"')
-@pytest.mark.smoke
 @pytest.mark.canopen
 def test_connect_servo_canopen(setup_descriptor: DriveCanOpenSetup):
     mc = MotionController()
@@ -218,13 +232,9 @@ def test_connect_servo_canopen(setup_descriptor: DriveCanOpenSetup):
     mc.net["canopen_test"].disconnect()
 
 
-@pytest.mark.smoke
 @pytest.mark.canopen
 @pytest.mark.skip
-def test_connect_servo_canopen_busy_drive_error(
-    motion_controller, setup_descriptor: DriveCanOpenSetup
-):
-    mc, alias, environment = motion_controller
+def test_connect_servo_canopen_busy_drive_error(mc, alias, setup_descriptor: DriveCanOpenSetup):
     assert "canopen_test" not in mc.servos
     assert "canopen_test" not in mc.servo_net
     assert alias in mc.servos
@@ -244,7 +254,6 @@ def test_connect_servo_canopen_busy_drive_error(
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "uid, value",
     [
@@ -253,8 +262,7 @@ def test_connect_servo_canopen_busy_drive_error(
         ("PROF_POS_OPTION_CODE", 1),
     ],
 )
-def test_get_register(motion_controller, uid, value):
-    mc, alias, environment = motion_controller
+def test_get_register(mc, alias, uid, value):
     drive = mc.servos[alias]
     drive.write(uid, value)
     test_value = mc.communication.get_register(uid, servo=alias)
@@ -262,15 +270,12 @@ def test_get_register(motion_controller, uid, value):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
-def test_get_register_wrong_uid(motion_controller):
-    mc, alias, environment = motion_controller
+def test_get_register_wrong_uid(mc, alias):
     with pytest.raises(IMRegisterNotExistError):
         mc.communication.get_register("WRONG_UID", servo=alias)
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "uid, value",
     [
@@ -279,8 +284,7 @@ def test_get_register_wrong_uid(motion_controller):
         ("PROF_POS_OPTION_CODE", 54),
     ],
 )
-def test_set_register(motion_controller, uid, value):
-    mc, alias, environment = motion_controller
+def test_set_register(mc, alias, uid, value):
     drive = mc.servos[alias]
     mc.communication.set_register(uid, value, servo=alias)
     test_value = drive.read(uid)
@@ -288,15 +292,12 @@ def test_set_register(motion_controller, uid, value):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
-def test_set_register_wrong_uid(motion_controller):
-    mc, alias, environment = motion_controller
+def test_set_register_wrong_uid(mc, alias):
     with pytest.raises(IMRegisterNotExistError):
         mc.communication.set_register("WRONG_UID", 2, servo=alias)
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "uid, value, fail",
     [
@@ -311,8 +312,7 @@ def test_set_register_wrong_uid(motion_controller):
         ("PROF_POS_OPTION_CODE", "54", True),
     ],
 )
-def test_set_register_wrong_value_type(motion_controller, uid, value, fail):
-    mc, alias, environment = motion_controller
+def test_set_register_wrong_value_type(mc, alias, uid, value, fail):
     if fail:
         with pytest.raises(TypeError):
             mc.communication.set_register(uid, value, servo=alias)
@@ -321,9 +321,7 @@ def test_set_register_wrong_value_type(motion_controller, uid, value, fail):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
-def test_set_register_wrong_access(motion_controller):
-    mc, alias, environment = motion_controller
+def test_set_register_wrong_access(mc, alias):
     uid = "DRV_STATE_STATUS"
     value = 0
     with pytest.raises(IMRegisterWrongAccessError):
@@ -337,9 +335,7 @@ def dummy_callback(status, _, axis):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.smoke
-def test_subscribe_servo_status(mocker, motion_controller):
-    mc, alias, environment = motion_controller
+def test_subscribe_servo_status(mocker, mc, alias):
     axis = 1
     current_module = sys.modules[__name__]
     patch_callback = mocker.patch.object(current_module, "dummy_callback")
@@ -356,30 +352,25 @@ def test_subscribe_servo_status(mocker, motion_controller):
 
 
 @pytest.mark.virtual
-def test_load_firmware_canopen_exception(motion_controller):
-    mc, alias, environment = motion_controller
+def test_load_firmware_canopen_exception(mc, alias):
     with pytest.raises(ValueError):
         mc.communication.load_firmware_canopen("fake_fw_file.lfu", servo=alias)
 
 
 @pytest.mark.virtual
-def test_boot_mode_and_load_firmware_ethernet_exception(mocker, motion_controller):
-    mc, alias, environment = motion_controller
-
+def test_boot_mode_and_load_firmware_ethernet_exception(mocker, mc, alias):
     mocker.patch.object(mc, "_get_network", return_value=object())
     with pytest.raises(ValueError):
         mc.communication.boot_mode_and_load_firmware_ethernet("fake_fw_file.lfu", servo=alias)
 
 
 @pytest.mark.virtual
-def test_load_firmware_moco_exception(mocker, motion_controller):
-    mc, alias, environment = motion_controller
+def test_load_firmware_moco_exception(mocker, mc, alias):
     mocker.patch.object(mc, "_get_network", return_value=object())
     with pytest.raises(ValueError):
         mc.communication.load_firmware_moco("fake_fw_file.lfu", servo=alias)
 
 
-@pytest.mark.virtual
 def test_connect_servo_virtual():
     mc = MotionController()
     mc.communication.connect_servo_virtual(port=1062)
@@ -397,7 +388,6 @@ def test_connect_servo_virtual_custom_dictionary(setup_descriptor: SetupDescript
     assert mc.communication._Communication__virtual_drive is None
 
 
-@pytest.mark.virtual
 def test_scan_servos_canopen_with_info(mocker):
     mc = MotionController()
     detected_slaves = OrderedDict({31: SlaveInfo(1234, 123), 32: SlaveInfo(1234, 123)})
@@ -407,7 +397,6 @@ def test_scan_servos_canopen_with_info(mocker):
     assert mc.communication.scan_servos_canopen_with_info(CanDevice.KVASER) == detected_slaves
 
 
-@pytest.mark.virtual
 def test_scan_servos_canopen(mocker):
     mc = MotionController()
     detected_slaves = [31, 32]
@@ -417,7 +406,6 @@ def test_scan_servos_canopen(mocker):
     assert mc.communication.scan_servos_canopen(CanDevice.KVASER) == detected_slaves
 
 
-@pytest.mark.virtual
 def test_scan_servos_ethercat_with_info(mocker):
     mc = MotionController()
     detected_slaves = OrderedDict({1: SlaveInfo(1234, 123), 2: SlaveInfo(1234, 123)})
@@ -429,7 +417,6 @@ def test_scan_servos_ethercat_with_info(mocker):
     assert mc.communication.scan_servos_ethercat_with_info("") == detected_slaves
 
 
-@pytest.mark.virtual
 def test_scan_servos_ethercat(mocker):
     mc = MotionController()
     detected_slaves = [1, 2]
@@ -441,7 +428,6 @@ def test_scan_servos_ethercat(mocker):
     assert mc.communication.scan_servos_ethercat("") == detected_slaves
 
 
-@pytest.mark.virtual
 def test_unzip_ensemble_fw_file():
     mc = MotionController()
     with tempfile.TemporaryDirectory() as ensemble_temp_dir:
@@ -455,7 +441,6 @@ def test_unzip_ensemble_fw_file():
         }
 
 
-@pytest.mark.virtual
 def test__check_ensemble():
     mc = MotionController()
     with tempfile.TemporaryDirectory() as ensemble_temp_dir:
@@ -463,15 +448,13 @@ def test__check_ensemble():
             TEST_ENSEMBLE_FW_FILE, ensemble_temp_dir
         )
     product_code = 123456
-    slaves = OrderedDict(
-        {
-            1: SlaveInfo(product_code, 4661),
-            2: SlaveInfo(product_code, 16781878),
-            4: SlaveInfo(product_code, 4662),
-            5: SlaveInfo(product_code, 16781879),
-            7: SlaveInfo(654321, 1236),
-        }
-    )
+    slaves = OrderedDict({
+        1: SlaveInfo(product_code, 4661),
+        2: SlaveInfo(product_code, 16781878),
+        4: SlaveInfo(product_code, 4662),
+        5: SlaveInfo(product_code, 16781879),
+        7: SlaveInfo(654321, 1236),
+    })
     for slave_id in [1, 2]:
         assert mc.communication._Communication__check_ensemble(slaves, slave_id, mapping) == 1
 
@@ -479,7 +462,6 @@ def test__check_ensemble():
         assert mc.communication._Communication__check_ensemble(slaves, slave_id, mapping) == 4
 
 
-@pytest.mark.virtual
 def test__check_ensemble_wrong():
     mc = MotionController()
     with tempfile.TemporaryDirectory() as ensemble_temp_dir:
@@ -488,13 +470,11 @@ def test__check_ensemble_wrong():
         )
 
     product_code = 123456
-    slaves = OrderedDict(
-        {
-            1: SlaveInfo(product_code, 4660),
-            2: SlaveInfo(product_code, 16781876),
-            3: SlaveInfo(654321, 1236),
-        }
-    )
+    slaves = OrderedDict({
+        1: SlaveInfo(product_code, 4660),
+        2: SlaveInfo(product_code, 16781876),
+        3: SlaveInfo(654321, 1236),
+    })
 
     with pytest.raises(IMFirmwareLoadError) as exc_info:
         mc.communication._Communication__check_ensemble(slaves, 3, mapping)
@@ -503,12 +483,10 @@ def test__check_ensemble_wrong():
         "The selected drive is not part of the ensemble."
     )
 
-    slaves = OrderedDict(
-        {
-            1: SlaveInfo(product_code, 4660),
-            2: SlaveInfo(654321, 16781876),
-        }
-    )
+    slaves = OrderedDict({
+        1: SlaveInfo(product_code, 4660),
+        2: SlaveInfo(654321, 16781876),
+    })
     with pytest.raises(IMFirmwareLoadError) as exc_info:
         mc.communication._Communication__check_ensemble(slaves, 1, mapping)
     assert (
@@ -516,12 +494,10 @@ def test__check_ensemble_wrong():
         "The slave 2 has wrong product code or revision number."
     )
 
-    slaves = OrderedDict(
-        {
-            1: SlaveInfo(product_code, 16781877),
-            2: SlaveInfo(product_code, 4661),
-        }
-    )
+    slaves = OrderedDict({
+        1: SlaveInfo(product_code, 16781877),
+        2: SlaveInfo(product_code, 4661),
+    })
     with pytest.raises(IMFirmwareLoadError) as exc_info:
         mc.communication._Communication__check_ensemble(slaves, 2, mapping)
     assert (
@@ -530,7 +506,6 @@ def test__check_ensemble_wrong():
     )
 
 
-@pytest.mark.virtual
 @pytest.mark.parametrize("revision_number,expected_id_offset", [(4660, 0), (16781876, 1)])
 def test_check_slave_in_ensemble(revision_number, expected_id_offset):
     mc = MotionController()
@@ -546,7 +521,6 @@ def test_check_slave_in_ensemble(revision_number, expected_id_offset):
     assert slave_id_offset == expected_id_offset
 
 
-@pytest.mark.virtual
 def test_check_slave_in_ensemble_drive_not_in_ensemble():
     mc = MotionController()
     with tempfile.TemporaryDirectory() as ensemble_temp_dir:
@@ -565,18 +539,15 @@ def test_check_slave_in_ensemble_drive_not_in_ensemble():
     )
 
 
-@pytest.mark.virtual
 def test_load_ensemble_fw_ecat(mocker):
     product_code = 123456
-    slaves = OrderedDict(
-        {
-            1: SlaveInfo(product_code, 4661),
-            2: SlaveInfo(product_code, 16781877),
-            3: SlaveInfo(product_code, 4662),
-            4: SlaveInfo(product_code, 16781878),
-            5: SlaveInfo(654321, 1236),
-        }
-    )
+    slaves = OrderedDict({
+        1: SlaveInfo(product_code, 4661),
+        2: SlaveInfo(product_code, 16781877),
+        3: SlaveInfo(product_code, 4662),
+        4: SlaveInfo(product_code, 16781878),
+        5: SlaveInfo(654321, 1236),
+    })
 
     mc = MotionController()
     mocker.patch("ingenialink.ethercat.network.EthercatNetwork.__init__", return_value=None)
@@ -619,7 +590,6 @@ def test_load_ensemble_fw_ecat(mocker):
     )
 
 
-@pytest.mark.virtual
 def test_load_ensemble_fw_canopen(mocker):
     class MockDictionary:
         def __init__(self) -> None:
@@ -644,15 +614,13 @@ def test_load_ensemble_fw_canopen(mocker):
     mc.servos = servos
 
     product_code = 123456
-    slaves_info = OrderedDict(
-        {
-            1: SlaveInfo(product_code, 4661),
-            2: SlaveInfo(product_code, 16781877),
-            3: SlaveInfo(product_code, 4662),
-            4: SlaveInfo(product_code, 16781878),
-            5: SlaveInfo(654321, 1236),
-        }
-    )
+    slaves_info = OrderedDict({
+        1: SlaveInfo(product_code, 4661),
+        2: SlaveInfo(product_code, 16781877),
+        3: SlaveInfo(product_code, 4662),
+        4: SlaveInfo(product_code, 16781878),
+        5: SlaveInfo(654321, 1236),
+    })
     mocker.patch(
         "ingenialink.canopen.network.CanopenNetwork.scan_slaves_info", return_value=slaves_info
     )
@@ -684,13 +652,11 @@ def test_load_ensemble_fw_canopen(mocker):
     )
 
 
-@pytest.mark.virtual
-@pytest.mark.smoke
 @pytest.mark.parametrize(
     "net_types", [[EthernetNetwork, CanopenNetwork], [EthercatNetwork, EthernetNetwork], []]
 )
 def test_get_available_canopen_devices_check_get_available_devices_call(mocker, net_types):
-    mc = ingeniamotion.MotionController()
+    mc = MotionController()
     test_net = None
     for n, n_type in enumerate(net_types):
         net = mocker.MagicMock(spec=n_type)
@@ -708,10 +674,8 @@ def test_get_available_canopen_devices_check_get_available_devices_call(mocker, 
         assert patch_get_available_devices.call_count == 1
 
 
-@pytest.mark.virtual
-@pytest.mark.smoke
 def test_get_available_canopen_devices(mocker):
-    mc = ingeniamotion.MotionController()
+    mc = MotionController()
     mocker.patch(
         "ingenialink.canopen.network.CanopenNetwork.get_available_devices",
         return_value=[
@@ -729,12 +693,10 @@ def test_get_available_canopen_devices(mocker):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
-def test_subscribe_register_updates(motion_controller):
+def test_subscribe_register_updates(mc, alias):
     user_over_voltage_uid = "DRV_PROT_USER_OVER_VOLT"
     register_update_callback = RegisterUpdateTest()
 
-    mc, alias, environment = motion_controller
     mc.communication.subscribe_register_update(
         register_update_callback.register_update_test, servo=alias
     )
@@ -764,9 +726,7 @@ def test_subscribe_register_updates(motion_controller):
 
 @pytest.mark.canopen
 @pytest.mark.soem
-@pytest.mark.smoke
-def test_emcy_callback(motion_controller):
-    mc, alias, _ = motion_controller
+def test_emcy_callback(mc, alias):
     emcy_test = EmcyTest()
     mc.communication.subscribe_emergency_message(emcy_test.emcy_callback, servo=alias)
     prev_val = mc.communication.get_register("DRV_PROT_USER_OVER_VOLT", axis=1, servo=alias)

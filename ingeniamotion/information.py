@@ -168,6 +168,9 @@ class Information:
         Args:
             servo: alias of the servo.
 
+        Raises:
+            IMError: If the servo is not a CANopen device.
+
         Returns:
             Node ID of the drive.
         """
@@ -184,6 +187,9 @@ class Information:
         Args:
             servo: alias of the servo.
 
+        Raises:
+            IMError: If the servo is not a CANopen device.
+
         Returns:
             Baudrate of the drive.
         """
@@ -197,6 +203,9 @@ class Information:
 
         Args:
             servo: alias of the servo.
+
+        Raises:
+            IMError: If the servo is not an Ethernet device.
 
         Returns:
             IP of the drive.
@@ -213,6 +222,9 @@ class Information:
 
         Args:
             servo: alias of the servo.
+
+        Raises:
+            IMError: If the servo is not an EtherCAT slave.
 
         Returns:
             Slave ID of the servo.
@@ -256,6 +268,8 @@ class Information:
             communication_type = CommunicationType.Ethernet
         elif isinstance(drive_network, (EoENetwork, EthercatNetwork)):
             communication_type = CommunicationType.Ethercat
+        else:
+            raise NotImplementedError("Unknown communication type.")
         return communication_type
 
     def get_full_name(self, servo: str = DEFAULT_SERVO) -> str:
@@ -293,6 +307,9 @@ class Information:
 
         Args:
             servo: Drive alias.
+
+        Raises:
+            IMError: If dictionary categories are not defined.
 
         Returns:
             Categories instance.

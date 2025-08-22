@@ -20,14 +20,22 @@ __all__ = [
 
 
 def export(obj: T) -> T:
-    """Decorator use to explicitly export a class."""
+    """Decorator use to explicitly export a class.
+
+    Returns:
+        T: The class itself, added to the module's __all__ list.
+    """
     __all__.append(obj.__name__)
     return obj
 
 
 class MetaEnum(EnumMeta):
     def __contains__(cls, item: object) -> bool:
-        """Checks if item exists."""
+        """Checks if item exists.
+
+        Returns:
+            bool: True if item is a valid enum member, False otherwise.
+        """
         try:
             cls(item)
         except ValueError:

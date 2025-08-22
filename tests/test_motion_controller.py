@@ -13,8 +13,6 @@ from ingeniamotion.metaclass import MCMetaClass
 from ingeniamotion.motion import Motion
 
 
-@pytest.mark.virtual
-@pytest.mark.smoke
 def test_motion_controller():
     mc = MotionController()
     assert isinstance(mc.configuration, Configuration)
@@ -27,9 +25,7 @@ def test_motion_controller():
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
-def test_servo_name(motion_controller):
-    mc, alias, environment = motion_controller
+def test_servo_name(mc, alias):
     prod_code = mc.servos[alias].info["product_code"]
     servo_arg = () if alias == "default" else (alias,)
     name = mc.servo_name(*servo_arg)
@@ -37,9 +33,7 @@ def test_servo_name(motion_controller):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
-def test_get_register_enum(motion_controller):
-    mc, alias, environment = motion_controller
+def test_get_register_enum(mc, alias):
     servo_arg = () if alias == "default" else (alias,)
     operation_mode_enum = mc.get_register_enum("DRV_OP_VALUE", *servo_arg)
     operation_mode_values = [op.value for op in operation_mode_enum]
@@ -55,13 +49,10 @@ def test_get_register_enum(motion_controller):
 
 
 @pytest.mark.virtual
-@pytest.mark.smoke
-def test_is_alive(motion_controller):
-    mc, alias, environment = motion_controller
+def test_is_alive(mc, alias):
     assert mc.is_alive(alias)
 
 
-@pytest.mark.virtual
 class TestMetaclass:
     class DummyClass:
         mc = MotionController()
@@ -78,7 +69,6 @@ class TestMetaclass:
         def dummy_func(self, servo: str, axis: int):
             pass
 
-    @pytest.mark.virtual
     @pytest.mark.parametrize(
         "servo, axis, error",
         [
@@ -96,7 +86,6 @@ class TestMetaclass:
             with pytest.raises(error):
                 dummy_class.dummy_func(servo=servo, axis=axis)
 
-    @pytest.mark.virtual
     @pytest.mark.parametrize(
         "servo, axis, error",
         [

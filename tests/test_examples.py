@@ -5,6 +5,12 @@ import pytest
 from ingenialink import CanBaudrate, CanDevice
 from ingenialink.exceptions import ILFirmwareLoadError
 from ingenialink.pdo import RPDOMap, TPDOMap
+from summit_testing_framework.setups.descriptors import (
+    DriveCanOpenSetup,
+    DriveEcatSetup,
+    DriveEthernetSetup,
+    EthernetSetup,
+)
 
 from examples.change_baudrate import change_baudrate
 from examples.change_node_id import change_node_id
@@ -26,35 +32,6 @@ from ingeniamotion.enums import SeverityLevel
 from ingeniamotion.information import Information
 from ingeniamotion.motion import Motion
 from ingeniamotion.pdo import PDONetworkManager, PDOPoller
-from tests.tests_toolkit.network_utils import connect_canopen, connect_ethernet, connect_soem
-from tests.tests_toolkit.setups.descriptors import (
-    DriveCanOpenSetup,
-    DriveEcatSetup,
-    DriveEthernetSetup,
-    EthernetSetup,
-    SetupDescriptor,
-)
-
-
-@pytest.fixture
-def setup_for_test_examples(motion_controller):
-    mc, alias, environment = motion_controller
-    mc.communication.disconnect(alias)
-
-
-@pytest.fixture
-def teardown_for_test_examples(motion_controller, setup_descriptor: SetupDescriptor):
-    yield
-    mc, alias, environment = motion_controller
-
-    if isinstance(setup_descriptor, DriveEcatSetup):
-        connect_soem(mc, setup_descriptor, alias)
-    elif isinstance(setup_descriptor, DriveCanOpenSetup):
-        connect_canopen(mc, setup_descriptor, alias)
-    elif isinstance(setup_descriptor, DriveEthernetSetup):
-        connect_ethernet(mc, setup_descriptor, alias)
-    else:
-        raise NotImplementedError
 
 
 @pytest.mark.ethernet
@@ -62,40 +39,38 @@ def test_disturbance_example(setup_descriptor: EthernetSetup, script_runner):
     script_path = "examples/disturbance_example.py"
     ip_address = setup_descriptor.ip
     dictionary = setup_descriptor.dictionary
-    result = script_runner.run(
-        [script_path, f"--ip={ip_address}", f"--dictionary_path={dictionary}"]
-    )
+    result = script_runner.run([
+        script_path,
+        f"--ip={ip_address}",
+        f"--dictionary_path={dictionary}",
+    ])
     assert result.returncode == 0
 
 
-@pytest.mark.usefixtures("setup_for_test_examples", "teardown_for_test_examples")
 @pytest.mark.canopen
+@pytest.mark.skip_testing_framework
 def test_canopen_example(setup_descriptor: DriveCanOpenSetup, script_runner):
     script_path = "examples/canopen_example.py"
 
-    result = script_runner.run(
-        [
-            script_path,
-            f"--dictionary_path={setup_descriptor.dictionary}",
-            f"--node_id={setup_descriptor.node_id}",
-            f"--can_transceiver={setup_descriptor.device}",
-            f"--can_baudrate={setup_descriptor.baudrate}",
-            f"--can_channel={setup_descriptor.channel}",
-        ]
-    )
+    result = script_runner.run([
+        script_path,
+        f"--dictionary_path={setup_descriptor.dictionary}",
+        f"--node_id={setup_descriptor.node_id}",
+        f"--can_transceiver={setup_descriptor.device}",
+        f"--can_baudrate={setup_descriptor.baudrate}",
+        f"--can_channel={setup_descriptor.channel}",
+    ])
     assert result.returncode == 0
 
 
 @pytest.mark.ethernet
 def test_set_get_register_example(setup_descriptor: DriveEthernetSetup, script_runner):
     script_path = "examples/set_get_register.py"
-    result = script_runner.run(
-        [
-            script_path,
-            f"--ip={setup_descriptor.ip}",
-            f"--dictionary_path={setup_descriptor.dictionary}",
-        ]
-    )
+    result = script_runner.run([
+        script_path,
+        f"--ip={setup_descriptor.ip}",
+        f"--dictionary_path={setup_descriptor.dictionary}",
+    ])
     assert result.returncode == 0
 
 
@@ -103,14 +78,12 @@ def test_set_get_register_example(setup_descriptor: DriveEthernetSetup, script_r
 def test_poller_example(setup_descriptor: DriveEthernetSetup, script_runner):
     script_path = "examples/poller_example.py"
 
-    result = script_runner.run(
-        [
-            script_path,
-            f"--ip={setup_descriptor.ip}",
-            f"--dictionary_path={setup_descriptor.dictionary}",
-            "--close",
-        ]
-    )
+    result = script_runner.run([
+        script_path,
+        f"--ip={setup_descriptor.ip}",
+        f"--dictionary_path={setup_descriptor.dictionary}",
+        "--close",
+    ])
     assert result.returncode == 0
 
 
@@ -145,15 +118,13 @@ def test_velocity_torque_ramp_example(
 
     mocker.patch.object(MotionController, "motion", MockMotion)
     mocker.patch("time.sleep", return_value=None)
-    result = script_runner.run(
-        [
-            script_path,
-            mode,
-            setup_descriptor.dictionary,
-            f"-ip={setup_descriptor.ip}",
-            f"-target_torque={0}",
-        ]
-    )
+    result = script_runner.run([
+        script_path,
+        mode,
+        setup_descriptor.dictionary,
+        f"-ip={setup_descriptor.ip}",
+        f"-target_torque={0}",
+    ])
     assert result.returncode == 0
 
 
@@ -161,14 +132,12 @@ def test_velocity_torque_ramp_example(
 def test_monitoring_example(setup_descriptor: DriveEthernetSetup, script_runner):
     script_path = "examples/monitoring_example.py"
 
-    result = script_runner.run(
-        [
-            script_path,
-            f"--ip={setup_descriptor.ip}",
-            f"--dictionary_path={setup_descriptor.dictionary}",
-            "--close",
-        ]
-    )
+    result = script_runner.run([
+        script_path,
+        f"--ip={setup_descriptor.ip}",
+        f"--dictionary_path={setup_descriptor.dictionary}",
+        "--close",
+    ])
     assert result.returncode == 0
 
 
@@ -184,14 +153,12 @@ def test_load_fw_ftp(setup_descriptor: DriveEthernetSetup, script_runner, mocker
             pass
 
     mocker.patch.object(MotionController, "communication", MockCommunication)
-    result = script_runner.run(
-        [
-            script_path,
-            f"--dictionary_path={setup_descriptor.dictionary}",
-            f"--ip={setup_descriptor.ip}",
-            f"--firmware_file={setup_descriptor.fw_file}",
-        ]
-    )
+    result = script_runner.run([
+        script_path,
+        f"--dictionary_path={setup_descriptor.dictionary}",
+        f"--ip={setup_descriptor.ip}",
+        f"--firmware_file={setup_descriptor.fw_data.fw_file}",
+    ])
     assert result.returncode == 0
 
 
@@ -200,7 +167,7 @@ def test_load_fw_ecat(setup_descriptor: DriveEcatSetup, script_runner, mocker):
     script_path = "examples/load_fw_ecat.py"
     interface_index = 0
     slave_id = setup_descriptor.slave
-    fw_file = setup_descriptor.fw_file
+    fw_file = setup_descriptor.fw_data.fw_file
 
     class MockCommunication:
         def load_firmware_ecat_interface_index(self, *args, **kwargs):
@@ -210,14 +177,12 @@ def test_load_fw_ecat(setup_descriptor: DriveEcatSetup, script_runner, mocker):
             pass
 
     mocker.patch.object(MotionController, "communication", MockCommunication)
-    result = script_runner.run(
-        [
-            script_path,
-            f"--interface_index={interface_index}",
-            f"--slave_id={slave_id}",
-            f"--firmware_file={fw_file}",
-        ]
-    )
+    result = script_runner.run([
+        script_path,
+        f"--interface_index={interface_index}",
+        f"--slave_id={slave_id}",
+        f"--firmware_file={fw_file}",
+    ])
     assert result.returncode == 0
 
 
@@ -240,9 +205,12 @@ def test_feedback_example(setup_descriptor: DriveEthernetSetup, script_runner, m
             return {"result_message": SeverityLevel.SUCCESS}
 
     mocker.patch.object(MotionController, "tests", MockDriveTests)
-    result = script_runner.run(
-        [script_path, feedback, setup_descriptor.dictionary, f"-ip={setup_descriptor.ip}"]
-    )
+    result = script_runner.run([
+        script_path,
+        feedback,
+        setup_descriptor.dictionary,
+        f"-ip={setup_descriptor.ip}",
+    ])
     assert result.returncode == 0
 
 
@@ -255,9 +223,11 @@ def test_commutation_test_example(setup_descriptor: DriveEthernetSetup, script_r
             return {"result_message": SeverityLevel.SUCCESS}
 
     mocker.patch.object(MotionController, "tests", MockDriveTests)
-    result = script_runner.run(
-        [script_path, setup_descriptor.dictionary, f"-ip={setup_descriptor.ip}"]
-    )
+    result = script_runner.run([
+        script_path,
+        setup_descriptor.dictionary,
+        f"-ip={setup_descriptor.ip}",
+    ])
     assert result.returncode == 0
 
 
@@ -282,13 +252,15 @@ def test_brake_config_example(
             pass
 
     mocker.patch.object(MotionController, "configuration", MockConfiguration)
-    result = script_runner.run(
-        [script_path, override, setup_descriptor.dictionary, f"-ip={setup_descriptor.ip}"]
-    )
+    result = script_runner.run([
+        script_path,
+        override,
+        setup_descriptor.dictionary,
+        f"-ip={setup_descriptor.ip}",
+    ])
     assert result.returncode == 0
 
 
-@pytest.mark.virtual
 def test_can_bootloader_example_success(mocker, capsys):
     device = CanDevice.PCAN
     channel = 0
@@ -333,7 +305,6 @@ def test_can_bootloader_example_success(mocker, capsys):
     assert all_outputs[7] == "Drive is disconnected."
 
 
-@pytest.mark.virtual
 def test_can_bootloader_example_failed(mocker, capsys):
     device = CanDevice.PCAN
     channel = 0
@@ -374,7 +345,6 @@ def test_can_bootloader_example_failed(mocker, capsys):
     assert all_outputs[5] == "Drive is disconnected."
 
 
-@pytest.mark.virtual
 def test_change_node_id_success(mocker, capsys):
     device = CanDevice.PCAN
     channel = 0
@@ -397,7 +367,6 @@ def test_change_node_id_success(mocker, capsys):
     assert all_outputs[6] == f"Now the drive is connected with {test_new_node_id} as a node ID."
 
 
-@pytest.mark.virtual
 def test_change_node_id_failed(mocker, capsys):
     device = CanDevice.PCAN
     channel = 0
@@ -419,7 +388,6 @@ def test_change_node_id_failed(mocker, capsys):
     assert all_outputs[3] == f"This drive already has this node ID: {node_id}."
 
 
-@pytest.mark.virtual
 def test_change_baudrate_success(mocker, capsys):
     device = CanDevice.PCAN
     channel = 0
@@ -444,7 +412,6 @@ def test_change_baudrate_success(mocker, capsys):
     )
 
 
-@pytest.mark.virtual
 def test_change_baudrate_failed(mocker, capsys):
     device = CanDevice.PCAN
     channel = 0
@@ -465,7 +432,6 @@ def test_change_baudrate_failed(mocker, capsys):
     assert all_outputs[2] == f"This drive already has this baudrate: {baudrate}."
 
 
-@pytest.mark.virtual
 def test_ecat_coe_connection_example_success(mocker, capsys):
     interface_index = 2
     slave_id = 1
@@ -515,7 +481,6 @@ def test_ecat_coe_connection_example_success(mocker, capsys):
     assert all_outputs[10] == "The drive has been disconnected."
 
 
-@pytest.mark.virtual
 def test_ecat_coe_connection_example_failed(mocker, capsys):
     interface_index = 2
     slave_id = 1
@@ -557,7 +522,6 @@ def test_ecat_coe_connection_example_failed(mocker, capsys):
     )
 
 
-@pytest.mark.virtual
 def test_ecat_coe_connection_example_connection_error(mocker, capsys):
     interface_index = 2
     slave_id = 1
@@ -603,7 +567,6 @@ def test_ecat_coe_connection_example_connection_error(mocker, capsys):
     assert e.value.args[0] == f"could not open interface {expected_real_name_interface}"
 
 
-@pytest.mark.virtual
 def test_pdo_poller_success(mocker):
     connect_servo_ethercat_interface_ip = mocker.patch.object(
         Communication, "connect_servo_ethercat_interface_ip"
@@ -628,7 +591,6 @@ def test_pdo_poller_success(mocker):
     disconnect.assert_called_once()
 
 
-@pytest.mark.virtual
 def test_load_save_configuration(mocker):
     connect_servo_ethercat_interface_index = mocker.patch.object(
         Communication, "connect_servo_ethercat_interface_index"
@@ -645,7 +607,6 @@ def test_load_save_configuration(mocker):
     disconnect.assert_called_once()
 
 
-@pytest.mark.virtual
 def test_load_save_configuration_register_changes_success(mocker, capsys):
     mocker.patch.object(Communication, "connect_servo_ethercat_interface_index")
     mocker.patch.object(Communication, "disconnect")
@@ -674,7 +635,6 @@ def test_load_save_configuration_register_changes_success(mocker, capsys):
     )
 
 
-@pytest.mark.virtual
 def test_load_save_configuration_register_changes_failed(mocker, capsys):
     mocker.patch.object(Communication, "connect_servo_ethercat_interface_index")
     mocker.patch.object(Communication, "disconnect")
@@ -692,7 +652,6 @@ def test_load_save_configuration_register_changes_failed(mocker, capsys):
     assert all_outputs[1] == "This max. velocity value is already set."
 
 
-@pytest.mark.virtual
 def test_process_data_object(mocker):
     connect_servo_ethercat_interface_ip = mocker.patch.object(
         Communication, "connect_servo_ethercat_interface_ip"
@@ -754,7 +713,6 @@ def test_process_data_object(mocker):
         assert order_mock.method_calls[current_function][0] == expected_function_name
 
 
-@pytest.mark.virtual
 def test_commutation_test(mocker):
     connect_servo_ethercat_interface_ip = mocker.patch.object(
         Communication, "connect_servo_ethercat_interface_ip"
@@ -786,7 +744,6 @@ def test_commutation_test(mocker):
     disconnect.assert_called_once()
 
 
-@pytest.mark.virtual
 def test_position_ramp(mocker, capsys):
     connect_servo_ethercat_interface_ip = mocker.patch.object(
         Communication, "connect_servo_ethercat_interface_ip"

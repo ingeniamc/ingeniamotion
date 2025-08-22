@@ -6,15 +6,14 @@ from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.exceptions import ILWrongWorkingCountError
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 from packaging import version
+from summit_testing_framework.setups.descriptors import EthercatMultiSlaveSetup
 
 from ingeniamotion.enums import CommunicationType, OperationMode
 from ingeniamotion.exceptions import IMError
-from tests.tests_toolkit.setups.descriptors import EthercatMultiSlaveSetup
 
 
 @pytest.mark.soem
-def test_create_rpdo_item(motion_controller):
-    mc, alias, environment = motion_controller
+def test_create_rpdo_item(mc, alias):
     position_set_point_initial_value = 100
     position_set_point = mc.capture.pdo.create_pdo_item(
         "CL_POS_SET_POINT_VALUE", servo=alias, value=position_set_point_initial_value
@@ -24,38 +23,33 @@ def test_create_rpdo_item(motion_controller):
 
 
 @pytest.mark.soem
-def test_create_tpdo_item(motion_controller):
-    mc, alias, environment = motion_controller
+def test_create_tpdo_item(mc, alias):
     actual_position = mc.capture.pdo.create_pdo_item("CL_POS_FBK_VALUE", servo=alias)
     assert isinstance(actual_position, TPDOMapItem)
 
 
 @pytest.mark.soem
-def test_create_rpdo_item_no_initial_value(motion_controller):
-    mc, alias, environment = motion_controller
+def test_create_rpdo_item_no_initial_value(mc, alias):
     with pytest.raises(AttributeError):
         mc.capture.pdo.create_pdo_item("CL_POS_SET_POINT_VALUE", servo=alias)
 
 
 @pytest.mark.soem
-def test_create_empty_rpdo_map(motion_controller):
-    mc, alias, environment = motion_controller
+def test_create_empty_rpdo_map(mc):
     rpdo_map = mc.capture.pdo.create_empty_rpdo_map()
     assert isinstance(rpdo_map, RPDOMap)
     assert len(rpdo_map.items) == 0
 
 
 @pytest.mark.soem
-def test_create_empty_tpdo_map(motion_controller):
-    mc, alias, environment = motion_controller
+def test_create_empty_tpdo_map(mc):
     tpdo_map = mc.capture.pdo.create_empty_tpdo_map()
     assert isinstance(tpdo_map, TPDOMap)
     assert len(tpdo_map.items) == 0
 
 
 @pytest.mark.soem
-def test_create_pdo_maps_single_item(motion_controller):
-    mc, alias, environment = motion_controller
+def test_create_pdo_maps_single_item(mc, alias):
     position_set_point = mc.capture.pdo.create_pdo_item(
         "CL_POS_SET_POINT_VALUE", servo=alias, value=0
     )
@@ -70,8 +64,7 @@ def test_create_pdo_maps_single_item(motion_controller):
 
 
 @pytest.mark.soem
-def test_create_pdo_maps_list_items(motion_controller):
-    mc, alias, environment = motion_controller
+def test_create_pdo_maps_list_items(mc, alias):
     rpdo_regs = ["CL_POS_SET_POINT_VALUE", "CL_VEL_SET_POINT_VALUE"]
     tpdo_regs = ["CL_POS_FBK_VALUE", "CL_VEL_FBK_VALUE"]
     rpdo_items = [
@@ -93,8 +86,7 @@ def test_create_pdo_maps_list_items(motion_controller):
         ("CL_VEL_SET_POINT_VALUE", 0, "rpdo"),
     ],
 )
-def test_add_pdo_item_to_map(motion_controller, register, value, pdo_type):
-    mc, alias, environment = motion_controller
+def test_add_pdo_item_to_map(mc, alias, register, value, pdo_type):
     if pdo_type == "rpdo":
         pdo_map = mc.capture.pdo.create_empty_rpdo_map()
     else:
@@ -113,8 +105,7 @@ def test_add_pdo_item_to_map(motion_controller, register, value, pdo_type):
         ("CL_VEL_SET_POINT_VALUE", 0, "rpdo"),
     ],
 )
-def test_add_pdo_item_to_map_exceptions(motion_controller, register, value, pdo_type):
-    mc, alias, environment = motion_controller
+def test_add_pdo_item_to_map_exceptions(mc, alias, register, value, pdo_type):
     if pdo_type == "tpdo":
         pdo_map = mc.capture.pdo.create_empty_rpdo_map()
     else:
@@ -132,8 +123,7 @@ def test_add_pdo_item_to_map_exceptions(motion_controller, register, value, pdo_
         [["rpdo", "tpdo"], ["tpdo", "tpdo"]],
     ],
 )
-def test_set_pdo_maps_to_slave_exception(motion_controller, rpdo_maps, tpdo_maps):
-    mc, alias, environment = motion_controller
+def test_set_pdo_maps_to_slave_exception(mc, alias, rpdo_maps, tpdo_maps):
     rx_maps = []
     tx_maps = []
     for map_type in rpdo_maps:
@@ -155,21 +145,19 @@ def test_set_pdo_maps_to_slave_exception(motion_controller, rpdo_maps, tpdo_maps
 
 
 @pytest.mark.soem
-def test_pdos_min_refresh_rate(motion_controller):
-    mc, alias, environment = motion_controller
+def test_pdos_min_refresh_rate(mc):
     refresh_rate = 0.0001
     with pytest.raises(ValueError):
         mc.capture.pdo.start_pdos(CommunicationType.Ethercat, refresh_rate)
 
 
 @pytest.mark.soem
-def test_pdos_watchdog_exception_auto(motion_controller):
+def test_pdos_watchdog_exception_auto(mc):
     exceptions = []
 
     def exception_callback(exc):
         exceptions.append(exc)
 
-    mc, alias, environment = motion_controller
     refresh_rate = 3.5
     mc.capture.pdo.subscribe_to_exceptions(exception_callback)
     mc.capture.pdo.start_pdos(CommunicationType.Ethercat, refresh_rate)
@@ -181,13 +169,12 @@ def test_pdos_watchdog_exception_auto(motion_controller):
 
 
 @pytest.mark.soem
-def test_pdos_watchdog_exception_manual(motion_controller):
+def test_pdos_watchdog_exception_manual(mc):
     exceptions = []
 
     def exception_callback(exc):
         exceptions.append(exc)
 
-    mc, alias, environment = motion_controller
     watchdog_timeout = 7
     mc.capture.pdo.subscribe_to_exceptions(exception_callback)
     mc.capture.pdo.start_pdos(CommunicationType.Ethercat, watchdog_timeout=watchdog_timeout)
@@ -201,44 +188,41 @@ def test_pdos_watchdog_exception_manual(motion_controller):
 
 
 @pytest.mark.soem_multislave
-@pytest.mark.smoke
-def test_start_pdos(motion_controller, setup_descriptor):
+def test_start_pdos(mc, alias, setup_descriptor):
     if not isinstance(setup_descriptor, EthercatMultiSlaveSetup):
         raise ValueError("Invalid setup config for test")
-
-    mc, aliases, environment = motion_controller
 
     pdo_map_items = {}
     initial_operation_modes = {}
     rpdo_values = {}
     tpdo_values = {}
-    for alias in aliases:
+    for a in alias:
         rpdo_map = mc.capture.pdo.create_empty_rpdo_map()
         tpdo_map = mc.capture.pdo.create_empty_tpdo_map()
-        initial_operation_mode = mc.motion.get_operation_mode(servo=alias)
+        initial_operation_mode = mc.motion.get_operation_mode(servo=a)
         operation_mode = mc.capture.pdo.create_pdo_item(
-            "DRV_OP_CMD", servo=alias, value=initial_operation_mode.value
+            "DRV_OP_CMD", servo=a, value=initial_operation_mode.value
         )
-        actual_position = mc.capture.pdo.create_pdo_item("CL_POS_FBK_VALUE", servo=alias)
+        actual_position = mc.capture.pdo.create_pdo_item("CL_POS_FBK_VALUE", servo=a)
         mc.capture.pdo.add_pdo_item_to_map(operation_mode, rpdo_map)
         mc.capture.pdo.add_pdo_item_to_map(actual_position, tpdo_map)
-        mc.capture.pdo.set_pdo_maps_to_slave(rpdo_map, tpdo_map, servo=alias)
-        pdo_map_items[alias] = (operation_mode, actual_position)
-        random_op_mode = random.choice(
-            [op_mode for op_mode in OperationMode if op_mode != initial_operation_mode]
-        )
-        initial_operation_modes[alias] = initial_operation_mode
-        rpdo_values[alias] = random_op_mode
+        mc.capture.pdo.set_pdo_maps_to_slave(rpdo_map, tpdo_map, servo=a)
+        pdo_map_items[a] = (operation_mode, actual_position)
+        random_op_mode = random.choice([
+            op_mode for op_mode in OperationMode if op_mode != initial_operation_mode
+        ])
+        initial_operation_modes[a] = initial_operation_mode
+        rpdo_values[a] = random_op_mode
 
     def send_callback():
-        for alias in aliases:
-            rpdo_map_item, _ = pdo_map_items[alias]
-            rpdo_map_item.value = rpdo_values[alias].value
+        for a in alias:
+            rpdo_map_item, _ = pdo_map_items[a]
+            rpdo_map_item.value = rpdo_values[a].value
 
     def receive_callback():
-        for alias in aliases:
-            _, tpdo_map_item = pdo_map_items[alias]
-            tpdo_values[alias] = tpdo_map_item.value
+        for a in alias:
+            _, tpdo_map_item = pdo_map_items[a]
+            tpdo_values[a] = tpdo_map_item.value
 
     mc.capture.pdo.subscribe_to_send_process_data(send_callback)
     mc.capture.pdo.subscribe_to_receive_process_data(receive_callback)
@@ -249,43 +233,37 @@ def test_start_pdos(motion_controller, setup_descriptor):
     time.sleep(2 * refresh_rate)
     mc.capture.pdo.stop_pdos()
     assert not mc.capture.pdo.is_active
-    for alias in aliases:
+    for a in alias:
         # Check that RPDO are being sent
-        assert rpdo_values[alias] == mc.motion.get_operation_mode(servo=alias)
+        assert rpdo_values[a] == mc.motion.get_operation_mode(servo=a)
         # Check that TPDO are being received
-        assert pytest.approx(tpdo_values[alias], abs=2) == mc.motion.get_actual_position(
-            servo=alias
-        )
+        assert pytest.approx(tpdo_values[a], abs=2) == mc.motion.get_actual_position(servo=a)
         # Restore the initial operation mode
-        mc.motion.set_operation_mode(initial_operation_modes[alias], servo=alias)
-        mc.capture.pdo.remove_rpdo_map(alias, rpdo_map_index=0)
-        mc.capture.pdo.remove_tpdo_map(alias, tpdo_map_index=0)
+        mc.motion.set_operation_mode(initial_operation_modes[a], servo=a)
+        mc.capture.pdo.remove_rpdo_map(a, rpdo_map_index=0)
+        mc.capture.pdo.remove_tpdo_map(a, tpdo_map_index=0)
 
 
 @pytest.mark.soem
-def test_stop_pdos_exception(motion_controller):
-    mc, alias, environment = motion_controller
+def test_stop_pdos_exception(mc):
     with pytest.raises(IMError):
         mc.capture.pdo.stop_pdos()
 
 
 @pytest.mark.soem
-def test_start_pdos_not_implemented_exception(motion_controller):
-    mc, alias, environment = motion_controller
+def test_start_pdos_not_implemented_exception(mc):
     with pytest.raises(NotImplementedError):
         mc.capture.pdo.start_pdos(CommunicationType.Canopen)
 
 
 @pytest.mark.soem
-def test_start_pdos_wrong_network_type_exception(motion_controller):
-    mc, alias, environment = motion_controller
+def test_start_pdos_wrong_network_type_exception(mc):
     with pytest.raises(ValueError):
         mc.capture.pdo.start_pdos("ethernet")
 
 
 @pytest.mark.soem
-def test_start_pdos_number_of_network_exception(mocker, motion_controller):
-    mc, alias, environment = motion_controller
+def test_start_pdos_number_of_network_exception(mocker, mc):
     mock_net = {"ifname1": EthercatNetwork("ifname1"), "ifname2": EthercatNetwork("ifname2")}
     mocker.patch.object(mc, "_MotionController__net", mock_net)
     with pytest.raises(ValueError):
@@ -315,8 +293,7 @@ def skip_if_pdo_padding_is_not_available(mc, alias):
 
 
 @pytest.mark.soem
-def test_create_poller(motion_controller):
-    mc, alias, environment = motion_controller
+def test_create_poller(mc, alias):
     skip_if_pdo_padding_is_not_available(mc, alias)
     registers = [{"name": "CL_POS_FBK_VALUE", "axis": 1}, {"name": "CL_VEL_FBK_VALUE", "axis": 1}]
     sampling_time = 0.25
@@ -333,11 +310,8 @@ def test_create_poller(motion_controller):
     assert len(timestamps) == len(channel_0_data)
 
 
-@pytest.mark.smoke
 @pytest.mark.soem
-def test_subscribe_exceptions(motion_controller, mocker):
-    mc, _, _ = motion_controller
-
+def test_subscribe_exceptions(mc, mocker):
     error_msg = "Test error"
 
     def start_pdos(*_):
