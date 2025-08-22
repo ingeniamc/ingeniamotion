@@ -17,9 +17,7 @@ if TYPE_CHECKING:
     from ingenialink.pdo import PDOMap
 
 
-@pytest.fixture
-def pdos_teardown(mc: "MotionController") -> Generator[None, None, None]:
-    yield
+def __restore_pdo_network_manager(mc: "MotionController") -> None:
     servos = list(mc.capture.pdo._PDONetworkManager__servo_to_nets.keys())
     try:
         for servo in servos:
@@ -27,8 +25,17 @@ def pdos_teardown(mc: "MotionController") -> Generator[None, None, None]:
                 continue
             mc.capture.pdo.stop_pdos(servo=servo)
     except Exception:
+        pass
+    finally:
         mc.capture.pdo._PDONetworkManager__servo_to_nets = {}
         mc.capture.pdo._PDONetworkManager__nets = {}
+
+
+@pytest.fixture
+def pdos_teardown(mc: "MotionController") -> Generator[None, None, None]:
+    __restore_pdo_network_manager(mc)
+    yield
+    __restore_pdo_network_manager(mc)
 
 
 @pytest.mark.soem
@@ -244,7 +251,7 @@ def test_start_pdos(  # noqa: C901
         # Servo and network should be active
         net_tracker = mc.capture.pdo._PDONetworkManager__get_network_tracker(servo=a)
         assert mc.capture.pdo.is_active(servo=a)
-        assert net_tracker.network.is_active
+        assert net_tracker.is_active
 
         mc.capture.pdo.stop_pdos(servo=a)
         assert not mc.capture.pdo.is_active(servo=a)
@@ -252,9 +259,9 @@ def test_start_pdos(  # noqa: C901
         # PDOs should still be active after first drive removal,
         # they will only be full deactivated if all servos are removed
         if idx == 0:
-            assert net_tracker.network.is_active
+            assert net_tracker.is_active
         elif idx == n_servos - 1:
-            assert not net_tracker.network.is_active
+            assert not net_tracker.is_active
 
         # Check that RPDO are being sent
         assert rpdo_values[a] == mc.motion.get_operation_mode(servo=a)
