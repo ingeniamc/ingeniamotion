@@ -1,7 +1,7 @@
 import uuid
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Optional, cast
 from xml.etree import ElementTree
 
 from ingenialink.dictionary import XMLBase
@@ -294,11 +294,17 @@ class SCISerializer(XMLBase):
         for pdo_map in [tpdo, rpdo]:
             coe_element.append(StartupCommand.from_pdo_map(pdo_map).serialize())
 
-    def _modify_pdos(self, root: ElementTree.Element) -> None:
+    def _modify_pdos(
+        self, root: ElementTree.Element, assigned_rpdos: list[int], assigned_tpdos: list[int]
+    ) -> None:
         """Modifies the PDOs to include the attributes required by the SCI.
+
+        Only the PDOs that are assigned should be modified and written, the rest should be deleted.
 
         Args:
             root: The root XML element.
+            assigned_rpdos: indices of the assigned rpdos.
+            assigned_tpdos: indices of the assigned tpdos.
         """
         description_element = self._find_and_check(root, self.__DESCRIPTIONS_ELEMENT)
         devices_element = self._find_and_check(description_element, self.__DEVICES_ELEMENT)
@@ -306,8 +312,19 @@ class SCISerializer(XMLBase):
         rxpdo_elements = self._findall_and_check(device_element, self.__RXPDO_ELEMENT)
         txpdo_elements = self._findall_and_check(device_element, self.__TXPDO_ELEMENT)
 
-        for pdo_elements in [rxpdo_elements, txpdo_elements]:
+        for pdo_elements, pdo_indices in zip(
+            [rxpdo_elements, txpdo_elements], [assigned_rpdos, assigned_tpdos]
+        ):
             for pdo in pdo_elements:
+                index_element = self._find_and_check(pdo, self.__PDO_INDEX_ELEMENT)
+                index_element.attrib.pop(self.__PDO_INDEX_DEPEND_ON_SLOT_ATTR, None)
+
+                # If the PDO is not assgned, it should be removed
+                pdo_index = int(cast("str", index_element.text).replace("#x", "0x"), 16)
+                if pdo_index not in pdo_indices:
+                    device_element.remove(pdo)
+                    continue
+
                 sm_value = pdo.attrib.get(self.__PDO_SM_ATTR, None)
                 if sm_value is not None:
                     pdo.attrib.pop(self.__PDO_SM_ATTR, None)
@@ -320,9 +337,6 @@ class SCISerializer(XMLBase):
                 for exclude_element in exclude_elements:
                     pdo.remove(exclude_element)
 
-                index_element = self._find_and_check(pdo, self.__PDO_INDEX_ELEMENT)
-                index_element.attrib.pop(self.__PDO_INDEX_DEPEND_ON_SLOT_ATTR, None)
-
                 entry_elements = self._findall_and_check(pdo, self.__PDO_ENTRY_ELEMENT)
                 for entry in entry_elements:
                     index_element = self._find_and_check(entry, self.__PDO_INDEX_ELEMENT)
@@ -334,6 +348,8 @@ class SCISerializer(XMLBase):
         rpdo: PDOMap,
         tpdo: PDOMap,
         module_ident: int,
+        assigned_rpdos: list[int],
+        assigned_tpdos: list[int],
         part_number: Optional[str] = None,
     ) -> ElementTree.ElementTree:
         """Serialize the FSoE mapping to a .sci file.
@@ -343,6 +359,8 @@ class SCISerializer(XMLBase):
             rpdo: The RPDO map to serialize.
             tpdo: The TPDO map to serialize.
             module_ident: The module identifier.
+            assigned_rpdos: indices of the assigned rpdos.
+            assigned_tpdos: indices of the assigned tpdos.
             part_number: Optional part number for the device.
 
         Returns:
@@ -361,7 +379,7 @@ class SCISerializer(XMLBase):
         self.__set_sci_vendor(root)
         self.__set_sci_info(root, part_number=part_number)
         self._filter_safety_modules(module_ident=module_ident, root=root)
-        self._modify_pdos(root=root)
+        self._modify_pdos(root=root, assigned_rpdos=assigned_rpdos, assigned_tpdos=assigned_tpdos)
         self._set_startup_commands(rpdo=rpdo, tpdo=tpdo, root=root)
 
         tree = ElementTree.ElementTree(root)
@@ -375,6 +393,8 @@ class SCISerializer(XMLBase):
         rpdo: PDOMap,
         tpdo: PDOMap,
         module_ident: int,
+        assigned_rpdos: list[int],
+        assigned_tpdos: list[int],
         part_number: Optional[str] = None,
         override: bool = False,
     ) -> None:
@@ -386,6 +406,8 @@ class SCISerializer(XMLBase):
             rpdo: The RPDO map to save.
             tpdo: The TPDO map to save.
             module_ident: The module identifier.
+            assigned_rpdos: indices of the assigned rpdos.
+            assigned_tpdos: indices of the assigned tpdos.
             part_number: Optional part number for the device.
             override: If True, will overwrite existing file. Defaults to False.
 
@@ -403,6 +425,8 @@ class SCISerializer(XMLBase):
             rpdo=rpdo,
             tpdo=tpdo,
             module_ident=module_ident,
+            assigned_rpdos=assigned_rpdos,
+            assigned_tpdos=assigned_tpdos,
             part_number=part_number,
         )
         with sci_file.open("wb") as f:

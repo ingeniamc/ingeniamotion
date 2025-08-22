@@ -35,6 +35,7 @@ def main(ifname, slave_id, dict_path, sci_file=None, esi_file=None) -> None:
 
     Raises:
         FSoEFrameConstructionError: If the FSoE frame construction is invalid.
+        ValueError: if the ESI file is not provided to export the SCI file.
     """
     mc = MotionController()
     # Configure error channel
