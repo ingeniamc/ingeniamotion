@@ -1,6 +1,8 @@
 import random
 import time
+from collections import defaultdict
 from collections.abc import Generator
+from functools import partial
 
 import pytest
 from ingenialink.ethercat.network import EthercatNetwork
@@ -228,11 +230,18 @@ def test_start_pdos(  # noqa: C901
             _, tpdo_map_item = pdo_map_items[a]
             tpdo_values[a] = tpdo_map_item.value
 
+    exceptions: dict[str, list[Exception]] = defaultdict(list)
+
+    def exception_callback(servo, exc):
+        nonlocal exceptions
+        exceptions[servo].append(exc)
+
     # Activate the PDOs
     refresh_rate = 0.5
     for a in alias:
         mc.capture.pdo.subscribe_to_send_process_data(send_callback, servo=a)
         mc.capture.pdo.subscribe_to_receive_process_data(receive_callback, servo=a)
+        mc.capture.pdo.subscribe_to_exceptions(partial(exception_callback, servo=a), servo=a)
         assert not mc.capture.pdo.is_active(servo=a)
         mc.capture.pdo.start_pdos(refresh_rate=refresh_rate, servo=a)
         assert mc.capture.pdo.is_active(servo=a)
@@ -245,9 +254,11 @@ def test_start_pdos(  # noqa: C901
         net_tracker = mc.capture.pdo._PDONetworkManager__get_network_tracker(servo=a)
         assert mc.capture.pdo.is_active(servo=a)
         assert net_tracker.is_active
+        assert len(exceptions[a]) == 0  # Activate without exceptions
 
         mc.capture.pdo.stop_pdos(servo=a)
         assert not mc.capture.pdo.is_active(servo=a)
+        assert len(exceptions[a]) == 0  # Deactivate without exceptions
 
         # PDOs should still be active after first drive removal,
         # they will only be full deactivated if all servos are removed
