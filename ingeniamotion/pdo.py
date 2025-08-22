@@ -343,12 +343,12 @@ class PDONetworkManager:
             if servo != alias:
                 continue
             for callback in callbacks:
-                net.subscribe_to_send_process_data(callback)
+                net.pdo_manager.subscribe_to_send_process_data(callback)
         for servo, callbacks in self.__receive_process_data_add_callback.items():
             if servo != alias:
                 continue
             for callback in callbacks:
-                net.subscribe_to_receive_process_data(callback)
+                net.pdo_manager.subscribe_to_receive_process_data(callback)
         for servo, exception_callbacks in self.__exception_add_callback.items():
             if servo != alias:
                 continue
@@ -358,12 +358,12 @@ class PDONetworkManager:
             if servo != alias:
                 continue
             for callback in callbacks:
-                net.unsubscribe_from_send_process_data(callback)
+                net.pdo_manager.unsubscribe_to_send_process_data(callback)
         for servo, callbacks in self.__receive_process_data_remove_callback.items():
             if servo != alias:
                 continue
             for callback in callbacks:
-                net.unsubscribe_from_receive_process_data(callback)
+                net.pdo_manager.unsubscribe_to_receive_process_data(callback)
         for servo, exception_callbacks in self.__exception_remove_callback.items():
             if servo != alias:
                 continue
@@ -615,7 +615,7 @@ class PDONetworkManager:
         """
         if servo in self.__servo_to_nets:
             tracker = self.__get_network_tracker(servo=servo)
-            tracker.network.subscribe_to_send_process_data(callback)
+            tracker.network.pdo_manager.subscribe_to_send_process_data(callback)
         else:
             self.__send_process_data_add_callback[servo].append(callback)
 
@@ -631,7 +631,7 @@ class PDONetworkManager:
         """
         if servo in self.__servo_to_nets:
             tracker = self.__get_network_tracker(servo=servo)
-            tracker.network.subscribe_to_receive_process_data(callback)
+            tracker.network.pdo_manager.subscribe_to_receive_process_data(callback)
         else:
             self.__receive_process_data_add_callback[servo].append(callback)
 
@@ -669,7 +669,7 @@ class PDONetworkManager:
         """
         if servo in self.__servo_to_nets:
             tracker = self.__get_network_tracker(servo=servo)
-            tracker.network.unsubscribe_from_send_process_data(callback)
+            tracker.network.pdo_manager.unsubscribe_to_send_process_data(callback)
         else:
             self.__send_process_data_remove_callback[servo].append(callback)
 
@@ -686,7 +686,7 @@ class PDONetworkManager:
         """
         if servo in self.__servo_to_nets:
             tracker = self.__get_network_tracker(servo=servo)
-            tracker.network.unsubscribe_from_receive_process_data(callback)
+            tracker.network.pdo_manager.unsubscribe_to_receive_process_data(callback)
         else:
             self.__receive_process_data_remove_callback[servo].append(callback)
 

@@ -1,6 +1,7 @@
 import random
 import time
 from collections.abc import Generator
+from typing import TYPE_CHECKING
 
 import pytest
 from ingenialink.ethercat.network import EthercatNetwork
