@@ -1,7 +1,9 @@
 import argparse
+import contextlib
 
 from ingeniamotion import MotionController
 from ingeniamotion.enums import OperationMode
+from ingeniamotion.exceptions import IMTimeoutError
 
 
 def main(ifname, slave_id, dict_path):
@@ -24,21 +26,21 @@ def main(ifname, slave_id, dict_path):
     # Deactivate the STO
     mc.fsoe.sto_deactivate()
     # Wait for the STO to be deactivated
-    # while mc.fsoe.check_sto_active():
-    #     pass
-    # # Enable the motor
-    # mc.motion.motor_enable()
-    # # Wait for the motor to reach a certain velocity (10 rev/s)
-    # target_velocity = 10
-    # mc.motion.set_velocity(target_velocity)
-    # with contextlib.suppress(IMTimeoutError):
-    #     mc.motion.wait_for_velocity(velocity=target_velocity, timeout=5)
-    # # Disable the motor
-    # mc.motion.motor_disable()
-    # # Activate the SS1
-    # mc.fsoe.sto_activate()
-    # # Activate the STO
-    # mc.fsoe.sto_activate()
+    while mc.fsoe.check_sto_active():
+        pass
+    # Enable the motor
+    mc.motion.motor_enable()
+    # Wait for the motor to reach a certain velocity (10 rev/s)
+    target_velocity = 10
+    mc.motion.set_velocity(target_velocity)
+    with contextlib.suppress(IMTimeoutError):
+        mc.motion.wait_for_velocity(velocity=target_velocity, timeout=5)
+    # Disable the motor
+    mc.motion.motor_disable()
+    # Activate the SS1
+    mc.fsoe.sto_activate()
+    # Activate the STO
+    mc.fsoe.sto_activate()
     # Stop the FSoE master handler
     mc.fsoe.stop_master(stop_pdos=True)
     # Restore the operation mode
@@ -49,10 +51,10 @@ def main(ifname, slave_id, dict_path):
 
 if __name__ == "__main__":
     # Modify these parameters according to your setup
-    # network_interface_ip = "192.168.2.1"
-    # ethercat_slave_id = 1
-    # dictionary_path = "safe_dict.xdf"
-    # main(network_interface_ip, ethercat_slave_id, dictionary_path)
+    network_interface_ip = "192.168.2.1"
+    ethercat_slave_id = 1
+    dictionary_path = "safe_dict.xdf"
+    main(network_interface_ip, ethercat_slave_id, dictionary_path)
 
     parser = argparse.ArgumentParser(description="Safety Torque Off Example")
     parser.add_argument(
