@@ -1,5 +1,5 @@
 import time
-from collections import deque
+from collections import defaultdict, deque
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Callable, Optional, Union
 
@@ -278,12 +278,20 @@ class PDONetworkManager:
         self.__nets: dict[str, PDONetworkTracker] = {}  # net alias to PDONetworkTracker
 
         # Save the callbacks to add/remove, manage them when there is a reference to the network
-        self.__send_process_data_callbacks: dict[str, list[Callable[[], None]]] = defaultdict(list)
-        self.__receive_process_data_callbacks: dict[str, list[Callable[[], None]]] = defaultdict(
+        self.__send_process_data_add_callback: dict[str, list[Callable[[], None]]] = defaultdict(
+            list
+        )
+        self.__receive_process_data_add_callback: dict[str, list[Callable[[], None]]] = defaultdict(
             list
         )
         self.__exception_add_callback: dict[str, list[Callable[[ILError], None]]] = defaultdict(
             list
+        )
+        self.__send_process_data_remove_callback: dict[str, list[Callable[[], None]]] = defaultdict(
+            list
+        )
+        self.__receive_process_data_remove_callback: dict[str, list[Callable[[], None]]] = (
+            defaultdict(list)
         )
         self.__exception_remove_callback: dict[str, list[Callable[[ILError], None]]] = defaultdict(
             list
@@ -330,12 +338,32 @@ class PDONetworkManager:
         self.__nets[net_alias].teardown()
         self.__nets.pop(net_alias)
 
-    def __evaluate_net_subscriptions(self, net: "EthercatNetwork", alias: str) -> None:
+    def __evaluate_subscriptions(self, net: EthercatNetwork, alias: str) -> None:  # noqa: C901
+        for servo, callbacks in self.__send_process_data_add_callback.items():
+            if servo != alias:
+                continue
+            for callback in callbacks:
+                net.subscribe_to_send_process_data(callback)
+        for servo, callbacks in self.__receive_process_data_add_callback.items():
+            if servo != alias:
+                continue
+            for callback in callbacks:
+                net.subscribe_to_receive_process_data(callback)
         for servo, exception_callbacks in self.__exception_add_callback.items():
             if servo != alias:
                 continue
             for exception_callback in exception_callbacks:
                 net.pdo_manager.subscribe_to_exceptions(exception_callback)
+        for servo, callbacks in self.__send_process_data_remove_callback.items():
+            if servo != alias:
+                continue
+            for callback in callbacks:
+                net.unsubscribe_from_send_process_data(callback)
+        for servo, callbacks in self.__receive_process_data_remove_callback.items():
+            if servo != alias:
+                continue
+            for callback in callbacks:
+                net.unsubscribe_from_receive_process_data(callback)
         for servo, exception_callbacks in self.__exception_remove_callback.items():
             if servo != alias:
                 continue
@@ -436,10 +464,6 @@ class PDONetworkManager:
             raise ValueError("Not all elements of the RPDO map list are instances of a RPDO map")
         if not all(isinstance(tpdo_map, TPDOMap) for tpdo_map in _tpdo_maps):
             raise ValueError("Not all elements of the TPDO map list are instances of a TPDO map")
-        for rpdo_map in _rpdo_maps:
-            rpdo_map.subscribe_to_process_data_event(self.__notify_send_process_data)
-        for tpdo_map in _tpdo_maps:
-            tpdo_map.subscribe_to_process_data_event(self.__notify_receive_process_data)
         drive.set_pdo_map_to_slave(rpdo_maps=_rpdo_maps, tpdo_maps=_tpdo_maps)
 
     def clear_pdo_mapping(self, servo: str = DEFAULT_SERVO) -> None:
@@ -538,7 +562,7 @@ class PDONetworkManager:
         if not isinstance(net, EthercatNetwork):
             raise ValueError(f"Expected EthercatNetwork. Got {type(net)}")
 
-        self.__evaluate_net_subscriptions(net=net, alias=servo)
+        self.__evaluate_subscriptions(net=net, alias=servo)
         network_tracker = self.__add_network_tracker_for_servo(
             net=net, alias=self.__mc.servo_net[servo], servo=servo
         )
@@ -579,26 +603,6 @@ class PDONetworkManager:
         tracker = self.__get_network_tracker(servo=servo)
         return tracker.is_servo_active(servo=servo)
 
-    def __notify_send_process_data(self) -> None:
-        """Notify the send process data callbacks.
-
-        In the new implementation, each RPDO map will notify to its subscriber.
-        To maintain the previous behavior, notifications from all PDO maps will
-        be sent to all subscribers.
-        """
-        for callback in self.__send_process_data_callbacks:
-            callback()
-
-    def __notify_receive_process_data(self) -> None:
-        """Notify the receive process data callbacks.
-
-        In the new implementation, each TPDO map will notify to its subscriber.
-        To maintain the previous behavior, notifications from all PDO maps will
-        be sent to all subscribers.
-        """
-        for callback in self.__receive_process_data_callbacks:
-            callback()
-
     def subscribe_to_send_process_data(
         self, callback: Callable[[], None], servo: str = DEFAULT_SERVO
     ) -> None:
@@ -609,8 +613,11 @@ class PDONetworkManager:
             servo: servo alias to reference it. ``DEFAULT_SERVO`` by default.
                 The subscription will be added to the network to which the servo is connected.
         """
-        if callback not in self.__send_process_data_callbacks:
-            self.__send_process_data_callbacks.append(callback)
+        if servo in self.__servo_to_nets:
+            tracker = self.__get_network_tracker(servo=servo)
+            tracker.network.subscribe_to_send_process_data(callback)
+        else:
+            self.__send_process_data_add_callback[servo].append(callback)
 
     def subscribe_to_receive_process_data(
         self, callback: Callable[[], None], servo: str = DEFAULT_SERVO
@@ -622,8 +629,11 @@ class PDONetworkManager:
             servo: servo alias to reference it. ``DEFAULT_SERVO`` by default.
                 The subscription will be added to the network to which the servo is connected.
         """
-        if callback not in self.__receive_process_data_callbacks:
-            self.__receive_process_data_callbacks.append(callback)
+        if servo in self.__servo_to_nets:
+            tracker = self.__get_network_tracker(servo=servo)
+            tracker.network.subscribe_to_receive_process_data(callback)
+        else:
+            self.__receive_process_data_add_callback[servo].append(callback)
 
     def subscribe_to_exceptions(
         self, callback: Callable[[ILError], None], servo: str = DEFAULT_SERVO
@@ -657,8 +667,11 @@ class PDONetworkManager:
         Args:
             callback: Subscribed callback function.
         """
-        if callback in self.__send_process_data_callbacks:
-            self.__send_process_data_callbacks.remove(callback)
+        if servo in self.__servo_to_nets:
+            tracker = self.__get_network_tracker(servo=servo)
+            tracker.network.unsubscribe_from_send_process_data(callback)
+        else:
+            self.__send_process_data_remove_callback[servo].append(callback)
 
     def unsubscribe_to_receive_process_data(
         self, callback: Callable[[], None], servo: str = DEFAULT_SERVO
@@ -671,8 +684,11 @@ class PDONetworkManager:
                 The unsubscription will be removed from the network to which the servo is connected.
 
         """
-        if callback in self.__receive_process_data_callbacks:
-            self.__receive_process_data_callbacks.remove(callback)
+        if servo in self.__servo_to_nets:
+            tracker = self.__get_network_tracker(servo=servo)
+            tracker.network.unsubscribe_from_receive_process_data(callback)
+        else:
+            self.__receive_process_data_remove_callback[servo].append(callback)
 
     def create_poller(
         self,
