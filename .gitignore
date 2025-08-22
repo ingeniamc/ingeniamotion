@@ -84,3 +84,6 @@ resources/
 
 # Wireshark logs
 wireshark/
+
+# Version
+ingeniamotion/_version.py
