@@ -1,6 +1,5 @@
 import argparse
 import time
-from pathlib import Path
 
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 from ingeniamotion.motion_controller import MotionController
@@ -20,7 +19,7 @@ def _error_callback(error):
     print(error)
 
 
-def main(ifname, slave_id, dict_path, sci_file=None, esi_file=None) -> None:
+def main(ifname, slave_id, dict_path) -> None:
     r"""Establish a FSoE connection, deactivate the STO and move the motor.
 
     Args:
@@ -28,14 +27,9 @@ def main(ifname, slave_id, dict_path, sci_file=None, esi_file=None) -> None:
                 ``\\Device\\NPF_[...]``.
         slave_id (int): ID of the servo drive to connect to.
         dict_path: Path to the drive dictionary file.
-        sci_file: Path to save the SCI file.
-            Defaults to None.
-        esi_file: Path to the Safety ESI file. Required to save the SCI file.
-            Defaults to None.
 
     Raises:
         FSoEFrameConstructionError: If the FSoE frame construction is invalid.
-        ValueError: if the ESI file is not provided to export the SCI file.
     """
     mc = MotionController()
     # Configure error channel
@@ -76,14 +70,6 @@ def main(ifname, slave_id, dict_path, sci_file=None, esi_file=None) -> None:
 
     # Check that the maps are valid
     handler.maps.validate()
-
-    # Save the SCI file if required
-    if sci_file is not None:
-        if esi_file is None:
-            raise ValueError("ESI file must be provided to save the SCI file.")
-        handler.serialize_mapping_to_sci(
-            sci_file=Path(sci_file), esi_file=Path(esi_file), override=True
-        )
 
     # Print the maps to check the configuration
     print("Inputs Map:")
@@ -148,17 +134,6 @@ if __name__ == "__main__":
     parser.add_argument(
         "--dictionary_path", help="Path to drive dictionary", required=True, type=str
     )
-    parser.add_argument(
-        "--sci_file", help="Path to save the SCI file", required=False, type=str, default=None
-    )
-    parser.add_argument(
-        "--esi_file",
-        help="Path to the ESI file, required to save SCI file",
-        required=False,
-        type=str,
-        default=None,
-    )
-
     args = parser.parse_args()
 
     main(args.ifname, args.slave_id, args.dictionary_path, args.sci_file, args.esi_file)
