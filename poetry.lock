@@ -1281,18 +1281,18 @@ reference = "ingenia"
 
 [[package]]
 name = "ingenialink"
-version = "7.5.0+pr618b33"
+version = "7.5.0+pr618b34"
 description = "IngeniaLink Communications Library"
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "tests"]
 files = [
-    {file = "ingenialink-7.5.0+pr618b33-cp310-cp310-win_amd64.whl", hash = "sha256:7cc8cd6e52f62737a49fa3544a6854d533b219a1efb2631132deb6653ac32ffc"},
-    {file = "ingenialink-7.5.0+pr618b33-cp311-cp311-win_amd64.whl", hash = "sha256:0bb529b1b846d47fe03bf4dbadffd0e26287200f3cbc6d64ec3e8685ca28dc34"},
-    {file = "ingenialink-7.5.0+pr618b33-cp312-cp312-win_amd64.whl", hash = "sha256:cf4b8ff35b0053c355181d05ab9fba3db9057fcb1677ff682aece5697a65216e"},
-    {file = "ingenialink-7.5.0+pr618b33-cp39-cp39-win_amd64.whl", hash = "sha256:452dbae3c44ef8170ef7fb44543e7a33b9526f2e53943159689dec1396d15821"},
-    {file = "ingenialink-7.5.0+pr618b33-py3-none-any.whl", hash = "sha256:5aa688de2c89ec00249a2b863edda8cb34756cde20653dbc74eb59f969616bcb"},
-    {file = "ingenialink-7.5.0+pr618b33.tar.gz", hash = "sha256:7fed8f62c295eb5d21cddae362885f78e1719bbb7e402b205b7d97dda5c35dc0"},
+    {file = "ingenialink-7.5.0+pr618b34-cp310-cp310-win_amd64.whl", hash = "sha256:09c05aa44b778f05643d450a70603587fbaf5c29c83d0499137dde28ab70ac75"},
+    {file = "ingenialink-7.5.0+pr618b34-cp311-cp311-win_amd64.whl", hash = "sha256:039446cf60cd53f3a134ca85c3032c4ef81c3c758397196be411c01a6bb90d25"},
+    {file = "ingenialink-7.5.0+pr618b34-cp312-cp312-win_amd64.whl", hash = "sha256:41adbdbca3a6e8d70deb4d4c06ca5ed415e4f25afcb89cd2a94228ca2d64c2e4"},
+    {file = "ingenialink-7.5.0+pr618b34-cp39-cp39-win_amd64.whl", hash = "sha256:37c091b6b9cc857569c16f6ab2b30573e1f7fb51cbea5ab124bdea24010c7399"},
+    {file = "ingenialink-7.5.0+pr618b34-py3-none-any.whl", hash = "sha256:0689f1920b17eeefcb52b0b040ff7f670e9cb56564d6f2aeb8d043f1353b7a3b"},
+    {file = "ingenialink-7.5.0+pr618b34.tar.gz", hash = "sha256:f9ca4ebb9f813daa8a4690560790f21f4dd5b42c4d8832673803422447864b32"},
 ]
 
 [package.dependencies]
@@ -4603,4 +4603,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "0f4843cadc803a0c1a114dd7512db314e53f30a1851af0093142db963f5cb311"
+content-hash = "f77e16f6146c6eb54057d4bb0fcfb914eeaaaf79bb1a7f277555847d737b1b9d"
