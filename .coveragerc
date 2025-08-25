@@ -19,3 +19,4 @@ source =
 skip_empty = true
 omit =
     */__init__.py
+    */ingeniamotion/_version.py

@@ -187,7 +187,7 @@ class PDUMaps:
         Args:
             safety_function: Safety function
         """
-        for io in safety_function.ios:
+        for io in safety_function.ios.values():
             self.insert_in_best_position(io)
 
     @classmethod
