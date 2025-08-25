@@ -1281,16 +1281,16 @@ reference = "ingenia"
 
 [[package]]
 name = "ingenialink"
-version = "7.5.0+pr617b31"
+version = "7.5.0+pr618b28"
 description = "IngeniaLink Communications Library"
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "tests"]
 files = [
-    {file = "ingenialink-7.5.0+pr617b31-cp310-cp310-win_amd64.whl", hash = "sha256:3c666cb50036ac0902c9cee2824b95b595a66335094953ed4858b93e16792849"},
-    {file = "ingenialink-7.5.0+pr617b31-cp311-cp311-win_amd64.whl", hash = "sha256:f209bd0cf317c619a358919d7c6c97208202fac00c053d2ca8408da89831a046"},
-    {file = "ingenialink-7.5.0+pr617b31-cp312-cp312-win_amd64.whl", hash = "sha256:c92fcdc14f21781ae15c3cb9ebc37bcb56751ba06126b73523a9547503f87dc1"},
-    {file = "ingenialink-7.5.0+pr617b31-cp39-cp39-win_amd64.whl", hash = "sha256:97ddd56942a8ece4504cd49b7e53f608d1948196e64e5cd44c221ec2fcbee6d9"},
+    {file = "ingenialink-7.5.0+pr618b28-cp310-cp310-win_amd64.whl", hash = "sha256:ba3cd257e721d26466ea2a4e8068a3ba2d4e061a032f345235ef78c4cfb9d126"},
+    {file = "ingenialink-7.5.0+pr618b28-cp311-cp311-win_amd64.whl", hash = "sha256:7ebb3a1d0f0e549250add404127c199838c92b616bb5a771a76e8e65842a3434"},
+    {file = "ingenialink-7.5.0+pr618b28-cp312-cp312-win_amd64.whl", hash = "sha256:3c9c8f5d50523b429a8cc2afc7ce765b1e3ca20f44ee702a2bdb818d2f366bce"},
+    {file = "ingenialink-7.5.0+pr618b28-cp39-cp39-win_amd64.whl", hash = "sha256:c0889aecf4b95469ea4883a6afbd5d2436d0c94024d99a77887009a30e6bd83b"},
 ]
 
 [package.dependencies]
@@ -4601,4 +4601,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "f30a025a1750e8d1ae122b84b807aabf722a60a0c72cf75ef06114b02cbf99ea"
+content-hash = "f4b167e83a3610b22220a6ea78e9202bce6d6e76474e1bef769c91ecd03742e0"
