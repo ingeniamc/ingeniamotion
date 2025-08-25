@@ -85,5 +85,8 @@ resources/
 # Wireshark logs
 wireshark/
 
+# Version
+ingeniamotion/_version.py
+
 # FSoE maps
 fsoe_maps/

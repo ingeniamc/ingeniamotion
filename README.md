@@ -25,21 +25,36 @@ The recommended way to install is by using pip, i.e:
 pip install ingeniamotion
 ```
 
-Build Module
-------------
+Virtual environment management with Poetry
+------------------------------------------
 
-Install tox and run the following:
+Install poetry:
 ```bash
-pip install "tox>4"
-tox -e build
+pip install poetry
 ```
+
+Use an environment with a certain Python version:
+```bash
+poetry env use 3.12
+```
+
+Install the required dependencies:
+```bash
+poetry install --all-groups
+```
+
+To install *FSoE* (optional):
+```bash
+poetry install --extras fsoe
+```
+
 
 Generate documentation
 ----------------------
 
 To produce the documentation, run the following command:
 ```bash
-tox -e docs
+poetry run poe docs
 ```
 
 Run PyTest
@@ -69,22 +84,8 @@ DEN_NET_E_SETUP = LocalDriveConfigSpecifier.from_ethercat_configuration(
 For more information, check `summit-testing-framework` documentation.
 
 Run tests selecting the markers that you want and are appropriate for your setup.
-Beware that some tests may not be appropiate for the setup that you have and may fail.
+Beware that some tests may not be appropriate for the setup that you have and may fail.
 
 ```bash
-tox -e py39 -- -m soem
-```
-
-This will use the default *ingenialink* installation from *[develop]* setting. If you want to send a custom wheel or a different commit, you can do it by changing *INGENIALINK_INSTALL_PATH* variable.
-
-For example, to send a custom wheel:
-
-```bash
-INGENIALINK_INSTALL_PATH=dist/ingenialink-7.4.1-cp39-cp39-win_amd64.whl tox -e py39
-```
-
-To install *FSoE*, do the same with *FSOE_PACKAGE*:
-
-```bash
-FSOE_PACKAGE=".[FSoE]" tox -e py39
+poetry run poe tests -m {markers}
 ```
