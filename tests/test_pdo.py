@@ -3,7 +3,6 @@ import time
 from collections import defaultdict
 from collections.abc import Generator
 from functools import partial
-from typing import TYPE_CHECKING
 
 import pytest
 from ingenialink.ethercat.network import EthercatNetwork
@@ -15,9 +14,6 @@ from ingeniamotion.enums import CommunicationType, OperationMode
 from ingeniamotion.exceptions import IMError
 from ingeniamotion.metaclass import DEFAULT_AXIS
 from ingeniamotion.motion_controller import MotionController
-
-if TYPE_CHECKING:
-    from ingenialink.pdo import PDOMap
 
 
 def __restore_pdo_network_manager(mc: "MotionController") -> None:
@@ -204,8 +200,6 @@ def test_start_pdos(  # noqa: C901
     tpdo_values = {}
     pdo_map_items = {}
     initial_operation_modes = {}
-    rpdo_maps: dict[str, PDOMap] = {}
-    tpdo_maps: dict[str, PDOMap] = {}
     for a in alias:
         rpdo_map = mc.capture.pdo.create_empty_rpdo_map()
         tpdo_map = mc.capture.pdo.create_empty_tpdo_map()
@@ -225,8 +219,6 @@ def test_start_pdos(  # noqa: C901
         ])
         initial_operation_modes[a] = initial_operation_mode
         rpdo_values[a] = random_op_mode
-        rpdo_maps[a] = rpdo_map
-        tpdo_maps[a] = tpdo_map
 
     def send_callback():
         for a in alias:
