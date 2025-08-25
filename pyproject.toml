@@ -105,7 +105,7 @@ pytest-mock = "==3.6.1"
 pytest-console-scripts = "==1.4.1"
 matplotlib = "==3.8.2"
 summit-testing-framework = "==0.1.5"
-ingenialink = {version = "7.5.0+pr618b28", source = "ingenia"}
+ingenialink = {version = "7.5.0+pr617b33", source = "ingenia"}
 
 # -----------------------------------------------------------------------
 #                                   TASKS
