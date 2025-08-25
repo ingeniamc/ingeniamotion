@@ -555,20 +555,6 @@ pipeline {
                             }
                             steps {
                                 runTestHW("fsoe_phase2", "(fsoe or fsoe_phase2) and not skip_testing_framework", "ECAT_DEN_S_PHASE2_SETUP", USE_WIRESHARK_LOGGING)
-
-                                script {
-                                    if (fileExists(FSOE_MAPS_DIR)) {
-                                        def result = bat(script: 'dir /b "%FSOE_MAPS_DIR%\\**" | find /c /v ""', returnStdout: true).trim()
-                                        def fileCount = result.tokenize().last() as Integer
-                                        if (fileCount > 0) {
-                                            addWarningBadge(text: "There are invalid safety maps, review archived artifacts.")
-                                            echo "Number of failed maps: ${fileCount / 2}"
-                                            archiveArtifacts artifacts: "${FSOE_MAPS_DIR}\\**", allowEmptyArchive: true
-                                            bat(script: 'del /f "%FSOE_MAPS_DIR%\\**"', returnStatus: true)
-                                        }
-                                    }
-                                }
-
                                 runTestHW("fsoe_phase2", "(fsoe or fsoe_phase2) and skip_testing_framework", "ECAT_DEN_S_PHASE2_SETUP", USE_WIRESHARK_LOGGING)
                             }
                         }
