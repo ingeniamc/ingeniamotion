@@ -271,7 +271,9 @@ def test_start_pdos(  # noqa: C901
         assert rpdo_values[a] == mc.motion.get_operation_mode(servo=a)
         # Check that TPDO are being received
         assert pytest.approx(tpdo_values[a], abs=2) == mc.motion.get_actual_position(servo=a)
-        # Restore the initial operation mode
+
+    # Restore the initial operation mode
+    for idx, a in enumerate(alias):
         mc.motion.set_operation_mode(initial_operation_modes[a], servo=a)
         mc.capture.pdo.remove_rpdo_map(a, rpdo_map_index=0)
         mc.capture.pdo.remove_tpdo_map(a, tpdo_map_index=0)
