@@ -135,17 +135,17 @@ def __set_default_phase2_mapping(handler: "FSoEMasterHandler") -> None:
     safe_inputs = handler.get_function_instance(SafeInputsFunction)
     ss1 = handler.get_function_instance(SS1Function)
 
-    handler.maps.outputs.clear()
-    handler.maps.outputs.add(sto.command)
-    handler.maps.outputs.add(ss1.command)
-    handler.maps.outputs.add_padding(6)
-
     handler.maps.inputs.clear()
     handler.maps.inputs.add(sto.command)
     handler.maps.inputs.add(ss1.command)
     handler.maps.inputs.add_padding(6)
     handler.maps.inputs.add(safe_inputs.value)
     handler.maps.inputs.add_padding(7)
+
+    handler.maps.outputs.clear()
+    handler.maps.outputs.add(sto.command)
+    handler.maps.outputs.add(ss1.command)
+    handler.maps.outputs.add_padding(6 + 8)
 
 
 @pytest.fixture()
