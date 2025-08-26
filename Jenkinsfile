@@ -91,6 +91,10 @@ def createVirtualEnvironments(String pythonVersionList = "") {
     runPython("pip install poetry==2.1.3", DEFAULT_PYTHON_VERSION)
     def versions = pythonVersionList?.trim() ? pythonVersionList : RUN_PYTHON_VERSIONS
     def pythonVersions = versions.split(',')
+    // Ensure DEFAULT_PYTHON_VERSION is included if not already present
+    if (!pythonVersions.contains(DEFAULT_PYTHON_VERSION)) {
+        pythonVersions = pythonVersions + [DEFAULT_PYTHON_VERSION]
+    }
     pythonVersions.each { version ->
         def venvName = ".venv${version}"
         if (isUnix()) {
@@ -170,9 +174,6 @@ pipeline {
                             RUN_PYTHON_VERSIONS = PYTHON_VERSION_MIN
                         } else if (env.PYTHON_VERSIONS == "MAX") {
                             RUN_PYTHON_VERSIONS = PYTHON_VERSION_MAX
-                            // Change the default python version so that virtual environments will match
-                            // the selected python version
-                            DEFAULT_PYTHON_VERSION = PYTHON_VERSION_MAX
                         } else if (env.PYTHON_VERSIONS == "All") {
                             RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
                         } else { // Branch-indexing
