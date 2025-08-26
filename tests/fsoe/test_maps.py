@@ -201,23 +201,22 @@ def test_map_all_safety_functions(
 
 # This test will be used for debugging, will be removed after https://novantamotion.atlassian.net/browse/INGM-689
 @pytest.mark.fsoe_phase2
-@pytest.mark.skip("https://novantamotion.atlassian.net/browse/INGM-689")
+# @pytest.mark.skip("https://novantamotion.atlassian.net/browse/INGM-689")
 def test_fixed_mapping_combination(
     mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
     timeout_for_data_sra: float,
     fsoe_maps_dir: Path,
-    setup_specifier_with_esi: DriveHwConfigSpecifier,
 ) -> None:
     mc, handler = mc_with_fsoe_with_sra
-
-    sci_file = fsoe_maps_dir / "test_map.sci"
 
     # Suspicious maps
     # "mapping_6_False_587.json"
     # "mapping_7_True_186.json"
 
+    test_map = "mapping_6_False_587.json"
+
     mapping = FSoEDictionaryMapJSONSerializer.load_mapping_from_json(
-        handler.dictionary, fsoe_maps_dir / "failed/mapping_6_False_587.json"
+        handler.dictionary, fsoe_maps_dir / f"failed/{test_map}"
     )
     handler.set_maps(mapping)
 
@@ -226,11 +225,6 @@ def test_fixed_mapping_combination(
 
     # Check that the maps are valid
     handler.maps.validate()
-    handler.serialize_mapping_to_sci(
-        esi_file=setup_specifier_with_esi.extra_data["esi_file"], sci_file=sci_file, override=True
-    )
-    save_maps_text_representation(handler.maps, fsoe_maps_dir / "mapping_7_True_186.txt")
-
     mc.fsoe.configure_pdos(start_pdos=True)
 
     # Wait for the master to reach the Data state
