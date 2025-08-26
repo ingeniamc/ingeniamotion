@@ -63,7 +63,7 @@ ECAT_DEN_S_PHASE2_SETUP = RackServiceConfigSpecifier.from_firmware(
     ),
     extra_data={
         "esi_file": Path(
-            "//azr-srv-ingfs1/dist/products/i050_summit/i056_den-s-net-e/release_candidate/2.9.0.1/2.8.1/den-s-net-e_esi_2.9.001.xml"
+            "//azr-srv-ingfs1/dist/products/i050_summit/i056_den-s-net-e/release_candidate/2.9.0.1/den-s-net-e_esi_2.9.001.xml"
         )
     },
 )
