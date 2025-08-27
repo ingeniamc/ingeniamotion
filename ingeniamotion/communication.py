@@ -526,15 +526,13 @@ class Communication:
                 logger.warning("npcap not available, network adapters list will not be complete")
             else:
                 network_adapters.extend([
-
-                        NetworkAdapter(
-                            interface_index=adapter[0],
-                            interface_name=adapter[2],
-                            interface_guid=adapter[1],
-                        )
-                        for adapter in EthercatNetwork.find_adapters()
-                    ]
-                )
+                    NetworkAdapter(
+                        interface_index=adapter[0],
+                        interface_name=adapter[2],
+                        interface_guid=adapter[1],
+                    )
+                    for adapter in EthercatNetwork.find_adapters()
+                ])
         return {adapter.interface_name: adapter.interface_guid for adapter in network_adapters}
 
     def get_available_canopen_devices(self) -> dict[CanDevice, list[int]]:
