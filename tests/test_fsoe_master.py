@@ -1,7 +1,8 @@
 import logging
 import random
 import time
-from typing import TYPE_CHECKING, Any, Union
+from collections.abc import Generator
+from typing import TYPE_CHECKING, Any, Callable, Union
 
 import pytest
 from ingenialink import RegAccess, RegDtype, Servo
@@ -55,18 +56,6 @@ if TYPE_CHECKING:
     from ingenialink.emcy import EmergencyMessage
 
 
-# Global error flag for thread-safe error detection
-_fsoe_error_occurred = False
-_fsoe_error_message = ""
-
-
-def reset_fsoe_error_flag():
-    """Reset the FSoE error flag for a new test."""
-    global _fsoe_error_occurred, _fsoe_error_message
-    _fsoe_error_occurred = False
-    _fsoe_error_message = ""
-
-
 def test_fsoe_master_not_installed():
     try:
         import fsoe_master  # noqa: F401
@@ -93,35 +82,20 @@ def emergency_handler(servo_alias: str, message: "EmergencyMessage"):
         # https://novantamotion.atlassian.net/browse/INGM-627
         return
 
-    global _fsoe_error_occurred, _fsoe_error_message
-    _fsoe_error_occurred = True
-    _fsoe_error_message = f"Emergency message received from {servo_alias}: {message}"
+    raise RuntimeError(f"Emergency message received from {servo_alias}: {message}")
 
 
-def error_handler(error: FSoEError):
-    global _fsoe_error_occurred, _fsoe_error_message
-    _fsoe_error_occurred = True
-    _fsoe_error_message = f"FSoE error received: {error}"
+@pytest.fixture(scope="function")
+def fsoe_error_monitor() -> Generator[Callable[[FSoEError], None], None, None]:
+    errors = []
 
+    def error_handler(error: FSoEError) -> None:
+        errors.append(error)
 
-@pytest.fixture(autouse=True)
-def fsoe_error_monitor(request: pytest.FixtureRequest):
-    reset_fsoe_error_flag()
+    yield error_handler
 
-    # Do not raise error for certain flaky tests
-    if (
-        "test_map_safety_input_output_random" in request.node.name
-        or "test_map_all_safety_functions" in request.node.name
-    ):
-        yield
-        return
-
-    def check_error():
-        if _fsoe_error_occurred:
-            request.node._error_message = _fsoe_error_message
-
-    request.node._check_error = check_error
-    yield
+    if len(errors) > 0:
+        pytest.fail(f"FSoE errors occurred: {errors}")
 
 
 @pytest.fixture()
@@ -149,14 +123,14 @@ def __set_default_phase2_mapping(handler: "FSoEMasterHandler") -> None:
 
 
 @pytest.fixture()
-def mc_with_fsoe(mc, fsoe_states):
+def mc_with_fsoe(mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEError], None]):
     def add_state(state: FSoEState):
         fsoe_states.append(state)
 
     # Subscribe to emergency messages
     mc.communication.subscribe_emergency_message(emergency_handler)
     # Configure error channel
-    mc.fsoe.subscribe_to_errors(error_handler)
+    mc.fsoe.subscribe_to_errors(fsoe_error_monitor)
     # Create and start the FSoE master handler
     handler = mc.fsoe.create_fsoe_master_handler(use_sra=False, state_change_callback=add_state)
     # If phase II, initialize the handler with the default mapping
@@ -172,14 +146,14 @@ def mc_with_fsoe(mc, fsoe_states):
 
 
 @pytest.fixture()
-def mc_with_fsoe_with_sra(mc, fsoe_states):
+def mc_with_fsoe_with_sra(mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEError], None]):
     def add_state(state: FSoEState):
         fsoe_states.append(state)
 
     # Subscribe to emergency messages
     mc.communication.subscribe_emergency_message(emergency_handler)
     # Configure error channel
-    mc.fsoe.subscribe_to_errors(error_handler)
+    mc.fsoe.subscribe_to_errors(fsoe_error_monitor)
     # Create and start the FSoE master handler
     handler = mc.fsoe.create_fsoe_master_handler(use_sra=True, state_change_callback=add_state)
     # If phase II, initialize the handler with the default mapping
@@ -220,13 +194,17 @@ def test_create_fsoe_master_handler_use_sra(mc, use_sra):
 
 
 @pytest.mark.fsoe
-def test_create_fsoe_handler_from_invalid_pdo_maps(caplog):
+def test_create_fsoe_handler_from_invalid_pdo_maps(
+    caplog, fsoe_error_monitor: Callable[[FSoEError], None]
+):
     mock_servo = MockServo(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY)
     mock_servo.write("ETG_COMMS_RPDO_MAP256_6", 0x123456)  # Invalid pdo map value
 
     caplog.set_level(logging.ERROR)
     try:
-        handler = FSoEMasterHandler(mock_servo, use_sra=True, report_error_callback=error_handler)
+        handler = FSoEMasterHandler(
+            mock_servo, use_sra=True, report_error_callback=fsoe_error_monitor
+        )
 
         # An error has been logged
         logger_error = caplog.records[-1]
@@ -360,11 +338,11 @@ class MockHandler:
 
 
 @pytest.mark.fsoe
-def test_constructor_set_slave_address():
+def test_constructor_set_slave_address(fsoe_error_monitor: Callable[[FSoEError], None]):
     mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
     try:
         handler = FSoEMasterHandler(
-            mock_servo, use_sra=True, slave_address=0x7412, report_error_callback=error_handler
+            mock_servo, use_sra=True, slave_address=0x7412, report_error_callback=fsoe_error_monitor
         )
 
         assert mock_servo.read(FSoEMasterHandler.FSOE_MANUF_SAFETY_ADDRESS) == 0x7412
@@ -374,13 +352,15 @@ def test_constructor_set_slave_address():
 
 
 @pytest.mark.fsoe
-def test_constructor_inherit_slave_address():
+def test_constructor_inherit_slave_address(fsoe_error_monitor: Callable[[FSoEError], None]):
     mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
     try:
         # Set the slave address in the servo
         mock_servo.write(FSoEMasterHandler.FSOE_MANUF_SAFETY_ADDRESS, 0x4986)
 
-        handler = FSoEMasterHandler(mock_servo, use_sra=True, report_error_callback=error_handler)
+        handler = FSoEMasterHandler(
+            mock_servo, use_sra=True, report_error_callback=fsoe_error_monitor
+        )
 
         assert mock_servo.read(FSoEMasterHandler.FSOE_MANUF_SAFETY_ADDRESS) == 0x4986
     finally:
@@ -388,14 +368,14 @@ def test_constructor_inherit_slave_address():
 
 
 @pytest.mark.fsoe
-def test_constructor_set_connection_id():
+def test_constructor_set_connection_id(fsoe_error_monitor: Callable[[FSoEError], None]):
     mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
     try:
         handler = FSoEMasterHandler(
             mock_servo,
             use_sra=True,
             connection_id=0x3742,
-            report_error_callback=error_handler,
+            report_error_callback=fsoe_error_monitor,
         )
         assert handler._master_handler.master.session.connection_id.value == 0x3742
     finally:
@@ -403,7 +383,7 @@ def test_constructor_set_connection_id():
 
 
 @pytest.mark.fsoe
-def test_constructor_random_connection_id():
+def test_constructor_random_connection_id(fsoe_error_monitor: Callable[[FSoEError], None]):
     mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
 
     random.seed(0x1234)
@@ -411,7 +391,7 @@ def test_constructor_random_connection_id():
         handler = FSoEMasterHandler(
             mock_servo,
             use_sra=True,
-            report_error_callback=error_handler,
+            report_error_callback=fsoe_error_monitor,
         )
         assert handler._master_handler.master.session.connection_id.value == 0xED9A
     finally:
@@ -579,10 +559,12 @@ def test_getter_of_safety_functions(mc_with_fsoe):
 
 
 @pytest.mark.fsoe
-def test_modify_safe_parameters():
+def test_modify_safe_parameters(fsoe_error_monitor: Callable[[FSoEError], None]):
     mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
     try:
-        handler = FSoEMasterHandler(mock_servo, use_sra=True, report_error_callback=error_handler)
+        handler = FSoEMasterHandler(
+            mock_servo, use_sra=True, report_error_callback=fsoe_error_monitor
+        )
 
         input_map = handler.get_function_instance(SafeInputsFunction).map
         map_uid = "FSOE_SAFE_INPUTS_MAP"
@@ -605,7 +587,7 @@ def test_modify_safe_parameters():
     "dictionary, editable",
     [(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, False), (SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, True)],
 )
-def test_mapping_locked(dictionary, editable):
+def test_mapping_locked(dictionary, editable, fsoe_error_monitor: Callable[[FSoEError], None]):
     mock_servo = MockServo(dictionary)
 
     if not editable:
@@ -619,7 +601,9 @@ def test_mapping_locked(dictionary, editable):
                 reg._access = RegAccess.RO
 
     try:
-        handler = FSoEMasterHandler(mock_servo, use_sra=True, report_error_callback=error_handler)
+        handler = FSoEMasterHandler(
+            mock_servo, use_sra=True, report_error_callback=fsoe_error_monitor
+        )
         assert handler.maps.editable is editable
 
         if editable:

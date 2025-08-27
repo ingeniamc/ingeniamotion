@@ -98,25 +98,6 @@ def setup_specifier_with_esi(
     return dataclasses.replace(setup_specifier, extra_data=new_data)
 
 
-# https://novantamotion.atlassian.net/browse/INGM-682
-"""
-@pytest.hookimpl(hookwrapper=True)
-def pytest_runtest_makereport(item, call):
-    # Let pytest run the test and generate the report first
-    outcome = yield
-    report = outcome.get_result()
-
-    if call.when == "call":
-        check_error = getattr(item, "_check_error", None)
-        if check_error:
-            check_error()
-        error_message = getattr(item, "_error_message", None)
-        if error_message:
-            report.outcome = "failed"
-            report.longrepr = error_message
-"""
-
-
 @pytest.fixture(scope="module")
 def fsoe_maps_dir() -> Generator[Path, None, None]:
     """Returns the directory where FSoE maps are stored.
