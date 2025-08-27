@@ -41,6 +41,7 @@ def test_random_map_validation(
     )
     assert mapping_file.exists()
 
+    # If the mapping is invalid, the mapping file will be kept for posterior analysis
     try:
         maps.validate()
         mapping_file.unlink()
