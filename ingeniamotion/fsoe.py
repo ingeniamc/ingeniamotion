@@ -97,9 +97,8 @@ class FSoEMaster:
         """
         self._configure_and_set_pdo_maps_to_slaves()
         if start_pdos:
-            for handler in self._handlers.values():
-                if not handler.net.pdo_manager.is_active:
-                    handler.net.activate_pdos()
+            for servo in self._handlers:
+                self.__mc.capture.pdo.start_pdos(servo=servo)
         self.__fsoe_configured = True
 
     def stop_master(self, stop_pdos: bool = False) -> None:
@@ -115,9 +114,8 @@ class FSoEMaster:
         if not self.__fsoe_configured:
             self.logger.warning("FSoE master is already stopped")
         if stop_pdos:
-            for handler in self._handlers.values():
-                if handler.net.pdo_manager.is_active:
-                    handler.net.deactivate_pdos()
+            for servo in self._handlers:
+                self.__mc.capture.pdo.stop_pdos(servo=servo)
             if self.__fsoe_configured:
                 self._remove_pdo_maps_from_slaves()
         self.__fsoe_configured = False
