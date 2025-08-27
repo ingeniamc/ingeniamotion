@@ -6,4 +6,4 @@ try:
 except ModuleNotFoundError:
     __version__ = "development"
 
-__all__ = ["MotionController", "enums"]
+__all__ = ["__version__", "MotionController", "enums"]
