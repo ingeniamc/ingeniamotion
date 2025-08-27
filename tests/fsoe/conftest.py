@@ -134,7 +134,7 @@ def random_max_items() -> int:
 
 
 @pytest.fixture
-def map_generator() -> Generator["FSoERandomMappingGenerator", None, None]:
+def map_generator() -> Iterator["FSoERandomMappingGenerator"]:
     """Fixture to provide a random mapping generator.
 
     Yields:
