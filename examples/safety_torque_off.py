@@ -6,18 +6,22 @@ from ingeniamotion.enums import OperationMode
 from ingeniamotion.exceptions import IMTimeoutError
 
 
+def _error_callback(error):
+    print(error)
+
+
 def main(ifname, slave_id, dict_path):
     """Establish a FSoE connection, deactivate the STO and move the motor."""
     mc = MotionController()
     # Configure error channel
-    mc.fsoe.subscribe_to_errors(lambda error: print(error))
+    mc.fsoe.subscribe_to_errors(_error_callback)
     # Connect to the servo drive
     mc.communication.connect_servo_ethercat(ifname, slave_id, dict_path)
     current_operation_mode = mc.motion.get_operation_mode()
     # Set the Operation mode to Velocity
     mc.motion.set_operation_mode(OperationMode.VELOCITY)
     # Create and start the FSoE master handler
-    mc.fsoe.create_fsoe_master_handler(use_sra=True)
+    mc.fsoe.create_fsoe_master_handler(use_sra=False)
     mc.fsoe.configure_pdos(start_pdos=True)
     # Wait for the master to reach the Data state
     mc.fsoe.wait_for_state_data(timeout=10)
