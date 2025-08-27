@@ -449,7 +449,7 @@ class Communication:
                 :func:`get_interface_name_list`.
         """
         adapter_name = cls.get_interface_name_list()[index]
-        adapter_guid = cls._get_network_adapters()[adapter_name]
+        adapter_guid = cls.get_network_adapters()[adapter_name]
         if RUNNING_ON_WINDOWS:
             return f"\\Device\\NPF_{adapter_guid}"
         return adapter_name
@@ -522,11 +522,11 @@ class Communication:
             List with interface readable names.
 
         """
-        network_adapters = cls._get_network_adapters()
+        network_adapters = cls.get_network_adapters()
         return list(network_adapters)
 
     @staticmethod
-    def _get_network_adapters() -> dict[str, str]:
+    def get_network_adapters() -> dict[str, str]:
         """Get the detected network adapters.
 
         Returns:
