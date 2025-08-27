@@ -59,7 +59,7 @@ class EmcyTest:
 
 @pytest.mark.canopen
 @pytest.mark.ethernet
-def test_get_network_adapters(mocker, setup_descriptor: SetupDescriptor):
+def testget_network_adapters(mocker, setup_descriptor: SetupDescriptor):
     """Tests networks adapters with Windows platform."""
     is_windows = platform.system() != "Windows"
     if not isinstance(setup_descriptor, DriveEcatSetup):
@@ -78,7 +78,7 @@ def test_get_network_adapters(mocker, setup_descriptor: SetupDescriptor):
     mc = MotionController()
     if get_adapters_addresses_spy is not None:
         assert get_adapters_addresses_spy.call_count == 0
-    adapters = mc.communication._get_network_adapters()
+    adapters = mc.communication.get_network_adapters()
     if get_adapters_addresses_spy is not None:
         assert get_adapters_addresses_spy.call_count == 1
 
