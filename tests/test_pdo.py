@@ -251,7 +251,7 @@ def test_start_pdos(  # noqa: C901
     n_servos = len(alias)
     for idx, a in enumerate(alias):
         # Servo and network should be active
-        net_tracker = mc.capture.pdo._PDONetworkManager__get_network_tracker(servo=a)
+        net_tracker = mc.capture.pdo.get_network_tracker(servo=a)
         assert mc.capture.pdo.is_active(servo=a)
         assert net_tracker.is_active
         assert len(exceptions[a]) == 0  # Activate without exceptions
@@ -426,7 +426,7 @@ def test_subscribe_exceptions(mc: "MotionController", alias: str, mocker) -> Non
 
     t = time.time()
     timeout = 1
-    net_tracker = mc.capture.pdo._PDONetworkManager__get_network_tracker(servo=alias)
+    net_tracker = mc.capture.pdo.get_network_tracker(servo=alias)
     net = net_tracker.network
     while not net.pdo_manager._pdo_thread._pd_thread_stop_event.is_set() and (
         (time.time() - t) < timeout
