@@ -1,6 +1,6 @@
 import dataclasses
 import random
-from collections.abc import Generator
+from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -99,7 +99,7 @@ def setup_specifier_with_esi(
 
 
 @pytest.fixture(scope="module")
-def fsoe_maps_dir() -> Generator[Path, None, None]:
+def fsoe_maps_dir() -> Iterator[Path]:
     """Returns the directory where FSoE maps are stored.
 
     This directory is created if it does not exist.
