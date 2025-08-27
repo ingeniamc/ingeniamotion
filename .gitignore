@@ -90,3 +90,7 @@ ingeniamotion/_version.py
 
 # FSoE maps
 fsoe_maps/
+
+# Test outputs (ignore everything except __init__.py)
+tests/outputs/*
+!tests/outputs/__init__.py

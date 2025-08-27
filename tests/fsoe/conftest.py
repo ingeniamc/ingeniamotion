@@ -14,6 +14,7 @@ from summit_testing_framework.setups.specifiers import (
 )
 
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
+from tests.outputs import OUTPUTS_DIR
 
 # https://novantamotion.atlassian.net/browse/INGM-682
 from tests.test_fsoe_master import (
@@ -117,7 +118,7 @@ def pytest_runtest_makereport(item, call):
 
 
 @pytest.fixture(scope="module")
-def fsoe_maps_dir(request: pytest.FixtureRequest) -> Generator[Path, None, None]:
+def fsoe_maps_dir() -> Generator[Path, None, None]:
     """Returns the directory where FSoE maps are stored.
 
     This directory is created if it does not exist.
@@ -126,7 +127,7 @@ def fsoe_maps_dir(request: pytest.FixtureRequest) -> Generator[Path, None, None]
     Yields:
         Path to the FSoE maps directory.
     """
-    directory = Path(request.config.rootdir).resolve() / FSOE_MAPS_DIR
+    directory = OUTPUTS_DIR / FSOE_MAPS_DIR
     directory.mkdir(parents=True, exist_ok=True)
     yield directory
     if not any(directory.iterdir()):
