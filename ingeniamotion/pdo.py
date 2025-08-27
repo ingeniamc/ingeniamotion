@@ -317,9 +317,11 @@ class PDONetworkManager:
             self.__nets[alias] = PDONetworkTracker(network=net)
         return self.__nets[alias]
 
-    def get_network_tracker(self, servo: Optional[str] = None, net_alias: Optional[str] = None) -> PDONetworkTracker:
+    def get_network_tracker(
+        self, servo: Optional[str] = None, net_alias: Optional[str] = None
+    ) -> PDONetworkTracker:
         """Get the network tracker for a specific servo or network alias.
-        
+
         It can be retrieved by specifying the servo alias or the network alias.
 
         Args:
@@ -615,7 +617,9 @@ class PDONetworkManager:
             self.__remove_network_tracker(servo=servo)
         self.__servo_to_nets.pop(servo)
 
-    def is_active(self, servo: Optional[str] = DEFAULT_SERVO, net_alias: Optional[str] = None) -> bool:
+    def is_active(
+        self, servo: Optional[str] = DEFAULT_SERVO, net_alias: Optional[str] = None
+    ) -> bool:
         """Check if the PDO thread is active for the network to which the servo is connected.
 
         Alternatively, it can be checked for a specific network.
