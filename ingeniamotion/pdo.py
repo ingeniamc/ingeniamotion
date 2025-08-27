@@ -615,15 +615,24 @@ class PDONetworkManager:
             self.__remove_network_tracker(servo=servo)
         self.__servo_to_nets.pop(servo)
 
-    def is_active(self, servo: str = DEFAULT_SERVO) -> bool:
+    def is_active(self, servo: Optional[str] = DEFAULT_SERVO, net_alias: Optional[str] = None) -> bool:
         """Check if the PDO thread is active for the network to which the servo is connected.
+
+        Alternatively, it can be checked for a specific network.
+        If the network alias is provided, the servo will be ignored.
 
         Args:
             servo: servo alias to reference it. ``DEFAULT_SERVO`` by default.
+            net_alias: network alias to reference it. ``None`` by default.
 
         Returns:
             True if the PDO thread is active. False otherwise.
         """
+        if net_alias is not None:
+            if net_alias not in self.__nets:
+                return False
+            tracker = self.get_network_tracker(net_alias=net_alias)
+            return tracker.is_active
         if servo not in self.__servo_to_nets:
             return False
         tracker = self.get_network_tracker(servo=servo)
