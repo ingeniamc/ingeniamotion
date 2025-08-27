@@ -109,8 +109,6 @@ def main(ifname, slave_id, dict_path) -> None:
             # And inputs can be read
             print(f"Safe Inputs Value: {safe_inputs.value.get()}")
     finally:
-        # If there has been a failure and it tries to remove the PDO maps, it may fail
-        # if the servo is not in preop state
         try:
             # Stop the FSoE master handler
             if mc.capture.pdo.is_active:
@@ -136,4 +134,4 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    main(args.ifname, args.slave_id, args.dictionary_path, args.sci_file, args.esi_file)
+    main(args.ifname, args.slave_id, args.dictionary_path)

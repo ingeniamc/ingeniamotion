@@ -90,29 +90,7 @@ class FSoERandomMappingGenerator:
         if (current_position_bits + padding_size) > 8 * 16:
             return
 
-        # If the item is smaller than 16 bits, it cannot be split in different data blocks
-        if padding_size < 16:
-            # Check if adding this item would cause it to span across data blocks
-            data_block_boundary = ((current_position_bits // 16) + 1) * 16
-            if (current_position_bits + padding_size) > data_block_boundary:
-                n_bits_padding = data_block_boundary - current_position_bits
-                # If item would span across data blocks,
-                # just add padding to align to next boundary
-                if n_bits_padding > 0:
-                    dictionary_map.add_padding(n_bits_padding)
-                else:
-                    return
-            else:
-                dictionary_map.add_padding(padding_size)
-            return
-
-        next_alignment = align_bits(current_position_bits, 16)
-        n_bits_padding = next_alignment - current_position_bits
-        # If padding is not aligned, just add the remaining bits for the alignment
-        if n_bits_padding > 0:
-            dictionary_map.add_padding(n_bits_padding)
-        else:
-            dictionary_map.add_padding(padding_size)
+        dictionary_map.add_padding(padding_size)
 
     @staticmethod
     def _add_random_item_to_map(

@@ -24,9 +24,12 @@ def move_test_files(files: list[Path], fsoe_maps_dir: Path, success: bool) -> No
     """Move test files to success or failure subdirectories.
 
     Args:
-        files: List of file paths to move
-        fsoe_maps_dir: Base FSoE maps directory
-        success: True for successful tests (move to 'passed'), False for failed (move to 'failed')
+        files: List of file paths to move.
+        fsoe_maps_dir: Base FSoE maps directory.
+        success: True for successful tests (move to 'passed'), False for failed (move to 'failed').
+
+    Raises:
+        RuntimeError: If moving the files fails.
     """
     target_dir = fsoe_maps_dir / ("passed" if success else "failed")
     target_dir.mkdir(exist_ok=True)
@@ -37,7 +40,7 @@ def move_test_files(files: list[Path], fsoe_maps_dir: Path, success: bool) -> No
                 target_file = target_dir / file_path.name
                 file_path.rename(target_file)
             except Exception as e:
-                warnings.warn(f"Failed to move {file_path} to {target_dir}: {e}")
+                raise RuntimeError(f"Failed to move {file_path} to {target_dir}: {e}")
 
 
 def save_maps_text_representation(maps: "PDUMaps", output_file: Path) -> None:

@@ -1,6 +1,6 @@
 import dataclasses
 import random
-from collections.abc import Generator
+from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -14,6 +14,7 @@ from summit_testing_framework.setups.specifiers import (
 )
 
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
+from tests.outputs import OUTPUTS_DIR
 
 # https://novantamotion.atlassian.net/browse/INGM-682
 from tests.test_fsoe_master import (
@@ -98,27 +99,8 @@ def setup_specifier_with_esi(
     return dataclasses.replace(setup_specifier, extra_data=new_data)
 
 
-# https://novantamotion.atlassian.net/browse/INGM-682
-"""
-@pytest.hookimpl(hookwrapper=True)
-def pytest_runtest_makereport(item, call):
-    # Let pytest run the test and generate the report first
-    outcome = yield
-    report = outcome.get_result()
-
-    if call.when == "call":
-        check_error = getattr(item, "_check_error", None)
-        if check_error:
-            check_error()
-        error_message = getattr(item, "_error_message", None)
-        if error_message:
-            report.outcome = "failed"
-            report.longrepr = error_message
-"""
-
-
 @pytest.fixture(scope="module")
-def fsoe_maps_dir(request: pytest.FixtureRequest) -> Generator[Path, None, None]:
+def fsoe_maps_dir() -> Iterator[Path]:
     """Returns the directory where FSoE maps are stored.
 
     This directory is created if it does not exist.
@@ -127,7 +109,7 @@ def fsoe_maps_dir(request: pytest.FixtureRequest) -> Generator[Path, None, None]
     Yields:
         Path to the FSoE maps directory.
     """
-    directory = Path(request.config.rootdir).resolve() / FSOE_MAPS_DIR
+    directory = OUTPUTS_DIR / FSOE_MAPS_DIR
     directory.mkdir(parents=True, exist_ok=True)
     yield directory
     if not any(directory.iterdir()):
@@ -153,7 +135,7 @@ def random_max_items() -> int:
 
 
 @pytest.fixture
-def map_generator() -> Generator["FSoERandomMappingGenerator", None, None]:
+def map_generator() -> Iterator["FSoERandomMappingGenerator"]:
     """Fixture to provide a random mapping generator.
 
     Yields:

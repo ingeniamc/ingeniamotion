@@ -92,6 +92,10 @@ def createVirtualEnvironments(String pythonVersionList = "") {
     runPython("pip install poetry==2.1.3", DEFAULT_PYTHON_VERSION)
     def versions = pythonVersionList?.trim() ? pythonVersionList : RUN_PYTHON_VERSIONS
     def pythonVersions = versions.split(',')
+    // Ensure DEFAULT_PYTHON_VERSION is included if not already present
+    if (!pythonVersions.contains(DEFAULT_PYTHON_VERSION)) {
+        pythonVersions = pythonVersions + [DEFAULT_PYTHON_VERSION]
+    }
     pythonVersions.each { version ->
         def venvName = ".venv${version}"
         if (isUnix()) {
@@ -166,15 +170,15 @@ pipeline {
                         RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
                     } else {
                         if (env.PYTHON_VERSIONS == "MIN_MAX") {
-                          RUN_PYTHON_VERSIONS = "${PYTHON_VERSION_MIN},${PYTHON_VERSION_MAX}"
+                            RUN_PYTHON_VERSIONS = "${PYTHON_VERSION_MIN},${PYTHON_VERSION_MAX}"
                         } else if (env.PYTHON_VERSIONS == "MIN") {
-                          RUN_PYTHON_VERSIONS = PYTHON_VERSION_MIN
+                            RUN_PYTHON_VERSIONS = PYTHON_VERSION_MIN
                         } else if (env.PYTHON_VERSIONS == "MAX") {
-                          RUN_PYTHON_VERSIONS = PYTHON_VERSION_MAX
+                            RUN_PYTHON_VERSIONS = PYTHON_VERSION_MAX
                         } else if (env.PYTHON_VERSIONS == "All") {
-                          RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
+                            RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
                         } else { // Branch-indexing
-                          RUN_PYTHON_VERSIONS = PYTHON_VERSION_MIN
+                            RUN_PYTHON_VERSIONS = PYTHON_VERSION_MIN
                         }
                     }
 
@@ -490,10 +494,15 @@ pipeline {
                         expression {
                           [
                             "ethercat",
+                            "ethercat_everest",
+                            "ethercat_everest_no_framework",
                             "ethercat_capitan",
+                            "ethercat_capitan_no_framework",
                             "ethercat_multislave",
                             "fsoe_phase1",
-                            "fsoe_phase2"
+                            "fsoe_phase1_no_framework",
+                            "fsoe_phase2",
+                            "fsoe_phase2_no_framework"
                           ].any { it ==~ params.run_test_stages }
                         }
                     }
@@ -523,7 +532,15 @@ pipeline {
                             }
                             steps {
                                 runTestHW("ethercat_everest", "soem and not skip_testing_framework", "ECAT_EVE_SETUP", USE_WIRESHARK_LOGGING)
-                                 runTestHW("ethercat_everest", "soem and skip_testing_framework", "ECAT_EVE_SETUP", USE_WIRESHARK_LOGGING)
+                            }
+                        }
+                        stage("Ethercat Everest (skip_testing_framework)") {
+                            when {
+                                // Remove this after fixing INGK-983
+                                expression { false }
+                            }
+                            steps {
+                                runTestHW("ethercat_everest_no_framework", "soem and not skip_testing_framework", "ECAT_EVE_SETUP", USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("Ethercat Capitan") {
@@ -534,7 +551,16 @@ pipeline {
                             }
                             steps {
                                 runTestHW("ethercat_capitan", "soem and not skip_testing_framework", "ECAT_CAP_SETUP", USE_WIRESHARK_LOGGING)
-                                runTestHW("ethercat_capitan", "soem and skip_testing_framework", "ECAT_CAP_SETUP", USE_WIRESHARK_LOGGING)
+                            }
+                        }
+                        stage("Ethercat Capitan (skip_testing_framework)") {
+                            when {
+                                expression {
+                                    "ethercat_capitan_no_framework" ==~ params.run_test_stages
+                                }
+                            }
+                            steps {
+                                runTestHW("ethercat_capitan_no_framework", "soem and skip_testing_framework", "ECAT_CAP_SETUP", USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("Safety Denali Phase I") {
@@ -555,7 +581,16 @@ pipeline {
                             }
                             steps {
                                 runTestHW("fsoe_phase2", "(fsoe or fsoe_phase2) and not skip_testing_framework", "ECAT_DEN_S_PHASE2_SETUP", USE_WIRESHARK_LOGGING)
-                                runTestHW("fsoe_phase2", "(fsoe or fsoe_phase2) and skip_testing_framework", "ECAT_DEN_S_PHASE2_SETUP", USE_WIRESHARK_LOGGING)
+                            }
+                        }
+                        stage("Safety Denali Phase II (skip_testing_framework)") {
+                            when {
+                                expression {
+                                    "fsoe_phase2_no_framework" ==~ params.run_test_stages
+                                }
+                            }
+                            steps {
+                                runTestHW("fsoe_phase2_no_framework", "(fsoe or fsoe_phase2) and skip_testing_framework", "ECAT_DEN_S_PHASE2_SETUP", USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("Ethercat Multislave") {
