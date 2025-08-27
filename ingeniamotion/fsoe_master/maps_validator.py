@@ -397,14 +397,20 @@ class STOCommandFirstValidator(FSoEFrameRuleValidator):
         self, dictionary_map: FSoEDictionaryMap, rules: list[FSoEFrameRules]
     ) -> FSoEFrameRuleValidatorOutput:
         exceptions: dict[FSoEFrameRules, InvalidFSoEFrameRule] = {}
-        first_item = dictionary_map._items[0]
-        if first_item.item is None or first_item.item.name != STOFunction.COMMAND_UID:
+        if not len(dictionary_map):
             exceptions[FSoEFrameRules.STO_COMMAND_FIRST] = InvalidFSoEFrameRule(
                 rule=FSoEFrameRules.STO_COMMAND_FIRST,
-                exception="STO command must be mapped to the first position",
-                items=[first_item] if first_item is not None else [],
+                exception="Map is empty, STO command must be mapped to the first position",
+                items=[],
             )
-
+        else:
+            first_item = dictionary_map._items[0]
+            if first_item.item is None or first_item.item.name != STOFunction.COMMAND_UID:
+                exceptions[FSoEFrameRules.STO_COMMAND_FIRST] = InvalidFSoEFrameRule(
+                    rule=FSoEFrameRules.STO_COMMAND_FIRST,
+                    exception="STO command must be mapped to the first position",
+                    items=[first_item] if first_item is not None else [],
+                )
         return FSoEFrameRuleValidatorOutput(rules=rules, exceptions=exceptions)
 
 
