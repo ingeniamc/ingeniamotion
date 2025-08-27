@@ -315,10 +315,33 @@ class PDONetworkManager:
             self.__nets[alias] = PDONetworkTracker(network=net)
         return self.__nets[alias]
 
-    def __get_network_tracker(self, servo: str) -> PDONetworkTracker:
-        if servo not in self.__servo_to_nets:
-            raise ValueError(f"Servo '{servo}' is not registered.")
-        net_alias = self.__servo_to_nets[servo]
+    def get_network_tracker(self, servo: Optional[str] = None, net_alias: Optional[str] = None) -> PDONetworkTracker:
+        """Get the network tracker for a specific servo or network alias.
+        
+        It can be retrieved by specifying the servo alias or the network alias.
+
+        Args:
+            servo: The servo alias to get the network tracker for.
+            net_alias: The network alias to get the network tracker for.
+
+        Returns:
+            The PDONetworkTracker associated with the servo or network alias.
+
+        Raises:
+            ValueError: If nor the servo nor the network alias is provided.
+            ValueError: If the servo and network alias are both provided.
+            ValueError: If the servo or network alias is not registered.
+            ValueError: If the network alias is not registered.
+        """
+        if servo is None and net_alias is None:
+            raise ValueError("Either servo or network alias must be provided.")
+        if servo is not None and net_alias is not None:
+            raise ValueError("Only one of servo or network alias must be provided.")
+        if servo is not None:
+            if servo not in self.__servo_to_nets:
+                raise ValueError(f"Servo '{servo}' is not registered.")
+            else:
+                net_alias = self.__servo_to_nets[servo]
         if net_alias not in self.__nets:
             raise ValueError(f"Network '{net_alias}' is not registered.")
         return self.__nets[net_alias]
@@ -582,7 +605,7 @@ class PDONetworkManager:
         """
         if servo not in self.__servo_to_nets:
             raise IMError(f"PDOs are not active yet for servo {servo}.")
-        tracker = self.__get_network_tracker(servo=servo)
+        tracker = self.get_network_tracker(servo=servo)
         tracker.remove_active_servo(servo=servo)
         # If it was the only servo using the tracker, remove the network tracker
         if not tracker.is_active:
@@ -600,7 +623,7 @@ class PDONetworkManager:
         """
         if servo not in self.__servo_to_nets:
             return False
-        tracker = self.__get_network_tracker(servo=servo)
+        tracker = self.get_network_tracker(servo=servo)
         return tracker.is_servo_active(servo=servo)
 
     def subscribe_to_send_process_data(
@@ -614,7 +637,7 @@ class PDONetworkManager:
                 The subscription will be added to the network to which the servo is connected.
         """
         if servo in self.__servo_to_nets:
-            tracker = self.__get_network_tracker(servo=servo)
+            tracker = self.get_network_tracker(servo=servo)
             tracker.network.pdo_manager.subscribe_to_send_process_data(callback)
         else:
             self.__send_process_data_add_callback[servo].append(callback)
@@ -630,7 +653,7 @@ class PDONetworkManager:
                 The subscription will be added to the network to which the servo is connected.
         """
         if servo in self.__servo_to_nets:
-            tracker = self.__get_network_tracker(servo=servo)
+            tracker = self.get_network_tracker(servo=servo)
             tracker.network.pdo_manager.subscribe_to_receive_process_data(callback)
         else:
             self.__receive_process_data_add_callback[servo].append(callback)
@@ -649,7 +672,7 @@ class PDONetworkManager:
                 The subscription will be added to the network to which the servo is connected.
         """
         if servo in self.__servo_to_nets:
-            tracker = self.__get_network_tracker(servo=servo)
+            tracker = self.get_network_tracker(servo=servo)
             tracker.network.pdo_manager.subscribe_to_exceptions(callback)
         else:
             self.__exception_add_callback[servo].append(callback)
@@ -668,7 +691,7 @@ class PDONetworkManager:
             callback: Subscribed callback function.
         """
         if servo in self.__servo_to_nets:
-            tracker = self.__get_network_tracker(servo=servo)
+            tracker = self.get_network_tracker(servo=servo)
             tracker.network.pdo_manager.unsubscribe_to_send_process_data(callback)
         else:
             self.__send_process_data_remove_callback[servo].append(callback)
@@ -685,7 +708,7 @@ class PDONetworkManager:
 
         """
         if servo in self.__servo_to_nets:
-            tracker = self.__get_network_tracker(servo=servo)
+            tracker = self.get_network_tracker(servo=servo)
             tracker.network.pdo_manager.unsubscribe_to_receive_process_data(callback)
         else:
             self.__receive_process_data_remove_callback[servo].append(callback)
@@ -758,7 +781,7 @@ class PDONetworkManager:
 
         """
         if servo in self.__servo_to_nets:
-            tracker = self.__get_network_tracker(servo=servo)
+            tracker = self.get_network_tracker(servo=servo)
             tracker.network.pdo_manager.unsubscribe_to_exceptions(callback)
         else:
             self.__exception_remove_callback[servo].append(callback)
