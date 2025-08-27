@@ -378,8 +378,8 @@ class FSoEMasterHandler:
 
         # Subscribe to events
         # https://novantamotion.atlassian.net/browse/INGM-667
-        self.__net.pdo_manager.subscribe_to_send_process_data(self.get_request)
-        self.__net.pdo_manager.subscribe_to_receive_process_data(self.set_reply)
+        self.net.pdo_manager.subscribe_to_send_process_data(self.get_request)
+        self.net.pdo_manager.subscribe_to_receive_process_data(self.set_reply)
 
         if self.__maps.editable:
             self.safety_master_pdu_map.write_to_slave(padding=True)
