@@ -136,4 +136,4 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    main(args.ifname, args.slave_id, args.dictionary_path, args.sci_file, args.esi_file)
+    main(args.ifname, args.slave_id, args.dictionary_path)
