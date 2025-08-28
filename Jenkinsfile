@@ -91,6 +91,10 @@ def createVirtualEnvironments(String pythonVersionList = "") {
     runPython("pip install poetry==2.1.3", DEFAULT_PYTHON_VERSION)
     def versions = pythonVersionList?.trim() ? pythonVersionList : RUN_PYTHON_VERSIONS
     def pythonVersions = versions.split(',')
+    // Ensure DEFAULT_PYTHON_VERSION is included if not already present
+    if (!pythonVersions.contains(DEFAULT_PYTHON_VERSION)) {
+        pythonVersions = pythonVersions + [DEFAULT_PYTHON_VERSION]
+    }
     pythonVersions.each { version ->
         def venvName = ".venv${version}"
         if (isUnix()) {
@@ -148,7 +152,7 @@ pipeline {
             name: 'run_test_stages',
             description: 'Regex pattern for which testing stage or substage to run (e.g. "fsoe_.*", "ethercat_everest", ".*" for all)'
         )
-        booleanParam(name: 'WIRESHARK_LOGGING', defaultValue: true, description: 'Enable Wireshark logging')
+        booleanParam(name: 'WIRESHARK_LOGGING', defaultValue: false, description: 'Enable Wireshark logging')
         choice(
             choices: ['function', 'module', 'session'],
             name: 'WIRESHARK_LOGGING_SCOPE'
@@ -165,15 +169,15 @@ pipeline {
                         RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
                     } else {
                         if (env.PYTHON_VERSIONS == "MIN_MAX") {
-                          RUN_PYTHON_VERSIONS = "${PYTHON_VERSION_MIN},${PYTHON_VERSION_MAX}"
+                            RUN_PYTHON_VERSIONS = "${PYTHON_VERSION_MIN},${PYTHON_VERSION_MAX}"
                         } else if (env.PYTHON_VERSIONS == "MIN") {
-                          RUN_PYTHON_VERSIONS = PYTHON_VERSION_MIN
+                            RUN_PYTHON_VERSIONS = PYTHON_VERSION_MIN
                         } else if (env.PYTHON_VERSIONS == "MAX") {
-                          RUN_PYTHON_VERSIONS = PYTHON_VERSION_MAX
+                            RUN_PYTHON_VERSIONS = PYTHON_VERSION_MAX
                         } else if (env.PYTHON_VERSIONS == "All") {
-                          RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
+                            RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
                         } else { // Branch-indexing
-                          RUN_PYTHON_VERSIONS = PYTHON_VERSION_MIN
+                            RUN_PYTHON_VERSIONS = PYTHON_VERSION_MIN
                         }
                     }
 

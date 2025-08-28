@@ -1574,6 +1574,16 @@ class TestPduMapper:
         assert output.is_rule_valid(FSoEFrameRules.STO_COMMAND_FIRST) is True
 
     @pytest.mark.fsoe
+    def test_validate_empty_map(self, sample_safe_dictionary):
+        """Test that an empty FSoE map is invalid."""
+        _, fsoe_dict = sample_safe_dictionary
+        maps = PDUMaps.empty(fsoe_dict)
+        output = maps.are_outputs_valid()
+        assert FSoEFrameRules.STO_COMMAND_FIRST in output.exceptions
+        output = maps.are_inputs_valid()
+        assert FSoEFrameRules.STO_COMMAND_FIRST in output.exceptions
+
+    @pytest.mark.fsoe
     def test_validate_dictionary_map_fsoe_frame_rules(self, sample_safe_dictionary):
         """Test that FSoE frames pass all validation rules."""
         _, fsoe_dict = sample_safe_dictionary
