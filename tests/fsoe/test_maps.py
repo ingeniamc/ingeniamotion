@@ -15,9 +15,29 @@ if FSOE_MASTER_INSTALLED:
     from tests.fsoe.map_json_serializer import FSoEDictionaryMapJSONSerializer
 
     if TYPE_CHECKING:
+        from ingenialink.ethercat.servo import EthercatServo
+
         from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
         from ingeniamotion.fsoe_master.maps import PDUMaps
         from tests.fsoe.conftest import FSoERandomMappingGenerator
+
+__MAIN_FEEDBACK_ERROR = 0x80080004
+
+
+def get_last_fsoe_error(mc: MotionController) -> tuple[int, int]:
+    n_errors = mc.communication.get_register("FSOE_TOTAL_ERROR_MCUA")
+    last_error = mc.communication.get_register("FSOE_LAST_ERROR_MCUA")
+    return n_errors, last_error
+
+
+def assert_no_fsoe_errors(mc: MotionController, last_errors: tuple[int, int]) -> tuple[int, int]:
+    n_errors, last_error = get_last_fsoe_error(mc)
+    # The first time that FSOE_FEEDBACK_SCENARIO is set to 1, 2 or 3 there is an error in
+    # main feedback (0x8008004). It only happens one time, skip it
+    if n_errors != last_errors[0] and last_error == __MAIN_FEEDBACK_ERROR:
+        return n_errors, last_error
+    assert n_errors == last_errors[0], f"FSoE error: {hex(last_error)}"
+    return n_errors, last_error
 
 
 def move_test_files(files: list[Path], fsoe_maps_dir: Path, success: bool) -> None:
@@ -208,6 +228,7 @@ def test_map_all_safety_functions(
 def test_fixed_mapping_combination(
     mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
     timeout_for_data_sra: float,
+    servo: "EthercatServo",
     fsoe_maps_dir: Path,
 ) -> None:
     mc, handler = mc_with_fsoe_with_sra
@@ -227,11 +248,17 @@ def test_fixed_mapping_combination(
     _check_mappings_have_the_same_length(handler.maps)
 
     # Check that the maps are valid
-    handler.maps.validate()
-    mc.fsoe.configure_pdos(start_pdos=True)
-
-    # Wait for the master to reach the Data state
     try:
+        handler.maps.validate()
+        n_errors, last_error = get_last_fsoe_error(mc)
+        handler.safety_parameters.get("FSOE_FEEDBACK_SCENARIO").set_without_updating(2)
+        handler.write_safe_parameters()
+        n_errors, last_error = assert_no_fsoe_errors(mc, (n_errors, last_error))
+        mc.fsoe.configure_pdos(start_pdos=True)
+        time.sleep(0.05)
+        n_errors, last_error = assert_no_fsoe_errors(mc, (n_errors, last_error))
+
+        # Wait for the master to reach the Data state
         mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
 
         for i in range(5):
