@@ -10,7 +10,7 @@ from ingenialink.enums.register import RegCyclicType
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.ethercat.servo import EthercatServo
-from ingenialink.exceptions import ILError, ILWrongWorkingCountError
+from ingenialink.exceptions import ILWrongWorkingCountError
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 
 from ingeniamotion.enums import CommunicationType
@@ -264,7 +264,7 @@ class PDONetworkManager:
                             f" {il_error} {duration_error}"
                         )
                     )
-                except ILError as il_error:
+                except Exception as il_error:
                     self._pd_thread_stop_event.set()
                     self._notify_exceptions(
                         IMError(

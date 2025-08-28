@@ -1281,18 +1281,18 @@ reference = "ingenia"
 
 [[package]]
 name = "ingenialink"
-version = "7.5.0"
+version = "7.5.0+pr625b1"
 description = "IngeniaLink Communications Library"
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "tests"]
 files = [
-    {file = "ingenialink-7.5.0-cp310-cp310-win_amd64.whl", hash = "sha256:74582478e41109dbdf1842907473d03177a6f6cd93380b95700dba48eb5e6640"},
-    {file = "ingenialink-7.5.0-cp311-cp311-win_amd64.whl", hash = "sha256:3b88f5bbbbf2630bf44b8242e5c69412cb9e39ad8983276b4ca25dc1e10bb3d7"},
-    {file = "ingenialink-7.5.0-cp312-cp312-win_amd64.whl", hash = "sha256:9bb78fe0f1516a3f11a7d9389a695bcff7d08bc3cc9c4934d0b635a779be2467"},
-    {file = "ingenialink-7.5.0-cp39-cp39-win_amd64.whl", hash = "sha256:34679bc644c77c6aa074603ce44ccda2f595b1a83c43cd6a54564b2dce769a6a"},
-    {file = "ingenialink-7.5.0-py3-none-any.whl", hash = "sha256:b48abcc96e1f9fbe17496db0d44dcd4b65bad9eec677118865bb90a9f62b2a1a"},
-    {file = "ingenialink-7.5.0.tar.gz", hash = "sha256:9434d1623679f4ec30daf27a00b14836f906f4c4ef29a5b15875a689c4860354"},
+    {file = "ingenialink-7.5.0+pr625b1-cp310-cp310-win_amd64.whl", hash = "sha256:f61c1f389769d6a10ab9edb994c7cec313a87c7d6920b2b9606bff1e513fd046"},
+    {file = "ingenialink-7.5.0+pr625b1-cp311-cp311-win_amd64.whl", hash = "sha256:bc48af464efd252f4a26d9bf48a9bc56818094ef10f269b7a455df64d375d2f6"},
+    {file = "ingenialink-7.5.0+pr625b1-cp312-cp312-win_amd64.whl", hash = "sha256:d756c93f8ed5288be595e5a77e8691ec9af178bca8a86330bab160b73c1b606d"},
+    {file = "ingenialink-7.5.0+pr625b1-cp39-cp39-win_amd64.whl", hash = "sha256:2a245d084ca503b5ea6b6bb6c175a7c25d5fd2106f76ff7f7d2e522d0bc36b8a"},
+    {file = "ingenialink-7.5.0+pr625b1-py3-none-any.whl", hash = "sha256:7b9bd435774c6ebf762e8de793438b1026e27db8476e235fdb0d88611f11b72e"},
+    {file = "ingenialink-7.5.0+pr625b1.tar.gz", hash = "sha256:f5f8f82f6d7ebae0c63c7aa2494cfabcfadaabf9c15b5d14fcca14179eb6935e"},
 ]
 
 [package.dependencies]
@@ -1305,6 +1305,11 @@ ping3 = "4.0.3"
 pysoem = ">=1.1.11,<1.2.0"
 python-can = "4.4.2"
 scipy = "1.12.0"
+
+[package.source]
+type = "legacy"
+url = "http://pypi.novanta.com/simple"
+reference = "ingenia"
 
 [[package]]
 name = "ingenialogger"
@@ -4598,4 +4603,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "ca1117539125960f96fa99c4a851448204c8acb5f03473309264265db7556dd1"
+content-hash = "d72af32139c092eeaca0b0a0c705af7d72161a1165ec6a2877fed87bbe889f40"
