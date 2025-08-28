@@ -1,7 +1,6 @@
 import logging
 import random
 import time
-from collections.abc import Generator
 from typing import TYPE_CHECKING, Any, Callable, Union
 
 import pytest
@@ -86,16 +85,17 @@ def emergency_handler(servo_alias: str, message: "EmergencyMessage"):
 
 
 @pytest.fixture(scope="function")
-def fsoe_error_monitor() -> Generator[Callable[[FSoEError], None], None, None]:
+def fsoe_error_monitor(
+    request: pytest.FixtureRequest,
+) -> Callable[[FSoEError], None]:
     errors = []
 
     def error_handler(error: FSoEError) -> None:
         errors.append(error)
 
-    yield error_handler
+    request.node._errors = errors
 
-    if len(errors) > 0:
-        pytest.fail(f"FSoE errors occurred: {errors}")
+    return error_handler
 
 
 @pytest.fixture()

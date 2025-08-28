@@ -62,13 +62,21 @@ def skip_if_monitoring_not_available(mc, alias):
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(item):
+def pytest_runtest_makereport(item, call):
     # execute all other hooks to obtain the report object
     outcome = yield
     rep = outcome.get_result()
 
     # store test results for each phase of a call, which can be "setup", "call", "teardown"
     item.stash.setdefault(test_report_key, {})[rep.when] = rep
+
+    # Should be placed exclusively in the tests/fsoe/conftest.py file
+    # https://novantamotion.atlassian.net/browse/INGM-682
+    if call.when == "call":
+        errors = getattr(item, "_errors", [])
+        if errors:
+            rep.outcome = "failed"
+            rep.longrepr = f"Errors occurred: {errors}"
 
 
 def mean_actual_velocity_position(mc, servo, velocity=False, n_samples=200, sampling_period=0):
