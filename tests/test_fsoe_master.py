@@ -1,7 +1,6 @@
 import logging
 import random
 import time
-from collections.abc import Generator
 from typing import TYPE_CHECKING, Any, Callable, Union
 
 import pytest
@@ -18,7 +17,7 @@ from ingenialink.utils._utils import convert_dtype_to_bytes
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError, FSoEMaster
 from ingeniamotion.motion_controller import MotionController
-from tests.conftest import timeout_loop
+from tests.conftest import add_fixture_error_checker, timeout_loop
 from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
 
 if FSOE_MASTER_INSTALLED:
@@ -86,16 +85,22 @@ def emergency_handler(servo_alias: str, message: "EmergencyMessage"):
 
 
 @pytest.fixture(scope="function")
-def fsoe_error_monitor() -> Generator[Callable[[FSoEError], None], None, None]:
+def fsoe_error_monitor(
+    request: pytest.FixtureRequest,
+) -> Callable[[FSoEError], None]:
     errors = []
 
     def error_handler(error: FSoEError) -> None:
         errors.append(error)
 
-    yield error_handler
+    def my_fsoe_error_reproter_callback() -> tuple[bool, str]:
+        if len(errors) > 0:
+            return False, f"FSoE errors occurred: {errors}"
+        return True, ""
 
-    if len(errors) > 0:
-        pytest.fail(f"FSoE errors occurred: {errors}")
+    add_fixture_error_checker(request.node, my_fsoe_error_reproter_callback)
+
+    return error_handler
 
 
 @pytest.fixture()
