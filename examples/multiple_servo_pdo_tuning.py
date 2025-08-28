@@ -316,10 +316,8 @@ def main(network_interface_ip: str, dictionary_path_1: str, dictionary_path_2: s
     pdo_callbacks_1.update_wave(amplitude_a=1000, amplitude_b=0, frequency=0.1)
 
     mc.capture.pdo.start_pdos(refresh_rate=PDO_REFRESH_RATE_S, servo=SRV_1)
-    mc.capture.pdo.start_pdos(refresh_rate=PDO_REFRESH_RATE_S, servo=SRV_2)
     time.sleep(CAPTURE_TIME_S)
     mc.capture.pdo.stop_pdos(servo=SRV_1)
-    mc.capture.pdo.stop_pdos(servo=SRV_2)
 
     mc.motion.motor_disable(SRV_1)
     mc.motion.motor_disable(SRV_2)
