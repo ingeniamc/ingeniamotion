@@ -388,10 +388,6 @@ class FSoEMasterHandler:
             self.__start_on_first_request()
         req = self._master_handler.get_request()
         self.safety_master_pdu_map.set_item_bytes(req)
-        print(
-            "FSoE Master:",
-            " ".join(f"{b:02x}" for b in self.safety_master_pdu_map.get_item_bytes()),
-        )
 
     def set_reply(self) -> None:
         """Get the FSoE slave response.
@@ -399,7 +395,6 @@ class FSoEMasterHandler:
         It is extracted from the Safety Slave PDU PDOMap and set to the FSoE master handler.
         """
         reply = self.safety_slave_pdu_map.get_item_bytes()
-        print(f"FSoE Slave : {' '.join(f'{b:02x}' for b in reply)}")
         if self.__in_initial_reset:
             if reply[0] == 0:
                 # Byte 0 of FSoE frame should always be the command
