@@ -15,8 +15,6 @@ if FSOE_MASTER_INSTALLED:
     from tests.fsoe.map_json_serializer import FSoEDictionaryMapJSONSerializer
 
     if TYPE_CHECKING:
-        from ingenialink.ethercat.servo import EthercatServo
-
         from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
         from ingeniamotion.fsoe_master.maps import PDUMaps
         from tests.fsoe.conftest import FSoERandomMappingGenerator
@@ -228,8 +226,8 @@ def test_map_all_safety_functions(
 def test_fixed_mapping_combination(
     mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
     timeout_for_data_sra: float,
-    servo: "EthercatServo",
     fsoe_maps_dir: Path,
+    fsoe_states,
 ) -> None:
     mc, handler = mc_with_fsoe_with_sra
 
@@ -251,8 +249,7 @@ def test_fixed_mapping_combination(
     try:
         handler.maps.validate()
         n_errors, last_error = get_last_fsoe_error(mc)
-        handler.safety_parameters.get("FSOE_FEEDBACK_SCENARIO").set_without_updating(2)
-        handler.write_safe_parameters()
+        handler.safety_parameters.get("FSOE_FEEDBACK_SCENARIO").set_without_updating(3)
         n_errors, last_error = assert_no_fsoe_errors(mc, (n_errors, last_error))
         mc.fsoe.configure_pdos(start_pdos=True)
         time.sleep(0.05)
