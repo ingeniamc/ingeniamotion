@@ -379,6 +379,15 @@ class Communication:
 
         Returns:
             The EoE network and the connected servo.
+
+        Raises:
+            TypeError: If the dict_path argument is missing.
+            IndexError: If interface index is out of range.
+            FileNotFoundError: If the dict file doesn't exist.
+            ValueError: ip must be a subnetwork of 192.168.3.0/24
+            ingenialink.exceptions.ILError: If the EoE service is not running
+            ingenialink.exceptions.ILError: If the EoE service cannot be started on the network
+                                            interface.
         """
         return self.connect_servo_eoe_service(
             self.get_ifname_from_interface_ip(interface_ip),
@@ -617,6 +626,15 @@ class Communication:
 
         Returns:
             The EoE network and the connected servo.
+
+        Raises:
+            TypeError: If the dict_path argument is missing.
+            IndexError: If interface index is out of range.
+            FileNotFoundError: If the dict file doesn't exist.
+            ValueError: ip must be a subnetwork of 192.168.3.0/24
+            ingenialink.exceptions.ILError: If the EoE service is not running
+            ingenialink.exceptions.ILError: If the EoE service cannot be started on the network
+                                            interface.
         """
         return self.connect_servo_eoe_service(
             self.get_ifname_by_index(if_index),
