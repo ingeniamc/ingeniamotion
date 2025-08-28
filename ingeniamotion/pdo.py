@@ -174,8 +174,8 @@ class PDONetwork:
 
     alias: str
     network: EthercatNetwork
-    refresh_rate: float
-    watchdog_timeout: float
+    refresh_rate: Optional[float]
+    watchdog_timeout: Optional[float]
 
     __pdo_thread_status: bool = False
 
@@ -639,10 +639,15 @@ class PDONetworkManager:
 
         Returns:
             True if the PDO thread is active. False otherwise.
+
+        Raises:
+            ValueError: If neither servo nor net_alias is provided.
         """
         if net_alias is not None:
             return self.__net_tracker.is_active(alias=net_alias)
-        return self.__net_tracker.is_active(alias=self.__mc.servo_net[servo])
+        elif servo is not None:
+            return self.__net_tracker.is_active(alias=self.__mc.servo_net[servo])
+        raise ValueError("Either servo or net_alias must be provided.")
 
     def subscribe_to_send_process_data(
         self, callback: Callable[[], None], servo: str = DEFAULT_SERVO
