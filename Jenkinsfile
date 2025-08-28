@@ -9,7 +9,7 @@ def CAN_NODE_LOCK = "test_execution_lock_can"
 def LIN_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/docker-python:1.5"
 def WIN_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/win-python-builder:1.6"
 
-DEFAULT_PYTHON_VERSION = "3.9"
+DEFAULT_PYTHON_VERSION = "3.12"
 
 ALL_PYTHON_VERSIONS = "3.9,3.10,3.11,3.12"
 RUN_PYTHON_VERSIONS = ""
