@@ -17,7 +17,7 @@ from ingenialink.utils._utils import convert_dtype_to_bytes
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError, FSoEMaster
 from ingeniamotion.motion_controller import MotionController
-from tests.conftest import timeout_loop
+from tests.conftest import add_fixture_error_checker, timeout_loop
 from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
 
 if FSOE_MASTER_INSTALLED:
@@ -93,7 +93,10 @@ def fsoe_error_monitor(
     def error_handler(error: FSoEError) -> None:
         errors.append(error)
 
-    request.node._errors = errors
+    def my_fsoe_error_reproter_callback() -> tuple[bool, str]:
+        return False, f"FSoE errors occurred: {errors}"
+
+    add_fixture_error_checker(request.node, my_fsoe_error_reproter_callback)
 
     return error_handler
 
