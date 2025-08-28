@@ -95,7 +95,8 @@ def fsoe_error_monitor(
 
     def my_fsoe_error_reproter_callback() -> tuple[bool, str]:
         if len(errors) > 0:
-            return False, f"FSoE errors occurred: {errors}"
+            error_messages = "\n".join(str(error) for error in errors)
+            return False, f"FSoE errors occurred:\n{error_messages}"
         return True, ""
 
     add_fixture_error_checker(request.node, my_fsoe_error_reproter_callback)
