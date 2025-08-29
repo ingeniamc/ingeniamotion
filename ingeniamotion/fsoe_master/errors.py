@@ -55,6 +55,13 @@ class Error:
 
         return cls(error_id, dictionary_error)
 
+    def __repr__(self) -> str:
+        return (
+            f"<Error object at {hex(id(self))} "
+            f"error_id={self.error_id} "
+            f"error_description='{self.error_description}'>"
+        )
+
 
 @dataclass()
 class ErrorQueueDescriptor:

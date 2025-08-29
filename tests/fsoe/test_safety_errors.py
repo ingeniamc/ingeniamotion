@@ -1,11 +1,19 @@
+import time
 from typing import TYPE_CHECKING
 
 import pytest
 from ingenialink.dictionary import Interface
 from ingenialink.servo import DictionaryFactory
 
-from ingeniamotion.fsoe_master.errors import MCUA_ERROR_QUEUE, Error, ServoErrorQueue
+from ingeniamotion.fsoe_master import PDUMaps, SPFunction
+from ingeniamotion.fsoe_master.errors import (
+    MCUA_ERROR_QUEUE,
+    MCUB_ERROR_QUEUE,
+    Error,
+    ServoErrorQueue,
+)
 from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
+from tests.test_fsoe_master import TIMEOUT_FOR_DATA_SRA
 
 if TYPE_CHECKING:
     from ingenialink import Servo
@@ -36,6 +44,11 @@ def mcu_error_queue_a(servo: "Servo") -> ServoErrorQueue:
     return ServoErrorQueue(MCUA_ERROR_QUEUE, servo)
 
 
+@pytest.fixture
+def mcu_error_queue_b(servo: "Servo") -> ServoErrorQueue:
+    return ServoErrorQueue(MCUB_ERROR_QUEUE, servo)
+
+
 @pytest.mark.fsoe_phase2
 def test_no_errors(mcu_error_queue_a, environment):
     """Test methods when there are no errors"""
@@ -50,7 +63,7 @@ def test_no_errors(mcu_error_queue_a, environment):
 
 @pytest.mark.skip(reason="FSOE Over temperature error was not available in release 2.8.1")
 @pytest.mark.fsoe_phase2
-def test_get_last_error_overtemp_error(servo, mcu_error_queue_a):
+def test_get_last_error_overtemp_error(servo, mcu_error_queue_a, environment):
     """Test getting the last error when there is an overtemperature error."""
     # Clear any existing errors by power cycling
     environment.power_cycle(wait_for_drives=True)
@@ -64,6 +77,30 @@ def test_get_last_error_overtemp_error(servo, mcu_error_queue_a):
     assert last_error.error_description == (
         "Overtemperature. The local temperature of a safety core exceeds the upper limit."
     )
+
+
+def test_get_last_error_feedback_combination(
+    servo, mcu_error_queue_a, mcu_error_queue_b, mc_with_fsoe_factory
+):
+    """Test getting the last error when there is a feedback combination error."""
+    mc, handler = mc_with_fsoe_factory(use_sra=True, fail_on_fsoe_errors=True)
+
+    # Add safe position to handler and select feedback feedback scenario invalid
+    handler.safety_parameters["FSOE_FEEDBACK_SCENARIO"].set(0)  # No feedbacks
+
+    sp = handler.get_function_instance(SPFunction)
+
+    maps = PDUMaps.default(handler.dictionary)
+    maps.insert_safety_function(sp)
+    handler.set_maps(maps)
+
+    mc.fsoe.configure_pdos(start_pdos=True)
+    time.sleep(TIMEOUT_FOR_DATA_SRA)
+
+    mcu_error_queue_a.get_last_error()
+    mcu_error_queue_b.get_last_error()
+
+    # TOOD Assertions
 
 
 @pytest.mark.parametrize(
@@ -81,7 +118,6 @@ def test_get_pending_error_indexes(
     current_total_errors: int,
     expected_pending_error_indexes: tuple[int, ...],
     expected_errors_lost: bool,
-    servo,
     mcu_error_queue_a,
 ):
     mcu_error_queue_a._ServoErrorQueue__last_read_total_errors_pending = last_total_errors
@@ -91,3 +127,6 @@ def test_get_pending_error_indexes(
 
     assert pending_error_indexes == expected_pending_error_indexes
     assert errors_lost == expected_errors_lost
+
+
+# TODO Test get_pending_errors
