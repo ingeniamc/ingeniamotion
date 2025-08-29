@@ -1,4 +1,6 @@
 import random
+import re
+import threading
 import time
 from collections import defaultdict
 from collections.abc import Generator
@@ -7,27 +9,26 @@ from functools import partial
 import pytest
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.exceptions import ILWrongWorkingCountError
+from ingenialink.network import Network
 from ingenialink.pdo import RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
+from ingenialink.pdo_network_manager import PDONetworkManager as ILPDONetworkManager
 from packaging import version
 
 from ingeniamotion.enums import CommunicationType, OperationMode
 from ingeniamotion.exceptions import IMError
 from ingeniamotion.metaclass import DEFAULT_AXIS
 from ingeniamotion.motion_controller import MotionController
+from ingeniamotion.pdo import PDONetwork, PDONetworksTracker
 
 
 def __restore_pdo_network_manager(mc: "MotionController") -> None:
-    servos = list(mc.capture.pdo._PDONetworkManager__servo_to_nets.keys())
-    try:
-        for servo in servos:
-            if servo not in mc.capture.pdo._PDONetworkManager__servo_to_nets:
-                continue
-            mc.capture.pdo.stop_pdos(servo=servo)
-    except Exception:
-        pass
-    finally:
-        mc.capture.pdo._PDONetworkManager__servo_to_nets = {}
-        mc.capture.pdo._PDONetworkManager__nets = {}
+    nets_tracker: PDONetworksTracker = mc.capture.pdo._PDONetworkManager__net_tracker
+    net_aliases: list[PDONetwork] = list(nets_tracker._PDONetworksTracker__networks.keys())
+    for net_alias in net_aliases:
+        if nets_tracker.is_active(net_alias):
+            nets_tracker.remove_network(alias=net_alias)
+        else:
+            del nets_tracker._PDONetworksTracker__networks[net_alias]
 
 
 @pytest.fixture
@@ -146,14 +147,22 @@ def test_set_pdo_maps_to_slave_exception(
 
 
 @pytest.mark.soem
-def test_pdos_min_refresh_rate(mc: "MotionController", alias: str) -> None:
+def test_pdos_min_refresh_rate(
+    mc: "MotionController",
+    alias: str,
+    pdos_teardown: None,  # noqa: ARG001
+) -> None:
     refresh_rate = 0.0001
     with pytest.raises(ValueError, match="The minimum PDO refresh rate is 0.001 seconds"):
         mc.capture.pdo.start_pdos(refresh_rate=refresh_rate, servo=alias)
 
 
 @pytest.mark.soem
-def test_pdos_watchdog_exception_auto(mc: "MotionController", alias: str) -> None:
+def test_pdos_watchdog_exception_auto(
+    mc: "MotionController",
+    alias: str,
+    pdos_teardown: None,  # noqa: ARG001
+) -> None:
     exceptions = []
 
     def exception_callback(exc):
@@ -243,53 +252,42 @@ def test_start_pdos(  # noqa: C901
         mc.capture.pdo.subscribe_to_receive_process_data(receive_callback, servo=a)
         mc.capture.pdo.subscribe_to_exceptions(partial(exception_callback, servo=a), servo=a)
         assert not mc.capture.pdo.is_active(servo=a)
+        # It will start the PDOs for the first servo, they share the same configuration so the
+        # second time it will just log a warning
         mc.capture.pdo.start_pdos(refresh_rate=refresh_rate, servo=a)
         assert mc.capture.pdo.is_active(servo=a)
 
     # Stop the PDOs
     time.sleep(2 * refresh_rate)
-    n_servos = len(alias)
-    for idx, a in enumerate(alias):
-        # Servo and network should be active
-        net_tracker = mc.capture.pdo.get_network_tracker(servo=a)
-        assert mc.capture.pdo.is_active(servo=a)
-        assert net_tracker.is_active
-        assert len(exceptions[a]) == 0  # Activate without exceptions
-
-        mc.capture.pdo.stop_pdos(servo=a)
+    mc.capture.pdo.stop_pdos(servo=alias[0])
+    for a in alias:
+        assert not mc.capture.pdo.is_active(servo=a)
+    # PDOs can only be stopped one time, if it is attempted a second time, it will raise an error
+    # since both servos are in the same network
+    net_alias = mc.servo_net[alias[1]]
+    expected_msg = f"PDOs are not active yet for network '{re.escape(net_alias)}'."
+    with pytest.raises(IMError, match=expected_msg):
+        mc.capture.pdo.stop_pdos(servo=alias[1])
+    for a in alias:
         assert not mc.capture.pdo.is_active(servo=a)
         assert len(exceptions[a]) == 0  # Deactivate without exceptions
-
-        # PDOs should still be active after first drive removal,
-        # they will only be full deactivated if all servos are removed
-        if idx == 0:
-            assert net_tracker.is_active
-        elif idx == n_servos - 1:
-            assert not net_tracker.is_active
 
         # Check that RPDO are being sent
         assert rpdo_values[a] == mc.motion.get_operation_mode(servo=a)
         # Check that TPDO are being received
         assert pytest.approx(tpdo_values[a], abs=2) == mc.motion.get_actual_position(servo=a)
-
-    # Restore the initial operation mode
-    for idx, a in enumerate(alias):
+        # Restore the initial operation mode
         mc.motion.set_operation_mode(initial_operation_modes[a], servo=a)
-        mc.capture.pdo.remove_rpdo_map(a, rpdo_map_index=0)
-        mc.capture.pdo.remove_tpdo_map(a, tpdo_map_index=0)
+        mc.capture.pdo.clear_pdo_mapping(a)
 
 
 @pytest.mark.soem
 def test_stop_pdos_exception(mc: "MotionController", alias: str) -> None:
-    with pytest.raises(IMError, match=f"PDOs are not active yet for servo {alias}"):
+    net_alias = mc.servo_net[alias]
+    with pytest.raises(
+        IMError, match=f"PDOs are not active yet for network '{re.escape(net_alias)}'."
+    ):
         mc.capture.pdo.stop_pdos(servo=alias)
-
-
-@pytest.mark.soem
-def test_start_pdos_exception(mc: "MotionController", alias: str, pdos_teardown: None) -> None:  # noqa: ARG001
-    mc.capture.pdo.start_pdos(servo=alias)
-    with pytest.raises(IMError, match=f"Servo '{alias}' is already active."):
-        mc.capture.pdo.start_pdos(servo=alias)
 
 
 @pytest.mark.soem
@@ -326,14 +324,16 @@ def test_start_pdos_for_multiple_networks(
     mocker.patch.object(mc, "_MotionController__servo_net", mock_servo_net)
     mocker.patch.object(EthercatNetwork, "activate_pdos")
 
-    assert not len(mc.capture.pdo._PDONetworkManager__nets)
+    nets_tracker = mc.capture.pdo._PDONetworkManager__net_tracker
+
+    assert not len(nets_tracker._PDONetworksTracker__networks)
     mc.capture.pdo.start_pdos(servo="servo1")
-    assert len(mc.capture.pdo._PDONetworkManager__nets) == 1
-    assert "ifname1" in mc.capture.pdo._PDONetworkManager__nets
+    assert len(nets_tracker._PDONetworksTracker__networks) == 1
+    assert "ifname1" in nets_tracker._PDONetworksTracker__networks
 
     mc.capture.pdo.start_pdos(servo="servo2")
-    assert len(mc.capture.pdo._PDONetworkManager__nets) == 2
-    assert "ifname2" in mc.capture.pdo._PDONetworkManager__nets
+    assert len(nets_tracker._PDONetworksTracker__networks) == 2
+    assert "ifname2" in nets_tracker._PDONetworksTracker__networks
 
 
 @pytest.mark.soem
@@ -341,28 +341,29 @@ def test_start_pdos_for_multiple_servos_in_same_network(
     mocker,
     mc: "MotionController",
     pdos_teardown: None,  # noqa: ARG001
+    caplog,
 ) -> None:
+    def _get_log_warnings():
+        return [record for record in caplog.records if record.levelname == "WARNING"]
+
     mock_net = {"ifname1": EthercatNetwork("ifname1")}
     mock_servo_net = {"servo1": "ifname1", "servo2": "ifname1"}
     mocker.patch.object(mc, "_MotionController__net", mock_net)
     mocker.patch.object(mc, "_MotionController__servo_net", mock_servo_net)
     mocker.patch.object(EthercatNetwork, "activate_pdos")
 
-    assert not len(mc.capture.pdo._PDONetworkManager__nets)
-    assert not len(mc.capture.pdo._PDONetworkManager__servo_to_nets)
+    nets_tracker = mc.capture.pdo._PDONetworkManager__net_tracker
+    assert not len(nets_tracker._PDONetworksTracker__networks)
     mc.capture.pdo.start_pdos(servo="servo1")
-    assert len(mc.capture.pdo._PDONetworkManager__nets) == 1
-    assert len(mc.capture.pdo._PDONetworkManager__servo_to_nets) == 1
-    assert "ifname1" in mc.capture.pdo._PDONetworkManager__nets
-    assert mc.capture.pdo._PDONetworkManager__servo_to_nets == {"servo1": "ifname1"}
+    assert len(nets_tracker._PDONetworksTracker__networks) == 1
+    assert "ifname1" in nets_tracker._PDONetworksTracker__networks
+    assert len(_get_log_warnings()) == 0
 
     mc.capture.pdo.start_pdos(servo="servo2")
-    assert len(mc.capture.pdo._PDONetworkManager__nets) == 1
-    assert len(mc.capture.pdo._PDONetworkManager__servo_to_nets) == 2
-    assert mc.capture.pdo._PDONetworkManager__servo_to_nets == {
-        "servo1": "ifname1",
-        "servo2": "ifname1",
-    }
+    assert len(nets_tracker._PDONetworksTracker__networks) == 1
+    warnings = _get_log_warnings()
+    assert len(warnings) == 1
+    assert "PDOs are already active for this network." in warnings[0].message
 
 
 def skip_if_pdo_padding_is_not_available(mc: "MotionController", alias: str) -> None:
@@ -406,7 +407,12 @@ def test_create_poller(mc: "MotionController", alias: str, pdos_teardown: None) 
 
 
 @pytest.mark.soem
-def test_subscribe_exceptions(mc: "MotionController", alias: str, mocker) -> None:
+def test_subscribe_exceptions(
+    mc: "MotionController",
+    alias: str,
+    mocker,
+    pdos_teardown: None,  # noqa: ARG001
+) -> None:
     error_msg = "Test error"
 
     def start_pdos(*_):
@@ -426,8 +432,8 @@ def test_subscribe_exceptions(mc: "MotionController", alias: str, mocker) -> Non
 
     t = time.time()
     timeout = 1
-    net_tracker = mc.capture.pdo.get_network_tracker(servo=alias)
-    net = net_tracker.network
+    net_alias = mc.servo_net[alias]
+    net = mc.capture.pdo._PDONetworkManager__net_tracker.get_il_network(alias=net_alias)
     while not net.pdo_manager._pdo_thread._pd_thread_stop_event.is_set() and (
         (time.time() - t) < timeout
     ):
@@ -440,3 +446,100 @@ def test_subscribe_exceptions(mc: "MotionController", alias: str, mocker) -> Non
         == f"Stopping the PDO thread due to the following exception: {error_msg} "
     )
     mc.capture.pdo.stop_pdos(servo=alias)
+
+
+class TestsPDONetworksTracker:
+    class MockILPDONetworkManager(ILPDONetworkManager):
+        def __init__(self, net):
+            super().__init__(net)
+            self._running = False
+
+        def _mock_pdo_thread(self):
+            while self._running:
+                for cb in self._pdo_send_observers:
+                    cb()
+                for cb in self._pdo_receive_observers:
+                    cb()
+                time.sleep(0.05)
+
+        def start_pdos(self, *args, **kwargs):
+            time.sleep(1)
+            self._running = True
+            self._pdo_thread = threading.Thread(target=self._mock_pdo_thread, daemon=True)
+            self._pdo_thread.start()
+
+        def stop_pdos(self, *args, **kwargs):
+            self._running = False
+            if self._pdo_thread.is_alive():
+                self._pdo_thread.join()
+
+    class FakeNetwork(EthercatNetwork):
+        def __init__(self, interface_name: str):
+            Network.__init__(self)
+            self.interface_name = interface_name
+            self.servos = []
+
+            self._pdo_manager = TestsPDONetworksTracker.MockILPDONetworkManager(self)
+            self._EthercatNetwork__exceptions_in_thread = 0
+            self._pdo_manager.subscribe_to_exceptions(self._pdo_thread_exception_handler)
+            self._pdo_thread_status_observers = []
+
+    @pytest.mark.virtual
+    def test_add_network_single_time(self) -> None:
+        net_tracker = PDONetworksTracker()
+        net = self.FakeNetwork("ifname1")
+        assert not net_tracker.is_network_tracked("ifname1")
+        net_tracker.add_network(alias="ifname1", network=net, refresh_rate=0.5, watchdog_timeout=1)
+        assert net_tracker.is_network_tracked("ifname1")
+        assert net_tracker.is_active("ifname1") is True
+
+    @pytest.mark.virtual
+    def test_add_network_multiple_times_with_same_configuration(self, caplog) -> None:
+        net_alias = "ifname1"
+        net1 = self.FakeNetwork(net_alias)
+        net2 = self.FakeNetwork(net_alias)
+
+        net_tracker = PDONetworksTracker()
+        net_tracker.add_network(alias=net_alias, network=net1, refresh_rate=0.5, watchdog_timeout=1)
+        assert net_tracker.is_active(net_alias) is True
+        net_tracker.add_network(alias=net_alias, network=net2, refresh_rate=0.5, watchdog_timeout=1)
+        assert net_tracker.is_active(net_alias) is True
+
+        warnings = [record for record in caplog.records if record.levelname == "WARNING"]
+        assert len(warnings) == 1
+        assert "PDOs are already active for this network." in warnings[0].message
+
+    @pytest.mark.virtual
+    def test_add_network_multiple_times_with_different_configurations(self) -> None:
+        net_alias = "ifname1"
+        net1 = self.FakeNetwork(net_alias)
+        net2 = self.FakeNetwork(net_alias)
+
+        net_tracker = PDONetworksTracker()
+        net_tracker.add_network(alias=net_alias, network=net1, refresh_rate=0.5, watchdog_timeout=1)
+        assert net_tracker.is_active(net_alias) is True
+        with pytest.raises(IMError, match="Inconsistent PDO thread configuration"):
+            net_tracker.add_network(
+                alias=net_alias, network=net2, refresh_rate=0.5, watchdog_timeout=10
+            )
+
+    @pytest.mark.virtual
+    def test_remove_network(self) -> None:
+        net_alias = "ifname1"
+        net = self.FakeNetwork(net_alias)
+
+        net_tracker = PDONetworksTracker()
+        net_tracker.add_network(alias=net_alias, network=net, refresh_rate=0.5, watchdog_timeout=1)
+        assert net_tracker.is_active(net_alias) is True
+        net_tracker.remove_network(net_alias)
+        assert not net_tracker.is_network_tracked(net_alias)
+        assert net_tracker.is_active(net_alias) is False
+
+    @pytest.mark.virtual
+    def test_remove_network_if_not_tracked(self) -> None:
+        net_alias = "ifname1"
+        net_tracker = PDONetworksTracker()
+        assert net_tracker.is_active(net_alias) is False
+        expected_msg = f"PDOs are not active yet for network '{re.escape(net_alias)}'."
+        with pytest.raises(IMError, match=expected_msg):
+            net_tracker.remove_network(net_alias)

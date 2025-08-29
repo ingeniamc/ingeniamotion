@@ -1,12 +1,13 @@
 import time
 from collections import defaultdict, deque
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, Callable, Optional, Union
 
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethercat.servo import EthercatServo
 from ingenialink.exceptions import ILError
 from ingenialink.pdo import PDOMap, RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
+from ingenialogger import get_logger
 
 from ingeniamotion.enums import CommunicationType
 from ingeniamotion.exceptions import IMError
@@ -14,6 +15,8 @@ from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
+
+logger = get_logger(__name__)
 
 
 class PDOPoller:
@@ -164,78 +167,22 @@ class PDOPoller:
 
 
 @dataclass
-class PDONetworkTracker:
-    """Tracks which servos have required activation or deactivation from a network."""
+class PDONetwork:
+    """Represents a PDO network."""
 
-    network: "EthercatNetwork"  # Ethercat network
+    alias: str
+    network: EthercatNetwork
+    refresh_rate: Optional[float]
+    watchdog_timeout: Optional[float]
 
-    __active_servos: list[str] = field(default_factory=list)
     __pdo_thread_status: bool = False
-    __subscribed_to_thread_status: bool = False
-
-    def add_active_servo(
-        self,
-        servo: str,
-        refresh_rate: Optional[float] = None,
-        watchdog_timeout: Optional[float] = None,
-    ) -> None:
-        """Add a servo to the list of active servos.
-
-        It will also activate the PDOs for the network if they are not already active.
-
-        Args:
-            servo: The servo alias.
-            refresh_rate: Determines how often (seconds) the PDO values will be updated.
-                Defaults to None.
-            watchdog_timeout: The PDO watchdog time. If not provided it will be set proportional
-                to the refresh rate. Defaults to None.
-
-        Raises:
-            IMError: If the servo is already active.
-        """
-        if self.is_servo_active(servo):
-            raise IMError(f"Servo '{servo}' is already active.")
-
-        if not self.__subscribed_to_thread_status:
-            self.network.subscribe_to_pdo_thread_status(callback=self.__pdo_thread_status_callback)
-            self.__subscribed_to_thread_status = True
-
-        # It may already be active if other servo in the network activated it
-        if not self.is_active:
-            self.network.activate_pdos(refresh_rate=refresh_rate, watchdog_timeout=watchdog_timeout)
-
-        # If there were no exceptions while activating the PDOs, add the servo to the active list
-        if self.is_active:
-            self.__active_servos.append(servo)
-
-    def remove_active_servo(self, servo: str) -> None:
-        """Remove a servo from the list of active servos.
-
-        If after removing the active servo, there are no active servos left,
-        the PDOs for the network will be deactivated.
-
-        Args:
-            servo: The servo alias.
-
-        Raises:
-            IMError: If the servo is not active.
-        """
-        if not self.is_servo_active(servo):
-            raise IMError(f"Servo '{servo}' is not active.")
-
-        self.__active_servos.remove(servo)
-        if not self.has_active_servos() and self.is_active:
-            self.network.deactivate_pdos()
-
-    def has_active_servos(self) -> bool:
-        """Returns True if the network has any active servos, False otherwise."""
-        return len(self.__active_servos) > 0
-
-    def is_servo_active(self, servo: str) -> bool:
-        """Returns True if a specific servo is active, False otherwise."""
-        return servo in self.__active_servos
 
     def __pdo_thread_status_callback(self, status: bool) -> None:
+        """Callback for PDO thread status changes.
+
+        Args:
+            status: The new status of the PDO thread.
+        """
         self.__pdo_thread_status = status
 
     @property
@@ -247,21 +194,150 @@ class PDONetworkTracker:
         """
         return self.__pdo_thread_status
 
-    def teardown(self) -> None:
-        """Unsubscribes from network exceptions."""
-        if self.__subscribed_to_thread_status:
-            self.network.unsubscribe_from_pdo_thread_status(
-                callback=self.__pdo_thread_status_callback
-            )
-            self.__subscribed_to_thread_status = False
+    def compare_configuration(
+        self, refresh_rate: Optional[float], watchdog_timeout: Optional[float]
+    ) -> bool:
+        """Compares the current PDO thread configuration with another.
 
-    def __call__(self) -> "EthercatNetwork":
-        """Make the instance callable and return the network.
+        Args:
+            refresh_rate: Determines how often (seconds) the PDO values will be updated.
+            watchdog_timeout: The PDO watchdog time. If not provided it will be set proportional
+                to the refresh rate.
 
         Returns:
-            The EthercatNetwork instance.
+            True if the configurations are equal, False otherwise.
         """
-        return self.network
+        return self.refresh_rate == refresh_rate and self.watchdog_timeout == watchdog_timeout
+
+    @classmethod
+    def create_and_subscribe(
+        cls,
+        alias: str,
+        network: EthercatNetwork,
+        refresh_rate: Optional[float] = None,
+        watchdog_timeout: Optional[float] = None,
+    ) -> "PDONetwork":
+        """Creates a new PDONetwork instance and subscribes to EtherCAT network PDO thread status.
+
+        Args:
+            alias: The network alias.
+            network: The EthercatNetwork instance.
+            refresh_rate: Determines how often (seconds) the PDO values will be updated.
+            watchdog_timeout: The PDO watchdog time. If not provided it will be set proportional
+             to the refresh rate.
+
+        Returns:
+            A new PDONetwork instance.
+        """
+        net = cls(
+            alias=alias,
+            network=network,
+            refresh_rate=refresh_rate,
+            watchdog_timeout=watchdog_timeout,
+        )
+        net.network.subscribe_to_pdo_thread_status(callback=net.__pdo_thread_status_callback)
+        return net
+
+    def teardown(self) -> None:
+        """Unsubscribes from network exceptions."""
+        self.network.unsubscribe_from_pdo_thread_status(callback=self.__pdo_thread_status_callback)
+
+
+class PDONetworksTracker:
+    """Tracks the different networks that have been required to activate PDOs."""
+
+    def __init__(self) -> None:
+        self.__networks: dict[str, PDONetwork] = {}
+
+    def is_network_tracked(self, alias: str) -> bool:
+        """Checks if a network is being tracked.
+
+        Args:
+            alias: The network alias.
+
+        Returns:
+            True if the network is tracked, False otherwise.
+        """
+        return alias in self.__networks
+
+    def add_network(
+        self,
+        alias: str,
+        network: EthercatNetwork,
+        refresh_rate: Optional[float] = None,
+        watchdog_timeout: Optional[float] = None,
+    ) -> None:
+        """Add a network to the tracker.
+
+        Args:
+            alias: The network alias.
+            network: The EthercatNetwork instance.
+            refresh_rate: Determines how often (seconds) the PDO values will be updated.
+            watchdog_timeout: The PDO watchdog time. If not provided it will be set proportional
+             to the refresh rate.
+
+        Raises:
+            IMError: If the network is already tracked with a different configuration.
+        """
+        if not self.is_network_tracked(alias=alias):
+            self.__networks[alias] = PDONetwork.create_and_subscribe(
+                alias=alias,
+                network=network,
+                refresh_rate=refresh_rate,
+                watchdog_timeout=watchdog_timeout,
+            )
+            network.activate_pdos(refresh_rate=refresh_rate, watchdog_timeout=watchdog_timeout)
+            return
+        if not self.__networks[alias].compare_configuration(
+            refresh_rate=refresh_rate, watchdog_timeout=watchdog_timeout
+        ):
+            raise IMError("Inconsistent PDO thread configuration for already active network.")
+        logger.warning("PDOs are already active for this network.")
+
+    def remove_network(self, alias: str) -> None:
+        """Remove a network from the tracker.
+
+        Args:
+            alias: The network alias.
+
+        Raises:
+            IMError: If the PDOs are not active for the network.
+        """
+        if not self.is_network_tracked(alias):
+            raise IMError(f"PDOs are not active yet for network '{alias}'.")
+        net = self.__networks[alias]
+        net.network.deactivate_pdos()
+        net.teardown()
+        del self.__networks[alias]
+
+    def get_il_network(self, alias: str) -> "EthercatNetwork":
+        """Retrieves the Ethercat network for a specific alias.
+
+        Args:
+            alias: The network alias.
+
+        Returns:
+            The EthercatNetwork instance for the specified alias.
+
+        Raises:
+            IMError: If the PDOs are not active for the network.
+        """
+        if not self.is_network_tracked(alias):
+            raise IMError(f"Cannot retrieve Ethercat network for '{alias}', it is not tracked.")
+        return self.__networks[alias].network
+
+    def is_active(self, alias: str) -> bool:
+        """Checks if the PDO thread is active for a specific network.
+
+        Args:
+            alias: The network alias.
+
+        Returns:
+            bool: True if the PDO thread is active, False otherwise.
+        """
+        if self.is_network_tracked(alias):
+            return self.__networks[alias].is_active
+        return False
 
 
 class PDONetworkManager:
@@ -274,8 +350,7 @@ class PDONetworkManager:
     def __init__(self, motion_controller: "MotionController") -> None:
         self.__mc = motion_controller
 
-        self.__servo_to_nets: dict[str, str] = {}  # servo alias to net alias
-        self.__nets: dict[str, PDONetworkTracker] = {}  # net alias to PDONetworkTracker
+        self.__net_tracker = PDONetworksTracker()
 
         # Save the callbacks to add/remove, manage them when there is a reference to the network
         self.__send_process_data_add_callback: dict[str, list[Callable[[], None]]] = defaultdict(
@@ -296,72 +371,6 @@ class PDONetworkManager:
         self.__exception_remove_callback: dict[str, list[Callable[[ILError], None]]] = defaultdict(
             list
         )
-
-    def __add_network_tracker_for_servo(
-        self, net: "EthercatNetwork", alias: str, servo: str
-    ) -> PDONetworkTracker:
-        """Checks if the network already exists using its alias, if it doesn't, it adds it.
-
-        Args:
-            net: the Ethercat network to add.
-            alias: the alias of the network.
-            servo: servo alias to reference it. ``default`` by default.
-
-        Returns:
-            The PDONetworkTracker associated with the servo.
-        """
-        self.__servo_to_nets[servo] = alias
-        if alias not in self.__nets:
-            self.__nets[alias] = PDONetworkTracker(network=net)
-        return self.__nets[alias]
-
-    def get_network_tracker(
-        self, servo: Optional[str] = None, net_alias: Optional[str] = None
-    ) -> PDONetworkTracker:
-        """Get the network tracker for a specific servo or network alias.
-
-        It can be retrieved by specifying the servo alias or the network alias.
-
-        Args:
-            servo: The servo alias to get the network tracker for.
-            net_alias: The network alias to get the network tracker for.
-
-        Returns:
-            The PDONetworkTracker associated with the servo or network alias.
-
-        Raises:
-            ValueError: If nor the servo nor the network alias is provided.
-            ValueError: If the servo and network alias are both provided.
-            ValueError: If the servo or network alias is not registered.
-            ValueError: If the network alias is not registered.
-        """
-        if servo is None and net_alias is None:
-            raise ValueError("Either servo or network alias must be provided.")
-        if servo is not None and net_alias is not None:
-            raise ValueError("Only one of servo or network alias must be provided.")
-        if servo is not None:
-            if servo not in self.__servo_to_nets:
-                raise ValueError(f"Servo '{servo}' is not registered.")
-            else:
-                net_alias = self.__servo_to_nets[servo]
-        if net_alias not in self.__nets:
-            raise ValueError(f"Network '{net_alias}' is not registered.")
-        return self.__nets[net_alias]
-
-    def __remove_network_tracker(self, servo: str) -> None:
-        if servo not in self.__servo_to_nets:
-            raise ValueError(f"Servo '{servo}' is not registered.")
-        net_alias = self.__servo_to_nets[servo]
-
-        # Check if other servo contains the network
-        for servo_alias, servo_net_alias in self.__servo_to_nets.items():
-            if servo_net_alias == net_alias and servo_alias != servo:
-                raise ValueError(
-                    f"Can not delete network {servo_net_alias} "
-                    f"because servo '{servo_alias}' is using it"
-                )
-        self.__nets[net_alias].teardown()
-        self.__nets.pop(net_alias)
 
     def __evaluate_subscriptions(self, net: EthercatNetwork, alias: str) -> None:  # noqa: C901
         for servo, callbacks in self.__send_process_data_add_callback.items():
@@ -562,6 +571,9 @@ class PDONetworkManager:
     ) -> None:
         """Start the PDO exchange process.
 
+        Warning:
+            Note that the PDO exchange will start for all servos connected to the same network.
+
         Args:
             network_type: Network type (EtherCAT or CANopen) on which to start the PDO exchange.
             refresh_rate: Determines how often (seconds) the PDO values will be updated.
@@ -588,15 +600,18 @@ class PDONetworkManager:
             raise ValueError(f"Expected EthercatNetwork. Got {type(net)}")
 
         self.__evaluate_subscriptions(net=net, alias=servo)
-        network_tracker = self.__add_network_tracker_for_servo(
-            net=net, alias=self.__mc.servo_net[servo], servo=servo
-        )
-        network_tracker.add_active_servo(
-            servo, refresh_rate=refresh_rate, watchdog_timeout=watchdog_timeout
+        self.__net_tracker.add_network(
+            alias=self.__mc.servo_net[servo],
+            network=net,
+            refresh_rate=refresh_rate,
+            watchdog_timeout=watchdog_timeout,
         )
 
     def stop_pdos(self, servo: str = DEFAULT_SERVO) -> None:
         """Stop the PDO exchange process.
+
+        Warning:
+            Note that the PDO exchange will stop for all servos connected to the same network.
 
         Args:
             servo: servo alias to reference it. ``DEFAULT_SERVO`` by default.
@@ -605,14 +620,7 @@ class PDONetworkManager:
         Raises:
             IMError: If the PDOs are not active yet.
         """
-        if servo not in self.__servo_to_nets:
-            raise IMError(f"PDOs are not active yet for servo {servo}.")
-        tracker = self.get_network_tracker(servo=servo)
-        tracker.remove_active_servo(servo=servo)
-        # If it was the only servo using the tracker, remove the network tracker
-        if not tracker.is_active:
-            self.__remove_network_tracker(servo=servo)
-        self.__servo_to_nets.pop(servo)
+        self.__net_tracker.remove_network(alias=self.__mc.servo_net[servo])
 
     def is_active(
         self, servo: Optional[str] = DEFAULT_SERVO, net_alias: Optional[str] = None
@@ -628,16 +636,15 @@ class PDONetworkManager:
 
         Returns:
             True if the PDO thread is active. False otherwise.
+
+        Raises:
+            ValueError: If neither servo nor net_alias is provided.
         """
         if net_alias is not None:
-            if net_alias not in self.__nets:
-                return False
-            tracker = self.get_network_tracker(net_alias=net_alias)
-            return tracker.is_active
-        if servo not in self.__servo_to_nets:
-            return False
-        tracker = self.get_network_tracker(servo=servo)
-        return tracker.is_servo_active(servo=servo)
+            return self.__net_tracker.is_active(alias=net_alias)
+        elif servo is not None:
+            return self.__net_tracker.is_active(alias=self.__mc.servo_net[servo])
+        raise ValueError("Either servo or net_alias must be provided.")
 
     def subscribe_to_send_process_data(
         self, callback: Callable[[], None], servo: str = DEFAULT_SERVO
@@ -649,9 +656,10 @@ class PDONetworkManager:
             servo: servo alias to reference it. ``DEFAULT_SERVO`` by default.
                 The subscription will be added to the network to which the servo is connected.
         """
-        if servo in self.__servo_to_nets:
-            tracker = self.get_network_tracker(servo=servo)
-            tracker.network.pdo_manager.subscribe_to_send_process_data(callback)
+        net_alias = self.__mc.servo_net[servo]
+        if self.__net_tracker.is_network_tracked(net_alias):
+            net = self.__net_tracker.get_il_network(alias=net_alias)
+            net.pdo_manager.subscribe_to_send_process_data(callback)
         else:
             self.__send_process_data_add_callback[servo].append(callback)
 
@@ -665,9 +673,10 @@ class PDONetworkManager:
             servo: servo alias to reference it. ``DEFAULT_SERVO`` by default.
                 The subscription will be added to the network to which the servo is connected.
         """
-        if servo in self.__servo_to_nets:
-            tracker = self.get_network_tracker(servo=servo)
-            tracker.network.pdo_manager.subscribe_to_receive_process_data(callback)
+        net_alias = self.__mc.servo_net[servo]
+        if self.__net_tracker.is_network_tracked(net_alias):
+            net = self.__net_tracker.get_il_network(alias=net_alias)
+            net.pdo_manager.subscribe_to_receive_process_data(callback)
         else:
             self.__receive_process_data_add_callback[servo].append(callback)
 
@@ -684,9 +693,10 @@ class PDONetworkManager:
             servo: servo alias to reference it. ``DEFAULT_SERVO`` by default.
                 The subscription will be added to the network to which the servo is connected.
         """
-        if servo in self.__servo_to_nets:
-            tracker = self.get_network_tracker(servo=servo)
-            tracker.network.pdo_manager.subscribe_to_exceptions(callback)
+        net_alias = self.__mc.servo_net[servo]
+        if self.__net_tracker.is_network_tracked(net_alias):
+            net = self.__net_tracker.get_il_network(alias=net_alias)
+            net.pdo_manager.subscribe_to_exceptions(callback)
         else:
             self.__exception_add_callback[servo].append(callback)
 
@@ -703,9 +713,10 @@ class PDONetworkManager:
         Args:
             callback: Subscribed callback function.
         """
-        if servo in self.__servo_to_nets:
-            tracker = self.get_network_tracker(servo=servo)
-            tracker.network.pdo_manager.unsubscribe_to_send_process_data(callback)
+        net_alias = self.__mc.servo_net[servo]
+        if self.__net_tracker.is_network_tracked(net_alias):
+            net = self.__net_tracker.get_il_network(alias=net_alias)
+            net.pdo_manager.unsubscribe_to_send_process_data(callback)
         else:
             self.__send_process_data_remove_callback[servo].append(callback)
 
@@ -718,11 +729,11 @@ class PDONetworkManager:
             callback: Subscribed callback function.
             servo: servo alias to reference it. ``DEFAULT_SERVO`` by default.
                 The unsubscription will be removed from the network to which the servo is connected.
-
         """
-        if servo in self.__servo_to_nets:
-            tracker = self.get_network_tracker(servo=servo)
-            tracker.network.pdo_manager.unsubscribe_to_receive_process_data(callback)
+        net_alias = self.__mc.servo_net[servo]
+        if self.__net_tracker.is_network_tracked(net_alias):
+            net = self.__net_tracker.get_il_network(alias=net_alias)
+            net.pdo_manager.unsubscribe_to_receive_process_data(callback)
         else:
             self.__receive_process_data_remove_callback[servo].append(callback)
 
@@ -791,10 +802,10 @@ class PDONetworkManager:
             callback: Subscribed callback function.
             servo: servo alias to reference it. ``DEFAULT_SERVO`` by default.
                 The unsubscription will be removed from the network to which the servo is connected.
-
         """
-        if servo in self.__servo_to_nets:
-            tracker = self.get_network_tracker(servo=servo)
-            tracker.network.pdo_manager.unsubscribe_to_exceptions(callback)
+        net_alias = self.__mc.servo_net[servo]
+        if self.__net_tracker.is_network_tracked(net_alias):
+            net = self.__net_tracker.get_il_network(alias=net_alias)
+            net.pdo_manager.unsubscribe_to_exceptions(callback)
         else:
             self.__exception_remove_callback[servo].append(callback)
