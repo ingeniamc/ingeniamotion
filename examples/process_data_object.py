@@ -70,7 +70,7 @@ def main() -> None:
     print("Drive is connected.")
     mc.motion.motor_enable()
     print("Motor is enabled.")
-    update_position_value_using_pdo(mc)
+    update_position_value_using_pdo(mc=mc)
     mc.motion.motor_disable()
     print("Motor is disabled.")
     mc.communication.disconnect()

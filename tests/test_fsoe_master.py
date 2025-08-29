@@ -50,6 +50,8 @@ if FSOE_MASTER_INSTALLED:
         InvalidFSoEFrameRule,
     )
 
+from ingenialink.ethercat.network import EthercatNetwork
+from ingenialink.network import Network
 
 if TYPE_CHECKING:
     from ingenialink.emcy import EmergencyMessage
@@ -147,8 +149,8 @@ def mc_with_fsoe(mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEError], None
     mc.fsoe._delete_master_handler()
     # Ensure the PDOs are stopped
     # https://novantamotion.atlassian.net/browse/CIT-494
-    if mc.capture.pdo.is_active:
-        mc.capture.pdo.stop_pdos()
+    if handler.net.pdo_manager.is_active:
+        handler.net.deactivate_pdos()
 
 
 @pytest.fixture()
@@ -209,7 +211,10 @@ def test_create_fsoe_handler_from_invalid_pdo_maps(
     caplog.set_level(logging.ERROR)
     try:
         handler = FSoEMasterHandler(
-            mock_servo, use_sra=True, report_error_callback=fsoe_error_monitor
+            servo=mock_servo,
+            net=MockNetwork(),
+            use_sra=True,
+            report_error_callback=fsoe_error_monitor,
         )
 
         # An error has been logged
@@ -296,6 +301,11 @@ class MockSafetyParameter:
         pass
 
 
+class MockNetwork(EthercatNetwork):
+    def __init__(self):
+        Network.__init__(self)
+
+
 class MockServo(Servo):
     interface = Interface.ECAT
 
@@ -348,7 +358,11 @@ def test_constructor_set_slave_address(fsoe_error_monitor: Callable[[FSoEError],
     mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
     try:
         handler = FSoEMasterHandler(
-            mock_servo, use_sra=True, slave_address=0x7412, report_error_callback=fsoe_error_monitor
+            servo=mock_servo,
+            net=MockNetwork(),
+            use_sra=True,
+            slave_address=0x7412,
+            report_error_callback=fsoe_error_monitor,
         )
 
         assert mock_servo.read(FSoEMasterHandler.FSOE_MANUF_SAFETY_ADDRESS) == 0x7412
@@ -365,7 +379,10 @@ def test_constructor_inherit_slave_address(fsoe_error_monitor: Callable[[FSoEErr
         mock_servo.write(FSoEMasterHandler.FSOE_MANUF_SAFETY_ADDRESS, 0x4986)
 
         handler = FSoEMasterHandler(
-            mock_servo, use_sra=True, report_error_callback=fsoe_error_monitor
+            servo=mock_servo,
+            net=MockNetwork(),
+            use_sra=True,
+            report_error_callback=fsoe_error_monitor,
         )
 
         assert mock_servo.read(FSoEMasterHandler.FSOE_MANUF_SAFETY_ADDRESS) == 0x4986
@@ -378,7 +395,8 @@ def test_constructor_set_connection_id(fsoe_error_monitor: Callable[[FSoEError],
     mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
     try:
         handler = FSoEMasterHandler(
-            mock_servo,
+            servo=mock_servo,
+            net=MockNetwork(),
             use_sra=True,
             connection_id=0x3742,
             report_error_callback=fsoe_error_monitor,
@@ -395,7 +413,8 @@ def test_constructor_random_connection_id(fsoe_error_monitor: Callable[[FSoEErro
     random.seed(0x1234)
     try:
         handler = FSoEMasterHandler(
-            mock_servo,
+            servo=mock_servo,
+            net=MockNetwork(),
             use_sra=True,
             report_error_callback=fsoe_error_monitor,
         )
@@ -569,7 +588,10 @@ def test_modify_safe_parameters(fsoe_error_monitor: Callable[[FSoEError], None])
     mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
     try:
         handler = FSoEMasterHandler(
-            mock_servo, use_sra=True, report_error_callback=fsoe_error_monitor
+            servo=mock_servo,
+            net=MockNetwork(),
+            use_sra=True,
+            report_error_callback=fsoe_error_monitor,
         )
 
         input_map = handler.get_function_instance(SafeInputsFunction).map
@@ -608,7 +630,10 @@ def test_mapping_locked(dictionary, editable, fsoe_error_monitor: Callable[[FSoE
 
     try:
         handler = FSoEMasterHandler(
-            mock_servo, use_sra=True, report_error_callback=fsoe_error_monitor
+            servo=mock_servo,
+            net=MockNetwork(),
+            use_sra=True,
+            report_error_callback=fsoe_error_monitor,
         )
         assert handler.maps.editable is editable
 
