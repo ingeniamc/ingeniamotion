@@ -136,6 +136,7 @@ def mc_with_fsoe_with_sra(mc, fsoe_states):
 
     if _SOUT_DISABLED in handler.safety_parameters:
         handler.safety_parameters.get(_SOUT_DISABLED).set_without_updating(1)
+        handler.write_safe_parameters()
 
     yield mc, handler
     # Delete the master handler
@@ -650,13 +651,14 @@ def mc_state_data(mc_with_fsoe):
 
 
 @pytest.mark.fsoe
-def test_pass_through_states(mc_state_data, fsoe_states):  # noqa: ARG001
+def test_pass_through_states(mc_state_data_with_sra, fsoe_states):  # noqa: ARG001
     assert fsoe_states == [
         FSoEState.SESSION,
         FSoEState.CONNECTION,
         FSoEState.PARAMETER,
         FSoEState.DATA,
     ]
+    # pass
 
 
 @pytest.mark.fsoe_phase2
