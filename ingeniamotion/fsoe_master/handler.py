@@ -206,12 +206,16 @@ class FSoEMasterHandler:
             tpdo=self.__safety_slave_pdu,
             module_ident=int(self.__get_configured_module_ident_1()),
             assigned_rpdos=[
-                cast("EthercatRegister", self.__servo.dictionary.get_register(uid)).idx
-                for uid in self.__servo.ETG_COMMS_RPDO_MAP1_TOTAL
+                cast(
+                    "EthercatRegister",
+                    self.__servo.dictionary.get_register("ETG_COMMS_RPDO_MAP1_TOTAL"),
+                ).idx
             ],
             assigned_tpdos=[
-                cast("EthercatRegister", self.__servo.dictionary.get_register(uid)).idx
-                for uid in self.__servo.ETG_COMMS_TPDO_MAP1_TOTAL
+                cast(
+                    "EthercatRegister",
+                    self.__servo.dictionary.get_register("ETG_COMMS_TPDO_MAP1_TOTAL"),
+                ).idx
             ],
             part_number=self.__servo.dictionary.part_number,
             override=override,
