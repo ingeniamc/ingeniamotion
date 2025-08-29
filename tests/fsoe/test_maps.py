@@ -249,7 +249,7 @@ def test_fixed_mapping_combination(
     try:
         handler.maps.validate()
         n_errors, last_error = get_last_fsoe_error(mc)
-        handler.safety_parameters.get("FSOE_FEEDBACK_SCENARIO").set_without_updating(3)
+        handler.safety_parameters.get("FSOE_FEEDBACK_SCENARIO").set(3)
         n_errors, last_error = assert_no_fsoe_errors(mc, (n_errors, last_error))
         mc.fsoe.configure_pdos(start_pdos=True)
         time.sleep(0.05)
