@@ -56,6 +56,8 @@ from ingenialink.network import Network
 if TYPE_CHECKING:
     from ingenialink.emcy import EmergencyMessage
 
+_SOUT_DISABLED: str = "FSOE_SOUT_DISABLE"
+
 
 def test_fsoe_master_not_installed():
     try:
@@ -151,6 +153,10 @@ def mc_with_fsoe_factory(request, mc, fsoe_states):
         # If phase II, initialize the handler with the default mapping
         if handler.maps.editable:
             __set_default_phase2_mapping(handler)
+
+        if _SOUT_DISABLED in handler.safety_parameters:
+            handler.safety_parameters.get(_SOUT_DISABLED).set(1)
+
         return mc, handler
 
     yield factory
@@ -704,6 +710,60 @@ def test_pass_through_states(mc_state_data, fsoe_states):  # noqa: ARG001
         FSoEState.PARAMETER,
         FSoEState.DATA,
     ]
+
+
+@pytest.mark.fsoe
+def test_pass_through_states_sra(mc_state_data_with_sra, fsoe_states):  # noqa: ARG001
+    assert fsoe_states == [
+        FSoEState.SESSION,
+        FSoEState.CONNECTION,
+        FSoEState.PARAMETER,
+        FSoEState.DATA,
+    ]
+
+
+@pytest.mark.fsoe_phase2
+def test_maps_different_length(
+    mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"],
+) -> None:
+    mc, handler = mc_with_fsoe_with_sra
+
+    sto = handler.get_function_instance(STOFunction)
+    safe_inputs = handler.get_function_instance(SafeInputsFunction)
+    ss1 = handler.get_function_instance(SS1Function)
+
+    handler.maps.inputs.clear()
+    handler.maps.inputs.add(sto.command)
+    handler.maps.inputs.add(ss1.command)
+    handler.maps.inputs.add_padding(6)
+    handler.maps.inputs.add(safe_inputs.value)
+    handler.maps.inputs.add_padding(7)
+
+    handler.maps.outputs.clear()
+    handler.maps.outputs.add(sto.command)
+    handler.maps.outputs.add(ss1.command)
+    handler.maps.outputs.add_padding(6)
+
+    assert handler.maps.inputs.safety_bits == 16
+    assert handler.maps.outputs.safety_bits == 8
+
+    # Configure the FSoE master handler
+    mc.fsoe.configure_pdos(start_pdos=False)
+
+    # Inputs: 1 byte command + 2 bytes safety data + 2 bytes CRC + 2 bytes connection ID
+    # 7 bytes -> 56 bits
+    assert handler.safety_slave_pdu_map.data_length_bits == 56
+    # Outputs: 1 byte command + 1 bytes safety data + 2 bytes CRC + 2 bytes connection ID
+    # 6 bytes -> 48 bits
+    assert handler.safety_master_pdu_map.data_length_bits == 48
+
+    mc.capture.pdo.start_pdos()
+    mc.fsoe.wait_for_state_data(timeout=TIMEOUT_FOR_DATA)
+    assert handler.state == FSoEState.DATA
+    # Check that it stays in Data state
+    for i in range(2):
+        time.sleep(1)
+    assert handler.state == FSoEState.DATA
 
 
 @pytest.mark.fsoe
