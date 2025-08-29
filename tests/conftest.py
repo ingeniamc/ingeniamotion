@@ -30,6 +30,10 @@ _DYNAMIC_MODULES_IMPORT = ["tests", "examples"]
 test_report_key = pytest.StashKey[dict[str, pytest.CollectReport]]()
 
 
+# Skip testing framework marker
+__SKIP_TESTING_FRAMEWORK_MARKER = "skip_testing_framework"
+
+
 def pytest_sessionstart(session):
     """Loads the modules that are not part of the package if import mode is importlib.
 
@@ -58,13 +62,28 @@ def skip_if_monitoring_not_available(mc, alias):
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(item):
+def pytest_runtest_makereport(item, call):
     # execute all other hooks to obtain the report object
     outcome = yield
     rep = outcome.get_result()
 
     # store test results for each phase of a call, which can be "setup", "call", "teardown"
     item.stash.setdefault(test_report_key, {})[rep.when] = rep
+
+    if call.when == "call":
+        callbacks = getattr(item, "_fixture_error_checker", None)
+        if callbacks is not None:
+            for callback in callbacks:
+                success, message = callback()
+                if not success:
+                    rep.outcome = "failed"
+                    rep.longrepr = message
+
+
+def add_fixture_error_checker(node, callback: Callable[[], None]) -> None:
+    if not hasattr(node, "_fixture_error_checker"):
+        node._fixture_error_checker = []
+    node._fixture_error_checker.append(callback)
 
 
 def mean_actual_velocity_position(mc, servo, velocity=False, n_samples=200, sampling_period=0):
@@ -127,7 +146,10 @@ def timeout_loop(
 
 # https://novantamotion.atlassian.net/browse/INGM-640
 @pytest.fixture(scope="module", autouse=True)
-def load_configuration_after_each_module(request: FixtureRequest) -> Generator[None, None, None]:
+def load_configuration_after_each_module(
+    request: FixtureRequest,
+    pytestconfig: pytest.Config,
+) -> Generator[None, None, None]:
     """Loads the drive configuration.
 
     Args:
@@ -137,8 +159,16 @@ def load_configuration_after_each_module(request: FixtureRequest) -> Generator[N
         ValueError: if the configuration cannot be loaded for the descriptor.
     """
     try:
-        setup_specifier: SetupSpecifier = request.getfixturevalue("setup_specifier")
-        run_fixture = not isinstance(setup_specifier, VirtualDriveSpecifier)
+        # If pytest is running with skip framework, do not run the fixture
+        markers = pytestconfig.getoption("-m")
+        if (
+            __SKIP_TESTING_FRAMEWORK_MARKER in markers
+            and f"not {__SKIP_TESTING_FRAMEWORK_MARKER}" not in markers
+        ):
+            run_fixture = False
+        else:
+            setup_specifier: SetupSpecifier = request.getfixturevalue("setup_specifier")
+            run_fixture = not isinstance(setup_specifier, VirtualDriveSpecifier)
     except Exception:
         run_fixture = False
     if run_fixture:
@@ -180,8 +210,13 @@ def disable_motor_fixture(request: FixtureRequest) -> Generator[None, None, None
         ValueError: if the motor cannot be disabled for the setup descriptor.
     """
     try:
-        setup_specifier: SetupSpecifier = request.getfixturevalue("setup_specifier")
-        run_fixture = not isinstance(setup_specifier, VirtualDriveSpecifier)
+        # If pytest is running with skip framework, do not run the fixture
+        markers = [mark.name for mark in request.node.iter_markers()]
+        if __SKIP_TESTING_FRAMEWORK_MARKER in markers:
+            run_fixture = False
+        else:
+            setup_specifier: SetupSpecifier = request.getfixturevalue("setup_specifier")
+            run_fixture = not isinstance(setup_specifier, VirtualDriveSpecifier)
     except Exception:
         run_fixture = False
     if run_fixture:

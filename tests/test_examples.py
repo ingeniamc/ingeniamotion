@@ -25,6 +25,7 @@ from examples.load_save_configuration import main as main_load_save_configuratio
 from examples.pdo_poller_example import main as set_up_pdo_poller
 from examples.position_ramp import main as main_position_ramp
 from examples.process_data_object import main as main_process_data_object
+from examples.safety_mapping_example import main as main_safety_mapping_example
 from ingeniamotion import MotionController
 from ingeniamotion.communication import Communication
 from ingeniamotion.configuration import Configuration
@@ -230,6 +231,35 @@ def test_commutation_test_example(setup_descriptor: DriveEthernetSetup, script_r
         f"-ip={setup_descriptor.ip}",
     ])
     assert result.returncode == 0
+
+
+@pytest.mark.fsoe_phase2
+@pytest.mark.skip_testing_framework
+@pytest.mark.flaky(
+    reruns=1, reruns_delay=1
+)  # https://novantamotion.atlassian.net/browse/SACOAPP-255
+def test_safety_mapping_example(setup_descriptor: DriveEcatSetup, mocker) -> None:
+    errors_raised = []
+
+    def _raise_error_callback(error):
+        nonlocal errors_raised
+        errors_raised.append(error)
+        if isinstance(error, BaseException):
+            raise error
+        else:
+            raise RuntimeError(f"Error callback called with exception: {error}")
+
+    mocker.patch(
+        "examples.safety_mapping_example._error_callback",
+        side_effect=_raise_error_callback,
+    )
+
+    main_safety_mapping_example(
+        ifname=setup_descriptor.ifname,
+        slave_id=setup_descriptor.slave,
+        dict_path=setup_descriptor.dictionary,
+    )
+    assert len(errors_raised) == 0, f"Errors raised: {errors_raised}"
 
 
 @pytest.mark.ethernet

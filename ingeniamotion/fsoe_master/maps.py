@@ -171,6 +171,9 @@ class PDUMaps:
         align_to = 1
         if element.data_type.bits > 8:
             align_to = 8
+        # Objects larger than 16-bit must be word-aligned
+        if element.data_type.bits > 16:
+            align_to = 16
         if isinstance(element, FSoEDictionaryItemOutput):
             self.outputs.insert_in_best_position(element, align_to)
         elif isinstance(element, FSoEDictionaryItemInput):
