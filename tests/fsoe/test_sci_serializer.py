@@ -140,12 +140,8 @@ def test_sci_serializes_assigned_pdos(
         esi_file=setup_specifier_with_esi.extra_data["esi_file"],
         rpdo=handler._FSoEMasterHandler__safety_master_pdu,
         tpdo=handler._FSoEMasterHandler__safety_slave_pdu,
-        assigned_rpdos=[
-            servo.dictionary.get_register(uid).idx for uid in servo.ETG_COMMS_RPDO_MAP1_TOTAL
-        ],
-        assigned_tpdos=[
-            servo.dictionary.get_register(uid).idx for uid in servo.ETG_COMMS_TPDO_MAP1_TOTAL
-        ],
+        assigned_rpdos=[servo.dictionary.get_register("ETG_COMMS_RPDO_MAP1_TOTAL").idx],
+        assigned_tpdos=[servo.dictionary.get_register("ETG_COMMS_TPDO_MAP1_TOTAL").idx],
         module_ident=module_ident_used,
     ).getroot()
 
