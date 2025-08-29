@@ -109,7 +109,7 @@ def mc_with_fsoe(mc, fsoe_states):
     handler = mc.fsoe.create_fsoe_master_handler(use_sra=False, state_change_callback=add_state)
 
     if _SOUT_DISABLED in handler.safety_parameters:
-        handler.safety_parameters.get(_SOUT_DISABLED).set_without_updating(True)
+        handler.safety_parameters.get(_SOUT_DISABLED).set_without_updating(1)
 
     yield mc, handler
     # Delete the master handler
@@ -133,7 +133,7 @@ def mc_with_fsoe_with_sra(mc, fsoe_states):
     handler = mc.fsoe.create_fsoe_master_handler(use_sra=True, state_change_callback=add_state)
 
     if _SOUT_DISABLED in handler.safety_parameters:
-        handler.safety_parameters.get(_SOUT_DISABLED).set_without_updating(True)
+        handler.safety_parameters.get(_SOUT_DISABLED).set_without_updating(1)
 
     yield mc, handler
     # Delete the master handler
