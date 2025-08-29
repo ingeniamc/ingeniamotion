@@ -41,15 +41,13 @@ from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 RUNNING_ON_WINDOWS = platform.system() == "Windows"
 
 if RUNNING_ON_WINDOWS:
-    from ingenialink.get_adapters_addresses import (  # type: ignore [import-not-found]
-        AdapterFamily,
-        ScanFlags,
-        get_adapters_addresses,
-    )
+    pass
 
 FILE_EXT_SFU = ".sfu"
 FILE_EXT_LFU = ".lfu"
 FIRMWARE_FILE_FAIL_MSG = "The firmware file could not be loaded correctly"
+
+logger = ingenialogger.get_logger(__name__)
 
 
 @dataclass
@@ -93,7 +91,7 @@ class Communication:
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
-        self.logger = ingenialogger.get_logger(__name__)
+        self.logger = logger
         self.__virtual_drive: Optional[VirtualDrive] = None
         self.register_update_observers: dict[Servo, list[IMRegisterUpdateObserver]] = {}
         self.emergency_messages_observers: dict[Servo, list[IMEmergencyMessageObserver]] = {}
@@ -524,24 +522,17 @@ class Communication:
                 adapter_guid = adapter.name
             network_adapters.append(NetworkAdapter(adapter.index, adapter.nice_name, adapter_guid))
         if RUNNING_ON_WINDOWS:
-            ethernet_adapter_type = (
-                6  # https://learn.microsoft.com/en-us/windows/win32/api/ifdef/ns-ifdef-net_luid_lh
-            )
-            network_adapters.extend([
-                NetworkAdapter(
-                    interface_index=adapter.IfIndex,
-                    interface_name=adapter.Description,
-                    interface_guid=adapter.AdapterName,
-                )
-                for adapter in get_adapters_addresses(
-                    adapter_families=AdapterFamily.INET,
-                    scan_flags=[
-                        ScanFlags.INCLUDE_PREFIX,
-                        ScanFlags.INCLUDE_ALL_INTERFACES,
-                    ],
-                )
-                if adapter.IfType == ethernet_adapter_type and len(adapter.FirstUnicastAddress)
-            ])
+            if not EthercatNetwork.pysoem_available():
+                logger.warning("npcap not available, network adapters list will not be complete")
+            else:
+                network_adapters.extend([
+                    NetworkAdapter(
+                        interface_index=adapter[0],
+                        interface_name=adapter[2],
+                        interface_guid=adapter[1],
+                    )
+                    for adapter in EthercatNetwork.find_adapters()
+                ])
         return {adapter.interface_name: adapter.interface_guid for adapter in network_adapters}
 
     def get_available_canopen_devices(self) -> dict[CanDevice, list[int]]:
