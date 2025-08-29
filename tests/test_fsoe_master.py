@@ -148,8 +148,7 @@ def mc_with_fsoe(mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEError], None
         __set_default_phase2_mapping(handler)
 
     if _SOUT_DISABLED in handler.safety_parameters:
-        handler.safety_parameters.get(_SOUT_DISABLED).set_without_updating(1)
-        handler.write_safe_parameters()
+        handler.safety_parameters.get(_SOUT_DISABLED).set(1)
 
     yield mc, handler
     # Delete the master handler
@@ -176,8 +175,7 @@ def mc_with_fsoe_with_sra(mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEErr
         __set_default_phase2_mapping(handler)
 
     if _SOUT_DISABLED in handler.safety_parameters:
-        handler.safety_parameters.get(_SOUT_DISABLED).set_without_updating(1)
-        handler.write_safe_parameters()
+        handler.safety_parameters.get(_SOUT_DISABLED).set(1)
 
     yield mc, handler
 
