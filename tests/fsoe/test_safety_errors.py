@@ -36,17 +36,24 @@ def mcu_error_queue_a(servo: "Servo") -> ServoErrorQueue:
     return ServoErrorQueue(MCUA_ERROR_QUEUE, servo)
 
 
-def test_get_last_error_no_error(mcu_error_queue_a):
-    """Test getting the last error when there are no errors."""
-    # Pending Can we request a power cycle to ensure no errors?
+@pytest.mark.fsoe_phase2
+def test_no_errors(mcu_error_queue_a, environment):
+    """Test methods when there are no errors"""
+    # Clear any existing errors by power cycling
+    environment.power_cycle(wait_for_drives=True)
+
+    assert mcu_error_queue_a.get_number_total_errors() == 0
 
     last_error = mcu_error_queue_a.get_last_error()
     assert last_error is None
 
 
+@pytest.mark.skip(reason="FSOE Over temperature error was not available in release 2.8.1")
+@pytest.mark.fsoe_phase2
 def test_get_last_error_overtemp_error(servo, mcu_error_queue_a):
     """Test getting the last error when there is an overtemperature error."""
-    # Pending This error is not available until the next release
+    # Clear any existing errors by power cycling
+    environment.power_cycle(wait_for_drives=True)
 
     servo.write("FSOE_USER_OVER_TEMPERATURE", 0, subnode=1)
 
@@ -54,5 +61,33 @@ def test_get_last_error_overtemp_error(servo, mcu_error_queue_a):
 
     assert isinstance(last_error, Error)
     assert last_error.error_id == 0x80020001
-    assert last_error.error_description == ("Overtemperature. "
-        "The local temperature of a safety core exceeds the upper limit.")
+    assert last_error.error_description == (
+        "Overtemperature. The local temperature of a safety core exceeds the upper limit."
+    )
+
+
+@pytest.mark.parametrize(
+    "last_total_errors, current_total_errors, expected_pending_error_indexes, expected_errors_lost",
+    [
+        (0, 5, (0, 1, 2, 3, 4), False),
+        (7, 11, (7, 8, 9, 10), False),
+        (29, 35, (29, 30, 31, 0, 1, 2), False),
+        (17, 17 + 32, tuple(range(17, 32)) + tuple(range(17)), False),
+        (17, 17 + 33, tuple(range(18, 32)) + tuple(range(18)), True),
+    ],
+)
+def test_get_pending_error_indexes(
+    last_total_errors: int,
+    current_total_errors: int,
+    expected_pending_error_indexes: tuple[int, ...],
+    expected_errors_lost: bool,
+    servo,
+    mcu_error_queue_a,
+):
+    mcu_error_queue_a._ServoErrorQueue__last_read_total_errors_pending = last_total_errors
+    pending_error_indexes, errors_lost = (
+        mcu_error_queue_a._ServoErrorQueue__get_pending_error_indexes(current_total_errors)
+    )
+
+    assert pending_error_indexes == expected_pending_error_indexes
+    assert errors_lost == expected_errors_lost
