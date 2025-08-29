@@ -59,7 +59,7 @@ class EmcyTest:
 
 @pytest.mark.canopen
 @pytest.mark.ethernet
-def test_get_network_adapters(mocker, setup_descriptor: SetupDescriptor):
+def testget_network_adapters(mocker, setup_descriptor: SetupDescriptor):
     """Tests networks adapters with Windows platform."""
     is_windows = platform.system() != "Windows"
     if not isinstance(setup_descriptor, DriveEcatSetup):
