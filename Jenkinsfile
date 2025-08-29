@@ -153,7 +153,7 @@ pipeline {
             name: 'run_test_stages',
             description: 'Regex pattern for which testing stage or substage to run (e.g. "fsoe_.*", "ethercat_everest", ".*" for all)'
         )
-        booleanParam(name: 'WIRESHARK_LOGGING', defaultValue: true, description: 'Enable Wireshark logging')
+        booleanParam(name: 'WIRESHARK_LOGGING', defaultValue: false, description: 'Enable Wireshark logging')
         choice(
             choices: ['function', 'module', 'session'],
             name: 'WIRESHARK_LOGGING_SCOPE'
