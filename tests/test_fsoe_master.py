@@ -611,6 +611,28 @@ def test_modify_safe_parameters(fsoe_error_monitor: Callable[[FSoEError], None])
 
 
 @pytest.mark.fsoe
+@pytest.mark.parametrize("register_uid, is_wrote", [
+    ("FSOE_SS1_TIME_TO_STO_1", True),
+    ("FSOE_SS1_DEC_LIMIT_1", True),
+    ("ETG_COMMS_RPDO_MAP256_1", False),
+    ("ETG_COMMS_RPDO_MAP256_2", False),
+    ("ETG_COMMS_TPDO_MAP256_3", False),
+    ("ETG_COMMS_TPDO_MAP256_4", False),
+    ("FSOE_SLP_UPPER_LIMIT_8", True),
+    ("FSOE_SLI_LOWER_LIMIT_1", True),
+])
+def test_write_safe_parameters(mc_with_fsoe, register_uid, is_wrote):
+    mc, handler = mc_with_fsoe
+    old_val = mc.communication.get_register(register_uid)
+    new_val = old_val + 1
+    handler.safety_parameters[register_uid].set_without_updating(new_val)
+    expected_value = new_val if is_wrote else old_val
+    handler.write_safe_parameters()
+    test_val = mc.communication.get_register(register_uid)
+    assert test_val == expected_value, f"Parameter {register_uid} not written correctly"
+
+
+@pytest.mark.fsoe
 @pytest.mark.parametrize(
     "dictionary, editable",
     [(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, False), (SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, True)],

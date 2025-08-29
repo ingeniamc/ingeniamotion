@@ -74,11 +74,13 @@ DEN_NET_E_SETUP = LocalDriveConfigSpecifier.from_ethercat_configuration(
     identifier="den-net-e",
     dictionary=Path("C://Users//some.user//Downloads//den-net-e_eoe_2.7.3.xdf"),
     config_file=Path("C://Users//some.user//Downloads//den_net_e.xcf"),
-    firmware_file=Path("C://Users//some.user//Downloads//den-net-e_2.7.3.lfu"),
+    firmware=Path("C://Users//some.user//Downloads//den-net-e_2.7.3.lfu"),
     ifname="\\Device\\NPF_{675921D7-B64A-4997-9211-D18E2A6DC96A}",
     slave=1,
     boot_in_app=False,
 )
+
+TESTS_SETUP = DEN_NET_E_SETUP
 ```
 
 For more information, check `summit-testing-framework` documentation.
