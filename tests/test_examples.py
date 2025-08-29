@@ -3,6 +3,7 @@ from unittest.mock import Mock
 
 import pytest
 from ingenialink import CanBaudrate, CanDevice
+from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.exceptions import ILFirmwareLoadError
 from ingenialink.pdo import RPDOMap, TPDOMap
 from summit_testing_framework.setups.descriptors import (
@@ -24,6 +25,7 @@ from examples.load_save_configuration import main as main_load_save_configuratio
 from examples.pdo_poller_example import main as set_up_pdo_poller
 from examples.position_ramp import main as main_position_ramp
 from examples.process_data_object import main as main_process_data_object
+from examples.safety_mapping_example import main as main_safety_mapping_example
 from ingeniamotion import MotionController
 from ingeniamotion.communication import Communication
 from ingeniamotion.configuration import Configuration
@@ -229,6 +231,35 @@ def test_commutation_test_example(setup_descriptor: DriveEthernetSetup, script_r
         f"-ip={setup_descriptor.ip}",
     ])
     assert result.returncode == 0
+
+
+@pytest.mark.fsoe_phase2
+@pytest.mark.skip_testing_framework
+@pytest.mark.flaky(
+    reruns=1, reruns_delay=1
+)  # https://novantamotion.atlassian.net/browse/SACOAPP-255
+def test_safety_mapping_example(setup_descriptor: DriveEcatSetup, mocker) -> None:
+    errors_raised = []
+
+    def _raise_error_callback(error):
+        nonlocal errors_raised
+        errors_raised.append(error)
+        if isinstance(error, BaseException):
+            raise error
+        else:
+            raise RuntimeError(f"Error callback called with exception: {error}")
+
+    mocker.patch(
+        "examples.safety_mapping_example._error_callback",
+        side_effect=_raise_error_callback,
+    )
+
+    main_safety_mapping_example(
+        ifname=setup_descriptor.ifname,
+        slave_id=setup_descriptor.slave,
+        dict_path=setup_descriptor.dictionary,
+    )
+    assert len(errors_raised) == 0, f"Errors raised: {errors_raised}"
 
 
 @pytest.mark.ethernet
@@ -567,9 +598,12 @@ def test_ecat_coe_connection_example_connection_error(mocker, capsys):
     assert e.value.args[0] == f"could not open interface {expected_real_name_interface}"
 
 
+@pytest.mark.soem
 def test_pdo_poller_success(mocker):
     connect_servo_ethercat_interface_ip = mocker.patch.object(
-        Communication, "connect_servo_ethercat_interface_ip"
+        Communication,
+        "connect_servo_ethercat_interface_ip",
+        return_value=(EthercatNetwork(interface_name="mock_interface"), None),
     )
     disconnect = mocker.patch.object(Communication, "disconnect")
     mock_pdo_poller = PDOPoller(MotionController(), "mock_alias", 0.1, None, 100)
@@ -652,16 +686,19 @@ def test_load_save_configuration_register_changes_failed(mocker, capsys):
     assert all_outputs[1] == "This max. velocity value is already set."
 
 
+@pytest.mark.soem
 def test_process_data_object(mocker):
     connect_servo_ethercat_interface_ip = mocker.patch.object(
-        Communication, "connect_servo_ethercat_interface_ip"
+        Communication,
+        "connect_servo_ethercat_interface_ip",
+        return_value=(EthercatNetwork(interface_name="mock_interface"), None),
     )
     disconnect = mocker.patch.object(Communication, "disconnect")
     motor_enable = mocker.patch.object(Motion, "motor_enable")
     motor_disable = mocker.patch.object(Motion, "motor_disable")
     create_pdo_item = mocker.patch.object(PDONetworkManager, "create_pdo_item")
     create_pdo_maps = mocker.patch.object(
-        PDONetworkManager, "create_pdo_maps", return_value=(RPDOMap(), TPDOMap)
+        PDONetworkManager, "create_pdo_maps", return_value=(RPDOMap(), TPDOMap())
     )
     set_pdo_maps_to_slave = mocker.patch.object(PDONetworkManager, "set_pdo_maps_to_slave")
     start_pdos = mocker.patch.object(PDONetworkManager, "start_pdos")

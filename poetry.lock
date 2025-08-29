@@ -1281,18 +1281,18 @@ reference = "ingenia"
 
 [[package]]
 name = "ingenialink"
-version = "7.5.0+pr625b1"
+version = "7.5.0+g5b6e4d3a8"
 description = "IngeniaLink Communications Library"
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "tests"]
 files = [
-    {file = "ingenialink-7.5.0+pr625b1-cp310-cp310-win_amd64.whl", hash = "sha256:f61c1f389769d6a10ab9edb994c7cec313a87c7d6920b2b9606bff1e513fd046"},
-    {file = "ingenialink-7.5.0+pr625b1-cp311-cp311-win_amd64.whl", hash = "sha256:bc48af464efd252f4a26d9bf48a9bc56818094ef10f269b7a455df64d375d2f6"},
-    {file = "ingenialink-7.5.0+pr625b1-cp312-cp312-win_amd64.whl", hash = "sha256:d756c93f8ed5288be595e5a77e8691ec9af178bca8a86330bab160b73c1b606d"},
-    {file = "ingenialink-7.5.0+pr625b1-cp39-cp39-win_amd64.whl", hash = "sha256:2a245d084ca503b5ea6b6bb6c175a7c25d5fd2106f76ff7f7d2e522d0bc36b8a"},
-    {file = "ingenialink-7.5.0+pr625b1-py3-none-any.whl", hash = "sha256:7b9bd435774c6ebf762e8de793438b1026e27db8476e235fdb0d88611f11b72e"},
-    {file = "ingenialink-7.5.0+pr625b1.tar.gz", hash = "sha256:f5f8f82f6d7ebae0c63c7aa2494cfabcfadaabf9c15b5d14fcca14179eb6935e"},
+    {file = "ingenialink-7.5.0+g5b6e4d3a8-cp310-cp310-win_amd64.whl", hash = "sha256:edb1e384b5d9064191c5578921500e128fee51815d73a48187b9c1d649b21591"},
+    {file = "ingenialink-7.5.0+g5b6e4d3a8-cp311-cp311-win_amd64.whl", hash = "sha256:2b07d57e74f13bcf9d2a452e20d960f7b2d6a044a478dc1339232a7fcb2168de"},
+    {file = "ingenialink-7.5.0+g5b6e4d3a8-cp312-cp312-win_amd64.whl", hash = "sha256:6d3388a9c61287a241d5b96939fcc93bb7860226666d05fb350ebf06438d4474"},
+    {file = "ingenialink-7.5.0+g5b6e4d3a8-cp39-cp39-win_amd64.whl", hash = "sha256:d32301b4ad76a69a8ded461ab0baa2d00a50f75a9448f782812088b6ca5c0c31"},
+    {file = "ingenialink-7.5.0+g5b6e4d3a8-py3-none-any.whl", hash = "sha256:cf2d9bd8f345d8a758152c59e02cd765aec6da4b09859c0b593bc347b6d4e333"},
+    {file = "ingenialink-7.5.0+g5b6e4d3a8.tar.gz", hash = "sha256:98465a7e3709312ab83e6dd004d663df8f57255f7ef2e7065f810d3ed1c26b1c"},
 ]
 
 [package.dependencies]
@@ -3009,6 +3009,22 @@ pytest = ">=5.0"
 dev = ["pre-commit", "pytest-asyncio", "tox"]
 
 [[package]]
+name = "pytest-rerunfailures"
+version = "15.1"
+description = "pytest plugin to re-run tests to eliminate flaky failures"
+optional = false
+python-versions = ">=3.9"
+groups = ["tests"]
+files = [
+    {file = "pytest_rerunfailures-15.1-py3-none-any.whl", hash = "sha256:f674c3594845aba8b23c78e99b1ff8068556cc6a8b277f728071fdc4f4b0b355"},
+    {file = "pytest_rerunfailures-15.1.tar.gz", hash = "sha256:c6040368abd7b8138c5b67288be17d6e5611b7368755ce0465dda0362c8ece80"},
+]
+
+[package.dependencies]
+packaging = ">=17.1"
+pytest = ">=7.4,<8.2.2 || >8.2.2"
+
+[[package]]
 name = "python-can"
 version = "4.4.2"
 description = "Controller Area Network interface module for Python"
@@ -4603,4 +4619,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "d72af32139c092eeaca0b0a0c705af7d72161a1165ec6a2877fed87bbe889f40"
+content-hash = "1bfea0768c8bfb686b3b3d77b9a10194758931042af73eb3ef7f004e5e3da527"

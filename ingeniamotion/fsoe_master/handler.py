@@ -46,6 +46,8 @@ from ingeniamotion.fsoe_master.sci_serializer import SCISerializer
 
 if TYPE_CHECKING:
     from ingenialink.ethercat.dictionary import EthercatDictionary
+    from ingenialink.ethercat.network import EthercatNetwork
+    from ingenialink.ethercat.register import EthercatRegister
 
 SAFE_INSTANCE_TYPE = TypeVar("SAFE_INSTANCE_TYPE", bound="SafetyFunction")
 
@@ -75,6 +77,7 @@ class FSoEMasterHandler:
     def __init__(
         self,
         servo: EthercatServo,
+        net: "EthercatNetwork",
         *,
         use_sra: bool,
         slave_address: Optional[int] = None,
@@ -89,6 +92,7 @@ class FSoEMasterHandler:
 
         self.__state_change_callback = state_change_callback
         self.__servo = servo
+        self.__net = net
         self.__running: bool = False
         self.__uses_sra: bool = use_sra
 
@@ -188,6 +192,11 @@ class FSoEMasterHandler:
             self._master_handler.delete()
             raise ex
 
+    @property
+    def net(self) -> "EthercatNetwork":
+        """Returns the Ethercat network instance."""
+        return self.__net
+
     def serialize_mapping_to_sci(
         self, esi_file: Path, sci_file: Path, override: bool = False
     ) -> None:
@@ -204,6 +213,18 @@ class FSoEMasterHandler:
             rpdo=self.__safety_master_pdu,
             tpdo=self.__safety_slave_pdu,
             module_ident=int(self.__get_configured_module_ident_1()),
+            assigned_rpdos=[
+                cast(
+                    "EthercatRegister",
+                    self.__servo.dictionary.get_register("ETG_COMMS_RPDO_MAP1_TOTAL"),
+                ).idx
+            ],
+            assigned_tpdos=[
+                cast(
+                    "EthercatRegister",
+                    self.__servo.dictionary.get_register("ETG_COMMS_TPDO_MAP1_TOTAL"),
+                ).idx
+            ],
             part_number=self.__servo.dictionary.part_number,
             override=override,
         )
@@ -316,6 +337,10 @@ class FSoEMasterHandler:
         self.__in_initial_reset = False
         self.__running = False
 
+        # Unsubscribe from PDO events
+        self.net.pdo_manager.unsubscribe_to_send_process_data(self.get_request)
+        self.net.pdo_manager.unsubscribe_to_receive_process_data(self.set_reply)
+
     def delete(self) -> None:
         """Delete the master handler."""
         self._master_handler.delete()
@@ -363,6 +388,11 @@ class FSoEMasterHandler:
         self.__servo.set_pdo_map_to_slave(
             rpdo_maps=[self.safety_master_pdu_map], tpdo_maps=[self.safety_slave_pdu_map]
         )
+
+        # Subscribe to events
+        # https://novantamotion.atlassian.net/browse/INGM-667
+        self.net.pdo_manager.subscribe_to_send_process_data(self.get_request)
+        self.net.pdo_manager.subscribe_to_receive_process_data(self.set_reply)
 
         if self.__maps.editable:
             self.safety_master_pdu_map.write_to_slave(padding=True)

@@ -102,10 +102,11 @@ pytest = "==8.4.1"
 pytest-env = "==1.1.5"
 pytest-cov = "==2.12.1"
 pytest-mock = "==3.6.1"
+pytest-rerunfailures = "==15.1"
 pytest-console-scripts = "==1.4.1"
 matplotlib = "==3.8.2"
 summit-testing-framework = "==0.1.5"
-ingenialink = "==7.5.0+pr625b1"
+ingenialink = "==7.5.0+g5b6e4d3a8"
 
 # -----------------------------------------------------------------------
 #                                   TASKS
