@@ -329,7 +329,7 @@ class FSoEMasterHandler:
         """Start the FSoE Master handler on first request."""
         self.__in_initial_reset = True
         # Recalculate the SRA crc in case it changed
-        if self.__uses_sra:
+        if self._sra_fsoe_application_parameter is not None:
             self._sra_fsoe_application_parameter.set(self.get_application_parameters_sra_crc())
         self._master_handler.start()
         self.__running = True
