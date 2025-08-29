@@ -705,14 +705,23 @@ def mc_state_data(mc_with_fsoe):
 
 
 @pytest.mark.fsoe
-def test_pass_through_states(mc_state_data_with_sra, fsoe_states):  # noqa: ARG001
+def test_pass_through_states(mc_state_data, fsoe_states):  # noqa: ARG001
     assert fsoe_states == [
         FSoEState.SESSION,
         FSoEState.CONNECTION,
         FSoEState.PARAMETER,
         FSoEState.DATA,
     ]
-    # pass
+
+
+@pytest.mark.fsoe
+def test_pass_through_states_sra(mc_state_data_with_sra, fsoe_states):  # noqa: ARG001
+    assert fsoe_states == [
+        FSoEState.SESSION,
+        FSoEState.CONNECTION,
+        FSoEState.PARAMETER,
+        FSoEState.DATA,
+    ]
 
 
 @pytest.mark.fsoe_phase2

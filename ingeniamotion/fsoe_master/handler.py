@@ -129,7 +129,7 @@ class FSoEMasterHandler:
         if self.__uses_sra:
             self._sra_fsoe_application_parameter = FSoEApplicationParameter(
                 name="SRA_CRC",
-                initial_value=self._calculate_sra_crc(),
+                initial_value=self.get_application_parameters_sra_crc(),
                 n_bytes=4,
             )
             fsoe_application_parameters.append(self._sra_fsoe_application_parameter)
@@ -229,7 +229,7 @@ class FSoEMasterHandler:
             override=override,
         )
 
-    def _calculate_sra_crc(self) -> int:
+    def get_application_parameters_sra_crc(self) -> int:
         """Calculates SRA CRC for the application parameters.
 
         SRA calculation needs as input a list of uint16 values:
@@ -328,6 +328,9 @@ class FSoEMasterHandler:
     def __start_on_first_request(self) -> None:
         """Start the FSoE Master handler on first request."""
         self.__in_initial_reset = True
+        # Recalculate the SRA crc in case it changed
+        if self.__uses_sra:
+            self._sra_fsoe_application_parameter.set(self.get_application_parameters_sra_crc())
         self._master_handler.start()
         self.__running = True
 
