@@ -5,7 +5,13 @@ import pytest
 from ingenialink.dictionary import Interface
 from ingenialink.servo import DictionaryFactory
 
-from ingeniamotion.fsoe_master import PDUMaps, SPFunction
+from ingeniamotion.fsoe_master import (
+    PDUMaps,
+    SLPFunction,
+    SPFunction,
+    STOFunction,
+    SVFunction,
+)
 from ingeniamotion.fsoe_master.errors import (
     MCUA_ERROR_QUEUE,
     MCUB_ERROR_QUEUE,
@@ -80,27 +86,38 @@ def test_get_last_error_overtemp_error(servo, mcu_error_queue_a, environment):
 
 
 def test_get_last_error_feedback_combination(
-    servo, mcu_error_queue_a, mcu_error_queue_b, mc_with_fsoe_factory
+    servo, mcu_error_queue_a, mcu_error_queue_b, mc_with_fsoe_factory, environment
 ):
+    environment.power_cycle(wait_for_drives=True)
     """Test getting the last error when there is a feedback combination error."""
-    mc, handler = mc_with_fsoe_factory(use_sra=True, fail_on_fsoe_errors=True)
+    mc, handler = mc_with_fsoe_factory(use_sra=True, fail_on_fsoe_errors=False)
 
-    # Add safe position to handler and select feedback feedback scenario invalid
+    # Add a function that uses safe position to handler
+    # and select feedback feedback scenario invalid
     handler.safety_parameters["FSOE_FEEDBACK_SCENARIO"].set(0)  # No feedbacks
 
-    sp = handler.get_function_instance(SPFunction)
+    sto = handler.get_function_instance(STOFunction)
+    slp_1 = handler.get_function_instance(SLPFunction, instance=1)
 
-    maps = PDUMaps.default(handler.dictionary)
-    maps.insert_safety_function(sp)
+    handler.get_function_instance(SPFunction)
+    handler.get_function_instance(SVFunction)
+
+    maps = PDUMaps.empty(handler.dictionary)
+
+    maps.inputs.add(sto.command)
+
+    maps.outputs.add(sto.command)
+    maps.outputs.add(slp_1.command)
+
     handler.set_maps(maps)
 
     mc.fsoe.configure_pdos(start_pdos=True)
     time.sleep(TIMEOUT_FOR_DATA_SRA)
 
-    mcu_error_queue_a.get_last_error()
-    mcu_error_queue_b.get_last_error()
-
-    # TOOD Assertions
+    assert mcu_error_queue_a.get_number_total_errors() == 1
+    assert mcu_error_queue_b.get_number_total_errors() == 1
+    assert mcu_error_queue_a.get_last_error().error_id == 0x90090701
+    assert mcu_error_queue_b.get_last_error().error_id == 0x90090701
 
 
 @pytest.mark.parametrize(
@@ -129,4 +146,5 @@ def test_get_pending_error_indexes(
     assert errors_lost == expected_errors_lost
 
 
-# TODO Test get_pending_errors
+# https://novantamotion.atlassian.net/browse/INGM-698
+# get_pending_errors test is not implemented
