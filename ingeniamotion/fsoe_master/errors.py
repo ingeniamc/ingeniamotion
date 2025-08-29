@@ -113,7 +113,11 @@ class ServoErrorQueue:
         )
 
     def get_number_total_errors(self) -> int:
-        """Get the total number of errors from the servo's error queue."""
+        """Get the total number of errors from the servo's error queue.
+
+        Returns:
+            int: Total number of errors.
+        """
         return self.__read_int_reg(self.descriptor.total_error_reg_uid)
 
     @property
@@ -130,6 +134,9 @@ class ServoErrorQueue:
 
         Args:
             index: Index of the error from the servo's error queue.
+
+        Returns:
+            The error at the given index, or None if there is no error.
         """
         self.__servo.write(self.descriptor.error_request_index_reg_uid, index)
         return Error.from_id(
@@ -153,6 +160,14 @@ class ServoErrorQueue:
         ), errors_lost
 
     def get_pending_errors(self) -> tuple[list[Error], bool]:
+        """Get the pending errors from the servo's error queue.
+
+        Indicates the errors that have occurred since the last time this method was called.
+
+        Returns:
+            A tuple containing: List of pending errors, and a boolean indicating
+                if any errors were lost due to buffer overflow.
+        """
         total_errors = self.get_number_total_errors()
         pending_indexes, errors_lost = self.__get_pending_error_indexes(total_errors)
         errors = [

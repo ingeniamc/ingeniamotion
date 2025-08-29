@@ -95,13 +95,13 @@ def fsoe_error_monitor(
     def error_handler(error: FSoEError) -> None:
         errors.append(error)
 
-    def my_fsoe_error_reproter_callback() -> tuple[bool, str]:
+    def my_fsoe_error_reporter_callback() -> tuple[bool, str]:
         if len(errors) > 0:
             error_messages = "\n".join(str(error) for error in errors)
             return False, f"FSoE errors occurred:\n{error_messages}"
         return True, ""
 
-    add_fixture_error_checker(request.node, my_fsoe_error_reproter_callback)
+    add_fixture_error_checker(request.node, my_fsoe_error_reporter_callback)
 
     return error_handler
 
@@ -130,47 +130,49 @@ def __set_default_phase2_mapping(handler: "FSoEMasterHandler") -> None:
     handler.maps.outputs.add_padding(6 + 8)
 
 
-@pytest.fixture()
-def mc_with_fsoe(mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEError], None]):
-    def add_state(state: FSoEState):
-        fsoe_states.append(state)
+@pytest.fixture
+def mc_with_fsoe_factory(request, mc, fsoe_states):
+    created_handlers = []
 
-    # Subscribe to emergency messages
-    mc.communication.subscribe_emergency_message(emergency_handler)
-    # Configure error channel
-    mc.fsoe.subscribe_to_errors(fsoe_error_monitor)
-    # Create and start the FSoE master handler
-    handler = mc.fsoe.create_fsoe_master_handler(use_sra=False, state_change_callback=add_state)
-    # If phase II, initialize the handler with the default mapping
-    if handler.maps.editable:
-        __set_default_phase2_mapping(handler)
-    yield mc, handler
-    # Delete the master handler
-    mc.fsoe._delete_master_handler()
-    # Ensure the PDOs are stopped
-    # https://novantamotion.atlassian.net/browse/CIT-494
-    if handler.net.pdo_manager.is_active:
-        handler.net.deactivate_pdos()
+    def factory(use_sra: bool = False, fail_on_fsoe_errors: bool = True):
+        def add_state(state: FSoEState):
+            fsoe_states.append(state)
 
+        # Subscribe to emergency messages
+        mc.communication.subscribe_emergency_message(emergency_handler)
+        if fail_on_fsoe_errors:
+            # Configure error channel
+            mc.fsoe.subscribe_to_errors(request.getfixturevalue(fsoe_error_monitor.__name__))
+        # Create and start the FSoE master handler
+        handler = mc.fsoe.create_fsoe_master_handler(
+            use_sra=use_sra, state_change_callback=add_state
+        )
+        created_handlers.append(handler)
+        # If phase II, initialize the handler with the default mapping
+        if handler.maps.editable:
+            __set_default_phase2_mapping(handler)
+        return mc, handler
 
-@pytest.fixture()
-def mc_with_fsoe_with_sra(mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEError], None]):
-    def add_state(state: FSoEState):
-        fsoe_states.append(state)
-
-    # Subscribe to emergency messages
-    mc.communication.subscribe_emergency_message(emergency_handler)
-    # Configure error channel
-    mc.fsoe.subscribe_to_errors(fsoe_error_monitor)
-    # Create and start the FSoE master handler
-    handler = mc.fsoe.create_fsoe_master_handler(use_sra=True, state_change_callback=add_state)
-    # If phase II, initialize the handler with the default mapping
-    if handler.maps.editable:
-        __set_default_phase2_mapping(handler)
-    yield mc, handler
+    yield factory
 
     # Delete the master handler
     mc.fsoe._delete_master_handler()
+
+    for handler in created_handlers:
+        # Ensure the PDOs are stopped
+        # https://novantamotion.atlassian.net/browse/CIT-494
+        if handler.net.pdo_manager.is_active:
+            handler.net.deactivate_pdos()
+
+
+@pytest.fixture()
+def mc_with_fsoe(mc_with_fsoe_factory):
+    return mc_with_fsoe_factory(use_sra=False, fail_on_fsoe_errors=True)
+
+
+@pytest.fixture()
+def mc_with_fsoe_with_sra(mc_with_fsoe_factory):
+    return mc_with_fsoe_factory(use_sra=True, fail_on_fsoe_errors=True)
 
 
 @pytest.mark.fsoe
