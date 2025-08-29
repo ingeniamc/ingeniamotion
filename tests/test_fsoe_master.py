@@ -54,6 +54,8 @@ if FSOE_MASTER_INSTALLED:
 if TYPE_CHECKING:
     from ingenialink.emcy import EmergencyMessage
 
+_SOUT_DISABLED: str = "FSOE_SOUT_DISABLE"
+
 
 def test_fsoe_master_not_installed():
     try:
@@ -105,6 +107,10 @@ def mc_with_fsoe(mc, fsoe_states):
     mc.fsoe.subscribe_to_errors(error_handler)
     # Create and start the FSoE master handler
     handler = mc.fsoe.create_fsoe_master_handler(use_sra=False, state_change_callback=add_state)
+
+    if _SOUT_DISABLED in handler.safety_parameters:
+        handler.safety_parameters.get(_SOUT_DISABLED).set_without_updating(True)
+
     yield mc, handler
     # Delete the master handler
     mc.fsoe._delete_master_handler()
@@ -125,6 +131,10 @@ def mc_with_fsoe_with_sra(mc, fsoe_states):
     mc.fsoe.subscribe_to_errors(error_handler)
     # Create and start the FSoE master handler
     handler = mc.fsoe.create_fsoe_master_handler(use_sra=True, state_change_callback=add_state)
+
+    if _SOUT_DISABLED in handler.safety_parameters:
+        handler.safety_parameters.get(_SOUT_DISABLED).set_without_updating(True)
+
     yield mc, handler
     # Delete the master handler
     mc.fsoe._delete_master_handler()
