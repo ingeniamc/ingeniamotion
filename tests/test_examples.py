@@ -3,6 +3,7 @@ from unittest.mock import Mock
 
 import pytest
 from ingenialink import CanBaudrate, CanDevice
+from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.exceptions import ILFirmwareLoadError
 from ingenialink.pdo import RPDOMap, TPDOMap
 from summit_testing_framework.setups.descriptors import (
@@ -597,9 +598,12 @@ def test_ecat_coe_connection_example_connection_error(mocker, capsys):
     assert e.value.args[0] == f"could not open interface {expected_real_name_interface}"
 
 
+@pytest.mark.soem
 def test_pdo_poller_success(mocker):
     connect_servo_ethercat_interface_ip = mocker.patch.object(
-        Communication, "connect_servo_ethercat_interface_ip"
+        Communication,
+        "connect_servo_ethercat_interface_ip",
+        return_value=(EthercatNetwork(interface_name="mock_interface"), None),
     )
     disconnect = mocker.patch.object(Communication, "disconnect")
     mock_pdo_poller = PDOPoller(MotionController(), "mock_alias", 0.1, None, 100)
@@ -682,16 +686,19 @@ def test_load_save_configuration_register_changes_failed(mocker, capsys):
     assert all_outputs[1] == "This max. velocity value is already set."
 
 
+@pytest.mark.soem
 def test_process_data_object(mocker):
     connect_servo_ethercat_interface_ip = mocker.patch.object(
-        Communication, "connect_servo_ethercat_interface_ip"
+        Communication,
+        "connect_servo_ethercat_interface_ip",
+        return_value=(EthercatNetwork(interface_name="mock_interface"), None),
     )
     disconnect = mocker.patch.object(Communication, "disconnect")
     motor_enable = mocker.patch.object(Motion, "motor_enable")
     motor_disable = mocker.patch.object(Motion, "motor_disable")
     create_pdo_item = mocker.patch.object(PDONetworkManager, "create_pdo_item")
     create_pdo_maps = mocker.patch.object(
-        PDONetworkManager, "create_pdo_maps", return_value=(RPDOMap(), TPDOMap)
+        PDONetworkManager, "create_pdo_maps", return_value=(RPDOMap(), TPDOMap())
     )
     set_pdo_maps_to_slave = mocker.patch.object(PDONetworkManager, "set_pdo_maps_to_slave")
     start_pdos = mocker.patch.object(PDONetworkManager, "start_pdos")

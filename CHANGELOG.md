@@ -10,6 +10,7 @@
 
 ### Changed
 - Read safety pdo maps from drive instead of hardcoding them.
+- Improved `pdo` from `capture.py` to handle PDO activation for different networks.
 
 ### Fixed
 - Safety map and safe inputs reading
