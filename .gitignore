@@ -87,3 +87,7 @@ wireshark/
 
 # Version
 ingeniamotion/_version.py
+
+# Test outputs (ignore everything except __init__.py)
+tests/outputs/*
+!tests/outputs/__init__.py

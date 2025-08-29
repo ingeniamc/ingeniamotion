@@ -111,7 +111,7 @@ class FSoEFrame:
     ) -> PDOMapItem:
         if item.item is None:
             # Padding item
-            return item_type(size_bits=item.bits)
+            return item_type(size_bits=size_bits if size_bits is not None else item.bits)
         else:
             # I/O item
             return FSoEFrame.__create_pdo_item(

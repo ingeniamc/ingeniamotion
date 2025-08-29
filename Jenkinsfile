@@ -22,6 +22,7 @@ def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
 WIRESHARK_DIR = "wireshark"
 USE_WIRESHARK_LOGGING = ""
 START_WIRESHARK_TIMEOUT_S = 10.0
+FSOE_MAPS_DIR = "fsoe_maps"
 
 coverage_stashes = []
 
@@ -493,10 +494,15 @@ pipeline {
                         expression {
                           [
                             "ethercat",
+                            "ethercat_everest",
+                            "ethercat_everest_no_framework",
                             "ethercat_capitan",
+                            "ethercat_capitan_no_framework",
                             "ethercat_multislave",
                             "fsoe_phase1",
-                            "fsoe_phase2"
+                            "fsoe_phase1_no_framework",
+                            "fsoe_phase2",
+                            "fsoe_phase2_no_framework"
                           ].any { it ==~ params.run_test_stages }
                         }
                     }
@@ -525,7 +531,16 @@ pipeline {
                                 expression { false }
                             }
                             steps {
-                                runTestHW("ethercat_everest", "soem", "ECAT_EVE_SETUP", USE_WIRESHARK_LOGGING)
+                                runTestHW("ethercat_everest", "soem and not skip_testing_framework", "ECAT_EVE_SETUP", USE_WIRESHARK_LOGGING)
+                            }
+                        }
+                        stage("Ethercat Everest (skip_testing_framework)") {
+                            when {
+                                // Remove this after fixing INGK-983
+                                expression { false }
+                            }
+                            steps {
+                                runTestHW("ethercat_everest_no_framework", "soem and not skip_testing_framework", "ECAT_EVE_SETUP", USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("Ethercat Capitan") {
@@ -535,7 +550,17 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTestHW("ethercat_capitan", "soem", "ECAT_CAP_SETUP", USE_WIRESHARK_LOGGING)
+                                runTestHW("ethercat_capitan", "soem and not skip_testing_framework", "ECAT_CAP_SETUP", USE_WIRESHARK_LOGGING)
+                            }
+                        }
+                        stage("Ethercat Capitan (skip_testing_framework)") {
+                            when {
+                                expression {
+                                    "ethercat_capitan_no_framework" ==~ params.run_test_stages
+                                }
+                            }
+                            steps {
+                                runTestHW("ethercat_capitan_no_framework", "soem and skip_testing_framework", "ECAT_CAP_SETUP", USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("Safety Denali Phase I") {
@@ -545,7 +570,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTestHW("fsoe_phase1", "fsoe", "ECAT_DEN_S_PHASE1_SETUP", USE_WIRESHARK_LOGGING)
+                                runTestHW("fsoe_phase1", "fsoe and not skip_testing_framework", "ECAT_DEN_S_PHASE1_SETUP", USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("Safety Denali Phase II") {
@@ -555,7 +580,17 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTestHW("fsoe_phase2", "fsoe or fsoe_phase2", "ECAT_DEN_S_PHASE2_SETUP", USE_WIRESHARK_LOGGING)
+                                runTestHW("fsoe_phase2", "(fsoe or fsoe_phase2) and not skip_testing_framework", "ECAT_DEN_S_PHASE2_SETUP", USE_WIRESHARK_LOGGING)
+                            }
+                        }
+                        stage("Safety Denali Phase II (skip_testing_framework)") {
+                            when {
+                                expression {
+                                    "fsoe_phase2_no_framework" ==~ params.run_test_stages
+                                }
+                            }
+                            steps {
+                                runTestHW("fsoe_phase2_no_framework", "(fsoe or fsoe_phase2) and skip_testing_framework", "ECAT_DEN_S_PHASE2_SETUP", USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("Ethercat Multislave") {
