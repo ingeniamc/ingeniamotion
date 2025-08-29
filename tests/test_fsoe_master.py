@@ -178,7 +178,8 @@ def mc_with_fsoe_with_sra(mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEErr
         handler.safety_parameters.get(_SOUT_DISABLED).set(1)
 
     yield mc, handler
-
+    if handler.net.pdo_manager.is_active:
+        handler.net.deactivate_pdos()
     # Delete the master handler
     mc.fsoe._delete_master_handler()
 
@@ -761,6 +762,10 @@ def test_maps_different_length(
 
     mc.capture.pdo.start_pdos()
     mc.fsoe.wait_for_state_data(timeout=TIMEOUT_FOR_DATA)
+    assert handler.state == FSoEState.DATA
+    # Check that it stays in Data state
+    for i in range(2):
+        time.sleep(1)
     assert handler.state == FSoEState.DATA
 
 
