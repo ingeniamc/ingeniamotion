@@ -610,7 +610,7 @@ def test_modify_safe_parameters(fsoe_error_monitor: Callable[[FSoEError], None])
         handler.delete()
 
 
-@pytest.mark.fsoe
+@pytest.mark.fsoe_phase2
 @pytest.mark.parametrize("register_uid, is_wrote", [
     ("FSOE_SS1_TIME_TO_STO_1", True),
     ("FSOE_SS1_DEC_LIMIT_1", True),
