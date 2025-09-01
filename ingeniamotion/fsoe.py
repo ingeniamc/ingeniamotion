@@ -160,6 +160,26 @@ class FSoEMaster:
         master_handler = self._handlers[servo]
         master_handler.ss1_activate()
 
+    def sout_disable(self, servo: str = DEFAULT_SERVO) -> None:
+        """Deactivate the Safety Output.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+
+        """
+        master_handler = self._handlers[servo]
+        master_handler.sout_disable()
+
+    def sout_enable(self, servo: str = DEFAULT_SERVO) -> None:
+        """Activate the Safety Output.
+
+        Args:
+            servo: servo alias to reference it. ``default`` by default.
+
+        """
+        master_handler = self._handlers[servo]
+        master_handler.sout_enable()
+
     def get_safety_inputs_value(self, servo: str = DEFAULT_SERVO) -> bool:
         """Get a drive's safe inputs register value.
 
