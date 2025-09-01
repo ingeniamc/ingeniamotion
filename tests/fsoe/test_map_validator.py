@@ -15,7 +15,7 @@ if FSOE_MASTER_INSTALLED:
 
 
 @pytest.mark.fsoe_phase2
-@pytest.mark.parametrize("iteration", range(100))  # Run 30 times
+@pytest.mark.parametrize("iteration", range(100))  # Run 100 times
 def test_random_map_validation(
     mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
     map_generator: "FSoERandomMappingGenerator",
@@ -41,6 +41,7 @@ def test_random_map_validation(
     )
     assert mapping_file.exists()
 
+    # If the mapping is invalid, the mapping file will be kept for posterior analysis
     try:
         maps.validate()
         mapping_file.unlink()

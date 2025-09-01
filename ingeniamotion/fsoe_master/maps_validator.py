@@ -354,13 +354,12 @@ class ObjectsAlignedValidator(FSoEFrameRuleValidator):
             if item.item is None:
                 continue
             if item.bits >= 16 and item.position_bits % 16 != 0:
-                object_name = item.item.name if item.item else "padding"
                 next_alignment = align_bits(item.position_bits, 16)
                 exceptions[FSoEFrameRules.OBJECTS_ALIGNED] = InvalidFSoEFrameRule(
                     rule=FSoEFrameRules.OBJECTS_ALIGNED,
                     exception=(
                         "Objects larger than 16-bit must be word-aligned. "
-                        f"Object '{object_name}' found at position {item.position_bits}, "
+                        f"Object '{item.item.name}' found at position {item.position_bits}, "
                         f"next alignment is at {next_alignment}."
                     ),
                     items=[item],

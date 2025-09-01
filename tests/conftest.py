@@ -70,16 +70,20 @@ def pytest_runtest_makereport(item, call):
     # store test results for each phase of a call, which can be "setup", "call", "teardown"
     item.stash.setdefault(test_report_key, {})[rep.when] = rep
 
-    # Should be placed exclusively in the tests/fsoe/conftest.py file
-    # https://novantamotion.atlassian.net/browse/INGM-682
     if call.when == "call":
-        check_error = getattr(item, "_check_error", None)
-        if check_error:
-            check_error()
-        error_message = getattr(item, "_error_message", None)
-        if error_message:
-            rep.outcome = "failed"
-            rep.longrepr = error_message
+        callbacks = getattr(item, "_fixture_error_checker", None)
+        if callbacks is not None:
+            for callback in callbacks:
+                success, message = callback()
+                if not success:
+                    rep.outcome = "failed"
+                    rep.longrepr = message
+
+
+def add_fixture_error_checker(node, callback: Callable[[], None]) -> None:
+    if not hasattr(node, "_fixture_error_checker"):
+        node._fixture_error_checker = []
+    node._fixture_error_checker.append(callback)
 
 
 def mean_actual_velocity_position(mc, servo, velocity=False, n_samples=200, sampling_period=0):
