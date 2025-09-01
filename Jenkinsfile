@@ -291,6 +291,7 @@ pipeline {
                                             cd ${WIN_DOCKER_TMP_PATH}
                                             call .venv${DEFAULT_PYTHON_VERSION}/Scripts/activate
                                             poetry run poe build
+                                            XCOPY dist ${env.WORKSPACE}\\dist /s /i
                                         """
                                         stash includes: 'dist\\*', name: 'build'
                                         archiveArtifacts artifacts: "dist\\*"
@@ -362,6 +363,7 @@ pipeline {
                                             def pythonVersions = RUN_PYTHON_VERSIONS.split(',')
                                             pythonVersions.each { version ->
                                                 bat """
+                                                    cd ${WIN_DOCKER_TMP_PATH}
                                                     call .venv${version}/Scripts/activate
                                                     poetry run poe tests --import-mode=importlib --cov=ingeniamotion --junitxml=pytest_reports/junit-tests-${version}.xml --junit-prefix=${version} -m virtual --setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP
                                                 """
