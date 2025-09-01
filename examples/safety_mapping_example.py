@@ -39,8 +39,6 @@ def main(ifname, slave_id, dict_path) -> None:
 
     # Create and start the FSoE master handler
     handler = mc.fsoe.create_fsoe_master_handler(use_sra=True)
-    if "FSOE_SOUT_DISABLE" in handler.safety_parameters:
-        handler.safety_parameters.get("FSOE_SOUT_DISABLE").set(1)
 
     sto = handler.get_function_instance(STOFunction)
     safe_inputs = handler.get_function_instance(SafeInputsFunction)
@@ -83,6 +81,8 @@ def main(ifname, slave_id, dict_path) -> None:
     # safe_inputs.map.set(2)  # Linked to SS1 Instance
 
     # Configure the pdos the FSoE master handler
+    if handler.sout_function():
+        handler.sout_disable()
     mc.fsoe.configure_pdos()
 
     # After reconfiguring the maps and configuring the pdos,

@@ -60,9 +60,8 @@ def main(ifname, slave_id, dict_path, config_file=None):
     # Set default mapping if editable
     if handler.maps.editable:
         _set_default_mapping(handler=handler)
-    if "FSOE_SOUT_DISABLE" in handler.safety_parameters:
-        handler.safety_parameters.get("FSOE_SOUT_DISABLE").set(1)
-
+    if handler.sout_function():
+        handler.sout_disable()
     try:
         mc.fsoe.configure_pdos(start_pdos=True)
         # Wait for the master to reach the Data state
