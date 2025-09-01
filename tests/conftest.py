@@ -1,3 +1,4 @@
+import logging
 import time
 from collections.abc import Generator, Iterator
 from pathlib import Path
@@ -34,6 +35,16 @@ test_report_key = pytest.StashKey[dict[str, pytest.CollectReport]]()
 __SKIP_TESTING_FRAMEWORK_MARKER = "skip_testing_framework"
 
 
+class SuppressSpecificLogs(logging.Filter):
+    def filter(self, record):
+        message = record.getMessage()
+        # Suppress logs containing this specific message
+        return (
+            "Emergency message received from slave" not in message
+            and "Error code 0x0000" not in message
+        )
+
+
 def pytest_sessionstart(session):
     """Loads the modules that are not part of the package if import mode is importlib.
 
@@ -45,6 +56,12 @@ def pytest_sessionstart(session):
     ingeniamotion_base_path = Path(__file__).parents[1]
     for module_name in _DYNAMIC_MODULES_IMPORT:
         dynamic_loader((ingeniamotion_base_path / module_name).resolve())
+
+
+@pytest.hookimpl(tryfirst=True)
+def pytest_configure(config):  # noqa: ARG001
+    # https://novantamotion.atlassian.net/browse/INGM-627
+    logging.getLogger("ingenialink.ethercat.servo").addFilter(SuppressSpecificLogs())
 
 
 @pytest.fixture
