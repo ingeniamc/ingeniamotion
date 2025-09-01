@@ -87,6 +87,35 @@ def _check_mappings_have_the_same_length(maps: "PDUMaps") -> None:
     assert maps.inputs.safety_bits == maps.outputs.safety_bits
 
 
+def write_fsoe_feedback_registers(mc: "MotionController") -> None:
+    """Write FSoE feedback registers from drive feedback registers.
+
+    Args:
+        mc: The MotionController instance.
+    """
+    # FBK_SSI2_FRAME_SIZE -> FSOE_ABS_SSI_SECOND1_FSIZE (0x470C)
+    frame_size = mc.communication.get_register("FBK_SSI2_FRAME_SIZE")
+    mc.communication.set_register("FSOE_ABS_SSI_SECOND1_FSIZE", frame_size)
+    # FBK_SSI2_POS_POLARITY -> FSOE_ABS_SSI_SECOND1_POL (0x470D)
+    polarity = mc.communication.get_register("FBK_SSI2_POS_POLARITY")
+    mc.communication.set_register("FSOE_ABS_SSI_SECOND1_POL", polarity)
+    # FBK_SSI2_POS_BITS -> FSOE_ABS_SSI_SECOND1_PBITS (0x470F)
+    position_bits = mc.communication.get_register("FBK_SSI2_POS_BITS")
+    mc.communication.set_register("FSOE_ABS_SSI_SECOND1_PBITS", position_bits)
+    # FBK_SSI2_POS_ST_BITS -> FSOE_ABS_SSI_SECOND1_STURN (0x4710)
+    single_turn_bits = mc.communication.get_register("FBK_SSI2_POS_ST_BITS")
+    mc.communication.set_register("FSOE_ABS_SSI_SECOND1_STURN", single_turn_bits)
+    # FBK_SSI2_BAUD -> FSOE_ABS_SSI_SECOND1_BAUD (0x4712)
+    baudrate = mc.communication.get_register("FBK_SSI2_BAUD")
+    mc.communication.set_register("FSOE_ABS_SSI_SECOND1_BAUD", baudrate)
+    # FBK_DIGHALL_PAIRPOLES -> FSOE_HALL_POLEPAIRS (0x4732)
+    pole_pairs = mc.communication.get_register("FBK_DIGHALL_PAIRPOLES")
+    mc.communication.set_register("FSOE_HALL_POLEPAIRS", pole_pairs)
+    # FBK_DIGHALL_POLARITY -> FSOE_HALL_POLARITY (0x4733)
+    hall_polarity = mc.communication.get_register("FBK_DIGHALL_POLARITY")
+    mc.communication.set_register("FSOE_HALL_POLARITY", hall_polarity)
+
+
 @pytest.mark.fsoe_phase2
 @pytest.mark.skip("Maps not working")
 @pytest.mark.parametrize("iteration", range(10))  # Run 10 times
@@ -227,9 +256,10 @@ def test_fixed_mapping_combination(
     mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
     timeout_for_data_sra: float,
     fsoe_maps_dir: Path,
-    fsoe_states,
 ) -> None:
     mc, handler = mc_with_fsoe_with_sra
+
+    write_fsoe_feedback_registers(mc=mc)
 
     # Suspicious maps
     # "mapping_6_False_587.json"
