@@ -1,4 +1,6 @@
 import dataclasses
+import random
+from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING
 
@@ -11,8 +13,21 @@ from summit_testing_framework.setups.specifiers import (
     RackServiceConfigSpecifier,
 )
 
+from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
+from tests.outputs import OUTPUTS_DIR
+
 # https://novantamotion.atlassian.net/browse/INGM-682
-from tests.test_fsoe_master import fsoe_states, mc_with_fsoe_with_sra  # noqa: F401
+from tests.test_fsoe_master import (
+    TIMEOUT_FOR_DATA,
+    TIMEOUT_FOR_DATA_SRA,
+    fsoe_error_monitor,  # noqa: F401
+    fsoe_states,  # noqa: F401
+    mc_with_fsoe_with_sra,  # noqa: F401
+)
+
+if FSOE_MASTER_INSTALLED:
+    from tests.fsoe.map_generator import FSoERandomMappingGenerator
+
 
 if TYPE_CHECKING:
     from summit_testing_framework.att import ATTApi
@@ -20,6 +35,7 @@ if TYPE_CHECKING:
     from summit_testing_framework.setups.descriptors import DriveHwSetup
 
 __EXTRA_DATA_ESI_FILE_KEY: str = "esi_file"
+FSOE_MAPS_DIR = "fsoe_maps"
 
 
 @pytest.fixture(scope="session")
@@ -80,3 +96,60 @@ def setup_specifier_with_esi(
     new_data[__EXTRA_DATA_ESI_FILE_KEY] = esi_file
 
     return dataclasses.replace(setup_specifier, extra_data=new_data)
+
+
+@pytest.fixture(scope="module")
+def fsoe_maps_dir() -> Iterator[Path]:
+    """Returns the directory where FSoE maps are stored.
+
+    This directory is created if it does not exist.
+    If the directory is empty after the tests, it will be removed.
+
+    Yields:
+        Path to the FSoE maps directory.
+    """
+    directory = OUTPUTS_DIR / FSOE_MAPS_DIR
+    directory.mkdir(parents=True, exist_ok=True)
+    yield directory
+    if not any(directory.iterdir()):
+        directory.rmdir()
+
+
+@pytest.fixture
+def random_seed() -> int:
+    """Returns a fixed random seed for reproducibility."""
+    return random.randint(0, 1000)
+
+
+@pytest.fixture
+def random_paddings() -> bool:
+    """Returns a random boolean for testing random paddings."""
+    return random.choice([True, False])
+
+
+@pytest.fixture
+def random_max_items() -> int:
+    """Returns a random integer for testing max items."""
+    return random.randint(1, 10)
+
+
+@pytest.fixture
+def map_generator() -> Iterator["FSoERandomMappingGenerator"]:
+    """Fixture to provide a random mapping generator.
+
+    Yields:
+        FSoERandomMappingGenerator instance.
+    """
+    yield FSoERandomMappingGenerator
+
+
+@pytest.fixture(scope="session")
+def timeout_for_data() -> float:
+    """Returns the timeout value for the Data state for handler without SRA."""
+    return TIMEOUT_FOR_DATA
+
+
+@pytest.fixture(scope="session")
+def timeout_for_data_sra() -> float:
+    """Returns the timeout value for the Data state for handler using SRA."""
+    return TIMEOUT_FOR_DATA_SRA

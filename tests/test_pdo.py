@@ -247,13 +247,16 @@ def test_start_pdos(  # noqa: C901
 
     # Activate the PDOs
     refresh_rate = 0.5
-    for a in alias:
+    for idx, a in enumerate(alias):
         mc.capture.pdo.subscribe_to_send_process_data(send_callback, servo=a)
         mc.capture.pdo.subscribe_to_receive_process_data(receive_callback, servo=a)
         mc.capture.pdo.subscribe_to_exceptions(partial(exception_callback, servo=a), servo=a)
-        assert not mc.capture.pdo.is_active(servo=a)
         # It will start the PDOs for the first servo, they share the same configuration so the
         # second time it will just log a warning
+        if idx == 0:
+            assert not mc.capture.pdo.is_active(servo=a)
+        else:
+            assert mc.capture.pdo.is_active(servo=a)
         mc.capture.pdo.start_pdos(refresh_rate=refresh_rate, servo=a)
         assert mc.capture.pdo.is_active(servo=a)
 

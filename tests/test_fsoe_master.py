@@ -1,7 +1,7 @@
 import logging
 import random
 import time
-from typing import TYPE_CHECKING, Any, Union
+from typing import TYPE_CHECKING, Any, Callable, Union
 
 import pytest
 from ingenialink import RegAccess, RegDtype, Servo
@@ -17,7 +17,7 @@ from ingenialink.utils._utils import convert_dtype_to_bytes
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError, FSoEMaster
 from ingeniamotion.motion_controller import MotionController
-from tests.conftest import timeout_loop
+from tests.conftest import add_fixture_error_checker, timeout_loop
 from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
 
 if FSOE_MASTER_INSTALLED:
@@ -86,8 +86,24 @@ def emergency_handler(servo_alias: str, message: "EmergencyMessage"):
     raise RuntimeError(f"Emergency message received from {servo_alias}: {message}")
 
 
-def error_handler(error: FSoEError):
-    raise RuntimeError(f"FSoE error received: {error}")
+@pytest.fixture(scope="function")
+def fsoe_error_monitor(
+    request: pytest.FixtureRequest,
+) -> Callable[[FSoEError], None]:
+    errors = []
+
+    def error_handler(error: FSoEError) -> None:
+        errors.append(error)
+
+    def my_fsoe_error_reproter_callback() -> tuple[bool, str]:
+        if len(errors) > 0:
+            error_messages = "\n".join(str(error) for error in errors)
+            return False, f"FSoE errors occurred:\n{error_messages}"
+        return True, ""
+
+    add_fixture_error_checker(request.node, my_fsoe_error_reproter_callback)
+
+    return error_handler
 
 
 @pytest.fixture()
@@ -96,17 +112,38 @@ def fsoe_states():
     return states
 
 
+def __set_default_phase2_mapping(handler: "FSoEMasterHandler") -> None:
+    sto = handler.get_function_instance(STOFunction)
+    safe_inputs = handler.get_function_instance(SafeInputsFunction)
+    ss1 = handler.get_function_instance(SS1Function)
+
+    handler.maps.inputs.clear()
+    handler.maps.inputs.add(sto.command)
+    handler.maps.inputs.add(ss1.command)
+    handler.maps.inputs.add_padding(6)
+    handler.maps.inputs.add(safe_inputs.value)
+    handler.maps.inputs.add_padding(7)
+
+    handler.maps.outputs.clear()
+    handler.maps.outputs.add(sto.command)
+    handler.maps.outputs.add(ss1.command)
+    handler.maps.outputs.add_padding(6 + 8)
+
+
 @pytest.fixture()
-def mc_with_fsoe(mc, fsoe_states):
+def mc_with_fsoe(mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEError], None]):
     def add_state(state: FSoEState):
         fsoe_states.append(state)
 
     # Subscribe to emergency messages
     mc.communication.subscribe_emergency_message(emergency_handler)
     # Configure error channel
-    mc.fsoe.subscribe_to_errors(error_handler)
+    mc.fsoe.subscribe_to_errors(fsoe_error_monitor)
     # Create and start the FSoE master handler
     handler = mc.fsoe.create_fsoe_master_handler(use_sra=False, state_change_callback=add_state)
+    # If phase II, initialize the handler with the default mapping
+    if handler.maps.editable:
+        __set_default_phase2_mapping(handler)
     yield mc, handler
     # Delete the master handler
     mc.fsoe._delete_master_handler()
@@ -117,17 +154,21 @@ def mc_with_fsoe(mc, fsoe_states):
 
 
 @pytest.fixture()
-def mc_with_fsoe_with_sra(mc, fsoe_states):
+def mc_with_fsoe_with_sra(mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEError], None]):
     def add_state(state: FSoEState):
         fsoe_states.append(state)
 
     # Subscribe to emergency messages
     mc.communication.subscribe_emergency_message(emergency_handler)
     # Configure error channel
-    mc.fsoe.subscribe_to_errors(error_handler)
+    mc.fsoe.subscribe_to_errors(fsoe_error_monitor)
     # Create and start the FSoE master handler
     handler = mc.fsoe.create_fsoe_master_handler(use_sra=True, state_change_callback=add_state)
+    # If phase II, initialize the handler with the default mapping
+    if handler.maps.editable:
+        __set_default_phase2_mapping(handler)
     yield mc, handler
+
     # Delete the master handler
     mc.fsoe._delete_master_handler()
 
@@ -161,14 +202,19 @@ def test_create_fsoe_master_handler_use_sra(mc, use_sra):
 
 
 @pytest.mark.fsoe
-def test_create_fsoe_handler_from_invalid_pdo_maps(caplog):
+def test_create_fsoe_handler_from_invalid_pdo_maps(
+    caplog, fsoe_error_monitor: Callable[[FSoEError], None]
+):
     mock_servo = MockServo(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY)
     mock_servo.write("ETG_COMMS_RPDO_MAP256_6", 0x123456)  # Invalid pdo map value
 
     caplog.set_level(logging.ERROR)
     try:
         handler = FSoEMasterHandler(
-            servo=mock_servo, net=MockNetwork(), use_sra=True, report_error_callback=error_handler
+            servo=mock_servo,
+            net=MockNetwork(),
+            use_sra=True,
+            report_error_callback=fsoe_error_monitor,
         )
 
         # An error has been logged
@@ -180,9 +226,9 @@ def test_create_fsoe_handler_from_invalid_pdo_maps(caplog):
         )
 
         # And the default minimal map is used
-        assert len(handler.maps.inputs._items) == 0
-        assert len(handler.maps.outputs._items) == 1
-        assert handler.maps.outputs._items[0].item.name == "FSOE_STO"
+        assert len(handler.maps.inputs) == 0
+        assert len(handler.maps.outputs) == 1
+        assert handler.maps.outputs[0].item.name == "FSOE_STO"
     finally:
         handler.delete()
 
@@ -308,7 +354,7 @@ class MockHandler:
 
 
 @pytest.mark.fsoe
-def test_constructor_set_slave_address():
+def test_constructor_set_slave_address(fsoe_error_monitor: Callable[[FSoEError], None]):
     mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
     try:
         handler = FSoEMasterHandler(
@@ -316,7 +362,7 @@ def test_constructor_set_slave_address():
             net=MockNetwork(),
             use_sra=True,
             slave_address=0x7412,
-            report_error_callback=error_handler,
+            report_error_callback=fsoe_error_monitor,
         )
 
         assert mock_servo.read(FSoEMasterHandler.FSOE_MANUF_SAFETY_ADDRESS) == 0x7412
@@ -326,14 +372,17 @@ def test_constructor_set_slave_address():
 
 
 @pytest.mark.fsoe
-def test_constructor_inherit_slave_address():
+def test_constructor_inherit_slave_address(fsoe_error_monitor: Callable[[FSoEError], None]):
     mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
     try:
         # Set the slave address in the servo
         mock_servo.write(FSoEMasterHandler.FSOE_MANUF_SAFETY_ADDRESS, 0x4986)
 
         handler = FSoEMasterHandler(
-            servo=mock_servo, net=MockNetwork(), use_sra=True, report_error_callback=error_handler
+            servo=mock_servo,
+            net=MockNetwork(),
+            use_sra=True,
+            report_error_callback=fsoe_error_monitor,
         )
 
         assert mock_servo.read(FSoEMasterHandler.FSOE_MANUF_SAFETY_ADDRESS) == 0x4986
@@ -342,7 +391,7 @@ def test_constructor_inherit_slave_address():
 
 
 @pytest.mark.fsoe
-def test_constructor_set_connection_id():
+def test_constructor_set_connection_id(fsoe_error_monitor: Callable[[FSoEError], None]):
     mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
     try:
         handler = FSoEMasterHandler(
@@ -350,7 +399,7 @@ def test_constructor_set_connection_id():
             net=MockNetwork(),
             use_sra=True,
             connection_id=0x3742,
-            report_error_callback=error_handler,
+            report_error_callback=fsoe_error_monitor,
         )
         assert handler._master_handler.master.session.connection_id.value == 0x3742
     finally:
@@ -358,7 +407,7 @@ def test_constructor_set_connection_id():
 
 
 @pytest.mark.fsoe
-def test_constructor_random_connection_id():
+def test_constructor_random_connection_id(fsoe_error_monitor: Callable[[FSoEError], None]):
     mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
 
     random.seed(0x1234)
@@ -367,7 +416,7 @@ def test_constructor_random_connection_id():
             servo=mock_servo,
             net=MockNetwork(),
             use_sra=True,
-            report_error_callback=error_handler,
+            report_error_callback=fsoe_error_monitor,
         )
         assert handler._master_handler.master.session.connection_id.value == 0xED9A
     finally:
@@ -535,11 +584,14 @@ def test_getter_of_safety_functions(mc_with_fsoe):
 
 
 @pytest.mark.fsoe
-def test_modify_safe_parameters():
+def test_modify_safe_parameters(fsoe_error_monitor: Callable[[FSoEError], None]):
     mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
     try:
         handler = FSoEMasterHandler(
-            servo=mock_servo, net=MockNetwork(), use_sra=True, report_error_callback=error_handler
+            servo=mock_servo,
+            net=MockNetwork(),
+            use_sra=True,
+            report_error_callback=fsoe_error_monitor,
         )
 
         input_map = handler.get_function_instance(SafeInputsFunction).map
@@ -563,7 +615,7 @@ def test_modify_safe_parameters():
     "dictionary, editable",
     [(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, False), (SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, True)],
 )
-def test_mapping_locked(dictionary, editable):
+def test_mapping_locked(dictionary, editable, fsoe_error_monitor: Callable[[FSoEError], None]):
     mock_servo = MockServo(dictionary)
 
     if not editable:
@@ -578,7 +630,10 @@ def test_mapping_locked(dictionary, editable):
 
     try:
         handler = FSoEMasterHandler(
-            servo=mock_servo, net=MockNetwork(), use_sra=True, report_error_callback=error_handler
+            servo=mock_servo,
+            net=MockNetwork(),
+            use_sra=True,
+            report_error_callback=fsoe_error_monitor,
         )
         assert handler.maps.editable is editable
 
@@ -1276,8 +1331,8 @@ class TestPduMapper:
             "Item                           | Position bytes..bits | Size bytes..bits    \n"
             "FSOE_STO                       | 0..0                 | 0..1                \n"
             "FSOE_SAFE_INPUTS_VALUE         | 0..1                 | 0..1                \n"
-            "Padding                        | 0..2                 | 0..6                \n"
-            "FSOE_SAFE_POSITION             | 1..0                 | 4..0                "
+            "Padding                        | 0..2                 | 1..6                \n"
+            "FSOE_SAFE_POSITION             | 2..0                 | 4..0                "
         )
 
         assert maps.outputs.get_text_representation(item_space=30) == (
@@ -1485,7 +1540,7 @@ class TestPduMapper:
             dict_map=maps.inputs, slot_width=FSoEFrame._FSoEFrame__SLOT_WIDTH
         )
         expected_crcs = len(list(data_blocks))
-        n_objects = 1 + len(maps.inputs._items) + expected_crcs + 1
+        n_objects = 1 + len(maps.inputs) + expected_crcs + 1
 
         output = maps.are_inputs_valid(
             rules=[FSoEFrameRules.OBJECTS_IN_FRAME, FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
@@ -1498,31 +1553,6 @@ class TestPduMapper:
         assert exception.exception == (f"Total objects in frame exceeds limit: {n_objects} > 45")
         assert exception.items == test_si_bool_items
         assert output.is_rule_valid(FSoEFrameRules.OBJECTS_IN_FRAME) is False
-
-    @pytest.mark.fsoe
-    def test_validate_safe_data_padding_blocks(self, sample_safe_dictionary):
-        """Test that PaddingBlockValidator fails when padding blocks are not between 1-16 bits."""
-        _, fsoe_dict = sample_safe_dictionary
-        maps = PDUMaps.empty(fsoe_dict)
-
-        padding_item = maps.inputs.add_padding(bits=32)
-
-        output = maps.are_inputs_valid(rules=[FSoEFrameRules.PADDING_BLOCKS_VALID])
-        assert len(output.exceptions) == 1
-        assert FSoEFrameRules.PADDING_BLOCKS_VALID in output.exceptions
-        exception = output.exceptions[FSoEFrameRules.PADDING_BLOCKS_VALID]
-        assert isinstance(exception, InvalidFSoEFrameRule)
-        assert "Padding block size must range from 1 to 16 bits, found 32" in exception.exception
-        assert exception.items == [padding_item]
-        assert output.is_rule_valid(FSoEFrameRules.PADDING_BLOCKS_VALID) is False
-
-        # Check that the rule passes when the padding block is <= 16 bits
-        for padding in range(1, 17):
-            maps.inputs.clear()
-            maps.inputs.add_padding(bits=padding)
-            output = maps.are_inputs_valid(rules=[FSoEFrameRules.PADDING_BLOCKS_VALID])
-            assert not output.exceptions
-            assert output.is_rule_valid(FSoEFrameRules.PADDING_BLOCKS_VALID) is True
 
     @pytest.mark.fsoe
     def test_validate_safe_data_objects_word_aligned(self, sample_safe_dictionary):
@@ -1538,7 +1568,11 @@ class TestPduMapper:
         assert FSoEFrameRules.OBJECTS_ALIGNED in output.exceptions
         exception = output.exceptions[FSoEFrameRules.OBJECTS_ALIGNED]
         assert isinstance(exception, InvalidFSoEFrameRule)
-        assert "Object must be word-aligned, found at bit position 8" in exception.exception
+        assert exception.exception == (
+            "Objects larger than 16-bit must be word-aligned. "
+            f"Object '{test_si_u16_item.item.name}' found at position 8, "
+            f"next alignment is at 16."
+        )
         assert exception.items == [test_si_u16_item]
         assert output.is_rule_valid(FSoEFrameRules.OBJECTS_ALIGNED) is False
 

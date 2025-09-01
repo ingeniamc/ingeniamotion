@@ -10,6 +10,7 @@ from ingeniamotion.fsoe_master.frame import FSoEFrame
 from ingeniamotion.fsoe_master.fsoe import (
     FSoEDictionaryMap,
     FSoEDictionaryMappedItem,
+    align_bits,
 )
 from ingeniamotion.fsoe_master.safety_functions import STOFunction
 
@@ -22,7 +23,6 @@ class FSoEFrameRules(Enum):
     OBJECTS_ALIGNED = auto()
     OBJECTS_IN_FRAME = auto()
     STO_COMMAND_FIRST = auto()
-    PADDING_BLOCKS_VALID = auto()
     SAFE_DATA_BLOCKS_VALID = auto()
     OBJECTS_SPLIT_RESTRICTED = auto()
 
@@ -257,7 +257,7 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
             Dictionary containing any validation errors found.
         """
         n_crcs = len(safe_data_blocks)  # One CRC per safe data block
-        n_registers = len(dictionary_map._items)
+        n_registers = len(dictionary_map)
 
         n_objects = 1 + n_registers + n_crcs + 1  # CMD, registers, CRCs, CONN_ID
         if n_objects > self.__MAX_FRAME_OBJECTS:
@@ -294,7 +294,13 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
                 #      the item is fully contained in the current safe data block
                 # item == None: the item is a virtual padding block,
                 # which fits in the current safe data block
-                if bits_in_slot is None or item is None or bits_in_slot == item.bits:
+                # item.item == None: the item is a padding block, it can be split
+                if (
+                    bits_in_slot is None
+                    or item is None
+                    or bits_in_slot == item.bits
+                    or item.item is None
+                ):
                     continue
                 # If the item != 32 bits, it cannot be split across multiple safe data blocks
                 # 16 bit is checked by ObjectsAlignedValidator
@@ -304,8 +310,7 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
                             rule=FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED,
                             exception=(
                                 f"Make sure that 8 bit objects belong to the same data block. "
-                                f"Data slot {data_slot_i} contains split object "
-                                f"{item.item.name if item.item is not None else 'PADDING'}."
+                                f"Data slot {data_slot_i} contains split object {item.item.name}."
                             ),
                             items=[item],
                         )
@@ -330,33 +335,6 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
         return FSoEFrameRuleValidatorOutput(rules=rules, exceptions=exceptions)
 
 
-class PaddingBlockValidator(FSoEFrameRuleValidator):
-    """Validator for padding blocks in FSoE frames.
-
-    Validates that the size of padding blocks range from 1 to 16 bits.
-    """
-
-    def __init__(self) -> None:
-        super().__init__(rules=[FSoEFrameRules.PADDING_BLOCKS_VALID])
-
-    @override
-    def _validate(
-        self, dictionary_map: FSoEDictionaryMap, rules: list[FSoEFrameRules]
-    ) -> FSoEFrameRuleValidatorOutput:
-        exceptions: dict[FSoEFrameRules, InvalidFSoEFrameRule] = {}
-        for item in dictionary_map:
-            # Not a padding block
-            if item.item is not None:
-                continue
-            if item.bits < 1 or item.bits > 16:
-                exceptions[FSoEFrameRules.PADDING_BLOCKS_VALID] = InvalidFSoEFrameRule(
-                    rule=FSoEFrameRules.PADDING_BLOCKS_VALID,
-                    exception=f"Padding block size must range from 1 to 16 bits, found {item.bits}",
-                    items=[item] if item is not None else [],
-                )
-        return FSoEFrameRuleValidatorOutput(rules=rules, exceptions=exceptions)
-
-
 class ObjectsAlignedValidator(FSoEFrameRuleValidator):
     """Validator for object alignment in FSoE frames.
 
@@ -372,13 +350,19 @@ class ObjectsAlignedValidator(FSoEFrameRuleValidator):
     ) -> FSoEFrameRuleValidatorOutput:
         exceptions: dict[FSoEFrameRules, InvalidFSoEFrameRule] = {}
         for item in dictionary_map:
+            # Ignore paddings for alignment check
+            if item.item is None:
+                continue
             if item.bits >= 16 and item.position_bits % 16 != 0:
+                next_alignment = align_bits(item.position_bits, 16)
                 exceptions[FSoEFrameRules.OBJECTS_ALIGNED] = InvalidFSoEFrameRule(
                     rule=FSoEFrameRules.OBJECTS_ALIGNED,
                     exception=(
-                        f"Object must be word-aligned, found at bit position {item.position_bits}"
+                        "Objects larger than 16-bit must be word-aligned. "
+                        f"Object '{item.item.name}' found at position {item.position_bits}, "
+                        f"next alignment is at {next_alignment}."
                     ),
-                    items=[item] if item is not None else [],
+                    items=[item],
                 )
         return FSoEFrameRuleValidatorOutput(rules=rules, exceptions=exceptions)
 
@@ -424,7 +408,6 @@ class FSoEDictionaryMapValidator:
         """Initialize the FSoEDictionaryMapValidator."""
         self.__validators: list[FSoEFrameRuleValidator] = [
             SafeDataBlocksValidator(),
-            PaddingBlockValidator(),
             ObjectsAlignedValidator(),
             STOCommandFirstValidator(),
         ]
