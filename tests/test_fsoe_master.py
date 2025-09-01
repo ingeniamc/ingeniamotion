@@ -56,6 +56,8 @@ from ingenialink.network import Network
 if TYPE_CHECKING:
     from ingenialink.emcy import EmergencyMessage
 
+_SOUT_DISABLED: str = "FSOE_SOUT_DISABLE"
+
 
 def test_fsoe_master_not_installed():
     try:
@@ -131,7 +133,7 @@ def __set_default_phase2_mapping(handler: "FSoEMasterHandler") -> None:
 
 
 @pytest.fixture()
-def mc_with_fsoe(mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEError], None]):
+def mc_with_fsoe(mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEError], None], alias: str):
     def add_state(state: FSoEState):
         fsoe_states.append(state)
 
@@ -144,17 +146,23 @@ def mc_with_fsoe(mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEError], None
     # If phase II, initialize the handler with the default mapping
     if handler.maps.editable:
         __set_default_phase2_mapping(handler)
+
+    if _SOUT_DISABLED in handler.safety_parameters:
+        handler.safety_parameters.get(_SOUT_DISABLED).set(1)
+
     yield mc, handler
     # Delete the master handler
     mc.fsoe._delete_master_handler()
     # Ensure the PDOs are stopped
     # https://novantamotion.atlassian.net/browse/CIT-494
-    if handler.net.pdo_manager.is_active:
-        handler.net.deactivate_pdos()
+    if mc.capture.pdo.is_active(servo=alias):
+        mc.capture.pdo.stop_pdos(servo=alias)
 
 
 @pytest.fixture()
-def mc_with_fsoe_with_sra(mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEError], None]):
+def mc_with_fsoe_with_sra(
+    mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEError], None], alias: str
+):
     def add_state(state: FSoEState):
         fsoe_states.append(state)
 
@@ -167,8 +175,13 @@ def mc_with_fsoe_with_sra(mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEErr
     # If phase II, initialize the handler with the default mapping
     if handler.maps.editable:
         __set_default_phase2_mapping(handler)
-    yield mc, handler
 
+    if _SOUT_DISABLED in handler.safety_parameters:
+        handler.safety_parameters.get(_SOUT_DISABLED).set(1)
+
+    yield mc, handler
+    if mc.capture.pdo.is_active(servo=alias):
+        mc.capture.pdo.stop_pdos(servo=alias)
     # Delete the master handler
     mc.fsoe._delete_master_handler()
 
@@ -705,8 +718,67 @@ def test_pass_through_states(mc_state_data, fsoe_states):  # noqa: ARG001
 
 
 @pytest.mark.fsoe
-def test_start_and_stop_multiple_times(mc_with_fsoe):
-    mc, handler = mc_with_fsoe
+def test_pass_through_states_sra(mc_state_data_with_sra, fsoe_states):  # noqa: ARG001
+    assert fsoe_states == [
+        FSoEState.SESSION,
+        FSoEState.CONNECTION,
+        FSoEState.PARAMETER,
+        FSoEState.DATA,
+    ]
+
+
+@pytest.mark.fsoe_phase2
+def test_maps_different_length(
+    mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"], alias: str
+) -> None:
+    mc, handler = mc_with_fsoe_with_sra
+
+    sto = handler.get_function_instance(STOFunction)
+    safe_inputs = handler.get_function_instance(SafeInputsFunction)
+    ss1 = handler.get_function_instance(SS1Function)
+
+    handler.maps.inputs.clear()
+    handler.maps.inputs.add(sto.command)
+    handler.maps.inputs.add(ss1.command)
+    handler.maps.inputs.add_padding(6)
+    handler.maps.inputs.add(safe_inputs.value)
+    handler.maps.inputs.add_padding(7)
+
+    handler.maps.outputs.clear()
+    handler.maps.outputs.add(sto.command)
+    handler.maps.outputs.add(ss1.command)
+    handler.maps.outputs.add_padding(6)
+
+    assert handler.maps.inputs.safety_bits == 16
+    assert handler.maps.outputs.safety_bits == 8
+
+    # Configure the FSoE master handler
+    mc.fsoe.configure_pdos(start_pdos=False)
+
+    # Inputs: 1 byte command + 2 bytes safety data + 2 bytes CRC + 2 bytes connection ID
+    # 7 bytes -> 56 bits
+    assert handler.safety_slave_pdu_map.data_length_bits == 56
+    # Outputs: 1 byte command + 1 bytes safety data + 2 bytes CRC + 2 bytes connection ID
+    # 6 bytes -> 48 bits
+    assert handler.safety_master_pdu_map.data_length_bits == 48
+
+    mc.capture.pdo.start_pdos(servo=alias)
+    mc.fsoe.wait_for_state_data(timeout=TIMEOUT_FOR_DATA)
+    assert handler.state == FSoEState.DATA
+    # Check that it stays in Data state
+    for i in range(2):
+        time.sleep(1)
+    assert handler.state == FSoEState.DATA
+
+    # Stop the FSoE master handler
+    mc.fsoe.stop_master(stop_pdos=True)
+
+
+@pytest.mark.fsoe
+def test_start_and_stop_multiple_times(
+    mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"],
+) -> None:
+    mc, handler = mc_with_fsoe_with_sra
 
     # Any fsoe error during the start/stop process
     # will fail the test because of error_handler
