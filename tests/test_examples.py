@@ -259,6 +259,7 @@ def test_safety_torque_off_example(setup_descriptor: DriveEcatSetup, mocker) -> 
         ifname=setup_descriptor.ifname,
         slave_id=setup_descriptor.slave,
         dict_path=setup_descriptor.dictionary,
+        config_file=setup_descriptor.config_file,
     )
     assert len(errors_raised) == 0, f"Errors raised: {errors_raised}"
 
