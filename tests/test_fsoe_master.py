@@ -133,7 +133,7 @@ def __set_default_phase2_mapping(handler: "FSoEMasterHandler") -> None:
 
 
 @pytest.fixture()
-def mc_with_fsoe(mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEError], None]):
+def mc_with_fsoe(mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEError], None], alias: str):
     def add_state(state: FSoEState):
         fsoe_states.append(state)
 
@@ -155,12 +155,14 @@ def mc_with_fsoe(mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEError], None
     mc.fsoe._delete_master_handler()
     # Ensure the PDOs are stopped
     # https://novantamotion.atlassian.net/browse/CIT-494
-    if handler.net.pdo_manager.is_active:
-        handler.net.deactivate_pdos()
+    if mc.capture.pdo.is_active(servo=alias):
+        mc.capture.pdo.stop_pdos(servo=alias)
 
 
 @pytest.fixture()
-def mc_with_fsoe_with_sra(mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEError], None]):
+def mc_with_fsoe_with_sra(
+    mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEError], None], alias: str
+):
     def add_state(state: FSoEState):
         fsoe_states.append(state)
 
@@ -178,8 +180,8 @@ def mc_with_fsoe_with_sra(mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEErr
         handler.safety_parameters.get(_SOUT_DISABLED).set(1)
 
     yield mc, handler
-    if handler.net.pdo_manager.is_active:
-        handler.net.deactivate_pdos()
+    if mc.capture.pdo.is_active(servo=alias):
+        mc.capture.pdo.stop_pdos(servo=alias)
     # Delete the master handler
     mc.fsoe._delete_master_handler()
 
@@ -727,7 +729,7 @@ def test_pass_through_states_sra(mc_state_data_with_sra, fsoe_states):  # noqa: 
 
 @pytest.mark.fsoe_phase2
 def test_maps_different_length(
-    mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"],
+    mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"], alias: str
 ) -> None:
     mc, handler = mc_with_fsoe_with_sra
 
@@ -760,7 +762,7 @@ def test_maps_different_length(
     # 6 bytes -> 48 bits
     assert handler.safety_master_pdu_map.data_length_bits == 48
 
-    mc.capture.pdo.start_pdos()
+    mc.capture.pdo.start_pdos(servo=alias)
     mc.fsoe.wait_for_state_data(timeout=TIMEOUT_FOR_DATA)
     assert handler.state == FSoEState.DATA
     # Check that it stays in Data state
@@ -768,10 +770,15 @@ def test_maps_different_length(
         time.sleep(1)
     assert handler.state == FSoEState.DATA
 
+    # Stop the FSoE master handler
+    mc.fsoe.stop_master(stop_pdos=True)
+
 
 @pytest.mark.fsoe
-def test_start_and_stop_multiple_times(mc_with_fsoe):
-    mc, handler = mc_with_fsoe
+def test_start_and_stop_multiple_times(
+    mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"],
+) -> None:
+    mc, handler = mc_with_fsoe_with_sra
 
     # Any fsoe error during the start/stop process
     # will fail the test because of error_handler
