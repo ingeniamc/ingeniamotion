@@ -55,11 +55,6 @@ def main(ifname, slave_id, dict_path):
 
 if __name__ == "__main__":
     # Modify these parameters according to your setup
-    network_interface_ip = "192.168.2.1"
-    ethercat_slave_id = 1
-    dictionary_path = "safe_dict.xdf"
-    main(network_interface_ip, ethercat_slave_id, dictionary_path)
-
     parser = argparse.ArgumentParser(description="Safety Torque Off Example")
     parser.add_argument(
         "--ifname", help="Interface name ``\\Device\\NPF_[...]``", required=True, type=str
