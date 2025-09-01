@@ -87,33 +87,19 @@ def _check_mappings_have_the_same_length(maps: "PDUMaps") -> None:
     assert maps.inputs.safety_bits == maps.outputs.safety_bits
 
 
-def write_fsoe_feedback_registers(mc: "MotionController") -> None:
+def write_fsoe_feedback_registers(mc: "MotionController", handler) -> None:
     """Write FSoE feedback registers from drive feedback registers.
 
     Args:
         mc: The MotionController instance.
     """
-    # FBK_SSI2_FRAME_SIZE -> FSOE_ABS_SSI_SECOND1_FSIZE (0x470C)
-    frame_size = mc.communication.get_register("FBK_SSI2_FRAME_SIZE")
-    mc.communication.set_register("FSOE_ABS_SSI_SECOND1_FSIZE", frame_size)
-    # FBK_SSI2_POS_POLARITY -> FSOE_ABS_SSI_SECOND1_POL (0x470D)
-    polarity = mc.communication.get_register("FBK_SSI2_POS_POLARITY")
-    mc.communication.set_register("FSOE_ABS_SSI_SECOND1_POL", polarity)
-    # FBK_SSI2_POS_BITS -> FSOE_ABS_SSI_SECOND1_PBITS (0x470F)
-    position_bits = mc.communication.get_register("FBK_SSI2_POS_BITS")
-    mc.communication.set_register("FSOE_ABS_SSI_SECOND1_PBITS", position_bits)
-    # FBK_SSI2_POS_ST_BITS -> FSOE_ABS_SSI_SECOND1_STURN (0x4710)
-    single_turn_bits = mc.communication.get_register("FBK_SSI2_POS_ST_BITS")
-    mc.communication.set_register("FSOE_ABS_SSI_SECOND1_STURN", single_turn_bits)
-    # FBK_SSI2_BAUD -> FSOE_ABS_SSI_SECOND1_BAUD (0x4712)
-    baudrate = mc.communication.get_register("FBK_SSI2_BAUD")
-    mc.communication.set_register("FSOE_ABS_SSI_SECOND1_BAUD", baudrate)
-    # FBK_DIGHALL_PAIRPOLES -> FSOE_HALL_POLEPAIRS (0x4732)
     pole_pairs = mc.communication.get_register("FBK_DIGHALL_PAIRPOLES")
-    mc.communication.set_register("FSOE_HALL_POLEPAIRS", pole_pairs)
+    handler.safety_parameters.get("FSOE_HALL_POLEPAIRS").set(pole_pairs)
     # FBK_DIGHALL_POLARITY -> FSOE_HALL_POLARITY (0x4733)
     hall_polarity = mc.communication.get_register("FBK_DIGHALL_POLARITY")
-    mc.communication.set_register("FSOE_HALL_POLARITY", hall_polarity)
+    handler.safety_parameters.get("FSOE_HALL_POLARITY").set(hall_polarity)
+    # Set Digital Halls in auxiliar feedback
+    mc.communication.set_register("CL_AUX_FBK_SENSOR", 5)
 
 
 @pytest.mark.fsoe_phase2
@@ -259,7 +245,7 @@ def test_fixed_mapping_combination(
 ) -> None:
     mc, handler = mc_with_fsoe_with_sra
 
-    write_fsoe_feedback_registers(mc=mc)
+    write_fsoe_feedback_registers(mc=mc, handler=handler)
 
     # Suspicious maps
     # "mapping_6_False_587.json"
@@ -279,7 +265,7 @@ def test_fixed_mapping_combination(
     try:
         handler.maps.validate()
         n_errors, last_error = get_last_fsoe_error(mc)
-        handler.safety_parameters.get("FSOE_FEEDBACK_SCENARIO").set(3)
+        handler.safety_parameters.get("FSOE_FEEDBACK_SCENARIO").set(4)
         n_errors, last_error = assert_no_fsoe_errors(mc, (n_errors, last_error))
         mc.fsoe.configure_pdos(start_pdos=True)
         time.sleep(0.05)
