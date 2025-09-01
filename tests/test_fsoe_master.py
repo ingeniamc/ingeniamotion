@@ -56,8 +56,6 @@ from ingenialink.network import Network
 if TYPE_CHECKING:
     from ingenialink.emcy import EmergencyMessage
 
-_SOUT_DISABLED: str = "FSOE_SOUT_DISABLE"
-
 
 def test_fsoe_master_not_installed():
     try:
@@ -147,8 +145,8 @@ def mc_with_fsoe(mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEError], None
     if handler.maps.editable:
         __set_default_phase2_mapping(handler)
 
-    if _SOUT_DISABLED in handler.safety_parameters:
-        handler.safety_parameters.get(_SOUT_DISABLED).set(1)
+    if handler.sout_function() is not None:
+        handler.sout_disable()
 
     yield mc, handler
     # Delete the master handler
@@ -175,10 +173,8 @@ def mc_with_fsoe_with_sra(
     # If phase II, initialize the handler with the default mapping
     if handler.maps.editable:
         __set_default_phase2_mapping(handler)
-
-    if _SOUT_DISABLED in handler.safety_parameters:
-        handler.safety_parameters.get(_SOUT_DISABLED).set(1)
-
+    if handler.sout_function() is not None:
+        handler.sout_disable()
     yield mc, handler
     if mc.capture.pdo.is_active(servo=alias):
         mc.capture.pdo.stop_pdos(servo=alias)
