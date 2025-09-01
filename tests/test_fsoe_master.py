@@ -855,8 +855,8 @@ def test_get_master_state(mocker, mc_with_fsoe, state_enum):
 
 
 @pytest.mark.fsoe
-def test_motor_enable(mc_state_data):
-    mc = mc_state_data
+def test_motor_enable(mc_state_data_with_sra):
+    mc = mc_state_data_with_sra
 
     # Deactivate the SS1
     mc.fsoe.ss1_deactivate()
@@ -873,7 +873,7 @@ def test_motor_enable(mc_state_data):
     # Disable the motor
     mc.motion.motor_disable()
     # Activate the SS1
-    mc.fsoe.sto_activate()
+    mc.fsoe.ss1_activate()
     # Activate the STO
     mc.fsoe.sto_activate()
 

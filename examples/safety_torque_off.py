@@ -4,10 +4,37 @@ import contextlib
 from ingeniamotion import MotionController
 from ingeniamotion.enums import OperationMode
 from ingeniamotion.exceptions import IMTimeoutError
+from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
+
+if FSOE_MASTER_INSTALLED:
+    from ingeniamotion.fsoe_master import (
+        FSoEMasterHandler,
+        SafeInputsFunction,
+        SS1Function,
+        STOFunction,
+    )
 
 
 def _error_callback(error):
     print(error)
+
+
+def _set_default_mapping(handler: "FSoEMasterHandler") -> None:
+    sto = handler.get_function_instance(STOFunction)
+    safe_inputs = handler.get_function_instance(SafeInputsFunction)
+    ss1 = handler.get_function_instance(SS1Function)
+
+    handler.maps.inputs.clear()
+    handler.maps.inputs.add(sto.command)
+    handler.maps.inputs.add(ss1.command)
+    handler.maps.inputs.add_padding(6)
+    handler.maps.inputs.add(safe_inputs.value)
+    handler.maps.inputs.add_padding(7)
+
+    handler.maps.outputs.clear()
+    handler.maps.outputs.add(sto.command)
+    handler.maps.outputs.add(ss1.command)
+    handler.maps.outputs.add_padding(6)
 
 
 def main(ifname, slave_id, dict_path):
@@ -21,7 +48,12 @@ def main(ifname, slave_id, dict_path):
     # Set the Operation mode to Velocity
     mc.motion.set_operation_mode(OperationMode.VELOCITY)
     # Create and start the FSoE master handler
-    mc.fsoe.create_fsoe_master_handler(use_sra=False)
+    handler = mc.fsoe.create_fsoe_master_handler(use_sra=True)
+    # Set default mapping if editable
+    if handler.maps.editable:
+        _set_default_mapping(handler=handler)
+    if "FSOE_SOUT_DISABLE" in handler.safety_parameters:
+        handler.safety_parameters.get("FSOE_SOUT_DISABLE").set(1)
     mc.fsoe.configure_pdos(start_pdos=True)
     # Wait for the master to reach the Data state
     mc.fsoe.wait_for_state_data(timeout=10)
@@ -38,11 +70,11 @@ def main(ifname, slave_id, dict_path):
     target_velocity = 10
     mc.motion.set_velocity(target_velocity)
     with contextlib.suppress(IMTimeoutError):
-        mc.motion.wait_for_velocity(velocity=target_velocity, timeout=5)
+        mc.motion.wait_for_velocity(velocity=target_velocity, timeout=10)
     # Disable the motor
     mc.motion.motor_disable()
     # Activate the SS1
-    mc.fsoe.sto_activate()
+    mc.fsoe.ss1_activate()
     # Activate the STO
     mc.fsoe.sto_activate()
     # Stop the FSoE master handler
