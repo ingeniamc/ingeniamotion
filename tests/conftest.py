@@ -1,7 +1,7 @@
 import time
 from collections.abc import Generator, Iterator
 from pathlib import Path
-from typing import Callable, Optional, Union
+from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import numpy as np
 import pytest
@@ -13,6 +13,10 @@ from summit_testing_framework.setups.descriptors import (
     SetupDescriptor,
 )
 from summit_testing_framework.setups.specifiers import SetupSpecifier, VirtualDriveSpecifier
+
+if TYPE_CHECKING:
+    from ingeniamotion.motion_controller import MotionController
+    from ingeniamotion.pdo import PDONetwork, PDONetworksTracker
 
 pytest_plugins = [
     "summit_testing_framework.pytest_addoptions",
@@ -238,3 +242,20 @@ def disable_motor_fixture(request: FixtureRequest) -> Generator[None, None, None
     for eval_alias in aliases:
         mc.motion.motor_disable(servo=eval_alias)
         mc.motion.fault_reset(servo=eval_alias)
+
+
+def __restore_pdo_network_manager(mc: "MotionController") -> None:
+    nets_tracker: PDONetworksTracker = mc.capture.pdo._PDONetworkManager__net_tracker
+    net_aliases: list[PDONetwork] = list(nets_tracker._PDONetworksTracker__networks.keys())
+    for net_alias in net_aliases:
+        if nets_tracker.is_active(net_alias):
+            nets_tracker.remove_network(alias=net_alias)
+        else:
+            del nets_tracker._PDONetworksTracker__networks[net_alias]
+
+
+@pytest.fixture
+def pdos_teardown(mc: "MotionController") -> Iterator[None]:
+    __restore_pdo_network_manager(mc)
+    yield
+    __restore_pdo_network_manager(mc)

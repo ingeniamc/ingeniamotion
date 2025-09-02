@@ -3,7 +3,6 @@ import re
 import threading
 import time
 from collections import defaultdict
-from collections.abc import Generator
 from functools import partial
 
 import pytest
@@ -18,24 +17,7 @@ from ingeniamotion.enums import CommunicationType, OperationMode
 from ingeniamotion.exceptions import IMError
 from ingeniamotion.metaclass import DEFAULT_AXIS
 from ingeniamotion.motion_controller import MotionController
-from ingeniamotion.pdo import PDONetwork, PDONetworksTracker
-
-
-def __restore_pdo_network_manager(mc: "MotionController") -> None:
-    nets_tracker: PDONetworksTracker = mc.capture.pdo._PDONetworkManager__net_tracker
-    net_aliases: list[PDONetwork] = list(nets_tracker._PDONetworksTracker__networks.keys())
-    for net_alias in net_aliases:
-        if nets_tracker.is_active(net_alias):
-            nets_tracker.remove_network(alias=net_alias)
-        else:
-            del nets_tracker._PDONetworksTracker__networks[net_alias]
-
-
-@pytest.fixture
-def pdos_teardown(mc: "MotionController") -> Generator[None, None, None]:
-    __restore_pdo_network_manager(mc)
-    yield
-    __restore_pdo_network_manager(mc)
+from ingeniamotion.pdo import PDONetworksTracker
 
 
 @pytest.mark.soem
