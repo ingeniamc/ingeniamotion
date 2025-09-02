@@ -209,7 +209,6 @@ class FSoEMasterHandler:
         )
         if self.running:
             self.stop()
-        self.remove_pdo_maps_from_slave()
 
     @property
     def net(self) -> "EthercatNetwork":
