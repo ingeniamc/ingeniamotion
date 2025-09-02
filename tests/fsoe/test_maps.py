@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 import pytest
 from summit_testing_framework.setups.specifiers import DriveHwConfigSpecifier
 
+from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 from ingeniamotion.motion_controller import MotionController
 
@@ -247,6 +248,8 @@ def test_fixed_mapping_combination(
     mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
     timeout_for_data_sra: float,
     fsoe_maps_dir: Path,
+    alias: str,
+    fsoe_states: list[FSoEState],
 ) -> None:
     mc, handler = mc_with_fsoe_with_sra
 
@@ -254,10 +257,10 @@ def test_fixed_mapping_combination(
     # "mapping_6_False_587.json"
     # "mapping_7_True_186.json"
 
-    test_map = "mapping_6_False_587.json"
+    test_map = "failed/mapping_7_True_186.json"
 
     mapping = FSoEDictionaryMapJSONSerializer.load_mapping_from_json(
-        handler.dictionary, fsoe_maps_dir / f"failed/{test_map}"
+        handler.dictionary, fsoe_maps_dir / f"{test_map}"
     )
     handler.set_maps(mapping)
 
@@ -270,7 +273,8 @@ def test_fixed_mapping_combination(
         n_errors, last_error = get_last_fsoe_error(mc)
         write_fsoe_feedback_registers(mc=mc, handler=handler)
         n_errors, last_error = assert_no_fsoe_errors(mc, (n_errors, last_error))
-        mc.fsoe.configure_pdos(start_pdos=True)
+        mc.fsoe.configure_pdos(start_pdos=False)
+        mc.capture.pdo.start_pdos(servo=alias)
         time.sleep(0.05)
         n_errors, last_error = assert_no_fsoe_errors(mc, (n_errors, last_error))
 
@@ -279,6 +283,7 @@ def test_fixed_mapping_combination(
 
         for i in range(5):
             time.sleep(1)
+        assert fsoe_states[-1] == FSoEState.DATA
     except TimeoutError as e:
         pytest.fail(f"Failed to reach data state: {e}")
     finally:
