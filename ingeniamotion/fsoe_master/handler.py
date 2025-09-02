@@ -39,6 +39,7 @@ from ingeniamotion.fsoe_master.parameters import (
 from ingeniamotion.fsoe_master.safety_functions import (
     SafeInputsFunction,
     SafetyFunction,
+    SOutFunction,
     SS1Function,
     STOFunction,
 )
@@ -129,7 +130,7 @@ class FSoEMasterHandler:
         if self.__uses_sra:
             self._sra_fsoe_application_parameter = FSoEApplicationParameter(
                 name="SRA_CRC",
-                initial_value=self._calculate_sra_crc(),
+                initial_value=self.get_application_parameters_sra_crc(),
                 n_bytes=4,
             )
             fsoe_application_parameters.append(self._sra_fsoe_application_parameter)
@@ -229,7 +230,7 @@ class FSoEMasterHandler:
             override=override,
         )
 
-    def _calculate_sra_crc(self) -> int:
+    def get_application_parameters_sra_crc(self) -> int:
         """Calculates SRA CRC for the application parameters.
 
         SRA calculation needs as input a list of uint16 values:
@@ -328,6 +329,9 @@ class FSoEMasterHandler:
     def __start_on_first_request(self) -> None:
         """Start the FSoE Master handler on first request."""
         self.__in_initial_reset = True
+        # Recalculate the SRA crc in case it changed
+        if self._sra_fsoe_application_parameter is not None:
+            self._sra_fsoe_application_parameter.set(self.get_application_parameters_sra_crc())
         self._master_handler.start()
         self.__running = True
 
@@ -535,6 +539,19 @@ class FSoEMasterHandler:
         return self.get_function_instance(SS1Function)
 
     @weak_lru()
+    def sout_function(self) -> Optional[SOutFunction]:
+        """Get the Safe Output function.
+
+        Returns:
+            The Safe Output function instance.
+            If there is no Safe Output function, None is returned.
+        """
+        try:
+            return self.get_function_instance(SOutFunction)
+        except Exception:
+            return None
+
+    @weak_lru()
     def safe_inputs_function(self) -> SafeInputsFunction:
         """Get the Safe Inputs function.
 
@@ -574,6 +591,28 @@ class FSoEMasterHandler:
     def ss1_activate(self) -> None:
         """Set the SS1 command to activate the SS1."""
         self.ss1_function().command.set(False)
+
+    def sout_disable(self) -> None:
+        """Deactivates SOUT.
+
+        Raises:
+            RuntimeError: If SOUT is not available.
+        """
+        sout_function: SOutFunction = self.sout_function()
+        if sout_function is None:
+            raise RuntimeError("SOUT not available.")
+        sout_function.sout_disable.set(1)
+
+    def sout_enable(self) -> None:
+        """Activates SOUT.
+
+        Raises:
+            RuntimeError: If SOUT is not available.
+        """
+        sout_function: SOutFunction = self.sout_function()
+        if sout_function is None:
+            raise RuntimeError("SOUT not available.")
+        sout_function.sout_disable.set(0)
 
     def safe_inputs_value(self) -> bool:
         """Get the safe inputs register value.
