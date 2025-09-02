@@ -282,10 +282,13 @@ class SS2Function(SafetyFunction):
 class SOutFunction(SafetyFunction):
     """Safe Output Safety Function."""
 
-    command: FSoEDictionaryItemInputOutput = safety_field(
-        uid="FSOE_SBC_OUT", display_name="Command"
+    command: FSoEDictionaryItemInputOutput = safety_field(uid="FSOE_SOUT", display_name="Command")
+    brake_time_delay: SafetyParameter = safety_field(
+        uid="FSOE_SOUT_BRAKE_TIME_DELAY", display_name="Electromechanical delay for a brake"
     )
-    time_delay: SafetyParameter = safety_field(uid="FSOE_SBC_TIME_DELAY", display_name="Time Delay")
+    sout_disable: SafetyParameter = safety_field(
+        uid="FSOE_SOUT_DISABLE", display_name="Disables the SOUT functionality"
+    )
 
 
 @dataclass()

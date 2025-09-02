@@ -1,1 +1,16 @@
-include docs/what_is_ingeniamotion.rst
+prune docs
+prune examples
+prune tests
+prune build
+prune dist
+prune .github
+prune pytest_reports
+exclude .coveragerc
+exclude .gitignore
+exclude CHANGELOG.md
+exclude Jenkinsfile
+exclude mypy.ini
+exclude poetry.lock
+exclude poetry.toml
+exclude pytest.ini
+exclude ruff.toml
