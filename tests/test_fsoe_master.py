@@ -136,7 +136,6 @@ def mc_with_fsoe(
     mc,
     fsoe_states,
     fsoe_error_monitor: Callable[[FSoEError], None],
-    alias: str,
     pdos_teardown: None,  # noqa: ARG001
 ):
     def add_state(state: FSoEState):
