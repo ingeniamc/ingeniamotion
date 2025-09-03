@@ -132,12 +132,7 @@ def __set_default_phase2_mapping(handler: "FSoEMasterHandler") -> None:
 
 
 @pytest.fixture()
-def mc_with_fsoe(
-    mc,
-    fsoe_states,
-    fsoe_error_monitor: Callable[[FSoEError], None],
-    pdos_teardown: None,  # noqa: ARG001
-):
+def mc_with_fsoe(mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEError], None]):
     def add_state(state: FSoEState):
         fsoe_states.append(state)
 
@@ -160,12 +155,7 @@ def mc_with_fsoe(
 
 
 @pytest.fixture()
-def mc_with_fsoe_with_sra(
-    mc,
-    fsoe_states,
-    fsoe_error_monitor: Callable[[FSoEError], None],
-    pdos_teardown: None,  # noqa: ARG001
-):
+def mc_with_fsoe_with_sra(mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEError], None]):
     def add_state(state: FSoEState):
         fsoe_states.append(state)
 

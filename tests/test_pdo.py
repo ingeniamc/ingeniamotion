@@ -129,22 +129,14 @@ def test_set_pdo_maps_to_slave_exception(
 
 
 @pytest.mark.soem
-def test_pdos_min_refresh_rate(
-    mc: "MotionController",
-    alias: str,
-    pdos_teardown: None,  # noqa: ARG001
-) -> None:
+def test_pdos_min_refresh_rate(mc: "MotionController", alias: str) -> None:
     refresh_rate = 0.0001
     with pytest.raises(ValueError, match="The minimum PDO refresh rate is 0.001 seconds"):
         mc.capture.pdo.start_pdos(refresh_rate=refresh_rate, servo=alias)
 
 
 @pytest.mark.soem
-def test_pdos_watchdog_exception_auto(
-    mc: "MotionController",
-    alias: str,
-    pdos_teardown: None,  # noqa: ARG001
-) -> None:
+def test_pdos_watchdog_exception_auto(mc: "MotionController", alias: str) -> None:
     exceptions = []
 
     def exception_callback(exc):
@@ -161,11 +153,7 @@ def test_pdos_watchdog_exception_auto(
 
 
 @pytest.mark.soem
-def test_pdos_watchdog_exception_manual(
-    mc: "MotionController",
-    alias: str,
-    pdos_teardown: None,  # noqa: ARG001
-) -> None:
+def test_pdos_watchdog_exception_manual(mc: "MotionController", alias: str) -> None:
     exceptions = []
 
     def exception_callback(exc):
@@ -298,11 +286,7 @@ def test_start_pdos_wrong_network_type_exception(mc: "MotionController", alias: 
 
 
 @pytest.mark.soem
-def test_start_pdos_for_multiple_networks(
-    mocker,
-    mc: "MotionController",
-    pdos_teardown: None,  # noqa: ARG001
-) -> None:
+def test_start_pdos_for_multiple_networks(mocker, mc: "MotionController") -> None:
     mock_net = {"ifname1": EthercatNetwork("ifname1"), "ifname2": EthercatNetwork("ifname2")}
     mock_servo_net = {"servo1": "ifname1", "servo2": "ifname2"}
     mocker.patch.object(mc, "_MotionController__net", mock_net)
@@ -323,10 +307,7 @@ def test_start_pdos_for_multiple_networks(
 
 @pytest.mark.soem
 def test_start_pdos_for_multiple_servos_in_same_network(
-    mocker,
-    mc: "MotionController",
-    pdos_teardown: None,  # noqa: ARG001
-    caplog,
+    mocker, mc: "MotionController", caplog
 ) -> None:
     def _get_log_warnings():
         return [record for record in caplog.records if record.levelname == "WARNING"]
@@ -372,7 +353,7 @@ def skip_if_pdo_padding_is_not_available(mc: "MotionController", alias: str) -> 
 
 
 @pytest.mark.soem
-def test_create_poller(mc: "MotionController", alias: str, pdos_teardown: None) -> None:  # noqa: ARG001
+def test_create_poller(mc: "MotionController", alias: str) -> None:
     skip_if_pdo_padding_is_not_available(mc, alias)
     registers = [{"name": "CL_POS_FBK_VALUE", "axis": 1}, {"name": "CL_VEL_FBK_VALUE", "axis": 1}]
     sampling_time = 0.25
@@ -392,12 +373,7 @@ def test_create_poller(mc: "MotionController", alias: str, pdos_teardown: None) 
 
 
 @pytest.mark.soem
-def test_subscribe_exceptions(
-    mc: "MotionController",
-    alias: str,
-    mocker,
-    pdos_teardown: None,  # noqa: ARG001
-) -> None:
+def test_subscribe_exceptions(mc: "MotionController", alias: str, mocker) -> None:
     error_msg = "Test error"
 
     def start_pdos(*_):
