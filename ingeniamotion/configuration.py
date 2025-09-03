@@ -292,6 +292,28 @@ class Configuration(Homing, Feedbacks):
         drive.save_configuration(output_file, subnode=axis)
         self.logger.info("Configuration saved to %s", output_file, drive=self.mc.servo_name(servo))
 
+    def save_configuration_to_csv(
+        self, output_file: str, axis: Optional[int] = None, servo: str = DEFAULT_SERVO
+    ) -> None:
+        """Save the servo configuration to a CSV file.
+
+        This method is only supported for EtherCAT servos.
+
+        Args:
+            output_file : servo configuration destination file.
+            axis : target axis to load configuration.
+                If ``None`` function loads all axis. ``None`` by default.
+            servo : servo alias to reference it. ``default`` by default.
+
+        Raises:
+            NotImplementedError: if the servo is not an EtherCAT servo.
+            ILError: if the subnode is invalid.
+
+        """
+        drive = self.mc._get_drive(servo)
+        drive.save_configuration_csv(output_file, subnode=axis)
+        self.logger.info("Configuration saved to %s", output_file, drive=self.mc.servo_name(servo))
+
     def store_configuration(self, axis: Optional[int] = None, servo: str = DEFAULT_SERVO) -> None:
         """Store servo configuration to non-volatile memory.
 
