@@ -619,17 +619,10 @@ def test_write_safe_parameters(mc_with_fsoe):
 
         # Remove if when SACOAPP-299 is completed
         if key == "FSOE_SSR_ERROR_REACTION_8":
-            param.register._enums = {
-                "STO": 0x66400001,
-                "SS1": 0x66500101,
-                "No reaction": 0x0
-            }
+            param.register._enums = {"STO": 0x66400001, "SS1": 0x66500101, "No reaction": 0x0}
         # Remove if when SACOAPP-300 is completed
         if key == "FSOE_SS2_ERROR_REACTION_1":
-            param.register._enums = {
-                "STO": 0x66400001,
-                "No reaction": 0x0
-            }
+            param.register._enums = {"STO": 0x66400001, "No reaction": 0x0}
         if param.register.enums:
             enum_values = list(param.register.enums.values())
             enum_values.remove(old_val)
