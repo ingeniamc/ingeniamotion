@@ -10,6 +10,7 @@ from ingenialink.enums.register import RegCyclicType
 from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.ethercat.servo import EthercatServo
 from ingenialink.pdo import RPDOMap, TPDOMap
+from ingenialink.pdo_network_manager import PDONetworkManager as ILPDONetworkManager
 from ingenialink.register import Register
 from ingenialink.servo import DictionaryFactory
 from ingenialink.utils._utils import convert_dtype_to_bytes
@@ -131,7 +132,7 @@ def __set_default_phase2_mapping(handler: "FSoEMasterHandler") -> None:
 
 
 @pytest.fixture()
-def mc_with_fsoe(mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEError], None], alias: str):
+def mc_with_fsoe(mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEError], None]):
     def add_state(state: FSoEState):
         fsoe_states.append(state)
 
@@ -151,16 +152,10 @@ def mc_with_fsoe(mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEError], None
     yield mc, handler
     # Delete the master handler
     mc.fsoe._delete_master_handler()
-    # Ensure the PDOs are stopped
-    # https://novantamotion.atlassian.net/browse/CIT-494
-    if mc.capture.pdo.is_active(servo=alias):
-        mc.capture.pdo.stop_pdos(servo=alias)
 
 
 @pytest.fixture()
-def mc_with_fsoe_with_sra(
-    mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEError], None], alias: str
-):
+def mc_with_fsoe_with_sra(mc, fsoe_states, fsoe_error_monitor: Callable[[FSoEError], None]):
     def add_state(state: FSoEState):
         fsoe_states.append(state)
 
@@ -176,8 +171,6 @@ def mc_with_fsoe_with_sra(
     if handler.sout_function() is not None:
         handler.sout_disable()
     yield mc, handler
-    if mc.capture.pdo.is_active(servo=alias):
-        mc.capture.pdo.stop_pdos(servo=alias)
     # Delete the master handler
     mc.fsoe._delete_master_handler()
 
@@ -313,6 +306,8 @@ class MockSafetyParameter:
 class MockNetwork(EthercatNetwork):
     def __init__(self):
         Network.__init__(self)
+
+        self._pdo_manager = ILPDONetworkManager(self)
 
 
 class MockServo(Servo):

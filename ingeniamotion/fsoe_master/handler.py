@@ -97,6 +97,8 @@ class FSoEMasterHandler:
         self.__running: bool = False
         self.__uses_sra: bool = use_sra
 
+        self.net.pdo_manager.subscribe_to_exceptions(self._pdo_thread_exception_handler)
+
         self.__state_is_data = threading.Event()
 
         # The saco slave might take a while to answer with a valid command
@@ -192,6 +194,21 @@ class FSoEMasterHandler:
         except Exception as ex:
             self._master_handler.delete()
             raise ex
+
+    def _pdo_thread_exception_handler(self, exc: Exception) -> None:
+        """Callback method for the PDO thread exceptions.
+
+        If there is an exception in the PDO thread and the master was running,
+        it should be stopped.
+
+        Args:
+            exc: The exception that occurred.
+        """
+        self.logger.error(
+            f"An exception occurred during the PDO exchange: {exc}. FSoE Master will be stopped."
+        )
+        if self.running:
+            self.stop()
 
     @property
     def net(self) -> "EthercatNetwork":
