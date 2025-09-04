@@ -630,6 +630,7 @@ def test_write_safe_parameters(mc_with_fsoe):
         else:
             new_val = old_val - 1 if old_val == param.register.range[1] else old_val + 1
         param.set_without_updating(new_val)
+        # Ignore RxPDO and TxPDO FSoE Map registers in write_safe_parameters
         if param.register.idx in [0x1700, 0x1B00]:
             expected_value[key] = old_val
         else:
