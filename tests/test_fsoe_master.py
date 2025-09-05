@@ -614,6 +614,37 @@ def test_modify_safe_parameters(fsoe_error_monitor: Callable[[FSoEError], None])
         handler.delete()
 
 
+@pytest.mark.fsoe_phase2
+def test_write_safe_parameters(mc_with_fsoe):
+    mc, handler = mc_with_fsoe
+    expected_value = {}
+    for key, param in handler.safety_parameters.items():
+        old_val = mc.communication.get_register(key)
+
+        # Remove if when SACOAPP-299 is completed
+        if key == "FSOE_SSR_ERROR_REACTION_8":
+            param.register._enums = {"STO": 0x66400001, "SS1": 0x66500101, "No reaction": 0x0}
+        # Remove if when SACOAPP-300 is completed
+        if key == "FSOE_SS2_ERROR_REACTION_1":
+            param.register._enums = {"STO": 0x66400001, "No reaction": 0x0}
+        if param.register.enums:
+            enum_values = list(param.register.enums.values())
+            enum_values.remove(old_val)
+            new_val = enum_values[0]
+        else:
+            new_val = old_val - 1 if old_val == param.register.range[1] else old_val + 1
+        param.set_without_updating(new_val)
+        # Ignore RxPDO and TxPDO FSoE Map registers in write_safe_parameters
+        if param.register.idx in [0x1700, 0x1B00]:
+            expected_value[key] = old_val
+        else:
+            expected_value[key] = new_val
+    handler.write_safe_parameters()
+    for key, param in handler.safety_parameters.items():
+        test_val = mc.communication.get_register(key)
+        assert test_val == expected_value[key], f"Parameter {key} not written correctly"
+
+
 @pytest.mark.fsoe
 @pytest.mark.parametrize(
     "dictionary, editable",
