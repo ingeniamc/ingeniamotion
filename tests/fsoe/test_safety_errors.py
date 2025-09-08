@@ -55,12 +55,12 @@ def test_get_error_with_id_not_in_dict():
 
 
 @pytest.fixture
-def mcu_error_queue_a(servo: "Servo") -> ServoErrorQueue:
+def mcu_error_queue_a(servo: "Servo") -> "ServoErrorQueue":
     return ServoErrorQueue(MCUA_ERROR_QUEUE, servo)
 
 
 @pytest.fixture
-def mcu_error_queue_b(servo: "Servo") -> ServoErrorQueue:
+def mcu_error_queue_b(servo: "Servo") -> "ServoErrorQueue":
     return ServoErrorQueue(MCUB_ERROR_QUEUE, servo)
 
 
