@@ -5,19 +5,22 @@ import pytest
 from ingenialink.dictionary import Interface
 from ingenialink.servo import DictionaryFactory
 
-from ingeniamotion.fsoe_master import (
-    PDUMaps,
-    SLPFunction,
-    SPFunction,
-    STOFunction,
-    SVFunction,
-)
-from ingeniamotion.fsoe_master.errors import (
-    MCUA_ERROR_QUEUE,
-    MCUB_ERROR_QUEUE,
-    Error,
-    ServoErrorQueue,
-)
+from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
+
+if FSOE_MASTER_INSTALLED:
+    from ingeniamotion.fsoe_master import (
+        PDUMaps,
+        SLPFunction,
+        SPFunction,
+        STOFunction,
+        SVFunction,
+    )
+    from ingeniamotion.fsoe_master.errors import (
+        MCUA_ERROR_QUEUE,
+        MCUB_ERROR_QUEUE,
+        Error,
+        ServoErrorQueue,
+    )
 from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
 from tests.test_fsoe_master import TIMEOUT_FOR_DATA_SRA
 
