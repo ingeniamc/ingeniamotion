@@ -61,7 +61,7 @@ class PDOPoller:
         self.__mc.capture.pdo.set_pdo_maps_to_slave(
             rpdo_maps=self.__rpdo_map, tpdo_maps=self.__tpdo_map, servo=self.__servo
         )
-        self.__mc.capture.pdo.subscribe_to_receive_process_data(self._new_data_available)
+        self.__tpdo_map.subscribe_to_process_data_event(self._new_data_available)
         for callback in self.__exception_callbacks:
             self.__mc.capture.pdo.subscribe_to_exceptions(callback, servo=self.__servo)
         self.__start_time = time.time()
@@ -74,9 +74,7 @@ class PDOPoller:
     def stop(self) -> None:
         """Stop the poller."""
         self.__mc.capture.pdo.stop_pdos(servo=self.__servo)
-        self.__mc.capture.pdo.unsubscribe_to_receive_process_data(
-            self._new_data_available, servo=self.__servo
-        )
+        self.__tpdo_map.unsubscribe_to_process_data_event()
         for callback in self.__exception_callbacks:
             self.__mc.capture.pdo.unsubscribe_to_exceptions(callback, servo=self.__servo)
         self.__mc.capture.pdo.remove_rpdo_map(servo=self.__servo, rpdo_map=self.__rpdo_map)
@@ -493,15 +491,14 @@ class PDONetworkManager:
         drive = self.__mc._get_drive(servo=servo)
         if not isinstance(drive, EthercatServo):
             raise ValueError(f"Expected an EthercatServo. Got {type(drive)}")
-        if not isinstance(rpdo_maps, list):
-            rpdo_maps = [rpdo_maps]
-        if not isinstance(tpdo_maps, list):
-            tpdo_maps = [tpdo_maps]
-        if not all(isinstance(rpdo_map, RPDOMap) for rpdo_map in rpdo_maps):
+
+        _rpdo_maps = [rpdo_maps] if isinstance(rpdo_maps, RPDOMap) else rpdo_maps
+        _tpdo_maps = [tpdo_maps] if isinstance(tpdo_maps, TPDOMap) else tpdo_maps
+        if not all(isinstance(rpdo_map, RPDOMap) for rpdo_map in _rpdo_maps):
             raise ValueError("Not all elements of the RPDO map list are instances of a RPDO map")
-        if not all(isinstance(tpdo_map, TPDOMap) for tpdo_map in tpdo_maps):
+        if not all(isinstance(tpdo_map, TPDOMap) for tpdo_map in _tpdo_maps):
             raise ValueError("Not all elements of the TPDO map list are instances of a TPDO map")
-        drive.set_pdo_map_to_slave(rpdo_maps=rpdo_maps, tpdo_maps=tpdo_maps)
+        drive.set_pdo_map_to_slave(rpdo_maps=_rpdo_maps, tpdo_maps=_tpdo_maps)
 
     def clear_pdo_mapping(self, servo: str = DEFAULT_SERVO) -> None:
         """Clear the PDO mapping within the servo.

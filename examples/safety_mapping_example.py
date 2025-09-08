@@ -81,6 +81,8 @@ def main(ifname, slave_id, dict_path) -> None:
     # safe_inputs.map.set(2)  # Linked to SS1 Instance
 
     # Configure the pdos the FSoE master handler
+    if handler.sout_function():
+        handler.sout_disable()
     mc.fsoe.configure_pdos()
 
     # After reconfiguring the maps and configuring the pdos,
