@@ -96,13 +96,13 @@ def fsoe_error_monitor(
     def error_handler(error: FSoEError) -> None:
         errors.append(error)
 
-    def my_fsoe_error_reporter_callback() -> tuple[bool, str]:
+    def fsoe_error_reporter_callback() -> tuple[bool, str]:
         if len(errors) > 0:
             error_messages = "\n".join(str(error) for error in errors)
             return False, f"FSoE errors occurred:\n{error_messages}"
         return True, ""
 
-    add_fixture_error_checker(request.node, my_fsoe_error_reporter_callback)
+    add_fixture_error_checker(request.node, fsoe_error_reporter_callback)
 
     return error_handler
 

@@ -56,6 +56,11 @@ class Error:
         return cls(error_id, dictionary_error)
 
     def __repr__(self) -> str:
+        """Get a string representation of the Error instance.
+
+        Returns:
+            str: String representation of the Error instance.
+        """
         return (
             f"<Error object at {hex(id(self))} "
             f"error_id={self.error_id} "

@@ -33,6 +33,10 @@ def test_get_known_error():
     error = Error.from_id(0x00007394, dictionary=dictionary)
     assert error.error_id == 0x00007394
     assert error.error_description == "Emergency position set-point not configured."
+    assert (
+        repr(error) == f"<Error object at {hex(id(error))} error_id=29588"
+        f" error_description='Emergency position set-point not configured.'>"
+    )
 
 
 def test_get_error_with_id_not_in_dict():
@@ -66,6 +70,8 @@ def test_no_errors(mcu_error_queue_a, environment):
     last_error = mcu_error_queue_a.get_last_error()
     assert last_error is None
 
+    mcu_error_queue_a.get_pending_errors() == []
+
 
 @pytest.mark.skip(reason="FSOE Over temperature error was not available in release 2.8.1")
 @pytest.mark.fsoe_phase2
@@ -86,14 +92,14 @@ def test_get_last_error_overtemp_error(servo, mcu_error_queue_a, environment):
 
 
 def test_get_last_error_feedback_combination(
-    servo, mcu_error_queue_a, mcu_error_queue_b, mc_with_fsoe_factory, environment
+    mcu_error_queue_a, mcu_error_queue_b, mc_with_fsoe_factory, environment
 ):
     environment.power_cycle(wait_for_drives=True)
     """Test getting the last error when there is a feedback combination error."""
     mc, handler = mc_with_fsoe_factory(use_sra=True, fail_on_fsoe_errors=False)
 
     # Add a function that uses safe position to handler
-    # and select feedback feedback scenario invalid
+    # and select feedback scenario invalid
     handler.safety_parameters["FSOE_FEEDBACK_SCENARIO"].set(0)  # No feedbacks
 
     sto = handler.get_function_instance(STOFunction)
@@ -118,6 +124,12 @@ def test_get_last_error_feedback_combination(
     assert mcu_error_queue_b.get_number_total_errors() == 1
     assert mcu_error_queue_a.get_last_error().error_id == 0x90090701
     assert mcu_error_queue_b.get_last_error().error_id == 0x90090701
+
+    errors_a, errors_losts = mcu_error_queue_a.get_pending_errors()
+    assert len(errors_a) == 1
+    assert errors_a[0].error_id == 0x90090701
+
+    assert not errors_losts
 
 
 @pytest.mark.parametrize(
@@ -144,7 +156,3 @@ def test_get_pending_error_indexes(
 
     assert pending_error_indexes == expected_pending_error_indexes
     assert errors_lost == expected_errors_lost
-
-
-# https://novantamotion.atlassian.net/browse/INGM-698
-# get_pending_errors test is not implemented
