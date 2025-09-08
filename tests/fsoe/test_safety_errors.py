@@ -25,6 +25,7 @@ if TYPE_CHECKING:
     from ingenialink import Servo
 
 
+@pytest.mark.fsoe_phase2
 def test_get_known_error():
     """Test getting a known error from the dictionary."""
     dictionary = DictionaryFactory.create_dictionary(
@@ -39,6 +40,7 @@ def test_get_known_error():
     )
 
 
+@pytest.mark.fsoe_phase2
 def test_get_error_with_id_not_in_dict():
     """Test getting an error with an unknown ID."""
     dictionary = DictionaryFactory.create_dictionary(
@@ -91,6 +93,7 @@ def test_get_last_error_overtemp_error(servo, mcu_error_queue_a, environment):
     )
 
 
+@pytest.mark.fsoe_phase2
 def test_get_last_error_feedback_combination(
     mcu_error_queue_a, mcu_error_queue_b, mc_with_fsoe_factory, environment
 ):
@@ -132,6 +135,7 @@ def test_get_last_error_feedback_combination(
     assert not errors_losts
 
 
+@pytest.mark.fsoe_phase2
 @pytest.mark.parametrize(
     "last_total_errors, current_total_errors, expected_pending_error_indexes, expected_errors_lost",
     [
