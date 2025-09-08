@@ -7,6 +7,7 @@
 - Added methods to intelligently add i/o on the map.
 - Created FSoEDictionaryMapValidator that validates PDUMaps.
 - Added method to safely disconnect drive is disconnection is performed using the network.
+- Method to export EtherCAT drive configuration to CSV
 
 ### Changed
 - Read safety pdo maps from drive instead of hardcoding them.

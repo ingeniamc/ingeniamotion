@@ -39,6 +39,7 @@ from ingeniamotion.fsoe_master.parameters import (
 from ingeniamotion.fsoe_master.safety_functions import (
     SafeInputsFunction,
     SafetyFunction,
+    SOutFunction,
     SS1Function,
     STOFunction,
 )
@@ -95,6 +96,8 @@ class FSoEMasterHandler:
         self.__net = net
         self.__running: bool = False
         self.__uses_sra: bool = use_sra
+
+        self.net.pdo_manager.subscribe_to_exceptions(self._pdo_thread_exception_handler)
 
         self.__state_is_data = threading.Event()
 
@@ -191,6 +194,21 @@ class FSoEMasterHandler:
         except Exception as ex:
             self._master_handler.delete()
             raise ex
+
+    def _pdo_thread_exception_handler(self, exc: Exception) -> None:
+        """Callback method for the PDO thread exceptions.
+
+        If there is an exception in the PDO thread and the master was running,
+        it should be stopped.
+
+        Args:
+            exc: The exception that occurred.
+        """
+        self.logger.error(
+            f"An exception occurred during the PDO exchange: {exc}. FSoE Master will be stopped."
+        )
+        if self.running:
+            self.stop()
 
     @property
     def net(self) -> "EthercatNetwork":
@@ -341,8 +359,8 @@ class FSoEMasterHandler:
         self.__running = False
 
         # Unsubscribe from PDO events
-        self.net.pdo_manager.unsubscribe_to_send_process_data(self.get_request)
-        self.net.pdo_manager.unsubscribe_to_receive_process_data(self.set_reply)
+        self.safety_master_pdu_map.unsubscribe_to_process_data_event()
+        self.safety_slave_pdu_map.unsubscribe_to_process_data_event()
 
     def delete(self) -> None:
         """Delete the master handler."""
@@ -393,9 +411,8 @@ class FSoEMasterHandler:
         )
 
         # Subscribe to events
-        # https://novantamotion.atlassian.net/browse/INGM-667
-        self.net.pdo_manager.subscribe_to_send_process_data(self.get_request)
-        self.net.pdo_manager.subscribe_to_receive_process_data(self.set_reply)
+        self.safety_master_pdu_map.subscribe_to_process_data_event(self.get_request)
+        self.safety_slave_pdu_map.subscribe_to_process_data_event(self.set_reply)
 
         if self.__maps.editable:
             self.safety_master_pdu_map.write_to_slave(padding=True)
@@ -538,6 +555,19 @@ class FSoEMasterHandler:
         return self.get_function_instance(SS1Function)
 
     @weak_lru()
+    def sout_function(self) -> Optional[SOutFunction]:
+        """Get the Safe Output function.
+
+        Returns:
+            The Safe Output function instance.
+            If there is no Safe Output function, None is returned.
+        """
+        try:
+            return self.get_function_instance(SOutFunction)
+        except Exception:
+            return None
+
+    @weak_lru()
     def safe_inputs_function(self) -> SafeInputsFunction:
         """Get the Safe Inputs function.
 
@@ -577,6 +607,28 @@ class FSoEMasterHandler:
     def ss1_activate(self) -> None:
         """Set the SS1 command to activate the SS1."""
         self.ss1_function().command.set(False)
+
+    def sout_disable(self) -> None:
+        """Deactivates SOUT.
+
+        Raises:
+            RuntimeError: If SOUT is not available.
+        """
+        sout_function: SOutFunction = self.sout_function()
+        if sout_function is None:
+            raise RuntimeError("SOUT not available.")
+        sout_function.sout_disable.set(1)
+
+    def sout_enable(self) -> None:
+        """Activates SOUT.
+
+        Raises:
+            RuntimeError: If SOUT is not available.
+        """
+        sout_function: SOutFunction = self.sout_function()
+        if sout_function is None:
+            raise RuntimeError("SOUT not available.")
+        sout_function.sout_disable.set(0)
 
     def safe_inputs_value(self) -> bool:
         """Get the safe inputs register value.

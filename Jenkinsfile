@@ -6,8 +6,11 @@ def ECAT_NODE_LOCK = "test_execution_lock_ecat"
 def CAN_NODE = "canopen-test"
 def CAN_NODE_LOCK = "test_execution_lock_can"
 
-def LIN_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/docker-python:1.5"
-def WIN_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/win-python-builder:1.6"
+def LIN_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/docker-python:1.6"
+def WIN_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/win-python-builder:1.7"
+
+WIN_DOCKER_TMP_PATH = "C:\\Users\\ContainerAdministrator\\ingeniamotion"
+LIN_DOCKER_TMP_PATH = "/tmp/ingeniamotion"
 
 DEFAULT_PYTHON_VERSION = "3.9"
 
@@ -88,8 +91,7 @@ def runPython(command, py_version = DEFAULT_PYTHON_VERSION) {
     }
 }
 
-def createVirtualEnvironments(String pythonVersionList = "") {
-    runPython("pip install poetry==2.1.3", DEFAULT_PYTHON_VERSION)
+def createVirtualEnvironments(String workingDir = null, String pythonVersionList = "") {
     def versions = pythonVersionList?.trim() ? pythonVersionList : RUN_PYTHON_VERSIONS
     def pythonVersions = versions.split(',')
     // Ensure DEFAULT_PYTHON_VERSION is included if not already present
@@ -98,8 +100,10 @@ def createVirtualEnvironments(String pythonVersionList = "") {
     }
     pythonVersions.each { version ->
         def venvName = ".venv${version}"
+        def cdCmd = workingDir ? "cd ${workingDir}" : ""
         if (isUnix()) {
             sh """
+                ${cdCmd}
                 python${version} -m venv --without-pip ${venvName}
                 . ${venvName}/bin/activate
                 poetry sync --all-groups
@@ -107,6 +111,7 @@ def createVirtualEnvironments(String pythonVersionList = "") {
             """
         } else {
             bat """
+                ${cdCmd}
                 py -${version} -m venv ${venvName}
                 call ${venvName}/Scripts/activate
                 poetry sync --all-groups --extras fsoe
@@ -205,10 +210,20 @@ pipeline {
                         }
                     }
                     stages {
+                        stage('Move workspace') {
+                            steps {
+                                script {
+                                    sh """
+                                        mkdir -p ${LIN_DOCKER_TMP_PATH}
+                                        cp -r ${env.WORKSPACE}/. ${LIN_DOCKER_TMP_PATH}
+                                    """
+                                }
+                            }
+                        }
                         stage('Create virtual environments') {
                             steps {
                                 script {
-                                    createVirtualEnvironments()
+                                    createVirtualEnvironments(LIN_DOCKER_TMP_PATH)
                                 }
                             }
                         }
@@ -218,6 +233,7 @@ pipeline {
                                     def pythonVersions = RUN_PYTHON_VERSIONS.split(',')
                                     pythonVersions.each { version ->
                                         sh """
+                                            cd ${LIN_DOCKER_TMP_PATH}
                                             . .venv${version}/bin/activate
                                             poetry run poe tests --junitxml=pytest_reports/junit-tests-${version}.xml --junit-prefix=${version} -m virtual --setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP
                                             deactivate
@@ -227,7 +243,11 @@ pipeline {
                             }
                             post {
                                 always {
-                                    junit "pytest_reports/*.xml"
+                                    sh """
+                                        mkdir -p pytest_reports
+                                        cp ${LIN_DOCKER_TMP_PATH}/pytest_reports/* pytest_reports/
+                                    """
+                                    junit 'pytest_reports/*.xml'
                                 }
                             }
                         }
@@ -249,10 +269,15 @@ pipeline {
                                 }
                             }
                             stages {
+                                stage('Move workspace') {
+                                    steps {
+                                        bat "XCOPY ${env.WORKSPACE} ${WIN_DOCKER_TMP_PATH} /s /i /y /e /h"
+                                    }
+                                }
                                 stage('Create virtual environments') {
                                     steps {
                                         script {
-                                            createVirtualEnvironments()
+                                            createVirtualEnvironments(WIN_DOCKER_TMP_PATH)
                                         }
                                     }
                                 }
@@ -262,8 +287,10 @@ pipeline {
                                     }
                                     steps {
                                         bat """
+                                            cd ${WIN_DOCKER_TMP_PATH}
                                             call .venv${DEFAULT_PYTHON_VERSION}/Scripts/activate
                                             poetry run poe build
+                                            XCOPY dist ${env.WORKSPACE}\\dist /s /i
                                         """
                                         stash includes: 'dist\\*', name: 'build'
                                         archiveArtifacts artifacts: "dist\\*"
@@ -272,6 +299,7 @@ pipeline {
                                 stage('Make a static type analysis') {
                                     steps {
                                         bat """
+                                            cd ${WIN_DOCKER_TMP_PATH}
                                             call .venv${DEFAULT_PYTHON_VERSION}/Scripts/activate
                                             poetry run poe type
                                         """
@@ -280,6 +308,7 @@ pipeline {
                                 stage('Check formatting') {
                                     steps {
                                         bat """
+                                            cd ${WIN_DOCKER_TMP_PATH}
                                             call .venv${DEFAULT_PYTHON_VERSION}/Scripts/activate
                                             poetry run poe format
                                         """
@@ -288,9 +317,11 @@ pipeline {
                                 stage('Generate documentation') {
                                     steps {
                                         bat """
+                                            cd ${WIN_DOCKER_TMP_PATH}
                                             call .venv${DEFAULT_PYTHON_VERSION}/Scripts/activate
                                             poetry run poe docs
                                             "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
+                                            XCOPY docs.zip ${env.WORKSPACE}
                                         """
                                         stash includes: 'docs.zip', name: 'docs'
                                     }
@@ -301,6 +332,7 @@ pipeline {
                                             def pythonVersions = RUN_PYTHON_VERSIONS.split(',')
                                             pythonVersions.each { version ->
                                                 bat """
+                                                    cd ${WIN_DOCKER_TMP_PATH}
                                                     call .venv${version}/Scripts/activate
                                                     poetry run poe tests --import-mode=importlib --cov=ingeniamotion --junitxml=pytest_reports/junit-tests-${version}.xml --junit-prefix=${version} -m "not ethernet and not soem and not fsoe and not fsoe_phase2 and not canopen and not virtual and not soem_multislave and not skip_testing_framework"
                                                 """
@@ -309,7 +341,11 @@ pipeline {
                                     }
                                     post {
                                         always {
-                                            bat "move .coverage .coverage_unit_tests"
+                                            bat """
+                                                mkdir -p pytest_reports
+                                                XCOPY ${WIN_DOCKER_TMP_PATH}\\pytest_reports\\* pytest_reports\\ /s /i /y /e /h
+                                                move ${WIN_DOCKER_TMP_PATH}\\.coverage .coverage_unit_tests
+                                            """
                                             junit "pytest_reports\\*.xml"
                                             // Delete the junit after publishing it so it not re-published on the next stage
                                             bat "del /S /Q pytest_reports\\*.xml"
@@ -326,6 +362,7 @@ pipeline {
                                             def pythonVersions = RUN_PYTHON_VERSIONS.split(',')
                                             pythonVersions.each { version ->
                                                 bat """
+                                                    cd ${WIN_DOCKER_TMP_PATH}
                                                     call .venv${version}/Scripts/activate
                                                     poetry run poe tests --import-mode=importlib --cov=ingeniamotion --junitxml=pytest_reports/junit-tests-${version}.xml --junit-prefix=${version} -m virtual --setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP
                                                 """
@@ -334,7 +371,11 @@ pipeline {
                                     }
                                     post {
                                         always {
-                                            bat "move .coverage .coverage_virtual"
+                                            bat """
+                                                mkdir -p pytest_reports
+                                                XCOPY ${WIN_DOCKER_TMP_PATH}\\pytest_reports\\* pytest_reports\\ /s /i /y /e /h
+                                                move ${WIN_DOCKER_TMP_PATH}\\.coverage .coverage_virtual
+                                            """
                                             junit "pytest_reports\\*.xml"
                                             // Delete the junit after publishing it so it not re-published on the next stage
                                             bat "del /S /Q pytest_reports\\*.xml"
@@ -573,6 +614,16 @@ pipeline {
                                 runTestHW("fsoe_phase1", "fsoe and not skip_testing_framework", "ECAT_DEN_S_PHASE1_SETUP", USE_WIRESHARK_LOGGING)
                             }
                         }
+                        stage("Safety Denali Phase I (skip_testing_framework)") {
+                            when {
+                                expression {
+                                    "fsoe_phase1_no_framework" ==~ params.run_test_stages
+                                }
+                            }
+                            steps {
+                                runTestHW("fsoe_phase1_no_framework", "fsoe and skip_testing_framework", "ECAT_DEN_S_PHASE1_SETUP", USE_WIRESHARK_LOGGING)
+                            }
+                        }
                         stage("Safety Denali Phase II") {
                             when {
                                 expression {
@@ -623,11 +674,14 @@ pipeline {
                         unstash coverage_stash
                         coverage_files += " " + coverage_stash
                     }
-                    createVirtualEnvironments(DEFAULT_PYTHON_VERSION)
+                    bat "XCOPY ${env.WORKSPACE} ${WIN_DOCKER_TMP_PATH} /s /i /y /e /h"
+                    createVirtualEnvironments(WIN_DOCKER_TMP_PATH, DEFAULT_PYTHON_VERSION)
                     bat """
+                        cd ${WIN_DOCKER_TMP_PATH}
                         call .venv${DEFAULT_PYTHON_VERSION}/Scripts/activate
                         poetry run poe cov-combine --${coverage_files}
                         poetry run poe cov-report
+                        XCOPY coverage.xml ${env.WORKSPACE}
                     """
                 }
                 recordCoverage(tools: [[parser: 'COBERTURA', pattern: 'coverage.xml']])
