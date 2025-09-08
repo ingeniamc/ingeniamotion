@@ -39,6 +39,7 @@ if FSOE_MASTER_INSTALLED:
         SSRFunction,
         STOFunction,
         SVFunction,
+        SafetyParameter,
     )
     from ingeniamotion.fsoe_master.frame import FSoEFrame
     from ingeniamotion.fsoe_master.fsoe import (
@@ -522,6 +523,23 @@ def test_detect_safety_functions_ph2():
         SLPFunction,
         SLPFunction,
     ]
+
+@pytest.mark.fsoe
+def test_optional_parameter_not_present():
+    handler = MockHandler(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, 0x3800000)
+
+    sto: STOFunction = next(STOFunction.for_handler(handler))
+
+    assert sto.activate_sout is None
+    # TODO check that list does not contain the nones
+
+@pytest.mark.fsoe
+def test_optional_parameter_present():
+    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00000)
+
+    sto: STOFunction = next(STOFunction.for_handler(handler))
+
+    assert isinstance(sto.activate_sout, SafetyParameter)
 
 
 @pytest.mark.fsoe

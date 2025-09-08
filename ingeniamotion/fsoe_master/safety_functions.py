@@ -2,7 +2,7 @@
 import dataclasses
 from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, Optional, Union, get_args, get_origin
 
 from ingeniamotion.fsoe_master.fsoe import (
     FSoEDictionaryItem,
@@ -50,10 +50,29 @@ class SafetyFieldMetadata:
 def safety_field(uid: str, display_name: str):  # type: ignore[no-untyped-def]
     """Create a dataclass field with metadata for safety functions.
 
+    Args:
+        uid: Unique identifier of the register associated with the field.
+            May include an instance index, e.g. `FSOE_SS1_{i}`.
+
+        display_name: Name of the field for documentation and display.
+
     Returns:
         dataclass field with safety metadata
     """
     return dataclasses.field(metadata={"uid": uid, "display_name": display_name})
+
+
+def is_optional(field_type) -> tuple[bool, type]:
+    """Check if a field type is Optional and get the internal type."""
+    is_optional = get_origin(field_type) is Optional or (
+        get_origin(field_type) is Union and type(None) in get_args(field_type)
+    )
+
+    if not is_optional:
+        return False, field_type
+
+    internal_type = next(x for x in get_args(field_type) if x is not None)
+    return True, internal_type
 
 
 @dataclass()
@@ -115,16 +134,19 @@ class SafetyFunction:
             if instance_i:
                 uid = uid.format(i=instance_i)
 
-            if field.type == FSoEDictionaryItemInputOutput:
-                ios[metadata] = cls._get_required_input_output(handler, uid)
-            elif field.type == FSoEDictionaryItemInput:
-                ios[metadata] = cls._get_required_input(handler, uid)
-            elif field.type == SafetyParameter:
-                parameters[metadata] = cls._get_required_parameter(handler, uid)
+            optional, field_type = is_optional(field.type)
+            required = not optional  # TODO Change
+
+            if field_type == FSoEDictionaryItemInputOutput:
+                ios[metadata] = cls._get_input_output(handler, uid, required)
+            elif field_type == FSoEDictionaryItemInput:
+                ios[metadata] = cls._get_input(handler, uid, required)
+            elif field_type == SafetyParameter:
+                parameters[metadata] = cls._get_parameter(handler, uid, required)
 
         yield cls(
-            ios=ios,
-            parameters=parameters,
+            ios=ios,  # TODO Filter
+            parameters=parameters,  # TODO Filter
             **{field.attr_name: io for field, io in ios.items()},
             **{field.attr_name: parameter for field, parameter in parameters.items()},
         )
@@ -156,10 +178,15 @@ class SafetyFunction:
             return
 
     @classmethod
-    def _get_required_input_output(
-        cls, hander: "FSoEMasterHandler", uid: str
-    ) -> FSoEDictionaryItemInputOutput:
-        """Get the required input/output item from the handler's dictionary.
+    def _get_input_output(
+        cls, handler: "FSoEMasterHandler", uid: str, required: bool
+    ) -> Optional[FSoEDictionaryItemInputOutput]:
+        """Get the input/output item from the handler's dictionary.
+
+        Args:
+            handler: The FSoE master handler to use.
+            uid: The unique identifier of the input/output item.
+            required: Whether the item is required or optional.
 
         Raises:
             KeyError: if the item is not found.
@@ -168,18 +195,26 @@ class SafetyFunction:
         Returns:
             FSoEDictionaryItemInputOutput: The required input/output item.
         """
-        item = hander.dictionary.name_map.get(uid)
-        if item is None:
-            raise KeyError(f"Dictionary item {uid} not found in the handler's dictionary")
-        if not isinstance(item, FSoEDictionaryItemInputOutput):
-            raise TypeError(
-                f"Expected DictionaryItemInputOutput {uid} on the safe dictionary, got {type(item)}"
-            )
+        item = handler.dictionary.name_map.get(uid)
+        if required:
+            if item is None:
+                raise KeyError(f"Dictionary item {uid} not found in the handler's dictionary")
+            if not isinstance(item, FSoEDictionaryItemInputOutput):
+                raise TypeError(
+                    f"Expected DictionaryItemInputOutput {uid} on the safe dictionary, got {type(item)}"
+                )
         return item
 
     @classmethod
-    def _get_required_input(cls, handler: "FSoEMasterHandler", uid: str) -> FSoEDictionaryItemInput:
-        """Get the required input item from the handler's dictionary.
+    def _get_input(
+        cls, handler: "FSoEMasterHandler", uid: str, required: bool
+    ) -> Optional[FSoEDictionaryItemInput]:
+        """Get the input item from the handler's dictionary.
+
+        Args:
+            handler: The FSoE master handler to use.
+            uid: The unique identifier of the input item.
+            required: Whether the item is required or optional.
 
         Raises:
             KeyError: if the item is not found.
@@ -189,17 +224,25 @@ class SafetyFunction:
             FSoEDictionaryItemInput: The required input item.
         """
         item = handler.dictionary.name_map.get(uid)
-        if item is None:
-            raise KeyError(f"Dictionary item {uid} not found in the handler's dictionary")
-        if not isinstance(item, FSoEDictionaryItemInput):
-            raise TypeError(
-                f"Expected DictionaryItemInput {uid} on the safe dictionary, got {type(item)}"
-            )
+        if required:
+            if item is None:
+                raise KeyError(f"Dictionary item {uid} not found in the handler's dictionary")
+            if not isinstance(item, FSoEDictionaryItemInput):
+                raise TypeError(
+                    f"Expected DictionaryItemInput {uid} on the safe dictionary, got {type(item)}"
+                )
         return item
 
     @classmethod
-    def _get_required_parameter(cls, handler: "FSoEMasterHandler", uid: str) -> SafetyParameter:
-        """Get the required parameter from the handler's safety parameters.
+    def _get_parameter(
+        cls, handler: "FSoEMasterHandler", uid: str, required: bool
+    ) -> Optional[SafetyParameter]:
+        """Get the parameter from the handler's safety parameters.
+
+        Args:
+            handler: The FSoE master handler to use.
+            uid: The unique identifier of the safety parameter.
+            required: Whether the parameter is required or optional.
 
         Raises:
              KeyError: if the parameter is not found.
@@ -207,9 +250,11 @@ class SafetyFunction:
         Returns:
                 SafetyParameter: The required safety parameter.
         """
-        if uid not in handler.safety_parameters:
+        param = handler.safety_parameters.get(uid, None)
+        if required and uid not in handler.safety_parameters:
             raise KeyError(f"Safety parameter {uid} not found in the handler's safety parameters")
-        return handler.safety_parameters[uid]
+
+        return param
 
 
 @dataclass()
@@ -219,6 +264,9 @@ class STOFunction(SafetyFunction):
     COMMAND_UID = "FSOE_STO"
 
     command: FSoEDictionaryItemInputOutput = safety_field(uid=COMMAND_UID, display_name="Command")
+    activate_sout: Optional[SafetyParameter] = safety_field(
+        uid="FSOE_STO_ACTIVATE_SOUT", display_name="Activate SOUT"
+    )
 
 
 @dataclass()
