@@ -538,7 +538,7 @@ def test_optional_parameter_not_present():
     sto: STOFunction = next(STOFunction.for_handler(handler))
 
     assert sto.activate_sout is None
-    # TODO check that list does not contain the nones
+    assert sto.parameters == {}
 
 
 @pytest.mark.fsoe
@@ -549,7 +549,12 @@ def test_optional_parameter_present():
 
     sto: STOFunction = next(STOFunction.for_handler(handler))
 
-    sto.activate_sout is not None
+    assert sto.activate_sout is not None
+    assert len(sto.parameters) == 1
+    metadata, parameter = next(iter(sto.parameters.items()))
+    assert metadata.uid == "FSOE_STO_ACTIVATE_SOUT"
+    assert metadata.display_name == "Activate SOUT"
+    assert parameter is not None
 
 
 @pytest.mark.fsoe

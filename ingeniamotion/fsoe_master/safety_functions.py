@@ -62,7 +62,7 @@ def safety_field(uid: str, display_name: str):  # type: ignore[no-untyped-def]
     return dataclasses.field(metadata={"uid": uid, "display_name": display_name})
 
 
-def is_optional(field_type) -> tuple[bool, type]:
+def is_optional(field_type: type) -> tuple[bool, type]:
     """Check if a field type is Optional and get the internal type."""
     is_optional = get_origin(field_type) is Optional or (
         get_origin(field_type) is Union and type(None) in get_args(field_type)
@@ -135,14 +135,13 @@ class SafetyFunction:
                 uid = uid.format(i=instance_i)
 
             optional, field_type = is_optional(field.type)
-            required = not optional  # TODO Change
 
             if field_type == FSoEDictionaryItemInputOutput:
-                ios[metadata] = cls._get_input_output(handler, uid, required)
+                ios[metadata] = cls._get_input_output(handler, uid, optional)
             elif field_type == FSoEDictionaryItemInput:
-                ios[metadata] = cls._get_input(handler, uid, required)
+                ios[metadata] = cls._get_input(handler, uid, optional)
             elif field_type == SafetyParameter:
-                parameters[metadata] = cls._get_parameter(handler, uid, required)
+                parameters[metadata] = cls._get_parameter(handler, uid, optional)
 
         yield cls(
             ios={metadata: io for metadata, io in ios.items() if io is not None},
@@ -183,14 +182,14 @@ class SafetyFunction:
 
     @classmethod
     def _get_input_output(
-        cls, handler: "FSoEMasterHandler", uid: str, required: bool
+        cls, handler: "FSoEMasterHandler", uid: str, optional: bool
     ) -> Optional[FSoEDictionaryItemInputOutput]:
         """Get the input/output item from the handler's dictionary.
 
         Args:
             handler: The FSoE master handler to use.
             uid: The unique identifier of the input/output item.
-            required: Whether the item is required or optional.
+            optional: Whether the item is optional or required.
 
         Raises:
             KeyError: if the item is not found.
@@ -200,7 +199,7 @@ class SafetyFunction:
             FSoEDictionaryItemInputOutput: The required input/output item.
         """
         item = handler.dictionary.name_map.get(uid)
-        if required:
+        if not optional:
             if item is None:
                 raise KeyError(f"Dictionary item {uid} not found in the handler's dictionary")
             if not isinstance(item, FSoEDictionaryItemInputOutput):
@@ -211,14 +210,14 @@ class SafetyFunction:
 
     @classmethod
     def _get_input(
-        cls, handler: "FSoEMasterHandler", uid: str, required: bool
+        cls, handler: "FSoEMasterHandler", uid: str, optional: bool
     ) -> Optional[FSoEDictionaryItemInput]:
         """Get the input item from the handler's dictionary.
 
         Args:
             handler: The FSoE master handler to use.
             uid: The unique identifier of the input item.
-            required: Whether the item is required or optional.
+            optional: Whether the item is optional or required.
 
         Raises:
             KeyError: if the item is not found.
@@ -228,7 +227,7 @@ class SafetyFunction:
             FSoEDictionaryItemInput: The required input item.
         """
         item = handler.dictionary.name_map.get(uid)
-        if required:
+        if not optional:
             if item is None:
                 raise KeyError(f"Dictionary item {uid} not found in the handler's dictionary")
             if not isinstance(item, FSoEDictionaryItemInput):
@@ -239,14 +238,14 @@ class SafetyFunction:
 
     @classmethod
     def _get_parameter(
-        cls, handler: "FSoEMasterHandler", uid: str, required: bool
+        cls, handler: "FSoEMasterHandler", uid: str, optional: bool
     ) -> Optional[SafetyParameter]:
         """Get the parameter from the handler's safety parameters.
 
         Args:
             handler: The FSoE master handler to use.
             uid: The unique identifier of the safety parameter.
-            required: Whether the parameter is required or optional.
+            optional: Whether the parameter is optional or required.
 
         Raises:
              KeyError: if the parameter is not found.
@@ -255,7 +254,7 @@ class SafetyFunction:
                 SafetyParameter: The required safety parameter.
         """
         param = handler.safety_parameters.get(uid, None)
-        if required and uid not in handler.safety_parameters:
+        if not optional and uid not in handler.safety_parameters:
             raise KeyError(f"Safety parameter {uid} not found in the handler's safety parameters")
 
         return param
