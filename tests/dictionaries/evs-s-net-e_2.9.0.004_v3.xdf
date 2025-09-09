@@ -113,7 +113,7 @@
       </Category>
     </Categories>
     <Devices>
-      <ETHDevice firmwareVersion="safety_1.1.0.014" ProductCode="61936641" PartNumber="EVS-S-NET-E" RevisionNumber="327680">
+      <ETHDevice firmwareVersion="2.9.0.004" ProductCode="61936641" PartNumber="EVS-S-NET-E" RevisionNumber="327680">
         <Subnodes>
           <Subnode index="0">Communication</Subnode>
           <Subnode index="1">Motion</Subnode>
@@ -3411,7 +3411,7 @@
               <Label lang="en_US">Revision number</Label>
             </Labels>
           </MCBRegister>
-          <MCBRegister address="0x06E4" subnode="1" address_type="NVM_NONE" access="r" dtype="str" id="DRV_ID_SOFTWARE_VERSION" units="none" pdo_access="CONFIG" desc="Public software release version" default="7361666574795f312e312e302e303134" cat_id="IDENTIFICATION" axis="1">
+          <MCBRegister address="0x06E4" subnode="1" address_type="NVM_NONE" access="r" dtype="str" id="DRV_ID_SOFTWARE_VERSION" units="none" pdo_access="CONFIG" desc="Public software release version" default="322e392e302e303034" cat_id="IDENTIFICATION" axis="1">
             <Labels>
               <Label lang="en_US">Software version</Label>
             </Labels>
@@ -4127,7 +4127,7 @@
           </Error>
         </Errors>
       </ETHDevice>
-      <ECATDevice firmwareVersion="safety_1.1.0.014" ProductCode="61936641" PartNumber="EVS-S-NET-E" RevisionNumber="327680">
+      <ECATDevice firmwareVersion="2.9.0.004" ProductCode="61936641" PartNumber="EVS-S-NET-E" RevisionNumber="327680">
         <CANopenObjects>
           <CANopenObject id="ETG_DRV_ID_DEVICE_TYPE" index="0x1000" datatype="VAR">
             <Labels>
@@ -11159,7 +11159,7 @@
               <Label lang="en_US">Software version</Label>
             </Labels>
             <Subitems>
-              <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="str" id="DRV_ID_SOFTWARE_VERSION" pdo_access="CONFIG" desc="Public software release version" units="none" default="7361666574795f312e312e302e303134" cat_id="IDENTIFICATION" axis="1">
+              <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="str" id="DRV_ID_SOFTWARE_VERSION" pdo_access="CONFIG" desc="Public software release version" units="none" default="322e392e302e303034" cat_id="IDENTIFICATION" axis="1">
                 <Labels>
                   <Label lang="en_US">Software version</Label>
                 </Labels>
@@ -12039,7 +12039,7 @@
               <Label lang="en_US">Software version</Label>
             </Labels>
             <Subitems>
-              <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="str" id="FSOE_SOFTWARE_VERSION" pdo_access="CONFIG" desc="Indicates the firmware version of the safety subnode" units="none" default="312e302e302e303030" cat_id="FSOE" axis="1">
+              <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="str" id="FSOE_SOFTWARE_VERSION" pdo_access="CONFIG" desc="Indicates the firmware version of the safety subnode" units="none" default="322e302e302e303030" cat_id="FSOE" axis="1">
                 <Labels>
                   <Label lang="en_US">Software version</Label>
                 </Labels>
@@ -12054,6 +12054,30 @@
               <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="u32" id="FSOE_SERIAL_NUMBER" pdo_access="CONFIG" desc="Indicates the unique serial number of the safe drive" units="none" default="00000000" cat_id="FSOE" axis="1">
                 <Labels>
                   <Label lang="en_US">Serial number</Label>
+                </Labels>
+              </Subitem>
+            </Subitems>
+          </CANopenObject>
+          <CANopenObject id="FSOE_SOUT_DISABLE" index="0x46EE" datatype="VAR" axis="1">
+            <Labels>
+              <Label lang="en_US">SOUT Disable</Label>
+            </Labels>
+            <Subitems>
+              <Subitem subindex="0" address_type="NVM_NONE" access="rw" dtype="u16" id="FSOE_SOUT_DISABLE" pdo_access="CONFIG" desc="Disables the SOUT functionality" units="none" default="0000" cat_id="FSOE" axis="1">
+                <Labels>
+                  <Label lang="en_US">SOUT Disable</Label>
+                </Labels>
+              </Subitem>
+            </Subitems>
+          </CANopenObject>
+          <CANopenObject id="FSOE_USER_OVER_TEMPERATURE" index="0x46EF" datatype="VAR" axis="1">
+            <Labels>
+              <Label lang="en_US">User Over Temperature</Label>
+            </Labels>
+            <Subitems>
+              <Subitem subindex="0" address_type="NVM_NONE" access="rw" dtype="float" id="FSOE_USER_OVER_TEMPERATURE" pdo_access="CONFIG" desc="Configurable user over temperature limit" units="none" default="0000aa42" cat_id="FSOE" axis="1">
+                <Labels>
+                  <Label lang="en_US">User Over Temperature</Label>
                 </Labels>
               </Subitem>
             </Subitems>
@@ -14106,7 +14130,7 @@
               <Label lang="en_US">Time Unit</Label>
             </Labels>
             <Subitems>
-              <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="u32" id="FSOE_TIME_UNIT" pdo_access="CONFIG" desc="Time unit of the configuration parameters of the safety functions.&#10; Format specified in ETG.1004" units="none" default="000003fd" cat_id="FSOE" axis="1">
+              <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="u32" id="FSOE_TIME_UNIT" pdo_access="CONFIG" desc="Time unit of the configuration parameters of the safety functions.Format specified in ETG.1004" units="none" default="000003fd" cat_id="FSOE" axis="1">
                 <Labels>
                   <Label lang="en_US">Time Unit</Label>
                 </Labels>
@@ -14169,10 +14193,26 @@
               <Label lang="en_US">STO Command</Label>
             </Labels>
             <Subitems>
-              <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="bit" id="FSOE_STO" pdo_access="CYCLIC_SISO" desc="Safe Torque Off Safety function. &#10;Commands the STO when writing. Reports the STO status when reading." units="none" default="01" cat_id="FSOE" axis="1">
+              <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="bit" id="FSOE_STO" pdo_access="CYCLIC_SISO" desc="Safe Torque Off Safety function.Commands the STO when writing. Reports the STO status when reading." units="none" default="01" cat_id="FSOE" axis="1">
                 <Labels>
                   <Label lang="en_US">STO Command</Label>
                 </Labels>
+              </Subitem>
+            </Subitems>
+          </CANopenObject>
+          <CANopenObject id="FSOE_STO_ACTIVATE_SOUT" index="0x6643" datatype="VAR" axis="1">
+            <Labels>
+              <Label lang="en_US">STO Activate SOUT</Label>
+            </Labels>
+            <Subitems>
+              <Subitem subindex="0" address_type="NVM_NONE" access="rw" dtype="u32" id="FSOE_STO_ACTIVATE_SOUT" pdo_access="CONFIG" desc="Safe Output Unit instance to be activated simultaneously with the STO safety function." units="none" default="00000000" cat_id="FSOE" axis="1">
+                <Labels>
+                  <Label lang="en_US">STO Activate SOUT</Label>
+                </Labels>
+                <Enumerations>
+                  <Enum value="0">No SOUT used with STO</Enum>
+                  <Enum value="1717567488">SOUT instance activated with STO</Enum>
+                </Enumerations>
               </Subitem>
             </Subitems>
           </CANopenObject>
@@ -14186,7 +14226,7 @@
                   <Label lang="en_US">SubIndex 000</Label>
                 </Labels>
               </Subitem>
-              <Subitem subindex="1" address_type="NVM_NONE" access="r" dtype="bit" id="FSOE_SS1_1" pdo_access="CYCLIC_SISO" desc="SS1 Safety function. &#10;Commands the SS1 when writing. Reports the SS1 status when reading." units="none" default="01" cat_id="FSOE" axis="1">
+              <Subitem subindex="1" address_type="NVM_NONE" access="r" dtype="bit" id="FSOE_SS1_1" pdo_access="CYCLIC_SISO" desc="SS1 Safety function.Commands the SS1 when writing. Reports the SS1 status when reading." units="none" default="01" cat_id="FSOE" axis="1">
                 <Labels>
                   <Label lang="en_US">SS1 Command</Label>
                 </Labels>
@@ -14278,6 +14318,51 @@
               </Subitem>
             </Subitems>
           </CANopenObject>
+          <CANopenObject id="FSOE_SS1_ACTIVATE_SOUT" index="0x6658" datatype="ARRAY" axis="1">
+            <Labels>
+              <Label lang="en_US">SS1 Activate SOUT</Label>
+            </Labels>
+            <Subitems>
+              <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="u8" id="FSOE_SS1_ACTIVATE_SOUT_TOTAL" pdo_access="CONFIG" desc="" units="none" default="01" cat_id="FSOE" axis="1">
+                <Labels>
+                  <Label lang="en_US">Subindex 000</Label>
+                </Labels>
+              </Subitem>
+              <Subitem subindex="1" address_type="NVM_NONE" access="rw" dtype="u32" id="FSOE_SS1_ACTIVATE_SOUT_1" pdo_access="CONFIG" desc="SOUT instance to be activated simultaneously with the SS1 safety function." units="none" default="00000000" cat_id="FSOE" axis="1">
+                <Labels>
+                  <Label lang="en_US">SS1 Activate SOUT</Label>
+                </Labels>
+                <Enumerations>
+                  <Enum value="0">No SOUT used with SS1</Enum>
+                  <Enum value="1717567488">SOUT instance activated with SS1</Enum>
+                </Enumerations>
+              </Subitem>
+            </Subitems>
+          </CANopenObject>
+          <CANopenObject id="FSOE_SOUT" index="0x6660" datatype="VAR" axis="1">
+            <Labels>
+              <Label lang="en_US">SOUT Command</Label>
+            </Labels>
+            <Subitems>
+              <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="bit" id="FSOE_SOUT" pdo_access="CYCLIC_SISO" desc="SOUT Safety Function.Commands the SOUT when writing. Reports the SOUT status when reading." units="none" default="01" cat_id="FSOE" axis="1">
+                <Labels>
+                  <Label lang="en_US">SOUT Command</Label>
+                </Labels>
+              </Subitem>
+            </Subitems>
+          </CANopenObject>
+          <CANopenObject id="FSOE_SOUT_BRAKE_TIME_DELAY" index="0x6661" datatype="VAR" axis="1">
+            <Labels>
+              <Label lang="en_US">SOUT Brake Time Delay</Label>
+            </Labels>
+            <Subitems>
+              <Subitem subindex="0" address_type="NVM_NONE" access="rw" dtype="u16" id="FSOE_SOUT_BRAKE_TIME_DELAY" pdo_access="CONFIG" desc="Electromechanical delay for a brake" units="none" default="0000" cat_id="FSOE" axis="1">
+                <Labels>
+                  <Label lang="en_US">SOUT Brake Time Delay</Label>
+                </Labels>
+              </Subitem>
+            </Subitems>
+          </CANopenObject>
           <CANopenObject id="FSOE_SOS" index="0x6668" datatype="ARRAY" axis="1">
             <Labels>
               <Label lang="en_US">SOS Command</Label>
@@ -14288,7 +14373,7 @@
                   <Label lang="en_US">SubIndex 000</Label>
                 </Labels>
               </Subitem>
-              <Subitem subindex="1" address_type="NVM_NONE" access="r" dtype="bit" id="FSOE_SOS_1" pdo_access="CYCLIC_SISO" desc="SOS Safety function. &#10;Commands the SOS when writing. Reports the SOS status when reading." units="none" default="01" cat_id="FSOE" axis="1">
+              <Subitem subindex="1" address_type="NVM_NONE" access="r" dtype="bit" id="FSOE_SOS_1" pdo_access="CYCLIC_SISO" desc="SOS Safety function.Commands the SOS when writing. Reports the SOS status when reading." units="none" default="01" cat_id="FSOE" axis="1">
                 <Labels>
                   <Label lang="en_US">SOS Command</Label>
                 </Labels>
@@ -14339,7 +14424,7 @@
                   <Label lang="en_US">SubIndex 000</Label>
                 </Labels>
               </Subitem>
-              <Subitem subindex="1" address_type="NVM_NONE" access="r" dtype="bit" id="FSOE_SS2_1" pdo_access="CYCLIC_SISO" desc="SS2 Safety function. &#10;Commands the SS2 when writing. Reports the SS2 status when reading." units="none" default="01" cat_id="FSOE" axis="1">
+              <Subitem subindex="1" address_type="NVM_NONE" access="r" dtype="bit" id="FSOE_SS2_1" pdo_access="CYCLIC_SISO" desc="SS2 Safety function.Commands the SS2 when writing. Reports the SS2 status when reading." units="none" default="01" cat_id="FSOE" axis="1">
                 <Labels>
                   <Label lang="en_US">SS2 Command</Label>
                 </Labels>
@@ -15040,36 +15125,78 @@
                 <Labels>
                   <Label lang="en_US">SLP 1 Error Reaction</Label>
                 </Labels>
+                <Enumerations>
+                  <Enum value="0">No reaction</Enum>
+                  <Enum value="1715470337">STO</Enum>
+                  <Enum value="1716519169">SS1</Enum>
+                  <Enum value="1718616321">SS2</Enum>
+                </Enumerations>
               </Subitem>
               <Subitem subindex="2" address_type="NVM_NONE" access="rw" dtype="u32" id="FSOE_SLP_ERROR_REACTION_2" pdo_access="CONFIG" desc="Error reaction for Safely-Limited Position instance 2" units="none" default="01004066" cat_id="FSOE" axis="1">
                 <Labels>
                   <Label lang="en_US">SLP 2 Error Reaction</Label>
                 </Labels>
+                <Enumerations>
+                  <Enum value="0">No reaction</Enum>
+                  <Enum value="1715470337">STO</Enum>
+                  <Enum value="1716519169">SS1</Enum>
+                  <Enum value="1718616321">SS2</Enum>
+                </Enumerations>
               </Subitem>
               <Subitem subindex="3" address_type="NVM_NONE" access="rw" dtype="u32" id="FSOE_SLP_ERROR_REACTION_3" pdo_access="CONFIG" desc="Error reaction for Safely-Limited Position instance 3" units="none" default="01004066" cat_id="FSOE" axis="1">
                 <Labels>
                   <Label lang="en_US">SLP 3 Error Reaction</Label>
                 </Labels>
+                <Enumerations>
+                  <Enum value="0">No reaction</Enum>
+                  <Enum value="1715470337">STO</Enum>
+                  <Enum value="1716519169">SS1</Enum>
+                  <Enum value="1718616321">SS2</Enum>
+                </Enumerations>
               </Subitem>
               <Subitem subindex="4" address_type="NVM_NONE" access="rw" dtype="u32" id="FSOE_SLP_ERROR_REACTION_4" pdo_access="CONFIG" desc="Error reaction for Safely-Limited Position instance 4" units="none" default="01004066" cat_id="FSOE" axis="1">
                 <Labels>
                   <Label lang="en_US">SLP 4 Error Reaction</Label>
                 </Labels>
+                <Enumerations>
+                  <Enum value="0">No reaction</Enum>
+                  <Enum value="1715470337">STO</Enum>
+                  <Enum value="1716519169">SS1</Enum>
+                  <Enum value="1718616321">SS2</Enum>
+                </Enumerations>
               </Subitem>
               <Subitem subindex="5" address_type="NVM_NONE" access="rw" dtype="u32" id="FSOE_SLP_ERROR_REACTION_5" pdo_access="CONFIG" desc="Error reaction for Safely-Limited Position instance 5" units="none" default="01004066" cat_id="FSOE" axis="1">
                 <Labels>
                   <Label lang="en_US">SLP 5 Error Reaction</Label>
                 </Labels>
+                <Enumerations>
+                  <Enum value="0">No reaction</Enum>
+                  <Enum value="1715470337">STO</Enum>
+                  <Enum value="1716519169">SS1</Enum>
+                  <Enum value="1718616321">SS2</Enum>
+                </Enumerations>
               </Subitem>
               <Subitem subindex="6" address_type="NVM_NONE" access="rw" dtype="u32" id="FSOE_SLP_ERROR_REACTION_6" pdo_access="CONFIG" desc="Error reaction for Safely-Limited Position instance 6" units="none" default="01004066" cat_id="FSOE" axis="1">
                 <Labels>
                   <Label lang="en_US">SLP 6 Error Reaction</Label>
                 </Labels>
+                <Enumerations>
+                  <Enum value="0">No reaction</Enum>
+                  <Enum value="1715470337">STO</Enum>
+                  <Enum value="1716519169">SS1</Enum>
+                  <Enum value="1718616321">SS2</Enum>
+                </Enumerations>
               </Subitem>
               <Subitem subindex="7" address_type="NVM_NONE" access="rw" dtype="u32" id="FSOE_SLP_ERROR_REACTION_7" pdo_access="CONFIG" desc="Error reaction for Safely-Limited Position instance 7" units="none" default="01004066" cat_id="FSOE" axis="1">
                 <Labels>
                   <Label lang="en_US">SLP 7 Error Reaction</Label>
                 </Labels>
+                <Enumerations>
+                  <Enum value="0">No reaction</Enum>
+                  <Enum value="1715470337">STO</Enum>
+                  <Enum value="1716519169">SS1</Enum>
+                  <Enum value="1718616321">SS2</Enum>
+                </Enumerations>
               </Subitem>
               <Subitem subindex="8" address_type="NVM_NONE" access="rw" dtype="u32" id="FSOE_SLP_ERROR_REACTION_8" pdo_access="CONFIG" desc="Error reaction for Safely-Limited Position instance 8" units="none" default="01004066" cat_id="FSOE" axis="1">
                 <Labels>
@@ -15079,7 +15206,117 @@
                   <Enum value="0">No reaction</Enum>
                   <Enum value="1715470337">STO</Enum>
                   <Enum value="1716519169">SS1</Enum>
+                  <Enum value="1718616321">SS2</Enum>
                 </Enumerations>
+              </Subitem>
+            </Subitems>
+          </CANopenObject>
+          <CANopenObject id="FSOE_SLI_COMMAND" index="0x66B8" datatype="ARRAY" axis="1">
+            <Labels>
+              <Label lang="en_US">SLI Command</Label>
+            </Labels>
+            <Subitems>
+              <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="u8" id="FSOE_SLI_TOTAL" pdo_access="CONFIG" desc="" units="none" default="01" cat_id="FSOE" axis="1">
+                <Labels>
+                  <Label lang="en_US">SubIndex 000</Label>
+                </Labels>
+              </Subitem>
+              <Subitem subindex="1" address_type="NVM_NONE" access="r" dtype="bit" id="FSOE_SLI_COMMAND_1" pdo_access="CYCLIC_SISO" desc="SLI Command" units="none" default="00" cat_id="FSOE" axis="1">
+                <Labels>
+                  <Label lang="en_US">SLI Command</Label>
+                </Labels>
+              </Subitem>
+            </Subitems>
+          </CANopenObject>
+          <CANopenObject id="FSOE_SLI_UPPER_LIMIT" index="0x66BA" datatype="ARRAY" axis="1">
+            <Labels>
+              <Label lang="en_US">SLI Position Relative Upper Limit</Label>
+            </Labels>
+            <Subitems>
+              <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="u8" id="FSOE_SLI_UPPER_LIMIT_TOTAL" pdo_access="CONFIG" desc="" units="none" default="01" cat_id="FSOE" axis="1">
+                <Labels>
+                  <Label lang="en_US">SubIndex 000</Label>
+                </Labels>
+              </Subitem>
+              <Subitem subindex="1" address_type="NVM_NONE" access="rw" dtype="s32" id="FSOE_SLI_UPPER_LIMIT_1" pdo_access="CONFIG" desc="Maximum allowed relative position while SLI is active" units="none" default="00000000" cat_id="FSOE" axis="1">
+                <Labels>
+                  <Label lang="en_US">SLI Position Relative Upper Limit</Label>
+                </Labels>
+              </Subitem>
+            </Subitems>
+          </CANopenObject>
+          <CANopenObject id="FSOE_SLI_LOWER_LIMIT" index="0x66BC" datatype="ARRAY" axis="1">
+            <Labels>
+              <Label lang="en_US">SLI Position Relative Lower Limit</Label>
+            </Labels>
+            <Subitems>
+              <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="u8" id="FSOE_SLI_LOWER_LIMIT_TOTAL" pdo_access="CONFIG" desc="" units="none" default="01" cat_id="FSOE" axis="1">
+                <Labels>
+                  <Label lang="en_US">SubIndex 000</Label>
+                </Labels>
+              </Subitem>
+              <Subitem subindex="1" address_type="NVM_NONE" access="rw" dtype="s32" id="FSOE_SLI_LOWER_LIMIT_1" pdo_access="CONFIG" desc="Minimum allowed relative position while SLI is active" units="none" default="00000000" cat_id="FSOE" axis="1">
+                <Labels>
+                  <Label lang="en_US">SLI Position Relative Lower Limit</Label>
+                </Labels>
+              </Subitem>
+            </Subitems>
+          </CANopenObject>
+          <CANopenObject id="FSOE_SLI_ERROR_REACTION" index="0x66BD" datatype="ARRAY" axis="1">
+            <Labels>
+              <Label lang="en_US">SLI Error Reaction</Label>
+            </Labels>
+            <Subitems>
+              <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="u8" id="FSOE_SLI_ERROR_REACTION_TOTAL" pdo_access="CONFIG" desc="" units="none" default="01" cat_id="FSOE" axis="1">
+                <Labels>
+                  <Label lang="en_US">SubIndex 000</Label>
+                </Labels>
+              </Subitem>
+              <Subitem subindex="1" address_type="NVM_NONE" access="rw" dtype="u32" id="FSOE_SLI_ERROR_REACTION_1" pdo_access="CONFIG" desc="Error reaction to a violation of SLI limits" units="none" default="01004066" cat_id="FSOE" axis="1">
+                <Labels>
+                  <Label lang="en_US">SLI Error Reaction</Label>
+                </Labels>
+                <Enumerations>
+                  <Enum value="0">No reaction</Enum>
+                  <Enum value="1715470337">STO</Enum>
+                  <Enum value="1716519169">SS1</Enum>
+                </Enumerations>
+              </Subitem>
+            </Subitems>
+          </CANopenObject>
+          <CANopenObject id="FSOE_SDI_P" index="0x66D0" datatype="VAR" axis="1">
+            <Labels>
+              <Label lang="en_US">SDI positive direction command</Label>
+            </Labels>
+            <Subitems>
+              <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="bit" id="FSOE_SDI_P" pdo_access="CYCLIC_SISO" desc="Safe Direction positive direction Safety function.Activates/deactivates movement in positive direction when writing.Reports movement in positive direction if active." units="none" default="00" cat_id="FSOE" axis="1">
+                <Labels>
+                  <Label lang="en_US">SDI positive direction command</Label>
+                </Labels>
+              </Subitem>
+            </Subitems>
+          </CANopenObject>
+          <CANopenObject id="FSOE_SDI_N" index="0x66D1" datatype="VAR" axis="1">
+            <Labels>
+              <Label lang="en_US">SDI negative direction command</Label>
+            </Labels>
+            <Subitems>
+              <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="bit" id="FSOE_SDI_N" pdo_access="CYCLIC_SISO" desc="Safe Direction negative direction Safety function.Activates/deactivates movement in negative direction when writing.Reports movement in negative direction if active." units="none" default="00" cat_id="FSOE" axis="1">
+                <Labels>
+                  <Label lang="en_US">SDI negative direction command</Label>
+                </Labels>
+              </Subitem>
+            </Subitems>
+          </CANopenObject>
+          <CANopenObject id="FSOE_SDI_POS_ZERO_WINDOW" index="0x66D3" datatype="VAR" axis="1">
+            <Labels>
+              <Label lang="en_US">SDI Position zero window</Label>
+            </Labels>
+            <Subitems>
+              <Subitem subindex="0" address_type="NVM_NONE" access="rw" dtype="u32" id="FSOE_SDI_POS_ZERO_WINDOW" pdo_access="CONFIG" desc="Position window for SDI instance" units="none" default="00000000" cat_id="FSOE" axis="1">
+                <Labels>
+                  <Label lang="en_US">SDI Position zero window</Label>
+                </Labels>
               </Subitem>
             </Subitems>
           </CANopenObject>
@@ -15292,7 +15529,7 @@
                   <Label lang="en_US">SubIndex 000</Label>
                 </Labels>
               </Subitem>
-              <Subitem subindex="1" address_type="NVM_NONE" access="rw" dtype="u32" id="MDP_CONFIGURED_MODULE_1" pdo_access="CONFIG" desc="" units="none" default="00008003" cat_id="MDP">
+              <Subitem subindex="1" address_type="NVM_NONE" access="rw" dtype="u32" id="MDP_CONFIGURED_MODULE_1" pdo_access="CONFIG" desc="" units="none" default="03008003" cat_id="MDP">
                 <Labels>
                   <Label lang="en_US">Configured module ident of the module 1</Label>
                 </Labels>
@@ -15309,17 +15546,17 @@
                   <Label lang="en_US">Subindex 000</Label>
                 </Labels>
               </Subitem>
-              <Subitem subindex="1" address_type="NVM_NONE" access="r" dtype="u32" id="MDP_DETECTED_MODULE_1" pdo_access="CONFIG" desc="" units="none" default="00008003" cat_id="MDP">
+              <Subitem subindex="1" address_type="NVM_NONE" access="r" dtype="u32" id="MDP_DETECTED_MODULE_1" pdo_access="CONFIG" desc="" units="none" default="03008003" cat_id="MDP">
                 <Labels>
                   <Label lang="en_US">Module ident of the module detected on position 1</Label>
                 </Labels>
               </Subitem>
-              <Subitem subindex="2" address_type="NVM_NONE" access="r" dtype="u32" id="MDP_DETECTED_MODULE_2" pdo_access="CONFIG" desc="" units="none" default="01008003" cat_id="MDP">
+              <Subitem subindex="2" address_type="NVM_NONE" access="r" dtype="u32" id="MDP_DETECTED_MODULE_2" pdo_access="CONFIG" desc="" units="none" default="04008003" cat_id="MDP">
                 <Labels>
                   <Label lang="en_US">Module ident of the module detected on position 2</Label>
                 </Labels>
               </Subitem>
-              <Subitem subindex="3" address_type="NVM_NONE" access="r" dtype="u32" id="MDP_DETECTED_MODULE_3" pdo_access="CONFIG" desc="" units="none" default="02008003" cat_id="MDP">
+              <Subitem subindex="3" address_type="NVM_NONE" access="r" dtype="u32" id="MDP_DETECTED_MODULE_3" pdo_access="CONFIG" desc="" units="none" default="05008003" cat_id="MDP">
                 <Labels>
                   <Label lang="en_US">Module ident of the module detected on position 3</Label>
                 </Labels>
@@ -15767,106 +16004,8 @@
           </Error>
         </Errors>
         <SafetyModules>
-          <SafetyModule uses_sra="false" module_ident="0x3b00000">
+          <SafetyModule uses_sra="false" module_ident="0x3b00003">
             <ApplicationParameters>
-              <ApplicationParameter id="FSOE_SS1_TIME_TO_STO_1"/>
-              <ApplicationParameter id="FSOE_SS1_VEL_ZERO_WINDOW_1"/>
-              <ApplicationParameter id="FSOE_SS1_TIME_FOR_VEL_ZERO_1"/>
-              <ApplicationParameter id="FSOE_SS1_DEC_LIMIT_1"/>
-              <ApplicationParameter id="FSOE_SS1_TIME_DELAY_DEC_1"/>
-              <ApplicationParameter id="FSOE_SOS_POS_ZERO_WINDOW_1"/>
-              <ApplicationParameter id="FSOE_SOS_VEL_ZERO_WINDOW_1"/>
-              <ApplicationParameter id="FSOE_SS2_TIME_TO_SOS_1"/>
-              <ApplicationParameter id="FSOE_SS2_TIME_FOR_VEL_ZERO_1"/>
-              <ApplicationParameter id="FSOE_SS2_DEC_LIMIT_1"/>
-              <ApplicationParameter id="FSOE_SS2_TIME_DELAY_DEC_1"/>
-              <ApplicationParameter id="FSOE_SS2_ERROR_REACTION_1"/>
-              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_1"/>
-              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_2"/>
-              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_3"/>
-              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_4"/>
-              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_5"/>
-              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_6"/>
-              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_7"/>
-              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_8"/>
-              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_1"/>
-              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_2"/>
-              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_3"/>
-              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_4"/>
-              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_5"/>
-              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_6"/>
-              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_7"/>
-              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_8"/>
-              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_1"/>
-              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_2"/>
-              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_3"/>
-              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_4"/>
-              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_5"/>
-              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_6"/>
-              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_7"/>
-              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_8"/>
-              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_1"/>
-              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_2"/>
-              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_3"/>
-              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_4"/>
-              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_5"/>
-              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_6"/>
-              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_7"/>
-              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_8"/>
-              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_1"/>
-              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_2"/>
-              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_3"/>
-              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_4"/>
-              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_5"/>
-              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_6"/>
-              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_7"/>
-              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_8"/>
-              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_1"/>
-              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_2"/>
-              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_3"/>
-              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_4"/>
-              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_5"/>
-              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_6"/>
-              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_7"/>
-              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_8"/>
-              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_1"/>
-              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_2"/>
-              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_3"/>
-              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_4"/>
-              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_5"/>
-              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_6"/>
-              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_7"/>
-              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_8"/>
-              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_1"/>
-              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_2"/>
-              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_3"/>
-              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_4"/>
-              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_5"/>
-              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_6"/>
-              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_7"/>
-              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_8"/>
-              <ApplicationParameter id="FSOE_SAFE_INPUTS_MAP"/>
-              <ApplicationParameter id="FSOE_SAFE_HOMING_REFERENCE"/>
-              <ApplicationParameter id="FSOE_FEEDBACK_SCENARIO"/>
-              <ApplicationParameter id="FSOE_POSITION_TOLERANCE"/>
-              <ApplicationParameter id="FSOE_FEEDBACK_RATIO_REDUNDANT_TURNS"/>
-              <ApplicationParameter id="FSOE_FEEDBACK_RATIO_MAIN_TURNS"/>
-              <ApplicationParameter id="FSOE_ABS_SSI_PRIM1_FSIZE"/>
-              <ApplicationParameter id="FSOE_ABS_SSI_PRIM1_POL"/>
-              <ApplicationParameter id="FSOE_ABS_SSI_PRIM1_POSBITS"/>
-              <ApplicationParameter id="FSOE_ABS_SSI_PRIM1_STURN"/>
-              <ApplicationParameter id="FSOE_ABS_SSI_PRIM1_BAUD"/>
-              <ApplicationParameter id="FSOE_ABS_SSI_PRIM1_TOUT"/>
-              <ApplicationParameter id="FSOE_ABS_SSI_SECOND1_FSIZE"/>
-              <ApplicationParameter id="FSOE_ABS_SSI_SECOND1_POL"/>
-              <ApplicationParameter id="FSOE_ABS_SSI_SECOND1_PBITS"/>
-              <ApplicationParameter id="FSOE_ABS_SSI_SECOND1_STURN"/>
-              <ApplicationParameter id="FSOE_ABS_SSI_SECOND1_BAUD"/>
-              <ApplicationParameter id="FSOE_ABS_SSI_SECOND1_TOUT"/>
-              <ApplicationParameter id="FSOE_INCREMENTAL_ENC_RESOLUTION"/>
-              <ApplicationParameter id="FSOE_INCREMENTAL_ENC_POLARITY"/>
-              <ApplicationParameter id="FSOE_HALL_POLEPAIRS"/>
-              <ApplicationParameter id="FSOE_HALL_POLARITY"/>
               <ApplicationParameter id="ETG_COMMS_RPDO_MAP256_TOTAL"/>
               <ApplicationParameter id="ETG_COMMS_RPDO_MAP256_1"/>
               <ApplicationParameter id="ETG_COMMS_RPDO_MAP256_2"/>
@@ -15959,113 +16098,122 @@
               <ApplicationParameter id="ETG_COMMS_TPDO_MAP256_43"/>
               <ApplicationParameter id="ETG_COMMS_TPDO_MAP256_44"/>
               <ApplicationParameter id="ETG_COMMS_TPDO_MAP256_45"/>
+              <ApplicationParameter id="FSOE_SS1_TIME_TO_STO_1"/>
+              <ApplicationParameter id="FSOE_SS1_VEL_ZERO_WINDOW_1"/>
+              <ApplicationParameter id="FSOE_SS1_TIME_FOR_VEL_ZERO_1"/>
+              <ApplicationParameter id="FSOE_SS1_DEC_LIMIT_1"/>
+              <ApplicationParameter id="FSOE_SS1_TIME_DELAY_DEC_1"/>
+              <ApplicationParameter id="FSOE_SOS_POS_ZERO_WINDOW_1"/>
+              <ApplicationParameter id="FSOE_SOS_VEL_ZERO_WINDOW_1"/>
+              <ApplicationParameter id="FSOE_SS2_TIME_TO_SOS_1"/>
+              <ApplicationParameter id="FSOE_SS2_TIME_FOR_VEL_ZERO_1"/>
+              <ApplicationParameter id="FSOE_SS2_DEC_LIMIT_1"/>
+              <ApplicationParameter id="FSOE_SS2_TIME_DELAY_DEC_1"/>
+              <ApplicationParameter id="FSOE_SS2_ERROR_REACTION_1"/>
+              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_1"/>
+              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_2"/>
+              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_3"/>
+              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_4"/>
+              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_5"/>
+              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_6"/>
+              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_7"/>
+              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_8"/>
+              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_1"/>
+              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_2"/>
+              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_3"/>
+              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_4"/>
+              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_5"/>
+              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_6"/>
+              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_7"/>
+              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_8"/>
+              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_1"/>
+              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_2"/>
+              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_3"/>
+              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_4"/>
+              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_5"/>
+              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_6"/>
+              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_7"/>
+              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_8"/>
+              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_1"/>
+              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_2"/>
+              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_3"/>
+              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_4"/>
+              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_5"/>
+              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_6"/>
+              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_7"/>
+              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_8"/>
+              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_1"/>
+              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_2"/>
+              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_3"/>
+              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_4"/>
+              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_5"/>
+              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_6"/>
+              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_7"/>
+              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_8"/>
+              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_1"/>
+              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_2"/>
+              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_3"/>
+              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_4"/>
+              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_5"/>
+              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_6"/>
+              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_7"/>
+              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_8"/>
+              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_1"/>
+              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_2"/>
+              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_3"/>
+              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_4"/>
+              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_5"/>
+              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_6"/>
+              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_7"/>
+              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_8"/>
+              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_1"/>
+              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_2"/>
+              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_3"/>
+              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_4"/>
+              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_5"/>
+              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_6"/>
+              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_7"/>
+              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_8"/>
+              <ApplicationParameter id="FSOE_SLI_UPPER_LIMIT_1"/>
+              <ApplicationParameter id="FSOE_SLI_LOWER_LIMIT_1"/>
+              <ApplicationParameter id="FSOE_SLI_ERROR_REACTION_1"/>
+              <ApplicationParameter id="FSOE_SDI_POS_ZERO_WINDOW"/>
+              <ApplicationParameter id="FSOE_SAFE_INPUTS_MAP"/>
+              <ApplicationParameter id="FSOE_USER_OVER_TEMPERATURE"/>
+              <ApplicationParameter id="FSOE_SAFE_HOMING_REFERENCE"/>
+              <ApplicationParameter id="FSOE_FEEDBACK_SCENARIO"/>
+              <ApplicationParameter id="FSOE_POSITION_TOLERANCE"/>
+              <ApplicationParameter id="FSOE_FEEDBACK_RATIO_REDUNDANT_TURNS"/>
+              <ApplicationParameter id="FSOE_FEEDBACK_RATIO_MAIN_TURNS"/>
+              <ApplicationParameter id="FSOE_ABS_SSI_PRIM1_FSIZE"/>
+              <ApplicationParameter id="FSOE_ABS_SSI_PRIM1_POL"/>
+              <ApplicationParameter id="FSOE_ABS_SSI_PRIM1_POSBITS"/>
+              <ApplicationParameter id="FSOE_ABS_SSI_PRIM1_STURN"/>
+              <ApplicationParameter id="FSOE_ABS_SSI_PRIM1_BAUD"/>
+              <ApplicationParameter id="FSOE_ABS_SSI_PRIM1_TOUT"/>
+              <ApplicationParameter id="FSOE_ABS_SSI_SECOND1_FSIZE"/>
+              <ApplicationParameter id="FSOE_ABS_SSI_SECOND1_POL"/>
+              <ApplicationParameter id="FSOE_ABS_SSI_SECOND1_PBITS"/>
+              <ApplicationParameter id="FSOE_ABS_SSI_SECOND1_STURN"/>
+              <ApplicationParameter id="FSOE_ABS_SSI_SECOND1_BAUD"/>
+              <ApplicationParameter id="FSOE_ABS_SSI_SECOND1_TOUT"/>
+              <ApplicationParameter id="FSOE_INCREMENTAL_ENC_RESOLUTION"/>
+              <ApplicationParameter id="FSOE_INCREMENTAL_ENC_POLARITY"/>
+              <ApplicationParameter id="FSOE_HALL_POLEPAIRS"/>
+              <ApplicationParameter id="FSOE_HALL_POLARITY"/>
+              <ApplicationParameter id="FSOE_STO_ACTIVATE_SOUT"/>
+              <ApplicationParameter id="FSOE_SS1_ACTIVATE_SOUT_1"/>
+              <ApplicationParameter id="FSOE_SOUT_BRAKE_TIME_DELAY"/>
+              <ApplicationParameter id="FSOE_SOUT_DISABLE"/>
             </ApplicationParameters>
           </SafetyModule>
-          <SafetyModule uses_sra="false" module_ident="0x3b00002">
+          <SafetyModule uses_sra="false" module_ident="0x3b00005">
             <ApplicationParameters>
               <ApplicationParameter id="FSOE_SAFETY_PROJECT_CRC"/>
             </ApplicationParameters>
           </SafetyModule>
-          <SafetyModule uses_sra="true" module_ident="0x3b00001">
+          <SafetyModule uses_sra="true" module_ident="0x3b00004">
             <ApplicationParameters>
-              <ApplicationParameter id="FSOE_SS1_TIME_TO_STO_1"/>
-              <ApplicationParameter id="FSOE_SS1_VEL_ZERO_WINDOW_1"/>
-              <ApplicationParameter id="FSOE_SS1_TIME_FOR_VEL_ZERO_1"/>
-              <ApplicationParameter id="FSOE_SS1_DEC_LIMIT_1"/>
-              <ApplicationParameter id="FSOE_SS1_TIME_DELAY_DEC_1"/>
-              <ApplicationParameter id="FSOE_SOS_POS_ZERO_WINDOW_1"/>
-              <ApplicationParameter id="FSOE_SOS_VEL_ZERO_WINDOW_1"/>
-              <ApplicationParameter id="FSOE_SS2_TIME_TO_SOS_1"/>
-              <ApplicationParameter id="FSOE_SS2_TIME_FOR_VEL_ZERO_1"/>
-              <ApplicationParameter id="FSOE_SS2_DEC_LIMIT_1"/>
-              <ApplicationParameter id="FSOE_SS2_TIME_DELAY_DEC_1"/>
-              <ApplicationParameter id="FSOE_SS2_ERROR_REACTION_1"/>
-              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_1"/>
-              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_2"/>
-              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_3"/>
-              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_4"/>
-              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_5"/>
-              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_6"/>
-              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_7"/>
-              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_8"/>
-              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_1"/>
-              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_2"/>
-              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_3"/>
-              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_4"/>
-              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_5"/>
-              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_6"/>
-              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_7"/>
-              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_8"/>
-              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_1"/>
-              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_2"/>
-              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_3"/>
-              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_4"/>
-              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_5"/>
-              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_6"/>
-              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_7"/>
-              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_8"/>
-              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_1"/>
-              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_2"/>
-              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_3"/>
-              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_4"/>
-              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_5"/>
-              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_6"/>
-              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_7"/>
-              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_8"/>
-              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_1"/>
-              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_2"/>
-              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_3"/>
-              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_4"/>
-              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_5"/>
-              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_6"/>
-              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_7"/>
-              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_8"/>
-              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_1"/>
-              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_2"/>
-              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_3"/>
-              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_4"/>
-              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_5"/>
-              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_6"/>
-              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_7"/>
-              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_8"/>
-              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_1"/>
-              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_2"/>
-              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_3"/>
-              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_4"/>
-              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_5"/>
-              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_6"/>
-              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_7"/>
-              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_8"/>
-              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_1"/>
-              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_2"/>
-              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_3"/>
-              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_4"/>
-              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_5"/>
-              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_6"/>
-              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_7"/>
-              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_8"/>
-              <ApplicationParameter id="FSOE_SAFE_INPUTS_MAP"/>
-              <ApplicationParameter id="FSOE_SAFE_HOMING_REFERENCE"/>
-              <ApplicationParameter id="FSOE_FEEDBACK_SCENARIO"/>
-              <ApplicationParameter id="FSOE_POSITION_TOLERANCE"/>
-              <ApplicationParameter id="FSOE_FEEDBACK_RATIO_REDUNDANT_TURNS"/>
-              <ApplicationParameter id="FSOE_FEEDBACK_RATIO_MAIN_TURNS"/>
-              <ApplicationParameter id="FSOE_ABS_SSI_PRIM1_FSIZE"/>
-              <ApplicationParameter id="FSOE_ABS_SSI_PRIM1_POL"/>
-              <ApplicationParameter id="FSOE_ABS_SSI_PRIM1_POSBITS"/>
-              <ApplicationParameter id="FSOE_ABS_SSI_PRIM1_STURN"/>
-              <ApplicationParameter id="FSOE_ABS_SSI_PRIM1_BAUD"/>
-              <ApplicationParameter id="FSOE_ABS_SSI_PRIM1_TOUT"/>
-              <ApplicationParameter id="FSOE_ABS_SSI_SECOND1_FSIZE"/>
-              <ApplicationParameter id="FSOE_ABS_SSI_SECOND1_POL"/>
-              <ApplicationParameter id="FSOE_ABS_SSI_SECOND1_PBITS"/>
-              <ApplicationParameter id="FSOE_ABS_SSI_SECOND1_STURN"/>
-              <ApplicationParameter id="FSOE_ABS_SSI_SECOND1_BAUD"/>
-              <ApplicationParameter id="FSOE_ABS_SSI_SECOND1_TOUT"/>
-              <ApplicationParameter id="FSOE_INCREMENTAL_ENC_RESOLUTION"/>
-              <ApplicationParameter id="FSOE_INCREMENTAL_ENC_POLARITY"/>
-              <ApplicationParameter id="FSOE_HALL_POLEPAIRS"/>
-              <ApplicationParameter id="FSOE_HALL_POLARITY"/>
               <ApplicationParameter id="ETG_COMMS_RPDO_MAP256_TOTAL"/>
               <ApplicationParameter id="ETG_COMMS_RPDO_MAP256_1"/>
               <ApplicationParameter id="ETG_COMMS_RPDO_MAP256_2"/>
@@ -16158,6 +16306,113 @@
               <ApplicationParameter id="ETG_COMMS_TPDO_MAP256_43"/>
               <ApplicationParameter id="ETG_COMMS_TPDO_MAP256_44"/>
               <ApplicationParameter id="ETG_COMMS_TPDO_MAP256_45"/>
+              <ApplicationParameter id="FSOE_SS1_TIME_TO_STO_1"/>
+              <ApplicationParameter id="FSOE_SS1_VEL_ZERO_WINDOW_1"/>
+              <ApplicationParameter id="FSOE_SS1_TIME_FOR_VEL_ZERO_1"/>
+              <ApplicationParameter id="FSOE_SS1_DEC_LIMIT_1"/>
+              <ApplicationParameter id="FSOE_SS1_TIME_DELAY_DEC_1"/>
+              <ApplicationParameter id="FSOE_SOS_POS_ZERO_WINDOW_1"/>
+              <ApplicationParameter id="FSOE_SOS_VEL_ZERO_WINDOW_1"/>
+              <ApplicationParameter id="FSOE_SS2_TIME_TO_SOS_1"/>
+              <ApplicationParameter id="FSOE_SS2_TIME_FOR_VEL_ZERO_1"/>
+              <ApplicationParameter id="FSOE_SS2_DEC_LIMIT_1"/>
+              <ApplicationParameter id="FSOE_SS2_TIME_DELAY_DEC_1"/>
+              <ApplicationParameter id="FSOE_SS2_ERROR_REACTION_1"/>
+              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_1"/>
+              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_2"/>
+              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_3"/>
+              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_4"/>
+              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_5"/>
+              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_6"/>
+              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_7"/>
+              <ApplicationParameter id="FSOE_SSR_UPPER_LIMIT_8"/>
+              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_1"/>
+              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_2"/>
+              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_3"/>
+              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_4"/>
+              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_5"/>
+              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_6"/>
+              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_7"/>
+              <ApplicationParameter id="FSOE_SSR_LOWER_LIMIT_8"/>
+              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_1"/>
+              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_2"/>
+              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_3"/>
+              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_4"/>
+              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_5"/>
+              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_6"/>
+              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_7"/>
+              <ApplicationParameter id="FSOE_SSR_ERROR_REACTION_8"/>
+              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_1"/>
+              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_2"/>
+              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_3"/>
+              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_4"/>
+              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_5"/>
+              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_6"/>
+              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_7"/>
+              <ApplicationParameter id="FSOE_SLS_VELOCITY_LIMIT_8"/>
+              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_1"/>
+              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_2"/>
+              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_3"/>
+              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_4"/>
+              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_5"/>
+              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_6"/>
+              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_7"/>
+              <ApplicationParameter id="FSOE_SLS_ERROR_REACTION_8"/>
+              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_1"/>
+              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_2"/>
+              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_3"/>
+              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_4"/>
+              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_5"/>
+              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_6"/>
+              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_7"/>
+              <ApplicationParameter id="FSOE_SLP_UPPER_LIMIT_8"/>
+              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_1"/>
+              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_2"/>
+              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_3"/>
+              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_4"/>
+              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_5"/>
+              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_6"/>
+              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_7"/>
+              <ApplicationParameter id="FSOE_SLP_LOWER_LIMIT_8"/>
+              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_1"/>
+              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_2"/>
+              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_3"/>
+              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_4"/>
+              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_5"/>
+              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_6"/>
+              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_7"/>
+              <ApplicationParameter id="FSOE_SLP_ERROR_REACTION_8"/>
+              <ApplicationParameter id="FSOE_SLI_UPPER_LIMIT_1"/>
+              <ApplicationParameter id="FSOE_SLI_LOWER_LIMIT_1"/>
+              <ApplicationParameter id="FSOE_SLI_ERROR_REACTION_1"/>
+              <ApplicationParameter id="FSOE_SDI_POS_ZERO_WINDOW"/>
+              <ApplicationParameter id="FSOE_SAFE_INPUTS_MAP"/>
+              <ApplicationParameter id="FSOE_USER_OVER_TEMPERATURE"/>
+              <ApplicationParameter id="FSOE_SAFE_HOMING_REFERENCE"/>
+              <ApplicationParameter id="FSOE_FEEDBACK_SCENARIO"/>
+              <ApplicationParameter id="FSOE_POSITION_TOLERANCE"/>
+              <ApplicationParameter id="FSOE_FEEDBACK_RATIO_REDUNDANT_TURNS"/>
+              <ApplicationParameter id="FSOE_FEEDBACK_RATIO_MAIN_TURNS"/>
+              <ApplicationParameter id="FSOE_ABS_SSI_PRIM1_FSIZE"/>
+              <ApplicationParameter id="FSOE_ABS_SSI_PRIM1_POL"/>
+              <ApplicationParameter id="FSOE_ABS_SSI_PRIM1_POSBITS"/>
+              <ApplicationParameter id="FSOE_ABS_SSI_PRIM1_STURN"/>
+              <ApplicationParameter id="FSOE_ABS_SSI_PRIM1_BAUD"/>
+              <ApplicationParameter id="FSOE_ABS_SSI_PRIM1_TOUT"/>
+              <ApplicationParameter id="FSOE_ABS_SSI_SECOND1_FSIZE"/>
+              <ApplicationParameter id="FSOE_ABS_SSI_SECOND1_POL"/>
+              <ApplicationParameter id="FSOE_ABS_SSI_SECOND1_PBITS"/>
+              <ApplicationParameter id="FSOE_ABS_SSI_SECOND1_STURN"/>
+              <ApplicationParameter id="FSOE_ABS_SSI_SECOND1_BAUD"/>
+              <ApplicationParameter id="FSOE_ABS_SSI_SECOND1_TOUT"/>
+              <ApplicationParameter id="FSOE_INCREMENTAL_ENC_RESOLUTION"/>
+              <ApplicationParameter id="FSOE_INCREMENTAL_ENC_POLARITY"/>
+              <ApplicationParameter id="FSOE_HALL_POLEPAIRS"/>
+              <ApplicationParameter id="FSOE_HALL_POLARITY"/>
+              <ApplicationParameter id="FSOE_STO_ACTIVATE_SOUT"/>
+              <ApplicationParameter id="FSOE_SS1_ACTIVATE_SOUT_1"/>
+              <ApplicationParameter id="FSOE_SOUT_BRAKE_TIME_DELAY"/>
+              <ApplicationParameter id="FSOE_SOUT_DISABLE"/>
             </ApplicationParameters>
           </SafetyModule>
         </SafetyModules>
