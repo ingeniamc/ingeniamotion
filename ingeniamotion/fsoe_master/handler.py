@@ -149,6 +149,8 @@ class FSoEMasterHandler:
 
         self.__safety_master_pdu = servo.read_rpdo_map_from_slave(self.__master_map_object)
         self.__safety_slave_pdu = servo.read_tpdo_map_from_slave(self.__slave_map_object)
+        self.__safety_master_pdu.subscribe_to_process_data_event(self.get_request)
+        self.__safety_slave_pdu.subscribe_to_process_data_event(self.set_reply)
 
         map_editable = (self.__master_map_object.registers[0].access == RegAccess.RW) and (
             self.__slave_map_object.registers[0].access == RegAccess.RW
@@ -358,10 +360,6 @@ class FSoEMasterHandler:
         self.__in_initial_reset = False
         self.__running = False
 
-        # Unsubscribe from PDO events
-        self.safety_master_pdu_map.unsubscribe_to_process_data_event()
-        self.safety_slave_pdu_map.unsubscribe_to_process_data_event()
-
     def delete(self) -> None:
         """Delete the master handler."""
         self._master_handler.delete()
@@ -409,10 +407,6 @@ class FSoEMasterHandler:
         self.__servo.set_pdo_map_to_slave(
             rpdo_maps=[self.safety_master_pdu_map], tpdo_maps=[self.safety_slave_pdu_map]
         )
-
-        # Subscribe to events
-        self.safety_master_pdu_map.subscribe_to_process_data_event(self.get_request)
-        self.safety_slave_pdu_map.subscribe_to_process_data_event(self.set_reply)
 
         if self.__maps.editable:
             self.safety_master_pdu_map.write_to_slave(padding=True)
