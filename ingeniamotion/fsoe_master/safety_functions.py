@@ -63,7 +63,12 @@ def safety_field(uid: str, display_name: str):  # type: ignore[no-untyped-def]
 
 
 def is_optional(field_type: type) -> tuple[bool, type]:
-    """Check if a field type is Optional and get the internal type."""
+    """Check if a field type is Optional and get the internal type.
+
+    Returns:
+        A tuple with a boolean indicating if the field is Optional,
+        and the internal type if it is Optional, or the original type if not.
+    """
     is_optional = get_origin(field_type) is Optional or (
         get_origin(field_type) is Union and type(None) in get_args(field_type)
     )
@@ -204,7 +209,8 @@ class SafetyFunction:
                 raise KeyError(f"Dictionary item {uid} not found in the handler's dictionary")
             if not isinstance(item, FSoEDictionaryItemInputOutput):
                 raise TypeError(
-                    f"Expected DictionaryItemInputOutput {uid} on the safe dictionary, got {type(item)}"
+                    f"Expected DictionaryItemInputOutput {uid} "
+                    f"on the safe dictionary, got {type(item)}"
                 )
         return item
 
