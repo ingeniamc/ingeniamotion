@@ -35,6 +35,9 @@ __all__ = [
 class SafetyFieldMetadata:
     """Metadata for safety fields.
 
+    Can either represent a prototype for a field (with placeholders in the UID),
+    or a specific instance (with concrete values in the UID).
+
     Attributes:
         uid: Unique identifier for the safety field.
             May include an instance index, e.g. `FSOE_SS1_{i}`.
@@ -139,21 +142,23 @@ class SafetyFunction:
         ios: dict[SafetyFieldMetadata, Optional[FSoEDictionaryItem]] = {}
         parameters: dict[SafetyFieldMetadata, Optional[SafetyParameter]] = {}
         for field in dataclasses.fields(cls):
-            if "uid" not in field.metadata:
+            metadata_dict = field.metadata.copy()
+            if "uid" not in metadata_dict:
                 continue
-            metadata = SafetyFieldMetadata(**field.metadata, attr_name=field.name)
-            uid = metadata.uid
-            if n_instance:
-                uid = uid.format(i=n_instance)
+
+            if n_instance is not None:
+                metadata_dict["uid"] = metadata_dict["uid"].format(i=n_instance)
+
+            metadata = SafetyFieldMetadata(**metadata_dict, attr_name=field.name)
 
             optional, field_type = is_optional(field.type)
 
             if field_type == FSoEDictionaryItemInputOutput:
-                ios[metadata] = cls._get_input_output(handler, uid, optional)
+                ios[metadata] = cls._get_input_output(handler, metadata.uid, optional)
             elif field_type == FSoEDictionaryItemInput:
-                ios[metadata] = cls._get_input(handler, uid, optional)
+                ios[metadata] = cls._get_input(handler, metadata.uid, optional)
             elif field_type == SafetyParameter:
-                parameters[metadata] = cls._get_parameter(handler, uid, optional)
+                parameters[metadata] = cls._get_parameter(handler, metadata.uid, optional)
 
         name = cls.name.format(i=n_instance) if n_instance else cls.name
 

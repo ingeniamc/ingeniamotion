@@ -464,12 +464,12 @@ def test_detect_safety_functions_ph1():
     for metadata, parameter in ss1.parameters.items():
         assert parameter == ss1.time_to_sto
         assert metadata.display_name == "Time to STO"
-        assert metadata.uid == "FSOE_SS1_TIME_TO_STO_{i}"
+        assert metadata.uid == "FSOE_SS1_TIME_TO_STO_1"
     assert len(ss1.ios) == 1
     for metadata, io in ss1.ios.items():
         assert io == ss1.command
         assert metadata.display_name == "Command"
-        assert metadata.uid == "FSOE_SS1_{i}"
+        assert metadata.uid == "FSOE_SS1_1"
 
     # Safe inputs
     si = sf[2]
