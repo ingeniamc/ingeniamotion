@@ -25,6 +25,7 @@ from ingeniamotion.fsoe_master.safety_functions import STOFunction
 if TYPE_CHECKING:
     from ingenialink.dictionary import Dictionary
 
+    from ingeniamotion.fsoe_master import FSoEMasterHandler
     from ingeniamotion.fsoe_master.safety_functions import SafetyFunction
 
 __all__ = ["PDUMaps"]
@@ -192,6 +193,105 @@ class PDUMaps:
         """
         for io in safety_function.ios.values():
             self.insert_in_best_position(io)
+
+    def insert_safety_functions_by_type(
+        self, handler: "FSoEMasterHandler", function_type: type["SafetyFunction"]
+    ) -> None:
+        """Insert all elements of the safety functions of the given type on the maps.
+
+        Args:
+            handler: FSoE handler.
+            function_type: Safety function type.
+
+        Raises:
+            ValueError: if no safety functions of the given type are found.
+            ValueError: if all safety functions of the given type are already mapped.
+
+        """
+        sf_available = handler.safety_functions_by_type().get(function_type, [])
+        if not sf_available:
+            raise ValueError(f"No safety functions of type {function_type} found")
+        for function in sf_available:
+            if not self.is_safety_function_mapped(function):
+                self.insert_safety_function(function)
+                return
+        raise ValueError(f"All safety functions of type {function_type} are already mapped")
+
+    def unmap_safety_function(self, safe_func: "SafetyFunction") -> None:
+        """Unmaps a safety function from the target map.
+
+        Args:
+            safe_func: The safety function to unmap.
+
+        Raises:
+            ValueError: if the safety function is not mapped.
+        """
+        if not self.is_safety_function_mapped(safe_func):
+            raise ValueError("The safety function is not mapped")
+        for io in safe_func.ios.values():
+            if isinstance(io, FSoEDictionaryItemInput):
+                self.inputs.transform_to_padding(io)
+            elif isinstance(io, FSoEDictionaryItemOutput):
+                self.outputs.transform_to_padding(io)
+            elif isinstance(io, FSoEDictionaryItemInputOutput):
+                self.inputs.transform_to_padding(io)
+                self.outputs.transform_to_padding(io)
+
+    def remove_safety_functions_by_type(
+        self, handler: "FSoEMasterHandler", function_type: type["SafetyFunction"]
+    ) -> None:
+        """Remove all elements of the safety functions of the given type from the maps.
+
+        Args:
+            handler: FSoE handler.
+            function_type: Safety function type.
+
+        Raises:
+            ValueError: if no safety functions of the given type are found.
+            ValueError: if no safety functions of the given type are mapped.
+
+        """
+        sf_available = handler.safety_functions_by_type().get(function_type, [])
+        if not sf_available:
+            raise ValueError(f"No safety functions of type {function_type} found")
+        for function in sf_available[::-1]:
+            if self.is_safety_function_mapped(function):
+                self.unmap_safety_function(function)
+                return
+        raise ValueError(f"No safety functions of type {function_type} are mapped")
+
+    def is_safety_function_mapped(self, safety_function: "SafetyFunction") -> bool:
+        """Check if the safety function is mapped in the PDU maps.
+
+        If all the inputs and outputs of the safety function are present in the PDU maps,
+        then it is considered mapped. Otherwise, it is not mapped.
+
+        Args:
+            safety_function: SafetyFunction to check.
+
+        Returns:
+            True if the safety function is mapped, False otherwise.
+        """
+        map_input = [x.item for x in self.inputs]
+        map_output = [x.item for x in self.outputs]
+        is_function_mapped = True
+        for io in safety_function.ios.values():
+            if isinstance(io, FSoEDictionaryItemInput):
+                if io not in map_input:
+                    is_function_mapped = False
+                    break
+            elif isinstance(io, FSoEDictionaryItemOutput):
+                if io not in map_output:
+                    is_function_mapped = False
+                    break
+            elif isinstance(io, FSoEDictionaryItemInputOutput):
+                if io not in map_input or io not in map_output:
+                    is_function_mapped = False
+                    break
+            else:
+                is_function_mapped = False
+                break
+        return is_function_mapped
 
     @classmethod
     def from_rpdo_tpdo(
