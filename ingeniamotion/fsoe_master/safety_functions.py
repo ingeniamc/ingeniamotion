@@ -124,8 +124,8 @@ class SafetyFunction:
         Yields:
             Iterator[SafetyFunction]: An iterator yielding the safety function instance.
         """
-        ios: dict[SafetyFieldMetadata, FSoEDictionaryItem] = {}
-        parameters: dict[SafetyFieldMetadata, SafetyParameter] = {}
+        ios: dict[SafetyFieldMetadata, Optional[FSoEDictionaryItem]] = {}
+        parameters: dict[SafetyFieldMetadata, Optional[SafetyParameter]] = {}
         for field in dataclasses.fields(cls):
             if "uid" not in field.metadata:
                 continue
@@ -145,8 +145,12 @@ class SafetyFunction:
                 parameters[metadata] = cls._get_parameter(handler, uid, required)
 
         yield cls(
-            ios=ios,  # TODO Filter
-            parameters=parameters,  # TODO Filter
+            ios={metadata: io for metadata, io in ios.items() if io is not None},
+            parameters={
+                metadata: parameter
+                for metadata, parameter in parameters.items()
+                if parameter is not None
+            },
             **{field.attr_name: io for field, io in ios.items()},
             **{field.attr_name: parameter for field, parameter in parameters.items()},
         )

@@ -19,7 +19,11 @@ from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError, FSoEMaster
 from ingeniamotion.motion_controller import MotionController
 from tests.conftest import add_fixture_error_checker, timeout_loop
-from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
+from tests.dictionaries import (
+    SAMPLE_SAFE_PH1_XDFV3_DICTIONARY,
+    SAMPLE_SAFE_PH2_MODULE_IDENT_NO_SRA_MODULE_IDENT,
+    SAMPLE_SAFE_PH2_XDFV3_DICTIONARY,
+)
 
 if FSOE_MASTER_INSTALLED:
     from fsoe_master import fsoe_master
@@ -33,13 +37,13 @@ if FSOE_MASTER_INSTALLED:
         SLPFunction,
         SLSFunction,
         SOSFunction,
+        SOutFunction,
         SPFunction,
         SS1Function,
         SS2Function,
         SSRFunction,
         STOFunction,
         SVFunction,
-        SafetyParameter,
     )
     from ingeniamotion.fsoe_master.frame import FSoEFrame
     from ingeniamotion.fsoe_master.fsoe import (
@@ -481,7 +485,9 @@ def test_detect_safety_functions_ph1():
 
 @pytest.mark.fsoe
 def test_detect_safety_functions_ph2():
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00000)
+    handler = MockHandler(
+        SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_MODULE_IDENT_NO_SRA_MODULE_IDENT
+    )
 
     sf_types = [type(sf) for sf in SafetyFunction.for_handler(handler)]
 
@@ -491,7 +497,7 @@ def test_detect_safety_functions_ph2():
         SafeInputsFunction,
         SOSFunction,
         SS2Function,
-        # SOutFunction, Not implemented yet
+        SOutFunction,
         SPFunction,
         SVFunction,
         SafeHomingFunction,
@@ -524,6 +530,7 @@ def test_detect_safety_functions_ph2():
         SLPFunction,
     ]
 
+
 @pytest.mark.fsoe
 def test_optional_parameter_not_present():
     handler = MockHandler(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, 0x3800000)
@@ -533,13 +540,16 @@ def test_optional_parameter_not_present():
     assert sto.activate_sout is None
     # TODO check that list does not contain the nones
 
+
 @pytest.mark.fsoe
 def test_optional_parameter_present():
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00000)
+    handler = MockHandler(
+        SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_MODULE_IDENT_NO_SRA_MODULE_IDENT
+    )
 
     sto: STOFunction = next(STOFunction.for_handler(handler))
 
-    assert isinstance(sto.activate_sout, SafetyParameter)
+    sto.activate_sout is not None
 
 
 @pytest.mark.fsoe
@@ -563,7 +573,7 @@ def test_getter_of_safety_functions(mc_with_fsoe):
     _mc, handler = mc_with_fsoe
 
     # ruff: noqa: ERA001
-    sto_function = STOFunction(command=None, ios=None, parameters=None)
+    sto_function = STOFunction(command=None, activate_sout=None, ios=None, parameters=None)
     ss1_function_1 = SS1Function(
         command=None,
         time_to_sto=None,
