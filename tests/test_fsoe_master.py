@@ -444,6 +444,8 @@ def test_detect_safety_functions_ph1():
     # STO
     sto = sf[0]
     assert isinstance(sto, STOFunction)
+    assert sto.n_instance is None
+    assert sto.name == "Safe Torque Off"
     assert isinstance(sto.command, FSoEDictionaryItemInputOutput)
     assert sto.parameters == {}
     assert len(sto.ios) == 1
@@ -455,6 +457,8 @@ def test_detect_safety_functions_ph1():
     # SS1
     ss1 = sf[1]
     assert isinstance(ss1, SS1Function)
+    assert ss1.n_instance == 1
+    assert ss1.name == "Safe Stop 1"
     assert isinstance(ss1.command, FSoEDictionaryItemInputOutput)
     assert len(ss1.parameters) == 1
     for metadata, parameter in ss1.parameters.items():
@@ -470,6 +474,8 @@ def test_detect_safety_functions_ph1():
     # Safe inputs
     si = sf[2]
     assert isinstance(si, SafeInputsFunction)
+    assert si.n_instance is None
+    assert si.name == "Safe Inputs"
     assert isinstance(si.value, FSoEDictionaryItemInput)
     assert len(si.parameters) == 1
     for metadata, parameter in si.parameters.items():
@@ -577,12 +583,26 @@ def test_mandatory_safety_functions(mc_with_fsoe):
 def test_getter_of_safety_functions(mc_with_fsoe):
     _mc, handler = mc_with_fsoe
 
-    sto_function = STOFunction(command=None, activate_sout=None, ios=None, parameters=None)
+    sto_function = STOFunction(
+        n_instance=None, name="Dummy", command=None, activate_sout=None, ios=None, parameters=None
+    )
     ss1_function_1 = SS1Function(
-        command=None, time_to_sto=None, ios=None, parameters=None, time_for_velocity_zero=None
+        n_instance=None,
+        name="Dummy",
+        command=None,
+        time_to_sto=None,
+        ios=None,
+        parameters=None,
+        time_for_velocity_zero=None,
     )
     ss1_function_2 = SS1Function(
-        command=None, time_to_sto=None, ios=None, parameters=None, time_for_velocity_zero=None
+        n_instance=None,
+        name="Dummy",
+        command=None,
+        time_to_sto=None,
+        ios=None,
+        parameters=None,
+        time_for_velocity_zero=None,
     )
 
     handler.safety_functions = (sto_function, ss1_function_1, ss1_function_2)

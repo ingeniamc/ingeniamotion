@@ -87,6 +87,13 @@ class SafetyFunction:
     Wraps input/output items and parameters used by the FSoE Master handler.
     """
 
+    n_instance: Optional[int]
+    """Number of instances of the safety function, if applicable."""
+
+    name: str
+    """Name of the safety function.
+    In the class var it may include an instance index, e.g. `Safe Stop {i}`."""
+
     ios: dict[SafetyFieldMetadata, FSoEDictionaryItem]
     parameters: dict[SafetyFieldMetadata, SafetyParameter]
 
@@ -112,13 +119,13 @@ class SafetyFunction:
 
     @classmethod
     def _create_instance(
-        cls, handler: "FSoEMasterHandler", instance_i: Optional[int] = None
+        cls, handler: "FSoEMasterHandler", n_instance: Optional[int] = None
     ) -> Iterator["SafetyFunction"]:
         """Create an instance of the safety function.
 
         Args:
             handler: The FSoE master handler to use.
-            instance_i: The instance index to use for the safety function.
+            n_instance: The instance index to use for the safety function.
                 Formatted into the UID if provided.
                 If not the function is assumed to be single-instance.
 
@@ -136,8 +143,8 @@ class SafetyFunction:
                 continue
             metadata = SafetyFieldMetadata(**field.metadata, attr_name=field.name)
             uid = metadata.uid
-            if instance_i:
-                uid = uid.format(i=instance_i)
+            if n_instance:
+                uid = uid.format(i=n_instance)
 
             optional, field_type = is_optional(field.type)
 
@@ -148,7 +155,11 @@ class SafetyFunction:
             elif field_type == SafetyParameter:
                 parameters[metadata] = cls._get_parameter(handler, uid, optional)
 
+        name = cls.name.format(i=n_instance) if n_instance else cls.name
+
         yield cls(
+            n_instance=n_instance,
+            name=name,
             ios={metadata: io for metadata, io in ios.items() if io is not None},
             parameters={
                 metadata: parameter
@@ -180,7 +191,7 @@ class SafetyFunction:
         i = 1
         try:
             while True:
-                yield from cls._create_instance(handler, instance_i=i)
+                yield from cls._create_instance(handler, n_instance=i)
                 i += 1
         except KeyError:
             return
@@ -270,6 +281,8 @@ class SafetyFunction:
 class STOFunction(SafetyFunction):
     """Safe Torque Off Safety Function."""
 
+    name = "Safe Torque Off"
+
     COMMAND_UID = "FSOE_STO"
 
     command: FSoEDictionaryItemInputOutput = safety_field(uid=COMMAND_UID, display_name="Command")
@@ -281,6 +294,8 @@ class STOFunction(SafetyFunction):
 @dataclass()
 class SS1Function(SafetyFunction):
     """Safe Stop 1 Safety Function."""
+
+    name = "Safe Stop {i}"
 
     COMMAND_UID = "FSOE_SS1_{i}"
 
@@ -297,6 +312,8 @@ class SS1Function(SafetyFunction):
 class SafeInputsFunction(SafetyFunction):
     """Safe Inputs Safety Function."""
 
+    name = "Safe Inputs"
+
     SAFE_INPUTS_UID = "FSOE_SAFE_INPUTS_VALUE"
     value: FSoEDictionaryItemInput = safety_field(uid=SAFE_INPUTS_UID, display_name="Value")
     map: SafetyParameter = safety_field(uid="FSOE_SAFE_INPUTS_MAP", display_name="Map")
@@ -305,6 +322,8 @@ class SafeInputsFunction(SafetyFunction):
 @dataclass()
 class SOSFunction(SafetyFunction):
     """Safe Operation Stop Safety Function."""
+
+    name = "Safe Operation Stop {i}"
 
     command: FSoEDictionaryItemInputOutput = safety_field(
         uid="FSOE_SOS_{i}", display_name="Command"
@@ -320,6 +339,8 @@ class SOSFunction(SafetyFunction):
 @dataclass()
 class SS2Function(SafetyFunction):
     """Safe Stop 2 Safety Function."""
+
+    name = "Safe Stop 2 {i}"
 
     command: FSoEDictionaryItemInputOutput = safety_field(
         uid="FSOE_SS2_{i}", display_name="Command"
@@ -342,6 +363,8 @@ class SS2Function(SafetyFunction):
 class SOutFunction(SafetyFunction):
     """Safe Output Safety Function."""
 
+    name = "Safe Output"
+
     command: FSoEDictionaryItemInputOutput = safety_field(uid="FSOE_SOUT", display_name="Command")
     brake_time_delay: SafetyParameter = safety_field(
         uid="FSOE_SOUT_BRAKE_TIME_DELAY", display_name="Electromechanical delay for a brake"
@@ -355,6 +378,8 @@ class SOutFunction(SafetyFunction):
 class SPFunction(SafetyFunction):
     """Safe Position Safety Function."""
 
+    name = "Safe Position"
+
     value: FSoEDictionaryItemInput = safety_field(uid="FSOE_SAFE_POSITION", display_name="Value")
     tolerance: SafetyParameter = safety_field(
         uid="FSOE_POSITION_TOLERANCE", display_name="Tolerance"
@@ -365,12 +390,16 @@ class SPFunction(SafetyFunction):
 class SVFunction(SafetyFunction):
     """Safe Velocity Safety Function."""
 
+    name = "Safe Velocity"
+
     value: FSoEDictionaryItemInput = safety_field("FSOE_SAFE_VELOCITY", display_name="Value")
 
 
 @dataclass()
 class SafeHomingFunction(SafetyFunction):
     """Safe Homing Safety Function."""
+
+    name = "Safe Homing"
 
     command: FSoEDictionaryItemInputOutput = safety_field(
         uid="FSOE_SAFE_HOMING", display_name="Command"
@@ -383,6 +412,8 @@ class SafeHomingFunction(SafetyFunction):
 @dataclass()
 class SLSFunction(SafetyFunction):
     """Safe Limited Speed Safety Function."""
+
+    name = "Safe Limited Speed {i}"
 
     command: FSoEDictionaryItemInputOutput = safety_field(
         uid="FSOE_SLS_CMD_{i}", display_name="Command"
@@ -398,6 +429,8 @@ class SLSFunction(SafetyFunction):
 @dataclass()
 class SSRFunction(SafetyFunction):
     """Safe Speed Range Safety Function."""
+
+    name = "Safe Speed Range {i}"
 
     command: FSoEDictionaryItemInputOutput = safety_field(
         uid="FSOE_SSR_COMMAND_{i}", display_name="Command"
@@ -416,6 +449,8 @@ class SSRFunction(SafetyFunction):
 @dataclass()
 class SLPFunction(SafetyFunction):
     """Safe Limited Speed Safety Function."""
+
+    name = "Safe Limited Position {i}"
 
     command: FSoEDictionaryItemInputOutput = safety_field(
         uid="FSOE_SLP_COMMAND_{i}", display_name="Command"
