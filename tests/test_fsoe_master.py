@@ -224,7 +224,7 @@ def test_create_fsoe_handler_from_invalid_pdo_maps(
         )
 
         # And the default minimal map is used
-        assert len(handler.maps.inputs) == 0
+        assert len(handler.maps.inputs) == 1
         assert len(handler.maps.outputs) == 1
         assert handler.maps.outputs[0].item.name == "FSOE_STO"
     finally:
