@@ -577,19 +577,21 @@ def test_mandatory_safety_functions(mc_with_fsoe):
 def test_getter_of_safety_functions(mc_with_fsoe):
     _mc, handler = mc_with_fsoe
 
-    # ruff: noqa: ERA001
+    # ruff: noqa: ERA001ñ
     sto_function = STOFunction(command=None, activate_sout=None, ios=None, parameters=None)
     ss1_function_1 = SS1Function(
         command=None,
         time_to_sto=None,
         ios=None,
         parameters=None,
+        time_for_velocity_zero=None
     )
     ss1_function_2 = SS1Function(
         command=None,
         time_to_sto=None,
         ios=None,
         parameters=None,
+        time_for_velocity_zero=None
     )
 
     handler.safety_functions = (sto_function, ss1_function_1, ss1_function_2)

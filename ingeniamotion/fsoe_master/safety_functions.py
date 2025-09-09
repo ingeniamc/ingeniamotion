@@ -288,6 +288,9 @@ class SS1Function(SafetyFunction):
     time_to_sto: SafetyParameter = safety_field(
         uid="FSOE_SS1_TIME_TO_STO_{i}", display_name="Time to STO"
     )
+    time_for_velocity_zero: Optional[SafetyParameter] = safety_field(
+        uid="FSOE_SS1_TIME_FOR_VEL_ZERO_{i}", display_name="Time for Velocity Zero"
+    )
 
 
 @dataclass()
