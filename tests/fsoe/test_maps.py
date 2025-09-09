@@ -8,15 +8,22 @@ from summit_testing_framework.setups.specifiers import DriveHwConfigSpecifier
 
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 from ingeniamotion.motion_controller import MotionController
+from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
+from tests.test_fsoe_master import MockHandler
 
 if FSOE_MASTER_INSTALLED:
     import ingeniamotion.fsoe_master.safety_functions as safety_functions
-    from ingeniamotion.fsoe_master.safety_functions import SafetyFunction
+    from ingeniamotion.fsoe_master import PDUMaps
+    from ingeniamotion.fsoe_master.safety_functions import (
+        SafeInputsFunction,
+        SafetyFunction,
+        SSRFunction,
+        STOFunction,
+    )
     from tests.fsoe.map_json_serializer import FSoEDictionaryMapJSONSerializer
 
     if TYPE_CHECKING:
         from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
-        from ingeniamotion.fsoe_master.maps import PDUMaps
         from tests.fsoe.conftest import FSoERandomMappingGenerator
 
 
@@ -253,3 +260,132 @@ def test_fixed_mapping_combination(
                 mc.fsoe.stop_master(stop_pdos=True)
         except Exception:
             pass
+
+
+@pytest.mark.fsoe
+def test_is_safety_function_mapped():
+    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00000)
+    sfs = handler.safety_functions_by_type()
+    sto_func = sfs[STOFunction][0]
+    maps = PDUMaps.empty(handler.dictionary)
+    sto_ios = list(sto_func.ios.values())
+    assert maps.is_safety_function_mapped(sto_func) is False
+    maps.outputs.add(sto_ios[0])
+    assert maps.is_safety_function_mapped(sto_func) is False
+    maps.inputs.add(sto_ios[0])
+    assert maps.is_safety_function_mapped(sto_func) is True
+
+    si_func = sfs[SafeInputsFunction][0]
+    si_ios = list(si_func.ios.values())
+    assert maps.is_safety_function_mapped(si_func) is False
+    maps.inputs.add(si_ios[0])
+    assert maps.is_safety_function_mapped(si_func) is True
+
+
+@pytest.mark.fsoe
+def test_insert_safety_functions_by_type():
+    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00000)
+    maps = PDUMaps.empty(handler.dictionary)
+    maps.insert_safety_functions_by_type(handler, STOFunction)
+    maps.insert_safety_functions_by_type(handler, SSRFunction)
+    maps.insert_safety_functions_by_type(handler, SSRFunction)
+    maps.insert_safety_functions_by_type(handler, SSRFunction)
+    maps.insert_safety_functions_by_type(handler, SSRFunction)
+    assert maps.inputs.get_text_representation(item_space=30) == (
+        "Item                           | Position bytes..bits | Size bytes..bits    \n"
+        "FSOE_STO                       | 0..0                 | 0..1                \n"
+        "FSOE_SSR_COMMAND_1             | 0..1                 | 0..1                \n"
+        "FSOE_SSR_COMMAND_2             | 0..2                 | 0..1                \n"
+        "FSOE_SSR_COMMAND_3             | 0..3                 | 0..1                \n"
+        "FSOE_SSR_COMMAND_4             | 0..4                 | 0..1                "
+    )
+    assert maps.outputs.get_text_representation(item_space=30) == (
+        "Item                           | Position bytes..bits | Size bytes..bits    \n"
+        "FSOE_STO                       | 0..0                 | 0..1                \n"
+        "FSOE_SSR_COMMAND_1             | 0..1                 | 0..1                \n"
+        "FSOE_SSR_COMMAND_2             | 0..2                 | 0..1                \n"
+        "FSOE_SSR_COMMAND_3             | 0..3                 | 0..1                \n"
+        "FSOE_SSR_COMMAND_4             | 0..4                 | 0..1                "
+    )
+
+
+@pytest.mark.fsoe
+def test_remove_safety_functions_by_type_1():
+    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00000)
+
+    maps = PDUMaps.empty(handler.dictionary)
+    maps.insert_safety_functions_by_type(handler, STOFunction)
+    maps.insert_safety_functions_by_type(handler, SSRFunction)
+    maps.remove_safety_functions_by_type(handler, SSRFunction)
+    assert maps.inputs.get_text_representation(item_space=30) == (
+        "Item                           | Position bytes..bits | Size bytes..bits    \n"
+        "FSOE_STO                       | 0..0                 | 0..1                \n"
+        "Padding                        | 0..1                 | 0..1                "
+    )
+    assert maps.outputs.get_text_representation(item_space=30) == (
+        "Item                           | Position bytes..bits | Size bytes..bits    \n"
+        "FSOE_STO                       | 0..0                 | 0..1                \n"
+        "Padding                        | 0..1                 | 0..1                "
+    )
+
+
+@pytest.mark.fsoe
+def test_remove_safety_functions_by_type_2():
+    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00000)
+    ssr_funcs = handler.safety_functions_by_type()[SSRFunction]
+    maps = PDUMaps.empty(handler.dictionary)
+    maps.insert_safety_functions_by_type(handler, STOFunction)
+    maps.insert_safety_function(ssr_funcs[5])
+    maps.insert_safety_function(ssr_funcs[3])
+    maps.remove_safety_functions_by_type(handler, SSRFunction)
+    assert maps.inputs.get_text_representation(item_space=30) == (
+        "Item                           | Position bytes..bits | Size bytes..bits    \n"
+        "FSOE_STO                       | 0..0                 | 0..1                \n"
+        "Padding                        | 0..1                 | 0..1                \n"
+        "FSOE_SSR_COMMAND_4             | 0..2                 | 0..1                "
+    )
+    assert maps.outputs.get_text_representation(item_space=30) == (
+        "Item                           | Position bytes..bits | Size bytes..bits    \n"
+        "FSOE_STO                       | 0..0                 | 0..1                \n"
+        "Padding                        | 0..1                 | 0..1                \n"
+        "FSOE_SSR_COMMAND_4             | 0..2                 | 0..1                "
+    )
+
+
+@pytest.mark.fsoe
+def test_unmap_safety_function():
+    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00000)
+    sfs = handler.safety_functions_by_type()
+    maps = PDUMaps.empty(handler.dictionary)
+    maps.insert_safety_function(sfs[STOFunction][0])
+    maps.insert_safety_function(sfs[SSRFunction][0])
+    maps.insert_safety_function(sfs[SafeInputsFunction][0])
+    maps.unmap_safety_function(sfs[STOFunction][0])
+    maps.unmap_safety_function(sfs[SafeInputsFunction][0])
+    assert maps.inputs.get_text_representation(item_space=30) == (
+        "Item                           | Position bytes..bits | Size bytes..bits    \n"
+        "Padding                        | 0..0                 | 0..1                \n"
+        "FSOE_SSR_COMMAND_1             | 0..1                 | 0..1                \n"
+        "Padding                        | 0..2                 | 0..1                "
+    )
+    assert maps.outputs.get_text_representation(item_space=30) == (
+        "Item                           | Position bytes..bits | Size bytes..bits    \n"
+        "Padding                        | 0..0                 | 0..1                \n"
+        "FSOE_SSR_COMMAND_1             | 0..1                 | 0..1                "
+    )
+
+
+@pytest.mark.fsoe
+def test_unmap_safety_function_error():
+    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00000)
+    sfs = handler.safety_functions_by_type()
+    maps = PDUMaps.empty(handler.dictionary)
+    si_func = sfs[SafeInputsFunction][0]
+    with pytest.raises(ValueError):
+        maps.unmap_safety_function(si_func)
+
+    sto_func = sfs[STOFunction][0]
+    sto_ios = list(sto_func.ios.values())
+    maps.outputs.add(sto_ios[0])
+    with pytest.raises(ValueError):
+        maps.unmap_safety_function(sto_func)
