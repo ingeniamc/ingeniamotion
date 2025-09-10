@@ -125,6 +125,7 @@ def test_get_last_error_feedback_combination(
 
     mc.fsoe.configure_pdos(start_pdos=True)
     time.sleep(TIMEOUT_FOR_DATA_SRA)
+    mc.fsoe.stop_master(stop_pdos=True)
 
     assert mcu_error_queue_a.get_number_total_errors() == 1
     assert mcu_error_queue_b.get_number_total_errors() == 1
