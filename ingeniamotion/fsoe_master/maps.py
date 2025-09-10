@@ -198,26 +198,31 @@ class PDUMaps:
 
     def insert_safety_functions_by_type(
         self, handler: "FSoEMasterHandler", function_type: type["SafetyFunction"]
-    ) -> None:
-        """Insert all elements of the safety functions of the given type on the maps.
+    ) -> "SafetyFunction":
+        """Insert the first non-mapped instance of the given safety function type on the maps.
 
         Args:
             handler: FSoE handler.
             function_type: Safety function type.
+
+        Returns:
+            The safety function that was inserted.
 
         Raises:
             ValueError: if no safety functions of the given type are found.
             ValueError: if all safety functions of the given type are already mapped.
 
         """
-        sf_available = handler.safety_functions_by_type().get(function_type, [])
+        sf_available: list[SafetyFunction] = handler.safety_functions_by_type().get(
+            function_type, []
+        )
         if not sf_available:
             raise ValueError(f"No safety functions of type {function_type} found")
         for function in sf_available:
             if not self.is_safety_function_mapped(function):
                 self.unmap_safety_function(function)
                 self.insert_safety_function(function)
-                return
+                return function
         raise ValueError(f"All safety functions of type {function_type} are already mapped")
 
     def unmap_safety_function(self, safe_func: "SafetyFunction") -> None:
@@ -251,25 +256,30 @@ class PDUMaps:
 
     def remove_safety_functions_by_type(
         self, handler: "FSoEMasterHandler", function_type: type["SafetyFunction"]
-    ) -> None:
-        """Remove all elements of the safety functions of the given type from the maps.
+    ) -> "SafetyFunction":
+        """Remove the last instance mapped of the given safety function type on the maps.
 
         Args:
             handler: FSoE handler.
             function_type: Safety function type.
+
+        Returns:
+            The safety function that was removed.
 
         Raises:
             ValueError: if no safety functions of the given type are found.
             ValueError: if no safety functions of the given type are mapped.
 
         """
-        sf_available = handler.safety_functions_by_type().get(function_type, [])
+        sf_available: list[SafetyFunction] = handler.safety_functions_by_type().get(
+            function_type, []
+        )
         if not sf_available:
             raise ValueError(f"No safety functions of type {function_type} found")
         for function in sf_available[::-1]:
             if self.is_safety_function_mapped(function):
                 self.unmap_safety_function(function)
-                return
+                return function
         raise ValueError(f"No safety functions of type {function_type} are mapped")
 
     def is_safety_function_mapped(self, safety_function: "SafetyFunction") -> bool:
