@@ -67,7 +67,7 @@ def create_pdo_maps(
 
 
 @pytest.mark.fsoe
-def test_start_pdos_safety_drive_without_starting_safety_master(
+def test_start_pdos_without_starting_safety_master(
     mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"],
     alias: str,
     servo: "EthercatServo",
