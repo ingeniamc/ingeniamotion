@@ -11,17 +11,21 @@ try:
 except ImportError:
     pysoem = None
 
+from ingeniamotion.enums import FSoEState
+from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 from ingeniamotion.motion_controller import MotionController
 
+if FSOE_MASTER_INSTALLED:
+    from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
+
+
 if TYPE_CHECKING:
+    from ingenialink.ethercat.network import EthercatNetwork
     from ingenialink.ethercat.servo import EthercatServo
     from ingenialink.pdo import RPDOMap, TPDOMap
+    from pytest_mock import MockerFixture
 
-    from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
     from ingeniamotion.motion_controller import MotionController
-
-    if FSOE_MASTER_INSTALLED:
-        from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
 
 
 @pytest.fixture
@@ -89,3 +93,45 @@ def test_start_pdos_without_starting_safety_master(
     assert servo.slave.state is pysoem.OP_STATE
     assert len(exceptions) == 0
     assert len(received_data) > 0
+
+
+@pytest.mark.fsoe
+def test_stop_master_while_pdos_are_still_active(
+    mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"],
+    timeout_for_data_sra: float,
+    exceptions: list[Exception],
+    received_data: list[float],
+    mocker: "MockerFixture",
+    net: "EthercatNetwork",
+) -> None:
+    mc, handler = mc_with_fsoe_with_sra
+
+    # Configure and start the PDOs
+    mc.capture.pdo.start_pdos(servo=True)
+
+    # Wait for the master to reach the Data state
+    mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
+    assert mc.fsoe.state is FSoEState.DATA
+
+    # Data from non-safety PDOs should be received
+    assert len(exceptions) == 0
+    assert len(received_data) > 0
+    n_received_data = len(received_data)
+
+    # Now stop the FSoE master while PDOs are still active
+    # Mock remove_pdo_maps_from_slave, they shouldn't be removed
+    # https://novantamotion.atlassian.net/browse/INGM-703
+    assert handler.running is True
+    mocker.patch.object(FSoEMasterHandler, "remove_pdo_maps_from_slave")
+    mc.fsoe.stop_master(stop_pdos=False)
+    # Unsubscribe from safety PDO map events to avoid processing them after stopping the master
+    # https://novantamotion.atlassian.net/browse/INGM-703
+    handler.safety_master_pdu_map.unsubscribe_to_process_data_event()
+    handler.safety_slave_pdu_map.unsubscribe_to_process_data_event()
+    assert handler.running is False
+
+    # Data from non-safety PDOs should still be received
+    refresh_rate: float = net.pdo_manager._pdo_thread._refresh_rate
+    time.sleep(2 * refresh_rate)
+    assert len(exceptions) == 0
+    assert len(received_data) > n_received_data
