@@ -165,12 +165,12 @@ def mc_with_fsoe_factory(request, mc, fsoe_states):
 
 @pytest.fixture()
 def mc_with_fsoe(mc_with_fsoe_factory):
-    return mc_with_fsoe_factory(use_sra=False, fail_on_fsoe_errors=True)
+    yield mc_with_fsoe_factory(use_sra=False, fail_on_fsoe_errors=True)
 
 
 @pytest.fixture()
 def mc_with_fsoe_with_sra(mc_with_fsoe_factory):
-    return mc_with_fsoe_factory(use_sra=True, fail_on_fsoe_errors=True)
+    yield mc_with_fsoe_factory(use_sra=True, fail_on_fsoe_errors=True)
 
 
 @pytest.mark.fsoe
