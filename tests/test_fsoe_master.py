@@ -358,7 +358,7 @@ class MockHandler:
 
         self.safety_functions = tuple(SafetyFunction.for_handler(self))
 
-    def safety_functions_by_type(self) -> dict[type[SafetyFunction], list[SafetyFunction]]:
+    def safety_functions_by_type(self) -> dict[type["SafetyFunction"], list["SafetyFunction"]]:
         return {
             type(sf): [
                 sf_of_type
