@@ -160,8 +160,7 @@ def mc_with_fsoe_factory(request, mc, fsoe_states):
 
     yield factory
 
-    for handler in created_handlers:
-        handler.delete()
+    mc.fsoe._delete_master_handler()
 
 
 @pytest.fixture()
