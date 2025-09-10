@@ -158,6 +158,21 @@ class ServoErrorQueue:
     def __get_pending_error_indexes(
         self, current_total_errors: int
     ) -> tuple[tuple[int, ...], bool]:
+        """Get the indexes of the pending errors from the servo's error queue.
+
+        Indicates the indexes of the error queue that are pending to be read since the last
+        time it the queue was read, according to the total number of errors reported by the servo.
+
+        It takes into account overflow and wrap around of the error queue.
+
+        Also indicates if any errors were lost and will not be read.
+        Happens when the n pending errors to read is higher than the queue length
+
+        Returns:
+            tuple with:
+                tuple of indexes of the errors pending to be read
+                boolean indicating if errors were lost
+        """
         n_pending_errors = current_total_errors - self.__last_read_total_errors_pending
         errors_lost = n_pending_errors > self.max_number_of_errors_in_buffer
 
