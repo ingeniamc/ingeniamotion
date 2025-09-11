@@ -100,8 +100,9 @@ def test_get_last_error_overtemp_error(servo, mcu_error_queue_a, environment):
 def test_get_last_error_feedback_combination(
     mcu_error_queue_a, mcu_error_queue_b, mc_with_fsoe_factory, environment
 ):
-    environment.power_cycle(wait_for_drives=True)
     """Test getting the last error when there is a feedback combination error."""
+    environment.power_cycle(wait_for_drives=True)
+
     mc, handler = mc_with_fsoe_factory(use_sra=True, fail_on_fsoe_errors=False)
 
     # Add a function that uses safe position to handler
@@ -125,18 +126,22 @@ def test_get_last_error_feedback_combination(
 
     mc.fsoe.configure_pdos(start_pdos=True)
     time.sleep(TIMEOUT_FOR_DATA_SRA)
-    mc.fsoe.stop_master(stop_pdos=True)
+    try:
+        assert mcu_error_queue_a.get_number_total_errors() == 1
+        assert mcu_error_queue_b.get_number_total_errors() == 1
+        assert mcu_error_queue_a.get_last_error().error_id == 0x90090701
+        assert mcu_error_queue_b.get_last_error().error_id == 0x90090701
 
-    assert mcu_error_queue_a.get_number_total_errors() == 1
-    assert mcu_error_queue_b.get_number_total_errors() == 1
-    assert mcu_error_queue_a.get_last_error().error_id == 0x90090701
-    assert mcu_error_queue_b.get_last_error().error_id == 0x90090701
+        errors_a, errors_losts = mcu_error_queue_a.get_pending_errors()
+        assert len(errors_a) == 1
+        assert errors_a[0].error_id == 0x90090701
 
-    errors_a, errors_losts = mcu_error_queue_a.get_pending_errors()
-    assert len(errors_a) == 1
-    assert errors_a[0].error_id == 0x90090701
-
-    assert not errors_losts
+        assert not errors_losts
+    finally:
+        # Stop the master
+        mc.fsoe.stop_master(stop_pdos=True)
+        # Power cycle to clear the errors generated
+        environment.power_cycle(wait_for_drives=True)
 
 
 @pytest.mark.fsoe_phase2
