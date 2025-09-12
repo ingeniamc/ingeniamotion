@@ -1281,18 +1281,18 @@ reference = "ingenia"
 
 [[package]]
 name = "ingenialink"
-version = "7.5.0+pr640b1"
+version = "7.5.0+pr640b3"
 description = "IngeniaLink Communications Library"
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "tests"]
 files = [
-    {file = "ingenialink-7.5.0+pr640b1-cp310-cp310-win_amd64.whl", hash = "sha256:cff68623ccd6f6e435c342f970b68227c09923061b1b466b494ff902872e5e34"},
-    {file = "ingenialink-7.5.0+pr640b1-cp311-cp311-win_amd64.whl", hash = "sha256:29453777cefb66f154c54c1d7ba1f854a224459fd96ab9c7ebdfd87a077a42e0"},
-    {file = "ingenialink-7.5.0+pr640b1-cp312-cp312-win_amd64.whl", hash = "sha256:bd531733e060844ebf0791d493fcfea9da3b65dbc795c4ba2279452754eb7e02"},
-    {file = "ingenialink-7.5.0+pr640b1-cp39-cp39-win_amd64.whl", hash = "sha256:f5f0765eb769ad75cbebe0aff15c9ef64078e6963ca996860f1498c09582a7b7"},
-    {file = "ingenialink-7.5.0+pr640b1-py3-none-any.whl", hash = "sha256:47689ceb4227f5733404c1ef96541e8ee4e6351d889edfbdbb933662a6088954"},
-    {file = "ingenialink-7.5.0+pr640b1.tar.gz", hash = "sha256:9375a31249944c015f946ca41d5139f5a9c749f353de114e026914024eb25c26"},
+    {file = "ingenialink-7.5.0+pr640b3-cp310-cp310-win_amd64.whl", hash = "sha256:143433f24005873b5d8ab23704f61764d6623d4ef9affd0f36ee6cc92d15c397"},
+    {file = "ingenialink-7.5.0+pr640b3-cp311-cp311-win_amd64.whl", hash = "sha256:06fbebca8b1622224aaf8a41c36ce98e70f492f6b3e8fa8583c1c3ee9991f232"},
+    {file = "ingenialink-7.5.0+pr640b3-cp312-cp312-win_amd64.whl", hash = "sha256:548e15181ad0c5024e54e18b3ab14adbab07a29aafe3d04dd4052ba75d82acfe"},
+    {file = "ingenialink-7.5.0+pr640b3-cp39-cp39-win_amd64.whl", hash = "sha256:59b482abb002be9d6a5cb278685ebd0902f96a88be1ebba0ab31e04b44d58cd8"},
+    {file = "ingenialink-7.5.0+pr640b3-py3-none-any.whl", hash = "sha256:542beb77812374e2996ec01e1f74cff59450c0fe43b60fea8789106d08083cd5"},
+    {file = "ingenialink-7.5.0+pr640b3.tar.gz", hash = "sha256:d854ee516ad7296fe9c9188bf9bbe93d7bb9ebd4e88d63617593e93a207bf242"},
 ]
 
 [package.dependencies]
@@ -4619,4 +4619,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "ea15b598b62b560853571a4c3bc3ae7c190565e4746307293518af474b350844"
+content-hash = "4db0b14966ab647dc418c39117e0305480e978942a67d289c2ccd0e82a60e77b"

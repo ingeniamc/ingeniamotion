@@ -1377,7 +1377,7 @@ class TestPduMapper:
         # It should produce the same result
         if unify_pdo_mapping:
             tpdo.items[4].size_bits = 16  # Expand previous
-            del tpdo.items[5]  # Remove the other padding
+            del tpdo[5]  # Remove the other padding
 
         rpdo = RPDOMap()
         maps.fill_rpdo_map(rpdo, safe_dict)
