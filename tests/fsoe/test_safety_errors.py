@@ -1,5 +1,4 @@
 import time
-from typing import TYPE_CHECKING
 
 import pytest
 from ingenialink.dictionary import Interface
@@ -16,16 +15,10 @@ if FSOE_MASTER_INSTALLED:
         SVFunction,
     )
     from ingeniamotion.fsoe_master.errors import (
-        MCUA_ERROR_QUEUE,
-        MCUB_ERROR_QUEUE,
         Error,
-        ServoErrorQueue,
     )
 from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
 from tests.test_fsoe_master import TIMEOUT_FOR_DATA_SRA
-
-if TYPE_CHECKING:
-    from ingenialink import Servo
 
 
 @pytest.mark.fsoe_phase2
@@ -52,16 +45,6 @@ def test_get_error_with_id_not_in_dict():
     error = Error.from_id(0x1234, dictionary=dictionary)
     assert error.error_id == 0x1234
     assert error.error_description == "Unknown error 4660 / 0x1234"
-
-
-@pytest.fixture
-def mcu_error_queue_a(servo: "Servo") -> "ServoErrorQueue":
-    return ServoErrorQueue(MCUA_ERROR_QUEUE, servo)
-
-
-@pytest.fixture
-def mcu_error_queue_b(servo: "Servo") -> "ServoErrorQueue":
-    return ServoErrorQueue(MCUB_ERROR_QUEUE, servo)
 
 
 @pytest.mark.fsoe_phase2
