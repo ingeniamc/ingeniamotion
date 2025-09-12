@@ -44,6 +44,7 @@ if FSOE_MASTER_INSTALLED:
         SSRFunction,
         STOFunction,
         SVFunction,
+        SafetyParameter,
     )
     from ingeniamotion.fsoe_master.frame import FSoEFrame
     from ingeniamotion.fsoe_master.fsoe import (
@@ -303,9 +304,17 @@ def test_fsoe_master_get_safety_parameters(mc_with_fsoe):
     assert len(handler.safety_parameters) != 0
 
 
-class MockSafetyParameter:
-    def __init__(self):
-        pass
+class MockSafetyParameter(SafetyParameter):
+    def __init__(self, register: "EthercatRegister", servo: "EthercatServo"):
+        self.__register = register
+        self.__servo = servo
+
+        self.__value = 0
+
+    @property
+    def register(self) -> "EthercatRegister":
+        """Get the register associated with the safety parameter."""
+        return self.__register
 
 
 class MockNetwork(EthercatNetwork):
@@ -351,15 +360,19 @@ class MockServo(Servo):
     read_tpdo_map_from_slave = EthercatServo.read_tpdo_map_from_slave
 
 
-class MockHandler:
+class MockHandler(FSoEMasterHandler):
     def __init__(self, dictionary: str, module_uid: int):
         xdf = DictionaryFactory.create_dictionary(dictionary, interface=Interface.ECAT)
         self.dictionary = FSoEMasterHandler.create_safe_dictionary(xdf)
-
+        self.__servo = MockServo(dictionary)
         self.safety_parameters = {
-            app_parameter.uid: MockSafetyParameter()
+            app_parameter.uid: MockSafetyParameter(
+                xdf.get_register(app_parameter.uid), self.__servo
+            )
             for app_parameter in xdf.get_safety_module(module_uid).application_parameters
         }
+
+        self.safety_functions = tuple(SafetyFunction.for_handler(self))
 
 
 @pytest.mark.fsoe
@@ -561,6 +574,136 @@ def test_optional_parameter_present():
     assert metadata.uid == "FSOE_STO_ACTIVATE_SOUT"
     assert metadata.display_name == "Activate SOUT"
     assert parameter is not None
+
+
+def test_get_parameters_not_related_to_safety_functions():
+    handler = MockHandler(
+        SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_MODULE_IDENT_NO_SRA_MODULE_IDENT
+    )
+    unrelated_parameters = handler.get_parameters_not_related_to_safety_functions()
+    assert {param.register.identifier for param in unrelated_parameters} == {
+        "ETG_COMMS_RPDO_MAP256_1",
+        "ETG_COMMS_RPDO_MAP256_10",
+        "ETG_COMMS_RPDO_MAP256_11",
+        "ETG_COMMS_RPDO_MAP256_12",
+        "ETG_COMMS_RPDO_MAP256_13",
+        "ETG_COMMS_RPDO_MAP256_14",
+        "ETG_COMMS_RPDO_MAP256_15",
+        "ETG_COMMS_RPDO_MAP256_16",
+        "ETG_COMMS_RPDO_MAP256_17",
+        "ETG_COMMS_RPDO_MAP256_18",
+        "ETG_COMMS_RPDO_MAP256_19",
+        "ETG_COMMS_RPDO_MAP256_2",
+        "ETG_COMMS_RPDO_MAP256_20",
+        "ETG_COMMS_RPDO_MAP256_21",
+        "ETG_COMMS_RPDO_MAP256_22",
+        "ETG_COMMS_RPDO_MAP256_23",
+        "ETG_COMMS_RPDO_MAP256_24",
+        "ETG_COMMS_RPDO_MAP256_25",
+        "ETG_COMMS_RPDO_MAP256_26",
+        "ETG_COMMS_RPDO_MAP256_27",
+        "ETG_COMMS_RPDO_MAP256_28",
+        "ETG_COMMS_RPDO_MAP256_29",
+        "ETG_COMMS_RPDO_MAP256_3",
+        "ETG_COMMS_RPDO_MAP256_30",
+        "ETG_COMMS_RPDO_MAP256_31",
+        "ETG_COMMS_RPDO_MAP256_32",
+        "ETG_COMMS_RPDO_MAP256_33",
+        "ETG_COMMS_RPDO_MAP256_34",
+        "ETG_COMMS_RPDO_MAP256_35",
+        "ETG_COMMS_RPDO_MAP256_36",
+        "ETG_COMMS_RPDO_MAP256_37",
+        "ETG_COMMS_RPDO_MAP256_38",
+        "ETG_COMMS_RPDO_MAP256_39",
+        "ETG_COMMS_RPDO_MAP256_4",
+        "ETG_COMMS_RPDO_MAP256_40",
+        "ETG_COMMS_RPDO_MAP256_41",
+        "ETG_COMMS_RPDO_MAP256_42",
+        "ETG_COMMS_RPDO_MAP256_43",
+        "ETG_COMMS_RPDO_MAP256_44",
+        "ETG_COMMS_RPDO_MAP256_45",
+        "ETG_COMMS_RPDO_MAP256_5",
+        "ETG_COMMS_RPDO_MAP256_6",
+        "ETG_COMMS_RPDO_MAP256_7",
+        "ETG_COMMS_RPDO_MAP256_8",
+        "ETG_COMMS_RPDO_MAP256_9",
+        "ETG_COMMS_RPDO_MAP256_TOTAL",
+        "ETG_COMMS_TPDO_MAP256_1",
+        "ETG_COMMS_TPDO_MAP256_10",
+        "ETG_COMMS_TPDO_MAP256_11",
+        "ETG_COMMS_TPDO_MAP256_12",
+        "ETG_COMMS_TPDO_MAP256_13",
+        "ETG_COMMS_TPDO_MAP256_14",
+        "ETG_COMMS_TPDO_MAP256_15",
+        "ETG_COMMS_TPDO_MAP256_16",
+        "ETG_COMMS_TPDO_MAP256_17",
+        "ETG_COMMS_TPDO_MAP256_18",
+        "ETG_COMMS_TPDO_MAP256_19",
+        "ETG_COMMS_TPDO_MAP256_2",
+        "ETG_COMMS_TPDO_MAP256_20",
+        "ETG_COMMS_TPDO_MAP256_21",
+        "ETG_COMMS_TPDO_MAP256_22",
+        "ETG_COMMS_TPDO_MAP256_23",
+        "ETG_COMMS_TPDO_MAP256_24",
+        "ETG_COMMS_TPDO_MAP256_25",
+        "ETG_COMMS_TPDO_MAP256_26",
+        "ETG_COMMS_TPDO_MAP256_27",
+        "ETG_COMMS_TPDO_MAP256_28",
+        "ETG_COMMS_TPDO_MAP256_29",
+        "ETG_COMMS_TPDO_MAP256_3",
+        "ETG_COMMS_TPDO_MAP256_30",
+        "ETG_COMMS_TPDO_MAP256_31",
+        "ETG_COMMS_TPDO_MAP256_32",
+        "ETG_COMMS_TPDO_MAP256_33",
+        "ETG_COMMS_TPDO_MAP256_34",
+        "ETG_COMMS_TPDO_MAP256_35",
+        "ETG_COMMS_TPDO_MAP256_36",
+        "ETG_COMMS_TPDO_MAP256_37",
+        "ETG_COMMS_TPDO_MAP256_38",
+        "ETG_COMMS_TPDO_MAP256_39",
+        "ETG_COMMS_TPDO_MAP256_4",
+        "ETG_COMMS_TPDO_MAP256_40",
+        "ETG_COMMS_TPDO_MAP256_41",
+        "ETG_COMMS_TPDO_MAP256_42",
+        "ETG_COMMS_TPDO_MAP256_43",
+        "ETG_COMMS_TPDO_MAP256_44",
+        "ETG_COMMS_TPDO_MAP256_45",
+        "ETG_COMMS_TPDO_MAP256_5",
+        "ETG_COMMS_TPDO_MAP256_6",
+        "ETG_COMMS_TPDO_MAP256_7",
+        "ETG_COMMS_TPDO_MAP256_8",
+        "ETG_COMMS_TPDO_MAP256_9",
+        "ETG_COMMS_TPDO_MAP256_TOTAL",
+        "FSOE_ABS_SSI_PRIM1_BAUD",
+        "FSOE_ABS_SSI_PRIM1_FSIZE",
+        "FSOE_ABS_SSI_PRIM1_POL",
+        "FSOE_ABS_SSI_PRIM1_POSBITS",
+        "FSOE_ABS_SSI_PRIM1_STURN",
+        "FSOE_ABS_SSI_PRIM1_TOUT",
+        "FSOE_ABS_SSI_SECOND1_BAUD",
+        "FSOE_ABS_SSI_SECOND1_FSIZE",
+        "FSOE_ABS_SSI_SECOND1_PBITS",
+        "FSOE_ABS_SSI_SECOND1_POL",
+        "FSOE_ABS_SSI_SECOND1_STURN",
+        "FSOE_ABS_SSI_SECOND1_TOUT",
+        "FSOE_FEEDBACK_RATIO_MAIN_TURNS",
+        "FSOE_FEEDBACK_RATIO_REDUNDANT_TURNS",
+        "FSOE_FEEDBACK_SCENARIO",
+        "FSOE_HALL_POLARITY",
+        "FSOE_HALL_POLEPAIRS",
+        "FSOE_INCREMENTAL_ENC_POLARITY",
+        "FSOE_INCREMENTAL_ENC_RESOLUTION",
+        "FSOE_SDI_POS_ZERO_WINDOW",
+        "FSOE_SLI_ERROR_REACTION_1",
+        "FSOE_SLI_LOWER_LIMIT_1",
+        "FSOE_SLI_UPPER_LIMIT_1",
+        "FSOE_SS1_ACTIVATE_SOUT_1",
+        "FSOE_SS1_DEC_LIMIT_1",
+        "FSOE_SS1_TIME_DELAY_DEC_1",
+        "FSOE_SS1_VEL_ZERO_WINDOW_1",
+        "FSOE_SS2_TIME_FOR_VEL_ZERO_1",
+        "FSOE_USER_OVER_TEMPERATURE",
+    }
 
 
 @pytest.mark.fsoe
