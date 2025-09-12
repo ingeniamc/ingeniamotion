@@ -28,6 +28,8 @@ __all__ = [
     "SSRFunction",
     "STOFunction",
     "SVFunction",
+    "SDIFunction",
+    "SLIFunction",
 ]
 
 
@@ -119,6 +121,8 @@ class SafetyFunction:
         yield from SLSFunction._explore_instances(handler)
         yield from SSRFunction._explore_instances(handler)
         yield from SLPFunction._explore_instances(handler)
+        yield from SDIFunction._explore_instances(handler)
+        yield from SLIFunction._explore_instances(handler)
 
     @classmethod
     def _create_instance(
@@ -363,6 +367,9 @@ class SS2Function(SafetyFunction):
     command: FSoEDictionaryItemInputOutput = safety_field(
         uid="FSOE_SS2_{i}", display_name="Command"
     )
+    time_for_velocity_zero: SafetyParameter = safety_field(
+        uid="FSOE_SS2_TIME_FOR_VEL_ZERO_{i}", display_name="Time for Velocity Zero"
+    )
     time_to_sos: SafetyParameter = safety_field(
         uid="FSOE_SS2_TIME_TO_SOS_{i}", display_name="Time to SOS"
     )
@@ -487,6 +494,7 @@ class SLPFunction(SafetyFunction):
 @dataclass()
 class SDIFunction(SafetyFunction):
     """Safe Direction Safety Function."""
+
     name = "Safe Direction"
 
     command_positive: FSoEDictionaryItemInputOutput = safety_field(
@@ -497,4 +505,24 @@ class SDIFunction(SafetyFunction):
     )
     pos_zero_window: SafetyParameter = safety_field(
         uid="FSOE_SDI_POS_ZERO_WINDOW", display_name="Position Zero Window"
+    )
+
+
+@dataclass()
+class SLIFunction(SafetyFunction):
+    """Safe Limited Increment Safety Function."""
+
+    name = "Safe Limited Increment {i}"
+
+    command: FSoEDictionaryItemInputOutput = safety_field(
+        uid="FSOE_SLI_COMMAND_{i}", display_name="Command"
+    )
+    upper_limit: SafetyParameter = safety_field(
+        uid="FSOE_SLI_UPPER_LIMIT_{i}", display_name="Upper Limit"
+    )
+    lower_limit: SafetyParameter = safety_field(
+        uid="FSOE_SLI_LOWER_LIMIT_{i}", display_name="Lower Limit"
+    )
+    error_reaction: SafetyParameter = safety_field(
+        uid="FSOE_SLI_ERROR_REACTION_{i}", display_name="Error Reaction"
     )

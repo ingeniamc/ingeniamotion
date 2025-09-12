@@ -480,7 +480,11 @@ class FSoEMasterHandler:
             param.set_to_slave()
 
     def get_parameters_not_related_to_safety_functions(self) -> set[SafetyParameter]:
-        """Get the safety parameters that are not related to any safety function."""
+        """Get the safety parameters that are not related to any safety function.
+
+        Returns:
+            The set of safety parameters that are not directly related to any safety function.
+        """
         params = set(self.safety_parameters.values())
         for func in self.safety_functions:
             for param in func.parameters.values():
