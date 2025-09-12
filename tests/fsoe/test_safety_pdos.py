@@ -77,6 +77,7 @@ def test_start_pdos_without_starting_safety_master(
     servo: "EthercatServo",
     exceptions: list[Exception],
     received_data: list[float],
+    create_pdo_maps: tuple["RPDOMap", "TPDOMap"],  # noqa: ARG001
 ) -> None:
     mc, handler = mc_with_fsoe_with_sra
 
@@ -90,9 +91,9 @@ def test_start_pdos_without_starting_safety_master(
     refresh_rate: float = 0.5
     mc.capture.pdo.start_pdos(refresh_rate=refresh_rate, servo=alias)
     time.sleep(4 * refresh_rate)
-    assert servo.slave.state is pysoem.OP_STATE
     assert len(exceptions) == 0
     assert len(received_data) > 0
+    assert servo.slave.state is pysoem.OP_STATE
 
 
 @pytest.mark.fsoe
@@ -104,6 +105,7 @@ def test_stop_master_while_pdos_are_still_active(
     mocker: "MockerFixture",
     net: "EthercatNetwork",
     alias: str,
+    create_pdo_maps: tuple["RPDOMap", "TPDOMap"],  # noqa: ARG001
 ) -> None:
     mc, handler = mc_with_fsoe_with_sra
 
@@ -115,6 +117,8 @@ def test_stop_master_while_pdos_are_still_active(
     assert mc.fsoe.get_fsoe_master_state(servo=alias) is FSoEState.DATA
 
     # Data from non-safety PDOs should be received
+    refresh_rate: float = net.pdo_manager._pdo_thread._refresh_rate
+    time.sleep(2 * refresh_rate)
     assert len(exceptions) == 0
     assert len(received_data) > 0
     n_received_data = len(received_data)
@@ -132,7 +136,6 @@ def test_stop_master_while_pdos_are_still_active(
     assert handler.running is False
 
     # Data from non-safety PDOs should still be received
-    refresh_rate: float = net.pdo_manager._pdo_thread._refresh_rate
     time.sleep(2 * refresh_rate)
     assert len(exceptions) == 0
     assert len(received_data) > n_received_data
