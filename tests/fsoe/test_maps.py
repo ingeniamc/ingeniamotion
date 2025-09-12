@@ -175,7 +175,6 @@ def test_map_safety_input_output_random(
 
 
 @pytest.mark.fsoe_phase2
-# @pytest.mark.skip("Maps not working")
 def test_map_all_safety_functions(
     mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
     timeout_for_data_sra: float,
@@ -199,6 +198,9 @@ def test_map_all_safety_functions(
         if isinstance(sf, safety_functions.STOFunction):
             continue  # STO is already added
         if hasattr(sf, "command"):
+            # SOUT command is not allowed if SOUT disable is set to 1
+            if sf.command.name == "FSOE_SOUT":
+                continue
             handler.maps.insert_in_best_position(sf.command)
         else:
             handler.maps.insert_in_best_position(sf.value)
