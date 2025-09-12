@@ -656,11 +656,11 @@ def test_getter_of_safety_functions(mc_with_fsoe):
         parameters=None,
         command=None,
         time_to_sto=None,
+        velocity_zero_window=None,
         time_for_velocity_zero=None,
-        time_to_sos=None,
-        deceleration_limit=None,
         time_delay_for_deceleration=None,
-        error_reaction=None,
+        deceleration_limit=None,
+        activate_sout=None,
     )
 
     handler.safety_functions = (sto_function, ss1_function_1, ss1_function_2)
