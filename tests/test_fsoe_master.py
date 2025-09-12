@@ -34,6 +34,7 @@ if FSOE_MASTER_INSTALLED:
         SafeHomingFunction,
         SafeInputsFunction,
         SafetyFunction,
+        SafetyParameter,
         SLPFunction,
         SLSFunction,
         SOSFunction,
@@ -44,7 +45,6 @@ if FSOE_MASTER_INSTALLED:
         SSRFunction,
         STOFunction,
         SVFunction,
-        SafetyParameter,
     )
     from ingeniamotion.fsoe_master.frame import FSoEFrame
     from ingeniamotion.fsoe_master.fsoe import (
@@ -697,10 +697,6 @@ def test_get_parameters_not_related_to_safety_functions():
         "FSOE_SLI_ERROR_REACTION_1",
         "FSOE_SLI_LOWER_LIMIT_1",
         "FSOE_SLI_UPPER_LIMIT_1",
-        "FSOE_SS1_ACTIVATE_SOUT_1",
-        "FSOE_SS1_DEC_LIMIT_1",
-        "FSOE_SS1_TIME_DELAY_DEC_1",
-        "FSOE_SS1_VEL_ZERO_WINDOW_1",
         "FSOE_SS2_TIME_FOR_VEL_ZERO_1",
         "FSOE_USER_OVER_TEMPERATURE",
     }

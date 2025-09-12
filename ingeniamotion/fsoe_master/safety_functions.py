@@ -308,8 +308,21 @@ class SS1Function(SafetyFunction):
     time_to_sto: SafetyParameter = safety_field(
         uid="FSOE_SS1_TIME_TO_STO_{i}", display_name="Time to STO"
     )
+    velocity_zero_window: Optional[SafetyParameter] = safety_field(
+        uid="FSOE_SS1_VEL_ZERO_WINDOW_{i}", display_name="Velocity Zero Window"
+    )
     time_for_velocity_zero: Optional[SafetyParameter] = safety_field(
         uid="FSOE_SS1_TIME_FOR_VEL_ZERO_{i}", display_name="Time for Velocity Zero"
+    )
+
+    time_delay_for_deceleration: Optional[SafetyParameter] = safety_field(
+        "FSOE_SS1_TIME_DELAY_DEC_{i}", display_name="Time Delay for Deceleration"
+    )
+    deceleration_limit: Optional[SafetyParameter] = safety_field(
+        uid="FSOE_SS1_DEC_LIMIT_{i}", display_name="Deceleration Limit"
+    )
+    activate_sout: Optional[SafetyParameter] = safety_field(
+        uid="FSOE_SS1_ACTIVATE_SOUT_{i}", display_name="Activate SOUT"
     )
 
 
