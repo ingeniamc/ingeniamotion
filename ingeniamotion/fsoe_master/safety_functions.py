@@ -482,3 +482,19 @@ class SLPFunction(SafetyFunction):
     error_reaction: SafetyParameter = safety_field(
         uid="FSOE_SLP_ERROR_REACTION_{i}", display_name="Error Reaction"
     )
+
+
+@dataclass()
+class SDIFunction(SafetyFunction):
+    """Safe Direction Safety Function."""
+    name = "Safe Direction"
+
+    command_positive: FSoEDictionaryItemInputOutput = safety_field(
+        uid="FSOE_SDI_P", display_name="Command Positive"
+    )
+    command_negative: FSoEDictionaryItemInputOutput = safety_field(
+        uid="FSOE_SDI_N", display_name="Command Negative"
+    )
+    pos_zero_window: SafetyParameter = safety_field(
+        uid="FSOE_SDI_POS_ZERO_WINDOW", display_name="Position Zero Window"
+    )
