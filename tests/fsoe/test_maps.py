@@ -61,6 +61,8 @@ def move_test_files(files: list[Path], fsoe_maps_dir: Path, success: bool) -> No
         if file_path.exists():
             try:
                 target_file = target_dir / file_path.name
+                if target_file.exists():
+                    target_file.unlink()
                 file_path.rename(target_file)
             except Exception as e:
                 raise RuntimeError(f"Failed to move {file_path} to {target_dir}: {e}")
@@ -109,7 +111,7 @@ def write_fsoe_feedback_registers(mc: "MotionController", handler) -> None:
 
 
 @pytest.mark.fsoe_phase2
-@pytest.mark.skip("Maps not working")
+# @pytest.mark.skip("Maps not working")
 @pytest.mark.parametrize("iteration", range(10))  # Run 10 times
 def test_map_safety_input_output_random(
     mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
@@ -157,7 +159,7 @@ def test_map_safety_input_output_random(
             servo.slave.state in [pysoem.OP_STATE, pysoem.SAFEOP_STATE]
         )
     except Exception as e:
-        warnings.warn(f"Failed to reach data state with random mapping: {e}")
+        pytest.fail(f"Failed to reach data state with random mapping: {e}")
     finally:
         # Move files to appropriate directory based on test result
         move_test_files([json_file, txt_file], fsoe_maps_dir, test_success)
@@ -173,11 +175,13 @@ def test_map_safety_input_output_random(
 
 
 @pytest.mark.fsoe_phase2
-@pytest.mark.skip("Maps not working")
+# @pytest.mark.skip("Maps not working")
 def test_map_all_safety_functions(
     mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
     timeout_for_data_sra: float,
     fsoe_maps_dir: Path,
+    fsoe_states: list[FSoEState],
+    alias: str,
 ) -> None:
     """Test that data state can be reached by mapping everything."""
     mc, handler = mc_with_fsoe_with_sra
@@ -213,14 +217,26 @@ def test_map_all_safety_functions(
 
     test_success = False
     try:
-        mc.fsoe.configure_pdos(start_pdos=True)
+        handler.maps.validate()
+        n_errors, last_error = get_last_fsoe_error(mc)
+        write_fsoe_feedback_registers(mc=mc, handler=handler)
+        n_errors, last_error = assert_no_fsoe_errors(mc, (n_errors, last_error))
+
+        mc.fsoe.configure_pdos(start_pdos=False)
+        mc.capture.pdo.start_pdos(servo=alias)
+        time.sleep(0.05)
+        n_errors, last_error = assert_no_fsoe_errors(mc, (n_errors, last_error))
+
+        # Wait for the master to reach the Data state
         mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
-        # Stay 3 seconds in Data state
-        for i in range(3):
+
+        for i in range(5):
             time.sleep(1)
+        assert fsoe_states[-1] == FSoEState.DATA
+
         test_success = True
     except Exception as e:
-        warnings.warn(f"Failed to reach data state with all safety functions: {e}")
+        pytest.fail(f"Failed to reach data state with all safety functions: {e}")
     finally:
         # Move files to appropriate directory based on test result
         move_test_files([json_file, txt_file], fsoe_maps_dir, test_success)
@@ -238,35 +254,36 @@ def test_map_all_safety_functions(
 # This test will be used for debugging, will be removed after https://novantamotion.atlassian.net/browse/INGM-689
 @pytest.mark.fsoe_phase2
 # @pytest.mark.skip("https://novantamotion.atlassian.net/browse/INGM-689")
+@pytest.mark.parametrize(
+    "check_map",
+    [
+        "mapping_6_False_587.json",
+        "mapping_7_True_186.json",
+        "mapping_6_False_861.json",
+        "mapping_6_True_419.json",
+        "mapping_7_False_774.json",
+        "mapping_7_True_984.json",
+        "mapping_8_False_247.json",
+        "mapping_8_False_847.json",
+        "mapping_8_True_349.json",
+        "mapping_8_True_843.json",
+        "mapping_8_True_924.json",
+        "mapping_9_True_403.json",
+        "mapping_10_False_3.json",
+        "mapping_10_True_236.json",
+        "mapping_10_True_659.json",
+        "mapping_10_True_933.json",
+    ],
+)
 def test_fixed_mapping_combination(
     mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
     timeout_for_data_sra: float,
     fsoe_maps_dir: Path,
     alias: str,
-    servo,
-    environment,
     fsoe_states: list[FSoEState],
+    check_map: str,
 ) -> None:
     mc, handler = mc_with_fsoe_with_sra
-
-    # Suspicious maps
-    check_map = "mapping_6_False_587.json"
-    # check_map = "mapping_7_True_186.json"
-    # check_map = "mapping_6_False_861.json"
-    # check_map = "mapping_6_True_419.json"
-    # check_map = "mapping_7_False_774.json"
-    # check_map = "mapping_7_True_186.json"
-    # check_map = "mapping_7_True_984.json"
-    # check_map = "mapping_8_False_247.json"
-    # # # check_map = "mapping_8_False_847.json"
-    # check_map = "mapping_8_True_349.json"
-    # check_map = "mapping_8_True_843.json"
-    # check_map = "mapping_8_True_924.json"
-    # check_map = "mapping_9_True_403.json"
-    # check_map = "mapping_10_False_3.json"
-    # check_map = "mapping_10_True_236.json"
-    # check_map = "mapping_10_True_659.json"
-    # check_map = "mapping_10_True_933.json"
 
     test_map = f"old/failed/{check_map}"
 
@@ -277,9 +294,6 @@ def test_fixed_mapping_combination(
 
     # Check that mappings have the same length
     _check_mappings_have_the_same_length(handler.maps)
-
-    # servo.write("FSOE_RESTORE_SUBNODE", data=0x64616F6C, subnode=1)
-    # environment.power_cycle(wait_for_drives=False)
 
     # Check that the maps are valid
     try:
@@ -302,16 +316,6 @@ def test_fixed_mapping_combination(
     except TimeoutError as e:
         pytest.fail(f"Failed to reach data state: {e}")
     finally:
-        print(f"\nCRC: {handler.get_application_parameters_sra_crc()}")
-        print(f"Slave CRC: {servo.read('FSOE_SAFETY_PROJECT_CRC', 1)}")
-        print("\nLast FSoE errors MCUA:")
-        n_errors = mc.communication.get_register("FSOE_TOTAL_ERROR_MCUA")
-        last_error = mc.communication.get_register("FSOE_LAST_ERROR_MCUA")
-        print((n_errors, hex(last_error)))
-        print("\nLast FSoE errors MCUB:")
-        n_errors = mc.communication.get_register("FSOE_TOTAL_ERROR_MCUB")
-        last_error = mc.communication.get_register("FSOE_LAST_ERROR_MCUB")
-        print((n_errors, hex(last_error)))
         # If there has been a failure and it tries to remove the PDO maps, it may fail
         # if the servo is not in preop state
         try:
