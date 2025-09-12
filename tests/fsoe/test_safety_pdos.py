@@ -103,15 +103,16 @@ def test_stop_master_while_pdos_are_still_active(
     received_data: list[float],
     mocker: "MockerFixture",
     net: "EthercatNetwork",
+    alias: str,
 ) -> None:
     mc, handler = mc_with_fsoe_with_sra
 
     # Configure and start the PDOs
-    mc.capture.pdo.start_pdos(servo=True)
+    mc.fsoe.configure_pdos(start_pdos=True)
 
     # Wait for the master to reach the Data state
     mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
-    assert mc.fsoe.state is FSoEState.DATA
+    assert mc.fsoe.get_fsoe_master_state(servo=alias) is FSoEState.DATA
 
     # Data from non-safety PDOs should be received
     assert len(exceptions) == 0
