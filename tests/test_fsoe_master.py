@@ -35,6 +35,8 @@ if FSOE_MASTER_INSTALLED:
         SafeInputsFunction,
         SafetyFunction,
         SafetyParameter,
+        SDIFunction,
+        SLIFunction,
         SLPFunction,
         SLSFunction,
         SOSFunction,
@@ -547,6 +549,8 @@ def test_detect_safety_functions_ph2():
         SLPFunction,
         SLPFunction,
         SLPFunction,
+        SDIFunction,
+        SLIFunction,
     ]
 
 
@@ -635,20 +639,28 @@ def test_getter_of_safety_functions(mc_with_fsoe):
     ss1_function_1 = SS1Function(
         n_instance=None,
         name="Dummy",
-        command=None,
-        time_to_sto=None,
         ios=None,
         parameters=None,
+        command=None,
+        time_to_sto=None,
+        velocity_zero_window=None,
         time_for_velocity_zero=None,
+        time_delay_for_deceleration=None,
+        deceleration_limit=None,
+        activate_sout=None,
     )
     ss1_function_2 = SS1Function(
         n_instance=None,
         name="Dummy",
-        command=None,
-        time_to_sto=None,
         ios=None,
         parameters=None,
+        command=None,
+        time_to_sto=None,
         time_for_velocity_zero=None,
+        time_to_sos=None,
+        deceleration_limit=None,
+        time_delay_for_deceleration=None,
+        error_reaction=None,
     )
 
     handler.safety_functions = (sto_function, ss1_function_1, ss1_function_2)
