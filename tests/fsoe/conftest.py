@@ -23,6 +23,7 @@ from tests.test_fsoe_master import (
     fsoe_error_monitor,  # noqa: F401
     fsoe_states,  # noqa: F401
     mc_with_fsoe,  # noqa: F401
+    mc_with_fsoe_factory,  # noqa: F401
     mc_with_fsoe_with_sra,  # noqa: F401
 )
 
