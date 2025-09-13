@@ -306,17 +306,19 @@ def test_fsoe_master_get_safety_parameters(mc_with_fsoe):
     assert len(handler.safety_parameters) != 0
 
 
-class MockSafetyParameter(SafetyParameter):
-    def __init__(self, register: "EthercatRegister", servo: "EthercatServo"):
-        self.__register = register
-        self.__servo = servo
+if FSOE_MASTER_INSTALLED:
 
-        self.__value = 0
+    class MockSafetyParameter(SafetyParameter):
+        def __init__(self, register: "EthercatRegister", servo: "EthercatServo"):
+            self.__register = register
+            self.__servo = servo
 
-    @property
-    def register(self) -> "EthercatRegister":
-        """Get the register associated with the safety parameter."""
-        return self.__register
+            self.__value = 0
+
+        @property
+        def register(self) -> "EthercatRegister":
+            """Get the register associated with the safety parameter."""
+            return self.__register
 
 
 class MockNetwork(EthercatNetwork):
