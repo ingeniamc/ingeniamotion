@@ -364,19 +364,21 @@ class MockServo(Servo):
     read_tpdo_map_from_slave = EthercatServo.read_tpdo_map_from_slave
 
 
-class MockHandler(FSoEMasterHandler):
-    def __init__(self, dictionary: str, module_uid: int):
-        xdf = DictionaryFactory.create_dictionary(dictionary, interface=Interface.ECAT)
-        self.dictionary = FSoEMasterHandler.create_safe_dictionary(xdf)
-        self.__servo = MockServo(dictionary)
-        self.safety_parameters = {
-            app_parameter.uid: MockSafetyParameter(
-                xdf.get_register(app_parameter.uid), self.__servo
-            )
-            for app_parameter in xdf.get_safety_module(module_uid).application_parameters
-        }
+if FSOE_MASTER_INSTALLED:
 
-        self.safety_functions = tuple(SafetyFunction.for_handler(self))
+    class MockHandler(FSoEMasterHandler):
+        def __init__(self, dictionary: str, module_uid: int):
+            xdf = DictionaryFactory.create_dictionary(dictionary, interface=Interface.ECAT)
+            self.dictionary = FSoEMasterHandler.create_safe_dictionary(xdf)
+            self.__servo = MockServo(dictionary)
+            self.safety_parameters = {
+                app_parameter.uid: MockSafetyParameter(
+                    xdf.get_register(app_parameter.uid), self.__servo
+                )
+                for app_parameter in xdf.get_safety_module(module_uid).application_parameters
+            }
+
+            self.safety_functions = tuple(SafetyFunction.for_handler(self))
 
 
 @pytest.mark.fsoe
