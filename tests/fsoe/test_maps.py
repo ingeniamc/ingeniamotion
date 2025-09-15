@@ -1,4 +1,3 @@
-import time
 import warnings
 from collections.abc import Iterator
 from pathlib import Path
@@ -84,8 +83,16 @@ def no_error_tracker(
     previous_mcu_a_errors = mcu_error_queue_a.get_number_total_errors()
     previous_mcu_b_errors = mcu_error_queue_b.get_number_total_errors()
     yield
-    assert mcu_error_queue_a.get_number_total_errors() == previous_mcu_a_errors
-    assert mcu_error_queue_b.get_number_total_errors() == previous_mcu_b_errors
+    assert mcu_error_queue_a.get_number_total_errors() == previous_mcu_a_errors, (
+        f"MCUA error queue changed: {previous_mcu_a_errors} -> "
+        f"{mcu_error_queue_a.get_number_total_errors()}. "
+        f"\nLast error: {mcu_error_queue_a.get_last_error()}"
+    )
+    assert mcu_error_queue_b.get_number_total_errors() == previous_mcu_b_errors, (
+        f"MCUB error queue changed: {previous_mcu_b_errors} -> "
+        f"{mcu_error_queue_b.get_number_total_errors()}. "
+        f"\nLast error: {mcu_error_queue_b.get_last_error()}"
+    )
 
 
 @pytest.mark.fsoe_phase2
@@ -101,6 +108,8 @@ def test_map_safety_input_output_random(
     fsoe_states: list[FSoEState],
     servo: "EthercatServo",
     no_error_tracker: None,  # noqa: ARG001
+    mcu_error_queue_a: "ServoErrorQueue",
+    mcu_error_queue_b: "ServoErrorQueue",
     iteration: int,  # noqa: ARG001
 ) -> None:
     """Tests that random combinations of inputs and outputs are valid."""
@@ -135,23 +144,17 @@ def test_map_safety_input_output_random(
         if not test_success:
             pytest.fail(
                 f"Unexpected FSoE state {fsoe_states[-1]} or servo state {servo.slave.state}"
+                f"\nMCUA last error: {mcu_error_queue_a.get_last_error()}"
+                f"\nMCUB last error: {mcu_error_queue_b.get_last_error()}"
             )
     except Exception as e:
         pytest.fail(
             f"Failed to reach data state with random mapping: {e}, servo state: {servo.slave.state}"
+            f"\nMCUA last error: {mcu_error_queue_a.get_last_error()}"
+            f"\nMCUB last error: {mcu_error_queue_b.get_last_error()}"
         )
     finally:
-        # Move files to appropriate directory based on test result
         __move_test_files([json_file, txt_file], fsoe_maps_dir, test_success)
-
-        # If there has been a failure and it tries to remove the PDO maps, it may fail
-        # if the servo is not in preop state
-        try:
-            # Stop the FSoE master handler
-            if mc.capture.pdo.is_active:
-                mc.fsoe.stop_master(stop_pdos=True)
-        except Exception:
-            pass
 
 
 @pytest.mark.fsoe_phase2
@@ -161,7 +164,10 @@ def test_map_all_safety_functions(
     fsoe_maps_dir: Path,
     fsoe_states: list[FSoEState],
     alias: str,
+    servo: "EthercatServo",
     no_error_tracker: None,  # noqa: ARG001
+    mcu_error_queue_a: "ServoErrorQueue",
+    mcu_error_queue_b: "ServoErrorQueue",
 ) -> None:
     """Test that data state can be reached by mapping everything."""
     mc, handler = mc_with_fsoe_with_sra_and_feedback_scenario
@@ -188,8 +194,6 @@ def test_map_all_safety_functions(
 
     # Check that the maps are valid
     handler.maps.validate()
-
-    # Save the mappings
     json_file = fsoe_maps_dir / "complete_mapping.json"
     txt_file = fsoe_maps_dir / "complete_mapping.txt"
     __save_maps_text_representation(handler.maps, txt_file)
@@ -197,101 +201,21 @@ def test_map_all_safety_functions(
 
     test_success = False
     try:
-        handler.maps.validate()
         mc.fsoe.configure_pdos(start_pdos=False)
         mc.capture.pdo.start_pdos(servo=alias)
-        time.sleep(0.05)
-
-        # Wait for the master to reach the Data state
         mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
-
-        for i in range(5):
-            time.sleep(1)
-        assert fsoe_states[-1] == FSoEState.DATA
-
-        test_success = True
+        test_success = fsoe_states[-1] is FSoEState.DATA and (servo.slave.state is pysoem.OP_STATE)
+        if not test_success:
+            pytest.fail(
+                f"Unexpected FSoE state {fsoe_states[-1]} or servo state {servo.slave.state}"
+                f"\nMCUA last error: {mcu_error_queue_a.get_last_error()}"
+                f"\nMCUB last error: {mcu_error_queue_b.get_last_error()}"
+            )
     except Exception as e:
-        pytest.fail(f"Failed to reach data state with all safety functions: {e}")
+        pytest.fail(
+            f"Failed to reach data state with all safety functions: {e}"
+            f"\nMCUA last error: {mcu_error_queue_a.get_last_error()}"
+            f"\nMCUB last error: {mcu_error_queue_b.get_last_error()}"
+        )
     finally:
-        # Move files to appropriate directory based on test result
         __move_test_files([json_file, txt_file], fsoe_maps_dir, test_success)
-
-        # If there has been a failure and it tries to remove the PDO maps, it may fail
-        # if the servo is not in preop state
-        try:
-            # Stop the FSoE master handler
-            if mc.capture.pdo.is_active:
-                mc.fsoe.stop_master(stop_pdos=True)
-        except Exception:
-            pass
-
-
-# This test will be used for debugging, will be removed after https://novantamotion.atlassian.net/browse/INGM-689
-@pytest.mark.fsoe_phase2
-# @pytest.mark.skip("https://novantamotion.atlassian.net/browse/INGM-689")
-@pytest.mark.parametrize(
-    "check_map",
-    [
-        # "mapping_6_False_680.json",
-        "mapping_6_False_587.json",
-        "mapping_7_True_186.json",
-        "mapping_6_False_861.json",
-        "mapping_6_True_419.json",
-        "mapping_7_False_774.json",
-        "mapping_7_True_984.json",
-        "mapping_8_False_247.json",
-        "mapping_8_False_847.json",
-        "mapping_8_True_349.json",
-        "mapping_8_True_843.json",
-        "mapping_8_True_924.json",
-        "mapping_9_True_403.json",
-        "mapping_10_False_3.json",
-        "mapping_10_True_236.json",
-        "mapping_10_True_659.json",
-        "mapping_10_True_933.json",
-    ],
-)
-def test_fixed_mapping_combination(
-    mc_with_fsoe_with_sra_and_feedback_scenario: tuple[MotionController, "FSoEMasterHandler"],
-    timeout_for_data_sra: float,
-    fsoe_maps_dir: Path,
-    alias: str,
-    fsoe_states: list[FSoEState],
-    check_map: str,
-    servo: "EthercatServo",
-) -> None:
-    mc, handler = mc_with_fsoe_with_sra_and_feedback_scenario
-
-    test_map = f"old/failed/{check_map}"
-
-    mapping = FSoEDictionaryMapJSONSerializer.load_mapping_from_json(
-        handler.dictionary, fsoe_maps_dir / f"{test_map}"
-    )
-    handler.maps.inputs.clear()
-    handler.maps.outputs.clear()
-    handler.set_maps(mapping)
-
-    # Check that the maps are valid
-    try:
-        handler.maps.validate()
-        mc.fsoe.configure_pdos(start_pdos=False)
-        mc.capture.pdo.start_pdos(servo=alias)
-        time.sleep(0.05)
-
-        # Wait for the master to reach the Data state
-        mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
-
-        for i in range(5):
-            time.sleep(1)
-        assert fsoe_states[-1] == FSoEState.DATA
-    except TimeoutError as e:
-        pytest.fail(f"Failed to reach data state: {e}")
-    finally:
-        # If there has been a failure and it tries to remove the PDO maps, it may fail
-        # if the servo is not in preop state
-        try:
-            # Stop the FSoE master handler
-            if mc.capture.pdo.is_active:
-                mc.fsoe.stop_master(stop_pdos=True)
-        except Exception:
-            pass

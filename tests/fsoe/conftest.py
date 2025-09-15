@@ -126,11 +126,23 @@ def mc_with_fsoe_with_sra_and_feedback_scenario(
     # Do not use getfixture
     # https://novantamotion.atlassian.net/browse/INGM-682
     mc, handler = request.getfixturevalue("mc_with_fsoe_with_sra")
+
     mc.communication.set_register(
         "CL_AUX_FBK_SENSOR", 5
     )  # Digital Halls as auxiliar sensor in Comoco
-    handler.safety_parameters.get("FSOE_FEEDBACK_SCENARIO").set(4)
+    handler.safety_parameters.get("FSOE_FEEDBACK_SCENARIO").set(0)
+
     yield mc, handler
+
+    # Should be in mc_with_fsoe_factory
+    # https://novantamotion.atlassian.net/browse/INGM-682
+    # If there has been a failure and it tries to remove the PDO maps, it may fail
+    # if the servo is not in preop state
+    try:
+        if mc.capture.pdo.is_active:
+            mc.fsoe.stop_master(stop_pdos=True)
+    except Exception:
+        pass
 
 
 @pytest.fixture(scope="module")
