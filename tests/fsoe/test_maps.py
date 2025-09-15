@@ -33,7 +33,7 @@ if TYPE_CHECKING:
         from tests.fsoe.conftest import FSoERandomMappingGenerator
 
 
-def move_test_files(files: list[Path], fsoe_maps_dir: Path, success: bool) -> None:
+def __move_test_files(files: list[Path], fsoe_maps_dir: Path, success: bool) -> None:
     """Move test files to success or failure subdirectories.
 
     Args:
@@ -58,7 +58,7 @@ def move_test_files(files: list[Path], fsoe_maps_dir: Path, success: bool) -> No
                 raise RuntimeError(f"Failed to move {file_path} to {target_dir}: {e}")
 
 
-def save_maps_text_representation(maps: "PDUMaps", output_file: Path) -> None:
+def __save_maps_text_representation(maps: "PDUMaps", output_file: Path) -> None:
     """Save the text representation of FSoE maps to a file.
 
     Args:
@@ -76,22 +76,6 @@ def save_maps_text_representation(maps: "PDUMaps", output_file: Path) -> None:
         warnings.warn(f"Failed to save maps text representation: {e}")
 
 
-def write_fsoe_feedback_registers(mc: "MotionController", handler) -> None:
-    """Write FSoE feedback registers from drive feedback registers.
-
-    Feedback Scenario 4:
-        * Main feedback: Incremental Encoder.
-        * Redundant feedback: Digital Halls.
-
-    Args:
-        mc: The MotionController instance.
-    """
-    mc.communication.set_register(
-        "CL_AUX_FBK_SENSOR", 5
-    )  # Digital Halls as auxiliar sensor in Comoco
-    handler.safety_parameters.get("FSOE_FEEDBACK_SCENARIO").set(4)
-
-
 @pytest.fixture
 def no_error_tracker(
     mcu_error_queue_a: "ServoErrorQueue", mcu_error_queue_b: "ServoErrorQueue"
@@ -104,13 +88,10 @@ def no_error_tracker(
     assert mcu_error_queue_b.get_number_total_errors() == previous_mcu_b_errors
 
 
-# TODO: mc fixture with feedbacks
-
-
 @pytest.mark.fsoe_phase2
 @pytest.mark.parametrize("iteration", range(25))  # Run 25 times
 def test_map_safety_input_output_random(
-    mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
+    mc_with_fsoe_with_sra_and_feedback_scenario: tuple[MotionController, "FSoEMasterHandler"],
     map_generator: "FSoERandomMappingGenerator",
     fsoe_maps_dir: Path,
     timeout_for_data_sra: float,
@@ -123,7 +104,7 @@ def test_map_safety_input_output_random(
     iteration: int,  # noqa: ARG001
 ) -> None:
     """Tests that random combinations of inputs and outputs are valid."""
-    mc, handler = mc_with_fsoe_with_sra
+    mc, handler = mc_with_fsoe_with_sra_and_feedback_scenario
 
     mapping_name = f"mapping_{random_max_items}_{random_paddings}_{random_seed}"
     json_file = fsoe_maps_dir / f"{mapping_name}.json"
@@ -139,13 +120,12 @@ def test_map_safety_input_output_random(
         override=True,
     )
     maps.validate()
-    write_fsoe_feedback_registers(mc=mc, handler=handler)
 
     # Set the new mapping and serialize it for later analysis
     handler.maps.inputs.clear()
     handler.maps.outputs.clear()
     handler.set_maps(maps)
-    save_maps_text_representation(handler.maps, txt_file)
+    __save_maps_text_representation(handler.maps, txt_file)
 
     test_success = False
     try:
@@ -162,7 +142,7 @@ def test_map_safety_input_output_random(
         )
     finally:
         # Move files to appropriate directory based on test result
-        move_test_files([json_file, txt_file], fsoe_maps_dir, test_success)
+        __move_test_files([json_file, txt_file], fsoe_maps_dir, test_success)
 
         # If there has been a failure and it tries to remove the PDO maps, it may fail
         # if the servo is not in preop state
@@ -176,7 +156,7 @@ def test_map_safety_input_output_random(
 
 @pytest.mark.fsoe_phase2
 def test_map_all_safety_functions(
-    mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
+    mc_with_fsoe_with_sra_and_feedback_scenario: tuple[MotionController, "FSoEMasterHandler"],
     timeout_for_data_sra: float,
     fsoe_maps_dir: Path,
     fsoe_states: list[FSoEState],
@@ -184,7 +164,7 @@ def test_map_all_safety_functions(
     no_error_tracker: None,  # noqa: ARG001
 ) -> None:
     """Test that data state can be reached by mapping everything."""
-    mc, handler = mc_with_fsoe_with_sra
+    mc, handler = mc_with_fsoe_with_sra_and_feedback_scenario
 
     handler.maps.inputs.clear()
     handler.maps.outputs.clear()
@@ -212,14 +192,12 @@ def test_map_all_safety_functions(
     # Save the mappings
     json_file = fsoe_maps_dir / "complete_mapping.json"
     txt_file = fsoe_maps_dir / "complete_mapping.txt"
-    save_maps_text_representation(handler.maps, txt_file)
+    __save_maps_text_representation(handler.maps, txt_file)
     FSoEDictionaryMapJSONSerializer.save_mapping_to_json(handler.maps, json_file, override=True)
 
     test_success = False
     try:
         handler.maps.validate()
-        write_fsoe_feedback_registers(mc=mc, handler=handler)
-
         mc.fsoe.configure_pdos(start_pdos=False)
         mc.capture.pdo.start_pdos(servo=alias)
         time.sleep(0.05)
@@ -236,7 +214,7 @@ def test_map_all_safety_functions(
         pytest.fail(f"Failed to reach data state with all safety functions: {e}")
     finally:
         # Move files to appropriate directory based on test result
-        move_test_files([json_file, txt_file], fsoe_maps_dir, test_success)
+        __move_test_files([json_file, txt_file], fsoe_maps_dir, test_success)
 
         # If there has been a failure and it tries to remove the PDO maps, it may fail
         # if the servo is not in preop state
@@ -256,25 +234,25 @@ def test_map_all_safety_functions(
     [
         # "mapping_6_False_680.json",
         "mapping_6_False_587.json",
-        # "mapping_7_True_186.json",
-        # "mapping_6_False_861.json",
-        # "mapping_6_True_419.json",
-        # "mapping_7_False_774.json",
-        # "mapping_7_True_984.json",
-        # "mapping_8_False_247.json",
-        # "mapping_8_False_847.json",
-        # "mapping_8_True_349.json",
-        # "mapping_8_True_843.json",
-        # "mapping_8_True_924.json",
-        # "mapping_9_True_403.json",
-        # "mapping_10_False_3.json",
-        # "mapping_10_True_236.json",
-        # "mapping_10_True_659.json",
-        # "mapping_10_True_933.json",
+        "mapping_7_True_186.json",
+        "mapping_6_False_861.json",
+        "mapping_6_True_419.json",
+        "mapping_7_False_774.json",
+        "mapping_7_True_984.json",
+        "mapping_8_False_247.json",
+        "mapping_8_False_847.json",
+        "mapping_8_True_349.json",
+        "mapping_8_True_843.json",
+        "mapping_8_True_924.json",
+        "mapping_9_True_403.json",
+        "mapping_10_False_3.json",
+        "mapping_10_True_236.json",
+        "mapping_10_True_659.json",
+        "mapping_10_True_933.json",
     ],
 )
 def test_fixed_mapping_combination(
-    mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
+    mc_with_fsoe_with_sra_and_feedback_scenario: tuple[MotionController, "FSoEMasterHandler"],
     timeout_for_data_sra: float,
     fsoe_maps_dir: Path,
     alias: str,
@@ -282,7 +260,7 @@ def test_fixed_mapping_combination(
     check_map: str,
     servo: "EthercatServo",
 ) -> None:
-    mc, handler = mc_with_fsoe_with_sra
+    mc, handler = mc_with_fsoe_with_sra_and_feedback_scenario
 
     test_map = f"old/failed/{check_map}"
 
@@ -296,8 +274,6 @@ def test_fixed_mapping_combination(
     # Check that the maps are valid
     try:
         handler.maps.validate()
-        write_fsoe_feedback_registers(mc=mc, handler=handler)
-
         mc.fsoe.configure_pdos(start_pdos=False)
         mc.capture.pdo.start_pdos(servo=alias)
         time.sleep(0.05)
