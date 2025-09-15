@@ -116,8 +116,6 @@ class FSoEMaster:
         if stop_pdos:
             for servo in self._handlers:
                 self.__mc.capture.pdo.stop_pdos(servo=servo)
-            if self.__fsoe_configured:
-                self._remove_pdo_maps_from_slaves()
         self.__fsoe_configured = False
 
     def sto_deactivate(self, servo: str = DEFAULT_SERVO) -> None:

@@ -96,6 +96,7 @@ class FSoEMasterHandler:
         self.__net = net
         self.__running: bool = False
         self.__uses_sra: bool = use_sra
+        self.__is_subscribed_to_process_data_events: bool = False
 
         self.net.pdo_manager.subscribe_to_exceptions(self._pdo_thread_exception_handler)
 
@@ -149,8 +150,6 @@ class FSoEMasterHandler:
 
         self.__safety_master_pdu = servo.read_rpdo_map_from_slave(self.__master_map_object)
         self.__safety_slave_pdu = servo.read_tpdo_map_from_slave(self.__slave_map_object)
-        self.__safety_master_pdu.subscribe_to_process_data_event(self.get_request)
-        self.__safety_slave_pdu.subscribe_to_process_data_event(self.set_reply)
 
         map_editable = (self.__master_map_object.registers[0].access == RegAccess.RW) and (
             self.__slave_map_object.registers[0].access == RegAccess.RW
@@ -196,6 +195,17 @@ class FSoEMasterHandler:
         except Exception as ex:
             self._master_handler.delete()
             raise ex
+
+    def subscribe_to_process_data_events(self) -> None:
+        """Subscribes to process data events.
+
+        Subscription may happen when setting the PDO maps to slaves or if the master is started manually (after a stop usually).
+        """
+        if self.__is_subscribed_to_process_data_events:
+            return
+        self.safety_master_pdu_map.subscribe_to_process_data_event(self.get_request)
+        self.safety_slave_pdu_map.subscribe_to_process_data_event(self.set_reply)
+        self.__is_subscribed_to_process_data_events = True
 
     def _pdo_thread_exception_handler(self, exc: Exception) -> None:
         """Callback method for the PDO thread exceptions.
@@ -360,6 +370,10 @@ class FSoEMasterHandler:
         self.__in_initial_reset = False
         self.__running = False
 
+        self.safety_master_pdu_map.unsubscribe_to_process_data_event()
+        self.safety_slave_pdu_map.unsubscribe_to_process_data_event()
+        self.__is_subscribed_to_process_data_events = False
+
     def delete(self) -> None:
         """Delete the master handler."""
         self._master_handler.delete()
@@ -407,6 +421,9 @@ class FSoEMasterHandler:
         self.__servo.set_pdo_map_to_slave(
             rpdo_maps=[self.safety_master_pdu_map], tpdo_maps=[self.safety_slave_pdu_map]
         )
+
+        # Subscribe to process data events
+        self.subscribe_to_process_data_events()
 
         if self.__maps.editable:
             self.safety_master_pdu_map.write_to_slave(padding=True)
