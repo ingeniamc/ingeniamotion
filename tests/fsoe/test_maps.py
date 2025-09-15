@@ -271,24 +271,32 @@ def test_is_safety_function_mapped():
     sto_func = sfs[STOFunction][0]
     sto_ios = list(sto_func.ios.values())
     assert maps.is_safety_function_mapped(sto_func) is False
+    assert maps.is_safety_function_mapped(sto_func, strict=False) is False
     maps.inputs.add(sto_ios[0])
     assert maps.is_safety_function_mapped(sto_func) is False
+    assert maps.is_safety_function_mapped(sto_func, strict=False) is True
     maps.outputs.add(sto_ios[0])
     assert maps.is_safety_function_mapped(sto_func) is True
+    assert maps.is_safety_function_mapped(sto_func, strict=False) is True
 
     si_func = sfs[SafeInputsFunction][0]
     si_ios = list(si_func.ios.values())
     assert maps.is_safety_function_mapped(si_func) is False
+    assert maps.is_safety_function_mapped(si_func, strict=False) is False
     maps.inputs.add(si_ios[0])
     assert maps.is_safety_function_mapped(si_func) is True
+    assert maps.is_safety_function_mapped(si_func, strict=False) is True
 
     ss1_func = sfs[SS1Function][0]
     ss1_ios = list(ss1_func.ios.values())
     assert maps.is_safety_function_mapped(ss1_func) is False
+    assert maps.is_safety_function_mapped(ss1_func, strict=False) is False
     maps.outputs.add(ss1_ios[0])
     assert maps.is_safety_function_mapped(ss1_func) is True
+    assert maps.is_safety_function_mapped(ss1_func, strict=False) is True
     maps.inputs.add(ss1_ios[0])
     assert maps.is_safety_function_mapped(ss1_func) is True
+    assert maps.is_safety_function_mapped(ss1_func, strict=False) is True
 
 
 @pytest.mark.fsoe_phase2

@@ -282,15 +282,20 @@ class PDUMaps:
                 return function
         raise ValueError(f"No safety functions of type {function_type} are mapped")
 
-    def is_safety_function_mapped(self, safety_function: "SafetyFunction") -> bool:
+    def is_safety_function_mapped(
+        self, safety_function: "SafetyFunction", strict: bool = True
+    ) -> bool:
         """Check if the safety function is mapped in the PDU maps.
 
         If at least one output of the safety function is present in the PDU maps,
         the function is considered mapped. If the safety function has no outputs,
         it is considered mapped if at least one of its inputs is present in the maps.
 
+        If strict is False, any IO mapped will return True.
+
         Args:
             safety_function: SafetyFunction to check.
+            strict: if False, any IO mapped will return True. Defaults to True.
 
         Returns:
             True if the safety function is mapped, False otherwise.
@@ -308,8 +313,7 @@ class PDUMaps:
                     and io in map_output
                 ):
                     return True
-            return False
-        else:
+        if not has_output or not strict:
             for io in safety_function.ios.values():
                 if (
                     isinstance(io, (FSoEDictionaryItemInput, FSoEDictionaryItemInputOutput))
