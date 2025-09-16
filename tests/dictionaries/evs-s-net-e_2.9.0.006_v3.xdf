@@ -113,7 +113,7 @@
       </Category>
     </Categories>
     <Devices>
-      <ETHDevice firmwareVersion="2.9.0.004" ProductCode="61936641" PartNumber="EVS-S-NET-E" RevisionNumber="327680">
+      <ETHDevice firmwareVersion="2.9.0.006" ProductCode="61936641" PartNumber="EVS-S-NET-E" RevisionNumber="327680">
         <Subnodes>
           <Subnode index="0">Communication</Subnode>
           <Subnode index="1">Motion</Subnode>
@@ -1710,6 +1710,25 @@
           <MCBRegister address="0x02ED" subnode="1" address_type="NVM" access="rw" dtype="float" id="IO_ANA2_OFFSET" units="none" pdo_access="CONFIG" desc="Offset  applied to analog input 2 readings after gain amplification." default="00000000" cat_id="IN_OUT" axis="1">
             <Labels>
               <Label lang="en_US">Analog input 2 - Offset</Label>
+            </Labels>
+          </MCBRegister>
+          <MCBRegister address="0x0306" subnode="1" address_type="NVM" access="rw" dtype="u16" id="COGGING_COMP_TABLE_ENABLE" units="none" pdo_access="CONFIG" desc="Enables and disables cogging compensation table" default="0000" cat_id="FEEDBACK" axis="1">
+            <Labels>
+              <Label lang="en_US">Cogging compensation table enable</Label>
+            </Labels>
+            <Enumerations>
+              <Enum value="0">Disabled</Enum>
+              <Enum value="1">Enabled</Enum>
+            </Enumerations>
+          </MCBRegister>
+          <MCBRegister address="0x0307" subnode="1" address_type="NVM_NONE" access="rw" dtype="s16" id="COGGING_COMP_TABLE_INDEX" units="none" pdo_access="CONFIG" desc="Index of the cogging compensation table" default="ffff" cat_id="FEEDBACK" axis="1">
+            <Labels>
+              <Label lang="en_US">Cogging compensation table index</Label>
+            </Labels>
+          </MCBRegister>
+          <MCBRegister address="0x0308" subnode="1" address_type="NVM_NONE" access="rw" dtype="float" id="COGGING_COMP_TABLE_VALUE" units="A" pdo_access="CONFIG" desc="Value of the cogging compensation table at index" default="00000000" cat_id="FEEDBACK" axis="1">
+            <Labels>
+              <Label lang="en_US">Cogging compensation table value</Label>
             </Labels>
           </MCBRegister>
           <MCBRegister address="0x035F" subnode="1" address_type="NVM_NONE" access="r" dtype="u32" id="FBK_ENA_MASK" units="none" pdo_access="CONFIG" desc="Boolean mask indicating the enabled feedbacks" default="00000000" cat_id="REPORTING" axis="1">
@@ -3411,7 +3430,7 @@
               <Label lang="en_US">Revision number</Label>
             </Labels>
           </MCBRegister>
-          <MCBRegister address="0x06E4" subnode="1" address_type="NVM_NONE" access="r" dtype="str" id="DRV_ID_SOFTWARE_VERSION" units="none" pdo_access="CONFIG" desc="Public software release version" default="322e392e302e303034" cat_id="IDENTIFICATION" axis="1">
+          <MCBRegister address="0x06E4" subnode="1" address_type="NVM_NONE" access="r" dtype="str" id="DRV_ID_SOFTWARE_VERSION" units="none" pdo_access="CONFIG" desc="Public software release version" default="322e392e302e303036" cat_id="IDENTIFICATION" axis="1">
             <Labels>
               <Label lang="en_US">Software version</Label>
             </Labels>
@@ -4125,9 +4144,159 @@
               <Label lang="en_US">Absolute encoder 2 error bit active without exceeding error tolerance</Label>
             </Labels>
           </Error>
+          <Error id="0x80010001" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">FSI CRC checksum error. A FSI CRC error indicates potential corruption in the internal communication between safety cores.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x80010002" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Synchronization timeout. The synchronization process between safety cores timed out.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x80020001" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Overtemperature. The local temperature of a safety core exceeds the upper limit.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x80020002" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Undertemperature. The local temperature of a safety core is below the minimum limit.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x80020003" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">User overtemperature. The local temperature of a safety core exceeds the upper limit configured by the user.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x80030001" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Abnormal safe inputs. Measured safe inputs have different values for more than 5 ms.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x80030002" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Abnormal safe input latch. Measured safe inputs have different values for more than 2.5 s.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x80030003" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Inconsistent safe inputs. Safe input states exchanged between MCUs have different values for over 5 ms.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x80030004" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Abnormal STO. STO and STO monitor differ by more than 5 ms.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x80040001" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Inconsistent FSoE reply. The CRC0 transmitted by both safety cores differs, indicating they are operating in different states or with different data.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x80050001" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">NVM timeout. A timeout occurred due to a failed access to the NVM.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x80060001" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Invalid MCB CRC checksum. MCB frame received with an invalid CRC, indicating potential corruption in the internal communication between the non-safe MCU and the safety cores.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x80070001" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Self-test failure. A self-test has revealed that the board is not operating under controlled conditions.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x80080001" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Inconsistent position. The position readings from each MCU exceed the threshold.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x08008002" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Inconsistent timestamp. The position timestamp from each MCU exceeds the threshold.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x08008003" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Unsupported feedback settings. The current feedback and gearbox settings are unsupported.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x08008004" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Error in the main feedback. The main feedback is in an error state.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x08008005" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Error in the redundant feedback. The redundant feedback is in an error state.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x90090101" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">SS1 deceleration limit exceeded. The SS1 deceleration limit has been exceeded.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x90090102" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">SS1 velocity limit exceeded. The SS1 velocity limit has been exceeded after time to STO.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x90090201" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">SOS velocity window limit exceeded. The SOS velocity window limit has been exceeded.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x90090202" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">SOS position window limit exceeded. The SOS position window limit has been exceeded.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x90090301" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">SS2 deceleration limit exceeded. The SS2 deceleration limit has been exceeded.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x90090401" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">SLP position limit exceeded. The SLP position limit has been exceeded.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x90090402" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">SLP absolute position used before homing. SLP has been activated before homing.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x90090501" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">SLS velocity limit exceeded. The SLS velocity limit has been exceeded.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x90090601" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">SSR velocity range exceeded. The SSR velocity range has been exceeded.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x90090701" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">No feedback selected. No feedback source has been selected for the safety function.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x90090801" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">SDI position limit exceeded. SDI position zero window has been exceeded.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x90090901" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">SLI limits exceeded. SLI position increment limits have been exceeded.</Label>
+            </Labels>
+          </Error>
         </Errors>
       </ETHDevice>
-      <ECATDevice firmwareVersion="2.9.0.004" ProductCode="61936641" PartNumber="EVS-S-NET-E" RevisionNumber="327680">
+      <ECATDevice firmwareVersion="2.9.0.006" ProductCode="61936641" PartNumber="EVS-S-NET-E" RevisionNumber="327680">
         <CANopenObjects>
           <CANopenObject id="ETG_DRV_ID_DEVICE_TYPE" index="0x1000" datatype="VAR">
             <Labels>
@@ -7873,6 +8042,46 @@
               </Subitem>
             </Subitems>
           </CANopenObject>
+          <CANopenObject id="COGGING_COMP_TABLE_ENABLE" index="0x2306" datatype="VAR" axis="1">
+            <Labels>
+              <Label lang="en_US">Cogging compensation table enable</Label>
+            </Labels>
+            <Subitems>
+              <Subitem subindex="0" address_type="NVM" access="rw" dtype="u16" id="COGGING_COMP_TABLE_ENABLE" pdo_access="CONFIG" desc="Enables and disables cogging compensation table" units="none" default="0000" cat_id="FEEDBACK" axis="1">
+                <Labels>
+                  <Label lang="en_US">Cogging compensation table enable</Label>
+                </Labels>
+                <Enumerations>
+                  <Enum value="0">Disabled</Enum>
+                  <Enum value="1">Enabled</Enum>
+                </Enumerations>
+              </Subitem>
+            </Subitems>
+          </CANopenObject>
+          <CANopenObject id="COGGING_COMP_TABLE_INDEX" index="0x2307" datatype="VAR" axis="1">
+            <Labels>
+              <Label lang="en_US">Cogging compensation table index</Label>
+            </Labels>
+            <Subitems>
+              <Subitem subindex="0" address_type="NVM_NONE" access="rw" dtype="s16" id="COGGING_COMP_TABLE_INDEX" pdo_access="CONFIG" desc="Index of the cogging compensation table" units="none" default="ffff" cat_id="FEEDBACK" axis="1">
+                <Labels>
+                  <Label lang="en_US">Cogging compensation table index</Label>
+                </Labels>
+              </Subitem>
+            </Subitems>
+          </CANopenObject>
+          <CANopenObject id="COGGING_COMP_TABLE_VALUE" index="0x2308" datatype="VAR" axis="1">
+            <Labels>
+              <Label lang="en_US">Cogging compensation table value</Label>
+            </Labels>
+            <Subitems>
+              <Subitem subindex="0" address_type="NVM_NONE" access="rw" dtype="float" id="COGGING_COMP_TABLE_VALUE" pdo_access="CONFIG" desc="Value of the cogging compensation table at index" units="A" default="00000000" cat_id="FEEDBACK" axis="1">
+                <Labels>
+                  <Label lang="en_US">Cogging compensation table value</Label>
+                </Labels>
+              </Subitem>
+            </Subitems>
+          </CANopenObject>
           <CANopenObject id="FBK_ENA_MASK" index="0x235F" datatype="VAR" axis="1">
             <Labels>
               <Label lang="en_US">Enabled feedbacks mask</Label>
@@ -11159,7 +11368,7 @@
               <Label lang="en_US">Software version</Label>
             </Labels>
             <Subitems>
-              <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="str" id="DRV_ID_SOFTWARE_VERSION" pdo_access="CONFIG" desc="Public software release version" units="none" default="322e392e302e303034" cat_id="IDENTIFICATION" axis="1">
+              <Subitem subindex="0" address_type="NVM_NONE" access="r" dtype="str" id="DRV_ID_SOFTWARE_VERSION" pdo_access="CONFIG" desc="Public software release version" units="none" default="322e392e302e303036" cat_id="IDENTIFICATION" axis="1">
                 <Labels>
                   <Label lang="en_US">Software version</Label>
                 </Labels>
@@ -11927,11 +12136,13 @@
                 <Labels>
                   <Label lang="en_US">MCUA Error List Index Request</Label>
                 </Labels>
+                <Range min="0" max="31"/>
               </Subitem>
               <Subitem subindex="2" address_type="NVM_NONE" access="rw" dtype="u16" id="FSOE_ERROR_REQUEST_INDEX_MCUB" pdo_access="CONFIG" desc="Error index to request to the error queue of MCU B" units="none" default="0000" cat_id="FSOE" axis="1">
                 <Labels>
                   <Label lang="en_US">MCUB Error List Index Request</Label>
                 </Labels>
+                <Range min="0" max="31"/>
               </Subitem>
             </Subitems>
           </CANopenObject>
@@ -15238,7 +15449,7 @@
                   <Label lang="en_US">SubIndex 000</Label>
                 </Labels>
               </Subitem>
-              <Subitem subindex="1" address_type="NVM_NONE" access="rw" dtype="s32" id="FSOE_SLI_UPPER_LIMIT_1" pdo_access="CONFIG" desc="Maximum allowed relative position while SLI is active" units="none" default="00000000" cat_id="FSOE" axis="1">
+              <Subitem subindex="1" address_type="NVM_NONE" access="rw" dtype="u32" id="FSOE_SLI_UPPER_LIMIT_1" pdo_access="CONFIG" desc="Maximum allowed relative position while SLI is active" units="none" default="00000000" cat_id="FSOE" axis="1">
                 <Labels>
                   <Label lang="en_US">SLI Position Relative Upper Limit</Label>
                 </Labels>
@@ -15255,7 +15466,7 @@
                   <Label lang="en_US">SubIndex 000</Label>
                 </Labels>
               </Subitem>
-              <Subitem subindex="1" address_type="NVM_NONE" access="rw" dtype="s32" id="FSOE_SLI_LOWER_LIMIT_1" pdo_access="CONFIG" desc="Minimum allowed relative position while SLI is active" units="none" default="00000000" cat_id="FSOE" axis="1">
+              <Subitem subindex="1" address_type="NVM_NONE" access="rw" dtype="u32" id="FSOE_SLI_LOWER_LIMIT_1" pdo_access="CONFIG" desc="Minimum allowed relative position while SLI is active" units="none" default="00000000" cat_id="FSOE" axis="1">
                 <Labels>
                   <Label lang="en_US">SLI Position Relative Lower Limit</Label>
                 </Labels>
@@ -16000,6 +16211,156 @@
           <Error id="0x000073A0" affected_module="Feedbacks" error_type="cyclic">
             <Labels>
               <Label lang="en_US">Absolute encoder 2 error bit active without exceeding error tolerance</Label>
+            </Labels>
+          </Error>
+          <Error id="0x80010001" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">FSI CRC checksum error. A FSI CRC error indicates potential corruption in the internal communication between safety cores.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x80010002" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Synchronization timeout. The synchronization process between safety cores timed out.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x80020001" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Overtemperature. The local temperature of a safety core exceeds the upper limit.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x80020002" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Undertemperature. The local temperature of a safety core is below the minimum limit.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x80020003" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">User overtemperature. The local temperature of a safety core exceeds the upper limit configured by the user.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x80030001" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Abnormal safe inputs. Measured safe inputs have different values for more than 5 ms.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x80030002" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Abnormal safe input latch. Measured safe inputs have different values for more than 2.5 s.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x80030003" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Inconsistent safe inputs. Safe input states exchanged between MCUs have different values for over 5 ms.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x80030004" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Abnormal STO. STO and STO monitor differ by more than 5 ms.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x80040001" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Inconsistent FSoE reply. The CRC0 transmitted by both safety cores differs, indicating they are operating in different states or with different data.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x80050001" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">NVM timeout. A timeout occurred due to a failed access to the NVM.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x80060001" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Invalid MCB CRC checksum. MCB frame received with an invalid CRC, indicating potential corruption in the internal communication between the non-safe MCU and the safety cores.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x80070001" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Self-test failure. A self-test has revealed that the board is not operating under controlled conditions.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x80080001" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Inconsistent position. The position readings from each MCU exceed the threshold.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x08008002" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Inconsistent timestamp. The position timestamp from each MCU exceeds the threshold.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x08008003" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Unsupported feedback settings. The current feedback and gearbox settings are unsupported.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x08008004" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Error in the main feedback. The main feedback is in an error state.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x08008005" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">Error in the redundant feedback. The redundant feedback is in an error state.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x90090101" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">SS1 deceleration limit exceeded. The SS1 deceleration limit has been exceeded.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x90090102" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">SS1 velocity limit exceeded. The SS1 velocity limit has been exceeded after time to STO.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x90090201" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">SOS velocity window limit exceeded. The SOS velocity window limit has been exceeded.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x90090202" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">SOS position window limit exceeded. The SOS position window limit has been exceeded.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x90090301" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">SS2 deceleration limit exceeded. The SS2 deceleration limit has been exceeded.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x90090401" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">SLP position limit exceeded. The SLP position limit has been exceeded.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x90090402" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">SLP absolute position used before homing. SLP has been activated before homing.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x90090501" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">SLS velocity limit exceeded. The SLS velocity limit has been exceeded.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x90090601" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">SSR velocity range exceeded. The SSR velocity range has been exceeded.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x90090701" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">No feedback selected. No feedback source has been selected for the safety function.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x90090801" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">SDI position limit exceeded. SDI position zero window has been exceeded.</Label>
+            </Labels>
+          </Error>
+          <Error id="0x90090901" affected_module="Safety" error_type="cyclic">
+            <Labels>
+              <Label lang="en_US">SLI limits exceeded. SLI position increment limits have been exceeded.</Label>
             </Labels>
           </Error>
         </Errors>

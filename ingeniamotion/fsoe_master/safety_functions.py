@@ -28,6 +28,8 @@ __all__ = [
     "SSRFunction",
     "STOFunction",
     "SVFunction",
+    "SDIFunction",
+    "SLIFunction",
 ]
 
 
@@ -119,6 +121,8 @@ class SafetyFunction:
         yield from SLSFunction._explore_instances(handler)
         yield from SSRFunction._explore_instances(handler)
         yield from SLPFunction._explore_instances(handler)
+        yield from SDIFunction._explore_instances(handler)
+        yield from SLIFunction._explore_instances(handler)
 
     @classmethod
     def _create_instance(
@@ -308,8 +312,21 @@ class SS1Function(SafetyFunction):
     time_to_sto: SafetyParameter = safety_field(
         uid="FSOE_SS1_TIME_TO_STO_{i}", display_name="Time to STO"
     )
+    velocity_zero_window: Optional[SafetyParameter] = safety_field(
+        uid="FSOE_SS1_VEL_ZERO_WINDOW_{i}", display_name="Velocity Zero Window"
+    )
     time_for_velocity_zero: Optional[SafetyParameter] = safety_field(
         uid="FSOE_SS1_TIME_FOR_VEL_ZERO_{i}", display_name="Time for Velocity Zero"
+    )
+
+    time_delay_for_deceleration: Optional[SafetyParameter] = safety_field(
+        "FSOE_SS1_TIME_DELAY_DEC_{i}", display_name="Time Delay for Deceleration"
+    )
+    deceleration_limit: Optional[SafetyParameter] = safety_field(
+        uid="FSOE_SS1_DEC_LIMIT_{i}", display_name="Deceleration Limit"
+    )
+    activate_sout: Optional[SafetyParameter] = safety_field(
+        uid="FSOE_SS1_ACTIVATE_SOUT_{i}", display_name="Activate SOUT"
     )
 
 
@@ -349,6 +366,9 @@ class SS2Function(SafetyFunction):
 
     command: FSoEDictionaryItemInputOutput = safety_field(
         uid="FSOE_SS2_{i}", display_name="Command"
+    )
+    time_for_velocity_zero: SafetyParameter = safety_field(
+        uid="FSOE_SS2_TIME_FOR_VEL_ZERO_{i}", display_name="Time for Velocity Zero"
     )
     time_to_sos: SafetyParameter = safety_field(
         uid="FSOE_SS2_TIME_TO_SOS_{i}", display_name="Time to SOS"
@@ -453,7 +473,7 @@ class SSRFunction(SafetyFunction):
 
 @dataclass()
 class SLPFunction(SafetyFunction):
-    """Safe Limited Speed Safety Function."""
+    """Safe Limited Position Safety Function."""
 
     name = "Safe Limited Position {i}"
 
@@ -468,4 +488,41 @@ class SLPFunction(SafetyFunction):
     )
     error_reaction: SafetyParameter = safety_field(
         uid="FSOE_SLP_ERROR_REACTION_{i}", display_name="Error Reaction"
+    )
+
+
+@dataclass()
+class SDIFunction(SafetyFunction):
+    """Safe Direction Safety Function."""
+
+    name = "Safe Direction"
+
+    command_positive: FSoEDictionaryItemInputOutput = safety_field(
+        uid="FSOE_SDI_P", display_name="Command Positive"
+    )
+    command_negative: FSoEDictionaryItemInputOutput = safety_field(
+        uid="FSOE_SDI_N", display_name="Command Negative"
+    )
+    pos_zero_window: SafetyParameter = safety_field(
+        uid="FSOE_SDI_POS_ZERO_WINDOW", display_name="Position Zero Window"
+    )
+
+
+@dataclass()
+class SLIFunction(SafetyFunction):
+    """Safe Limited Increment Safety Function."""
+
+    name = "Safe Limited Increment {i}"
+
+    command: FSoEDictionaryItemInputOutput = safety_field(
+        uid="FSOE_SLI_COMMAND_{i}", display_name="Command"
+    )
+    upper_limit: SafetyParameter = safety_field(
+        uid="FSOE_SLI_UPPER_LIMIT_{i}", display_name="Upper Limit"
+    )
+    lower_limit: SafetyParameter = safety_field(
+        uid="FSOE_SLI_LOWER_LIMIT_{i}", display_name="Lower Limit"
+    )
+    error_reaction: SafetyParameter = safety_field(
+        uid="FSOE_SLI_ERROR_REACTION_{i}", display_name="Error Reaction"
     )

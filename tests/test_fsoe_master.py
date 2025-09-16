@@ -34,6 +34,9 @@ if FSOE_MASTER_INSTALLED:
         SafeHomingFunction,
         SafeInputsFunction,
         SafetyFunction,
+        SafetyParameter,
+        SDIFunction,
+        SLIFunction,
         SLPFunction,
         SLSFunction,
         SOSFunction,
@@ -301,9 +304,19 @@ def test_fsoe_master_get_safety_parameters(mc_with_fsoe):
     assert len(handler.safety_parameters) != 0
 
 
-class MockSafetyParameter:
-    def __init__(self):
-        pass
+if FSOE_MASTER_INSTALLED:
+
+    class MockSafetyParameter(SafetyParameter):
+        def __init__(self, register: "EthercatRegister", servo: "EthercatServo"):
+            self.__register = register
+            self.__servo = servo
+
+            self.__value = 0
+
+        @property
+        def register(self) -> "EthercatRegister":
+            """Get the register associated with the safety parameter."""
+            return self.__register
 
 
 class MockNetwork(EthercatNetwork):
@@ -349,15 +362,21 @@ class MockServo(Servo):
     read_tpdo_map_from_slave = EthercatServo.read_tpdo_map_from_slave
 
 
-class MockHandler:
-    def __init__(self, dictionary: str, module_uid: int):
-        xdf = DictionaryFactory.create_dictionary(dictionary, interface=Interface.ECAT)
-        self.dictionary = FSoEMasterHandler.create_safe_dictionary(xdf)
+if FSOE_MASTER_INSTALLED:
 
-        self.safety_parameters = {
-            app_parameter.uid: MockSafetyParameter()
-            for app_parameter in xdf.get_safety_module(module_uid).application_parameters
-        }
+    class MockHandler(FSoEMasterHandler):
+        def __init__(self, dictionary: str, module_uid: int):
+            xdf = DictionaryFactory.create_dictionary(dictionary, interface=Interface.ECAT)
+            self.dictionary = FSoEMasterHandler.create_safe_dictionary(xdf)
+            self.__servo = MockServo(dictionary)
+            self.safety_parameters = {
+                app_parameter.uid: MockSafetyParameter(
+                    xdf.get_register(app_parameter.uid), self.__servo
+                )
+                for app_parameter in xdf.get_safety_module(module_uid).application_parameters
+            }
+
+            self.safety_functions = tuple(SafetyFunction.for_handler(self))
 
 
 @pytest.mark.fsoe
@@ -532,6 +551,8 @@ def test_detect_safety_functions_ph2():
         SLPFunction,
         SLPFunction,
         SLPFunction,
+        SDIFunction,
+        SLIFunction,
     ]
 
 
@@ -561,6 +582,39 @@ def test_optional_parameter_present():
     assert parameter is not None
 
 
+def test_get_parameters_not_related_to_safety_functions():
+    handler = MockHandler(
+        SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_MODULE_IDENT_NO_SRA_MODULE_IDENT
+    )
+    unrelated_parameters = handler.get_parameters_not_related_to_safety_functions()
+    assert {param.register.identifier for param in unrelated_parameters} == {
+        *(f"ETG_COMMS_RPDO_MAP256_{i}" for i in range(1, 46)),
+        "ETG_COMMS_RPDO_MAP256_TOTAL",
+        *(f"ETG_COMMS_TPDO_MAP256_{i}" for i in range(1, 46)),
+        "ETG_COMMS_TPDO_MAP256_TOTAL",
+        "FSOE_ABS_SSI_PRIM1_BAUD",
+        "FSOE_ABS_SSI_PRIM1_FSIZE",
+        "FSOE_ABS_SSI_PRIM1_POL",
+        "FSOE_ABS_SSI_PRIM1_POSBITS",
+        "FSOE_ABS_SSI_PRIM1_STURN",
+        "FSOE_ABS_SSI_PRIM1_TOUT",
+        "FSOE_ABS_SSI_SECOND1_BAUD",
+        "FSOE_ABS_SSI_SECOND1_FSIZE",
+        "FSOE_ABS_SSI_SECOND1_PBITS",
+        "FSOE_ABS_SSI_SECOND1_POL",
+        "FSOE_ABS_SSI_SECOND1_STURN",
+        "FSOE_ABS_SSI_SECOND1_TOUT",
+        "FSOE_FEEDBACK_RATIO_MAIN_TURNS",
+        "FSOE_FEEDBACK_RATIO_REDUNDANT_TURNS",
+        "FSOE_FEEDBACK_SCENARIO",
+        "FSOE_HALL_POLARITY",
+        "FSOE_HALL_POLEPAIRS",
+        "FSOE_INCREMENTAL_ENC_POLARITY",
+        "FSOE_INCREMENTAL_ENC_RESOLUTION",
+        "FSOE_USER_OVER_TEMPERATURE",
+    }
+
+
 @pytest.mark.fsoe
 def test_mandatory_safety_functions(mc_with_fsoe):
     _mc, handler = mc_with_fsoe
@@ -587,20 +641,28 @@ def test_getter_of_safety_functions(mc_with_fsoe):
     ss1_function_1 = SS1Function(
         n_instance=None,
         name="Dummy",
-        command=None,
-        time_to_sto=None,
         ios=None,
         parameters=None,
+        command=None,
+        time_to_sto=None,
+        velocity_zero_window=None,
         time_for_velocity_zero=None,
+        time_delay_for_deceleration=None,
+        deceleration_limit=None,
+        activate_sout=None,
     )
     ss1_function_2 = SS1Function(
         n_instance=None,
         name="Dummy",
-        command=None,
-        time_to_sto=None,
         ios=None,
         parameters=None,
+        command=None,
+        time_to_sto=None,
+        velocity_zero_window=None,
         time_for_velocity_zero=None,
+        time_delay_for_deceleration=None,
+        deceleration_limit=None,
+        activate_sout=None,
     )
 
     handler.safety_functions = (sto_function, ss1_function_1, ss1_function_2)
