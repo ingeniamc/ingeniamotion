@@ -7,5 +7,6 @@ SAMPLE_SAFE_PH1_XDFV3_DICTIONARY = (
     __dictionaries_root_path / "den-s-net-e_devf13ab4_v3.xdf"
 ).as_posix()
 SAMPLE_SAFE_PH2_XDFV3_DICTIONARY = (
-    __dictionaries_root_path / "evs-s-net-e_safety_1.1.0.014_v3.xdf"
+    __dictionaries_root_path / "evs-s-net-e_2.9.0.004_v3.xdf"
 ).as_posix()
+SAMPLE_SAFE_PH2_MODULE_IDENT_NO_SRA_MODULE_IDENT = 0x3B00003

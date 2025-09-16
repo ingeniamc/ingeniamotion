@@ -19,7 +19,11 @@ from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError, FSoEMaster
 from ingeniamotion.motion_controller import MotionController
 from tests.conftest import add_fixture_error_checker, timeout_loop
-from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
+from tests.dictionaries import (
+    SAMPLE_SAFE_PH1_XDFV3_DICTIONARY,
+    SAMPLE_SAFE_PH2_MODULE_IDENT_NO_SRA_MODULE_IDENT,
+    SAMPLE_SAFE_PH2_XDFV3_DICTIONARY,
+)
 
 if FSOE_MASTER_INSTALLED:
     from fsoe_master import fsoe_master
@@ -33,6 +37,7 @@ if FSOE_MASTER_INSTALLED:
         SLPFunction,
         SLSFunction,
         SOSFunction,
+        SOutFunction,
         SPFunction,
         SS1Function,
         SS2Function,
@@ -437,6 +442,8 @@ def test_detect_safety_functions_ph1():
     # STO
     sto = sf[0]
     assert isinstance(sto, STOFunction)
+    assert sto.n_instance is None
+    assert sto.name == "Safe Torque Off"
     assert isinstance(sto.command, FSoEDictionaryItemInputOutput)
     assert sto.parameters == {}
     assert len(sto.ios) == 1
@@ -448,21 +455,25 @@ def test_detect_safety_functions_ph1():
     # SS1
     ss1 = sf[1]
     assert isinstance(ss1, SS1Function)
+    assert ss1.n_instance == 1
+    assert ss1.name == "Safe Stop 1"
     assert isinstance(ss1.command, FSoEDictionaryItemInputOutput)
     assert len(ss1.parameters) == 1
     for metadata, parameter in ss1.parameters.items():
         assert parameter == ss1.time_to_sto
         assert metadata.display_name == "Time to STO"
-        assert metadata.uid == "FSOE_SS1_TIME_TO_STO_{i}"
+        assert metadata.uid == "FSOE_SS1_TIME_TO_STO_1"
     assert len(ss1.ios) == 1
     for metadata, io in ss1.ios.items():
         assert io == ss1.command
         assert metadata.display_name == "Command"
-        assert metadata.uid == "FSOE_SS1_{i}"
+        assert metadata.uid == "FSOE_SS1_1"
 
     # Safe inputs
     si = sf[2]
     assert isinstance(si, SafeInputsFunction)
+    assert si.n_instance is None
+    assert si.name == "Safe Inputs"
     assert isinstance(si.value, FSoEDictionaryItemInput)
     assert len(si.parameters) == 1
     for metadata, parameter in si.parameters.items():
@@ -478,7 +489,9 @@ def test_detect_safety_functions_ph1():
 
 @pytest.mark.fsoe
 def test_detect_safety_functions_ph2():
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00000)
+    handler = MockHandler(
+        SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_MODULE_IDENT_NO_SRA_MODULE_IDENT
+    )
 
     sf_types = [type(sf) for sf in SafetyFunction.for_handler(handler)]
 
@@ -488,7 +501,7 @@ def test_detect_safety_functions_ph2():
         SafeInputsFunction,
         SOSFunction,
         SS2Function,
-        # SOutFunction, Not implemented yet
+        SOutFunction,
         SPFunction,
         SVFunction,
         SafeHomingFunction,
@@ -523,6 +536,32 @@ def test_detect_safety_functions_ph2():
 
 
 @pytest.mark.fsoe
+def test_optional_parameter_not_present():
+    handler = MockHandler(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, 0x3800000)
+
+    sto: STOFunction = next(STOFunction.for_handler(handler))
+
+    assert sto.activate_sout is None
+    assert sto.parameters == {}
+
+
+@pytest.mark.fsoe
+def test_optional_parameter_present():
+    handler = MockHandler(
+        SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_MODULE_IDENT_NO_SRA_MODULE_IDENT
+    )
+
+    sto: STOFunction = next(STOFunction.for_handler(handler))
+
+    assert sto.activate_sout is not None
+    assert len(sto.parameters) == 1
+    metadata, parameter = next(iter(sto.parameters.items()))
+    assert metadata.uid == "FSOE_STO_ACTIVATE_SOUT"
+    assert metadata.display_name == "Activate SOUT"
+    assert parameter is not None
+
+
+@pytest.mark.fsoe
 def test_mandatory_safety_functions(mc_with_fsoe):
     _mc, handler = mc_with_fsoe
 
@@ -542,19 +581,26 @@ def test_mandatory_safety_functions(mc_with_fsoe):
 def test_getter_of_safety_functions(mc_with_fsoe):
     _mc, handler = mc_with_fsoe
 
-    # ruff: noqa: ERA001
-    sto_function = STOFunction(command=None, ios=None, parameters=None)
+    sto_function = STOFunction(
+        n_instance=None, name="Dummy", command=None, activate_sout=None, ios=None, parameters=None
+    )
     ss1_function_1 = SS1Function(
+        n_instance=None,
+        name="Dummy",
         command=None,
         time_to_sto=None,
         ios=None,
         parameters=None,
+        time_for_velocity_zero=None,
     )
     ss1_function_2 = SS1Function(
+        n_instance=None,
+        name="Dummy",
         command=None,
         time_to_sto=None,
         ios=None,
         parameters=None,
+        time_for_velocity_zero=None,
     )
 
     handler.safety_functions = (sto_function, ss1_function_1, ss1_function_2)
