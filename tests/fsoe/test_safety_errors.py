@@ -8,7 +8,7 @@ from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 
 if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master import (
-        PDUMaps,
+        ProcessImage,
         SLPFunction,
         SPFunction,
         STOFunction,
@@ -98,7 +98,7 @@ def test_get_last_error_feedback_combination(
     handler.get_function_instance(SPFunction)
     handler.get_function_instance(SVFunction)
 
-    maps = PDUMaps.empty(handler.dictionary)
+    maps = ProcessImage.empty(handler.dictionary)
 
     maps.inputs.add(sto.command)
 

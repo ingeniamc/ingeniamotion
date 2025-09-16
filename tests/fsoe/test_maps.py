@@ -28,7 +28,7 @@ if TYPE_CHECKING:
             ServoErrorQueue,
         )
         from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
-        from ingeniamotion.fsoe_master.maps import PDUMaps
+        from ingeniamotion.fsoe_master.process_image import ProcessImage
         from tests.fsoe.conftest import FSoERandomMappingGenerator
 
 
@@ -57,7 +57,7 @@ def __move_test_files(files: list[Path], fsoe_maps_dir: Path, success: bool) -> 
                 raise RuntimeError(f"Failed to move {file_path} to {target_dir}: {e}")
 
 
-def __save_maps_text_representation(maps: "PDUMaps", output_file: Path) -> None:
+def __save_maps_text_representation(maps: "ProcessImage", output_file: Path) -> None:
     """Save the text representation of FSoE maps to a file.
 
     Args:

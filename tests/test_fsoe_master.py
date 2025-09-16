@@ -30,7 +30,7 @@ if FSOE_MASTER_INSTALLED:
 
     from ingeniamotion.fsoe_master import (
         FSoEMasterHandler,
-        PDUMaps,
+        ProcessImage,
         SafeHomingFunction,
         SafeInputsFunction,
         SafetyFunction,
@@ -1102,7 +1102,7 @@ class TestPduMapper:
     @pytest.mark.fsoe
     def test_map_phase_1(self, sample_safe_dictionary):
         safe_dict, fsoe_dict = sample_safe_dictionary
-        maps = PDUMaps.empty(fsoe_dict)
+        maps = ProcessImage.empty(fsoe_dict)
 
         maps.outputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
         maps.outputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
@@ -1197,7 +1197,7 @@ class TestPduMapper:
 
         assert len(tpdo.items) == 8
 
-        recreated_pdu_maps = PDUMaps.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
+        recreated_pdu_maps = ProcessImage.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
         assert (
             recreated_pdu_maps.outputs.get_text_representation()
             == maps.outputs.get_text_representation()
@@ -1210,7 +1210,7 @@ class TestPduMapper:
     @pytest.mark.fsoe
     def test_map_8_safe_bits(self, sample_safe_dictionary):
         safe_dict, fsoe_dict = sample_safe_dictionary
-        maps = PDUMaps.empty(fsoe_dict)
+        maps = ProcessImage.empty(fsoe_dict)
 
         maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
 
@@ -1235,7 +1235,7 @@ class TestPduMapper:
         rpdo = RPDOMap()
         maps.fill_rpdo_map(rpdo, safe_dict)
 
-        recreated_pdu_maps = PDUMaps.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
+        recreated_pdu_maps = ProcessImage.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
         assert (
             recreated_pdu_maps.outputs.get_text_representation()
             == maps.outputs.get_text_representation()
@@ -1248,7 +1248,7 @@ class TestPduMapper:
     @pytest.mark.fsoe
     def test_empty_map_8_bits(self, sample_safe_dictionary):
         safe_dict, fsoe_dict = sample_safe_dictionary
-        maps = PDUMaps.empty(fsoe_dict)
+        maps = ProcessImage.empty(fsoe_dict)
         tpdo = TPDOMap()
         maps.fill_tpdo_map(tpdo, safe_dict)
 
@@ -1269,7 +1269,7 @@ class TestPduMapper:
     @pytest.mark.fsoe
     def test_map_with_32_bit_vars(self, sample_safe_dictionary):
         safe_dict, fsoe_dict = sample_safe_dictionary
-        maps = PDUMaps.empty(fsoe_dict)
+        maps = ProcessImage.empty(fsoe_dict)
 
         # Append a 32-bit variable
         maps.inputs.add(fsoe_dict.name_map["FSOE_SAFE_POSITION"])
@@ -1302,7 +1302,7 @@ class TestPduMapper:
         rpdo = RPDOMap()
         maps.fill_rpdo_map(rpdo, safe_dict)
 
-        recreated_pdu_maps = PDUMaps.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
+        recreated_pdu_maps = ProcessImage.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
         assert (
             recreated_pdu_maps.outputs.get_text_representation()
             == maps.outputs.get_text_representation()
@@ -1315,7 +1315,7 @@ class TestPduMapper:
     @pytest.mark.fsoe
     def test_map_with_32_bit_vars_offset_8(self, sample_safe_dictionary):
         safe_dict, fsoe_dict = sample_safe_dictionary
-        maps = PDUMaps.empty(fsoe_dict)
+        maps = ProcessImage.empty(fsoe_dict)
 
         # Add a first 8-bit variable that will shift the 32-bit variable
         maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
@@ -1368,7 +1368,7 @@ class TestPduMapper:
         rpdo = RPDOMap()
         maps.fill_rpdo_map(rpdo, safe_dict)
 
-        recreated_pdu_maps = PDUMaps.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
+        recreated_pdu_maps = ProcessImage.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
         assert (
             recreated_pdu_maps.outputs.get_text_representation()
             == maps.outputs.get_text_representation()
@@ -1381,7 +1381,7 @@ class TestPduMapper:
     @pytest.mark.fsoe
     def test_map_with_32_bit_vars_offset_16(self, sample_safe_dictionary):
         safe_dict, fsoe_dict = sample_safe_dictionary
-        maps = PDUMaps.empty(fsoe_dict)
+        maps = ProcessImage.empty(fsoe_dict)
 
         # Add a first 16-bit variable that will shift the 32-bit variable
         maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U16_UID])
@@ -1424,7 +1424,7 @@ class TestPduMapper:
         rpdo = RPDOMap()
         maps.fill_rpdo_map(rpdo, safe_dict)
 
-        recreated_pdu_maps = PDUMaps.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
+        recreated_pdu_maps = ProcessImage.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
         assert (
             recreated_pdu_maps.outputs.get_text_representation()
             == maps.outputs.get_text_representation()
@@ -1438,7 +1438,7 @@ class TestPduMapper:
     @pytest.mark.parametrize("unify_pdo_mapping", [True, False])
     def test_map_with_16_bit_vars_offset_8(self, sample_safe_dictionary, unify_pdo_mapping: bool):
         safe_dict, fsoe_dict = sample_safe_dictionary
-        maps = PDUMaps.empty(fsoe_dict)
+        maps = ProcessImage.empty(fsoe_dict)
 
         # Add a first 8-bit variable that will shift the 16-bit variable
         maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
@@ -1488,7 +1488,7 @@ class TestPduMapper:
         rpdo = RPDOMap()
         maps.fill_rpdo_map(rpdo, safe_dict)
 
-        recreated_pdu_maps = PDUMaps.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
+        recreated_pdu_maps = ProcessImage.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
         assert (
             recreated_pdu_maps.outputs.get_text_representation()
             == maps.outputs.get_text_representation()
@@ -1510,14 +1510,14 @@ class TestPduMapper:
         ],
     )
     def test_get_safety_bytes_range_from_pdo_length(self, pdo_length, frame_data_bytes):
-        assert frame_data_bytes == PDUMaps._PDUMaps__get_safety_bytes_range_from_pdo_length(
+        assert frame_data_bytes == ProcessImage._PDUMaps__get_safety_bytes_range_from_pdo_length(
             pdo_length
         )
 
     @pytest.mark.fsoe
     def test_insert_in_best_position(self, sample_safe_dictionary):
         _safe_dict, fsoe_dict = sample_safe_dictionary
-        maps = PDUMaps.empty(fsoe_dict)
+        maps = ProcessImage.empty(fsoe_dict)
 
         si = fsoe_dict.name_map[SafeInputsFunction.SAFE_INPUTS_UID]
         sp = fsoe_dict.name_map["FSOE_SAFE_POSITION"]
@@ -1544,7 +1544,7 @@ class TestPduMapper:
     def test_validate_safe_data_blocks_invalid_size(self, mocker, sample_safe_dictionary):
         """Test that SafeDataBlocksValidator fails when safe data blocks are not 16 bits."""
         _, fsoe_dict = sample_safe_dictionary
-        maps = PDUMaps.empty(fsoe_dict)
+        maps = ProcessImage.empty(fsoe_dict)
 
         # Create a map with safe data blocks that are not 16 bits
         test_st_u8_item = maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])  # 8 bits
@@ -1568,7 +1568,7 @@ class TestPduMapper:
     def test_validate_safe_data_blocks_pdu_empty(self, sample_safe_dictionary):
         """Test that SafeDataBlocksValidator passes when no safe data blocks are present."""
         _, fsoe_dict = sample_safe_dictionary
-        maps = PDUMaps.empty(fsoe_dict)
+        maps = ProcessImage.empty(fsoe_dict)
         output = maps.are_inputs_valid(rules=[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID])
         assert len(output.exceptions) == 0
         assert output.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is True
@@ -1615,7 +1615,7 @@ class TestPduMapper:
         # Create safe dictionary
         fsoe_dict = FSoEMasterHandler.create_safe_dictionary(safe_dict)
 
-        maps = PDUMaps.empty(fsoe_dict)
+        maps = ProcessImage.empty(fsoe_dict)
 
         test_si_u16_items = []
         for idx in range(9):
@@ -1636,7 +1636,7 @@ class TestPduMapper:
     def test_validate_safe_data_blocks_objects_split_across_blocks(self, sample_safe_dictionary):
         """Test that SafeDataBlocksValidator fails when <= 16 bits objects are split."""
         _, fsoe_dict = sample_safe_dictionary
-        maps = PDUMaps.empty(fsoe_dict)
+        maps = ProcessImage.empty(fsoe_dict)
 
         maps.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
         maps.inputs.add_padding(bits=6)
@@ -1677,7 +1677,7 @@ class TestPduMapper:
             [self.TEST_SI_U16_UID],  # single 16-bit block
             [self.TEST_SI_U16_UID, "FSOE_SAFE_POSITION"],  # multiple 16-bit blocks
         ]:
-            maps = PDUMaps.empty(fsoe_dict)
+            maps = ProcessImage.empty(fsoe_dict)
             for item_uid in items_to_add:
                 maps.inputs.add(fsoe_dict.name_map[item_uid])
 
@@ -1689,7 +1689,7 @@ class TestPduMapper:
     def test_validate_number_of_objects_in_frame(self, sample_safe_dictionary):
         """Test that SafeDataBlocksValidator fails if the number of objects is exceeded."""
         safe_dict, fsoe_dict = sample_safe_dictionary
-        maps = PDUMaps.empty(fsoe_dict)
+        maps = ProcessImage.empty(fsoe_dict)
 
         for idx in range(45):
             test_uid = f"TEST_SI_BOOL_{idx}"
@@ -1726,7 +1726,7 @@ class TestPduMapper:
         # Create safe dictionary
         fsoe_dict = FSoEMasterHandler.create_safe_dictionary(safe_dict)
 
-        maps = PDUMaps.empty(fsoe_dict)
+        maps = ProcessImage.empty(fsoe_dict)
 
         test_si_bool_items = []
         for idx in range(45):
@@ -1758,7 +1758,7 @@ class TestPduMapper:
     def test_validate_safe_data_objects_word_aligned(self, sample_safe_dictionary):
         """Test that validation fails when safe data objects >= 16 bits are not word aligned."""
         _, fsoe_dict = sample_safe_dictionary
-        maps = PDUMaps.empty(fsoe_dict)
+        maps = ProcessImage.empty(fsoe_dict)
 
         maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
         test_si_u16_item = maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U16_UID])
@@ -1789,7 +1789,7 @@ class TestPduMapper:
     def test_validate_sto_command_first_in_outputs(self, sample_safe_dictionary):
         """Test that STO command is the first item in the maps."""
         _, fsoe_dict = sample_safe_dictionary
-        maps = PDUMaps.empty(fsoe_dict)
+        maps = ProcessImage.empty(fsoe_dict)
         ss1_item_outputs = maps.outputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
         maps.outputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
         # STO command can be anywhere in the inputs map
@@ -1832,7 +1832,7 @@ class TestPduMapper:
     def test_validate_empty_map(self, sample_safe_dictionary):
         """Test that an empty FSoE map is invalid."""
         _, fsoe_dict = sample_safe_dictionary
-        maps = PDUMaps.empty(fsoe_dict)
+        maps = ProcessImage.empty(fsoe_dict)
         output = maps.are_outputs_valid()
         assert FSoEFrameRules.STO_COMMAND_FIRST in output.exceptions
         output = maps.are_inputs_valid()
@@ -1843,7 +1843,7 @@ class TestPduMapper:
         """Test that FSoE frames pass all validation rules."""
         _, fsoe_dict = sample_safe_dictionary
 
-        maps = PDUMaps.empty(fsoe_dict)
+        maps = ProcessImage.empty(fsoe_dict)
         maps.outputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
         maps.outputs.add_padding(7)
         maps.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
@@ -1863,7 +1863,7 @@ class TestPduMapper:
         if not sto_func:
             raise ValueError("STO not found")
 
-        maps = PDUMaps.empty(handler.dictionary)
+        maps = ProcessImage.empty(handler.dictionary)
         maps.insert_safety_function(sto_func)
         assert maps.inputs.get_text_representation(item_space=30) == (
             "Item                           | Position bytes..bits | Size bytes..bits    \n"

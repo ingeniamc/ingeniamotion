@@ -30,7 +30,7 @@ from ingeniamotion.fsoe_master.fsoe import (
     StateData,
     calculate_sra_crc,
 )
-from ingeniamotion.fsoe_master.maps import PDUMaps
+from ingeniamotion.fsoe_master.process_image import ProcessImage
 from ingeniamotion.fsoe_master.parameters import (
     PARAM_VALUE_TYPE,
     SafetyParameter,
@@ -157,7 +157,7 @@ class FSoEMasterHandler:
         )
 
         try:
-            self.__maps = PDUMaps.from_rpdo_tpdo(
+            self.__maps = ProcessImage.from_rpdo_tpdo(
                 self.__safety_master_pdu,
                 self.__safety_slave_pdu,
                 dictionary=self.dictionary,
@@ -168,7 +168,7 @@ class FSoEMasterHandler:
                 "Falling back to a default map.",
                 exc_info=e,
             )
-            self.__maps = PDUMaps.default(self.dictionary)
+            self.__maps = ProcessImage.default(self.dictionary)
 
         if not map_editable:
             self.__maps.inputs._lock()
@@ -365,11 +365,11 @@ class FSoEMasterHandler:
         self._master_handler.delete()
 
     @property
-    def maps(self) -> "PDUMaps":
+    def maps(self) -> "ProcessImage":
         """Get the PDUMap used for the Safety PDUs."""
         return self.__maps
 
-    def set_maps(self, maps: "PDUMaps") -> None:
+    def set_maps(self, maps: "ProcessImage") -> None:
         """Set new PDUMaps for the Safety PDUs.
 
         Raises:

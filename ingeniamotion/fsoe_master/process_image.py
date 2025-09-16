@@ -27,11 +27,11 @@ if TYPE_CHECKING:
 
     from ingeniamotion.fsoe_master.safety_functions import SafetyFunction
 
-__all__ = ["PDUMaps"]
+__all__ = ["ProcessImage"]
 
 
-class PDUMaps:
-    """Helper class to configure the Safety PDU PDOMaps."""
+class ProcessImage:
+    """Helper class to configure the Safety Process Image."""
 
     __SLOT_WIDTH = 16
     """Number of bits in a data slot of the Safety PDU."""
@@ -46,7 +46,7 @@ class PDUMaps:
         self.__validator: FSoEDictionaryMapValidator = FSoEDictionaryMapValidator()
 
     @classmethod
-    def empty(cls, dictionary: "FSoEDictionary") -> "PDUMaps":
+    def empty(cls, dictionary: "FSoEDictionary") -> "ProcessImage":
         """Create an empty PDUMaps instance with the given dictionary.
 
         Returns:
@@ -64,7 +64,7 @@ class PDUMaps:
         )
 
     @classmethod
-    def default(cls, dictionary: "FSoEDictionary") -> "PDUMaps":
+    def default(cls, dictionary: "FSoEDictionary") -> "ProcessImage":
         """Create a default PDUMaps instance with the default dictionary.
 
         Returns:
@@ -75,13 +75,13 @@ class PDUMaps:
         maps.inputs.add(dictionary.name_map[STOFunction.COMMAND_UID])
         return maps
 
-    def copy(self) -> "PDUMaps":
+    def copy(self) -> "ProcessImage":
         """Create a copy of the PDUMaps instance.
 
         Returns:
             A new PDUMaps instance with copies of the outputs and inputs maps.
         """
-        return PDUMaps(
+        return ProcessImage(
             outputs=self.outputs.copy(),
             inputs=self.inputs.copy(),
         )
@@ -197,7 +197,7 @@ class PDUMaps:
     @classmethod
     def from_rpdo_tpdo(
         cls, rpdo: RPDOMap, tpdo: TPDOMap, dictionary: "FSoEDictionary"
-    ) -> "PDUMaps":
+    ) -> "ProcessImage":
         """Create a PDUMaps instance from the given RPDO and TPDO maps.
 
         Returns:

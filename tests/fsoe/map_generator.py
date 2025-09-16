@@ -13,7 +13,7 @@ if FSOE_MASTER_INSTALLED:
         FSoEDictionaryMap,
         align_bits,
     )
-    from ingeniamotion.fsoe_master.maps import PDUMaps
+    from ingeniamotion.fsoe_master.process_image import ProcessImage
     from tests.fsoe.map_json_serializer import FSoEDictionaryMapJSONSerializer
 
 
@@ -94,7 +94,7 @@ class FSoERandomMappingGenerator:
 
     @staticmethod
     def _add_random_item_to_map(
-        maps: "PDUMaps", item: "FSoEDictionaryItem", random_paddings: bool
+        maps: "ProcessImage", item: "FSoEDictionaryItem", random_paddings: bool
     ) -> None:
         """Add a random item to the map with optional padding.
 
@@ -154,7 +154,7 @@ class FSoERandomMappingGenerator:
         max_items: int,
         random_paddings: bool,
         seed: int = None,
-    ) -> "PDUMaps":
+    ) -> "ProcessImage":
         """Generate a random mapping of safety functions, adding 1 of each data type randomly.
 
         When a data type is finished, continue with the remaining ones.
@@ -168,13 +168,13 @@ class FSoERandomMappingGenerator:
                 If None, a fixed seed will be used.
 
         Returns:
-            PDUMaps: The generated PDU maps with the random mapping.
+            ProcessImage: The generated PDU maps with the random mapping.
         """
         if seed is not None:
             random.seed(seed)
 
         # Clear existing mappings
-        maps = PDUMaps.empty(dictionary=dictionary)
+        maps = ProcessImage.empty(dictionary=dictionary)
 
         items_added = 0
 
@@ -227,7 +227,7 @@ class FSoERandomMappingGenerator:
         filename: Path,
         override: bool = False,
         seed: int = None,
-    ) -> "PDUMaps":
+    ) -> "ProcessImage":
         """Generate a random mapping and save it to a JSON file for reproducible testing.
 
         Args:
