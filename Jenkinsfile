@@ -321,9 +321,18 @@ pipeline {
                                             call .venv${DEFAULT_PYTHON_VERSION}/Scripts/activate
                                             poetry run poe docs
                                             "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
+                                            XCOPY _docs ${env.WORKSPACE}
                                             XCOPY docs.zip ${env.WORKSPACE}
                                         """
                                         stash includes: 'docs.zip', name: 'docs'
+                                        publishHTML([
+                                          reportDir: '_docs',
+                                          reportFiles: 'index.html',
+                                          reportName: 'Sphinx Documentation',
+                                          keepAll: true,
+                                          alwaysLinkToLastBuild: true,
+                                          allowMissing: false
+                                        ])
                                     }
                                 }
                                 stage("Run unit tests") {
