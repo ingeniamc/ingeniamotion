@@ -334,6 +334,8 @@ class FSoEMaster:
             return
         self._handlers[servo].delete()
         del self._handlers[servo]
+        if not len(self._handlers) and self.__fsoe_configured:
+            self.__fsoe_configured = False
 
     def _configure_and_set_pdo_maps_to_slaves(self) -> None:
         """Configure the PDOMaps used by the Safety PDUs in the slaves."""
