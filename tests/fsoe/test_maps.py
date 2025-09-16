@@ -191,6 +191,10 @@ def test_map_all_safety_functions(
             if sf.command.name == "FSOE_SOUT":
                 continue
             handler.maps.insert_in_best_position(sf.command)
+        elif hasattr(sf, "command_positive"):
+            handler.maps.insert_in_best_position(sf.command_positive)
+        elif hasattr(sf, "command_negative"):
+            handler.maps.insert_in_best_position(sf.command_negative)
         else:
             handler.maps.insert_in_best_position(sf.value)
 
