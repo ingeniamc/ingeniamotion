@@ -87,19 +87,41 @@ class FSoEMaster:
         self.__next_connection_id += 1
         return master_handler
 
-    def configure_pdos(self, start_pdos: bool = False) -> None:
-        """Configure the PDOs used for the Safety PDUs.
+    def start_master(self, start_pdos: bool = False) -> None:
+        """Start an FSoE Master handler.
 
         Args:
             start_pdos: if ``True``, start the PDO exchange, if ``False``
                 the PDO exchange should be started after. ``False`` by default.
 
+        Raises:
+            RuntimeError: If the FSoE master is not configured.
         """
-        self._configure_and_set_pdo_maps_to_slaves()
         if start_pdos:
             for servo in self._handlers:
                 self.__mc.capture.pdo.start_pdos(servo=servo)
-        self.__fsoe_configured = True
+
+        if not self.__fsoe_configured:
+            raise RuntimeError("FSoE master is not configured, can't start the master.")
+
+        for master_handler in self._handlers.values():
+            master_handler.start()
+
+    def configure_pdos(self, start_pdos: bool = False, start_master: bool = True) -> None:
+        """Configure the PDOs used for the Safety PDUs.
+
+        Args:
+            start_pdos: if ``True``, start the PDO exchange, if ``False``
+                the PDO exchange should be started after. ``False`` by default.
+            start_master: if ``True``, start the FSoE master handlers after
+                configuring the PDOs. ``True`` by default.
+        """
+        self._configure_and_set_pdo_maps_to_slaves()
+        if start_master:
+            self.start_master(start_pdos=start_pdos)
+        elif start_pdos:
+            for servo in self._handlers:
+                self.__mc.capture.pdo.start_pdos(servo=servo)
 
     def stop_master(self, stop_pdos: bool = False) -> None:
         """Stop all the FSoE Master handlers.
@@ -116,7 +138,6 @@ class FSoEMaster:
         if stop_pdos:
             for servo in self._handlers:
                 self.__mc.capture.pdo.stop_pdos(servo=servo)
-        self.__fsoe_configured = False
 
     def sto_deactivate(self, servo: str = DEFAULT_SERVO) -> None:
         """Deactivate the Safety Torque Off.
@@ -318,8 +339,10 @@ class FSoEMaster:
         for master_handler in self._handlers.values():
             master_handler.configure_pdo_maps()
             master_handler.set_pdo_maps_to_slave()
+        self.__fsoe_configured = True
 
     def _remove_pdo_maps_from_slaves(self) -> None:
         """Remove the PDOMaps used by the Safety PDUs from the slaves."""
         for master_handler in self._handlers.values():
             master_handler.remove_pdo_maps_from_slave()
+        self.__fsoe_configured = False

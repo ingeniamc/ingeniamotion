@@ -356,8 +356,14 @@ class FSoEMasterHandler:
             self.logger.warning("Safety module with SRA is not available.")
         return safety_module
 
-    def __start_on_first_request(self) -> None:
-        """Start the FSoE Master handler on first request."""
+    def start(self) -> None:
+        """Start the FSoE Master handler.
+
+        Raises:
+            RuntimeError: If the FSoE Master is already running.
+        """
+        if self.running:
+            raise RuntimeError("FSoE Master is already running.")
         self.__in_initial_reset = True
         # Recalculate the SRA crc in case it changed
         if self._sra_fsoe_application_parameter is not None:
@@ -436,9 +442,13 @@ class FSoEMasterHandler:
         self.__servo.remove_tpdo_map(self.safety_slave_pdu_map)
 
     def get_request(self) -> None:
-        """Set the FSoE master handler request to the Safety Master PDU PDOMap."""
+        """Set the FSoE master handler request to the Safety Master PDU PDOMap.
+
+        Raises:
+            RuntimeError: If the FSoE Master is not running.
+        """
         if not self.__running:
-            self.__start_on_first_request()
+            raise RuntimeError("FSoE Master is not running")
         req = self._master_handler.get_request()
         self.safety_master_pdu_map.set_item_bytes(req)
 
