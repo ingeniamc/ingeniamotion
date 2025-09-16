@@ -75,6 +75,7 @@ class PDUMaps:
         """
         maps = cls.empty(dictionary)
         maps.outputs.add(dictionary.name_map[STOFunction.COMMAND_UID])
+        maps.inputs.add(dictionary.name_map[STOFunction.COMMAND_UID])
         return maps
 
     def copy(self) -> "PDUMaps":
