@@ -47,10 +47,10 @@ class ProcessImage:
 
     @classmethod
     def empty(cls, dictionary: "FSoEDictionary") -> "ProcessImage":
-        """Create an empty PDUMaps instance with the given dictionary.
+        """Create an empty ProcessImage instance with the given dictionary.
 
         Returns:
-            PDUMaps instance with empty outputs and inputs maps.
+            ProcessImage instance with empty outputs and inputs maps.
         """
         return cls(
             outputs=FSoEDictionaryMap(
@@ -65,21 +65,21 @@ class ProcessImage:
 
     @classmethod
     def default(cls, dictionary: "FSoEDictionary") -> "ProcessImage":
-        """Create a default PDUMaps instance with the default dictionary.
+        """Create a default ProcessImage instance with the default dictionary.
 
         Returns:
-            PDUMaps instance with the minimum required items for the PDU maps.
+            ProcessImage instance with the minimum required items.
         """
-        maps = cls.empty(dictionary)
-        maps.outputs.add(dictionary.name_map[STOFunction.COMMAND_UID])
-        maps.inputs.add(dictionary.name_map[STOFunction.COMMAND_UID])
-        return maps
+        process_image = cls.empty(dictionary)
+        process_image.outputs.add(dictionary.name_map[STOFunction.COMMAND_UID])
+        process_image.inputs.add(dictionary.name_map[STOFunction.COMMAND_UID])
+        return process_image
 
     def copy(self) -> "ProcessImage":
-        """Create a copy of the PDUMaps instance.
+        """Create a copy of the ProcessImage instance.
 
         Returns:
-            A new PDUMaps instance with copies of the outputs and inputs maps.
+            A new ProcessImage instance with copies of the outputs and inputs maps.
         """
         return ProcessImage(
             outputs=self.outputs.copy(),
@@ -88,7 +88,7 @@ class ProcessImage:
 
     @property
     def editable(self) -> bool:
-        """Indicates if the PDU maps can be edited."""
+        """Indicates if the Process image can be edited."""
         return not (self.outputs.locked or self.inputs.locked)
 
     def __validate_dictionary_map(
@@ -198,15 +198,15 @@ class ProcessImage:
     def from_rpdo_tpdo(
         cls, rpdo: RPDOMap, tpdo: TPDOMap, dictionary: "FSoEDictionary"
     ) -> "ProcessImage":
-        """Create a PDUMaps instance from the given RPDO and TPDO maps.
+        """Create a ProcessImage instance from the given RPDO and TPDO maps.
 
         Returns:
-            PDUMaps instance with the RPDO and TPDO maps filled.
+            ProcessImage instance with the RPDO and TPDO maps filled.
         """
-        pdu_maps = cls.empty(dictionary)
-        cls.__fill_dictionary_map_from_pdo(rpdo, pdu_maps.outputs)
-        cls.__fill_dictionary_map_from_pdo(tpdo, pdu_maps.inputs)
-        return pdu_maps
+        process_image = cls.empty(dictionary)
+        cls.__fill_dictionary_map_from_pdo(rpdo, process_image.outputs)
+        cls.__fill_dictionary_map_from_pdo(tpdo, process_image.inputs)
+        return process_image
 
     def fill_rpdo_map(self, rpdo_map: RPDOMap, servo_dictionary: "Dictionary") -> None:
         """Fill the RPDOMap used for the Safety Master PDU."""

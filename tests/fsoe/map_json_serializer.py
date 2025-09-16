@@ -16,12 +16,12 @@ class FSoEDictionaryMapJSONSerializer:
 
     @staticmethod
     def serialize_mapping_to_dict(
-        maps: "ProcessImage",
+        process_image: "ProcessImage",
     ) -> dict[str, list[dict[str, Union[str, int]]]]:
         """Serialize the current mapping to a dictionary for JSON storage.
 
         Args:
-            maps: The PDU maps with the mapping to serialize.
+            process_image: The ProcessImage with the mapping to serialize.
 
         Returns:
             Dictionary containing the serialized mapping data.
@@ -29,7 +29,9 @@ class FSoEDictionaryMapJSONSerializer:
         mapping_data: dict[str, list[dict[str, Union[str, int]]]] = {"inputs": [], "outputs": []}
 
         # Serialize inputs and outputs mapping
-        for item_key, item in zip(["inputs", "outputs"], [maps.inputs, maps.outputs]):
+        for item_key, item in zip(
+            ["inputs", "outputs"], [process_image.inputs, process_image.outputs]
+        ):
             for item in item:
                 # FSoE dictionary item
                 if item.item is not None:
@@ -51,14 +53,14 @@ class FSoEDictionaryMapJSONSerializer:
     def load_mapping_from_dict(
         dictionary: "FSoEDictionaryMap", mapping_data: dict[str, list[dict[str, Union[str, int]]]]
     ) -> "ProcessImage":
-        """Loads a mapping from a dictionary into the PDU maps.
+        """Loads a mapping from a dictionary into the ProcessImage.
 
         Args:
             dictionary: The FSoE dictionary.
             mapping_data: Dictionary containing the serialized mapping data.
 
         Returns:
-            ProcessImage: The PDU maps with the loaded mapping.
+            ProcessImage: The ProcessImage with the loaded mapping.
         """
         # Clear existing mappings
         maps = ProcessImage.empty(dictionary=dictionary)
@@ -81,7 +83,7 @@ class FSoEDictionaryMapJSONSerializer:
         """Save the current mapping to a JSON file.
 
         Args:
-            maps: The PDU maps with the mapping to save.
+            maps: The ProcessImage with the mapping to save.
             filename: Path to the JSON file to save.
             override: If True, will overwrite existing file. Defaults to False.
 
@@ -111,7 +113,7 @@ class FSoEDictionaryMapJSONSerializer:
             filename: Path to the JSON file to load.
 
         Returns:
-            ProcessImage: The PDU maps with the loaded mapping.
+            ProcessImage: The ProcessImage with the loaded mapping.
 
         Raises:
             FileNotFoundError: If the mapping file does not exist.

@@ -49,11 +49,11 @@ def main(ifname, slave_id, dict_path) -> None:
 
     # The handler comes with a default mapping read from the drive.
     # Clear it to create a new one
-    handler.maps.inputs.clear()
-    handler.maps.outputs.clear()
+    handler.process_image.inputs.clear()
+    handler.process_image.outputs.clear()
 
     # Configure Outputs map
-    outputs = handler.maps.outputs
+    outputs = handler.process_image.outputs
     outputs.add(sto.command)
     outputs.add(ss1.command)
     outputs.add(sos.command)
@@ -61,7 +61,7 @@ def main(ifname, slave_id, dict_path) -> None:
     outputs.add_padding(4 + 8)
 
     # Configure Inputs Map
-    inputs = handler.maps.inputs
+    inputs = handler.process_image.inputs
     inputs.add(sto.command)
     inputs.add(ss1.command)
     inputs.add_padding(6)
@@ -69,7 +69,7 @@ def main(ifname, slave_id, dict_path) -> None:
     inputs.add_padding(7)
 
     # Check that the maps are valid
-    handler.maps.validate()
+    handler.process_image.validate()
 
     # Print the maps to check the configuration
     print("Inputs Map:")

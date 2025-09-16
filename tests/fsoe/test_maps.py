@@ -61,7 +61,7 @@ def __save_maps_text_representation(maps: "ProcessImage", output_file: Path) -> 
     """Save the text representation of FSoE maps to a file.
 
     Args:
-        maps: The PDUMaps object to save
+        maps: The Process Image object to save
         output_file: Path where to save the text file
     """
     try:
@@ -132,10 +132,10 @@ def test_map_safety_input_output_random(
     maps.validate()
 
     # Set the new mapping and serialize it for later analysis
-    handler.maps.inputs.clear()
-    handler.maps.outputs.clear()
-    handler.set_maps(maps)
-    __save_maps_text_representation(handler.maps, txt_file)
+    handler.process_image.inputs.clear()
+    handler.process_image.outputs.clear()
+    handler.set_process_image(maps)
+    __save_maps_text_representation(handler.process_image, txt_file)
 
     test_success = False
     try:
@@ -174,14 +174,14 @@ def test_map_all_safety_functions(
     """Test that data state can be reached by mapping everything."""
     mc, handler = mc_with_fsoe_with_sra_and_feedback_scenario
 
-    handler.maps.inputs.clear()
-    handler.maps.outputs.clear()
+    handler.process_image.inputs.clear()
+    handler.process_image.outputs.clear()
 
     # Set the new mapping
     # STO must be mapped in the first position
     sto = handler.get_function_instance(safety_functions.STOFunction)
-    handler.maps.inputs.add(sto.command)
-    handler.maps.outputs.add(sto.command)
+    handler.process_image.inputs.add(sto.command)
+    handler.process_image.outputs.add(sto.command)
     # Add the rest of the safety functions
     for sf in SafetyFunction.for_handler(handler):
         if isinstance(sf, safety_functions.STOFunction):
@@ -190,20 +190,22 @@ def test_map_all_safety_functions(
             # SOUT command is not allowed if SOUT disable is set to 1
             if sf.command.name == "FSOE_SOUT":
                 continue
-            handler.maps.insert_in_best_position(sf.command)
+            handler.process_image.insert_in_best_position(sf.command)
         elif hasattr(sf, "command_positive"):
-            handler.maps.insert_in_best_position(sf.command_positive)
+            handler.process_image.insert_in_best_position(sf.command_positive)
         elif hasattr(sf, "command_negative"):
-            handler.maps.insert_in_best_position(sf.command_negative)
+            handler.process_image.insert_in_best_position(sf.command_negative)
         else:
-            handler.maps.insert_in_best_position(sf.value)
+            handler.process_image.insert_in_best_position(sf.value)
 
     # Check that the maps are valid
-    handler.maps.validate()
+    handler.process_image.validate()
     json_file = fsoe_maps_dir / "complete_mapping.json"
     txt_file = fsoe_maps_dir / "complete_mapping.txt"
-    __save_maps_text_representation(handler.maps, txt_file)
-    FSoEDictionaryMapJSONSerializer.save_mapping_to_json(handler.maps, json_file, override=True)
+    __save_maps_text_representation(handler.process_image, txt_file)
+    FSoEDictionaryMapJSONSerializer.save_mapping_to_json(
+        handler.process_image, json_file, override=True
+    )
 
     test_success = False
     try:

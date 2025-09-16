@@ -105,7 +105,7 @@ def test_get_last_error_feedback_combination(
     maps.outputs.add(sto.command)
     maps.outputs.add(slp_1.command)
 
-    handler.set_maps(maps)
+    handler.set_process_image(maps)
 
     mc.fsoe.configure_pdos(start_pdos=True)
     time.sleep(TIMEOUT_FOR_DATA_SRA)
