@@ -199,7 +199,8 @@ class FSoEMasterHandler:
     def subscribe_to_process_data_events(self) -> None:
         """Subscribes to process data events.
 
-        Subscription may happen when setting the PDO maps to slaves or if the master is started manually (after a stop usually).
+        Subscription may happen when setting the PDO maps to slaves or if
+        the master is started manually (after a stop usually).
         """
         if self.__is_subscribed_to_process_data_events:
             return
