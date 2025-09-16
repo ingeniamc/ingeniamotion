@@ -97,15 +97,16 @@ class FSoEMaster:
         Raises:
             RuntimeError: If the FSoE master is not configured.
         """
-        if start_pdos:
-            for servo in self._handlers:
-                self.__mc.capture.pdo.start_pdos(servo=servo)
-
         if not self.__fsoe_configured:
             raise RuntimeError("FSoE master is not configured, can't start the master.")
 
         for master_handler in self._handlers.values():
+            master_handler.subscribe_to_process_data_events()
             master_handler.start()
+
+        if start_pdos:
+            for servo in self._handlers:
+                self.__mc.capture.pdo.start_pdos(servo=servo)
 
     def configure_pdos(self, start_pdos: bool = False, start_master: bool = True) -> None:
         """Configure the PDOs used for the Safety PDUs.
