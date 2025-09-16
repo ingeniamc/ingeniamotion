@@ -265,7 +265,7 @@ def test_fixed_mapping_combination(
 
 @pytest.mark.fsoe_phase2
 def test_is_safety_function_mapped():
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00000)
+    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     sfs = handler.safety_functions_by_type()
     maps = PDUMaps.empty(handler.dictionary)
     sto_func = sfs[STOFunction][0]
@@ -301,7 +301,7 @@ def test_is_safety_function_mapped():
 
 @pytest.mark.fsoe_phase2
 def test_insert_safety_functions_by_type():
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00000)
+    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     sfs = handler.safety_functions_by_type()
     maps = PDUMaps.empty(handler.dictionary)
     sto_func = sfs[STOFunction][0]
@@ -332,7 +332,7 @@ def test_insert_safety_functions_by_type():
 
 @pytest.mark.fsoe_phase2
 def test_remove_safety_functions_by_type_1():
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00000)
+    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
 
     maps = PDUMaps.empty(handler.dictionary)
     maps.insert_safety_functions_by_type(handler, STOFunction)
@@ -352,7 +352,7 @@ def test_remove_safety_functions_by_type_1():
 
 @pytest.mark.fsoe_phase2
 def test_remove_safety_functions_by_type_2():
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00000)
+    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     ssr_funcs = handler.safety_functions_by_type()[SSRFunction]
     maps = PDUMaps.empty(handler.dictionary)
     maps.insert_safety_functions_by_type(handler, STOFunction)
@@ -375,7 +375,7 @@ def test_remove_safety_functions_by_type_2():
 
 @pytest.mark.fsoe_phase2
 def test_unmap_safety_function():
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00000)
+    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     sfs = handler.safety_functions_by_type()
     maps = PDUMaps.empty(handler.dictionary)
     maps.insert_safety_function(sfs[STOFunction][0])
@@ -398,7 +398,7 @@ def test_unmap_safety_function():
 
 @pytest.mark.fsoe_phase2
 def test_unmap_safety_function_warring(caplog):
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00000)
+    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     sfs = handler.safety_functions_by_type()
     maps = PDUMaps.empty(handler.dictionary)
     si_func = sfs[SafeInputsFunction][0]
@@ -409,7 +409,7 @@ def test_unmap_safety_function_warring(caplog):
 
 @pytest.mark.fsoe_phase2
 def test_unmap_safety_function_partial():
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00000)
+    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     sfs = handler.safety_functions_by_type()
     maps = PDUMaps.empty(handler.dictionary)
 

@@ -378,8 +378,6 @@ if FSOE_MASTER_INSTALLED:
 
             self.safety_functions = tuple(SafetyFunction.for_handler(self))
 
-        self.safety_functions = tuple(SafetyFunction.for_handler(self))
-
     def safety_functions_by_type(self) -> dict[type["SafetyFunction"], list["SafetyFunction"]]:
         return {
             type(sf): [
