@@ -473,7 +473,7 @@ class SSRFunction(SafetyFunction):
 
 @dataclass()
 class SLPFunction(SafetyFunction):
-    """Safe Limited Speed Safety Function."""
+    """Safe Limited Position Safety Function."""
 
     name = "Safe Limited Position {i}"
 
