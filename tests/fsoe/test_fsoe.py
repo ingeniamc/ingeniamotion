@@ -96,48 +96,35 @@ def test_start_stop_master(
     mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"],
     fsoe_states: list["FSoEState"],
     timeout_for_data_sra: float,
-    alias: str,
 ) -> None:
     mc, handler = mc_with_fsoe_with_sra
 
     assert handler.running is False
-    print("will configure pdos and start the master")
     mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
     assert handler.running is True
-    print("master started, waiting for data state")
 
     mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
-    print("in data state")
-    assert mc.fsoe.get_fsoe_master_state(servo=alias) is FSoEState.DATA
-    print("will stop the master")
+    assert fsoe_states[-1] is FSoEState.DATA
 
     # Stop the master without stopping the PDOs,
     # handler stops but the PDO maps remain even if it unsubscribes
     mc.fsoe.stop_master(stop_pdos=False)
-    print("master stopped")
     assert handler.running is False
     time.sleep(0.1)
-    assert mc.fsoe.get_fsoe_master_state(servo=alias) is FSoEState.RESET
-
-    time.sleep(1.0)
+    assert fsoe_states[-1] is FSoEState.RESET
 
     # FSoE state cycle is done again after restarting the master
     n_states = len(fsoe_states)
-    print("will start the master again")
     mc.fsoe.start_master(start_pdos=False)
     assert handler.running is True
-    time.sleep(1.0)
-    # mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
-    assert mc.fsoe.get_fsoe_master_state(servo=alias) is FSoEState.DATA
-    # assert fsoe_states[n_states:] == [
-    #     FSoEState.SESSION,
-    #     FSoEState.CONNECTION,
-    #     FSoEState.PARAMETER,
-    #     FSoEState.DATA,
-    # ]
+    mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
+    assert fsoe_states[-1] is FSoEState.DATA
+    assert fsoe_states[n_states:] == [
+        FSoEState.SESSION,
+        FSoEState.CONNECTION,
+        FSoEState.PARAMETER,
+        FSoEState.DATA,
+    ]
 
-    # mc.fsoe.start_master(start_pdos=True)
-    # assert handler.running is True
-
-    # mc.fsoe.stop_master(stop_pdos=True)
-    # assert handler.running is False
+    mc.fsoe.stop_master(stop_pdos=True)
+    assert handler.running is False
