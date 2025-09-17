@@ -124,10 +124,7 @@ def test_stop_master_while_pdos_are_still_active(
     n_received_data = len(received_data)
 
     # Now stop the FSoE master while PDOs are still active
-    # Mock remove_pdo_maps_from_slave, they shouldn't be removed
-    # https://novantamotion.atlassian.net/browse/INGM-703
     assert handler.running is True
-    mocker.patch.object(FSoEMasterHandler, "remove_pdo_maps_from_slave")
     mc.fsoe.stop_master(stop_pdos=False)
     # Unsubscribe from safety PDO map events to avoid processing them after stopping the master
     # https://novantamotion.atlassian.net/browse/INGM-703
