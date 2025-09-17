@@ -370,6 +370,7 @@ class FSoEMasterHandler:
             self._sra_fsoe_application_parameter.set(self.get_application_parameters_sra_crc())
         self._master_handler.start()
         self.__running = True
+        self.subscribe_to_process_data_events()
 
     def stop(self) -> None:
         """Stop the master handler."""

@@ -102,7 +102,6 @@ class FSoEMaster:
 
         for master_handler in self._handlers.values():
             master_handler.start()
-            master_handler.subscribe_to_process_data_events()
 
         if start_pdos:
             for servo in self._handlers:
