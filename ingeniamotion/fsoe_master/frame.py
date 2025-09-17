@@ -226,7 +226,7 @@ class FSoEFrame:
             frame_elements: The frame elements to use for the PDO map.
         """
         # Remove any existing items in the PDOMap
-        pdo_map.items.clear()
+        pdo_map.clear()
 
         # Initial FSoE command
         pdo_map.add_item(
