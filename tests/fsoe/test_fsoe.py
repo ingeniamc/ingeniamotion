@@ -66,6 +66,7 @@ def test_configure_pdos_starting_master(
     mc.fsoe.stop_master(stop_pdos=True)
 
 
+@pytest.mark.fsoe
 def test_start_master_without_configuring_pdos(
     mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"],
 ) -> None:
