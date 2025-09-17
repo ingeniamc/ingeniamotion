@@ -1553,9 +1553,8 @@ class TestProcessImage:
 
         # Use a dummy slot width to simulate that the safe data block is wrongly sized
         dummy_slot_width = 2
-        mocker.patch(
-            "ingeniamotion.fsoe_master.maps.FSoEFrame._FSoEFrame__SLOT_WIDTH", dummy_slot_width
-        )
+
+        mocker.patch.object(FSoEFrame, "_FSoEFrame__SLOT_WIDTH", dummy_slot_width)
         # Only validate the safe data blocks rule
         output = maps.are_inputs_valid(rules=[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID])
         assert len(output.exceptions) == 1
