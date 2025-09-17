@@ -478,6 +478,20 @@ class FSoEMasterHandler:
                 continue
             param.set_to_slave()
 
+    def get_parameters_not_related_to_safety_functions(self) -> set[SafetyParameter]:
+        """Get the safety parameters that are not related to any safety function.
+
+        Returns:
+            The set of safety parameters that are not directly related to any safety function.
+        """
+        params = set(self.safety_parameters.values())
+        for func in self.safety_functions:
+            for param in func.parameters.values():
+                if param in params:
+                    params.remove(param)
+
+        return params
+
     @weak_lru()
     def safety_functions_by_type(self) -> dict[type[SafetyFunction], list[SafetyFunction]]:
         """Get a dictionary with the safety functions grouped by type.

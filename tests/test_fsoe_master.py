@@ -19,7 +19,11 @@ from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError, FSoEMaster
 from ingeniamotion.motion_controller import MotionController
 from tests.conftest import add_fixture_error_checker, timeout_loop
-from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
+from tests.dictionaries import (
+    SAMPLE_SAFE_PH1_XDFV3_DICTIONARY,
+    SAMPLE_SAFE_PH2_MODULE_IDENT_NO_SRA_MODULE_IDENT,
+    SAMPLE_SAFE_PH2_XDFV3_DICTIONARY,
+)
 
 if FSOE_MASTER_INSTALLED:
     from fsoe_master import fsoe_master
@@ -30,9 +34,13 @@ if FSOE_MASTER_INSTALLED:
         SafeHomingFunction,
         SafeInputsFunction,
         SafetyFunction,
+        SafetyParameter,
+        SDIFunction,
+        SLIFunction,
         SLPFunction,
         SLSFunction,
         SOSFunction,
+        SOutFunction,
         SPFunction,
         SS1Function,
         SS2Function,
@@ -296,9 +304,19 @@ def test_fsoe_master_get_safety_parameters(mc_with_fsoe):
     assert len(handler.safety_parameters) != 0
 
 
-class MockSafetyParameter:
-    def __init__(self):
-        pass
+if FSOE_MASTER_INSTALLED:
+
+    class MockSafetyParameter(SafetyParameter):
+        def __init__(self, register: "EthercatRegister", servo: "EthercatServo"):
+            self.__register = register
+            self.__servo = servo
+
+            self.__value = 0
+
+        @property
+        def register(self) -> "EthercatRegister":
+            """Get the register associated with the safety parameter."""
+            return self.__register
 
 
 class MockNetwork(EthercatNetwork):
@@ -344,15 +362,21 @@ class MockServo(Servo):
     read_tpdo_map_from_slave = EthercatServo.read_tpdo_map_from_slave
 
 
-class MockHandler:
-    def __init__(self, dictionary: str, module_uid: int):
-        xdf = DictionaryFactory.create_dictionary(dictionary, interface=Interface.ECAT)
-        self.dictionary = FSoEMasterHandler.create_safe_dictionary(xdf)
+if FSOE_MASTER_INSTALLED:
 
-        self.safety_parameters = {
-            app_parameter.uid: MockSafetyParameter()
-            for app_parameter in xdf.get_safety_module(module_uid).application_parameters
-        }
+    class MockHandler(FSoEMasterHandler):
+        def __init__(self, dictionary: str, module_uid: int):
+            xdf = DictionaryFactory.create_dictionary(dictionary, interface=Interface.ECAT)
+            self.dictionary = FSoEMasterHandler.create_safe_dictionary(xdf)
+            self.__servo = MockServo(dictionary)
+            self.safety_parameters = {
+                app_parameter.uid: MockSafetyParameter(
+                    xdf.get_register(app_parameter.uid), self.__servo
+                )
+                for app_parameter in xdf.get_safety_module(module_uid).application_parameters
+            }
+
+            self.safety_functions = tuple(SafetyFunction.for_handler(self))
 
 
 @pytest.mark.fsoe
@@ -437,6 +461,8 @@ def test_detect_safety_functions_ph1():
     # STO
     sto = sf[0]
     assert isinstance(sto, STOFunction)
+    assert sto.n_instance is None
+    assert sto.name == "Safe Torque Off"
     assert isinstance(sto.command, FSoEDictionaryItemInputOutput)
     assert sto.parameters == {}
     assert len(sto.ios) == 1
@@ -448,21 +474,25 @@ def test_detect_safety_functions_ph1():
     # SS1
     ss1 = sf[1]
     assert isinstance(ss1, SS1Function)
+    assert ss1.n_instance == 1
+    assert ss1.name == "Safe Stop 1"
     assert isinstance(ss1.command, FSoEDictionaryItemInputOutput)
     assert len(ss1.parameters) == 1
     for metadata, parameter in ss1.parameters.items():
         assert parameter == ss1.time_to_sto
         assert metadata.display_name == "Time to STO"
-        assert metadata.uid == "FSOE_SS1_TIME_TO_STO_{i}"
+        assert metadata.uid == "FSOE_SS1_TIME_TO_STO_1"
     assert len(ss1.ios) == 1
     for metadata, io in ss1.ios.items():
         assert io == ss1.command
         assert metadata.display_name == "Command"
-        assert metadata.uid == "FSOE_SS1_{i}"
+        assert metadata.uid == "FSOE_SS1_1"
 
     # Safe inputs
     si = sf[2]
     assert isinstance(si, SafeInputsFunction)
+    assert si.n_instance is None
+    assert si.name == "Safe Inputs"
     assert isinstance(si.value, FSoEDictionaryItemInput)
     assert len(si.parameters) == 1
     for metadata, parameter in si.parameters.items():
@@ -478,7 +508,9 @@ def test_detect_safety_functions_ph1():
 
 @pytest.mark.fsoe
 def test_detect_safety_functions_ph2():
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00000)
+    handler = MockHandler(
+        SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_MODULE_IDENT_NO_SRA_MODULE_IDENT
+    )
 
     sf_types = [type(sf) for sf in SafetyFunction.for_handler(handler)]
 
@@ -488,7 +520,7 @@ def test_detect_safety_functions_ph2():
         SafeInputsFunction,
         SOSFunction,
         SS2Function,
-        # SOutFunction, Not implemented yet
+        SOutFunction,
         SPFunction,
         SVFunction,
         SafeHomingFunction,
@@ -519,7 +551,68 @@ def test_detect_safety_functions_ph2():
         SLPFunction,
         SLPFunction,
         SLPFunction,
+        SDIFunction,
+        SLIFunction,
     ]
+
+
+@pytest.mark.fsoe
+def test_optional_parameter_not_present():
+    handler = MockHandler(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, 0x3800000)
+
+    sto: STOFunction = next(STOFunction.for_handler(handler))
+
+    assert sto.activate_sout is None
+    assert sto.parameters == {}
+
+
+@pytest.mark.fsoe
+def test_optional_parameter_present():
+    handler = MockHandler(
+        SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_MODULE_IDENT_NO_SRA_MODULE_IDENT
+    )
+
+    sto: STOFunction = next(STOFunction.for_handler(handler))
+
+    assert sto.activate_sout is not None
+    assert len(sto.parameters) == 1
+    metadata, parameter = next(iter(sto.parameters.items()))
+    assert metadata.uid == "FSOE_STO_ACTIVATE_SOUT"
+    assert metadata.display_name == "Activate SOUT"
+    assert parameter is not None
+
+
+def test_get_parameters_not_related_to_safety_functions():
+    handler = MockHandler(
+        SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_MODULE_IDENT_NO_SRA_MODULE_IDENT
+    )
+    unrelated_parameters = handler.get_parameters_not_related_to_safety_functions()
+    assert {param.register.identifier for param in unrelated_parameters} == {
+        *(f"ETG_COMMS_RPDO_MAP256_{i}" for i in range(1, 46)),
+        "ETG_COMMS_RPDO_MAP256_TOTAL",
+        *(f"ETG_COMMS_TPDO_MAP256_{i}" for i in range(1, 46)),
+        "ETG_COMMS_TPDO_MAP256_TOTAL",
+        "FSOE_ABS_SSI_PRIM1_BAUD",
+        "FSOE_ABS_SSI_PRIM1_FSIZE",
+        "FSOE_ABS_SSI_PRIM1_POL",
+        "FSOE_ABS_SSI_PRIM1_POSBITS",
+        "FSOE_ABS_SSI_PRIM1_STURN",
+        "FSOE_ABS_SSI_PRIM1_TOUT",
+        "FSOE_ABS_SSI_SECOND1_BAUD",
+        "FSOE_ABS_SSI_SECOND1_FSIZE",
+        "FSOE_ABS_SSI_SECOND1_PBITS",
+        "FSOE_ABS_SSI_SECOND1_POL",
+        "FSOE_ABS_SSI_SECOND1_STURN",
+        "FSOE_ABS_SSI_SECOND1_TOUT",
+        "FSOE_FEEDBACK_RATIO_MAIN_TURNS",
+        "FSOE_FEEDBACK_RATIO_REDUNDANT_TURNS",
+        "FSOE_FEEDBACK_SCENARIO",
+        "FSOE_HALL_POLARITY",
+        "FSOE_HALL_POLEPAIRS",
+        "FSOE_INCREMENTAL_ENC_POLARITY",
+        "FSOE_INCREMENTAL_ENC_RESOLUTION",
+        "FSOE_USER_OVER_TEMPERATURE",
+    }
 
 
 @pytest.mark.fsoe
@@ -542,19 +635,34 @@ def test_mandatory_safety_functions(mc_with_fsoe):
 def test_getter_of_safety_functions(mc_with_fsoe):
     _mc, handler = mc_with_fsoe
 
-    # ruff: noqa: ERA001
-    sto_function = STOFunction(command=None, ios=None, parameters=None)
+    sto_function = STOFunction(
+        n_instance=None, name="Dummy", command=None, activate_sout=None, ios=None, parameters=None
+    )
     ss1_function_1 = SS1Function(
-        command=None,
-        time_to_sto=None,
+        n_instance=None,
+        name="Dummy",
         ios=None,
         parameters=None,
+        command=None,
+        time_to_sto=None,
+        velocity_zero_window=None,
+        time_for_velocity_zero=None,
+        time_delay_for_deceleration=None,
+        deceleration_limit=None,
+        activate_sout=None,
     )
     ss1_function_2 = SS1Function(
-        command=None,
-        time_to_sto=None,
+        n_instance=None,
+        name="Dummy",
         ios=None,
         parameters=None,
+        command=None,
+        time_to_sto=None,
+        velocity_zero_window=None,
+        time_for_velocity_zero=None,
+        time_delay_for_deceleration=None,
+        deceleration_limit=None,
+        activate_sout=None,
     )
 
     handler.safety_functions = (sto_function, ss1_function_1, ss1_function_2)
@@ -1375,7 +1483,7 @@ class TestPduMapper:
         # It should produce the same result
         if unify_pdo_mapping:
             tpdo.items[4].size_bits = 16  # Expand previous
-            del tpdo.items[5]  # Remove the other padding
+            del tpdo[5]  # Remove the other padding
 
         rpdo = RPDOMap()
         maps.fill_rpdo_map(rpdo, safe_dict)
