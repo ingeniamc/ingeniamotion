@@ -1,4 +1,5 @@
 import threading
+from collections import OrderedDict
 from collections.abc import Iterator
 from pathlib import Path
 from random import randint
@@ -108,7 +109,7 @@ class FSoEMasterHandler:
 
         # Parameters that are part of the system
         # UID as key
-        self.safety_parameters: dict[str, SafetyParameter] = {}
+        self.safety_parameters = OrderedDict[str, SafetyParameter]()
 
         # Parameters that will be transmitted during the fsoe parameter state
         fsoe_application_parameters: list[FSoEApplicationParameter] = []
