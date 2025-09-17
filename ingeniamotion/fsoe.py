@@ -108,14 +108,14 @@ class FSoEMaster:
             for servo in self._handlers:
                 self.__mc.capture.pdo.start_pdos(servo=servo)
 
-    def configure_pdos(self, start_pdos: bool = False, start_master: bool = True) -> None:
+    def configure_pdos(self, start_pdos: bool = False, start_master: bool = False) -> None:
         """Configure the PDOs used for the Safety PDUs.
 
         Args:
             start_pdos: if ``True``, start the PDO exchange, if ``False``
                 the PDO exchange should be started after. ``False`` by default.
             start_master: if ``True``, start the FSoE master handlers after
-                configuring the PDOs. ``True`` by default.
+                configuring the PDOs. ``False`` by default.
         """
         self._configure_and_set_pdo_maps_to_slaves()
         if start_master:

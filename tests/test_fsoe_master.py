@@ -805,7 +805,7 @@ TIMEOUT_FOR_DATA = 30
 def mc_state_data_with_sra(mc_with_fsoe_with_sra):
     mc, _handler = mc_with_fsoe_with_sra
 
-    mc.fsoe.configure_pdos(start_pdos=True)
+    mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
     # Wait for the master to reach the Data state
     mc.fsoe.wait_for_state_data(timeout=TIMEOUT_FOR_DATA_SRA)
 
@@ -822,7 +822,7 @@ def mc_state_data_with_sra(mc_with_fsoe_with_sra):
 def mc_state_data(mc_with_fsoe):
     mc, _handler = mc_with_fsoe
 
-    mc.fsoe.configure_pdos(start_pdos=True)
+    mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
     # Wait for the master to reach the Data state
     mc.fsoe.wait_for_state_data(timeout=TIMEOUT_FOR_DATA)
 
@@ -890,6 +890,7 @@ def test_maps_different_length(
     # 6 bytes -> 48 bits
     assert handler.safety_master_pdu_map.data_length_bits == 48
 
+    mc.fsoe.start_master()
     mc.capture.pdo.start_pdos(servo=alias)
     mc.fsoe.wait_for_state_data(timeout=TIMEOUT_FOR_DATA)
     assert handler.state == FSoEState.DATA
@@ -912,7 +913,7 @@ def test_start_and_stop_multiple_times(
     # will fail the test because of error_handler
 
     for i in range(4):
-        mc.fsoe.configure_pdos(start_pdos=True)
+        mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
         mc.fsoe.wait_for_state_data(timeout=TIMEOUT_FOR_DATA)
         assert handler.state == FSoEState.DATA
         time.sleep(1)

@@ -115,7 +115,7 @@ def test_map_safety_input_output_random(
 
     test_success = False
     try:
-        mc.fsoe.configure_pdos(start_pdos=True)
+        mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
         mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
         test_success = True
     except Exception as e:
@@ -180,7 +180,7 @@ def test_map_all_safety_functions(
 
     test_success = False
     try:
-        mc.fsoe.configure_pdos(start_pdos=True)
+        mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
         mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
         # Stay 3 seconds in Data state
         for i in range(3):
@@ -234,7 +234,7 @@ def test_fixed_mapping_combination(
     )
     save_maps_text_representation(handler.maps, fsoe_maps_dir / "mapping_7_True_186.txt")
 
-    mc.fsoe.configure_pdos(start_pdos=True)
+    mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
 
     # Wait for the master to reach the Data state
     try:

@@ -28,7 +28,7 @@ def test_handler_is_stopped_if_error_in_pdo_thread(
 
     mc, handler = mc_with_fsoe_with_sra
 
-    mc.fsoe.configure_pdos(start_pdos=True)
+    mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
 
     # Wait for the master to reach the Data state
     mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
@@ -70,6 +70,7 @@ def test_safety_pdo_map_subscription(
         handler.safety_slave_pdu_map.map_register_index: handler.safety_slave_pdu_map
     }
 
+    mc.fsoe.start_master()
     mc.capture.pdo.start_pdos()
     mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
 

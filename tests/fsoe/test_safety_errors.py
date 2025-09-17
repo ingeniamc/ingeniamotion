@@ -22,7 +22,6 @@ if FSOE_MASTER_INSTALLED:
         ServoErrorQueue,
     )
 from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
-from tests.test_fsoe_master import TIMEOUT_FOR_DATA_SRA
 
 if TYPE_CHECKING:
     from ingenialink import Servo
@@ -98,7 +97,11 @@ def test_get_last_error_overtemp_error(servo, mcu_error_queue_a, environment):
 
 @pytest.mark.fsoe_phase2
 def test_get_last_error_feedback_combination(
-    mcu_error_queue_a, mcu_error_queue_b, mc_with_fsoe_factory, environment
+    mcu_error_queue_a,
+    mcu_error_queue_b,
+    mc_with_fsoe_factory,
+    environment,
+    timeout_for_data_sra: float,
 ):
     """Test getting the last error when there is a feedback combination error."""
     environment.power_cycle(wait_for_drives=True)
@@ -124,8 +127,8 @@ def test_get_last_error_feedback_combination(
 
     handler.set_maps(maps)
 
-    mc.fsoe.configure_pdos(start_pdos=True)
-    time.sleep(TIMEOUT_FOR_DATA_SRA)
+    mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
+    time.sleep(timeout_for_data_sra)
     try:
         assert mcu_error_queue_a.get_number_total_errors() == 1
         assert mcu_error_queue_b.get_number_total_errors() == 1
