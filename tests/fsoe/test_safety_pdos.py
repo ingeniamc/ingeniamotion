@@ -12,7 +12,6 @@ except ImportError:
     pysoem = None
 
 from ingeniamotion.enums import FSoEState
-from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 from ingeniamotion.motion_controller import MotionController
 
 if TYPE_CHECKING:
@@ -20,6 +19,7 @@ if TYPE_CHECKING:
     from ingenialink.ethercat.servo import EthercatServo
     from ingenialink.pdo import RPDOMap, TPDOMap
 
+    from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
     from ingeniamotion.motion_controller import MotionController
 
     if FSOE_MASTER_INSTALLED:
