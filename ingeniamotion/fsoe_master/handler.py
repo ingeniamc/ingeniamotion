@@ -411,6 +411,11 @@ class FSoEMasterHandler:
             self.__maps.fill_rpdo_map(self.safety_master_pdu_map, self.__servo.dictionary)
             self.__maps.fill_tpdo_map(self.safety_slave_pdu_map, self.__servo.dictionary)
 
+        # Initialize the safety master PDU map with zeros so that it has bytes set
+        # without needing to enter get_request for it to have bytes set
+        zero_bytes = bytes(self.safety_master_pdu_map.data_length_bytes)
+        self.safety_master_pdu_map.set_item_bytes(zero_bytes)
+
         # Update the pdo maps elements that are safe parameters
         for pdu_map in (self.safety_master_pdu_map, self.safety_slave_pdu_map):
             for register, mapping_value in pdu_map.map_register_values().items():
