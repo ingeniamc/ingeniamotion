@@ -31,7 +31,7 @@ def pdo_thread_error_tracker(mc: "MotionController") -> Iterator[list[Exception]
 
     mc.capture.pdo.subscribe_to_exceptions(error_callback)
     yield errors
-    mc.capture.pdo.unsubscribe_from_exceptions(error_callback)
+    mc.capture.pdo.unsubscribe_to_exceptions(error_callback)
 
 
 @pytest.mark.fsoe
