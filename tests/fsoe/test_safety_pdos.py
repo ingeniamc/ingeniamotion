@@ -15,17 +15,15 @@ from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 from ingeniamotion.motion_controller import MotionController
 
-if FSOE_MASTER_INSTALLED:
-    from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
-
-
 if TYPE_CHECKING:
     from ingenialink.ethercat.network import EthercatNetwork
     from ingenialink.ethercat.servo import EthercatServo
     from ingenialink.pdo import RPDOMap, TPDOMap
-    from pytest_mock import MockerFixture
 
     from ingeniamotion.motion_controller import MotionController
+
+    if FSOE_MASTER_INSTALLED:
+        from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
 
 
 @pytest.fixture
@@ -102,7 +100,6 @@ def test_stop_master_while_pdos_are_still_active(
     timeout_for_data_sra: float,
     exceptions: list[Exception],
     received_data: list[float],
-    mocker: "MockerFixture",
     net: "EthercatNetwork",
     alias: str,
     create_pdo_maps: tuple["RPDOMap", "TPDOMap"],  # noqa: ARG001
