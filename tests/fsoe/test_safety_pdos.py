@@ -123,10 +123,6 @@ def test_stop_master_while_pdos_are_still_active(
     # Now stop the FSoE master while PDOs are still active
     assert handler.running is True
     mc.fsoe.stop_master(stop_pdos=False)
-    # Unsubscribe from safety PDO map events to avoid processing them after stopping the master
-    # https://novantamotion.atlassian.net/browse/INGM-703
-    handler.safety_master_pdu_map.unsubscribe_to_process_data_event()
-    handler.safety_slave_pdu_map.unsubscribe_to_process_data_event()
     assert handler.running is False
 
     # Data from non-safety PDOs should still be received
