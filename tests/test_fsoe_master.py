@@ -1861,19 +1861,3 @@ class TestPduMapper:
 
         is_valid = maps.validate()
         assert is_valid is True
-
-    @pytest.mark.fsoe
-    def test_insert_safety_function(self):
-        handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00000)
-        sto_func = handler.safety_functions_by_type()[STOFunction][0]
-
-        maps = PDUMaps.empty(handler.dictionary)
-        maps.insert_safety_function(sto_func)
-        assert maps.inputs.get_text_representation(item_space=30) == (
-            "Item                           | Position bytes..bits | Size bytes..bits    \n"
-            "FSOE_STO                       | 0..0                 | 0..1                "
-        )
-        assert maps.outputs.get_text_representation(item_space=30) == (
-            "Item                           | Position bytes..bits | Size bytes..bits    \n"
-            "FSOE_STO                       | 0..0                 | 0..1                "
-        )

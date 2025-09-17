@@ -9,7 +9,6 @@ from summit_testing_framework.setups.specifiers import DriveHwConfigSpecifier
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 from ingeniamotion.motion_controller import MotionController
 from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
-from tests.test_fsoe_master import MockHandler
 
 if FSOE_MASTER_INSTALLED:
     import ingeniamotion.fsoe_master.safety_functions as safety_functions
@@ -22,6 +21,7 @@ if FSOE_MASTER_INSTALLED:
         STOFunction,
     )
     from tests.fsoe.map_json_serializer import FSoEDictionaryMapJSONSerializer
+    from tests.test_fsoe_master import MockHandler
 
     if TYPE_CHECKING:
         from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
@@ -297,6 +297,23 @@ def test_is_safety_function_mapped():
     maps.inputs.add(ss1_ios[0])
     assert maps.is_safety_function_mapped(ss1_func) is True
     assert maps.is_safety_function_mapped(ss1_func, strict=False) is True
+
+
+@pytest.mark.fsoe_phase2
+def test_insert_safety_function():
+    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+    sto_func = handler.safety_functions_by_type()[STOFunction][0]
+
+    maps = PDUMaps.empty(handler.dictionary)
+    maps.insert_safety_function(sto_func)
+    assert maps.inputs.get_text_representation(item_space=30) == (
+        "Item                           | Position bytes..bits | Size bytes..bits    \n"
+        "FSOE_STO                       | 0..0                 | 0..1                "
+    )
+    assert maps.outputs.get_text_representation(item_space=30) == (
+        "Item                           | Position bytes..bits | Size bytes..bits    \n"
+        "FSOE_STO                       | 0..0                 | 0..1                "
+    )
 
 
 @pytest.mark.fsoe_phase2
