@@ -10,6 +10,7 @@ from ingenialink.dictionary import CanOpenObject, DictionarySafetyModule, Interf
 from ingenialink.enums.register import RegCyclicType
 from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.ethercat.servo import EthercatServo
+from ingenialink.exceptions import ILRegisterNotFoundError
 from ingenialink.pdo import RPDOMap, TPDOMap
 from ingenialink.pdo_network_manager import PDONetworkManager as ILPDONetworkManager
 from ingenialink.register import Register
@@ -145,21 +146,31 @@ def fsoe_error_monitor(
 ) -> Callable[[FSoEError], None]:
     errors: list[FSoEErrorDisplay] = []
 
-    n_mcua_errors = mcu_error_queue_a.get_number_total_errors()
-    n_mcub_errors = mcu_error_queue_b.get_number_total_errors()
+    is_phase2 = False
+    try:
+        n_mcua_errors = mcu_error_queue_a.get_number_total_errors()
+        n_mcub_errors = mcu_error_queue_b.get_number_total_errors()
+        is_phase2 = True
+    # MCU registers only available in phase 2
+    except ILRegisterNotFoundError:
+        pass
 
     def error_handler(error: FSoEError) -> None:
         # Add last error only if it happened during the test
-        mcua_last_error = (
-            mcu_error_queue_a.get_last_error()
-            if mcu_error_queue_a.get_number_total_errors() > n_mcua_errors
-            else None
-        )
-        mcub_last_error = (
-            mcu_error_queue_b.get_last_error()
-            if mcu_error_queue_b.get_number_total_errors() > n_mcub_errors
-            else None
-        )
+        if is_phase2:
+            mcua_last_error = (
+                mcu_error_queue_a.get_last_error()
+                if mcu_error_queue_a.get_number_total_errors() > n_mcua_errors
+                else None
+            )
+            mcub_last_error = (
+                mcu_error_queue_b.get_last_error()
+                if mcu_error_queue_b.get_number_total_errors() > n_mcub_errors
+                else None
+            )
+        else:
+            mcua_last_error = None
+            mcub_last_error = None
 
         errors.append(
             FSoEErrorDisplay(
