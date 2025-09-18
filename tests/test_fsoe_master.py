@@ -118,9 +118,9 @@ class FSoEErrorDisplay:
 
     error: FSoEError
     """Main error that was reported."""
-    mcua_last_error: Optional[Error]
+    mcua_last_error: Optional["Error"]
     """Last error in MCUA error queue."""
-    mcub_last_error: Optional[Error]
+    mcub_last_error: Optional["Error"]
     """Last error in MCUB error queue."""
     states: list[FSoEState]
     """State transitions that occurred until the error."""
