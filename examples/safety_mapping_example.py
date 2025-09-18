@@ -32,10 +32,10 @@ def main(ifname, slave_id, dict_path) -> None:
         FSoEFrameConstructionError: If the FSoE frame construction is invalid.
     """
     mc = MotionController()
-    # Configure error channel
-    mc.fsoe.subscribe_to_errors(_error_callback)
     # Connect to the servo drive
     mc.communication.connect_servo_ethercat(ifname, slave_id, dict_path)
+    # Configure error channel
+    mc.fsoe.subscribe_to_errors(_error_callback)
 
     # Create and start the FSoE master handler
     handler = mc.fsoe.create_fsoe_master_handler(use_sra=True)
@@ -110,6 +110,8 @@ def main(ifname, slave_id, dict_path) -> None:
             ss1.command.set(1)
             # And inputs can be read
             print(f"Safe Inputs Value: {safe_inputs.value.get()}")
+    except Exception as e:
+        print(e)
     finally:
         try:
             # Stop the FSoE master handler
