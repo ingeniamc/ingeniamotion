@@ -107,12 +107,8 @@ class FSoEMasterHandler:
         self.__state_is_data = threading.Event()
 
         # Error queues
-        self.__mcua_error_queue: Optional[ServoErrorQueue] = ServoErrorQueue(
-            MCUA_ERROR_QUEUE, self.__servo
-        )
-        self.__mcub_error_queue: Optional[ServoErrorQueue] = ServoErrorQueue(
-            MCUB_ERROR_QUEUE, self.__servo
-        )
+        self.__mcua_error_queue: ServoErrorQueue = ServoErrorQueue(MCUA_ERROR_QUEUE, self.__servo)
+        self.__mcub_error_queue: ServoErrorQueue = ServoErrorQueue(MCUB_ERROR_QUEUE, self.__servo)
 
         # The saco slave might take a while to answer with a valid command
         # During it's initialization it will respond with 0's, that are ignored
