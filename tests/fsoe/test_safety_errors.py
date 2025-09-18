@@ -97,6 +97,7 @@ def test_get_last_error_overtemp_error(servo, mcu_error_queue_a, environment):
 
 
 @pytest.mark.fsoe_phase2
+@pytest.mark.skip("https://novantamotion.atlassian.net/browse/SACOAPP-314")
 def test_get_last_error_feedback_combination(
     mcu_error_queue_a, mcu_error_queue_b, mc_with_fsoe_factory, environment
 ):
