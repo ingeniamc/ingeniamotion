@@ -384,7 +384,11 @@ class FSoEMasterHandler:
         self.__maps = maps
 
     def configure_pdo_maps(self) -> None:
-        """Configure the PDOMaps used for the Safety PDUs according to the map."""
+        """Configure the PDOMaps used for the Safety PDUs according to the map.
+
+        Raises:
+            ValueError: If a register in the PDOMap has no identifier.
+        """
         if self.__maps.editable:
             # Fill the RPDOMap and TPDOMap with the items from the maps
             self.__maps.fill_rpdo_map(self.safety_master_pdu_map, self.__servo.dictionary)
@@ -398,6 +402,8 @@ class FSoEMasterHandler:
         # Update the pdo maps elements that are safe parameters
         for pdu_map in (self.safety_master_pdu_map, self.safety_slave_pdu_map):
             for register, mapping_value in pdu_map.map_register_values().items():
+                if register.identifier is None:
+                    raise ValueError("Register in PDOMap has no identifier")
                 if register.identifier in self.safety_parameters:
                     if mapping_value is None:
                         # Set parameter to zero if it is not mapped
