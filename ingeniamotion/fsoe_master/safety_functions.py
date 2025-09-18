@@ -4,6 +4,8 @@ from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional, Union, get_args, get_origin
 
+from typing_extensions import override
+
 from ingeniamotion.fsoe_master.fsoe import (
     FSoEDictionaryItem,
     FSoEDictionaryItemInput,
@@ -12,6 +14,7 @@ from ingeniamotion.fsoe_master.fsoe import (
 from ingeniamotion.fsoe_master.parameters import SafetyParameter
 
 if TYPE_CHECKING:
+    from ingeniamotion.fsoe_master import PDUMaps
     from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
 
 __all__ = [
@@ -101,6 +104,20 @@ class SafetyFunction:
 
     ios: dict[SafetyFieldMetadata, FSoEDictionaryItem]
     parameters: dict[SafetyFieldMetadata, SafetyParameter]
+
+    def activated_by(
+        self, _handler: "FSoEMasterHandler", _pdu_maps: "PDUMaps"
+    ) -> Optional["SafetyFunction"]:
+        """Get the safety function that activates this function, if any.
+
+        Args:
+            _handler: The FSoE master handler to use.
+            _pdu_maps: The PDU maps to use.
+
+        Returns:
+            The safety function that activates this function, or None if not activated by any.
+        """
+        return None
 
     @classmethod
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafetyFunction"]:
@@ -329,6 +346,45 @@ class SS1Function(SafetyFunction):
         uid="FSOE_SS1_ACTIVATE_SOUT_{i}", display_name="Activate SOUT"
     )
 
+    __FSOE_SAFE_INPUTS_MAP_ACTIVE_VALUE = 2
+    __FSOE_SLP_ERROR_REACTION_ACTIVE_VALUE = 0x66500101
+    __FSOE_SSR_ERROR_REACTION_ACTIVE_VALUE = 0x66500101
+    __FSOE_SLS_ERROR_REACTION_ACTIVE_VALUE = 0x66500101
+    __FSOE_SLI_ERROR_REACTION_ACTIVE_VALUE = 0x66500101
+
+    @override
+    def activated_by(
+        self, _handler: "FSoEMasterHandler", _pdu_maps: "PDUMaps"
+    ) -> Optional[SafetyFunction]:
+        si_function: SafeInputsFunction = _handler.safe_inputs_function()
+        if si_function.map.get() == self.__FSOE_SAFE_INPUTS_MAP_ACTIVE_VALUE:
+            return si_function
+        for slp_function in _handler.get_all_function_instances(SLPFunction):
+            if (
+                _pdu_maps.is_safety_function_mapped(slp_function, strict=True)
+                or slp_function.activated_by(_handler, _pdu_maps) is not None
+            ) and slp_function.error_reaction.get() == self.__FSOE_SLP_ERROR_REACTION_ACTIVE_VALUE:
+                return slp_function
+        for ssr_function in _handler.get_all_function_instances(SSRFunction):
+            if (
+                _pdu_maps.is_safety_function_mapped(ssr_function, strict=True)
+                or ssr_function.activated_by(_handler, _pdu_maps) is not None
+            ) and ssr_function.error_reaction.get() == self.__FSOE_SSR_ERROR_REACTION_ACTIVE_VALUE:
+                return ssr_function
+        for sls_function in _handler.get_all_function_instances(SLSFunction):
+            if (
+                _pdu_maps.is_safety_function_mapped(sls_function, strict=True)
+                or sls_function.activated_by(_handler, _pdu_maps) is not None
+            ) and sls_function.error_reaction.get() == self.__FSOE_SLS_ERROR_REACTION_ACTIVE_VALUE:
+                return sls_function
+        for sli_function in _handler.get_all_function_instances(SLIFunction):
+            if (
+                _pdu_maps.is_safety_function_mapped(sli_function, strict=True)
+                or sli_function.activated_by(_handler, _pdu_maps) is not None
+            ) and sli_function.error_reaction.get() == self.__FSOE_SLI_ERROR_REACTION_ACTIVE_VALUE:
+                return sli_function
+        return None
+
 
 @dataclass()
 class SafeInputsFunction(SafetyFunction):
@@ -357,6 +413,18 @@ class SOSFunction(SafetyFunction):
         uid="FSOE_SOS_VEL_ZERO_WINDOW_{i}", display_name="Velocity Zero Window"
     )
 
+    @override
+    def activated_by(
+        self, _handler: "FSoEMasterHandler", _pdu_maps: "PDUMaps"
+    ) -> Optional[SafetyFunction]:
+        ss2_instance = _handler.get_function_instance(SS2Function)
+        if (
+            _pdu_maps.is_safety_function_mapped(ss2_instance, strict=True)
+            or ss2_instance.activated_by(_handler, _pdu_maps) is not None
+        ):
+            return ss2_instance
+        return None
+
 
 @dataclass()
 class SS2Function(SafetyFunction):
@@ -383,6 +451,24 @@ class SS2Function(SafetyFunction):
         uid="FSOE_SS2_ERROR_REACTION_{i}", display_name="Error Reaction"
     )
 
+    __FSOE_SAFE_INPUTS_MAP_ACTIVE_VALUE = 3
+    __FSOE_SLP_ERROR_REACTION_ACTIVE_VALUE = 0x66700101
+
+    @override
+    def activated_by(
+        self, _handler: "FSoEMasterHandler", _pdu_maps: "PDUMaps"
+    ) -> Optional[SafetyFunction]:
+        si_function: SafeInputsFunction = _handler.safe_inputs_function()
+        if si_function.map.get() == self.__FSOE_SAFE_INPUTS_MAP_ACTIVE_VALUE:
+            return si_function
+        for slp_function in _handler.get_all_function_instances(SLPFunction):
+            if (
+                _pdu_maps.is_safety_function_mapped(slp_function, strict=True)
+                or slp_function.activated_by(_handler, _pdu_maps) is not None
+            ) and slp_function.error_reaction.get() == self.__FSOE_SLP_ERROR_REACTION_ACTIVE_VALUE:
+                return slp_function
+        return None
+
 
 @dataclass()
 class SOutFunction(SafetyFunction):
@@ -397,6 +483,37 @@ class SOutFunction(SafetyFunction):
     sout_disable: SafetyParameter = safety_field(
         uid="FSOE_SOUT_DISABLE", display_name="Disables the SOUT functionality"
     )
+
+    __FSOE_STO_ACTIVATE_SOUT_ACTIVE_VALUE = 1717567489
+    __FSOE_SAFE_INPUTS_MAP_ACTIVE_VALUE = 4
+    __FSOE_SS1_ACTIVATE_SOUT_ACTIVE_VALUE = 1717567489
+
+    @override
+    def activated_by(
+        self,
+        _handler: "FSoEMasterHandler",
+        _pdu_maps: "PDUMaps",
+    ) -> Optional[SafetyFunction]:
+        sto_function: STOFunction = _handler.sto_function()
+        if (
+            sto_function.activate_sout is not None
+            and sto_function.activate_sout.get() == self.__FSOE_STO_ACTIVATE_SOUT_ACTIVE_VALUE
+        ):
+            return sto_function
+        si_function: SafeInputsFunction = _handler.safe_inputs_function()
+        if si_function.map.get() == self.__FSOE_SAFE_INPUTS_MAP_ACTIVE_VALUE:
+            return si_function
+        ss1_function: SS1Function = _handler.ss1_function()
+        if (
+            (
+                _pdu_maps.is_safety_function_mapped(ss1_function)
+                or ss1_function.activated_by(_handler, _pdu_maps) is not None
+            )
+            and ss1_function.activate_sout is not None
+            and ss1_function.activate_sout.get() == self.__FSOE_SS1_ACTIVATE_SOUT_ACTIVE_VALUE
+        ):
+            return ss1_function
+        return None
 
 
 @dataclass()
