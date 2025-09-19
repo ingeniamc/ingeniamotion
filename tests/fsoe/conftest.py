@@ -30,15 +30,9 @@ from tests.test_fsoe_master import (
 )
 
 if FSOE_MASTER_INSTALLED:
-    from ingeniamotion.fsoe_master.errors import (
-        MCUA_ERROR_QUEUE,
-        MCUB_ERROR_QUEUE,
-        ServoErrorQueue,
-    )
     from tests.fsoe.map_generator import FSoERandomMappingGenerator
 
 if TYPE_CHECKING:
-    from ingenialink import Servo
     from summit_testing_framework.att import ATTApi
     from summit_testing_framework.rack_service_client import RackServiceClient
     from summit_testing_framework.setups.descriptors import DriveHwSetup
@@ -202,13 +196,3 @@ def timeout_for_data() -> float:
 def timeout_for_data_sra() -> float:
     """Returns the timeout value for the Data state for handler using SRA."""
     return TIMEOUT_FOR_DATA_SRA
-
-
-@pytest.fixture
-def mcu_error_queue_a(servo: "Servo") -> "ServoErrorQueue":
-    return ServoErrorQueue(MCUA_ERROR_QUEUE, servo)
-
-
-@pytest.fixture
-def mcu_error_queue_b(servo: "Servo") -> "ServoErrorQueue":
-    return ServoErrorQueue(MCUB_ERROR_QUEUE, servo)
