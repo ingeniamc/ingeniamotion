@@ -16,6 +16,11 @@ from ingenialink.utils._utils import convert_dtype_to_bytes
 from ingeniamotion._utils import weak_lru
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.exceptions import IMTimeoutError
+from ingeniamotion.fsoe_master.errors import (
+    MCUA_ERROR_QUEUE,
+    MCUB_ERROR_QUEUE,
+    ServoErrorQueue,
+)
 from ingeniamotion.fsoe_master.fsoe import (
     FSOE_MASTER_INSTALLED,
     BaseMasterHandler,
@@ -100,6 +105,10 @@ class FSoEMasterHandler:
         self.net.pdo_manager.subscribe_to_exceptions(self._pdo_thread_exception_handler)
 
         self.__state_is_data = threading.Event()
+
+        # Error queues
+        self.__mcua_error_queue: ServoErrorQueue = ServoErrorQueue(MCUA_ERROR_QUEUE, self.__servo)
+        self.__mcub_error_queue: ServoErrorQueue = ServoErrorQueue(MCUB_ERROR_QUEUE, self.__servo)
 
         # The saco slave might take a while to answer with a valid command
         # During it's initialization it will respond with 0's, that are ignored
@@ -388,6 +397,11 @@ class FSoEMasterHandler:
             # Fill the RPDOMap and TPDOMap with the items from the maps
             self.__process_image.fill_rpdo_map(self.safety_master_pdu_map, self.__servo.dictionary)
             self.__process_image.fill_tpdo_map(self.safety_slave_pdu_map, self.__servo.dictionary)
+
+        # Initialize the safety master PDU map with zeros so that it has bytes set
+        # without needing to enter get_request for it to have bytes set
+        zero_bytes = bytes(self.safety_master_pdu_map.data_length_bytes)
+        self.safety_master_pdu_map.set_item_bytes(zero_bytes)
 
         # Update the pdo maps elements that are safe parameters
         for pdu_map in (self.safety_master_pdu_map, self.safety_slave_pdu_map):
@@ -714,7 +728,11 @@ class FSoEMasterHandler:
 
         """
         if self.__state_is_data.wait(timeout=timeout) is False:
-            raise IMTimeoutError("The FSoE Master did not reach the Data state")
+            raise IMTimeoutError(
+                "The FSoE Master did not reach the Data state"
+                f"\nMCUA last error: {self.__mcua_error_queue.get_last_error()}"
+                f"\nMCUB last error: {self.__mcub_error_queue.get_last_error()}"
+            )
 
     @classmethod
     def create_safe_dictionary(cls, dictionary: "EthercatDictionary") -> "FSoEDictionary":

@@ -1,5 +1,6 @@
 from typing import TYPE_CHECKING, Optional
 
+import ingenialogger
 from ingenialink.pdo import PDOMap, RPDOMap, RPDOMapItem, TPDOMap, TPDOMapItem
 
 from ingeniamotion.fsoe_master.frame import (
@@ -25,6 +26,7 @@ from ingeniamotion.fsoe_master.safety_functions import STOFunction
 if TYPE_CHECKING:
     from ingenialink.dictionary import Dictionary
 
+    from ingeniamotion.fsoe_master import FSoEMasterHandler
     from ingeniamotion.fsoe_master.safety_functions import SafetyFunction
 
 __all__ = ["ProcessImage"]
@@ -44,6 +46,7 @@ class ProcessImage:
         self.outputs = outputs
         self.inputs = inputs
         self.__validator: FSoEDictionaryMapValidator = FSoEDictionaryMapValidator()
+        self.logger = ingenialogger.get_logger(__name__)
 
     @classmethod
     def empty(cls, dictionary: "FSoEDictionary") -> "ProcessImage":
@@ -193,6 +196,132 @@ class ProcessImage:
         """
         for io in safety_function.ios.values():
             self.insert_in_best_position(io)
+
+    def insert_safety_functions_by_type(
+        self, handler: "FSoEMasterHandler", function_type: type["SafetyFunction"]
+    ) -> "SafetyFunction":
+        """Insert the first non-mapped instance of the given safety function type on the maps.
+
+        Args:
+            handler: FSoE handler.
+            function_type: Safety function type.
+
+        Returns:
+            The safety function that was inserted.
+
+        Raises:
+            ValueError: if no safety functions of the given type are found.
+            ValueError: if all safety functions of the given type are already mapped.
+
+        """
+        sf_available: list[SafetyFunction] = handler.safety_functions_by_type().get(
+            function_type, []
+        )
+        if not sf_available:
+            raise ValueError(f"No safety functions of type {function_type} found")
+        for function in sf_available:
+            if not self.is_safety_function_mapped(function):
+                self.unmap_safety_function(function)
+                self.insert_safety_function(function)
+                return function
+        raise ValueError(f"All safety functions of type {function_type} are already mapped")
+
+    def unmap_safety_function(self, safe_func: "SafetyFunction") -> None:
+        """Unmaps a safety function from the target map.
+
+        Args:
+            safe_func: The safety function to unmap.
+
+        Raises:
+            ValueError: if the safety function is not mapped.
+        """
+        map_input = [x.item for x in self.inputs]
+        map_output = [x.item for x in self.outputs]
+        io_unmapped = False
+        for io in safe_func.ios.values():
+            if isinstance(io, FSoEDictionaryItemInput) and io in map_input:
+                self.inputs.transform_to_padding(io)
+                io_unmapped = True
+            elif isinstance(io, FSoEDictionaryItemOutput) and io in map_output:
+                self.outputs.transform_to_padding(io)
+                io_unmapped = True
+            elif isinstance(io, FSoEDictionaryItemInputOutput):
+                if io in map_input:
+                    self.inputs.transform_to_padding(io)
+                    io_unmapped = True
+                if io in map_output:
+                    self.outputs.transform_to_padding(io)
+                    io_unmapped = True
+        if not io_unmapped:
+            self.logger.warning("The safety function is not mapped")
+
+    def remove_safety_functions_by_type(
+        self, handler: "FSoEMasterHandler", function_type: type["SafetyFunction"]
+    ) -> "SafetyFunction":
+        """Remove the last instance mapped of the given safety function type on the maps.
+
+        Args:
+            handler: FSoE handler.
+            function_type: Safety function type.
+
+        Returns:
+            The safety function that was removed.
+
+        Raises:
+            ValueError: if no safety functions of the given type are found.
+            ValueError: if no safety functions of the given type are mapped.
+
+        """
+        sf_available: list[SafetyFunction] = handler.safety_functions_by_type().get(
+            function_type, []
+        )
+        if not sf_available:
+            raise ValueError(f"No safety functions of type {function_type} found")
+        for function in sf_available[::-1]:
+            if self.is_safety_function_mapped(function):
+                self.unmap_safety_function(function)
+                return function
+        raise ValueError(f"No safety functions of type {function_type} are mapped")
+
+    def is_safety_function_mapped(
+        self, safety_function: "SafetyFunction", strict: bool = True
+    ) -> bool:
+        """Check if the safety function is mapped in the PDU maps.
+
+        If at least one output of the safety function is present in the PDU maps,
+        the function is considered mapped. If the safety function has no outputs,
+        it is considered mapped if at least one of its inputs is present in the maps.
+
+        If strict is False, any IO mapped will return True.
+
+        Args:
+            safety_function: SafetyFunction to check.
+            strict: if False, any IO mapped will return True. Defaults to True.
+
+        Returns:
+            True if the safety function is mapped, False otherwise.
+        """
+        map_input = [x.item for x in self.inputs]
+        map_output = [x.item for x in self.outputs]
+        has_output = any(
+            isinstance(io, (FSoEDictionaryItemOutput, FSoEDictionaryItemInputOutput))
+            for io in safety_function.ios.values()
+        )
+        if has_output:
+            for io in safety_function.ios.values():
+                if (
+                    isinstance(io, (FSoEDictionaryItemOutput, FSoEDictionaryItemInputOutput))
+                    and io in map_output
+                ):
+                    return True
+        if not has_output or not strict:
+            for io in safety_function.ios.values():
+                if (
+                    isinstance(io, (FSoEDictionaryItemInput, FSoEDictionaryItemInputOutput))
+                    and io in map_input
+                ):
+                    return True
+        return False
 
     @classmethod
     def from_rpdo_tpdo(
