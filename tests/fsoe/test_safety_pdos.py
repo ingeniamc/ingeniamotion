@@ -107,7 +107,7 @@ def test_stop_master_while_pdos_are_still_active(
     mc, handler = mc_with_fsoe_with_sra
 
     # Configure and start the PDOs
-    mc.fsoe.configure_pdos(start_pdos=True)
+    mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
 
     # Wait for the master to reach the Data state
     mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
