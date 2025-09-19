@@ -4619,4 +4619,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "8ded9b04891cb3cc84f2d01580f23c987170b5dfe2d5cbecff6afa4b7ef878a2"
+content-hash = "8ffd234f9efa2a9840b357a1ffe594a39c71bba445a221682e30caccffb28117"
