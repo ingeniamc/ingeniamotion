@@ -97,3 +97,8 @@ class SafetyParameterDirectValidation(SafetyParameter):
     def set(self, value: Union[int, float, str, bytes]) -> None:
         super().set(value)
         self.fsoe_application_parameter.set(value)
+
+    @override
+    def set_without_updating(self, value: Union[int, float, str, bytes]) -> None:
+        super().set_without_updating(value)
+        self.fsoe_application_parameter.set(value)

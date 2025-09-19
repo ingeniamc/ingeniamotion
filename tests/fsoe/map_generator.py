@@ -181,6 +181,8 @@ class FSoERandomMappingGenerator:
         # Sort the safety inputs and outputs according to their data type
         safety_io = {}
         for io in dictionary.name_map.values():
+            if "FSOE_SOUT" in io.name:
+                continue
             if io.data_type not in safety_io:
                 safety_io[io.data_type] = []
             safety_io[io.data_type].append(io)

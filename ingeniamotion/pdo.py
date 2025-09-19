@@ -306,7 +306,11 @@ class PDONetworksTracker:
         if not self.is_network_tracked(alias):
             raise IMError(f"PDOs are not active yet for network '{alias}'.")
         net = self.__networks[alias]
-        net.network.deactivate_pdos()
+        # If the exception has happened when starting the PDOs, the PDOs are not active yet
+        if not net.network.pdo_manager.is_active:
+            logger.warning("PDOs are not active for this network.")
+        else:
+            net.network.deactivate_pdos()
         net.teardown()
         del self.__networks[alias]
 
