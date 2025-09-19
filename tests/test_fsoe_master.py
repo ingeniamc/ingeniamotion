@@ -235,10 +235,10 @@ def mc_with_fsoe_factory(request, mc, fsoe_states):
             mc.fsoe.subscribe_to_errors(request.getfixturevalue(fsoe_error_monitor.__name__))
         created_handlers.append(handler)
         # If phase II, initialize the handler with the default mapping
+        # and set feedback scenario to 0
         if handler.maps.editable:
             __set_default_phase2_mapping(handler)
-
-        handler.safety_parameters.get("FSOE_FEEDBACK_SCENARIO").set(0)
+            handler.safety_parameters.get("FSOE_FEEDBACK_SCENARIO").set(0)
 
         if handler.sout_function() is not None:
             handler.sout_disable()
