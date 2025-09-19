@@ -318,6 +318,12 @@ if FSOE_MASTER_INSTALLED:
             """Get the register associated with the safety parameter."""
             return self.__register
 
+        def set(self, value: Any) -> None:
+            self.__value = value
+
+        def get(self) -> Any:
+            return self.__value
+
 
 class MockNetwork(EthercatNetwork):
     def __init__(self):
@@ -377,16 +383,6 @@ if FSOE_MASTER_INSTALLED:
             }
 
             self.safety_functions = tuple(SafetyFunction.for_handler(self))
-
-    def safety_functions_by_type(self) -> dict[type["SafetyFunction"], list["SafetyFunction"]]:
-        return {
-            type(sf): [
-                sf_of_type
-                for sf_of_type in self.safety_functions
-                if isinstance(sf_of_type, type(sf))
-            ]
-            for sf in self.safety_functions
-        }
 
 
 @pytest.mark.fsoe
