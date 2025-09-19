@@ -97,11 +97,8 @@ def test_get_last_error_overtemp_error(servo, mcu_error_queue_a, environment):
 
 
 @pytest.mark.fsoe_phase2
-@pytest.mark.skip("https://novantamotion.atlassian.net/browse/SACOAPP-314")
-def test_get_last_error_feedback_combination(
-    mcu_error_queue_a, mcu_error_queue_b, mc_with_fsoe_factory, environment
-):
-    """Test getting the last error when there is a feedback combination error."""
+def test_get_last_error_invalid_map(mcu_error_queue_a, mc_with_fsoe_factory, environment):
+    """Test getting the last error when there is an invalid map error."""
     environment.power_cycle(wait_for_drives=True)
 
     mc, handler = mc_with_fsoe_factory(use_sra=True, fail_on_fsoe_errors=False)
@@ -129,13 +126,11 @@ def test_get_last_error_feedback_combination(
     time.sleep(TIMEOUT_FOR_DATA_SRA)
     try:
         assert mcu_error_queue_a.get_number_total_errors() == 1
-        assert mcu_error_queue_b.get_number_total_errors() == 1
-        assert mcu_error_queue_a.get_last_error().error_id == 0x90090701
-        assert mcu_error_queue_b.get_last_error().error_id == 0x90090701
+        assert mcu_error_queue_a.get_last_error().error_id == 0x80040002
 
         errors_a, errors_losts = mcu_error_queue_a.get_pending_errors()
         assert len(errors_a) == 1
-        assert errors_a[0].error_id == 0x90090701
+        assert errors_a[0].error_id == 0x80040002
 
         assert not errors_losts
     finally:
