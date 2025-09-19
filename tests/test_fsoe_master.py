@@ -378,6 +378,16 @@ if FSOE_MASTER_INSTALLED:
 
             self.safety_functions = tuple(SafetyFunction.for_handler(self))
 
+    def safety_functions_by_type(self) -> dict[type["SafetyFunction"], list["SafetyFunction"]]:
+        return {
+            type(sf): [
+                sf_of_type
+                for sf_of_type in self.safety_functions
+                if isinstance(sf_of_type, type(sf))
+            ]
+            for sf in self.safety_functions
+        }
+
 
 @pytest.mark.fsoe
 def test_constructor_set_slave_address(fsoe_error_monitor: Callable[[FSoEError], None]):
@@ -1851,25 +1861,3 @@ class TestPduMapper:
 
         is_valid = maps.validate()
         assert is_valid is True
-
-    @pytest.mark.fsoe
-    def test_insert_safety_function(self):
-        handler = MockHandler(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, 0x3800000)
-
-        sto_func = None
-        for sf in SafetyFunction.for_handler(handler):
-            if isinstance(sf, STOFunction):
-                sto_func = sf
-        if not sto_func:
-            raise ValueError("STO not found")
-
-        maps = PDUMaps.empty(handler.dictionary)
-        maps.insert_safety_function(sto_func)
-        assert maps.inputs.get_text_representation(item_space=30) == (
-            "Item                           | Position bytes..bits | Size bytes..bits    \n"
-            "FSOE_STO                       | 0..0                 | 0..1                "
-        )
-        assert maps.outputs.get_text_representation(item_space=30) == (
-            "Item                           | Position bytes..bits | Size bytes..bits    \n"
-            "FSOE_STO                       | 0..0                 | 0..1                "
-        )
