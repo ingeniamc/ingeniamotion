@@ -18,7 +18,7 @@ except ImportError:
 
 if FSOE_MASTER_INSTALLED:
     import ingeniamotion.fsoe_master.safety_functions as safety_functions
-    from ingeniamotion.fsoe_master import PDUMaps
+    from ingeniamotion.fsoe_master import ProcessImage
     from ingeniamotion.fsoe_master.safety_functions import (
         SafeInputsFunction,
         SafetyFunction,
@@ -37,7 +37,6 @@ if TYPE_CHECKING:
             ServoErrorQueue,
         )
         from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
-        from ingeniamotion.fsoe_master.process_image import ProcessImage
         from tests.fsoe.conftest import FSoERandomMappingGenerator
 
 
@@ -242,7 +241,7 @@ def test_map_all_safety_functions(
 def test_is_safety_function_mapped():
     handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     sfs = handler.safety_functions_by_type()
-    maps = PDUMaps.empty(handler.dictionary)
+    maps = ProcessImage.empty(handler.dictionary)
     sto_func = sfs[STOFunction][0]
     sto_ios = list(sto_func.ios.values())
     assert maps.is_safety_function_mapped(sto_func) is False
@@ -279,7 +278,7 @@ def test_insert_safety_function():
     handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     sto_func = handler.safety_functions_by_type()[STOFunction][0]
 
-    maps = PDUMaps.empty(handler.dictionary)
+    maps = ProcessImage.empty(handler.dictionary)
     maps.insert_safety_function(sto_func)
     assert maps.inputs.get_text_representation(item_space=30) == (
         "Item                           | Position bytes..bits | Size bytes..bits    \n"
@@ -295,7 +294,7 @@ def test_insert_safety_function():
 def test_insert_safety_functions_by_type():
     handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     sfs = handler.safety_functions_by_type()
-    maps = PDUMaps.empty(handler.dictionary)
+    maps = ProcessImage.empty(handler.dictionary)
     sto_func = sfs[STOFunction][0]
     sto_ios = list(sto_func.ios.values())
     maps.inputs.add(sto_ios[0])
@@ -326,7 +325,7 @@ def test_insert_safety_functions_by_type():
 def test_remove_safety_functions_by_type_1():
     handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
 
-    maps = PDUMaps.empty(handler.dictionary)
+    maps = ProcessImage.empty(handler.dictionary)
     maps.insert_safety_functions_by_type(handler, STOFunction)
     maps.insert_safety_functions_by_type(handler, SSRFunction)
     maps.remove_safety_functions_by_type(handler, SSRFunction)
@@ -346,7 +345,7 @@ def test_remove_safety_functions_by_type_1():
 def test_remove_safety_functions_by_type_2():
     handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     ssr_funcs = handler.safety_functions_by_type()[SSRFunction]
-    maps = PDUMaps.empty(handler.dictionary)
+    maps = ProcessImage.empty(handler.dictionary)
     maps.insert_safety_functions_by_type(handler, STOFunction)
     maps.insert_safety_function(ssr_funcs[5])
     maps.insert_safety_function(ssr_funcs[3])
@@ -369,7 +368,7 @@ def test_remove_safety_functions_by_type_2():
 def test_unmap_safety_function():
     handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     sfs = handler.safety_functions_by_type()
-    maps = PDUMaps.empty(handler.dictionary)
+    maps = ProcessImage.empty(handler.dictionary)
     maps.insert_safety_function(sfs[STOFunction][0])
     maps.insert_safety_function(sfs[SSRFunction][0])
     maps.insert_safety_function(sfs[SafeInputsFunction][0])
@@ -392,7 +391,7 @@ def test_unmap_safety_function():
 def test_unmap_safety_function_warring(caplog):
     handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     sfs = handler.safety_functions_by_type()
-    maps = PDUMaps.empty(handler.dictionary)
+    maps = ProcessImage.empty(handler.dictionary)
     si_func = sfs[SafeInputsFunction][0]
     with caplog.at_level("WARNING"):
         maps.unmap_safety_function(si_func)
@@ -403,7 +402,7 @@ def test_unmap_safety_function_warring(caplog):
 def test_unmap_safety_function_partial():
     handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     sfs = handler.safety_functions_by_type()
-    maps = PDUMaps.empty(handler.dictionary)
+    maps = ProcessImage.empty(handler.dictionary)
 
     sto_func = sfs[STOFunction][0]
     sto_ios = list(sto_func.ios.values())
