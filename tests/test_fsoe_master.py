@@ -1,7 +1,8 @@
 import logging
 import random
 import time
-from typing import TYPE_CHECKING, Any, Callable, Union
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import pytest
 from ingenialink import RegAccess, RegDtype, Servo
@@ -9,6 +10,7 @@ from ingenialink.dictionary import CanOpenObject, DictionarySafetyModule, Interf
 from ingenialink.enums.register import RegCyclicType
 from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.ethercat.servo import EthercatServo
+from ingenialink.exceptions import ILRegisterNotFoundError
 from ingenialink.pdo import RPDOMap, TPDOMap
 from ingenialink.pdo_network_manager import PDONetworkManager as ILPDONetworkManager
 from ingenialink.register import Register
@@ -47,6 +49,12 @@ if FSOE_MASTER_INSTALLED:
         SSRFunction,
         STOFunction,
         SVFunction,
+    )
+    from ingeniamotion.fsoe_master.errors import (
+        MCUA_ERROR_QUEUE,
+        MCUB_ERROR_QUEUE,
+        Error,
+        ServoErrorQueue,
     )
     from ingeniamotion.fsoe_master.frame import FSoEFrame
     from ingeniamotion.fsoe_master.fsoe import (
@@ -95,18 +103,87 @@ def emergency_handler(servo_alias: str, message: "EmergencyMessage"):
     raise RuntimeError(f"Emergency message received from {servo_alias}: {message}")
 
 
+@pytest.fixture
+def mcu_error_queue_a(servo: "EthercatServo") -> "ServoErrorQueue":
+    return ServoErrorQueue(MCUA_ERROR_QUEUE, servo)
+
+
+@pytest.fixture
+def mcu_error_queue_b(servo: "EthercatServo") -> "ServoErrorQueue":
+    return ServoErrorQueue(MCUB_ERROR_QUEUE, servo)
+
+
+@dataclass(frozen=True)
+class FSoEErrorDisplay:
+    """Class to display FSoE errors in tests."""
+
+    error: FSoEError
+    """Main error that was reported."""
+    mcua_last_error: Optional["Error"]
+    """Last error in MCUA error queue."""
+    mcub_last_error: Optional["Error"]
+    """Last error in MCUB error queue."""
+    states: list[FSoEState]
+    """State transitions that occurred until the error."""
+
+    @property
+    def display(self) -> str:
+        """Get a text representation of the error."""
+        return (
+            f"{str(self.error)}\n"
+            f"  MCUA Last Error: {self.mcua_last_error}\n"
+            f"  MCUB Last Error: {self.mcub_last_error}\n"
+            f"  FSoE States: {self.states}"
+        )
+
+
 @pytest.fixture(scope="function")
 def fsoe_error_monitor(
     request: pytest.FixtureRequest,
+    mcu_error_queue_a: "ServoErrorQueue",
+    mcu_error_queue_b: "ServoErrorQueue",
+    fsoe_states: list[FSoEState],
 ) -> Callable[[FSoEError], None]:
-    errors = []
+    errors: list[FSoEErrorDisplay] = []
+
+    is_phase2 = False
+    try:
+        n_mcua_errors = mcu_error_queue_a.get_number_total_errors()
+        n_mcub_errors = mcu_error_queue_b.get_number_total_errors()
+        is_phase2 = True
+    # MCU registers only available in phase 2
+    except ILRegisterNotFoundError:
+        pass
 
     def error_handler(error: FSoEError) -> None:
-        errors.append(error)
+        # Add last error only if it happened during the test
+        if is_phase2:
+            mcua_last_error = (
+                mcu_error_queue_a.get_last_error()
+                if mcu_error_queue_a.get_number_total_errors() > n_mcua_errors
+                else None
+            )
+            mcub_last_error = (
+                mcu_error_queue_b.get_last_error()
+                if mcu_error_queue_b.get_number_total_errors() > n_mcub_errors
+                else None
+            )
+        else:
+            mcua_last_error = None
+            mcub_last_error = None
+
+        errors.append(
+            FSoEErrorDisplay(
+                error=error,
+                mcua_last_error=mcua_last_error,
+                mcub_last_error=mcub_last_error,
+                states=fsoe_states.copy(),
+            )
+        )
 
     def fsoe_error_reporter_callback() -> tuple[bool, str]:
         if len(errors) > 0:
-            error_messages = "\n".join(str(error) for error in errors)
+            error_messages = "\n".join(error.display for error in errors)
             return False, f"FSoE errors occurred:\n{error_messages}"
         return True, ""
 
@@ -149,17 +226,19 @@ def mc_with_fsoe_factory(request, mc, fsoe_states):
 
         # Subscribe to emergency messages
         mc.communication.subscribe_emergency_message(emergency_handler)
-        if fail_on_fsoe_errors:
-            # Configure error channel
-            mc.fsoe.subscribe_to_errors(request.getfixturevalue(fsoe_error_monitor.__name__))
         # Create and start the FSoE master handler
         handler = mc.fsoe.create_fsoe_master_handler(
             use_sra=use_sra, state_change_callback=add_state
         )
+        if fail_on_fsoe_errors:
+            # Configure error channel
+            mc.fsoe.subscribe_to_errors(request.getfixturevalue(fsoe_error_monitor.__name__))
         created_handlers.append(handler)
         # If phase II, initialize the handler with the default mapping
+        # and set feedback scenario to 0
         if handler.maps.editable:
             __set_default_phase2_mapping(handler)
+            handler.safety_parameters.get("FSOE_FEEDBACK_SCENARIO").set(0)
 
         if handler.sout_function() is not None:
             handler.sout_disable()
