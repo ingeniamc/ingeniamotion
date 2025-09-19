@@ -90,6 +90,8 @@ def main(ifname, slave_id, dict_path, config_file=None):
         mc.fsoe.sto_activate()
         # Restore fail safe
         mc.fsoe.set_fail_safe(True)
+    except Exception as e:
+        print(e)
     finally:
         try:
             # Stop the FSoE master handler

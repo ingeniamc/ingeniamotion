@@ -25,6 +25,8 @@ from tests.test_fsoe_master import (
     mc_with_fsoe,  # noqa: F401
     mc_with_fsoe_factory,  # noqa: F401
     mc_with_fsoe_with_sra,  # noqa: F401
+    mcu_error_queue_a,  # noqa: F401
+    mcu_error_queue_b,  # noqa: F401
 )
 
 if FSOE_MASTER_INSTALLED:
