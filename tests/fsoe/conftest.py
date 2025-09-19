@@ -22,6 +22,7 @@ from tests.test_fsoe_master import (
     TIMEOUT_FOR_DATA_SRA,
     fsoe_error_monitor,  # noqa: F401
     fsoe_states,  # noqa: F401
+    mc_with_fsoe,  # noqa: F401
     mc_with_fsoe_factory,  # noqa: F401
     mc_with_fsoe_with_sra,  # noqa: F401
     mcu_error_queue_a,  # noqa: F401
@@ -31,11 +32,15 @@ from tests.test_fsoe_master import (
 if FSOE_MASTER_INSTALLED:
     from tests.fsoe.map_generator import FSoERandomMappingGenerator
 
-
 if TYPE_CHECKING:
     from summit_testing_framework.att import ATTApi
     from summit_testing_framework.rack_service_client import RackServiceClient
     from summit_testing_framework.setups.descriptors import DriveHwSetup
+
+    from ingeniamotion.motion_controller import MotionController
+
+    if FSOE_MASTER_INSTALLED:
+        from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
 
 __EXTRA_DATA_ESI_FILE_KEY: str = "esi_file"
 FSOE_MAPS_DIR = "fsoe_maps"
@@ -99,6 +104,41 @@ def setup_specifier_with_esi(
     new_data[__EXTRA_DATA_ESI_FILE_KEY] = esi_file
 
     return dataclasses.replace(setup_specifier, extra_data=new_data)
+
+
+@pytest.fixture
+def mc_with_fsoe_with_sra_and_feedback_scenario(
+    request: pytest.FixtureRequest,
+) -> Iterator[tuple["MotionController", "FSoEMasterHandler"]]:
+    """Fixture to provide a MotionController with FSoE and SRA configured with feedback scenario 4.
+
+    Feedback Scenario 4:
+        * Main feedback: Incremental Encoder.
+        * Redundant feedback: Digital Halls.
+
+    Yields:
+        A tuple with the MotionController and the FSoEMasterHandler.
+    """
+    # Do not use getfixture
+    # https://novantamotion.atlassian.net/browse/INGM-682
+    mc, handler = request.getfixturevalue("mc_with_fsoe_with_sra")
+
+    mc.communication.set_register(
+        "CL_AUX_FBK_SENSOR", 5
+    )  # Digital Halls as auxiliar sensor in Comoco
+    handler.safety_parameters.get("FSOE_FEEDBACK_SCENARIO").set(4)
+
+    yield mc, handler
+
+    # Should be in mc_with_fsoe_factory
+    # https://novantamotion.atlassian.net/browse/INGM-682
+    # If there has been a failure and it tries to remove the PDO maps, it may fail
+    # if the servo is not in preop state
+    try:
+        if mc.capture.pdo.is_active:
+            mc.fsoe.stop_master(stop_pdos=True)
+    except Exception:
+        pass
 
 
 @pytest.fixture(scope="module")
