@@ -18,7 +18,7 @@ if FSOE_MASTER_INSTALLED:
 
 
 class FSoERandomMappingGenerator:
-    """Class to generate random PDU mappings."""
+    """Class to generate random process images."""
 
     @staticmethod
     def _insert_item_according_to_fsoe_rules(

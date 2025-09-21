@@ -286,9 +286,9 @@ class ProcessImage:
     def is_safety_function_mapped(
         self, safety_function: "SafetyFunction", strict: bool = True
     ) -> bool:
-        """Check if the safety function is mapped in the PDU maps.
+        """Check if the safety function is mapped in the process image.
 
-        If at least one output of the safety function is present in the PDU maps,
+        If at least one output of the safety function is present in the process image,
         the function is considered mapped. If the safety function has no outputs,
         it is considered mapped if at least one of its inputs is present in the maps.
 
