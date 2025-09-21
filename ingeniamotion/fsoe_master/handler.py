@@ -16,11 +16,6 @@ from ingenialink.utils._utils import convert_dtype_to_bytes
 from ingeniamotion._utils import weak_lru
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.exceptions import IMTimeoutError
-from ingeniamotion.fsoe_master.errors import (
-    MCUA_ERROR_QUEUE,
-    MCUB_ERROR_QUEUE,
-    ServoErrorQueue,
-)
 from ingeniamotion.fsoe_master.fsoe import (
     FSOE_MASTER_INSTALLED,
     BaseMasterHandler,
@@ -105,10 +100,6 @@ class FSoEMasterHandler:
         self.net.pdo_manager.subscribe_to_exceptions(self._pdo_thread_exception_handler)
 
         self.__state_is_data = threading.Event()
-
-        # Error queues
-        self.__mcua_error_queue: ServoErrorQueue = ServoErrorQueue(MCUA_ERROR_QUEUE, self.__servo)
-        self.__mcub_error_queue: ServoErrorQueue = ServoErrorQueue(MCUB_ERROR_QUEUE, self.__servo)
 
         # The saco slave might take a while to answer with a valid command
         # During it's initialization it will respond with 0's, that are ignored
@@ -728,11 +719,7 @@ class FSoEMasterHandler:
 
         """
         if self.__state_is_data.wait(timeout=timeout) is False:
-            raise IMTimeoutError(
-                "The FSoE Master did not reach the Data state"
-                f"\nMCUA last error: {self.__mcua_error_queue.get_last_error()}"
-                f"\nMCUB last error: {self.__mcub_error_queue.get_last_error()}"
-            )
+            raise IMTimeoutError("The FSoE Master did not reach the Data state")
 
     @classmethod
     def create_safe_dictionary(cls, dictionary: "EthercatDictionary") -> "FSoEDictionary":
