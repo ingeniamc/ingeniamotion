@@ -1,7 +1,8 @@
+import time
 import warnings
 from collections.abc import Iterator
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 import pytest
 from ingenialink import RegAccess, RegDtype
@@ -13,9 +14,10 @@ from ingenialink.pdo import RPDOMap, TPDOMap
 from ingenialink.servo import DictionaryFactory
 
 from ingeniamotion.enums import FSoEState
-from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
+from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError
 from ingeniamotion.motion_controller import MotionController
-from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
+from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
+from tests.fsoe.conftest import MockNetwork, MockServo
 
 try:
     import pysoem
@@ -24,6 +26,8 @@ except ImportError:
 
 
 if FSOE_MASTER_INSTALLED:
+    from fsoe_master import fsoe_master
+
     import ingeniamotion.fsoe_master.safety_functions as safety_functions
     from ingeniamotion.fsoe_master import ProcessImage
     from ingeniamotion.fsoe_master.frame import FSoEFrame
@@ -39,8 +43,8 @@ if FSOE_MASTER_INSTALLED:
         SSRFunction,
         STOFunction,
     )
+    from tests.fsoe.conftest import MockHandler
     from tests.fsoe.utils.map_json_serializer import FSoEDictionaryMapJSONSerializer
-    from tests.test_fsoe_master import MockHandler
 if TYPE_CHECKING:
     from ingenialink.ethercat.servo import EthercatServo
 
@@ -49,6 +53,140 @@ if TYPE_CHECKING:
             ServoErrorQueue,
         )
         from tests.fsoe.conftest import FSoERandomMappingGenerator
+
+
+@pytest.mark.fsoe
+@pytest.mark.parametrize(
+    "dictionary, editable",
+    [(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, False), (SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, True)],
+)
+def test_mapping_locked(dictionary, editable, fsoe_error_monitor: Callable[[FSoEError], None]):
+    mock_servo = MockServo(dictionary)
+
+    if not editable:
+        # First xdf v3 and esi files of phase 1 had the PDOs set to RW as a mistake
+        # for XDF V2, the hard-coded pdo maps are created with RO access
+        for obj in [
+            mock_servo.dictionary.get_object("ETG_COMMS_RPDO_MAP256", 1),
+            mock_servo.dictionary.get_object("ETG_COMMS_TPDO_MAP256", 1),
+        ]:
+            for reg in obj.registers:
+                reg._access = RegAccess.RO
+
+    try:
+        handler = FSoEMasterHandler(
+            servo=mock_servo,
+            net=MockNetwork(),
+            use_sra=True,
+            report_error_callback=fsoe_error_monitor,
+        )
+        assert handler.process_image.editable is editable
+
+        if editable:
+            handler.process_image.inputs.clear()
+        else:
+            with pytest.raises(fsoe_master.FSOEMasterMappingLockedException):
+                handler.process_image.inputs.clear()
+
+        new_pi = handler.process_image.copy()
+        assert new_pi.editable is editable
+
+        if editable:
+            new_pi.outputs.clear()
+        else:
+            with pytest.raises(fsoe_master.FSOEMasterMappingLockedException):
+                new_pi.outputs.clear()
+
+    finally:
+        handler.delete()
+
+
+@pytest.mark.fsoe
+def test_copy_modify_and_set_map(mc_with_fsoe):
+    _mc, handler = mc_with_fsoe
+
+    # Obtain one safety input
+    si = handler.safe_inputs_function().value
+
+    # Create a copy of the map
+    new_pi = handler.process_image.copy()
+
+    # The new map can be modified
+    new_pi.inputs.remove(si)
+    assert new_pi.inputs.get_text_representation() == (
+        "Item                                     | Position bytes..bits | Size bytes..bits    \n"
+        "FSOE_STO                                 | 0..0                 | 0..1                \n"
+        "FSOE_SS1_1                               | 0..1                 | 0..1                \n"
+        "Padding                                  | 0..2                 | 0..6                \n"
+        "Padding                                  | 1..0                 | 0..7                "
+    )
+
+    # Without affecting the original map of the handler
+    assert handler.process_image.inputs.get_text_representation() == (
+        "Item                                     | Position bytes..bits | Size bytes..bits    \n"
+        "FSOE_STO                                 | 0..0                 | 0..1                \n"
+        "FSOE_SS1_1                               | 0..1                 | 0..1                \n"
+        "Padding                                  | 0..2                 | 0..6                \n"
+        "FSOE_SAFE_INPUTS_VALUE                   | 1..0                 | 0..1                \n"
+        "Padding                                  | 1..1                 | 0..7                "
+    )
+
+    # The new map can be set to the handler
+    handler.set_process_image(new_pi)
+
+    # And is set to the backend of the real master
+    assert handler._master_handler.master.dictionary_map == new_pi.outputs
+    assert handler._master_handler.slave.dictionary_map == new_pi.inputs
+
+
+@pytest.mark.fsoe_phase2
+def test_maps_different_length(
+    mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"],
+    alias: str,
+    timeout_for_data_sra: float,
+) -> None:
+    mc, handler = mc_with_fsoe_with_sra
+
+    sto = handler.get_function_instance(STOFunction)
+    safe_inputs = handler.get_function_instance(SafeInputsFunction)
+    ss1 = handler.get_function_instance(SS1Function)
+
+    handler.process_image.inputs.clear()
+    handler.process_image.inputs.add(sto.command)
+    handler.process_image.inputs.add(ss1.command)
+    handler.process_image.inputs.add_padding(6)
+    handler.process_image.inputs.add(safe_inputs.value)
+    handler.process_image.inputs.add_padding(7)
+
+    handler.process_image.outputs.clear()
+    handler.process_image.outputs.add(sto.command)
+    handler.process_image.outputs.add(ss1.command)
+    handler.process_image.outputs.add_padding(6)
+
+    assert handler.process_image.inputs.safety_bits == 16
+    assert handler.process_image.outputs.safety_bits == 8
+
+    # Configure the FSoE master handler
+    mc.fsoe.configure_pdos(start_pdos=False)
+
+    # Inputs: 1 byte command + 2 bytes safety data + 2 bytes CRC + 2 bytes connection ID
+    # 7 bytes -> 56 bits
+    assert handler.safety_slave_pdu_map.data_length_bits == 56
+    # Outputs: 1 byte command + 1 bytes safety data + 2 bytes CRC + 2 bytes connection ID
+    # 6 bytes -> 48 bits
+    assert handler.safety_master_pdu_map.data_length_bits == 48
+
+    mc.fsoe.start_master()
+    mc.capture.pdo.start_pdos(servo=alias)
+    mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
+    assert handler.state == FSoEState.DATA
+    # Check that it stays in Data state
+    for i in range(2):
+        time.sleep(1)
+    assert handler.state == FSoEState.DATA
+
+    # Stop the FSoE master handler
+    mc.fsoe.stop_master(stop_pdos=True)
 
 
 class TestProcessImage:
