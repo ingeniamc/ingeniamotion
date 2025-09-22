@@ -1,24 +1,25 @@
 import time
 from collections.abc import Iterator
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import pytest
 
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
+from ingeniamotion.motion_controller import MotionController
 from tests.conftest import timeout_loop
 
 if FSOE_MASTER_INSTALLED:
     from fsoe_master import fsoe_master
 
 if TYPE_CHECKING:
-    from ingeniamotion.motion_controller import MotionController
+    from pytest_mock import MockerFixture
 
     if FSOE_MASTER_INSTALLED:
         from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
 
 
-def test_fsoe_master_not_installed():
+def test_fsoe_master_not_installed() -> None:
     try:
         import fsoe_master  # noqa: F401
     except ModuleNotFoundError:
@@ -52,7 +53,7 @@ def test_start_and_stop_multiple_times(
 
 @pytest.mark.fsoe
 @pytest.mark.parametrize("mc_instance", ["mc_state_data", "mc_state_data_with_sra"])
-def test_safe_inputs_value(request, mc_instance):
+def test_safe_inputs_value(request: pytest.FixtureRequest, mc_instance: str) -> None:
     mc = request.getfixturevalue(mc_instance)
     value = mc.fsoe.get_safety_inputs_value()
 
@@ -61,8 +62,10 @@ def test_safe_inputs_value(request, mc_instance):
 
 
 @pytest.mark.fsoe
-def test_safety_address(mc_with_fsoe, alias):
-    mc, _handler = mc_with_fsoe
+def test_safety_address(
+    mc_with_fsoe: tuple["MotionController", "FSoEMasterHandler"], alias: str
+) -> None:
+    mc, _ = mc_with_fsoe
 
     master_handler = mc.fsoe._handlers[alias]
 
@@ -77,7 +80,7 @@ def test_safety_address(mc_with_fsoe, alias):
     assert mc.fsoe.get_safety_address() == 0x7453
 
 
-def mc_state_to_fsoe_master_state(state: FSoEState):
+def mc_state_to_fsoe_master_state(state: FSoEState) -> Any:
     return {
         FSoEState.RESET: fsoe_master.StateReset,
         FSoEState.SESSION: fsoe_master.StateSession,
@@ -98,8 +101,12 @@ def mc_state_to_fsoe_master_state(state: FSoEState):
         FSoEState.DATA,
     ],
 )
-def test_get_master_state(mocker, mc_with_fsoe, state_enum):
-    mc, _handler = mc_with_fsoe
+def test_get_master_state(
+    mocker: "MockerFixture",
+    mc_with_fsoe: tuple["MotionController", "FSoEMasterHandler"],
+    state_enum: FSoEState,
+) -> None:
+    mc, _ = mc_with_fsoe
 
     # Master state is obtained as function
     # and not on the parametrize
@@ -113,7 +120,7 @@ def test_get_master_state(mocker, mc_with_fsoe, state_enum):
 
 
 @pytest.mark.fsoe
-def test_motor_enable(mc_state_data_with_sra):
+def test_motor_enable(mc_state_data_with_sra: "MotionController") -> None:
     mc = mc_state_data_with_sra
 
     # Deactivate the SS1

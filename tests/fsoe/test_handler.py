@@ -18,13 +18,14 @@ if FSOE_MASTER_INSTALLED:
 
 if TYPE_CHECKING:
     from ingenialink.ethercat.servo import EthercatServo
+    from pytest_mock import MockerFixture
 
     from ingeniamotion.motion_controller import MotionController
 
 
 @pytest.mark.fsoe
 @pytest.mark.parametrize("use_sra", [False, True])
-def test_create_fsoe_master_handler_use_sra(mc, use_sra):
+def test_create_fsoe_master_handler_use_sra(mc: "MotionController", use_sra: bool) -> None:
     master = FSoEMaster(mc)
     handler = master.create_fsoe_master_handler(use_sra=use_sra)
     safety_module = handler._FSoEMasterHandler__get_safety_module()
@@ -51,10 +52,16 @@ def test_create_fsoe_master_handler_use_sra(mc, use_sra):
 
 
 @pytest.mark.fsoe
-def test_set_configured_module_ident_1(mocker, mc_with_fsoe_with_sra, caplog):
+def test_set_configured_module_ident_1(
+    mocker: "MockerFixture",
+    mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"],
+    caplog: "pytest.LogCaptureFixture",
+) -> None:
     _, handler = mc_with_fsoe_with_sra
 
-    def create_mock_safety_module(module_ident, uses_sra=True, has_project_crc=False):
+    def create_mock_safety_module(
+        module_ident: int, uses_sra: bool = True, has_project_crc: bool = False
+    ) -> DictionarySafetyModule:
         if has_project_crc:
             params = [
                 DictionarySafetyModule.ApplicationParameter(
@@ -107,16 +114,18 @@ def test_set_configured_module_ident_1(mocker, mc_with_fsoe_with_sra, caplog):
 
 
 @pytest.mark.fsoe
-def test_fsoe_master_get_safety_parameters(mc_with_fsoe):
-    _mc, handler = mc_with_fsoe
+def test_fsoe_master_get_safety_parameters(
+    mc_with_fsoe: tuple["MotionController", "FSoEMasterHandler"],
+) -> None:
+    _, handler = mc_with_fsoe
 
     assert len(handler.safety_parameters) != 0
 
 
 @pytest.mark.fsoe
 def test_create_fsoe_handler_from_invalid_pdo_maps(
-    caplog, fsoe_error_monitor: Callable[[FSoEError], None]
-):
+    caplog: "pytest.LogCaptureFixture", fsoe_error_monitor: Callable[[FSoEError], None]
+) -> None:
     mock_servo = MockServo(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY)
     mock_servo.write("ETG_COMMS_RPDO_MAP256_6", 0x123456)  # Invalid pdo map value
 
@@ -147,7 +156,7 @@ def test_create_fsoe_handler_from_invalid_pdo_maps(
 
 
 @pytest.mark.fsoe
-def test_constructor_set_slave_address(fsoe_error_monitor: Callable[[FSoEError], None]):
+def test_constructor_set_slave_address(fsoe_error_monitor: Callable[[FSoEError], None]) -> None:
     mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
     try:
         handler = FSoEMasterHandler(
@@ -165,7 +174,7 @@ def test_constructor_set_slave_address(fsoe_error_monitor: Callable[[FSoEError],
 
 
 @pytest.mark.fsoe
-def test_constructor_inherit_slave_address(fsoe_error_monitor: Callable[[FSoEError], None]):
+def test_constructor_inherit_slave_address(fsoe_error_monitor: Callable[[FSoEError], None]) -> None:
     mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
     try:
         # Set the slave address in the servo
@@ -184,7 +193,7 @@ def test_constructor_inherit_slave_address(fsoe_error_monitor: Callable[[FSoEErr
 
 
 @pytest.mark.fsoe
-def test_constructor_set_connection_id(fsoe_error_monitor: Callable[[FSoEError], None]):
+def test_constructor_set_connection_id(fsoe_error_monitor: Callable[[FSoEError], None]) -> None:
     mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
     try:
         handler = FSoEMasterHandler(
@@ -200,7 +209,7 @@ def test_constructor_set_connection_id(fsoe_error_monitor: Callable[[FSoEError],
 
 
 @pytest.mark.fsoe
-def test_constructor_random_connection_id(fsoe_error_monitor: Callable[[FSoEError], None]):
+def test_constructor_random_connection_id(fsoe_error_monitor: Callable[[FSoEError], None]) -> None:
     mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
 
     random.seed(0x1234)
@@ -217,7 +226,10 @@ def test_constructor_random_connection_id(fsoe_error_monitor: Callable[[FSoEErro
 
 
 @pytest.mark.fsoe
-def test_pass_through_states(mc_state_data, fsoe_states):  # noqa: ARG001
+def test_pass_through_states(
+    mc_state_data: "MotionController",  # noqa: ARG001
+    fsoe_states: list["FSoEState"],
+) -> None:
     assert fsoe_states == [
         FSoEState.SESSION,
         FSoEState.CONNECTION,
@@ -227,7 +239,10 @@ def test_pass_through_states(mc_state_data, fsoe_states):  # noqa: ARG001
 
 
 @pytest.mark.fsoe
-def test_pass_through_states_sra(mc_state_data_with_sra, fsoe_states):  # noqa: ARG001
+def test_pass_through_states_sra(
+    mc_state_data_with_sra: "MotionController",  # noqa: ARG001
+    fsoe_states: list["FSoEState"],
+) -> None:
     assert fsoe_states == [
         FSoEState.SESSION,
         FSoEState.CONNECTION,
@@ -241,8 +256,8 @@ def test_handler_is_stopped_if_error_in_pdo_thread(
     mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"],
     timeout_for_data_sra: float,
     fsoe_states: list["FSoEState"],
-    mocker,
-):
+    mocker: "MockerFixture",
+) -> None:
     def mock_send_receive_processdata(*args, **kwargs):
         raise RuntimeError("Test error in PDO thread")
 
@@ -271,7 +286,7 @@ def test_safety_pdo_map_subscription(
     mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"],
     timeout_for_data_sra: float,
     servo: "EthercatServo",
-):
+) -> None:
     mc, handler = mc_with_fsoe_with_sra
 
     # Handler not subscribed if PDO maps are not set and no PDO map is mapped

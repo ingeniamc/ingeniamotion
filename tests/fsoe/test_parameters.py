@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 
 import pytest
 
@@ -10,13 +10,15 @@ from tests.dictionaries import (
 )
 from tests.fsoe.conftest import MockNetwork, MockServo
 
+if TYPE_CHECKING:
+    from ingeniamotion.motion_controller import MotionController
 if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master import FSoEMasterHandler, SafeInputsFunction, STOFunction
     from tests.fsoe.conftest import MockHandler
 
 
 @pytest.mark.fsoe
-def test_optional_parameter_not_present():
+def test_optional_parameter_not_present() -> None:
     handler = MockHandler(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, 0x3800000)
 
     sto: STOFunction = next(STOFunction.for_handler(handler))
@@ -26,7 +28,7 @@ def test_optional_parameter_not_present():
 
 
 @pytest.mark.fsoe
-def test_optional_parameter_present():
+def test_optional_parameter_present() -> None:
     handler = MockHandler(
         SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_MODULE_IDENT_NO_SRA_MODULE_IDENT
     )
@@ -41,7 +43,7 @@ def test_optional_parameter_present():
     assert parameter is not None
 
 
-def test_get_parameters_not_related_to_safety_functions():
+def test_get_parameters_not_related_to_safety_functions() -> None:
     handler = MockHandler(
         SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_MODULE_IDENT_NO_SRA_MODULE_IDENT
     )
@@ -75,7 +77,7 @@ def test_get_parameters_not_related_to_safety_functions():
 
 
 @pytest.mark.fsoe
-def test_modify_safe_parameters(fsoe_error_monitor: Callable[[FSoEError], None]):
+def test_modify_safe_parameters(fsoe_error_monitor: Callable[[FSoEError], None]) -> None:
     mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
     try:
         handler = FSoEMasterHandler(
@@ -102,7 +104,9 @@ def test_modify_safe_parameters(fsoe_error_monitor: Callable[[FSoEError], None])
 
 
 @pytest.mark.fsoe_phase2
-def test_write_safe_parameters(mc_with_fsoe):
+def test_write_safe_parameters(
+    mc_with_fsoe: tuple["MotionController", "FSoEMasterHandler"],
+) -> None:
     mc, handler = mc_with_fsoe
     expected_value = {}
     for key, param in handler.safety_parameters.items():

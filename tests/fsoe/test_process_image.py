@@ -12,6 +12,7 @@ from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.ethercat.servo import EthercatServo
 from ingenialink.pdo import RPDOMap, TPDOMap
 from ingenialink.servo import DictionaryFactory
+from pytest_mock import MockerFixture
 
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError
@@ -46,7 +47,10 @@ if FSOE_MASTER_INSTALLED:
     from tests.fsoe.conftest import MockHandler
     from tests.fsoe.utils.map_json_serializer import FSoEDictionaryMapJSONSerializer
 if TYPE_CHECKING:
+    from ingenialink.ethercat.dictionary import EthercatDictionary
     from ingenialink.ethercat.servo import EthercatServo
+
+    from ingeniamotion.fsoe import FSoEDictionary
 
     if FSOE_MASTER_INSTALLED:
         from ingeniamotion.fsoe_master.errors import (
@@ -60,7 +64,9 @@ if TYPE_CHECKING:
     "dictionary, editable",
     [(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, False), (SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, True)],
 )
-def test_mapping_locked(dictionary, editable, fsoe_error_monitor: Callable[[FSoEError], None]):
+def test_mapping_locked(
+    dictionary: str, editable: bool, fsoe_error_monitor: Callable[[FSoEError], None]
+) -> None:
     mock_servo = MockServo(dictionary)
 
     if not editable:
@@ -102,8 +108,10 @@ def test_mapping_locked(dictionary, editable, fsoe_error_monitor: Callable[[FSoE
 
 
 @pytest.mark.fsoe
-def test_copy_modify_and_set_map(mc_with_fsoe):
-    _mc, handler = mc_with_fsoe
+def test_copy_modify_and_set_map(
+    mc_with_fsoe: tuple["MotionController", "FSoEMasterHandler"],
+) -> None:
+    _, handler = mc_with_fsoe
 
     # Obtain one safety input
     si = handler.safe_inputs_function().value
@@ -195,7 +203,7 @@ class TestProcessImage:
     TEST_SI_U8_UID = "TEST_SI_U8"
 
     @pytest.fixture()
-    def sample_safe_dictionary(self):
+    def sample_safe_dictionary(self) -> tuple["EthercatDictionary", "FSoEDictionary"]:
         safe_dict = DictionaryFactory.create_dictionary(
             SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, interface=Interface.ECAT
         )
@@ -245,7 +253,9 @@ class TestProcessImage:
         return safe_dict, fsoe_dict
 
     @pytest.mark.fsoe
-    def test_map_phase_1(self, sample_safe_dictionary):
+    def test_map_phase_1(
+        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
+    ) -> None:
         safe_dict, fsoe_dict = sample_safe_dictionary
         maps = ProcessImage.empty(fsoe_dict)
 
@@ -353,7 +363,9 @@ class TestProcessImage:
         )
 
     @pytest.mark.fsoe
-    def test_map_8_safe_bits(self, sample_safe_dictionary):
+    def test_map_8_safe_bits(
+        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
+    ) -> None:
         safe_dict, fsoe_dict = sample_safe_dictionary
         maps = ProcessImage.empty(fsoe_dict)
 
@@ -391,7 +403,9 @@ class TestProcessImage:
         )
 
     @pytest.mark.fsoe
-    def test_empty_map_8_bits(self, sample_safe_dictionary):
+    def test_empty_map_8_bits(
+        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
+    ) -> None:
         safe_dict, fsoe_dict = sample_safe_dictionary
         maps = ProcessImage.empty(fsoe_dict)
         tpdo = TPDOMap()
@@ -412,7 +426,9 @@ class TestProcessImage:
         assert len(tpdo.items) == 4
 
     @pytest.mark.fsoe
-    def test_map_with_32_bit_vars(self, sample_safe_dictionary):
+    def test_map_with_32_bit_vars(
+        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
+    ) -> None:
         safe_dict, fsoe_dict = sample_safe_dictionary
         maps = ProcessImage.empty(fsoe_dict)
 
@@ -458,7 +474,9 @@ class TestProcessImage:
         )
 
     @pytest.mark.fsoe
-    def test_map_with_32_bit_vars_offset_8(self, sample_safe_dictionary):
+    def test_map_with_32_bit_vars_offset_8(
+        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
+    ) -> None:
         safe_dict, fsoe_dict = sample_safe_dictionary
         maps = ProcessImage.empty(fsoe_dict)
 
@@ -524,7 +542,9 @@ class TestProcessImage:
         )
 
     @pytest.mark.fsoe
-    def test_map_with_32_bit_vars_offset_16(self, sample_safe_dictionary):
+    def test_map_with_32_bit_vars_offset_16(
+        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
+    ) -> None:
         safe_dict, fsoe_dict = sample_safe_dictionary
         maps = ProcessImage.empty(fsoe_dict)
 
@@ -581,7 +601,11 @@ class TestProcessImage:
 
     @pytest.mark.fsoe
     @pytest.mark.parametrize("unify_pdo_mapping", [True, False])
-    def test_map_with_16_bit_vars_offset_8(self, sample_safe_dictionary, unify_pdo_mapping: bool):
+    def test_map_with_16_bit_vars_offset_8(
+        self,
+        sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"],
+        unify_pdo_mapping: bool,
+    ) -> None:
         safe_dict, fsoe_dict = sample_safe_dictionary
         maps = ProcessImage.empty(fsoe_dict)
 
@@ -654,14 +678,18 @@ class TestProcessImage:
             (19, (1, 2, 5, 6, 9, 10, 13, 14)),
         ],
     )
-    def test_get_safety_bytes_range_from_pdo_length(self, pdo_length, frame_data_bytes):
+    def test_get_safety_bytes_range_from_pdo_length(
+        self, pdo_length: int, frame_data_bytes: tuple[int, ...]
+    ) -> None:
         assert (
             frame_data_bytes
             == ProcessImage._ProcessImage__get_safety_bytes_range_from_pdo_length(pdo_length)
         )
 
     @pytest.mark.fsoe
-    def test_insert_in_best_position(self, sample_safe_dictionary):
+    def test_insert_in_best_position(
+        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
+    ) -> None:
         _safe_dict, fsoe_dict = sample_safe_dictionary
         maps = ProcessImage.empty(fsoe_dict)
 
@@ -687,7 +715,11 @@ class TestProcessImage:
         )
 
     @pytest.mark.fsoe
-    def test_validate_safe_data_blocks_invalid_size(self, mocker, sample_safe_dictionary):
+    def test_validate_safe_data_blocks_invalid_size(
+        self,
+        mocker: MockerFixture,
+        sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"],
+    ) -> None:
         """Test that SafeDataBlocksValidator fails when safe data blocks are not 16 bits."""
         _, fsoe_dict = sample_safe_dictionary
         maps = ProcessImage.empty(fsoe_dict)
@@ -710,7 +742,9 @@ class TestProcessImage:
         assert output.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is False
 
     @pytest.mark.fsoe
-    def test_validate_safe_data_blocks_pdu_empty(self, sample_safe_dictionary):
+    def test_validate_safe_data_blocks_pdu_empty(
+        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
+    ) -> None:
         """Test that SafeDataBlocksValidator passes when no safe data blocks are present."""
         _, fsoe_dict = sample_safe_dictionary
         maps = ProcessImage.empty(fsoe_dict)
@@ -719,7 +753,7 @@ class TestProcessImage:
         assert output.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is True
 
     @pytest.mark.fsoe
-    def test_validate_safe_data_blocks_too_many_blocks(self):
+    def test_validate_safe_data_blocks_too_many_blocks(self) -> None:
         """Test that SafeDataBlocksValidator fails when there are more than 8 safe data blocks."""
         # Add 9 different 16-bit safe inputs -> 9 blocks
         safe_dict = DictionaryFactory.create_dictionary(
@@ -778,7 +812,9 @@ class TestProcessImage:
         assert output.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is False
 
     @pytest.mark.fsoe
-    def test_validate_safe_data_blocks_objects_split_across_blocks(self, sample_safe_dictionary):
+    def test_validate_safe_data_blocks_objects_split_across_blocks(
+        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
+    ) -> None:
         """Test that SafeDataBlocksValidator fails when <= 16 bits objects are split."""
         _, fsoe_dict = sample_safe_dictionary
         maps = ProcessImage.empty(fsoe_dict)
@@ -813,7 +849,9 @@ class TestProcessImage:
         assert output.is_rule_valid(FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED) is True
 
     @pytest.mark.fsoe
-    def test_validate_safe_data_blocks_valid_cases(self, sample_safe_dictionary):
+    def test_validate_safe_data_blocks_valid_cases(
+        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
+    ) -> None:
         """Test that SafeDataBlocksValidator passes for valid safe data block configurations."""
         _, fsoe_dict = sample_safe_dictionary
 
@@ -831,7 +869,9 @@ class TestProcessImage:
             assert output.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is True
 
     @pytest.mark.fsoe
-    def test_validate_number_of_objects_in_frame(self, sample_safe_dictionary):
+    def test_validate_number_of_objects_in_frame(
+        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
+    ) -> None:
         """Test that SafeDataBlocksValidator fails if the number of objects is exceeded."""
         safe_dict, fsoe_dict = sample_safe_dictionary
 
@@ -899,7 +939,9 @@ class TestProcessImage:
         assert output.is_rule_valid(FSoEFrameRules.OBJECTS_IN_FRAME) is False
 
     @pytest.mark.fsoe
-    def test_validate_safe_data_objects_word_aligned(self, sample_safe_dictionary):
+    def test_validate_safe_data_objects_word_aligned(
+        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
+    ) -> None:
         """Test that validation fails when safe data objects >= 16 bits are not word aligned."""
         _, fsoe_dict = sample_safe_dictionary
         process_image = ProcessImage.empty(fsoe_dict)
@@ -930,7 +972,9 @@ class TestProcessImage:
         assert output.is_rule_valid(FSoEFrameRules.OBJECTS_ALIGNED) is True
 
     @pytest.mark.fsoe
-    def test_validate_sto_command_first_in_outputs(self, sample_safe_dictionary):
+    def test_validate_sto_command_first_in_outputs(
+        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
+    ) -> None:
         """Test that STO command is the first item in the maps."""
         _, fsoe_dict = sample_safe_dictionary
         process_image = ProcessImage.empty(fsoe_dict)
@@ -977,7 +1021,9 @@ class TestProcessImage:
         assert output.is_rule_valid(FSoEFrameRules.STO_COMMAND_FIRST) is True
 
     @pytest.mark.fsoe
-    def test_validate_empty_map(self, sample_safe_dictionary):
+    def test_validate_empty_map(
+        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
+    ) -> None:
         """Test that an empty FSoE map is invalid."""
         _, fsoe_dict = sample_safe_dictionary
         process_image = ProcessImage.empty(fsoe_dict)
@@ -987,7 +1033,9 @@ class TestProcessImage:
         assert FSoEFrameRules.STO_COMMAND_FIRST in output.exceptions
 
     @pytest.mark.fsoe
-    def test_validate_dictionary_map_fsoe_frame_rules(self, sample_safe_dictionary):
+    def test_validate_dictionary_map_fsoe_frame_rules(
+        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
+    ) -> None:
         """Test that FSoE frames pass all validation rules."""
         _, fsoe_dict = sample_safe_dictionary
 
@@ -1197,7 +1245,7 @@ def test_map_all_safety_functions(
 
 
 @pytest.mark.fsoe_phase2
-def test_is_safety_function_mapped():
+def test_is_safety_function_mapped() -> None:
     handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     sfs = handler.safety_functions_by_type()
     maps = ProcessImage.empty(handler.dictionary)
@@ -1233,7 +1281,7 @@ def test_is_safety_function_mapped():
 
 
 @pytest.mark.fsoe_phase2
-def test_insert_safety_function():
+def test_insert_safety_function() -> None:
     handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     sto_func = handler.safety_functions_by_type()[STOFunction][0]
 
@@ -1250,7 +1298,7 @@ def test_insert_safety_function():
 
 
 @pytest.mark.fsoe_phase2
-def test_insert_safety_functions_by_type():
+def test_insert_safety_functions_by_type() -> None:
     handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     sfs = handler.safety_functions_by_type()
     maps = ProcessImage.empty(handler.dictionary)
@@ -1281,7 +1329,7 @@ def test_insert_safety_functions_by_type():
 
 
 @pytest.mark.fsoe_phase2
-def test_remove_safety_functions_by_type_1():
+def test_remove_safety_functions_by_type_1() -> None:
     handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
 
     maps = ProcessImage.empty(handler.dictionary)
@@ -1301,7 +1349,7 @@ def test_remove_safety_functions_by_type_1():
 
 
 @pytest.mark.fsoe_phase2
-def test_remove_safety_functions_by_type_2():
+def test_remove_safety_functions_by_type_2() -> None:
     handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     ssr_funcs = handler.safety_functions_by_type()[SSRFunction]
     maps = ProcessImage.empty(handler.dictionary)
@@ -1324,7 +1372,7 @@ def test_remove_safety_functions_by_type_2():
 
 
 @pytest.mark.fsoe_phase2
-def test_unmap_safety_function():
+def test_unmap_safety_function() -> None:
     handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     sfs = handler.safety_functions_by_type()
     maps = ProcessImage.empty(handler.dictionary)
@@ -1347,7 +1395,7 @@ def test_unmap_safety_function():
 
 
 @pytest.mark.fsoe_phase2
-def test_unmap_safety_function_warring(caplog):
+def test_unmap_safety_function_warring(caplog: "pytest.LogCaptureFixture") -> None:
     handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     sfs = handler.safety_functions_by_type()
     maps = ProcessImage.empty(handler.dictionary)
@@ -1358,7 +1406,7 @@ def test_unmap_safety_function_warring(caplog):
 
 
 @pytest.mark.fsoe_phase2
-def test_unmap_safety_function_partial():
+def test_unmap_safety_function_partial() -> None:
     handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     sfs = handler.safety_functions_by_type()
     maps = ProcessImage.empty(handler.dictionary)

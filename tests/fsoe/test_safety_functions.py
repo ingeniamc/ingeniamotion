@@ -1,3 +1,5 @@
+from typing import TYPE_CHECKING
+
 import pytest
 
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
@@ -6,6 +8,12 @@ from tests.dictionaries import (
     SAMPLE_SAFE_PH2_MODULE_IDENT_NO_SRA_MODULE_IDENT,
     SAMPLE_SAFE_PH2_XDFV3_DICTIONARY,
 )
+
+if TYPE_CHECKING:
+    from ingeniamotion.motion_controller import MotionController
+
+    if FSOE_MASTER_INSTALLED:
+        from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
 
 if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master import (
@@ -34,7 +42,7 @@ from tests.fsoe.conftest import MockHandler
 
 
 @pytest.mark.fsoe
-def test_detect_safety_functions_ph1():
+def test_detect_safety_functions_ph1() -> None:
     handler = MockHandler(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, 0x3800000)
 
     sf = list(SafetyFunction.for_handler(handler))
@@ -91,7 +99,7 @@ def test_detect_safety_functions_ph1():
 
 
 @pytest.mark.fsoe
-def test_detect_safety_functions_ph2():
+def test_detect_safety_functions_ph2() -> None:
     handler = MockHandler(
         SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_MODULE_IDENT_NO_SRA_MODULE_IDENT
     )
@@ -141,8 +149,10 @@ def test_detect_safety_functions_ph2():
 
 
 @pytest.mark.fsoe
-def test_mandatory_safety_functions(mc_with_fsoe):
-    _mc, handler = mc_with_fsoe
+def test_mandatory_safety_functions(
+    mc_with_fsoe: tuple["MotionController", "FSoEMasterHandler"],
+) -> None:
+    _, handler = mc_with_fsoe
 
     safety_functions_by_types = handler.safety_functions_by_type()
 
@@ -157,8 +167,10 @@ def test_mandatory_safety_functions(mc_with_fsoe):
 
 
 @pytest.mark.fsoe
-def test_getter_of_safety_functions(mc_with_fsoe):
-    _mc, handler = mc_with_fsoe
+def test_getter_of_safety_functions(
+    mc_with_fsoe: tuple["MotionController", "FSoEMasterHandler"],
+) -> None:
+    _, handler = mc_with_fsoe
 
     sto_function = STOFunction(
         n_instance=None, name="Dummy", command=None, activate_sout=None, ios=None, parameters=None
