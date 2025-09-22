@@ -63,7 +63,7 @@ def main(ifname, slave_id, dict_path, config_file=None):
     if handler.sout_function():
         handler.sout_disable()
     try:
-        mc.fsoe.configure_pdos(start_pdos=True)
+        mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
         # Wait for the master to reach the Data state
         mc.fsoe.wait_for_state_data(timeout=5)
         # Remove fail-safe mode. Output commands will be applied by the slaves
