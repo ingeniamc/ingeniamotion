@@ -37,8 +37,7 @@ if FSOE_MASTER_INSTALLED:
         FSoEDictionaryItemInput,
         FSoEDictionaryItemInputOutput,
     )
-
-from tests.fsoe.conftest import MockHandler
+    from tests.fsoe.conftest import MockHandler
 
 
 @pytest.mark.fsoe
