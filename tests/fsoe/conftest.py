@@ -1,17 +1,18 @@
 import dataclasses
 import random
+from collections import OrderedDict
 from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import pytest
-from ingenialink.dictionary import CanOpenObject
+from ingenialink.dictionary import CanOpenObject, Interface
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethercat.servo import EthercatServo
 from ingenialink.exceptions import ILRegisterNotFoundError
 from ingenialink.network import Network
 from ingenialink.pdo_network_manager import PDONetworkManager as ILPDONetworkManager
-from ingenialink.servo import DictionaryFactory, Interface, Servo
+from ingenialink.servo import DictionaryFactory, Servo
 from ingenialink.utils._utils import convert_dtype_to_bytes
 from summit_testing_framework import ATTFileType
 from summit_testing_framework.setups.specifiers import (
@@ -119,7 +120,7 @@ def setup_specifier_with_esi(
     return dataclasses.replace(setup_specifier, extra_data=new_data)
 
 
-def emergency_handler(servo_alias: str, message: "EmergencyMessage"):
+def emergency_handler(servo_alias: str, message: "EmergencyMessage") -> None:
     if message.error_code == 0xFF43:
         # Cyclic timeout Ethercat PDO lifeguard
         # is a typical error code when the pdos are stopped
@@ -225,8 +226,8 @@ def fsoe_error_monitor(
 
 
 @pytest.fixture()
-def fsoe_states():
-    states = []
+def fsoe_states() -> list["FSoEState"]:
+    states: list[FSoEState] = []
     return states
 
 
@@ -245,15 +246,19 @@ def __set_default_phase2_mapping(handler: "FSoEMasterHandler") -> None:
     handler.process_image.outputs.clear()
     handler.process_image.outputs.add(sto.command)
     handler.process_image.outputs.add(ss1.command)
-    handler.process_image.outputs.add_padding(6 + 8)
+    handler.process_image.outputs.add_padding(6)
 
 
 @pytest.fixture
-def mc_with_fsoe_factory(request, mc, fsoe_states):
+def mc_with_fsoe_factory(
+    request: pytest.FixtureRequest, mc: "MotionController", fsoe_states: list["FSoEState"]
+) -> Iterator[Callable[[bool, bool], tuple["MotionController", "FSoEMasterHandler"]]]:
     created_handlers = []
 
-    def factory(use_sra: bool = False, fail_on_fsoe_errors: bool = True):
-        def add_state(state: FSoEState):
+    def factory(
+        use_sra: bool = False, fail_on_fsoe_errors: bool = True
+    ) -> tuple["MotionController", "FSoEMasterHandler"]:
+        def add_state(state: FSoEState) -> None:
             fsoe_states.append(state)
 
         # Subscribe to emergency messages
@@ -286,17 +291,23 @@ def mc_with_fsoe_factory(request, mc, fsoe_states):
 
 
 @pytest.fixture()
-def mc_with_fsoe(mc_with_fsoe_factory):
+def mc_with_fsoe(
+    mc_with_fsoe_factory: Callable[..., tuple["MotionController", "FSoEMasterHandler"]],
+) -> Iterator[tuple["MotionController", "FSoEMasterHandler"]]:
     yield mc_with_fsoe_factory(use_sra=False, fail_on_fsoe_errors=True)
 
 
 @pytest.fixture()
-def mc_with_fsoe_with_sra(mc_with_fsoe_factory):
+def mc_with_fsoe_with_sra(
+    mc_with_fsoe_factory: Callable[..., tuple["MotionController", "FSoEMasterHandler"]],
+) -> Iterator[tuple["MotionController", "FSoEMasterHandler"]]:
     yield mc_with_fsoe_factory(use_sra=True, fail_on_fsoe_errors=True)
 
 
 @pytest.fixture()
-def mc_state_data_with_sra(mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"]):
+def mc_state_data_with_sra(
+    mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"],
+) -> Iterator["MotionController"]:
     mc, _handler = mc_with_fsoe_with_sra
 
     mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
@@ -313,7 +324,9 @@ def mc_state_data_with_sra(mc_with_fsoe_with_sra: tuple["MotionController", "FSo
 
 
 @pytest.fixture()
-def mc_state_data(mc_with_fsoe: tuple["MotionController", "FSoEMasterHandler"]):
+def mc_state_data(
+    mc_with_fsoe: tuple["MotionController", "FSoEMasterHandler"],
+) -> Iterator["MotionController"]:
     mc, _ = mc_with_fsoe
 
     mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
@@ -402,7 +415,7 @@ def map_generator() -> Iterator["FSoERandomMappingGenerator"]:
     Yields:
         FSoERandomMappingGenerator instance.
     """
-    yield FSoERandomMappingGenerator
+    yield FSoERandomMappingGenerator()
 
 
 @pytest.fixture(scope="session")
@@ -418,7 +431,7 @@ def timeout_for_data_sra() -> float:
 
 
 class MockNetwork(EthercatNetwork):
-    def __init__(self):
+    def __init__(self) -> None:
         Network.__init__(self)
 
         self._pdo_manager = ILPDONetworkManager(self)
@@ -427,7 +440,7 @@ class MockNetwork(EthercatNetwork):
 class MockServo(Servo):
     interface = Interface.ECAT
 
-    def __init__(self, dictionary_path: str):
+    def __init__(self, dictionary_path: str) -> None:
         super().__init__(target=1, dictionary_path=dictionary_path)
 
         self.current_values = {
@@ -435,8 +448,8 @@ class MockServo(Servo):
             for register in self.dictionary.all_registers()
         }
 
-    def _write_raw(self, register: "Register", data: bytes, **kwargs: Any):
-        self.current_values[register] = data
+    def _write_raw(self, reg: "Register", data: bytes, **kwargs: Any) -> None:
+        self.current_values[reg] = data
 
     def _read_raw(self, reg: "Register", **kwargs: Any) -> bytes:
         return self.current_values[reg]
@@ -463,7 +476,7 @@ class MockServo(Servo):
 if FSOE_MASTER_INSTALLED:
 
     class MockSafetyParameter(SafetyParameter):
-        def __init__(self, register: "EthercatRegister", servo: "EthercatServo"):
+        def __init__(self, register: "EthercatRegister", servo: "EthercatServo") -> None:
             self.__register = register
             self.__servo = servo
 
@@ -479,11 +492,11 @@ if FSOE_MASTER_INSTALLED:
             xdf = DictionaryFactory.create_dictionary(dictionary, interface=Interface.ECAT)
             self.dictionary = FSoEMasterHandler.create_safe_dictionary(xdf)
             self.__servo = MockServo(dictionary)
-            self.safety_parameters = {
+            self.safety_parameters = OrderedDict({
                 app_parameter.uid: MockSafetyParameter(
                     xdf.get_register(app_parameter.uid), self.__servo
                 )
                 for app_parameter in xdf.get_safety_module(module_uid).application_parameters
-            }
+            })
 
             self.safety_functions = tuple(SafetyFunction.for_handler(self))
