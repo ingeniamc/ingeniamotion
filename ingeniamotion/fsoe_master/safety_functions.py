@@ -14,7 +14,7 @@ from ingeniamotion.fsoe_master.fsoe import (
 from ingeniamotion.fsoe_master.parameters import SafetyParameter
 
 if TYPE_CHECKING:
-    from ingeniamotion.fsoe_master import PDUMaps
+    from ingeniamotion.fsoe_master import ProcessImage
     from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
 
 __all__ = [
@@ -106,7 +106,7 @@ class SafetyFunction:
     parameters: dict[SafetyFieldMetadata, SafetyParameter]
 
     def activated_by(
-        self, _handler: "FSoEMasterHandler", _pdu_maps: "PDUMaps"
+        self, _handler: "FSoEMasterHandler", _pdu_maps: "ProcessImage"
     ) -> Optional["SafetyFunction"]:
         """Get the safety function that activates this function, if any.
 
@@ -354,7 +354,7 @@ class SS1Function(SafetyFunction):
 
     @override
     def activated_by(
-        self, _handler: "FSoEMasterHandler", _pdu_maps: "PDUMaps"
+        self, _handler: "FSoEMasterHandler", _pdu_maps: "ProcessImage"
     ) -> Optional[SafetyFunction]:
         si_function: SafeInputsFunction = _handler.safe_inputs_function()
         if si_function.map.get() == self.__FSOE_SAFE_INPUTS_MAP_ACTIVE_VALUE:
@@ -415,7 +415,7 @@ class SOSFunction(SafetyFunction):
 
     @override
     def activated_by(
-        self, _handler: "FSoEMasterHandler", _pdu_maps: "PDUMaps"
+        self, _handler: "FSoEMasterHandler", _pdu_maps: "ProcessImage"
     ) -> Optional[SafetyFunction]:
         ss2_instance = _handler.get_function_instance(SS2Function)
         if (
@@ -456,7 +456,7 @@ class SS2Function(SafetyFunction):
 
     @override
     def activated_by(
-        self, _handler: "FSoEMasterHandler", _pdu_maps: "PDUMaps"
+        self, _handler: "FSoEMasterHandler", _pdu_maps: "ProcessImage"
     ) -> Optional[SafetyFunction]:
         si_function: SafeInputsFunction = _handler.safe_inputs_function()
         if si_function.map.get() == self.__FSOE_SAFE_INPUTS_MAP_ACTIVE_VALUE:
@@ -492,7 +492,7 @@ class SOutFunction(SafetyFunction):
     def activated_by(
         self,
         _handler: "FSoEMasterHandler",
-        _pdu_maps: "PDUMaps",
+        _pdu_maps: "ProcessImage",
     ) -> Optional[SafetyFunction]:
         sto_function: STOFunction = _handler.sto_function()
         if (
