@@ -6,8 +6,11 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import pytest
+from ingenialink import RegAccess, RegDtype
 from ingenialink.dictionary import CanOpenObject, Interface
+from ingenialink.enums.register import RegCyclicType
 from ingenialink.ethercat.network import EthercatNetwork
+from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.ethercat.servo import EthercatServo
 from ingenialink.exceptions import ILRegisterNotFoundError
 from ingenialink.network import Network
@@ -25,6 +28,7 @@ from summit_testing_framework.setups.specifiers import (
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError
 from tests.conftest import add_fixture_error_checker
+from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
 from tests.outputs import OUTPUTS_DIR
 
 if FSOE_MASTER_INSTALLED:
@@ -44,14 +48,16 @@ if FSOE_MASTER_INSTALLED:
     )
     from tests.fsoe.utils.map_generator import FSoERandomMappingGenerator
 
+
 if TYPE_CHECKING:
     from ingenialink.emcy import EmergencyMessage
-    from ingenialink.ethercat.register import EthercatRegister
+    from ingenialink.ethercat.dictionary import EthercatDictionary
     from ingenialink.register import Register
     from summit_testing_framework.att import ATTApi
     from summit_testing_framework.rack_service_client import RackServiceClient
     from summit_testing_framework.setups.descriptors import DriveHwSetup
 
+    from ingeniamotion.fsoe_master import FSoEDictionary
     from ingeniamotion.motion_controller import MotionController
 
 __EXTRA_DATA_ESI_FILE_KEY: str = "esi_file"
@@ -371,6 +377,60 @@ def mc_with_fsoe_with_sra_and_feedback_scenario(
             mc.fsoe.stop_master(stop_pdos=True)
     except Exception:
         pass
+
+
+@pytest.fixture(scope="session")
+def safe_dict() -> "EthercatDictionary":
+    axis_1 = 1
+    safe_dict = DictionaryFactory.create_dictionary(
+        SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, interface=Interface.ECAT
+    )
+
+    # Add sample registers
+    safe_dict._registers[axis_1]["TEST_SI_U16"] = EthercatRegister(
+        idx=0xF000,
+        subidx=0,
+        dtype=RegDtype.U16,
+        access=RegAccess.RO,
+        identifier="TEST_SI_U16",
+        pdo_access=RegCyclicType.SAFETY_INPUT,
+        cat_id="FSOE",
+    )
+    safe_dict._registers[axis_1]["TEST_SI_U8"] = EthercatRegister(
+        idx=0xF001,
+        subidx=0,
+        dtype=RegDtype.U8,
+        access=RegAccess.RO,
+        identifier="TEST_SI_U8",
+        pdo_access=RegCyclicType.SAFETY_INPUT,
+        cat_id="FSOE",
+    )
+
+    # Add more CRC registers
+    safe_dict._registers[axis_1]["FSOE_SLAVE_FRAME_ELEM_CRC2"] = EthercatRegister(
+        idx=0xF002,
+        subidx=0,
+        dtype=RegDtype.U16,
+        access=RegAccess.RO,
+        identifier="FSOE_SLAVE_FRAME_ELEM_CRC2",
+        pdo_access=RegCyclicType.SAFETY_INPUT,
+        cat_id="FSOE",
+    )
+    safe_dict._registers[axis_1]["FSOE_SLAVE_FRAME_ELEM_CRC3"] = EthercatRegister(
+        idx=0xF003,
+        subidx=0,
+        dtype=RegDtype.U16,
+        access=RegAccess.RO,
+        identifier="FSOE_SLAVE_FRAME_ELEM_CRC3",
+        pdo_access=RegCyclicType.SAFETY_INPUT,
+        cat_id="FSOE",
+    )
+    return safe_dict
+
+
+@pytest.fixture(scope="session")
+def fsoe_dict(safe_dict: "EthercatDictionary") -> Iterator["FSoEDictionary"]:
+    return FSoEMasterHandler.create_safe_dictionary(safe_dict)
 
 
 @pytest.fixture(scope="module")

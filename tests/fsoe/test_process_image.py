@@ -46,6 +46,7 @@ if FSOE_MASTER_INSTALLED:
     )
     from tests.fsoe.conftest import MockHandler
     from tests.fsoe.utils.map_json_serializer import FSoEDictionaryMapJSONSerializer
+
 if TYPE_CHECKING:
     from ingenialink.ethercat.dictionary import EthercatDictionary
     from ingenialink.ethercat.servo import EthercatServo
@@ -197,856 +198,769 @@ def test_maps_different_length(
     mc.fsoe.stop_master(stop_pdos=True)
 
 
-class TestProcessImage:
-    AXIS_1 = 1
-    TEST_SI_U16_UID = "TEST_SI_U16"
-    TEST_SI_U8_UID = "TEST_SI_U8"
-
-    @pytest.fixture()
-    def sample_safe_dictionary(self) -> tuple["EthercatDictionary", "FSoEDictionary"]:
-        safe_dict = DictionaryFactory.create_dictionary(
-            SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, interface=Interface.ECAT
-        )
-
-        # Add sample registers
-        safe_dict._registers[self.AXIS_1][self.TEST_SI_U16_UID] = EthercatRegister(
-            idx=0xF000,
-            subidx=0,
-            dtype=RegDtype.U16,
-            access=RegAccess.RO,
-            identifier=self.TEST_SI_U16_UID,
-            pdo_access=RegCyclicType.SAFETY_INPUT,
-            cat_id="FSOE",
-        )
-        safe_dict._registers[self.AXIS_1][self.TEST_SI_U8_UID] = EthercatRegister(
-            idx=0xF001,
-            subidx=0,
-            dtype=RegDtype.U8,
-            access=RegAccess.RO,
-            identifier=self.TEST_SI_U8_UID,
-            pdo_access=RegCyclicType.SAFETY_INPUT,
-            cat_id="FSOE",
-        )
-
-        # Add more CRC registers
-        safe_dict._registers[self.AXIS_1]["FSOE_SLAVE_FRAME_ELEM_CRC2"] = EthercatRegister(
-            idx=0xF002,
-            subidx=0,
-            dtype=RegDtype.U16,
-            access=RegAccess.RO,
-            identifier="FSOE_SLAVE_FRAME_ELEM_CRC2",
-            pdo_access=RegCyclicType.SAFETY_INPUT,
-            cat_id="FSOE",
-        )
-        safe_dict._registers[self.AXIS_1]["FSOE_SLAVE_FRAME_ELEM_CRC3"] = EthercatRegister(
-            idx=0xF003,
-            subidx=0,
-            dtype=RegDtype.U16,
-            access=RegAccess.RO,
-            identifier="FSOE_SLAVE_FRAME_ELEM_CRC3",
-            pdo_access=RegCyclicType.SAFETY_INPUT,
-            cat_id="FSOE",
-        )
-
-        fsoe_dict = FSoEMasterHandler.create_safe_dictionary(safe_dict)
-
-        return safe_dict, fsoe_dict
-
-    @pytest.mark.fsoe
-    def test_map_phase_1(
-        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
-    ) -> None:
-        safe_dict, fsoe_dict = sample_safe_dictionary
-        maps = ProcessImage.empty(fsoe_dict)
-
-        maps.outputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
-        maps.outputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
-        maps.outputs.add_padding(bits=6 + 8)
-
-        maps.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
-        maps.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
-        maps.inputs.add_padding(bits=6)
-        maps.inputs.add(fsoe_dict.name_map[SafeInputsFunction.SAFE_INPUTS_UID])
-        maps.inputs.add_padding(bits=7)
-
-        rpdo = RPDOMap()
-        # Registers that are present in the map,
-        # are cleared when the map is filled
-        rpdo.add_registers(safe_dict.get_register("DRV_OP_CMD"))
-        maps.fill_rpdo_map(rpdo, safe_dict)
-
-        assert rpdo.items[0].register.identifier == "FSOE_MASTER_FRAME_ELEM_CMD"
-        assert rpdo.items[0].register.idx == 0x6770
-        assert rpdo.items[0].register.subidx == 0x01
-        assert rpdo.items[0].size_bits == 8
-
-        assert rpdo.items[1].register.identifier == "FSOE_STO"
-        assert rpdo.items[1].register.idx == 0x6640
-        assert rpdo.items[1].register.subidx == 0x0
-        assert rpdo.items[1].size_bits == 1
-
-        assert rpdo.items[2].register.identifier == "FSOE_SS1_1"
-        assert rpdo.items[2].register.idx == 0x6650
-        assert rpdo.items[2].register.subidx == 0x1
-        assert rpdo.items[2].size_bits == 1
-
-        assert rpdo.items[3].register.identifier == "PADDING"
-        assert rpdo.items[3].register.idx == 0
-        assert rpdo.items[3].register.subidx == 0
-        assert rpdo.items[3].size_bits == 14
-
-        assert rpdo.items[4].register.identifier == "FSOE_MASTER_FRAME_ELEM_CRC0"
-        assert rpdo.items[4].register.idx == 0x6770
-        assert rpdo.items[4].register.subidx == 0x03
-        assert rpdo.items[4].size_bits == 16
-
-        assert rpdo.items[5].register.identifier == "FSOE_MASTER_FRAME_ELEM_CONNID"
-        assert rpdo.items[5].register.idx == 0x6770
-        assert rpdo.items[5].register.subidx == 0x02
-        assert rpdo.items[5].size_bits == 16
-
-        assert len(rpdo.items) == 6
-
-        tpdo = TPDOMap()
-        maps.fill_tpdo_map(tpdo, safe_dict)
-
-        assert tpdo.items[0].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CMD"
-        assert tpdo.items[0].register.idx == 0x6760
-        assert tpdo.items[0].register.subidx == 0x01
-        assert tpdo.items[0].size_bits == 8
-
-        assert tpdo.items[1].register.identifier == "FSOE_STO"
-        assert tpdo.items[1].register.idx == 0x6640
-        assert tpdo.items[1].register.subidx == 0x0
-        assert tpdo.items[1].size_bits == 1
-
-        assert tpdo.items[2].register.identifier == "FSOE_SS1_1"
-        assert tpdo.items[2].register.idx == 0x6650
-        assert tpdo.items[2].register.subidx == 0x1
-        assert tpdo.items[2].size_bits == 1
-
-        assert tpdo.items[3].register.identifier == "PADDING"
-        assert tpdo.items[3].register.idx == 0
-        assert tpdo.items[3].register.subidx == 0
-        assert tpdo.items[3].size_bits == 6
-
-        assert tpdo.items[4].register.identifier == "FSOE_SAFE_INPUTS_VALUE"
-        assert tpdo.items[4].register.idx == 0x46D1
-        assert tpdo.items[4].register.subidx == 0x0
-        assert tpdo.items[4].size_bits == 1
-
-        assert tpdo.items[5].register.identifier == "PADDING"
-        assert tpdo.items[5].register.idx == 0
-        assert tpdo.items[5].register.subidx == 0
-        assert tpdo.items[5].size_bits == 7
-
-        assert tpdo.items[6].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC0"
-        assert tpdo.items[6].register.idx == 0x6760
-        assert tpdo.items[6].register.subidx == 0x03
-        assert tpdo.items[6].size_bits == 16
-
-        assert tpdo.items[7].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CONNID"
-        assert tpdo.items[7].register.idx == 0x6760
-        assert tpdo.items[7].register.subidx == 0x02
-        assert tpdo.items[7].size_bits == 16
-
-        assert len(tpdo.items) == 8
-
-        recreated_pdu_maps = ProcessImage.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
-        assert (
-            recreated_pdu_maps.outputs.get_text_representation()
-            == maps.outputs.get_text_representation()
-        )
-        assert (
-            recreated_pdu_maps.inputs.get_text_representation()
-            == maps.inputs.get_text_representation()
-        )
-
-    @pytest.mark.fsoe
-    def test_map_8_safe_bits(
-        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
-    ) -> None:
-        safe_dict, fsoe_dict = sample_safe_dictionary
-        maps = ProcessImage.empty(fsoe_dict)
-
-        maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
-
-        # Create the rpdo map
-        tpdo = TPDOMap()
-        maps.fill_tpdo_map(tpdo, safe_dict)
-
-        assert tpdo.items[0].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CMD"
-        assert tpdo.items[0].size_bits == 8
-
-        assert tpdo.items[1].register.identifier == "TEST_SI_U8"
-        assert tpdo.items[1].size_bits == 8
-
-        assert tpdo.items[2].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC0"
-        assert tpdo.items[2].size_bits == 16
-
-        assert tpdo.items[3].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CONNID"
-        assert tpdo.items[3].size_bits == 16
-
-        assert len(tpdo.items) == 4
-
-        rpdo = RPDOMap()
-        maps.fill_rpdo_map(rpdo, safe_dict)
-
-        recreated_pdu_maps = ProcessImage.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
-        assert (
-            recreated_pdu_maps.outputs.get_text_representation()
-            == maps.outputs.get_text_representation()
-        )
-        assert (
-            recreated_pdu_maps.inputs.get_text_representation()
-            == maps.inputs.get_text_representation()
-        )
-
-    @pytest.mark.fsoe
-    def test_empty_map_8_bits(
-        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
-    ) -> None:
-        safe_dict, fsoe_dict = sample_safe_dictionary
-        maps = ProcessImage.empty(fsoe_dict)
-        tpdo = TPDOMap()
-        maps.fill_tpdo_map(tpdo, safe_dict)
-
-        assert tpdo.items[0].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CMD"
-        assert tpdo.items[0].size_bits == 8
-
-        assert tpdo.items[1].register.identifier == "PADDING"
-        assert tpdo.items[1].size_bits == 8
-
-        assert tpdo.items[2].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC0"
-        assert tpdo.items[2].size_bits == 16
-
-        assert tpdo.items[3].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CONNID"
-        assert tpdo.items[3].size_bits == 16
-
-        assert len(tpdo.items) == 4
-
-    @pytest.mark.fsoe
-    def test_map_with_32_bit_vars(
-        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
-    ) -> None:
-        safe_dict, fsoe_dict = sample_safe_dictionary
-        maps = ProcessImage.empty(fsoe_dict)
-
-        # Append a 32-bit variable
-        maps.inputs.add(fsoe_dict.name_map["FSOE_SAFE_POSITION"])
-
-        # Create the rpdo map
-        tpdo = TPDOMap()
-        maps.fill_tpdo_map(tpdo, safe_dict)
-
-        assert tpdo.items[0].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CMD"
-        assert tpdo.items[0].size_bits == 8
-
-        assert tpdo.items[1].register.identifier == "FSOE_SAFE_POSITION"
-        assert tpdo.items[1].size_bits == 16
-
-        assert tpdo.items[2].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC0"
-        assert tpdo.items[2].size_bits == 16
-
-        # On this padding, the 32-bit variable will continue to be transmitted
-        assert tpdo.items[3].register.identifier == "PADDING"
-        assert tpdo.items[3].size_bits == 16
-
-        assert tpdo.items[4].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC1"
-        assert tpdo.items[4].size_bits == 16
-
-        assert tpdo.items[5].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CONNID"
-        assert tpdo.items[5].size_bits == 16
-
-        assert len(tpdo.items) == 6
-
-        rpdo = RPDOMap()
-        maps.fill_rpdo_map(rpdo, safe_dict)
-
-        recreated_pdu_maps = ProcessImage.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
-        assert (
-            recreated_pdu_maps.outputs.get_text_representation()
-            == maps.outputs.get_text_representation()
-        )
-        assert (
-            recreated_pdu_maps.inputs.get_text_representation()
-            == maps.inputs.get_text_representation()
-        )
-
-    @pytest.mark.fsoe
-    def test_map_with_32_bit_vars_offset_8(
-        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
-    ) -> None:
-        safe_dict, fsoe_dict = sample_safe_dictionary
-        maps = ProcessImage.empty(fsoe_dict)
-
-        # Add a first 8-bit variable that will shift the 32-bit variable
-        maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
-        # Append a 32-bit variable
-        maps.inputs.add(fsoe_dict.name_map["FSOE_SAFE_POSITION"])
-        maps.inputs.add_padding(bits=8)
-
-        # Create the rpdo map
-        tpdo = TPDOMap()
-        maps.fill_tpdo_map(tpdo, safe_dict)
-
-        assert tpdo.items[0].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CMD"
-        assert tpdo.items[0].size_bits == 8
-
-        assert tpdo.items[1].register.identifier == "TEST_SI_U8"
-        assert tpdo.items[1].size_bits == 8
-
-        # Variable cut to what fills on the slot (8 bits of 32 bits, 24 remaining)
-        assert tpdo.items[2].register.identifier == "FSOE_SAFE_POSITION"
-        assert tpdo.items[2].size_bits == 8
-
-        assert tpdo.items[3].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC0"
-        assert tpdo.items[3].size_bits == 16
-
-        # On this padding, the 32-bit variable will continue to be transmitted
-        # (16 bits of 32 bits, 8 remaining)
-        assert tpdo.items[4].register.identifier == "PADDING"
-        assert tpdo.items[4].size_bits == 16
-
-        assert tpdo.items[5].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC1"
-        assert tpdo.items[5].size_bits == 16
-
-        # On this padding, the 32-bit variable will continue to be transmitted
-        # (8 bits of 32 bits, 0 remaining)
-        assert tpdo.items[6].register.identifier == "PADDING"
-        assert tpdo.items[6].size_bits == 8
-
-        # 8 bits of regular padding to fill the 16 bits of the data last slot.
-        assert tpdo.items[7].register.identifier == "PADDING"
-        assert tpdo.items[7].size_bits == 8
-
-        assert tpdo.items[8].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC2"
-        assert tpdo.items[8].size_bits == 16
-
-        assert tpdo.items[9].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CONNID"
-        assert tpdo.items[9].size_bits == 16
-
-        assert len(tpdo.items) == 10
-
-        rpdo = RPDOMap()
-        maps.fill_rpdo_map(rpdo, safe_dict)
-
-        recreated_pdu_maps = ProcessImage.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
-        assert (
-            recreated_pdu_maps.outputs.get_text_representation()
-            == maps.outputs.get_text_representation()
-        )
-        assert (
-            recreated_pdu_maps.inputs.get_text_representation()
-            == maps.inputs.get_text_representation()
-        )
-
-    @pytest.mark.fsoe
-    def test_map_with_32_bit_vars_offset_16(
-        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
-    ) -> None:
-        safe_dict, fsoe_dict = sample_safe_dictionary
-        maps = ProcessImage.empty(fsoe_dict)
-
-        # Add a first 16-bit variable that will shift the 32-bit variable
-        maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U16_UID])
-        # Append a 32-bit variable
-        maps.inputs.add(fsoe_dict.name_map["FSOE_SAFE_POSITION"])
-
-        # Create the rpdo map
-        tpdo = TPDOMap()
-        maps.fill_tpdo_map(tpdo, safe_dict)
-
-        assert tpdo.items[0].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CMD"
-        assert tpdo.items[0].size_bits == 8
-
-        assert tpdo.items[1].register.identifier == "TEST_SI_U16"
-        assert tpdo.items[1].size_bits == 16
-
-        assert tpdo.items[2].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC0"
-        assert tpdo.items[2].size_bits == 16
-
-        # Variable cut to what fills on the slot (16 bits of 32 bits, 16 remaining)
-        assert tpdo.items[3].register.identifier == "FSOE_SAFE_POSITION"
-        assert tpdo.items[3].size_bits == 16
-
-        assert tpdo.items[4].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC1"
-        assert tpdo.items[4].size_bits == 16
-
-        # On this padding, the 32-bit variable will continue to be transmitted
-        # (16 bits of 32 bits, 16 remaining)
-        assert tpdo.items[5].register.identifier == "PADDING"
-        assert tpdo.items[5].size_bits == 16
-
-        assert tpdo.items[6].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC2"
-        assert tpdo.items[6].size_bits == 16
-
-        assert tpdo.items[7].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CONNID"
-        assert tpdo.items[7].size_bits == 16
-
-        assert len(tpdo.items) == 8
-
-        rpdo = RPDOMap()
-        maps.fill_rpdo_map(rpdo, safe_dict)
-
-        recreated_pdu_maps = ProcessImage.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
-        assert (
-            recreated_pdu_maps.outputs.get_text_representation()
-            == maps.outputs.get_text_representation()
-        )
-        assert (
-            recreated_pdu_maps.inputs.get_text_representation()
-            == maps.inputs.get_text_representation()
-        )
-
-    @pytest.mark.fsoe
-    @pytest.mark.parametrize("unify_pdo_mapping", [True, False])
-    def test_map_with_16_bit_vars_offset_8(
-        self,
-        sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"],
-        unify_pdo_mapping: bool,
-    ) -> None:
-        safe_dict, fsoe_dict = sample_safe_dictionary
-        maps = ProcessImage.empty(fsoe_dict)
-
-        # Add a first 8-bit variable that will shift the 16-bit variable
-        maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
-        # Append a 32-bit variable
-        maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U16_UID])
-
-        # Create the rpdo map
-        tpdo = TPDOMap()
-        maps.fill_tpdo_map(tpdo, safe_dict)
-
-        assert tpdo.items[0].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CMD"
-        assert tpdo.items[0].size_bits == 8
-
-        assert tpdo.items[1].register.identifier == "TEST_SI_U8"
-        assert tpdo.items[1].size_bits == 8
-
-        # Variable cut to what fills on the slot (8 bits of 16 bits, 8 remaining)
-        assert tpdo.items[2].register.identifier == "TEST_SI_U16"
-        assert tpdo.items[2].size_bits == 8
-
-        assert tpdo.items[3].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC0"
-        assert tpdo.items[3].size_bits == 16
-
-        # On this padding, the 32-bit variable will continue to be transmitted
-        # (8 bits of 16 bits, 0 remaining)
-        assert tpdo.items[4].register.identifier == "PADDING"
-        assert tpdo.items[4].size_bits == 8
-
-        # Additional padding added automatically, not explicitly on the map
-        assert tpdo.items[5].register.identifier == "PADDING"
-        assert tpdo.items[5].size_bits == 8
-
-        assert tpdo.items[6].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC1"
-        assert tpdo.items[6].size_bits == 16
-
-        assert tpdo.items[7].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CONNID"
-        assert tpdo.items[7].size_bits == 16
-
-        assert len(tpdo.items) == 8
-
-        # The 2 8-bit padding, virtual and non-virtual may come unified
-        # It should produce the same result
-        if unify_pdo_mapping:
-            tpdo.items[4].size_bits = 16  # Expand previous
-            del tpdo[5]  # Remove the other padding
-
-        rpdo = RPDOMap()
-        maps.fill_rpdo_map(rpdo, safe_dict)
-
-        recreated_pdu_maps = ProcessImage.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
-        assert (
-            recreated_pdu_maps.outputs.get_text_representation()
-            == maps.outputs.get_text_representation()
-        )
-        assert (
-            recreated_pdu_maps.inputs.get_text_representation()
-            == maps.inputs.get_text_representation()
-        )
-
-    @pytest.mark.fsoe
-    @pytest.mark.parametrize(
-        "pdo_length, frame_data_bytes",
-        [
-            (6, (1,)),
-            (7, (1, 2)),
-            (11, (1, 2, 5, 6)),
-            (15, (1, 2, 5, 6, 9, 10)),
-            (19, (1, 2, 5, 6, 9, 10, 13, 14)),
-        ],
+@pytest.mark.fsoe
+def test_map_phase_1(
+    safe_dict: tuple["EthercatDictionary", "FSoEDictionary"], fsoe_dict: "FSoEDictionary"
+) -> None:
+    maps = ProcessImage.empty(fsoe_dict)
+
+    maps.outputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
+    maps.outputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
+    maps.outputs.add_padding(bits=6 + 8)
+
+    maps.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
+    maps.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
+    maps.inputs.add_padding(bits=6)
+    maps.inputs.add(fsoe_dict.name_map[SafeInputsFunction.SAFE_INPUTS_UID])
+    maps.inputs.add_padding(bits=7)
+
+    rpdo = RPDOMap()
+    # Registers that are present in the map,
+    # are cleared when the map is filled
+    rpdo.add_registers(safe_dict.get_register("DRV_OP_CMD"))
+    maps.fill_rpdo_map(rpdo, safe_dict)
+
+    assert rpdo.items[0].register.identifier == "FSOE_MASTER_FRAME_ELEM_CMD"
+    assert rpdo.items[0].register.idx == 0x6770
+    assert rpdo.items[0].register.subidx == 0x01
+    assert rpdo.items[0].size_bits == 8
+
+    assert rpdo.items[1].register.identifier == "FSOE_STO"
+    assert rpdo.items[1].register.idx == 0x6640
+    assert rpdo.items[1].register.subidx == 0x0
+    assert rpdo.items[1].size_bits == 1
+
+    assert rpdo.items[2].register.identifier == "FSOE_SS1_1"
+    assert rpdo.items[2].register.idx == 0x6650
+    assert rpdo.items[2].register.subidx == 0x1
+    assert rpdo.items[2].size_bits == 1
+
+    assert rpdo.items[3].register.identifier == "PADDING"
+    assert rpdo.items[3].register.idx == 0
+    assert rpdo.items[3].register.subidx == 0
+    assert rpdo.items[3].size_bits == 14
+
+    assert rpdo.items[4].register.identifier == "FSOE_MASTER_FRAME_ELEM_CRC0"
+    assert rpdo.items[4].register.idx == 0x6770
+    assert rpdo.items[4].register.subidx == 0x03
+    assert rpdo.items[4].size_bits == 16
+
+    assert rpdo.items[5].register.identifier == "FSOE_MASTER_FRAME_ELEM_CONNID"
+    assert rpdo.items[5].register.idx == 0x6770
+    assert rpdo.items[5].register.subidx == 0x02
+    assert rpdo.items[5].size_bits == 16
+
+    assert len(rpdo.items) == 6
+
+    tpdo = TPDOMap()
+    maps.fill_tpdo_map(tpdo, safe_dict)
+
+    assert tpdo.items[0].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CMD"
+    assert tpdo.items[0].register.idx == 0x6760
+    assert tpdo.items[0].register.subidx == 0x01
+    assert tpdo.items[0].size_bits == 8
+
+    assert tpdo.items[1].register.identifier == "FSOE_STO"
+    assert tpdo.items[1].register.idx == 0x6640
+    assert tpdo.items[1].register.subidx == 0x0
+    assert tpdo.items[1].size_bits == 1
+
+    assert tpdo.items[2].register.identifier == "FSOE_SS1_1"
+    assert tpdo.items[2].register.idx == 0x6650
+    assert tpdo.items[2].register.subidx == 0x1
+    assert tpdo.items[2].size_bits == 1
+
+    assert tpdo.items[3].register.identifier == "PADDING"
+    assert tpdo.items[3].register.idx == 0
+    assert tpdo.items[3].register.subidx == 0
+    assert tpdo.items[3].size_bits == 6
+
+    assert tpdo.items[4].register.identifier == "FSOE_SAFE_INPUTS_VALUE"
+    assert tpdo.items[4].register.idx == 0x46D1
+    assert tpdo.items[4].register.subidx == 0x0
+    assert tpdo.items[4].size_bits == 1
+
+    assert tpdo.items[5].register.identifier == "PADDING"
+    assert tpdo.items[5].register.idx == 0
+    assert tpdo.items[5].register.subidx == 0
+    assert tpdo.items[5].size_bits == 7
+
+    assert tpdo.items[6].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC0"
+    assert tpdo.items[6].register.idx == 0x6760
+    assert tpdo.items[6].register.subidx == 0x03
+    assert tpdo.items[6].size_bits == 16
+
+    assert tpdo.items[7].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CONNID"
+    assert tpdo.items[7].register.idx == 0x6760
+    assert tpdo.items[7].register.subidx == 0x02
+    assert tpdo.items[7].size_bits == 16
+
+    assert len(tpdo.items) == 8
+
+    recreated_pdu_maps = ProcessImage.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
+    assert (
+        recreated_pdu_maps.outputs.get_text_representation()
+        == maps.outputs.get_text_representation()
     )
-    def test_get_safety_bytes_range_from_pdo_length(
-        self, pdo_length: int, frame_data_bytes: tuple[int, ...]
-    ) -> None:
-        assert (
-            frame_data_bytes
-            == ProcessImage._ProcessImage__get_safety_bytes_range_from_pdo_length(pdo_length)
-        )
+    assert (
+        recreated_pdu_maps.inputs.get_text_representation() == maps.inputs.get_text_representation()
+    )
 
-    @pytest.mark.fsoe
-    def test_insert_in_best_position(
-        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
-    ) -> None:
-        _safe_dict, fsoe_dict = sample_safe_dictionary
+
+@pytest.mark.fsoe
+def test_map_8_safe_bits(
+    safe_dict: tuple["EthercatDictionary", "FSoEDictionary"], fsoe_dict: "FSoEDictionary"
+) -> None:
+    maps = ProcessImage.empty(fsoe_dict)
+
+    maps.inputs.add(fsoe_dict.name_map["TEST_SI_U8"])
+
+    # Create the rpdo map
+    tpdo = TPDOMap()
+    maps.fill_tpdo_map(tpdo, safe_dict)
+
+    assert tpdo.items[0].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CMD"
+    assert tpdo.items[0].size_bits == 8
+
+    assert tpdo.items[1].register.identifier == "TEST_SI_U8"
+    assert tpdo.items[1].size_bits == 8
+
+    assert tpdo.items[2].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC0"
+    assert tpdo.items[2].size_bits == 16
+
+    assert tpdo.items[3].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CONNID"
+    assert tpdo.items[3].size_bits == 16
+
+    assert len(tpdo.items) == 4
+
+    rpdo = RPDOMap()
+    maps.fill_rpdo_map(rpdo, safe_dict)
+
+    recreated_pdu_maps = ProcessImage.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
+    assert (
+        recreated_pdu_maps.outputs.get_text_representation()
+        == maps.outputs.get_text_representation()
+    )
+    assert (
+        recreated_pdu_maps.inputs.get_text_representation() == maps.inputs.get_text_representation()
+    )
+
+
+@pytest.mark.fsoe
+def test_empty_map_8_bits(
+    safe_dict: tuple["EthercatDictionary", "FSoEDictionary"], fsoe_dict: "FSoEDictionary"
+) -> None:
+    maps = ProcessImage.empty(fsoe_dict)
+    tpdo = TPDOMap()
+    maps.fill_tpdo_map(tpdo, safe_dict)
+
+    assert tpdo.items[0].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CMD"
+    assert tpdo.items[0].size_bits == 8
+
+    assert tpdo.items[1].register.identifier == "PADDING"
+    assert tpdo.items[1].size_bits == 8
+
+    assert tpdo.items[2].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC0"
+    assert tpdo.items[2].size_bits == 16
+
+    assert tpdo.items[3].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CONNID"
+    assert tpdo.items[3].size_bits == 16
+
+    assert len(tpdo.items) == 4
+
+
+@pytest.mark.fsoe
+def test_map_with_32_bit_vars(
+    safe_dict: tuple["EthercatDictionary", "FSoEDictionary"], fsoe_dict: "FSoEDictionary"
+) -> None:
+    maps = ProcessImage.empty(fsoe_dict)
+
+    # Append a 32-bit variable
+    maps.inputs.add(fsoe_dict.name_map["FSOE_SAFE_POSITION"])
+
+    # Create the rpdo map
+    tpdo = TPDOMap()
+    maps.fill_tpdo_map(tpdo, safe_dict)
+
+    assert tpdo.items[0].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CMD"
+    assert tpdo.items[0].size_bits == 8
+
+    assert tpdo.items[1].register.identifier == "FSOE_SAFE_POSITION"
+    assert tpdo.items[1].size_bits == 16
+
+    assert tpdo.items[2].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC0"
+    assert tpdo.items[2].size_bits == 16
+
+    # On this padding, the 32-bit variable will continue to be transmitted
+    assert tpdo.items[3].register.identifier == "PADDING"
+    assert tpdo.items[3].size_bits == 16
+
+    assert tpdo.items[4].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC1"
+    assert tpdo.items[4].size_bits == 16
+
+    assert tpdo.items[5].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CONNID"
+    assert tpdo.items[5].size_bits == 16
+
+    assert len(tpdo.items) == 6
+
+    rpdo = RPDOMap()
+    maps.fill_rpdo_map(rpdo, safe_dict)
+
+    recreated_pdu_maps = ProcessImage.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
+    assert (
+        recreated_pdu_maps.outputs.get_text_representation()
+        == maps.outputs.get_text_representation()
+    )
+    assert (
+        recreated_pdu_maps.inputs.get_text_representation() == maps.inputs.get_text_representation()
+    )
+
+
+@pytest.mark.fsoe
+def test_map_with_32_bit_vars_offset_8(
+    safe_dict: tuple["EthercatDictionary", "FSoEDictionary"], fsoe_dict: "FSoEDictionary"
+) -> None:
+    maps = ProcessImage.empty(fsoe_dict)
+
+    # Add a first 8-bit variable that will shift the 32-bit variable
+    maps.inputs.add(fsoe_dict.name_map["TEST_SI_U8"])
+    # Append a 32-bit variable
+    maps.inputs.add(fsoe_dict.name_map["FSOE_SAFE_POSITION"])
+    maps.inputs.add_padding(bits=8)
+
+    # Create the rpdo map
+    tpdo = TPDOMap()
+    maps.fill_tpdo_map(tpdo, safe_dict)
+
+    assert tpdo.items[0].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CMD"
+    assert tpdo.items[0].size_bits == 8
+
+    assert tpdo.items[1].register.identifier == "TEST_SI_U8"
+    assert tpdo.items[1].size_bits == 8
+
+    # Variable cut to what fills on the slot (8 bits of 32 bits, 24 remaining)
+    assert tpdo.items[2].register.identifier == "FSOE_SAFE_POSITION"
+    assert tpdo.items[2].size_bits == 8
+
+    assert tpdo.items[3].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC0"
+    assert tpdo.items[3].size_bits == 16
+
+    # On this padding, the 32-bit variable will continue to be transmitted
+    # (16 bits of 32 bits, 8 remaining)
+    assert tpdo.items[4].register.identifier == "PADDING"
+    assert tpdo.items[4].size_bits == 16
+
+    assert tpdo.items[5].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC1"
+    assert tpdo.items[5].size_bits == 16
+
+    # On this padding, the 32-bit variable will continue to be transmitted
+    # (8 bits of 32 bits, 0 remaining)
+    assert tpdo.items[6].register.identifier == "PADDING"
+    assert tpdo.items[6].size_bits == 8
+
+    # 8 bits of regular padding to fill the 16 bits of the data last slot.
+    assert tpdo.items[7].register.identifier == "PADDING"
+    assert tpdo.items[7].size_bits == 8
+
+    assert tpdo.items[8].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC2"
+    assert tpdo.items[8].size_bits == 16
+
+    assert tpdo.items[9].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CONNID"
+    assert tpdo.items[9].size_bits == 16
+
+    assert len(tpdo.items) == 10
+
+    rpdo = RPDOMap()
+    maps.fill_rpdo_map(rpdo, safe_dict)
+
+    recreated_pdu_maps = ProcessImage.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
+    assert (
+        recreated_pdu_maps.outputs.get_text_representation()
+        == maps.outputs.get_text_representation()
+    )
+    assert (
+        recreated_pdu_maps.inputs.get_text_representation() == maps.inputs.get_text_representation()
+    )
+
+
+@pytest.mark.fsoe
+def test_map_with_32_bit_vars_offset_16(
+    safe_dict: "EthercatDictionary", fsoe_dict: "FSoEDictionary"
+) -> None:
+    maps = ProcessImage.empty(fsoe_dict)
+
+    # Add a first 16-bit variable that will shift the 32-bit variable
+    maps.inputs.add(fsoe_dict.name_map["TEST_SI_U16"])
+    # Append a 32-bit variable
+    maps.inputs.add(fsoe_dict.name_map["FSOE_SAFE_POSITION"])
+
+    # Create the rpdo map
+    tpdo = TPDOMap()
+    maps.fill_tpdo_map(tpdo, safe_dict)
+
+    assert tpdo.items[0].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CMD"
+    assert tpdo.items[0].size_bits == 8
+
+    assert tpdo.items[1].register.identifier == "TEST_SI_U16"
+    assert tpdo.items[1].size_bits == 16
+
+    assert tpdo.items[2].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC0"
+    assert tpdo.items[2].size_bits == 16
+
+    # Variable cut to what fills on the slot (16 bits of 32 bits, 16 remaining)
+    assert tpdo.items[3].register.identifier == "FSOE_SAFE_POSITION"
+    assert tpdo.items[3].size_bits == 16
+
+    assert tpdo.items[4].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC1"
+    assert tpdo.items[4].size_bits == 16
+
+    # On this padding, the 32-bit variable will continue to be transmitted
+    # (16 bits of 32 bits, 16 remaining)
+    assert tpdo.items[5].register.identifier == "PADDING"
+    assert tpdo.items[5].size_bits == 16
+
+    assert tpdo.items[6].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC2"
+    assert tpdo.items[6].size_bits == 16
+
+    assert tpdo.items[7].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CONNID"
+    assert tpdo.items[7].size_bits == 16
+
+    assert len(tpdo.items) == 8
+
+    rpdo = RPDOMap()
+    maps.fill_rpdo_map(rpdo, safe_dict)
+
+    recreated_pdu_maps = ProcessImage.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
+    assert (
+        recreated_pdu_maps.outputs.get_text_representation()
+        == maps.outputs.get_text_representation()
+    )
+    assert (
+        recreated_pdu_maps.inputs.get_text_representation() == maps.inputs.get_text_representation()
+    )
+
+
+@pytest.mark.fsoe
+@pytest.mark.parametrize("unify_pdo_mapping", [True, False])
+def test_map_with_16_bit_vars_offset_8(
+    safe_dict: "EthercatDictionary", fsoe_dict: "FSoEDictionary", unify_pdo_mapping: bool
+) -> None:
+    maps = ProcessImage.empty(fsoe_dict)
+
+    # Add a first 8-bit variable that will shift the 16-bit variable
+    maps.inputs.add(fsoe_dict.name_map["TEST_SI_U8"])
+    # Append a 32-bit variable
+    maps.inputs.add(fsoe_dict.name_map["TEST_SI_U16"])
+
+    # Create the rpdo map
+    tpdo = TPDOMap()
+    maps.fill_tpdo_map(tpdo, safe_dict)
+
+    assert tpdo.items[0].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CMD"
+    assert tpdo.items[0].size_bits == 8
+
+    assert tpdo.items[1].register.identifier == "TEST_SI_U8"
+    assert tpdo.items[1].size_bits == 8
+
+    # Variable cut to what fills on the slot (8 bits of 16 bits, 8 remaining)
+    assert tpdo.items[2].register.identifier == "TEST_SI_U16"
+    assert tpdo.items[2].size_bits == 8
+
+    assert tpdo.items[3].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC0"
+    assert tpdo.items[3].size_bits == 16
+
+    # On this padding, the 32-bit variable will continue to be transmitted
+    # (8 bits of 16 bits, 0 remaining)
+    assert tpdo.items[4].register.identifier == "PADDING"
+    assert tpdo.items[4].size_bits == 8
+
+    # Additional padding added automatically, not explicitly on the map
+    assert tpdo.items[5].register.identifier == "PADDING"
+    assert tpdo.items[5].size_bits == 8
+
+    assert tpdo.items[6].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CRC1"
+    assert tpdo.items[6].size_bits == 16
+
+    assert tpdo.items[7].register.identifier == "FSOE_SLAVE_FRAME_ELEM_CONNID"
+    assert tpdo.items[7].size_bits == 16
+
+    assert len(tpdo.items) == 8
+
+    # The 2 8-bit padding, virtual and non-virtual may come unified
+    # It should produce the same result
+    if unify_pdo_mapping:
+        tpdo.items[4].size_bits = 16  # Expand previous
+        del tpdo[5]  # Remove the other padding
+
+    rpdo = RPDOMap()
+    maps.fill_rpdo_map(rpdo, safe_dict)
+
+    recreated_pdu_maps = ProcessImage.from_rpdo_tpdo(rpdo, tpdo, fsoe_dict)
+    assert (
+        recreated_pdu_maps.outputs.get_text_representation()
+        == maps.outputs.get_text_representation()
+    )
+    assert (
+        recreated_pdu_maps.inputs.get_text_representation() == maps.inputs.get_text_representation()
+    )
+
+
+@pytest.mark.fsoe
+@pytest.mark.parametrize(
+    "pdo_length, frame_data_bytes",
+    [
+        (6, (1,)),
+        (7, (1, 2)),
+        (11, (1, 2, 5, 6)),
+        (15, (1, 2, 5, 6, 9, 10)),
+        (19, (1, 2, 5, 6, 9, 10, 13, 14)),
+    ],
+)
+def test_get_safety_bytes_range_from_pdo_length(
+    pdo_length: int, frame_data_bytes: tuple[int, ...]
+) -> None:
+    assert frame_data_bytes == ProcessImage._ProcessImage__get_safety_bytes_range_from_pdo_length(
+        pdo_length
+    )
+
+
+@pytest.mark.fsoe
+def test_insert_in_best_position(fsoe_dict: "FSoEDictionary") -> None:
+    maps = ProcessImage.empty(fsoe_dict)
+
+    si = fsoe_dict.name_map[SafeInputsFunction.SAFE_INPUTS_UID]
+    sp = fsoe_dict.name_map["FSOE_SAFE_POSITION"]
+    sto = fsoe_dict.name_map[STOFunction.COMMAND_UID]
+
+    maps.insert_in_best_position(sto)
+    maps.insert_in_best_position(sp)
+    maps.insert_in_best_position(si)
+
+    assert maps.inputs.get_text_representation(item_space=30) == (
+        "Item                           | Position bytes..bits | Size bytes..bits    \n"
+        "FSOE_STO                       | 0..0                 | 0..1                \n"
+        "FSOE_SAFE_INPUTS_VALUE         | 0..1                 | 0..1                \n"
+        "Padding                        | 0..2                 | 1..6                \n"
+        "FSOE_SAFE_POSITION             | 2..0                 | 4..0                "
+    )
+
+    assert maps.outputs.get_text_representation(item_space=30) == (
+        "Item                           | Position bytes..bits | Size bytes..bits    \n"
+        "FSOE_STO                       | 0..0                 | 0..1                "
+    )
+
+
+@pytest.mark.fsoe
+def test_validate_safe_data_blocks_invalid_size(
+    mocker: MockerFixture, fsoe_dict: "FSoEDictionary"
+) -> None:
+    """Test that SafeDataBlocksValidator fails when safe data blocks are not 16 bits."""
+    maps = ProcessImage.empty(fsoe_dict)
+
+    # Create a map with safe data blocks that are not 16 bits
+    test_st_u8_item = maps.inputs.add(fsoe_dict.name_map["TEST_SI_U8"])  # 8 bits
+
+    # Use a dummy slot width to simulate that the safe data block is wrongly sized
+    dummy_slot_width = 2
+
+    mocker.patch.object(FSoEFrame, "_FSoEFrame__SLOT_WIDTH", dummy_slot_width)
+    # Only validate the safe data blocks rule
+    output = maps.are_inputs_valid(rules=[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID])
+    assert len(output.exceptions) == 1
+    assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID in output.exceptions
+    exception = output.exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
+    assert isinstance(exception, InvalidFSoEFrameRule)
+    assert f"Safe data block 0 must be 16 bits. Found {dummy_slot_width}" in exception.exception
+    assert exception.items == [test_st_u8_item]
+    assert output.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is False
+
+
+@pytest.mark.fsoe
+def test_validate_safe_data_blocks_pdu_empty(fsoe_dict: "FSoEDictionary") -> None:
+    """Test that SafeDataBlocksValidator passes when no safe data blocks are present."""
+    maps = ProcessImage.empty(fsoe_dict)
+    output = maps.are_inputs_valid(rules=[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID])
+    assert len(output.exceptions) == 0
+    assert output.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is True
+
+
+@pytest.mark.fsoe
+def test_validate_safe_data_blocks_too_many_blocks() -> None:
+    """Test that SafeDataBlocksValidator fails when there are more than 8 safe data blocks."""
+    # Add 9 different 16-bit safe inputs -> 9 blocks
+    safe_dict = DictionaryFactory.create_dictionary(
+        SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, interface=Interface.ECAT
+    )
+    for idx in range(9):
+        test_uid = f"TEST_SI_U16_{idx}"
+        safe_dict._registers[1][test_uid] = EthercatRegister(
+            idx=0xF010 + idx,
+            subidx=0,
+            dtype=RegDtype.U16,
+            access=RegAccess.RO,
+            identifier=test_uid,
+            pdo_access=RegCyclicType.SAFETY_INPUT,
+            cat_id="FSOE",
+        )
+    # Check the CRCs that are already present in the sample dictionary and add the missing ones
+    existing_crcs = [
+        key for key in safe_dict._registers[1] if key.startswith("FSOE_SLAVE_FRAME_ELEM_CRC")
+    ]
+    added_crc = 0
+    for idx in range(9):
+        crc_uid = f"FSOE_SLAVE_FRAME_ELEM_CRC{idx}"
+        if crc_uid in existing_crcs:
+            continue
+        safe_dict._registers[1][crc_uid] = EthercatRegister(
+            idx=0x6760,
+            subidx=len(existing_crcs) + added_crc,
+            dtype=RegDtype.U16,
+            access=RegAccess.RO,
+            identifier=crc_uid,
+            pdo_access=RegCyclicType.SAFETY_INPUT,
+            cat_id="FSOE",
+        )
+        added_crc += 1
+    # Create safe dictionary
+    fsoe_dict = FSoEMasterHandler.create_safe_dictionary(safe_dict)
+
+    maps = ProcessImage.empty(fsoe_dict)
+
+    test_si_u16_items = []
+    for idx in range(9):
+        test_uid = f"TEST_SI_U16_{idx}"
+        item = maps.inputs.add(fsoe_dict.name_map[test_uid])
+        test_si_u16_items.append(item)
+
+    output = maps.are_inputs_valid(rules=[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID])
+    assert len(output.exceptions) == 1
+    assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID in output.exceptions
+    exception = output.exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
+    assert isinstance(exception, InvalidFSoEFrameRule)
+    assert "Expected 1-8 safe data blocks, found 9" in exception.exception
+    assert exception.items == test_si_u16_items
+    assert output.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is False
+
+
+@pytest.mark.fsoe
+def test_validate_safe_data_blocks_objects_split_across_blocks(fsoe_dict: "FSoEDictionary") -> None:
+    """Test that SafeDataBlocksValidator fails when <= 16 bits objects are split."""
+    maps = ProcessImage.empty(fsoe_dict)
+
+    maps.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
+    maps.inputs.add_padding(bits=6)
+    maps.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
+    maps.inputs.add(fsoe_dict.name_map["FSOE_SS2_1"])
+    test_si_u8_item = maps.inputs.add(fsoe_dict.name_map["TEST_SI_U8"])
+
+    # Test that rule fails because the 8-bit object is split across blocks
+    output = maps.are_inputs_valid(rules=[FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED])
+    assert len(output.exceptions) == 1
+    assert FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED in output.exceptions
+    exception = output.exceptions[FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED]
+    assert isinstance(exception, InvalidFSoEFrameRule)
+    assert exception.exception == (
+        "Make sure that 8 bit objects belong to the same data block. "
+        f"Data slot 0 contains split object {test_si_u8_item.item.name}."
+    )
+    assert exception.items == [test_si_u8_item]  # Split item
+    assert output.is_rule_valid(FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED) is False
+
+    # Test that rule passes when the object is not split
+    maps.inputs.clear()
+    maps.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
+    maps.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
+    maps.inputs.add(fsoe_dict.name_map["FSOE_SS2_1"])
+    maps.inputs.add(fsoe_dict.name_map["TEST_SI_U8"])
+    output = maps.are_inputs_valid(rules=[FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED])
+    assert not output.exceptions
+    assert output.is_rule_valid(FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED) is True
+
+
+@pytest.mark.fsoe
+def test_validate_safe_data_blocks_valid_cases(fsoe_dict: "FSoEDictionary") -> None:
+    """Test that SafeDataBlocksValidator passes for valid safe data block configurations."""
+    for items_to_add in [
+        ["TEST_SI_U8"],  # single 8-bit block
+        ["TEST_SI_U16"],  # single 16-bit block
+        ["TEST_SI_U16", "FSOE_SAFE_POSITION"],  # multiple 16-bit blocks
+    ]:
         maps = ProcessImage.empty(fsoe_dict)
+        for item_uid in items_to_add:
+            maps.inputs.add(fsoe_dict.name_map[item_uid])
 
-        si = fsoe_dict.name_map[SafeInputsFunction.SAFE_INPUTS_UID]
-        sp = fsoe_dict.name_map["FSOE_SAFE_POSITION"]
-        sto = fsoe_dict.name_map[STOFunction.COMMAND_UID]
-
-        maps.insert_in_best_position(sto)
-        maps.insert_in_best_position(sp)
-        maps.insert_in_best_position(si)
-
-        assert maps.inputs.get_text_representation(item_space=30) == (
-            "Item                           | Position bytes..bits | Size bytes..bits    \n"
-            "FSOE_STO                       | 0..0                 | 0..1                \n"
-            "FSOE_SAFE_INPUTS_VALUE         | 0..1                 | 0..1                \n"
-            "Padding                        | 0..2                 | 1..6                \n"
-            "FSOE_SAFE_POSITION             | 2..0                 | 4..0                "
-        )
-
-        assert maps.outputs.get_text_representation(item_space=30) == (
-            "Item                           | Position bytes..bits | Size bytes..bits    \n"
-            "FSOE_STO                       | 0..0                 | 0..1                "
-        )
-
-    @pytest.mark.fsoe
-    def test_validate_safe_data_blocks_invalid_size(
-        self,
-        mocker: MockerFixture,
-        sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"],
-    ) -> None:
-        """Test that SafeDataBlocksValidator fails when safe data blocks are not 16 bits."""
-        _, fsoe_dict = sample_safe_dictionary
-        maps = ProcessImage.empty(fsoe_dict)
-
-        # Create a map with safe data blocks that are not 16 bits
-        test_st_u8_item = maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])  # 8 bits
-
-        # Use a dummy slot width to simulate that the safe data block is wrongly sized
-        dummy_slot_width = 2
-
-        mocker.patch.object(FSoEFrame, "_FSoEFrame__SLOT_WIDTH", dummy_slot_width)
-        # Only validate the safe data blocks rule
         output = maps.are_inputs_valid(rules=[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID])
-        assert len(output.exceptions) == 1
-        assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID in output.exceptions
-        exception = output.exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
-        assert isinstance(exception, InvalidFSoEFrameRule)
-        assert f"Safe data block 0 must be 16 bits. Found {dummy_slot_width}" in exception.exception
-        assert exception.items == [test_st_u8_item]
-        assert output.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is False
-
-    @pytest.mark.fsoe
-    def test_validate_safe_data_blocks_pdu_empty(
-        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
-    ) -> None:
-        """Test that SafeDataBlocksValidator passes when no safe data blocks are present."""
-        _, fsoe_dict = sample_safe_dictionary
-        maps = ProcessImage.empty(fsoe_dict)
-        output = maps.are_inputs_valid(rules=[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID])
-        assert len(output.exceptions) == 0
+        assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID not in output.exceptions
         assert output.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is True
 
-    @pytest.mark.fsoe
-    def test_validate_safe_data_blocks_too_many_blocks(self) -> None:
-        """Test that SafeDataBlocksValidator fails when there are more than 8 safe data blocks."""
-        # Add 9 different 16-bit safe inputs -> 9 blocks
-        safe_dict = DictionaryFactory.create_dictionary(
-            SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, interface=Interface.ECAT
+
+@pytest.mark.fsoe
+def test_validate_number_of_objects_in_frame(
+    safe_dict: "EthercatDictionary", fsoe_dict: "FSoEDictionary"
+) -> None:
+    """Test that SafeDataBlocksValidator fails if the number of objects is exceeded."""
+
+    for idx in range(45):
+        test_uid = f"TEST_SI_BOOL_{idx}"
+        safe_dict._registers[1][test_uid] = EthercatRegister(
+            idx=0xF010 + idx,
+            subidx=0,
+            dtype=RegDtype.BOOL,
+            access=RegAccess.RO,
+            identifier=test_uid,
+            pdo_access=RegCyclicType.SAFETY_INPUT,
+            cat_id="FSOE",
         )
-        for idx in range(9):
-            test_uid = f"TEST_SI_U16_{idx}"
-            safe_dict._registers[self.AXIS_1][test_uid] = EthercatRegister(
-                idx=0xF010 + idx,
-                subidx=0,
-                dtype=RegDtype.U16,
-                access=RegAccess.RO,
-                identifier=test_uid,
-                pdo_access=RegCyclicType.SAFETY_INPUT,
-                cat_id="FSOE",
-            )
-        # Check the CRCs that are already present in the sample dictionary and add the missing ones
-        existing_crcs = [
-            key
-            for key in safe_dict._registers[self.AXIS_1]
-            if key.startswith("FSOE_SLAVE_FRAME_ELEM_CRC")
-        ]
-        added_crc = 0
-        for idx in range(9):
-            crc_uid = f"FSOE_SLAVE_FRAME_ELEM_CRC{idx}"
-            if crc_uid in existing_crcs:
-                continue
-            safe_dict._registers[self.AXIS_1][crc_uid] = EthercatRegister(
-                idx=0x6760,
-                subidx=len(existing_crcs) + added_crc,
-                dtype=RegDtype.U16,
-                access=RegAccess.RO,
-                identifier=crc_uid,
-                pdo_access=RegCyclicType.SAFETY_INPUT,
-                cat_id="FSOE",
-            )
-            added_crc += 1
-        # Create safe dictionary
-        fsoe_dict = FSoEMasterHandler.create_safe_dictionary(safe_dict)
-
-        maps = ProcessImage.empty(fsoe_dict)
-
-        test_si_u16_items = []
-        for idx in range(9):
-            test_uid = f"TEST_SI_U16_{idx}"
-            item = maps.inputs.add(fsoe_dict.name_map[test_uid])
-            test_si_u16_items.append(item)
-
-        output = maps.are_inputs_valid(rules=[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID])
-        assert len(output.exceptions) == 1
-        assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID in output.exceptions
-        exception = output.exceptions[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
-        assert isinstance(exception, InvalidFSoEFrameRule)
-        assert "Expected 1-8 safe data blocks, found 9" in exception.exception
-        assert exception.items == test_si_u16_items
-        assert output.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is False
-
-    @pytest.mark.fsoe
-    def test_validate_safe_data_blocks_objects_split_across_blocks(
-        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
-    ) -> None:
-        """Test that SafeDataBlocksValidator fails when <= 16 bits objects are split."""
-        _, fsoe_dict = sample_safe_dictionary
-        maps = ProcessImage.empty(fsoe_dict)
-
-        maps.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
-        maps.inputs.add_padding(bits=6)
-        maps.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
-        maps.inputs.add(fsoe_dict.name_map["FSOE_SS2_1"])
-        test_si_u8_item = maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
-
-        # Test that rule fails because the 8-bit object is split across blocks
-        output = maps.are_inputs_valid(rules=[FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED])
-        assert len(output.exceptions) == 1
-        assert FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED in output.exceptions
-        exception = output.exceptions[FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED]
-        assert isinstance(exception, InvalidFSoEFrameRule)
-        assert exception.exception == (
-            "Make sure that 8 bit objects belong to the same data block. "
-            f"Data slot 0 contains split object {test_si_u8_item.item.name}."
+    # Check the CRCs that are already present in the sample dictionary and add the missing ones
+    existing_crcs = [
+        key for key in safe_dict._registers[1] if key.startswith("FSOE_SLAVE_FRAME_ELEM_CRC")
+    ]
+    added_crc = 0
+    for idx in range(45):
+        crc_uid = f"FSOE_SLAVE_FRAME_ELEM_CRC{idx}"
+        if crc_uid in existing_crcs:
+            continue
+        safe_dict._registers[1][crc_uid] = EthercatRegister(
+            idx=0x6760,
+            subidx=len(existing_crcs) + added_crc,
+            dtype=RegDtype.U16,
+            access=RegAccess.RO,
+            identifier=crc_uid,
+            pdo_access=RegCyclicType.SAFETY_INPUT,
+            cat_id="FSOE",
         )
-        assert exception.items == [test_si_u8_item]  # Split item
-        assert output.is_rule_valid(FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED) is False
+        added_crc += 1
+    # Create safe dictionary
+    fsoe_dict = FSoEMasterHandler.create_safe_dictionary(safe_dict)
 
-        # Test that rule passes when the object is not split
-        maps.inputs.clear()
-        maps.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
-        maps.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
-        maps.inputs.add(fsoe_dict.name_map["FSOE_SS2_1"])
-        maps.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
-        output = maps.are_inputs_valid(rules=[FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED])
-        assert not output.exceptions
-        assert output.is_rule_valid(FSoEFrameRules.OBJECTS_SPLIT_RESTRICTED) is True
+    maps = ProcessImage.empty(fsoe_dict)
 
-    @pytest.mark.fsoe
-    def test_validate_safe_data_blocks_valid_cases(
-        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
-    ) -> None:
-        """Test that SafeDataBlocksValidator passes for valid safe data block configurations."""
-        _, fsoe_dict = sample_safe_dictionary
+    test_si_bool_items = []
+    for idx in range(45):
+        test_uid = f"TEST_SI_BOOL_{idx}"
+        item = maps.inputs.add(fsoe_dict.name_map[test_uid])
+        test_si_bool_items.append(item)
 
-        for items_to_add in [
-            [self.TEST_SI_U8_UID],  # single 8-bit block
-            [self.TEST_SI_U16_UID],  # single 16-bit block
-            [self.TEST_SI_U16_UID, "FSOE_SAFE_POSITION"],  # multiple 16-bit blocks
-        ]:
-            maps = ProcessImage.empty(fsoe_dict)
-            for item_uid in items_to_add:
-                maps.inputs.add(fsoe_dict.name_map[item_uid])
+    # Expected data blocks
+    # CMD + DATA BLOCKS + CRC + CONNID
+    data_blocks = FSoEFrame.generate_slot_structure(
+        dict_map=maps.inputs, slot_width=FSoEFrame._FSoEFrame__SLOT_WIDTH
+    )
+    expected_crcs = len(list(data_blocks))
+    n_objects = 1 + len(maps.inputs) + expected_crcs + 1
 
-            output = maps.are_inputs_valid(rules=[FSoEFrameRules.SAFE_DATA_BLOCKS_VALID])
-            assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID not in output.exceptions
-            assert output.is_rule_valid(FSoEFrameRules.SAFE_DATA_BLOCKS_VALID) is True
+    output = maps.are_inputs_valid(
+        rules=[FSoEFrameRules.OBJECTS_IN_FRAME, FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
+    )
+    assert len(output.exceptions) == 1
+    assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID not in output.exceptions
+    assert FSoEFrameRules.OBJECTS_IN_FRAME in output.exceptions
+    exception = output.exceptions[FSoEFrameRules.OBJECTS_IN_FRAME]
+    assert isinstance(exception, InvalidFSoEFrameRule)
+    assert exception.exception == (f"Total objects in frame exceeds limit: {n_objects} > 45")
+    assert exception.items == test_si_bool_items
+    assert output.is_rule_valid(FSoEFrameRules.OBJECTS_IN_FRAME) is False
 
-    @pytest.mark.fsoe
-    def test_validate_number_of_objects_in_frame(
-        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
-    ) -> None:
-        """Test that SafeDataBlocksValidator fails if the number of objects is exceeded."""
-        safe_dict, fsoe_dict = sample_safe_dictionary
 
-        for idx in range(45):
-            test_uid = f"TEST_SI_BOOL_{idx}"
-            safe_dict._registers[self.AXIS_1][test_uid] = EthercatRegister(
-                idx=0xF010 + idx,
-                subidx=0,
-                dtype=RegDtype.BOOL,
-                access=RegAccess.RO,
-                identifier=test_uid,
-                pdo_access=RegCyclicType.SAFETY_INPUT,
-                cat_id="FSOE",
-            )
-        # Check the CRCs that are already present in the sample dictionary and add the missing ones
-        existing_crcs = [
-            key
-            for key in safe_dict._registers[self.AXIS_1]
-            if key.startswith("FSOE_SLAVE_FRAME_ELEM_CRC")
-        ]
-        added_crc = 0
-        for idx in range(45):
-            crc_uid = f"FSOE_SLAVE_FRAME_ELEM_CRC{idx}"
-            if crc_uid in existing_crcs:
-                continue
-            safe_dict._registers[self.AXIS_1][crc_uid] = EthercatRegister(
-                idx=0x6760,
-                subidx=len(existing_crcs) + added_crc,
-                dtype=RegDtype.U16,
-                access=RegAccess.RO,
-                identifier=crc_uid,
-                pdo_access=RegCyclicType.SAFETY_INPUT,
-                cat_id="FSOE",
-            )
-            added_crc += 1
-        # Create safe dictionary
-        fsoe_dict = FSoEMasterHandler.create_safe_dictionary(safe_dict)
+@pytest.mark.fsoe
+def test_validate_safe_data_objects_word_aligned(fsoe_dict: "FSoEDictionary") -> None:
+    """Test that validation fails when safe data objects >= 16 bits are not word aligned."""
+    process_image = ProcessImage.empty(fsoe_dict)
 
-        maps = ProcessImage.empty(fsoe_dict)
+    process_image.inputs.add(fsoe_dict.name_map["TEST_SI_U8"])
+    test_si_u16_item = process_image.inputs.add(fsoe_dict.name_map["TEST_SI_U16"])
 
-        test_si_bool_items = []
-        for idx in range(45):
-            test_uid = f"TEST_SI_BOOL_{idx}"
-            item = maps.inputs.add(fsoe_dict.name_map[test_uid])
-            test_si_bool_items.append(item)
+    output = process_image.are_inputs_valid(rules=[FSoEFrameRules.OBJECTS_ALIGNED])
+    assert len(output.exceptions) == 1
+    assert FSoEFrameRules.OBJECTS_ALIGNED in output.exceptions
+    exception = output.exceptions[FSoEFrameRules.OBJECTS_ALIGNED]
+    assert isinstance(exception, InvalidFSoEFrameRule)
+    assert exception.exception == (
+        "Objects larger than 16-bit must be word-aligned. "
+        f"Object '{test_si_u16_item.item.name}' found at position 8, "
+        f"next alignment is at 16."
+    )
+    assert exception.items == [test_si_u16_item]
+    assert output.is_rule_valid(FSoEFrameRules.OBJECTS_ALIGNED) is False
 
-        # Expected data blocks
-        # CMD + DATA BLOCKS + CRC + CONNID
-        data_blocks = FSoEFrame.generate_slot_structure(
-            dict_map=maps.inputs, slot_width=FSoEFrame._FSoEFrame__SLOT_WIDTH
-        )
-        expected_crcs = len(list(data_blocks))
-        n_objects = 1 + len(maps.inputs) + expected_crcs + 1
+    # Check that the rule passes when the object is word-aligned
+    process_image.inputs.clear()
+    process_image.inputs.add(fsoe_dict.name_map["TEST_SI_U8"])
+    process_image.inputs.add_padding(bits=8)
+    process_image.inputs.add(fsoe_dict.name_map["TEST_SI_U16"])
+    output = process_image.are_inputs_valid(rules=[FSoEFrameRules.OBJECTS_ALIGNED])
+    assert not output.exceptions
+    assert output.is_rule_valid(FSoEFrameRules.OBJECTS_ALIGNED) is True
 
-        output = maps.are_inputs_valid(
-            rules=[FSoEFrameRules.OBJECTS_IN_FRAME, FSoEFrameRules.SAFE_DATA_BLOCKS_VALID]
-        )
-        assert len(output.exceptions) == 1
-        assert FSoEFrameRules.SAFE_DATA_BLOCKS_VALID not in output.exceptions
-        assert FSoEFrameRules.OBJECTS_IN_FRAME in output.exceptions
-        exception = output.exceptions[FSoEFrameRules.OBJECTS_IN_FRAME]
-        assert isinstance(exception, InvalidFSoEFrameRule)
-        assert exception.exception == (f"Total objects in frame exceeds limit: {n_objects} > 45")
-        assert exception.items == test_si_bool_items
-        assert output.is_rule_valid(FSoEFrameRules.OBJECTS_IN_FRAME) is False
 
-    @pytest.mark.fsoe
-    def test_validate_safe_data_objects_word_aligned(
-        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
-    ) -> None:
-        """Test that validation fails when safe data objects >= 16 bits are not word aligned."""
-        _, fsoe_dict = sample_safe_dictionary
-        process_image = ProcessImage.empty(fsoe_dict)
+@pytest.mark.fsoe
+def test_validate_sto_command_first_in_outputs(fsoe_dict: "FSoEDictionary") -> None:
+    """Test that STO command is the first item in the maps."""
+    process_image = ProcessImage.empty(fsoe_dict)
+    ss1_item_outputs = process_image.outputs.add(
+        fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)]
+    )
+    process_image.outputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
+    # STO command can be anywhere in the inputs map
+    ss1_item_inputs = process_image.inputs.add(
+        fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)]
+    )
+    process_image.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
 
-        process_image.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
-        test_si_u16_item = process_image.inputs.add(fsoe_dict.name_map[self.TEST_SI_U16_UID])
+    output = process_image.are_outputs_valid(rules=[FSoEFrameRules.STO_COMMAND_FIRST])
+    assert len(output.exceptions) == 1
+    assert FSoEFrameRules.STO_COMMAND_FIRST in output.exceptions
+    exception = output.exceptions[FSoEFrameRules.STO_COMMAND_FIRST]
+    assert isinstance(exception, InvalidFSoEFrameRule)
+    assert "STO command must be mapped to the first position" in exception.exception
+    assert exception.items == [ss1_item_outputs]
+    assert output.is_rule_valid(FSoEFrameRules.STO_COMMAND_FIRST) is False
 
-        output = process_image.are_inputs_valid(rules=[FSoEFrameRules.OBJECTS_ALIGNED])
-        assert len(output.exceptions) == 1
-        assert FSoEFrameRules.OBJECTS_ALIGNED in output.exceptions
-        exception = output.exceptions[FSoEFrameRules.OBJECTS_ALIGNED]
-        assert isinstance(exception, InvalidFSoEFrameRule)
-        assert exception.exception == (
-            "Objects larger than 16-bit must be word-aligned. "
-            f"Object '{test_si_u16_item.item.name}' found at position 8, "
-            f"next alignment is at 16."
-        )
-        assert exception.items == [test_si_u16_item]
-        assert output.is_rule_valid(FSoEFrameRules.OBJECTS_ALIGNED) is False
+    output = process_image.are_inputs_valid(rules=[FSoEFrameRules.STO_COMMAND_FIRST])
+    assert len(output.exceptions) == 1
+    assert FSoEFrameRules.STO_COMMAND_FIRST in output.exceptions
+    exception = output.exceptions[FSoEFrameRules.STO_COMMAND_FIRST]
+    assert isinstance(exception, InvalidFSoEFrameRule)
+    assert "STO command must be mapped to the first position" in exception.exception
+    assert exception.items == [ss1_item_inputs]
+    assert output.is_rule_valid(FSoEFrameRules.STO_COMMAND_FIRST) is False
 
-        # Check that the rule passes when the object is word-aligned
-        process_image.inputs.clear()
-        process_image.inputs.add(fsoe_dict.name_map[self.TEST_SI_U8_UID])
-        process_image.inputs.add_padding(bits=8)
-        process_image.inputs.add(fsoe_dict.name_map[self.TEST_SI_U16_UID])
-        output = process_image.are_inputs_valid(rules=[FSoEFrameRules.OBJECTS_ALIGNED])
-        assert not output.exceptions
-        assert output.is_rule_valid(FSoEFrameRules.OBJECTS_ALIGNED) is True
+    process_image.outputs.clear()
+    process_image.outputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
+    process_image.outputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
+    output = process_image.are_outputs_valid(rules=[FSoEFrameRules.STO_COMMAND_FIRST])
+    assert not output.exceptions
+    assert output.is_rule_valid(FSoEFrameRules.STO_COMMAND_FIRST) is True
 
-    @pytest.mark.fsoe
-    def test_validate_sto_command_first_in_outputs(
-        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
-    ) -> None:
-        """Test that STO command is the first item in the maps."""
-        _, fsoe_dict = sample_safe_dictionary
-        process_image = ProcessImage.empty(fsoe_dict)
-        ss1_item_outputs = process_image.outputs.add(
-            fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)]
-        )
-        process_image.outputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
-        # STO command can be anywhere in the inputs map
-        ss1_item_inputs = process_image.inputs.add(
-            fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)]
-        )
-        process_image.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
+    process_image.inputs.clear()
+    process_image.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
+    process_image.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
+    output = process_image.are_inputs_valid(rules=[FSoEFrameRules.STO_COMMAND_FIRST])
+    assert not output.exceptions
+    assert output.is_rule_valid(FSoEFrameRules.STO_COMMAND_FIRST) is True
 
-        output = process_image.are_outputs_valid(rules=[FSoEFrameRules.STO_COMMAND_FIRST])
-        assert len(output.exceptions) == 1
-        assert FSoEFrameRules.STO_COMMAND_FIRST in output.exceptions
-        exception = output.exceptions[FSoEFrameRules.STO_COMMAND_FIRST]
-        assert isinstance(exception, InvalidFSoEFrameRule)
-        assert "STO command must be mapped to the first position" in exception.exception
-        assert exception.items == [ss1_item_outputs]
-        assert output.is_rule_valid(FSoEFrameRules.STO_COMMAND_FIRST) is False
 
-        output = process_image.are_inputs_valid(rules=[FSoEFrameRules.STO_COMMAND_FIRST])
-        assert len(output.exceptions) == 1
-        assert FSoEFrameRules.STO_COMMAND_FIRST in output.exceptions
-        exception = output.exceptions[FSoEFrameRules.STO_COMMAND_FIRST]
-        assert isinstance(exception, InvalidFSoEFrameRule)
-        assert "STO command must be mapped to the first position" in exception.exception
-        assert exception.items == [ss1_item_inputs]
-        assert output.is_rule_valid(FSoEFrameRules.STO_COMMAND_FIRST) is False
+@pytest.mark.fsoe
+def test_validate_empty_map(fsoe_dict: "FSoEDictionary") -> None:
+    """Test that an empty FSoE map is invalid."""
+    process_image = ProcessImage.empty(fsoe_dict)
+    output = process_image.are_outputs_valid()
+    assert FSoEFrameRules.STO_COMMAND_FIRST in output.exceptions
+    output = process_image.are_inputs_valid()
+    assert FSoEFrameRules.STO_COMMAND_FIRST in output.exceptions
 
-        process_image.outputs.clear()
-        process_image.outputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
-        process_image.outputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
-        output = process_image.are_outputs_valid(rules=[FSoEFrameRules.STO_COMMAND_FIRST])
-        assert not output.exceptions
-        assert output.is_rule_valid(FSoEFrameRules.STO_COMMAND_FIRST) is True
 
-        process_image.inputs.clear()
-        process_image.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
-        process_image.inputs.add(fsoe_dict.name_map[SS1Function.COMMAND_UID.format(i=1)])
-        output = process_image.are_inputs_valid(rules=[FSoEFrameRules.STO_COMMAND_FIRST])
-        assert not output.exceptions
-        assert output.is_rule_valid(FSoEFrameRules.STO_COMMAND_FIRST) is True
+@pytest.mark.fsoe
+def test_validate_dictionary_map_fsoe_frame_rules(fsoe_dict: "FSoEDictionary") -> None:
+    """Test that FSoE frames pass all validation rules."""
+    process_image = ProcessImage.empty(fsoe_dict)
+    process_image.outputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
+    process_image.outputs.add_padding(7)
+    process_image.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
+    process_image.inputs.add_padding(7)
 
-    @pytest.mark.fsoe
-    def test_validate_empty_map(
-        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
-    ) -> None:
-        """Test that an empty FSoE map is invalid."""
-        _, fsoe_dict = sample_safe_dictionary
-        process_image = ProcessImage.empty(fsoe_dict)
-        output = process_image.are_outputs_valid()
-        assert FSoEFrameRules.STO_COMMAND_FIRST in output.exceptions
-        output = process_image.are_inputs_valid()
-        assert FSoEFrameRules.STO_COMMAND_FIRST in output.exceptions
-
-    @pytest.mark.fsoe
-    def test_validate_dictionary_map_fsoe_frame_rules(
-        self, sample_safe_dictionary: tuple["EthercatDictionary", "FSoEDictionary"]
-    ) -> None:
-        """Test that FSoE frames pass all validation rules."""
-        _, fsoe_dict = sample_safe_dictionary
-
-        process_image = ProcessImage.empty(fsoe_dict)
-        process_image.outputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
-        process_image.outputs.add_padding(7)
-        process_image.inputs.add(fsoe_dict.name_map[STOFunction.COMMAND_UID])
-        process_image.inputs.add_padding(7)
-
-        is_valid = process_image.validate()
-        assert is_valid is True
+    is_valid = process_image.validate()
+    assert is_valid is True
 
 
 def __move_test_files(files: list[Path], fsoe_maps_dir: Path, success: bool) -> None:
