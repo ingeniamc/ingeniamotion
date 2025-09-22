@@ -147,7 +147,7 @@ def test_map_safety_input_output_random(
 
     test_success = False
     try:
-        mc.fsoe.configure_pdos(start_pdos=True)
+        mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
         mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
         test_success = fsoe_states[-1] is FSoEState.DATA and (servo.slave.state is pysoem.OP_STATE)
         if not test_success:
@@ -173,7 +173,6 @@ def test_map_all_safety_functions(
     timeout_for_data_sra: float,
     fsoe_maps_dir: Path,
     fsoe_states: list[FSoEState],
-    alias: str,
     servo: "EthercatServo",
     no_error_tracker: None,  # noqa: ARG001
     mcu_error_queue_a: "ServoErrorQueue",
@@ -217,8 +216,7 @@ def test_map_all_safety_functions(
 
     test_success = False
     try:
-        mc.fsoe.configure_pdos(start_pdos=False)
-        mc.capture.pdo.start_pdos(servo=alias)
+        mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
         mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
         test_success = fsoe_states[-1] is FSoEState.DATA and (servo.slave.state is pysoem.OP_STATE)
         if not test_success:

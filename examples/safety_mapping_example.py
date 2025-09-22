@@ -83,6 +83,9 @@ def main(ifname, slave_id, dict_path) -> None:
     print(handler.safety_slave_pdu_map.get_text_representation())
 
     try:
+        # Start the master
+        mc.fsoe.start_master()
+
         # Start pdo transmission
         mc.capture.pdo.start_pdos()
 
