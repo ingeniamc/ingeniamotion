@@ -30,7 +30,7 @@ from tests.test_fsoe_master import (
 )
 
 if FSOE_MASTER_INSTALLED:
-    from tests.fsoe.map_generator import FSoERandomMappingGenerator
+    from tests.fsoe.utils.map_generator import FSoERandomMappingGenerator
 
 if TYPE_CHECKING:
     from summit_testing_framework.att import ATTApi

@@ -26,7 +26,7 @@ if FSOE_MASTER_INSTALLED:
         SSRFunction,
         STOFunction,
     )
-    from tests.fsoe.map_json_serializer import FSoEDictionaryMapJSONSerializer
+    from tests.fsoe.utils.map_json_serializer import FSoEDictionaryMapJSONSerializer
     from tests.test_fsoe_master import MockHandler
 
 if TYPE_CHECKING:

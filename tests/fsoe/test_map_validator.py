@@ -11,7 +11,7 @@ if FSOE_MASTER_INSTALLED:
 
     if TYPE_CHECKING:
         from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
-        from tests.fsoe.map_generator import FSoERandomMappingGenerator
+        from tests.fsoe.utils.map_generator import FSoERandomMappingGenerator
 
 
 @pytest.mark.fsoe_phase2
