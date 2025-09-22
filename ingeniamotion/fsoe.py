@@ -43,7 +43,6 @@ class FSoEMaster:
         self._handlers: dict[str, FSoEMasterHandler] = {}
         self.__next_connection_id = 1
         self._error_observers: list[Callable[[FSoEError], None]] = []
-        self.__fsoe_configured = False
 
     def create_fsoe_master_handler(
         self,
@@ -93,13 +92,7 @@ class FSoEMaster:
         Args:
             start_pdos: if ``True``, start the PDO exchange, if ``False``
                 the PDO exchange should be started after. ``False`` by default.
-
-        Raises:
-            RuntimeError: If the FSoE master is not configured.
         """
-        if not self.__fsoe_configured:
-            raise RuntimeError("FSoE master is not configured, can't start the master.")
-
         for master_handler in self._handlers.values():
             master_handler.start()
 
@@ -133,8 +126,6 @@ class FSoEMaster:
         for master_handler in self._handlers.values():
             if master_handler.running:
                 master_handler.stop()
-        if not self.__fsoe_configured:
-            self.logger.warning("FSoE master is already stopped")
         if stop_pdos:
             for servo in self._handlers:
                 self.__mc.capture.pdo.stop_pdos(servo=servo)
@@ -333,18 +324,14 @@ class FSoEMaster:
             return
         self._handlers[servo].delete()
         del self._handlers[servo]
-        if not len(self._handlers) and self.__fsoe_configured:
-            self.__fsoe_configured = False
 
     def _configure_and_set_pdo_maps_to_slaves(self) -> None:
         """Configure the PDOMaps used by the Safety PDUs in the slaves."""
         for master_handler in self._handlers.values():
             master_handler.configure_pdo_maps()
             master_handler.set_pdo_maps_to_slave()
-        self.__fsoe_configured = True
 
     def _remove_pdo_maps_from_slaves(self) -> None:
         """Remove the PDOMaps used by the Safety PDUs from the slaves."""
         for master_handler in self._handlers.values():
             master_handler.remove_pdo_maps_from_slave()
-        self.__fsoe_configured = False

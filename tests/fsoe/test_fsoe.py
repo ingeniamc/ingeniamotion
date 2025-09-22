@@ -68,15 +68,27 @@ def test_configure_pdos_starting_master(
 
 @pytest.mark.fsoe
 def test_start_master_without_configuring_pdos(
-    mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"],
+    mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"], alias: str
 ) -> None:
     """Starting the master without configuring the PDOs should raise an error."""
     mc, _ = mc_with_fsoe_with_sra
 
-    with pytest.raises(
-        RuntimeError, match="FSoE master is not configured, can't start the master."
-    ):
-        mc.fsoe.start_master()
+    exceptions = []
+
+    def exception_callback(exc):
+        exceptions.append(exc)
+
+    mc.capture.pdo.subscribe_to_exceptions(exception_callback)
+
+    mc.fsoe.start_master(start_pdos=False)
+    assert len(exceptions) == 0
+    refresh_rate: float = 0.5
+    mc.capture.pdo.start_pdos(refresh_rate=refresh_rate, servo=alias)
+    time.sleep(2 * refresh_rate)
+    assert len(exceptions) == 1
+    assert "Please, check that the safe PDOs are correctly mapped" in str(exceptions[0])
+
+    mc.fsoe.stop_master(stop_pdos=True)
 
 
 @pytest.mark.fsoe
