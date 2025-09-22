@@ -1,5 +1,4 @@
 import time
-from typing import TYPE_CHECKING
 
 import pytest
 from ingenialink.dictionary import Interface
@@ -9,23 +8,16 @@ from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 
 if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master import (
-        PDUMaps,
+        ProcessImage,
         SLPFunction,
         SPFunction,
         STOFunction,
         SVFunction,
     )
     from ingeniamotion.fsoe_master.errors import (
-        MCUA_ERROR_QUEUE,
-        MCUB_ERROR_QUEUE,
         Error,
-        ServoErrorQueue,
     )
 from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
-from tests.test_fsoe_master import TIMEOUT_FOR_DATA_SRA
-
-if TYPE_CHECKING:
-    from ingenialink import Servo
 
 
 @pytest.mark.fsoe_phase2
@@ -52,16 +44,6 @@ def test_get_error_with_id_not_in_dict():
     error = Error.from_id(0x1234, dictionary=dictionary)
     assert error.error_id == 0x1234
     assert error.error_description == "Unknown error 4660 / 0x1234"
-
-
-@pytest.fixture
-def mcu_error_queue_a(servo: "Servo") -> "ServoErrorQueue":
-    return ServoErrorQueue(MCUA_ERROR_QUEUE, servo)
-
-
-@pytest.fixture
-def mcu_error_queue_b(servo: "Servo") -> "ServoErrorQueue":
-    return ServoErrorQueue(MCUB_ERROR_QUEUE, servo)
 
 
 @pytest.mark.fsoe_phase2
@@ -97,10 +79,10 @@ def test_get_last_error_overtemp_error(servo, mcu_error_queue_a, environment):
 
 
 @pytest.mark.fsoe_phase2
-def test_get_last_error_feedback_combination(
-    mcu_error_queue_a, mcu_error_queue_b, mc_with_fsoe_factory, environment
+def test_get_last_error_invalid_map(
+    mcu_error_queue_a, mc_with_fsoe_factory, environment, timeout_for_data_sra: float
 ):
-    """Test getting the last error when there is a feedback combination error."""
+    """Test getting the last error when there is an invalid map error."""
     environment.power_cycle(wait_for_drives=True)
 
     mc, handler = mc_with_fsoe_factory(use_sra=True, fail_on_fsoe_errors=False)
@@ -115,26 +97,24 @@ def test_get_last_error_feedback_combination(
     handler.get_function_instance(SPFunction)
     handler.get_function_instance(SVFunction)
 
-    maps = PDUMaps.empty(handler.dictionary)
+    maps = ProcessImage.empty(handler.dictionary)
 
     maps.inputs.add(sto.command)
 
     maps.outputs.add(sto.command)
     maps.outputs.add(slp_1.command)
 
-    handler.set_maps(maps)
+    handler.set_process_image(maps)
 
-    mc.fsoe.configure_pdos(start_pdos=True)
-    time.sleep(TIMEOUT_FOR_DATA_SRA)
+    mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
+    time.sleep(timeout_for_data_sra)
     try:
         assert mcu_error_queue_a.get_number_total_errors() == 1
-        assert mcu_error_queue_b.get_number_total_errors() == 1
-        assert mcu_error_queue_a.get_last_error().error_id == 0x90090701
-        assert mcu_error_queue_b.get_last_error().error_id == 0x90090701
+        assert mcu_error_queue_a.get_last_error().error_id == 0x80040002
 
         errors_a, errors_losts = mcu_error_queue_a.get_pending_errors()
         assert len(errors_a) == 1
-        assert errors_a[0].error_id == 0x90090701
+        assert errors_a[0].error_id == 0x80040002
 
         assert not errors_losts
     finally:

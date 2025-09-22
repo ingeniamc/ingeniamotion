@@ -1,18 +1,24 @@
-import time
 import warnings
+from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import pytest
-from summit_testing_framework.setups.specifiers import DriveHwConfigSpecifier
 
+from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 from ingeniamotion.motion_controller import MotionController
 from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
 
+try:
+    import pysoem
+except ImportError:
+    pysoem = None
+
+
 if FSOE_MASTER_INSTALLED:
     import ingeniamotion.fsoe_master.safety_functions as safety_functions
-    from ingeniamotion.fsoe_master import PDUMaps
+    from ingeniamotion.fsoe_master import ProcessImage
     from ingeniamotion.fsoe_master.safety_functions import (
         SafeInputsFunction,
         SafetyFunction,
@@ -23,12 +29,18 @@ if FSOE_MASTER_INSTALLED:
     from tests.fsoe.map_json_serializer import FSoEDictionaryMapJSONSerializer
     from tests.test_fsoe_master import MockHandler
 
-    if TYPE_CHECKING:
+if TYPE_CHECKING:
+    from ingenialink.ethercat.servo import EthercatServo
+
+    if FSOE_MASTER_INSTALLED:
+        from ingeniamotion.fsoe_master.errors import (
+            ServoErrorQueue,
+        )
         from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
         from tests.fsoe.conftest import FSoERandomMappingGenerator
 
 
-def move_test_files(files: list[Path], fsoe_maps_dir: Path, success: bool) -> None:
+def __move_test_files(files: list[Path], fsoe_maps_dir: Path, success: bool) -> None:
     """Move test files to success or failure subdirectories.
 
     Args:
@@ -46,16 +58,18 @@ def move_test_files(files: list[Path], fsoe_maps_dir: Path, success: bool) -> No
         if file_path.exists():
             try:
                 target_file = target_dir / file_path.name
+                if target_file.exists():
+                    target_file.unlink()
                 file_path.rename(target_file)
             except Exception as e:
                 raise RuntimeError(f"Failed to move {file_path} to {target_dir}: {e}")
 
 
-def save_maps_text_representation(maps: "PDUMaps", output_file: Path) -> None:
+def __save_maps_text_representation(maps: "ProcessImage", output_file: Path) -> None:
     """Save the text representation of FSoE maps to a file.
 
     Args:
-        maps: The PDUMaps object to save
+        maps: The Process Image object to save
         output_file: Path where to save the text file
     """
     try:
@@ -69,34 +83,49 @@ def save_maps_text_representation(maps: "PDUMaps", output_file: Path) -> None:
         warnings.warn(f"Failed to save maps text representation: {e}")
 
 
-def _check_mappings_have_the_same_length(maps: "PDUMaps") -> None:
-    if maps.inputs.safety_bits > maps.outputs.safety_bits:
-        maps.outputs.add_padding(maps.inputs.safety_bits - maps.outputs.safety_bits)
-    elif maps.outputs.safety_bits > maps.inputs.safety_bits:
-        maps.inputs.add_padding(maps.outputs.safety_bits - maps.inputs.safety_bits)
-    assert maps.inputs.safety_bits == maps.outputs.safety_bits
+@pytest.fixture
+def no_error_tracker(
+    mcu_error_queue_a: "ServoErrorQueue", mcu_error_queue_b: "ServoErrorQueue"
+) -> Iterator[None]:
+    """Fixture to ensure no new errors are added to the error queues during a test."""
+    previous_mcu_a_errors = mcu_error_queue_a.get_number_total_errors()
+    previous_mcu_b_errors = mcu_error_queue_b.get_number_total_errors()
+    yield
+    assert mcu_error_queue_a.get_number_total_errors() == previous_mcu_a_errors, (
+        f"MCUA error queue changed: {previous_mcu_a_errors} -> "
+        f"{mcu_error_queue_a.get_number_total_errors()}. "
+        f"\nLast error: {mcu_error_queue_a.get_last_error()}"
+    )
+    assert mcu_error_queue_b.get_number_total_errors() == previous_mcu_b_errors, (
+        f"MCUB error queue changed: {previous_mcu_b_errors} -> "
+        f"{mcu_error_queue_b.get_number_total_errors()}. "
+        f"\nLast error: {mcu_error_queue_b.get_last_error()}"
+    )
 
 
 @pytest.mark.fsoe_phase2
-@pytest.mark.skip("Maps not working")
-@pytest.mark.parametrize("iteration", range(10))  # Run 10 times
+@pytest.mark.parametrize("iteration", range(25))  # Run 25 times
+@pytest.mark.skip("https://novantamotion.atlassian.net/browse/INGM-710")
 def test_map_safety_input_output_random(
-    mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
+    mc_with_fsoe_with_sra_and_feedback_scenario: tuple[MotionController, "FSoEMasterHandler"],
     map_generator: "FSoERandomMappingGenerator",
     fsoe_maps_dir: Path,
     timeout_for_data_sra: float,
     random_seed: int,
     random_max_items: int,
     random_paddings: bool,
-    setup_specifier_with_esi: DriveHwConfigSpecifier,
+    fsoe_states: list[FSoEState],
+    servo: "EthercatServo",
+    no_error_tracker: None,  # noqa: ARG001
+    mcu_error_queue_a: "ServoErrorQueue",
+    mcu_error_queue_b: "ServoErrorQueue",
     iteration: int,  # noqa: ARG001
 ) -> None:
     """Tests that random combinations of inputs and outputs are valid."""
-    mc, handler = mc_with_fsoe_with_sra
+    mc, handler = mc_with_fsoe_with_sra_and_feedback_scenario
 
     mapping_name = f"mapping_{random_max_items}_{random_paddings}_{random_seed}"
     json_file = fsoe_maps_dir / f"{mapping_name}.json"
-    sci_file = fsoe_maps_dir / f"{mapping_name}.sci"
     txt_file = fsoe_maps_dir / f"{mapping_name}.txt"
 
     # Generate a random mapping and validate it
@@ -108,166 +137,109 @@ def test_map_safety_input_output_random(
         filename=json_file,
         override=True,
     )
-    # Maps must be of the same size
-    _check_mappings_have_the_same_length(maps)
     maps.validate()
 
     # Set the new mapping and serialize it for later analysis
-    handler.maps.inputs.clear()
-    handler.maps.outputs.clear()
-    handler.set_maps(maps)
-    handler.serialize_mapping_to_sci(
-        esi_file=setup_specifier_with_esi.extra_data["esi_file"], sci_file=sci_file, override=True
-    )
-    save_maps_text_representation(handler.maps, txt_file)
+    handler.process_image.inputs.clear()
+    handler.process_image.outputs.clear()
+    handler.set_process_image(maps)
+    __save_maps_text_representation(handler.process_image, txt_file)
 
     test_success = False
     try:
-        mc.fsoe.configure_pdos(start_pdos=True)
+        mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
         mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
-        test_success = True
+        test_success = fsoe_states[-1] is FSoEState.DATA and (servo.slave.state is pysoem.OP_STATE)
+        if not test_success:
+            pytest.fail(
+                f"Unexpected FSoE state {fsoe_states[-1]} or servo state {servo.slave.state}"
+                f"\nMCUA last error: {mcu_error_queue_a.get_last_error()}"
+                f"\nMCUB last error: {mcu_error_queue_b.get_last_error()}"
+            )
     except Exception as e:
-        warnings.warn(f"Failed to reach data state with random mapping: {e}")
+        pytest.fail(
+            f"Failed to reach data state with random mapping: {e}, servo state: {servo.slave.state}"
+            f"\nMCUA last error: {mcu_error_queue_a.get_last_error()}"
+            f"\nMCUB last error: {mcu_error_queue_b.get_last_error()}"
+        )
     finally:
-        # Move files to appropriate directory based on test result
-        move_test_files([json_file, sci_file, txt_file], fsoe_maps_dir, test_success)
-
-        # If there has been a failure and it tries to remove the PDO maps, it may fail
-        # if the servo is not in preop state
-        try:
-            # Stop the FSoE master handler
-            if mc.capture.pdo.is_active:
-                mc.fsoe.stop_master(stop_pdos=True)
-        except Exception:
-            pass
+        __move_test_files([json_file, txt_file], fsoe_maps_dir, test_success)
 
 
 @pytest.mark.fsoe_phase2
-@pytest.mark.skip("Maps not working")
+@pytest.mark.skip("https://novantamotion.atlassian.net/browse/INGM-710")
 def test_map_all_safety_functions(
-    mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
+    mc_with_fsoe_with_sra_and_feedback_scenario: tuple[MotionController, "FSoEMasterHandler"],
     timeout_for_data_sra: float,
     fsoe_maps_dir: Path,
-    setup_specifier_with_esi: DriveHwConfigSpecifier,
+    fsoe_states: list[FSoEState],
+    servo: "EthercatServo",
+    no_error_tracker: None,  # noqa: ARG001
+    mcu_error_queue_a: "ServoErrorQueue",
+    mcu_error_queue_b: "ServoErrorQueue",
 ) -> None:
     """Test that data state can be reached by mapping everything."""
-    mc, handler = mc_with_fsoe_with_sra
+    mc, handler = mc_with_fsoe_with_sra_and_feedback_scenario
 
-    handler.maps.inputs.clear()
-    handler.maps.outputs.clear()
+    handler.process_image.inputs.clear()
+    handler.process_image.outputs.clear()
 
     # Set the new mapping
     # STO must be mapped in the first position
     sto = handler.get_function_instance(safety_functions.STOFunction)
-    handler.maps.inputs.add(sto.command)
-    handler.maps.outputs.add(sto.command)
+    handler.process_image.inputs.add(sto.command)
+    handler.process_image.outputs.add(sto.command)
     # Add the rest of the safety functions
     for sf in SafetyFunction.for_handler(handler):
         if isinstance(sf, safety_functions.STOFunction):
             continue  # STO is already added
         if hasattr(sf, "command"):
-            handler.maps.insert_in_best_position(sf.command)
+            # SOUT command is not allowed if SOUT disable is set to 1
+            if sf.command.name == "FSOE_SOUT":
+                continue
+            handler.process_image.insert_in_best_position(sf.command)
+        elif hasattr(sf, "command_positive"):
+            handler.process_image.insert_in_best_position(sf.command_positive)
+        elif hasattr(sf, "command_negative"):
+            handler.process_image.insert_in_best_position(sf.command_negative)
         else:
-            handler.maps.insert_in_best_position(sf.value)
-
-    # Maps must be of the same size
-    _check_mappings_have_the_same_length(handler.maps)
+            handler.process_image.insert_in_best_position(sf.value)
 
     # Check that the maps are valid
-    handler.maps.validate()
-
-    # Save the mappings
-    sci_file = fsoe_maps_dir / "complete_mapping.sci"
+    handler.process_image.validate()
     json_file = fsoe_maps_dir / "complete_mapping.json"
     txt_file = fsoe_maps_dir / "complete_mapping.txt"
-    handler.serialize_mapping_to_sci(
-        esi_file=setup_specifier_with_esi.extra_data["esi_file"], sci_file=sci_file, override=True
+    __save_maps_text_representation(handler.process_image, txt_file)
+    FSoEDictionaryMapJSONSerializer.save_mapping_to_json(
+        handler.process_image, json_file, override=True
     )
-    save_maps_text_representation(handler.maps, txt_file)
-    FSoEDictionaryMapJSONSerializer.save_mapping_to_json(handler.maps, json_file, override=True)
 
     test_success = False
     try:
-        mc.fsoe.configure_pdos(start_pdos=True)
+        mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
         mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
-        # Stay 3 seconds in Data state
-        for i in range(3):
-            time.sleep(1)
-        test_success = True
+        test_success = fsoe_states[-1] is FSoEState.DATA and (servo.slave.state is pysoem.OP_STATE)
+        if not test_success:
+            pytest.fail(
+                f"Unexpected FSoE state {fsoe_states[-1]} or servo state {servo.slave.state}"
+                f"\nMCUA last error: {mcu_error_queue_a.get_last_error()}"
+                f"\nMCUB last error: {mcu_error_queue_b.get_last_error()}"
+            )
     except Exception as e:
-        warnings.warn(f"Failed to reach data state with all safety functions: {e}")
+        pytest.fail(
+            f"Failed to reach data state with all safety functions: {e}"
+            f"\nMCUA last error: {mcu_error_queue_a.get_last_error()}"
+            f"\nMCUB last error: {mcu_error_queue_b.get_last_error()}"
+        )
     finally:
-        # Move files to appropriate directory based on test result
-        move_test_files([sci_file, json_file, txt_file], fsoe_maps_dir, test_success)
-
-        # If there has been a failure and it tries to remove the PDO maps, it may fail
-        # if the servo is not in preop state
-        try:
-            # Stop the FSoE master handler
-            if mc.capture.pdo.is_active:
-                mc.fsoe.stop_master(stop_pdos=True)
-        except Exception:
-            pass
-
-
-# This test will be used for debugging, will be removed after https://novantamotion.atlassian.net/browse/INGM-689
-@pytest.mark.fsoe_phase2
-@pytest.mark.skip("https://novantamotion.atlassian.net/browse/INGM-689")
-def test_fixed_mapping_combination(
-    mc_with_fsoe_with_sra: tuple[MotionController, "FSoEMasterHandler"],
-    timeout_for_data_sra: float,
-    fsoe_maps_dir: Path,
-    setup_specifier_with_esi: DriveHwConfigSpecifier,
-) -> None:
-    mc, handler = mc_with_fsoe_with_sra
-
-    sci_file = fsoe_maps_dir / "test_map.sci"
-
-    # Suspicious maps
-    # "mapping_6_False_587.json"
-    # "mapping_7_True_186.json"
-
-    mapping = FSoEDictionaryMapJSONSerializer.load_mapping_from_json(
-        handler.dictionary, fsoe_maps_dir / "failed/mapping_6_False_587.json"
-    )
-    handler.set_maps(mapping)
-
-    # Check that mappings have the same length
-    _check_mappings_have_the_same_length(handler.maps)
-
-    # Check that the maps are valid
-    handler.maps.validate()
-    handler.serialize_mapping_to_sci(
-        esi_file=setup_specifier_with_esi.extra_data["esi_file"], sci_file=sci_file, override=True
-    )
-    save_maps_text_representation(handler.maps, fsoe_maps_dir / "mapping_7_True_186.txt")
-
-    mc.fsoe.configure_pdos(start_pdos=True)
-
-    # Wait for the master to reach the Data state
-    try:
-        mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
-
-        for i in range(5):
-            time.sleep(1)
-    except TimeoutError as e:
-        pytest.fail(f"Failed to reach data state: {e}")
-    finally:
-        # If there has been a failure and it tries to remove the PDO maps, it may fail
-        # if the servo is not in preop state
-        try:
-            # Stop the FSoE master handler
-            if mc.capture.pdo.is_active:
-                mc.fsoe.stop_master(stop_pdos=True)
-        except Exception:
-            pass
+        __move_test_files([json_file, txt_file], fsoe_maps_dir, test_success)
 
 
 @pytest.mark.fsoe_phase2
 def test_is_safety_function_mapped():
     handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     sfs = handler.safety_functions_by_type()
-    maps = PDUMaps.empty(handler.dictionary)
+    maps = ProcessImage.empty(handler.dictionary)
     sto_func = sfs[STOFunction][0]
     sto_ios = list(sto_func.ios.values())
     assert maps.is_safety_function_mapped(sto_func) is False
@@ -304,7 +276,7 @@ def test_insert_safety_function():
     handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     sto_func = handler.safety_functions_by_type()[STOFunction][0]
 
-    maps = PDUMaps.empty(handler.dictionary)
+    maps = ProcessImage.empty(handler.dictionary)
     maps.insert_safety_function(sto_func)
     assert maps.inputs.get_text_representation(item_space=30) == (
         "Item                           | Position bytes..bits | Size bytes..bits    \n"
@@ -320,7 +292,7 @@ def test_insert_safety_function():
 def test_insert_safety_functions_by_type():
     handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     sfs = handler.safety_functions_by_type()
-    maps = PDUMaps.empty(handler.dictionary)
+    maps = ProcessImage.empty(handler.dictionary)
     sto_func = sfs[STOFunction][0]
     sto_ios = list(sto_func.ios.values())
     maps.inputs.add(sto_ios[0])
@@ -351,7 +323,7 @@ def test_insert_safety_functions_by_type():
 def test_remove_safety_functions_by_type_1():
     handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
 
-    maps = PDUMaps.empty(handler.dictionary)
+    maps = ProcessImage.empty(handler.dictionary)
     maps.insert_safety_functions_by_type(handler, STOFunction)
     maps.insert_safety_functions_by_type(handler, SSRFunction)
     maps.remove_safety_functions_by_type(handler, SSRFunction)
@@ -371,7 +343,7 @@ def test_remove_safety_functions_by_type_1():
 def test_remove_safety_functions_by_type_2():
     handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     ssr_funcs = handler.safety_functions_by_type()[SSRFunction]
-    maps = PDUMaps.empty(handler.dictionary)
+    maps = ProcessImage.empty(handler.dictionary)
     maps.insert_safety_functions_by_type(handler, STOFunction)
     maps.insert_safety_function(ssr_funcs[5])
     maps.insert_safety_function(ssr_funcs[3])
@@ -394,7 +366,7 @@ def test_remove_safety_functions_by_type_2():
 def test_unmap_safety_function():
     handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     sfs = handler.safety_functions_by_type()
-    maps = PDUMaps.empty(handler.dictionary)
+    maps = ProcessImage.empty(handler.dictionary)
     maps.insert_safety_function(sfs[STOFunction][0])
     maps.insert_safety_function(sfs[SSRFunction][0])
     maps.insert_safety_function(sfs[SafeInputsFunction][0])
@@ -417,7 +389,7 @@ def test_unmap_safety_function():
 def test_unmap_safety_function_warring(caplog):
     handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     sfs = handler.safety_functions_by_type()
-    maps = PDUMaps.empty(handler.dictionary)
+    maps = ProcessImage.empty(handler.dictionary)
     si_func = sfs[SafeInputsFunction][0]
     with caplog.at_level("WARNING"):
         maps.unmap_safety_function(si_func)
@@ -428,7 +400,7 @@ def test_unmap_safety_function_warring(caplog):
 def test_unmap_safety_function_partial():
     handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     sfs = handler.safety_functions_by_type()
-    maps = PDUMaps.empty(handler.dictionary)
+    maps = ProcessImage.empty(handler.dictionary)
 
     sto_func = sfs[STOFunction][0]
     sto_ios = list(sto_func.ios.values())

@@ -5,14 +5,7 @@ from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 from ingeniamotion.motion_controller import MotionController
 
 if FSOE_MASTER_INSTALLED:
-    from ingeniamotion.fsoe_master import (
-        SafeInputsFunction,
-        SOSFunction,
-        SS1Function,
-        SS2Function,
-        STOFunction,
-        SVFunction,
-    )
+    from ingeniamotion.fsoe_master import SafeInputsFunction, SS1Function, STOFunction
 
 
 def _error_callback(error):
@@ -43,25 +36,25 @@ def main(ifname, slave_id, dict_path) -> None:
     sto = handler.get_function_instance(STOFunction)
     safe_inputs = handler.get_function_instance(SafeInputsFunction)
     ss1 = handler.get_function_instance(SS1Function)
-    ss2 = handler.get_function_instance(SS2Function, instance=1)
-    sv = handler.get_function_instance(SVFunction)
-    sos = handler.get_function_instance(SOSFunction)
+
+    # Set feedback scenario to 0 and configure SS1 time controlled
+    # If Feedback scenario is set 0, no motion-dependent safety functions are allowed
+    handler.safety_parameters.get("FSOE_FEEDBACK_SCENARIO").set(0)
+    ss1.deceleration_limit.set(0)
 
     # The handler comes with a default mapping read from the drive.
     # Clear it to create a new one
-    handler.maps.inputs.clear()
-    handler.maps.outputs.clear()
+    handler.process_image.inputs.clear()
+    handler.process_image.outputs.clear()
 
     # Configure Outputs map
-    outputs = handler.maps.outputs
+    outputs = handler.process_image.outputs
     outputs.add(sto.command)
     outputs.add(ss1.command)
-    outputs.add(sos.command)
-    outputs.add(ss2.command)
-    outputs.add_padding(4 + 8)
+    outputs.add_padding(6)
 
     # Configure Inputs Map
-    inputs = handler.maps.inputs
+    inputs = handler.process_image.inputs
     inputs.add(sto.command)
     inputs.add(ss1.command)
     inputs.add_padding(6)
@@ -69,16 +62,13 @@ def main(ifname, slave_id, dict_path) -> None:
     inputs.add_padding(7)
 
     # Check that the maps are valid
-    handler.maps.validate()
+    handler.process_image.validate()
 
     # Print the maps to check the configuration
     print("Inputs Map:")
     print(inputs.get_text_representation())
     print("Outputs Map:")
     print(outputs.get_text_representation())
-
-    # Configure Parameters
-    # safe_inputs.map.set(2)  # Linked to SS1 Instance
 
     # Configure the pdos the FSoE master handler
     if handler.sout_function():
@@ -93,6 +83,9 @@ def main(ifname, slave_id, dict_path) -> None:
     print(handler.safety_slave_pdu_map.get_text_representation())
 
     try:
+        # Start the master
+        mc.fsoe.start_master()
+
         # Start pdo transmission
         mc.capture.pdo.start_pdos()
 
@@ -110,6 +103,8 @@ def main(ifname, slave_id, dict_path) -> None:
             ss1.command.set(1)
             # And inputs can be read
             print(f"Safe Inputs Value: {safe_inputs.value.get()}")
+    except Exception as e:
+        print(e)
     finally:
         try:
             # Stop the FSoE master handler

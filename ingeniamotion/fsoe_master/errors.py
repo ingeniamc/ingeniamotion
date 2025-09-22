@@ -152,7 +152,7 @@ class ServoErrorQueue:
         """
         self.__servo.write(self.descriptor.error_request_index_reg_uid, index)
         return Error.from_id(
-            self.__read_int_reg(self.descriptor.error_request_code_reg_uid),
+            self.__read_int_reg(self.descriptor.error_request_code_reg_uid), self.__dictionary
         )
 
     def __get_pending_error_indexes(

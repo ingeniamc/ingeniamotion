@@ -43,7 +43,6 @@ class FSoEMaster:
         self._handlers: dict[str, FSoEMasterHandler] = {}
         self.__next_connection_id = 1
         self._error_observers: list[Callable[[FSoEError], None]] = []
-        self.__fsoe_configured = False
 
     def create_fsoe_master_handler(
         self,
@@ -87,19 +86,35 @@ class FSoEMaster:
         self.__next_connection_id += 1
         return master_handler
 
-    def configure_pdos(self, start_pdos: bool = False) -> None:
+    def start_master(self, start_pdos: bool = False) -> None:
+        """Start an FSoE Master handler.
+
+        Args:
+            start_pdos: if ``True``, start the PDO exchange, if ``False``
+                the PDO exchange should be started after. ``False`` by default.
+        """
+        for master_handler in self._handlers.values():
+            master_handler.start()
+
+        if start_pdos:
+            for servo in self._handlers:
+                self.__mc.capture.pdo.start_pdos(servo=servo)
+
+    def configure_pdos(self, start_pdos: bool = False, start_master: bool = False) -> None:
         """Configure the PDOs used for the Safety PDUs.
 
         Args:
             start_pdos: if ``True``, start the PDO exchange, if ``False``
                 the PDO exchange should be started after. ``False`` by default.
-
+            start_master: if ``True``, start the FSoE master handlers after
+                configuring the PDOs. ``False`` by default.
         """
         self._configure_and_set_pdo_maps_to_slaves()
-        if start_pdos:
+        if start_master:
+            self.start_master(start_pdos=start_pdos)
+        elif start_pdos:
             for servo in self._handlers:
                 self.__mc.capture.pdo.start_pdos(servo=servo)
-        self.__fsoe_configured = True
 
     def stop_master(self, stop_pdos: bool = False) -> None:
         """Stop all the FSoE Master handlers.
@@ -111,14 +126,9 @@ class FSoEMaster:
         for master_handler in self._handlers.values():
             if master_handler.running:
                 master_handler.stop()
-        if not self.__fsoe_configured:
-            self.logger.warning("FSoE master is already stopped")
         if stop_pdos:
             for servo in self._handlers:
                 self.__mc.capture.pdo.stop_pdos(servo=servo)
-            if self.__fsoe_configured:
-                self._remove_pdo_maps_from_slaves()
-        self.__fsoe_configured = False
 
     def sto_deactivate(self, servo: str = DEFAULT_SERVO) -> None:
         """Deactivate the Safety Torque Off.

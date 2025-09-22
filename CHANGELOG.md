@@ -3,9 +3,9 @@
 # Unreleased
 ### Added
 - Added Model for safety functions and safe parameters.
-- Created PDUMaps that parses pdos and converts them to pdos.
+- Created Process Image that is able to parse and convert from pdos. 
 - Added methods to intelligently add i/o on the map.
-- Created FSoEDictionaryMapValidator that validates PDUMaps.
+- Created FSoEDictionaryMapValidator that validates Process Image.
 - Added method to safely disconnect drive is disconnection is performed using the network.
 - Method to export EtherCAT drive configuration to CSV
 
