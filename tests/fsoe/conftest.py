@@ -279,6 +279,9 @@ def mc_with_fsoe_factory(request, mc, fsoe_states):
 
     yield factory
 
+    if mc.capture.pdo.is_active:
+        mc.fsoe.stop_master(stop_pdos=True)
+
     mc.fsoe._delete_master_handler()
 
 
@@ -294,8 +297,6 @@ def mc_with_fsoe_with_sra(mc_with_fsoe_factory):
 
 @pytest.fixture()
 def mc_state_data_with_sra(mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"]):
-    # Do not use getfixture
-    # https://novantamotion.atlassian.net/browse/INGM-682
     mc, _handler = mc_with_fsoe_with_sra
 
     mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
@@ -350,8 +351,6 @@ def mc_with_fsoe_with_sra_and_feedback_scenario(
 
     yield mc, handler
 
-    # Should be in mc_with_fsoe_factory
-    # https://novantamotion.atlassian.net/browse/INGM-682
     # If there has been a failure and it tries to remove the PDO maps, it may fail
     # if the servo is not in preop state
     try:
