@@ -24,17 +24,17 @@ def _set_default_mapping(handler: "FSoEMasterHandler") -> None:
     safe_inputs = handler.get_function_instance(SafeInputsFunction)
     ss1 = handler.get_function_instance(SS1Function)
 
-    handler.maps.inputs.clear()
-    handler.maps.inputs.add(sto.command)
-    handler.maps.inputs.add(ss1.command)
-    handler.maps.inputs.add_padding(6)
-    handler.maps.inputs.add(safe_inputs.value)
-    handler.maps.inputs.add_padding(7)
+    handler.process_image.inputs.clear()
+    handler.process_image.inputs.add(sto.command)
+    handler.process_image.inputs.add(ss1.command)
+    handler.process_image.inputs.add_padding(6)
+    handler.process_image.inputs.add(safe_inputs.value)
+    handler.process_image.inputs.add_padding(7)
 
-    handler.maps.outputs.clear()
-    handler.maps.outputs.add(sto.command)
-    handler.maps.outputs.add(ss1.command)
-    handler.maps.outputs.add_padding(6)
+    handler.process_image.outputs.clear()
+    handler.process_image.outputs.add(sto.command)
+    handler.process_image.outputs.add(ss1.command)
+    handler.process_image.outputs.add_padding(6)
 
 
 def main(ifname, slave_id, dict_path, config_file=None):
@@ -58,12 +58,12 @@ def main(ifname, slave_id, dict_path, config_file=None):
     # Create and start the FSoE master handler
     handler = mc.fsoe.create_fsoe_master_handler(use_sra=True)
     # Set default mapping if editable
-    if handler.maps.editable:
+    if handler.process_image.editable:
         _set_default_mapping(handler=handler)
     if handler.sout_function():
         handler.sout_disable()
     try:
-        mc.fsoe.configure_pdos(start_pdos=True)
+        mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
         # Wait for the master to reach the Data state
         mc.fsoe.wait_for_state_data(timeout=5)
         # Remove fail-safe mode. Output commands will be applied by the slaves

@@ -30,12 +30,12 @@ from ingeniamotion.fsoe_master.fsoe import (
     StateData,
     calculate_sra_crc,
 )
-from ingeniamotion.fsoe_master.maps import PDUMaps
 from ingeniamotion.fsoe_master.parameters import (
     PARAM_VALUE_TYPE,
     SafetyParameter,
     SafetyParameterDirectValidation,
 )
+from ingeniamotion.fsoe_master.process_image import ProcessImage
 from ingeniamotion.fsoe_master.safety_functions import (
     SafeInputsFunction,
     SafetyFunction,
@@ -94,6 +94,7 @@ class FSoEMasterHandler:
         self.__net = net
         self.__running: bool = False
         self.__uses_sra: bool = use_sra
+        self.__is_subscribed_to_process_data_events: bool = False
 
         self.net.pdo_manager.subscribe_to_exceptions(self._pdo_thread_exception_handler)
 
@@ -147,30 +148,28 @@ class FSoEMasterHandler:
 
         self.__safety_master_pdu = servo.read_rpdo_map_from_slave(self.__master_map_object)
         self.__safety_slave_pdu = servo.read_tpdo_map_from_slave(self.__slave_map_object)
-        self.__safety_master_pdu.subscribe_to_process_data_event(self.get_request)
-        self.__safety_slave_pdu.subscribe_to_process_data_event(self.set_reply)
 
         map_editable = (self.__master_map_object.registers[0].access == RegAccess.RW) and (
             self.__slave_map_object.registers[0].access == RegAccess.RW
         )
 
         try:
-            self.__maps = PDUMaps.from_rpdo_tpdo(
+            self.__process_image = ProcessImage.from_rpdo_tpdo(
                 self.__safety_master_pdu,
                 self.__safety_slave_pdu,
                 dictionary=self.dictionary,
             )
         except Exception as e:
             self.logger.error(
-                "Error creating FSoE PDUMaps from RPDO and TPDO on the drive. "
+                "Error creating FSoE Process Image from RPDO and TPDO on the drive. "
                 "Falling back to a default map.",
                 exc_info=e,
             )
-            self.__maps = PDUMaps.default(self.dictionary)
+            self.__process_image = ProcessImage.default(self.dictionary)
 
         if not map_editable:
-            self.__maps.inputs._lock()
-            self.__maps.outputs._lock()
+            self.__process_image.inputs._lock()
+            self.__process_image.outputs._lock()
 
         self._master_handler = BaseMasterHandler(
             dictionary=self.dictionary,
@@ -190,10 +189,22 @@ class FSoEMasterHandler:
             if slave_address is not None:
                 self.set_safety_address(slave_address)
 
-            self.set_maps(self.__maps)
+            self.set_process_image(self.__process_image)
         except Exception as ex:
             self._master_handler.delete()
             raise ex
+
+    def subscribe_to_process_data_events(self) -> None:
+        """Subscribes to process data events.
+
+        Subscription may happen when setting the PDO maps to slaves or if
+        the master is started manually (after a stop usually).
+        """
+        if self.__is_subscribed_to_process_data_events:
+            return
+        self.safety_master_pdu_map.subscribe_to_process_data_event(self.get_request)
+        self.safety_slave_pdu_map.subscribe_to_process_data_event(self.set_reply)
+        self.__is_subscribed_to_process_data_events = True
 
     def _pdo_thread_exception_handler(self, exc: Exception) -> None:
         """Callback method for the PDO thread exceptions.
@@ -311,14 +322,21 @@ class FSoEMasterHandler:
             self.logger.warning("Safety module with SRA is not available.")
         return safety_module
 
-    def __start_on_first_request(self) -> None:
-        """Start the FSoE Master handler on first request."""
+    def start(self) -> None:
+        """Start the FSoE Master handler.
+
+        Raises:
+            RuntimeError: If the FSoE Master is already running.
+        """
+        if self.running:
+            raise RuntimeError("FSoE Master is already running.")
         self.__in_initial_reset = True
         # Recalculate the SRA crc in case it changed
         if self._sra_fsoe_application_parameter is not None:
             self._sra_fsoe_application_parameter.set(self.get_application_parameters_sra_crc())
         self._master_handler.start()
         self.__running = True
+        self.subscribe_to_process_data_events()
 
     def stop(self) -> None:
         """Stop the master handler."""
@@ -326,17 +344,21 @@ class FSoEMasterHandler:
         self.__in_initial_reset = False
         self.__running = False
 
+        self.safety_master_pdu_map.unsubscribe_to_process_data_event()
+        self.safety_slave_pdu_map.unsubscribe_to_process_data_event()
+        self.__is_subscribed_to_process_data_events = False
+
     def delete(self) -> None:
         """Delete the master handler."""
         self._master_handler.delete()
 
     @property
-    def maps(self) -> "PDUMaps":
-        """Get the PDUMap used for the Safety PDUs."""
-        return self.__maps
+    def process_image(self) -> "ProcessImage":
+        """Get the Process Image used for the Safety PDUs."""
+        return self.__process_image
 
-    def set_maps(self, maps: "PDUMaps") -> None:
-        """Set new PDUMaps for the Safety PDUs.
+    def set_process_image(self, process_image: "ProcessImage") -> None:
+        """Set new Process Image for the Safety PDUs.
 
         Raises:
             RuntimeError: If the FSoE Master is running.
@@ -344,20 +366,20 @@ class FSoEMasterHandler:
         if self.__running:
             raise RuntimeError("Cannot set map while the FSoE Master is running")
 
-        self._master_handler.master.dictionary_map = maps.outputs
-        self._master_handler.slave.dictionary_map = maps.inputs
-        self.__maps = maps
+        self._master_handler.master.dictionary_map = process_image.outputs
+        self._master_handler.slave.dictionary_map = process_image.inputs
+        self.__process_image = process_image
 
     def configure_pdo_maps(self) -> None:
-        """Configure the PDOMaps used for the Safety PDUs according to the map.
+        """Configure the PDOMaps used for the Safety PDUs according to the process image.
 
         Raises:
             ValueError: If a register in the PDOMap has no identifier.
         """
-        if self.__maps.editable:
+        if self.__process_image.editable:
             # Fill the RPDOMap and TPDOMap with the items from the maps
-            self.__maps.fill_rpdo_map(self.safety_master_pdu_map, self.__servo.dictionary)
-            self.__maps.fill_tpdo_map(self.safety_slave_pdu_map, self.__servo.dictionary)
+            self.__process_image.fill_rpdo_map(self.safety_master_pdu_map, self.__servo.dictionary)
+            self.__process_image.fill_tpdo_map(self.safety_slave_pdu_map, self.__servo.dictionary)
 
         # Initialize the safety master PDU map with zeros so that it has bytes set
         # without needing to enter get_request for it to have bytes set
@@ -385,7 +407,10 @@ class FSoEMasterHandler:
             rpdo_maps=[self.safety_master_pdu_map], tpdo_maps=[self.safety_slave_pdu_map]
         )
 
-        if self.__maps.editable:
+        # Subscribe to process data events
+        self.subscribe_to_process_data_events()
+
+        if self.__process_image.editable:
             self.safety_master_pdu_map.write_to_slave(padding=True)
             self.safety_slave_pdu_map.write_to_slave(padding=True)
 
@@ -395,9 +420,13 @@ class FSoEMasterHandler:
         self.__servo.remove_tpdo_map(self.safety_slave_pdu_map)
 
     def get_request(self) -> None:
-        """Set the FSoE master handler request to the Safety Master PDU PDOMap."""
+        """Set the FSoE master handler request to the Safety Master PDU PDOMap.
+
+        Raises:
+            RuntimeError: If the FSoE Master is not running.
+        """
         if not self.__running:
-            self.__start_on_first_request()
+            raise RuntimeError("FSoE Master is not running")
         req = self._master_handler.get_request()
         self.safety_master_pdu_map.set_item_bytes(req)
 

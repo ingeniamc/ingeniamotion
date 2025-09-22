@@ -8,7 +8,7 @@ from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 
 if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master import (
-        PDUMaps,
+        ProcessImage,
         SLPFunction,
         SPFunction,
         STOFunction,
@@ -18,7 +18,6 @@ if FSOE_MASTER_INSTALLED:
         Error,
     )
 from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
-from tests.test_fsoe_master import TIMEOUT_FOR_DATA_SRA
 
 
 @pytest.mark.fsoe_phase2
@@ -80,7 +79,9 @@ def test_get_last_error_overtemp_error(servo, mcu_error_queue_a, environment):
 
 
 @pytest.mark.fsoe_phase2
-def test_get_last_error_invalid_map(mcu_error_queue_a, mc_with_fsoe_factory, environment):
+def test_get_last_error_invalid_map(
+    mcu_error_queue_a, mc_with_fsoe_factory, environment, timeout_for_data_sra: float
+):
     """Test getting the last error when there is an invalid map error."""
     environment.power_cycle(wait_for_drives=True)
 
@@ -96,17 +97,17 @@ def test_get_last_error_invalid_map(mcu_error_queue_a, mc_with_fsoe_factory, env
     handler.get_function_instance(SPFunction)
     handler.get_function_instance(SVFunction)
 
-    maps = PDUMaps.empty(handler.dictionary)
+    maps = ProcessImage.empty(handler.dictionary)
 
     maps.inputs.add(sto.command)
 
     maps.outputs.add(sto.command)
     maps.outputs.add(slp_1.command)
 
-    handler.set_maps(maps)
+    handler.set_process_image(maps)
 
-    mc.fsoe.configure_pdos(start_pdos=True)
-    time.sleep(TIMEOUT_FOR_DATA_SRA)
+    mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
+    time.sleep(timeout_for_data_sra)
     try:
         assert mcu_error_queue_a.get_number_total_errors() == 1
         assert mcu_error_queue_a.get_last_error().error_id == 0x80040002
