@@ -51,25 +51,25 @@ def test_save_load_random_mapping(
     assert mapping_file.exists()
 
     # Check that there is something in the mapping
-    handler.maps.inputs.clear()
-    handler.maps.outputs.clear()
-    handler.set_maps(original_mapping)
-    n_original_inputs = len(handler.maps.inputs)
-    n_original_outputs = len(handler.maps.outputs)
+    handler.process_image.inputs.clear()
+    handler.process_image.outputs.clear()
+    handler.set_process_image(original_mapping)
+    n_original_inputs = len(handler.process_image.inputs)
+    n_original_outputs = len(handler.process_image.outputs)
     assert n_original_inputs > 0
     assert n_original_outputs > 0
 
     # Clear the current mapping and load the mapping from JSON
-    handler.maps.inputs.clear()
-    handler.maps.outputs.clear()
-    assert len(handler.maps.inputs) == 0
-    assert len(handler.maps.outputs) == 0
+    handler.process_image.inputs.clear()
+    handler.process_image.outputs.clear()
+    assert len(handler.process_image.inputs) == 0
+    assert len(handler.process_image.outputs) == 0
     new_mapping = FSoEDictionaryMapJSONSerializer.load_mapping_from_json(
         handler.dictionary, mapping_file
     )
-    handler.set_maps(new_mapping)
-    assert len(handler.maps.inputs) == n_original_inputs
-    assert len(handler.maps.outputs) == n_original_outputs
+    handler.set_process_image(new_mapping)
+    assert len(handler.process_image.inputs) == n_original_inputs
+    assert len(handler.process_image.outputs) == n_original_outputs
     new_json = FSoEDictionaryMapJSONSerializer.serialize_mapping_to_dict(new_mapping)
 
     # Verify the loaded mapping matches the original

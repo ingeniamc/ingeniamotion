@@ -8,7 +8,7 @@ from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 
 if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master import (
-        PDUMaps,
+        ProcessImage,
         SLPFunction,
         SPFunction,
         STOFunction,
@@ -97,14 +97,14 @@ def test_get_last_error_invalid_map(
     handler.get_function_instance(SPFunction)
     handler.get_function_instance(SVFunction)
 
-    maps = PDUMaps.empty(handler.dictionary)
+    maps = ProcessImage.empty(handler.dictionary)
 
     maps.inputs.add(sto.command)
 
     maps.outputs.add(sto.command)
     maps.outputs.add(slp_1.command)
 
-    handler.set_maps(maps)
+    handler.set_process_image(maps)
 
     mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
     time.sleep(timeout_for_data_sra)

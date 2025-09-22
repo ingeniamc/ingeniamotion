@@ -167,19 +167,19 @@ def test_save_sci_mapping(
     safe_inputs = handler.get_function_instance(SafeInputsFunction)
     ss1 = handler.get_function_instance(SS1Function)
 
-    handler.maps.inputs.clear()
-    handler.maps.inputs.add(sto.command)
-    handler.maps.inputs.add_padding(7)
-    handler.maps.inputs.add(safe_inputs.value)
-    handler.maps.inputs.add_padding(7)
+    handler.process_image.inputs.clear()
+    handler.process_image.inputs.add(sto.command)
+    handler.process_image.inputs.add_padding(7)
+    handler.process_image.inputs.add(safe_inputs.value)
+    handler.process_image.inputs.add_padding(7)
 
-    handler.maps.outputs.clear()
-    handler.maps.outputs.add(sto.command)
-    handler.maps.outputs.add_padding(1)
-    handler.maps.outputs.add(ss1.command)
-    handler.maps.outputs.add_padding(7)
+    handler.process_image.outputs.clear()
+    handler.process_image.outputs.add(sto.command)
+    handler.process_image.outputs.add_padding(1)
+    handler.process_image.outputs.add(ss1.command)
+    handler.process_image.outputs.add_padding(7)
 
-    handler.maps.validate()
+    handler.process_image.validate()
     handler.configure_pdo_maps()
 
     sci_file = temp_sci_files_dir / "test_mapping.sci"

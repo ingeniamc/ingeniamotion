@@ -31,12 +31,12 @@ from ingeniamotion.fsoe_master.fsoe import (
     StateData,
     calculate_sra_crc,
 )
-from ingeniamotion.fsoe_master.maps import PDUMaps
 from ingeniamotion.fsoe_master.parameters import (
     PARAM_VALUE_TYPE,
     SafetyParameter,
     SafetyParameterDirectValidation,
 )
+from ingeniamotion.fsoe_master.process_image import ProcessImage
 from ingeniamotion.fsoe_master.safety_functions import (
     SafeInputsFunction,
     SafetyFunction,
@@ -157,22 +157,22 @@ class FSoEMasterHandler:
         )
 
         try:
-            self.__maps = PDUMaps.from_rpdo_tpdo(
+            self.__process_image = ProcessImage.from_rpdo_tpdo(
                 self.__safety_master_pdu,
                 self.__safety_slave_pdu,
                 dictionary=self.dictionary,
             )
         except Exception as e:
             self.logger.error(
-                "Error creating FSoE PDUMaps from RPDO and TPDO on the drive. "
+                "Error creating FSoE Process Image from RPDO and TPDO on the drive. "
                 "Falling back to a default map.",
                 exc_info=e,
             )
-            self.__maps = PDUMaps.default(self.dictionary)
+            self.__process_image = ProcessImage.default(self.dictionary)
 
         if not map_editable:
-            self.__maps.inputs._lock()
-            self.__maps.outputs._lock()
+            self.__process_image.inputs._lock()
+            self.__process_image.outputs._lock()
 
         self._master_handler = BaseMasterHandler(
             dictionary=self.dictionary,
@@ -192,7 +192,7 @@ class FSoEMasterHandler:
             if slave_address is not None:
                 self.set_safety_address(slave_address)
 
-            self.set_maps(self.__maps)
+            self.set_process_image(self.__process_image)
         except Exception as ex:
             self._master_handler.delete()
             raise ex
@@ -388,12 +388,12 @@ class FSoEMasterHandler:
         self._master_handler.delete()
 
     @property
-    def maps(self) -> "PDUMaps":
-        """Get the PDUMap used for the Safety PDUs."""
-        return self.__maps
+    def process_image(self) -> "ProcessImage":
+        """Get the Process Image used for the Safety PDUs."""
+        return self.__process_image
 
-    def set_maps(self, maps: "PDUMaps") -> None:
-        """Set new PDUMaps for the Safety PDUs.
+    def set_process_image(self, process_image: "ProcessImage") -> None:
+        """Set new Process Image for the Safety PDUs.
 
         Raises:
             RuntimeError: If the FSoE Master is running.
@@ -401,20 +401,20 @@ class FSoEMasterHandler:
         if self.__running:
             raise RuntimeError("Cannot set map while the FSoE Master is running")
 
-        self._master_handler.master.dictionary_map = maps.outputs
-        self._master_handler.slave.dictionary_map = maps.inputs
-        self.__maps = maps
+        self._master_handler.master.dictionary_map = process_image.outputs
+        self._master_handler.slave.dictionary_map = process_image.inputs
+        self.__process_image = process_image
 
     def configure_pdo_maps(self) -> None:
-        """Configure the PDOMaps used for the Safety PDUs according to the map.
+        """Configure the PDOMaps used for the Safety PDUs according to the process image.
 
         Raises:
             ValueError: If a register in the PDOMap has no identifier.
         """
-        if self.__maps.editable:
+        if self.__process_image.editable:
             # Fill the RPDOMap and TPDOMap with the items from the maps
-            self.__maps.fill_rpdo_map(self.safety_master_pdu_map, self.__servo.dictionary)
-            self.__maps.fill_tpdo_map(self.safety_slave_pdu_map, self.__servo.dictionary)
+            self.__process_image.fill_rpdo_map(self.safety_master_pdu_map, self.__servo.dictionary)
+            self.__process_image.fill_tpdo_map(self.safety_slave_pdu_map, self.__servo.dictionary)
 
         # Initialize the safety master PDU map with zeros so that it has bytes set
         # without needing to enter get_request for it to have bytes set
@@ -445,7 +445,7 @@ class FSoEMasterHandler:
         # Subscribe to process data events
         self.subscribe_to_process_data_events()
 
-        if self.__maps.editable:
+        if self.__process_image.editable:
             self.safety_master_pdu_map.write_to_slave(padding=True)
             self.safety_slave_pdu_map.write_to_slave(padding=True)
 

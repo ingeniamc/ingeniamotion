@@ -8,7 +8,7 @@ if TYPE_CHECKING:
     from ingeniamotion.fsoe_master.fsoe import FSoEDictionaryMap
 
 if FSOE_MASTER_INSTALLED:
-    from ingeniamotion.fsoe_master.maps import PDUMaps
+    from ingeniamotion.fsoe_master.process_image import ProcessImage
 
 
 class FSoEDictionaryMapJSONSerializer:
@@ -16,12 +16,12 @@ class FSoEDictionaryMapJSONSerializer:
 
     @staticmethod
     def serialize_mapping_to_dict(
-        maps: "PDUMaps",
+        process_image: "ProcessImage",
     ) -> dict[str, list[dict[str, Union[str, int]]]]:
         """Serialize the current mapping to a dictionary for JSON storage.
 
         Args:
-            maps: The PDU maps with the mapping to serialize.
+            process_image: The ProcessImage with the mapping to serialize.
 
         Returns:
             Dictionary containing the serialized mapping data.
@@ -29,7 +29,9 @@ class FSoEDictionaryMapJSONSerializer:
         mapping_data: dict[str, list[dict[str, Union[str, int]]]] = {"inputs": [], "outputs": []}
 
         # Serialize inputs and outputs mapping
-        for item_key, item in zip(["inputs", "outputs"], [maps.inputs, maps.outputs]):
+        for item_key, item in zip(
+            ["inputs", "outputs"], [process_image.inputs, process_image.outputs]
+        ):
             for item in item:
                 # FSoE dictionary item
                 if item.item is not None:
@@ -50,18 +52,18 @@ class FSoEDictionaryMapJSONSerializer:
     @staticmethod
     def load_mapping_from_dict(
         dictionary: "FSoEDictionaryMap", mapping_data: dict[str, list[dict[str, Union[str, int]]]]
-    ) -> "PDUMaps":
-        """Loads a mapping from a dictionary into the PDU maps.
+    ) -> "ProcessImage":
+        """Loads a mapping from a dictionary into the ProcessImage.
 
         Args:
             dictionary: The FSoE dictionary.
             mapping_data: Dictionary containing the serialized mapping data.
 
         Returns:
-            PDUMaps: The PDU maps with the loaded mapping.
+            ProcessImage: The ProcessImage with the loaded mapping.
         """
         # Clear existing mappings
-        maps = PDUMaps.empty(dictionary=dictionary)
+        maps = ProcessImage.empty(dictionary=dictionary)
 
         # Load inputs and outputs mapping
         for item_key, item in zip(["inputs", "outputs"], [maps.inputs, maps.outputs]):
@@ -76,12 +78,12 @@ class FSoEDictionaryMapJSONSerializer:
 
     @staticmethod
     def save_mapping_to_json(
-        maps: "PDUMaps", filename: Path, override: bool = False
+        maps: "ProcessImage", filename: Path, override: bool = False
     ) -> dict[str, list[dict[str, Union[str, int]]]]:
         """Save the current mapping to a JSON file.
 
         Args:
-            maps: The PDU maps with the mapping to save.
+            maps: The ProcessImage with the mapping to save.
             filename: Path to the JSON file to save.
             override: If True, will overwrite existing file. Defaults to False.
 
@@ -103,7 +105,7 @@ class FSoEDictionaryMapJSONSerializer:
         return mapping_data
 
     @staticmethod
-    def load_mapping_from_json(dictionary: "FSoEDictionaryMap", filename: Path) -> "PDUMaps":
+    def load_mapping_from_json(dictionary: "FSoEDictionaryMap", filename: Path) -> "ProcessImage":
         """Load a mapping from a JSON file into the FSoE dictionary.
 
         Args:
@@ -111,7 +113,7 @@ class FSoEDictionaryMapJSONSerializer:
             filename: Path to the JSON file to load.
 
         Returns:
-            PDUMaps: The PDU maps with the loaded mapping.
+            ProcessImage: The ProcessImage with the loaded mapping.
 
         Raises:
             FileNotFoundError: If the mapping file does not exist.

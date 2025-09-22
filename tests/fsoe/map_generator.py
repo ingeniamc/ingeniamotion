@@ -13,12 +13,12 @@ if FSOE_MASTER_INSTALLED:
         FSoEDictionaryMap,
         align_bits,
     )
-    from ingeniamotion.fsoe_master.maps import PDUMaps
+    from ingeniamotion.fsoe_master.process_image import ProcessImage
     from tests.fsoe.map_json_serializer import FSoEDictionaryMapJSONSerializer
 
 
 class FSoERandomMappingGenerator:
-    """Class to generate random PDU mappings."""
+    """Class to generate random process images."""
 
     @staticmethod
     def _insert_item_according_to_fsoe_rules(
@@ -94,12 +94,12 @@ class FSoERandomMappingGenerator:
 
     @staticmethod
     def _add_random_item_to_map(
-        maps: "PDUMaps", item: "FSoEDictionaryItem", random_paddings: bool
+        process_image: "ProcessImage", item: "FSoEDictionaryItem", random_paddings: bool
     ) -> None:
         """Add a random item to the map with optional padding.
 
         Args:
-            maps: The PDU maps.
+            process_image: Process IMage.
             item: The item that will be added to the map.
             random_paddings: True to add random paddings to the mapping.
         """
@@ -112,41 +112,41 @@ class FSoERandomMappingGenerator:
             # Add the item + padding
             if isinstance(item, FSoEDictionaryItemInput):
                 added = FSoERandomMappingGenerator._insert_item_according_to_fsoe_rules(
-                    maps.inputs, item
+                    process_image.inputs, item
                 )
                 if added:
                     FSoERandomMappingGenerator._insert_padding_according_to_fsoe_rules(
-                        maps.inputs, padding_size
+                        process_image.inputs, padding_size
                     )
             elif isinstance(item, FSoEDictionaryItemOutput):
                 added = FSoERandomMappingGenerator._insert_item_according_to_fsoe_rules(
-                    maps.outputs, item
+                    process_image.outputs, item
                 )
                 if added:
                     FSoERandomMappingGenerator._insert_padding_according_to_fsoe_rules(
-                        maps.outputs, padding_size
+                        process_image.outputs, padding_size
                     )
             else:
                 input_added = FSoERandomMappingGenerator._insert_item_according_to_fsoe_rules(
-                    maps.inputs, item
+                    process_image.inputs, item
                 )
                 output_added = FSoERandomMappingGenerator._insert_item_according_to_fsoe_rules(
-                    maps.outputs, item
+                    process_image.outputs, item
                 )
 
                 # FSoEDictionaryItemInputOutput - add padding to random map, not to both
                 if random.choice([True, False]):
                     if input_added:
                         FSoERandomMappingGenerator._insert_padding_according_to_fsoe_rules(
-                            maps.inputs, padding_size
+                            process_image.inputs, padding_size
                         )
                 elif output_added:
                     FSoERandomMappingGenerator._insert_padding_according_to_fsoe_rules(
-                        maps.outputs, padding_size
+                        process_image.outputs, padding_size
                     )
         else:
             # Insert the item in the best position without padding
-            maps.insert_in_best_position(item)
+            process_image.insert_in_best_position(item)
 
     @staticmethod
     def generate_random_mapping(
@@ -154,7 +154,7 @@ class FSoERandomMappingGenerator:
         max_items: int,
         random_paddings: bool,
         seed: int = None,
-    ) -> "PDUMaps":
+    ) -> "ProcessImage":
         """Generate a random mapping of safety functions, adding 1 of each data type randomly.
 
         When a data type is finished, continue with the remaining ones.
@@ -168,13 +168,13 @@ class FSoERandomMappingGenerator:
                 If None, a fixed seed will be used.
 
         Returns:
-            PDUMaps: The generated PDU maps with the random mapping.
+            ProcessImage: The generated ProcessImage with the random mapping.
         """
         if seed is not None:
             random.seed(seed)
 
         # Clear existing mappings
-        maps = PDUMaps.empty(dictionary=dictionary)
+        process_image = ProcessImage.empty(dictionary=dictionary)
 
         items_added = 0
 
@@ -191,7 +191,7 @@ class FSoERandomMappingGenerator:
         if safety_functions.STOFunction.COMMAND_UID in dictionary.name_map:
             sto_command = dictionary.name_map[safety_functions.STOFunction.COMMAND_UID]
             FSoERandomMappingGenerator._add_random_item_to_map(
-                maps=maps, item=sto_command, random_paddings=random_paddings
+                process_image=process_image, item=sto_command, random_paddings=random_paddings
             )
             safety_io[sto_command.data_type].remove(sto_command)
             items_added += 1
@@ -212,12 +212,12 @@ class FSoERandomMappingGenerator:
 
             # Add the item to the mapping
             FSoERandomMappingGenerator._add_random_item_to_map(
-                maps=maps, item=selected_item, random_paddings=random_paddings
+                process_image=process_image, item=selected_item, random_paddings=random_paddings
             )
             safety_io[selected_type].remove(selected_item)  # Item already added
             items_added += 1
 
-        return maps
+        return process_image
 
     @staticmethod
     def generate_and_save_random_mapping(
@@ -227,7 +227,7 @@ class FSoERandomMappingGenerator:
         filename: Path,
         override: bool = False,
         seed: int = None,
-    ) -> "PDUMaps":
+    ) -> "ProcessImage":
         """Generate a random mapping and save it to a JSON file for reproducible testing.
 
         Args:
@@ -240,7 +240,7 @@ class FSoERandomMappingGenerator:
                 If None, a fixed seed will be used.
 
         Returns:
-            The generated PDU maps.
+            The generated ProcessImage.
         """
         maps = FSoERandomMappingGenerator.generate_random_mapping(
             dictionary, max_items, random_paddings, seed
