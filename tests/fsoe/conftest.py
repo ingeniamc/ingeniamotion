@@ -1,10 +1,22 @@
 import dataclasses
 import random
+from collections import OrderedDict
 from collections.abc import Iterator
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import pytest
+from ingenialink import RegAccess, RegDtype
+from ingenialink.dictionary import CanOpenObject, Interface
+from ingenialink.enums.register import RegCyclicType
+from ingenialink.ethercat.network import EthercatNetwork
+from ingenialink.ethercat.register import EthercatRegister
+from ingenialink.ethercat.servo import EthercatServo
+from ingenialink.exceptions import ILRegisterNotFoundError
+from ingenialink.network import Network
+from ingenialink.pdo_network_manager import PDONetworkManager as ILPDONetworkManager
+from ingenialink.servo import DictionaryFactory, Servo
+from ingenialink.utils._utils import convert_dtype_to_bytes
 from summit_testing_framework import ATTFileType
 from summit_testing_framework.setups.specifiers import (
     DriveHwConfigSpecifier,
@@ -13,37 +25,45 @@ from summit_testing_framework.setups.specifiers import (
     RackServiceConfigSpecifier,
 )
 
-from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
+from ingeniamotion.enums import FSoEState
+from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError
+from tests.conftest import add_fixture_error_checker
+from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
 from tests.outputs import OUTPUTS_DIR
 
-# https://novantamotion.atlassian.net/browse/INGM-682
-from tests.test_fsoe_master import (
-    TIMEOUT_FOR_DATA,
-    TIMEOUT_FOR_DATA_SRA,
-    fsoe_error_monitor,  # noqa: F401
-    fsoe_states,  # noqa: F401
-    mc_with_fsoe,  # noqa: F401
-    mc_with_fsoe_factory,  # noqa: F401
-    mc_with_fsoe_with_sra,  # noqa: F401
-    mcu_error_queue_a,  # noqa: F401
-    mcu_error_queue_b,  # noqa: F401
-)
-
 if FSOE_MASTER_INSTALLED:
-    from tests.fsoe.map_generator import FSoERandomMappingGenerator
+    from ingeniamotion.fsoe_master import (
+        FSoEMasterHandler,
+        SafeInputsFunction,
+        SafetyFunction,
+        SafetyParameter,
+        SS1Function,
+        STOFunction,
+    )
+    from ingeniamotion.fsoe_master.errors import (
+        MCUA_ERROR_QUEUE,
+        MCUB_ERROR_QUEUE,
+        Error,
+        ServoErrorQueue,
+    )
+    from tests.fsoe.utils.map_generator import FSoERandomMappingGenerator
+
 
 if TYPE_CHECKING:
+    from ingenialink.emcy import EmergencyMessage
+    from ingenialink.ethercat.dictionary import EthercatDictionary
+    from ingenialink.register import Register
     from summit_testing_framework.att import ATTApi
     from summit_testing_framework.rack_service_client import RackServiceClient
     from summit_testing_framework.setups.descriptors import DriveHwSetup
 
+    from ingeniamotion.fsoe_master import FSoEDictionary
     from ingeniamotion.motion_controller import MotionController
-
-    if FSOE_MASTER_INSTALLED:
-        from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
 
 __EXTRA_DATA_ESI_FILE_KEY: str = "esi_file"
 FSOE_MAPS_DIR = "fsoe_maps"
+TIMEOUT_FOR_DATA = 30
+TIMEOUT_FOR_DATA_SRA = 3
 
 
 @pytest.fixture(scope="session")
@@ -106,9 +126,230 @@ def setup_specifier_with_esi(
     return dataclasses.replace(setup_specifier, extra_data=new_data)
 
 
+def emergency_handler(servo_alias: str, message: "EmergencyMessage") -> None:
+    if message.error_code == 0xFF43:
+        # Cyclic timeout Ethercat PDO lifeguard
+        # is a typical error code when the pdos are stopped
+        # Ignore
+        return
+
+    if message.error_code == 0:
+        # When drive goes to Operational again
+        # No error is thrown
+        # https://novantamotion.atlassian.net/browse/INGM-627
+        return
+
+    raise RuntimeError(f"Emergency message received from {servo_alias}: {message}")
+
+
+@pytest.fixture
+def mcu_error_queue_a(servo: "EthercatServo") -> "ServoErrorQueue":
+    return ServoErrorQueue(MCUA_ERROR_QUEUE, servo)
+
+
+@pytest.fixture
+def mcu_error_queue_b(servo: "EthercatServo") -> "ServoErrorQueue":
+    return ServoErrorQueue(MCUB_ERROR_QUEUE, servo)
+
+
+@dataclasses.dataclass(frozen=True)
+class FSoEErrorDisplay:
+    """Class to display FSoE errors in tests."""
+
+    error: FSoEError
+    """Main error that was reported."""
+    mcua_last_error: Optional["Error"]
+    """Last error in MCUA error queue."""
+    mcub_last_error: Optional["Error"]
+    """Last error in MCUB error queue."""
+    states: list[FSoEState]
+    """State transitions that occurred until the error."""
+
+    @property
+    def display(self) -> str:
+        """Get a text representation of the error."""
+        return (
+            f"{str(self.error)}\n"
+            f"  MCUA Last Error: {self.mcua_last_error}\n"
+            f"  MCUB Last Error: {self.mcub_last_error}\n"
+            f"  FSoE States: {self.states}"
+        )
+
+
+@pytest.fixture(scope="function")
+def fsoe_error_monitor(
+    request: pytest.FixtureRequest,
+    mcu_error_queue_a: "ServoErrorQueue",
+    mcu_error_queue_b: "ServoErrorQueue",
+    fsoe_states: list[FSoEState],
+) -> Callable[[FSoEError], None]:
+    errors: list[FSoEErrorDisplay] = []
+
+    is_phase2 = False
+    try:
+        n_mcua_errors = mcu_error_queue_a.get_number_total_errors()
+        n_mcub_errors = mcu_error_queue_b.get_number_total_errors()
+        is_phase2 = True
+    # MCU registers only available in phase 2
+    except ILRegisterNotFoundError:
+        pass
+
+    def error_handler(error: FSoEError) -> None:
+        # Add last error only if it happened during the test
+        if is_phase2:
+            mcua_last_error = (
+                mcu_error_queue_a.get_last_error()
+                if mcu_error_queue_a.get_number_total_errors() > n_mcua_errors
+                else None
+            )
+            mcub_last_error = (
+                mcu_error_queue_b.get_last_error()
+                if mcu_error_queue_b.get_number_total_errors() > n_mcub_errors
+                else None
+            )
+        else:
+            mcua_last_error = None
+            mcub_last_error = None
+
+        errors.append(
+            FSoEErrorDisplay(
+                error=error,
+                mcua_last_error=mcua_last_error,
+                mcub_last_error=mcub_last_error,
+                states=fsoe_states.copy(),
+            )
+        )
+
+    def fsoe_error_reporter_callback() -> tuple[bool, str]:
+        if len(errors) > 0:
+            error_messages = "\n".join(error.display for error in errors)
+            return False, f"FSoE errors occurred:\n{error_messages}"
+        return True, ""
+
+    add_fixture_error_checker(request.node, fsoe_error_reporter_callback)
+
+    return error_handler
+
+
+@pytest.fixture()
+def fsoe_states() -> list["FSoEState"]:
+    states: list[FSoEState] = []
+    return states
+
+
+def __set_default_phase2_mapping(handler: "FSoEMasterHandler") -> None:
+    sto = handler.get_function_instance(STOFunction)
+    safe_inputs = handler.get_function_instance(SafeInputsFunction)
+    ss1 = handler.get_function_instance(SS1Function)
+
+    handler.process_image.inputs.clear()
+    handler.process_image.inputs.add(sto.command)
+    handler.process_image.inputs.add(ss1.command)
+    handler.process_image.inputs.add_padding(6)
+    handler.process_image.inputs.add(safe_inputs.value)
+    handler.process_image.inputs.add_padding(7)
+
+    handler.process_image.outputs.clear()
+    handler.process_image.outputs.add(sto.command)
+    handler.process_image.outputs.add(ss1.command)
+    handler.process_image.outputs.add_padding(6)
+
+
+@pytest.fixture
+def mc_with_fsoe_factory(
+    request: pytest.FixtureRequest, mc: "MotionController", fsoe_states: list["FSoEState"]
+) -> Iterator[Callable[[bool, bool], tuple["MotionController", "FSoEMasterHandler"]]]:
+    created_handlers = []
+
+    def factory(
+        use_sra: bool = False, fail_on_fsoe_errors: bool = True
+    ) -> tuple["MotionController", "FSoEMasterHandler"]:
+        def add_state(state: FSoEState) -> None:
+            fsoe_states.append(state)
+
+        # Subscribe to emergency messages
+        mc.communication.subscribe_emergency_message(emergency_handler)
+        # Create and start the FSoE master handler
+        handler = mc.fsoe.create_fsoe_master_handler(
+            use_sra=use_sra, state_change_callback=add_state
+        )
+        if fail_on_fsoe_errors:
+            # Configure error channel
+            mc.fsoe.subscribe_to_errors(request.getfixturevalue(fsoe_error_monitor.__name__))
+        created_handlers.append(handler)
+        # If phase II, initialize the handler with the default mapping
+        # and set feedback scenario to 0
+        if handler.process_image.editable:
+            __set_default_phase2_mapping(handler)
+            handler.safety_parameters.get("FSOE_FEEDBACK_SCENARIO").set(0)
+
+        if handler.sout_function() is not None:
+            handler.sout_disable()
+
+        return mc, handler
+
+    yield factory
+
+    # Stop the master, PDOs are stopped on mc teardown
+    mc.fsoe.stop_master(stop_pdos=False)
+    mc.fsoe._delete_master_handler()
+
+
+@pytest.fixture()
+def mc_with_fsoe(
+    mc_with_fsoe_factory: Callable[..., tuple["MotionController", "FSoEMasterHandler"]],
+) -> Iterator[tuple["MotionController", "FSoEMasterHandler"]]:
+    yield mc_with_fsoe_factory(use_sra=False, fail_on_fsoe_errors=True)
+
+
+@pytest.fixture()
+def mc_with_fsoe_with_sra(
+    mc_with_fsoe_factory: Callable[..., tuple["MotionController", "FSoEMasterHandler"]],
+) -> Iterator[tuple["MotionController", "FSoEMasterHandler"]]:
+    yield mc_with_fsoe_factory(use_sra=True, fail_on_fsoe_errors=True)
+
+
+@pytest.fixture()
+def mc_state_data_with_sra(
+    mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"],
+) -> Iterator["MotionController"]:
+    mc, _handler = mc_with_fsoe_with_sra
+
+    mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
+    # Wait for the master to reach the Data state
+    mc.fsoe.wait_for_state_data(timeout=TIMEOUT_FOR_DATA_SRA)
+
+    # Remove fail-safe state
+    mc.fsoe.set_fail_safe(False)
+
+    yield mc
+
+    # Stop the FSoE master handler
+    mc.fsoe.stop_master(stop_pdos=True)
+
+
+@pytest.fixture()
+def mc_state_data(
+    mc_with_fsoe: tuple["MotionController", "FSoEMasterHandler"],
+) -> Iterator["MotionController"]:
+    mc, _ = mc_with_fsoe
+
+    mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
+    # Wait for the master to reach the Data state
+    mc.fsoe.wait_for_state_data(timeout=TIMEOUT_FOR_DATA)
+
+    # Remove fail-safe state
+    mc.fsoe.set_fail_safe(False)
+
+    yield mc
+
+    # Stop the FSoE master handler
+    mc.fsoe.stop_master(stop_pdos=True)
+
+
 @pytest.fixture
 def mc_with_fsoe_with_sra_and_feedback_scenario(
-    request: pytest.FixtureRequest,
+    mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"],
 ) -> Iterator[tuple["MotionController", "FSoEMasterHandler"]]:
     """Fixture to provide a MotionController with FSoE and SRA configured with feedback scenario 4.
 
@@ -119,9 +360,7 @@ def mc_with_fsoe_with_sra_and_feedback_scenario(
     Yields:
         A tuple with the MotionController and the FSoEMasterHandler.
     """
-    # Do not use getfixture
-    # https://novantamotion.atlassian.net/browse/INGM-682
-    mc, handler = request.getfixturevalue("mc_with_fsoe_with_sra")
+    mc, handler = mc_with_fsoe_with_sra
 
     mc.communication.set_register(
         "CL_AUX_FBK_SENSOR", 5
@@ -130,8 +369,6 @@ def mc_with_fsoe_with_sra_and_feedback_scenario(
 
     yield mc, handler
 
-    # Should be in mc_with_fsoe_factory
-    # https://novantamotion.atlassian.net/browse/INGM-682
     # If there has been a failure and it tries to remove the PDO maps, it may fail
     # if the servo is not in preop state
     try:
@@ -139,6 +376,60 @@ def mc_with_fsoe_with_sra_and_feedback_scenario(
             mc.fsoe.stop_master(stop_pdos=True)
     except Exception:
         pass
+
+
+@pytest.fixture(scope="session")
+def safe_dict() -> "EthercatDictionary":
+    axis_1 = 1
+    safe_dict = DictionaryFactory.create_dictionary(
+        SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, interface=Interface.ECAT
+    )
+
+    # Add sample registers
+    safe_dict._registers[axis_1]["TEST_SI_U16"] = EthercatRegister(
+        idx=0xF000,
+        subidx=0,
+        dtype=RegDtype.U16,
+        access=RegAccess.RO,
+        identifier="TEST_SI_U16",
+        pdo_access=RegCyclicType.SAFETY_INPUT,
+        cat_id="FSOE",
+    )
+    safe_dict._registers[axis_1]["TEST_SI_U8"] = EthercatRegister(
+        idx=0xF001,
+        subidx=0,
+        dtype=RegDtype.U8,
+        access=RegAccess.RO,
+        identifier="TEST_SI_U8",
+        pdo_access=RegCyclicType.SAFETY_INPUT,
+        cat_id="FSOE",
+    )
+
+    # Add more CRC registers
+    safe_dict._registers[axis_1]["FSOE_SLAVE_FRAME_ELEM_CRC2"] = EthercatRegister(
+        idx=0xF002,
+        subidx=0,
+        dtype=RegDtype.U16,
+        access=RegAccess.RO,
+        identifier="FSOE_SLAVE_FRAME_ELEM_CRC2",
+        pdo_access=RegCyclicType.SAFETY_INPUT,
+        cat_id="FSOE",
+    )
+    safe_dict._registers[axis_1]["FSOE_SLAVE_FRAME_ELEM_CRC3"] = EthercatRegister(
+        idx=0xF003,
+        subidx=0,
+        dtype=RegDtype.U16,
+        access=RegAccess.RO,
+        identifier="FSOE_SLAVE_FRAME_ELEM_CRC3",
+        pdo_access=RegCyclicType.SAFETY_INPUT,
+        cat_id="FSOE",
+    )
+    return safe_dict
+
+
+@pytest.fixture(scope="session")
+def fsoe_dict(safe_dict: "EthercatDictionary") -> Iterator["FSoEDictionary"]:
+    return FSoEMasterHandler.create_safe_dictionary(safe_dict)
 
 
 @pytest.fixture(scope="module")
@@ -183,7 +474,7 @@ def map_generator() -> Iterator["FSoERandomMappingGenerator"]:
     Yields:
         FSoERandomMappingGenerator instance.
     """
-    yield FSoERandomMappingGenerator
+    yield FSoERandomMappingGenerator()
 
 
 @pytest.fixture(scope="session")
@@ -196,3 +487,75 @@ def timeout_for_data() -> float:
 def timeout_for_data_sra() -> float:
     """Returns the timeout value for the Data state for handler using SRA."""
     return TIMEOUT_FOR_DATA_SRA
+
+
+class MockNetwork(EthercatNetwork):
+    def __init__(self) -> None:
+        Network.__init__(self)
+
+        self._pdo_manager = ILPDONetworkManager(self)
+
+
+class MockServo(Servo):
+    interface = Interface.ECAT
+
+    def __init__(self, dictionary_path: str) -> None:
+        super().__init__(target=1, dictionary_path=dictionary_path)
+
+        self.current_values = {
+            register: convert_dtype_to_bytes(register.default, register.dtype)
+            for register in self.dictionary.all_registers()
+        }
+
+    def _write_raw(self, reg: "Register", data: bytes, **kwargs: Any) -> None:
+        self.current_values[reg] = data
+
+    def _read_raw(self, reg: "Register", **kwargs: Any) -> bytes:
+        return self.current_values[reg]
+
+    def read_complete_access(
+        self, reg: Union[str, "Register", "CanOpenObject"], *args, **kwargs
+    ) -> bytes:
+        if not isinstance(reg, CanOpenObject):
+            raise NotImplementedError
+
+        value = bytearray()
+
+        for register in reg:
+            value += self.current_values[register]
+            if register.subidx == 0:
+                value += b"\00"  # Padding after first u8 element
+
+        return bytes(value)
+
+    read_rpdo_map_from_slave = EthercatServo.read_rpdo_map_from_slave
+    read_tpdo_map_from_slave = EthercatServo.read_tpdo_map_from_slave
+
+
+if FSOE_MASTER_INSTALLED:
+
+    class MockSafetyParameter(SafetyParameter):
+        def __init__(self, register: "EthercatRegister", servo: "EthercatServo") -> None:
+            self.__register = register
+            self.__servo = servo
+
+            self.__value = 0
+
+        @property
+        def register(self) -> "EthercatRegister":
+            """Get the register associated with the safety parameter."""
+            return self.__register
+
+    class MockHandler(FSoEMasterHandler):
+        def __init__(self, dictionary: str, module_uid: int):
+            xdf = DictionaryFactory.create_dictionary(dictionary, interface=Interface.ECAT)
+            self.dictionary = FSoEMasterHandler.create_safe_dictionary(xdf)
+            self.__servo = MockServo(dictionary)
+            self.safety_parameters = OrderedDict({
+                app_parameter.uid: MockSafetyParameter(
+                    xdf.get_register(app_parameter.uid), self.__servo
+                )
+                for app_parameter in xdf.get_safety_module(module_uid).application_parameters
+            })
+
+            self.safety_functions = tuple(SafetyFunction.for_handler(self))

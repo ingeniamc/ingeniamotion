@@ -1,27 +1,33 @@
 import time
+from typing import TYPE_CHECKING, Callable
 
 import pytest
 from ingenialink.dictionary import Interface
 from ingenialink.servo import DictionaryFactory
 
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
+from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
+
+if TYPE_CHECKING:
+    from ingenialink.ethercat.servo import EthercatServo
+    from summit_testing_framework.setups.environment_control import DriveEnvironmentController
+
+    from ingeniamotion.motion_controller import MotionController
 
 if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master import (
+        FSoEMasterHandler,
         ProcessImage,
         SLPFunction,
         SPFunction,
         STOFunction,
         SVFunction,
     )
-    from ingeniamotion.fsoe_master.errors import (
-        Error,
-    )
-from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
+    from ingeniamotion.fsoe_master.errors import Error, ServoErrorQueue
 
 
 @pytest.mark.fsoe_phase2
-def test_get_known_error():
+def test_get_known_error() -> None:
     """Test getting a known error from the dictionary."""
     dictionary = DictionaryFactory.create_dictionary(
         SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, interface=Interface.ECAT
@@ -36,7 +42,7 @@ def test_get_known_error():
 
 
 @pytest.mark.fsoe_phase2
-def test_get_error_with_id_not_in_dict():
+def test_get_error_with_id_not_in_dict() -> None:
     """Test getting an error with an unknown ID."""
     dictionary = DictionaryFactory.create_dictionary(
         SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, interface=Interface.ECAT
@@ -47,7 +53,9 @@ def test_get_error_with_id_not_in_dict():
 
 
 @pytest.mark.fsoe_phase2
-def test_no_errors(mcu_error_queue_a, environment):
+def test_no_errors(
+    mcu_error_queue_a: "ServoErrorQueue", environment: "DriveEnvironmentController"
+) -> None:
     """Test methods when there are no errors"""
     # Clear any existing errors by power cycling
     environment.power_cycle(wait_for_drives=True)
@@ -62,7 +70,11 @@ def test_no_errors(mcu_error_queue_a, environment):
 
 @pytest.mark.skip(reason="FSOE Over temperature error was not available in release 2.8.1")
 @pytest.mark.fsoe_phase2
-def test_get_last_error_overtemp_error(servo, mcu_error_queue_a, environment):
+def test_get_last_error_overtemp_error(
+    servo: "EthercatServo",
+    mcu_error_queue_a: "ServoErrorQueue",
+    environment: "DriveEnvironmentController",
+) -> None:
     """Test getting the last error when there is an overtemperature error."""
     # Clear any existing errors by power cycling
     environment.power_cycle(wait_for_drives=True)
@@ -80,8 +92,11 @@ def test_get_last_error_overtemp_error(servo, mcu_error_queue_a, environment):
 
 @pytest.mark.fsoe_phase2
 def test_get_last_error_invalid_map(
-    mcu_error_queue_a, mc_with_fsoe_factory, environment, timeout_for_data_sra: float
-):
+    mcu_error_queue_a: "ServoErrorQueue",
+    mc_with_fsoe_factory: Callable[..., tuple["MotionController", "FSoEMasterHandler"]],
+    environment: "DriveEnvironmentController",
+    timeout_for_data_sra: float,
+) -> None:
     """Test getting the last error when there is an invalid map error."""
     environment.power_cycle(wait_for_drives=True)
 
@@ -140,8 +155,8 @@ def test_get_pending_error_indexes(
     current_total_errors: int,
     expected_pending_error_indexes: tuple[int, ...],
     expected_errors_lost: bool,
-    mcu_error_queue_a,
-):
+    mcu_error_queue_a: "ServoErrorQueue",
+) -> None:
     mcu_error_queue_a._ServoErrorQueue__last_read_total_errors_pending = last_total_errors
     pending_error_indexes, errors_lost = (
         mcu_error_queue_a._ServoErrorQueue__get_pending_error_indexes(current_total_errors)
