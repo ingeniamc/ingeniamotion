@@ -2,6 +2,7 @@
 import dataclasses
 from collections.abc import Iterator
 from dataclasses import dataclass
+from enum import IntEnum
 from typing import TYPE_CHECKING, Optional, Union, get_args, get_origin
 
 from typing_extensions import override
@@ -311,6 +312,12 @@ class STOFunction(SafetyFunction):
         uid="FSOE_STO_ACTIVATE_SOUT", display_name="Activate SOUT"
     )
 
+    class ActiveSOUT(IntEnum):
+        """Enum for the Activate SOUT parameter in the STO function."""
+
+        DISABLED = 0
+        ENABLED = 0x66600001
+
 
 @dataclass()
 class SS1Function(SafetyFunction):
@@ -341,41 +348,41 @@ class SS1Function(SafetyFunction):
         uid="FSOE_SS1_ACTIVATE_SOUT_{i}", display_name="Activate SOUT"
     )
 
-    __FSOE_SAFE_INPUTS_MAP_ACTIVE_VALUE = 2
-    __FSOE_SLP_ERROR_REACTION_ACTIVE_VALUE = 0x66500101
-    __FSOE_SSR_ERROR_REACTION_ACTIVE_VALUE = 0x66500101
-    __FSOE_SLS_ERROR_REACTION_ACTIVE_VALUE = 0x66500101
-    __FSOE_SLI_ERROR_REACTION_ACTIVE_VALUE = 0x66500101
+    class ActiveSOUT(IntEnum):
+        """Enum for the Activate SOUT parameter in the STO function."""
+
+        DISABLED = 0
+        ENABLED = 0x66600001
 
     @override
     def activated_by(self) -> Optional[SafetyFunction]:
         process_image = self.handler.process_image
         si_function: SafeInputsFunction = self.handler.safe_inputs_function()
-        if si_function.map.get() == self.__FSOE_SAFE_INPUTS_MAP_ACTIVE_VALUE:
+        if si_function.map.get() == SafeInputsFunction.SafeInputMap.SS1:
             return si_function
         for slp_function in self.handler.get_all_function_instances(SLPFunction):
             if (
                 process_image.is_safety_function_mapped(slp_function, strict=True)
                 or slp_function.activated_by() is not None
-            ) and slp_function.error_reaction.get() == self.__FSOE_SLP_ERROR_REACTION_ACTIVE_VALUE:
+            ) and slp_function.error_reaction.get() == SLPFunction.ErrorReaction.SS1:
                 return slp_function
         for ssr_function in self.handler.get_all_function_instances(SSRFunction):
             if (
                 process_image.is_safety_function_mapped(ssr_function, strict=True)
                 or ssr_function.activated_by() is not None
-            ) and ssr_function.error_reaction.get() == self.__FSOE_SSR_ERROR_REACTION_ACTIVE_VALUE:
+            ) and ssr_function.error_reaction.get() == SSRFunction.ErrorReaction.SS1:
                 return ssr_function
         for sls_function in self.handler.get_all_function_instances(SLSFunction):
             if (
                 process_image.is_safety_function_mapped(sls_function, strict=True)
                 or sls_function.activated_by() is not None
-            ) and sls_function.error_reaction.get() == self.__FSOE_SLS_ERROR_REACTION_ACTIVE_VALUE:
+            ) and sls_function.error_reaction.get() == SLSFunction.ErrorReaction.SS1:
                 return sls_function
         for sli_function in self.handler.get_all_function_instances(SLIFunction):
             if (
                 process_image.is_safety_function_mapped(sli_function, strict=True)
                 or sli_function.activated_by() is not None
-            ) and sli_function.error_reaction.get() == self.__FSOE_SLI_ERROR_REACTION_ACTIVE_VALUE:
+            ) and sli_function.error_reaction.get() == SLIFunction.ErrorReaction.SS1:
                 return sli_function
         return None
 
@@ -389,6 +396,15 @@ class SafeInputsFunction(SafetyFunction):
     SAFE_INPUTS_UID = "FSOE_SAFE_INPUTS_VALUE"
     value: FSoEDictionaryItemInput = safety_field(uid=SAFE_INPUTS_UID, display_name="Value")
     map: SafetyParameter = safety_field(uid="FSOE_SAFE_INPUTS_MAP", display_name="Map")
+
+    class SafeInputMap(IntEnum):
+        """Enum for the Safe Inputs map parameter."""
+
+        NONE = 0
+        STO = 1
+        SS1 = 2
+        SS2 = 3
+        SOUT = 4
 
 
 @dataclass()
@@ -444,20 +460,25 @@ class SS2Function(SafetyFunction):
         uid="FSOE_SS2_ERROR_REACTION_{i}", display_name="Error Reaction"
     )
 
-    __FSOE_SAFE_INPUTS_MAP_ACTIVE_VALUE = 3
+    class ErrorReaction(IntEnum):
+        """Enum for the Error Reaction parameter in the SS2 function."""
+
+        NONE = 0
+        STO = 0x66400001
+
     __FSOE_SLP_ERROR_REACTION_ACTIVE_VALUE = 0x66700101
 
     @override
     def activated_by(self) -> Optional[SafetyFunction]:
         process_image = self.handler.process_image
         si_function: SafeInputsFunction = self.handler.safe_inputs_function()
-        if si_function.map.get() == self.__FSOE_SAFE_INPUTS_MAP_ACTIVE_VALUE:
+        if si_function.map.get() == SafeInputsFunction.SafeInputMap.SS2:
             return si_function
         for slp_function in self.handler.get_all_function_instances(SLPFunction):
             if (
                 process_image.is_safety_function_mapped(slp_function, strict=True)
                 or slp_function.activated_by() is not None
-            ) and slp_function.error_reaction.get() == self.__FSOE_SLP_ERROR_REACTION_ACTIVE_VALUE:
+            ) and slp_function.error_reaction.get() == SLPFunction.ErrorReaction.SS2:
                 return slp_function
         return None
 
@@ -476,21 +497,17 @@ class SOutFunction(SafetyFunction):
         uid="FSOE_SOUT_DISABLE", display_name="Disables the SOUT functionality"
     )
 
-    __FSOE_STO_ACTIVATE_SOUT_ACTIVE_VALUE = 1717567489
-    __FSOE_SAFE_INPUTS_MAP_ACTIVE_VALUE = 4
-    __FSOE_SS1_ACTIVATE_SOUT_ACTIVE_VALUE = 1717567489
-
     @override
     def activated_by(self) -> Optional[SafetyFunction]:
         process_image = self.handler.process_image
         sto_function: STOFunction = self.handler.sto_function()
         if (
             sto_function.activate_sout is not None
-            and sto_function.activate_sout.get() == self.__FSOE_STO_ACTIVATE_SOUT_ACTIVE_VALUE
+            and sto_function.activate_sout.get() == STOFunction.ActiveSOUT.ENABLED
         ):
             return sto_function
         si_function: SafeInputsFunction = self.handler.safe_inputs_function()
-        if si_function.map.get() == self.__FSOE_SAFE_INPUTS_MAP_ACTIVE_VALUE:
+        if si_function.map.get() == SafeInputsFunction.SafeInputMap.SOUT:
             return si_function
         ss1_function: SS1Function = self.handler.ss1_function()
         if (
@@ -499,7 +516,7 @@ class SOutFunction(SafetyFunction):
                 or ss1_function.activated_by() is not None
             )
             and ss1_function.activate_sout is not None
-            and ss1_function.activate_sout.get() == self.__FSOE_SS1_ACTIVATE_SOUT_ACTIVE_VALUE
+            and ss1_function.activate_sout.get() == SS1Function.ActiveSOUT.ENABLED
         ):
             return ss1_function
         return None
@@ -556,6 +573,13 @@ class SLSFunction(SafetyFunction):
         uid="FSOE_SLS_ERROR_REACTION_{i}", display_name="Error Reaction"
     )
 
+    class ErrorReaction(IntEnum):
+        """Enum for the Error Reaction parameter in the SLS function."""
+
+        NONE = 0
+        STO = 0x66400001
+        SS1 = 0x66500101
+
 
 @dataclass()
 class SSRFunction(SafetyFunction):
@@ -576,6 +600,13 @@ class SSRFunction(SafetyFunction):
         uid="FSOE_SSR_ERROR_REACTION_{i}", display_name="Error Reaction"
     )
 
+    class ErrorReaction(IntEnum):
+        """Enum for the Error Reaction parameter in the SSR function."""
+
+        NONE = 0
+        STO = 0x66400001
+        SS1 = 0x66500101
+
 
 @dataclass()
 class SLPFunction(SafetyFunction):
@@ -595,6 +626,14 @@ class SLPFunction(SafetyFunction):
     error_reaction: SafetyParameter = safety_field(
         uid="FSOE_SLP_ERROR_REACTION_{i}", display_name="Error Reaction"
     )
+
+    class ErrorReaction(IntEnum):
+        """Enum for the Error Reaction parameter in the SLI function."""
+
+        NONE = 0
+        STO = 0x66400001
+        SS1 = 0x66500101
+        SS2 = 0x66700101
 
 
 @dataclass()
@@ -632,3 +671,10 @@ class SLIFunction(SafetyFunction):
     error_reaction: SafetyParameter = safety_field(
         uid="FSOE_SLI_ERROR_REACTION_{i}", display_name="Error Reaction"
     )
+
+    class ErrorReaction(IntEnum):
+        """Enum for the Error Reaction parameter in the SLI function."""
+
+        NONE = 0
+        STO = 0x66400001
+        SS1 = 0x66500101
