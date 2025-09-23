@@ -173,7 +173,13 @@ def test_getter_of_safety_functions(
     _, handler = mc_with_fsoe
 
     sto_function = STOFunction(
-        n_instance=None, name="Dummy", command=None, activate_sout=None, ios=None, parameters=None
+        n_instance=None,
+        name="Dummy",
+        command=None,
+        activate_sout=None,
+        ios=None,
+        parameters=None,
+        handler=handler,
     )
     ss1_function_1 = SS1Function(
         n_instance=None,
@@ -187,6 +193,7 @@ def test_getter_of_safety_functions(
         time_delay_for_deceleration=None,
         deceleration_limit=None,
         activate_sout=None,
+        handler=handler,
     )
     ss1_function_2 = SS1Function(
         n_instance=None,
@@ -200,6 +207,7 @@ def test_getter_of_safety_functions(
         time_delay_for_deceleration=None,
         deceleration_limit=None,
         activate_sout=None,
+        handler=handler,
     )
 
     handler.safety_functions = (sto_function, ss1_function_1, ss1_function_2)
@@ -228,6 +236,7 @@ def test_getter_of_safety_functions(
         # Instance 3 does not exist
         handler.get_function_instance(SS1Function, instance=3)
     assert error.value.args[0] == "Master handler does not contain SS1Function instance 3"
+
 
 @pytest.mark.fsoe_phase2
 def test_ss2_activated_by():
