@@ -16,7 +16,7 @@ from ingenialink.network import Network
 from ingenialink.pdo_network_manager import PDONetworkManager as ILPDONetworkManager
 from ingenialink.servo import DictionaryFactory, Servo
 from ingenialink.utils._utils import convert_dtype_to_bytes
-
+from dataclasses import dataclass
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError
 from tests.conftest import add_fixture_error_checker
@@ -80,7 +80,7 @@ def mcu_error_queue_b(servo: "EthercatServo") -> "ServoErrorQueue":
     return ServoErrorQueue(MCUB_ERROR_QUEUE, servo)
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclass(frozen=True)
 class FSoEErrorDisplay:
     """Class to display FSoE errors in tests."""
 
