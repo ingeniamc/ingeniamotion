@@ -1,6 +1,7 @@
 import random
 from collections import OrderedDict
 from collections.abc import Iterator
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
@@ -16,7 +17,7 @@ from ingenialink.network import Network
 from ingenialink.pdo_network_manager import PDONetworkManager as ILPDONetworkManager
 from ingenialink.servo import DictionaryFactory, Servo
 from ingenialink.utils._utils import convert_dtype_to_bytes
-from dataclasses import dataclass
+
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError
 from tests.conftest import add_fixture_error_checker
