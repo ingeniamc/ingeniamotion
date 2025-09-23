@@ -14,7 +14,7 @@ if FSOE_MASTER_INSTALLED:
         align_bits,
     )
     from ingeniamotion.fsoe_master.process_image import ProcessImage
-    from tests.fsoe.map_json_serializer import FSoEDictionaryMapJSONSerializer
+    from tests.fsoe.utils.map_json_serializer import FSoEDictionaryMapJSONSerializer
 
 
 class FSoERandomMappingGenerator:
