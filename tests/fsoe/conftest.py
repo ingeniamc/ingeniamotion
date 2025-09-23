@@ -257,10 +257,7 @@ def __set_default_phase2_mapping(handler: "FSoEMasterHandler") -> None:
 
 @pytest.fixture
 def mc_with_fsoe_factory(
-    request: pytest.FixtureRequest,
-    mc: "MotionController",
-    fsoe_states: list["FSoEState"],
-    net: "EthercatNetwork",
+    request: pytest.FixtureRequest, mc: "MotionController", fsoe_states: list["FSoEState"]
 ) -> Iterator[Callable[[bool, bool], tuple["MotionController", "FSoEMasterHandler"]]]:
     created_handlers = []
 
