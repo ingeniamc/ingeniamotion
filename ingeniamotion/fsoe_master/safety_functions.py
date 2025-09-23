@@ -360,25 +360,29 @@ class SS1Function(SafetyFunction):
         si_function: SafeInputsFunction = self.handler.safe_inputs_function()
         if si_function.map.get() == SafeInputsFunction.SafeInputMap.SS1:
             return si_function
-        for slp_function in self.handler.get_all_function_instances(SLPFunction):
+        slp_function: SLPFunction
+        for slp_function in self.handler.safety_functions_by_type()[SLPFunction]:
             if (
                 process_image.is_safety_function_mapped(slp_function, strict=True)
                 or slp_function.activated_by() is not None
             ) and slp_function.error_reaction.get() == SLPFunction.ErrorReaction.SS1:
                 return slp_function
-        for ssr_function in self.handler.get_all_function_instances(SSRFunction):
+        ssr_function: SSRFunction
+        for ssr_function in self.handler.safety_functions_by_type()[SSRFunction]:
             if (
                 process_image.is_safety_function_mapped(ssr_function, strict=True)
                 or ssr_function.activated_by() is not None
             ) and ssr_function.error_reaction.get() == SSRFunction.ErrorReaction.SS1:
                 return ssr_function
-        for sls_function in self.handler.get_all_function_instances(SLSFunction):
+        sls_function: SLSFunction
+        for sls_function in self.handler.safety_functions_by_type()[SLSFunction]:
             if (
                 process_image.is_safety_function_mapped(sls_function, strict=True)
                 or sls_function.activated_by() is not None
             ) and sls_function.error_reaction.get() == SLSFunction.ErrorReaction.SS1:
                 return sls_function
-        for sli_function in self.handler.get_all_function_instances(SLIFunction):
+        sli_function: SLIFunction
+        for sli_function in self.handler.safety_functions_by_type()[SLIFunction]:
             if (
                 process_image.is_safety_function_mapped(sli_function, strict=True)
                 or sli_function.activated_by() is not None
@@ -474,7 +478,8 @@ class SS2Function(SafetyFunction):
         si_function: SafeInputsFunction = self.handler.safe_inputs_function()
         if si_function.map.get() == SafeInputsFunction.SafeInputMap.SS2:
             return si_function
-        for slp_function in self.handler.get_all_function_instances(SLPFunction):
+        slp_function: SLPFunction
+        for slp_function in self.handler.safety_functions_by_type()[SLPFunction]:
             if (
                 process_image.is_safety_function_mapped(slp_function, strict=True)
                 or slp_function.activated_by() is not None

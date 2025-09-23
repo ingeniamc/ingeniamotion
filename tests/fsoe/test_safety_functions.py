@@ -28,7 +28,7 @@ def test_ss2_activated_by():
     assert ss2_instance.activated_by() is si_instance
     si_instance.map.set(0)
     assert ss2_instance.activated_by() is None
-    for slp_func in handler.get_all_function_instances(SLPFunction):
+    for slp_func in handler.safety_functions_by_type()[SLPFunction]:
         process_image.insert_safety_function(slp_func)
         slp_func.error_reaction.set(0x66700101)
         assert ss2_instance.activated_by() is slp_func
@@ -88,10 +88,10 @@ def test_ss1_activated_by():
     assert ss1_instance.activated_by() is None
     activate_value = 0x66500101
     all_sfs = [
-        *handler.get_all_function_instances(SLPFunction),
-        *handler.get_all_function_instances(SSRFunction),
-        *handler.get_all_function_instances(SLSFunction),
-        *handler.get_all_function_instances(SLIFunction),
+        *handler.safety_functions_by_type()[SLPFunction],
+        *handler.safety_functions_by_type()[SSRFunction],
+        *handler.safety_functions_by_type()[SLSFunction],
+        *handler.safety_functions_by_type()[SLIFunction],
     ]
     for sf in all_sfs:
         process_image.insert_safety_function(sf)

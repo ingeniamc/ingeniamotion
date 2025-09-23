@@ -585,17 +585,6 @@ class FSoEMasterHandler:
                 )
             return funcs[0]
 
-    def get_all_function_instances(self, typ: type[SAFE_INSTANCE_TYPE]) -> list[SAFE_INSTANCE_TYPE]:
-        """Get all instances of a safety function type.
-
-        Args:
-            typ: The type of the safety function to get.
-
-        Returns:
-            A list of all instances of the specified safety function type.
-        """
-        return [func for func in self.safety_functions if isinstance(func, typ)]
-
     @weak_lru()
     def sto_function(self) -> STOFunction:
         """Get the Safe Torque Off function.
