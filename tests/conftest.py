@@ -97,7 +97,7 @@ def pytest_runtest_makereport(item, call):
                     rep.longrepr = message
 
 
-def add_fixture_error_checker(node, callback: Callable[[], None]) -> None:
+def add_fixture_error_checker(node, callback: Callable[[], tuple[bool, str]]) -> None:
     if not hasattr(node, "_fixture_error_checker"):
         node._fixture_error_checker = []
     node._fixture_error_checker.append(callback)
