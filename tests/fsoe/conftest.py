@@ -293,9 +293,8 @@ def mc_with_fsoe_factory(
 
     yield factory
 
+    # Stop the master, PDOs are stopped on mc teardown
     mc.fsoe.stop_master(stop_pdos=False)
-    if net.pdo_manager.is_active:
-        net.deactivate_pdos()
     mc.fsoe._delete_master_handler()
 
 
