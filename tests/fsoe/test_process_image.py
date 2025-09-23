@@ -1,6 +1,5 @@
 import time
 import warnings
-from collections.abc import Iterator
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
@@ -681,26 +680,6 @@ def __save_maps_text_representation(maps: "ProcessImage", output_file: Path) -> 
             f.write(maps.outputs.get_text_representation())
     except Exception as e:
         warnings.warn(f"Failed to save maps text representation: {e}")
-
-
-@pytest.fixture
-def no_error_tracker(
-    mcu_error_queue_a: "ServoErrorQueue", mcu_error_queue_b: "ServoErrorQueue"
-) -> Iterator[None]:
-    """Fixture to ensure no new errors are added to the error queues during a test."""
-    previous_mcu_a_errors = mcu_error_queue_a.get_number_total_errors()
-    previous_mcu_b_errors = mcu_error_queue_b.get_number_total_errors()
-    yield
-    assert mcu_error_queue_a.get_number_total_errors() == previous_mcu_a_errors, (
-        f"MCUA error queue changed: {previous_mcu_a_errors} -> "
-        f"{mcu_error_queue_a.get_number_total_errors()}. "
-        f"\nLast error: {mcu_error_queue_a.get_last_error()}"
-    )
-    assert mcu_error_queue_b.get_number_total_errors() == previous_mcu_b_errors, (
-        f"MCUB error queue changed: {previous_mcu_b_errors} -> "
-        f"{mcu_error_queue_b.get_number_total_errors()}. "
-        f"\nLast error: {mcu_error_queue_b.get_last_error()}"
-    )
 
 
 @pytest.mark.fsoe_phase2
