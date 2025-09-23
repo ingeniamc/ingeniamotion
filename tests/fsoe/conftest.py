@@ -257,7 +257,10 @@ def __set_default_phase2_mapping(handler: "FSoEMasterHandler") -> None:
 
 @pytest.fixture
 def mc_with_fsoe_factory(
-    request: pytest.FixtureRequest, mc: "MotionController", fsoe_states: list["FSoEState"]
+    request: pytest.FixtureRequest,
+    mc: "MotionController",
+    fsoe_states: list["FSoEState"],
+    net: "EthercatNetwork",
 ) -> Iterator[Callable[[bool, bool], tuple["MotionController", "FSoEMasterHandler"]]]:
     created_handlers = []
 
@@ -290,9 +293,9 @@ def mc_with_fsoe_factory(
 
     yield factory
 
-    if mc.capture.pdo.is_active:
-        mc.fsoe.stop_master(stop_pdos=True)
-
+    mc.fsoe.stop_master(stop_pdos=False)
+    if net.pdo_manager.is_active:
+        net.deactivate_pdos()
     mc.fsoe._delete_master_handler()
 
 
