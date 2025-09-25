@@ -499,9 +499,10 @@ def test_if_sout_disable_safe_input_cannot_be_mapped_to_sout(
     # Map safe inputs to SOUT - it should not reach OP state
     safe_inputs.map.set(4)
     handler.process_image.validate()
-    mc.fsoe.start_master(start_pdos=True)
-    mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
-    time.sleep(1)
-    assert mc.fsoe.get_fsoe_master_state() == FSoEState.DATA
-    assert servo.slave.state is pysoem.OP_STATE
+    previous_mcu_a_errors = mcu_error_queue_a.get_number_total_errors()
+    mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
+    time.sleep(timeout_for_data_sra)
+    assert servo.slave.state is not pysoem.OP_STATE
+    assert mcu_error_queue_a.get_number_total_errors() > previous_mcu_a_errors
+    assert mcu_error_queue_a.get_last_error().error_id == __INVALID_MAPPING_ERROR_ID
     mc.fsoe.stop_master(stop_pdos=True)
