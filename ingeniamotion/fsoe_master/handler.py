@@ -1,7 +1,6 @@
 import threading
 from collections import OrderedDict
 from collections.abc import Iterator
-from pathlib import Path
 from random import randint
 from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union, cast, overload
 
@@ -44,12 +43,10 @@ from ingeniamotion.fsoe_master.safety_functions import (
     SS1Function,
     STOFunction,
 )
-from ingeniamotion.fsoe_master.sci_serializer import SCISerializer
 
 if TYPE_CHECKING:
     from ingenialink.ethercat.dictionary import EthercatDictionary
     from ingenialink.ethercat.network import EthercatNetwork
-    from ingenialink.ethercat.register import EthercatRegister
 
 SAFE_INSTANCE_TYPE = TypeVar("SAFE_INSTANCE_TYPE", bound="SafetyFunction")
 
@@ -228,38 +225,6 @@ class FSoEMasterHandler:
     def net(self) -> "EthercatNetwork":
         """Returns the Ethercat network instance."""
         return self.__net
-
-    def serialize_mapping_to_sci(
-        self, esi_file: Path, sci_file: Path, override: bool = False
-    ) -> None:
-        """Serialize the mapping from ESI to SCI format.
-
-        Args:
-            esi_file: Path to the ESI file.
-            sci_file: Path to the SCI file.
-            override: True to override the SCI file if it exists, False otherwise.
-        """
-        SCISerializer().save_mapping_to_sci(
-            esi_file=esi_file,
-            sci_file=sci_file,
-            rpdo=self.__safety_master_pdu,
-            tpdo=self.__safety_slave_pdu,
-            module_ident=int(self.__get_configured_module_ident_1()),
-            assigned_rpdos=[
-                cast(
-                    "EthercatRegister",
-                    self.__servo.dictionary.get_register("ETG_COMMS_RPDO_MAP1_TOTAL"),
-                ).idx
-            ],
-            assigned_tpdos=[
-                cast(
-                    "EthercatRegister",
-                    self.__servo.dictionary.get_register("ETG_COMMS_TPDO_MAP1_TOTAL"),
-                ).idx
-            ],
-            part_number=self.__servo.dictionary.part_number,
-            override=override,
-        )
 
     def get_application_parameters_sra_crc(self) -> int:
         """Calculates SRA CRC for the application parameters.
