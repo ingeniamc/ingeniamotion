@@ -684,7 +684,6 @@ def __save_maps_text_representation(maps: "ProcessImage", output_file: Path) -> 
 
 @pytest.mark.fsoe_phase2
 @pytest.mark.parametrize("iteration", range(25))  # Run 25 times
-@pytest.mark.skip("https://novantamotion.atlassian.net/browse/INGM-710")
 def test_map_safety_input_output_random(
     mc_with_fsoe_with_sra_and_feedback_scenario: tuple[MotionController, "FSoEMasterHandler"],
     map_generator: "FSoERandomMappingGenerator",
@@ -746,7 +745,6 @@ def test_map_safety_input_output_random(
 
 
 @pytest.mark.fsoe_phase2
-@pytest.mark.skip("https://novantamotion.atlassian.net/browse/INGM-710")
 def test_map_all_safety_functions(
     mc_with_fsoe_with_sra_and_feedback_scenario: tuple[MotionController, "FSoEMasterHandler"],
     timeout_for_data_sra: float,
