@@ -191,6 +191,8 @@ def mc_with_fsoe_with_sra_with_feedback_scenario_0(
     mc_with_fsoe_with_sra_no_fail_on_errors: tuple["MotionController", "FSoEMasterHandler"],
 ) -> Iterator[tuple["MotionController", "FSoEMasterHandler"]]:
     mc, handler = mc_with_fsoe_with_sra_no_fail_on_errors
+    handler.process_image.inputs.clear()
+    handler.process_image.outputs.clear()
     handler.safety_parameters["FSOE_FEEDBACK_SCENARIO"].set(0)
     yield mc, handler
 
@@ -296,9 +298,6 @@ def test_feedback_scenario_0_safe_input(
 ) -> None:
     """With feedback scenario 0, safe inputs are allowed if not mapped to SS1-r or SS2."""
     mc, handler = mc_with_fsoe_with_sra_with_feedback_scenario_0
-
-    handler.process_image.inputs.clear()
-    handler.process_image.outputs.clear()
 
     sto = handler.get_function_instance(STOFunction)
     safe_inputs = handler.get_function_instance(SafeInputsFunction)
@@ -437,6 +436,8 @@ def test_if_sout_disable_ss2_activate_sout_not_allowed(
     mc, handler = mc_with_fsoe_factory()
     # Set feedback scenario to 4 to be able to configure SS2
     handler.safety_parameters["FSOE_FEEDBACK_SCENARIO"].set(4)
+    handler.process_image.inputs.clear()
+    handler.process_image.outputs.clear()
 
     sto = handler.get_function_instance(STOFunction)
     safe_inputs = handler.get_function_instance(SafeInputsFunction)
