@@ -1065,21 +1065,21 @@ woff = ["brotli (>=1.0.1) ; platform_python_implementation == \"CPython\"", "bro
 
 [[package]]
 name = "fsoe-master"
-version = "0.1.4+gfcfd7bd86"
+version = "0.1.4+gcc76d70b6"
 description = "FSoE Master Library"
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"fsoe\""
 files = [
-    {file = "fsoe_master-0.1.4+gfcfd7bd86-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:17a855b8043dabdce45faa49bba82b9c43aa8394d1aa8c9f2b5ae84b0746bf40"},
-    {file = "fsoe_master-0.1.4+gfcfd7bd86-cp310-cp310-win_amd64.whl", hash = "sha256:4edfd4131608845d4ad9edf23f903707a15674e7d6a13acafbc4822974886851"},
-    {file = "fsoe_master-0.1.4+gfcfd7bd86-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:931f52de92b39a18a1ea191a93df3c85cf533ee7945c5b99d7a2ef325308a48d"},
-    {file = "fsoe_master-0.1.4+gfcfd7bd86-cp311-cp311-win_amd64.whl", hash = "sha256:7ee65826453c11c117d66474f7d7faa3aa76c9629fd2fab856d20415bc35e8e2"},
-    {file = "fsoe_master-0.1.4+gfcfd7bd86-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:767373cb376a1eb04b3836baa91b4ff24ff2127dd5b3ec4a2f15160aecdae532"},
-    {file = "fsoe_master-0.1.4+gfcfd7bd86-cp312-cp312-win_amd64.whl", hash = "sha256:40e4861b0bea8c51bdb9b37ed2123517d35bea183b3c6b83e8e3a11a6800081c"},
-    {file = "fsoe_master-0.1.4+gfcfd7bd86-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:4584dba3c172ac3ff5da91f263e00e5218ea62393401fb4db218d1b3a17219a2"},
-    {file = "fsoe_master-0.1.4+gfcfd7bd86-cp39-cp39-win_amd64.whl", hash = "sha256:4b33dcab435d4e3f08d14636e626e59457f35ef87b0eaa58ce4cd89c2806bc03"},
+    {file = "fsoe_master-0.1.4+gcc76d70b6-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ac31b8276535df0c262397b6e139c62776850de51fdc48b484595ef7a77b288e"},
+    {file = "fsoe_master-0.1.4+gcc76d70b6-cp310-cp310-win_amd64.whl", hash = "sha256:ec1a722a50e1bb87dad6efbb8cb92182d3aeaf3b5c3cee579d01e8e50c262f5a"},
+    {file = "fsoe_master-0.1.4+gcc76d70b6-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a430468f8e03fcce92d1c0cda3d020e09a9198a2e8ec812da1740507d9f6244f"},
+    {file = "fsoe_master-0.1.4+gcc76d70b6-cp311-cp311-win_amd64.whl", hash = "sha256:1123f18009fd4a710d27033ab7016081604f5e2bfb04e40e861b48dfdf88e021"},
+    {file = "fsoe_master-0.1.4+gcc76d70b6-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:046c209e22ef6786f392ecae2e848f0efa6bf6953c79069f3cfc0149adbeb083"},
+    {file = "fsoe_master-0.1.4+gcc76d70b6-cp312-cp312-win_amd64.whl", hash = "sha256:0331930f39ba8f035a35987eb025d2283fa684cb4f810e412048e1f4a28abd80"},
+    {file = "fsoe_master-0.1.4+gcc76d70b6-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:81e2be567409b7fe5df5a4b3f195afb013c13f31688ec5d578863cd0951b3087"},
+    {file = "fsoe_master-0.1.4+gcc76d70b6-cp39-cp39-win_amd64.whl", hash = "sha256:c3debca4e44d78fb5c67aa5808aa31a426388478aaa523b2f1534442a7de5448"},
 ]
 
 [package.source]
@@ -4619,4 +4619,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "3aece985a0d5e436a7783e3aff51dfe1917d8e08a7bd217f34907cc1c479f6e6"
+content-hash = "b174f3a625f3e6af99d67e49d673b88df00ef3a0b20f52e1b992ae63030d6699"
