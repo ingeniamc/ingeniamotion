@@ -227,3 +227,16 @@ def test_getter_of_safety_functions(
         # Instance 3 does not exist
         handler.get_function_instance(SS1Function, instance=3)
     assert error.value.args[0] == "Master handler does not contain SS1Function instance 3"
+
+
+@pytest.mark.fsoe
+def test_no_safety_function_instances(
+    mc_with_fsoe: tuple["MotionController", "FSoEMasterHandler"],
+) -> None:
+    _, handler = mc_with_fsoe
+
+    handler.safety_functions = ()
+    handler.cache_clear()
+
+    with pytest.raises(ValueError, match="Master handler does not contain STOFunction instance"):
+        handler.get_function_instance(STOFunction)

@@ -523,6 +523,7 @@ class FSoEMasterHandler:
             IndexError: If the instance index is out of range of the available instances.
             ValueError: If multiple instances of the type are found and
                 no instance index is specified.
+            ValueError: If no instance of the type is found.
 
         Args:
             typ: The type of the safety function to get.
@@ -542,13 +543,14 @@ class FSoEMasterHandler:
                     f"Master handler does not contain {typ.__name__} instance {instance}"
                 )
             return funcs[index]
-        else:
-            if len(funcs) != 1:
-                raise ValueError(
-                    f"Multiple {typ.__name__} instances found ({len(funcs)}). "
-                    f"Specify the instance number."
-                )
-            return funcs[0]
+        elif len(funcs) == 0:
+            raise ValueError(f"Master handler does not contain {typ.__name__} instance")
+        elif len(funcs) != 1:
+            raise ValueError(
+                f"Multiple {typ.__name__} instances found ({len(funcs)}). "
+                f"Specify the instance number."
+            )
+        return funcs[0]
 
     @weak_lru()
     def sto_function(self) -> STOFunction:
