@@ -1281,18 +1281,18 @@ reference = "ingenia"
 
 [[package]]
 name = "ingenialink"
-version = "7.5.0+g729bf9808"
+version = "7.5.0+pr639b29"
 description = "IngeniaLink Communications Library"
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "tests"]
 files = [
-    {file = "ingenialink-7.5.0+g729bf9808-cp310-cp310-win_amd64.whl", hash = "sha256:b9596da2f480016350283f14099170118a737ed0de9906ff2fa50c2fb77da2d7"},
-    {file = "ingenialink-7.5.0+g729bf9808-cp311-cp311-win_amd64.whl", hash = "sha256:fedb7e2282dc4d7dcc6428a02b424f7044220a225319d090763c4b09f59bfd2d"},
-    {file = "ingenialink-7.5.0+g729bf9808-cp312-cp312-win_amd64.whl", hash = "sha256:2153d01a5c259ec7a816e224382b1a8bae10b0f40d7ecce73a802e5e9421c8d6"},
-    {file = "ingenialink-7.5.0+g729bf9808-cp39-cp39-win_amd64.whl", hash = "sha256:23a68efd3c942f39caf340f1ce413d3601ff18f3e56e53efb01f84da1b2252aa"},
-    {file = "ingenialink-7.5.0+g729bf9808-py3-none-any.whl", hash = "sha256:23fef4994a1c4658f79787b925b637faf09982b828ec5671d563e3c8dd698a00"},
-    {file = "ingenialink-7.5.0+g729bf9808.tar.gz", hash = "sha256:85de600b09a21fc3b35ece1e1cad4a8d1d5d2d54be308ed434d5b5b795885d1d"},
+    {file = "ingenialink-7.5.0+pr639b29-cp310-cp310-win_amd64.whl", hash = "sha256:27c21c3a21f7f4fa21915748e64a41d99b04a4692ffe10ee155f1c1faf685af3"},
+    {file = "ingenialink-7.5.0+pr639b29-cp311-cp311-win_amd64.whl", hash = "sha256:09c1976a45bc6dc729c228516014f0299a9b263884254e83e8bbaf98bcc9ecdb"},
+    {file = "ingenialink-7.5.0+pr639b29-cp312-cp312-win_amd64.whl", hash = "sha256:b6d53f7f1fd01a2f521d143bff15cec557c7422f0e479fb83a4941bb0889b2d2"},
+    {file = "ingenialink-7.5.0+pr639b29-cp39-cp39-win_amd64.whl", hash = "sha256:935d0a0ad5979fada311ce0b8ccea3fd23233fc44aac870a3e1e8ac598ed778a"},
+    {file = "ingenialink-7.5.0+pr639b29-py3-none-any.whl", hash = "sha256:6f31651deb56a9a38e69aa7d5823b8232c84ccdc2e56f5e42c62a247a619eeac"},
+    {file = "ingenialink-7.5.0+pr639b29.tar.gz", hash = "sha256:a448adf7169287a31fbad5cf6a1dc81a00689fa05b1d449f36e44ed46df77e94"},
 ]
 
 [package.dependencies]
@@ -4047,13 +4047,13 @@ test = ["pytest"]
 
 [[package]]
 name = "summit-testing-framework"
-version = "0.1.5+pr47b4"
+version = "0.1.5+pr48b17"
 description = "Testing framework for Novanta drives"
 optional = false
 python-versions = ">=3.9"
 groups = ["tests"]
 files = [
-    {file = "summit_testing_framework-0.1.5+pr47b4-py3-none-any.whl", hash = "sha256:d2bb5beb0b42b590f551fd43a04dbe002600802c370c24962b0d7c99092c5cb1"},
+    {file = "summit_testing_framework-0.1.5+pr48b17-py3-none-any.whl", hash = "sha256:80fc0f13d0880334379873ad37d4ce0855a42e210346f627a955306ad268c043"},
 ]
 
 [package.dependencies]
@@ -4619,4 +4619,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "8ded9b04891cb3cc84f2d01580f23c987170b5dfe2d5cbecff6afa4b7ef878a2"
+content-hash = "3aece985a0d5e436a7783e3aff51dfe1917d8e08a7bd217f34907cc1c479f6e6"
