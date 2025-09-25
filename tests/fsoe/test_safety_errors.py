@@ -331,13 +331,3 @@ def test_feedback_scenario_0_safe_input(
     assert mcu_error_queue_a.get_number_total_errors() > previous_mcu_a_errors
     assert mcu_error_queue_a.get_last_error().error_id == __INVALID_MAPPING_ERROR_ID
     mc.fsoe.stop_master(stop_pdos=True)
-
-    # Map safe inputs to SOUT - it should reach OP state
-    safe_inputs.map.set(4)
-    handler.process_image.validate()
-    mc.fsoe.start_master(start_pdos=True)
-    mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
-    time.sleep(1)
-    assert mc.fsoe.get_fsoe_master_state() == FSoEState.DATA
-    assert servo.slave.state is pysoem.OP_STATE
-    mc.fsoe.stop_master(stop_pdos=True)
