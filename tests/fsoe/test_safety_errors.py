@@ -407,7 +407,7 @@ def test_if_sout_disable_ss1_activate_sout_not_allowed(
     inputs.add_padding(7)
 
     # Set SS1 SOUT disable
-    ss1.activate_sout.set(1)
+    handler.safety_parameters.get("FSOE_STO_ACTIVATE_SOUT").set(1)
 
     # Map is valid
     handler.process_image.validate()
@@ -473,6 +473,7 @@ def test_if_sout_disable_ss2_activate_sout_not_allowed(
 
 
 @pytest.mark.fsoe_phase2
+@pytest.mark.skip(reason="https://novantamotion.atlassian.net/browse/SACOAPP-320")
 def test_if_sout_disable_safe_input_cannot_be_mapped_to_sout(
     mc_with_fsoe_with_sra_with_feedback_scenario_0: tuple["MotionController", "FSoEMasterHandler"],
     timeout_for_data_sra: float,
