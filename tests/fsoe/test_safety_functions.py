@@ -246,15 +246,15 @@ def test_ss2_activated_by():
     ss2_instance = handler.get_function_instance(SS2Function)
     si_instance = handler.safe_inputs_function()
     si_instance.map.set(3)
-    assert ss2_instance.activated_by() is si_instance
+    assert si_instance in ss2_instance.activated_by()
     si_instance.map.set(0)
-    assert ss2_instance.activated_by() is None
+    assert ss2_instance.activated_by() == []
     for slp_func in handler.safety_functions_by_type()[SLPFunction]:
         process_image.insert_safety_function(slp_func)
         slp_func.error_reaction.set(0x66700101)
-        assert ss2_instance.activated_by() is slp_func
+        assert slp_func in ss2_instance.activated_by()
         slp_func.error_reaction.set(0)
-        assert ss2_instance.activated_by() is None
+        assert ss2_instance.activated_by() == []
 
 
 @pytest.mark.fsoe_phase2
@@ -264,9 +264,9 @@ def test_sos_activated_by():
     handler.set_process_image(process_image)
     sos_instance = handler.get_function_instance(SOSFunction)
     ss2_instance = handler.get_function_instance(SS2Function)
-    assert sos_instance.activated_by() is None
+    assert sos_instance.activated_by() == []
     process_image.insert_safety_function(ss2_instance)
-    assert sos_instance.activated_by() is ss2_instance
+    assert ss2_instance in sos_instance.activated_by()
 
 
 @pytest.mark.fsoe_phase2
@@ -280,20 +280,20 @@ def test_sout_activated_by():
     si_instance = handler.safe_inputs_function()
     si_instance.map.set(0)
     sto_instance.activate_sout.set(0)
-    assert sout_instance.activated_by() is None
+    assert sout_instance.activated_by() == []
     sto_instance.activate_sout.set(1717567489)
-    assert sout_instance.activated_by() is sto_instance
+    assert sto_instance in sout_instance.activated_by()
     sto_instance.activate_sout.set(0)
-    assert sout_instance.activated_by() is None
+    assert sout_instance.activated_by() == []
     si_instance.map.set(4)
-    assert sout_instance.activated_by() is si_instance
+    assert si_instance in sout_instance.activated_by()
     si_instance.map.set(0)
-    assert sout_instance.activated_by() is None
+    assert sout_instance.activated_by() == []
     ss1_instance.activate_sout.set(1717567489)
     process_image.insert_safety_function(ss1_instance)
-    assert sout_instance.activated_by() is ss1_instance
+    assert ss1_instance in sout_instance.activated_by()
     ss1_instance.activate_sout.set(0)
-    assert sout_instance.activated_by() is None
+    assert sout_instance.activated_by() == []
 
 
 @pytest.mark.fsoe_phase2
@@ -304,9 +304,9 @@ def test_ss1_activated_by():
     ss1_instance = handler.ss1_function()
     si_instance = handler.safe_inputs_function()
     si_instance.map.set(2)
-    assert ss1_instance.activated_by() is si_instance
+    assert si_instance in ss1_instance.activated_by()
     si_instance.map.set(0)
-    assert ss1_instance.activated_by() is None
+    assert ss1_instance.activated_by() == []
     activate_value = 0x66500101
     all_sfs = [
         *handler.safety_functions_by_type()[SLPFunction],
@@ -317,6 +317,38 @@ def test_ss1_activated_by():
     for sf in all_sfs:
         process_image.insert_safety_function(sf)
         sf.error_reaction.set(activate_value)
-        assert ss1_instance.activated_by() is sf
+        assert sf in ss1_instance.activated_by()
         sf.error_reaction.set(0)
-        assert ss1_instance.activated_by() is None
+        assert ss1_instance.activated_by() == []
+
+
+@pytest.mark.fsoe_phase2
+def test_ss1_activated_by_multiple():
+    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+    process_image = ProcessImage.empty(handler.dictionary)
+    handler.set_process_image(process_image)
+    ss1_instance = handler.ss1_function()
+    si_instance = handler.safe_inputs_function()
+    si_instance.map.set(2)
+    assert si_instance in ss1_instance.activated_by()
+    si_instance.map.set(0)
+    assert ss1_instance.activated_by() == []
+    activate_value = 0x66500101
+    SLP_1 = handler.safety_functions_by_type()[SLPFunction][0]
+    process_image.insert_safety_function(SLP_1)
+    SLP_1.error_reaction.set(activate_value)
+    SSR_3 = handler.safety_functions_by_type()[SSRFunction][2]
+    process_image.insert_safety_function(SSR_3)
+    SSR_3.error_reaction.set(activate_value)
+    list_activated_by = ss1_instance.activated_by()
+    assert len(list_activated_by) == 2
+    assert SLP_1 in list_activated_by
+    assert SSR_3 in list_activated_by
+    SLS_8 = handler.safety_functions_by_type()[SLSFunction][7]
+    process_image.insert_safety_function(SLS_8)
+    SLS_8.error_reaction.set(activate_value)
+    list_activated_by = ss1_instance.activated_by()
+    assert len(list_activated_by) == 3
+    assert SLP_1 in list_activated_by
+    assert SSR_3 in list_activated_by
+    assert SLS_8 in list_activated_by

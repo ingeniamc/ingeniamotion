@@ -106,13 +106,13 @@ class SafetyFunction:
     parameters: dict[SafetyFieldMetadata, SafetyParameter]
     handler: "FSoEMasterHandler"
 
-    def activated_by(self) -> Optional["SafetyFunction"]:
+    def activated_by(self) -> list["SafetyFunction"]:
         """Get the safety function that activates this function, if any.
 
         Returns:
             The safety function that activates this function, or None if not activated by any.
         """
-        return None
+        return []
 
     @classmethod
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafetyFunction"]:
@@ -355,40 +355,49 @@ class SS1Function(SafetyFunction):
         ENABLED = 0x66600001
 
     @override
-    def activated_by(self) -> Optional[SafetyFunction]:
+    def activated_by(self) -> list[SafetyFunction]:
+        sf_list: list[SafetyFunction] = []
         process_image = self.handler.process_image
         si_function: SafeInputsFunction = self.handler.safe_inputs_function()
         if si_function.map.get() == SafeInputsFunction.SafeInputMap.SS1:
-            return si_function
-        slp_function: SLPFunction
-        for slp_function in self.handler.safety_functions_by_type()[SLPFunction]:
+            sf_list.append(si_function)
+        sf_list.extend(
+            slp_function
+            for slp_function in self.handler.safety_functions_by_type().get(SLPFunction, [])
             if (
                 process_image.is_safety_function_mapped(slp_function, strict=True)
-                or slp_function.activated_by() is not None
-            ) and slp_function.error_reaction.get() == SLPFunction.ErrorReaction.SS1:
-                return slp_function
-        ssr_function: SSRFunction
-        for ssr_function in self.handler.safety_functions_by_type()[SSRFunction]:
+                or slp_function.activated_by() != []
+            )
+            and slp_function.error_reaction.get() == SLPFunction.ErrorReaction.SS1
+        )
+        sf_list.extend(
+            ssr_function
+            for ssr_function in self.handler.safety_functions_by_type().get(SSRFunction, [])
             if (
                 process_image.is_safety_function_mapped(ssr_function, strict=True)
-                or ssr_function.activated_by() is not None
-            ) and ssr_function.error_reaction.get() == SSRFunction.ErrorReaction.SS1:
-                return ssr_function
-        sls_function: SLSFunction
-        for sls_function in self.handler.safety_functions_by_type()[SLSFunction]:
+                or ssr_function.activated_by() != []
+            )
+            and ssr_function.error_reaction.get() == SSRFunction.ErrorReaction.SS1
+        )
+        sf_list.extend(
+            sls_function
+            for sls_function in self.handler.safety_functions_by_type().get(SLSFunction, [])
             if (
                 process_image.is_safety_function_mapped(sls_function, strict=True)
-                or sls_function.activated_by() is not None
-            ) and sls_function.error_reaction.get() == SLSFunction.ErrorReaction.SS1:
-                return sls_function
-        sli_function: SLIFunction
-        for sli_function in self.handler.safety_functions_by_type()[SLIFunction]:
+                or sls_function.activated_by() != []
+            )
+            and sls_function.error_reaction.get() == SLSFunction.ErrorReaction.SS1
+        )
+        sf_list.extend(
+            sli_function
+            for sli_function in self.handler.safety_functions_by_type().get(SLIFunction, [])
             if (
                 process_image.is_safety_function_mapped(sli_function, strict=True)
-                or sli_function.activated_by() is not None
-            ) and sli_function.error_reaction.get() == SLIFunction.ErrorReaction.SS1:
-                return sli_function
-        return None
+                or sli_function.activated_by() != []
+            )
+            and sli_function.error_reaction.get() == SLIFunction.ErrorReaction.SS1
+        )
+        return sf_list
 
 
 @dataclass()
@@ -428,15 +437,16 @@ class SOSFunction(SafetyFunction):
     )
 
     @override
-    def activated_by(self) -> Optional[SafetyFunction]:
+    def activated_by(self) -> list[SafetyFunction]:
+        sf_list: list[SafetyFunction] = []
         process_image = self.handler.process_image
         ss2_instance = self.handler.get_function_instance(SS2Function)
         if (
             process_image.is_safety_function_mapped(ss2_instance, strict=True)
-            or ss2_instance.activated_by() is not None
+            or ss2_instance.activated_by() != []
         ):
-            return ss2_instance
-        return None
+            sf_list.append(ss2_instance)
+        return sf_list
 
 
 @dataclass()
@@ -473,19 +483,22 @@ class SS2Function(SafetyFunction):
     __FSOE_SLP_ERROR_REACTION_ACTIVE_VALUE = 0x66700101
 
     @override
-    def activated_by(self) -> Optional[SafetyFunction]:
+    def activated_by(self) -> list[SafetyFunction]:
+        sf_list: list[SafetyFunction] = []
         process_image = self.handler.process_image
         si_function: SafeInputsFunction = self.handler.safe_inputs_function()
         if si_function.map.get() == SafeInputsFunction.SafeInputMap.SS2:
-            return si_function
-        slp_function: SLPFunction
-        for slp_function in self.handler.safety_functions_by_type()[SLPFunction]:
+            sf_list.append(si_function)
+        sf_list.extend(
+            slp_function
+            for slp_function in self.handler.safety_functions_by_type().get(SLPFunction, [])
             if (
                 process_image.is_safety_function_mapped(slp_function, strict=True)
-                or slp_function.activated_by() is not None
-            ) and slp_function.error_reaction.get() == SLPFunction.ErrorReaction.SS2:
-                return slp_function
-        return None
+                or slp_function.activated_by() != []
+            )
+            and slp_function.error_reaction.get() == SLPFunction.ErrorReaction.SS2
+        )
+        return sf_list
 
 
 @dataclass()
@@ -503,28 +516,29 @@ class SOutFunction(SafetyFunction):
     )
 
     @override
-    def activated_by(self) -> Optional[SafetyFunction]:
+    def activated_by(self) -> list[SafetyFunction]:
+        sf_list: list[SafetyFunction] = []
         process_image = self.handler.process_image
         sto_function: STOFunction = self.handler.sto_function()
         if (
             sto_function.activate_sout is not None
             and sto_function.activate_sout.get() == STOFunction.ActiveSOUT.ENABLED
         ):
-            return sto_function
+            sf_list.append(sto_function)
         si_function: SafeInputsFunction = self.handler.safe_inputs_function()
         if si_function.map.get() == SafeInputsFunction.SafeInputMap.SOUT:
-            return si_function
+            sf_list.append(si_function)
         ss1_function: SS1Function = self.handler.ss1_function()
         if (
             (
                 process_image.is_safety_function_mapped(ss1_function)
-                or ss1_function.activated_by() is not None
+                or ss1_function.activated_by() != []
             )
             and ss1_function.activate_sout is not None
             and ss1_function.activate_sout.get() == SS1Function.ActiveSOUT.ENABLED
         ):
-            return ss1_function
-        return None
+            sf_list.append(ss1_function)
+        return sf_list
 
 
 @dataclass()
