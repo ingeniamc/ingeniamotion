@@ -427,7 +427,7 @@ def test_if_sout_disable_ss1_activate_sout_not_allowed(
 
 
 @pytest.mark.fsoe_phase2
-@pytest.skip(reason="https://novantamotion.atlassian.net/browse/INGM-710")
+@pytest.mark.skip(reason="https://novantamotion.atlassian.net/browse/INGM-710")
 def test_if_sout_disable_ss2_activate_sout_not_allowed(
     mc_with_fsoe_factory: Callable[..., tuple["MotionController", "FSoEMasterHandler"]],
     timeout_for_data_sra: float,
