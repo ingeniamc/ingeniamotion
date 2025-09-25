@@ -334,21 +334,21 @@ def test_ss1_activated_by_multiple():
     si_instance.map.set(0)
     assert ss1_instance.activated_by() == []
     activate_value = 0x66500101
-    SLP_1 = handler.safety_functions_by_type()[SLPFunction][0]
-    process_image.insert_safety_function(SLP_1)
-    SLP_1.error_reaction.set(activate_value)
-    SSR_3 = handler.safety_functions_by_type()[SSRFunction][2]
-    process_image.insert_safety_function(SSR_3)
-    SSR_3.error_reaction.set(activate_value)
+    slp_1 = handler.safety_functions_by_type()[SLPFunction][0]
+    process_image.insert_safety_function(slp_1)
+    slp_1.error_reaction.set(activate_value)
+    ssr_3 = handler.safety_functions_by_type()[SSRFunction][2]
+    process_image.insert_safety_function(ssr_3)
+    ssr_3.error_reaction.set(activate_value)
     list_activated_by = ss1_instance.activated_by()
     assert len(list_activated_by) == 2
-    assert SLP_1 in list_activated_by
-    assert SSR_3 in list_activated_by
-    SLS_8 = handler.safety_functions_by_type()[SLSFunction][7]
-    process_image.insert_safety_function(SLS_8)
-    SLS_8.error_reaction.set(activate_value)
+    assert slp_1 in list_activated_by
+    assert ssr_3 in list_activated_by
+    sls_8 = handler.safety_functions_by_type()[SLSFunction][7]
+    process_image.insert_safety_function(sls_8)
+    sls_8.error_reaction.set(activate_value)
     list_activated_by = ss1_instance.activated_by()
     assert len(list_activated_by) == 3
-    assert SLP_1 in list_activated_by
-    assert SSR_3 in list_activated_by
-    assert SLS_8 in list_activated_by
+    assert slp_1 in list_activated_by
+    assert ssr_3 in list_activated_by
+    assert sls_8 in list_activated_by
