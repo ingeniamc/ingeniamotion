@@ -205,7 +205,7 @@ def _check_op_state_reached_with_no_errors(
     timeout_for_data_sra: float,
 ) -> None:
     previous_mcu_a_errors = mcu_error_queue_a.get_number_total_errors()
-    mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
+    mc.fsoe.start_master(start_pdos=True)
     mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
     time.sleep(1)
     assert mc.fsoe.get_fsoe_master_state() == FSoEState.DATA
@@ -234,7 +234,6 @@ class TestFeedbackScenario0:
     """If Feedback scenario is set 0, no motion-dependent safety functions are allowed.
 
     * Only STO, SS1-t and SOUT commands are allowed.
-
     * Safe Input value is allowed, but cannot be mapped to SS2 or SS1-r.
     """
 
@@ -275,11 +274,9 @@ class TestFeedbackScenario0:
     ) -> None:
         """With feedback scenario 0, SS1 time controlled is allowed."""
         mc, handler = configured_handler
-
-        # Configure SS1 time controlled
-        self.ss1.deceleration_limit.set(0)
-        # Map is valid
+        self.ss1.deceleration_limit.set(0)  # Configure SS1 time controlled
         handler.process_image.validate()
+        mc.fsoe.configure_pdos()
         _check_op_state_reached_with_no_errors(
             mc=mc,
             servo=servo,
@@ -297,9 +294,7 @@ class TestFeedbackScenario0:
     ) -> None:
         """With feedback scenario 0, SS1 ramp monitored is not allowed."""
         mc, handler = configured_handler
-        # Configure SS1 time controlled
-        self.ss1.deceleration_limit.set(1)
-        # Map is valid, but servo cannot reach OP state
+        self.ss1.deceleration_limit.set(1)  # Configure SS1 time controlled
         handler.process_image.validate()
         mc.fsoe.configure_pdos()
         _check_invalid_map_error_is_raised(
@@ -324,9 +319,8 @@ class TestFeedbackScenario0:
         self.ss1.deceleration_limit.set(0)
         self.safe_inputs.map.set(2)
 
-        # Map is valid
+        # Map is valid, servo should reach OP state
         handler.process_image.validate()
-        # Servo should reach OP state
         mc.fsoe.configure_pdos()
         _check_op_state_reached_with_no_errors(
             mc=mc,
@@ -335,9 +329,17 @@ class TestFeedbackScenario0:
             timeout_for_data_sra=timeout_for_data_sra,
         )
 
+        # Map safe inputs to SS1-r - it should not reach OP state
+        self.ss1.deceleration_limit.set(1)
+        _check_invalid_map_error_is_raised(
+            mc=mc,
+            servo=servo,
+            mcu_error_queue_a=mcu_error_queue_a,
+            timeout_for_data_sra=timeout_for_data_sra,
+        )
+
         # Map safe inputs to SS2 - it should not reach OP state
         self.safe_inputs.map.set(3)
-        handler.process_image.validate()
         _check_invalid_map_error_is_raised(
             mc=mc,
             servo=servo,
@@ -359,228 +361,218 @@ def mc_with_fsoe_with_sra_with_feedback_scenario_0_with_sout(
     yield mc, handler
 
 
-@pytest.mark.fsoe_phase2
-def test_if_sout_disable_sout_command_not_allowed(
-    mc_with_fsoe_with_sra_with_feedback_scenario_0_with_sout: tuple[
-        "MotionController", "FSoEMasterHandler"
-    ],
-    timeout_for_data_sra: float,
-    servo: "EthercatServo",
-    mcu_error_queue_a: "ServoErrorQueue",
-) -> None:
-    mc, handler = mc_with_fsoe_with_sra_with_feedback_scenario_0_with_sout
+class TestSoutDisabled:
+    """If SOUT disable is set to 1, no SOUT-dependent safety functions are allowed.
 
-    sto = handler.get_function_instance(STOFunction)
-    safe_inputs = handler.get_function_instance(SafeInputsFunction)
-    sout = handler.get_function_instance(SOutFunction)
-    outputs = handler.process_image.outputs
-    outputs.add(sto.command)
-    outputs.add(sout.command)
-    outputs.add_padding(6)
+    * SOUT command is not allowed.
+    * STO activate SOUT and SS1 activate SOUT are not allowed to be enabled.
+    * Safe Input cannot be mapped to SOUT.
+    * Safe Input cannot be mapped to STO or SS1 if they activate SOUT.
+    """
 
-    inputs = handler.process_image.inputs
-    inputs.add(sto.command)
-    inputs.add(sout.command)
-    inputs.add_padding(6)
-    inputs.add(safe_inputs.value)
-    inputs.add_padding(7)
+    @pytest.fixture(scope="function")
+    def configured_handler(
+        self,
+        mc_with_fsoe_with_sra_with_feedback_scenario_0_with_sout: tuple[
+            "MotionController", "FSoEMasterHandler"
+        ],
+    ) -> Iterator[tuple["MotionController", "FSoEMasterHandler"]]:
+        mc, handler = mc_with_fsoe_with_sra_with_feedback_scenario_0_with_sout
 
-    # Map is valid
-    handler.process_image.validate()
+        self.sto = handler.get_function_instance(STOFunction)
+        self.safe_inputs = handler.get_function_instance(SafeInputsFunction)
+        self.ss1 = handler.get_function_instance(SS1Function)
 
-    previous_mcu_a_errors = mcu_error_queue_a.get_number_total_errors()
-    mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
-    time.sleep(timeout_for_data_sra)
-    # Servo cannot reach OP state
-    assert mcu_error_queue_a.get_number_total_errors() > previous_mcu_a_errors
-    assert mcu_error_queue_a.get_last_error().error_id == _INVALID_MAPPING_ERROR_ID
-    assert servo.slave.state is not pysoem.OP_STATE
-    mc.fsoe.stop_master(stop_pdos=True)
+        outputs = handler.process_image.outputs
+        outputs.add(self.sto.command)
+        outputs.add(self.ss1.command)
+        outputs.add_padding(6)
 
+        inputs = handler.process_image.inputs
+        inputs.add(self.sto.command)
+        inputs.add(self.ss1.command)
+        inputs.add_padding(6)
+        inputs.add(self.safe_inputs.value)
+        inputs.add_padding(7)
+        yield mc, handler
 
-@pytest.mark.fsoe_phase2
-def test_if_sout_disable_sto_activate_sout_not_allowed(
-    mc_with_fsoe_with_sra_with_feedback_scenario_0_with_sout: tuple[
-        "MotionController", "FSoEMasterHandler"
-    ],
-    timeout_for_data_sra: float,
-    servo: "EthercatServo",
-    mcu_error_queue_a: "ServoErrorQueue",
-) -> None:
-    mc, handler = mc_with_fsoe_with_sra_with_feedback_scenario_0_with_sout
+    @pytest.mark.fsoe_phase2
+    def test_sout_command_not_allowed(
+        self,
+        mc_with_fsoe_with_sra_with_feedback_scenario_0_with_sout: tuple[
+            "MotionController", "FSoEMasterHandler"
+        ],
+        timeout_for_data_sra: float,
+        servo: "EthercatServo",
+        mcu_error_queue_a: "ServoErrorQueue",
+    ) -> None:
+        """SOUT command is not allowed if SOUT disable is set to 1."""
+        mc, handler = mc_with_fsoe_with_sra_with_feedback_scenario_0_with_sout
 
-    sto = handler.get_function_instance(STOFunction)
-    safe_inputs = handler.get_function_instance(SafeInputsFunction)
-    ss1 = handler.get_function_instance(SS1Function)
-    outputs = handler.process_image.outputs
-    outputs.add(sto.command)
-    outputs.add(ss1.command)
-    outputs.add_padding(6)
+        sto = handler.get_function_instance(STOFunction)
+        safe_inputs = handler.get_function_instance(SafeInputsFunction)
+        sout = handler.get_function_instance(SOutFunction)
+        outputs = handler.process_image.outputs
+        outputs.add(sto.command)
+        outputs.add(sout.command)
+        outputs.add_padding(6)
 
-    inputs = handler.process_image.inputs
-    inputs.add(sto.command)
-    inputs.add(ss1.command)
-    inputs.add_padding(6)
-    inputs.add(safe_inputs.value)
-    inputs.add_padding(7)
+        inputs = handler.process_image.inputs
+        inputs.add(sto.command)
+        inputs.add(sout.command)
+        inputs.add_padding(6)
+        inputs.add(safe_inputs.value)
+        inputs.add_padding(7)
 
-    # Set STO SOUT disable
-    handler.safety_parameters.get("FSOE_STO_ACTIVATE_SOUT").set(0x66600001)
+        handler.process_image.validate()
+        mc.fsoe.configure_pdos()
+        _check_invalid_map_error_is_raised(
+            mc=mc,
+            servo=servo,
+            mcu_error_queue_a=mcu_error_queue_a,
+            timeout_for_data_sra=timeout_for_data_sra,
+        )
 
-    # Map is valid
-    handler.process_image.validate()
-    previous_mcu_a_errors = mcu_error_queue_a.get_number_total_errors()
-    mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
-    time.sleep(timeout_for_data_sra)
-    # Servo cannot reach OP state
-    assert mcu_error_queue_a.get_number_total_errors() > previous_mcu_a_errors
-    assert mcu_error_queue_a.get_last_error().error_id == _INVALID_MAPPING_ERROR_ID
-    assert servo.slave.state is not pysoem.OP_STATE
-    mc.fsoe.stop_master(stop_pdos=True)
+    @pytest.mark.fsoe_phase2
+    def test_sto_activate_sout_not_allowed(
+        self,
+        configured_handler: tuple["MotionController", "FSoEMasterHandler"],
+        timeout_for_data_sra: float,
+        servo: "EthercatServo",
+        mcu_error_queue_a: "ServoErrorQueue",
+    ) -> None:
+        """STO activate SOUT is not allowed if SOUT disable is set to 1."""
+        mc, handler = configured_handler
+        handler.safety_parameters.get("FSOE_STO_ACTIVATE_SOUT").set(0x66600001)
+        handler.process_image.validate()
+        mc.fsoe.configure_pdos()
+        _check_invalid_map_error_is_raised(
+            mc=mc,
+            servo=servo,
+            mcu_error_queue_a=mcu_error_queue_a,
+            timeout_for_data_sra=timeout_for_data_sra,
+        )
 
+    @pytest.mark.fsoe_phase2
+    def test_ss1_activate_sout_not_allowed(
+        self,
+        configured_handler: tuple["MotionController", "FSoEMasterHandler"],
+        timeout_for_data_sra: float,
+        servo: "EthercatServo",
+        mcu_error_queue_a: "ServoErrorQueue",
+    ) -> None:
+        """SS1 activate SOUT is not allowed if SOUT disable is set to 1."""
+        mc, handler = configured_handler
+        handler.safety_parameters.get("FSOE_SS1_ACTIVATE_SOUT_1").set(0x66600001)
+        handler.process_image.validate()
+        mc.fsoe.configure_pdos()
+        _check_invalid_map_error_is_raised(
+            mc=mc,
+            servo=servo,
+            mcu_error_queue_a=mcu_error_queue_a,
+            timeout_for_data_sra=timeout_for_data_sra,
+        )
 
-@pytest.mark.fsoe_phase2
-def test_if_sout_disable_ss1_activate_sout_not_allowed(
-    mc_with_fsoe_with_sra_with_feedback_scenario_0_with_sout: tuple[
-        "MotionController", "FSoEMasterHandler"
-    ],
-    timeout_for_data_sra: float,
-    servo: "EthercatServo",
-    mcu_error_queue_a: "ServoErrorQueue",
-) -> None:
-    mc, handler = mc_with_fsoe_with_sra_with_feedback_scenario_0_with_sout
+    @pytest.mark.fsoe_phase2
+    def test_safe_input_cannot_be_mapped_to_sout(
+        self,
+        configured_handler: tuple["MotionController", "FSoEMasterHandler"],
+        timeout_for_data_sra: float,
+        servo: "EthercatServo",
+        mcu_error_queue_a: "ServoErrorQueue",
+    ) -> None:
+        """Safe Input cannot be mapped to SOUT if SOUT disable is set to 1."""
+        mc, handler = configured_handler
 
-    sto = handler.get_function_instance(STOFunction)
-    safe_inputs = handler.get_function_instance(SafeInputsFunction)
-    ss1 = handler.get_function_instance(SS1Function)
-    outputs = handler.process_image.outputs
-    outputs.add(sto.command)
-    outputs.add(ss1.command)
-    outputs.add_padding(6)
+        # Map safe inputs to SOUT - it should not reach OP state
+        self.safe_inputs.map.set(4)
+        handler.process_image.validate()
+        mc.fsoe.configure_pdos()
+        _check_invalid_map_error_is_raised(
+            mc=mc,
+            servo=servo,
+            mcu_error_queue_a=mcu_error_queue_a,
+            timeout_for_data_sra=timeout_for_data_sra,
+        )
 
-    inputs = handler.process_image.inputs
-    inputs.add(sto.command)
-    inputs.add(ss1.command)
-    inputs.add_padding(6)
-    inputs.add(safe_inputs.value)
-    inputs.add_padding(7)
+    @pytest.mark.fsoe_phase2
+    def test_safe_input_cannot_be_mapped_to_sto_if_sto_activates_sout(
+        self,
+        configured_handler: tuple["MotionController", "FSoEMasterHandler"],
+        timeout_for_data_sra: float,
+        servo: "EthercatServo",
+        mcu_error_queue_a: "ServoErrorQueue",
+    ) -> None:
+        """Safe Input cannot be mapped to STO if STO activates SOUT."""
+        mc, handler = configured_handler
 
-    # Set SS1 SOUT disable
-    handler.safety_parameters.get("FSOE_SS1_ACTIVATE_SOUT_1").set(0x66600001)
+        # Map safe inputs to STO - it should reach OP state if STO does not activate SOUT
+        self.safe_inputs.map.set(1)
 
-    # Map is valid
-    handler.process_image.validate()
-    previous_mcu_a_errors = mcu_error_queue_a.get_number_total_errors()
-    mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
-    time.sleep(timeout_for_data_sra)
-    # Servo cannot reach OP state
-    assert mcu_error_queue_a.get_number_total_errors() > previous_mcu_a_errors
-    assert mcu_error_queue_a.get_last_error().error_id == _INVALID_MAPPING_ERROR_ID
-    assert servo.slave.state is not pysoem.OP_STATE
-    mc.fsoe.stop_master(stop_pdos=True)
+        # It should reach OP state if STO does not activate SOUT
+        handler.safety_parameters.get("FSOE_STO_ACTIVATE_SOUT").set(0)
+        handler.process_image.validate()
+        mc.fsoe.configure_pdos()
+        _check_op_state_reached_with_no_errors(
+            mc=mc,
+            servo=servo,
+            mcu_error_queue_a=mcu_error_queue_a,
+            timeout_for_data_sra=timeout_for_data_sra,
+        )
 
+        # Set STO to activate SOUT, it should not reach OP state
+        handler.safety_parameters.get("FSOE_STO_ACTIVATE_SOUT").set(0x66600001)
+        _check_invalid_map_error_is_raised(
+            mc=mc,
+            servo=servo,
+            mcu_error_queue_a=mcu_error_queue_a,
+            timeout_for_data_sra=timeout_for_data_sra,
+        )
 
-@pytest.mark.fsoe_phase2
-def test_if_sout_disable_safe_input_cannot_be_mapped_to_sout(
-    mc_with_fsoe_with_sra_with_feedback_scenario_0_with_sout: tuple[
-        "MotionController", "FSoEMasterHandler"
-    ],
-    timeout_for_data_sra: float,
-    servo: "EthercatServo",
-    mcu_error_queue_a: "ServoErrorQueue",
-) -> None:
-    mc, handler = mc_with_fsoe_with_sra_with_feedback_scenario_0_with_sout
+    @pytest.mark.fsoe_phase2
+    def test_safe_input_cannot_be_mapped_to_ss1_if_ss1_activates_sout(
+        self,
+        mc_with_fsoe_with_sra_with_feedback_scenario_0_with_sout: tuple[
+            "MotionController", "FSoEMasterHandler"
+        ],
+        timeout_for_data_sra: float,
+        servo: "EthercatServo",
+        mcu_error_queue_a: "ServoErrorQueue",
+    ) -> None:
+        """Safe Input cannot be mapped to SS1 if SS1 activates SOUT."""
+        mc, handler = mc_with_fsoe_with_sra_with_feedback_scenario_0_with_sout
 
-    sto = handler.get_function_instance(STOFunction)
-    safe_inputs = handler.get_function_instance(SafeInputsFunction)
-    ss1 = handler.get_function_instance(SS1Function)
-    outputs = handler.process_image.outputs
-    outputs.add(sto.command)
-    outputs.add(ss1.command)
-    outputs.add_padding(6)
+        sto = handler.get_function_instance(STOFunction)
+        safe_inputs = handler.get_function_instance(SafeInputsFunction)
 
-    inputs = handler.process_image.inputs
-    inputs.add(sto.command)
-    inputs.add(ss1.command)
-    inputs.add_padding(6)
-    inputs.add(safe_inputs.value)
-    inputs.add_padding(7)
+        outputs = handler.process_image.outputs
+        outputs.add(sto.command)
+        outputs.add_padding(6)
 
-    # Map safe inputs to SOUT - it should not reach OP state
-    safe_inputs.map.set(4)
-    handler.process_image.validate()
-    previous_mcu_a_errors = mcu_error_queue_a.get_number_total_errors()
-    mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
-    time.sleep(timeout_for_data_sra)
-    assert mcu_error_queue_a.get_number_total_errors() > previous_mcu_a_errors
-    assert mcu_error_queue_a.get_last_error().error_id == _INVALID_MAPPING_ERROR_ID
-    assert servo.slave.state is not pysoem.OP_STATE
-    mc.fsoe.stop_master(stop_pdos=True)
+        inputs = handler.process_image.inputs
+        inputs.add(sto.command)
+        inputs.add_padding(6)
+        inputs.add(safe_inputs.value)
+        inputs.add_padding(7)
 
+        # Map safe inputs to SS1
+        safe_inputs.map.set(2)
 
-@pytest.mark.fsoe_phase2
-def test_if_sout_disable_safe_input_cannot_be_mapped_to_sto_ss1_if_activate_sout(
-    mc_with_fsoe_with_sra_with_feedback_scenario_0_with_sout: tuple[
-        "MotionController", "FSoEMasterHandler"
-    ],
-    timeout_for_data_sra: float,
-    servo: "EthercatServo",
-    mcu_error_queue_a: "ServoErrorQueue",
-) -> None:
-    mc, handler = mc_with_fsoe_with_sra_with_feedback_scenario_0_with_sout
+        # It should reach OP state if SS1 does not activate SOUT
+        handler.safety_parameters.get("FSOE_SS1_ACTIVATE_SOUT_1").set(0)
+        mc.fsoe.configure_pdos()
+        _check_op_state_reached_with_no_errors(
+            mc=mc,
+            servo=servo,
+            mcu_error_queue_a=mcu_error_queue_a,
+            timeout_for_data_sra=timeout_for_data_sra,
+        )
 
-    sto = handler.get_function_instance(STOFunction)
-    safe_inputs = handler.get_function_instance(SafeInputsFunction)
-    outputs = handler.process_image.outputs
-    outputs.add(sto.command)
-    outputs.add_padding(7)
-
-    inputs = handler.process_image.inputs
-    inputs.add(sto.command)
-    inputs.add_padding(7)
-    inputs.add(safe_inputs.value)
-    inputs.add_padding(7)
-
-    # Map safe inputs to STO - it should reach OP state if STO does not activate SOUT
-    safe_inputs.map.set(1)
-    handler.safety_parameters.get("FSOE_STO_ACTIVATE_SOUT").set(0)
-    handler.process_image.validate()
-    previous_mcu_a_errors = mcu_error_queue_a.get_number_total_errors()
-    mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
-    mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
-    assert mcu_error_queue_a.get_number_total_errors() == previous_mcu_a_errors
-    assert servo.slave.state is pysoem.OP_STATE
-    mc.fsoe.stop_master(stop_pdos=True)
-
-    # Set STO to activate SOUT, it should not reach OP state
-    handler.safety_parameters.get("FSOE_STO_ACTIVATE_SOUT").set(0x66600001)
-    handler.process_image.validate()
-    previous_mcu_a_errors = mcu_error_queue_a.get_number_total_errors()
-    mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
-    time.sleep(timeout_for_data_sra)
-    assert mcu_error_queue_a.get_number_total_errors() > previous_mcu_a_errors
-    assert mcu_error_queue_a.get_last_error().error_id == _INVALID_MAPPING_ERROR_ID
-    assert servo.slave.state is not pysoem.OP_STATE
-    mc.fsoe.stop_master(stop_pdos=True)
-
-    # Map safe inputs to SS1 - it should reach OP state if SS1 does not activate SOUT
-    safe_inputs.map.set(2)
-    handler.safety_parameters.get("FSOE_SS1_ACTIVATE_SOUT_1").set(0)
-    handler.process_image.validate()
-    previous_mcu_a_errors = mcu_error_queue_a.get_number_total_errors()
-    mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
-    mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
-    assert mcu_error_queue_a.get_number_total_errors() == previous_mcu_a_errors
-    assert servo.slave.state is pysoem.OP_STATE
-    mc.fsoe.stop_master(stop_pdos=True)
-
-    # Set SS1 to activate SOUT, it should not reach OP state
-    handler.safety_parameters.get("FSOE_SS1_ACTIVATE_SOUT_1").set(0x66600001)
-    handler.process_image.validate()
-    previous_mcu_a_errors = mcu_error_queue_a.get_number_total_errors()
-    mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
-    time.sleep(timeout_for_data_sra)
-    assert mcu_error_queue_a.get_number_total_errors() > previous_mcu_a_errors
-    assert mcu_error_queue_a.get_last_error().error_id == _INVALID_MAPPING_ERROR_ID
-    assert servo.slave.state is not pysoem.OP_STATE
-    mc.fsoe.stop_master(stop_pdos=True)
+        # Set SS1 to activate SOUT, it should not reach OP state
+        handler.safety_parameters.get("FSOE_SS1_ACTIVATE_SOUT_1").set(0x66600001)
+        _check_invalid_map_error_is_raised(
+            mc=mc,
+            servo=servo,
+            mcu_error_queue_a=mcu_error_queue_a,
+            timeout_for_data_sra=timeout_for_data_sra,
+        )
