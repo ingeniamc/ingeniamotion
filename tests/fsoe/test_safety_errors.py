@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Callable
 import pytest
 from ingenialink.dictionary import Interface
 from ingenialink.servo import DictionaryFactory
+from summit_testing_framework.setups.specifiers import PartNumber
 
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEState
 from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
@@ -16,6 +17,7 @@ except ImportError:
 
 if TYPE_CHECKING:
     from ingenialink.ethercat.servo import EthercatServo
+    from summit_testing_framework.setups.descriptors import DriveHwSetup
     from summit_testing_framework.setups.environment_control import DriveEnvironmentController
 
     from ingeniamotion.motion_controller import MotionController
@@ -348,8 +350,13 @@ def test_if_sout_disable_sout_command_not_allowed(
     timeout_for_data_sra: float,
     servo: "EthercatServo",
     mcu_error_queue_a: "ServoErrorQueue",
+    setup_descriptor: "DriveHwSetup",
 ) -> None:
     mc, handler = mc_with_fsoe_with_sra_with_feedback_scenario_0
+    if handler.sout_function() is None:
+        if setup_descriptor.identifier.upper() is not PartNumber.DEN_S_NET_E.value:
+            raise ValueError("SOUT function should be available in this dictionary.")
+        pytest.skip("SOUT function not available in this dictionary.")
 
     sto = handler.get_function_instance(STOFunction)
     safe_inputs = handler.get_function_instance(SafeInputsFunction)
