@@ -27,6 +27,7 @@ from tests.outputs import OUTPUTS_DIR
 if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master import (
         FSoEMasterHandler,
+        ProcessImage,
         SafeInputsFunction,
         SafetyFunction,
         SafetyParameter,
@@ -475,11 +476,18 @@ if FSOE_MASTER_INSTALLED:
             """Get the register associated with the safety parameter."""
             return self.__register
 
+        def set(self, value):
+            self.__value = value
+
+        def get(self) -> Any:
+            return self.__value
+
     class MockHandler(FSoEMasterHandler):
         def __init__(self, dictionary: str, module_uid: int):
             xdf = DictionaryFactory.create_dictionary(dictionary, interface=Interface.ECAT)
             self.dictionary = FSoEMasterHandler.create_safe_dictionary(xdf)
             self.__servo = MockServo(dictionary)
+            self._process_image = ProcessImage.default(self.dictionary)
             self.safety_parameters = OrderedDict({
                 app_parameter.uid: MockSafetyParameter(
                     xdf.get_register(app_parameter.uid), self.__servo
@@ -488,3 +496,10 @@ if FSOE_MASTER_INSTALLED:
             })
 
             self.safety_functions = tuple(SafetyFunction.for_handler(self))
+
+        @property
+        def process_image(self) -> "ProcessImage":
+            return self._process_image
+
+        def set_process_image(self, process_image: "ProcessImage") -> None:
+            self._process_image = process_image

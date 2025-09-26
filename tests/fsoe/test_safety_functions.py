@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
 if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master import (
+        ProcessImage,
         SafeHomingFunction,
         SafeInputsFunction,
         SafetyFunction,
@@ -172,7 +173,13 @@ def test_getter_of_safety_functions(
     _, handler = mc_with_fsoe
 
     sto_function = STOFunction(
-        n_instance=None, name="Dummy", command=None, activate_sout=None, ios=None, parameters=None
+        n_instance=None,
+        name="Dummy",
+        command=None,
+        activate_sout=None,
+        ios=None,
+        parameters=None,
+        handler=handler,
     )
     ss1_function_1 = SS1Function(
         n_instance=None,
@@ -186,6 +193,7 @@ def test_getter_of_safety_functions(
         time_delay_for_deceleration=None,
         deceleration_limit=None,
         activate_sout=None,
+        handler=handler,
     )
     ss1_function_2 = SS1Function(
         n_instance=None,
@@ -199,6 +207,7 @@ def test_getter_of_safety_functions(
         time_delay_for_deceleration=None,
         deceleration_limit=None,
         activate_sout=None,
+        handler=handler,
     )
 
     handler.safety_functions = (sto_function, ss1_function_1, ss1_function_2)
@@ -227,6 +236,122 @@ def test_getter_of_safety_functions(
         # Instance 3 does not exist
         handler.get_function_instance(SS1Function, instance=3)
     assert error.value.args[0] == "Master handler does not contain SS1Function instance 3"
+
+
+@pytest.mark.fsoe_phase2
+def test_ss2_activated_by():
+    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+    process_image = ProcessImage.empty(handler.dictionary)
+    handler.set_process_image(process_image)
+    ss2_instance = handler.get_function_instance(SS2Function)
+    si_instance = handler.safe_inputs_function()
+    si_instance.map.set(3)
+    assert si_instance in ss2_instance.activated_by()
+    si_instance.map.set(0)
+    assert ss2_instance.activated_by() == []
+    for slp_func in handler.safety_functions_by_type()[SLPFunction]:
+        process_image.insert_safety_function(slp_func)
+        slp_func.error_reaction.set(0x66700101)
+        assert slp_func in ss2_instance.activated_by()
+        slp_func.error_reaction.set(0)
+        assert ss2_instance.activated_by() == []
+
+
+@pytest.mark.fsoe_phase2
+def test_sos_activated_by():
+    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+    process_image = ProcessImage.empty(handler.dictionary)
+    handler.set_process_image(process_image)
+    sos_instance = handler.get_function_instance(SOSFunction)
+    ss2_instance = handler.get_function_instance(SS2Function)
+    assert sos_instance.activated_by() == []
+    process_image.insert_safety_function(ss2_instance)
+    assert ss2_instance in sos_instance.activated_by()
+
+
+@pytest.mark.fsoe_phase2
+def test_sout_activated_by():
+    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+    process_image = ProcessImage.empty(handler.dictionary)
+    handler.set_process_image(process_image)
+    sout_instance = handler.get_function_instance(SOutFunction)
+    sto_instance = handler.sto_function()
+    ss1_instance = handler.ss1_function()
+    si_instance = handler.safe_inputs_function()
+    si_instance.map.set(0)
+    sto_instance.activate_sout.set(0)
+    assert sout_instance.activated_by() == []
+    sto_instance.activate_sout.set(1717567489)
+    assert sto_instance in sout_instance.activated_by()
+    sto_instance.activate_sout.set(0)
+    assert sout_instance.activated_by() == []
+    si_instance.map.set(4)
+    assert si_instance in sout_instance.activated_by()
+    si_instance.map.set(0)
+    assert sout_instance.activated_by() == []
+    ss1_instance.activate_sout.set(1717567489)
+    process_image.insert_safety_function(ss1_instance)
+    assert ss1_instance in sout_instance.activated_by()
+    ss1_instance.activate_sout.set(0)
+    assert sout_instance.activated_by() == []
+
+
+@pytest.mark.fsoe_phase2
+def test_ss1_activated_by():
+    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+    process_image = ProcessImage.empty(handler.dictionary)
+    handler.set_process_image(process_image)
+    ss1_instance = handler.ss1_function()
+    si_instance = handler.safe_inputs_function()
+    si_instance.map.set(2)
+    assert si_instance in ss1_instance.activated_by()
+    si_instance.map.set(0)
+    assert ss1_instance.activated_by() == []
+    activate_value = 0x66500101
+    all_sfs = [
+        *handler.safety_functions_by_type()[SLPFunction],
+        *handler.safety_functions_by_type()[SSRFunction],
+        *handler.safety_functions_by_type()[SLSFunction],
+        *handler.safety_functions_by_type()[SLIFunction],
+    ]
+    for sf in all_sfs:
+        process_image.insert_safety_function(sf)
+        sf.error_reaction.set(activate_value)
+        assert sf in ss1_instance.activated_by()
+        sf.error_reaction.set(0)
+        assert ss1_instance.activated_by() == []
+
+
+@pytest.mark.fsoe_phase2
+def test_ss1_activated_by_multiple():
+    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+    process_image = ProcessImage.empty(handler.dictionary)
+    handler.set_process_image(process_image)
+    ss1_instance = handler.ss1_function()
+    si_instance = handler.safe_inputs_function()
+    si_instance.map.set(2)
+    assert si_instance in ss1_instance.activated_by()
+    si_instance.map.set(0)
+    assert ss1_instance.activated_by() == []
+    activate_value = 0x66500101
+    slp_1 = handler.safety_functions_by_type()[SLPFunction][0]
+    process_image.insert_safety_function(slp_1)
+    slp_1.error_reaction.set(activate_value)
+    ssr_3 = handler.safety_functions_by_type()[SSRFunction][2]
+    process_image.insert_safety_function(ssr_3)
+    ssr_3.error_reaction.set(activate_value)
+    list_activated_by = ss1_instance.activated_by()
+    assert len(list_activated_by) == 2
+    assert slp_1 in list_activated_by
+    assert ssr_3 in list_activated_by
+    sls_8 = handler.safety_functions_by_type()[SLSFunction][7]
+    process_image.insert_safety_function(sls_8)
+    sls_8.error_reaction.set(activate_value)
+    list_activated_by = ss1_instance.activated_by()
+    assert len(list_activated_by) == 3
+    assert slp_1 in list_activated_by
+    assert ssr_3 in list_activated_by
+    assert sls_8 in list_activated_by
 
 
 @pytest.mark.fsoe
