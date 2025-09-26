@@ -2,7 +2,10 @@
 import dataclasses
 from collections.abc import Iterator
 from dataclasses import dataclass
+from enum import IntEnum
 from typing import TYPE_CHECKING, Optional, Union, get_args, get_origin
+
+from typing_extensions import override
 
 from ingeniamotion.fsoe_master.fsoe import (
     FSoEDictionaryItem,
@@ -101,6 +104,15 @@ class SafetyFunction:
 
     ios: dict[SafetyFieldMetadata, FSoEDictionaryItem]
     parameters: dict[SafetyFieldMetadata, SafetyParameter]
+    handler: "FSoEMasterHandler"
+
+    def activated_by(self) -> list["SafetyFunction"]:
+        """Get the safety function that activates this function, if any.
+
+        Returns:
+            The safety function that activates this function, or None if not activated by any.
+        """
+        return []
 
     @classmethod
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafetyFunction"]:
@@ -175,6 +187,7 @@ class SafetyFunction:
                 for metadata, parameter in parameters.items()
                 if parameter is not None
             },
+            handler=handler,
             **{field.attr_name: io for field, io in ios.items()},
             **{field.attr_name: parameter for field, parameter in parameters.items()},
         )
@@ -299,6 +312,12 @@ class STOFunction(SafetyFunction):
         uid="FSOE_STO_ACTIVATE_SOUT", display_name="Activate SOUT"
     )
 
+    class ActiveSOUT(IntEnum):
+        """Enum for the Activate SOUT parameter in the STO function."""
+
+        DISABLED = 0
+        ENABLED = 0x66600001
+
 
 @dataclass()
 class SS1Function(SafetyFunction):
@@ -329,6 +348,57 @@ class SS1Function(SafetyFunction):
         uid="FSOE_SS1_ACTIVATE_SOUT_{i}", display_name="Activate SOUT"
     )
 
+    class ActiveSOUT(IntEnum):
+        """Enum for the Activate SOUT parameter in the STO function."""
+
+        DISABLED = 0
+        ENABLED = 0x66600001
+
+    @override
+    def activated_by(self) -> list[SafetyFunction]:
+        sf_list: list[SafetyFunction] = []
+        process_image = self.handler.process_image
+        si_function: SafeInputsFunction = self.handler.safe_inputs_function()
+        if si_function.map.get() == SafeInputsFunction.SafeInputMap.SS1:
+            sf_list.append(si_function)
+        sf_list.extend(
+            slp_function
+            for slp_function in self.handler.safety_functions_by_type().get(SLPFunction, [])
+            if (
+                process_image.is_safety_function_mapped(slp_function, strict=True)
+                or slp_function.activated_by() != []
+            )
+            and slp_function.error_reaction.get() == SLPFunction.ErrorReaction.SS1
+        )
+        sf_list.extend(
+            ssr_function
+            for ssr_function in self.handler.safety_functions_by_type().get(SSRFunction, [])
+            if (
+                process_image.is_safety_function_mapped(ssr_function, strict=True)
+                or ssr_function.activated_by() != []
+            )
+            and ssr_function.error_reaction.get() == SSRFunction.ErrorReaction.SS1
+        )
+        sf_list.extend(
+            sls_function
+            for sls_function in self.handler.safety_functions_by_type().get(SLSFunction, [])
+            if (
+                process_image.is_safety_function_mapped(sls_function, strict=True)
+                or sls_function.activated_by() != []
+            )
+            and sls_function.error_reaction.get() == SLSFunction.ErrorReaction.SS1
+        )
+        sf_list.extend(
+            sli_function
+            for sli_function in self.handler.safety_functions_by_type().get(SLIFunction, [])
+            if (
+                process_image.is_safety_function_mapped(sli_function, strict=True)
+                or sli_function.activated_by() != []
+            )
+            and sli_function.error_reaction.get() == SLIFunction.ErrorReaction.SS1
+        )
+        return sf_list
+
 
 @dataclass()
 class SafeInputsFunction(SafetyFunction):
@@ -339,6 +409,15 @@ class SafeInputsFunction(SafetyFunction):
     SAFE_INPUTS_UID = "FSOE_SAFE_INPUTS_VALUE"
     value: FSoEDictionaryItemInput = safety_field(uid=SAFE_INPUTS_UID, display_name="Value")
     map: SafetyParameter = safety_field(uid="FSOE_SAFE_INPUTS_MAP", display_name="Map")
+
+    class SafeInputMap(IntEnum):
+        """Enum for the Safe Inputs map parameter."""
+
+        NONE = 0
+        STO = 1
+        SS1 = 2
+        SS2 = 3
+        SOUT = 4
 
 
 @dataclass()
@@ -356,6 +435,18 @@ class SOSFunction(SafetyFunction):
     velocity_zero_window: SafetyParameter = safety_field(
         uid="FSOE_SOS_VEL_ZERO_WINDOW_{i}", display_name="Velocity Zero Window"
     )
+
+    @override
+    def activated_by(self) -> list[SafetyFunction]:
+        sf_list: list[SafetyFunction] = []
+        process_image = self.handler.process_image
+        ss2_instance = self.handler.get_function_instance(SS2Function)
+        if (
+            process_image.is_safety_function_mapped(ss2_instance, strict=True)
+            or ss2_instance.activated_by() != []
+        ):
+            sf_list.append(ss2_instance)
+        return sf_list
 
 
 @dataclass()
@@ -383,6 +474,32 @@ class SS2Function(SafetyFunction):
         uid="FSOE_SS2_ERROR_REACTION_{i}", display_name="Error Reaction"
     )
 
+    class ErrorReaction(IntEnum):
+        """Enum for the Error Reaction parameter in the SS2 function."""
+
+        NONE = 0
+        STO = 0x66400001
+
+    __FSOE_SLP_ERROR_REACTION_ACTIVE_VALUE = 0x66700101
+
+    @override
+    def activated_by(self) -> list[SafetyFunction]:
+        sf_list: list[SafetyFunction] = []
+        process_image = self.handler.process_image
+        si_function: SafeInputsFunction = self.handler.safe_inputs_function()
+        if si_function.map.get() == SafeInputsFunction.SafeInputMap.SS2:
+            sf_list.append(si_function)
+        sf_list.extend(
+            slp_function
+            for slp_function in self.handler.safety_functions_by_type().get(SLPFunction, [])
+            if (
+                process_image.is_safety_function_mapped(slp_function, strict=True)
+                or slp_function.activated_by() != []
+            )
+            and slp_function.error_reaction.get() == SLPFunction.ErrorReaction.SS2
+        )
+        return sf_list
+
 
 @dataclass()
 class SOutFunction(SafetyFunction):
@@ -397,6 +514,31 @@ class SOutFunction(SafetyFunction):
     sout_disable: SafetyParameter = safety_field(
         uid="FSOE_SOUT_DISABLE", display_name="Disables the SOUT functionality"
     )
+
+    @override
+    def activated_by(self) -> list[SafetyFunction]:
+        sf_list: list[SafetyFunction] = []
+        process_image = self.handler.process_image
+        sto_function: STOFunction = self.handler.sto_function()
+        if (
+            sto_function.activate_sout is not None
+            and sto_function.activate_sout.get() == STOFunction.ActiveSOUT.ENABLED
+        ):
+            sf_list.append(sto_function)
+        si_function: SafeInputsFunction = self.handler.safe_inputs_function()
+        if si_function.map.get() == SafeInputsFunction.SafeInputMap.SOUT:
+            sf_list.append(si_function)
+        ss1_function: SS1Function = self.handler.ss1_function()
+        if (
+            (
+                process_image.is_safety_function_mapped(ss1_function)
+                or ss1_function.activated_by() != []
+            )
+            and ss1_function.activate_sout is not None
+            and ss1_function.activate_sout.get() == SS1Function.ActiveSOUT.ENABLED
+        ):
+            sf_list.append(ss1_function)
+        return sf_list
 
 
 @dataclass()
@@ -450,6 +592,13 @@ class SLSFunction(SafetyFunction):
         uid="FSOE_SLS_ERROR_REACTION_{i}", display_name="Error Reaction"
     )
 
+    class ErrorReaction(IntEnum):
+        """Enum for the Error Reaction parameter in the SLS function."""
+
+        NONE = 0
+        STO = 0x66400001
+        SS1 = 0x66500101
+
 
 @dataclass()
 class SSRFunction(SafetyFunction):
@@ -470,6 +619,13 @@ class SSRFunction(SafetyFunction):
         uid="FSOE_SSR_ERROR_REACTION_{i}", display_name="Error Reaction"
     )
 
+    class ErrorReaction(IntEnum):
+        """Enum for the Error Reaction parameter in the SSR function."""
+
+        NONE = 0
+        STO = 0x66400001
+        SS1 = 0x66500101
+
 
 @dataclass()
 class SLPFunction(SafetyFunction):
@@ -489,6 +645,14 @@ class SLPFunction(SafetyFunction):
     error_reaction: SafetyParameter = safety_field(
         uid="FSOE_SLP_ERROR_REACTION_{i}", display_name="Error Reaction"
     )
+
+    class ErrorReaction(IntEnum):
+        """Enum for the Error Reaction parameter in the SLI function."""
+
+        NONE = 0
+        STO = 0x66400001
+        SS1 = 0x66500101
+        SS2 = 0x66700101
 
 
 @dataclass()
@@ -526,3 +690,10 @@ class SLIFunction(SafetyFunction):
     error_reaction: SafetyParameter = safety_field(
         uid="FSOE_SLI_ERROR_REACTION_{i}", display_name="Error Reaction"
     )
+
+    class ErrorReaction(IntEnum):
+        """Enum for the Error Reaction parameter in the SLI function."""
+
+        NONE = 0
+        STO = 0x66400001
+        SS1 = 0x66500101
