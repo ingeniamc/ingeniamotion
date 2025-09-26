@@ -386,15 +386,12 @@ def test_if_sout_disable_sout_command_not_allowed(
     handler.process_image.validate()
 
     previous_mcu_a_errors = mcu_error_queue_a.get_number_total_errors()
-
     mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
     time.sleep(timeout_for_data_sra)
-
     # Servo cannot reach OP state
     assert servo.slave.state is not pysoem.OP_STATE
     assert mcu_error_queue_a.get_number_total_errors() > previous_mcu_a_errors
     assert mcu_error_queue_a.get_last_error().error_id == __INVALID_MAPPING_ERROR_ID
-
     mc.fsoe.stop_master(stop_pdos=True)
 
 
@@ -429,17 +426,13 @@ def test_if_sout_disable_sto_activate_sout_not_allowed(
 
     # Map is valid
     handler.process_image.validate()
-
     previous_mcu_a_errors = mcu_error_queue_a.get_number_total_errors()
-
     mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
     time.sleep(timeout_for_data_sra)
-
     # Servo cannot reach OP state
     assert servo.slave.state is not pysoem.OP_STATE
     assert mcu_error_queue_a.get_number_total_errors() > previous_mcu_a_errors
     assert mcu_error_queue_a.get_last_error().error_id == __INVALID_MAPPING_ERROR_ID
-
     mc.fsoe.stop_master(stop_pdos=True)
 
 
@@ -476,17 +469,13 @@ def test_if_sout_disable_ss1_activate_sout_not_allowed(
 
     # Map is valid
     handler.process_image.validate()
-
     previous_mcu_a_errors = mcu_error_queue_a.get_number_total_errors()
-
     mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
     time.sleep(timeout_for_data_sra)
-
     # Servo cannot reach OP state
     assert servo.slave.state is not pysoem.OP_STATE
     assert mcu_error_queue_a.get_number_total_errors() > previous_mcu_a_errors
     assert mcu_error_queue_a.get_last_error().error_id == __INVALID_MAPPING_ERROR_ID
-
     mc.fsoe.stop_master(stop_pdos=True)
 
 
