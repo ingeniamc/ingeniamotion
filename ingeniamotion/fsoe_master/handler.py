@@ -544,7 +544,7 @@ class FSoEMasterHandler:
                 )
             return funcs[index]
         elif len(funcs) == 0:
-            raise ValueError(f"Master handler does not contain {typ.__name__} instance")
+            raise ValueError(f"Master handler does not contain any {typ.__name__} instance")
         elif len(funcs) != 1:
             raise ValueError(
                 f"Multiple {typ.__name__} instances found ({len(funcs)}). "

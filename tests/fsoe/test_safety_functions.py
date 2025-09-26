@@ -363,5 +363,7 @@ def test_no_safety_function_instances(
     handler.safety_functions = ()
     handler.get_function_instance.cache_clear()
 
-    with pytest.raises(ValueError, match="Master handler does not contain STOFunction instance"):
+    with pytest.raises(
+        ValueError, match="Master handler does not contain any STOFunction instance"
+    ):
         handler.get_function_instance(STOFunction)
