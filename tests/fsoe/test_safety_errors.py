@@ -31,7 +31,6 @@ if FSOE_MASTER_INSTALLED:
         SOutFunction,
         SPFunction,
         SS1Function,
-        SS2Function,
         STOFunction,
         SVFunction,
     )
@@ -344,19 +343,29 @@ def test_feedback_scenario_0_safe_input(
     mc.fsoe.stop_master(stop_pdos=True)
 
 
+@pytest.fixture
+def mc_with_fsoe_with_sra_with_feedback_scenario_0_with_sout(
+    mc_with_fsoe_with_sra_with_feedback_scenario_0: tuple["MotionController", "FSoEMasterHandler"],
+    setup_descriptor: "DriveHwSetup",
+) -> Iterator[tuple["MotionController", "FSoEMasterHandler"]]:
+    mc, handler = mc_with_fsoe_with_sra_with_feedback_scenario_0
+    if handler.sout_function() is None:
+        if setup_descriptor.identifier.upper() != PartNumber.DEN_S_NET_E.value:
+            raise ValueError("SOUT function should be available in this dictionary.")
+        pytest.skip("SOUT function not available in this dictionary.")
+    yield mc, handler
+
+
 @pytest.mark.fsoe_phase2
 def test_if_sout_disable_sout_command_not_allowed(
-    mc_with_fsoe_with_sra_with_feedback_scenario_0: tuple["MotionController", "FSoEMasterHandler"],
+    mc_with_fsoe_with_sra_with_feedback_scenario_0_with_sout: tuple[
+        "MotionController", "FSoEMasterHandler"
+    ],
     timeout_for_data_sra: float,
     servo: "EthercatServo",
     mcu_error_queue_a: "ServoErrorQueue",
-    setup_descriptor: "DriveHwSetup",
 ) -> None:
-    mc, handler = mc_with_fsoe_with_sra_with_feedback_scenario_0
-    if handler.sout_function() is None:
-        if setup_descriptor.identifier.upper() is not PartNumber.DEN_S_NET_E.value:
-            raise ValueError("SOUT function should be available in this dictionary.")
-        pytest.skip("SOUT function not available in this dictionary.")
+    mc, handler = mc_with_fsoe_with_sra_with_feedback_scenario_0_with_sout
 
     sto = handler.get_function_instance(STOFunction)
     safe_inputs = handler.get_function_instance(SafeInputsFunction)
@@ -390,13 +399,15 @@ def test_if_sout_disable_sout_command_not_allowed(
 
 
 @pytest.mark.fsoe_phase2
-def test_if_sout_disable_ss1_activate_sout_not_allowed(
-    mc_with_fsoe_with_sra_with_feedback_scenario_0: tuple["MotionController", "FSoEMasterHandler"],
+def test_if_sout_disable_sto_activate_sout_not_allowed(
+    mc_with_fsoe_with_sra_with_feedback_scenario_0_with_sout: tuple[
+        "MotionController", "FSoEMasterHandler"
+    ],
     timeout_for_data_sra: float,
     servo: "EthercatServo",
     mcu_error_queue_a: "ServoErrorQueue",
 ) -> None:
-    mc, handler = mc_with_fsoe_with_sra_with_feedback_scenario_0
+    mc, handler = mc_with_fsoe_with_sra_with_feedback_scenario_0_with_sout
 
     sto = handler.get_function_instance(STOFunction)
     safe_inputs = handler.get_function_instance(SafeInputsFunction)
@@ -413,7 +424,7 @@ def test_if_sout_disable_ss1_activate_sout_not_allowed(
     inputs.add(safe_inputs.value)
     inputs.add_padding(7)
 
-    # Set SS1 SOUT disable
+    # Set STO SOUT disable
     handler.safety_parameters.get("FSOE_STO_ACTIVATE_SOUT").set(1)
 
     # Map is valid
@@ -433,35 +444,35 @@ def test_if_sout_disable_ss1_activate_sout_not_allowed(
 
 
 @pytest.mark.fsoe_phase2
-def test_if_sout_disable_ss2_activate_sout_not_allowed(
-    mc_with_fsoe_factory: Callable[..., tuple["MotionController", "FSoEMasterHandler"]],
+def test_if_sout_disable_ss1_activate_sout_not_allowed(
+    mc_with_fsoe_with_sra_with_feedback_scenario_0_with_sout: tuple[
+        "MotionController", "FSoEMasterHandler"
+    ],
     timeout_for_data_sra: float,
     servo: "EthercatServo",
     mcu_error_queue_a: "ServoErrorQueue",
 ) -> None:
-    mc, handler = mc_with_fsoe_factory()
-    # Set feedback scenario to 4 to be able to configure SS2
-    handler.safety_parameters["FSOE_FEEDBACK_SCENARIO"].set(4)
+    mc, handler = mc_with_fsoe_with_sra_with_feedback_scenario_0_with_sout
     handler.process_image.inputs.clear()
     handler.process_image.outputs.clear()
 
     sto = handler.get_function_instance(STOFunction)
     safe_inputs = handler.get_function_instance(SafeInputsFunction)
-    ss2 = handler.get_function_instance(SS2Function)
+    ss1 = handler.get_function_instance(SS1Function)
     outputs = handler.process_image.outputs
     outputs.add(sto.command)
-    outputs.add(ss2.command)
+    outputs.add(ss1.command)
     outputs.add_padding(6)
 
     inputs = handler.process_image.inputs
     inputs.add(sto.command)
-    inputs.add(ss2.command)
+    inputs.add(ss1.command)
     inputs.add_padding(6)
     inputs.add(safe_inputs.value)
     inputs.add_padding(7)
 
-    # Set SS2 SOUT disable
-    ss2.activate_sout.set(1)
+    # Set SS1 SOUT disable
+    handler.safety_parameters.get("FSOE_SS1_ACTIVATE_SOUT_1").set(0x66600001)
 
     # Map is valid
     handler.process_image.validate()
@@ -480,14 +491,15 @@ def test_if_sout_disable_ss2_activate_sout_not_allowed(
 
 
 @pytest.mark.fsoe_phase2
-@pytest.mark.skip(reason="https://novantamotion.atlassian.net/browse/SACOAPP-320")
 def test_if_sout_disable_safe_input_cannot_be_mapped_to_sout(
-    mc_with_fsoe_with_sra_with_feedback_scenario_0: tuple["MotionController", "FSoEMasterHandler"],
+    mc_with_fsoe_with_sra_with_feedback_scenario_0_with_sout: tuple[
+        "MotionController", "FSoEMasterHandler"
+    ],
     timeout_for_data_sra: float,
     servo: "EthercatServo",
     mcu_error_queue_a: "ServoErrorQueue",
 ) -> None:
-    mc, handler = mc_with_fsoe_with_sra_with_feedback_scenario_0
+    mc, handler = mc_with_fsoe_with_sra_with_feedback_scenario_0_with_sout
 
     sto = handler.get_function_instance(STOFunction)
     safe_inputs = handler.get_function_instance(SafeInputsFunction)
