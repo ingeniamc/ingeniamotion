@@ -425,7 +425,7 @@ def test_if_sout_disable_sto_activate_sout_not_allowed(
     inputs.add_padding(7)
 
     # Set STO SOUT disable
-    handler.safety_parameters.get("FSOE_STO_ACTIVATE_SOUT").set(1)
+    handler.safety_parameters.get("FSOE_STO_ACTIVATE_SOUT").set(0x66600001)
 
     # Map is valid
     handler.process_image.validate()
