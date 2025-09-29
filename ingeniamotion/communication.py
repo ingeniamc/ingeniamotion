@@ -70,15 +70,6 @@ class IMEmergencyMessageObserver:
     alias: str
 
 
-@dataclass
-class NetworkAdapter:
-    """Class to represent a network adapter."""
-
-    interface_index: int
-    interface_name: str
-    interface_guid: str
-
-
 class Communication:
     """Communication."""
 
@@ -540,26 +531,22 @@ class Communication:
             Dictionary with interface readable names as keys and GUIDs as values.
 
         """
-        network_adapters = []
+        adapters_dict = {}
         for adapter in ifaddr.get_adapters():
-            if isinstance(adapter.name, bytes):
-                adapter_guid = bytes.decode(adapter.name)
-            else:
-                adapter_guid = adapter.name
-            network_adapters.append(NetworkAdapter(adapter.index, adapter.nice_name, adapter_guid))
-        if RUNNING_ON_WINDOWS:
-            if not EthercatNetwork.pysoem_available():
-                logger.warning("npcap not available, network adapters list will not be complete")
-            else:
-                network_adapters.extend([
-                    NetworkAdapter(
-                        interface_index=adapter[0],
-                        interface_name=adapter[2],
-                        interface_guid=adapter[1],
-                    )
-                    for adapter in EthercatNetwork.find_adapters()
-                ])
-        return {adapter.interface_name: adapter.interface_guid for adapter in network_adapters}
+            guid = adapter.name.decode() if isinstance(adapter.name, bytes) else adapter.name
+            if guid in adapters_dict:
+                continue
+            adapters_dict[guid] = adapter.nice_name
+        if not RUNNING_ON_WINDOWS:
+            return {name: guid for guid, name in adapters_dict.items()}
+        if not EthercatNetwork.pysoem_available():
+            logger.warning("npcap not available, network adapters list will not be complete")
+            return {name: guid for guid, name in adapters_dict.items()}
+        for index, guid, name in EthercatNetwork.find_adapters():
+            if guid in adapters_dict:
+                continue
+            adapters_dict[guid] = name
+        return {name: guid for guid, name in adapters_dict.items()}
 
     def get_available_canopen_devices(self) -> dict[CanDevice, list[int]]:
         """Return the list of available CAN devices (those connected and with drivers installed).
