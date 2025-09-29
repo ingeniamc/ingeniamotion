@@ -1065,27 +1065,22 @@ woff = ["brotli (>=1.0.1) ; platform_python_implementation == \"CPython\"", "bro
 
 [[package]]
 name = "fsoe-master"
-version = "0.1.4+gcc76d70b6"
+version = "0.2.0"
 description = "FSoE Master Library"
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"fsoe\""
 files = [
-    {file = "fsoe_master-0.1.4+gcc76d70b6-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:ac31b8276535df0c262397b6e139c62776850de51fdc48b484595ef7a77b288e"},
-    {file = "fsoe_master-0.1.4+gcc76d70b6-cp310-cp310-win_amd64.whl", hash = "sha256:ec1a722a50e1bb87dad6efbb8cb92182d3aeaf3b5c3cee579d01e8e50c262f5a"},
-    {file = "fsoe_master-0.1.4+gcc76d70b6-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:a430468f8e03fcce92d1c0cda3d020e09a9198a2e8ec812da1740507d9f6244f"},
-    {file = "fsoe_master-0.1.4+gcc76d70b6-cp311-cp311-win_amd64.whl", hash = "sha256:1123f18009fd4a710d27033ab7016081604f5e2bfb04e40e861b48dfdf88e021"},
-    {file = "fsoe_master-0.1.4+gcc76d70b6-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:046c209e22ef6786f392ecae2e848f0efa6bf6953c79069f3cfc0149adbeb083"},
-    {file = "fsoe_master-0.1.4+gcc76d70b6-cp312-cp312-win_amd64.whl", hash = "sha256:0331930f39ba8f035a35987eb025d2283fa684cb4f810e412048e1f4a28abd80"},
-    {file = "fsoe_master-0.1.4+gcc76d70b6-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:81e2be567409b7fe5df5a4b3f195afb013c13f31688ec5d578863cd0951b3087"},
-    {file = "fsoe_master-0.1.4+gcc76d70b6-cp39-cp39-win_amd64.whl", hash = "sha256:c3debca4e44d78fb5c67aa5808aa31a426388478aaa523b2f1534442a7de5448"},
+    {file = "fsoe_master-0.2.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b086bdc8e7e42adcf7dab445d9ad7eb0b15505c14cbfc997ce514f3a39ddda98"},
+    {file = "fsoe_master-0.2.0-cp310-cp310-win_amd64.whl", hash = "sha256:07664115955f77948eaf6b290d699936217407771b8f4ed1cd46e0a52db91fad"},
+    {file = "fsoe_master-0.2.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b0fbe978e3a54fcc89687c602b03c51671f4357a21c79202eda8255e2143825e"},
+    {file = "fsoe_master-0.2.0-cp311-cp311-win_amd64.whl", hash = "sha256:5735f522da712f0ed0f37483e0ca125a59eab6331ad506ae130dd2e05946df05"},
+    {file = "fsoe_master-0.2.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:bca6aa2508613947be444d86d57280f04b85e1969784b45b710b55f7c095d0bf"},
+    {file = "fsoe_master-0.2.0-cp312-cp312-win_amd64.whl", hash = "sha256:aca761d0d377f98c6c82ffaa0dc3f7c076255300ce6ff36630142943cc05a5c3"},
+    {file = "fsoe_master-0.2.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6f6a740f37dd1f81237d4312b04b3b352ec39bef250d5ae8d3fc738f712514a9"},
+    {file = "fsoe_master-0.2.0-cp39-cp39-win_amd64.whl", hash = "sha256:a08e0d9a122b8dfee5de71a3b572a873e0fe584834d3debd3a85c943f14efb1f"},
 ]
-
-[package.source]
-type = "legacy"
-url = "http://pypi.novanta.com/simple"
-reference = "ingenia"
 
 [[package]]
 name = "h11"
@@ -4619,4 +4614,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "b174f3a625f3e6af99d67e49d673b88df00ef3a0b20f52e1b992ae63030d6699"
+content-hash = "11ea99d09f8d0253b69b65d3c399fd06f56f6116144dcf6b52c81c734ff2a271"
