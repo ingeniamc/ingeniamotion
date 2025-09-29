@@ -93,10 +93,13 @@ class FSoEMaster:
             start_pdos: if ``True``, start the PDO exchange, if ``False``
                 the PDO exchange should be started after. ``False`` by default.
         """
+        self.logger.info("Starting FSoE Master handlers")
         for master_handler in self._handlers.values():
+            self.logger.info(f"Starting FSoE Master handler {id(master_handler)}")
             master_handler.start()
 
         if start_pdos:
+            self.logger.info("Starting PDOs")
             for servo in self._handlers:
                 self.__mc.capture.pdo.start_pdos(servo=servo)
 
