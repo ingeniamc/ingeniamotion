@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Callable
 import pytest
 from ingenialink.dictionary import Interface
 from ingenialink.servo import DictionaryFactory
-from ingenialogger import get_logger
 from summit_testing_framework.setups.specifiers import PartNumber
 
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEState
@@ -38,8 +37,6 @@ if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master.errors import Error, ServoErrorQueue
 
 _INVALID_MAPPING_ERROR_ID = 0x80040002  # Error ID for invalid mapping error
-
-logger = get_logger(__name__)
 
 
 @pytest.mark.fsoe_phase2
@@ -223,21 +220,14 @@ def _check_invalid_map_error_is_raised(
     mcu_error_queue_a: "ServoErrorQueue",
     timeout_for_data_sra: float,
 ) -> None:
-    logger.info("Checking queue errors before starting master")
     previous_mcu_a_errors = mcu_error_queue_a.get_number_total_errors()
-    logger.info("Starting master")
     mc.fsoe.start_master(start_pdos=True)
-    logger.info("Master started, waiting...")
     time.sleep(timeout_for_data_sra)
-    logger.info("Checking errors")
     # Servo cannot reach OP state
     assert mcu_error_queue_a.get_number_total_errors() > previous_mcu_a_errors
     assert mcu_error_queue_a.get_last_error().error_id == _INVALID_MAPPING_ERROR_ID
-    logger.info(f"Checking slave state: {servo.slave.state}")
     assert servo.slave.state is not pysoem.OP_STATE
-    logger.info("Stopping master")
     mc.fsoe.stop_master(stop_pdos=True)
-    logger.info("Master stopped")
 
 
 class TestFeedbackScenario0:
@@ -315,7 +305,7 @@ class TestFeedbackScenario0:
         )
 
     @pytest.mark.fsoe_phase2
-    def test_safe_input_mapped_to_ss2_or_ss1_r_not_allowed(
+    def test_safe_input_mapped_toss1_r_not_allowed(
         self,
         configured_handler: tuple["MotionController", "FSoEMasterHandler"],
         timeout_for_data_sra: float,
@@ -347,6 +337,19 @@ class TestFeedbackScenario0:
             mcu_error_queue_a=mcu_error_queue_a,
             timeout_for_data_sra=timeout_for_data_sra,
         )
+
+    @pytest.mark.fsoe_phase2
+    def test_safe_input_mapped_to_ss2_not_allowed(
+        self,
+        configured_handler: tuple["MotionController", "FSoEMasterHandler"],
+        timeout_for_data_sra: float,
+        servo: "EthercatServo",
+        mcu_error_queue_a: "ServoErrorQueue",
+    ) -> None:
+        """With feedback scenario 0, safe inputs are allowed if not mapped to SS1-r or SS2."""
+        mc, handler = configured_handler
+        handler.process_image.validate()
+        mc.fsoe.configure_pdos()
 
         # Map safe inputs to SS2 - it should not reach OP state
         self.ss1.deceleration_limit.set(0)
