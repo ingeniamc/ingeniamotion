@@ -10,6 +10,7 @@ from summit_testing_framework.setups.specifiers import PartNumber
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEState
 from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
 
+from ingenialogger import get_logger
 try:
     import pysoem
 except ImportError:
@@ -38,6 +39,7 @@ if FSOE_MASTER_INSTALLED:
 
 _INVALID_MAPPING_ERROR_ID = 0x80040002  # Error ID for invalid mapping error
 
+logger = get_logger(__name__)
 
 @pytest.mark.fsoe_phase2
 def test_get_known_error() -> None:
@@ -318,6 +320,8 @@ class TestFeedbackScenario0:
         # Configure SS1 time controlled and map safe inputs
         self.ss1.deceleration_limit.set(0)
         self.safe_inputs.map.set(2)
+        
+        logger.info("Testing safe input mapped to SS1-r - it should not reach OP state")
 
         # Map is valid, servo should reach OP state
         handler.process_image.validate()
@@ -328,9 +332,12 @@ class TestFeedbackScenario0:
             mcu_error_queue_a=mcu_error_queue_a,
             timeout_for_data_sra=timeout_for_data_sra,
         )
+        
 
         # Map safe inputs to SS1-r - it should not reach OP state
+        logger.info("Setting SS1 to ramp monitored")
         self.ss1.deceleration_limit.set(1)
+        logger.info("Testing safe input mapped to SS2 - it should not reach OP state")
         _check_invalid_map_error_is_raised(
             mc=mc,
             servo=servo,
@@ -339,7 +346,10 @@ class TestFeedbackScenario0:
         )
 
         # Map safe inputs to SS2 - it should not reach OP state
+        logger.info("Mapping safe inputs to SS2")
+        self.ss1.deceleration_limit.set(0)
         self.safe_inputs.map.set(3)
+        logger.info("Testing safe input mapped to SS2 - it should not reach OP state")
         _check_invalid_map_error_is_raised(
             mc=mc,
             servo=servo,
