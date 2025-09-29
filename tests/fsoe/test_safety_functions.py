@@ -352,3 +352,18 @@ def test_ss1_activated_by_multiple():
     assert slp_1 in list_activated_by
     assert ssr_3 in list_activated_by
     assert sls_8 in list_activated_by
+
+
+@pytest.mark.fsoe
+def test_no_safety_function_instances(
+    mc_with_fsoe: tuple["MotionController", "FSoEMasterHandler"],
+) -> None:
+    _, handler = mc_with_fsoe
+
+    handler.safety_functions = ()
+    handler.get_function_instance.cache_clear()
+
+    with pytest.raises(
+        ValueError, match="Master handler does not contain any STOFunction instance"
+    ):
+        handler.get_function_instance(STOFunction)
