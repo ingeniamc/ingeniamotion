@@ -230,18 +230,13 @@ class FSoEMasterHandler:
         """Calculates SRA CRC for the application parameters.
 
         SRA calculation needs as input a list of uint16 values:
-            * The safety parameters are aggregated into a single byte array according to their dtype
-            * The resulting array is split into chunks of uint16 data
-
-        Raises:
-            RuntimeError: if SRA calculation is requested without using SRA.
+            * The safety parameters are aggregated into a single byte
+              array according to their dtype.
+            * The resulting array is split into chunks of uint16 data.
 
         Returns:
             sra crc.
         """
-        if not self.__uses_sra:
-            raise RuntimeError("Requested SRA CRC calculation when SRA is not being used.")
-
         data = bytearray()
         for param in self.safety_parameters.values():
             bytes_data = convert_dtype_to_bytes(data=param.get(), dtype=param.register.dtype)
