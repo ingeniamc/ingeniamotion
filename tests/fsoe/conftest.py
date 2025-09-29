@@ -278,6 +278,26 @@ def mc_state_data(
 
 
 @pytest.fixture
+def no_error_tracker(
+    mcu_error_queue_a: "ServoErrorQueue", mcu_error_queue_b: "ServoErrorQueue"
+) -> Iterator[None]:
+    """Fixture to ensure no new errors are added to the error queues during a test."""
+    previous_mcu_a_errors = mcu_error_queue_a.get_number_total_errors()
+    previous_mcu_b_errors = mcu_error_queue_b.get_number_total_errors()
+    yield
+    assert mcu_error_queue_a.get_number_total_errors() == previous_mcu_a_errors, (
+        f"MCUA error queue changed: {previous_mcu_a_errors} -> "
+        f"{mcu_error_queue_a.get_number_total_errors()}. "
+        f"\nLast error: {mcu_error_queue_a.get_last_error()}"
+    )
+    assert mcu_error_queue_b.get_number_total_errors() == previous_mcu_b_errors, (
+        f"MCUB error queue changed: {previous_mcu_b_errors} -> "
+        f"{mcu_error_queue_b.get_number_total_errors()}. "
+        f"\nLast error: {mcu_error_queue_b.get_last_error()}"
+    )
+
+
+@pytest.fixture
 def mc_with_fsoe_with_sra_and_feedback_scenario(
     mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"],
 ) -> Iterator[tuple["MotionController", "FSoEMasterHandler"]]:
