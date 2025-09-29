@@ -329,14 +329,20 @@ class FSoEMasterHandler:
             RuntimeError: If the FSoE Master is already running.
         """
         if self.running:
+            self.logger.error("FSoE Master is already running.")
             raise RuntimeError("FSoE Master is already running.")
         self.__in_initial_reset = True
         # Recalculate the SRA crc in case it changed
         if self._sra_fsoe_application_parameter is not None:
+            self.logger.info("Calculating SRA CRC")
             self._sra_fsoe_application_parameter.set(self.get_application_parameters_sra_crc())
+            self.logger.info(f"Calculated SRA CRC: {self._sra_fsoe_application_parameter.get()}")
+        self.logger.info("Starting FSoE Master handler")
         self._master_handler.start()
         self.__running = True
+        self.logger.info("FSoE Master handler started")
         self.subscribe_to_process_data_events()
+        self.logger.info("Subscribed to process data events")
 
     def stop(self) -> None:
         """Stop the master handler."""
