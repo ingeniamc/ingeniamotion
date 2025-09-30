@@ -20,7 +20,7 @@ classifiers = [
 requires-python = ">=3.9"
 
 dependencies = [
-    "ingenialink>=7.4.3, < 8.0.0",
+    "ingenialink>=7.5.1, < 8.0.0",
     "ingenialogger>=0.2.1",
     "ifaddr==0.1.7",
 ]
@@ -111,7 +111,7 @@ pytest-rerunfailures = "==15.1"
 pytest-console-scripts = "==1.4.1"
 matplotlib = "==3.8.2"
 summit-testing-framework = "==0.1.5+pr48b17"
-ingenialink = "==7.5.0+pr639b29"
+ingenialink = "==7.5.1"
 
 # -----------------------------------------------------------------------
 #                                   TASKS
