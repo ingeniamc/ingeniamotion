@@ -14,14 +14,14 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 
-import ingeniamotion
+from ingeniamotion import __version__
 
 # -- Project information -----------------------------------------------------
 
 project = 'ingeniamotion'
 copyright = '2021, Novanta Technologies Spain S.L.'
 author = 'Novanta'
-version = ingeniamotion.__version__
+version = __version__
 
 # The full version, including alpha/beta/rc tags
 release = version
@@ -68,7 +68,7 @@ html_theme = 'sphinx_rtd_theme'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-pdf_name = u"ingeniamotion v{}".format(ingeniamotion.__version__)
+pdf_name = u"ingeniamotion v{}".format(__version__)
 pdf_documents = [('index', pdf_name, u'Ingeniamotion', author), ]
 
 intersphinx_mapping = {'python': ('https://docs.python.org/3.6', None),
