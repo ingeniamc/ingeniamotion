@@ -399,7 +399,7 @@ pipeline {
                             steps {
                                 unstash 'docs'
                                 unzip zipFile: 'docs.zip', dir: '.'
-                                publishDistExt("_docs", DISTEXT_PROJECT_DIR, false)
+                                publishDistExt("_docs", DISTEXT_PROJECT_DIR, true)
                             }
                         }
                         stage('Publish wheels') {

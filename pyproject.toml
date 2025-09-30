@@ -1,5 +1,5 @@
 [project]
-dynamic = ["version", "urls"]
+dynamic = ["version"]
 
 name = "ingeniamotion"
 description = "Motion library for Novanta servo drives"
@@ -24,6 +24,11 @@ dependencies = [
     "ingenialogger>=0.2.1",
     "ifaddr==0.1.7",
 ]
+
+[project.urls]
+Homepage = "https://www.ingeniamc.com"
+Documentation = "https://distext.ingeniamc.com/doc/ingeniamotion/latest/"
+Source = "https://github.com/ingeniamc/ingeniamotion"
 
 [project.optional-dependencies]
 fsoe = ["fsoe_master==0.2.0"]
