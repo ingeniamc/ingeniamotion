@@ -209,6 +209,7 @@ def test_create_monitoring_trigger_delay(
     assert __compare_signals(expected_signal, data[0])
 
 
+@pytest.skip(reason="Bug in context manager in released version of ingenialink 7.5.1")
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
