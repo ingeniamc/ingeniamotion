@@ -323,7 +323,7 @@ class STOFunction(SafetyFunction):
 class SS1Function(SafetyFunction):
     """Safe Stop 1 Safety Function."""
 
-    name = "Safe Stop {i}"
+    name = "Safe Stop 1 instance {i}"
 
     COMMAND_UID = "FSOE_SS1_{i}"
 
@@ -424,7 +424,7 @@ class SafeInputsFunction(SafetyFunction):
 class SOSFunction(SafetyFunction):
     """Safe Operation Stop Safety Function."""
 
-    name = "Safe Operation Stop {i}"
+    name = "Safe Operation Stop instance {i}"
 
     command: FSoEDictionaryItemInputOutput = safety_field(
         uid="FSOE_SOS_{i}", display_name="Command"
@@ -453,7 +453,7 @@ class SOSFunction(SafetyFunction):
 class SS2Function(SafetyFunction):
     """Safe Stop 2 Safety Function."""
 
-    name = "Safe Stop 2 {i}"
+    name = "Safe Stop 2 instance {i}"
 
     command: FSoEDictionaryItemInputOutput = safety_field(
         uid="FSOE_SS2_{i}", display_name="Command"
@@ -580,7 +580,7 @@ class SafeHomingFunction(SafetyFunction):
 class SLSFunction(SafetyFunction):
     """Safe Limited Speed Safety Function."""
 
-    name = "Safe Limited Speed {i}"
+    name = "Safe Limited Speed instance {i}"
 
     command: FSoEDictionaryItemInputOutput = safety_field(
         uid="FSOE_SLS_CMD_{i}", display_name="Command"
@@ -604,7 +604,7 @@ class SLSFunction(SafetyFunction):
 class SSRFunction(SafetyFunction):
     """Safe Speed Range Safety Function."""
 
-    name = "Safe Speed Range {i}"
+    name = "Safe Speed Range instance {i}"
 
     command: FSoEDictionaryItemInputOutput = safety_field(
         uid="FSOE_SSR_COMMAND_{i}", display_name="Command"
@@ -631,7 +631,7 @@ class SSRFunction(SafetyFunction):
 class SLPFunction(SafetyFunction):
     """Safe Limited Position Safety Function."""
 
-    name = "Safe Limited Position {i}"
+    name = "Safe Limited Position instance {i}"
 
     command: FSoEDictionaryItemInputOutput = safety_field(
         uid="FSOE_SLP_COMMAND_{i}", display_name="Command"
@@ -676,7 +676,7 @@ class SDIFunction(SafetyFunction):
 class SLIFunction(SafetyFunction):
     """Safe Limited Increment Safety Function."""
 
-    name = "Safe Limited Increment {i}"
+    name = "Safe Limited Increment instance {i}"
 
     command: FSoEDictionaryItemInputOutput = safety_field(
         uid="FSOE_SLI_COMMAND_{i}", display_name="Command"
