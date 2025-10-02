@@ -1,0 +1,174 @@
+[project]
+dynamic = ["version"]
+
+name = "ingeniamotion"
+description = "Motion library for Novanta servo drives"
+authors = [
+  { name = "Novanta", email = "support@ingeniamc.com" }
+]
+readme = { file = "README.md", content-type = "text/markdown" }
+
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+]
+
+requires-python = ">=3.9"
+
+dependencies = [
+    "ingenialink>=7.5.1, < 8.0.0",
+    "ingenialogger>=0.2.1",
+    "ifaddr==0.1.7",
+]
+
+[project.urls]
+Homepage = "https://www.ingeniamc.com"
+Documentation = "https://distext.ingeniamc.com/doc/ingeniamotion/latest/"
+Source = "https://github.com/ingeniamc/ingeniamotion"
+
+[project.optional-dependencies]
+fsoe = ["fsoe_master==0.2.0"]
+
+[tool.poetry]
+version = "0.9.2"  # base version
+
+[[tool.poetry.source]]
+name = "PyPI"
+priority = "primary"
+
+[[tool.poetry.source]]
+name = "ingenia"
+url = "http://pypi.novanta.com/simple"
+priority = "supplemental"
+
+[build-system]
+requires = ["setuptools==75.6.0", "setuptools_scm[toml]>=8", "wheel==0.42.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools_scm]
+version_scheme = "only-version"
+local_scheme = "node-and-date"
+write_to = "ingeniamotion/_version.py"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["ingeniamotion"]
+
+[tool.setuptools.package-data]
+ingeniamotion = ["py.typed"]
+
+# Dependencies to run poe tasks
+[tool.poetry.group.dev]
+optional = true
+[tool.poetry.group.dev.dependencies]
+poethepoet = {extras = ["poetry-plugin"], version = "^0.35.0"}
+
+# Dependencies for build wheel tasks
+[tool.poetry.group.build]
+optional = true
+[tool.poetry.group.build.dependencies]
+twine = "==6.1.0"
+
+# Dependencies for format task
+[tool.poetry.group.format]
+optional = true
+[tool.poetry.group.format.dependencies]
+ruff = "==0.9.2"
+
+# Dependencies for docs task
+[tool.poetry.group.docs]
+optional = true
+[tool.poetry.group.docs.dependencies]
+sphinx = "==7.3.7"
+sphinx-rtd-theme = "==2.0.0"
+sphinxcontrib-bibtex = "==2.6.2"
+sphinx_autodoc_typehints = "==1.12.0"
+nbsphinx = "==0.9.4"
+m2r2 = "==0.3.4"
+jinja2 = "==3.1.4"
+
+# Dependencies for type task
+[tool.poetry.group.type]
+optional = true
+[tool.poetry.group.type.dependencies]
+mypy = "==1.10.0"
+
+# Dependencies for tests task
+[tool.poetry.group.tests]
+optional = true
+[tool.poetry.group.tests.dependencies]
+pytest = "==8.4.1"
+pytest-env = "==1.1.5"
+pytest-cov = "==2.12.1"
+pytest-mock = "==3.6.1"
+pytest-rerunfailures = "==15.1"
+pytest-console-scripts = "==1.4.1"
+matplotlib = "==3.8.2"
+summit-testing-framework = "==0.1.5+pr48b17"
+ingenialink = "==7.5.1"
+
+# -----------------------------------------------------------------------
+#                                   TASKS
+# -----------------------------------------------------------------------
+
+# ----------------------------- Build wheel -----------------------------
+[tool.poe.tasks.build]
+help = "Build wheels"
+sequence = [
+    { cmd = "poetry build"},
+    { cmd = "twine check dist/*"}
+]
+
+# ----------------------------- Ruff format -----------------------------
+[tool.poe.tasks.ruff-format-check]
+help = "Format check with ruff"
+cmd = "ruff format --check ingeniamotion tests examples"
+
+[tool.poe.tasks.ruff-check]
+help = "Check with ruff"
+cmd = "ruff check ingeniamotion tests"
+
+[tool.poe.tasks.format]
+help     = "Check format"
+sequence = ["ruff-format-check", "ruff-check"]
+
+# ----------------------------- Ruff reformat -----------------------------
+[tool.poe.tasks.ruff-format]
+help = "Format files with ruff"
+cmd = "ruff format ingeniamotion tests examples"
+
+[tool.poe.tasks.ruff-check-fix]
+help = "Fix lint errors"
+cmd = "ruff check --fix ingeniamotion tests"
+
+[tool.poe.tasks.reformat]
+help     = "Reformat files and fix lint errors"
+sequence = ["ruff-format", "ruff-check-fix"]
+
+# ----------------------------- Documentation -----------------------------
+[tool.poe.tasks.docs]
+help = "Build documentation"
+cmd = "python -I -m sphinx -E -b html docs _docs"
+
+# ----------------------------- Mypy -----------------------------
+[tool.poe.tasks.type]
+help = "Run type checks"
+cmd = "mypy ingeniamotion"
+
+# ----------------------------- Run unit tests -----------------------------
+[tool.poe.tasks.tests]
+cmd = "python -I -m pytest tests"
+
+# ----------------------------- Coverage combine -----------------------------
+[tool.poe.tasks.cov-combine]
+cmd = "python -I -m coverage combine"
+
+# ----------------------------- Coverage report -----------------------------
+[tool.poe.tasks.cov-report]
+cmd = "python -I -m coverage xml"

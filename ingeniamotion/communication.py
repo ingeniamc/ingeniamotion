@@ -7,7 +7,7 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from functools import partial
 from os import path
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union, cast
 
 import ifaddr
 import ingenialogger
@@ -32,6 +32,10 @@ from virtual_drive.core import VirtualDrive
 from ingeniamotion.exceptions import IMFirmwareLoadError, IMRegisterWrongAccessError
 
 if TYPE_CHECKING:
+    from ingenialink.ethercat.servo import EthercatServo
+    from ingenialink.ethernet.servo import EthernetServo
+    from ingenialink.virtual.servo import VirtualServo
+
     from ingeniamotion.motion_controller import MotionController
 
 import contextlib
@@ -41,15 +45,13 @@ from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 RUNNING_ON_WINDOWS = platform.system() == "Windows"
 
 if RUNNING_ON_WINDOWS:
-    from ingenialink.get_adapters_addresses import (  # type: ignore [import]
-        AdapterFamily,
-        ScanFlags,
-        get_adapters_addresses,
-    )
+    pass
 
 FILE_EXT_SFU = ".sfu"
 FILE_EXT_LFU = ".lfu"
 FIRMWARE_FILE_FAIL_MSG = "The firmware file could not be loaded correctly"
+
+logger = ingenialogger.get_logger(__name__)
 
 
 @dataclass
@@ -68,15 +70,6 @@ class IMEmergencyMessageObserver:
     alias: str
 
 
-@dataclass
-class NetworkAdapter:
-    """Class to represent a network adapter."""
-
-    interface_index: int
-    interface_name: str
-    interface_guid: str
-
-
 class Communication:
     """Communication."""
 
@@ -93,10 +86,31 @@ class Communication:
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
-        self.logger = ingenialogger.get_logger(__name__)
+        self.logger = logger
         self.__virtual_drive: Optional[VirtualDrive] = None
         self.register_update_observers: dict[Servo, list[IMRegisterUpdateObserver]] = {}
         self.emergency_messages_observers: dict[Servo, list[IMEmergencyMessageObserver]] = {}
+
+    def __disconnect_callback(self, servo: Servo) -> None:
+        alias = None
+        for servo_alias, servo in self.mc.servos.items():
+            if servo.target == servo.target:
+                alias = servo_alias
+                break
+        if alias is None:
+            raise ValueError("Servo not found in the communication controller.")
+
+        network = self.mc._get_network(alias)
+        if isinstance(network, VirtualNetwork) and self.__virtual_drive:
+            self.__virtual_drive.stop()
+            self.__virtual_drive = None
+        del self.mc.servos[alias]
+        net_name = self.mc.servo_net.pop(alias)
+        servo_count = list(self.mc.servo_net.values()).count(net_name)
+        if self.mc.fsoe_is_installed:
+            self.mc.fsoe._delete_master_handler(alias)
+        if servo_count == 0:
+            del self.mc.net[net_name]
 
     def connect_servo_eoe(
         self,
@@ -106,7 +120,7 @@ class Communication:
         port: int = 1061,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
-    ) -> None:
+    ) -> tuple[EthernetNetwork, "EthernetServo"]:
         """Connect to target servo by Ethernet over EtherCAT.
 
         Args:
@@ -119,6 +133,9 @@ class Communication:
             net_status_listener : Toggle the listener of the network
                 status, connection and disconnection.
 
+        Returns:
+            The Ethernet network and the connected servo.
+
         Raises:
             TypeError: If the dict_path argument is missing.
             FileNotFoundError: If the dict file doesn't exist.
@@ -126,7 +143,7 @@ class Communication:
         """
         if not dict_path:
             raise TypeError("dict_path argument is missing")
-        self.__servo_connect(
+        return self.__servo_connect(
             ip,
             dict_path,
             alias,
@@ -145,7 +162,7 @@ class Communication:
         connection_timeout: int = 1,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
-    ) -> None:
+    ) -> tuple[EthernetNetwork, "EthernetServo"]:
         """Connect to target servo by Ethernet.
 
         Args:
@@ -160,13 +177,16 @@ class Communication:
             net_status_listener : Toggle the listener of the network
                 status, connection and disconnection.
 
+        Returns:
+            The Ethernet network and the connected servo.
+
         Raises:
             FileNotFoundError: If the dict file doesn't exist.
             ingenialink.exceptions.ILError: If the servo's IP or port is incorrect.
         """
         if not path.isfile(dict_path):
             raise FileNotFoundError(f"{dict_path} file does not exist!")
-        self.__servo_connect(
+        return self.__servo_connect(
             ip,
             dict_path,
             alias,
@@ -184,7 +204,7 @@ class Communication:
         connection_timeout: int = 1,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
-    ) -> None:
+    ) -> tuple[VirtualNetwork, "VirtualServo"]:
         """Connect to the virtual drive using an ethernet communication.
 
         Args:
@@ -198,6 +218,9 @@ class Communication:
             net_status_listener : Toggle the listener of the network
                 status, connection and disconnection.
 
+        Returns:
+            The virtual network and the connected servo.
+
         Raises:
             FileNotFoundError: If the dict file doesn't exist.
             ingenialink.exceptions.ILError: If the servo's IP or port is incorrect.
@@ -209,18 +232,20 @@ class Communication:
             self.__virtual_drive = VirtualDrive(port, dictionary_path=dict_path)
             self.__virtual_drive.start()
 
-        self.mc.net[alias] = VirtualNetwork()
-        net = self.mc.net[alias]
+        net = VirtualNetwork()
+        self.mc.net[alias] = net
         servo = net.connect_to_slave(
             self.__virtual_drive.dictionary_path,
             port,
             connection_timeout,
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
+            disconnect_callback=self.__disconnect_callback,
         )
 
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = alias
+        return net, servo
 
     def __servo_connect(
         self,
@@ -232,12 +257,12 @@ class Communication:
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
         is_eoe: bool = False,
-    ) -> None:
+    ) -> tuple[EthernetNetwork, "EthernetServo"]:
         if not path.isfile(dict_path):
             raise FileNotFoundError(f"{dict_path} file does not exist!")
 
-        self.mc.net[alias] = EthernetNetwork()
-        net = self.mc.net[alias]
+        net = EthernetNetwork()
+        self.mc.net[alias] = net
         servo = net.connect_to_slave(
             ip,
             dict_path,
@@ -246,10 +271,12 @@ class Communication:
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
             is_eoe=is_eoe,
+            disconnect_callback=self.__disconnect_callback,
         )
 
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = alias
+        return net, servo
 
     def connect_servo_eoe_service(
         self,
@@ -261,7 +288,7 @@ class Communication:
         alias: str = DEFAULT_SERVO,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
-    ) -> None:
+    ) -> tuple[EoENetwork, "EthernetServo"]:
         r"""Connect to target servo by Ethernet over EtherCAT.
 
         Args:
@@ -277,6 +304,9 @@ class Communication:
             net_status_listener : Toggle the listener of the network
                 status, connection and disconnection.
 
+        Returns:
+            The EoE network and the connected servo.
+
         Raises:
             NotImplementedError: If this method is run in Linux.
             FileNotFoundError: If the dict file doesn't exist.
@@ -291,7 +321,7 @@ class Communication:
             raise FileNotFoundError(f"{dict_path} file does not exist!")
         if ifname not in self.mc.net:
             self.mc.net[ifname] = EoENetwork(ifname)
-        net = self.mc.net[ifname]
+        net = cast("EoENetwork", self.mc.net[ifname])
         try:
             servo = net.connect_to_slave(
                 slave,
@@ -300,6 +330,7 @@ class Communication:
                 port,
                 servo_status_listener=servo_status_listener,
                 net_status_listener=net_status_listener,
+                disconnect_callback=self.__disconnect_callback,
             )
         except ILError as e:
             if len(net.servos) == 0:
@@ -308,6 +339,7 @@ class Communication:
         servo.slave = slave  # type: ignore [attr-defined]
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = ifname
+        return net, servo
 
     def connect_servo_eoe_service_interface_ip(
         self,
@@ -319,7 +351,7 @@ class Communication:
         alias: str = DEFAULT_SERVO,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
-    ) -> None:
+    ) -> tuple[EoENetwork, "EthernetServo"]:
         """Connect to target servo by Ethernet over EtherCAT.
 
         Args:
@@ -334,6 +366,9 @@ class Communication:
             net_status_listener : Toggle the listener of the network
                 status, connection and disconnection.
 
+        Returns:
+            The EoE network and the connected servo.
+
         Raises:
             TypeError: If the dict_path argument is missing.
             IndexError: If interface index is out of range.
@@ -343,7 +378,7 @@ class Communication:
             ingenialink.exceptions.ILError: If the EoE service cannot be started on the network
                                             interface.
         """
-        self.connect_servo_eoe_service(
+        return self.connect_servo_eoe_service(
             self.get_ifname_from_interface_ip(interface_ip),
             dict_path,
             ip,
@@ -364,7 +399,7 @@ class Communication:
         connection_timeout: int = 1,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
-    ) -> None:
+    ) -> tuple[EthernetNetwork, "EthernetServo"]:
         """Connect to target servo using a COM-KIT.
 
         Args:
@@ -380,6 +415,9 @@ class Communication:
             net_status_listener : Toggle the listener of the network
                 status, connection and disconnection.
 
+        Returns:
+            The Ethernet network and the connected servo.
+
         Raises:
             FileNotFoundError: If a dict file doesn't exist.
             ingenialink.exceptions.ILError: If the servo's IP or port is incorrect.
@@ -387,7 +425,7 @@ class Communication:
         for dict_path in [coco_dict_path, moco_dict_path]:
             if not path.isfile(dict_path):
                 raise FileNotFoundError(f"{dict_path} file does not exist!")
-        self.__servo_connect(
+        net, servo = self.__servo_connect(
             ip,
             moco_dict_path,
             alias,
@@ -398,6 +436,7 @@ class Communication:
         )
         coco_dict = DictionaryFactory.create_dictionary(coco_dict_path, Interface.ETH)
         self.mc.servos[alias].dictionary += coco_dict
+        return net, servo
 
     @classmethod
     def __get_adapter_name(cls, index: int) -> str:
@@ -492,35 +531,22 @@ class Communication:
             Dictionary with interface readable names as keys and GUIDs as values.
 
         """
-        network_adapters = []
+        adapters_dict = {}
         for adapter in ifaddr.get_adapters():
-            if isinstance(adapter.name, bytes):
-                adapter_guid = bytes.decode(adapter.name)
-            else:
-                adapter_guid = adapter.name
-            network_adapters.append(NetworkAdapter(adapter.index, adapter.nice_name, adapter_guid))
-        if RUNNING_ON_WINDOWS:
-            ethernet_adapter_type = (
-                6  # https://learn.microsoft.com/en-us/windows/win32/api/ifdef/ns-ifdef-net_luid_lh
-            )
-            network_adapters.extend(
-                [
-                    NetworkAdapter(
-                        interface_index=adapter.IfIndex,
-                        interface_name=adapter.Description,
-                        interface_guid=adapter.AdapterName,
-                    )
-                    for adapter in get_adapters_addresses(
-                        adapter_families=AdapterFamily.INET,
-                        scan_flags=[
-                            ScanFlags.INCLUDE_PREFIX,
-                            ScanFlags.INCLUDE_ALL_INTERFACES,
-                        ],
-                    )
-                    if adapter.IfType == ethernet_adapter_type and len(adapter.FirstUnicastAddress)
-                ]
-            )
-        return {adapter.interface_name: adapter.interface_guid for adapter in network_adapters}
+            guid = adapter.name.decode() if isinstance(adapter.name, bytes) else adapter.name
+            if guid in adapters_dict:
+                continue
+            adapters_dict[guid] = adapter.nice_name
+        if not RUNNING_ON_WINDOWS:
+            return {name: guid for guid, name in adapters_dict.items()}
+        if not EthercatNetwork.pysoem_available():
+            logger.warning("npcap not available, network adapters list will not be complete")
+            return {name: guid for guid, name in adapters_dict.items()}
+        for index, guid, name in EthercatNetwork.find_adapters():
+            if guid in adapters_dict:
+                continue
+            adapters_dict[guid] = name
+        return {name: guid for guid, name in adapters_dict.items()}
 
     def get_available_canopen_devices(self) -> dict[CanDevice, list[int]]:
         """Return the list of available CAN devices (those connected and with drivers installed).
@@ -560,7 +586,7 @@ class Communication:
         alias: str = DEFAULT_SERVO,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
-    ) -> None:
+    ) -> tuple[EoENetwork, "EthernetServo"]:
         """Connect to target servo by Ethernet over EtherCAT.
 
         Args:
@@ -576,6 +602,9 @@ class Communication:
             net_status_listener : Toggle the listener of the network
                 status, connection and disconnection.
 
+        Returns:
+            The EoE network and the connected servo.
+
         Raises:
             TypeError: If the dict_path argument is missing.
             IndexError: If interface index is out of range.
@@ -585,7 +614,7 @@ class Communication:
             ingenialink.exceptions.ILError: If the EoE service cannot be started on the network
                                             interface.
         """
-        self.connect_servo_eoe_service(
+        return self.connect_servo_eoe_service(
             self.get_ifname_by_index(if_index),
             dict_path,
             ip,
@@ -646,7 +675,7 @@ class Communication:
         alias: str = DEFAULT_SERVO,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
-    ) -> None:
+    ) -> tuple[CanopenNetwork, CanopenServo]:
         """Connect to target servo by CANOpen.
 
         Args:
@@ -662,10 +691,12 @@ class Communication:
             net_status_listener : Toggle the listener of the network
                 status, connection and disconnection.
 
+        Returns:
+            The CANOpen network and the connected servo.
+
         Raises:
             FileNotFoundError: If either of the dict files doesn't exist.
             ingenialink.exceptions.ILError: If CANOpen device type, node id or channel is incorrect.
-
         """
         if not path.isfile(dict_path):
             raise FileNotFoundError(f"Dict file {dict_path} does not exist!")
@@ -673,11 +704,18 @@ class Communication:
         net_key = f"{can_device}_{channel}_{baudrate}"
         if net_key not in self.mc.net:
             self.mc.net[net_key] = CanopenNetwork(can_device, channel, baudrate)
-        net = self.mc.net[net_key]
+        net = cast("CanopenNetwork", self.mc.net[net_key])
 
-        servo = net.connect_to_slave(node_id, dict_path, servo_status_listener, net_status_listener)
+        servo = net.connect_to_slave(
+            node_id,
+            dict_path,
+            servo_status_listener,
+            net_status_listener,
+            disconnect_callback=self.__disconnect_callback,
+        )
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = net_key
+        return net, servo
 
     def connect_servo_ethercat(
         self,
@@ -688,7 +726,7 @@ class Communication:
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
         gil_release_config: GilReleaseConfig = GilReleaseConfig(),
-    ) -> None:
+    ) -> tuple[EthercatNetwork, "EthercatServo"]:
         r"""Connect to an EtherCAT slave - CoE.
 
         Args:
@@ -703,9 +741,11 @@ class Communication:
                 status, connection and disconnection.
             gil_release_config: GIL release configuration.
 
+        Returns:
+            The EtherCAT network and the connected servo.
+
         Raises:
             FileNotFoundError: If the dict file doesn't exist.
-
         """
         if not path.isfile(dict_path):
             raise FileNotFoundError(f"Dict file {dict_path} does not exist!")
@@ -713,13 +753,14 @@ class Communication:
             self.mc.net[interface_name] = EthercatNetwork(
                 interface_name, gil_release_config=gil_release_config
             )
-        net = self.mc.net[interface_name]
+        net = cast("EthercatNetwork", self.mc.net[interface_name])
         try:
             servo = net.connect_to_slave(
                 slave_id,
                 dict_path,
                 servo_status_listener=servo_status_listener,
                 net_status_listener=net_status_listener,
+                disconnect_callback=self.__disconnect_callback,
             )
         except ILError as e:
             if len(net.servos) == 0:
@@ -727,6 +768,7 @@ class Communication:
             raise e
         self.mc.servos[alias] = servo
         self.mc.servo_net[alias] = interface_name
+        return net, servo
 
     def connect_servo_ethercat_interface_index(
         self,
@@ -737,7 +779,7 @@ class Communication:
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
         gil_release_config: GilReleaseConfig = GilReleaseConfig(),
-    ) -> None:
+    ) -> tuple[EthercatNetwork, "EthercatServo"]:
         """Connect to an EtherCAT slave - CoE.
 
         Args:
@@ -752,11 +794,13 @@ class Communication:
                 status, connection and disconnection.
             gil_release_config: GIL release configuration.
 
+        Returns:
+            The EtherCAT network and the connected servo.
+
         Raises:
             IndexError: If interface index is out of range.
-
         """
-        self.connect_servo_ethercat(
+        return self.connect_servo_ethercat(
             self.get_ifname_by_index(if_index),
             slave_id,
             dict_path,
@@ -775,7 +819,7 @@ class Communication:
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
         gil_release_config: GilReleaseConfig = GilReleaseConfig(),
-    ) -> None:
+    ) -> tuple[EthercatNetwork, "EthercatServo"]:
         """Connect to an EtherCAT slave - CoE.
 
         Args:
@@ -789,8 +833,10 @@ class Communication:
                 status, connection and disconnection.
             gil_release_config: GIL release configuration.
 
+        Returns:
+            The EtherCAT network and the connected servo.
         """
-        self.connect_servo_ethercat(
+        return self.connect_servo_ethercat(
             self.get_ifname_from_interface_ip(interface_ip),
             slave_id,
             dict_path,
@@ -984,17 +1030,8 @@ class Communication:
         """
         drive = self.mc._get_drive(servo)
         network = self.mc._get_network(servo)
+        # This will call `__disconnect_callback` to complete the disconnection
         network.disconnect_from_slave(drive)
-        if isinstance(network, VirtualNetwork) and self.__virtual_drive:
-            self.__virtual_drive.stop()
-            self.__virtual_drive = None
-        del self.mc.servos[servo]
-        net_name = self.mc.servo_net.pop(servo)
-        servo_count = list(self.mc.servo_net.values()).count(net_name)
-        if self.mc.fsoe_is_installed:
-            self.mc.fsoe._delete_master_handler(servo)
-        if servo_count == 0:
-            del self.mc.net[net_name]
 
     def get_servo_state(self, servo: str = DEFAULT_SERVO) -> NetState:
         """Get the network state of a servo (connected/disconnected).
@@ -1584,20 +1621,28 @@ class Communication:
             for slave_id_offset in mapping:
                 slave_id = first_slave_in_ensemble + slave_id_offset
                 if slave_id not in connected_drives:
-                    net.connect_to_slave(slave_id, dictionary_path)
+                    net.connect_to_slave(
+                        slave_id, dictionary_path, disconnect_callback=self.__disconnect_callback
+                    )
+
+            load_fw_slave_id: Optional[int] = None
             try:
                 for slave_id_offset, fw_file_prod_code in mapping.items():
-                    slave_id = first_slave_in_ensemble + slave_id_offset
+                    load_fw_slave_id = first_slave_in_ensemble + slave_id_offset
                     net.load_firmware(
-                        slave_id,
+                        load_fw_slave_id,
                         fw_file_prod_code[0],
                         status_callback,
                         progress_callback,
                         error_enabled_callback,
                     )
             except ILError as e:
+                if load_fw_slave_id is None:
+                    raise IMFirmwareLoadError(
+                        f"{FIRMWARE_FILE_FAIL_MSG}. No slave detected in the ensemble."
+                    )
                 raise IMFirmwareLoadError(
-                    f"{FIRMWARE_FILE_FAIL_MSG} on node {slave_id}. Exception: {e}"
+                    f"{FIRMWARE_FILE_FAIL_MSG} on node {load_fw_slave_id}. Exception: {e}"
                 )
 
     def __load_ensemble_fw_ecat(
@@ -1621,6 +1666,9 @@ class Communication:
                 If None, the file extension is used to define it.
             password: Password to load the firmware file. If ``None`` the default password will be
                 used.
+
+        Raises:
+            IMFirmwareLoadError: If the load FW process of any slave failed.
         """
         with tempfile.TemporaryDirectory() as ensemble_temp_dir:
             mapping = self.__unzip_ensemble_fw_file(fw_file, ensemble_temp_dir)

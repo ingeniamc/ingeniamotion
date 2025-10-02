@@ -1,5 +1,7 @@
+preview = true
 line-length = 100
 target-version = "py39"
+exclude = ["tests/setups/tests_setup.py", "ingeniamotion/_version.py"]
 
 [lint]
 pydocstyle.convention = "google"
@@ -45,9 +47,11 @@ ignore = [
     "D104", # Missing docstring in public package
     "D107", # Missing docstring in __init__
     "COM812", # Trailing comma. Already enforced by the formatter.
+    "DOC502" # Raises documented in docstring that are not explicit in the code
 ]
 
 [lint.per-file-ignores]
+"__init__.py" = ["F403"] # Import with wildcard (*)
 "tests/*" = [
     "D", # Docstring rules
 ]

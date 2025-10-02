@@ -25,6 +25,7 @@ dist/
 
 # JetBrains IDE
 .idea/
+.run/
 
 # Unit tests reports
 TEST*.xml
@@ -74,3 +75,19 @@ _pdf
 
 # tests setups
 tests/setups/tests_setup.py
+
+# ATT downloaded files
+resources/
+
+# Environment files
+.env
+
+# Wireshark logs
+wireshark/
+
+# Version
+ingeniamotion/_version.py
+
+# Test outputs (ignore everything except __init__.py)
+tests/outputs/*
+!tests/outputs/__init__.py

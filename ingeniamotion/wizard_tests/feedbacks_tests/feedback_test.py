@@ -183,7 +183,11 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
 
     @BaseTest.stoppable
     def feedback_setting(self) -> None:
-        """Set the feedback for the test."""
+        """Set the feedback for the test.
+
+        Raises:
+            ILConfigurationError: If the feedback resolution is not greater than 0.
+        """
         # First set all feedback to feedback in test, so there won't be
         # more than 5 feedback at the same time
         self.mc.configuration.set_commutation_feedback(
@@ -238,6 +242,9 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
 
         Args:
             pol: The detected polarity.
+
+        Raises:
+            TypeError: If the feedback polarity register is not set before suggesting polarity.
 
         """
         if not isinstance(self.FEEDBACK_POLARITY_REGISTER, str):
@@ -326,6 +333,9 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
 
         Change multiplier using gear ratio if feedback to check is configured as position sensor
         (out of gear).
+
+        Raises:
+            TypeError: On registers with unexpected type.
         """
         position_feedback_value = self.mc.configuration.get_position_feedback(
             servo=self.servo, axis=self.axis
@@ -366,7 +376,11 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
 
     @BaseTest.stoppable
     def current_ramp_up(self) -> None:
-        """Create a current quadrature ramp."""
+        """Create a current quadrature ramp.
+
+        Raises:
+            TypeError: On registers with unexpected type.
+        """
         rated_current = self.mc.communication.get_register(
             self.RATED_CURRENT_REGISTER, servo=self.servo, axis=self.axis
         )

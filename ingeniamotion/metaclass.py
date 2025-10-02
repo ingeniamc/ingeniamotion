@@ -25,6 +25,10 @@ class MCMetaClass(type):
         """Decorator to check if motor is disabled.
 
         If motor is enabled raises an exception.
+
+        Returns:
+            Callable: The wrapped function that checks if the motor is disabled
+            before executing the original function.
         """
 
         @wraps(func)
