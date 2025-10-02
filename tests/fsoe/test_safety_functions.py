@@ -67,7 +67,7 @@ def test_detect_safety_functions_ph1() -> None:
     ss1 = sf[1]
     assert isinstance(ss1, SS1Function)
     assert ss1.n_instance == 1
-    assert ss1.name == "Safe Stop 1"
+    assert ss1.name == "Safe Stop 1 instance 1"
     assert isinstance(ss1.command, FSoEDictionaryItemInputOutput)
     assert len(ss1.parameters) == 1
     for metadata, parameter in ss1.parameters.items():
