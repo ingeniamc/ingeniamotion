@@ -1,6 +1,6 @@
 # Changelog
 
-# Unreleased
+## [0.10.0] - 2025-10-02
 ### Added
 - Added Model for safety functions and safe parameters.
 - Created Process Image that is able to parse and convert from pdos. 
