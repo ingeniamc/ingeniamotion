@@ -355,12 +355,18 @@ class ObjectsAlignedValidator(FSoEFrameRuleValidator):
                 continue
             if item.bits >= 16 and item.position_bits % 16 != 0:
                 next_alignment = align_bits(item.position_bits, 16)
+                position_bytes = item.position_bits // 8
+                position_bits_remainder = item.position_bits % 8
+                next_alignment_bytes = next_alignment // 8
+                next_alignment_bits_remainder = next_alignment % 8
                 exceptions[FSoEFrameRules.OBJECTS_ALIGNED] = InvalidFSoEFrameRule(
                     rule=FSoEFrameRules.OBJECTS_ALIGNED,
                     exception=(
                         "Objects larger than 16-bit must be word-aligned. "
-                        f"Object '{item.item.name}' found at position {item.position_bits}, "
-                        f"next alignment is at {next_alignment}."
+                        f"Object '{item.item.name}' found at position "
+                        f"{position_bytes}.{position_bits_remainder}, "
+                        f"next alignment is at "
+                        f"{next_alignment_bytes}.{next_alignment_bits_remainder}."
                     ),
                     items=[item],
                 )
