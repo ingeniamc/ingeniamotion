@@ -262,8 +262,8 @@ def test_validate_safe_data_objects_word_aligned(fsoe_dict: "FSoEDictionary") ->
     assert isinstance(exception, InvalidFSoEFrameRule)
     assert exception.exception == (
         "Objects larger than 16-bit must be word-aligned. "
-        f"Object '{test_si_u16_item.item.name}' found at position 8, "
-        f"next alignment is at 16."
+        f"Object '{test_si_u16_item.item.name}' found at position 1.0, "
+        f"next alignment is at 2.0."
     )
     assert exception.items == [test_si_u16_item]
     assert output.is_rule_valid(FSoEFrameRules.OBJECTS_ALIGNED) is False
