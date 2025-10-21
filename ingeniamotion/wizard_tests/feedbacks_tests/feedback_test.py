@@ -111,7 +111,7 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         mc: "MotionController",
         servo: str,
         axis: int,
-        logger_drive_name: Optional[str],
+        logger_drive_name: Optional[str] = None,
     ) -> None:
         super().__init__()
         self.mc = mc
