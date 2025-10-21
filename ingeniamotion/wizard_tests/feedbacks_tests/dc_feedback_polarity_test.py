@@ -1,5 +1,5 @@
 from enum import IntEnum
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, ClassVar, Optional
 
 import ingenialogger
 from typing_extensions import override
@@ -24,11 +24,11 @@ class DCFeedbacksPolarityTest(BaseTest[LegacyDictReportType]):
 
         SUCCESS = 0
 
-    result_description = {
+    result_description: ClassVar[dict[ResultType, str]] = {
         ResultType.SUCCESS: "Feedback polarity test pass successfully",
     }
 
-    BACKUP_REGISTERS = [
+    BACKUP_REGISTERS: ClassVar[list[str]] = [
         "CL_POS_FBK_SENSOR",
         "CL_VEL_FBK_SENSOR",
         "CL_AUX_FBK_SENSOR",

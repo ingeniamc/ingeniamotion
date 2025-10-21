@@ -1,5 +1,5 @@
 from functools import wraps
-from typing import TYPE_CHECKING, Callable, Optional, Union
+from typing import TYPE_CHECKING, Callable, ClassVar, Optional, Union
 
 import ingenialogger
 import numpy as np
@@ -62,7 +62,7 @@ class Disturbance:
     MONITORING_STATUS_ENABLED_BIT = 0x1
     REGISTER_MAP_OFFSET = 0x800
 
-    __data_type_size = {
+    __data_type_size: ClassVar[dict[RegDtype, int]] = {
         RegDtype.U8: 1,
         RegDtype.S8: 1,
         RegDtype.U16: 2,

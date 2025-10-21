@@ -39,6 +39,7 @@ select = [
     "COM", # Flake 8 trailing commas
     "RUF005", # Ruff collection concatenation
     "RUF008", # Ruff dataclasses mutable defaults
+    "RUF012", # Ruff mutable class default
     "RUF027", # Missing f-string syntax
 ]
 

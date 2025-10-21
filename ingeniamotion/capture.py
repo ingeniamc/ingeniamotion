@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, ClassVar, Optional, Union
 
 import numpy as np
 from ingenialink.dictionary import SubnodeType
@@ -45,12 +45,12 @@ class Capture:
     MONITORING_STATUS_ENABLED_BIT = 0x1
     DISTURBANCE_STATUS_ENABLED_BIT = 0x1
 
-    MONITORING_STATUS_PROCESS_STAGE_BITS = {
+    MONITORING_STATUS_PROCESS_STAGE_BITS: ClassVar[dict[MonitoringVersion, int]] = {
         MonitoringVersion.MONITORING_V1: 0x6,
         MonitoringVersion.MONITORING_V2: 0x6,
         MonitoringVersion.MONITORING_V3: 0xE,
     }
-    MONITORING_AVAILABLE_FRAME_BIT = {
+    MONITORING_AVAILABLE_FRAME_BIT: ClassVar[dict[MonitoringVersion, int]] = {
         MonitoringVersion.MONITORING_V1: 0x800,
         MonitoringVersion.MONITORING_V2: 0x800,
         MonitoringVersion.MONITORING_V3: 0x10,

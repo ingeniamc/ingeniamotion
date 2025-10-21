@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, ClassVar, Optional
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
@@ -9,7 +9,7 @@ from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
 class SecondarySSITest(Feedbacks):
     """Secondary SSI test class."""
 
-    BACKUP_REGISTERS_SSI2: list[str] = []
+    BACKUP_REGISTERS_SSI2: ClassVar[list[str]] = []
 
     FEEDBACK_POLARITY_REGISTER = "FBK_SSI2_POS_POLARITY"
 

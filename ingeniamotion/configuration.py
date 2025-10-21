@@ -2,7 +2,7 @@ import re
 import warnings
 from enum import IntEnum
 from os import path
-from typing import TYPE_CHECKING, Any, Optional, Union
+from typing import TYPE_CHECKING, Any, ClassVar, Optional, Union
 
 import ingenialogger
 from ingenialink import CanBaudrate
@@ -103,7 +103,7 @@ class Configuration(Homing, Feedbacks):
     PROFILE_MAX_VELOCITY_REGISTER = "PROF_MAX_VEL"
     MAX_VELOCITY_REGISTER = "CL_VEL_REF_MAX"
     POWER_STAGE_FREQUENCY_SELECTION_REGISTER = "DRV_PS_FREQ_SELECTION"
-    POWER_STAGE_FREQUENCY_REGISTERS = [
+    POWER_STAGE_FREQUENCY_REGISTERS: ClassVar[list[str]] = [
         "DRV_PS_FREQ_1",
         "DRV_PS_FREQ_2",
         "DRV_PS_FREQ_3",
@@ -143,21 +143,21 @@ class Configuration(Homing, Feedbacks):
     STO_ACTIVE_STATE = 4
     STO_INACTIVE_STATE = 23
 
-    PRODUCT_ID_REGISTERS = {
+    PRODUCT_ID_REGISTERS: ClassVar[dict[SubnodeType, str]] = {
         SubnodeType.COCO: "DRV_ID_PRODUCT_CODE_COCO",
         SubnodeType.MOCO: "DRV_ID_PRODUCT_CODE",
         SubnodeType.SACO: "FSOE_PRODUCT_CODE",
     }
-    REVISION_NUMBER_REGISTERS = {
+    REVISION_NUMBER_REGISTERS: ClassVar[dict[SubnodeType, str]] = {
         SubnodeType.COCO: "DRV_ID_REVISION_NUMBER_COCO",
         SubnodeType.MOCO: "DRV_ID_REVISION_NUMBER",
     }
-    SERIAL_NUMBER_REGISTERS = {
+    SERIAL_NUMBER_REGISTERS: ClassVar[dict[SubnodeType, str]] = {
         SubnodeType.COCO: "DRV_ID_SERIAL_NUMBER_COCO",
         SubnodeType.MOCO: "DRV_ID_SERIAL_NUMBER",
         SubnodeType.SACO: "FSOE_SERIAL_NUMBER",
     }
-    SOFTWARE_VERSION_REGISTERS = {
+    SOFTWARE_VERSION_REGISTERS: ClassVar[dict[SubnodeType, str]] = {
         SubnodeType.COCO: "DRV_APP_COCO_VERSION",
         SubnodeType.MOCO: "DRV_ID_SOFTWARE_VERSION",
         SubnodeType.SACO: "FSOE_SOFTWARE_VERSION",

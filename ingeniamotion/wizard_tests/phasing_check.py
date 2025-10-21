@@ -1,6 +1,6 @@
 import time
 from enum import IntEnum
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, ClassVar, Optional
 
 import ingenialogger
 from typing_extensions import override
@@ -25,7 +25,11 @@ class PhasingCheck(BaseTest[LegacyDictReportType]):
     PHASING_TIMEOUT_REGISTER = "COMMU_PHASING_TIMEOUT"
     MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER = "COMMU_PHASING_MAX_CURRENT"
 
-    BACKUP_REGISTERS = ["DRV_OP_CMD", "CL_CUR_Q_SET_POINT", "CL_CUR_D_SET_POINT"]
+    BACKUP_REGISTERS: ClassVar[list[str]] = [
+        "DRV_OP_CMD",
+        "CL_CUR_Q_SET_POINT",
+        "CL_CUR_D_SET_POINT",
+    ]
 
     class ResultType(IntEnum):
         """Test result."""
@@ -33,7 +37,7 @@ class PhasingCheck(BaseTest[LegacyDictReportType]):
         SUCCESS = 0
         WRONG_PHASING = -1
 
-    result_description = {
+    result_description: ClassVar[dict[ResultType, str]] = {
         ResultType.SUCCESS: "Motor is well phased.",
         ResultType.WRONG_PHASING: "Phasing check failed. Wrong motor phasing.",
     }
