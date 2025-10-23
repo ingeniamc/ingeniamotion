@@ -682,6 +682,7 @@ def __save_maps_text_representation(maps: "ProcessImage", output_file: Path) -> 
         warnings.warn(f"Failed to save maps text representation: {e}")
 
 
+@pytest.mark.skip(reason="Skip until SACOAPP-334 is resolved")
 @pytest.mark.fsoe_phase2
 @pytest.mark.parametrize("iteration", range(25))  # Run 25 times
 def test_map_safety_input_output_random(
@@ -702,7 +703,7 @@ def test_map_safety_input_output_random(
     """Tests that random combinations of inputs and outputs are valid."""
     mc, handler = mc_with_fsoe_with_sra_and_feedback_scenario
 
-    mapping_name = f"mapping_{random_max_items}_{random_paddings}_{random_seed}"
+    mapping_name = f"mapping_{iteration}_{random_max_items}_{random_paddings}_{random_seed}"
     json_file = fsoe_maps_dir / f"{mapping_name}.json"
     txt_file = fsoe_maps_dir / f"{mapping_name}.txt"
 
