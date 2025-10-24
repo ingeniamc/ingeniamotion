@@ -283,7 +283,7 @@ pipeline {
                                 }
                                 stage('Build wheels') {
                                     environment {
-                                        SETUPTOOLS_SCM_PRETEND_VERSION = getPythonVersionForPr()
+                                        POETRY_DYNAMIC_VERSIONING_BYPASS = getPythonVersionForPr()
                                     }
                                     steps {
                                         bat """
