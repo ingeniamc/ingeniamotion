@@ -6,6 +6,7 @@ import tempfile
 import time
 from collections import OrderedDict
 from dataclasses import dataclass
+from typing import TYPE_CHECKING
 
 import pytest
 from ingenialink import CanBaudrate, CanDevice
@@ -29,6 +30,9 @@ from ingeniamotion.exceptions import (
     IMRegisterNotExistError,
     IMRegisterWrongAccessError,
 )
+
+if TYPE_CHECKING:
+    from summit_testing_framework.setup_fixtures import MotionControllerWrapper
 
 TEST_ENSEMBLE_FW_FILE = "tests/resources/example_ensemble_fw.zfu"
 
@@ -124,18 +128,12 @@ def test_connect_servo_ethernet(setup_descriptor: EthernetSetup):
 
 
 @pytest.mark.soem
-@pytest.mark.skip_testing_framework
-def test_mc_disconnects_with_disconnection_callback(setup_descriptor: DriveEcatSetup, alias: str):
-    mc = MotionController()
-    mc.communication.connect_servo_ethercat(
-        interface_name=setup_descriptor.ifname,
-        slave_id=setup_descriptor.slave,
-        dict_path=setup_descriptor.dictionary.as_posix(),
-        alias=alias,
-    )
-
-    servo = mc._get_drive(servo=alias)
-    network = mc._get_network(servo=alias)
+def test_mc_disconnects_with_disconnection_callback(
+    alias: str, mc_with_reconnect: "MotionControllerWrapper"
+):
+    mc = mc_with_reconnect.get_mc()
+    servo = mc_with_reconnect.get_servo()
+    network = mc_with_reconnect.get_net()
     assert alias in mc.servos
     assert alias in mc.servo_net
 
