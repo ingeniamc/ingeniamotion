@@ -4042,20 +4042,17 @@ test = ["pytest"]
 
 [[package]]
 name = "summit-testing-framework"
-version = "0.1.5+ge17ec1821"
+version = "0.1.5+g986bbc73a"
 description = "Testing framework for Novanta drives"
 optional = false
 python-versions = ">=3.9"
 groups = ["tests"]
 files = [
-    {file = "summit_testing_framework-0.1.5+ge17ec1821-py3-none-any.whl", hash = "sha256:87360f0e1d37452b081bda210eb544a41f69f4ca572f2208cdeacdda27b4d247"},
+    {file = "summit_testing_framework-0.1.5+g986bbc73a-py3-none-any.whl", hash = "sha256:57f1157e47b8f05f86b4a2fd958c4ea5bbdd5949b0151e0e16e6c8b1e64f142f"},
 ]
 
 [package.dependencies]
 ingenia-att-api = "2.3.1"
-ingenialink = ">=7.5.1"
-ingenialogger = ">=0.2.1"
-ingeniamotion = ">=0.9.2"
 pytest = ">=8.4.1"
 pytest-env = ">=1.1.5"
 rpyc = "6.0.0"
@@ -4614,4 +4611,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "2851e824e3fc22b09837d29f9ad6ef7fc1d65430877e545d1c57bdb3d77f9b10"
+content-hash = "0cd4a6f14ca1345e2a04d2e72e7d6165a4d48681c0fdb58aeeb34b15a302728f"
