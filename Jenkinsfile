@@ -406,7 +406,7 @@ pipeline {
                             agent {
                                 docker {
                                     label 'worker'
-                                    image "ingeniacontainers.azurecr.io/publisher:1.8"
+                                    image "ingeniacontainers.azurecr.io/publisher:dev"
                                 }
                             }
                             stages {
