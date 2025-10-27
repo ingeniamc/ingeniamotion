@@ -48,8 +48,11 @@ name = "ingenia"
 url = "http://pypi.novanta.com/simple"
 priority = "supplemental"
 
+[tool.poetry.requires-plugins]
+poetry-dynamic-versioning = { version = ">=1.0.0,<2.0.0", extras = ["plugin"] }
+
 [build-system]
-requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning[plugin]"]
+requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
 build-backend = "poetry_dynamic_versioning.backend"
 
 [tool.poetry-dynamic-versioning]
@@ -113,7 +116,7 @@ pytest-mock = "==3.6.1"
 pytest-rerunfailures = "==15.1"
 pytest-console-scripts = "==1.4.1"
 matplotlib = "==3.8.2"
-summit-testing-framework = "==0.1.5+g986bbc73a"
+summit-testing-framework = "==0.1.5+ge17ec1821"
 ingenialink = "==7.5.1+pr644b9"
 
 # -----------------------------------------------------------------------
