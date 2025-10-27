@@ -34,9 +34,6 @@ Source = "https://github.com/ingeniamc/ingeniamotion"
 fsoe = ["fsoe_master==0.2.0"]
 
 [tool.poetry]
-include = [
-    { path = "ingeniamotion/_version.py", format = ["sdist", "wheel"] }
-]
 version = "0.0.0"  # placeholder, will be replaced by dynamic versioning
 
 [[tool.poetry.source]]
@@ -48,26 +45,23 @@ name = "ingenia"
 url = "http://pypi.novanta.com/simple"
 priority = "supplemental"
 
-[tool.poetry.requires-plugins]
-poetry-dynamic-versioning = { version = ">=1.0.0,<2.0.0", extras = ["plugin"] }
-
 [build-system]
-requires = ["poetry-core>=1.0.0", "poetry-dynamic-versioning>=1.0.0,<2.0.0"]
-build-backend = "poetry_dynamic_versioning.backend"
+requires = ["setuptools==75.6.0", "setuptools_scm[toml]>=8", "wheel==0.42.0"]
+build-backend = "setuptools.build_meta"
 
-[tool.poetry-dynamic-versioning]
-enable = true
-pattern = "default-unprefixed"
-format = "{base}+{commit}"
+[tool.setuptools_scm]
+version_scheme = "only-version"
+local_scheme = "node-and-date"
+write_to = "ingeniamotion/_version.py"
 
-[tool.poetry-dynamic-versioning.files."ingeniamotion/_version.py"]
-persistent-substitution = true
-initial-content = """
-  # These version placeholders will be replaced later during substitution.
-  __version__ = "0.0.0"
-  __version_tuple__ = (0, 0, 0)
-"""
+[tool.setuptools]
+include-package-data = true
 
+[tool.setuptools.packages.find]
+include = ["ingeniamotion"]
+
+[tool.setuptools.package-data]
+ingeniamotion = ["py.typed"]
 
 # Dependencies to run poe tasks
 [tool.poetry.group.dev]
@@ -116,7 +110,7 @@ pytest-mock = "==3.6.1"
 pytest-rerunfailures = "==15.1"
 pytest-console-scripts = "==1.4.1"
 matplotlib = "==3.8.2"
-summit-testing-framework = "==0.1.5+ge17ec1821"
+summit-testing-framework = "==0.1.5+g986bbc73a"
 ingenialink = "==7.5.1+pr644b9"
 
 # -----------------------------------------------------------------------

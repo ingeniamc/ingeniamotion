@@ -283,7 +283,7 @@ pipeline {
                                 }
                                 stage('Build wheels') {
                                     environment {
-                                        POETRY_DYNAMIC_VERSIONING_BYPASS = getPythonVersionForPr()
+                                        SETUPTOOLS_SCM_PRETEND_VERSION = getPythonVersionForPr()
                                     }
                                     steps {
                                         bat """
@@ -406,7 +406,7 @@ pipeline {
                             agent {
                                 docker {
                                     label 'worker'
-                                    image "ingeniacontainers.azurecr.io/publisher:dev"
+                                    image "ingeniacontainers.azurecr.io/publisher:1.8"
                                 }
                             }
                             stages {
