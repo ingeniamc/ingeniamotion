@@ -132,13 +132,11 @@ def test_mc_disconnects_with_disconnection_callback(
     alias: str, mc_with_reconnect: "MotionControllerWrapper"
 ):
     mc = mc_with_reconnect.get_mc()
-    servo = mc_with_reconnect.get_servo()
-    network = mc_with_reconnect.get_net()
     assert alias in mc.servos
     assert alias in mc.servo_net
 
     # Servo should be disconnected even if it is disconnected by the user
-    network.disconnect_from_slave(servo)
+    mc_with_reconnect.disconnect()
     assert alias not in mc.servos
     assert alias not in mc.servo_net
 
