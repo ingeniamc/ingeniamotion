@@ -114,6 +114,36 @@ class SafetyFunction:
         """
         return []
 
+    def _custom_activate_rules(self) -> bool:
+        """Custom rules to determine if the safety function is active.
+
+        Returns:
+            True if the safety function is active, False otherwise.
+        """
+        return False
+
+    def is_active(self) -> bool:
+        """Check if the safety function is currently active.
+
+        Returns:
+            True if the safety function is active, False otherwise.
+        """
+        process_image = self.handler.process_image
+        if process_image.is_safety_function_mapped(self, strict=True):
+            return True
+        if self.activated_by():
+            return True
+        return self._custom_activate_rules()
+
+    def is_mapped(self) -> bool:
+        """Check if the safety function is mapped in the process image.
+
+        Returns:
+            True if the safety function is mapped, False otherwise.
+        """
+        process_image = self.handler.process_image
+        return process_image.is_safety_function_mapped(self, strict=False)
+
     @classmethod
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafetyFunction"]:
         """Get the safety function instances for a given FSoE master handler.
@@ -419,6 +449,9 @@ class SafeInputsFunction(SafetyFunction):
         SS2 = 3
         SOUT = 4
 
+    def _custom_activate_rules(self) -> bool:
+        return self.map.get() != self.SafeInputMap.NONE
+
 
 @dataclass()
 class SOSFunction(SafetyFunction):
@@ -551,6 +584,13 @@ class SPFunction(SafetyFunction):
     tolerance: SafetyParameter = safety_field(
         uid="FSOE_POSITION_TOLERANCE", display_name="Tolerance"
     )
+
+    FEEDBACK_SCENARIO_UID = "FSOE_FEEDBACK_SCENARIO"
+    FEEDBACK_SCENARIO_NONE = 0
+
+    def _custom_activate_rules(self) -> bool:
+        feedback_scenario = self.handler.safety_parameters[self.FEEDBACK_SCENARIO_UID].get()
+        return feedback_scenario != self.FEEDBACK_SCENARIO_NONE
 
 
 @dataclass()
