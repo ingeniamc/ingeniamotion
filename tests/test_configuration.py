@@ -756,20 +756,19 @@ def test_store_restore_tcp_ip_parameters_exception(mocker, mc, alias, function):
 @pytest.mark.parametrize(
     "subnode, expected_result",
     [
-        (0, SubnodeType.COCO),
-        (1, SubnodeType.MOCO),
-        (4, SubnodeType.SACO),
+        (0, SubnodeType.COMMUNICATION),
+        (1, SubnodeType.MOTION),
     ],
 )
 @pytest.mark.virtual
-def test_get_subnode_type(mc, subnode, expected_result):
-    assert mc.configuration.get_subnode_type(subnode) == expected_result
+def test_get_subnode_type(mc, alias, subnode, expected_result):
+    assert mc.configuration.get_subnode_type(alias, subnode) == expected_result
 
 
 @pytest.mark.virtual
-def test_get_subnode_type_exception(mc):
+def test_get_subnode_type_exception(mc, alias):
     with pytest.raises(ValueError):
-        mc.configuration.get_subnode_type(-1)
+        mc.configuration.get_subnode_type(alias, -1)
 
 
 @pytest.mark.parametrize(
