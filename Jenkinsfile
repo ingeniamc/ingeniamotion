@@ -235,7 +235,7 @@ pipeline {
                                         sh """
                                             cd ${LIN_DOCKER_TMP_PATH}
                                             . .venv${version}/bin/activate
-                                            poetry run poe tests --junitxml=pytest_reports/junit-tests-${version}.xml --junit-prefix=${version} -m virtual --setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP
+                                            poetry run poe tests --junitxml=pytest_reports/junit-tests-${version}.xml --junit-prefix=${version} -m virtual --setup tests.setups.virtual_drive.TESTS_SETUP
                                             deactivate
                                         """
                                     }
@@ -364,7 +364,7 @@ pipeline {
                                                 bat """
                                                     cd ${WIN_DOCKER_TMP_PATH}
                                                     call .venv${version}/Scripts/activate
-                                                    poetry run poe tests --import-mode=importlib --cov=ingeniamotion --junitxml=pytest_reports/junit-tests-${version}.xml --junit-prefix=${version} -m virtual --setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP
+                                                    poetry run poe tests --import-mode=importlib --cov=ingeniamotion --junitxml=pytest_reports/junit-tests-${version}.xml --junit-prefix=${version} -m virtual --setup tests.setups.virtual_drive.TESTS_SETUP
                                                 """
                                             }
                                         }

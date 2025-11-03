@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+### Added
+- Add `is_active` function in SafetyFunctions class.
+
 ## [0.10.0] - 2025-10-02
 ### Added
 - Added Model for safety functions and safe parameters.

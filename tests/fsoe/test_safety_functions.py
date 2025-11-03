@@ -354,6 +354,76 @@ def test_ss1_activated_by_multiple():
     assert sls_8 in list_activated_by
 
 
+def test_is_active_sos() -> None:
+    """Test is_active method of SOSFunction.
+
+    The SOSFunction can be activated mapping itself or the SS2Function.
+    """
+    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+    process_image = ProcessImage.empty(handler.dictionary)
+    handler.set_process_image(process_image)
+    sos_instance = handler.get_function_instance(SOSFunction)
+    ss2_instance = handler.get_function_instance(SS2Function)
+    # Initially not active
+    assert not sos_instance.is_active()
+    # Activated by SS2
+    process_image.insert_safety_function(ss2_instance)
+    assert sos_instance.is_active()
+    # Unmap SS2, not active anymore
+    process_image.unmap_safety_function(ss2_instance)
+    assert not sos_instance.is_active()
+    # Activated by itself
+    process_image.insert_safety_function(sos_instance)
+    assert sos_instance.is_active()
+
+
+def test_is_active_sp() -> None:
+    """Test is_active method of SPFunction.
+
+    The SPFunction can be activated via the feedback scenario parameter or mapping itself.
+    """
+    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+    process_image = ProcessImage.empty(handler.dictionary)
+    handler.set_process_image(process_image)
+    sp_instance = handler.get_function_instance(SPFunction)
+    feedback_scenario_param = handler.safety_parameters[sp_instance.FEEDBACK_SCENARIO_UID]
+    # Initially not active
+    feedback_scenario_param.set(0)
+    assert not sp_instance.is_active()
+    # Activated via feedback scenario
+    feedback_scenario_param.set(1)
+    assert sp_instance.is_active()
+    # Unset feedback scenario, not active anymore
+    feedback_scenario_param.set(0)
+    assert not sp_instance.is_active()
+    # Activated by itself
+    process_image.insert_safety_function(sp_instance)
+    assert sp_instance.is_active()
+
+
+def test_is_active_si() -> None:
+    """Test is_active method of SafeInputsFunction.
+
+    The SafeInputsFunction can be activated setting map parameter or mapping itself.
+    """
+    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+    process_image = ProcessImage.empty(handler.dictionary)
+    handler.set_process_image(process_image)
+    si_instance = handler.get_function_instance(SafeInputsFunction)
+    # Initially not active
+    si_instance.map.set(si_instance.SafeInputMap.NONE)
+    assert not si_instance.is_active()
+    # Activated via map parameter
+    si_instance.map.set(si_instance.SafeInputMap.SS1)
+    assert si_instance.is_active()
+    # Unset map parameter, not active anymore
+    si_instance.map.set(si_instance.SafeInputMap.NONE)
+    assert not si_instance.is_active()
+    # Activated by itself
+    process_image.insert_safety_function(si_instance)
+    assert si_instance.is_active()
+
+
 @pytest.mark.fsoe
 def test_no_safety_function_instances(
     mc_with_fsoe: tuple["MotionController", "FSoEMasterHandler"],
