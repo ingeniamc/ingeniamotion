@@ -151,8 +151,10 @@ class Configuration(Homing, Feedbacks):
         SubnodeType.COMMUNICATION: "DRV_APP_COCO_VERSION",
         SubnodeType.MOTION: "DRV_ID_SOFTWARE_VERSION",
     }
-    VENDOR_ID_COCO_REGISTER = "DRV_ID_VENDOR_ID_COCO"
-    VENDOR_ID_REGISTER = "DRV_ID_VENDOR_ID"
+    VENDOR_ID_REGISTERS = {
+        SubnodeType.COMMUNICATION: "DRV_ID_VENDOR_ID_COCO",
+        SubnodeType.MOTION: "DRV_ID_VENDOR_ID",
+    }
 
     def __init__(self, motion_controller: "MotionController") -> None:
         Homing.__init__(self, motion_controller)
@@ -1054,24 +1056,24 @@ class Configuration(Homing, Feedbacks):
 
         return prod_codes, rev_numbers, fw_versions, serial_number
 
-    @staticmethod
-    def get_subnode_type(axis: int) -> SubnodeType:
+    def get_subnode_type(self, servo: str, axis: int) -> SubnodeType:
         """Get a subnode type depending on the axis number.
 
         Args:
+            servo: Alias of the drive.
             axis: Axis number of the drive.
 
         Returns:
             Subnode type.
 
         Raises:
-            ValueError: For negative subnode values.
+            ValueError: If the axis does not exist.
+
         """
-        if axis < 0:
-            raise ValueError("There are no subnodes with negative values")
-        if axis == 0:
-            return SubnodeType.COMMUNICATION
-        return SubnodeType.MOTION
+        drive = self.mc._get_drive(servo)
+        if axis not in drive.dictionary.subnodes:
+            raise ValueError(f"Axis {axis} does not exist.")
+        return drive.dictionary.subnodes[axis]
 
     def get_product_code(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:
         """Get the product code of a drive.
@@ -1086,7 +1088,7 @@ class Configuration(Homing, Feedbacks):
         Raises:
             TypeError: If some read value has a wrong type.
         """
-        product_code_register = self.PRODUCT_ID_REGISTERS[self.get_subnode_type(axis)]
+        product_code_register = self.PRODUCT_ID_REGISTERS[self.get_subnode_type(servo, axis)]
         product_code_value = self.mc.communication.get_register(
             product_code_register, servo, axis=axis
         )
@@ -1108,7 +1110,7 @@ class Configuration(Homing, Feedbacks):
             TypeError: If some read value has a wrong type.
             ValueError: If the subnode type is SACO, as it does not have a revision number.
         """
-        subnode_type = self.get_subnode_type(axis)
+        subnode_type = self.get_subnode_type(servo, axis)
         revision_number_register = self.REVISION_NUMBER_REGISTERS[subnode_type]
         revision_number_value = self.mc.communication.get_register(
             revision_number_register, servo, axis=axis
@@ -1130,7 +1132,7 @@ class Configuration(Homing, Feedbacks):
         Raises:
             TypeError: If some read value has a wrong type.
         """
-        serial_number_register = self.SERIAL_NUMBER_REGISTERS[self.get_subnode_type(axis)]
+        serial_number_register = self.SERIAL_NUMBER_REGISTERS[self.get_subnode_type(servo, axis)]
         serial_number_value = self.mc.communication.get_register(
             serial_number_register, servo, axis=axis
         )
@@ -1151,7 +1153,7 @@ class Configuration(Homing, Feedbacks):
         Raises:
             TypeError: If some read value has a wrong type.
         """
-        fw_register = self.SOFTWARE_VERSION_REGISTERS[self.get_subnode_type(axis)]
+        fw_register = self.SOFTWARE_VERSION_REGISTERS[self.get_subnode_type(servo, axis)]
         fw_value = self.mc.communication.get_register(fw_register, servo, axis=axis)
         if not isinstance(fw_value, str):
             raise TypeError("Firmware value has to be a string")
@@ -1169,24 +1171,12 @@ class Configuration(Homing, Feedbacks):
 
         Raises:
             TypeError: If the read vendor ID has the wrong type.
-            ValueError: if the provided axis does not exist.
-            ValueError: If axis ID not of type communication/motion.
 
         """
-        drive = self.mc._get_drive(servo)
-        if axis == 0:
-            register = self.VENDOR_ID_COCO_REGISTER
-        elif axis not in drive.dictionary.subnodes:
-            raise ValueError(f"{axis=} does not exist.")
-        elif drive.dictionary.subnodes[axis] is SubnodeType.MOTION:
-            register = self.VENDOR_ID_REGISTER
-        else:
-            raise ValueError(f"Vendor ID cannot be retrieved for {axis=}")
-        vendor_id = self.mc.communication.get_register(register, servo, axis)
+        vendor_id_register = self.VENDOR_ID_REGISTERS[self.get_subnode_type(servo, axis)]
+        vendor_id = self.mc.communication.get_register(vendor_id_register, servo, axis=axis)
         if not isinstance(vendor_id, int):
-            raise TypeError(
-                f"Wrong {register} value for axis {axis}. Expected int, got {type(vendor_id)}"
-            )
+            raise TypeError("Vendor ID value has to be an integer")
         return vendor_id
 
     def change_baudrate(self, baud_rate: CanBaudrate, servo: str = DEFAULT_SERVO) -> None:
