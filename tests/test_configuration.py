@@ -756,9 +756,9 @@ def test_store_restore_tcp_ip_parameters_exception(mocker, mc, alias, function):
 @pytest.mark.parametrize(
     "subnode, expected_result",
     [
-        (0, SubnodeType.COCO),
-        (1, SubnodeType.MOCO),
-        (4, SubnodeType.SACO),
+        (0, SubnodeType.COMMUNICATION),
+        (1, SubnodeType.MOTION),
+        (2, SubnodeType.MOTION),
     ],
 )
 @pytest.mark.virtual
