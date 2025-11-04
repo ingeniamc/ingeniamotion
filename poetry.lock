@@ -4196,6 +4196,7 @@ files = [
 
 [package.dependencies]
 ingenia-att-api = "2.3.1"
+ingenialink = {version = ">=7.5.1", optional = true, markers = "extra == \"ingenialink\""}
 pytest = ">=8.4.1"
 pytest-env = ">=1.1.5"
 rpyc = "6.0.0"
@@ -4749,4 +4750,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "04c27057f802220f95cbc2ebcdc52c4d889484d25a2076dc77896dea59c217a7"
+content-hash = "eec0bd62f422627c1a69107fb069278124d1459d898e15f81da054f45e9db284"
