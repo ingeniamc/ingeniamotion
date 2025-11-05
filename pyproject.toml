@@ -110,8 +110,8 @@ pytest-mock = "==3.6.1"
 pytest-rerunfailures = "==15.1"
 pytest-console-scripts = "==1.4.1"
 matplotlib = "==3.8.2"
-summit-testing-framework = "==0.1.5+g1061c8ab4"
-ingenialink = "==7.5.1+g755a4cf5a"
+ingenialink = "==7.5.1+g20cb45cef"
+summit-testing-framework = {extras = ["ingenialink"], version = "==0.1.5+pr50b26"} 
 
 # -----------------------------------------------------------------------
 #                                   TASKS
