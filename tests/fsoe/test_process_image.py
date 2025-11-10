@@ -682,9 +682,8 @@ def __save_maps_text_representation(maps: "ProcessImage", output_file: Path) -> 
         warnings.warn(f"Failed to save maps text representation: {e}")
 
 
-@pytest.mark.skip(reason="Skip until SACOAPP-334 is resolved")
 @pytest.mark.fsoe_phase2
-@pytest.mark.parametrize("iteration", range(25))  # Run 25 times
+@pytest.mark.parametrize("iteration", range(30))  # Run 30 times
 def test_map_safety_input_output_random(
     mc_with_fsoe_with_sra_and_feedback_scenario: tuple[MotionController, "FSoEMasterHandler"],
     map_generator: "FSoERandomMappingGenerator",
