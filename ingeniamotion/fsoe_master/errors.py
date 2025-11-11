@@ -176,15 +176,13 @@ class ServoErrorQueue:
         n_pending_errors = current_total_errors - self.__last_read_total_errors_pending
         errors_lost = n_pending_errors > self.max_number_of_errors_in_buffer
 
-        first_n_error_to_read = self.__last_read_total_errors_pending
         if errors_lost:
             # Previous errors have been lost and can't be read
-            first_n_error_to_read = current_total_errors - self.max_number_of_errors_in_buffer
+            total_errors_to_read = self.max_number_of_errors_in_buffer
+        else:
+            total_errors_to_read = n_pending_errors
 
-        return tuple(
-            idx % self.max_number_of_errors_in_buffer
-            for idx in range(first_n_error_to_read, current_total_errors)
-        ), errors_lost
+        return tuple(idx for idx in range(total_errors_to_read)), errors_lost
 
     def get_pending_errors(self) -> tuple[list[Error], bool]:
         """Get the pending errors from the servo's error queue.
