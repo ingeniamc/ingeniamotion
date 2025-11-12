@@ -165,10 +165,10 @@ def test_get_last_error_invalid_map(
     "last_total_errors, current_total_errors, expected_pending_error_indexes, expected_errors_lost",
     [
         (0, 5, (0, 1, 2, 3, 4), False),
-        (7, 11, (7, 8, 9, 10), False),
-        (29, 35, (29, 30, 31, 0, 1, 2), False),
-        (17, 17 + 32, tuple(range(17, 32)) + tuple(range(17)), False),
-        (17, 17 + 33, tuple(range(18, 32)) + tuple(range(18)), True),
+        (7, 11, (0, 1, 2, 3), False),
+        (29, 35, (0, 1, 2, 3, 4, 5), False),
+        (17, 17 + 32, tuple(range(32)), False),
+        (17, 17 + 33, tuple(range(32)), True),
     ],
 )
 def test_get_pending_error_indexes(
