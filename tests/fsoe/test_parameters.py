@@ -1,12 +1,7 @@
-import sys
 from typing import TYPE_CHECKING, Callable
 
 import pytest
-
-if sys.version_info >= (3, 11):
-    from builtins import ExceptionGroup  # Explicit import for Python 3.11+
-else:
-    from exceptiongroup import ExceptionGroup
+from exceptiongroup import ExceptionGroup
 from ingenialink.register import Register
 
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError

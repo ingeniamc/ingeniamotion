@@ -1,15 +1,11 @@
-import sys
 import threading
 from collections import OrderedDict
 from collections.abc import Iterator
 from random import randint
 from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union, cast, overload
 
-if sys.version_info >= (3, 11):
-    from builtins import ExceptionGroup  # Explicit import for Python 3.11+
-else:
-    from exceptiongroup import ExceptionGroup
 import ingenialogger
+from exceptiongroup import ExceptionGroup
 from ingenialink import RegDtype
 from ingenialink.canopen.register import CanopenRegister
 from ingenialink.dictionary import DictionarySafetyModule

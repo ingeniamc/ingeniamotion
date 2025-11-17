@@ -4,6 +4,9 @@
 ### Added
 - Add `is_active` function in SafetyFunctions class.
 
+### Changed
+- Raise `ExceptionGroup` in `write_safe_parameters` if any exceptions occur.
+
 ## [0.10.0] - 2025-10-02
 ### Added
 - Added Model for safety functions and safe parameters.
