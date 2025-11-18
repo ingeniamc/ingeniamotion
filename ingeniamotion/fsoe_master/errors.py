@@ -196,19 +196,21 @@ class ServoErrorQueue:
         total_errors = self.get_number_total_errors()
         pending_indexes, errors_lost = self.__get_pending_error_indexes(total_errors)
         errors = []
-        pending_count = len(pending_indexes)
-        while pending_count > 0:
-            error = self.get_error_by_index(pending_count - 1)
+        pending_error_count = len(pending_indexes)
+        while pending_error_count > 0:
+            # Read errors from oldest to newest
+            pending_error_index = pending_error_count - 1
+            error = self.get_error_by_index(pending_error_index)
             if error is not None:
                 errors.append(error)
-            pending_count -= 1
+            pending_error_count -= 1
             # Check if new errors appeared during processing
             current_total_errors = self.get_number_total_errors()
             if current_total_errors > total_errors:
                 # Update the pending count and total errors to read the new errors
                 new_errors = current_total_errors - total_errors
                 total_errors = current_total_errors
-                pending_count += new_errors
+                pending_error_count += new_errors
 
         self.__last_read_total_errors_pending = total_errors
 
