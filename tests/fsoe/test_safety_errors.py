@@ -590,3 +590,69 @@ class TestSoutDisabled:
             mcu_error_queue_a=mcu_error_queue_a,
             timeout_for_data_sra=timeout_for_data_sra,
         )
+
+
+@pytest.mark.parametrize(
+    "initial_number_of_errors, number_of_new_errors, expected_errors_ids",
+    [
+        (1, 0, [0x80030001]),
+        (1, 1, [0x80030001, 0x80030004]),
+        (1, 2, [0x80030001, 0x80030004, 0x80030005]),
+    ],
+)
+@pytest.mark.fsoe_phase2
+def test_error_loss(
+    servo: "EthercatServo",
+    mcu_error_queue_a: "ServoErrorQueue",
+    mocker,
+    initial_number_of_errors: int,
+    number_of_new_errors: int,
+    expected_errors_ids: list[int],
+) -> None:
+    """Test that errors that occur during reading the queue are not lost."""
+
+    def get_number_of_total_errors_side_effect() -> int:
+        # First call returns the initial number of errors, then subsequent calls
+        # return the increased number
+        calls = getattr(get_number_of_total_errors_side_effect, "calls", 0)
+        if calls == 0:
+            result = initial_number_of_errors
+        else:
+            result = initial_number_of_errors + number_of_new_errors
+        get_number_of_total_errors_side_effect.calls = calls + 1
+        return result
+
+    def get_error_by_index_side_effect(index) -> Error:  # noqa: ARG001
+        # Generate errors in the following sequence:
+        # First error: 0x80030001
+        # Second error: 0x80030004
+        # Third error: 0x80030005
+        calls = getattr(get_error_by_index_side_effect, "calls", 0)
+        if calls == 0:
+            error = Error.from_id(0x80030001, dictionary=servo.dictionary)
+        elif calls == 1:
+            error = Error.from_id(0x80030004, dictionary=servo.dictionary)
+        elif calls == 2:
+            error = Error.from_id(0x80030005, dictionary=servo.dictionary)
+        else:
+            error = None
+        get_error_by_index_side_effect.calls = calls + 1
+        return error
+
+    # Set the total errors to simulate new errors appearing during reading
+    mocker.patch.object(
+        mcu_error_queue_a,
+        "get_number_total_errors",
+        side_effect=get_number_of_total_errors_side_effect,
+    )
+
+    # Set the errors to be returned by get_error_by_index
+    mocker.patch.object(
+        mcu_error_queue_a,
+        "get_error_by_index",
+        side_effect=get_error_by_index_side_effect,
+    )
+
+    errors, _ = mcu_error_queue_a.get_pending_errors()
+
+    assert [error.error_id for error in errors] == expected_errors_ids
