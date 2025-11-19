@@ -1065,21 +1065,21 @@ woff = ["brotli (>=1.0.1) ; platform_python_implementation == \"CPython\"", "bro
 
 [[package]]
 name = "fsoe-master"
-version = "0.2.0"
+version = "0.2.0+pr82b4"
 description = "FSoE Master Library"
 optional = true
 python-versions = ">=3.9"
 groups = ["main"]
 markers = "extra == \"fsoe\""
 files = [
-    {file = "fsoe_master-0.2.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b086bdc8e7e42adcf7dab445d9ad7eb0b15505c14cbfc997ce514f3a39ddda98"},
-    {file = "fsoe_master-0.2.0-cp310-cp310-win_amd64.whl", hash = "sha256:07664115955f77948eaf6b290d699936217407771b8f4ed1cd46e0a52db91fad"},
-    {file = "fsoe_master-0.2.0-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b0fbe978e3a54fcc89687c602b03c51671f4357a21c79202eda8255e2143825e"},
-    {file = "fsoe_master-0.2.0-cp311-cp311-win_amd64.whl", hash = "sha256:5735f522da712f0ed0f37483e0ca125a59eab6331ad506ae130dd2e05946df05"},
-    {file = "fsoe_master-0.2.0-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:bca6aa2508613947be444d86d57280f04b85e1969784b45b710b55f7c095d0bf"},
-    {file = "fsoe_master-0.2.0-cp312-cp312-win_amd64.whl", hash = "sha256:aca761d0d377f98c6c82ffaa0dc3f7c076255300ce6ff36630142943cc05a5c3"},
-    {file = "fsoe_master-0.2.0-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6f6a740f37dd1f81237d4312b04b3b352ec39bef250d5ae8d3fc738f712514a9"},
-    {file = "fsoe_master-0.2.0-cp39-cp39-win_amd64.whl", hash = "sha256:a08e0d9a122b8dfee5de71a3b572a873e0fe584834d3debd3a85c943f14efb1f"},
+    {file = "fsoe_master-0.2.0+pr82b4-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b086bdc8e7e42adcf7dab445d9ad7eb0b15505c14cbfc997ce514f3a39ddda98"},
+    {file = "fsoe_master-0.2.0+pr82b4-cp310-cp310-win_amd64.whl", hash = "sha256:07664115955f77948eaf6b290d699936217407771b8f4ed1cd46e0a52db91fad"},
+    {file = "fsoe_master-0.2.0+pr82b4-cp311-cp311-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:b0fbe978e3a54fcc89687c602b03c51671f4357a21c79202eda8255e2143825e"},
+    {file = "fsoe_master-0.2.0+pr82b4-cp311-cp311-win_amd64.whl", hash = "sha256:5735f522da712f0ed0f37483e0ca125a59eab6331ad506ae130dd2e05946df05"},
+    {file = "fsoe_master-0.2.0+pr82b4-cp312-cp312-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:bca6aa2508613947be444d86d57280f04b85e1969784b45b710b55f7c095d0bf"},
+    {file = "fsoe_master-0.2.0+pr82b4-cp312-cp312-win_amd64.whl", hash = "sha256:aca761d0d377f98c6c82ffaa0dc3f7c076255300ce6ff36630142943cc05a5c3"},
+    {file = "fsoe_master-0.2.0+pr82b4-cp39-cp39-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6f6a740f37dd1f81237d4312b04b3b352ec39bef250d5ae8d3fc738f712514a9"},
+    {file = "fsoe_master-0.2.0+pr82b4-cp39-cp39-win_amd64.whl", hash = "sha256:a08e0d9a122b8dfee5de71a3b572a873e0fe584834d3debd3a85c943f14efb1f"},
 ]
 
 [[package]]
