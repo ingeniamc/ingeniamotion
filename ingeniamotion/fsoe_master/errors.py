@@ -155,23 +155,16 @@ class ServoErrorQueue:
             self.__read_int_reg(self.descriptor.error_request_code_reg_uid), self.__dictionary
         )
 
-    def __get_pending_error_indexes(
-        self, current_total_errors: int
-    ) -> tuple[tuple[int, ...], bool]:
-        """Get the indexes of the pending errors from the servo's error queue.
+    def __get_number_of_pending_error(self, current_total_errors: int) -> tuple[int, bool]:
+        """Get the number of pending errors from the servo's error queue.
 
-        Indicates the indexes of the error queue that are pending to be read since the last
-        time it the queue was read, according to the total number of errors reported by the servo.
-
-        It takes into account overflow and wrap around of the error queue.
-
-        Also indicates if any errors were lost and will not be read.
-        Happens when the n pending errors to read is higher than the queue length
+        Args:
+            current_total_errors: Current total number of errors in the servo's error queue.
 
         Returns:
-            tuple with:
-                tuple of indexes of the errors pending to be read
-                boolean indicating if errors were lost
+            A tuple containing: Number of pending errors to read, and a boolean indicating
+                if any errors were lost due to buffer overflow.
+
         """
         n_pending_errors = current_total_errors - self.__last_read_total_errors_pending
         errors_lost = n_pending_errors > self.max_number_of_errors_in_buffer
@@ -182,7 +175,7 @@ class ServoErrorQueue:
         else:
             total_errors_to_read = n_pending_errors
 
-        return tuple(idx for idx in range(total_errors_to_read)), errors_lost
+        return total_errors_to_read, errors_lost
 
     def get_pending_errors(self) -> tuple[list[Error], bool]:
         """Get the pending errors from the servo's error queue.
@@ -194,11 +187,28 @@ class ServoErrorQueue:
                 if any errors were lost due to buffer overflow.
         """
         total_errors = self.get_number_total_errors()
-        pending_indexes, errors_lost = self.__get_pending_error_indexes(total_errors)
-        errors = [
-            error for idx in pending_indexes if (error := self.get_error_by_index(idx)) is not None
-        ]
+        number_of_pending_errors, errors_lost = self.__get_number_of_pending_error(total_errors)
+        errors = []
+        pending_error_count = number_of_pending_errors
+        while pending_error_count > 0:
+            # Read errors from oldest to newest
+            pending_error_index = pending_error_count - 1
+            total_errors_before_read = self.get_number_total_errors()
+            error = self.get_error_by_index(pending_error_index)
+            total_errors_after_read = self.get_number_total_errors()
+            # Check if new errors appeared during processing
+            if total_errors_before_read == total_errors_after_read:
+                # No new errors
+                if error is not None:
+                    errors.append(error)
+                pending_error_count -= 1
+            else:
+                # New errors appeared, need to recalculate pending errors
+                current_total_errors = total_errors_after_read
+                new_errors = current_total_errors - total_errors
+                total_errors = current_total_errors
+                pending_error_count += new_errors
 
         self.__last_read_total_errors_pending = total_errors
-
-        return errors, errors_lost
+        # Reverse the list to have the newest errors first
+        return errors[::-1], errors_lost
