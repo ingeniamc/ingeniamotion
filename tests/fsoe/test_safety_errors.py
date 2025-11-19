@@ -642,22 +642,37 @@ def test_error_loss(
     new_error_index: int,
     expected_errors: list[int],
 ) -> None:
-    """Test that errors that occur during reading the queue are not lost."""
+    """
+    Test that `get_pending_errors` correctly handles new errors appearing during the read process.
+
+    This simulates a scenario where:
+    - `current_errors` are initially in the queue.
+    - `new_errors` appear dynamically while reading, triggered when a specific index
+    (`new_error_index`) is accessed.
+    - The method should return all errors (including new ones) in reverse order (newest first).
+
+    Expected behavior:
+    - No errors are lost.
+    - The final list matches `expected_errors`.
+    """
 
     class MockServoErrorQueue:
+        """
+        Mock implementation of ServoErrorQueue to simulate dynamic error insertion.
+        - When `get_error_by_index` reaches `new_error_index`, new errors are inserted at the front.
+        """
+
         def __init__(
             self, current_errors: list[int], new_errors: list[int], new_error_index: int
         ) -> None:
             self._new_error_index = new_error_index
             self._new_errors = new_errors
             self._last_read_index = -1
-            self._error_stack = []
+            self._error_stack = [Error.from_id(e) for e in current_errors]
             self._new_errors_generated = False
-            for i in range(len(current_errors)):
-                error = Error.from_id(current_errors[i])
-                self._error_stack.append(error)
 
         def get_number_total_errors(self) -> int:
+            # Insert new errors only once when the trigger index is reached
             if self._last_read_index == self._new_error_index and not self._new_errors_generated:
                 for new_error in self._new_errors:
                     self._error_stack.insert(0, Error.from_id(new_error))
@@ -668,26 +683,17 @@ def test_error_loss(
             self._last_read_index = index
             return self._error_stack[index]
 
-    mocked_error_queue = MockServoErrorQueue(
-        current_errors=current_errors,
-        new_errors=new_errors,
-        new_error_index=new_error_index,
-    )
-
-    # Set the total errors to simulate new errors appearing during reading
+    # Patch the real queue methods with our mock
+    mocked_error_queue = MockServoErrorQueue(current_errors, new_errors, new_error_index)
     mocker.patch.object(
         mcu_error_queue_a,
         "get_number_total_errors",
         side_effect=mocked_error_queue.get_number_total_errors,
     )
-
-    # Set the errors to be returned by get_error_by_index
     mocker.patch.object(
-        mcu_error_queue_a,
-        "get_error_by_index",
-        side_effect=mocked_error_queue.get_error_by_index,
+        mcu_error_queue_a, "get_error_by_index", side_effect=mocked_error_queue.get_error_by_index
     )
 
+    # Execute and verify
     errors, _ = mcu_error_queue_a.get_pending_errors()
-
     assert [error.error_id for error in errors] == expected_errors
