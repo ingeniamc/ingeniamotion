@@ -162,28 +162,29 @@ def test_get_last_error_invalid_map(
 
 @pytest.mark.fsoe_phase2
 @pytest.mark.parametrize(
-    "last_total_errors, current_total_errors, expected_pending_error_indexes, expected_errors_lost",
+    "last_total_errors, current_total_errors, expected_number_of_pending_errors, "
+    "expected_errors_lost",
     [
-        (0, 5, (0, 1, 2, 3, 4), False),
-        (7, 11, (0, 1, 2, 3), False),
-        (29, 35, (0, 1, 2, 3, 4, 5), False),
-        (17, 17 + 32, tuple(range(32)), False),
-        (17, 17 + 33, tuple(range(32)), True),
+        (0, 5, 5, False),
+        (7, 11, 4, False),
+        (29, 35, 6, False),
+        (17, 17 + 32, 32, False),
+        (17, 17 + 33, 32, True),
     ],
 )
 def test_get_pending_error_indexes(
     last_total_errors: int,
     current_total_errors: int,
-    expected_pending_error_indexes: tuple[int, ...],
+    expected_number_of_pending_errors: int,
     expected_errors_lost: bool,
     mcu_error_queue_a: "ServoErrorQueue",
 ) -> None:
     mcu_error_queue_a._ServoErrorQueue__last_read_total_errors_pending = last_total_errors
     pending_error_indexes, errors_lost = (
-        mcu_error_queue_a._ServoErrorQueue__get_pending_error_indexes(current_total_errors)
+        mcu_error_queue_a._ServoErrorQueue__get_number_of_pending_error(current_total_errors)
     )
 
-    assert pending_error_indexes == expected_pending_error_indexes
+    assert pending_error_indexes == expected_number_of_pending_errors
     assert errors_lost == expected_errors_lost
 
 
