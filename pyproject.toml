@@ -32,7 +32,7 @@ Documentation = "https://distext.ingeniamc.com/doc/ingeniamotion/latest/"
 Source = "https://github.com/ingeniamc/ingeniamotion"
 
 [project.optional-dependencies]
-fsoe = ["fsoe_master==0.2.0+pr81b15"]
+fsoe = ["fsoe_master==0.2.0+pr82b4"]
 
 [tool.poetry]
 version = "0.0.0"  # placeholder. Actual version is managed by setuptools_scm.
