@@ -213,5 +213,5 @@ class ServoErrorQueue:
                 pending_error_count += new_errors
 
         self.__last_read_total_errors_pending = total_errors
-
-        return errors, errors_lost
+        # Reverse the list to have the newest errors first
+        return errors[::-1], errors_lost

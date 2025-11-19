@@ -593,48 +593,75 @@ class TestSoutDisabled:
 
 
 @pytest.mark.parametrize(
-    "index_when_new_error_is_generated, number_of_new_errors, expected_errors_ids",
+    "current_errors, new_errors, new_error_index, expected_errors",
     [
-        (2, 1, [0x80030005, 0x80030004, 0x80030003, 0x80030002]),
-        (1, 1, [0x80030005, 0x80030004, 0x80030003, 0x80030002]),
-        (0, 1, [0x80030005, 0x80030004, 0x80030003, 0x80030002]),
-        (2, 2, [0x80030005, 0x80030004, 0x80030003, 0x80030002, 0x80030001]),
-        (1, 2, [0x80030005, 0x80030004, 0x80030003, 0x80030002, 0x80030001]),
-        (0, 2, [0x80030005, 0x80030004, 0x80030003, 0x80030002, 0x80030001]),
+        (
+            [0x80030002, 0x80030003, 0x80030004],
+            [0x80030001],
+            2,
+            [0x80030001, 0x80030002, 0x80030003, 0x80030004],
+        ),
+        (
+            [0x80030002, 0x80030003, 0x80030004],
+            [0x80030001],
+            1,
+            [0x80030001, 0x80030002, 0x80030003, 0x80030004],
+        ),
+        (
+            [0x80030002, 0x80030003, 0x80030004],
+            [0x80030001],
+            0,
+            [0x80030001, 0x80030002, 0x80030003, 0x80030004],
+        ),
+        (
+            [0x80030003, 0x80030004, 0x80030005],
+            [0x80030002, 0x80030001],
+            2,
+            [0x80030001, 0x80030002, 0x80030003, 0x80030004, 0x80030005],
+        ),
+        (
+            [0x80030003, 0x80030004, 0x80030005],
+            [0x80030002, 0x80030001],
+            1,
+            [0x80030001, 0x80030002, 0x80030003, 0x80030004, 0x80030005],
+        ),
+        (
+            [0x80030003, 0x80030004, 0x80030005],
+            [0x80030002, 0x80030001],
+            0,
+            [0x80030001, 0x80030002, 0x80030003, 0x80030004, 0x80030005],
+        ),
     ],
 )
 @pytest.mark.fsoe_phase2
 def test_error_loss(
     mcu_error_queue_a: "ServoErrorQueue",
     mocker,
-    index_when_new_error_is_generated: int,
-    number_of_new_errors: int,
-    expected_errors_ids: list[int],
+    current_errors: list[int],
+    new_errors: list[int],
+    new_error_index: int,
+    expected_errors: list[int],
 ) -> None:
     """Test that errors that occur during reading the queue are not lost."""
 
     class MockServoErrorQueue:
-        CURRENT_ERRORS = [0x80030003, 0x80030004, 0x80030005]
-        NEW_ERROR_IDS = [0x80030001, 0x80030002]
-
-        def __init__(self, new_error_index: int, number_of_new_errors: int) -> None:
+        def __init__(
+            self, current_errors: list[int], new_errors: list[int], new_error_index: int
+        ) -> None:
             self._new_error_index = new_error_index
-            self._error_stack = []
-            self._number_of_new_errors_added = 0
-            self._number_of_new_errors = number_of_new_errors
+            self._new_errors = new_errors
             self._last_read_index = -1
-            for i in range(len(self.CURRENT_ERRORS)):
-                error = Error.from_id(self.CURRENT_ERRORS[i])
+            self._error_stack = []
+            self._new_errors_generated = False
+            for i in range(len(current_errors)):
+                error = Error.from_id(current_errors[i])
                 self._error_stack.append(error)
 
         def get_number_total_errors(self) -> int:
-            if (
-                self._last_read_index == self._new_error_index
-                and self._number_of_new_errors_added < self._number_of_new_errors
-            ):
-                new_error = Error.from_id(self.NEW_ERROR_IDS.pop())
-                self._error_stack.insert(0, new_error)
-                self._number_of_new_errors_added += 1
+            if self._last_read_index == self._new_error_index and not self._new_errors_generated:
+                for new_error in self._new_errors:
+                    self._error_stack.insert(0, Error.from_id(new_error))
+                self._new_errors_generated = True
             return len(self._error_stack)
 
         def get_error_by_index(self, index) -> "Error":
@@ -642,8 +669,9 @@ def test_error_loss(
             return self._error_stack[index]
 
     mocked_error_queue = MockServoErrorQueue(
-        new_error_index=index_when_new_error_is_generated,
-        number_of_new_errors=number_of_new_errors,
+        current_errors=current_errors,
+        new_errors=new_errors,
+        new_error_index=new_error_index,
     )
 
     # Set the total errors to simulate new errors appearing during reading
@@ -662,4 +690,4 @@ def test_error_loss(
 
     errors, _ = mcu_error_queue_a.get_pending_errors()
 
-    assert [error.error_id for error in errors] == expected_errors_ids
+    assert [error.error_id for error in errors] == expected_errors
