@@ -672,15 +672,20 @@ def test_error_loss(
             self._new_errors_generated = False
 
         def get_number_total_errors(self) -> int:
-            # Insert new errors only once when the trigger index is reached
-            if self._last_read_index == self._new_error_index and not self._new_errors_generated:
-                self._error_stack = self._new_errors + self._error_stack
-                self._new_errors_generated = True
             return len(self._error_stack)
+
+        def _generate_new_errors(self):
+            if self._new_errors_generated:
+                return
+            self._error_stack = self._new_errors + self._error_stack
+            self._new_errors_generated = True
 
         def get_error_by_index(self, index) -> "Error":
             self._last_read_index = index
             index_error = Error.from_id(self._error_stack[index])
+            # Insert new errors only once when the trigger index is reached
+            if index == self._new_error_index:
+                self._generate_new_errors()
             return index_error
 
     # Patch the real queue methods with our mock
