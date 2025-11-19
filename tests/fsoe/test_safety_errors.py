@@ -593,43 +593,49 @@ class TestSoutDisabled:
 
 
 @pytest.mark.parametrize(
-    "current_errors, new_errors, new_error_index, expected_errors",
+    "current_errors, new_errors, new_error_index, generate_error_before_read, expected_errors",
     [
         (
             [0x80030002, 0x80030003, 0x80030004],
             [0x80030001],
-            2,
-            [0x80030001, 0x80030002, 0x80030003, 0x80030004],
-        ),
-        (
-            [0x80030002, 0x80030003, 0x80030004],
-            [0x80030001],
             1,
-            [0x80030001, 0x80030002, 0x80030003, 0x80030004],
-        ),
-        (
-            [0x80030002, 0x80030003, 0x80030004],
-            [0x80030001],
-            0,
+            False,
             [0x80030001, 0x80030002, 0x80030003, 0x80030004],
         ),
         (
             [0x80030003, 0x80030004, 0x80030005],
             [0x80030001, 0x80030002],
             2,
+            False,
             [0x80030001, 0x80030002, 0x80030003, 0x80030004, 0x80030005],
         ),
         (
-            [0x80030003, 0x80030004, 0x80030005],
-            [0x80030001, 0x80030002],
-            1,
-            [0x80030001, 0x80030002, 0x80030003, 0x80030004, 0x80030005],
-        ),
-        (
-            [0x80030003, 0x80030004, 0x80030005],
-            [0x80030001, 0x80030002],
+            [0x80030002, 0x80030003, 0x80030004],
+            [0x80030001],
             0,
+            True,
+            [0x80030001, 0x80030002, 0x80030003, 0x80030004],
+        ),
+        (
+            [0x80030003, 0x80030004, 0x80030005],
+            [0x80030001, 0x80030002],
+            2,
+            True,
             [0x80030001, 0x80030002, 0x80030003, 0x80030004, 0x80030005],
+        ),
+        (
+            [0x80030002],
+            [0x80030001, 0x80030003, 0x80030004],
+            0,
+            True,
+            [0x80030001, 0x80030003, 0x80030004, 0x80030002],
+        ),
+        (
+            [0x80030002],
+            [0x80030001, 0x80030003, 0x80030004],
+            0,
+            False,
+            [0x80030001, 0x80030003, 0x80030004, 0x80030002],
         ),
     ],
 )
@@ -640,6 +646,7 @@ def test_error_loss(
     current_errors: list[int],
     new_errors: list[int],
     new_error_index: int,
+    generate_error_before_read: bool,
     expected_errors: list[int],
 ) -> None:
     """
@@ -649,6 +656,8 @@ def test_error_loss(
     - `current_errors` are initially in the queue.
     - `new_errors` appear dynamically while reading, triggered when a specific index
     (`new_error_index`) is accessed.
+    - The `generate_error_before_read` flag determines if new errors are generated
+      before or after reading the error at `new_error_index`.
     - The method should return all errors (including new ones) in reverse order (newest first).
 
     Expected behavior:
@@ -663,33 +672,42 @@ def test_error_loss(
         """
 
         def __init__(
-            self, current_errors: list[int], new_errors: list[int], new_error_index: int
+            self,
+            current_errors: list[int],
+            new_errors: list[int],
+            new_error_index: int,
+            generate_before_read: bool,
         ) -> None:
             self._error_stack = current_errors
             self._new_errors = new_errors
             self._new_error_index = new_error_index
             self._last_read_index = -1
             self._new_errors_generated = False
+            self._generate_before_read = generate_before_read
 
         def get_number_total_errors(self) -> int:
             return len(self._error_stack)
 
         def _generate_new_errors(self):
+            # Insert new errors only once when the trigger index is reached
             if self._new_errors_generated:
                 return
             self._error_stack = self._new_errors + self._error_stack
             self._new_errors_generated = True
 
         def get_error_by_index(self, index) -> "Error":
+            if self._generate_before_read and index == self._new_error_index:
+                self._generate_new_errors()
             self._last_read_index = index
             index_error = Error.from_id(self._error_stack[index])
-            # Insert new errors only once when the trigger index is reached
-            if index == self._new_error_index:
+            if not self._generate_before_read and index == self._new_error_index:
                 self._generate_new_errors()
             return index_error
 
     # Patch the real queue methods with our mock
-    mocked_error_queue = MockServoErrorQueue(current_errors, new_errors, new_error_index)
+    mocked_error_queue = MockServoErrorQueue(
+        current_errors, new_errors, new_error_index, generate_error_before_read
+    )
     mocker.patch.object(
         mcu_error_queue_a,
         "get_number_total_errors",

@@ -200,14 +200,18 @@ class ServoErrorQueue:
         while pending_error_count > 0:
             # Read errors from oldest to newest
             pending_error_index = pending_error_count - 1
+            total_errors_before_read = self.get_number_total_errors()
             error = self.get_error_by_index(pending_error_index)
-            if error is not None:
-                errors.append(error)
-            pending_error_count -= 1
+            total_errors_after_read = self.get_number_total_errors()
             # Check if new errors appeared during processing
-            current_total_errors = self.get_number_total_errors()
-            if current_total_errors > total_errors:
-                # Update the pending count and total errors to read the new errors
+            if total_errors_before_read == total_errors_after_read:
+                # No new errors
+                if error is not None:
+                    errors.append(error)
+                pending_error_count -= 1
+            else:
+                # New errors appeared, need to recalculate pending errors
+                current_total_errors = total_errors_after_read
                 new_errors = current_total_errors - total_errors
                 total_errors = current_total_errors
                 pending_error_count += new_errors
