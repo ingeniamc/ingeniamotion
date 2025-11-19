@@ -615,19 +615,19 @@ class TestSoutDisabled:
         ),
         (
             [0x80030003, 0x80030004, 0x80030005],
-            [0x80030002, 0x80030001],
+            [0x80030001, 0x80030002],
             2,
             [0x80030001, 0x80030002, 0x80030003, 0x80030004, 0x80030005],
         ),
         (
             [0x80030003, 0x80030004, 0x80030005],
-            [0x80030002, 0x80030001],
+            [0x80030001, 0x80030002],
             1,
             [0x80030001, 0x80030002, 0x80030003, 0x80030004, 0x80030005],
         ),
         (
             [0x80030003, 0x80030004, 0x80030005],
-            [0x80030002, 0x80030001],
+            [0x80030001, 0x80030002],
             0,
             [0x80030001, 0x80030002, 0x80030003, 0x80030004, 0x80030005],
         ),
@@ -665,23 +665,23 @@ def test_error_loss(
         def __init__(
             self, current_errors: list[int], new_errors: list[int], new_error_index: int
         ) -> None:
-            self._new_error_index = new_error_index
+            self._error_stack = current_errors
             self._new_errors = new_errors
+            self._new_error_index = new_error_index
             self._last_read_index = -1
-            self._error_stack = [Error.from_id(e) for e in current_errors]
             self._new_errors_generated = False
 
         def get_number_total_errors(self) -> int:
             # Insert new errors only once when the trigger index is reached
             if self._last_read_index == self._new_error_index and not self._new_errors_generated:
-                for new_error in self._new_errors:
-                    self._error_stack.insert(0, Error.from_id(new_error))
+                self._error_stack = self._new_errors + self._error_stack
                 self._new_errors_generated = True
             return len(self._error_stack)
 
         def get_error_by_index(self, index) -> "Error":
             self._last_read_index = index
-            return self._error_stack[index]
+            index_error = Error.from_id(self._error_stack[index])
+            return index_error
 
     # Patch the real queue methods with our mock
     mocked_error_queue = MockServoErrorQueue(current_errors, new_errors, new_error_index)
