@@ -31,10 +31,6 @@ _DYNAMIC_MODULES_IMPORT = ["tests", "examples"]
 test_report_key = pytest.StashKey[dict[str, pytest.CollectReport]]()
 
 
-# Skip testing framework marker
-__SKIP_TESTING_FRAMEWORK_MARKER = "skip_testing_framework"
-
-
 class SuppressSpecificLogs(logging.Filter):
     def filter(self, record):
         message = record.getMessage()
@@ -163,10 +159,7 @@ def timeout_loop(
 
 # https://novantamotion.atlassian.net/browse/INGM-640
 @pytest.fixture(scope="module", autouse=True)
-def load_configuration_after_each_module(
-    request: FixtureRequest,
-    pytestconfig: pytest.Config,
-) -> Generator[None, None, None]:
+def load_configuration_after_each_module(request: FixtureRequest) -> Generator[None, None, None]:
     """Loads the drive configuration.
 
     Args:
@@ -176,16 +169,8 @@ def load_configuration_after_each_module(
         ValueError: if the configuration cannot be loaded for the descriptor.
     """
     try:
-        # If pytest is running with skip framework, do not run the fixture
-        markers = pytestconfig.getoption("-m")
-        if (
-            __SKIP_TESTING_FRAMEWORK_MARKER in markers
-            and f"not {__SKIP_TESTING_FRAMEWORK_MARKER}" not in markers
-        ):
-            run_fixture = False
-        else:
-            setup_specifier: SetupSpecifier = request.getfixturevalue("setup_specifier")
-            run_fixture = not isinstance(setup_specifier, VirtualDriveSpecifier)
+        setup_specifier: SetupSpecifier = request.getfixturevalue("setup_specifier")
+        run_fixture = not isinstance(setup_specifier, VirtualDriveSpecifier)
     except Exception:
         run_fixture = False
     if run_fixture:
@@ -227,13 +212,8 @@ def disable_motor_fixture(request: FixtureRequest) -> Generator[None, None, None
         ValueError: if the motor cannot be disabled for the setup descriptor.
     """
     try:
-        # If pytest is running with skip framework, do not run the fixture
-        markers = [mark.name for mark in request.node.iter_markers()]
-        if __SKIP_TESTING_FRAMEWORK_MARKER in markers:
-            run_fixture = False
-        else:
-            setup_specifier: SetupSpecifier = request.getfixturevalue("setup_specifier")
-            run_fixture = not isinstance(setup_specifier, VirtualDriveSpecifier)
+        setup_specifier: SetupSpecifier = request.getfixturevalue("setup_specifier")
+        run_fixture = not isinstance(setup_specifier, VirtualDriveSpecifier)
     except Exception:
         run_fixture = False
     if run_fixture:

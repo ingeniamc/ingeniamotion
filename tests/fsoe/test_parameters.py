@@ -1,6 +1,8 @@
 from typing import TYPE_CHECKING, Callable
 
 import pytest
+from exceptiongroup import ExceptionGroup
+from ingenialink.register import Register
 
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError
 from tests.dictionaries import (
@@ -13,7 +15,11 @@ from tests.fsoe.conftest import MockNetwork, MockServo
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 if FSOE_MASTER_INSTALLED:
-    from ingeniamotion.fsoe_master import FSoEMasterHandler, SafeInputsFunction, STOFunction
+    from ingeniamotion.fsoe_master import (
+        FSoEMasterHandler,
+        SafeInputsFunction,
+        STOFunction,
+    )
     from tests.fsoe.conftest import MockHandler
 
 
@@ -98,6 +104,50 @@ def test_modify_safe_parameters(fsoe_error_monitor: Callable[[FSoEError], None])
 
         handler.write_safe_parameters()
         assert mock_servo.read(map_uid) == 1234
+
+    finally:
+        handler.delete()
+
+
+@pytest.mark.fsoe_phase2
+def test_write_safe_parameters_fail(fsoe_error_monitor: Callable[[FSoEError], None]) -> None:
+    class CustomWriteMockServo(MockServo):
+        def write(self, reg, data, subnode=1) -> None:
+            uid = reg.identifier if isinstance(reg, Register) else reg
+            if uid == "FSOE_SAFE_INPUTS_MAP":
+                raise RuntimeError("Simulated write failure")
+            super().write(reg, data, subnode)
+
+    mock_servo = CustomWriteMockServo(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY)
+    try:
+        handler = FSoEMasterHandler(
+            servo=mock_servo,
+            net=MockNetwork(),
+            use_sra=True,
+            report_error_callback=fsoe_error_monitor,
+        )
+
+        input_map = handler.get_function_instance(SafeInputsFunction).map
+        map_uid = "FSOE_SAFE_INPUTS_MAP"
+        sto_active = handler.get_function_instance(STOFunction).activate_sout
+        sto_active_uid = "FSOE_STO_ACTIVATE_SOUT"
+
+        sto_active.set(STOFunction.ActiveSOUT.DISABLED)
+        assert mock_servo.read(sto_active_uid) == STOFunction.ActiveSOUT.DISABLED
+
+        map_old_value = mock_servo.read(map_uid)
+        input_map.set_without_updating(map_old_value + 1)
+        sto_active.set_without_updating(STOFunction.ActiveSOUT.ENABLED)
+
+        with pytest.raises(
+            ExceptionGroup, match="Errors occurred while writing safety parameters"
+        ) as eg:
+            handler.write_safe_parameters()
+        assert len(eg.value.exceptions) == 1
+        assert isinstance(eg.value.exceptions[0], RuntimeError)
+        assert "Simulated write failure" in str(eg.value.exceptions[0])
+        assert mock_servo.read(sto_active_uid) == STOFunction.ActiveSOUT.ENABLED
+        assert mock_servo.read(map_uid) == map_old_value
 
     finally:
         handler.delete()

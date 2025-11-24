@@ -176,7 +176,7 @@ def test_get_categories(mc, alias):
 
 @pytest.mark.virtual
 def test_get_dictionary_file_name(mc, alias):
-    expected_dictionary_path = "virtual_drive.xdf"
+    expected_dictionary_path = "virtual_drive_custom_dict.xdf"
 
     dictionary_file_name = mc.info.get_dictionary_file_name(alias)
 

@@ -1,6 +1,17 @@
 # Changelog
 
-# [0.10.0] - 2025-10-02
+## [0.10.1] - 2025-11-24
+### Added
+- Add `is_active` function in SafetyFunctions class.
+- Improved FSoE error queue to prevent error loss.
+
+### Changed
+- Raise `ExceptionGroup` in `write_safe_parameters` if any exceptions occur.
+
+### Fixed
+- Corrected FSoE error handling: errors were processed in reverse order.
+
+## [0.10.0] - 2025-10-02
 ### Added
 - Added Model for safety functions and safe parameters.
 - Created Process Image that is able to parse and convert from pdos. 

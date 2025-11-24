@@ -162,28 +162,29 @@ def test_get_last_error_invalid_map(
 
 @pytest.mark.fsoe_phase2
 @pytest.mark.parametrize(
-    "last_total_errors, current_total_errors, expected_pending_error_indexes, expected_errors_lost",
+    "last_total_errors, current_total_errors, expected_number_of_pending_errors, "
+    "expected_errors_lost",
     [
-        (0, 5, (0, 1, 2, 3, 4), False),
-        (7, 11, (7, 8, 9, 10), False),
-        (29, 35, (29, 30, 31, 0, 1, 2), False),
-        (17, 17 + 32, tuple(range(17, 32)) + tuple(range(17)), False),
-        (17, 17 + 33, tuple(range(18, 32)) + tuple(range(18)), True),
+        (0, 5, 5, False),
+        (7, 11, 4, False),
+        (29, 35, 6, False),
+        (17, 17 + 32, 32, False),
+        (17, 17 + 33, 32, True),
     ],
 )
 def test_get_pending_error_indexes(
     last_total_errors: int,
     current_total_errors: int,
-    expected_pending_error_indexes: tuple[int, ...],
+    expected_number_of_pending_errors: int,
     expected_errors_lost: bool,
     mcu_error_queue_a: "ServoErrorQueue",
 ) -> None:
     mcu_error_queue_a._ServoErrorQueue__last_read_total_errors_pending = last_total_errors
     pending_error_indexes, errors_lost = (
-        mcu_error_queue_a._ServoErrorQueue__get_pending_error_indexes(current_total_errors)
+        mcu_error_queue_a._ServoErrorQueue__get_number_of_pending_error(current_total_errors)
     )
 
-    assert pending_error_indexes == expected_pending_error_indexes
+    assert pending_error_indexes == expected_number_of_pending_errors
     assert errors_lost == expected_errors_lost
 
 
@@ -590,3 +591,133 @@ class TestSoutDisabled:
             mcu_error_queue_a=mcu_error_queue_a,
             timeout_for_data_sra=timeout_for_data_sra,
         )
+
+
+@pytest.mark.parametrize(
+    "current_errors, new_errors, new_error_index, generate_error_before_read, expected_errors",
+    [
+        (
+            [0x80030002, 0x80030003, 0x80030004],
+            [0x80030001],
+            1,
+            False,
+            [0x80030001, 0x80030002, 0x80030003, 0x80030004],
+        ),
+        (
+            [0x80030003, 0x80030004, 0x80030005],
+            [0x80030001, 0x80030002],
+            2,
+            False,
+            [0x80030001, 0x80030002, 0x80030003, 0x80030004, 0x80030005],
+        ),
+        (
+            [0x80030002, 0x80030003, 0x80030004],
+            [0x80030001],
+            0,
+            True,
+            [0x80030001, 0x80030002, 0x80030003, 0x80030004],
+        ),
+        (
+            [0x80030003, 0x80030004, 0x80030005],
+            [0x80030001, 0x80030002],
+            2,
+            True,
+            [0x80030001, 0x80030002, 0x80030003, 0x80030004, 0x80030005],
+        ),
+        (
+            [0x80030004],
+            [0x80030001, 0x80030002, 0x80030003],
+            0,
+            True,
+            [0x80030001, 0x80030002, 0x80030003, 0x80030004],
+        ),
+        (
+            [0x80030004],
+            [0x80030001, 0x80030002, 0x80030003],
+            0,
+            False,
+            [0x80030001, 0x80030002, 0x80030003, 0x80030004],
+        ),
+    ],
+)
+@pytest.mark.fsoe_phase2
+def test_error_loss(
+    mcu_error_queue_a: "ServoErrorQueue",
+    mocker,
+    current_errors: list[int],
+    new_errors: list[int],
+    new_error_index: int,
+    generate_error_before_read: bool,
+    expected_errors: list[int],
+) -> None:
+    """
+    Test that `get_pending_errors` correctly handles new errors appearing during the read process.
+
+    This simulates a scenario where:
+    - `current_errors` are initially in the queue.
+    - `new_errors` appear dynamically while reading, triggered when a specific index
+    (`new_error_index`) is accessed.
+    - The `generate_error_before_read` flag determines if new errors are generated
+      before or after reading the error at `new_error_index`.
+    - The method should return all errors (including new ones) in reverse order (newest first).
+
+    Expected behavior:
+    - No errors are lost.
+    - The final list matches `expected_errors`.
+    """
+
+    class MockServoErrorQueue:
+        """
+        Mock implementation of ServoErrorQueue to simulate dynamic error insertion.
+        - When `get_error_by_index` reaches `new_error_index`, new errors are inserted at the front.
+        """
+
+        def __init__(
+            self,
+            current_errors: list[int],
+            new_errors: list[int],
+            new_error_index: int,
+            generate_before_read: bool,
+        ) -> None:
+            self._error_stack = current_errors
+            self._new_errors = new_errors
+            self._new_error_index = new_error_index
+            self._last_read_index = -1
+            self._new_errors_generated = False
+            self._generate_before_read = generate_before_read
+
+        def get_number_total_errors(self) -> int:
+            return len(self._error_stack)
+
+        def _generate_new_errors(self):
+            # Insert new errors only once when the trigger index is reached
+            if self._new_errors_generated:
+                return
+            self._error_stack = self._new_errors + self._error_stack
+            self._new_errors_generated = True
+
+        def get_error_by_index(self, index) -> "Error":
+            if self._generate_before_read and index == self._new_error_index:
+                self._generate_new_errors()
+            self._last_read_index = index
+            index_error = Error.from_id(self._error_stack[index])
+            if not self._generate_before_read and index == self._new_error_index:
+                self._generate_new_errors()
+            return index_error
+
+    # Patch the real queue methods with our mock
+    mocked_error_queue = MockServoErrorQueue(
+        current_errors, new_errors, new_error_index, generate_error_before_read
+    )
+    mocker.patch.object(
+        mcu_error_queue_a,
+        "get_number_total_errors",
+        side_effect=mocked_error_queue.get_number_total_errors,
+    )
+    mocker.patch.object(
+        mcu_error_queue_a, "get_error_by_index", side_effect=mocked_error_queue.get_error_by_index
+    )
+
+    # Execute and verify
+    errors, _ = mcu_error_queue_a.get_pending_errors()
+    assert [error.error_id for error in errors] == expected_errors
