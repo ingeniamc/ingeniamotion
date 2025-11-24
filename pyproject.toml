@@ -20,7 +20,7 @@ classifiers = [
 requires-python = ">=3.9"
 
 dependencies = [
-    "ingenialink>=7.5.1, < 8.0.0",
+    "ingenialink>=7.5.2, < 8.0.0",
     "ingenialogger>=0.2.1",
     "ifaddr==0.1.7",
     "exceptiongroup>=1.3.0, <2.0.0"
@@ -32,7 +32,7 @@ Documentation = "https://distext.ingeniamc.com/doc/ingeniamotion/latest/"
 Source = "https://github.com/ingeniamc/ingeniamotion"
 
 [project.optional-dependencies]
-fsoe = ["fsoe_master==0.2.0+pr82b4"]
+fsoe = ["fsoe_master==0.2.1"]
 
 [tool.poetry]
 version = "0.0.0"  # placeholder. Actual version is managed by setuptools_scm.
@@ -111,8 +111,8 @@ pytest-mock = "==3.6.1"
 pytest-rerunfailures = "==15.1"
 pytest-console-scripts = "==1.4.1"
 matplotlib = "==3.8.2"
-ingenialink = "==7.5.1+pr655b2"
-summit-testing-framework = {extras = ["ingenialink"], version = "==0.1.5+pr50b26"} 
+ingenialink = "==7.5.2"
+summit-testing-framework = {version = "==0.1.5+pr50b26"}
 
 # -----------------------------------------------------------------------
 #                                   TASKS
