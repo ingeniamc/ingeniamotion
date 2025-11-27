@@ -151,7 +151,7 @@ class Configuration(Homing, Feedbacks):
         SubnodeType.COMMUNICATION: "DRV_APP_COCO_VERSION",
         SubnodeType.MOTION: "DRV_ID_SOFTWARE_VERSION",
     }
-    VENDOR_ID_REGISTERS = {
+    VENDOR_ID_REGISTERS: ClassVar[dict[SubnodeType, str]] = {
         SubnodeType.COMMUNICATION: "DRV_ID_VENDOR_ID_COCO",
         SubnodeType.MOTION: "DRV_ID_VENDOR_ID",
     }
