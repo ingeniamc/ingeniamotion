@@ -1,4 +1,5 @@
 from collections import deque
+from typing import TYPE_CHECKING
 from unittest.mock import Mock
 
 import pytest
@@ -36,6 +37,9 @@ from ingeniamotion.information import Information
 from ingeniamotion.motion import Motion
 from ingeniamotion.pdo import PDONetworkManager, PDOPoller
 
+if TYPE_CHECKING:
+    from summit_testing_framework.setup_fixtures import MotionControllerWrapper
+
 
 @pytest.mark.ethernet
 def test_disturbance_example(setup_descriptor: EthernetSetup, script_runner):
@@ -51,8 +55,14 @@ def test_disturbance_example(setup_descriptor: EthernetSetup, script_runner):
 
 
 @pytest.mark.canopen
-@pytest.mark.skip_testing_framework
-def test_canopen_example(setup_descriptor: DriveCanOpenSetup, script_runner):
+def test_canopen_example(
+    setup_descriptor: DriveCanOpenSetup, mc_with_reconnect: "MotionControllerWrapper", script_runner
+):
+    # This test will create its own connection to a servo, so we need to
+    # disconnect the testing framework's connection to avoid conflicts.
+    # It will automatically be reconnected after the test ends.
+    mc_with_reconnect.disconnect()
+
     script_path = "examples/canopen_example.py"
 
     result = script_runner.run([
@@ -235,8 +245,14 @@ def test_commutation_test_example(setup_descriptor: DriveEthernetSetup, script_r
 
 
 @pytest.mark.fsoe
-@pytest.mark.skip_testing_framework
-def test_safety_torque_off_example(setup_descriptor: DriveEcatSetup, mocker) -> None:
+def test_safety_torque_off_example(
+    setup_descriptor: DriveEcatSetup, mc_with_reconnect: "MotionControllerWrapper", mocker
+) -> None:
+    # This test will create its own connection to a servo, so we need to
+    # disconnect the testing framework's connection to avoid conflicts.
+    # It will automatically be reconnected after the test ends.
+    mc_with_reconnect.disconnect()
+
     if setup_descriptor.config_file is None:
         pytest.skip("Setup does not have a config file.")
 
@@ -265,11 +281,17 @@ def test_safety_torque_off_example(setup_descriptor: DriveEcatSetup, mocker) -> 
 
 
 @pytest.mark.fsoe_phase2
-@pytest.mark.skip_testing_framework
 @pytest.mark.flaky(
     reruns=1, reruns_delay=1
 )  # https://novantamotion.atlassian.net/browse/SACOAPP-255
-def test_safety_mapping_example(setup_descriptor: DriveEcatSetup, mocker) -> None:
+def test_safety_mapping_example(
+    setup_descriptor: DriveEcatSetup, mc_with_reconnect: "MotionControllerWrapper", mocker
+) -> None:
+    # This test will create its own connection to a servo, so we need to
+    # disconnect the testing framework's connection to avoid conflicts.
+    # It will automatically be reconnected after the test ends.
+    mc_with_reconnect.disconnect()
+
     errors_raised = []
 
     def _raise_error_callback(error):

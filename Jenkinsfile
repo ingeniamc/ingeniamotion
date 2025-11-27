@@ -235,7 +235,7 @@ pipeline {
                                         sh """
                                             cd ${LIN_DOCKER_TMP_PATH}
                                             . .venv${version}/bin/activate
-                                            poetry run poe tests --junitxml=pytest_reports/junit-tests-${version}.xml --junit-prefix=${version} -m virtual --setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP
+                                            poetry run poe tests --junitxml=pytest_reports/junit-tests-${version}.xml --junit-prefix=${version} -m virtual --setup tests.setups.virtual_drive.TESTS_SETUP
                                             deactivate
                                         """
                                     }
@@ -334,7 +334,7 @@ pipeline {
                                                 bat """
                                                     cd ${WIN_DOCKER_TMP_PATH}
                                                     call .venv${version}/Scripts/activate
-                                                    poetry run poe tests --import-mode=importlib --cov=ingeniamotion --junitxml=pytest_reports/junit-tests-${version}.xml --junit-prefix=${version} -m "not ethernet and not soem and not fsoe and not fsoe_phase2 and not canopen and not virtual and not soem_multislave and not skip_testing_framework"
+                                                    poetry run poe tests --import-mode=importlib --cov=ingeniamotion --junitxml=pytest_reports/junit-tests-${version}.xml --junit-prefix=${version} -m "not ethernet and not soem and not fsoe and not fsoe_phase2 and not canopen and not virtual and not soem_multislave"
                                                 """
                                             }
                                         }
@@ -364,7 +364,7 @@ pipeline {
                                                 bat """
                                                     cd ${WIN_DOCKER_TMP_PATH}
                                                     call .venv${version}/Scripts/activate
-                                                    poetry run poe tests --import-mode=importlib --cov=ingeniamotion --junitxml=pytest_reports/junit-tests-${version}.xml --junit-prefix=${version} -m virtual --setup summit_testing_framework.setups.virtual_drive.TESTS_SETUP
+                                                    poetry run poe tests --import-mode=importlib --cov=ingeniamotion --junitxml=pytest_reports/junit-tests-${version}.xml --junit-prefix=${version} -m virtual --setup tests.setups.virtual_drive.TESTS_SETUP
                                                 """
                                             }
                                         }
@@ -440,9 +440,7 @@ pipeline {
                         expression {
                           [
                             "canopen_everest",
-                            "canopen_everest_no_framework",
                             "canopen_capitan",
-                            "canopen_capitan_no_framework",
                             "ethernet_everest",
                             "ethernet_capitan"
                           ].any { it ==~ params.run_test_stages }
@@ -474,17 +472,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTestHW("canopen_everest", "canopen and not skip_testing_framework", "CAN_EVE_SETUP")
-                            }
-                        }
-                        stage("CanOpen Everest (skip_testing_framework)") {
-                            when {
-                                expression {
-                                    "canopen_everest_no_framework" ==~ params.run_test_stages
-                                }
-                            }
-                            steps {
-                                runTestHW("canopen_everest_no_framework", "canopen and skip_testing_framework", "CAN_EVE_SETUP")
+                                runTestHW("canopen_everest", "canopen", "CAN_EVE_SETUP")
                             }
                         }
                         stage("Ethernet Everest") {
@@ -504,17 +492,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTestHW("canopen_capitan", "canopen and not skip_testing_framework", "CAN_CAP_SETUP")
-                            }
-                        }
-                        stage("CanOpen Capitan (skip_testing_framework)") {
-                            when {
-                                expression {
-                                    "canopen_capitan_no_framework" ==~ params.run_test_stages
-                                }
-                            }
-                            steps {
-                                runTestHW("canopen_capitan_no_framework", "canopen and skip_testing_framework", "CAN_EVE_SETUP")
+                                runTestHW("canopen_capitan", "canopen", "CAN_CAP_SETUP")
                             }
                         }
                         stage("Ethernet Capitan") {
@@ -536,14 +514,10 @@ pipeline {
                           [
                             "ethercat",
                             "ethercat_everest",
-                            "ethercat_everest_no_framework",
                             "ethercat_capitan",
-                            "ethercat_capitan_no_framework",
                             "ethercat_multislave",
                             "fsoe_phase1",
-                            "fsoe_phase1_no_framework",
                             "fsoe_phase2",
-                            "fsoe_phase2_no_framework"
                           ].any { it ==~ params.run_test_stages }
                         }
                     }
@@ -572,16 +546,7 @@ pipeline {
                                 expression { false }
                             }
                             steps {
-                                runTestHW("ethercat_everest", "soem and not skip_testing_framework", "ECAT_EVE_SETUP", USE_WIRESHARK_LOGGING)
-                            }
-                        }
-                        stage("Ethercat Everest (skip_testing_framework)") {
-                            when {
-                                // Remove this after fixing INGK-983
-                                expression { false }
-                            }
-                            steps {
-                                runTestHW("ethercat_everest_no_framework", "soem and not skip_testing_framework", "ECAT_EVE_SETUP", USE_WIRESHARK_LOGGING)
+                                runTestHW("ethercat_everest", "soem", "ECAT_EVE_SETUP", USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("Ethercat Capitan") {
@@ -591,17 +556,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTestHW("ethercat_capitan", "soem and not skip_testing_framework", "ECAT_CAP_SETUP", USE_WIRESHARK_LOGGING)
-                            }
-                        }
-                        stage("Ethercat Capitan (skip_testing_framework)") {
-                            when {
-                                expression {
-                                    "ethercat_capitan_no_framework" ==~ params.run_test_stages
-                                }
-                            }
-                            steps {
-                                runTestHW("ethercat_capitan_no_framework", "soem and skip_testing_framework", "ECAT_CAP_SETUP", USE_WIRESHARK_LOGGING)
+                                runTestHW("ethercat_capitan", "soem", "ECAT_CAP_SETUP", USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("Safety Denali Phase I") {
@@ -611,17 +566,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTestHW("fsoe_phase1", "fsoe and not skip_testing_framework", "ECAT_DEN_S_PHASE1_SETUP", USE_WIRESHARK_LOGGING)
-                            }
-                        }
-                        stage("Safety Denali Phase I (skip_testing_framework)") {
-                            when {
-                                expression {
-                                    "fsoe_phase1_no_framework" ==~ params.run_test_stages
-                                }
-                            }
-                            steps {
-                                runTestHW("fsoe_phase1_no_framework", "fsoe and skip_testing_framework", "ECAT_DEN_S_PHASE1_SETUP", USE_WIRESHARK_LOGGING)
+                                runTestHW("fsoe_phase1", "fsoe", "ECAT_DEN_S_PHASE1_SETUP", USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("Safety Denali Phase II") {
@@ -631,17 +576,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTestHW("fsoe_phase2", "(fsoe or fsoe_phase2) and not skip_testing_framework", "ECAT_DEN_S_PHASE2_SETUP", USE_WIRESHARK_LOGGING)
-                            }
-                        }
-                        stage("Safety Denali Phase II (skip_testing_framework)") {
-                            when {
-                                expression {
-                                    "fsoe_phase2_no_framework" ==~ params.run_test_stages
-                                }
-                            }
-                            steps {
-                                runTestHW("fsoe_phase2_no_framework", "(fsoe or fsoe_phase2) and skip_testing_framework", "ECAT_DEN_S_PHASE2_SETUP", USE_WIRESHARK_LOGGING)
+                                runTestHW("fsoe_phase2", "fsoe or fsoe_phase2", "ECAT_DEN_S_PHASE2_SETUP", USE_WIRESHARK_LOGGING)
                             }
                         }
                         stage("Ethercat Multislave") {

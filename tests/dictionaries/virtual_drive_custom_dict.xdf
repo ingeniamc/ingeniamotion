@@ -1439,6 +1439,7 @@
             <Enum value="6">Secondary BiSS-C / SSI slave 1</Enum>
             <Enum value="7">BiSS-C slave 2</Enum>
             <Enum value="8">Incremental encoder 2</Enum>
+            <Enum value="10">Sincos encoder 1</Enum>
           </Enumerations>
         </Register>
         <Register access="rw" address_type="NVM_CFG" address="0x0361" dtype="u16" id="CL_POS_FBK_SENSOR" units="-" subnode="1" cyclic="CONFIG" desc="Selects the position feedback sensor" cat_id="FEEDBACK">
@@ -1453,6 +1454,7 @@
             <Enum value="6">Secondary BiSS-C / SSI slave 1</Enum>
             <Enum value="7">BiSS-C slave 2</Enum>
             <Enum value="8">Incremental encoder 2</Enum>
+            <Enum value="10">Sincos encoder 1</Enum>
           </Enumerations>
         </Register>
         <Register access="rw" address_type="NVM_CFG" address="0x0362" dtype="u16" id="CL_AUX_FBK_SENSOR" units="none" subnode="1" cyclic="CONFIG" desc="Indicates the sensor used for raw value reading" cat_id="FEEDBACK">
@@ -1466,6 +1468,7 @@
             <Enum value="6">Secondary BiSS-C / SSI slave 1</Enum>
             <Enum value="7">BiSS-C slave 2</Enum>
             <Enum value="8">Incremental encoder 2</Enum>
+            <Enum value="10">Sincos encoder 1</Enum>
           </Enumerations>
         </Register>
         <Register access="rw" address_type="NVM_CFG" address="0x0364" dtype="float" id="PROF_POS_VEL_RATIO" units="-" subnode="1" cyclic="CONFIG" desc="Ratio between revolutions in position sensor against revolutions in velocity sensor [revs in position sensor / revs in velocity sensor]&#13;&#10;&#13;&#10;For instance, if 1 revolution at the position sensor locations equals 50 revolutions where the velocity sensor is located, the ratio should be 1/50." cat_id="FEEDBACK">
@@ -1773,6 +1776,7 @@
             <Enum value="6">Secondary BiSS-C / SSI slave 1</Enum>
             <Enum value="7">Biss-C slave 2</Enum>
             <Enum value="8">Incremental encoder 2</Enum>
+            <Enum value="10">Sincos encoder 1</Enum>
           </Enumerations>
         </Register>
         <Register access="rw" address_type="NVM_CFG" address="0x0395" dtype="u16" id="FBK_BISS_CHAIN" units="-" subnode="1" cyclic="CONFIG" desc="Number of serial absolute feedbacks connected in daisy chain. There has to be at least one feedback connected" cat_id="FEEDBACK">
@@ -1976,6 +1980,65 @@
           <Labels>
             <Label lang="en_US">Current loop rate</Label>
           </Labels>
+        </Register>
+        <Register access="rw" address_type="NVM" address="0x0467"  dtype="u32" id="FBK_SINCOS_RESOLUTION" units="periods" subnode="1" cyclic="CONFIG" desc="Number of electric periods (or cycles) per mechanical revolution." cat_id="FEEDBACK">
+            <Labels>
+                <Label lang="en_US">SinCos encoder - Resolution</Label>
+            </Labels>
+        </Register>
+        <Register access="rw" address_type="NVM" address="0x0468"  dtype="u16" id="FBK_SINCOS_MULT_FACTOR" units="-" subnode="1" cyclic="CONFIG" desc="Indicates the interpolation factor applied to the SinCos feedback." cat_id="FEEDBACK">
+            <Labels>
+                <Label lang="en_US">SinCos encoder - Multiplier Factor</Label>
+            </Labels>
+        </Register>
+        <Register access="rw" address_type="NVM" address="0x0469"  dtype="u32" id="FBK_SINCOS_POLARITY" units="-" subnode="1" cyclic="CONFIG" desc="Indicates the polarity of rotation of the SinCos encoder sensor" cat_id="FEEDBACK">
+            <Labels>
+                <Label lang="en_US">SinCos encoder - Polarity</Label>
+            </Labels>
+            <Enumerations>
+                <Enum value="0">Standard</Enum>
+                <Enum value="1">Reversed</Enum>
+            </Enumerations>
+        </Register>
+        <Register access="r" address_type="NVM_NONE" address="0x046A"  dtype="s32" id="FBK_SINCOS_VALUE" units="cnt" subnode="1" cyclic="CYCLIC_TX" desc="Contains raw value read as a SinCos encoder." cat_id="FEEDBACK">
+            <Labels>
+                <Label lang="en_US">SinCos encoder - Coarse Value</Label>
+            </Labels>
+        </Register>
+        <Register access="rw" address_type="NVM" address="0x046B"  dtype="u16" id="FBK_SINCOS_FILTER" units="-" subnode="1" cyclic="CYCLIC_TX" desc="To Be Defined" cat_id="FEEDBACK">
+            <Labels>
+                <Label lang="en_US">SinCos encoder - Filter</Label>
+            </Labels>
+        </Register>
+        <Register access="r" address_type="NVM_NONE" address="0x046C"  dtype="float" id="FBK_SINCOS_SINE_VALUE" units="-" subnode="1" cyclic="CYCLIC_TX" desc="Contains sine value read from adc." cat_id="FEEDBACK">
+            <Labels>
+                <Label lang="en_US">SinCos encoder - Sinus Value</Label>
+            </Labels>
+        </Register>
+        <Register access="r" address_type="NVM_NONE" address="0x046D"  dtype="float" id="FBK_SINCOS_COSINE_VALUE" units="-" subnode="1" cyclic="CYCLIC_TX" desc="Contains cosine value read from adc." cat_id="FEEDBACK">
+            <Labels>
+                <Label lang="en_US">SinCos encoder - Cosinus Value</Label>
+            </Labels>
+        </Register>
+        <Register access="rw" address_type="NVM" address="0x0470"  dtype="float" id="FBK_SINCOS_SINE_GAIN" units="-" subnode="1" cyclic="CYCLIC_TX" desc="This register provides control to assign which is the gain of sine signal. A value of 65535 will represent a gain of 1" cat_id="FEEDBACK">
+            <Labels>
+                <Label lang="en_US">SinCos encoder - Sinus Gain</Label>
+            </Labels>
+        </Register>
+        <Register access="rw" address_type="NVM" address="0x0471"  dtype="float" id="FBK_SINCOS_COSINE_GAIN" units="-" subnode="1" cyclic="CYCLIC_TX" desc="This register provides control to assign which is the gain of cosine signal. A value of 65535 will represent a gain of 1" cat_id="FEEDBACK">
+            <Labels>
+                <Label lang="en_US">SinCos encoder - Cosinus Gain</Label>
+            </Labels>
+        </Register>
+        <Register access="rw" address_type="NVM" address="0x0473"  dtype="float" id="FBK_SINCOS_SINE_OFFSET" units="-" subnode="1" cyclic="CYCLIC_TX" desc="This register provides control to assign which is the offset of each sine signal amplitude. The value is expressed in counts of analog to digital converter." cat_id="FEEDBACK">
+            <Labels>
+                <Label lang="en_US">SinCos encoder - Sinus Offset</Label>
+            </Labels>
+        </Register>
+        <Register access="rw" address_type="NVM" address="0x0474"  dtype="float" id="FBK_SINCOS_COSINE_OFFSET" units="-" subnode="1" cyclic="CYCLIC_TX" desc="This register provides control to assign which is the offset of each cosine signal amplitude. The value is expressed in counts of analog to digital converter." cat_id="FEEDBACK">
+            <Labels>
+                <Label lang="en_US">SinCos encoder - Cosinus Offset</Label>
+            </Labels>
         </Register>
         <Register access="rw" address_type="NVM_CFG" address="0x04FF" dtype="u16" id="FBK_CUR_RANGE_SELECTION" units="-" subnode="1" cyclic="CONFIG" desc="Indicates the gain applied to current amplifier for readings." cat_id="LIMITS">
           <Labels>

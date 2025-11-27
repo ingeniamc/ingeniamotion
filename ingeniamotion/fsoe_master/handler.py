@@ -5,6 +5,7 @@ from random import randint
 from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union, cast, overload
 
 import ingenialogger
+from exceptiongroup import ExceptionGroup
 from ingenialink import RegDtype
 from ingenialink.canopen.register import CanopenRegister
 from ingenialink.dictionary import DictionarySafetyModule
@@ -463,16 +464,25 @@ class FSoEMasterHandler:
         Warnings:
             PDO Maps that are safe parameters are not written here.
             They are configured during configure_pdo_maps.
+
+        Raises:
+            ExceptionGroup: If errors occur while writing safety parameters.
         """
         pdu_map_registers = [
             *self.__master_map_object.registers,
             *self.__slave_map_object.registers,
         ]
+        exceptions: list[Exception] = []
         for param in self.safety_parameters.values():
             if param.register in pdu_map_registers:
                 # Are configured during configure_pdo_maps
                 continue
-            param.set_to_slave()
+            try:
+                param.set_to_slave()
+            except Exception as e:
+                exceptions.append(e)
+        if exceptions:
+            raise ExceptionGroup("Errors occurred while writing safety parameters", exceptions)
 
     def get_parameters_not_related_to_safety_functions(self) -> set[SafetyParameter]:
         """Get the safety parameters that are not related to any safety function.
