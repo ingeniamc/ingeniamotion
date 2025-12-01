@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, ClassVar, Optional, Union
 
 import ingenialogger
 from ingenialink.enums.register import RegDtype
@@ -25,7 +25,7 @@ class MonitoringV1(Monitoring):
     MONITORING_NUMBER_TRIGGER_REPETITIONS_REGISTER = "MON_CFG_TRIGGER_REPETITIONS"
     MONITOR_END_CONDITION_TYPE_REGISTER = "MON_CFG_EOC_TYPE"
 
-    EDGE_CONDITION_REGISTER = {
+    EDGE_CONDITION_REGISTER: ClassVar[dict[MonitoringSoCConfig, str]] = {
         MonitoringSoCConfig.TRIGGER_CONFIG_RISING: "MON_CFG_RISING_CONDITION",
         MonitoringSoCConfig.TRIGGER_CONFIG_FALLING: "MON_CFG_FALLING_CONDITION",
     }

@@ -1,5 +1,5 @@
 from enum import IntEnum
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, ClassVar, Optional
 
 import ingenialogger
 from typing_extensions import override
@@ -30,7 +30,7 @@ class STOTest(BaseTest[LegacyDictReportType]):
         NORMAL = 0
         REVERSED = 1
 
-    result_description = {
+    result_description: ClassVar[dict[ResultType, str]] = {
         ResultType.STO_INACTIVE: "STO Inactive",
         ResultType.STO_ACTIVE: "STO Active",
         ResultType.STO_ABNORMAL_LATCHED: "Abnormal STO Latched",
@@ -47,7 +47,7 @@ class STOTest(BaseTest[LegacyDictReportType]):
     STO_ABNORMAL_FAULT_BIT = 0x8
     STO_REPORT_BIT = 0x10
 
-    BACKUP_REGISTERS: list[str] = []
+    BACKUP_REGISTERS: ClassVar[list[str]] = []
 
     def __init__(
         self, mc: "MotionController", servo: str, axis: int, logger_drive_name: Optional[str] = None

@@ -1,6 +1,6 @@
 import math
 from enum import IntEnum
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, ClassVar, Optional
 
 import ingenialogger
 from typing_extensions import override
@@ -18,7 +18,7 @@ class DCFeedbacksResolutionTest(BaseTest[LegacyDictReportType]):
 
     MOVEMENT_ERROR_FACTOR = 0.05
     DEFAULT_PROFILE_MAX_VEL = 0.3
-    DEFAULT_VELOCITY_PID = {"kp": 0.1, "ki": 10, "kd": 0}
+    DEFAULT_VELOCITY_PID: ClassVar[dict[str, float]] = {"kp": 0.1, "ki": 10, "kd": 0}
     POSITION_TUNE_BW = 1
     MOVEMENT_EXTRA_TIME_FACTOR = 1.5
     MOVEMENT_TIMEOUT = MOVEMENT_EXTRA_TIME_FACTOR / DEFAULT_PROFILE_MAX_VEL
@@ -31,11 +31,11 @@ class DCFeedbacksResolutionTest(BaseTest[LegacyDictReportType]):
 
         SUCCESS = 0
 
-    result_description = {
+    result_description: ClassVar[dict[ResultType, str]] = {
         ResultType.SUCCESS: "Feedback resolution test has been executed",
     }
 
-    BACKUP_REGISTERS = [
+    BACKUP_REGISTERS: ClassVar[list[str]] = [
         "CL_POS_FBK_SENSOR",
         "CL_VEL_FBK_SENSOR",
         "CL_AUX_FBK_SENSOR",

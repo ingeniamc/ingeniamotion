@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, ClassVar, Optional, Union
 
 import ingenialogger
 from ingenialink.exceptions import ILError
@@ -20,7 +20,7 @@ class Brake(BaseTest[None]):  # type: ignore [type-var]
 
     PRIMARY_ABSOLUTE_SLAVE_1_PROTOCOL = "FBK_BISS1_SSI1_PROTOCOL"
 
-    BACKUP_REGISTERS = [
+    BACKUP_REGISTERS: ClassVar[list[str]] = [
         "MOT_BRAKE_OVERRIDE",
         "DRV_OP_CMD",
         "MOT_PAIR_POLES",

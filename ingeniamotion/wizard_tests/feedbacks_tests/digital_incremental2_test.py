@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, ClassVar, Optional
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
@@ -9,7 +9,7 @@ from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
 class DigitalIncremental2Test(Feedbacks):
     """Digital incremental 2 test class."""
 
-    BACKUP_REGISTERS_QEI2: list[str] = ["FBK_DIGENC2_POLARITY"]
+    BACKUP_REGISTERS_QEI2: ClassVar[list[str]] = ["FBK_DIGENC2_POLARITY"]
 
     FEEDBACK_POLARITY_REGISTER = "FBK_DIGENC2_POLARITY"
 
