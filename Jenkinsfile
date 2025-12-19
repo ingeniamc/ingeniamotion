@@ -1,4 +1,4 @@
-@Library('cicd-lib@0.16') _
+@Library('cicd-lib@082433e5c584906095151fa8faceb88bf3a45a03') _
 
 def SW_NODE = "windows-slave"
 def ECAT_NODE = "ecat-test"
@@ -93,32 +93,11 @@ def runPython(command, py_version = DEFAULT_PYTHON_VERSION) {
 
 def createVirtualEnvironments(String workingDir = null, String pythonVersionList = "") {
     def versions = pythonVersionList?.trim() ? pythonVersionList : RUN_PYTHON_VERSIONS
-    def pythonVersions = versions.split(',')
-    // Ensure DEFAULT_PYTHON_VERSION is included if not already present
-    if (!pythonVersions.contains(DEFAULT_PYTHON_VERSION)) {
-        pythonVersions = pythonVersions + [DEFAULT_PYTHON_VERSION]
+    def poetryDependenciesCmd = "poetry sync --all-groups"
+    if (!isUnix()) {
+        poetryDependenciesCmd += " --extras fsoe"
     }
-    pythonVersions.each { version ->
-        def venvName = ".venv${version}"
-        def cdCmd = workingDir ? "cd ${workingDir}" : ""
-        if (isUnix()) {
-            sh """
-                ${cdCmd}
-                python${version} -m venv --without-pip ${venvName}
-                . ${venvName}/bin/activate
-                poetry sync --all-groups
-                deactivate
-            """
-        } else {
-            bat """
-                ${cdCmd}
-                py -${version} -m venv ${venvName}
-                call ${venvName}/Scripts/activate
-                poetry sync --all-groups --extras fsoe
-                deactivate
-            """
-        }
-    }
+    setupPoetryVirtualEnvironment(poetryDependenciesCmd, versions, DEFAULT_PYTHON_VERSION, "", workingDir)
 }
 
 /* Build develop everyday 3 times starting at 19:00 UTC (21:00 Barcelona Time), running all python versions */
