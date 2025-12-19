@@ -112,7 +112,7 @@ pytest-rerunfailures = "==15.1"
 pytest-console-scripts = "==1.4.1"
 matplotlib = "==3.8.2"
 ingenialink = {extras = ["virtual_drive"], version = "7.5.2+pr669b36"}
-summit-testing-framework = {version = "==0.1.5+pr57b16"}
+summit-testing-framework = {version = "==0.1.5+pr58b12"}
 
 # -----------------------------------------------------------------------
 #                                   TASKS

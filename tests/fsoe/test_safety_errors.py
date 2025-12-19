@@ -16,7 +16,6 @@ except ImportError:
     pysoem = None
 
 if TYPE_CHECKING:
-    from ingenialink.ethercat.network import EthercatNetwork
     from ingenialink.ethercat.servo import EthercatServo
     from summit_testing_framework.setups.descriptors import DriveHwSetup
     from summit_testing_framework.setups.environment_control import DriveEnvironmentController
@@ -70,12 +69,10 @@ def test_get_error_with_id_not_in_dict() -> None:
 def test_no_errors(
     mcu_error_queue_a: "ServoErrorQueue",
     environment: "DriveEnvironmentController",
-    net: "EthercatNetwork",
 ) -> None:
     """Test methods when there are no errors"""
     # Clear any existing errors by power cycling
-    environment.power_cycle(wait_for_drives=True)
-    net.recover_from_disconnection()  # https://novantamotion.atlassian.net/browse/CIT-526
+    environment.power_cycle(wait_for_drives=True, reconnect_drives=True)
 
     assert mcu_error_queue_a.get_number_total_errors() == 0
 
@@ -91,12 +88,10 @@ def test_get_last_error_overtemp_error(
     servo: "EthercatServo",
     mcu_error_queue_a: "ServoErrorQueue",
     environment: "DriveEnvironmentController",
-    net: "EthercatNetwork",
 ) -> None:
     """Test getting the last error when there is an overtemperature error."""
     # Clear any existing errors by power cycling
-    environment.power_cycle(wait_for_drives=True)
-    net.recover_from_disconnection()  # https://novantamotion.atlassian.net/browse/CIT-526
+    environment.power_cycle(wait_for_drives=True, reconnect_drives=True)
 
     servo.write("FSOE_USER_OVER_TEMPERATURE", 0, subnode=1)
 
@@ -122,12 +117,10 @@ def test_get_last_error_invalid_map(
     mcu_error_queue_a: "ServoErrorQueue",
     mc_with_fsoe_with_sra_no_fail_on_errors: tuple["MotionController", "FSoEMasterHandler"],
     environment: "DriveEnvironmentController",
-    net: "EthercatNetwork",
     timeout_for_data_sra: float,
 ) -> None:
     """Test getting the last error when there is an invalid map error."""
-    environment.power_cycle(wait_for_drives=True)
-    net.recover_from_disconnection()  # https://novantamotion.atlassian.net/browse/CIT-526
+    environment.power_cycle(wait_for_drives=True, reconnect_drives=True)
 
     mc, handler = mc_with_fsoe_with_sra_no_fail_on_errors
 
@@ -165,8 +158,7 @@ def test_get_last_error_invalid_map(
         # Stop the master
         mc.fsoe.stop_master(stop_pdos=True)
         # Power cycle to clear the errors generated
-        environment.power_cycle(wait_for_drives=True)
-        net.recover_from_disconnection()  # https://novantamotion.atlassian.net/browse/CIT-526
+        environment.power_cycle(wait_for_drives=True, reconnect_drives=True)
 
 
 @pytest.mark.fsoe_phase2
