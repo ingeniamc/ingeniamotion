@@ -1,4 +1,4 @@
-@Library('cicd-lib@826edb68862927c4433c6878f0816810e28f81e7') _
+@Library('cicd-lib@78cd5a5078d25bded6951f52f1c41d26bb8fa49c') _
 
 def SW_NODE = "windows-slave"
 def ECAT_NODE = "ecat-test"
