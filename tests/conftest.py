@@ -63,9 +63,10 @@ def pytest_configure(config):  # noqa: ARG001
 
 
 @pytest.fixture
-@pytest.mark.usefixtures("skip_if_monitoring_not_available")
 def disable_monitoring_disturbance(
-    mc: "MotionController", alias: str
+    skip_if_monitoring_not_available: None,  # noqa: ARG001
+    mc: "MotionController",
+    alias: str,
 ) -> Generator[None, None, None]:
     yield
     mc.capture.clean_monitoring_disturbance(servo=alias)
