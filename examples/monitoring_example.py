@@ -1,10 +1,11 @@
 import argparse
 import logging
-import numpy as np
+
 import matplotlib.pyplot as plt
+import numpy as np
 
 from ingeniamotion import MotionController
-from ingeniamotion.enums import MonitoringSoCType, MonitoringSoCConfig
+from ingeniamotion.enums import MonitoringSoCType
 
 logging.basicConfig(level=logging.DEBUG)
 logging.getLogger("matplotlib.font_manager").disabled = True
@@ -74,6 +75,7 @@ def main(args):
         plt.show()
     plt.show()
 
+    mc.capture.disable_monitoring()
     mc.communication.disconnect()
 
 

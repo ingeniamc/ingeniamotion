@@ -2,7 +2,7 @@ import logging
 import time
 from collections.abc import Generator, Iterator
 from pathlib import Path
-from typing import Callable, Optional, Union
+from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import numpy as np
 import pytest
@@ -15,6 +15,8 @@ from summit_testing_framework.setups.descriptors import (
 )
 from summit_testing_framework.setups.specifiers import SetupSpecifier, VirtualDriveSpecifier
 
+if TYPE_CHECKING:
+    from ingeniamotion.motion_controller import MotionController
 pytest_plugins = [
     "summit_testing_framework.pytest_addoptions",
     "summit_testing_framework.setup_fixtures",
@@ -61,13 +63,16 @@ def pytest_configure(config):  # noqa: ARG001
 
 
 @pytest.fixture
-def disable_monitoring_disturbance(skip_if_monitoring_not_available, mc, alias):  # noqa: ARG001
+@pytest.mark.usefixtures("skip_if_monitoring_not_available")
+def disable_monitoring_disturbance(
+    mc: "MotionController", alias: str
+) -> Generator[None, None, None]:
     yield
     mc.capture.clean_monitoring_disturbance(servo=alias)
 
 
-@pytest.fixture()
-def skip_if_monitoring_not_available(mc, alias):
+@pytest.fixture
+def skip_if_monitoring_not_available(mc: "MotionController", alias: str) -> None:
     try:
         mc.capture._check_version(alias)
     except NotImplementedError:

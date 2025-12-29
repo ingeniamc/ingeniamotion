@@ -1,6 +1,6 @@
+import argparse
 import math
 import time
-import argparse
 
 from ingeniamotion import MotionController
 from ingeniamotion.enums import OperationMode
@@ -45,6 +45,7 @@ def main(args):
     mc.motion.motor_disable()
     # Disable disturbance
     mc.capture.clean_disturbance()
+    mc.capture.disable_disturbance()
     mc.communication.disconnect()
 
 
