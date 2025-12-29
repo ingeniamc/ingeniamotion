@@ -56,38 +56,32 @@ def runTest(run_identifier, markers, setup_name, extra_args = "", useWireshark =
                 withEnv(envVars) {
                     try {
                         def cdCmd = workingDir ? "cd ${workingDir}" : ""
+                        def testArgs = [
+                            "--import-mode=importlib",
+                            "--cov=ingeniamotion",
+                            "--junitxml=pytest_reports/junit-tests-${version}.xml",
+                            "--junit-prefix=${version}",
+                            "-m \"${markers}\"",
+                            "--setup ${setup_name}",
+                            "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\"",
+                            "--tb=long",
+                            "-o log_cli=True",
+                            extra_args
+                        ].findAll { it }.join(" ")
+                        
                         if (isUnix()) {
                             sh """
                                 ${cdCmd}
                                 . .venv${version}/bin/activate
-                                poetry run poe tests \\
-                                    --import-mode=importlib \\
-                                    --cov=ingeniamotion \\
-                                    --junitxml=pytest_reports/junit-tests-${version}.xml \\
-                                    --junit-prefix=${version} \\
-                                    -m \"${markers}\" \\
-                                    --setup ${setup_name} \\
-                                    --job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\" \\
-                                    --tb=long \\
-                                    --log-cli=True \\
-                                    ${extra_args}
+                                poetry run poe tests ${testArgs}
                                 deactivate
                             """
                         } else {
                             bat """
                                 ${cdCmd}
                                 call .venv${version}/Scripts/activate
-                                poetry run poe tests ^
-                                    --import-mode=importlib ^
-                                    --cov=ingeniamotion ^
-                                    --junitxml=pytest_reports/junit-tests-${version}.xml ^
-                                    --junit-prefix=${version} ^
-                                    -m \"${markers}\" ^
-                                    --setup ${setup_name} ^
-                                    --job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\" ^
-                                    --tb=long ^
-                                    --log-cli=True ^
-                                    ${extra_args}
+                                poetry run poe tests ${testArgs}
+                                deactivate
                             """
                         }
                     } catch (err) {
