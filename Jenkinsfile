@@ -68,6 +68,8 @@ def runTest(run_identifier, markers, setup_name, extra_args = "", useWireshark =
                                     -m \"${markers}\" \\
                                     --setup ${setup_name} \\
                                     --job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\" \\
+                                    --tb=long \\
+                                    --log-cli=True \\
                                     ${extra_args}
                                 deactivate
                             """
@@ -83,6 +85,8 @@ def runTest(run_identifier, markers, setup_name, extra_args = "", useWireshark =
                                     -m \"${markers}\" ^
                                     --setup ${setup_name} ^
                                     --job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\" ^
+                                    --tb=long ^
+                                    --log-cli=True ^
                                     ${extra_args}
                             """
                         }
