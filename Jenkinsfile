@@ -117,12 +117,19 @@ def runTest(run_identifier, markers, setup_name, extra_args = "", useWireshark =
                         
                         // Save the coverage so it can be unified and published later
                         def coverage_stash = ".coverage_${run_identifier}_${version}"
-                        def coverage_src = workingDir ? "${workingDir}/.coverage" : ".coverage"
                         
                         if (isUnix()) {
-                            sh "mv ${coverage_src} ${coverage_stash} 2>/dev/null || true"
+                            if (workingDir) {
+                                sh "cp ${workingDir}/.coverage ${coverage_stash} 2>/dev/null || true"
+                            } else {
+                                sh "mv .coverage ${coverage_stash} 2>/dev/null || true"
+                            }
                         } else {
-                            bat "move ${coverage_src} ${coverage_stash} 2>nul || exit /b 0"
+                            if (workingDir) {
+                                bat "move ${workingDir}\\.coverage ${coverage_stash} 2>nul || exit /b 0"
+                            } else {
+                                bat "move .coverage ${coverage_stash} 2>nul || exit /b 0"
+                            }
                         }
                         
                         stash includes: coverage_stash, name: coverage_stash, allowEmpty: true
