@@ -45,7 +45,6 @@ def main(args):
     mc.motion.motor_disable()
     # Disable disturbance
     mc.capture.clean_disturbance()
-    mc.capture.disable_disturbance()
     mc.communication.disconnect()
 
 

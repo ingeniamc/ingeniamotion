@@ -6,14 +6,7 @@ from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import numpy as np
 import pytest
-from pytest import FixtureRequest
 from summit_testing_framework import dynamic_loader
-from summit_testing_framework.setups.descriptors import (
-    DriveHwSetup,
-    EthercatMultiSlaveSetup,
-    SetupDescriptor,
-)
-from summit_testing_framework.setups.specifiers import SetupSpecifier, VirtualDriveSpecifier
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -161,46 +154,3 @@ def timeout_loop(
 
         yield iteration
         iteration += 1
-
-
-# https://novantamotion.atlassian.net/browse/INGM-640
-@pytest.fixture(scope="module", autouse=True)
-def load_configuration_after_each_module(request: FixtureRequest) -> Generator[None, None, None]:
-    """Loads the drive configuration.
-
-    Args:
-        request: request.
-
-    Raises:
-        ValueError: if the configuration cannot be loaded for the descriptor.
-    """
-    try:
-        setup_specifier: SetupSpecifier = request.getfixturevalue("setup_specifier")
-        run_fixture = not isinstance(setup_specifier, VirtualDriveSpecifier)
-    except Exception:
-        run_fixture = False
-    if run_fixture:
-        try:
-            setup_descriptor: SetupDescriptor = request.getfixturevalue("setup_descriptor")
-            alias = request.getfixturevalue("alias")
-            mc = request.getfixturevalue("_motion_controller_creator")
-        # If servo is not connected
-        except Exception:
-            run_fixture = False
-
-    yield
-    if not run_fixture:
-        return
-
-    if not isinstance(setup_descriptor, (DriveHwSetup, EthercatMultiSlaveSetup)):
-        raise ValueError(f"Configuration cannot be loaded for {setup_descriptor=}")
-    aliases = [alias] if isinstance(alias, str) else alias
-    descriptors = (
-        setup_descriptor.drives
-        if isinstance(setup_descriptor, EthercatMultiSlaveSetup)
-        else [setup_descriptor]
-    )
-    for eval_alias, descriptor in zip(aliases, descriptors):
-        mc.motion.motor_disable(servo=eval_alias)
-        if descriptor.config_file is not None:
-            mc.configuration.load_configuration(descriptor.config_file.as_posix(), servo=eval_alias)
