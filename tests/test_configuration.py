@@ -1,4 +1,5 @@
 import os
+from typing import TYPE_CHECKING
 
 import pytest
 from ingenialink import CanBaudrate
@@ -13,6 +14,9 @@ from ingeniamotion.enums import (
     STOAbnormalLatchedStatus,
 )
 from ingeniamotion.exceptions import IMError
+
+if TYPE_CHECKING:
+    from ingeniamotion.motion_controller import MotionController
 
 BRAKE_OVERRIDE_REGISTER = "MOT_BRAKE_OVERRIDE"
 POSITION_SET_POINT_REGISTER = "CL_POS_SET_POINT_VALUE"
@@ -214,9 +218,8 @@ def test_get_power_stage_frequency_enum(mc, alias):
 
 @pytest.mark.virtual
 @pytest.mark.parametrize("input_value", [0, 1, 2, 3])
-def test_set_power_stage_frequency(motion_controller_teardown, alias, input_value):
+def test_set_power_stage_frequency(mc: "MotionController", alias: str, input_value: int) -> None:
     input_value = 0
-    mc = motion_controller_teardown
     mc.configuration.set_power_stage_frequency(input_value, servo=alias)
     output_value = mc.communication.get_register(
         POWER_STAGE_FREQUENCY_SELECTION_REGISTER, servo=alias
@@ -314,23 +317,22 @@ def test_set_generator_mode(mc, alias):
 
 
 @pytest.mark.virtual
-def test_set_motor_pair_poles(motion_controller_teardown, alias):
+def test_set_motor_pair_poles(mc: "MotionController", alias: str) -> None:
     input_value = 0
-    mc = motion_controller_teardown
     mc.configuration.set_motor_pair_poles(input_value, servo=alias)
     output_value = mc.communication.get_register(MOTOR_POLE_PAIRS_REGISTER, servo=alias)
     assert pytest.approx(input_value) == output_value
 
 
 @pytest.mark.virtual
-def test_get_motor_pair_poles(mc, alias):
+def test_get_motor_pair_poles(mc: "MotionController", alias: str) -> None:
     test_value = mc.configuration.get_motor_pair_poles(servo=alias)
     reg_value = mc.communication.get_register(MOTOR_POLE_PAIRS_REGISTER, servo=alias)
     assert test_value == reg_value
 
 
 @pytest.mark.virtual
-def test_get_sto_status(mc, alias):
+def test_get_sto_status(mc: "MotionController", alias: str) -> None:
     test_value = mc.configuration.get_sto_status(servo=alias)
     reg_value = mc.communication.get_register(STO_STATUS_REGISTER, servo=alias)
     assert test_value == reg_value
@@ -567,8 +569,7 @@ def test_change_node_id_exception(mc, alias):
 
 
 @pytest.mark.virtual
-def test_set_velocity_pid(motion_controller_teardown, alias):
-    mc = motion_controller_teardown
+def test_set_velocity_pid(mc: "MotionController", alias: str) -> None:
     kp_test = 1
     ki_test = 2
     kd_test = 3
@@ -582,8 +583,7 @@ def test_set_velocity_pid(motion_controller_teardown, alias):
 
 
 @pytest.mark.virtual
-def test_set_position_pid(motion_controller_teardown, alias):
-    mc = motion_controller_teardown
+def test_set_position_pid(mc: "MotionController", alias: str) -> None:
     kp_test = 1
     ki_test = 2
     kd_test = 3

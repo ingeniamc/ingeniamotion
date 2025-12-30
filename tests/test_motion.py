@@ -1,5 +1,5 @@
 import time
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import pytest
@@ -9,6 +9,12 @@ from ingeniamotion.enums import OperationMode
 from ingeniamotion.exceptions import IMTimeoutError
 from ingeniamotion.motion import Motion
 from tests.conftest import mean_actual_velocity_position
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
+
+    from ingeniamotion.motion_controller import MotionController
+
 
 POS_PID_KP_VALUE = 0.1
 POSITION_PERCENTAGE_ERROR_ALLOWED = 5
@@ -108,9 +114,13 @@ def test_motor_enable(mc, alias):
     ],
 )
 def test_motor_enable_with_fault(
-    motion_controller_teardown, alias, uid, value, exception_type, message
-):
-    mc = motion_controller_teardown
+    mc: "MotionController",
+    alias: str,
+    uid: str,
+    value: int,
+    exception_type: Exception,
+    message: str,
+) -> None:
     mc.communication.set_register(uid, value, alias)
     with pytest.raises(exception_type) as excinfo:
         mc.motion.motor_enable(servo=alias)
@@ -140,9 +150,15 @@ def test_motor_enable_with_fault(
     ],
 )
 def test_motor_enable_with_delayed_fault(
-    mocker, motion_controller_teardown, alias, uid, value, exception_type, message, timeout
+    mocker: "MockerFixture",
+    mc: "MotionController",
+    alias: str,
+    uid: str,
+    value: int,
+    exception_type: Exception,
+    message: str,
+    timeout: int,
 ):
-    mc = motion_controller_teardown
     # Mock function response with delay
     num_errors_before_test = mc.errors.get_number_total_errors(servo=alias, axis=1)
     patch_get_number_total_errors = mocker.patch(
@@ -172,11 +188,10 @@ def test_motor_disable(mc, alias, enable_motor):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-def test_motor_disable_with_fault(motion_controller_teardown, alias):
+def test_motor_disable_with_fault(mc: "MotionController", alias: str) -> None:
     uid = "DRV_PROT_USER_UNDER_VOLT"
     value = 100
     exception_type = exceptions.ILError
-    mc = motion_controller_teardown
     mc.communication.set_register(uid, value, alias)
     with pytest.raises(exception_type):
         mc.motion.motor_enable(servo=alias)
@@ -187,8 +202,7 @@ def test_motor_disable_with_fault(motion_controller_teardown, alias):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-def test_fault_reset(motion_controller_teardown, alias):
-    mc = motion_controller_teardown
+def test_fault_reset(mc: "MotionController", alias: str) -> None:
     uid = "DRV_PROT_USER_UNDER_VOLT"
     value = 100
     mc.communication.set_register(uid, value, alias)
@@ -379,8 +393,9 @@ def test_wait_for_function_timeout(mc, alias, function):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("op_mode", [OperationMode.VOLTAGE, OperationMode.CURRENT])
-def test_set_internal_generator_configuration(motion_controller_teardown, alias, op_mode):
-    mc = motion_controller_teardown
+def test_set_internal_generator_configuration(
+    mc: "MotionController", alias: str, op_mode: "OperationMode"
+) -> None:
     mc.motion.set_internal_generator_configuration(op_mode, servo=alias)
     assert op_mode == mc.motion.get_operation_mode(servo=alias)
     assert mc.configuration.get_motor_pair_poles(servo=alias) == 1
@@ -391,8 +406,9 @@ def test_set_internal_generator_configuration(motion_controller_teardown, alias,
 @pytest.mark.canopen
 @pytest.mark.parametrize("op_mode", [OperationMode.VOLTAGE, OperationMode.CURRENT])
 @pytest.mark.parametrize("direction", [-1, 1])
-def test_internal_generator_saw_tooth_move(motion_controller_teardown, alias, op_mode, direction):
-    mc = motion_controller_teardown
+def test_internal_generator_saw_tooth_move(
+    mc: "MotionController", alias: str, op_mode: "OperationMode", direction: int
+) -> None:
     pair_poles = mc.configuration.get_motor_pair_poles(servo=alias)
     pos_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
     mc.motion.set_internal_generator_configuration(op_mode, servo=alias)
@@ -419,8 +435,9 @@ def test_internal_generator_saw_tooth_move(motion_controller_teardown, alias, op
 @pytest.mark.canopen
 @pytest.mark.parametrize("op_mode", [OperationMode.VOLTAGE, OperationMode.CURRENT])
 @pytest.mark.parametrize("direction", [-1, 1])
-def test_internal_generator_constant_move(motion_controller_teardown, alias, op_mode, direction):
-    mc = motion_controller_teardown
+def test_internal_generator_constant_move(
+    mc: "MotionController", alias: str, op_mode: "OperationMode", direction: int
+) -> None:
     pair_poles = mc.configuration.get_motor_pair_poles(servo=alias)
     pos_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
     cycle_pos = pos_resolution / pair_poles
