@@ -45,6 +45,8 @@ def archiveWiresharkLogs() {
 
 def runTest(run_identifier, markers, setup_name, extra_args = "", useWireshark = false, workingDir = null) {
     def withWiresharkEnv = useWireshark
+    // Automatically add USE_WIRESHARK_LOGGING to extra_args when useWireshark is true
+    def effectiveExtraArgs = useWireshark ? "${USE_WIRESHARK_LOGGING} ${extra_args}".trim() : extra_args
     try {
         timeout(time: 1, unit: 'HOURS') {
             def pythonVersions = RUN_PYTHON_VERSIONS.split(',')
@@ -66,7 +68,7 @@ def runTest(run_identifier, markers, setup_name, extra_args = "", useWireshark =
                             "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\"",
                             "--tb=long",
                             "-o log_cli=True",
-                            extra_args
+                            effectiveExtraArgs
                         ].findAll { it }.join(" ")
                         
                         if (isUnix()) {
@@ -476,7 +478,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTest("ethernet_everest", "ethernet", "tests.setups.rack_specifiers.ETH_EVE_SETUP", USE_WIRESHARK_LOGGING, true)
+                                runTest("ethernet_everest", "ethernet", "tests.setups.rack_specifiers.ETH_EVE_SETUP", "", true)
                             }
                         }
                         stage("CanOpen Capitan") {
@@ -495,7 +497,7 @@ pipeline {
                                 expression { false }
                             }
                             steps {
-                                runTest("ethernet_capitan", "ethernet", "tests.setups.rack_specifiers.ETH_CAP_SETUP", USE_WIRESHARK_LOGGING, true)
+                                runTest("ethernet_capitan", "ethernet", "tests.setups.rack_specifiers.ETH_CAP_SETUP", "", true)
                             }
                         }
                     }
@@ -540,7 +542,7 @@ pipeline {
                                 expression { false }
                             }
                             steps {
-                                runTest("ethercat_everest", "soem", "tests.setups.rack_specifiers.ECAT_EVE_SETUP", USE_WIRESHARK_LOGGING, true)
+                                runTest("ethercat_everest", "soem", "tests.setups.rack_specifiers.ECAT_EVE_SETUP", "", true)
                             }
                         }
                         stage("Ethercat Capitan") {
@@ -550,7 +552,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTest("ethercat_capitan", "soem", "tests.setups.rack_specifiers.ECAT_CAP_SETUP", USE_WIRESHARK_LOGGING, true)
+                                runTest("ethercat_capitan", "soem", "tests.setups.rack_specifiers.ECAT_CAP_SETUP", "", true)
                             }
                         }
                         stage("Safety Denali Phase I") {
@@ -560,7 +562,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTest("fsoe_phase1", "fsoe", "tests.setups.rack_specifiers.ECAT_DEN_S_PHASE1_SETUP", USE_WIRESHARK_LOGGING, true)
+                                runTest("fsoe_phase1", "fsoe", "tests.setups.rack_specifiers.ECAT_DEN_S_PHASE1_SETUP", "", true)
                             }
                         }
                         stage("Safety Denali Phase II") {
@@ -570,7 +572,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTest("fsoe_phase2", "fsoe or fsoe_phase2", "tests.setups.rack_specifiers.ECAT_DEN_S_PHASE2_SETUP", USE_WIRESHARK_LOGGING, true)
+                                runTest("fsoe_phase2", "fsoe or fsoe_phase2", "tests.setups.rack_specifiers.ECAT_DEN_S_PHASE2_SETUP", "", true)
                             }
                         }
                         stage("Ethercat Multislave") {
@@ -580,7 +582,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTest("ethercat_multislave", "soem_multislave", "tests.setups.rack_specifiers.ECAT_MULTISLAVE_SETUP", USE_WIRESHARK_LOGGING, true)
+                                runTest("ethercat_multislave", "soem_multislave", "tests.setups.rack_specifiers.ECAT_MULTISLAVE_SETUP", "", true)
                             }
                         }
                     }
