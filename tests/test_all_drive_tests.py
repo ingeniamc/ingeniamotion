@@ -1,6 +1,7 @@
 import contextlib
 import time
 from threading import Thread
+from typing import TYPE_CHECKING
 
 import pytest
 from ingenialink import exceptions
@@ -20,6 +21,9 @@ from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental2_test import
 from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import SecondarySSITest
 from ingeniamotion.wizard_tests.phase_calibration import Phasing
 from ingeniamotion.wizard_tests.phasing_check import PhasingCheck
+
+if TYPE_CHECKING:
+    from ingeniamotion.motion_controller import MotionController
 
 CURRENT_QUADRATURE_SET_POINT_REGISTER = "CL_CUR_Q_SET_POINT"
 RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
@@ -137,8 +141,7 @@ def test_secondary_ssi_test(mc, alias, feedback_list):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-def test_commutation(alias, motion_controller_teardown):
-    mc = motion_controller_teardown
+def test_commutation(alias: str, mc: "MotionController") -> None:
     results = mc.tests.commutation(servo=alias)
     assert results["result_severity"] == SeverityLevel.SUCCESS
 
