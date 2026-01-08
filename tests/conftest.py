@@ -2,19 +2,14 @@ import logging
 import time
 from collections.abc import Generator, Iterator
 from pathlib import Path
-from typing import Callable, Optional, Union
+from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import numpy as np
 import pytest
-from pytest import FixtureRequest
 from summit_testing_framework import dynamic_loader
-from summit_testing_framework.setups.descriptors import (
-    DriveHwSetup,
-    EthercatMultiSlaveSetup,
-    SetupDescriptor,
-)
-from summit_testing_framework.setups.specifiers import SetupSpecifier, VirtualDriveSpecifier
 
+if TYPE_CHECKING:
+    from ingeniamotion.motion_controller import MotionController
 pytest_plugins = [
     "summit_testing_framework.pytest_addoptions",
     "summit_testing_framework.setup_fixtures",
@@ -61,13 +56,17 @@ def pytest_configure(config):  # noqa: ARG001
 
 
 @pytest.fixture
-def disable_monitoring_disturbance(skip_if_monitoring_not_available, mc, alias):  # noqa: ARG001
+def disable_monitoring_disturbance(
+    skip_if_monitoring_not_available: None,  # noqa: ARG001
+    mc: "MotionController",
+    alias: str,
+) -> Generator[None, None, None]:
     yield
     mc.capture.clean_monitoring_disturbance(servo=alias)
 
 
-@pytest.fixture()
-def skip_if_monitoring_not_available(mc, alias):
+@pytest.fixture
+def skip_if_monitoring_not_available(mc: "MotionController", alias: str) -> None:
     try:
         mc.capture._check_version(alias)
     except NotImplementedError:
@@ -155,83 +154,3 @@ def timeout_loop(
 
         yield iteration
         iteration += 1
-
-
-# https://novantamotion.atlassian.net/browse/INGM-640
-@pytest.fixture(scope="module", autouse=True)
-def load_configuration_after_each_module(request: FixtureRequest) -> Generator[None, None, None]:
-    """Loads the drive configuration.
-
-    Args:
-        request: request.
-
-    Raises:
-        ValueError: if the configuration cannot be loaded for the descriptor.
-    """
-    try:
-        setup_specifier: SetupSpecifier = request.getfixturevalue("setup_specifier")
-        run_fixture = not isinstance(setup_specifier, VirtualDriveSpecifier)
-    except Exception:
-        run_fixture = False
-    if run_fixture:
-        try:
-            setup_descriptor: SetupDescriptor = request.getfixturevalue("setup_descriptor")
-            alias = request.getfixturevalue("alias")
-            mc = request.getfixturevalue("_motion_controller_creator")
-        # If servo is not connected
-        except Exception:
-            run_fixture = False
-
-    yield
-    if not run_fixture:
-        return
-
-    if not isinstance(setup_descriptor, (DriveHwSetup, EthercatMultiSlaveSetup)):
-        raise ValueError(f"Configuration cannot be loaded for {setup_descriptor=}")
-    aliases = [alias] if isinstance(alias, str) else alias
-    descriptors = (
-        setup_descriptor.drives
-        if isinstance(setup_descriptor, EthercatMultiSlaveSetup)
-        else [setup_descriptor]
-    )
-    for eval_alias, descriptor in zip(aliases, descriptors):
-        mc.motion.motor_disable(servo=eval_alias)
-        if descriptor.config_file is not None:
-            mc.configuration.load_configuration(descriptor.config_file.as_posix(), servo=eval_alias)
-
-
-# https://novantamotion.atlassian.net/browse/INGM-640
-@pytest.fixture(autouse=True)
-def disable_motor_fixture(request: FixtureRequest) -> Generator[None, None, None]:
-    """Disables the motor on pytest session end.
-
-    Args:
-        request: request.
-
-    Raises:
-        ValueError: if the motor cannot be disabled for the setup descriptor.
-    """
-    try:
-        setup_specifier: SetupSpecifier = request.getfixturevalue("setup_specifier")
-        run_fixture = not isinstance(setup_specifier, VirtualDriveSpecifier)
-    except Exception:
-        run_fixture = False
-    if run_fixture:
-        try:
-            setup_descriptor: SetupDescriptor = request.getfixturevalue("setup_descriptor")
-            alias = request.getfixturevalue("alias")
-            mc = request.getfixturevalue("_motion_controller_creator")
-        # If servo is not connected
-        except Exception:
-            run_fixture = False
-
-    yield
-    if not run_fixture:
-        return
-
-    if not isinstance(setup_descriptor, (DriveHwSetup, EthercatMultiSlaveSetup)):
-        raise ValueError(f"Cannot disable motor for {setup_descriptor=}")
-    aliases = [alias] if isinstance(alias, str) else alias
-    for eval_alias in aliases:
-        mc.motion.motor_disable(servo=eval_alias)
-        mc.motion.fault_reset(servo=eval_alias)
