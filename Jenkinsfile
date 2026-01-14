@@ -263,7 +263,7 @@ pipeline {
                     }
                     agent {
                         docker {
-                            label "worker"
+                            label "lin-worker"
                             image LIN_DOCKER_IMAGE
                             args '-u root:root'
                         }
@@ -390,7 +390,7 @@ pipeline {
                                 branch BRANCH_NAME_MASTER
                             }
                             agent {
-                                label "worker"
+                                label "lin-worker"
                             }
                             steps {
                                 unstash 'docs'
@@ -401,7 +401,7 @@ pipeline {
                         stage('Publish wheels') {
                             agent {
                                 docker {
-                                    label 'worker'
+                                    label 'lin-worker'
                                     image "ingeniacontainers.azurecr.io/publisher:1.8"
                                 }
                             }
