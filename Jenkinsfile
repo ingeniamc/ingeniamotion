@@ -68,6 +68,7 @@ def runTest(run_identifier, markers, setup_name, extra_args = "", useWireshark =
                             "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\"",
                             "--tb=long",
                             "-o log_cli=True",
+                            "--enable_firmware_version_check",
                             effectiveExtraArgs
                         ].findAll { it }.join(" ")
                         

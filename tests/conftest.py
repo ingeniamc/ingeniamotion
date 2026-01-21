@@ -7,6 +7,9 @@ from typing import TYPE_CHECKING, Callable, Optional, Union
 import numpy as np
 import pytest
 from summit_testing_framework import dynamic_loader
+from summit_testing_framework.pytest_helpers.marker_helper import (
+    apply_firmware_version_markers_to_items,
+)
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -53,6 +56,23 @@ def pytest_sessionstart(session):
 def pytest_configure(config):  # noqa: ARG001
     # https://novantamotion.atlassian.net/browse/INGM-627
     logging.getLogger("ingenialink.ethercat.servo").addFilter(SuppressSpecificLogs())
+
+
+def pytest_collection_modifyitems(
+    session: pytest.Session,  # noqa: ARG001
+    config: pytest.Config,
+    items: list[pytest.Item],
+) -> None:
+    """Modifies collected tests to skip those that do not meet firmware version restrictions.
+
+    Only runs if --enable_firmware_version_check is passed.
+
+    Args:
+        session: pytest session.
+        config: pytest configuration.
+        items: collected test items.
+    """
+    apply_firmware_version_markers_to_items(config=config, items=items)
 
 
 @pytest.fixture
