@@ -77,20 +77,11 @@ def pytest_collection_modifyitems(
 
 @pytest.fixture
 def disable_monitoring_disturbance(
-    skip_if_monitoring_not_available: None,  # noqa: ARG001
     mc: "MotionController",
     alias: str,
 ) -> Generator[None, None, None]:
     yield
     mc.capture.clean_monitoring_disturbance(servo=alias)
-
-
-@pytest.fixture
-def skip_if_monitoring_not_available(mc: "MotionController", alias: str) -> None:
-    try:
-        mc.capture._check_version(alias)
-    except NotImplementedError:
-        pytest.skip("Monitoring is not available")
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)

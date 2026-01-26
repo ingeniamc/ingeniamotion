@@ -5,12 +5,12 @@ from ingeniamotion.exceptions import IMDisturbanceError
 
 
 @pytest.fixture
-def disturbance_map_registers(disturbance, skip_if_monitoring_not_available):  # noqa: ARG001
+def disturbance_map_registers(disturbance):
     disturbance.map_registers([{"axis": 1, "name": "CL_TOR_SET_POINT_VALUE"}])
 
 
 @pytest.fixture
-def disturbance(mc, alias, skip_if_monitoring_not_available):  # noqa: ARG001
+def disturbance(mc, alias):
     return Disturbance(mc, alias)
 
 

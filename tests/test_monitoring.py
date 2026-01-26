@@ -3,6 +3,7 @@ from functools import partial
 from threading import Thread
 
 import pytest
+from ingenialink.dictionary import Interface
 
 from ingeniamotion.enums import MonitoringSoCConfig, MonitoringSoCType
 from ingeniamotion.exceptions import IMMonitoringError
@@ -24,17 +25,17 @@ class ThreadWithReturnValue(Thread):
 
 
 @pytest.fixture
-def monitoring(skip_if_monitoring_not_available, mc, alias):  # noqa: ARG001
+def monitoring(mc, alias):
     return mc.capture.create_empty_monitoring(alias)
 
 
 @pytest.fixture
-def mon_set_freq(skip_if_monitoring_not_available, monitoring):  # noqa: ARG001
+def mon_set_freq(monitoring):
     monitoring.set_frequency(10)
 
 
 @pytest.fixture
-def mon_map_registers(skip_if_monitoring_not_available, monitoring):  # noqa: ARG001
+def mon_map_registers(monitoring):
     monitoring.map_registers([{"axis": 1, "name": "CL_POS_FBK_VALUE"}])
 
 
@@ -293,7 +294,9 @@ def test_configure_sample_time_exception(monitoring, total_time, sign):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.usefixtures("skip_if_monitoring_not_available")
+@pytest.mark.not_valid_for_product(
+    part_number="EVE-XCR-E", interfaces=[Interface.ECAT, Interface.CAN]
+)
 def test_enable_monitoring_no_mapped_registers(mc, alias):
     mc.capture.clean_monitoring(alias)
     with pytest.raises(IMMonitoringError) as exc:
@@ -412,7 +415,9 @@ def test_stop_reading_data(mc, alias, monitoring):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("skip_if_monitoring_not_available")
+@pytest.mark.not_valid_for_product(
+    part_number="EVE-XCR-E", interfaces=[Interface.ECAT, Interface.CAN]
+)
 def test_monitoring_max_sample_size(mc, alias):
     target_register = mc.capture.MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER
     axis = 0
