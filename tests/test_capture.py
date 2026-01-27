@@ -53,9 +53,10 @@ def test_create_poller(mc, alias):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("disable_monitoring_disturbance")
-@pytest.mark.not_valid_for_product(
-    part_number="EVE-XCR-E", interfaces=[Interface.ECAT, Interface.CAN]
-)
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])
+@pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])
+@pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])
 def test_create_monitoring_no_trigger(mc, alias):
     registers = [{"name": "CL_POS_REF_VALUE", "axis": 1}]
     mc.motion.set_operation_mode(OperationMode.VELOCITY, alias)
@@ -88,9 +89,10 @@ def test_create_monitoring_no_trigger(mc, alias):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.not_valid_for_product(
-    part_number="EVE-XCR-E", interfaces=[Interface.ECAT, Interface.CAN]
-)
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])
+@pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])
+@pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])
 @pytest.mark.usefixtures("disable_monitoring_disturbance")
 @pytest.mark.parametrize(
     "trigger_mode, trigger_config, values_list",
@@ -158,9 +160,10 @@ def test_create_monitoring_edge_trigger(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("trigger_delay_rate", [-1 / 4, 1 / 4])
-@pytest.mark.not_valid_for_product(
-    part_number="EVE-XCR-E", interfaces=[Interface.ECAT, Interface.CAN]
-)
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])
+@pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])
+@pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])
 def test_create_monitoring_trigger_delay(
     mc,
     alias,
@@ -219,9 +222,10 @@ def test_create_monitoring_trigger_delay(
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.not_valid_for_product(
-    part_number="EVE-XCR-E", interfaces=[Interface.ECAT, Interface.CAN]
-)
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])
+@pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])
+@pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])
 @pytest.mark.usefixtures("disable_monitoring_disturbance")
 def test_create_disturbance(mc, alias):
     target_register = "CL_POS_SET_POINT_VALUE"
@@ -270,9 +274,10 @@ def test_mcb_synchronization_fail(mc, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.not_valid_for_product(
-    part_number="EVE-XCR-E", interfaces=[Interface.ECAT, Interface.CAN]
-)
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])
+@pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])
+@pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])
 def test_disturbance_max_sample_size(mc, alias):
     target_register = mc.capture.DISTURBANCE_MAXIMUM_SAMPLE_SIZE_REGISTER
     axis = 0
@@ -283,9 +288,10 @@ def test_disturbance_max_sample_size(mc, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.not_valid_for_product(
-    part_number="EVE-XCR-E", interfaces=[Interface.ECAT, Interface.CAN]
-)
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])
+@pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])
+@pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])
 def test_monitoring_max_sample_size(mc, alias):
     target_register = mc.capture.MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER
     axis = 0
@@ -299,9 +305,10 @@ def test_monitoring_max_sample_size(mc, alias):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("disable_monitoring_disturbance")
-@pytest.mark.not_valid_for_product(
-    part_number="EVE-XCR-E", interfaces=[Interface.ECAT, Interface.CAN]
-)
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])
+@pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])
+@pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])
 def test_get_frequency(mc, alias):
     registers = [{"name": "CL_POS_REF_VALUE", "axis": 1}]
     max_frequency = mc.configuration.get_position_and_velocity_loop_rate(alias)

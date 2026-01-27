@@ -294,9 +294,10 @@ def test_configure_sample_time_exception(monitoring, total_time, sign):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.not_valid_for_product(
-    part_number="EVE-XCR-E", interfaces=[Interface.ECAT, Interface.CAN]
-)
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])
+@pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])
+@pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])
 def test_enable_monitoring_no_mapped_registers(mc, alias):
     mc.capture.clean_monitoring(alias)
     with pytest.raises(IMMonitoringError) as exc:
@@ -415,9 +416,10 @@ def test_stop_reading_data(mc, alias, monitoring):
 
 
 @pytest.mark.virtual
-@pytest.mark.not_valid_for_product(
-    part_number="EVE-XCR-E", interfaces=[Interface.ECAT, Interface.CAN]
-)
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])
+@pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])
+@pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])
 def test_monitoring_max_sample_size(mc, alias):
     target_register = mc.capture.MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER
     axis = 0
