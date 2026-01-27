@@ -1,8 +1,8 @@
 import pytest
-from ingenialink.dictionary import Interface
 
 from ingeniamotion.disturbance import Disturbance
 from ingeniamotion.exceptions import IMDisturbanceError
+from tests.conftest import not_valid_for_eve_products
 
 
 @pytest.fixture
@@ -16,10 +16,7 @@ def disturbance(mc, alias):
 
 
 @pytest.mark.virtual
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])
+@not_valid_for_eve_products
 def test_disturbance_max_sample_size(mc, alias, disturbance):
     max_sample_size = disturbance.max_sample_number
     value = mc.communication.get_register(
@@ -32,10 +29,7 @@ def test_disturbance_max_sample_size(mc, alias, disturbance):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("prescaler", list(range(2, 11, 2)))
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])
+@not_valid_for_eve_products
 def test_set_frequency_divider(mc, alias, disturbance, prescaler):
     disturbance.set_frequency_divider(prescaler)
     value = mc.communication.get_register(
@@ -47,10 +41,7 @@ def test_set_frequency_divider(mc, alias, disturbance, prescaler):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])
+@not_valid_for_eve_products
 def test_set_frequency_divider_exception(disturbance):
     prescaler = -1
     with pytest.raises(ValueError):
@@ -60,10 +51,7 @@ def test_set_frequency_divider_exception(disturbance):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])
+@not_valid_for_eve_products
 @pytest.mark.parametrize(
     "axis, name, expected_value",
     [
@@ -84,10 +72,7 @@ def test_disturbance_map_registers(mc, alias, disturbance, axis, name, expected_
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])
+@not_valid_for_eve_products
 @pytest.mark.parametrize("number_registers", list(range(1, 17)))
 def test_disturbance_number_map_registers(mc, alias, disturbance, number_registers):
     reg_dict = {"axis": 1, "name": "CL_POS_SET_POINT_VALUE"}
@@ -100,10 +85,7 @@ def test_disturbance_number_map_registers(mc, alias, disturbance, number_registe
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])
+@not_valid_for_eve_products
 def test_disturbance_map_registers_sample_number(disturbance):
     registers = [{"axis": 1, "name": "CL_POS_SET_POINT_VALUE"}]
     value = disturbance.map_registers(registers)
@@ -111,10 +93,7 @@ def test_disturbance_map_registers_sample_number(disturbance):
 
 
 @pytest.mark.virtual
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])
+@not_valid_for_eve_products
 def test_disturbance_map_registers_exception(disturbance):
     registers = [{"axis": 0, "name": "DRV_AXIS_NUMBER"}]
     with pytest.raises(IMDisturbanceError):
@@ -122,10 +101,7 @@ def test_disturbance_map_registers_exception(disturbance):
 
 
 @pytest.mark.virtual
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])
+@not_valid_for_eve_products
 def test_disturbance_map_registers_empty(disturbance):
     registers = []
     with pytest.raises(IMDisturbanceError):
@@ -135,10 +111,7 @@ def test_disturbance_map_registers_empty(disturbance):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])
+@not_valid_for_eve_products
 @pytest.mark.usefixtures("disturbance_map_registers")
 def test_write_disturbance_data_buffer_exception(disturbance):
     with pytest.raises(IMDisturbanceError):
@@ -146,10 +119,7 @@ def test_write_disturbance_data_buffer_exception(disturbance):
 
 
 @pytest.mark.virtual
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])
+@not_valid_for_eve_products
 def test_write_disturbance_data_not_configured(disturbance):
     with pytest.raises(IMDisturbanceError):
         disturbance.write_disturbance_data([0] * 100)
@@ -158,10 +128,7 @@ def test_write_disturbance_data_not_configured(disturbance):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])
+@not_valid_for_eve_products
 @pytest.mark.usefixtures("disable_monitoring_disturbance")
 def test_write_disturbance_data_enabled(mc, alias, disturbance):
     mc.capture.enable_disturbance(alias)
@@ -170,10 +137,7 @@ def test_write_disturbance_data_enabled(mc, alias, disturbance):
 
 
 @pytest.mark.virtual
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])
+@not_valid_for_eve_products
 def test_disturbance_map_registers_invalid_subnode(mocker, mc, disturbance):
     registers = [{"axis": "1", "name": "DRV_AXIS_NUMBER"}]
     mocker.patch.object(mc.capture, "is_disturbance_enabled", return_value=False)
@@ -182,10 +146,7 @@ def test_disturbance_map_registers_invalid_subnode(mocker, mc, disturbance):
 
 
 @pytest.mark.virtual
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])
+@not_valid_for_eve_products
 def test_disturbance_map_registers_invalid_register(mocker, mc, disturbance):
     registers = [{"axis": 1, "name": 1}]
     mocker.patch.object(mc.capture, "is_disturbance_enabled", return_value=False)
@@ -194,10 +155,7 @@ def test_disturbance_map_registers_invalid_register(mocker, mc, disturbance):
 
 
 @pytest.mark.virtual
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])
-@pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])
+@not_valid_for_eve_products
 def test_write_disturbance_data_wrong_data_type(mocker, mc, disturbance):
     mocker.patch.object(mc.capture, "is_disturbance_enabled", return_value=False)
     registers = [{"axis": 1, "name": "CL_POS_SET_POINT_VALUE"}]

@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import numpy as np
 import pytest
+from ingenialink.dictionary import Interface
 from summit_testing_framework import dynamic_loader
 from summit_testing_framework.pytest_helpers.marker_helper import (
     apply_firmware_version_markers_to_items,
@@ -13,6 +14,32 @@ from summit_testing_framework.pytest_helpers.marker_helper import (
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
+
+
+def not_valid_for_eve_products(func: Callable) -> Callable:
+    """Decorator that applies not_valid_for_product markers for all EVE products.
+
+    Returns:
+        The decorated function with the markers applied.
+    """
+    func = pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])(
+        func
+    )
+    func = pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])(
+        func
+    )
+    func = pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])(
+        func
+    )
+    func = pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])(
+        func
+    )
+    func = pytest.mark.not_valid_for_product(part_number="CAP-NET-C", interfaces=[Interface.CAN])(
+        func
+    )
+    return func
+
+
 pytest_plugins = [
     "summit_testing_framework.pytest_addoptions",
     "summit_testing_framework.setup_fixtures",
