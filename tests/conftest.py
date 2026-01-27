@@ -34,9 +34,6 @@ def not_valid_for_eve_products(func: Callable) -> Callable:
     func = pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])(
         func
     )
-    func = pytest.mark.not_valid_for_product(part_number="CAP-NET-C", interfaces=[Interface.CAN])(
-        func
-    )
     return func
 
 
