@@ -563,7 +563,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTest("fsoe_phase1", "fsoe", "tests.setups.rack_specifiers.ECAT_SAFETY_SETUP@DEN-S-NET-PHASE1", "", true)
+                                runTest("fsoe_phase1", "fsoe", "tests.setups.rack_specifiers.ECAT_DEN_S_NET_E_SETUP@PHASE1", "", true)
                             }
                         }
                         stage("Safety Denali Phase II") {
@@ -573,7 +573,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTest("fsoe_phase2", "fsoe or fsoe_phase2", "tests.setups.rack_specifiers.ECAT_SAFETY_SETUP@DEN-S-NET-PHASE2", "", true)
+                                runTest("fsoe_phase2", "fsoe or fsoe_phase2", "tests.setups.rack_specifiers.ECAT_DEN_S_NET_E_SETUP@PHASE2", "", true)
                             }
                         }
                         stage("Ethercat Multislave") {

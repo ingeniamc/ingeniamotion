@@ -7,6 +7,7 @@ from summit_testing_framework.setups.specifiers import (
     MultiRackServiceConfigSpecifier,
     PartNumber,
     RackServiceConfigSpecifier,
+    VersionConfig,
 )
 
 ETH_SETUP = SpecifierContainer({
@@ -43,26 +44,28 @@ ECAT_SETUP = SpecifierContainer({
     ),
 })
 
-ECAT_SAFETY_SETUP = SpecifierContainer({
-    "DEN-S-NET-PHASE1": RackServiceConfigSpecifier.from_firmware(
-        part_number=PartNumber.DEN_S_NET_E,
-        interface=Interface.ECAT,
-        config_file=None,
-        version="2.7.4",
-        dictionary_type=DictionaryType.XDF_V2,
-    ),
-    "DEN-S-NET-PHASE2": RackServiceConfigSpecifier.from_firmware(
-        part_number=PartNumber.DEN_S_NET_E,
-        interface=Interface.ECAT,
-        config_file=None,
-        firmware=Path(
-            "//azr-srv-ingfs1/dist/products/i050_summit/i056_den-s-net-e/release_candidate/2.9.0.16/den-s-net-e_2.9.0.lfu"
+ECAT_DEN_S_NET_E_SETUP = RackServiceConfigSpecifier.from_version_configs(
+    part_number=PartNumber.DEN_S_NET_E,
+    interface=Interface.ECAT,
+    version_configs={
+        "PHASE1": VersionConfig.from_version(
+            version="2.7.4",
+            config_file=None,
+            dictionary_type=DictionaryType.XDF_V2,
         ),
-        dictionary=Path(
-            "//azr-srv-ingfs1/dist/products/i050_summit/i056_den-s-net-e/release_candidate/2.9.0.16/den-s-net-e_2.9.0.016.xdf3"
+        "PHASE2": VersionConfig.from_files(
+            version="2.9.0.16",
+            config_file=None,
+            firmware=Path(
+                "//azr-srv-ingfs1/dist/products/i050_summit/i056_den-s-net-e/release_candidate/2.9.0.16/den-s-net-e_2.9.0.lfu"
+            ),
+            dictionary=Path(
+                "//azr-srv-ingfs1/dist/products/i050_summit/i056_den-s-net-e/release_candidate/2.9.0.16/den-s-net-e_2.9.0.016.xdf3"
+            ),
         ),
-    ),
-})
+    },
+)
+
 
 CAN_SETUP = SpecifierContainer({
     PartNumber.EVE_XCR_C: RackServiceConfigSpecifier.from_firmware(
