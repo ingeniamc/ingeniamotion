@@ -6,10 +6,37 @@ from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import numpy as np
 import pytest
+from ingenialink.dictionary import Interface
 from summit_testing_framework import dynamic_loader
+from summit_testing_framework.pytest_helpers.marker_helper import (
+    apply_firmware_version_markers_to_items,
+)
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
+
+
+def not_valid_for_eve_products(func: Callable) -> Callable:
+    """Decorator that applies not_valid_for_product markers for all EVE products.
+
+    Returns:
+        The decorated function with the markers applied.
+    """
+    func = pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])(
+        func
+    )
+    func = pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])(
+        func
+    )
+    func = pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])(
+        func
+    )
+    func = pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])(
+        func
+    )
+    return func
+
+
 pytest_plugins = [
     "summit_testing_framework.pytest_addoptions",
     "summit_testing_framework.setup_fixtures",
@@ -55,22 +82,30 @@ def pytest_configure(config):  # noqa: ARG001
     logging.getLogger("ingenialink.ethercat.servo").addFilter(SuppressSpecificLogs())
 
 
+def pytest_collection_modifyitems(
+    session: pytest.Session,  # noqa: ARG001
+    config: pytest.Config,
+    items: list[pytest.Item],
+) -> None:
+    """Modifies collected tests to skip those that do not meet firmware version restrictions.
+
+    Only runs if --enable_firmware_version_check is passed.
+
+    Args:
+        session: pytest session.
+        config: pytest configuration.
+        items: collected test items.
+    """
+    apply_firmware_version_markers_to_items(config=config, items=items)
+
+
 @pytest.fixture
 def disable_monitoring_disturbance(
-    skip_if_monitoring_not_available: None,  # noqa: ARG001
     mc: "MotionController",
     alias: str,
 ) -> Generator[None, None, None]:
     yield
     mc.capture.clean_monitoring_disturbance(servo=alias)
-
-
-@pytest.fixture
-def skip_if_monitoring_not_available(mc: "MotionController", alias: str) -> None:
-    try:
-        mc.capture._check_version(alias)
-    except NotImplementedError:
-        pytest.skip("Monitoring is not available")
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
