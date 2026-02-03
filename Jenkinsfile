@@ -469,7 +469,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTest("canopen_everest", "canopen", "tests.setups.rack_specifiers.CAN_EVE_SETUP", "", false)
+                                runTest("canopen_everest", "canopen", "tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C", "", false)
                             }
                         }
                         stage("Ethernet Everest") {
@@ -479,7 +479,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTest("ethernet_everest", "ethernet", "tests.setups.rack_specifiers.ETH_EVE_SETUP", "", true)
+                                runTest("ethernet_everest", "ethernet", "tests.setups.rack_specifiers.ETH_SETUP@EVE-XCR-C", "", true)
                             }
                         }
                         stage("CanOpen Capitan") {
@@ -489,7 +489,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTest("canopen_capitan", "canopen", "tests.setups.rack_specifiers.CAN_CAP_SETUP", "", false)
+                                runTest("canopen_capitan", "canopen", "tests.setups.rack_specifiers.CAN_SETUP@CAP-XCR-C", "", false)
                             }
                         }
                         stage("Ethernet Capitan") {
@@ -498,7 +498,7 @@ pipeline {
                                 expression { false }
                             }
                             steps {
-                                runTest("ethernet_capitan", "ethernet", "tests.setups.rack_specifiers.ETH_CAP_SETUP", "", true)
+                                runTest("ethernet_capitan", "ethernet", "tests.setups.rack_specifiers.ETH_SETUP@CAP-XCR-C", "", true)
                             }
                         }
                     }
@@ -543,7 +543,7 @@ pipeline {
                                 expression { false }
                             }
                             steps {
-                                runTest("ethercat_everest", "soem", "tests.setups.rack_specifiers.ECAT_EVE_SETUP", "", true)
+                                runTest("ethercat_everest", "soem", "tests.setups.rack_specifiers.ECAT_SETUP@EVE-XCR-E", "", true)
                             }
                         }
                         stage("Ethercat Capitan") {
@@ -553,7 +553,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTest("ethercat_capitan", "soem", "tests.setups.rack_specifiers.ECAT_CAP_SETUP", "", true)
+                                runTest("ethercat_capitan", "soem", "tests.setups.rack_specifiers.ECAT_SETUP@CAP-XCR-E", "", true)
                             }
                         }
                         stage("Safety Denali Phase I") {
@@ -563,7 +563,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTest("fsoe_phase1", "fsoe", "tests.setups.rack_specifiers.ECAT_DEN_S_PHASE1_SETUP", "", true)
+                                runTest("fsoe_phase1", "fsoe", "tests.setups.rack_specifiers.ECAT_DEN_S_NET_E_SETUP@PHASE1", "", true)
                             }
                         }
                         stage("Safety Denali Phase II") {
@@ -573,7 +573,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTest("fsoe_phase2", "fsoe or fsoe_phase2", "tests.setups.rack_specifiers.ECAT_DEN_S_PHASE2_SETUP", "", true)
+                                runTest("fsoe_phase2", "fsoe or fsoe_phase2", "tests.setups.rack_specifiers.ECAT_DEN_S_NET_E_SETUP@PHASE2", "", true)
                             }
                         }
                         stage("Ethercat Multislave") {
