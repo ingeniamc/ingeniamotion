@@ -182,12 +182,17 @@ class TestErrors:
     )
     @pytest.mark.virtual
     def test_wrong_type_exception(
-        self, mocker: "pytest.MockFixture", mc: "MotionController", alias: str, function: str
+        self,
+        mocker: "pytest.MockFixture",
+        mc: "MotionController",
+        servo: "Servo",
+        alias: str,
+        function: str,
     ) -> None:
-        drive = mc._get_drive(alias)
-        mocker.patch.object(drive, "read", return_value="invalid_value")
+        mocker.patch.object(servo, "read", return_value="invalid_value", autospec=True)
         with pytest.raises(TypeError):
             getattr(mc.errors, function)(servo=alias)
+        mocker.stopall()
 
     @pytest.mark.ethernet
     @pytest.mark.soem
@@ -231,10 +236,15 @@ class TestErrors:
     @pytest.mark.soem
     @pytest.mark.canopen
     def test_error_queue_tracks_state(
-        self, mc: "MotionController", servo: "Servo", alias: str
+        self,
+        mc: "MotionController",
+        servo: "Servo",
+        alias: str,
+        environment: "DriveEnvironmentController",
     ) -> None:
         """Test that ServoErrorQueue only reports new errors after first call."""
-        mc.motion.fault_reset(servo=servo)
+        environment.power_cycle(wait_for_drives=False, reconnect_drives=True, reconnect_timeout=20)
+
         error_queue = ServoErrorQueue(MOCO_ERROR_QUEUE, servo)
 
         # First call - no errors
@@ -242,8 +252,8 @@ class TestErrors:
         assert len(pending_errors) == 0
 
         # Generate an error
-        old_value = mc.communication.get_register(USER_UNDER_VOLTAGE_LEVEL_REGISTER, servo=servo)
-        mc.communication.set_register(USER_UNDER_VOLTAGE_LEVEL_REGISTER, 100, servo=servo)
+        old_value = mc.communication.get_register(USER_UNDER_VOLTAGE_LEVEL_REGISTER, servo=alias)
+        mc.communication.set_register(USER_UNDER_VOLTAGE_LEVEL_REGISTER, 100, servo=alias)
         with contextlib.suppress(ILError):
             mc.motion.motor_enable(servo=alias)
 
