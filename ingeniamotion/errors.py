@@ -384,8 +384,8 @@ class Errors:
         # Always get fresh drive reference to avoid stale servo objects
         drive = self.mc._get_drive(servo)
 
-        queue_axis = axis if error_location != self.ErrorLocation.MOCO else None
-        return ServoErrorQueue(descriptor, drive, axis=queue_axis)
+        # Pass axis to ServoErrorQueue to match old behavior via get_register()
+        return ServoErrorQueue(descriptor, drive, axis=axis)
 
     def __parse_error_to_tuple(
         self, error: int, location: ErrorLocation, subnode: Optional[int] = None
