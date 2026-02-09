@@ -344,10 +344,6 @@ class Errors:
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
-        # Cache for ServoErrorQueue instances: {(servo, axis, error_location): queue}
-        self.__error_queue_cache: dict[
-            tuple[str, Optional[int], Errors.ErrorLocation], ServoErrorQueue
-        ] = {}
 
     def __get_error_queue(
         self, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
@@ -371,15 +367,6 @@ class Errors:
             error_location.name,
         )
 
-        # Check cache first
-        cache_key = (servo, axis, error_location)
-        if cache_key in self.__error_queue_cache:
-            logger.debug(
-                "Errors.__get_error_queue: Using cached queue for key=%s",
-                cache_key,
-            )
-            return self.__error_queue_cache[cache_key]
-
         # Select the appropriate descriptor based on error location
         if error_location == self.ErrorLocation.SYSTEM:
             descriptor = SYSTEM_ERROR_QUEUE
@@ -389,26 +376,16 @@ class Errors:
             descriptor = MOCO_ERROR_QUEUE
 
         logger.debug(
-            "Errors.__get_error_queue: Creating NEW queue with descriptor=%s, axis=%s",
+            "Errors.__get_error_queue: Creating queue with descriptor=%s, axis=%s",
             descriptor.total_error_reg_uid,
             axis,
         )
+
+        # Always get fresh drive reference to avoid stale servo objects
         drive = self.mc._get_drive(servo)
 
-        # IMPORTANT: Only SYSTEM and COCO error registers use subnode parameter
-        # MOCO error registers are NOT per-axis, so don't pass axis parameter
         queue_axis = axis if error_location != self.ErrorLocation.MOCO else None
-        queue = ServoErrorQueue(descriptor, drive, axis=queue_axis)
-
-        # Cache the queue for reuse
-        self.__error_queue_cache[cache_key] = queue
-        logger.debug(
-            "Errors.__get_error_queue: Cached queue with key=%s, cache size now=%s, queue_axis=%s",
-            cache_key,
-            len(self.__error_queue_cache),
-            queue_axis,
-        )
-        return queue
+        return ServoErrorQueue(descriptor, drive, axis=queue_axis)
 
     def __parse_error_to_tuple(
         self, error: int, location: ErrorLocation, subnode: Optional[int] = None
