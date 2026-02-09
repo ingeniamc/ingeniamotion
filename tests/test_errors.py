@@ -200,7 +200,7 @@ class TestErrors:
         environment: "DriveEnvironmentController",
     ) -> None:
         """Test ServoErrorQueue with no errors present."""
-        environment.power_cycle(wait_for_drives=True, reconnect_drives=True)
+        environment.power_cycle(wait_for_drives=False, reconnect_drives=True, reconnect_timeout=20)
 
         mc.motion.fault_reset(servo=alias)
         error_queue = ServoErrorQueue(MOCO_ERROR_QUEUE, servo)
