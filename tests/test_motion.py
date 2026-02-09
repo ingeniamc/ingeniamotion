@@ -232,6 +232,24 @@ def test_set_position(mc, alias, position_value):
 @pytest.mark.canopen
 @pytest.mark.parametrize("position_value", [1000, 0, -1000, 4000])
 def test_move_position(mc, alias, position_value):
+    # Check for leftover errors before test starts
+    from ingenialogger import get_logger
+
+    logger = get_logger(__name__)
+    initial_errors = mc.errors.get_number_total_errors(servo=alias)
+    logger.info("test_move_position START - Initial error count: %s", initial_errors)
+    if initial_errors > 0:
+        last_error = mc.errors.get_last_error(servo=alias)
+        logger.warning(
+            "test_move_position WARNING: Test starting with %s errors! Last error: %s",
+            initial_errors,
+            last_error,
+        )
+        # Try to clear errors
+        mc.motion.fault_reset(servo=alias)
+        errors_after_reset = mc.errors.get_number_total_errors(servo=alias)
+        logger.info("test_move_position: After fault_reset, error count: %s", errors_after_reset)
+
     pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
     mc.motion.motor_enable(servo=alias)
