@@ -25,7 +25,10 @@ from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
 from tests.outputs import OUTPUTS_DIR
 
 if FSOE_MASTER_INSTALLED:
+    from ingeniamotion.errors import Error, ServoErrorQueue
     from ingeniamotion.fsoe_master import (
+        MCUA_ERROR_QUEUE,
+        MCUB_ERROR_QUEUE,
         FSoEMasterHandler,
         ProcessImage,
         SafeInputsFunction,
@@ -33,12 +36,6 @@ if FSOE_MASTER_INSTALLED:
         SafetyParameter,
         SS1Function,
         STOFunction,
-    )
-    from ingeniamotion.fsoe_master.errors import (
-        MCUA_ERROR_QUEUE,
-        MCUB_ERROR_QUEUE,
-        Error,
-        ServoErrorQueue,
     )
     from tests.fsoe.utils.map_generator import FSoERandomMappingGenerator
 

@@ -43,9 +43,7 @@ if TYPE_CHECKING:
     from ingeniamotion.fsoe import FSoEDictionary
 
     if FSOE_MASTER_INSTALLED:
-        from ingeniamotion.fsoe_master.errors import (
-            ServoErrorQueue,
-        )
+        from ingeniamotion.errors import ServoErrorQueue
         from tests.fsoe.conftest import FSoERandomMappingGenerator
 
 
