@@ -9,6 +9,7 @@ from ingeniamotion.errors import MOCO_ERROR_QUEUE, ServoErrorQueue
 
 if TYPE_CHECKING:
     from ingenialink.servo import Servo
+    from summit_testing_framework.setups.environment_control import DriveEnvironmentController
 
     from ingeniamotion.motion_controller import MotionController
 
@@ -192,9 +193,15 @@ class TestErrors:
     @pytest.mark.soem
     @pytest.mark.canopen
     def test_error_queue_no_errors(
-        self, mc: "MotionController", servo: "Servo", alias: str
+        self,
+        mc: "MotionController",
+        servo: "Servo",
+        alias: str,
+        environment: "DriveEnvironmentController",
     ) -> None:
         """Test ServoErrorQueue with no errors present."""
+        environment.power_cycle(wait_for_drives=True, reconnect_drives=True)
+
         mc.motion.fault_reset(servo=alias)
         error_queue = ServoErrorQueue(MOCO_ERROR_QUEUE, servo)
         pending_errors, errors_lost = error_queue.get_pending_errors()

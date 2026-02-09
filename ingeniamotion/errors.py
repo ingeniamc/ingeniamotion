@@ -92,10 +92,12 @@ class ServoErrorQueue:
         self,
         descriptor: ErrorQueueDescriptor,
         servo: "Servo",
+        axis: Optional[int] = None,
     ):
         self.descriptor = descriptor
         self.__servo = servo
         self.__dictionary = servo.dictionary
+        self.__axis = axis
 
         # Total number of errors that were last read to obtain pending errors
         self.__last_read_total_errors_pending = 0
@@ -112,7 +114,10 @@ class ServoErrorQueue:
         Raises:
             TypeError: If the register value is not an integer.
         """
-        value = self.__servo.read(reg_uid)
+        if self.__axis is not None:
+            value = self.__servo.read(reg_uid, subnode=self.__axis)
+        else:
+            value = self.__servo.read(reg_uid)
         if not isinstance(value, int):
             raise TypeError(
                 f"Register {reg_uid} value must be an integer, got {type(value).__name__}"
@@ -155,7 +160,12 @@ class ServoErrorQueue:
         Returns:
             The error at the given index, or None if there is no error.
         """
-        self.__servo.write(self.descriptor.error_request_index_reg_uid, index)
+        if self.__axis is not None:
+            self.__servo.write(
+                self.descriptor.error_request_index_reg_uid, index, subnode=self.__axis
+            )
+        else:
+            self.__servo.write(self.descriptor.error_request_index_reg_uid, index)
         return Error.from_id(
             self.__read_int_reg(self.descriptor.error_request_code_reg_uid), self.__dictionary
         )
@@ -315,7 +325,7 @@ class Errors:
             ServoErrorQueue instance for the specified servo/axis.
         """
         error_version = self.__get_error_location(servo)
-        _, error_location = self.__get_error_subnode(error_version, axis)
+        axis, error_location = self.__get_error_subnode(error_version, axis)
 
         # Select the appropriate descriptor based on error location
         if error_location == self.ErrorLocation.SYSTEM:
@@ -326,7 +336,7 @@ class Errors:
             descriptor = MOCO_ERROR_QUEUE
 
         drive = self.mc._get_drive(servo)
-        return ServoErrorQueue(descriptor, drive)
+        return ServoErrorQueue(descriptor, drive, axis=axis)
 
     def __parse_error_to_tuple(
         self, error: int, location: ErrorLocation, subnode: Optional[int] = None
