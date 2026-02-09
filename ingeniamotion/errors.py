@@ -1,4 +1,3 @@
-import warnings
 from dataclasses import dataclass
 from enum import IntEnum
 from typing import TYPE_CHECKING, ClassVar, Optional, cast
@@ -450,9 +449,6 @@ class Errors:
     ) -> list[tuple[int, Optional[int], Optional[bool]]]:
         """Return List with all error codes.
 
-        .. deprecated::
-            This method is deprecated. Use :class:`ServoErrorQueue`.
-
         Args:
             servo : servo alias to reference it. ``default`` by default.
             axis : axis force read errors in target axis. ``None`` by default.
@@ -460,19 +456,7 @@ class Errors:
         Returns:
             List of all errors.
 
-        Example:
-            Alternative using ServoErrorQueue::
-
-                from ingeniamotion.errors import ServoErrorQueue, MOCO_ERROR_QUEUE
-                drive = mc._get_drive(servo="drive")
-                error_queue = ServoErrorQueue(MOCO_ERROR_QUEUE, drive)
-                pending_errors, errors_lost = error_queue.get_pending_errors()
         """
-        warnings.warn(
-            "get_all_errors() is deprecated, use ServoErrorQueue.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
         err_list = []
         err_num = self.get_number_total_errors(servo, axis)
         err_num = min(err_num, self.MAXIMUM_ERROR_INDEX)
