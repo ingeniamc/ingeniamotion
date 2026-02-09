@@ -286,6 +286,32 @@ class Errors:
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
 
+    def __get_error_queue(
+        self, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
+    ) -> ServoErrorQueue:
+        """Get the appropriate ServoErrorQueue for the given servo and axis.
+
+        Args:
+            servo: servo alias to reference it.
+            axis: axis to get error queue for.
+
+        Returns:
+            ServoErrorQueue instance for the specified servo/axis.
+        """
+        error_version = self.__get_error_location(servo)
+        _, error_location = self.__get_error_subnode(error_version, axis)
+
+        # Select the appropriate descriptor based on error location
+        if error_location == self.ErrorLocation.SYSTEM:
+            descriptor = SYSTEM_ERROR_QUEUE
+        elif error_location == self.ErrorLocation.COCO:
+            descriptor = COCO_ERROR_QUEUE
+        else:  # MOCO
+            descriptor = MOCO_ERROR_QUEUE
+
+        drive = self.mc._get_drive(servo)
+        return ServoErrorQueue(descriptor, drive)
+
     def __parse_error_to_tuple(
         self, error: int, location: ErrorLocation, subnode: Optional[int] = None
     ) -> tuple[int, Optional[int], Optional[bool]]:
@@ -301,29 +327,47 @@ class Errors:
         return error_code, subnode, bool(is_warning)
 
     def __get_error_location(self, servo: str = DEFAULT_SERVO) -> ErrorLocation:
+        """Determine the error location based on available registers.
+
+        Args:
+            servo: servo alias to reference it.
+
+        Returns:
+            ErrorLocation: The error location (SYSTEM, COCO, or MOCO).
+        """
         if self.mc.info.register_exists(self.LAST_ERROR_SYSTEM_REGISTER, axis=0, servo=servo):
-            # Check System last error, if it does not exist check to CoCo
+            # Check System last error, if it does not exist check CoCo
             return self.ErrorLocation.SYSTEM
         if self.mc.info.register_exists(self.LAST_ERROR_COCO_REGISTER, axis=0, servo=servo):
             # Check CoCo last error, if it does not exist use MoCo
             return self.ErrorLocation.COCO
+        # Default to MoCo
         return self.ErrorLocation.MOCO
 
     def __get_error_subnode(
         self, location: ErrorLocation, subnode: Optional[int]
     ) -> tuple[int, ErrorLocation]:
+        """Get the appropriate subnode and error location.
+
+        Args:
+            location: The error location.
+            subnode: The subnode (axis).
+
+        Returns:
+            A tuple containing the subnode and the adjusted error location.
+        """
         if location == self.ErrorLocation.SYSTEM:
             if subnode is None:
                 return 0, location
-            elif subnode == 0:
+            if subnode == 0:
                 location = self.ErrorLocation.COCO
             elif subnode > 0:
                 location = self.ErrorLocation.MOCO
             return subnode, location
-        elif location == self.ErrorLocation.MOCO:
+        if location == self.ErrorLocation.MOCO:
             return subnode or DEFAULT_AXIS, self.ErrorLocation.MOCO
-        elif location == self.ErrorLocation.COCO:
-            return 0, self.ErrorLocation.COCO
+        # COCO
+        return 0, self.ErrorLocation.COCO
 
     def get_last_error(
         self, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
@@ -349,13 +393,13 @@ class Errors:
 
         """
         error_version = self.__get_error_location(servo)
-        subnode, error_location = self.__get_error_subnode(error_version, axis)
-        error = self.mc.communication.get_register(
-            self.LAST_ERROR_REGISTER[error_location], servo=servo, axis=subnode
-        )
-        if not isinstance(error, int):
-            raise TypeError("Error has to be an integer")
-        return self.__parse_error_to_tuple(error, error_version, axis)
+        queue = self.__get_error_queue(servo, axis)
+        error_obj = queue.get_last_error()
+
+        if error_obj is None:
+            return 0, None, None
+
+        return self.__parse_error_to_tuple(error_obj.error_id, error_version, axis)
 
     def get_last_buffer_error(
         self, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
@@ -407,17 +451,15 @@ class Errors:
         """
         if index >= self.MAXIMUM_ERROR_INDEX:
             raise ValueError("index must be less than 32")
+
         error_version = self.__get_error_location(servo)
-        subnode, error_location = self.__get_error_subnode(error_version, axis)
-        self.mc.communication.set_register(
-            self.ERROR_LIST_INDEX_REQUEST_REGISTER[error_location], index, servo=servo, axis=subnode
-        )
-        error = self.mc.communication.get_register(
-            self.ERROR_LIST_REQUESTED_CODE[error_location], servo=servo, axis=subnode
-        )
-        if not isinstance(error, int):
-            raise TypeError("Error has to be an integer")
-        return self.__parse_error_to_tuple(error, error_version, axis)
+        queue = self.__get_error_queue(servo, axis)
+        error_obj = queue.get_error_by_index(index)
+
+        if error_obj is None:
+            return 0, None, None
+
+        return self.__parse_error_to_tuple(error_obj.error_id, error_version, axis)
 
     def get_number_total_errors(
         self, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
@@ -435,14 +477,8 @@ class Errors:
             TypeError: If some read value has a wrong type.
 
         """
-        error_version = self.__get_error_location(servo)
-        subnode, error_location = self.__get_error_subnode(error_version, axis)
-        total_number_errors = self.mc.communication.get_register(
-            self.ERROR_TOTAL_NUMBER_REGISTER[error_location], servo=servo, axis=subnode
-        )
-        if not isinstance(total_number_errors, int):
-            raise TypeError("Total number errors value has to be an integer")
-        return total_number_errors
+        queue = self.__get_error_queue(servo, axis)
+        return queue.get_number_total_errors()
 
     def get_all_errors(
         self, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
