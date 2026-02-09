@@ -2,14 +2,13 @@ from dataclasses import dataclass
 from enum import IntEnum
 from typing import TYPE_CHECKING, ClassVar, Optional
 
+from ingenialink.dictionary import Dictionary, DictionaryError
+
 from ingeniamotion._utils import weak_lru
 
 if TYPE_CHECKING:
     from ingenialink import Servo
 
-from ingenialink.dictionary import Dictionary, DictionaryError
-
-if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
@@ -311,6 +310,10 @@ class Errors:
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
+        # Cache for ServoErrorQueue instances: {(servo, axis, error_location): queue}
+        self.__error_queue_cache: dict[
+            tuple[str, Optional[int], Errors.ErrorLocation], ServoErrorQueue
+        ] = {}
 
     def __get_error_queue(
         self, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
@@ -327,6 +330,11 @@ class Errors:
         error_version = self.__get_error_location(servo)
         axis, error_location = self.__get_error_subnode(error_version, axis)
 
+        # Check cache first
+        cache_key = (servo, axis, error_location)
+        if cache_key in self.__error_queue_cache:
+            return self.__error_queue_cache[cache_key]
+
         # Select the appropriate descriptor based on error location
         if error_location == self.ErrorLocation.SYSTEM:
             descriptor = SYSTEM_ERROR_QUEUE
@@ -336,7 +344,11 @@ class Errors:
             descriptor = MOCO_ERROR_QUEUE
 
         drive = self.mc._get_drive(servo)
-        return ServoErrorQueue(descriptor, drive, axis=axis)
+        queue = ServoErrorQueue(descriptor, drive, axis=axis)
+
+        # Cache the queue for reuse
+        self.__error_queue_cache[cache_key] = queue
+        return queue
 
     def __parse_error_to_tuple(
         self, error: int, location: ErrorLocation, subnode: Optional[int] = None
