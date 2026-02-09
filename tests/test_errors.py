@@ -1,19 +1,28 @@
 import contextlib
+from collections.abc import Iterator
+from typing import TYPE_CHECKING
 
 import pytest
 from ingenialink.exceptions import ILError
+
+from ingeniamotion.errors import MOCO_ERROR_QUEUE, ServoErrorQueue
+
+if TYPE_CHECKING:
+    from summit_testing_framework.setups.environment_control import DriveEnvironmentController
+
+    from ingeniamotion.motion_controller import MotionController
 
 USER_UNDER_VOLTAGE_ERROR_OPTION_CODE_REGISTER = "ERROR_PROT_UNDER_VOLT_OPTION"
 USER_UNDER_VOLTAGE_LEVEL_REGISTER = "DRV_PROT_USER_UNDER_VOLT"
 
 
 @pytest.fixture
-def error_number(mc, alias):
+def error_number(mc: "MotionController", alias: str) -> int:
     return mc.errors.get_number_total_errors(servo=alias)
 
 
 @pytest.fixture
-def generate_drive_errors(mc, alias):
+def generate_drive_errors(mc: "MotionController", alias: str) -> Iterator[list[int]]:
     errors_list = [
         {"code": 0x3241, "register": "DRV_PROT_USER_UNDER_VOLT", "value": 100},
         {"code": 0x4303, "register": "DRV_PROT_USER_OVER_TEMP", "value": 1},
@@ -38,7 +47,7 @@ def generate_drive_errors(mc, alias):
 
 
 @pytest.fixture
-def force_warning(mc, alias):
+def force_warning(mc: "MotionController", alias: str) -> Iterator[None]:
     mc.communication.set_register(USER_UNDER_VOLTAGE_ERROR_OPTION_CODE_REGISTER, 1, servo=alias)
     mc.communication.set_register(USER_UNDER_VOLTAGE_LEVEL_REGISTER, 100, servo=alias)
     mc.motion.motor_enable(servo=alias)
@@ -51,7 +60,9 @@ class TestErrors:
     @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
-    def test_get_last_error(self, mc, alias, generate_drive_errors):
+    def test_get_last_error(
+        self, mc: "MotionController", alias: str, generate_drive_errors: list[int]
+    ) -> None:
         # Axis 1 needs to be selected due to a bug in EVE-XCR. For more info check INGM-376.
         last_error, subnode, warning = mc.errors.get_last_error(servo=alias, axis=1)
         assert last_error == generate_drive_errors[0]
@@ -64,14 +75,18 @@ class TestErrors:
     @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
-    def test_get_last_buffer_error(self, mc, alias, generate_drive_errors):
+    def test_get_last_buffer_error(
+        self, mc: "MotionController", alias: str, generate_drive_errors: list[int]
+    ) -> None:
         last_error, _subnode, _warning = mc.errors.get_last_buffer_error(servo=alias)
         assert last_error == generate_drive_errors[0]
 
     @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
-    def test_get_buffer_error_by_index(self, mc, alias, generate_drive_errors):
+    def test_get_buffer_error_by_index(
+        self, mc: "MotionController", alias: str, generate_drive_errors: list[int]
+    ):
         index_list = [2, 1, 3, 0]
         for i in index_list:
             last_error, _subnode, _warning = mc.errors.get_buffer_error_by_index(
@@ -83,21 +98,29 @@ class TestErrors:
     @pytest.mark.soem
     @pytest.mark.canopen
     @pytest.mark.usefixtures("generate_drive_errors")
-    def test_get_buffer_error_by_index_exception(self, mc, alias):
+    def test_get_buffer_error_by_index_exception(self, mc: "MotionController", alias: str) -> None:
         with pytest.raises(ValueError):
             mc.errors.get_buffer_error_by_index(33, servo=alias)
 
     @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
-    def test_get_number_total_errors(self, mc, alias, error_number, generate_drive_errors):
+    def test_get_number_total_errors(
+        self,
+        mc: "MotionController",
+        alias: str,
+        error_number: int,
+        generate_drive_errors: list[int],
+    ) -> None:
         test_error_number = mc.errors.get_number_total_errors(servo=alias)
         assert test_error_number == error_number + len(generate_drive_errors)
 
     @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
-    def test_get_all_errors(self, mc, alias, generate_drive_errors):
+    def test_get_all_errors(
+        self, mc: "MotionController", alias: str, generate_drive_errors: list[int]
+    ) -> None:
         test_all_errors = mc.errors.get_all_errors(servo=alias, axis=1)
         for i, code_error in enumerate(generate_drive_errors):
             test_code_error, _axis, _warning = test_all_errors[i]
@@ -107,7 +130,7 @@ class TestErrors:
     @pytest.mark.soem
     @pytest.mark.canopen
     @pytest.mark.usefixtures("generate_drive_errors")
-    def test_is_fault_active(self, mc, alias):
+    def test_is_fault_active(self, mc: "MotionController", alias: str) -> None:
         assert mc.errors.is_fault_active(servo=alias)
         mc.motion.fault_reset(servo=alias)
         assert not mc.errors.is_fault_active(servo=alias)
@@ -116,7 +139,7 @@ class TestErrors:
     @pytest.mark.soem
     @pytest.mark.canopen
     @pytest.mark.usefixtures("force_warning")
-    def test_is_warning_active(self, mc, alias):
+    def test_is_warning_active(self, mc: "MotionController", alias: str) -> None:
         assert mc.errors.is_warning_active(servo=alias)
         mc.communication.set_register(USER_UNDER_VOLTAGE_LEVEL_REGISTER, 10, servo=alias)
         assert not mc.errors.is_warning_active(servo=alias)
@@ -131,7 +154,15 @@ class TestErrors:
             (0x4304, "Power stage", "Cyclic", "Under-temperature detected (user limit)"),
         ],
     )
-    def test_get_error_data(self, mc, alias, error_code, affected_module, error_type, error_msg):
+    def test_get_error_data(
+        self,
+        mc: "MotionController",
+        alias: str,
+        error_code: int,
+        affected_module: str,
+        error_type: str,
+        error_msg: str,
+    ) -> None:
         test_id, test_aff_mod, test_type, test_msg = mc.errors.get_error_data(
             error_code, servo=alias
         )
@@ -149,7 +180,113 @@ class TestErrors:
         ],
     )
     @pytest.mark.virtual
-    def test_wrong_type_exception(self, mocker, mc, alias, function):
+    def test_wrong_type_exception(
+        self, mocker: "pytest.MockFixture", mc: "MotionController", alias: str, function: str
+    ) -> None:
         mocker.patch.object(mc.communication, "get_register", return_value="invalid_value")
         with pytest.raises(TypeError):
             getattr(mc.errors, function)(servo=alias)
+
+    @pytest.mark.ethernet
+    @pytest.mark.soem
+    @pytest.mark.canopen
+    def test_error_queue_no_errors(
+        self, mc: "MotionController", alias: str, environment: "DriveEnvironmentController"
+    ) -> None:
+        """Test ServoErrorQueue with no errors present."""
+        # Clear any existing errors by power cycling
+        environment.power_cycle(wait_for_drives=True, reconnect_drives=True)
+
+        mc.motion.fault_reset(servo=alias)
+        drive = mc._get_drive(servo=alias)
+        error_queue = ServoErrorQueue(MOCO_ERROR_QUEUE, drive)
+        pending_errors, errors_lost = error_queue.get_pending_errors()
+        assert pending_errors == []
+        assert errors_lost is False
+
+    @pytest.mark.ethernet
+    @pytest.mark.soem
+    @pytest.mark.canopen
+    def test_error_queue_with_errors(
+        self,
+        mc: "MotionController",
+        alias: str,
+        generate_drive_errors: list[int],
+        environment: "DriveEnvironmentController",
+    ) -> None:
+        """Test ServoErrorQueue correctly retrieves pending errors."""
+        environment.power_cycle(wait_for_drives=True, reconnect_drives=True)
+
+        # generate_drive_errors fixture already power cycled and cleared errors
+        drive = mc._get_drive(servo=alias)
+        error_queue = ServoErrorQueue(MOCO_ERROR_QUEUE, drive)
+        pending_errors, errors_lost = error_queue.get_pending_errors()
+
+        # Should have all the generated errors
+        assert len(pending_errors) == len(generate_drive_errors)
+        assert errors_lost is False
+
+        # Verify error IDs match (newest first)
+        for error, expected_code in zip(pending_errors, generate_drive_errors):
+            assert error.error_id == expected_code
+
+    @pytest.mark.ethernet
+    @pytest.mark.soem
+    @pytest.mark.canopen
+    def test_error_queue_tracks_state(
+        self, mc: "MotionController", alias: str, environment: "DriveEnvironmentController"
+    ) -> None:
+        """Test that ServoErrorQueue only reports new errors after first call."""
+        # Clear any existing errors by power cycling
+        environment.power_cycle(wait_for_drives=True, reconnect_drives=True)
+
+        mc.motion.fault_reset(servo=alias)
+        drive = mc._get_drive(servo=alias)
+        error_queue = ServoErrorQueue(MOCO_ERROR_QUEUE, drive)
+
+        # First call - no errors
+        pending_errors, _ = error_queue.get_pending_errors()
+        assert len(pending_errors) == 0
+
+        # Generate an error
+        old_value = mc.communication.get_register(USER_UNDER_VOLTAGE_LEVEL_REGISTER, servo=alias)
+        mc.communication.set_register(USER_UNDER_VOLTAGE_LEVEL_REGISTER, 100, servo=alias)
+        with contextlib.suppress(ILError):
+            mc.motion.motor_enable(servo=alias)
+
+        # Second call - should see the new error
+        pending_errors, _ = error_queue.get_pending_errors()
+        assert len(pending_errors) == 1
+        assert pending_errors[0].error_id == 0x3241
+
+        # Third call - no new errors
+        pending_errors, _ = error_queue.get_pending_errors()
+        assert len(pending_errors) == 0
+
+        # Cleanup
+        mc.communication.set_register(USER_UNDER_VOLTAGE_LEVEL_REGISTER, old_value, servo=alias)
+        mc.motion.fault_reset(servo=alias)
+
+    @pytest.mark.ethernet
+    @pytest.mark.soem
+    @pytest.mark.canopen
+    def test_error_queue_get_last_error(
+        self,
+        mc: "MotionController",
+        alias: str,
+        generate_drive_errors: list[int],
+    ) -> None:
+        """Test ServoErrorQueue.get_last_error() method."""
+        # generate_drive_errors fixture already power cycled and cleared errors
+        drive = mc._get_drive(servo=alias)
+        error_queue = ServoErrorQueue(MOCO_ERROR_QUEUE, drive)
+        last_error = error_queue.get_last_error()
+
+        assert last_error is not None
+        assert last_error.error_id == generate_drive_errors[0]
+        assert last_error.error_description is not None
+
+        # After fault reset, should return None
+        mc.motion.fault_reset(servo=alias)
+        last_error = error_queue.get_last_error()
+        assert last_error is None

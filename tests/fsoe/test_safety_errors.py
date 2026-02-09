@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 if FSOE_MASTER_INSTALLED:
+    from ingeniamotion.errors import Error, ServoErrorQueue
     from ingeniamotion.fsoe_master import (
         FSoEMasterHandler,
         ProcessImage,
@@ -34,7 +35,6 @@ if FSOE_MASTER_INSTALLED:
         STOFunction,
         SVFunction,
     )
-    from ingeniamotion.fsoe_master.errors import Error, ServoErrorQueue
 
 _INVALID_MAPPING_ERROR_ID = 0x80040002  # Error ID for invalid mapping error
 
