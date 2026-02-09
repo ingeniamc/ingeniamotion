@@ -8,7 +8,7 @@ from ingenialink.exceptions import ILError
 from ingeniamotion.errors import MOCO_ERROR_QUEUE, ServoErrorQueue
 
 if TYPE_CHECKING:
-    from summit_testing_framework.setups.environment_control import DriveEnvironmentController
+    from ingenialink.servo import Servo
 
     from ingeniamotion.motion_controller import MotionController
 
@@ -183,7 +183,8 @@ class TestErrors:
     def test_wrong_type_exception(
         self, mocker: "pytest.MockFixture", mc: "MotionController", alias: str, function: str
     ) -> None:
-        mocker.patch.object(mc.communication, "get_register", return_value="invalid_value")
+        drive = mc._get_drive(alias)
+        mocker.patch.object(drive, "read", return_value="invalid_value")
         with pytest.raises(TypeError):
             getattr(mc.errors, function)(servo=alias)
 
@@ -191,15 +192,11 @@ class TestErrors:
     @pytest.mark.soem
     @pytest.mark.canopen
     def test_error_queue_no_errors(
-        self, mc: "MotionController", alias: str, environment: "DriveEnvironmentController"
+        self, mc: "MotionController", servo: "Servo", alias: str
     ) -> None:
         """Test ServoErrorQueue with no errors present."""
-        # Clear any existing errors by power cycling
-        environment.power_cycle(wait_for_drives=True, reconnect_drives=True)
-
         mc.motion.fault_reset(servo=alias)
-        drive = mc._get_drive(servo=alias)
-        error_queue = ServoErrorQueue(MOCO_ERROR_QUEUE, drive)
+        error_queue = ServoErrorQueue(MOCO_ERROR_QUEUE, servo)
         pending_errors, errors_lost = error_queue.get_pending_errors()
         assert pending_errors == []
         assert errors_lost is False
@@ -208,18 +205,11 @@ class TestErrors:
     @pytest.mark.soem
     @pytest.mark.canopen
     def test_error_queue_with_errors(
-        self,
-        mc: "MotionController",
-        alias: str,
-        generate_drive_errors: list[int],
-        environment: "DriveEnvironmentController",
+        self, servo: "Servo", generate_drive_errors: list[int]
     ) -> None:
         """Test ServoErrorQueue correctly retrieves pending errors."""
-        environment.power_cycle(wait_for_drives=True, reconnect_drives=True)
-
         # generate_drive_errors fixture already power cycled and cleared errors
-        drive = mc._get_drive(servo=alias)
-        error_queue = ServoErrorQueue(MOCO_ERROR_QUEUE, drive)
+        error_queue = ServoErrorQueue(MOCO_ERROR_QUEUE, servo)
         pending_errors, errors_lost = error_queue.get_pending_errors()
 
         # Should have all the generated errors
@@ -234,23 +224,19 @@ class TestErrors:
     @pytest.mark.soem
     @pytest.mark.canopen
     def test_error_queue_tracks_state(
-        self, mc: "MotionController", alias: str, environment: "DriveEnvironmentController"
+        self, mc: "MotionController", servo: "Servo", alias: str
     ) -> None:
         """Test that ServoErrorQueue only reports new errors after first call."""
-        # Clear any existing errors by power cycling
-        environment.power_cycle(wait_for_drives=True, reconnect_drives=True)
-
-        mc.motion.fault_reset(servo=alias)
-        drive = mc._get_drive(servo=alias)
-        error_queue = ServoErrorQueue(MOCO_ERROR_QUEUE, drive)
+        mc.motion.fault_reset(servo=servo)
+        error_queue = ServoErrorQueue(MOCO_ERROR_QUEUE, servo)
 
         # First call - no errors
         pending_errors, _ = error_queue.get_pending_errors()
         assert len(pending_errors) == 0
 
         # Generate an error
-        old_value = mc.communication.get_register(USER_UNDER_VOLTAGE_LEVEL_REGISTER, servo=alias)
-        mc.communication.set_register(USER_UNDER_VOLTAGE_LEVEL_REGISTER, 100, servo=alias)
+        old_value = mc.communication.get_register(USER_UNDER_VOLTAGE_LEVEL_REGISTER, servo=servo)
+        mc.communication.set_register(USER_UNDER_VOLTAGE_LEVEL_REGISTER, 100, servo=servo)
         with contextlib.suppress(ILError):
             mc.motion.motor_enable(servo=alias)
 
@@ -273,13 +259,13 @@ class TestErrors:
     def test_error_queue_get_last_error(
         self,
         mc: "MotionController",
+        servo: "Servo",
         alias: str,
         generate_drive_errors: list[int],
     ) -> None:
         """Test ServoErrorQueue.get_last_error() method."""
         # generate_drive_errors fixture already power cycled and cleared errors
-        drive = mc._get_drive(servo=alias)
-        error_queue = ServoErrorQueue(MOCO_ERROR_QUEUE, drive)
+        error_queue = ServoErrorQueue(MOCO_ERROR_QUEUE, servo)
         last_error = error_queue.get_last_error()
 
         assert last_error is not None

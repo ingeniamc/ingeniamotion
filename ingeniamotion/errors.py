@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import TYPE_CHECKING, ClassVar, Optional, cast
+from typing import TYPE_CHECKING, ClassVar, Optional
 
 from ingeniamotion._utils import weak_lru
 
@@ -101,7 +101,23 @@ class ServoErrorQueue:
         self.__last_read_total_errors_pending = 0
 
     def __read_int_reg(self, reg_uid: str) -> int:
-        return cast("int", self.__servo.read(reg_uid))
+        """Read an integer register value with type validation.
+
+        Args:
+            reg_uid: Register UID to read.
+
+        Returns:
+            The register value as an integer.
+
+        Raises:
+            TypeError: If the register value is not an integer.
+        """
+        value = self.__servo.read(reg_uid)
+        if not isinstance(value, int):
+            raise TypeError(
+                f"Register {reg_uid} value must be an integer, got {type(value).__name__}"
+            )
+        return value
 
     def get_last_error(self) -> Optional[Error]:
         """Get the last error from the servo's error queue.
