@@ -144,24 +144,39 @@ class Motion:
             ingenialink.exceptions.ILTimeoutError: If the error was not raised in time.
 
         """
+        self.logger.info("motor_enable: Starting with servo=%s, axis=%s", servo, axis)
         drive = self.mc._get_drive(servo)
+        self.logger.info("motor_enable: Got drive id=%s", id(drive))
         num_errors = self.mc.errors.get_number_total_errors(servo=servo, axis=axis)
+        self.logger.info("motor_enable: Initial error count = %s", num_errors)
         try:
+            self.logger.info("motor_enable: Calling drive.enable(subnode=%s)", axis)
             drive.enable(subnode=axis)
+            self.logger.info("motor_enable: drive.enable succeeded")
         except ILError as e:
+            self.logger.info("motor_enable: drive.enable raised ILError: %s", e)
             timeout = error_timeout
             start_time = time.time()
             error_raised = False
             while not error_raised and (time.time() < (start_time + timeout)):
-                error_raised = (
-                    self.mc.errors.get_number_total_errors(servo=servo, axis=axis) != num_errors
+                current_errors = self.mc.errors.get_number_total_errors(servo=servo, axis=axis)
+                error_raised = current_errors != num_errors
+                self.logger.info(
+                    "motor_enable: Checking for error - current=%s, initial=%s, error_raised=%s",
+                    current_errors,
+                    num_errors,
+                    error_raised,
                 )
             if error_raised:
                 error_code, _subnode, _warning = self.mc.errors.get_last_buffer_error(
                     servo=servo, axis=axis
                 )
                 _error_id, _, _, error_msg = self.mc.errors.get_error_data(error_code, servo=servo)
+                self.logger.info(
+                    "motor_enable: Error detected: code=%s, msg=%s", error_code, error_msg
+                )
             else:
+                self.logger.error("motor_enable: Error timeout exceeded")
                 raise ILTimeoutError(
                     "An error occurred enabling motor. Reason: Error trigger timeout exceeded."
                 )

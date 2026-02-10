@@ -116,16 +116,26 @@ class ServoErrorQueue:
         Raises:
             TypeError: If the register value is not an integer.
         """
-        logger.debug(
-            "ServoErrorQueue.__read_int_reg: Reading %s with axis=%s",
+        logger.info(
+            "ServoErrorQueue.__read_int_reg: Reading %s with axis=%s (servo id=%s)",
             reg_uid,
             self.__axis,
+            id(self.__servo),
         )
         if self.__axis is not None:
+            logger.info(
+                "ServoErrorQueue.__read_int_reg: Calling servo.read(%s, subnode=%s)",
+                reg_uid,
+                self.__axis,
+            )
             value = self.__servo.read(reg_uid, subnode=self.__axis)
         else:
+            logger.info(
+                "ServoErrorQueue.__read_int_reg: Calling servo.read(%s) without subnode",
+                reg_uid,
+            )
             value = self.__servo.read(reg_uid)
-        logger.debug(
+        logger.info(
             "ServoErrorQueue.__read_int_reg: Read %s = %s (type=%s)",
             reg_uid,
             value,
@@ -143,14 +153,15 @@ class ServoErrorQueue:
         Returns:
             Optional[Error]: The last error, or None if there is no error.
         """
-        logger.debug(
-            "ServoErrorQueue.get_last_error: Called with descriptor=%s",
+        logger.info(
+            "ServoErrorQueue.get_last_error: Called with descriptor=%s, axis=%s",
             self.descriptor.last_error_reg_uid,
+            self.__axis,
         )
         error = Error.from_id(
             self.__read_int_reg(self.descriptor.last_error_reg_uid), self.__dictionary
         )
-        logger.debug("ServoErrorQueue.get_last_error: Returning error=%s", error)
+        logger.info("ServoErrorQueue.get_last_error: Returning error=%s", error)
         return error
 
     def get_number_total_errors(self) -> int:
@@ -159,13 +170,13 @@ class ServoErrorQueue:
         Returns:
             int: Total number of errors.
         """
-        logger.debug(
+        logger.info(
             "ServoErrorQueue.get_number_total_errors: Called with descriptor=%s, axis=%s",
             self.descriptor.total_error_reg_uid,
             self.__axis,
         )
         total = self.__read_int_reg(self.descriptor.total_error_reg_uid)
-        logger.debug("ServoErrorQueue.get_number_total_errors: Returning total=%s", total)
+        logger.info("ServoErrorQueue.get_number_total_errors: Returning total=%s", total)
         return total
 
     @property
@@ -186,21 +197,32 @@ class ServoErrorQueue:
         Returns:
             The error at the given index, or None if there is no error.
         """
-        logger.debug(
+        logger.info(
             "ServoErrorQueue.get_error_by_index: Called with index=%s, axis=%s",
             index,
             self.__axis,
         )
         if self.__axis is not None:
+            logger.info(
+                "ServoErrorQueue.get_error_by_index: Writing index=%s to %s with subnode=%s",
+                index,
+                self.descriptor.error_request_index_reg_uid,
+                self.__axis,
+            )
             self.__servo.write(
                 self.descriptor.error_request_index_reg_uid, index, subnode=self.__axis
             )
         else:
+            logger.info(
+                "ServoErrorQueue.get_error_by_index: Writing index=%s to %s without subnode",
+                index,
+                self.descriptor.error_request_index_reg_uid,
+            )
             self.__servo.write(self.descriptor.error_request_index_reg_uid, index)
         error = Error.from_id(
             self.__read_int_reg(self.descriptor.error_request_code_reg_uid), self.__dictionary
         )
-        logger.debug("ServoErrorQueue.get_error_by_index: Returning error=%s", error)
+        logger.info("ServoErrorQueue.get_error_by_index: Returning error=%s", error)
         return error
 
     def __get_number_of_pending_error(self, current_total_errors: int) -> tuple[int, bool]:
@@ -357,11 +379,11 @@ class Errors:
         Returns:
             ServoErrorQueue instance for the specified servo/axis.
         """
-        logger.debug("Errors.__get_error_queue: Called with servo=%s, axis=%s", servo, axis)
+        logger.info("Errors.__get_error_queue: Called with servo=%s, axis=%s", servo, axis)
         error_version = self.__get_error_location(servo)
-        logger.debug("Errors.__get_error_queue: error_version=%s", error_version.name)
+        logger.info("Errors.__get_error_queue: error_version=%s", error_version.name)
         axis, error_location = self.__get_error_subnode(error_version, axis)
-        logger.debug(
+        logger.info(
             "Errors.__get_error_queue: After subnode resolution: axis=%s, error_location=%s",
             axis,
             error_location.name,
@@ -375,7 +397,7 @@ class Errors:
         else:  # MOCO
             descriptor = MOCO_ERROR_QUEUE
 
-        logger.debug(
+        logger.info(
             "Errors.__get_error_queue: Creating queue with descriptor=%s, axis=%s",
             descriptor.total_error_reg_uid,
             axis,
@@ -383,9 +405,20 @@ class Errors:
 
         # Always get fresh drive reference to avoid stale servo objects
         drive = self.mc._get_drive(servo)
+        logger.info(
+            "Errors.__get_error_queue: Got drive from _get_drive, drive id=%s, serial=%s",
+            id(drive),
+            getattr(drive, "serial_number", "N/A"),
+        )
 
         # Pass axis to ServoErrorQueue to match old behavior via get_register()
-        return ServoErrorQueue(descriptor, drive, axis=axis)
+        queue = ServoErrorQueue(descriptor, drive, axis=axis)
+        logger.info(
+            "Errors.__get_error_queue: Created ServoErrorQueue id=%s with axis=%s",
+            id(queue),
+            axis,
+        )
+        return queue
 
     def __parse_error_to_tuple(
         self, error: int, location: ErrorLocation, subnode: Optional[int] = None
@@ -498,9 +531,9 @@ class Errors:
         Raises:
             ValueError: Index must be less than 32
         """
-        logger.debug("Errors.get_last_buffer_error: Called with servo=%s, axis=%s", servo, axis)
+        logger.info("Errors.get_last_buffer_error: Called with servo=%s, axis=%s", servo, axis)
         result = self.get_buffer_error_by_index(0, servo=servo, axis=axis)
-        logger.debug("Errors.get_last_buffer_error: Returning %s", result)
+        logger.info("Errors.get_last_buffer_error: Returning %s", result)
         return result
 
     def get_buffer_error_by_index(
@@ -555,10 +588,11 @@ class Errors:
             TypeError: If some read value has a wrong type.
 
         """
-        logger.debug("Errors.get_number_total_errors: Called with servo=%s, axis=%s", servo, axis)
+        logger.info("Errors.get_number_total_errors: Called with servo=%s, axis=%s", servo, axis)
         queue = self.__get_error_queue(servo, axis)
+        logger.info("Errors.get_number_total_errors: Got queue id=%s", id(queue))
         result = queue.get_number_total_errors()
-        logger.debug("Errors.get_number_total_errors: Returning %s", result)
+        logger.info("Errors.get_number_total_errors: Returning %s", result)
         return result
 
     def get_all_errors(
