@@ -23,6 +23,8 @@ from ingeniamotion.wizard_tests.phase_calibration import Phasing
 from ingeniamotion.wizard_tests.phasing_check import PhasingCheck
 
 if TYPE_CHECKING:
+    from summit_testing_framework.setups.environment_control import DriveEnvironmentController
+
     from ingeniamotion.motion_controller import MotionController
 
 CURRENT_QUADRATURE_SET_POINT_REGISTER = "CL_CUR_Q_SET_POINT"
@@ -39,9 +41,11 @@ def force_fault(mc, alias):
 
 
 @pytest.fixture(scope="module")
-def feedback_test_setup(_motion_controller_creator, alias):
+def feedback_test_setup(
+    _motion_controller_creator, environment: "DriveEnvironmentController"
+) -> None:
     mc = _motion_controller_creator
-    mc.tests.commutation(servo=alias)
+    mc.tests.commutation(servo=environment.aliases)
 
 
 @pytest.mark.ethernet
