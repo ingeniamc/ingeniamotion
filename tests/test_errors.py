@@ -172,7 +172,6 @@ class TestErrors:
         assert test_type == error_type
         assert test_msg == error_msg
 
-    @pytest.mark.skip("debugging motion tests")
     @pytest.mark.parametrize(
         "function",
         [
@@ -215,7 +214,6 @@ class TestErrors:
         assert pending_errors == []
         assert errors_lost is False
 
-    @pytest.mark.skip("debugging motion tests")
     @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
@@ -274,7 +272,6 @@ class TestErrors:
         mc.communication.set_register(USER_UNDER_VOLTAGE_LEVEL_REGISTER, old_value, servo=alias)
         mc.motion.fault_reset(servo=alias)
 
-    @pytest.mark.skip("debugging motion tests")
     @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
