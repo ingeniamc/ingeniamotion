@@ -194,7 +194,6 @@ class TestErrors:
             getattr(mc.errors, function)(servo=alias)
         mocker.stopall()
 
-    @pytest.mark.skip("debugging motion tests")
     @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
@@ -233,7 +232,6 @@ class TestErrors:
         for error, expected_code in zip(pending_errors, generate_drive_errors):
             assert error.error_id == expected_code
 
-    @pytest.mark.skip("debugging motion tests")
     @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
