@@ -589,11 +589,23 @@ class Errors:
 
         """
         logger.info("Errors.get_number_total_errors: Called with servo=%s, axis=%s", servo, axis)
-        queue = self.__get_error_queue(servo, axis)
-        logger.info("Errors.get_number_total_errors: Got queue id=%s", id(queue))
-        result = queue.get_number_total_errors()
-        logger.info("Errors.get_number_total_errors: Returning %s", result)
-        return result
+        # TEMPORARY: Use OLD implementation to debug - bypass ServoErrorQueue
+        error_version = self.__get_error_location(servo)
+        subnode, error_location = self.__get_error_subnode(error_version, axis)
+        logger.info(
+            "Errors.get_number_total_errors: Using OLD method - error_location=%s, subnode=%s",
+            error_location.name,
+            subnode,
+        )
+        total_number_errors = self.mc.communication.get_register(
+            self.ERROR_TOTAL_NUMBER_REGISTER[error_location], servo=servo, axis=subnode
+        )
+        logger.info(
+            "Errors.get_number_total_errors: Read via get_register = %s", total_number_errors
+        )
+        if not isinstance(total_number_errors, int):
+            raise TypeError("Total number errors value has to be an integer")
+        return total_number_errors
 
     def get_all_errors(
         self, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
