@@ -3,7 +3,6 @@ from enum import IntEnum
 from typing import TYPE_CHECKING, ClassVar, Optional
 
 from ingenialink.dictionary import Dictionary, DictionaryError
-from ingenialogger import get_logger
 
 from ingeniamotion._utils import weak_lru
 
@@ -13,8 +12,6 @@ if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
-
-logger = get_logger(__name__)
 
 
 class Error:
@@ -456,9 +453,7 @@ class Errors:
         Raises:
             ValueError: Index must be less than 32
         """
-        logger.info("Errors.get_last_buffer_error: Called with servo=%s, axis=%s", servo, axis)
         result = self.get_buffer_error_by_index(0, servo=servo, axis=axis)
-        logger.info("Errors.get_last_buffer_error: Returning %s", result)
         return result
 
     def get_buffer_error_by_index(
