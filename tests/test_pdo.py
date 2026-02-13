@@ -149,7 +149,7 @@ def test_pdos_watchdog_exception_auto(mc: "MotionController", alias: str) -> Non
     mc.capture.pdo.unsubscribe_to_exceptions(exception_callback, servo=alias)
     assert len(exceptions) > 0
     exception = exceptions[0]
-    assert str(exception) == "The sampling time is too high. The max sampling time is 3.27675 ms."
+    assert str(exception) == "The sampling time is too high. The max sampling time is 3.27675 s."
 
 
 @pytest.mark.soem
@@ -167,7 +167,7 @@ def test_pdos_watchdog_exception_manual(mc: "MotionController", alias: str) -> N
     assert len(exceptions) == 1
     assert (
         str(exceptions[0])
-        == "The watchdog timeout is too high. The max watchdog timeout is 6.5535 ms."
+        == "The watchdog timeout is too high. The max watchdog timeout is 6.5535 s."
     )
 
 
