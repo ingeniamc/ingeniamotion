@@ -48,6 +48,7 @@ from ingeniamotion.fsoe_master.safety_functions import (
 if TYPE_CHECKING:
     from ingenialink.ethercat.dictionary import EthercatDictionary
     from ingenialink.ethercat.network import EthercatNetwork
+    from ingenialink.ethercat.register import EthercatRegister
 
 SAFE_INSTANCE_TYPE = TypeVar("SAFE_INSTANCE_TYPE", bound="SafetyFunction")
 
@@ -117,7 +118,7 @@ class FSoEMasterHandler:
         safety_module = self.__set_configured_module_ident_1()
 
         for app_parameter in safety_module.application_parameters:
-            register = servo.dictionary.get_register(app_parameter.uid)
+            register = cast("EthercatRegister", servo.dictionary.get_register(app_parameter.uid))
 
             if safety_module.uses_sra:
                 sp = SafetyParameter(register, servo)
