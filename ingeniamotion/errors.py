@@ -33,6 +33,11 @@ class Error:
         return self.__error_id
 
     @property
+    def is_warning(self) -> bool:
+        """Check if the error is a warning."""
+        return (self.__error_id & Errors.ERROR_WARNING_BIT) != 0
+
+    @property
     def error_description(self) -> str:
         """Get the error description."""
         if self.__dictionary_error is not None and self.__dictionary_error.description is not None:
