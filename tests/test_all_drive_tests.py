@@ -1,4 +1,5 @@
 import contextlib
+import logging
 import time
 from threading import Thread
 from typing import TYPE_CHECKING
@@ -205,6 +206,7 @@ def test_sto_test_error(mocker, mc, alias, sto_value, message):
 @pytest.mark.virtual
 @pytest.mark.parametrize("sto_value", [0x4, 0x1F, 0xE, 0x73, 0x5, 0x17])
 def test_sto_test_logs(caplog, mocker, mc, alias, sto_value):
+    caplog.set_level(logging.INFO)
     mocker.patch("ingeniamotion.configuration.Configuration.get_sto_status", return_value=sto_value)
     mc.tests.sto_test(servo=alias)
 
