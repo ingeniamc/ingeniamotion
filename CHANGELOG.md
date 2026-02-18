@@ -5,6 +5,9 @@
 - Extended error queue manager (`ServoErrorQueue`) to support standard drive errors (MOCO/COCO/SYSTEM).
 - Added standard error queue descriptors: `MOCO_ERROR_QUEUE`, `COCO_ERROR_QUEUE`, `SYSTEM_ERROR_QUEUE`.
 
+### Fixed
+- Clarify STO test logs.
+
 ## [0.10.1] - 2025-11-24
 ### Added
 - Add `is_active` function in SafetyFunctions class.
