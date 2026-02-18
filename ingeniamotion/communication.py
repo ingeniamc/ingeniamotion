@@ -238,7 +238,7 @@ class Communication:
             disconnect_callback=self.__disconnect_callback,
         )
 
-        self.mc._add_motion_node(alias, servo, alias)
+        self.mc._create_motion_node(alias, servo)
         return net, servo
 
     def __servo_connect(
@@ -268,7 +268,7 @@ class Communication:
             disconnect_callback=self.__disconnect_callback,
         )
 
-        self.mc._add_motion_node(alias, servo, alias)
+        self.mc._create_motion_node(alias, servo, net)
         return net, servo
 
     def connect_servo_eoe_service(
@@ -330,7 +330,7 @@ class Communication:
                 del self.mc.net[ifname]
             raise e
         servo.slave = slave  # type: ignore [attr-defined]
-        self.mc._add_motion_node(alias, servo, ifname)
+        self.mc._create_motion_node(alias, servo, net)
         return net, servo
 
     def connect_servo_eoe_service_interface_ip(
@@ -705,7 +705,7 @@ class Communication:
             net_status_listener,
             disconnect_callback=self.__disconnect_callback,
         )
-        self.mc._add_motion_node(alias, servo, net_key)
+        self.mc._create_motion_node(alias, servo, net)
         return net, servo
 
     def connect_servo_ethercat(
@@ -757,7 +757,7 @@ class Communication:
             if len(net.servos) == 0:
                 del self.mc.net[interface_name]
             raise e
-        self.mc._add_motion_node(alias, servo, interface_name)
+        self.mc._create_motion_node(alias, servo, net)
         return net, servo
 
     def connect_servo_ethercat_interface_index(

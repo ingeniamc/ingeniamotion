@@ -4,7 +4,8 @@ import warnings
 from collections.abc import Iterator, MutableMapping
 from enum import IntEnum
 from functools import cached_property
-from typing import TYPE_CHECKING, Any
+from types import MappingProxyType
+from typing import TYPE_CHECKING
 
 from ingenialink.servo import Servo
 
@@ -18,6 +19,7 @@ from ingeniamotion.information import Information
 from ingeniamotion.input_output import InputsOutputs
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.motion import Motion
+from ingeniamotion.motion_node import MotionNode
 
 if TYPE_CHECKING:
     from ingenialink.network import Network
@@ -35,16 +37,16 @@ class _ServosProxy(MutableMapping[str, Servo]):
         self._mc = mc
 
     def __getitem__(self, key: str) -> Servo:
-        return self._mc._servos[key]
+        return self._mc.motion_nodes[key].servo
 
     def __iter__(self) -> Iterator[str]:
-        return iter(self._mc._servos)
+        return iter(self._mc.motion_nodes)
 
     def __len__(self) -> int:
-        return len(self._mc._servos)
+        return len(self._mc.motion_nodes)
 
     def __contains__(self, key: object) -> bool:
-        return key in self._mc._servos
+        return key in self._mc.motion_nodes
 
     def __setitem__(self, key: str, value: Servo) -> None:
         warnings.warn(
@@ -52,7 +54,7 @@ class _ServosProxy(MutableMapping[str, Servo]):
             DeprecationWarning,
             stacklevel=2,
         )
-        self._mc._add_motion_node(key, value)
+        self._mc._create_motion_node(key, value)
 
     def __delitem__(self, key: str) -> None:
         warnings.warn(
@@ -62,38 +64,14 @@ class _ServosProxy(MutableMapping[str, Servo]):
         )
         self._mc._remove_motion_node(key)
 
-    def pop(self, key: str, default: Any = None) -> Any:
-        warnings.warn(
-            "Mutating MotionController.servos is deprecated; use _remove_motion_node",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        if key in self._mc._servos:
-            val = self._mc._servos[key]
-            self._mc._remove_motion_node(key)
-            return val
-        return default
-
-    def popitem(self) -> tuple[str, Servo]:
-        warnings.warn(
-            "Mutating MotionController.servos is deprecated; use _remove_motion_node",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        # Remove an arbitrary item
-        key = next(iter(self._mc._servos))
-        val = self._mc._servos[key]
-        self._mc._remove_motion_node(key)
-        return (key, val)
-
     def clear(self) -> None:
         warnings.warn(
             "Mutating MotionController.servos is deprecated; use _remove_motion_node",
             DeprecationWarning,
             stacklevel=2,
         )
-        # Remove all servos via lifecycle removal
-        for key in list(self._mc._servos.keys()):
+        # Remove all servos
+        for key in list(self._mc.motion_nodes.keys()):
             self._mc._remove_motion_node(key)
 
 
@@ -101,9 +79,12 @@ class MotionController:
     """Motion Controller."""
 
     def __init__(self) -> None:
-        self._servos: dict[str, Servo] = {}  # TODO
-        self._net: dict[str, Network] = {}  # TODO
-        self._servo_net: dict[str, str] = {}  # TODO
+        # Motion Node alias -> Motion Node instance
+        self.__motion_nodes: dict[str, MotionNode] = {}
+        # Network Alias -> Network
+        self.__net: dict[str, Network] = {}
+
+        # Motion Controller Modules
         self.__config: Configuration = Configuration(self)
         self.__motion: Motion = Motion(self)
         self.__capture: Capture = Capture(self)
@@ -114,7 +95,7 @@ class MotionController:
         self.__io = InputsOutputs(self)
         self.__fsoe: FSoEMaster | None = None
         if FSOE_MASTER_INSTALLED:
-            self._fsoe = FSoEMaster(self)  # TODO
+            self.__fsoe = FSoEMaster(self)
 
     def servo_name(self, servo: str = DEFAULT_SERVO) -> str:
         """Get the servo name.
@@ -191,24 +172,20 @@ class MotionController:
             raise KeyError(msg)
         return self.servos[servo]
 
-    def _add_motion_node(self, alias: str, servo: Servo, net_alias: str | None = None) -> None:
-        """Helper to register a newly connected servo and its network.
+    @property
+    def motion_nodes(self) -> MappingProxyType[str, MotionNode]:
+        """Read only dict of motion nodes indexed by alias."""
+        return MappingProxyType(self.__motion_nodes)
 
-        If ``net_alias`` is omitted the controller will register the servo
-        but will not modify the internal servo->network mapping. Callers
-        that need the network association must provide ``net_alias``.
+    def _create_motion_node(
+        self, alias: str, servo: Servo, network: Network | None = None
+    ) -> MotionNode:
+        node = MotionNode(servo=servo, network=network)
 
-        Args:
-            alias: alias used to reference the servo.
-            servo: the connected `ingenialink.Servo` instance.
-            net_alias: optional network alias where the servo is connected.
-        """
-        # Always register servo instance
-        self._servos[alias] = servo
+        # register motion node instance
+        self.__motion_nodes[alias] = node
 
-        # Only set mapping when an explicit network alias is provided
-        if net_alias is not None:
-            self._servo_net[alias] = net_alias
+        return node
 
     def _remove_motion_node(self, alias: str) -> None:
         """Helper to unregister a servo and cleanup its network.
@@ -221,23 +198,26 @@ class MotionController:
         Args:
             alias: alias used to reference the servo to remove.
         """
-        if alias not in self._servos:
+        if alias not in self.__motion_nodes:
             return
 
-        # Remove servo entry
-        del self._servos[alias]
-
-        # Remove servo->network mapping
-        net_name = self._servo_net.pop(alias)
-
         # Remove FSoE handler if installed
-        if self._fsoe is not None:
-            self._fsoe._delete_master_handler(alias)
+        if self.__fsoe is not None:
+            self.__fsoe._delete_master_handler(alias)
 
         # If no servos remain on this network, remove the network entry
-        servo_count = list(self._servo_net.values()).count(net_name)
-        if servo_count == 0 and net_name in self._net:
-            del self._net[net_name]
+        network = self.__motion_nodes[alias].network
+        if network is not None:
+            # Network of a node might not be registered
+            nodes_on_net = [
+                node for node in self.__motion_nodes.values() if node.network == network
+            ]
+
+            if len(nodes_on_net) == 0:
+                self.__remove_network(network)
+
+        # Remove motion node entry
+        del self.__motion_nodes[alias]
 
     # Properties
     @cached_property
@@ -255,7 +235,8 @@ class MotionController:
     def servos(self, value: dict[str, Servo]) -> None:
         warnings.warn(
             "Direct assignment to MotionController.servos is deprecated; "
-            "use MotionController._add_motion_node and MotionController._remove_motion_node instead.",
+            "use MotionController._add_motion_node and "
+            "MotionController._remove_motion_node instead.",
             DeprecationWarning,
             stacklevel=2,
         )
@@ -274,11 +255,15 @@ class MotionController:
     @property
     def net(self) -> dict[str, Network]:
         """Dict of ``ingenialink.Network`` connected indexed by alias."""
-        return self._net
+        return self.__net
 
     @net.setter
     def net(self, value: dict[str, Network]) -> None:
-        self._net = value
+        self.__net = value
+
+    def __remove_network(self, network: Network) -> None:
+        for alias in [alias for alias, net in self.__net.items() if net == network]:
+            del self.__net[alias]
 
     @property
     def servo_net(self) -> dict[str, str]:
@@ -288,11 +273,15 @@ class MotionController:
             The servo network dictionary.
 
         """
-        return self._servo_net
+        # Inverse mapping of self.__net to find aliases for network instances
+        net_to_alias = {net: alias for alias, net in self.__net.items()}
 
-    @servo_net.setter
-    def servo_net(self, value: dict[str, str]) -> None:
-        self._servo_net = value
+        result = {}
+        for alias, node in self.__motion_nodes.items():
+            # Only include nodes that have a network associated that is also registered
+            if node.network in net_to_alias:
+                result[alias] = net_to_alias[node.network]
+        return result
 
     @property
     def configuration(self) -> Configuration:
@@ -332,18 +321,18 @@ class MotionController:
     @property
     def fsoe(self) -> FSoEMaster:
         """Instance of :class:`~ingeniamotion.fsoe.FSoEMaster` class."""
-        if self._fsoe is None:
+        if self.__fsoe is None:
             raise NotImplementedError(
                 "The FSoE module is not available. "
                 "Install ingeniamotion with FSoE feature: "
                 "pip install ingeniamotion[FSoE]"
             )
-        return self._fsoe
+        return self.__fsoe
 
     @property
     def fsoe_is_installed(self) -> bool:
         """Indicates if the FSoE Module is available."""
-        return self._fsoe is not None
+        return self.__fsoe is not None
 
     @property
     def io(self) -> InputsOutputs:
