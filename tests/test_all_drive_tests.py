@@ -229,6 +229,8 @@ def test_sto_test_logs(caplog, mocker, mc, alias, sto_value):
 @pytest.mark.soem
 @pytest.mark.canopen
 def test_brake_test(mc, alias):
+    # Set frame type to BiSS-C BP3 to ensure that the test changes it to avoid an error.
+    mc.communication.set_register("FBK_BISS1_SSI1_FRAME_TYPE", 3, servo=alias)
     pair_poles = mc.configuration.get_motor_pair_poles(servo=alias)
     brake_test = mc.tests.brake_test(servo=alias)
     assert mc.configuration.get_motor_pair_poles(servo=alias) == 1
