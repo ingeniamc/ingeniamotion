@@ -62,7 +62,8 @@ class TestMetaclass:
             return servo == "a" and axis == 1
 
         def __init__(self):
-            self.mc.servos = {"a": None, "b": None}
+            self.mc._add_motion_node("a", None, "test_net")
+            self.mc._add_motion_node("b", None, "test_net")
             self.mc.configuration.is_motor_enabled = self.is_motor_enabled
 
         @MCMetaClass.check_motor_disabled

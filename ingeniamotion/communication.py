@@ -99,18 +99,13 @@ class Communication:
                 break
         if alias is None:
             raise ValueError("Servo not found in the communication controller.")
-
         network = self.mc._get_network(alias)
         if isinstance(network, VirtualNetwork) and self.__virtual_drive:
             self.__virtual_drive.stop()
             self.__virtual_drive = None
-        del self.mc.servos[alias]
-        net_name = self.mc.servo_net.pop(alias)
-        servo_count = list(self.mc.servo_net.values()).count(net_name)
-        if self.mc.fsoe_is_installed:
-            self.mc.fsoe._delete_master_handler(alias)
-        if servo_count == 0:
-            del self.mc.net[net_name]
+
+        # Delegate actual removal/cleanup to MotionController
+        self.mc._remove_motion_node(alias)
 
     def connect_servo_eoe(
         self,
@@ -243,8 +238,7 @@ class Communication:
             disconnect_callback=self.__disconnect_callback,
         )
 
-        self.mc.servos[alias] = servo
-        self.mc.servo_net[alias] = alias
+        self.mc._add_motion_node(alias, servo, alias)
         return net, servo
 
     def __servo_connect(
@@ -274,8 +268,7 @@ class Communication:
             disconnect_callback=self.__disconnect_callback,
         )
 
-        self.mc.servos[alias] = servo
-        self.mc.servo_net[alias] = alias
+        self.mc._add_motion_node(alias, servo, alias)
         return net, servo
 
     def connect_servo_eoe_service(
@@ -337,8 +330,7 @@ class Communication:
                 del self.mc.net[ifname]
             raise e
         servo.slave = slave  # type: ignore [attr-defined]
-        self.mc.servos[alias] = servo
-        self.mc.servo_net[alias] = ifname
+        self.mc._add_motion_node(alias, servo, ifname)
         return net, servo
 
     def connect_servo_eoe_service_interface_ip(
@@ -713,8 +705,7 @@ class Communication:
             net_status_listener,
             disconnect_callback=self.__disconnect_callback,
         )
-        self.mc.servos[alias] = servo
-        self.mc.servo_net[alias] = net_key
+        self.mc._add_motion_node(alias, servo, net_key)
         return net, servo
 
     def connect_servo_ethercat(
@@ -766,8 +757,7 @@ class Communication:
             if len(net.servos) == 0:
                 del self.mc.net[interface_name]
             raise e
-        self.mc.servos[alias] = servo
-        self.mc.servo_net[alias] = interface_name
+        self.mc._add_motion_node(alias, servo, interface_name)
         return net, servo
 
     def connect_servo_ethercat_interface_index(

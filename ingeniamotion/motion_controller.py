@@ -1,3 +1,4 @@
+import warnings
 from enum import IntEnum
 from typing import Optional
 
@@ -110,6 +111,46 @@ class MotionController:
             raise KeyError(msg)
         return self.servos[servo]
 
+    def _add_motion_node(self, alias: str, servo: Servo, net_alias: str) -> None:
+        """Helper to register a newly connected servo and its network.
+
+        Args:
+            alias: alias used to reference the servo.
+            servo: the connected `ingenialink.Servo` instance.
+            net_alias: the network alias where the servo is connected.
+        """
+        self.__servos[alias] = servo
+        self.__servo_net[alias] = net_alias
+
+    def _remove_motion_node(self, alias: str) -> None:
+        """Helper to unregister a servo and cleanup its network.
+
+        This will remove the servo from the internal registry, remove the
+        servo->network mapping, delete the FSoE master handler for the
+        servo if present, and delete the network entry when no more servos
+        use it.
+
+        Args:
+            alias: alias used to reference the servo to remove.
+        """
+        if alias not in self.__servos:
+            return
+
+        # Remove servo entry
+        del self.__servos[alias]
+
+        # Remove servo->network mapping
+        net_name = self.__servo_net.pop(alias)
+
+        # Remove FSoE handler if installed
+        if self.__fsoe is not None:
+            self.__fsoe._delete_master_handler(alias)
+
+        # If no servos remain on this network, remove the network entry
+        servo_count = list(self.__servo_net.values()).count(net_name)
+        if servo_count == 0 and net_name in self.__net:
+            del self.__net[net_name]
+
     # Properties
     @property
     def servos(self) -> dict[str, Servo]:
@@ -118,6 +159,12 @@ class MotionController:
 
     @servos.setter
     def servos(self, value: dict[str, Servo]) -> None:
+        warnings.warn(
+            "Direct assignment to MotionController.servos is deprecated; "
+            "use MotionController._add_motion_node and MotionController._remove_motion_node instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
         self.__servos = value
 
     @property
