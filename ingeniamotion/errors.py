@@ -17,6 +17,12 @@ from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 class Error:
     """Class to represent an error from the servo."""
 
+    ERROR_CODE_BITS = 0xFFFF
+    ERROR_SUBNODE_BITS = 0xF00000
+    ERROR_SUBNODE_SHIFT = 20
+    ERROR_WARNING_BIT = 0x10000000
+    ERROR_WARNING_SHIFT = 28
+
     def __init__(self, error_id: int, dictionary_error: Optional[DictionaryError] = None):
         """Constructor.
 
@@ -31,6 +37,16 @@ class Error:
     def error_id(self) -> int:
         """Get the error ID."""
         return self.__error_id
+
+    @property
+    def error_code(self) -> int:
+        """Get the error code."""
+        return self.__error_id & self.ERROR_CODE_BITS
+
+    @property
+    def axis(self) -> int:
+        """Get the error ID."""
+        return self.__error_id & self.ERROR_SUBNODE_BITS >> self.ERROR_SUBNODE_SHIFT
 
     @property
     def is_warning(self) -> bool:
@@ -330,7 +346,7 @@ class Errors:
         Returns:
             ServoErrorQueue instance for the specified servo/axis.
         """
-        error_version = self.__get_error_location(servo)
+        error_version = self.get_error_location(servo)
         axis, error_location = self.__get_error_subnode(error_version, axis)
 
         # Select the appropriate descriptor based on error location
@@ -348,20 +364,16 @@ class Errors:
         return ServoErrorQueue(descriptor, drive, axis=axis)
 
     def __parse_error_to_tuple(
-        self, error: int, location: ErrorLocation, subnode: Optional[int] = None
+        self, error: Error, subnode: Optional[int] = None
     ) -> tuple[int, Optional[int], Optional[bool]]:
-        error_code = error & self.ERROR_CODE_BITS
+        error_code = error.error_code
         if error_code == 0:
             return error_code, None, None
         if subnode is None:
-            if location == self.ErrorLocation.MOCO:
-                subnode = DEFAULT_AXIS
-            else:
-                subnode = (error & self.ERROR_SUBNODE_BITS) >> self.ERROR_SUBNODE_SHIFT
-        is_warning = (error & self.ERROR_WARNING_BIT) >> self.ERROR_WARNING_SHIFT
-        return error_code, subnode, bool(is_warning)
+            subnode = error.axis
+        return error_code, subnode, error.is_warning
 
-    def __get_error_location(self, servo: str = DEFAULT_SERVO) -> ErrorLocation:
+    def get_error_location(self, servo: str = DEFAULT_SERVO) -> ErrorLocation:
         """Determine the error location based on available registers.
 
         Args:
@@ -427,14 +439,13 @@ class Errors:
             TypeError: If some read value has a wrong type.
 
         """
-        error_version = self.__get_error_location(servo)
         queue = self.get_error_queue(servo, axis)
         error_obj = queue.get_last_error()
 
         if error_obj is None:
             return 0, None, None
 
-        return self.__parse_error_to_tuple(error_obj.error_id, error_version, axis)
+        return self.__parse_error_to_tuple(error_obj, axis)
 
     def get_last_buffer_error(
         self, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
@@ -488,14 +499,13 @@ class Errors:
         if index >= self.MAXIMUM_ERROR_INDEX:
             raise ValueError("index must be less than 32")
 
-        error_version = self.__get_error_location(servo)
         queue = self.get_error_queue(servo, axis)
         error_obj = queue.get_error_by_index(index)
 
         if error_obj is None:
             return 0, None, None
 
-        return self.__parse_error_to_tuple(error_obj.error_id, error_version, axis)
+        return self.__parse_error_to_tuple(error_obj, axis)
 
     def get_number_total_errors(
         self, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
