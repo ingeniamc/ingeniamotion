@@ -318,7 +318,7 @@ class Errors:
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
 
-    def __get_error_queue(
+    def get_error_queue(
         self, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
     ) -> ServoErrorQueue:
         """Get the appropriate ServoErrorQueue for the given servo and axis.
@@ -428,7 +428,7 @@ class Errors:
 
         """
         error_version = self.__get_error_location(servo)
-        queue = self.__get_error_queue(servo, axis)
+        queue = self.get_error_queue(servo, axis)
         error_obj = queue.get_last_error()
 
         if error_obj is None:
@@ -489,7 +489,7 @@ class Errors:
             raise ValueError("index must be less than 32")
 
         error_version = self.__get_error_location(servo)
-        queue = self.__get_error_queue(servo, axis)
+        queue = self.get_error_queue(servo, axis)
         error_obj = queue.get_error_by_index(index)
 
         if error_obj is None:
@@ -513,7 +513,7 @@ class Errors:
             TypeError: If some read value has a wrong type.
 
         """
-        queue = self.__get_error_queue(servo, axis)
+        queue = self.get_error_queue(servo, axis)
         return queue.get_number_total_errors()
 
     def get_all_errors(
