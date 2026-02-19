@@ -451,11 +451,16 @@ class SS1Function(SafetyFunction):
     def is_motion(self) -> bool:
         """Check if the safety function is a motion-related function.
 
+        Raises:
+            ValueError: If the deceleration_limit parameter is not set.
+
         Returns:
             True if the safety function is a motion-related function, False otherwise.
         """
         # If Function is in Deceleration mode -> it is a motion function,
         # otherwise it is a stop function without motion (SS1 with time to STO but no deceleration)
+        if not self.deceleration_limit:
+            raise ValueError("SS1Function is missing deceleration_limit parameter.")
         return bool(self.deceleration_limit.get())
 
     @override
