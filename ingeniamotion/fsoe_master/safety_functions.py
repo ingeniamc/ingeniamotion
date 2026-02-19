@@ -454,14 +454,6 @@ class SS1Function(SafetyFunction):
 
     @override
     def is_motion(self) -> bool:
-        """Check if the safety function is a motion-related function.
-
-        Raises:
-            ValueError: If the deceleration_limit parameter is not set.
-
-        Returns:
-            True if the safety function is a motion-related function, False otherwise.
-        """
         # If Function is in Deceleration mode -> it is a motion function,
         # otherwise it is a stop function without motion (SS1 with time to STO but no deceleration)
         if self.deceleration_limit is None:
@@ -470,14 +462,6 @@ class SS1Function(SafetyFunction):
 
     @override
     def follows_custom_motion_rules(self) -> bool:
-        """Defines if is_motion follows custom motion-related rules.
-
-        This safety function will be treated as motion-related according
-        to application-specific criteria.
-
-        Returns:
-            True, as this safety function follows custom motion-related rules.
-        """
         # If Function is in Deceleration mode -> it is a motion function,
         # otherwise it is a stop function without motion (SS1 with time to STO but no deceleration)
         return True
@@ -536,11 +520,6 @@ class SOSFunction(SafetyFunction):
 
     @override
     def is_motion(self) -> bool:
-        """Check if the safety function is a motion-related function.
-
-        Returns:
-            True if the safety function is a motion-related function, False otherwise.
-        """
         return True
 
 
@@ -597,11 +576,6 @@ class SS2Function(SafetyFunction):
 
     @override
     def is_motion(self) -> bool:
-        """Check if the safety function is a motion-related function.
-
-        Returns:
-            True if the safety function is a motion-related function, False otherwise.
-        """
         return True
 
 
@@ -665,11 +639,6 @@ class SPFunction(SafetyFunction):
 
     @override
     def is_motion(self) -> bool:
-        """Check if the safety function is a motion-related function.
-
-        Returns:
-            True if the safety function is a motion-related function, False otherwise.
-        """
         return True
 
 
@@ -683,11 +652,6 @@ class SVFunction(SafetyFunction):
 
     @override
     def is_motion(self) -> bool:
-        """Check if the safety function is a motion-related function.
-
-        Returns:
-            True if the safety function is a motion-related function, False otherwise.
-        """
         return True
 
 
@@ -706,11 +670,6 @@ class SafeHomingFunction(SafetyFunction):
 
     @override
     def is_motion(self) -> bool:
-        """Check if the safety function is a motion-related function.
-
-        Returns:
-            True if the safety function is a motion-related function, False otherwise.
-        """
         return True
 
 
@@ -739,11 +698,6 @@ class SLSFunction(SafetyFunction):
 
     @override
     def is_motion(self) -> bool:
-        """Check if the safety function is a motion-related function.
-
-        Returns:
-            True if the safety function is a motion-related function, False otherwise.
-        """
         return True
 
 
@@ -775,11 +729,6 @@ class SSRFunction(SafetyFunction):
 
     @override
     def is_motion(self) -> bool:
-        """Check if the safety function is a motion-related function.
-
-        Returns:
-            True if the safety function is a motion-related function, False otherwise.
-        """
         return True
 
 
@@ -812,11 +761,6 @@ class SLPFunction(SafetyFunction):
 
     @override
     def is_motion(self) -> bool:
-        """Check if the safety function is a motion-related function.
-
-        Returns:
-            True if the safety function is a motion-related function, False otherwise.
-        """
         return True
 
 
@@ -838,11 +782,6 @@ class SDIFunction(SafetyFunction):
 
     @override
     def is_motion(self) -> bool:
-        """Check if the safety function is a motion-related function.
-
-        Returns:
-            True if the safety function is a motion-related function, False otherwise.
-        """
         return True
 
 
@@ -874,9 +813,4 @@ class SLIFunction(SafetyFunction):
 
     @override
     def is_motion(self) -> bool:
-        """Check if the safety function is a motion-related function.
-
-        Returns:
-            True if the safety function is a motion-related function, False otherwise.
-        """
         return True
