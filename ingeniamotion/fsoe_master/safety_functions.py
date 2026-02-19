@@ -154,11 +154,16 @@ class SafetyFunction:
         """
         return False
 
-    def custom_motion_rules(self) -> bool:
-        """Custom rules to determine if the safety function is motion-related.
+    def follows_custom_motion_rules(self) -> bool:
+        """Defines if is_motion follows custom motion-related rules.
+
+        This base implementation does not apply any custom rules and always returns ``False``.
+        Subclasses may override this method to indicate that a safety function will be
+        treated as motion-related according to application-specific criteria.
 
         Returns:
-            True if the safety function is motion-related, False otherwise.
+            ``True`` if, according to custom rules in an override, ``False`` otherwise.
+            Default implementation returns ``False``.
         """
         return False
 
@@ -464,11 +469,14 @@ class SS1Function(SafetyFunction):
         return bool(self.deceleration_limit.get())
 
     @override
-    def custom_motion_rules(self) -> bool:
-        """Custom rules to determine if the safety function is motion-related.
+    def follows_custom_motion_rules(self) -> bool:
+        """Defines if is_motion follows custom motion-related rules.
+
+        This safety function will be treated as motion-related according
+        to application-specific criteria.
 
         Returns:
-            True if the safety function is motion-related, False otherwise.
+            True, as this safety function follows custom motion-related rules.
         """
         # If Function is in Deceleration mode -> it is a motion function,
         # otherwise it is a stop function without motion (SS1 with time to STO but no deceleration)

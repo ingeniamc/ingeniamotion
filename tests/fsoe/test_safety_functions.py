@@ -239,7 +239,7 @@ def test_getter_of_safety_functions(
 
 
 @pytest.mark.fsoe_phase2
-def test_sto_activated_by():
+def test_sto_is_motion():
     """Test is_motion of STOFunction."""
     handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     process_image = ProcessImage.empty(handler.dictionary)
