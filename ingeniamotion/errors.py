@@ -17,12 +17,6 @@ from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 class Error:
     """Class to represent an error from the servo."""
 
-    ERROR_CODE_BITS = 0xFFFF
-    ERROR_SUBNODE_BITS = 0xF00000
-    ERROR_SUBNODE_SHIFT = 20
-    ERROR_WARNING_BIT = 0x10000000
-    ERROR_WARNING_SHIFT = 28
-
     def __init__(self, error_id: int, dictionary_error: Optional[DictionaryError] = None):
         """Constructor.
 
@@ -30,28 +24,13 @@ class Error:
             error_id: Error ID.
             dictionary_error: DictionaryError instance from the dictionary, if available.
         """
-        self.__error_id = error_id
+        self._error_id = error_id
         self.__dictionary_error = dictionary_error
 
     @property
     def error_id(self) -> int:
         """Get the error ID."""
-        return self.__error_id
-
-    @property
-    def error_code(self) -> int:
-        """Get the error code."""
-        return self.__error_id & self.ERROR_CODE_BITS
-
-    @property
-    def axis(self) -> int:
-        """Get the error ID."""
-        return self.__error_id & self.ERROR_SUBNODE_BITS >> self.ERROR_SUBNODE_SHIFT
-
-    @property
-    def is_warning(self) -> bool:
-        """Check if the error is a warning."""
-        return (self.__error_id & Errors.ERROR_WARNING_BIT) != 0
+        return self._error_id
 
     @property
     def error_description(self) -> str:
@@ -94,6 +73,31 @@ class Error:
         )
 
 
+class OperationError(Error):
+    """Class to represent an operation error from the servo."""
+
+    __ERROR_CODE_BITS = 0xFFFF
+    __ERROR_SUBNODE_BITS = 0xF00000
+    __ERROR_SUBNODE_SHIFT = 20
+    __ERROR_WARNING_BIT = 0x10000000
+    __ERROR_WARNING_SHIFT = 28
+
+    @property
+    def error_code(self) -> int:
+        """Get the error code."""
+        return self._error_id & self.__ERROR_CODE_BITS
+
+    @property
+    def axis(self) -> int:
+        """Get the error axis. If 0, it is a COCO error."""
+        return (self._error_id & self.__ERROR_SUBNODE_BITS) >> self.__ERROR_SUBNODE_SHIFT
+
+    @property
+    def is_warning(self) -> bool:
+        """Check if the error is a warning."""
+        return bool((self._error_id & self.__ERROR_WARNING_BIT) >> self.__ERROR_WARNING_SHIFT)
+
+
 @dataclass()
 class ErrorQueueDescriptor:
     """Descriptor for an error queue in a servo."""
@@ -103,6 +107,7 @@ class ErrorQueueDescriptor:
     error_request_index_reg_uid: str
     error_request_code_reg_uid: str
     max_index_request: int
+    error_type: type[Error]
 
 
 class ServoErrorQueue:
@@ -150,7 +155,7 @@ class ServoErrorQueue:
         Returns:
             Optional[Error]: The last error, or None if there is no error.
         """
-        error = Error.from_id(
+        error = self.descriptor.error_type.from_id(
             self.__read_int_reg(self.descriptor.last_error_reg_uid), self.__dictionary
         )
         return error
@@ -187,7 +192,7 @@ class ServoErrorQueue:
             )
         else:
             self.__servo.write(self.descriptor.error_request_index_reg_uid, index)
-        error = Error.from_id(
+        error = self.descriptor.error_type.from_id(
             self.__read_int_reg(self.descriptor.error_request_code_reg_uid), self.__dictionary
         )
         return error
@@ -258,6 +263,7 @@ MOCO_ERROR_QUEUE = ErrorQueueDescriptor(
     error_request_index_reg_uid="DRV_DIAG_ERROR_LIST_IDX",
     error_request_code_reg_uid="DRV_DIAG_ERROR_LIST_CODE",
     max_index_request=31,
+    error_type=OperationError,
 )
 
 COCO_ERROR_QUEUE = ErrorQueueDescriptor(
@@ -266,6 +272,7 @@ COCO_ERROR_QUEUE = ErrorQueueDescriptor(
     error_request_index_reg_uid="DRV_DIAG_ERROR_LIST_IDX_COM",
     error_request_code_reg_uid="DRV_DIAG_ERROR_LIST_CODE_COM",
     max_index_request=31,
+    error_type=OperationError,
 )
 
 SYSTEM_ERROR_QUEUE = ErrorQueueDescriptor(
@@ -274,6 +281,7 @@ SYSTEM_ERROR_QUEUE = ErrorQueueDescriptor(
     error_request_index_reg_uid="DRV_DIAG_SYS_ERROR_LIST_IDX_COM",
     error_request_code_reg_uid="DRV_DIAG_SYS_ERROR_LIST_CODE_COM",
     max_index_request=31,
+    error_type=OperationError,
 )
 
 
@@ -325,11 +333,7 @@ class Errors:
     STATUS_WORD_FAULT_BIT = 0x08
     STATUS_WORD_WARNING_BIT = 0x80
 
-    ERROR_CODE_BITS = 0xFFFF
-    ERROR_SUBNODE_BITS = 0xF00000
-    ERROR_SUBNODE_SHIFT = 20
-    ERROR_WARNING_BIT = 0x10000000
-    ERROR_WARNING_SHIFT = 28
+    __ERROR_CODE_BITS = 0xFFFF
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
@@ -346,7 +350,7 @@ class Errors:
         Returns:
             ServoErrorQueue instance for the specified servo/axis.
         """
-        error_version = self.get_error_location(servo)
+        error_version = self._get_error_location(servo)
         axis, error_location = self.__get_error_subnode(error_version, axis)
 
         # Select the appropriate descriptor based on error location
@@ -366,6 +370,8 @@ class Errors:
     def __parse_error_to_tuple(
         self, error: Error, subnode: Optional[int] = None
     ) -> tuple[int, Optional[int], Optional[bool]]:
+        if not isinstance(error, OperationError):
+            return error.error_id, None, None
         error_code = error.error_code
         if error_code == 0:
             return error_code, None, None
@@ -373,7 +379,7 @@ class Errors:
             subnode = error.axis
         return error_code, subnode, error.is_warning
 
-    def get_error_location(self, servo: str = DEFAULT_SERVO) -> ErrorLocation:
+    def _get_error_location(self, servo: str = DEFAULT_SERVO) -> ErrorLocation:
         """Determine the error location based on available registers.
 
         Args:
@@ -598,5 +604,5 @@ class Errors:
 
         """
         drive = self.mc._get_drive(servo)
-        dictionary_errors = drive.errors[error_code & self.ERROR_CODE_BITS]
+        dictionary_errors = drive.errors[error_code & self.__ERROR_CODE_BITS]
         return tuple(dictionary_errors)  # type: ignore[return-value]

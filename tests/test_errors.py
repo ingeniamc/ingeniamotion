@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 import pytest
 from ingenialink.exceptions import ILError
 
-from ingeniamotion.errors import MOCO_ERROR_QUEUE, Error, ServoErrorQueue
+from ingeniamotion.errors import MOCO_ERROR_QUEUE, OperationError, ServoErrorQueue
 
 if TYPE_CHECKING:
     from ingenialink.servo import Servo
@@ -60,21 +60,21 @@ def force_warning(mc: "MotionController", alias: str) -> Iterator[None]:
 @pytest.mark.parametrize(
     "error_id, expected_error_code, expected_axis, expected_is_warning",
     [
-        (0x1003241, 0x3241, 1, False),   # axis=1, no warning
-        (0x2003241, 0x3241, 2, False),   # axis=2, no warning
-        (0x11003241, 0x3241, 1, True),   # axis=1, warning bit set
-        (0x12003241, 0x3241, 2, True),   # axis=2, warning bit set
-        (0x0000ABCD, 0xABCD, 0, False),  # axis=0, no warning
+        (0x103241, 0x3241, 1, False),  # axis=1, no warning
+        (0x203241, 0x3241, 2, False),  # axis=2, no warning
+        (0x10103241, 0x3241, 1, True),  # axis=1, warning bit set
+        (0x10203241, 0x3241, 2, True),  # axis=2, warning bit set
+        (0x000ABCD, 0xABCD, 0, False),  # axis=0, no warning
     ],
 )
-def test_error_class_properties(
+def test_operation_error_class_properties(
     error_id: int,
     expected_error_code: int,
     expected_axis: int,
     expected_is_warning: bool,
 ) -> None:
-    """Test Error class error_code, axis, and is_warning properties."""
-    error = Error(error_id)
+    """Test OperationError class error_code, axis, and is_warning properties."""
+    error = OperationError.from_id(error_id)
     assert error.error_code == expected_error_code
     assert error.axis == expected_axis
     assert error.is_warning is expected_is_warning
@@ -316,5 +316,3 @@ class TestErrors:
         mc.motion.fault_reset(servo=alias)
         last_error = error_queue.get_last_error()
         assert last_error is None
-
-
