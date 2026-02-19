@@ -147,10 +147,18 @@ class SafetyFunction:
     def is_motion(self) -> bool:
         """Check if the safety function is a motion-related function.
 
-        To be overridden by motion-related safety functions, e.g. Safe Stop or Safe Limited Position.
+        To be overridden by motion-related safety functions, e.g. Safe Stop or SafeLimitedPosition.
 
         Returns:
             True if the safety function is a motion-related function, False otherwise.
+        """
+        return False
+
+    def _custom_motion_rules(self) -> bool:
+        """Custom rules to determine if the safety function is motion-related.
+
+        Returns:
+            True if the safety function is motion-related, False otherwise.
         """
         return False
 
@@ -450,6 +458,17 @@ class SS1Function(SafetyFunction):
         # otherwise it is a stop function without motion (SS1 with time to STO but no deceleration)
         return bool(self.deceleration_limit.get())
 
+    @override
+    def _custom_motion_rules(self) -> bool:
+        """Custom rules to determine if the safety function is motion-related.
+
+        Returns:
+            True if the safety function is motion-related, False otherwise.
+        """
+        # If Function is in Deceleration mode -> it is a motion function,
+        # otherwise it is a stop function without motion (SS1 with time to STO but no deceleration)
+        return True
+
 
 @dataclass()
 class SafeInputsFunction(SafetyFunction):
@@ -570,9 +589,7 @@ class SS2Function(SafetyFunction):
         Returns:
             True if the safety function is a motion-related function, False otherwise.
         """
-        # If Function is in Deceleration mode -> it is a motion function,
-        # otherwise it is a stop function without motion (SS1 with time to STO but no deceleration)
-        return bool(self.deceleration_limit.get())
+        return True
 
 
 @dataclass()
