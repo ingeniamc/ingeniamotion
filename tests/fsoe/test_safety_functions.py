@@ -389,13 +389,13 @@ def test_ss1_activated_by_multiple():
 
 @pytest.mark.fsoe_phase2
 def test_ss1_is_motion():
-    """Test is_motion and _custom_motion_rules of SS1Function."""
+    """Test is_motion and custom_motion_rules of SS1Function."""
     handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
     process_image = ProcessImage.empty(handler.dictionary)
     handler.set_process_image(process_image)
     ss1_instance = handler.ss1_function()
     # SS1 has custom motion rules, so its motion status depends on the parameters
-    assert ss1_instance._custom_motion_rules()
+    assert ss1_instance.custom_motion_rules()
     # If deceleration limit is set to = 0, it is NOT a motion function
     assert not ss1_instance.is_motion()
     # If deceleration limit is set to != 0, it is a motion function

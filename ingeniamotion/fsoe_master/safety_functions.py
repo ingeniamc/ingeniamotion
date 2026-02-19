@@ -154,7 +154,7 @@ class SafetyFunction:
         """
         return False
 
-    def _custom_motion_rules(self) -> bool:
+    def custom_motion_rules(self) -> bool:
         """Custom rules to determine if the safety function is motion-related.
 
         Returns:
@@ -459,7 +459,7 @@ class SS1Function(SafetyFunction):
         return bool(self.deceleration_limit.get())
 
     @override
-    def _custom_motion_rules(self) -> bool:
+    def custom_motion_rules(self) -> bool:
         """Custom rules to determine if the safety function is motion-related.
 
         Returns:
