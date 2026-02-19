@@ -459,7 +459,7 @@ class SS1Function(SafetyFunction):
         """
         # If Function is in Deceleration mode -> it is a motion function,
         # otherwise it is a stop function without motion (SS1 with time to STO but no deceleration)
-        if not self.deceleration_limit:
+        if self.deceleration_limit is None:
             raise ValueError("SS1Function is missing deceleration_limit parameter.")
         return bool(self.deceleration_limit.get())
 
