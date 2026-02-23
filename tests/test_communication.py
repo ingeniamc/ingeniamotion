@@ -608,7 +608,7 @@ def test_load_ensemble_fw_canopen(mocker):
     mocker.patch("ingenialink.canopen.network.CanopenNetwork.disconnect_from_slave")
     mc._get_drive = lambda x: servos[x]
     for alias, servo in servos.items():
-        mc._create_motion_node(alias, servo, "test_net")
+        mc.create_motion_node(alias, servo, "test_net")
 
     product_code = 123456
     slaves_info = OrderedDict({

@@ -7,7 +7,7 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from functools import partial
 from os import path
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Callable, Optional, Union
 
 import ifaddr
 import ingenialogger
@@ -70,6 +70,11 @@ class IMEmergencyMessageObserver:
     alias: str
 
 
+def generate_net_alias_canopen(can_device: CanDevice, channel: int, baudrate: CanBaudrate) -> str:
+    """Generate a network alias for a CANOpen network."""
+    return f"{can_device}_{channel}_{baudrate}"
+
+
 class Communication:
     """Communication."""
 
@@ -105,7 +110,116 @@ class Communication:
             self.__virtual_drive = None
 
         # Delegate actual removal/cleanup to MotionController
-        self.mc._remove_motion_node(alias)
+        self.mc.remove_motion_node(alias)
+
+    def get_or_create_canopen_network(
+        self,
+        can_device: CanDevice,
+        baudrate: CanBaudrate = CanBaudrate.Baudrate_1M,
+        channel: int = 0,
+    ) -> CanopenNetwork:
+        """Get or create a CANOpen network.
+
+        Args:
+            can_device : CANOpen device type.
+            baudrate : communication baudrate. 1 Mbit/s by default.
+            channel : CANopen device channel. ``0`` by default.
+
+        Returns:
+            The CANOpen network.
+        """
+        net_key = generate_net_alias_canopen(can_device, channel, baudrate)
+        if net_key not in self.mc.net:
+            new_net = CanopenNetwork(can_device, channel, baudrate)
+            self.mc.register_network(net_key, new_net)
+            return new_net
+        else:
+            net = self.mc.net[net_key]
+            if not isinstance(net, CanopenNetwork):
+                raise TypeError("Network is not of type CanopenNetwork")
+            return net
+
+    def get_or_create_ethercat_network(
+        self,
+        interface_name: str,
+        gil_release_config: GilReleaseConfig = GilReleaseConfig(),
+    ) -> EthercatNetwork:
+        """Get or create an EtherCAT network.
+
+        Args:
+            interface_name : interface name.
+            gil_release_config: GIL release configuration.
+
+        Returns:
+            The EtherCAT network.
+        """
+        if interface_name not in self.mc.net:
+            new_net = EthercatNetwork(interface_name, gil_release_config=gil_release_config)
+            self.mc.register_network(interface_name, new_net)
+            return new_net
+        else:
+            net = self.mc.net[interface_name]
+            if not isinstance(net, EthercatNetwork):
+                raise TypeError("Network is not of type EthercatNetwork")
+            return net
+
+    def get_or_create_ethernet_network(self, servo_alias: str) -> EthernetNetwork:
+        """Get or create an Ethernet network.
+
+        Args:
+            servo_alias: Servo alias.
+
+        Returns:
+            The Ethernet network.
+        """
+        net_key = servo_alias
+        if net_key not in self.mc.net:
+            new_net = EthernetNetwork()
+            self.mc.register_network(net_key, new_net)
+            return new_net
+        else:
+            net = self.mc.net[net_key]
+            if not isinstance(net, EthernetNetwork):
+                raise TypeError("Network is not of type EthernetNetwork")
+            return net
+
+    def get_or_create_eoe_network(self, ifname: str) -> EoENetwork:
+        """Get or create an EoE network.
+
+        Args:
+            ifname: Interface name.
+
+        Returns:
+            The EoE network.
+        """
+        if ifname not in self.mc.net:
+            new_net = EoENetwork(ifname)
+            self.mc.register_network(ifname, new_net)
+            return new_net
+        else:
+            net = self.mc.net[ifname]
+            if not isinstance(net, EoENetwork):
+                raise TypeError("Network is not of type EoENetwork")
+            return net
+
+    def get_or_create_virtual_network(self, alias: str) -> VirtualNetwork:
+        """Get or create a virtual network.
+
+        Args:
+            alias: Network alias.
+
+        Returns:
+            The virtual network.
+        """
+        if alias not in self.mc.net:
+            new_net = VirtualNetwork()
+            self.mc.register_network(alias, new_net)
+            return new_net
+        else:
+            net = self.mc.net[alias]
+            if not isinstance(net, VirtualNetwork):
+                raise TypeError("Network is not of type VirtualNetwork")
+            return net
 
     def connect_servo_eoe(
         self,
@@ -227,8 +341,8 @@ class Communication:
             self.__virtual_drive = VirtualDrive(port, dictionary_path=dict_path)
             self.__virtual_drive.start()
 
-        net = VirtualNetwork()
-        self.mc.net[alias] = net
+        net = self.get_or_create_virtual_network(alias)
+
         servo = net.connect_to_slave(
             self.__virtual_drive.dictionary_path,
             port,
@@ -238,7 +352,7 @@ class Communication:
             disconnect_callback=self.__disconnect_callback,
         )
 
-        self.mc._create_motion_node(alias, servo)
+        self.mc.create_motion_node(alias, servo, net)
         return net, servo
 
     def __servo_connect(
@@ -255,8 +369,7 @@ class Communication:
         if not path.isfile(dict_path):
             raise FileNotFoundError(f"{dict_path} file does not exist!")
 
-        net = EthernetNetwork()
-        self.mc.net[alias] = net
+        net = self.get_or_create_ethernet_network(servo_alias=alias)
         servo = net.connect_to_slave(
             ip,
             dict_path,
@@ -268,7 +381,7 @@ class Communication:
             disconnect_callback=self.__disconnect_callback,
         )
 
-        self.mc._create_motion_node(alias, servo, net)
+        self.mc.create_motion_node(alias, servo, net)
         return net, servo
 
     def connect_servo_eoe_service(
@@ -312,9 +425,9 @@ class Communication:
             raise NotImplementedError("EoE service only works on windows.")
         if not path.isfile(dict_path):
             raise FileNotFoundError(f"{dict_path} file does not exist!")
-        if ifname not in self.mc.net:
-            self.mc.net[ifname] = EoENetwork(ifname)
-        net = cast("EoENetwork", self.mc.net[ifname])
+
+        net = self.get_or_create_eoe_network(ifname)
+
         try:
             servo = net.connect_to_slave(
                 slave,
@@ -327,10 +440,10 @@ class Communication:
             )
         except ILError as e:
             if len(net.servos) == 0:
-                del self.mc.net[ifname]
+                self.mc.remove_network(net)
             raise e
         servo.slave = slave  # type: ignore [attr-defined]
-        self.mc._create_motion_node(alias, servo, net)
+        self.mc.create_motion_node(alias, servo, net)
         return net, servo
 
     def connect_servo_eoe_service_interface_ip(
@@ -693,10 +806,7 @@ class Communication:
         if not path.isfile(dict_path):
             raise FileNotFoundError(f"Dict file {dict_path} does not exist!")
 
-        net_key = f"{can_device}_{channel}_{baudrate}"
-        if net_key not in self.mc.net:
-            self.mc.net[net_key] = CanopenNetwork(can_device, channel, baudrate)
-        net = cast("CanopenNetwork", self.mc.net[net_key])
+        net = self.get_or_create_canopen_network(can_device, baudrate, channel)
 
         servo = net.connect_to_slave(
             node_id,
@@ -705,7 +815,7 @@ class Communication:
             net_status_listener,
             disconnect_callback=self.__disconnect_callback,
         )
-        self.mc._create_motion_node(alias, servo, net)
+        self.mc.create_motion_node(alias, servo, net)
         return net, servo
 
     def connect_servo_ethercat(
@@ -740,11 +850,8 @@ class Communication:
         """
         if not path.isfile(dict_path):
             raise FileNotFoundError(f"Dict file {dict_path} does not exist!")
-        if interface_name not in self.mc.net:
-            self.mc.net[interface_name] = EthercatNetwork(
-                interface_name, gil_release_config=gil_release_config
-            )
-        net = cast("EthercatNetwork", self.mc.net[interface_name])
+
+        net = self.get_or_create_ethercat_network(interface_name, gil_release_config)
         try:
             servo = net.connect_to_slave(
                 slave_id,
@@ -755,9 +862,9 @@ class Communication:
             )
         except ILError as e:
             if len(net.servos) == 0:
-                del self.mc.net[interface_name]
+                self.mc.remove_network(net)
             raise e
-        self.mc._create_motion_node(alias, servo, net)
+        self.mc.create_motion_node(alias, servo, net)
         return net, servo
 
     def connect_servo_ethercat_interface_index(
@@ -836,9 +943,8 @@ class Communication:
             gil_release_config=gil_release_config,
         )
 
-    @staticmethod
     def scan_servos_ethercat_with_info(
-        interface_name: str, gil_release_config: GilReleaseConfig = GilReleaseConfig()
+        self, interface_name: str, gil_release_config: GilReleaseConfig = GilReleaseConfig()
     ) -> OrderedDict[int, SlaveInfo]:
         r"""Scan a network adapter.
 
@@ -855,7 +961,7 @@ class Communication:
         Raises:
             TypeError: If some parameter has a wrong type.
         """
-        net = EthercatNetwork(interface_name, gil_release_config=gil_release_config)
+        net = self.get_or_create_ethercat_network(interface_name, gil_release_config)
         slaves_info = net.scan_slaves_info()
         return slaves_info
 
@@ -875,7 +981,7 @@ class Communication:
         Raises:
             TypeError: If some parameter has a wrong type.
         """
-        net = EthercatNetwork(interface_name, gil_release_config=gil_release_config)
+        net = self.get_or_create_ethercat_network(interface_name, gil_release_config)
         slaves = net.scan_slaves()
         return slaves
 
@@ -926,10 +1032,7 @@ class Communication:
         Raise:
             TypeError: If some parameter has a wrong type.
         """
-        net_key = f"{can_device}_{channel}_{baudrate}"
-        if net_key not in self.mc.net:
-            self.mc.net[net_key] = CanopenNetwork(can_device, channel, baudrate)
-        net = self.mc.net[net_key]
+        net = self.get_or_create_canopen_network(can_device, baudrate, channel)
 
         if net is None:
             self.logger.warning(
@@ -961,10 +1064,7 @@ class Communication:
         Raises:
             TypeError: If some parameter has a wrong type.
         """
-        net_key = f"{can_device}_{channel}_{baudrate}"
-        if net_key not in self.mc.net:
-            self.mc.net[net_key] = CanopenNetwork(can_device, channel, baudrate)
-        net = self.mc.net[net_key]
+        net = self.get_or_create_canopen_network(can_device, baudrate, channel)
 
         if net is None:
             self.logger.warning(

@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import warnings
-from collections.abc import Iterator
 from enum import IntEnum
 from types import MappingProxyType
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from ingenialink.servo import Servo
 
@@ -126,17 +124,20 @@ class MotionController:
         """Read only dict of motion nodes indexed by alias."""
         return MappingProxyType(self.__motion_nodes)
 
-    def _create_motion_node(
-        self, alias: str, servo: Servo, network: Network | None = None
-    ) -> MotionNode:
+    def create_motion_node(self, alias: str, servo: Servo, network: Network) -> MotionNode:
         node = MotionNode(servo=servo, network=network)
 
         # register motion node instance
         self.__motion_nodes[alias] = node
 
+        # https://novantamotion.atlassian.net/browse/INGK-1247
+        servo._disconnect_callback = (
+            self.communication._Communication__disconnect_callback
+        )  # [attr-defined]
+
         return node
 
-    def _remove_motion_node(self, alias: str) -> None:
+    def remove_motion_node(self, alias: str) -> None:
         """Helper to unregister a servo and cleanup its network.
 
         This will remove the servo from the internal registry, remove the
@@ -163,31 +164,38 @@ class MotionController:
             ]
 
             if len(nodes_on_net) == 0:
-                self.__remove_network(network)
+                self.remove_network(network)
 
         # Remove motion node entry
         del self.__motion_nodes[alias]
 
     # Properties
     @property
-    def servos(self) -> dict[str, Servo]:
+    def servos(self) -> MappingProxyType[str, Servo]:
         """Mapping of ``ingenialink.Servo`` connected indexed by alias.
 
         Returns:
-            A dictionary of connected servos indexed by alias.
+            A mapping of connected servos indexed by alias.
         """
-        return {alias: node.servo for alias, node in self.motion_nodes.items()}
+        return MappingProxyType({alias: node.servo for alias, node in self.motion_nodes.items()})
 
     @property
-    def net(self) -> dict[str, Network]:
+    def net(self) -> MappingProxyType[str, Network]:
         """Dict of ``ingenialink.Network`` connected indexed by alias."""
-        return self.__net
+        return MappingProxyType(self.__net)
 
-    @net.setter
-    def net(self, value: dict[str, Network]) -> None:
-        self.__net = value
+    def register_network(self, alias: str, network: Network) -> None:
+        """Register a network instance with an alias.
 
-    def __remove_network(self, network: Network) -> None:
+        Args:
+            alias: alias to reference the network.
+            network: network instance to register.
+
+        """
+        self.__net[alias] = network
+
+    def remove_network(self, network: Network) -> None:
+        """Remote a network instance from the registry."""
         for alias in [alias for alias, net in self.__net.items() if net == network]:
             del self.__net[alias]
 

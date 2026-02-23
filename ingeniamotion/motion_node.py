@@ -6,7 +6,7 @@ from ingenialink import Network, Servo
 class MotionNode:
     """Motion Node."""
 
-    def __init__(self, servo: Servo, network: Optional[Network]) -> None:
+    def __init__(self, servo: Servo, network: Network) -> None:
         """Initialize motion node.
 
         Args:
