@@ -24,18 +24,13 @@ class Error:
             error_id: Error ID.
             dictionary_error: DictionaryError instance from the dictionary, if available.
         """
-        self.__error_id = error_id
+        self._error_id = error_id
         self.__dictionary_error = dictionary_error
 
     @property
     def error_id(self) -> int:
         """Get the error ID."""
-        return self.__error_id
-
-    @property
-    def is_warning(self) -> bool:
-        """Check if the error is a warning."""
-        return (self.__error_id & Errors.ERROR_WARNING_BIT) != 0
+        return self._error_id
 
     @property
     def error_description(self) -> str:
@@ -78,6 +73,31 @@ class Error:
         )
 
 
+class OperationError(Error):
+    """Class to represent an operation error from the servo."""
+
+    __ERROR_CODE_BITS = 0xFFFF
+    __ERROR_SUBNODE_BITS = 0xF00000
+    __ERROR_SUBNODE_SHIFT = 20
+    __ERROR_WARNING_BIT = 0x10000000
+    __ERROR_WARNING_SHIFT = 28
+
+    @property
+    def error_code(self) -> int:
+        """Get the error code."""
+        return self._error_id & self.__ERROR_CODE_BITS
+
+    @property
+    def axis(self) -> int:
+        """Get the error axis. If 0, it is a COCO error."""
+        return (self._error_id & self.__ERROR_SUBNODE_BITS) >> self.__ERROR_SUBNODE_SHIFT
+
+    @property
+    def is_warning(self) -> bool:
+        """Check if the error is a warning."""
+        return bool((self._error_id & self.__ERROR_WARNING_BIT) >> self.__ERROR_WARNING_SHIFT)
+
+
 @dataclass()
 class ErrorQueueDescriptor:
     """Descriptor for an error queue in a servo."""
@@ -87,6 +107,7 @@ class ErrorQueueDescriptor:
     error_request_index_reg_uid: str
     error_request_code_reg_uid: str
     max_index_request: int
+    error_type: type[Error]
 
 
 class ServoErrorQueue:
@@ -134,7 +155,7 @@ class ServoErrorQueue:
         Returns:
             Optional[Error]: The last error, or None if there is no error.
         """
-        error = Error.from_id(
+        error = self.descriptor.error_type.from_id(
             self.__read_int_reg(self.descriptor.last_error_reg_uid), self.__dictionary
         )
         return error
@@ -171,7 +192,7 @@ class ServoErrorQueue:
             )
         else:
             self.__servo.write(self.descriptor.error_request_index_reg_uid, index)
-        error = Error.from_id(
+        error = self.descriptor.error_type.from_id(
             self.__read_int_reg(self.descriptor.error_request_code_reg_uid), self.__dictionary
         )
         return error
@@ -242,6 +263,7 @@ MOCO_ERROR_QUEUE = ErrorQueueDescriptor(
     error_request_index_reg_uid="DRV_DIAG_ERROR_LIST_IDX",
     error_request_code_reg_uid="DRV_DIAG_ERROR_LIST_CODE",
     max_index_request=31,
+    error_type=OperationError,
 )
 
 COCO_ERROR_QUEUE = ErrorQueueDescriptor(
@@ -250,6 +272,7 @@ COCO_ERROR_QUEUE = ErrorQueueDescriptor(
     error_request_index_reg_uid="DRV_DIAG_ERROR_LIST_IDX_COM",
     error_request_code_reg_uid="DRV_DIAG_ERROR_LIST_CODE_COM",
     max_index_request=31,
+    error_type=OperationError,
 )
 
 SYSTEM_ERROR_QUEUE = ErrorQueueDescriptor(
@@ -258,6 +281,7 @@ SYSTEM_ERROR_QUEUE = ErrorQueueDescriptor(
     error_request_index_reg_uid="DRV_DIAG_SYS_ERROR_LIST_IDX_COM",
     error_request_code_reg_uid="DRV_DIAG_SYS_ERROR_LIST_CODE_COM",
     max_index_request=31,
+    error_type=OperationError,
 )
 
 
@@ -309,16 +333,12 @@ class Errors:
     STATUS_WORD_FAULT_BIT = 0x08
     STATUS_WORD_WARNING_BIT = 0x80
 
-    ERROR_CODE_BITS = 0xFFFF
-    ERROR_SUBNODE_BITS = 0xF00000
-    ERROR_SUBNODE_SHIFT = 20
-    ERROR_WARNING_BIT = 0x10000000
-    ERROR_WARNING_SHIFT = 28
+    __ERROR_CODE_BITS = 0xFFFF
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
 
-    def __get_error_queue(
+    def get_error_queue(
         self, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
     ) -> ServoErrorQueue:
         """Get the appropriate ServoErrorQueue for the given servo and axis.
@@ -330,7 +350,7 @@ class Errors:
         Returns:
             ServoErrorQueue instance for the specified servo/axis.
         """
-        error_version = self.__get_error_location(servo)
+        error_version = self._get_error_location(servo)
         axis, error_location = self.__get_error_subnode(error_version, axis)
 
         # Select the appropriate descriptor based on error location
@@ -348,20 +368,18 @@ class Errors:
         return ServoErrorQueue(descriptor, drive, axis=axis)
 
     def __parse_error_to_tuple(
-        self, error: int, location: ErrorLocation, subnode: Optional[int] = None
+        self, error: Error, subnode: Optional[int] = None
     ) -> tuple[int, Optional[int], Optional[bool]]:
-        error_code = error & self.ERROR_CODE_BITS
+        if not isinstance(error, OperationError):
+            return error.error_id, None, None
+        error_code = error.error_code
         if error_code == 0:
             return error_code, None, None
         if subnode is None:
-            if location == self.ErrorLocation.MOCO:
-                subnode = DEFAULT_AXIS
-            else:
-                subnode = (error & self.ERROR_SUBNODE_BITS) >> self.ERROR_SUBNODE_SHIFT
-        is_warning = (error & self.ERROR_WARNING_BIT) >> self.ERROR_WARNING_SHIFT
-        return error_code, subnode, bool(is_warning)
+            subnode = error.axis
+        return error_code, subnode, error.is_warning
 
-    def __get_error_location(self, servo: str = DEFAULT_SERVO) -> ErrorLocation:
+    def _get_error_location(self, servo: str = DEFAULT_SERVO) -> ErrorLocation:
         """Determine the error location based on available registers.
 
         Args:
@@ -427,14 +445,13 @@ class Errors:
             TypeError: If some read value has a wrong type.
 
         """
-        error_version = self.__get_error_location(servo)
-        queue = self.__get_error_queue(servo, axis)
+        queue = self.get_error_queue(servo, axis)
         error_obj = queue.get_last_error()
 
         if error_obj is None:
             return 0, None, None
 
-        return self.__parse_error_to_tuple(error_obj.error_id, error_version, axis)
+        return self.__parse_error_to_tuple(error_obj, axis)
 
     def get_last_buffer_error(
         self, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
@@ -488,14 +505,13 @@ class Errors:
         if index >= self.MAXIMUM_ERROR_INDEX:
             raise ValueError("index must be less than 32")
 
-        error_version = self.__get_error_location(servo)
-        queue = self.__get_error_queue(servo, axis)
+        queue = self.get_error_queue(servo, axis)
         error_obj = queue.get_error_by_index(index)
 
         if error_obj is None:
             return 0, None, None
 
-        return self.__parse_error_to_tuple(error_obj.error_id, error_version, axis)
+        return self.__parse_error_to_tuple(error_obj, axis)
 
     def get_number_total_errors(
         self, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
@@ -513,7 +529,7 @@ class Errors:
             TypeError: If some read value has a wrong type.
 
         """
-        queue = self.__get_error_queue(servo, axis)
+        queue = self.get_error_queue(servo, axis)
         return queue.get_number_total_errors()
 
     def get_all_errors(
@@ -588,5 +604,5 @@ class Errors:
 
         """
         drive = self.mc._get_drive(servo)
-        dictionary_errors = drive.errors[error_code & self.ERROR_CODE_BITS]
+        dictionary_errors = drive.errors[error_code & self.__ERROR_CODE_BITS]
         return tuple(dictionary_errors)  # type: ignore[return-value]
