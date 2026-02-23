@@ -8,7 +8,7 @@ from ingenialink.dictionary import SubnodeType
 from ingenialink.enums.register import RegAccess, RegDtype
 from ingenialink.eoe.network import EoENetwork
 from ingenialink.ethercat.network import EthercatNetwork
-from ingenialink.ethernet.network import EthernetNetwork
+from ingenialink.ethernet.network import EthernetNetworkBase
 from ingenialink.register import Register
 
 from ingeniamotion.enums import CommunicationType
@@ -212,7 +212,7 @@ class Information:
         """
         drive = self.mc._get_drive(servo)
         net = self.mc._get_network(servo)
-        if isinstance(net, EthernetNetwork):
+        if isinstance(net, EthernetNetworkBase):
             return str(drive.target)
         else:
             raise IMError("You need an Ethernet communication to use this function")
@@ -264,7 +264,7 @@ class Information:
         drive_network = self.mc._get_network(servo)
         if isinstance(drive_network, CanopenNetwork):
             communication_type = CommunicationType.Canopen
-        elif isinstance(drive_network, EthernetNetwork):
+        elif isinstance(drive_network, EthernetNetworkBase):
             communication_type = CommunicationType.Ethernet
         elif isinstance(drive_network, (EoENetwork, EthercatNetwork)):
             communication_type = CommunicationType.Ethercat
@@ -285,7 +285,7 @@ class Information:
         name = self.get_name(servo)
         full_name = f"{prod_name} - {name}"
         net = self.mc._get_network(servo)
-        if isinstance(net, EthernetNetwork):
+        if isinstance(net, EthernetNetworkBase):
             ip = self.get_ip(servo)
             full_name = f"{full_name} ({ip})"
         return full_name
