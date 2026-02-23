@@ -2,7 +2,7 @@ from typing import TYPE_CHECKING, ClassVar, Optional, Union
 
 import numpy as np
 from ingenialink.dictionary import SubnodeType
-from ingenialink.exceptions import ILIOError
+from ingenialink.exceptions import ILError
 from ingenialink.poller import Poller
 from numpy.typing import NDArray
 
@@ -304,7 +304,7 @@ class Capture:
                 self.MONITORING_VERSION_REGISTER, servo=servo, axis=0
             )
             return MonitoringVersion.MONITORING_V3
-        except (IMRegisterNotExistError, ILIOError):
+        except (IMRegisterNotExistError, ILError):
             # The Monitoring V3 is NOT available
             pass
         try:
@@ -312,13 +312,13 @@ class Capture:
                 self.MONITORING_CURRENT_NUMBER_BYTES_REGISTER, servo=servo, axis=0
             )
             return MonitoringVersion.MONITORING_V2
-        except (IMRegisterNotExistError, ILIOError):
+        except (IMRegisterNotExistError, ILError):
             # The Monitoring V2 is NOT available
             pass
         try:
             self.mc.communication.get_register(self.MONITORING_STATUS_REGISTER, servo=servo, axis=0)
             return MonitoringVersion.MONITORING_V1
-        except (IMRegisterNotExistError, ILIOError):
+        except (IMRegisterNotExistError, ILError):
             # Monitoring/disturbance are not available
             raise NotImplementedError(
                 "The monitoring and disturbance features are not available for this drive"
