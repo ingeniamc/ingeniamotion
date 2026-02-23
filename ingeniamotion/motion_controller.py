@@ -1,9 +1,8 @@
 from __future__ import annotations
 
 import warnings
-from collections.abc import Iterator, MutableMapping
+from collections.abc import Iterator
 from enum import IntEnum
-from functools import cached_property
 from types import MappingProxyType
 from typing import TYPE_CHECKING
 
@@ -25,56 +24,6 @@ if TYPE_CHECKING:
     from ingenialink.network import Network
 
 
-class _ServosProxy(MutableMapping[str, Servo]):
-    """Proxy around MotionController._servos that warns on mutation.
-
-    Read operations forward to the internal dict. Mutating operations
-    emit a DeprecationWarning and either delegate to MotionController
-    lifecycle helpers or perform the minimal compatible change.
-    """
-
-    def __init__(self, mc: MotionController) -> None:
-        self._mc = mc
-
-    def __getitem__(self, key: str) -> Servo:
-        return self._mc.motion_nodes[key].servo
-
-    def __iter__(self) -> Iterator[str]:
-        return iter(self._mc.motion_nodes)
-
-    def __len__(self) -> int:
-        return len(self._mc.motion_nodes)
-
-    def __contains__(self, key: object) -> bool:
-        return key in self._mc.motion_nodes
-
-    def __setitem__(self, key: str, value: Servo) -> None:
-        warnings.warn(
-            "Mutating MotionController.servos is deprecated; use _add_motion_node",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self._mc._create_motion_node(key, value)
-
-    def __delitem__(self, key: str) -> None:
-        warnings.warn(
-            "Mutating MotionController.servos is deprecated; use _remove_motion_node",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        self._mc._remove_motion_node(key)
-
-    def clear(self) -> None:
-        warnings.warn(
-            "Mutating MotionController.servos is deprecated; use _remove_motion_node",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        # Remove all servos
-        for key in list(self._mc.motion_nodes.keys()):
-            self._mc._remove_motion_node(key)
-
-
 class MotionController:
     """Motion Controller."""
 
@@ -93,7 +42,7 @@ class MotionController:
         self.__errors: Errors = Errors(self)
         self.__info: Information = Information(self)
         self.__io = InputsOutputs(self)
-        self.__fsoe: FSoEMaster | None = None
+        self.__fsoe: Optional[FSoEMaster] = None
         if FSOE_MASTER_INSTALLED:
             self.__fsoe = FSoEMaster(self)
 
@@ -220,37 +169,14 @@ class MotionController:
         del self.__motion_nodes[alias]
 
     # Properties
-    @cached_property
-    def servos(self) -> MutableMapping[str, Servo]:
+    @property
+    def servos(self) -> dict[str, Servo]:
         """Mapping of ``ingenialink.Servo`` connected indexed by alias.
 
-        Returns a proxy that behaves like a dict for reads but emits
-        deprecation warnings when callers attempt to mutate it. Use
-        `._add_motion_node` and `._remove_motion_node` for explicit
-        lifecycle management.
+        Returns:
+            A dictionary of connected servos indexed by alias.
         """
-        return self._servos_proxy
-
-    @servos.setter
-    def servos(self, value: dict[str, Servo]) -> None:
-        warnings.warn(
-            "Direct assignment to MotionController.servos is deprecated; "
-            "use MotionController._add_motion_node and "
-            "MotionController._remove_motion_node instead.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-        # Delegate to the proxy so mutations go through the lifecycle API.
-        # Clear existing entries and update via proxy to preserve mapping
-        # semantics while emitting deprecation warnings.
-        proxy = self._servos_proxy
-        proxy.clear()
-        for alias, servo in value.items():
-            proxy[alias] = servo
-
-    @cached_property
-    def _servos_proxy(self) -> MutableMapping[str, Servo]:
-        return _ServosProxy(self)
+        return {alias: node.servo for alias, node in self.motion_nodes.items()}
 
     @property
     def net(self) -> dict[str, Network]:
@@ -319,7 +245,7 @@ class MotionController:
         return self.__info
 
     @property
-    def fsoe(self) -> FSoEMaster:
+    def fsoe(self) -> "FSoEMaster":
         """Instance of :class:`~ingeniamotion.fsoe.FSoEMaster` class."""
         if self.__fsoe is None:
             raise NotImplementedError(
