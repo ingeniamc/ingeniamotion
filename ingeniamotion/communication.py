@@ -89,7 +89,8 @@ class Communication:
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
         self.logger = logger
-        self.__virtual_drive: Optional[VirtualDrive] = None
+        self.__virtual_drive_ethernet: Optional[VirtualDrive] = None
+        self.__virtual_drive_ethercat: Optional[VirtualDrive] = None
         self.register_update_observers: dict[Servo, list[IMRegisterUpdateObserver]] = {}
         self.emergency_messages_observers: dict[Servo, list[IMEmergencyMessageObserver]] = {}
 
@@ -103,12 +104,12 @@ class Communication:
             raise ValueError("Servo not found in the communication controller.")
 
         network = self.mc._get_network(alias)
-        if (
-            isinstance(network, (VirtualEthernetNetwork, VirtualEthercatNetwork))
-            and self.__virtual_drive
-        ):
-            self.__virtual_drive.stop()
-            self.__virtual_drive = None
+        if isinstance(network, VirtualEthernetNetwork) and self.__virtual_drive_ethernet:
+            self.__virtual_drive_ethernet.stop()
+            self.__virtual_drive_ethernet = None
+        if isinstance(network, VirtualEthercatNetwork) and self.__virtual_drive_ethercat:
+            self.__virtual_drive_ethercat.stop()
+            self.__virtual_drive_ethercat = None
         del self.mc.servos[alias]
         net_name = self.mc.servo_net.pop(alias)
         servo_count = list(self.mc.servo_net.values()).count(net_name)
@@ -233,15 +234,15 @@ class Communication:
         if dict_path is not None and not path.isfile(dict_path):
             raise FileNotFoundError(f"{dict_path} file does not exist!")
 
-        if self.__virtual_drive is None:
-            self.__virtual_drive = VirtualDrive(port, dictionary_path=dict_path)
-            self.__virtual_drive.start()
+        if self.__virtual_drive_ethernet is None:
+            self.__virtual_drive_ethernet = VirtualDrive(port, dictionary_path=dict_path)
+            self.__virtual_drive_ethernet.start()
 
         net = VirtualEthernetNetwork()
         self.mc.net[alias] = net
         servo = net.connect_to_slave(
-            self.__virtual_drive.dictionary_path,
-            self.__virtual_drive.port,
+            self.__virtual_drive_ethernet.dictionary_path,
+            self.__virtual_drive_ethernet.port,
             connection_timeout,
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
@@ -284,18 +285,18 @@ class Communication:
         if not path.isfile(dict_path):
             raise FileNotFoundError(f"{dict_path} file does not exist!")
 
-        if self.__virtual_drive is None:
-            self.__virtual_drive = VirtualDrive(
+        if self.__virtual_drive_ethercat is None:
+            self.__virtual_drive_ethercat = VirtualDrive(
                 port, dictionary_path=dict_path, protocol=Interface.ECAT
             )
-            self.__virtual_drive.start()
+            self.__virtual_drive_ethercat.start()
 
         net = VirtualEthercatNetwork()
         self.mc.net[alias] = net
         servo = net.connect_to_slave(
             1,
-            self.__virtual_drive.dictionary_path,
-            self.__virtual_drive.port,
+            self.__virtual_drive_ethercat.dictionary_path,
+            self.__virtual_drive_ethercat.port,
             connection_timeout,
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
