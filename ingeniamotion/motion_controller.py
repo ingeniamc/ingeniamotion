@@ -137,8 +137,7 @@ class MotionController:
         # register motion node instance
         self.__motion_nodes[alias] = node
 
-        # https://novantamotion.atlassian.net/browse/INGK-1247
-        servo._disconnect_callback = self.communication._disconnect_callback  # [attr-defined]
+        servo.disconnect_event.subscribe(self.communication._disconnect_callback)
 
         return node
 
