@@ -255,7 +255,7 @@ class Communication:
 
     def connect_servo_virtual_ethercat(
         self,
-        dict_path: str,
+        dict_path: Optional[str] = None,
         alias: str = DEFAULT_SERVO,
         port: Optional[int] = None,
         connection_timeout: int = 1,
@@ -265,7 +265,8 @@ class Communication:
         """Connect to the virtual drive using an ethernet communication.
 
         Args:
-            dict_path : servo dictionary path.
+            dict_path : dictionary path. The dictionary must be compatible
+            with EtherCAT communication.
             alias : servo alias to reference it. ``default`` by default.
             port : Port number. If not specified, it will be automatically assigned.
             connection_timeout: Timeout in seconds for connection.
@@ -282,7 +283,7 @@ class Communication:
             FileNotFoundError: If the dict file doesn't exist.
 
         """
-        if not path.isfile(dict_path):
+        if dict_path is not None and not path.isfile(dict_path):
             raise FileNotFoundError(f"{dict_path} file does not exist!")
 
         if self.__virtual_drive_ethercat is None:
