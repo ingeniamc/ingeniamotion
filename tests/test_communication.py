@@ -657,7 +657,7 @@ def test_get_available_canopen_devices_check_get_available_devices_call(mocker, 
     test_net = None
     for n, n_type in enumerate(net_types):
         net = mocker.MagicMock(spec=n_type)
-        mc.net[n] = net
+        mc.register_network(alias=n, network=net)
         if n_type == CanopenNetwork:
             test_net = net
     patch_get_available_devices = mocker.patch(
