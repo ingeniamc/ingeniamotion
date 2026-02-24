@@ -5,7 +5,13 @@ from typing import TYPE_CHECKING
 import pytest
 from ingenialink.exceptions import ILError
 
-from ingeniamotion.errors import MOCO_ERROR_QUEUE, OperationError, ServoErrorQueue
+from ingeniamotion.errors import (
+    MOCO_ERROR_QUEUE,
+    SYSTEM_ERROR_QUEUE,
+    OperationError,
+    ServoErrorQueue,
+    SystemQueueError,
+)
 
 if TYPE_CHECKING:
     from ingenialink.servo import Servo
@@ -15,6 +21,10 @@ if TYPE_CHECKING:
 
 USER_UNDER_VOLTAGE_ERROR_OPTION_CODE_REGISTER = "ERROR_PROT_UNDER_VOLT_OPTION"
 USER_UNDER_VOLTAGE_LEVEL_REGISTER = "DRV_PROT_USER_UNDER_VOLT"
+UNDER_TEMO_ERROR_CODE = 0x4304
+UNDER_TEMP_ERROR_OPTION_REGISTER = "ERROR_PROT_UNDER_TEMP_OPTION"
+UNDER_TEMP_REGISTER = "DRV_PROT_USER_UNDER_TEMP"
+OPTION_DO_NOTHING = 1
 
 
 @pytest.fixture
@@ -45,6 +55,15 @@ def generate_drive_errors(mc: "MotionController", alias: str) -> Iterator[list[i
             mc.communication.set_register(item["register"], old_value, servo=alias)
     yield error_code_list[::-1]
     mc.motion.fault_reset(servo=alias)
+
+
+@pytest.fixture
+def generate_drive_warning(mc: "MotionController", alias: str) -> None:
+    mc.communication.set_register(UNDER_TEMP_ERROR_OPTION_REGISTER, OPTION_DO_NOTHING, servo=alias)
+    mc.communication.set_register(UNDER_TEMP_REGISTER, 100, servo=alias)
+    mc.motion.motor_enable(servo=alias)
+    yield UNDER_TEMO_ERROR_CODE
+    mc.motion.motor_disable(servo=alias)
 
 
 @pytest.fixture
@@ -296,7 +315,7 @@ class TestErrors:
     @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
-    def test_error_queue_get_last_error(
+    def test_error_queue_get_last_error_moco(
         self,
         mc: "MotionController",
         servo: "Servo",
@@ -309,10 +328,72 @@ class TestErrors:
         last_error = error_queue.get_last_error()
 
         assert last_error is not None
-        assert last_error.error_id == generate_drive_errors[0]
+        assert isinstance(last_error, OperationError)
+        assert last_error.error_code == generate_drive_errors[0]
+        assert last_error.is_warning is False
         assert last_error.error_description is not None
 
         # After fault reset, should return None
         mc.motion.fault_reset(servo=alias)
         last_error = error_queue.get_last_error()
         assert last_error is None
+
+    @pytest.mark.ethernet
+    @pytest.mark.soem
+    @pytest.mark.canopen
+    def test_error_queue_get_error_by_index_moco_warning(
+        self, servo: "Servo", generate_drive_warning: int
+    ) -> None:
+        """Test ServoErrorQueue.get_last_error() method."""
+        error_queue = ServoErrorQueue(MOCO_ERROR_QUEUE, servo)
+        last_buffer_error = error_queue.get_error_by_index(0)
+
+        assert last_buffer_error is not None
+        assert isinstance(last_buffer_error, OperationError)
+        assert last_buffer_error.error_code == generate_drive_warning
+        assert last_buffer_error.is_warning is True
+        assert last_buffer_error.error_description == "Under-temperature detected (user limit)"
+
+    @pytest.mark.ethernet
+    @pytest.mark.soem
+    @pytest.mark.canopen
+    def test_error_queue_get_last_error_system(
+        self,
+        mc: "MotionController",
+        servo: "Servo",
+        alias: str,
+        generate_drive_errors: list[int],
+    ) -> None:
+        """Test ServoErrorQueue.get_last_error() method."""
+        # generate_drive_errors fixture already power cycled and cleared errors
+        error_queue = ServoErrorQueue(SYSTEM_ERROR_QUEUE, servo, axis=0)
+        last_error = error_queue.get_last_error()
+
+        assert last_error is not None
+        assert isinstance(last_error, SystemQueueError)
+        assert last_error.error_code == generate_drive_errors[0]
+        assert last_error.axis == 1
+        assert last_error.is_warning is False
+        assert last_error.error_description is not None
+
+        # After fault reset, should return None
+        mc.motion.fault_reset(servo=alias)
+        last_error = error_queue.get_last_error()
+        assert last_error is None
+
+    @pytest.mark.ethernet
+    @pytest.mark.soem
+    @pytest.mark.canopen
+    def test_error_queue_get_error_by_index_system_warning(
+        self, servo: "Servo", generate_drive_warning: int
+    ) -> None:
+        """Test ServoErrorQueue.get_last_error() method."""
+        error_queue = ServoErrorQueue(SYSTEM_ERROR_QUEUE, servo, axis=0)
+        last_buffer_error = error_queue.get_error_by_index(0)
+
+        assert last_buffer_error is not None
+        assert isinstance(last_buffer_error, SystemQueueError)
+        assert last_buffer_error.error_code == generate_drive_warning
+        assert last_buffer_error.axis == 1
+        assert last_buffer_error.is_warning is True
+        assert last_buffer_error.error_description == "Under-temperature detected (user limit)"
