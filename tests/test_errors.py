@@ -94,7 +94,7 @@ def test_operation_error_class_properties(
     expected_is_warning: bool,
 ) -> None:
     """Test OperationError class error_code, axis, and is_warning properties."""
-    error = OperationError.from_id(error_id)
+    error = SystemQueueError.from_id(error_id)
     assert error.error_code == expected_error_code
     assert error.axis == expected_axis
     assert error.is_warning is expected_is_warning
