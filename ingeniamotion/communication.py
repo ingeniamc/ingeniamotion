@@ -34,7 +34,7 @@ from ingeniamotion.exceptions import IMFirmwareLoadError, IMRegisterWrongAccessE
 if TYPE_CHECKING:
     from ingenialink.ethercat.servo import EthercatServo
     from ingenialink.ethernet.servo import EthernetServo
-    from ingenialink.virtual.servo import VirtualServo
+    from ingenialink.virtual.ethernet.servo import VirtualEthernetServo
 
     from ingeniamotion.motion_controller import MotionController
 
@@ -337,7 +337,7 @@ class Communication:
         connection_timeout: int = 1,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
-    ) -> tuple[VirtualNetwork, "VirtualServo"]:
+    ) -> tuple[VirtualNetwork, "VirtualEthernetServo"]:
         """Connect to the virtual drive using an ethernet communication.
 
         Args:
