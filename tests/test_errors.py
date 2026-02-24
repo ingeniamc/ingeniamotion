@@ -59,6 +59,7 @@ def generate_drive_errors(mc: "MotionController", alias: str) -> Iterator[list[i
 
 @pytest.fixture
 def generate_drive_warning(mc: "MotionController", alias: str) -> None:
+    """Generate an under-temperature warning."""
     mc.communication.set_register(UNDER_TEMP_ERROR_OPTION_REGISTER, OPTION_DO_NOTHING, servo=alias)
     mc.communication.set_register(UNDER_TEMP_REGISTER, 100, servo=alias)
     mc.motion.motor_enable(servo=alias)
@@ -322,7 +323,7 @@ class TestErrors:
         alias: str,
         generate_drive_errors: list[int],
     ) -> None:
-        """Test ServoErrorQueue.get_last_error() method."""
+        """Test ServoErrorQueue.get_last_error() method with MOCO queue."""
         # generate_drive_errors fixture already power cycled and cleared errors
         error_queue = ServoErrorQueue(MOCO_ERROR_QUEUE, servo)
         last_error = error_queue.get_last_error()
@@ -344,7 +345,7 @@ class TestErrors:
     def test_error_queue_get_error_by_index_moco_warning(
         self, servo: "Servo", generate_drive_warning: int
     ) -> None:
-        """Test ServoErrorQueue.get_last_error() method."""
+        """Test ServoErrorQueue.get_error_by_index() method with MOCO queue and a warning."""
         error_queue = ServoErrorQueue(MOCO_ERROR_QUEUE, servo)
         last_buffer_error = error_queue.get_error_by_index(0)
 
@@ -364,7 +365,7 @@ class TestErrors:
         alias: str,
         generate_drive_errors: list[int],
     ) -> None:
-        """Test ServoErrorQueue.get_last_error() method."""
+        """Test ServoErrorQueue.get_last_error() method with System queue."""
         # generate_drive_errors fixture already power cycled and cleared errors
         error_queue = ServoErrorQueue(SYSTEM_ERROR_QUEUE, servo, axis=0)
         last_error = error_queue.get_last_error()
@@ -387,7 +388,7 @@ class TestErrors:
     def test_error_queue_get_error_by_index_system_warning(
         self, servo: "Servo", generate_drive_warning: int
     ) -> None:
-        """Test ServoErrorQueue.get_last_error() method."""
+        """Test ServoErrorQueue.get_error_by_index() method with System queue and a warning."""
         error_queue = ServoErrorQueue(SYSTEM_ERROR_QUEUE, servo, axis=0)
         last_buffer_error = error_queue.get_error_by_index(0)
 

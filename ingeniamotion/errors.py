@@ -92,14 +92,17 @@ class OperationError(Error):
 
     @classmethod
     def from_id(cls, error_id: int, dictionary: Optional[Dictionary] = None) -> Optional["Error"]:
-        """Get an Error instance from an error ID.
+        """Get an OperationError instance from an error ID.
+
+        The dictionary lookup uses the masked error code (lower 16 bits) instead of
+        the full error_id, which may contain additional flag bits (e.g. warning bit).
 
         Args:
             error_id: Error ID.
             dictionary: Dictionary to get the error description from.
 
         Returns:
-            Error: Error instance, or None if error_id is 0.
+            OperationError: Error instance, or None if error_id is 0.
         """
         if error_id == 0:
             return None
