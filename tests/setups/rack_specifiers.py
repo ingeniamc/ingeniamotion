@@ -10,18 +10,25 @@ from summit_testing_framework.setups.specifiers import (
     VersionConfig,
 )
 
+from tests.setups.config_files import (
+    CAP_XCR_C_CONFIG,
+    CAP_XCR_E_CONFIG,
+    EVE_XCR_C_CONFIG,
+    EVE_XCR_E_CONFIG,
+)
+
 ETH_SETUP = SpecifierContainer({
     PartNumber.EVE_XCR_C: RackServiceConfigSpecifier.from_firmware(
         part_number=PartNumber.EVE_XCR_C,
         interface=Interface.ETH,
-        config_file=Path("//azr-srv-ingfs1/dist/setups/setup_eve_can/1.2.0/config.xml"),
+        config_file=EVE_XCR_C_CONFIG,
         version="2.4.0",
         dictionary_type=DictionaryType.XDF_V2,
     ),
     PartNumber.CAP_XCR_C: RackServiceConfigSpecifier.from_firmware(
         part_number=PartNumber.CAP_XCR_C,
         interface=Interface.ETH,
-        config_file=Path("//azr-srv-ingfs1/dist/setups/setup_cap_can/1.1.0/config.xml"),
+        config_file=CAP_XCR_C_CONFIG,
         version="2.4.0",
         dictionary_type=DictionaryType.XDF_V2,
     ),
@@ -31,14 +38,14 @@ ECAT_SETUP = SpecifierContainer({
     PartNumber.EVE_XCR_E: RackServiceConfigSpecifier.from_firmware(
         part_number=PartNumber.EVE_XCR_E,
         interface=Interface.ECAT,
-        config_file=Path("//azr-srv-ingfs1/dist/setups/setup_eve_ecat/1.2.0/config.xml"),
+        config_file=EVE_XCR_E_CONFIG,
         version="2.6.0",
         dictionary_type=DictionaryType.XDF_V2,
     ),
     PartNumber.CAP_XCR_E: RackServiceConfigSpecifier.from_firmware(
         part_number=PartNumber.CAP_XCR_E,
         interface=Interface.ECAT,
-        config_file=Path("//azr-srv-ingfs1/dist/setups/setup_cap_ecat/1.1.0/config.xml"),
+        config_file=CAP_XCR_E_CONFIG,
         version="2.6.0",
         dictionary_type=DictionaryType.XDF_V2,
     ),
@@ -71,14 +78,14 @@ CAN_SETUP = SpecifierContainer({
     PartNumber.EVE_XCR_C: RackServiceConfigSpecifier.from_firmware(
         part_number=PartNumber.EVE_XCR_C,
         interface=Interface.CAN,
-        config_file=Path("//azr-srv-ingfs1/dist/setups/setup_eve_can/1.2.0/config.xml"),
+        config_file=EVE_XCR_C_CONFIG,
         version="2.4.0",
         dictionary_type=DictionaryType.XDF_V2,
     ),
     PartNumber.CAP_XCR_C: RackServiceConfigSpecifier.from_firmware(
         part_number=PartNumber.CAP_XCR_C,
         interface=Interface.CAN,
-        config_file=Path("//azr-srv-ingfs1/dist/setups/setup_cap_can/1.1.0/config.xml"),
+        config_file=CAP_XCR_C_CONFIG,
         version="2.4.0",
         dictionary_type=DictionaryType.XDF_V2,
     ),
