@@ -8,7 +8,7 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from functools import partial
 from os import path
-from typing import TYPE_CHECKING, Any, Callable, Optional, Union, cast
+from typing import TYPE_CHECKING, Any, Callable, Literal, Optional, Union, cast, overload
 
 import ifaddr
 import ingenialogger
@@ -276,7 +276,7 @@ class Communication:
             FileNotFoundError: If the dict file doesn't exist.
             ingenialink.exceptions.ILError: If the servo's IP or port is incorrect.
         """
-        net, servo = self.__connect_servo_virtual(
+        return self.__connect_servo_virtual(
             Interface.ETH,
             dict_path,
             alias,
@@ -285,7 +285,6 @@ class Communication:
             servo_status_listener,
             net_status_listener,
         )
-        return cast("tuple[VirtualEthernetNetwork, VirtualEthernetServo]", (net, servo))
 
     def connect_servo_virtual_ethercat(
         self,
@@ -317,7 +316,7 @@ class Communication:
             FileNotFoundError: If the dict file doesn't exist.
 
         """
-        net, servo = self.__connect_servo_virtual(
+        return self.__connect_servo_virtual(
             Interface.ECAT,
             dict_path,
             alias,
@@ -326,7 +325,30 @@ class Communication:
             servo_status_listener,
             net_status_listener,
         )
-        return cast("tuple[VirtualEthercatNetwork, VirtualEthercatServo]", (net, servo))
+
+    @overload
+    def __connect_servo_virtual(
+        self,
+        protocol: Literal[Interface.ETH],
+        dict_path: Optional[str],
+        alias: str,
+        port: Optional[int],
+        connection_timeout: int,
+        servo_status_listener: bool,
+        net_status_listener: bool,
+    ) -> tuple[VirtualEthernetNetwork, "VirtualEthernetServo"]: ...
+
+    @overload
+    def __connect_servo_virtual(
+        self,
+        protocol: Literal[Interface.ECAT],
+        dict_path: Optional[str],
+        alias: str,
+        port: Optional[int],
+        connection_timeout: int,
+        servo_status_listener: bool,
+        net_status_listener: bool,
+    ) -> tuple[VirtualEthercatNetwork, "VirtualEthercatServo"]: ...
 
     def __connect_servo_virtual(
         self,

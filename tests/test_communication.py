@@ -379,7 +379,9 @@ def test_connect_servo_virtual():
 @pytest.mark.virtual
 def test_connect_servo_virtual_custom_dictionary(setup_descriptor: SetupDescriptor):
     mc = MotionController()
-    mc.communication.connect_servo_virtual_ethernet(dict_path=setup_descriptor.dictionary, port=1062)
+    mc.communication.connect_servo_virtual_ethernet(
+        dict_path=setup_descriptor.dictionary, port=1062
+    )
     assert mc.communication._Communication__virtual_drive_ethernet is not None
     mc.communication.disconnect()
     assert mc.communication._Communication__virtual_drive_ethernet is None
