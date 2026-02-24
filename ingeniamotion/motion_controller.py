@@ -160,11 +160,13 @@ class MotionController:
         if self.__fsoe is not None:
             self.__fsoe._delete_master_handler(alias)
 
+        # Save network reference before removing motion node entry
+        network = self.__motion_nodes[alias].network
+
         # Remove motion node entry
         self.__motion_nodes.pop(alias)
 
         # If no servos remain on this network, remove the network entry
-        network = self.__motion_nodes[alias].network
         if network is not None:
             # Network of a node might not be registered
             nodes_on_net = [
