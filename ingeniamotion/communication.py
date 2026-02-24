@@ -205,7 +205,7 @@ class Communication:
         self,
         dict_path: Optional[str] = None,
         alias: str = DEFAULT_SERVO,
-        port: int = 1061,
+        port: Optional[int] = None,
         connection_timeout: int = 1,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
@@ -215,7 +215,7 @@ class Communication:
         Args:
             dict_path : servo dictionary path.
             alias : servo alias to reference it. ``default`` by default.
-            port : servo port. ``1061`` by default.
+            port : Port number. If not specified, it will be automatically assigned.
             connection_timeout: Timeout in seconds for connection.
                 ``1`` seconds by default.
             servo_status_listener : Toggle the listener of the servo for
@@ -241,7 +241,7 @@ class Communication:
         self.mc.net[alias] = net
         servo = net.connect_to_slave(
             self.__virtual_drive.dictionary_path,
-            port,
+            self.__virtual_drive.port,
             connection_timeout,
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
@@ -256,7 +256,7 @@ class Communication:
         self,
         dict_path: str,
         alias: str = DEFAULT_SERVO,
-        port: int = 1061,
+        port: Optional[int] = None,
         connection_timeout: int = 1,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
@@ -266,7 +266,7 @@ class Communication:
         Args:
             dict_path : servo dictionary path.
             alias : servo alias to reference it. ``default`` by default.
-            port : servo port. ``1061`` by default.
+            port : Port number. If not specified, it will be automatically assigned.
             connection_timeout: Timeout in seconds for connection.
                 ``1`` seconds by default.
             servo_status_listener : Toggle the listener of the servo for
@@ -295,7 +295,7 @@ class Communication:
         servo = net.connect_to_slave(
             1,
             self.__virtual_drive.dictionary_path,
-            port,
+            self.__virtual_drive.port,
             connection_timeout,
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
