@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 USER_UNDER_VOLTAGE_ERROR_OPTION_CODE_REGISTER = "ERROR_PROT_UNDER_VOLT_OPTION"
 USER_UNDER_VOLTAGE_LEVEL_REGISTER = "DRV_PROT_USER_UNDER_VOLT"
-UNDER_TEMO_ERROR_CODE = 0x4304
+UNDER_TEMP_ERROR_CODE = 0x4304
 UNDER_TEMP_ERROR_OPTION_REGISTER = "ERROR_PROT_UNDER_TEMP_OPTION"
 UNDER_TEMP_REGISTER = "DRV_PROT_USER_UNDER_TEMP"
 OPTION_DO_NOTHING = 1
@@ -58,12 +58,12 @@ def generate_drive_errors(mc: "MotionController", alias: str) -> Iterator[list[i
 
 
 @pytest.fixture
-def generate_drive_warning(mc: "MotionController", alias: str) -> None:
+def generate_drive_warning(mc: "MotionController", alias: str) -> Iterator[int]:
     """Generate an under-temperature warning."""
     mc.communication.set_register(UNDER_TEMP_ERROR_OPTION_REGISTER, OPTION_DO_NOTHING, servo=alias)
     mc.communication.set_register(UNDER_TEMP_REGISTER, 100, servo=alias)
     mc.motion.motor_enable(servo=alias)
-    yield UNDER_TEMO_ERROR_CODE
+    yield UNDER_TEMP_ERROR_CODE
     mc.motion.motor_disable(servo=alias)
 
 
