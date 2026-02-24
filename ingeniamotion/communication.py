@@ -71,7 +71,16 @@ class IMEmergencyMessageObserver:
 
 
 def generate_net_alias_canopen(can_device: CanDevice, channel: int, baudrate: CanBaudrate) -> str:
-    """Generate a network alias for a CANOpen network."""
+    """Generate a network alias for a CANOpen network.
+
+    Args:
+        can_device : CANOpen device type.
+        channel : CANopen device channel.
+        baudrate : communication baudrate.
+
+    Returns:
+        The generated networkalias.
+    """
     return f"{can_device}_{channel}_{baudrate}"
 
 
@@ -96,7 +105,7 @@ class Communication:
         self.register_update_observers: dict[Servo, list[IMRegisterUpdateObserver]] = {}
         self.emergency_messages_observers: dict[Servo, list[IMEmergencyMessageObserver]] = {}
 
-    def __disconnect_callback(self, servo: Servo) -> None:
+    def _disconnect_callback(self, servo: Servo) -> None:
         alias = None
         for servo_alias, servo in self.mc.servos.items():
             if servo.target == servo.target:
@@ -125,6 +134,9 @@ class Communication:
             baudrate : communication baudrate. 1 Mbit/s by default.
             channel : CANopen device channel. ``0`` by default.
 
+        Raises:
+            TypeError: If the existing network is not of type CanopenNetwork.
+
         Returns:
             The CANOpen network.
         """
@@ -150,6 +162,9 @@ class Communication:
             interface_name : interface name.
             gil_release_config: GIL release configuration.
 
+        Raises:
+            TypeError: If the existing network is not of type EthercatNetwork.
+
         Returns:
             The EtherCAT network.
         """
@@ -168,6 +183,9 @@ class Communication:
 
         Args:
             servo_alias: Servo alias.
+
+        Raises:
+            TypeError: If the existing network is not of type EthernetNetwork.
 
         Returns:
             The Ethernet network.
@@ -189,6 +207,9 @@ class Communication:
         Args:
             ifname: Interface name.
 
+        Raises:
+            TypeError: If the existing network is not of type EoENetwork.
+
         Returns:
             The EoE network.
         """
@@ -207,6 +228,9 @@ class Communication:
 
         Args:
             alias: Network alias.
+
+        Raises:
+            TypeError: If the existing network with the same alias is not of type VirtualNetwork.
 
         Returns:
             The virtual network.
@@ -349,7 +373,7 @@ class Communication:
             connection_timeout,
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
-            disconnect_callback=self.__disconnect_callback,
+            disconnect_callback=self._disconnect_callback,
         )
 
         self.mc.create_motion_node(alias, servo, net)
@@ -378,7 +402,7 @@ class Communication:
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
             is_eoe=is_eoe,
-            disconnect_callback=self.__disconnect_callback,
+            disconnect_callback=self._disconnect_callback,
         )
 
         self.mc.create_motion_node(alias, servo, net)
@@ -436,7 +460,7 @@ class Communication:
                 port,
                 servo_status_listener=servo_status_listener,
                 net_status_listener=net_status_listener,
-                disconnect_callback=self.__disconnect_callback,
+                disconnect_callback=self._disconnect_callback,
             )
         except ILError as e:
             if len(net.servos) == 0:
@@ -813,7 +837,7 @@ class Communication:
             dict_path,
             servo_status_listener,
             net_status_listener,
-            disconnect_callback=self.__disconnect_callback,
+            disconnect_callback=self._disconnect_callback,
         )
         self.mc.create_motion_node(alias, servo, net)
         return net, servo
@@ -858,7 +882,7 @@ class Communication:
                 dict_path,
                 servo_status_listener=servo_status_listener,
                 net_status_listener=net_status_listener,
-                disconnect_callback=self.__disconnect_callback,
+                disconnect_callback=self._disconnect_callback,
             )
         except ILError as e:
             if len(net.servos) == 0:
@@ -1712,7 +1736,7 @@ class Communication:
                 slave_id = first_slave_in_ensemble + slave_id_offset
                 if slave_id not in connected_drives:
                     net.connect_to_slave(
-                        slave_id, dictionary_path, disconnect_callback=self.__disconnect_callback
+                        slave_id, dictionary_path, disconnect_callback=self._disconnect_callback
                     )
 
             load_fw_slave_id: Optional[int] = None

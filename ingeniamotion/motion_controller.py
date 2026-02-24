@@ -4,8 +4,6 @@ from enum import IntEnum
 from types import MappingProxyType
 from typing import TYPE_CHECKING, Optional
 
-from ingenialink.servo import Servo
-
 from ingeniamotion.capture import Capture
 from ingeniamotion.communication import Communication
 from ingeniamotion.configuration import Configuration
@@ -20,6 +18,7 @@ from ingeniamotion.motion_node import MotionNode
 
 if TYPE_CHECKING:
     from ingenialink.network import Network
+    from ingenialink.servo import Servo
 
 
 class MotionController:
@@ -125,15 +124,23 @@ class MotionController:
         return MappingProxyType(self.__motion_nodes)
 
     def create_motion_node(self, alias: str, servo: Servo, network: Network) -> MotionNode:
+        """Helper to create and register a motion node.
+
+        Args:
+            alias: alias to reference the motion node.
+            servo: servo instance to associate with the motion node.
+            network: network instance to associate with the motion node.
+
+        Returns:
+            The created motion node instance.
+        """
         node = MotionNode(servo=servo, network=network)
 
         # register motion node instance
         self.__motion_nodes[alias] = node
 
         # https://novantamotion.atlassian.net/browse/INGK-1247
-        servo._disconnect_callback = (
-            self.communication._Communication__disconnect_callback
-        )  # [attr-defined]
+        servo._disconnect_callback = self.communication._disconnect_callback  # [attr-defined]
 
         return node
 
@@ -253,7 +260,7 @@ class MotionController:
         return self.__info
 
     @property
-    def fsoe(self) -> "FSoEMaster":
+    def fsoe(self) -> FSoEMaster:
         """Instance of :class:`~ingeniamotion.fsoe.FSoEMaster` class."""
         if self.__fsoe is None:
             raise NotImplementedError(
