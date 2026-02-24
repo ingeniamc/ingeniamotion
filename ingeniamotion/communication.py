@@ -25,7 +25,8 @@ from ingenialink.exceptions import ILError
 from ingenialink.network import SlaveInfo
 from ingenialink.register import Register
 from ingenialink.servo import DictionaryFactory, Servo
-from ingenialink.virtual.network import VirtualNetwork
+from ingenialink.virtual.ethercat.network import VirtualEthercatNetwork
+from ingenialink.virtual.ethernet.network import VirtualEthernetNetwork
 from ping3 import ping
 from virtual_drive.core import VirtualDrive
 
@@ -34,6 +35,7 @@ from ingeniamotion.exceptions import IMFirmwareLoadError, IMRegisterWrongAccessE
 if TYPE_CHECKING:
     from ingenialink.ethercat.servo import EthercatServo
     from ingenialink.ethernet.servo import EthernetServo
+    from ingenialink.virtual.ethercat.servo import VirtualEthercatServo
     from ingenialink.virtual.ethernet.servo import VirtualEthernetServo
 
     from ingeniamotion.motion_controller import MotionController
@@ -101,7 +103,10 @@ class Communication:
             raise ValueError("Servo not found in the communication controller.")
 
         network = self.mc._get_network(alias)
-        if isinstance(network, VirtualNetwork) and self.__virtual_drive:
+        if (
+            isinstance(network, (VirtualEthernetNetwork, VirtualEthercatNetwork))
+            and self.__virtual_drive
+        ):
             self.__virtual_drive.stop()
             self.__virtual_drive = None
         del self.mc.servos[alias]
@@ -204,7 +209,7 @@ class Communication:
         connection_timeout: int = 1,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
-    ) -> tuple[VirtualNetwork, "VirtualEthernetServo"]:
+    ) -> tuple[VirtualEthernetNetwork, "VirtualEthernetServo"]:
         """Connect to the virtual drive using an ethernet communication.
 
         Args:
@@ -232,9 +237,63 @@ class Communication:
             self.__virtual_drive = VirtualDrive(port, dictionary_path=dict_path)
             self.__virtual_drive.start()
 
-        net = VirtualNetwork()
+        net = VirtualEthernetNetwork()
         self.mc.net[alias] = net
         servo = net.connect_to_slave(
+            self.__virtual_drive.dictionary_path,
+            port,
+            connection_timeout,
+            servo_status_listener=servo_status_listener,
+            net_status_listener=net_status_listener,
+            disconnect_callback=self.__disconnect_callback,
+        )
+
+        self.mc.servos[alias] = servo
+        self.mc.servo_net[alias] = alias
+        return net, servo
+
+    def connect_servo_virtual_ethercat(
+        self,
+        dict_path: str,
+        alias: str = DEFAULT_SERVO,
+        port: int = 1061,
+        connection_timeout: int = 1,
+        servo_status_listener: bool = False,
+        net_status_listener: bool = False,
+    ) -> tuple[VirtualEthercatNetwork, "VirtualEthercatServo"]:
+        """Connect to the virtual drive using an ethernet communication.
+
+        Args:
+            dict_path : servo dictionary path.
+            alias : servo alias to reference it. ``default`` by default.
+            port : servo port. ``1061`` by default.
+            connection_timeout: Timeout in seconds for connection.
+                ``1`` seconds by default.
+            servo_status_listener : Toggle the listener of the servo for
+                its status, errors, faults, etc.
+            net_status_listener : Toggle the listener of the network
+                status, connection and disconnection.
+
+        Returns:
+            The virtual network and the connected servo.
+
+        Raises:
+            FileNotFoundError: If the dict file doesn't exist.
+
+        """
+        if not path.isfile(dict_path):
+            raise FileNotFoundError(f"{dict_path} file does not exist!")
+
+        if self.__virtual_drive is None:
+            self.__virtual_drive = VirtualDrive(
+                port, dictionary_path=dict_path, protocol=Interface.ECAT
+            )
+            self.__virtual_drive.start()
+
+        net = VirtualEthercatNetwork()
+        self.mc.net[alias] = net
+        servo = net.connect_to_slave(
+            1,
             self.__virtual_drive.dictionary_path,
             port,
             connection_timeout,
