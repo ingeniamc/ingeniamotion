@@ -59,7 +59,12 @@ def generate_drive_errors(mc: "MotionController", alias: str) -> Iterator[list[i
 
 @pytest.fixture
 def generate_drive_warning(mc: "MotionController", alias: str) -> Iterator[int]:
-    """Generate an under-temperature warning."""
+    """Generate an under-temperature warning.
+
+    Yields:
+        The error code of the generated warning.
+
+    """
     mc.communication.set_register(UNDER_TEMP_ERROR_OPTION_REGISTER, OPTION_DO_NOTHING, servo=alias)
     mc.communication.set_register(UNDER_TEMP_REGISTER, 100, servo=alias)
     mc.motion.motor_enable(servo=alias)
