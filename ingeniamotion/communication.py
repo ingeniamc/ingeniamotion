@@ -274,7 +274,7 @@ class Communication:
 
         Raises:
             FileNotFoundError: If the dict file doesn't exist.
-            ingenialink.exceptions.ILError: If the servo's IP or port is incorrect.
+
         """
         return self.__connect_servo_virtual(
             Interface.ETH,
@@ -295,7 +295,7 @@ class Communication:
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
     ) -> tuple[VirtualEthercatNetwork, "VirtualEthercatServo"]:
-        """Connect to the virtual drive using an ethernet communication.
+        """Connect to the virtual drive using a simulated EtherCAT communication.
 
         Args:
             dict_path : dictionary path. The dictionary must be compatible
