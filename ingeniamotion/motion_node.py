@@ -1,5 +1,3 @@
-from typing import Optional
-
 from ingenialink import Network, Servo
 
 
@@ -22,6 +20,6 @@ class MotionNode:
         return self.__servo
 
     @property
-    def network(self) -> Optional[Network]:
+    def network(self) -> Network:
         """Network associated with the motion node."""
         return self.__net

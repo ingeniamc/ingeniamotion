@@ -5,6 +5,9 @@
 - Extended error queue manager (`ServoErrorQueue`) to support standard drive errors (MOCO/COCO/SYSTEM).
 - Added standard error queue descriptors: `MOCO_ERROR_QUEUE`, `COCO_ERROR_QUEUE`, `SYSTEM_ERROR_QUEUE`.
 
+### Changed
+- Deprecated: Mutable access to the net and net_servo, and servo_net attributes of the `MotionController` class. 
+
 ### Fixed
 - Clarify STO test logs.
 

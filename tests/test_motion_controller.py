@@ -12,7 +12,7 @@ from ingeniamotion.information import Information
 from ingeniamotion.metaclass import MCMetaClass
 from ingeniamotion.motion import Motion
 from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY
-from tests.fsoe.conftest import MockServo
+from tests.fsoe.conftest import MockNetwork, MockServo
 
 
 def test_motion_controller():
@@ -65,10 +65,10 @@ class TestMetaclass:
 
         def __init__(self):
             self.mc.create_motion_node(
-                "a", MockServo(dictionary_path=SAMPLE_SAFE_PH1_XDFV3_DICTIONARY), "test_net"
+                "a", MockServo(dictionary_path=SAMPLE_SAFE_PH1_XDFV3_DICTIONARY), MockNetwork()
             )
             self.mc.create_motion_node(
-                "b", MockServo(dictionary_path=SAMPLE_SAFE_PH1_XDFV3_DICTIONARY), "test_net"
+                "b", MockServo(dictionary_path=SAMPLE_SAFE_PH1_XDFV3_DICTIONARY), MockNetwork()
             )
             self.mc.configuration.is_motor_enabled = self.is_motor_enabled
 

@@ -30,6 +30,7 @@ from ingeniamotion.exceptions import (
     IMRegisterNotExistError,
     IMRegisterWrongAccessError,
 )
+from tests.fsoe.conftest import MockNetwork
 
 if TYPE_CHECKING:
     from summit_testing_framework.setup_fixtures import MotionControllerWrapper
@@ -608,7 +609,7 @@ def test_load_ensemble_fw_canopen(mocker):
     mocker.patch("ingenialink.canopen.network.CanopenNetwork.disconnect_from_slave")
     mc._get_drive = lambda x: servos[x]
     for alias, servo in servos.items():
-        mc.create_motion_node(alias, servo, "test_net")
+        mc.create_motion_node(alias, servo, MockNetwork())
 
     product_code = 123456
     slaves_info = OrderedDict({

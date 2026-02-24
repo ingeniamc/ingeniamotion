@@ -79,7 +79,7 @@ def generate_net_alias_canopen(can_device: CanDevice, channel: int, baudrate: Ca
         baudrate : communication baudrate.
 
     Returns:
-        The generated networkalias.
+        The generated network alias.
     """
     return f"{can_device}_{channel}_{baudrate}"
 
@@ -107,8 +107,8 @@ class Communication:
 
     def _disconnect_callback(self, servo: Servo) -> None:
         alias = None
-        for servo_alias, servo in self.mc.servos.items():
-            if servo.target == servo.target:
+        for servo_alias, servo_saved in self.mc.servos.items():
+            if servo.target == servo_saved.target:
                 alias = servo_alias
                 break
         if alias is None:
