@@ -315,14 +315,29 @@ class Communication:
             FileNotFoundError: If the dict file doesn't exist.
 
         """
-        return self.__connect_servo_virtual_ethercat(
-            dict_path,
-            alias,
-            port,
+        if dict_path is not None and not path.isfile(dict_path):
+            raise FileNotFoundError(f"{dict_path} file does not exist!")
+
+        if self.__virtual_drive_ethercat is None:
+            self.__virtual_drive_ethercat = VirtualDrive(
+                port, dictionary_path=dict_path, protocol=Interface.ECAT
+            )
+            self.__virtual_drive_ethercat.start()
+        virtual_drive = self.__virtual_drive_ethercat
+        net_ethercat = VirtualEthercatNetwork()
+        servo_ethercat = net_ethercat.connect_to_slave(
+            1,
+            virtual_drive.dictionary_path,
+            virtual_drive.port,
             connection_timeout,
-            servo_status_listener,
-            net_status_listener,
+            servo_status_listener=servo_status_listener,
+            net_status_listener=net_status_listener,
+            disconnect_callback=self.__disconnect_callback,
         )
+        self.mc.net[alias] = net_ethercat
+        self.mc.servos[alias] = servo_ethercat
+        self.mc.servo_net[alias] = alias
+        return net_ethercat, servo_ethercat
 
     def __connect_servo_virtual_ethernet(
         self,
@@ -353,39 +368,6 @@ class Communication:
         self.mc.servos[alias] = servo_ethernet
         self.mc.servo_net[alias] = alias
         return net_ethernet, servo_ethernet
-
-    def __connect_servo_virtual_ethercat(
-        self,
-        dict_path: Optional[str],
-        alias: str,
-        port: Optional[int],
-        connection_timeout: int,
-        servo_status_listener: bool,
-        net_status_listener: bool,
-    ) -> tuple[VirtualEthercatNetwork, "VirtualEthercatServo"]:
-        if dict_path is not None and not path.isfile(dict_path):
-            raise FileNotFoundError(f"{dict_path} file does not exist!")
-
-        if self.__virtual_drive_ethercat is None:
-            self.__virtual_drive_ethercat = VirtualDrive(
-                port, dictionary_path=dict_path, protocol=Interface.ECAT
-            )
-            self.__virtual_drive_ethercat.start()
-        virtual_drive = self.__virtual_drive_ethercat
-        net_ethercat = VirtualEthercatNetwork()
-        servo_ethercat = net_ethercat.connect_to_slave(
-            1,
-            virtual_drive.dictionary_path,
-            virtual_drive.port,
-            connection_timeout,
-            servo_status_listener=servo_status_listener,
-            net_status_listener=net_status_listener,
-            disconnect_callback=self.__disconnect_callback,
-        )
-        self.mc.net[alias] = net_ethercat
-        self.mc.servos[alias] = servo_ethercat
-        self.mc.servo_net[alias] = alias
-        return net_ethercat, servo_ethercat
 
     def __servo_connect(
         self,
