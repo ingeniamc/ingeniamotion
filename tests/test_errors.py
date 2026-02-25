@@ -8,10 +8,12 @@ from ingenialink.exceptions import ILError
 from ingeniamotion.errors import (
     MOCO_ERROR_QUEUE,
     SYSTEM_ERROR_QUEUE,
+    ErrorQueueDescriptor,
     OperationError,
     ServoErrorQueue,
     SystemQueueError,
 )
+from ingeniamotion.exceptions import IMErrorQueueNotExistsError
 from tests.conftest import not_valid_for_eve_products
 
 if TYPE_CHECKING:
@@ -405,3 +407,20 @@ class TestErrors:
         assert last_buffer_error.axis == 1
         assert last_buffer_error.is_warning is True
         assert last_buffer_error.error_description == "Under-temperature detected (user limit)"
+
+    @pytest.mark.virtual
+    def test_servo_error_queue_missing_register_raises(self, servo: "Servo") -> None:
+        """If the dictionary doesn't contain the register UID,
+        constructing the queue should raise IMRegisterNotExistError."""
+        # Create a descriptor with a non-existent UID
+        fake_descriptor = ErrorQueueDescriptor(
+            last_error_reg_uid="NON_EXISTENT_UID",
+            total_error_reg_uid="DRV_DIAG_ERROR_TOTAL",
+            error_request_index_reg_uid="DRV_DIAG_ERROR_LIST_IDX",
+            error_request_code_reg_uid="DRV_DIAG_ERROR_LIST_CODE",
+            max_index_request=31,
+            error_type=OperationError,
+        )
+
+        with pytest.raises(IMErrorQueueNotExistsError):
+            ServoErrorQueue(fake_descriptor, servo)

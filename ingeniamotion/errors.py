@@ -6,6 +6,7 @@ from ingenialink import Register
 from ingenialink.dictionary import Dictionary, DictionaryError
 
 from ingeniamotion._utils import weak_lru
+from ingeniamotion.exceptions import IMErrorQueueNotExistsError
 
 if TYPE_CHECKING:
     from ingenialink import Servo
@@ -157,18 +158,23 @@ class ServoErrorQueue:
 
         # Get register objects
         axis_for_reg = self.__axis or 0
-        self.__last_error_reg = self.__servo.dictionary.get_register(
-            self.descriptor.last_error_reg_uid, axis=axis_for_reg
-        )
-        self.__total_error_reg = self.__servo.dictionary.get_register(
-            self.descriptor.total_error_reg_uid, axis=axis_for_reg
-        )
-        self.__error_request_index_reg = self.__servo.dictionary.get_register(
-            self.descriptor.error_request_index_reg_uid, axis=axis_for_reg
-        )
-        self.__error_request_code_reg = self.__servo.dictionary.get_register(
-            self.descriptor.error_request_code_reg_uid, axis=axis_for_reg
-        )
+        try:
+            self.__last_error_reg = self.__servo.dictionary.get_register(
+                self.descriptor.last_error_reg_uid, axis=axis_for_reg
+            )
+            self.__total_error_reg = self.__servo.dictionary.get_register(
+                self.descriptor.total_error_reg_uid, axis=axis_for_reg
+            )
+            self.__error_request_index_reg = self.__servo.dictionary.get_register(
+                self.descriptor.error_request_index_reg_uid, axis=axis_for_reg
+            )
+            self.__error_request_code_reg = self.__servo.dictionary.get_register(
+                self.descriptor.error_request_code_reg_uid, axis=axis_for_reg
+            )
+        except KeyError:
+            raise IMErrorQueueNotExistsError(
+                "One or more registers for error queue not found in servo dictionary"
+            )
 
         # Total number of errors that were last read to obtain pending errors
         self.__last_read_total_errors_pending = 0

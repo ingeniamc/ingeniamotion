@@ -26,6 +26,10 @@ class IMRegisterWrongAccessError(IMError):
     """Error raised by IngeniaMotion when trying to write to a read-only register."""
 
 
+class IMErrorQueueNotExistsError(IMError):
+    """Error raised by IngeniaMotion when an error queue cannot be found."""
+
+
 class IMTimeoutError(IMError):
     """Error raised by IngeniaMotion when a timeout has occurred."""
 
