@@ -196,7 +196,8 @@ class ServoErrorQueue:
         value = self.__servo.read(register)
         if not isinstance(value, int):
             raise TypeError(
-                f"Register {register.uid} value must be an integer, got {type(value).__name__}"
+                f"Register {register.identifier} value must be an integer, "
+                f"got {type(value).__name__}"
             )
         return value
 

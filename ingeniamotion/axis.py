@@ -31,7 +31,7 @@ class Axis:
         return self.__axis_number
 
     @property
-    @weak_lru
+    @weak_lru()
     def error_queue(self) -> ServoErrorQueue:
         """Get the error queue of the axis."""
         return ServoErrorQueue(MOCO_ERROR_QUEUE, self.motion_node.servo, axis=self.axis_number)

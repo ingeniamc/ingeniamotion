@@ -21,7 +21,7 @@ from ingeniamotion.fsoe_master.maps_validator import (
     FSoEFrameRules,
     FSoEFrameRuleValidatorOutput,
 )
-from ingeniamotion.fsoe_master.safety_functions import STOFunction
+from ingeniamotion.fsoe_master.safety_functions import SFT, STOFunction
 
 if TYPE_CHECKING:
     from ingenialink.dictionary import Dictionary
@@ -198,8 +198,8 @@ class ProcessImage:
             self.insert_in_best_position(io)
 
     def insert_safety_functions_by_type(
-        self, handler: "FSoEMasterHandler", function_type: type["SafetyFunction"]
-    ) -> "SafetyFunction":
+        self, handler: "FSoEMasterHandler", function_type: type["SFT"]
+    ) -> "SFT":
         """Insert the first non-mapped instance of the given safety function type on the maps.
 
         Args:
@@ -214,9 +214,7 @@ class ProcessImage:
             ValueError: if all safety functions of the given type are already mapped.
 
         """
-        sf_available: list[SafetyFunction] = handler.safety_functions_by_type().get(
-            function_type, []
-        )
+        sf_available = handler.get_function_instances(function_type)
         if not sf_available:
             raise ValueError(f"No safety functions of type {function_type} found")
         for function in sf_available:
@@ -272,9 +270,7 @@ class ProcessImage:
             ValueError: if no safety functions of the given type are mapped.
 
         """
-        sf_available: list[SafetyFunction] = handler.safety_functions_by_type().get(
-            function_type, []
-        )
+        sf_available = list(handler.get_function_instances(function_type))
         if not sf_available:
             raise ValueError(f"No safety functions of type {function_type} found")
         for function in sf_available[::-1]:

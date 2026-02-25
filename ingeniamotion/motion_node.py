@@ -25,7 +25,7 @@ class MotionNode:
             if axis_number != 0  # Axis 0 is the motion node itself, not an axis
         }
 
-        self.errors = NodeErrors(self)
+        self.__errors = NodeErrors(self)
 
     @property
     def servo(self) -> Servo:
@@ -36,14 +36,6 @@ class MotionNode:
     def network(self) -> Network:
         """Network associated with the motion node."""
         return self.__net
-
-    def errors(self) -> "NodeErrors":
-        """Get the errors of the motion node.
-
-        Returns:
-            NodeErrors: The errors instance for the motion node.
-        """
-        return NodeErrors(self)
 
     @property
     def axes(self) -> Iterator["Axis"]:
@@ -67,3 +59,8 @@ class MotionNode:
             KeyError: If the axis number does not exist.
         """
         return self.__axes[axis_number]
+
+    @property
+    def errors(self) -> NodeErrors:
+        """Get the errors of the motion node."""
+        return self.__errors
