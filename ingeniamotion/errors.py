@@ -357,29 +357,35 @@ class NodeErrors:
         self.__motion_node = motion_node
 
     @weak_lru(maxsize=None)
-    def get_queue(self, descriptor: ErrorQueueDescriptor) -> ServoErrorQueue:
+    def get_queue(self, descriptor: ErrorQueueDescriptor) -> Optional[ServoErrorQueue]:
         """Get the error queue of the motion node for the given descriptor.
 
         Returns:
-            ServoErrorQueue: The error queue instance.
+            ServoErrorQueue: The error queue instance, or ``None`` if the registers
+                described by the descriptor are not present in the servo dictionary.
         """
-        return ServoErrorQueue(descriptor, self.__motion_node.servo)
+        try:
+            return ServoErrorQueue(descriptor, self.__motion_node.servo)
+        except IMErrorQueueNotExistsError:
+            return None
 
     @property
-    def system(self) -> ServoErrorQueue:
+    def system(self) -> Optional[ServoErrorQueue]:
         """Get the system error queue of the motion node.
 
         Returns:
-            ServoErrorQueue: The system error queue.
+            ServoErrorQueue: The system error queue, or ``None`` if not available in
+                the servo dictionary.
         """
         return self.get_queue(SYSTEM_ERROR_QUEUE)
 
     @property
-    def coco(self) -> ServoErrorQueue:
-        """Get the coco error queue of the motion node.
+    def coco(self) -> Optional[ServoErrorQueue]:
+        """Get the COCO error queue of the motion node.
 
         Returns:
-            ServoErrorQueue: The coco error queue.
+            ServoErrorQueue: The COCO error queue, or ``None`` if not available in
+                the servo dictionary.
         """
         return self.get_queue(COCO_ERROR_QUEUE)
 
@@ -391,23 +397,18 @@ class NodeErrors:
         Yields:
             ServoErrorQueue: An error queue of the motion node.
         """
-        for descriptor in [
-            SYSTEM_ERROR_QUEUE,
-            COCO_ERROR_QUEUE,
-        ]:
+        for descriptor in [SYSTEM_ERROR_QUEUE, COCO_ERROR_QUEUE]:
             if exclude and descriptor in exclude:
                 continue
-            try:  # noqa: PERF203
-                yield self.get_queue(descriptor)
-            except IMErrorQueueNotExistsError:
-                # If the error queue does not exist, skip it
-                continue
+            queue = self.get_queue(descriptor)
+            if queue is not None:
+                yield queue
 
         for axis in self.__motion_node.axes:
             yield from axis.errors.get_all_queues(exclude=exclude)
 
 
-class AxisErrors(NodeErrors):
+class AxisErrors:
     """Class to manage errors of an axis."""
 
     def __init__(self, axis: "Axis") -> None:
@@ -416,31 +417,51 @@ class AxisErrors(NodeErrors):
         Args:
             axis: The axis associated with the errors.
         """
-        super().__init__(axis.motion_node)
         self.__axis = axis
 
     @weak_lru(maxsize=None)
-    def get_queue(self, descriptor: ErrorQueueDescriptor) -> ServoErrorQueue:
-        """Get the error queue of the motion node for the given descriptor.
+    def get_queue(self, descriptor: ErrorQueueDescriptor) -> Optional[ServoErrorQueue]:
+        """Get the error queue for the given descriptor.
 
         Returns:
-            ServoErrorQueue: The error queue instance.
+            ServoErrorQueue: The error queue instance, or ``None`` if the registers
+                described by the descriptor are not present in the servo dictionary.
         """
-        return ServoErrorQueue(descriptor, self.__motion_node.servo, axis=self.__axis.axis_number)
+        try:
+            return ServoErrorQueue(
+                descriptor, self.__axis.motion_node.servo, axis=self.__axis.axis_number
+            )
+        except IMErrorQueueNotExistsError:
+            return None
 
     @property
-    def moco(self) -> "ServoErrorQueue":
-        """Get the moco error queue of the axis."""
+    def moco(self) -> Optional[ServoErrorQueue]:
+        """Get the MOCO error queue of the axis.
+
+        Returns:
+            ServoErrorQueue: The MOCO error queue, or ``None`` if not available in
+                the servo dictionary.
+        """
         return self.get_queue(MOCO_ERROR_QUEUE)
 
     @property
-    def safety_a(self) -> "ServoErrorQueue":
-        """Get the error queue of the MCU A of safety."""
+    def safety_a(self) -> Optional[ServoErrorQueue]:
+        """Get the error queue of the MCU A of safety.
+
+        Returns:
+            ServoErrorQueue: The MCU-A safety error queue, or ``None`` if not available
+                in the servo dictionary.
+        """
         return self.get_queue(MCUA_ERROR_QUEUE)
 
     @property
-    def safety_b(self) -> "ServoErrorQueue":
-        """Get the error queue of the MCU B of safety."""
+    def safety_b(self) -> Optional[ServoErrorQueue]:
+        """Get the error queue of the MCU B of safety.
+
+        Returns:
+            ServoErrorQueue: The MCU-B safety error queue, or ``None`` if not available
+                in the servo dictionary.
+        """
         return self.get_queue(MCUB_ERROR_QUEUE)
 
     def get_all_queues(
@@ -454,11 +475,9 @@ class AxisErrors(NodeErrors):
         for descriptor in [MOCO_ERROR_QUEUE, MCUA_ERROR_QUEUE, MCUB_ERROR_QUEUE]:
             if exclude and descriptor in exclude:
                 continue
-            try:  # noqa: PERF203
-                yield self.get_queue(descriptor)
-            except IMErrorQueueNotExistsError:
-                # If the error queue does not exist, skip it
-                continue
+            queue = self.get_queue(descriptor)
+            if queue is not None:
+                yield queue
 
 
 class Errors:
@@ -491,23 +510,23 @@ class Errors:
         """
         m = self.mc._get_motion_node(servo)
 
-        try:
-            system_queue = m.errors.system
+        system_queue = m.errors.system
+        if system_queue is not None:
             # Drive has SYSTEM registers
             if axis is None:
                 return system_queue
             if axis == 0:
-                return m.errors.coco
-            # axis > 0: axis-specific MOCO queue
-            return m.get_axis(axis).error_queue
-        except IMErrorQueueNotExistsError:
-            pass
+                coco_queue = m.errors.coco
+                if coco_queue is not None:
+                    return coco_queue
+            else:
+                # axis > 0: axis-specific MOCO queue
+                return m.get_axis(axis).error_queue
 
-        try:
-            return m.errors.coco
+        coco_queue = m.errors.coco
+        if coco_queue is not None:
             # Drive has no System queue, use COCO queue regardless of axis
-        except IMErrorQueueNotExistsError:
-            pass
+            return coco_queue
 
         # Drive has MOCO-only error queues, get the one for the specified axis
         resolved_axis = axis if axis is not None else DEFAULT_AXIS
