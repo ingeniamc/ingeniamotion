@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from enum import IntEnum
 from typing import TYPE_CHECKING, ClassVar, Optional
 
+from ingenialink import Register
 from ingenialink.dictionary import Dictionary, DictionaryError
 
 from ingeniamotion._utils import weak_lru
@@ -154,14 +155,29 @@ class ServoErrorQueue:
         self.__dictionary = servo.dictionary
         self.__axis = axis
 
+        # Get register objects
+        axis_for_reg = self.__axis or 0
+        self.__last_error_reg = self.__servo.dictionary.get_register(
+            self.descriptor.last_error_reg_uid, axis=axis_for_reg
+        )
+        self.__total_error_reg = self.__servo.dictionary.get_register(
+            self.descriptor.total_error_reg_uid, axis=axis_for_reg
+        )
+        self.__error_request_index_reg = self.__servo.dictionary.get_register(
+            self.descriptor.error_request_index_reg_uid, axis=axis_for_reg
+        )
+        self.__error_request_code_reg = self.__servo.dictionary.get_register(
+            self.descriptor.error_request_code_reg_uid, axis=axis_for_reg
+        )
+
         # Total number of errors that were last read to obtain pending errors
         self.__last_read_total_errors_pending = 0
 
-    def __read_int_reg(self, reg_uid: str) -> int:
+    def __read_int_reg(self, register: Register) -> int:
         """Read an integer register value with type validation.
 
         Args:
-            reg_uid: Register UID to read.
+            register: Register object to read.
 
         Returns:
             The register value as an integer.
@@ -169,13 +185,10 @@ class ServoErrorQueue:
         Raises:
             TypeError: If the register value is not an integer.
         """
-        if self.__axis is not None:
-            value = self.__servo.read(reg_uid, subnode=self.__axis)
-        else:
-            value = self.__servo.read(reg_uid)
+        value = self.__servo.read(register)
         if not isinstance(value, int):
             raise TypeError(
-                f"Register {reg_uid} value must be an integer, got {type(value).__name__}"
+                f"Register {register.uid} value must be an integer, got {type(value).__name__}"
             )
         return value
 
@@ -186,7 +199,7 @@ class ServoErrorQueue:
             Optional[Error]: The last error, or None if there is no error.
         """
         error = self.descriptor.error_type.from_id(
-            self.__read_int_reg(self.descriptor.last_error_reg_uid), self.__dictionary
+            self.__read_int_reg(self.__last_error_reg), self.__dictionary
         )
         return error
 
@@ -196,7 +209,7 @@ class ServoErrorQueue:
         Returns:
             int: Total number of errors.
         """
-        return self.__read_int_reg(self.descriptor.total_error_reg_uid)
+        return self.__read_int_reg(self.__total_error_reg)
 
     @property
     @weak_lru()
@@ -216,14 +229,9 @@ class ServoErrorQueue:
         Returns:
             The error at the given index, or None if there is no error.
         """
-        if self.__axis is not None:
-            self.__servo.write(
-                self.descriptor.error_request_index_reg_uid, index, subnode=self.__axis
-            )
-        else:
-            self.__servo.write(self.descriptor.error_request_index_reg_uid, index)
+        self.__servo.write(self.__error_request_index_reg, index)
         error = self.descriptor.error_type.from_id(
-            self.__read_int_reg(self.descriptor.error_request_code_reg_uid), self.__dictionary
+            self.__read_int_reg(self.__error_request_code_reg), self.__dictionary
         )
         return error
 
