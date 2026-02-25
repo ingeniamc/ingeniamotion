@@ -390,6 +390,7 @@ class TestErrors:
     @pytest.mark.ethernet
     @pytest.mark.soem
     @pytest.mark.canopen
+    @not_valid_for_eve_products
     def test_error_queue_get_error_by_index_system_warning(
         self, servo: "Servo", generate_drive_warning: int
     ) -> None:
