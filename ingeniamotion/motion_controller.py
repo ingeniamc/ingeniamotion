@@ -111,10 +111,10 @@ class MotionController:
             KeyError: If the servo is not connected.
 
         """
-        if servo not in self.servos:
+        if servo not in self.__motion_nodes:
             msg = f"Servo {servo} is not connected"
             raise KeyError(msg)
-        return self.servos[servo]
+        return self.__motion_nodes[servo].servo
 
     @property
     def motion_nodes(self) -> MappingProxyType[str, MotionNode]:
@@ -174,6 +174,24 @@ class MotionController:
 
             if len(nodes_on_net) == 0:
                 self.remove_network(network)
+
+    def _get_motion_node(self, motion_node: str = DEFAULT_SERVO) -> "MotionNode":
+        """Return motion node instance.
+
+        Args:
+            motion_node : motion node alias to reference it. ``default`` by default.
+
+        Returns:
+            MotionNode instance.
+
+        Raises:
+            KeyError: If the motion node is not connected.
+
+        """
+        if motion_node not in self.__motion_nodes:
+            msg = f"Motion Node {motion_node} is not connected"
+            raise KeyError(msg)
+        return self.__motion_nodes[motion_node]
 
     # Properties
     @property
