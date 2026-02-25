@@ -132,7 +132,7 @@ class SystemQueueError(OperationError):
         return (self._error_id & self.__ERROR_SUBNODE_BITS) >> self.__ERROR_SUBNODE_SHIFT
 
 
-@dataclass()
+@dataclass(frozen=True)
 class ErrorQueueDescriptor:
     """Descriptor for an error queue in a servo."""
 

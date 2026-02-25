@@ -1,9 +1,11 @@
-import time
-import logging
 import argparse
+import logging
+import time
+
+from ingenialink.exceptions import ILError
+
 from ingeniamotion import MotionController
 from ingeniamotion.enums import OperationMode
-from ingenialink.exceptions import ILError
 
 # Set your motor torque constant
 TORQUE_CONSTANT = 0.0376
@@ -19,8 +21,7 @@ def setup_command():
 
 
 def velocity_ramp(final_velocity, acceleration, mc):
-    """
-    Creates a velocity ramp from current velocity to ``final_velocity`` with ``acceleration`` as a ramp slope.
+    """Creates a velocity ramp from current velocity to ``final_velocity`` with ``acceleration`` as a ramp slope.
 
     Args:
         final_velocity: target velocity in rev/s.
@@ -39,8 +40,7 @@ def velocity_ramp(final_velocity, acceleration, mc):
 
 
 def torque_ramp(final_torque, rotatum, torque_constant, mc):
-    """
-    Creates a torque ramp from 0 to ``final_torque`` with ``rotatum`` as a ramp slope.
+    """Creates a torque ramp from 0 to ``final_torque`` with ``rotatum`` as a ramp slope.
 
     Args:
         final_torque: target torque in Nm.
@@ -91,7 +91,7 @@ def main(args):
     elif args.demo == "torque":
         torque_demo(mc, args.target_torque)
     else:
-        logging.error("Demo {} does not exist".format(args.demo))
+        logging.error(f"Demo {args.demo} does not exist")
     mc.communication.disconnect()
 
 

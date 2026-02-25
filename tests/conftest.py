@@ -13,7 +13,9 @@ from summit_testing_framework.pytest_helpers.marker_helper import (
 )
 
 if TYPE_CHECKING:
+    from ingeniamotion.axis import Axis
     from ingeniamotion.motion_controller import MotionController
+    from ingeniamotion.motion_node import MotionNode
 
 
 def not_valid_for_eve_products(func: Callable) -> Callable:
@@ -144,6 +146,35 @@ def mean_actual_velocity_position(mc, servo, velocity=False, n_samples=200, samp
         samples[sample_idx] = value
         time.sleep(sampling_period)
     return np.mean(samples)
+
+
+@pytest.fixture
+def motion_node(mc: "MotionController") -> "MotionNode":
+    """Fixture that provides a motion node for testing.
+
+    Returns:
+        MotionNode: The motion node to be used for testing.
+    """
+    return mc._get_motion_node("default")
+
+
+@pytest.fixture
+def axis(motion_node: "MotionNode") -> "Axis":
+    """Fixture that provides an axis for testing.
+
+    Raises:
+        ValueError: If the motion node has more than one axis,
+            since the fixture cannot determine which one to use.
+
+    Returns:
+        Axis: The axis of the motion node to be used for testing.
+    """
+    if len(list(motion_node.axes)) > 1:
+        raise ValueError(
+            "Motion node has more than one axis, cannot determine which one to use for the fixture."
+        )
+
+    return motion_node.get_axis(1)
 
 
 # https://novantamotion.atlassian.net/browse/CIT-401
