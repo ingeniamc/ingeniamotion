@@ -12,6 +12,7 @@ import pytest
 from ingenialink import CanBaudrate, CanDevice, Servo
 from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
+from ingenialink.dictionary import SubnodeType
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.exceptions import ILError
@@ -592,6 +593,7 @@ def test_load_ensemble_fw_canopen(mocker):
     class MockDictionary:
         def __init__(self) -> None:
             self.path = "path_to_dictionary"
+            self.subnodes = {0: SubnodeType.COMMUNICATION, 1: SubnodeType.MOTION}
 
     class MockCanopenServo(CanopenServo):
         def __init__(self, node_id) -> None:
