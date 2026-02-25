@@ -12,6 +12,7 @@ from ingeniamotion.exceptions import IMErrorQueueNotExistsError
 if TYPE_CHECKING:
     from ingenialink import Servo
 
+    from ingeniamotion.axis import Axis
     from ingeniamotion.motion_controller import MotionController
     from ingeniamotion.motion_node import MotionNode
 
@@ -392,8 +393,6 @@ class NodeErrors:
         for descriptor in [
             SYSTEM_ERROR_QUEUE,
             COCO_ERROR_QUEUE,
-            MCUA_ERROR_QUEUE,
-            MCUB_ERROR_QUEUE,
         ]:
             if exclude and descriptor in exclude:
                 continue
@@ -404,9 +403,59 @@ class NodeErrors:
                 continue
 
         for axis in self.__motion_node.axes:
+            yield from axis.errors.get_all_queues(exclude=exclude)
+
+
+class AxisErrors(NodeErrors):
+    """Class to manage errors of an axis."""
+
+    def __init__(self, axis: "Axis") -> None:
+        """Initialize axis errors.
+
+        Args:
+            axis: The axis associated with the errors.
+        """
+        super().__init__(axis.motion_node)
+        self.__axis = axis
+
+    @weak_lru(maxsize=None)
+    def get_queue(self, descriptor: ErrorQueueDescriptor) -> ServoErrorQueue:
+        """Get the error queue of the motion node for the given descriptor.
+
+        Returns:
+            ServoErrorQueue: The error queue instance.
+        """
+        return ServoErrorQueue(descriptor, self.__motion_node.servo, axis=self.__axis.axis_number)
+
+    @property
+    def moco(self) -> "ServoErrorQueue":
+        """Get the moco error queue of the axis."""
+        return self.get_queue(MOCO_ERROR_QUEUE)
+
+    @property
+    def safety_a(self) -> "ServoErrorQueue":
+        """Get the error queue of the MCU A of safety."""
+        return self.get_queue(MCUA_ERROR_QUEUE)
+
+    @property
+    def safety_b(self) -> "ServoErrorQueue":
+        """Get the error queue of the MCU B of safety."""
+        return self.get_queue(MCUB_ERROR_QUEUE)
+
+    def get_all_queues(
+        self, exclude: Optional[list[ErrorQueueDescriptor]] = None
+    ) -> Iterator[ServoErrorQueue]:
+        """Get all error queues of the axis.
+
+        Yields:
+            ServoErrorQueue: An error queue of the axis.
+        """
+        for descriptor in [MOCO_ERROR_QUEUE, MCUA_ERROR_QUEUE, MCUB_ERROR_QUEUE]:
+            if exclude and descriptor in exclude:
+                continue
             try:  # noqa: PERF203
-                yield axis.error_queue
-            except IMErrorQueueNotExistsError:  # noqa: PERF203
+                yield self.get_queue(descriptor)
+            except IMErrorQueueNotExistsError:
                 # If the error queue does not exist, skip it
                 continue
 

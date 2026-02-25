@@ -70,12 +70,12 @@ def emergency_handler(servo_alias: str, message: "EmergencyMessage") -> None:
 
 @pytest.fixture
 def mcu_error_queue_a(servo: "EthercatServo") -> "ServoErrorQueue":
-    return ServoErrorQueue(MCUA_ERROR_QUEUE, servo)
+    return ServoErrorQueue(MCUA_ERROR_QUEUE, servo, axis=1)
 
 
 @pytest.fixture
 def mcu_error_queue_b(servo: "EthercatServo") -> "ServoErrorQueue":
-    return ServoErrorQueue(MCUB_ERROR_QUEUE, servo)
+    return ServoErrorQueue(MCUB_ERROR_QUEUE, servo, axis=1)
 
 
 @dataclass(frozen=True)
