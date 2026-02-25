@@ -349,6 +349,67 @@ MCUB_ERROR_QUEUE = ErrorQueueDescriptor(
 )
 
 
+class NodeErrors:
+    """Class to manage errors of a motion node."""
+
+    def __init__(self, motion_node: "MotionNode") -> None:
+        self.__motion_node = motion_node
+
+    @weak_lru(maxsize=None)
+    def get_queue(self, descriptor: ErrorQueueDescriptor) -> ServoErrorQueue:
+        """Get the error queue of the motion node for the given descriptor.
+
+        Returns:
+            ServoErrorQueue: The error queue instance.
+        """
+        return ServoErrorQueue(descriptor, self.__motion_node.servo)
+
+    def system(self) -> ServoErrorQueue:
+        """Get the system error queue of the motion node.
+
+        Returns:
+            ServoErrorQueue: The system error queue.
+        """
+        return self.get_queue(SYSTEM_ERROR_QUEUE)
+
+    def coco(self) -> ServoErrorQueue:
+        """Get the coco error queue of the motion node.
+
+        Returns:
+            ServoErrorQueue: The coco error queue.
+        """
+        return self.get_queue(COCO_ERROR_QUEUE)
+
+    def get_all_queues(
+        self, exclude: Optional[list[ErrorQueueDescriptor]] = None
+    ) -> Iterator[ServoErrorQueue]:
+        """Get all error queues of the motion node.
+
+        Yields:
+            ServoErrorQueue: An error queue of the motion node.
+        """
+        for descriptor in [
+            SYSTEM_ERROR_QUEUE,
+            COCO_ERROR_QUEUE,
+            MCUA_ERROR_QUEUE,
+            MCUB_ERROR_QUEUE,
+        ]:
+            if exclude and descriptor in exclude:
+                continue
+            try:  # noqa: PERF203
+                yield self.get_queue(descriptor)
+            except IMErrorQueueNotExistsError:
+                # If the error queue does not exist, skip it
+                continue
+
+        for axis in self.__motion_node.axes:
+            try:  # noqa: PERF203
+                yield axis.error_queue
+            except IMErrorQueueNotExistsError:  # noqa: PERF203
+                # If the error queue does not exist, skip it
+                continue
+
+
 class Errors:
     """Errors."""
 
@@ -667,64 +728,3 @@ class Errors:
         drive = self.mc._get_drive(servo)
         dictionary_errors = drive.errors[error_code & self.__ERROR_CODE_BITS]
         return tuple(dictionary_errors)  # type: ignore[return-value]
-
-
-class NodeErrors:
-    """Class to manage errors of a motion node."""
-
-    def __init__(self, motion_node: "MotionNode") -> None:
-        self.motion_node = motion_node
-
-    @weak_lru(maxsize=None)
-    def get_error_queue(self, descriptor: ErrorQueueDescriptor) -> ServoErrorQueue:
-        """Get the error queue of the motion node for the given descriptor.
-
-        Returns:
-            ServoErrorQueue: The error queue instance.
-        """
-        return ServoErrorQueue(descriptor, self.motion_node.servo)
-
-    def system(self) -> ServoErrorQueue:
-        """Get the system error queue of the motion node.
-
-        Returns:
-            ServoErrorQueue: The system error queue.
-        """
-        return self.get_error_queue(SYSTEM_ERROR_QUEUE)
-
-    def coco(self) -> ServoErrorQueue:
-        """Get the coco error queue of the motion node.
-
-        Returns:
-            ServoErrorQueue: The coco error queue.
-        """
-        return self.get_error_queue(COCO_ERROR_QUEUE)
-
-    def get_all_error_queues(
-        self, exclude: Optional[list[ErrorQueueDescriptor]] = None
-    ) -> Iterator[ServoErrorQueue]:
-        """Get all error queues of the motion node.
-
-        Yields:
-            ServoErrorQueue: An error queue of the motion node.
-        """
-        for descriptor in [
-            SYSTEM_ERROR_QUEUE,
-            COCO_ERROR_QUEUE,
-            MCUA_ERROR_QUEUE,
-            MCUB_ERROR_QUEUE,
-        ]:
-            if exclude and descriptor in exclude:
-                continue
-            try:  # noqa: PERF203
-                yield self.get_error_queue(descriptor)
-            except IMErrorQueueNotExistsError:
-                # If the error queue does not exist, skip it
-                continue
-
-        for axis in self.motion_node.axes:
-            try:  # noqa: PERF203
-                yield axis.error_queue
-            except IMErrorQueueNotExistsError:  # noqa: PERF203
-                # If the error queue does not exist, skip it
-                continue

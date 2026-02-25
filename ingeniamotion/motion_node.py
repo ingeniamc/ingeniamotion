@@ -37,9 +37,12 @@ class MotionNode:
         """Network associated with the motion node."""
         return self.__net
 
-    @property
     def errors(self) -> "NodeErrors":
-        """Get the errors of the motion node."""
+        """Get the errors of the motion node.
+
+        Returns:
+            NodeErrors: The errors instance for the motion node.
+        """
         return NodeErrors(self)
 
     @property
@@ -50,3 +53,17 @@ class MotionNode:
             Axis: Each axis of the motion node.
         """
         yield from self.__axes.values()
+
+    def get_axis(self, axis_number: int) -> "Axis":
+        """Get a specific axis by its number.
+
+        Args:
+            axis_number: The number of the axis to retrieve.
+
+        Returns:
+            Axis: The axis with the specified number.
+
+        Raises:
+            KeyError: If the axis number does not exist.
+        """
+        return self.__axes[axis_number]
