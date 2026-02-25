@@ -77,8 +77,6 @@ class OperationError(Error):
     """Class to represent an operation error from the servo."""
 
     __ERROR_CODE_BITS = 0xFFFF
-    __ERROR_SUBNODE_BITS = 0xF00000
-    __ERROR_SUBNODE_SHIFT = 20
     __ERROR_WARNING_BIT = 0x10000000
     __ERROR_WARNING_SHIFT = 28
 
@@ -88,14 +86,46 @@ class OperationError(Error):
         return self._error_id & self.__ERROR_CODE_BITS
 
     @property
-    def axis(self) -> int:
-        """Get the error axis. If 0, it is a COCO error."""
-        return (self._error_id & self.__ERROR_SUBNODE_BITS) >> self.__ERROR_SUBNODE_SHIFT
-
-    @property
     def is_warning(self) -> bool:
         """Check if the error is a warning."""
         return bool((self._error_id & self.__ERROR_WARNING_BIT) >> self.__ERROR_WARNING_SHIFT)
+
+    @classmethod
+    def from_id(cls, error_id: int, dictionary: Optional[Dictionary] = None) -> Optional["Error"]:
+        """Get an OperationError instance from an error ID.
+
+        The dictionary lookup uses the masked error code (lower 16 bits) instead of
+        the full error_id, which may contain additional flag bits (e.g. warning bit).
+
+        Args:
+            error_id: Error ID.
+            dictionary: Dictionary to get the error description from.
+
+        Returns:
+            OperationError: Error instance, or None if error_id is 0.
+        """
+        if error_id == 0:
+            return None
+
+        dictionary_error = None
+
+        if dictionary:
+            error_code = error_id & cls.__ERROR_CODE_BITS
+            dictionary_error = dictionary.errors.get(error_code, None)
+
+        return cls(error_id, dictionary_error)
+
+
+class SystemQueueError(OperationError):
+    """Class to represent a system error from the servo."""
+
+    __ERROR_SUBNODE_BITS = 0xF00000
+    __ERROR_SUBNODE_SHIFT = 20
+
+    @property
+    def axis(self) -> int:
+        """Get the error axis. If 0, it is a COCO error."""
+        return (self._error_id & self.__ERROR_SUBNODE_BITS) >> self.__ERROR_SUBNODE_SHIFT
 
 
 @dataclass()
@@ -281,7 +311,7 @@ SYSTEM_ERROR_QUEUE = ErrorQueueDescriptor(
     error_request_index_reg_uid="DRV_DIAG_SYS_ERROR_LIST_IDX_COM",
     error_request_code_reg_uid="DRV_DIAG_SYS_ERROR_LIST_CODE_COM",
     max_index_request=31,
-    error_type=OperationError,
+    error_type=SystemQueueError,
 )
 
 
@@ -372,12 +402,9 @@ class Errors:
     ) -> tuple[int, Optional[int], Optional[bool]]:
         if not isinstance(error, OperationError):
             return error.error_id, None, None
-        error_code = error.error_code
-        if error_code == 0:
-            return error_code, None, None
-        if subnode is None:
-            subnode = error.axis
-        return error_code, subnode, error.is_warning
+        if isinstance(error, SystemQueueError):
+            return error.error_code, error.axis, error.is_warning
+        return error.error_code, subnode, error.is_warning
 
     def _get_error_location(self, servo: str = DEFAULT_SERVO) -> ErrorLocation:
         """Determine the error location based on available registers.
