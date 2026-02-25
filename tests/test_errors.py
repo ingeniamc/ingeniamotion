@@ -12,6 +12,7 @@ from ingeniamotion.errors import (
     ServoErrorQueue,
     SystemQueueError,
 )
+from tests.conftest import not_valid_for_eve_products
 
 if TYPE_CHECKING:
     from ingenialink.servo import Servo
