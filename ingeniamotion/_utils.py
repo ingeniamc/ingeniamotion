@@ -1,9 +1,9 @@
 import functools
 import weakref
-from typing import Any, Callable
+from typing import Any, Callable, Optional
 
 
-def weak_lru(maxsize: int = 128, typed: bool = False) -> Callable[..., Any]:
+def weak_lru(maxsize: Optional[int] = 128, typed: bool = False) -> Callable[..., Any]:
     """Decorator that allows safe use of lru_cache in class methods.
 
     Args:

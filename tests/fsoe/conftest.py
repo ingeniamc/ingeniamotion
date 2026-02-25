@@ -19,6 +19,7 @@ from ingenialink.servo import DictionaryFactory, Servo
 from ingenialink.utils._utils import convert_dtype_to_bytes
 
 from ingeniamotion.enums import FSoEState
+from ingeniamotion.errors import MCUA_ERROR_QUEUE, MCUB_ERROR_QUEUE
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError
 from tests.conftest import add_fixture_error_checker
 from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
@@ -35,7 +36,6 @@ if FSOE_MASTER_INSTALLED:
         SS1Function,
         STOFunction,
     )
-    from ingeniamotion.fsoe_master.errors import MCUA_ERROR_QUEUE, MCUB_ERROR_QUEUE
     from tests.fsoe.utils.map_generator import FSoERandomMappingGenerator
 
 
