@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 
-def not_valid_for_eve_CAN_ECAT_products(func: Callable) -> Callable:
+def not_valid_for_eve_can_ecat_products(func: Callable) -> Callable:
     """Decorator that applies not_valid_for_product markers for CAN and ECAT EVE products.
 
     Returns:

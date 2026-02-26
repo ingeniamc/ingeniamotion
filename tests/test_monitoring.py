@@ -6,7 +6,7 @@ import pytest
 
 from ingeniamotion.enums import MonitoringSoCConfig, MonitoringSoCType
 from ingeniamotion.exceptions import IMMonitoringError
-from tests.conftest import not_valid_for_eve_CAN_ECAT_products
+from tests.conftest import not_valid_for_eve_can_ecat_products
 
 MONITOR_START_CONDITION_TYPE_REGISTER = "MON_CFG_SOC_TYPE"
 
@@ -49,7 +49,7 @@ def mon_map_registers(monitoring):
         4,  # Invalid value
     ],
 )
-@not_valid_for_eve_CAN_ECAT_products
+@not_valid_for_eve_can_ecat_products
 def test_get_trigger_type(mc, alias, monitoring, trigger_type):
     mc.communication.set_register(
         MONITOR_START_CONDITION_TYPE_REGISTER, trigger_type, servo=alias, axis=0
@@ -73,7 +73,7 @@ def test_get_trigger_type(mc, alias, monitoring, trigger_type):
         (True, 0.1, 0.8, 0, False),
     ],
 )
-@not_valid_for_eve_CAN_ECAT_products
+@not_valid_for_eve_can_ecat_products
 def test_raise_forced_trigger(
     mc,
     alias,
@@ -99,7 +99,7 @@ def test_raise_forced_trigger(
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
 @pytest.mark.usefixtures("disable_monitoring_disturbance")
-@not_valid_for_eve_CAN_ECAT_products
+@not_valid_for_eve_can_ecat_products
 def test_raise_forced_trigger_fail(mc, alias, monitoring):
     monitoring.set_trigger(MonitoringSoCType.TRIGGER_EVENT_AUTO)
     monitoring.configure_sample_time(0.8, 0)
@@ -121,7 +121,7 @@ def test_raise_forced_trigger_fail(mc, alias, monitoring):
         (0.1, 0.8, False),
     ],
 )
-@not_valid_for_eve_CAN_ECAT_products
+@not_valid_for_eve_can_ecat_products
 def test_read_monitoring_data_forced_trigger(mc, alias, monitoring, timeout, sample_t, result):
     monitoring.set_trigger(MonitoringSoCType.TRIGGER_EVENT_FORCED)
     monitoring.configure_sample_time(sample_t, 0)
@@ -137,7 +137,7 @@ def test_read_monitoring_data_forced_trigger(mc, alias, monitoring, timeout, sam
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("prescaler", list(range(2, 11, 2)))
-@not_valid_for_eve_CAN_ECAT_products
+@not_valid_for_eve_can_ecat_products
 def test_set_monitoring_frequency(mc, alias, monitoring, prescaler):
     monitoring.set_frequency(prescaler)
     value = mc.communication.get_register(
@@ -149,7 +149,7 @@ def test_set_monitoring_frequency(mc, alias, monitoring, prescaler):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@not_valid_for_eve_CAN_ECAT_products
+@not_valid_for_eve_can_ecat_products
 def test_set_monitoring_frequency_exception(monitoring):
     prescaler = 0.5
     with pytest.raises(ValueError):
@@ -157,7 +157,7 @@ def test_set_monitoring_frequency_exception(monitoring):
 
 
 @pytest.mark.virtual
-@not_valid_for_eve_CAN_ECAT_products
+@not_valid_for_eve_can_ecat_products
 def test_monitoring_map_registers_size_exception(monitoring):
     registers = [{"axis": 1, "name": "CL_POS_FBK_VALUE"}]
     monitoring.samples_number = monitoring.max_sample_number
@@ -166,7 +166,7 @@ def test_monitoring_map_registers_size_exception(monitoring):
 
 
 @pytest.mark.virtual
-@not_valid_for_eve_CAN_ECAT_products
+@not_valid_for_eve_can_ecat_products
 def test_monitoring_map_registers_fail(monitoring):
     registers = []
     with pytest.raises(IMMonitoringError):
@@ -174,7 +174,7 @@ def test_monitoring_map_registers_fail(monitoring):
 
 
 @pytest.mark.virtual
-@not_valid_for_eve_CAN_ECAT_products
+@not_valid_for_eve_can_ecat_products
 def test_monitoring_map_registers_wrong_cyclic(monitoring):
     registers = [{"axis": 1, "name": "DRV_STATE_CONTROL"}]
     with pytest.raises(IMMonitoringError):
@@ -198,7 +198,7 @@ def test_monitoring_map_registers_wrong_cyclic(monitoring):
         ),
     ],
 )
-@not_valid_for_eve_CAN_ECAT_products
+@not_valid_for_eve_can_ecat_products
 def test_monitoring_set_trigger(
     mc,
     alias,
@@ -237,7 +237,7 @@ def test_monitoring_set_trigger(
         ),
     ],
 )
-@not_valid_for_eve_CAN_ECAT_products
+@not_valid_for_eve_can_ecat_products
 def test_monitoring_set_trigger_exceptions(
     monitoring, trigger_type, edge_condition, trigger_signal, trigger_value
 ):
@@ -248,7 +248,7 @@ def test_monitoring_set_trigger_exceptions(
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@not_valid_for_eve_CAN_ECAT_products
+@not_valid_for_eve_can_ecat_products
 def test_configure_number_samples(mc, alias, monitoring):
     total_num_samples = 500
     trigger_delay_samples = 100
@@ -267,7 +267,7 @@ def test_configure_number_samples(mc, alias, monitoring):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("total_num_samples, trigger_delay_samples", [(500, 510), (510, -500)])
-@not_valid_for_eve_CAN_ECAT_products
+@not_valid_for_eve_can_ecat_products
 def test_configure_number_samples_exceptions(monitoring, total_num_samples, trigger_delay_samples):
     with pytest.raises(ValueError):
         monitoring.configure_number_samples(total_num_samples, trigger_delay_samples)
@@ -276,7 +276,7 @@ def test_configure_number_samples_exceptions(monitoring, total_num_samples, trig
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@not_valid_for_eve_CAN_ECAT_products
+@not_valid_for_eve_can_ecat_products
 def test_configure_sample_time(mc, alias, monitoring):
     total_time = 5
     sampling_freq = 1e4
@@ -299,7 +299,7 @@ def test_configure_sample_time(mc, alias, monitoring):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("total_time, sign", [(5, 1), (5, -1)])
-@not_valid_for_eve_CAN_ECAT_products
+@not_valid_for_eve_can_ecat_products
 def test_configure_sample_time_exception(monitoring, total_time, sign):
     trigger_delay = sign * ((total_time // 2) + 1)
     with pytest.raises(ValueError):
@@ -309,7 +309,7 @@ def test_configure_sample_time_exception(monitoring, total_time, sign):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@not_valid_for_eve_CAN_ECAT_products
+@not_valid_for_eve_can_ecat_products
 def test_enable_monitoring_no_mapped_registers(mc, alias):
     mc.capture.clean_monitoring(alias)
     with pytest.raises(IMMonitoringError) as exc:
@@ -322,7 +322,7 @@ def test_enable_monitoring_no_mapped_registers(mc, alias):
 @pytest.mark.canopen
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
-@not_valid_for_eve_CAN_ECAT_products
+@not_valid_for_eve_can_ecat_products
 def test_read_monitoring_data_disabled(monitoring):
     monitoring.configure_sample_time(0.8, 0)
     with pytest.raises(IMMonitoringError) as exc:
@@ -336,7 +336,7 @@ def test_read_monitoring_data_disabled(monitoring):
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
 @pytest.mark.usefixtures("disable_monitoring_disturbance")
-@not_valid_for_eve_CAN_ECAT_products
+@not_valid_for_eve_can_ecat_products
 def test_read_monitoring_data_timeout(mc, alias, monitoring):
     timeout = 2
     sample_t = 0.8
@@ -353,7 +353,7 @@ def test_read_monitoring_data_timeout(mc, alias, monitoring):
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
 @pytest.mark.usefixtures("disable_monitoring_disturbance")
-@not_valid_for_eve_CAN_ECAT_products
+@not_valid_for_eve_can_ecat_products
 def test_read_monitoring_data_no_rearm(mc, alias, monitoring):
     sample_t = 0.8
     timeout = 2
@@ -379,7 +379,7 @@ def test_read_monitoring_data_no_rearm(mc, alias, monitoring):
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
 @pytest.mark.usefixtures("disable_monitoring_disturbance")
-@not_valid_for_eve_CAN_ECAT_products
+@not_valid_for_eve_can_ecat_products
 def test_rearm_monitoring(mc, alias, monitoring):
     sample_t = 0.8
     timeout = 2
@@ -419,7 +419,7 @@ def run_read_monitoring_data_and_stop(monitoring, timeout):
 @pytest.mark.usefixtures("mon_set_freq")
 @pytest.mark.usefixtures("mon_map_registers")
 @pytest.mark.usefixtures("disable_monitoring_disturbance")
-@not_valid_for_eve_CAN_ECAT_products
+@not_valid_for_eve_can_ecat_products
 def test_stop_reading_data(mc, alias, monitoring):
     sample_t = 0.8
     timeout = 10
@@ -433,7 +433,7 @@ def test_stop_reading_data(mc, alias, monitoring):
 
 
 @pytest.mark.virtual
-@not_valid_for_eve_CAN_ECAT_products
+@not_valid_for_eve_can_ecat_products
 def test_monitoring_max_sample_size(mc, alias):
     target_register = mc.capture.MONITORING_MAXIMUM_SAMPLE_SIZE_REGISTER
     axis = 0
@@ -444,7 +444,7 @@ def test_monitoring_max_sample_size(mc, alias):
 
 
 @pytest.mark.virtual
-@not_valid_for_eve_CAN_ECAT_products
+@not_valid_for_eve_can_ecat_products
 def test_monitoring_map_registers_invalid_subnode(mocker, mc, monitoring):
     registers = [{"axis": "1", "name": "DRV_AXIS_NUMBER"}]
     mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=False)
@@ -453,7 +453,7 @@ def test_monitoring_map_registers_invalid_subnode(mocker, mc, monitoring):
 
 
 @pytest.mark.virtual
-@not_valid_for_eve_CAN_ECAT_products
+@not_valid_for_eve_can_ecat_products
 def test_monitoring_map_registers_invalid_register(mocker, mc, monitoring):
     registers = [{"axis": 1, "name": 1}]
     mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=False)
@@ -462,7 +462,7 @@ def test_monitoring_map_registers_invalid_register(mocker, mc, monitoring):
 
 
 @pytest.mark.virtual
-@not_valid_for_eve_CAN_ECAT_products
+@not_valid_for_eve_can_ecat_products
 def test_monitoring_map_registers_invalid_number_mapped_registers(mocker, mc, monitoring):
     registers = [{"axis": 1, "name": "CL_POS_FBK_VALUE"}]
     mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=False)
@@ -479,7 +479,7 @@ def test_monitoring_map_registers_invalid_number_mapped_registers(mocker, mc, mo
     ],
 )
 @pytest.mark.virtual
-@not_valid_for_eve_CAN_ECAT_products
+@not_valid_for_eve_can_ecat_products
 def test_configure_sample_time_exceptions(
     mocker, mc, monitoring, trigger_delay, expected_exception
 ):
@@ -490,7 +490,7 @@ def test_configure_sample_time_exceptions(
 
 
 @pytest.mark.virtual
-@not_valid_for_eve_CAN_ECAT_products
+@not_valid_for_eve_can_ecat_products
 def test_get_trigger_type_exception(mocker, mc, monitoring):
     mocker.patch.object(mc.communication, "get_register", return_value="invalid_value")
     with pytest.raises(TypeError):
