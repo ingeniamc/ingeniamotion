@@ -31,6 +31,7 @@ from ingeniamotion.exceptions import (
     IMRegisterNotExistError,
     IMRegisterWrongAccessError,
 )
+from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
 from tests.fsoe.conftest import MockNetwork
 
 if TYPE_CHECKING:
@@ -371,19 +372,29 @@ def test_load_firmware_moco_exception(mocker, mc, alias):
 
 def test_connect_servo_virtual():
     mc = MotionController()
-    mc.communication.connect_servo_virtual(port=1062)
-    assert mc.communication._Communication__virtual_drive is not None
+    mc.communication.connect_servo_virtual_ethernet(port=1062)
+    assert mc.communication._Communication__virtual_drive_ethernet is not None
     mc.communication.disconnect()
-    assert mc.communication._Communication__virtual_drive is None
+    assert mc.communication._Communication__virtual_drive_ethernet is None
 
 
 @pytest.mark.virtual
 def test_connect_servo_virtual_custom_dictionary(setup_descriptor: SetupDescriptor):
     mc = MotionController()
-    mc.communication.connect_servo_virtual(dict_path=setup_descriptor.dictionary, port=1062)
-    assert mc.communication._Communication__virtual_drive is not None
+    mc.communication.connect_servo_virtual_ethernet(
+        dict_path=setup_descriptor.dictionary, port=1062
+    )
+    assert mc.communication._Communication__virtual_drive_ethernet is not None
     mc.communication.disconnect()
-    assert mc.communication._Communication__virtual_drive is None
+    assert mc.communication._Communication__virtual_drive_ethernet is None
+
+
+def test_connect_servo_virtual_ethercat():
+    mc = MotionController()
+    mc.communication.connect_servo_virtual_ethercat(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY)
+    assert mc.communication._Communication__virtual_drive_ethercat is not None
+    mc.communication.disconnect()
+    assert mc.communication._Communication__virtual_drive_ethercat is None
 
 
 def test_scan_servos_canopen_with_info(mocker):
