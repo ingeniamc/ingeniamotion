@@ -259,7 +259,7 @@ class MotionController:
         return self.__info
 
     @property
-    def fsoe(self) -> FSoEMaster:
+    def fsoe(self) -> "FSoEMaster":
         """Instance of :class:`~ingeniamotion.fsoe.FSoEMaster` class."""
         if self.__fsoe is None:
             raise NotImplementedError(

@@ -28,7 +28,6 @@ from ingenialink.register import Register
 from ingenialink.servo import DictionaryFactory, Servo
 from ingenialink.virtual.ethercat.network import VirtualEthercatNetwork
 from ingenialink.virtual.ethernet.network import VirtualEthernetNetwork
-from ingenialink.virtual.network import VirtualNetwork
 from ping3 import ping
 from virtual_drive.core import VirtualDrive
 
@@ -229,28 +228,6 @@ class Communication:
             net = self.mc.net[ifname]
             if not isinstance(net, EoENetwork):
                 raise TypeError("Network is not of type EoENetwork")
-            return net
-
-    def get_or_create_virtual_network(self, alias: str) -> VirtualNetwork:
-        """Get or create a virtual network.
-
-        Args:
-            alias: Network alias.
-
-        Raises:
-            TypeError: If the existing network with the same alias is not of type VirtualNetwork.
-
-        Returns:
-            The virtual network.
-        """
-        if alias not in self.mc.net:
-            new_net = VirtualNetwork()
-            self.mc.register_network(alias, new_net)
-            return new_net
-        else:
-            net = self.mc.net[alias]
-            if not isinstance(net, VirtualNetwork):
-                raise TypeError("Network is not of type VirtualNetwork")
             return net
 
     def connect_servo_eoe(
@@ -1075,8 +1052,9 @@ class Communication:
             gil_release_config=gil_release_config,
         )
 
+    @staticmethod
     def scan_servos_ethercat_with_info(
-        self, interface_name: str, gil_release_config: GilReleaseConfig = GilReleaseConfig()
+        interface_name: str, gil_release_config: GilReleaseConfig = GilReleaseConfig()
     ) -> OrderedDict[int, SlaveInfo]:
         r"""Scan a network adapter.
 
@@ -1093,7 +1071,7 @@ class Communication:
         Raises:
             TypeError: If some parameter has a wrong type.
         """
-        net = self.get_or_create_ethercat_network(interface_name, gil_release_config)
+        net = EthercatNetwork(interface_name, gil_release_config=gil_release_config)
         slaves_info = net.scan_slaves_info()
         return slaves_info
 
