@@ -2,6 +2,7 @@ import json
 import platform
 import tempfile
 import time
+import warnings
 import zipfile
 from collections import OrderedDict
 from dataclasses import dataclass
@@ -25,7 +26,8 @@ from ingenialink.exceptions import ILError
 from ingenialink.network import SlaveInfo
 from ingenialink.register import Register
 from ingenialink.servo import DictionaryFactory, Servo
-from ingenialink.virtual.network import VirtualNetwork
+from ingenialink.virtual.ethercat.network import VirtualEthercatNetwork
+from ingenialink.virtual.ethernet.network import VirtualEthernetNetwork
 from ping3 import ping
 from virtual_drive.core import VirtualDrive
 
@@ -34,6 +36,7 @@ from ingeniamotion.exceptions import IMFirmwareLoadError, IMRegisterWrongAccessE
 if TYPE_CHECKING:
     from ingenialink.ethercat.servo import EthercatServo
     from ingenialink.ethernet.servo import EthernetServo
+    from ingenialink.virtual.ethercat.servo import VirtualEthercatServo
     from ingenialink.virtual.ethernet.servo import VirtualEthernetServo
 
     from ingeniamotion.motion_controller import MotionController
@@ -101,7 +104,8 @@ class Communication:
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
         self.logger = logger
-        self.__virtual_drive: Optional[VirtualDrive] = None
+        self.__virtual_drive_ethernet: Optional[VirtualDrive] = None
+        self.__virtual_drive_ethercat: Optional[VirtualDrive] = None
         self.register_update_observers: dict[Servo, list[IMRegisterUpdateObserver]] = {}
         self.emergency_messages_observers: dict[Servo, list[IMEmergencyMessageObserver]] = {}
 
@@ -114,9 +118,12 @@ class Communication:
         if alias is None:
             raise ValueError("Servo not found in the communication controller.")
         network = self.mc._get_network(alias)
-        if isinstance(network, VirtualNetwork) and self.__virtual_drive:
-            self.__virtual_drive.stop()
-            self.__virtual_drive = None
+        if isinstance(network, VirtualEthernetNetwork) and self.__virtual_drive_ethernet:
+            self.__virtual_drive_ethernet.stop()
+            self.__virtual_drive_ethernet = None
+        if isinstance(network, VirtualEthercatNetwork) and self.__virtual_drive_ethercat:
+            self.__virtual_drive_ethercat.stop()
+            self.__virtual_drive_ethercat = None
 
         # Delegate actual removal/cleanup to MotionController
         self.mc.remove_motion_node(alias)
@@ -223,28 +230,6 @@ class Communication:
                 raise TypeError("Network is not of type EoENetwork")
             return net
 
-    def get_or_create_virtual_network(self, alias: str) -> VirtualNetwork:
-        """Get or create a virtual network.
-
-        Args:
-            alias: Network alias.
-
-        Raises:
-            TypeError: If the existing network with the same alias is not of type VirtualNetwork.
-
-        Returns:
-            The virtual network.
-        """
-        if alias not in self.mc.net:
-            new_net = VirtualNetwork()
-            self.mc.register_network(alias, new_net)
-            return new_net
-        else:
-            net = self.mc.net[alias]
-            if not isinstance(net, VirtualNetwork):
-                raise TypeError("Network is not of type VirtualNetwork")
-            return net
-
     def connect_servo_eoe(
         self,
         ip: str,
@@ -333,17 +318,17 @@ class Communication:
         self,
         dict_path: Optional[str] = None,
         alias: str = DEFAULT_SERVO,
-        port: int = 1061,
+        port: Optional[int] = None,
         connection_timeout: int = 1,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
-    ) -> tuple[VirtualNetwork, "VirtualEthernetServo"]:
+    ) -> tuple[VirtualEthernetNetwork, "VirtualEthernetServo"]:
         """Connect to the virtual drive using an ethernet communication.
 
         Args:
             dict_path : servo dictionary path.
             alias : servo alias to reference it. ``default`` by default.
-            port : servo port. ``1061`` by default.
+            port : Port number. If not specified, it will be automatically assigned.
             connection_timeout: Timeout in seconds for connection.
                 ``1`` seconds by default.
             servo_status_listener : Toggle the listener of the servo for
@@ -358,18 +343,118 @@ class Communication:
             FileNotFoundError: If the dict file doesn't exist.
             ingenialink.exceptions.ILError: If the servo's IP or port is incorrect.
         """
+        warnings.warn(
+            "connect_servo_virtual is deprecated and will be removed in a future release. "
+            "Use connect_servo_virtual_ethernet instead.",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return self.connect_servo_virtual_ethernet(
+            dict_path,
+            alias,
+            port,
+            connection_timeout,
+            servo_status_listener,
+            net_status_listener,
+        )
+
+    def connect_servo_virtual_ethernet(
+        self,
+        dict_path: Optional[str] = None,
+        alias: str = DEFAULT_SERVO,
+        port: Optional[int] = None,
+        connection_timeout: int = 1,
+        servo_status_listener: bool = False,
+        net_status_listener: bool = False,
+    ) -> tuple[VirtualEthernetNetwork, "VirtualEthernetServo"]:
+        """Connect to the virtual drive using an ethernet communication.
+
+        Args:
+            dict_path : servo dictionary path.
+            alias : servo alias to reference it. ``default`` by default.
+            port : Port number. If not specified, it will be automatically assigned.
+            connection_timeout: Timeout in seconds for connection.
+                ``1`` seconds by default.
+            servo_status_listener : Toggle the listener of the servo for
+                its status, errors, faults, etc.
+            net_status_listener : Toggle the listener of the network
+                status, connection and disconnection.
+
+        Returns:
+            The virtual network and the connected servo.
+
+        Raises:
+            FileNotFoundError: If the dict file doesn't exist.
+
+        """
         if dict_path is not None and not path.isfile(dict_path):
             raise FileNotFoundError(f"{dict_path} file does not exist!")
 
-        if self.__virtual_drive is None:
-            self.__virtual_drive = VirtualDrive(port, dictionary_path=dict_path)
-            self.__virtual_drive.start()
+        if self.__virtual_drive_ethernet is None:
+            self.__virtual_drive_ethernet = VirtualDrive(port, dictionary_path=dict_path)
+            self.__virtual_drive_ethernet.start()
 
-        net = self.get_or_create_virtual_network(alias)
+        net = VirtualEthernetNetwork()
+        self.mc.register_network(alias, net)
 
         servo = net.connect_to_slave(
-            self.__virtual_drive.dictionary_path,
-            port,
+            self.__virtual_drive_ethernet.dictionary_path,
+            self.__virtual_drive_ethernet.port,
+            connection_timeout,
+            servo_status_listener=servo_status_listener,
+            net_status_listener=net_status_listener,
+            disconnect_callback=self._disconnect_callback,
+        )
+
+        self.mc.create_motion_node(alias, servo, net)
+        return net, servo
+
+    def connect_servo_virtual_ethercat(
+        self,
+        dict_path: Optional[str] = None,
+        alias: str = DEFAULT_SERVO,
+        port: Optional[int] = None,
+        connection_timeout: int = 1,
+        servo_status_listener: bool = False,
+        net_status_listener: bool = False,
+    ) -> tuple[VirtualEthercatNetwork, "VirtualEthercatServo"]:
+        """Connect to the virtual drive using a simulated EtherCAT communication.
+
+        Args:
+            dict_path : dictionary path. The dictionary must be compatible
+            with EtherCAT communication.
+            alias : servo alias to reference it. ``default`` by default.
+            port : Port number. If not specified, it will be automatically assigned.
+            connection_timeout: Timeout in seconds for connection.
+                ``1`` seconds by default.
+            servo_status_listener : Toggle the listener of the servo for
+                its status, errors, faults, etc.
+            net_status_listener : Toggle the listener of the network
+                status, connection and disconnection.
+
+        Returns:
+            The virtual network and the connected servo.
+
+        Raises:
+            FileNotFoundError: If the dict file doesn't exist.
+
+        """
+        if dict_path is not None and not path.isfile(dict_path):
+            raise FileNotFoundError(f"{dict_path} file does not exist!")
+
+        if self.__virtual_drive_ethercat is None:
+            self.__virtual_drive_ethercat = VirtualDrive(
+                port, dictionary_path=dict_path, protocol=Interface.ECAT
+            )
+            self.__virtual_drive_ethercat.start()
+
+        net = VirtualEthercatNetwork()
+        self.mc.register_network(alias, net)
+
+        servo = net.connect_to_slave(
+            1,
+            self.__virtual_drive_ethercat.dictionary_path,
+            self.__virtual_drive_ethercat.port,
             connection_timeout,
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
@@ -967,8 +1052,9 @@ class Communication:
             gil_release_config=gil_release_config,
         )
 
+    @staticmethod
     def scan_servos_ethercat_with_info(
-        self, interface_name: str, gil_release_config: GilReleaseConfig = GilReleaseConfig()
+        interface_name: str, gil_release_config: GilReleaseConfig = GilReleaseConfig()
     ) -> OrderedDict[int, SlaveInfo]:
         r"""Scan a network adapter.
 
@@ -985,7 +1071,7 @@ class Communication:
         Raises:
             TypeError: If some parameter has a wrong type.
         """
-        net = self.get_or_create_ethercat_network(interface_name, gil_release_config)
+        net = EthercatNetwork(interface_name, gil_release_config=gil_release_config)
         slaves_info = net.scan_slaves_info()
         return slaves_info
 

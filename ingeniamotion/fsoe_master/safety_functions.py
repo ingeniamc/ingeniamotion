@@ -144,6 +144,29 @@ class SafetyFunction:
         process_image = self.handler.process_image
         return process_image.is_safety_function_mapped(self, strict=False)
 
+    def is_motion(self) -> bool:
+        """Check if the safety function is a motion-related function.
+
+        To be overridden by motion-related safety functions, e.g. Safe Stop or SafeLimitedPosition.
+
+        Returns:
+            True if the safety function is a motion-related function, False otherwise.
+        """
+        return False
+
+    def follows_custom_motion_rules(self) -> bool:
+        """Defines if is_motion follows custom motion-related rules.
+
+        This base implementation does not apply any custom rules and always returns ``False``.
+        Subclasses may override this method to indicate that a safety function will be
+        treated as motion-related according to application-specific criteria.
+
+        Returns:
+            ``True`` if, according to custom rules in an override, ``False`` otherwise.
+            Default implementation returns ``False``.
+        """
+        return False
+
     @classmethod
     def for_handler(cls, handler: "FSoEMasterHandler") -> Iterator["SafetyFunction"]:
         """Get the safety function instances for a given FSoE master handler.
@@ -432,6 +455,20 @@ class SS1Function(SafetyFunction):
         )
         return sf_list
 
+    @override
+    def is_motion(self) -> bool:
+        # If Function is in Deceleration mode -> it is a motion function,
+        # otherwise it is a stop function without motion (SS1 with time to STO but no deceleration)
+        if self.deceleration_limit is None:
+            return False
+        return bool(self.deceleration_limit.get())
+
+    @override
+    def follows_custom_motion_rules(self) -> bool:
+        # If Function is in Deceleration mode -> it is a motion function,
+        # otherwise it is a stop function without motion (SS1 with time to STO but no deceleration)
+        return True
+
 
 @dataclass()
 class SafeInputsFunction(SafetyFunction):
@@ -484,6 +521,10 @@ class SOSFunction(SafetyFunction):
             sf_list.append(ss2_instance)
         return sf_list
 
+    @override
+    def is_motion(self) -> bool:
+        return True
+
 
 @dataclass()
 class SS2Function(SafetyFunction):
@@ -535,6 +576,10 @@ class SS2Function(SafetyFunction):
             and slp_function.error_reaction.get() == SLPFunction.ErrorReaction.SS2
         )
         return sf_list
+
+    @override
+    def is_motion(self) -> bool:
+        return True
 
 
 @dataclass()
@@ -595,6 +640,10 @@ class SPFunction(SafetyFunction):
         feedback_scenario = self.handler.safety_parameters[self.FEEDBACK_SCENARIO_UID].get()
         return feedback_scenario != self.FEEDBACK_SCENARIO_NONE
 
+    @override
+    def is_motion(self) -> bool:
+        return True
+
 
 @dataclass()
 class SVFunction(SafetyFunction):
@@ -603,6 +652,10 @@ class SVFunction(SafetyFunction):
     name = "Safe Velocity"
 
     value: FSoEDictionaryItemInput = safety_field("FSOE_SAFE_VELOCITY", display_name="Value")
+
+    @override
+    def is_motion(self) -> bool:
+        return True
 
 
 @dataclass()
@@ -617,6 +670,10 @@ class SafeHomingFunction(SafetyFunction):
     homing_ref: SafetyParameter = safety_field(
         uid="FSOE_SAFE_HOMING_REFERENCE", display_name="Reference"
     )
+
+    @override
+    def is_motion(self) -> bool:
+        return True
 
 
 @dataclass()
@@ -641,6 +698,10 @@ class SLSFunction(SafetyFunction):
         NONE = 0
         STO = 0x66400001
         SS1 = 0x66500101
+
+    @override
+    def is_motion(self) -> bool:
+        return True
 
 
 @dataclass()
@@ -668,6 +729,10 @@ class SSRFunction(SafetyFunction):
         NONE = 0
         STO = 0x66400001
         SS1 = 0x66500101
+
+    @override
+    def is_motion(self) -> bool:
+        return True
 
 
 @dataclass()
@@ -697,6 +762,10 @@ class SLPFunction(SafetyFunction):
         SS1 = 0x66500101
         SS2 = 0x66700101
 
+    @override
+    def is_motion(self) -> bool:
+        return True
+
 
 @dataclass()
 class SDIFunction(SafetyFunction):
@@ -713,6 +782,10 @@ class SDIFunction(SafetyFunction):
     pos_zero_window: SafetyParameter = safety_field(
         uid="FSOE_SDI_POS_ZERO_WINDOW", display_name="Position Zero Window"
     )
+
+    @override
+    def is_motion(self) -> bool:
+        return True
 
 
 @dataclass()
@@ -740,3 +813,7 @@ class SLIFunction(SafetyFunction):
         NONE = 0
         STO = 0x66400001
         SS1 = 0x66500101
+
+    @override
+    def is_motion(self) -> bool:
+        return True
