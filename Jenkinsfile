@@ -386,7 +386,7 @@ pipeline {
                                 stage("Run virtual drive tests") {
                                     steps {
                                         script {
-                                            runTest("virtual", "virtual", "tests.setups.virtual_drive.TESTS_SETUP", "", false, WIN_DOCKER_TMP_PATH)
+                                            runTest("virtual", "virtual", "tests.setups.virtual_drive.VIRTUAL_DRIVE_ETHERNET_SETUP", "", false, WIN_DOCKER_TMP_PATH)
                                         }
                                     }
                                 }
