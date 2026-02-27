@@ -297,7 +297,7 @@ pipeline {
                         stage('Run no-connection tests') {
                             steps {
                                 script {
-                                    runTest("virtual_linux", "virtual", "tests.setups.virtual_drive.TESTS_SETUP", "", false, LIN_DOCKER_TMP_PATH)
+                                    runTest("virtual_linux", "virtual", "tests.setups.virtual_drive.VIRTUAL_DRIVE_ETHERNET_SETUP", "", false, LIN_DOCKER_TMP_PATH)
                                 }
                             }
                         }
@@ -379,7 +379,7 @@ pipeline {
                                 stage("Run unit tests") {
                                     steps {
                                         script {
-                                            runTest("unit_tests", "not ethernet and not soem and not fsoe and not fsoe_phase2 and not canopen and not virtual and not soem_multislave", "tests.setups.virtual_drive.TESTS_SETUP", "", false, WIN_DOCKER_TMP_PATH)
+                                            runTest("unit_tests", "not ethernet and not soem and not fsoe and not fsoe_phase2 and not canopen and not virtual and not soem_multislave", "tests.setups.virtual_drive.VIRTUAL_DRIVE_ETHERNET_SETUP", "", false, WIN_DOCKER_TMP_PATH)
                                         }
                                     }
                                 }
