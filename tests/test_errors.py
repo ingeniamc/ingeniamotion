@@ -487,10 +487,20 @@ class TestErrorMotionNode:
         assert isinstance(system_queue, ServoErrorQueue)
         assert system_queue.descriptor == SYSTEM_ERROR_QUEUE
 
+        # repeated access returns the same instance (cached)
+        system_queue2 = motion_node.errors.system
+        assert system_queue2 is system_queue
+        assert motion_node.errors.get_queue(SYSTEM_ERROR_QUEUE) is system_queue
+
         coco_queue = motion_node.errors.coco
         assert coco_queue is not None
         assert isinstance(coco_queue, ServoErrorQueue)
         assert coco_queue.descriptor == COCO_ERROR_QUEUE
+
+        # repeated access returns the same instance (cached)
+        coco_queue2 = motion_node.errors.coco
+        assert coco_queue2 is coco_queue
+        assert motion_node.errors.get_queue(COCO_ERROR_QUEUE) is coco_queue
 
     @pytest.mark.virtual
     def test_node_errors_get_all_queues(self, motion_node: "MotionNode") -> None:
@@ -545,6 +555,11 @@ class TestErrorAxis:
         assert moco_queue is not None
         assert isinstance(moco_queue, ServoErrorQueue)
         assert moco_queue.descriptor == MOCO_ERROR_QUEUE
+
+        # repeated access returns the same instance (cached)
+        moco_queue2 = axis.errors.moco
+        assert moco_queue2 is moco_queue
+        assert axis.errors.get_queue(MOCO_ERROR_QUEUE) is moco_queue
 
         # Safety queues should not be available on standard virtual drives
         assert axis.errors.safety_a is None
