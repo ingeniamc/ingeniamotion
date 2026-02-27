@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import pytest
-from ingenialink import CanBaudrate, CanDevice
+from ingenialink import CanBaudrate, CanDevice, Servo
 from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
 from ingenialink.ethercat.network import EthercatNetwork
@@ -17,6 +17,7 @@ from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.exceptions import ILError
 from ingenialink.network import SlaveInfo
 from ingenialink.servo import ServoState
+from ingenialink.utils.event import create_event
 from summit_testing_framework.setups.descriptors import (
     DriveCanOpenSetup,
     DriveEcatSetup,
@@ -31,6 +32,7 @@ from ingeniamotion.exceptions import (
     IMRegisterWrongAccessError,
 )
 from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
+from tests.fsoe.conftest import MockNetwork
 
 if TYPE_CHECKING:
     from summit_testing_framework.setup_fixtures import MotionControllerWrapper
@@ -607,6 +609,8 @@ def test_load_ensemble_fw_canopen(mocker):
             self.target = node_id
             self._dictionary = MockDictionary()
 
+            self.disconnect_event, self._disconnect_event_publisher = create_event(Servo)
+
     servos = {}
     for node_id in range(1, 6):
         servos[str(node_id)] = MockCanopenServo(node_id)
@@ -618,7 +622,8 @@ def test_load_ensemble_fw_canopen(mocker):
     mocker.patch("ingenialink.canopen.network.CanopenNetwork.connect_to_slave")
     mocker.patch("ingenialink.canopen.network.CanopenNetwork.disconnect_from_slave")
     mc._get_drive = lambda x: servos[x]
-    mc.servos = servos
+    for alias, servo in servos.items():
+        mc.create_motion_node(alias, servo, MockNetwork())
 
     product_code = 123456
     slaves_info = OrderedDict({
@@ -667,7 +672,7 @@ def test_get_available_canopen_devices_check_get_available_devices_call(mocker, 
     test_net = None
     for n, n_type in enumerate(net_types):
         net = mocker.MagicMock(spec=n_type)
-        mc.net[n] = net
+        mc.register_network(alias=n, network=net)
         if n_type == CanopenNetwork:
             test_net = net
     patch_get_available_devices = mocker.patch(

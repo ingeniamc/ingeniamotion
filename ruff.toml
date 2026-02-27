@@ -48,7 +48,8 @@ ignore = [
     "D104", # Missing docstring in public package
     "D107", # Missing docstring in __init__
     "COM812", # Trailing comma. Already enforced by the formatter.
-    "DOC502" # Raises documented in docstring that are not explicit in the code
+    "DOC502", # Raises documented in docstring that are not explicit in the code
+    "UP045" # Optional[X] is compatible with Python 3.9; X | None requires 3.10+
 ]
 
 [lint.per-file-ignores]

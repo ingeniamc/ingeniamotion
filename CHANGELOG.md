@@ -6,6 +6,9 @@
 - Added standard error queue descriptors: `MOCO_ERROR_QUEUE`, `COCO_ERROR_QUEUE`, `SYSTEM_ERROR_QUEUE`.
 - Add `is_motion` and `follows_custom_motion_rules` in SafetyFunction class.
 
+### Changed
+- Deprecated: Mutable access to the net and net_servo, and servo_net attributes of the `MotionController` class. 
+
 ### Fixed
 - Clarify STO test logs.
 
