@@ -95,7 +95,7 @@ def testget_network_adapters(mocker, setup_descriptor: SetupDescriptor):
     assert expected_adapter_address_found is True
 
 
-@pytest.mark.virtual
+@pytest.mark.ethernet
 def test_connect_servo_eoe(setup_descriptor: EthernetSetup):
     mc = MotionController()
     assert "ethernet_test" not in mc.servos
@@ -107,7 +107,7 @@ def test_connect_servo_eoe(setup_descriptor: EthernetSetup):
     assert "ethernet_test" in mc.net and mc.net["ethernet_test"] is not None
 
 
-@pytest.mark.virtual
+@pytest.mark.ethernet
 def test_connect_servo_eoe_no_dictionary_error(setup_descriptor: EthernetSetup):
     mc = MotionController()
     with pytest.raises(FileNotFoundError):
@@ -116,7 +116,7 @@ def test_connect_servo_eoe_no_dictionary_error(setup_descriptor: EthernetSetup):
         )
 
 
-@pytest.mark.virtual
+@pytest.mark.ethernet
 def test_connect_servo_ethernet(setup_descriptor: EthernetSetup):
     mc = MotionController()
     assert "ethernet_test" not in mc.servos
@@ -142,7 +142,7 @@ def test_mc_disconnects_with_disconnection_callback(
     assert alias not in mc.servo_net
 
 
-@pytest.mark.virtual
+@pytest.mark.ethernet
 def test_connect_servo_ethernet_no_dictionary_error(setup_descriptor: EthernetSetup):
     mc = MotionController()
     with pytest.raises(FileNotFoundError):
