@@ -1,6 +1,5 @@
-import argparse
 import logging
-
+import argparse
 from ingeniamotion import MotionController
 
 
