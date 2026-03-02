@@ -1,3 +1,4 @@
+import contextlib
 from collections.abc import Iterator
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Optional
@@ -159,27 +160,75 @@ class ServoErrorQueue:
         self.__axis = axis
 
         # Get register objects
-        axis_for_reg = self.__axis or 0
-        try:
-            self.__last_error_reg = self.__servo.dictionary.get_register(
-                self.descriptor.last_error_reg_uid, axis=axis_for_reg
+        error_bucket: list[tuple[str, Optional[int]]] = []
+        with contextlib.suppress(KeyError):
+            self.__last_error_reg = self.__get_register(
+                self.__servo,
+                self.descriptor.last_error_reg_uid,
+                axis=axis,
+                error_bucket=error_bucket,
             )
-            self.__total_error_reg = self.__servo.dictionary.get_register(
-                self.descriptor.total_error_reg_uid, axis=axis_for_reg
+
+        with contextlib.suppress(KeyError):
+            self.__total_error_reg = self.__get_register(
+                self.__servo,
+                self.descriptor.total_error_reg_uid,
+                axis=axis,
+                error_bucket=error_bucket,
             )
-            self.__error_request_index_reg = self.__servo.dictionary.get_register(
-                self.descriptor.error_request_index_reg_uid, axis=axis_for_reg
+
+        with contextlib.suppress(KeyError):
+            self.__error_request_index_reg = self.__get_register(
+                self.__servo,
+                self.descriptor.error_request_index_reg_uid,
+                axis=axis,
+                error_bucket=error_bucket,
             )
-            self.__error_request_code_reg = self.__servo.dictionary.get_register(
-                self.descriptor.error_request_code_reg_uid, axis=axis_for_reg
+
+        with contextlib.suppress(KeyError):
+            self.__error_request_code_reg = self.__get_register(
+                self.__servo,
+                self.descriptor.error_request_code_reg_uid,
+                axis=axis,
+                error_bucket=error_bucket,
             )
-        except KeyError:
+
+        if error_bucket:
             raise IMErrorQueueNotExistsError(
-                "One or more registers for error queue not found in servo dictionary"
+                "One or more registers for error queue not found in servo dictionary."
+                f"Missing registers: {error_bucket}"
             )
 
         # Total number of errors that were last read to obtain pending errors
         self.__last_read_total_errors_pending = 0
+
+    def __get_register(
+        self,
+        servo: "Servo",
+        uid: str,
+        axis: Optional[int] = None,
+        error_bucket: Optional[list[tuple[str, Optional[int]]]] = None,
+    ) -> Register:
+        """Get a register from the servo dictionary with axis handling.
+
+        Args:
+            servo: Servo to get the register from.
+            uid: Register UID to get.
+            axis: Axis number to get the register for, if applicable.
+            error_bucket: Optional list to append missing register info for error reporting.
+
+        Raises:
+            KeyError: If the register is not found in the servo dictionary.
+
+        Returns:
+            The Register object.
+        """
+        try:
+            return servo.dictionary.get_register(uid, axis=axis or 0)
+        except KeyError:
+            if error_bucket is not None:
+                error_bucket.append((uid, axis))
+            raise
 
     def __read_int_reg(self, register: Register) -> int:
         """Read an integer register value with type validation.

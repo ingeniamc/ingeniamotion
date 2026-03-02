@@ -129,8 +129,14 @@ class TestErrorQueue:
             error_type=OperationError,
         )
 
-        with pytest.raises(IMErrorQueueNotExistsError):
+        with pytest.raises(IMErrorQueueNotExistsError) as excinfo:
             ServoErrorQueue(fake_descriptor, servo)
+
+            assert excinfo.value.args[0] == (
+                "One or more registers for error queue not found in servo dictionary."
+                "Missing registers: [('NON_EXISTENT_UID', None), ('DRV_DIAG_ERROR_TOTAL', None),"
+                " ('DRV_DIAG_ERROR_LIST_IDX', None), ('DRV_DIAG_ERROR_LIST_CODE', None)]"
+            )
 
     @pytest.mark.virtual
     def test_servo_error_queue_obtains_registers_with_axis(

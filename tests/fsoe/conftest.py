@@ -12,21 +12,20 @@ from ingenialink.enums.register import RegCyclicType
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.ethercat.servo import EthercatServo
-from ingenialink.exceptions import ILRegisterNotFoundError
 from ingenialink.network import Network
 from ingenialink.pdo_network_manager import PDONetworkManager as ILPDONetworkManager
 from ingenialink.servo import DictionaryFactory, Servo
 from ingenialink.utils._utils import convert_dtype_to_bytes
 
 from ingeniamotion.enums import FSoEState
-from ingeniamotion.errors import MCUA_ERROR_QUEUE, MCUB_ERROR_QUEUE
+from ingeniamotion.errors import MCUA_ERROR_QUEUE, MCUB_ERROR_QUEUE, Error, ServoErrorQueue
+from ingeniamotion.exceptions import IMErrorQueueNotExistsError
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError
 from tests.conftest import add_fixture_error_checker
 from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
 from tests.outputs import OUTPUTS_DIR
 
 if FSOE_MASTER_INSTALLED:
-    from ingeniamotion.errors import Error, ServoErrorQueue
     from ingeniamotion.fsoe_master import (
         FSoEMasterHandler,
         ProcessImage,
@@ -69,13 +68,19 @@ def emergency_handler(servo_alias: str, message: "EmergencyMessage") -> None:
 
 
 @pytest.fixture
-def mcu_error_queue_a(servo: "EthercatServo") -> "ServoErrorQueue":
-    return ServoErrorQueue(MCUA_ERROR_QUEUE, servo, axis=1)
+def mcu_error_queue_a(servo: "EthercatServo") -> Optional["ServoErrorQueue"]:
+    try:
+        return ServoErrorQueue(MCUA_ERROR_QUEUE, servo, axis=1)
+    except IMErrorQueueNotExistsError:
+        return None  # Queue does not exist in phase 1
 
 
 @pytest.fixture
-def mcu_error_queue_b(servo: "EthercatServo") -> "ServoErrorQueue":
-    return ServoErrorQueue(MCUB_ERROR_QUEUE, servo, axis=1)
+def mcu_error_queue_b(servo: "EthercatServo") -> Optional["ServoErrorQueue"]:
+    try:
+        return ServoErrorQueue(MCUB_ERROR_QUEUE, servo, axis=1)
+    except IMErrorQueueNotExistsError:
+        return None  # Queue does not exist in phase 1
 
 
 @dataclass(frozen=True)
@@ -105,24 +110,22 @@ class FSoEErrorDisplay:
 @pytest.fixture(scope="function")
 def fsoe_error_monitor(
     request: pytest.FixtureRequest,
-    mcu_error_queue_a: "ServoErrorQueue",
-    mcu_error_queue_b: "ServoErrorQueue",
+    mcu_error_queue_a: Optional["ServoErrorQueue"],
+    mcu_error_queue_b: Optional["ServoErrorQueue"],
     fsoe_states: list[FSoEState],
 ) -> Callable[[FSoEError], None]:
     errors: list[FSoEErrorDisplay] = []
 
-    is_phase2 = False
-    try:
+    # Queues may be None when not available (phase 1). Guard access accordingly.
+    n_mcua_errors = None
+    n_mcub_errors = None
+    if mcu_error_queue_a is not None and mcu_error_queue_b is not None:
         n_mcua_errors = mcu_error_queue_a.get_number_total_errors()
         n_mcub_errors = mcu_error_queue_b.get_number_total_errors()
-        is_phase2 = True
-    # MCU registers only available in phase 2
-    except ILRegisterNotFoundError:
-        pass
 
     def error_handler(error: FSoEError) -> None:
-        # Add last error only if it happened during the test
-        if is_phase2:
+        # Add last error only if it happened during the test and queues exist
+        if mcu_error_queue_a is not None and mcu_error_queue_b is not None:
             mcua_last_error = (
                 mcu_error_queue_a.get_last_error()
                 if mcu_error_queue_a.get_number_total_errors() > n_mcua_errors
@@ -275,22 +278,28 @@ def mc_state_data(
 
 @pytest.fixture
 def no_error_tracker(
-    mcu_error_queue_a: "ServoErrorQueue", mcu_error_queue_b: "ServoErrorQueue"
+    mcu_error_queue_a: Optional["ServoErrorQueue"], mcu_error_queue_b: Optional["ServoErrorQueue"]
 ) -> Iterator[None]:
     """Fixture to ensure no new errors are added to the error queues during a test."""
-    previous_mcu_a_errors = mcu_error_queue_a.get_number_total_errors()
-    previous_mcu_b_errors = mcu_error_queue_b.get_number_total_errors()
+    previous_mcu_a_errors = (
+        mcu_error_queue_a.get_number_total_errors() if mcu_error_queue_a is not None else None
+    )
+    previous_mcu_b_errors = (
+        mcu_error_queue_b.get_number_total_errors() if mcu_error_queue_b is not None else None
+    )
     yield
-    assert mcu_error_queue_a.get_number_total_errors() == previous_mcu_a_errors, (
-        f"MCUA error queue changed: {previous_mcu_a_errors} -> "
-        f"{mcu_error_queue_a.get_number_total_errors()}. "
-        f"\nLast error: {mcu_error_queue_a.get_last_error()}"
-    )
-    assert mcu_error_queue_b.get_number_total_errors() == previous_mcu_b_errors, (
-        f"MCUB error queue changed: {previous_mcu_b_errors} -> "
-        f"{mcu_error_queue_b.get_number_total_errors()}. "
-        f"\nLast error: {mcu_error_queue_b.get_last_error()}"
-    )
+    if mcu_error_queue_a is not None:
+        assert mcu_error_queue_a.get_number_total_errors() == previous_mcu_a_errors, (
+            f"MCUA error queue changed: {previous_mcu_a_errors} -> "
+            f"{mcu_error_queue_a.get_number_total_errors()}. "
+            f"\nLast error: {mcu_error_queue_a.get_last_error()}"
+        )
+    if mcu_error_queue_b is not None:
+        assert mcu_error_queue_b.get_number_total_errors() == previous_mcu_b_errors, (
+            f"MCUB error queue changed: {previous_mcu_b_errors} -> "
+            f"{mcu_error_queue_b.get_number_total_errors()}. "
+            f"\nLast error: {mcu_error_queue_b.get_last_error()}"
+        )
 
 
 @pytest.fixture
