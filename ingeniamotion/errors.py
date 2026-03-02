@@ -223,7 +223,7 @@ class ServoErrorQueue:
 
         if error_bucket:
             raise IMErrorQueueNotExistsError(
-                "One or more registers for error queue not found in servo dictionary."
+                "One or more registers for error queue not found in servo dictionary. "
                 f"Missing registers: {error_bucket}"
             )
 
@@ -613,7 +613,13 @@ class Errors:
                     return coco_queue
             else:
                 # axis > 0: axis-specific MOCO queue
-                return m.get_axis(axis).error_queue
+                try:
+                    return m.get_axis(axis).error_queue
+                except KeyError:
+                    raise IMErrorQueueNotExistsError(
+                        f"Axis {axis} not found in servo {servo}, "
+                        "cannot access axis-specific error queue"
+                    )
 
         coco_queue = m.errors.coco
         if coco_queue is not None:
@@ -622,7 +628,13 @@ class Errors:
 
         # Drive has MOCO-only error queues, get the one for the specified axis
         resolved_axis = axis if axis is not None else DEFAULT_AXIS
-        return m.get_axis(resolved_axis).error_queue
+        try:
+            axis_obj = m.get_axis(resolved_axis)
+        except KeyError:
+            raise IMErrorQueueNotExistsError(
+                f"Axis {resolved_axis} not found in servo {servo}, cannot access MOCO error queue"
+            )
+        return axis_obj.error_queue
 
     def __parse_error_to_tuple(
         self, error: Error, subnode: Optional[int] = None

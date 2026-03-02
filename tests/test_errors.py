@@ -118,7 +118,7 @@ class TestErrorQueue:
     @pytest.mark.virtual
     def test_servo_error_queue_missing_register_raises(self, servo: "Servo") -> None:
         """If the dictionary doesn't contain the register UID,
-        constructing the queue should raise IMRegisterNotExistError."""
+        constructing the queue should raise IMErrorQueueNotExistsError."""
         # Create a descriptor with a non-existent UID
         fake_descriptor = ErrorQueueDescriptor(
             name="error_non_existing",
@@ -133,11 +133,10 @@ class TestErrorQueue:
         with pytest.raises(IMErrorQueueNotExistsError) as excinfo:
             ServoErrorQueue(fake_descriptor, servo)
 
-            assert excinfo.value.args[0] == (
-                "One or more registers for error queue not found in servo dictionary."
-                "Missing registers: [('NON_EXISTENT_UID', None), ('DRV_DIAG_ERROR_TOTAL', None),"
-                " ('DRV_DIAG_ERROR_LIST_IDX', None), ('DRV_DIAG_ERROR_LIST_CODE', None)]"
-            )
+        assert excinfo.value.args[0] == (
+            "One or more registers for error queue not found in servo dictionary. "
+            "Missing registers: [('NON_EXISTENT_UID', None)]"
+        )
 
     @pytest.mark.virtual
     def test_servo_error_queue_obtains_registers_with_axis(
