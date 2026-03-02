@@ -18,7 +18,12 @@ from ingenialink.servo import DictionaryFactory, Servo
 from ingenialink.utils._utils import convert_dtype_to_bytes
 
 from ingeniamotion.enums import FSoEState
-from ingeniamotion.errors import MCUA_ERROR_QUEUE, MCUB_ERROR_QUEUE, Error, ServoErrorQueue
+from ingeniamotion.errors import (
+    FSOE_MCUA_ERROR_QUEUE,
+    FSOE_MCUB_ERROR_QUEUE,
+    Error,
+    ServoErrorQueue,
+)
 from ingeniamotion.exceptions import IMErrorQueueNotExistsError
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError
 from tests.conftest import add_fixture_error_checker
@@ -70,7 +75,7 @@ def emergency_handler(servo_alias: str, message: "EmergencyMessage") -> None:
 @pytest.fixture
 def mcu_error_queue_a(servo: "EthercatServo") -> Optional["ServoErrorQueue"]:
     try:
-        return ServoErrorQueue(MCUA_ERROR_QUEUE, servo, axis=1)
+        return ServoErrorQueue(FSOE_MCUA_ERROR_QUEUE, servo, axis=1)
     except IMErrorQueueNotExistsError:
         return None  # Queue does not exist in phase 1
 
@@ -78,7 +83,7 @@ def mcu_error_queue_a(servo: "EthercatServo") -> Optional["ServoErrorQueue"]:
 @pytest.fixture
 def mcu_error_queue_b(servo: "EthercatServo") -> Optional["ServoErrorQueue"]:
     try:
-        return ServoErrorQueue(MCUB_ERROR_QUEUE, servo, axis=1)
+        return ServoErrorQueue(FSOE_MCUB_ERROR_QUEUE, servo, axis=1)
     except IMErrorQueueNotExistsError:
         return None  # Queue does not exist in phase 1
 

@@ -38,6 +38,27 @@ class Error:
         return self._error_id
 
     @property
+    def error_code(self) -> int:
+        """Get the error code.
+
+        Same as ID in most cases, but can be masked by additional bits
+        in some error types (e.g. OperationError).
+        """
+        return self._error_id
+
+    @property
+    def dictionary_error(self) -> Optional[DictionaryError]:
+        """Get the DictionaryError instance from the dictionary, if available."""
+        return self.__dictionary_error
+
+    @property
+    def error_type(self) -> Optional[str]:
+        """Get the error type, if available."""
+        if self.__dictionary_error is not None and self.__dictionary_error.error_type is not None:
+            return self.__dictionary_error.error_type
+        return None
+
+    @property
     def error_description(self) -> str:
         """Get the error description."""
         if self.__dictionary_error is not None and self.__dictionary_error.description is not None:
@@ -143,6 +164,7 @@ class ErrorQueueDescriptor:
     error_request_code_reg_uid: str
     max_index_request: int
     error_type: type[Error]
+    name: str
 
 
 class ServoErrorQueue:
@@ -259,6 +281,13 @@ class ServoErrorQueue:
         """Get the axis number associated with this error queue, if any."""
         return self.__axis
 
+    @property
+    def name(self) -> str:
+        """Get the name of the error queue."""
+        if self.axis is not None:
+            return f"{self.descriptor.name} Axis {self.axis} Error Queue"
+        return f"{self.descriptor.name} Error Queue"
+
     def get_last_error(self) -> Optional[Error]:
         """Get the last error from the servo's error queue.
 
@@ -363,6 +392,7 @@ class ServoErrorQueue:
 
 # Standard error queue descriptors
 MOCO_ERROR_QUEUE = ErrorQueueDescriptor(
+    name="MoCo",
     last_error_reg_uid="DRV_DIAG_ERROR_LAST",
     total_error_reg_uid="DRV_DIAG_ERROR_TOTAL",
     error_request_index_reg_uid="DRV_DIAG_ERROR_LIST_IDX",
@@ -372,6 +402,7 @@ MOCO_ERROR_QUEUE = ErrorQueueDescriptor(
 )
 
 COCO_ERROR_QUEUE = ErrorQueueDescriptor(
+    name="CoCo",
     last_error_reg_uid="DRV_DIAG_ERROR_LAST_COM",
     total_error_reg_uid="DRV_DIAG_ERROR_TOTAL_COM",
     error_request_index_reg_uid="DRV_DIAG_ERROR_LIST_IDX_COM",
@@ -381,6 +412,7 @@ COCO_ERROR_QUEUE = ErrorQueueDescriptor(
 )
 
 SYSTEM_ERROR_QUEUE = ErrorQueueDescriptor(
+    name="System",
     last_error_reg_uid="DRV_DIAG_SYS_ERROR_LAST",
     total_error_reg_uid="DRV_DIAG_SYS_ERROR_TOTAL_COM",
     error_request_index_reg_uid="DRV_DIAG_SYS_ERROR_LIST_IDX_COM",
@@ -389,7 +421,8 @@ SYSTEM_ERROR_QUEUE = ErrorQueueDescriptor(
     error_type=SystemQueueError,
 )
 
-MCUA_ERROR_QUEUE = ErrorQueueDescriptor(
+FSOE_MCUA_ERROR_QUEUE = ErrorQueueDescriptor(
+    name="FSoE MCUA",
     last_error_reg_uid="FSOE_LAST_ERROR_MCUA",
     total_error_reg_uid="FSOE_TOTAL_ERROR_MCUA",
     error_request_index_reg_uid="FSOE_ERROR_REQUEST_INDEX_MCUA",
@@ -398,7 +431,8 @@ MCUA_ERROR_QUEUE = ErrorQueueDescriptor(
     error_type=Error,
 )
 
-MCUB_ERROR_QUEUE = ErrorQueueDescriptor(
+FSOE_MCUB_ERROR_QUEUE = ErrorQueueDescriptor(
+    name="FSoE MCUB",
     last_error_reg_uid="FSOE_LAST_ERROR_MCUB",
     total_error_reg_uid="FSOE_TOTAL_ERROR_MCUB",
     error_request_index_reg_uid="FSOE_ERROR_REQUEST_INDEX_MCUB",
@@ -510,7 +544,7 @@ class AxisErrors:
             ServoErrorQueue: The MCU-A safety error queue, or ``None`` if not available
                 in the servo dictionary.
         """
-        return self.get_queue(MCUA_ERROR_QUEUE)
+        return self.get_queue(FSOE_MCUA_ERROR_QUEUE)
 
     @property
     def safety_b(self) -> Optional[ServoErrorQueue]:
@@ -520,7 +554,7 @@ class AxisErrors:
             ServoErrorQueue: The MCU-B safety error queue, or ``None`` if not available
                 in the servo dictionary.
         """
-        return self.get_queue(MCUB_ERROR_QUEUE)
+        return self.get_queue(FSOE_MCUB_ERROR_QUEUE)
 
     def get_all_queues(
         self, exclude: Optional[list[ErrorQueueDescriptor]] = None
@@ -530,7 +564,7 @@ class AxisErrors:
         Yields:
             ServoErrorQueue: An error queue of the axis.
         """
-        for descriptor in [MOCO_ERROR_QUEUE, MCUA_ERROR_QUEUE, MCUB_ERROR_QUEUE]:
+        for descriptor in [MOCO_ERROR_QUEUE, FSOE_MCUA_ERROR_QUEUE, FSOE_MCUB_ERROR_QUEUE]:
             if exclude and descriptor in exclude:
                 continue
             queue = self.get_queue(descriptor)

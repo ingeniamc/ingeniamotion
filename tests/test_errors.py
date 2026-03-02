@@ -8,8 +8,8 @@ from ingenialink.exceptions import ILError
 
 from ingeniamotion.errors import (
     COCO_ERROR_QUEUE,
-    MCUA_ERROR_QUEUE,
-    MCUB_ERROR_QUEUE,
+    FSOE_MCUA_ERROR_QUEUE,
+    FSOE_MCUB_ERROR_QUEUE,
     MOCO_ERROR_QUEUE,
     SYSTEM_ERROR_QUEUE,
     ErrorQueueDescriptor,
@@ -121,6 +121,7 @@ class TestErrorQueue:
         constructing the queue should raise IMRegisterNotExistError."""
         # Create a descriptor with a non-existent UID
         fake_descriptor = ErrorQueueDescriptor(
+            name="error_non_existing",
             last_error_reg_uid="NON_EXISTENT_UID",
             total_error_reg_uid="DRV_DIAG_ERROR_TOTAL",
             error_request_index_reg_uid="DRV_DIAG_ERROR_LIST_IDX",
@@ -148,7 +149,9 @@ class TestErrorQueue:
         mock_get_register.return_value = mock_register
 
         # Create queue with axis=2
-        ServoErrorQueue(MOCO_ERROR_QUEUE, servo, axis=2)
+        q = ServoErrorQueue(MOCO_ERROR_QUEUE, servo, axis=2)
+        # Name should include axis
+        assert q.name == "MoCo Axis 2 Error Queue"
 
         # Verify get_register was called with axis=2
         expected_calls = [
@@ -472,6 +475,7 @@ class TestErrorMotionNode:
 
         # Create a descriptor with a non-existent register UID
         fake_descriptor = ErrorQueueDescriptor(
+            name="error_non_existing",
             last_error_reg_uid="NON_EXISTENT_UID",
             total_error_reg_uid="DRV_DIAG_ERROR_TOTAL",
             error_request_index_reg_uid="DRV_DIAG_ERROR_LIST_IDX",
@@ -492,6 +496,7 @@ class TestErrorMotionNode:
         assert system_queue is not None
         assert isinstance(system_queue, ServoErrorQueue)
         assert system_queue.descriptor == SYSTEM_ERROR_QUEUE
+        assert system_queue.name == "System Error Queue"
 
         # repeated access returns the same instance (cached)
         system_queue2 = motion_node.errors.system
@@ -502,6 +507,7 @@ class TestErrorMotionNode:
         assert coco_queue is not None
         assert isinstance(coco_queue, ServoErrorQueue)
         assert coco_queue.descriptor == COCO_ERROR_QUEUE
+        assert coco_queue.name == "CoCo Error Queue"
 
         # repeated access returns the same instance (cached)
         coco_queue2 = motion_node.errors.coco
@@ -541,6 +547,7 @@ class TestErrorAxis:
 
         # Create a descriptor with a non-existent register UID
         fake_descriptor = ErrorQueueDescriptor(
+            name="error_non_existing",
             last_error_reg_uid="NON_EXISTENT_UID",
             total_error_reg_uid="DRV_DIAG_ERROR_TOTAL",
             error_request_index_reg_uid="DRV_DIAG_ERROR_LIST_IDX",
@@ -557,10 +564,11 @@ class TestErrorAxis:
         """Test that on standard virtual drives, MOCO is available but safety queues are not."""
         moco_queue = axis.errors.moco
 
-        # MOCO queue should be available on virtual drives
+        # MOCO queue should be available
         assert moco_queue is not None
         assert isinstance(moco_queue, ServoErrorQueue)
         assert moco_queue.descriptor == MOCO_ERROR_QUEUE
+        assert moco_queue.name == "MoCo Axis 1 Error Queue"
 
         # repeated access returns the same instance (cached)
         moco_queue2 = axis.errors.moco
@@ -588,13 +596,15 @@ class TestErrorAxis:
         safety_a_queue = axis.errors.safety_a
         assert safety_a_queue is not None
         assert isinstance(safety_a_queue, ServoErrorQueue)
-        assert safety_a_queue.descriptor == MCUA_ERROR_QUEUE
+        assert safety_a_queue.descriptor == FSOE_MCUA_ERROR_QUEUE
+        assert safety_a_queue.name == "Safety A Error Queue"
 
         safety_b_queue = axis.errors.safety_b
         assert safety_b_queue is not None
         assert isinstance(safety_b_queue, ServoErrorQueue)
-        assert safety_b_queue.descriptor == MCUB_ERROR_QUEUE
+        assert safety_b_queue.descriptor == FSOE_MCUB_ERROR_QUEUE
+        assert safety_b_queue.name == "Safety B Error Queue"
 
-        filtered_queues = list(axis.errors.get_all_queues(exclude=[MCUA_ERROR_QUEUE]))
+        filtered_queues = list(axis.errors.get_all_queues(exclude=[FSOE_MCUA_ERROR_QUEUE]))
         descriptors = [queue.descriptor for queue in filtered_queues]
-        assert Counter(descriptors) == Counter([MOCO_ERROR_QUEUE, MCUB_ERROR_QUEUE])
+        assert Counter(descriptors) == Counter([MOCO_ERROR_QUEUE, FSOE_MCUB_ERROR_QUEUE])
