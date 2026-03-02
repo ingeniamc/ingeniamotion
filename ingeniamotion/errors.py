@@ -254,6 +254,11 @@ class ServoErrorQueue:
             )
         return value
 
+    @property
+    def axis(self) -> Optional[int]:
+        """Get the axis number associated with this error queue, if any."""
+        return self.__axis
+
     def get_last_error(self) -> Optional[Error]:
         """Get the last error from the servo's error queue.
 
