@@ -576,7 +576,7 @@ class TestErrorAxis:
         assert Counter(descriptors) == Counter([MOCO_ERROR_QUEUE])
 
     @pytest.mark.fsoe_phase2
-    def test_axis_errors_all_queues_on_custom_virtual_drive(self, axis: "Axis") -> None:
+    def test_axis_errors_all_queues_safety_on_phase_2(self, axis: "Axis") -> None:
         """Test that on safety phase II virtual drives, all three queues
         (MOCO, MCUA, MCUB) are available."""
         # All three queues should be available on safety phase II drives

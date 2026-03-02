@@ -158,10 +158,16 @@ class ServoErrorQueue:
         self.__servo = servo
         self.__dictionary = servo.dictionary
         self.__axis = axis
+        # Total number of errors that were last read to obtain pending errors
+        self.__last_read_total_errors_pending = 0
 
-        # Get register objects
+        # Errors while collecting the registers for the error queue,
+        # to report them all together if any is missing
         error_bucket: list[tuple[str, Optional[int]]] = []
-        with contextlib.suppress(KeyError):
+
+        # Begin collecting registers, if any of them is missing,
+        # it will be added to the error_bucket list and reported at the end
+        with contextlib.suppress(KeyError, ValueError):
             self.__last_error_reg = self.__get_register(
                 self.__servo,
                 self.descriptor.last_error_reg_uid,
@@ -169,7 +175,7 @@ class ServoErrorQueue:
                 error_bucket=error_bucket,
             )
 
-        with contextlib.suppress(KeyError):
+        with contextlib.suppress(KeyError, ValueError):
             self.__total_error_reg = self.__get_register(
                 self.__servo,
                 self.descriptor.total_error_reg_uid,
@@ -177,7 +183,7 @@ class ServoErrorQueue:
                 error_bucket=error_bucket,
             )
 
-        with contextlib.suppress(KeyError):
+        with contextlib.suppress(KeyError, ValueError):
             self.__error_request_index_reg = self.__get_register(
                 self.__servo,
                 self.descriptor.error_request_index_reg_uid,
@@ -185,7 +191,7 @@ class ServoErrorQueue:
                 error_bucket=error_bucket,
             )
 
-        with contextlib.suppress(KeyError):
+        with contextlib.suppress(KeyError, ValueError):
             self.__error_request_code_reg = self.__get_register(
                 self.__servo,
                 self.descriptor.error_request_code_reg_uid,
@@ -198,9 +204,6 @@ class ServoErrorQueue:
                 "One or more registers for error queue not found in servo dictionary."
                 f"Missing registers: {error_bucket}"
             )
-
-        # Total number of errors that were last read to obtain pending errors
-        self.__last_read_total_errors_pending = 0
 
     def __get_register(
         self,
@@ -219,13 +222,14 @@ class ServoErrorQueue:
 
         Raises:
             KeyError: If the register is not found in the servo dictionary.
+            ValueError: If the register is not valid for the specified axis.
 
         Returns:
             The Register object.
         """
         try:
-            return servo.dictionary.get_register(uid, axis=axis or 0)
-        except KeyError:
+            return servo.dictionary.get_register(uid, axis=axis)
+        except (KeyError, ValueError):
             if error_bucket is not None:
                 error_bucket.append((uid, axis))
             raise
