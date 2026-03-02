@@ -597,13 +597,13 @@ class TestErrorAxis:
         assert safety_a_queue is not None
         assert isinstance(safety_a_queue, ServoErrorQueue)
         assert safety_a_queue.descriptor == FSOE_MCUA_ERROR_QUEUE
-        assert safety_a_queue.name == "Safety A Error Queue"
+        assert safety_a_queue.name == "Safety A Axis 1 Error Queue"
 
         safety_b_queue = axis.errors.safety_b
         assert safety_b_queue is not None
         assert isinstance(safety_b_queue, ServoErrorQueue)
         assert safety_b_queue.descriptor == FSOE_MCUB_ERROR_QUEUE
-        assert safety_b_queue.name == "Safety B Error Queue"
+        assert safety_b_queue.name == "Safety B Axis 1 Error Queue"
 
         filtered_queues = list(axis.errors.get_all_queues(exclude=[FSOE_MCUA_ERROR_QUEUE]))
         descriptors = [queue.descriptor for queue in filtered_queues]

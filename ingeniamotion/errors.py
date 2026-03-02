@@ -422,7 +422,7 @@ SYSTEM_ERROR_QUEUE = ErrorQueueDescriptor(
 )
 
 FSOE_MCUA_ERROR_QUEUE = ErrorQueueDescriptor(
-    name="FSoE MCUA",
+    name="Safety A",
     last_error_reg_uid="FSOE_LAST_ERROR_MCUA",
     total_error_reg_uid="FSOE_TOTAL_ERROR_MCUA",
     error_request_index_reg_uid="FSOE_ERROR_REQUEST_INDEX_MCUA",
@@ -432,7 +432,7 @@ FSOE_MCUA_ERROR_QUEUE = ErrorQueueDescriptor(
 )
 
 FSOE_MCUB_ERROR_QUEUE = ErrorQueueDescriptor(
-    name="FSoE MCUB",
+    name="Safety B",
     last_error_reg_uid="FSOE_LAST_ERROR_MCUB",
     total_error_reg_uid="FSOE_TOTAL_ERROR_MCUB",
     error_request_index_reg_uid="FSOE_ERROR_REQUEST_INDEX_MCUB",
