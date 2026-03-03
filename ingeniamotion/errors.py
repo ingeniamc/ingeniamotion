@@ -188,7 +188,9 @@ class ServoErrorQueue:
         # Begin collecting registers, if any of them is missing,
         # an IMErrorQueueNotExistsError will be raised at the end of the block
         # with the missing registers as underlying exceptions
-        with IMErrorQueueNotExistsError.group() as exception_group:
+        with IMErrorQueueNotExistsError.group(
+            message="One or more registers for error queue not found in servo dictionary."
+        ) as exception_group:
             with exception_group.catch(KeyError, ValueError):
                 self.__last_error_reg = servo.dictionary.get_register(
                     self.descriptor.last_error_reg_uid, axis=axis
