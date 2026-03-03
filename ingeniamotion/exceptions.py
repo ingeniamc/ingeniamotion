@@ -1,6 +1,8 @@
 import warnings
 from typing import Any
 
+from ingeniamotion._utils import ExceptionGroupContextError
+
 
 class IMError(Exception):
     """Exceptions raised by IngeniaMotion."""
@@ -26,16 +28,19 @@ class IMRegisterWrongAccessError(IMError):
     """Error raised by IngeniaMotion when trying to write to a read-only register."""
 
 
-class IMErrorQueueNotExistsError(IMError):
-    """Error raised by IngeniaMotion when an error queue cannot be found."""
-
-
 class IMTimeoutError(IMError):
     """Error raised by IngeniaMotion when a timeout has occurred."""
 
 
 class IMFirmwareLoadError(IMError):
     """Error raised by IngeniaMotion when a firmware file could not be loaded."""
+
+
+class IMErrorQueueNotExistsError(ExceptionGroupContextError):
+    """Error raised by IngeniaMotion when an error queue cannot be found.
+
+    The underlying exceptions of the group contain the missing registers.
+    """
 
 
 # WARNING: Deprecated aliases
