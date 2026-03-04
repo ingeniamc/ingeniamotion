@@ -26,6 +26,7 @@ from ingenialink.exceptions import ILError
 from ingenialink.network import SlaveInfo
 from ingenialink.register import Register
 from ingenialink.servo import DictionaryFactory, Servo
+from ingenialink.virtual.canopen.network import VirtualCanopenNetwork
 from ingenialink.virtual.ethercat.network import VirtualEthercatNetwork
 from ingenialink.virtual.ethernet.network import VirtualEthernetNetwork
 from ping3 import ping
@@ -36,6 +37,7 @@ from ingeniamotion.exceptions import IMFirmwareLoadError, IMRegisterWrongAccessE
 if TYPE_CHECKING:
     from ingenialink.ethercat.servo import EthercatServo
     from ingenialink.ethernet.servo import EthernetServo
+    from ingenialink.virtual.canopen.servo import VirtualCanopenServo
     from ingenialink.virtual.ethercat.servo import VirtualEthercatServo
     from ingenialink.virtual.ethernet.servo import VirtualEthernetServo
 
@@ -106,6 +108,7 @@ class Communication:
         self.logger = logger
         self.__virtual_drive_ethernet: Optional[VirtualDrive] = None
         self.__virtual_drive_ethercat: Optional[VirtualDrive] = None
+        self.__virtual_drive_canopen: Optional[VirtualDrive] = None
         self.register_update_observers: dict[Servo, list[IMRegisterUpdateObserver]] = {}
         self.emergency_messages_observers: dict[Servo, list[IMEmergencyMessageObserver]] = {}
 
@@ -124,6 +127,9 @@ class Communication:
         if isinstance(network, VirtualEthercatNetwork) and self.__virtual_drive_ethercat:
             self.__virtual_drive_ethercat.stop()
             self.__virtual_drive_ethercat = None
+        if isinstance(network, VirtualCanopenNetwork) and self.__virtual_drive_canopen:
+            self.__virtual_drive_canopen.stop()
+            self.__virtual_drive_canopen = None
 
         # Delegate actual removal/cleanup to MotionController
         self.mc.remove_motion_node(alias)
@@ -455,6 +461,61 @@ class Communication:
             1,
             self.__virtual_drive_ethercat.dictionary_path,
             self.__virtual_drive_ethercat.port,
+            connection_timeout,
+            servo_status_listener=servo_status_listener,
+            net_status_listener=net_status_listener,
+            disconnect_callback=self._disconnect_callback,
+        )
+
+        self.mc.create_motion_node(alias, servo, net)
+        return net, servo
+
+    def connect_servo_virtual_canopen(
+        self,
+        dict_path: Optional[str] = None,
+        alias: str = DEFAULT_SERVO,
+        port: Optional[int] = None,
+        connection_timeout: int = 1,
+        servo_status_listener: bool = False,
+        net_status_listener: bool = False,
+    ) -> tuple[VirtualCanopenNetwork, "VirtualCanopenServo"]:
+        """Connect to the virtual drive using a simulated CANopen communication.
+
+        Args:
+            dict_path : dictionary path. The dictionary must be compatible
+            with CANopen communication.
+            alias : servo alias to reference it. ``default`` by default.
+            port : Port number. If not specified, it will be automatically assigned.
+            connection_timeout: Timeout in seconds for connection.
+                ``1`` seconds by default.
+            servo_status_listener : Toggle the listener of the servo for
+                its status, errors, faults, etc.
+            net_status_listener : Toggle the listener of the network
+                status, connection and disconnection.
+
+        Returns:
+            The virtual network and the connected servo.
+
+        Raises:
+            FileNotFoundError: If the dict file doesn't exist.
+
+        """
+        if dict_path is not None and not path.isfile(dict_path):
+            raise FileNotFoundError(f"{dict_path} file does not exist!")
+
+        if self.__virtual_drive_canopen is None:
+            self.__virtual_drive_canopen = VirtualDrive(
+                port, dictionary_path=dict_path, protocol=Interface.CAN
+            )
+            self.__virtual_drive_canopen.start()
+
+        net = VirtualCanopenNetwork()
+        self.mc.register_network(alias, net)
+
+        servo = net.connect_to_slave(
+            1,
+            self.__virtual_drive_canopen.dictionary_path,
+            self.__virtual_drive_canopen.port,
             connection_timeout,
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,

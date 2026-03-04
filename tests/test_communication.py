@@ -24,6 +24,7 @@ from summit_testing_framework.setups.descriptors import (
     EthernetSetup,
     SetupDescriptor,
 )
+from virtual_drive.resources import VIRTUAL_DRIVE_CAN_V2_XDF
 
 from ingeniamotion import MotionController
 from ingeniamotion.exceptions import (
@@ -395,6 +396,14 @@ def test_connect_servo_virtual_ethercat():
     assert mc.communication._Communication__virtual_drive_ethercat is not None
     mc.communication.disconnect()
     assert mc.communication._Communication__virtual_drive_ethercat is None
+
+
+def test_connect_servo_virtual_canopen():
+    mc = MotionController()
+    mc.communication.connect_servo_virtual_canopen(VIRTUAL_DRIVE_CAN_V2_XDF)
+    assert mc.communication._Communication__virtual_drive_canopen is not None
+    mc.communication.disconnect()
+    assert mc.communication._Communication__virtual_drive_canopen is None
 
 
 def test_scan_servos_canopen_with_info(mocker):
