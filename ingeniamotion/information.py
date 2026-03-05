@@ -3,11 +3,11 @@ from typing import TYPE_CHECKING, Optional, Union
 
 import ingenialogger
 from ingenialink import CanBaudrate
-from ingenialink.canopen.network import CanopenNetwork
+from ingenialink.canopen.network import CanopenNetwork, CanopenNetworkBase
 from ingenialink.dictionary import SubnodeType
 from ingenialink.enums.register import RegAccess, RegDtype
 from ingenialink.eoe.network import EoENetwork
-from ingenialink.ethercat.network import EthercatNetwork
+from ingenialink.ethercat.network import EthercatNetworkBase
 from ingenialink.ethernet.network import EthernetNetworkBase
 from ingenialink.register import Register
 
@@ -176,7 +176,7 @@ class Information:
         """
         drive = self.mc._get_drive(servo)
         net = self.mc._get_network(servo)
-        if isinstance(net, CanopenNetwork):
+        if isinstance(net, CanopenNetworkBase):
             return int(drive.target)
         else:
             raise IMError("You need a CANopen communication to use this function")
@@ -234,7 +234,7 @@ class Information:
         net = self.mc._get_network(servo)
         if isinstance(net, EoENetwork) and isinstance(drive.target, str):
             return net._configured_slaves[drive.target]
-        elif isinstance(net, EthercatNetwork) and isinstance(drive.target, int):
+        elif isinstance(net, EthercatNetworkBase) and isinstance(drive.target, int):
             return drive.target
         raise IMError(f"The servo {servo} is not an EtherCAT slave.")
 
@@ -262,11 +262,11 @@ class Information:
 
         """
         drive_network = self.mc._get_network(servo)
-        if isinstance(drive_network, CanopenNetwork):
+        if isinstance(drive_network, CanopenNetworkBase):
             communication_type = CommunicationType.Canopen
         elif isinstance(drive_network, EthernetNetworkBase):
             communication_type = CommunicationType.Ethernet
-        elif isinstance(drive_network, (EoENetwork, EthercatNetwork)):
+        elif isinstance(drive_network, (EoENetwork, EthercatNetworkBase)):
             communication_type = CommunicationType.Ethercat
         else:
             raise NotImplementedError("Unknown communication type.")
