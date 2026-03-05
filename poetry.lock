@@ -1338,18 +1338,18 @@ reference = "novanta"
 
 [[package]]
 name = "ingenialink"
-version = "7.5.2+pr742b8"
+version = "7.5.2+pr742b17"
 description = "IngeniaLink Communications Library"
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "tests"]
 files = [
-    {file = "ingenialink-7.5.2+pr742b8-cp310-cp310-win_amd64.whl", hash = "sha256:b5e57a57eb15ad84664ed38ce126c9c303a505479c6d3ee365cc756c32bdec26"},
-    {file = "ingenialink-7.5.2+pr742b8-cp311-cp311-win_amd64.whl", hash = "sha256:25c0aa8ae25a48b91ef51c324009f98942e1d710590a2f3e131542f140f9483b"},
-    {file = "ingenialink-7.5.2+pr742b8-cp312-cp312-win_amd64.whl", hash = "sha256:e593a249c67b2a5c4ae9ab03583a8484f321c7e9d7313244df295a042f835c98"},
-    {file = "ingenialink-7.5.2+pr742b8-cp39-cp39-win_amd64.whl", hash = "sha256:dda8ce0bcda073408a3f9f2f0af44c1bcda4f7012665c42e7f007d4a80a630fe"},
-    {file = "ingenialink-7.5.2+pr742b8-py3-none-any.whl", hash = "sha256:a3b00152b965c4c94754d093da12c94b6a1ae7f09b1441497103ed5297751a9b"},
-    {file = "ingenialink-7.5.2+pr742b8.tar.gz", hash = "sha256:2b658c47c0bacd7a9cd242087f230e5cc59e92f0a609a28650ebef7e7ad9b1d5"},
+    {file = "ingenialink-7.5.2+pr742b17-cp310-cp310-win_amd64.whl", hash = "sha256:b939376a58eb4bd46fa08235463e8f5cfecae02771cb3ed6a63f1ca232f5dada"},
+    {file = "ingenialink-7.5.2+pr742b17-cp311-cp311-win_amd64.whl", hash = "sha256:812120799ded4c6222ce3f699438d3e7d85ab8541cc87a98fbbc497b323abd29"},
+    {file = "ingenialink-7.5.2+pr742b17-cp312-cp312-win_amd64.whl", hash = "sha256:25a8f2dc0b0cf571d54ca9147d4029ec5943b7614191b378b2321dc63d1f82f2"},
+    {file = "ingenialink-7.5.2+pr742b17-cp39-cp39-win_amd64.whl", hash = "sha256:071c3774b1f6f6128634653d6ebc99efb02ebc877ceb3455bf100a124b1e4633"},
+    {file = "ingenialink-7.5.2+pr742b17-py3-none-any.whl", hash = "sha256:a72343e5a18d5426ea6674afb2e5e0afed5e391fd90313cdc0fcba3102494829"},
+    {file = "ingenialink-7.5.2+pr742b17.tar.gz", hash = "sha256:0212f7bd9523f6200ada45da93cc36f7484f6a2c80d4adf7a04504f054cd1db3"},
 ]
 
 [package.dependencies]
@@ -1361,10 +1361,10 @@ numpy = ">=1.26.0"
 ping3 = "4.0.3"
 pysoem = ">=1.1.13,<1.2.0"
 python-can = "4.4.2"
-virtual_drive = {version = "0.0.0+pr30b5", optional = true, markers = "extra == \"virtual-drive\""}
+virtual_drive = {version = "0.0.0+g331cf1c3d", optional = true, markers = "extra == \"virtual-drive\""}
 
 [package.extras]
-virtual-drive = ["virtual_drive (==0.0.0+pr30b5)"]
+virtual-drive = ["virtual_drive (==0.0.0+g331cf1c3d)"]
 
 [package.source]
 type = "legacy"
@@ -4433,13 +4433,13 @@ zstd = ["backports-zstd (>=1.0.0) ; python_version < \"3.14\""]
 
 [[package]]
 name = "virtual-drive"
-version = "0.0.0+pr30b5"
+version = "0.0+g331cf1c3d"
 description = "Emulates a Summit drive for development and testing purposes."
 optional = false
 python-versions = ">=3.9"
 groups = ["tests"]
 files = [
-    {file = "virtual_drive-0.0.0+pr30b5-py3-none-any.whl", hash = "sha256:045f7fe21d8eb83d5cff53a0bcc05dbc0654005a83009de7a2f9111871d6532d"},
+    {file = "virtual_drive-0.0+g331cf1c3d-py3-none-any.whl", hash = "sha256:879f203ee5af07325760e2038c29fa67cab905d253d7688fa51d8c87f67c3e96"},
 ]
 
 [package.dependencies]
@@ -4785,4 +4785,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "9bbe629e5c25c4c4dee42dfdde40e13259ae9b50255bbd47e9c93b451aea6f1d"
+content-hash = "5adfb0eafb62312da57eafb34ac74e44411d88fad3c30c895bab3f1d88fdba73"
