@@ -51,7 +51,7 @@ requires = [
     "setuptools==75.6.0", 
     "setuptools_scm[toml]>=8", 
     "wheel==0.42.0",
-    "setuptools_scm_policies @ http://pypi.novanta.com/packages/setuptools_scm_policies-0.0.post1.dev21+g20eac3a5d-py3-none-any.whl"
+    "setuptools_scm_policies @ http://pypi.novanta.com/packages/setuptools_scm_policies-0.1.0-py3-none-any.whl"
 ]
 build-backend = "setuptools.build_meta"
 
