@@ -1,4 +1,5 @@
 import contextlib
+from collections import Counter
 from collections.abc import Iterator
 from typing import TYPE_CHECKING
 
@@ -6,19 +7,26 @@ import pytest
 from ingenialink.exceptions import ILError
 
 from ingeniamotion.errors import (
+    COCO_ERROR_QUEUE,
+    FSOE_MCUA_ERROR_QUEUE,
+    FSOE_MCUB_ERROR_QUEUE,
     MOCO_ERROR_QUEUE,
     SYSTEM_ERROR_QUEUE,
+    ErrorQueueDescriptor,
     OperationError,
     ServoErrorQueue,
     SystemQueueError,
 )
+from ingeniamotion.exceptions import IMErrorQueueNotExistsError
 from tests.conftest import not_valid_for_all_eve_products
 
 if TYPE_CHECKING:
     from ingenialink.servo import Servo
     from summit_testing_framework.setups.environment_control import DriveEnvironmentController
 
+    from ingeniamotion.axis import Axis
     from ingeniamotion.motion_controller import MotionController
+    from ingeniamotion.motion_node import MotionNode
 
 USER_UNDER_VOLTAGE_ERROR_OPTION_CODE_REGISTER = "ERROR_PROT_UNDER_VOLT_OPTION"
 USER_UNDER_VOLTAGE_LEVEL_REGISTER = "DRV_PROT_USER_UNDER_VOLT"
@@ -104,6 +112,56 @@ def test_operation_error_class_properties(
     assert error.error_code == expected_error_code
     assert error.axis == expected_axis
     assert error.is_warning is expected_is_warning
+
+
+class TestErrorQueue:
+    @pytest.mark.virtual
+    def test_servo_error_queue_missing_register_raises(self, servo: "Servo") -> None:
+        """If the dictionary doesn't contain the register UID,
+        constructing the queue should raise IMErrorQueueNotExistsError."""
+        # Create a descriptor with a non-existent UID
+        fake_descriptor = ErrorQueueDescriptor(
+            name="error_non_existing",
+            last_error_reg_uid="NON_EXISTENT_UID",
+            total_error_reg_uid="DRV_DIAG_ERROR_TOTAL",
+            error_request_index_reg_uid="DRV_DIAG_ERROR_LIST_IDX",
+            error_request_code_reg_uid="NON_EXISTENT_UID_2",
+            max_index_request=31,
+            error_type=OperationError,
+        )
+
+        with pytest.raises(IMErrorQueueNotExistsError) as excinfo:
+            ServoErrorQueue(fake_descriptor, servo)
+
+        assert (
+            excinfo.value.args[0]
+            == "One or more registers for error queue not found in servo dictionary."
+        )
+        # Should have two underlying exceptions for the two missing registers
+        assert len(excinfo.value.exceptions) == 2
+
+    @pytest.mark.virtual
+    def test_servo_error_queue_obtains_registers_with_axis(
+        self, mocker: "pytest.MockFixture", servo: "Servo"
+    ) -> None:
+        """Test that ServoErrorQueue obtains register objects with correct axis."""
+        mock_get_register = mocker.patch.object(servo.dictionary, "get_register")
+        mock_register = mocker.Mock()
+        mock_get_register.return_value = mock_register
+
+        # Create queue with axis=2
+        q = ServoErrorQueue(MOCO_ERROR_QUEUE, servo, axis=2)
+        # Name should include axis
+        assert q.name == "MoCo Axis 2 Error Queue"
+
+        # Verify get_register was called with axis=2
+        expected_calls = [
+            mocker.call("DRV_DIAG_ERROR_LAST", axis=2),
+            mocker.call("DRV_DIAG_ERROR_TOTAL", axis=2),
+            mocker.call("DRV_DIAG_ERROR_LIST_IDX", axis=2),
+            mocker.call("DRV_DIAG_ERROR_LIST_CODE", axis=2),
+        ]
+        mock_get_register.assert_has_calls(expected_calls)
 
 
 class TestErrors:
@@ -405,3 +463,149 @@ class TestErrors:
         assert last_buffer_error.axis == 1
         assert last_buffer_error.is_warning is True
         assert last_buffer_error.error_description == "Under-temperature detected (user limit)"
+
+
+class TestErrorMotionNode:
+    """Test NodeErrors class functionality."""
+
+    @pytest.mark.virtual
+    def test_node_errors_get_queue_returns_none_when_no_registers(
+        self, motion_node: "MotionNode"
+    ) -> None:
+        """Test that NodeErrors.get_queue returns None when registers not found."""
+
+        # Create a descriptor with a non-existent register UID
+        fake_descriptor = ErrorQueueDescriptor(
+            name="error_non_existing",
+            last_error_reg_uid="NON_EXISTENT_UID",
+            total_error_reg_uid="DRV_DIAG_ERROR_TOTAL",
+            error_request_index_reg_uid="DRV_DIAG_ERROR_LIST_IDX",
+            error_request_code_reg_uid="DRV_DIAG_ERROR_LIST_CODE",
+            max_index_request=31,
+            error_type=OperationError,
+        )
+
+        result = motion_node.errors.get_queue(fake_descriptor)
+        assert result is None
+
+    @pytest.mark.virtual
+    def test_node_errors_system_and_coco_properties(self, motion_node: "MotionNode") -> None:
+        """Test NodeErrors.system and coco properties on virtual drives."""
+
+        # both system and coco queues are available
+        system_queue = motion_node.errors.system
+        assert system_queue is not None
+        assert isinstance(system_queue, ServoErrorQueue)
+        assert system_queue.descriptor == SYSTEM_ERROR_QUEUE
+        assert system_queue.name == "System Error Queue"
+
+        # repeated access returns the same instance (cached)
+        system_queue2 = motion_node.errors.system
+        assert system_queue2 is system_queue
+        assert motion_node.errors.get_queue(SYSTEM_ERROR_QUEUE) is system_queue
+
+        coco_queue = motion_node.errors.coco
+        assert coco_queue is not None
+        assert isinstance(coco_queue, ServoErrorQueue)
+        assert coco_queue.descriptor == COCO_ERROR_QUEUE
+        assert coco_queue.name == "CoCo Error Queue"
+
+        # repeated access returns the same instance (cached)
+        coco_queue2 = motion_node.errors.coco
+        assert coco_queue2 is coco_queue
+        assert motion_node.errors.get_queue(COCO_ERROR_QUEUE) is coco_queue
+
+    @pytest.mark.virtual
+    def test_node_errors_get_all_queues(self, motion_node: "MotionNode") -> None:
+        """Test NodeErrors.get_all_queues method."""
+
+        all_queues = list(motion_node.errors.get_all_queues())
+
+        # Extract descriptors for easier checking
+        descriptors = [queue.descriptor for queue in all_queues]
+
+        expected_descriptors = [SYSTEM_ERROR_QUEUE, COCO_ERROR_QUEUE, MOCO_ERROR_QUEUE]
+        assert Counter(descriptors) == Counter(expected_descriptors)
+
+    @pytest.mark.virtual
+    def test_node_errors_get_all_queues_with_exclude(self, motion_node: "MotionNode") -> None:
+        """Test NodeErrors.get_all_queues with exclude parameter."""
+
+        # Get queues excluding SYSTEM_ERROR_QUEUE
+        filtered_queues = list(motion_node.errors.get_all_queues(exclude=[SYSTEM_ERROR_QUEUE]))
+
+        descriptors = [queue.descriptor for queue in filtered_queues]
+
+        assert Counter(descriptors) == Counter([COCO_ERROR_QUEUE, MOCO_ERROR_QUEUE])
+
+
+class TestErrorAxis:
+    """Test AxisErrors class functionality."""
+
+    @pytest.mark.virtual
+    def test_axis_errors_get_queue_returns_none_when_no_registers(self, axis: "Axis") -> None:
+        """Test that AxisErrors.get_queue returns None when registers not found."""
+
+        # Create a descriptor with a non-existent register UID
+        fake_descriptor = ErrorQueueDescriptor(
+            name="error_non_existing",
+            last_error_reg_uid="NON_EXISTENT_UID",
+            total_error_reg_uid="DRV_DIAG_ERROR_TOTAL",
+            error_request_index_reg_uid="DRV_DIAG_ERROR_LIST_IDX",
+            error_request_code_reg_uid="DRV_DIAG_ERROR_LIST_CODE",
+            max_index_request=31,
+            error_type=OperationError,
+        )
+
+        result = axis.errors.get_queue(fake_descriptor)
+        assert result is None
+
+    @pytest.mark.virtual
+    def test_axis_errors_all_queues_on_virtual_drive(self, axis: "Axis") -> None:
+        """Test that on standard virtual drives, MOCO is available but safety queues are not."""
+        moco_queue = axis.errors.moco
+
+        # MOCO queue should be available
+        assert moco_queue is not None
+        assert isinstance(moco_queue, ServoErrorQueue)
+        assert moco_queue.descriptor == MOCO_ERROR_QUEUE
+        assert moco_queue.name == "MoCo Axis 1 Error Queue"
+
+        # repeated access returns the same instance (cached)
+        moco_queue2 = axis.errors.moco
+        assert moco_queue2 is moco_queue
+        assert axis.errors.get_queue(MOCO_ERROR_QUEUE) is moco_queue
+
+        # Safety queues should not be available on standard virtual drives
+        assert axis.errors.safety_a is None
+        assert axis.errors.safety_b is None
+
+        filtered_queues = list(axis.errors.get_all_queues(exclude=[SYSTEM_ERROR_QUEUE]))
+        descriptors = [queue.descriptor for queue in filtered_queues]
+        assert Counter(descriptors) == Counter([MOCO_ERROR_QUEUE])
+
+    @pytest.mark.fsoe_phase2
+    def test_axis_errors_all_queues_safety_on_phase_2(self, axis: "Axis") -> None:
+        """Test that on safety phase II virtual drives, all three queues
+        (MOCO, MCUA, MCUB) are available."""
+        # All three queues should be available on safety phase II drives
+        moco_queue = axis.errors.moco
+        assert moco_queue is not None
+        assert isinstance(moco_queue, ServoErrorQueue)
+        assert moco_queue.descriptor == MOCO_ERROR_QUEUE
+
+        safety_a_queue = axis.errors.safety_a
+        assert safety_a_queue is not None
+        assert isinstance(safety_a_queue, ServoErrorQueue)
+        assert safety_a_queue.descriptor == FSOE_MCUA_ERROR_QUEUE
+        assert safety_a_queue.name == "Safety A Axis 1 Error Queue"
+
+        safety_b_queue = axis.errors.safety_b
+        assert safety_b_queue is not None
+        assert isinstance(safety_b_queue, ServoErrorQueue)
+        assert safety_b_queue.descriptor == FSOE_MCUB_ERROR_QUEUE
+        assert safety_b_queue.name == "Safety B Axis 1 Error Queue"
+
+        filtered_queues = list(axis.errors.get_all_queues(exclude=[FSOE_MCUA_ERROR_QUEUE]))
+        descriptors = [queue.descriptor for queue in filtered_queues]
+        assert Counter(descriptors) == Counter([MOCO_ERROR_QUEUE, FSOE_MCUB_ERROR_QUEUE])

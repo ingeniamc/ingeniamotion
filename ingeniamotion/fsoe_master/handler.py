@@ -38,6 +38,7 @@ from ingeniamotion.fsoe_master.parameters import (
 )
 from ingeniamotion.fsoe_master.process_image import ProcessImage
 from ingeniamotion.fsoe_master.safety_functions import (
+    SFT,
     SafeInputsFunction,
     SafetyFunction,
     SOutFunction,
@@ -517,6 +518,24 @@ class FSoEMasterHandler:
         }
 
     @overload  # type: ignore[misc]
+    def get_function_instances(self, typ: type[SFT]) -> list[SFT]:
+        ...
+        # Overload to preserve the type of the returned safety functions
+        # without effects of the weak_lru caching.
+
+    @weak_lru()
+    def get_function_instances(self, typ: type[SFT]) -> list[SFT]:
+        """Get all instances of a safety function type.
+
+        Args:
+            typ: The type of safety function to retrieve.
+
+        Returns:
+            A list of all instances of the given safety function type.
+        """
+        return [sf for sf in self.safety_functions if isinstance(sf, typ)]
+
+    @overload  # type: ignore[misc]
     def get_function_instance(self, typ: type[SAFE_INSTANCE_TYPE]) -> SAFE_INSTANCE_TYPE: ...
 
     @weak_lru()
@@ -636,7 +655,7 @@ class FSoEMasterHandler:
         Raises:
             RuntimeError: If SOUT is not available.
         """
-        sout_function: SOutFunction = self.sout_function()
+        sout_function = self.sout_function()
         if sout_function is None:
             raise RuntimeError("SOUT not available.")
         sout_function.sout_disable.set(1)
@@ -647,7 +666,7 @@ class FSoEMasterHandler:
         Raises:
             RuntimeError: If SOUT is not available.
         """
-        sout_function: SOutFunction = self.sout_function()
+        sout_function = self.sout_function()
         if sout_function is None:
             raise RuntimeError("SOUT not available.")
         sout_function.sout_disable.set(0)

@@ -3,7 +3,7 @@ import dataclasses
 from collections.abc import Iterator
 from dataclasses import dataclass
 from enum import IntEnum
-from typing import TYPE_CHECKING, Optional, Union, get_args, get_origin
+from typing import TYPE_CHECKING, Optional, TypeVar, Union, get_args, get_origin
 
 from typing_extensions import override
 
@@ -352,6 +352,9 @@ class SafetyFunction:
         return param
 
 
+SFT = TypeVar("SFT", bound="SafetyFunction")
+
+
 @dataclass()
 class STOFunction(SafetyFunction):
     """Safe Torque Off Safety Function."""
@@ -416,7 +419,7 @@ class SS1Function(SafetyFunction):
             sf_list.append(si_function)
         sf_list.extend(
             slp_function
-            for slp_function in self.handler.safety_functions_by_type().get(SLPFunction, [])
+            for slp_function in self.handler.get_function_instances(SLPFunction)
             if (
                 process_image.is_safety_function_mapped(slp_function, strict=True)
                 or slp_function.activated_by() != []
@@ -425,7 +428,7 @@ class SS1Function(SafetyFunction):
         )
         sf_list.extend(
             ssr_function
-            for ssr_function in self.handler.safety_functions_by_type().get(SSRFunction, [])
+            for ssr_function in self.handler.get_function_instances(SSRFunction)
             if (
                 process_image.is_safety_function_mapped(ssr_function, strict=True)
                 or ssr_function.activated_by() != []
@@ -434,7 +437,7 @@ class SS1Function(SafetyFunction):
         )
         sf_list.extend(
             sls_function
-            for sls_function in self.handler.safety_functions_by_type().get(SLSFunction, [])
+            for sls_function in self.handler.get_function_instances(SLSFunction)
             if (
                 process_image.is_safety_function_mapped(sls_function, strict=True)
                 or sls_function.activated_by() != []
@@ -443,7 +446,7 @@ class SS1Function(SafetyFunction):
         )
         sf_list.extend(
             sli_function
-            for sli_function in self.handler.safety_functions_by_type().get(SLIFunction, [])
+            for sli_function in self.handler.get_function_instances(SLIFunction)
             if (
                 process_image.is_safety_function_mapped(sli_function, strict=True)
                 or sli_function.activated_by() != []
@@ -565,7 +568,7 @@ class SS2Function(SafetyFunction):
             sf_list.append(si_function)
         sf_list.extend(
             slp_function
-            for slp_function in self.handler.safety_functions_by_type().get(SLPFunction, [])
+            for slp_function in self.handler.get_function_instances(SLPFunction)
             if (
                 process_image.is_safety_function_mapped(slp_function, strict=True)
                 or slp_function.activated_by() != []

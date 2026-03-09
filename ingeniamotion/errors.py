@@ -1,15 +1,22 @@
+from collections.abc import Iterator
 from dataclasses import dataclass
-from enum import IntEnum
-from typing import TYPE_CHECKING, ClassVar, Optional
+from typing import TYPE_CHECKING, Optional
 
+from ingenialink import Register
 from ingenialink.dictionary import Dictionary, DictionaryError
 
 from ingeniamotion._utils import weak_lru
+from ingeniamotion.exceptions import (
+    IMError,
+    IMErrorQueueNotExistsError,
+)
 
 if TYPE_CHECKING:
     from ingenialink import Servo
 
+    from ingeniamotion.axis import Axis
     from ingeniamotion.motion_controller import MotionController
+    from ingeniamotion.motion_node import MotionNode
 
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 
@@ -31,6 +38,27 @@ class Error:
     def error_id(self) -> int:
         """Get the error ID."""
         return self._error_id
+
+    @property
+    def error_code(self) -> int:
+        """Get the error code.
+
+        Same as ID in most cases, but can be masked by additional bits
+        in some error types (e.g. OperationError).
+        """
+        return self._error_id
+
+    @property
+    def dictionary_error(self) -> Optional[DictionaryError]:
+        """Get the DictionaryError instance from the dictionary, if available."""
+        return self.__dictionary_error
+
+    @property
+    def error_type(self) -> Optional[str]:
+        """Get the error type, if available."""
+        if self.__dictionary_error is not None and self.__dictionary_error.error_type is not None:
+            return self.__dictionary_error.error_type
+        return None
 
     @property
     def error_description(self) -> str:
@@ -128,7 +156,7 @@ class SystemQueueError(OperationError):
         return (self._error_id & self.__ERROR_SUBNODE_BITS) >> self.__ERROR_SUBNODE_SHIFT
 
 
-@dataclass()
+@dataclass(frozen=True)
 class ErrorQueueDescriptor:
     """Descriptor for an error queue in a servo."""
 
@@ -138,6 +166,7 @@ class ErrorQueueDescriptor:
     error_request_code_reg_uid: str
     max_index_request: int
     error_type: type[Error]
+    name: str
 
 
 class ServoErrorQueue:
@@ -153,15 +182,40 @@ class ServoErrorQueue:
         self.__servo = servo
         self.__dictionary = servo.dictionary
         self.__axis = axis
-
         # Total number of errors that were last read to obtain pending errors
         self.__last_read_total_errors_pending = 0
 
-    def __read_int_reg(self, reg_uid: str) -> int:
+        # Begin collecting registers, if any of them is missing,
+        # an IMErrorQueueNotExistsError will be raised at the end of the block
+        # with the missing registers as underlying exceptions
+        with IMErrorQueueNotExistsError.group(
+            message="One or more registers for error queue not found in servo dictionary."
+        ) as exception_group:
+            with exception_group.catch(KeyError, ValueError):
+                self.__last_error_reg = servo.dictionary.get_register(
+                    self.descriptor.last_error_reg_uid, axis=axis
+                )
+
+            with exception_group.catch(KeyError, ValueError):
+                self.__total_error_reg = servo.dictionary.get_register(
+                    self.descriptor.total_error_reg_uid, axis=axis
+                )
+
+            with exception_group.catch(KeyError, ValueError):
+                self.__error_request_index_reg = servo.dictionary.get_register(
+                    self.descriptor.error_request_index_reg_uid, axis=axis
+                )
+
+            with exception_group.catch(KeyError, ValueError):
+                self.__error_request_code_reg = servo.dictionary.get_register(
+                    self.descriptor.error_request_code_reg_uid, axis=axis
+                )
+
+    def __read_int_reg(self, register: Register) -> int:
         """Read an integer register value with type validation.
 
         Args:
-            reg_uid: Register UID to read.
+            register: Register object to read.
 
         Returns:
             The register value as an integer.
@@ -169,15 +223,25 @@ class ServoErrorQueue:
         Raises:
             TypeError: If the register value is not an integer.
         """
-        if self.__axis is not None:
-            value = self.__servo.read(reg_uid, subnode=self.__axis)
-        else:
-            value = self.__servo.read(reg_uid)
+        value = self.__servo.read(register)
         if not isinstance(value, int):
             raise TypeError(
-                f"Register {reg_uid} value must be an integer, got {type(value).__name__}"
+                f"Register {register.identifier} value must be an integer, "
+                f"got {type(value).__name__}"
             )
         return value
+
+    @property
+    def axis(self) -> Optional[int]:
+        """Get the axis number associated with this error queue, if any."""
+        return self.__axis
+
+    @property
+    def name(self) -> str:
+        """Get the name of the error queue."""
+        if self.axis is not None:
+            return f"{self.descriptor.name} Axis {self.axis} Error Queue"
+        return f"{self.descriptor.name} Error Queue"
 
     def get_last_error(self) -> Optional[Error]:
         """Get the last error from the servo's error queue.
@@ -186,7 +250,7 @@ class ServoErrorQueue:
             Optional[Error]: The last error, or None if there is no error.
         """
         error = self.descriptor.error_type.from_id(
-            self.__read_int_reg(self.descriptor.last_error_reg_uid), self.__dictionary
+            self.__read_int_reg(self.__last_error_reg), self.__dictionary
         )
         return error
 
@@ -196,7 +260,7 @@ class ServoErrorQueue:
         Returns:
             int: Total number of errors.
         """
-        return self.__read_int_reg(self.descriptor.total_error_reg_uid)
+        return self.__read_int_reg(self.__total_error_reg)
 
     @property
     @weak_lru()
@@ -216,14 +280,9 @@ class ServoErrorQueue:
         Returns:
             The error at the given index, or None if there is no error.
         """
-        if self.__axis is not None:
-            self.__servo.write(
-                self.descriptor.error_request_index_reg_uid, index, subnode=self.__axis
-            )
-        else:
-            self.__servo.write(self.descriptor.error_request_index_reg_uid, index)
+        self.__servo.write(self.__error_request_index_reg, index)
         error = self.descriptor.error_type.from_id(
-            self.__read_int_reg(self.descriptor.error_request_code_reg_uid), self.__dictionary
+            self.__read_int_reg(self.__error_request_code_reg), self.__dictionary
         )
         return error
 
@@ -288,6 +347,7 @@ class ServoErrorQueue:
 
 # Standard error queue descriptors
 MOCO_ERROR_QUEUE = ErrorQueueDescriptor(
+    name="MoCo",
     last_error_reg_uid="DRV_DIAG_ERROR_LAST",
     total_error_reg_uid="DRV_DIAG_ERROR_TOTAL",
     error_request_index_reg_uid="DRV_DIAG_ERROR_LIST_IDX",
@@ -297,6 +357,7 @@ MOCO_ERROR_QUEUE = ErrorQueueDescriptor(
 )
 
 COCO_ERROR_QUEUE = ErrorQueueDescriptor(
+    name="CoCo",
     last_error_reg_uid="DRV_DIAG_ERROR_LAST_COM",
     total_error_reg_uid="DRV_DIAG_ERROR_TOTAL_COM",
     error_request_index_reg_uid="DRV_DIAG_ERROR_LIST_IDX_COM",
@@ -306,6 +367,7 @@ COCO_ERROR_QUEUE = ErrorQueueDescriptor(
 )
 
 SYSTEM_ERROR_QUEUE = ErrorQueueDescriptor(
+    name="System",
     last_error_reg_uid="DRV_DIAG_SYS_ERROR_LAST",
     total_error_reg_uid="DRV_DIAG_SYS_ERROR_TOTAL_COM",
     error_request_index_reg_uid="DRV_DIAG_SYS_ERROR_LIST_IDX_COM",
@@ -314,49 +376,159 @@ SYSTEM_ERROR_QUEUE = ErrorQueueDescriptor(
     error_type=SystemQueueError,
 )
 
+FSOE_MCUA_ERROR_QUEUE = ErrorQueueDescriptor(
+    name="Safety A",
+    last_error_reg_uid="FSOE_LAST_ERROR_MCUA",
+    total_error_reg_uid="FSOE_TOTAL_ERROR_MCUA",
+    error_request_index_reg_uid="FSOE_ERROR_REQUEST_INDEX_MCUA",
+    error_request_code_reg_uid="FSOE_ERROR_REQUEST_CODE_MCUA",
+    max_index_request=31,
+    error_type=Error,
+)
+
+FSOE_MCUB_ERROR_QUEUE = ErrorQueueDescriptor(
+    name="Safety B",
+    last_error_reg_uid="FSOE_LAST_ERROR_MCUB",
+    total_error_reg_uid="FSOE_TOTAL_ERROR_MCUB",
+    error_request_index_reg_uid="FSOE_ERROR_REQUEST_INDEX_MCUB",
+    error_request_code_reg_uid="FSOE_ERROR_REQUEST_CODE_MCUB",
+    max_index_request=31,
+    error_type=Error,
+)
+
+
+class NodeErrors:
+    """Class to manage errors of a motion node."""
+
+    def __init__(self, motion_node: "MotionNode") -> None:
+        self.__motion_node = motion_node
+
+    @weak_lru(maxsize=None)
+    def get_queue(self, descriptor: ErrorQueueDescriptor) -> Optional[ServoErrorQueue]:
+        """Get the error queue of the motion node for the given descriptor.
+
+        Returns:
+            ServoErrorQueue: The error queue instance, or ``None`` if the registers
+                described by the descriptor are not present in the servo dictionary.
+        """
+        try:
+            return ServoErrorQueue(descriptor, self.__motion_node.servo)
+        except IMErrorQueueNotExistsError:
+            return None
+
+    @property
+    def system(self) -> Optional[ServoErrorQueue]:
+        """Get the system error queue of the motion node.
+
+        Returns:
+            ServoErrorQueue: The system error queue, or ``None`` if not available in
+                the servo dictionary.
+        """
+        return self.get_queue(SYSTEM_ERROR_QUEUE)
+
+    @property
+    def coco(self) -> Optional[ServoErrorQueue]:
+        """Get the COCO error queue of the motion node.
+
+        Returns:
+            ServoErrorQueue: The COCO error queue, or ``None`` if not available in
+                the servo dictionary.
+        """
+        return self.get_queue(COCO_ERROR_QUEUE)
+
+    def get_all_queues(
+        self, exclude: Optional[list[ErrorQueueDescriptor]] = None
+    ) -> Iterator[ServoErrorQueue]:
+        """Get all error queues of the motion node.
+
+        Yields:
+            ServoErrorQueue: An error queue of the motion node.
+        """
+        for descriptor in [SYSTEM_ERROR_QUEUE, COCO_ERROR_QUEUE]:
+            if exclude and descriptor in exclude:
+                continue
+            queue = self.get_queue(descriptor)
+            if queue is not None:
+                yield queue
+
+        for axis in self.__motion_node.axes:
+            yield from axis.errors.get_all_queues(exclude=exclude)
+
+
+class AxisErrors:
+    """Class to manage errors of an axis."""
+
+    def __init__(self, axis: "Axis") -> None:
+        """Initialize axis errors.
+
+        Args:
+            axis: The axis associated with the errors.
+        """
+        self.__axis = axis
+
+    @weak_lru(maxsize=None)
+    def get_queue(self, descriptor: ErrorQueueDescriptor) -> Optional[ServoErrorQueue]:
+        """Get the error queue for the given descriptor.
+
+        Returns:
+            ServoErrorQueue: The error queue instance, or ``None`` if the registers
+                described by the descriptor are not present in the servo dictionary.
+        """
+        try:
+            return ServoErrorQueue(
+                descriptor, self.__axis.motion_node.servo, axis=self.__axis.axis_number
+            )
+        except IMErrorQueueNotExistsError:
+            return None
+
+    @property
+    def moco(self) -> Optional[ServoErrorQueue]:
+        """Get the MOCO error queue of the axis.
+
+        Returns:
+            ServoErrorQueue: The MOCO error queue, or ``None`` if not available in
+                the servo dictionary.
+        """
+        return self.get_queue(MOCO_ERROR_QUEUE)
+
+    @property
+    def safety_a(self) -> Optional[ServoErrorQueue]:
+        """Get the error queue of the MCU A of safety.
+
+        Returns:
+            ServoErrorQueue: The MCU-A safety error queue, or ``None`` if not available
+                in the servo dictionary.
+        """
+        return self.get_queue(FSOE_MCUA_ERROR_QUEUE)
+
+    @property
+    def safety_b(self) -> Optional[ServoErrorQueue]:
+        """Get the error queue of the MCU B of safety.
+
+        Returns:
+            ServoErrorQueue: The MCU-B safety error queue, or ``None`` if not available
+                in the servo dictionary.
+        """
+        return self.get_queue(FSOE_MCUB_ERROR_QUEUE)
+
+    def get_all_queues(
+        self, exclude: Optional[list[ErrorQueueDescriptor]] = None
+    ) -> Iterator[ServoErrorQueue]:
+        """Get all error queues of the axis.
+
+        Yields:
+            ServoErrorQueue: An error queue of the axis.
+        """
+        for descriptor in [MOCO_ERROR_QUEUE, FSOE_MCUA_ERROR_QUEUE, FSOE_MCUB_ERROR_QUEUE]:
+            if exclude and descriptor in exclude:
+                continue
+            queue = self.get_queue(descriptor)
+            if queue is not None:
+                yield queue
+
 
 class Errors:
     """Errors."""
-
-    class ErrorLocation(IntEnum):
-        """Location of a generated error."""
-
-        COCO = 0
-        MOCO = 1
-        SYSTEM = 2
-
-    LAST_ERROR_COCO_REGISTER = "DRV_DIAG_ERROR_LAST_COM"
-    LAST_ERROR_MOCO_REGISTER = "DRV_DIAG_ERROR_LAST"
-    LAST_ERROR_SYSTEM_REGISTER = "DRV_DIAG_SYS_ERROR_LAST"
-    LAST_ERROR_REGISTER: ClassVar[dict[ErrorLocation, str]] = {
-        ErrorLocation.COCO: LAST_ERROR_COCO_REGISTER,
-        ErrorLocation.MOCO: LAST_ERROR_MOCO_REGISTER,
-        ErrorLocation.SYSTEM: LAST_ERROR_SYSTEM_REGISTER,
-    }
-    ERROR_TOTAL_NUMBER_COCO_REGISTER = "DRV_DIAG_ERROR_TOTAL_COM"
-    ERROR_TOTAL_NUMBER_MOCO_REGISTER = "DRV_DIAG_ERROR_TOTAL"
-    ERROR_TOTAL_NUMBER_SYSTEM_REGISTER = "DRV_DIAG_SYS_ERROR_TOTAL_COM"
-    ERROR_TOTAL_NUMBER_REGISTER: ClassVar[dict[ErrorLocation, str]] = {
-        ErrorLocation.COCO: ERROR_TOTAL_NUMBER_COCO_REGISTER,
-        ErrorLocation.MOCO: ERROR_TOTAL_NUMBER_MOCO_REGISTER,
-        ErrorLocation.SYSTEM: ERROR_TOTAL_NUMBER_SYSTEM_REGISTER,
-    }
-    ERROR_LIST_INDEX_REQUEST_COCO_REGISTER = "DRV_DIAG_ERROR_LIST_IDX_COM"
-    ERROR_LIST_INDEX_REQUEST_MOCO_REGISTER = "DRV_DIAG_ERROR_LIST_IDX"
-    ERROR_LIST_INDEX_REQUEST_SYSTEM_REGISTER = "DRV_DIAG_SYS_ERROR_LIST_IDX_COM"
-    ERROR_LIST_INDEX_REQUEST_REGISTER: ClassVar[dict[ErrorLocation, str]] = {
-        ErrorLocation.COCO: ERROR_LIST_INDEX_REQUEST_COCO_REGISTER,
-        ErrorLocation.MOCO: ERROR_LIST_INDEX_REQUEST_MOCO_REGISTER,
-        ErrorLocation.SYSTEM: ERROR_LIST_INDEX_REQUEST_SYSTEM_REGISTER,
-    }
-    ERROR_LIST_REQUESTED_COCO_CODE = "DRV_DIAG_ERROR_LIST_CODE_COM"
-    ERROR_LIST_REQUESTED_MOCO_CODE = "DRV_DIAG_ERROR_LIST_CODE"
-    ERROR_LIST_REQUESTED_SYSTEM_CODE = "DRV_DIAG_SYS_ERROR_LIST_CODE_COM"
-    ERROR_LIST_REQUESTED_CODE: ClassVar[dict[ErrorLocation, str]] = {
-        ErrorLocation.COCO: ERROR_LIST_REQUESTED_COCO_CODE,
-        ErrorLocation.MOCO: ERROR_LIST_REQUESTED_MOCO_CODE,
-        ErrorLocation.SYSTEM: ERROR_LIST_REQUESTED_SYSTEM_CODE,
-    }
 
     MAXIMUM_ERROR_INDEX = 32
 
@@ -368,7 +540,7 @@ class Errors:
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
 
-    def get_error_queue(
+    def __get_error_queue(
         self, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
     ) -> ServoErrorQueue:
         """Get the appropriate ServoErrorQueue for the given servo and axis.
@@ -379,23 +551,45 @@ class Errors:
 
         Returns:
             ServoErrorQueue instance for the specified servo/axis.
+
+        Raises:
+            IMErrorQueueNotExistsError: If no suitable error queue registers are found.
         """
-        error_version = self._get_error_location(servo)
-        axis, error_location = self.__get_error_subnode(error_version, axis)
+        m = self.mc._get_motion_node(servo)
 
-        # Select the appropriate descriptor based on error location
-        if error_location == self.ErrorLocation.SYSTEM:
-            descriptor = SYSTEM_ERROR_QUEUE
-        elif error_location == self.ErrorLocation.COCO:
-            descriptor = COCO_ERROR_QUEUE
-        else:  # MOCO
-            descriptor = MOCO_ERROR_QUEUE
+        system_queue = m.errors.system
+        if system_queue is not None:
+            # Drive has SYSTEM registers
+            if axis is None:
+                return system_queue
+            if axis == 0:
+                coco_queue = m.errors.coco
+                if coco_queue is not None:
+                    return coco_queue
+            else:
+                # axis > 0: axis-specific MOCO queue
+                try:
+                    return m.get_axis(axis).error_queue
+                except KeyError:
+                    msg = (
+                        f"Axis {axis} not found in servo {servo}, "
+                        "cannot access axis-specific error queue"
+                    )
+                    raise IMErrorQueueNotExistsError(msg, [IMError(msg)])
 
-        # Always get fresh drive reference to avoid stale servo objects
-        drive = self.mc._get_drive(servo)
+        coco_queue = m.errors.coco
+        if coco_queue is not None:
+            # Drive has no System queue, use COCO queue regardless of axis
+            return coco_queue
 
-        # Pass axis to ServoErrorQueue to match old behavior via get_register()
-        return ServoErrorQueue(descriptor, drive, axis=axis)
+        # Drive has MOCO-only error queues, get the one for the specified axis
+        resolved_axis = axis if axis is not None else DEFAULT_AXIS
+        try:
+            axis_obj = m.get_axis(resolved_axis)
+        except KeyError:
+            msg = f"Axis {resolved_axis} not found in servo {servo}, cannot access MOCO error queue"
+            raise IMErrorQueueNotExistsError(msg, [IMError(msg)])
+        return axis_obj.error_queue
 
     def __parse_error_to_tuple(
         self, error: Error, subnode: Optional[int] = None
@@ -405,49 +599,6 @@ class Errors:
         if isinstance(error, SystemQueueError):
             return error.error_code, error.axis, error.is_warning
         return error.error_code, subnode, error.is_warning
-
-    def _get_error_location(self, servo: str = DEFAULT_SERVO) -> ErrorLocation:
-        """Determine the error location based on available registers.
-
-        Args:
-            servo: servo alias to reference it.
-
-        Returns:
-            ErrorLocation: The error location (SYSTEM, COCO, or MOCO).
-        """
-        if self.mc.info.register_exists(self.LAST_ERROR_SYSTEM_REGISTER, axis=0, servo=servo):
-            # Check System last error, if it does not exist check CoCo
-            return self.ErrorLocation.SYSTEM
-        if self.mc.info.register_exists(self.LAST_ERROR_COCO_REGISTER, axis=0, servo=servo):
-            # Check CoCo last error, if it does not exist use MoCo
-            return self.ErrorLocation.COCO
-        # Default to MoCo
-        return self.ErrorLocation.MOCO
-
-    def __get_error_subnode(
-        self, location: ErrorLocation, subnode: Optional[int]
-    ) -> tuple[int, ErrorLocation]:
-        """Get the appropriate subnode and error location.
-
-        Args:
-            location: The error location.
-            subnode: The subnode (axis).
-
-        Returns:
-            A tuple containing the subnode and the adjusted error location.
-        """
-        if location == self.ErrorLocation.SYSTEM:
-            if subnode is None:
-                return 0, location
-            if subnode == 0:
-                location = self.ErrorLocation.COCO
-            elif subnode > 0:
-                location = self.ErrorLocation.MOCO
-            return subnode, location
-        if location == self.ErrorLocation.MOCO:
-            return subnode or DEFAULT_AXIS, self.ErrorLocation.MOCO
-        # COCO
-        return 0, self.ErrorLocation.COCO
 
     def get_last_error(
         self, servo: str = DEFAULT_SERVO, axis: Optional[int] = None
@@ -472,7 +623,7 @@ class Errors:
             TypeError: If some read value has a wrong type.
 
         """
-        queue = self.get_error_queue(servo, axis)
+        queue = self.__get_error_queue(servo, axis)
         error_obj = queue.get_last_error()
 
         if error_obj is None:
@@ -532,7 +683,7 @@ class Errors:
         if index >= self.MAXIMUM_ERROR_INDEX:
             raise ValueError("index must be less than 32")
 
-        queue = self.get_error_queue(servo, axis)
+        queue = self.__get_error_queue(servo, axis)
         error_obj = queue.get_error_by_index(index)
 
         if error_obj is None:
@@ -556,7 +707,7 @@ class Errors:
             TypeError: If some read value has a wrong type.
 
         """
-        queue = self.get_error_queue(servo, axis)
+        queue = self.__get_error_queue(servo, axis)
         return queue.get_number_total_errors()
 
     def get_all_errors(
