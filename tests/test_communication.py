@@ -375,9 +375,9 @@ def test_load_firmware_moco_exception(mocker, mc, alias):
 def test_connect_servo_virtual():
     mc = MotionController()
     mc.communication.connect_servo_virtual_ethernet(port=1062)
-    assert mc.communication._Communication__virtual_drive_ethernet is not None
+    assert "default" in mc.communication._Communication__virtual_drives
     mc.communication.disconnect()
-    assert mc.communication._Communication__virtual_drive_ethernet is None
+    assert "default" not in mc.communication._Communication__virtual_drives
 
 
 @pytest.mark.virtual
@@ -386,25 +386,53 @@ def test_connect_servo_virtual_custom_dictionary(setup_descriptor: SetupDescript
     mc.communication.connect_servo_virtual_ethernet(
         dict_path=setup_descriptor.dictionary, port=1062
     )
-    assert mc.communication._Communication__virtual_drive_ethernet is not None
+    assert "default" in mc.communication._Communication__virtual_drives
     mc.communication.disconnect()
-    assert mc.communication._Communication__virtual_drive_ethernet is None
+    assert "default" not in mc.communication._Communication__virtual_drives
 
 
 def test_connect_servo_virtual_ethercat():
     mc = MotionController()
     mc.communication.connect_servo_virtual_ethercat(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY)
-    assert mc.communication._Communication__virtual_drive_ethercat is not None
+    assert "default" in mc.communication._Communication__virtual_drives
     mc.communication.disconnect()
-    assert mc.communication._Communication__virtual_drive_ethercat is None
+    assert "default" not in mc.communication._Communication__virtual_drives
 
 
 def test_connect_servo_virtual_canopen():
     mc = MotionController()
     mc.communication.connect_servo_virtual_canopen(VIRTUAL_DRIVE_CAN_V2_XDF)
-    assert mc.communication._Communication__virtual_drive_canopen is not None
+    assert "default" in mc.communication._Communication__virtual_drives
     mc.communication.disconnect()
-    assert mc.communication._Communication__virtual_drive_canopen is None
+    assert "default" not in mc.communication._Communication__virtual_drives
+
+
+def test_connect_servo_virtual_separate_drives_per_alias():
+    """Each connect call must spawn an independent VirtualDrive with its own dictionary.
+
+    Regression test: previously the VirtualDrive was created only once, so a second
+    connection would silently reuse the first drive's dictionary and internal state.
+    """
+    alias_a = "drive_a"
+    alias_b = "drive_b"
+    mc = MotionController()
+    mc.communication.connect_servo_virtual_ethernet(alias=alias_a)
+    mc.communication.connect_servo_virtual_ethernet(alias=alias_b)
+
+    drives = mc.communication._Communication__virtual_drives
+    assert alias_a in drives
+    assert alias_b in drives
+    # Each alias must own a distinct VirtualDrive instance
+    assert drives[alias_a] is not drives[alias_b]
+    # Each drive must have its own running port (no sharing)
+    assert drives[alias_a].port != drives[alias_b].port
+
+    mc.communication.disconnect(alias_a)
+    assert alias_a not in drives
+    assert alias_b in drives
+
+    mc.communication.disconnect(alias_b)
+    assert alias_b not in drives
 
 
 def test_scan_servos_canopen_with_info(mocker):
