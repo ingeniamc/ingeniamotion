@@ -425,7 +425,7 @@ def test_subscribe_exceptions(mc: "MotionController", alias: str, mocker) -> Non
     patch_callback.assert_called_once()
     assert (
         str(patch_callback.call_args_list[0][0][0])
-        == f"Stopping the PDO thread due to the following exception: {error_msg} "
+        == f"PDO exchange error (wrong working count): {error_msg} "
     )
     mc.capture.pdo.stop_pdos(servo=alias)
 
