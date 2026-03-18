@@ -20,7 +20,7 @@ classifiers = [
 requires-python = ">=3.9"
 
 dependencies = [
-    "ingenialink>=7.5.2.dev0, < 8.0.0",
+    "ingenialink>=7.5.2, < 8.0.0",
     "ingenialogger>=0.2.1",
     "ifaddr==0.1.7",
     "exceptiongroup>=1.3.0, <2.0.0"
@@ -51,7 +51,7 @@ requires = [
     "setuptools==75.6.0", 
     "setuptools_scm[toml]>=8", 
     "wheel==0.42.0",
-    "setuptools_scm_policies @ http://pypi.novanta.com/packages/setuptools_scm_policies-0.1.0-py3-none-any.whl"
+    "setuptools_scm_policies @ http://pypi.novanta.com/packages/setuptools_scm_policies-0.2.0-py3-none-any.whl"
 ]
 build-backend = "setuptools.build_meta"
 
@@ -116,7 +116,7 @@ pytest-mock = "==3.6.1"
 pytest-rerunfailures = "==15.1"
 pytest-console-scripts = "==1.4.1"
 matplotlib = "==3.8.2"
-ingenialink = {extras = ["virtual_drive"], version = "7.5.2.dev597+pr.760"}
+ingenialink = {extras = ["virtual_drive"], version = "7.5.2.post605+pr.760.b13"}
 summit-testing-framework = {version = "==0.2.0+pr83b1"}
 
 # -----------------------------------------------------------------------

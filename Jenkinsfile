@@ -332,9 +332,6 @@ pipeline {
                                     }
                                 }
                                 stage('Build wheels') {
-                                    environment {
-                                        SETUPTOOLS_SCM_PRETEND_VERSION = getPythonVersionForPr()
-                                    }
                                     steps {
                                         bat """
                                             cd ${WIN_DOCKER_TMP_PATH}
