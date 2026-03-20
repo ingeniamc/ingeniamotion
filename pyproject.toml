@@ -116,7 +116,7 @@ pytest-mock = "==3.6.1"
 pytest-rerunfailures = "==15.1"
 pytest-console-scripts = "==1.4.1"
 matplotlib = "==3.8.2"
-ingenialink = {extras = ["virtual_drive"], version = "==7.5.2.dev594+release.7.6.0.19c3203"}
+ingenialink = {extras = ["virtual_drive"], version = "7.5.2+pr742b17"}
 summit-testing-framework = {version = "==0.2.0+pr83b1"}
 
 # -----------------------------------------------------------------------
