@@ -106,7 +106,7 @@ version = "2.9.3"
 description = "efficient arrays of booleans -- C extension"
 optional = false
 python-versions = "*"
-groups = ["main", "tests"]
+groups = ["main"]
 files = [
     {file = "bitarray-2.9.3-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:2cf5f5400636c7dda797fd681795ce63932458620fe8c40955890380acba9f62"},
     {file = "bitarray-2.9.3-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:3487b4718ffa5942fab777835ee36085f8dda7ec4bd0b28433efb117f84852b6"},
@@ -318,7 +318,7 @@ version = "2.2.0"
 description = "CANopen stack implementation"
 optional = false
 python-versions = ">=3.6"
-groups = ["main", "tests"]
+groups = ["main"]
 files = [
     {file = "canopen-2.2.0-py3-none-any.whl", hash = "sha256:8dcb1c1f4a9f4182cc110c21317570b921b8bf30957b35e6970e224a5dd331ce"},
     {file = "canopen-2.2.0.tar.gz", hash = "sha256:5f18651b9df6e4769b9882e969f934ae773ef24a45aabc3334b586982048d08c"},
@@ -1342,7 +1342,7 @@ version = "7.5.2+pr742b17"
 description = "IngeniaLink Communications Library"
 optional = false
 python-versions = ">=3.9"
-groups = ["main", "tests"]
+groups = ["main"]
 files = [
     {file = "ingenialink-7.5.2+pr742b17-cp310-cp310-win_amd64.whl", hash = "sha256:b939376a58eb4bd46fa08235463e8f5cfecae02771cb3ed6a63f1ca232f5dada"},
     {file = "ingenialink-7.5.2+pr742b17-cp311-cp311-win_amd64.whl", hash = "sha256:812120799ded4c6222ce3f699438d3e7d85ab8541cc87a98fbbc497b323abd29"},
@@ -1361,7 +1361,6 @@ numpy = ">=1.26.0"
 ping3 = "4.0.3"
 pysoem = ">=1.1.13,<1.2.0"
 python-can = "4.4.2"
-virtual_drive = {version = "0.0.0+g331cf1c3d", optional = true, markers = "extra == \"virtual-drive\""}
 
 [package.extras]
 virtual-drive = ["virtual_drive (==0.0.0+g331cf1c3d)"]
@@ -2156,7 +2155,7 @@ version = "1.0.8"
 description = "MessagePack serializer"
 optional = false
 python-versions = ">=3.8"
-groups = ["main", "dev", "tests"]
+groups = ["main", "dev"]
 files = [
     {file = "msgpack-1.0.8-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:505fe3d03856ac7d215dbe005414bc28505d26f0c128906037e66d98c4e95868"},
     {file = "msgpack-1.0.8-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:e6b7842518a63a9f17107eb176320960ec095a8ee3b4420b5f688e24bf50c53c"},
@@ -2215,7 +2214,7 @@ files = [
     {file = "msgpack-1.0.8-cp39-cp39-win_amd64.whl", hash = "sha256:ed59dd52075f8fc91da6053b12e8c89e37aa043f8986efd89e61fae69dc1b011"},
     {file = "msgpack-1.0.8.tar.gz", hash = "sha256:95c02b0e27e706e48d0e5426d1710ca78e0f0628d6e89d5b5a5b91a5f12274f3"},
 ]
-markers = {main = "platform_system != \"Windows\"", dev = "python_version < \"4.0\"", tests = "platform_system != \"Windows\""}
+markers = {main = "platform_system != \"Windows\"", dev = "python_version < \"4.0\""}
 
 [[package]]
 name = "multiping"
@@ -2223,7 +2222,7 @@ version = "1.1.2"
 description = "Pure python library to send and receive ICMPecho request (ping) to monitor IP addresses"
 optional = false
 python-versions = "*"
-groups = ["main", "tests"]
+groups = ["main"]
 files = [
     {file = "multiping-1.1.2-py2-none-any.whl", hash = "sha256:916bc870ee4e4921ad9dbf997a15e046195480a775ec7c2c615f4de9a5fd3483"},
     {file = "multiping-1.1.2-py2.py3-none-any.whl", hash = "sha256:8bad44be68db553efedc46c6af51a49660b19e6731bfe53311dddfdf30397b25"},
@@ -2665,7 +2664,7 @@ version = "4.0.3"
 description = "A pure python3 version of ICMP ping implementation using raw socket."
 optional = false
 python-versions = ">=3"
-groups = ["main", "tests"]
+groups = ["main"]
 files = [
     {file = "ping3-4.0.3-py3-none-any.whl", hash = "sha256:0d5d0920029ff513128c77705c616b93f506cafd363b3d498759e4399acc18f0"},
     {file = "ping3-4.0.3.tar.gz", hash = "sha256:372a5c26c6aeebf5da310df7660ee6204146edc46f1bad19e349ae57cadb1d94"},
@@ -2995,7 +2994,7 @@ version = "1.1.13"
 description = "Cython wrapper for the SOEM Library"
 optional = false
 python-versions = "*"
-groups = ["main", "tests"]
+groups = ["main"]
 files = [
     {file = "pysoem-1.1.13-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:648db09657705b152f49b695e4870fdc6df265a3bd09657f53bc28b8a1b30835"},
     {file = "pysoem-1.1.13-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:84f1cf1391a0d5acec7408830400f4cec1c501e81afd62128e5110398e5e6c6d"},
@@ -3175,7 +3174,7 @@ version = "4.4.2"
 description = "Controller Area Network interface module for Python"
 optional = false
 python-versions = ">=3.8"
-groups = ["main", "tests"]
+groups = ["main"]
 files = [
     {file = "python_can-4.4.2-py3-none-any.whl", hash = "sha256:e956d781b45563c244c1f3c8fe001e292d1857519cff663d7c184673a68879f9"},
     {file = "python_can-4.4.2.tar.gz", hash = "sha256:1c46c0935f39f7a9c3e76b03249af0580689ebf7a1844195e92f87257f009df5"},
@@ -3884,7 +3883,7 @@ version = "1.13.1"
 description = "Fundamental algorithms for scientific computing in Python"
 optional = false
 python-versions = ">=3.9"
-groups = ["tests"]
+groups = ["main"]
 files = [
     {file = "scipy-1.13.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:20335853b85e9a49ff7572ab453794298bcf0354d8068c5f6775a0eabf350aca"},
     {file = "scipy-1.13.1-cp310-cp310-macosx_12_0_arm64.whl", hash = "sha256:d605e9c23906d1994f55ace80e0125c587f96c020037ea6aa98d01b4bd2e222f"},
@@ -4433,13 +4432,13 @@ zstd = ["backports-zstd (>=1.0.0) ; python_version < \"3.14\""]
 
 [[package]]
 name = "virtual-drive"
-version = "0.0+g331cf1c3d"
+version = "0.0.post534+develop.ea4373f"
 description = "Emulates a Summit drive for development and testing purposes."
 optional = false
 python-versions = ">=3.9"
-groups = ["tests"]
+groups = ["main"]
 files = [
-    {file = "virtual_drive-0.0+g331cf1c3d-py3-none-any.whl", hash = "sha256:879f203ee5af07325760e2038c29fa67cab905d253d7688fa51d8c87f67c3e96"},
+    {file = "virtual_drive-0.0.post534+develop.ea4373f-py3-none-any.whl", hash = "sha256:c332a73784753eba9e69eaff85603a51848bda31a8d7cee277143aaa7a678c6c"},
 ]
 
 [package.dependencies]
@@ -4785,4 +4784,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "5adfb0eafb62312da57eafb34ac74e44411d88fad3c30c895bab3f1d88fdba73"
+content-hash = "872c4f0d3f9f4b9d99d5a5843baa9169cde9d64474a9b339671cc98cb2bd8933"
