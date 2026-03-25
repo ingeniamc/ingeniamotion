@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.10.2] - 2026-03-20
 ### Added
 - Extended error queue manager (`ServoErrorQueue`) to support standard drive errors (MOCO/COCO/SYSTEM).
 - Added standard error queue descriptors: `MOCO_ERROR_QUEUE`, `COCO_ERROR_QUEUE`, `SYSTEM_ERROR_QUEUE`.
