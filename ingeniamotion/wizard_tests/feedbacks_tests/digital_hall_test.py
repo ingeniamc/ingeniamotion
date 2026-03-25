@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, ClassVar, Optional
 
 from typing_extensions import override
 
@@ -15,7 +15,7 @@ class DigitalHallTest(Feedbacks):
     HALLS_FILTER_CUTOFF_FREQUENCY = 10
     DIG_HALL_POLE_PAIRS_REGISTER = "FBK_DIGHALL_PAIRPOLES"
 
-    BACKUP_REGISTERS_HALLS: list[str] = [
+    BACKUP_REGISTERS_HALLS: ClassVar[list[str]] = [
         "FBK_DIGHALL_POLARITY",
         "FBK_DIGHALL_PAIRPOLES",
         "ERROR_DIGHALL_SEQ_OPTION",

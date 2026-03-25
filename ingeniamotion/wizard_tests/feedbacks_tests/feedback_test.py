@@ -1,7 +1,7 @@
 import math
 import time
 from enum import IntEnum
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, ClassVar, Optional
 
 import ingenialogger
 from ingenialink.exceptions import ILConfigurationError, ILIOError, ILStateError, ILTimeoutError
@@ -41,7 +41,7 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         NORMAL = 0
         REVERSED = 1
 
-    result_description = {
+    result_description: ClassVar[dict[ResultType, str]] = {
         ResultType.SUCCESS: "Feedback test pass successfully",
         ResultType.RESOLUTION_ERROR: "Feedback has a resolution error."
         " Detected resolution does not match the one specified on the configuration.",
@@ -67,7 +67,7 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
     MAX_POSITION_RANGE_LIMIT_REGISTER = "CL_POS_REF_MAX_RANGE"
     MIN_POSITION_RANGE_LIMIT_REGISTER = "CL_POS_REF_MIN_RANGE"
 
-    BACKUP_REGISTERS = [
+    BACKUP_REGISTERS: ClassVar[list[str]] = [
         "CL_POS_FBK_SENSOR",
         "MOT_PAIR_POLES",
         "DRV_OP_CMD",
@@ -94,7 +94,7 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         "CL_VEL_FBK_FILTER1_FREQ",
     ]
 
-    OPTIONAL_BACKUP_REGISTERS = [
+    OPTIONAL_BACKUP_REGISTERS: ClassVar[list[str]] = [
         "COMMU_ANGLE_INTEGRITY1_OPTION",
         "COMMU_ANGLE_INTEGRITY2_OPTION",
         POSITIONING_OPTION_CODE_REGISTER,
@@ -111,7 +111,7 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         mc: "MotionController",
         servo: str,
         axis: int,
-        logger_drive_name: Optional[str],
+        logger_drive_name: Optional[str] = None,
     ) -> None:
         super().__init__()
         self.mc = mc

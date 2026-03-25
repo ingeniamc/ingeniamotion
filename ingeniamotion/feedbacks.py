@@ -1,5 +1,5 @@
 import typing
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, ClassVar, Optional, Union
 
 import ingenialogger
 
@@ -13,7 +13,7 @@ from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 class Feedbacks:
     """Feedbacks Wizard Class description."""
 
-    __feedback_type_dict = {
+    __feedback_type_dict: ClassVar[dict[SensorType, SensorCategory]] = {
         SensorType.ABS1: SensorCategory.ABSOLUTE,
         SensorType.QEI: SensorCategory.INCREMENTAL,
         SensorType.HALLS: SensorCategory.ABSOLUTE,
@@ -24,7 +24,7 @@ class Feedbacks:
         SensorType.SINCOS: SensorCategory.INCREMENTAL,
     }
 
-    __feedback_polarity_register_dict = {
+    __feedback_polarity_register_dict: ClassVar[dict[SensorType, str]] = {
         SensorType.ABS1: "FBK_BISS1_SSI1_POS_POLARITY",
         SensorType.QEI: "FBK_DIGENC1_POLARITY",
         SensorType.HALLS: "FBK_DIGHALL_POLARITY",

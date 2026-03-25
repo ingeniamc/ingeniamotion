@@ -1,5 +1,5 @@
 from enum import IntEnum
-from typing import Optional, Union
+from typing import ClassVar, Optional, Union
 
 import ingenialogger
 from typing_extensions import override
@@ -45,7 +45,7 @@ class BrakeTune(BaseTest[LegacyDictReportType]):
     BRAKE_CURRENT_FEEDBACK_SOURCE = "MOT_BRAKE_CUR_FBK"
     BRAKE_CONTROL_MODE = "MOT_BRAKE_CONTROL_MODE"
 
-    BACKUP_REGISTERS = [
+    BACKUP_REGISTERS: ClassVar[list[str]] = [
         "MOT_BRAKE_OVERRIDE",
         "DRV_OP_CMD",
         "CL_VOL_Q_SET_POINT",

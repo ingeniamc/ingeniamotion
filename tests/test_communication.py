@@ -9,20 +9,23 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import pytest
-from ingenialink import CanBaudrate, CanDevice
+from ingenialink import CanBaudrate, CanDevice, Servo
 from ingenialink.canopen.network import CanopenNetwork
 from ingenialink.canopen.servo import CanopenServo
+from ingenialink.dictionary import SubnodeType
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
 from ingenialink.exceptions import ILError
 from ingenialink.network import SlaveInfo
 from ingenialink.servo import ServoState
+from ingenialink.utils.event import create_event
 from summit_testing_framework.setups.descriptors import (
     DriveCanOpenSetup,
     DriveEcatSetup,
     EthernetSetup,
     SetupDescriptor,
 )
+from virtual_drive.resources import VIRTUAL_DRIVE_CAN_V2_XDF
 
 from ingeniamotion import MotionController
 from ingeniamotion.exceptions import (
@@ -30,6 +33,8 @@ from ingeniamotion.exceptions import (
     IMRegisterNotExistError,
     IMRegisterWrongAccessError,
 )
+from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
+from tests.fsoe.conftest import MockNetwork
 
 if TYPE_CHECKING:
     from summit_testing_framework.setup_fixtures import MotionControllerWrapper
@@ -94,7 +99,7 @@ def testget_network_adapters(mocker, setup_descriptor: SetupDescriptor):
     assert expected_adapter_address_found is True
 
 
-@pytest.mark.virtual
+@pytest.mark.ethernet
 def test_connect_servo_eoe(setup_descriptor: EthernetSetup):
     mc = MotionController()
     assert "ethernet_test" not in mc.servos
@@ -106,7 +111,7 @@ def test_connect_servo_eoe(setup_descriptor: EthernetSetup):
     assert "ethernet_test" in mc.net and mc.net["ethernet_test"] is not None
 
 
-@pytest.mark.virtual
+@pytest.mark.ethernet
 def test_connect_servo_eoe_no_dictionary_error(setup_descriptor: EthernetSetup):
     mc = MotionController()
     with pytest.raises(FileNotFoundError):
@@ -115,7 +120,7 @@ def test_connect_servo_eoe_no_dictionary_error(setup_descriptor: EthernetSetup):
         )
 
 
-@pytest.mark.virtual
+@pytest.mark.ethernet
 def test_connect_servo_ethernet(setup_descriptor: EthernetSetup):
     mc = MotionController()
     assert "ethernet_test" not in mc.servos
@@ -141,7 +146,7 @@ def test_mc_disconnects_with_disconnection_callback(
     assert alias not in mc.servo_net
 
 
-@pytest.mark.virtual
+@pytest.mark.ethernet
 def test_connect_servo_ethernet_no_dictionary_error(setup_descriptor: EthernetSetup):
     mc = MotionController()
     with pytest.raises(FileNotFoundError):
@@ -369,19 +374,65 @@ def test_load_firmware_moco_exception(mocker, mc, alias):
 
 def test_connect_servo_virtual():
     mc = MotionController()
-    mc.communication.connect_servo_virtual(port=1062)
-    assert mc.communication._Communication__virtual_drive is not None
+    mc.communication.connect_servo_virtual_ethernet(port=1062)
+    assert "default" in mc.communication._Communication__virtual_drives
     mc.communication.disconnect()
-    assert mc.communication._Communication__virtual_drive is None
+    assert "default" not in mc.communication._Communication__virtual_drives
 
 
 @pytest.mark.virtual
 def test_connect_servo_virtual_custom_dictionary(setup_descriptor: SetupDescriptor):
     mc = MotionController()
-    mc.communication.connect_servo_virtual(dict_path=setup_descriptor.dictionary, port=1062)
-    assert mc.communication._Communication__virtual_drive is not None
+    mc.communication.connect_servo_virtual_ethernet(
+        dict_path=setup_descriptor.dictionary, port=1062
+    )
+    assert "default" in mc.communication._Communication__virtual_drives
     mc.communication.disconnect()
-    assert mc.communication._Communication__virtual_drive is None
+    assert "default" not in mc.communication._Communication__virtual_drives
+
+
+def test_connect_servo_virtual_ethercat():
+    mc = MotionController()
+    mc.communication.connect_servo_virtual_ethercat(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY)
+    assert "default" in mc.communication._Communication__virtual_drives
+    mc.communication.disconnect()
+    assert "default" not in mc.communication._Communication__virtual_drives
+
+
+def test_connect_servo_virtual_canopen():
+    mc = MotionController()
+    mc.communication.connect_servo_virtual_canopen(VIRTUAL_DRIVE_CAN_V2_XDF)
+    assert "default" in mc.communication._Communication__virtual_drives
+    mc.communication.disconnect()
+    assert "default" not in mc.communication._Communication__virtual_drives
+
+
+def test_connect_servo_virtual_separate_drives_per_alias():
+    """Each connect call must spawn an independent VirtualDrive with its own dictionary.
+
+    Regression test: previously the VirtualDrive was created only once, so a second
+    connection would silently reuse the first drive's dictionary and internal state.
+    """
+    alias_a = "drive_a"
+    alias_b = "drive_b"
+    mc = MotionController()
+    mc.communication.connect_servo_virtual_ethernet(alias=alias_a)
+    mc.communication.connect_servo_virtual_ethernet(alias=alias_b)
+
+    drives = mc.communication._Communication__virtual_drives
+    assert alias_a in drives
+    assert alias_b in drives
+    # Each alias must own a distinct VirtualDrive instance
+    assert drives[alias_a] is not drives[alias_b]
+    # Each drive must have its own running port (no sharing)
+    assert drives[alias_a].port != drives[alias_b].port
+
+    mc.communication.disconnect(alias_a)
+    assert alias_a not in drives
+    assert alias_b in drives
+
+    mc.communication.disconnect(alias_b)
+    assert alias_b not in drives
 
 
 def test_scan_servos_canopen_with_info(mocker):
@@ -590,11 +641,14 @@ def test_load_ensemble_fw_canopen(mocker):
     class MockDictionary:
         def __init__(self) -> None:
             self.path = "path_to_dictionary"
+            self.subnodes = {0: SubnodeType.COMMUNICATION, 1: SubnodeType.MOTION}
 
     class MockCanopenServo(CanopenServo):
         def __init__(self, node_id) -> None:
             self.target = node_id
             self._dictionary = MockDictionary()
+
+            self.disconnect_event, self._disconnect_event_publisher = create_event(Servo)
 
     servos = {}
     for node_id in range(1, 6):
@@ -607,7 +661,8 @@ def test_load_ensemble_fw_canopen(mocker):
     mocker.patch("ingenialink.canopen.network.CanopenNetwork.connect_to_slave")
     mocker.patch("ingenialink.canopen.network.CanopenNetwork.disconnect_from_slave")
     mc._get_drive = lambda x: servos[x]
-    mc.servos = servos
+    for alias, servo in servos.items():
+        mc.create_motion_node(alias, servo, MockNetwork())
 
     product_code = 123456
     slaves_info = OrderedDict({
@@ -656,7 +711,7 @@ def test_get_available_canopen_devices_check_get_available_devices_call(mocker, 
     test_net = None
     for n, n_type in enumerate(net_types):
         net = mocker.MagicMock(spec=n_type)
-        mc.net[n] = net
+        mc.register_network(alias=n, network=net)
         if n_type == CanopenNetwork:
             test_net = net
     patch_get_available_devices = mocker.patch(

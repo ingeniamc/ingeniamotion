@@ -18,6 +18,8 @@ from ingeniamotion.exceptions import IMError
 from ingeniamotion.metaclass import DEFAULT_AXIS
 from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.pdo import PDONetworksTracker
+from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY
+from tests.fsoe.conftest import MockServo
 
 
 @pytest.mark.soem
@@ -149,7 +151,7 @@ def test_pdos_watchdog_exception_auto(mc: "MotionController", alias: str) -> Non
     mc.capture.pdo.unsubscribe_to_exceptions(exception_callback, servo=alias)
     assert len(exceptions) > 0
     exception = exceptions[0]
-    assert str(exception) == "The sampling time is too high. The max sampling time is 3276.75 ms."
+    assert str(exception) == "The sampling time is too high. The max sampling time is 3.27675 s."
 
 
 @pytest.mark.soem
@@ -167,7 +169,7 @@ def test_pdos_watchdog_exception_manual(mc: "MotionController", alias: str) -> N
     assert len(exceptions) == 1
     assert (
         str(exceptions[0])
-        == "The watchdog timeout is too high. The max watchdog timeout is 6553.5 ms."
+        == "The watchdog timeout is too high. The max watchdog timeout is 6.5535 s."
     )
 
 
@@ -287,10 +289,18 @@ def test_start_pdos_wrong_network_type_exception(mc: "MotionController", alias: 
 
 @pytest.mark.soem
 def test_start_pdos_for_multiple_networks(mocker, mc: "MotionController") -> None:
-    mock_net = {"ifname1": EthercatNetwork("ifname1"), "ifname2": EthercatNetwork("ifname2")}
-    mock_servo_net = {"servo1": "ifname1", "servo2": "ifname2"}
-    mocker.patch.object(mc, "_MotionController__net", mock_net)
-    mocker.patch.object(mc, "_MotionController__servo_net", mock_servo_net)
+    mc.register_network(alias="ifname1", network=EthercatNetwork("ifname1"))
+    mc.register_network(alias="ifname2", network=EthercatNetwork("ifname2"))
+    mc.create_motion_node(
+        alias="servo1",
+        servo=MockServo(dictionary_path=SAMPLE_SAFE_PH1_XDFV3_DICTIONARY),
+        network=mc.net["ifname1"],
+    )
+    mc.create_motion_node(
+        alias="servo2",
+        servo=MockServo(dictionary_path=SAMPLE_SAFE_PH1_XDFV3_DICTIONARY),
+        network=mc.net["ifname2"],
+    )
     mocker.patch.object(EthercatNetwork, "activate_pdos")
 
     nets_tracker = mc.capture.pdo._PDONetworkManager__net_tracker
@@ -312,10 +322,21 @@ def test_start_pdos_for_multiple_servos_in_same_network(
     def _get_log_warnings():
         return [record for record in caplog.records if record.levelname == "WARNING"]
 
-    mock_net = {"ifname1": EthercatNetwork("ifname1")}
-    mock_servo_net = {"servo1": "ifname1", "servo2": "ifname1"}
-    mocker.patch.object(mc, "_MotionController__net", mock_net)
-    mocker.patch.object(mc, "_MotionController__servo_net", mock_servo_net)
+    mc.register_network(
+        alias="ifname1",
+        network=EthercatNetwork("ifname1"),
+    )
+    mc.create_motion_node(
+        alias="servo1",
+        servo=MockServo(dictionary_path=SAMPLE_SAFE_PH1_XDFV3_DICTIONARY),
+        network=mc.net["ifname1"],
+    )
+    mc.create_motion_node(
+        alias="servo2",
+        servo=MockServo(dictionary_path=SAMPLE_SAFE_PH1_XDFV3_DICTIONARY),
+        network=mc.net["ifname1"],
+    )
+
     mocker.patch.object(EthercatNetwork, "activate_pdos")
 
     nets_tracker = mc.capture.pdo._PDONetworkManager__net_tracker

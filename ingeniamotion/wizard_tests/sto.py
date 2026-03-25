@@ -1,5 +1,5 @@
 from enum import IntEnum
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, ClassVar, Optional
 
 import ingenialogger
 from typing_extensions import override
@@ -30,7 +30,7 @@ class STOTest(BaseTest[LegacyDictReportType]):
         NORMAL = 0
         REVERSED = 1
 
-    result_description = {
+    result_description: ClassVar[dict[ResultType, str]] = {
         ResultType.STO_INACTIVE: "STO Inactive",
         ResultType.STO_ACTIVE: "STO Active",
         ResultType.STO_ABNORMAL_LATCHED: "Abnormal STO Latched",
@@ -39,15 +39,7 @@ class STOTest(BaseTest[LegacyDictReportType]):
         ResultType.STO_INPUTS_DIFFER: "STO Inputs Differ",
     }
 
-    STO_STATUS_REGISTER = "DRV_PROT_STO_STATUS"
-
-    STO1_ACTIVE_BIT = 0x1
-    STO2_ACTIVE_BIT = 0x2
-    STO_SUPPLY_FAULT_BIT = 0x4
-    STO_ABNORMAL_FAULT_BIT = 0x8
-    STO_REPORT_BIT = 0x10
-
-    BACKUP_REGISTERS: list[str] = []
+    BACKUP_REGISTERS: ClassVar[list[str]] = []
 
     def __init__(
         self, mc: "MotionController", servo: str, axis: int, logger_drive_name: Optional[str] = None
@@ -92,7 +84,7 @@ class STOTest(BaseTest[LegacyDictReportType]):
         sto_abnormal_fault = self.mc.configuration.is_sto_abnormal_fault(
             servo=self.servo, axis=self.axis
         )
-        self.logger.info(f"STO abnormal fault bit is {'LOW' if sto_abnormal_fault else 'HIGH'}")
+        self.logger.info(f"STO abnormal fault bit is {'HIGH' if sto_abnormal_fault else 'LOW'}")
 
         # Check STO abnormal latch status --> Check bits 3(0x8 in HEX), 1(0x2) & 0(0x1)
         sto_abnormal_latch = self.mc.configuration.is_sto_abnormal_latched(
@@ -101,7 +93,7 @@ class STOTest(BaseTest[LegacyDictReportType]):
 
         # Check STO report --> Check bit 4 (0x10 in HEX)
         sto_report_bit = self.mc.configuration.get_sto_report_bit(servo=self.servo, axis=self.axis)
-        self.logger.info(f"STO report is {'LOW' if sto_report_bit else 'HIGH'}")
+        self.logger.info(f"STO report bit is {'LOW' if sto_report_bit == 0 else 'HIGH'}")
 
         # Check STO STATE
         if self.mc.configuration.is_sto_active(servo=self.servo, axis=self.axis):

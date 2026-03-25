@@ -1,4 +1,5 @@
 import pytest
+from summit_testing_framework.product_constants import PartNumber
 from summit_testing_framework.setups import (
     MultiRackServiceConfigSpecifier,
     RackServiceConfigSpecifier,
@@ -6,7 +7,7 @@ from summit_testing_framework.setups import (
 
 from ingeniamotion.enums import GPI, GPO, DigitalVoltageLevel, GPIOPolarity
 from ingeniamotion.exceptions import IMError
-from tests.setups.rack_specifiers import CAN_CAP_SETUP, ECAT_CAP_SETUP, ETH_CAP_SETUP
+from tests.setups.rack_specifiers import CAN_SETUP, ECAT_SETUP, ETH_SETUP
 
 
 @pytest.mark.virtual
@@ -51,7 +52,11 @@ def test_get_gpi_voltage_level(mc, alias, environment, setup_specifier):
     ):
         pytest.skip("Skipping test for local configurations")
 
-    if setup_specifier in [ETH_CAP_SETUP, ECAT_CAP_SETUP, CAN_CAP_SETUP]:
+    if setup_specifier in [
+        ETH_SETUP.get_specifier_by_identifier(PartNumber.CAP_XCR_C),
+        ECAT_SETUP.get_specifier_by_identifier(PartNumber.CAP_XCR_E),
+        CAN_SETUP.get_specifier_by_identifier(PartNumber.CAP_XCR_C),
+    ]:
         pytest.skip("Capitan rack setups do not have gpio control")
 
     environment.set_gpi(number=1, value=False)

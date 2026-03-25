@@ -1,8 +1,8 @@
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, ClassVar, Optional, Union
 
 import numpy as np
 from ingenialink.dictionary import SubnodeType
-from ingenialink.exceptions import ILIOError
+from ingenialink.exceptions import ILError
 from ingenialink.poller import Poller
 from numpy.typing import NDArray
 
@@ -45,12 +45,12 @@ class Capture:
     MONITORING_STATUS_ENABLED_BIT = 0x1
     DISTURBANCE_STATUS_ENABLED_BIT = 0x1
 
-    MONITORING_STATUS_PROCESS_STAGE_BITS = {
+    MONITORING_STATUS_PROCESS_STAGE_BITS: ClassVar[dict[MonitoringVersion, int]] = {
         MonitoringVersion.MONITORING_V1: 0x6,
         MonitoringVersion.MONITORING_V2: 0x6,
         MonitoringVersion.MONITORING_V3: 0xE,
     }
-    MONITORING_AVAILABLE_FRAME_BIT = {
+    MONITORING_AVAILABLE_FRAME_BIT: ClassVar[dict[MonitoringVersion, int]] = {
         MonitoringVersion.MONITORING_V1: 0x800,
         MonitoringVersion.MONITORING_V2: 0x800,
         MonitoringVersion.MONITORING_V3: 0x10,
@@ -304,7 +304,7 @@ class Capture:
                 self.MONITORING_VERSION_REGISTER, servo=servo, axis=0
             )
             return MonitoringVersion.MONITORING_V3
-        except (IMRegisterNotExistError, ILIOError):
+        except (IMRegisterNotExistError, ILError):
             # The Monitoring V3 is NOT available
             pass
         try:
@@ -312,13 +312,13 @@ class Capture:
                 self.MONITORING_CURRENT_NUMBER_BYTES_REGISTER, servo=servo, axis=0
             )
             return MonitoringVersion.MONITORING_V2
-        except (IMRegisterNotExistError, ILIOError):
+        except (IMRegisterNotExistError, ILError):
             # The Monitoring V2 is NOT available
             pass
         try:
             self.mc.communication.get_register(self.MONITORING_STATUS_REGISTER, servo=servo, axis=0)
             return MonitoringVersion.MONITORING_V1
-        except (IMRegisterNotExistError, ILIOError):
+        except (IMRegisterNotExistError, ILError):
             # Monitoring/disturbance are not available
             raise NotImplementedError(
                 "The monitoring and disturbance features are not available for this drive"

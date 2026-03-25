@@ -2,18 +2,69 @@ import logging
 import time
 from collections.abc import Generator, Iterator
 from pathlib import Path
-from typing import Callable, Optional, Union
+from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import numpy as np
 import pytest
-from pytest import FixtureRequest
+from ingenialink.dictionary import Interface
 from summit_testing_framework import dynamic_loader
-from summit_testing_framework.setups.descriptors import (
-    DriveHwSetup,
-    EthercatMultiSlaveSetup,
-    SetupDescriptor,
+from summit_testing_framework.pytest_helpers.marker_helper import (
+    apply_firmware_version_markers_to_items,
 )
-from summit_testing_framework.setups.specifiers import SetupSpecifier, VirtualDriveSpecifier
+
+if TYPE_CHECKING:
+    from ingeniamotion.axis import Axis
+    from ingeniamotion.motion_controller import MotionController
+    from ingeniamotion.motion_node import MotionNode
+
+
+def not_valid_for_eve_can_ecat_products(func: Callable) -> Callable:
+    """Decorator that applies not_valid_for_product markers for CAN and ECAT EVE products.
+
+    Returns:
+        The decorated function with the markers applied.
+    """
+    func = pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])(
+        func
+    )
+    func = pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])(
+        func
+    )
+    func = pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])(
+        func
+    )
+    func = pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])(
+        func
+    )
+    return func
+
+
+def not_valid_for_all_eve_products(func: Callable) -> Callable:
+    """Decorator that applies not_valid_for_product markers for all EVE products.
+
+    Returns:
+        The decorated function with the markers applied.
+    """
+    func = pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])(
+        func
+    )
+    func = pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])(
+        func
+    )
+    func = pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.ETH])(
+        func
+    )
+    func = pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])(
+        func
+    )
+    func = pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])(
+        func
+    )
+    func = pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.ETH])(
+        func
+    )
+    return func
+
 
 pytest_plugins = [
     "summit_testing_framework.pytest_addoptions",
@@ -60,18 +111,30 @@ def pytest_configure(config):  # noqa: ARG001
     logging.getLogger("ingenialink.ethercat.servo").addFilter(SuppressSpecificLogs())
 
 
+def pytest_collection_modifyitems(
+    session: pytest.Session,  # noqa: ARG001
+    config: pytest.Config,
+    items: list[pytest.Item],
+) -> None:
+    """Modifies collected tests to skip those that do not meet firmware version restrictions.
+
+    Only runs if --enable_firmware_version_check is passed.
+
+    Args:
+        session: pytest session.
+        config: pytest configuration.
+        items: collected test items.
+    """
+    apply_firmware_version_markers_to_items(config=config, items=items)
+
+
 @pytest.fixture
-def disable_monitoring_disturbance(skip_if_monitoring_not_available, mc, alias):  # noqa: ARG001
+def disable_monitoring_disturbance(
+    mc: "MotionController",
+    alias: str,
+) -> Generator[None, None, None]:
     yield
     mc.capture.clean_monitoring_disturbance(servo=alias)
-
-
-@pytest.fixture()
-def skip_if_monitoring_not_available(mc, alias):
-    try:
-        mc.capture._check_version(alias)
-    except NotImplementedError:
-        pytest.skip("Monitoring is not available")
 
 
 @pytest.hookimpl(tryfirst=True, hookwrapper=True)
@@ -110,6 +173,35 @@ def mean_actual_velocity_position(mc, servo, velocity=False, n_samples=200, samp
         samples[sample_idx] = value
         time.sleep(sampling_period)
     return np.mean(samples)
+
+
+@pytest.fixture
+def motion_node(mc: "MotionController") -> "MotionNode":
+    """Fixture that provides a motion node for testing.
+
+    Returns:
+        MotionNode: The motion node to be used for testing.
+    """
+    return mc._get_motion_node("default")
+
+
+@pytest.fixture
+def axis(motion_node: "MotionNode") -> "Axis":
+    """Fixture that provides an axis for testing.
+
+    Raises:
+        ValueError: If the motion node has more than one axis,
+            since the fixture cannot determine which one to use.
+
+    Returns:
+        Axis: The axis of the motion node to be used for testing.
+    """
+    if len(list(motion_node.axes)) > 1:
+        raise ValueError(
+            "Motion node has more than one axis, cannot determine which one to use for the fixture."
+        )
+
+    return motion_node.get_axis(1)
 
 
 # https://novantamotion.atlassian.net/browse/CIT-401
@@ -155,83 +247,3 @@ def timeout_loop(
 
         yield iteration
         iteration += 1
-
-
-# https://novantamotion.atlassian.net/browse/INGM-640
-@pytest.fixture(scope="module", autouse=True)
-def load_configuration_after_each_module(request: FixtureRequest) -> Generator[None, None, None]:
-    """Loads the drive configuration.
-
-    Args:
-        request: request.
-
-    Raises:
-        ValueError: if the configuration cannot be loaded for the descriptor.
-    """
-    try:
-        setup_specifier: SetupSpecifier = request.getfixturevalue("setup_specifier")
-        run_fixture = not isinstance(setup_specifier, VirtualDriveSpecifier)
-    except Exception:
-        run_fixture = False
-    if run_fixture:
-        try:
-            setup_descriptor: SetupDescriptor = request.getfixturevalue("setup_descriptor")
-            alias = request.getfixturevalue("alias")
-            mc = request.getfixturevalue("_motion_controller_creator")
-        # If servo is not connected
-        except Exception:
-            run_fixture = False
-
-    yield
-    if not run_fixture:
-        return
-
-    if not isinstance(setup_descriptor, (DriveHwSetup, EthercatMultiSlaveSetup)):
-        raise ValueError(f"Configuration cannot be loaded for {setup_descriptor=}")
-    aliases = [alias] if isinstance(alias, str) else alias
-    descriptors = (
-        setup_descriptor.drives
-        if isinstance(setup_descriptor, EthercatMultiSlaveSetup)
-        else [setup_descriptor]
-    )
-    for eval_alias, descriptor in zip(aliases, descriptors):
-        mc.motion.motor_disable(servo=eval_alias)
-        if descriptor.config_file is not None:
-            mc.configuration.load_configuration(descriptor.config_file.as_posix(), servo=eval_alias)
-
-
-# https://novantamotion.atlassian.net/browse/INGM-640
-@pytest.fixture(autouse=True)
-def disable_motor_fixture(request: FixtureRequest) -> Generator[None, None, None]:
-    """Disables the motor on pytest session end.
-
-    Args:
-        request: request.
-
-    Raises:
-        ValueError: if the motor cannot be disabled for the setup descriptor.
-    """
-    try:
-        setup_specifier: SetupSpecifier = request.getfixturevalue("setup_specifier")
-        run_fixture = not isinstance(setup_specifier, VirtualDriveSpecifier)
-    except Exception:
-        run_fixture = False
-    if run_fixture:
-        try:
-            setup_descriptor: SetupDescriptor = request.getfixturevalue("setup_descriptor")
-            alias = request.getfixturevalue("alias")
-            mc = request.getfixturevalue("_motion_controller_creator")
-        # If servo is not connected
-        except Exception:
-            run_fixture = False
-
-    yield
-    if not run_fixture:
-        return
-
-    if not isinstance(setup_descriptor, (DriveHwSetup, EthercatMultiSlaveSetup)):
-        raise ValueError(f"Cannot disable motor for {setup_descriptor=}")
-    aliases = [alias] if isinstance(alias, str) else alias
-    for eval_alias in aliases:
-        mc.motion.motor_disable(servo=eval_alias)
-        mc.motion.fault_reset(servo=eval_alias)

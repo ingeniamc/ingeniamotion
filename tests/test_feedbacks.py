@@ -60,7 +60,6 @@ def skip_if_qei2_is_not_available(mc, alias, sensor=SensorType.QEI2):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_commutation_feedback(mc, alias, sensor):
     mc.communication.set_register(COMMUTATION_FEEDBACK_REGISTER, sensor, servo=alias)
@@ -69,7 +68,6 @@ def test_get_commutation_feedback(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_set_commutation_feedback(mc, alias, sensor):
     mc.configuration.set_commutation_feedback(sensor, servo=alias)
@@ -78,7 +76,6 @@ def test_set_commutation_feedback(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor, category", SENSOR_TYPE_AND_CATEGORY)
 def test_get_commutation_feedback_category(mc, alias, sensor, category):
     mc.configuration.set_commutation_feedback(sensor, servo=alias)
@@ -87,7 +84,6 @@ def test_get_commutation_feedback_category(mc, alias, sensor, category):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_commutation_feedback_resolution(mc, alias, sensor):
     skip_if_qei2_is_not_available(mc, alias, sensor=sensor)
@@ -102,7 +98,6 @@ def test_get_commutation_feedback_resolution(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_reference_feedback(mc, alias, sensor):
     mc.communication.set_register(REFERENCE_FEEDBACK_REGISTER, sensor, servo=alias)
@@ -111,7 +106,6 @@ def test_get_reference_feedback(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_set_reference_feedback(mc, alias, sensor):
     mc.configuration.set_reference_feedback(sensor, servo=alias)
@@ -120,7 +114,6 @@ def test_set_reference_feedback(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor, category", SENSOR_TYPE_AND_CATEGORY)
 def test_get_reference_feedback_category(mc, alias, sensor, category):
     mc.configuration.set_commutation_feedback(sensor, servo=alias)
@@ -129,7 +122,6 @@ def test_get_reference_feedback_category(mc, alias, sensor, category):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_reference_feedback_resolution(mc, alias, sensor):
     skip_if_qei2_is_not_available(mc, alias, sensor=sensor)
@@ -144,7 +136,6 @@ def test_get_reference_feedback_resolution(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_velocity_feedback(mc, alias, sensor):
     mc.communication.set_register(VELOCITY_FEEDBACK_REGISTER, sensor, servo=alias)
@@ -153,7 +144,6 @@ def test_get_velocity_feedback(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_set_velocity_feedback(mc, alias, sensor):
     mc.configuration.set_velocity_feedback(sensor, servo=alias)
@@ -162,7 +152,6 @@ def test_set_velocity_feedback(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor, category", SENSOR_TYPE_AND_CATEGORY)
 def test_get_velocity_feedback_category(mc, alias, sensor, category):
     mc.configuration.set_velocity_feedback(sensor, servo=alias)
@@ -171,7 +160,6 @@ def test_get_velocity_feedback_category(mc, alias, sensor, category):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_velocity_feedback_resolution(mc, alias, sensor):
     skip_if_qei2_is_not_available(mc, alias, sensor=sensor)
@@ -186,7 +174,6 @@ def test_get_velocity_feedback_resolution(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_position_feedback(mc, alias, sensor):
     mc.communication.set_register(POSITION_FEEDBACK_REGISTER, sensor, servo=alias)
@@ -195,7 +182,6 @@ def test_get_position_feedback(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_set_position_feedback(mc, alias, sensor):
     mc.configuration.set_position_feedback(sensor, servo=alias)
@@ -204,7 +190,6 @@ def test_set_position_feedback(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor, category", SENSOR_TYPE_AND_CATEGORY)
 def test_get_position_feedback_category(mc, alias, sensor, category):
     mc.configuration.set_position_feedback(sensor, servo=alias)
@@ -213,7 +198,6 @@ def test_get_position_feedback_category(mc, alias, sensor, category):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_position_feedback_resolution(mc, alias, sensor):
     skip_if_qei2_is_not_available(mc, alias, sensor=sensor)
@@ -228,7 +212,6 @@ def test_get_position_feedback_resolution(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize(
     "sensor",
     [
@@ -247,7 +230,6 @@ def test_get_auxiliar_feedback(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize(
     "sensor",
     [
@@ -266,7 +248,6 @@ def test_set_auxiliar_feedback(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize(
     "sensor, category",
     [
@@ -285,7 +266,6 @@ def test_get_auxiliar_feedback_category(mc, alias, sensor, category):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("clean_and_restore_feedbacks")
 @pytest.mark.parametrize(
     "sensor",
     [

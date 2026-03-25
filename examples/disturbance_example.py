@@ -1,6 +1,6 @@
+import argparse
 import math
 import time
-import argparse
 
 from ingeniamotion import MotionController
 from ingeniamotion.enums import OperationMode

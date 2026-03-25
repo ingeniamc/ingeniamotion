@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, ClassVar, Optional, Union
 
 import ingenialogger
 from ingenialink.exceptions import ILError
@@ -19,8 +19,9 @@ class Brake(BaseTest[None]):  # type: ignore [type-var]
     BRAKE_OVERRIDE_REGISTER = "MOT_BRAKE_OVERRIDE"
 
     PRIMARY_ABSOLUTE_SLAVE_1_PROTOCOL = "FBK_BISS1_SSI1_PROTOCOL"
+    PRIMARY_ABSOLUTE_SLAVE_1_FRAME_TYPE = "FBK_BISS1_SSI1_FRAME_TYPE"
 
-    BACKUP_REGISTERS = [
+    BACKUP_REGISTERS: ClassVar[list[str]] = [
         "MOT_BRAKE_OVERRIDE",
         "DRV_OP_CMD",
         "MOT_PAIR_POLES",
@@ -32,6 +33,7 @@ class Brake(BaseTest[None]):  # type: ignore [type-var]
         "CL_AUX_FBK_SENSOR",
         "MOT_COMMU_MOD",
         PRIMARY_ABSOLUTE_SLAVE_1_PROTOCOL,
+        PRIMARY_ABSOLUTE_SLAVE_1_FRAME_TYPE,
     ]
 
     def __init__(
@@ -70,11 +72,17 @@ class Brake(BaseTest[None]):  # type: ignore [type-var]
         self.mc.configuration.set_position_feedback(
             SensorType.INTGEN, servo=self.servo, axis=self.axis
         )
+        # Set the auxiliar feedback to ABS1 because the internal generator is not allowed
+        # as auxiliar feedback for all drives
         self.mc.configuration.set_auxiliar_feedback(
             SensorType.ABS1, servo=self.servo, axis=self.axis
         )
+        # Set the absolute encoder protocol to SSI and the frame type to RAW to avoid errors.
         self.mc.communication.set_register(
             self.PRIMARY_ABSOLUTE_SLAVE_1_PROTOCOL, 1, servo=self.servo, axis=self.axis
+        )
+        self.mc.communication.set_register(
+            self.PRIMARY_ABSOLUTE_SLAVE_1_FRAME_TYPE, 0, servo=self.servo, axis=self.axis
         )
 
     @override

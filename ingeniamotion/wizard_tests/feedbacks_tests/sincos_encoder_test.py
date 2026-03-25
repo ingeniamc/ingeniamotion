@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING, ClassVar, Optional
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
@@ -11,7 +11,7 @@ class SinCosEncoderTest(Feedbacks):
 
     FEEDBACK_POLARITY_REGISTER = "FBK_SINCOS_POLARITY"
 
-    BACKUP_REGISTERS_SINCOS: list[str] = [FEEDBACK_POLARITY_REGISTER]
+    BACKUP_REGISTERS_SINCOS: ClassVar[list[str]] = [FEEDBACK_POLARITY_REGISTER]
 
     SENSOR_TYPE_FEEDBACK_TEST = SensorType.SINCOS
 

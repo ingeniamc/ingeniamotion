@@ -1,6 +1,8 @@
 import contextlib
+import logging
 import time
 from threading import Thread
+from typing import TYPE_CHECKING
 
 import pytest
 from ingenialink import exceptions
@@ -21,6 +23,11 @@ from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import Second
 from ingeniamotion.wizard_tests.phase_calibration import Phasing
 from ingeniamotion.wizard_tests.phasing_check import PhasingCheck
 
+if TYPE_CHECKING:
+    from summit_testing_framework.setups.environment_control import DriveEnvironmentController
+
+    from ingeniamotion.motion_controller import MotionController
+
 CURRENT_QUADRATURE_SET_POINT_REGISTER = "CL_CUR_Q_SET_POINT"
 RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
 MAXIMUM_CONTINUOUS_CURRENT_DRIVE_PROTECTION = "DRV_PROT_MAN_MAX_CONT_CURRENT_VALUE"
@@ -35,9 +42,11 @@ def force_fault(mc, alias):
 
 
 @pytest.fixture(scope="module")
-def feedback_test_setup(_motion_controller_creator, alias):
+def feedback_test_setup(
+    _motion_controller_creator, environment: "DriveEnvironmentController"
+) -> None:
     mc = _motion_controller_creator
-    mc.tests.commutation(servo=alias)
+    mc.tests.commutation(servo=environment.aliases)
 
 
 @pytest.mark.ethernet
@@ -137,8 +146,7 @@ def test_secondary_ssi_test(mc, alias, feedback_list):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-def test_commutation(alias, motion_controller_teardown):
-    mc = motion_controller_teardown
+def test_commutation(alias: str, mc: "MotionController") -> None:
     results = mc.tests.commutation(servo=alias)
     assert results["result_severity"] == SeverityLevel.SUCCESS
 
@@ -195,10 +203,34 @@ def test_sto_test_error(mocker, mc, alias, sto_value, message):
     assert results["result_message"] == message
 
 
+@pytest.mark.virtual
+@pytest.mark.parametrize("sto_value", [0x4, 0x1F, 0xE, 0x73, 0x5, 0x17])
+def test_sto_test_logs(caplog, mocker, mc, alias, sto_value):
+    caplog.set_level(logging.INFO)
+    mocker.patch("ingeniamotion.configuration.Configuration.get_sto_status", return_value=sto_value)
+    mc.tests.sto_test(servo=alias)
+
+    # Calculate expected log messages from bit pattern
+    # STO1 active when bit 0 is 0, STO2 active when bit 1 is 0
+    sto1_log = f"STO1 bit is {'HIGH' if sto_value & 0x1 else 'LOW'}"
+    sto2_log = f"STO2 bit is {'HIGH' if sto_value & 0x2 else 'LOW'}"
+    supply_log = f"STO Power Supply is {'HIGH' if sto_value & 0x4 else 'LOW'}"
+    abnormal_log = f"STO abnormal fault bit is {'HIGH' if sto_value & 0x8 else 'LOW'}"
+    report_log = f"STO report bit is {'HIGH' if sto_value & 0x10 else 'LOW'}"
+
+    assert sto1_log in caplog.text
+    assert sto2_log in caplog.text
+    assert supply_log in caplog.text
+    assert abnormal_log in caplog.text
+    assert report_log in caplog.text
+
+
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 def test_brake_test(mc, alias):
+    # Set frame type to BiSS-C BP3 to ensure that the test changes it to avoid an error.
+    mc.communication.set_register("FBK_BISS1_SSI1_FRAME_TYPE", 3, servo=alias)
     pair_poles = mc.configuration.get_motor_pair_poles(servo=alias)
     brake_test = mc.tests.brake_test(servo=alias)
     assert mc.configuration.get_motor_pair_poles(servo=alias) == 1

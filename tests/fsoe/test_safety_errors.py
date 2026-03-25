@@ -23,6 +23,7 @@ if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 if FSOE_MASTER_INSTALLED:
+    from ingeniamotion.errors import Error, ServoErrorQueue
     from ingeniamotion.fsoe_master import (
         FSoEMasterHandler,
         ProcessImage,
@@ -34,7 +35,6 @@ if FSOE_MASTER_INSTALLED:
         STOFunction,
         SVFunction,
     )
-    from ingeniamotion.fsoe_master.errors import Error, ServoErrorQueue
 
 _INVALID_MAPPING_ERROR_ID = 0x80040002  # Error ID for invalid mapping error
 
@@ -67,11 +67,12 @@ def test_get_error_with_id_not_in_dict() -> None:
 
 @pytest.mark.fsoe_phase2
 def test_no_errors(
-    mcu_error_queue_a: "ServoErrorQueue", environment: "DriveEnvironmentController"
+    mcu_error_queue_a: "ServoErrorQueue",
+    environment: "DriveEnvironmentController",
 ) -> None:
     """Test methods when there are no errors"""
     # Clear any existing errors by power cycling
-    environment.power_cycle(wait_for_drives=True)
+    environment.power_cycle(wait_for_drives=True, reconnect_drives=True)
 
     assert mcu_error_queue_a.get_number_total_errors() == 0
 
@@ -90,7 +91,7 @@ def test_get_last_error_overtemp_error(
 ) -> None:
     """Test getting the last error when there is an overtemperature error."""
     # Clear any existing errors by power cycling
-    environment.power_cycle(wait_for_drives=True)
+    environment.power_cycle(wait_for_drives=True, reconnect_drives=True)
 
     servo.write("FSOE_USER_OVER_TEMPERATURE", 0, subnode=1)
 
@@ -119,7 +120,7 @@ def test_get_last_error_invalid_map(
     timeout_for_data_sra: float,
 ) -> None:
     """Test getting the last error when there is an invalid map error."""
-    environment.power_cycle(wait_for_drives=True)
+    environment.power_cycle(wait_for_drives=True, reconnect_drives=True)
 
     mc, handler = mc_with_fsoe_with_sra_no_fail_on_errors
 
@@ -157,7 +158,7 @@ def test_get_last_error_invalid_map(
         # Stop the master
         mc.fsoe.stop_master(stop_pdos=True)
         # Power cycle to clear the errors generated
-        environment.power_cycle(wait_for_drives=True)
+        environment.power_cycle(wait_for_drives=True, reconnect_drives=True)
 
 
 @pytest.mark.fsoe_phase2

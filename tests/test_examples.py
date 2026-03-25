@@ -42,7 +42,13 @@ if TYPE_CHECKING:
 
 
 @pytest.mark.ethernet
-def test_disturbance_example(setup_descriptor: EthernetSetup, script_runner):
+@pytest.mark.usefixtures("disable_monitoring_disturbance")
+def test_disturbance_example(
+    setup_descriptor: EthernetSetup,
+    mc_with_reconnect_force_restore: "MotionControllerWrapper",
+    script_runner,
+):
+    mc_with_reconnect_force_restore.disconnect()
     script_path = "examples/disturbance_example.py"
     ip_address = setup_descriptor.ip
     dictionary = setup_descriptor.dictionary
@@ -56,12 +62,14 @@ def test_disturbance_example(setup_descriptor: EthernetSetup, script_runner):
 
 @pytest.mark.canopen
 def test_canopen_example(
-    setup_descriptor: DriveCanOpenSetup, mc_with_reconnect: "MotionControllerWrapper", script_runner
+    setup_descriptor: DriveCanOpenSetup,
+    mc_with_reconnect_force_restore: "MotionControllerWrapper",
+    script_runner,
 ):
     # This test will create its own connection to a servo, so we need to
     # disconnect the testing framework's connection to avoid conflicts.
     # It will automatically be reconnected after the test ends.
-    mc_with_reconnect.disconnect()
+    mc_with_reconnect_force_restore.disconnect()
 
     script_path = "examples/canopen_example.py"
 
@@ -77,7 +85,12 @@ def test_canopen_example(
 
 
 @pytest.mark.ethernet
-def test_set_get_register_example(setup_descriptor: DriveEthernetSetup, script_runner):
+def test_set_get_register_example(
+    setup_descriptor: DriveEthernetSetup,
+    mc_with_reconnect_force_restore: "MotionControllerWrapper",
+    script_runner,
+):
+    mc_with_reconnect_force_restore.disconnect()
     script_path = "examples/set_get_register.py"
     result = script_runner.run([
         script_path,
@@ -88,7 +101,12 @@ def test_set_get_register_example(setup_descriptor: DriveEthernetSetup, script_r
 
 
 @pytest.mark.ethernet
-def test_poller_example(setup_descriptor: DriveEthernetSetup, script_runner):
+def test_poller_example(
+    setup_descriptor: DriveEthernetSetup,
+    mc_with_reconnect_force_restore: "MotionControllerWrapper",
+    script_runner,
+):
+    mc_with_reconnect_force_restore.disconnect()
     script_path = "examples/poller_example.py"
 
     result = script_runner.run([
@@ -106,8 +124,13 @@ def test_poller_example(setup_descriptor: DriveEthernetSetup, script_runner):
     ["velocity", "torque"],
 )
 def test_velocity_torque_ramp_example(
-    setup_descriptor: DriveEthernetSetup, script_runner, mocker, mode
+    setup_descriptor: DriveEthernetSetup,
+    mc_with_reconnect_force_restore: "MotionControllerWrapper",
+    script_runner,
+    mocker,
+    mode,
 ):
+    mc_with_reconnect_force_restore.disconnect()
     script_path = "examples/velocity_torque_ramp.py"
 
     class MockMotion:
@@ -142,7 +165,13 @@ def test_velocity_torque_ramp_example(
 
 
 @pytest.mark.ethernet
-def test_monitoring_example(setup_descriptor: DriveEthernetSetup, script_runner):
+@pytest.mark.usefixtures("disable_monitoring_disturbance")
+def test_monitoring_example(
+    setup_descriptor: DriveEthernetSetup,
+    mc_with_reconnect_force_restore: "MotionControllerWrapper",
+    script_runner,
+) -> None:
+    mc_with_reconnect_force_restore.disconnect()
     script_path = "examples/monitoring_example.py"
 
     result = script_runner.run([
@@ -155,7 +184,13 @@ def test_monitoring_example(setup_descriptor: DriveEthernetSetup, script_runner)
 
 
 @pytest.mark.ethernet
-def test_load_fw_ftp(setup_descriptor: DriveEthernetSetup, script_runner, mocker):
+def test_load_fw_ftp(
+    setup_descriptor: DriveEthernetSetup,
+    mc_with_reconnect_force_restore: "MotionControllerWrapper",
+    script_runner,
+    mocker,
+):
+    mc_with_reconnect_force_restore.disconnect()
     script_path = "examples/load_fw_ftp.py"
 
     class MockCommunication:
@@ -176,7 +211,13 @@ def test_load_fw_ftp(setup_descriptor: DriveEthernetSetup, script_runner, mocker
 
 
 @pytest.mark.soem
-def test_load_fw_ecat(setup_descriptor: DriveEcatSetup, script_runner, mocker):
+def test_load_fw_ecat(
+    setup_descriptor: DriveEcatSetup,
+    mc_with_reconnect_force_restore: "MotionControllerWrapper",
+    script_runner,
+    mocker,
+):
+    mc_with_reconnect_force_restore.disconnect()
     script_path = "examples/load_fw_ecat.py"
     interface_index = 0
     slave_id = setup_descriptor.slave
@@ -204,7 +245,14 @@ def test_load_fw_ecat(setup_descriptor: DriveEcatSetup, script_runner, mocker):
     "feedback",
     ["HALLS", "QEI", "QEI2"],
 )
-def test_feedback_example(setup_descriptor: DriveEthernetSetup, script_runner, mocker, feedback):
+def test_feedback_example(
+    setup_descriptor: DriveEthernetSetup,
+    mc_with_reconnect_force_restore: "MotionControllerWrapper",
+    script_runner,
+    mocker,
+    feedback,
+):
+    mc_with_reconnect_force_restore.disconnect()
     script_path = "examples/feedback_test.py"
 
     class MockDriveTests:
@@ -228,7 +276,13 @@ def test_feedback_example(setup_descriptor: DriveEthernetSetup, script_runner, m
 
 
 @pytest.mark.ethernet
-def test_commutation_test_example(setup_descriptor: DriveEthernetSetup, script_runner, mocker):
+def test_commutation_test_example(
+    setup_descriptor: DriveEthernetSetup,
+    mc_with_reconnect_force_restore: "MotionControllerWrapper",
+    script_runner,
+    mocker,
+):
+    mc_with_reconnect_force_restore.disconnect()
     script_path = "examples/commutation_test.py"
 
     class MockDriveTests:
@@ -246,12 +300,14 @@ def test_commutation_test_example(setup_descriptor: DriveEthernetSetup, script_r
 
 @pytest.mark.fsoe
 def test_safety_torque_off_example(
-    setup_descriptor: DriveEcatSetup, mc_with_reconnect: "MotionControllerWrapper", mocker
+    setup_descriptor: DriveEcatSetup,
+    mc_with_reconnect_force_restore: "MotionControllerWrapper",
+    mocker,
 ) -> None:
     # This test will create its own connection to a servo, so we need to
     # disconnect the testing framework's connection to avoid conflicts.
     # It will automatically be reconnected after the test ends.
-    mc_with_reconnect.disconnect()
+    mc_with_reconnect_force_restore.disconnect()
 
     if setup_descriptor.config_file is None:
         pytest.skip("Setup does not have a config file.")
@@ -285,12 +341,14 @@ def test_safety_torque_off_example(
     reruns=1, reruns_delay=1
 )  # https://novantamotion.atlassian.net/browse/SACOAPP-255
 def test_safety_mapping_example(
-    setup_descriptor: DriveEcatSetup, mc_with_reconnect: "MotionControllerWrapper", mocker
+    setup_descriptor: DriveEcatSetup,
+    mc_with_reconnect_force_restore: "MotionControllerWrapper",
+    mocker,
 ) -> None:
     # This test will create its own connection to a servo, so we need to
     # disconnect the testing framework's connection to avoid conflicts.
     # It will automatically be reconnected after the test ends.
-    mc_with_reconnect.disconnect()
+    mc_with_reconnect_force_restore.disconnect()
 
     errors_raised = []
 
@@ -321,8 +379,13 @@ def test_safety_mapping_example(
     ["disabled", "release", "enable"],
 )
 def test_brake_config_example(
-    setup_descriptor: DriveEthernetSetup, script_runner, mocker, override
+    setup_descriptor: DriveEthernetSetup,
+    mc_with_reconnect_force_restore: "MotionControllerWrapper",
+    script_runner,
+    mocker,
+    override,
 ):
+    mc_with_reconnect_force_restore.disconnect()
     script_path = "examples/brake_config.py"
 
     class MockConfiguration:

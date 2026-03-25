@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.10.2] - 2026-03-20
+### Added
+- Extended error queue manager (`ServoErrorQueue`) to support standard drive errors (MOCO/COCO/SYSTEM).
+- Added standard error queue descriptors: `MOCO_ERROR_QUEUE`, `COCO_ERROR_QUEUE`, `SYSTEM_ERROR_QUEUE`.
+- Add `is_motion` and `follows_custom_motion_rules` in SafetyFunction class.
+
+### Changed
+- Deprecated: Mutable access to the net and net_servo, and servo_net attributes of the `MotionController` class. 
+
+### Fixed
+- Clarify STO test logs.
+
 ## [0.10.1] - 2025-11-24
 ### Added
 - Add `is_active` function in SafetyFunctions class.

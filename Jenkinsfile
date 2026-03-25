@@ -1,4 +1,4 @@
-@Library('cicd-lib@0.16') _
+@Library('cicd-lib@0.20') _
 
 def SW_NODE = "windows-slave"
 def ECAT_NODE = "ecat-test"
@@ -43,43 +43,103 @@ def archiveWiresharkLogs() {
     archiveArtifacts artifacts: "${WIRESHARK_DIR}\\*.pcap", allowEmptyArchive: true
 }
 
-def runTestHW(run_identifier, markers, setup_name, extra_args = "") {
+def runTest(run_identifier, markers, setup_name, extra_args = "", useWireshark = false, workingDir = null) {
+    def withWiresharkEnv = useWireshark
+    // Automatically add USE_WIRESHARK_LOGGING to extra_args when useWireshark is true
+    def effectiveExtraArgs = useWireshark ? "${USE_WIRESHARK_LOGGING} ${extra_args}".trim() : extra_args
     try {
         timeout(time: 1, unit: 'HOURS') {
             def pythonVersions = RUN_PYTHON_VERSIONS.split(',')
             pythonVersions.each { version ->
-                withEnv(["WIRESHARK_SCOPE=${params.WIRESHARK_LOGGING_SCOPE}", "CLEAR_WIRESHARK_LOG_IF_SUCCESSFUL=${params.CLEAR_SUCCESSFUL_WIRESHARK_LOGS}", "START_WIRESHARK_TIMEOUT_S=${START_WIRESHARK_TIMEOUT_S}"]) {
+                def envVars = withWiresharkEnv ? 
+                    ["WIRESHARK_SCOPE=${params.WIRESHARK_LOGGING_SCOPE}", "CLEAR_WIRESHARK_LOG_IF_SUCCESSFUL=${params.CLEAR_SUCCESSFUL_WIRESHARK_LOGS}", "START_WIRESHARK_TIMEOUT_S=${START_WIRESHARK_TIMEOUT_S}"] : 
+                    []
+                
+                withEnv(envVars) {
                     try {
-                        bat """
-                            call .venv${version}/Scripts/activate
-                            poetry run poe tests ^
-                                --import-mode=importlib ^
-                                --cov=ingeniamotion ^
-                                --junitxml=pytest_reports/junit-tests-${version}.xml ^
-                                --junit-prefix=${version} ^
-                                -m \"${markers}\" ^
-                                --setup tests.setups.rack_specifiers.${setup_name} ^
-                                --job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\" ^
-                                ${extra_args}
-                        """
+                        def cdCmd = workingDir ? "cd ${workingDir}" : ""
+                        def testArgs = [
+                            "--import-mode=importlib",
+                            "--cov=ingeniamotion",
+                            "--junitxml=pytest_reports/junit-tests-${version}.xml",
+                            "--junit-prefix=${version}",
+                            "-m \"${markers}\"",
+                            "--setup ${setup_name}",
+                            "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\"",
+                            "--tb=long",
+                            "-o log_cli=True",
+                            "--enable_firmware_version_check",
+                            effectiveExtraArgs
+                        ].findAll { it }.join(" ")
+                        
+                        if (isUnix()) {
+                            sh """
+                                ${cdCmd}
+                                . .venv${version}/bin/activate
+                                poetry run poe tests ${testArgs}
+                                deactivate
+                            """
+                        } else {
+                            bat """
+                                ${cdCmd}
+                                call .venv${version}/Scripts/activate
+                                poetry run poe tests ${testArgs}
+                                deactivate
+                            """
+                        }
                     } catch (err) {
                         unstable(message: "Tests failed")
                     } finally {
+                        // Handle junit reports and coverage
+                        if (workingDir && isUnix()) {
+                            sh """
+                                mkdir -p pytest_reports
+                                cp ${workingDir}/pytest_reports/* pytest_reports/ 2>/dev/null || true
+                            """
+                        } else if (workingDir && !isUnix()) {
+                            bat """
+                                mkdir -p pytest_reports
+                                XCOPY ${workingDir}\\pytest_reports\\* pytest_reports\\ /s /i /y /e /h 2>nul || exit /b 0
+                            """
+                        }
+                        
                         junit "pytest_reports\\*.xml"
+                        
                         // Delete the junit after publishing it so it not re-published on the next stage
-                        bat "del /S /Q pytest_reports\\*.xml"
+                        if (isUnix()) {
+                            sh "rm -f pytest_reports/*.xml"
+                        } else {
+                            bat "del /S /Q pytest_reports\\*.xml"
+                        }
+                        
                         // Save the coverage so it can be unified and published later
                         def coverage_stash = ".coverage_${run_identifier}_${version}"
-                        bat "move .coverage ${coverage_stash}"
-                        stash includes: coverage_stash, name: coverage_stash
+                        
+                        if (isUnix()) {
+                            if (workingDir) {
+                                sh "cp ${workingDir}/.coverage ${coverage_stash} 2>/dev/null || true"
+                            } else {
+                                sh "mv .coverage ${coverage_stash} 2>/dev/null || true"
+                            }
+                        } else {
+                            if (workingDir) {
+                                bat "move ${workingDir}\\.coverage ${coverage_stash} 2>nul || exit /b 0"
+                            } else {
+                                bat "move .coverage ${coverage_stash} 2>nul || exit /b 0"
+                            }
+                        }
+                        
+                        stash includes: coverage_stash, name: coverage_stash, allowEmpty: true
                         coverage_stashes.add(coverage_stash)
                     }
                 }
             }
         }
     } finally {
-        archiveWiresharkLogs()
-        clearWiresharkLogs()
+        if (withWiresharkEnv) {
+            archiveWiresharkLogs()
+            clearWiresharkLogs()
+        }
     }
 }
 
@@ -204,12 +264,19 @@ pipeline {
                     }
                     agent {
                         docker {
-                            label "worker"
+                            label "lin-worker"
                             image LIN_DOCKER_IMAGE
                             args '-u root:root'
                         }
                     }
                     stages {
+                        // stage('Check Dependencies') {
+                        //     steps {
+                        //         script {
+                        //             checkDependencies()
+                        //         }
+                        //     }
+                        // }
                         stage('Move workspace') {
                             steps {
                                 script {
@@ -230,24 +297,7 @@ pipeline {
                         stage('Run no-connection tests') {
                             steps {
                                 script {
-                                    def pythonVersions = RUN_PYTHON_VERSIONS.split(',')
-                                    pythonVersions.each { version ->
-                                        sh """
-                                            cd ${LIN_DOCKER_TMP_PATH}
-                                            . .venv${version}/bin/activate
-                                            poetry run poe tests --junitxml=pytest_reports/junit-tests-${version}.xml --junit-prefix=${version} -m virtual --setup tests.setups.virtual_drive.TESTS_SETUP
-                                            deactivate
-                                        """
-                                    }
-                                }
-                            }
-                            post {
-                                always {
-                                    sh """
-                                        mkdir -p pytest_reports
-                                        cp ${LIN_DOCKER_TMP_PATH}/pytest_reports/* pytest_reports/
-                                    """
-                                    junit 'pytest_reports/*.xml'
+                                    runTest("virtual_linux", "virtual", "tests.setups.virtual_drive.VIRTUAL_DRIVE_ETHERNET_SETUP", "", false, LIN_DOCKER_TMP_PATH)
                                 }
                             }
                         }
@@ -329,60 +379,14 @@ pipeline {
                                 stage("Run unit tests") {
                                     steps {
                                         script {
-                                            def pythonVersions = RUN_PYTHON_VERSIONS.split(',')
-                                            pythonVersions.each { version ->
-                                                bat """
-                                                    cd ${WIN_DOCKER_TMP_PATH}
-                                                    call .venv${version}/Scripts/activate
-                                                    poetry run poe tests --import-mode=importlib --cov=ingeniamotion --junitxml=pytest_reports/junit-tests-${version}.xml --junit-prefix=${version} -m "not ethernet and not soem and not fsoe and not fsoe_phase2 and not canopen and not virtual and not soem_multislave"
-                                                """
-                                            }
-                                        }
-                                    }
-                                    post {
-                                        always {
-                                            bat """
-                                                mkdir -p pytest_reports
-                                                XCOPY ${WIN_DOCKER_TMP_PATH}\\pytest_reports\\* pytest_reports\\ /s /i /y /e /h
-                                                move ${WIN_DOCKER_TMP_PATH}\\.coverage .coverage_unit_tests
-                                            """
-                                            junit "pytest_reports\\*.xml"
-                                            // Delete the junit after publishing it so it not re-published on the next stage
-                                            bat "del /S /Q pytest_reports\\*.xml"
-                                            stash includes: '.coverage_unit_tests', name: '.coverage_unit_tests'
-                                            script {
-                                                coverage_stashes.add(".coverage_unit_tests")
-                                            }
+                                            runTest("unit_tests", "not ethernet and not soem and not fsoe and not fsoe_phase2 and not canopen and not virtual and not soem_multislave", "tests.setups.virtual_drive.VIRTUAL_DRIVE_ETHERNET_SETUP", "", false, WIN_DOCKER_TMP_PATH)
                                         }
                                     }
                                 }
                                 stage("Run virtual drive tests") {
                                     steps {
                                         script {
-                                            def pythonVersions = RUN_PYTHON_VERSIONS.split(',')
-                                            pythonVersions.each { version ->
-                                                bat """
-                                                    cd ${WIN_DOCKER_TMP_PATH}
-                                                    call .venv${version}/Scripts/activate
-                                                    poetry run poe tests --import-mode=importlib --cov=ingeniamotion --junitxml=pytest_reports/junit-tests-${version}.xml --junit-prefix=${version} -m virtual --setup tests.setups.virtual_drive.TESTS_SETUP
-                                                """
-                                            }
-                                        }
-                                    }
-                                    post {
-                                        always {
-                                            bat """
-                                                mkdir -p pytest_reports
-                                                XCOPY ${WIN_DOCKER_TMP_PATH}\\pytest_reports\\* pytest_reports\\ /s /i /y /e /h
-                                                move ${WIN_DOCKER_TMP_PATH}\\.coverage .coverage_virtual
-                                            """
-                                            junit "pytest_reports\\*.xml"
-                                            // Delete the junit after publishing it so it not re-published on the next stage
-                                            bat "del /S /Q pytest_reports\\*.xml"
-                                            stash includes: '.coverage_virtual', name: '.coverage_virtual'
-                                            script {
-                                                coverage_stashes.add(".coverage_virtual")
-                                            }
+                                            runTest("virtual", "virtual", "tests.setups.virtual_drive.VIRTUAL_DRIVE_ETHERNET_SETUP", "", false, WIN_DOCKER_TMP_PATH)
                                         }
                                     }
                                 }
@@ -394,7 +398,7 @@ pipeline {
                                 branch BRANCH_NAME_MASTER
                             }
                             agent {
-                                label "worker"
+                                label "lin-worker"
                             }
                             steps {
                                 unstash 'docs'
@@ -405,7 +409,7 @@ pipeline {
                         stage('Publish wheels') {
                             agent {
                                 docker {
-                                    label 'worker'
+                                    label 'lin-worker'
                                     image "ingeniacontainers.azurecr.io/publisher:1.8"
                                 }
                             }
@@ -472,7 +476,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTestHW("canopen_everest", "canopen", "CAN_EVE_SETUP")
+                                runTest("canopen_everest", "canopen", "tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C", "", false)
                             }
                         }
                         stage("Ethernet Everest") {
@@ -482,7 +486,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTestHW("ethernet_everest", "ethernet", "ETH_EVE_SETUP", USE_WIRESHARK_LOGGING)
+                                runTest("ethernet_everest", "ethernet", "tests.setups.rack_specifiers.ETH_SETUP@EVE-XCR-C", "", true)
                             }
                         }
                         stage("CanOpen Capitan") {
@@ -492,7 +496,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTestHW("canopen_capitan", "canopen", "CAN_CAP_SETUP")
+                                runTest("canopen_capitan", "canopen", "tests.setups.rack_specifiers.CAN_SETUP@CAP-XCR-C", "", false)
                             }
                         }
                         stage("Ethernet Capitan") {
@@ -501,7 +505,7 @@ pipeline {
                                 expression { false }
                             }
                             steps {
-                                runTestHW("ethernet_capitan", "ethernet", "ETH_CAP_SETUP", USE_WIRESHARK_LOGGING)
+                                runTest("ethernet_capitan", "ethernet", "tests.setups.rack_specifiers.ETH_SETUP@CAP-XCR-C", "", true)
                             }
                         }
                     }
@@ -546,7 +550,7 @@ pipeline {
                                 expression { false }
                             }
                             steps {
-                                runTestHW("ethercat_everest", "soem", "ECAT_EVE_SETUP", USE_WIRESHARK_LOGGING)
+                                runTest("ethercat_everest", "soem", "tests.setups.rack_specifiers.ECAT_SETUP@EVE-XCR-E", "", true)
                             }
                         }
                         stage("Ethercat Capitan") {
@@ -556,7 +560,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTestHW("ethercat_capitan", "soem", "ECAT_CAP_SETUP", USE_WIRESHARK_LOGGING)
+                                runTest("ethercat_capitan", "soem", "tests.setups.rack_specifiers.ECAT_SETUP@CAP-XCR-E", "", true)
                             }
                         }
                         stage("Safety Denali Phase I") {
@@ -566,7 +570,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTestHW("fsoe_phase1", "fsoe", "ECAT_DEN_S_PHASE1_SETUP", USE_WIRESHARK_LOGGING)
+                                runTest("fsoe_phase1", "fsoe", "tests.setups.rack_specifiers.ECAT_DEN_S_NET_E_SETUP@PHASE1", "", true)
                             }
                         }
                         stage("Safety Denali Phase II") {
@@ -576,7 +580,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTestHW("fsoe_phase2", "fsoe or fsoe_phase2", "ECAT_DEN_S_PHASE2_SETUP", USE_WIRESHARK_LOGGING)
+                                runTest("fsoe_phase2", "fsoe or fsoe_phase2", "tests.setups.rack_specifiers.ECAT_DEN_S_NET_E_SETUP@PHASE2", "", true)
                             }
                         }
                         stage("Ethercat Multislave") {
@@ -586,7 +590,7 @@ pipeline {
                                 }
                             }
                             steps {
-                                runTestHW("ethercat_multislave", "soem_multislave", "ECAT_MULTISLAVE_SETUP", USE_WIRESHARK_LOGGING)
+                                runTest("ethercat_multislave", "soem_multislave", "tests.setups.rack_specifiers.ECAT_MULTISLAVE_SETUP", "", true)
                             }
                         }
                     }
