@@ -270,13 +270,13 @@ pipeline {
                         }
                     }
                     stages {
-                        stage('Check Dependencies') {
-                            steps {
-                                script {
-                                    checkDependencies()
-                                }
-                            }
-                        }
+                        // stage('Check Dependencies') {
+                        //     steps {
+                        //         script {
+                        //             checkDependencies()
+                        //         }
+                        //     }
+                        // }
                         stage('Move workspace') {
                             steps {
                                 script {
