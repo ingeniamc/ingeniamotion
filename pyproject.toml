@@ -118,6 +118,7 @@ pytest-rerunfailures = "==15.1"
 pytest-console-scripts = "==1.4.1"
 matplotlib = "==3.8.2"
 summit-testing-framework = {version = "==0.2.0+pr83b1"}
+ingenialink = {version = "==7.6.0.post27+develop.d0ebe4e"}
 
 # -----------------------------------------------------------------------
 #                                   TASKS
