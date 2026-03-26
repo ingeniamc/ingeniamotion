@@ -182,7 +182,7 @@ def createVirtualEnvironments(String workingDir = null, String pythonVersionList
 }
 
 /* Build develop everyday 3 times starting at 19:00 UTC (21:00 Barcelona Time), running all python versions */
-CRON_SETTINGS = BRANCH_NAME == "develop" ? '''0 19,21,23 * * * % PYTHON_VERSIONS=All''' : ""
+CRON_SETTINGS = BRANCH_NAME == "develop" ? '''0 19,21,23 * * * % PYTHON_VERSIONS=All;WIRESHARK_LOGGING=true''' : ""
 
 pipeline {
     agent none
