@@ -3848,7 +3848,7 @@ version = "1.13.1"
 description = "Fundamental algorithms for scientific computing in Python"
 optional = false
 python-versions = ">=3.9"
-groups = ["main"]
+groups = ["main", "tests"]
 files = [
     {file = "scipy-1.13.1-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:20335853b85e9a49ff7572ab453794298bcf0354d8068c5f6775a0eabf350aca"},
     {file = "scipy-1.13.1-cp310-cp310-macosx_12_0_arm64.whl", hash = "sha256:d605e9c23906d1994f55ace80e0125c587f96c020037ea6aa98d01b4bd2e222f"},
@@ -4163,13 +4163,13 @@ test = ["pytest"]
 
 [[package]]
 name = "summit-testing-framework"
-version = "0.2.0+pr83b1"
+version = "0.3.0.post24+develop.96055cd"
 description = "Testing framework for Novanta drives"
 optional = false
 python-versions = ">=3.9"
 groups = ["tests"]
 files = [
-    {file = "summit_testing_framework-0.2.0+pr83b1-py3-none-any.whl", hash = "sha256:564927e06d49a88e5ceceef787dc618e73475d19bfd89b2ae404b8a1e3618ff5"},
+    {file = "summit_testing_framework-0.3.0.post24+develop.96055cd-py3-none-any.whl", hash = "sha256:ee69f0f3b7e535fd18563987343367c62728bb04c607ab8f2f4a055afe030067"},
 ]
 
 [package.dependencies]
@@ -4178,10 +4178,11 @@ ingenialogger = ">=0.2.1"
 pytest = ">=8.4.1,<9.0.0"
 pytest-env = ">=1.1.5"
 rpyc = "6.0.0"
+virtual_drive = ">=0.1.0"
 
 [package.extras]
-ingenialink = ["ingenialink (>=7.5.2)"]
-ingeniamotion = ["ingeniamotion[fsoe] (>=0.10.1)"]
+ingenialink = ["ingenialink (>=7.6.0)"]
+ingeniamotion = ["ingeniamotion[fsoe] (>=0.10.2)"]
 
 [package.source]
 type = "legacy"
@@ -4401,7 +4402,7 @@ version = "0.1.0"
 description = "Emulates a Summit drive for development and testing purposes."
 optional = false
 python-versions = ">=3.9"
-groups = ["main"]
+groups = ["main", "tests"]
 files = [
     {file = "virtual_drive-0.1.0-py3-none-any.whl", hash = "sha256:c84dda1b7808b5eeebfa7243a7d8b1607ecf9c75fd3c9b88f638bbe2e70c19fe"},
 ]
@@ -4744,4 +4745,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "d21a8c708bb449c9caa7b85889f3def69d45e8828b4b9dbb5e26a13676a06e8d"
+content-hash = "1180633a49ddbc7b59b8c268a3de1f8f2ed9ff6e8f9ab4918400863e0a103ccb"
