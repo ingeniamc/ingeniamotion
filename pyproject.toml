@@ -117,7 +117,7 @@ pytest-mock = "==3.6.1"
 pytest-rerunfailures = "==15.1"
 pytest-console-scripts = "==1.4.1"
 matplotlib = "==3.8.2"
-summit-testing-framework = {version = "==0.2.0+pr83b1"}
+summit-testing-framework = {version = "==0.3.0.post24+develop.96055cd"}
 ingenialink = {version = "==7.6.0.post33+develop.14ba055"}
 
 # -----------------------------------------------------------------------
