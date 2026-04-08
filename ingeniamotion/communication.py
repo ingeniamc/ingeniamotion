@@ -795,7 +795,7 @@ class Communication:
         """
         adapters_dict = {}
         for adapter in ifaddr.get_adapters():
-            guid = adapter.name.decode() if isinstance(adapter.name, bytes) else adapter.name
+            guid = adapter.name
             if guid in adapters_dict:
                 continue
             adapters_dict[guid] = adapter.nice_name
