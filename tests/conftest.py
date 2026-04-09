@@ -79,9 +79,6 @@ pytest_plugins = [
 _DYNAMIC_MODULES_IMPORT = ["tests", "examples"]
 
 
-test_report_key = pytest.StashKey[dict[str, pytest.CollectReport]]()
-
-
 class SuppressSpecificLogs(logging.Filter):
     def filter(self, record):
         message = record.getMessage()
@@ -135,31 +132,6 @@ def disable_monitoring_disturbance(
 ) -> Generator[None, None, None]:
     yield
     mc.capture.clean_monitoring_disturbance(servo=alias)
-
-
-@pytest.hookimpl(tryfirst=True, hookwrapper=True)
-def pytest_runtest_makereport(item, call):
-    # execute all other hooks to obtain the report object
-    outcome = yield
-    rep = outcome.get_result()
-
-    # store test results for each phase of a call, which can be "setup", "call", "teardown"
-    item.stash.setdefault(test_report_key, {})[rep.when] = rep
-
-    if call.when == "call":
-        callbacks = getattr(item, "_fixture_error_checker", None)
-        if callbacks is not None:
-            for callback in callbacks:
-                success, message = callback()
-                if not success:
-                    rep.outcome = "failed"
-                    rep.longrepr = message
-
-
-def add_fixture_error_checker(node, callback: Callable[[], tuple[bool, str]]) -> None:
-    if not hasattr(node, "_fixture_error_checker"):
-        node._fixture_error_checker = []
-    node._fixture_error_checker.append(callback)
 
 
 def mean_actual_velocity_position(mc, servo, velocity=False, n_samples=200, sampling_period=0):

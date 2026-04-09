@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-import time
 from functools import partial
 from typing import TYPE_CHECKING, Callable, Optional, cast
 
@@ -311,22 +310,8 @@ class FSoEMaster:
             servo: The servo alias.
 
         """
-        t0 = time.perf_counter_ns()
         for callback in self._error_observers:
-            t_cb = time.perf_counter_ns()
             callback(FSoEError(servo, transition_name, error_description))
-            cb_ms = (time.perf_counter_ns() - t_cb) / 1_000_000
-            self.logger.warning(
-                "[INGM-758] _notify_errors callback %s took %.3f ms",
-                callback.__name__ if hasattr(callback, "__name__") else str(callback),
-                cb_ms,
-            )
-        total_ms = (time.perf_counter_ns() - t0) / 1_000_000
-        self.logger.warning(
-            "[INGM-758] _notify_errors total took %.3f ms (transition=%s)",
-            total_ms,
-            transition_name,
-        )
 
     def _delete_master_handler(self, servo: str = DEFAULT_SERVO) -> None:
         """Delete the master handler instance.

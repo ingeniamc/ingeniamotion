@@ -1,5 +1,4 @@
 import threading
-import time
 from collections import OrderedDict
 from collections.abc import Iterator
 from random import randint
@@ -204,14 +203,11 @@ class FSoEMasterHandler:
         Subscription may happen when setting the PDO maps to slaves or if
         the master is started manually (after a stop usually).
         """
-        t0 = time.perf_counter_ns()
         if self.__is_subscribed_to_process_data_events:
             return
         self.safety_master_pdu_map.subscribe_to_process_data_event(self.get_request)
         self.safety_slave_pdu_map.subscribe_to_process_data_event(self.set_reply)
         self.__is_subscribed_to_process_data_events = True
-        elapsed_ms = (time.perf_counter_ns() - t0) / 1_000_000
-        self.logger.warning("[INGM-758] subscribe_to_process_data_events took %.3f ms", elapsed_ms)
 
     def _pdo_thread_exception_handler(self, exc: Exception) -> None:
         """Callback method for the PDO thread exceptions.
@@ -332,22 +328,13 @@ class FSoEMasterHandler:
         """
         if self.running:
             raise RuntimeError("FSoE Master is already running.")
-        t_start = time.perf_counter_ns()
         self.__in_initial_reset = True
         # Recalculate the SRA crc in case it changed
         if self._sra_fsoe_application_parameter is not None:
-            t_sra = time.perf_counter_ns()
             self._sra_fsoe_application_parameter.set(self.get_application_parameters_sra_crc())
-            sra_ms = (time.perf_counter_ns() - t_sra) / 1_000_000
-            self.logger.warning("[INGM-758] SRA CRC recalculation took %.3f ms", sra_ms)
-        t_mh = time.perf_counter_ns()
         self._master_handler.start()
-        mh_ms = (time.perf_counter_ns() - t_mh) / 1_000_000
-        self.logger.warning("[INGM-758] _master_handler.start() took %.3f ms", mh_ms)
         self.__running = True
         self.subscribe_to_process_data_events()
-        total_ms = (time.perf_counter_ns() - t_start) / 1_000_000
-        self.logger.warning("[INGM-758] handler.start() total took %.3f ms", total_ms)
 
     def stop(self) -> None:
         """Stop the master handler."""
@@ -436,25 +423,16 @@ class FSoEMasterHandler:
         Raises:
             RuntimeError: If the FSoE Master is not running.
         """
-        t0 = time.perf_counter_ns()
         if not self.__running:
             raise RuntimeError("FSoE Master is not running")
         req = self._master_handler.get_request()
         self.safety_master_pdu_map.set_item_bytes(req)
-        elapsed_ms = (time.perf_counter_ns() - t0) / 1_000_000
-        if elapsed_ms > 5.0:
-            self.logger.warning(
-                "[INGM-758] get_request() took %.3f ms (state=%s)",
-                elapsed_ms,
-                self._master_handler.state,
-            )
 
     def set_reply(self) -> None:
         """Get the FSoE slave response.
 
         It is extracted from the Safety Slave PDU PDOMap and set to the FSoE master handler.
         """
-        t0 = time.perf_counter_ns()
         reply = self.safety_slave_pdu_map.get_item_bytes()
         if self.__in_initial_reset:
             if reply[0] == 0:
@@ -465,13 +443,6 @@ class FSoEMasterHandler:
                 self.__in_initial_reset = False
 
         self._master_handler.set_reply(reply)
-        elapsed_ms = (time.perf_counter_ns() - t0) / 1_000_000
-        if elapsed_ms > 5.0:
-            self.logger.warning(
-                "[INGM-758] set_reply() took %.3f ms (state=%s)",
-                elapsed_ms,
-                self._master_handler.state,
-            )
 
     def get_mismatched_parameters(
         self,
