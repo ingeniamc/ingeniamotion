@@ -1212,14 +1212,14 @@ all = ["flake8 (>=7.1.1)", "mypy (>=1.11.2)", "pytest (>=8.3.2)", "ruff (>=0.6.2
 
 [[package]]
 name = "ifaddr"
-version = "0.1.7"
+version = "0.2.0"
 description = "Cross-platform network interface and IP address enumeration library"
 optional = false
 python-versions = "*"
 groups = ["main"]
 files = [
-    {file = "ifaddr-0.1.7-py2.py3-none-any.whl", hash = "sha256:d1f603952f0a71c9ab4e705754511e4e03b02565bc4cec7188ad6415ff534cd3"},
-    {file = "ifaddr-0.1.7.tar.gz", hash = "sha256:1f9e8a6ca6f16db5a37d3356f07b6e52344f6f9f7e806d618537731669eb1a94"},
+    {file = "ifaddr-0.2.0-py3-none-any.whl", hash = "sha256:085e0305cfe6f16ab12d72e2024030f5d52674afad6911bb1eee207177b8a748"},
+    {file = "ifaddr-0.2.0.tar.gz", hash = "sha256:cc0cbfcaabf765d44595825fb96a99bb12c79716b73b44330ea38ee2b0c4aed4"},
 ]
 
 [[package]]
@@ -4745,4 +4745,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "884c70bd3eff8a08de8d286df9f12eaf03f1357797c29b87d8a87eeb675a6b47"
+content-hash = "a028c2e4184aa54d5f3e08f4f1ac2866853cddcdce3c9d1de5ac342140f19ca6"
