@@ -1,3 +1,4 @@
+import logging
 import time
 from collections.abc import Iterator
 from typing import TYPE_CHECKING, Any
@@ -17,6 +18,8 @@ if TYPE_CHECKING:
 
     if FSOE_MASTER_INSTALLED:
         from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
+
+_ingm758_logger = logging.getLogger("ingm758_pdo_cycle")
 
 
 def test_fsoe_master_not_installed() -> None:
@@ -233,6 +236,7 @@ def test_start_master_if_master_already_running(
     mc.fsoe.stop_master(stop_pdos=True)
 
 
+@pytest.mark.repeat(100)
 @pytest.mark.fsoe
 def test_start_stop_master(
     mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"],
@@ -240,6 +244,26 @@ def test_start_stop_master(
     timeout_for_data_sra: float,
 ) -> None:
     mc, handler = mc_with_fsoe_with_sra
+
+    # --- INGM-758: PDO cycle timing instrumentation ---
+    _cycle_times: list[float] = []
+    _cycle_start: list[float] = [0.0]  # mutable container for closure
+
+    def _on_send() -> None:
+        _cycle_start[0] = time.perf_counter_ns()
+
+    def _on_receive() -> None:
+        if _cycle_start[0] > 0:
+            elapsed_ms = (time.perf_counter_ns() - _cycle_start[0]) / 1_000_000
+            _cycle_times.append(elapsed_ms)
+            if elapsed_ms > 50.0:
+                _ingm758_logger.warning(
+                    "[INGM-758] PDO cycle took %.3f ms (cycle #%d)", elapsed_ms, len(_cycle_times)
+                )
+
+    mc.capture.pdo.subscribe_to_send_process_data(_on_send)
+    mc.capture.pdo.subscribe_to_receive_process_data(_on_receive)
+    # --- end instrumentation ---
 
     assert handler.running is False
     mc.fsoe.configure_pdos(start_pdos=True, start_master=True)
@@ -255,6 +279,9 @@ def test_start_stop_master(
     time.sleep(0.1)
     assert fsoe_states[-1] is FSoEState.RESET
 
+    _ingm758_logger.warning("[INGM-758] --- About to restart master (PDOs still running) ---")
+    pre_restart_cycle_count = len(_cycle_times)
+
     # FSoE state cycle is done again after restarting the master
     n_states = len(fsoe_states)
     mc.fsoe.start_master(start_pdos=False)
@@ -267,6 +294,37 @@ def test_start_stop_master(
         FSoEState.PARAMETER,
         FSoEState.DATA,
     ]
+
+    # --- INGM-758: Report timing summary ---
+    mc.capture.pdo.unsubscribe_to_send_process_data(_on_send)
+    mc.capture.pdo.unsubscribe_to_receive_process_data(_on_receive)
+
+    if _cycle_times:
+        post_restart_times = _cycle_times[pre_restart_cycle_count:]
+        all_max = max(_cycle_times)
+        all_avg = sum(_cycle_times) / len(_cycle_times)
+        _ingm758_logger.warning(
+            "[INGM-758] PDO cycle summary: total_cycles=%d, avg=%.3f ms, max=%.3f ms",
+            len(_cycle_times),
+            all_avg,
+            all_max,
+        )
+        if post_restart_times:
+            post_max = max(post_restart_times)
+            post_avg = sum(post_restart_times) / len(post_restart_times)
+            _ingm758_logger.warning(
+                "[INGM-758] Post-restart cycles: count=%d, avg=%.3f ms, max=%.3f ms",
+                len(post_restart_times),
+                post_avg,
+                post_max,
+            )
+            # Log the first 10 post-restart cycle times for granularity
+            first_10 = post_restart_times[:10]
+            _ingm758_logger.warning(
+                "[INGM-758] First 10 post-restart cycle times (ms): %s",
+                [f"{t:.3f}" for t in first_10],
+            )
+    # --- end timing report ---
 
     mc.fsoe.stop_master(stop_pdos=True)
     assert handler.running is False

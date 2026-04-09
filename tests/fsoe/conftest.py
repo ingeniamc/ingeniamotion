@@ -1,4 +1,6 @@
+import logging
 import random
+import time
 from collections import OrderedDict
 from collections.abc import Iterator
 from dataclasses import dataclass
@@ -129,17 +131,43 @@ def fsoe_error_monitor(
         n_mcub_errors = mcu_error_queue_b.get_number_total_errors()
 
     def error_handler(error: FSoEError) -> None:
+        t0 = time.perf_counter_ns()
         # Add last error only if it happened during the test and queues exist
         if mcu_error_queue_a is not None and mcu_error_queue_b is not None:
-            mcua_last_error = (
-                mcu_error_queue_a.get_last_error()
-                if mcu_error_queue_a.get_number_total_errors() > n_mcua_errors
-                else None
-            )
-            mcub_last_error = (
-                mcu_error_queue_b.get_last_error()
-                if mcu_error_queue_b.get_number_total_errors() > n_mcub_errors
-                else None
+            t_sdo1 = time.perf_counter_ns()
+            mcua_n = mcu_error_queue_a.get_number_total_errors()
+            sdo1_ms = (time.perf_counter_ns() - t_sdo1) / 1_000_000
+
+            t_sdo2 = time.perf_counter_ns()
+            mcub_n = mcu_error_queue_b.get_number_total_errors()
+            sdo2_ms = (time.perf_counter_ns() - t_sdo2) / 1_000_000
+
+            mcua_last_error = None
+            mcub_last_error = None
+            sdo3_ms = 0.0
+            sdo4_ms = 0.0
+
+            if mcua_n > n_mcua_errors:
+                t_sdo3 = time.perf_counter_ns()
+                mcua_last_error = mcu_error_queue_a.get_last_error()
+                sdo3_ms = (time.perf_counter_ns() - t_sdo3) / 1_000_000
+
+            if mcub_n > n_mcub_errors:
+                t_sdo4 = time.perf_counter_ns()
+                mcub_last_error = mcu_error_queue_b.get_last_error()
+                sdo4_ms = (time.perf_counter_ns() - t_sdo4) / 1_000_000
+
+            total_ms = (time.perf_counter_ns() - t0) / 1_000_000
+            logging.warning(
+                "[INGM-758] error_handler SDO reads: "
+                "get_total_a=%.3f ms, get_total_b=%.3f ms, "
+                "get_last_a=%.3f ms, get_last_b=%.3f ms, "
+                "total=%.3f ms",
+                sdo1_ms,
+                sdo2_ms,
+                sdo3_ms,
+                sdo4_ms,
+                total_ms,
             )
         else:
             mcua_last_error = None
