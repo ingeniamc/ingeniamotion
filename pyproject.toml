@@ -116,7 +116,7 @@ pytest-cov = "==2.12.1"
 pytest-mock = "==3.6.1"
 pytest-rerunfailures = "==15.1"
 pytest-console-scripts = "==1.4.1"
-matplotlib = "==3.8.2"
+matplotlib = "==3.10.8"
 summit-testing-framework = {version = "==0.3.0.post24+develop.96055cd"}
 ingenialink = {version = "==7.6.0.post53+develop.a9a7edb"}
 
