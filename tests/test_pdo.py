@@ -387,8 +387,11 @@ def test_create_poller(mc: "MotionController", alias: str) -> None:
     poller.stop()
     timestamps, data = poller.data
     channel_0_data, channel_1_data = data
-    assert len(channel_0_data) == samples_target
-    assert len(channel_1_data) == samples_target
+    # Accept samples_target or samples_target+1: the OP state transition in
+    # start_pdos() may fire an extra callback non-deterministically.
+    # See INGK-1264 for the root cause in ingenialink.
+    assert samples_target <= len(channel_0_data) <= samples_target + 1
+    assert samples_target <= len(channel_1_data) <= samples_target + 1
     assert len(data) == len(registers)
     assert len(timestamps) == len(channel_0_data)
 
