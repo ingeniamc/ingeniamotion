@@ -1,4 +1,4 @@
-@Library('cicd-lib@0.20') _
+@Library('cicd-lib@ingk-1255-re-enable-check-dependencies-stage-after-release-circular-dep-with-summit-testing-framework') _
 
 def SW_NODE = "windows-slave"
 def ECAT_NODE = "ecat-test"
@@ -270,13 +270,13 @@ pipeline {
                         }
                     }
                     stages {
-                        // stage('Check Dependencies') {
-                        //     steps {
-                        //         script {
-                        //             checkDependencies()
-                        //         }
-                        //     }
-                        // }
+                        stage('Check Dependencies') {
+                            steps {
+                                script {
+                                    checkDependencies(excludeManagers: ['poetry:tests'])
+                                }
+                            }
+                        }
                         stage('Move workspace') {
                             steps {
                                 script {
