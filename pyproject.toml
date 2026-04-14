@@ -172,6 +172,11 @@ cmd = "mypy ingeniamotion"
 [tool.poe.tasks.tests]
 cmd = "python -I -m pytest tests"
 
+# ----------------------------- Export specifier module -----------------------------
+[tool.poe.tasks.export_specifier_module]
+help = "Export specifier module to JSON"
+cmd = "python -I -m summit_testing_framework.helpers.export_specifier_module"
+
 # ----------------------------- Coverage combine -----------------------------
 [tool.poe.tasks.cov-combine]
 cmd = "python -I -m coverage combine"
