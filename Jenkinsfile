@@ -190,196 +190,141 @@ pipeline {
             }
         }
 
-        stage('Build and publish') {
-            stages {
-                stage('Build') {
-                    parallel {
-                        stage('Build Windows') {
-                            agent {
-                                docker {
-                                    label SW_NODE
-                                    image WIN_DOCKER_IMAGE
-                                }
-                            }
-                            environment {
-                                VENV_WORKING_FOLDER = "${WIN_DOCKER_TMP_PATH}"
-                            }
-                            stages {
-                                stage('Move workspace') {
-                                    steps {
-                                        script {
-                                            venvManager.copyToWorkingFolder()
-                                        }
-                                    }
-                                }
-                                stage('Create virtual environments') {
-                                    steps {
-                                        script {
-                                            venvManager.createPoetryEnvironments(
-                                                pythonVersions: ALL_PYTHON_VERSIONS,
-                                                installCommand: "poetry sync --all-groups --extras fsoe"
-                                            )
-                                        }
-                                    }
-                                }
-                                stage('Build wheels') {
-                                    steps {
-                                        script {
-                                            venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
-                                                venv.run("poetry run poe build")
-                                            }
-                                            venvManager.copyFromWorkingFolder("dist/")
-                                        }
-                                        archiveArtifacts(artifacts: "dist\\*", followSymlinks: false)
-                                        script {
-                                            def stash_name = "publish_wheels-windows"
-                                            wheel_stashes.add(stash_name)
-                                            stash includes: "dist\\*", name: stash_name
-                                        }
-                                    }
-                                }
-                                stage('Make a static type analysis') {
-                                    steps {
-                                        script {
-                                            venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
-                                                venv.run("poetry run poe type")
-                                            }
-                                        }
-                                    }
-                                }
-                                stage('Check formatting') {
-                                    steps {
-                                        script {
-                                            venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
-                                                venv.run("poetry run poe format")
-                                            }
-                                        }
-                                    }
-                                }
-                                stage('Generate documentation') {
-                                    steps {
-                                        script {
-                                            venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
-                                                venv.run("poetry run poe docs")
-                                            }
-                                            venvManager.runInWorkingFolder('"C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256')
-                                            venvManager.copyFromWorkingFolder("docs.zip")
-                                        }
-                                        stash includes: 'docs.zip', name: 'docs'
-                                    }
-                                }
-                                stage('Run Docker tests (Windows)') {
-                                    when {
-                                        expression {
-                                            WIN_DOCKER_TESTS.anyShouldRun()
-                                        }
-                                    }
-                                    steps {
-                                        script {
-                                            WIN_DOCKER_TESTS.runTestStages()
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        stage('Build Linux') {
-                            agent {
-                                docker {
-                                    label 'lin-worker'
-                                    image LIN_DOCKER_IMAGE
-                                    args '-u root:root'
-                                }
-                            }
-                            environment {
-                                VENV_WORKING_FOLDER = "${LIN_DOCKER_TMP_PATH}"
-                            }
-                            stages {
-                                stage('Move workspace') {
-                                    steps {
-                                        script {
-                                            venvManager.copyToWorkingFolder()
-                                        }
-                                    }
-                                }
-                                stage('Create virtual environments') {
-                                    steps {
-                                        script {
-                                            venvManager.createPoetryEnvironments(
-                                                pythonVersions: venvManager.defaultVenvNamesToVersion(LINUX_DOCKER_TESTS.baseTestSession.runInVirtualEnvs)
-                                            )
-                                        }
-                                    }
-                                }
-                                stage('Run Linux Docker tests') {
-                                    when {
-                                        expression { LINUX_DOCKER_TESTS.anyShouldRun() }
-                                    }
-                                    steps {
-                                        script {
-                                            LINUX_DOCKER_TESTS.runTestStages()
-                                        }
-                                    }
-                                }
-                            }
-                            post {
-                                always {
-                                    reassignFilePermissions()
-                                }
-                            }
-                        }
-                    }
-                }
-                stage('Publish documentation') {
-                    when {
-                        beforeAgent true
-                        branch BRANCH_NAME_MASTER
-                    }
+        stage('Build and Tests') {
+            parallel {
+                stage('Build Windows') {
                     agent {
-                        label 'lin-worker'
+                        docker {
+                            label SW_NODE
+                            image WIN_DOCKER_IMAGE
+                        }
                     }
-                    steps {
-                        unstash 'docs'
-                        unzip zipFile: 'docs.zip', dir: '.'
-                        publishDistExt('_docs', DISTEXT_PROJECT_DIR, true)
+                    environment {
+                        VENV_WORKING_FOLDER = "${WIN_DOCKER_TMP_PATH}"
+                    }
+                    stages {
+                        stage('Move workspace') {
+                            steps {
+                                script {
+                                    venvManager.copyToWorkingFolder()
+                                }
+                            }
+                        }
+                        stage('Create virtual environments') {
+                            steps {
+                                script {
+                                    venvManager.createPoetryEnvironments(
+                                        pythonVersions: ALL_PYTHON_VERSIONS,
+                                        installCommand: "poetry sync --all-groups --extras fsoe"
+                                    )
+                                }
+                            }
+                        }
+                        stage('Build wheels') {
+                            steps {
+                                script {
+                                    venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
+                                        venv.run("poetry run poe build")
+                                    }
+                                    venvManager.copyFromWorkingFolder("dist/")
+                                }
+                                archiveArtifacts(artifacts: "dist\\*", followSymlinks: false)
+                                script {
+                                    def stash_name = "publish_wheels-windows"
+                                    wheel_stashes.add(stash_name)
+                                    stash includes: "dist\\*", name: stash_name
+                                }
+                            }
+                        }
+                        stage('Make a static type analysis') {
+                            steps {
+                                script {
+                                    venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
+                                        venv.run("poetry run poe type")
+                                    }
+                                }
+                            }
+                        }
+                        stage('Check formatting') {
+                            steps {
+                                script {
+                                    venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
+                                        venv.run("poetry run poe format")
+                                    }
+                                }
+                            }
+                        }
+                        stage('Generate documentation') {
+                            steps {
+                                script {
+                                    venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
+                                        venv.run("poetry run poe docs")
+                                    }
+                                    venvManager.runInWorkingFolder('"C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256')
+                                    venvManager.copyFromWorkingFolder("docs.zip")
+                                }
+                                stash includes: 'docs.zip', name: 'docs'
+                            }
+                        }
+                        stage('Run Docker tests (Windows)') {
+                            when {
+                                expression {
+                                    WIN_DOCKER_TESTS.anyShouldRun()
+                                }
+                            }
+                            steps {
+                                script {
+                                    WIN_DOCKER_TESTS.runTestStages()
+                                }
+                            }
+                        }
                     }
                 }
-                stage('Publish wheels') {
+                stage('Build Linux') {
                     agent {
                         docker {
                             label 'lin-worker'
-                            image PUBLISHER_DOCKER_IMAGE
+                            image LIN_DOCKER_IMAGE
+                            args '-u root:root'
                         }
                     }
+                    environment {
+                        VENV_WORKING_FOLDER = "${LIN_DOCKER_TMP_PATH}"
+                    }
                     stages {
-                        stage('Unstash') {
+                        stage('Move workspace') {
                             steps {
                                 script {
-                                    for (stash_name in wheel_stashes) {
-                                        unstash stash_name
-                                    }
+                                    venvManager.copyToWorkingFolder()
                                 }
                             }
                         }
-                        stage('Publish Novanta PyPi') {
+                        stage('Create virtual environments') {
                             steps {
-                                publishNovantaPyPi('dist/*')
+                                script {
+                                    venvManager.createPoetryEnvironments(
+                                        pythonVersions: venvManager.defaultVenvNamesToVersion(LINUX_DOCKER_TESTS.baseTestSession.runInVirtualEnvs)
+                                    )
+                                }
                             }
                         }
-                        stage('Publish PyPi') {
+                        stage('Run Linux Docker tests') {
                             when {
-                                branch 'master'
+                                expression { LINUX_DOCKER_TESTS.anyShouldRun() }
                             }
                             steps {
-                                publishPyPi('dist/*')
+                                script {
+                                    LINUX_DOCKER_TESTS.runTestStages()
+                                }
                             }
                         }
                     }
+                    post {
+                        always {
+                            reassignFilePermissions()
+                        }
+                    }
                 }
-            }
-        }
-
-        stage('Tests') {
-            parallel {
                 stage('EtherCAT - Tests') {
                     when {
                         beforeOptions true
@@ -445,6 +390,57 @@ pipeline {
                                     CAN_TESTS.runTestStages()
                                     ETH_TESTS.runTestStages()
                                 }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Publish') {
+            stages {
+                stage('Publish documentation') {
+                    when {
+                        beforeAgent true
+                        branch BRANCH_NAME_MASTER
+                    }
+                    agent {
+                        label 'lin-worker'
+                    }
+                    steps {
+                        unstash 'docs'
+                        unzip zipFile: 'docs.zip', dir: '.'
+                        publishDistExt('_docs', DISTEXT_PROJECT_DIR, true)
+                    }
+                }
+                stage('Publish wheels') {
+                    agent {
+                        docker {
+                            label 'lin-worker'
+                            image PUBLISHER_DOCKER_IMAGE
+                        }
+                    }
+                    stages {
+                        stage('Unstash') {
+                            steps {
+                                script {
+                                    for (stash_name in wheel_stashes) {
+                                        unstash stash_name
+                                    }
+                                }
+                            }
+                        }
+                        stage('Publish Novanta PyPi') {
+                            steps {
+                                publishNovantaPyPi('dist/*')
+                            }
+                        }
+                        stage('Publish PyPi') {
+                            when {
+                                branch 'master'
+                            }
+                            steps {
+                                publishPyPi('dist/*')
                             }
                         }
                     }
