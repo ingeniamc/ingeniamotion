@@ -1,4 +1,7 @@
-@Library('cicd-lib@0.20') _
+@Library('cicd-lib@cit-564-migration-to-cicdlib-and-migration-of-pipelines') _
+
+import python.VirtualEnvironment
+import python.VEnvManager
 
 def SW_NODE = "windows-slave"
 def ECAT_NODE = "ecat-test"
@@ -14,8 +17,8 @@ LIN_DOCKER_TMP_PATH = "/tmp/ingeniamotion"
 
 DEFAULT_PYTHON_VERSION = "3.9"
 
-ALL_PYTHON_VERSIONS = "3.9,3.10,3.11,3.12"
-RUN_PYTHON_VERSIONS = ""
+ALL_PYTHON_VERSIONS = ["3.9", "3.10", "3.11", "3.12"] as Set
+RUN_PYTHON_VERSIONS = [] as Set
 PYTHON_VERSION_MIN = "3.9"
 def PYTHON_VERSION_MAX = "3.12"
 
@@ -28,6 +31,12 @@ START_WIRESHARK_TIMEOUT_S = 10.0
 FSOE_MAPS_DIR = "fsoe_maps"
 
 coverage_stashes = []
+
+VEnvManager venvManager = new VEnvManager(
+    pipeline: this,
+    default_python_version: DEFAULT_PYTHON_VERSION,
+    poetry_default_install_command: "poetry sync --all-groups"
+)
 
 def reassignFilePermissions() {
     if (isUnix()) {
@@ -49,8 +58,7 @@ def runTest(run_identifier, markers, setup_name, extra_args = "", useWireshark =
     def effectiveExtraArgs = useWireshark ? "${USE_WIRESHARK_LOGGING} ${extra_args}".trim() : extra_args
     try {
         timeout(time: 1, unit: 'HOURS') {
-            def pythonVersions = RUN_PYTHON_VERSIONS.split(',')
-            pythonVersions.each { version ->
+            RUN_PYTHON_VERSIONS.each { version ->
                 def envVars = withWiresharkEnv ? 
                     ["WIRESHARK_SCOPE=${params.WIRESHARK_LOGGING_SCOPE}", "CLEAR_WIRESHARK_LOG_IF_SUCCESSFUL=${params.CLEAR_SUCCESSFUL_WIRESHARK_LOGS}", "START_WIRESHARK_TIMEOUT_S=${START_WIRESHARK_TIMEOUT_S}"] : 
                     []
@@ -143,44 +151,6 @@ def runTest(run_identifier, markers, setup_name, extra_args = "", useWireshark =
     }
 }
 
-def runPython(command, py_version = DEFAULT_PYTHON_VERSION) {
-    if (isUnix()) {
-        sh "python${py_version} -I -m ${command}"
-    } else {
-        bat "py -${py_version} -I -m ${command}"
-    }
-}
-
-def createVirtualEnvironments(String workingDir = null, String pythonVersionList = "") {
-    def versions = pythonVersionList?.trim() ? pythonVersionList : RUN_PYTHON_VERSIONS
-    def pythonVersions = versions.split(',')
-    // Ensure DEFAULT_PYTHON_VERSION is included if not already present
-    if (!pythonVersions.contains(DEFAULT_PYTHON_VERSION)) {
-        pythonVersions = pythonVersions + [DEFAULT_PYTHON_VERSION]
-    }
-    pythonVersions.each { version ->
-        def venvName = ".venv${version}"
-        def cdCmd = workingDir ? "cd ${workingDir}" : ""
-        if (isUnix()) {
-            sh """
-                ${cdCmd}
-                python${version} -m venv --without-pip ${venvName}
-                . ${venvName}/bin/activate
-                poetry sync --all-groups
-                deactivate
-            """
-        } else {
-            bat """
-                ${cdCmd}
-                py -${version} -m venv ${venvName}
-                call ${venvName}/Scripts/activate
-                poetry sync --all-groups --extras fsoe
-                deactivate
-            """
-        }
-    }
-}
-
 /* Build develop everyday 3 times starting at 19:00 UTC (21:00 Barcelona Time), running all python versions */
 CRON_SETTINGS = BRANCH_NAME == "develop" ? '''0 19,21,23 * * * % PYTHON_VERSIONS=All;WIRESHARK_LOGGING=true''' : ""
 
@@ -235,15 +205,15 @@ pipeline {
                         RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
                     } else {
                         if (env.PYTHON_VERSIONS == "MIN_MAX") {
-                            RUN_PYTHON_VERSIONS = "${PYTHON_VERSION_MIN},${PYTHON_VERSION_MAX}"
+                            RUN_PYTHON_VERSIONS = [PYTHON_VERSION_MIN, PYTHON_VERSION_MAX] as Set
                         } else if (env.PYTHON_VERSIONS == "MIN") {
-                            RUN_PYTHON_VERSIONS = PYTHON_VERSION_MIN
+                            RUN_PYTHON_VERSIONS = [PYTHON_VERSION_MIN] as Set
                         } else if (env.PYTHON_VERSIONS == "MAX") {
-                            RUN_PYTHON_VERSIONS = PYTHON_VERSION_MAX
+                            RUN_PYTHON_VERSIONS = [PYTHON_VERSION_MAX] as Set
                         } else if (env.PYTHON_VERSIONS == "All") {
                             RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
                         } else { // Branch-indexing
-                            RUN_PYTHON_VERSIONS = PYTHON_VERSION_MIN
+                            RUN_PYTHON_VERSIONS = [PYTHON_VERSION_MIN] as Set
                         }
                     }
 
@@ -269,28 +239,23 @@ pipeline {
                             args '-u root:root'
                         }
                     }
+                    environment {
+                        VENV_WORKING_FOLDER = "${LIN_DOCKER_TMP_PATH}"
+                    }
                     stages {
-                        // stage('Check Dependencies') {
-                        //     steps {
-                        //         script {
-                        //             checkDependencies()
-                        //         }
-                        //     }
-                        // }
                         stage('Move workspace') {
                             steps {
                                 script {
-                                    sh """
-                                        mkdir -p ${LIN_DOCKER_TMP_PATH}
-                                        cp -r ${env.WORKSPACE}/. ${LIN_DOCKER_TMP_PATH}
-                                    """
+                                    venvManager.copyToWorkingFolder()
                                 }
                             }
                         }
                         stage('Create virtual environments') {
                             steps {
                                 script {
-                                    createVirtualEnvironments(LIN_DOCKER_TMP_PATH)
+                                    venvManager.createPoetryEnvironments(
+                                        pythonVersions: RUN_PYTHON_VERSIONS + [DEFAULT_PYTHON_VERSION] as Set
+                                    )
                                 }
                             }
                         }
@@ -318,58 +283,66 @@ pipeline {
                                     image WIN_DOCKER_IMAGE
                                 }
                             }
+                            environment {
+                                VENV_WORKING_FOLDER = "${WIN_DOCKER_TMP_PATH}"
+                            }
                             stages {
                                 stage('Move workspace') {
                                     steps {
-                                        bat "XCOPY ${env.WORKSPACE} ${WIN_DOCKER_TMP_PATH} /s /i /y /e /h"
+                                        script {
+                                            venvManager.copyToWorkingFolder()
+                                        }
                                     }
                                 }
                                 stage('Create virtual environments') {
                                     steps {
                                         script {
-                                            createVirtualEnvironments(WIN_DOCKER_TMP_PATH)
+                                            venvManager.createPoetryEnvironments(
+                                                pythonVersions: RUN_PYTHON_VERSIONS + [DEFAULT_PYTHON_VERSION] as Set,
+                                                installCommand: "poetry sync --all-groups --extras fsoe"
+                                            )
                                         }
                                     }
                                 }
                                 stage('Build wheels') {
                                     steps {
-                                        bat """
-                                            cd ${WIN_DOCKER_TMP_PATH}
-                                            call .venv${DEFAULT_PYTHON_VERSION}/Scripts/activate
-                                            poetry run poe build
-                                            XCOPY dist ${env.WORKSPACE}\\dist /s /i
-                                        """
+                                        script {
+                                            venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
+                                                venv.run("poetry run poe build")
+                                            }
+                                            venvManager.copyFromWorkingFolder("dist/")
+                                        }
                                         stash includes: 'dist\\*', name: 'build'
                                         archiveArtifacts artifacts: "dist\\*"
                                     }
                                 }
                                 stage('Make a static type analysis') {
                                     steps {
-                                        bat """
-                                            cd ${WIN_DOCKER_TMP_PATH}
-                                            call .venv${DEFAULT_PYTHON_VERSION}/Scripts/activate
-                                            poetry run poe type
-                                        """
+                                        script {
+                                            venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
+                                                venv.run("poetry run poe type")
+                                            }
+                                        }
                                     }
                                 }
                                 stage('Check formatting') {
                                     steps {
-                                        bat """
-                                            cd ${WIN_DOCKER_TMP_PATH}
-                                            call .venv${DEFAULT_PYTHON_VERSION}/Scripts/activate
-                                            poetry run poe format
-                                        """
+                                        script {
+                                            venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
+                                                venv.run("poetry run poe format")
+                                            }
+                                        }
                                     }
                                 }
                                 stage('Generate documentation') {
                                     steps {
-                                        bat """
-                                            cd ${WIN_DOCKER_TMP_PATH}
-                                            call .venv${DEFAULT_PYTHON_VERSION}/Scripts/activate
-                                            poetry run poe docs
-                                            "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
-                                            XCOPY docs.zip ${env.WORKSPACE}
-                                        """
+                                        script {
+                                            venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
+                                                venv.run("poetry run poe docs")
+                                            }
+                                            venvManager.runInWorkingFolder('"C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256')
+                                            venvManager.copyFromWorkingFolder("docs.zip")
+                                        }
                                         stash includes: 'docs.zip', name: 'docs'
                                     }
                                 }
@@ -462,7 +435,10 @@ pipeline {
                         stage('Create virtual environments') {
                             steps {
                                 script {
-                                    createVirtualEnvironments()
+                                    venvManager.createPoetryEnvironments(
+                                        pythonVersions: RUN_PYTHON_VERSIONS + [DEFAULT_PYTHON_VERSION] as Set,
+                                        installCommand: "poetry sync --all-groups --extras fsoe"
+                                    )
                                 }
                             }
                         }
@@ -537,7 +513,10 @@ pipeline {
                         stage('Create virtual environments') {
                             steps {
                                 script {
-                                    createVirtualEnvironments()
+                                    venvManager.createPoetryEnvironments(
+                                        pythonVersions: RUN_PYTHON_VERSIONS + [DEFAULT_PYTHON_VERSION] as Set,
+                                        installCommand: "poetry sync --all-groups --extras fsoe"
+                                    )
                                 }
                             }
                         }
@@ -602,6 +581,9 @@ pipeline {
                     image WIN_DOCKER_IMAGE
                 }
             }
+            environment {
+                VENV_WORKING_FOLDER = "${WIN_DOCKER_TMP_PATH}"
+            }
             steps {
                 script {
                     def coverage_files = ""
@@ -610,15 +592,15 @@ pipeline {
                         unstash coverage_stash
                         coverage_files += " " + coverage_stash
                     }
-                    bat "XCOPY ${env.WORKSPACE} ${WIN_DOCKER_TMP_PATH} /s /i /y /e /h"
-                    createVirtualEnvironments(WIN_DOCKER_TMP_PATH, DEFAULT_PYTHON_VERSION)
-                    bat """
-                        cd ${WIN_DOCKER_TMP_PATH}
-                        call .venv${DEFAULT_PYTHON_VERSION}/Scripts/activate
-                        poetry run poe cov-combine --${coverage_files}
-                        poetry run poe cov-report
-                        XCOPY coverage.xml ${env.WORKSPACE}
-                    """
+                    venvManager.copyToWorkingFolder()
+                    venvManager.createPoetryEnvironment(
+                        installCommand: "poetry sync --all-groups --extras fsoe"
+                    )
+                    venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
+                        venv.run("poetry run poe cov-combine --${coverage_files}")
+                        venv.run("poetry run poe cov-report")
+                    }
+                    venvManager.copyFromWorkingFolder("coverage.xml")
                 }
                 recordCoverage(tools: [[parser: 'COBERTURA', pattern: 'coverage.xml']])
                 archiveArtifacts artifacts: '*.xml'
