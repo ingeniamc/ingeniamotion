@@ -1,4 +1,4 @@
-@Library('cicd-lib@cit-564-migration-to-cicdlib-and-migration-of-pipelines') _
+@Library('cicd-lib@cit-564-migration-to-cicdlib-and-migration-of-pipelines-changes') _
 
 import python.VirtualEnvironment
 import python.VEnvManager
@@ -46,6 +46,7 @@ PyTestManager testManager = new PyTestManager(pipeline: this, venvManager: venvM
 /* Define default base test sessions to be used/overridden in stages */
 TestSession TEST_SESSIONS = new TestSession(
     covPackageName: "ingeniamotion",
+    covFromSitePackages: false,
     wiresharkScope: null, // Set later based on parameter
     wiresharkDir: "wireshark",
     startWiresharkTimeoutS: 10.0,
@@ -192,7 +193,9 @@ pipeline {
 
         stage('Build and Tests') {
             parallel {
-                stage('Build Windows') {
+                stage('Build and Publish') {
+                    stages {
+                        stage('Build Windows') {
                     agent {
                         docker {
                             label SW_NODE
@@ -214,7 +217,7 @@ pipeline {
                             steps {
                                 script {
                                     venvManager.createPoetryEnvironments(
-                                        pythonVersions: ALL_PYTHON_VERSIONS,
+                                        pythonVersions: venvManager.defaultVenvNamesToVersion(WIN_DOCKER_TESTS.baseTestSession.runInVirtualEnvs) + [DEFAULT_PYTHON_VERSION] as Set,
                                         installCommand: "poetry sync --all-groups --extras fsoe"
                                     )
                                 }
@@ -275,6 +278,54 @@ pipeline {
                             steps {
                                 script {
                                     WIN_DOCKER_TESTS.runTestStages()
+                                }
+                            }
+                        }
+                    }
+                }
+                        stage('Publish documentation') {
+                            when {
+                                beforeAgent true
+                                branch BRANCH_NAME_MASTER
+                            }
+                            agent {
+                                label 'lin-worker'
+                            }
+                            steps {
+                                unstash 'docs'
+                                unzip zipFile: 'docs.zip', dir: '.'
+                                publishDistExt('_docs', DISTEXT_PROJECT_DIR, true)
+                            }
+                        }
+                        stage('Publish wheels') {
+                            agent {
+                                docker {
+                                    label 'lin-worker'
+                                    image PUBLISHER_DOCKER_IMAGE
+                                }
+                            }
+                            stages {
+                                stage('Unstash') {
+                                    steps {
+                                        script {
+                                            for (stash_name in wheel_stashes) {
+                                                unstash stash_name
+                                            }
+                                        }
+                                    }
+                                }
+                                stage('Publish Novanta PyPi') {
+                                    steps {
+                                        publishNovantaPyPi('dist/*')
+                                    }
+                                }
+                                stage('Publish PyPi') {
+                                    when {
+                                        branch 'master'
+                                    }
+                                    steps {
+                                        publishPyPi('dist/*')
+                                    }
                                 }
                             }
                         }
@@ -390,57 +441,6 @@ pipeline {
                                     CAN_TESTS.runTestStages()
                                     ETH_TESTS.runTestStages()
                                 }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        stage('Publish') {
-            stages {
-                stage('Publish documentation') {
-                    when {
-                        beforeAgent true
-                        branch BRANCH_NAME_MASTER
-                    }
-                    agent {
-                        label 'lin-worker'
-                    }
-                    steps {
-                        unstash 'docs'
-                        unzip zipFile: 'docs.zip', dir: '.'
-                        publishDistExt('_docs', DISTEXT_PROJECT_DIR, true)
-                    }
-                }
-                stage('Publish wheels') {
-                    agent {
-                        docker {
-                            label 'lin-worker'
-                            image PUBLISHER_DOCKER_IMAGE
-                        }
-                    }
-                    stages {
-                        stage('Unstash') {
-                            steps {
-                                script {
-                                    for (stash_name in wheel_stashes) {
-                                        unstash stash_name
-                                    }
-                                }
-                            }
-                        }
-                        stage('Publish Novanta PyPi') {
-                            steps {
-                                publishNovantaPyPi('dist/*')
-                            }
-                        }
-                        stage('Publish PyPi') {
-                            when {
-                                branch 'master'
-                            }
-                            steps {
-                                publishPyPi('dist/*')
                             }
                         }
                     }
