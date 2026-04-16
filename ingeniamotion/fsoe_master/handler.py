@@ -288,7 +288,7 @@ class FSoEMasterHandler:
             raise RuntimeError("Module ident value to write could not be retrieved.")
 
         self.__module_ident = module_ident
-        self.__servo.write(self.MDP_CONFIGURED_MODULE_1, data=self.__module_ident, subnode=0)
+        self.restore_configuration()
 
         return self.__servo.dictionary.get_safety_module(module_ident=module_ident)
 
