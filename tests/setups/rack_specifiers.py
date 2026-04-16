@@ -36,8 +36,8 @@ ETH_SETUP = SpecifierContainer({
                     __TEST_CONFIGS_KEY: {
                         "ETH_TEST_SESSIONS": PyTestConfig(
                             markers="ethernet",
-                            run_test_stage_uid="ethernet_everest",
-                            stage_name="Ethernet Everest",
+                            run_test_stage_uid="ethernet_everest_2.4.0",
+                            stage_name="Ethernet Everest - FW. 2.4.0",
                         )
                     },
                 },
@@ -58,8 +58,8 @@ ETH_SETUP = SpecifierContainer({
                     __TEST_CONFIGS_KEY: {
                         "ETH_TEST_SESSIONS": PyTestConfig(
                             markers="ethernet",
-                            run_test_stage_uid="ethernet_capitan",
-                            stage_name="Ethernet Capitan",
+                            run_test_stage_uid="ethernet_capitan_2.4.0",
+                            stage_name="Ethernet Capitan - FW. 2.4.0",
                         )
                     },
                 },
@@ -83,8 +83,8 @@ ECAT_SETUP = SpecifierContainer({
                     __TEST_CONFIGS_KEY: {
                         "ECAT_TEST_SESSIONS": PyTestConfig(
                             markers="soem",
-                            run_test_stage_uid="ethercat_everest",
-                            stage_name="Ethercat Everest",
+                            run_test_stage_uid="ethercat_everest_2.6.0",
+                            stage_name="EtherCAT Everest - FW. 2.6.0",
                         )
                     },
                 },
@@ -104,8 +104,8 @@ ECAT_SETUP = SpecifierContainer({
                     __TEST_CONFIGS_KEY: {
                         "ECAT_TEST_SESSIONS": PyTestConfig(
                             markers="soem",
-                            run_test_stage_uid="ethercat_capitan",
-                            stage_name="Ethercat Capitan",
+                            run_test_stage_uid="ethercat_capitan_2.6.0",
+                            stage_name="EtherCAT Capitan - FW. 2.6.0",
                         )
                     },
                 },
@@ -127,8 +127,8 @@ ECAT_DEN_S_NET_E_SETUP = RackServiceConfigSpecifier.from_version_configs(
                 __TEST_CONFIGS_KEY: {
                     "ECAT_TEST_SESSIONS": PyTestConfig(
                         markers="fsoe",
-                        run_test_stage_uid="fsoe_phase1",
-                        stage_name="Safety Denali Phase I",
+                        run_test_stage_uid="fsoe_phase1_2.7.4",
+                        stage_name="Safety Denali Phase I - FW. 2.7.4",
                     )
                 },
             },
@@ -147,8 +147,8 @@ ECAT_DEN_S_NET_E_SETUP = RackServiceConfigSpecifier.from_version_configs(
                 __TEST_CONFIGS_KEY: {
                     "ECAT_TEST_SESSIONS": PyTestConfig(
                         markers="fsoe or fsoe_phase2",
-                        run_test_stage_uid="fsoe_phase2",
-                        stage_name="Safety Denali Phase II",
+                        run_test_stage_uid="fsoe_phase2_2.9.0",
+                        stage_name="Safety Denali Phase II - FW. 2.9.0",
                     )
                 },
             },
@@ -171,8 +171,8 @@ CAN_SETUP = SpecifierContainer({
                     __TEST_CONFIGS_KEY: {
                         "CAN_TEST_SESSIONS": PyTestConfig(
                             markers="canopen",
-                            run_test_stage_uid="canopen_everest",
-                            stage_name="CanOpen Everest",
+                            run_test_stage_uid="canopen_everest_2.4.0",
+                            stage_name="CANopen Everest - FW. 2.4.0",
                         )
                     },
                 },
@@ -192,8 +192,8 @@ CAN_SETUP = SpecifierContainer({
                     __TEST_CONFIGS_KEY: {
                         "CAN_TEST_SESSIONS": PyTestConfig(
                             markers="canopen",
-                            run_test_stage_uid="canopen_capitan",
-                            stage_name="CanOpen Capitan",
+                            run_test_stage_uid="canopen_capitan_2.4.0",
+                            stage_name="CANopen Capitan - FW. 2.4.0",
                         )
                     },
                 },
@@ -218,8 +218,8 @@ ECAT_MULTISLAVE_SETUP = MultiRackServiceConfigSpecifier.create(
         __TEST_CONFIGS_KEY: {
             "ECAT_TEST_SESSIONS": PyTestConfig(
                 markers="soem_multislave",
-                run_test_stage_uid="ethercat_multislave",
-                stage_name="Ethercat Multislave",
+                run_test_stage_uid="ethercat_multislave_2.6.0",
+                stage_name="EtherCAT Multislave - FW. 2.6.0",
             )
         },
     },

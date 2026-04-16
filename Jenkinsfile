@@ -32,9 +32,6 @@ def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
 /* List of markers that require hardware */
 def HARDWARE_MARKERS = ["ethernet", "soem", "soem_multislave", "canopen", "fsoe", "fsoe_phase2"]
 
-@groovy.transform.Field
-List wheel_stashes = []
-
 VEnvManager venvManager = new VEnvManager(
     pipeline: this,
     default_python_version: DEFAULT_PYTHON_VERSION,
@@ -107,8 +104,8 @@ pipeline {
         )
         booleanParam(name: 'WIRESHARK_LOGGING', defaultValue: false, description: 'Enable Wireshark logging')
         choice(
-                choices: ['function', 'module', 'session'],
-                name: 'WIRESHARK_LOGGING_SCOPE'
+            choices: ['function', 'module', 'session'],
+            name: 'WIRESHARK_LOGGING_SCOPE'
         )
         booleanParam(name: 'CLEAR_SUCCESSFUL_WIRESHARK_LOGS', defaultValue: true, description: 'Clears Wireshark logs if the test passed')
     }
@@ -231,12 +228,8 @@ pipeline {
                                     }
                                     venvManager.copyFromWorkingFolder("dist/")
                                 }
-                                archiveArtifacts(artifacts: "dist\\*", followSymlinks: false)
-                                script {
-                                    def stash_name = "publish_wheels-windows"
-                                    wheel_stashes.add(stash_name)
-                                    stash includes: "dist\\*", name: stash_name
-                                }
+                                archiveArtifacts artifacts: "dist\\*"
+                                stash includes: "dist\\*", name: 'build'
                             }
                         }
                         stage('Make a static type analysis') {
@@ -305,13 +298,9 @@ pipeline {
                                 }
                             }
                             stages {
-                                stage('Unstash') {
+                                stage('Unstash build') {
                                     steps {
-                                        script {
-                                            for (stash_name in wheel_stashes) {
-                                                unstash stash_name
-                                            }
-                                        }
+                                        unstash 'build'
                                     }
                                 }
                                 stage('Publish Novanta PyPi') {
@@ -331,7 +320,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Build Linux') {
+                stage('Linux Docker Tests') {
                     agent {
                         docker {
                             label 'lin-worker'
@@ -430,7 +419,6 @@ pipeline {
                                 script {
                                     venvManager.createPoetryEnvironments(
                                         pythonVersions: venvManager.defaultVenvNamesToVersion(HW_TEST_SESSIONS.runInVirtualEnvs),
-                                        installCommand: "poetry sync --all-groups --extras fsoe"
                                     )
                                 }
                             }
