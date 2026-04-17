@@ -223,6 +223,7 @@ pipeline {
                         stage('Build wheels') {
                             steps {
                                 script {
+                                    venvManager.runInWorkingFolder("if exist dist rmdir /s /q dist")
                                     venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
                                         venv.run("poetry run poe build")
                                     }
