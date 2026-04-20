@@ -9,10 +9,7 @@ omit = tests/*
 [paths]
 source =
     ingeniamotion
-    .tox/py39/Lib/site-packages/ingeniamotion
-    .tox/py310/Lib/site-packages/ingeniamotion
-    .tox/py311/Lib/site-packages/ingeniamotion
-    .tox/py312/Lib/site-packages/ingeniamotion
+    */site-packages/ingeniamotion
 
 ; Skip empty files
 [report]

@@ -172,6 +172,7 @@ cmd = "mypy ingeniamotion"
 [tool.poe.tasks.tests]
 cmd = "python -I -m pytest tests"
 
+
 # ----------------------------- Coverage combine -----------------------------
 [tool.poe.tasks.cov-combine]
 cmd = "python -I -m coverage combine"
