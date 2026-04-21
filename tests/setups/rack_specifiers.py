@@ -134,7 +134,7 @@ ECAT_DEN_S_NET_E_SETUP = RackServiceConfigSpecifier.from_version_configs(
             },
         ),
         "PHASE2": VersionConfig.from_version(
-            version="2.10.0",
+            version="2.9.1",
             config_file=None,
             dictionary_type=DictionaryType.XDF_V3,
             extra_data={
@@ -142,8 +142,8 @@ ECAT_DEN_S_NET_E_SETUP = RackServiceConfigSpecifier.from_version_configs(
                 __TEST_CONFIGS_KEY: {
                     "ECAT_TEST_SESSIONS": PyTestConfig(
                         markers="fsoe or fsoe_phase2",
-                        run_test_stage_uid="fsoe_phase2_2.10.0",
-                        stage_name="Safety Denali Phase II - FW. 2.10.0",
+                        run_test_stage_uid="fsoe_phase2_2.9.1",
+                        stage_name="Safety Denali Phase II - FW. 2.9.1",
                     )
                 },
             },
