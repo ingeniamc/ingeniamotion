@@ -1,10 +1,18 @@
 import pytest
+from ingenialink.exceptions import ILConfigurationError
 
+from ingeniamotion.enums import SensorType
 from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder1_test import (
     AbsoluteEncoder1Test,
 )
 from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder2_test import (
     AbsoluteEncoder2Test,
+)
+from ingeniamotion.wizard_tests.feedbacks_tests.dc_feedback_polarity_test import (
+    DCFeedbacksPolarityTest,
+)
+from ingeniamotion.wizard_tests.feedbacks_tests.dc_feedback_resolution_test import (
+    DCFeedbacksResolutionTest,
 )
 from ingeniamotion.wizard_tests.feedbacks_tests.digital_hall_test import DigitalHallTest
 from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental1_test import (
@@ -16,6 +24,8 @@ from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental2_test import
 from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import (
     SecondarySSITest,
 )
+
+INCREMENTAL_ENCODER_1_RESOLUTION_REGISTER = "FBK_DIGENC1_RESOLUTION"
 
 
 @pytest.mark.virtual
@@ -80,3 +90,39 @@ def test_save_backup_registers(mc, alias, feedback_test_type):
     assert "PROF_POS_OPTION_CODE" in saved_backup_registers
     assert "CL_POS_REF_MAX_RANGE" in saved_backup_registers
     assert "CL_POS_REF_MIN_RANGE" in saved_backup_registers
+
+
+@pytest.mark.virtual
+def test_bldc_feedback_setting_raises_on_zero_resolution(mc, alias):
+    """BLDC feedback setup must raise ILConfigurationError when resolution is zero."""
+    axis = 1
+    mc.communication.set_register(
+        INCREMENTAL_ENCODER_1_RESOLUTION_REGISTER, 0, servo=alias, axis=axis
+    )
+    feedback_test = DigitalIncremental1Test(mc, alias, axis)
+    with pytest.raises(ILConfigurationError, match="resolution must be greater than 0"):
+        feedback_test.setup()
+
+
+@pytest.mark.virtual
+def test_dc_resolution_test_raises_on_zero_resolution(mc, alias):
+    """DC resolution test setup must raise ILConfigurationError when resolution is zero."""
+    axis = 1
+    mc.communication.set_register(
+        INCREMENTAL_ENCODER_1_RESOLUTION_REGISTER, 0, servo=alias, axis=axis
+    )
+    dc_test = DCFeedbacksResolutionTest(mc, SensorType.QEI, alias, axis)
+    with pytest.raises(ILConfigurationError, match="resolution must be greater than 0"):
+        dc_test.setup()
+
+
+@pytest.mark.virtual
+def test_dc_polarity_test_raises_on_zero_resolution(mc, alias):
+    """DC polarity test setup must raise ILConfigurationError when resolution is zero."""
+    axis = 1
+    mc.communication.set_register(
+        INCREMENTAL_ENCODER_1_RESOLUTION_REGISTER, 0, servo=alias, axis=axis
+    )
+    dc_test = DCFeedbacksPolarityTest(mc, SensorType.QEI, alias, axis)
+    with pytest.raises(ILConfigurationError, match="resolution must be greater than 0"):
+        dc_test.setup()
