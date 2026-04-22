@@ -148,7 +148,7 @@ def test_pdo_poller_with_fsoe_active(
     # Configure FSoE maps without starting PDOs or master
     mc.fsoe.configure_pdos(start_pdos=False, start_master=False)
 
-    # Create the poller without starting it (sets maps only)
+    # Create the poller without starting it (maps are set to the servo)
     registers = [{"name": "CL_POS_FBK_VALUE", "axis": 1}]
     sampling_time = 0.25
     samples_target = 4
@@ -156,10 +156,12 @@ def test_pdo_poller_with_fsoe_active(
         registers=registers, servo=alias, sampling_time=sampling_time, start=False
     )
 
-    # Start the FSoE master first, then start PDOs
+    # Start the FSoE master with PDOs, then start the poller.
+    # Since PDOs are already active, start() just subscribes to events.
     mc.fsoe.start_master(start_pdos=True)
     mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
     assert mc.fsoe.get_fsoe_master_state(servo=alias) is FSoEState.DATA
+    poller.start()
 
     time.sleep((samples_target - 0.5) * sampling_time)
 
@@ -170,6 +172,6 @@ def test_pdo_poller_with_fsoe_active(
     mc.fsoe.stop_master(stop_pdos=False)
 
     poller.stop()
-    timestamps, data = poller.data
+    _timestamps, data = poller.data
     assert len(data) == len(registers)
     assert len(data[0]) >= samples_target

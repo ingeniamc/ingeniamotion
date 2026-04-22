@@ -56,20 +56,41 @@ class PDOPoller:
         self.__fill_rpdo_map()
         self.__exception_callbacks: list[Callable[[ILError], None]] = []
 
-    def start(self) -> None:
-        """Start the poller."""
+    def set_pdo_maps(self) -> None:
+        """Set the poller PDO maps to the servo.
+
+        If the maps are already registered on the servo, this is a no-op
+        (``set_pdo_maps_to_slave`` skips duplicates).
+        """
         self.__mc.capture.pdo.set_pdo_maps_to_slave(
             rpdo_maps=self.__rpdo_map, tpdo_maps=self.__tpdo_map, servo=self.__servo
         )
+
+    def __start_pdos(self) -> None:
+        """Start the PDO exchange if not already active."""
+        if not self.__mc.capture.pdo.is_active(servo=self.__servo):
+            self.__mc.capture.pdo.start_pdos(
+                refresh_rate=self.__refresh_time,
+                watchdog_timeout=self.__watchdog_timeout,
+                servo=self.__servo,
+            )
+
+    def __subscribe_to_events(self) -> None:
+        """Subscribe to process data and exception events."""
         self.__tpdo_map.subscribe_to_process_data_event(self._new_data_available)
         for callback in self.__exception_callbacks:
             self.__mc.capture.pdo.subscribe_to_exceptions(callback, servo=self.__servo)
         self.__start_time = time.time()
-        self.__mc.capture.pdo.start_pdos(
-            refresh_rate=self.__refresh_time,
-            watchdog_timeout=self.__watchdog_timeout,
-            servo=self.__servo,
-        )
+
+    def start(self) -> None:
+        """Start the poller.
+
+        Sets the PDO maps (if not already set), starts the PDO exchange
+        (if not already active), and subscribes to process data events.
+        """
+        self.set_pdo_maps()
+        self.__start_pdos()
+        self.__subscribe_to_events()
 
     def stop(self) -> None:
         """Stop the poller."""
@@ -795,6 +816,8 @@ class PDONetworkManager:
         poller.add_channels(registers)
         if start:
             poller.start()
+        else:
+            poller.set_pdo_maps()
         return poller
 
     def unsubscribe_to_exceptions(
