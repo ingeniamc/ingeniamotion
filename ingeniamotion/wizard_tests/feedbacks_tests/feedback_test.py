@@ -4,7 +4,7 @@ from enum import IntEnum
 from typing import TYPE_CHECKING, ClassVar, Optional
 
 import ingenialogger
-from ingenialink.exceptions import ILConfigurationError, ILIOError, ILStateError, ILTimeoutError
+from ingenialink.exceptions import ILIOError, ILStateError, ILTimeoutError
 from typing_extensions import override
 
 if TYPE_CHECKING:
@@ -20,6 +20,7 @@ from ingeniamotion.exceptions import IMRegisterNotExistError
 from ingeniamotion.wizard_tests.base_test import (
     BaseTest,
     LegacyDictReportType,
+    TestConfigurationError,
     TestError,
 )
 
@@ -186,7 +187,7 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         """Set the feedback for the test.
 
         Raises:
-            ILConfigurationError: If the feedback resolution is not greater than 0.
+            TestConfigurationError: If the feedback resolution is not greater than 0.
         """
         # First set all feedback to feedback in test, so there won't be
         # more than 5 feedback at the same time
@@ -210,7 +211,7 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
             self.sensor, servo=self.servo, axis=self.axis
         )
         if self.feedback_resolution == 0:
-            raise ILConfigurationError(
+            raise TestConfigurationError(
                 "The feedback resolution must be greater than 0. Please adjust it accordingly."
             )
 
