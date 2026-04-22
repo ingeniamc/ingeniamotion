@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.10.3] - 2026-MM-DD
+### Fixed
+- Added validation for zero feedback resolution in `DCFeedbacksResolutionTest` and `DCFeedbacksPolarityTest`.
+
 ## [0.10.2] - 2026-03-20
 ### Added
 - Extended error queue manager (`ServoErrorQueue`) to support standard drive errors (MOCO/COCO/SYSTEM).
