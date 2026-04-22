@@ -2,6 +2,7 @@ from enum import IntEnum
 from typing import TYPE_CHECKING, ClassVar, Optional
 
 import ingenialogger
+from ingenialink.exceptions import ILConfigurationError
 from typing_extensions import override
 
 from ingeniamotion.enums import FeedbackPolarity, OperationMode, SensorType, SeverityLevel
@@ -68,6 +69,10 @@ class DCFeedbacksPolarityTest(BaseTest[LegacyDictReportType]):
         self.feedback_resolution = self.mc.configuration.get_feedback_resolution(
             self.sensor, servo=self.servo, axis=self.axis
         )
+        if self.feedback_resolution == 0:
+            raise ILConfigurationError(
+                "The feedback resolution must be greater than 0. Please adjust it accordingly."
+            )
         self.mc.configuration.set_feedback_polarity(
             FeedbackPolarity.NORMAL, self.sensor, servo=self.servo, axis=self.axis
         )

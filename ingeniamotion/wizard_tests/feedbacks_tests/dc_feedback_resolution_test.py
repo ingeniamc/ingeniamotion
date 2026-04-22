@@ -3,6 +3,7 @@ from enum import IntEnum
 from typing import TYPE_CHECKING, ClassVar, Optional
 
 import ingenialogger
+from ingenialink.exceptions import ILConfigurationError
 from typing_extensions import override
 
 from ingeniamotion.enums import OperationMode, SensorType, SeverityLevel
@@ -88,6 +89,10 @@ class DCFeedbacksResolutionTest(BaseTest[LegacyDictReportType]):
         self.feedback_resolution = self.mc.configuration.get_feedback_resolution(
             self.sensor, servo=self.servo, axis=self.axis
         )
+        if self.feedback_resolution == 0:
+            raise ILConfigurationError(
+                "The feedback resolution must be greater than 0. Please adjust it accordingly."
+            )
         self.mc.configuration.set_velocity_feedback(self.sensor, servo=self.servo, axis=self.axis)
         self.mc.configuration.set_position_feedback(self.sensor, servo=self.servo, axis=self.axis)
         if self.sensor == SensorType.BISSC2:
