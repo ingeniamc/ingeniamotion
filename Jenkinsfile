@@ -29,7 +29,7 @@ def PYTHON_VERSION_MAX = "3.12"
 def BRANCH_NAME_MASTER = "master"
 def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
 
-/* List of markers that require hardware */
+/* Markers that require hardware access */
 def HARDWARE_MARKERS = ["ethernet", "soem", "soem_multislave", "canopen", "fsoe", "fsoe_phase2"]
 
 VEnvManager venvManager = new VEnvManager(
