@@ -8,26 +8,48 @@ def CAN_NODE_LOCK = "test_execution_lock_can"
 
 def LIN_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/docker-python:1.6"
 def WIN_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/win-python-builder:1.7"
+def PUBLISHER_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/publisher:1.8"
 
 WIN_DOCKER_TMP_PATH = "C:\\Users\\ContainerAdministrator\\ingeniamotion"
 LIN_DOCKER_TMP_PATH = "/tmp/ingeniamotion"
 
 DEFAULT_PYTHON_VERSION = "3.9"
 
-ALL_PYTHON_VERSIONS = "3.9,3.10,3.11,3.12"
-RUN_PYTHON_VERSIONS = ""
-PYTHON_VERSION_MIN = "3.9"
+def ALL_PYTHON_VERSIONS = ["3.9", "3.10", "3.11", "3.12"] as Set
+def PYTHON_VERSION_MIN = "3.9"
 def PYTHON_VERSION_MAX = "3.12"
 
 def BRANCH_NAME_MASTER = "master"
 def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
 
-WIRESHARK_DIR = "wireshark"
-USE_WIRESHARK_LOGGING = ""
-START_WIRESHARK_TIMEOUT_S = 10.0
-FSOE_MAPS_DIR = "fsoe_maps"
+/* List of markers that require hardware */
+def HARDWARE_MARKERS = ["ethernet", "soem", "soem_multislave", "canopen", "fsoe", "fsoe_phase2"]
 
-coverage_stashes = []
+VEnvManager venvManager = new VEnvManager(
+    pipeline: this,
+    default_python_version: DEFAULT_PYTHON_VERSION,
+    poetry_default_install_command: "poetry sync --all-groups"
+)
+
+PyTestManager testManager = new PyTestManager(pipeline: this, venvManager: venvManager)
+
+/* Define default base test sessions to be used/overridden in stages */
+TestSession TEST_SESSIONS = new TestSession(
+    covPackageName: "ingeniamotion",
+    covFromSitePackages: false,
+    wiresharkScope: null, // Set later based on parameter
+    wiresharkDir: "wireshark",
+    startWiresharkTimeoutS: 10.0,
+    importMode: "importlib",
+    logCli: true,
+    enableFirmwareVersionCheck: true,
+)
+TestSession HW_TEST_SESSIONS = TEST_SESSIONS.override()
+TestGroup CAN_TESTS = testManager.createGroup("CAN_TEST_SESSIONS", HW_TEST_SESSIONS.override())
+TestGroup ETH_TESTS = testManager.createGroup("ETH_TEST_SESSIONS", HW_TEST_SESSIONS.override())
+TestGroup ECAT_TESTS = testManager.createGroup("ECAT_TEST_SESSIONS", HW_TEST_SESSIONS.override())
+TestGroup LINUX_DOCKER_TESTS = testManager.createGroup("LINUX_DOCKER_TEST_SESSIONS", TEST_SESSIONS.override())
+TestGroup WIN_DOCKER_TESTS = testManager.createGroup("WIN_DOCKER_TEST_SESSIONS", TEST_SESSIONS.override())
 
 def reassignFilePermissions() {
     if (isUnix()) {
@@ -35,154 +57,8 @@ def reassignFilePermissions() {
     }
 }
 
-def clearWiresharkLogs() {
-    bat(script: 'del /f "%WIRESHARK_DIR%\\*.pcap"', returnStatus: true)
-}
-
-def archiveWiresharkLogs() {
-    archiveArtifacts artifacts: "${WIRESHARK_DIR}\\*.pcap", allowEmptyArchive: true
-}
-
-def runTest(run_identifier, markers, setup_name, extra_args = "", useWireshark = false, workingDir = null) {
-    def withWiresharkEnv = useWireshark
-    // Automatically add USE_WIRESHARK_LOGGING to extra_args when useWireshark is true
-    def effectiveExtraArgs = useWireshark ? "${USE_WIRESHARK_LOGGING} ${extra_args}".trim() : extra_args
-    try {
-        timeout(time: 1, unit: 'HOURS') {
-            def pythonVersions = RUN_PYTHON_VERSIONS.split(',')
-            pythonVersions.each { version ->
-                def envVars = withWiresharkEnv ? 
-                    ["WIRESHARK_SCOPE=${params.WIRESHARK_LOGGING_SCOPE}", "CLEAR_WIRESHARK_LOG_IF_SUCCESSFUL=${params.CLEAR_SUCCESSFUL_WIRESHARK_LOGS}", "START_WIRESHARK_TIMEOUT_S=${START_WIRESHARK_TIMEOUT_S}"] : 
-                    []
-                
-                withEnv(envVars) {
-                    try {
-                        def cdCmd = workingDir ? "cd ${workingDir}" : ""
-                        def testArgs = [
-                            "--import-mode=importlib",
-                            "--cov=ingeniamotion",
-                            "--junitxml=pytest_reports/junit-tests-${version}.xml",
-                            "--junit-prefix=${version}",
-                            "-m \"${markers}\"",
-                            "--setup ${setup_name}",
-                            "--job_name=\"${env.JOB_NAME}-#${env.BUILD_NUMBER}-${run_identifier}\"",
-                            "--tb=long",
-                            "-o log_cli=True",
-                            "--enable_firmware_version_check",
-                            effectiveExtraArgs
-                        ].findAll { it }.join(" ")
-                        
-                        if (isUnix()) {
-                            sh """
-                                ${cdCmd}
-                                . .venv${version}/bin/activate
-                                poetry run poe tests ${testArgs}
-                                deactivate
-                            """
-                        } else {
-                            bat """
-                                ${cdCmd}
-                                call .venv${version}/Scripts/activate
-                                poetry run poe tests ${testArgs}
-                                deactivate
-                            """
-                        }
-                    } catch (err) {
-                        unstable(message: "Tests failed")
-                    } finally {
-                        // Handle junit reports and coverage
-                        if (workingDir && isUnix()) {
-                            sh """
-                                mkdir -p pytest_reports
-                                cp ${workingDir}/pytest_reports/* pytest_reports/ 2>/dev/null || true
-                            """
-                        } else if (workingDir && !isUnix()) {
-                            bat """
-                                mkdir -p pytest_reports
-                                XCOPY ${workingDir}\\pytest_reports\\* pytest_reports\\ /s /i /y /e /h 2>nul || exit /b 0
-                            """
-                        }
-                        
-                        junit "pytest_reports\\*.xml"
-                        
-                        // Delete the junit after publishing it so it not re-published on the next stage
-                        if (isUnix()) {
-                            sh "rm -f pytest_reports/*.xml"
-                        } else {
-                            bat "del /S /Q pytest_reports\\*.xml"
-                        }
-                        
-                        // Save the coverage so it can be unified and published later
-                        def coverage_stash = ".coverage_${run_identifier}_${version}"
-                        
-                        if (isUnix()) {
-                            if (workingDir) {
-                                sh "cp ${workingDir}/.coverage ${coverage_stash} 2>/dev/null || true"
-                            } else {
-                                sh "mv .coverage ${coverage_stash} 2>/dev/null || true"
-                            }
-                        } else {
-                            if (workingDir) {
-                                bat "move ${workingDir}\\.coverage ${coverage_stash} 2>nul || exit /b 0"
-                            } else {
-                                bat "move .coverage ${coverage_stash} 2>nul || exit /b 0"
-                            }
-                        }
-                        
-                        stash includes: coverage_stash, name: coverage_stash, allowEmpty: true
-                        coverage_stashes.add(coverage_stash)
-                    }
-                }
-            }
-        }
-    } finally {
-        if (withWiresharkEnv) {
-            archiveWiresharkLogs()
-            clearWiresharkLogs()
-        }
-    }
-}
-
-def runPython(command, py_version = DEFAULT_PYTHON_VERSION) {
-    if (isUnix()) {
-        sh "python${py_version} -I -m ${command}"
-    } else {
-        bat "py -${py_version} -I -m ${command}"
-    }
-}
-
-def createVirtualEnvironments(String workingDir = null, String pythonVersionList = "") {
-    def versions = pythonVersionList?.trim() ? pythonVersionList : RUN_PYTHON_VERSIONS
-    def pythonVersions = versions.split(',')
-    // Ensure DEFAULT_PYTHON_VERSION is included if not already present
-    if (!pythonVersions.contains(DEFAULT_PYTHON_VERSION)) {
-        pythonVersions = pythonVersions + [DEFAULT_PYTHON_VERSION]
-    }
-    pythonVersions.each { version ->
-        def venvName = ".venv${version}"
-        def cdCmd = workingDir ? "cd ${workingDir}" : ""
-        if (isUnix()) {
-            sh """
-                ${cdCmd}
-                python${version} -m venv --without-pip ${venvName}
-                . ${venvName}/bin/activate
-                poetry sync --all-groups
-                deactivate
-            """
-        } else {
-            bat """
-                ${cdCmd}
-                py -${version} -m venv ${venvName}
-                call ${venvName}/Scripts/activate
-                poetry sync --all-groups --extras fsoe
-                deactivate
-            """
-        }
-    }
-}
-
 /* Build develop everyday 3 times starting at 19:00 UTC (21:00 Barcelona Time), running all python versions */
-CRON_SETTINGS = BRANCH_NAME == "develop" ? '''0 19,21,23 * * * % PYTHON_VERSIONS=All;WIRESHARK_LOGGING=true''' : ""
+CRON_SETTINGS = BRANCH_NAME == "develop" ? "0 19,21,23 * * * % PYTHON_VERSIONS=All;WIRESHARK_LOGGING=true" : ""
 
 pipeline {
     agent none
@@ -200,7 +76,8 @@ pipeline {
         choice(
             choices: [
                 '.*',
-                'virtual_drive_tests',
+                'virtual_.*',
+                'unit_.*',
                 'canopen.*',
                 'ethernet.*',
                 'canopen_everest.*',
@@ -215,8 +92,8 @@ pipeline {
                 'fsoe_phase1.*',
                 'fsoe_phase2.*'
             ],
-            name: 'run_test_stages',
-            description: 'Regex pattern for which testing stage or substage to run (e.g. "fsoe_.*", "ethercat_everest", ".*" for all)'
+            name: 'test_session_filter',
+            description: 'Regex pattern for which test sessions to run (e.g. "fsoe.*", "ethercat_everest.*", ".*" for all)'
         )
         booleanParam(name: 'WIRESHARK_LOGGING', defaultValue: false, description: 'Enable Wireshark logging')
         choice(
@@ -226,48 +103,97 @@ pipeline {
         booleanParam(name: 'CLEAR_SUCCESSFUL_WIRESHARK_LOGS', defaultValue: true, description: 'Clears Wireshark logs if the test passed')
     }
     stages {
-        stage("Set env") {
+        stage('Prepare test sessions') {
+            agent {
+                docker {
+                    label 'lin-worker'
+                    image LIN_DOCKER_IMAGE
+                    args '-u root:root'
+                }
+            }
+            environment {
+                VENV_WORKING_FOLDER = "${LIN_DOCKER_TMP_PATH}"
+            }
             steps {
                 script {
+                    // Determine which Python versions to run tests against based on branch and parameters
+                    Set pythonVersions
                     if (env.BRANCH_NAME == 'master') {
-                        RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
+                        pythonVersions = ALL_PYTHON_VERSIONS
                     } else if (env.BRANCH_NAME.startsWith('release/')) {
-                        RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
+                        pythonVersions = ALL_PYTHON_VERSIONS
                     } else {
                         if (env.PYTHON_VERSIONS == "MIN_MAX") {
-                            RUN_PYTHON_VERSIONS = "${PYTHON_VERSION_MIN},${PYTHON_VERSION_MAX}"
+                            pythonVersions = [PYTHON_VERSION_MIN, PYTHON_VERSION_MAX] as Set
                         } else if (env.PYTHON_VERSIONS == "MIN") {
-                            RUN_PYTHON_VERSIONS = PYTHON_VERSION_MIN
+                            pythonVersions = [PYTHON_VERSION_MIN] as Set
                         } else if (env.PYTHON_VERSIONS == "MAX") {
-                            RUN_PYTHON_VERSIONS = PYTHON_VERSION_MAX
+                            pythonVersions = [PYTHON_VERSION_MAX] as Set
                         } else if (env.PYTHON_VERSIONS == "All") {
-                            RUN_PYTHON_VERSIONS = ALL_PYTHON_VERSIONS
+                            pythonVersions = ALL_PYTHON_VERSIONS
                         } else { // Branch-indexing
-                            RUN_PYTHON_VERSIONS = PYTHON_VERSION_MIN
+                            pythonVersions = [PYTHON_VERSION_MIN] as Set
                         }
                     }
 
-                    if (params.WIRESHARK_LOGGING) {
-                        USE_WIRESHARK_LOGGING = "--run_wireshark"
-                    } else {
-                        USE_WIRESHARK_LOGGING = ""
-                    }
+                    // Set dynamic properties according to job and parameters
+                    TEST_SESSIONS.setAttributeInCascade(
+                        runInVirtualEnvs: venvManager.pythonVersionsToDefaultVenvNames(pythonVersions),
+                        jobName: "${env.JOB_NAME}-#${env.BUILD_NUMBER}",
+                        wiresharkScope: params.WIRESHARK_LOGGING_SCOPE,
+                        clearSuccessfulWiresharkLogs: params.CLEAR_SUCCESSFUL_WIRESHARK_LOGS,
+                    )
+
+                    // Configure if ECAT and ETH sessions use Wireshark logging based on parameter
+                    ECAT_TESTS.baseTestSession.setAttributeInCascade(
+                        useWiresharkLogging: params.WIRESHARK_LOGGING,
+                    )
+                    ETH_TESTS.baseTestSession.setAttributeInCascade(
+                        useWiresharkLogging: params.WIRESHARK_LOGGING,
+                    )
+
+                    testManager.testSessionFilter = params.test_session_filter
+
+                    echo("Test sessions have been configured to run with the following base configuration:\n${TEST_SESSIONS.configSummary()}")
+
+                    // Create a minimal virtual environment for specifier export and test collection
+                    venvManager.copyToWorkingFolder()
+                    venvManager.createPoetryEnvironment()
+
+                    // Export specifiers and populate TestGroup sessions (policy + uid-regex evaluated here).
+                    testManager.buildTestSessions("tests.setups.rack_specifiers")
+                    testManager.buildTestSessions("tests.setups.virtual_drive")
+
+                    // Register manual test sessions
+                    WIN_DOCKER_TESTS.addSession(
+                        uid: "unit_tests",
+                        markers: PyTestManager.markersExcludeString(HARDWARE_MARKERS + ["virtual"]),
+                        stageName: "Unit Tests (Windows)")
+
+                    testManager.echoTestGroupsSummary()
+                    testManager.generateTestDashboard()
+                }
+            }
+            post {
+                always {
+                    reassignFilePermissions()
                 }
             }
         }
 
         stage('Build and Tests') {
             parallel {
-                stage('Virtual drive tests on Linux') {
-                    when {
-                        expression { "virtual_drive_tests" ==~ params.run_test_stages }
-                    }
+                stage('Build and Publish') {
+                    stages {
+                        stage('Build Windows') {
                     agent {
                         docker {
-                            label "lin-worker"
-                            image LIN_DOCKER_IMAGE
-                            args '-u root:root'
+                            label SW_NODE
+                            image WIN_DOCKER_IMAGE
                         }
+                    }
+                    environment {
+                        VENV_WORKING_FOLDER = "${WIN_DOCKER_TMP_PATH}"
                     }
                     stages {
                         stage('Check Dependencies') {
@@ -280,134 +206,96 @@ pipeline {
                         stage('Move workspace') {
                             steps {
                                 script {
-                                    sh """
-                                        mkdir -p ${LIN_DOCKER_TMP_PATH}
-                                        cp -r ${env.WORKSPACE}/. ${LIN_DOCKER_TMP_PATH}
-                                    """
+                                    venvManager.copyToWorkingFolder()
                                 }
                             }
                         }
                         stage('Create virtual environments') {
                             steps {
                                 script {
-                                    createVirtualEnvironments(LIN_DOCKER_TMP_PATH)
+                                    venvManager.createPoetryEnvironments(
+                                        pythonVersions: venvManager.defaultVenvNamesToVersion(WIN_DOCKER_TESTS.baseTestSession.runInVirtualEnvs) + [DEFAULT_PYTHON_VERSION] as Set,
+                                        installCommand: "poetry sync --all-groups --extras fsoe"
+                                    )
                                 }
                             }
                         }
-                        stage('Run no-connection tests') {
+                        stage('Build wheels') {
                             steps {
                                 script {
-                                    runTest("virtual_linux", "virtual", "tests.setups.virtual_drive.VIRTUAL_DRIVE_ETHERNET_SETUP", "", false, LIN_DOCKER_TMP_PATH)
+                                    venvManager.runInWorkingFolder("if exist dist rmdir /s /q dist")
+                                    venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
+                                        venv.run("poetry run poe build")
+                                    }
+                                    venvManager.copyFromWorkingFolder("dist/")
+                                }
+                                archiveArtifacts artifacts: "dist\\*"
+                                stash includes: "dist\\*", name: 'build'
+                            }
+                        }
+                        stage('Make a static type analysis') {
+                            steps {
+                                script {
+                                    venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
+                                        venv.run("poetry run poe type")
+                                    }
                                 }
                             }
                         }
-                    }
-                    post {
-                        always {
-                            reassignFilePermissions()
+                        stage('Check formatting') {
+                            steps {
+                                script {
+                                    venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
+                                        venv.run("poetry run poe format")
+                                    }
+                                }
+                            }
+                        }
+                        stage('Generate documentation') {
+                            steps {
+                                script {
+                                    venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
+                                        venv.run("poetry run poe docs")
+                                    }
+                                    venvManager.runInWorkingFolder('"C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256')
+                                    venvManager.copyFromWorkingFolder("docs.zip")
+                                }
+                                stash includes: 'docs.zip', name: 'docs'
+                            }
+                        }
+                        stage('Run Docker tests (Windows)') {
+                            when {
+                                expression {
+                                    WIN_DOCKER_TESTS.anyShouldRun()
+                                }
+                            }
+                            steps {
+                                script {
+                                    WIN_DOCKER_TESTS.runTestStages()
+                                }
+                            }
                         }
                     }
                 }
-
-                stage('Build and publish') {
-                    stages {
-                        stage('Build') {
-                            agent {
-                                docker {
-                                    label SW_NODE
-                                    image WIN_DOCKER_IMAGE
-                                }
-                            }
-                            stages {
-                                stage('Move workspace') {
-                                    steps {
-                                        bat "XCOPY ${env.WORKSPACE} ${WIN_DOCKER_TMP_PATH} /s /i /y /e /h"
-                                    }
-                                }
-                                stage('Create virtual environments') {
-                                    steps {
-                                        script {
-                                            createVirtualEnvironments(WIN_DOCKER_TMP_PATH)
-                                        }
-                                    }
-                                }
-                                stage('Build wheels') {
-                                    steps {
-                                        bat """
-                                            cd ${WIN_DOCKER_TMP_PATH}
-                                            call .venv${DEFAULT_PYTHON_VERSION}/Scripts/activate
-                                            poetry run poe build
-                                            XCOPY dist ${env.WORKSPACE}\\dist /s /i
-                                        """
-                                        stash includes: 'dist\\*', name: 'build'
-                                        archiveArtifacts artifacts: "dist\\*"
-                                    }
-                                }
-                                stage('Make a static type analysis') {
-                                    steps {
-                                        bat """
-                                            cd ${WIN_DOCKER_TMP_PATH}
-                                            call .venv${DEFAULT_PYTHON_VERSION}/Scripts/activate
-                                            poetry run poe type
-                                        """
-                                    }
-                                }
-                                stage('Check formatting') {
-                                    steps {
-                                        bat """
-                                            cd ${WIN_DOCKER_TMP_PATH}
-                                            call .venv${DEFAULT_PYTHON_VERSION}/Scripts/activate
-                                            poetry run poe format
-                                        """
-                                    }
-                                }
-                                stage('Generate documentation') {
-                                    steps {
-                                        bat """
-                                            cd ${WIN_DOCKER_TMP_PATH}
-                                            call .venv${DEFAULT_PYTHON_VERSION}/Scripts/activate
-                                            poetry run poe docs
-                                            "C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256
-                                            XCOPY docs.zip ${env.WORKSPACE}
-                                        """
-                                        stash includes: 'docs.zip', name: 'docs'
-                                    }
-                                }
-                                stage("Run unit tests") {
-                                    steps {
-                                        script {
-                                            runTest("unit_tests", "not ethernet and not soem and not fsoe and not fsoe_phase2 and not canopen and not virtual and not soem_multislave", "tests.setups.virtual_drive.VIRTUAL_DRIVE_ETHERNET_SETUP", "", false, WIN_DOCKER_TMP_PATH)
-                                        }
-                                    }
-                                }
-                                stage("Run virtual drive tests") {
-                                    steps {
-                                        script {
-                                            runTest("virtual", "virtual", "tests.setups.virtual_drive.VIRTUAL_DRIVE_ETHERNET_SETUP", "", false, WIN_DOCKER_TMP_PATH)
-                                        }
-                                    }
-                                }
-                            }
-                        }
                         stage('Publish documentation') {
                             when {
                                 beforeAgent true
                                 branch BRANCH_NAME_MASTER
                             }
                             agent {
-                                label "lin-worker"
+                                label 'lin-worker'
                             }
                             steps {
                                 unstash 'docs'
                                 unzip zipFile: 'docs.zip', dir: '.'
-                                publishDistExt("_docs", DISTEXT_PROJECT_DIR, true)
+                                publishDistExt('_docs', DISTEXT_PROJECT_DIR, true)
                             }
                         }
                         stage('Publish wheels') {
                             agent {
                                 docker {
                                     label 'lin-worker'
-                                    image "ingeniacontainers.azurecr.io/publisher:1.8"
+                                    image PUBLISHER_DOCKER_IMAGE
                                 }
                             }
                             stages {
@@ -433,93 +321,57 @@ pipeline {
                         }
                     }
                 }
-
-                stage('HW Tests CanOpen and Ethernet') {
-                    when {
-                        beforeOptions true
-                        beforeAgent true
-                        expression {
-                          [
-                            "canopen_everest",
-                            "canopen_capitan",
-                            "ethernet_everest",
-                            "ethernet_capitan"
-                          ].any { it ==~ params.run_test_stages }
+                stage('Linux Docker Tests') {
+                    agent {
+                        docker {
+                            label 'lin-worker'
+                            image LIN_DOCKER_IMAGE
+                            args '-u root:root'
                         }
                     }
-                    options {
-                        lock(CAN_NODE_LOCK)
-                    }
-                    agent {
-                        label CAN_NODE
+                    environment {
+                        VENV_WORKING_FOLDER = "${LIN_DOCKER_TMP_PATH}"
                     }
                     stages {
-                        stage ("Clear Wireshark logs") {
+                        stage('Move workspace') {
                             steps {
-                                clearWiresharkLogs()
+                                script {
+                                    venvManager.copyToWorkingFolder()
+                                }
                             }
                         }
                         stage('Create virtual environments') {
                             steps {
                                 script {
-                                    createVirtualEnvironments()
+                                    venvManager.createPoetryEnvironments(
+                                        pythonVersions: venvManager.defaultVenvNamesToVersion(LINUX_DOCKER_TESTS.baseTestSession.runInVirtualEnvs)
+                                    )
                                 }
                             }
                         }
-                        stage("CanOpen Everest") {
+                        stage('Run Linux Docker tests') {
                             when {
-                                expression {
-                                    "canopen_everest" ==~ params.run_test_stages
+                                expression { LINUX_DOCKER_TESTS.anyShouldRun() }
+                            }
+                            steps {
+                                script {
+                                    LINUX_DOCKER_TESTS.runTestStages()
                                 }
-                            }
-                            steps {
-                                runTest("canopen_everest", "canopen", "tests.setups.rack_specifiers.CAN_SETUP@EVE-XCR-C", "", false)
-                            }
-                        }
-                        stage("Ethernet Everest") {
-                            when {
-                                expression {
-                                    "ethernet_everest" ==~ params.run_test_stages
-                                }
-                            }
-                            steps {
-                                runTest("ethernet_everest", "ethernet", "tests.setups.rack_specifiers.ETH_SETUP@EVE-XCR-C", "", true)
-                            }
-                        }
-                        stage("CanOpen Capitan") {
-                            when {
-                                expression {
-                                    "canopen_capitan" ==~ params.run_test_stages
-                                }
-                            }
-                            steps {
-                                runTest("canopen_capitan", "canopen", "tests.setups.rack_specifiers.CAN_SETUP@CAP-XCR-C", "", false)
-                            }
-                        }
-                        stage("Ethernet Capitan") {
-                            when {
-                                // Remove this after fixing INGK-982
-                                expression { false }
-                            }
-                            steps {
-                                runTest("ethernet_capitan", "ethernet", "tests.setups.rack_specifiers.ETH_SETUP@CAP-XCR-C", "", true)
                             }
                         }
                     }
+                    post {
+                        always {
+                            reassignFilePermissions()
+                        }
+                    }
                 }
-                stage('Hw Tests Ethercat') {
+                stage('EtherCAT - Tests') {
                     when {
                         beforeOptions true
                         beforeAgent true
                         expression {
-                          [
-                            "ethercat",
-                            "ethercat_everest",
-                            "ethercat_capitan",
-                            "ethercat_multislave",
-                            "fsoe_phase1",
-                            "fsoe_phase2",
-                          ].any { it ==~ params.run_test_stages }
+                            ECAT_TESTS.anyShouldRun()
                         }
                     }
                     options {
@@ -529,65 +381,55 @@ pipeline {
                         label ECAT_NODE
                     }
                     stages {
-                        stage ("Clear Wireshark logs") {
-                            steps {
-                                clearWiresharkLogs()
-                            }
-                        }
                         stage('Create virtual environments') {
                             steps {
                                 script {
-                                    createVirtualEnvironments()
+                                    venvManager.createPoetryEnvironments(
+                                        pythonVersions: venvManager.defaultVenvNamesToVersion(ECAT_TESTS.baseTestSession.runInVirtualEnvs),
+                                        installCommand: "poetry sync --all-groups --extras fsoe"
+                                    )
                                 }
                             }
                         }
-                        stage("Ethercat Everest") {
-                            when {
-                                // Remove this after fixing INGK-983
-                                expression { false }
-                            }
+                        stage('Run EtherCAT Tests') {
                             steps {
-                                runTest("ethercat_everest", "soem", "tests.setups.rack_specifiers.ECAT_SETUP@EVE-XCR-E", "", true)
-                            }
-                        }
-                        stage("Ethercat Capitan") {
-                            when {
-                                expression {
-                                    "ethercat_capitan" ==~ params.run_test_stages
+                                script {
+                                    ECAT_TESTS.runTestStages()
                                 }
                             }
-                            steps {
-                                runTest("ethercat_capitan", "soem", "tests.setups.rack_specifiers.ECAT_SETUP@CAP-XCR-E", "", true)
-                            }
                         }
-                        stage("Safety Denali Phase I") {
-                            when {
-                                expression {
-                                    "fsoe_phase1" ==~ params.run_test_stages
+                    }
+                }
+                stage('CANopen/Ethernet - Tests') {
+                    when {
+                        beforeOptions true
+                        beforeAgent true
+                        expression {
+                            CAN_TESTS.anyShouldRun() || ETH_TESTS.anyShouldRun()
+                        }
+                    }
+                    options {
+                        lock(CAN_NODE_LOCK)
+                    }
+                    agent {
+                        label CAN_NODE
+                    }
+                    stages {
+                        stage('Create virtual environments') {
+                            steps {
+                                script {
+                                    venvManager.createPoetryEnvironments(
+                                        pythonVersions: venvManager.defaultVenvNamesToVersion(HW_TEST_SESSIONS.runInVirtualEnvs),
+                                    )
                                 }
                             }
-                            steps {
-                                runTest("fsoe_phase1", "fsoe", "tests.setups.rack_specifiers.ECAT_DEN_S_NET_E_SETUP@PHASE1", "", true)
-                            }
                         }
-                        stage("Safety Denali Phase II") {
-                            when {
-                                expression {
-                                    "fsoe_phase2" ==~ params.run_test_stages
-                                }
-                            }
+                        stage('Run CANopen/Ethernet Tests') {
                             steps {
-                                runTest("fsoe_phase2", "fsoe or fsoe_phase2", "tests.setups.rack_specifiers.ECAT_DEN_S_NET_E_SETUP@PHASE2", "", true)
-                            }
-                        }
-                        stage("Ethercat Multislave") {
-                            when {
-                                expression {
-                                    "ethercat_multislave" ==~ params.run_test_stages
+                                script {
+                                    CAN_TESTS.runTestStages()
+                                    ETH_TESTS.runTestStages()
                                 }
-                            }
-                            steps {
-                                runTest("ethercat_multislave", "soem_multislave", "tests.setups.rack_specifiers.ECAT_MULTISLAVE_SETUP", "", true)
                             }
                         }
                     }
@@ -602,26 +444,27 @@ pipeline {
                     image WIN_DOCKER_IMAGE
                 }
             }
+            when {
+                expression { testManager.hasCoverageFiles() }
+            }
+            environment {
+                VENV_WORKING_FOLDER = "${WIN_DOCKER_TMP_PATH}"
+            }
             steps {
                 script {
-                    def coverage_files = ""
-
-                    for (coverage_stash in coverage_stashes) {
-                        unstash coverage_stash
-                        coverage_files += " " + coverage_stash
+                    def coverage_files = testManager.getCoverageFiles().join(" ")
+                    venvManager.copyToWorkingFolder()
+                    venvManager.createPoetryEnvironment(
+                        installCommand: "poetry sync --all-groups --extras fsoe"
+                    )
+                    venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
+                        venv.run("poetry run poe cov-combine -- ${coverage_files}")
+                        venv.run("poetry run poe cov-report")
                     }
-                    bat "XCOPY ${env.WORKSPACE} ${WIN_DOCKER_TMP_PATH} /s /i /y /e /h"
-                    createVirtualEnvironments(WIN_DOCKER_TMP_PATH, DEFAULT_PYTHON_VERSION)
-                    bat """
-                        cd ${WIN_DOCKER_TMP_PATH}
-                        call .venv${DEFAULT_PYTHON_VERSION}/Scripts/activate
-                        poetry run poe cov-combine --${coverage_files}
-                        poetry run poe cov-report
-                        XCOPY coverage.xml ${env.WORKSPACE}
-                    """
+                    venvManager.copyFromWorkingFolder("coverage.xml")
+                    recordCoverage(tools: [[parser: 'COBERTURA', pattern: 'coverage.xml']])
+                    archiveArtifacts artifacts: '*.xml'
                 }
-                recordCoverage(tools: [[parser: 'COBERTURA', pattern: 'coverage.xml']])
-                archiveArtifacts artifacts: '*.xml'
             }
         }
     }
