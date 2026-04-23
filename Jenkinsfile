@@ -1,5 +1,12 @@
 @Library('cicd-lib@0.21') _
 
+import python.VirtualEnvironment
+import python.VEnvManager
+import pytest.TestSession
+import pytest.TestGroup
+import pytest.PyTestManager
+import pytest.TestDashboardBuilder
+
 def SW_NODE = "windows-slave"
 def ECAT_NODE = "ecat-test"
 def ECAT_NODE_LOCK = "test_execution_lock_ecat"
