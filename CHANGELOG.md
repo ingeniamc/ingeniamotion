@@ -3,6 +3,7 @@
 ## [0.10.3] - 2026-MM-DD
 ### Fixed
 - Added validation for zero feedback resolution in `DCFeedbacksResolutionTest` and `DCFeedbacksPolarityTest`.
+- Fix enable disturbance for Disturbance V1.
 
 ## [0.10.2] - 2026-03-20
 ### Added

@@ -373,7 +373,13 @@ class Capture:
         if version is None:
             version = self._check_version(servo)
         if version < MonitoringVersion.MONITORING_V3:
-            return self.enable_monitoring(servo=servo)
+            # V1: monitoring and disturbance share the same enable
+            # mechanism. Bypass enable_monitoring() mapped-register check
+            # because disturbance-only mapped registers are sufficient.
+            drive.monitoring_enable()
+            if not self.is_monitoring_enabled(servo=servo):
+                raise IMMonitoringError("Error enabling disturbance.")
+            return
         drive.disturbance_enable()
         # Check disturbance status
         if not self.is_disturbance_enabled(servo=servo):
