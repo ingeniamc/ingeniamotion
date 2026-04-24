@@ -377,10 +377,8 @@ class Capture:
             # mechanism. Bypass enable_monitoring() mapped-register check
             # because disturbance-only mapped registers are sufficient.
             drive.monitoring_enable()
-            if not self.is_monitoring_enabled(servo=servo):
-                raise IMMonitoringError("Error enabling disturbance.")
-            return
-        drive.disturbance_enable()
+        else:
+            drive.disturbance_enable()
         # Check disturbance status
         if not self.is_disturbance_enabled(servo=servo):
             raise IMMonitoringError("Error enabling disturbance.")
