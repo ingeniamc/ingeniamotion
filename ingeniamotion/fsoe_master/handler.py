@@ -287,9 +287,18 @@ class FSoEMasterHandler:
         if module_ident is None:
             raise RuntimeError("Module ident value to write could not be retrieved.")
 
-        self.__servo.write(self.MDP_CONFIGURED_MODULE_1, data=module_ident, subnode=0)
+        self.__module_ident = module_ident
+        self.restore_configuration()
 
         return self.__servo.dictionary.get_safety_module(module_ident=module_ident)
+
+    def restore_configuration(self) -> None:
+        """Restore drive configuration that is lost after a power cycle.
+
+        Re-writes runtime registers (e.g. ``MDP_CONFIGURED_MODULE_1``) that the
+        drive needs but does not persist across reboots.
+        """
+        self.__servo.write(self.MDP_CONFIGURED_MODULE_1, data=self.__module_ident, subnode=0)
 
     def __get_configured_module_ident_1(self) -> Union[int, float, str, bytes]:
         """Gets the configured Module Ident 1.

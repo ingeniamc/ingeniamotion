@@ -21,12 +21,10 @@ from ingeniamotion.enums import FSoEState
 from ingeniamotion.errors import (
     FSOE_MCUA_ERROR_QUEUE,
     FSOE_MCUB_ERROR_QUEUE,
-    Error,
     ServoErrorQueue,
 )
 from ingeniamotion.exceptions import IMErrorQueueNotExistsError
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError
-from tests.conftest import add_fixture_error_checker
 from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
 from tests.outputs import OUTPUTS_DIR
 
@@ -94,75 +92,54 @@ class FSoEErrorDisplay:
 
     error: FSoEError
     """Main error that was reported."""
-    mcua_last_error: Optional["Error"]
-    """Last error in MCUA error queue."""
-    mcub_last_error: Optional["Error"]
-    """Last error in MCUB error queue."""
     states: list[FSoEState]
     """State transitions that occurred until the error."""
 
     @property
     def display(self) -> str:
         """Get a text representation of the error."""
-        return (
-            f"{str(self.error)}\n"
-            f"  MCUA Last Error: {self.mcua_last_error}\n"
-            f"  MCUB Last Error: {self.mcub_last_error}\n"
-            f"  FSoE States: {self.states}"
-        )
+        return f"{str(self.error)}\n  FSoE States: {self.states}"
 
 
 @pytest.fixture(scope="function")
 def fsoe_error_monitor(
-    request: pytest.FixtureRequest,
     mcu_error_queue_a: Optional["ServoErrorQueue"],
     mcu_error_queue_b: Optional["ServoErrorQueue"],
     fsoe_states: list[FSoEState],
-) -> Callable[[FSoEError], None]:
+) -> Iterator[Callable[[FSoEError], None]]:
     errors: list[FSoEErrorDisplay] = []
 
-    # Queues may be None when not available (phase 1). Guard access accordingly.
-    n_mcua_errors = None
-    n_mcub_errors = None
-    if mcu_error_queue_a is not None and mcu_error_queue_b is not None:
-        n_mcua_errors = mcu_error_queue_a.get_number_total_errors()
-        n_mcub_errors = mcu_error_queue_b.get_number_total_errors()
+    # Establish baseline so get_pending_errors() only returns test-scoped errors.
+    if mcu_error_queue_a is not None:
+        mcu_error_queue_a.get_pending_errors()
+    if mcu_error_queue_b is not None:
+        mcu_error_queue_b.get_pending_errors()
 
     def error_handler(error: FSoEError) -> None:
-        # Add last error only if it happened during the test and queues exist
-        if mcu_error_queue_a is not None and mcu_error_queue_b is not None:
-            mcua_last_error = (
-                mcu_error_queue_a.get_last_error()
-                if mcu_error_queue_a.get_number_total_errors() > n_mcua_errors
-                else None
-            )
-            mcub_last_error = (
-                mcu_error_queue_b.get_last_error()
-                if mcu_error_queue_b.get_number_total_errors() > n_mcub_errors
-                else None
-            )
-        else:
-            mcua_last_error = None
-            mcub_last_error = None
-
+        # WARNING: This callback runs in the PDO thread. Avoid heavy processing
+        # (e.g. SDO reads) to prevent SM watchdog trips.
         errors.append(
             FSoEErrorDisplay(
                 error=error,
-                mcua_last_error=mcua_last_error,
-                mcub_last_error=mcub_last_error,
                 states=fsoe_states.copy(),
             )
         )
 
-    def fsoe_error_reporter_callback() -> tuple[bool, str]:
-        if len(errors) > 0:
-            error_messages = "\n".join(error.display for error in errors)
-            return False, f"FSoE errors occurred:\n{error_messages}"
-        return True, ""
+    yield error_handler
 
-    add_fixture_error_checker(request.node, fsoe_error_reporter_callback)
-
-    return error_handler
+    # Teardown: report FSoE errors + MCU errors (safe to do SDO reads here,
+    # the master is already stopped by the test body).
+    if errors:
+        parts = [error.display for error in errors]
+        for queue, label in [(mcu_error_queue_a, "MCUA"), (mcu_error_queue_b, "MCUB")]:
+            if queue is not None:
+                pending, lost = queue.get_pending_errors()
+                if pending:
+                    parts.append(f"{label} errors ({len(pending)}):")
+                    parts.extend(f"  {e}" for e in pending)
+                if lost:
+                    parts.append(f"  WARNING: Some {label} errors lost (buffer overflow)")
+        pytest.fail("FSoE errors occurred:\n" + "\n".join(parts))
 
 
 @pytest.fixture()
