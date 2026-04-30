@@ -7,7 +7,12 @@ from typing_extensions import override
 
 from ingeniamotion.enums import OperationMode, SensorType, SeverityLevel
 from ingeniamotion.exceptions import IMTimeoutError
-from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType, TestError
+from ingeniamotion.wizard_tests.base_test import (
+    BaseTest,
+    LegacyDictReportType,
+    TestConfigurationError,
+    TestError,
+)
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -88,6 +93,10 @@ class DCFeedbacksResolutionTest(BaseTest[LegacyDictReportType]):
         self.feedback_resolution = self.mc.configuration.get_feedback_resolution(
             self.sensor, servo=self.servo, axis=self.axis
         )
+        if self.feedback_resolution == 0:
+            raise TestConfigurationError(
+                "The feedback resolution must be greater than 0. Please adjust it accordingly."
+            )
         self.mc.configuration.set_velocity_feedback(self.sensor, servo=self.servo, axis=self.axis)
         self.mc.configuration.set_position_feedback(self.sensor, servo=self.servo, axis=self.axis)
         if self.sensor == SensorType.BISSC2:

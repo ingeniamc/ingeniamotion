@@ -5,7 +5,12 @@ import ingenialogger
 from typing_extensions import override
 
 from ingeniamotion.enums import FeedbackPolarity, OperationMode, SensorType, SeverityLevel
-from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType, TestError
+from ingeniamotion.wizard_tests.base_test import (
+    BaseTest,
+    LegacyDictReportType,
+    TestConfigurationError,
+    TestError,
+)
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
@@ -68,6 +73,10 @@ class DCFeedbacksPolarityTest(BaseTest[LegacyDictReportType]):
         self.feedback_resolution = self.mc.configuration.get_feedback_resolution(
             self.sensor, servo=self.servo, axis=self.axis
         )
+        if self.feedback_resolution == 0:
+            raise TestConfigurationError(
+                "The feedback resolution must be greater than 0. Please adjust it accordingly."
+            )
         self.mc.configuration.set_feedback_polarity(
             FeedbackPolarity.NORMAL, self.sensor, servo=self.servo, axis=self.axis
         )

@@ -19,6 +19,10 @@ class TestError(Exception):
     """Test error exception."""
 
 
+class TestConfigurationError(TestError):
+    """Test configuration exception."""
+
+
 LegacyDictReportType = dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]
 
 

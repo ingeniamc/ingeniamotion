@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.10.3] - 2026-04-29
+### Fixed
+- Added validation for zero feedback resolution in `DCFeedbacksResolutionTest` and `DCFeedbacksPolarityTest`.
+- Fix enable disturbance for Disturbance V1.
+
 ## [0.10.2] - 2026-03-20
 ### Added
 - Extended error queue manager (`ServoErrorQueue`) to support standard drive errors (MOCO/COCO/SYSTEM).
