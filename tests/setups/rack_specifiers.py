@@ -53,8 +53,7 @@ ETH_SETUP = SpecifierContainer({
                 config_file=_config_files.CAP_XCR_C_CONFIG,
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
-                    # Disabled pending INGK-982
-                    __EXECUTION_POLICY_KEY: "never",
+                    __EXECUTION_POLICY_KEY: "always",
                     __TEST_CONFIGS_KEY: {
                         "ETH_TEST_SESSIONS": PyTestConfig(
                             markers="ethernet",
@@ -78,8 +77,7 @@ ECAT_SETUP = SpecifierContainer({
                 config_file=_config_files.EVE_XCR_E_CONFIG,
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
-                    # Disabled pending INGK-983
-                    __EXECUTION_POLICY_KEY: "never",
+                    __EXECUTION_POLICY_KEY: "always",
                     __TEST_CONFIGS_KEY: {
                         "ECAT_TEST_SESSIONS": PyTestConfig(
                             markers="soem",
