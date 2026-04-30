@@ -68,7 +68,8 @@ ETH_SETUP = SpecifierContainer({
                 config_file=_config_files.CAP_XCR_C_CONFIG,
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
-                    __EXECUTION_POLICY_KEY: "nightly",
+                    # Disabled pending INGK-982
+                    __EXECUTION_POLICY_KEY: "never",
                     __TEST_CONFIGS_KEY: {
                         "ETH_TEST_SESSIONS": PyTestConfig(
                             markers="ethernet",
@@ -83,7 +84,8 @@ ETH_SETUP = SpecifierContainer({
                 config_file=_config_files.CAP_XCR_C_CONFIG,
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
-                    __EXECUTION_POLICY_KEY: "always",
+                    # Disabled pending INGK-982
+                    __EXECUTION_POLICY_KEY: "never",
                     __TEST_CONFIGS_KEY: {
                         "ETH_TEST_SESSIONS": PyTestConfig(
                             markers="ethernet",
