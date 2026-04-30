@@ -129,3 +129,49 @@ def test_stop_master_while_pdos_are_still_active(
     time.sleep(2 * refresh_rate)
     assert len(exceptions) == 0
     assert len(received_data) > n_received_data
+
+
+@pytest.mark.fsoe
+def test_pdo_poller_with_fsoe_active(
+    mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"],
+    timeout_for_data_sra: float,
+    alias: str,
+) -> None:
+    """Test that a PDO poller can collect data while the FSoE master is active.
+
+    The FSoE maps are configured first, then the poller sets its own maps without
+    starting PDOs. The FSoE master is started, and only then PDOs are started so
+    the safety callbacks find the master already running.
+    """
+    mc, _handler = mc_with_fsoe_with_sra
+
+    # Configure FSoE maps without starting PDOs or master
+    mc.fsoe.configure_pdos(start_pdos=False, start_master=False)
+
+    # Create the poller without starting it (maps are set to the servo)
+    registers = [{"name": "CL_POS_FBK_VALUE", "axis": 1}]
+    sampling_time = 0.25
+    samples_target = 4
+    poller = mc.capture.pdo.create_poller(
+        registers=registers, servo=alias, sampling_time=sampling_time, start=False
+    )
+
+    # Start the FSoE master with PDOs, then start the poller.
+    # Since PDOs are already active, start() just subscribes to events.
+    mc.fsoe.start_master(start_pdos=True)
+    mc.fsoe.wait_for_state_data(timeout=timeout_for_data_sra)
+    assert mc.fsoe.get_fsoe_master_state(servo=alias) is FSoEState.DATA
+    poller.start()
+
+    time.sleep((samples_target - 0.5) * sampling_time)
+
+    # FSoE should still be in DATA while poller is running
+    assert mc.fsoe.get_fsoe_master_state(servo=alias) is FSoEState.DATA
+
+    # Stop FSoE master before stopping PDOs to avoid safety errors
+    mc.fsoe.stop_master(stop_pdos=False)
+
+    poller.stop()
+    _timestamps, data = poller.data
+    assert len(data) == len(registers)
+    assert len(data[0]) >= samples_target

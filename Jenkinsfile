@@ -1,4 +1,4 @@
-@Library('cicd-lib@cit-564-migration-to-cicdlib-and-migration-of-pipelines-changes') _
+@Library('cicd-lib@0.21') _
 
 import python.VirtualEnvironment
 import python.VEnvManager
@@ -203,6 +203,13 @@ pipeline {
                         VENV_WORKING_FOLDER = "${WIN_DOCKER_TMP_PATH}"
                     }
                     stages {
+                        stage('Check Dependencies') {
+                            steps {
+                                script {
+                                    checkDependencies(excludeManagers: ['poetry:tests'])
+                                }
+                            }
+                        }
                         stage('Move workspace') {
                             steps {
                                 script {
