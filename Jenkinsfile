@@ -65,7 +65,21 @@ def reassignFilePermissions() {
 }
 
 /* Build develop everyday 3 times starting at 19:00 UTC (21:00 Barcelona Time), running all python versions */
-CRON_SETTINGS = BRANCH_NAME == "develop" ? "0 19,21,23 * * * % PYTHON_VERSIONS=All;WIRESHARK_LOGGING=true" : ""
+/*
+ * Cron schedules for the develop branch:
+ *
+ * Nightly builds (every day):
+ *   19:00, 21:00, 23:00 UTC (21:00, 23:00, 01:00 Barcelona Time)
+ *   → Sets RUN_POLICY_NIGHTLY=true so that tests gated on the 'nightly' policy will run.
+ *
+ * Friday+Saturday extra builds (Friday & Saturday only):
+ *   08:00, 14:00 UTC (10:00, 16:00 Barcelona Time)
+ *   → Sets RUN_POLICY_NIGHTLY=true and RUN_POLICY_WEEKEND=true so that tests gated on
+ *     either 'nightly' or 'weekends' policy will run.
+ */
+NIGHTLY_CRON = '0 19,21,23 * * * % PYTHON_VERSIONS=All;WIRESHARK_LOGGING=true;RUN_POLICY_NIGHTLY=true'
+WEEKEND_CRON = '0 8,14 * * 5,6 % PYTHON_VERSIONS=All;WIRESHARK_LOGGING=true;RUN_POLICY_NIGHTLY=true;RUN_POLICY_WEEKEND=true'
+CRON_SETTINGS = BRANCH_NAME == "develop" ? "${NIGHTLY_CRON}\n${WEEKEND_CRON}" : ""
 
 pipeline {
     agent none
@@ -108,6 +122,8 @@ pipeline {
             name: 'WIRESHARK_LOGGING_SCOPE'
         )
         booleanParam(name: 'CLEAR_SUCCESSFUL_WIRESHARK_LOGS', defaultValue: true, description: 'Clears Wireshark logs if the test passed')
+        booleanParam(name: 'RUN_POLICY_NIGHTLY', defaultValue: false, description: 'Tag this build as a nightly build (set automatically by cron triggers)')
+        booleanParam(name: 'RUN_POLICY_WEEKEND', defaultValue: false, description: 'Tag this build as a weekend build (set automatically by weekend cron triggers)')
     }
     stages {
         stage('Prepare test sessions') {
@@ -160,6 +176,12 @@ pipeline {
                     )
 
                     testManager.testSessionFilter = params.test_session_filter
+
+                    // Parse run policy tags from boolean parameters
+                    def runPolicyTags = [] as Set
+                    if (params.RUN_POLICY_NIGHTLY) { runPolicyTags.add("nightly") }
+                    if (params.RUN_POLICY_WEEKEND) { runPolicyTags.add("weekends") }
+                    testManager.runPolicyTags = runPolicyTags
 
                     echo("Test sessions have been configured to run with the following base configuration:\n${TEST_SESSIONS.configSummary()}")
 
