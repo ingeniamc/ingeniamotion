@@ -744,8 +744,8 @@ def test_map_safety_input_output_random(
 
 @pytest.mark.fsoe_phase2
 # https://novantamotion.atlassian.net/browse/COMOCOAPP-597
-@pytest.valid_versions_for_product(part_number="EVS-S-NET-E", max="2.0.9.16")
-@pytest.valid_versions_for_product(part_number="DEN-S-NET-E", max="2.0.9.16")
+@pytest.mark.valid_versions_for_product(part_number="EVS-S-NET-E", max="2.0.9.016")
+@pytest.mark.valid_versions_for_product(part_number="DEN-S-NET-E", max="2.0.9.016")
 def test_map_all_safety_functions(
     mc_with_fsoe_with_sra_and_feedback_scenario: tuple[MotionController, "FSoEMasterHandler"],
     timeout_for_data_sra: float,
