@@ -193,22 +193,17 @@ ECAT_DEN_S_NET_E_SETUP = RackServiceConfigSpecifier.from_version_configs(
                 },
             },
         ),
-        "PHASE2": VersionConfig.from_files(
-            version="2.9.0.16",
+        "PHASE2": VersionConfig.from_version(
+            version="2.10.0",
             config_file=None,
-            firmware=Path(
-                "//azr-srv-ingfs1/dist/products/i050_summit/i056_den-s-net-e/release_candidate/2.9.0.16/den-s-net-e_2.9.0.lfu"
-            ),
-            dictionary=Path(
-                "//azr-srv-ingfs1/dist/products/i050_summit/i056_den-s-net-e/release_candidate/2.9.0.16/den-s-net-e_2.9.0.016.xdf3"
-            ),
+            dictionary_type=DictionaryType.XDF_V3,
             extra_data={
                 __EXECUTION_POLICY_KEY: "always",
                 __TEST_CONFIGS_KEY: {
                     "ECAT_TEST_SESSIONS": PyTestConfig(
                         markers="fsoe or fsoe_phase2",
-                        run_test_stage_uid="fsoe_phase2_2.9.0",
-                        stage_name="Safety Denali Phase II - FW. 2.9.0",
+                        run_test_stage_uid="fsoe_phase2_2.10.0",
+                        stage_name="Safety Denali Phase II - FW. 2.10.0",
                     )
                 },
             },
