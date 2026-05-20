@@ -113,7 +113,7 @@ optional = true
 pytest = "==8.4.1"
 pytest-env = "==1.1.5"
 pytest-cov = "==2.12.1"
-pytest-mock = "==3.6.1"
+pytest-mock = "==3.15.1"
 pytest-rerunfailures = "==15.1"
 pytest-console-scripts = "==1.4.1"
 matplotlib = "==3.8.2"
