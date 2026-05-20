@@ -258,12 +258,12 @@ class Monitoring(ABC):
         if dtype == RegDtype.U16:
             return int(np.array([int(value)], dtype="int64").astype("uint16")[0])
         if dtype == RegDtype.U32:
-            return int(struct.unpack("L", struct.pack("I", int(value)))[0])
+            return int(struct.unpack("I", struct.pack("I", int(value)))[0])
         if dtype == RegDtype.S32:
             if value < 0:
                 return int(value + (1 << 32))
             return int(np.array([int(value)], dtype="int64").astype("int32")[0])
-        return int(struct.unpack("L", struct.pack("f", value))[0])
+        return int(struct.unpack("I", struct.pack("f", value))[0])
 
     @abstractmethod
     @check_monitoring_disabled
