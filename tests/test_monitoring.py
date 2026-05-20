@@ -1,11 +1,14 @@
 import time
 from functools import partial
 from threading import Thread
+import struct
 
 import pytest
 
 from ingeniamotion.enums import MonitoringSoCConfig, MonitoringSoCType
 from ingeniamotion.exceptions import IMMonitoringError
+from ingeniamotion.monitoring.base_monitoring import Monitoring
+from ingenialink.enums.register import RegDtype
 from tests.conftest import not_valid_for_eve_can_ecat_products
 
 MONITOR_START_CONDITION_TYPE_REGISTER = "MON_CFG_SOC_TYPE"
@@ -500,3 +503,17 @@ def test_get_trigger_type_exception(mocker, mc, monitoring):
 @pytest.mark.skip("Check INGM-584")
 def test_dummy():
     pass
+
+
+@pytest.mark.virtual
+def test_unpack_trigger_value_float_no_struct_error():
+    """Regression test: struct.unpack must not raise on Linux 64-bit for FLOAT dtype."""
+    result = Monitoring._unpack_trigger_value(0.5, RegDtype.FLOAT)
+    assert result == struct.unpack("I", struct.pack("f", 0.5))[0]
+
+
+@pytest.mark.virtual
+def test_unpack_trigger_value_u32_no_struct_error():
+    """Regression test: struct.unpack must not raise on Linux 64-bit for U32 dtype."""
+    result = Monitoring._unpack_trigger_value(42, RegDtype.U32)
+    assert result == 42
