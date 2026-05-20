@@ -1,14 +1,14 @@
+import struct
 import time
 from functools import partial
 from threading import Thread
-import struct
 
 import pytest
+from ingenialink.enums.register import RegDtype
 
 from ingeniamotion.enums import MonitoringSoCConfig, MonitoringSoCType
 from ingeniamotion.exceptions import IMMonitoringError
 from ingeniamotion.monitoring.base_monitoring import Monitoring
-from ingenialink.enums.register import RegDtype
 from tests.conftest import not_valid_for_eve_can_ecat_products
 
 MONITOR_START_CONDITION_TYPE_REGISTER = "MON_CFG_SOC_TYPE"
