@@ -138,11 +138,11 @@ class Communication:
             baudrate : communication baudrate. 1 Mbit/s by default.
             channel : CANopen device channel. ``0`` by default.
 
-        Raises:
-            TypeError: If the existing network is not of type CanopenNetwork.
-
         Returns:
             The CANOpen network.
+
+        Raises:
+            TypeError: If the existing network is not of type CanopenNetwork.
         """
         net_key = generate_net_alias_canopen(can_device, channel, baudrate)
         if net_key not in self.mc.net:
@@ -166,11 +166,11 @@ class Communication:
             interface_name : interface name.
             gil_release_config: GIL release configuration.
 
-        Raises:
-            TypeError: If the existing network is not of type EthercatNetwork.
-
         Returns:
             The EtherCAT network.
+
+        Raises:
+            TypeError: If the existing network is not of type EthercatNetwork.
         """
         if interface_name not in self.mc.net:
             new_net = EthercatNetwork(interface_name, gil_release_config=gil_release_config)
@@ -188,11 +188,11 @@ class Communication:
         Args:
             servo_alias: Servo alias.
 
-        Raises:
-            TypeError: If the existing network is not of type EthernetNetwork.
-
         Returns:
             The Ethernet network.
+
+        Raises:
+            TypeError: If the existing network is not of type EthernetNetwork.
         """
         net_key = servo_alias
         if net_key not in self.mc.net:
@@ -211,11 +211,11 @@ class Communication:
         Args:
             ifname: Interface name.
 
-        Raises:
-            TypeError: If the existing network is not of type EoENetwork.
-
         Returns:
             The EoE network.
+
+        Raises:
+            TypeError: If the existing network is not of type EoENetwork.
         """
         if ifname not in self.mc.net:
             new_net = EoENetwork(ifname)
@@ -721,12 +721,12 @@ class Communication:
             address : ip expected adapter is expected to
             be configured with.
 
+        Returns:
+            Ifname of the controller.
+
         Raises:
             ValueError: In case the input is not valid or the adapter
             is not found.
-
-        Returns:
-            Ifname of the controller.
         """
         try:
             index = self._get_interface_index_by_address(address)
@@ -1004,6 +1004,7 @@ class Communication:
 
         Raises:
             FileNotFoundError: If the dict file doesn't exist.
+            ILError: If the EtherCAT slave connection fails.
         """
         if not path.isfile(dict_path):
             raise FileNotFoundError(f"Dict file {dict_path} does not exist!")
@@ -1917,6 +1918,7 @@ class Communication:
 
         Raises:
             IMFirmwareLoadError: If the load FW process of any slave failed.
+            ILError: If the underlying EtherCAT firmware load fails.
         """
         with tempfile.TemporaryDirectory() as ensemble_temp_dir:
             mapping = self.__unzip_ensemble_fw_file(fw_file, ensemble_temp_dir)
@@ -1959,13 +1961,13 @@ class Communication:
             slave_id: Slave ID to be checked.
             mapping: Mapping of the ensemble.
 
+        Returns:
+            The ID of the first drive in the ensemble.
+
         Raises:
             IMFirmwareLoadError: If the slave ID is not in the scanned slaves list.
             IMFirmwareLoadError: If the ensemble described in the mapping can not be
             found in the list of the scanned slaves.
-
-        Returns:
-            The ID of the first drive in the ensemble.
         """
         if slave_id not in scanned_slaves:
             raise IMFirmwareLoadError(
@@ -2003,11 +2005,11 @@ class Communication:
             slave_info: Info of the slave to be checked.
             mapping: Mapping of the ensemble.
 
-        Raises:
-            IMFirmwareLoadError: If the slave is not part of the ensemble.
-
         Returns:
             The ID offset (relative position in the ensemble) of the selected slave.
+
+        Raises:
+            IMFirmwareLoadError: If the slave is not part of the ensemble.
         """
         for slave_id_offset in mapping:
             _, mapping_product_code, mapping_revision_number = mapping[slave_id_offset]

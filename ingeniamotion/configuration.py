@@ -45,11 +45,11 @@ class MACAddressConverter:
         Args:
             mac_address: The MAC address as an integer.
 
-        Raises:
-            ValueError: If the MAC address is not an int.
-
         Returns:
             The MAC address in string format.
+
+        Raises:
+            ValueError: If the MAC address is not an int.
 
         """
         if not isinstance(mac_address, int):
@@ -896,8 +896,8 @@ class Configuration(Homing, Feedbacks):
             ip_address : IP Address to be changed.
             subnet_mask : Subnet mask to be changed.
             gateway : Gateway to be changed.
-            mac_address: The MAC address to be set. It can be an int or a
-            string with format XX:XX:XX:XX:XX:XX.
+            mac_address: The MAC address to be set. It can be an int or a string with format
+                XX:XX:XX:XX:XX:XX.
             servo : servo alias to reference it. ``default`` by default.
 
         Raises:
@@ -950,11 +950,11 @@ class Configuration(Homing, Feedbacks):
         Args:
             servo : servo alias to reference it. ``default`` by default.
 
-        Raises:
-            IMError: If the servo is not an Ethernet servo.
-
         Returns:
             The servo's MAC address.
+
+        Raises:
+            IMError: If the servo is not an Ethernet servo.
 
         """
         drive = self.mc._get_drive(servo)
@@ -972,11 +972,11 @@ class Configuration(Homing, Feedbacks):
         Args:
             servo : servo alias to reference it. ``default`` by default.
 
-        Raises:
-            IMError: If the servo is not an Ethernet servo.
-
         Returns:
             The servo's MAC address in string format.
+
+        Raises:
+            IMError: If the servo is not an Ethernet servo.
 
         """
         drive = self.mc._get_drive(servo)
@@ -989,8 +989,8 @@ class Configuration(Homing, Feedbacks):
         """Set the MAC address of the servo.
 
         Args:
-            mac_address: The MAC address to be set. It can be an int or a
-            string with format XX:XX:XX:XX:XX:XX.
+            mac_address: The MAC address to be set. It can be an int or a string with format
+                XX:XX:XX:XX:XX:XX.
             servo : servo alias to reference it. ``default`` by default.
 
         Raises:

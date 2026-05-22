@@ -201,12 +201,12 @@ class SafetyFunction:
                 Formatted into the UID if provided.
                 If not the function is assumed to be single-instance.
 
+        Yields:
+            Iterator[SafetyFunction]: An iterator yielding the safety function instance.
+
         Raises:
             KeyError: If the required input/output items
                 or parameters are not found in the handler's dictionary.
-
-        Yields:
-            Iterator[SafetyFunction]: An iterator yielding the safety function instance.
         """
         ios: dict[SafetyFieldMetadata, Optional[FSoEDictionaryItem]] = {}
         parameters: dict[SafetyFieldMetadata, Optional[SafetyParameter]] = {}
@@ -282,12 +282,12 @@ class SafetyFunction:
             uid: The unique identifier of the input/output item.
             optional: Whether the item is optional or required.
 
+        Returns:
+            FSoEDictionaryItemInputOutput: The required input/output item.
+
         Raises:
             KeyError: if the item is not found.
             TypeError: if the item is not of type FSoEDictionaryItemInputOutput.
-
-        Returns:
-            FSoEDictionaryItemInputOutput: The required input/output item.
         """
         item = handler.dictionary.name_map.get(uid)
         if not optional:
@@ -311,12 +311,12 @@ class SafetyFunction:
             uid: The unique identifier of the input item.
             optional: Whether the item is optional or required.
 
+        Returns:
+            FSoEDictionaryItemInput: The required input item.
+
         Raises:
             KeyError: if the item is not found.
             TypeError: if the item is not of type FSoEDictionaryItemInput.
-
-        Returns:
-            FSoEDictionaryItemInput: The required input item.
         """
         item = handler.dictionary.name_map.get(uid)
         if not optional:
@@ -339,11 +339,11 @@ class SafetyFunction:
             uid: The unique identifier of the safety parameter.
             optional: Whether the parameter is optional or required.
 
+        Returns:
+            SafetyParameter: The required safety parameter.
+
         Raises:
              KeyError: if the parameter is not found.
-
-        Returns:
-                SafetyParameter: The required safety parameter.
         """
         param = handler.safety_parameters.get(uid, None)
         if not optional and uid not in handler.safety_parameters:
