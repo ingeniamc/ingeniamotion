@@ -119,6 +119,9 @@ class BaseTest(ABC, Stoppable, Generic[T]):
         Returns:
             The test report, which contains the result severity,
                 suggested registers, and result message.
+
+        Raises:
+            ILError: If the underlying drive communication fails during the test run.
         """
         self.reset_stop()
         self.save_backup_registers()

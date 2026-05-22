@@ -291,12 +291,12 @@ class Capture:
         Args:
             servo : servo alias to reference it. ``default`` by default.
 
+        Returns:
+            MonitoringVersion: The version of the monitoring.
+
         Raises:
             NotImplementedError: If the drive does not support monitoring
             and disturbance.
-
-        Returns:
-            MonitoringVersion: The version of the monitoring.
 
         """
         try:

@@ -303,9 +303,6 @@ class FSoEMasterHandler:
     def __get_configured_module_ident_1(self) -> Union[int, float, str, bytes]:
         """Gets the configured Module Ident 1.
 
-        Args:
-            servo: servo alias to reference it. ``default`` by default.
-
         Returns:
             Configured Module Ident 1.
         """
@@ -313,9 +310,6 @@ class FSoEMasterHandler:
 
     def __get_safety_module(self) -> DictionarySafetyModule:
         """Gets the configured Module Ident 1.
-
-        Args:
-            servo: servo alias to reference it. ``default`` by default.
 
         Returns:
             Safety module.
@@ -553,12 +547,6 @@ class FSoEMasterHandler:
     ) -> SAFE_INSTANCE_TYPE:
         """Get the instance of a safety function.
 
-        Raises:
-            IndexError: If the instance index is out of range of the available instances.
-            ValueError: If multiple instances of the type are found and
-                no instance index is specified.
-            ValueError: If no instance of the type is found.
-
         Args:
             typ: The type of the safety function to get.
             instance: The index of the instance to get.
@@ -566,6 +554,12 @@ class FSoEMasterHandler:
 
         Returns:
             The instance of the safety function of the specified type.
+
+        Raises:
+            IndexError: If the instance index is out of range of the available instances.
+            ValueError: If multiple instances of the type are found and
+                no instance index is specified.
+            ValueError: If no instance of the type is found.
         """
         funcs = [func for func in self.safety_functions if isinstance(func, typ)]
 
@@ -683,11 +677,11 @@ class FSoEMasterHandler:
     def safe_inputs_value(self) -> bool:
         """Get the safe inputs register value.
 
-        Raises:
-            ValueError: On unexpected value type.
-
         Returns:
             The safe inputs value as a boolean.
+
+        Raises:
+            ValueError: On unexpected value type.
         """
         safe_inputs_value = self.safe_inputs_function().value.get()
         if not isinstance(safe_inputs_value, bool):
@@ -722,11 +716,11 @@ class FSoEMasterHandler:
     def is_sto_active(self) -> bool:
         """Check the STO state.
 
-        Raises:
-            ValueError: On unexpected value type.
-
         Returns:
             True if the STO is active. False otherwise.
+
+        Raises:
+            ValueError: On unexpected value type.
 
         """
         sto_command = self.sto_function().command.get()
@@ -764,11 +758,11 @@ class FSoEMasterHandler:
 
         Creates the FSoE dictionary from the servo's dictionary.
 
-        Raises:
-            TypeError: If the register is not of type CanopenRegister.
-
         Returns:
             A Dictionary instance with the safe inputs and outputs.
+
+        Raises:
+            TypeError: If the register is not of type CanopenRegister.
 
         """
         items = []
