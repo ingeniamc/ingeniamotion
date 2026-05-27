@@ -1306,18 +1306,18 @@ reference = "novanta"
 
 [[package]]
 name = "ingenialink"
-version = "7.6.1.post44+develop.de258cd"
+version = "7.6.1.post46+ingk.1258.split.drive.ee221f2"
 description = "IngeniaLink Communications Library"
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "tests"]
 files = [
-    {file = "ingenialink-7.6.1.post44+develop.de258cd-cp310-cp310-win_amd64.whl", hash = "sha256:15a659f0c06f420916df710b655fde45ce6f9fcbd9c2fd39f146a7f7ba38f820"},
-    {file = "ingenialink-7.6.1.post44+develop.de258cd-cp311-cp311-win_amd64.whl", hash = "sha256:9e6cf6c79fe7f472bcbc1ace4e31e19fe91a4c685fde33293f2b13f4e388e7d7"},
-    {file = "ingenialink-7.6.1.post44+develop.de258cd-cp312-cp312-win_amd64.whl", hash = "sha256:2292ce6156ec2181f839780e1fac4b86a45afedf0ef707374c180eed910645cc"},
-    {file = "ingenialink-7.6.1.post44+develop.de258cd-cp39-cp39-win_amd64.whl", hash = "sha256:611e026e431dceb1a6cd62c840f827cb99b93c5bf23f137a894a2db9997d1f4a"},
-    {file = "ingenialink-7.6.1.post44+develop.de258cd-py3-none-any.whl", hash = "sha256:bfe11e98465c62c5f093c00348d8fe8db7c48a836be406f9bad72d392d336e15"},
-    {file = "ingenialink-7.6.1.post44+develop.de258cd.tar.gz", hash = "sha256:0c41bba358f5a72aeac39b8c3e710ac028b42df3b1c33b13a07d5b72dbba2353"},
+    {file = "ingenialink-7.6.1.post46+ingk.1258.split.drive.ee221f2-cp310-cp310-win_amd64.whl", hash = "sha256:1a6ed2e646e2b82f0a01a7426a217dd346e226aeec9c9175479f50da5bdc05cb"},
+    {file = "ingenialink-7.6.1.post46+ingk.1258.split.drive.ee221f2-cp311-cp311-win_amd64.whl", hash = "sha256:c15df8886ffa87a9d624cbaf7af348d9927a1c7370ef7f26d9966902967b7a55"},
+    {file = "ingenialink-7.6.1.post46+ingk.1258.split.drive.ee221f2-cp312-cp312-win_amd64.whl", hash = "sha256:1520fb65866766f4f7a66bbc5db85a3af74b11a62760d18c7db1d7079c2105c4"},
+    {file = "ingenialink-7.6.1.post46+ingk.1258.split.drive.ee221f2-cp39-cp39-win_amd64.whl", hash = "sha256:976f5a33b59f310cb55b46e4d493b3df2dfbea06e61e609548a9eeab92f2bd2b"},
+    {file = "ingenialink-7.6.1.post46+ingk.1258.split.drive.ee221f2-py3-none-any.whl", hash = "sha256:1bd714b4356059230514bb3efc09c427d59fe31f50e09a5d6d1e3af897b6e14a"},
+    {file = "ingenialink-7.6.1.post46+ingk.1258.split.drive.ee221f2.tar.gz", hash = "sha256:b634a3e3e9ffe1dd04e24e0f2940341894108b6a819e481580774118419d2d23"},
 ]
 
 [package.dependencies]
@@ -1328,7 +1328,7 @@ multiping = "1.1.2"
 numpy = ">=1.26.0"
 ping3 = "5.1.5"
 pysoem = ">=1.1.13,<1.2.0"
-python-can = "4.6.1"
+python-can = "4.4.2"
 
 [package.source]
 type = "legacy"
@@ -2120,8 +2120,7 @@ version = "1.0.8"
 description = "MessagePack serializer"
 optional = false
 python-versions = ">=3.8"
-groups = ["dev"]
-markers = "python_version < \"4.0\""
+groups = ["main", "dev", "tests"]
 files = [
     {file = "msgpack-1.0.8-cp310-cp310-macosx_10_9_universal2.whl", hash = "sha256:505fe3d03856ac7d215dbe005414bc28505d26f0c128906037e66d98c4e95868"},
     {file = "msgpack-1.0.8-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:e6b7842518a63a9f17107eb176320960ec095a8ee3b4420b5f688e24bf50c53c"},
@@ -2180,6 +2179,7 @@ files = [
     {file = "msgpack-1.0.8-cp39-cp39-win_amd64.whl", hash = "sha256:ed59dd52075f8fc91da6053b12e8c89e37aa043f8986efd89e61fae69dc1b011"},
     {file = "msgpack-1.0.8.tar.gz", hash = "sha256:95c02b0e27e706e48d0e5426d1710ca78e0f0628d6e89d5b5a5b91a5f12274f3"},
 ]
+markers = {main = "platform_system != \"Windows\"", dev = "python_version < \"4.0\"", tests = "platform_system != \"Windows\""}
 
 [[package]]
 name = "multiping"
@@ -3135,40 +3135,39 @@ pytest = ">=7.4,<8.2.2 || >8.2.2"
 
 [[package]]
 name = "python-can"
-version = "4.6.1"
+version = "4.4.2"
 description = "Controller Area Network interface module for Python"
 optional = false
-python-versions = ">=3.9"
+python-versions = ">=3.8"
 groups = ["main", "tests"]
 files = [
-    {file = "python_can-4.6.1-py3-none-any.whl", hash = "sha256:17f95255868a95108dcfcb90565a684dad32d5a3ebb35afd14f739e18c84ff6c"},
-    {file = "python_can-4.6.1.tar.gz", hash = "sha256:290fea135d04b8504ebff33889cc6d301e2181a54099116609f940825ffe5005"},
+    {file = "python_can-4.4.2-py3-none-any.whl", hash = "sha256:e956d781b45563c244c1f3c8fe001e292d1857519cff663d7c184673a68879f9"},
+    {file = "python_can-4.4.2.tar.gz", hash = "sha256:1c46c0935f39f7a9c3e76b03249af0580689ebf7a1844195e92f87257f009df5"},
 ]
 
 [package.dependencies]
+msgpack = {version = ">=1.0.0,<1.1.0", markers = "platform_system != \"Windows\""}
 packaging = ">=23.1"
-typing_extensions = ">=3.10.0.0"
+pywin32 = {version = ">=305", markers = "platform_system == \"Windows\" and platform_python_implementation == \"CPython\""}
+typing-extensions = ">=3.10.0.0"
 wrapt = ">=1.10,<2.0"
 
 [package.extras]
 canalystii = ["canalystii (>=0.1.0)"]
-candle = ["python-can-candle (>=1.2.2)"]
 canine = ["python-can-canine (>=0.2.2)"]
 cantact = ["cantact (>=0.0.7)"]
 cvector = ["python-can-cvector"]
 gs-usb = ["gs-usb (>=0.2.1)"]
+lint = ["black (==24.4.*)", "mypy (==1.10.*)", "pylint (==3.2.*)", "ruff (==0.4.8)"]
 mf4 = ["asammdf (>=6.0.0)"]
-multicast = ["msgpack (>=1.1.0,<1.2.0)"]
 neovi = ["filelock", "python-ics (>=2.12)"]
 nixnet = ["nixnet (>=0.3.2)"]
 pcan = ["uptime (>=3.0.1,<3.1.0)"]
-pywin32 = ["pywin32 (>=305) ; platform_system == \"Windows\" and platform_python_implementation == \"CPython\""]
 remote = ["python-can-remote"]
 seeedstudio = ["pyserial (>=3.0)"]
 serial = ["pyserial (>=3.0,<4.0)"]
 sontheim = ["python-can-sontheim (>=0.1.2)"]
 viewer = ["windows-curses ; platform_system == \"Windows\" and platform_python_implementation == \"CPython\""]
-zlgcan = ["zlgcan"]
 
 [[package]]
 name = "python-dateutil"
@@ -3191,7 +3190,7 @@ version = "311"
 description = "Python for Window Extensions"
 optional = false
 python-versions = "*"
-groups = ["docs", "tests"]
+groups = ["main", "docs", "tests"]
 files = [
     {file = "pywin32-311-cp310-cp310-win32.whl", hash = "sha256:d03ff496d2a0cd4a5893504789d4a15399133fe82517455e78bad62efbb7f0a3"},
     {file = "pywin32-311-cp310-cp310-win_amd64.whl", hash = "sha256:797c2772017851984b97180b0bebe4b620bb86328e8a884bb626156295a63b3b"},
@@ -3214,7 +3213,7 @@ files = [
     {file = "pywin32-311-cp39-cp39-win_amd64.whl", hash = "sha256:e0c4cfb0621281fe40387df582097fd796e80430597cb9944f0ae70447bacd91"},
     {file = "pywin32-311-cp39-cp39-win_arm64.whl", hash = "sha256:62ea666235135fee79bb154e695f3ff67370afefd71bd7fea7512fc70ef31e3d"},
 ]
-markers = {docs = "sys_platform == \"win32\" and platform_python_implementation != \"PyPy\"", tests = "platform_system == \"Windows\" and platform_python_implementation != \"PyPy\""}
+markers = {main = "platform_system == \"Windows\" and platform_python_implementation == \"CPython\"", docs = "sys_platform == \"win32\" and platform_python_implementation != \"PyPy\"", tests = "platform_system == \"Windows\" and platform_python_implementation != \"PyPy\""}
 
 [[package]]
 name = "pywin32-ctypes"
@@ -4746,4 +4745,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "c954caa048be61fc10fb791d80a10817e30419ea5c2c9c945dba669b90a57dea"
+content-hash = "1257a89de8bd06650c7aa5cbf44a37ef6f2321c55347c3c77fd0598caf7f7e2f"
