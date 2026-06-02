@@ -390,8 +390,6 @@ class FSoEMasterHandler:
         # Update the pdo maps elements that are safe parameters
         for pdu_map in (self.safety_master_pdu_map, self.safety_slave_pdu_map):
             for register, mapping_value in pdu_map.map_register_values().items():
-                if register.identifier is None:
-                    raise ValueError("Register in PDOMap has no identifier")
                 if register.identifier in self.safety_parameters:
                     if mapping_value is None:
                         # Set parameter to zero if it is not mapped
@@ -770,17 +768,10 @@ class FSoEMasterHandler:
             if register.cat_id != cls.FSOE_DICTIONARY_CATEGORY:
                 continue
 
-            if not isinstance(register, CanopenRegister):
-                # Type could be narrowed to EthercatRegister
-                # After this bugfix:
-                # https://novantamotion.atlassian.net/browse/INGK-1111
+            if not isinstance(register, EthercatRegister):
                 raise TypeError
 
-            identifier = register.identifier
-            if identifier is None:
-                continue
-
-            if identifier.startswith(("FSOE_SLAVE_FRAME", "FSOE_MASTER_FRAME")):
+            if register.identifier.startswith(("FSOE_SLAVE_FRAME", "FSOE_MASTER_FRAME")):
                 # Elements of the standard FSoE frame are not added to the safe data dictionary
                 continue
 
