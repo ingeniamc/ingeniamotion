@@ -14,14 +14,15 @@ import os
 import sys
 sys.path.insert(0, os.path.abspath('..'))
 
-from ingeniamotion import __version__
+from ingenialink import __version__ as ingenialink_version
+from ingeniamotion import __version__ as ingeniamotion_version
 
 # -- Project information -----------------------------------------------------
 
 project = 'ingeniamotion'
 copyright = '2021, Novanta Technologies Spain S.L.'
 author = 'Novanta'
-version = __version__
+version = ingeniamotion_version
 
 # The full version, including alpha/beta/rc tags
 release = version
@@ -68,10 +69,10 @@ html_theme = 'sphinx_rtd_theme'
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-pdf_name = u"ingeniamotion v{}".format(__version__)
+pdf_name = u"ingeniamotion v{}".format(ingeniamotion_version)
 pdf_documents = [('index', pdf_name, u'Ingeniamotion', author), ]
 
-intersphinx_mapping = {'python': ('https://docs.python.org/3.6', None),
-                       'ingenialink': ('https://distext.ingeniamc.com/doc/ingenialink-python/7.2.0', None)}
+intersphinx_mapping = {'python': ('https://docs.python.org/3.12', None),
+                       'ingenialink': (f'https://distext.ingeniamc.com/doc/ingenialink-python/{ingenialink_version}', None)}
 
 napoleon_use_param = True
