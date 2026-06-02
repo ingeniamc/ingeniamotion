@@ -268,8 +268,8 @@ CAN_SETUP = SpecifierContainer({
                     },
                 },
             ),
-            "2.8.1": VersionConfig.from_version(
-                version="2.8.1",
+            "2.10.0": VersionConfig.from_version(
+                version="2.10.0",
                 config_file=_config_files.CAP_XCR_C_CONFIG,
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
@@ -277,8 +277,8 @@ CAN_SETUP = SpecifierContainer({
                     __TEST_CONFIGS_KEY: {
                         "CAN_TEST_SESSIONS": PyTestConfig(
                             markers="canopen",
-                            run_test_stage_uid="canopen_capitan_2.8.1",
-                            stage_name="CANopen Capitan - FW. 2.8.1",
+                            run_test_stage_uid="canopen_capitan_2.10.0",
+                            stage_name="CANopen Capitan - FW. 2.10.0",
                         )
                     },
                 },
