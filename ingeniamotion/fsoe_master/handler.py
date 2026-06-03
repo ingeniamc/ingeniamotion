@@ -7,9 +7,9 @@ from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union, cast, over
 import ingenialogger
 from exceptiongroup import ExceptionGroup
 from ingenialink import RegDtype
-from ingenialink.canopen.register import CanopenRegister
 from ingenialink.dictionary import DictionarySafetyModule
 from ingenialink.enums.register import RegAccess, RegCyclicType
+from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.ethercat.servo import EthercatServo
 from ingenialink.pdo import RPDOMap, TPDOMap
 from ingenialink.utils._utils import convert_dtype_to_bytes
@@ -47,9 +47,9 @@ from ingeniamotion.fsoe_master.safety_functions import (
 )
 
 if TYPE_CHECKING:
+    from ingenialink.canopen.register import CanopenRegister
     from ingenialink.ethercat.dictionary import EthercatDictionary
     from ingenialink.ethercat.network import EthercatNetwork
-    from ingenialink.ethercat.register import EthercatRegister
 
 SAFE_INSTANCE_TYPE = TypeVar("SAFE_INSTANCE_TYPE", bound="SafetyFunction")
 
