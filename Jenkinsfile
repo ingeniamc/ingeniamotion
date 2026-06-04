@@ -5,7 +5,6 @@ import python.VEnvManager
 import pytest.TestSession
 import pytest.TestGroup
 import pytest.PyTestManager
-import pytest.TestDashboardBuilder
 
 def SW_NODE = "windows-slave"
 def ECAT_NODE = "ecat-test"
