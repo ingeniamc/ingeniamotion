@@ -155,8 +155,8 @@ ECAT_SETUP = SpecifierContainer({
                     },
                 },
             ),
-            "2.8.1": VersionConfig.from_version(
-                version="2.8.1",
+            "2.9.0": VersionConfig.from_version(
+                version="2.9.0",
                 config_file=_config_files.CAP_XCR_E_CONFIG,
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
@@ -164,8 +164,8 @@ ECAT_SETUP = SpecifierContainer({
                     __TEST_CONFIGS_KEY: {
                         "ECAT_TEST_SESSIONS": PyTestConfig(
                             markers="soem",
-                            run_test_stage_uid="ethercat_capitan_2.8.1",
-                            stage_name="EtherCAT Capitan - FW. 2.8.1",
+                            run_test_stage_uid="ethercat_capitan_2.9.0",
+                            stage_name="EtherCAT Capitan - FW. 2.9.0",
                         )
                     },
                 },
@@ -295,7 +295,7 @@ ECAT_MULTISLAVE_SETUP = MultiRackServiceConfigSpecifier.create(
             identifier=PartNumber.EVE_XCR_E, version="2.8.1"
         ),
         ECAT_SETUP.get_specifier_by_identifier_with_version(
-            identifier=PartNumber.CAP_XCR_E, version="2.8.1"
+            identifier=PartNumber.CAP_XCR_E, version="2.9.0"
         ),
     ],
     extra_data={
