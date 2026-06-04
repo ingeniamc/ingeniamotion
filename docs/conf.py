@@ -12,10 +12,17 @@
 #
 import os
 import sys
+from packaging.version import Version
+
 sys.path.insert(0, os.path.abspath('..'))
 
 from ingenialink import __version__ as ingenialink_version
 from ingeniamotion import __version__ as ingeniamotion_version
+
+python_version = "3.12"
+
+# Extract base version (major.minor.patch) without post/dev/local parts
+ingenialink_base_version = str(Version(ingenialink_version).base_version)
 
 # -- Project information -----------------------------------------------------
 
@@ -72,7 +79,9 @@ html_static_path = ['_static']
 pdf_name = u"ingeniamotion v{}".format(ingeniamotion_version)
 pdf_documents = [('index', pdf_name, u'Ingeniamotion', author), ]
 
-intersphinx_mapping = {'python': ('https://docs.python.org/3.12', None),
-                       'ingenialink': (f'https://distext.ingeniamc.com/doc/ingenialink-python/{ingenialink_version}', None)}
+intersphinx_mapping = {
+    'python': (f"https://docs.python.org/{python_version}", None),
+    'ingenialink': (f"https://distext.ingeniamc.com/doc/ingenialink-python/{ingenialink_base_version}", None)
+}
 
 napoleon_use_param = True
