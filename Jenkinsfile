@@ -1,4 +1,4 @@
-@Library('cicd-lib@0.21') _
+@Library('cicd-lib@improve-test-dashboard') _
 
 import python.VirtualEnvironment
 import python.VEnvManager
