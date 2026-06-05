@@ -80,7 +80,7 @@ poethepoet = {extras = ["poetry-plugin"], version = "^0.35.0"}
 [tool.poetry.group.build]
 optional = true
 [tool.poetry.group.build.dependencies]
-twine = "==6.1.0"
+twine = "==6.2.0"
 
 # Dependencies for format task
 [tool.poetry.group.format]
@@ -118,7 +118,7 @@ pytest-rerunfailures = "==15.1"
 pytest-console-scripts = "==1.4.1"
 matplotlib = "==3.8.2"
 summit-testing-framework = {version = "==0.3.0.post74+develop.cfdaeac"}
-ingenialink = {version = "==7.6.1.post48+develop.4759773"}
+ingenialink = {version = "==7.6.1-post50+monitoring.complete.access.23a99f1"}
 
 # -----------------------------------------------------------------------
 #                                   TASKS

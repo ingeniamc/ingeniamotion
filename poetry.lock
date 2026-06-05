@@ -1305,18 +1305,18 @@ reference = "novanta"
 
 [[package]]
 name = "ingenialink"
-version = "7.6.1.post48+develop.4759773"
+version = "7.6.1.post50+monitoring.complete.access.23a99f1"
 description = "IngeniaLink Communications Library"
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "tests"]
 files = [
-    {file = "ingenialink-7.6.1.post48+develop.4759773-cp310-cp310-win_amd64.whl", hash = "sha256:fab554ccad6f66ac9b77d92ead8c7a4fa86e77aa245137ae5cc086703f2f13b0"},
-    {file = "ingenialink-7.6.1.post48+develop.4759773-cp311-cp311-win_amd64.whl", hash = "sha256:086b09e423f6c0f40363a2b4cce2e565b00776d7d67ab8fd2e2cee203391395d"},
-    {file = "ingenialink-7.6.1.post48+develop.4759773-cp312-cp312-win_amd64.whl", hash = "sha256:dde75ecdb998e520ae7ae3fcefb51804ca7e7482b4bb7b72cd925adf95ab77c2"},
-    {file = "ingenialink-7.6.1.post48+develop.4759773-cp39-cp39-win_amd64.whl", hash = "sha256:2b34ba0bf9de0d75162f6b00edb3837ab2bcac85c5ce7e109f6bffb243e8e453"},
-    {file = "ingenialink-7.6.1.post48+develop.4759773-py3-none-any.whl", hash = "sha256:62a0a5a64ca62fa5b317b4a591da02cc039ff8c455b46edf3b8e60f50c714286"},
-    {file = "ingenialink-7.6.1.post48+develop.4759773.tar.gz", hash = "sha256:2017d73090675ec9fce1cf85a83c4b1f9e91f2f993f8c3d7fe7d16567d595a7d"},
+    {file = "ingenialink-7.6.1.post50+monitoring.complete.access.23a99f1-cp310-cp310-win_amd64.whl", hash = "sha256:a7a5cbdd1400fd42c6ee34b72c8ef8a39900c0eeb1c95beabebe45aeaea80dd5"},
+    {file = "ingenialink-7.6.1.post50+monitoring.complete.access.23a99f1-cp311-cp311-win_amd64.whl", hash = "sha256:8b728c45b68d58ca79079ebd82395c00f47d76e971e0c86f8519786b65f035dd"},
+    {file = "ingenialink-7.6.1.post50+monitoring.complete.access.23a99f1-cp312-cp312-win_amd64.whl", hash = "sha256:ce0a2bbd8ccee7f2cfdb284e65a5dc67214e79e8c91cc2d5df2e81ff4ea672ca"},
+    {file = "ingenialink-7.6.1.post50+monitoring.complete.access.23a99f1-cp39-cp39-win_amd64.whl", hash = "sha256:0cc494f602ffe00d87c93d3bb312308a6b3c643afe14f81c54b618993c9f8e4b"},
+    {file = "ingenialink-7.6.1.post50+monitoring.complete.access.23a99f1-py3-none-any.whl", hash = "sha256:6ed6847496d60955deb1d951a2de72cfa634f19bba1ee338a63a09355d3e9876"},
+    {file = "ingenialink-7.6.1.post50+monitoring.complete.access.23a99f1.tar.gz", hash = "sha256:9619d69f946ec905661bd798c96f1bd974c60a057f053b98a90b5cecc04d1dca"},
 ]
 
 [package.dependencies]
@@ -4340,20 +4340,20 @@ files = [
 
 [[package]]
 name = "twine"
-version = "6.1.0"
+version = "6.2.0"
 description = "Collection of utilities for publishing packages on PyPI"
 optional = false
-python-versions = ">=3.8"
+python-versions = ">=3.9"
 groups = ["build"]
 files = [
-    {file = "twine-6.1.0-py3-none-any.whl", hash = "sha256:a47f973caf122930bf0fbbf17f80b83bc1602c9ce393c7845f289a3001dc5384"},
-    {file = "twine-6.1.0.tar.gz", hash = "sha256:be324f6272eff91d07ee93f251edf232fc647935dd585ac003539b42404a8dbd"},
+    {file = "twine-6.2.0-py3-none-any.whl", hash = "sha256:418ebf08ccda9a8caaebe414433b0ba5e25eb5e4a927667122fbe8f829f985d8"},
+    {file = "twine-6.2.0.tar.gz", hash = "sha256:e5ed0d2fd70c9959770dce51c8f39c8945c574e18173a7b81802dab51b4b75cf"},
 ]
 
 [package.dependencies]
 id = "*"
 importlib-metadata = {version = ">=3.6", markers = "python_version < \"3.10\""}
-keyring = {version = ">=15.1", markers = "platform_machine != \"ppc64le\" and platform_machine != \"s390x\""}
+keyring = {version = ">=21.2.0", markers = "platform_machine != \"ppc64le\" and platform_machine != \"s390x\""}
 packaging = ">=24.0"
 readme-renderer = ">=35.0"
 requests = ">=2.20"
@@ -4363,7 +4363,7 @@ rich = ">=12.0.0"
 urllib3 = ">=1.26.0"
 
 [package.extras]
-keyring = ["keyring (>=15.1)"]
+keyring = ["keyring (>=21.2.0)"]
 
 [[package]]
 name = "typing-extensions"
@@ -4746,4 +4746,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "382b5f021bc997250440676f0885d209036f7c3536b383c7f17dd5eb11b01e27"
+content-hash = "8224de5be29addfe7546e974d7fa713312407f2d6a4cdc609608d913ee26f8c1"

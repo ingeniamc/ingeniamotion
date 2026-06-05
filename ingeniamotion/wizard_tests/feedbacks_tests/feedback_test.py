@@ -136,7 +136,7 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
     def __check_feedback_tolerance(
         self, error: float, error_msg: str, error_type: ResultType
     ) -> ResultType:
-        if error > self.FEEDBACK_TOLERANCE:
+        if abs(error) > self.FEEDBACK_TOLERANCE:
             error_advice = "Please, review your feedback & motor pair poles settings"
             self.logger.error("%s %s", error_msg, error_advice)
             return error_type
