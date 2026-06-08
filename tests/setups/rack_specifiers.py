@@ -142,7 +142,7 @@ ECAT_SETUP = SpecifierContainer({
         version_configs={
             "2.6.0": VersionConfig.from_version(
                 version="2.6.0",
-                config_file=_config_files.CAP_XCR_E_CONFIG,
+                config_file=_config_files.CAP_XCR_E_2_2_0_CONFIG,
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "weekends",
@@ -157,7 +157,7 @@ ECAT_SETUP = SpecifierContainer({
             ),
             "2.9.0": VersionConfig.from_version(
                 version="2.9.0",
-                config_file=_config_files.CAP_XCR_E_CONFIG,
+                config_file=_config_files.CAP_XCR_E_2_9_0_CONFIG,
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "always",
