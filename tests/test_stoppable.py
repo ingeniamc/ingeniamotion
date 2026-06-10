@@ -2,7 +2,11 @@ from collections.abc import Generator
 
 import pytest
 
-from ingeniamotion.wizard_tests.stoppable import StopExceptionError, Stoppable
+from ingeniamotion.wizard_tests.stoppable import (
+    StopExceptionError,
+    StopOpportunityTraceEvent,
+    Stoppable,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -67,3 +71,59 @@ def test_stoppable_sleep_handles_empty_and_pending_stop_queue() -> None:
     stoppable.stop()
     with pytest.raises(StopExceptionError):
         stoppable.stoppable_sleep(0.0)
+
+
+def test_stoppable_trace_recorder_captures_stop_opportunities(
+    stoppable_trace_recorder,
+) -> None:
+    """The trace recorder should capture stop opportunities for checks and sleeps."""
+    stoppable = DummyStoppable()
+
+    stoppable.check_stop()
+    stoppable.stoppable_sleep(0.0)
+    stoppable.run(5)
+
+    assert len(stoppable_trace_recorder) == 3
+    first_event = stoppable_trace_recorder[0]
+    second_event = stoppable_trace_recorder[1]
+    third_event = stoppable_trace_recorder[2]
+
+    # timestamps are ordered by call order
+    assert first_event.timestamp <= second_event.timestamp <= third_event.timestamp
+    assert first_event.traceback
+    assert second_event.traceback
+    assert third_event.traceback
+
+    assert any(
+        frame.name == "test_stoppable_trace_recorder_captures_stop_opportunities"
+        for frame in first_event.traceback
+    )
+    assert any(frame.filename.endswith("stoppable.py") for frame in second_event.traceback)
+    assert any(frame.filename.endswith("stoppable.py") for frame in third_event.traceback)
+
+
+def test_stop_opportunity_subscriptions_can_be_composed(
+    stoppable_trace_recorder,
+) -> None:
+    """Multiple subscriptions should all receive the same stop opportunities."""
+    captured_events: list[str] = []
+
+    def extra_recorder() -> None:
+        captured_events.append("no_event")
+
+    def event_recorder(event: StopOpportunityTraceEvent) -> None:
+        captured_events.append(event.traceback[-1].name)
+
+    no_event_subscription = Stoppable.subscribe_to_stop_opportunities(extra_recorder)
+    event_subscription = Stoppable.subscribe_to_stop_opportunities(event_recorder, with_event=True)
+
+    try:
+        stoppable = Stoppable()
+        stoppable.check_stop()
+        stoppable.stoppable_sleep(0.0)
+    finally:
+        Stoppable.unsubscribe_from_stop_opportunities(no_event_subscription)
+        Stoppable.unsubscribe_from_stop_opportunities(event_subscription)
+
+    assert len(stoppable_trace_recorder) == 2
+    assert captured_events == ["no_event", "check_stop", "no_event", "stoppable_sleep"]
