@@ -12,10 +12,6 @@ from summit_testing_framework.pytest_helpers.marker_helper import (
     apply_firmware_version_markers_to_items,
 )
 
-from ingeniamotion.wizard_tests.stoppable import StopOpportunityTraceEvent, Stoppable
-
-STOPPABLE_GAP_THRESHOLD_SECONDS = 0.5
-
 if TYPE_CHECKING:
     from ingeniamotion.axis import Axis
     from ingeniamotion.motion_controller import MotionController
@@ -73,6 +69,7 @@ def not_valid_for_all_eve_products(func: Callable) -> Callable:
 pytest_plugins = [
     "summit_testing_framework.pytest_addoptions",
     "summit_testing_framework.setup_fixtures",
+    "tests.stoppable_opportunities_timing",
 ]
 
 # Pytest runs with importlib import mode, which means that it will run the tests with the installed
@@ -138,51 +135,6 @@ def disable_monitoring_disturbance(
     mc.capture.clean_monitoring_disturbance(servo=alias)
 
 
-@pytest.fixture
-def stoppable_trace_recorder(
-    request: pytest.FixtureRequest,
-) -> Generator[list[StopOpportunityTraceEvent], None, None]:
-    """Record stop opportunities so long gaps can be inspected after a test.
-
-    The fixture subscribes only for the requesting test and unsubscribes on
-    teardown without affecting any other subscribers.
-
-    Yields:
-        A list of captured stop-opportunity records in call order.
-    """
-
-    records: list[StopOpportunityTraceEvent] = []
-
-    def record_call(event: StopOpportunityTraceEvent) -> None:
-        records.append(event)
-
-    subscription = Stoppable.subscribe_to_stop_opportunities(record_call, with_event=True)
-    try:
-        yield records
-    finally:
-        Stoppable.unsubscribe_from_stop_opportunities(subscription)
-
-    if len(records) > 1:
-        gap_pairs = [
-            (previous, current, current.timestamp - previous.timestamp)
-            for previous, current in zip(records, records[1:])
-        ]
-        slow_gaps = [
-            gap
-            for _previous, _current, gap in gap_pairs
-            if gap > STOPPABLE_GAP_THRESHOLD_SECONDS
-        ]
-        if slow_gaps:
-            formatted_gaps = [
-                (previous.timestamp, current.timestamp, gap)
-                for previous, current, gap in gap_pairs
-            ]
-            pytest.fail(
-                f"{request.node.nodeid} has {len(slow_gaps)} stoppable gaps above "
-                f"{STOPPABLE_GAP_THRESHOLD_SECONDS} seconds\n"
-                f"all gaps: {formatted_gaps}\n"
-                f"slow gaps: {slow_gaps}",
-            )
 
 
 def mean_actual_velocity_position(mc, servo, velocity=False, n_samples=200, sampling_period=0):

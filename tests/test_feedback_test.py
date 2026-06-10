@@ -24,6 +24,8 @@ from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental2_test import
 from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import (
     SecondarySSITest,
 )
+# Record stop opportunities for every wizard-test integration case in this module.
+pytestmark = pytest.mark.usefixtures("stoppable_trace_recorder")
 
 INCREMENTAL_ENCODER_1_RESOLUTION_REGISTER = "FBK_DIGENC1_RESOLUTION"
 
