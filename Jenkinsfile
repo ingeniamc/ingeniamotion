@@ -199,6 +199,7 @@ pipeline {
                         stageName: "Unit Tests (Windows)")
 
                     testManager.echoTestGroupsSummary()
+                    testManager.collectTestsForDashboard()
                     testManager.generateTestDashboard()
                 }
             }
@@ -472,26 +473,26 @@ pipeline {
                     image WIN_DOCKER_IMAGE
                 }
             }
-            when {
-                expression { testManager.hasCoverageFiles() }
-            }
             environment {
                 VENV_WORKING_FOLDER = "${WIN_DOCKER_TMP_PATH}"
             }
             steps {
                 script {
-                    def coverage_files = testManager.getCoverageFiles().join(" ")
+                    def coverage_files = testManager.getCoverageFiles()
                     venvManager.copyToWorkingFolder()
                     venvManager.createPoetryEnvironment(
                         installCommand: "poetry sync --all-groups --extras fsoe"
                     )
-                    venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
-                        venv.run("poetry run poe cov-combine -- ${coverage_files}")
-                        venv.run("poetry run poe cov-report")
+                    if (coverage_files) {
+                        venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
+                            venv.run("poetry run poe cov-combine -- ${coverage_files.join(' ')}")
+                            venv.run("poetry run poe cov-report")
+                        }
+                        venvManager.copyFromWorkingFolder("coverage.xml")
+                        recordCoverage(tools: [[parser: 'COBERTURA', pattern: 'coverage.xml']])
+                        archiveArtifacts artifacts: '*.xml'
                     }
-                    venvManager.copyFromWorkingFolder("coverage.xml")
-                    recordCoverage(tools: [[parser: 'COBERTURA', pattern: 'coverage.xml']])
-                    archiveArtifacts artifacts: '*.xml'
+                    testManager.generateTestDashboard()
                 }
             }
         }
