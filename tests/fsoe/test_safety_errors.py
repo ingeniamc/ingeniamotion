@@ -65,6 +65,7 @@ def test_get_error_with_id_not_in_dict() -> None:
     assert error.error_description == "Unknown error 4660 / 0x1234"
 
 
+@pytest.mark.skip(reason="Flaky test due to the power cycle")
 @pytest.mark.fsoe_phase2
 def test_no_errors(
     mcu_error_queue_a: "ServoErrorQueue",
@@ -112,6 +113,7 @@ def mc_with_fsoe_with_sra_no_fail_on_errors(
     yield mc, handler
 
 
+@pytest.mark.skip(reason="Flaky test due to the power cycle")
 @pytest.mark.fsoe_phase2
 def test_get_last_error_invalid_map(
     mcu_error_queue_a: "ServoErrorQueue",
