@@ -123,11 +123,14 @@ class StopGapRecord:
         gap_records = []
         for previous, current in zip(records, records[1:]):
             source_file, callsite = cls._traceback_location(rootpath, current.traceback)
+
+            previous_finish = previous.finish_timestamp
+
             gap_records.append(
                 cls(
                     previous_timestamp=previous.timestamp,
                     current_timestamp=current.timestamp,
-                    gap_seconds=current.timestamp - previous.timestamp,
+                    gap_seconds=current.timestamp - previous_finish,
                     source_file=source_file,
                     callsite=callsite,
                 )

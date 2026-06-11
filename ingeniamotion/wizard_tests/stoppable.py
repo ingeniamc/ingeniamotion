@@ -17,10 +17,17 @@ T = typing.TypeVar("T")
 
 @dataclass(frozen=True)
 class StopOpportunityTraceEvent:
-    """Captured metadata for a stoppable call."""
+    """Captured metadata for a stoppable call.
+
+    Each event represents a period of time during which the test could have
+    been stopped. For instantaneous checks, timestamp and finish_timestamp
+    will be nearly identical. For blocking operations (like sleeps), they
+    define the interval of the operation.
+    """
 
     timestamp: float
     traceback: tuple[traceback.FrameSummary, ...]
+    finish_timestamp: float
 
 
 StopOpportunityRecorder = Callable[..., None]
@@ -70,17 +77,25 @@ class Stoppable:
             cls._stop_opportunity_subscriptions.remove(subscription)
 
     @classmethod
-    def _record_stop_opportunity(cls) -> None:
+    def _record_stop_opportunity(
+        cls, start: Optional[float] = None, finish: Optional[float] = None
+    ) -> None:
         subscriptions = cls._stop_opportunity_subscriptions
         if not subscriptions:
             return
+
+        now = time.time()
+        start = start if start is not None else now
+        finish = finish if finish is not None else now
+
         event: Optional[StopOpportunityTraceEvent] = None
         for subscription in tuple(subscriptions):
             if subscription.with_event:
                 if event is None:
                     event = StopOpportunityTraceEvent(
-                        timestamp=time.time(),
-                        traceback=tuple(traceback.extract_stack()[:-1]),
+                        timestamp=start,
+                        traceback=tuple(traceback.extract_stack()[:-2]),
+                        finish_timestamp=finish,
                     )
                 subscription.callback(event)
             else:
@@ -132,10 +147,12 @@ class Stoppable:
             timeout: Time to sleep.
 
         """
-        self._record_stop_opportunity()
+        start_time = time.time()
         try:
             stop_exception = self.stop_queue.get(timeout=timeout)
         except Empty:
-            pass
-        else:
+            stop_exception = None
+
+        self._record_stop_opportunity(start_time, time.time())
+        if stop_exception:
             raise stop_exception
