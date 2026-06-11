@@ -8,5 +8,6 @@ CAP_XCR_E_2_2_0_CONFIG: Path = _CONFIG_FILES_DIR / "ethercat" / "cap_xcr_e.2.2.0
 CAP_XCR_E_2_9_0_CONFIG: Path = _CONFIG_FILES_DIR / "ethercat" / "cap_xcr_e_2.9.0.xcf"
 
 # CANopen config files
-EVE_XCR_C_CONFIG: Path = _CONFIG_FILES_DIR / "canopen" / "eve_xcr_c.xcf"
+EVE_XCR_C_2_1_0_CONFIG: Path = _CONFIG_FILES_DIR / "canopen" / "eve_xcr_c_2.1.0.xcf"
+EVE_XCR_C_2_8_1_CONFIG: Path = _CONFIG_FILES_DIR / "canopen" / "eve_xcr_c_2.8.1.xcf"
 CAP_XCR_C_CONFIG: Path = _CONFIG_FILES_DIR / "canopen" / "cap_xcr_c.xcf"
