@@ -65,7 +65,6 @@ def test_get_error_with_id_not_in_dict() -> None:
     assert error.error_description == "Unknown error 4660 / 0x1234"
 
 
-@pytest.mark.skip(reason="Flaky test due to the power cycle")
 @pytest.mark.fsoe_phase2
 def test_no_errors(
     mcu_error_queue_a: "ServoErrorQueue",
@@ -73,7 +72,7 @@ def test_no_errors(
 ) -> None:
     """Test methods when there are no errors"""
     # Clear any existing errors by power cycling
-    environment.power_cycle(wait_for_drives=True, reconnect_drives=True)
+    environment.power_cycle(wait_for_drives=False, reconnect_drives=True, reconnect_timeout=30)
 
     assert mcu_error_queue_a.get_number_total_errors() == 0
 
@@ -92,7 +91,7 @@ def test_get_last_error_overtemp_error(
 ) -> None:
     """Test getting the last error when there is an overtemperature error."""
     # Clear any existing errors by power cycling
-    environment.power_cycle(wait_for_drives=True, reconnect_drives=True)
+    environment.power_cycle(wait_for_drives=False, reconnect_drives=True, reconnect_timeout=30)
 
     servo.write("FSOE_USER_OVER_TEMPERATURE", 0, subnode=1)
 
@@ -113,7 +112,6 @@ def mc_with_fsoe_with_sra_no_fail_on_errors(
     yield mc, handler
 
 
-@pytest.mark.skip(reason="Flaky test due to the power cycle")
 @pytest.mark.fsoe_phase2
 def test_get_last_error_invalid_map(
     mcu_error_queue_a: "ServoErrorQueue",
@@ -122,7 +120,7 @@ def test_get_last_error_invalid_map(
     timeout_for_data_sra: float,
 ) -> None:
     """Test getting the last error when there is an invalid map error."""
-    environment.power_cycle(wait_for_drives=True, reconnect_drives=True)
+    environment.power_cycle(wait_for_drives=False, reconnect_drives=True, reconnect_timeout=30)
 
     mc, handler = mc_with_fsoe_with_sra_no_fail_on_errors
 
@@ -160,7 +158,7 @@ def test_get_last_error_invalid_map(
         # Stop the master
         mc.fsoe.stop_master(stop_pdos=True)
         # Power cycle to clear the errors generated
-        environment.power_cycle(wait_for_drives=True, reconnect_drives=True)
+        environment.power_cycle(wait_for_drives=False, reconnect_drives=True, reconnect_timeout=30)
 
 
 @pytest.mark.fsoe_phase2
