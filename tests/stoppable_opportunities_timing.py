@@ -22,7 +22,7 @@ STOPPABLE_REPORT_DIR = OUTPUTS_DIR / "stoppable_opportunities_timing"
 # STOPPABLE_GOOD_ENOUGH_GAP_SECONDS: Soft limit for reporting. If max gap > this,
 #   the report shows detailed tables of worst gaps and hotspots. Otherwise,
 #   it just notes that all gaps are below the threshold.
-STOPPABLE_GAP_THRESHOLD_SECONDS = 5.1
+STOPPABLE_GAP_THRESHOLD_SECONDS = 5.1  # https://novantamotion.atlassian.net/browse/INGM-768
 STOPPABLE_GOOD_ENOUGH_GAP_SECONDS = 2.6
 
 
