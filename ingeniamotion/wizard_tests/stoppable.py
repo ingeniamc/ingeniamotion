@@ -92,9 +92,11 @@ class Stoppable:
         for subscription in tuple(subscriptions):
             if subscription.with_event:
                 if event is None:
+                    # Extract stack up to (but not including) this method, so the
+                    # last frame is the stoppable method (check_stop, stoppable_sleep, etc.)
                     event = StopOpportunityTraceEvent(
                         timestamp=start,
-                        traceback=tuple(traceback.extract_stack()[:-2]),
+                        traceback=tuple(traceback.extract_stack()[:-1]),
                         finish_timestamp=finish,
                     )
                 subscription.callback(event)

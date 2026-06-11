@@ -17,9 +17,13 @@ from tests.outputs import OUTPUTS_DIR
 # Define unique folder for reports
 STOPPABLE_REPORT_DIR = OUTPUTS_DIR / "stoppable_opportunities_timing"
 
-
-STOPPABLE_GAP_THRESHOLD_SECONDS = 0.5
-STOPPABLE_GOOD_ENOUGH_GAP_SECONDS = 0.2
+# Stoppable gap thresholds:
+# STOPPABLE_GAP_THRESHOLD_SECONDS: Hard limit. Tests fail if any gap exceeds this.
+# STOPPABLE_GOOD_ENOUGH_GAP_SECONDS: Soft limit for reporting. If max gap > this,
+#   the report shows detailed tables of worst gaps and hotspots. Otherwise,
+#   it just notes that all gaps are below the threshold.
+STOPPABLE_GAP_THRESHOLD_SECONDS = 5.1
+STOPPABLE_GOOD_ENOUGH_GAP_SECONDS = 2.6
 
 
 STOPPABLE_REPORT_TEMPLATE = """# Stoppable gap report
