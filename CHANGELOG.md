@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+### Fixed
+- Feedback test symmetry check
+
 ## [0.10.3] - 2026-04-29
 ### Fixed
 - Added validation for zero feedback resolution in `DCFeedbacksResolutionTest` and `DCFeedbacksPolarityTest`.
