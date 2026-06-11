@@ -1,4 +1,5 @@
 import logging
+import os
 import time
 from collections.abc import Generator, Iterator
 from pathlib import Path
@@ -78,6 +79,16 @@ pytest_plugins = [
 # The issue is solved by dynamically importing them before the tests start. All modules that should
 # be imported and ARE NOT part of the package should be specified here
 _DYNAMIC_MODULES_IMPORT = ["tests", "examples"]
+
+
+@pytest.fixture(scope="session")
+def session_id() -> str:
+    """Fixture that retrieves the test session ID from the environment.
+
+    Returns:
+        The session ID if present, otherwise an empty string.
+    """
+    return os.environ.get("RUN_TEST_STAGE_UID", "")
 
 
 class SuppressSpecificLogs(logging.Filter):

@@ -9,16 +9,18 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 import pytest
-from jinja2 import Template
+from jinja2 import Environment
 
 from ingeniamotion.wizard_tests.stoppable import StopOpportunityTraceEvent, Stoppable
 from tests.outputs import OUTPUTS_DIR
 
+# Define unique folder for reports
+STOPPABLE_REPORT_DIR = OUTPUTS_DIR / "stoppable_opportunities_timing"
+
+
 STOPPABLE_GAP_THRESHOLD_SECONDS = 0.5
 STOPPABLE_GOOD_ENOUGH_GAP_SECONDS = 0.2
-STOPPABLE_REPORT_DIR = OUTPUTS_DIR / "stoppable_opportunities_timing"
-STOPPABLE_REPORT_MD = STOPPABLE_REPORT_DIR / "report.md"
-STOPPABLE_REPORT_JSON = STOPPABLE_REPORT_DIR / "details.json"
+
 
 STOPPABLE_REPORT_TEMPLATE = """# Stoppable gap report
 
@@ -229,6 +231,7 @@ class StoppableReport:
     generated_at: str
     pytest_root: str
     report_dir: str
+    session_id: str
     threshold_seconds: float
     opportunities: int
     gap_count: int
@@ -262,8 +265,9 @@ class StoppableReport:
         except ValueError:
             display_date = self.generated_at
 
-        template = Template(STOPPABLE_REPORT_TEMPLATE)
-        template.filters["format_seconds"] = self._format_seconds
+        env = Environment()
+        env.filters["format_seconds"] = self._format_seconds
+        template = env.from_string(STOPPABLE_REPORT_TEMPLATE)
 
         render_context: dict[str, Any] = asdict(self)
         render_context["generated_at"] = display_date
@@ -273,7 +277,7 @@ class StoppableReport:
 
     @classmethod
     def from_records(
-        cls, pytestconfig: pytest.Config, records: list[StopOpportunityTraceEvent]
+        cls, pytestconfig: pytest.Config, records: list[StopOpportunityTraceEvent], session_id: str
     ) -> "StoppableReport":
         """Build the structured stoppable report payload.
 
@@ -293,6 +297,7 @@ class StoppableReport:
             generated_at=generated_at,
             pytest_root=str(pytestconfig.rootpath),
             report_dir=str(STOPPABLE_REPORT_DIR),
+            session_id=session_id,
             threshold_seconds=STOPPABLE_GAP_THRESHOLD_SECONDS,
             opportunities=len(records),
             gap_count=len(gap_records),
@@ -306,13 +311,21 @@ class StoppableReport:
         )
 
     @classmethod
-    def write(cls, pytestconfig: pytest.Config, records: list[StopOpportunityTraceEvent]) -> None:
+    def write(
+        cls, pytestconfig: pytest.Config, records: list[StopOpportunityTraceEvent], session_id: str
+    ) -> None:
         """Write the stoppable report files for the current pytest session."""
-        STOPPABLE_REPORT_DIR.mkdir(parents=True, exist_ok=True)
-        report = cls.from_records(pytestconfig, records)
+        report_dir = OUTPUTS_DIR / "stoppable_opportunities_timing"
+        if session_id:
+            report_dir /= session_id
 
-        STOPPABLE_REPORT_MD.write_text(report.render(), encoding="utf-8")
-        STOPPABLE_REPORT_JSON.write_text(json.dumps(asdict(report), indent=2), encoding="utf-8")
+        report_dir.mkdir(parents=True, exist_ok=True)
+        report = cls.from_records(pytestconfig, records, session_id)
+
+        (report_dir / "report.md").write_text(report.render(), encoding="utf-8")
+        (report_dir / "details.json").write_text(
+            json.dumps(asdict(report), indent=2), encoding="utf-8"
+        )
 
 
 @dataclass
@@ -353,7 +366,7 @@ class SessionStoppableRecorder:
 
 @pytest.fixture(scope="session")
 def stoppable_session_report(
-    pytestconfig: pytest.Config,
+    pytestconfig: pytest.Config, session_id: str
 ) -> Generator[SessionStoppableRecorder, None, None]:
     """Collect every stop opportunity and write a session report.
 
@@ -374,7 +387,7 @@ def stoppable_session_report(
         yield recorder
     finally:
         Stoppable.unsubscribe_from_stop_opportunities(subscription)
-        StoppableReport.write(pytestconfig, session_records)
+        StoppableReport.write(pytestconfig, session_records, session_id)
 
 
 @pytest.fixture
