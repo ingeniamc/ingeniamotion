@@ -635,7 +635,8 @@ def test_get_commutation_mode(mc, alias):
 def test_get_bus_voltage(mc, alias):
     test_value = mc.configuration.get_bus_voltage(servo=alias)
     reg_value = mc.communication.get_register(BUS_VOLTAGE_REGISTER, servo=alias)
-    assert pytest.approx(test_value) == reg_value
+    # DRV_PROT_VBUS_VALUE is cyclic and updated on each PDO cycle; consecutive reads may differ
+    assert pytest.approx(test_value, rel=0.01) == reg_value
 
 
 @pytest.mark.virtual
