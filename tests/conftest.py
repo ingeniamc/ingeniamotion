@@ -135,8 +135,6 @@ def disable_monitoring_disturbance(
     mc.capture.clean_monitoring_disturbance(servo=alias)
 
 
-
-
 def mean_actual_velocity_position(mc, servo, velocity=False, n_samples=200, sampling_period=0):
     samples = np.zeros(n_samples)
     get_actual_value_dict = {
