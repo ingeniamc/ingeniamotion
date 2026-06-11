@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 def test_fsoe_master_not_installed() -> None:
     try:
-        import fsoe_master  # noqa: F401
+        import fsoe_master  # noqa: F401, PLC0415
     except ModuleNotFoundError:
         pass
     else:
