@@ -228,7 +228,7 @@ pipeline {
                         stage('Check Dependencies') {
                             steps {
                                 script {
-                                    checkDependencies(excludeManagers: ['poetry:tests', 'jenkins_shared_library'])
+                                    checkDependencies(excludeManagers: ['poetry:tests'])
                                 }
                             }
                         }
