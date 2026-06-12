@@ -1,3 +1,4 @@
+import traceback
 from collections.abc import Generator
 
 import pytest
@@ -6,6 +7,11 @@ from ingeniamotion.wizard_tests.stoppable import (
     StopExceptionError,
     StopOpportunityTraceEvent,
     Stoppable,
+)
+from tests.stoppable_opportunities_timing import (
+    StopGapRecord,
+    StoppableReport,
+    TestStoppableRecorder,
 )
 
 
@@ -127,3 +133,52 @@ def test_stop_opportunity_subscriptions_can_be_composed(
 
     assert len(stoppable_trace_recorder) == 2
     assert captured_events == ["no_event", "check_stop", "no_event", "stoppable_sleep"]
+
+
+def test_stoppable_report_counts_gaps_per_test_recorder(pytestconfig: pytest.Config) -> None:
+    """The session report should only count gaps within each collected test."""
+
+    def make_event(
+        timestamp: float, finish_timestamp: float, filename: str, lineno: int
+    ) -> StopOpportunityTraceEvent:
+        return StopOpportunityTraceEvent(
+            timestamp=timestamp,
+            finish_timestamp=finish_timestamp,
+            traceback=(traceback.FrameSummary(filename, lineno, "test_call"),),
+        )
+
+    recorder_one = TestStoppableRecorder(
+        nodeid="tests/test_alpha.py::test_one",
+        records=[
+            make_event(1.0, 1.2, "tests/test_alpha.py", 10),
+            make_event(2.0, 2.1, "tests/test_alpha.py", 20),
+        ],
+    )
+    recorder_two = TestStoppableRecorder(
+        nodeid="tests/test_beta.py::test_two",
+        records=[make_event(10.0, 10.2, "tests/test_beta.py", 30)],
+    )
+
+    report = StoppableReport.from_test_recorders(
+        pytestconfig=pytestconfig,
+        test_recorders=[recorder_one, recorder_two],
+        session_id="session-123",
+    )
+
+    expected_source_file = StopGapRecord._relative_path(
+        pytestconfig.rootpath, "tests/test_alpha.py"
+    )
+
+    assert report.test_count == 2
+    assert report.opportunities == 3
+    assert report.gap_count == 1
+    assert report.gap_count == report.opportunities - report.test_count
+    assert report.top_gap_records == [
+        StopGapRecord(
+            previous_timestamp=1.0,
+            current_timestamp=2.0,
+            gap_seconds=0.8,
+            source_file=expected_source_file,
+            callsite=f"{expected_source_file}:20 in test_call",
+        )
+    ]

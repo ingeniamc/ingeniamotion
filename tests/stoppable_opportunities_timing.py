@@ -3,7 +3,7 @@ import statistics
 import traceback
 from collections import Counter
 from collections.abc import Generator
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable, Optional
@@ -11,7 +11,11 @@ from typing import Any, Callable, Optional
 import pytest
 from jinja2 import Environment
 
-from ingeniamotion.wizard_tests.stoppable import StopOpportunityTraceEvent, Stoppable
+from ingeniamotion.wizard_tests.stoppable import (
+    StopOpportunitySubscription,
+    StopOpportunityTraceEvent,
+    Stoppable,
+)
 from tests.outputs import OUTPUTS_DIR
 
 # Define unique folder for reports
@@ -29,6 +33,7 @@ STOPPABLE_GOOD_ENOUGH_GAP_SECONDS = 2.6
 STOPPABLE_REPORT_TEMPLATE = """# Stoppable gap report
 
 - Generated at: {{ generated_at }}
+- Tests: {{ test_count }}
 - Stop opportunities: {{ opportunities }}
 - Recorded gaps: {{ gap_count }}
 - Distinct callsites: {{ unique_callsites }}
@@ -240,6 +245,7 @@ class StoppableReport:
     report_dir: str
     session_id: str
     threshold_seconds: float
+    test_count: int
     opportunities: int
     gap_count: int
     unique_callsites: int
@@ -283,17 +289,27 @@ class StoppableReport:
         return template.render(**render_context)
 
     @classmethod
-    def from_records(
-        cls, pytestconfig: pytest.Config, records: list[StopOpportunityTraceEvent], session_id: str
+    def from_test_recorders(
+        cls,
+        pytestconfig: pytest.Config,
+        test_recorders: list["TestStoppableRecorder"],
+        session_id: str,
     ) -> "StoppableReport":
-        """Build the structured stoppable report payload.
+        """Build the structured stoppable report payload from completed tests.
 
         Returns:
             Stoppable report.
         """
         now = datetime.now()
         generated_at = now.astimezone().isoformat(timespec="seconds")
-        gap_records = StopGapRecord.from_trace_events(pytestconfig.rootpath, records)
+        gap_records: list[StopGapRecord] = []
+        opportunities = 0
+        for test_recorder in test_recorders:
+            opportunities += len(test_recorder.records)
+            gap_records.extend(
+                StopGapRecord.from_trace_events(pytestconfig.rootpath, test_recorder.records)
+            )
+
         gaps = [record.gap_seconds for record in gap_records]
         statistics = StopGapStatistics.from_gaps(gaps)
         callsite_hotspots = GapHotspot.from_gap_records(gap_records, lambda rec: rec.callsite)
@@ -306,7 +322,8 @@ class StoppableReport:
             report_dir=str(STOPPABLE_REPORT_DIR),
             session_id=session_id,
             threshold_seconds=STOPPABLE_GAP_THRESHOLD_SECONDS,
-            opportunities=len(records),
+            test_count=len(test_recorders),
+            opportunities=opportunities,
             gap_count=len(gap_records),
             unique_callsites=len({record.callsite for record in gap_records}),
             unique_source_files=len({record.source_file for record in gap_records}),
@@ -318,8 +335,23 @@ class StoppableReport:
         )
 
     @classmethod
-    def write(
+    def from_records(
         cls, pytestconfig: pytest.Config, records: list[StopOpportunityTraceEvent], session_id: str
+    ) -> "StoppableReport":
+        """Build the structured stoppable report payload from a flat event stream.
+
+        Returns:
+            Stoppable report.
+        """
+        recorder = TestStoppableRecorder(nodeid="<session>", records=records)
+        return cls.from_test_recorders(pytestconfig, [recorder], session_id)
+
+    @classmethod
+    def write(
+        cls,
+        pytestconfig: pytest.Config,
+        test_recorders: list["TestStoppableRecorder"],
+        session_id: str,
     ) -> None:
         """Write the stoppable report files for the current pytest session."""
         report_dir = OUTPUTS_DIR / "stoppable_opportunities_timing"
@@ -327,7 +359,7 @@ class StoppableReport:
             report_dir /= session_id
 
         report_dir.mkdir(parents=True, exist_ok=True)
-        report = cls.from_records(pytestconfig, records, session_id)
+        report = cls.from_test_recorders(pytestconfig, test_recorders, session_id)
 
         (report_dir / "report.md").write_text(report.render(), encoding="utf-8")
         (report_dir / "details.json").write_text(
@@ -339,8 +371,25 @@ class StoppableReport:
 class TestStoppableRecorder:
     """Individual test stop opportunity recorder."""
 
+    __test__ = False
+
     nodeid: str
     records: list[StopOpportunityTraceEvent]
+    subscription: StopOpportunitySubscription | None = field(init=False, default=None, repr=False)
+
+    def __post_init__(self) -> None:
+        """Subscribe this recorder to stop-opportunity events."""
+        self.subscription = Stoppable.subscribe_to_stop_opportunities(
+            self.records.append,
+            with_event=True,
+        )
+
+    def close(self) -> None:
+        """Unsubscribe this recorder from stop-opportunity events."""
+        if self.subscription is None:
+            return
+        Stoppable.unsubscribe_from_stop_opportunities(self.subscription)
+        self.subscription = None
 
     def get_gap_pairs(
         self,
@@ -372,35 +421,25 @@ class SessionStoppableRecorder:
 
 
 @pytest.fixture(scope="session")
-def stoppable_session_report(
+def stoppable_session_recorders(
     pytestconfig: pytest.Config, session_id: str
 ) -> Generator[SessionStoppableRecorder, None, None]:
-    """Collect every stop opportunity and write a session report.
+    """Collect per-test stop-opportunity recorders and write a session report.
 
     Yields:
         The session-wide recorder.
     """
     recorder = SessionStoppableRecorder(test_recorders=[])
-    session_records: list[StopOpportunityTraceEvent] = []
-
-    def record_event(event: StopOpportunityTraceEvent) -> None:
-        """Record a stop opportunity event."""
-        session_records.append(event)
-        for tr in recorder.test_recorders:
-            tr.records.append(event)
-
-    subscription = Stoppable.subscribe_to_stop_opportunities(record_event, with_event=True)
     try:
         yield recorder
     finally:
-        Stoppable.unsubscribe_from_stop_opportunities(subscription)
-        StoppableReport.write(pytestconfig, session_records, session_id)
+        StoppableReport.write(pytestconfig, recorder.test_recorders, session_id)
 
 
 @pytest.fixture
 def stoppable_trace_recorder(
     request: pytest.FixtureRequest,
-    stoppable_session_report: SessionStoppableRecorder,
+    stoppable_session_recorders: SessionStoppableRecorder,
 ) -> Generator[list[StopOpportunityTraceEvent], None, None]:
     """Record stop opportunities so long gaps can be inspected after a test.
 
@@ -409,11 +448,11 @@ def stoppable_trace_recorder(
     """
     test_recorder = TestStoppableRecorder(nodeid=request.node.nodeid, records=[])
 
-    stoppable_session_report.test_recorders.append(test_recorder)
+    stoppable_session_recorders.test_recorders.append(test_recorder)
     try:
         yield test_recorder.records
     finally:
-        stoppable_session_report.test_recorders.remove(test_recorder)
+        test_recorder.close()
 
     slow_gaps = test_recorder.get_slow_gaps(STOPPABLE_GAP_THRESHOLD_SECONDS)
     if slow_gaps:
