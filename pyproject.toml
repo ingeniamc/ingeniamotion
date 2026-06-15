@@ -28,7 +28,7 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://www.ingeniamc.com"
+Homepage = "https://novanta.com/robotics-automation/"
 Documentation = "https://distext.ingeniamc.com/doc/ingeniamotion/latest/"
 Source = "https://github.com/ingeniamc/ingeniamotion"
 
