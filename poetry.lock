@@ -1457,7 +1457,7 @@ version = "3.1.4"
 description = "A very fast and expressive template engine."
 optional = false
 python-versions = ">=3.7"
-groups = ["docs"]
+groups = ["docs", "tests"]
 files = [
     {file = "jinja2-3.1.4-py3-none-any.whl", hash = "sha256:bc5dd2abb727a5319567b7a813e6a2e7318c39f4f487cfe6c89c6f9c7d25197d"},
     {file = "jinja2-3.1.4.tar.gz", hash = "sha256:4a3aee7acbbe7303aede8e9648d13b8bf88a429282aa6122a993f0ac800cb369"},
@@ -1933,7 +1933,7 @@ version = "3.0.3"
 description = "Safely add untrusted strings to HTML/XML markup."
 optional = false
 python-versions = ">=3.9"
-groups = ["docs"]
+groups = ["docs", "tests"]
 files = [
     {file = "markupsafe-3.0.3-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:2f981d352f04553a7171b8e44369f2af4055f888dfb147d55e42d29e29e74559"},
     {file = "markupsafe-3.0.3-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:e1c1493fb6e50ab01d20a22826e57520f1284df32f2d8601fdd90b6304601419"},
@@ -4164,22 +4164,23 @@ test = ["pytest"]
 
 [[package]]
 name = "summit-testing-framework"
-version = "0.3.0.post74+develop.cfdaeac"
+version = "0.3.0.post149+pr.37.b6"
 description = "Testing framework for Novanta drives"
 optional = false
 python-versions = ">=3.9"
 groups = ["tests"]
 files = [
-    {file = "summit_testing_framework-0.3.0.post74+develop.cfdaeac-py3-none-any.whl", hash = "sha256:13227e931c6c8c4f5954dd8c6d6850598e476715c2b0363137fe147c2338053e"},
+    {file = "summit_testing_framework-0.3.0.post149+pr.37.b6-py3-none-any.whl", hash = "sha256:4e73a9d0689a02db41453d9ccbc4375131f397968f22767652d29072c10867ee"},
 ]
 
 [package.dependencies]
 ingenia-att-api = "2.3.1"
 ingenialogger = ">=0.2.1"
+jinja2 = ">=3.1.0"
 pytest = ">=8.4.1,<9.0.0"
 pytest-env = ">=1.1.5"
 rpyc = "6.0.0"
-virtual_drive = ">=0.1.0"
+virtual_drive = ">=0.1.1"
 
 [package.extras]
 ingenialink = ["ingenialink (>=7.6.0)"]
@@ -4399,13 +4400,13 @@ zstd = ["backports-zstd (>=1.0.0) ; python_version < \"3.14\""]
 
 [[package]]
 name = "virtual-drive"
-version = "0.1.0"
+version = "0.1.1"
 description = "Emulates a Summit drive for development and testing purposes."
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "tests"]
 files = [
-    {file = "virtual_drive-0.1.0-py3-none-any.whl", hash = "sha256:c84dda1b7808b5eeebfa7243a7d8b1607ecf9c75fd3c9b88f638bbe2e70c19fe"},
+    {file = "virtual_drive-0.1.1-py3-none-any.whl", hash = "sha256:25629f4d349582867efbff360b182ecc3db78a465bd8ae8ef0ba75fb81d6f9a3"},
 ]
 
 [package.dependencies]
@@ -4746,4 +4747,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "8224de5be29addfe7546e974d7fa713312407f2d6a4cdc609608d913ee26f8c1"
+content-hash = "5d3a8a8c966334a0ed136035ea610542d40d31b7eb22ad9a1a82c01e3784895f"
