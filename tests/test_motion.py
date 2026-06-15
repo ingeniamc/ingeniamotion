@@ -252,7 +252,6 @@ def test_set_velocity(mc, alias, velocity_value):
     assert test_vel == velocity_value
 
 
-@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("velocity_value", [0.5, 1, 0, -0.5])
