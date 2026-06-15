@@ -168,7 +168,6 @@ def __check_homing_was_successful(mc, alias, timeout_ms):
     return False
 
 
-@pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("initial_position")
