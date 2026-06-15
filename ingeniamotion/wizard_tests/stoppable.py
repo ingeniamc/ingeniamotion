@@ -73,7 +73,7 @@ class Stoppable:
     @classmethod
     def unsubscribe_from_stop_opportunities(cls, subscription: StopOpportunitySubscription) -> None:
         """Unsubscribe from stop-opportunity notifications."""
-        with contextlib.suppress(Exception):
+        with contextlib.suppress(ValueError):
             cls._stop_opportunity_subscriptions.remove(subscription)
 
     @classmethod
