@@ -1306,18 +1306,18 @@ reference = "novanta"
 
 [[package]]
 name = "ingenialink"
-version = "7.6.1.post108+develop.861ba93"
+version = "7.6.1.post52+ingk.1271.try.to.774f0ba"
 description = "IngeniaLink Communications Library"
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "tests"]
 files = [
-    {file = "ingenialink-7.6.1.post108+develop.861ba93-cp310-cp310-win_amd64.whl", hash = "sha256:f0691df3aacf5bfd0e5147b96dcbfc38bdbfbc1d9958b2a925c774980d85c798"},
-    {file = "ingenialink-7.6.1.post108+develop.861ba93-cp311-cp311-win_amd64.whl", hash = "sha256:607994d28a10a8ef9a03e083889acf54aaf7d4a923c159ab0fe71a7c92d0f0ae"},
-    {file = "ingenialink-7.6.1.post108+develop.861ba93-cp312-cp312-win_amd64.whl", hash = "sha256:c4d6979b11ee3ce2dac451c0c48f754d464424869fc9eede293c7ffc28b0fc9a"},
-    {file = "ingenialink-7.6.1.post108+develop.861ba93-cp39-cp39-win_amd64.whl", hash = "sha256:d30027d90ef4fd64bcab0af52e012c6c2b3e5935bcee8f9e14a3a575d2fa6cfb"},
-    {file = "ingenialink-7.6.1.post108+develop.861ba93-py3-none-any.whl", hash = "sha256:0ec665f193d765365971a5a6fa23970543cfcf024a7d0aec76f3b73bb152a79e"},
-    {file = "ingenialink-7.6.1.post108+develop.861ba93.tar.gz", hash = "sha256:b26dc2d2d4eaf66b698df651e6ec167b250021728df79ccc2356f8c3fc1317ff"},
+    {file = "ingenialink-7.6.1.post52+ingk.1271.try.to.774f0ba-cp310-cp310-win_amd64.whl", hash = "sha256:cd823f8e95e881620a565ced918128eea63b9e165ae3de6cdb332179433546c7"},
+    {file = "ingenialink-7.6.1.post52+ingk.1271.try.to.774f0ba-cp311-cp311-win_amd64.whl", hash = "sha256:33c1453cc1310027daf3be95ac5a0808d17b8d10850b65abd85ba5e102f18981"},
+    {file = "ingenialink-7.6.1.post52+ingk.1271.try.to.774f0ba-cp312-cp312-win_amd64.whl", hash = "sha256:566a3e0bcc520bf8ae6a21c0e54c58e30a090131ca5d18e2766ee040e8a1735e"},
+    {file = "ingenialink-7.6.1.post52+ingk.1271.try.to.774f0ba-cp39-cp39-win_amd64.whl", hash = "sha256:7a0405ec39d8c9d9ccaed018e8f44616dfbd756fe911297178936c12cb262ae3"},
+    {file = "ingenialink-7.6.1.post52+ingk.1271.try.to.774f0ba-py3-none-any.whl", hash = "sha256:2ceb07beabd299ca1286ab22d13a40e7ec654b6d601c2abc23cf089874541566"},
+    {file = "ingenialink-7.6.1.post52+ingk.1271.try.to.774f0ba.tar.gz", hash = "sha256:5e79dc846bf8fc8c43c854092eeda8568968a5b64317fc224df2031c70542e03"},
 ]
 
 [package.dependencies]
@@ -4747,4 +4747,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "08e777217d4413efeb55b088567f367ebfd91d3777d761bb77b66d72183df99d"
+content-hash = "7ebbf51f9e53d085d80bbfe322dec8a3b9db434727367d8aab539a56a419f30e"
