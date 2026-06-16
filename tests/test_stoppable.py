@@ -2,7 +2,11 @@ from collections.abc import Generator
 
 import pytest
 
-from ingeniamotion.wizard_tests.stoppable import StopExceptionError, Stoppable
+from ingeniamotion.wizard_tests.stoppable import (
+    StopExceptionError,
+    StopOpportunityTraceEvent,
+    Stoppable,
+)
 
 
 @pytest.fixture(autouse=True)
@@ -67,3 +71,53 @@ def test_stoppable_sleep_handles_empty_and_pending_stop_queue() -> None:
     stoppable.stop()
     with pytest.raises(StopExceptionError):
         stoppable.stoppable_sleep(0.0)
+
+
+def test_subscription_captures_stop_opportunities_with_tracebacks() -> None:
+    """A subscription records an event with a traceback for each stop opportunity."""
+    events: list[StopOpportunityTraceEvent] = []
+    subscription = Stoppable.subscribe_to_stop_opportunities(events.append, with_event=True)
+    try:
+        stoppable = DummyStoppable()
+        stoppable.check_stop()
+        stoppable.stoppable_sleep(0.0)
+        stoppable.run(5)
+    finally:
+        Stoppable.unsubscribe_from_stop_opportunities(subscription)
+
+    assert len(events) == 3
+    assert events[0].timestamp <= events[1].timestamp <= events[2].timestamp
+    assert all(event.traceback for event in events)
+    assert any(
+        frame.name == "test_subscription_captures_stop_opportunities_with_tracebacks"
+        for frame in events[0].traceback
+    )
+    assert any(frame.filename.endswith("stoppable.py") for frame in events[1].traceback)
+
+
+def test_stop_opportunity_subscriptions_can_be_composed() -> None:
+    """Every subscription receives each stop opportunity, in subscription order."""
+    notifications: list[str] = []
+    received_events: list[StopOpportunityTraceEvent] = []
+
+    def plain_recorder() -> None:
+        notifications.append("plain")
+
+    def event_recorder(event: StopOpportunityTraceEvent) -> None:
+        notifications.append("event")
+        received_events.append(event)
+
+    plain_subscription = Stoppable.subscribe_to_stop_opportunities(plain_recorder)
+    event_subscription = Stoppable.subscribe_to_stop_opportunities(event_recorder, with_event=True)
+    try:
+        stoppable = Stoppable()
+        stoppable.check_stop()
+        stoppable.stoppable_sleep(0.0)
+    finally:
+        Stoppable.unsubscribe_from_stop_opportunities(plain_subscription)
+        Stoppable.unsubscribe_from_stop_opportunities(event_subscription)
+
+    # Both subscriptions fire for each of the two opportunities, plain before event.
+    assert notifications == ["plain", "event", "plain", "event"]
+    assert len(received_events) == 2
+    assert all(event.traceback for event in received_events)
