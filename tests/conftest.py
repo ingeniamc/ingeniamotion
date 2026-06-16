@@ -81,21 +81,6 @@ pytest_plugins = [
 _DYNAMIC_MODULES_IMPORT = ["tests", "examples"]
 
 
-@pytest.fixture(scope="session")
-def stoppable_profiler_config() -> StoppableProfilerConfig:
-    """Provide the stoppable profiler configuration for ingeniamotion.
-
-    Supplies the gap thresholds required by the stoppable gaps plugin.
-
-    Returns:
-        The stoppable profiler configuration.
-    """
-    return StoppableProfilerConfig(
-        gap_threshold_seconds=5.1,  # https://novantamotion.atlassian.net/browse/INGM-768
-        good_enough_gap_seconds=2.6,
-    )
-
-
 class SuppressSpecificLogs(logging.Filter):
     def filter(self, record):
         message = record.getMessage()
@@ -236,3 +221,18 @@ def timeout_loop(
 
         yield iteration
         iteration += 1
+
+
+@pytest.fixture(scope="session")
+def stoppable_profiler_config() -> StoppableProfilerConfig:
+    """Provide the stoppable profiler configuration for ingeniamotion.
+
+    Supplies the gap thresholds required by the stoppable gaps plugin.
+
+    Returns:
+        The stoppable profiler configuration.
+    """
+    return StoppableProfilerConfig(
+        gap_threshold_seconds=5.1,  # https://novantamotion.atlassian.net/browse/INGM-768
+        good_enough_gap_seconds=2.6,
+    )
