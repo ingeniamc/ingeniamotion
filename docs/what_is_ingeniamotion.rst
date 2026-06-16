@@ -92,16 +92,16 @@ Common exceptions
 
     KeyError: "Servo 'default' is not connected"
 
-This `KeyError <https://docs.python.org/3.6/library/exceptions.html#KeyError>`_ exception is raised whenever we use a function that interacts with the drive but no drive is connected.
+This :py:exc:`KeyError` exception is raised whenever we use a function that interacts with the drive but no drive is connected.
 
 .. code-block:: python
 
     TypeError: 'NoneType' object is not subscriptable
 
-This `TypeError <https://docs.python.org/3.6/library/exceptions.html#TypeError>`_ exception is raised when we provide a function with the wrong servo axis number.
+This :py:exc:`TypeError` exception is raised when we provide a function with the wrong servo axis number.
 
 .. code-block:: python
 
     ingenialink.exceptions.ILError
 
-This `ingenialink.exceptions.ILError <https://distext.ingeniamc.com/doc/ingenialink-python/6.2.2/api/exceptions.html#ingenialink.exceptions.ILTimeoutError>`_ exception is raised when the drive gets abruptly disconnected.
+This :exc:`ingenialink.exceptions.ILError` exception is raised when the drive gets abruptly disconnected.
