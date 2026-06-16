@@ -28,7 +28,7 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://www.ingeniamc.com"
+Homepage = "https://novanta.com/robotics-automation/"
 Documentation = "https://distext.ingeniamc.com/doc/ingeniamotion/latest/"
 Source = "https://github.com/ingeniamc/ingeniamotion"
 
@@ -117,7 +117,7 @@ pytest-mock = "==3.15.1"
 pytest-rerunfailures = "==15.1"
 pytest-console-scripts = "==1.4.1"
 matplotlib = "==3.8.2"
-summit-testing-framework = {version = "==0.3.0.post74+develop.cfdaeac"}
+summit-testing-framework = {version = "==0.3.0.post172+develop.71eafa3"}
 ingenialink = {version = "==7.6.1-post50+monitoring.complete.access.23a99f1"}
 
 # -----------------------------------------------------------------------
