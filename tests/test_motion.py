@@ -128,7 +128,7 @@ def test_motor_enable_with_fault(
         # Retrieving the error code failed. Check INGM-522.
         with pytest.raises(exception_type) as excinfo:
             mc.motion.motor_enable(servo=alias)
-    assert str(excinfo.value) == f"An error occurred enabling motor. Reason: {message}"
+    assert str(excinfo.value) == message
 
 
 @pytest.mark.ethernet
@@ -171,7 +171,7 @@ def test_motor_enable_with_delayed_fault(
     mc.communication.set_register(uid, value, alias)
     with pytest.raises(exception_type) as excinfo:
         mc.motion.motor_enable(servo=alias, error_timeout=timeout)
-    assert str(excinfo.value) == f"An error occurred enabling motor. Reason: {message}"
+    assert str(excinfo.value) == message
 
 
 @pytest.mark.ethernet
