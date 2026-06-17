@@ -10,6 +10,7 @@ from ingenialink import exceptions
 from ingeniamotion.enums import SensorType, SeverityLevel
 from ingeniamotion.exceptions import IMRegisterNotExistError
 from ingeniamotion.wizard_tests.base_test import TestError
+from ingeniamotion.wizard_tests.dynamic_forced_phasing import DynamicForcedPhasing
 from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder1_test import AbsoluteEncoder1Test
 from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder2_test import AbsoluteEncoder2Test
 from ingeniamotion.wizard_tests.feedbacks_tests.digital_hall_test import DigitalHallTest
@@ -347,3 +348,9 @@ def test_current_ramp_up(mc, alias, test_currents, test_sensor):
         assert pytest.approx(test_max_current) == current_motor
     else:
         assert pytest.approx(test_max_current) == current_drive == current_motor
+
+
+def test_development_phasing(mc, alias):
+    test = DynamicForcedPhasing(mc, alias, 1, phasing_max_current=5)
+    result = test.run()
+    assert result.result_severity == SeverityLevel.SUCCESS

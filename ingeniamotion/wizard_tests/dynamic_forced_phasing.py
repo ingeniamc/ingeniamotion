@@ -1,0 +1,379 @@
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, ClassVar, Optional, Union, cast
+
+import ingenialogger
+from typing_extensions import override
+
+from ingeniamotion.enums import (
+    MonitoringSoCConfig,
+    MonitoringSoCType,
+    OperationMode,
+    PhasingMode,
+    SensorCategory,
+    SensorType,
+    SeverityLevel,
+)
+from ingeniamotion.exceptions import IMRegisterNotExistError
+from ingeniamotion.wizard_tests.base_test import BaseTest, ReportBase, TestError
+
+if TYPE_CHECKING:
+    from ingeniamotion import MotionController
+    from ingeniamotion.monitoring.base_monitoring import Monitoring
+
+
+COMMUTATION_ANGLE_VALUE_REGISTER = "COMMU_ANGLE_VALUE"
+COMMUTATION_ANGLE_OFFSET_REGISTER = "COMMU_ANGLE_OFFSET"
+REFERENCE_ANGLE_VALUE_REGISTER = "COMMU_ANGLE_REF_VALUE"
+REFERENCE_ANGLE_OFFSET_REGISTER = "COMMU_ANGLE_REF_OFFSET"
+MAX_CURRENT_REGISTER = "CL_CUR_REF_MAX"
+PEAK_CURRENT_REGISTER = "DRV_PROT_I2T_PEAK_VALUE"
+
+
+@dataclass
+class DynamicForcedPhasingReport(ReportBase):
+    """Report for the Dynamic Forced Phasing test."""
+
+    commutation_angle: float
+    """Commutation angle value."""
+
+    commutation_phasing_mode: PhasingMode
+    """Commutation phasing mode."""
+
+
+class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
+    """Dynamic Forced Phasing test.
+
+    Test measures the commutation and reference angle of a motor avoiding static friction effects.
+    Commutation and reference feedbacks must be the same and absolute.
+    """
+
+    GENERATOR_FREQUENCIES: ClassVar[list[float]] = [0.1, 0.03, 0.01]
+    """Logarithmically spaced frequencies (Hz) tried in ascending order."""
+    MAX_ATTEMPTS_PER_FREQUENCY: ClassVar[int] = 2
+    """Number of monitoring reads attempted at each frequency before escalating."""
+    NORM_TOLERANCE: ClassVar[float] = 0.02
+    """Maximum allowed difference between the signals to consider them constant."""
+    SYMMETRY_ERROR_TOLERANCE: ClassVar[float] = 0.10
+    """Maximum allowed asymmetry error between the signals."""
+
+    BACKUP_REGISTERS: ClassVar[list[str]] = [
+        COMMUTATION_ANGLE_OFFSET_REGISTER,
+        REFERENCE_ANGLE_OFFSET_REGISTER,
+        "DRV_OP_CMD",
+        "CL_CUR_Q_SET_POINT",
+        "CL_CUR_D_SET_POINT",
+        "FBK_GEN_MODE",
+        "FBK_GEN_FREQ",
+        "FBK_GEN_GAIN",
+        "FBK_GEN_OFFSET",
+        "COMMU_ANGLE_SENSOR",
+        "FBK_GEN_CYCLES",
+        "COMMU_PHASING_MAX_CURRENT",
+        "COMMU_PHASING_TIMEOUT",
+        "COMMU_PHASING_ACCURACY",
+        "COMMU_PHASING_MODE",
+        "COMMU_ANGLE_INTEGRITY1_OPTION",
+        "COMMU_ANGLE_INTEGRITY2_OPTION",
+    ]
+
+    def __init__(
+        self,
+        mc: "MotionController",
+        servo: str,
+        axis: int,
+        phasing_max_current: float,
+        spin_frequency: Optional[float] = None,
+        logger_drive_name: Optional[str] = None,
+    ) -> None:
+        super().__init__()
+        self.mc = mc
+        self.servo = servo
+        self.axis = axis
+        self.backup_registers_names = self.BACKUP_REGISTERS
+        self.__monitoring: Optional[Monitoring] = None
+        if logger_drive_name is None:
+            self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
+        else:
+            self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=logger_drive_name)
+
+        self.phasing_max_current = phasing_max_current
+        if spin_frequency is None:
+            self.spin_frequency = self.GENERATOR_FREQUENCIES
+        elif spin_frequency <= 0:
+            raise ValueError("Spin frequency must be positive.")
+        else:
+            self.spin_frequency = [spin_frequency]
+
+    @property
+    def monitoring(self) -> "Monitoring":
+        """Get the monitoring object.
+
+        Raises:
+            ValueError: If the monitoring has not been configured yet.
+        """
+        if self.__monitoring is None:
+            raise ValueError("Monitoring has not been configured yet.")
+        return self.__monitoring
+
+    @BaseTest.stoppable
+    def __reaction_codes_to_warning(self) -> None:
+        try:
+            self.mc.communication.set_register(
+                "COMMU_ANGLE_INTEGRITY1_OPTION", 1, servo=self.servo, axis=self.axis
+            )
+        except IMRegisterNotExistError:
+            self.logger.warning("Could not write COMMU_ANGLE_INTEGRITY1_OPTION")
+
+        try:
+            self.mc.communication.set_register(
+                "COMMU_ANGLE_INTEGRITY2_OPTION", 1, servo=self.servo, axis=self.axis
+            )
+        except IMRegisterNotExistError:
+            self.logger.warning("Could not write COMMU_ANGLE_INTEGRITY2_OPTION")
+
+    @BaseTest.stoppable
+    def __check_initial_state(self) -> None:
+        """Check that the motor is in a valid state to start the test.
+
+        Raises:
+            TestError: If the motor is not in a valid state to start the test.
+            ValueError: If the max current drive or current motor peak are not floats.
+        """
+        try:
+            self.mc.capture._check_version(servo=self.servo)
+        except NotImplementedError as e:
+            raise TestError(e)
+
+        max_current_drive = self.mc.communication.get_register(
+            MAX_CURRENT_REGISTER, servo=self.servo, axis=self.axis
+        )
+        current_motor_peak = self.mc.communication.get_register(
+            PEAK_CURRENT_REGISTER, servo=self.servo, axis=self.axis
+        )
+        if not isinstance(max_current_drive, float):
+            raise ValueError(f"Invalid type for max_current_drive: {type(max_current_drive)}")
+        if not isinstance(current_motor_peak, float):
+            raise ValueError(f"Invalid type for current_motor_peak: {type(current_motor_peak)}")
+        if self.phasing_max_current > max(current_motor_peak, max_current_drive):
+            raise TestError(
+                f"Phasing max current ({self.phasing_max_current}) is higher than the "
+                f"maximum allowed current of the drive ({max_current_drive}) "
+                f"or the motor ({current_motor_peak})."
+            )
+
+        comm = self.mc.configuration.get_commutation_feedback(servo=self.servo, axis=self.axis)
+        ref = self.mc.configuration.get_reference_feedback(servo=self.servo, axis=self.axis)
+
+        if ref == SensorType.INTGEN or comm == SensorType.INTGEN:
+            raise TestError(
+                "Reference or commutation feedback sensor are set to internal generator"
+            )
+
+        if (
+            self.mc.configuration.get_reference_feedback_category(servo=self.servo, axis=self.axis)
+            != SensorCategory.ABSOLUTE
+        ):
+            raise TestError("Reference feedback sensor is not absolute")
+
+        if comm != ref:
+            raise TestError("Commutation and reference feedback sensors are not the same.")
+
+    @BaseTest.stoppable
+    def __configure_open_loop_movement(self) -> None:
+        pair_poles = self.mc.configuration.get_motor_pair_poles(servo=self.servo, axis=self.axis)
+        self.mc.motion.set_internal_generator_configuration(
+            OperationMode.CURRENT,
+            servo=self.servo,
+            axis=self.axis,
+            pair_poles=pair_poles,
+        )
+        self.mc.motion.set_current_direct(0, servo=self.servo, axis=self.axis)
+        self.mc.motion.set_current_quadrature(0, servo=self.servo, axis=self.axis)
+        self.mc.communication.set_register(
+            COMMUTATION_ANGLE_OFFSET_REGISTER, 0, servo=self.servo, axis=self.axis
+        )
+        self.mc.communication.set_register(
+            REFERENCE_ANGLE_OFFSET_REGISTER, 0, servo=self.servo, axis=self.axis
+        )
+
+    @BaseTest.stoppable
+    def __configure_monitoring(self, direction: int) -> None:
+        self.mc.capture.disable_monitoring(servo=self.servo)
+        trigger_config = (
+            MonitoringSoCConfig.TRIGGER_CONFIG_RISING
+            if direction == 1
+            else MonitoringSoCConfig.TRIGGER_CONFIG_FALLING
+        )
+        mon_registers: list[dict[str, Union[int, str]]] = [
+            {"name": COMMUTATION_ANGLE_VALUE_REGISTER, "axis": self.axis},
+            {"name": REFERENCE_ANGLE_VALUE_REGISTER, "axis": self.axis},
+        ]
+        self.__monitoring = self.mc.capture.create_monitoring(
+            registers=mon_registers,
+            prescaler=50,
+            sample_time=1,
+            trigger_mode=MonitoringSoCType.TRIGGER_EVENT_EDGE,
+            trigger_config=trigger_config,
+            trigger_signal={"name": COMMUTATION_ANGLE_VALUE_REGISTER, "axis": self.axis},
+            trigger_value=0.5,
+            servo=self.servo,
+            start=True,
+        )
+
+    @override
+    def setup(self) -> None:
+        self.__check_initial_state()
+        self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
+        self.__reaction_codes_to_warning()
+        self.__configure_open_loop_movement()
+
+    @BaseTest.stoppable
+    def __check_signals_difference_is_constant(
+        self, signal1: list[float], signal2: list[float], tolerance_rad: float
+    ) -> tuple[Optional[float], Optional[float]]:
+        """This function check if the difference between two signals is constant.
+
+        Calculates the mean difference between two signals and checks if the relative
+        difference between each point and the mean difference is less than the tolerance.
+
+        Args:
+            signal1: The first signal to compare.
+            signal2: The second signal to compare.
+            tolerance_rad: The maximum allowed relative difference between the signals.
+
+
+        Returns:
+            float | None: The mean difference.
+            float | None: The maximum difference error.
+
+        Raises:
+            ValueError: If the signals have different lengths.
+        """
+        if len(signal1) != len(signal2):
+            raise ValueError("Signals must have the same length.")
+        if len(signal1) == 0:
+            return None, None
+
+        differences = [(s1 - s2) % 1 for s1, s2 in zip(signal1, signal2)]
+        mean_difference = sum(differences) / len(differences)
+
+        max_difference: float = 0.0
+        for diff in differences:
+            difference = abs(diff - mean_difference)
+            if difference > max_difference:
+                max_difference = difference
+            if difference > tolerance_rad:
+                self.logger.info(
+                    f"mean difference: {mean_difference:.4f}, difference: {difference:.4f}"
+                )
+                return None, None
+
+        self.logger.info(
+            f"mean difference: {mean_difference:.4f}, max difference: {max_difference:.4f}"
+        )
+        return mean_difference, max_difference
+
+    @BaseTest.stoppable
+    def _collect_mean_difference(self, direction: int, tolerance_rad: float) -> float:
+        """Move the motor and collect a stable mean angle difference.
+
+        Tries up to ``MAX_ATTEMPTS_PER_FREQUENCY`` monitoring reads at each
+        frequency in ``GENERATOR_FREQUENCIES`` (logarithmically spaced from
+        0.1 to 10 Hz). Returns as soon as a constant-difference reading is
+        found.
+
+        Args:
+            direction: ``1`` for positive direction, ``-1`` for negative.
+            tolerance_rad: The maximum allowed difference between the signals.
+
+        Returns:
+            Mean angle difference between commutation and reference signals.
+
+        Raises:
+            TestError: If no constant difference is found at any frequency.
+
+        """
+        mean_tuples: list[tuple[float, float]] = []
+        for frequency in self.GENERATOR_FREQUENCIES:
+            self.logger.debug(
+                f"Trying generator frequency {frequency:.1f} Hz, direction {direction:+d}"
+            )
+            self.mc.motion.internal_generator_saw_tooth_move(
+                direction, 0, frequency, servo=self.servo, axis=self.axis
+            )
+            for attempt in range(1, self.MAX_ATTEMPTS_PER_FREQUENCY + 1):
+                self.check_stop()
+                data = self.monitoring.read_monitoring_data(timeout=1 / frequency)
+                iter_mean_tuple = self.__check_signals_difference_is_constant(
+                    data[0], data[1], tolerance_rad
+                )
+                self.monitoring.rearm_monitoring()
+                if iter_mean_tuple[0] is not None and iter_mean_tuple[1] is not None:
+                    iter_mean_tuple = cast("tuple[float, float]", iter_mean_tuple)
+                    self.logger.debug(
+                        f"Constant difference found at {frequency:.1f} Hz "
+                        f"(attempt {attempt}/{self.MAX_ATTEMPTS_PER_FREQUENCY})"
+                    )
+                    mean_tuples.append(iter_mean_tuple)
+                    break
+        if len(mean_tuples) == 0:
+            raise TestError(
+                f"Could not find a constant signal difference after trying all "
+                f"frequencies: {self.GENERATOR_FREQUENCIES}"
+            )
+        mean_tuples.sort(key=lambda x: x[1])
+        return mean_tuples[0][0]
+
+    @override
+    def loop(self) -> DynamicForcedPhasingReport:
+        self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
+        self.mc.motion.current_direct_ramp(
+            self.phasing_max_current, 1, servo=self.servo, axis=self.axis
+        )
+        self.__configure_monitoring(direction=1)
+        mean_difference_pos = self._collect_mean_difference(
+            direction=1, tolerance_rad=self.NORM_TOLERANCE
+        )
+        self.__configure_monitoring(direction=-1)
+        mean_difference_neg = self._collect_mean_difference(
+            direction=-1, tolerance_rad=self.NORM_TOLERANCE
+        )
+
+        commutation_angle = (mean_difference_pos + mean_difference_neg) / 2
+        asymmetry_error = abs(mean_difference_pos - mean_difference_neg)
+        self.logger.info(
+            f"Commutation angle: {commutation_angle:.4f}, asymmetry: {asymmetry_error:.4f}"
+        )
+
+        return DynamicForcedPhasingReport(
+            result_severity=(
+                SeverityLevel.SUCCESS
+                if asymmetry_error < self.SYMMETRY_ERROR_TOLERANCE
+                else SeverityLevel.WARNING
+            ),
+            result_message="Success",
+            commutation_angle=commutation_angle,
+            commutation_phasing_mode=PhasingMode.NO_PHASING,
+        )
+
+    @override
+    def teardown(self) -> None:
+        self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
+        self.mc.capture.disable_monitoring(servo=self.servo)
+
+    @override
+    def get_result_msg(self, output: DynamicForcedPhasingReport) -> str:
+        return output.result_message
+
+    @override
+    def get_result_severity(self, output: DynamicForcedPhasingReport) -> SeverityLevel:
+        return output.result_severity
+
+    @override
+    def generate_report(self, output: DynamicForcedPhasingReport) -> DynamicForcedPhasingReport:
+        """Generate report.
+
+        Returns:
+            The current tuning results.
+        """
+        return output
