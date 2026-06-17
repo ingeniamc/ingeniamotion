@@ -20,7 +20,7 @@ classifiers = [
 requires-python = ">=3.9"
 
 dependencies = [
-    "ingenialink>=7.6.0, < 8.0.0",
+    "ingenialink>=7.6.1",
     "ingenialogger>=0.2.1",
     "ifaddr==0.2.0",
     "exceptiongroup>=1.3.0, <2.0.0",
@@ -117,8 +117,8 @@ pytest-mock = "==3.15.1"
 pytest-rerunfailures = "==15.1"
 pytest-console-scripts = "==1.4.1"
 matplotlib = "==3.8.2"
-summit-testing-framework = {version = "==0.3.0.post172+develop.71eafa3"}
-ingenialink = {version = "==7.6.1.post52+ingk.1271.try.to.774f0ba"}
+summit-testing-framework = {version = "0.3.0.post182+develop.d18a111"}
+ingenialink = {version = "7.6.1.post52+ingk.1271.try.to.774f0ba"}
 
 # -----------------------------------------------------------------------
 #                                   TASKS

@@ -33,7 +33,7 @@ class Phasing(BaseTest[LegacyDictReportType]):
     PHASING_ACCURACY_DEFAULT = 3600
 
     MAX_CURRENT_REGISTER = "CL_CUR_REF_MAX"
-    RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
+    PEAK_CURRENT_REGISTER = "DRV_PROT_I2T_PEAK_VALUE"
     PHASING_ACCURACY_REGISTER = "COMMU_PHASING_ACCURACY"
     PHASING_TIMEOUT_REGISTER = "COMMU_PHASING_TIMEOUT"
     MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER = "COMMU_PHASING_MAX_CURRENT"
@@ -107,12 +107,12 @@ class Phasing(BaseTest[LegacyDictReportType]):
         )
         if not isinstance(max_current_drive, float):
             raise TypeError("Max. current of the drive has to be a float")
-        max_current_motor = self.mc.communication.get_register(
-            self.RATED_CURRENT_REGISTER, servo=self.servo, axis=self.axis
+        max_current_motor_peak = self.mc.communication.get_register(
+            self.PEAK_CURRENT_REGISTER, servo=self.servo, axis=self.axis
         )
-        if not isinstance(max_current_motor, float):
+        if not isinstance(max_current_motor_peak, float):
             raise TypeError("Rated current has to be a float")
-        max_test_current = min(max_current_drive, max_current_motor)
+        max_test_current = min(max_current_drive, max_current_motor_peak)
 
         if self.default_phasing_current:
             pos_vel_ratio = self.mc.configuration.get_pos_to_vel_ratio(
