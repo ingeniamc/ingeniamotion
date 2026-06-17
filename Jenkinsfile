@@ -1,4 +1,4 @@
-@Library('cicd-lib@0.22') _
+@Library('cicd-lib@9900a31') _
 
 import python.VirtualEnvironment
 import python.VEnvManager
@@ -44,7 +44,6 @@ TestSession TEST_SESSIONS = new TestSession(
     covPackageName: "ingeniamotion",
     covFromSitePackages: false,
     wiresharkScope: null, // Set later based on parameter
-    wiresharkDir: "wireshark",
     startWiresharkTimeoutS: 10.0,
     importMode: "importlib",
     logCli: true,
