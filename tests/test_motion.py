@@ -128,7 +128,7 @@ def test_motor_enable_with_fault(
         # Retrieving the error code failed. Check INGM-522.
         with pytest.raises(exception_type) as excinfo:
             mc.motion.motor_enable(servo=alias)
-    assert str(excinfo.value) == f"An error occurred enabling motor. Reason: {message}"
+    assert str(excinfo.value) == message
 
 
 @pytest.mark.ethernet
@@ -171,7 +171,7 @@ def test_motor_enable_with_delayed_fault(
     mc.communication.set_register(uid, value, alias)
     with pytest.raises(exception_type) as excinfo:
         mc.motion.motor_enable(servo=alias, error_timeout=timeout)
-    assert str(excinfo.value) == f"An error occurred enabling motor. Reason: {message}"
+    assert str(excinfo.value) == message
 
 
 @pytest.mark.ethernet
@@ -231,6 +231,8 @@ def test_set_position(mc, alias, position_value):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("position_value", [1000, 0, -1000, 4000])
+# https://novantamotion.atlassian.net/browse/INGM-778
+@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
 def test_move_position(mc, alias, position_value):
     pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
@@ -255,6 +257,8 @@ def test_set_velocity(mc, alias, velocity_value):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("velocity_value", [0.5, 1, 0, -0.5])
+# https://novantamotion.atlassian.net/browse/INGM-779
+@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
 def test_set_velocity_blocking(mc, alias, velocity_value):
     mc.motion.set_operation_mode(OperationMode.PROFILE_VELOCITY, servo=alias)
     mc.motion.motor_enable(servo=alias)
@@ -322,6 +326,8 @@ def test_ramp_generator(mocker, init_v, final_v, total_t, t, result):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("position_value", [-4000, -1000, 1000, 4000])
+# https://novantamotion.atlassian.net/browse/INGM-780
+@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
 def test_get_actual_position(mc, alias, position_value):
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
     mc.motion.motor_enable(servo=alias)
@@ -339,6 +345,8 @@ def test_get_actual_position(mc, alias, position_value):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("velocity_value", [1, 0, -1])
+# https://novantamotion.atlassian.net/browse/INGM-781
+@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
 def test_get_actual_velocity(mc, alias, velocity_value):
     mc.motion.set_operation_mode(OperationMode.PROFILE_VELOCITY, servo=alias)
     mc.motion.motor_enable(servo=alias)

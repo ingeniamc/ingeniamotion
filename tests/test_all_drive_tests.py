@@ -56,6 +56,8 @@ def feedback_test_setup(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
+# https://novantamotion.atlassian.net/browse/INGM-782
+@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
 def test_digital_halls_test(mc, alias, feedback_list):
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
     if SensorType.HALLS in feedback_list:
@@ -71,6 +73,8 @@ def test_digital_halls_test(mc, alias, feedback_list):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
+# https://novantamotion.atlassian.net/browse/INGM-783
+@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
 def test_incremental_encoder_1_test(mc, alias, feedback_list):
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
     if SensorType.QEI in feedback_list:
@@ -86,6 +90,8 @@ def test_incremental_encoder_1_test(mc, alias, feedback_list):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
+# https://novantamotion.atlassian.net/browse/INGM-784
+@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
 def test_incremental_encoder_2_test(mc, alias, feedback_list):
     if not mc.info.register_exists("FBK_DIGENC2_RESOLUTION", servo=alias):
         pytest.skip("Incremental encoder 2 is not available")
@@ -103,6 +109,8 @@ def test_incremental_encoder_2_test(mc, alias, feedback_list):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
+# https://novantamotion.atlassian.net/browse/INGM-785
+@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
 def test_absolute_encoder_1_test(mc, alias, feedback_list):
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
     if SensorType.ABS1 in feedback_list:
@@ -118,6 +126,8 @@ def test_absolute_encoder_1_test(mc, alias, feedback_list):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
+# https://novantamotion.atlassian.net/browse/INGM-786
+@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
 def test_absolute_encoder_2_test(mc, alias, feedback_list):
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
     if SensorType.BISSC2 in feedback_list:
@@ -133,6 +143,8 @@ def test_absolute_encoder_2_test(mc, alias, feedback_list):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
+# https://novantamotion.atlassian.net/browse/INGM-787
+@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
 def test_secondary_ssi_test(mc, alias, feedback_list):
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
     if SensorType.QEI in feedback_list:
@@ -149,6 +161,8 @@ def test_secondary_ssi_test(mc, alias, feedback_list):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
+# https://novantamotion.atlassian.net/browse/INGM-774
+@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
 def test_commutation(alias: str, mc: "MotionController") -> None:
     results = mc.tests.commutation(servo=alias)
     assert results["result_severity"] == SeverityLevel.SUCCESS
