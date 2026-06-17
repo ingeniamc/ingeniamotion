@@ -8,6 +8,7 @@ import numpy as np
 import pytest
 from ingenialink.dictionary import Interface
 from summit_testing_framework import dynamic_loader
+from summit_testing_framework.profilers.stoppable_gaps import StoppableProfilerConfig
 from summit_testing_framework.pytest_helpers.marker_helper import (
     apply_firmware_version_markers_to_items,
 )
@@ -69,6 +70,7 @@ def not_valid_for_all_eve_products(func: Callable) -> Callable:
 pytest_plugins = [
     "summit_testing_framework.pytest_addoptions",
     "summit_testing_framework.setup_fixtures",
+    "summit_testing_framework.profilers.stoppable_gaps",
 ]
 
 # Pytest runs with importlib import mode, which means that it will run the tests with the installed
@@ -219,3 +221,18 @@ def timeout_loop(
 
         yield iteration
         iteration += 1
+
+
+@pytest.fixture(scope="session")
+def stoppable_profiler_config() -> StoppableProfilerConfig:
+    """Provide the stoppable profiler configuration for ingeniamotion.
+
+    Supplies the gap thresholds required by the stoppable gaps plugin.
+
+    Returns:
+        The stoppable profiler configuration.
+    """
+    return StoppableProfilerConfig(
+        gap_threshold_seconds=5.1,  # https://novantamotion.atlassian.net/browse/INGM-768
+        good_enough_gap_seconds=2.6,
+    )

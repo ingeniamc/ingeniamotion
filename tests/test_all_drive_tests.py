@@ -23,6 +23,9 @@ from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import Second
 from ingeniamotion.wizard_tests.phase_calibration import Phasing
 from ingeniamotion.wizard_tests.phasing_check import PhasingCheck
 
+# Record stop opportunities for every wizard-test integration case in this module.
+pytestmark = pytest.mark.usefixtures("stoppable_trace_recorder")
+
 if TYPE_CHECKING:
     from summit_testing_framework.setups.environment_control import DriveEnvironmentController
 
