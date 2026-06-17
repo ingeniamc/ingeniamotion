@@ -26,7 +26,6 @@ from ingeniamotion.errors import (
 from ingeniamotion.exceptions import IMErrorQueueNotExistsError
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError
 from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
-from tests.outputs import OUTPUTS_DIR
 
 if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master import (
@@ -45,11 +44,12 @@ if TYPE_CHECKING:
     from ingenialink.emcy import EmergencyMessage
     from ingenialink.ethercat.dictionary import EthercatDictionary
     from ingenialink.register import Register
+    from summit_testing_framework.pytest_helpers.pytest_output_handler import PytestOutputHandler
 
     from ingeniamotion.fsoe_master import FSoEDictionary
     from ingeniamotion.motion_controller import MotionController
 
-FSOE_MAPS_DIR = "fsoe_maps"
+
 TIMEOUT_FOR_DATA = 30
 TIMEOUT_FOR_DATA_SRA = 3
 
@@ -370,7 +370,7 @@ def fsoe_dict(safe_dict: "EthercatDictionary") -> Iterator["FSoEDictionary"]:
 
 
 @pytest.fixture(scope="module")
-def fsoe_maps_dir() -> Iterator[Path]:
+def fsoe_maps_dir(test_output_handler: "PytestOutputHandler") -> Iterator[Path]:
     """Returns the directory where FSoE maps are stored.
 
     This directory is created if it does not exist.
@@ -379,7 +379,7 @@ def fsoe_maps_dir() -> Iterator[Path]:
     Yields:
         Path to the FSoE maps directory.
     """
-    directory = OUTPUTS_DIR / FSOE_MAPS_DIR
+    directory = test_output_handler.tests_output_dir / "fsoe_maps"
     directory.mkdir(parents=True, exist_ok=True)
     yield directory
     if not any(directory.iterdir()):

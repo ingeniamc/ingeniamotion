@@ -224,13 +224,14 @@ pipeline {
                         VENV_WORKING_FOLDER = "${WIN_DOCKER_TMP_PATH}"
                     }
                     stages {
-                        stage('Check Dependencies') {
-                            steps {
-                                script {
-                                    checkDependencies(excludeManagers: ['poetry:tests'])
-                                }
-                            }
-                        }
+                        // Uncomment when CICD is released: https://novantamotion.atlassian.net/browse/CIT-707
+                        // stage('Check Dependencies') {
+                        //     steps {
+                        //         script {
+                        //             checkDependencies(excludeManagers: ['poetry:tests'])
+                        //         }
+                        //     }
+                        // }
                         stage('Move workspace') {
                             steps {
                                 script {
