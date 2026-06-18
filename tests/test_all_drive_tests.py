@@ -7,10 +7,9 @@ from typing import TYPE_CHECKING
 import pytest
 from ingenialink import exceptions
 
-from ingeniamotion.enums import SensorType, SeverityLevel
+from ingeniamotion.enums import SensorType, SeverityLevel, PhasingMode
 from ingeniamotion.exceptions import IMRegisterNotExistError
 from ingeniamotion.wizard_tests.base_test import TestError
-from ingeniamotion.wizard_tests.dynamic_forced_phasing import DynamicForcedPhasing
 from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder1_test import AbsoluteEncoder1Test
 from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder2_test import AbsoluteEncoder2Test
 from ingeniamotion.wizard_tests.feedbacks_tests.digital_hall_test import DigitalHallTest
@@ -351,6 +350,11 @@ def test_current_ramp_up(mc, alias, test_currents, test_sensor):
 
 
 def test_development_phasing(mc, alias):
-    test = DynamicForcedPhasing(mc, alias, 1, phasing_max_current=5)
-    result = test.run()
+    rated_current = mc.communication.get_register(RATED_CURRENT_REGISTER, servo=alias, axis=1)
+    result = mc.tests.dynamic_forced_phasing(
+        alias, 1, apply_changes=False, phasing_max_current=rated_current
+    )
     assert result.result_severity == SeverityLevel.SUCCESS
+    assert result.result_message == "Success"
+    assert result.commutation_phasing_mode == PhasingMode.NO_PHASING
+    assert 0 <= result.commutation_angle <= 1

@@ -55,6 +55,10 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
     """Maximum allowed difference between the signals to consider them constant."""
     SYMMETRY_ERROR_TOLERANCE: ClassVar[float] = 0.10
     """Maximum allowed asymmetry error between the signals."""
+    PHASING_CURRENT_PERCENTAGE = 0.4
+    """Percentage of the rated current used for phasing in non-geared motors."""
+    PHASING_CURRENT_PERCENTAGE_GEAR = 0.8
+    """Percentage of the rated current used for phasing in geared motors."""
 
     BACKUP_REGISTERS: ClassVar[list[str]] = [
         COMMUTATION_ANGLE_OFFSET_REGISTER,
@@ -66,8 +70,8 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
         "FBK_GEN_FREQ",
         "FBK_GEN_GAIN",
         "FBK_GEN_OFFSET",
-        "COMMU_ANGLE_SENSOR",
         "FBK_GEN_CYCLES",
+        "COMMU_ANGLE_SENSOR",
         "COMMU_PHASING_MAX_CURRENT",
         "COMMU_PHASING_TIMEOUT",
         "COMMU_PHASING_ACCURACY",
@@ -81,7 +85,7 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
         mc: "MotionController",
         servo: str,
         axis: int,
-        phasing_max_current: float,
+        phasing_max_current: Optional[float] = None,
         spin_frequency: Optional[float] = None,
         logger_drive_name: Optional[str] = None,
     ) -> None:
@@ -96,7 +100,8 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
         else:
             self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=logger_drive_name)
 
-        self.phasing_max_current = phasing_max_current
+        self._phasing_max_current_override = phasing_max_current
+        self.phasing_max_current: float = 0.0
         if spin_frequency is None:
             self.spin_frequency = self.GENERATOR_FREQUENCIES
         elif spin_frequency <= 0:
@@ -143,23 +148,7 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
             self.mc.capture._check_version(servo=self.servo)
         except NotImplementedError as e:
             raise TestError(e)
-
-        max_current_drive = self.mc.communication.get_register(
-            MAX_CURRENT_REGISTER, servo=self.servo, axis=self.axis
-        )
-        current_motor_peak = self.mc.communication.get_register(
-            PEAK_CURRENT_REGISTER, servo=self.servo, axis=self.axis
-        )
-        if not isinstance(max_current_drive, float):
-            raise ValueError(f"Invalid type for max_current_drive: {type(max_current_drive)}")
-        if not isinstance(current_motor_peak, float):
-            raise ValueError(f"Invalid type for current_motor_peak: {type(current_motor_peak)}")
-        if self.phasing_max_current > max(current_motor_peak, max_current_drive):
-            raise TestError(
-                f"Phasing max current ({self.phasing_max_current}) is higher than the "
-                f"maximum allowed current of the drive ({max_current_drive}) "
-                f"or the motor ({current_motor_peak})."
-            )
+        self.__resolve_phasing_max_current()
 
         comm = self.mc.configuration.get_commutation_feedback(servo=self.servo, axis=self.axis)
         ref = self.mc.configuration.get_reference_feedback(servo=self.servo, axis=self.axis)
@@ -220,6 +209,38 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
             start=True,
         )
 
+    @BaseTest.stoppable
+    def __resolve_phasing_max_current(self) -> None:
+        max_current_drive = self.mc.communication.get_register(
+            MAX_CURRENT_REGISTER, servo=self.servo, axis=self.axis
+        )
+        current_motor_peak = self.mc.communication.get_register(
+            PEAK_CURRENT_REGISTER, servo=self.servo, axis=self.axis
+        )
+        if not isinstance(max_current_drive, float):
+            raise ValueError(f"Invalid type for max_current_drive: {type(max_current_drive)}")
+        if not isinstance(current_motor_peak, float):
+            raise ValueError(f"Invalid type for current_motor_peak: {type(current_motor_peak)}")
+        limit_current = min(current_motor_peak, max_current_drive)
+
+        if self._phasing_max_current_override is not None:
+            self.phasing_max_current = self._phasing_max_current_override
+        else:
+            pos_vel_ratio = self.mc.configuration.get_pos_to_vel_ratio(
+                servo=self.servo, axis=self.axis
+            )
+            if pos_vel_ratio == 1:
+                self.phasing_max_current = self.PHASING_CURRENT_PERCENTAGE * limit_current
+            else:
+                self.phasing_max_current = self.PHASING_CURRENT_PERCENTAGE_GEAR * limit_current
+
+        if self.phasing_max_current > limit_current:
+            raise TestError(
+                f"Phasing max current ({self.phasing_max_current}) is higher than the "
+                f"maximum allowed current of the drive ({max_current_drive}) "
+                f"or the motor ({current_motor_peak})."
+            )
+
     @override
     def setup(self) -> None:
         self.__check_initial_state()
@@ -265,12 +286,12 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
             if difference > max_difference:
                 max_difference = difference
             if difference > tolerance_rad:
-                self.logger.info(
+                self.logger.debug(
                     f"mean difference: {mean_difference:.4f}, difference: {difference:.4f}"
                 )
                 return None, None
 
-        self.logger.info(
+        self.logger.debug(
             f"mean difference: {mean_difference:.4f}, max difference: {max_difference:.4f}"
         )
         return mean_difference, max_difference
@@ -345,14 +366,22 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
         self.logger.info(
             f"Commutation angle: {commutation_angle:.4f}, asymmetry: {asymmetry_error:.4f}"
         )
+        severity = (
+            SeverityLevel.SUCCESS
+            if asymmetry_error < self.SYMMETRY_ERROR_TOLERANCE
+            else SeverityLevel.WARNING
+        )
+        if severity == SeverityLevel.WARNING:
+            msg = (
+                f"Asymmetry error is higher than the {self.SYMMETRY_ERROR_TOLERANCE * 10}%."
+                " Spin frequency may be too high."
+            )
+        else:
+            msg = "Success"
 
         return DynamicForcedPhasingReport(
-            result_severity=(
-                SeverityLevel.SUCCESS
-                if asymmetry_error < self.SYMMETRY_ERROR_TOLERANCE
-                else SeverityLevel.WARNING
-            ),
-            result_message="Success",
+            result_severity=severity,
+            result_message=msg,
             commutation_angle=commutation_angle,
             commutation_phasing_mode=PhasingMode.NO_PHASING,
         )
