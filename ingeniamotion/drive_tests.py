@@ -8,6 +8,10 @@ if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.wizard_tests.brake import Brake
+from ingeniamotion.wizard_tests.dynamic_forced_phasing import (
+    DynamicForcedPhasing,
+    DynamicForcedPhasingReport,
+)
 from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder1_test import AbsoluteEncoder1Test
 from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder2_test import AbsoluteEncoder2Test
 from ingeniamotion.wizard_tests.feedbacks_tests.dc_feedback_polarity_test import (
@@ -29,10 +33,6 @@ from ingeniamotion.wizard_tests.feedbacks_tests.sincos_encoder_test import SinCo
 from ingeniamotion.wizard_tests.phase_calibration import Phasing
 from ingeniamotion.wizard_tests.phasing_check import PhasingCheck
 from ingeniamotion.wizard_tests.sto import STOTest
-from ingeniamotion.wizard_tests.dynamic_forced_phasing import (
-    DynamicForcedPhasing,
-    DynamicForcedPhasingReport,
-)
 
 
 class DriveTests:

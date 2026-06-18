@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING
 import pytest
 from ingenialink import exceptions
 
-from ingeniamotion.enums import PhasingMode, SensorCategory, SensorType, SeverityLevel
+from ingeniamotion.enums import PhasingMode, SensorType, SeverityLevel
 from ingeniamotion.exceptions import IMRegisterNotExistError
 from ingeniamotion.wizard_tests.base_test import TestError
 from ingeniamotion.wizard_tests.dynamic_forced_phasing import (
@@ -393,9 +393,7 @@ def test_dynamic_forced_phasing_fails_when_monitoring_not_supported(mc, alias, m
 def test_dynamic_forced_phasing_fails_with_invalid_feedback_config(
     mc, alias, mocker, comm_feedback, ref_feedback, error_match
 ):
-    mocker.patch.object(
-        mc.configuration, "get_commutation_feedback", return_value=comm_feedback
-    )
+    mocker.patch.object(mc.configuration, "get_commutation_feedback", return_value=comm_feedback)
     mocker.patch.object(mc.configuration, "get_reference_feedback", return_value=ref_feedback)
 
     with pytest.raises(TestError, match=error_match):
@@ -428,9 +426,7 @@ def test_dynamic_forced_phasing_fails_when_no_constant_difference_found(mc, alia
 def test_dynamic_forced_phasing_warning_on_high_asymmetry(mc, alias, mocker):
     mocker.patch.object(DynamicForcedPhasing, "_DynamicForcedPhasing__configure_monitoring")
     # Mean differences with asymmetry > 10% (|0.15 - 0.30| = 0.15 > 0.10)
-    mocker.patch.object(
-        DynamicForcedPhasing, "_collect_mean_difference", side_effect=[0.15, 0.30]
-    )
+    mocker.patch.object(DynamicForcedPhasing, "_collect_mean_difference", side_effect=[0.15, 0.30])
     result = mc.tests.dynamic_forced_phasing(alias, 1, apply_changes=False)
 
     assert result is not None
