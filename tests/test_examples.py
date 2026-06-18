@@ -32,10 +32,11 @@ from ingeniamotion import MotionController
 from ingeniamotion.communication import Communication
 from ingeniamotion.configuration import Configuration
 from ingeniamotion.drive_tests import DriveTests
-from ingeniamotion.enums import SeverityLevel
+from ingeniamotion.enums import PhasingMode, SeverityLevel
 from ingeniamotion.information import Information
 from ingeniamotion.motion import Motion
 from ingeniamotion.pdo import PDONetworkManager, PDOPoller
+from ingeniamotion.wizard_tests.dynamic_forced_phasing import DynamicForcedPhasingReport
 
 if TYPE_CHECKING:
     from summit_testing_framework.setup_fixtures import MotionControllerWrapper
@@ -294,6 +295,35 @@ def test_commutation_test_example(
         script_path,
         setup_descriptor.dictionary,
         f"-ip={setup_descriptor.ip}",
+    ])
+    assert result.returncode == 0
+
+
+@pytest.mark.soem
+def test_dynamic_forced_phasing_example(
+    setup_descriptor: DriveEthernetSetup,
+    mc_with_reconnect_force_restore: "MotionControllerWrapper",
+    script_runner,
+    mocker,
+):
+    mc_with_reconnect_force_restore.disconnect()
+    script_path = "examples/dynamic_forced_phasing_test.py"
+
+    class MockDriveTests:
+        def dynamic_forced_phasing(*args, **kwargs):
+            return DynamicForcedPhasingReport(
+                result_severity=SeverityLevel.SUCCESS,
+                result_message="Success",
+                commutation_phasing_mode=PhasingMode.NO_PHASING,
+                commutation_angle=0.5,
+            )
+
+    mocker.patch.object(MotionController, "tests", MockDriveTests)
+    result = script_runner.run([
+        script_path,
+        setup_descriptor.dictionary,
+        f"--ifname={setup_descriptor.ifname}",
+        f"--slave_id={setup_descriptor.slave}",
     ])
     assert result.returncode == 0
 

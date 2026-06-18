@@ -349,7 +349,7 @@ def test_current_ramp_up(mc, alias, test_currents, test_sensor):
         assert pytest.approx(test_max_current) == current_drive == current_motor
 
 
-def test_development_phasing(mc, alias):
+def test_dynamic_forced_phasing(mc, alias):
     rated_current = mc.communication.get_register(RATED_CURRENT_REGISTER, servo=alias, axis=1)
     result = mc.tests.dynamic_forced_phasing(
         alias, 1, apply_changes=False, phasing_max_current=rated_current
