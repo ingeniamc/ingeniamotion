@@ -259,7 +259,9 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
 
         max_difference: float = 0.0
         for diff in differences:
-            difference = abs(diff - mean_difference)
+            distance = abs(diff - mean_difference)
+            # Use the shortest wrap-around distance in a normalized [0, 1) domain.
+            difference = min(distance, 1 - distance)
             if difference > max_difference:
                 max_difference = difference
             if difference > tolerance_rad:
@@ -278,9 +280,8 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
         """Move the motor and collect a stable mean angle difference.
 
         Tries up to ``MAX_ATTEMPTS_PER_FREQUENCY`` monitoring reads at each
-        frequency in ``GENERATOR_FREQUENCIES`` (logarithmically spaced from
-        0.1 to 10 Hz). Returns as soon as a constant-difference reading is
-        found.
+        frequency in ``spin_frequency``. Returns the mean angle difference
+        with the lowest maximum difference error.
 
         Args:
             direction: ``1`` for positive direction, ``-1`` for negative.
@@ -294,7 +295,7 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
 
         """
         mean_tuples: list[tuple[float, float]] = []
-        for frequency in self.GENERATOR_FREQUENCIES:
+        for frequency in self.spin_frequency:
             self.logger.debug(
                 f"Trying generator frequency {frequency:.1f} Hz, direction {direction:+d}"
             )
@@ -319,7 +320,7 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
         if len(mean_tuples) == 0:
             raise TestError(
                 f"Could not find a constant signal difference after trying all "
-                f"frequencies: {self.GENERATOR_FREQUENCIES}"
+                f"frequencies: {self.spin_frequency}"
             )
         mean_tuples.sort(key=lambda x: x[1])
         return mean_tuples[0][0]
