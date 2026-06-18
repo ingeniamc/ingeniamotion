@@ -124,6 +124,7 @@ def test_homing_on_switch_limit(mc, alias, direction):
 @pytest.mark.usefixtures("initial_position")
 # https://novantamotion.atlassian.net/browse/INGM-776
 @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
+@pytest.mark.not_valid_for_product(part_number="CAP-XCR-C")
 def test_homing_on_switch_limit_timeout(mc, alias):
     homing_offset = 10
     homing_timeout = 5000

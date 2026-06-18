@@ -777,6 +777,8 @@ def test_subscribe_register_updates(mc, alias):
 
 @pytest.mark.canopen
 @pytest.mark.soem
+# https://novantamotion.atlassian.net/browse/INGM-789
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-E")
 def test_emcy_callback(mc, alias):
     emcy_test = EmcyTest()
     mc.communication.subscribe_emergency_message(emcy_test.emcy_callback, servo=alias)
