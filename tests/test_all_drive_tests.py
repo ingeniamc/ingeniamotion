@@ -1,5 +1,6 @@
 import contextlib
 import logging
+import random
 import time
 from threading import Thread
 from typing import TYPE_CHECKING
@@ -408,6 +409,7 @@ def test_dynamic_forced_phasing_fails_when_phasing_current_exceeds_limit(mc, ali
 
 @pytest.mark.virtual
 def test_dynamic_forced_phasing_fails_when_no_constant_difference_found(mc, alias, mocker):
+    mocker.patch.object(DynamicForcedPhasing, "_DynamicForcedPhasing__check_initial_state")
     mocker.patch.object(DynamicForcedPhasing, "_DynamicForcedPhasing__configure_monitoring")
     mocker.patch.object(
         DynamicForcedPhasing,
@@ -424,6 +426,7 @@ def test_dynamic_forced_phasing_fails_when_no_constant_difference_found(mc, alia
 
 @pytest.mark.virtual
 def test_dynamic_forced_phasing_warning_on_high_asymmetry(mc, alias, mocker):
+    mocker.patch.object(DynamicForcedPhasing, "_DynamicForcedPhasing__check_initial_state")
     mocker.patch.object(DynamicForcedPhasing, "_DynamicForcedPhasing__configure_monitoring")
     # Mean differences with asymmetry > 10% (|0.15 - 0.30| = 0.15 > 0.10)
     mocker.patch.object(DynamicForcedPhasing, "_collect_mean_difference", side_effect=[0.15, 0.30])
@@ -438,8 +441,6 @@ def test_dynamic_forced_phasing_warning_on_high_asymmetry(mc, alias, mocker):
 @pytest.mark.parametrize("offset", [0.0, 0.25, 0.5, 0.75, 0.99])
 @pytest.mark.parametrize("noise_amplitude", [0.0, 0.001, 0.01])
 def test_dynamic_forced_phasing_signals_with_noise(mc, alias, offset, noise_amplitude):
-    import random
-
     random.seed(42)
     test = DynamicForcedPhasing(mc, alias, 1)
     num_points = 200
