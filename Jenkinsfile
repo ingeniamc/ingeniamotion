@@ -1,5 +1,5 @@
 // https://novantamotion.atlassian.net/browse/CIT-707
-@Library('cicd-lib@55cfd0b') _
+@Library('cicd-lib@4143fc0') _
 
 import python.VirtualEnvironment
 import python.VEnvManager
