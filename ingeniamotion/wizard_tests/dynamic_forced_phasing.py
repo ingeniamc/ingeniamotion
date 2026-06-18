@@ -284,7 +284,7 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
 
     @BaseTest.stoppable
     def __check_signals_difference_is_constant(
-        self, signal1: list[float], signal2: list[float], tolerance_rad: float
+        self, signal1: list[float], signal2: list[float], tolerance_norm: float
     ) -> tuple[Optional[float], Optional[float]]:
         """This function check if the difference between two signals is constant.
 
@@ -294,7 +294,7 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
         Args:
             signal1: The first signal to compare.
             signal2: The second signal to compare.
-            tolerance_rad: The maximum allowed relative difference between the signals.
+            tolerance_norm: The maximum allowed relative difference between the signals.
 
 
         Returns:
@@ -317,7 +317,7 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
             difference = circular_distance(diff, mean_difference)
             if difference > max_difference:
                 max_difference = difference
-            if difference > tolerance_rad:
+            if difference > tolerance_norm:
                 self.logger.debug(
                     f"mean difference: {mean_difference:.4f}, difference: {difference:.4f}"
                 )
@@ -329,7 +329,7 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
         return mean_difference, max_difference
 
     @BaseTest.stoppable
-    def _collect_mean_difference(self, direction: int, tolerance_rad: float) -> float:
+    def _collect_mean_difference(self, direction: int, tolerance_norm: float) -> float:
         """Move the motor and collect a stable mean angle difference.
 
         Tries up to ``MAX_ATTEMPTS_PER_FREQUENCY`` monitoring reads at each
@@ -338,7 +338,7 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
 
         Args:
             direction: ``1`` for positive direction, ``-1`` for negative.
-            tolerance_rad: The maximum allowed difference between the signals.
+            tolerance_norm: The maximum allowed difference between the signals.
 
         Returns:
             Mean angle difference between commutation and reference signals.
@@ -359,7 +359,7 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
                 self.check_stop()
                 data = self.monitoring.read_monitoring_data(timeout=1 / frequency)
                 iter_mean_tuple = self.__check_signals_difference_is_constant(
-                    data[0], data[1], tolerance_rad
+                    data[0], data[1], tolerance_norm
                 )
                 self.monitoring.rearm_monitoring()
                 if iter_mean_tuple[0] is not None and iter_mean_tuple[1] is not None:
@@ -386,11 +386,11 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
         )
         self.__configure_monitoring(direction=1)
         mean_difference_pos = self._collect_mean_difference(
-            direction=1, tolerance_rad=self.NORM_TOLERANCE
+            direction=1, tolerance_norm=self.NORM_TOLERANCE
         )
         self.__configure_monitoring(direction=-1)
         mean_difference_neg = self._collect_mean_difference(
-            direction=-1, tolerance_rad=self.NORM_TOLERANCE
+            direction=-1, tolerance_norm=self.NORM_TOLERANCE
         )
 
         commutation_angle = circular_mean([mean_difference_pos, mean_difference_neg])
