@@ -286,6 +286,8 @@ def run_test_and_stop(test):
         SecondarySSITest,
     ],
 )
+# https://novantamotion.atlassian.net/browse/INGM-790
+@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
 def test_feedback_stop(mc, alias, feedback_class):
     test = feedback_class(mc, alias, 1)
     reg_values = get_backup_registers(test, mc, alias)
