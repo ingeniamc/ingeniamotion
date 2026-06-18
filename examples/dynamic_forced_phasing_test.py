@@ -7,8 +7,8 @@ def setup_command():
     parser = argparse.ArgumentParser(description="Run dynamic forced phasing test")
     parser.add_argument("dictionary_path", help="path to drive dictionary")
     parser.add_argument("--ifname", help="interface name")
-    parser.add_argument("--slave_id", help="slave ID", default=1, type=int)
-    parser.add_argument("--axis", default=1, help="drive axis")
+    parser.add_argument("--slave_id", default=1, help="slave ID", type=int)
+    parser.add_argument("--axis", default=1, help="drive axis", type=int)
     parser.add_argument(
         "--debug", action="store_true", help="with this flag test doesn't apply any change"
     )

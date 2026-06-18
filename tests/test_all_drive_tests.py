@@ -7,9 +7,13 @@ from typing import TYPE_CHECKING
 import pytest
 from ingenialink import exceptions
 
-from ingeniamotion.enums import SensorType, SeverityLevel, PhasingMode
+from ingeniamotion.enums import PhasingMode, SensorCategory, SensorType, SeverityLevel
 from ingeniamotion.exceptions import IMRegisterNotExistError
 from ingeniamotion.wizard_tests.base_test import TestError
+from ingeniamotion.wizard_tests.dynamic_forced_phasing import (
+    DynamicForcedPhasing,
+    circular_distance,
+)
 from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder1_test import AbsoluteEncoder1Test
 from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder2_test import AbsoluteEncoder2Test
 from ingeniamotion.wizard_tests.feedbacks_tests.digital_hall_test import DigitalHallTest
@@ -358,3 +362,107 @@ def test_dynamic_forced_phasing(mc, alias):
     assert result.result_message == "Success"
     assert result.commutation_phasing_mode == PhasingMode.NO_PHASING
     assert 0 <= result.commutation_angle <= 1
+
+
+@pytest.mark.virtual
+def test_dynamic_forced_phasing_fails_when_monitoring_not_supported(mc, alias, mocker):
+    mocker.patch.object(
+        mc.capture, "_check_version", side_effect=NotImplementedError("Monitoring not available")
+    )
+    mocker.patch.object(mc.capture, "disable_monitoring")
+    with pytest.raises(TestError, match="Monitoring not available"):
+        mc.tests.dynamic_forced_phasing(alias, 1)
+
+
+@pytest.mark.virtual
+@pytest.mark.parametrize(
+    ("comm_feedback", "ref_feedback", "error_match"),
+    [
+        (SensorType.INTGEN, SensorType.ABS1, "internal generator"),
+        (SensorType.ABS1, SensorType.INTGEN, "internal generator"),
+        (SensorType.QEI, SensorType.QEI, "not absolute"),
+        (SensorType.ABS1, SensorType.BISSC2, "not the same"),
+    ],
+    ids=[
+        "commutation_is_internal_generator",
+        "reference_is_internal_generator",
+        "reference_not_absolute",
+        "feedbacks_differ",
+    ],
+)
+def test_dynamic_forced_phasing_fails_with_invalid_feedback_config(
+    mc, alias, mocker, comm_feedback, ref_feedback, error_match
+):
+    mocker.patch.object(
+        mc.configuration, "get_commutation_feedback", return_value=comm_feedback
+    )
+    mocker.patch.object(mc.configuration, "get_reference_feedback", return_value=ref_feedback)
+
+    with pytest.raises(TestError, match=error_match):
+        mc.tests.dynamic_forced_phasing(alias, 1)
+
+
+@pytest.mark.virtual
+def test_dynamic_forced_phasing_fails_when_phasing_current_exceeds_limit(mc, alias):
+    with pytest.raises(TestError, match="Phasing max current"):
+        mc.tests.dynamic_forced_phasing(alias, 1, phasing_max_current=1e9)
+
+
+@pytest.mark.virtual
+def test_dynamic_forced_phasing_fails_when_no_constant_difference_found(mc, alias, mocker):
+    mocker.patch.object(DynamicForcedPhasing, "_DynamicForcedPhasing__configure_monitoring")
+    mocker.patch.object(
+        DynamicForcedPhasing,
+        "_collect_mean_difference",
+        side_effect=TestError(
+            "Could not find a constant signal difference after trying all frequencies"
+        ),
+    )
+    rated_current = mc.communication.get_register(RATED_CURRENT_REGISTER, servo=alias, axis=1)
+
+    with pytest.raises(TestError, match="Could not find a constant signal difference"):
+        mc.tests.dynamic_forced_phasing(alias, 1, phasing_max_current=rated_current)
+
+
+@pytest.mark.virtual
+def test_dynamic_forced_phasing_warning_on_high_asymmetry(mc, alias, mocker):
+    mocker.patch.object(DynamicForcedPhasing, "_DynamicForcedPhasing__configure_monitoring")
+    # Mean differences with asymmetry > 10% (|0.15 - 0.30| = 0.15 > 0.10)
+    mocker.patch.object(
+        DynamicForcedPhasing, "_collect_mean_difference", side_effect=[0.15, 0.30]
+    )
+    result = mc.tests.dynamic_forced_phasing(alias, 1, apply_changes=False)
+
+    assert result is not None
+    assert result.result_severity == SeverityLevel.WARNING
+    assert "Asymmetry error" in result.result_message
+
+
+@pytest.mark.virtual
+@pytest.mark.parametrize("offset", [0.0, 0.25, 0.5, 0.75, 0.99])
+@pytest.mark.parametrize("noise_amplitude", [0.0, 0.001, 0.01])
+def test_dynamic_forced_phasing_signals_with_noise(mc, alias, offset, noise_amplitude):
+    import random
+
+    random.seed(42)
+    test = DynamicForcedPhasing(mc, alias, 1)
+    num_points = 200
+
+    # signal2 is signal1 shifted by a constant offset plus random noise that is
+    # sometimes positive and sometimes negative.
+    signal1 = [i / num_points for i in range(num_points)]
+    signal2 = [
+        (s1 - offset + random.uniform(-noise_amplitude, noise_amplitude)) % 1 for s1 in signal1
+    ]
+
+    tolerance = DynamicForcedPhasing.NORM_TOLERANCE
+    mean_diff, max_diff = test._DynamicForcedPhasing__check_signals_difference_is_constant(
+        signal1, signal2, tolerance
+    )
+
+    assert mean_diff is not None
+    assert max_diff is not None
+    # Compare in the circular [0, 1) domain so the wrap-around boundary is handled.
+    assert circular_distance(mean_diff, offset) < noise_amplitude + 1e-6
+    # Points deviate from the mean by at most the noise span (each side of it).
+    assert max_diff <= 2 * noise_amplitude + 1e-6

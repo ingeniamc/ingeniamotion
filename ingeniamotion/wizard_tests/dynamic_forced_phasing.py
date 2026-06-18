@@ -1,3 +1,4 @@
+import math
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, ClassVar, Optional, Union, cast
 
@@ -29,6 +30,39 @@ MAX_CURRENT_REGISTER = "CL_CUR_REF_MAX"
 PEAK_CURRENT_REGISTER = "DRV_PROT_I2T_PEAK_VALUE"
 
 
+def circular_mean(values: list[float]) -> float:
+    """Mean of values defined on the circular ``[0, 1)`` domain.
+
+    A plain arithmetic mean is wrong near the 0/1 boundary (e.g. 0.99 and 0.01
+    should average to 0.0, not 0.5). Each value is mapped to an angle, the unit
+    vectors are averaged, and the result is mapped back to ``[0, 1)``.
+
+    Args:
+        values: Values in the ``[0, 1)`` domain.
+
+    Returns:
+        The circular mean in ``[0, 1)``.
+    """
+    angles = [v * 2 * math.pi for v in values]
+    mean_sin = sum(math.sin(a) for a in angles) / len(angles)
+    mean_cos = sum(math.cos(a) for a in angles) / len(angles)
+    return (math.atan2(mean_sin, mean_cos) / (2 * math.pi)) % 1
+
+
+def circular_distance(value1: float, value2: float) -> float:
+    """Shortest wrap-around distance between two values on the ``[0, 1)`` domain.
+
+    Args:
+        value1: First value.
+        value2: Second value.
+
+    Returns:
+        The shortest distance in ``[0, 0.5]``.
+    """
+    distance = abs(value1 - value2) % 1
+    return min(distance, 1 - distance)
+
+
 @dataclass
 class DynamicForcedPhasingReport(ReportBase):
     """Report for the Dynamic Forced Phasing test."""
@@ -48,7 +82,7 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
     """
 
     GENERATOR_FREQUENCIES: ClassVar[list[float]] = [0.1, 0.03, 0.01]
-    """Logarithmically spaced frequencies (Hz) tried in ascending order."""
+    """Logarithmically spaced frequencies (Hz) tried in descending order."""
     MAX_ATTEMPTS_PER_FREQUENCY: ClassVar[int] = 2
     """Number of monitoring reads attempted at each frequency before escalating."""
     NORM_TOLERANCE: ClassVar[float] = 0.02
@@ -276,13 +310,11 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
             return None, None
 
         differences = [(s1 - s2) % 1 for s1, s2 in zip(signal1, signal2)]
-        mean_difference = sum(differences) / len(differences)
+        mean_difference = circular_mean(differences)
 
         max_difference: float = 0.0
         for diff in differences:
-            distance = abs(diff - mean_difference)
-            # Use the shortest wrap-around distance in a normalized [0, 1) domain.
-            difference = min(distance, 1 - distance)
+            difference = circular_distance(diff, mean_difference)
             if difference > max_difference:
                 max_difference = difference
             if difference > tolerance_rad:
@@ -318,7 +350,7 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
         mean_tuples: list[tuple[float, float]] = []
         for frequency in self.spin_frequency:
             self.logger.debug(
-                f"Trying generator frequency {frequency:.1f} Hz, direction {direction:+d}"
+                f"Trying generator frequency {frequency:.3g} Hz, direction {direction:+d}"
             )
             self.mc.motion.internal_generator_saw_tooth_move(
                 direction, 0, frequency, servo=self.servo, axis=self.axis
@@ -333,7 +365,7 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
                 if iter_mean_tuple[0] is not None and iter_mean_tuple[1] is not None:
                     iter_mean_tuple = cast("tuple[float, float]", iter_mean_tuple)
                     self.logger.debug(
-                        f"Constant difference found at {frequency:.1f} Hz "
+                        f"Constant difference found at {frequency:.3g} Hz "
                         f"(attempt {attempt}/{self.MAX_ATTEMPTS_PER_FREQUENCY})"
                     )
                     mean_tuples.append(iter_mean_tuple)
@@ -361,8 +393,8 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
             direction=-1, tolerance_rad=self.NORM_TOLERANCE
         )
 
-        commutation_angle = (mean_difference_pos + mean_difference_neg) / 2
-        asymmetry_error = abs(mean_difference_pos - mean_difference_neg)
+        commutation_angle = circular_mean([mean_difference_pos, mean_difference_neg])
+        asymmetry_error = circular_distance(mean_difference_pos, mean_difference_neg)
         self.logger.info(
             f"Commutation angle: {commutation_angle:.4f}, asymmetry: {asymmetry_error:.4f}"
         )
@@ -373,7 +405,7 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
         )
         if severity == SeverityLevel.WARNING:
             msg = (
-                f"Asymmetry error is higher than the {self.SYMMETRY_ERROR_TOLERANCE * 10}%."
+                f"Asymmetry error is higher than the {self.SYMMETRY_ERROR_TOLERANCE * 100:.0f}%."
                 " Spin frequency may be too high."
             )
         else:

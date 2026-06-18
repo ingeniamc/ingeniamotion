@@ -362,7 +362,7 @@ class DriveTests:
             spin_frequency=spin_frequency,
         )
         output = dynamic_forced_phasing.run()
-        if apply_changes and output is not None and output.result_severity == SeverityLevel.SUCCESS:
+        if apply_changes and output is not None and output.result_severity != SeverityLevel.FAIL:
             self.mc.configuration.set_phasing_mode(
                 output.commutation_phasing_mode, servo=servo, axis=axis
             )
