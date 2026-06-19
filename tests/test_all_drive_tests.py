@@ -27,6 +27,7 @@ from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental2_test import
 from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import SecondarySSITest
 from ingeniamotion.wizard_tests.phase_calibration import Phasing
 from ingeniamotion.wizard_tests.phasing_check import PhasingCheck
+from tests.conftest import not_valid_for_all_eve_products
 
 if TYPE_CHECKING:
     from summit_testing_framework.setups.environment_control import DriveEnvironmentController
@@ -354,6 +355,10 @@ def test_current_ramp_up(mc, alias, test_currents, test_sensor):
         assert pytest.approx(test_max_current) == current_drive == current_motor
 
 
+@pytest.mark.soem
+@pytest.mark.canopen
+@pytest.mark.ethrent
+@not_valid_for_all_eve_products
 def test_dynamic_forced_phasing(mc, alias):
     rated_current = mc.communication.get_register(RATED_CURRENT_REGISTER, servo=alias, axis=1)
     result = mc.tests.dynamic_forced_phasing(

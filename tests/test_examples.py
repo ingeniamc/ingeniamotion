@@ -301,7 +301,7 @@ def test_commutation_test_example(
 
 @pytest.mark.soem
 def test_dynamic_forced_phasing_example(
-    setup_descriptor: DriveEthernetSetup,
+    setup_descriptor: DriveEcatSetup,
     mc_with_reconnect_force_restore: "MotionControllerWrapper",
     script_runner,
     mocker,
