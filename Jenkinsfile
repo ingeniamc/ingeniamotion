@@ -1,4 +1,5 @@
-@Library('cicd-lib@59677f0') _
+// https://novantamotion.atlassian.net/browse/CIT-707
+@Library('cicd-lib@d6a0923') _
 
 import python.VirtualEnvironment
 import python.VEnvManager
@@ -163,6 +164,7 @@ pipeline {
                         jobName: "${env.JOB_NAME}-#${env.BUILD_NUMBER}",
                         wiresharkScope: params.WIRESHARK_LOGGING_SCOPE,
                         clearSuccessfulWiresharkLogs: params.CLEAR_SUCCESSFUL_WIRESHARK_LOGS,
+                        archiveData: "*",
                     )
 
                     // Configure if ECAT and ETH sessions use Wireshark logging based on parameter
