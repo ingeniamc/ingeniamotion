@@ -758,6 +758,9 @@ files = [
     {file = "coverage-7.10.7.tar.gz", hash = "sha256:f4ab143ab113be368a3e9b795f9cd7906c5ef407d6173fe9675a902e1fffc239"},
 ]
 
+[package.dependencies]
+tomli = {version = "*", optional = true, markers = "python_full_version <= \"3.11.0a6\" and extra == \"toml\""}
+
 [package.extras]
 toml = ["tomli ; python_full_version <= \"3.11.0a6\""]
 
@@ -1306,18 +1309,18 @@ reference = "novanta"
 
 [[package]]
 name = "ingenialink"
-version = "7.6.1.post108+develop.861ba93"
+version = "7.6.1.post115+develop.37c5f0c"
 description = "IngeniaLink Communications Library"
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "tests"]
 files = [
-    {file = "ingenialink-7.6.1.post108+develop.861ba93-cp310-cp310-win_amd64.whl", hash = "sha256:f0691df3aacf5bfd0e5147b96dcbfc38bdbfbc1d9958b2a925c774980d85c798"},
-    {file = "ingenialink-7.6.1.post108+develop.861ba93-cp311-cp311-win_amd64.whl", hash = "sha256:607994d28a10a8ef9a03e083889acf54aaf7d4a923c159ab0fe71a7c92d0f0ae"},
-    {file = "ingenialink-7.6.1.post108+develop.861ba93-cp312-cp312-win_amd64.whl", hash = "sha256:c4d6979b11ee3ce2dac451c0c48f754d464424869fc9eede293c7ffc28b0fc9a"},
-    {file = "ingenialink-7.6.1.post108+develop.861ba93-cp39-cp39-win_amd64.whl", hash = "sha256:d30027d90ef4fd64bcab0af52e012c6c2b3e5935bcee8f9e14a3a575d2fa6cfb"},
-    {file = "ingenialink-7.6.1.post108+develop.861ba93-py3-none-any.whl", hash = "sha256:0ec665f193d765365971a5a6fa23970543cfcf024a7d0aec76f3b73bb152a79e"},
-    {file = "ingenialink-7.6.1.post108+develop.861ba93.tar.gz", hash = "sha256:b26dc2d2d4eaf66b698df651e6ec167b250021728df79ccc2356f8c3fc1317ff"},
+    {file = "ingenialink-7.6.1.post115+develop.37c5f0c-cp310-cp310-win_amd64.whl", hash = "sha256:f69c4069c52c47ea150854a1271e8f66dbfb2f1b5b9280a7ede08c393e7c0cd4"},
+    {file = "ingenialink-7.6.1.post115+develop.37c5f0c-cp311-cp311-win_amd64.whl", hash = "sha256:0725575f22416a5c853a5eac200f3bd1f115266c824d90d7aaa9544f341179a8"},
+    {file = "ingenialink-7.6.1.post115+develop.37c5f0c-cp312-cp312-win_amd64.whl", hash = "sha256:2c714d12634210716b328e7fd26b7b4505e66dbe542ba9c92907def4c97db36b"},
+    {file = "ingenialink-7.6.1.post115+develop.37c5f0c-cp39-cp39-win_amd64.whl", hash = "sha256:b28e5e1948606ef9fbbbdf1bb1cd4c121ece3f557a5608c8146a3f05730de8a8"},
+    {file = "ingenialink-7.6.1.post115+develop.37c5f0c-py3-none-any.whl", hash = "sha256:5e74e55fb5b4b9a51b43f32ce1584e8de69917cc66fd283ad1d5db3ee362e0f0"},
+    {file = "ingenialink-7.6.1.post115+develop.37c5f0c.tar.gz", hash = "sha256:595d058b0edea6304d9817357463aef1d2f64c3b0d581177a7a5d92bc8a6f426"},
 ]
 
 [package.dependencies]
@@ -1458,7 +1461,7 @@ version = "3.1.4"
 description = "A very fast and expressive template engine."
 optional = false
 python-versions = ">=3.7"
-groups = ["docs"]
+groups = ["docs", "tests"]
 files = [
     {file = "jinja2-3.1.4-py3-none-any.whl", hash = "sha256:bc5dd2abb727a5319567b7a813e6a2e7318c39f4f487cfe6c89c6f9c7d25197d"},
     {file = "jinja2-3.1.4.tar.gz", hash = "sha256:4a3aee7acbbe7303aede8e9648d13b8bf88a429282aa6122a993f0ac800cb369"},
@@ -1934,7 +1937,7 @@ version = "3.0.3"
 description = "Safely add untrusted strings to HTML/XML markup."
 optional = false
 python-versions = ">=3.9"
-groups = ["docs"]
+groups = ["docs", "tests"]
 files = [
     {file = "markupsafe-3.0.3-cp310-cp310-macosx_10_9_x86_64.whl", hash = "sha256:2f981d352f04553a7171b8e44369f2af4055f888dfb147d55e42d29e29e74559"},
     {file = "markupsafe-3.0.3-cp310-cp310-macosx_11_0_arm64.whl", hash = "sha256:e1c1493fb6e50ab01d20a22826e57520f1284df32f2d8601fdd90b6304601419"},
@@ -3062,23 +3065,23 @@ pytest = ">=4.0.0"
 
 [[package]]
 name = "pytest-cov"
-version = "2.12.1"
+version = "7.1.0"
 description = "Pytest plugin for measuring coverage."
 optional = false
-python-versions = ">=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*, !=3.4.*"
+python-versions = ">=3.9"
 groups = ["tests"]
 files = [
-    {file = "pytest-cov-2.12.1.tar.gz", hash = "sha256:261ceeb8c227b726249b376b8526b600f38667ee314f910353fa318caa01f4d7"},
-    {file = "pytest_cov-2.12.1-py2.py3-none-any.whl", hash = "sha256:261bb9e47e65bd099c89c3edf92972865210c36813f80ede5277dceb77a4a62a"},
+    {file = "pytest_cov-7.1.0-py3-none-any.whl", hash = "sha256:a0461110b7865f9a271aa1b51e516c9a95de9d696734a2f71e3e78f46e1d4678"},
+    {file = "pytest_cov-7.1.0.tar.gz", hash = "sha256:30674f2b5f6351aa09702a9c8c364f6a01c27aae0c1366ae8016160d1efc56b2"},
 ]
 
 [package.dependencies]
-coverage = ">=5.2.1"
-pytest = ">=4.6"
-toml = "*"
+coverage = {version = ">=7.10.6", extras = ["toml"]}
+pluggy = ">=1.2"
+pytest = ">=7"
 
 [package.extras]
-testing = ["fields", "hunter", "process-tests", "pytest-xdist", "six", "virtualenv"]
+testing = ["process-tests", "pytest-xdist", "virtualenv"]
 
 [[package]]
 name = "pytest-env"
@@ -4165,18 +4168,19 @@ test = ["pytest"]
 
 [[package]]
 name = "summit-testing-framework"
-version = "0.3.0.post182+develop.d18a111"
+version = "0.3.0.post243+develop.82ae762"
 description = "Testing framework for Novanta drives"
 optional = false
 python-versions = ">=3.9"
 groups = ["tests"]
 files = [
-    {file = "summit_testing_framework-0.3.0.post182+develop.d18a111-py3-none-any.whl", hash = "sha256:54eb9846f6efedc103c6449180afad3107bdf59b89b7d65d1de1c4a8e7fa6923"},
+    {file = "summit_testing_framework-0.3.0.post243+develop.82ae762-py3-none-any.whl", hash = "sha256:f3b35af2d89cc542ff100cde43104a103f245e3df3d833732809045fe7e6b144"},
 ]
 
 [package.dependencies]
 ingenia-att-api = "2.3.1"
 ingenialogger = ">=0.2.1"
+jinja2 = ">=3.1.0"
 pytest = ">=8.4.1,<9.0.0"
 pytest-env = ">=1.1.5"
 rpyc = "6.0.0"
@@ -4211,25 +4215,12 @@ doc = ["sphinx", "sphinx_rtd_theme"]
 test = ["pytest", "ruff"]
 
 [[package]]
-name = "toml"
-version = "0.10.2"
-description = "Python Library for Tom's Obvious, Minimal Language"
-optional = false
-python-versions = ">=2.6, !=3.0.*, !=3.1.*, !=3.2.*"
-groups = ["tests"]
-files = [
-    {file = "toml-0.10.2-py2.py3-none-any.whl", hash = "sha256:806143ae5bfb6a3c6e736a764057db0e6a0e05e338b5630894a5f779cabb4f9b"},
-    {file = "toml-0.10.2.tar.gz", hash = "sha256:b3bda1d108d5dd99f4a20d24d9c348e91c4db7ab1b749200bded2f839ccbe68f"},
-]
-
-[[package]]
 name = "tomli"
 version = "2.3.0"
 description = "A lil' TOML parser"
 optional = false
 python-versions = ">=3.8"
 groups = ["dev", "docs", "tests", "type"]
-markers = "python_version < \"3.11\""
 files = [
     {file = "tomli-2.3.0-cp311-cp311-macosx_10_9_x86_64.whl", hash = "sha256:88bd15eb972f3664f5ed4b57c1634a97153b4bac4479dcb6a495f41921eb7f45"},
     {file = "tomli-2.3.0-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:883b1c0d6398a6a9d29b508c331fa56adbcdff647f6ace4dfca0f50e90dfd0ba"},
@@ -4274,6 +4265,7 @@ files = [
     {file = "tomli-2.3.0-py3-none-any.whl", hash = "sha256:e95b1af3c5b07d9e643909b5abbec77cd9f1217e6d0bca72b0234736b9fb1f1b"},
     {file = "tomli-2.3.0.tar.gz", hash = "sha256:64be704a875d2a59753d80ee8a533c3fe183e3f06807ff7dc2232938ccb01549"},
 ]
+markers = {dev = "python_version < \"3.11\"", docs = "python_version < \"3.11\"", tests = "python_full_version <= \"3.11.0a6\"", type = "python_version < \"3.11\""}
 
 [[package]]
 name = "tomlkit"
@@ -4747,4 +4739,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "45f21105860ba376831267a1a85e9f1e1304088e2943a885e6b71e03db0702e6"
+content-hash = "ed3beb9207133031003190e2cf4382f8198ada6f668008970a6c6a7f545d17de"

@@ -1,4 +1,5 @@
-@Library('cicd-lib@0.22') _
+// https://novantamotion.atlassian.net/browse/CIT-707
+@Library('cicd-lib@d6a0923') _
 
 import python.VirtualEnvironment
 import python.VEnvManager
@@ -44,7 +45,6 @@ TestSession TEST_SESSIONS = new TestSession(
     covPackageName: "ingeniamotion",
     covFromSitePackages: false,
     wiresharkScope: null, // Set later based on parameter
-    wiresharkDir: "wireshark",
     startWiresharkTimeoutS: 10.0,
     importMode: "importlib",
     logCli: true,
@@ -164,6 +164,7 @@ pipeline {
                         jobName: "${env.JOB_NAME}-#${env.BUILD_NUMBER}",
                         wiresharkScope: params.WIRESHARK_LOGGING_SCOPE,
                         clearSuccessfulWiresharkLogs: params.CLEAR_SUCCESSFUL_WIRESHARK_LOGS,
+                        archiveData: "*",
                     )
 
                     // Configure if ECAT and ETH sessions use Wireshark logging based on parameter
@@ -192,7 +193,7 @@ pipeline {
                     testManager.buildTestSessions("tests.setups.rack_specifiers")
                     testManager.buildTestSessions("tests.setups.virtual_drive")
 
-                    if (env.BRANCH_NAME == 'develop' && runPolicyTags.isEmpty()) {
+                    if (env.BRANCH_NAME == 'develop' && testManager.runPolicyTags.isEmpty()) {
                         HW_TEST_SESSIONS.setAttributeInCascade(
                             shouldRun: false,
                             skipReason: 'Develop builds without nightly/weekend policy do not run hardware tests',
@@ -232,13 +233,14 @@ pipeline {
                         VENV_WORKING_FOLDER = "${WIN_DOCKER_TMP_PATH}"
                     }
                     stages {
-                        stage('Check Dependencies') {
-                            steps {
-                                script {
-                                    checkDependencies(excludeManagers: ['poetry:tests'])
-                                }
-                            }
-                        }
+                        // Uncomment when CICD is released: https://novantamotion.atlassian.net/browse/CIT-707
+                        // stage('Check Dependencies') {
+                        //     steps {
+                        //         script {
+                        //             checkDependencies(excludeManagers: ['poetry:tests'])
+                        //         }
+                        //     }
+                        // }
                         stage('Move workspace') {
                             steps {
                                 script {

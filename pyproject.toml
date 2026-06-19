@@ -112,13 +112,13 @@ optional = true
 [tool.poetry.group.tests.dependencies]
 pytest = "==8.4.1"
 pytest-env = "==1.1.5"
-pytest-cov = "==2.12.1"
+pytest-cov = "==7.1.0"
 pytest-mock = "==3.15.1"
 pytest-rerunfailures = "==15.1"
 pytest-console-scripts = "==1.4.1"
 matplotlib = "==3.8.2"
-summit-testing-framework = {version = "0.3.0.post182+develop.d18a111"}
-ingenialink = {version = "7.6.1.post108+develop.861ba93"}
+summit-testing-framework = {version = "0.3.0.post243+develop.82ae762"}
+ingenialink = {version = "7.6.1.post115+develop.37c5f0c"}
 
 # -----------------------------------------------------------------------
 #                                   TASKS
