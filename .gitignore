@@ -57,8 +57,6 @@ build
 # Venv
 venv
 
-# Pipenv
-Pipfile.lock
 
 #Sphinx
 _docs
@@ -66,9 +64,6 @@ _pdf
 
 #pytest
 .coverage
-
-# Tox
-.tox
 
 # vscode
 .vscode/
@@ -82,12 +77,8 @@ resources/
 # Environment files
 .env
 
-# Wireshark logs
-wireshark/
-
 # Version
 ingeniamotion/_version.py
 
-# Test outputs (ignore everything except __init__.py)
-tests/outputs/*
-!tests/outputs/__init__.py
+# Test outputs 
+tests/outputs/
