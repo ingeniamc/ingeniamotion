@@ -1,5 +1,5 @@
 // https://novantamotion.atlassian.net/browse/CIT-707
-@Library('cicd-lib@8f29029') _
+@Library('cicd-lib@89fbfea') _
 
 import python.VirtualEnvironment
 import python.VEnvManager
@@ -237,6 +237,8 @@ pipeline {
                     testManager.echoTestGroupsSummary()
                     testManager.collectTestsForDashboard()
                     testManager.generateTestDashboard()
+
+                    testManager.resolveSessions()
                 }
             }
             post {
