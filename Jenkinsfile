@@ -1,5 +1,5 @@
 // https://novantamotion.atlassian.net/browse/CIT-707
-@Library('cicd-lib@d6a0923') _
+@Library('cicd-lib@8f29029') _
 
 import python.VirtualEnvironment
 import python.VEnvManager
@@ -80,19 +80,13 @@ def NIGHTLY_CRON = '0 19,21,23 * * * % PYTHON_VERSIONS=All;WIRESHARK_LOGGING=tru
 def WEEKEND_CRON   = '0 8,14 * * 6-7 % PYTHON_VERSIONS=All;RUN_POLICY_NIGHTLY=true;RUN_POLICY_WEEKEND=true'
 def CRON_SETTINGS = BRANCH_NAME == "develop" ? "${NIGHTLY_CRON}\n${WEEKEND_CRON}" : ""
 
-pipeline {
-    agent none
-    options {
-        timestamps()
-    }
-    triggers {
-        parameterizedCron(CRON_SETTINGS)
-    }
-    parameters {
+properties([
+    pipelineTriggers([parameterizedCron(CRON_SETTINGS)]),
+    parameters([
         choice(
                 choices: ['MIN', 'MAX', 'MIN_MAX', 'All'],
                 name: 'PYTHON_VERSIONS'
-        )
+        ),
         choice(
             choices: [
                 '.*',
@@ -114,15 +108,47 @@ pipeline {
             ],
             name: 'test_session_filter',
             description: 'Regex pattern for which test sessions to run (e.g. "fsoe.*", "ethercat_everest.*", ".*" for all)'
-        )
-        booleanParam(name: 'WIRESHARK_LOGGING', defaultValue: false, description: 'Enable Wireshark logging')
+        ),
+        booleanParam(name: 'WIRESHARK_LOGGING', defaultValue: false, description: 'Enable Wireshark logging'),
         choice(
             choices: ['function', 'module', 'session'],
             name: 'WIRESHARK_LOGGING_SCOPE'
+        ),
+        booleanParam(name: 'CLEAR_SUCCESSFUL_WIRESHARK_LOGS', defaultValue: true, description: 'Clears Wireshark logs if the test passed'),
+        booleanParam(name: 'RUN_POLICY_NIGHTLY', defaultValue: false, description: 'Tag this build as a nightly build (set automatically by cron triggers)'),
+        booleanParam(name: 'RUN_POLICY_WEEKEND', defaultValue: false, description: 'Tag this build as a weekend build (set automatically by weekend cron triggers)'),
+        // Show the previous build's pytest selection as the initial value in the form.
+        // If PYTEST_SELECTION contains data, it will override test_session_filter. If both are empty, all tests will run.
+        string(
+            name: 'PYTEST_SELECTION',
+            defaultValue: TEST_SESSIONS.latestBuildParamValue(currentBuild, 'PYTEST_SELECTION', ''),
+            description: '''
+                Pytest selection string to select which tests to run.<br>
+                See <a href="https://docs.pytest.org/en/stable/how-to/usage.html#specifying-tests-selecting-tests" target="_blank">
+                pytest selecting tests documentation
+                </a>
+            '''
+        ),
+        // Repeat-count input will be used for --count arguments (pytest-repeat plugin) for all test sessions that are run.
+        // If PYTEST_SELECTION is empty, this will have no effect since all tests will run once by default.
+        string(
+            name: 'PYTEST_REPEAT_COUNTS',
+            defaultValue: TEST_SESSIONS.latestBuildParamValue(currentBuild, 'PYTEST_REPEAT_COUNTS', ''),
+            description: '''
+                Pytest repeat count used for <code>--count</code>.<br>
+                See <a href="https://github.com/pytest-dev/pytest-repeat" target="_blank">
+                pytest repeat plugin documentation
+                </a>.<br>
+                <span style="color:red;">Only has effect when PYTEST_SELECTION is set.</span>
+            '''
         )
-        booleanParam(name: 'CLEAR_SUCCESSFUL_WIRESHARK_LOGS', defaultValue: true, description: 'Clears Wireshark logs if the test passed')
-        booleanParam(name: 'RUN_POLICY_NIGHTLY', defaultValue: false, description: 'Tag this build as a nightly build (set automatically by cron triggers)')
-        booleanParam(name: 'RUN_POLICY_WEEKEND', defaultValue: false, description: 'Tag this build as a weekend build (set automatically by weekend cron triggers)')
+    ])
+])
+
+pipeline {
+    agent none
+    options {
+        timestamps()
     }
     stages {
         stage('Prepare test sessions') {
@@ -165,6 +191,7 @@ pipeline {
                         wiresharkScope: params.WIRESHARK_LOGGING_SCOPE,
                         clearSuccessfulWiresharkLogs: params.CLEAR_SUCCESSFUL_WIRESHARK_LOGS,
                         archiveData: "*",
+                        testSelectionRepeatCount: params.PYTEST_REPEAT_COUNTS?.trim()?.isInteger() ? params.PYTEST_REPEAT_COUNTS.toInteger() : 1,
                     )
 
                     // Configure if ECAT and ETH sessions use Wireshark logging based on parameter
@@ -176,6 +203,7 @@ pipeline {
                     )
 
                     testManager.testSessionFilter = params.test_session_filter
+                    testManager.testSessionSelection = params.PYTEST_SELECTION
 
                     // Parse run policy tags from boolean parameters
                     def runPolicyTags = [] as Set
