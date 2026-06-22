@@ -39,8 +39,6 @@ class STOTest(BaseTest[LegacyDictReportType]):
         ResultType.STO_INPUTS_DIFFER: "STO Inputs Differ",
     }
 
-    BACKUP_REGISTERS: ClassVar[list[str]] = []
-
     def __init__(
         self, mc: "MotionController", servo: str, axis: int, logger_drive_name: Optional[str] = None
     ) -> None:
@@ -52,7 +50,6 @@ class STOTest(BaseTest[LegacyDictReportType]):
             self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
         else:
             self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=logger_drive_name)
-        self.backup_registers_names = self.BACKUP_REGISTERS
         self.suggested_registers = {}
         self.TEST_TYPE = self.ResultType
 

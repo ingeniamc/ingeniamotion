@@ -33,35 +33,6 @@ INCREMENTAL_ENCODER_1_RESOLUTION_REGISTER = "FBK_DIGENC1_RESOLUTION"
 
 @pytest.mark.virtual
 @pytest.mark.parametrize(
-    "feedback_test_type, expected_total_mandatory",
-    [
-        (DigitalIncremental1Test, 25),
-        (DigitalIncremental2Test, 25),
-        (AbsoluteEncoder1Test, 25),
-        (AbsoluteEncoder2Test, 25),
-        (SecondarySSITest, 24),
-        (DigitalHallTest, 27),
-    ],
-)
-def test_feedback_test_initialization(mc, alias, feedback_test_type, expected_total_mandatory):
-    expected_total_optional = 5
-    expected_total_backup_registers = expected_total_mandatory + expected_total_optional
-
-    axis = 1
-    feedback_test = feedback_test_type(mc, alias, axis)
-
-    feedback_test = feedback_test_type(mc, alias, 1)
-    total_mandatory = len(feedback_test.backup_registers_names)
-    total_optional = len(feedback_test.optional_backup_registers_names)
-    total_backup_register = total_mandatory + total_optional
-
-    assert total_mandatory == expected_total_mandatory
-    assert total_optional == expected_total_optional
-    assert total_backup_register == expected_total_backup_registers
-
-
-@pytest.mark.virtual
-@pytest.mark.parametrize(
     "feedback_test_type",
     [
         DigitalIncremental1Test,

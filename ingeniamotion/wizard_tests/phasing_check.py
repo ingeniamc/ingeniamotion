@@ -25,12 +25,6 @@ class PhasingCheck(BaseTest[LegacyDictReportType]):
     PHASING_TIMEOUT_REGISTER = "COMMU_PHASING_TIMEOUT"
     MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER = "COMMU_PHASING_MAX_CURRENT"
 
-    BACKUP_REGISTERS: ClassVar[list[str]] = [
-        "DRV_OP_CMD",
-        "CL_CUR_Q_SET_POINT",
-        "CL_CUR_D_SET_POINT",
-    ]
-
     class ResultType(IntEnum):
         """Test result."""
 
@@ -57,7 +51,6 @@ class PhasingCheck(BaseTest[LegacyDictReportType]):
             self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
         else:
             self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=logger_drive_name)
-        self.backup_registers_names = self.BACKUP_REGISTERS
 
     @override
     @BaseTest.stoppable

@@ -3,13 +3,16 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union
 
 import ingenialogger
+from ingenialink.drive_context_manager import DriveContextManager, DriveRegistersValue
 from ingenialink.exceptions import ILError
 
-from ingeniamotion.exceptions import IMRegisterNotExistError, IMRegisterWrongAccessError
+from ingeniamotion._utils import weak_lru
 from ingeniamotion.metaclass import DEFAULT_SERVO
 from ingeniamotion.wizard_tests.stoppable import StopExceptionError, Stoppable
 
 if TYPE_CHECKING:
+    from ingenialink.servo import Servo
+
     from ingeniamotion import MotionController
 
 from ingeniamotion.enums import SeverityLevel
@@ -42,12 +45,7 @@ T = TypeVar("T", bound=Union[LegacyDictReportType, ReportBase])
 class BaseTest(ABC, Stoppable, Generic[T]):
     """Abstract base Test class."""
 
-    WARNING_BIT_MASK = 0x0FFFFFFF
-
     def __init__(self) -> None:
-        self.backup_registers_names: list[str] = []
-        self.optional_backup_registers_names: list[str] = []
-        self.backup_registers: dict[int, dict[str, Union[int, float, str]]] = {}
         self.suggested_registers: dict[str, Union[int, float, str]] = {}
         self.mc: MotionController
         self.servo: str = DEFAULT_SERVO
@@ -55,35 +53,15 @@ class BaseTest(ABC, Stoppable, Generic[T]):
         self.report: Optional[T] = None
         self.logger = ingenialogger.get_logger(__name__)
 
-    def save_backup_registers(self) -> None:
-        """Store the value of the backup registers before the test execution."""
-        self.backup_registers[self.axis] = {}
-        for uid in self.backup_registers_names:
-            try:
-                value = self.mc.communication.get_register(uid, servo=self.servo, axis=self.axis)
-                self.backup_registers[self.axis][uid] = value
-            except IMRegisterNotExistError as e:  # noqa: PERF203
-                self.logger.warning(e, axis=self.axis)
+    @weak_lru()
+    def _get_servo(self) -> "Servo":
+        """Get the servo object from the motion controller.
 
-        for uid in self.optional_backup_registers_names:
-            if self.mc.info.register_exists(uid, self.axis, self.servo):
-                value = self.mc.communication.get_register(uid, servo=self.servo, axis=self.axis)
-                self.backup_registers[self.axis][uid] = value
+        Returns:
+            The servo object.
 
-    def restore_backup_registers(self) -> None:
-        """Restores the value of the registers after the test execution.
-
-        Notes:
-        This should only be called by the Wizard.
         """
-        for subnode in self.backup_registers:  # noqa: PERF203
-            for key, value in self.backup_registers[subnode].items():
-                try:
-                    self.mc.communication.set_register(key, value, servo=self.servo, axis=self.axis)
-                except IMRegisterNotExistError as e:  # noqa: PERF203
-                    self.logger.warning(e, axis=subnode)
-                except IMRegisterWrongAccessError as e:
-                    self.logger.warning(e, axis=subnode)
+        return self.mc._get_drive(self.servo)
 
     @Stoppable.stoppable
     def show_error_message(self) -> None:
@@ -111,9 +89,7 @@ class BaseTest(ABC, Stoppable, Generic[T]):
     def teardown(self) -> None:
         """Actions to perform after the test is run."""
 
-    def run(
-        self,
-    ) -> Optional[T]:
+    def run(self, registers_baseline: Optional[DriveRegistersValue] = None) -> Optional[T]:
         """Run the test.
 
         Returns:
@@ -123,21 +99,21 @@ class BaseTest(ABC, Stoppable, Generic[T]):
         Raises:
             ILError: If the underlying drive communication fails during the test run.
         """
-        self.reset_stop()
-        self.save_backup_registers()
-        try:
-            self.setup()
-            output = self.loop()
-            self.report = self.generate_report(output)
-        except ILError as err:
-            raise err
-        except StopExceptionError:
-            self.logger.warning("Test has been stopped")
-        finally:
+        with DriveContextManager(
+            servo=self.mc._get_drive(self.servo), baseline=registers_baseline, track_objects=False
+        ):
+            self.reset_stop()
             try:
-                self.teardown()
+                self.setup()
+                output = self.loop()
+                self.report = self.generate_report(output)
+            except ILError as err:
+                raise err
+            except StopExceptionError:
+                self.logger.warning("Test has been stopped")
             finally:
-                self.restore_backup_registers()
+                self.teardown()
+
         return self.report
 
     def generate_report(self, output: Any) -> T:

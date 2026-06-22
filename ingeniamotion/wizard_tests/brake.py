@@ -1,40 +1,27 @@
-from typing import TYPE_CHECKING, ClassVar, Optional, Union
+from typing import TYPE_CHECKING, Optional
 
 import ingenialogger
-from ingenialink.exceptions import ILError
 from typing_extensions import override
 
 from ingeniamotion.enums import CommutationMode, OperationMode, SensorType, SeverityLevel
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
-from ingeniamotion.wizard_tests.base_test import BaseTest
-from ingeniamotion.wizard_tests.stoppable import StopExceptionError
+from ingeniamotion.wizard_tests.base_test import BaseTest, ReportBase
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
 
 
-class Brake(BaseTest[None]):  # type: ignore [type-var]
+class ResultsBrakeTest(ReportBase):
+    """Brake test result report."""
+
+
+class Brake(BaseTest[ResultsBrakeTest]):
     """Brake test class."""
 
     BRAKE_OVERRIDE_REGISTER = "MOT_BRAKE_OVERRIDE"
 
     PRIMARY_ABSOLUTE_SLAVE_1_PROTOCOL = "FBK_BISS1_SSI1_PROTOCOL"
     PRIMARY_ABSOLUTE_SLAVE_1_FRAME_TYPE = "FBK_BISS1_SSI1_FRAME_TYPE"
-
-    BACKUP_REGISTERS: ClassVar[list[str]] = [
-        "MOT_BRAKE_OVERRIDE",
-        "DRV_OP_CMD",
-        "MOT_PAIR_POLES",
-        "COMMU_PHASING_MODE",
-        "COMMU_ANGLE_SENSOR",
-        "COMMU_ANGLE_REF_SENSOR",
-        "CL_VEL_FBK_SENSOR",
-        "CL_POS_FBK_SENSOR",
-        "CL_AUX_FBK_SENSOR",
-        "MOT_COMMU_MOD",
-        PRIMARY_ABSOLUTE_SLAVE_1_PROTOCOL,
-        PRIMARY_ABSOLUTE_SLAVE_1_FRAME_TYPE,
-    ]
 
     def __init__(
         self,
@@ -51,7 +38,6 @@ class Brake(BaseTest[None]):  # type: ignore [type-var]
             self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
         else:
             self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=logger_drive_name)
-        self.backup_registers_names = self.BACKUP_REGISTERS
 
     @override
     def setup(self) -> None:
@@ -92,37 +78,6 @@ class Brake(BaseTest[None]):  # type: ignore [type-var]
     @override
     def teardown(self) -> None:
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
-
-    def finish(self) -> dict[str, Union[SeverityLevel, str]]:
-        """Finish the test.
-
-        Returns:
-            The test result.
-
-        """
-        try:
-            self.teardown()
-        finally:
-            self.restore_backup_registers()
-        output = SeverityLevel.SUCCESS
-        return {
-            "result_severity": self.get_result_severity(output),
-            "result_message": self.get_result_msg(output),
-        }
-
-    @override
-    def run(self) -> None:
-        self.reset_stop()
-        self.save_backup_registers()
-        try:
-            self.setup()
-            self.loop()
-        except ILError as err:
-            self.finish()
-            raise err
-        except StopExceptionError:
-            self.logger.warning("Test has been stopped")
-            self.finish()
 
     @override
     def get_result_severity(self, output: SeverityLevel) -> SeverityLevel:

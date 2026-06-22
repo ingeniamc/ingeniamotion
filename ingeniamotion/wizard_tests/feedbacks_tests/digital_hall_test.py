@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, ClassVar, Optional
+from typing import TYPE_CHECKING, Optional
 
 from typing_extensions import override
 
@@ -15,12 +15,6 @@ class DigitalHallTest(Feedbacks):
     HALLS_FILTER_CUTOFF_FREQUENCY = 10
     DIG_HALL_POLE_PAIRS_REGISTER = "FBK_DIGHALL_PAIRPOLES"
 
-    BACKUP_REGISTERS_HALLS: ClassVar[list[str]] = [
-        "FBK_DIGHALL_POLARITY",
-        "FBK_DIGHALL_PAIRPOLES",
-        "ERROR_DIGHALL_SEQ_OPTION",
-    ]
-
     FEEDBACK_POLARITY_REGISTER = "FBK_DIGHALL_POLARITY"
 
     SENSOR_TYPE_FEEDBACK_TEST = SensorType.HALLS
@@ -29,7 +23,6 @@ class DigitalHallTest(Feedbacks):
         self, mc: "MotionController", servo: str, axis: int, logger_drive_name: Optional[str] = None
     ) -> None:
         super().__init__(mc, servo, axis, logger_drive_name)
-        self.backup_registers_names.extend(self.BACKUP_REGISTERS_HALLS)
 
     @override
     @BaseTest.stoppable
@@ -59,8 +52,6 @@ class DigitalHallTest(Feedbacks):
             self.logger.info(
                 "Setting a velocity low pass filter at 10 Hz as velocity feedback is set to Halls"
             )
-            del self.backup_registers[self.axis][self.VELOCITY_FEEDBACK_FILTER_1_TYPE_REGISTER]
-            del self.backup_registers[self.axis][self.VELOCITY_FEEDBACK_FILTER_1_FREQUENCY_REGISTER]
 
     @override
     @BaseTest.stoppable
