@@ -1,5 +1,6 @@
 import logging
 import time
+from enum import Enum
 from threading import Thread
 from typing import TYPE_CHECKING
 
@@ -7,8 +8,10 @@ import pytest
 from ingenialink import exceptions
 from ingenialink.drive_context_manager import DriveRegistersValue
 from ingenialink.servo import Servo
+from summit_testing_framework.connection.reconnect_utils import ConnectionWrapper
 
 from ingeniamotion.enums import SensorType, SeverityLevel
+from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.wizard_tests.base_test import TestError
 from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder1_test import AbsoluteEncoder1Test
 from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder2_test import AbsoluteEncoder2Test
@@ -29,7 +32,6 @@ pytestmark = pytest.mark.usefixtures("stoppable_trace_recorder")
 if TYPE_CHECKING:
     from summit_testing_framework.setups.environment_control import DriveEnvironmentController
 
-    from ingeniamotion.motion_controller import MotionController
 
 CURRENT_QUADRATURE_SET_POINT_REGISTER = "CL_CUR_Q_SET_POINT"
 RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
@@ -52,20 +54,23 @@ def feedback_test_setup(
     mc.tests.commutation(servo=environment.aliases)
 
 
-def assert_test_returns_to_baseline(servo: Servo, register_baseline: DriveRegistersValue):
-    """Assert that the test returns to the baseline configuration after running."""
+def assert_returns_to_initial_value(servo: Servo, initial_value: DriveRegistersValue):
+    """Assert that the test returns to the initial configuration after running.
+
+    Args:
+        servo (Servo): The servo to check.
+        initial_value (DriveRegistersValue): The initial configuration of the servo.
+    """
     current_state = DriveRegistersValue.from_hardware(servo)
 
-    differences = register_baseline.diff(current_state)
-
-    print(differences)
+    differences = initial_value.diff(current_state)
 
     differences_str = "\n".join(
-        f"{register}: baseline={baseline_value}, current={current_value}"
-        for register, (baseline_value, current_value) in differences.items()
+        f"{register}: initial={initial_value}, current={current_value}"
+        for register, (initial_value, current_value) in differences.items()
     )
     assert len(differences) == 0, (
-        f"Test did not return to baseline. Differences:\n{differences_str}"
+        f"Test did not return to initial value. Differences:\n{differences_str}"
     )
 
 
@@ -87,7 +92,7 @@ def test_digital_halls_test(
             mc.tests.digital_halls_test(servo=alias)
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
-    assert_test_returns_to_baseline(servo, register_baseline)
+    assert_returns_to_initial_value(servo, register_baseline)
 
 
 @pytest.mark.ethernet
@@ -108,7 +113,7 @@ def test_incremental_encoder_1_test(
             mc.tests.incremental_encoder_1_test(servo=alias)
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
-    assert_test_returns_to_baseline(servo, register_baseline)
+    assert_returns_to_initial_value(servo, register_baseline)
 
 
 @pytest.mark.ethernet
@@ -131,7 +136,7 @@ def test_incremental_encoder_2_test(
             mc.tests.incremental_encoder_2_test(servo=alias)
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
-    assert_test_returns_to_baseline(servo, register_baseline)
+    assert_returns_to_initial_value(servo, register_baseline)
 
 
 @pytest.mark.ethernet
@@ -152,7 +157,7 @@ def test_absolute_encoder_1_test(
             mc.tests.absolute_encoder_1_test(servo=alias)
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
-    assert_test_returns_to_baseline(servo, register_baseline)
+    assert_returns_to_initial_value(servo, register_baseline)
 
 
 @pytest.mark.ethernet
@@ -173,7 +178,7 @@ def test_absolute_encoder_2_test(
             mc.tests.absolute_encoder_2_test(servo=alias)
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
-    assert_test_returns_to_baseline(servo, register_baseline)
+    assert_returns_to_initial_value(servo, register_baseline)
 
 
 @pytest.mark.ethernet
@@ -196,7 +201,7 @@ def test_secondary_ssi_test(
             mc.tests.secondary_ssi_test(servo=alias)
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
-    assert_test_returns_to_baseline(servo, register_baseline)
+    assert_returns_to_initial_value(servo, register_baseline)
 
 
 @pytest.mark.ethernet
@@ -210,7 +215,7 @@ def test_commutation(
     results = mc.tests.commutation(servo=alias)
     assert results["result_severity"] == SeverityLevel.SUCCESS
 
-    assert_test_returns_to_baseline(servo, register_baseline)
+    assert_returns_to_initial_value(servo, register_baseline)
 
 
 @pytest.mark.ethernet
@@ -222,7 +227,7 @@ def test_commutation_error(
     with pytest.raises(force_fault):
         mc.tests.commutation(servo=alias)
 
-    assert_test_returns_to_baseline(servo, register_baseline)
+    assert_returns_to_initial_value(servo, register_baseline)
 
 
 @pytest.mark.ethernet
@@ -233,7 +238,7 @@ def test_phasing_check(mc, alias, servo: Servo, register_baseline: DriveRegister
     mc.tests.commutation(servo=alias)
     results = mc.tests.phasing_check(servo=alias)
     assert results["result_severity"] == SeverityLevel.SUCCESS
-    assert_test_returns_to_baseline(servo, register_baseline)
+    assert_returns_to_initial_value(servo, register_baseline)
 
 
 @pytest.mark.ethernet
@@ -245,7 +250,7 @@ def test_phasing_check_error(
     with pytest.raises(force_fault):
         mc.tests.phasing_check(servo=alias)
 
-    assert_test_returns_to_baseline(servo, register_baseline)
+    assert_returns_to_initial_value(servo, register_baseline)
 
 
 @pytest.mark.ethernet
@@ -255,7 +260,7 @@ def test_sto_test(mc, alias, servo: Servo, register_baseline: DriveRegistersValu
     results = mc.tests.sto_test(servo=alias)
     assert results["result_severity"] == SeverityLevel.SUCCESS
 
-    assert_test_returns_to_baseline(servo, register_baseline)
+    assert_returns_to_initial_value(servo, register_baseline)
 
 
 @pytest.mark.virtual
@@ -277,7 +282,7 @@ def test_sto_test_error(
     assert results["result_severity"] == SeverityLevel.FAIL
     assert results["result_message"] == message
 
-    assert_test_returns_to_baseline(servo, register_baseline)
+    assert_returns_to_initial_value(servo, register_baseline)
 
 
 @pytest.mark.virtual
@@ -303,22 +308,23 @@ def test_sto_test_logs(
     assert abnormal_log in caplog.text
     assert report_log in caplog.text
 
-    assert_test_returns_to_baseline(servo, register_baseline)
+    assert_returns_to_initial_value(servo, register_baseline)
 
 
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-def test_brake_test(mc, alias, servo: Servo, register_baseline: DriveRegistersValue):
+def test_brake_test(mc, alias, servo: Servo, connection_wrapper: ConnectionWrapper):
     # Set frame type to BiSS-C BP3 to ensure that the test changes it to avoid an error.
     mc.communication.set_register("FBK_BISS1_SSI1_FRAME_TYPE", 3, servo=alias)
     pair_poles = mc.configuration.get_motor_pair_poles(servo=alias)
+    initial_values = connection_wrapper.current_registers_values()
     brake_test = mc.tests.brake_test(servo=alias)
     assert mc.configuration.get_motor_pair_poles(servo=alias) == 1
     brake_test.finish()
     assert pair_poles == mc.configuration.get_motor_pair_poles(servo=alias)
 
-    assert_test_returns_to_baseline(servo, register_baseline)
+    assert_returns_to_initial_value(servo, initial_values)
 
 
 def run_test_and_stop(test):
@@ -352,7 +358,7 @@ def test_feedback_stop(
     test = feedback_class(mc, alias, 1)
     run_test_and_stop(test)
 
-    assert_test_returns_to_baseline(servo, register_baseline)
+    assert_returns_to_initial_value(servo, register_baseline)
 
 
 @pytest.mark.virtual
@@ -360,7 +366,7 @@ def test_commutation_stop(mc, alias, servo: Servo, register_baseline: DriveRegis
     test = Phasing(mc, alias, 1)
     run_test_and_stop(test)
 
-    assert_test_returns_to_baseline(servo, register_baseline)
+    assert_returns_to_initial_value(servo, register_baseline)
 
 
 @pytest.mark.virtual
@@ -368,11 +374,20 @@ def test_phasing_check_stop(mc, alias, servo: Servo, register_baseline: DriveReg
     test = PhasingCheck(mc, alias, 1)
     run_test_and_stop(test)
 
-    assert_test_returns_to_baseline(servo, register_baseline)
+    assert_returns_to_initial_value(servo, register_baseline)
+
+
+class TestCurrents(Enum):
+    RATED_CURRENT = "Rated current"
+    DRIVE_CURRENT = "Drive current"
+    SAME_VALUE = "Same value"
 
 
 @pytest.mark.virtual
-@pytest.mark.parametrize("test_currents", ["Rated current", "Drive current", "Same value"])
+@pytest.mark.parametrize(
+    "test_currents",
+    [TestCurrents.RATED_CURRENT, TestCurrents.DRIVE_CURRENT, TestCurrents.SAME_VALUE],
+)
 @pytest.mark.parametrize(
     "test_sensor",
     [
@@ -385,7 +400,12 @@ def test_phasing_check_stop(mc, alias, servo: Servo, register_baseline: DriveReg
     ],
 )
 def test_current_ramp_up(
-    mc, alias, test_currents, test_sensor, servo: Servo, register_baseline: DriveRegistersValue
+    mc: MotionController,
+    alias: str,
+    test_currents: TestCurrents,
+    test_sensor: SensorType,
+    servo: Servo,
+    connection_wrapper: ConnectionWrapper,
 ):
     axis = 1
     test_feedback_options = {
@@ -402,14 +422,18 @@ def test_current_ramp_up(
         MAXIMUM_CONTINUOUS_CURRENT_DRIVE_PROTECTION, servo=alias, axis=1
     )
 
-    if test_currents == "Rated current":
+    if test_currents == TestCurrents.RATED_CURRENT:
         current_motor = current_drive + 1
-    elif test_currents == "Drive current":
+    elif test_currents == TestCurrents.DRIVE_CURRENT:
         current_motor = current_drive - 1
-    else:
+    elif test_currents == TestCurrents.SAME_VALUE:
         current_motor = current_drive
+    else:
+        raise NotImplementedError(f"Test currents option {test_currents} is not implemented.")
 
     mc.communication.set_register(RATED_CURRENT_REGISTER, current_motor, servo=alias, axis=1)
+
+    initial_values = connection_wrapper.current_registers_values()
 
     feedbacks_test.current_ramp_up()
 
@@ -419,11 +443,13 @@ def test_current_ramp_up(
 
     test_max_current = current_quadrature / feedbacks_test.PERCENTAGE_CURRENT_USED
 
-    if test_currents == "Rated current":
+    if test_currents == TestCurrents.RATED_CURRENT:
         assert pytest.approx(test_max_current) == current_drive
-    elif test_currents == "Drive current":
+    elif test_currents == TestCurrents.DRIVE_CURRENT:
         assert pytest.approx(test_max_current) == current_motor
-    else:
+    elif test_currents == TestCurrents.SAME_VALUE:
         assert pytest.approx(test_max_current) == current_drive == current_motor
+    else:
+        raise NotImplementedError(f"Test currents option {test_currents} is not implemented.")
 
-    assert_test_returns_to_baseline(servo, register_baseline)
+    assert_returns_to_initial_value(servo, initial_values)
