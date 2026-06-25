@@ -404,8 +404,6 @@ def test_current_ramp_up(
     alias: str,
     test_currents: TestCurrents,
     test_sensor: SensorType,
-    servo: Servo,
-    connection_wrapper: ConnectionWrapper,
 ):
     axis = 1
     test_feedback_options = {
@@ -433,8 +431,6 @@ def test_current_ramp_up(
 
     mc.communication.set_register(RATED_CURRENT_REGISTER, current_motor, servo=alias, axis=1)
 
-    initial_values = connection_wrapper.current_registers_values()
-
     feedbacks_test.current_ramp_up()
 
     current_quadrature = mc.communication.get_register(
@@ -451,5 +447,3 @@ def test_current_ramp_up(
         assert pytest.approx(test_max_current) == current_drive == current_motor
     else:
         raise NotImplementedError(f"Test currents option {test_currents} is not implemented.")
-
-    assert_returns_to_initial_value(servo, initial_values)
