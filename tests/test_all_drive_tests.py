@@ -398,7 +398,9 @@ def test_commutation_stop(mc, alias, servo: Servo, register_baseline: DriveRegis
     test = Phasing(mc, alias, 1)
     run_test_and_stop(test)
 
-    assert_returns_to_initial_value(servo, register_baseline)
+    assert_returns_to_initial_value(
+        servo, register_baseline, accepted_changed_registers=Phasing.ACCEPTED_CHANGED_REGISTERS
+    )
 
 
 @pytest.mark.virtual
