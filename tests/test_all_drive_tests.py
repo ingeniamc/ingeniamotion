@@ -1,5 +1,6 @@
 import logging
 import time
+from collections.abc import Collection
 from enum import Enum
 from threading import Thread
 from typing import TYPE_CHECKING
@@ -54,16 +55,27 @@ def feedback_test_setup(
     mc.tests.commutation(servo=environment.aliases)
 
 
-def assert_returns_to_initial_value(servo: Servo, initial_value: DriveRegistersValue):
+def assert_returns_to_initial_value(
+    servo: Servo,
+    initial_value: DriveRegistersValue,
+    accepted_changed_registers: Collection[str] = (),
+):
     """Assert that the test returns to the initial configuration after running.
 
     Args:
         servo (Servo): The servo to check.
         initial_value (DriveRegistersValue): The initial configuration of the servo.
+        accepted_changed_registers (Collection[str]): UIDs of registers the test is
+            expected to change permanently (e.g. calibration results or values set by
+            a fixture). Differences in these registers are ignored.
     """
     current_state = DriveRegistersValue.from_hardware(servo)
 
-    differences = initial_value.diff(current_state)
+    differences = {
+        register: values
+        for register, values in initial_value.diff(current_state).items()
+        if register.identifier not in accepted_changed_registers
+    }
 
     differences_str = "\n".join(
         f"{register}: initial={initial_value}, current={current_value}"
@@ -92,7 +104,9 @@ def test_digital_halls_test(
             mc.tests.digital_halls_test(servo=alias)
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
-    assert_returns_to_initial_value(servo, register_baseline)
+    assert_returns_to_initial_value(
+        servo, register_baseline, accepted_changed_registers=Phasing.ACCEPTED_CHANGED_REGISTERS
+    )
 
 
 @pytest.mark.ethernet
@@ -113,7 +127,9 @@ def test_incremental_encoder_1_test(
             mc.tests.incremental_encoder_1_test(servo=alias)
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
-    assert_returns_to_initial_value(servo, register_baseline)
+    assert_returns_to_initial_value(
+        servo, register_baseline, accepted_changed_registers=Phasing.ACCEPTED_CHANGED_REGISTERS
+    )
 
 
 @pytest.mark.ethernet
@@ -136,7 +152,9 @@ def test_incremental_encoder_2_test(
             mc.tests.incremental_encoder_2_test(servo=alias)
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
-    assert_returns_to_initial_value(servo, register_baseline)
+    assert_returns_to_initial_value(
+        servo, register_baseline, accepted_changed_registers=Phasing.ACCEPTED_CHANGED_REGISTERS
+    )
 
 
 @pytest.mark.ethernet
@@ -157,7 +175,9 @@ def test_absolute_encoder_1_test(
             mc.tests.absolute_encoder_1_test(servo=alias)
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
-    assert_returns_to_initial_value(servo, register_baseline)
+    assert_returns_to_initial_value(
+        servo, register_baseline, accepted_changed_registers=Phasing.ACCEPTED_CHANGED_REGISTERS
+    )
 
 
 @pytest.mark.ethernet
@@ -178,7 +198,9 @@ def test_absolute_encoder_2_test(
             mc.tests.absolute_encoder_2_test(servo=alias)
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
-    assert_returns_to_initial_value(servo, register_baseline)
+    assert_returns_to_initial_value(
+        servo, register_baseline, accepted_changed_registers=Phasing.ACCEPTED_CHANGED_REGISTERS
+    )
 
 
 @pytest.mark.ethernet
@@ -201,7 +223,9 @@ def test_secondary_ssi_test(
             mc.tests.secondary_ssi_test(servo=alias)
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
-    assert_returns_to_initial_value(servo, register_baseline)
+    assert_returns_to_initial_value(
+        servo, register_baseline, accepted_changed_registers=Phasing.ACCEPTED_CHANGED_REGISTERS
+    )
 
 
 @pytest.mark.ethernet
@@ -215,19 +239,22 @@ def test_commutation(
     results = mc.tests.commutation(servo=alias)
     assert results["result_severity"] == SeverityLevel.SUCCESS
 
-    assert_returns_to_initial_value(servo, register_baseline)
+    assert_returns_to_initial_value(
+        servo, register_baseline, accepted_changed_registers=Phasing.ACCEPTED_CHANGED_REGISTERS
+    )
 
 
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-def test_commutation_error(
-    mc, alias, force_fault, servo: Servo, register_baseline: DriveRegistersValue
-):
+def test_commutation_error(mc, alias, force_fault, servo: Servo):
+    # Capture the baseline after force_fault applied it, so its value is part of the
+    # expected state and the test still verifies the wizard restored everything else.
+    initial_values = DriveRegistersValue.from_hardware(servo)
     with pytest.raises(force_fault):
         mc.tests.commutation(servo=alias)
 
-    assert_returns_to_initial_value(servo, register_baseline)
+    assert_returns_to_initial_value(servo, initial_values)
 
 
 @pytest.mark.ethernet
@@ -238,19 +265,22 @@ def test_phasing_check(mc, alias, servo: Servo, register_baseline: DriveRegister
     mc.tests.commutation(servo=alias)
     results = mc.tests.phasing_check(servo=alias)
     assert results["result_severity"] == SeverityLevel.SUCCESS
-    assert_returns_to_initial_value(servo, register_baseline)
+    assert_returns_to_initial_value(
+        servo, register_baseline, accepted_changed_registers=Phasing.ACCEPTED_CHANGED_REGISTERS
+    )
 
 
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-def test_phasing_check_error(
-    mc, alias, force_fault, servo: Servo, register_baseline: DriveRegistersValue
-):
+def test_phasing_check_error(mc, alias, force_fault, servo: Servo):
+    # Capture the baseline after force_fault applied it, so its value is part of the
+    # expected state and the test still verifies the wizard restored everything else.
+    initial_values = DriveRegistersValue.from_hardware(servo)
     with pytest.raises(force_fault):
         mc.tests.phasing_check(servo=alias)
 
-    assert_returns_to_initial_value(servo, register_baseline)
+    assert_returns_to_initial_value(servo, initial_values)
 
 
 @pytest.mark.ethernet
@@ -358,7 +388,9 @@ def test_feedback_stop(
     test = feedback_class(mc, alias, 1)
     run_test_and_stop(test)
 
-    assert_returns_to_initial_value(servo, register_baseline)
+    assert_returns_to_initial_value(
+        servo, register_baseline, accepted_changed_registers=Phasing.ACCEPTED_CHANGED_REGISTERS
+    )
 
 
 @pytest.mark.virtual

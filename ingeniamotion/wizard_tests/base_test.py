@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Generic, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, Optional, TypeVar, Union
 
 import ingenialogger
 from ingenialink.drive_context_manager import DriveContextManager, DriveRegistersValue
@@ -44,6 +44,9 @@ T = TypeVar("T", bound=Union[LegacyDictReportType, ReportBase])
 
 class BaseTest(ABC, Stoppable, Generic[T]):
     """Abstract base Test class."""
+
+    ACCEPTED_CHANGED_REGISTERS: ClassVar[tuple[str, ...]] = ()
+    """Registers that the test is expected to leave changed after it runs."""
 
     def __init__(self) -> None:
         self.suggested_registers: dict[str, Union[int, float, str]] = {}
@@ -100,7 +103,10 @@ class BaseTest(ABC, Stoppable, Generic[T]):
             ILError: If the underlying drive communication fails during the test run.
         """
         with DriveContextManager(
-            servo=self.mc._get_drive(self.servo), baseline=registers_baseline, track_objects=False
+            servo=self.mc._get_drive(self.servo),
+            baseline=registers_baseline,
+            do_not_restore_registers=list(self.ACCEPTED_CHANGED_REGISTERS),
+            track_objects=False,
         ):
             self.reset_stop()
             try:

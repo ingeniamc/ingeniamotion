@@ -38,6 +38,16 @@ class Phasing(BaseTest[LegacyDictReportType]):
     PHASING_TIMEOUT_REGISTER = "COMMU_PHASING_TIMEOUT"
     MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER = "COMMU_PHASING_MAX_CURRENT"
     COMMUTATION_ANGLE_OFFSET_REGISTER = "COMMU_ANGLE_OFFSET"
+    COMMUTATION_ANGLE_REF_OFFSET_REGISTER = "COMMU_ANGLE_REF_OFFSET"
+
+    # Left changed on purpose: drive-computed calibration results (angle offsets) and the
+    # phasing config the test applies. They are not rolled back, so restore checks accept them.
+    ACCEPTED_CHANGED_REGISTERS: ClassVar[tuple[str, ...]] = (
+        COMMUTATION_ANGLE_OFFSET_REGISTER,
+        COMMUTATION_ANGLE_REF_OFFSET_REGISTER,
+        MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER,
+        PHASING_TIMEOUT_REGISTER,
+    )
 
     class ResultType(IntEnum):
         """Test result."""
