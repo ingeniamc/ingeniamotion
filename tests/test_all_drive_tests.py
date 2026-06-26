@@ -37,6 +37,10 @@ if TYPE_CHECKING:
 CURRENT_QUADRATURE_SET_POINT_REGISTER = "CL_CUR_Q_SET_POINT"
 RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
 MAXIMUM_CONTINUOUS_CURRENT_DRIVE_PROTECTION = "DRV_PROT_MAN_MAX_CONT_CURRENT_VALUE"
+# Diagnostic error-history registers that change as a side effect of any error raised during
+# a test (e.g. the CANopen pre-defined error field 0x1003) and cannot be restored to a prior
+# value (writable only to 0, to clear). Always ignored by the restore assertion.
+DIAGNOSTIC_ERROR_REGISTERS = ("CIA301_COMMS_ERROR_FIELD",)
 
 
 @pytest.fixture
@@ -67,14 +71,16 @@ def assert_returns_to_initial_value(
         initial_value (DriveRegistersValue): The initial configuration of the servo.
         accepted_changed_registers (Collection[str]): UIDs of registers the test is
             expected to change permanently (e.g. calibration results or values set by
-            a fixture). Differences in these registers are ignored.
+            a fixture). Differences in these registers are ignored, on top of the
+            always-ignored DIAGNOSTIC_ERROR_REGISTERS.
     """
     current_state = DriveRegistersValue.from_hardware(servo)
 
+    ignored = set(accepted_changed_registers) | set(DIAGNOSTIC_ERROR_REGISTERS)
     differences = {
         register: values
         for register, values in initial_value.diff(current_state).items()
-        if register.identifier not in accepted_changed_registers
+        if register.identifier not in ignored
     }
 
     differences_str = "\n".join(
@@ -254,7 +260,9 @@ def test_commutation_error(mc, alias, force_fault, servo: Servo):
     with pytest.raises(force_fault):
         mc.tests.commutation(servo=alias)
 
-    assert_returns_to_initial_value(servo, initial_values)
+    assert_returns_to_initial_value(
+        servo, initial_values, accepted_changed_registers=Phasing.ACCEPTED_CHANGED_REGISTERS
+    )
 
 
 @pytest.mark.ethernet
@@ -349,9 +357,10 @@ def test_brake_test(mc, alias, servo: Servo, connection_wrapper: ConnectionWrapp
     mc.communication.set_register("FBK_BISS1_SSI1_FRAME_TYPE", 3, servo=alias)
     pair_poles = mc.configuration.get_motor_pair_poles(servo=alias)
     initial_values = connection_wrapper.current_registers_values()
-    brake_test = mc.tests.brake_test(servo=alias)
-    assert mc.configuration.get_motor_pair_poles(servo=alias) == 1
-    brake_test.finish()
+    with mc.tests.brake_test(servo=alias):
+        # Inside the context the drive is left configured for the brake test.
+        assert mc.configuration.get_motor_pair_poles(servo=alias) == 1
+    # On context exit the drive state is restored.
     assert pair_poles == mc.configuration.get_motor_pair_poles(servo=alias)
 
     assert_returns_to_initial_value(servo, initial_values)

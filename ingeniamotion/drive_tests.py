@@ -348,7 +348,9 @@ class DriveTests:
             axis : axis that will run the test. ``1`` by default.
 
         Returns:
-            Instance of Brake test. Call ``Brake.finish()`` to end the test.
+            Instance of Brake test, with the drive left configured for the test. Use it
+            as a context manager (``with mc.tests.brake_test() as brake: ...``) or call
+            ``Brake.finish()`` to end the test and restore the drive state.
         """
         brake_test = Brake(self.mc, servo, axis)
         brake_test.run()
