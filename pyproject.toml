@@ -93,7 +93,7 @@ ruff = "==0.15.14"
 optional = true
 [tool.poetry.group.docs.dependencies]
 sphinx = "==7.4.7"
-sphinx-rtd-theme = "==2.0.0"
+sphinx-rtd-theme = "==3.1.0"
 sphinxcontrib-bibtex = "==2.6.2"
 sphinx_autodoc_typehints = "==1.25.3"
 nbsphinx = "==0.9.4"
