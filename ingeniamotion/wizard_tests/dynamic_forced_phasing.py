@@ -1,5 +1,6 @@
 import math
 from dataclasses import dataclass
+from enum import IntEnum
 from typing import TYPE_CHECKING, Final, Optional, Union, cast
 
 import ingenialogger
@@ -74,6 +75,13 @@ class DynamicForcedPhasingReport(ReportBase):
     """Commutation phasing mode."""
 
 
+class PhasingDirection(IntEnum):
+    """Direction of the phasing movement."""
+
+    POSITIVE = 1
+    NEGATIVE = -1
+
+
 class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
     """Dynamic Forced Phasing test.
 
@@ -93,6 +101,8 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
     """Percentage of the rated current used for phasing in non-geared motors."""
     PHASING_CURRENT_PERCENTAGE_GEAR: Final[float] = 0.8
     """Percentage of the rated current used for phasing in geared motors."""
+    CURRENT_RAMP_TIME_S: Final[float] = 1.0
+    """Time in seconds to ramp the current to the phasing max current."""
 
     BACKUP_REGISTERS: Final[list[str]] = [
         COMMUTATION_ANGLE_OFFSET_REGISTER,
@@ -228,12 +238,12 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
         )
 
     @BaseTest.stoppable
-    def __configure_monitoring(self, direction: int) -> None:
+    def __configure_monitoring(self, direction: PhasingDirection) -> None:
         """Configure the monitoring for the test based on the direction."""
         self.mc.capture.disable_monitoring(servo=self.servo)
         trigger_config = (
             MonitoringSoCConfig.TRIGGER_CONFIG_RISING
-            if direction == 1
+            if direction == PhasingDirection.POSITIVE
             else MonitoringSoCConfig.TRIGGER_CONFIG_FALLING
         )
         mon_registers: list[dict[str, Union[int, str]]] = [
@@ -348,7 +358,7 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
         return mean_difference, max_difference
 
     @BaseTest.stoppable
-    def _collect_mean_difference(self, direction: int, tolerance_norm: float) -> float:
+    def _collect_mean_difference(self, direction: PhasingDirection, tolerance_norm: float) -> float:
         """Move the motor and collect a stable mean angle difference.
 
         Tries up to ``MAX_ATTEMPTS_PER_FREQUENCY`` monitoring reads at each
@@ -356,7 +366,7 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
         with the lowest maximum difference error.
 
         Args:
-            direction: ``1`` for positive direction, ``-1`` for negative.
+            direction: The direction of the movement.
             tolerance_norm: The maximum allowed difference between the signals.
 
         Returns:
@@ -369,10 +379,10 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
         mean_tuples: list[tuple[float, float]] = []
         for frequency in self.spin_frequency:
             self.logger.debug(
-                f"Trying generator frequency {frequency:.3g} Hz, direction {direction:+d}"
+                f"Trying generator frequency {frequency:.3g} Hz, direction {direction.name}"
             )
             self.mc.motion.internal_generator_saw_tooth_move(
-                direction, 0, frequency, servo=self.servo, axis=self.axis
+                direction.value, 0, frequency, servo=self.servo, axis=self.axis
             )
             for attempt in range(1, self.MAX_ATTEMPTS_PER_FREQUENCY + 1):
                 self.check_stop()
@@ -401,15 +411,15 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
     def loop(self) -> DynamicForcedPhasingReport:
         self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
         self.mc.motion.current_direct_ramp(
-            self.phasing_max_current, 1, servo=self.servo, axis=self.axis
+            self.phasing_max_current, self.CURRENT_RAMP_TIME_S, servo=self.servo, axis=self.axis
         )
-        self.__configure_monitoring(direction=1)
+        self.__configure_monitoring(direction=PhasingDirection.POSITIVE)
         mean_difference_pos = self._collect_mean_difference(
-            direction=1, tolerance_norm=self.NORM_TOLERANCE
+            direction=PhasingDirection.POSITIVE, tolerance_norm=self.NORM_TOLERANCE
         )
-        self.__configure_monitoring(direction=-1)
+        self.__configure_monitoring(direction=PhasingDirection.NEGATIVE)
         mean_difference_neg = self._collect_mean_difference(
-            direction=-1, tolerance_norm=self.NORM_TOLERANCE
+            direction=PhasingDirection.NEGATIVE, tolerance_norm=self.NORM_TOLERANCE
         )
 
         commutation_angle = circular_mean([mean_difference_pos, mean_difference_neg])
