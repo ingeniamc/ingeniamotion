@@ -1,11 +1,12 @@
-@Library('cicd-lib@0.21') _
+// https://novantamotion.atlassian.net/browse/CIT-707
+@Library('cicd-lib@112bb66') _
 
 import python.VirtualEnvironment
 import python.VEnvManager
 import pytest.TestSession
 import pytest.TestGroup
 import pytest.PyTestManager
-import pytest.TestDashboardBuilder
+import utils.BuildParamUtils
 
 def SW_NODE = "windows-slave"
 def ECAT_NODE = "ecat-test"
@@ -45,7 +46,6 @@ TestSession TEST_SESSIONS = new TestSession(
     covPackageName: "ingeniamotion",
     covFromSitePackages: false,
     wiresharkScope: null, // Set later based on parameter
-    wiresharkDir: "wireshark",
     startWiresharkTimeoutS: 10.0,
     importMode: "importlib",
     logCli: true,
@@ -81,19 +81,13 @@ def NIGHTLY_CRON = '0 19,21,23 * * * % PYTHON_VERSIONS=All;WIRESHARK_LOGGING=tru
 def WEEKEND_CRON   = '0 8,14 * * 6-7 % PYTHON_VERSIONS=All;RUN_POLICY_NIGHTLY=true;RUN_POLICY_WEEKEND=true'
 def CRON_SETTINGS = BRANCH_NAME == "develop" ? "${NIGHTLY_CRON}\n${WEEKEND_CRON}" : ""
 
-pipeline {
-    agent none
-    options {
-        timestamps()
-    }
-    triggers {
-        parameterizedCron(CRON_SETTINGS)
-    }
-    parameters {
+properties([
+    pipelineTriggers([parameterizedCron(CRON_SETTINGS)]),
+    parameters([
         choice(
                 choices: ['MIN', 'MAX', 'MIN_MAX', 'All'],
                 name: 'PYTHON_VERSIONS'
-        )
+        ),
         choice(
             choices: [
                 '.*',
@@ -115,15 +109,48 @@ pipeline {
             ],
             name: 'test_session_filter',
             description: 'Regex pattern for which test sessions to run (e.g. "fsoe.*", "ethercat_everest.*", ".*" for all)'
-        )
-        booleanParam(name: 'WIRESHARK_LOGGING', defaultValue: false, description: 'Enable Wireshark logging')
+        ),
+        booleanParam(name: 'WIRESHARK_LOGGING', defaultValue: false, description: 'Enable Wireshark logging'),
         choice(
             choices: ['function', 'module', 'session'],
             name: 'WIRESHARK_LOGGING_SCOPE'
+        ),
+        booleanParam(name: 'CLEAR_SUCCESSFUL_WIRESHARK_LOGS', defaultValue: true, description: 'Clears Wireshark logs if the test passed'),
+        booleanParam(name: 'RUN_POLICY_NIGHTLY', defaultValue: false, description: 'Tag this build as a nightly build (set automatically by cron triggers)'),
+        booleanParam(name: 'RUN_POLICY_WEEKEND', defaultValue: false, description: 'Tag this build as a weekend build (set automatically by weekend cron triggers)'),
+        // Show the previous build's pytest selection as the initial value in the form.
+        // If PYTEST_SELECTION contains data, it acts as an additional selector alongside test_session_filter.\
+        // If master/develop/release branch, default to empty (no filter applied by default)
+        string(
+            name: 'PYTEST_SELECTION',
+            defaultValue: env.BRANCH_NAME in [BRANCH_NAME_MASTER, 'develop'] || env.BRANCH_NAME?.startsWith('release/') ? '' : BuildParamUtils.latestBuildParamValue(currentBuild, 'PYTEST_SELECTION', ''),
+            description: '''
+                Pytest selection string to select which tests to run.<br>
+                See <a href="https://docs.pytest.org/en/stable/how-to/usage.html#specifying-tests-selecting-tests" target="_blank">
+                pytest selecting tests documentation
+                </a>
+            '''
+        ),
+        // Repeat-count input will be used for --count arguments (pytest-repeat plugin) for all test sessions that are run.
+        // If PYTEST_SELECTION is empty, this will have no effect since all tests will run once by default.
+        string(
+            name: 'PYTEST_REPEAT_COUNTS',
+            defaultValue: BuildParamUtils.latestBuildParamValue(currentBuild, 'PYTEST_REPEAT_COUNTS', ''),
+            description: '''
+                Pytest repeat count used for <code>--count</code>.<br>
+                See <a href="https://github.com/pytest-dev/pytest-repeat" target="_blank">
+                pytest repeat plugin documentation
+                </a>.<br>
+                <span style="color:red;">Only has effect when PYTEST_SELECTION is set.</span>
+            '''
         )
-        booleanParam(name: 'CLEAR_SUCCESSFUL_WIRESHARK_LOGS', defaultValue: true, description: 'Clears Wireshark logs if the test passed')
-        booleanParam(name: 'RUN_POLICY_NIGHTLY', defaultValue: false, description: 'Tag this build as a nightly build (set automatically by cron triggers)')
-        booleanParam(name: 'RUN_POLICY_WEEKEND', defaultValue: false, description: 'Tag this build as a weekend build (set automatically by weekend cron triggers)')
+    ])
+])
+
+pipeline {
+    agent none
+    options {
+        timestamps()
     }
     stages {
         stage('Prepare test sessions') {
@@ -165,6 +192,8 @@ pipeline {
                         jobName: "${env.JOB_NAME}-#${env.BUILD_NUMBER}",
                         wiresharkScope: params.WIRESHARK_LOGGING_SCOPE,
                         clearSuccessfulWiresharkLogs: params.CLEAR_SUCCESSFUL_WIRESHARK_LOGS,
+                        archiveData: "*",
+                        testSelectionRepeatCount: params.PYTEST_REPEAT_COUNTS?.trim()?.isInteger() ? params.PYTEST_REPEAT_COUNTS.toInteger() : 1,
                     )
 
                     // Configure if ECAT and ETH sessions use Wireshark logging based on parameter
@@ -176,6 +205,7 @@ pipeline {
                     )
 
                     testManager.testSessionFilter = params.test_session_filter
+                    testManager.testSessionSelection = params.PYTEST_SELECTION
 
                     // Parse run policy tags from boolean parameters
                     def runPolicyTags = [] as Set
@@ -193,6 +223,13 @@ pipeline {
                     testManager.buildTestSessions("tests.setups.rack_specifiers")
                     testManager.buildTestSessions("tests.setups.virtual_drive")
 
+                    if (env.BRANCH_NAME == 'develop' && testManager.runPolicyTags.isEmpty()) {
+                        HW_TEST_SESSIONS.setAttributeInCascade(
+                            shouldRun: false,
+                            skipReason: 'Develop builds without nightly/weekend policy do not run hardware tests',
+                        )
+                    }
+
                     // Register manual test sessions
                     WIN_DOCKER_TESTS.addSession(
                         uid: "unit_tests",
@@ -200,7 +237,10 @@ pipeline {
                         stageName: "Unit Tests (Windows)")
 
                     testManager.echoTestGroupsSummary()
+                    testManager.collectTestsForDashboard()
                     testManager.generateTestDashboard()
+
+                    testManager.resolveSessions()
                 }
             }
             post {
@@ -225,13 +265,14 @@ pipeline {
                         VENV_WORKING_FOLDER = "${WIN_DOCKER_TMP_PATH}"
                     }
                     stages {
-                        stage('Check Dependencies') {
-                            steps {
-                                script {
-                                    checkDependencies(excludeManagers: ['poetry:tests'])
-                                }
-                            }
-                        }
+                        // Uncomment when CICD is released: https://novantamotion.atlassian.net/browse/CIT-707
+                        // stage('Check Dependencies') {
+                        //     steps {
+                        //         script {
+                        //             checkDependencies(excludeManagers: ['poetry:tests'])
+                        //         }
+                        //     }
+                        // }
                         stage('Move workspace') {
                             steps {
                                 script {
@@ -473,26 +514,26 @@ pipeline {
                     image WIN_DOCKER_IMAGE
                 }
             }
-            when {
-                expression { testManager.hasCoverageFiles() }
-            }
             environment {
                 VENV_WORKING_FOLDER = "${WIN_DOCKER_TMP_PATH}"
             }
             steps {
                 script {
-                    def coverage_files = testManager.getCoverageFiles().join(" ")
+                    def coverage_files = testManager.getCoverageFiles()
                     venvManager.copyToWorkingFolder()
                     venvManager.createPoetryEnvironment(
                         installCommand: "poetry sync --all-groups --extras fsoe"
                     )
-                    venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
-                        venv.run("poetry run poe cov-combine -- ${coverage_files}")
-                        venv.run("poetry run poe cov-report")
+                    if (coverage_files) {
+                        venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
+                            venv.run("poetry run poe cov-combine -- ${coverage_files.join(' ')}")
+                            venv.run("poetry run poe cov-report")
+                        }
+                        venvManager.copyFromWorkingFolder("coverage.xml")
+                        recordCoverage(tools: [[parser: 'COBERTURA', pattern: 'coverage.xml']])
+                        archiveArtifacts artifacts: '*.xml'
                     }
-                    venvManager.copyFromWorkingFolder("coverage.xml")
-                    recordCoverage(tools: [[parser: 'COBERTURA', pattern: 'coverage.xml']])
-                    archiveArtifacts artifacts: '*.xml'
+                    testManager.generateTestDashboard()
                 }
             }
         }

@@ -162,11 +162,9 @@ class Motion:
                 )
                 _error_id, _, _, error_msg = self.mc.errors.get_error_data(error_code, servo=servo)
             else:
-                raise ILTimeoutError(
-                    "An error occurred enabling motor. Reason: Error trigger timeout exceeded."
-                )
+                raise ILTimeoutError("Error trigger timeout exceeded.")
             exception_type = type(e)
-            raise exception_type(f"An error occurred enabling motor. Reason: {error_msg}")
+            raise exception_type(error_msg)
 
     def motor_disable(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> None:
         """Disable motor.

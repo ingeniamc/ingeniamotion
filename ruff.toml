@@ -37,6 +37,7 @@ select = [
     "PERF", # perflint
     "DOC", # pydoclint
     "COM", # Flake 8 trailing commas
+    "PLC0415", # import-outside-top-level
     "RUF005", # Ruff collection concatenation
     "RUF008", # Ruff dataclasses mutable defaults
     "RUF012", # Ruff mutable class default
