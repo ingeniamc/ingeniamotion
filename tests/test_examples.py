@@ -306,6 +306,7 @@ def test_dynamic_forced_phasing_example(
     script_runner,
     mocker,
 ):
+    """Test the dynamic forced phasing example script."""
     mc_with_reconnect_force_restore.disconnect()
     script_path = "examples/dynamic_forced_phasing_test.py"
 
@@ -318,7 +319,10 @@ def test_dynamic_forced_phasing_example(
                 commutation_angle=0.5,
             )
 
+    # Patch the MotionController.tests attribute to use the MockDriveTests class
     mocker.patch.object(MotionController, "tests", MockDriveTests)
+
+    # Run the script with the provided arguments
     result = script_runner.run([
         script_path,
         setup_descriptor.dictionary,

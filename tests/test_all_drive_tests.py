@@ -357,12 +357,20 @@ def test_current_ramp_up(mc, alias, test_currents, test_sensor):
 
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.ethrent
+@pytest.mark.ethernet
 @not_valid_for_all_eve_products
 def test_dynamic_forced_phasing(mc, alias):
+    """Run the test on a real drive and check it succeeds, leaving the drive in NO_PHASING.
+
+    Reads the motor rated current, runs the phasing without writing registers, and verifies
+    the result is SUCCESS with a normalised commutation angle in [0, 1).
+    """
     rated_current = mc.communication.get_register(RATED_CURRENT_REGISTER, servo=alias, axis=1)
     result = mc.tests.dynamic_forced_phasing(
-        alias, 1, apply_changes=False, phasing_max_current=rated_current
+        alias,
+        1,
+        apply_changes=False,
+        phasing_max_current=rated_current,  # don't persist registers
     )
     assert result.result_severity == SeverityLevel.SUCCESS
     assert result.result_message == "Success"
@@ -372,10 +380,15 @@ def test_dynamic_forced_phasing(mc, alias):
 
 @pytest.mark.virtual
 def test_dynamic_forced_phasing_fails_when_monitoring_not_supported(mc, alias, mocker):
+    """Check the test aborts with a TestError when the drive can't do monitoring.
+
+    Patches the monitoring version check to raise, then asserts the phasing surfaces that
+    failure as a TestError.
+    """
     mocker.patch.object(
         mc.capture, "_check_version", side_effect=NotImplementedError("Monitoring not available")
     )
-    mocker.patch.object(mc.capture, "disable_monitoring")
+    mocker.patch.object(mc.capture, "disable_monitoring")  # avoid real cleanup during teardown
     with pytest.raises(TestError, match="Monitoring not available"):
         mc.tests.dynamic_forced_phasing(alias, 1)
 
@@ -399,6 +412,11 @@ def test_dynamic_forced_phasing_fails_when_monitoring_not_supported(mc, alias, m
 def test_dynamic_forced_phasing_fails_with_invalid_feedback_config(
     mc, alias, mocker, comm_feedback, ref_feedback, error_match
 ):
+    """Check the test rejects unsupported commutation/reference feedback combinations.
+
+    Forces each invalid feedback pair via mocks and asserts a TestError is raised whose
+    message explains why the configuration is unsupported.
+    """
     mocker.patch.object(mc.configuration, "get_commutation_feedback", return_value=comm_feedback)
     mocker.patch.object(mc.configuration, "get_reference_feedback", return_value=ref_feedback)
 
@@ -408,12 +426,22 @@ def test_dynamic_forced_phasing_fails_with_invalid_feedback_config(
 
 @pytest.mark.virtual
 def test_dynamic_forced_phasing_fails_when_phasing_current_exceeds_limit(mc, alias):
+    """Check the test rejects a phasing current above the drive's allowed limit.
+
+    Passes an impossibly large ``phasing_max_current`` and asserts a TestError is raised.
+    """
     with pytest.raises(TestError, match="Phasing max current"):
         mc.tests.dynamic_forced_phasing(alias, 1, phasing_max_current=1e9)
 
 
 @pytest.mark.virtual
 def test_dynamic_forced_phasing_fails_when_no_constant_difference_found(mc, alias, mocker):
+    """Check the test fails when no stable phase difference can be measured.
+
+    Stubs out the setup steps and forces signal collection to raise, then asserts the
+    "could not find a constant signal difference" TestError propagates.
+    """
+    # Skip initial-state and monitoring setup so only the collection failure is exercised
     mocker.patch.object(DynamicForcedPhasing, "_DynamicForcedPhasing__check_initial_state")
     mocker.patch.object(DynamicForcedPhasing, "_DynamicForcedPhasing__configure_monitoring")
     mocker.patch.object(
@@ -431,9 +459,13 @@ def test_dynamic_forced_phasing_fails_when_no_constant_difference_found(mc, alia
 
 @pytest.mark.virtual
 def test_dynamic_forced_phasing_warning_on_high_asymmetry(mc, alias, mocker):
+    """Check the test returns a WARNING when forward/backward differences are too asymmetric.
+
+    Feeds two mismatched mean differences (0.15 and 0.30) so the asymmetry exceeds the 10%
+    threshold, then asserts the result severity is WARNING and mentions the asymmetry error.
+    """
     mocker.patch.object(DynamicForcedPhasing, "_DynamicForcedPhasing__check_initial_state")
     mocker.patch.object(DynamicForcedPhasing, "_DynamicForcedPhasing__configure_monitoring")
-    # Mean differences with asymmetry > 10% (|0.15 - 0.30| = 0.15 > 0.10)
     mocker.patch.object(DynamicForcedPhasing, "_collect_mean_difference", side_effect=[0.15, 0.30])
     result = mc.tests.dynamic_forced_phasing(alias, 1, apply_changes=False)
 
@@ -446,12 +478,17 @@ def test_dynamic_forced_phasing_warning_on_high_asymmetry(mc, alias, mocker):
 @pytest.mark.parametrize("offset", [0.0, 0.25, 0.5, 0.75, 0.99])
 @pytest.mark.parametrize("noise_amplitude", [0.0, 0.001, 0.01])
 def test_dynamic_forced_phasing_signals_with_noise(mc, alias, offset, noise_amplitude):
-    random.seed(42)
+    """Check the constant-difference detector recovers a known phase offset under noise.
+
+    Builds two ramp signals separated by ``offset`` plus bounded random noise, runs the
+    constant-difference check, and asserts the detected mean offset (compared on the circular
+    [0, 1) domain) and the max deviation stay within the noise bounds.
+    """
+    random.seed(42)  # fixed seed keeps the random noise reproducible across runs
     test = DynamicForcedPhasing(mc, alias, 1)
     num_points = 200
 
-    # signal2 is signal1 shifted by a constant offset plus random noise that is
-    # sometimes positive and sometimes negative.
+    # signal1 is a normalised ramp; signal2 is the same ramp shifted by `offset` plus noise
     signal1 = [i / num_points for i in range(num_points)]
     signal2 = [
         (s1 - offset + random.uniform(-noise_amplitude, noise_amplitude)) % 1 for s1 in signal1

@@ -1,6 +1,6 @@
 import math
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, ClassVar, Optional, Union, cast
+from typing import TYPE_CHECKING, Final, Optional, Union, cast
 
 import ingenialogger
 from typing_extensions import override
@@ -81,20 +81,20 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
     Commutation and reference feedbacks must be the same and absolute.
     """
 
-    GENERATOR_FREQUENCIES: ClassVar[list[float]] = [0.1, 0.03, 0.01]
+    GENERATOR_FREQUENCIES: Final[list[float]] = [0.1, 0.03, 0.01]
     """Logarithmically spaced frequencies (Hz) tried in descending order."""
-    MAX_ATTEMPTS_PER_FREQUENCY: ClassVar[int] = 2
+    MAX_ATTEMPTS_PER_FREQUENCY: Final[int] = 2
     """Number of monitoring reads attempted at each frequency before escalating."""
-    NORM_TOLERANCE: ClassVar[float] = 0.02
+    NORM_TOLERANCE: Final[float] = 0.02
     """Maximum allowed difference between the signals to consider them constant."""
-    SYMMETRY_ERROR_TOLERANCE: ClassVar[float] = 0.10
+    SYMMETRY_ERROR_TOLERANCE: Final[float] = 0.10
     """Maximum allowed asymmetry error between the signals."""
-    PHASING_CURRENT_PERCENTAGE = 0.4
+    PHASING_CURRENT_PERCENTAGE: Final[float] = 0.4
     """Percentage of the rated current used for phasing in non-geared motors."""
-    PHASING_CURRENT_PERCENTAGE_GEAR = 0.8
+    PHASING_CURRENT_PERCENTAGE_GEAR: Final[float] = 0.8
     """Percentage of the rated current used for phasing in geared motors."""
 
-    BACKUP_REGISTERS: ClassVar[list[str]] = [
+    BACKUP_REGISTERS: Final[list[str]] = [
         COMMUTATION_ANGLE_OFFSET_REGISTER,
         REFERENCE_ANGLE_OFFSET_REGISTER,
         "DRV_OP_CMD",
@@ -155,7 +155,8 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
         return self.__monitoring
 
     @BaseTest.stoppable
-    def __reaction_codes_to_warning(self) -> None:
+    def __set_error_event_to_warning(self) -> None:
+        """Set the error event to warning to avoid stopping the test if the events are triggered."""
         try:
             self.mc.communication.set_register(
                 "COMMU_ANGLE_INTEGRITY1_OPTION", 1, servo=self.servo, axis=self.axis
@@ -172,7 +173,13 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
 
     @BaseTest.stoppable
     def __check_initial_state(self) -> None:
-        """Check that the motor is in a valid state to start the test.
+        """Check that the drive is in a valid state to start the test.
+
+        The requirements are:
+            - The drive should support monitoring.
+            - The selected current must not exceed the current limits.
+            - Commutation and reference feedback sensors must be the same and absolute.
+
 
         Raises:
             TestError: If the motor is not in a valid state to start the test.
@@ -203,6 +210,7 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
 
     @BaseTest.stoppable
     def __configure_open_loop_movement(self) -> None:
+        """Configure the motor for open loop movement with zero current and zero offsets."""
         pair_poles = self.mc.configuration.get_motor_pair_poles(servo=self.servo, axis=self.axis)
         self.mc.motion.set_internal_generator_configuration(
             OperationMode.CURRENT,
@@ -221,6 +229,7 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
 
     @BaseTest.stoppable
     def __configure_monitoring(self, direction: int) -> None:
+        """Configure the monitoring for the test based on the direction."""
         self.mc.capture.disable_monitoring(servo=self.servo)
         trigger_config = (
             MonitoringSoCConfig.TRIGGER_CONFIG_RISING
@@ -245,6 +254,16 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
 
     @BaseTest.stoppable
     def __resolve_phasing_max_current(self) -> None:
+        """Resolve the phasing maximum current and check that it does not exceed the drive limits.
+
+        If the phasing maximum current is provided as a test parameter, it will be used.
+        Otherwise, it will be calculated based on the drive and motor limits.
+
+        Raises:
+            TestError: If the phasing max current is higher than the maximum allowed current.
+            ValueError: If the max current drive or current motor peak are not floats.
+
+        """
         max_current_drive = self.mc.communication.get_register(
             MAX_CURRENT_REGISTER, servo=self.servo, axis=self.axis
         )
@@ -279,7 +298,7 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
     def setup(self) -> None:
         self.__check_initial_state()
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
-        self.__reaction_codes_to_warning()
+        self.__set_error_event_to_warning()
         self.__configure_open_loop_movement()
 
     @BaseTest.stoppable
