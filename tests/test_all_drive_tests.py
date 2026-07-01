@@ -1,4 +1,5 @@
 import logging
+import random
 import time
 from collections.abc import Collection
 from enum import Enum
@@ -11,9 +12,13 @@ from ingenialink.drive_context_manager import DriveRegistersValue
 from ingenialink.servo import Servo
 from summit_testing_framework.connection.reconnect_utils import ConnectionWrapper
 
-from ingeniamotion.enums import SensorType, SeverityLevel
+from ingeniamotion.enums import PhasingMode, SensorType, SeverityLevel
 from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.wizard_tests.base_test import TestError
+from ingeniamotion.wizard_tests.dynamic_forced_phasing import (
+    DynamicForcedPhasing,
+    circular_distance,
+)
 from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder1_test import AbsoluteEncoder1Test
 from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder2_test import AbsoluteEncoder2Test
 from ingeniamotion.wizard_tests.feedbacks_tests.digital_hall_test import DigitalHallTest
@@ -26,6 +31,7 @@ from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental2_test import
 from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import SecondarySSITest
 from ingeniamotion.wizard_tests.phase_calibration import Phasing
 from ingeniamotion.wizard_tests.phasing_check import PhasingCheck
+from tests.conftest import not_valid_for_all_eve_products
 
 # Record stop opportunities for every wizard-test integration case in this module.
 pytestmark = pytest.mark.usefixtures("stoppable_trace_recorder")
@@ -490,3 +496,155 @@ def test_current_ramp_up(
         assert pytest.approx(test_max_current) == current_drive == current_motor
     else:
         raise NotImplementedError(f"Test currents option {test_currents} is not implemented.")
+
+
+@pytest.mark.soem
+@pytest.mark.canopen
+@pytest.mark.ethernet
+@not_valid_for_all_eve_products
+def test_dynamic_forced_phasing(mc, alias):
+    """Run the test on a real drive and check it succeeds, leaving the drive in NO_PHASING.
+
+    Reads the motor rated current, runs the phasing without writing registers, and verifies
+    the result is SUCCESS with a normalised commutation angle in [0, 1).
+    """
+    rated_current = mc.communication.get_register(RATED_CURRENT_REGISTER, servo=alias, axis=1)
+    result = mc.tests.dynamic_forced_phasing(
+        alias,
+        1,
+        apply_changes=False,
+        phasing_max_current=rated_current,  # don't persist registers
+    )
+    assert result.result_severity == SeverityLevel.SUCCESS
+    assert result.result_message == "Success"
+    assert result.commutation_phasing_mode == PhasingMode.NO_PHASING
+    assert 0 <= result.commutation_angle <= 1
+
+
+@pytest.mark.virtual
+def test_dynamic_forced_phasing_fails_when_monitoring_not_supported(mc, alias, mocker):
+    """Check the test aborts with a TestError when the drive can't do monitoring.
+
+    Patches the monitoring version check to raise, then asserts the phasing surfaces that
+    failure as a TestError.
+    """
+    mocker.patch.object(
+        mc.capture, "_check_version", side_effect=NotImplementedError("Monitoring not available")
+    )
+    mocker.patch.object(mc.capture, "disable_monitoring")  # avoid real cleanup during teardown
+    with pytest.raises(TestError, match="Monitoring not available"):
+        mc.tests.dynamic_forced_phasing(alias, 1)
+
+
+@pytest.mark.virtual
+@pytest.mark.parametrize(
+    ("comm_feedback", "ref_feedback", "error_match"),
+    [
+        (SensorType.INTGEN, SensorType.ABS1, "internal generator"),
+        (SensorType.ABS1, SensorType.INTGEN, "internal generator"),
+        (SensorType.QEI, SensorType.QEI, "not absolute"),
+        (SensorType.ABS1, SensorType.BISSC2, "not the same"),
+    ],
+    ids=[
+        "commutation_is_internal_generator",
+        "reference_is_internal_generator",
+        "reference_not_absolute",
+        "feedbacks_differ",
+    ],
+)
+def test_dynamic_forced_phasing_fails_with_invalid_feedback_config(
+    mc, alias, mocker, comm_feedback, ref_feedback, error_match
+):
+    """Check the test rejects unsupported commutation/reference feedback combinations.
+
+    Forces each invalid feedback pair via mocks and asserts a TestError is raised whose
+    message explains why the configuration is unsupported.
+    """
+    mocker.patch.object(mc.configuration, "get_commutation_feedback", return_value=comm_feedback)
+    mocker.patch.object(mc.configuration, "get_reference_feedback", return_value=ref_feedback)
+
+    with pytest.raises(TestError, match=error_match):
+        mc.tests.dynamic_forced_phasing(alias, 1)
+
+
+@pytest.mark.virtual
+def test_dynamic_forced_phasing_fails_when_phasing_current_exceeds_limit(mc, alias):
+    """Check the test rejects a phasing current above the drive's allowed limit.
+
+    Passes an impossibly large ``phasing_max_current`` and asserts a TestError is raised.
+    """
+    with pytest.raises(TestError, match="Phasing max current"):
+        mc.tests.dynamic_forced_phasing(alias, 1, phasing_max_current=1e9)
+
+
+@pytest.mark.virtual
+def test_dynamic_forced_phasing_fails_when_no_constant_difference_found(mc, alias, mocker):
+    """Check the test fails when no stable phase difference can be measured.
+
+    Stubs out the setup steps and forces signal collection to raise, then asserts the
+    "could not find a constant signal difference" TestError propagates.
+    """
+    # Skip initial-state and monitoring setup so only the collection failure is exercised
+    mocker.patch.object(DynamicForcedPhasing, "_DynamicForcedPhasing__check_initial_state")
+    mocker.patch.object(DynamicForcedPhasing, "_DynamicForcedPhasing__configure_monitoring")
+    mocker.patch.object(
+        DynamicForcedPhasing,
+        "_collect_mean_difference",
+        side_effect=TestError(
+            "Could not find a constant signal difference after trying all frequencies"
+        ),
+    )
+    rated_current = mc.communication.get_register(RATED_CURRENT_REGISTER, servo=alias, axis=1)
+
+    with pytest.raises(TestError, match="Could not find a constant signal difference"):
+        mc.tests.dynamic_forced_phasing(alias, 1, phasing_max_current=rated_current)
+
+
+@pytest.mark.virtual
+def test_dynamic_forced_phasing_warning_on_high_asymmetry(mc, alias, mocker):
+    """Check the test returns a WARNING when forward/backward differences are too asymmetric.
+
+    Feeds two mismatched mean differences (0.15 and 0.30) so the asymmetry exceeds the 10%
+    threshold, then asserts the result severity is WARNING and mentions the asymmetry error.
+    """
+    mocker.patch.object(DynamicForcedPhasing, "_DynamicForcedPhasing__check_initial_state")
+    mocker.patch.object(DynamicForcedPhasing, "_DynamicForcedPhasing__configure_monitoring")
+    mocker.patch.object(DynamicForcedPhasing, "_collect_mean_difference", side_effect=[0.15, 0.30])
+    result = mc.tests.dynamic_forced_phasing(alias, 1, apply_changes=False)
+
+    assert result is not None
+    assert result.result_severity == SeverityLevel.WARNING
+    assert "Asymmetry error" in result.result_message
+
+
+@pytest.mark.virtual
+@pytest.mark.parametrize("offset", [0.0, 0.25, 0.5, 0.75, 0.99])
+@pytest.mark.parametrize("noise_amplitude", [0.0, 0.001, 0.01])
+def test_dynamic_forced_phasing_signals_with_noise(mc, alias, offset, noise_amplitude):
+    """Check the constant-difference detector recovers a known phase offset under noise.
+
+    Builds two ramp signals separated by ``offset`` plus bounded random noise, runs the
+    constant-difference check, and asserts the detected mean offset (compared on the circular
+    [0, 1) domain) and the max deviation stay within the noise bounds.
+    """
+    random.seed(42)  # fixed seed keeps the random noise reproducible across runs
+    test = DynamicForcedPhasing(mc, alias, 1)
+    num_points = 200
+
+    # signal1 is a normalised ramp; signal2 is the same ramp shifted by `offset` plus noise
+    signal1 = [i / num_points for i in range(num_points)]
+    signal2 = [
+        (s1 - offset + random.uniform(-noise_amplitude, noise_amplitude)) % 1 for s1 in signal1
+    ]
+
+    tolerance = DynamicForcedPhasing.NORM_TOLERANCE
+    mean_diff, max_diff = test._DynamicForcedPhasing__check_signals_difference_is_constant(
+        signal1, signal2, tolerance
+    )
+
+    assert mean_diff is not None
+    assert max_diff is not None
+    # Compare in the circular [0, 1) domain so the wrap-around boundary is handled.
+    assert circular_distance(mean_diff, offset) < noise_amplitude + 1e-6
+    # Points deviate from the mean by at most the noise span (each side of it).
+    assert max_diff <= 2 * noise_amplitude + 1e-6
