@@ -7,6 +7,7 @@ import ingenialogger
 from typing_extensions import override
 
 from ingeniamotion.enums import (
+    MonitoringProcessStage,
     MonitoringSoCConfig,
     MonitoringSoCType,
     OperationMode,
@@ -357,6 +358,12 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
         )
         return mean_difference, max_difference
 
+    def __monitoring_stopper(
+        self, _mon_process_stage: MonitoringProcessStage, _current_progress: float
+    ) -> None:
+        """Callback function to check if the test was stopped during monitoring data reading."""
+        self.check_stop()
+
     @BaseTest.stoppable
     def _collect_mean_difference(self, direction: PhasingDirection, tolerance_norm: float) -> float:
         """Move the motor and collect a stable mean angle difference.
@@ -386,7 +393,9 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
             )
             for attempt in range(1, self.MAX_ATTEMPTS_PER_FREQUENCY + 1):
                 self.check_stop()
-                data = self.monitoring.read_monitoring_data(timeout=1 / frequency)
+                data = self.monitoring.read_monitoring_data(
+                    timeout=1 / frequency, progress_callback=self.__monitoring_stopper
+                )
                 iter_mean_tuple = self.__check_signals_difference_is_constant(
                     data[0], data[1], tolerance_norm
                 )
@@ -410,6 +419,7 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
     @override
     def loop(self) -> DynamicForcedPhasingReport:
         self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
+        self.check_stop()
         self.mc.motion.current_direct_ramp(
             self.phasing_max_current, self.CURRENT_RAMP_TIME_S, servo=self.servo, axis=self.axis
         )
