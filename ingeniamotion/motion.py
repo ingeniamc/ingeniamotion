@@ -1,6 +1,7 @@
 import time
 from collections.abc import Generator
 from typing import TYPE_CHECKING, Optional, Union
+import sys
 
 import ingenialogger
 from ingenialink.exceptions import ILError, ILTimeoutError
@@ -10,6 +11,7 @@ if TYPE_CHECKING:
 from ingeniamotion.enums import GeneratorMode, OperationMode, PhasingMode, SensorType
 from ingeniamotion.exceptions import IMTimeoutError
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
+
 
 DEFAULT_MOTOR_ERROR_TIMEOUT_S = 6
 
@@ -149,22 +151,26 @@ class Motion:
         try:
             drive.enable(subnode=axis)
         except ILError as e:
-            timeout = error_timeout
-            start_time = time.time()
-            error_raised = False
-            while not error_raised and (time.time() < (start_time + timeout)):
-                error_raised = (
-                    self.mc.errors.get_number_total_errors(servo=servo, axis=axis) != num_errors
-                )
-            if error_raised:
-                error_code, _subnode, _warning = self.mc.errors.get_last_buffer_error(
-                    servo=servo, axis=axis
-                )
-                _error_id, _, _, error_msg = self.mc.errors.get_error_data(error_code, servo=servo)
-            else:
-                raise ILTimeoutError("Error trigger timeout exceeded.")
-            exception_type = type(e)
-            raise exception_type(error_msg)
+            if sys.version_info >= (3, 11):
+                # Adds a note to the exception with the error last error message from the queues
+                # Only available in Python 3.11+ (add_note method)
+                timeout = error_timeout
+                start_time = time.time()
+                error_raised = False
+                while not error_raised and (time.time() < (start_time + timeout)):
+                    error_raised = (
+                        self.mc.errors.get_number_total_errors(servo=servo, axis=axis) != num_errors
+                    )
+                if error_raised:
+                    error_code, _subnode, _warning = self.mc.errors.get_last_buffer_error(
+                        servo=servo, axis=axis
+                    )
+                    _error_id, _, _, error_msg = self.mc.errors.get_error_data(error_code, servo=servo)                    
+                    e.add_note(f"Error message: {error_msg}")
+                else:
+                    raise ILTimeoutError("Error trigger timeout exceeded.")
+
+            raise e
 
     def motor_disable(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> None:
         """Disable motor.
