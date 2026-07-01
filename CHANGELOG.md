@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Add dynamic forced phasing test
+
 ### Fixed
 - Feedback test symmetry check
 
