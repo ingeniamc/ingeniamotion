@@ -1,7 +1,7 @@
+import sys
 import time
 from collections.abc import Generator
 from typing import TYPE_CHECKING, Optional, Union
-import sys
 
 import ingenialogger
 from ingenialink.exceptions import ILError, ILTimeoutError
@@ -11,7 +11,6 @@ if TYPE_CHECKING:
 from ingeniamotion.enums import GeneratorMode, OperationMode, PhasingMode, SensorType
 from ingeniamotion.exceptions import IMTimeoutError
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
-
 
 DEFAULT_MOTOR_ERROR_TIMEOUT_S = 6
 
@@ -165,7 +164,9 @@ class Motion:
                     error_code, _subnode, _warning = self.mc.errors.get_last_buffer_error(
                         servo=servo, axis=axis
                     )
-                    _error_id, _, _, error_msg = self.mc.errors.get_error_data(error_code, servo=servo)                    
+                    _error_id, _, _, error_msg = self.mc.errors.get_error_data(
+                        error_code, servo=servo
+                    )
                     e.add_note(f"Error message: {error_msg}")
                 else:
                     raise ILTimeoutError("Error trigger timeout exceeded.")
