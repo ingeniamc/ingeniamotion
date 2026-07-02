@@ -183,7 +183,7 @@ ECAT_DEN_S_NET_E_SETUP = RackServiceConfigSpecifier.from_version_configs(
             config_file=None,
             dictionary_type=DictionaryType.XDF_V2,
             extra_data={
-                __EXECUTION_POLICY_KEY: "always",
+                __EXECUTION_POLICY_KEY: "nightly",
                 __TEST_CONFIGS_KEY: {
                     "ECAT_TEST_SESSIONS": PyTestConfig(
                         markers="fsoe",
