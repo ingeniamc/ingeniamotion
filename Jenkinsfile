@@ -1,12 +1,12 @@
 // https://novantamotion.atlassian.net/browse/CIT-707
-@Library('cicd-lib@112bb66') _
+@Library('cicd-lib@	44e6075') _
 
 import python.VirtualEnvironment
 import python.VEnvManager
 import pytest.TestSession
 import pytest.TestGroup
 import pytest.PyTestManager
-import utils.BuildParamUtils
+import pytest.PyTestParams
 
 def SW_NODE = "windows-slave"
 def ECAT_NODE = "ecat-test"
@@ -18,16 +18,15 @@ def LIN_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/docker-python:1.6"
 def WIN_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/win-python-builder:1.7"
 def PUBLISHER_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/publisher:1.8"
 
-WIN_DOCKER_TMP_PATH = "C:\\Users\\ContainerAdministrator\\ingeniamotion"
-LIN_DOCKER_TMP_PATH = "/tmp/ingeniamotion"
+def WIN_DOCKER_TMP_PATH = "C:\\Users\\ContainerAdministrator\\ingeniamotion"
+def LIN_DOCKER_TMP_PATH = "/tmp/ingeniamotion"
 
-DEFAULT_PYTHON_VERSION = "3.9"
-
+def DEFAULT_PYTHON_VERSION = "3.9"
 def ALL_PYTHON_VERSIONS = ["3.9", "3.10", "3.11", "3.12"] as Set
 def PYTHON_VERSION_MIN = "3.9"
 def PYTHON_VERSION_MAX = "3.12"
-
 def BRANCH_NAME_MASTER = "master"
+def DEFAULT_LOGGING_LEVEL = 'INFO'
 def DISTEXT_PROJECT_DIR = "doc/ingeniamotion"
 
 /* List of markers that require hardware */
@@ -48,7 +47,6 @@ TestSession TEST_SESSIONS = new TestSession(
     wiresharkScope: null, // Set later based on parameter
     startWiresharkTimeoutS: 10.0,
     importMode: "importlib",
-    logCli: true,
     enableFirmwareVersionCheck: true,
 )
 TestSession HW_TEST_SESSIONS = TEST_SESSIONS.override()
@@ -81,70 +79,54 @@ def NIGHTLY_CRON = '0 19,21,23 * * * % PYTHON_VERSIONS=All;WIRESHARK_LOGGING=tru
 def WEEKEND_CRON   = '0 8,14 * * 6-7 % PYTHON_VERSIONS=All;RUN_POLICY_NIGHTLY=true;RUN_POLICY_WEEKEND=true'
 def CRON_SETTINGS = BRANCH_NAME == "develop" ? "${NIGHTLY_CRON}\n${WEEKEND_CRON}" : ""
 
+def pipelineParams = PyTestParams.pytestParams(this, currentBuild, [
+    branchName: env.BRANCH_NAME,
+    branchNameMaster: BRANCH_NAME_MASTER,
+    runWithParametersConfig: [
+        default: 'Set to last build',
+    ],
+    testSessionFilterConfig: [
+        choices: [
+            '.*',
+            'virtual_.*',
+            'unit_.*',
+            'canopen.*',
+            'ethernet.*',
+            'canopen_everest.*',
+            'canopen_capitan.*',
+            'ethernet_everest.*',
+            'ethernet_capitan.*',
+            'ethercat.*',
+            'ethercat_everest.*',
+            'ethercat_capitan.*',
+            'ethercat_multislave.*',
+            'fsoe.*',
+            'fsoe_phase1.*',
+            'fsoe_phase2.*'
+        ],
+    ],
+    pytestLoggingLevelConfig: [
+        default: DEFAULT_LOGGING_LEVEL,
+    ],
+    wiresharkLoggingConfig: [
+        default: false,
+    ],
+    clearSuccessfulWiresharkLogsConfig: [
+        default: true,
+    ],
+])
+
 properties([
-    pipelineTriggers([parameterizedCron(CRON_SETTINGS)]),
-    parameters([
-        choice(
-                choices: ['MIN', 'MAX', 'MIN_MAX', 'All'],
-                name: 'PYTHON_VERSIONS'
-        ),
-        choice(
-            choices: [
-                '.*',
-                'virtual_.*',
-                'unit_.*',
-                'canopen.*',
-                'ethernet.*',
-                'canopen_everest.*',
-                'canopen_capitan.*',
-                'ethernet_everest.*',
-                'ethernet_capitan.*',
-                'ethercat.*',
-                'ethercat_everest.*',
-                'ethercat_capitan.*',
-                'ethercat_multislave.*',
-                'fsoe.*',
-                'fsoe_phase1.*',
-                'fsoe_phase2.*'
-            ],
-            name: 'test_session_filter',
-            description: 'Regex pattern for which test sessions to run (e.g. "fsoe.*", "ethercat_everest.*", ".*" for all)'
-        ),
-        booleanParam(name: 'WIRESHARK_LOGGING', defaultValue: false, description: 'Enable Wireshark logging'),
-        choice(
-            choices: ['function', 'module', 'session'],
-            name: 'WIRESHARK_LOGGING_SCOPE'
-        ),
-        booleanParam(name: 'CLEAR_SUCCESSFUL_WIRESHARK_LOGS', defaultValue: true, description: 'Clears Wireshark logs if the test passed'),
-        booleanParam(name: 'RUN_POLICY_NIGHTLY', defaultValue: false, description: 'Tag this build as a nightly build (set automatically by cron triggers)'),
-        booleanParam(name: 'RUN_POLICY_WEEKEND', defaultValue: false, description: 'Tag this build as a weekend build (set automatically by weekend cron triggers)'),
-        // Show the previous build's pytest selection as the initial value in the form.
-        // If PYTEST_SELECTION contains data, it acts as an additional selector alongside test_session_filter.\
-        // If master/develop/release branch, default to empty (no filter applied by default)
-        string(
-            name: 'PYTEST_SELECTION',
-            defaultValue: env.BRANCH_NAME in [BRANCH_NAME_MASTER, 'develop'] || env.BRANCH_NAME?.startsWith('release/') ? '' : BuildParamUtils.latestBuildParamValue(currentBuild, 'PYTEST_SELECTION', ''),
-            description: '''
-                Pytest selection string to select which tests to run.<br>
-                See <a href="https://docs.pytest.org/en/stable/how-to/usage.html#specifying-tests-selecting-tests" target="_blank">
-                pytest selecting tests documentation
-                </a>
-            '''
-        ),
-        // Repeat-count input will be used for --count arguments (pytest-repeat plugin) for all test sessions that are run.
-        // If PYTEST_SELECTION is empty, this will have no effect since all tests will run once by default.
-        string(
-            name: 'PYTEST_REPEAT_COUNTS',
-            defaultValue: BuildParamUtils.latestBuildParamValue(currentBuild, 'PYTEST_REPEAT_COUNTS', ''),
-            description: '''
-                Pytest repeat count used for <code>--count</code>.<br>
-                See <a href="https://github.com/pytest-dev/pytest-repeat" target="_blank">
-                pytest repeat plugin documentation
-                </a>.<br>
-                <span style="color:red;">Only has effect when PYTEST_SELECTION is set.</span>
-            '''
+    buildDiscarder(
+        logRotator(
+            daysToKeepStr: '90',
+            numToKeepStr: '10',
+            artifactDaysToKeepStr: '30',
+            artifactNumToKeepStr: '5',
         )
-    ])
+    ),
+    pipelineTriggers([parameterizedCron(CRON_SETTINGS)]),
+    parameters(pipelineParams)
 ])
 
 pipeline {
@@ -173,13 +155,14 @@ pipeline {
                     } else if (env.BRANCH_NAME.startsWith('release/')) {
                         pythonVersions = ALL_PYTHON_VERSIONS
                     } else {
-                        if (env.PYTHON_VERSIONS == "MIN_MAX") {
+                        def selectedPythonVersions = PyTestParams.readValue(params, 'pythonVersions', env)
+                        if (selectedPythonVersions == "MIN_MAX") {
                             pythonVersions = [PYTHON_VERSION_MIN, PYTHON_VERSION_MAX] as Set
-                        } else if (env.PYTHON_VERSIONS == "MIN") {
+                        } else if (selectedPythonVersions == "MIN") {
                             pythonVersions = [PYTHON_VERSION_MIN] as Set
-                        } else if (env.PYTHON_VERSIONS == "MAX") {
+                        } else if (selectedPythonVersions == "MAX") {
                             pythonVersions = [PYTHON_VERSION_MAX] as Set
-                        } else if (env.PYTHON_VERSIONS == "All") {
+                        } else if (selectedPythonVersions == "All") {
                             pythonVersions = ALL_PYTHON_VERSIONS
                         } else { // Branch-indexing
                             pythonVersions = [PYTHON_VERSION_MIN] as Set
@@ -193,24 +176,25 @@ pipeline {
                         wiresharkScope: params.WIRESHARK_LOGGING_SCOPE,
                         clearSuccessfulWiresharkLogs: params.CLEAR_SUCCESSFUL_WIRESHARK_LOGS,
                         archiveData: "*",
-                        testSelectionRepeatCount: params.PYTEST_REPEAT_COUNTS?.trim()?.isInteger() ? params.PYTEST_REPEAT_COUNTS.toInteger() : 1,
+                        testSelectionRepeatCount: PyTestParams.readValue(params, 'pytestRepeatCounts'),
+                        logLevel: PyTestParams.readValue(params, 'pytestLoggingLevel')
                     )
 
                     // Configure if ECAT and ETH sessions use Wireshark logging based on parameter
                     ECAT_TESTS.baseTestSession.setAttributeInCascade(
-                        useWiresharkLogging: params.WIRESHARK_LOGGING,
+                        useWiresharkLogging: PyTestParams.readValue(params, 'wiresharkLogging'),
                     )
                     ETH_TESTS.baseTestSession.setAttributeInCascade(
-                        useWiresharkLogging: params.WIRESHARK_LOGGING,
+                        useWiresharkLogging: PyTestParams.readValue(params, 'wiresharkLogging'),
                     )
 
-                    testManager.testSessionFilter = params.test_session_filter
-                    testManager.testSessionSelection = params.PYTEST_SELECTION
+                    testManager.testSessionFilter = PyTestParams.readValue(params, 'testSessionFilter')
+                    testManager.testSessionSelection = PyTestParams.readValue(params, 'pytestSelection')
 
                     // Parse run policy tags from boolean parameters
                     def runPolicyTags = [] as Set
-                    if (params.RUN_POLICY_NIGHTLY) { runPolicyTags.add("nightly") }
-                    if (params.RUN_POLICY_WEEKEND) { runPolicyTags.add("weekends") }
+                    if (PyTestParams.readValue(params, 'runPolicyNightly')) { runPolicyTags.add("nightly") }
+                    if (PyTestParams.readValue(params, 'runPolicyWeekend')) { runPolicyTags.add("weekends") }
                     testManager.runPolicyTags = runPolicyTags
 
                     echo("Test sessions have been configured to run with the following base configuration:\n${TEST_SESSIONS.configSummary()}")
