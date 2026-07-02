@@ -116,9 +116,7 @@ def test_digital_halls_test(
             mc.tests.digital_halls_test(servo=alias)
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
-    assert_returns_to_initial_value(
-        servo, register_baseline, accepted_changed_registers=Phasing.ACCEPTED_CHANGED_REGISTERS
-    )
+    assert_returns_to_initial_value(servo, register_baseline)
 
 
 @pytest.mark.ethernet
@@ -139,9 +137,7 @@ def test_incremental_encoder_1_test(
             mc.tests.incremental_encoder_1_test(servo=alias)
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
-    assert_returns_to_initial_value(
-        servo, register_baseline, accepted_changed_registers=Phasing.ACCEPTED_CHANGED_REGISTERS
-    )
+    assert_returns_to_initial_value(servo, register_baseline)
 
 
 @pytest.mark.ethernet
@@ -164,9 +160,7 @@ def test_incremental_encoder_2_test(
             mc.tests.incremental_encoder_2_test(servo=alias)
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
-    assert_returns_to_initial_value(
-        servo, register_baseline, accepted_changed_registers=Phasing.ACCEPTED_CHANGED_REGISTERS
-    )
+    assert_returns_to_initial_value(servo, register_baseline)
 
 
 @pytest.mark.ethernet
@@ -187,9 +181,7 @@ def test_absolute_encoder_1_test(
             mc.tests.absolute_encoder_1_test(servo=alias)
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
-    assert_returns_to_initial_value(
-        servo, register_baseline, accepted_changed_registers=Phasing.ACCEPTED_CHANGED_REGISTERS
-    )
+    assert_returns_to_initial_value(servo, register_baseline)
 
 
 @pytest.mark.ethernet
@@ -210,9 +202,7 @@ def test_absolute_encoder_2_test(
             mc.tests.absolute_encoder_2_test(servo=alias)
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
-    assert_returns_to_initial_value(
-        servo, register_baseline, accepted_changed_registers=Phasing.ACCEPTED_CHANGED_REGISTERS
-    )
+    assert_returns_to_initial_value(servo, register_baseline)
 
 
 @pytest.mark.ethernet
@@ -235,9 +225,7 @@ def test_secondary_ssi_test(
             mc.tests.secondary_ssi_test(servo=alias)
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
-    assert_returns_to_initial_value(
-        servo, register_baseline, accepted_changed_registers=Phasing.ACCEPTED_CHANGED_REGISTERS
-    )
+    assert_returns_to_initial_value(servo, register_baseline)
 
 
 @pytest.mark.ethernet
@@ -279,9 +267,7 @@ def test_phasing_check(mc, alias, servo: Servo, register_baseline: DriveRegister
     mc.tests.commutation(servo=alias)
     results = mc.tests.phasing_check(servo=alias)
     assert results["result_severity"] == SeverityLevel.SUCCESS
-    assert_returns_to_initial_value(
-        servo, register_baseline, accepted_changed_registers=Phasing.ACCEPTED_CHANGED_REGISTERS
-    )
+    assert_returns_to_initial_value(servo, register_baseline)
 
 
 @pytest.mark.ethernet
@@ -403,9 +389,7 @@ def test_feedback_stop(
     test = feedback_class(mc, alias, 1)
     run_test_and_stop(test)
 
-    assert_returns_to_initial_value(
-        servo, register_baseline, accepted_changed_registers=Phasing.ACCEPTED_CHANGED_REGISTERS
-    )
+    assert_returns_to_initial_value(servo, register_baseline)
 
 
 @pytest.mark.virtual
@@ -502,7 +486,7 @@ def test_current_ramp_up(
 @pytest.mark.canopen
 @pytest.mark.ethernet
 @not_valid_for_all_eve_products
-def test_dynamic_forced_phasing(mc, alias):
+def test_dynamic_forced_phasing(mc, alias, register_baseline: DriveRegistersValue, servo: Servo):
     """Run the test on a real drive and check it succeeds, leaving the drive in NO_PHASING.
 
     Reads the motor rated current, runs the phasing without writing registers, and verifies
@@ -519,6 +503,8 @@ def test_dynamic_forced_phasing(mc, alias):
     assert result.result_message == "Success"
     assert result.commutation_phasing_mode == PhasingMode.NO_PHASING
     assert 0 <= result.commutation_angle <= 1
+
+    assert_returns_to_initial_value(servo, register_baseline)
 
 
 @pytest.mark.virtual
@@ -578,7 +564,9 @@ def test_dynamic_forced_phasing_fails_when_phasing_current_exceeds_limit(mc, ali
 
 
 @pytest.mark.virtual
-def test_dynamic_forced_phasing_fails_when_no_constant_difference_found(mc, alias, mocker):
+def test_dynamic_forced_phasing_fails_when_no_constant_difference_found(
+    mc, alias, mocker, servo: Servo, register_baseline: DriveRegistersValue
+):
     """Check the test fails when no stable phase difference can be measured.
 
     Stubs out the setup steps and forces signal collection to raise, then asserts the
@@ -599,9 +587,13 @@ def test_dynamic_forced_phasing_fails_when_no_constant_difference_found(mc, alia
     with pytest.raises(TestError, match="Could not find a constant signal difference"):
         mc.tests.dynamic_forced_phasing(alias, 1, phasing_max_current=rated_current)
 
+    assert_returns_to_initial_value(servo, register_baseline)
+
 
 @pytest.mark.virtual
-def test_dynamic_forced_phasing_warning_on_high_asymmetry(mc, alias, mocker):
+def test_dynamic_forced_phasing_warning_on_high_asymmetry(
+    mc, alias, mocker, servo: Servo, register_baseline: DriveRegistersValue
+):
     """Check the test returns a WARNING when forward/backward differences are too asymmetric.
 
     Feeds two mismatched mean differences (0.15 and 0.30) so the asymmetry exceeds the 10%
@@ -615,6 +607,8 @@ def test_dynamic_forced_phasing_warning_on_high_asymmetry(mc, alias, mocker):
     assert result is not None
     assert result.result_severity == SeverityLevel.WARNING
     assert "Asymmetry error" in result.result_message
+
+    assert_returns_to_initial_value(servo, register_baseline)
 
 
 @pytest.mark.virtual

@@ -105,26 +105,6 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
     CURRENT_RAMP_TIME_S: Final[float] = 1.0
     """Time in seconds to ramp the current to the phasing max current."""
 
-    BACKUP_REGISTERS: Final[list[str]] = [
-        COMMUTATION_ANGLE_OFFSET_REGISTER,
-        REFERENCE_ANGLE_OFFSET_REGISTER,
-        "DRV_OP_CMD",
-        "CL_CUR_Q_SET_POINT",
-        "CL_CUR_D_SET_POINT",
-        "FBK_GEN_MODE",
-        "FBK_GEN_FREQ",
-        "FBK_GEN_GAIN",
-        "FBK_GEN_OFFSET",
-        "FBK_GEN_CYCLES",
-        "COMMU_ANGLE_SENSOR",
-        "COMMU_PHASING_MAX_CURRENT",
-        "COMMU_PHASING_TIMEOUT",
-        "COMMU_PHASING_ACCURACY",
-        "COMMU_PHASING_MODE",
-        "COMMU_ANGLE_INTEGRITY1_OPTION",
-        "COMMU_ANGLE_INTEGRITY2_OPTION",
-    ]
-
     def __init__(
         self,
         mc: "MotionController",
@@ -138,7 +118,6 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
         self.mc = mc
         self.servo = servo
         self.axis = axis
-        self.backup_registers_names = self.BACKUP_REGISTERS
         self.__monitoring: Optional[Monitoring] = None
         if logger_drive_name is None:
             self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
