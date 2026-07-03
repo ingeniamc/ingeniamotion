@@ -168,8 +168,10 @@ def test_motor_enable_with_fault(
             "DRV_PROT_USER_UNDER_VOLT",
             100,
             exceptions.ILError,
-            ("The subnode 1 could not be enabled within 1000 ms. "
-             "The current subnode state is ServoState.FAULT"),
+            (
+                "The subnode 1 could not be enabled within 1000 ms. "
+                "The current subnode state is ServoState.FAULT"
+            ),
             "Error message: User Under-voltage detected",
             6,
         ),
