@@ -179,10 +179,10 @@ def test_motor_enable_with_delayed_fault(
     with pytest.raises(exception_type) as excinfo:
         mc.motion.motor_enable(servo=alias, error_timeout=timeout)
 
-        assert str(excinfo.value) == (
-            "The subnode 1 could not be enabled within 1000 ms. "
-            "The current subnode state is ServoState.FAULT"
-        )
+    assert str(excinfo.value) == (
+        "The subnode 1 could not be enabled within 1000 ms. "
+        "The current subnode state is ServoState.FAULT"
+    )
 
     if sys.version_info >= (3, 11):
         assert excinfo.value.__notes__[0] == note
