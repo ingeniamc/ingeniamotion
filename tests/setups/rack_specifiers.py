@@ -1,8 +1,6 @@
-from pathlib import Path
-
+import summit_drives_ci_configs.config_files as config_files
 from ingenialink.dictionary import Interface
 from summit_testing_framework.jenkins.pytest_config import PyTestConfig
-from summit_testing_framework.pytest_helpers.import_helpers import import_module_from_local_path
 from summit_testing_framework.setups.specifier_container import SpecifierContainer
 from summit_testing_framework.setups.specifiers import (
     DictionaryType,
@@ -11,13 +9,6 @@ from summit_testing_framework.setups.specifiers import (
     RackServiceConfigSpecifier,
     VersionConfig,
 )
-
-# This file is used to export the specifiers to a JSON. Since tests is not a package,
-# we need to import the config files using a helper function to be able to access them
-_config_files = import_module_from_local_path(
-    module_name="config_files", module_path=Path(__file__).parent / "config_files"
-)
-assert _config_files is not None
 
 __EXECUTION_POLICY_KEY: str = "execution_policy"
 __TEST_CONFIGS_KEY: str = "test_configs"
@@ -29,7 +20,7 @@ ETH_SETUP = SpecifierContainer({
         version_configs={
             "2.4.0": VersionConfig.from_version(
                 version="2.4.0",
-                config_file=_config_files.EVE_XCR_C_2_1_0_CONFIG,
+                config_file=config_files.EVE_XCR_C_2_1_0_CONFIG,
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "weekends",
@@ -44,7 +35,7 @@ ETH_SETUP = SpecifierContainer({
             ),
             "2.8.1": VersionConfig.from_version(
                 version="2.8.1",
-                config_file=_config_files.EVE_XCR_C_2_8_1_CONFIG,
+                config_file=config_files.EVE_XCR_C_2_8_1_CONFIG,
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "weekends",
@@ -65,7 +56,7 @@ ETH_SETUP = SpecifierContainer({
         version_configs={
             "2.4.0": VersionConfig.from_version(
                 version="2.4.0",
-                config_file=_config_files.CAP_XCR_C_CONFIG,
+                config_file=config_files.CAP_XCR_C_2_2_0_CONFIG,
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     # Disabled pending INGK-982
@@ -81,7 +72,7 @@ ETH_SETUP = SpecifierContainer({
             ),
             "2.10.0": VersionConfig.from_version(
                 version="2.10.0",
-                config_file=_config_files.CAP_XCR_C_CONFIG,
+                config_file=config_files.CAP_XCR_C_2_2_0_CONFIG,
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     # Disabled pending INGK-982
@@ -106,7 +97,7 @@ ECAT_SETUP = SpecifierContainer({
         version_configs={
             "2.6.0": VersionConfig.from_version(
                 version="2.6.0",
-                config_file=_config_files.EVE_XCR_E_CONFIG,
+                config_file=config_files.EVE_XCR_E_2_1_0_CONFIG,
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "weekends",
@@ -121,7 +112,7 @@ ECAT_SETUP = SpecifierContainer({
             ),
             "2.8.1": VersionConfig.from_version(
                 version="2.8.1",
-                config_file=_config_files.EVE_XCR_E_CONFIG,
+                config_file=config_files.EVE_XCR_E_2_1_0_CONFIG,
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "always",
@@ -142,7 +133,7 @@ ECAT_SETUP = SpecifierContainer({
         version_configs={
             "2.6.0": VersionConfig.from_version(
                 version="2.6.0",
-                config_file=_config_files.CAP_XCR_E_2_2_0_CONFIG,
+                config_file=config_files.CAP_XCR_E_2_2_0_CONFIG,
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "weekends",
@@ -157,7 +148,7 @@ ECAT_SETUP = SpecifierContainer({
             ),
             "2.9.0": VersionConfig.from_version(
                 version="2.9.0",
-                config_file=_config_files.CAP_XCR_E_2_9_0_CONFIG,
+                config_file=config_files.CAP_XCR_E_2_9_0_CONFIG,
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "always",
@@ -219,7 +210,7 @@ CAN_SETUP = SpecifierContainer({
         version_configs={
             "2.4.0": VersionConfig.from_version(
                 version="2.4.0",
-                config_file=_config_files.EVE_XCR_C_2_1_0_CONFIG,
+                config_file=config_files.EVE_XCR_C_2_1_0_CONFIG,
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "weekends",
@@ -234,7 +225,7 @@ CAN_SETUP = SpecifierContainer({
             ),
             "2.8.1": VersionConfig.from_version(
                 version="2.8.1",
-                config_file=_config_files.EVE_XCR_C_2_8_1_CONFIG,
+                config_file=config_files.EVE_XCR_C_2_8_1_CONFIG,
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "always",
@@ -255,7 +246,7 @@ CAN_SETUP = SpecifierContainer({
         version_configs={
             "2.4.0": VersionConfig.from_version(
                 version="2.4.0",
-                config_file=_config_files.CAP_XCR_C_CONFIG,
+                config_file=config_files.CAP_XCR_C_2_2_0_CONFIG,
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "always",
@@ -270,7 +261,7 @@ CAN_SETUP = SpecifierContainer({
             ),
             "2.10.0": VersionConfig.from_version(
                 version="2.10.0",
-                config_file=_config_files.CAP_XCR_C_CONFIG,
+                config_file=config_files.CAP_XCR_C_2_2_0_CONFIG,
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "never",
