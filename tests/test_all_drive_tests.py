@@ -116,7 +116,11 @@ def test_digital_halls_test(
             mc.tests.digital_halls_test(servo=alias)
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
-    assert_returns_to_initial_value(servo, registers_baseline)
+    assert_returns_to_initial_value(
+        servo,
+        registers_baseline,
+        accepted_changed_registers=DigitalHallTest.ACCEPTED_CHANGED_REGISTERS,
+    )
 
 
 @pytest.mark.ethernet

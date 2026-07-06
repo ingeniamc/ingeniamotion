@@ -19,6 +19,13 @@ class DigitalHallTest(Feedbacks):
 
     SENSOR_TYPE_FEEDBACK_TEST = SensorType.HALLS
 
+    ACCEPTED_CHANGED_REGISTERS = (
+        "COMMU_ANGLE_OFFSET",
+        "COMMU_ANGLE_REF_OFFSET",
+        "COMMU_PHASING_MAX_CURRENT",
+        "COMMU_PHASING_TIMEOUT",
+    )
+
     def __init__(
         self, mc: "MotionController", servo: str, axis: int, logger_drive_name: Optional[str] = None
     ) -> None:
