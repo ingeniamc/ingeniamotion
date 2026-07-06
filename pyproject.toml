@@ -120,6 +120,7 @@ pytest-console-scripts = "==1.4.1"
 matplotlib = "==3.8.2"
 summit-testing-framework = {version = "0.3.0.post382+develop.fc0b727"}
 ingenialink = {version = "7.6.1.post115+develop.37c5f0c"}
+summit-drives-ci-configs = {path = "summit_drives_ci_configs", develop = true}
 
 # -----------------------------------------------------------------------
 #                                   TASKS
