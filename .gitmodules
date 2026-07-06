@@ -1,3 +1,3 @@
 [submodule "summit_drives_ci_configs"]
 	path = summit_drives_ci_configs
-	url = https://github.com/CeleraMotion/summit_drives_ci_configs.git
+	url = git@github.com:CeleraMotion/summit_drives_ci_configs.git
