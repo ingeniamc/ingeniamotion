@@ -162,7 +162,7 @@ sequence = ["ruff-format", "ruff-check-fix"]
 # ----------------------------- Documentation -----------------------------
 [tool.poe.tasks.docs]
 help = "Build documentation"
-cmd = "python -I -m sphinx -E -b html docs _docs"
+cmd = "python -I -m sphinx -E -W --keep-going -b html docs _docs"
 
 # ----------------------------- Mypy -----------------------------
 [tool.poe.tasks.type]
