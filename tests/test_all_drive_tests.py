@@ -382,7 +382,7 @@ def test_dynamic_forced_phasing(mc, alias):
     """Run the test on a real drive and check it succeeds, leaving the drive in NO_PHASING.
 
     Reads the motor rated current, runs the phasing without writing registers, and verifies
-    the result is SUCCESS with a normalised commutation angle in [0, 1).
+    the result is SUCCESS with a normalized commutation angle in [0, 1).
     """
     rated_current = mc.communication.get_register(RATED_CURRENT_REGISTER, servo=alias, axis=1)
     result = mc.tests.dynamic_forced_phasing(
@@ -507,20 +507,18 @@ def test_dynamic_forced_phasing_signals_with_noise(mc, alias, offset, noise_ampl
     test = DynamicForcedPhasing(mc, alias, 1)
     num_points = 200
 
-    # signal1 is a normalised ramp; signal2 is the same ramp shifted by `offset` plus noise
+    # signal1 is a normalized ramp; signal2 is the same ramp shifted by `offset` plus noise
     signal1 = [i / num_points for i in range(num_points)]
     signal2 = [
         (s1 - offset + random.uniform(-noise_amplitude, noise_amplitude)) % 1 for s1 in signal1
     ]
 
-    tolerance = DynamicForcedPhasing.NORM_TOLERANCE
-    mean_diff, max_diff = test._DynamicForcedPhasing__check_signals_difference_is_constant(
-        signal1, signal2, tolerance
+    # Points deviate from the mean by at most the noise span (each side of it).
+    tolerance = 2 * noise_amplitude + 1e-6
+    mean_diff = test._DynamicForcedPhasing__check_signals_difference_is_constant(
+        signal1, signal2, tolerance_norm=tolerance
     )
 
     assert mean_diff is not None
-    assert max_diff is not None
     # Compare in the circular [0, 1) domain so the wrap-around boundary is handled.
     assert circular_distance(mean_diff, offset) < noise_amplitude + 1e-6
-    # Points deviate from the mean by at most the noise span (each side of it).
-    assert max_diff <= 2 * noise_amplitude + 1e-6
