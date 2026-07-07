@@ -1,4 +1,3 @@
-import summit_drives_ci_configs.config_files as config_files
 from ingenialink.dictionary import Interface
 from summit_testing_framework.jenkins.pytest_config import PyTestConfig
 from summit_testing_framework.setups.specifier_container import SpecifierContainer
@@ -9,6 +8,8 @@ from summit_testing_framework.setups.specifiers import (
     RackServiceConfigSpecifier,
     VersionConfig,
 )
+
+import summit_drives_ci_configs.config_files as config_files
 
 __EXECUTION_POLICY_KEY: str = "execution_policy"
 __TEST_CONFIGS_KEY: str = "test_configs"
