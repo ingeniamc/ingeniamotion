@@ -44,7 +44,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx_autodoc_typehints',
     'sphinx.ext.intersphinx',
-    'm2r2'
+    'myst_parser'
 ]
 
 autodoc_default_options = {
