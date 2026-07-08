@@ -101,16 +101,17 @@ def test_motor_enable(mc, alias):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize(
-    "uid, value, exception_type, message",
+    "uid, value, exception_type, message, timeout",
     [
-        ("DRV_PROT_USER_UNDER_VOLT", 100, exceptions.ILError, "User Under-voltage detected"),
+        ("DRV_PROT_USER_UNDER_VOLT", 100, exceptions.ILError, "User Under-voltage detected", 6),
         (
             "DRV_PROT_USER_OVER_TEMP",
             1,
             exceptions.ILError,
             "Over-temperature detected (user limit)",
+            10,
         ),
-        ("DRV_PROT_USER_OVER_VOLT", 1, exceptions.ILError, "User Over-voltage detected"),
+        ("DRV_PROT_USER_OVER_VOLT", 1, exceptions.ILError, "User Over-voltage detected", 6),
     ],
 )
 def test_motor_enable_with_fault(
@@ -120,14 +121,15 @@ def test_motor_enable_with_fault(
     value: int,
     exception_type: Exception,
     message: str,
+    timeout: int,
 ) -> None:
     mc.communication.set_register(uid, value, alias)
     with pytest.raises(exception_type) as excinfo:
-        mc.motion.motor_enable(servo=alias)
+        mc.motion.motor_enable(servo=alias, error_timeout=timeout)
     if excinfo.type is exceptions.ILIOError:
         # Retrieving the error code failed. Check INGM-522.
         with pytest.raises(exception_type) as excinfo:
-            mc.motion.motor_enable(servo=alias)
+            mc.motion.motor_enable(servo=alias, error_timeout=timeout)
     assert str(excinfo.value) == message
 
 
@@ -147,6 +149,22 @@ def test_motor_enable_with_fault(
         ),
         # Under-Voltage Error is triggered successfully
         ("DRV_PROT_USER_UNDER_VOLT", 100, exceptions.ILError, "User Under-voltage detected", 6),
+        # Over-Temperature Error is not triggered due to timeout error
+        (
+            "DRV_PROT_USER_OVER_TEMP",
+            1,
+            exceptions.ILTimeoutError,
+            "Error trigger timeout exceeded.",
+            2,
+        ),
+        # Over-Temperature Error is triggered successfully when we wait long enough
+        (
+            "DRV_PROT_USER_OVER_TEMP",
+            1,
+            exceptions.ILError,
+            "Over-temperature detected (user limit)",
+            6,
+        ),
     ],
 )
 def test_motor_enable_with_delayed_fault(
@@ -159,7 +177,7 @@ def test_motor_enable_with_delayed_fault(
     message: str,
     timeout: int,
 ):
-    # Mock function response with delay
+    # Mock function response with delay to reproduce late error publication.
     num_errors_before_test = mc.errors.get_number_total_errors(servo=alias, axis=1)
     patch_get_number_total_errors = mocker.patch(
         "ingeniamotion.errors.Errors.get_number_total_errors"
