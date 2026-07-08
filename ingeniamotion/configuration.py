@@ -204,8 +204,7 @@ class Configuration(Homing, Feedbacks):
     def default_brake(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> None:
         """Disable the brake override of the target servo and axis.
 
-         Same as
-        :func:`disable_brake_override`.
+        Same as :func:`disable_brake_override`.
 
         Args:
             servo : servo alias to reference it. ``default`` by default.
