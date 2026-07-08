@@ -199,6 +199,7 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
             TestError: If the motor is not in a valid state to start the test.
             ValueError: If the max current drive or current motor peak are not floats.
         """
+        self.logger.debug("Checking input data")
         try:
             self.mc.capture._check_version(servo=self.servo)
         except NotImplementedError as e:
@@ -233,17 +234,22 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
             pair_poles=pair_poles,
         )
         self.mc.motion.set_current_direct(0, servo=self.servo, axis=self.axis)
+        self.logger.info("Target direct current set to zero", axis=self.axis)
         self.mc.motion.set_current_quadrature(0, servo=self.servo, axis=self.axis)
+        self.logger.info("Target quadrature current set to zero", axis=self.axis)
         self.mc.communication.set_register(
             COMMUTATION_ANGLE_OFFSET_REGISTER, 0, servo=self.servo, axis=self.axis
         )
+        self.logger.info("Commutation angle offset set to zero", axis=self.axis)
         self.mc.communication.set_register(
             REFERENCE_ANGLE_OFFSET_REGISTER, 0, servo=self.servo, axis=self.axis
         )
+        self.logger.info("Reference angle offset set to zero", axis=self.axis)
 
     @BaseTest.stoppable
     def __configure_monitoring(self) -> None:
         """Configure the monitoring for the test."""
+        self.logger.info("Configuring monitoring")
         self.mc.capture.disable_monitoring(servo=self.servo)
         mon_registers: list[dict[str, Union[int, str]]] = [
             {"name": COMMUTATION_ANGLE_VALUE_REGISTER, "axis": self.axis},
@@ -303,6 +309,7 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
     @override
     def setup(self) -> None:
         self.__check_initial_state()
+        self.logger.info("CONFIGURATION OF THE TEST", axis=self.axis)
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
         self.__set_error_event_to_warning()
         self.__configure_open_loop_movement()
@@ -388,6 +395,11 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
         self.mc.motion.internal_generator_saw_tooth_move(
             direction.value, 1, self.spin_frequency, servo=self.servo, axis=self.axis
         )
+        self.logger.info(
+            f"Rotate motor one mechanical revolution, frequency {self.spin_frequency:.3g} Hz, direction {direction.name}",
+            axis=self.axis,
+        )
+
         init_time = time.time()
         movement_ends = False
         while not movement_ends and time.time() - init_time < timeout_time:
@@ -419,8 +431,13 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
 
     @override
     def loop(self) -> DynamicForcedPhasingReport:
+        self.logger.info("Enable motor", axis=self.axis)
         self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
         self.check_stop()
+
+        self.logger.info(
+            f"Increasing direct current to {self.phasing_max_current:.4f} A", axis=self.axis
+        )
         self.mc.motion.current_direct_ramp(
             self.phasing_max_current, self.CURRENT_RAMP_TIME_S, servo=self.servo, axis=self.axis
         )
