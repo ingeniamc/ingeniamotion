@@ -283,7 +283,7 @@
 ### Added
 - IMRegisterWrongAccess and IMTimeoutError exceptions.
 - Ingenialink enums to enums module.
-- IMTimeoutError exception to move_to_position and set_velocity functions.-
+- IMTimeoutError exception to move_to_position and set_velocity functions.
 
 ## [0.5.2] - 2021-11-23
 ### Added
@@ -314,8 +314,7 @@
 - Add exceptions module.
 - Phasing Check test.
 - STO test.
-- Create enable_monitoring_disturbance and 
-  disable_monitoring_disturbance in Capture module.
+- Create enable_monitoring_disturbance and disable_monitoring_disturbance in Capture module.
 - Create Info module.
 - Add fault_reset function.
 - Add Monitoring read function for forced trigger mode.
@@ -323,10 +322,8 @@
 - Add CANOpen communications.
 
 ### Changed
-- MonitoringError and DisturbanceError exceptions to 
-  IMMonitoringError and IMDisturbanceError.
-- Functions motor_enable and motor_disable add error messages
-  to raised exception.
+- MonitoringError and DisturbanceError exceptions to IMMonitoringError and IMDisturbanceError.
+- Functions motor_enable and motor_disable add error messages to raised exception.
 - Add timeout param to read_monitoring_data.
 - Update Commutation test.
 - Update stop test functions.
@@ -336,10 +333,8 @@
 - Removed enable_disturbance from Disturbance class.
 
 ### Fixed
-- Disturbance class and create_disturbance functions
-  allow numpy arrays as a disturbance data.
-- Fixed servo alias bug. Some functions were not allow
-  with no default alias.
+- Disturbance class and create_disturbance functions allow numpy arrays as a disturbance data.
+- Fixed servo alias bug. Some functions were not allow with no default alias.
 
 ## [0.4.0] - 2021-06-28
 ### Added
@@ -366,17 +361,14 @@
 - Functions get_register and set_register.
 - Functions create_poller.
 - Monitoring class and create_monitoring function.
-- Set and get power stage frequency and get position and velocity loop rate functions
-  in configuration.
+- Set and get power stage frequency and get position and velocity loop rate functions in configuration.
 
 ## [0.1.1] - 2021-03-18
 ### Added
 - Connect servo via EOE and Ethernet.
-- Add drive test: digital_halls_test, incremental_encoder_1_test, incremental_encoder_2_test
-  and commutation.
+- Add drive test: digital_halls_test, incremental_encoder_1_test, incremental_encoder_2_test and commutation.
 - Brake configuration functions.
 - Load and save configuration functions.
 - Set max velocity and max acceleration functions.
-- Motion functions: enable and disable motor, move_to_position, set_velocity,
-  set_current_quadrature, set_operation_mode, target_latch, etc...
+- Motion functions: enable and disable motor, move_to_position, set_velocity, set_current_quadrature, set_operation_mode, target_latch, etc...
   

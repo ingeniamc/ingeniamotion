@@ -44,7 +44,7 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx_autodoc_typehints',
     'sphinx.ext.intersphinx',
-    'm2r2'
+    'myst_parser'
 ]
 
 autodoc_default_options = {
@@ -70,11 +70,6 @@ exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 # a list of builtin themes.
 #
 html_theme = 'sphinx_rtd_theme'
-
-# Add any paths that contain custom static files (such as style sheets) here,
-# relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
 
 pdf_name = u"ingeniamotion v{}".format(ingeniamotion_version)
 pdf_documents = [('index', pdf_name, u'Ingeniamotion', author), ]

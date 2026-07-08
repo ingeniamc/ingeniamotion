@@ -97,7 +97,7 @@ sphinx-rtd-theme = "==3.1.0"
 sphinxcontrib-bibtex = "==2.6.2"
 sphinx_autodoc_typehints = "==1.25.3"
 nbsphinx = "==0.9.4"
-m2r2 = "==0.3.4"
+myst-parser = "==3.0.1"
 jinja2 = "==3.1.4"
 
 # Dependencies for type task
@@ -162,7 +162,7 @@ sequence = ["ruff-format", "ruff-check-fix"]
 # ----------------------------- Documentation -----------------------------
 [tool.poe.tasks.docs]
 help = "Build documentation"
-cmd = "python -I -m sphinx -E -b html docs _docs"
+cmd = "python -I -m sphinx -E -W --keep-going -b html docs _docs"
 
 # ----------------------------- Mypy -----------------------------
 [tool.poe.tasks.type]

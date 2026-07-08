@@ -814,11 +814,12 @@ class Communication:
         """Return the list of available CAN devices (those connected and with drivers installed).
 
         Returns:
-            Dict of available CAN devices and channels. For example:
-            {
-                CanDevice.KVASER: [0, 1]
-                CanDevice.PCAN: [0]
-            }
+            Dict of available CAN devices and channels. For example::
+
+                {
+                    CanDevice.KVASER: [0, 1]
+                    CanDevice.PCAN: [0]
+                }
         """
         available_devices: dict[CanDevice, list[int]] = {}
         can_net = None
