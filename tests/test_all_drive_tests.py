@@ -12,6 +12,8 @@ from ingeniamotion.enums import PhasingMode, SensorType, SeverityLevel
 from ingeniamotion.exceptions import IMRegisterNotExistError
 from ingeniamotion.wizard_tests.base_test import TestError
 from ingeniamotion.wizard_tests.dynamic_forced_phasing import (
+    COMMUTATION_ANGLE_VALUE_REGISTER,
+    REFERENCE_ANGLE_VALUE_REGISTER,
     DynamicForcedPhasing,
     circular_distance,
 )
@@ -522,3 +524,22 @@ def test_dynamic_forced_phasing_signals_with_noise(mc, alias, offset, noise_ampl
     assert mean_diff is not None
     # Compare in the circular [0, 1) domain so the wrap-around boundary is handled.
     assert circular_distance(mean_diff, offset) < noise_amplitude + 1e-6
+
+
+@pytest.mark.virtual
+def test_calculate_monitoring_max_time(mc, alias, mocker):
+    mocker.patch.object(
+        mc.configuration, "get_position_and_velocity_loop_rate", return_value=20000.0
+    )
+    mocker.patch.object(mc.capture, "monitoring_max_sample_size", return_value=8192)
+    dfp = DynamicForcedPhasing(mc, alias, 1)
+    mapped_registers = [
+        {"name": COMMUTATION_ANGLE_VALUE_REGISTER, "axis": 1},
+        {"name": REFERENCE_ANGLE_VALUE_REGISTER, "axis": 1},
+    ]
+    result = dfp._DynamicForcedPhasing__calculate_monitoring_max_time(
+        frequency_divider=20,
+        mapped_registers=mapped_registers,
+    )
+    expected = 1.024
+    assert result == pytest.approx(expected)

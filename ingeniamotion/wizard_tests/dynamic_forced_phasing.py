@@ -246,6 +246,43 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
         )
         self.logger.info("Reference angle offset set to zero", axis=self.axis)
 
+    def __calculate_monitoring_max_time(
+        self, frequency_divider: int, mapped_registers: list[dict[str, Union[int, str]]]
+    ) -> float:
+        """Calculate the maximum monitoring time.
+
+        Args:
+            frequency_divider: The frequency divider for the monitoring.
+            mapped_registers: The list of mapped registers for the monitoring.
+
+        Returns:
+            The maximum monitoring time in seconds.
+
+        Raises:
+            ValueError: The frequency divider is not valid or the mapped registers list is empty.
+        """
+        if frequency_divider <= 0:
+            raise ValueError("Frequency divider must be positive.")
+        if not mapped_registers:
+            raise ValueError("Mapped registers list must not be empty.")
+        frequency = (
+            self.mc.configuration.get_position_and_velocity_loop_rate(
+                servo=self.servo, axis=self.axis
+            )
+            / frequency_divider
+        )
+        max_sample_size_bits = self.mc.capture.monitoring_max_sample_size(servo=self.servo) * 8
+        map_reg_size = 0
+        for reg in mapped_registers:
+            reg_name = reg.get("name")
+            reg_axis = reg.get("axis", 1)
+            if not isinstance(reg_name, str) or not isinstance(reg_axis, int):
+                raise ValueError(f"Invalid register mapping: {reg}")
+            reg_info = self.mc.info.register_info(reg_name, reg_axis, servo=self.servo)
+            map_reg_size += reg_info.bit_length
+        max_time = max_sample_size_bits / map_reg_size / frequency
+        return max_time
+
     @BaseTest.stoppable
     def __configure_monitoring(self) -> None:
         """Configure the monitoring for the test."""
@@ -255,10 +292,17 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
             {"name": COMMUTATION_ANGLE_VALUE_REGISTER, "axis": self.axis},
             {"name": REFERENCE_ANGLE_VALUE_REGISTER, "axis": self.axis},
         ]
+        frequency_divider = 20
+        max_time = self.__calculate_monitoring_max_time(
+            frequency_divider=frequency_divider, mapped_registers=mon_registers
+        )
+        self.logger.debug(
+            f"Sample time for monitoring: {max_time:.3f} s, frequency divider: {frequency_divider}"
+        )
         self.__monitoring = self.mc.capture.create_monitoring(
             registers=mon_registers,
-            prescaler=50,
-            sample_time=1,
+            prescaler=frequency_divider,
+            sample_time=max_time,
             trigger_mode=MonitoringSoCType.TRIGGER_EVENT_AUTO,
             servo=self.servo,
             start=True,
@@ -396,7 +440,8 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
             direction.value, 1, self.spin_frequency, servo=self.servo, axis=self.axis
         )
         self.logger.info(
-            f"Rotate motor one mechanical revolution, frequency {self.spin_frequency:.3g} Hz, direction {direction.name}",
+            f"Rotate motor one mechanical revolution, frequency {self.spin_frequency:.3g} Hz, "
+            f"direction {direction.name}",
             axis=self.axis,
         )
 
