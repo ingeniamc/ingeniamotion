@@ -102,6 +102,7 @@ class FSoEMasterHandler:
         self.net.pdo_manager.subscribe_to_exceptions(self._pdo_thread_exception_handler)
 
         self.__state_is_data = threading.Event()
+        self.__stopping = False
 
         # The saco slave might take a while to answer with a valid command
         # During it's initialization it will respond with 0's, that are ignored
@@ -341,6 +342,7 @@ class FSoEMasterHandler:
 
     def stop(self) -> None:
         """Stop the master handler."""
+        self.__stopping = True
         self._master_handler.stop()
         self.__in_initial_reset = False
         self.__running = False
@@ -348,6 +350,7 @@ class FSoEMasterHandler:
         self.safety_master_pdu_map.unsubscribe_to_process_data_event()
         self.safety_slave_pdu_map.unsubscribe_to_process_data_event()
         self.__is_subscribed_to_process_data_events = False
+        self.__stopping = False
 
     def delete(self) -> None:
         """Delete the master handler."""
@@ -435,6 +438,12 @@ class FSoEMasterHandler:
         It is extracted from the Safety Slave PDU PDOMap and set to the FSoE master handler.
         """
         reply = self.safety_slave_pdu_map.get_item_bytes()
+        if self.__stopping or not self.__running:
+            self.logger.warning(
+                f"Late FSoE reply received during shutdown: running={self.__running} "
+                f"stopping={self.__stopping} initial_reset={self.__in_initial_reset} "
+                f"command=0x{reply[0]:02x} reply={reply.hex()}"
+            )
         if self.__in_initial_reset:
             if reply[0] == 0:
                 # Byte 0 of FSoE frame should always be the command
@@ -443,7 +452,19 @@ class FSoEMasterHandler:
             else:
                 self.__in_initial_reset = False
 
-        self._master_handler.set_reply(reply)
+        try:
+            self._master_handler.set_reply(reply)
+        except Exception:
+            self.logger.exception(
+                "FSoE reply processing failed: running=%s stopping=%s initial_reset=%s "
+                "command=0x%02x reply=%s",
+                self.__running,
+                self.__stopping,
+                self.__in_initial_reset,
+                reply[0],
+                reply.hex(),
+            )
+            raise
 
     def get_mismatched_parameters(
         self,

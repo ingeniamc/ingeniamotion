@@ -1,3 +1,4 @@
+import logging
 import random
 from collections import OrderedDict
 from collections.abc import Iterator
@@ -26,6 +27,8 @@ from ingeniamotion.errors import (
 from ingeniamotion.exceptions import IMErrorQueueNotExistsError
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError
 from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
+
+logger = logging.getLogger(__name__)
 
 if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master import (
@@ -118,6 +121,10 @@ def fsoe_error_monitor(
     def error_handler(error: FSoEError) -> None:
         # WARNING: This callback runs in the PDO thread. Avoid heavy processing
         # (e.g. SDO reads) to prevent SM watchdog trips.
+        logger.error(
+            "Captured FSoE error during test: %s",
+            FSoEErrorDisplay(error, fsoe_states.copy()).display,
+        )
         errors.append(
             FSoEErrorDisplay(
                 error=error,
