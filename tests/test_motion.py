@@ -146,9 +146,16 @@ def test_motor_enable_with_fault(
             2,
         ),
         # Under-Voltage Error is triggered successfully
-        ("DRV_PROT_USER_UNDER_VOLT", 100, exceptions.ILError, "User Under-voltage detected", 6),
+        (
+            "DRV_PROT_USER_UNDER_VOLT",
+            100,
+            exceptions.ILError,
+            "User Under-voltage detected",
+            6,
+        ),
     ],
 )
+@pytest.mark.repeat(10)
 def test_motor_enable_with_delayed_fault(
     mocker: "MockerFixture",
     mc: "MotionController",
@@ -166,6 +173,13 @@ def test_motor_enable_with_delayed_fault(
     )
     patch_get_number_total_errors.side_effect = delayed_function_return(
         4, num_errors_before_test, num_errors_before_test + 1
+    )
+    patch_get_last_buffer_error = mocker.patch("ingeniamotion.errors.Errors.get_last_buffer_error")
+    patch_get_last_buffer_error.side_effect = delayed_function_return(
+        4,
+        # First return means no error is available yet; second return publishes the real fault.
+        (0, None, None),
+        (0x3241, 1, False),
     )
 
     mc.communication.set_register(uid, value, alias)
