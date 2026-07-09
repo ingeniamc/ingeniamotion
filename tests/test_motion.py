@@ -1,5 +1,6 @@
+import sys
 import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 import numpy as np
 import pytest
@@ -101,16 +102,26 @@ def test_motor_enable(mc, alias):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize(
-    "uid, value, exception_type, message",
+    "uid, value, exception_type, note",
     [
-        ("DRV_PROT_USER_UNDER_VOLT", 100, exceptions.ILError, "User Under-voltage detected"),
+        (
+            "DRV_PROT_USER_UNDER_VOLT",
+            100,
+            exceptions.ILError,
+            "Error message: User Under-voltage detected",
+        ),
         (
             "DRV_PROT_USER_OVER_TEMP",
             1,
             exceptions.ILError,
-            "Over-temperature detected (user limit)",
+            "Error message: Over-temperature detected (user limit)",
         ),
-        ("DRV_PROT_USER_OVER_VOLT", 1, exceptions.ILError, "User Over-voltage detected"),
+        (
+            "DRV_PROT_USER_OVER_VOLT",
+            1,
+            exceptions.ILError,
+            "Error message: User Over-voltage detected",
+        ),
     ],
 )
 def test_motor_enable_with_fault(
@@ -119,7 +130,7 @@ def test_motor_enable_with_fault(
     uid: str,
     value: int,
     exception_type: Exception,
-    message: str,
+    note: str,
 ) -> None:
     mc.communication.set_register(uid, value, alias)
     with pytest.raises(exception_type) as excinfo:
@@ -128,14 +139,20 @@ def test_motor_enable_with_fault(
         # Retrieving the error code failed. Check INGM-522.
         with pytest.raises(exception_type) as excinfo:
             mc.motion.motor_enable(servo=alias)
-    assert str(excinfo.value) == message
+    assert str(excinfo.value) == (
+        "The subnode 1 could not be enabled within 1000 ms. "
+        "The current subnode state is ServoState.FAULT"
+    )
+
+    if sys.version_info >= (3, 11):
+        assert excinfo.value.__notes__[0] == note
 
 
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize(
-    "uid, value, exception_type, message, timeout",
+    "uid, value, exception_type, expected_message, note, timeout",
     [
         # Under-Voltage Error is not triggered due to timeout error
         (
@@ -143,6 +160,7 @@ def test_motor_enable_with_fault(
             100,
             exceptions.ILTimeoutError,
             "Error trigger timeout exceeded.",
+            None,
             2,
         ),
         # Under-Voltage Error is triggered successfully
@@ -150,7 +168,11 @@ def test_motor_enable_with_fault(
             "DRV_PROT_USER_UNDER_VOLT",
             100,
             exceptions.ILError,
-            "User Under-voltage detected",
+            (
+                "The subnode 1 could not be enabled within 1000 ms. "
+                "The current subnode state is ServoState.FAULT"
+            ),
+            "Error message: User Under-voltage detected",
             6,
         ),
     ],
@@ -162,7 +184,8 @@ def test_motor_enable_with_delayed_fault(
     uid: str,
     value: int,
     exception_type: Exception,
-    message: str,
+    expected_message: str,
+    note: Optional[str],
     timeout: int,
 ):
     # Mock function response with delay
@@ -184,7 +207,11 @@ def test_motor_enable_with_delayed_fault(
     mc.communication.set_register(uid, value, alias)
     with pytest.raises(exception_type) as excinfo:
         mc.motion.motor_enable(servo=alias, error_timeout=timeout)
-    assert str(excinfo.value) == message
+
+    assert str(excinfo.value) == expected_message
+
+    if sys.version_info >= (3, 11) and note is not None:
+        assert excinfo.value.__notes__[0] == note
 
 
 @pytest.mark.ethernet
