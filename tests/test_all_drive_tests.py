@@ -529,6 +529,8 @@ def test_dynamic_forced_phasing_signals_with_noise(mc, alias, offset, noise_ampl
 
 @pytest.mark.virtual
 def test_calculate_monitoring_max_time(mc, alias, mocker):
+    """Check the monitoring max time calculation returns the expected value."""
+    # Mock the loop rate and max sample size to known values so the calculation is deterministic.
     mocker.patch.object(
         mc.configuration, "get_position_and_velocity_loop_rate", return_value=20000.0
     )
@@ -542,5 +544,11 @@ def test_calculate_monitoring_max_time(mc, alias, mocker):
         frequency_divider=20,
         mapped_registers=mapped_registers,
     )
+    # The expected max time is calculated as:
+    # max_time = (max_sample_size / map_reg_size) / frequency
+    # map_reg_size = 2*4 bytes (two float registers)
+    # max_sample_size = 8192 bytes
+    # frequency = loop_rate / frequency_divider = 20000 Hz / 20 = 1000 Hz
+    # max_time = (8192 bytes / 8 bytes) / 1000 Hz = 1.024 seconds
     expected = 1.024
     assert result == pytest.approx(expected)
