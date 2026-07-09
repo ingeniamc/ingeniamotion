@@ -149,22 +149,28 @@ class Motion:
         try:
             drive.enable(subnode=axis)
         except ILError as e:
-            timeout = error_timeout
-            start_time = time.time()
-            error_raised = False
-            while not error_raised and (time.time() < (start_time + timeout)):
-                error_raised = (
-                    self.mc.errors.get_number_total_errors(servo=servo, axis=axis) != num_errors
-                )
-            if error_raised:
-                error_code, _subnode, _warning = self.mc.errors.get_last_buffer_error(
+            deadline = time.time() + error_timeout
+            error_code = 0
+            while time.time() < deadline and error_code == 0:
+                current_error_code, _subnode, _warning = self.mc.errors.get_last_buffer_error(
                     servo=servo, axis=axis
                 )
-                _error_id, _, _, error_msg = self.mc.errors.get_error_data(error_code, servo=servo)
-            else:
+                if current_error_code != 0:
+                    error_code = current_error_code
+                    continue
+                current_total_errors = self.mc.errors.get_number_total_errors(
+                    servo=servo, axis=axis
+                )
+                if current_total_errors != num_errors:
+                    error_code, _subnode, _warning = self.mc.errors.get_last_buffer_error(
+                        servo=servo, axis=axis
+                    )
+            if error_code == 0:
                 raise ILTimeoutError("Error trigger timeout exceeded.")
-            exception_type = type(e)
-            raise exception_type(error_msg)
+            _error_id, _, _, error_msg = self.mc.errors.get_error_data(error_code, servo=servo)
+            if type(e) is ILTimeoutError:
+                raise ILError(error_msg)
+            raise type(e)(error_msg)
 
     def motor_disable(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> None:
         """Disable motor.
