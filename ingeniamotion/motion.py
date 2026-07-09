@@ -1,3 +1,4 @@
+import sys
 import time
 from collections.abc import Generator
 from typing import TYPE_CHECKING, Optional, Union
@@ -168,9 +169,13 @@ class Motion:
             if error_code == 0:
                 raise ILTimeoutError("Error trigger timeout exceeded.")
             _error_id, _, _, error_msg = self.mc.errors.get_error_data(error_code, servo=servo)
+            if sys.version_info >= (3, 11):
+                # Adds a note to the exception with the error last error message from the queues
+                # Only available in Python 3.11+ (add_note method)
+                e.add_note(f"Error message: {error_msg}")
             if type(e) is ILTimeoutError:
                 raise ILError(error_msg)
-            raise type(e)(error_msg)
+            raise
 
     def motor_disable(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> None:
         """Disable motor.
