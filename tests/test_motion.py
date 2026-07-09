@@ -135,10 +135,18 @@ def test_motor_enable(mc, alias):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
+@pytest.mark.repeat(10)
 @pytest.mark.parametrize(
     "uid, value, exception_type, message, timeout",
     [
         ("DRV_PROT_USER_UNDER_VOLT", 100, exceptions.ILError, "User Under-voltage detected", 6),
+        (
+            "DRV_PROT_USER_OVER_TEMP",
+            1,
+            exceptions.ILError,
+            "Over-temperature detected (user limit)",
+            10,
+        ),
         ("DRV_PROT_USER_OVER_VOLT", 1, exceptions.ILError, "User Over-voltage detected", 6),
     ],
 )
@@ -152,36 +160,24 @@ def test_motor_enable_with_fault(
     timeout: int,
 ) -> None:
     mc.communication.set_register(uid, value, alias)
+    before_total_errors = mc.errors.get_number_total_errors(servo=alias, axis=1)
+    motor_enable_start = time.perf_counter()
     with pytest.raises(exception_type) as excinfo:
         mc.motion.motor_enable(servo=alias, error_timeout=timeout)
+    motor_enable_elapsed = time.perf_counter() - motor_enable_start
     if excinfo.type is exceptions.ILIOError:
         # Retrieving the error code failed. Check INGM-522.
         with pytest.raises(exception_type) as excinfo:
             mc.motion.motor_enable(servo=alias, error_timeout=timeout)
+    if excinfo.type is exceptions.ILTimeoutError and uid == "DRV_PROT_USER_OVER_TEMP":
+        elapsed = wait_for_error_message(mc, alias, message)
+        after_total_errors = mc.errors.get_number_total_errors(servo=alias, axis=1)
+        pytest.fail(
+            f"motor_enable timed out before '{message}' was reported; "
+            f"before_total_errors={before_total_errors}, after_total_errors={after_total_errors}, "
+            f"motor_enable_elapsed={motor_enable_elapsed:.2f}s, queue_elapsed={elapsed:.2f}s."
+        )
     assert str(excinfo.value) == message
-
-
-@pytest.mark.ethernet
-@pytest.mark.soem
-@pytest.mark.canopen
-def test_motor_enable_with_over_temp_delayed_fault(mc: "MotionController", alias: str) -> None:
-    uid = "DRV_PROT_USER_OVER_TEMP"
-    value = 1
-    expected_message = "Over-temperature detected (user limit)"
-    short_timeout = 2
-
-    num_errors_before_test = mc.errors.get_number_total_errors(servo=alias, axis=1)
-    mc.communication.set_register(uid, value, alias)
-
-    start_time = time.perf_counter()
-    with pytest.raises(exceptions.ILTimeoutError):
-        mc.motion.motor_enable(servo=alias, error_timeout=short_timeout)
-    timeout_elapsed = time.perf_counter() - start_time
-    assert timeout_elapsed >= short_timeout
-
-    elapsed = wait_for_error_message(mc, alias, expected_message)
-    assert elapsed >= short_timeout
-    assert mc.errors.get_number_total_errors(servo=alias, axis=1) > num_errors_before_test
 
 
 @pytest.mark.ethernet
