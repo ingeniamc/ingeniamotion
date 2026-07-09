@@ -545,7 +545,6 @@ def test_calculate_monitoring_max_time(mc, alias, mocker):
         mapped_registers=mapped_registers,
     )
     # The expected max time is calculated as:
-    # max_time = (max_sample_size / map_reg_size) / frequency
     # map_reg_size = 2*4 bytes (two float registers)
     # max_sample_size = 8192 bytes
     # frequency = loop_rate / frequency_divider = 20000 Hz / 20 = 1000 Hz
