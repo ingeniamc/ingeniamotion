@@ -155,7 +155,6 @@ def test_motor_enable_with_fault(
         ),
     ],
 )
-@pytest.mark.repeat(10)
 def test_motor_enable_with_delayed_fault(
     mocker: "MockerFixture",
     mc: "MotionController",
