@@ -81,6 +81,9 @@ class DynamicForcedPhasingReport(ReportBase):
     commutation_phasing_mode: PhasingMode
     """Commutation phasing mode."""
 
+    phasing_max_current: float
+    """Phasing maximum current used in the test."""
+
 
 class PhasingDirection(IntEnum):
     """Direction of the phasing movement."""
@@ -517,6 +520,7 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
             result_message=msg,
             commutation_angle=commutation_angle,
             commutation_phasing_mode=PhasingMode.NO_PHASING,
+            phasing_max_current=self.phasing_max_current,
         )
 
     @override

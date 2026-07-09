@@ -391,11 +391,12 @@ def test_dynamic_forced_phasing(mc, alias):
         alias,
         1,
         apply_changes=False,
-        phasing_max_current=rated_current,  # don't persist registers
+        phasing_max_current=rated_current,
     )
     assert result.result_severity == SeverityLevel.SUCCESS
     assert result.result_message == "Success"
     assert result.commutation_phasing_mode == PhasingMode.NO_PHASING
+    assert result.phasing_max_current == rated_current
     assert 0 <= result.commutation_angle <= 1
 
 
