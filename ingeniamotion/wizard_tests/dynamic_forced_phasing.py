@@ -30,6 +30,7 @@ REFERENCE_ANGLE_VALUE_REGISTER = "COMMU_ANGLE_REF_VALUE"
 REFERENCE_ANGLE_OFFSET_REGISTER = "COMMU_ANGLE_REF_OFFSET"
 MAX_CURRENT_REGISTER = "CL_CUR_REF_MAX"
 PEAK_CURRENT_REGISTER = "DRV_PROT_I2T_PEAK_VALUE"
+RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
 GENERATOR_VALUE_REGISTER = "FBK_GEN_VALUE"
 
 
@@ -329,10 +330,15 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
         current_motor_peak = self.mc.communication.get_register(
             PEAK_CURRENT_REGISTER, servo=self.servo, axis=self.axis
         )
+        rated_current = self.mc.communication.get_register(
+            RATED_CURRENT_REGISTER, servo=self.servo, axis=self.axis
+        )
         if not isinstance(max_current_drive, float):
             raise ValueError(f"Invalid type for max_current_drive: {type(max_current_drive)}")
         if not isinstance(current_motor_peak, float):
             raise ValueError(f"Invalid type for current_motor_peak: {type(current_motor_peak)}")
+        if not isinstance(rated_current, float):
+            raise ValueError(f"Invalid type for rated_current: {type(rated_current)}")
         limit_current = min(current_motor_peak, max_current_drive)
 
         if self._phasing_max_current_override is not None:
@@ -342,9 +348,9 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
                 servo=self.servo, axis=self.axis
             )
             if pos_vel_ratio == 1:
-                self.phasing_max_current = self.PHASING_CURRENT_PERCENTAGE * limit_current
+                self.phasing_max_current = self.PHASING_CURRENT_PERCENTAGE * rated_current
             else:
-                self.phasing_max_current = self.PHASING_CURRENT_PERCENTAGE_GEAR * limit_current
+                self.phasing_max_current = self.PHASING_CURRENT_PERCENTAGE_GEAR * rated_current
 
         if self.phasing_max_current > limit_current:
             raise TestError(
