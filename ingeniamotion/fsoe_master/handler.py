@@ -228,6 +228,17 @@ class FSoEMasterHandler:
             transition_name: The name of the FSoE state transition that failed.
             error: A description of the error.
         """
+        if self.__stopping or not self.__running:
+            # The upstream watchdog callback may race with stop(): while the
+            # handler is intentionally being stopped, it can still report the
+            # state it was in just before the reset (for example DATA_WD). That
+            # is teardown noise, not a user-visible FSoE failure.
+            self.logger.debug(
+                "Suppressed FSoE error while stopping: %s: %s",
+                transition_name,
+                error,
+            )
+            return
         if self.__in_initial_reset:
             self.logger.debug(
                 "Suppressed FSoE error during initial connection: %s: %s",
