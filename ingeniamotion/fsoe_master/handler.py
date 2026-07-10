@@ -101,6 +101,7 @@ class FSoEMasterHandler:
         self.__uses_sra: bool = use_sra
         self.__is_subscribed_to_process_data_events: bool = False
         self.__watchdog_timeout = watchdog_timeout
+        self.__last_slave_reply: Optional[bytes] = None
 
         self.net.pdo_manager.subscribe_to_exceptions(self._pdo_thread_exception_handler)
 
@@ -249,6 +250,11 @@ class FSoEMasterHandler:
         self.logger.error(
             f"An exception occurred during the PDO exchange: {exc}. FSoE Master will be stopped."
         )
+        if self.__last_slave_reply is not None:
+            self.logger.warning(
+                "REPLY_TRACE last_reply=%s",
+                self.__last_slave_reply.hex(),
+            )
         if self.running:
             self.stop()
 
@@ -465,6 +471,8 @@ class FSoEMasterHandler:
         It is extracted from the Safety Slave PDU PDOMap and set to the FSoE master handler.
         """
         reply = self.safety_slave_pdu_map.get_item_bytes()
+        self.__last_slave_reply = reply
+        self.logger.info("REPLY_TRACE reply=%s", reply.hex())
         # Do not act on late replies when stopping or not running
         if self.__stopping or not self.__running:
             return
