@@ -305,18 +305,6 @@ pipeline {
                                 }
                             }
                         }
-                        stage('Generate documentation') {
-                            steps {
-                                script {
-                                    venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
-                                        venv.run("poetry run poe docs")
-                                    }
-                                    venvManager.runInWorkingFolder('"C:\\Program Files\\7-Zip\\7z.exe" a -r docs.zip -w _docs -mem=AES256')
-                                    venvManager.copyFromWorkingFolder("docs.zip")
-                                }
-                                stash includes: 'docs.zip', name: 'docs'
-                            }
-                        }
                         stage('Run Docker tests (Windows)') {
                             when {
                                 expression {
@@ -331,20 +319,6 @@ pipeline {
                         }
                     }
                 }
-                        stage('Publish documentation') {
-                            when {
-                                beforeAgent true
-                                branch BRANCH_NAME_MASTER
-                            }
-                            agent {
-                                label 'lin-worker'
-                            }
-                            steps {
-                                unstash 'docs'
-                                unzip zipFile: 'docs.zip', dir: '.'
-                                publishDistExt('_docs', DISTEXT_PROJECT_DIR, true)
-                            }
-                        }
                         stage('Publish wheels') {
                             agent {
                                 docker {
@@ -375,7 +349,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Linux Docker Tests') {
+                stage('Linux Docker Tests and Documentation') {
                     agent {
                         docker {
                             label 'lin-worker'
@@ -398,7 +372,8 @@ pipeline {
                             steps {
                                 script {
                                     venvManager.createPoetryEnvironments(
-                                        pythonVersions: venvManager.defaultVenvNamesToVersion(LINUX_DOCKER_TESTS.baseTestSession.runInVirtualEnvs)
+                                        pythonVersions: venvManager.defaultVenvNamesToVersion(LINUX_DOCKER_TESTS.baseTestSession.runInVirtualEnvs) + [DEFAULT_PYTHON_VERSION] as Set,
+                                        installCommand: "poetry sync --all-groups --extras fsoe"
                                     )
                                 }
                             }
@@ -411,6 +386,24 @@ pipeline {
                                 script {
                                     LINUX_DOCKER_TESTS.runTestStages()
                                 }
+                            }
+                        }
+                        stage('Generate documentation') {
+                            steps {
+                                script {
+                                    venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
+                                        venv.run("poetry run poe docs")
+                                    }
+                                    venvManager.copyFromWorkingFolder("_docs/")
+                                }
+                            }
+                        }
+                        stage('Publish documentation') {
+                            when {
+                                branch BRANCH_NAME_MASTER
+                            }
+                            steps {
+                                publishDistExt('_docs', DISTEXT_PROJECT_DIR, true)
                             }
                         }
                     }
