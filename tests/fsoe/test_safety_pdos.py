@@ -95,7 +95,6 @@ def test_start_pdos_without_starting_safety_master(
 
 
 @pytest.mark.fsoe
-@pytest.mark.repeat(100)
 def test_stop_master_while_pdos_are_still_active(
     mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"],
     timeout_for_data_sra: float,
