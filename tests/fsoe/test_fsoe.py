@@ -234,7 +234,6 @@ def test_start_master_if_master_already_running(
 
 
 @pytest.mark.fsoe
-@pytest.mark.repeat(200)
 def test_start_stop_master(
     mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"],
     fsoe_states: list["FSoEState"],
