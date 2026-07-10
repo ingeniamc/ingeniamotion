@@ -1,5 +1,5 @@
 import threading
-from collections import OrderedDict
+from collections import OrderedDict, deque
 from collections.abc import Iterator
 from random import randint
 from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union, cast, overload
@@ -112,9 +112,15 @@ class FSoEMasterHandler:
         # To avoid triggering additional errors
         self.__in_initial_reset = False
 
+        self.__startup_in_progress: bool = False
+        self.__startup_replay_filter_enabled: bool = False
+        self.__has_reached_data_state: bool = False
+        self.__known_startup_replies: set[bytes] = set()
+        self.__known_startup_replies_order: deque[bytes] = deque(maxlen=64)
+
         # Parameters that are part of the system
         # UID as key
-        self.safety_parameters = OrderedDict[str, SafetyParameter]()
+        self.safety_parameters: OrderedDict[str, SafetyParameter] = OrderedDict()
 
         # Parameters that will be transmitted during the fsoe parameter state
         fsoe_application_parameters: list[FSoEApplicationParameter] = []
@@ -371,6 +377,8 @@ class FSoEMasterHandler:
         if self.running:
             raise RuntimeError("FSoE Master is already running.")
         self.__in_initial_reset = True
+        self.__startup_in_progress = True
+        self.__startup_replay_filter_enabled = self.__has_reached_data_state
         # Recalculate the SRA crc in case it changed
         if self._sra_fsoe_application_parameter is not None:
             self._sra_fsoe_application_parameter.set(self.get_application_parameters_sra_crc())
@@ -480,7 +488,22 @@ class FSoEMasterHandler:
         if self.__stopping or not self.__running:
             return
 
+        if self.__startup_replay_filter_enabled and reply in self.__known_startup_replies:
+            # The PDO thread can deliver old slave-PDU bytes immediately after
+            # restarting the master while PDOs remain active. Those bytes were
+            # already part of a previous successful startup, so feeding them to
+            # a freshly reset FSoE master can produce spurious session/CRC errors.
+            self.logger.debug("Ignoring stale replayed FSoE reply during startup: %s", reply.hex())
+            return
+
         self._master_handler.set_reply(reply)
+
+        if self.__startup_in_progress and reply not in self.__known_startup_replies:
+            if len(self.__known_startup_replies_order) == self.__known_startup_replies_order.maxlen:
+                oldest_reply = self.__known_startup_replies_order.popleft()
+                self.__known_startup_replies.discard(oldest_reply)
+            self.__known_startup_replies_order.append(reply)
+            self.__known_startup_replies.add(reply)
 
     def get_mismatched_parameters(
         self,
@@ -773,6 +796,9 @@ class FSoEMasterHandler:
 
         if state == StateData:
             self.__state_is_data.set()
+            self.__startup_in_progress = False
+            self.__startup_replay_filter_enabled = False
+            self.__has_reached_data_state = True
         else:
             self.__state_is_data.clear()
 
