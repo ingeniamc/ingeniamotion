@@ -98,6 +98,7 @@ class FSoEMasterHandler:
         self.__running: bool = False
         self.__uses_sra: bool = use_sra
         self.__is_subscribed_to_process_data_events: bool = False
+        self.__watchdog_timeout = watchdog_timeout
 
         self.net.pdo_manager.subscribe_to_exceptions(self._pdo_thread_exception_handler)
 
@@ -438,12 +439,9 @@ class FSoEMasterHandler:
         It is extracted from the Safety Slave PDU PDOMap and set to the FSoE master handler.
         """
         reply = self.safety_slave_pdu_map.get_item_bytes()
+        # Do not act on late replies when stopping or not running
         if self.__stopping or not self.__running:
-            self.logger.warning(
-                f"Late FSoE reply received during shutdown: running={self.__running} "
-                f"stopping={self.__stopping} initial_reset={self.__in_initial_reset} "
-                f"command=0x{reply[0]:02x} reply={reply.hex()}"
-            )
+            return
         if self.__in_initial_reset:
             if reply[0] == 0:
                 # Byte 0 of FSoE frame should always be the command
@@ -452,19 +450,7 @@ class FSoEMasterHandler:
             else:
                 self.__in_initial_reset = False
 
-        try:
-            self._master_handler.set_reply(reply)
-        except Exception:
-            self.logger.exception(
-                "FSoE reply processing failed: running=%s stopping=%s initial_reset=%s "
-                "command=0x%02x reply=%s",
-                self.__running,
-                self.__stopping,
-                self.__in_initial_reset,
-                reply[0],
-                reply.hex(),
-            )
-            raise
+        self._master_handler.set_reply(reply)
 
     def get_mismatched_parameters(
         self,
@@ -912,3 +898,8 @@ class FSoEMasterHandler:
     def running(self) -> bool:
         """True if FSoE Master is started, else False."""
         return self.__running
+
+    @property
+    def watchdog_timeout(self) -> float:
+        """The FSoE master watchdog timeout in seconds."""
+        return self.__watchdog_timeout
