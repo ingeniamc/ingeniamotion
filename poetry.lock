@@ -1309,18 +1309,18 @@ reference = "novanta"
 
 [[package]]
 name = "ingenialink"
-version = "7.6.1.post196+pr.852.b2"
+version = "7.6.1.post203+pr.852.b4"
 description = "IngeniaLink Communications Library"
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "tests"]
 files = [
-    {file = "ingenialink-7.6.1.post196+pr.852.b2-cp310-cp310-win_amd64.whl", hash = "sha256:fc0af2d6d839fe2ee21d377dfb984954690a9d7e91b46bb59a4bec7ae4a01600"},
-    {file = "ingenialink-7.6.1.post196+pr.852.b2-cp311-cp311-win_amd64.whl", hash = "sha256:ad1a613976dc9aebb8e9eb4637d77a474fe43a830f5604edb7381f757d0f5eb0"},
-    {file = "ingenialink-7.6.1.post196+pr.852.b2-cp312-cp312-win_amd64.whl", hash = "sha256:31a484646e7887d3e08adf57a4ad71d9a588e57c62317486d63798ca57fe8a59"},
-    {file = "ingenialink-7.6.1.post196+pr.852.b2-cp39-cp39-win_amd64.whl", hash = "sha256:b92ba1ff32ef19c6e005ebc6144c0d4b75e66113433e8a5b5de208dfcb2a2fed"},
-    {file = "ingenialink-7.6.1.post196+pr.852.b2-py3-none-any.whl", hash = "sha256:c5794c59393fc98b13ecfb6cffbbf678f02f964d5fe0afa88dd12fedb9e97877"},
-    {file = "ingenialink-7.6.1.post196+pr.852.b2.tar.gz", hash = "sha256:ea27421aa53c7e564129c2daf7c3fcb19ec29043ab80112c0db9006d99dd6256"},
+    {file = "ingenialink-7.6.1.post203+pr.852.b4-cp310-cp310-win_amd64.whl", hash = "sha256:1c8a6481b8f11944f124e629de6ef7a3e0fc965ce4addc91703d93045f6e8833"},
+    {file = "ingenialink-7.6.1.post203+pr.852.b4-cp311-cp311-win_amd64.whl", hash = "sha256:6e71b8857418e06f4bca9844f9a1c9f978b310b357bc08991c9fd7fd3a94d323"},
+    {file = "ingenialink-7.6.1.post203+pr.852.b4-cp312-cp312-win_amd64.whl", hash = "sha256:381f5a8d8e6e481a14f023799cc3ba1592e8aaf2e35befd97cc4ae102930b201"},
+    {file = "ingenialink-7.6.1.post203+pr.852.b4-cp39-cp39-win_amd64.whl", hash = "sha256:d71100bc20359e0c3295df3e5504b34c4b86457854bc52aee1940ca79dd15c52"},
+    {file = "ingenialink-7.6.1.post203+pr.852.b4-py3-none-any.whl", hash = "sha256:84f3f48cb5c17e371c3340801a1efb6a553918911c19e3f91fcc59545a9a929e"},
+    {file = "ingenialink-7.6.1.post203+pr.852.b4.tar.gz", hash = "sha256:56ce7e9581dd5455cf18999b5ff9281ee5bde2f991931f49027c8c8f97c9507d"},
 ]
 
 [package.dependencies]
@@ -4785,4 +4785,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "c1959f3c54ac0b8343e8d7a0c858b3dc64f5a91dfec89ff04e6b392e72bfda65"
+content-hash = "0cc052ebb4bac31d3f25ccb197052138addc78908563256452ce1e9fed0090b5"
