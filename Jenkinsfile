@@ -1,5 +1,5 @@
 // https://novantamotion.atlassian.net/browse/CIT-707
-@Library('cicd-lib@2310cb7') _
+@Library('cicd-lib@b4e51a0ee15ccec3cbc91fadd4e11c702fe41aa') _
 
 import python.VirtualEnvironment
 import python.VEnvManager
@@ -114,6 +114,9 @@ def pipelineParams = PyTestParams.pytestParams(this, currentBuild, [
     clearSuccessfulWiresharkLogsConfig: [
         default: true,
     ],
+    checkStateScopeConfig: [
+        default: 'session',
+    ],
 ])
 
 properties([
@@ -175,6 +178,7 @@ pipeline {
                         jobName: "${env.JOB_NAME}-#${env.BUILD_NUMBER}",
                         wiresharkScope: params.WIRESHARK_LOGGING_SCOPE,
                         clearSuccessfulWiresharkLogs: params.CLEAR_SUCCESSFUL_WIRESHARK_LOGS,
+                        checkStateScope: PyTestParams.readValue(params, 'checkStateScope'),
                         archiveData: "*",
                         testSelectionRepeatCount: PyTestParams.readValue(params, 'pytestRepeatCounts'),
                         logLevel: PyTestParams.readValue(params, 'pytestLoggingLevel')
