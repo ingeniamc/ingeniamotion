@@ -69,7 +69,7 @@ def test_digital_halls_test(servo, mc, alias, feedback_list):
         servo,
         [
             "COMMU_ANGLE_OFFSET",
-            "COMM_ANGLE_REF_OFFSET",
+            "COMMU_ANGLE_REF_OFFSET",
             "COMMU_PHASING_MAX_CURRENT",
         ],
     ):
@@ -182,7 +182,7 @@ def test_commutation(servo, alias: str, mc: "MotionController") -> None:
         servo,
         [
             "COMMU_ANGLE_OFFSET",
-            "COMM_ANGLE_REF_OFFSET",
+            "COMMU_ANGLE_REF_OFFSET",
             "COMMU_PHASING_MAX_CURRENT",
         ],
     ):

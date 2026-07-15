@@ -399,7 +399,7 @@ def test_create_poller(mc: "MotionController", alias: str) -> None:
 
 @pytest.mark.soem
 def test_subscribe_exceptions(mc: "MotionController", alias: str, mocker) -> None:
-    with refresh_registers_for_test_rollback("COMMU_ANGLE_OFFSET"):
+    with refresh_registers_for_test_rollback(["COMMU_ANGLE_OFFSET"]):
         error_msg = "Test error"
 
         def start_pdos(*_):

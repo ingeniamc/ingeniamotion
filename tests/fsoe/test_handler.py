@@ -9,6 +9,7 @@ from ingenialink.ethercat.network import EthercatNetwork
 
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError, FSoEMaster
+from tests.conftest import refresh_registers_for_test_rollback
 from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
 from tests.fsoe.conftest import MockNetwork, MockServo
 
@@ -58,59 +59,60 @@ def test_set_configured_module_ident_1(
     caplog: "pytest.LogCaptureFixture",
 ) -> None:
     _, handler = mc_with_fsoe_with_sra
+    with refresh_registers_for_test_rollback(["MDP_CONFIGURED_MODULE_1"]):
 
-    def create_mock_safety_module(
-        module_ident: int, uses_sra: bool = True, has_project_crc: bool = False
-    ) -> DictionarySafetyModule:
-        if has_project_crc:
-            params = [
-                DictionarySafetyModule.ApplicationParameter(
-                    uid=handler._FSoEMasterHandler__FSOE_SAFETY_PROJECT_CRC
-                )
-            ]
-        else:
-            params = [DictionarySafetyModule.ApplicationParameter(uid="DUMMY_PARAM")]
+        def create_mock_safety_module(
+            module_ident: int, uses_sra: bool = True, has_project_crc: bool = False
+        ) -> DictionarySafetyModule:
+            if has_project_crc:
+                params = [
+                    DictionarySafetyModule.ApplicationParameter(
+                        uid=handler._FSoEMasterHandler__FSOE_SAFETY_PROJECT_CRC
+                    )
+                ]
+            else:
+                params = [DictionarySafetyModule.ApplicationParameter(uid="DUMMY_PARAM")]
 
-        return DictionarySafetyModule(
-            module_ident=module_ident,
-            uses_sra=uses_sra,
-            application_parameters=params,
+            return DictionarySafetyModule(
+                module_ident=module_ident,
+                uses_sra=uses_sra,
+                application_parameters=params,
+            )
+
+        # Do not write mocked values to the servo
+        mocker.patch.object(handler._FSoEMasterHandler__servo, "write")
+        mock_safety_modules = {
+            1: create_mock_safety_module(module_ident=1, uses_sra=True, has_project_crc=True)
+        }
+        mocker.patch.object(
+            handler._FSoEMasterHandler__servo.dictionary,
+            "safety_modules",
+            mock_safety_modules,
         )
 
-    # Do not write mocked values to the servo
-    mocker.patch.object(handler._FSoEMasterHandler__servo, "write")
-    mock_safety_modules = {
-        1: create_mock_safety_module(module_ident=1, uses_sra=True, has_project_crc=True)
-    }
-    mocker.patch.object(
-        handler._FSoEMasterHandler__servo.dictionary,
-        "safety_modules",
-        mock_safety_modules,
-    )
+        caplog.set_level(logging.WARNING)
+        with pytest.raises(
+            RuntimeError,
+            match="Module ident value to write could not be retrieved.",
+        ):
+            handler._FSoEMasterHandler__set_configured_module_ident_1()
+        expected_warning = (
+            f"Safety module has the application parameter "
+            f"{handler._FSoEMasterHandler__FSOE_SAFETY_PROJECT_CRC}, skipping it."
+        )
+        assert expected_warning in caplog.text
 
-    caplog.set_level(logging.WARNING)
-    with pytest.raises(
-        RuntimeError,
-        match="Module ident value to write could not be retrieved.",
-    ):
-        handler._FSoEMasterHandler__set_configured_module_ident_1()
-    expected_warning = (
-        f"Safety module has the application parameter "
-        f"{handler._FSoEMasterHandler__FSOE_SAFETY_PROJECT_CRC}, skipping it."
-    )
-    assert expected_warning in caplog.text
-
-    # Use a proper safety module
-    mock_safety_modules = {
-        2: create_mock_safety_module(module_ident=2, uses_sra=True, has_project_crc=False)
-    }
-    mocker.patch.object(
-        handler._FSoEMasterHandler__servo.dictionary,
-        "safety_modules",
-        mock_safety_modules,
-    )
-    result = handler._FSoEMasterHandler__set_configured_module_ident_1()
-    assert result == mock_safety_modules[2]
+        # Use a proper safety module
+        mock_safety_modules = {
+            2: create_mock_safety_module(module_ident=2, uses_sra=True, has_project_crc=False)
+        }
+        mocker.patch.object(
+            handler._FSoEMasterHandler__servo.dictionary,
+            "safety_modules",
+            mock_safety_modules,
+        )
+        result = handler._FSoEMasterHandler__set_configured_module_ident_1()
+        assert result == mock_safety_modules[2]
 
 
 @pytest.mark.fsoe
