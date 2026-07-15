@@ -274,37 +274,6 @@ pipeline {
                                         }
                                     }
                                 }
-                                stage('Build wheels') {
-                                    steps {
-                                        script {
-                                            venvManager.runInWorkingFolder("if exist dist rmdir /s /q dist")
-                                            venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
-                                                venv.run("poetry run poe build")
-                                            }
-                                            venvManager.copyFromWorkingFolder("dist/")
-                                        }
-                                        archiveArtifacts artifacts: "dist\\*"
-                                        stash includes: "dist\\*", name: 'build'
-                                    }
-                                }
-                                stage('Make a static type analysis') {
-                                    steps {
-                                        script {
-                                            venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
-                                                venv.run("poetry run poe type")
-                                            }
-                                        }
-                                    }
-                                }
-                                stage('Check formatting') {
-                                    steps {
-                                        script {
-                                            venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
-                                                venv.run("poetry run poe format")
-                                            }
-                                        }
-                                    }
-                                }
                                 stage('Run Docker tests (Windows)') {
                                     when {
                                         expression {
@@ -315,34 +284,6 @@ pipeline {
                                         script {
                                             WIN_DOCKER_TESTS.runTestStages()
                                         }
-                                    }
-                                }
-                            }
-                        }
-                        stage('Publish wheels') {
-                            agent {
-                                docker {
-                                    label 'lin-worker'
-                                    image PUBLISHER_DOCKER_IMAGE
-                                }
-                            }
-                            stages {
-                                stage('Unstash build') {
-                                    steps {
-                                        unstash 'build'
-                                    }
-                                }
-                                stage('Publish Novanta PyPi') {
-                                    steps {
-                                        publishNovantaPyPi('dist/*')
-                                    }
-                                }
-                                stage('Publish PyPi') {
-                                    when {
-                                        branch 'master'
-                                    }
-                                    steps {
-                                        publishPyPi('dist/*')
                                     }
                                 }
                             }
@@ -375,6 +316,65 @@ pipeline {
                                         pythonVersions: venvManager.defaultVenvNamesToVersion(LINUX_DOCKER_TESTS.baseTestSession.runInVirtualEnvs) + [DEFAULT_PYTHON_VERSION] as Set,
                                         installCommand: "poetry sync --all-groups --extras fsoe"
                                     )
+                                }
+                            }
+                        }
+                        stage('Build wheels') {
+                            steps {
+                                script {
+                                    venvManager.runInWorkingFolder("rm -rf dist")
+                                    venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
+                                        venv.run("poetry run poe build")
+                                    }
+                                    venvManager.copyFromWorkingFolder("dist/")
+                                }
+                                archiveArtifacts artifacts: "dist/*"
+                                stash includes: "dist/*", name: 'build'
+                            }
+                        }
+                        stage('Publish wheels') {
+                            agent {
+                                docker {
+                                    label 'lin-worker'
+                                    image PUBLISHER_DOCKER_IMAGE
+                                }
+                            }
+                            stages {
+                                stage('Unstash build') {
+                                    steps {
+                                        unstash 'build'
+                                    }
+                                }
+                                stage('Publish Novanta PyPi') {
+                                    steps {
+                                        publishNovantaPyPi('dist/*')
+                                    }
+                                }
+                                stage('Publish PyPi') {
+                                    when {
+                                        branch 'master'
+                                    }
+                                    steps {
+                                        publishPyPi('dist/*')
+                                    }
+                                }
+                            }
+                        }
+                        stage('Make a static type analysis') {
+                            steps {
+                                script {
+                                    venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
+                                        venv.run("poetry run poe type")
+                                    }
+                                }
+                            }
+                        }
+                        stage('Check formatting') {
+                            steps {
+                                script {
+                                    venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
+                                        venv.run("poetry run poe format")
+                                    }
                                 }
                             }
                         }
