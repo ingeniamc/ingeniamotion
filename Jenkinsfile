@@ -379,6 +379,7 @@ pipeline {
                                         venv.run("poetry run poe docs")
                                     }
                                     venvManager.copyFromWorkingFolder("_docs/")
+                                    archiveArtifacts artifacts: '_docs/**'
                                 }
                             }
                         }
