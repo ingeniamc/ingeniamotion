@@ -239,86 +239,86 @@ pipeline {
                 stage('Build and Publish') {
                     stages {
                         stage('Build Windows') {
-                    agent {
-                        docker {
-                            label SW_NODE
-                            image WIN_DOCKER_IMAGE
-                        }
-                    }
-                    environment {
-                        VENV_WORKING_FOLDER = "${WIN_DOCKER_TMP_PATH}"
-                    }
-                    stages {
-                        // Uncomment when CICD is released: https://novantamotion.atlassian.net/browse/CIT-707
-                        // stage('Check Dependencies') {
-                        //     steps {
-                        //         script {
-                        //             checkDependencies(excludeManagers: ['poetry:tests'])
-                        //         }
-                        //     }
-                        // }
-                        stage('Move workspace') {
-                            steps {
-                                script {
-                                    venvManager.copyToWorkingFolder()
+                            agent {
+                                docker {
+                                    label SW_NODE
+                                    image WIN_DOCKER_IMAGE
                                 }
                             }
-                        }
-                        stage('Create virtual environments') {
-                            steps {
-                                script {
-                                    venvManager.createPoetryEnvironments(
-                                        pythonVersions: venvManager.defaultVenvNamesToVersion(WIN_DOCKER_TESTS.baseTestSession.runInVirtualEnvs) + [DEFAULT_PYTHON_VERSION] as Set,
-                                        installCommand: "poetry sync --all-groups --extras fsoe"
-                                    )
-                                }
+                            environment {
+                                VENV_WORKING_FOLDER = "${WIN_DOCKER_TMP_PATH}"
                             }
-                        }
-                        stage('Build wheels') {
-                            steps {
-                                script {
-                                    venvManager.runInWorkingFolder("if exist dist rmdir /s /q dist")
-                                    venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
-                                        venv.run("poetry run poe build")
-                                    }
-                                    venvManager.copyFromWorkingFolder("dist/")
-                                }
-                                archiveArtifacts artifacts: "dist\\*"
-                                stash includes: "dist\\*", name: 'build'
-                            }
-                        }
-                        stage('Make a static type analysis') {
-                            steps {
-                                script {
-                                    venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
-                                        venv.run("poetry run poe type")
+                            stages {
+                                // Uncomment when CICD is released: https://novantamotion.atlassian.net/browse/CIT-707
+                                // stage('Check Dependencies') {
+                                //     steps {
+                                //         script {
+                                //             checkDependencies(excludeManagers: ['poetry:tests'])
+                                //         }
+                                //     }
+                                // }
+                                stage('Move workspace') {
+                                    steps {
+                                        script {
+                                            venvManager.copyToWorkingFolder()
+                                        }
                                     }
                                 }
-                            }
-                        }
-                        stage('Check formatting') {
-                            steps {
-                                script {
-                                    venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
-                                        venv.run("poetry run poe format")
+                                stage('Create virtual environments') {
+                                    steps {
+                                        script {
+                                            venvManager.createPoetryEnvironments(
+                                                pythonVersions: venvManager.defaultVenvNamesToVersion(WIN_DOCKER_TESTS.baseTestSession.runInVirtualEnvs) + [DEFAULT_PYTHON_VERSION] as Set,
+                                                installCommand: "poetry sync --all-groups --extras fsoe"
+                                            )
+                                        }
+                                    }
+                                }
+                                stage('Build wheels') {
+                                    steps {
+                                        script {
+                                            venvManager.runInWorkingFolder("if exist dist rmdir /s /q dist")
+                                            venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
+                                                venv.run("poetry run poe build")
+                                            }
+                                            venvManager.copyFromWorkingFolder("dist/")
+                                        }
+                                        archiveArtifacts artifacts: "dist\\*"
+                                        stash includes: "dist\\*", name: 'build'
+                                    }
+                                }
+                                stage('Make a static type analysis') {
+                                    steps {
+                                        script {
+                                            venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
+                                                venv.run("poetry run poe type")
+                                            }
+                                        }
+                                    }
+                                }
+                                stage('Check formatting') {
+                                    steps {
+                                        script {
+                                            venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
+                                                venv.run("poetry run poe format")
+                                            }
+                                        }
+                                    }
+                                }
+                                stage('Run Docker tests (Windows)') {
+                                    when {
+                                        expression {
+                                            WIN_DOCKER_TESTS.anyShouldRun()
+                                        }
+                                    }
+                                    steps {
+                                        script {
+                                            WIN_DOCKER_TESTS.runTestStages()
+                                        }
                                     }
                                 }
                             }
                         }
-                        stage('Run Docker tests (Windows)') {
-                            when {
-                                expression {
-                                    WIN_DOCKER_TESTS.anyShouldRun()
-                                }
-                            }
-                            steps {
-                                script {
-                                    WIN_DOCKER_TESTS.runTestStages()
-                                }
-                            }
-                        }
-                    }
-                }
                         stage('Publish wheels') {
                             agent {
                                 docker {
