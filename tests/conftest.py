@@ -7,8 +7,9 @@ from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import numpy as np
 import pytest
-from ingenialink import ILRegisterNotFoundError, Servo
+from ingenialink import Servo
 from ingenialink.dictionary import Interface
+from ingenialink.exceptions import ILRegisterNotFoundError
 from summit_testing_framework import dynamic_loader
 from summit_testing_framework.profilers.stoppable_gaps import StoppableProfilerConfig
 from summit_testing_framework.pytest_helpers.marker_helper import (
