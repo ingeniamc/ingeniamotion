@@ -201,6 +201,8 @@ def mc_with_fsoe_factory(
 
     yield factory
 
+    mc.communication.unsubscribe_emergency_message(emergency_handler)
+
     # Stop the master, PDOs are stopped on mc teardown
     mc.fsoe.stop_master(stop_pdos=False)
     mc.fsoe._delete_master_handler()

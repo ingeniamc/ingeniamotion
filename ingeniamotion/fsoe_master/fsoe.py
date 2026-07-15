@@ -11,6 +11,7 @@ __all__ = [
     "FSoEDictionaryMappedItem",
     "BaseMasterHandler",
     "StateData",
+    "StateReset",
     "State",
     "calculate_sra_crc",
     "align_bits",
@@ -47,7 +48,7 @@ try:
     from fsoe_master.fsoe_master import (
         MasterHandler as BaseMasterHandler,
     )
-    from fsoe_master.fsoe_master import State, StateData, align_bits, calculate_sra_crc
+    from fsoe_master.fsoe_master import State, StateData, StateReset, align_bits, calculate_sra_crc
 
 
 except ImportError:

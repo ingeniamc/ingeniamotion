@@ -29,6 +29,7 @@ from ingeniamotion.fsoe_master.fsoe import (
     FSoEDictionaryItemOutput,
     State,
     StateData,
+    StateReset,
     calculate_sra_crc,
 )
 from ingeniamotion.fsoe_master.parameters import (
@@ -93,15 +94,18 @@ class FSoEMasterHandler:
         self.logger = ingenialogger.get_logger(__name__)
 
         self.__state_change_callback = state_change_callback
+        self.__user_report_error_callback = report_error_callback
         self.__servo = servo
         self.__net = net
         self.__running: bool = False
         self.__uses_sra: bool = use_sra
         self.__is_subscribed_to_process_data_events: bool = False
+        self.__watchdog_timeout = watchdog_timeout
 
         self.net.pdo_manager.subscribe_to_exceptions(self._pdo_thread_exception_handler)
 
         self.__state_is_data = threading.Event()
+        self.__stopping = False
 
         # The saco slave might take a while to answer with a valid command
         # During it's initialization it will respond with 0's, that are ignored
@@ -182,7 +186,7 @@ class FSoEMasterHandler:
             connection_id=connection_id,
             watchdog_timeout_s=watchdog_timeout,
             application_parameters=fsoe_application_parameters,
-            report_error_callback=report_error_callback,
+            report_error_callback=self.__report_error_callback,
             state_change_callback=self.__internal_state_change_callback,
             dictionary_map_is_editable=map_editable,
         )
@@ -208,6 +212,41 @@ class FSoEMasterHandler:
         self.safety_master_pdu_map.subscribe_to_process_data_event(self.get_request)
         self.safety_slave_pdu_map.subscribe_to_process_data_event(self.set_reply)
         self.__is_subscribed_to_process_data_events = True
+
+    def __report_error_callback(self, transition_name: str, error: str) -> None:
+        """Forward FSoE errors to the user callback.
+
+        While the master is still completing its initial handshake with the
+        slave (``__in_initial_reset``), the slave may still be echoing stale
+        data from a previous session (e.g. a frozen safety PDU) or replying
+        with all-zero data before it is ready. This can trigger expected,
+        transient errors (e.g. ``RESET_STAY1``) that resolve on their own once
+        the slave catches up. These are suppressed here instead of being
+        forwarded, to avoid reporting spurious errors during startup.
+
+        Args:
+            transition_name: The name of the FSoE state transition that failed.
+            error: A description of the error.
+        """
+        if self.__stopping or not self.__running:
+            # The upstream watchdog callback may race with stop(): while the
+            # handler is intentionally being stopped, it can still report the
+            # state it was in just before the reset (for example DATA_WD). That
+            # is teardown noise, not a user-visible FSoE failure.
+            self.logger.debug(
+                "Suppressed FSoE error while stopping: %s: %s",
+                transition_name,
+                error,
+            )
+            return
+        if self.__in_initial_reset:
+            self.logger.debug(
+                "Suppressed FSoE error during initial connection: %s: %s",
+                transition_name,
+                error,
+            )
+            return
+        self.__user_report_error_callback(transition_name, error)
 
     def _pdo_thread_exception_handler(self, exc: Exception) -> None:
         """Callback method for the PDO thread exceptions.
@@ -341,6 +380,7 @@ class FSoEMasterHandler:
 
     def stop(self) -> None:
         """Stop the master handler."""
+        self.__stopping = True
         self._master_handler.stop()
         self.__in_initial_reset = False
         self.__running = False
@@ -348,6 +388,7 @@ class FSoEMasterHandler:
         self.safety_master_pdu_map.unsubscribe_to_process_data_event()
         self.safety_slave_pdu_map.unsubscribe_to_process_data_event()
         self.__is_subscribed_to_process_data_events = False
+        self.__stopping = False
 
     def delete(self) -> None:
         """Delete the master handler."""
@@ -435,13 +476,9 @@ class FSoEMasterHandler:
         It is extracted from the Safety Slave PDU PDOMap and set to the FSoE master handler.
         """
         reply = self.safety_slave_pdu_map.get_item_bytes()
-        if self.__in_initial_reset:
-            if reply[0] == 0:
-                # Byte 0 of FSoE frame should always be the command
-                # 0 is not a valid command
-                return
-            else:
-                self.__in_initial_reset = False
+        # Do not act on late replies when stopping or not running
+        if self.__stopping or not self.__running:
+            return
 
         self._master_handler.set_reply(reply)
 
@@ -727,6 +764,13 @@ class FSoEMasterHandler:
         return sto_command
 
     def __internal_state_change_callback(self, state: "State") -> None:
+        if self.__in_initial_reset and state != StateReset:
+            # The master has moved past the initial handshake with the slave.
+            # Errors reported from now on are no longer expected transients
+            # (e.g. stale frozen frames from a previous session) and should
+            # be forwarded normally.
+            self.__in_initial_reset = False
+
         if state == StateData:
             self.__state_is_data.set()
         else:
@@ -891,3 +935,8 @@ class FSoEMasterHandler:
     def running(self) -> bool:
         """True if FSoE Master is started, else False."""
         return self.__running
+
+    @property
+    def watchdog_timeout(self) -> float:
+        """The FSoE master watchdog timeout in seconds."""
+        return self.__watchdog_timeout
