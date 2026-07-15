@@ -329,35 +329,19 @@ pipeline {
                                     venvManager.copyFromWorkingFolder("dist/")
                                 }
                                 archiveArtifacts artifacts: "dist/*"
-                                stash includes: "dist/*", name: 'build'
                             }
                         }
-                        stage('Publish wheels') {
-                            agent {
-                                docker {
-                                    label 'lin-worker'
-                                    image PUBLISHER_DOCKER_IMAGE
-                                }
+                        stage('Publish Novanta PyPi') {
+                            steps {
+                                publishNovantaPyPi('dist/*')
                             }
-                            stages {
-                                stage('Unstash build') {
-                                    steps {
-                                        unstash 'build'
-                                    }
-                                }
-                                stage('Publish Novanta PyPi') {
-                                    steps {
-                                        publishNovantaPyPi('dist/*')
-                                    }
-                                }
-                                stage('Publish PyPi') {
-                                    when {
-                                        branch 'master'
-                                    }
-                                    steps {
-                                        publishPyPi('dist/*')
-                                    }
-                                }
+                        }
+                        stage('Publish PyPi') {
+                            when {
+                                branch 'master'
+                            }
+                            steps {
+                                publishPyPi('dist/*')
                             }
                         }
                         stage('Make a static type analysis') {
