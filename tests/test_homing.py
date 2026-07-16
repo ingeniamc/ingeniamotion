@@ -87,6 +87,7 @@ def test_homing_on_current_position(servo, mc, alias, homing_offset):
 @pytest.mark.parametrize("direction", [1, 0])
 # https://novantamotion.atlassian.net/browse/INGM-775
 @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
+@pytest.mark.not_valid_for_product(part_number="EVE-*")
 def test_homing_on_switch_limit(servo, mc, alias, direction):
     with refresh_registers_for_test_rollback(
         servo,
@@ -138,8 +139,8 @@ def test_homing_on_switch_limit(servo, mc, alias, direction):
 @pytest.mark.canopen
 @pytest.mark.usefixtures("initial_position")
 # https://novantamotion.atlassian.net/browse/INGM-776
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-C")
+@pytest.mark.not_valid_for_product(part_number="CAP-*")
+@pytest.mark.not_valid_for_product(part_number="EVE-*")
 def test_homing_on_switch_limit_timeout(servo, mc, alias):
     with refresh_registers_for_test_rollback(
         servo,
