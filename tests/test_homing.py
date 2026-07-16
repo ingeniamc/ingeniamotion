@@ -259,6 +259,7 @@ def test_homing_on_index_pulse(servo, mc, alias, feedback_list, direction):
 @pytest.mark.parametrize("direction", [1, 0])
 # https://novantamotion.atlassian.net/browse/INGM-777
 @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
+@pytest.mark.not_valid_for_product(part_number="EVE-*")
 def test_homing_on_switch_limit_and_index_pulse(servo, mc, alias, direction):
     with refresh_registers_for_test_rollback(
         servo,
