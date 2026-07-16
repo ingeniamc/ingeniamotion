@@ -54,12 +54,13 @@ def test_create_fsoe_master_handler_use_sra(mc: "MotionController", use_sra: boo
 
 @pytest.mark.fsoe
 def test_set_configured_module_ident_1(
+    servo: "EthercatServo",
     mocker: "MockerFixture",
     mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"],
     caplog: "pytest.LogCaptureFixture",
 ) -> None:
     _, handler = mc_with_fsoe_with_sra
-    with refresh_registers_for_test_rollback(["MDP_CONFIGURED_MODULE_1"]):
+    with refresh_registers_for_test_rollback(servo, ["MDP_CONFIGURED_MODULE_1"]):
 
         def create_mock_safety_module(
             module_ident: int, uses_sra: bool = True, has_project_crc: bool = False

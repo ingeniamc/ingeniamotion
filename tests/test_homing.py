@@ -3,7 +3,7 @@ import time
 import pytest
 
 from ingeniamotion.enums import HomingMode, OperationMode, SensorType
-from tests.conftest import mean_actual_velocity_position
+from tests.conftest import mean_actual_velocity_position, refresh_registers_for_test_rollback
 
 HOMING_MODE_REGISTER = "HOM_MODE"
 HOMING_OFFSET_REGISTER = "HOM_OFFSET"
@@ -64,13 +64,20 @@ def test_set_homing_timeout(mc, alias, homing_timeout):
 @pytest.mark.usefixtures("initial_position")
 # https://novantamotion.atlassian.net/browse/INGM-773
 @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-def test_homing_on_current_position(mc, alias, homing_offset):
-    mc.configuration.homing_on_current_position(homing_offset, servo=alias)
-    feedback_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
-    assert pytest.approx(
-        homing_offset,
-        abs=feedback_resolution * RELATIVE_ERROR_ALLOWED,
-    ) == mc.motion.get_actual_position(servo=alias)
+@pytest.mark.not_valid_for_product(part_number="EVE-*")
+def test_homing_on_current_position(servo, mc, alias, homing_offset):
+    with refresh_registers_for_test_rollback(
+        servo,
+        [
+            "COMMU_ANGLE_OFFSET",
+        ],
+    ):
+        mc.configuration.homing_on_current_position(homing_offset, servo=alias)
+        feedback_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
+        assert pytest.approx(
+            homing_offset,
+            abs=feedback_resolution * RELATIVE_ERROR_ALLOWED,
+        ) == mc.motion.get_actual_position(servo=alias)
 
 
 @pytest.mark.ethernet

@@ -71,6 +71,7 @@ def test_digital_halls_test(servo, mc, alias, feedback_list):
             "COMMU_ANGLE_OFFSET",
             "COMMU_ANGLE_REF_OFFSET",
             "COMMU_PHASING_MAX_CURRENT",
+            "COMMU_PHASING_TIMEOUT",
         ],
     ):
         commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)

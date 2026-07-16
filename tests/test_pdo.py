@@ -4,6 +4,7 @@ import threading
 import time
 from collections import defaultdict
 from functools import partial
+from typing import TYPE_CHECKING
 
 import pytest
 from ingenialink.ethercat.network import EthercatNetwork
@@ -21,6 +22,9 @@ from ingeniamotion.pdo import PDONetworksTracker
 from tests.conftest import refresh_registers_for_test_rollback
 from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY
 from tests.fsoe.conftest import MockServo
+
+if TYPE_CHECKING:
+    from ingenialink import Servo
 
 
 @pytest.mark.soem
@@ -398,8 +402,8 @@ def test_create_poller(mc: "MotionController", alias: str) -> None:
 
 
 @pytest.mark.soem
-def test_subscribe_exceptions(mc: "MotionController", alias: str, mocker) -> None:
-    with refresh_registers_for_test_rollback(["COMMU_ANGLE_OFFSET"]):
+def test_subscribe_exceptions(servo: "Servo", mc: "MotionController", alias: str, mocker) -> None:
+    with refresh_registers_for_test_rollback(servo, ["COMMU_ANGLE_OFFSET"]):
         error_msg = "Test error"
 
         def start_pdos(*_):
