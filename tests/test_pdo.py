@@ -4,6 +4,7 @@ import threading
 import time
 from collections import defaultdict
 from functools import partial
+from typing import TYPE_CHECKING
 
 import pytest
 from ingenialink.ethercat.network import EthercatNetwork
@@ -18,8 +19,12 @@ from ingeniamotion.exceptions import IMError
 from ingeniamotion.metaclass import DEFAULT_AXIS
 from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.pdo import PDONetworksTracker
+from tests.conftest import refresh_registers_for_test_rollback
 from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY
 from tests.fsoe.conftest import MockServo
+
+if TYPE_CHECKING:
+    from ingenialink import Servo
 
 
 @pytest.mark.soem
@@ -397,40 +402,41 @@ def test_create_poller(mc: "MotionController", alias: str) -> None:
 
 
 @pytest.mark.soem
-def test_subscribe_exceptions(mc: "MotionController", alias: str, mocker) -> None:
-    error_msg = "Test error"
+def test_subscribe_exceptions(servo: "Servo", mc: "MotionController", alias: str, mocker) -> None:
+    with refresh_registers_for_test_rollback(servo, ["COMMU_ANGLE_OFFSET"]):
+        error_msg = "Test error"
 
-    def start_pdos(*_):
-        raise ILWrongWorkingCountError(error_msg)
+        def start_pdos(*_):
+            raise ILWrongWorkingCountError(error_msg)
 
-    mocker.patch("ingenialink.ethercat.network.EthercatNetwork.stop_pdos")
-    mocker.patch(
-        "ingenialink.ethercat.network.EthercatNetwork.start_pdos",
-        new=start_pdos,
-    )
-    patch_callback = mocker.patch(
-        "ingenialink.pdo_network_manager.PDONetworkManager._notify_exceptions"
-    )
+        mocker.patch("ingenialink.ethercat.network.EthercatNetwork.stop_pdos")
+        mocker.patch(
+            "ingenialink.ethercat.network.EthercatNetwork.start_pdos",
+            new=start_pdos,
+        )
+        patch_callback = mocker.patch(
+            "ingenialink.pdo_network_manager.PDONetworkManager._notify_exceptions"
+        )
 
-    mc.capture.pdo.subscribe_to_exceptions(patch_callback, servo=alias)
-    mc.capture.pdo.start_pdos(servo=alias)
+        mc.capture.pdo.subscribe_to_exceptions(patch_callback, servo=alias)
+        mc.capture.pdo.start_pdos(servo=alias)
 
-    t = time.time()
-    timeout = 1
-    net_alias = mc.servo_net[alias]
-    net = mc.capture.pdo._PDONetworkManager__net_tracker.get_il_network(alias=net_alias)
-    while not net.pdo_manager._pdo_thread._pd_thread_stop_event.is_set() and (
-        (time.time() - t) < timeout
-    ):
-        pass
+        t = time.time()
+        timeout = 1
+        net_alias = mc.servo_net[alias]
+        net = mc.capture.pdo._PDONetworkManager__net_tracker.get_il_network(alias=net_alias)
+        while not net.pdo_manager._pdo_thread._pd_thread_stop_event.is_set() and (
+            (time.time() - t) < timeout
+        ):
+            pass
 
-    assert net.pdo_manager._pdo_thread._pd_thread_stop_event.is_set()
-    patch_callback.assert_called_once()
-    assert (
-        str(patch_callback.call_args_list[0][0][0])
-        == f"PDO exchange error (wrong working count): {error_msg} "
-    )
-    mc.capture.pdo.stop_pdos(servo=alias)
+        assert net.pdo_manager._pdo_thread._pd_thread_stop_event.is_set()
+        patch_callback.assert_called_once()
+        assert (
+            str(patch_callback.call_args_list[0][0][0])
+            == f"PDO exchange error (wrong working count): {error_msg} "
+        )
+        mc.capture.pdo.stop_pdos(servo=alias)
 
 
 class TestsPDONetworksTracker:
