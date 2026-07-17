@@ -1,5 +1,5 @@
 // https://novantamotion.atlassian.net/browse/CIT-707
-@Library('cicd-lib@44e6075') _
+@Library('cicd-lib@b4e51a0ee15ccec3cbc91fadd4e11c702fe41aa') _
 
 import python.VirtualEnvironment
 import python.VEnvManager
@@ -75,8 +75,8 @@ def reassignFilePermissions() {
  *   → Sets RUN_POLICY_NIGHTLY=true and RUN_POLICY_WEEKEND=true so that tests gated on
  *     either 'nightly' or 'weekends' policy will run.
  */
-def NIGHTLY_CRON = '0 19,21,23 * * * % PYTHON_VERSIONS=All;WIRESHARK_LOGGING=true;RUN_POLICY_NIGHTLY=true'
-def WEEKEND_CRON   = '0 8,14 * * 6-7 % PYTHON_VERSIONS=All;RUN_POLICY_NIGHTLY=true;RUN_POLICY_WEEKEND=true'
+def NIGHTLY_CRON = '0 19,21,23 * * * % PYTHON_VERSIONS=All;WIRESHARK_LOGGING=true;RUN_POLICY_NIGHTLY=Tag this build as nightly:selected'
+def WEEKEND_CRON   = '0 8,14 * * 6-7 % PYTHON_VERSIONS=All;RUN_POLICY_NIGHTLY=Tag this build as nightly:selected;RUN_POLICY_WEEKEND=Tag this build as weekend:selected'
 def CRON_SETTINGS = BRANCH_NAME == "develop" ? "${NIGHTLY_CRON}\n${WEEKEND_CRON}" : ""
 
 def pipelineParams = PyTestParams.pytestParams(this, currentBuild, [
@@ -113,6 +113,9 @@ def pipelineParams = PyTestParams.pytestParams(this, currentBuild, [
     ],
     clearSuccessfulWiresharkLogsConfig: [
         default: true,
+    ],
+    checkStateScopeConfig: [
+        default: 'session',
     ],
 ])
 
@@ -175,6 +178,7 @@ pipeline {
                         jobName: "${env.JOB_NAME}-#${env.BUILD_NUMBER}",
                         wiresharkScope: params.WIRESHARK_LOGGING_SCOPE,
                         clearSuccessfulWiresharkLogs: params.CLEAR_SUCCESSFUL_WIRESHARK_LOGS,
+                        checkStateScope: PyTestParams.readValue(params, 'checkStateScope'),
                         archiveData: "*",
                         testSelectionRepeatCount: PyTestParams.readValue(params, 'pytestRepeatCounts'),
                         logLevel: PyTestParams.readValue(params, 'pytestLoggingLevel')

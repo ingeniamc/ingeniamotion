@@ -1,5 +1,6 @@
+import sys
 import time
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Optional
 
 import numpy as np
 import pytest
@@ -8,7 +9,7 @@ from ingenialink import exceptions
 from ingeniamotion.enums import OperationMode
 from ingeniamotion.exceptions import IMTimeoutError
 from ingeniamotion.motion import Motion
-from tests.conftest import mean_actual_velocity_position
+from tests.conftest import mean_actual_velocity_position, refresh_registers_for_test_rollback
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -55,20 +56,21 @@ def delayed_function_return(delay_s: int, first_response: Any, delayed_response:
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-def test_target_latch(mc, alias):
-    mc.communication.set_register(PROFILER_LATCHING_MODE_REGISTER, 0x40, servo=alias)
-    mc.motion.motor_enable(servo=alias)
-    pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
-    init_pos = int(mean_actual_velocity_position(mc, alias))
-    mc.motion.move_to_position(init_pos + pos_res, servo=alias, target_latch=False)
-    test_act_pos = mean_actual_velocity_position(mc, alias)
-    time.sleep(1)
-    rel_tolerance = pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
-    assert pytest.approx(init_pos, rel_tolerance) == test_act_pos
-    mc.motion.target_latch(servo=alias)
-    time.sleep(1)
-    test_act_pos = mean_actual_velocity_position(mc, alias)
-    assert pytest.approx(init_pos + pos_res, rel_tolerance) == test_act_pos
+def test_target_latch(servo, mc, alias):
+    with refresh_registers_for_test_rollback(servo, ["COMMU_ANGLE_OFFSET"]):
+        mc.communication.set_register(PROFILER_LATCHING_MODE_REGISTER, 0x40, servo=alias)
+        mc.motion.motor_enable(servo=alias)
+        pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
+        init_pos = int(mean_actual_velocity_position(mc, alias))
+        mc.motion.move_to_position(init_pos + pos_res, servo=alias, target_latch=False)
+        test_act_pos = mean_actual_velocity_position(mc, alias)
+        time.sleep(1)
+        rel_tolerance = pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
+        assert pytest.approx(init_pos, rel_tolerance) == test_act_pos
+        mc.motion.target_latch(servo=alias)
+        time.sleep(1)
+        test_act_pos = mean_actual_velocity_position(mc, alias)
+        assert pytest.approx(init_pos + pos_res, rel_tolerance) == test_act_pos
 
 
 @pytest.mark.virtual
@@ -101,16 +103,26 @@ def test_motor_enable(mc, alias):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize(
-    "uid, value, exception_type, message",
+    "uid, value, exception_type, note",
     [
-        ("DRV_PROT_USER_UNDER_VOLT", 100, exceptions.ILError, "User Under-voltage detected"),
+        (
+            "DRV_PROT_USER_UNDER_VOLT",
+            100,
+            exceptions.ILError,
+            "Error message: User Under-voltage detected",
+        ),
         (
             "DRV_PROT_USER_OVER_TEMP",
             1,
             exceptions.ILError,
-            "Over-temperature detected (user limit)",
+            "Error message: Over-temperature detected (user limit)",
         ),
-        ("DRV_PROT_USER_OVER_VOLT", 1, exceptions.ILError, "User Over-voltage detected"),
+        (
+            "DRV_PROT_USER_OVER_VOLT",
+            1,
+            exceptions.ILError,
+            "Error message: User Over-voltage detected",
+        ),
     ],
 )
 def test_motor_enable_with_fault(
@@ -119,7 +131,7 @@ def test_motor_enable_with_fault(
     uid: str,
     value: int,
     exception_type: Exception,
-    message: str,
+    note: str,
 ) -> None:
     mc.communication.set_register(uid, value, alias)
     with pytest.raises(exception_type) as excinfo:
@@ -128,14 +140,20 @@ def test_motor_enable_with_fault(
         # Retrieving the error code failed. Check INGM-522.
         with pytest.raises(exception_type) as excinfo:
             mc.motion.motor_enable(servo=alias)
-    assert str(excinfo.value) == message
+    assert str(excinfo.value) == (
+        "The subnode 1 could not be enabled within 1000 ms. "
+        "The current subnode state is ServoState.FAULT"
+    )
+
+    if sys.version_info >= (3, 11):
+        assert excinfo.value.__notes__[0] == note
 
 
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize(
-    "uid, value, exception_type, message, timeout",
+    "uid, value, exception_type, expected_message, note, timeout",
     [
         # Under-Voltage Error is not triggered due to timeout error
         (
@@ -143,10 +161,21 @@ def test_motor_enable_with_fault(
             100,
             exceptions.ILTimeoutError,
             "Error trigger timeout exceeded.",
+            None,
             2,
         ),
         # Under-Voltage Error is triggered successfully
-        ("DRV_PROT_USER_UNDER_VOLT", 100, exceptions.ILError, "User Under-voltage detected", 6),
+        (
+            "DRV_PROT_USER_UNDER_VOLT",
+            100,
+            exceptions.ILError,
+            (
+                "The subnode 1 could not be enabled within 1000 ms. "
+                "The current subnode state is ServoState.FAULT"
+            ),
+            "Error message: User Under-voltage detected",
+            6,
+        ),
     ],
 )
 def test_motor_enable_with_delayed_fault(
@@ -156,7 +185,8 @@ def test_motor_enable_with_delayed_fault(
     uid: str,
     value: int,
     exception_type: Exception,
-    message: str,
+    expected_message: str,
+    note: Optional[str],
     timeout: int,
 ):
     # Mock function response with delay
@@ -171,7 +201,11 @@ def test_motor_enable_with_delayed_fault(
     mc.communication.set_register(uid, value, alias)
     with pytest.raises(exception_type) as excinfo:
         mc.motion.motor_enable(servo=alias, error_timeout=timeout)
-    assert str(excinfo.value) == message
+
+    assert str(excinfo.value) == expected_message
+
+    if sys.version_info >= (3, 11) and note is not None:
+        assert excinfo.value.__notes__[0] == note
 
 
 @pytest.mark.ethernet
@@ -233,6 +267,7 @@ def test_set_position(mc, alias, position_value):
 @pytest.mark.parametrize("position_value", [1000, 0, -1000, 4000])
 # https://novantamotion.atlassian.net/browse/INGM-778
 @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
+@pytest.mark.not_valid_for_product(part_number="EVE-*")
 def test_move_position(mc, alias, position_value):
     pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
@@ -259,6 +294,7 @@ def test_set_velocity(mc, alias, velocity_value):
 @pytest.mark.parametrize("velocity_value", [0.5, 1, 0, -0.5])
 # https://novantamotion.atlassian.net/browse/INGM-779
 @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
+@pytest.mark.not_valid_for_product(part_number="EVE-*")
 def test_set_velocity_blocking(mc, alias, velocity_value):
     mc.motion.set_operation_mode(OperationMode.PROFILE_VELOCITY, servo=alias)
     mc.motion.motor_enable(servo=alias)
@@ -328,6 +364,7 @@ def test_ramp_generator(mocker, init_v, final_v, total_t, t, result):
 @pytest.mark.parametrize("position_value", [-4000, -1000, 1000, 4000])
 # https://novantamotion.atlassian.net/browse/INGM-780
 @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
+@pytest.mark.not_valid_for_product(part_number="EVE-*")
 def test_get_actual_position(mc, alias, position_value):
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
     mc.motion.motor_enable(servo=alias)
@@ -347,18 +384,26 @@ def test_get_actual_position(mc, alias, position_value):
 @pytest.mark.parametrize("velocity_value", [1, 0, -1])
 # https://novantamotion.atlassian.net/browse/INGM-781
 @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-def test_get_actual_velocity(mc, alias, velocity_value):
-    mc.motion.set_operation_mode(OperationMode.PROFILE_VELOCITY, servo=alias)
-    mc.motion.motor_enable(servo=alias)
-    mc.motion.set_velocity(velocity_value, servo=alias, blocking=True, timeout=10)
-    time.sleep(2)
-    n_samples = 200
-    test_velocity = np.zeros(n_samples)
-    reg_value = np.zeros(n_samples)
-    for sample_ix in range(n_samples):
-        test_velocity[sample_ix] = mc.motion.get_actual_velocity(servo=alias)
-        reg_value[sample_ix] = mc.communication.get_register(ACTUAL_VELOCITY_REGISTER, servo=alias)
-    assert np.abs(np.mean(test_velocity) - np.mean(reg_value)) < 0.1
+def test_get_actual_velocity(servo, mc, alias, velocity_value):
+    with refresh_registers_for_test_rollback(
+        servo,
+        [
+            "COMMU_ANGLE_OFFSET",
+        ],
+    ):
+        mc.motion.set_operation_mode(OperationMode.PROFILE_VELOCITY, servo=alias)
+        mc.motion.motor_enable(servo=alias)
+        mc.motion.set_velocity(velocity_value, servo=alias, blocking=True, timeout=10)
+        time.sleep(2)
+        n_samples = 200
+        test_velocity = np.zeros(n_samples)
+        reg_value = np.zeros(n_samples)
+        for sample_ix in range(n_samples):
+            test_velocity[sample_ix] = mc.motion.get_actual_velocity(servo=alias)
+            reg_value[sample_ix] = mc.communication.get_register(
+                ACTUAL_VELOCITY_REGISTER, servo=alias
+            )
+        assert np.abs(np.mean(test_velocity) - np.mean(reg_value)) < 0.1
 
 
 @pytest.mark.virtual

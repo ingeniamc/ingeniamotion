@@ -31,7 +31,7 @@ from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental2_test import
 from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import SecondarySSITest
 from ingeniamotion.wizard_tests.phase_calibration import Phasing
 from ingeniamotion.wizard_tests.phasing_check import PhasingCheck
-from tests.conftest import not_valid_for_all_eve_products
+from tests.conftest import not_valid_for_all_eve_products, refresh_registers_for_test_rollback
 
 # Record stop opportunities for every wizard-test integration case in this module.
 pytestmark = pytest.mark.usefixtures("stoppable_trace_recorder")
@@ -105,16 +105,24 @@ def assert_returns_to_initial_value(
 # https://novantamotion.atlassian.net/browse/INGM-782
 @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
 def test_digital_halls_test(
-    mc, alias, feedback_list, servo: Servo, registers_baseline: DriveRegistersValue
-):
-    commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
-    if SensorType.HALLS in feedback_list:
-        results = mc.tests.digital_halls_test(servo=alias)
-        assert results["result_severity"] == SeverityLevel.SUCCESS
-    else:
-        with pytest.raises(TestError):
-            mc.tests.digital_halls_test(servo=alias)
-    assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
+    servo, mc, alias, feedback_list, servo: Servo, registers_baseline: DriveRegistersValue
+):with refresh_registers_for_test_rollback(
+        servo,
+        [
+            "COMMU_ANGLE_OFFSET",
+            "COMMU_ANGLE_REF_OFFSET",
+            "COMMU_PHASING_MAX_CURRENT",
+            "COMMU_PHASING_TIMEOUT",
+        ],
+    ):
+        commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
+        if SensorType.HALLS in feedback_list:
+            results = mc.tests.digital_halls_test(servo=alias)
+            assert results["result_severity"] == SeverityLevel.SUCCESS
+        else:
+            with pytest.raises(TestError):
+                mc.tests.digital_halls_test(servo=alias)
+        assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
     assert_returns_to_initial_value(
         servo,
@@ -238,10 +246,17 @@ def test_secondary_ssi_test(
 # https://novantamotion.atlassian.net/browse/INGM-774
 @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
 def test_commutation(
-    alias: str, mc: "MotionController", servo: Servo, registers_baseline: DriveRegistersValue
-) -> None:
-    results = mc.tests.commutation(servo=alias)
-    assert results["result_severity"] == SeverityLevel.SUCCESS
+    servo, alias: str, mc: "MotionController", servo: Servo, registers_baseline: DriveRegistersValue
+) -> None:with refresh_registers_for_test_rollback(
+        servo,
+        [
+            "COMMU_ANGLE_OFFSET",
+            "COMMU_ANGLE_REF_OFFSET",
+            "COMMU_PHASING_MAX_CURRENT",
+        ],
+    ):
+        results = mc.tests.commutation(servo=alias)
+        assert results["result_severity"] == SeverityLevel.SUCCESS
 
     assert_returns_to_initial_value(
         servo, registers_baseline, accepted_changed_registers=Phasing.ACCEPTED_CHANGED_REGISTERS
