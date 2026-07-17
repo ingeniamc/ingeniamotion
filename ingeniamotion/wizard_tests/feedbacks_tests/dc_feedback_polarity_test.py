@@ -33,14 +33,6 @@ class DCFeedbacksPolarityTest(BaseTest[LegacyDictReportType]):
         ResultType.SUCCESS: "Feedback polarity test pass successfully",
     }
 
-    BACKUP_REGISTERS: ClassVar[list[str]] = [
-        "CL_POS_FBK_SENSOR",
-        "CL_VEL_FBK_SENSOR",
-        "CL_AUX_FBK_SENSOR",
-        "DRV_OP_CMD",
-        "CL_CUR_Q_SET_POINT",
-    ]
-
     feedback_resolution: int
 
     def __init__(
@@ -58,8 +50,6 @@ class DCFeedbacksPolarityTest(BaseTest[LegacyDictReportType]):
         self.sensor = sensor
         self.servo = servo
         self.axis = axis
-        self.BACKUP_REGISTERS.append(mc.configuration.get_feedback_polarity_register_uid(sensor))
-        self.backup_registers_names = self.BACKUP_REGISTERS
         if logger_drive_name is None:
             self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
         else:
