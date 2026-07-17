@@ -105,8 +105,9 @@ def assert_returns_to_initial_value(
 # https://novantamotion.atlassian.net/browse/INGM-782
 @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
 def test_digital_halls_test(
-    servo, mc, alias, feedback_list, servo: Servo, registers_baseline: DriveRegistersValue
-):with refresh_registers_for_test_rollback(
+    servo: Servo, mc, alias, feedback_list, registers_baseline: DriveRegistersValue
+):
+    with refresh_registers_for_test_rollback(
         servo,
         [
             "COMMU_ANGLE_OFFSET",
@@ -246,8 +247,9 @@ def test_secondary_ssi_test(
 # https://novantamotion.atlassian.net/browse/INGM-774
 @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
 def test_commutation(
-    servo, alias: str, mc: "MotionController", servo: Servo, registers_baseline: DriveRegistersValue
-) -> None:with refresh_registers_for_test_rollback(
+    servo: Servo, alias: str, mc: "MotionController", registers_baseline: DriveRegistersValue
+) -> None:
+    with refresh_registers_for_test_rollback(
         servo,
         [
             "COMMU_ANGLE_OFFSET",
