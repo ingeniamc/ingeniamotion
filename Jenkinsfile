@@ -14,7 +14,7 @@ def ECAT_NODE_LOCK = "test_execution_lock_ecat"
 def CAN_NODE = "canopen-test"
 def CAN_NODE_LOCK = "test_execution_lock_can"
 
-def LIN_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/docker-python:dev"
+def LIN_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/docker-python:1.7"
 def WIN_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/win-python-builder:1.7"
 def PUBLISHER_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/publisher:1.8"
 
