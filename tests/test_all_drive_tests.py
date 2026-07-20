@@ -1,15 +1,19 @@
-import contextlib
 import logging
 import random
 import time
+from collections.abc import Collection
+from enum import Enum
 from threading import Thread
 from typing import TYPE_CHECKING
 
 import pytest
 from ingenialink import exceptions
+from ingenialink.drive_context_manager import DriveRegistersValue
+from ingenialink.servo import Servo
+from summit_testing_framework.connection.reconnect_utils import ConnectionWrapper
 
 from ingeniamotion.enums import PhasingMode, SensorType, SeverityLevel
-from ingeniamotion.exceptions import IMRegisterNotExistError
+from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.wizard_tests.base_test import TestError
 from ingeniamotion.wizard_tests.dynamic_forced_phasing import (
     DynamicForcedPhasing,
@@ -27,7 +31,7 @@ from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental2_test import
 from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import SecondarySSITest
 from ingeniamotion.wizard_tests.phase_calibration import Phasing
 from ingeniamotion.wizard_tests.phasing_check import PhasingCheck
-from tests.conftest import not_valid_for_all_eve_products
+from tests.conftest import not_valid_for_all_eve_products, refresh_registers_for_test_rollback
 
 # Record stop opportunities for every wizard-test integration case in this module.
 pytestmark = pytest.mark.usefixtures("stoppable_trace_recorder")
@@ -35,11 +39,14 @@ pytestmark = pytest.mark.usefixtures("stoppable_trace_recorder")
 if TYPE_CHECKING:
     from summit_testing_framework.setups.environment_control import DriveEnvironmentController
 
-    from ingeniamotion.motion_controller import MotionController
 
 CURRENT_QUADRATURE_SET_POINT_REGISTER = "CL_CUR_Q_SET_POINT"
 RATED_CURRENT_REGISTER = "MOT_RATED_CURRENT"
 MAXIMUM_CONTINUOUS_CURRENT_DRIVE_PROTECTION = "DRV_PROT_MAN_MAX_CONT_CURRENT_VALUE"
+# Diagnostic error-history registers that change as a side effect of any error raised during
+# a test (e.g. the CANopen pre-defined error field 0x1003) and cannot be restored to a prior
+# value (writable only to 0, to clear). Always ignored by the restore assertion.
+DIAGNOSTIC_ERROR_REGISTERS = ("CIA301_COMMS_ERROR_FIELD",)
 
 
 @pytest.fixture
@@ -58,21 +65,71 @@ def feedback_test_setup(
     mc.tests.commutation(servo=environment.aliases)
 
 
+def assert_returns_to_initial_value(
+    servo: Servo,
+    initial_value: DriveRegistersValue,
+    accepted_changed_registers: Collection[str] = (),
+):
+    """Assert that the test returns to the initial configuration after running.
+
+    Args:
+        servo (Servo): The servo to check.
+        initial_value (DriveRegistersValue): The initial configuration of the servo.
+        accepted_changed_registers (Collection[str]): UIDs of registers the test is
+            expected to change permanently (e.g. calibration results or values set by
+            a fixture). Differences in these registers are ignored, on top of the
+            always-ignored DIAGNOSTIC_ERROR_REGISTERS.
+    """
+    current_state = DriveRegistersValue.from_hardware(servo)
+
+    ignored = set(accepted_changed_registers) | set(DIAGNOSTIC_ERROR_REGISTERS)
+    differences = {
+        register: values
+        for register, values in initial_value.diff(current_state).items()
+        if register.identifier not in ignored
+    }
+
+    differences_str = "\n".join(
+        f"{register}: initial={initial_value}, current={current_value}"
+        for register, (initial_value, current_value) in differences.items()
+    )
+    assert len(differences) == 0, (
+        f"Test did not return to initial value. Differences:\n{differences_str}"
+    )
+
+
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
 # https://novantamotion.atlassian.net/browse/INGM-782
 @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-def test_digital_halls_test(mc, alias, feedback_list):
-    commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
-    if SensorType.HALLS in feedback_list:
-        results = mc.tests.digital_halls_test(servo=alias)
-        assert results["result_severity"] == SeverityLevel.SUCCESS
-    else:
-        with pytest.raises(TestError):
-            mc.tests.digital_halls_test(servo=alias)
-    assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
+def test_digital_halls_test(
+    servo: Servo, mc, alias, feedback_list, registers_baseline: DriveRegistersValue
+):
+    with refresh_registers_for_test_rollback(
+        servo,
+        [
+            "COMMU_ANGLE_OFFSET",
+            "COMMU_ANGLE_REF_OFFSET",
+            "COMMU_PHASING_MAX_CURRENT",
+            "COMMU_PHASING_TIMEOUT",
+        ],
+    ):
+        commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
+        if SensorType.HALLS in feedback_list:
+            results = mc.tests.digital_halls_test(servo=alias)
+            assert results["result_severity"] == SeverityLevel.SUCCESS
+        else:
+            with pytest.raises(TestError):
+                mc.tests.digital_halls_test(servo=alias)
+        assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
+
+    assert_returns_to_initial_value(
+        servo,
+        registers_baseline,
+        accepted_changed_registers=DigitalHallTest.ACCEPTED_CHANGED_REGISTERS,
+    )
 
 
 @pytest.mark.ethernet
@@ -81,7 +138,9 @@ def test_digital_halls_test(mc, alias, feedback_list):
 @pytest.mark.usefixtures("feedback_test_setup")
 # https://novantamotion.atlassian.net/browse/INGM-783
 @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-def test_incremental_encoder_1_test(mc, alias, feedback_list):
+def test_incremental_encoder_1_test(
+    mc, alias, feedback_list, servo: Servo, registers_baseline: DriveRegistersValue
+):
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
     if SensorType.QEI in feedback_list:
         results = mc.tests.incremental_encoder_1_test(servo=alias)
@@ -91,6 +150,8 @@ def test_incremental_encoder_1_test(mc, alias, feedback_list):
             mc.tests.incremental_encoder_1_test(servo=alias)
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
+    assert_returns_to_initial_value(servo, registers_baseline)
+
 
 @pytest.mark.ethernet
 @pytest.mark.soem
@@ -98,7 +159,9 @@ def test_incremental_encoder_1_test(mc, alias, feedback_list):
 @pytest.mark.usefixtures("feedback_test_setup")
 # https://novantamotion.atlassian.net/browse/INGM-784
 @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-def test_incremental_encoder_2_test(mc, alias, feedback_list):
+def test_incremental_encoder_2_test(
+    mc, alias, feedback_list, servo: Servo, registers_baseline: DriveRegistersValue
+):
     if not mc.info.register_exists("FBK_DIGENC2_RESOLUTION", servo=alias):
         pytest.skip("Incremental encoder 2 is not available")
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
@@ -110,6 +173,8 @@ def test_incremental_encoder_2_test(mc, alias, feedback_list):
             mc.tests.incremental_encoder_2_test(servo=alias)
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
+    assert_returns_to_initial_value(servo, registers_baseline)
+
 
 @pytest.mark.ethernet
 @pytest.mark.soem
@@ -117,7 +182,9 @@ def test_incremental_encoder_2_test(mc, alias, feedback_list):
 @pytest.mark.usefixtures("feedback_test_setup")
 # https://novantamotion.atlassian.net/browse/INGM-785
 @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-def test_absolute_encoder_1_test(mc, alias, feedback_list):
+def test_absolute_encoder_1_test(
+    mc, alias, feedback_list, servo: Servo, registers_baseline: DriveRegistersValue
+):
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
     if SensorType.ABS1 in feedback_list:
         results = mc.tests.absolute_encoder_1_test(servo=alias)
@@ -127,6 +194,8 @@ def test_absolute_encoder_1_test(mc, alias, feedback_list):
             mc.tests.absolute_encoder_1_test(servo=alias)
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
+    assert_returns_to_initial_value(servo, registers_baseline)
+
 
 @pytest.mark.ethernet
 @pytest.mark.soem
@@ -134,7 +203,9 @@ def test_absolute_encoder_1_test(mc, alias, feedback_list):
 @pytest.mark.usefixtures("feedback_test_setup")
 # https://novantamotion.atlassian.net/browse/INGM-786
 @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-def test_absolute_encoder_2_test(mc, alias, feedback_list):
+def test_absolute_encoder_2_test(
+    mc, alias, feedback_list, servo: Servo, registers_baseline: DriveRegistersValue
+):
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
     if SensorType.BISSC2 in feedback_list:
         results = mc.tests.absolute_encoder_2_test(servo=alias)
@@ -144,6 +215,8 @@ def test_absolute_encoder_2_test(mc, alias, feedback_list):
             mc.tests.absolute_encoder_2_test(servo=alias)
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
+    assert_returns_to_initial_value(servo, registers_baseline)
+
 
 @pytest.mark.ethernet
 @pytest.mark.soem
@@ -151,7 +224,9 @@ def test_absolute_encoder_2_test(mc, alias, feedback_list):
 @pytest.mark.usefixtures("feedback_test_setup")
 # https://novantamotion.atlassian.net/browse/INGM-787
 @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-def test_secondary_ssi_test(mc, alias, feedback_list):
+def test_secondary_ssi_test(
+    mc, alias, feedback_list, servo: Servo, registers_baseline: DriveRegistersValue
+):
     commutation_fdbk = mc.configuration.get_commutation_feedback(servo=alias)
     if SensorType.QEI in feedback_list:
         pytest.skip("Can not run the test. Incremental encoder 1 and SSI 2 share pins.")
@@ -163,49 +238,80 @@ def test_secondary_ssi_test(mc, alias, feedback_list):
             mc.tests.secondary_ssi_test(servo=alias)
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
+    assert_returns_to_initial_value(servo, registers_baseline)
+
 
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 # https://novantamotion.atlassian.net/browse/INGM-774
 @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-def test_commutation(alias: str, mc: "MotionController") -> None:
-    results = mc.tests.commutation(servo=alias)
-    assert results["result_severity"] == SeverityLevel.SUCCESS
+def test_commutation(
+    servo: Servo, alias: str, mc: "MotionController", registers_baseline: DriveRegistersValue
+) -> None:
+    with refresh_registers_for_test_rollback(
+        servo,
+        [
+            "COMMU_ANGLE_OFFSET",
+            "COMMU_ANGLE_REF_OFFSET",
+            "COMMU_PHASING_MAX_CURRENT",
+        ],
+    ):
+        results = mc.tests.commutation(servo=alias)
+        assert results["result_severity"] == SeverityLevel.SUCCESS
+
+    assert_returns_to_initial_value(
+        servo, registers_baseline, accepted_changed_registers=Phasing.ACCEPTED_CHANGED_REGISTERS
+    )
 
 
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-def test_commutation_error(mc, alias, force_fault):
+def test_commutation_error(mc, alias, force_fault, servo: Servo):
+    # Capture the baseline after force_fault applied it, so its value is part of the
+    # expected state and the test still verifies the wizard restored everything else.
+    initial_values = DriveRegistersValue.from_hardware(servo)
     with pytest.raises(force_fault):
         mc.tests.commutation(servo=alias)
+
+    assert_returns_to_initial_value(
+        servo, initial_values, accepted_changed_registers=Phasing.ACCEPTED_CHANGED_REGISTERS
+    )
 
 
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.skip("Skip until is fixed INGM-352")
-def test_phasing_check(mc, alias):
+def test_phasing_check(mc, alias, servo: Servo, registers_baseline: DriveRegistersValue):
     mc.tests.commutation(servo=alias)
     results = mc.tests.phasing_check(servo=alias)
     assert results["result_severity"] == SeverityLevel.SUCCESS
+    assert_returns_to_initial_value(servo, registers_baseline)
 
 
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-def test_phasing_check_error(mc, alias, force_fault):
+def test_phasing_check_error(mc, alias, force_fault, servo: Servo):
+    # Capture the baseline after force_fault applied it, so its value is part of the
+    # expected state and the test still verifies the wizard restored everything else.
+    initial_values = DriveRegistersValue.from_hardware(servo)
     with pytest.raises(force_fault):
         mc.tests.phasing_check(servo=alias)
 
+    assert_returns_to_initial_value(servo, initial_values)
+
 
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-def test_sto_test(mc, alias):
+def test_sto_test(mc, alias, servo: Servo, registers_baseline: DriveRegistersValue):
     results = mc.tests.sto_test(servo=alias)
     assert results["result_severity"] == SeverityLevel.SUCCESS
+
+    assert_returns_to_initial_value(servo, registers_baseline)
 
 
 @pytest.mark.virtual
@@ -219,16 +325,22 @@ def test_sto_test(mc, alias):
         (0x5, "STO Inputs Differ"),
     ],
 )
-def test_sto_test_error(mocker, mc, alias, sto_value, message):
+def test_sto_test_error(
+    mocker, mc, alias, sto_value, message, servo: Servo, registers_baseline: DriveRegistersValue
+):
     mocker.patch("ingeniamotion.configuration.Configuration.get_sto_status", return_value=sto_value)
     results = mc.tests.sto_test(servo=alias)
     assert results["result_severity"] == SeverityLevel.FAIL
     assert results["result_message"] == message
 
+    assert_returns_to_initial_value(servo, registers_baseline)
+
 
 @pytest.mark.virtual
 @pytest.mark.parametrize("sto_value", [0x4, 0x1F, 0xE, 0x73, 0x5, 0x17])
-def test_sto_test_logs(caplog, mocker, mc, alias, sto_value):
+def test_sto_test_logs(
+    caplog, mocker, mc, alias, sto_value, servo: Servo, registers_baseline: DriveRegistersValue
+):
     caplog.set_level(logging.INFO)
     mocker.patch("ingeniamotion.configuration.Configuration.get_sto_status", return_value=sto_value)
     mc.tests.sto_test(servo=alias)
@@ -247,26 +359,24 @@ def test_sto_test_logs(caplog, mocker, mc, alias, sto_value):
     assert abnormal_log in caplog.text
     assert report_log in caplog.text
 
+    assert_returns_to_initial_value(servo, registers_baseline)
+
 
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-def test_brake_test(mc, alias):
+def test_brake_test(mc, alias, servo: Servo, connection_wrapper: ConnectionWrapper):
     # Set frame type to BiSS-C BP3 to ensure that the test changes it to avoid an error.
     mc.communication.set_register("FBK_BISS1_SSI1_FRAME_TYPE", 3, servo=alias)
     pair_poles = mc.configuration.get_motor_pair_poles(servo=alias)
-    brake_test = mc.tests.brake_test(servo=alias)
-    assert mc.configuration.get_motor_pair_poles(servo=alias) == 1
-    brake_test.finish()
+    initial_values = connection_wrapper.current_registers_values()
+    with mc.tests.brake_test(servo=alias):
+        # Inside the context the drive is left configured for the brake test.
+        assert mc.configuration.get_motor_pair_poles(servo=alias) == 1
+    # On context exit the drive state is restored.
     assert pair_poles == mc.configuration.get_motor_pair_poles(servo=alias)
 
-
-def get_backup_registers(test, mc, alias):
-    reg_values = {}
-    for reg in test.BACKUP_REGISTERS:
-        with contextlib.suppress(IMRegisterNotExistError):
-            reg_values[reg] = mc.communication.get_register(reg, servo=alias)
-    return reg_values
+    assert_returns_to_initial_value(servo, initial_values)
 
 
 def run_test_and_stop(test):
@@ -294,34 +404,44 @@ def run_test_and_stop(test):
 )
 # https://novantamotion.atlassian.net/browse/INGM-790
 @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-def test_feedback_stop(mc, alias, feedback_class):
+def test_feedback_stop(
+    mc, alias, feedback_class, servo: Servo, registers_baseline: DriveRegistersValue
+):
     test = feedback_class(mc, alias, 1)
-    reg_values = get_backup_registers(test, mc, alias)
     run_test_and_stop(test)
-    for reg in reg_values:
-        assert reg_values[reg] == mc.communication.get_register(reg, servo=alias)
+
+    assert_returns_to_initial_value(servo, registers_baseline)
 
 
 @pytest.mark.virtual
-def test_commutation_stop(mc, alias):
+def test_commutation_stop(mc, alias, servo: Servo, registers_baseline: DriveRegistersValue):
     test = Phasing(mc, alias, 1)
-    reg_values = get_backup_registers(test, mc, alias)
     run_test_and_stop(test)
-    for reg in reg_values:
-        assert reg_values[reg] == mc.communication.get_register(reg, servo=alias)
+
+    assert_returns_to_initial_value(
+        servo, registers_baseline, accepted_changed_registers=Phasing.ACCEPTED_CHANGED_REGISTERS
+    )
 
 
 @pytest.mark.virtual
-def test_phasing_check_stop(mc, alias):
+def test_phasing_check_stop(mc, alias, servo: Servo, registers_baseline: DriveRegistersValue):
     test = PhasingCheck(mc, alias, 1)
-    reg_values = get_backup_registers(test, mc, alias)
     run_test_and_stop(test)
-    for reg in reg_values:
-        assert reg_values[reg] == mc.communication.get_register(reg, servo=alias)
+
+    assert_returns_to_initial_value(servo, registers_baseline)
+
+
+class TestCurrents(Enum):
+    RATED_CURRENT = "Rated current"
+    DRIVE_CURRENT = "Drive current"
+    SAME_VALUE = "Same value"
 
 
 @pytest.mark.virtual
-@pytest.mark.parametrize("test_currents", ["Rated current", "Drive current", "Same value"])
+@pytest.mark.parametrize(
+    "test_currents",
+    [TestCurrents.RATED_CURRENT, TestCurrents.DRIVE_CURRENT, TestCurrents.SAME_VALUE],
+)
 @pytest.mark.parametrize(
     "test_sensor",
     [
@@ -333,7 +453,12 @@ def test_phasing_check_stop(mc, alias):
         SensorType.QEI2,
     ],
 )
-def test_current_ramp_up(mc, alias, test_currents, test_sensor):
+def test_current_ramp_up(
+    mc: MotionController,
+    alias: str,
+    test_currents: TestCurrents,
+    test_sensor: SensorType,
+):
     axis = 1
     test_feedback_options = {
         SensorType.ABS1: AbsoluteEncoder1Test(mc, alias, axis),
@@ -349,12 +474,14 @@ def test_current_ramp_up(mc, alias, test_currents, test_sensor):
         MAXIMUM_CONTINUOUS_CURRENT_DRIVE_PROTECTION, servo=alias, axis=1
     )
 
-    if test_currents == "Rated current":
+    if test_currents == TestCurrents.RATED_CURRENT:
         current_motor = current_drive + 1
-    elif test_currents == "Drive current":
+    elif test_currents == TestCurrents.DRIVE_CURRENT:
         current_motor = current_drive - 1
-    else:
+    elif test_currents == TestCurrents.SAME_VALUE:
         current_motor = current_drive
+    else:
+        raise NotImplementedError(f"Test currents option {test_currents} is not implemented.")
 
     mc.communication.set_register(RATED_CURRENT_REGISTER, current_motor, servo=alias, axis=1)
 
@@ -366,19 +493,21 @@ def test_current_ramp_up(mc, alias, test_currents, test_sensor):
 
     test_max_current = current_quadrature / feedbacks_test.PERCENTAGE_CURRENT_USED
 
-    if test_currents == "Rated current":
+    if test_currents == TestCurrents.RATED_CURRENT:
         assert pytest.approx(test_max_current) == current_drive
-    elif test_currents == "Drive current":
+    elif test_currents == TestCurrents.DRIVE_CURRENT:
         assert pytest.approx(test_max_current) == current_motor
-    else:
+    elif test_currents == TestCurrents.SAME_VALUE:
         assert pytest.approx(test_max_current) == current_drive == current_motor
+    else:
+        raise NotImplementedError(f"Test currents option {test_currents} is not implemented.")
 
 
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.ethernet
 @not_valid_for_all_eve_products
-def test_dynamic_forced_phasing(mc, alias):
+def test_dynamic_forced_phasing(mc, alias, registers_baseline: DriveRegistersValue, servo: Servo):
     """Run the test on a real drive and check it succeeds, leaving the drive in NO_PHASING.
 
     Reads the motor rated current, runs the phasing without writing registers, and verifies
@@ -395,6 +524,8 @@ def test_dynamic_forced_phasing(mc, alias):
     assert result.result_message == "Success"
     assert result.commutation_phasing_mode == PhasingMode.NO_PHASING
     assert 0 <= result.commutation_angle <= 1
+
+    assert_returns_to_initial_value(servo, registers_baseline)
 
 
 @pytest.mark.virtual
@@ -454,7 +585,9 @@ def test_dynamic_forced_phasing_fails_when_phasing_current_exceeds_limit(mc, ali
 
 
 @pytest.mark.virtual
-def test_dynamic_forced_phasing_fails_when_no_constant_difference_found(mc, alias, mocker):
+def test_dynamic_forced_phasing_fails_when_no_constant_difference_found(
+    mc, alias, mocker, servo: Servo, registers_baseline: DriveRegistersValue
+):
     """Check the test fails when no stable phase difference can be measured.
 
     Stubs out the setup steps and forces signal collection to raise, then asserts the
@@ -475,9 +608,13 @@ def test_dynamic_forced_phasing_fails_when_no_constant_difference_found(mc, alia
     with pytest.raises(TestError, match="Could not find a constant signal difference"):
         mc.tests.dynamic_forced_phasing(alias, 1, phasing_max_current=rated_current)
 
+    assert_returns_to_initial_value(servo, registers_baseline)
+
 
 @pytest.mark.virtual
-def test_dynamic_forced_phasing_warning_on_high_asymmetry(mc, alias, mocker):
+def test_dynamic_forced_phasing_warning_on_high_asymmetry(
+    mc, alias, mocker, servo: Servo, registers_baseline: DriveRegistersValue
+):
     """Check the test returns a WARNING when forward/backward differences are too asymmetric.
 
     Feeds two mismatched mean differences (0.15 and 0.30) so the asymmetry exceeds the 10%
@@ -491,6 +628,8 @@ def test_dynamic_forced_phasing_warning_on_high_asymmetry(mc, alias, mocker):
     assert result is not None
     assert result.result_severity == SeverityLevel.WARNING
     assert "Asymmetry error" in result.result_message
+
+    assert_returns_to_initial_value(servo, registers_baseline)
 
 
 @pytest.mark.virtual

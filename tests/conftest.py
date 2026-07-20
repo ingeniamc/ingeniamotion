@@ -1,12 +1,15 @@
 import logging
 import time
 from collections.abc import Generator, Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import numpy as np
 import pytest
+from ingenialink import Servo
 from ingenialink.dictionary import Interface
+from ingenialink.exceptions import ILRegisterNotFoundError
 from summit_testing_framework import dynamic_loader
 from summit_testing_framework.profilers.stoppable_gaps import StoppableProfilerConfig
 from summit_testing_framework.pytest_helpers.marker_helper import (
@@ -17,6 +20,8 @@ if TYPE_CHECKING:
     from ingeniamotion.axis import Axis
     from ingeniamotion.motion_controller import MotionController
     from ingeniamotion.motion_node import MotionNode
+
+logger = logging.getLogger(__name__)
 
 
 def not_valid_for_eve_can_ecat_products(func: Callable) -> Callable:
@@ -236,3 +241,26 @@ def stoppable_profiler_config() -> StoppableProfilerConfig:
         gap_threshold_seconds=5.1,  # https://novantamotion.atlassian.net/browse/INGM-768
         good_enough_gap_seconds=2.6,
     )
+
+
+@contextmanager
+def refresh_registers_for_test_rollback(servo: Servo, register_uids: list[str]):
+    """Refresh stale registers if drive context manager
+
+    Some mechanisms of the drive might not be detected by the drive context manager
+    and the drive might not be rolled back to the initial state after test execution.
+    Using this context manager on a test will force a read after test execution
+    to avoid any register change leak
+
+    Args:
+        servo: Servo instance to read registers from.
+        register_uids: List of register UIDs to read after test execution.
+    """
+    yield
+    for register_uid in register_uids:
+        try:
+            servo.read(register_uid)
+        except ILRegisterNotFoundError:  # noqa: PERF203
+            logger.warning(
+                f"Register {register_uid} not found during refresh after test execution."
+            )

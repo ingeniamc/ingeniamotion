@@ -1,40 +1,31 @@
-from typing import TYPE_CHECKING, ClassVar, Optional, Union
+from types import TracebackType
+from typing import TYPE_CHECKING, Optional
 
 import ingenialogger
+from ingenialink.drive_context_manager import DriveContextManager, DriveRegistersValue
 from ingenialink.exceptions import ILError
 from typing_extensions import override
 
 from ingeniamotion.enums import CommutationMode, OperationMode, SensorType, SeverityLevel
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
-from ingeniamotion.wizard_tests.base_test import BaseTest
+from ingeniamotion.wizard_tests.base_test import BaseTest, ReportBase
 from ingeniamotion.wizard_tests.stoppable import StopExceptionError
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
 
 
-class Brake(BaseTest[None]):  # type: ignore [type-var]
+class ResultsBrakeTest(ReportBase):
+    """Brake test result report."""
+
+
+class Brake(BaseTest[ResultsBrakeTest]):
     """Brake test class."""
 
     BRAKE_OVERRIDE_REGISTER = "MOT_BRAKE_OVERRIDE"
 
     PRIMARY_ABSOLUTE_SLAVE_1_PROTOCOL = "FBK_BISS1_SSI1_PROTOCOL"
     PRIMARY_ABSOLUTE_SLAVE_1_FRAME_TYPE = "FBK_BISS1_SSI1_FRAME_TYPE"
-
-    BACKUP_REGISTERS: ClassVar[list[str]] = [
-        "MOT_BRAKE_OVERRIDE",
-        "DRV_OP_CMD",
-        "MOT_PAIR_POLES",
-        "COMMU_PHASING_MODE",
-        "COMMU_ANGLE_SENSOR",
-        "COMMU_ANGLE_REF_SENSOR",
-        "CL_VEL_FBK_SENSOR",
-        "CL_POS_FBK_SENSOR",
-        "CL_AUX_FBK_SENSOR",
-        "MOT_COMMU_MOD",
-        PRIMARY_ABSOLUTE_SLAVE_1_PROTOCOL,
-        PRIMARY_ABSOLUTE_SLAVE_1_FRAME_TYPE,
-    ]
 
     def __init__(
         self,
@@ -47,11 +38,11 @@ class Brake(BaseTest[None]):  # type: ignore [type-var]
         self.mc = mc
         self.servo = servo
         self.axis = axis
+        self._context_manager: Optional[DriveContextManager] = None
         if logger_drive_name is None:
             self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
         else:
             self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=logger_drive_name)
-        self.backup_registers_names = self.BACKUP_REGISTERS
 
     @override
     def setup(self) -> None:
@@ -93,36 +84,83 @@ class Brake(BaseTest[None]):  # type: ignore [type-var]
     def teardown(self) -> None:
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
 
-    def finish(self) -> dict[str, Union[SeverityLevel, str]]:
-        """Finish the test.
+    @override
+    def run(
+        self, registers_baseline: Optional[DriveRegistersValue] = None
+    ) -> Optional[ResultsBrakeTest]:
+        """Run the brake test, leaving the drive in its test configuration.
+
+        Unlike a normal test, the brake test keeps the drive configured (and the
+        register context open) so the caller can verify the brake. Call ``finish()``
+        to disable the motor and restore the drive state.
+
+        Args:
+            registers_baseline: Optional pre-built register snapshot used as the
+                restore baseline. Read from hardware when not provided.
 
         Returns:
-            The test result.
+            The test report (only populated once ``finish()`` runs).
 
+        Raises:
+            ILError: If the underlying drive communication fails during the test run.
         """
-        try:
-            self.teardown()
-        finally:
-            self.restore_backup_registers()
-        output = SeverityLevel.SUCCESS
-        return {
-            "result_severity": self.get_result_severity(output),
-            "result_message": self.get_result_msg(output),
-        }
-
-    @override
-    def run(self) -> None:
+        self._context_manager = DriveContextManager(
+            servo=self.mc._get_drive(self.servo),
+            baseline=registers_baseline,
+            do_not_restore_registers=list(self.ACCEPTED_CHANGED_REGISTERS),
+            track_objects=False,
+        )
+        self._context_manager.__enter__()
         self.reset_stop()
-        self.save_backup_registers()
         try:
             self.setup()
             self.loop()
-        except ILError as err:
+        except ILError:
             self.finish()
-            raise err
+            raise
         except StopExceptionError:
             self.logger.warning("Test has been stopped")
             self.finish()
+        return self.report
+
+    def finish(self) -> Optional[ResultsBrakeTest]:
+        """Disable the motor and restore the drive state changed during the test.
+
+        Idempotent: a second call (e.g. after ``run()`` already cleaned up on error)
+        is a no-op.
+
+        Returns:
+            The test report.
+        """
+        if self._context_manager is None:
+            return self.report
+        try:
+            self.teardown()
+        finally:
+            self._context_manager.__exit__(None, None, None)
+            self._context_manager = None
+        self.report = ResultsBrakeTest(
+            result_severity=SeverityLevel.SUCCESS,
+            result_message=self.get_result_msg(SeverityLevel.SUCCESS),
+        )
+        return self.report
+
+    def __enter__(self) -> "Brake":
+        """Enter the brake-test context. The drive is left configured for the test.
+
+        Returns:
+            This brake test instance.
+        """
+        return self
+
+    def __exit__(
+        self,
+        exc_type: Optional[type[BaseException]],
+        exc_value: Optional[BaseException],
+        traceback: Optional[TracebackType],
+    ) -> None:
+        """Restore the drive state on context exit by calling ``finish()``."""
+        self.finish()
 
     @override
     def get_result_severity(self, output: SeverityLevel) -> SeverityLevel:

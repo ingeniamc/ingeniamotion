@@ -38,26 +38,16 @@ class Phasing(BaseTest[LegacyDictReportType]):
     PHASING_TIMEOUT_REGISTER = "COMMU_PHASING_TIMEOUT"
     MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER = "COMMU_PHASING_MAX_CURRENT"
     COMMUTATION_ANGLE_OFFSET_REGISTER = "COMMU_ANGLE_OFFSET"
+    COMMUTATION_ANGLE_REF_OFFSET_REGISTER = "COMMU_ANGLE_REF_OFFSET"
 
-    BACKUP_REGISTERS: ClassVar[list[str]] = [
-        "CL_POS_FBK_SENSOR",
-        "DRV_OP_CMD",
-        "CL_CUR_Q_SET_POINT",
-        "CL_CUR_D_SET_POINT",
-        "FBK_GEN_MODE",
-        "FBK_GEN_FREQ",
-        "FBK_GEN_GAIN",
-        "FBK_GEN_OFFSET",
-        "COMMU_ANGLE_SENSOR",
-        "FBK_GEN_CYCLES",
-        "COMMU_PHASING_MAX_CURRENT",
-        "COMMU_PHASING_TIMEOUT",
-        "COMMU_PHASING_ACCURACY",
-        "COMMU_PHASING_MODE",
-        "MOT_COMMU_MOD",
-        "COMMU_ANGLE_INTEGRITY1_OPTION",
-        "COMMU_ANGLE_INTEGRITY2_OPTION",
-    ]
+    # Left changed on purpose: drive-computed calibration results (angle offsets) and the
+    # phasing config the test applies. They are not rolled back, so restore checks accept them.
+    ACCEPTED_CHANGED_REGISTERS: ClassVar[tuple[str, ...]] = (
+        COMMUTATION_ANGLE_OFFSET_REGISTER,
+        COMMUTATION_ANGLE_REF_OFFSET_REGISTER,
+        MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER,
+        PHASING_TIMEOUT_REGISTER,
+    )
 
     class ResultType(IntEnum):
         """Test result."""
@@ -84,7 +74,6 @@ class Phasing(BaseTest[LegacyDictReportType]):
         self.mc = mc
         self.servo = servo
         self.axis = axis
-        self.backup_registers_names = self.BACKUP_REGISTERS
         self.comm: Optional[SensorType] = None
         self.ref: Optional[SensorType] = None
         if logger_drive_name is None:
