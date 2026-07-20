@@ -82,3 +82,6 @@ ingeniamotion/_version.py
 
 # Test outputs 
 tests/outputs/
+
+# Pipenv and venv
+/.venv*

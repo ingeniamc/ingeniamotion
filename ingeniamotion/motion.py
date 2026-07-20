@@ -147,6 +147,9 @@ class Motion:
         """
         drive = self.mc._get_drive(servo)
         num_errors = self.mc.errors.get_number_total_errors(servo=servo, axis=axis)
+        baseline_error_code, baseline_subnode, baseline_warning = (
+            self.mc.errors.get_last_buffer_error(servo=servo, axis=axis)
+        )
         try:
             drive.enable(subnode=axis)
         except ILError as e:
@@ -156,7 +159,19 @@ class Motion:
                 current_error_code, _subnode, _warning = self.mc.errors.get_last_buffer_error(
                     servo=servo, axis=axis
                 )
-                if current_error_code != 0:
+                # https://novantamotion.atlassian.net/browse/CIT-742
+                # If the new error is the same than the last error, the error will not be raised.
+                # This should be solved once the CIT-742 is solved, but for now, we will ignore the
+                # error if it is the same than the last error
+                if current_error_code != 0 and (
+                    current_error_code,
+                    _subnode,
+                    _warning,
+                ) != (
+                    baseline_error_code,
+                    baseline_subnode,
+                    baseline_warning,
+                ):
                     error_code = current_error_code
                     continue
                 current_total_errors = self.mc.errors.get_number_total_errors(
