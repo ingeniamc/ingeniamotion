@@ -3,20 +3,23 @@ from collections.abc import Iterator
 from typing import TYPE_CHECKING, Any
 
 import pytest
+from ingenialogger import get_logger
 
 from ingeniamotion.enums import FSoEState
-from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
+from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError
 from ingeniamotion.motion_controller import MotionController
 from tests.conftest import timeout_loop
 
 if FSOE_MASTER_INSTALLED:
     from fsoe_master import fsoe_master
 
+    from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
+    from tests.fsoe.conftest import __set_default_phase2_mapping
+
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
-    if FSOE_MASTER_INSTALLED:
-        from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
+logger = get_logger(__name__)
 
 
 def test_fsoe_master_not_installed() -> None:
@@ -270,3 +273,96 @@ def test_start_stop_master(
 
     mc.fsoe.stop_master(stop_pdos=True)
     assert handler.running is False
+
+
+@pytest.mark.fsoe
+def test_start_precreated_handler_after_previous_fsoe_session(
+    mc: "MotionController",
+    alias: str,
+    timeout_for_data_sra: float,
+) -> None:
+    """This test creates two FSoE master handlers and alternates between them,
+    starting and stopping the FSoE session multiple times.
+    It verifies that the handlers can successfully transition through the expected FSoE
+    states without encountering errors.
+
+    Args:
+        mc: Motion controller.
+        alias: Alias of the servo to test.
+        timeout_for_data_sra: Timeout for waiting for FSoE data state.
+    """
+    n_iterations: int = 200
+    handler_errors: list[FSoEError] = []
+    handler_states: dict[FSoEMasterHandler, list[FSoEState]] = {}
+
+    def on_handler_error(error: FSoEError) -> None:
+        handler_errors.append(error)
+
+    def on_handler_state_change(state: FSoEState) -> None:
+        handler_states[active_handler].append(state)
+
+    def setup_handler() -> FSoEMasterHandler:
+        handler = mc.fsoe.create_fsoe_master_handler(
+            use_sra=True, state_change_callback=on_handler_state_change
+        )
+        handler_states[handler] = []
+        __set_default_phase2_mapping(handler)
+        if handler.process_image.editable:
+            __set_default_phase2_mapping(handler)
+            handler.safety_parameters.get("FSOE_FEEDBACK_SCENARIO").set(0)
+
+        if handler.sout_function() is not None:
+            handler.sout_disable()
+        return handler
+
+    first_handler = setup_handler()
+    second_handler = setup_handler()
+    mc.fsoe.subscribe_to_errors(on_handler_error)
+
+    logger.info(
+        f"Starting test with {n_iterations} iterations and two FSoE "
+        f"master handlers: {first_handler} and {second_handler}"
+    )
+
+    try:
+        active_handler = first_handler
+
+        for idx in range(n_iterations):
+            logger.info(
+                f"{idx}/{n_iterations}: Starting FSoE session with handler {active_handler}"
+            )
+
+            active_handler.configure_pdo_maps()
+            active_handler.set_pdo_maps_to_slave()
+            active_handler.start()
+
+            mc.capture.pdo.start_pdos(servo=alias)
+            assert active_handler.state is FSoEState.RESET, (
+                f"{idx}/{n_iterations}: Expected state RESET, got {active_handler.state}"
+            )
+            active_handler.wait_for_data_state(timeout=timeout_for_data_sra)
+            assert active_handler.state is FSoEState.DATA, (
+                f"{idx}/{n_iterations}: Expected state DATA, got {active_handler.state}"
+            )
+            assert handler_errors == [], (
+                f"{idx}/{n_iterations}: Unexpected errors: {handler_errors}"
+            )
+            assert handler_states[active_handler][-4:] == [
+                FSoEState.SESSION,
+                FSoEState.CONNECTION,
+                FSoEState.PARAMETER,
+                FSoEState.DATA,
+            ], (
+                f"{idx}/{n_iterations}: Unexpected state sequence: "
+                f"{handler_states[active_handler][-4:]}"
+            )
+
+            active_handler.stop()
+            mc.capture.pdo.stop_pdos(servo=alias)
+            active_handler = second_handler if active_handler is first_handler else first_handler
+    finally:
+        mc.fsoe.unsubscribe_from_errors(on_handler_error)
+        mc.fsoe.stop_master(stop_pdos=False)
+        mc.fsoe._delete_master_handler()
+        first_handler.delete()
+        second_handler.delete()
