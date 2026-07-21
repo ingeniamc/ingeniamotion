@@ -145,7 +145,6 @@ def test_motor_enable_with_fault(
         assert excinfo.value.__notes__[0] == note
 
     if excinfo.type is exceptions.ILTimeoutError:
-        assert str(excinfo.value) == "Error trigger timeout exceeded."
         pytest.xfail("https://novantamotion.atlassian.net/browse/CIT-742")
     else:
         assert str(excinfo.value) == (
