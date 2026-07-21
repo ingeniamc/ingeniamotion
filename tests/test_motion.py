@@ -197,6 +197,13 @@ def test_motor_enable_with_delayed_fault(
     patch_get_number_total_errors.side_effect = delayed_function_return(
         4, num_errors_before_test, num_errors_before_test + 1
     )
+    patch_get_last_buffer_error = mocker.patch("ingeniamotion.errors.Errors.get_last_buffer_error")
+    patch_get_last_buffer_error.side_effect = delayed_function_return(
+        4,
+        # First return means no error is available yet; second return publishes the real fault.
+        (0, None, None),
+        (0x3241, 1, False),
+    )
 
     mc.communication.set_register(uid, value, alias)
     with pytest.raises(exception_type) as excinfo:
