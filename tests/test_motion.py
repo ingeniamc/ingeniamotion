@@ -140,13 +140,18 @@ def test_motor_enable_with_fault(
         # Retrieving the error code failed. Check INGM-522.
         with pytest.raises(exception_type) as excinfo:
             mc.motion.motor_enable(servo=alias)
-    assert str(excinfo.value) == (
-        "The subnode 1 could not be enabled within 1000 ms. "
-        "The current subnode state is ServoState.FAULT"
-    )
 
     if sys.version_info >= (3, 11):
         assert excinfo.value.__notes__[0] == note
+
+    if excinfo.type is exceptions.ILTimeoutError:
+        assert str(excinfo.value) == "Error trigger timeout exceeded."
+        pytest.xfail("https://novantamotion.atlassian.net/browse/CIT-742")
+    else:
+        assert str(excinfo.value) == (
+            "The subnode 1 could not be enabled within 1000 ms. "
+            "The current subnode state is ServoState.FAULT"
+        )
 
 
 @pytest.mark.ethernet
