@@ -337,22 +337,27 @@ class FSoESlave:
     def __init__(self) -> None:
         self._replies_ever = 0
         self._replies_this_session = 0
-        self._last_reply: Optional[bytes] = None
-        self._stale_reply: Optional[bytes] = None
+        self._outgoing_reply: Optional[bytes] = None
+        self._held_stale_reply: Optional[bytes] = None
         self._stale_replies_remaining = 0
         self._last_reply_source = "fresh"
 
     def _consume_stale_reply(self) -> Optional[bytes]:
         """Return the preserved reply while its simulated buffer is held."""
-        if self._stale_reply is None or self._stale_replies_remaining == 0:
+        if self._held_stale_reply is None or self._stale_replies_remaining == 0:
             return None
-        stale_reply = self._stale_reply
+        stale_reply = self._held_stale_reply
         self._stale_replies_remaining -= 1
         if self._stale_replies_remaining == 0:
-            self._stale_reply = None
+            self._held_stale_reply = None
         self._last_reply_source = "stale"
         self._replies_ever += 1
         return stale_reply
+
+    @property
+    def last_reply_source(self) -> str:
+        """Return whether the last reply was fresh or stale."""
+        return self._last_reply_source
 
     def compute_reply(self, request_bytes: bytes) -> bytes:
         """Compute the reply for one request.
@@ -372,13 +377,13 @@ class FSoESlave:
         command = request.control.command
         self._last_reply_source = "fresh"
 
-        if command == FSOECommand.RESET and self._last_reply is not None:
+        if command == FSOECommand.RESET and self._outgoing_reply is not None:
             # The first PDO cycle after a restart can deliver the previous
             # output before the slave has processed the new Reset request.
-            stale_reply = self._last_reply
-            self._stale_reply = stale_reply
+            stale_reply = self._outgoing_reply
+            self._held_stale_reply = stale_reply
             self._stale_replies_remaining = 3
-            self._last_reply = None
+            self._outgoing_reply = None
             stale_reply = self._consume_stale_reply()
             assert stale_reply is not None
             return stale_reply
@@ -405,7 +410,7 @@ class FSoESlave:
         reply.generate_crcs()
         reply_bytes = reply.frame_to_array()
 
-        self._last_reply = reply_bytes
+        self._outgoing_reply = reply_bytes
 
         self._replies_ever += 1
         self._replies_this_session += 1
@@ -437,6 +442,14 @@ class FSoENetwork:
             self._trace_file = self._trace_path.open("w", encoding="utf-8")
             self._trace_file.write("FSoE exchange trace\n")
             self._trace_file.flush()
+
+    def __enter__(self) -> "FSoENetwork":
+        """Return the network with its trace lifecycle managed by a context."""
+        return self
+
+    def __exit__(self, exc_type: object, exc_value: object, traceback: object) -> None:
+        """Close the trace file when leaving the network context."""
+        self.close()
 
     def trace(self, marker: str, message: str) -> None:
         """Append a marked event to the exchange trace, if enabled."""
@@ -473,7 +486,7 @@ class FSoENetwork:
             reply_bytes = self.slave.compute_reply(request_bytes)
             self.trace(
                 f"ROUND {self._round:02d}",
-                f"reply_source={self.slave._last_reply_source}",
+                f"reply_source={self.slave.last_reply_source}",
             )
             self.trace(f"ROUND {self._round:02d}", f"reply={reply_bytes.hex(' ')}")
             self.master.safety_slave_pdu_map.set_item_bytes(reply_bytes)
@@ -532,7 +545,7 @@ def test_mock_slave_drives_real_handshake_to_data_state() -> None:
 
 
 @pytest.mark.fsoe
-def test_startup_replay_filter_is_not_shared_between_handler_instances() -> None:
+def test_stale_data_reply_survives_master_replacement() -> None:
     # One physical slave, one master instance connecting to it after another -
     # e.g. Motionlab switching between two FSoE master configurations against
     # the same drive - not two independent slaves.
