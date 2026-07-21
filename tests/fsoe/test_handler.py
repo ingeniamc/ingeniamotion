@@ -297,8 +297,9 @@ class FSoESlave:
     slave doesn't contain a master, it only exchanges bytes with one over the
     wire - see ``FSoENetwork`` below, the only object that needs a reference
     to both sides. Because it outlives any one master connection (it's never
-    power-cycled), it can hold onto a stale reply from a previous session for
-    a test to feed to a later one.
+    power-cycled), it can hold onto a stale reply from a previous session and
+    deliver it as the response to the first non-Reset request after a Reset,
+    exactly what a PDO thread would briefly deliver right after a restart.
 
     The reply formula:
       - The safe data is an exact echo of the request's safe data.
@@ -324,16 +325,27 @@ class FSoESlave:
     None of ``sequence_number``/``crc0`` is transmitted on the wire - each
     side tracks them independently - so ``FSOEFrame.generate_crcs()`` only
     produces a CRC the real master will accept when fed the values above.
+
+    On a Reset request, the slave captures its own last Session-state reply
+    as a stale reply, to be returned automatically on the first non-Reset
+    request of the new session. Once that stale reply has been delivered, the
+    previous session's memory is forgotten so the next fresh startup (e.g.
+    a different master handler connecting to the same physical slave) does
+    not re-deliver it.
     """
 
     def __init__(self) -> None:
         self._replies_ever = 0
         self._replies_this_session = 0
         self._session_reply: Optional[bytes] = None
-        self.stale_reply_from_previous_session: Optional[bytes] = None
+        self._stale_reply: Optional[bytes] = None
 
     def compute_reply(self, request_bytes: bytes) -> bytes:
         """Compute the reply for one request.
+
+        On the first non-Reset request after a Reset, returns the stale reply
+        from the previous session (if any) instead of computing a fresh one.
+        All other requests are answered with a freshly computed reply.
 
         Args:
             request_bytes: The master's current request, as raw bytes.
@@ -351,10 +363,19 @@ class FSoESlave:
             # it transmitted - exactly what a PDO thread would briefly
             # deliver right after a restart, since the device is never
             # power-cycled between sessions.
-            self.stale_reply_from_previous_session = self._session_reply
+            self._stale_reply = self._session_reply
             self._replies_this_session = 0
             sequence_number = self._replies_ever
             connection_id = 0
+        elif self._stale_reply is not None and command != FSOECommand.RESET:
+            # First non-Reset request after a Reset: deliver the stale reply
+            # from the previous session, then forget that previous session
+            # entirely so the next fresh startup does not re-deliver it.
+            stale_reply = self._stale_reply
+            self._stale_reply = None
+            self._session_reply = None
+            self._replies_ever += 1
+            return stale_reply
         elif command == FSOECommand.SESSION:
             sequence_number = self._replies_this_session
             connection_id = 0
@@ -396,25 +417,6 @@ class FSoENetwork:
     def replace_master(self, handler: "FSoEMasterHandler") -> None:
         """Connect a different master handler to the same slave."""
         self.master = handler
-
-    def deliver(self, reply_bytes: bytes) -> None:
-        """Deliver these exact reply bytes to the master, without computing a
-        fresh one - e.g. to replay a stale reply still sitting on the slave.
-        """
-        self.master.safety_slave_pdu_map.set_item_bytes(reply_bytes)
-        self.master.set_reply()
-
-    def replay_stale_reply_from_previous_session(self) -> bytes:
-        """Feed the slave's own leftover reply from a previous session to the
-        master, exactly as a PDO thread would right after a restart, since
-        the slave is never power-cycled between sessions.
-
-        Returns:
-            The stale reply bytes delivered.
-        """
-        stale_reply = self.slave.stale_reply_from_previous_session
-        self.deliver(stale_reply)
-        return stale_reply
 
     def exchange_one_round(self) -> bytes:
         """Exchange one request/reply round.
@@ -486,7 +488,6 @@ def test_startup_replay_filter_is_not_shared_between_handler_instances() -> None
         report_error_callback=lambda name, err: errors_a.append((name, err)),
     )
     network = FSoENetwork(handler_a, FSoESlave())
-    stale_reply: bytes
     try:
         # handler_a completes one full, real startup, is stopped, and
         # restarted - genuinely progressing past its own Reset state for
@@ -502,26 +503,32 @@ def test_startup_replay_filter_is_not_shared_between_handler_instances() -> None
         handler_a.stop()
 
         handler_a.start()
-        network.exchange_one_round()
+        network.exchange_one_round()  # Reset -> fresh Reset reply, state -> SESSION
         assert handler_a.state == FSoEState.SESSION
 
         # The slave is never power-cycled: it still has its own Session-state
         # reply from the session that just ended as its last output, exactly
         # what a real device would still be transmitting right after a
-        # restart. handler_a recognizes it as its own previously-seen reply
-        # and suppresses it: no user-visible error is reported, and its
-        # state is undisturbed.
-        stale_reply = network.replay_stale_reply_from_previous_session()
+        # restart. The slave auto-delivers its previous Session reply on the
+        # next round; handler_a recognizes it as its own previously-seen reply
+        # and suppresses it: no user-visible error is reported, and its state
+        # is undisturbed.
+        network.exchange_one_round()  # Session -> stale reply auto-delivered
         assert errors_a == []
         assert handler_a.state == FSoEState.SESSION
+
+        # Complete the new session so the slave has a current Session reply
+        # ready to replay when the next master connects.
+        network.exchange_to_data()
+        assert handler_a.state == FSoEState.DATA
+        handler_a.stop()
     finally:
         handler_a.stop()
         handler_a.delete()
 
     # handler_a has fully disconnected from the slave. A second, independent
     # master instance now takes over the SAME slave (never power-cycled),
-    # which still has handler_a's own last reply (captured above, before
-    # handler_b's own session traffic updates the slave's memory) as output.
+    # which still has handler_a's current Session reply as its last output.
     errors_b: list[tuple[str, str]] = []
     handler_b = FSoEMasterHandler(
         servo=mock_servo,
@@ -532,21 +539,14 @@ def test_startup_replay_filter_is_not_shared_between_handler_instances() -> None
     try:
         network.replace_master(handler_b)
         handler_b.start()
-        network.exchange_to_data()
-        assert handler_b.state == FSoEState.DATA
-        handler_b.stop()
-
-        handler_b.start()
-        network.exchange_one_round()
+        network.exchange_one_round()  # Reset -> fresh Reset reply, state -> SESSION
         assert handler_b.state == FSoEState.SESSION
 
-        # handler_b has never seen handler_a's stale reply - it's traffic
-        # from a different handler instance - so its own filter doesn't
-        # catch it: it reaches the real master, which (correctly) rejects it
-        # as invalid for this session, and that rejection IS reported to the
-        # user. This is the actual gap this mechanism doesn't close:
-        # cross-instance replay.
-        network.deliver(stale_reply)
+        # The slave automatically replays handler_a's Session reply. handler_b
+        # has never seen it, so its own filter does not catch it: it reaches
+        # the real master, which correctly rejects it as invalid for this
+        # session, and that rejection is reported to the user.
+        network.exchange_one_round()  # Session -> handler_a's reply replayed
         assert errors_b == [("SESSION_STAY2", "Invalid slave CRC")]
     finally:
         handler_b.delete()
