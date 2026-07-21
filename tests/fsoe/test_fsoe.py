@@ -13,11 +13,13 @@ from tests.conftest import timeout_loop
 if FSOE_MASTER_INSTALLED:
     from fsoe_master import fsoe_master
 
-    from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
     from tests.fsoe.conftest import __set_default_phase2_mapping
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
+
+    if FSOE_MASTER_INSTALLED:
+        from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
 
 logger = get_logger(__name__)
 
@@ -277,9 +279,9 @@ def test_start_stop_master(
 
 def _setup_handler(
     mc: "MotionController",
-    handler_states: dict[FSoEMasterHandler, list[FSoEState]],
+    handler_states: dict["FSoEMasterHandler", list["FSoEState"]],
     state_change_callback: Callable[[FSoEState], None],
-) -> FSoEMasterHandler:
+) -> "FSoEMasterHandler":
     handler = mc.fsoe.create_fsoe_master_handler(
         use_sra=True, state_change_callback=state_change_callback
     )
