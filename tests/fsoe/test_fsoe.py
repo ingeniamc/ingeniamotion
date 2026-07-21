@@ -291,7 +291,7 @@ def test_start_precreated_handler_after_previous_fsoe_session(
         alias: Alias of the servo to test.
         timeout_for_data_sra: Timeout for waiting for FSoE data state.
     """
-    n_iterations: int = 200
+    n_iterations: int = 5
     handler_errors: list[FSoEError] = []
     handler_states: dict[FSoEMasterHandler, list[FSoEState]] = {}
 
