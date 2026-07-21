@@ -1,7 +1,9 @@
 import logging
+import os
 import random
 import time
-from typing import TYPE_CHECKING, Callable, Optional
+from pathlib import Path
+from typing import TYPE_CHECKING, Callable, Optional, TextIO
 
 import pytest
 from ingenialink.dictionary import DictionarySafetyModule
@@ -326,19 +328,31 @@ class FSoESlave:
     side tracks them independently - so ``FSOEFrame.generate_crcs()`` only
     produces a CRC the real master will accept when fed the values above.
 
-    On a Reset request, the slave captures its own last Session-state reply
-    as a stale reply, to be returned automatically on the first non-Reset
-    request of the new session. Once that stale reply has been delivered, the
-    previous session's memory is forgotten so the next fresh startup (e.g.
-    a different master handler connecting to the same physical slave) does
-    not re-deliver it.
+    When a new Reset request arrives, the slave first returns its previous
+    output buffer, if any, before processing the Reset. The preserved output
+    remains available for three exchange iterations, until the simulated PDO
+    buffer is replaced by fresh output.
     """
 
     def __init__(self) -> None:
         self._replies_ever = 0
         self._replies_this_session = 0
-        self._session_reply: Optional[bytes] = None
+        self._last_reply: Optional[bytes] = None
         self._stale_reply: Optional[bytes] = None
+        self._stale_replies_remaining = 0
+        self._last_reply_source = "fresh"
+
+    def _consume_stale_reply(self) -> Optional[bytes]:
+        """Return the preserved reply while its simulated buffer is held."""
+        if self._stale_reply is None or self._stale_replies_remaining == 0:
+            return None
+        stale_reply = self._stale_reply
+        self._stale_replies_remaining -= 1
+        if self._stale_replies_remaining == 0:
+            self._stale_reply = None
+        self._last_reply_source = "stale"
+        self._replies_ever += 1
+        return stale_reply
 
     def compute_reply(self, request_bytes: bytes) -> bytes:
         """Compute the reply for one request.
@@ -356,26 +370,25 @@ class FSoESlave:
         request = FSOEFrame.frame_from_array(request_bytes)
         data = request.get_safe_data_bytes()[: request.safe_data_size_bytes]
         command = request.control.command
+        self._last_reply_source = "fresh"
 
+        if command == FSOECommand.RESET and self._last_reply is not None:
+            # The first PDO cycle after a restart can deliver the previous
+            # output before the slave has processed the new Reset request.
+            stale_reply = self._last_reply
+            self._stale_reply = stale_reply
+            self._stale_replies_remaining = 3
+            self._last_reply = None
+            stale_reply = self._consume_stale_reply()
+            assert stale_reply is not None
+            return stale_reply
+        stale_reply = self._consume_stale_reply() if command != FSOECommand.RESET else None
+        if stale_reply is not None:
+            return stale_reply
         if command == FSOECommand.RESET:
-            # A new session is starting: this device's own Session-state
-            # reply from whatever session just ended is still the last thing
-            # it transmitted - exactly what a PDO thread would briefly
-            # deliver right after a restart, since the device is never
-            # power-cycled between sessions.
-            self._stale_reply = self._session_reply
             self._replies_this_session = 0
             sequence_number = self._replies_ever
             connection_id = 0
-        elif self._stale_reply is not None and command != FSOECommand.RESET:
-            # First non-Reset request after a Reset: deliver the stale reply
-            # from the previous session, then forget that previous session
-            # entirely so the next fresh startup does not re-deliver it.
-            stale_reply = self._stale_reply
-            self._stale_reply = None
-            self._session_reply = None
-            self._replies_ever += 1
-            return stale_reply
         elif command == FSOECommand.SESSION:
             sequence_number = self._replies_this_session
             connection_id = 0
@@ -392,8 +405,7 @@ class FSoESlave:
         reply.generate_crcs()
         reply_bytes = reply.frame_to_array()
 
-        if command == FSOECommand.SESSION:
-            self._session_reply = reply_bytes
+        self._last_reply = reply_bytes
 
         self._replies_ever += 1
         self._replies_this_session += 1
@@ -410,9 +422,34 @@ class FSoENetwork:
     hardware, which is never power-cycled between them.
     """
 
-    def __init__(self, handler: "FSoEMasterHandler", slave: FSoESlave) -> None:
+    def __init__(
+        self,
+        handler: "FSoEMasterHandler",
+        slave: FSoESlave,
+        trace_path: Optional[Path] = None,
+    ) -> None:
         self.master = handler
         self.slave = slave
+        self._trace_path = trace_path
+        self._trace_file: Optional[TextIO] = None
+        self._round = 0
+        if self._trace_path is not None:
+            self._trace_file = self._trace_path.open("w", encoding="utf-8")
+            self._trace_file.write("FSoE exchange trace\n")
+            self._trace_file.flush()
+
+    def trace(self, marker: str, message: str) -> None:
+        """Append a marked event to the exchange trace, if enabled."""
+        if self._trace_file is None:
+            return
+        self._trace_file.write(f"[{marker}] {message}\n")
+        self._trace_file.flush()
+
+    def close(self) -> None:
+        """Close the trace file, if one is open."""
+        if self._trace_file is not None:
+            self._trace_file.close()
+            self._trace_file = None
 
     def replace_master(self, handler: "FSoEMasterHandler") -> None:
         """Connect a different master handler to the same slave."""
@@ -424,12 +461,34 @@ class FSoENetwork:
         Returns:
             The reply bytes sent.
         """
-        self.master.get_request()
-        request_bytes = self.master.safety_master_pdu_map.get_item_bytes()
-        reply_bytes = self.slave.compute_reply(request_bytes)
-        self.master.safety_slave_pdu_map.set_item_bytes(reply_bytes)
-        self.master.set_reply()
-        return reply_bytes
+        self._round += 1
+        self.trace(
+            f"ROUND {self._round:02d}",
+            f"state_before={self.master.state.name}",
+        )
+        try:
+            self.master.get_request()
+            request_bytes = self.master.safety_master_pdu_map.get_item_bytes()
+            self.trace(f"ROUND {self._round:02d}", f"request={request_bytes.hex(' ')}")
+            reply_bytes = self.slave.compute_reply(request_bytes)
+            self.trace(
+                f"ROUND {self._round:02d}",
+                f"reply_source={self.slave._last_reply_source}",
+            )
+            self.trace(f"ROUND {self._round:02d}", f"reply={reply_bytes.hex(' ')}")
+            self.master.safety_slave_pdu_map.set_item_bytes(reply_bytes)
+            self.master.set_reply()
+            self.trace(
+                f"ROUND {self._round:02d}",
+                f"state_after={self.master.state.name}",
+            )
+            return reply_bytes
+        except Exception as error:
+            self.trace(
+                f"ROUND {self._round:02d} EXCEPTION",
+                f"{type(error).__name__}: {error}",
+            )
+            raise
 
     def exchange_to_data(self, max_rounds: int = 20) -> list[bytes]:
         """Exchange rounds until the master's startup handshake reaches Data.
@@ -479,77 +538,84 @@ def test_startup_replay_filter_is_not_shared_between_handler_instances() -> None
     # the same drive - not two independent slaves.
     mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
     mock_network = MockNetwork()
+    trace_path = Path(os.environ.get("FSOE_TRACE_FILE", "fsoe_startup_sequence.log"))
 
     errors_a: list[tuple[str, str]] = []
+
+    def report_error_a(name: str, error: str) -> None:
+        errors_a.append((name, error))
+        network.trace("HANDLER_A_ERROR", f"{name}: {error}")
+
     handler_a = FSoEMasterHandler(
         servo=mock_servo,
         net=mock_network,
         use_sra=True,
-        report_error_callback=lambda name, err: errors_a.append((name, err)),
+        report_error_callback=report_error_a,
     )
-    network = FSoENetwork(handler_a, FSoESlave())
+    network = FSoENetwork(handler_a, FSoESlave(), trace_path=trace_path)
+    network.trace("TEST", "handler_a startup")
     try:
-        # handler_a completes one full, real startup, is stopped, and
-        # restarted - genuinely progressing past its own Reset state for
-        # real, matching production timing where the CURRENT session's real
-        # replies advance the handshake before any leftover PDO bytes from
-        # the PREVIOUS session show up. This is also what turns
-        # __in_initial_reset off, so a real error is no longer suppressed and
-        # becomes visible in report_error_callback - the actual, user-facing
-        # symptom from the original bug report.
+        # handler_a completes a real startup and exchanges one live DATA
+        # packet, leaving that packet in the physical slave's PDO buffer.
         handler_a.start()
         network.exchange_to_data()
         assert handler_a.state == FSoEState.DATA
+        network.exchange_one_round()  # DATA -> last live data reply
+        network.trace(
+            "STOP",
+            f"request_before_stop={handler_a.safety_master_pdu_map.get_item_bytes().hex(' ')}, "
+            f"state={handler_a.state.name}",
+        )
         handler_a.stop()
-
-        handler_a.start()
-        network.exchange_one_round()  # Reset -> fresh Reset reply, state -> SESSION
-        assert handler_a.state == FSoEState.SESSION
-
-        # The slave is never power-cycled: it still has its own Session-state
-        # reply from the session that just ended as its last output, exactly
-        # what a real device would still be transmitting right after a
-        # restart. The slave auto-delivers its previous Session reply on the
-        # next round; handler_a recognizes it as its own previously-seen reply
-        # and suppresses it: no user-visible error is reported, and its state
-        # is undisturbed.
-        network.exchange_one_round()  # Session -> stale reply auto-delivered
+        network.trace(
+            "STOP",
+            f"request_after_stop={handler_a.safety_master_pdu_map.get_item_bytes().hex(' ')}, "
+            f"state={handler_a.state.name}",
+        )
         assert errors_a == []
-        assert handler_a.state == FSoEState.SESSION
-
-        # Complete the new session so the slave has a current Session reply
-        # ready to replay when the next master connects.
-        network.exchange_to_data()
-        assert handler_a.state == FSoEState.DATA
-        handler_a.stop()
     finally:
         handler_a.stop()
         handler_a.delete()
 
     # handler_a has fully disconnected from the slave. A second, independent
     # master instance now takes over the SAME slave (never power-cycled),
-    # which still has handler_a's current Session reply as its last output.
+    # which still has handler_a's last DATA reply as its last output.
     errors_b: list[tuple[str, str]] = []
+
+    def report_error_b(name: str, error: str) -> None:
+        errors_b.append((name, error))
+        network.trace("HANDLER_B_ERROR", f"{name}: {error}")
+
     handler_b = FSoEMasterHandler(
         servo=mock_servo,
         net=mock_network,
         use_sra=True,
-        report_error_callback=lambda name, err: errors_b.append((name, err)),
+        report_error_callback=report_error_b,
     )
     try:
         network.replace_master(handler_b)
+        network.trace("TEST", "handler_b startup on the same slave")
         handler_b.start()
-        network.exchange_one_round()  # Reset -> fresh Reset reply, state -> SESSION
+        # The stale incoming DATA packet is delivered before B processes its
+        # Reset, while the outgoing master request is independently replaced
+        # with a fresh Reset on the next cycle.
+        network.exchange_one_round()  # Reset -> stale DATA reply
+        assert handler_b.state == FSoEState.RESET
+        assert errors_b == []
+
+        network.exchange_one_round()  # Reset -> fresh Reset reply
         assert handler_b.state == FSoEState.SESSION
 
-        # The slave automatically replays handler_a's Session reply. handler_b
-        # has never seen it, so its own filter does not catch it: it reaches
-        # the real master, which correctly rejects it as invalid for this
-        # session, and that rejection is reported to the user.
-        network.exchange_one_round()  # Session -> handler_a's reply replayed
-        assert errors_b == [("SESSION_STAY2", "Invalid slave CRC")]
+        # The stale incoming DATA packet is delivered again while the master
+        # is in SESSION, where it is no longer suppressed and is reported.
+        network.exchange_one_round()  # Session -> stale DATA reply
+        assert errors_b == [
+            ("SESSION_FAIL3", "Invalid slave frame command"),
+        ]
+        assert handler_b.state == FSoEState.RESET
     finally:
         handler_b.delete()
+        network.close()
 
 
 @pytest.mark.fsoe
