@@ -1,6 +1,6 @@
 import time
 from collections.abc import Iterator
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, Callable
 
 import pytest
 from ingenialogger import get_logger
@@ -275,8 +275,26 @@ def test_start_stop_master(
     assert handler.running is False
 
 
+def _setup_handler(
+    mc: "MotionController",
+    handler_states: dict[FSoEMasterHandler, list[FSoEState]],
+    state_change_callback: Callable[[FSoEState], None],
+) -> FSoEMasterHandler:
+    handler = mc.fsoe.create_fsoe_master_handler(
+        use_sra=True, state_change_callback=state_change_callback
+    )
+    handler_states[handler] = []
+    if handler.process_image.editable:
+        __set_default_phase2_mapping(handler)
+        handler.safety_parameters.get("FSOE_FEEDBACK_SCENARIO").set(0)
+
+    if handler.sout_function() is not None:
+        handler.sout_disable()
+    return handler
+
+
 @pytest.mark.fsoe
-def test_start_precreated_handler_after_previous_fsoe_session(
+def test_start_precreated_first_handler_after_previous_fsoe_session(
     mc: "MotionController",
     alias: str,
     timeout_for_data_sra: float,
@@ -301,21 +319,8 @@ def test_start_precreated_handler_after_previous_fsoe_session(
     def on_handler_state_change(state: FSoEState) -> None:
         handler_states[active_handler].append(state)
 
-    def setup_handler() -> FSoEMasterHandler:
-        handler = mc.fsoe.create_fsoe_master_handler(
-            use_sra=True, state_change_callback=on_handler_state_change
-        )
-        handler_states[handler] = []
-        if handler.process_image.editable:
-            __set_default_phase2_mapping(handler)
-            handler.safety_parameters.get("FSOE_FEEDBACK_SCENARIO").set(0)
-
-        if handler.sout_function() is not None:
-            handler.sout_disable()
-        return handler
-
-    first_handler = setup_handler()
-    second_handler = setup_handler()
+    first_handler = _setup_handler(mc, handler_states, on_handler_state_change)
+    second_handler = _setup_handler(mc, handler_states, on_handler_state_change)
     mc.fsoe.subscribe_to_errors(on_handler_error)
 
     logger.info(
@@ -326,7 +331,7 @@ def test_start_precreated_handler_after_previous_fsoe_session(
     try:
         active_handler = first_handler
 
-        for idx in range(n_iterations):
+        for idx, _ in enumerate(range(n_iterations), start=1):
             logger.info(
                 f"{idx}/{n_iterations}: Starting FSoE session with handler {active_handler}"
             )
@@ -365,3 +370,137 @@ def test_start_precreated_handler_after_previous_fsoe_session(
         mc.fsoe._delete_master_handler()
         first_handler.delete()
         second_handler.delete()
+
+
+@pytest.mark.fsoe
+def test_startup_replies_from_previous_master_do_not_break_new_master(  # noqa: C901
+    mc: "MotionController",
+    alias: str,
+    timeout_for_data_sra: float,
+) -> None:
+    """Replay all startup replies from a previous FSoE session into a fresh
+    master and verify that startup still reaches DATA.
+
+    The goal is to simulate a new master receiving a sequence of stale startup
+    frames instead of a single stale frame.
+    """
+
+    handler_states: dict[FSoEMasterHandler, list[FSoEState]] = {}
+
+    def on_handler_state_change(state: FSoEState) -> None:
+        handler_states[active_handler].append(state)
+
+    handler_a = _setup_handler(mc, handler_states, on_handler_state_change)
+    handler_b = _setup_handler(mc, handler_states, on_handler_state_change)
+
+    startup_replies: list[bytes] = []
+    seen_replies: set[bytes] = set()
+
+    try:
+        # Handler A reaches DATA while we capture every unique reply seen during startup
+        active_handler = handler_a
+        handler_a.configure_pdo_maps()
+        handler_a.set_pdo_maps_to_slave()
+        handler_a.start()
+        mc.capture.pdo.start_pdos(servo=alias)
+
+        last_state_count = 0
+        while handler_a.state is not FSoEState.DATA:
+            try:
+                reply = handler_a.safety_slave_pdu_map.get_item_bytes()
+
+                if reply not in seen_replies:
+                    startup_replies.append(reply)
+                    seen_replies.add(reply)
+
+                    logger.info(f"Captured startup reply {len(startup_replies)}: {reply.hex()}")
+            except Exception:
+                pass
+
+            if len(handler_states[handler_a]) > last_state_count:
+                logger.info(
+                    f"Handler A transition => {handler_states[handler_a][-1]}",
+                )
+
+                last_state_count = len(handler_states[handler_a])
+
+            time.sleep(0.01)
+
+        handler_a.wait_for_data_state(timeout=timeout_for_data_sra)
+
+        # Also capture one DATA-state frame
+        data_reply = handler_a.safety_slave_pdu_map.get_item_bytes()
+        if data_reply not in seen_replies:
+            startup_replies.append(data_reply)
+            seen_replies.add(data_reply)
+
+        for idx, reply in enumerate(startup_replies):
+            logger.info(
+                f"Captured reply {idx + 1} = {reply.hex()}",
+            )
+
+        handler_a.stop()
+        mc.capture.pdo.stop_pdos(servo=alias)
+
+        # Fresh handler
+        active_handler = handler_b
+        handler_b.configure_pdo_maps()
+        handler_b.set_pdo_maps_to_slave()
+        handler_b.start()
+        assert handler_b.state is FSoEState.RESET
+        mc.capture.pdo.start_pdos(servo=alias)
+
+        logger.info(
+            f"Handler B before replay: state={handler_b.state} "
+            f"transitions={handler_states[handler_b]}"
+        )
+
+        # Replay ALL startup replies from handler A
+        for idx, reply in enumerate(startup_replies):
+            logger.info(f"Replaying stale reply {idx + 1}/{len(startup_replies)}: {reply.hex()}")
+            handler_b._master_handler.set_reply(reply)
+            logger.info(
+                f"After replay {idx + 1}: state={handler_b.state} "
+                f"low_level={handler_b._master_handler.state.__name__} "
+                f"command={handler_b._master_handler.slave.frame.control.command}"
+            )
+
+        previous_transition_count = len(handler_states[handler_b])
+
+        # Observe the recovery/startup process after replaying all frames
+        while handler_b.state is not FSoEState.DATA:
+            try:
+                current_reply = handler_b.safety_slave_pdu_map.get_item_bytes()
+
+                logger.info(f"Live slave reply: {current_reply.hex()}")
+
+                logger.info(
+                    f"Parsed command={handler_b._master_handler.slave.frame.control.command} "
+                    f"connection_id={handler_b._master_handler.slave.frame.control.connection_id}",
+                )
+            except Exception:
+                pass
+
+            if len(handler_states[handler_b]) > previous_transition_count:
+                logger.info(f"Handler B transition => {handler_states[handler_b][-1]}")
+                logger.info(f"Current request => {handler_b._master_handler.get_request().hex()}")
+                previous_transition_count = len(handler_states[handler_b])
+
+            time.sleep(0.01)
+
+        logger.info(f"Handler B final state={handler_b.state}")
+        logger.info(f"Handler B transitions={handler_states[handler_b]}")
+
+        assert handler_b.state is FSoEState.DATA
+        assert handler_states[handler_b][-4:] == [
+            FSoEState.SESSION,
+            FSoEState.CONNECTION,
+            FSoEState.PARAMETER,
+            FSoEState.DATA,
+        ]
+        handler_b.stop()
+
+    finally:
+        mc.capture.pdo.stop_pdos(servo=alias)
+        handler_a.delete()
+        handler_b.delete()
