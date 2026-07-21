@@ -306,7 +306,6 @@ def test_start_precreated_handler_after_previous_fsoe_session(
             use_sra=True, state_change_callback=on_handler_state_change
         )
         handler_states[handler] = []
-        __set_default_phase2_mapping(handler)
         if handler.process_image.editable:
             __set_default_phase2_mapping(handler)
             handler.safety_parameters.get("FSOE_FEEDBACK_SCENARIO").set(0)
