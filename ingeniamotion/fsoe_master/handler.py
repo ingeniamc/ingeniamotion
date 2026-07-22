@@ -223,7 +223,7 @@ class FSoEMasterHandler:
         While the master is still completing its initial handshake with the
         slave (``__in_initial_reset``), the slave may still be echoing stale
         data from a previous session (e.g. a frozen safety PDU) or replying
-        with all-zero or stale data before it is ready. This can trigger expected,
+        with all-zero data before it is ready. This can trigger expected,
         transient errors (e.g. ``RESET_STAY1``) that resolve on their own once
         the slave catches up. These are suppressed here instead of being
         forwarded, to avoid reporting spurious errors during startup.

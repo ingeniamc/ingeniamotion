@@ -545,7 +545,7 @@ def test_mock_slave_drives_real_handshake_to_data_state() -> None:
 
 
 @pytest.mark.fsoe
-def test_stale_data_reply_survives_master_replacement() -> None:
+def test_master_ignores_stale_reply_after_master_replacement() -> None:
     # One physical slave, one master instance connecting to it after another -
     # e.g. Motionlab switching between two FSoE master configurations against
     # the same drive - not two independent slaves.
