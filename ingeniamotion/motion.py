@@ -159,15 +159,7 @@ class Motion:
                 current_error_code, _subnode, _warning = self.mc.errors.get_last_buffer_error(
                     servo=servo, axis=axis
                 )
-                # https://novantamotion.atlassian.net/browse/CIT-742
-                # If the new error is the same than the last error, the error will not be raised.
-                # This should be solved once the CIT-742 is solved, but for now, we will ignore the
-                # error if it is the same than the last error
-                if current_error_code != 0 and (
-                    current_error_code,
-                    _subnode,
-                    _warning,
-                ) != (
+                if current_error_code != 0 and (current_error_code, _subnode, _warning) != (
                     baseline_error_code,
                     baseline_subnode,
                     baseline_warning,
@@ -183,13 +175,11 @@ class Motion:
                     )
             if error_code == 0:
                 raise ILTimeoutError("Error trigger timeout exceeded.")
-            _error_id, _, _, error_msg = self.mc.errors.get_error_data(error_code, servo=servo)
+            _, _, _, error_msg = self.mc.errors.get_error_data(error_code, servo=servo)
             if sys.version_info >= (3, 11):
                 # Adds a note to the exception with the error last error message from the queues
                 # Only available in Python 3.11+ (add_note method)
                 e.add_note(f"Error message: {error_msg}")
-            if type(e) is ILTimeoutError:
-                raise ILError(error_msg)
             raise
 
     def motor_disable(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> None:
