@@ -620,11 +620,11 @@ def test_stale_data_reply_survives_master_replacement() -> None:
         assert handler_b.state == FSoEState.SESSION
 
         # The stale incoming DATA packet is delivered again while the master
-        # is in SESSION, where it is no longer suppressed and is reported.
+        # is in SESSION. The master still reacts to it internally (it isn't
+        # withheld), but the resulting error is recognized as caused by a
+        # repeated slave reply and is not reported to the user.
         network.exchange_one_round()  # Session -> stale DATA reply
-        assert errors_b == [
-            ("SESSION_FAIL3", "Invalid slave frame command"),
-        ]
+        assert errors_b == []
         assert handler_b.state == FSoEState.RESET
     finally:
         handler_b.delete()
