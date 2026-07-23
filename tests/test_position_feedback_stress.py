@@ -2,7 +2,8 @@
 
 The tests compare position-feedback behavior with the motor disabled, with the
 motor enabled while holding position, and during repeated position movements.
-A separate diagnostic test characterizes the effect of reduced SDO timeouts.
+The tests stop at the first newly generated drive warning, fault, or SDO error
+so that diagnostics describe the event that started the failure sequence.
 """
 
 import time
@@ -17,16 +18,12 @@ from ingenialogger import get_logger
 from ingeniamotion.enums import OperationMode
 
 if TYPE_CHECKING:
-    from ingenialink.ethercat.network import EthercatNetwork
-
     from ingeniamotion.motion_controller import MotionController
 
 
 logger = get_logger(__name__)
 
 DriveError = tuple[int, Optional[int], Optional[bool]]
-SdoFailure = dict[str, Any]
-
 MOTION_REGISTERS = (
     "DRV_STATE_CONTROL",
     "DRV_STATE_STATUS",
@@ -35,6 +32,8 @@ MOTION_REGISTERS = (
     "CL_POS_SET_POINT_VALUE",
     "CL_POS_FBK_VALUE",
     "CL_VEL_FBK_VALUE",
+    "CL_CUR_Q_VALUE",
+    "CL_CUR_D_VALUE",
 )
 STATUS_WORD_FAULT_BIT = 0x0008
 STATUS_WORD_TARGET_REACHED_BIT = 0x0800
@@ -87,25 +86,44 @@ class EncoderDebugger:
         self.motor_enabled = False
 
     def enable_motor_holding_current_position(self) -> int:
-        """Enable profile-position mode and hold the current position.
+        """Enable profile-position mode while holding the current position.
+
+        The hold target is configured before enabling the power stage to prevent
+        the drive from activating a stale profile-position target.
 
         Returns:
             Position measured after the position loop has settled.
         """
-        position = self.read_position()
         self.mc.motion.set_operation_mode(
             OperationMode.PROFILE_POSITION,
             servo=self.alias,
         )
-        self.mc.motion.motor_enable(servo=self.alias)
-        self.motor_enabled = True
+
+        position = self.read_position()
+
         self.mc.motion.move_to_position(
             position,
             servo=self.alias,
-            blocking=True,
-            timeout=self.settings.movement_timeout,
+            blocking=False,
         )
+
+        configured_set_point = self.read_register(
+            "CL_POS_SET_POINT_VALUE",
+        )
+
+        assert abs(configured_set_point - position) <= (self.settings.position_tolerance), (
+            "The hold target was not configured before motor enable: "
+            f"position={position}, "
+            f"configured_set_point={configured_set_point}"
+        )
+
+        self.mc.motion.motor_enable(
+            servo=self.alias,
+        )
+        self.motor_enabled = True
+
         time.sleep(self.settings.settling_time)
+
         return self.read_position()
 
     def disable_motor(self) -> None:
@@ -378,20 +396,31 @@ class EncoderDebugger:
             f"wkc={getattr(base_exception, 'wkc', None)}"
         )
 
-    def wait_for_target(self, target: int, iteration: int) -> None:
-        """Wait for a movement target and diagnose its first failure.
+    def wait_for_target(
+        self,
+        target: int,
+        iteration: int,
+        initial_errors: list[DriveError],
+    ) -> None:
+        """Wait for a movement target and diagnose its first abnormal event.
+
+        This method also polls the drive error buffer, making the test stop at
+        the first BiSS-C warning instead of waiting for a final CRC fault.
 
         Args:
             target: Target position of the current movement.
             iteration: Zero-based movement iteration.
+            initial_errors: Error-buffer snapshot captured before motion starts.
         """
         start_time = time.monotonic()
         last_change_time = start_time
+        last_diagnostic_time = start_time
         last_position: Optional[int] = None
         successful_reads = 0
 
         while True:
-            elapsed = time.monotonic() - start_time
+            current_time = time.monotonic()
+            elapsed = current_time - start_time
             try:
                 position = self.read_position()
                 successful_reads += 1
@@ -409,6 +438,36 @@ class EncoderDebugger:
             if position != last_position:
                 last_position = position
                 last_change_time = time.monotonic()
+
+            if current_time - last_diagnostic_time >= self.settings.diagnostic_interval:
+                last_diagnostic_time = current_time
+                try:
+                    status_word = self.read_register("DRV_STATE_STATUS")
+                    current_errors = self.get_error_buffer()
+                except ILRegisterAccessError as exception:
+                    self.fail_sdo(
+                        exception,
+                        context="movement diagnostics",
+                        iteration=iteration,
+                        target=target,
+                        last_position=position,
+                        successful_reads=successful_reads,
+                        elapsed=elapsed,
+                    )
+
+                if current_errors != initial_errors or status_word & STATUS_WORD_FAULT_BIT:
+                    self.log_failure(
+                        iteration=iteration,
+                        target=target,
+                        last_position=position,
+                    )
+                    pytest.fail(
+                        "Drive state changed during repeated motion: "
+                        f"iteration={iteration}, target={target}, position={position}, "
+                        f"elapsed={elapsed}, status_word={hex(status_word)}, "
+                        f"initial_errors={initial_errors}, "
+                        f"current_errors={current_errors}"
+                    )
 
             if abs(target - position) < self.settings.position_tolerance:
                 logger.info(
@@ -560,6 +619,234 @@ class EncoderDebugger:
             f"final_errors={final_errors}"
         )
 
+    def run_motor_enable_transition_test(
+        self,
+        *,
+        observation_duration: float,
+    ) -> None:
+        """Monitor encoder errors generated immediately after motor enable.
+
+        The current position is commanded before enabling the power stage. This
+        avoids activating a stale profile-position target during motor_enable().
+        The test then monitors position, drive status, and the error buffer from
+        the moment motor_enable() returns.
+
+        Args:
+            observation_duration: Number of seconds to monitor after motor enable.
+        """
+        initial_errors = self.get_error_buffer()
+        assert not initial_errors, (
+            "The motor-enable transition test requires an empty error buffer. "
+            "Power-cycle or reset the drive before running this test. "
+            f"Initial errors: {initial_errors}"
+        )
+
+        self.mc.motion.set_operation_mode(
+            OperationMode.PROFILE_POSITION,
+            servo=self.alias,
+        )
+
+        initial_position = self.read_position()
+
+        # Preload the desired hold position while the motor is still disabled.
+        # This prevents an old profile-position target from becoming active as
+        # soon as the power stage is enabled.
+        self.mc.motion.move_to_position(
+            initial_position,
+            servo=self.alias,
+            blocking=False,
+        )
+
+        configured_set_point = self.read_register(
+            "CL_POS_SET_POINT_VALUE",
+        )
+
+        assert abs(configured_set_point - initial_position) <= (self.settings.position_tolerance), (
+            "The hold target was not configured before motor enable: "
+            f"initial_position={initial_position}, "
+            f"configured_set_point={configured_set_point}"
+        )
+
+        logger.info(
+            "Starting motor-enable transition test: "
+            "initial_position=%s, configured_set_point=%s, "
+            "initial_errors=%s, observation_duration=%s",
+            initial_position,
+            configured_set_point,
+            initial_errors,
+            observation_duration,
+        )
+
+        enable_start_time = time.monotonic()
+
+        self.mc.motion.motor_enable(
+            servo=self.alias,
+        )
+        self.motor_enabled = True
+
+        motor_enabled_time = time.monotonic()
+
+        position_after_enable = self.read_position()
+        errors_after_enable = self.get_error_buffer()
+        status_after_enable = self.read_register(
+            "DRV_STATE_STATUS",
+        )
+
+        logger.info(
+            "Motor enable completed: duration=%s, "
+            "position_before_enable=%s, position_after_enable=%s, "
+            "position_change=%s, status_word=%s, errors=%s",
+            motor_enabled_time - enable_start_time,
+            initial_position,
+            position_after_enable,
+            abs(position_after_enable - initial_position),
+            hex(status_after_enable),
+            errors_after_enable,
+        )
+
+        if errors_after_enable != initial_errors:
+            self.log_failure(
+                iteration=0,
+                target=initial_position,
+                last_position=position_after_enable,
+            )
+
+            pytest.fail(
+                "Encoder warning or fault was generated inside motor_enable(): "
+                f"enable_duration={motor_enabled_time - enable_start_time}, "
+                f"initial_position={initial_position}, "
+                f"position_after_enable={position_after_enable}, "
+                f"initial_errors={initial_errors}, "
+                f"errors_after_enable={errors_after_enable}"
+            )
+
+        minimum_position = min(
+            initial_position,
+            position_after_enable,
+        )
+        maximum_position = max(
+            initial_position,
+            position_after_enable,
+        )
+        successful_reads = 0
+        last_position = position_after_enable
+
+        while True:
+            current_time = time.monotonic()
+            elapsed_since_enable = current_time - motor_enabled_time
+
+            if elapsed_since_enable >= observation_duration:
+                break
+
+            try:
+                last_position = self.read_position()
+                status_word = self.read_register(
+                    "DRV_STATE_STATUS",
+                )
+                current_errors = self.get_error_buffer()
+                successful_reads += 1
+            except ILRegisterAccessError as exception:
+                self.fail_sdo(
+                    exception,
+                    context="motor-enable transition",
+                    iteration=0,
+                    target=initial_position,
+                    last_position=last_position,
+                    successful_reads=successful_reads,
+                    elapsed=elapsed_since_enable,
+                )
+
+            minimum_position = min(
+                minimum_position,
+                last_position,
+            )
+            maximum_position = max(
+                maximum_position,
+                last_position,
+            )
+
+            position_change = abs(
+                last_position - initial_position,
+            )
+            drive_faulted = bool(status_word & STATUS_WORD_FAULT_BIT)
+            error_buffer_changed = current_errors != initial_errors
+
+            if error_buffer_changed or drive_faulted:
+                logger.error(
+                    "Drive state changed after motor enable: "
+                    "elapsed_since_enable=%s, initial_position=%s, "
+                    "last_position=%s, position_change=%s, "
+                    "status_word=%s, initial_errors=%s, "
+                    "current_errors=%s",
+                    elapsed_since_enable,
+                    initial_position,
+                    last_position,
+                    position_change,
+                    hex(status_word),
+                    initial_errors,
+                    current_errors,
+                )
+
+                self.log_failure(
+                    iteration=0,
+                    target=initial_position,
+                    last_position=last_position,
+                )
+
+                pytest.fail(
+                    "Encoder warning or fault generated after motor enable: "
+                    f"elapsed_since_enable={elapsed_since_enable}, "
+                    f"initial_position={initial_position}, "
+                    f"last_position={last_position}, "
+                    f"position_change={position_change}, "
+                    f"status_word={hex(status_word)}, "
+                    f"initial_errors={initial_errors}, "
+                    f"current_errors={current_errors}"
+                )
+
+            if position_change > self.settings.position_tolerance:
+                self.log_failure(
+                    iteration=0,
+                    target=initial_position,
+                    last_position=last_position,
+                )
+
+                pytest.fail(
+                    "Motor moved outside tolerance after motor enable: "
+                    f"elapsed_since_enable={elapsed_since_enable}, "
+                    f"initial_position={initial_position}, "
+                    f"last_position={last_position}, "
+                    f"position_change={position_change}, "
+                    f"minimum_position={minimum_position}, "
+                    f"maximum_position={maximum_position}"
+                )
+
+            time.sleep(self.settings.polling_interval)
+
+        final_errors = self.get_error_buffer()
+
+        logger.info(
+            "Motor-enable transition test completed: "
+            "initial_position=%s, last_position=%s, "
+            "minimum_position=%s, maximum_position=%s, "
+            "successful_reads=%s, initial_errors=%s, "
+            "final_errors=%s, elapsed=%s",
+            initial_position,
+            last_position,
+            minimum_position,
+            maximum_position,
+            successful_reads,
+            initial_errors,
+            final_errors,
+            time.monotonic() - motor_enabled_time,
+        )
+
+        assert final_errors == initial_errors, (
+            "The error buffer changed during the motor-enable transition test: "
+            f"initial_errors={initial_errors}, "
+            f"final_errors={final_errors}"
+        )
+
 
 @pytest.fixture
 def encoder_debugger(
@@ -611,7 +898,15 @@ def test_position_feedback_repeated_motion(
 ) -> None:
     """Alternate position targets and stop at the first motion or SDO failure."""
     debugger = encoder_debugger
-    debugger.enable_motor_holding_current_position()
+    initial_errors = debugger.capture_error_baseline()
+    initial_position = debugger.enable_motor_holding_current_position()
+    logger.info(
+        "Starting repeated-motion stress test: initial_position=%s, "
+        "initial_errors=%s, iterations=%s",
+        initial_position,
+        initial_errors,
+        MOVEMENT_ITERATIONS,
+    )
 
     for iteration in range(MOVEMENT_ITERATIONS):
         target = 1000 if iteration % 2 == 0 else -1000
@@ -620,108 +915,15 @@ def test_position_feedback_repeated_motion(
             servo=debugger.alias,
             blocking=False,
         )
-        debugger.wait_for_target(target, iteration)
+        debugger.wait_for_target(target, iteration, initial_errors)
 
 
 @pytest.mark.ethernet
 @pytest.mark.soem
-def test_position_feedback_sdo_timeout_sweep(
-    mc: "MotionController",
-    alias: str,
-    net: "EthercatNetwork",
+def test_position_feedback_motor_enable_transition(
+    encoder_debugger: EncoderDebugger,
 ) -> None:
-    """Characterize SDO reads while sweeping the configured read timeout.
-
-    The experiment is nondeterministic, so absence of a WKC failure is logged
-    rather than treated as a test failure. Every timeout is restored before the
-    recovery read and again during final cleanup.
-
-    Args:
-        mc: Motion-controller fixture.
-        alias: Servo-alias fixture.
-        net: EtherCAT-network fixture.
-    """
-    normal_read_timeout_us = 2_000_000
-    normal_write_timeout_us = 2_000_000
-    tested_read_timeouts_us = (1, 10, 100, 1_000, 10_000)
-    results: list[dict[str, Any]] = []
-
-    def set_read_timeout(read_timeout_us: int) -> None:
-        """Set the SDO read timeout while retaining the normal write timeout."""
-        net.update_sdo_timeout(read_timeout_us, normal_write_timeout_us)
-
-    def restore_timeouts() -> None:
-        """Restore explicit normal SDO read and write timeout values."""
-        set_read_timeout(normal_read_timeout_us)
-
-    restore_timeouts()
-    mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
-    mc.motion.motor_enable(servo=alias)
-
-    try:
-        for iteration, read_timeout_us in enumerate(tested_read_timeouts_us):
-            target = 1000 if iteration % 2 == 0 else -1000
-            successful_reads = 0
-            failure: Optional[SdoFailure] = None
-
-            restore_timeouts()
-            mc.motion.move_to_position(target, servo=alias, blocking=False)
-            set_read_timeout(read_timeout_us)
-            start_time = time.monotonic()
-
-            try:
-                while time.monotonic() - start_time < 2.0:
-                    try:
-                        position = mc.motion.get_actual_position(servo=alias)
-                        successful_reads += 1
-                    except ILRegisterAccessError as exception:
-                        base_exception = exception.base_exception
-                        failure = {
-                            "exception": type(base_exception).__name__,
-                            "reason": exception.reason,
-                            "wkc": getattr(base_exception, "wkc", None),
-                            "elapsed": time.monotonic() - start_time,
-                        }
-                        break
-
-                    if abs(target - position) < 20:
-                        break
-                    time.sleep(0.001)
-            finally:
-                restore_timeouts()
-
-            result: dict[str, Any] = {
-                "read_timeout_us": read_timeout_us,
-                "successful_reads": successful_reads,
-                "failure": failure,
-                "recovered_position": mc.motion.get_actual_position(servo=alias),
-            }
-            results.append(result)
-            logger.info("SDO timeout sweep result: %s", result)
-
-        wkc_failures = [
-            result
-            for result in results
-            if result["failure"] is not None and result["failure"]["exception"] == "WkcError"
-        ]
-        if wkc_failures:
-            logger.info(
-                "The timeout sweep reproduced %s WKC failure(s): %s",
-                len(wkc_failures),
-                wkc_failures,
-            )
-        else:
-            logger.info(
-                "The timeout sweep did not reproduce a WKC failure. Results: %s",
-                results,
-            )
-    finally:
-        restore_timeouts()
-        try:
-            mc.motion.motor_disable(servo=alias)
-        except Exception as exception:
-            logger.warning(
-                "Could not disable motor during cleanup: %s: %s",
-                type(exception).__name__,
-                exception,
-            )
+    """Check for encoder warnings immediately after enabling the power stage."""
+    encoder_debugger.run_motor_enable_transition_test(
+        observation_duration=10.0,
+    )
