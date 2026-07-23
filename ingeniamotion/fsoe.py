@@ -1,3 +1,4 @@
+import time
 from dataclasses import dataclass
 from functools import partial
 from typing import TYPE_CHECKING, Callable, Optional, cast
@@ -123,12 +124,23 @@ class FSoEMaster:
             stop_pdos: if ``True``, stop the PDO exchange. ``False`` by default.
 
         """
+        max_watchdog_timeout = 0.0
         for master_handler in self._handlers.values():
             if master_handler.running:
+                max_watchdog_timeout = max(max_watchdog_timeout, master_handler.watchdog_timeout)
                 master_handler.stop()
         if stop_pdos:
             for servo in self._handlers:
                 self.__mc.capture.pdo.stop_pdos(servo=servo)
+        elif max_watchdog_timeout > 0:
+            # PDOs are still active, so the safety PDU bytes keep being sent to the
+            # slave with frozen content (same command/sequence/CRC) since the master
+            # stopped updating them. The slave will not detect the master is gone
+            # until its own watchdog expires. Wait for it here so that a new FSoE
+            # master session started right after this call does not race against a
+            # slave that still believes the previous session is alive, which would
+            # surface as spurious CRC/connection-id errors (e.g. DATA_FAIL1).
+            time.sleep(max_watchdog_timeout)
 
     def sto_deactivate(self, servo: str = DEFAULT_SERVO) -> None:
         """Deactivate the Safety Torque Off.

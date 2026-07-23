@@ -3,7 +3,7 @@ import time
 import pytest
 
 from ingeniamotion.enums import HomingMode, OperationMode, SensorType
-from tests.conftest import mean_actual_velocity_position
+from tests.conftest import mean_actual_velocity_position, refresh_registers_for_test_rollback
 
 HOMING_MODE_REGISTER = "HOM_MODE"
 HOMING_OFFSET_REGISTER = "HOM_OFFSET"
@@ -64,13 +64,20 @@ def test_set_homing_timeout(mc, alias, homing_timeout):
 @pytest.mark.usefixtures("initial_position")
 # https://novantamotion.atlassian.net/browse/INGM-773
 @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-def test_homing_on_current_position(mc, alias, homing_offset):
-    mc.configuration.homing_on_current_position(homing_offset, servo=alias)
-    feedback_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
-    assert pytest.approx(
-        homing_offset,
-        abs=feedback_resolution * RELATIVE_ERROR_ALLOWED,
-    ) == mc.motion.get_actual_position(servo=alias)
+@pytest.mark.not_valid_for_product(part_number="EVE-*")
+def test_homing_on_current_position(servo, mc, alias, homing_offset):
+    with refresh_registers_for_test_rollback(
+        servo,
+        [
+            "COMMU_ANGLE_OFFSET",
+        ],
+    ):
+        mc.configuration.homing_on_current_position(homing_offset, servo=alias)
+        feedback_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
+        assert pytest.approx(
+            homing_offset,
+            abs=feedback_resolution * RELATIVE_ERROR_ALLOWED,
+        ) == mc.motion.get_actual_position(servo=alias)
 
 
 @pytest.mark.ethernet
@@ -80,42 +87,51 @@ def test_homing_on_current_position(mc, alias, homing_offset):
 @pytest.mark.parametrize("direction", [1, 0])
 # https://novantamotion.atlassian.net/browse/INGM-775
 @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-def test_homing_on_switch_limit(mc, alias, direction):
-    homing_offset = 10
-    homing_timeout = 5000
-    search_vel = 10.0
-    zero_vel = 1.0
-    switch = 2
-    mc.configuration.homing_on_switch_limit(
-        homing_offset,
-        direction,
-        switch,
-        homing_timeout,
-        search_vel,
-        zero_vel,
-        servo=alias,
-        motor_enable=False,
-    )
-    test_offset = mc.communication.get_register(HOMING_OFFSET_REGISTER, servo=alias)
-    test_timeout = mc.communication.get_register(HOMING_TIMEOUT_REGISTER, servo=alias)
-    test_hom_mode = mc.communication.get_register(HOMING_MODE_REGISTER, servo=alias)
-    test_op_mode = mc.motion.get_operation_mode(servo=alias)
-    test_search_vel = mc.communication.get_register(HOMING_SEARCH_VELOCITY_REGISTER, servo=alias)
-    test_zero_vel = mc.communication.get_register(HOMING_ZERO_VELOCITY_REGISTER, servo=alias)
-    switch_register = (
-        POSITIVE_HOMING_SWITCH_REGISTER if direction == 1 else NEGATIVE_HOMING_SWITCH_REGISTER
-    )
-    test_switch = mc.communication.get_register(switch_register, servo=alias)
-    assert test_offset == homing_offset
-    assert test_timeout == homing_timeout
-    if direction == 1:
-        assert test_hom_mode == HomingMode.POSITIVE_LIMIT_SWITCH
-    elif direction == 0:
-        assert test_hom_mode == HomingMode.NEGATIVE_LIMIT_SWITCH
-    assert test_op_mode == OperationMode.HOMING
-    assert pytest.approx(zero_vel) == test_zero_vel
-    assert pytest.approx(search_vel) == test_search_vel
-    assert test_switch == switch
+@pytest.mark.not_valid_for_product(part_number="EVE-*")
+def test_homing_on_switch_limit(servo, mc, alias, direction):
+    with refresh_registers_for_test_rollback(
+        servo,
+        [
+            "COMMU_ANGLE_OFFSET",
+        ],
+    ):
+        homing_offset = 10
+        homing_timeout = 5000
+        search_vel = 10.0
+        zero_vel = 1.0
+        switch = 2
+        mc.configuration.homing_on_switch_limit(
+            homing_offset,
+            direction,
+            switch,
+            homing_timeout,
+            search_vel,
+            zero_vel,
+            servo=alias,
+            motor_enable=False,
+        )
+        test_offset = mc.communication.get_register(HOMING_OFFSET_REGISTER, servo=alias)
+        test_timeout = mc.communication.get_register(HOMING_TIMEOUT_REGISTER, servo=alias)
+        test_hom_mode = mc.communication.get_register(HOMING_MODE_REGISTER, servo=alias)
+        test_op_mode = mc.motion.get_operation_mode(servo=alias)
+        test_search_vel = mc.communication.get_register(
+            HOMING_SEARCH_VELOCITY_REGISTER, servo=alias
+        )
+        test_zero_vel = mc.communication.get_register(HOMING_ZERO_VELOCITY_REGISTER, servo=alias)
+        switch_register = (
+            POSITIVE_HOMING_SWITCH_REGISTER if direction == 1 else NEGATIVE_HOMING_SWITCH_REGISTER
+        )
+        test_switch = mc.communication.get_register(switch_register, servo=alias)
+        assert test_offset == homing_offset
+        assert test_timeout == homing_timeout
+        if direction == 1:
+            assert test_hom_mode == HomingMode.POSITIVE_LIMIT_SWITCH
+        elif direction == 0:
+            assert test_hom_mode == HomingMode.NEGATIVE_LIMIT_SWITCH
+        assert test_op_mode == OperationMode.HOMING
+        assert pytest.approx(zero_vel) == test_zero_vel
+        assert pytest.approx(search_vel) == test_search_vel
+        assert test_switch == switch
 
 
 @pytest.mark.ethernet
@@ -123,33 +139,39 @@ def test_homing_on_switch_limit(mc, alias, direction):
 @pytest.mark.canopen
 @pytest.mark.usefixtures("initial_position")
 # https://novantamotion.atlassian.net/browse/INGM-776
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-C")
-def test_homing_on_switch_limit_timeout(mc, alias):
-    homing_offset = 10
-    homing_timeout = 5000
-    search_vel = 10.0
-    zero_vel = 1.0
-    switch = 2
-    direction = 1
-    mc.configuration.homing_on_switch_limit(
-        homing_offset,
-        direction,
-        switch,
-        homing_timeout,
-        search_vel,
-        zero_vel,
-        servo=alias,
-        motor_enable=False,
-    )
-    time.sleep(homing_timeout / 1000)
-    assert pytest.approx(0, abs=0.05) == mean_actual_velocity_position(mc, alias, velocity=True)
-    mc.motion.motor_enable(servo=alias)
-    mc.motion.target_latch(servo=alias)
-    time.sleep(1)
-    assert abs(mean_actual_velocity_position(mc, alias, velocity=True)) > 0.05
-    time.sleep(homing_timeout / 1000)
-    assert pytest.approx(0, abs=0.05) == mean_actual_velocity_position(mc, alias, velocity=True)
+@pytest.mark.not_valid_for_product(part_number="CAP-*")
+@pytest.mark.not_valid_for_product(part_number="EVE-*")
+def test_homing_on_switch_limit_timeout(servo, mc, alias):
+    with refresh_registers_for_test_rollback(
+        servo,
+        [
+            "COMMU_ANGLE_OFFSET",
+        ],
+    ):
+        homing_offset = 10
+        homing_timeout = 5000
+        search_vel = 10.0
+        zero_vel = 1.0
+        switch = 2
+        direction = 1
+        mc.configuration.homing_on_switch_limit(
+            homing_offset,
+            direction,
+            switch,
+            homing_timeout,
+            search_vel,
+            zero_vel,
+            servo=alias,
+            motor_enable=False,
+        )
+        time.sleep(homing_timeout / 1000)
+        assert pytest.approx(0, abs=0.05) == mean_actual_velocity_position(mc, alias, velocity=True)
+        mc.motion.motor_enable(servo=alias)
+        mc.motion.target_latch(servo=alias)
+        time.sleep(1)
+        assert abs(mean_actual_velocity_position(mc, alias, velocity=True)) > 0.05
+        time.sleep(homing_timeout / 1000)
+        assert pytest.approx(0, abs=0.05) == mean_actual_velocity_position(mc, alias, velocity=True)
 
 
 def __check_index_pulse_is_allowed(feedback_list):
@@ -181,46 +203,53 @@ def __check_homing_was_successful(mc, alias, timeout_ms):
 @pytest.mark.parametrize("direction", [1, 0])
 # https://novantamotion.atlassian.net/browse/INGM-772
 @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-E")
-def test_homing_on_index_pulse(mc, alias, feedback_list, direction):
-    homing_offset = 1000
-    homing_timeout = 10000
-    zero_vel = 0.1
-    motor_enable, sensor_index = __check_index_pulse_is_allowed(feedback_list)
-    mc.configuration.homing_on_index_pulse(
-        homing_offset,
-        direction,
-        sensor_index,
-        homing_timeout,
-        zero_vel,
-        servo=alias,
-        motor_enable=motor_enable,
-    )
-    if motor_enable:
-        assert __check_homing_was_successful(mc, alias, homing_timeout)
-    test_offset = mc.communication.get_register(HOMING_OFFSET_REGISTER, servo=alias)
-    test_timeout = mc.communication.get_register(HOMING_TIMEOUT_REGISTER, servo=alias)
-    test_hom_mode = mc.communication.get_register(HOMING_MODE_REGISTER, servo=alias)
-    test_op_mode = mc.motion.get_operation_mode(servo=alias)
-    test_zero_vel = mc.communication.get_register(HOMING_ZERO_VELOCITY_REGISTER, servo=alias)
-    test_sensor_index = mc.communication.get_register(
-        HOMING_INDEX_PULSE_SOURCE_REGISTER, servo=alias
-    )
-    assert test_offset == homing_offset
-    assert test_timeout == homing_timeout
-    if direction == 1:
-        assert test_hom_mode == HomingMode.POSITIVE_IDX_PULSE
-    elif direction == 0:
-        assert test_hom_mode == HomingMode.NEGATIVE_IDX_PULSE
-    assert test_op_mode == OperationMode.HOMING
-    assert pytest.approx(zero_vel) == test_zero_vel
-    assert test_sensor_index == sensor_index
-    if motor_enable:
-        resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
-        actual_position = mc.motion.get_actual_position(servo=alias)
-        assert (
-            pytest.approx(homing_offset, abs=resolution * RELATIVE_ERROR_ALLOWED) == actual_position
+@pytest.mark.not_valid_for_product(part_number="EVE-*")
+def test_homing_on_index_pulse(servo, mc, alias, feedback_list, direction):
+    with refresh_registers_for_test_rollback(
+        servo,
+        [
+            "COMMU_ANGLE_OFFSET",
+        ],
+    ):
+        homing_offset = 1000
+        homing_timeout = 10000
+        zero_vel = 0.1
+        motor_enable, sensor_index = __check_index_pulse_is_allowed(feedback_list)
+        mc.configuration.homing_on_index_pulse(
+            homing_offset,
+            direction,
+            sensor_index,
+            homing_timeout,
+            zero_vel,
+            servo=alias,
+            motor_enable=motor_enable,
         )
+        if motor_enable:
+            assert __check_homing_was_successful(mc, alias, homing_timeout)
+        test_offset = mc.communication.get_register(HOMING_OFFSET_REGISTER, servo=alias)
+        test_timeout = mc.communication.get_register(HOMING_TIMEOUT_REGISTER, servo=alias)
+        test_hom_mode = mc.communication.get_register(HOMING_MODE_REGISTER, servo=alias)
+        test_op_mode = mc.motion.get_operation_mode(servo=alias)
+        test_zero_vel = mc.communication.get_register(HOMING_ZERO_VELOCITY_REGISTER, servo=alias)
+        test_sensor_index = mc.communication.get_register(
+            HOMING_INDEX_PULSE_SOURCE_REGISTER, servo=alias
+        )
+        assert test_offset == homing_offset
+        assert test_timeout == homing_timeout
+        if direction == 1:
+            assert test_hom_mode == HomingMode.POSITIVE_IDX_PULSE
+        elif direction == 0:
+            assert test_hom_mode == HomingMode.NEGATIVE_IDX_PULSE
+        assert test_op_mode == OperationMode.HOMING
+        assert pytest.approx(zero_vel) == test_zero_vel
+        assert test_sensor_index == sensor_index
+        if motor_enable:
+            resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
+            actual_position = mc.motion.get_actual_position(servo=alias)
+            assert (
+                pytest.approx(homing_offset, abs=resolution * RELATIVE_ERROR_ALLOWED)
+                == actual_position
+            )
 
 
 @pytest.mark.ethernet
@@ -230,45 +259,54 @@ def test_homing_on_index_pulse(mc, alias, feedback_list, direction):
 @pytest.mark.parametrize("direction", [1, 0])
 # https://novantamotion.atlassian.net/browse/INGM-777
 @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-def test_homing_on_switch_limit_and_index_pulse(mc, alias, direction):
-    homing_offset = 300
-    homing_timeout = 3000
-    search_vel = 5.0
-    zero_vel = 7.0
-    switch = 3
-    sensor_index = 1
-    mc.configuration.homing_on_switch_limit_and_index_pulse(
-        homing_offset,
-        direction,
-        switch,
-        sensor_index,
-        homing_timeout,
-        search_vel,
-        zero_vel,
-        servo=alias,
-        motor_enable=False,
-    )
-    test_offset = mc.communication.get_register(HOMING_OFFSET_REGISTER, servo=alias)
-    test_timeout = mc.communication.get_register(HOMING_TIMEOUT_REGISTER, servo=alias)
-    test_hom_mode = mc.communication.get_register(HOMING_MODE_REGISTER, servo=alias)
-    test_op_mode = mc.motion.get_operation_mode(servo=alias)
-    test_search_vel = mc.communication.get_register(HOMING_SEARCH_VELOCITY_REGISTER, servo=alias)
-    test_zero_vel = mc.communication.get_register(HOMING_ZERO_VELOCITY_REGISTER, servo=alias)
-    switch_register = (
-        POSITIVE_HOMING_SWITCH_REGISTER if direction == 1 else NEGATIVE_HOMING_SWITCH_REGISTER
-    )
-    test_switch = mc.communication.get_register(switch_register, servo=alias)
-    test_sensor_index = mc.communication.get_register(
-        HOMING_INDEX_PULSE_SOURCE_REGISTER, servo=alias
-    )
-    assert test_offset == homing_offset
-    assert test_timeout == homing_timeout
-    if direction == 1:
-        assert test_hom_mode == HomingMode.POSITIVE_LIMIT_SWITCH_IDX_PULSE
-    elif direction == 0:
-        assert test_hom_mode == HomingMode.NEGATIVE_LIMIT_SWITCH_IDX_PULSE
-    assert test_op_mode == OperationMode.HOMING
-    assert pytest.approx(zero_vel) == test_zero_vel
-    assert pytest.approx(search_vel) == test_search_vel
-    assert test_switch == switch
-    assert test_sensor_index == sensor_index
+@pytest.mark.not_valid_for_product(part_number="EVE-*")
+def test_homing_on_switch_limit_and_index_pulse(servo, mc, alias, direction):
+    with refresh_registers_for_test_rollback(
+        servo,
+        [
+            "COMMU_ANGLE_OFFSET",
+        ],
+    ):
+        homing_offset = 300
+        homing_timeout = 3000
+        search_vel = 5.0
+        zero_vel = 7.0
+        switch = 3
+        sensor_index = 1
+        mc.configuration.homing_on_switch_limit_and_index_pulse(
+            homing_offset,
+            direction,
+            switch,
+            sensor_index,
+            homing_timeout,
+            search_vel,
+            zero_vel,
+            servo=alias,
+            motor_enable=False,
+        )
+        test_offset = mc.communication.get_register(HOMING_OFFSET_REGISTER, servo=alias)
+        test_timeout = mc.communication.get_register(HOMING_TIMEOUT_REGISTER, servo=alias)
+        test_hom_mode = mc.communication.get_register(HOMING_MODE_REGISTER, servo=alias)
+        test_op_mode = mc.motion.get_operation_mode(servo=alias)
+        test_search_vel = mc.communication.get_register(
+            HOMING_SEARCH_VELOCITY_REGISTER, servo=alias
+        )
+        test_zero_vel = mc.communication.get_register(HOMING_ZERO_VELOCITY_REGISTER, servo=alias)
+        switch_register = (
+            POSITIVE_HOMING_SWITCH_REGISTER if direction == 1 else NEGATIVE_HOMING_SWITCH_REGISTER
+        )
+        test_switch = mc.communication.get_register(switch_register, servo=alias)
+        test_sensor_index = mc.communication.get_register(
+            HOMING_INDEX_PULSE_SOURCE_REGISTER, servo=alias
+        )
+        assert test_offset == homing_offset
+        assert test_timeout == homing_timeout
+        if direction == 1:
+            assert test_hom_mode == HomingMode.POSITIVE_LIMIT_SWITCH_IDX_PULSE
+        elif direction == 0:
+            assert test_hom_mode == HomingMode.NEGATIVE_LIMIT_SWITCH_IDX_PULSE
+        assert test_op_mode == OperationMode.HOMING
+        assert pytest.approx(zero_vel) == test_zero_vel
+        assert pytest.approx(search_vel) == test_search_vel
+        assert test_switch == switch
+        assert test_sensor_index == sensor_index

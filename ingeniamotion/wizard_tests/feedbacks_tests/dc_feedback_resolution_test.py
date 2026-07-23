@@ -40,20 +40,6 @@ class DCFeedbacksResolutionTest(BaseTest[LegacyDictReportType]):
         ResultType.SUCCESS: "Feedback resolution test has been executed",
     }
 
-    BACKUP_REGISTERS: ClassVar[list[str]] = [
-        "CL_POS_FBK_SENSOR",
-        "CL_VEL_FBK_SENSOR",
-        "CL_AUX_FBK_SENSOR",
-        "DRV_OP_CMD",
-        "CL_VEL_PID_KP",
-        "CL_VEL_PID_KI",
-        "CL_VEL_PID_KD",
-        "CL_POS_PID_KP",
-        "CL_POS_PID_KI",
-        "CL_POS_PID_KD",
-        "PROF_MAX_VEL",
-    ]
-
     feedback_resolution: int
 
     def __init__(
@@ -74,7 +60,6 @@ class DCFeedbacksResolutionTest(BaseTest[LegacyDictReportType]):
         self.sensor = sensor
         self.servo = servo
         self.axis = axis
-        self.backup_registers_names = self.BACKUP_REGISTERS
         self.test_velocity_pid = self.DEFAULT_VELOCITY_PID.copy()
         if kp is not None:
             self.test_velocity_pid["kp"] = kp

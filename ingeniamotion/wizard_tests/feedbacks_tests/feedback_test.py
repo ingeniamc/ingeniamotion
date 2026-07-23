@@ -68,41 +68,6 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
     MAX_POSITION_RANGE_LIMIT_REGISTER = "CL_POS_REF_MAX_RANGE"
     MIN_POSITION_RANGE_LIMIT_REGISTER = "CL_POS_REF_MIN_RANGE"
 
-    BACKUP_REGISTERS: ClassVar[list[str]] = [
-        "CL_POS_FBK_SENSOR",
-        "MOT_PAIR_POLES",
-        "DRV_OP_CMD",
-        "CL_CUR_Q_SET_POINT",
-        "CL_CUR_D_SET_POINT",
-        "FBK_GEN_MODE",
-        "FBK_GEN_FREQ",
-        "FBK_GEN_GAIN",
-        "FBK_GEN_OFFSET",
-        "COMMU_ANGLE_SENSOR",
-        "FBK_GEN_CYCLES",
-        "FBK_SSI2_POS_POLARITY",
-        "COMMU_PHASING_MODE",
-        "MOT_COMMU_MOD",
-        "CL_AUX_FBK_SENSOR",
-        "ERROR_DIGENC_AGAINST_HALL_OPTION",
-        "CL_VEL_FOLLOWING_OPTION",
-        "ERROR_VEL_OUT_LIMITS_OPTION",
-        "ERROR_POS_OUT_LIMITS_OPTION",
-        "ERROR_POS_FOLLOWING_OPTION",
-        "CL_VEL_FBK_SENSOR",
-        "COMMU_ANGLE_REF_SENSOR",
-        "CL_VEL_FBK_FILTER1_TYPE",
-        "CL_VEL_FBK_FILTER1_FREQ",
-    ]
-
-    OPTIONAL_BACKUP_REGISTERS: ClassVar[list[str]] = [
-        "COMMU_ANGLE_INTEGRITY1_OPTION",
-        "COMMU_ANGLE_INTEGRITY2_OPTION",
-        POSITIONING_OPTION_CODE_REGISTER,
-        MAX_POSITION_RANGE_LIMIT_REGISTER,
-        MIN_POSITION_RANGE_LIMIT_REGISTER,
-    ]
-
     FEEDBACK_POLARITY_REGISTER: str
 
     SENSOR_TYPE_FEEDBACK_TEST: SensorType
@@ -128,8 +93,6 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         self.pos_vel_same_feedback = False
         self.resolution_multiplier = 1.0
         self.test_frequency = self.TEST_FREQUENCY
-        self.backup_registers_names = self.BACKUP_REGISTERS.copy()
-        self.optional_backup_registers_names = self.OPTIONAL_BACKUP_REGISTERS.copy()
         self.suggested_registers = {}
 
     @BaseTest.stoppable
