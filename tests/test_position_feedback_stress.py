@@ -18,6 +18,8 @@ from ingenialogger import get_logger
 from ingeniamotion.enums import OperationMode
 
 if TYPE_CHECKING:
+    from summit_testing_framework.setups.environment_control import DriveEnvironmentController
+
     from ingeniamotion.motion_controller import MotionController
 
 
@@ -749,9 +751,10 @@ def test_position_feedback_repeated_motion(
 @pytest.mark.ethernet
 @pytest.mark.soem
 def test_position_feedback_motor_enable_transition(
-    encoder_debugger: EncoderDebugger,
+    encoder_debugger: EncoderDebugger, environment: "DriveEnvironmentController"
 ) -> None:
     """Check for encoder warnings immediately after enabling the power stage."""
+    environment.power_cycle(wait_for_drives=False, reconnect_drives=True, reconnect_timeout=30)
     encoder_debugger.run_motor_enable_transition_test(
         observation_duration=10.0,
     )
