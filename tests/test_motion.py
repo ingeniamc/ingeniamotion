@@ -1,3 +1,4 @@
+import logging
 import sys
 import time
 from typing import TYPE_CHECKING, Any, Optional
@@ -5,6 +6,8 @@ from typing import TYPE_CHECKING, Any, Optional
 import numpy as np
 import pytest
 from ingenialink import exceptions
+from ingenialink.exceptions import ILRegisterAccessError
+from ingenialogger import get_logger
 
 from ingeniamotion.enums import OperationMode
 from ingeniamotion.exceptions import IMTimeoutError
@@ -15,6 +18,13 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
     from ingeniamotion.motion_controller import MotionController
+
+try:
+    import pysoem
+except ImportError:
+    pysoem = None
+
+logger = get_logger(__name__)
 
 
 POS_PID_KP_VALUE = 0.1
@@ -285,6 +295,475 @@ def test_move_position(mc, alias, position_value):
     test_position = mean_actual_velocity_position(mc, alias)
     pos_tolerance = pos_res * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
     assert pytest.approx(position_value, abs=pos_tolerance) == test_position
+
+
+logger = logging.getLogger(__name__)
+
+
+def log_motion_diagnostics(mc, alias, iteration, target, last_position):
+    """Log relevant motion registers after a movement failure."""
+
+    diagnostic_registers = [
+        "DRV_STATE_CONTROL",
+        "DRV_STATE_STATUS",
+        "DRV_OP_CMD",
+        "DRV_OP_VALUE",
+        "CL_POS_SET_POINT_VALUE",
+        "CL_POS_FBK_VALUE",
+        "CL_VEL_FBK_VALUE",
+    ]
+
+    logger.error(
+        "Motion failure diagnostics: iteration=%s, target=%s, last_position=%s",
+        iteration,
+        target,
+        last_position,
+    )
+
+    for register in diagnostic_registers:
+        try:
+            value = mc.communication.get_register(
+                register,
+                servo=alias,
+            )
+        except Exception as exception:
+            logger.error(
+                "%s could not be read: %s: %s",
+                register,
+                type(exception).__name__,
+                exception,
+            )
+            continue
+
+        if register in {"DRV_STATE_CONTROL", "DRV_STATE_STATUS"}:
+            hexadecimal_value = hex(value) if isinstance(value, int) else "not integer"
+
+            logger.error(
+                "%s=%s (%s)",
+                register,
+                value,
+                hexadecimal_value,
+            )
+        else:
+            logger.error("%s=%s", register, value)
+
+        if register == "DRV_STATE_STATUS" and isinstance(value, int):
+            logger.error(
+                "Status flags: fault=%s, target_reached=%s",
+                bool(value & 0x0008),
+                bool(value & 0x0800),
+            )
+
+
+def log_drive_error_data(mc, alias, label, error):
+    """Resolve and log one raw drive error tuple."""
+
+    if error is None:
+        logger.error("%s: no error", label)
+        return
+
+    error_code, error_axis, is_warning = error
+
+    try:
+        error_id, affected_module, error_type, error_message = mc.errors.get_error_data(
+            error_code,
+            servo=alias,
+        )
+    except Exception as exception:
+        logger.error(
+            "%s: code=%s (0x%04X), axis=%s, warning=%s; description could not be resolved: %s: %s",
+            label,
+            error_code,
+            error_code,
+            error_axis,
+            is_warning,
+            type(exception).__name__,
+            exception,
+        )
+        return
+
+    logger.error(
+        "%s: code=%s (0x%04X), axis=%s, warning=%s, id=%s, module=%s, type=%s, message=%s",
+        label,
+        error_code,
+        error_code,
+        error_axis,
+        is_warning,
+        error_id,
+        affected_module,
+        error_type,
+        error_message,
+    )
+
+
+def log_drive_errors(mc, alias):
+    """Log and resolve the current error and complete drive error buffer."""
+
+    try:
+        last_error = mc.errors.get_last_error(
+            servo=alias,
+            axis=1,
+        )
+    except Exception as exception:
+        logger.error(
+            "Could not read last drive error: %s: %s",
+            type(exception).__name__,
+            exception,
+        )
+    else:
+        log_drive_error_data(
+            mc=mc,
+            alias=alias,
+            label="Last drive error",
+            error=last_error,
+        )
+
+    try:
+        last_buffer_error = mc.errors.get_last_buffer_error(
+            servo=alias,
+            axis=1,
+        )
+    except Exception as exception:
+        logger.error(
+            "Could not read last buffered error: %s: %s",
+            type(exception).__name__,
+            exception,
+        )
+    else:
+        log_drive_error_data(
+            mc=mc,
+            alias=alias,
+            label="Last buffered error",
+            error=last_buffer_error,
+        )
+
+    try:
+        total_errors = mc.errors.get_number_total_errors(
+            servo=alias,
+            axis=1,
+        )
+    except Exception as exception:
+        logger.error(
+            "Could not read number of buffered errors: %s: %s",
+            type(exception).__name__,
+            exception,
+        )
+        return
+
+    logger.error("Total buffered errors: %s", total_errors)
+
+    for error_index in range(min(total_errors, 32)):
+        try:
+            error = mc.errors.get_buffer_error_by_index(
+                error_index,
+                servo=alias,
+                axis=1,
+            )
+        except Exception as exception:  # noqa: PERF203
+            logger.error(
+                "Could not read buffered error %s: %s: %s",
+                error_index,
+                type(exception).__name__,
+                exception,
+            )
+        else:
+            log_drive_error_data(
+                mc=mc,
+                alias=alias,
+                label=f"Buffered error {error_index}",
+                error=error,
+            )
+
+
+def log_failure_diagnostics(
+    mc,
+    alias,
+    iteration,
+    target,
+    last_position,
+):
+    """Log register state and drive errors after a failure."""
+
+    log_motion_diagnostics(
+        mc=mc,
+        alias=alias,
+        iteration=iteration,
+        target=target,
+        last_position=last_position,
+    )
+
+    log_drive_errors(
+        mc=mc,
+        alias=alias,
+    )
+
+
+@pytest.mark.ethernet
+@pytest.mark.soem
+def test_debug_position_feedback_sdo_stress(mc, alias):  # noqa: C901
+    """Stop at the first motion or SDO failure and capture its context."""
+
+    iterations = 1_000
+    position_tolerance = 20
+    movement_timeout = 10
+    stall_timeout = 1
+    polling_interval = 0.01
+
+    mc.motion.set_operation_mode(
+        OperationMode.PROFILE_POSITION,
+        servo=alias,
+    )
+    mc.motion.motor_enable(servo=alias)
+
+    try:
+        for iteration in range(iterations):
+            target = 1000 if iteration % 2 == 0 else -1000
+
+            start_time = time.monotonic()
+            last_position_change_time = start_time
+
+            successful_reads = 0
+            last_position = None
+            previous_position = None
+
+            mc.motion.move_to_position(
+                target,
+                servo=alias,
+                blocking=False,
+            )
+
+            while True:
+                elapsed = time.monotonic() - start_time
+
+                try:
+                    last_position = mc.motion.get_actual_position(
+                        servo=alias,
+                    )
+                    successful_reads += 1
+
+                except ILRegisterAccessError as exception:
+                    base_exception = exception.base_exception
+
+                    logger.error(
+                        "First SDO failure: iteration=%s, target=%s, "
+                        "last_position=%s, successful_reads=%s, elapsed=%s, "
+                        "exception=%s, reason=%s, wkc=%s",
+                        iteration,
+                        target,
+                        last_position,
+                        successful_reads,
+                        elapsed,
+                        type(base_exception).__name__,
+                        exception.reason,
+                        getattr(base_exception, "wkc", None),
+                    )
+
+                    log_failure_diagnostics(
+                        mc=mc,
+                        alias=alias,
+                        iteration=iteration,
+                        target=target,
+                        last_position=last_position,
+                    )
+
+                    try:
+                        recovered_position = mc.motion.get_actual_position(
+                            servo=alias,
+                        )
+                    except ILRegisterAccessError as recovery_exception:
+                        logger.error(
+                            "Immediate recovery read failed: %s: %s",
+                            type(recovery_exception).__name__,
+                            recovery_exception,
+                        )
+                    else:
+                        logger.error(
+                            "Immediate recovery read succeeded: position=%s",
+                            recovered_position,
+                        )
+
+                    pytest.fail(
+                        "SDO failure while waiting for position: "
+                        f"iteration={iteration}, "
+                        f"target={target}, "
+                        f"last_position={last_position}, "
+                        f"successful_reads={successful_reads}, "
+                        f"reason={exception.reason}, "
+                        f"wkc={getattr(base_exception, 'wkc', None)}"
+                    )
+
+                if previous_position is None or last_position != previous_position:
+                    previous_position = last_position
+                    last_position_change_time = time.monotonic()
+
+                if abs(target - last_position) < position_tolerance:
+                    logger.info(
+                        "Iteration %s completed: target=%s, position=%s, reads=%s, elapsed=%s",
+                        iteration,
+                        target,
+                        last_position,
+                        successful_reads,
+                        elapsed,
+                    )
+                    break
+
+                stalled_for = time.monotonic() - last_position_change_time
+
+                if stalled_for >= stall_timeout:
+                    log_failure_diagnostics(
+                        mc=mc,
+                        alias=alias,
+                        iteration=iteration,
+                        target=target,
+                        last_position=last_position,
+                    )
+
+                    pytest.fail(
+                        "Position stopped changing: "
+                        f"iteration={iteration}, "
+                        f"target={target}, "
+                        f"last_position={last_position}, "
+                        f"stalled_for={stalled_for}, "
+                        f"successful_reads={successful_reads}, "
+                        f"elapsed={elapsed}"
+                    )
+
+                if elapsed >= movement_timeout:
+                    log_failure_diagnostics(
+                        mc=mc,
+                        alias=alias,
+                        iteration=iteration,
+                        target=target,
+                        last_position=last_position,
+                    )
+
+                    pytest.fail(
+                        "Position was not reached: "
+                        f"iteration={iteration}, "
+                        f"target={target}, "
+                        f"last_position={last_position}, "
+                        f"successful_reads={successful_reads}, "
+                        f"elapsed={elapsed}"
+                    )
+
+                time.sleep(polling_interval)
+
+    finally:
+        try:
+            mc.motion.motor_disable(servo=alias)
+        except Exception as exception:
+            logger.warning(
+                "Could not disable motor during cleanup: %s: %s",
+                type(exception).__name__,
+                exception,
+            )
+
+
+@pytest.mark.ethernet
+@pytest.mark.soem
+def test_debug_position_feedback_sdo_wkc(mc, alias, net):
+    """Force an SDO read WKC error while reading position during movement."""
+
+    normal_sdo_read_timeout_us = 2_000_000
+    normal_sdo_write_timeout_us = 2_000_000
+    tested_read_timeouts_us = [1, 10, 100, 1_000, 10_000]
+    results = []
+
+    def restore_sdo_timeouts():
+        net.update_sdo_timeout(
+            normal_sdo_read_timeout_us,
+            normal_sdo_write_timeout_us,
+        )
+
+    restore_sdo_timeouts()
+
+    mc.motion.set_operation_mode(
+        OperationMode.PROFILE_POSITION,
+        servo=alias,
+    )
+    mc.motion.motor_enable(servo=alias)
+
+    try:
+        for iteration, read_timeout_us in enumerate(tested_read_timeouts_us):
+            target = 1000 if iteration % 2 == 0 else -1000
+            successful_reads = 0
+            failure = None
+
+            # Keep normal SDO timeouts while sending the movement command.
+            restore_sdo_timeouts()
+
+            mc.motion.move_to_position(
+                target,
+                servo=alias,
+                blocking=False,
+            )
+
+            # Reduce only the effective read timeout. The write timeout remains
+            # at its normal value because this test targets feedback reads.
+            net.update_sdo_timeout(
+                read_timeout_us,
+                normal_sdo_write_timeout_us,
+            )
+
+            start_time = time.monotonic()
+
+            try:
+                while time.monotonic() - start_time < 2:
+                    try:
+                        position = mc.motion.get_actual_position(servo=alias)
+                        successful_reads += 1
+
+                        if abs(target - position) < 20:
+                            break
+
+                    except ILRegisterAccessError as exception:
+                        base_exception = exception.base_exception
+
+                        failure = {
+                            "exception": type(base_exception).__name__,
+                            "reason": exception.reason,
+                            "wkc": getattr(base_exception, "wkc", None),
+                            "successful_reads": successful_reads,
+                            "elapsed": time.monotonic() - start_time,
+                        }
+                        break
+
+                    time.sleep(0.001)
+
+            finally:
+                restore_sdo_timeouts()
+
+            recovered_position = mc.motion.get_actual_position(servo=alias)
+
+            result = {
+                "read_timeout_us": read_timeout_us,
+                "successful_reads": successful_reads,
+                "failure": failure,
+                "recovered_position": recovered_position,
+            }
+            results.append(result)
+
+            logger.info(
+                "SDO read timeout=%s us, successful_reads=%s, failure=%s, recovered_position=%s",
+                read_timeout_us,
+                successful_reads,
+                failure,
+                recovered_position,
+            )
+
+        wkc_failures = [
+            result
+            for result in results
+            if result["failure"] is not None and result["failure"]["exception"] == "WkcError"
+        ]
+
+        assert wkc_failures, (
+            f"The timeout sweep did not reproduce a PySOEM WkcError. Results: {results}"
+        )
+
+    finally:
+        restore_sdo_timeouts()
+        mc.motion.motor_disable(servo=alias)
 
 
 @pytest.mark.ethernet
