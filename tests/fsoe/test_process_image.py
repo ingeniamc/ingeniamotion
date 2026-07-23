@@ -38,7 +38,6 @@ if FSOE_MASTER_INSTALLED:
 
 if TYPE_CHECKING:
     from ingenialink.ethercat.dictionary import EthercatDictionary
-    from ingenialink.ethercat.servo import EthercatServo
 
     from ingeniamotion.fsoe import FSoEDictionary
 

@@ -20,7 +20,6 @@ if TYPE_CHECKING:
     from ingenialink.pdo import RPDOMap, TPDOMap
 
     from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
-    from ingeniamotion.motion_controller import MotionController
 
     if FSOE_MASTER_INSTALLED:
         from ingeniamotion.fsoe_master.handler import FSoEMasterHandler
