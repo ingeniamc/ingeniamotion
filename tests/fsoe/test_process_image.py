@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Callable
 
 import pytest
 from ingenialink import RegAccess
-from ingenialink.ethercat.servo import EthercatServo
 from ingenialink.pdo import RPDOMap, TPDOMap
 
 from ingeniamotion.enums import FSoEState
@@ -38,6 +37,7 @@ if FSOE_MASTER_INSTALLED:
 
 if TYPE_CHECKING:
     from ingenialink.ethercat.dictionary import EthercatDictionary
+    from ingenialink.ethercat.servo import EthercatServo
 
     from ingeniamotion.fsoe import FSoEDictionary
 
