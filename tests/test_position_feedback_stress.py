@@ -1,4 +1,4 @@
-"""Stress tests for intermittent EtherCAT and BiSS-C position-feedback failures.
+"""Stress tests for intermittent communication and position-feedback failures.
 
 The tests compare position-feedback behavior with the motor disabled, with the
 motor enabled while holding position, and during repeated position movements.
@@ -7,7 +7,6 @@ so that diagnostics describe the event that started the failure sequence.
 """
 
 import time
-from collections.abc import Generator
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Callable, Optional
 
@@ -78,10 +77,10 @@ class EncoderDebugger:
             alias: Alias of the servo under test.
             settings: Timing and position tolerances for the stress tests.
         """
-        self.mc = mc
-        self.alias = alias
-        self.settings = settings
-        self.motor_enabled = False
+        self.mc: MotionController = mc
+        self.alias: str = alias
+        self.settings: StressSettings = settings
+        self.motor_enabled: bool = False
 
     def enable_motor_holding_current_position(self) -> int:
         """Enable profile-position mode while holding the current position.
@@ -99,8 +98,7 @@ class EncoderDebugger:
 
         assert abs(configured_set_point - position) <= (self.settings.position_tolerance), (
             "The hold target was not configured before motor enable: "
-            f"position={position}, "
-            f"configured_set_point={configured_set_point}"
+            f"position={position}, configured_set_point={configured_set_point}"
         )
 
         self.mc.motion.motor_enable(servo=self.alias)
@@ -108,19 +106,6 @@ class EncoderDebugger:
 
         time.sleep(self.settings.settling_time)
         return self.read_position()
-
-    def disable_motor(self) -> None:
-        """Disable a motor enabled by this debugger without masking failures."""
-        if not self.motor_enabled:
-            return
-        try:
-            self.mc.motion.motor_disable(servo=self.alias)
-        except Exception as exception:
-            logger.warning(
-                f"Could not disable motor during cleanup: {type(exception).__name__}: {exception}"
-            )
-        finally:
-            self.motor_enabled = False
 
     def read_position(self) -> int:
         """Read the actual position of the servo.
@@ -178,14 +163,13 @@ class EncoderDebugger:
             error: Raw error tuple, or ``None`` when no error is available.
         """
         if error is None:
-            logger.error("%s: no error", label)
+            logger.error(f"{label}: no error")
             return
 
         error_code, error_axis, is_warning = error
         try:
             error_id, module, error_type, message = self.mc.errors.get_error_data(
-                error_code,
-                servo=self.alias,
+                error_code, servo=self.alias
             )
         except Exception as exception:
             logger.error(
@@ -239,10 +223,8 @@ class EncoderDebugger:
             last_position: Last position read successfully, if available.
         """
         logger.error(
-            "Motion failure diagnostics: iteration=%s, target=%s, last_position=%s",
-            iteration,
-            target,
-            last_position,
+            f"Motion failure diagnostics: iteration={iteration}, target={target}, "
+            f"last_position={last_position}",
         )
         for register in MOTION_REGISTERS:
             try:
@@ -320,7 +302,7 @@ class EncoderDebugger:
         """Wait for a movement target and diagnose its first abnormal event.
 
         This method also polls the drive error buffer, making the test stop at
-        the first BiSS-C warning instead of waiting for a final CRC fault.
+        the first new drive warning instead of waiting for a final fault.
 
         Args:
             target: Target position of the current movement.
@@ -382,12 +364,8 @@ class EncoderDebugger:
 
             if abs(target - position) < self.settings.position_tolerance:
                 logger.info(
-                    "Iteration %s completed: target=%s, position=%s, reads=%s, elapsed=%s",
-                    iteration,
-                    target,
-                    position,
-                    successful_reads,
-                    elapsed,
+                    f"Iteration {iteration} completed: target={target}, position={position}, "
+                    f"reads={successful_reads}, elapsed={elapsed}",
                 )
                 return
 
@@ -400,11 +378,7 @@ class EncoderDebugger:
                 time.sleep(self.settings.polling_interval)
                 continue
 
-            self.log_failure(
-                iteration=iteration,
-                target=target,
-                last_position=position,
-            )
+            self.log_failure(iteration=iteration, target=target, last_position=position)
             pytest.fail(
                 f"{reason}: iteration={iteration}, target={target}, "
                 f"last_position={position}, successful_reads={successful_reads}"
@@ -682,53 +656,36 @@ class EncoderDebugger:
 
 
 @pytest.fixture
-def encoder_debugger(
-    mc: "MotionController",
-    alias: str,
-) -> Generator[EncoderDebugger, None, None]:
+def encoder_debugger(mc: "MotionController", alias: str) -> EncoderDebugger:
     """Create an encoder debugger and disable its motor after each test.
 
     Args:
         mc: Motion-controller fixture.
         alias: Servo-alias fixture.
 
-    Yields:
+    Returns:
         Configured debugger for the connected servo.
     """
-    debugger = EncoderDebugger(mc, alias, StressSettings())
-    yield debugger
-    debugger.disable_motor()
+    return EncoderDebugger(mc, alias, StressSettings())
 
 
 @pytest.mark.ethernet
 @pytest.mark.soem
-def test_position_feedback_stationary_motor_disabled(
-    encoder_debugger: EncoderDebugger,
-) -> None:
+def test_position_feedback_stationary_motor_disabled(encoder_debugger: EncoderDebugger) -> None:
     """Verify that no new encoder errors appear with the power stage disabled."""
-    encoder_debugger.run_stationary(
-        motor_enabled=False,
-        duration=STATIONARY_TEST_DURATION_S,
-    )
+    encoder_debugger.run_stationary(motor_enabled=False, duration=STATIONARY_TEST_DURATION_S)
 
 
 @pytest.mark.ethernet
 @pytest.mark.soem
-def test_position_feedback_stationary_motor_enabled(
-    encoder_debugger: EncoderDebugger,
-) -> None:
+def test_position_feedback_stationary_motor_enabled(encoder_debugger: EncoderDebugger) -> None:
     """Verify that no new encoder errors appear while holding position."""
-    encoder_debugger.run_stationary(
-        motor_enabled=True,
-        duration=STATIONARY_TEST_DURATION_S,
-    )
+    encoder_debugger.run_stationary(motor_enabled=True, duration=STATIONARY_TEST_DURATION_S)
 
 
 @pytest.mark.ethernet
 @pytest.mark.soem
-def test_position_feedback_repeated_motion(
-    encoder_debugger: EncoderDebugger,
-) -> None:
+def test_position_feedback_repeated_motion(encoder_debugger: EncoderDebugger) -> None:
     """Alternate position targets and stop at the first motion or SDO failure."""
     debugger = encoder_debugger
     initial_errors = debugger.capture_error_baseline()
@@ -740,11 +697,7 @@ def test_position_feedback_repeated_motion(
 
     for iteration in range(MOVEMENT_ITERATIONS):
         target = 1000 if iteration % 2 == 0 else -1000
-        debugger.mc.motion.move_to_position(
-            target,
-            servo=debugger.alias,
-            blocking=False,
-        )
+        debugger.mc.motion.move_to_position(target, servo=debugger.alias, blocking=False)
         debugger.wait_for_target(target, iteration, initial_errors)
 
 
@@ -755,6 +708,4 @@ def test_position_feedback_motor_enable_transition(
 ) -> None:
     """Check for encoder warnings immediately after enabling the power stage."""
     environment.power_cycle(wait_for_drives=False, reconnect_drives=True, reconnect_timeout=30)
-    encoder_debugger.run_motor_enable_transition_test(
-        observation_duration=10.0,
-    )
+    encoder_debugger.run_motor_enable_transition_test(observation_duration=10.0)
