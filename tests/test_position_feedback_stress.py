@@ -44,35 +44,31 @@ MOVEMENT_ITERATIONS = 1_000
 
 @dataclass(frozen=True)
 class StressSettings:
-    """Timing and tolerance settings shared by the feedback stress tests.
-
-    Attributes:
-        position_tolerance: Maximum accepted distance from a target position.
-        movement_timeout: Maximum time allowed for one position movement.
-        stall_timeout: Maximum time that position may remain unchanged while
-            the target has not been reached.
-        polling_interval: Delay between consecutive position reads.
-        diagnostic_interval: Delay between status and error-buffer checks.
-        settling_time: Delay after commanding the motor to hold its position.
-    """
+    """Timing and tolerance settings shared by the feedback stress tests."""
 
     position_tolerance: int = 20
+    """Maximum accepted distance from a target position."""
+
     movement_timeout: float = 10.0
+    """Maximum time allowed for one position movement."""
+
     stall_timeout: float = 1.0
+    """Maximum time that position may remain unchanged while the target has not been reached."""
+
     polling_interval: float = 0.01
+    """Delay between consecutive position reads."""
+
     diagnostic_interval: float = 0.1
+    """Delay between status and error-buffer checks."""
+
     settling_time: float = 1.0
+    """Delay after commanding the motor to hold its position."""
 
 
 class EncoderDebugger:
     """Provide reusable setup, polling, diagnostics, and cleanup operations."""
 
-    def __init__(
-        self,
-        mc: "MotionController",
-        alias: str,
-        settings: StressSettings,
-    ) -> None:
+    def __init__(self, mc: "MotionController", alias: str, settings: "StressSettings") -> None:
         """Initialize a debugger for one connected servo.
 
         Args:
@@ -94,22 +90,10 @@ class EncoderDebugger:
         Returns:
             Position measured after the position loop has settled.
         """
-        self.mc.motion.set_operation_mode(
-            OperationMode.PROFILE_POSITION,
-            servo=self.alias,
-        )
-
+        self.mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=self.alias)
         position = self.read_position()
-
-        self.mc.motion.move_to_position(
-            position,
-            servo=self.alias,
-            blocking=False,
-        )
-
-        configured_set_point = self.read_register(
-            "CL_POS_SET_POINT_VALUE",
-        )
+        self.mc.motion.move_to_position(position, servo=self.alias, blocking=False)
+        configured_set_point = self.read_register("CL_POS_SET_POINT_VALUE")
 
         assert abs(configured_set_point - position) <= (self.settings.position_tolerance), (
             "The hold target was not configured before motor enable: "
@@ -117,13 +101,10 @@ class EncoderDebugger:
             f"configured_set_point={configured_set_point}"
         )
 
-        self.mc.motion.motor_enable(
-            servo=self.alias,
-        )
+        self.mc.motion.motor_enable(servo=self.alias)
         self.motor_enabled = True
 
         time.sleep(self.settings.settling_time)
-
         return self.read_position()
 
     def disable_motor(self) -> None:
@@ -134,9 +115,7 @@ class EncoderDebugger:
             self.mc.motion.motor_disable(servo=self.alias)
         except Exception as exception:
             logger.warning(
-                "Could not disable motor during cleanup: %s: %s",
-                type(exception).__name__,
-                exception,
+                f"Could not disable motor during cleanup: {type(exception).__name__}: {exception}"
             )
         finally:
             self.motor_enabled = False
@@ -160,26 +139,19 @@ class EncoderDebugger:
         """
         return self.mc.communication.get_register(register, servo=self.alias)
 
-    def get_error_buffer(self) -> list[DriveError]:
+    def get_error_buffer(self) -> list["DriveError"]:
         """Read the drive error buffer, newest entry first.
 
         Returns:
             Raw error tuples containing code, axis, and warning state.
         """
-        total_errors = self.mc.errors.get_number_total_errors(
-            servo=self.alias,
-            axis=1,
-        )
+        total_errors = self.mc.errors.get_number_total_errors(servo=self.alias, axis=1)
         return [
-            self.mc.errors.get_buffer_error_by_index(
-                index,
-                servo=self.alias,
-                axis=1,
-            )
+            self.mc.errors.get_buffer_error_by_index(index, servo=self.alias, axis=1)
             for index in range(min(total_errors, MAX_ERROR_BUFFER_SIZE))
         ]
 
-    def capture_error_baseline(self) -> list[DriveError]:
+    def capture_error_baseline(self) -> list["DriveError"]:
         """Capture errors that existed before the current test started.
 
         Historical errors are retained by the drive across tests. They are
@@ -192,12 +164,11 @@ class EncoderDebugger:
         if errors:
             logger.warning(
                 "Drive error buffer is not empty before the test. Only changes "
-                "during this test will be considered. Initial errors: %s",
-                errors,
+                f"during this test will be considered. Initial errors: {errors}",
             )
         return errors
 
-    def log_error(self, label: str, error: Optional[DriveError]) -> None:
+    def log_error(self, label: str, error: Optional["DriveError"]) -> None:
         """Resolve and log one raw drive error.
 
         Args:
@@ -216,43 +187,25 @@ class EncoderDebugger:
             )
         except Exception as exception:
             logger.error(
-                "%s: code=%s (0x%04X), axis=%s, warning=%s; description unavailable: %s: %s",
-                label,
-                error_code,
-                error_code,
-                error_axis,
-                is_warning,
-                type(exception).__name__,
-                exception,
+                f"{label}: code={error_code} (0x{error_code:04X}), axis={error_axis}, "
+                f"warning={is_warning}; description unavailable: {type(exception).__name__}: "
+                f"{exception}",
             )
             return
 
         logger.error(
-            "%s: code=%s (0x%04X), axis=%s, warning=%s, id=%s, module=%s, type=%s, message=%s",
-            label,
-            error_code,
-            error_code,
-            error_axis,
-            is_warning,
-            error_id,
-            module,
-            error_type,
-            message,
+            f"{label}: code={error_code} (0x{error_code:04X}), axis={error_axis}, "
+            f"warning={is_warning}, id={error_id}, module={module}, type={error_type}, "
+            f"message={message}",
         )
 
     def log_errors(self) -> None:
         """Log the current error and every available buffered error."""
         getters: tuple[tuple[str, Callable[[], Optional[DriveError]]], ...] = (
-            (
-                "Last drive error",
-                lambda: self.mc.errors.get_last_error(servo=self.alias, axis=1),
-            ),
+            ("Last drive error", lambda: self.mc.errors.get_last_error(servo=self.alias, axis=1)),
             (
                 "Last buffered error",
-                lambda: self.mc.errors.get_last_buffer_error(
-                    servo=self.alias,
-                    axis=1,
-                ),
+                lambda: self.mc.errors.get_last_buffer_error(servo=self.alias, axis=1),
             ),
         )
         for label, getter in getters:
@@ -260,32 +213,21 @@ class EncoderDebugger:
                 self.log_error(label, getter())
             except Exception as exception:  # noqa: PERF203
                 logger.error(
-                    "Could not read %s: %s: %s",
-                    label.lower(),
-                    type(exception).__name__,
-                    exception,
+                    f"Could not read {label.lower()}: {type(exception).__name__}: {exception}"
                 )
 
         try:
             errors = self.get_error_buffer()
         except Exception as exception:
-            logger.error(
-                "Could not read buffered errors: %s: %s",
-                type(exception).__name__,
-                exception,
-            )
+            logger.error(f"Could not read buffered errors: {type(exception).__name__}: {exception}")
             return
 
-        logger.error("Total buffered errors: %s", len(errors))
+        logger.error(f"Total buffered errors: {len(errors)}")
         for index, error in enumerate(errors):
             self.log_error(f"Buffered error {index}", error)
 
     def log_motion_state(
-        self,
-        *,
-        iteration: int,
-        target: int,
-        last_position: Optional[int],
+        self, *, iteration: int, target: int, last_position: Optional[int]
     ) -> None:
         """Log motion-related register values after a failure.
 
@@ -305,33 +247,23 @@ class EncoderDebugger:
                 value = self.read_register(register)
             except Exception as exception:
                 logger.error(
-                    "%s could not be read: %s: %s",
-                    register,
-                    type(exception).__name__,
-                    exception,
+                    f"{register} could not be read: {type(exception).__name__}: {exception}"
                 )
                 continue
 
             if register in {"DRV_STATE_CONTROL", "DRV_STATE_STATUS"}:
                 hexadecimal = hex(value) if isinstance(value, int) else "not integer"
-                logger.error("%s=%s (%s)", register, value, hexadecimal)
+                logger.error(f"{register}={value} ({hexadecimal})")
             else:
-                logger.error("%s=%s", register, value)
+                logger.error(f"{register}={value}")
 
             if register == "DRV_STATE_STATUS" and isinstance(value, int):
                 logger.error(
-                    "Status flags: fault=%s, target_reached=%s",
-                    bool(value & STATUS_WORD_FAULT_BIT),
-                    bool(value & STATUS_WORD_TARGET_REACHED_BIT),
+                    f"Status flags: fault={bool(value & STATUS_WORD_FAULT_BIT)}, "
+                    f"target_reached={bool(value & STATUS_WORD_TARGET_REACHED_BIT)}",
                 )
 
-    def log_failure(
-        self,
-        *,
-        iteration: int,
-        target: int,
-        last_position: Optional[int],
-    ) -> None:
+    def log_failure(self, *, iteration: int, target: int, last_position: Optional[int]) -> None:
         """Log motion registers and the drive error buffer after a failure.
 
         Args:
@@ -339,11 +271,7 @@ class EncoderDebugger:
             target: Requested position.
             last_position: Last position read successfully, if available.
         """
-        self.log_motion_state(
-            iteration=iteration,
-            target=target,
-            last_position=last_position,
-        )
+        self.log_motion_state(iteration=iteration, target=target, last_position=last_position)
         self.log_errors()
 
     def fail_sdo(
@@ -370,24 +298,12 @@ class EncoderDebugger:
         """
         base_exception = exception.base_exception
         logger.error(
-            "SDO failure: context=%s, iteration=%s, target=%s, "
-            "last_position=%s, successful_reads=%s, elapsed=%s, "
-            "exception=%s, reason=%s, wkc=%s",
-            context,
-            iteration,
-            target,
-            last_position,
-            successful_reads,
-            elapsed,
-            type(base_exception).__name__,
-            exception.reason,
-            getattr(base_exception, "wkc", None),
+            f"SDO failure: context={context}, iteration={iteration}, target={target}, "
+            f"last_position={last_position}, successful_reads={successful_reads}, elapsed={elapsed}"
+            f", exception={type(base_exception).__name__}, reason={exception.reason}, "
+            f"wkc={getattr(base_exception, 'wkc', None)}",
         )
-        self.log_failure(
-            iteration=iteration,
-            target=target,
-            last_position=last_position,
-        )
+        self.log_failure(iteration=iteration, target=target, last_position=last_position)
         pytest.fail(
             f"SDO failure during {context}: iteration={iteration}, "
             f"target={target}, last_position={last_position}, "
@@ -397,10 +313,7 @@ class EncoderDebugger:
         )
 
     def wait_for_target(
-        self,
-        target: int,
-        iteration: int,
-        initial_errors: list[DriveError],
+        self, target: int, iteration: int, initial_errors: list["DriveError"]
     ) -> None:
         """Wait for a movement target and diagnose its first abnormal event.
 
@@ -456,11 +369,7 @@ class EncoderDebugger:
                     )
 
                 if current_errors != initial_errors or status_word & STATUS_WORD_FAULT_BIT:
-                    self.log_failure(
-                        iteration=iteration,
-                        target=target,
-                        last_position=position,
-                    )
+                    self.log_failure(iteration=iteration, target=target, last_position=position)
                     pytest.fail(
                         "Drive state changed during repeated motion: "
                         f"iteration={iteration}, target={target}, position={position}, "
@@ -525,16 +434,10 @@ class EncoderDebugger:
             )
 
         logger.info(
-            "Starting stationary encoder stress test: motor_enabled=%s, "
-            "position_before_test=%s, initial_position=%s, set_point=%s, "
-            "status_word=%s, initial_errors=%s, duration=%s",
-            motor_enabled,
-            position_before_test,
-            initial_position,
-            set_point,
-            hex(status_word),
-            initial_errors,
-            duration,
+            f"Starting stationary encoder stress test: motor_enabled={motor_enabled}, "
+            f"position_before_test={position_before_test}, initial_position={initial_position}, "
+            f"set_point={set_point}, status_word={hex(status_word)}, "
+            f"initial_errors={initial_errors}, duration={duration}",
         )
 
         start_time = time.monotonic()
@@ -600,18 +503,11 @@ class EncoderDebugger:
 
         final_errors = self.get_error_buffer()
         logger.info(
-            "Stationary encoder stress test completed: motor_enabled=%s, "
-            "initial=%s, last=%s, minimum=%s, maximum=%s, reads=%s, "
-            "initial_errors=%s, final_errors=%s, elapsed=%s",
-            motor_enabled,
-            initial_position,
-            position,
-            minimum_position,
-            maximum_position,
-            successful_reads,
-            initial_errors,
-            final_errors,
-            time.monotonic() - start_time,
+            f"Stationary encoder stress test completed: motor_enabled={motor_enabled}, "
+            f"initial={initial_position}, last={position}, minimum={minimum_position}, "
+            f"maximum={maximum_position}, reads={successful_reads}, "
+            f"initial_errors={initial_errors}, final_errors={final_errors}, "
+            f"elapsed={time.monotonic() - start_time}",
         )
         assert final_errors == initial_errors, (
             "The drive error buffer changed during the stationary test: "
@@ -619,11 +515,7 @@ class EncoderDebugger:
             f"final_errors={final_errors}"
         )
 
-    def run_motor_enable_transition_test(
-        self,
-        *,
-        observation_duration: float,
-    ) -> None:
+    def run_motor_enable_transition_test(self, *, observation_duration: float) -> None:
         """Monitor encoder errors generated immediately after motor enable.
 
         The current position is commanded before enabling the power stage. This
@@ -641,25 +533,16 @@ class EncoderDebugger:
             f"Initial errors: {initial_errors}"
         )
 
-        self.mc.motion.set_operation_mode(
-            OperationMode.PROFILE_POSITION,
-            servo=self.alias,
-        )
+        self.mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=self.alias)
 
         initial_position = self.read_position()
 
         # Preload the desired hold position while the motor is still disabled.
         # This prevents an old profile-position target from becoming active as
         # soon as the power stage is enabled.
-        self.mc.motion.move_to_position(
-            initial_position,
-            servo=self.alias,
-            blocking=False,
-        )
+        self.mc.motion.move_to_position(initial_position, servo=self.alias, blocking=False)
 
-        configured_set_point = self.read_register(
-            "CL_POS_SET_POINT_VALUE",
-        )
+        configured_set_point = self.read_register("CL_POS_SET_POINT_VALUE")
 
         assert abs(configured_set_point - initial_position) <= (self.settings.position_tolerance), (
             "The hold target was not configured before motor enable: "
@@ -668,47 +551,33 @@ class EncoderDebugger:
         )
 
         logger.info(
-            "Starting motor-enable transition test: "
-            "initial_position=%s, configured_set_point=%s, "
-            "initial_errors=%s, observation_duration=%s",
-            initial_position,
-            configured_set_point,
-            initial_errors,
-            observation_duration,
+            f"Starting motor-enable transition test: "
+            f"initial_position={initial_position}, configured_set_point={configured_set_point}, "
+            f"initial_errors={initial_errors}, observation_duration={observation_duration}",
         )
 
         enable_start_time = time.monotonic()
 
-        self.mc.motion.motor_enable(
-            servo=self.alias,
-        )
+        self.mc.motion.motor_enable(servo=self.alias)
         self.motor_enabled = True
 
         motor_enabled_time = time.monotonic()
 
         position_after_enable = self.read_position()
         errors_after_enable = self.get_error_buffer()
-        status_after_enable = self.read_register(
-            "DRV_STATE_STATUS",
-        )
+        status_after_enable = self.read_register("DRV_STATE_STATUS")
 
         logger.info(
-            "Motor enable completed: duration=%s, "
-            "position_before_enable=%s, position_after_enable=%s, "
-            "position_change=%s, status_word=%s, errors=%s",
-            motor_enabled_time - enable_start_time,
-            initial_position,
-            position_after_enable,
-            abs(position_after_enable - initial_position),
-            hex(status_after_enable),
-            errors_after_enable,
+            f"Motor enable completed: duration={motor_enabled_time - enable_start_time}, "
+            f"position_before_enable={initial_position}, "
+            f"position_after_enable={position_after_enable}, "
+            f"position_change={abs(position_after_enable - initial_position)}, "
+            f"status_word={hex(status_after_enable)}, errors={errors_after_enable}",
         )
 
         if errors_after_enable != initial_errors:
             self.log_failure(
-                iteration=0,
-                target=initial_position,
-                last_position=position_after_enable,
+                iteration=0, target=initial_position, last_position=position_after_enable
             )
 
             pytest.fail(
@@ -720,14 +589,8 @@ class EncoderDebugger:
                 f"errors_after_enable={errors_after_enable}"
             )
 
-        minimum_position = min(
-            initial_position,
-            position_after_enable,
-        )
-        maximum_position = max(
-            initial_position,
-            position_after_enable,
-        )
+        minimum_position = min(initial_position, position_after_enable)
+        maximum_position = max(initial_position, position_after_enable)
         successful_reads = 0
         last_position = position_after_enable
 
@@ -740,9 +603,7 @@ class EncoderDebugger:
 
             try:
                 last_position = self.read_position()
-                status_word = self.read_register(
-                    "DRV_STATE_STATUS",
-                )
+                status_word = self.read_register("DRV_STATE_STATUS")
                 current_errors = self.get_error_buffer()
                 successful_reads += 1
             except ILRegisterAccessError as exception:
@@ -756,42 +617,24 @@ class EncoderDebugger:
                     elapsed=elapsed_since_enable,
                 )
 
-            minimum_position = min(
-                minimum_position,
-                last_position,
-            )
-            maximum_position = max(
-                maximum_position,
-                last_position,
-            )
+            minimum_position = min(minimum_position, last_position)
+            maximum_position = max(maximum_position, last_position)
 
-            position_change = abs(
-                last_position - initial_position,
-            )
+            position_change = abs(last_position - initial_position)
             drive_faulted = bool(status_word & STATUS_WORD_FAULT_BIT)
             error_buffer_changed = current_errors != initial_errors
 
             if error_buffer_changed or drive_faulted:
                 logger.error(
                     "Drive state changed after motor enable: "
-                    "elapsed_since_enable=%s, initial_position=%s, "
-                    "last_position=%s, position_change=%s, "
-                    "status_word=%s, initial_errors=%s, "
-                    "current_errors=%s",
-                    elapsed_since_enable,
-                    initial_position,
-                    last_position,
-                    position_change,
-                    hex(status_word),
-                    initial_errors,
-                    current_errors,
+                    f"elapsed_since_enable={elapsed_since_enable}, "
+                    f"initial_position={initial_position}, "
+                    f"last_position={last_position}, position_change={position_change}, "
+                    f"status_word={hex(status_word)}, initial_errors={initial_errors}, "
+                    f"current_errors={current_errors}",
                 )
 
-                self.log_failure(
-                    iteration=0,
-                    target=initial_position,
-                    last_position=last_position,
-                )
+                self.log_failure(iteration=0, target=initial_position, last_position=last_position)
 
                 pytest.fail(
                     "Encoder warning or fault generated after motor enable: "
@@ -805,11 +648,7 @@ class EncoderDebugger:
                 )
 
             if position_change > self.settings.position_tolerance:
-                self.log_failure(
-                    iteration=0,
-                    target=initial_position,
-                    last_position=last_position,
-                )
+                self.log_failure(iteration=0, target=initial_position, last_position=last_position)
 
                 pytest.fail(
                     "Motor moved outside tolerance after motor enable: "
@@ -827,18 +666,10 @@ class EncoderDebugger:
 
         logger.info(
             "Motor-enable transition test completed: "
-            "initial_position=%s, last_position=%s, "
-            "minimum_position=%s, maximum_position=%s, "
-            "successful_reads=%s, initial_errors=%s, "
-            "final_errors=%s, elapsed=%s",
-            initial_position,
-            last_position,
-            minimum_position,
-            maximum_position,
-            successful_reads,
-            initial_errors,
-            final_errors,
-            time.monotonic() - motor_enabled_time,
+            f"initial_position={initial_position}, last_position={last_position}, "
+            f"minimum_position={minimum_position}, maximum_position={maximum_position}, "
+            f"successful_reads={successful_reads}, initial_errors={initial_errors}, "
+            f"final_errors={final_errors}, elapsed={time.monotonic() - motor_enabled_time}",
         )
 
         assert final_errors == initial_errors, (
@@ -901,11 +732,8 @@ def test_position_feedback_repeated_motion(
     initial_errors = debugger.capture_error_baseline()
     initial_position = debugger.enable_motor_holding_current_position()
     logger.info(
-        "Starting repeated-motion stress test: initial_position=%s, "
-        "initial_errors=%s, iterations=%s",
-        initial_position,
-        initial_errors,
-        MOVEMENT_ITERATIONS,
+        f"Starting repeated-motion stress test: initial_position={initial_position}, "
+        f"initial_errors={initial_errors}, iterations={MOVEMENT_ITERATIONS}",
     )
 
     for iteration in range(MOVEMENT_ITERATIONS):
