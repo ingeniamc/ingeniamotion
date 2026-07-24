@@ -36,12 +36,12 @@ class Error:
 
     @property
     def error_id(self) -> int:
-        """Get the error ID."""
+        """The error ID."""
         return self._error_id
 
     @property
     def error_code(self) -> int:
-        """Get the error code.
+        """The error code.
 
         Same as ID in most cases, but can be masked by additional bits
         in some error types (e.g. OperationError).
@@ -50,19 +50,19 @@ class Error:
 
     @property
     def dictionary_error(self) -> Optional[DictionaryError]:
-        """Get the DictionaryError instance from the dictionary, if available."""
+        """The DictionaryError instance from the dictionary, if available."""
         return self.__dictionary_error
 
     @property
     def error_type(self) -> Optional[str]:
-        """Get the error type, if available."""
+        """The error type, if available."""
         if self.__dictionary_error is not None and self.__dictionary_error.error_type is not None:
             return self.__dictionary_error.error_type
         return None
 
     @property
     def error_description(self) -> str:
-        """Get the error description."""
+        """The error description."""
         if self.__dictionary_error is not None and self.__dictionary_error.description is not None:
             return self.__dictionary_error.description
         return f"Unknown error {self.error_id} / 0x{self.error_id:X}"
@@ -110,7 +110,7 @@ class OperationError(Error):
 
     @property
     def error_code(self) -> int:
-        """Get the error code."""
+        """The error code."""
         return self._error_id & self.__ERROR_CODE_BITS
 
     @property
@@ -152,7 +152,7 @@ class SystemQueueError(OperationError):
 
     @property
     def axis(self) -> int:
-        """Get the error axis. If 0, it is a COCO error."""
+        """The error axis. If 0, it is a COCO error."""
         return (self._error_id & self.__ERROR_SUBNODE_BITS) >> self.__ERROR_SUBNODE_SHIFT
 
 
@@ -233,12 +233,12 @@ class ServoErrorQueue:
 
     @property
     def axis(self) -> Optional[int]:
-        """Get the axis number associated with this error queue, if any."""
+        """The axis number associated with this error queue, if any."""
         return self.__axis
 
     @property
     def name(self) -> str:
-        """Get the name of the error queue."""
+        """The name of the error queue."""
         if self.axis is not None:
             return f"{self.descriptor.name} Axis {self.axis} Error Queue"
         return f"{self.descriptor.name} Error Queue"
@@ -265,7 +265,7 @@ class ServoErrorQueue:
     @property
     @weak_lru()
     def max_number_of_errors_in_buffer(self) -> int:
-        """Get the maximum number of errors in the buffer from the servo's error queue.
+        """The maximum number of errors in the buffer from the servo's error queue.
 
         If more errors occur. oldest ones are discarded.
         """
@@ -418,7 +418,7 @@ class NodeErrors:
 
     @property
     def system(self) -> Optional[ServoErrorQueue]:
-        """Get the system error queue of the motion node.
+        """The system error queue of the motion node.
 
         Returns:
             ServoErrorQueue: The system error queue, or ``None`` if not available in
@@ -428,7 +428,7 @@ class NodeErrors:
 
     @property
     def coco(self) -> Optional[ServoErrorQueue]:
-        """Get the COCO error queue of the motion node.
+        """The COCO error queue of the motion node.
 
         Returns:
             ServoErrorQueue: The COCO error queue, or ``None`` if not available in
@@ -483,7 +483,7 @@ class AxisErrors:
 
     @property
     def moco(self) -> Optional[ServoErrorQueue]:
-        """Get the MOCO error queue of the axis.
+        """The MOCO error queue of the axis.
 
         Returns:
             ServoErrorQueue: The MOCO error queue, or ``None`` if not available in
@@ -493,7 +493,7 @@ class AxisErrors:
 
     @property
     def safety_a(self) -> Optional[ServoErrorQueue]:
-        """Get the error queue of the MCU A of safety.
+        """The error queue of the MCU A of safety.
 
         Returns:
             ServoErrorQueue: The MCU-A safety error queue, or ``None`` if not available
@@ -503,7 +503,7 @@ class AxisErrors:
 
     @property
     def safety_b(self) -> Optional[ServoErrorQueue]:
-        """Get the error queue of the MCU B of safety.
+        """The error queue of the MCU B of safety.
 
         Returns:
             ServoErrorQueue: The MCU-B safety error queue, or ``None`` if not available

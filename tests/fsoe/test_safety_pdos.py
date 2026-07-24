@@ -12,7 +12,6 @@ except ImportError:
     pysoem = None
 
 from ingeniamotion.enums import FSoEState
-from ingeniamotion.motion_controller import MotionController
 
 if TYPE_CHECKING:
     from ingenialink.ethercat.network import EthercatNetwork
