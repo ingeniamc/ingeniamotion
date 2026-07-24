@@ -234,8 +234,6 @@ def test_start_master_if_master_already_running(
 
 
 @pytest.mark.fsoe
-# https://novantamotion.atlassian.net/browse/INGM-788
-@pytest.mark.not_valid_for_product(part_number="DEN-S-NET-E")
 def test_start_stop_master(
     mc_with_fsoe_with_sra: tuple["MotionController", "FSoEMasterHandler"],
     fsoe_states: list["FSoEState"],
