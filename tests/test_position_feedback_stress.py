@@ -671,6 +671,7 @@ def encoder_debugger(mc: "MotionController", alias: str) -> EncoderDebugger:
 
 @pytest.mark.ethernet
 @pytest.mark.soem
+@pytest.mark.canopen
 def test_position_feedback_stationary_motor_disabled(encoder_debugger: EncoderDebugger) -> None:
     """Verify that no new encoder errors appear with the power stage disabled."""
     encoder_debugger.run_stationary(motor_enabled=False, duration=STATIONARY_TEST_DURATION_S)
@@ -678,6 +679,7 @@ def test_position_feedback_stationary_motor_disabled(encoder_debugger: EncoderDe
 
 @pytest.mark.ethernet
 @pytest.mark.soem
+@pytest.mark.canopen
 def test_position_feedback_stationary_motor_enabled(encoder_debugger: EncoderDebugger) -> None:
     """Verify that no new encoder errors appear while holding position."""
     encoder_debugger.run_stationary(motor_enabled=True, duration=STATIONARY_TEST_DURATION_S)
@@ -685,6 +687,7 @@ def test_position_feedback_stationary_motor_enabled(encoder_debugger: EncoderDeb
 
 @pytest.mark.ethernet
 @pytest.mark.soem
+@pytest.mark.canopen
 def test_position_feedback_repeated_motion(encoder_debugger: EncoderDebugger) -> None:
     """Alternate position targets and stop at the first motion or SDO failure."""
     debugger = encoder_debugger
@@ -703,6 +706,7 @@ def test_position_feedback_repeated_motion(encoder_debugger: EncoderDebugger) ->
 
 @pytest.mark.ethernet
 @pytest.mark.soem
+@pytest.mark.canopen
 def test_position_feedback_motor_enable_transition(
     encoder_debugger: EncoderDebugger, environment: "DriveEnvironmentController"
 ) -> None:
