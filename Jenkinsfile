@@ -1,5 +1,5 @@
 // https://novantamotion.atlassian.net/browse/CIT-707
-@Library('cicd-lib@b4e51a0ee15ccec3cbc91fadd4e11c702fe41aa') _
+@Library('cicd-lib@646e931') _
 
 import python.VirtualEnvironment
 import python.VEnvManager
@@ -75,8 +75,8 @@ def reassignFilePermissions() {
  *   → Sets RUN_POLICY_NIGHTLY=true and RUN_POLICY_WEEKEND=true so that tests gated on
  *     either 'nightly' or 'weekends' policy will run.
  */
-def NIGHTLY_CRON = '0 19,21,23 * * * % PYTHON_VERSIONS=All;WIRESHARK_LOGGING=true;RUN_POLICY_NIGHTLY=Tag this build as nightly:selected'
-def WEEKEND_CRON   = '0 8,14 * * 6-7 % PYTHON_VERSIONS=All;RUN_POLICY_NIGHTLY=Tag this build as nightly:selected;RUN_POLICY_WEEKEND=Tag this build as weekend:selected'
+def NIGHTLY_CRON = '0 19,21,23 * * * % PYTHON_VERSIONS=All;WIRESHARK_LOGGING=true;RUN_POLICY_NIGHTLY=true'
+def WEEKEND_CRON   = '0 8,14 * * 6-7 % PYTHON_VERSIONS=All;RUN_POLICY_NIGHTLY=true;RUN_POLICY_WEEKEND=true'
 def CRON_SETTINGS = BRANCH_NAME == "develop" ? "${NIGHTLY_CRON}\n${WEEKEND_CRON}" : ""
 
 def pipelineParams = PyTestParams.pytestParams(this, currentBuild, [
@@ -176,8 +176,8 @@ pipeline {
                     TEST_SESSIONS.setAttributeInCascade(
                         runInVirtualEnvs: venvManager.pythonVersionsToDefaultVenvNames(pythonVersions),
                         jobName: "${env.JOB_NAME}-#${env.BUILD_NUMBER}",
-                        wiresharkScope: params.WIRESHARK_LOGGING_SCOPE,
-                        clearSuccessfulWiresharkLogs: params.CLEAR_SUCCESSFUL_WIRESHARK_LOGS,
+                        wiresharkScope: PyTestParams.readValue(params, 'wiresharkLoggingScope'),
+                        clearSuccessfulWiresharkLogs: PyTestParams.readValue(params, 'clearSuccessfulWiresharkLogs', env, currentBuild),
                         checkStateScope: PyTestParams.readValue(params, 'checkStateScope'),
                         archiveData: "*",
                         testSelectionRepeatCount: PyTestParams.readValue(params, 'pytestRepeatCounts'),
@@ -185,20 +185,17 @@ pipeline {
                     )
 
                     // Configure if ECAT and ETH sessions use Wireshark logging based on parameter
-                    ECAT_TESTS.baseTestSession.setAttributeInCascade(
-                        useWiresharkLogging: PyTestParams.readValue(params, 'wiresharkLogging'),
-                    )
-                    ETH_TESTS.baseTestSession.setAttributeInCascade(
-                        useWiresharkLogging: PyTestParams.readValue(params, 'wiresharkLogging'),
-                    )
+                    def wiresharkLogging = PyTestParams.readValue(params, 'wiresharkLogging', env, currentBuild)
+                    ECAT_TESTS.baseTestSession.setAttributeInCascade(useWiresharkLogging: wiresharkLogging)
+                    ETH_TESTS.baseTestSession.setAttributeInCascade(useWiresharkLogging: wiresharkLogging)
 
                     testManager.testSessionFilter = PyTestParams.readValue(params, 'testSessionFilter')
                     testManager.testSessionSelection = PyTestParams.readValue(params, 'pytestSelection')
 
                     // Parse run policy tags from boolean parameters
                     def runPolicyTags = [] as Set
-                    if (PyTestParams.readValue(params, 'runPolicyNightly')) { runPolicyTags.add("nightly") }
-                    if (PyTestParams.readValue(params, 'runPolicyWeekend')) { runPolicyTags.add("weekends") }
+                    if (PyTestParams.readValue(params, 'runPolicyNightly', env, currentBuild)) { runPolicyTags.add("nightly") }
+                    if (PyTestParams.readValue(params, 'runPolicyWeekend', env, currentBuild)) { runPolicyTags.add("weekends") }
                     testManager.runPolicyTags = runPolicyTags
 
                     echo("Test sessions have been configured to run with the following base configuration:\n${TEST_SESSIONS.configSummary()}")
