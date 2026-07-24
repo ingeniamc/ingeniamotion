@@ -30,7 +30,7 @@ class SafetyParameter:
 
     @property
     def register(self) -> "EthercatRegister":
-        """Get the register associated with the safety parameter."""
+        """The register associated with the safety parameter."""
         return self.__register
 
     def get(self) -> PARAM_VALUE_TYPE:
