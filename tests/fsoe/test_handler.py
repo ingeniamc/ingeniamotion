@@ -10,7 +10,6 @@ from ingenialink.ethercat.network import EthercatNetwork
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError, FSoEMaster
 from tests.conftest import refresh_registers_for_test_rollback
-from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
 from tests.fsoe.conftest import MockNetwork, MockServo
 
 if FSOE_MASTER_INSTALLED:
@@ -127,9 +126,11 @@ def test_fsoe_master_get_safety_parameters(
 
 @pytest.mark.fsoe
 def test_create_fsoe_handler_from_invalid_pdo_maps(
-    caplog: "pytest.LogCaptureFixture", fsoe_error_monitor: Callable[[FSoEError], None]
+    caplog: "pytest.LogCaptureFixture",
+    fsoe_error_monitor: Callable[[FSoEError], None],
+    sample_safe_ph2_xdfv3_dictionary: str,
 ) -> None:
-    mock_servo = MockServo(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY)
+    mock_servo = MockServo(sample_safe_ph2_xdfv3_dictionary)
     mock_servo.write("ETG_COMMS_RPDO_MAP256_6", 0x123456)  # Invalid pdo map value
 
     caplog.set_level(logging.ERROR)
@@ -159,8 +160,10 @@ def test_create_fsoe_handler_from_invalid_pdo_maps(
 
 
 @pytest.mark.fsoe
-def test_constructor_set_slave_address(fsoe_error_monitor: Callable[[FSoEError], None]) -> None:
-    mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
+def test_constructor_set_slave_address(
+    fsoe_error_monitor: Callable[[FSoEError], None], sample_safe_ph1_xdfv3_dictionary: str
+) -> None:
+    mock_servo = MockServo(sample_safe_ph1_xdfv3_dictionary)
     try:
         handler = FSoEMasterHandler(
             servo=mock_servo,
@@ -177,8 +180,10 @@ def test_constructor_set_slave_address(fsoe_error_monitor: Callable[[FSoEError],
 
 
 @pytest.mark.fsoe
-def test_constructor_inherit_slave_address(fsoe_error_monitor: Callable[[FSoEError], None]) -> None:
-    mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
+def test_constructor_inherit_slave_address(
+    fsoe_error_monitor: Callable[[FSoEError], None], sample_safe_ph1_xdfv3_dictionary: str
+) -> None:
+    mock_servo = MockServo(sample_safe_ph1_xdfv3_dictionary)
     try:
         # Set the slave address in the servo
         mock_servo.write(FSoEMasterHandler.FSOE_MANUF_SAFETY_ADDRESS, 0x4986)
@@ -196,8 +201,10 @@ def test_constructor_inherit_slave_address(fsoe_error_monitor: Callable[[FSoEErr
 
 
 @pytest.mark.fsoe
-def test_constructor_set_connection_id(fsoe_error_monitor: Callable[[FSoEError], None]) -> None:
-    mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
+def test_constructor_set_connection_id(
+    fsoe_error_monitor: Callable[[FSoEError], None], sample_safe_ph1_xdfv3_dictionary: str
+) -> None:
+    mock_servo = MockServo(sample_safe_ph1_xdfv3_dictionary)
     try:
         handler = FSoEMasterHandler(
             servo=mock_servo,
@@ -212,8 +219,10 @@ def test_constructor_set_connection_id(fsoe_error_monitor: Callable[[FSoEError],
 
 
 @pytest.mark.fsoe
-def test_constructor_random_connection_id(fsoe_error_monitor: Callable[[FSoEError], None]) -> None:
-    mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
+def test_constructor_random_connection_id(
+    fsoe_error_monitor: Callable[[FSoEError], None], sample_safe_ph1_xdfv3_dictionary: str
+) -> None:
+    mock_servo = MockServo(sample_safe_ph1_xdfv3_dictionary)
 
     random.seed(0x1234)
     try:

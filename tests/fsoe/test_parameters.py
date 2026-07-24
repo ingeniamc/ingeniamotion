@@ -6,9 +6,7 @@ from ingenialink.register import Register
 
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError
 from tests.dictionaries import (
-    SAMPLE_SAFE_PH1_XDFV3_DICTIONARY,
     SAMPLE_SAFE_PH2_MODULE_IDENT_NO_SRA_MODULE_IDENT,
-    SAMPLE_SAFE_PH2_XDFV3_DICTIONARY,
 )
 from tests.fsoe.conftest import MockNetwork, MockServo
 
@@ -24,8 +22,8 @@ if FSOE_MASTER_INSTALLED:
 
 
 @pytest.mark.fsoe
-def test_optional_parameter_not_present() -> None:
-    handler = MockHandler(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, 0x3800000)
+def test_optional_parameter_not_present(sample_safe_ph1_xdfv3_dictionary: str) -> None:
+    handler = MockHandler(sample_safe_ph1_xdfv3_dictionary, 0x3800000)
 
     sto: STOFunction = next(STOFunction.for_handler(handler))
 
@@ -34,9 +32,9 @@ def test_optional_parameter_not_present() -> None:
 
 
 @pytest.mark.fsoe
-def test_optional_parameter_present() -> None:
+def test_optional_parameter_present(sample_safe_ph2_xdfv3_dictionary: str) -> None:
     handler = MockHandler(
-        SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_MODULE_IDENT_NO_SRA_MODULE_IDENT
+        sample_safe_ph2_xdfv3_dictionary, SAMPLE_SAFE_PH2_MODULE_IDENT_NO_SRA_MODULE_IDENT
     )
 
     sto: STOFunction = next(STOFunction.for_handler(handler))
@@ -49,9 +47,11 @@ def test_optional_parameter_present() -> None:
     assert parameter is not None
 
 
-def test_get_parameters_not_related_to_safety_functions() -> None:
+def test_get_parameters_not_related_to_safety_functions(
+    sample_safe_ph2_xdfv3_dictionary: str,
+) -> None:
     handler = MockHandler(
-        SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_MODULE_IDENT_NO_SRA_MODULE_IDENT
+        sample_safe_ph2_xdfv3_dictionary, SAMPLE_SAFE_PH2_MODULE_IDENT_NO_SRA_MODULE_IDENT
     )
     unrelated_parameters = handler.get_parameters_not_related_to_safety_functions()
     assert {param.register.identifier for param in unrelated_parameters} == {
@@ -83,8 +83,10 @@ def test_get_parameters_not_related_to_safety_functions() -> None:
 
 
 @pytest.mark.fsoe
-def test_modify_safe_parameters(fsoe_error_monitor: Callable[[FSoEError], None]) -> None:
-    mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
+def test_modify_safe_parameters(
+    fsoe_error_monitor: Callable[[FSoEError], None], sample_safe_ph1_xdfv3_dictionary: str
+) -> None:
+    mock_servo = MockServo(sample_safe_ph1_xdfv3_dictionary)
     try:
         handler = FSoEMasterHandler(
             servo=mock_servo,
@@ -110,7 +112,9 @@ def test_modify_safe_parameters(fsoe_error_monitor: Callable[[FSoEError], None])
 
 
 @pytest.mark.fsoe_phase2
-def test_write_safe_parameters_fail(fsoe_error_monitor: Callable[[FSoEError], None]) -> None:
+def test_write_safe_parameters_fail(
+    fsoe_error_monitor: Callable[[FSoEError], None], sample_safe_ph2_xdfv3_dictionary: str
+) -> None:
     class CustomWriteMockServo(MockServo):
         def write(self, reg, data, subnode=1) -> None:
             uid = reg.identifier if isinstance(reg, Register) else reg
@@ -118,7 +122,7 @@ def test_write_safe_parameters_fail(fsoe_error_monitor: Callable[[FSoEError], No
                 raise RuntimeError("Simulated write failure")
             super().write(reg, data, subnode)
 
-    mock_servo = CustomWriteMockServo(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY)
+    mock_servo = CustomWriteMockServo(sample_safe_ph2_xdfv3_dictionary)
     try:
         handler = FSoEMasterHandler(
             servo=mock_servo,

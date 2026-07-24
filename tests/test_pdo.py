@@ -20,7 +20,6 @@ from ingeniamotion.metaclass import DEFAULT_AXIS
 from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.pdo import PDONetworksTracker
 from tests.conftest import refresh_registers_for_test_rollback
-from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY
 from tests.fsoe.conftest import MockServo
 
 if TYPE_CHECKING:
@@ -293,17 +292,19 @@ def test_start_pdos_wrong_network_type_exception(mc: "MotionController", alias: 
 
 
 @pytest.mark.soem
-def test_start_pdos_for_multiple_networks(mocker, mc: "MotionController") -> None:
+def test_start_pdos_for_multiple_networks(
+    mocker, mc: "MotionController", sample_safe_ph1_xdfv3_dictionary: str
+) -> None:
     mc.register_network(alias="ifname1", network=EthercatNetwork("ifname1"))
     mc.register_network(alias="ifname2", network=EthercatNetwork("ifname2"))
     mc.create_motion_node(
         alias="servo1",
-        servo=MockServo(dictionary_path=SAMPLE_SAFE_PH1_XDFV3_DICTIONARY),
+        servo=MockServo(dictionary_path=sample_safe_ph1_xdfv3_dictionary),
         network=mc.net["ifname1"],
     )
     mc.create_motion_node(
         alias="servo2",
-        servo=MockServo(dictionary_path=SAMPLE_SAFE_PH1_XDFV3_DICTIONARY),
+        servo=MockServo(dictionary_path=sample_safe_ph1_xdfv3_dictionary),
         network=mc.net["ifname2"],
     )
     mocker.patch.object(EthercatNetwork, "activate_pdos")
@@ -322,7 +323,7 @@ def test_start_pdos_for_multiple_networks(mocker, mc: "MotionController") -> Non
 
 @pytest.mark.soem
 def test_start_pdos_for_multiple_servos_in_same_network(
-    mocker, mc: "MotionController", caplog
+    mocker, mc: "MotionController", caplog, sample_safe_ph1_xdfv3_dictionary: str
 ) -> None:
     def _get_log_warnings():
         return [record for record in caplog.records if record.levelname == "WARNING"]
@@ -333,12 +334,12 @@ def test_start_pdos_for_multiple_servos_in_same_network(
     )
     mc.create_motion_node(
         alias="servo1",
-        servo=MockServo(dictionary_path=SAMPLE_SAFE_PH1_XDFV3_DICTIONARY),
+        servo=MockServo(dictionary_path=sample_safe_ph1_xdfv3_dictionary),
         network=mc.net["ifname1"],
     )
     mc.create_motion_node(
         alias="servo2",
-        servo=MockServo(dictionary_path=SAMPLE_SAFE_PH1_XDFV3_DICTIONARY),
+        servo=MockServo(dictionary_path=sample_safe_ph1_xdfv3_dictionary),
         network=mc.net["ifname1"],
     )
 

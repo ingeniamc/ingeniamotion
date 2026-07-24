@@ -23,6 +23,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+pytest_plugins = ["tests.dictionaries.fixtures"]
+
 
 def not_valid_for_eve_can_ecat_products(func: Callable) -> Callable:
     """Decorator that applies not_valid_for_product markers for CAN and ECAT EVE products.

@@ -11,7 +11,10 @@ from ingenialink.pdo import RPDOMap, TPDOMap
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError
 from ingeniamotion.motion_controller import MotionController
-from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
+from tests.dictionaries.fixtures import (
+    sample_safe_ph1_xdfv3_dictionary,
+    sample_safe_ph2_xdfv3_dictionary,
+)
 from tests.fsoe.conftest import MockNetwork, MockServo
 
 try:
@@ -49,12 +52,19 @@ if TYPE_CHECKING:
 
 @pytest.mark.fsoe
 @pytest.mark.parametrize(
-    "dictionary, editable",
-    [(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, False), (SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, True)],
+    "dictionary_fixture, editable",
+    [
+        (sample_safe_ph1_xdfv3_dictionary.__name__, False),
+        (sample_safe_ph2_xdfv3_dictionary.__name__, True),
+    ],
 )
 def test_mapping_locked(
-    dictionary: str, editable: bool, fsoe_error_monitor: Callable[[FSoEError], None]
+    dictionary_fixture: str,
+    editable: bool,
+    fsoe_error_monitor: Callable[[FSoEError], None],
+    request: pytest.FixtureRequest,
 ) -> None:
+    dictionary = request.getfixturevalue(dictionary_fixture)
     mock_servo = MockServo(dictionary)
 
     if not editable:
@@ -814,8 +824,8 @@ def test_map_all_safety_functions(
 
 
 @pytest.mark.fsoe_phase2
-def test_is_safety_function_mapped() -> None:
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+def test_is_safety_function_mapped(sample_safe_ph2_xdfv3_dictionary: str) -> None:
+    handler = MockHandler(sample_safe_ph2_xdfv3_dictionary, 0x3B00003)
     sfs = handler.safety_functions_by_type()
     maps = ProcessImage.empty(handler.dictionary)
     sto_func = sfs[STOFunction][0]
@@ -850,8 +860,8 @@ def test_is_safety_function_mapped() -> None:
 
 
 @pytest.mark.fsoe_phase2
-def test_insert_safety_function() -> None:
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+def test_insert_safety_function(sample_safe_ph2_xdfv3_dictionary: str) -> None:
+    handler = MockHandler(sample_safe_ph2_xdfv3_dictionary, 0x3B00003)
     sto_func = handler.safety_functions_by_type()[STOFunction][0]
 
     maps = ProcessImage.empty(handler.dictionary)
@@ -867,8 +877,8 @@ def test_insert_safety_function() -> None:
 
 
 @pytest.mark.fsoe_phase2
-def test_insert_safety_functions_by_type() -> None:
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+def test_insert_safety_functions_by_type(sample_safe_ph2_xdfv3_dictionary: str) -> None:
+    handler = MockHandler(sample_safe_ph2_xdfv3_dictionary, 0x3B00003)
     sfs = handler.safety_functions_by_type()
     maps = ProcessImage.empty(handler.dictionary)
     sto_func = sfs[STOFunction][0]
@@ -898,8 +908,8 @@ def test_insert_safety_functions_by_type() -> None:
 
 
 @pytest.mark.fsoe_phase2
-def test_remove_safety_functions_by_type_1() -> None:
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+def test_remove_safety_functions_by_type_1(sample_safe_ph2_xdfv3_dictionary: str) -> None:
+    handler = MockHandler(sample_safe_ph2_xdfv3_dictionary, 0x3B00003)
 
     maps = ProcessImage.empty(handler.dictionary)
     maps.insert_safety_functions_by_type(handler, STOFunction)
@@ -918,8 +928,8 @@ def test_remove_safety_functions_by_type_1() -> None:
 
 
 @pytest.mark.fsoe_phase2
-def test_remove_safety_functions_by_type_2() -> None:
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+def test_remove_safety_functions_by_type_2(sample_safe_ph2_xdfv3_dictionary: str) -> None:
+    handler = MockHandler(sample_safe_ph2_xdfv3_dictionary, 0x3B00003)
     ssr_funcs = handler.safety_functions_by_type()[SSRFunction]
     maps = ProcessImage.empty(handler.dictionary)
     maps.insert_safety_functions_by_type(handler, STOFunction)
@@ -941,8 +951,8 @@ def test_remove_safety_functions_by_type_2() -> None:
 
 
 @pytest.mark.fsoe_phase2
-def test_unmap_safety_function() -> None:
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+def test_unmap_safety_function(sample_safe_ph2_xdfv3_dictionary: str) -> None:
+    handler = MockHandler(sample_safe_ph2_xdfv3_dictionary, 0x3B00003)
     sfs = handler.safety_functions_by_type()
     maps = ProcessImage.empty(handler.dictionary)
     maps.insert_safety_function(sfs[STOFunction][0])
@@ -964,8 +974,10 @@ def test_unmap_safety_function() -> None:
 
 
 @pytest.mark.fsoe_phase2
-def test_unmap_safety_function_warring(caplog: "pytest.LogCaptureFixture") -> None:
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+def test_unmap_safety_function_warring(
+    caplog: "pytest.LogCaptureFixture", sample_safe_ph2_xdfv3_dictionary: str
+) -> None:
+    handler = MockHandler(sample_safe_ph2_xdfv3_dictionary, 0x3B00003)
     sfs = handler.safety_functions_by_type()
     maps = ProcessImage.empty(handler.dictionary)
     si_func = sfs[SafeInputsFunction][0]
@@ -975,8 +987,8 @@ def test_unmap_safety_function_warring(caplog: "pytest.LogCaptureFixture") -> No
 
 
 @pytest.mark.fsoe_phase2
-def test_unmap_safety_function_partial() -> None:
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+def test_unmap_safety_function_partial(sample_safe_ph2_xdfv3_dictionary: str) -> None:
+    handler = MockHandler(sample_safe_ph2_xdfv3_dictionary, 0x3B00003)
     sfs = handler.safety_functions_by_type()
     maps = ProcessImage.empty(handler.dictionary)
 
