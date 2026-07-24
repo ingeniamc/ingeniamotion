@@ -1,6 +1,7 @@
 import logging
 import random
 import time
+from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
 import pytest
@@ -12,6 +13,7 @@ from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError, FSoEMaster
 from tests.conftest import refresh_registers_for_test_rollback
 from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY, SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
 from tests.fsoe.conftest import MockNetwork, MockServo
+from tests.fsoe.utils.fsoe_emulation import FSoENetwork, FSoESlave
 
 if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master.fsoe import FSoEApplicationParameter
@@ -20,6 +22,7 @@ if FSOE_MASTER_INSTALLED:
 if TYPE_CHECKING:
     from ingenialink.ethercat.servo import EthercatServo
     from pytest_mock import MockerFixture
+    from summit_testing_framework.pytest_helpers.pytest_output_handler import PytestOutputHandler
 
     from ingeniamotion.motion_controller import MotionController
 
@@ -282,6 +285,122 @@ def test_handler_is_stopped_if_error_in_pdo_thread(
     time.sleep(1.0)
     assert handler.running is False
     assert fsoe_states[-1] == FSoEState.RESET
+
+
+@pytest.mark.fsoe
+def test_mock_slave_drives_real_handshake_to_data_state() -> None:
+    errors: list[tuple[str, str]] = []
+    mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
+    handler = FSoEMasterHandler(
+        servo=mock_servo,
+        net=MockNetwork(),
+        use_sra=True,
+        report_error_callback=lambda name, err: errors.append((name, err)),
+    )
+    try:
+        handler.start()
+        FSoENetwork(handler, FSoESlave()).exchange_to_data()
+
+        assert handler.state == FSoEState.DATA
+        assert errors == []
+    finally:
+        handler.delete()
+
+
+@pytest.fixture
+def fsoe_trace_path(test_output_handler: "PytestOutputHandler") -> Path:
+    """Location of the FSoE exchange trace inside the test output directory.
+
+    Returns:
+        Path to the exchange trace log file.
+    """
+    return test_output_handler.tests_output_dir / "fsoe_startup_sequence.log"
+
+
+@pytest.mark.fsoe
+def test_master_ignores_stale_reply_after_master_replacement(fsoe_trace_path: Path) -> None:
+    # One physical slave, one master instance connecting to it after another -
+    # e.g. Motionlab switching between two FSoE master configurations against
+    # the same drive - not two independent slaves.
+    mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
+    mock_network = MockNetwork()
+
+    errors_a: list[tuple[str, str]] = []
+
+    def report_error_a(name: str, error: str) -> None:
+        errors_a.append((name, error))
+        network.trace("HANDLER_A_ERROR", f"{name}: {error}")
+
+    handler_a = FSoEMasterHandler(
+        servo=mock_servo,
+        net=mock_network,
+        use_sra=True,
+        report_error_callback=report_error_a,
+    )
+    network = FSoENetwork(handler_a, FSoESlave(), trace_path=fsoe_trace_path)
+    network.trace("TEST", "handler_a startup")
+    try:
+        # handler_a completes a real startup and exchanges one live DATA
+        # packet, leaving that packet in the physical slave's PDO buffer.
+        handler_a.start()
+        network.exchange_to_data()
+        assert handler_a.state == FSoEState.DATA
+        network.exchange_one_round()  # DATA -> last live data reply
+        network.trace(
+            "STOP",
+            f"request_before_stop={handler_a.safety_master_pdu_map.get_item_bytes().hex(' ')}, "
+            f"state={handler_a.state.name}",
+        )
+        handler_a.stop()
+        network.trace(
+            "STOP",
+            f"request_after_stop={handler_a.safety_master_pdu_map.get_item_bytes().hex(' ')}, "
+            f"state={handler_a.state.name}",
+        )
+        assert errors_a == []
+    finally:
+        handler_a.stop()
+        handler_a.delete()
+
+    # handler_a has fully disconnected from the slave. A second, independent
+    # master instance now takes over the SAME slave (never power-cycled),
+    # which still has handler_a's last DATA reply as its last output.
+    errors_b: list[tuple[str, str]] = []
+
+    def report_error_b(name: str, error: str) -> None:
+        errors_b.append((name, error))
+        network.trace("HANDLER_B_ERROR", f"{name}: {error}")
+
+    handler_b = FSoEMasterHandler(
+        servo=mock_servo,
+        net=mock_network,
+        use_sra=True,
+        report_error_callback=report_error_b,
+    )
+    try:
+        network.replace_master(handler_b)
+        network.trace("TEST", "handler_b startup on the same slave")
+        handler_b.start()
+        # The stale incoming DATA packet is delivered before B processes its
+        # Reset, while the outgoing master request is independently replaced
+        # with a fresh Reset on the next cycle.
+        network.exchange_one_round()  # Reset -> stale DATA reply
+        assert handler_b.state == FSoEState.RESET
+        assert errors_b == []
+
+        network.exchange_one_round()  # Reset -> fresh Reset reply
+        assert handler_b.state == FSoEState.SESSION
+
+        # The stale incoming DATA packet is delivered again while the master
+        # is in SESSION. The master still reacts to it internally (it isn't
+        # withheld), but the resulting error is recognized as caused by a
+        # repeated slave reply and is not reported to the user.
+        network.exchange_one_round()  # Session -> stale DATA reply
+        assert errors_b == []
+        assert handler_b.state == FSoEState.RESET
+    finally:
+        handler_b.delete()
+        network.close()
 
 
 @pytest.mark.fsoe
