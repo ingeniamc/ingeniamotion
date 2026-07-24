@@ -103,7 +103,7 @@ class PDOPoller:
 
     @property
     def data(self) -> tuple[list[float], list[list[Union[int, float, bytes]]]]:
-        """Get the poller data. After the data is retrieved, the data buffers are cleared.
+        """The poller data. After the data is retrieved, the data buffers are cleared.
 
         Returns:
             A tuple with a list of the readings timestamps and a list of lists with

@@ -225,7 +225,7 @@ class MotionController:
 
     @property
     def servo_net(self) -> MappingProxyType[str, str]:
-        """Get the servo network dictionary.
+        """The servo network dictionary.
 
         Returns:
             The servo network dictionary.
