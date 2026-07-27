@@ -186,6 +186,11 @@ pipeline {
                         logLevel: PyTestParams.readValue(params, 'pytestLoggingLevel')
                     )
 
+                    // Sirius tests should only run on python 3.12
+                    SIRIUS_TESTS.baseTestSession.setAttributeInCascade(
+                        runInVirtualEnvs: venvManager.pythonVersionsToDefaultVenvNames(["3.12"] as Set)
+                    )
+
                     // Configure if ECAT and ETH sessions use Wireshark logging based on parameter
                     def wiresharkLogging = PyTestParams.readValue(params, 'wiresharkLogging', env, currentBuild)
                     ECAT_TESTS.baseTestSession.setAttributeInCascade(useWiresharkLogging: wiresharkLogging)
