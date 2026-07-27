@@ -301,3 +301,26 @@ ECAT_MULTISLAVE_SETUP = MultiRackServiceConfigSpecifier.create(
         },
     },
 )
+
+SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
+    part_number=PartNumber.EVS_NET_E,
+    interface=Interface.ECAT,
+    version_configs={
+        "2.10.0": VersionConfig.from_version(
+            version="2.10.0",
+            config_file=config_files.SIRIUS_EVS_NET_E_2_10_0_CONFIG,
+            dictionary_type=DictionaryType.XDF_V2,
+            extra_data={
+                __EXECUTION_POLICY_KEY: "always",
+                __TEST_CONFIGS_KEY: {
+                    "SIRIUS_TEST_SESSIONS": PyTestConfig(
+                        markers="soem",
+                        run_test_stage_uid="sirius_evs_net_e_2.10.0",
+                        stage_name="SIRIUS EVS-NET-E Tests - FW. 2.10.0",
+                    )
+                },
+                "is_abs_encoder_configurable": True,
+            },
+        ),
+    },
+)

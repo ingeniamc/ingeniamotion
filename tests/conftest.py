@@ -29,6 +29,9 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 __BISS_C_CONFIG_MARKER: str = "biss_c_flaky"
+__ABS1_SLAVE_INDEX = 1
+__ABS1_SSI1_RESOLUTION_BITS = 17
+__ABS1_SSI1_PROTOCOL = "SSI1"
 
 
 def not_valid_for_eve_can_ecat_products(func: Callable) -> Callable:
@@ -193,7 +196,7 @@ def apply_configuration_marker_to_items(
         if not item.get_closest_marker(__BISS_C_CONFIG_MARKER):
             continue
 
-        for skip_product in ["CAP-*", "EVE-*"]:
+        for skip_product in ["CAP-*", "EVE-*", "EVS-*"]:
             item.add_marker(
                 pytest.mark.valid_versions_for_product(part_number=skip_product, max="2.6.0")
             )
@@ -357,3 +360,34 @@ def refresh_registers_for_test_rollback(servo: Servo, register_uids: list[str]):
             logger.warning(
                 f"Register {register_uid} not found during refresh after test execution."
             )
+
+
+@pytest.fixture()
+def configure_abs_encoder(
+    rs_client,
+    setup_descriptor,
+    is_abs_encoder_configurable,
+) -> None:
+    """Configure ABS1 through the rack service if the encoder is configurable."""
+    if not is_abs_encoder_configurable:
+        return
+    try:
+        rs_client.client.exposed_set_abs(
+            setup_descriptor.rack_drive_idx,
+            __ABS1_SLAVE_INDEX,
+            __ABS1_SSI1_RESOLUTION_BITS,
+            __ABS1_SSI1_PROTOCOL,
+        )
+    except Exception as exc:
+        pytest.fail(f"Unable to configure SIRIUS ABS1 feedback: {exc}", pytrace=False)
+
+
+@pytest.fixture
+def is_abs_encoder_configurable(setup_specifier):
+    """Determine if the ABS encoder is configurable based on the setup specifier.
+
+    Returns:
+        bool: True if the ABS encoder is configurable, False otherwise.
+
+    """
+    return setup_specifier.extra_data.get("is_abs_encoder_configurable", False)
