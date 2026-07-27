@@ -8,20 +8,27 @@ from typing import TYPE_CHECKING, Callable, Optional, Union
 import numpy as np
 import pytest
 from ingenialink import Servo
+from ingenialink.configuration_file import ConfigurationFile
 from ingenialink.dictionary import Interface
 from ingenialink.exceptions import ILRegisterNotFoundError
+from ingenialink.utils._utils import convert_bytes_to_dtype, convert_dtype_to_bytes
 from summit_testing_framework import dynamic_loader
 from summit_testing_framework.profilers.stoppable_gaps import StoppableProfilerConfig
 from summit_testing_framework.pytest_helpers.marker_helper import (
+    MarkerHelper,
     apply_firmware_version_markers_to_items,
 )
 
 if TYPE_CHECKING:
+    from summit_testing_framework.setups.specifiers import SetupSpecifier
+
     from ingeniamotion.axis import Axis
     from ingeniamotion.motion_controller import MotionController
     from ingeniamotion.motion_node import MotionNode
 
 logger = logging.getLogger(__name__)
+
+__BISS_C_CONFIG_MARKER: str = "biss_c_flaky"
 
 
 def not_valid_for_eve_can_ecat_products(func: Callable) -> Callable:
@@ -115,6 +122,81 @@ def pytest_configure(config):  # noqa: ARG001
     logging.getLogger("ingenialink.ethercat.servo").addFilter(SuppressSpecificLogs())
 
 
+def __config_uses_biss_c(config_file: Path) -> bool:
+    """Checks if the configuration file uses BISS-C protocol.
+
+    Args:
+        config_file: Path to the configuration file.
+
+    Returns:
+        bool: True if the configuration file uses BISS-C protocol, False otherwise.
+    """
+
+    # Check if absolute encoder is present in feedback sensor
+    # CL_VEL_FBK_SENSOR, CL_POS_FBK_SENSOR, COMMU_ANGLE_SENSOR
+    position_feedback_registers = ["CL_VEL_FBK_SENSOR", "CL_POS_FBK_SENSOR", "COMMU_ANGLE_SENSOR"]
+    encoder_protocol_registers = ["FBK_BISS1_SSI1_PROTOCOL", "FBK_SSI2_PROTOCOL"]
+    # Primary Absolute Slave 1: 1, Secondary Absolute Slave 1: 2
+    search_registers = dict.fromkeys(position_feedback_registers + encoder_protocol_registers, None)
+
+    xcf_instance = ConfigurationFile.load_from_xcf(config_file)
+    for config_register in xcf_instance.registers:
+        if config_register.uid in search_registers:
+            search_registers[config_register.uid] = config_register
+
+        if all(value is not None for value in search_registers.values()):
+            break
+
+    for protocol_register in encoder_protocol_registers:
+        register = search_registers.get(protocol_register)
+        if register is None:
+            continue
+        stored_value = (
+            register.data
+            if register.data is not None
+            else convert_dtype_to_bytes(register.storage, register.dtype)
+        )
+
+        # Biss-C protocol is represented by value 0 in the register
+        if convert_bytes_to_dtype(stored_value, register.dtype) == 0:
+            return True
+
+    return False
+
+
+def apply_configuration_marker_to_items(
+    config: "pytest.Config", items: list["pytest.Item"]
+) -> None:
+    """Applies configuration markers to collected test items.
+
+    There are certain tests that are known to be flaky for BISS-C configuration,
+    and should be skipped for certain firmware versions.
+    """
+    # Check if the setup contains absolute encoder with BISS-C configuration,
+    # so that proper tests can be skipped
+    marker_helper: MarkerHelper = MarkerHelper(config=config)
+    if not marker_helper.is_setup_specified:
+        return
+    setup_specifier: SetupSpecifier = marker_helper.setup_specifier
+    if setup_specifier.config_file is None:
+        return
+
+    if not __config_uses_biss_c(setup_specifier.config_file):
+        return
+
+    for item in items:
+        if not item.get_closest_marker(__BISS_C_CONFIG_MARKER):
+            continue
+
+        for skip_product in ["CAP-*", "EVE-*"]:
+            item.add_marker(
+                pytest.mark.valid_versions_for_product(part_number=skip_product, max="2.6.0")
+            )
+            item.add_marker(
+                pytest.mark.valid_versions_for_product(part_number=skip_product, min="2.11.0")
+            )
+
+
 def pytest_collection_modifyitems(
     session: pytest.Session,  # noqa: ARG001
     config: pytest.Config,
@@ -129,6 +211,12 @@ def pytest_collection_modifyitems(
         config: pytest configuration.
         items: collected test items.
     """
+    # Add valid_versions_for_product markers to tests that have the biss_c_flaky marker,
+    # if the setup uses BISS-C configuration
+    # This must be done before applying firmware version markers to items,
+    # so that the valid_versions_for_product markers are applied first
+    apply_configuration_marker_to_items(config=config, items=items)
+    # Apply firmware version markers to items, skipping tests that do not meet the requirements
     apply_firmware_version_markers_to_items(config=config, items=items)
 
 

@@ -281,6 +281,9 @@ def test_set_position(mc, alias, position_value):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("position_value", [1000, 0, -1000, 4000])
+@pytest.mark.biss_c_flaky(
+    "Sporadically fails on ABS BiSS-C config, will be skipped for certain firmware versions"
+)
 def test_move_position(mc, alias, position_value):
     pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
