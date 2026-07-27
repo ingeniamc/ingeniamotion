@@ -360,11 +360,11 @@ def refresh_registers_for_test_rollback(servo: Servo, register_uids: list[str]):
             )
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def configure_abs_encoder(
     rs_client,
     setup_descriptor,
-    is_abs_encoder_configurable,
+    is_abs_encoder_configurable: bool,
 ) -> None:
     """Configure ABS1 through the rack service if the encoder is configurable."""
     if not is_abs_encoder_configurable:
@@ -385,7 +385,7 @@ def configure_abs_encoder(
 
 
 @pytest.fixture
-def is_abs_encoder_configurable(setup_specifier):
+def is_abs_encoder_configurable(setup_specifier: "SetupSpecifier") -> bool:
     """Determine if the ABS encoder is configurable based on the setup specifier.
 
     Returns:
