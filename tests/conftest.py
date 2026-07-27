@@ -11,7 +11,7 @@ from ingenialink import Servo
 from ingenialink.configuration_file import ConfigurationFile
 from ingenialink.dictionary import Interface
 from ingenialink.exceptions import ILRegisterNotFoundError
-from ingenialink.utils._utils import convert_bytes_to_dtype, convert_dtype_to_bytes
+from ingenialink.utils._utils import convert_bytes_to_dtype
 from summit_testing_framework import dynamic_loader
 from summit_testing_framework.profilers.stoppable_gaps import StoppableProfilerConfig
 from summit_testing_framework.pytest_helpers.marker_helper import (
@@ -142,23 +142,28 @@ def __config_uses_biss_c(config_file: Path) -> bool:
     xcf_instance = ConfigurationFile.load_from_xcf(config_file)
     for config_register in xcf_instance.registers:
         if config_register.uid in search_registers:
-            search_registers[config_register.uid] = config_register
+            search_registers[config_register.uid] = (
+                convert_bytes_to_dtype(config_register.data, config_register.dtype)
+                if config_register.data is not None
+                else config_register.storage
+            )
 
         if all(value is not None for value in search_registers.values()):
             break
 
-    for protocol_register in encoder_protocol_registers:
-        register = search_registers.get(protocol_register)
-        if register is None:
-            continue
-        stored_value = (
-            register.data
-            if register.data is not None
-            else convert_dtype_to_bytes(register.storage, register.dtype)
-        )
+    # Check if absolute encoder is present in feedback sensor
+    uses_absolute_encoder = any(
+        search_registers[register] is not None and search_registers[register] in [1, 7]
+        for register in position_feedback_registers
+    )
+    if not uses_absolute_encoder:
+        return False
 
+    for protocol_register in encoder_protocol_registers:
+        if search_registers[protocol_register] is None:
+            continue
         # Biss-C protocol is represented by value 0 in the register
-        if convert_bytes_to_dtype(stored_value, register.dtype) == 0:
+        if search_registers[protocol_register] == 0:
             return True
 
     return False
