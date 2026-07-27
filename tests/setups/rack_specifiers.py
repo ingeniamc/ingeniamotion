@@ -309,7 +309,7 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
         "2.10.0": VersionConfig.from_version(
             version="2.10.0",
             config_file=config_files.SIRIUS_EVS_NET_E_2_10_0_CONFIG,
-            dictionary_type=DictionaryType.XDF_V2,
+            dictionary_type=DictionaryType.XDF_V3,
             extra_data={
                 __EXECUTION_POLICY_KEY: "always",
                 __TEST_CONFIGS_KEY: {
