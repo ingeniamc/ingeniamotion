@@ -24,27 +24,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-def not_valid_for_eve_can_ecat_products(func: Callable) -> Callable:
-    """Decorator that applies not_valid_for_product markers for CAN and ECAT EVE products.
-
-    Returns:
-        The decorated function with the markers applied.
-    """
-    func = pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])(
-        func
-    )
-    func = pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])(
-        func
-    )
-    func = pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])(
-        func
-    )
-    func = pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])(
-        func
-    )
-    return func
-
-
 def not_valid_for_all_eve_products(func: Callable) -> Callable:
     """Decorator that applies not_valid_for_product markers for all EVE products.
 
