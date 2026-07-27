@@ -17,6 +17,8 @@ from summit_testing_framework.pytest_helpers.marker_helper import (
 )
 from summit_testing_framework.setups.specifiers import DictionaryType, DictionaryVersion
 
+from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY
+
 if TYPE_CHECKING:
     from ingeniamotion.axis import Axis
     from ingeniamotion.motion_controller import MotionController
@@ -220,13 +222,8 @@ def refresh_registers_for_test_rollback(servo: Servo, register_uids: list[str]):
 
 
 @pytest.fixture(scope="session")
-def sample_safe_ph1_xdfv3_dictionary(
-    product_dictionary: Callable[[str, DictionaryVersion, Optional[Interface]], Path],
-) -> Path:
-    return product_dictionary(
-        "DEN-S-NET-E",
-        DictionaryVersion("2.9.1", DictionaryType.XDF_V3),
-    )
+def sample_safe_ph1_xdfv3_dictionary() -> Path:
+    return Path(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
 
 
 @pytest.fixture(scope="session")
