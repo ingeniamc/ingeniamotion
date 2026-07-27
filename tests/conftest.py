@@ -154,21 +154,19 @@ def __config_uses_biss_c(config_file: Path) -> bool:
         if all(value is not None for value in search_registers.values()):
             break
 
-    # Check if absolute encoder is present in feedback sensor
-    uses_absolute_encoder = any(
-        search_registers[register] is not None and search_registers[register] in [1, 7]
-        for register in position_feedback_registers
-    )
-    if not uses_absolute_encoder:
-        return False
-
-    for protocol_register in encoder_protocol_registers:
-        if search_registers[protocol_register] is None:
+    for register in position_feedback_registers:
+        if search_registers[register] is None:
             continue
-        # Biss-C protocol is represented by value 0 in the register
-        if search_registers[protocol_register] == 0:
-            return True
 
+        # Primary Absolute Slave 1 selected
+        if search_registers[register] == 1:
+            if search_registers[encoder_protocol_registers[0]] == 0:
+                return True
+        # Secondary Absolute Slave 1 selected
+        elif (
+            search_registers[register] == 7 and search_registers[encoder_protocol_registers[1]] == 0
+        ):
+            return True
     return False
 
 
