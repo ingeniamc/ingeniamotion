@@ -8,14 +8,12 @@ from typing import TYPE_CHECKING, Callable, Optional, Union
 import numpy as np
 import pytest
 from ingenialink import Servo
-from ingenialink.dictionary import Interface
 from ingenialink.exceptions import ILRegisterNotFoundError
 from summit_testing_framework import dynamic_loader
 from summit_testing_framework.profilers.stoppable_gaps import StoppableProfilerConfig
 from summit_testing_framework.pytest_helpers.marker_helper import (
     apply_firmware_version_markers_to_items,
 )
-from summit_testing_framework.setups.specifiers import DictionaryType, DictionaryVersion
 
 if TYPE_CHECKING:
     from ingeniamotion.axis import Axis
@@ -23,74 +21,6 @@ if TYPE_CHECKING:
     from ingeniamotion.motion_node import MotionNode
 
 logger = logging.getLogger(__name__)
-
-
-def not_valid_for_eve_can_ecat_products(func: Callable) -> Callable:
-    """Decorator that applies not_valid_for_product markers for CAN and ECAT EVE products.
-
-    Returns:
-        The decorated function with the markers applied.
-    """
-    func = pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])(
-        func
-    )
-    func = pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])(
-        func
-    )
-    func = pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])(
-        func
-    )
-    func = pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])(
-        func
-    )
-    return func
-
-
-@pytest.fixture(scope="session")
-def sample_safe_ph1_xdfv3_dictionary(
-    product_dictionary: Callable[[str, DictionaryVersion, Optional[Interface]], Path],
-) -> Path:
-    return product_dictionary(
-        "DEN-S-NET-E",
-        DictionaryVersion("2.9.1", DictionaryType.XDF_V3),
-    )
-
-
-@pytest.fixture(scope="session")
-def sample_safe_ph2_xdfv3_dictionary(
-    product_dictionary: Callable[[str, DictionaryVersion, Optional[Interface]], Path],
-) -> Path:
-    return product_dictionary(
-        "EVS-S-NET-E",
-        DictionaryVersion("2.9.1", DictionaryType.XDF_V3),
-    )
-
-
-def not_valid_for_all_eve_products(func: Callable) -> Callable:
-    """Decorator that applies not_valid_for_product markers for all EVE products.
-
-    Returns:
-        The decorated function with the markers applied.
-    """
-    func = pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])(
-        func
-    )
-    func = pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])(
-        func
-    )
-    func = pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.ETH])(
-        func
-    )
-    func = pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])(
-        func
-    )
-    func = pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])(
-        func
-    )
-    func = pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.ETH])(
-        func
-    )
-    return func
 
 
 pytest_plugins = [

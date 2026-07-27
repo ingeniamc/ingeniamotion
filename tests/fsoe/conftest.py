@@ -16,6 +16,7 @@ from ingenialink.network import Network
 from ingenialink.pdo_network_manager import PDONetworkManager as ILPDONetworkManager
 from ingenialink.servo import DictionaryFactory, Servo
 from ingenialink.utils._utils import convert_dtype_to_bytes
+from summit_testing_framework.setups.specifiers import DictionaryType, DictionaryVersion
 
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.errors import (
@@ -51,6 +52,26 @@ if TYPE_CHECKING:
 
 TIMEOUT_FOR_DATA = 30
 TIMEOUT_FOR_DATA_SRA = 3
+
+
+@pytest.fixture(scope="session")
+def sample_safe_ph1_xdfv3_dictionary(
+    product_dictionary: Callable[[str, DictionaryVersion, Optional[Interface]], Path],
+) -> Path:
+    return product_dictionary(
+        "DEN-S-NET-E",
+        DictionaryVersion("2.9.1", DictionaryType.XDF_V3),
+    )
+
+
+@pytest.fixture(scope="session")
+def sample_safe_ph2_xdfv3_dictionary(
+    product_dictionary: Callable[[str, DictionaryVersion, Optional[Interface]], Path],
+) -> Path:
+    return product_dictionary(
+        "EVS-S-NET-E",
+        DictionaryVersion("2.9.1", DictionaryType.XDF_V3),
+    )
 
 
 def emergency_handler(servo_alias: str, message: "EmergencyMessage") -> None:
