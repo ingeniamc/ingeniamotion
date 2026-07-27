@@ -135,7 +135,7 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
 
     @property
     def monitoring(self) -> "Monitoring":
-        """Get the monitoring object.
+        """The monitoring object.
 
         Raises:
             ValueError: If the monitoring has not been configured yet.

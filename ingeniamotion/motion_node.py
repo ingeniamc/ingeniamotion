@@ -29,7 +29,7 @@ class MotionNode:
 
     @property
     def servo(self) -> Servo:
-        """Get the servo associated with the motion node."""
+        """The servo associated with the motion node."""
         return self.__servo
 
     @property
@@ -39,7 +39,7 @@ class MotionNode:
 
     @property
     def axes(self) -> Iterator["Axis"]:
-        """Get the axes of the motion node.
+        """The axes of the motion node.
 
         Yields:
             Axis: Each axis of the motion node.
@@ -62,5 +62,5 @@ class MotionNode:
 
     @property
     def errors(self) -> NodeErrors:
-        """Get the errors of the motion node."""
+        """The errors of the motion node."""
         return self.__errors

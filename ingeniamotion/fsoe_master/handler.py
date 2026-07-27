@@ -29,7 +29,6 @@ from ingeniamotion.fsoe_master.fsoe import (
     FSoEDictionaryItemOutput,
     State,
     StateData,
-    StateReset,
     calculate_sra_crc,
 )
 from ingeniamotion.fsoe_master.parameters import (
@@ -107,9 +106,14 @@ class FSoEMasterHandler:
         self.__state_is_data = threading.Event()
         self.__stopping = False
 
-        # The saco slave might take a while to answer with a valid command
-        # During it's initialization it will respond with 0's, that are ignored
-        # To avoid triggering additional errors
+        # Baseline slave reply established since start(), or None if none has
+        # been seen yet. A reply that matches it isn't a new answer - whether
+        # that's a frame left over from a previous session or the slave still
+        # booting (e.g. answering with 0's before it's ready). It's still fed
+        # to the master handler as normal; __in_initial_reset reflects, per
+        # reply, whether it matched this baseline - see set_reply() and
+        # __report_error_callback().
+        self.__last_slave_message: Optional[bytes] = None
         self.__in_initial_reset = False
 
         # Parameters that are part of the system
@@ -265,7 +269,7 @@ class FSoEMasterHandler:
 
     @property
     def net(self) -> "EthercatNetwork":
-        """Returns the Ethercat network instance."""
+        """The Ethercat network instance."""
         return self.__net
 
     def get_application_parameters_sra_crc(self) -> int:
@@ -370,7 +374,7 @@ class FSoEMasterHandler:
         """
         if self.running:
             raise RuntimeError("FSoE Master is already running.")
-        self.__in_initial_reset = True
+        self.__last_slave_message = None
         # Recalculate the SRA crc in case it changed
         if self._sra_fsoe_application_parameter is not None:
             self._sra_fsoe_application_parameter.set(self.get_application_parameters_sra_crc())
@@ -382,7 +386,6 @@ class FSoEMasterHandler:
         """Stop the master handler."""
         self.__stopping = True
         self._master_handler.stop()
-        self.__in_initial_reset = False
         self.__running = False
 
         self.safety_master_pdu_map.unsubscribe_to_process_data_event()
@@ -396,7 +399,7 @@ class FSoEMasterHandler:
 
     @property
     def process_image(self) -> "ProcessImage":
-        """Get the Process Image used for the Safety PDUs."""
+        """The Process Image used for the Safety PDUs."""
         return self.__process_image
 
     def set_process_image(self, process_image: "ProcessImage") -> None:
@@ -479,6 +482,15 @@ class FSoEMasterHandler:
         # Do not act on late replies when stopping or not running
         if self.__stopping or not self.__running:
             return
+
+        # First reply since start() can't yet correspond to anything this
+        # session asked for, and there's nothing prior to compare it to
+        # either - treat it the same as a genuine repeat.
+        self.__in_initial_reset = (
+            self.__last_slave_message is None or reply == self.__last_slave_message
+        )
+        if self.__last_slave_message is None:
+            self.__last_slave_message = reply
 
         self._master_handler.set_reply(reply)
 
@@ -764,13 +776,6 @@ class FSoEMasterHandler:
         return sto_command
 
     def __internal_state_change_callback(self, state: "State") -> None:
-        if self.__in_initial_reset and state != StateReset:
-            # The master has moved past the initial handshake with the slave.
-            # Errors reported from now on are no longer expected transients
-            # (e.g. stale frozen frames from a previous session) and should
-            # be forwarded normally.
-            self.__in_initial_reset = False
-
         if state == StateData:
             self.__state_is_data.set()
         else:
@@ -928,7 +933,7 @@ class FSoEMasterHandler:
 
     @property
     def state(self) -> FSoEState:
-        """Get the FSoE master state."""
+        """The FSoE master state."""
         return FSoEState(self._master_handler.state.id)
 
     @property

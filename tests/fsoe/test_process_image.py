@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Callable
 
 import pytest
 from ingenialink import RegAccess
-from ingenialink.ethercat.servo import EthercatServo
 from ingenialink.pdo import RPDOMap, TPDOMap
 
 from ingeniamotion.enums import FSoEState

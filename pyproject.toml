@@ -86,7 +86,7 @@ twine = "==6.2.0"
 [tool.poetry.group.format]
 optional = true
 [tool.poetry.group.format.dependencies]
-ruff = "==0.15.14"
+ruff = "==0.16.0"
 
 # Dependencies for docs task
 [tool.poetry.group.docs]
