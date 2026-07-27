@@ -15,6 +15,7 @@ from summit_testing_framework.profilers.stoppable_gaps import StoppableProfilerC
 from summit_testing_framework.pytest_helpers.marker_helper import (
     apply_firmware_version_markers_to_items,
 )
+from summit_testing_framework.setups.specifiers import DictionaryType, DictionaryVersion
 
 if TYPE_CHECKING:
     from ingeniamotion.axis import Axis
@@ -22,8 +23,6 @@ if TYPE_CHECKING:
     from ingeniamotion.motion_node import MotionNode
 
 logger = logging.getLogger(__name__)
-
-pytest_plugins = ["tests.dictionaries.fixtures"]
 
 
 def not_valid_for_eve_can_ecat_products(func: Callable) -> Callable:
@@ -45,6 +44,26 @@ def not_valid_for_eve_can_ecat_products(func: Callable) -> Callable:
         func
     )
     return func
+
+
+@pytest.fixture(scope="session")
+def sample_safe_ph1_xdfv3_dictionary(
+    product_dictionary: Callable[[str, DictionaryVersion, Optional[Interface]], Path],
+) -> Path:
+    return product_dictionary(
+        "DEN-S-NET-E",
+        DictionaryVersion("2.9.1", DictionaryType.XDF_V3),
+    )
+
+
+@pytest.fixture(scope="session")
+def sample_safe_ph2_xdfv3_dictionary(
+    product_dictionary: Callable[[str, DictionaryVersion, Optional[Interface]], Path],
+) -> Path:
+    return product_dictionary(
+        "EVS-S-NET-E",
+        DictionaryVersion("2.9.1", DictionaryType.XDF_V3),
+    )
 
 
 def not_valid_for_all_eve_products(func: Callable) -> Callable:

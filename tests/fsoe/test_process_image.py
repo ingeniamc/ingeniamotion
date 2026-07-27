@@ -10,10 +10,7 @@ from ingenialink.pdo import RPDOMap, TPDOMap
 from ingeniamotion.enums import FSoEState
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError
 from ingeniamotion.motion_controller import MotionController
-from tests.dictionaries.fixtures import (
-    sample_safe_ph1_xdfv3_dictionary,
-    sample_safe_ph2_xdfv3_dictionary,
-)
+from tests.conftest import sample_safe_ph1_xdfv3_dictionary, sample_safe_ph2_xdfv3_dictionary
 from tests.fsoe.conftest import MockNetwork, MockServo
 
 try:

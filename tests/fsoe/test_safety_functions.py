@@ -328,8 +328,8 @@ def test_sout_is_motion(sample_safe_ph2_xdfv3_dictionary: str):
 
 
 @pytest.mark.fsoe_phase2
-def test_ss1_activated_by(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str):
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+def test_ss1_activated_by(sample_safe_ph2_xdfv3_dictionary: str):
+    handler = MockHandler(sample_safe_ph2_xdfv3_dictionary, 0x3B00003)
     process_image = ProcessImage.empty(handler.dictionary)
     handler.set_process_image(process_image)
     ss1_instance = handler.ss1_function()
@@ -354,8 +354,8 @@ def test_ss1_activated_by(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str):
 
 
 @pytest.mark.fsoe_phase2
-def test_ss1_activated_by_multiple(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str):
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+def test_ss1_activated_by_multiple(sample_safe_ph2_xdfv3_dictionary: str):
+    handler = MockHandler(sample_safe_ph2_xdfv3_dictionary, 0x3B00003)
     process_image = ProcessImage.empty(handler.dictionary)
     handler.set_process_image(process_image)
     ss1_instance = handler.ss1_function()
@@ -386,9 +386,9 @@ def test_ss1_activated_by_multiple(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str):
 
 
 @pytest.mark.fsoe_phase2
-def test_ss1_is_motion(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str):
+def test_ss1_is_motion(sample_safe_ph2_xdfv3_dictionary: str):
     """Test is_motion and follows_custom_motion_rules of SS1Function."""
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+    handler = MockHandler(sample_safe_ph2_xdfv3_dictionary, 0x3B00003)
     process_image = ProcessImage.empty(handler.dictionary)
     handler.set_process_image(process_image)
     ss1_instance = handler.ss1_function()
@@ -401,12 +401,13 @@ def test_ss1_is_motion(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str):
     assert ss1_instance.is_motion()
 
 
-def test_is_active_sos(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str) -> None:
+@pytest.mark.fsoe
+def test_is_active_sos(sample_safe_ph2_xdfv3_dictionary: str) -> None:
     """Test is_active method of SOSFunction.
 
     The SOSFunction can be activated mapping itself or the SS2Function.
     """
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+    handler = MockHandler(sample_safe_ph2_xdfv3_dictionary, 0x3B00003)
     process_image = ProcessImage.empty(handler.dictionary)
     handler.set_process_image(process_image)
     sos_instance = handler.get_function_instance(SOSFunction)
@@ -425,9 +426,9 @@ def test_is_active_sos(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str) -> None:
 
 
 @pytest.mark.fsoe_phase2
-def test_sos_is_motion(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str):
+def test_sos_is_motion(sample_safe_ph2_xdfv3_dictionary: str):
     """Test is_motion of SOSFunction."""
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+    handler = MockHandler(sample_safe_ph2_xdfv3_dictionary, 0x3B00003)
     process_image = ProcessImage.empty(handler.dictionary)
     handler.set_process_image(process_image)
     sos_instance = handler.get_function_instance(SOSFunction)
@@ -435,12 +436,13 @@ def test_sos_is_motion(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str):
     assert sos_instance.is_motion()
 
 
-def test_is_active_sp(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str) -> None:
+@pytest.mark.fsoe
+def test_is_active_sp(sample_safe_ph2_xdfv3_dictionary: str) -> None:
     """Test is_active method of SPFunction.
 
     The SPFunction can be activated via the feedback scenario parameter or mapping itself.
     """
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+    handler = MockHandler(sample_safe_ph2_xdfv3_dictionary, 0x3B00003)
     process_image = ProcessImage.empty(handler.dictionary)
     handler.set_process_image(process_image)
     sp_instance = handler.get_function_instance(SPFunction)
@@ -460,9 +462,9 @@ def test_is_active_sp(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str) -> None:
 
 
 @pytest.mark.fsoe_phase2
-def test_spf_is_motion(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str):
+def test_spf_is_motion(sample_safe_ph2_xdfv3_dictionary: str):
     """Test is_motion of SPFunction."""
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+    handler = MockHandler(sample_safe_ph2_xdfv3_dictionary, 0x3B00003)
     process_image = ProcessImage.empty(handler.dictionary)
     handler.set_process_image(process_image)
     sp_instance = handler.get_function_instance(SPFunction)
@@ -471,9 +473,9 @@ def test_spf_is_motion(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str):
 
 
 @pytest.mark.fsoe_phase2
-def test_sh_is_motion(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str):
+def test_sh_is_motion(sample_safe_ph2_xdfv3_dictionary: str):
     """Test is_motion of SafeHomingFunction."""
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+    handler = MockHandler(sample_safe_ph2_xdfv3_dictionary, 0x3B00003)
     process_image = ProcessImage.empty(handler.dictionary)
     handler.set_process_image(process_image)
     sh_instance = handler.get_function_instance(SafeHomingFunction)
@@ -481,12 +483,13 @@ def test_sh_is_motion(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str):
     assert sh_instance.is_motion()
 
 
-def test_is_active_si(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str) -> None:
+@pytest.mark.fsoe
+def test_is_active_si(sample_safe_ph2_xdfv3_dictionary: str) -> None:
     """Test is_active method of SafeInputsFunction.
 
     The SafeInputsFunction can be activated setting map parameter or mapping itself.
     """
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+    handler = MockHandler(sample_safe_ph2_xdfv3_dictionary, 0x3B00003)
     process_image = ProcessImage.empty(handler.dictionary)
     handler.set_process_image(process_image)
     si_instance = handler.get_function_instance(SafeInputsFunction)
@@ -505,9 +508,9 @@ def test_is_active_si(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str) -> None:
 
 
 @pytest.mark.fsoe_phase2
-def test_si_is_motion(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str):
+def test_si_is_motion(sample_safe_ph2_xdfv3_dictionary: str):
     """Test is_motion of SafeInputsFunction."""
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+    handler = MockHandler(sample_safe_ph2_xdfv3_dictionary, 0x3B00003)
     process_image = ProcessImage.empty(handler.dictionary)
     handler.set_process_image(process_image)
     si_instance = handler.get_function_instance(SafeInputsFunction)
@@ -516,9 +519,9 @@ def test_si_is_motion(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str):
 
 
 @pytest.mark.fsoe_phase2
-def test_sv_is_motion(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str):
+def test_sv_is_motion(sample_safe_ph2_xdfv3_dictionary: str):
     """Test is_motion of SVFunction."""
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+    handler = MockHandler(sample_safe_ph2_xdfv3_dictionary, 0x3B00003)
     process_image = ProcessImage.empty(handler.dictionary)
     handler.set_process_image(process_image)
     sv_instance = handler.get_function_instance(SVFunction)
@@ -527,9 +530,9 @@ def test_sv_is_motion(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str):
 
 
 @pytest.mark.fsoe_phase2
-def test_sls_is_motion(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str):
+def test_sls_is_motion(sample_safe_ph2_xdfv3_dictionary: str):
     """Test is_motion of SLSFunction."""
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+    handler = MockHandler(sample_safe_ph2_xdfv3_dictionary, 0x3B00003)
     process_image = ProcessImage.empty(handler.dictionary)
     handler.set_process_image(process_image)
     sls_instance = handler.get_function_instance(SLSFunction, instance=1)
@@ -538,9 +541,9 @@ def test_sls_is_motion(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str):
 
 
 @pytest.mark.fsoe_phase2
-def test_ssr_is_motion(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str):
+def test_ssr_is_motion(sample_safe_ph2_xdfv3_dictionary: str):
     """Test is_motion of SSRFunction."""
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+    handler = MockHandler(sample_safe_ph2_xdfv3_dictionary, 0x3B00003)
     process_image = ProcessImage.empty(handler.dictionary)
     handler.set_process_image(process_image)
     ssr_instance = handler.get_function_instance(SSRFunction, instance=1)
@@ -549,9 +552,9 @@ def test_ssr_is_motion(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str):
 
 
 @pytest.mark.fsoe_phase2
-def test_slp_is_motion(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str):
+def test_slp_is_motion(sample_safe_ph2_xdfv3_dictionary: str):
     """Test is_motion of SLPFunction."""
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+    handler = MockHandler(sample_safe_ph2_xdfv3_dictionary, 0x3B00003)
     process_image = ProcessImage.empty(handler.dictionary)
     handler.set_process_image(process_image)
     slp_instance = handler.get_function_instance(SLPFunction, instance=1)
@@ -560,9 +563,9 @@ def test_slp_is_motion(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str):
 
 
 @pytest.mark.fsoe_phase2
-def test_sdi_is_motion(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str):
+def test_sdi_is_motion(sample_safe_ph2_xdfv3_dictionary: str):
     """Test is_motion of SDIFunction."""
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+    handler = MockHandler(sample_safe_ph2_xdfv3_dictionary, 0x3B00003)
     process_image = ProcessImage.empty(handler.dictionary)
     handler.set_process_image(process_image)
     sdi_instance = handler.get_function_instance(SDIFunction, instance=1)
@@ -571,9 +574,9 @@ def test_sdi_is_motion(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str):
 
 
 @pytest.mark.fsoe_phase2
-def test_sli_is_motion(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY: str):
+def test_sli_is_motion(sample_safe_ph2_xdfv3_dictionary: str):
     """Test is_motion of SLIFunction."""
-    handler = MockHandler(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, 0x3B00003)
+    handler = MockHandler(sample_safe_ph2_xdfv3_dictionary, 0x3B00003)
     process_image = ProcessImage.empty(handler.dictionary)
     handler.set_process_image(process_image)
     sli_instance = handler.get_function_instance(SLIFunction, instance=1)
@@ -594,5 +597,3 @@ def test_no_safety_function_instances(
         ValueError, match="Master handler does not contain any STOFunction instance"
     ):
         handler.get_function_instance(STOFunction)
-
-

@@ -297,9 +297,11 @@ def test_handler_is_stopped_if_error_in_pdo_thread(
 
 
 @pytest.mark.fsoe
-def test_mock_slave_drives_real_handshake_to_data_state() -> None:
+def test_mock_slave_drives_real_handshake_to_data_state(
+    sample_safe_ph1_xdfv3_dictionary: str,
+) -> None:
     errors: list[tuple[str, str]] = []
-    mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
+    mock_servo = MockServo(sample_safe_ph1_xdfv3_dictionary)
     handler = FSoEMasterHandler(
         servo=mock_servo,
         net=MockNetwork(),
@@ -327,11 +329,14 @@ def fsoe_trace_path(test_output_handler: "PytestOutputHandler") -> Path:
 
 
 @pytest.mark.fsoe
-def test_master_ignores_stale_reply_after_master_replacement(fsoe_trace_path: Path) -> None:
+def test_master_ignores_stale_reply_after_master_replacement(
+    fsoe_trace_path: Path,
+    sample_safe_ph1_xdfv3_dictionary: str,
+) -> None:
     # One physical slave, one master instance connecting to it after another -
     # e.g. Motionlab switching between two FSoE master configurations against
     # the same drive - not two independent slaves.
-    mock_servo = MockServo(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
+    mock_servo = MockServo(sample_safe_ph1_xdfv3_dictionary)
     mock_network = MockNetwork()
 
     errors_a: list[tuple[str, str]] = []
