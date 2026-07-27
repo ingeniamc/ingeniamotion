@@ -314,7 +314,7 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
                 __EXECUTION_POLICY_KEY: "always",
                 __TEST_CONFIGS_KEY: {
                     "SIRIUS_TEST_SESSIONS": PyTestConfig(
-                        markers="soem",
+                        markers="soem and biss_c_flaky",  # https://novantamotion.atlassian.net/browse/INGM-798
                         run_test_stage_uid="sirius_evs_net_e_2.10.0",
                         stage_name="SIRIUS EVS-NET-E Tests - FW. 2.10.0",
                     )
