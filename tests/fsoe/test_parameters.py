@@ -67,7 +67,7 @@ def test_get_parameters_not_related_to_safety_functions(
         "FSOE_ABS_SSI_PRIM1_TOUT",
         "FSOE_ABS_SSI_SECOND1_BAUD",
         "FSOE_ABS_SSI_SECOND1_FSIZE",
-        "FSOE_ABS_SSI_SECOND1_PBITS",
+        "FSOE_ABS_SSI_SECOND1_POSBITS",
         "FSOE_ABS_SSI_SECOND1_POL",
         "FSOE_ABS_SSI_SECOND1_STURN",
         "FSOE_ABS_SSI_SECOND1_TOUT",
