@@ -18,7 +18,7 @@ from summit_testing_framework.pytest_helpers.marker_helper import (
     MarkerHelper,
     apply_firmware_version_markers_to_items,
 )
-from summit_testing_framework.setups import RackSetupDescriptor
+from summit_testing_framework.setups.specifiers import RackServiceConfigSpecifier
 
 if TYPE_CHECKING:
     from summit_testing_framework.services.rack_service_client import RackServiceClient
@@ -359,9 +359,9 @@ def configure_abs_encoder(
     encoder_dict_config = setup_specifier.extra_data.get("configure_encoder_protocol", None)
     if not encoder_dict_config:
         return
-    setup_descriptor: SetupDescriptor = request.getfixturevalue("setup_descriptor")
-    if not isinstance(setup_descriptor, RackSetupDescriptor):
+    if not isinstance(setup_specifier, RackServiceConfigSpecifier):
         return
+    setup_descriptor: SetupDescriptor = request.getfixturevalue("setup_descriptor")
     rs_client: RackServiceClient = request.getfixturevalue("rs_client")
 
     encoder_config: EncoderConfiguration = EncoderConfiguration.from_dict(encoder_dict_config)
