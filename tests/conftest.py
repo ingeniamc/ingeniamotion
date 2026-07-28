@@ -337,7 +337,7 @@ def configure_abs_encoder(
         pytest.fail(f"Unable to configure SIRIUS ABS1 feedback: {exc}", pytrace=False)
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def is_abs_encoder_configurable(setup_specifier: "SetupSpecifier") -> bool:
     """Determine if the ABS encoder is configurable based on the setup specifier.
 
