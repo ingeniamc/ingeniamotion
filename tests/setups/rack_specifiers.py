@@ -341,7 +341,7 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
                         stage_name="SIRIUS EVS-NET-E Tests - FW. 2.10.0",
                     )
                 },
-                "configure_encoder_protocol": {"protocol": "ssi", "resolution": 17},
+                "configure_encoder_protocol": {"protocol": "SSI1", "resolution": 17},
             },
         ),
         # BiSS-C tests are flaky on 2.10.0 should pass on 2.11.0
@@ -363,7 +363,7 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
                         stage_name="SIRIUS EVS-NET-E Tests - FW. 2.11.0.005",
                     )
                 },
-                "configure_encoder_protocol": {"protocol": "bis3", "resolution": 17},
+                "configure_encoder_protocol": {"protocol": "BIS3", "resolution": 17},
             },
         ),
     },

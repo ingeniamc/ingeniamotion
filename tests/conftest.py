@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 __BISS_C_CONFIG_MARKER: str = "biss_c_flaky"
 __ABS1_SLAVE_INDEX = 1
-_VALID_ENCODER_PROTOCOLS = ["ssi", "bis3"]
+_VALID_ENCODER_PROTOCOLS = ["SSI1", "BIS3"]
 
 
 pytest_plugins = [
@@ -323,7 +323,7 @@ class EncoderConfiguration:
             ValueError: If the protocol is not in the valid protocols list or
                 if the resolution is not a positive integer.
         """
-        if self.protocol.lower() not in _VALID_ENCODER_PROTOCOLS:
+        if self.protocol not in _VALID_ENCODER_PROTOCOLS:
             raise ValueError(
                 f"Invalid protocol: {self.protocol}. Must be one of {_VALID_ENCODER_PROTOCOLS}."
             )
