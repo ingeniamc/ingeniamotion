@@ -354,11 +354,10 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
                 "//azr-srv-ingfs1//dist//products//i050_summit//i059_evs-net-e//release_candidate//2.11.0.5//evs-net-e_eoe_2.11.0.005_v2.xdf"
             ),
             config_file=config_files.SIRIUS_EVS_NET_E_2_11_0_CONFIG,
-            dictionary_type=DictionaryType.XDF_V3,
             extra_data={
                 __EXECUTION_POLICY_KEY: "always",
                 __TEST_CONFIGS_KEY: {
-                    "INGW_SIRIUS_TEST_SESSIONS": PyTestConfig(
+                    "SIRIUS_TEST_SESSIONS": PyTestConfig(
                         markers="soem and biss_c_flaky",
                         run_test_stage_uid="sirius_evs_net_e_2.11.0.005",
                         stage_name="SIRIUS EVS-NET-E Tests - FW. 2.11.0.005",
