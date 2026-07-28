@@ -311,7 +311,7 @@ def refresh_registers_for_test_rollback(servo: Servo, register_uids: list[str]):
             )
 
 
-@pytest.fixture()
+@pytest.fixture(autouse=True, scope="session")
 def configure_abs_encoder(
     rs_client,
     setup_descriptor,
@@ -321,6 +321,7 @@ def configure_abs_encoder(
     if not is_abs_encoder_configurable:
         return
     try:
+        logger.info("Configuring SIRIUS ABS1 feedback through rack service...")
         rs_client.client.exposed_set_abs(
             setup_descriptor.rack_drive_idx,
             __ABS1_SLAVE_INDEX,
@@ -331,6 +332,7 @@ def configure_abs_encoder(
         current_config = rs_client.client.exposed_get_abs(setup_descriptor.rack_drive_idx, 1)
         assert current_config.protocol.name == __ABS1_SSI1_PROTOCOL
         assert current_config.resolution.n == __ABS1_SSI1_RESOLUTION_BITS
+        logger.info("SIRIUS ABS1 feedback configured successfully.")
     except Exception as exc:
         pytest.fail(f"Unable to configure SIRIUS ABS1 feedback: {exc}", pytrace=False)
 
