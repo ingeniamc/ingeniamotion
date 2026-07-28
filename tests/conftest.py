@@ -2,6 +2,7 @@ import logging
 import time
 from collections.abc import Generator, Iterator
 from contextlib import contextmanager
+from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Optional, Union
 
@@ -29,8 +30,7 @@ logger = logging.getLogger(__name__)
 
 __BISS_C_CONFIG_MARKER: str = "biss_c_flaky"
 __ABS1_SLAVE_INDEX = 1
-__ABS1_SSI1_RESOLUTION_BITS = 17
-__ABS1_SSI1_PROTOCOL = "SSI1"
+__VALID_ENCODER_PROTOCOLS = ["ssi", "bis3"]
 
 
 pytest_plugins = [
@@ -311,38 +311,67 @@ def refresh_registers_for_test_rollback(servo: Servo, register_uids: list[str]):
             )
 
 
+@dataclass(frozen=True)
+class EncoderConfiguration:
+    protocol: str
+    resolution: int
+
+    def __post_init__(self) -> None:
+        """Validate the protocol and resolution values.
+
+        Raises:
+            ValueError: If the protocol is not in the valid protocols list or
+                if the resolution is not a positive integer.
+        """
+        if self.protocol.lower() not in __VALID_ENCODER_PROTOCOLS:
+            raise ValueError(
+                f"Invalid protocol: {self.protocol}. Must be one of {__VALID_ENCODER_PROTOCOLS}."
+            )
+        if not isinstance(self.resolution, int) or self.resolution <= 0:
+            raise ValueError(f"Resolution must be a positive integer. Got: {self.resolution}.")
+
+    @classmethod
+    def from_dict(cls, data: dict) -> "EncoderConfiguration":
+        """Create an EncoderConfiguration instance from a dictionary.
+
+        Args:
+            data: Dictionary containing 'protocol' and 'resolution' keys.
+
+        Returns:
+            EncoderConfiguration: An instance of EncoderConfiguration.
+
+        Raises:
+            ValueError: If the dictionary does not contain the required keys.
+        """
+        if "protocol" not in data or "resolution" not in data:
+            raise ValueError("Dictionary must contain 'protocol' and 'resolution' keys.")
+        return cls(protocol=data.get("protocol"), resolution=data.get("resolution"))
+
+
 @pytest.fixture(autouse=True, scope="session")
-def configure_abs_encoder(
-    rs_client,
-    setup_descriptor,
-    is_abs_encoder_configurable: bool,
-) -> None:
+def configure_abs_encoder(rs_client, setup_descriptor, setup_specifier: "SetupSpecifier") -> None:
     """Configure ABS1 through the rack service if the encoder is configurable."""
-    if not is_abs_encoder_configurable:
+    encoder_dict_config = setup_specifier.extra_data.get("configure_encoder_protocol", None)
+    if not encoder_dict_config:
         return
+
+    encoder_config: EncoderConfiguration = EncoderConfiguration.from_dict(encoder_dict_config)
+    logger.info(
+        f"Configuring ABS1 feedback through rack service with protocol {encoder_config.protocol} "
+        f"and resolution {encoder_config.resolution}..."
+    )
+
     try:
-        logger.info("Configuring SIRIUS ABS1 feedback through rack service...")
         rs_client.client.exposed_set_abs(
             setup_descriptor.rack_drive_idx,
             __ABS1_SLAVE_INDEX,
-            __ABS1_SSI1_RESOLUTION_BITS,
-            __ABS1_SSI1_PROTOCOL,
+            encoder_config.resolution,
+            encoder_config.protocol,
         )
 
         current_config = rs_client.client.exposed_get_abs(setup_descriptor.rack_drive_idx, 1)
-        assert current_config.protocol.name == __ABS1_SSI1_PROTOCOL
-        assert current_config.resolution.n == __ABS1_SSI1_RESOLUTION_BITS
+        assert current_config.protocol.name == encoder_config.protocol
+        assert current_config.resolution.n == encoder_config.resolution
         logger.info("SIRIUS ABS1 feedback configured successfully.")
     except Exception as exc:
         pytest.fail(f"Unable to configure SIRIUS ABS1 feedback: {exc}", pytrace=False)
-
-
-@pytest.fixture(scope="session")
-def is_abs_encoder_configurable(setup_specifier: "SetupSpecifier") -> bool:
-    """Determine if the ABS encoder is configurable based on the setup specifier.
-
-    Returns:
-        bool: True if the ABS encoder is configurable, False otherwise.
-
-    """
-    return setup_specifier.extra_data.get("is_abs_encoder_configurable", False)

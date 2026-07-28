@@ -1,3 +1,6 @@
+import platform
+from pathlib import Path
+
 from ingenialink.dictionary import Interface
 from summit_testing_framework.jenkins.pytest_config import PyTestConfig
 from summit_testing_framework.setups.specifier_container import SpecifierContainer
@@ -10,6 +13,25 @@ from summit_testing_framework.setups.specifiers import (
 )
 
 import summit_drives_ci_configs.config_files as config_files
+
+
+def dist_path(p: str) -> Path:
+    """Converts a path string to a Path object, handling platform-specific nuances.
+
+    Args:
+        p: A string representing the path.
+
+    Returns:
+        A Path object corresponding to the given path string.
+    """
+    if platform.system().lower() == "windows":
+        return Path(p)
+    else:
+        # Convert //server/... to /server/...
+        if p.startswith("//"):
+            p = "/" + p.lstrip("/")
+        return Path(p)
+
 
 __EXECUTION_POLICY_KEY: str = "execution_policy"
 __TEST_CONFIGS_KEY: str = "test_configs"
@@ -319,7 +341,30 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
                         stage_name="SIRIUS EVS-NET-E Tests - FW. 2.10.0",
                     )
                 },
-                "is_abs_encoder_configurable": True,
+                "configure_encoder_protocol": {"protocol": "ssi", "resolution": 17},
+            },
+        ),
+        # BiSS-C tests are flaky on 2.10.0 should pass on 2.11.0
+        "2.11.0.005": VersionConfig.from_files(
+            version="2.11.0.005",
+            firmware=dist_path(
+                "//azr-srv-ingfs1//dist//products//i050_summit//i059_evs-net-e//release_candidate//2.11.0.5//evs-net-e_2.11.0.005.lfu"
+            ),
+            dictionary=dist_path(
+                "//azr-srv-ingfs1//dist//products//i050_summit//i059_evs-net-e//release_candidate//2.11.0.5//evs-net-e_eoe_2.11.0.005_v2.xdf"
+            ),
+            config_file=config_files.SIRIUS_EVS_NET_E_2_11_0_CONFIG,
+            dictionary_type=DictionaryType.XDF_V3,
+            extra_data={
+                __EXECUTION_POLICY_KEY: "always",
+                __TEST_CONFIGS_KEY: {
+                    "INGW_SIRIUS_TEST_SESSIONS": PyTestConfig(
+                        markers="soem and biss_c_flaky",
+                        run_test_stage_uid="sirius_evs_net_e_2.11.0.005",
+                        stage_name="SIRIUS EVS-NET-E Tests - FW. 2.11.0.005",
+                    )
+                },
+                "configure_encoder_protocol": {"protocol": "bis3", "resolution": 17},
             },
         ),
     },
