@@ -284,7 +284,6 @@ def test_set_position(mc, alias, position_value):
 @pytest.mark.biss_c_flaky(
     "Sporadically fails on ABS BiSS-C config, will be skipped for certain firmware versions"
 )
-# @pytest.mark.usefixtures("configure_abs_encoder")
 def test_move_position(mc, alias, position_value):
     pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
