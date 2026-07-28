@@ -18,8 +18,11 @@ from summit_testing_framework.pytest_helpers.marker_helper import (
     MarkerHelper,
     apply_firmware_version_markers_to_items,
 )
+from summit_testing_framework.setups import RackSetupDescriptor
 
 if TYPE_CHECKING:
+    from summit_testing_framework.services.rack_service_client import RackServiceClient
+    from summit_testing_framework.setups import SetupDescriptor
     from summit_testing_framework.setups.specifiers import SetupSpecifier
 
     from ingeniamotion.axis import Axis
@@ -349,11 +352,17 @@ class EncoderConfiguration:
 
 
 @pytest.fixture(autouse=True, scope="session")
-def configure_abs_encoder(rs_client, setup_descriptor, setup_specifier: "SetupSpecifier") -> None:
+def configure_abs_encoder(
+    setup_specifier: "SetupSpecifier", request: "pytest.FixtureRequest"
+) -> None:
     """Configure ABS1 through the rack service if the encoder is configurable."""
     encoder_dict_config = setup_specifier.extra_data.get("configure_encoder_protocol", None)
     if not encoder_dict_config:
         return
+    setup_descriptor: SetupDescriptor = request.getfixturevalue("setup_descriptor")
+    if not isinstance(setup_descriptor, RackSetupDescriptor):
+        return
+    rs_client: RackServiceClient = request.getfixturevalue("rs_client")
 
     encoder_config: EncoderConfiguration = EncoderConfiguration.from_dict(encoder_dict_config)
     logger.info(
