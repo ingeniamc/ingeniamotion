@@ -352,10 +352,13 @@ class EncoderConfiguration:
 
 
 @pytest.fixture(autouse=True, scope="session")
-def configure_abs_encoder(
-    setup_specifier: "SetupSpecifier", request: "pytest.FixtureRequest"
-) -> None:
+def configure_abs_encoder(request: "pytest.FixtureRequest") -> None:
     """Configure ABS1 through the rack service if the encoder is configurable."""
+    try:
+        setup_specifier: SetupSpecifier = request.getfixturevalue("setup_specifier")
+    # There are some tests that do not need any setup to run
+    except Exception:
+        return
     encoder_dict_config = setup_specifier.extra_data.get("configure_encoder_protocol", None)
     if not encoder_dict_config:
         return
