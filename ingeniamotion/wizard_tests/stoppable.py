@@ -5,7 +5,7 @@ import typing
 from dataclasses import dataclass
 from functools import wraps
 from queue import Empty, Full, Queue
-from typing import Callable, ClassVar, Optional
+from typing import Callable, Final, Optional
 
 
 class StopExceptionError(Exception):
@@ -49,7 +49,7 @@ class Stoppable:
     """
 
     stop_queue: Queue[StopExceptionError] = Queue(1)
-    _stop_opportunity_subscriptions: ClassVar[list[StopOpportunitySubscription]] = []
+    _stop_opportunity_subscriptions: Final[list[StopOpportunitySubscription]] = []
 
     @classmethod
     def subscribe_to_stop_opportunities(

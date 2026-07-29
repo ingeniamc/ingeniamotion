@@ -1,6 +1,6 @@
 import time
 from enum import IntEnum
-from typing import TYPE_CHECKING, ClassVar, Optional
+from typing import TYPE_CHECKING, Final, Optional
 
 import ingenialogger
 from typing_extensions import override
@@ -42,7 +42,7 @@ class Phasing(BaseTest[LegacyDictReportType]):
 
     # Left changed on purpose: drive-computed calibration results (angle offsets) and the
     # phasing config the test applies. They are not rolled back, so restore checks accept them.
-    ACCEPTED_CHANGED_REGISTERS: ClassVar[tuple[str, ...]] = (
+    ACCEPTED_CHANGED_REGISTERS: Final[tuple[str, ...]] = (
         COMMUTATION_ANGLE_OFFSET_REGISTER,
         COMMUTATION_ANGLE_REF_OFFSET_REGISTER,
         MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER,
@@ -55,7 +55,7 @@ class Phasing(BaseTest[LegacyDictReportType]):
         SUCCESS = 0
         FAIL = -1
 
-    result_description: ClassVar[dict[ResultType, str]] = {
+    result_description: Final[dict[ResultType, str]] = {
         ResultType.SUCCESS: "Phasing process finished successfully",
         ResultType.FAIL: "Phasing process has failed.  Review your motor configuration.",
     }

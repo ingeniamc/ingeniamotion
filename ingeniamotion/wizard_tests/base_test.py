@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, Final, Generic, Optional, TypeVar, Union
 
 import ingenialogger
 from ingenialink.drive_context_manager import DriveContextManager, DriveRegistersValue
@@ -45,7 +45,7 @@ T = TypeVar("T", bound=Union[LegacyDictReportType, ReportBase])
 class BaseTest(ABC, Stoppable, Generic[T]):
     """Abstract base Test class."""
 
-    ACCEPTED_CHANGED_REGISTERS: ClassVar[tuple[str, ...]] = ()
+    ACCEPTED_CHANGED_REGISTERS: Final[tuple[str, ...]] = ()
     """Registers that the test is expected to leave changed after it runs."""
 
     def __init__(self) -> None:

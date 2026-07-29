@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, ClassVar, Optional, Union
+from typing import TYPE_CHECKING, Final, Optional, Union
 
 import ingenialogger
 
@@ -38,7 +38,7 @@ from ingeniamotion.wizard_tests.sto import STOTest
 class DriveTests:
     """Class that contain the tests that can be performed on a drive."""
 
-    __sensors: ClassVar[dict[SensorType, type[Feedbacks]]] = {
+    __sensors: Final[dict[SensorType, type[Feedbacks]]] = {
         SensorType.ABS1: AbsoluteEncoder1Test,
         SensorType.QEI: DigitalIncremental1Test,
         SensorType.HALLS: DigitalHallTest,
