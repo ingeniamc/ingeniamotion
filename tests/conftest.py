@@ -189,8 +189,8 @@ def stoppable_profiler_config() -> StoppableProfilerConfig:
         The stoppable profiler configuration.
     """
     return StoppableProfilerConfig(
-        gap_threshold_seconds=5.1,  # https://novantamotion.atlassian.net/browse/INGM-768
-        good_enough_gap_seconds=2.6,
+        gap_threshold_seconds=0.3,
+        good_enough_gap_seconds=0.2,
     )
 
 

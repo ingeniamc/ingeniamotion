@@ -1,5 +1,4 @@
 import math
-import time
 from enum import IntEnum
 from typing import TYPE_CHECKING, ClassVar, Optional
 
@@ -324,9 +323,7 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
 
     @BaseTest.stoppable
     def __wait_for_movement(self, timeout: float) -> None:
-        timeout = time.time() + timeout
-        while time.time() < timeout:
-            time.sleep(0.1)
+        for _ in self._timeout_loop(timeout_sec=timeout, sleep_sec=0.1, timeout=None):
             if self.mc.errors.is_fault_active(servo=self.servo, axis=self.axis):
                 self.show_error_message()
 
