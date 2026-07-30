@@ -55,17 +55,26 @@ class Stoppable:
     _stop_opportunity_subscriptions: ClassVar[list[StopOpportunitySubscription]] = []
 
     def __init__(self) -> None:
+        """Notify subscribers that a stoppable instance has been created."""
         for sub in self._stoppable_instance_creation_subscriptions:
             sub(self)
 
     @classmethod
     def subscribe_to_instance_creations(cls, callback: StoppableInstanceCreations) -> None:
-        """Subscribe to stoppable instance creations."""
+        """Subscribe to stoppable instance creations.
+
+        Args:
+            callback: Callback invoked with each newly created stoppable instance.
+        """
         cls._stoppable_instance_creation_subscriptions.append(callback)
 
     @classmethod
     def unsubscribe_to_instance_creations(cls, callback: StoppableInstanceCreations) -> None:
-        """Unsubscribe to stoppable instance creations."""
+        """Unsubscribe from stoppable instance creations.
+
+        Args:
+            callback: Previously registered instance-creation callback.
+        """
         with contextlib.suppress(ValueError):
             cls._stoppable_instance_creation_subscriptions.remove(callback)
 
