@@ -49,6 +49,7 @@ class BaseTest(ABC, Stoppable, Generic[T]):
     """Registers that the test is expected to leave changed after it runs."""
 
     def __init__(self) -> None:
+        super().__init__()
         self.suggested_registers: dict[str, Union[int, float, str]] = {}
         self.mc: MotionController
         self.servo: str = DEFAULT_SERVO

@@ -30,6 +30,7 @@ class StopOpportunityTraceEvent:
     finish_timestamp: float
 
 
+StoppableInstanceCreations = Callable[["Stoppable"], None]
 StopOpportunityRecorder = Callable[..., None]
 
 
@@ -49,7 +50,24 @@ class Stoppable:
     """
 
     stop_queue: Queue[StopExceptionError] = Queue(1)
+
+    _stoppable_instance_creation_subscriptions: ClassVar[list[StoppableInstanceCreations]] = []
     _stop_opportunity_subscriptions: ClassVar[list[StopOpportunitySubscription]] = []
+
+    def __init__(self) -> None:
+        for sub in self._stoppable_instance_creation_subscriptions:
+            sub(self)
+
+    @classmethod
+    def subscribe_to_instance_creations(cls, callback: StoppableInstanceCreations) -> None:
+        """Subscribe to stoppable instance creations."""
+        cls._stoppable_instance_creation_subscriptions.append(callback)
+
+    @classmethod
+    def unsubscribe_to_instance_creations(cls, callback: StoppableInstanceCreations) -> None:
+        """Unsubscribe to stoppable instance creations."""
+        with contextlib.suppress(ValueError):
+            cls._stoppable_instance_creation_subscriptions.remove(callback)
 
     @classmethod
     def subscribe_to_stop_opportunities(
