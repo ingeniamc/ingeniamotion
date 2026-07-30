@@ -223,10 +223,14 @@ class BaseTest(ABC, Stoppable, Generic[T]):
 
             remaining_time = deadline - time.monotonic()
 
-            if remaining_time <= 0 and timeout is not None:
-                raise timeout()
+            if remaining_time <= 0:
+                if timeout is not None:
+                    raise timeout()
+                return
 
             yield iteration
             iteration += 1
 
-            self.stoppable_sleep(min(sleep_sec, remaining_time))
+            next_sleep = min(sleep_sec, remaining_time)
+            if next_sleep > 0:
+                self.stoppable_sleep(next_sleep)
