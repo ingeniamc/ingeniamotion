@@ -149,6 +149,7 @@ def apply_configuration_marker_to_items(
             continue
 
         for skip_product in ["CAP-*", "EVE-*", "EVS-*"]:
+            # https://novantamotion.atlassian.net/browse/CIT-763
             item.add_marker(
                 pytest.mark.valid_versions_for_product(part_number=skip_product, max="2.6.0")
             )
