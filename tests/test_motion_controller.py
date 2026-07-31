@@ -11,7 +11,6 @@ from ingeniamotion.exceptions import IMStatusWordError
 from ingeniamotion.information import Information
 from ingeniamotion.metaclass import MCMetaClass
 from ingeniamotion.motion import Motion
-from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY
 from tests.fsoe.conftest import MockNetwork, MockServo
 
 
@@ -63,12 +62,12 @@ class TestMetaclass:
             self.mc._get_drive(servo)
             return servo == "a" and axis == 1
 
-        def __init__(self):
+        def __init__(self, dictionary_path: str):
             self.mc.create_motion_node(
-                "a", MockServo(dictionary_path=SAMPLE_SAFE_PH1_XDFV3_DICTIONARY), MockNetwork()
+                "a", MockServo(dictionary_path=dictionary_path), MockNetwork()
             )
             self.mc.create_motion_node(
-                "b", MockServo(dictionary_path=SAMPLE_SAFE_PH1_XDFV3_DICTIONARY), MockNetwork()
+                "b", MockServo(dictionary_path=dictionary_path), MockNetwork()
             )
             self.mc.configuration.is_motor_enabled = self.is_motor_enabled
 
@@ -85,8 +84,10 @@ class TestMetaclass:
             ("a", 2, None),
         ],
     )
-    def test_check_motor_disabled_keyword_parameters(self, servo, axis, error):
-        dummy_class = self.DummyClass()
+    def test_check_motor_disabled_keyword_parameters(
+        self, servo, axis, error, sample_safe_ph1_xdfv3_dictionary: str
+    ):
+        dummy_class = self.DummyClass(sample_safe_ph1_xdfv3_dictionary)
         if error is None:
             dummy_class.dummy_func(servo=servo, axis=axis)
         else:
@@ -102,8 +103,10 @@ class TestMetaclass:
             ("a", 2, None),
         ],
     )
-    def test_check_motor_disabled_positional_parameters(self, servo, axis, error):
-        dummy_class = self.DummyClass()
+    def test_check_motor_disabled_positional_parameters(
+        self, servo, axis, error, sample_safe_ph1_xdfv3_dictionary: str
+    ):
+        dummy_class = self.DummyClass(sample_safe_ph1_xdfv3_dictionary)
         if error is None:
             dummy_class.dummy_func(servo, axis)
         else:

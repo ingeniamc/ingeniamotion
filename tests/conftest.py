@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 from ingenialink import Servo
 from ingenialink.configuration_file import ConfigurationFile
+from ingenialink.dictionary import Interface
 from ingenialink.exceptions import ILRegisterNotFoundError
 from ingenialink.utils._utils import convert_bytes_to_dtype
 from summit_testing_framework import dynamic_loader
@@ -18,7 +19,13 @@ from summit_testing_framework.pytest_helpers.marker_helper import (
     MarkerHelper,
     apply_firmware_version_markers_to_items,
 )
-from summit_testing_framework.setups.specifiers import RackServiceConfigSpecifier
+from summit_testing_framework.setups.specifiers import (
+    DictionaryType,
+    DictionaryVersion,
+    RackServiceConfigSpecifier,
+)
+
+from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY
 
 if TYPE_CHECKING:
     from summit_testing_framework.services.rack_service_client import RackServiceClient
@@ -313,6 +320,21 @@ def refresh_registers_for_test_rollback(servo: Servo, register_uids: list[str]):
             logger.warning(
                 f"Register {register_uid} not found during refresh after test execution."
             )
+
+
+@pytest.fixture(scope="session")
+def sample_safe_ph1_xdfv3_dictionary() -> Path:
+    return Path(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
+
+
+@pytest.fixture(scope="session")
+def sample_safe_ph2_xdfv3_dictionary(
+    product_dictionary: Callable[[str, DictionaryVersion, Optional[Interface]], Path],
+) -> Path:
+    return product_dictionary(
+        "EVS-S-NET-E",
+        DictionaryVersion("2.9.1", DictionaryType.XDF_V3),
+    )
 
 
 @dataclass(frozen=True)

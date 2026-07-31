@@ -8,7 +8,6 @@ from ingenialink.servo import DictionaryFactory
 from summit_testing_framework.setups.specifiers import PartNumber
 
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEState
-from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
 
 try:
     import pysoem
@@ -40,10 +39,10 @@ _INVALID_MAPPING_ERROR_ID = 0x80040002  # Error ID for invalid mapping error
 
 
 @pytest.mark.fsoe_phase2
-def test_get_known_error() -> None:
+def test_get_known_error(sample_safe_ph2_xdfv3_dictionary: str) -> None:
     """Test getting a known error from the dictionary."""
     dictionary = DictionaryFactory.create_dictionary(
-        SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, interface=Interface.ECAT
+        sample_safe_ph2_xdfv3_dictionary, interface=Interface.ECAT
     )
     error = Error.from_id(0x00007394, dictionary=dictionary)
     assert error.error_id == 0x00007394
@@ -55,10 +54,10 @@ def test_get_known_error() -> None:
 
 
 @pytest.mark.fsoe_phase2
-def test_get_error_with_id_not_in_dict() -> None:
+def test_get_error_with_id_not_in_dict(sample_safe_ph2_xdfv3_dictionary: str) -> None:
     """Test getting an error with an unknown ID."""
     dictionary = DictionaryFactory.create_dictionary(
-        SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, interface=Interface.ECAT
+        sample_safe_ph2_xdfv3_dictionary, interface=Interface.ECAT
     )
     error = Error.from_id(0x1234, dictionary=dictionary)
     assert error.error_id == 0x1234

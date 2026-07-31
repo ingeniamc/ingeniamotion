@@ -49,6 +49,7 @@ TestSession TEST_SESSIONS = new TestSession(
     startWiresharkTimeoutS: 10.0,
     importMode: "importlib",
     enableFirmwareVersionCheck: true,
+    setAttApiToken: true
 )
 TestSession HW_TEST_SESSIONS = TEST_SESSIONS.override()
 TestGroup CAN_TESTS = testManager.createGroup("CAN_TEST_SESSIONS", HW_TEST_SESSIONS.override())
