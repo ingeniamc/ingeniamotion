@@ -16,6 +16,11 @@ if TYPE_CHECKING:
 
     from ingeniamotion.motion_controller import MotionController
 
+try:
+    import pysoem
+except ImportError:
+    pysoem = None
+
 
 POS_PID_KP_VALUE = 0.1
 POSITION_PERCENTAGE_ERROR_ALLOWED = 5
@@ -276,9 +281,10 @@ def test_set_position(mc, alias, position_value):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("position_value", [1000, 0, -1000, 4000])
-# https://novantamotion.atlassian.net/browse/INGM-778
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-@pytest.mark.not_valid_for_product(part_number="EVE-*")
+@pytest.mark.biss_c_flaky(
+    "Sporadically fails on ABS BiSS-C config, will be skipped for certain firmware versions"
+)
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C")
 def test_move_position(mc, alias, position_value):
     pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)

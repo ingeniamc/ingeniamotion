@@ -13,6 +13,7 @@ def ECAT_NODE = "ecat-test"
 def ECAT_NODE_LOCK = "test_execution_lock_ecat"
 def CAN_NODE = "canopen-test"
 def CAN_NODE_LOCK = "test_execution_lock_can"
+def SIRIUS_NODE = "RA-RD-CT-SIRIUS"
 
 def LIN_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/docker-python:1.7"
 def WIN_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/win-python-builder:1.7"
@@ -56,6 +57,7 @@ TestGroup ETH_TESTS = testManager.createGroup("ETH_TEST_SESSIONS", HW_TEST_SESSI
 TestGroup ECAT_TESTS = testManager.createGroup("ECAT_TEST_SESSIONS", HW_TEST_SESSIONS.override())
 TestGroup LINUX_DOCKER_TESTS = testManager.createGroup("LINUX_DOCKER_TEST_SESSIONS", TEST_SESSIONS.override())
 TestGroup WIN_DOCKER_TESTS = testManager.createGroup("WIN_DOCKER_TEST_SESSIONS", TEST_SESSIONS.override())
+TestGroup SIRIUS_TESTS = testManager.createGroup("SIRIUS_TEST_SESSIONS", HW_TEST_SESSIONS.override())
 
 def reassignFilePermissions() {
     if (isUnix()) {
@@ -183,6 +185,11 @@ pipeline {
                         archiveData: "*",
                         testSelectionRepeatCount: PyTestParams.readValue(params, 'pytestRepeatCounts'),
                         logLevel: PyTestParams.readValue(params, 'pytestLoggingLevel')
+                    )
+
+                    // Sirius tests should only run on python 3.12
+                    SIRIUS_TESTS.baseTestSession.setAttributeInCascade(
+                        runInVirtualEnvs: venvManager.pythonVersionsToDefaultVenvNames(["3.12"] as Set)
                     )
 
                     // Configure if ECAT and ETH sessions use Wireshark logging based on parameter
@@ -429,6 +436,37 @@ pipeline {
                             steps {
                                 script {
                                     ECAT_TESTS.runTestStages()
+                                }
+                            }
+                        }
+                    }
+                }
+                stage('SIRIUS EtherCAT - Tests') {
+                    when {
+                        beforeOptions true
+                        beforeAgent true
+                        expression {
+                            SIRIUS_TESTS.anyShouldRun()
+                        }
+                    }
+                    agent {
+                        label SIRIUS_NODE
+                    }
+                    stages {
+                        stage('Create virtual environments') {
+                            steps {
+                                script {
+                                    venvManager.createPoetryEnvironments(
+                                        pythonVersions: venvManager.defaultVenvNamesToVersion(SIRIUS_TESTS.baseTestSession.runInVirtualEnvs),
+                                        installCommand: "poetry sync --all-groups --extras fsoe"
+                                    )
+                                }
+                            }
+                        }
+                        stage('Run SIRIUS EtherCAT Tests') {
+                            steps {
+                                script {
+                                    SIRIUS_TESTS.runTestStages()
                                 }
                             }
                         }
