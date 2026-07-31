@@ -204,6 +204,9 @@ FEEDBACK_CONFIGURATIONS = list(_feedback_configurations())
 
 
 @pytest.mark.virtual
+@pytest.mark.ethernet
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.parametrize("initial_configuration", FEEDBACK_CONFIGURATIONS)
 def test_feedback_test_never_exceeds_the_drive_feedback_limit(
     mc, alias, servo, mocker, initial_configuration
@@ -233,6 +236,9 @@ def test_feedback_test_never_exceeds_the_drive_feedback_limit(
 
 
 @pytest.mark.virtual
+@pytest.mark.ethernet
+@pytest.mark.soem
+@pytest.mark.canopen
 @pytest.mark.parametrize("initial_configuration", FEEDBACK_CONFIGURATIONS)
 def test_feedback_test_restores_the_initial_feedback_configuration(
     mc, alias, servo, mocker, initial_configuration
