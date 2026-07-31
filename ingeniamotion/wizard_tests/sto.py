@@ -1,5 +1,5 @@
 from enum import IntEnum
-from typing import TYPE_CHECKING, ClassVar, Optional
+from typing import TYPE_CHECKING, Final, Optional
 
 import ingenialogger
 from typing_extensions import override
@@ -30,7 +30,7 @@ class STOTest(BaseTest[LegacyDictReportType]):
         NORMAL = 0
         REVERSED = 1
 
-    result_description: ClassVar[dict[ResultType, str]] = {
+    result_description: Final[dict[ResultType, str]] = {
         ResultType.STO_INACTIVE: "STO Inactive",
         ResultType.STO_ACTIVE: "STO Active",
         ResultType.STO_ABNORMAL_LATCHED: "Abnormal STO Latched",
