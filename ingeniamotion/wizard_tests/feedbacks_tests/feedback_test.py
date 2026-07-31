@@ -1,5 +1,6 @@
 import math
 import time
+from collections import Counter
 from enum import IntEnum
 from typing import TYPE_CHECKING, Final, Optional
 
@@ -152,15 +153,46 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         Raises:
             TestConfigurationError: If the feedback resolution is not greater than 0.
         """
-        # First set all feedback to feedback in test, so there won't be
-        # more than 5 feedback at the same time
-        self.mc.configuration.set_commutation_feedback(
-            self.sensor, servo=self.servo, axis=self.axis
+        feedback_slots = (
+            (
+                self.mc.configuration.get_commutation_feedback,
+                self.mc.configuration.set_commutation_feedback,
+            ),
+            (
+                self.mc.configuration.get_reference_feedback,
+                self.mc.configuration.set_reference_feedback,
+            ),
+            (
+                self.mc.configuration.get_velocity_feedback,
+                self.mc.configuration.set_velocity_feedback,
+            ),
+            (
+                self.mc.configuration.get_position_feedback,
+                self.mc.configuration.set_position_feedback,
+            ),
+            (
+                self.mc.configuration.get_auxiliar_feedback,
+                self.mc.configuration.set_auxiliar_feedback,
+            ),
         )
-        self.mc.configuration.set_reference_feedback(self.sensor, servo=self.servo, axis=self.axis)
-        self.mc.configuration.set_velocity_feedback(self.sensor, servo=self.servo, axis=self.axis)
-        self.mc.configuration.set_position_feedback(self.sensor, servo=self.servo, axis=self.axis)
-        self.mc.configuration.set_auxiliar_feedback(self.sensor, servo=self.servo, axis=self.axis)
+        current_feedbacks = tuple(
+            getter(servo=self.servo, axis=self.axis) for getter, _setter in feedback_slots
+        )
+        feedback_counts = Counter(current_feedbacks)
+        # Replace unique values first so each write removes a distinct feedback type.
+        unique_feedback_indices = [
+            index
+            for index, feedback in enumerate(current_feedbacks)
+            if feedback != self.sensor and feedback_counts[feedback] == 1
+        ]
+        duplicate_feedback_indices = [
+            index
+            for index, feedback in enumerate(current_feedbacks)
+            if feedback != self.sensor and feedback_counts[feedback] > 1
+        ]
+        for index in unique_feedback_indices + duplicate_feedback_indices:
+            _getter, setter = feedback_slots[index]
+            setter(self.sensor, servo=self.servo, axis=self.axis)
         # Set Polarity to 0
         self.mc.communication.set_register(
             self.FEEDBACK_POLARITY_REGISTER,
@@ -321,6 +353,10 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
     def teardown(self) -> None:
         self.logger.info("Disabling motor")
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
+        # Normalize the temporary generator feedback before context-manager rollback.
+        self.mc.configuration.set_commutation_feedback(
+            self.sensor, servo=self.servo, axis=self.axis
+        )
 
     @BaseTest.stoppable
     def __wait_for_movement(self, timeout: float) -> None:
