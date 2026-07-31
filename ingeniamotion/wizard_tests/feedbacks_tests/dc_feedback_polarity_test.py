@@ -1,5 +1,5 @@
 from enum import IntEnum
-from typing import TYPE_CHECKING, ClassVar, Optional
+from typing import TYPE_CHECKING, Final, Optional
 
 import ingenialogger
 from typing_extensions import override
@@ -29,7 +29,7 @@ class DCFeedbacksPolarityTest(BaseTest[LegacyDictReportType]):
 
         SUCCESS = 0
 
-    result_description: ClassVar[dict[ResultType, str]] = {
+    result_description: Final[dict[ResultType, str]] = {
         ResultType.SUCCESS: "Feedback polarity test pass successfully",
     }
 
