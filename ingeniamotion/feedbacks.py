@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, ClassVar, Final, Optional, Union
+from typing import TYPE_CHECKING, ClassVar, Final, Optional
 
 import ingenialogger
 
@@ -22,8 +22,7 @@ class Encoder(ABC):
 
     An encoder is what a feedback slot uses to sense the axis position. This
     class holds the encoder metadata (sensor type, category and polarity
-    register) and computes its resolution from the drive registers. It is bound
-    to the axis it belongs to, so no servo or axis arguments are needed.
+    register) and computes its resolution from the drive registers.
     """
 
     SENSOR_TYPE: ClassVar[SensorType]
@@ -65,7 +64,7 @@ class Encoder(ABC):
         """
         self.__servo.write(reg_uid, value, subnode=self.__axis_number)
 
-    def get_polarity(self) -> Union[int, FeedbackPolarity]:
+    def get_polarity(self) -> FeedbackPolarity:
         """Get the polarity of the encoder.
 
         Returns:
@@ -74,14 +73,12 @@ class Encoder(ABC):
         Raises:
             NotImplementedError: If the encoder polarity is not implemented.
             TypeError: If the read value has a wrong type.
+            ValueError: If the polarity value is not a valid :class:`FeedbackPolarity`.
         """
         if self.POLARITY_REGISTER_UID is None:
             raise NotImplementedError(f"Sensor {self.SENSOR_TYPE.name} polarity is not implemented")
         raw_polarity = self._read(self.POLARITY_REGISTER_UID)
-        try:
-            return FeedbackPolarity(raw_polarity)
-        except ValueError:
-            return raw_polarity
+        return FeedbackPolarity(raw_polarity)
 
     def set_polarity(self, polarity: FeedbackPolarity) -> None:
         """Set the polarity of the encoder.
@@ -113,7 +110,7 @@ class InternalGeneratorEncoder(Encoder):
         Raises:
             ValueError: If the encoder has no resolution.
         """
-        raise ValueError("The selected feedback does not have resolution")
+        raise ValueError("Internal generator encoder has no resolution")
 
 
 class AbsoluteEncoder(Encoder):
@@ -289,7 +286,7 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        return self.__axis_feedbacks(servo, axis).commutation.get_encoder().SENSOR_TYPE
+        return self.__axis_feedbacks(servo, axis).commutation.get_encoder_type()
 
     @MCMetaClass.check_motor_disabled
     def set_commutation_feedback(
@@ -305,7 +302,7 @@ class Feedbacks:
         Raises:
             IMStatusWordError: If motor is enabled.
         """
-        self.__axis_feedbacks(servo, axis).commutation.set_encoder(feedback)
+        self.__axis_feedbacks(servo, axis).commutation.set_encoder_type(feedback)
 
     def get_commutation_feedback_category(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -355,7 +352,7 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        return self.__axis_feedbacks(servo, axis).reference.get_encoder().SENSOR_TYPE
+        return self.__axis_feedbacks(servo, axis).reference.get_encoder_type()
 
     @MCMetaClass.check_motor_disabled
     def set_reference_feedback(
@@ -371,7 +368,7 @@ class Feedbacks:
         Raises:
             IMStatusWordError: If motor is enabled.
         """
-        self.__axis_feedbacks(servo, axis).reference.set_encoder(feedback)
+        self.__axis_feedbacks(servo, axis).reference.set_encoder_type(feedback)
 
     def get_reference_feedback_category(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -421,7 +418,7 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        return self.__axis_feedbacks(servo, axis).velocity.get_encoder().SENSOR_TYPE
+        return self.__axis_feedbacks(servo, axis).velocity.get_encoder_type()
 
     @MCMetaClass.check_motor_disabled
     def set_velocity_feedback(
@@ -437,7 +434,7 @@ class Feedbacks:
         Raises:
             IMStatusWordError: If motor is enabled.
         """
-        self.__axis_feedbacks(servo, axis).velocity.set_encoder(feedback)
+        self.__axis_feedbacks(servo, axis).velocity.set_encoder_type(feedback)
 
     def get_velocity_feedback_category(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -487,7 +484,7 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        return self.__axis_feedbacks(servo, axis).position.get_encoder().SENSOR_TYPE
+        return self.__axis_feedbacks(servo, axis).position.get_encoder_type()
 
     @MCMetaClass.check_motor_disabled
     def set_position_feedback(
@@ -503,7 +500,7 @@ class Feedbacks:
         Raises:
             IMStatusWordError: If motor is enabled.
         """
-        self.__axis_feedbacks(servo, axis).position.set_encoder(feedback)
+        self.__axis_feedbacks(servo, axis).position.set_encoder_type(feedback)
 
     def get_position_feedback_category(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -553,7 +550,7 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        return self.__axis_feedbacks(servo, axis).auxiliar.get_encoder().SENSOR_TYPE
+        return self.__axis_feedbacks(servo, axis).auxiliar.get_encoder_type()
 
     @MCMetaClass.check_motor_disabled
     def set_auxiliar_feedback(
@@ -569,7 +566,7 @@ class Feedbacks:
         Raises:
             IMStatusWordError: If motor is enabled.
         """
-        self.__axis_feedbacks(servo, axis).auxiliar.set_encoder(feedback)
+        self.__axis_feedbacks(servo, axis).auxiliar.set_encoder_type(feedback)
 
     def get_auxiliar_feedback_category(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -784,7 +781,7 @@ class Feedbacks:
         feedback: SensorType,
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
-    ) -> Union[int, FeedbackPolarity]:
+    ) -> FeedbackPolarity:
         """Get target feedback polarity of the target servo and axis.
 
         Args:
@@ -798,6 +795,7 @@ class Feedbacks:
         Raises:
             NotImplementedError: If the sensor polarity is not implemented.
             TypeError: If some read value has a wrong type.
+            ValueError: If the polarity value is not a valid :class:`FeedbackPolarity`.
 
         """
         return self.__axis_feedbacks(servo, axis).get_encoder(feedback).get_polarity()
@@ -818,11 +816,11 @@ class FeedbackSlot:
         self.__servo = axis.motion_node.servo
         self.__axis_number = axis.axis_number
 
-    def get_encoder(self) -> Encoder:
-        """Get the encoder configured in the slot.
+    def get_encoder_type(self) -> SensorType:
+        """Get the sensor type configured in the slot.
 
         Returns:
-            The encoder configured in the slot.
+            The sensor type configured in the slot.
 
         Raises:
             TypeError: If the read value has a wrong type.
@@ -830,15 +828,31 @@ class FeedbackSlot:
         feedback = self.__servo.read(self.__register_uid, subnode=self.__axis_number)
         if not isinstance(feedback, int):
             raise TypeError("Feedback value has to be an integer")
-        return self.__axis.feedbacks.get_encoder(SensorType(feedback))
+        return SensorType(feedback)
 
-    def set_encoder(self, sensor: SensorType) -> None:
-        """Configure the encoder of the slot.
+    def get_encoder(self) -> Encoder:
+        """Get the encoder configured in the slot.
+
+        Returns:
+            The encoder configured in the slot.
+        """
+        return self.__axis.feedbacks.get_encoder(self.get_encoder_type())
+
+    def set_encoder_type(self, sensor: SensorType) -> None:
+        """Configure the sensor type of the slot.
 
         Args:
             sensor: Feedback sensor to configure.
         """
         self.__servo.write(self.__register_uid, sensor, subnode=self.__axis_number)
+
+    def set_encoder(self, encoder: Encoder) -> None:
+        """Configure the encoder of the slot.
+
+        Args:
+            encoder: Encoder to configure.
+        """
+        self.set_encoder_type(encoder.SENSOR_TYPE)
 
 
 class AxisFeedbacks:
