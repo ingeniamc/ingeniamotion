@@ -153,31 +153,9 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         Raises:
             TestConfigurationError: If the feedback resolution is not greater than 0.
         """
-        feedback_slots = (
-            (
-                self.mc.configuration.get_commutation_feedback,
-                self.mc.configuration.set_commutation_feedback,
-            ),
-            (
-                self.mc.configuration.get_reference_feedback,
-                self.mc.configuration.set_reference_feedback,
-            ),
-            (
-                self.mc.configuration.get_velocity_feedback,
-                self.mc.configuration.set_velocity_feedback,
-            ),
-            (
-                self.mc.configuration.get_position_feedback,
-                self.mc.configuration.set_position_feedback,
-            ),
-            (
-                self.mc.configuration.get_auxiliar_feedback,
-                self.mc.configuration.set_auxiliar_feedback,
-            ),
-        )
-        current_feedbacks = tuple(
-            getter(servo=self.servo, axis=self.axis) for getter, _setter in feedback_slots
-        )
+        feedback_slots = self.mc._get_motion_node(self.servo).get_axis(self.axis).feedbacks
+        slots = feedback_slots.get_all_slots()
+        current_feedbacks = [slot.feedback for slot in slots]
         feedback_counts = Counter(current_feedbacks)
         # Replace unique values first so each write removes a distinct feedback type.
         unique_feedback_indices = [
@@ -191,8 +169,7 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
             if feedback != self.sensor and feedback_counts[feedback] > 1
         ]
         for index in unique_feedback_indices + duplicate_feedback_indices:
-            _getter, setter = feedback_slots[index]
-            setter(self.sensor, servo=self.servo, axis=self.axis)
+            slots[index].feedback = self.sensor
         # Set Polarity to 0
         self.mc.communication.set_register(
             self.FEEDBACK_POLARITY_REGISTER,

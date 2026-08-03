@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING
 
 from ingeniamotion._utils import weak_lru
 from ingeniamotion.errors import MOCO_ERROR_QUEUE, AxisErrors, ServoErrorQueue
+from ingeniamotion.feedbacks import AxisFeedbacks
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_node import MotionNode
@@ -21,6 +22,7 @@ class Axis:
         self.__axis_number = axis_number
 
         self.__errors = AxisErrors(self)
+        self.__feedbacks = AxisFeedbacks(self)
 
     @property
     def motion_node(self) -> "MotionNode":
@@ -36,6 +38,11 @@ class Axis:
     def errors(self) -> AxisErrors:
         """The errors of the axis."""
         return self.__errors
+
+    @property
+    def feedbacks(self) -> AxisFeedbacks:
+        """The feedbacks of the axis."""
+        return self.__feedbacks
 
     @property
     @weak_lru()

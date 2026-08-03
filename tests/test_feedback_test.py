@@ -185,9 +185,7 @@ def _feedback_configurations():
             non_target_sensor_iter = iter(non_target_sensors)
             for label in labels:
                 sensor_by_label[label] = (
-                    SensorType.QEI
-                    if label == target_label
-                    else next(non_target_sensor_iter)
+                    SensorType.QEI if label == target_label else next(non_target_sensor_iter)
                 )
             configuration = dict(
                 zip(

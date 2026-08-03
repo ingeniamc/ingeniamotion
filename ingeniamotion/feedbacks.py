@@ -6,23 +6,30 @@ import ingenialogger
 from ingeniamotion.enums import FeedbackPolarity, SensorCategory, SensorType
 
 if TYPE_CHECKING:
+    from ingeniamotion.axis import Axis
     from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
+
+COMMUTATION_FEEDBACK_REGISTER = "COMMU_ANGLE_SENSOR"
+REFERENCE_FEEDBACK_REGISTER = "COMMU_ANGLE_REF_SENSOR"
+VELOCITY_FEEDBACK_REGISTER = "CL_VEL_FBK_SENSOR"
+POSITION_FEEDBACK_REGISTER = "CL_POS_FBK_SENSOR"
+AUXILIAR_FEEDBACK_REGISTER = "CL_AUX_FBK_SENSOR"
+
+FEEDBACK_TYPE_DICT: Final[dict[SensorType, SensorCategory]] = {
+    SensorType.ABS1: SensorCategory.ABSOLUTE,
+    SensorType.QEI: SensorCategory.INCREMENTAL,
+    SensorType.HALLS: SensorCategory.ABSOLUTE,
+    SensorType.SSI2: SensorCategory.ABSOLUTE,
+    SensorType.BISSC2: SensorCategory.ABSOLUTE,
+    SensorType.QEI2: SensorCategory.INCREMENTAL,
+    SensorType.INTGEN: SensorCategory.ABSOLUTE,
+    SensorType.SINCOS: SensorCategory.INCREMENTAL,
+}
 
 
 class Feedbacks:
     """Feedbacks Wizard Class description."""
-
-    __feedback_type_dict: Final[dict[SensorType, SensorCategory]] = {
-        SensorType.ABS1: SensorCategory.ABSOLUTE,
-        SensorType.QEI: SensorCategory.INCREMENTAL,
-        SensorType.HALLS: SensorCategory.ABSOLUTE,
-        SensorType.SSI2: SensorCategory.ABSOLUTE,
-        SensorType.BISSC2: SensorCategory.ABSOLUTE,
-        SensorType.QEI2: SensorCategory.INCREMENTAL,
-        SensorType.INTGEN: SensorCategory.ABSOLUTE,
-        SensorType.SINCOS: SensorCategory.INCREMENTAL,
-    }
 
     __feedback_polarity_register_dict: Final[dict[SensorType, str]] = {
         SensorType.ABS1: "FBK_BISS1_SSI1_POS_POLARITY",
@@ -34,11 +41,11 @@ class Feedbacks:
         SensorType.SINCOS: "FBK_SINCOS_POLARITY",
     }
 
-    COMMUTATION_FEEDBACK_REGISTER = "COMMU_ANGLE_SENSOR"
-    REFERENCE_FEEDBACK_REGISTER = "COMMU_ANGLE_REF_SENSOR"
-    VELOCITY_FEEDBACK_REGISTER = "CL_VEL_FBK_SENSOR"
-    POSITION_FEEDBACK_REGISTER = "CL_POS_FBK_SENSOR"
-    AUXILIAR_FEEDBACK_REGISTER = "CL_AUX_FBK_SENSOR"
+    COMMUTATION_FEEDBACK_REGISTER = COMMUTATION_FEEDBACK_REGISTER
+    REFERENCE_FEEDBACK_REGISTER = REFERENCE_FEEDBACK_REGISTER
+    VELOCITY_FEEDBACK_REGISTER = VELOCITY_FEEDBACK_REGISTER
+    POSITION_FEEDBACK_REGISTER = POSITION_FEEDBACK_REGISTER
+    AUXILIAR_FEEDBACK_REGISTER = AUXILIAR_FEEDBACK_REGISTER
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
@@ -71,12 +78,8 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        commutation_feedback = self.mc.communication.get_register(
-            self.COMMUTATION_FEEDBACK_REGISTER, servo=servo, axis=axis
-        )
-        if not isinstance(commutation_feedback, int):
-            raise TypeError("Commutation feedback value has to be an integer")
-        return SensorType(commutation_feedback)
+        commutation_feedback = self.mc._get_motion_node(servo).get_axis(axis).feedbacks.commutation
+        return commutation_feedback.feedback
 
     @MCMetaClass.check_motor_disabled
     def set_commutation_feedback(
@@ -92,9 +95,7 @@ class Feedbacks:
         Raises:
             IMStatusWordError: If motor is enabled.
         """
-        self.mc.communication.set_register(
-            self.COMMUTATION_FEEDBACK_REGISTER, feedback, servo=servo, axis=axis
-        )
+        self.mc._get_motion_node(servo).get_axis(axis).feedbacks.commutation.feedback = feedback
 
     def get_commutation_feedback_category(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -111,8 +112,8 @@ class Feedbacks:
         Returns:
             Category {ABSOLUTE, INCREMENTAL} of the selected feedback.
         """
-        commutation_feedback = self.get_commutation_feedback(servo, axis)
-        return self.__feedback_type_dict[commutation_feedback]
+        commutation_feedback = self.mc._get_motion_node(servo).get_axis(axis).feedbacks.commutation
+        return commutation_feedback.category
 
     def get_commutation_feedback_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -146,12 +147,8 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        reference_feedback = self.mc.communication.get_register(
-            self.REFERENCE_FEEDBACK_REGISTER, servo=servo, axis=axis
-        )
-        if not isinstance(reference_feedback, int):
-            raise TypeError("Reference feedback has to be an integer")
-        return SensorType(reference_feedback)
+        reference_feedback = self.mc._get_motion_node(servo).get_axis(axis).feedbacks.reference
+        return reference_feedback.feedback
 
     @MCMetaClass.check_motor_disabled
     def set_reference_feedback(
@@ -167,9 +164,7 @@ class Feedbacks:
         Raises:
             IMStatusWordError: If motor is enabled.
         """
-        self.mc.communication.set_register(
-            self.REFERENCE_FEEDBACK_REGISTER, feedback, servo=servo, axis=axis
-        )
+        self.mc._get_motion_node(servo).get_axis(axis).feedbacks.reference.feedback = feedback
 
     def get_reference_feedback_category(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -186,8 +181,8 @@ class Feedbacks:
         Returns:
             Category {ABSOLUTE, INCREMENTAL} of the selected feedback.
         """
-        reference_feedback = self.get_reference_feedback(servo, axis)
-        return self.__feedback_type_dict[reference_feedback]
+        reference_feedback = self.mc._get_motion_node(servo).get_axis(axis).feedbacks.reference
+        return reference_feedback.category
 
     def get_reference_feedback_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -221,12 +216,8 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        velocity_feedback = self.mc.communication.get_register(
-            self.VELOCITY_FEEDBACK_REGISTER, servo=servo, axis=axis
-        )
-        if not isinstance(velocity_feedback, int):
-            raise TypeError("Velocity feedback has to be an integer")
-        return SensorType(velocity_feedback)
+        velocity_feedback = self.mc._get_motion_node(servo).get_axis(axis).feedbacks.velocity
+        return velocity_feedback.feedback
 
     @MCMetaClass.check_motor_disabled
     def set_velocity_feedback(
@@ -242,9 +233,7 @@ class Feedbacks:
         Raises:
             IMStatusWordError: If motor is enabled.
         """
-        self.mc.communication.set_register(
-            self.VELOCITY_FEEDBACK_REGISTER, feedback, servo=servo, axis=axis
-        )
+        self.mc._get_motion_node(servo).get_axis(axis).feedbacks.velocity.feedback = feedback
 
     def get_velocity_feedback_category(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -261,8 +250,8 @@ class Feedbacks:
         Returns:
             Category {ABSOLUTE, INCREMENTAL} of the selected feedback.
         """
-        velocity_feedback = self.get_velocity_feedback(servo, axis)
-        return self.__feedback_type_dict[velocity_feedback]
+        velocity_feedback = self.mc._get_motion_node(servo).get_axis(axis).feedbacks.velocity
+        return velocity_feedback.category
 
     def get_velocity_feedback_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -296,12 +285,8 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        position_feedback = self.mc.communication.get_register(
-            self.POSITION_FEEDBACK_REGISTER, servo=servo, axis=axis
-        )
-        if not isinstance(position_feedback, int):
-            raise TypeError("Position feedback has to be an integer")
-        return SensorType(position_feedback)
+        position_feedback = self.mc._get_motion_node(servo).get_axis(axis).feedbacks.position
+        return position_feedback.feedback
 
     @MCMetaClass.check_motor_disabled
     def set_position_feedback(
@@ -317,9 +302,7 @@ class Feedbacks:
         Raises:
             IMStatusWordError: If motor is enabled.
         """
-        self.mc.communication.set_register(
-            self.POSITION_FEEDBACK_REGISTER, feedback, servo=servo, axis=axis
-        )
+        self.mc._get_motion_node(servo).get_axis(axis).feedbacks.position.feedback = feedback
 
     def get_position_feedback_category(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -336,8 +319,8 @@ class Feedbacks:
         Returns:
             Category {ABSOLUTE, INCREMENTAL} of the selected feedback.
         """
-        position_feedback = self.get_position_feedback(servo, axis)
-        return self.__feedback_type_dict[position_feedback]
+        position_feedback = self.mc._get_motion_node(servo).get_axis(axis).feedbacks.position
+        return position_feedback.category
 
     def get_position_feedback_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -371,12 +354,8 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        auxiliar_feedback = self.mc.communication.get_register(
-            self.AUXILIAR_FEEDBACK_REGISTER, servo=servo, axis=axis
-        )
-        if not isinstance(auxiliar_feedback, int):
-            raise TypeError("Auxiliar feedback has to be an integer")
-        return SensorType(auxiliar_feedback)
+        auxiliar_feedback = self.mc._get_motion_node(servo).get_axis(axis).feedbacks.auxiliar
+        return auxiliar_feedback.feedback
 
     @MCMetaClass.check_motor_disabled
     def set_auxiliar_feedback(
@@ -392,9 +371,7 @@ class Feedbacks:
         Raises:
             IMStatusWordError: If motor is enabled.
         """
-        self.mc.communication.set_register(
-            self.AUXILIAR_FEEDBACK_REGISTER, feedback, servo=servo, axis=axis
-        )
+        self.mc._get_motion_node(servo).get_axis(axis).feedbacks.auxiliar.feedback = feedback
 
     def get_auxiliar_feedback_category(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -411,8 +388,8 @@ class Feedbacks:
         Returns:
             Category {ABSOLUTE, INCREMENTAL} of the selected feedback.
         """
-        auxiliar_feedback = self.get_auxiliar_feedback(servo, axis)
-        return self.__feedback_type_dict[auxiliar_feedback]
+        auxiliar_feedback = self.mc._get_motion_node(servo).get_axis(axis).feedbacks.auxiliar
+        return auxiliar_feedback.category
 
     def get_auxiliar_feedback_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -706,3 +683,96 @@ class Feedbacks:
             return FeedbackPolarity(raw_polarity)
         except ValueError:
             return raw_polarity
+
+
+class FeedbackSlot:
+    """Class to represent a feedback slot of an axis."""
+
+    def __init__(self, register_uid: str, axis: "Axis") -> None:
+        """Constructor.
+
+        Args:
+            register_uid: Register UID of the feedback selector.
+            axis: Axis associated with the feedback slot.
+        """
+        self.__register_uid = register_uid
+        self.__servo = axis.motion_node.servo
+        self.__axis_number = axis.axis_number
+
+    @property
+    def feedback(self) -> SensorType:
+        """The feedback sensor configured in the slot.
+
+        Returns:
+            The feedback sensor configured in the slot.
+
+        Raises:
+            TypeError: If the read value has a wrong type.
+        """
+        feedback = self.__servo.read(self.__register_uid, subnode=self.__axis_number)
+        if not isinstance(feedback, int):
+            raise TypeError("Feedback value has to be an integer")
+        return SensorType(feedback)
+
+    @feedback.setter
+    def feedback(self, sensor: SensorType) -> None:
+        """Set the feedback sensor of the slot.
+
+        Args:
+            sensor: Feedback sensor to configure.
+        """
+        self.__servo.write(self.__register_uid, sensor, subnode=self.__axis_number)
+
+    @property
+    def category(self) -> SensorCategory:
+        """The category of the feedback sensor configured in the slot.
+
+        Returns:
+            The category of the feedback sensor configured in the slot.
+        """
+        return FEEDBACK_TYPE_DICT[self.feedback]
+
+
+class AxisFeedbacks:
+    """Class to manage the feedback slots of an axis."""
+
+    def __init__(self, axis: "Axis") -> None:
+        """Constructor.
+
+        Args:
+            axis: Axis associated with the feedback slots.
+        """
+        self.__axis = axis
+
+    @property
+    def commutation(self) -> FeedbackSlot:
+        """The commutation feedback slot."""
+        return FeedbackSlot(COMMUTATION_FEEDBACK_REGISTER, self.__axis)
+
+    @property
+    def reference(self) -> FeedbackSlot:
+        """The reference feedback slot."""
+        return FeedbackSlot(REFERENCE_FEEDBACK_REGISTER, self.__axis)
+
+    @property
+    def velocity(self) -> FeedbackSlot:
+        """The velocity feedback slot."""
+        return FeedbackSlot(VELOCITY_FEEDBACK_REGISTER, self.__axis)
+
+    @property
+    def position(self) -> FeedbackSlot:
+        """The position feedback slot."""
+        return FeedbackSlot(POSITION_FEEDBACK_REGISTER, self.__axis)
+
+    @property
+    def auxiliar(self) -> FeedbackSlot:
+        """The auxiliar feedback slot."""
+        return FeedbackSlot(AUXILIAR_FEEDBACK_REGISTER, self.__axis)
+
+    def get_all_slots(self) -> tuple[FeedbackSlot, ...]:
+        """Get all the feedback slots of the axis.
+
+        Returns:
+            A tuple with all the feedback slots of the axis.
+        """
+        return (self.commutation, self.reference, self.velocity, self.position, self.auxiliar)
