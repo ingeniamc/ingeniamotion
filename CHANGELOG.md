@@ -4,6 +4,9 @@
 ### Added
 - Add dynamic forced phasing test
 
+### Changed
+- Removed `get_feedback_polarity_register_uid` and `feedback_resolution_functions` from `Feedbacks`; feedbacks are now managed through `Axis.feedbacks` (`AxisFeedbacks`).
+
 ### Fixed
 - Feedback test symmetry check
 

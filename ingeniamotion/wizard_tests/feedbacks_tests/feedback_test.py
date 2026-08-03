@@ -155,7 +155,7 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         """
         feedback_slots = self.mc._get_motion_node(self.servo).get_axis(self.axis).feedbacks
         slots = feedback_slots.get_all_slots()
-        current_feedbacks = [slot.get_encoder().SENSOR_TYPE for slot in slots]
+        current_feedbacks = [slot.get_encoder_type() for slot in slots]
         feedback_counts = Counter(current_feedbacks)
         # Replace unique values first so each write removes a distinct feedback type.
         unique_feedback_indices = [
@@ -169,7 +169,7 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
             if feedback != self.sensor and feedback_counts[feedback] > 1
         ]
         for index in unique_feedback_indices + duplicate_feedback_indices:
-            slots[index].set_encoder(self.sensor)
+            slots[index].set_encoder_type(self.sensor)
         # Set Polarity to 0
         self.mc.communication.set_register(
             self.FEEDBACK_POLARITY_REGISTER,
