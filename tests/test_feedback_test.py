@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from itertools import product
 from types import TracebackType
 from typing import Optional
@@ -166,94 +167,102 @@ class FeedbackSelectorTracker:
         )
 
 
-def _feedback_configurations():
-    """Generate every selector equality pattern allowed by the four-feedback limit.
+def _configuration_shape(
+    combination: tuple[SensorType, ...],
+) -> tuple[tuple[int, ...], Optional[int]]:
+    """Reduce a sensor combination to the scenario it tests, ignoring decoy identity.
+
+    Two combinations that only differ in *which* literal decoy sensor fills a
+    non-target register are testing the same scenario, so they should map to the
+    same shape: each register's value becomes the index at which its sensor was
+    first seen (so the shape only reflects which registers share a sensor), and
+    the shape also records which of those indices, if any, is the target sensor
+    (QEI) - since "target in this group" and "target absent" are different
+    scenarios even when the grouping of registers is otherwise identical.
+
+    Args:
+        combination: One sensor per feedback selector register.
+
+    Returns:
+        A key that's equal for every combination testing the same scenario.
+    """
+    first_seen_at: dict[SensorType, int] = {}
+    positions = []
+    for sensor in combination:
+        if sensor not in first_seen_at:
+            first_seen_at[sensor] = len(first_seen_at)
+        positions.append(first_seen_at[sensor])
+    return tuple(positions), first_seen_at.get(SensorType.QEI)
+
+
+def _feedback_configurations() -> Iterator[dict[str, SensorType]]:
+    """Generate every selector value combination allowed by the four-feedback limit.
+
+    Each register independently takes one of five sensors (QEI, the sensor under
+    test, plus four decoys). Combinations using more than
+    MAX_SIMULTANEOUS_FEEDBACKS distinct sensors at once are skipped, since the
+    drive doesn't support them, and combinations testing a scenario an earlier
+    combination already covered (same register grouping, same target placement,
+    different decoy sensor) are skipped too.
 
     Yields:
-        Parametrized feedback selector configurations.
+        Feedback selector configurations, one per distinct scenario.
     """
-    non_target_sensors = (SensorType.HALLS, SensorType.ABS1, SensorType.BISSC2, SensorType.SSI2)
-    for pattern in product(range(5), repeat=len(FEEDBACK_SELECTOR_REGISTERS)):
-        if pattern[0] != 0 or len(set(pattern)) > MAX_SIMULTANEOUS_FEEDBACKS:
+    sensors = (
+        SensorType.QEI,
+        SensorType.HALLS,
+        SensorType.ABS1,
+        SensorType.BISSC2,
+        SensorType.SSI2,
+    )
+    seen_shapes = set()
+    for combination in product(sensors, repeat=len(FEEDBACK_SELECTOR_REGISTERS)):
+        if len(set(combination)) > MAX_SIMULTANEOUS_FEEDBACKS:
             continue
-        if any(label > max(pattern[:index]) + 1 for index, label in enumerate(pattern[1:], 1)):
+        shape = _configuration_shape(combination)
+        if shape in seen_shapes:
             continue
+        seen_shapes.add(shape)
 
-        labels = sorted(set(pattern))
-        for target_label in [None, *labels]:
-            sensor_by_label = {}
-            non_target_sensor_iter = iter(non_target_sensors)
-            for label in labels:
-                sensor_by_label[label] = (
-                    SensorType.QEI
-                    if label == target_label
-                    else next(non_target_sensor_iter)
-                )
-            configuration = dict(
-                zip(
-                    FEEDBACK_SELECTOR_REGISTERS,
-                    (sensor_by_label[label] for label in pattern),
-                )
-            )
-            target_name = "absent" if target_label is None else f"group_{target_label}"
-            pattern_name = "".join(map(str, pattern))
-            yield pytest.param(configuration, id=f"pattern_{pattern_name}_{target_name}")
-
-
-FEEDBACK_CONFIGURATIONS = list(_feedback_configurations())
+        yield dict(zip(FEEDBACK_SELECTOR_REGISTERS, combination))
 
 
 @pytest.mark.virtual
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.parametrize("initial_configuration", FEEDBACK_CONFIGURATIONS)
-def test_feedback_test_never_exceeds_the_drive_feedback_limit(
-    mc, alias, servo, mocker, initial_configuration
+def test_feedback_test_respects_and_restores_the_drive_feedback_limit(
+    mc, alias, servo, mocker, subtests
 ):
-    """The feedback test must never configure more than four feedbacks at once.
+    """The feedback test must never exceed the drive feedback limit, and must restore
+    the initial feedback configuration afterwards.
 
     The drive rejects a fifth feedback, so neither the setup writes nor the rollback
     performed by the drive context manager may go through such a transient state.
+    Both properties are checked from a single run per configuration - running the
+    wizard test twice per configuration, once per property, would double this
+    test's runtime without adding coverage, since both checks read from the same
+    execution trace.
     """
     axis = 1
-    for uid, sensor in initial_configuration.items():
-        mc.communication.set_register(uid, sensor, servo=alias, axis=axis)
-
     mocker.patch.object(
         DigitalIncremental1Test, "loop", return_value=DigitalIncremental1Test.ResultType.SUCCESS
     )
-    feedback_test = DigitalIncremental1Test(mc, alias, axis)
 
-    with FeedbackSelectorTracker(mc, servo, alias, axis) as tracker:
-        feedback_test.run()
+    for configuration in _feedback_configurations():
+        msg = "_".join(sensor.name for sensor in configuration.values())
+        with subtests.test(msg=msg):
+            for uid, sensor in configuration.items():
+                mc.communication.set_register(uid, sensor, servo=alias, axis=axis)
 
-    assert tracker.initial_state == initial_configuration
-    assert tracker.max_simultaneous_feedbacks <= MAX_SIMULTANEOUS_FEEDBACKS, (
-        "The feedback test configured more than "
-        f"{MAX_SIMULTANEOUS_FEEDBACKS} feedbacks at the same time:\n{tracker.format_history()}"
-    )
+            feedback_test = DigitalIncremental1Test(mc, alias, axis)
+            with FeedbackSelectorTracker(mc, servo, alias, axis) as tracker:
+                feedback_test.run()
 
-
-@pytest.mark.virtual
-@pytest.mark.ethernet
-@pytest.mark.soem
-@pytest.mark.canopen
-@pytest.mark.parametrize("initial_configuration", FEEDBACK_CONFIGURATIONS)
-def test_feedback_test_restores_the_initial_feedback_configuration(
-    mc, alias, servo, mocker, initial_configuration
-):
-    """The feedback test must leave the feedback selectors as it found them."""
-    axis = 1
-    for uid, sensor in initial_configuration.items():
-        mc.communication.set_register(uid, sensor, servo=alias, axis=axis)
-
-    mocker.patch.object(
-        DigitalIncremental1Test, "loop", return_value=DigitalIncremental1Test.ResultType.SUCCESS
-    )
-    feedback_test = DigitalIncremental1Test(mc, alias, axis)
-
-    with FeedbackSelectorTracker(mc, servo, alias, axis) as tracker:
-        feedback_test.run()
-
-    assert tracker.final_state == initial_configuration
+            assert tracker.initial_state == configuration
+            assert tracker.max_simultaneous_feedbacks <= MAX_SIMULTANEOUS_FEEDBACKS, (
+                "The feedback test configured more than "
+                f"{MAX_SIMULTANEOUS_FEEDBACKS} feedbacks at the same time:\n"
+                f"{tracker.format_history()}"
+            )
+            assert tracker.final_state == configuration
