@@ -1,5 +1,5 @@
-import typing
-from typing import TYPE_CHECKING, Final, Optional, Union
+from abc import ABC, abstractmethod
+from typing import TYPE_CHECKING, ClassVar, Final, Optional, Union
 
 import ingenialogger
 
@@ -16,30 +16,239 @@ VELOCITY_FEEDBACK_REGISTER = "CL_VEL_FBK_SENSOR"
 POSITION_FEEDBACK_REGISTER = "CL_POS_FBK_SENSOR"
 AUXILIAR_FEEDBACK_REGISTER = "CL_AUX_FBK_SENSOR"
 
-FEEDBACK_TYPE_DICT: Final[dict[SensorType, SensorCategory]] = {
-    SensorType.ABS1: SensorCategory.ABSOLUTE,
-    SensorType.QEI: SensorCategory.INCREMENTAL,
-    SensorType.HALLS: SensorCategory.ABSOLUTE,
-    SensorType.SSI2: SensorCategory.ABSOLUTE,
-    SensorType.BISSC2: SensorCategory.ABSOLUTE,
-    SensorType.QEI2: SensorCategory.INCREMENTAL,
-    SensorType.INTGEN: SensorCategory.ABSOLUTE,
-    SensorType.SINCOS: SensorCategory.INCREMENTAL,
+
+class Encoder(ABC):
+    """Physical encoder of an axis.
+
+    An encoder is what a feedback slot uses to sense the axis position. This
+    class holds the encoder metadata (sensor type, category and polarity
+    register) and computes its resolution from the drive registers. It is bound
+    to the axis it belongs to, so no servo or axis arguments are needed.
+    """
+
+    SENSOR_TYPE: ClassVar[SensorType]
+    CATEGORY: ClassVar[SensorCategory]
+    POLARITY_REGISTER_UID: ClassVar[Optional[str]] = None
+
+    def __init__(self, axis: "Axis") -> None:
+        """Constructor.
+
+        Args:
+            axis: Axis associated with the encoder.
+        """
+        self.__servo = axis.motion_node.servo
+        self.__axis_number = axis.axis_number
+
+    def _read(self, reg_uid: str) -> int:
+        """Read an integer register with type validation.
+
+        Args:
+            reg_uid: register UID to read.
+
+        Returns:
+            The register value as an integer.
+
+        Raises:
+            TypeError: If the register value is not an integer.
+        """
+        value = self.__servo.read(reg_uid, subnode=self.__axis_number)
+        if not isinstance(value, int):
+            raise TypeError(f"Register {reg_uid} value has to be an integer")
+        return value
+
+    def _write(self, reg_uid: str, value: int) -> None:
+        """Write a register value.
+
+        Args:
+            reg_uid: register UID to write.
+            value: value to write.
+        """
+        self.__servo.write(reg_uid, value, subnode=self.__axis_number)
+
+    def get_polarity(self) -> Union[int, FeedbackPolarity]:
+        """Get the polarity of the encoder.
+
+        Returns:
+            The polarity of the encoder.
+
+        Raises:
+            NotImplementedError: If the encoder polarity is not implemented.
+            TypeError: If the read value has a wrong type.
+        """
+        if self.POLARITY_REGISTER_UID is None:
+            raise NotImplementedError(f"Sensor {self.SENSOR_TYPE.name} polarity is not implemented")
+        raw_polarity = self._read(self.POLARITY_REGISTER_UID)
+        try:
+            return FeedbackPolarity(raw_polarity)
+        except ValueError:
+            return raw_polarity
+
+    def set_polarity(self, polarity: FeedbackPolarity) -> None:
+        """Set the polarity of the encoder.
+
+        Args:
+            polarity: target polarity.
+
+        Raises:
+            NotImplementedError: If the encoder polarity is not implemented.
+        """
+        if self.POLARITY_REGISTER_UID is None:
+            raise NotImplementedError(f"Sensor {self.SENSOR_TYPE.name} polarity is not implemented")
+        self._write(self.POLARITY_REGISTER_UID, polarity)
+
+    @abstractmethod
+    def get_resolution(self) -> int:
+        """The resolution of the encoder."""
+
+
+class InternalGeneratorEncoder(Encoder):
+    """Placeholder encoder for feedbacks without a physical encoder."""
+
+    SENSOR_TYPE = SensorType.INTGEN
+    CATEGORY = SensorCategory.ABSOLUTE
+
+    def get_resolution(self) -> int:
+        """The resolution of the encoder.
+
+        Raises:
+            ValueError: If the encoder has no resolution.
+        """
+        raise ValueError("The selected feedback does not have resolution")
+
+
+class AbsoluteEncoder(Encoder):
+    """Encoder whose resolution is two raised to the single-turn bits."""
+
+    CATEGORY = SensorCategory.ABSOLUTE
+    _BITS_REGISTER_UID: ClassVar[str]
+
+    def get_resolution(self) -> int:
+        """The resolution of the encoder.
+
+        Returns:
+            The resolution of the encoder.
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+        """
+        return int(2 ** self._read(self._BITS_REGISTER_UID))
+
+
+class Abs1Encoder(AbsoluteEncoder):
+    """ABS1 absolute encoder."""
+
+    SENSOR_TYPE = SensorType.ABS1
+    POLARITY_REGISTER_UID = "FBK_BISS1_SSI1_POS_POLARITY"
+    _BITS_REGISTER_UID = "FBK_BISS1_SSI1_POS_ST_BITS"
+
+
+class Ssi2Encoder(AbsoluteEncoder):
+    """Secondary SSI absolute encoder."""
+
+    SENSOR_TYPE = SensorType.SSI2
+    POLARITY_REGISTER_UID = "FBK_SSI2_POS_POLARITY"
+    _BITS_REGISTER_UID = "FBK_SSI2_POS_ST_BITS"
+
+
+class Bissc2Encoder(AbsoluteEncoder):
+    """BISSC2 absolute encoder."""
+
+    SENSOR_TYPE = SensorType.BISSC2
+    POLARITY_REGISTER_UID = "FBK_BISS2_POS_POLARITY"
+    _BITS_REGISTER_UID = "FBK_BISS2_POS_ST_BITS"
+
+
+class IncrementalEncoder(Encoder):
+    """Encoder whose resolution is a register value."""
+
+    CATEGORY = SensorCategory.INCREMENTAL
+    _RESOLUTION_REGISTER_UID: ClassVar[str]
+
+    def get_resolution(self) -> int:
+        """The resolution of the encoder.
+
+        Returns:
+            The resolution of the encoder.
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+        """
+        return self._read(self._RESOLUTION_REGISTER_UID)
+
+
+class QeiEncoder(IncrementalEncoder):
+    """QEI incremental encoder."""
+
+    SENSOR_TYPE = SensorType.QEI
+    POLARITY_REGISTER_UID = "FBK_DIGENC1_POLARITY"
+    _RESOLUTION_REGISTER_UID = "FBK_DIGENC1_RESOLUTION"
+
+
+class Qei2Encoder(IncrementalEncoder):
+    """QEI2 incremental encoder."""
+
+    SENSOR_TYPE = SensorType.QEI2
+    POLARITY_REGISTER_UID = "FBK_DIGENC2_POLARITY"
+    _RESOLUTION_REGISTER_UID = "FBK_DIGENC2_RESOLUTION"
+
+
+class HallsEncoder(Encoder):
+    """Digital halls encoder."""
+
+    SENSOR_TYPE = SensorType.HALLS
+    CATEGORY = SensorCategory.ABSOLUTE
+    POLARITY_REGISTER_UID = "FBK_DIGHALL_POLARITY"
+    _PAIR_POLES_REGISTER_UID = "FBK_DIGHALL_PAIRPOLES"
+
+    def get_resolution(self) -> int:
+        """The resolution of the encoder.
+
+        Returns:
+            The resolution of the encoder.
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+        """
+        return 6 * self._read(self._PAIR_POLES_REGISTER_UID)
+
+
+class SincosEncoder(Encoder):
+    """SinCos encoder."""
+
+    SENSOR_TYPE = SensorType.SINCOS
+    CATEGORY = SensorCategory.INCREMENTAL
+    POLARITY_REGISTER_UID = "FBK_SINCOS_POLARITY"
+    _RESOLUTION_REGISTER_UID = "FBK_SINCOS_RESOLUTION"
+    _RESOLUTION_MULTIPLIER_REGISTER_UID: ClassVar[str] = "FBK_SINCOS_MULT_FACTOR"
+
+    def get_resolution(self) -> int:
+        """The resolution of the encoder.
+
+        Returns:
+            The resolution of the encoder.
+
+        Raises:
+            TypeError: If some read value has a wrong type.
+        """
+        value = self._read(self._RESOLUTION_REGISTER_UID)
+        multiplier = self._read(self._RESOLUTION_MULTIPLIER_REGISTER_UID)
+        return value * int(2**multiplier)
+
+
+_ENCODER_TYPES: Final[dict[SensorType, type[Encoder]]] = {
+    SensorType.ABS1: Abs1Encoder,
+    SensorType.QEI: QeiEncoder,
+    SensorType.HALLS: HallsEncoder,
+    SensorType.SSI2: Ssi2Encoder,
+    SensorType.BISSC2: Bissc2Encoder,
+    SensorType.QEI2: Qei2Encoder,
+    SensorType.SINCOS: SincosEncoder,
+    SensorType.INTGEN: InternalGeneratorEncoder,
 }
 
 
 class Feedbacks:
     """Feedbacks Wizard Class description."""
-
-    __feedback_polarity_register_dict: Final[dict[SensorType, str]] = {
-        SensorType.ABS1: "FBK_BISS1_SSI1_POS_POLARITY",
-        SensorType.QEI: "FBK_DIGENC1_POLARITY",
-        SensorType.HALLS: "FBK_DIGHALL_POLARITY",
-        SensorType.SSI2: "FBK_SSI2_POS_POLARITY",
-        SensorType.BISSC2: "FBK_BISS2_POS_POLARITY",
-        SensorType.QEI2: "FBK_DIGENC2_POLARITY",
-        SensorType.SINCOS: "FBK_SINCOS_POLARITY",
-    }
 
     COMMUTATION_FEEDBACK_REGISTER = COMMUTATION_FEEDBACK_REGISTER
     REFERENCE_FEEDBACK_REGISTER = REFERENCE_FEEDBACK_REGISTER
@@ -50,16 +259,18 @@ class Feedbacks:
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
         self.logger = ingenialogger.get_logger(__name__)
-        self.feedback_resolution_functions = {
-            SensorType.ABS1: self.get_absolute_encoder_1_resolution,
-            SensorType.QEI: self.get_incremental_encoder_1_resolution,
-            SensorType.HALLS: self.get_digital_halls_resolution,
-            SensorType.SSI2: self.get_secondary_ssi_resolution,
-            SensorType.BISSC2: self.get_absolute_encoder_2_resolution,
-            SensorType.QEI2: self.get_incremental_encoder_2_resolution,
-            SensorType.SINCOS: self.get_sincos_encoder_resolution,
-            SensorType.INTGEN: self.__no_feedback_resolution,
-        }
+
+    def __axis_feedbacks(self, servo: str, axis: int) -> "AxisFeedbacks":
+        """Get the feedback slots of the target servo and axis.
+
+        Args:
+            servo: servo alias to reference it.
+            axis: axis that will run the test.
+
+        Returns:
+            The feedback slots of the target axis.
+        """
+        return self.mc._get_motion_node(servo).get_axis(axis).feedbacks
 
     # Commutation feedback
     def get_commutation_feedback(
@@ -78,8 +289,7 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        commutation_feedback = self.mc._get_motion_node(servo).get_axis(axis).feedbacks.commutation
-        return commutation_feedback.feedback
+        return self.__axis_feedbacks(servo, axis).commutation.get_encoder().SENSOR_TYPE
 
     @MCMetaClass.check_motor_disabled
     def set_commutation_feedback(
@@ -95,7 +305,7 @@ class Feedbacks:
         Raises:
             IMStatusWordError: If motor is enabled.
         """
-        self.mc._get_motion_node(servo).get_axis(axis).feedbacks.commutation.feedback = feedback
+        self.__axis_feedbacks(servo, axis).commutation.set_encoder(feedback)
 
     def get_commutation_feedback_category(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -112,8 +322,7 @@ class Feedbacks:
         Returns:
             Category {ABSOLUTE, INCREMENTAL} of the selected feedback.
         """
-        commutation_feedback = self.mc._get_motion_node(servo).get_axis(axis).feedbacks.commutation
-        return commutation_feedback.category
+        return self.__axis_feedbacks(servo, axis).commutation.get_encoder().CATEGORY
 
     def get_commutation_feedback_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -127,8 +336,7 @@ class Feedbacks:
         Returns:
             Resolution of the selected feedback.
         """
-        sensor_type = self.get_commutation_feedback(servo, axis)
-        return self.feedback_resolution_functions[sensor_type](servo, axis)
+        return self.__axis_feedbacks(servo, axis).commutation.get_encoder().get_resolution()
 
     # Reference feedback
     def get_reference_feedback(
@@ -147,8 +355,7 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        reference_feedback = self.mc._get_motion_node(servo).get_axis(axis).feedbacks.reference
-        return reference_feedback.feedback
+        return self.__axis_feedbacks(servo, axis).reference.get_encoder().SENSOR_TYPE
 
     @MCMetaClass.check_motor_disabled
     def set_reference_feedback(
@@ -164,7 +371,7 @@ class Feedbacks:
         Raises:
             IMStatusWordError: If motor is enabled.
         """
-        self.mc._get_motion_node(servo).get_axis(axis).feedbacks.reference.feedback = feedback
+        self.__axis_feedbacks(servo, axis).reference.set_encoder(feedback)
 
     def get_reference_feedback_category(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -181,8 +388,7 @@ class Feedbacks:
         Returns:
             Category {ABSOLUTE, INCREMENTAL} of the selected feedback.
         """
-        reference_feedback = self.mc._get_motion_node(servo).get_axis(axis).feedbacks.reference
-        return reference_feedback.category
+        return self.__axis_feedbacks(servo, axis).reference.get_encoder().CATEGORY
 
     def get_reference_feedback_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -196,8 +402,7 @@ class Feedbacks:
         Returns:
             Resolution of the selected feedback.
         """
-        sensor_type = self.get_reference_feedback(servo, axis)
-        return self.feedback_resolution_functions[sensor_type](servo, axis)
+        return self.__axis_feedbacks(servo, axis).reference.get_encoder().get_resolution()
 
     # Velocity feedback
     def get_velocity_feedback(
@@ -216,8 +421,7 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        velocity_feedback = self.mc._get_motion_node(servo).get_axis(axis).feedbacks.velocity
-        return velocity_feedback.feedback
+        return self.__axis_feedbacks(servo, axis).velocity.get_encoder().SENSOR_TYPE
 
     @MCMetaClass.check_motor_disabled
     def set_velocity_feedback(
@@ -233,7 +437,7 @@ class Feedbacks:
         Raises:
             IMStatusWordError: If motor is enabled.
         """
-        self.mc._get_motion_node(servo).get_axis(axis).feedbacks.velocity.feedback = feedback
+        self.__axis_feedbacks(servo, axis).velocity.set_encoder(feedback)
 
     def get_velocity_feedback_category(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -250,8 +454,7 @@ class Feedbacks:
         Returns:
             Category {ABSOLUTE, INCREMENTAL} of the selected feedback.
         """
-        velocity_feedback = self.mc._get_motion_node(servo).get_axis(axis).feedbacks.velocity
-        return velocity_feedback.category
+        return self.__axis_feedbacks(servo, axis).velocity.get_encoder().CATEGORY
 
     def get_velocity_feedback_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -265,8 +468,7 @@ class Feedbacks:
         Returns:
             Resolution of the selected feedback.
         """
-        sensor_type = self.get_velocity_feedback(servo, axis)
-        return self.feedback_resolution_functions[sensor_type](servo, axis)
+        return self.__axis_feedbacks(servo, axis).velocity.get_encoder().get_resolution()
 
     # Position feedback
     def get_position_feedback(
@@ -285,8 +487,7 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        position_feedback = self.mc._get_motion_node(servo).get_axis(axis).feedbacks.position
-        return position_feedback.feedback
+        return self.__axis_feedbacks(servo, axis).position.get_encoder().SENSOR_TYPE
 
     @MCMetaClass.check_motor_disabled
     def set_position_feedback(
@@ -302,7 +503,7 @@ class Feedbacks:
         Raises:
             IMStatusWordError: If motor is enabled.
         """
-        self.mc._get_motion_node(servo).get_axis(axis).feedbacks.position.feedback = feedback
+        self.__axis_feedbacks(servo, axis).position.set_encoder(feedback)
 
     def get_position_feedback_category(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -319,8 +520,7 @@ class Feedbacks:
         Returns:
             Category {ABSOLUTE, INCREMENTAL} of the selected feedback.
         """
-        position_feedback = self.mc._get_motion_node(servo).get_axis(axis).feedbacks.position
-        return position_feedback.category
+        return self.__axis_feedbacks(servo, axis).position.get_encoder().CATEGORY
 
     def get_position_feedback_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -334,8 +534,7 @@ class Feedbacks:
         Returns:
             Resolution of the selected feedback.
         """
-        sensor_type = self.get_position_feedback(servo, axis)
-        return self.feedback_resolution_functions[sensor_type](servo, axis)
+        return self.__axis_feedbacks(servo, axis).position.get_encoder().get_resolution()
 
     # Auxiliar feedback
     def get_auxiliar_feedback(
@@ -354,8 +553,7 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        auxiliar_feedback = self.mc._get_motion_node(servo).get_axis(axis).feedbacks.auxiliar
-        return auxiliar_feedback.feedback
+        return self.__axis_feedbacks(servo, axis).auxiliar.get_encoder().SENSOR_TYPE
 
     @MCMetaClass.check_motor_disabled
     def set_auxiliar_feedback(
@@ -371,7 +569,7 @@ class Feedbacks:
         Raises:
             IMStatusWordError: If motor is enabled.
         """
-        self.mc._get_motion_node(servo).get_axis(axis).feedbacks.auxiliar.feedback = feedback
+        self.__axis_feedbacks(servo, axis).auxiliar.set_encoder(feedback)
 
     def get_auxiliar_feedback_category(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -388,8 +586,7 @@ class Feedbacks:
         Returns:
             Category {ABSOLUTE, INCREMENTAL} of the selected feedback.
         """
-        auxiliar_feedback = self.mc._get_motion_node(servo).get_axis(axis).feedbacks.auxiliar
-        return auxiliar_feedback.category
+        return self.__axis_feedbacks(servo, axis).auxiliar.get_encoder().CATEGORY
 
     def get_auxiliar_feedback_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -403,8 +600,7 @@ class Feedbacks:
         Returns:
             Resolution of the selected feedback.
         """
-        sensor_type = self.get_auxiliar_feedback(servo, axis)
-        return self.feedback_resolution_functions[sensor_type](servo, axis)
+        return self.__axis_feedbacks(servo, axis).auxiliar.get_encoder().get_resolution()
 
     def get_absolute_encoder_1_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -422,15 +618,7 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        single_turn_bits = self.mc.communication.get_register(
-            "FBK_BISS1_SSI1_POS_ST_BITS", servo=servo, axis=axis
-        )
-        if not isinstance(single_turn_bits, int):
-            raise TypeError("Single-turn bits has to be an integer")
-        resolution = 2**single_turn_bits
-        if not isinstance(resolution, int):
-            raise TypeError("Resolution value has to be an integer")
-        return resolution
+        return self.__axis_feedbacks(servo, axis).get_resolution(SensorType.ABS1)
 
     def get_incremental_encoder_1_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -448,12 +636,7 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        resolution = self.mc.communication.get_register(
-            "FBK_DIGENC1_RESOLUTION", servo=servo, axis=axis
-        )
-        if not isinstance(resolution, int):
-            raise TypeError("Resolution value has to be an integer")
-        return resolution
+        return self.__axis_feedbacks(servo, axis).get_resolution(SensorType.QEI)
 
     def get_digital_halls_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -471,13 +654,7 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        pair_poles = self.mc.communication.get_register(
-            "FBK_DIGHALL_PAIRPOLES", servo=servo, axis=axis
-        )
-        resolution = 6 * pair_poles
-        if not isinstance(resolution, int):
-            raise TypeError("Resolution value has to be an integer")
-        return resolution
+        return self.__axis_feedbacks(servo, axis).get_resolution(SensorType.HALLS)
 
     def get_secondary_ssi_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -495,13 +672,7 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        secondary_single_turn_bits = self.mc.communication.get_register(
-            "FBK_SSI2_POS_ST_BITS", servo=servo, axis=axis
-        )
-        if not isinstance(secondary_single_turn_bits, int):
-            raise TypeError("Resolution value has to be an integer")
-        resolution = int(2**secondary_single_turn_bits)
-        return resolution
+        return self.__axis_feedbacks(servo, axis).get_resolution(SensorType.SSI2)
 
     def get_absolute_encoder_2_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -519,13 +690,7 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        serial_slave_1_single_turn_bits = self.mc.communication.get_register(
-            "FBK_BISS2_POS_ST_BITS", servo=servo, axis=axis
-        )
-        if not isinstance(serial_slave_1_single_turn_bits, int):
-            raise TypeError("Single-turn bits has to be an integer")
-        resolution = int(2**serial_slave_1_single_turn_bits)
-        return resolution
+        return self.__axis_feedbacks(servo, axis).get_resolution(SensorType.BISSC2)
 
     def get_incremental_encoder_2_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -543,12 +708,7 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        resolution = self.mc.communication.get_register(
-            "FBK_DIGENC2_RESOLUTION", servo=servo, axis=axis
-        )
-        if not isinstance(resolution, int):
-            raise TypeError("Resolution value has to be an integer")
-        return resolution
+        return self.__axis_feedbacks(servo, axis).get_resolution(SensorType.QEI2)
 
     def get_sincos_encoder_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -566,30 +726,7 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        resolution = self.mc.communication.get_register(
-            "FBK_SINCOS_RESOLUTION", servo=servo, axis=axis
-        )
-        multiplier_reg_value = self.mc.communication.get_register(
-            "FBK_SINCOS_MULT_FACTOR", servo=servo, axis=axis
-        )
-        if not isinstance(resolution, int):
-            raise TypeError("Resolution value has to be an integer")
-        if not isinstance(multiplier_reg_value, int):
-            raise TypeError("Multiplier factor value has to be an integer")
-        multiplier_factor = typing.cast("int", 2**multiplier_reg_value)
-        return resolution * multiplier_factor
-
-    def __no_feedback_resolution(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> int:  # noqa: ARG002
-        """Used for feedbacks that have no resolution.
-
-        Args:
-            servo : servo alias to reference it. ``default`` by default.
-            axis : axis that will run the test. ``1`` by default.
-
-        Raises:
-            ValueError: If the selected feedback does not have resolution.
-        """
-        raise ValueError("The selected feedback does not have resolution")
+        return self.__axis_feedbacks(servo, axis).get_resolution(SensorType.SINCOS)
 
     def get_feedback_resolution(
         self, feedback: SensorType, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -614,22 +751,7 @@ class Feedbacks:
         Returns:
             Resolution of target feedback.
         """
-        return self.feedback_resolution_functions[feedback](servo, axis)
-
-    def get_feedback_polarity_register_uid(self, feedback: SensorType) -> str:
-        """Returns feedback polarity register UID.
-
-        Args:
-           feedback: target feedback sensor.
-
-        Returns:
-            Register UID
-
-        """
-        polarity_register = self.__feedback_polarity_register_dict.get(feedback)
-        if polarity_register is None:
-            raise NotImplementedError(f"Sensor {feedback.name} polarity is not implemented")
-        return polarity_register
+        return self.__axis_feedbacks(servo, axis).get_resolution(feedback)
 
     def set_feedback_polarity(
         self,
@@ -646,9 +768,11 @@ class Feedbacks:
             servo: servo alias to reference it. ``default`` by default.
             axis: axis that will run the test. ``1`` by default.
 
+        Raises:
+            NotImplementedError: If the sensor polarity is not implemented.
+
         """
-        polarity_register = self.get_feedback_polarity_register_uid(feedback)
-        self.mc.communication.set_register(polarity_register, polarity, servo=servo, axis=axis)
+        self.__axis_feedbacks(servo, axis).get_encoder(feedback).set_polarity(polarity)
         self.logger.debug(
             f"Feedback {feedback.name} polarity set to {polarity.name}",
             axis=axis,
@@ -672,17 +796,11 @@ class Feedbacks:
             Feedback polarity
 
         Raises:
+            NotImplementedError: If the sensor polarity is not implemented.
             TypeError: If some read value has a wrong type.
 
         """
-        polarity_register = self.get_feedback_polarity_register_uid(feedback)
-        raw_polarity = self.mc.communication.get_register(polarity_register, servo=servo, axis=axis)
-        if not isinstance(raw_polarity, int):
-            raise TypeError("Polarity value has to be an integer")
-        try:
-            return FeedbackPolarity(raw_polarity)
-        except ValueError:
-            return raw_polarity
+        return self.__axis_feedbacks(servo, axis).get_encoder(feedback).get_polarity()
 
 
 class FeedbackSlot:
@@ -696,15 +814,15 @@ class FeedbackSlot:
             axis: Axis associated with the feedback slot.
         """
         self.__register_uid = register_uid
+        self.__axis = axis
         self.__servo = axis.motion_node.servo
         self.__axis_number = axis.axis_number
 
-    @property
-    def feedback(self) -> SensorType:
-        """The feedback sensor configured in the slot.
+    def get_encoder(self) -> Encoder:
+        """Get the encoder configured in the slot.
 
         Returns:
-            The feedback sensor configured in the slot.
+            The encoder configured in the slot.
 
         Raises:
             TypeError: If the read value has a wrong type.
@@ -712,25 +830,15 @@ class FeedbackSlot:
         feedback = self.__servo.read(self.__register_uid, subnode=self.__axis_number)
         if not isinstance(feedback, int):
             raise TypeError("Feedback value has to be an integer")
-        return SensorType(feedback)
+        return self.__axis.feedbacks.get_encoder(SensorType(feedback))
 
-    @feedback.setter
-    def feedback(self, sensor: SensorType) -> None:
-        """Set the feedback sensor of the slot.
+    def set_encoder(self, sensor: SensorType) -> None:
+        """Configure the encoder of the slot.
 
         Args:
             sensor: Feedback sensor to configure.
         """
         self.__servo.write(self.__register_uid, sensor, subnode=self.__axis_number)
-
-    @property
-    def category(self) -> SensorCategory:
-        """The category of the feedback sensor configured in the slot.
-
-        Returns:
-            The category of the feedback sensor configured in the slot.
-        """
-        return FEEDBACK_TYPE_DICT[self.feedback]
 
 
 class AxisFeedbacks:
@@ -743,6 +851,20 @@ class AxisFeedbacks:
             axis: Axis associated with the feedback slots.
         """
         self.__axis = axis
+        self.__encoders = {
+            sensor: encoder_type(axis) for sensor, encoder_type in _ENCODER_TYPES.items()
+        }
+
+    def get_encoder(self, sensor: SensorType) -> Encoder:
+        """Get the encoder of the target feedback sensor in the axis.
+
+        Args:
+            sensor: target feedback sensor.
+
+        Returns:
+            The encoder of the target feedback sensor.
+        """
+        return self.__encoders[sensor]
 
     @property
     def commutation(self) -> FeedbackSlot:
@@ -776,3 +898,18 @@ class AxisFeedbacks:
             A tuple with all the feedback slots of the axis.
         """
         return (self.commutation, self.reference, self.velocity, self.position, self.auxiliar)
+
+    def get_resolution(self, sensor: SensorType) -> int:
+        """Get the resolution of the target feedback sensor in the axis.
+
+        Args:
+            sensor: target feedback sensor.
+
+        Returns:
+            The resolution of the target feedback sensor.
+
+        Raises:
+            ValueError: If the feedback sensor has no resolution.
+            TypeError: If some read value has a wrong type.
+        """
+        return self.get_encoder(sensor).get_resolution()

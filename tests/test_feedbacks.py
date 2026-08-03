@@ -360,7 +360,8 @@ def test_instance_sensor_type(mc, alias):
         (SensorType.SSI2, "FBK_SSI2_POS_POLARITY"),
         (SensorType.BISSC2, "FBK_BISS2_POS_POLARITY"),
         (SensorType.QEI2, "FBK_DIGENC2_POLARITY"),
+        (SensorType.SINCOS, "FBK_SINCOS_POLARITY"),
     ],
 )
-def test_get_feedback_polarity_register_uid(mc, sensor, register):
-    assert mc.configuration.get_feedback_polarity_register_uid(sensor) == register
+def test_encoder_polarity_register_uid(axis, sensor, register):
+    assert register == axis.feedbacks.get_encoder(sensor).POLARITY_REGISTER_UID
