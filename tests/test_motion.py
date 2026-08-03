@@ -379,8 +379,10 @@ def test_ramp_generator(mocker, init_v, final_v, total_t, t, result):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("position_value", [-4000, -1000, 1000, 4000])
-# https://novantamotion.atlassian.net/browse/INGM-780
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
+@pytest.mark.biss_c_flaky(
+    "Sporadically fails on ABS BiSS-C config, will be skipped for certain firmware versions"
+)
+@pytest.mark.repeat(100)
 @pytest.mark.not_valid_for_product(part_number="EVE-*")
 def test_get_actual_position(mc, alias, position_value):
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
