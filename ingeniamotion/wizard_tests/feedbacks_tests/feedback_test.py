@@ -146,6 +146,33 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         )
         return self.__check_feedback_tolerance(error, error_msg, self.ResultType.RESOLUTION_ERROR)
 
+    @staticmethod
+    def __feedback_replacement_order(current_feedbacks: tuple[SensorType, ...]) -> list[int]:
+        """Order feedback slot indices so replacing them never exceeds the drive's feedback limit.
+
+        The drive supports at most 4 distinct feedback types across its 5 feedback
+        slots (commutation, reference, velocity, position, auxiliary) at once.
+        Overwriting a slot only frees up capacity if its feedback type isn't also
+        held by another, not-yet-overwritten slot; otherwise that type is still in
+        use and no capacity is freed. So slots whose feedback type is unique among
+        the 5 must be overwritten first: each such write removes a type entirely,
+        making room before the shared types are touched.
+
+        Args:
+            current_feedbacks: The feedback type currently assigned to each slot,
+                in slot order (commutation, reference, velocity, position, auxiliary).
+
+        Returns:
+            All slot indices, ordered so that slots with a feedback type unique
+            to them come before slots whose feedback type is shared with other
+            slots.
+        """
+        feedback_counts = Counter(current_feedbacks)
+        return sorted(
+            range(len(current_feedbacks)),
+            key=lambda index: feedback_counts[current_feedbacks[index]],
+        )
+
     @BaseTest.stoppable
     def feedback_setting(self) -> None:
         """Set the feedback for the test.
@@ -178,19 +205,14 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         current_feedbacks = tuple(
             getter(servo=self.servo, axis=self.axis) for getter, _setter in feedback_slots
         )
-        feedback_counts = Counter(current_feedbacks)
-        # Replace unique values first so each write removes a distinct feedback type.
-        unique_feedback_indices = [
-            index
-            for index, feedback in enumerate(current_feedbacks)
-            if feedback != self.sensor and feedback_counts[feedback] == 1
-        ]
-        duplicate_feedback_indices = [
-            index
-            for index, feedback in enumerate(current_feedbacks)
-            if feedback != self.sensor and feedback_counts[feedback] > 1
-        ]
-        for index in unique_feedback_indices + duplicate_feedback_indices:
+        # Commutation is left untouched here: setup() unconditionally overwrites it to
+        # INTGEN right after this method returns, so writing it to self.sensor first
+        # would only be discarded. It's still included in current_feedbacks so its
+        # feedback type is accounted for when ordering the other slots below.
+        commutation_index = 0
+        for index in self.__feedback_replacement_order(current_feedbacks):
+            if index == commutation_index or current_feedbacks[index] == self.sensor:
+                continue
             _getter, setter = feedback_slots[index]
             setter(self.sensor, servo=self.servo, axis=self.axis)
         # Set Polarity to 0
@@ -272,10 +294,10 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         )
         # For each feedback on motor side we should repeat this test using the
         # feedback as position sensor. The polarity of the feedback must be set
-        # also to normal at the beginning. All feedback are set to the same,
-        # in order to avoid feedback configuration
+        # also to normal at the beginning. Reference/velocity/position/auxiliary
+        # feedback are set to the same, in order to avoid feedback configuration
         # error (wizard_tests series can only support 4 feedback at the
-        # same time)
+        # same time). Commutation is handled separately below.
         self.feedback_setting()
 
         self.mc.motion.set_internal_generator_configuration(
@@ -353,10 +375,6 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
     def teardown(self) -> None:
         self.logger.info("Disabling motor")
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
-        # Normalize the temporary generator feedback before context-manager rollback.
-        self.mc.configuration.set_commutation_feedback(
-            self.sensor, servo=self.servo, axis=self.axis
-        )
 
     @BaseTest.stoppable
     def __wait_for_movement(self, timeout: float) -> None:
