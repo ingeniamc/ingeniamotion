@@ -387,6 +387,27 @@ def test_get_actual_position(mc, alias, position_value):
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
     mc.motion.motor_enable(servo=alias)
     mc.motion.move_to_position(position_value, servo=alias, blocking=True, timeout=10)
+
+    # Wait for the position to stabilize
+    stability_timeout = 10
+    stability_interval = 0.1
+    stable_samples_required = 5
+    stable_positions = []
+    stability_start_time = time.monotonic()
+    while time.monotonic() - stability_start_time < stability_timeout:
+        stable_positions.append(mc.motion.get_actual_position(servo=alias))
+        if (
+            len(stable_positions) >= stable_samples_required
+            and np.ptp(stable_positions[-stable_samples_required:]) <= 1
+        ):
+            break
+        time.sleep(stability_interval)
+    else:
+        raise AssertionError(
+            f"Position did not stabilize within {stability_timeout} seconds: "
+            f"last positions={stable_positions[-stable_samples_required:]}"
+        )
+
     n_samples = 200
     test_position = np.zeros(n_samples)
     reg_value = np.zeros(n_samples)
