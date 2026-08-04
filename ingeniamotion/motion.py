@@ -663,8 +663,10 @@ class Motion:
             if timeout and (init_time + timeout) < time.time():
                 target_reached = True
                 self.logger.warning(
-                    "Timeout: position %s was not reached",
-                    position,
+                    f"Timeout: position {position} was not reached. "
+                    f"Current position: {curr_position}. "
+                    f"Position error: {position - curr_position}. "
+                    f"Allowed error: {error}",
                     axis=axis,
                     drive=self.mc.servo_name(servo),
                 )
