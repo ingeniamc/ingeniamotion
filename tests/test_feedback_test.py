@@ -195,26 +195,60 @@ def _configuration_shape(
     return tuple(positions), first_seen_at.get(SensorType.QEI)
 
 
-def _feedback_configurations() -> Iterator[dict[str, SensorType]]:
+def _feedback_sensor_pool(mc: MotionController, alias: str, axis: int) -> tuple[SensorType, ...]:
+    """Read the decoy sensor pool from the registers' own dictionary enums.
+
+    A sensor value can be numerically valid for a register while meaning something
+    the drive can't actually satisfy on its own (e.g. feedback relayed from a
+    daisy-chained second slave) - the dictionary enum is per-register, so a value
+    only goes in the pool if every feedback selector register declares it. The
+    internal generator is excluded since the wizard test assigns it to commutation
+    itself; including it as a decoy would be redundant and could conflict with
+    that assignment.
+
+    Args:
+        mc: MotionController instance.
+        alias: servo alias to query.
+        axis: axis to query.
+
+    Returns:
+        The sensor values usable interchangeably across all feedback registers.
+    """
+    common_values: Optional[set[int]] = None
+    for uid in FEEDBACK_SELECTOR_REGISTERS:
+        register_values = set(mc.info.register_info(uid, axis=axis, servo=alias).enums.values())
+        common_values = (
+            register_values if common_values is None else common_values & register_values
+        )
+    assert common_values is not None
+    return tuple(
+        SensorType(value)
+        for value in sorted(common_values)
+        if value in SensorType and SensorType(value) != SensorType.INTGEN
+    )
+
+
+def _feedback_configurations(
+    mc: MotionController, alias: str, axis: int
+) -> Iterator[dict[str, SensorType]]:
     """Generate every selector value combination allowed by the four-feedback limit.
 
-    Each register independently takes one of five sensors (QEI, the sensor under
-    test, plus four decoys). Combinations using more than
-    MAX_SIMULTANEOUS_FEEDBACKS distinct sensors at once are skipped, since the
-    drive doesn't support them, and combinations testing a scenario an earlier
-    combination already covered (same register grouping, same target placement,
-    different decoy sensor) are skipped too.
+    Each register independently takes one of the sensors the drive's dictionary
+    reports as valid across every feedback selector register. Combinations using
+    more than MAX_SIMULTANEOUS_FEEDBACKS distinct sensors at once are skipped,
+    since the drive doesn't support them, and combinations testing a scenario an
+    earlier combination already covered (same register grouping, same target
+    placement, different decoy sensor) are skipped too.
+
+    Args:
+        mc: MotionController instance.
+        alias: servo alias to query.
+        axis: axis to query.
 
     Yields:
         Feedback selector configurations, one per distinct scenario.
     """
-    sensors = (
-        SensorType.QEI,
-        SensorType.HALLS,
-        SensorType.ABS1,
-        SensorType.BISSC2,
-        SensorType.SSI2,
-    )
+    sensors = _feedback_sensor_pool(mc, alias, axis)
     seen_shapes = set()
     for combination in product(sensors, repeat=len(FEEDBACK_SELECTOR_REGISTERS)):
         if len(set(combination)) > MAX_SIMULTANEOUS_FEEDBACKS:
@@ -249,7 +283,7 @@ def test_feedback_test_respects_and_restores_the_drive_feedback_limit(
         DigitalIncremental1Test, "loop", return_value=DigitalIncremental1Test.ResultType.SUCCESS
     )
 
-    for configuration in _feedback_configurations():
+    for configuration in _feedback_configurations(mc, alias, axis):
         msg = "_".join(sensor.name for sensor in configuration.values())
         with subtests.test(msg=msg):
             for uid, sensor in configuration.items():
