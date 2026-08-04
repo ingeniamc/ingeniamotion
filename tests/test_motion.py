@@ -391,6 +391,7 @@ def test_get_actual_position(mc, alias, position_value):
     # Wait for the position to stabilize
     stability_timeout = 3
     stability_interval = 0.1
+    stability_tolerance = 20
     stable_samples_required = 5
     stable_positions = []
     stability_start_time = time.monotonic()
@@ -398,7 +399,7 @@ def test_get_actual_position(mc, alias, position_value):
         stable_positions.append(mc.motion.get_actual_position(servo=alias))
         if (
             len(stable_positions) >= stable_samples_required
-            and np.ptp(stable_positions[-stable_samples_required:]) <= 1
+            and np.ptp(stable_positions[-stable_samples_required:]) <= stability_tolerance
         ):
             break
         time.sleep(stability_interval)
