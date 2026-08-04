@@ -9,7 +9,7 @@ from ingeniamotion.exceptions import IMRegisterNotExistError
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.wizard_tests import stoppable
-from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType
+from ingeniamotion.wizard_tests.base_test import BaseTest, ReportBase
 
 
 class BrakeRegKey(IntEnum):
@@ -28,7 +28,7 @@ class ResultBrakeType(IntEnum):
     FAIL_DICTIONARY = 3
 
 
-class BrakeTune(BaseTest[LegacyDictReportType]):
+class BrakeTune(BaseTest[ReportBase]):
     """A class to perform a brake tuning.
 
     It enables and disables a brake through enabling/disabling the motor.

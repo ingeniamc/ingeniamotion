@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Final, Optional, Union
+from typing import TYPE_CHECKING, Final, Optional
 
 import ingenialogger
 
@@ -7,6 +7,7 @@ from ingeniamotion.enums import SensorType, SeverityLevel
 if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
+from ingeniamotion.wizard_tests.base_test import ReportBase
 from ingeniamotion.wizard_tests.brake import Brake
 from ingeniamotion.wizard_tests.dynamic_forced_phasing import (
     DynamicForcedPhasing,
@@ -57,7 +58,7 @@ class DriveTests:
 
     def digital_halls_test(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS, apply_changes: bool = True
-    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[ReportBase]:
         """Run the digital halls test.
 
         Executes the digital halls feedback test given a target servo and
@@ -92,7 +93,7 @@ class DriveTests:
 
     def incremental_encoder_1_test(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS, apply_changes: bool = True
-    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[ReportBase]:
         """Run the incremental encoder 1 test.
 
         Executes the incremental encoder 1 feedback test given a target servo
@@ -127,7 +128,7 @@ class DriveTests:
 
     def incremental_encoder_2_test(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS, apply_changes: bool = True
-    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[ReportBase]:
         """Executes incremental encoder 2 feedback test given a target servo and axis.
 
         By default test will make changes in some drive registers
@@ -151,7 +152,7 @@ class DriveTests:
 
     def absolute_encoder_1_test(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS, apply_changes: bool = True
-    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[ReportBase]:
         """Executes absolute encoder 1 feedback test given a target servo and axis.
 
         To know more about it see :func:`digital_halls_test`.
@@ -164,7 +165,7 @@ class DriveTests:
 
     def absolute_encoder_2_test(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS, apply_changes: bool = True
-    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[ReportBase]:
         """Executes absolute encoder 2 feedback test given a target servo and axis.
 
         To know more about it see :func:`digital_halls_test`.
@@ -177,7 +178,7 @@ class DriveTests:
 
     def secondary_ssi_test(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS, apply_changes: bool = True
-    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[ReportBase]:
         """Executes secondary SSI feedback test given a target servo and axis.
 
         To know more about it see :func:`digital_halls_test`.
@@ -189,7 +190,7 @@ class DriveTests:
 
     def sincos_encoder_test(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS, apply_changes: bool = True
-    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[ReportBase]:
         """Run the SinCos encoder test.
 
         Executes the SinCos feedback test given a target servo
@@ -233,16 +234,10 @@ class DriveTests:
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
         apply_changes: bool = True,
-    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[ReportBase]:
         output = self.__get_feedback_test(feedback, servo, axis).run()
-        if (
-            apply_changes
-            and output is not None
-            and output["result_severity"] == SeverityLevel.SUCCESS
-        ):
-            if not isinstance(output["suggested_registers"], dict):
-                raise TypeError("Suggested registers has to be a dictionary")
-            for key, value in output["suggested_registers"].items():
+        if apply_changes and output is not None and output.result_severity == SeverityLevel.SUCCESS:
+            for key, value in output.suggested_registers.items():
                 self.mc.communication.set_register(key, value, servo=servo, axis=axis)
             self.logger.debug(
                 "Feedback test changes applied", axis=axis, drive=self.mc.servo_name(servo)
@@ -251,7 +246,7 @@ class DriveTests:
 
     def commutation(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS, apply_changes: bool = True
-    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[ReportBase]:
         """Run the commutation calibration test.
 
         Executes a commutation calibration given a target servo and axis.
@@ -285,14 +280,8 @@ class DriveTests:
         """
         commutation = Phasing(self.mc, servo, axis)
         output = commutation.run()
-        if (
-            apply_changes
-            and output is not None
-            and output["result_severity"] == SeverityLevel.SUCCESS
-        ):
-            if not isinstance(output["suggested_registers"], dict):
-                raise TypeError("Suggested registers have to be a dictionary")
-            for key, value in output["suggested_registers"].items():
+        if apply_changes and output is not None and output.result_severity == SeverityLevel.SUCCESS:
+            for key, value in output.suggested_registers.items():
                 self.mc.communication.set_register(key, value, servo=servo, axis=axis)
             self.logger.debug(
                 "Commutation changes applied", axis=axis, drive=self.mc.servo_name(servo)
@@ -301,7 +290,7 @@ class DriveTests:
 
     def phasing_check(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[ReportBase]:
         """Checks servo phasing.
 
         Args:
@@ -385,7 +374,7 @@ class DriveTests:
 
     def sto_test(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[ReportBase]:
         """Check STO.
 
         Args:
@@ -429,7 +418,7 @@ class DriveTests:
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
         apply_changes: bool = True,
-    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[ReportBase]:
         """Run the polarity feedback single phase test.
 
         Executes polarity feedback test for single phase motors given a target servo
@@ -463,14 +452,8 @@ class DriveTests:
         """
         dc_feedback_polarity_test = DCFeedbacksPolarityTest(self.mc, feedback, servo, axis)
         output = dc_feedback_polarity_test.run()
-        if (
-            apply_changes
-            and output is not None
-            and output["result_severity"] == SeverityLevel.SUCCESS
-        ):
-            if not isinstance(output["suggested_registers"], dict):
-                raise TypeError("Suggested registers have to be a dictionary")
-            for key, value in output["suggested_registers"].items():
+        if apply_changes and output is not None and output.result_severity == SeverityLevel.SUCCESS:
+            for key, value in output.suggested_registers.items():
                 self.mc.communication.set_register(key, value, servo=servo, axis=axis)
             self.logger.debug(
                 "Single phase feedback polarity test changes applied",
@@ -487,7 +470,7 @@ class DriveTests:
         kp: Optional[float] = None,
         ki: Optional[float] = None,
         kd: Optional[float] = None,
-    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
+    ) -> Optional[ReportBase]:
         """Run the resolution feedback single phase test.
 
         Executes resolution feedback test for single phase motors given a target servo
