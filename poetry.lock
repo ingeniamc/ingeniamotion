@@ -39,7 +39,7 @@ version = "25.4.0"
 description = "Classes Without Boilerplate"
 optional = false
 python-versions = ">=3.9"
-groups = ["docs"]
+groups = ["docs", "tests"]
 files = [
     {file = "attrs-25.4.0-py3-none-any.whl", hash = "sha256:adcf7e2a1fb3b36ac48d97835bb6d8ade15b8dcce26aba8bf1d14847b57a3373"},
     {file = "attrs-25.4.0.tar.gz", hash = "sha256:16d5969b87f0859ef33a48b35d55ac1be6e42ae49d5e853b597db70c35c57e11"},
@@ -3183,6 +3183,22 @@ packaging = ">=17.1"
 pytest = ">=7.4,!=8.2.2"
 
 [[package]]
+name = "pytest-subtests"
+version = "0.15.0"
+description = "unittest subTest() support and subtests fixture"
+optional = false
+python-versions = ">=3.9"
+groups = ["tests"]
+files = [
+    {file = "pytest_subtests-0.15.0-py3-none-any.whl", hash = "sha256:da2d0ce348e1f8d831d5a40d81e3aeac439fec50bd5251cbb7791402696a9493"},
+    {file = "pytest_subtests-0.15.0.tar.gz", hash = "sha256:cb495bde05551b784b8f0b8adfaa27edb4131469a27c339b80fd8d6ba33f887c"},
+]
+
+[package.dependencies]
+attrs = ">=19.2.0"
+pytest = ">=7.4"
+
+[[package]]
 name = "python-can"
 version = "4.6.1"
 description = "Controller Area Network interface module for Python"
@@ -4786,4 +4802,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "cfbb2ef45021ce92de3482aa1452061bc94018941f10ce426f815216c7be1152"
+content-hash = "d3fe83db486976a9008f9ffd1250a8ececbc48a6b6cb8448589ecdc3042e4099"
