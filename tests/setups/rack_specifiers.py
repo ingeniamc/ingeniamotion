@@ -1,9 +1,12 @@
-import platform
-from pathlib import Path
-
 from ingenialink.dictionary import Interface
+from summit_testing_framework.configuration.encoder_configurator import (
+    EncoderConfiguration,
+    EncoderProtocol,
+)
+from summit_testing_framework.configuration.feedback_configuration import FeedbackConfiguration
 from summit_testing_framework.jenkins.pytest_config import PyTestConfig
 from summit_testing_framework.setups.specifier_container import SpecifierContainer
+from summit_testing_framework.setups.specifier_utils import dist_path
 from summit_testing_framework.setups.specifiers import (
     DictionaryType,
     MultiRackServiceConfigSpecifier,
@@ -13,25 +16,6 @@ from summit_testing_framework.setups.specifiers import (
 )
 
 import summit_drives_ci_configs.config_files as config_files
-
-
-def dist_path(p: str) -> Path:
-    """Converts a path string to a Path object, handling platform-specific nuances.
-
-    Args:
-        p: A string representing the path.
-
-    Returns:
-        A Path object corresponding to the given path string.
-    """
-    if platform.system().lower() == "windows":
-        return Path(p)
-    else:
-        # Convert //server/... to /server/...
-        if p.startswith("//"):
-            p = "/" + p.lstrip("/")
-        return Path(p)
-
 
 __EXECUTION_POLICY_KEY: str = "execution_policy"
 __TEST_CONFIGS_KEY: str = "test_configs"
@@ -337,12 +321,16 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
                 __TEST_CONFIGS_KEY: {
                     "SIRIUS_TEST_SESSIONS": PyTestConfig(
                         markers="soem and biss_c_flaky",  # https://novantamotion.atlassian.net/browse/INGM-798
-                        run_test_stage_uid="sirius_evs_net_e_2.10.0",
+                        run_test_stage_uid="ethercat_everest_s_2.10.0",
                         stage_name="SIRIUS EVS-NET-E Tests - FW. 2.10.0",
                     )
                 },
-                "configure_encoder_protocol": {"protocol": "SSI1", "resolution": 17},
             },
+            feedback_configuration=FeedbackConfiguration.from_configurable(
+                abs_encoder_1_configuration=EncoderConfiguration(
+                    protocol=EncoderProtocol.SSI1, resolution_bits=17
+                )
+            ),
         ),
         # BiSS-C tests are flaky on 2.10.0 should pass on 2.11.0
         "2.11.0.005": VersionConfig.from_files(
@@ -359,12 +347,16 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
                 __TEST_CONFIGS_KEY: {
                     "SIRIUS_TEST_SESSIONS": PyTestConfig(
                         markers="soem and biss_c_flaky",
-                        run_test_stage_uid="sirius_evs_net_e_2.11.0.005",
+                        run_test_stage_uid="ethercat_everest_s_2.11.0.005",
                         stage_name="SIRIUS EVS-NET-E Tests - FW. 2.11.0.005",
                     )
                 },
-                "configure_encoder_protocol": {"protocol": "BIS3", "resolution": 17},
             },
+            feedback_configuration=FeedbackConfiguration.from_configurable(
+                abs_encoder_1_configuration=EncoderConfiguration(
+                    protocol=EncoderProtocol.BIS3, resolution_bits=17
+                )
+            ),
         ),
     },
 )

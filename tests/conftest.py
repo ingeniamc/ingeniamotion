@@ -2,7 +2,6 @@ import logging
 import time
 from collections.abc import Generator, Iterator
 from contextlib import contextmanager
-from dataclasses import dataclass
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable, Optional, Union
 
@@ -22,14 +21,11 @@ from summit_testing_framework.pytest_helpers.marker_helper import (
 from summit_testing_framework.setups.specifiers import (
     DictionaryType,
     DictionaryVersion,
-    RackServiceConfigSpecifier,
 )
 
 from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY
 
 if TYPE_CHECKING:
-    from summit_testing_framework.services.rack_service_client import RackServiceClient
-    from summit_testing_framework.setups import SetupDescriptor
     from summit_testing_framework.setups.specifiers import SetupSpecifier
 
     from ingeniamotion.axis import Axis
@@ -39,8 +35,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 __BISS_C_CONFIG_MARKER: str = "biss_c_flaky"
-__ABS1_SLAVE_INDEX = 1
-_VALID_ENCODER_PROTOCOLS = ["SSI1", "BIS3"]
 
 
 pytest_plugins = [
@@ -335,78 +329,3 @@ def sample_safe_ph2_xdfv3_dictionary(
         "EVS-S-NET-E",
         DictionaryVersion("2.9.1", DictionaryType.XDF_V3),
     )
-
-
-@dataclass(frozen=True)
-class EncoderConfiguration:
-    protocol: str
-    resolution: int
-
-    def __post_init__(self) -> None:
-        """Validate the protocol and resolution values.
-
-        Raises:
-            ValueError: If the protocol is not in the valid protocols list or
-                if the resolution is not a positive integer.
-        """
-        if self.protocol not in _VALID_ENCODER_PROTOCOLS:
-            raise ValueError(
-                f"Invalid protocol: {self.protocol}. Must be one of {_VALID_ENCODER_PROTOCOLS}."
-            )
-        if not isinstance(self.resolution, int) or self.resolution <= 0:
-            raise ValueError(f"Resolution must be a positive integer. Got: {self.resolution}.")
-
-    @classmethod
-    def from_dict(cls, data: dict) -> "EncoderConfiguration":
-        """Create an EncoderConfiguration instance from a dictionary.
-
-        Args:
-            data: Dictionary containing 'protocol' and 'resolution' keys.
-
-        Returns:
-            EncoderConfiguration: An instance of EncoderConfiguration.
-
-        Raises:
-            ValueError: If the dictionary does not contain the required keys.
-        """
-        if "protocol" not in data or "resolution" not in data:
-            raise ValueError("Dictionary must contain 'protocol' and 'resolution' keys.")
-        return cls(protocol=data.get("protocol"), resolution=data.get("resolution"))
-
-
-@pytest.fixture(autouse=True, scope="session")
-def configure_abs_encoder(request: "pytest.FixtureRequest") -> None:
-    """Configure ABS1 through the rack service if the encoder is configurable."""
-    try:
-        setup_specifier: SetupSpecifier = request.getfixturevalue("setup_specifier")
-    # There are some tests that do not need any setup to run
-    except Exception:
-        return
-    encoder_dict_config = setup_specifier.extra_data.get("configure_encoder_protocol", None)
-    if not encoder_dict_config:
-        return
-    if not isinstance(setup_specifier, RackServiceConfigSpecifier):
-        return
-    setup_descriptor: SetupDescriptor = request.getfixturevalue("setup_descriptor")
-    rs_client: RackServiceClient = request.getfixturevalue("rs_client")
-
-    encoder_config: EncoderConfiguration = EncoderConfiguration.from_dict(encoder_dict_config)
-    logger.info(
-        f"Configuring ABS1 feedback through rack service with protocol {encoder_config.protocol} "
-        f"and resolution {encoder_config.resolution}..."
-    )
-
-    try:
-        rs_client.client.exposed_set_abs(
-            setup_descriptor.rack_drive_idx,
-            __ABS1_SLAVE_INDEX,
-            encoder_config.resolution,
-            encoder_config.protocol,
-        )
-
-        current_config = rs_client.client.exposed_get_abs(setup_descriptor.rack_drive_idx, 1)
-        assert current_config.protocol.name == encoder_config.protocol
-        assert current_config.resolution.n == encoder_config.resolution
-        logger.info("SIRIUS ABS1 feedback configured successfully.")
-    except Exception as exc:
-        pytest.fail(f"Unable to configure SIRIUS ABS1 feedback: {exc}", pytrace=False)
