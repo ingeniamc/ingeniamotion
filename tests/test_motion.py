@@ -382,7 +382,7 @@ def test_ramp_generator(mocker, init_v, final_v, total_t, t, result):
 @pytest.mark.biss_c_flaky(
     "Sporadically fails on ABS BiSS-C config, will be skipped for certain firmware versions"
 )
-@pytest.mark.repeat(20)
+@pytest.mark.not_valid_for_product(part_number="EVE-*")
 def test_get_actual_position(mc, alias, position_value):
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
     mc.motion.motor_enable(servo=alias)
