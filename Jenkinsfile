@@ -102,6 +102,7 @@ def pipelineParams = PyTestParams.pytestParams(this, currentBuild, [
             'ethercat.*',
             'ethercat_everest.*',
             'ethercat_capitan.*',
+            'ethercat_everest_s.*',
             'ethercat_multislave.*',
             'fsoe.*',
             'fsoe_phase1.*',
