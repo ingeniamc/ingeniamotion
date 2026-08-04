@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, Optional, TypeVar, Union
 
 import ingenialogger
@@ -26,9 +26,6 @@ class TestConfigurationError(TestError):
     """Test configuration exception."""
 
 
-LegacyDictReportType = dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]
-
-
 @dataclass
 class ReportBase:
     """Base class for result reports."""
@@ -39,7 +36,17 @@ class ReportBase:
     """Message explaining the result."""
 
 
-T = TypeVar("T", bound=Union[LegacyDictReportType, ReportBase])
+@dataclass
+class TestReport(ReportBase):
+    """Report returned by tests without test-specific result fields."""
+
+    suggested_registers: dict[str, Union[int, float, str]] = field(default_factory=dict)
+
+
+LegacyDictReportType = TestReport
+
+
+T = TypeVar("T", bound=ReportBase)
 
 
 class BaseTest(ABC, Stoppable, Generic[T]):
@@ -132,11 +139,11 @@ class BaseTest(ABC, Stoppable, Generic[T]):
             The test report.
 
         """
-        return {
-            "result_severity": self.get_result_severity(output),
-            "suggested_registers": self.suggested_registers,
-            "result_message": self.get_result_msg(output),
-        }  # type: ignore [return-value]
+        return TestReport(
+            result_severity=self.get_result_severity(output),
+            suggested_registers=self.suggested_registers,
+            result_message=self.get_result_msg(output),
+        )  # type: ignore [return-value]
 
     @abstractmethod
     def get_result_msg(self, output: Any) -> str:
