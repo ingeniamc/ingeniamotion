@@ -102,9 +102,6 @@ def assert_returns_to_initial_value(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
-# https://novantamotion.atlassian.net/browse/INGM-782
-# @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-@pytest.mark.repeat(200)
 def test_digital_halls_test(
     servo: Servo, mc, alias, feedback_list, registers_baseline: DriveRegistersValue
 ):
