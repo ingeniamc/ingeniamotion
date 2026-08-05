@@ -290,18 +290,22 @@ def test_feedback_test_respects_and_restores_the_drive_feedback_limit(
                 SensorType(mc.communication.get_register(uid, servo=alias, axis=axis))
                 for uid in FEEDBACK_SELECTOR_REGISTERS
             )
-            target_feedbacks = tuple(configuration[uid] for uid in FEEDBACK_SELECTOR_REGISTERS)
-            staging_feedbacks = (target_feedbacks[0],) * len(target_feedbacks)
+            staging_feedbacks = (current_feedbacks[0],) * len(current_feedbacks)
             state = list(current_feedbacks)
             for index in _feedback_replacement_order(current_feedbacks):
                 if state[index] != staging_feedbacks[index]:
+                    uid = FEEDBACK_SELECTOR_REGISTERS[index]
                     mc.communication.set_register(
-                        FEEDBACK_SELECTOR_REGISTERS[index],
+                        uid,
                         staging_feedbacks[index],
                         servo=alias,
                         axis=axis,
                     )
                     state[index] = staging_feedbacks[index]
+                    assert len(set(state)) <= MAX_SIMULTANEOUS_FEEDBACKS, (
+                        f"Staging {uid} configured more than "
+                        f"{MAX_SIMULTANEOUS_FEEDBACKS} feedbacks: {state}"
+                    )
 
             for index in _feedback_replacement_order(tuple(state)):
                 uid = FEEDBACK_SELECTOR_REGISTERS[index]
@@ -309,6 +313,10 @@ def test_feedback_test_respects_and_restores_the_drive_feedback_limit(
                 if state[index] != sensor:
                     mc.communication.set_register(uid, sensor, servo=alias, axis=axis)
                     state[index] = sensor
+                    assert len(set(state)) <= MAX_SIMULTANEOUS_FEEDBACKS, (
+                        f"Applying {uid} configured more than "
+                        f"{MAX_SIMULTANEOUS_FEEDBACKS} feedbacks: {state}"
+                    )
 
             feedback_test = DigitalIncremental1Test(mc, alias, axis)
             with FeedbackSelectorTracker(mc, servo, alias, axis) as tracker:

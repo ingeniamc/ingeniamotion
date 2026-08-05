@@ -196,11 +196,17 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         current_feedbacks = tuple(
             getter(servo=self.servo, axis=self.axis) for getter, _setter in feedback_slots
         )
+        staging_sensor = current_feedbacks[0]
         # Commutation is left untouched here: setup() unconditionally overwrites it to
         # INTGEN right after this method returns, so writing it to self.sensor first
         # would only be discarded. It's still included in current_feedbacks so its
         # feedback type is accounted for when ordering the other slots below.
         commutation_index = 0
+        for index in _feedback_replacement_order(current_feedbacks):
+            if index == commutation_index or current_feedbacks[index] == self.sensor:
+                continue
+            _getter, setter = feedback_slots[index]
+            setter(staging_sensor, servo=self.servo, axis=self.axis)
         for index in _feedback_replacement_order(current_feedbacks):
             if index == commutation_index or current_feedbacks[index] == self.sensor:
                 continue
