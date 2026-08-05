@@ -2,9 +2,10 @@ import math
 import time
 from collections import Counter
 from enum import IntEnum
-from typing import TYPE_CHECKING, Final, Optional
+from typing import TYPE_CHECKING, Final, Optional, cast
 
 import ingenialogger
+from ingenialink.drive_context_manager import DriveContextManager
 from ingenialink.exceptions import ILIOError, ILStateError, ILTimeoutError
 from typing_extensions import override
 
@@ -26,6 +27,13 @@ from ingeniamotion.wizard_tests.base_test import (
 )
 
 MAX_SIMULTANEOUS_FEEDBACKS = 4
+FEEDBACK_SELECTOR_REGISTERS = (
+    "COMMU_ANGLE_SENSOR",
+    "COMMU_ANGLE_REF_SENSOR",
+    "CL_VEL_FBK_SENSOR",
+    "CL_POS_FBK_SENSOR",
+    "CL_AUX_FBK_SENSOR",
+)
 
 
 def _feedback_replacement_order(current_feedbacks: tuple[SensorType, ...]) -> list[int]:
@@ -228,6 +236,64 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
             raise TestConfigurationError(
                 "The feedback resolution must be greater than 0. Please adjust it accordingly."
             )
+
+    @override
+    def _restore_configuration(self, context: DriveContextManager) -> None:
+        """Restore feedback selectors without exceeding the drive feedback limit."""
+        baseline = context.baseline
+        if baseline is None:
+            return
+
+        drive = self.mc._get_drive(self.servo)
+        registers = drive.dictionary.registers(self.axis)
+        selector_registers = tuple(registers[uid] for uid in FEEDBACK_SELECTOR_REGISTERS)
+        baseline_values = tuple(baseline.get(register) for register in selector_registers)
+        if not all(isinstance(value, int) for value in baseline_values):
+            return
+
+        target_feedbacks = tuple(SensorType(cast("int", value)) for value in baseline_values)
+        current_feedbacks = tuple(
+            SensorType(
+                cast(
+                    "int",
+                    self.mc.communication.get_register(uid, servo=self.servo, axis=self.axis),
+                )
+            )
+            for uid in FEEDBACK_SELECTOR_REGISTERS
+        )
+        staging_sensor = target_feedbacks[0]
+        state = list(current_feedbacks)
+
+        for index in _feedback_replacement_order(tuple(state)):
+            if index == 0 or state[index] == staging_sensor:
+                continue
+            self.mc.communication.set_register(
+                FEEDBACK_SELECTOR_REGISTERS[index],
+                staging_sensor,
+                servo=self.servo,
+                axis=self.axis,
+            )
+            state[index] = staging_sensor
+
+        if state[0] != staging_sensor:
+            self.mc.communication.set_register(
+                FEEDBACK_SELECTOR_REGISTERS[0],
+                staging_sensor,
+                servo=self.servo,
+                axis=self.axis,
+            )
+            state[0] = staging_sensor
+
+        for index, target_sensor in enumerate(target_feedbacks):
+            if state[index] == target_sensor:
+                continue
+            self.mc.communication.set_register(
+                FEEDBACK_SELECTOR_REGISTERS[index],
+                target_sensor,
+                servo=self.servo,
+                axis=self.axis,
+            )
+            state[index] = target_sensor
 
     @BaseTest.stoppable
     def __reaction_codes_to_warning(self) -> None:
