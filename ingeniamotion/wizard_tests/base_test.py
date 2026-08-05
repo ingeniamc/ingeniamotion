@@ -113,7 +113,9 @@ class BaseTest(ABC, Stoppable, Generic[T]):
             try:
                 self.setup()
                 output = self.loop()
+                self.check_stop()
                 self.report = self.generate_report(output)
+                self.check_stop()
             except ILError as err:
                 raise err
             except StopExceptionError:
