@@ -383,7 +383,8 @@ def test_ramp_generator(mocker, init_v, final_v, total_t, t, result):
     "Sporadically fails on ABS BiSS-C config, will be skipped for certain firmware versions"
 )
 @pytest.mark.not_valid_for_product(part_number="EVE-*")
-def test_get_actual_position(mc, alias, position_value):
+def test_get_actual_position(mc: "MotionController", alias: str, position_value: int) -> None:
+    position_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
     mc.motion.motor_enable(servo=alias)
     mc.motion.move_to_position(position_value, servo=alias, blocking=True, timeout=10)
@@ -391,7 +392,7 @@ def test_get_actual_position(mc, alias, position_value):
     # Wait for the position to stabilize
     stability_timeout = 3
     stability_interval = 0.1
-    stability_tolerance = 20
+    stability_tolerance = position_resolution * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
     stable_samples_required = 5
     stable_positions = []
     stability_start_time = time.monotonic()
