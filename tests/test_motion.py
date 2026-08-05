@@ -309,9 +309,10 @@ def test_set_velocity(mc, alias, velocity_value):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("velocity_value", [0.5, 1, 0, -0.5])
-# https://novantamotion.atlassian.net/browse/INGM-779
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-@pytest.mark.not_valid_for_product(part_number="EVE-*")
+# # https://novantamotion.atlassian.net/browse/INGM-779
+# @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
+# @pytest.mark.not_valid_for_product(part_number="EVE-*")
+@pytest.mark.repeat(50)
 def test_set_velocity_blocking(mc, alias, velocity_value):
     mc.motion.set_operation_mode(OperationMode.PROFILE_VELOCITY, servo=alias)
     mc.motion.motor_enable(servo=alias)
