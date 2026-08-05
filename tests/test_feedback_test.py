@@ -20,6 +20,10 @@ from ingeniamotion.wizard_tests.feedbacks_tests.dc_feedback_resolution_test impo
 from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental1_test import (
     DigitalIncremental1Test,
 )
+from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import (
+    MAX_SIMULTANEOUS_FEEDBACKS,
+    _feedback_replacement_order,
+)
 
 # Record stop opportunities for every wizard-test integration case in this module.
 pytestmark = pytest.mark.usefixtures("stoppable_trace_recorder")
@@ -103,10 +107,6 @@ def test_generate_output_different_cases(
     result = feedback_test.generate_output(positive_displacement, negative_displacement)
 
     assert result == expected_output
-
-
-# The drives cannot hold more than four different feedbacks configured at the same time.
-MAX_SIMULTANEOUS_FEEDBACKS = 4
 
 
 class FeedbackSelectorTracker:
@@ -286,8 +286,29 @@ def test_feedback_test_respects_and_restores_the_drive_feedback_limit(
     for configuration in _feedback_configurations(mc, alias, axis):
         msg = "_".join(sensor.name for sensor in configuration.values())
         with subtests.test(msg=msg):
-            for uid, sensor in configuration.items():
-                mc.communication.set_register(uid, sensor, servo=alias, axis=axis)
+            current_feedbacks = tuple(
+                SensorType(mc.communication.get_register(uid, servo=alias, axis=axis))
+                for uid in FEEDBACK_SELECTOR_REGISTERS
+            )
+            target_feedbacks = tuple(configuration[uid] for uid in FEEDBACK_SELECTOR_REGISTERS)
+            staging_feedbacks = (target_feedbacks[0],) * len(target_feedbacks)
+            state = list(current_feedbacks)
+            for index in _feedback_replacement_order(current_feedbacks):
+                if state[index] != staging_feedbacks[index]:
+                    mc.communication.set_register(
+                        FEEDBACK_SELECTOR_REGISTERS[index],
+                        staging_feedbacks[index],
+                        servo=alias,
+                        axis=axis,
+                    )
+                    state[index] = staging_feedbacks[index]
+
+            for index in _feedback_replacement_order(tuple(state)):
+                uid = FEEDBACK_SELECTOR_REGISTERS[index]
+                sensor = configuration[uid]
+                if state[index] != sensor:
+                    mc.communication.set_register(uid, sensor, servo=alias, axis=axis)
+                    state[index] = sensor
 
             feedback_test = DigitalIncremental1Test(mc, alias, axis)
             with FeedbackSelectorTracker(mc, servo, alias, axis) as tracker:

@@ -25,6 +25,24 @@ from ingeniamotion.wizard_tests.base_test import (
     TestError,
 )
 
+MAX_SIMULTANEOUS_FEEDBACKS = 4
+
+
+def _feedback_replacement_order(current_feedbacks: tuple[SensorType, ...]) -> list[int]:
+    """Order feedback slots so replacing them never exceeds the drive's limit.
+
+    Args:
+        current_feedbacks: Current feedback types in slot order.
+
+    Returns:
+        Slot indices ordered by the number of occurrences of their current feedback type.
+    """
+    feedback_counts = Counter(current_feedbacks)
+    return sorted(
+        range(len(current_feedbacks)),
+        key=lambda index: feedback_counts[current_feedbacks[index]],
+    )
+
 
 class Feedbacks(BaseTest[LegacyDictReportType]):
     """Feedbacks Wizard Class description."""
@@ -146,33 +164,6 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         )
         return self.__check_feedback_tolerance(error, error_msg, self.ResultType.RESOLUTION_ERROR)
 
-    @staticmethod
-    def __feedback_replacement_order(current_feedbacks: tuple[SensorType, ...]) -> list[int]:
-        """Order feedback slot indices so replacing them never exceeds the drive's feedback limit.
-
-        The drive supports at most 4 distinct feedback types across its 5 feedback
-        slots (commutation, reference, velocity, position, auxiliary) at once.
-        Overwriting a slot only frees up capacity if its feedback type isn't also
-        held by another, not-yet-overwritten slot; otherwise that type is still in
-        use and no capacity is freed. So slots whose feedback type is unique among
-        the 5 must be overwritten first: each such write removes a type entirely,
-        making room before the shared types are touched.
-
-        Args:
-            current_feedbacks: The feedback type currently assigned to each slot,
-                in slot order (commutation, reference, velocity, position, auxiliary).
-
-        Returns:
-            All slot indices, ordered so that slots with a feedback type unique
-            to them come before slots whose feedback type is shared with other
-            slots.
-        """
-        feedback_counts = Counter(current_feedbacks)
-        return sorted(
-            range(len(current_feedbacks)),
-            key=lambda index: feedback_counts[current_feedbacks[index]],
-        )
-
     @BaseTest.stoppable
     def feedback_setting(self) -> None:
         """Set the feedback for the test.
@@ -210,7 +201,7 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         # would only be discarded. It's still included in current_feedbacks so its
         # feedback type is accounted for when ordering the other slots below.
         commutation_index = 0
-        for index in self.__feedback_replacement_order(current_feedbacks):
+        for index in _feedback_replacement_order(current_feedbacks):
             if index == commutation_index or current_feedbacks[index] == self.sensor:
                 continue
             _getter, setter = feedback_slots[index]
