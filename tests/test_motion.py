@@ -400,7 +400,8 @@ def test_get_actual_position(mc, alias, position_value):
 @pytest.mark.canopen
 @pytest.mark.parametrize("velocity_value", [1, 0, -1])
 # https://novantamotion.atlassian.net/browse/INGM-781
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
+# @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
+@pytest.mark.repeat(50)
 def test_get_actual_velocity(servo, mc, alias, velocity_value):
     with refresh_registers_for_test_rollback(
         servo,
