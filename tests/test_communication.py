@@ -856,7 +856,7 @@ def test_connect_servo_sdcp(managed_sdcp_node, mocker, tmp_path):
     network.connect_to_node.return_value = servo
     create_motion_node_mock = mocker.patch.object(mc, "create_motion_node")
 
-    mc.communication.connect_servo_sdcp(
+    network_result, servo_result = mc.communication.connect_servo_sdcp(
         node=node,
         dict_path=str(dictionary),
         alias=alias,
@@ -874,6 +874,8 @@ def test_connect_servo_sdcp(managed_sdcp_node, mocker, tmp_path):
         connection_timeout=connection_timeout,
     )
     create_motion_node_mock.assert_called_once_with(alias, servo, network)
+    assert network_result is network
+    assert servo_result is servo
 
 
 def test_disconnect_sdcp_servo(mocker):

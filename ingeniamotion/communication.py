@@ -322,7 +322,7 @@ class Communication:
         connection_timeout: float = DEFAULT_SDCP_TIMEOUT_S,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
-    ) -> None:
+    ) -> tuple[EthernetNetwork, SDCPServo]:
         """Connect to a previously discovered SDCP node.
 
         Args:
@@ -333,6 +333,9 @@ class Communication:
             connection_timeout: Timeout in seconds for SDCP transactions.
             servo_status_listener: Whether to start the servo status listener.
             net_status_listener: Whether to start the network status listener.
+
+        Returns:
+            The Ethernet network and the connected SDCP servo.
 
         Raises:
             FileNotFoundError: If the dictionary file does not exist.
@@ -359,6 +362,7 @@ class Communication:
             connection_timeout=connection_timeout,
         )
         self.mc.create_motion_node(alias, servo, registered_network)
+        return registered_network, servo
 
     def connect_servo_virtual(
         self,
