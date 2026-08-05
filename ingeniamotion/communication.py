@@ -22,6 +22,8 @@ from ingenialink.enums.servo import ServoState
 from ingenialink.eoe.network import EoENetwork
 from ingenialink.ethercat.network import EthercatNetwork, GilReleaseConfig
 from ingenialink.ethernet.network import EthernetNetwork
+from ingenialink.ethernet.tsn.sdcp.connection import DEFAULT_SDCP_TIMEOUT_S
+from ingenialink.ethernet.tsn.sdcp.node import SDCPNode
 from ingenialink.exceptions import ILError
 from ingenialink.network import SlaveInfo
 from ingenialink.register import Register
@@ -1236,6 +1238,34 @@ class Communication:
             return []
         slaves = net.scan_slaves()
         return slaves
+
+    def scan_sdcp_nodes(
+        self,
+        interface: str,
+        timeout: float = DEFAULT_SDCP_TIMEOUT_S,
+    ) -> list[SDCPNode]:
+        """Scan for SDCP-compatible nodes.
+
+        Args:
+            interface: Network interface used for SDCP discovery.
+            timeout: Timeout in seconds for SDCP identification transactions.
+
+        Returns:
+            Identified SDCP nodes.
+
+        Raises:
+            TypeError: If the interface alias is registered with a different
+                network type.
+        """
+        if interface not in self.mc.net:
+            network = EthernetNetwork(interface=interface)
+            self.mc.register_network(interface, network)
+        else:
+            registered_network = self.mc.net[interface]
+            if not isinstance(registered_network, EthernetNetwork):
+                raise TypeError("Network is not of type EthernetNetwork")
+            network = registered_network
+        return network.scan_sdcp_nodes(timeout=timeout)
 
     @staticmethod
     def scan_servos_ethernet(
