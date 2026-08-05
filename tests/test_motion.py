@@ -16,6 +16,11 @@ if TYPE_CHECKING:
 
     from ingeniamotion.motion_controller import MotionController
 
+try:
+    import pysoem
+except ImportError:
+    pysoem = None
+
 
 POS_PID_KP_VALUE = 0.1
 POSITION_PERCENTAGE_ERROR_ALLOWED = 5
@@ -276,9 +281,10 @@ def test_set_position(mc, alias, position_value):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("position_value", [1000, 0, -1000, 4000])
-# https://novantamotion.atlassian.net/browse/INGM-778
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-@pytest.mark.not_valid_for_product(part_number="EVE-*")
+@pytest.mark.biss_c_flaky(
+    "Sporadically fails on ABS BiSS-C config, will be skipped for certain firmware versions"
+)
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C")
 def test_move_position(mc, alias, position_value):
     pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
@@ -373,13 +379,37 @@ def test_ramp_generator(mocker, init_v, final_v, total_t, t, result):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("position_value", [-4000, -1000, 1000, 4000])
-# https://novantamotion.atlassian.net/browse/INGM-780
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
+@pytest.mark.biss_c_flaky(
+    "Sporadically fails on ABS BiSS-C config, will be skipped for certain firmware versions"
+)
 @pytest.mark.not_valid_for_product(part_number="EVE-*")
-def test_get_actual_position(mc, alias, position_value):
+def test_get_actual_position(mc: "MotionController", alias: str, position_value: int) -> None:
+    position_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
     mc.motion.motor_enable(servo=alias)
     mc.motion.move_to_position(position_value, servo=alias, blocking=True, timeout=10)
+
+    # Wait for the position to stabilize
+    stability_timeout = 3
+    stability_interval = 0.1
+    stability_tolerance = position_resolution * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
+    stable_samples_required = 5
+    stable_positions = []
+    stability_start_time = time.monotonic()
+    while time.monotonic() - stability_start_time < stability_timeout:
+        stable_positions.append(mc.motion.get_actual_position(servo=alias))
+        if (
+            len(stable_positions) >= stable_samples_required
+            and np.ptp(stable_positions[-stable_samples_required:]) <= stability_tolerance
+        ):
+            break
+        time.sleep(stability_interval)
+    else:
+        raise AssertionError(
+            f"Position did not stabilize within {stability_timeout} seconds: "
+            f"last positions={stable_positions[-stable_samples_required:]}"
+        )
+
     n_samples = 200
     test_position = np.zeros(n_samples)
     reg_value = np.zeros(n_samples)
@@ -393,8 +423,8 @@ def test_get_actual_position(mc, alias, position_value):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("velocity_value", [1, 0, -1])
-# https://novantamotion.atlassian.net/browse/INGM-781
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
+# https://novantamotion.atlassian.net/browse/INGM-802
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C")
 def test_get_actual_velocity(servo, mc, alias, velocity_value):
     with refresh_registers_for_test_rollback(
         servo,

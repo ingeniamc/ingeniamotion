@@ -11,7 +11,6 @@ from pytest_mock import MockerFixture
 
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED
 from ingeniamotion.motion_controller import MotionController
-from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
 
 if TYPE_CHECKING:
     from ingenialink.ethercat.dictionary import EthercatDictionary
@@ -70,11 +69,13 @@ def test_validate_safe_data_blocks_pdu_empty(fsoe_dict: "FSoEDictionary") -> Non
 
 
 @pytest.mark.fsoe
-def test_validate_safe_data_blocks_too_many_blocks() -> None:
+def test_validate_safe_data_blocks_too_many_blocks(
+    sample_safe_ph2_xdfv3_dictionary: str,
+) -> None:
     """Test that SafeDataBlocksValidator fails when there are more than 8 safe data blocks."""
     # Add 9 different 16-bit safe inputs -> 9 blocks
     safe_dict = DictionaryFactory.create_dictionary(
-        SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, interface=Interface.ECAT
+        sample_safe_ph2_xdfv3_dictionary, interface=Interface.ECAT
     )
     for idx in range(9):
         test_uid = f"TEST_SI_U16_{idx}"

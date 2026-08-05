@@ -33,7 +33,6 @@ from ingeniamotion.exceptions import (
     IMRegisterNotExistError,
     IMRegisterWrongAccessError,
 )
-from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
 from tests.fsoe.conftest import MockNetwork
 
 if TYPE_CHECKING:
@@ -391,9 +390,9 @@ def test_connect_servo_virtual_custom_dictionary(setup_descriptor: SetupDescript
     assert "default" not in mc.communication._Communication__virtual_drives
 
 
-def test_connect_servo_virtual_ethercat():
+def test_connect_servo_virtual_ethercat(sample_safe_ph2_xdfv3_dictionary: str):
     mc = MotionController()
-    mc.communication.connect_servo_virtual_ethercat(SAMPLE_SAFE_PH2_XDFV3_DICTIONARY)
+    mc.communication.connect_servo_virtual_ethercat(sample_safe_ph2_xdfv3_dictionary)
     assert "default" in mc.communication._Communication__virtual_drives
     mc.communication.disconnect()
     assert "default" not in mc.communication._Communication__virtual_drives

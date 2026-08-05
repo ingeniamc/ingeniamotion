@@ -25,7 +25,6 @@ from ingeniamotion.errors import (
 )
 from ingeniamotion.exceptions import IMErrorQueueNotExistsError
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEError
-from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
 
 if FSOE_MASTER_INSTALLED:
     from ingeniamotion.fsoe_master import (
@@ -318,10 +317,10 @@ def mc_with_fsoe_with_sra_and_feedback_scenario(
 
 
 @pytest.fixture(scope="session")
-def safe_dict() -> "EthercatDictionary":
+def safe_dict(sample_safe_ph2_xdfv3_dictionary: str) -> "EthercatDictionary":
     axis_1 = 1
     safe_dict = DictionaryFactory.create_dictionary(
-        SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, interface=Interface.ECAT
+        sample_safe_ph2_xdfv3_dictionary, interface=Interface.ECAT
     )
 
     # Add sample registers

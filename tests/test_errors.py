@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING
 
 import pytest
 from ingenialink.exceptions import ILError
+from summit_testing_framework.connection.reconnect_utils import power_cycle_and_restore
 
 from ingeniamotion.errors import (
     COCO_ERROR_QUEUE,
@@ -21,7 +22,10 @@ from ingeniamotion.exceptions import IMErrorQueueNotExistsError
 
 if TYPE_CHECKING:
     from ingenialink.servo import Servo
-    from summit_testing_framework.setups.environment_control import DriveEnvironmentController
+    from summit_testing_framework.connection.reconnect_utils import ConnectionWrapper
+    from summit_testing_framework.setups.environment_control import (
+        ManualUserEnvironmentController,
+    )
 
     from ingeniamotion.axis import Axis
     from ingeniamotion.motion_controller import MotionController
@@ -308,10 +312,17 @@ class TestErrors:
         mc: "MotionController",
         servo: "Servo",
         alias: str,
-        environment: "DriveEnvironmentController",
+        environment: "ManualUserEnvironmentController",
+        connection_wrapper: "ConnectionWrapper",
     ) -> None:
         """Test ServoErrorQueue with no errors present."""
-        environment.power_cycle(wait_for_drives=False, reconnect_drives=True, reconnect_timeout=20)
+        power_cycle_and_restore(
+            environment=environment,
+            connection_wrapper=connection_wrapper,
+            wait_for_drives=False,
+            reconnect_drives=True,
+            reconnect_timeout=20,
+        )
 
         mc.motion.fault_reset(servo=alias)
         error_queue = ServoErrorQueue(MOCO_ERROR_QUEUE, servo)
@@ -346,10 +357,17 @@ class TestErrors:
         mc: "MotionController",
         servo: "Servo",
         alias: str,
-        environment: "DriveEnvironmentController",
+        environment: "ManualUserEnvironmentController",
+        connection_wrapper: "ConnectionWrapper",
     ) -> None:
         """Test that ServoErrorQueue only reports new errors after first call."""
-        environment.power_cycle(wait_for_drives=False, reconnect_drives=True, reconnect_timeout=20)
+        power_cycle_and_restore(
+            environment=environment,
+            connection_wrapper=connection_wrapper,
+            wait_for_drives=False,
+            reconnect_drives=True,
+            reconnect_timeout=20,
+        )
 
         error_queue = ServoErrorQueue(MOCO_ERROR_QUEUE, servo)
 
