@@ -1,3 +1,4 @@
+import random
 from collections.abc import Iterator
 from itertools import product
 from types import TracebackType
@@ -24,6 +25,7 @@ from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import (
     MAX_SIMULTANEOUS_FEEDBACKS,
     _feedback_replacement_order,
 )
+from tests.conftest import slice_configurations
 
 # Record stop opportunities for every wizard-test integration case in this module.
 pytestmark = pytest.mark.usefixtures("stoppable_trace_recorder")
@@ -229,7 +231,9 @@ def _feedback_sensor_pool(mc: MotionController, alias: str, axis: int) -> tuple[
 
 
 def _feedback_configurations(
-    mc: MotionController, alias: str, axis: int
+    mc: MotionController,
+    alias: str,
+    axis: int,
 ) -> Iterator[dict[str, SensorType]]:
     """Generate every selector value combination allowed by the four-feedback limit.
 
@@ -250,6 +254,7 @@ def _feedback_configurations(
     """
     sensors = _feedback_sensor_pool(mc, alias, axis)
     seen_shapes = set()
+    configurations = []
     for combination in product(sensors, repeat=len(FEEDBACK_SELECTOR_REGISTERS)):
         if len(set(combination)) > MAX_SIMULTANEOUS_FEEDBACKS:
             continue
@@ -257,8 +262,10 @@ def _feedback_configurations(
         if shape in seen_shapes:
             continue
         seen_shapes.add(shape)
+        configurations.append(dict(zip(FEEDBACK_SELECTOR_REGISTERS, combination)))
 
-        yield dict(zip(FEEDBACK_SELECTOR_REGISTERS, combination))
+    random.shuffle(configurations)
+    yield from configurations
 
 
 @pytest.mark.virtual
@@ -266,7 +273,7 @@ def _feedback_configurations(
 @pytest.mark.soem
 @pytest.mark.canopen
 def test_feedback_test_respects_and_restores_the_drive_feedback_limit(
-    mc, alias, servo, mocker, subtests
+    mc, alias, servo, mocker, subtests, setup_specifier
 ):
     """The feedback test must never exceed the drive feedback limit, and must restore
     the initial feedback configuration afterwards.
@@ -283,7 +290,8 @@ def test_feedback_test_respects_and_restores_the_drive_feedback_limit(
         DigitalIncremental1Test, "loop", return_value=DigitalIncremental1Test.ResultType.SUCCESS
     )
 
-    for configuration in _feedback_configurations(mc, alias, axis):
+    configurations = list(_feedback_configurations(mc, alias, axis))
+    for configuration in slice_configurations(configurations, setup_specifier):
         msg = "_".join(sensor.name for sensor in configuration.values())
         with subtests.test(msg=msg):
             current_feedbacks = tuple(
