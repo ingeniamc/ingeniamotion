@@ -36,9 +36,9 @@ FEEDBACK_SELECTOR_REGISTERS = (
 )
 
 
-def _feedback_replacement_order(
-    current_feedbacks: dict[str, SensorType], target_feedbacks: dict[str, SensorType]
-) -> Iterator[tuple[str, SensorType]]:
+def _feedback_replacement_order(  # noqa: C901
+    current_feedbacks: dict[str, int], target_feedbacks: dict[str, int]
+) -> Iterator[tuple[str, int]]:  # noqa: C901
     """Order feedback slots for a safe transition between two configurations.
 
     Args:
@@ -57,19 +57,40 @@ def _feedback_replacement_order(
     ):
         raise ValueError("Feedback configurations must use the selector registers.")
 
-    def find_order(state: dict[str, SensorType], pending: tuple[str, ...]) -> Optional[list[str]]:
+    def find_order(  # noqa: C901
+        state: dict[str, int], pending: tuple[str, ...]
+    ) -> Optional[list[tuple[str, int]]]:  # noqa: C901
         if not pending:
             return []
 
         for register in pending:
-            candidate_state = state.copy()
-            candidate_state[register] = target_feedbacks[register]
-            if len(set(candidate_state.values())) > MAX_SIMULTANEOUS_FEEDBACKS:
+            active_sources = set(state.values())
+            target_sensor = target_feedbacks[register]
+            if (
+                len(active_sources) >= MAX_SIMULTANEOUS_FEEDBACKS
+                and target_sensor not in active_sources
+            ):
                 continue
+            candidate_state = state.copy()
+            candidate_state[register] = target_sensor
             remaining = tuple(item for item in pending if item != register)
             suffix = find_order(candidate_state, remaining)
             if suffix is not None:
-                return [register, *suffix]
+                return [(register, target_sensor), *suffix]
+
+        for register in pending:
+            for parking_sensor in dict.fromkeys(state.values()):
+                if parking_sensor not in active_sources:
+                    continue
+                if state[register] == parking_sensor:
+                    continue
+                candidate_state = state.copy()
+                candidate_state[register] = parking_sensor
+                if len(set(candidate_state.values())) >= len(active_sources):
+                    continue
+                suffix = find_order(candidate_state, pending)
+                if suffix is not None:
+                    return [(register, parking_sensor), *suffix]
         return None
 
     pending = tuple(
@@ -80,8 +101,7 @@ def _feedback_replacement_order(
     order = find_order(current_feedbacks, pending)
     if order is None:
         raise ValueError("Feedback configurations cannot be transitioned safely.")
-    for register in order:
-        yield register, target_feedbacks[register]
+    yield from order
 
 
 class Feedbacks(BaseTest[LegacyDictReportType]):

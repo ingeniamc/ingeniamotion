@@ -125,7 +125,7 @@ class FeedbackSelectorTracker:
         self._servo = servo
         self._axis = axis
         self._state = {
-            uid: SensorType(mc.communication.get_register(uid, servo=alias, axis=axis))
+            uid: int(mc.communication.get_register(uid, servo=alias, axis=axis))
             for uid in FEEDBACK_SELECTOR_REGISTERS
         }
         self.history = [dict(self._state)]
@@ -152,7 +152,7 @@ class FeedbackSelectorTracker:
     def _on_register_update(self, servo: Servo, register: Register, value: REG_VALUE) -> None:  # noqa: ARG002
         if register.subnode != self._axis or register.identifier not in self._state:
             return
-        sensor = SensorType(value)
+        sensor = int(value)
         if self._state[register.identifier] == sensor:
             return
         self._state[register.identifier] = sensor
@@ -160,16 +160,16 @@ class FeedbackSelectorTracker:
         logger.info(
             "Feedback selector updated: register=%s sensor=%s state=%s",
             register.identifier,
-            sensor.name,
+            SensorType(sensor).name if sensor else "DISABLED",
             self._state,
         )
 
     @property
-    def initial_state(self) -> dict[str, SensorType]:
+    def initial_state(self) -> dict[str, int]:
         return self.history[0]
 
     @property
-    def final_state(self) -> dict[str, SensorType]:
+    def final_state(self) -> dict[str, int]:
         return self.history[-1]
 
     @property
@@ -179,7 +179,7 @@ class FeedbackSelectorTracker:
     def format_history(self) -> str:
         return "\n".join(
             f"{len(set(state.values()))} feedbacks: "
-            + ", ".join(f"{uid}={sensor.name}" for uid, sensor in state.items())
+            + ", ".join(f"{uid}={SensorType(sensor).name}" for uid, sensor in state.items())
             for state in self.history
         )
 
@@ -318,6 +318,24 @@ def test_feedback_replacement_order_emits_safe_register_values():
 
     assert state == target_feedbacks
     assert all(register in FEEDBACK_SELECTOR_REGISTERS for register, _sensor in writes)
+
+
+def test_feedback_replacement_order_reuses_slot_before_new_source():
+    """Reuse an active source before selecting a previously inactive source."""
+    current_feedbacks = {
+        FEEDBACK_SELECTOR_REGISTERS[0]: SensorType.QEI,
+        FEEDBACK_SELECTOR_REGISTERS[1]: SensorType.HALLS,
+        FEEDBACK_SELECTOR_REGISTERS[2]: SensorType.SINCOS,
+        FEEDBACK_SELECTOR_REGISTERS[3]: SensorType.ABS1,
+        FEEDBACK_SELECTOR_REGISTERS[4]: SensorType.HALLS,
+    }
+    target_feedbacks = current_feedbacks.copy()
+    target_feedbacks[FEEDBACK_SELECTOR_REGISTERS[0]] = SensorType.SSI2
+
+    assert list(_feedback_replacement_order(current_feedbacks, target_feedbacks)) == [
+        (FEEDBACK_SELECTOR_REGISTERS[0], SensorType.HALLS),
+        (FEEDBACK_SELECTOR_REGISTERS[0], SensorType.SSI2),
+    ]
 
 
 def test_feedback_replacement_order_is_empty_for_an_unchanged_configuration():
