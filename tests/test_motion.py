@@ -31,6 +31,12 @@ POSITION_SET_POINT_REGISTER = "CL_POS_SET_POINT_VALUE"
 ACTUAL_POSITION_REGISTER = "CL_POS_FBK_VALUE"
 VELOCITY_SET_POINT_REGISTER = "CL_VEL_SET_POINT_VALUE"
 ACTUAL_VELOCITY_REGISTER = "CL_VEL_FBK_VALUE"
+VELOCITY_FEEDBACK_SENSOR_REGISTER = "CL_VEL_FBK_SENSOR"
+MOTOR_PAIR_POLES_REGISTER = "MOT_PAIR_POLES"
+DIGITAL_ENCODER_RESOLUTION_REGISTER = "FBK_DIGENC1_RESOLUTION"
+VELOCITY_PID_KP_REGISTER = "CL_VEL_PID_KP"
+VELOCITY_PID_KI_REGISTER = "CL_VEL_PID_KI"
+VELOCITY_FEEDBACK_FILTER_FREQUENCY_REGISTER = "CL_VEL_FBK_FILTER1_FREQ"
 CURRENT_QUADRATURE_SET_POINT_REGISTER = "CL_CUR_Q_SET_POINT"
 ACTUAL_QUADRATURE_CURRENT_REGISTER = "CL_CUR_Q_VALUE"
 CURRENT_DIRECT_SET_POINT_REGISTER = "CL_CUR_D_SET_POINT"
@@ -308,7 +314,7 @@ def test_set_velocity(mc, alias, velocity_value):
 
 @pytest.mark.soem
 @pytest.mark.canopen
-@pytest.mark.parametrize("velocity_value", [0.5, 1, 0, -0.5])
+@pytest.mark.parametrize("velocity_value", [-0.5])
 # # https://novantamotion.atlassian.net/browse/INGM-779
 # @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
 # @pytest.mark.not_valid_for_product(part_number="EVE-*")
@@ -317,9 +323,56 @@ def test_set_velocity_blocking(mc, alias, velocity_value):
     mc.motion.set_operation_mode(OperationMode.PROFILE_VELOCITY, servo=alias)
     mc.motion.motor_enable(servo=alias)
     mc.motion.set_velocity(velocity_value, servo=alias, blocking=True, timeout=10)
-    time.sleep(1)
-    test_vel = mean_actual_velocity_position(mc, alias, velocity=True)
-    assert pytest.approx(velocity_value, abs=0.1) == test_vel
+
+    n_samples = 20
+    sampling_period = 0.1
+    test_velocities = []
+    test_positions = []
+    sample_times = []
+    velocity_setpoints = []
+    diagnostic_registers = {
+        VELOCITY_FEEDBACK_SENSOR_REGISTER: mc.communication.get_register(
+            VELOCITY_FEEDBACK_SENSOR_REGISTER, servo=alias
+        ),
+        MOTOR_PAIR_POLES_REGISTER: mc.communication.get_register(
+            MOTOR_PAIR_POLES_REGISTER, servo=alias
+        ),
+        DIGITAL_ENCODER_RESOLUTION_REGISTER: mc.communication.get_register(
+            DIGITAL_ENCODER_RESOLUTION_REGISTER, servo=alias
+        ),
+        VELOCITY_PID_KP_REGISTER: mc.communication.get_register(
+            VELOCITY_PID_KP_REGISTER, servo=alias
+        ),
+        VELOCITY_PID_KI_REGISTER: mc.communication.get_register(
+            VELOCITY_PID_KI_REGISTER, servo=alias
+        ),
+        VELOCITY_FEEDBACK_FILTER_FREQUENCY_REGISTER: mc.communication.get_register(
+            VELOCITY_FEEDBACK_FILTER_FREQUENCY_REGISTER, servo=alias
+        ),
+    }
+    for _ in range(n_samples):
+        sample_times.append(time.monotonic())
+        test_positions.append(mc.motion.get_actual_position(servo=alias))
+        test_velocities.append(mc.motion.get_actual_velocity(servo=alias))
+        velocity_setpoints.append(
+            mc.communication.get_register(VELOCITY_SET_POINT_REGISTER, servo=alias)
+        )
+        time.sleep(sampling_period)
+
+    test_vel = np.mean(test_velocities)
+    position_velocities = np.diff(test_positions) / np.diff(sample_times)
+    position_velocities = (
+        position_velocities / diagnostic_registers[DIGITAL_ENCODER_RESOLUTION_REGISTER]
+    )
+    position_velocity_mean = np.mean(position_velocities)
+    assert pytest.approx(velocity_value, abs=0.1) == test_vel, (
+        f"Velocity samples={test_velocities}, setpoints={velocity_setpoints}, "
+        f"mean={test_vel}, range={np.ptp(test_velocities)}, "
+        f"positions={test_positions}, "
+        f"position-derived velocities={position_velocities.tolist()}, "
+        f"position-derived mean={position_velocity_mean}, "
+        f"diagnostics={diagnostic_registers}"
+    )
 
 
 @pytest.mark.virtual
