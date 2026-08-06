@@ -29,7 +29,6 @@ from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental2_test import
 )
 from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
 from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import SecondarySSITest
-from ingeniamotion.wizard_tests.feedbacks_tests.sincos_encoder_test import SinCosEncoderTest
 from ingeniamotion.wizard_tests.phase_calibration import Phasing
 from ingeniamotion.wizard_tests.phasing_check import PhasingCheck
 from ingeniamotion.wizard_tests.sto import STOTest
@@ -45,7 +44,6 @@ class DriveTests:
         SensorType.SSI2: SecondarySSITest,
         SensorType.BISSC2: AbsoluteEncoder2Test,
         SensorType.QEI2: DigitalIncremental2Test,
-        SensorType.SINCOS: SinCosEncoderTest,
     }
 
     COMMUTATION_ANGLE_OFFSET_REGISTER = "COMMU_ANGLE_OFFSET"
@@ -186,41 +184,6 @@ class DriveTests:
             Results of the test
         """
         return self.__feedback_test(SensorType.SSI2, servo, axis, apply_changes)
-
-    def sincos_encoder_test(
-        self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS, apply_changes: bool = True
-    ) -> Optional[dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]]:
-        """Run the SinCos encoder test.
-
-        Executes the SinCos feedback test given a target servo
-        and axis. By default test will make changes in some drive registers
-        like feedback polarity and other suggested registers. To avoid it, set
-        ``apply_changes`` to ``False``.
-
-        Args:
-            servo : servo alias to reference it. ``default`` by default.
-            axis : axis that will run the test. ``1`` by default.
-            apply_changes : if ``True``, test applies changes to the
-                servo, if ``False`` it does not. ``True`` by default.
-
-        Returns:
-            Dictionary with the result of the test::
-
-                {
-                    # (int) Result code
-                    "result_severity": 0,
-                    # (dict) Suggested register values
-                    "suggested_registers":
-                        {"FBK_SINCOS_POLARITY": 0},
-                    # (str) Human readable result message
-                    "result_message": "Feedback test pass successfully"
-                }
-
-        Raises:
-            TestError: In case the servo or setup configuration makes
-                impossible fulfilling the test
-        """
-        return self.__feedback_test(SensorType.SINCOS, servo, axis, apply_changes)
 
     def __get_feedback_test(
         self, feedback: SensorType, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
