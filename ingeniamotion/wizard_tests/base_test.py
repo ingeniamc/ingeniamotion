@@ -112,6 +112,7 @@ class BaseTest(ABC, Stoppable, Generic[T]):
             self.reset_stop()
             try:
                 self.setup()
+                self.check_stop()
                 output = self.loop()
                 self.check_stop()
                 self.report = self.generate_report(output)
