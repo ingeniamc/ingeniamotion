@@ -21,7 +21,6 @@ class Feedbacks:
         SensorType.BISSC2: SensorCategory.ABSOLUTE,
         SensorType.QEI2: SensorCategory.INCREMENTAL,
         SensorType.INTGEN: SensorCategory.ABSOLUTE,
-        SensorType.SINCOS: SensorCategory.INCREMENTAL,
     }
 
     __feedback_polarity_register_dict: Final[dict[SensorType, str]] = {
@@ -31,7 +30,6 @@ class Feedbacks:
         SensorType.SSI2: "FBK_SSI2_POS_POLARITY",
         SensorType.BISSC2: "FBK_BISS2_POS_POLARITY",
         SensorType.QEI2: "FBK_DIGENC2_POLARITY",
-        SensorType.SINCOS: "FBK_SINCOS_POLARITY",
     }
 
     COMMUTATION_FEEDBACK_REGISTER = "COMMU_ANGLE_SENSOR"
@@ -50,7 +48,6 @@ class Feedbacks:
             SensorType.SSI2: self.get_secondary_ssi_resolution,
             SensorType.BISSC2: self.get_absolute_encoder_2_resolution,
             SensorType.QEI2: self.get_incremental_encoder_2_resolution,
-            SensorType.SINCOS: self.get_sincos_encoder_resolution,
             SensorType.INTGEN: self.__no_feedback_resolution,
         }
 
