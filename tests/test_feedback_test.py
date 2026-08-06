@@ -268,15 +268,67 @@ def _feedback_configurations(
     yield from configurations
 
 
+def test_feedback_replacement_order_emits_safe_register_values():
+    """The emitted writes reach the target without exceeding four sensors."""
+    current_feedbacks = dict(
+        zip(
+            FEEDBACK_SELECTOR_REGISTERS,
+            (
+                SensorType.QEI,
+                SensorType.HALLS,
+                SensorType.SINCOS,
+                SensorType.SINCOS,
+                SensorType.QEI,
+            ),
+        )
+    )
+    target_feedbacks = dict(
+        zip(
+            FEEDBACK_SELECTOR_REGISTERS,
+            (
+                SensorType.HALLS,
+                SensorType.QEI,
+                SensorType.INTGEN,
+                SensorType.SINCOS,
+                SensorType.QEI,
+            ),
+        )
+    )
+
+    state = current_feedbacks.copy()
+    writes = list(_feedback_replacement_order(current_feedbacks, target_feedbacks))
+    for register, sensor in writes:
+        state[register] = sensor
+        assert len(set(state.values())) <= MAX_SIMULTANEOUS_FEEDBACKS
+
+    assert state == target_feedbacks
+    assert all(register in FEEDBACK_SELECTOR_REGISTERS for register, _sensor in writes)
+
+
+def test_feedback_replacement_order_is_empty_for_an_unchanged_configuration():
+    """No writes are emitted when current and target configurations match."""
+    configuration = dict.fromkeys(FEEDBACK_SELECTOR_REGISTERS, SensorType.QEI)
+
+    assert list(_feedback_replacement_order(configuration, configuration)) == []
+
+
+def test_feedback_replacement_order_rejects_unknown_registers():
+    """Only the supported feedback selector registers may be transitioned."""
+    configuration = dict.fromkeys(FEEDBACK_SELECTOR_REGISTERS, SensorType.QEI)
+    invalid_configuration = {**configuration, "UNKNOWN_REGISTER": SensorType.QEI}
+
+    with pytest.raises(ValueError, match="selector registers"):
+        list(_feedback_replacement_order(configuration, invalid_configuration))
+
+
 @pytest.mark.virtual
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
-def test_feedback_test_respects_and_restores_the_drive_feedback_limit(
+def test_feedback_test_respects_the_drive_feedback_limit_across_configurations(
     mc, alias, servo, mocker, subtests, setup_specifier
 ):
-    """The feedback test must never exceed the drive feedback limit, and must restore
-    the initial feedback configuration afterwards.
+    """The feedback test must never exceed the drive feedback limit.
 
     The drive rejects a fifth feedback, so neither the setup writes nor the rollback
     performed by the drive context manager may go through such a transient state.
@@ -294,37 +346,18 @@ def test_feedback_test_respects_and_restores_the_drive_feedback_limit(
     for configuration in slice_configurations(configurations, setup_specifier):
         msg = "_".join(sensor.name for sensor in configuration.values())
         with subtests.test(msg=msg):
-            current_feedbacks = tuple(
-                SensorType(mc.communication.get_register(uid, servo=alias, axis=axis))
+            current_feedbacks = {
+                uid: SensorType(mc.communication.get_register(uid, servo=alias, axis=axis))
                 for uid in FEEDBACK_SELECTOR_REGISTERS
-            )
-            staging_feedbacks = (current_feedbacks[0],) * len(current_feedbacks)
-            state = list(current_feedbacks)
-            for index in _feedback_replacement_order(current_feedbacks):
-                if state[index] != staging_feedbacks[index]:
-                    uid = FEEDBACK_SELECTOR_REGISTERS[index]
-                    mc.communication.set_register(
-                        uid,
-                        staging_feedbacks[index],
-                        servo=alias,
-                        axis=axis,
-                    )
-                    state[index] = staging_feedbacks[index]
-                    assert len(set(state)) <= MAX_SIMULTANEOUS_FEEDBACKS, (
-                        f"Staging {uid} configured more than "
-                        f"{MAX_SIMULTANEOUS_FEEDBACKS} feedbacks: {state}"
-                    )
-
-            for index in reversed(_feedback_replacement_order(tuple(configuration.values()))):
-                uid = FEEDBACK_SELECTOR_REGISTERS[index]
-                sensor = configuration[uid]
-                if state[index] != sensor:
-                    mc.communication.set_register(uid, sensor, servo=alias, axis=axis)
-                    state[index] = sensor
-                    assert len(set(state)) <= MAX_SIMULTANEOUS_FEEDBACKS, (
-                        f"Applying {uid} configured more than "
-                        f"{MAX_SIMULTANEOUS_FEEDBACKS} feedbacks: {state}"
-                    )
+            }
+            state = current_feedbacks.copy()
+            for uid, sensor in _feedback_replacement_order(state, configuration):
+                mc.communication.set_register(uid, sensor, servo=alias, axis=axis)
+                state[uid] = sensor
+                assert len(set(state.values())) <= MAX_SIMULTANEOUS_FEEDBACKS, (
+                    f"Applying {uid} configured more than "
+                    f"{MAX_SIMULTANEOUS_FEEDBACKS} feedbacks: {state}"
+                )
 
             feedback_test = DigitalIncremental1Test(mc, alias, axis)
             with FeedbackSelectorTracker(mc, servo, alias, axis) as tracker:

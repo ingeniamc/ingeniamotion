@@ -1,6 +1,6 @@
 import math
 import time
-from collections import Counter
+from collections.abc import Iterator
 from enum import IntEnum
 from typing import TYPE_CHECKING, Final, Optional, cast
 
@@ -36,20 +36,52 @@ FEEDBACK_SELECTOR_REGISTERS = (
 )
 
 
-def _feedback_replacement_order(current_feedbacks: tuple[SensorType, ...]) -> list[int]:
-    """Order feedback slots so replacing them never exceeds the drive's limit.
+def _feedback_replacement_order(
+    current_feedbacks: dict[str, SensorType], target_feedbacks: dict[str, SensorType]
+) -> Iterator[tuple[str, SensorType]]:
+    """Order feedback slots for a safe transition between two configurations.
 
     Args:
-        current_feedbacks: Current feedback types in slot order.
+        current_feedbacks: Current feedback types keyed by selector register.
+        target_feedbacks: Target feedback types keyed by selector register.
 
-    Returns:
-        Slot indices ordered by the number of occurrences of their current feedback type.
+    Yields:
+        Register and sensor pairs ordered so each intermediate configuration stays valid.
+
+    Raises:
+        ValueError: If the configurations do not use the selector registers or cannot
+            be transitioned safely.
     """
-    feedback_counts = Counter(current_feedbacks)
-    return sorted(
-        range(len(current_feedbacks)),
-        key=lambda index: feedback_counts[current_feedbacks[index]],
+    if set(current_feedbacks) != set(target_feedbacks) or set(current_feedbacks) != set(
+        FEEDBACK_SELECTOR_REGISTERS
+    ):
+        raise ValueError("Feedback configurations must use the selector registers.")
+
+    def find_order(state: dict[str, SensorType], pending: tuple[str, ...]) -> Optional[list[str]]:
+        if not pending:
+            return []
+
+        for register in pending:
+            candidate_state = state.copy()
+            candidate_state[register] = target_feedbacks[register]
+            if len(set(candidate_state.values())) > MAX_SIMULTANEOUS_FEEDBACKS:
+                continue
+            remaining = tuple(item for item in pending if item != register)
+            suffix = find_order(candidate_state, remaining)
+            if suffix is not None:
+                return [register, *suffix]
+        return None
+
+    pending = tuple(
+        register
+        for register in FEEDBACK_SELECTOR_REGISTERS
+        if current_feedbacks[register] != target_feedbacks[register]
     )
+    order = find_order(current_feedbacks, pending)
+    if order is None:
+        raise ValueError("Feedback configurations cannot be transitioned safely.")
+    for register in order:
+        yield register, target_feedbacks[register]
 
 
 class Feedbacks(BaseTest[LegacyDictReportType]):
@@ -201,15 +233,16 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
                 self.mc.configuration.set_auxiliar_feedback,
             ),
         )
-        current_feedbacks = tuple(
-            getter(servo=self.servo, axis=self.axis) for getter, _setter in feedback_slots
-        )
-        commutation_index = 0
-        for index in _feedback_replacement_order(current_feedbacks):
-            if index == commutation_index or current_feedbacks[index] == self.sensor:
-                continue
-            _getter, setter = feedback_slots[index]
-            setter(self.sensor, servo=self.servo, axis=self.axis)
+        current_feedbacks = {
+            register: getter(servo=self.servo, axis=self.axis)
+            for register, (getter, _setter) in zip(FEEDBACK_SELECTOR_REGISTERS, feedback_slots)
+        }
+        target_feedbacks = current_feedbacks.copy()
+        target_feedbacks.update(dict.fromkeys(FEEDBACK_SELECTOR_REGISTERS[1:], self.sensor))
+        setters = dict(zip(FEEDBACK_SELECTOR_REGISTERS, feedback_slots))
+        for register, sensor in _feedback_replacement_order(current_feedbacks, target_feedbacks):
+            _getter, setter = setters[register]
+            setter(sensor, servo=self.servo, axis=self.axis)
         # Set Polarity to 0
         self.mc.communication.set_register(
             self.FEEDBACK_POLARITY_REGISTER,
@@ -241,50 +274,30 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         if not all(isinstance(value, int) for value in baseline_values):
             return
 
-        target_feedbacks = tuple(SensorType(cast("int", value)) for value in baseline_values)
-        current_feedbacks = tuple(
-            SensorType(
+        target_feedbacks = dict(
+            zip(
+                FEEDBACK_SELECTOR_REGISTERS,
+                (SensorType(cast("int", value)) for value in baseline_values),
+            )
+        )
+        current_feedbacks = {
+            register: SensorType(
                 cast(
                     "int",
-                    self.mc.communication.get_register(uid, servo=self.servo, axis=self.axis),
+                    self.mc.communication.get_register(register, servo=self.servo, axis=self.axis),
                 )
             )
-            for uid in FEEDBACK_SELECTOR_REGISTERS
-        )
-        staging_sensor = target_feedbacks[0]
-        state = list(current_feedbacks)
-
-        for index in _feedback_replacement_order(tuple(state)):
-            if index == 0 or state[index] == staging_sensor:
-                continue
+            for register in FEEDBACK_SELECTOR_REGISTERS
+        }
+        state = current_feedbacks.copy()
+        for register, target_sensor in _feedback_replacement_order(state, target_feedbacks):
             self.mc.communication.set_register(
-                FEEDBACK_SELECTOR_REGISTERS[index],
-                staging_sensor,
-                servo=self.servo,
-                axis=self.axis,
-            )
-            state[index] = staging_sensor
-
-        if state[0] != staging_sensor:
-            self.mc.communication.set_register(
-                FEEDBACK_SELECTOR_REGISTERS[0],
-                staging_sensor,
-                servo=self.servo,
-                axis=self.axis,
-            )
-            state[0] = staging_sensor
-
-        for index in reversed(_feedback_replacement_order(target_feedbacks)):
-            target_sensor = target_feedbacks[index]
-            if state[index] == target_sensor:
-                continue
-            self.mc.communication.set_register(
-                FEEDBACK_SELECTOR_REGISTERS[index],
+                register,
                 target_sensor,
                 servo=self.servo,
                 axis=self.axis,
             )
-            state[index] = target_sensor
+            state[register] = target_sensor
 
     @BaseTest.stoppable
     def __reaction_codes_to_warning(self) -> None:
