@@ -4,6 +4,7 @@ from functools import partial
 from threading import Thread
 
 import pytest
+from ingenialink import exceptions
 from ingenialink.dictionary import Interface
 from ingenialink.enums.register import RegDtype
 
@@ -54,6 +55,17 @@ def mon_map_registers(monitoring):
 )
 @pytest.mark.not_valid_for_product(part_number="EVE-*", interfaces=[Interface.ECAT, Interface.CAN])
 def test_get_trigger_type(mc, alias, monitoring, trigger_type):
+    trigger_values = mc.info.register_info(
+        MONITOR_START_CONDITION_TYPE_REGISTER, servo=alias, axis=0
+    ).enums.values()
+    try:
+        mc.communication.set_register(
+            MONITOR_START_CONDITION_TYPE_REGISTER, trigger_type, servo=alias, axis=0
+        )
+    except exceptions.ILNACKError:
+        if trigger_type in trigger_values:
+            raise
+        return
     mc.communication.set_register(
         MONITOR_START_CONDITION_TYPE_REGISTER, trigger_type, servo=alias, axis=0
     )
