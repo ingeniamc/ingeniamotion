@@ -315,7 +315,7 @@ def test_feedback_test_respects_and_restores_the_drive_feedback_limit(
                         f"{MAX_SIMULTANEOUS_FEEDBACKS} feedbacks: {state}"
                     )
 
-            for index in _feedback_replacement_order(tuple(state)):
+            for index in reversed(_feedback_replacement_order(tuple(configuration.values()))):
                 uid = FEEDBACK_SELECTOR_REGISTERS[index]
                 sensor = configuration[uid]
                 if state[index] != sensor:
