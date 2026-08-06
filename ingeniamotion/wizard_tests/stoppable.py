@@ -28,6 +28,7 @@ class StopOpportunityTraceEvent:
     timestamp: float
     traceback: tuple[traceback.FrameSummary, ...]
     finish_timestamp: float
+    owner: Optional["Stoppable"] = None
 
 
 StoppableInstanceCreations = Callable[["Stoppable"], None]
@@ -103,11 +104,10 @@ class Stoppable:
         with contextlib.suppress(ValueError):
             cls._stop_opportunity_subscriptions.remove(subscription)
 
-    @classmethod
     def _record_stop_opportunity(
-        cls, start: Optional[float] = None, finish: Optional[float] = None
+        self, start: Optional[float] = None, finish: Optional[float] = None
     ) -> None:
-        subscriptions = cls._stop_opportunity_subscriptions
+        subscriptions = self._stop_opportunity_subscriptions
         if not subscriptions:
             return
 
@@ -125,6 +125,7 @@ class Stoppable:
                         timestamp=start,
                         traceback=tuple(traceback.extract_stack()[:-1]),
                         finish_timestamp=finish,
+                        owner=self,
                     )
                 subscription.callback(event)
             else:
