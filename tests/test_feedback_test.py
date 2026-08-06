@@ -1,3 +1,4 @@
+import logging
 import random
 from collections.abc import Iterator
 from itertools import product
@@ -29,6 +30,7 @@ from tests.conftest import slice_configurations
 
 # Record stop opportunities for every wizard-test integration case in this module.
 pytestmark = pytest.mark.usefixtures("stoppable_trace_recorder")
+logger = logging.getLogger(__name__)
 
 INCREMENTAL_ENCODER_1_RESOLUTION_REGISTER = "FBK_DIGENC1_RESOLUTION"
 
@@ -130,6 +132,7 @@ class FeedbackSelectorTracker:
 
     def __enter__(self) -> "FeedbackSelectorTracker":
         self._servo.register_update_subscribe(self._on_register_update)
+        logger.info("Feedback selector tracking started: %s", self._state)
         return self
 
     def __exit__(
@@ -139,6 +142,12 @@ class FeedbackSelectorTracker:
         traceback: Optional[TracebackType],
     ) -> None:
         self._servo.register_update_unsubscribe(self._on_register_update)
+        exception_name = exc_type.__name__ if exc_type is not None else "none"
+        logger.info(
+            "Feedback selector tracking stopped (exception=%s):\n%s",
+            exception_name,
+            self.format_history(),
+        )
 
     def _on_register_update(self, servo: Servo, register: Register, value: REG_VALUE) -> None:  # noqa: ARG002
         if register.subnode != self._axis or register.identifier not in self._state:
@@ -148,6 +157,12 @@ class FeedbackSelectorTracker:
             return
         self._state[register.identifier] = sensor
         self.history.append(dict(self._state))
+        logger.info(
+            "Feedback selector updated: register=%s sensor=%s state=%s",
+            register.identifier,
+            sensor.name,
+            self._state,
+        )
 
     @property
     def initial_state(self) -> dict[str, SensorType]:
