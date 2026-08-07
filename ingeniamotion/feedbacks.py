@@ -209,29 +209,6 @@ class HallsEncoder(Encoder):
         return 6 * self._read(self._PAIR_POLES_REGISTER_UID)
 
 
-class SincosEncoder(Encoder):
-    """SinCos encoder."""
-
-    SENSOR_TYPE = SensorType.SINCOS
-    CATEGORY = SensorCategory.INCREMENTAL
-    POLARITY_REGISTER_UID = "FBK_SINCOS_POLARITY"
-    _RESOLUTION_REGISTER_UID = "FBK_SINCOS_RESOLUTION"
-    _RESOLUTION_MULTIPLIER_REGISTER_UID: ClassVar[str] = "FBK_SINCOS_MULT_FACTOR"
-
-    def get_resolution(self) -> int:
-        """The resolution of the encoder.
-
-        Returns:
-            The resolution of the encoder.
-
-        Raises:
-            TypeError: If some read value has a wrong type.
-        """
-        value = self._read(self._RESOLUTION_REGISTER_UID)
-        multiplier = self._read(self._RESOLUTION_MULTIPLIER_REGISTER_UID)
-        return value * int(2**multiplier)
-
-
 _ENCODER_TYPES: Final[dict[SensorType, type[Encoder]]] = {
     SensorType.ABS1: Abs1Encoder,
     SensorType.QEI: QeiEncoder,
@@ -239,7 +216,6 @@ _ENCODER_TYPES: Final[dict[SensorType, type[Encoder]]] = {
     SensorType.SSI2: Ssi2Encoder,
     SensorType.BISSC2: Bissc2Encoder,
     SensorType.QEI2: Qei2Encoder,
-    SensorType.SINCOS: SincosEncoder,
     SensorType.INTGEN: InternalGeneratorEncoder,
 }
 
@@ -707,24 +683,6 @@ class Feedbacks:
         """
         return self.__axis_feedbacks(servo, axis).get_resolution(SensorType.QEI2)
 
-    def get_sincos_encoder_resolution(
-        self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ) -> int:
-        """Reads the SinCos encoder resolution in the target servo and axis.
-
-        Args:
-            servo : servo alias to reference it. ``default`` by default.
-            axis : axis that will run the test. ``1`` by default.
-
-        Returns:
-            Number of counts per mechanical revolution.
-
-        Raises:
-            TypeError: If some read value has a wrong type.
-
-        """
-        return self.__axis_feedbacks(servo, axis).get_resolution(SensorType.SINCOS)
-
     def get_feedback_resolution(
         self, feedback: SensorType, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
     ) -> int:
@@ -738,7 +696,6 @@ class Feedbacks:
             SSI2: Number of bits that represent single-turn information.
             BISSC2: Number of bits that represent single-turn information.
             QEI2: Number of counts per mechanical revolution.
-            SINCOS: Number of counts per mechanical revolution.
 
         Args:
             feedback : target feedback.

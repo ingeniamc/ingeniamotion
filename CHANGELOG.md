@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Added
 - Add dynamic forced phasing test
+- Add SDCP servo support.
 
 ### Changed
 - Removed `get_feedback_polarity_register_uid` and `feedback_resolution_functions` from `Feedbacks`; feedbacks are now managed through `Axis.feedbacks` (`AxisFeedbacks`).

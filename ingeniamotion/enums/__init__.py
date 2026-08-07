@@ -142,8 +142,6 @@ class SensorType(IntEnum, metaclass=MetaEnum):
     """Absolute encoder 2"""
     QEI2 = 8
     """Digital/Incremental encoder 2"""
-    SINCOS = 10
-    """SinCos encoder 1"""
 
 
 @export

@@ -102,11 +102,13 @@ class BaseTest(ABC, Stoppable, Generic[T]):
         Raises:
             ILError: If the underlying drive communication fails during the test run.
         """
-        with DriveContextManager(
-            servo=self.mc._get_drive(self.servo),
-            baseline=registers_baseline,
-            do_not_restore_registers=list(self.ACCEPTED_CHANGED_REGISTERS),
-            track_objects=False,
+        with (
+            context := DriveContextManager(
+                servo=self.mc._get_drive(self.servo),
+                baseline=registers_baseline,
+                do_not_restore_registers=list(self.ACCEPTED_CHANGED_REGISTERS),
+                track_objects=False,
+            )
         ):
             self.reset_stop()
             try:
@@ -119,8 +121,12 @@ class BaseTest(ABC, Stoppable, Generic[T]):
                 self.logger.warning("Test has been stopped")
             finally:
                 self.teardown()
+                self._restore_configuration(context)
 
         return self.report
+
+    def _restore_configuration(self, context: DriveContextManager) -> None:
+        """Restore configuration that requires an ordered transition."""
 
     def generate_report(self, output: Any) -> T:
         """Generate the test report.

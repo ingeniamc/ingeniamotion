@@ -3,27 +3,24 @@ import time
 from collections.abc import Generator, Iterator
 from contextlib import contextmanager
 from pathlib import Path
-from typing import TYPE_CHECKING, Callable, Optional, Union
+from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union
 
 import numpy as np
 import pytest
 from ingenialink import Servo
-from ingenialink.configuration_file import ConfigurationFile
 from ingenialink.dictionary import Interface
 from ingenialink.exceptions import ILRegisterNotFoundError
-from ingenialink.utils._utils import convert_bytes_to_dtype
 from summit_testing_framework import dynamic_loader
+from summit_testing_framework.configuration.config_checker import ConfigChecker
 from summit_testing_framework.profilers.stoppable_gaps import StoppableProfilerConfig
 from summit_testing_framework.pytest_helpers.marker_helper import (
     MarkerHelper,
     apply_firmware_version_markers_to_items,
 )
-from summit_testing_framework.setups.specifiers import (
-    DictionaryType,
-    DictionaryVersion,
-)
+from summit_testing_framework.setups.specifiers import DictionaryType, DictionaryVersion
 
 from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY
+from tests.setups.rack_specifiers import __RANDOM_COMBINATIONS_SLICE_KEY
 
 if TYPE_CHECKING:
     from summit_testing_framework.setups.specifiers import SetupSpecifier
@@ -89,39 +86,22 @@ def __config_uses_biss_c(config_file: Path) -> bool:
     Returns:
         bool: True if the configuration file uses BISS-C protocol, False otherwise.
     """
+    config_checker: ConfigChecker = ConfigChecker(config_file=config_file)
 
-    # Check if absolute encoder is present in feedback sensor
+    # Check if Primary Absolute Slave 1 (=1) or Secondary Absolute Slave 1 (=7)
+    # are selected in some of the possible feedback sensors registers:
     # CL_VEL_FBK_SENSOR, CL_POS_FBK_SENSOR, COMMU_ANGLE_SENSOR
-    position_feedback_registers = ["CL_VEL_FBK_SENSOR", "CL_POS_FBK_SENSOR", "COMMU_ANGLE_SENSOR"]
-    encoder_protocol_registers = ["FBK_BISS1_SSI1_PROTOCOL", "FBK_SSI2_PROTOCOL"]
-    # Primary Absolute Slave 1: 1, Secondary Absolute Slave 1: 2
-    search_registers = dict.fromkeys(position_feedback_registers + encoder_protocol_registers, None)
-
-    xcf_instance = ConfigurationFile.load_from_xcf(config_file)
-    for config_register in xcf_instance.registers:
-        if config_register.uid in search_registers:
-            search_registers[config_register.uid] = (
-                convert_bytes_to_dtype(config_register.data, config_register.dtype)
-                if config_register.data is not None
-                else config_register.storage
-            )
-
-        if all(value is not None for value in search_registers.values()):
-            break
-
-    for register in position_feedback_registers:
-        if search_registers[register] is None:
-            continue
-
-        # Primary Absolute Slave 1 selected
-        if search_registers[register] == 1:
-            if search_registers[encoder_protocol_registers[0]] == 0:
-                return True
-        # Secondary Absolute Slave 1 selected
-        elif (
-            search_registers[register] == 7 and search_registers[encoder_protocol_registers[1]] == 0
-        ):
+    # If they are, then check if the corresponding encoder protocol is BISS-C (=0)
+    for register in ["CL_VEL_FBK_SENSOR", "CL_POS_FBK_SENSOR", "COMMU_ANGLE_SENSOR"]:
+        if config_checker.register_has_expected_value(
+            register, 1
+        ) and config_checker.register_has_expected_value("FBK_BISS1_SSI1_PROTOCOL", 0):
             return True
+        if config_checker.register_has_expected_value(
+            register, 7
+        ) and config_checker.register_has_expected_value("FBK_SSI2_PROTOCOL", 0):
+            return True
+
     return False
 
 
@@ -276,6 +256,29 @@ def timeout_loop(
 
         yield iteration
         iteration += 1
+
+
+ConfigurationT = TypeVar("ConfigurationT")
+
+
+def slice_configurations(
+    configurations: list[ConfigurationT], setup_specifier
+) -> list[ConfigurationT]:
+    """Return the configured fraction of test configurations.
+
+    Args:
+        configurations: Randomized test configurations.
+        setup_specifier: Active test setup specifier.
+
+    Returns:
+        All configurations when no slice is configured, otherwise the configured
+        fraction with at least one configuration.
+    """
+    assert configurations, "At least one test configuration is required"
+    configuration_slice = setup_specifier.extra_data.get(__RANDOM_COMBINATIONS_SLICE_KEY, None)
+    if configuration_slice is None:
+        return configurations
+    return configurations[: max(1, int(len(configurations) * configuration_slice))]
 
 
 @pytest.fixture(scope="session")
