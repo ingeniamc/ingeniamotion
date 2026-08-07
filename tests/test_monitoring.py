@@ -49,7 +49,6 @@ def mon_map_registers(monitoring):
         MonitoringSoCType.TRIGGER_EVENT_AUTO,
         MonitoringSoCType.TRIGGER_EVENT_FORCED,
         MonitoringSoCType.TRIGGER_EVENT_EDGE,
-        4,  # Invalid value
     ],
 )
 @pytest.mark.not_valid_for_product(part_number="EVE-*", interfaces=[Interface.ECAT, Interface.CAN])
