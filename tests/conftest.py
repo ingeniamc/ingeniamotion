@@ -267,7 +267,7 @@ def stoppable_profiler_config() -> StoppableProfilerConfig:
         The stoppable profiler configuration.
     """
     return StoppableProfilerConfig(
-        gap_threshold_seconds=0.3,
+        gap_threshold_seconds=0.5,
         good_enough_gap_seconds=0.2,
     )
 
