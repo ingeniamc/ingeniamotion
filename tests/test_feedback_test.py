@@ -291,8 +291,8 @@ def test_feedback_replacement_order_emits_safe_register_values():
             (
                 SensorType.QEI,
                 SensorType.HALLS,
-                SensorType.SINCOS,
-                SensorType.SINCOS,
+                SensorType.ABS1,
+                SensorType.ABS1,
                 SensorType.QEI,
             ),
         )
@@ -304,7 +304,7 @@ def test_feedback_replacement_order_emits_safe_register_values():
                 SensorType.HALLS,
                 SensorType.QEI,
                 SensorType.INTGEN,
-                SensorType.SINCOS,
+                SensorType.ABS1,
                 SensorType.QEI,
             ),
         )
@@ -325,7 +325,7 @@ def test_feedback_replacement_order_reuses_slot_before_new_source():
     current_feedbacks = {
         FEEDBACK_SELECTOR_REGISTERS[0]: SensorType.QEI,
         FEEDBACK_SELECTOR_REGISTERS[1]: SensorType.HALLS,
-        FEEDBACK_SELECTOR_REGISTERS[2]: SensorType.SINCOS,
+        FEEDBACK_SELECTOR_REGISTERS[2]: SensorType.INTGEN,
         FEEDBACK_SELECTOR_REGISTERS[3]: SensorType.ABS1,
         FEEDBACK_SELECTOR_REGISTERS[4]: SensorType.HALLS,
     }
