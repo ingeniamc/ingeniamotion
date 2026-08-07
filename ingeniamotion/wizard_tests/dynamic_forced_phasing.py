@@ -400,7 +400,11 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
         self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
         self.check_stop()
         self.mc.motion.current_direct_ramp(
-            self.phasing_max_current, self.CURRENT_RAMP_TIME_S, servo=self.servo, axis=self.axis
+            self.phasing_max_current,
+            self.CURRENT_RAMP_TIME_S,
+            servo=self.servo,
+            axis=self.axis,
+            step=self.check_stop,
         )
         self.__configure_monitoring(direction=PhasingDirection.POSITIVE)
         mean_difference_pos = self._collect_mean_difference(
