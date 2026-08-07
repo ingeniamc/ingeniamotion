@@ -11,6 +11,12 @@ from ingenialink.servo import Servo
 from ingenialink.utils._utils import REG_VALUE
 
 from ingeniamotion.enums import SensorType
+from ingeniamotion.feedbacks import (
+    FEEDBACK_SELECTOR_REGISTERS,
+    MAX_SIMULTANEOUS_FEEDBACKS,
+    AxisFeedbacks,
+    FeedbacksConfiguration,
+)
 from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.wizard_tests.base_test import TestConfigurationError
 from ingeniamotion.wizard_tests.feedbacks_tests.dc_feedback_polarity_test import (
@@ -22,10 +28,6 @@ from ingeniamotion.wizard_tests.feedbacks_tests.dc_feedback_resolution_test impo
 from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental1_test import (
     DigitalIncremental1Test,
 )
-from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import (
-    MAX_SIMULTANEOUS_FEEDBACKS,
-    _feedback_replacement_order,
-)
 from tests.conftest import slice_configurations
 
 # Record stop opportunities for every wizard-test integration case in this module.
@@ -33,20 +35,6 @@ pytestmark = pytest.mark.usefixtures("stoppable_trace_recorder")
 logger = logging.getLogger(__name__)
 
 INCREMENTAL_ENCODER_1_RESOLUTION_REGISTER = "FBK_DIGENC1_RESOLUTION"
-
-COMMUTATION_FEEDBACK_REGISTER = "COMMU_ANGLE_SENSOR"
-REFERENCE_FEEDBACK_REGISTER = "COMMU_ANGLE_REF_SENSOR"
-VELOCITY_FEEDBACK_REGISTER = "CL_VEL_FBK_SENSOR"
-POSITION_FEEDBACK_REGISTER = "CL_POS_FBK_SENSOR"
-AUXILIAR_FEEDBACK_REGISTER = "CL_AUX_FBK_SENSOR"
-
-FEEDBACK_SELECTOR_REGISTERS = (
-    COMMUTATION_FEEDBACK_REGISTER,
-    REFERENCE_FEEDBACK_REGISTER,
-    VELOCITY_FEEDBACK_REGISTER,
-    POSITION_FEEDBACK_REGISTER,
-    AUXILIAR_FEEDBACK_REGISTER,
-)
 
 
 @pytest.mark.virtual
@@ -124,11 +112,13 @@ class FeedbackSelectorTracker:
     def __init__(self, mc: MotionController, servo: Servo, alias: str, axis: int) -> None:
         self._servo = servo
         self._axis = axis
-        self._state = {
-            uid: int(mc.communication.get_register(uid, servo=alias, axis=axis))
-            for uid in FEEDBACK_SELECTOR_REGISTERS
-        }
-        self.history = [dict(self._state)]
+        self._state = FeedbacksConfiguration(
+            *(
+                SensorType(mc.communication.get_register(uid, servo=alias, axis=axis))
+                for uid in FEEDBACK_SELECTOR_REGISTERS
+            )
+        )
+        self.history = [self._state]
 
     def __enter__(self) -> "FeedbackSelectorTracker":
         self._servo.register_update_subscribe(self._on_register_update)
@@ -150,13 +140,19 @@ class FeedbackSelectorTracker:
         )
 
     def _on_register_update(self, servo: Servo, register: Register, value: REG_VALUE) -> None:  # noqa: ARG002
-        if register.subnode != self._axis or register.identifier not in self._state:
+        if register.subnode != self._axis or register.identifier not in FEEDBACK_SELECTOR_REGISTERS:
             return
         sensor = int(value)
-        if self._state[register.identifier] == sensor:
+        slot_index = FEEDBACK_SELECTOR_REGISTERS.index(register.identifier)
+        if self._state.as_tuple()[slot_index] == sensor:
             return
-        self._state[register.identifier] = sensor
-        self.history.append(dict(self._state))
+        values = self._state.as_tuple()
+        self._state = FeedbacksConfiguration(
+            *values[:slot_index],
+            SensorType(sensor),
+            *values[slot_index + 1 :],
+        )
+        self.history.append(self._state)
         logger.info(
             "Feedback selector updated: register=%s sensor=%s state=%s",
             register.identifier,
@@ -165,21 +161,24 @@ class FeedbackSelectorTracker:
         )
 
     @property
-    def initial_state(self) -> dict[str, int]:
+    def initial_state(self) -> FeedbacksConfiguration:
         return self.history[0]
 
     @property
-    def final_state(self) -> dict[str, int]:
+    def final_state(self) -> FeedbacksConfiguration:
         return self.history[-1]
 
     @property
     def max_simultaneous_feedbacks(self) -> int:
-        return max(len(set(state.values())) for state in self.history)
+        return max(len(set(state.as_tuple())) for state in self.history)
 
     def format_history(self) -> str:
         return "\n".join(
-            f"{len(set(state.values()))} feedbacks: "
-            + ", ".join(f"{uid}={SensorType(sensor).name}" for uid, sensor in state.items())
+            f"{len(set(state.as_tuple()))} feedbacks: "
+            + ", ".join(
+                f"{uid}={sensor.name}"
+                for uid, sensor in zip(FEEDBACK_SELECTOR_REGISTERS, state.as_tuple())
+            )
             for state in self.history
         )
 
@@ -249,7 +248,7 @@ def _feedback_configurations(
     mc: MotionController,
     alias: str,
     axis: int,
-) -> Iterator[dict[str, SensorType]]:
+) -> Iterator[FeedbacksConfiguration]:
     """Generate every selector value combination allowed by the four-feedback limit.
 
     Each register independently takes one of the sensors the drive's dictionary
@@ -277,7 +276,7 @@ def _feedback_configurations(
         if shape in seen_shapes:
             continue
         seen_shapes.add(shape)
-        configurations.append(dict(zip(FEEDBACK_SELECTOR_REGISTERS, combination)))
+        configurations.append(FeedbacksConfiguration(*combination))
 
     random.shuffle(configurations)
     yield from configurations
@@ -285,73 +284,65 @@ def _feedback_configurations(
 
 def test_feedback_replacement_order_emits_safe_register_values():
     """The emitted writes reach the target without exceeding four sensors."""
-    current_feedbacks = dict(
-        zip(
-            FEEDBACK_SELECTOR_REGISTERS,
-            (
-                SensorType.QEI,
-                SensorType.HALLS,
-                SensorType.ABS1,
-                SensorType.ABS1,
-                SensorType.QEI,
-            ),
-        )
+    current_configuration = FeedbacksConfiguration(
+        SensorType.QEI,
+        SensorType.HALLS,
+        SensorType.ABS1,
+        SensorType.ABS1,
+        SensorType.QEI,
     )
-    target_feedbacks = dict(
-        zip(
-            FEEDBACK_SELECTOR_REGISTERS,
-            (
-                SensorType.HALLS,
-                SensorType.QEI,
-                SensorType.INTGEN,
-                SensorType.ABS1,
-                SensorType.QEI,
-            ),
-        )
+    target_configuration = FeedbacksConfiguration(
+        SensorType.HALLS,
+        SensorType.QEI,
+        SensorType.INTGEN,
+        SensorType.ABS1,
+        SensorType.QEI,
     )
 
-    state = current_feedbacks.copy()
-    writes = list(_feedback_replacement_order(current_feedbacks, target_feedbacks))
-    for register, sensor in writes:
-        state[register] = sensor
-        assert len(set(state.values())) <= MAX_SIMULTANEOUS_FEEDBACKS
+    state = current_configuration.as_tuple()
+    writes = list(AxisFeedbacks.feedback_transition(current_configuration, target_configuration))
+    for slot_index, sensor in writes:
+        state = (*state[:slot_index], sensor, *state[slot_index + 1 :])
+        assert len(set(state)) <= MAX_SIMULTANEOUS_FEEDBACKS
 
-    assert state == target_feedbacks
-    assert all(register in FEEDBACK_SELECTOR_REGISTERS for register, _sensor in writes)
+    assert state == target_configuration.as_tuple()
+    assert all(0 <= slot_index < len(FEEDBACK_SELECTOR_REGISTERS) for slot_index, _ in writes)
 
 
 def test_feedback_replacement_order_reuses_slot_before_new_source():
     """Reuse an active source before selecting a previously inactive source."""
-    current_feedbacks = {
-        FEEDBACK_SELECTOR_REGISTERS[0]: SensorType.QEI,
-        FEEDBACK_SELECTOR_REGISTERS[1]: SensorType.HALLS,
-        FEEDBACK_SELECTOR_REGISTERS[2]: SensorType.INTGEN,
-        FEEDBACK_SELECTOR_REGISTERS[3]: SensorType.ABS1,
-        FEEDBACK_SELECTOR_REGISTERS[4]: SensorType.HALLS,
-    }
-    target_feedbacks = current_feedbacks.copy()
-    target_feedbacks[FEEDBACK_SELECTOR_REGISTERS[0]] = SensorType.SSI2
+    current_configuration = FeedbacksConfiguration(
+        SensorType.QEI,
+        SensorType.HALLS,
+        SensorType.INTGEN,
+        SensorType.ABS1,
+        SensorType.HALLS,
+    )
+    target_configuration = FeedbacksConfiguration(
+        SensorType.SSI2,
+        SensorType.HALLS,
+        SensorType.INTGEN,
+        SensorType.ABS1,
+        SensorType.HALLS,
+    )
 
-    assert list(_feedback_replacement_order(current_feedbacks, target_feedbacks)) == [
-        (FEEDBACK_SELECTOR_REGISTERS[0], SensorType.HALLS),
-        (FEEDBACK_SELECTOR_REGISTERS[0], SensorType.SSI2),
+    assert list(AxisFeedbacks.feedback_transition(current_configuration, target_configuration)) == [
+        (0, SensorType.HALLS),
+        (0, SensorType.SSI2),
     ]
 
 
 def test_feedback_replacement_order_is_empty_for_an_unchanged_configuration():
     """No writes are emitted when current and target configurations match."""
-    configuration = dict.fromkeys(FEEDBACK_SELECTOR_REGISTERS, SensorType.QEI)
+    configuration = FeedbacksConfiguration(
+        SensorType.QEI,
+        SensorType.QEI,
+        SensorType.QEI,
+        SensorType.QEI,
+        SensorType.QEI,
+    )
 
-    assert list(_feedback_replacement_order(configuration, configuration)) == []
-
-
-def test_feedback_replacement_order_rejects_unknown_registers():
-    """Only the supported feedback selector registers may be transitioned."""
-    configuration = dict.fromkeys(FEEDBACK_SELECTOR_REGISTERS, SensorType.QEI)
-    invalid_configuration = {**configuration, "UNKNOWN_REGISTER": SensorType.QEI}
-
-    with pytest.raises(ValueError, match="selector registers"):
-        list(_feedback_replacement_order(configuration, invalid_configuration))
+    assert list(AxisFeedbacks.feedback_transition(configuration, configuration)) == []
 
 
 @pytest.mark.virtual
@@ -377,17 +368,19 @@ def test_feedback_test_respects_the_drive_feedback_limit_across_configurations(
 
     configurations = list(_feedback_configurations(mc, alias, axis))
     for configuration in slice_configurations(configurations, setup_specifier):
-        msg = "_".join(sensor.name for sensor in configuration.values())
+        msg = "_".join(sensor.name for sensor in configuration.as_tuple())
         with subtests.test(msg=msg):
-            current_feedbacks = {
-                uid: SensorType(mc.communication.get_register(uid, servo=alias, axis=axis))
-                for uid in FEEDBACK_SELECTOR_REGISTERS
-            }
-            state = current_feedbacks.copy()
-            for uid, sensor in _feedback_replacement_order(state, configuration):
+            current_configuration = (
+                mc.motion_nodes[alias].get_axis(axis).feedbacks.get_configuration()
+            )
+            state = current_configuration.as_tuple()
+            for slot_index, sensor in AxisFeedbacks.feedback_transition(
+                current_configuration, configuration
+            ):
+                uid = FEEDBACK_SELECTOR_REGISTERS[slot_index]
                 mc.communication.set_register(uid, sensor, servo=alias, axis=axis)
-                state[uid] = sensor
-                assert len(set(state.values())) <= MAX_SIMULTANEOUS_FEEDBACKS, (
+                state = (*state[:slot_index], sensor, *state[slot_index + 1 :])
+                assert len(set(state)) <= MAX_SIMULTANEOUS_FEEDBACKS, (
                     f"Applying {uid} configured more than "
                     f"{MAX_SIMULTANEOUS_FEEDBACKS} feedbacks: {state}"
                 )

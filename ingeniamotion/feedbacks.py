@@ -1,4 +1,6 @@
 from abc import ABC, abstractmethod
+from collections.abc import Iterator
+from dataclasses import dataclass
 from typing import TYPE_CHECKING, ClassVar, Final, Optional
 
 import ingenialogger
@@ -15,6 +17,30 @@ REFERENCE_FEEDBACK_REGISTER = "COMMU_ANGLE_REF_SENSOR"
 VELOCITY_FEEDBACK_REGISTER = "CL_VEL_FBK_SENSOR"
 POSITION_FEEDBACK_REGISTER = "CL_POS_FBK_SENSOR"
 AUXILIAR_FEEDBACK_REGISTER = "CL_AUX_FBK_SENSOR"
+
+FEEDBACK_SELECTOR_REGISTERS: Final[tuple[str, ...]] = (
+    COMMUTATION_FEEDBACK_REGISTER,
+    REFERENCE_FEEDBACK_REGISTER,
+    VELOCITY_FEEDBACK_REGISTER,
+    POSITION_FEEDBACK_REGISTER,
+    AUXILIAR_FEEDBACK_REGISTER,
+)
+MAX_SIMULTANEOUS_FEEDBACKS = 4
+
+
+@dataclass(frozen=True)
+class FeedbacksConfiguration:
+    """Sensor configuration of the five feedback selector slots."""
+
+    commutation: SensorType
+    reference: SensorType
+    velocity: SensorType
+    position: SensorType
+    auxiliar: SensorType
+
+    def as_tuple(self) -> tuple[SensorType, ...]:
+        """Return sensor selections in feedback selector order."""
+        return (self.commutation, self.reference, self.velocity, self.position, self.auxiliar)
 
 
 class Encoder(ABC):
@@ -825,6 +851,9 @@ class AxisFeedbacks:
         self.__encoders = {
             sensor: encoder_type(axis) for sensor, encoder_type in _ENCODER_TYPES.items()
         }
+        self.__slots: tuple[FeedbackSlot, ...] = tuple(
+            FeedbackSlot(register_uid, axis) for register_uid in FEEDBACK_SELECTOR_REGISTERS
+        )
 
     def get_encoder(self, sensor: SensorType) -> Encoder:
         """Get the encoder of the target feedback sensor in the axis.
@@ -837,30 +866,132 @@ class AxisFeedbacks:
         """
         return self.__encoders[sensor]
 
+    def get_configuration(self) -> FeedbacksConfiguration:
+        """Read the sensor configuration of every feedback slot.
+
+        Returns:
+            The current feedback selector configuration.
+        """
+        return FeedbacksConfiguration(*(slot.get_encoder_type() for slot in self.__slots))
+
+    def set_configuration(self, target: FeedbacksConfiguration) -> None:
+        """Safely transition all feedback slots to a target configuration.
+
+        The drive allows at most four distinct feedback sensors across its five
+        selector registers. If a target introduces a fifth sensor, an active
+        sensor is temporarily parked in another slot before the target is written.
+
+        Args:
+            target: Desired feedback selector configuration.
+
+        Raises:
+            ValueError: If the target cannot be reached without exceeding the drive
+                feedback limit.
+        """
+        current = self.get_configuration()
+        for slot_index, sensor in self.feedback_transition(current, target):
+            self.__slots[slot_index].set_encoder_type(sensor)
+
+    @staticmethod
+    def feedback_transition(  # noqa: C901
+        current: FeedbacksConfiguration,
+        target: FeedbacksConfiguration,
+    ) -> Iterator[tuple[int, SensorType]]:
+        """Order feedback writes without exceeding four active sensors.
+
+        Args:
+            current: Current feedback selector configuration.
+            target: Target feedback selector configuration.
+
+        Yields:
+            Feedback slot index and sensor pairs in safe write order.
+
+        Raises:
+            ValueError: If the target cannot be reached without exceeding the drive
+                feedback limit.
+        """
+        current_values = current.as_tuple()
+        target_values = target.as_tuple()
+
+        def find_order(
+            state: tuple[SensorType, ...], pending: tuple[int, ...]
+        ) -> Optional[list[tuple[int, SensorType]]]:
+            if not pending:
+                return []
+
+            active_sensors = set(state)
+            for slot_index in pending:
+                target_sensor = target_values[slot_index]
+                if (
+                    len(active_sensors) >= MAX_SIMULTANEOUS_FEEDBACKS
+                    and target_sensor not in active_sensors
+                ):
+                    continue
+                candidate_state = (
+                    *state[:slot_index],
+                    target_sensor,
+                    *state[slot_index + 1 :],
+                )
+                remaining = tuple(slot for slot in pending if slot != slot_index)
+                suffix = find_order(candidate_state, remaining)
+                if suffix is not None:
+                    return [(slot_index, target_sensor), *suffix]
+
+            active_sensors_in_order = tuple(
+                sensor for index, sensor in enumerate(state) if sensor not in state[:index]
+            )
+            for slot_index in pending:
+                for parking_sensor in active_sensors_in_order:
+                    if state[slot_index] == parking_sensor:
+                        continue
+                    candidate_state = (
+                        *state[:slot_index],
+                        parking_sensor,
+                        *state[slot_index + 1 :],
+                    )
+                    if len(set(candidate_state)) >= len(active_sensors):
+                        continue
+                    suffix = find_order(candidate_state, pending)
+                    if suffix is not None:
+                        return [(slot_index, parking_sensor), *suffix]
+            return None
+
+        pending = tuple(
+            slot_index
+            for slot_index, (current_sensor, target_sensor) in enumerate(
+                zip(current_values, target_values)
+            )
+            if current_sensor != target_sensor
+        )
+        order = find_order(current_values, pending)
+        if order is None:
+            raise ValueError("Feedback configurations cannot be transitioned safely.")
+        yield from order
+
     @property
     def commutation(self) -> FeedbackSlot:
         """The commutation feedback slot."""
-        return FeedbackSlot(COMMUTATION_FEEDBACK_REGISTER, self.__axis)
+        return self.__slots[0]
 
     @property
     def reference(self) -> FeedbackSlot:
         """The reference feedback slot."""
-        return FeedbackSlot(REFERENCE_FEEDBACK_REGISTER, self.__axis)
+        return self.__slots[1]
 
     @property
     def velocity(self) -> FeedbackSlot:
         """The velocity feedback slot."""
-        return FeedbackSlot(VELOCITY_FEEDBACK_REGISTER, self.__axis)
+        return self.__slots[2]
 
     @property
     def position(self) -> FeedbackSlot:
         """The position feedback slot."""
-        return FeedbackSlot(POSITION_FEEDBACK_REGISTER, self.__axis)
+        return self.__slots[3]
 
     @property
     def auxiliar(self) -> FeedbackSlot:
         """The auxiliar feedback slot."""
-        return FeedbackSlot(AUXILIAR_FEEDBACK_REGISTER, self.__axis)
+        return self.__slots[4]
 
     def get_all_slots(self) -> tuple[FeedbackSlot, ...]:
         """Get all the feedback slots of the axis.
@@ -868,7 +999,7 @@ class AxisFeedbacks:
         Returns:
             A tuple with all the feedback slots of the axis.
         """
-        return (self.commutation, self.reference, self.velocity, self.position, self.auxiliar)
+        return self.__slots
 
     def get_resolution(self, sensor: SensorType) -> int:
         """Get the resolution of the target feedback sensor in the axis.

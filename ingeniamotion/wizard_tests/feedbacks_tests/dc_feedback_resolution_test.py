@@ -75,27 +75,22 @@ class DCFeedbacksResolutionTest(BaseTest[LegacyDictReportType]):
     def setup(self) -> None:
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
         self.logger.info("Motor disable")
-        self.feedback_resolution = self.mc.configuration.get_feedback_resolution(
-            self.sensor, servo=self.servo, axis=self.axis
-        )
+        feedbacks = self.mc.motion_nodes[self.servo].get_axis(self.axis).feedbacks
+        self.feedback_resolution = feedbacks.get_resolution(self.sensor)
         if self.feedback_resolution == 0:
             raise TestConfigurationError(
                 "The feedback resolution must be greater than 0. Please adjust it accordingly."
             )
-        self.mc.configuration.set_velocity_feedback(self.sensor, servo=self.servo, axis=self.axis)
-        self.mc.configuration.set_position_feedback(self.sensor, servo=self.servo, axis=self.axis)
+        feedbacks.velocity.set_encoder_type(self.sensor)
+        feedbacks.position.set_encoder_type(self.sensor)
         if self.sensor == SensorType.BISSC2:
-            self.mc.configuration.set_auxiliar_feedback(
-                SensorType.ABS1, servo=self.servo, axis=self.axis
-            )
+            feedbacks.auxiliar.set_encoder_type(SensorType.ABS1)
             self.logger.info(
                 f"Set velocity and position feedbacks to {self.sensor.name}"
                 f" and axuiliar to {SensorType.ABS1.name}"
             )
         else:
-            self.mc.configuration.set_auxiliar_feedback(
-                self.sensor, servo=self.servo, axis=self.axis
-            )
+            feedbacks.auxiliar.set_encoder_type(self.sensor)
             self.logger.info(f"Set velocity, position and auxiliar feedbacks to {self.sensor.name}")
         self.mc.configuration.set_velocity_pid(
             **self.test_velocity_pid, servo=self.servo, axis=self.axis

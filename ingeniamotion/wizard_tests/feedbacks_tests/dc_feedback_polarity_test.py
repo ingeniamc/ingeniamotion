@@ -60,35 +60,28 @@ class DCFeedbacksPolarityTest(BaseTest[LegacyDictReportType]):
     def setup(self) -> None:
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
         self.logger.info("Motor disable")
-        self.feedback_resolution = self.mc.configuration.get_feedback_resolution(
-            self.sensor, servo=self.servo, axis=self.axis
-        )
+        feedbacks = self.mc.motion_nodes[self.servo].get_axis(self.axis).feedbacks
+        self.feedback_resolution = feedbacks.get_resolution(self.sensor)
         if self.feedback_resolution == 0:
             raise TestConfigurationError(
                 "The feedback resolution must be greater than 0. Please adjust it accordingly."
             )
-        self.mc.configuration.set_feedback_polarity(
-            FeedbackPolarity.NORMAL, self.sensor, servo=self.servo, axis=self.axis
-        )
+        feedbacks.get_encoder(self.sensor).set_polarity(FeedbackPolarity.NORMAL)
         self.logger.info(f"Set polarity to {FeedbackPolarity.NORMAL.name}")
         self.mc.motion.set_current_quadrature(0, servo=self.servo, axis=self.axis)
         self.logger.info("Set current to 0")
         self.mc.motion.set_operation_mode(self.OPERATION_MODE, servo=self.servo, axis=self.axis)
         self.logger.info(f"Set operation mode to {self.OPERATION_MODE.name}")
-        self.mc.configuration.set_velocity_feedback(self.sensor, servo=self.servo, axis=self.axis)
-        self.mc.configuration.set_position_feedback(self.sensor, servo=self.servo, axis=self.axis)
+        feedbacks.velocity.set_encoder_type(self.sensor)
+        feedbacks.position.set_encoder_type(self.sensor)
         if self.sensor == SensorType.BISSC2:
-            self.mc.configuration.set_auxiliar_feedback(
-                SensorType.ABS1, servo=self.servo, axis=self.axis
-            )
+            feedbacks.auxiliar.set_encoder_type(SensorType.ABS1)
             self.logger.info(
                 f"Set velocity and position feedbacks to {self.sensor.name}"
                 f" and axuiliar to {SensorType.ABS1.name}"
             )
         else:
-            self.mc.configuration.set_auxiliar_feedback(
-                self.sensor, servo=self.servo, axis=self.axis
-            )
+            feedbacks.auxiliar.set_encoder_type(self.sensor)
             self.logger.info(f"Set velocity, position and auxiliar feedbacks to {self.sensor.name}")
 
     @BaseTest.stoppable

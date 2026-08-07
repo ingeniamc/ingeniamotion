@@ -25,6 +25,4 @@ class AbsoluteEncoder2Test(Feedbacks):
     @BaseTest.stoppable
     def feedback_setting(self) -> None:
         super().feedback_setting()
-        self.mc.configuration.set_auxiliar_feedback(
-            SensorType.ABS1, servo=self.servo, axis=self.axis
-        )
+        self.axis_feedbacks.auxiliar.set_encoder_type(SensorType.ABS1)

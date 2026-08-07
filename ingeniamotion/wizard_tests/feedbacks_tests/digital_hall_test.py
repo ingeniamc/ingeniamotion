@@ -46,9 +46,7 @@ class DigitalHallTest(Feedbacks):
         )
 
         # Read velocity feedback
-        velocity_feedback = self.mc.configuration.get_velocity_feedback(
-            servo=self.servo, axis=self.axis
-        )
+        velocity_feedback = self.axis_feedbacks.velocity.get_encoder_type()
         # Read velocity feedback, if is HALLS set filter to 10 Hz
         if velocity_feedback == SensorType.HALLS:
             filter_type_uid = self.VELOCITY_FEEDBACK_FILTER_1_TYPE_REGISTER
