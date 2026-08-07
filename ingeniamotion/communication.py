@@ -32,6 +32,7 @@ from ingenialink.servo import DictionaryFactory, Servo
 from ingenialink.virtual.canopen.network import VirtualCanopenNetwork
 from ingenialink.virtual.ethercat.network import VirtualEthercatNetwork
 from ingenialink.virtual.ethernet.network import VirtualEthernetNetwork
+from ingenialink.virtual.sdcp.network import VirtualSDCPNetwork
 from ping3 import ping
 from virtual_drive.core import VirtualDrive
 
@@ -43,6 +44,7 @@ if TYPE_CHECKING:
     from ingenialink.virtual.canopen.servo import VirtualCanopenServo
     from ingenialink.virtual.ethercat.servo import VirtualEthercatServo
     from ingenialink.virtual.ethernet.servo import VirtualEthernetServo
+    from ingenialink.virtual.sdcp.servo import VirtualSDCPServo
 
     from ingeniamotion.motion_controller import MotionController
 
@@ -58,6 +60,7 @@ if RUNNING_ON_WINDOWS:
 FILE_EXT_SFU = ".sfu"
 FILE_EXT_LFU = ".lfu"
 FIRMWARE_FILE_FAIL_MSG = "The firmware file could not be loaded correctly"
+VIRTUAL_SDCP_PORT = 22_334
 
 logger = ingenialogger.get_logger(__name__)
 
@@ -456,6 +459,54 @@ class Communication:
             disconnect_callback=self._disconnect_callback,
         )
 
+        self.mc.create_motion_node(alias, servo, net)
+        return net, servo
+
+    def connect_servo_virtual_sdcp(
+        self,
+        dict_path: str,
+        alias: str = DEFAULT_SERVO,
+        connection_timeout: float = DEFAULT_SDCP_TIMEOUT_S,
+        servo_status_listener: bool = False,
+        net_status_listener: bool = False,
+    ) -> tuple[VirtualSDCPNetwork, "VirtualSDCPServo"]:
+        """Connect to a virtual SDCP drive on the IPv6 loopback address.
+
+        Args:
+            dict_path: SDCP-compatible servo dictionary path.
+            alias: Servo alias to reference it. ``default`` by default.
+            connection_timeout: Timeout in seconds for SDCP transactions.
+            servo_status_listener: Toggle the listener of the servo for its
+                status, errors, faults, etc.
+            net_status_listener: Toggle the listener of the network status,
+                connection and disconnection.
+
+        Returns:
+            The virtual SDCP network and the connected servo.
+
+        Raises:
+            FileNotFoundError: If the dict file doesn't exist.
+        """
+        if not path.isfile(dict_path):
+            raise FileNotFoundError(f"{dict_path} file does not exist!")
+
+        virtual_drive = VirtualDrive(
+            VIRTUAL_SDCP_PORT,
+            dictionary_path=dict_path,
+            protocol=Interface.SDCP,
+        )
+        virtual_drive.start()
+        self.__virtual_drives[alias] = virtual_drive
+
+        net = VirtualSDCPNetwork()
+        self.mc.register_network(alias, net)
+        servo = net.connect_to_slave(
+            virtual_drive.dictionary_path,
+            connection_timeout,
+            servo_status_listener=servo_status_listener,
+            net_status_listener=net_status_listener,
+            disconnect_callback=self._disconnect_callback,
+        )
         self.mc.create_motion_node(alias, servo, net)
         return net, servo
 
@@ -1365,7 +1416,7 @@ class Communication:
         """
         drive = self.mc._get_drive(servo)
         network = self.mc._get_network(servo)
-        if isinstance(drive, SDCPServo):
+        if isinstance(drive, SDCPServo) and not isinstance(network, VirtualSDCPNetwork):
             if not isinstance(network, EthernetNetwork):
                 raise ValueError("The SDCP servo is not associated with an Ethernet network.")
             self.__disconnect_sdcp_servo(drive, network)

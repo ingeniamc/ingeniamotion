@@ -281,18 +281,21 @@ redis = ["redis (>=2.10.5)"]
 
 [[package]]
 name = "canopen"
-version = "2.2.0"
+version = "2.4.1"
 description = "CANopen stack implementation"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.8"
 groups = ["main", "tests"]
 files = [
-    {file = "canopen-2.2.0-py3-none-any.whl", hash = "sha256:8dcb1c1f4a9f4182cc110c21317570b921b8bf30957b35e6970e224a5dd331ce"},
-    {file = "canopen-2.2.0.tar.gz", hash = "sha256:5f18651b9df6e4769b9882e969f934ae773ef24a45aabc3334b586982048d08c"},
+    {file = "canopen-2.4.1-py3-none-any.whl", hash = "sha256:651dfb189978fb9083f491128e9fb8cb0e85dc8ccb82b12dd7139236d0080b77"},
+    {file = "canopen-2.4.1.tar.gz", hash = "sha256:20a84bc498b34dadd79cece467d3bbe19591c1c02a8f39331bcc6065c4d8b2eb"},
 ]
 
 [package.dependencies]
 python-can = ">=3.0.0"
+
+[package.extras]
+db-export = ["canmatrix (>=1.0,<2.0)"]
 
 [[package]]
 name = "certifi"
@@ -1361,23 +1364,23 @@ reference = "novanta"
 
 [[package]]
 name = "ingenialink"
-version = "7.6.1.post392+pr.850.b7"
+version = "7.6.1.post413+develop.5c1d3df"
 description = "IngeniaLink Communications Library"
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "tests"]
 files = [
-    {file = "ingenialink-7.6.1.post392+pr.850.b7-cp310-cp310-win_amd64.whl", hash = "sha256:53d312ae5defd6b3e4f2ed179a5c60b9253788f177c0f72b3fa95bf453f038a8"},
-    {file = "ingenialink-7.6.1.post392+pr.850.b7-cp311-cp311-win_amd64.whl", hash = "sha256:196fedf4a882312d541a28fb4b2b2cc8b65b29d5dc240b20c5e14b6f62046c44"},
-    {file = "ingenialink-7.6.1.post392+pr.850.b7-cp312-cp312-win_amd64.whl", hash = "sha256:a06878398f793f8a81a9f6a4f7078a9d4775479d07ba03167df32a3763cd1f91"},
-    {file = "ingenialink-7.6.1.post392+pr.850.b7-cp39-cp39-win_amd64.whl", hash = "sha256:96fd90728f259488e4108dee184a19a778bf70cc3e7085c4f4ee29b483533e79"},
-    {file = "ingenialink-7.6.1.post392+pr.850.b7-py3-none-any.whl", hash = "sha256:debbd13e33d7d35633d2022ad7c2053f74c9a653ff88f1d46e18a01dc22493d0"},
-    {file = "ingenialink-7.6.1.post392+pr.850.b7.tar.gz", hash = "sha256:e6698fb3dc3458afadecb903e8ff3f1cbfe6b56ae95bb0feb5e09a5a8f185458"},
+    {file = "ingenialink-7.6.1.post413+develop.5c1d3df-cp310-cp310-win_amd64.whl", hash = "sha256:4875e42a0b7d0f44128c2725a146414c4aa9deaa2d65405de5d80629dbdf3e6d"},
+    {file = "ingenialink-7.6.1.post413+develop.5c1d3df-cp311-cp311-win_amd64.whl", hash = "sha256:ba43adb1c729082ba60907da8283e4967394f586b9da23d536ed6b3d90944bf8"},
+    {file = "ingenialink-7.6.1.post413+develop.5c1d3df-cp312-cp312-win_amd64.whl", hash = "sha256:e05f51e6006002294b4dfbe9ba65ff079cdcb4868a7a7b0270ba3a659095c2d3"},
+    {file = "ingenialink-7.6.1.post413+develop.5c1d3df-cp39-cp39-win_amd64.whl", hash = "sha256:65f7862eb5634ee58164e2f2c8f4940df7610c5136155c2142c7e8e9b494af25"},
+    {file = "ingenialink-7.6.1.post413+develop.5c1d3df-py3-none-any.whl", hash = "sha256:4f45f6dbce5bd6698d678efcd82acdc3f6fcd5ed69593a841538e656ca598bfe"},
+    {file = "ingenialink-7.6.1.post413+develop.5c1d3df.tar.gz", hash = "sha256:eded6cc9ce556331fc45880aa8b12ece5713b4319c0dcd3127e83d03f8b55b5b"},
 ]
 
 [package.dependencies]
 bitarray = "3.9.0"
-canopen = "2.2.0"
+canopen = "2.4.1"
 cypcap = {version = ">=0.6.2,<0.7.0", markers = "sys_platform == \"win32\""}
 ifaddr = "0.2.0"
 ingenialogger = ">=0.2.1"
@@ -4642,13 +4645,13 @@ zstd = ["backports-zstd (>=1.0.0) ; python_version < \"3.14\""]
 
 [[package]]
 name = "virtual-drive"
-version = "0.1.1.post171+pr.102.b5"
+version = "0.1.1.post181+develop.a07ec8b"
 description = "Emulates a Summit drive for development and testing purposes."
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "tests"]
 files = [
-    {file = "virtual_drive-0.1.1.post171+pr.102.b5-py3-none-any.whl", hash = "sha256:84971d26d3da6f36b8d75a89d0254b933b1476cec6e37e573a4aba94d9d1b648"},
+    {file = "virtual_drive-0.1.1.post181+develop.a07ec8b-py3-none-any.whl", hash = "sha256:cdfa3a50b381c3c1716d556c63421a786152f49a641cffe14f9d4988d7b07654"},
 ]
 
 [package.dependencies]
@@ -4997,4 +5000,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "d1828828609ad41e0ed8a3cdc3315fe8e7e4573da90158b4f587b7d6c9ae2016"
+content-hash = "29e5bde2080cb2feab06420ab416c7202edee81003e7bfa5d28bcb7fe0cb5826"

@@ -35,6 +35,7 @@ from ingeniamotion.exceptions import (
     IMRegisterNotExistError,
     IMRegisterWrongAccessError,
 )
+from tests.dictionaries import SDCP_EXAMPLE_DICT
 from tests.fsoe.conftest import MockNetwork
 
 if TYPE_CHECKING:
@@ -409,6 +410,14 @@ def test_connect_servo_virtual_custom_dictionary(setup_descriptor: SetupDescript
     mc.communication.connect_servo_virtual_ethernet(
         dict_path=setup_descriptor.dictionary, port=1062
     )
+    assert "default" in mc.communication._Communication__virtual_drives
+    mc.communication.disconnect()
+    assert "default" not in mc.communication._Communication__virtual_drives
+
+
+def test_connect_servo_virtual_sdcp():
+    mc = MotionController()
+    mc.communication.connect_servo_virtual_sdcp(SDCP_EXAMPLE_DICT)
     assert "default" in mc.communication._Communication__virtual_drives
     mc.communication.disconnect()
     assert "default" not in mc.communication._Communication__virtual_drives
