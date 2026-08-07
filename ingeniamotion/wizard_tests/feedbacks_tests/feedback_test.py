@@ -1,6 +1,6 @@
 import math
 import time
-from collections.abc import Iterator
+from collections.abc import Iterator, Mapping
 from enum import IntEnum
 from typing import TYPE_CHECKING, Final, Optional, cast
 
@@ -37,7 +37,7 @@ FEEDBACK_SELECTOR_REGISTERS = (
 
 
 def _feedback_replacement_order(  # noqa: C901
-    current_feedbacks: dict[str, int], target_feedbacks: dict[str, int]
+    current_feedbacks: Mapping[str, int], target_feedbacks: Mapping[str, int]
 ) -> Iterator[tuple[str, int]]:  # noqa: C901
     """Order feedback slots for a safe transition between two configurations.
 
@@ -58,20 +58,20 @@ def _feedback_replacement_order(  # noqa: C901
         raise ValueError("Feedback configurations must use the selector registers.")
 
     def find_order(  # noqa: C901
-        state: dict[str, int], pending: tuple[str, ...]
+        state: Mapping[str, int], pending: tuple[str, ...]
     ) -> Optional[list[tuple[str, int]]]:  # noqa: C901
         if not pending:
             return []
 
+        active_sources = set(state.values())
         for register in pending:
-            active_sources = set(state.values())
             target_sensor = target_feedbacks[register]
             if (
                 len(active_sources) >= MAX_SIMULTANEOUS_FEEDBACKS
                 and target_sensor not in active_sources
             ):
                 continue
-            candidate_state = state.copy()
+            candidate_state = dict(state)
             candidate_state[register] = target_sensor
             remaining = tuple(item for item in pending if item != register)
             suffix = find_order(candidate_state, remaining)
@@ -84,7 +84,7 @@ def _feedback_replacement_order(  # noqa: C901
                     continue
                 if state[register] == parking_sensor:
                     continue
-                candidate_state = state.copy()
+                candidate_state = dict(state)
                 candidate_state[register] = parking_sensor
                 if len(set(candidate_state.values())) >= len(active_sources):
                     continue
@@ -309,7 +309,7 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
             )
             for register in FEEDBACK_SELECTOR_REGISTERS
         }
-        state = current_feedbacks.copy()
+        state = {register: int(sensor) for register, sensor in current_feedbacks.items()}
         for register, target_sensor in _feedback_replacement_order(state, target_feedbacks):
             self.mc.communication.set_register(
                 register,
