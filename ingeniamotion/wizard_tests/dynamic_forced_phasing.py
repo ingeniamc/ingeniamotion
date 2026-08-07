@@ -404,6 +404,7 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
             self.CURRENT_RAMP_TIME_S,
             servo=self.servo,
             axis=self.axis,
+            interval=0.01,
             step=self.check_stop,
         )
         self.__configure_monitoring(direction=PhasingDirection.POSITIVE)

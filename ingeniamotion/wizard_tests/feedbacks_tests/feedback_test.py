@@ -373,7 +373,12 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         cycle_time = 2 / self.test_frequency
 
         self.mc.motion.current_quadrature_ramp(
-            target_current, cycle_time, servo=self.servo, axis=self.axis, step=self.check_stop
+            target_current,
+            cycle_time,
+            servo=self.servo,
+            axis=self.axis,
+            interval=0.01,
+            step=self.check_stop,
         )
 
     def __first_movement_and_set_current(self) -> float:
