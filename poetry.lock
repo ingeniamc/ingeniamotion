@@ -281,18 +281,21 @@ redis = ["redis (>=2.10.5)"]
 
 [[package]]
 name = "canopen"
-version = "2.2.0"
+version = "2.4.1"
 description = "CANopen stack implementation"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.8"
 groups = ["main", "tests"]
 files = [
-    {file = "canopen-2.2.0-py3-none-any.whl", hash = "sha256:8dcb1c1f4a9f4182cc110c21317570b921b8bf30957b35e6970e224a5dd331ce"},
-    {file = "canopen-2.2.0.tar.gz", hash = "sha256:5f18651b9df6e4769b9882e969f934ae773ef24a45aabc3334b586982048d08c"},
+    {file = "canopen-2.4.1-py3-none-any.whl", hash = "sha256:651dfb189978fb9083f491128e9fb8cb0e85dc8ccb82b12dd7139236d0080b77"},
+    {file = "canopen-2.4.1.tar.gz", hash = "sha256:20a84bc498b34dadd79cece467d3bbe19591c1c02a8f39331bcc6065c4d8b2eb"},
 ]
 
 [package.dependencies]
 python-can = ">=3.0.0"
+
+[package.extras]
+db-export = ["canmatrix (>=1.0,<2.0)"]
 
 [[package]]
 name = "certifi"
@@ -1361,23 +1364,23 @@ reference = "novanta"
 
 [[package]]
 name = "ingenialink"
-version = "7.6.1.post383+develop.40ee533"
+version = "7.6.1.post408+develop.7757ef9"
 description = "IngeniaLink Communications Library"
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "tests"]
 files = [
-    {file = "ingenialink-7.6.1.post383+develop.40ee533-cp310-cp310-win_amd64.whl", hash = "sha256:bc02c270011769554af85b25cecc0b51dd7804f11434b752e480028532b9f8ed"},
-    {file = "ingenialink-7.6.1.post383+develop.40ee533-cp311-cp311-win_amd64.whl", hash = "sha256:f31ad611166cdc281578f2970e093f1012270235b3754c5ea9b0de82aa099a8c"},
-    {file = "ingenialink-7.6.1.post383+develop.40ee533-cp312-cp312-win_amd64.whl", hash = "sha256:1ca6fe67c70ff42c708427cf58181eda8331e782b8cc4b1f91f0c2f6ee01fc66"},
-    {file = "ingenialink-7.6.1.post383+develop.40ee533-cp39-cp39-win_amd64.whl", hash = "sha256:9d137ae046fe36f4f470ff2c878ede7df3e92c1e865aa38d93b00ed1529234c8"},
-    {file = "ingenialink-7.6.1.post383+develop.40ee533-py3-none-any.whl", hash = "sha256:acce73c3ad52fc5710257099810f203f209fd59bb33b4982b2fbb748a30dfef8"},
-    {file = "ingenialink-7.6.1.post383+develop.40ee533.tar.gz", hash = "sha256:5761f4110a889e1193fcc014e6ed3e563a56603e9131a2373e48750c1e580003"},
+    {file = "ingenialink-7.6.1.post408+develop.7757ef9-cp310-cp310-win_amd64.whl", hash = "sha256:cf99db67b120ba3a2132d00175156a6256f1241a6b55ba642644c50207fb029d"},
+    {file = "ingenialink-7.6.1.post408+develop.7757ef9-cp311-cp311-win_amd64.whl", hash = "sha256:e526eec92895903ed14c1519c990faefc9ee1cbe85ef9f7e1113d5dd82234010"},
+    {file = "ingenialink-7.6.1.post408+develop.7757ef9-cp312-cp312-win_amd64.whl", hash = "sha256:bd2be7b6369635b45c7f10349718d5ae85386267cb165d837f1268d613511080"},
+    {file = "ingenialink-7.6.1.post408+develop.7757ef9-cp39-cp39-win_amd64.whl", hash = "sha256:fff7acc1fba66f80d40ea694905d7f8e3fa5b2b1b5928828b917ff4c69491f5e"},
+    {file = "ingenialink-7.6.1.post408+develop.7757ef9-py3-none-any.whl", hash = "sha256:fc875b8b9705bee850956acfc6070f4f7d4c1e87392a8c969595ffc453d7c0c7"},
+    {file = "ingenialink-7.6.1.post408+develop.7757ef9.tar.gz", hash = "sha256:b2ce6129778b01749808ab60463a3650b63a5c83ec057d64c3af5e6202b304c6"},
 ]
 
 [package.dependencies]
 bitarray = "3.9.0"
-canopen = "2.2.0"
+canopen = "2.4.1"
 cypcap = {version = ">=0.6.2,<0.7.0", markers = "sys_platform == \"win32\""}
 ifaddr = "0.2.0"
 ingenialogger = ">=0.2.1"
@@ -4679,13 +4682,13 @@ zstd = ["backports-zstd (>=1.0.0) ; python_version < \"3.14\""]
 
 [[package]]
 name = "virtual-drive"
-version = "0.1.1.post163+develop.5404c8e"
+version = "0.1.1.post181+develop.a07ec8b"
 description = "Emulates a Summit drive for development and testing purposes."
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "tests"]
 files = [
-    {file = "virtual_drive-0.1.1.post163+develop.5404c8e-py3-none-any.whl", hash = "sha256:185715763b291f7cddb7f2cfa6d94af09c42d1709e242667eb78166ea6f985f5"},
+    {file = "virtual_drive-0.1.1.post181+develop.a07ec8b-py3-none-any.whl", hash = "sha256:cdfa3a50b381c3c1716d556c63421a786152f49a641cffe14f9d4988d7b07654"},
 ]
 
 [package.dependencies]
@@ -5034,4 +5037,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "f38fbbad3cc70606ac25c5eaa837ee49dba8bcca644de71ce796a301874484f9"
+content-hash = "740d07b97f4756ec338fefd374c7baa84fd9d9f0ae5ef10322ee9e519f6320a2"
