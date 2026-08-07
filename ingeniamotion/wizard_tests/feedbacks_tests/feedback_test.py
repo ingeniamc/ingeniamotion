@@ -21,7 +21,6 @@ from ingeniamotion.enums import (
 from ingeniamotion.exceptions import IMRegisterNotExistError
 from ingeniamotion.feedbacks import (
     FEEDBACK_SELECTOR_REGISTERS,
-    AxisFeedbacks,
     FeedbacksConfiguration,
 )
 from ingeniamotion.wizard_tests.base_test import (
@@ -101,11 +100,6 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         self.resolution_multiplier = 1.0
         self.test_frequency = self.TEST_FREQUENCY
         self.suggested_registers = {}
-
-    @property
-    def axis_feedbacks(self) -> AxisFeedbacks:
-        """Feedback API for the test axis."""
-        return self.mc.motion_nodes[self.servo].get_axis(self.axis).feedbacks
 
     @BaseTest.stoppable
     def __check_feedback_tolerance(

@@ -163,8 +163,9 @@ class Phasing(BaseTest[LegacyDictReportType]):
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
         self.logger.info("CONFIGURATION OF THE TEST", axis=self.axis)
 
-        self.comm = self.mc.configuration.get_commutation_feedback(servo=self.servo, axis=self.axis)
-        self.ref = self.mc.configuration.get_reference_feedback(servo=self.servo, axis=self.axis)
+        configuration = self.axis_feedbacks.get_configuration()
+        self.comm = configuration.commutation
+        self.ref = configuration.reference
 
         if self.ref == self.INTERNAL_GENERATOR_VALUE:
             raise TestError("Reference feedback sensor is set to internal generator")
@@ -172,10 +173,7 @@ class Phasing(BaseTest[LegacyDictReportType]):
             raise TestError("Commutation feedback sensor is set to internal generator")
 
         # selection of commutation sensor
-        if (
-            self.mc.configuration.get_reference_feedback_category(servo=self.servo, axis=self.axis)
-            == SensorCategory.INCREMENTAL
-        ):
+        if self.axis_feedbacks.reference.get_encoder().CATEGORY == SensorCategory.INCREMENTAL:
             # Delete commutation feedback from backup registers list as
             # commutation feedback is kept the same
             fb = self.comm
@@ -202,7 +200,7 @@ class Phasing(BaseTest[LegacyDictReportType]):
         self.logger.info("Target quadrature current set to zero", axis=self.axis)
         self.logger.info("Target direct current set to zero", axis=self.axis)
 
-        self.mc.configuration.set_commutation_feedback(fb, servo=self.servo, axis=self.axis)
+        self.axis_feedbacks.commutation.set_encoder_type(fb)
         self.logger.info("Reset phasing status by setting again commutation sensor")
 
         self.mc.configuration.set_phasing_mode(PhasingMode.FORCED, servo=self.servo, axis=self.axis)
@@ -272,12 +270,8 @@ class Phasing(BaseTest[LegacyDictReportType]):
             TestError: If the commutation feedback is set to internal generator.
 
         """
-        ref_category = self.mc.configuration.get_reference_feedback_category(
-            servo=self.servo, axis=self.axis
-        )
-        comm_category = self.mc.configuration.get_commutation_feedback_category(
-            servo=self.servo, axis=self.axis
-        )
+        ref_category = self.axis_feedbacks.reference.get_encoder().CATEGORY
+        comm_category = self.axis_feedbacks.commutation.get_encoder().CATEGORY
         # Check if reference feedback is incremental
         if ref_category == SensorCategory.INCREMENTAL:
             # In that if commutation feedback is incremental also

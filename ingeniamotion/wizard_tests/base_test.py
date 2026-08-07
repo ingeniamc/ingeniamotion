@@ -14,6 +14,7 @@ if TYPE_CHECKING:
     from ingenialink.servo import Servo
 
     from ingeniamotion import MotionController
+    from ingeniamotion.feedbacks import AxisFeedbacks
 
 from ingeniamotion.enums import SeverityLevel
 
@@ -65,6 +66,11 @@ class BaseTest(ABC, Stoppable, Generic[T]):
 
         """
         return self.mc._get_drive(self.servo)
+
+    @property
+    def axis_feedbacks(self) -> "AxisFeedbacks":
+        """Feedback API for the test axis."""
+        return self.mc.motion_nodes[self.servo].get_axis(self.axis).feedbacks
 
     @Stoppable.stoppable
     def show_error_message(self) -> None:

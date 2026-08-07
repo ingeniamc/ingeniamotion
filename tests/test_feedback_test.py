@@ -282,7 +282,7 @@ def _feedback_configurations(
     yield from configurations
 
 
-def test_feedback_replacement_order_emits_safe_register_values():
+def test_feedback_transition_emits_safe_register_values():
     """The emitted writes reach the target without exceeding four sensors."""
     current_configuration = FeedbacksConfiguration(
         SensorType.QEI,
@@ -309,7 +309,7 @@ def test_feedback_replacement_order_emits_safe_register_values():
     assert all(0 <= slot_index < len(FEEDBACK_SELECTOR_REGISTERS) for slot_index, _ in writes)
 
 
-def test_feedback_replacement_order_reuses_slot_before_new_source():
+def test_feedback_transition_reuses_slot_before_new_source():
     """Reuse an active source before selecting a previously inactive source."""
     current_configuration = FeedbacksConfiguration(
         SensorType.QEI,
@@ -332,7 +332,7 @@ def test_feedback_replacement_order_reuses_slot_before_new_source():
     ]
 
 
-def test_feedback_replacement_order_is_empty_for_an_unchanged_configuration():
+def test_feedback_transition_is_empty_for_an_unchanged_configuration():
     """No writes are emitted when current and target configurations match."""
     configuration = FeedbacksConfiguration(
         SensorType.QEI,
