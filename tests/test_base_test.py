@@ -1,5 +1,5 @@
 from types import TracebackType
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 import pytest
 from ingenialink.drive_context_manager import DriveContextManager
@@ -7,6 +7,10 @@ from ingenialink.drive_context_manager import DriveContextManager
 import ingeniamotion.wizard_tests.base_test as base_test_module
 from ingeniamotion.enums import SeverityLevel
 from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType
+
+if TYPE_CHECKING:
+    from ingeniamotion import MotionController
+    from ingeniamotion.axis import Axis
 
 
 class FakeDriveContextManager:
@@ -70,3 +74,17 @@ def test_base_test_restores_configuration_when_teardown_fails(monkeypatch) -> No
         test.run()
 
     assert test.restored
+
+
+@pytest.mark.virtual
+def test_base_test_caches_target_motion_node_axis_and_feedbacks(
+    mc: "MotionController", alias: str, axis: "Axis"
+) -> None:
+    """BaseTest resolves the selected axis feedback container once."""
+    test = TeardownFailureTest(mc)
+    test.servo = alias
+    test.axis = axis.axis_number
+
+    assert test._motion_node is test._motion_node
+    assert test._axis is test._axis
+    assert test._axis_feedbacks is test._axis.feedbacks

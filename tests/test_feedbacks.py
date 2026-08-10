@@ -1,7 +1,19 @@
+from collections.abc import Iterator
+from typing import TYPE_CHECKING
+
 import pytest
 from ingenialink import exceptions
 
-from ingeniamotion.enums import SensorCategory, SensorType
+from ingeniamotion.enums import FeedbackPolarity, SensorCategory, SensorType
+from ingeniamotion.feedbacks import (
+    FEEDBACK_SELECTOR_REGISTERS,
+    MAX_SIMULTANEOUS_FEEDBACKS,
+    AxisFeedbacks,
+    FeedbacksConfiguration,
+)
+
+if TYPE_CHECKING:
+    from ingeniamotion.axis import Axis
 
 COMMUTATION_FEEDBACK_REGISTER = "COMMU_ANGLE_SENSOR"
 REFERENCE_FEEDBACK_REGISTER = "COMMU_ANGLE_REF_SENSOR"
@@ -29,6 +41,35 @@ SENSOR_TYPE_AND_CATEGORY = [
 ABSOLUTE_ENCODER_RESOLUTION_TEST_VALUES = [(22, 4194304), (10, 1024), (15, 32768)]
 
 INCREMENTAL_ENCODER_RESOLUTION_TEST_VALUES = [1000, 4000, 6000]
+
+
+@pytest.fixture
+def restore_feedback_model_registers(axis: "Axis") -> Iterator[None]:
+    """Restore selector and polarity registers changed by feedback model tests."""
+    registers = [*FEEDBACK_SELECTOR_REGISTERS, "FBK_DIGENC1_POLARITY"]
+    values = {register: axis.read(register) for register in registers}
+    yield
+    for register, value in values.items():
+        axis.write(register, value)
+
+
+def feedback_configuration(
+    feedbacks: AxisFeedbacks, sensors: tuple[SensorType, ...]
+) -> FeedbacksConfiguration:
+    """Build a feedback configuration from sensor types in slot order.
+
+    Returns:
+        A feedback configuration containing the requested encoder assignments.
+    """
+    return FeedbacksConfiguration(
+        dict(
+            zip(
+                feedbacks._slots,
+                (feedbacks.get_sensor(sensor) for sensor in sensors),
+                strict=True,
+            )
+        )
+    )
 
 
 @pytest.fixture
@@ -455,3 +496,139 @@ def test_instance_sensor_type(mc, alias):
 )
 def test_encoder_polarity_register_uid(axis, sensor, register):
     assert register == axis.feedbacks.get_sensor(sensor).POLARITY_REGISTER_UID
+
+
+@pytest.mark.virtual
+@pytest.mark.usefixtures("restore_feedback_model_registers")
+def test_feedback_slot_round_trip(axis: "Axis") -> None:
+    """A feedback slot reads and writes sensor types through the real virtual drive."""
+    slot = axis.feedbacks.commutation
+    slot.set_encoder_type(SensorType.QEI)
+
+    assert slot.get_encoder_type() == SensorType.QEI
+    assert slot.get_encoder() is axis.feedbacks.get_sensor(SensorType.QEI)
+
+    slot.set_encoder(axis.feedbacks.get_sensor(SensorType.HALLS))
+
+    assert slot.get_encoder_type() == SensorType.HALLS
+
+
+@pytest.mark.virtual
+@pytest.mark.usefixtures("restore_feedback_model_registers")
+def test_encoder_polarity_round_trip(axis: "Axis") -> None:
+    """An encoder polarity is read and written through its real register."""
+    encoder = axis.feedbacks.get_sensor(SensorType.QEI)
+
+    encoder.set_polarity(FeedbackPolarity.NORMAL)
+    assert encoder.get_polarity() == FeedbackPolarity.NORMAL
+
+    encoder.set_polarity(FeedbackPolarity.REVERSED)
+    assert encoder.get_polarity() == FeedbackPolarity.REVERSED
+
+
+@pytest.mark.virtual
+def test_internal_generator_has_no_resolution_or_polarity(axis: "Axis") -> None:
+    """The internal generator rejects operations that require a physical encoder."""
+    encoder = axis.feedbacks.get_sensor(SensorType.INTGEN)
+
+    with pytest.raises(ValueError, match="has no resolution"):
+        encoder.get_resolution()
+    with pytest.raises(NotImplementedError, match="polarity is not implemented"):
+        encoder.get_polarity()
+
+
+@pytest.mark.virtual
+def test_feedback_configuration_updates_are_immutable_and_ordered(axis: "Axis") -> None:
+    """Configuration copies preserve the original and deduplicate encoders in order."""
+    feedbacks = axis.feedbacks
+    original = feedback_configuration(
+        feedbacks,
+        (SensorType.QEI, SensorType.HALLS, SensorType.QEI, SensorType.ABS1, SensorType.HALLS),
+    )
+    replacement = original.with_encoder_at(
+        feedbacks.reference, feedbacks.get_sensor(SensorType.SSI2)
+    )
+    batch_replacement = original.replace({
+        feedbacks.reference: feedbacks.get_sensor(SensorType.SSI2),
+        feedbacks.velocity: feedbacks.get_sensor(SensorType.QEI2),
+        feedbacks.auxiliary: feedbacks.get_sensor(SensorType.ABS1),
+    })
+
+    assert original.encoder_at(feedbacks.reference).SENSOR_TYPE == SensorType.HALLS
+    assert replacement.encoder_at(feedbacks.reference).SENSOR_TYPE == SensorType.SSI2
+    assert batch_replacement.encoder_at(feedbacks.reference).SENSOR_TYPE == SensorType.SSI2
+    assert batch_replacement.encoder_at(feedbacks.velocity).SENSOR_TYPE == SensorType.QEI2
+    assert batch_replacement.encoder_at(feedbacks.auxiliary).SENSOR_TYPE == SensorType.ABS1
+    assert batch_replacement.encoder_at(feedbacks.commutation).SENSOR_TYPE == SensorType.QEI
+    assert batch_replacement.encoder_at(feedbacks.position).SENSOR_TYPE == SensorType.ABS1
+    assert tuple(encoder.SENSOR_TYPE for encoder in original.active_encoders_in_order()) == (
+        SensorType.QEI,
+        SensorType.HALLS,
+        SensorType.ABS1,
+    )
+
+
+@pytest.mark.virtual
+def test_feedback_configuration_limit_is_checked_before_each_write(axis: "Axis") -> None:
+    """A fifth sensor is rejected while an already active sensor remains writable."""
+    feedbacks = axis.feedbacks
+    current = feedback_configuration(
+        feedbacks,
+        (SensorType.QEI, SensorType.HALLS, SensorType.ABS1, SensorType.SSI2, SensorType.QEI),
+    )
+
+    assert len(current.active_sensors()) == MAX_SIMULTANEOUS_FEEDBACKS
+    assert current.can_execute_transition(
+        feedbacks.auxiliary, feedbacks.get_sensor(SensorType.HALLS)
+    )
+    assert not current.can_execute_transition(
+        feedbacks.auxiliary, feedbacks.get_sensor(SensorType.QEI2)
+    )
+
+
+@pytest.mark.virtual
+@pytest.mark.usefixtures("restore_feedback_model_registers")
+def test_set_configuration_reaches_target_without_exceeding_limit(axis: "Axis") -> None:
+    """Safe configuration writes reach the target while keeping four sensors active."""
+    feedbacks = axis.feedbacks
+    current_sensors = (
+        SensorType.QEI,
+        SensorType.HALLS,
+        SensorType.ABS1,
+        SensorType.ABS1,
+        SensorType.QEI,
+    )
+    target_sensors = (
+        SensorType.HALLS,
+        SensorType.QEI,
+        SensorType.INTGEN,
+        SensorType.ABS1,
+        SensorType.QEI,
+    )
+    current = feedback_configuration(feedbacks, current_sensors)
+    target = feedback_configuration(feedbacks, target_sensors)
+    state = current
+    for slot, encoder in feedbacks.feedback_transition(current, target):
+        assert state.can_execute_transition(slot, encoder)
+        state = state.with_encoder_at(slot, encoder)
+        assert len(state.active_sensors()) <= MAX_SIMULTANEOUS_FEEDBACKS
+
+    for slot, sensor in zip(feedbacks._slots, current_sensors, strict=True):
+        axis.write(slot.register_uid, sensor)
+    feedbacks.set_configuration(target)
+
+    assert tuple(axis.read(slot.register_uid) for slot in feedbacks._slots) == target_sensors
+
+
+@pytest.mark.virtual
+def test_feedback_transition_rejects_target_with_five_sensors(axis: "Axis") -> None:
+    """A target requiring five distinct sensors cannot be applied safely."""
+    feedbacks = axis.feedbacks
+    current = feedback_configuration(feedbacks, (SensorType.QEI,) * 5)
+    target = feedback_configuration(
+        feedbacks,
+        (SensorType.ABS1, SensorType.QEI, SensorType.HALLS, SensorType.SSI2, SensorType.BISSC2),
+    )
+
+    with pytest.raises(ValueError, match="cannot be transitioned safely"):
+        list(feedbacks.feedback_transition(current, target))
