@@ -150,8 +150,10 @@ class BaseTest(ABC, Stoppable, Generic[T]):
             except StopExceptionError:
                 self.logger.warning("Test has been stopped")
             finally:
-                self.teardown()
-                self._restore_configuration(context)
+                try:
+                    self.teardown()
+                finally:
+                    self._restore_configuration(context)
 
         return self.report
 
