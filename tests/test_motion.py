@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, Optional
 import numpy as np
 import pytest
 from ingenialink import exceptions
+from ingenialink.dictionary import Interface
 
 from ingeniamotion.enums import OperationMode
 from ingeniamotion.exceptions import IMTimeoutError
@@ -275,6 +276,7 @@ def test_set_position(mc, alias, position_value):
 # https://novantamotion.atlassian.net/browse/INGM-778
 @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
 @pytest.mark.not_valid_for_product(part_number="EVE-*")
+@pytest.mark.not_valid_for_product(part_number="EVS-NET-E", interfaces=[Interface.ECAT])
 def test_move_position(mc, alias, position_value):
     pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
@@ -372,6 +374,7 @@ def test_ramp_generator(mocker, init_v, final_v, total_t, t, result):
 # https://novantamotion.atlassian.net/browse/INGM-780
 @pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
 @pytest.mark.not_valid_for_product(part_number="EVE-*")
+@pytest.mark.not_valid_for_product(part_number="EVS-NET-E", interfaces=[Interface.ECAT])
 def test_get_actual_position(mc, alias, position_value):
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
     mc.motion.motor_enable(servo=alias)
