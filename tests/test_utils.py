@@ -1,6 +1,6 @@
 import pytest
 
-from ingeniamotion._utils import weak_lru
+from ingeniamotion._utils import weak_lru, weak_lru_prop
 from ingeniamotion.exceptions import IMErrorQueueNotExistsError
 
 
@@ -15,6 +15,20 @@ class ExpensiveCalculator:
         return x * self.factor
 
 
+class ExpensiveProperty:
+    """Small helper used to verify weakly cached properties."""
+
+    def __init__(self, factor: int) -> None:
+        self.factor = factor
+        self.calls = 0
+
+    @weak_lru_prop
+    def value(self) -> int:
+        """Return the calculated value."""
+        self.calls += 1
+        return self.factor * 5
+
+
 @pytest.mark.virtual
 def test_weak_lru_cache():
     calc = ExpensiveCalculator(10)
@@ -25,6 +39,18 @@ def test_weak_lru_cache():
     # The compute method is called only once
     assert calc.calls == 1
 
+    assert result1 == 50
+    assert result2 == 50
+
+
+def test_weak_lru_property_cache() -> None:
+    """A weakly cached property should calculate its value only once."""
+    calculator = ExpensiveProperty(10)
+
+    result1 = calculator.value
+    result2 = calculator.value
+
+    assert calculator.calls == 1
     assert result1 == 50
     assert result2 == 50
 

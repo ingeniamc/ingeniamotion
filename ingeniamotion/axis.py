@@ -42,7 +42,7 @@ class Axis:
         Returns:
             The register value.
         """
-        return self.motion_node.servo.read(reg_uid, subnode=self.axis_number)
+        return self.__motion_node.servo.read(reg_uid, subnode=self.__axis_number)
 
     def write(self, reg_uid: str, value: REG_VALUE) -> None:
         """Write a register of this axis.
@@ -51,7 +51,7 @@ class Axis:
             reg_uid: register UID to write.
             value: value to write.
         """
-        self.motion_node.servo.write(reg_uid, value, subnode=self.axis_number)
+        self.__motion_node.servo.write(reg_uid, value, subnode=self.__axis_number)
 
     @weak_lru_prop
     def errors(self) -> AxisErrors:

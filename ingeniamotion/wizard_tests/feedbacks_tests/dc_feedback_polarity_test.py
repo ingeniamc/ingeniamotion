@@ -153,7 +153,7 @@ class DCFeedbacksPolarityTest(BaseTest[LegacyDictReportType]):
         final_position = self.increase_current_until_movement(initial_position, test_current)
         polarity = self.calculate_polarity(initial_position, final_position)
         self.logger.info(f"Polarity found: {polarity.name}")
-        encoder = self._axis.feedbacks.get_sensor(self.sensor)
+        encoder = self._axis_feedbacks.get_sensor(self.sensor)
         self.suggested_registers[encoder.POLARITY_REGISTER_UID] = polarity
         return self.ResultType.SUCCESS
 

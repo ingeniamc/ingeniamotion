@@ -75,7 +75,7 @@ class DCFeedbacksResolutionTest(BaseTest[LegacyDictReportType]):
     def setup(self) -> None:
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
         self.logger.info("Motor disable")
-        feedbacks = self._axis.feedbacks
+        feedbacks = self._axis_feedbacks
         sensor = feedbacks.get_sensor(self.sensor)
         self.feedback_resolution = sensor.get_resolution()
         if self.feedback_resolution == 0:
