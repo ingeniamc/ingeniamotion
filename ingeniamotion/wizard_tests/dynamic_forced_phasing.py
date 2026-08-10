@@ -429,10 +429,28 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
         else:
             msg = "Success"
 
+        servo_dictionary = self._get_servo().dictionary
+        self.suggest_register(
+            servo_dictionary.get_register("COMMU_ANGLE_OFFSET", axis=self.axis),
+            commutation_angle,
+        )
+        self.suggest_register(
+            servo_dictionary.get_register("COMMU_ANGLE_REF_OFFSET", axis=self.axis),
+            commutation_angle,
+        )
+        self.suggest_register(
+            servo_dictionary.get_register("COMMU_PHASING_MODE", axis=self.axis),
+            int(PhasingMode.NO_PHASING),
+        )
+        self.suggest_register(
+            servo_dictionary.get_register("COMMU_PHASING_MAX_CURRENT", axis=self.axis),
+            self.phasing_max_current,
+        )
+
         return DynamicForcedPhasingReport(
             result_severity=severity,
             result_message=msg,
-            suggested_registers={},
+            suggested_registers=self.suggested_registers,
             commutation_angle=commutation_angle,
             commutation_phasing_mode=PhasingMode.NO_PHASING,
         )
