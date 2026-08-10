@@ -60,7 +60,6 @@ if RUNNING_ON_WINDOWS:
 FILE_EXT_SFU = ".sfu"
 FILE_EXT_LFU = ".lfu"
 FIRMWARE_FILE_FAIL_MSG = "The firmware file could not be loaded correctly"
-VIRTUAL_SDCP_PORT = 22_334
 
 logger = ingenialogger.get_logger(__name__)
 
@@ -466,6 +465,7 @@ class Communication:
         self,
         dict_path: str,
         alias: str = DEFAULT_SERVO,
+        port: Optional[int] = None,
         connection_timeout: float = DEFAULT_SDCP_TIMEOUT_S,
         servo_status_listener: bool = False,
         net_status_listener: bool = False,
@@ -475,6 +475,7 @@ class Communication:
         Args:
             dict_path: SDCP-compatible servo dictionary path.
             alias: Servo alias to reference it. ``default`` by default.
+            port: Port number. If not specified, it will be automatically assigned.
             connection_timeout: Timeout in seconds for SDCP transactions.
             servo_status_listener: Toggle the listener of the servo for its
                 status, errors, faults, etc.
@@ -491,7 +492,7 @@ class Communication:
             raise FileNotFoundError(f"{dict_path} file does not exist!")
 
         virtual_drive = VirtualDrive(
-            VIRTUAL_SDCP_PORT,
+            port,
             dictionary_path=dict_path,
             protocol=Interface.SDCP,
         )
@@ -502,7 +503,8 @@ class Communication:
         self.mc.register_network(alias, net)
         servo = net.connect_to_slave(
             virtual_drive.dictionary_path,
-            connection_timeout,
+            port=virtual_drive.port,
+            connection_timeout=connection_timeout,
             servo_status_listener=servo_status_listener,
             net_status_listener=net_status_listener,
             disconnect_callback=self._disconnect_callback,
