@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, ClassVar, Generic, Optional, TypeVar, Uni
 import ingenialogger
 from ingenialink.drive_context_manager import DriveContextManager, DriveRegistersValue
 from ingenialink.exceptions import ILError
+from ingenialink.register import REG_VALUE, Register
 
 from ingeniamotion._utils import weak_lru
 from ingeniamotion.metaclass import DEFAULT_SERVO
@@ -26,15 +27,18 @@ class TestConfigurationError(TestError):
     """Test configuration exception."""
 
 
+RegisterChangeProposal = dict[Register, REG_VALUE]
+
+
 @dataclass(eq=False)
-class ReportBase(dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]):
+class ReportBase(dict[str, Union[SeverityLevel, RegisterChangeProposal, str]]):
     """Base class for result reports."""
 
     result_severity: SeverityLevel
     """Severity level."""
     result_message: str
     """Message explaining the result."""
-    suggested_registers: dict[str, Union[int, float, str]]
+    suggested_registers: RegisterChangeProposal
     """Register values suggested by the test."""
 
     def __post_init__(self) -> None:
@@ -54,12 +58,21 @@ class BaseTest(ABC, Stoppable, Generic[T]):
     """Registers that the test is expected to leave changed after it runs."""
 
     def __init__(self) -> None:
-        self.suggested_registers: dict[str, Union[int, float, str]] = {}
+        self.suggested_registers: RegisterChangeProposal = {}
         self.mc: MotionController
         self.servo: str = DEFAULT_SERVO
         self.axis: int = 0
         self.report: Optional[T] = None
         self.logger = ingenialogger.get_logger(__name__)
+
+    def suggest_register(self, register: Register, value: REG_VALUE) -> None:
+        """Suggest a value for a drive register.
+
+        Args:
+            register: Drive register.
+            value: Value recommended by the test.
+        """
+        self.suggested_registers[register] = value
 
     @weak_lru()
     def _get_servo(self) -> "Servo":

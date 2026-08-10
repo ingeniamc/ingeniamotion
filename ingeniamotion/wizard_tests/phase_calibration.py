@@ -328,13 +328,24 @@ class Phasing(BaseTest[ReportBase]):
             self.COMMUTATION_ANGLE_OFFSET_REGISTER, servo=self.servo, axis=self.axis
         )
 
-        self.suggested_registers = {
-            "COMMU_PHASING_MODE": pha,
-            "COMMU_PHASING_TIMEOUT": self.pha_timeout,
-            "COMMU_PHASING_ACCURACY": self.pha_accuracy,
-            "COMMU_PHASING_MAX_CURRENT": self.pha_current,
-            "COMMU_ANGLE_OFFSET": ang,
-        }
+        servo_dictionary = self._get_servo().dictionary
+        self.suggest_register(
+            servo_dictionary.get_register("COMMU_PHASING_MODE", axis=self.axis), pha
+        )
+        self.suggest_register(
+            servo_dictionary.get_register("COMMU_PHASING_TIMEOUT", axis=self.axis), self.pha_timeout
+        )
+        self.suggest_register(
+            servo_dictionary.get_register("COMMU_PHASING_ACCURACY", axis=self.axis),
+            self.pha_accuracy,
+        )
+        self.suggest_register(
+            servo_dictionary.get_register("COMMU_PHASING_MAX_CURRENT", axis=self.axis),
+            self.pha_current,
+        )
+        self.suggest_register(
+            servo_dictionary.get_register("COMMU_ANGLE_OFFSET", axis=self.axis), ang
+        )
         return self.ResultType.SUCCESS
 
     @override

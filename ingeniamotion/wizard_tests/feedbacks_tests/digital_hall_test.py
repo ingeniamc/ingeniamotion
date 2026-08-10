@@ -53,8 +53,14 @@ class DigitalHallTest(Feedbacks):
         if velocity_feedback == SensorType.HALLS:
             filter_type_uid = self.VELOCITY_FEEDBACK_FILTER_1_TYPE_REGISTER
             filter_freq_uid = self.VELOCITY_FEEDBACK_FILTER_1_FREQUENCY_REGISTER
-            self.suggested_registers[filter_type_uid] = self.LOW_PASS_FILTER
-            self.suggested_registers[filter_freq_uid] = self.HALLS_FILTER_CUTOFF_FREQUENCY
+            filter_type_register = self._get_servo().dictionary.get_register(
+                filter_type_uid, axis=self.axis
+            )
+            filter_freq_register = self._get_servo().dictionary.get_register(
+                filter_freq_uid, axis=self.axis
+            )
+            self.suggest_register(filter_type_register, self.LOW_PASS_FILTER)
+            self.suggest_register(filter_freq_register, self.HALLS_FILTER_CUTOFF_FREQUENCY)
 
             self.logger.info(
                 "Setting a velocity low pass filter at 10 Hz as velocity feedback is set to Halls"
@@ -67,5 +73,9 @@ class DigitalHallTest(Feedbacks):
         pair_poles_uid = self.DIG_HALL_POLE_PAIRS_REGISTER
         if self.pair_poles is None:
             raise TypeError("Pair poles has to be set before polarity suggestion.")
-        self.suggested_registers[pair_poles_uid] = self.pair_poles
-        self.suggested_registers[polarity_uid] = pol
+        pair_poles_register = self._get_servo().dictionary.get_register(
+            pair_poles_uid, axis=self.axis
+        )
+        polarity_register = self._get_servo().dictionary.get_register(polarity_uid, axis=self.axis)
+        self.suggest_register(pair_poles_register, self.pair_poles)
+        self.suggest_register(polarity_register, pol)

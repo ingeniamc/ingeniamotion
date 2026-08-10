@@ -3,6 +3,7 @@ from typing import Any
 from unittest.mock import MagicMock
 
 from ingenialink.drive_context_manager import DriveRegistersValue
+from ingenialink.register import Register
 
 from ingeniamotion.enums import SeverityLevel
 from ingeniamotion.wizard_tests.base_test import BaseTest
@@ -49,3 +50,13 @@ def test_run_uses_supplied_baseline_without_reading_hardware(mocker) -> None:
     wizard_test.run(registers_baseline=baseline)
 
     from_hardware.assert_not_called()
+
+
+def test_suggest_register_returns_register_instance_with_value() -> None:
+    """A suggestion maps the drive register object to its recommended value."""
+    register = MagicMock(spec=Register)
+    wizard_test = MinimalWizardTest()
+
+    wizard_test.suggest_register(register, 42)
+
+    assert wizard_test.suggested_registers == {register: 42}

@@ -153,7 +153,8 @@ class DCFeedbacksPolarityTest(BaseTest[ReportBase]):
         polarity = self.calculate_polarity(initial_position, final_position)
         self.logger.info(f"Polarity found: {polarity.name}")
         polarity_uid = self.mc.configuration.get_feedback_polarity_register_uid(self.sensor)
-        self.suggested_registers[polarity_uid] = polarity
+        polarity_register = self._get_servo().dictionary.get_register(polarity_uid, axis=self.axis)
+        self.suggest_register(polarity_register, polarity)
         return self.ResultType.SUCCESS
 
     @override

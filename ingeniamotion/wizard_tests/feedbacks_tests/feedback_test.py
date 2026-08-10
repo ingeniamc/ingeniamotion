@@ -214,7 +214,8 @@ class Feedbacks(BaseTest[ReportBase]):
         if not isinstance(self.FEEDBACK_POLARITY_REGISTER, str):
             raise TypeError("Feedback polarity register has to be set before polarity suggestion.")
         polarity_uid = self.FEEDBACK_POLARITY_REGISTER
-        self.suggested_registers[polarity_uid] = pol
+        polarity_register = self._get_servo().dictionary.get_register(polarity_uid, axis=self.axis)
+        self.suggest_register(polarity_register, pol)
 
     @override
     @BaseTest.stoppable
