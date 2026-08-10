@@ -1,5 +1,5 @@
 import typing
-from typing import TYPE_CHECKING, ClassVar, Optional, Union
+from typing import TYPE_CHECKING, Final, Optional, Union
 
 import ingenialogger
 
@@ -13,7 +13,7 @@ from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO, MCMetaClass
 class Feedbacks:
     """Feedbacks Wizard Class description."""
 
-    __feedback_type_dict: ClassVar[dict[SensorType, SensorCategory]] = {
+    __feedback_type_dict: Final[dict[SensorType, SensorCategory]] = {
         SensorType.ABS1: SensorCategory.ABSOLUTE,
         SensorType.QEI: SensorCategory.INCREMENTAL,
         SensorType.HALLS: SensorCategory.ABSOLUTE,
@@ -21,17 +21,15 @@ class Feedbacks:
         SensorType.BISSC2: SensorCategory.ABSOLUTE,
         SensorType.QEI2: SensorCategory.INCREMENTAL,
         SensorType.INTGEN: SensorCategory.ABSOLUTE,
-        SensorType.SINCOS: SensorCategory.INCREMENTAL,
     }
 
-    __feedback_polarity_register_dict: ClassVar[dict[SensorType, str]] = {
+    __feedback_polarity_register_dict: Final[dict[SensorType, str]] = {
         SensorType.ABS1: "FBK_BISS1_SSI1_POS_POLARITY",
         SensorType.QEI: "FBK_DIGENC1_POLARITY",
         SensorType.HALLS: "FBK_DIGHALL_POLARITY",
         SensorType.SSI2: "FBK_SSI2_POS_POLARITY",
         SensorType.BISSC2: "FBK_BISS2_POS_POLARITY",
         SensorType.QEI2: "FBK_DIGENC2_POLARITY",
-        SensorType.SINCOS: "FBK_SINCOS_POLARITY",
     }
 
     COMMUTATION_FEEDBACK_REGISTER = "COMMU_ANGLE_SENSOR"
@@ -50,7 +48,6 @@ class Feedbacks:
             SensorType.SSI2: self.get_secondary_ssi_resolution,
             SensorType.BISSC2: self.get_absolute_encoder_2_resolution,
             SensorType.QEI2: self.get_incremental_encoder_2_resolution,
-            SensorType.SINCOS: self.get_sincos_encoder_resolution,
             SensorType.INTGEN: self.__no_feedback_resolution,
         }
 

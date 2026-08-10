@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Added
 - Add dynamic forced phasing test
+- Add SDCP servo support.
 
 ### Fixed
 - Feedback test symmetry check

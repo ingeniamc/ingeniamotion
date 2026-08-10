@@ -31,7 +31,7 @@ from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental2_test import
 from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import SecondarySSITest
 from ingeniamotion.wizard_tests.phase_calibration import Phasing
 from ingeniamotion.wizard_tests.phasing_check import PhasingCheck
-from tests.conftest import not_valid_for_all_eve_products, refresh_registers_for_test_rollback
+from tests.conftest import refresh_registers_for_test_rollback
 
 # Record stop opportunities for every wizard-test integration case in this module.
 pytestmark = pytest.mark.usefixtures("stoppable_trace_recorder")
@@ -102,8 +102,6 @@ def assert_returns_to_initial_value(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("feedback_test_setup")
-# https://novantamotion.atlassian.net/browse/INGM-782
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
 def test_digital_halls_test(
     servo: Servo, mc, alias, feedback_list, registers_baseline: DriveRegistersValue
 ):
@@ -506,7 +504,7 @@ def test_current_ramp_up(
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.ethernet
-@not_valid_for_all_eve_products
+@pytest.mark.not_valid_for_product(part_number="EVE-*")
 def test_dynamic_forced_phasing(mc, alias, registers_baseline: DriveRegistersValue, servo: Servo):
     """Run the test on a real drive and check it succeeds, leaving the drive in NO_PHASING.
 

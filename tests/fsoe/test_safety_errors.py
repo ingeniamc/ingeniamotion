@@ -5,10 +5,10 @@ from typing import TYPE_CHECKING, Callable
 import pytest
 from ingenialink.dictionary import Interface
 from ingenialink.servo import DictionaryFactory
+from summit_testing_framework.connection.reconnect_utils import power_cycle_and_restore
 from summit_testing_framework.setups.specifiers import PartNumber
 
 from ingeniamotion.fsoe import FSOE_MASTER_INSTALLED, FSoEState
-from tests.dictionaries import SAMPLE_SAFE_PH2_XDFV3_DICTIONARY
 
 try:
     import pysoem
@@ -17,8 +17,11 @@ except ImportError:
 
 if TYPE_CHECKING:
     from ingenialink.ethercat.servo import EthercatServo
+    from summit_testing_framework.connection.reconnect_utils import ConnectionWrapper
     from summit_testing_framework.setups.descriptors import DriveHwSetup
-    from summit_testing_framework.setups.environment_control import DriveEnvironmentController
+    from summit_testing_framework.setups.environment_control import (
+        ManualUserEnvironmentController,
+    )
 
     from ingeniamotion.motion_controller import MotionController
 
@@ -40,10 +43,10 @@ _INVALID_MAPPING_ERROR_ID = 0x80040002  # Error ID for invalid mapping error
 
 
 @pytest.mark.fsoe_phase2
-def test_get_known_error() -> None:
+def test_get_known_error(sample_safe_ph2_xdfv3_dictionary: str) -> None:
     """Test getting a known error from the dictionary."""
     dictionary = DictionaryFactory.create_dictionary(
-        SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, interface=Interface.ECAT
+        sample_safe_ph2_xdfv3_dictionary, interface=Interface.ECAT
     )
     error = Error.from_id(0x00007394, dictionary=dictionary)
     assert error.error_id == 0x00007394
@@ -55,10 +58,10 @@ def test_get_known_error() -> None:
 
 
 @pytest.mark.fsoe_phase2
-def test_get_error_with_id_not_in_dict() -> None:
+def test_get_error_with_id_not_in_dict(sample_safe_ph2_xdfv3_dictionary: str) -> None:
     """Test getting an error with an unknown ID."""
     dictionary = DictionaryFactory.create_dictionary(
-        SAMPLE_SAFE_PH2_XDFV3_DICTIONARY, interface=Interface.ECAT
+        sample_safe_ph2_xdfv3_dictionary, interface=Interface.ECAT
     )
     error = Error.from_id(0x1234, dictionary=dictionary)
     assert error.error_id == 0x1234
@@ -68,11 +71,18 @@ def test_get_error_with_id_not_in_dict() -> None:
 @pytest.mark.fsoe_phase2
 def test_no_errors(
     mcu_error_queue_a: "ServoErrorQueue",
-    environment: "DriveEnvironmentController",
+    environment: "ManualUserEnvironmentController",
+    connection_wrapper: "ConnectionWrapper",
 ) -> None:
     """Test methods when there are no errors"""
     # Clear any existing errors by power cycling
-    environment.power_cycle(wait_for_drives=False, reconnect_drives=True, reconnect_timeout=30)
+    power_cycle_and_restore(
+        environment=environment,
+        connection_wrapper=connection_wrapper,
+        wait_for_drives=False,
+        reconnect_drives=True,
+        reconnect_timeout=30,
+    )
 
     assert mcu_error_queue_a.get_number_total_errors() == 0
 
@@ -87,11 +97,18 @@ def test_no_errors(
 def test_get_last_error_overtemp_error(
     servo: "EthercatServo",
     mcu_error_queue_a: "ServoErrorQueue",
-    environment: "DriveEnvironmentController",
+    environment: "ManualUserEnvironmentController",
+    connection_wrapper: "ConnectionWrapper",
 ) -> None:
     """Test getting the last error when there is an overtemperature error."""
     # Clear any existing errors by power cycling
-    environment.power_cycle(wait_for_drives=False, reconnect_drives=True, reconnect_timeout=30)
+    power_cycle_and_restore(
+        environment=environment,
+        connection_wrapper=connection_wrapper,
+        wait_for_drives=False,
+        reconnect_drives=True,
+        reconnect_timeout=30,
+    )
 
     servo.write("FSOE_USER_OVER_TEMPERATURE", 0, subnode=1)
 
@@ -116,11 +133,18 @@ def mc_with_fsoe_with_sra_no_fail_on_errors(
 def test_get_last_error_invalid_map(
     mcu_error_queue_a: "ServoErrorQueue",
     mc_with_fsoe_with_sra_no_fail_on_errors: tuple["MotionController", "FSoEMasterHandler"],
-    environment: "DriveEnvironmentController",
+    environment: "ManualUserEnvironmentController",
+    connection_wrapper: "ConnectionWrapper",
     timeout_for_data_sra: float,
 ) -> None:
     """Test getting the last error when there is an invalid map error."""
-    environment.power_cycle(wait_for_drives=False, reconnect_drives=True, reconnect_timeout=30)
+    power_cycle_and_restore(
+        environment=environment,
+        connection_wrapper=connection_wrapper,
+        wait_for_drives=False,
+        reconnect_drives=True,
+        reconnect_timeout=30,
+    )
 
     mc, handler = mc_with_fsoe_with_sra_no_fail_on_errors
 

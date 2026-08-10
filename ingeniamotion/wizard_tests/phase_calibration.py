@@ -1,6 +1,6 @@
 import time
 from enum import IntEnum
-from typing import TYPE_CHECKING, ClassVar, Optional
+from typing import TYPE_CHECKING, ClassVar, Final, Optional
 
 import ingenialogger
 from typing_extensions import override
@@ -55,7 +55,7 @@ class Phasing(BaseTest[LegacyDictReportType]):
         SUCCESS = 0
         FAIL = -1
 
-    result_description: ClassVar[dict[ResultType, str]] = {
+    result_description: Final[dict[ResultType, str]] = {
         ResultType.SUCCESS: "Phasing process finished successfully",
         ResultType.FAIL: "Phasing process has failed.  Review your motor configuration.",
     }

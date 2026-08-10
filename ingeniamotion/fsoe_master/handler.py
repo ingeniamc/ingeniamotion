@@ -269,7 +269,7 @@ class FSoEMasterHandler:
 
     @property
     def net(self) -> "EthercatNetwork":
-        """Returns the Ethercat network instance."""
+        """The Ethercat network instance."""
         return self.__net
 
     def get_application_parameters_sra_crc(self) -> int:
@@ -399,7 +399,7 @@ class FSoEMasterHandler:
 
     @property
     def process_image(self) -> "ProcessImage":
-        """Get the Process Image used for the Safety PDUs."""
+        """The Process Image used for the Safety PDUs."""
         return self.__process_image
 
     def set_process_image(self, process_image: "ProcessImage") -> None:
@@ -933,7 +933,7 @@ class FSoEMasterHandler:
 
     @property
     def state(self) -> FSoEState:
-        """Get the FSoE master state."""
+        """The FSoE master state."""
         return FSoEState(self._master_handler.state.id)
 
     @property

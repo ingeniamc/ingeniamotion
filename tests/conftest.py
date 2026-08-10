@@ -11,65 +11,26 @@ from ingenialink import Servo
 from ingenialink.dictionary import Interface
 from ingenialink.exceptions import ILRegisterNotFoundError
 from summit_testing_framework import dynamic_loader
+from summit_testing_framework.configuration.config_checker import ConfigChecker
 from summit_testing_framework.profilers.stoppable_gaps import StoppableProfilerConfig
 from summit_testing_framework.pytest_helpers.marker_helper import (
+    MarkerHelper,
     apply_firmware_version_markers_to_items,
 )
+from summit_testing_framework.setups.specifiers import DictionaryType, DictionaryVersion
+
+from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY
 
 if TYPE_CHECKING:
+    from summit_testing_framework.setups.specifiers import SetupSpecifier
+
     from ingeniamotion.axis import Axis
     from ingeniamotion.motion_controller import MotionController
     from ingeniamotion.motion_node import MotionNode
 
 logger = logging.getLogger(__name__)
 
-
-def not_valid_for_eve_can_ecat_products(func: Callable) -> Callable:
-    """Decorator that applies not_valid_for_product markers for CAN and ECAT EVE products.
-
-    Returns:
-        The decorated function with the markers applied.
-    """
-    func = pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])(
-        func
-    )
-    func = pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])(
-        func
-    )
-    func = pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])(
-        func
-    )
-    func = pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])(
-        func
-    )
-    return func
-
-
-def not_valid_for_all_eve_products(func: Callable) -> Callable:
-    """Decorator that applies not_valid_for_product markers for all EVE products.
-
-    Returns:
-        The decorated function with the markers applied.
-    """
-    func = pytest.mark.not_valid_for_product(part_number="EVE-XCR-E", interfaces=[Interface.ECAT])(
-        func
-    )
-    func = pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.CAN])(
-        func
-    )
-    func = pytest.mark.not_valid_for_product(part_number="EVE-XCR-C", interfaces=[Interface.ETH])(
-        func
-    )
-    func = pytest.mark.not_valid_for_product(part_number="EVE-NET-E", interfaces=[Interface.ECAT])(
-        func
-    )
-    func = pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.CAN])(
-        func
-    )
-    func = pytest.mark.not_valid_for_product(part_number="EVE-NET-C", interfaces=[Interface.ETH])(
-        func
-    )
-    return func
+__BISS_C_CONFIG_MARKER: str = "biss_c_flaky"
 
 
 pytest_plugins = [
@@ -115,6 +76,68 @@ def pytest_configure(config):  # noqa: ARG001
     logging.getLogger("ingenialink.ethercat.servo").addFilter(SuppressSpecificLogs())
 
 
+def __config_uses_biss_c(config_file: Path) -> bool:
+    """Checks if the configuration file uses BISS-C protocol.
+
+    Args:
+        config_file: Path to the configuration file.
+
+    Returns:
+        bool: True if the configuration file uses BISS-C protocol, False otherwise.
+    """
+    config_checker: ConfigChecker = ConfigChecker(config_file=config_file)
+
+    # Check if Primary Absolute Slave 1 (=1) or Secondary Absolute Slave 1 (=7)
+    # are selected in some of the possible feedback sensors registers:
+    # CL_VEL_FBK_SENSOR, CL_POS_FBK_SENSOR, COMMU_ANGLE_SENSOR
+    # If they are, then check if the corresponding encoder protocol is BISS-C (=0)
+    for register in ["CL_VEL_FBK_SENSOR", "CL_POS_FBK_SENSOR", "COMMU_ANGLE_SENSOR"]:
+        if config_checker.register_has_expected_value(
+            register, 1
+        ) and config_checker.register_has_expected_value("FBK_BISS1_SSI1_PROTOCOL", 0):
+            return True
+        if config_checker.register_has_expected_value(
+            register, 7
+        ) and config_checker.register_has_expected_value("FBK_SSI2_PROTOCOL", 0):
+            return True
+
+    return False
+
+
+def apply_configuration_marker_to_items(
+    config: "pytest.Config", items: list["pytest.Item"]
+) -> None:
+    """Applies configuration markers to collected test items.
+
+    There are certain tests that are known to be flaky for BISS-C configuration,
+    and should be skipped for certain firmware versions.
+    """
+    # Check if the setup contains absolute encoder with BISS-C configuration,
+    # so that proper tests can be skipped
+    marker_helper: MarkerHelper = MarkerHelper(config=config)
+    if not marker_helper.is_setup_specified:
+        return
+    setup_specifier: SetupSpecifier = marker_helper.setup_specifier
+    if setup_specifier.config_file is None:
+        return
+
+    if not __config_uses_biss_c(setup_specifier.config_file):
+        return
+
+    for item in items:
+        if not item.get_closest_marker(__BISS_C_CONFIG_MARKER):
+            continue
+
+        for skip_product in ["CAP-*", "EVE-*", "EVS-*"]:
+            # https://novantamotion.atlassian.net/browse/CIT-763
+            item.add_marker(
+                pytest.mark.valid_versions_for_product(part_number=skip_product, max="2.6.0")
+            )
+            item.add_marker(
+                pytest.mark.valid_versions_for_product(part_number=skip_product, min="2.11.0")
+            )
+
+
 def pytest_collection_modifyitems(
     session: pytest.Session,  # noqa: ARG001
     config: pytest.Config,
@@ -129,6 +152,12 @@ def pytest_collection_modifyitems(
         config: pytest configuration.
         items: collected test items.
     """
+    # Add valid_versions_for_product markers to tests that have the biss_c_flaky marker,
+    # if the setup uses BISS-C configuration
+    # This must be done before applying firmware version markers to items,
+    # so that the valid_versions_for_product markers are applied first
+    apply_configuration_marker_to_items(config=config, items=items)
+    # Apply firmware version markers to items, skipping tests that do not meet the requirements
     apply_firmware_version_markers_to_items(config=config, items=items)
 
 
@@ -264,3 +293,18 @@ def refresh_registers_for_test_rollback(servo: Servo, register_uids: list[str]):
             logger.warning(
                 f"Register {register_uid} not found during refresh after test execution."
             )
+
+
+@pytest.fixture(scope="session")
+def sample_safe_ph1_xdfv3_dictionary() -> Path:
+    return Path(SAMPLE_SAFE_PH1_XDFV3_DICTIONARY)
+
+
+@pytest.fixture(scope="session")
+def sample_safe_ph2_xdfv3_dictionary(
+    product_dictionary: Callable[[str, DictionaryVersion, Optional[Interface]], Path],
+) -> Path:
+    return product_dictionary(
+        "EVS-S-NET-E",
+        DictionaryVersion("2.9.1", DictionaryType.XDF_V3),
+    )

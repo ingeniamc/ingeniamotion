@@ -1,6 +1,12 @@
 from ingenialink.dictionary import Interface
+from summit_testing_framework.configuration.encoder_configurator import (
+    EncoderConfiguration,
+    EncoderProtocol,
+)
+from summit_testing_framework.configuration.feedback_configuration import FeedbackConfiguration
 from summit_testing_framework.jenkins.pytest_config import PyTestConfig
 from summit_testing_framework.setups.specifier_container import SpecifierContainer
+from summit_testing_framework.setups.specifier_utils import dist_path
 from summit_testing_framework.setups.specifiers import (
     DictionaryType,
     MultiRackServiceConfigSpecifier,
@@ -118,7 +124,7 @@ ECAT_SETUP = SpecifierContainer({
                 extra_data={
                     # No everest ethercat during day or PRs, it has a flaky STO abnormal
                     # https://novantamotion.atlassian.net/browse/INGM-807
-                    __EXECUTION_POLICY_KEY: "nightly", 
+                    __EXECUTION_POLICY_KEY: "nightly",
                     __TEST_CONFIGS_KEY: {
                         "ECAT_TEST_SESSIONS": PyTestConfig(
                             markers="soem",
@@ -301,5 +307,58 @@ ECAT_MULTISLAVE_SETUP = MultiRackServiceConfigSpecifier.create(
                 stage_name="EtherCAT Multislave",
             )
         },
+    },
+)
+
+SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
+    part_number=PartNumber.EVS_NET_E,
+    interface=Interface.ECAT,
+    version_configs={
+        # BiSS-C tests are flaky on 2.10.0 should pass on 2.11.0
+        "2.11.0.005": VersionConfig.from_files(
+            version="2.11.0.005",
+            firmware=dist_path(
+                "//azr-srv-ingfs1//dist//products//i050_summit//i059_evs-net-e//release_candidate//2.11.0.5//evs-net-e_2.11.0.005.lfu"
+            ),
+            dictionary=dist_path(
+                "//azr-srv-ingfs1//dist//products//i050_summit//i059_evs-net-e//release_candidate//2.11.0.5//evs-net-e_eoe_2.11.0.005_v2.xdf"
+            ),
+            config_file=config_files.SIRIUS_EVS_NET_E_2_11_0_CONFIG,
+            extra_data={
+                __EXECUTION_POLICY_KEY: "always",
+                __TEST_CONFIGS_KEY: {
+                    "SIRIUS_TEST_SESSIONS": PyTestConfig(
+                        markers="soem and biss_c_flaky",
+                        run_test_stage_uid="ethercat_everest_s_2.11.0.005",
+                        stage_name="SIRIUS EVS-NET-E Tests - FW. 2.11.0.005",
+                    )
+                },
+            },
+            feedback_configuration=FeedbackConfiguration.from_configurable(
+                abs_encoder_1_configuration=EncoderConfiguration(
+                    protocol=EncoderProtocol.BIS3, resolution_bits=17
+                )
+            ),
+        ),
+        "2.10.0": VersionConfig.from_version(
+            version="2.10.0",
+            config_file=config_files.SIRIUS_EVS_NET_E_2_10_0_CONFIG,
+            dictionary_type=DictionaryType.XDF_V3,
+            extra_data={
+                __EXECUTION_POLICY_KEY: "always",
+                __TEST_CONFIGS_KEY: {
+                    "SIRIUS_TEST_SESSIONS": PyTestConfig(
+                        markers="soem and biss_c_flaky",  # https://novantamotion.atlassian.net/browse/INGM-798
+                        run_test_stage_uid="ethercat_everest_s_2.10.0",
+                        stage_name="SIRIUS EVS-NET-E Tests - FW. 2.10.0",
+                    )
+                },
+            },
+            feedback_configuration=FeedbackConfiguration.from_configurable(
+                abs_encoder_1_configuration=EncoderConfiguration(
+                    protocol=EncoderProtocol.SSI1, resolution_bits=17
+                )
+            ),
+        ),
     },
 )
