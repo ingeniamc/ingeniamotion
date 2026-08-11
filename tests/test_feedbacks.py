@@ -1,15 +1,10 @@
-from collections.abc import Iterator
 from typing import TYPE_CHECKING
 
 import pytest
 from ingenialink import exceptions
 
 from ingeniamotion.enums import FeedbackPolarity, SensorCategory, SensorType
-from ingeniamotion.feedbacks import (
-    FEEDBACK_SELECTOR_REGISTERS,
-    MAX_SIMULTANEOUS_FEEDBACKS,
-    FeedbacksConfiguration,
-)
+from ingeniamotion.feedbacks import MAX_SIMULTANEOUS_FEEDBACKS, FeedbacksConfiguration
 
 if TYPE_CHECKING:
     from ingeniamotion.axis import Axis
@@ -40,16 +35,6 @@ SENSOR_TYPE_AND_CATEGORY = [
 ABSOLUTE_ENCODER_RESOLUTION_TEST_VALUES = [(22, 4194304), (10, 1024), (15, 32768)]
 
 INCREMENTAL_ENCODER_RESOLUTION_TEST_VALUES = [1000, 4000, 6000]
-
-
-@pytest.fixture
-def restore_feedback_model_registers(axis: "Axis") -> Iterator[None]:
-    """Restore selector and polarity registers changed by feedback model tests."""
-    registers = [*FEEDBACK_SELECTOR_REGISTERS, "FBK_DIGENC1_POLARITY"]
-    values = {register: axis.read(register) for register in registers}
-    yield
-    for register, value in values.items():
-        axis.write(register, value)
 
 
 @pytest.fixture
@@ -479,7 +464,6 @@ def test_encoder_polarity_register_uid(axis, sensor, register):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("restore_feedback_model_registers")
 def test_feedback_slot_round_trip(axis: "Axis") -> None:
     """A feedback slot reads and writes sensor types through the real virtual drive."""
     slot = axis.feedbacks.commutation
@@ -494,7 +478,6 @@ def test_feedback_slot_round_trip(axis: "Axis") -> None:
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("restore_feedback_model_registers")
 def test_encoder_polarity_round_trip(axis: "Axis") -> None:
     """An encoder polarity is read and written through its real register."""
     encoder = axis.feedbacks.get_sensor(SensorType.QEI)
@@ -563,7 +546,6 @@ def test_feedback_configuration_limit_is_checked_before_each_write(axis: "Axis")
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("restore_feedback_model_registers")
 def test_set_configuration_reaches_target_without_exceeding_limit(axis: "Axis") -> None:
     """Safe configuration writes reach the target while keeping four sensors active."""
     feedbacks = axis.feedbacks
