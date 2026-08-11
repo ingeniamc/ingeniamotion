@@ -29,6 +29,7 @@ from ingenialink.exceptions import ILError
 from ingenialink.network import SlaveInfo
 from ingenialink.register import Register
 from ingenialink.servo import DictionaryFactory, Servo
+from ingenialink.utils._utils import REG_VALUE
 from ingenialink.virtual.canopen.network import VirtualCanopenNetwork
 from ingenialink.virtual.ethercat.network import VirtualEthercatNetwork
 from ingenialink.virtual.ethernet.network import VirtualEthernetNetwork
@@ -1472,7 +1473,7 @@ class Communication:
     def set_register(
         self,
         register: str,
-        value: Union[int, float, str],
+        value: REG_VALUE,
         servo: str = DEFAULT_SERVO,
         axis: int = DEFAULT_AXIS,
     ) -> None:

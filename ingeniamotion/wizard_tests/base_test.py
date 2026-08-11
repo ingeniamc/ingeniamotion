@@ -5,7 +5,8 @@ from typing import TYPE_CHECKING, Any, ClassVar, Generic, Optional, TypeVar, Uni
 import ingenialogger
 from ingenialink.drive_context_manager import DriveContextManager, DriveRegistersValue
 from ingenialink.exceptions import ILError
-from ingenialink.register import REG_VALUE, Register
+from ingenialink.register import Register
+from ingenialink.utils._utils import REG_VALUE
 
 from ingeniamotion._utils import weak_lru
 from ingeniamotion.metaclass import DEFAULT_SERVO
