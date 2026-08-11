@@ -534,13 +534,27 @@ def test_feedback_configuration_updates_are_immutable_and_ordered(axis: "Axis") 
         feedbacks.auxiliary: feedbacks.get_sensor(SensorType.ABS1),
     })
 
-    assert original.encoder_at(feedbacks.reference).SENSOR_TYPE == SensorType.HALLS
-    assert replacement.encoder_at(feedbacks.reference).SENSOR_TYPE == SensorType.SSI2
-    assert batch_replacement.encoder_at(feedbacks.reference).SENSOR_TYPE == SensorType.SSI2
-    assert batch_replacement.encoder_at(feedbacks.velocity).SENSOR_TYPE == SensorType.QEI2
-    assert batch_replacement.encoder_at(feedbacks.auxiliary).SENSOR_TYPE == SensorType.ABS1
-    assert batch_replacement.encoder_at(feedbacks.commutation).SENSOR_TYPE == SensorType.QEI
-    assert batch_replacement.encoder_at(feedbacks.position).SENSOR_TYPE == SensorType.ABS1
+    assert tuple(original.encoder_at(slot).SENSOR_TYPE for slot in feedbacks._slots) == (
+        SensorType.QEI,
+        SensorType.HALLS,
+        SensorType.QEI,
+        SensorType.ABS1,
+        SensorType.HALLS,
+    )
+    assert tuple(replacement.encoder_at(slot).SENSOR_TYPE for slot in feedbacks._slots) == (
+        SensorType.QEI,
+        SensorType.SSI2,
+        SensorType.QEI,
+        SensorType.ABS1,
+        SensorType.HALLS,
+    )
+    assert tuple(batch_replacement.encoder_at(slot).SENSOR_TYPE for slot in feedbacks._slots) == (
+        SensorType.QEI,
+        SensorType.SSI2,
+        SensorType.QEI2,
+        SensorType.ABS1,
+        SensorType.ABS1,
+    )
     assert tuple(encoder.SENSOR_TYPE for encoder in original.active_encoders_in_order()) == (
         SensorType.QEI,
         SensorType.HALLS,
