@@ -132,19 +132,7 @@ class FeedbackSelectorTracker:
         self._servo = servo
         self._axis = axis
         self._feedbacks = mc.motion_nodes[alias].get_axis(axis).feedbacks
-        self._state = FeedbacksConfiguration(
-            dict(
-                zip(
-                    self._feedbacks._slots,
-                    (
-                        self._feedbacks.get_sensor(
-                            SensorType(mc.communication.get_register(uid, servo=alias, axis=axis))
-                        )
-                        for uid in FEEDBACK_SELECTOR_REGISTERS
-                    ),
-                )
-            )
-        )
+        self._state = FeedbacksConfiguration.from_axis_feedbacks(self._feedbacks)
         self.history = [self._state]
 
     def __enter__(self) -> "FeedbackSelectorTracker":
