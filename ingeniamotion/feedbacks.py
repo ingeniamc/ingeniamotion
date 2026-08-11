@@ -444,11 +444,11 @@ class FeedbacksConfiguration:
         Returns:
             Whether the drive accepts the individual selector write.
         """
-        current_encoder = self.encoder_at(slot)
+        # Ensure the requested slot belongs to this configuration.
+        self.encoder_at(slot)
         active_sensors = self.active_sensors()
         return (
-            current_encoder == encoder
-            or len(active_sensors) < MAX_SIMULTANEOUS_FEEDBACKS
+            len(active_sensors) < MAX_SIMULTANEOUS_FEEDBACKS
             or encoder.SENSOR_TYPE in active_sensors
         )
 
