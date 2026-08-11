@@ -41,7 +41,9 @@ FEEDBACK_TRANSITION_SAMPLE_SIZE = 10_000
 
 def test_legacy_feedbacks_base_name_warns() -> None:
     """The old feedback-test base name remains available with a warning."""
-    with pytest.warns(DeprecationWarning, match="Feedbacks is deprecated"):
+    with pytest.warns(
+        DeprecationWarning, match="^Feedbacks is deprecated, use FeedbacksTest instead$"
+    ):
         legacy_feedbacks = feedback_test.Feedbacks
 
     assert legacy_feedbacks is feedback_test.FeedbacksTest
