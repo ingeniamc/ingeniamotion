@@ -295,24 +295,10 @@ def _feedback_configurations(
         if shape in seen_shapes:
             continue
         seen_shapes.add(shape)
-        configurations.append(_configuration_from_sensor_types(feedbacks, combination))
+        configurations.append(FeedbacksConfiguration.from_sensor_types(feedbacks, combination))
 
     random.shuffle(configurations)
     yield from configurations
-
-
-def _configuration_from_sensor_types(
-    feedbacks: AxisFeedbacks,
-    sensors: Sequence[SensorType],
-) -> FeedbacksConfiguration:
-    """Build a feedback configuration from sensor types in slot order.
-
-    Returns:
-        A configuration assigning each sensor to the corresponding feedback slot.
-    """
-    return FeedbacksConfiguration(
-        dict(zip(feedbacks._slots, (feedbacks.get_sensor(sensor) for sensor in sensors)))
-    )
 
 
 def _configuration_sensor_types(
@@ -374,7 +360,7 @@ def _feedback_transition_seed(setup_specifier) -> int:
 def test_feedback_transition_emits_safe_register_values():
     """The emitted writes reach the target without exceeding four sensors."""
     feedbacks = AxisFeedbacks(object())
-    current_configuration = _configuration_from_sensor_types(
+    current_configuration = FeedbacksConfiguration.from_sensor_types(
         feedbacks,
         (
             SensorType.QEI,
@@ -384,7 +370,7 @@ def test_feedback_transition_emits_safe_register_values():
             SensorType.QEI,
         ),
     )
-    target_configuration = _configuration_from_sensor_types(
+    target_configuration = FeedbacksConfiguration.from_sensor_types(
         feedbacks,
         (
             SensorType.HALLS,
@@ -410,7 +396,7 @@ def test_feedback_transition_emits_safe_register_values():
 def test_feedback_transition_reuses_slot_before_new_source():
     """Reuse an active source before selecting a previously inactive source."""
     feedbacks = AxisFeedbacks(object())
-    current_configuration = _configuration_from_sensor_types(
+    current_configuration = FeedbacksConfiguration.from_sensor_types(
         feedbacks,
         (
             SensorType.QEI,
@@ -420,7 +406,7 @@ def test_feedback_transition_reuses_slot_before_new_source():
             SensorType.HALLS,
         ),
     )
-    target_configuration = _configuration_from_sensor_types(
+    target_configuration = FeedbacksConfiguration.from_sensor_types(
         feedbacks,
         (
             SensorType.SSI2,
@@ -440,7 +426,7 @@ def test_feedback_transition_reuses_slot_before_new_source():
 def test_feedback_transition_is_empty_for_an_unchanged_configuration():
     """No writes are emitted when current and target configurations match."""
     feedbacks = AxisFeedbacks(object())
-    configuration = _configuration_from_sensor_types(
+    configuration = FeedbacksConfiguration.from_sensor_types(
         feedbacks,
         (
             SensorType.QEI,

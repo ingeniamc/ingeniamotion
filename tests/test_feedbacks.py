@@ -8,7 +8,6 @@ from ingeniamotion.enums import FeedbackPolarity, SensorCategory, SensorType
 from ingeniamotion.feedbacks import (
     FEEDBACK_SELECTOR_REGISTERS,
     MAX_SIMULTANEOUS_FEEDBACKS,
-    AxisFeedbacks,
     FeedbacksConfiguration,
 )
 
@@ -51,25 +50,6 @@ def restore_feedback_model_registers(axis: "Axis") -> Iterator[None]:
     yield
     for register, value in values.items():
         axis.write(register, value)
-
-
-def feedback_configuration(
-    feedbacks: AxisFeedbacks, sensors: tuple[SensorType, ...]
-) -> FeedbacksConfiguration:
-    """Build a feedback configuration from sensor types in slot order.
-
-    Returns:
-        A feedback configuration containing the requested encoder assignments.
-    """
-    return FeedbacksConfiguration(
-        dict(
-            zip(
-                feedbacks._slots,
-                (feedbacks.get_sensor(sensor) for sensor in sensors),
-                strict=True,
-            )
-        )
-    )
 
 
 @pytest.fixture
@@ -541,7 +521,7 @@ def test_internal_generator_has_no_resolution_or_polarity(axis: "Axis") -> None:
 def test_feedback_configuration_updates_are_immutable_and_ordered(axis: "Axis") -> None:
     """Configuration copies preserve the original and deduplicate encoders in order."""
     feedbacks = axis.feedbacks
-    original = feedback_configuration(
+    original = FeedbacksConfiguration.from_sensor_types(
         feedbacks,
         (SensorType.QEI, SensorType.HALLS, SensorType.QEI, SensorType.ABS1, SensorType.HALLS),
     )
@@ -572,7 +552,7 @@ def test_feedback_configuration_updates_are_immutable_and_ordered(axis: "Axis") 
 def test_feedback_configuration_limit_is_checked_before_each_write(axis: "Axis") -> None:
     """A fifth sensor is rejected while an already active sensor remains writable."""
     feedbacks = axis.feedbacks
-    current = feedback_configuration(
+    current = FeedbacksConfiguration.from_sensor_types(
         feedbacks,
         (SensorType.QEI, SensorType.HALLS, SensorType.ABS1, SensorType.SSI2, SensorType.QEI),
     )
@@ -601,8 +581,8 @@ def test_set_configuration_reaches_target_without_exceeding_limit(axis: "Axis") 
         SensorType.ABS1,
         SensorType.QEI,
     )
-    current = feedback_configuration(feedbacks, current_sensors)
-    target = feedback_configuration(feedbacks, target_sensors)
+    current = FeedbacksConfiguration.from_sensor_types(feedbacks, current_sensors)
+    target = FeedbacksConfiguration.from_sensor_types(feedbacks, target_sensors)
     state = current
     for slot, encoder in feedbacks.transition_order(current, target):
         assert state.can_execute_transition(encoder)
@@ -620,8 +600,8 @@ def test_set_configuration_reaches_target_without_exceeding_limit(axis: "Axis") 
 def test_feedback_transition_rejects_target_with_five_sensors(axis: "Axis") -> None:
     """A target requiring five distinct sensors cannot be applied safely."""
     feedbacks = axis.feedbacks
-    current = feedback_configuration(feedbacks, (SensorType.QEI,) * 5)
-    target = feedback_configuration(
+    current = FeedbacksConfiguration.from_sensor_types(feedbacks, (SensorType.QEI,) * 5)
+    target = FeedbacksConfiguration.from_sensor_types(
         feedbacks,
         (SensorType.ABS1, SensorType.QEI, SensorType.HALLS, SensorType.SSI2, SensorType.BISSC2),
     )

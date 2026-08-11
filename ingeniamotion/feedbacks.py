@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from collections.abc import Iterator, Mapping
+from collections.abc import Iterator, Mapping, Sequence
 from typing import TYPE_CHECKING, ClassVar, Final, Optional
 
 import ingenialogger
@@ -354,6 +354,29 @@ class FeedbacksConfiguration:
             slot: axis_feedbacks.get_sensor(slot.get_encoder_type())
             for slot in axis_feedbacks._slots
         })
+
+    @classmethod
+    def from_sensor_types(
+        cls, axis_feedbacks: "AxisFeedbacks", sensors: Sequence[SensorType]
+    ) -> "FeedbacksConfiguration":
+        """Build a configuration assigning sensor types to slots in slot order.
+
+        Args:
+            axis_feedbacks: Feedback slots container to build the configuration for.
+            sensors: Sensor type to assign to each slot, in slot order.
+
+        Returns:
+            A configuration assigning each sensor to the corresponding feedback slot.
+        """
+        return cls(
+            dict(
+                zip(
+                    axis_feedbacks._slots,
+                    (axis_feedbacks.get_sensor(sensor) for sensor in sensors),
+                    strict=True,
+                )
+            )
+        )
 
     def encoder_at(self, slot: FeedbackSlot) -> Encoder:
         """Return the encoder assigned to the given feedback slot.
