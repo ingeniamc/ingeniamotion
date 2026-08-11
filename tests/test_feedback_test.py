@@ -394,7 +394,7 @@ def test_feedback_transition_emits_safe_register_values():
     state = current_configuration
     writes = list(feedbacks.transition_order(current_configuration, target_configuration))
     for slot, encoder in writes:
-        assert state.can_execute_transition(encoder)
+        assert state.can_execute_transition(slot, encoder)
         state = state.with_encoder_at(slot, encoder)
         assert len(state.active_sensors()) <= MAX_SIMULTANEOUS_FEEDBACKS
 
@@ -479,7 +479,7 @@ def test_all_feedback_transitions_stay_within_limit_and_reach_target(
                 continue
 
             for slot, encoder in writes:
-                assert state.can_execute_transition(encoder), (
+                assert state.can_execute_transition(slot, encoder), (
                     f"seed={seed}, pair_index={pair_index}"
                 )
                 state = state.with_encoder_at(slot, encoder)

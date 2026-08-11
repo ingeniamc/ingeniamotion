@@ -425,26 +425,30 @@ class FeedbacksConfiguration:
         """Return the distinct sensor types assigned across all slots."""
         return frozenset(encoder.SENSOR_TYPE for encoder in self.__encoders.values())
 
-    def can_execute_transition(self, encoder: Encoder) -> bool:
+    def can_execute_transition(self, slot: FeedbackSlot, encoder: Encoder) -> bool:
         """Return whether the drive accepts assigning an encoder to a slot.
 
         The drive checks the number of active sensor types before replacing an
         encoder. This is conservative and can reject a write that would leave
         four active types after the replacement, but it reflects the drive's
-        actual implementation. This does not check whether ``encoder`` is a
-        legal value for the target slot on the connected drive; that is
-        enforced when the write is actually issued, by
-        :meth:`FeedbackSlot.set_encoder_type`.
+        actual implementation. The slot is part of the operation because a
+        smarter drive could also apply slot-specific rules. This does not check
+        whether ``encoder`` is a legal value for the target slot on the
+        connected drive; that is enforced when the write is actually issued,
+        by :meth:`FeedbackSlot.set_encoder_type`.
 
         Args:
+            slot: Feedback slot that would receive the encoder.
             encoder: Encoder that would be assigned to a slot.
 
         Returns:
             Whether the drive accepts the individual selector write.
         """
+        current_encoder = self.encoder_at(slot)
         active_sensors = self.active_sensors()
         return (
-            len(active_sensors) < MAX_SIMULTANEOUS_FEEDBACKS
+            current_encoder == encoder
+            or len(active_sensors) < MAX_SIMULTANEOUS_FEEDBACKS
             or encoder.SENSOR_TYPE in active_sensors
         )
 
@@ -489,7 +493,7 @@ def _find_feedback_order(  # noqa: C901
     # target encoder is already active or there is still room for a new sensor.
     for slot in pending:
         target_encoder = target.encoder_at(slot)
-        if not state.can_execute_transition(target_encoder):
+        if not state.can_execute_transition(slot, target_encoder):
             continue
         # Candidate configuration with the target encoder assigned to this slot.
         candidate_state = state.with_encoder_at(slot, target_encoder)
@@ -505,7 +509,7 @@ def _find_feedback_order(  # noqa: C901
         for parking_encoder in state.active_encoders_in_order():
             if state.encoder_at(slot) == parking_encoder:
                 continue
-            if not state.can_execute_transition(parking_encoder):
+            if not state.can_execute_transition(slot, parking_encoder):
                 continue
             # Candidate configuration with this slot temporarily assigned to an
             # encoder that is already active in another slot.

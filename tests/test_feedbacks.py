@@ -562,8 +562,12 @@ def test_feedback_configuration_limit_is_checked_before_each_write(axis: "Axis")
     )
 
     assert len(current.active_sensors()) == MAX_SIMULTANEOUS_FEEDBACKS
-    assert current.can_execute_transition(feedbacks.get_sensor(SensorType.HALLS))
-    assert not current.can_execute_transition(feedbacks.get_sensor(SensorType.QEI2))
+    assert current.can_execute_transition(
+        feedbacks.commutation, feedbacks.get_sensor(SensorType.HALLS)
+    )
+    assert not current.can_execute_transition(
+        feedbacks.commutation, feedbacks.get_sensor(SensorType.QEI2)
+    )
 
 
 @pytest.mark.virtual
@@ -602,7 +606,7 @@ def test_set_configuration_reaches_target_without_exceeding_limit(axis: "Axis") 
     )
     state = current
     for slot, encoder in feedbacks.transition_order(current, target):
-        assert state.can_execute_transition(encoder)
+        assert state.can_execute_transition(slot, encoder)
         state = state.with_encoder_at(slot, encoder)
         assert len(state.active_sensors()) <= MAX_SIMULTANEOUS_FEEDBACKS
 
