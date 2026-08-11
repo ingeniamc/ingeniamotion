@@ -485,6 +485,28 @@ def test_internal_generator_has_no_resolution_or_polarity(axis: "Axis") -> None:
 
 
 @pytest.mark.virtual
+@pytest.mark.usefixtures("restore_resolution_registers")
+@pytest.mark.parametrize(
+    "sensor, register, raw_value, expected_resolution",
+    [
+        (SensorType.ABS1, ABS1_1_SINGLE_TURN_REGISTER, 22, 4194304),
+        (SensorType.SSI2, ABS2_1_SINGLE_TURN_REGISTER, 22, 4194304),
+        (SensorType.BISSC2, ABS1_2_SINGLE_TURN_REGISTER, 22, 4194304),
+        (SensorType.QEI, INCREMENTAL_RESOLUTION_1_REGISTER, 4000, 4000),
+        (SensorType.QEI2, INCREMENTAL_RESOLUTION_2_REGISTER, 4000, 4000),
+        (SensorType.HALLS, PAIR_POLES_REGISTER, 4, 24),
+    ],
+)
+def test_encoder_get_resolution_by_type(
+    axis: "Axis", sensor, register, raw_value, expected_resolution
+):
+    """Each concrete Encoder subclass computes its resolution from its own register."""
+    axis.write(register, raw_value)
+    encoder = axis.feedbacks.get_sensor(sensor)
+    assert encoder.get_resolution() == expected_resolution
+
+
+@pytest.mark.virtual
 def test_feedback_configuration_updates_are_immutable_and_ordered(axis: "Axis") -> None:
     """Configuration copies preserve the original and deduplicate encoders in order."""
     feedbacks = axis.feedbacks
