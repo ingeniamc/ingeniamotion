@@ -37,27 +37,6 @@ ABSOLUTE_ENCODER_RESOLUTION_TEST_VALUES = [(22, 4194304), (10, 1024), (15, 32768
 INCREMENTAL_ENCODER_RESOLUTION_TEST_VALUES = [1000, 4000, 6000]
 
 
-@pytest.fixture
-def restore_resolution_registers(mc, alias):
-    registers = [
-        PAIR_POLES_REGISTER,
-        INCREMENTAL_RESOLUTION_1_REGISTER,
-        INCREMENTAL_RESOLUTION_2_REGISTER,
-        ABS1_1_SINGLE_TURN_REGISTER,
-        ABS1_2_SINGLE_TURN_REGISTER,
-        ABS2_1_SINGLE_TURN_REGISTER,
-    ]
-    registers_values = [
-        mc.communication.get_register(register, servo=alias)
-        if mc.info.register_exists(register, servo=alias)
-        else None
-        for register in registers
-    ]
-    yield
-    for register, register_value in zip(registers, registers_values):
-        if register_value is not None:
-            mc.communication.set_register(register, register_value, servo=alias)
-
 
 def skip_if_qei2_is_not_available(mc, alias, sensor=SensorType.QEI2):
     if sensor == SensorType.QEI2 and not mc.info.register_exists(
@@ -387,7 +366,7 @@ def test_get_auxiliar_feedback_resolution(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("restore_resolution_registers")
+
 @pytest.mark.parametrize("single_turn, resolution", ABSOLUTE_ENCODER_RESOLUTION_TEST_VALUES)
 def test_get_absolute_encoder_1_resolution(mc, alias, single_turn, resolution):
     mc.communication.set_register(ABS1_1_SINGLE_TURN_REGISTER, single_turn, servo=alias)
@@ -396,7 +375,7 @@ def test_get_absolute_encoder_1_resolution(mc, alias, single_turn, resolution):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("restore_resolution_registers")
+
 @pytest.mark.parametrize("resolution", INCREMENTAL_ENCODER_RESOLUTION_TEST_VALUES)
 def test_get_incremental_encoder_1_resolution(mc, alias, resolution):
     mc.communication.set_register(INCREMENTAL_RESOLUTION_1_REGISTER, resolution, servo=alias)
@@ -405,7 +384,7 @@ def test_get_incremental_encoder_1_resolution(mc, alias, resolution):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("restore_resolution_registers")
+
 @pytest.mark.parametrize("pair_poles, resolution", [(1, 6), (10, 60), (4, 24)])
 def test_get_digital_halls_resolution(mc, alias, pair_poles, resolution):
     mc.communication.set_register(PAIR_POLES_REGISTER, pair_poles, servo=alias)
@@ -414,7 +393,7 @@ def test_get_digital_halls_resolution(mc, alias, pair_poles, resolution):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("restore_resolution_registers")
+
 @pytest.mark.parametrize("single_turn, resolution", ABSOLUTE_ENCODER_RESOLUTION_TEST_VALUES)
 def test_get_secondary_ssi_resolution(mc, alias, single_turn, resolution):
     mc.communication.set_register(ABS2_1_SINGLE_TURN_REGISTER, single_turn, servo=alias)
@@ -423,7 +402,7 @@ def test_get_secondary_ssi_resolution(mc, alias, single_turn, resolution):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("restore_resolution_registers")
+
 @pytest.mark.parametrize("single_turn, resolution", ABSOLUTE_ENCODER_RESOLUTION_TEST_VALUES)
 def test_get_absolute_encoder_2_resolution(mc, alias, single_turn, resolution):
     mc.communication.set_register(ABS1_2_SINGLE_TURN_REGISTER, single_turn, servo=alias)
@@ -432,7 +411,7 @@ def test_get_absolute_encoder_2_resolution(mc, alias, single_turn, resolution):
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("restore_resolution_registers")
+
 @pytest.mark.parametrize("resolution", INCREMENTAL_ENCODER_RESOLUTION_TEST_VALUES)
 def test_get_incremental_encoder_2_resolution(mc, alias, resolution):
     skip_if_qei2_is_not_available(mc, alias)
