@@ -5,7 +5,6 @@ from typing import TYPE_CHECKING, Any, Optional
 import numpy as np
 import pytest
 from ingenialink import exceptions
-from ingenialink.dictionary import Interface
 
 from ingeniamotion.enums import OperationMode
 from ingeniamotion.exceptions import IMTimeoutError

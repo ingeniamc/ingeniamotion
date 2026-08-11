@@ -325,7 +325,7 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
             ),
             config_file=config_files.SIRIUS_EVS_NET_E_2_11_0_CONFIG,
             extra_data={
-                __EXECUTION_POLICY_KEY: "always",
+                __EXECUTION_POLICY_KEY: "nightly",
                 __TEST_CONFIGS_KEY: {
                     "SIRIUS_TEST_SESSIONS": PyTestConfig(
                         markers="soem and biss_c_flaky",
