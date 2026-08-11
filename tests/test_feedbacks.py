@@ -511,9 +511,9 @@ def test_internal_generator_has_no_resolution_or_polarity(axis: "Axis") -> None:
     """The internal generator rejects operations that require a physical encoder."""
     encoder = axis.feedbacks.get_sensor(SensorType.INTGEN)
 
-    with pytest.raises(ValueError, match="has no resolution"):
+    with pytest.raises(ValueError, match="^Internal generator encoder has no resolution$"):
         encoder.get_resolution()
-    with pytest.raises(NotImplementedError, match="polarity is not implemented"):
+    with pytest.raises(NotImplementedError, match="^Sensor INTGEN polarity is not implemented$"):
         encoder.get_polarity()
 
 
@@ -606,5 +606,7 @@ def test_feedback_transition_rejects_target_with_five_sensors(axis: "Axis") -> N
         (SensorType.ABS1, SensorType.QEI, SensorType.HALLS, SensorType.SSI2, SensorType.BISSC2),
     )
 
-    with pytest.raises(ValueError, match="cannot be transitioned safely"):
+    with pytest.raises(
+        ValueError, match=r"^Feedback configurations cannot be transitioned safely\.$"
+    ):
         list(feedbacks.transition_order(current, target))

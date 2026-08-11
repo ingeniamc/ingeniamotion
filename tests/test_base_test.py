@@ -47,7 +47,7 @@ def test_base_test_restores_configuration_when_teardown_fails(
     test.servo = alias
     test.axis = axis.axis_number
 
-    with pytest.raises(RuntimeError, match="teardown failed"):
+    with pytest.raises(RuntimeError, match="^teardown failed$"):
         test.run()
 
     assert test.restored

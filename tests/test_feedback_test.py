@@ -55,7 +55,10 @@ def test_bldc_feedback_setting_raises_on_zero_resolution(mc, alias):
         INCREMENTAL_ENCODER_1_RESOLUTION_REGISTER, 0, servo=alias, axis=axis
     )
     feedback_test = DigitalIncremental1Test(mc, alias, axis)
-    with pytest.raises(TestConfigurationError, match="resolution must be greater than 0"):
+    with pytest.raises(
+        TestConfigurationError,
+        match=r"^The feedback resolution must be greater than 0\. Please adjust it accordingly\.$",
+    ):
         feedback_test.setup()
 
 
@@ -67,7 +70,10 @@ def test_dc_resolution_test_raises_on_zero_resolution(mc, alias):
         INCREMENTAL_ENCODER_1_RESOLUTION_REGISTER, 0, servo=alias, axis=axis
     )
     dc_test = DCFeedbacksResolutionTest(mc, SensorType.QEI, alias, axis)
-    with pytest.raises(TestConfigurationError, match="resolution must be greater than 0"):
+    with pytest.raises(
+        TestConfigurationError,
+        match=r"^The feedback resolution must be greater than 0\. Please adjust it accordingly\.$",
+    ):
         dc_test.setup()
 
 
@@ -79,7 +85,10 @@ def test_dc_polarity_test_raises_on_zero_resolution(mc, alias):
         INCREMENTAL_ENCODER_1_RESOLUTION_REGISTER, 0, servo=alias, axis=axis
     )
     dc_test = DCFeedbacksPolarityTest(mc, SensorType.QEI, alias, axis)
-    with pytest.raises(TestConfigurationError, match="resolution must be greater than 0"):
+    with pytest.raises(
+        TestConfigurationError,
+        match=r"^The feedback resolution must be greater than 0\. Please adjust it accordingly\.$",
+    ):
         dc_test.setup()
 
 
