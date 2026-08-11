@@ -396,9 +396,9 @@ def test_feedback_transition_emits_safe_register_values():
     )
 
     state = current_configuration
-    writes = list(feedbacks.feedback_transition(current_configuration, target_configuration))
+    writes = list(feedbacks.transition_order(current_configuration, target_configuration))
     for slot, encoder in writes:
-        assert state.can_execute_transition(slot, encoder)
+        assert state.can_execute_transition(encoder)
         state = state.with_encoder_at(slot, encoder)
         assert len(state.active_sensors()) <= MAX_SIMULTANEOUS_FEEDBACKS
 
@@ -431,7 +431,7 @@ def test_feedback_transition_reuses_slot_before_new_source():
         ),
     )
 
-    assert list(feedbacks.feedback_transition(current_configuration, target_configuration)) == [
+    assert list(feedbacks.transition_order(current_configuration, target_configuration)) == [
         (feedbacks.commutation, feedbacks.get_sensor(SensorType.HALLS)),
         (feedbacks.commutation, feedbacks.get_sensor(SensorType.SSI2)),
     ]
@@ -451,7 +451,7 @@ def test_feedback_transition_is_empty_for_an_unchanged_configuration():
         ),
     )
 
-    assert list(feedbacks.feedback_transition(configuration, configuration)) == []
+    assert list(feedbacks.transition_order(configuration, configuration)) == []
 
 
 def test_all_feedback_transitions_stay_within_limit_and_reach_target(
@@ -484,12 +484,12 @@ def test_all_feedback_transitions_stay_within_limit_and_reach_target(
             seed=seed,
         ):
             try:
-                writes = list(feedbacks.feedback_transition(current, target))
+                writes = list(feedbacks.transition_order(current, target))
             except ValueError:
                 continue
 
             for slot, encoder in writes:
-                assert state.can_execute_transition(slot, encoder), (
+                assert state.can_execute_transition(encoder), (
                     f"seed={seed}, pair_index={pair_index}"
                 )
                 state = state.with_encoder_at(slot, encoder)
@@ -535,9 +535,7 @@ def test_feedback_test_respects_the_drive_feedback_limit_across_configurations(
         with subtests.test(msg=msg):
             current_configuration = feedbacks.get_configuration()
             state = current_configuration
-            for slot, encoder in feedbacks.feedback_transition(
-                current_configuration, configuration
-            ):
+            for slot, encoder in feedbacks.transition_order(current_configuration, configuration):
                 mc.communication.set_register(
                     slot.register_uid, encoder.SENSOR_TYPE, servo=alias, axis=axis
                 )

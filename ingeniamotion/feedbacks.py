@@ -293,7 +293,12 @@ class FeedbackSlot:
 
         Args:
             sensor: Feedback sensor to configure.
+
+        Raises:
+            ValueError: If the drive does not allow this sensor type in the slot.
         """
+        if not self.supports(sensor):
+            raise ValueError(f"{sensor.name} is not a valid sensor type for {self.__register_uid}.")
         self.__axis.write(self.__register_uid, sensor)
 
     def set_encoder(self, encoder: Encoder) -> None:
@@ -303,6 +308,25 @@ class FeedbackSlot:
             encoder: Encoder to configure.
         """
         self.set_encoder_type(encoder.SENSOR_TYPE)
+
+    def supports(self, sensor_type: SensorType) -> bool:
+        """Return whether the drive allows this sensor type in the slot.
+
+        Not every sensor type is a legal value for every selector register;
+        the connected drive's dictionary defines, per register, which values
+        it accepts.
+
+        Args:
+            sensor_type: Sensor type to check.
+
+        Returns:
+            Whether the drive's dictionary lists ``sensor_type`` as a valid
+            value for this slot's selector register.
+        """
+        register = self.__axis.motion_node.servo.dictionary.registers(self.__axis.axis_number)[
+            self.__register_uid
+        ]
+        return sensor_type.value in register.enums.values()
 
 
 class FeedbacksConfiguration:
@@ -369,22 +393,23 @@ class FeedbacksConfiguration:
         """Return the distinct sensor types assigned across all slots."""
         return frozenset(encoder.SENSOR_TYPE for encoder in self.__encoders.values())
 
-    def can_execute_transition(self, slot: FeedbackSlot, encoder: Encoder) -> bool:
+    def can_execute_transition(self, encoder: Encoder) -> bool:
         """Return whether the drive accepts assigning an encoder to a slot.
 
-        The drive checks the number of active sensor types before replacing the
-        encoder in ``slot``. This is conservative and can reject a write that
-        would leave four active types after the replacement, but it reflects the
-        drive's actual implementation.
+        The drive checks the number of active sensor types before replacing an
+        encoder. This is conservative and can reject a write that would leave
+        four active types after the replacement, but it reflects the drive's
+        actual implementation. This does not check whether ``encoder`` is a
+        legal value for the target slot on the connected drive; that is
+        enforced when the write is actually issued, by
+        :meth:`FeedbackSlot.set_encoder_type`.
 
         Args:
-            slot: Feedback slot that would be written.
-            encoder: Encoder that would be assigned to the slot.
+            encoder: Encoder that would be assigned to a slot.
 
         Returns:
             Whether the drive accepts the individual selector write.
         """
-        self.encoder_at(slot)  # Validate that the slot belongs to this state.
         active_sensors = self.active_sensors()
         return (
             len(active_sensors) < MAX_SIMULTANEOUS_FEEDBACKS
@@ -432,7 +457,7 @@ def _find_feedback_order(  # noqa: C901
     # target encoder is already active or there is still room for a new sensor.
     for slot in pending:
         target_encoder = target.encoder_at(slot)
-        if not state.can_execute_transition(slot, target_encoder):
+        if not state.can_execute_transition(target_encoder):
             continue
         # Candidate configuration with the target encoder assigned to this slot.
         candidate_state = state.with_encoder_at(slot, target_encoder)
@@ -448,7 +473,7 @@ def _find_feedback_order(  # noqa: C901
         for parking_encoder in state.active_encoders_in_order():
             if state.encoder_at(slot) == parking_encoder:
                 continue
-            if not state.can_execute_transition(slot, parking_encoder):
+            if not state.can_execute_transition(parking_encoder):
                 continue
             # Candidate configuration with this slot temporarily assigned to an
             # encoder that is already active in another slot.
@@ -567,10 +592,10 @@ class AxisFeedbacks:
             ValueError: If the target cannot be reached without exceeding the drive
                 feedback limit.
         """
-        for slot, encoder in self.feedback_transition(self.get_configuration(), target):
+        for slot, encoder in self.transition_order(self.get_configuration(), target):
             slot.set_encoder(encoder)
 
-    def feedback_transition(
+    def transition_order(
         self,
         current: FeedbacksConfiguration,
         target: FeedbacksConfiguration,
@@ -595,21 +620,6 @@ class AxisFeedbacks:
         if order is None:
             raise ValueError("Feedback configurations cannot be transitioned safely.")
         yield from order
-
-    def get_resolution(self, sensor: SensorType) -> int:
-        """Get the resolution of the target feedback sensor in the axis.
-
-        Args:
-            sensor: target feedback sensor.
-
-        Returns:
-            The resolution of the target feedback sensor.
-
-        Raises:
-            ValueError: If the feedback sensor has no resolution.
-            TypeError: If some read value has a wrong type.
-        """
-        return self.get_sensor(sensor).get_resolution()
 
 
 class Feedbacks:
@@ -983,7 +993,7 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        return self.__axis_feedbacks(servo, axis).get_resolution(SensorType.ABS1)
+        return self.__axis_feedbacks(servo, axis).get_sensor(SensorType.ABS1).get_resolution()
 
     def get_incremental_encoder_1_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -1001,7 +1011,7 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        return self.__axis_feedbacks(servo, axis).get_resolution(SensorType.QEI)
+        return self.__axis_feedbacks(servo, axis).get_sensor(SensorType.QEI).get_resolution()
 
     def get_digital_halls_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -1019,7 +1029,7 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        return self.__axis_feedbacks(servo, axis).get_resolution(SensorType.HALLS)
+        return self.__axis_feedbacks(servo, axis).get_sensor(SensorType.HALLS).get_resolution()
 
     def get_secondary_ssi_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -1037,7 +1047,7 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        return self.__axis_feedbacks(servo, axis).get_resolution(SensorType.SSI2)
+        return self.__axis_feedbacks(servo, axis).get_sensor(SensorType.SSI2).get_resolution()
 
     def get_absolute_encoder_2_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -1055,7 +1065,7 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        return self.__axis_feedbacks(servo, axis).get_resolution(SensorType.BISSC2)
+        return self.__axis_feedbacks(servo, axis).get_sensor(SensorType.BISSC2).get_resolution()
 
     def get_incremental_encoder_2_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -1073,7 +1083,7 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        return self.__axis_feedbacks(servo, axis).get_resolution(SensorType.QEI2)
+        return self.__axis_feedbacks(servo, axis).get_sensor(SensorType.QEI2).get_resolution()
 
     def get_feedback_resolution(
         self, feedback: SensorType, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -1097,7 +1107,7 @@ class Feedbacks:
         Returns:
             Resolution of target feedback.
         """
-        return self.__axis_feedbacks(servo, axis).get_resolution(feedback)
+        return self.__axis_feedbacks(servo, axis).get_sensor(feedback).get_resolution()
 
     def set_feedback_polarity(
         self,

@@ -578,12 +578,8 @@ def test_feedback_configuration_limit_is_checked_before_each_write(axis: "Axis")
     )
 
     assert len(current.active_sensors()) == MAX_SIMULTANEOUS_FEEDBACKS
-    assert current.can_execute_transition(
-        feedbacks.auxiliary, feedbacks.get_sensor(SensorType.HALLS)
-    )
-    assert not current.can_execute_transition(
-        feedbacks.auxiliary, feedbacks.get_sensor(SensorType.QEI2)
-    )
+    assert current.can_execute_transition(feedbacks.get_sensor(SensorType.HALLS))
+    assert not current.can_execute_transition(feedbacks.get_sensor(SensorType.QEI2))
 
 
 @pytest.mark.virtual
@@ -608,8 +604,8 @@ def test_set_configuration_reaches_target_without_exceeding_limit(axis: "Axis") 
     current = feedback_configuration(feedbacks, current_sensors)
     target = feedback_configuration(feedbacks, target_sensors)
     state = current
-    for slot, encoder in feedbacks.feedback_transition(current, target):
-        assert state.can_execute_transition(slot, encoder)
+    for slot, encoder in feedbacks.transition_order(current, target):
+        assert state.can_execute_transition(encoder)
         state = state.with_encoder_at(slot, encoder)
         assert len(state.active_sensors()) <= MAX_SIMULTANEOUS_FEEDBACKS
 
@@ -631,4 +627,4 @@ def test_feedback_transition_rejects_target_with_five_sensors(axis: "Axis") -> N
     )
 
     with pytest.raises(ValueError, match="cannot be transitioned safely"):
-        list(feedbacks.feedback_transition(current, target))
+        list(feedbacks.transition_order(current, target))
