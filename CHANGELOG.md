@@ -4,9 +4,13 @@
 ### Added
 - Add dynamic forced phasing test
 - Add SDCP servo support.
+- Add `Axis.feedbacks` (`AxisFeedbacks`), a typed API for an axis's five feedback slots: `FeedbackSlot` for reading/writing a slot's sensor type, per-sensor-type `Encoder` subclasses for resolution and polarity, and `FeedbacksConfiguration`, an immutable snapshot of the encoder assigned to every slot.
+- Add `AxisFeedbacks.set_configuration`, which safely transitions all feedback slots to a target configuration: writes are ordered, and a slot is temporarily parked on an already-active sensor when needed, so the drive's 4-simultaneous-feedback limit is never exceeded mid-transition.
+- Validate, before writing, that a sensor type is a legal value for a feedback slot's selector register according to the drive dictionary.
 
 ### Changed
-- Removed `get_feedback_polarity_register_uid`, `feedback_resolution_functions` and `get_sincos_encoder_resolution` from `Feedbacks`, and dropped SinCos support from `get_feedback_resolution`; feedbacks are now managed through `Axis.feedbacks` (`AxisFeedbacks`).
+- Feedbacks are now managed through `Axis.feedbacks` (`AxisFeedbacks`) instead of the flat `Feedbacks` class; `Feedbacks` remains available for backward compatibility and delegates to the new API.
+- Removed `get_feedback_polarity_register_uid`, `feedback_resolution_functions` and `get_sincos_encoder_resolution` from `Feedbacks`, and dropped SinCos support from `get_feedback_resolution`.
 
 ### Fixed
 - Feedback test symmetry check
