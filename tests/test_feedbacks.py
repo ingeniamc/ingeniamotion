@@ -455,10 +455,12 @@ def test_set_encoder_type_rejects_unsupported_sensor(axis: "Axis") -> None:
     slot = axis.feedbacks.auxiliary
     assert not slot.supports(SensorType.INTGEN)
 
-    with pytest.raises(
-        ValueError, match=rf"^INTGEN is not a valid sensor type for {AUXILIAR_FEEDBACK_REGISTER}\.$"
-    ):
+    with pytest.raises(ValueError) as exc_info:
         slot.set_encoder_type(SensorType.INTGEN)
+
+    assert str(exc_info.value) == (
+        f"INTGEN is not a valid sensor type for {AUXILIAR_FEEDBACK_REGISTER}."
+    )
 
 
 @pytest.mark.virtual
@@ -478,10 +480,15 @@ def test_internal_generator_has_no_resolution_or_polarity(axis: "Axis") -> None:
     """The internal generator rejects operations that require a physical encoder."""
     encoder = axis.feedbacks.get_sensor(SensorType.INTGEN)
 
-    with pytest.raises(ValueError, match="^Internal generator encoder has no resolution$"):
+    with pytest.raises(ValueError) as exc_info:
         encoder.get_resolution()
-    with pytest.raises(NotImplementedError, match="^Sensor INTGEN polarity is not implemented$"):
+
+    assert str(exc_info.value) == "Internal generator encoder has no resolution"
+
+    with pytest.raises(NotImplementedError) as exc_info:
         encoder.get_polarity()
+
+    assert str(exc_info.value) == "Sensor INTGEN polarity is not implemented"
 
 
 @pytest.mark.virtual
@@ -512,7 +519,11 @@ def test_feedback_configuration_updates_are_immutable_and_ordered(axis: "Axis") 
     feedbacks = axis.feedbacks
     original = FeedbacksConfiguration.from_sensor_types(
         feedbacks,
-        (SensorType.QEI, SensorType.HALLS, SensorType.QEI, SensorType.ABS1, SensorType.HALLS),
+        commutation=SensorType.QEI,
+        reference=SensorType.HALLS,
+        velocity=SensorType.QEI,
+        position=SensorType.ABS1,
+        auxiliary=SensorType.HALLS,
     )
     replacement = original.with_encoder_at(
         feedbacks.reference, feedbacks.get_sensor(SensorType.SSI2)
@@ -543,7 +554,11 @@ def test_feedback_configuration_limit_is_checked_before_each_write(axis: "Axis")
     feedbacks = axis.feedbacks
     current = FeedbacksConfiguration.from_sensor_types(
         feedbacks,
-        (SensorType.QEI, SensorType.HALLS, SensorType.ABS1, SensorType.SSI2, SensorType.QEI),
+        commutation=SensorType.QEI,
+        reference=SensorType.HALLS,
+        velocity=SensorType.ABS1,
+        position=SensorType.SSI2,
+        auxiliary=SensorType.QEI,
     )
 
     assert len(current.active_sensors()) == MAX_SIMULTANEOUS_FEEDBACKS
@@ -569,8 +584,22 @@ def test_set_configuration_reaches_target_without_exceeding_limit(axis: "Axis") 
         SensorType.ABS1,
         SensorType.QEI,
     )
-    current = FeedbacksConfiguration.from_sensor_types(feedbacks, current_sensors)
-    target = FeedbacksConfiguration.from_sensor_types(feedbacks, target_sensors)
+    current = FeedbacksConfiguration.from_sensor_types(
+        feedbacks,
+        commutation=current_sensors[0],
+        reference=current_sensors[1],
+        velocity=current_sensors[2],
+        position=current_sensors[3],
+        auxiliary=current_sensors[4],
+    )
+    target = FeedbacksConfiguration.from_sensor_types(
+        feedbacks,
+        commutation=target_sensors[0],
+        reference=target_sensors[1],
+        velocity=target_sensors[2],
+        position=target_sensors[3],
+        auxiliary=target_sensors[4],
+    )
     state = current
     for slot, encoder in feedbacks.transition_order(current, target):
         assert state.can_execute_transition(encoder)
@@ -588,13 +617,24 @@ def test_set_configuration_reaches_target_without_exceeding_limit(axis: "Axis") 
 def test_feedback_transition_rejects_target_with_five_sensors(axis: "Axis") -> None:
     """A target requiring five distinct sensors cannot be applied safely."""
     feedbacks = axis.feedbacks
-    current = FeedbacksConfiguration.from_sensor_types(feedbacks, (SensorType.QEI,) * 5)
+    current = FeedbacksConfiguration.from_sensor_types(
+        feedbacks,
+        commutation=SensorType.QEI,
+        reference=SensorType.QEI,
+        velocity=SensorType.QEI,
+        position=SensorType.QEI,
+        auxiliary=SensorType.QEI,
+    )
     target = FeedbacksConfiguration.from_sensor_types(
         feedbacks,
-        (SensorType.ABS1, SensorType.QEI, SensorType.HALLS, SensorType.SSI2, SensorType.BISSC2),
+        commutation=SensorType.ABS1,
+        reference=SensorType.QEI,
+        velocity=SensorType.HALLS,
+        position=SensorType.SSI2,
+        auxiliary=SensorType.BISSC2,
     )
 
-    with pytest.raises(
-        ValueError, match=r"^Feedback configurations cannot be transitioned safely\.$"
-    ):
+    with pytest.raises(ValueError) as exc_info:
         list(feedbacks.transition_order(current, target))
+
+    assert str(exc_info.value) == "Feedback configurations cannot be transitioned safely."

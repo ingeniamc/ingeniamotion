@@ -57,11 +57,13 @@ def test_bldc_feedback_setting_raises_on_zero_resolution(mc, alias):
         INCREMENTAL_ENCODER_1_RESOLUTION_REGISTER, 0, servo=alias, axis=axis
     )
     feedback_test = DigitalIncremental1Test(mc, alias, axis)
-    with pytest.raises(
-        TestConfigurationError,
-        match=r"^The feedback resolution must be greater than 0\. Please adjust it accordingly\.$",
-    ):
+    with pytest.raises(TestConfigurationError) as exc_info:
         feedback_test.setup()
+
+    assert (
+        str(exc_info.value)
+        == "The feedback resolution must be greater than 0. Please adjust it accordingly."
+    )
 
 
 @pytest.mark.virtual
@@ -72,11 +74,13 @@ def test_dc_resolution_test_raises_on_zero_resolution(mc, alias):
         INCREMENTAL_ENCODER_1_RESOLUTION_REGISTER, 0, servo=alias, axis=axis
     )
     dc_test = DCFeedbacksResolutionTest(mc, SensorType.QEI, alias, axis)
-    with pytest.raises(
-        TestConfigurationError,
-        match=r"^The feedback resolution must be greater than 0\. Please adjust it accordingly\.$",
-    ):
+    with pytest.raises(TestConfigurationError) as exc_info:
         dc_test.setup()
+
+    assert (
+        str(exc_info.value)
+        == "The feedback resolution must be greater than 0. Please adjust it accordingly."
+    )
 
 
 @pytest.mark.virtual
@@ -87,11 +91,13 @@ def test_dc_polarity_test_raises_on_zero_resolution(mc, alias):
         INCREMENTAL_ENCODER_1_RESOLUTION_REGISTER, 0, servo=alias, axis=axis
     )
     dc_test = DCFeedbacksPolarityTest(mc, SensorType.QEI, alias, axis)
-    with pytest.raises(
-        TestConfigurationError,
-        match=r"^The feedback resolution must be greater than 0\. Please adjust it accordingly\.$",
-    ):
+    with pytest.raises(TestConfigurationError) as exc_info:
         dc_test.setup()
+
+    assert (
+        str(exc_info.value)
+        == "The feedback resolution must be greater than 0. Please adjust it accordingly."
+    )
 
 
 @pytest.mark.virtual
@@ -294,7 +300,16 @@ def _feedback_configurations(
         if shape in seen_shapes:
             continue
         seen_shapes.add(shape)
-        configurations.append(FeedbacksConfiguration.from_sensor_types(feedbacks, combination))
+        configurations.append(
+            FeedbacksConfiguration.from_sensor_types(
+                feedbacks,
+                commutation=combination[0],
+                reference=combination[1],
+                velocity=combination[2],
+                position=combination[3],
+                auxiliary=combination[4],
+            )
+        )
 
     random.shuffle(configurations)
     yield from configurations
@@ -361,23 +376,19 @@ def test_feedback_transition_emits_safe_register_values():
     feedbacks = AxisFeedbacks(object())
     current_configuration = FeedbacksConfiguration.from_sensor_types(
         feedbacks,
-        (
-            SensorType.QEI,
-            SensorType.HALLS,
-            SensorType.ABS1,
-            SensorType.ABS1,
-            SensorType.QEI,
-        ),
+        commutation=SensorType.QEI,
+        reference=SensorType.HALLS,
+        velocity=SensorType.ABS1,
+        position=SensorType.ABS1,
+        auxiliary=SensorType.QEI,
     )
     target_configuration = FeedbacksConfiguration.from_sensor_types(
         feedbacks,
-        (
-            SensorType.HALLS,
-            SensorType.QEI,
-            SensorType.INTGEN,
-            SensorType.ABS1,
-            SensorType.QEI,
-        ),
+        commutation=SensorType.HALLS,
+        reference=SensorType.QEI,
+        velocity=SensorType.INTGEN,
+        position=SensorType.ABS1,
+        auxiliary=SensorType.QEI,
     )
 
     state = current_configuration
@@ -397,23 +408,19 @@ def test_feedback_transition_reuses_slot_before_new_source():
     feedbacks = AxisFeedbacks(object())
     current_configuration = FeedbacksConfiguration.from_sensor_types(
         feedbacks,
-        (
-            SensorType.QEI,
-            SensorType.HALLS,
-            SensorType.INTGEN,
-            SensorType.ABS1,
-            SensorType.HALLS,
-        ),
+        commutation=SensorType.QEI,
+        reference=SensorType.HALLS,
+        velocity=SensorType.INTGEN,
+        position=SensorType.ABS1,
+        auxiliary=SensorType.HALLS,
     )
     target_configuration = FeedbacksConfiguration.from_sensor_types(
         feedbacks,
-        (
-            SensorType.SSI2,
-            SensorType.HALLS,
-            SensorType.INTGEN,
-            SensorType.ABS1,
-            SensorType.HALLS,
-        ),
+        commutation=SensorType.SSI2,
+        reference=SensorType.HALLS,
+        velocity=SensorType.INTGEN,
+        position=SensorType.ABS1,
+        auxiliary=SensorType.HALLS,
     )
 
     assert list(feedbacks.transition_order(current_configuration, target_configuration)) == [
@@ -427,13 +434,11 @@ def test_feedback_transition_is_empty_for_an_unchanged_configuration():
     feedbacks = AxisFeedbacks(object())
     configuration = FeedbacksConfiguration.from_sensor_types(
         feedbacks,
-        (
-            SensorType.QEI,
-            SensorType.QEI,
-            SensorType.QEI,
-            SensorType.QEI,
-            SensorType.QEI,
-        ),
+        commutation=SensorType.QEI,
+        reference=SensorType.QEI,
+        velocity=SensorType.QEI,
+        position=SensorType.QEI,
+        auxiliary=SensorType.QEI,
     )
 
     assert list(feedbacks.transition_order(configuration, configuration)) == []

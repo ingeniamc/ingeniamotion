@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from collections.abc import Iterator, Mapping, Sequence
+from collections.abc import Iterator, Mapping
 from typing import TYPE_CHECKING, ClassVar, Final, Optional
 
 import ingenialogger
@@ -357,26 +357,35 @@ class FeedbacksConfiguration:
 
     @classmethod
     def from_sensor_types(
-        cls, axis_feedbacks: "AxisFeedbacks", sensors: Sequence[SensorType]
+        cls,
+        axis_feedbacks: "AxisFeedbacks",
+        *,
+        commutation: SensorType,
+        reference: SensorType,
+        velocity: SensorType,
+        position: SensorType,
+        auxiliary: SensorType,
     ) -> "FeedbacksConfiguration":
-        """Build a configuration assigning sensor types to slots in slot order.
+        """Build a configuration assigning sensor types to named feedback slots.
 
         Args:
             axis_feedbacks: Feedback slots container to build the configuration for.
-            sensors: Sensor type to assign to each slot, in slot order.
+            commutation: Sensor type to assign to the commutation slot.
+            reference: Sensor type to assign to the reference slot.
+            velocity: Sensor type to assign to the velocity slot.
+            position: Sensor type to assign to the position slot.
+            auxiliary: Sensor type to assign to the auxiliary slot.
 
         Returns:
             A configuration assigning each sensor to the corresponding feedback slot.
         """
-        return cls(
-            dict(
-                zip(
-                    axis_feedbacks._slots,
-                    (axis_feedbacks.get_sensor(sensor) for sensor in sensors),
-                    strict=True,
-                )
-            )
-        )
+        return cls({
+            axis_feedbacks.commutation: axis_feedbacks.get_sensor(commutation),
+            axis_feedbacks.reference: axis_feedbacks.get_sensor(reference),
+            axis_feedbacks.velocity: axis_feedbacks.get_sensor(velocity),
+            axis_feedbacks.position: axis_feedbacks.get_sensor(position),
+            axis_feedbacks.auxiliary: axis_feedbacks.get_sensor(auxiliary),
+        })
 
     def encoder_at(self, slot: FeedbackSlot) -> Encoder:
         """Return the encoder assigned to the given feedback slot.
