@@ -504,12 +504,8 @@ def test_feedback_test_respects_the_drive_feedback_limit_across_configurations(
 ):
     """The feedback test must never exceed the drive feedback limit.
 
-    The drive rejects a fifth feedback, so neither the setup writes nor the rollback
-    performed by the drive context manager may go through such a transient state.
-    Both properties are checked from a single run per configuration - running the
-    wizard test twice per configuration, once per property, would double this
-    test's runtime without adding coverage, since both checks read from the same
-    execution trace.
+    The drive rejects a fifth feedback, so neither the initial configuration nor
+    the wizard test may go through such a transient state.
     """
     axis = 1
     mocker.patch.object(
@@ -523,20 +519,12 @@ def test_feedback_test_respects_the_drive_feedback_limit_across_configurations(
             sensor.name for sensor in _configuration_sensor_types(configuration, feedbacks)
         )
         with subtests.test(msg=msg):
-            current_configuration = feedbacks.get_configuration()
-            state = current_configuration
-            for slot, encoder in feedbacks.transition_order(current_configuration, configuration):
-                mc.communication.set_register(
-                    slot.register_uid, encoder.SENSOR_TYPE, servo=alias, axis=axis
-                )
-                state = state.with_encoder_at(slot, encoder)
-                assert len(state.active_sensors()) <= MAX_SIMULTANEOUS_FEEDBACKS, (
-                    f"Applying {slot.register_uid} configured more than "
-                    f"{MAX_SIMULTANEOUS_FEEDBACKS} feedbacks: {state.active_sensors()}"
-                )
-
             feedback_test = DigitalIncremental1Test(mc, alias, axis)
             with FeedbackSelectorTracker(mc, servo, alias, axis) as tracker:
+                feedbacks.set_configuration(configuration)
+                assert _configuration_sensor_types(tracker.final_state, feedbacks) == (
+                    _configuration_sensor_types(configuration, feedbacks)
+                )
                 feedback_test.run()
 
             assert _configuration_sensor_types(tracker.initial_state, feedbacks) == (
