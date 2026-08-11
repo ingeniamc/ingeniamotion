@@ -137,8 +137,8 @@ def test_set_reference_feedback(mc, alias, sensor):
 @pytest.mark.virtual
 @pytest.mark.parametrize("sensor, category", SENSOR_TYPE_AND_CATEGORY)
 def test_get_reference_feedback_category(mc, alias, sensor, category):
-    mc.configuration.set_commutation_feedback(sensor, servo=alias)
-    test_category = mc.configuration.get_commutation_feedback_category(servo=alias)
+    mc.configuration.set_reference_feedback(sensor, servo=alias)
+    test_category = mc.configuration.get_reference_feedback_category(servo=alias)
     assert test_category == category
 
 
