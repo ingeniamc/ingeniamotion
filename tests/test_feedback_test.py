@@ -1,6 +1,6 @@
 import logging
 import random
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from itertools import product
 from types import TracebackType
 from typing import Optional
@@ -19,6 +19,7 @@ from ingeniamotion.feedbacks import (
 )
 from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.wizard_tests.base_test import TestConfigurationError
+from ingeniamotion.wizard_tests.feedbacks_tests import feedback_test
 from ingeniamotion.wizard_tests.feedbacks_tests.dc_feedback_polarity_test import (
     DCFeedbacksPolarityTest,
 )
@@ -35,6 +36,15 @@ pytestmark = pytest.mark.usefixtures("stoppable_trace_recorder")
 logger = logging.getLogger(__name__)
 
 INCREMENTAL_ENCODER_1_RESOLUTION_REGISTER = "FBK_DIGENC1_RESOLUTION"
+FEEDBACK_TRANSITION_SAMPLE_SIZE = 10_000
+
+
+def test_legacy_feedbacks_base_name_warns() -> None:
+    """The old feedback-test base name remains available with a warning."""
+    with pytest.warns(DeprecationWarning, match="Feedbacks is deprecated"):
+        legacy_feedbacks = feedback_test.Feedbacks
+
+    assert legacy_feedbacks is feedback_test.FeedbacksTest
 
 
 @pytest.mark.virtual
@@ -282,6 +292,54 @@ def _feedback_configurations(
     yield from configurations
 
 
+def _all_feedback_configurations(
+    feedbacks: AxisFeedbacks,
+) -> list[FeedbacksConfiguration]:
+    """Return every valid assignment of encoders to the feedback slots."""
+    slots = feedbacks._slots
+    encoders = tuple(feedbacks.get_sensor(sensor) for sensor in SensorType)
+    return [
+        FeedbacksConfiguration(dict(zip(slots, encoder_combination)))
+        for encoder_combination in product(encoders, repeat=len(slots))
+        if len({encoder.SENSOR_TYPE for encoder in encoder_combination})
+        <= MAX_SIMULTANEOUS_FEEDBACKS
+    ]
+
+
+def _configuration_matches(
+    actual: FeedbacksConfiguration,
+    expected: FeedbacksConfiguration,
+    feedbacks: AxisFeedbacks,
+) -> bool:
+    """Return whether two configurations assign equal encoders to every slot."""
+    return all(actual.encoder_at(slot) == expected.encoder_at(slot) for slot in feedbacks._slots)
+
+
+def _feedback_transition_pair_indices(
+    pair_count: int,
+    seed: int,
+    setup_specifier,
+) -> Sequence[int]:
+    """Return the randomized pair slice selected by the active test setup."""
+    configuration_slice = setup_specifier.extra_data.get("random_combinations_slice")
+    sample_size = (
+        FEEDBACK_TRANSITION_SAMPLE_SIZE
+        if configuration_slice is None
+        else max(1, int(pair_count * configuration_slice))
+    )
+    if sample_size >= pair_count:
+        return range(pair_count)
+    return random.Random(seed).sample(range(pair_count), sample_size)
+
+
+def _feedback_transition_seed(setup_specifier) -> int:
+    """Return the configured seed or generate a fresh seed for this run."""
+    configured_seed = setup_specifier.extra_data.get("random_combinations_seed")
+    if configured_seed is not None:
+        return int(configured_seed)
+    return random.SystemRandom().getrandbits(64)
+
+
 def test_feedback_transition_emits_safe_register_values():
     """The emitted writes reach the target without exceeding four sensors."""
     current_configuration = FeedbacksConfiguration(
@@ -343,6 +401,57 @@ def test_feedback_transition_is_empty_for_an_unchanged_configuration():
     )
 
     assert list(AxisFeedbacks.feedback_transition(configuration, configuration)) == []
+
+
+def test_all_feedback_transitions_stay_within_limit_and_reach_target(
+    subtests, setup_specifier
+) -> None:
+    """Verify setup-selected ordered feedback transitions are safe and complete.
+
+    The default run samples 10,000 ordered pairs. Set
+    ``random_combinations_slice`` to ``1.0`` in the active Summit setup's
+    ``extra_data`` to run all 204,118,369 ordered pairs. Full mode streams pair
+    indices and therefore does not allocate the complete pair list. Set
+    ``random_combinations_seed`` to reproduce a sampled run exactly.
+    """
+    feedbacks = AxisFeedbacks(object())
+    configurations = _all_feedback_configurations(feedbacks)
+    pair_count = len(configurations) ** 2
+    seed = _feedback_transition_seed(setup_specifier)
+    selected_pair_indices = _feedback_transition_pair_indices(pair_count, seed, setup_specifier)
+
+    for pair_index in selected_pair_indices:
+        current_index, target_index = divmod(pair_index, len(configurations))
+        current = configurations[current_index]
+        target = configurations[target_index]
+        state = current
+
+        with subtests.test(
+            pair_index=pair_index,
+            current_index=current_index,
+            target_index=target_index,
+            seed=seed,
+        ):
+            try:
+                writes = list(feedbacks.feedback_transition(current, target))
+            except ValueError:
+                continue
+
+            for slot, encoder in writes:
+                assert state.can_execute_transition(slot, encoder), (
+                    f"seed={seed}, pair_index={pair_index}"
+                )
+                state = state.with_encoder_at(slot, encoder)
+                assert len(state.active_sensors()) <= MAX_SIMULTANEOUS_FEEDBACKS, (
+                    f"seed={seed}, pair_index={pair_index}"
+                )
+
+            assert _configuration_matches(state, target, feedbacks), (
+                f"seed={seed}, pair_index={pair_index}"
+            )
+
+    assert selected_pair_indices, f"seed={seed}, pair_count={pair_count}"
+    assert len(configurations) == 14_287
 
 
 @pytest.mark.virtual

@@ -454,4 +454,4 @@ def test_instance_sensor_type(mc, alias):
     ],
 )
 def test_encoder_polarity_register_uid(axis, sensor, register):
-    assert register == axis.feedbacks.get_encoder(sensor).POLARITY_REGISTER_UID
+    assert register == axis.feedbacks.get_sensor(sensor).POLARITY_REGISTER_UID

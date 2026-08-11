@@ -66,7 +66,7 @@ class PhasingCheck(BaseTest[LegacyDictReportType]):
             f"Slowly increasing Current Direct Set-point until {current_sign * max_current} A"
         )
         init_pos = self.mc.motion.get_actual_position(servo=self.servo, axis=self.axis)
-        pos_resolution = self.axis_feedbacks.position.get_encoder().get_resolution()
+        pos_resolution = self._axis_feedbacks.position.get_encoder().get_resolution()
         total_time = max_current / self.CURRENT_SLOPE
         try:
             for value in self.mc.motion.ramp_generator(
@@ -110,7 +110,7 @@ class PhasingCheck(BaseTest[LegacyDictReportType]):
         if not isinstance(pha_accuracy, int):
             raise TypeError(f"{self.PHASING_ACCURACY_REGISTER} has to be an integer")
         delta = 3 * pha_accuracy / 1000
-        ref_feedback = self.axis_feedbacks.reference.get_encoder_type()
+        ref_feedback = self._axis_feedbacks.reference.get_encoder_type()
 
         num_of_steps = 1
         if ref_feedback == SensorType.HALLS:
@@ -173,9 +173,9 @@ class PhasingCheck(BaseTest[LegacyDictReportType]):
         if not isinstance(phasing_current, float):
             raise TypeError(f"{self.MAX_CURRENT_ON_PHASING_SEQUENCE_REGISTER} has to be an integer")
         max_test_current = round(phasing_current, 2)
-        configuration = self.axis_feedbacks.get_configuration()
-        ref_feedback = configuration.reference
-        comm_feedback = configuration.commutation
+        configuration = self._axis_feedbacks.get_configuration()
+        ref_feedback = configuration.encoder_at(self._axis_feedbacks.reference).SENSOR_TYPE
+        comm_feedback = configuration.encoder_at(self._axis_feedbacks.commutation).SENSOR_TYPE
 
         # With Halls only, this test makes no sense
         if ref_feedback == SensorType.HALLS and comm_feedback == SensorType.HALLS:

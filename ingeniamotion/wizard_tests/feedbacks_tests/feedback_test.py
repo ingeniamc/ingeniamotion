@@ -1,8 +1,8 @@
 import math
 import time
-from dataclasses import replace
+import warnings
 from enum import IntEnum
-from typing import TYPE_CHECKING, Final, Optional
+from typing import TYPE_CHECKING, Any, Final, Optional
 
 import ingenialogger
 from ingenialink.drive_context_manager import DriveContextManager
@@ -11,6 +11,7 @@ from typing_extensions import override
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
+    from ingeniamotion.feedbacks import FeedbacksConfiguration
 
 from ingeniamotion.enums import (
     CommutationMode,
@@ -19,10 +20,6 @@ from ingeniamotion.enums import (
     SeverityLevel,
 )
 from ingeniamotion.exceptions import IMRegisterNotExistError
-from ingeniamotion.feedbacks import (
-    FEEDBACK_SELECTOR_REGISTERS,
-    FeedbacksConfiguration,
-)
 from ingeniamotion.wizard_tests.base_test import (
     BaseTest,
     LegacyDictReportType,
@@ -31,8 +28,8 @@ from ingeniamotion.wizard_tests.base_test import (
 )
 
 
-class Feedbacks(BaseTest[LegacyDictReportType]):
-    """Feedbacks Wizard Class description."""
+class FeedbacksTest(BaseTest[LegacyDictReportType]):
+    """Base class for feedback wizard tests."""
 
     class ResultType(IntEnum):
         """Test result."""
@@ -100,6 +97,7 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         self.resolution_multiplier = 1.0
         self.test_frequency = self.TEST_FREQUENCY
         self.suggested_registers = {}
+        self._original_feedbacks_configuration: Optional[FeedbacksConfiguration] = None
 
     @BaseTest.stoppable
     def __check_feedback_tolerance(
@@ -158,14 +156,15 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         Raises:
             TestConfigurationError: If the feedback resolution is not greater than 0.
         """
-        target_configuration = replace(
-            self.axis_feedbacks.get_configuration(),
-            reference=self.sensor,
-            velocity=self.sensor,
-            position=self.sensor,
-            auxiliar=self.sensor,
-        )
-        self.axis_feedbacks.set_configuration(target_configuration)
+        feedbacks = self._axis_feedbacks
+        sensor = feedbacks.get_sensor(self.sensor)
+        target_configuration = feedbacks.get_configuration().replace({
+            feedbacks.reference: sensor,
+            feedbacks.velocity: sensor,
+            feedbacks.position: sensor,
+            feedbacks.auxiliary: sensor,
+        })
+        feedbacks.set_configuration(target_configuration)
         # Set Polarity to 0
         self.mc.communication.set_register(
             self.FEEDBACK_POLARITY_REGISTER,
@@ -175,7 +174,7 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         )
         # Depending on the type of the feedback, calculate the correct
         # feedback resolution
-        self.feedback_resolution = self.axis_feedbacks.get_resolution(self.sensor)
+        self.feedback_resolution = sensor.get_resolution()
         if self.feedback_resolution == 0:
             raise TestConfigurationError(
                 "The feedback resolution must be greater than 0. Please adjust it accordingly."
@@ -184,21 +183,10 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
     @override
     def _restore_configuration(self, context: DriveContextManager) -> None:
         """Restore feedback selectors without exceeding the drive feedback limit."""
-        baseline = context.baseline
-        if baseline is None:
+        if self._original_feedbacks_configuration is None:
             return
-
-        drive = self.mc._get_drive(self.servo)
-        registers = drive.dictionary.registers(self.axis)
-        selector_registers = tuple(registers[uid] for uid in FEEDBACK_SELECTOR_REGISTERS)
-        baseline_values = tuple(baseline.get(register) for register in selector_registers)
-        if not all(isinstance(value, int) for value in baseline_values):
-            return
-
-        target_configuration = FeedbacksConfiguration(
-            *(SensorType(value) for value in baseline_values)
-        )
-        self.axis_feedbacks.set_configuration(target_configuration)
+        self._axis_feedbacks.set_configuration(self._original_feedbacks_configuration)
+        self._original_feedbacks_configuration = None
 
     @BaseTest.stoppable
     def __reaction_codes_to_warning(self) -> None:
@@ -245,7 +233,9 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         #  - Motor & Feedbacks configured (Pair poles & rated current are used)
         #  - Current control loop tuned
         #  - Feedback reaction codes to WARNING
-        # Protection to avoid any unwanted movement
+        # Protection to avoid any unwanted movement: snapshot the feedback configuration
+        # before it's reconfigured below, so _restore_configuration can put it back.
+        self._original_feedbacks_configuration = self._axis_feedbacks.get_configuration()
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
         self.logger.info("CONFIGURATION OF THE TEST")
         # Set commutation modulation to sinusoidal
@@ -323,8 +313,8 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
         Raises:
             TypeError: On registers with unexpected type.
         """
-        position_feedback_value = self.axis_feedbacks.position.get_encoder_type()
-        velocity_feedback_value = self.axis_feedbacks.velocity.get_encoder_type()
+        position_feedback_value = self._axis_feedbacks.position.get_encoder_type()
+        velocity_feedback_value = self._axis_feedbacks.velocity.get_encoder_type()
 
         self.pos_vel_same_feedback = position_feedback_value == velocity_feedback_value
         if position_feedback_value == self.sensor:
@@ -511,3 +501,20 @@ class Feedbacks(BaseTest[LegacyDictReportType]):
             return SeverityLevel.FAIL
         else:
             return SeverityLevel.SUCCESS
+
+
+# WARNING: Deprecated aliases
+_DEPRECATED = {
+    "Feedbacks": "FeedbacksTest",
+}
+
+
+def __getattr__(name: str) -> Any:
+    if name in _DEPRECATED:
+        warnings.warn(
+            f"{name} is deprecated, use {_DEPRECATED[name]} instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return globals()[_DEPRECATED[name]]
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")

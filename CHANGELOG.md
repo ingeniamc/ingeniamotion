@@ -6,7 +6,7 @@
 - Add SDCP servo support.
 
 ### Changed
-- Removed `get_feedback_polarity_register_uid` and `feedback_resolution_functions` from `Feedbacks`; feedbacks are now managed through `Axis.feedbacks` (`AxisFeedbacks`).
+- Removed `get_feedback_polarity_register_uid`, `feedback_resolution_functions` and `get_sincos_encoder_resolution` from `Feedbacks`, and dropped SinCos support from `get_feedback_resolution`; feedbacks are now managed through `Axis.feedbacks` (`AxisFeedbacks`).
 
 ### Fixed
 - Feedback test symmetry check

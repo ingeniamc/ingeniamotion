@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
-from collections.abc import Iterator
-from dataclasses import dataclass
+from collections.abc import Iterator, Mapping
 from typing import TYPE_CHECKING, ClassVar, Final, Optional
 
 import ingenialogger
 
+from ingeniamotion._utils import weak_lru, weak_lru_prop
 from ingeniamotion.enums import FeedbackPolarity, SensorCategory, SensorType
 
 if TYPE_CHECKING:
@@ -16,31 +16,16 @@ COMMUTATION_FEEDBACK_REGISTER = "COMMU_ANGLE_SENSOR"
 REFERENCE_FEEDBACK_REGISTER = "COMMU_ANGLE_REF_SENSOR"
 VELOCITY_FEEDBACK_REGISTER = "CL_VEL_FBK_SENSOR"
 POSITION_FEEDBACK_REGISTER = "CL_POS_FBK_SENSOR"
-AUXILIAR_FEEDBACK_REGISTER = "CL_AUX_FBK_SENSOR"
+AUXILIARY_FEEDBACK_REGISTER = "CL_AUX_FBK_SENSOR"
 
 FEEDBACK_SELECTOR_REGISTERS: Final[tuple[str, ...]] = (
     COMMUTATION_FEEDBACK_REGISTER,
     REFERENCE_FEEDBACK_REGISTER,
     VELOCITY_FEEDBACK_REGISTER,
     POSITION_FEEDBACK_REGISTER,
-    AUXILIAR_FEEDBACK_REGISTER,
+    AUXILIARY_FEEDBACK_REGISTER,
 )
 MAX_SIMULTANEOUS_FEEDBACKS = 4
-
-
-@dataclass(frozen=True)
-class FeedbacksConfiguration:
-    """Sensor configuration of the five feedback selector slots."""
-
-    commutation: SensorType
-    reference: SensorType
-    velocity: SensorType
-    position: SensorType
-    auxiliar: SensorType
-
-    def as_tuple(self) -> tuple[SensorType, ...]:
-        """Return sensor selections in feedback selector order."""
-        return (self.commutation, self.reference, self.velocity, self.position, self.auxiliar)
 
 
 class Encoder(ABC):
@@ -61,8 +46,25 @@ class Encoder(ABC):
         Args:
             axis: Axis associated with the encoder.
         """
-        self.__servo = axis.motion_node.servo
-        self.__axis_number = axis.axis_number
+        self.__axis = axis
+
+    def __eq__(self, other: object) -> bool:
+        """Compare encoders by their axis and sensor type.
+
+        Returns:
+            Whether both encoders refer to the same axis and sensor type.
+        """
+        if not isinstance(other, Encoder):
+            return NotImplemented
+        return self.__axis is other.__axis and self.SENSOR_TYPE == other.SENSOR_TYPE
+
+    def __hash__(self) -> int:
+        """Hash the encoder by its axis and sensor type.
+
+        Returns:
+            A hash derived from the axis identity and sensor type.
+        """
+        return hash((id(self.__axis), self.SENSOR_TYPE))
 
     def _read(self, reg_uid: str) -> int:
         """Read an integer register with type validation.
@@ -76,7 +78,7 @@ class Encoder(ABC):
         Raises:
             TypeError: If the register value is not an integer.
         """
-        value = self.__servo.read(reg_uid, subnode=self.__axis_number)
+        value = self.__axis.read(reg_uid)
         if not isinstance(value, int):
             raise TypeError(f"Register {reg_uid} value has to be an integer")
         return value
@@ -88,7 +90,7 @@ class Encoder(ABC):
             reg_uid: register UID to write.
             value: value to write.
         """
-        self.__servo.write(reg_uid, value, subnode=self.__axis_number)
+        self.__axis.write(reg_uid, value)
 
     def get_polarity(self) -> FeedbackPolarity:
         """Get the polarity of the encoder.
@@ -246,6 +248,370 @@ _ENCODER_TYPES: Final[dict[SensorType, type[Encoder]]] = {
 }
 
 
+class FeedbackSlot:
+    """Class to represent a feedback slot of an axis."""
+
+    def __init__(self, register_uid: str, axis: "Axis") -> None:
+        """Constructor.
+
+        Args:
+            register_uid: Register UID of the feedback selector.
+            axis: Axis associated with the feedback slot.
+        """
+        self.__register_uid = register_uid
+        self.__axis = axis
+
+    @property
+    def register_uid(self) -> str:
+        """Register UID of the feedback selector."""
+        return self.__register_uid
+
+    def get_encoder_type(self) -> SensorType:
+        """Get the sensor type configured in the slot.
+
+        Returns:
+            The sensor type configured in the slot.
+
+        Raises:
+            TypeError: If the read value has a wrong type.
+        """
+        feedback = self.__axis.read(self.__register_uid)
+        if not isinstance(feedback, int):
+            raise TypeError("Feedback value has to be an integer")
+        return SensorType(feedback)
+
+    def get_encoder(self) -> Encoder:
+        """Get the encoder configured in the slot.
+
+        Returns:
+            The encoder configured in the slot.
+        """
+        return self.__axis.feedbacks.get_sensor(self.get_encoder_type())
+
+    def set_encoder_type(self, sensor: SensorType) -> None:
+        """Configure the sensor type of the slot.
+
+        Args:
+            sensor: Feedback sensor to configure.
+        """
+        self.__axis.write(self.__register_uid, sensor)
+
+    def set_encoder(self, encoder: Encoder) -> None:
+        """Configure the encoder of the slot.
+
+        Args:
+            encoder: Encoder to configure.
+        """
+        self.set_encoder_type(encoder.SENSOR_TYPE)
+
+
+class FeedbacksConfiguration:
+    """Encoder assigned to each feedback slot of an axis."""
+
+    def __init__(self, encoders: Mapping[FeedbackSlot, Encoder]) -> None:
+        """Constructor.
+
+        Args:
+            encoders: Encoder assigned to each feedback slot.
+        """
+        self.__encoders = dict(encoders)
+
+    @classmethod
+    def from_axis_feedbacks(cls, axis_feedbacks: "AxisFeedbacks") -> "FeedbacksConfiguration":
+        """Read the encoder currently assigned to every feedback slot of an axis.
+
+        Args:
+            axis_feedbacks: Feedback slots container to read.
+
+        Returns:
+            The current feedback configuration.
+        """
+        return cls({
+            slot: axis_feedbacks.get_sensor(slot.get_encoder_type())
+            for slot in axis_feedbacks._slots
+        })
+
+    def encoder_at(self, slot: FeedbackSlot) -> Encoder:
+        """Return the encoder assigned to the given feedback slot.
+
+        Args:
+            slot: Feedback slot to look up.
+
+        Returns:
+            The encoder assigned to that slot.
+        """
+        return self.__encoders[slot]
+
+    def with_encoder_at(self, slot: FeedbackSlot, encoder: Encoder) -> "FeedbacksConfiguration":
+        """Return a copy with the encoder at the given slot changed.
+
+        Args:
+            slot: Feedback slot to update.
+            encoder: Encoder to assign to that slot.
+
+        Returns:
+            A new configuration with the slot updated.
+        """
+        return FeedbacksConfiguration({**self.__encoders, slot: encoder})
+
+    def replace(self, changes: Mapping[FeedbackSlot, Encoder]) -> "FeedbacksConfiguration":
+        """Return a copy with the given slots changed.
+
+        Args:
+            changes: Encoder to assign per feedback slot to update.
+
+        Returns:
+            A new configuration containing the requested changes.
+        """
+        return FeedbacksConfiguration({**self.__encoders, **changes})
+
+    def active_sensors(self) -> frozenset[SensorType]:
+        """Return the distinct sensor types assigned across all slots."""
+        return frozenset(encoder.SENSOR_TYPE for encoder in self.__encoders.values())
+
+    def can_execute_transition(self, slot: FeedbackSlot, encoder: Encoder) -> bool:
+        """Return whether the drive accepts assigning an encoder to a slot.
+
+        The drive checks the number of active sensor types before replacing the
+        encoder in ``slot``. This is conservative and can reject a write that
+        would leave four active types after the replacement, but it reflects the
+        drive's actual implementation.
+
+        Args:
+            slot: Feedback slot that would be written.
+            encoder: Encoder that would be assigned to the slot.
+
+        Returns:
+            Whether the drive accepts the individual selector write.
+        """
+        self.encoder_at(slot)  # Validate that the slot belongs to this state.
+        active_sensors = self.active_sensors()
+        return (
+            len(active_sensors) < MAX_SIMULTANEOUS_FEEDBACKS
+            or encoder.SENSOR_TYPE in active_sensors
+        )
+
+    def active_encoders_in_order(self) -> tuple[Encoder, ...]:
+        """Return distinct assigned encoders in deterministic first-seen order.
+
+        The transition algorithm uses these encoders as parking candidates. A
+        slot can be temporarily assigned an encoder that is already active in
+        another slot to free one of the drive's limited sensor entries. Keeping
+        the first-seen order makes that search deterministic.
+        """
+        return tuple(dict.fromkeys(self.__encoders.values()))
+
+
+def _find_feedback_order(  # noqa: C901
+    target: FeedbacksConfiguration,
+    state: FeedbacksConfiguration,
+    pending: tuple[FeedbackSlot, ...],
+) -> Optional[list[tuple[FeedbackSlot, Encoder]]]:
+    """Find a safe order for reaching the target configuration.
+
+    The drive supports at most four distinct active feedback sensors across
+    five selector slots. The search first tries direct target writes that do
+    not introduce a new fifth sensor. If no direct write is possible, it
+    temporarily parks a pending slot on an encoder already active elsewhere,
+    reducing the number of distinct sensors and making room for the target.
+    The returned order includes these temporary parking writes.
+
+    Args:
+        target: Target feedback configuration.
+        state: Feedback configuration reached so far.
+        pending: Slots that still need to reach their target.
+
+    Returns:
+        Slot and encoder pairs in safe write order, or ``None`` if no safe
+        order exists from this state.
+    """
+    if not pending:
+        return []
+
+    # First, try to apply a pending target directly. This is safe when the
+    # target encoder is already active or there is still room for a new sensor.
+    for slot in pending:
+        target_encoder = target.encoder_at(slot)
+        if not state.can_execute_transition(slot, target_encoder):
+            continue
+        # Candidate configuration with the target encoder assigned to this slot.
+        candidate_state = state.with_encoder_at(slot, target_encoder)
+        remaining = tuple(s for s in pending if s != slot)
+        suffix = _find_feedback_order(target, candidate_state, remaining)
+        if suffix is not None:
+            return [(slot, target_encoder), *suffix]
+
+    # If every direct write is blocked, temporarily park a pending slot on an
+    # encoder already in use. This removes a distinct sensor and makes room for
+    # one of the target encoders in a later recursive step.
+    for slot in pending:
+        for parking_encoder in state.active_encoders_in_order():
+            if state.encoder_at(slot) == parking_encoder:
+                continue
+            if not state.can_execute_transition(slot, parking_encoder):
+                continue
+            # Candidate configuration with this slot temporarily assigned to an
+            # encoder that is already active in another slot.
+            candidate_state = state.with_encoder_at(slot, parking_encoder)
+            if len(candidate_state.active_sensors()) >= len(state.active_sensors()):
+                continue
+            suffix = _find_feedback_order(target, candidate_state, pending)
+            if suffix is not None:
+                return [(slot, parking_encoder), *suffix]
+    return None
+
+
+class AxisFeedbacks:
+    """Class to manage the feedback slots of an axis.
+
+    Attributes:
+        commutation: The commutation feedback slot.
+        reference: The reference feedback slot.
+        velocity: The velocity feedback slot.
+        position: The position feedback slot.
+        auxiliary: The auxiliary feedback slot.
+    """
+
+    def __init__(self, axis: "Axis") -> None:
+        """Constructor.
+
+        Args:
+            axis: Axis associated with the feedback slots.
+        """
+        self.__axis = axis
+
+    @weak_lru_prop
+    def commutation(self) -> FeedbackSlot:
+        """The commutation feedback slot.
+
+        Returns:
+            The commutation feedback slot, built on first access.
+        """
+        return FeedbackSlot(COMMUTATION_FEEDBACK_REGISTER, self.__axis)
+
+    @weak_lru_prop
+    def reference(self) -> FeedbackSlot:
+        """The reference feedback slot.
+
+        Returns:
+            The reference feedback slot, built on first access.
+        """
+        return FeedbackSlot(REFERENCE_FEEDBACK_REGISTER, self.__axis)
+
+    @weak_lru_prop
+    def velocity(self) -> FeedbackSlot:
+        """The velocity feedback slot.
+
+        Returns:
+            The velocity feedback slot, built on first access.
+        """
+        return FeedbackSlot(VELOCITY_FEEDBACK_REGISTER, self.__axis)
+
+    @weak_lru_prop
+    def position(self) -> FeedbackSlot:
+        """The position feedback slot.
+
+        Returns:
+            The position feedback slot, built on first access.
+        """
+        return FeedbackSlot(POSITION_FEEDBACK_REGISTER, self.__axis)
+
+    @weak_lru_prop
+    def auxiliary(self) -> FeedbackSlot:
+        """The auxiliary feedback slot.
+
+        Returns:
+            The auxiliary feedback slot, built on first access.
+        """
+        return FeedbackSlot(AUXILIARY_FEEDBACK_REGISTER, self.__axis)
+
+    @property
+    def _slots(self) -> tuple[FeedbackSlot, ...]:
+        """The feedback slots in feedback selector order."""
+        return (self.commutation, self.reference, self.velocity, self.position, self.auxiliary)
+
+    @weak_lru(maxsize=None)
+    def get_sensor(self, sensor: SensorType) -> Encoder:
+        """Get the target feedback sensor in the axis.
+
+        Args:
+            sensor: target feedback sensor.
+
+        Returns:
+            The encoder of the target feedback sensor.
+        """
+        return _ENCODER_TYPES[sensor](self.__axis)
+
+    def get_configuration(self) -> FeedbacksConfiguration:
+        """Read the sensor configuration of every feedback slot.
+
+        Returns:
+            The current feedback selector configuration.
+        """
+        return FeedbacksConfiguration.from_axis_feedbacks(self)
+
+    def set_configuration(self, target: FeedbacksConfiguration) -> None:
+        """Safely transition all feedback slots to a target configuration.
+
+        The drive allows at most four distinct feedback sensors across its five
+        selector registers. Writes are ordered so that this limit is never
+        exceeded: if a target introduces a fifth sensor, an active sensor is
+        temporarily parked in another slot before the target is written. The
+        temporary parking writes are part of the transition and are applied
+        automatically.
+
+        Args:
+            target: Desired feedback selector configuration.
+
+        Raises:
+            ValueError: If the target cannot be reached without exceeding the drive
+                feedback limit.
+        """
+        for slot, encoder in self.feedback_transition(self.get_configuration(), target):
+            slot.set_encoder(encoder)
+
+    def feedback_transition(
+        self,
+        current: FeedbacksConfiguration,
+        target: FeedbacksConfiguration,
+    ) -> Iterator[tuple[FeedbackSlot, Encoder]]:
+        """Order feedback writes without exceeding four active sensors.
+
+        Args:
+            current: Current feedback selector configuration.
+            target: Target feedback selector configuration.
+
+        Yields:
+            Feedback slot and encoder pairs in safe write order.
+
+        Raises:
+            ValueError: If the target cannot be reached without exceeding the drive
+                feedback limit.
+        """
+        pending = tuple(
+            slot for slot in self._slots if current.encoder_at(slot) != target.encoder_at(slot)
+        )
+        order = _find_feedback_order(target, current, pending)
+        if order is None:
+            raise ValueError("Feedback configurations cannot be transitioned safely.")
+        yield from order
+
+    def get_resolution(self, sensor: SensorType) -> int:
+        """Get the resolution of the target feedback sensor in the axis.
+
+        Args:
+            sensor: target feedback sensor.
+
+        Returns:
+            The resolution of the target feedback sensor.
+
+        Raises:
+            ValueError: If the feedback sensor has no resolution.
+            TypeError: If some read value has a wrong type.
+        """
+        return self.get_sensor(sensor).get_resolution()
+
+
 class Feedbacks:
     """Feedbacks Wizard Class description."""
 
@@ -253,7 +619,7 @@ class Feedbacks:
     REFERENCE_FEEDBACK_REGISTER = REFERENCE_FEEDBACK_REGISTER
     VELOCITY_FEEDBACK_REGISTER = VELOCITY_FEEDBACK_REGISTER
     POSITION_FEEDBACK_REGISTER = POSITION_FEEDBACK_REGISTER
-    AUXILIAR_FEEDBACK_REGISTER = AUXILIAR_FEEDBACK_REGISTER
+    AUXILIAR_FEEDBACK_REGISTER = AUXILIARY_FEEDBACK_REGISTER
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
@@ -552,7 +918,7 @@ class Feedbacks:
             TypeError: If some read value has a wrong type.
 
         """
-        return self.__axis_feedbacks(servo, axis).auxiliar.get_encoder_type()
+        return self.__axis_feedbacks(servo, axis).auxiliary.get_encoder_type()
 
     @MCMetaClass.check_motor_disabled
     def set_auxiliar_feedback(
@@ -568,7 +934,7 @@ class Feedbacks:
         Raises:
             IMStatusWordError: If motor is enabled.
         """
-        self.__axis_feedbacks(servo, axis).auxiliar.set_encoder_type(feedback)
+        self.__axis_feedbacks(servo, axis).auxiliary.set_encoder_type(feedback)
 
     def get_auxiliar_feedback_category(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -585,7 +951,7 @@ class Feedbacks:
         Returns:
             Category {ABSOLUTE, INCREMENTAL} of the selected feedback.
         """
-        return self.__axis_feedbacks(servo, axis).auxiliar.get_encoder().CATEGORY
+        return self.__axis_feedbacks(servo, axis).auxiliary.get_encoder().CATEGORY
 
     def get_auxiliar_feedback_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -599,7 +965,7 @@ class Feedbacks:
         Returns:
             Resolution of the selected feedback.
         """
-        return self.__axis_feedbacks(servo, axis).auxiliar.get_encoder().get_resolution()
+        return self.__axis_feedbacks(servo, axis).auxiliary.get_encoder().get_resolution()
 
     def get_absolute_encoder_1_resolution(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
@@ -752,7 +1118,7 @@ class Feedbacks:
             NotImplementedError: If the sensor polarity is not implemented.
 
         """
-        self.__axis_feedbacks(servo, axis).get_encoder(feedback).set_polarity(polarity)
+        self.__axis_feedbacks(servo, axis).get_sensor(feedback).set_polarity(polarity)
         self.logger.debug(
             f"Feedback {feedback.name} polarity set to {polarity.name}",
             axis=axis,
@@ -781,237 +1147,4 @@ class Feedbacks:
             ValueError: If the polarity value is not a valid :class:`FeedbackPolarity`.
 
         """
-        return self.__axis_feedbacks(servo, axis).get_encoder(feedback).get_polarity()
-
-
-class FeedbackSlot:
-    """Class to represent a feedback slot of an axis."""
-
-    def __init__(self, register_uid: str, axis: "Axis") -> None:
-        """Constructor.
-
-        Args:
-            register_uid: Register UID of the feedback selector.
-            axis: Axis associated with the feedback slot.
-        """
-        self.__register_uid = register_uid
-        self.__axis = axis
-        self.__servo = axis.motion_node.servo
-        self.__axis_number = axis.axis_number
-
-    def get_encoder_type(self) -> SensorType:
-        """Get the sensor type configured in the slot.
-
-        Returns:
-            The sensor type configured in the slot.
-
-        Raises:
-            TypeError: If the read value has a wrong type.
-        """
-        feedback = self.__servo.read(self.__register_uid, subnode=self.__axis_number)
-        if not isinstance(feedback, int):
-            raise TypeError("Feedback value has to be an integer")
-        return SensorType(feedback)
-
-    def get_encoder(self) -> Encoder:
-        """Get the encoder configured in the slot.
-
-        Returns:
-            The encoder configured in the slot.
-        """
-        return self.__axis.feedbacks.get_encoder(self.get_encoder_type())
-
-    def set_encoder_type(self, sensor: SensorType) -> None:
-        """Configure the sensor type of the slot.
-
-        Args:
-            sensor: Feedback sensor to configure.
-        """
-        self.__servo.write(self.__register_uid, sensor, subnode=self.__axis_number)
-
-    def set_encoder(self, encoder: Encoder) -> None:
-        """Configure the encoder of the slot.
-
-        Args:
-            encoder: Encoder to configure.
-        """
-        self.set_encoder_type(encoder.SENSOR_TYPE)
-
-
-class AxisFeedbacks:
-    """Class to manage the feedback slots of an axis."""
-
-    def __init__(self, axis: "Axis") -> None:
-        """Constructor.
-
-        Args:
-            axis: Axis associated with the feedback slots.
-        """
-        self.__axis = axis
-        self.__encoders = {
-            sensor: encoder_type(axis) for sensor, encoder_type in _ENCODER_TYPES.items()
-        }
-        self.__slots: tuple[FeedbackSlot, ...] = tuple(
-            FeedbackSlot(register_uid, axis) for register_uid in FEEDBACK_SELECTOR_REGISTERS
-        )
-
-    def get_encoder(self, sensor: SensorType) -> Encoder:
-        """Get the encoder of the target feedback sensor in the axis.
-
-        Args:
-            sensor: target feedback sensor.
-
-        Returns:
-            The encoder of the target feedback sensor.
-        """
-        return self.__encoders[sensor]
-
-    def get_configuration(self) -> FeedbacksConfiguration:
-        """Read the sensor configuration of every feedback slot.
-
-        Returns:
-            The current feedback selector configuration.
-        """
-        return FeedbacksConfiguration(*(slot.get_encoder_type() for slot in self.__slots))
-
-    def set_configuration(self, target: FeedbacksConfiguration) -> None:
-        """Safely transition all feedback slots to a target configuration.
-
-        The drive allows at most four distinct feedback sensors across its five
-        selector registers. If a target introduces a fifth sensor, an active
-        sensor is temporarily parked in another slot before the target is written.
-
-        Args:
-            target: Desired feedback selector configuration.
-
-        Raises:
-            ValueError: If the target cannot be reached without exceeding the drive
-                feedback limit.
-        """
-        current = self.get_configuration()
-        for slot_index, sensor in self.feedback_transition(current, target):
-            self.__slots[slot_index].set_encoder_type(sensor)
-
-    @staticmethod
-    def feedback_transition(  # noqa: C901
-        current: FeedbacksConfiguration,
-        target: FeedbacksConfiguration,
-    ) -> Iterator[tuple[int, SensorType]]:
-        """Order feedback writes without exceeding four active sensors.
-
-        Args:
-            current: Current feedback selector configuration.
-            target: Target feedback selector configuration.
-
-        Yields:
-            Feedback slot index and sensor pairs in safe write order.
-
-        Raises:
-            ValueError: If the target cannot be reached without exceeding the drive
-                feedback limit.
-        """
-        current_values = current.as_tuple()
-        target_values = target.as_tuple()
-
-        def find_order(
-            state: tuple[SensorType, ...], pending: tuple[int, ...]
-        ) -> Optional[list[tuple[int, SensorType]]]:
-            if not pending:
-                return []
-
-            active_sensors = set(state)
-            for slot_index in pending:
-                target_sensor = target_values[slot_index]
-                if (
-                    len(active_sensors) >= MAX_SIMULTANEOUS_FEEDBACKS
-                    and target_sensor not in active_sensors
-                ):
-                    continue
-                candidate_state = (
-                    *state[:slot_index],
-                    target_sensor,
-                    *state[slot_index + 1 :],
-                )
-                remaining = tuple(slot for slot in pending if slot != slot_index)
-                suffix = find_order(candidate_state, remaining)
-                if suffix is not None:
-                    return [(slot_index, target_sensor), *suffix]
-
-            active_sensors_in_order = tuple(
-                sensor for index, sensor in enumerate(state) if sensor not in state[:index]
-            )
-            for slot_index in pending:
-                for parking_sensor in active_sensors_in_order:
-                    if state[slot_index] == parking_sensor:
-                        continue
-                    candidate_state = (
-                        *state[:slot_index],
-                        parking_sensor,
-                        *state[slot_index + 1 :],
-                    )
-                    if len(set(candidate_state)) >= len(active_sensors):
-                        continue
-                    suffix = find_order(candidate_state, pending)
-                    if suffix is not None:
-                        return [(slot_index, parking_sensor), *suffix]
-            return None
-
-        pending = tuple(
-            slot_index
-            for slot_index, (current_sensor, target_sensor) in enumerate(
-                zip(current_values, target_values)
-            )
-            if current_sensor != target_sensor
-        )
-        order = find_order(current_values, pending)
-        if order is None:
-            raise ValueError("Feedback configurations cannot be transitioned safely.")
-        yield from order
-
-    @property
-    def commutation(self) -> FeedbackSlot:
-        """The commutation feedback slot."""
-        return self.__slots[0]
-
-    @property
-    def reference(self) -> FeedbackSlot:
-        """The reference feedback slot."""
-        return self.__slots[1]
-
-    @property
-    def velocity(self) -> FeedbackSlot:
-        """The velocity feedback slot."""
-        return self.__slots[2]
-
-    @property
-    def position(self) -> FeedbackSlot:
-        """The position feedback slot."""
-        return self.__slots[3]
-
-    @property
-    def auxiliar(self) -> FeedbackSlot:
-        """The auxiliar feedback slot."""
-        return self.__slots[4]
-
-    def get_all_slots(self) -> tuple[FeedbackSlot, ...]:
-        """Get all the feedback slots of the axis.
-
-        Returns:
-            A tuple with all the feedback slots of the axis.
-        """
-        return self.__slots
-
-    def get_resolution(self, sensor: SensorType) -> int:
-        """Get the resolution of the target feedback sensor in the axis.
-
-        Args:
-            sensor: target feedback sensor.
-
-        Returns:
-            The resolution of the target feedback sensor.
-
-        Raises:
-            ValueError: If the feedback sensor has no resolution.
-            TypeError: If some read value has a wrong type.
-        """
-        return self.get_encoder(sensor).get_resolution()
+        return self.__axis_feedbacks(servo, axis).get_sensor(feedback).get_polarity()

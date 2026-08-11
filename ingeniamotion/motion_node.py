@@ -2,6 +2,7 @@ from collections.abc import Iterator
 
 from ingenialink import Network, Servo
 
+from ingeniamotion._utils import weak_lru_prop
 from ingeniamotion.axis import Axis
 from ingeniamotion.errors import NodeErrors
 
@@ -24,8 +25,6 @@ class MotionNode:
             for axis_number in self.__servo.dictionary.subnodes
             if axis_number != 0  # Axis 0 is the motion node itself, not an axis
         }
-
-        self.__errors = NodeErrors(self)
 
     @property
     def servo(self) -> Servo:
@@ -60,7 +59,11 @@ class MotionNode:
         """
         return self.__axes[axis_number]
 
-    @property
+    @weak_lru_prop
     def errors(self) -> NodeErrors:
-        """The errors of the motion node."""
-        return self.__errors
+        """The errors of the motion node.
+
+        Returns:
+            The error container, built on first access.
+        """
+        return NodeErrors(self)

@@ -181,19 +181,19 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
             raise TestError(e)
         self.__resolve_phasing_max_current()
 
-        configuration = self.axis_feedbacks.get_configuration()
-        comm = configuration.commutation
-        ref = configuration.reference
+        configuration = self._axis_feedbacks.get_configuration()
+        comm = configuration.encoder_at(self._axis_feedbacks.commutation)
+        ref = configuration.encoder_at(self._axis_feedbacks.reference)
 
-        if ref == SensorType.INTGEN or comm == SensorType.INTGEN:
+        if ref.SENSOR_TYPE == SensorType.INTGEN or comm.SENSOR_TYPE == SensorType.INTGEN:
             raise TestError(
                 "Reference or commutation feedback sensor are set to internal generator"
             )
 
-        if self.axis_feedbacks.reference.get_encoder().CATEGORY != SensorCategory.ABSOLUTE:
+        if ref.CATEGORY != SensorCategory.ABSOLUTE:
             raise TestError("Reference feedback sensor is not absolute")
 
-        if comm != ref:
+        if comm.SENSOR_TYPE != ref.SENSOR_TYPE:
             raise TestError("Commutation and reference feedback sensors are not the same.")
 
     @BaseTest.stoppable

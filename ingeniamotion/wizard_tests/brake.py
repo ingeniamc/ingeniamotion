@@ -1,4 +1,3 @@
-from dataclasses import replace
 from types import TracebackType
 from typing import TYPE_CHECKING, Optional
 
@@ -55,16 +54,17 @@ class Brake(BaseTest[ResultsBrakeTest]):
         self.mc.motion.set_internal_generator_configuration(
             OperationMode.VOLTAGE, servo=self.servo, axis=self.axis
         )
-        # Set the auxiliar feedback to ABS1 because the internal generator is not allowed
-        # as auxiliar feedback for all drives
-        self.axis_feedbacks.set_configuration(
-            replace(
-                self.axis_feedbacks.get_configuration(),
-                reference=SensorType.INTGEN,
-                velocity=SensorType.INTGEN,
-                position=SensorType.INTGEN,
-                auxiliar=SensorType.ABS1,
-            )
+        # Set the auxiliary feedback to ABS1 because the internal generator is not allowed
+        # as auxiliary feedback for all drives
+        axis_feedbacks = self._axis_feedbacks
+        internal_generator = axis_feedbacks.get_sensor(SensorType.INTGEN)
+        axis_feedbacks.set_configuration(
+            axis_feedbacks.get_configuration().replace({
+                axis_feedbacks.reference: internal_generator,
+                axis_feedbacks.velocity: internal_generator,
+                axis_feedbacks.position: internal_generator,
+                axis_feedbacks.auxiliary: axis_feedbacks.get_sensor(SensorType.ABS1),
+            })
         )
         # Set the absolute encoder protocol to SSI and the frame type to RAW to avoid errors.
         self.mc.communication.set_register(

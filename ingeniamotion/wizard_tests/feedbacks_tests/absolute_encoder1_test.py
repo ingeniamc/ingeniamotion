@@ -3,10 +3,10 @@ from typing import TYPE_CHECKING, Optional
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
 from ingeniamotion.enums import SensorType
-from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
+from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import FeedbacksTest
 
 
-class AbsoluteEncoder1Test(Feedbacks):
+class AbsoluteEncoder1Test(FeedbacksTest):
     """Absolute encoder 1 test class."""
 
     FEEDBACK_POLARITY_REGISTER = "FBK_BISS1_SSI1_POS_POLARITY"

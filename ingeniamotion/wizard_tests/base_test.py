@@ -6,7 +6,7 @@ import ingenialogger
 from ingenialink.drive_context_manager import DriveContextManager, DriveRegistersValue
 from ingenialink.exceptions import ILError
 
-from ingeniamotion._utils import weak_lru
+from ingeniamotion._utils import weak_lru, weak_lru_prop
 from ingeniamotion.metaclass import DEFAULT_SERVO
 from ingeniamotion.wizard_tests.stoppable import StopExceptionError, Stoppable
 
@@ -14,7 +14,9 @@ if TYPE_CHECKING:
     from ingenialink.servo import Servo
 
     from ingeniamotion import MotionController
+    from ingeniamotion.axis import Axis
     from ingeniamotion.feedbacks import AxisFeedbacks
+    from ingeniamotion.motion_node import MotionNode
 
 from ingeniamotion.enums import SeverityLevel
 
@@ -67,10 +69,32 @@ class BaseTest(ABC, Stoppable, Generic[T]):
         """
         return self.mc._get_drive(self.servo)
 
-    @property
-    def axis_feedbacks(self) -> "AxisFeedbacks":
-        """Feedback API for the test axis."""
-        return self.mc.motion_nodes[self.servo].get_axis(self.axis).feedbacks
+    @weak_lru_prop
+    def _motion_node(self) -> "MotionNode":
+        """Get the motion node targeted by the test.
+
+        Returns:
+            The motion node selected by ``self.servo``.
+        """
+        return self.mc._get_motion_node(self.servo)
+
+    @weak_lru_prop
+    def _axis(self) -> "Axis":
+        """Get the axis targeted by the test.
+
+        Returns:
+            The axis selected by ``self.axis``.
+        """
+        return self._motion_node.get_axis(self.axis)
+
+    @weak_lru_prop
+    def _axis_feedbacks(self) -> "AxisFeedbacks":
+        """Get the feedback container for the test axis.
+
+        Returns:
+            The feedback container selected by ``self._axis``.
+        """
+        return self._axis.feedbacks
 
     @Stoppable.stoppable
     def show_error_message(self) -> None:
