@@ -504,8 +504,8 @@ def test_feedback_test_respects_the_drive_feedback_limit_across_configurations(
 ):
     """The feedback test must never exceed the drive feedback limit.
 
-    The drive rejects a fifth feedback, so neither the initial configuration nor
-    the wizard test may go through such a transient state.
+    The drive rejects a fifth feedback, so neither applying the target configuration
+    nor the wizard test may go through such a transient state.
     """
     axis = 1
     mocker.patch.object(
@@ -527,9 +527,6 @@ def test_feedback_test_respects_the_drive_feedback_limit_across_configurations(
                 )
                 feedback_test.run()
 
-            assert _configuration_sensor_types(tracker.initial_state, feedbacks) == (
-                _configuration_sensor_types(configuration, feedbacks)
-            )
             assert tracker.max_simultaneous_feedbacks <= MAX_SIMULTANEOUS_FEEDBACKS, (
                 "The feedback test configured more than "
                 f"{MAX_SIMULTANEOUS_FEEDBACKS} feedbacks at the same time:\n"

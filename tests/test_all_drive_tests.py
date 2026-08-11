@@ -565,8 +565,13 @@ def test_dynamic_forced_phasing_fails_with_invalid_feedback_config(
     Forces each invalid feedback pair via mocks and asserts a TestError is raised whose
     message explains why the configuration is unsupported.
     """
-    mocker.patch.object(mc.configuration, "get_commutation_feedback", return_value=comm_feedback)
-    mocker.patch.object(mc.configuration, "get_reference_feedback", return_value=ref_feedback)
+    axis_feedbacks = mc.motion_nodes[alias].get_axis(1).feedbacks
+    current_configuration = axis_feedbacks.get_configuration()
+    invalid_configuration = current_configuration.replace({
+        axis_feedbacks.commutation: axis_feedbacks.get_sensor(comm_feedback),
+        axis_feedbacks.reference: axis_feedbacks.get_sensor(ref_feedback),
+    })
+    mocker.patch.object(axis_feedbacks, "get_configuration", return_value=invalid_configuration)
 
     with pytest.raises(TestError, match=error_match):
         mc.tests.dynamic_forced_phasing(alias, 1)
