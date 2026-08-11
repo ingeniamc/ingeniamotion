@@ -37,7 +37,6 @@ ABSOLUTE_ENCODER_RESOLUTION_TEST_VALUES = [(22, 4194304), (10, 1024), (15, 32768
 INCREMENTAL_ENCODER_RESOLUTION_TEST_VALUES = [1000, 4000, 6000]
 
 
-
 def skip_if_qei2_is_not_available(mc, alias, sensor=SensorType.QEI2):
     if sensor == SensorType.QEI2 and not mc.info.register_exists(
         INCREMENTAL_RESOLUTION_2_REGISTER, servo=alias
@@ -366,7 +365,6 @@ def test_get_auxiliar_feedback_resolution(mc, alias, sensor):
 
 
 @pytest.mark.virtual
-
 @pytest.mark.parametrize("single_turn, resolution", ABSOLUTE_ENCODER_RESOLUTION_TEST_VALUES)
 def test_get_absolute_encoder_1_resolution(mc, alias, single_turn, resolution):
     mc.communication.set_register(ABS1_1_SINGLE_TURN_REGISTER, single_turn, servo=alias)
@@ -375,7 +373,6 @@ def test_get_absolute_encoder_1_resolution(mc, alias, single_turn, resolution):
 
 
 @pytest.mark.virtual
-
 @pytest.mark.parametrize("resolution", INCREMENTAL_ENCODER_RESOLUTION_TEST_VALUES)
 def test_get_incremental_encoder_1_resolution(mc, alias, resolution):
     mc.communication.set_register(INCREMENTAL_RESOLUTION_1_REGISTER, resolution, servo=alias)
@@ -384,7 +381,6 @@ def test_get_incremental_encoder_1_resolution(mc, alias, resolution):
 
 
 @pytest.mark.virtual
-
 @pytest.mark.parametrize("pair_poles, resolution", [(1, 6), (10, 60), (4, 24)])
 def test_get_digital_halls_resolution(mc, alias, pair_poles, resolution):
     mc.communication.set_register(PAIR_POLES_REGISTER, pair_poles, servo=alias)
@@ -393,7 +389,6 @@ def test_get_digital_halls_resolution(mc, alias, pair_poles, resolution):
 
 
 @pytest.mark.virtual
-
 @pytest.mark.parametrize("single_turn, resolution", ABSOLUTE_ENCODER_RESOLUTION_TEST_VALUES)
 def test_get_secondary_ssi_resolution(mc, alias, single_turn, resolution):
     mc.communication.set_register(ABS2_1_SINGLE_TURN_REGISTER, single_turn, servo=alias)
@@ -402,7 +397,6 @@ def test_get_secondary_ssi_resolution(mc, alias, single_turn, resolution):
 
 
 @pytest.mark.virtual
-
 @pytest.mark.parametrize("single_turn, resolution", ABSOLUTE_ENCODER_RESOLUTION_TEST_VALUES)
 def test_get_absolute_encoder_2_resolution(mc, alias, single_turn, resolution):
     mc.communication.set_register(ABS1_2_SINGLE_TURN_REGISTER, single_turn, servo=alias)
@@ -411,7 +405,6 @@ def test_get_absolute_encoder_2_resolution(mc, alias, single_turn, resolution):
 
 
 @pytest.mark.virtual
-
 @pytest.mark.parametrize("resolution", INCREMENTAL_ENCODER_RESOLUTION_TEST_VALUES)
 def test_get_incremental_encoder_2_resolution(mc, alias, resolution):
     skip_if_qei2_is_not_available(mc, alias)
@@ -454,6 +447,18 @@ def test_feedback_slot_round_trip(axis: "Axis") -> None:
     slot.set_encoder(axis.feedbacks.get_sensor(SensorType.HALLS))
 
     assert slot.get_encoder_type() == SensorType.HALLS
+
+
+@pytest.mark.virtual
+def test_set_encoder_type_rejects_unsupported_sensor(axis: "Axis") -> None:
+    """A slot rejects a sensor type the drive's dictionary does not allow for it."""
+    slot = axis.feedbacks.auxiliary
+    assert not slot.supports(SensorType.INTGEN)
+
+    with pytest.raises(
+        ValueError, match=rf"^INTGEN is not a valid sensor type for {AUXILIAR_FEEDBACK_REGISTER}\.$"
+    ):
+        slot.set_encoder_type(SensorType.INTGEN)
 
 
 @pytest.mark.virtual
