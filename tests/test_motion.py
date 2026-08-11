@@ -286,7 +286,6 @@ def test_set_position(mc, alias, position_value):
     "Sporadically fails on ABS BiSS-C config, will be skipped for certain firmware versions"
 )
 @pytest.mark.not_valid_for_product(part_number="EVE-XCR-C")
-@pytest.mark.not_valid_for_product(part_number="EVS-NET-E", interfaces=[Interface.ECAT])
 def test_move_position(mc, alias, position_value):
     pos_res = mc.configuration.get_position_feedback_resolution(servo=alias)
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
@@ -384,7 +383,6 @@ def test_ramp_generator(mocker, init_v, final_v, total_t, t, result):
     "Sporadically fails on ABS BiSS-C config, will be skipped for certain firmware versions"
 )
 @pytest.mark.not_valid_for_product(part_number="EVE-*")
-@pytest.mark.not_valid_for_product(part_number="EVS-NET-E", interfaces=[Interface.ECAT])
 def test_get_actual_position(mc: "MotionController", alias: str, position_value: int) -> None:
     position_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
