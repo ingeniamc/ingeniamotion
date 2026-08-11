@@ -45,7 +45,6 @@ PyTestManager testManager = new PyTestManager(pipeline: this, venvManager: venvM
 TestSession TEST_SESSIONS = new TestSession(
     covPackageName: "ingeniamotion",
     covFromSitePackages: false,
-    wiresharkScope: null, // Set later based on parameter
     startWiresharkTimeoutS: 10.0,
     importMode: "importlib",
     enableFirmwareVersionCheck: true,
