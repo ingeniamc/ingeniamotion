@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, Optional, TypeVar, Union
+from typing import TYPE_CHECKING, Any, ClassVar, Generic, Optional, TypeVar
 
 import ingenialogger
 from ingenialink.drive_context_manager import DriveContextManager, DriveRegistersValue
@@ -32,7 +32,7 @@ RegisterChangeProposal = dict[Register, REG_VALUE]
 
 
 @dataclass(eq=False)
-class ReportBase(dict[str, Union[SeverityLevel, RegisterChangeProposal, str]]):
+class ReportBase:
     """Base class for result reports."""
 
     result_severity: SeverityLevel
@@ -42,11 +42,25 @@ class ReportBase(dict[str, Union[SeverityLevel, RegisterChangeProposal, str]]):
     suggested_registers: RegisterChangeProposal
     """Register values suggested by the test."""
 
-    def __post_init__(self) -> None:
-        """Populate the legacy dictionary representation."""
-        self["result_severity"] = self.result_severity
-        self["result_message"] = self.result_message
-        self["suggested_registers"] = self.suggested_registers
+    def __getitem__(self, key: str) -> Any:
+        """Read a report field using the legacy dictionary syntax.
+
+        Args:
+            key: Report field name.
+
+        Returns:
+            The value associated with the report field.
+
+        Raises:
+            KeyError: If the field name is not recognized.
+        """
+        if key == "result_severity":
+            return self.result_severity
+        if key == "result_message":
+            return self.result_message
+        if key == "suggested_registers":
+            return self.suggested_registers
+        raise KeyError(key)
 
 
 T = TypeVar("T", bound=ReportBase)

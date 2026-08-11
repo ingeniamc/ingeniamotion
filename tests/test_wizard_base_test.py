@@ -6,7 +6,7 @@ from ingenialink.drive_context_manager import DriveRegistersValue
 from ingenialink.register import Register
 
 from ingeniamotion.enums import SeverityLevel
-from ingeniamotion.wizard_tests.base_test import BaseTest
+from ingeniamotion.wizard_tests.base_test import BaseTest, ReportBase
 
 
 class MinimalWizardTest(BaseTest[dict[str, Any]]):
@@ -60,3 +60,5 @@ def test_suggest_register_returns_register_instance_with_value() -> None:
     wizard_test.suggest_register(register, 42)
 
     assert wizard_test.suggested_registers == {register: 42}
+    report = ReportBase(SeverityLevel.SUCCESS, "success", wizard_test.suggested_registers)
+    assert report["suggested_registers"] == {register: 42}
