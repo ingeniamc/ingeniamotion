@@ -492,7 +492,6 @@ def test_internal_generator_has_no_resolution_or_polarity(axis: "Axis") -> None:
 
 
 @pytest.mark.virtual
-@pytest.mark.usefixtures("restore_resolution_registers")
 @pytest.mark.parametrize(
     "sensor, register, raw_value, expected_resolution",
     [
