@@ -28,8 +28,10 @@ class StopOpportunityTraceEvent:
     timestamp: float
     traceback: tuple[traceback.FrameSummary, ...]
     finish_timestamp: float
+    owner: Optional["Stoppable"] = None
 
 
+StoppableInstanceCreations = Callable[["Stoppable"], None]
 StopOpportunityRecorder = Callable[..., None]
 
 
@@ -48,8 +50,34 @@ class Stoppable:
 
     """
 
-    stop_queue: Queue[StopExceptionError] = Queue(1)
+    stop_queue: Final[Queue[StopExceptionError]] = Queue(1)
+
+    _stoppable_instance_creation_subscriptions: Final[list[StoppableInstanceCreations]] = []
     _stop_opportunity_subscriptions: Final[list[StopOpportunitySubscription]] = []
+
+    def __init__(self) -> None:
+        """Notify subscribers that a stoppable instance has been created."""
+        for sub in self._stoppable_instance_creation_subscriptions:
+            sub(self)
+
+    @classmethod
+    def subscribe_to_instance_creations(cls, callback: StoppableInstanceCreations) -> None:
+        """Subscribe to stoppable instance creations.
+
+        Args:
+            callback: Callback invoked with each newly created stoppable instance.
+        """
+        cls._stoppable_instance_creation_subscriptions.append(callback)
+
+    @classmethod
+    def unsubscribe_to_instance_creations(cls, callback: StoppableInstanceCreations) -> None:
+        """Unsubscribe from stoppable instance creations.
+
+        Args:
+            callback: Previously registered instance-creation callback.
+        """
+        with contextlib.suppress(ValueError):
+            cls._stoppable_instance_creation_subscriptions.remove(callback)
 
     @classmethod
     def subscribe_to_stop_opportunities(
@@ -76,11 +104,10 @@ class Stoppable:
         with contextlib.suppress(ValueError):
             cls._stop_opportunity_subscriptions.remove(subscription)
 
-    @classmethod
     def _record_stop_opportunity(
-        cls, start: Optional[float] = None, finish: Optional[float] = None
+        self, start: Optional[float] = None, finish: Optional[float] = None
     ) -> None:
-        subscriptions = cls._stop_opportunity_subscriptions
+        subscriptions = self._stop_opportunity_subscriptions
         if not subscriptions:
             return
 
@@ -98,6 +125,7 @@ class Stoppable:
                         timestamp=start,
                         traceback=tuple(traceback.extract_stack()[:-1]),
                         finish_timestamp=finish,
+                        owner=self,
                     )
                 subscription.callback(event)
             else:
