@@ -1,3 +1,6 @@
+import gc
+import weakref
+
 import pytest
 
 from ingeniamotion._utils import weak_lru, weak_lru_prop
@@ -53,6 +56,24 @@ def test_weak_lru_property_cache() -> None:
     assert calculator.calls == 1
     assert result1 == 50
     assert result2 == 50
+
+
+def test_weak_lru_property_does_not_retain_instance() -> None:
+    """A cached property should not keep an instance alive after its owner is gone."""
+
+    class RetainingProperty:
+        @weak_lru_prop
+        def value(self) -> "RetainingProperty":
+            return self
+
+    instance = RetainingProperty()
+    instance_ref = weakref.ref(instance)
+    assert instance.value is instance
+
+    del instance
+    gc.collect()
+
+    assert instance_ref() is None
 
 
 def test_exception_group_context_error():

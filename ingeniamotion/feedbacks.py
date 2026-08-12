@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, ClassVar, Final, Optional
 
 import ingenialogger
 
-from ingeniamotion._utils import weak_lru, weak_lru_prop
+from ingeniamotion._utils import weak_lru_prop
 from ingeniamotion.enums import FeedbackPolarity, SensorCategory, SensorType
 
 if TYPE_CHECKING:
@@ -540,6 +540,7 @@ class AxisFeedbacks:
             axis: Axis associated with the feedback slots.
         """
         self.__axis = axis
+        self.__sensors: dict[SensorType, Encoder] = {}
 
     @weak_lru_prop
     def commutation(self) -> FeedbackSlot:
@@ -591,7 +592,6 @@ class AxisFeedbacks:
         """The feedback slots in feedback selector order."""
         return (self.commutation, self.reference, self.velocity, self.position, self.auxiliary)
 
-    @weak_lru(maxsize=None)
     def get_sensor(self, sensor: SensorType) -> Encoder:
         """Get the target feedback sensor in the axis.
 
@@ -601,7 +601,9 @@ class AxisFeedbacks:
         Returns:
             The encoder of the target feedback sensor.
         """
-        return _ENCODER_TYPES[sensor](self.__axis)
+        if sensor not in self.__sensors:
+            self.__sensors[sensor] = _ENCODER_TYPES[sensor](self.__axis)
+        return self.__sensors[sensor]
 
     def get_configuration(self) -> FeedbacksConfiguration:
         """Read the sensor configuration of every feedback slot.

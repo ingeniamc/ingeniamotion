@@ -90,12 +90,12 @@ def weak_lru(
 
 
 def weak_lru_prop(func: Callable[[Any], _T]) -> property:
-    """Create a weakly cached property.
+    """Create a property cached on its instance.
 
     Args:
         func: Property getter to cache.
 
     Returns:
-        A property whose getter is cached without retaining its instance.
+        A property whose getter is evaluated only once per instance.
     """
-    return property(weak_lru()(func))
+    return cast("property", functools.cached_property(func))
