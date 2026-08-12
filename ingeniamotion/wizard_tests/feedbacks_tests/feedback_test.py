@@ -158,13 +158,12 @@ class FeedbacksTest(BaseTest[LegacyDictReportType]):
         """
         feedbacks = self._axis_feedbacks
         sensor = feedbacks.get_sensor(self.sensor)
-        target_configuration = feedbacks.get_configuration().replace({
+        feedbacks.update_configuration({
             feedbacks.reference: sensor,
             feedbacks.velocity: sensor,
             feedbacks.position: sensor,
             feedbacks.auxiliary: sensor,
         })
-        feedbacks.set_configuration(target_configuration)
         # Set Polarity to 0
         self.mc.communication.set_register(
             self.FEEDBACK_POLARITY_REGISTER,

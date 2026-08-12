@@ -611,7 +611,12 @@ class AxisFeedbacks:
         """
         return FeedbacksConfiguration.from_axis_feedbacks(self)
 
-    def set_configuration(self, target: FeedbacksConfiguration) -> None:
+    def set_configuration(
+        self,
+        target: FeedbacksConfiguration,
+        *,
+        current: Optional[FeedbacksConfiguration] = None,
+    ) -> None:
         """Safely transition all feedback slots to a target configuration.
 
         The drive allows at most four distinct feedback sensors across its five
@@ -623,13 +628,30 @@ class AxisFeedbacks:
 
         Args:
             target: Desired feedback selector configuration.
+            current: Previously read current configuration. Pass this when the
+                drive configuration is known to be unchanged since it was read.
 
         Raises:
             ValueError: If the target cannot be reached without exceeding the drive
                 feedback limit.
         """
-        for slot, encoder in self.transition_order(self.get_configuration(), target):
+        if current is None:
+            current = self.get_configuration()
+        for slot, encoder in self.transition_order(current, target):
             slot.set_encoder(encoder)
+
+    def update_configuration(self, changes: Mapping[FeedbackSlot, Encoder]) -> None:
+        """Apply slot changes using one read of the current configuration.
+
+        Args:
+            changes: Encoder to assign per feedback slot to update.
+
+        Raises:
+            ValueError: If the target cannot be reached without exceeding the drive
+                feedback limit.
+        """
+        current = self.get_configuration()
+        self.set_configuration(current.replace(changes), current=current)
 
     def transition_order(
         self,

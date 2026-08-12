@@ -76,12 +76,11 @@ class DCFeedbacksPolarityTest(BaseTest[LegacyDictReportType]):
         auxiliary_sensor = (
             feedbacks.get_sensor(SensorType.ABS1) if self.sensor == SensorType.BISSC2 else sensor
         )
-        target_configuration = feedbacks.get_configuration().replace({
+        feedbacks.update_configuration({
             feedbacks.velocity: sensor,
             feedbacks.position: sensor,
             feedbacks.auxiliary: auxiliary_sensor,
         })
-        feedbacks.set_configuration(target_configuration)
         if self.sensor == SensorType.BISSC2:
             self.logger.info(
                 f"Set velocity and position feedbacks to {self.sensor.name}"

@@ -625,7 +625,7 @@ def test_set_configuration_reaches_target_without_exceeding_limit(axis: "Axis") 
 
     for slot, sensor in zip(feedbacks._slots, current_sensors, strict=True):
         axis.write(slot.register_uid, sensor)
-    feedbacks.set_configuration(target)
+    feedbacks.set_configuration(target, current=current)
 
     assert tuple(axis.read(slot.register_uid) for slot in feedbacks._slots) == target_sensors
 

@@ -162,7 +162,7 @@ class FeedbackSelectorTracker:
             self.format_history(),
         )
 
-    def _on_register_update(self, servo: Servo, register: Register, value: REG_VALUE) -> None:  # noqa: ARG002
+    def _on_register_update(self, _servo: Servo, register: Register, value: REG_VALUE) -> None:
         if register.subnode != self._axis or register.identifier not in FEEDBACK_SELECTOR_REGISTERS:
             return
         sensor = int(value)
@@ -442,6 +442,40 @@ def test_feedback_transition_is_empty_for_an_unchanged_configuration():
     )
 
     assert list(feedbacks.transition_order(configuration, configuration)) == []
+
+
+def test_set_configuration_uses_supplied_current_configuration():
+    """A supplied current snapshot avoids rereading the feedback selectors."""
+    feedbacks = AxisFeedbacks(object())
+    configuration = FeedbacksConfiguration.from_sensor_types(
+        feedbacks,
+        commutation=SensorType.QEI,
+        reference=SensorType.QEI,
+        velocity=SensorType.QEI,
+        position=SensorType.QEI,
+        auxiliary=SensorType.QEI,
+    )
+
+    feedbacks.set_configuration(configuration, current=configuration)
+
+
+def test_update_configuration_reads_feedback_selectors_once():
+    """The convenience update method does not reread its current configuration."""
+
+    class ReadCountingAxis:
+        def __init__(self) -> None:
+            self.read_registers: list[str] = []
+
+        def read(self, register_uid: str) -> int:
+            self.read_registers.append(register_uid)
+            return SensorType.QEI.value
+
+    axis = ReadCountingAxis()
+    feedbacks = AxisFeedbacks(axis)
+
+    feedbacks.update_configuration({})
+
+    assert axis.read_registers == list(FEEDBACK_SELECTOR_REGISTERS)
 
 
 def test_all_feedback_transitions_stay_within_limit_and_reach_target(
