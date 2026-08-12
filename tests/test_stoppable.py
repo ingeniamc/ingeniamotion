@@ -22,6 +22,7 @@ class DummyStoppable(Stoppable):
     """Small concrete helper used to exercise stoppable behavior."""
 
     def __init__(self) -> None:
+        super().__init__()
         self.calls = 0
 
     @Stoppable.stoppable
@@ -45,6 +46,33 @@ def test_reset_stop_clears_pending_stop_signal() -> None:
     stoppable.stop()
     stoppable.reset_stop()
     stoppable.check_stop()
+
+
+def test_instance_creation_subscription_receives_new_stoppable_instances() -> None:
+    """A creation subscription should receive each newly created stoppable instance."""
+    instances: list[Stoppable] = []
+    Stoppable.subscribe_to_instance_creations(instances.append)
+    try:
+        stoppable = DummyStoppable()
+    finally:
+        Stoppable.unsubscribe_to_instance_creations(instances.append)
+
+    assert instances == [stoppable]
+
+
+def test_instance_creation_unsubscription_stops_notifications() -> None:
+    """Unsubscribing from creations should prevent future instance notifications."""
+    instances: list[Stoppable] = []
+
+    def recorder(stoppable: Stoppable) -> None:
+        instances.append(stoppable)
+
+    Stoppable.subscribe_to_instance_creations(recorder)
+    Stoppable.unsubscribe_to_instance_creations(recorder)
+
+    Stoppable()
+
+    assert instances == []
 
 
 def test_stoppable_decorator_runs_body_without_stop() -> None:
