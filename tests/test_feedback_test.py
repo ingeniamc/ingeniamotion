@@ -260,11 +260,15 @@ def _feedback_sensor_pool(mc: MotionController, alias: str, axis: int) -> tuple[
             register_values if common_values is None else common_values & register_values
         )
     assert common_values is not None
-    return tuple(
-        SensorType(value)
-        for value in sorted(common_values)
-        if value in SensorType and SensorType(value) != SensorType.INTGEN
-    )
+    sensors = []
+    for value in sorted(common_values):
+        try:
+            sensor = SensorType(value)
+        except ValueError:
+            continue
+        if sensor != SensorType.INTGEN:
+            sensors.append(sensor)
+    return tuple(sensors)
 
 
 def _feedback_configurations(

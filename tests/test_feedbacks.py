@@ -623,7 +623,7 @@ def test_set_configuration_reaches_target_without_exceeding_limit(axis: "Axis") 
         state = state.with_encoder_at(slot, encoder)
         assert len(state.active_sensors()) <= MAX_SIMULTANEOUS_FEEDBACKS
 
-    for slot, sensor in zip(feedbacks._slots, current_sensors, strict=True):
+    for slot, sensor in zip(feedbacks._slots, current_sensors):
         axis.write(slot.register_uid, sensor)
     feedbacks.set_configuration(target, current=current)
 
