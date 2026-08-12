@@ -114,9 +114,6 @@ def pipelineParams = PyTestParams.pytestParams(this, currentBuild, [
     wiresharkLoggingConfig: [
         default: false,
     ],
-    clearSuccessfulWiresharkLogsConfig: [
-        default: true,
-    ],
     checkStateScopeConfig: [
         default: 'session',
     ],
@@ -179,7 +176,6 @@ pipeline {
                     TEST_SESSIONS.setAttributeInCascade(
                         runInVirtualEnvs: venvManager.pythonVersionsToDefaultVenvNames(pythonVersions),
                         jobName: "${env.JOB_NAME}-#${env.BUILD_NUMBER}",
-                        clearSuccessfulWiresharkLogs: PyTestParams.readValue(params, 'clearSuccessfulWiresharkLogs', env, currentBuild),
                         checkStateScope: PyTestParams.readValue(params, 'checkStateScope'),
                         archiveData: "*",
                         testSelectionRepeatCount: PyTestParams.readValue(params, 'pytestRepeatCounts'),
