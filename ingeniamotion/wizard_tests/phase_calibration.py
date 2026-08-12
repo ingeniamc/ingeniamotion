@@ -14,13 +14,13 @@ from ingeniamotion.enums import (
     SeverityLevel,
 )
 from ingeniamotion.exceptions import IMRegisterNotExistError
-from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType, TestError
+from ingeniamotion.wizard_tests.base_test import BaseTest, ReportBase, TestError
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
 
 
-class Phasing(BaseTest[LegacyDictReportType]):
+class Phasing(BaseTest[ReportBase]):
     """Phasing test class."""
 
     INTERNAL_GENERATOR_VALUE = 3
