@@ -7,7 +7,7 @@ from typing_extensions import override
 from ingeniamotion.enums import FeedbackPolarity, OperationMode, SensorType, SeverityLevel
 from ingeniamotion.wizard_tests.base_test import (
     BaseTest,
-    LegacyDictReportType,
+    ReportBase,
     TestConfigurationError,
     TestError,
 )
@@ -16,7 +16,7 @@ if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 
-class DCFeedbacksPolarityTest(BaseTest[LegacyDictReportType]):
+class DCFeedbacksPolarityTest(BaseTest[ReportBase]):
     """DC feedback polarity test class."""
 
     MOVEMENT_ERROR_FACTOR = 0.05
