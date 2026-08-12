@@ -125,8 +125,9 @@ ECAT_SETUP = SpecifierContainer({
                 config_file=config_files.EVE_XCR_E_2_1_0_CONFIG,
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
-                    __EXECUTION_POLICY_KEY: "always",
-                    __RANDOM_COMBINATIONS_SLICE_KEY: 0.1,
+                    # No everest ethercat during day or PRs, it has a flaky STO abnormal
+                    # https://novantamotion.atlassian.net/browse/INGM-807
+                    __EXECUTION_POLICY_KEY: "nightly",
                     __TEST_CONFIGS_KEY: {
                         "ECAT_TEST_SESSIONS": PyTestConfig(
                             markers="soem",
@@ -332,8 +333,7 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
             ),
             config_file=config_files.SIRIUS_EVS_NET_E_2_11_0_CONFIG,
             extra_data={
-                __EXECUTION_POLICY_KEY: "always",
-                __RANDOM_COMBINATIONS_SLICE_KEY: 0.1,
+                __EXECUTION_POLICY_KEY: "nightly",
                 __TEST_CONFIGS_KEY: {
                     "SIRIUS_TEST_SESSIONS": PyTestConfig(
                         markers="soem and biss_c_flaky",

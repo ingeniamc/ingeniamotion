@@ -432,6 +432,7 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
         return DynamicForcedPhasingReport(
             result_severity=severity,
             result_message=msg,
+            suggested_registers={},
             commutation_angle=commutation_angle,
             commutation_phasing_mode=PhasingMode.NO_PHASING,
         )

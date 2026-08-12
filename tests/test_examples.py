@@ -315,6 +315,7 @@ def test_dynamic_forced_phasing_example(
             return DynamicForcedPhasingReport(
                 result_severity=SeverityLevel.SUCCESS,
                 result_message="Success",
+                suggested_registers={},
                 commutation_phasing_mode=PhasingMode.NO_PHASING,
                 commutation_angle=0.5,
             )
