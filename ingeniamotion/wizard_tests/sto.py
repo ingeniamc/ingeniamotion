@@ -5,13 +5,13 @@ import ingenialogger
 from typing_extensions import override
 
 from ingeniamotion.enums import SeverityLevel, STOAbnormalLatchedStatus
-from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType
+from ingeniamotion.wizard_tests.base_test import BaseTest, ReportBase
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
 
 
-class STOTest(BaseTest[LegacyDictReportType]):
+class STOTest(BaseTest[ReportBase]):
     """STO test."""
 
     class ResultType(IntEnum):
