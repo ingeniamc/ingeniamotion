@@ -1308,18 +1308,18 @@ reference = "novanta"
 
 [[package]]
 name = "ingenialink"
-version = "7.6.1.post137+release.7.6.2.a56aa3a"
+version = "7.6.2"
 description = "IngeniaLink Communications Library"
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "tests"]
 files = [
-    {file = "ingenialink-7.6.1.post137+release.7.6.2.a56aa3a-cp310-cp310-win_amd64.whl", hash = "sha256:9c969e5057de659f7fb9e784bc3ca2e7554a45a611f8af063b6c702e32db0fe2"},
-    {file = "ingenialink-7.6.1.post137+release.7.6.2.a56aa3a-cp311-cp311-win_amd64.whl", hash = "sha256:a6ba53c98d918d46bf530d0d7a2ca3455dcd007461ebaee43e1933cffa84ad80"},
-    {file = "ingenialink-7.6.1.post137+release.7.6.2.a56aa3a-cp312-cp312-win_amd64.whl", hash = "sha256:0bcee87d016a45cc4bcd36cebc9fad077c2cd30f5aec012f76c864856666264d"},
-    {file = "ingenialink-7.6.1.post137+release.7.6.2.a56aa3a-cp39-cp39-win_amd64.whl", hash = "sha256:7b4fb3ee12fb69001f79dfee367da40e07d7318eed9156ddbe928ec103ec6247"},
-    {file = "ingenialink-7.6.1.post137+release.7.6.2.a56aa3a-py3-none-any.whl", hash = "sha256:e0ac533a6479f115cb7ebc88aa9e5402785d99900bbc37fbe1fc6c23d1b32153"},
-    {file = "ingenialink-7.6.1.post137+release.7.6.2.a56aa3a.tar.gz", hash = "sha256:3a5cad7e06efd0914f2fe3003bc3a024f104b916b9c730b10e4112547dccdeaf"},
+    {file = "ingenialink-7.6.2-cp310-cp310-win_amd64.whl", hash = "sha256:b6e5c936da1bcf8f095b457d7d73a4438f912e23de0ce6751cc7fec865865d07"},
+    {file = "ingenialink-7.6.2-cp311-cp311-win_amd64.whl", hash = "sha256:21d7d803db8fc7843b3cc0d1c4997299c388097d85b4d6d5192fd4eff3cd2ab1"},
+    {file = "ingenialink-7.6.2-cp312-cp312-win_amd64.whl", hash = "sha256:c346acfbb8d4915d8a11d71f184188abe2f77e9eded859523990b7adc539d625"},
+    {file = "ingenialink-7.6.2-cp39-cp39-win_amd64.whl", hash = "sha256:c45f6091b9802760a9873a14e8e854fed933988283a33b9ad1e1fef135a2cb63"},
+    {file = "ingenialink-7.6.2-py3-none-any.whl", hash = "sha256:c3e89cf46e10f3b9129b30ceac32e02fa890cf435d57f5f9fcea71c47d526e85"},
+    {file = "ingenialink-7.6.2.tar.gz", hash = "sha256:61180f47092ed51f4c45059335b06e69e2fabd2a488fdabeafd2bed7bc8595c6"},
 ]
 
 [package.dependencies]
@@ -1331,11 +1331,6 @@ numpy = ">=1.26.0"
 ping3 = "5.1.5"
 pysoem = ">=1.1.13,<1.2.0"
 python-can = "4.6.1"
-
-[package.source]
-type = "legacy"
-url = "http://pypi.novanta.com/simple"
-reference = "novanta"
 
 [[package]]
 name = "ingenialogger"
@@ -4182,13 +4177,13 @@ test = ["pytest"]
 
 [[package]]
 name = "summit-testing-framework"
-version = "0.3.0.post327+develop.14f4220"
+version = "0.3.1"
 description = "Testing framework for Novanta drives"
 optional = false
 python-versions = ">=3.9"
 groups = ["tests"]
 files = [
-    {file = "summit_testing_framework-0.3.0.post327+develop.14f4220-py3-none-any.whl", hash = "sha256:3c15140f37d4f81e43dadb3ba86879feddebc182b83b58e8b01b7dfb01d3d875"},
+    {file = "summit_testing_framework-0.3.1-py3-none-any.whl", hash = "sha256:86fed30e435249d4abcf0006732e19c31da7f1f0e328c3d77378871b29e4abe2"},
 ]
 
 [package.dependencies]
@@ -4753,4 +4748,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "18909ff60b09408924b83493bf10c0ca9c733f531783e4b4bd3de55c21776aa7"
+content-hash = "d1eb1d3b7942306abe25a491515c38b455ca531596e993119017c252f0f0b516"
