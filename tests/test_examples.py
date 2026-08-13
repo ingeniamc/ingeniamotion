@@ -318,6 +318,7 @@ def test_dynamic_forced_phasing_example(
                 suggested_registers={},
                 commutation_phasing_mode=PhasingMode.NO_PHASING,
                 commutation_angle=0.5,
+                phasing_max_current=1.0,
             )
 
     # Patch the MotionController.tests attribute to use the MockDriveTests class
