@@ -3,11 +3,11 @@ from collections.abc import Iterator
 import pytest
 
 from ingeniamotion.enums import SeverityLevel
-from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType
+from ingeniamotion.wizard_tests.base_test import BaseTest, ReportBase
 from ingeniamotion.wizard_tests.stoppable import StopExceptionError
 
 
-class ConcreteBaseTest(BaseTest[LegacyDictReportType]):
+class ConcreteBaseTest(BaseTest[ReportBase]):
     """Minimal concrete test used to exercise base test behavior."""
 
     def setup(self) -> None:
