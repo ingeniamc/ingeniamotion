@@ -310,10 +310,9 @@ def test_set_velocity(mc, alias, velocity_value):
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.parametrize("velocity_value", [0.5, 1, 0, -0.5])
-# https://novantamotion.atlassian.net/browse/INGM-779
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
+# https://novantamotion.atlassian.net/browse/INGM-805
 @pytest.mark.not_valid_for_product(part_number="EVE-*")
-def test_set_velocity_blocking(mc, alias, velocity_value):
+def test_set_velocity_blocking(mc: "MotionController", alias: str, velocity_value: float) -> None:
     mc.motion.set_operation_mode(OperationMode.PROFILE_VELOCITY, servo=alias)
     mc.motion.motor_enable(servo=alias)
     mc.motion.set_velocity(velocity_value, servo=alias, blocking=True, timeout=10)
@@ -529,6 +528,7 @@ def test_set_internal_generator_configuration(
 @pytest.mark.canopen
 @pytest.mark.parametrize("op_mode", [OperationMode.VOLTAGE, OperationMode.CURRENT])
 @pytest.mark.parametrize("direction", [-1, 1])
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C")
 def test_internal_generator_saw_tooth_move(
     mc: "MotionController", alias: str, op_mode: "OperationMode", direction: int
 ) -> None:

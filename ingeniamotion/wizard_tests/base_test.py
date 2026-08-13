@@ -37,20 +37,25 @@ class TestConfigurationError(TestError):
     """Test configuration exception."""
 
 
-LegacyDictReportType = dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]
-
-
-@dataclass
-class ReportBase:
+@dataclass(eq=False)
+class ReportBase(dict[str, Union[SeverityLevel, dict[str, Union[int, float, str]], str]]):
     """Base class for result reports."""
 
     result_severity: SeverityLevel
     """Severity level."""
     result_message: str
     """Message explaining the result."""
+    suggested_registers: dict[str, Union[int, float, str]]
+    """Register values suggested by the test."""
+
+    def __post_init__(self) -> None:
+        """Populate the legacy dictionary representation."""
+        self["result_severity"] = self.result_severity
+        self["result_message"] = self.result_message
+        self["suggested_registers"] = self.suggested_registers
 
 
-T = TypeVar("T", bound=Union[LegacyDictReportType, ReportBase])
+T = TypeVar("T", bound=ReportBase)
 
 
 class BaseTest(ABC, Stoppable, Generic[T]):
@@ -147,11 +152,11 @@ class BaseTest(ABC, Stoppable, Generic[T]):
             The test report.
 
         """
-        return {
-            "result_severity": self.get_result_severity(output),
-            "suggested_registers": self.suggested_registers,
-            "result_message": self.get_result_msg(output),
-        }  # type: ignore [return-value]
+        return ReportBase(
+            result_severity=self.get_result_severity(output),
+            suggested_registers=self.suggested_registers,
+            result_message=self.get_result_msg(output),
+        )  # type: ignore [return-value]
 
     @abstractmethod
     def get_result_msg(self, output: Any) -> str:

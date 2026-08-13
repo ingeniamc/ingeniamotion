@@ -7,6 +7,7 @@ import time
 from collections import OrderedDict
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
+from unittest.mock import PropertyMock
 
 import pytest
 from ingenialink import CanBaudrate, CanDevice, Servo
@@ -15,6 +16,7 @@ from ingenialink.canopen.servo import CanopenServo
 from ingenialink.dictionary import SubnodeType
 from ingenialink.ethercat.network import EthercatNetwork
 from ingenialink.ethernet.network import EthernetNetwork
+from ingenialink.ethernet.tsn.sdcp import SDCPNode, SDCPServo
 from ingenialink.exceptions import ILError
 from ingenialink.network import SlaveInfo
 from ingenialink.servo import ServoState
@@ -33,6 +35,7 @@ from ingeniamotion.exceptions import (
     IMRegisterNotExistError,
     IMRegisterWrongAccessError,
 )
+from tests.dictionaries import SDCP_EXAMPLE_DICT
 from tests.fsoe.conftest import MockNetwork
 
 if TYPE_CHECKING:
@@ -63,6 +66,28 @@ class EmcyTest:
 
     def emcy_callback(self, alias, emcy_msg):
         self.messages.append((alias, emcy_msg))
+
+
+@pytest.fixture
+def managed_sdcp_node(
+    mocker,
+) -> tuple[MotionController, EthernetNetwork, SDCPNode]:
+    """Create a motion controller with a registered SDCP node.
+
+    Returns:
+        A tuple containing the motion controller, the mocked network, and the mocked SDCP node.
+
+    """
+    mc = MotionController()
+    interface = "interface"
+    node = mocker.Mock(spec=SDCPNode)
+    node.interface = interface
+
+    network = mocker.MagicMock(spec=EthernetNetwork)
+    type(network).sdcp_nodes = PropertyMock(return_value=[node])
+    mc.register_network(interface, network)
+
+    return mc, network, node
 
 
 @pytest.mark.canopen
@@ -385,6 +410,14 @@ def test_connect_servo_virtual_custom_dictionary(setup_descriptor: SetupDescript
     mc.communication.connect_servo_virtual_ethernet(
         dict_path=setup_descriptor.dictionary, port=1062
     )
+    assert "default" in mc.communication._Communication__virtual_drives
+    mc.communication.disconnect()
+    assert "default" not in mc.communication._Communication__virtual_drives
+
+
+def test_connect_servo_virtual_sdcp():
+    mc = MotionController()
+    mc.communication.connect_servo_virtual_sdcp(SDCP_EXAMPLE_DICT)
     assert "default" in mc.communication._Communication__virtual_drives
     mc.communication.disconnect()
     assert "default" not in mc.communication._Communication__virtual_drives
@@ -797,3 +830,76 @@ def test_emcy_callback(mc, alias):
     assert second_emcy.get_desc() == "No error"
     mc.communication.set_register("DRV_PROT_USER_OVER_VOLT", value=prev_val, axis=1, servo=alias)
     mc.communication.unsubscribe_emergency_message(emcy_test.emcy_callback, servo=alias)
+
+
+def test_scan_sdcp_nodes(mocker):
+    """Scan SDCP nodes through a registered Ethernet network."""
+    mc = MotionController()
+    interface = "eth0"
+    timeout = 2.0
+    nodes = [mocker.Mock(spec=SDCPNode)]
+    network = mocker.MagicMock(spec=EthernetNetwork)
+    network.scan_sdcp_nodes.return_value = nodes
+
+    ethernet_network_mock = mocker.patch(
+        "ingeniamotion.communication.EthernetNetwork",
+        return_value=network,
+    )
+
+    result = mc.communication.scan_sdcp_nodes(interface, timeout)
+
+    assert result == nodes
+    assert mc.net[interface] is network
+    ethernet_network_mock.assert_called_once_with(interface=interface)
+    network.scan_sdcp_nodes.assert_called_once_with(timeout=timeout)
+
+
+def test_connect_servo_sdcp(managed_sdcp_node, mocker, tmp_path):
+    """Connect a managed SDCP node and register the resulting motion node."""
+    mc, network, node = managed_sdcp_node
+    dictionary = tmp_path / "dictionary.xdf"
+    dictionary.touch()
+    alias = "sdcp"
+    connection_timeout = 2.0
+    servo = mocker.Mock(spec=SDCPServo)
+    network.connect_to_node.return_value = servo
+    create_motion_node_mock = mocker.patch.object(mc, "create_motion_node")
+
+    network_result, servo_result = mc.communication.connect_servo_sdcp(
+        node=node,
+        dict_path=str(dictionary),
+        alias=alias,
+        connection_timeout=connection_timeout,
+        servo_status_listener=True,
+        net_status_listener=True,
+    )
+
+    network.connect_to_node.assert_called_once_with(
+        node=node,
+        dictionary=str(dictionary),
+        servo_status_listener=True,
+        net_status_listener=True,
+        disconnect_callback=mc.communication._disconnect_callback,
+        connection_timeout=connection_timeout,
+    )
+    create_motion_node_mock.assert_called_once_with(alias, servo, network)
+    assert network_result is network
+    assert servo_result is servo
+
+
+def test_disconnect_sdcp_servo(mocker):
+    """Disconnect an SDCP servo through its associated node."""
+    mc = MotionController()
+    alias = "sdcp"
+    servo = mocker.Mock(spec=SDCPServo)
+    node = mocker.Mock(spec=SDCPNode)
+    node.servo = servo
+    network = mocker.MagicMock(spec=EthernetNetwork)
+    type(network).sdcp_nodes = PropertyMock(return_value=[node])
+    mocker.patch.object(mc, "_get_drive", return_value=servo)
+    mocker.patch.object(mc, "_get_network", return_value=network)
+
+    mc.communication.disconnect(alias)
+
+    network.disconnect_from_node.assert_called_once_with(node)
+    network.disconnect_from_slave.assert_not_called()

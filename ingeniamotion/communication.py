@@ -22,6 +22,9 @@ from ingenialink.enums.servo import ServoState
 from ingenialink.eoe.network import EoENetwork
 from ingenialink.ethercat.network import EthercatNetwork, GilReleaseConfig
 from ingenialink.ethernet.network import EthernetNetwork
+from ingenialink.ethernet.tsn.sdcp.connection import DEFAULT_SDCP_TIMEOUT_S
+from ingenialink.ethernet.tsn.sdcp.node import SDCPNode
+from ingenialink.ethernet.tsn.sdcp.servo import SDCPServo
 from ingenialink.exceptions import ILError
 from ingenialink.network import SlaveInfo
 from ingenialink.register import Register
@@ -29,6 +32,7 @@ from ingenialink.servo import DictionaryFactory, Servo
 from ingenialink.virtual.canopen.network import VirtualCanopenNetwork
 from ingenialink.virtual.ethercat.network import VirtualEthercatNetwork
 from ingenialink.virtual.ethernet.network import VirtualEthernetNetwork
+from ingenialink.virtual.sdcp.network import VirtualSDCPNetwork
 from ping3 import ping
 from virtual_drive.core import VirtualDrive
 
@@ -40,6 +44,7 @@ if TYPE_CHECKING:
     from ingenialink.virtual.canopen.servo import VirtualCanopenServo
     from ingenialink.virtual.ethercat.servo import VirtualEthercatServo
     from ingenialink.virtual.ethernet.servo import VirtualEthernetServo
+    from ingenialink.virtual.sdcp.servo import VirtualSDCPServo
 
     from ingeniamotion.motion_controller import MotionController
 
@@ -311,6 +316,56 @@ class Communication:
             net_status_listener=net_status_listener,
         )
 
+    def connect_servo_sdcp(
+        self,
+        node: SDCPNode,
+        dict_path: str,
+        alias: str = DEFAULT_SERVO,
+        connection_timeout: float = DEFAULT_SDCP_TIMEOUT_S,
+        servo_status_listener: bool = False,
+        net_status_listener: bool = False,
+    ) -> tuple[EthernetNetwork, SDCPServo]:
+        """Connect to a previously discovered SDCP node.
+
+        Args:
+            node: SDCP node returned by :meth:`scan_sdcp_nodes` and managed
+                by the currently registered Ethernet network.
+            dict_path: Path to the servo dictionary file.
+            alias: Servo alias used to reference the connection.
+            connection_timeout: Timeout in seconds for SDCP transactions.
+            servo_status_listener: Whether to start the servo status listener.
+            net_status_listener: Whether to start the network status listener.
+
+        Returns:
+            The Ethernet network and the connected SDCP servo.
+
+        Raises:
+            FileNotFoundError: If the dictionary file does not exist.
+            ValueError: If the node is not managed by a registered Ethernet
+                network. Scan the interface again to obtain a valid node.
+        """
+        if not path.isfile(dict_path):
+            raise FileNotFoundError(f"{dict_path} file does not exist!")
+        registered_network = self.mc.net.get(node.interface)
+        if not isinstance(registered_network, EthernetNetwork) or not any(
+            managed_node is node for managed_node in registered_network.sdcp_nodes
+        ):
+            raise ValueError(
+                "The SDCP node is not managed by a registered Ethernet network. "
+                "Scan the interface again before connecting."
+            )
+
+        servo = registered_network.connect_to_node(
+            node=node,
+            dictionary=dict_path,
+            servo_status_listener=servo_status_listener,
+            net_status_listener=net_status_listener,
+            disconnect_callback=self._disconnect_callback,
+            connection_timeout=connection_timeout,
+        )
+        self.mc.create_motion_node(alias, servo, registered_network)
+        return registered_network, servo
+
     def connect_servo_virtual(
         self,
         dict_path: Optional[str] = None,
@@ -403,6 +458,57 @@ class Communication:
             disconnect_callback=self._disconnect_callback,
         )
 
+        self.mc.create_motion_node(alias, servo, net)
+        return net, servo
+
+    def connect_servo_virtual_sdcp(
+        self,
+        dict_path: str,
+        alias: str = DEFAULT_SERVO,
+        port: Optional[int] = None,
+        connection_timeout: float = DEFAULT_SDCP_TIMEOUT_S,
+        servo_status_listener: bool = False,
+        net_status_listener: bool = False,
+    ) -> tuple[VirtualSDCPNetwork, "VirtualSDCPServo"]:
+        """Connect to a virtual SDCP drive on the IPv6 loopback address.
+
+        Args:
+            dict_path: SDCP-compatible servo dictionary path.
+            alias: Servo alias to reference it. ``default`` by default.
+            port: Port number. If not specified, it will be automatically assigned.
+            connection_timeout: Timeout in seconds for SDCP transactions.
+            servo_status_listener: Toggle the listener of the servo for its
+                status, errors, faults, etc.
+            net_status_listener: Toggle the listener of the network status,
+                connection and disconnection.
+
+        Returns:
+            The virtual SDCP network and the connected servo.
+
+        Raises:
+            FileNotFoundError: If the dict file doesn't exist.
+        """
+        if not path.isfile(dict_path):
+            raise FileNotFoundError(f"{dict_path} file does not exist!")
+
+        virtual_drive = VirtualDrive(
+            port,
+            dictionary_path=dict_path,
+            protocol=Interface.SDCP,
+        )
+        virtual_drive.start()
+        self.__virtual_drives[alias] = virtual_drive
+
+        net = VirtualSDCPNetwork()
+        self.mc.register_network(alias, net)
+        servo = net.connect_to_slave(
+            virtual_drive.dictionary_path,
+            port=virtual_drive.port,
+            connection_timeout=connection_timeout,
+            servo_status_listener=servo_status_listener,
+            net_status_listener=net_status_listener,
+            disconnect_callback=self._disconnect_callback,
+        )
         self.mc.create_motion_node(alias, servo, net)
         return net, servo
 
@@ -1237,6 +1343,34 @@ class Communication:
         slaves = net.scan_slaves()
         return slaves
 
+    def scan_sdcp_nodes(
+        self,
+        interface: str,
+        timeout: float = DEFAULT_SDCP_TIMEOUT_S,
+    ) -> list[SDCPNode]:
+        """Scan for SDCP-compatible nodes.
+
+        Args:
+            interface: Network interface used for SDCP discovery.
+            timeout: Timeout in seconds for SDCP identification transactions.
+
+        Returns:
+            Identified SDCP nodes.
+
+        Raises:
+            TypeError: If the interface alias is registered with a different
+                network type.
+        """
+        if interface not in self.mc.net:
+            network = EthernetNetwork(interface=interface)
+            self.mc.register_network(interface, network)
+        else:
+            registered_network = self.mc.net[interface]
+            if not isinstance(registered_network, EthernetNetwork):
+                raise TypeError("Network is not of type EthernetNetwork")
+            network = registered_network
+        return network.scan_sdcp_nodes(timeout=timeout)
+
     @staticmethod
     def scan_servos_ethernet(
         subnet: str,
@@ -1277,10 +1411,19 @@ class Communication:
         Args:
             servo : servo alias to reference it. ``default`` by default.
 
+        Raises:
+            ValueError: If an SDCP servo is not associated with an Ethernet network
+                or a managed SDCP node.
+
         """
         drive = self.mc._get_drive(servo)
         network = self.mc._get_network(servo)
-        # This will call `__disconnect_callback` to complete the disconnection
+        if isinstance(drive, SDCPServo) and not isinstance(network, VirtualSDCPNetwork):
+            if not isinstance(network, EthernetNetwork):
+                raise ValueError("The SDCP servo is not associated with an Ethernet network.")
+            self.__disconnect_sdcp_servo(drive, network)
+            return
+        # This calls `_disconnect_callback` to complete the disconnection.
         network.disconnect_from_slave(drive)
 
     def get_servo_state(self, servo: str = DEFAULT_SERVO) -> NetState:
@@ -2052,3 +2195,25 @@ class Communication:
             mapping[slave_id_offset] = fw_file, product_code, revision_number
 
         return mapping
+
+    @staticmethod
+    def __disconnect_sdcp_servo(
+        servo: SDCPServo,
+        network: EthernetNetwork,
+    ) -> None:
+        """Disconnect an SDCP servo through its associated node.
+
+        Args:
+            servo: SDCP servo to disconnect.
+            network: Ethernet network associated with the servo.
+
+        Raises:
+            ValueError: If the servo is not associated with a managed SDCP node.
+        """
+        node = next(
+            (managed_node for managed_node in network.sdcp_nodes if managed_node.servo is servo),
+            None,
+        )
+        if node is None:
+            raise ValueError("The SDCP servo is not associated with a managed SDCP node.")
+        network.disconnect_from_node(node)
