@@ -46,7 +46,7 @@ class MonitoringV1(Monitoring):
             return self.TRIGGER_CYCLIC_RISING_EDGE
         if edge_condition == MonitoringSoCConfig.TRIGGER_CONFIG_FALLING:
             return self.TRIGGER_CYCLIC_FALLING_EDGE
-        raise NotImplementedError("Edge condition is not implementedfor this FW version")
+        raise NotImplementedError("Edge condition is not implemented for this FW version")
 
     @check_monitoring_disabled
     @override

@@ -29,15 +29,30 @@ ETH_SETUP = SpecifierContainer({
         version_configs={
             "2.4.0": VersionConfig.from_version(
                 version="2.4.0",
-                config_file=_config_files.EVE_XCR_C_CONFIG,
+                config_file=_config_files.EVE_XCR_C_2_1_0_CONFIG,
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
-                    __EXECUTION_POLICY_KEY: "always",
+                    __EXECUTION_POLICY_KEY: "weekends",
                     __TEST_CONFIGS_KEY: {
                         "ETH_TEST_SESSIONS": PyTestConfig(
                             markers="ethernet",
                             run_test_stage_uid="ethernet_everest_2.4.0",
                             stage_name="Ethernet Everest - FW. 2.4.0",
+                        )
+                    },
+                },
+            ),
+            "2.8.1": VersionConfig.from_version(
+                version="2.8.1",
+                config_file=_config_files.EVE_XCR_C_2_8_1_CONFIG,
+                dictionary_type=DictionaryType.XDF_V2,
+                extra_data={
+                    __EXECUTION_POLICY_KEY: "weekends",
+                    __TEST_CONFIGS_KEY: {
+                        "ETH_TEST_SESSIONS": PyTestConfig(
+                            markers="ethernet",
+                            run_test_stage_uid="ethernet_everest_2.8.1",
+                            stage_name="Ethernet Everest - FW. 2.8.1",
                         )
                     },
                 },
@@ -64,6 +79,22 @@ ETH_SETUP = SpecifierContainer({
                     },
                 },
             ),
+            "2.10.0": VersionConfig.from_version(
+                version="2.10.0",
+                config_file=_config_files.CAP_XCR_C_CONFIG,
+                dictionary_type=DictionaryType.XDF_V2,
+                extra_data={
+                    # Disabled pending INGK-982
+                    __EXECUTION_POLICY_KEY: "never",
+                    __TEST_CONFIGS_KEY: {
+                        "ETH_TEST_SESSIONS": PyTestConfig(
+                            markers="ethernet",
+                            run_test_stage_uid="ethernet_capitan_2.10.0",
+                            stage_name="Ethernet Capitan - FW. 2.10.0",
+                        )
+                    },
+                },
+            ),
         },
     ),
 })
@@ -78,13 +109,27 @@ ECAT_SETUP = SpecifierContainer({
                 config_file=_config_files.EVE_XCR_E_CONFIG,
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
-                    # Disabled pending INGK-983
-                    __EXECUTION_POLICY_KEY: "never",
+                    __EXECUTION_POLICY_KEY: "weekends",
                     __TEST_CONFIGS_KEY: {
                         "ECAT_TEST_SESSIONS": PyTestConfig(
                             markers="soem",
                             run_test_stage_uid="ethercat_everest_2.6.0",
                             stage_name="EtherCAT Everest - FW. 2.6.0",
+                        )
+                    },
+                },
+            ),
+            "2.8.1": VersionConfig.from_version(
+                version="2.8.1",
+                config_file=_config_files.EVE_XCR_E_CONFIG,
+                dictionary_type=DictionaryType.XDF_V2,
+                extra_data={
+                    __EXECUTION_POLICY_KEY: "always",
+                    __TEST_CONFIGS_KEY: {
+                        "ECAT_TEST_SESSIONS": PyTestConfig(
+                            markers="soem",
+                            run_test_stage_uid="ethercat_everest_2.8.1",
+                            stage_name="EtherCAT Everest - FW. 2.8.1",
                         )
                     },
                 },
@@ -97,15 +142,30 @@ ECAT_SETUP = SpecifierContainer({
         version_configs={
             "2.6.0": VersionConfig.from_version(
                 version="2.6.0",
-                config_file=_config_files.CAP_XCR_E_CONFIG,
+                config_file=_config_files.CAP_XCR_E_2_2_0_CONFIG,
+                dictionary_type=DictionaryType.XDF_V2,
+                extra_data={
+                    __EXECUTION_POLICY_KEY: "weekends",
+                    __TEST_CONFIGS_KEY: {
+                        "ECAT_TEST_SESSIONS": PyTestConfig(
+                            markers="soem",
+                            run_test_stage_uid="ethercat_capitan_2.6.0",
+                            stage_name="EtherCAT Capitan - FW. 2.6.0",
+                        )
+                    },
+                },
+            ),
+            "2.9.0": VersionConfig.from_version(
+                version="2.9.0",
+                config_file=_config_files.CAP_XCR_E_2_9_0_CONFIG,
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "always",
                     __TEST_CONFIGS_KEY: {
                         "ECAT_TEST_SESSIONS": PyTestConfig(
                             markers="soem",
-                            run_test_stage_uid="ethercat_capitan_2.6.0",
-                            stage_name="EtherCAT Capitan - FW. 2.6.0",
+                            run_test_stage_uid="ethercat_capitan_2.9.0",
+                            stage_name="EtherCAT Capitan - FW. 2.9.0",
                         )
                     },
                 },
@@ -133,22 +193,17 @@ ECAT_DEN_S_NET_E_SETUP = RackServiceConfigSpecifier.from_version_configs(
                 },
             },
         ),
-        "PHASE2": VersionConfig.from_files(
-            version="2.9.0.16",
+        "PHASE2": VersionConfig.from_version(
+            version="2.10.0",
             config_file=None,
-            firmware=Path(
-                "//azr-srv-ingfs1/dist/products/i050_summit/i056_den-s-net-e/release_candidate/2.9.0.16/den-s-net-e_2.9.0.lfu"
-            ),
-            dictionary=Path(
-                "//azr-srv-ingfs1/dist/products/i050_summit/i056_den-s-net-e/release_candidate/2.9.0.16/den-s-net-e_2.9.0.016.xdf3"
-            ),
+            dictionary_type=DictionaryType.XDF_V3,
             extra_data={
                 __EXECUTION_POLICY_KEY: "always",
                 __TEST_CONFIGS_KEY: {
                     "ECAT_TEST_SESSIONS": PyTestConfig(
                         markers="fsoe or fsoe_phase2",
-                        run_test_stage_uid="fsoe_phase2_2.9.0",
-                        stage_name="Safety Denali Phase II - FW. 2.9.0",
+                        run_test_stage_uid="fsoe_phase2_2.10.0",
+                        stage_name="Safety Denali Phase II - FW. 2.10.0",
                     )
                 },
             },
@@ -164,15 +219,30 @@ CAN_SETUP = SpecifierContainer({
         version_configs={
             "2.4.0": VersionConfig.from_version(
                 version="2.4.0",
-                config_file=_config_files.EVE_XCR_C_CONFIG,
+                config_file=_config_files.EVE_XCR_C_2_1_0_CONFIG,
+                dictionary_type=DictionaryType.XDF_V2,
+                extra_data={
+                    __EXECUTION_POLICY_KEY: "weekends",
+                    __TEST_CONFIGS_KEY: {
+                        "CAN_TEST_SESSIONS": PyTestConfig(
+                            markers="canopen",
+                            run_test_stage_uid="canopen_everest_2.4.0",
+                            stage_name="CANopen Everest - FW. 2.4.0",
+                        )
+                    },
+                },
+            ),
+            "2.8.1": VersionConfig.from_version(
+                version="2.8.1",
+                config_file=_config_files.EVE_XCR_C_2_8_1_CONFIG,
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "always",
                     __TEST_CONFIGS_KEY: {
                         "CAN_TEST_SESSIONS": PyTestConfig(
                             markers="canopen",
-                            run_test_stage_uid="canopen_everest_2.4.0",
-                            stage_name="CANopen Everest - FW. 2.4.0",
+                            run_test_stage_uid="canopen_everest_2.8.1",
+                            stage_name="CANopen Everest - FW. 2.8.1",
                         )
                     },
                 },
@@ -198,6 +268,21 @@ CAN_SETUP = SpecifierContainer({
                     },
                 },
             ),
+            "2.10.0": VersionConfig.from_version(
+                version="2.10.0",
+                config_file=_config_files.CAP_XCR_C_CONFIG,
+                dictionary_type=DictionaryType.XDF_V2,
+                extra_data={
+                    __EXECUTION_POLICY_KEY: "never",
+                    __TEST_CONFIGS_KEY: {
+                        "CAN_TEST_SESSIONS": PyTestConfig(
+                            markers="canopen",
+                            run_test_stage_uid="canopen_capitan_2.10.0",
+                            stage_name="CANopen Capitan - FW. 2.10.0",
+                        )
+                    },
+                },
+            ),
         },
     ),
 })
@@ -207,10 +292,10 @@ ECAT_MULTISLAVE_SETUP = MultiRackServiceConfigSpecifier.create(
     identifier="ECAT_MULTISLAVE",
     specifiers=[
         ECAT_SETUP.get_specifier_by_identifier_with_version(
-            identifier=PartNumber.EVE_XCR_E, version="2.6.0"
+            identifier=PartNumber.EVE_XCR_E, version="2.8.1"
         ),
         ECAT_SETUP.get_specifier_by_identifier_with_version(
-            identifier=PartNumber.CAP_XCR_E, version="2.6.0"
+            identifier=PartNumber.CAP_XCR_E, version="2.9.0"
         ),
     ],
     extra_data={
@@ -218,8 +303,8 @@ ECAT_MULTISLAVE_SETUP = MultiRackServiceConfigSpecifier.create(
         __TEST_CONFIGS_KEY: {
             "ECAT_TEST_SESSIONS": PyTestConfig(
                 markers="soem_multislave",
-                run_test_stage_uid="ethercat_multislave_2.6.0",
-                stage_name="EtherCAT Multislave - FW. 2.6.0",
+                run_test_stage_uid="ethercat_multislave",
+                stage_name="EtherCAT Multislave",
             )
         },
     },

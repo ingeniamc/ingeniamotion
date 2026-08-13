@@ -8,6 +8,10 @@ if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
 from ingeniamotion.wizard_tests.brake import Brake
+from ingeniamotion.wizard_tests.dynamic_forced_phasing import (
+    DynamicForcedPhasing,
+    DynamicForcedPhasingReport,
+)
 from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder1_test import AbsoluteEncoder1Test
 from ingeniamotion.wizard_tests.feedbacks_tests.absolute_encoder2_test import AbsoluteEncoder2Test
 from ingeniamotion.wizard_tests.feedbacks_tests.dc_feedback_polarity_test import (
@@ -43,6 +47,9 @@ class DriveTests:
         SensorType.QEI2: DigitalIncremental2Test,
         SensorType.SINCOS: SinCosEncoderTest,
     }
+
+    COMMUTATION_ANGLE_OFFSET_REGISTER = "COMMU_ANGLE_OFFSET"
+    REFERENCE_ANGLE_OFFSET_REGISTER = "COMMU_ANGLE_REF_OFFSET"
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
@@ -315,6 +322,66 @@ class DriveTests:
         """
         phasing_check = PhasingCheck(self.mc, servo, axis)
         return phasing_check.run()
+
+    def dynamic_forced_phasing(
+        self,
+        servo: str = DEFAULT_SERVO,
+        axis: int = DEFAULT_AXIS,
+        apply_changes: bool = True,
+        phasing_max_current: Optional[float] = None,
+        spin_frequency: Optional[float] = None,
+    ) -> Optional[DynamicForcedPhasingReport]:
+        """Run the dynamic forced phasing test.
+
+        Executes a dynamic forced phasing test given a target servo and axis.
+        By default dynamic forced phasing will make changes in some drive registers
+        like commutation angle offset and other suggested registers.
+        To avoid it, set ``apply_changes`` to ``False``.
+
+        Args:
+            servo : servo alias to reference it. ``default`` by default.
+            axis : axis that will run the test. ``1`` by default.
+            apply_changes : if ``True``, test applies changes to the
+                servo, if ``False`` it does not. ``True`` by default.
+            phasing_max_current : maximum current for phasing. ``None`` by default.
+            spin_frequency : frequency for spinning. ``None`` by default.
+
+        Returns:
+            Test result dataclass.
+
+        Raises:
+            TestError: If servo or setup configuration makes impossible
+                complete the calibration.
+            TypeError: If some parameter has a wrong type.
+        """
+        dynamic_forced_phasing = DynamicForcedPhasing(
+            self.mc,
+            servo,
+            axis,
+            phasing_max_current=phasing_max_current,
+            spin_frequency=spin_frequency,
+        )
+        output = dynamic_forced_phasing.run()
+        if apply_changes and output is not None and output.result_severity != SeverityLevel.FAIL:
+            self.mc.configuration.set_phasing_mode(
+                output.commutation_phasing_mode, servo=servo, axis=axis
+            )
+            self.mc.communication.set_register(
+                self.COMMUTATION_ANGLE_OFFSET_REGISTER,
+                output.commutation_angle,
+                servo=servo,
+                axis=axis,
+            )
+            self.mc.communication.set_register(
+                self.REFERENCE_ANGLE_OFFSET_REGISTER,
+                output.commutation_angle,
+                servo=servo,
+                axis=axis,
+            )
+            self.logger.debug(
+                "DynamicForcedPhasing changes applied", axis=axis, drive=self.mc.servo_name(servo)
+            )
+        return output
 
     def sto_test(
         self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS

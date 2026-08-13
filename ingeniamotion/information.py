@@ -168,11 +168,11 @@ class Information:
         Args:
             servo: alias of the servo.
 
-        Raises:
-            IMError: If the servo is not a CANopen device.
-
         Returns:
             Node ID of the drive.
+
+        Raises:
+            IMError: If the servo is not a CANopen device.
         """
         drive = self.mc._get_drive(servo)
         net = self.mc._get_network(servo)
@@ -187,11 +187,11 @@ class Information:
         Args:
             servo: alias of the servo.
 
-        Raises:
-            IMError: If the servo is not a CANopen device.
-
         Returns:
             Baudrate of the drive.
+
+        Raises:
+            IMError: If the servo is not a CANopen device.
         """
         net = self.mc._get_network(servo)
         if isinstance(net, CanopenNetwork):
@@ -204,11 +204,11 @@ class Information:
         Args:
             servo: alias of the servo.
 
-        Raises:
-            IMError: If the servo is not an Ethernet device.
-
         Returns:
             IP of the drive.
+
+        Raises:
+            IMError: If the servo is not an Ethernet device.
         """
         drive = self.mc._get_drive(servo)
         net = self.mc._get_network(servo)
@@ -223,11 +223,11 @@ class Information:
         Args:
             servo: alias of the servo.
 
-        Raises:
-            IMError: If the servo is not an EtherCAT slave.
-
         Returns:
             Slave ID of the servo.
+
+        Raises:
+            IMError: If the servo is not an EtherCAT slave.
 
         """
         drive = self.mc._get_drive(servo)
@@ -308,11 +308,11 @@ class Information:
         Args:
             servo: Drive alias.
 
-        Raises:
-            IMError: If dictionary categories are not defined.
-
         Returns:
             Categories instance.
+
+        Raises:
+            IMError: If dictionary categories are not defined.
         """
         drive = self.mc._get_drive(servo)
         dictionary_categories = drive.dictionary.categories

@@ -171,7 +171,6 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
             blocks with the correct size.
 
         Args:
-            dictionary_map: The dictionary map to validate.
             safe_data_blocks: The list of safe data blocks to validate.
 
         Returns:
@@ -282,7 +281,6 @@ class SafeDataBlocksValidator(FSoEFrameRuleValidator):
         """Validate that only 32-bit objects may be split across multiple safe data blocks.
 
         Args:
-            dictionary_map: The dictionary map to validate.
             safe_data_blocks: The list of safe data blocks to validate.
 
         Returns:

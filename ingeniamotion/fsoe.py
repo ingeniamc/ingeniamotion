@@ -53,9 +53,6 @@ class FSoEMaster:
     ) -> "FSoEMasterHandler":
         """Create an FSoE Master handler linked to a Safe servo drive.
 
-        Raises:
-            TypeError: If the servo is not an EthercatServo.
-
         Args:
             use_sra: True to use SRA, False otherwise.
             servo: servo alias to reference it. ``default`` by default.
@@ -65,6 +62,9 @@ class FSoEMaster:
 
         Returns:
             An instance of FSoEMasterHandler.
+
+        Raises:
+            TypeError: If the servo is not an EthercatServo.
         """
         if fsoe_master_watchdog_timeout is None:
             fsoe_master_watchdog_timeout = FSoEMasterHandler.DEFAULT_WATCHDOG_TIMEOUT_S

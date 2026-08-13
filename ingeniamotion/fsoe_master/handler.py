@@ -7,9 +7,9 @@ from typing import TYPE_CHECKING, Callable, Optional, TypeVar, Union, cast, over
 import ingenialogger
 from exceptiongroup import ExceptionGroup
 from ingenialink import RegDtype
-from ingenialink.canopen.register import CanopenRegister
 from ingenialink.dictionary import DictionarySafetyModule
 from ingenialink.enums.register import RegAccess, RegCyclicType
+from ingenialink.ethercat.register import EthercatRegister
 from ingenialink.ethercat.servo import EthercatServo
 from ingenialink.pdo import RPDOMap, TPDOMap
 from ingenialink.utils._utils import convert_dtype_to_bytes
@@ -47,9 +47,9 @@ from ingeniamotion.fsoe_master.safety_functions import (
 )
 
 if TYPE_CHECKING:
+    from ingenialink.canopen.register import CanopenRegister
     from ingenialink.ethercat.dictionary import EthercatDictionary
     from ingenialink.ethercat.network import EthercatNetwork
-    from ingenialink.ethercat.register import EthercatRegister
 
 SAFE_INSTANCE_TYPE = TypeVar("SAFE_INSTANCE_TYPE", bound="SafetyFunction")
 
@@ -303,9 +303,6 @@ class FSoEMasterHandler:
     def __get_configured_module_ident_1(self) -> Union[int, float, str, bytes]:
         """Gets the configured Module Ident 1.
 
-        Args:
-            servo: servo alias to reference it. ``default`` by default.
-
         Returns:
             Configured Module Ident 1.
         """
@@ -313,9 +310,6 @@ class FSoEMasterHandler:
 
     def __get_safety_module(self) -> DictionarySafetyModule:
         """Gets the configured Module Ident 1.
-
-        Args:
-            servo: servo alias to reference it. ``default`` by default.
 
         Returns:
             Safety module.
@@ -396,8 +390,6 @@ class FSoEMasterHandler:
         # Update the pdo maps elements that are safe parameters
         for pdu_map in (self.safety_master_pdu_map, self.safety_slave_pdu_map):
             for register, mapping_value in pdu_map.map_register_values().items():
-                if register.identifier is None:
-                    raise ValueError("Register in PDOMap has no identifier")
                 if register.identifier in self.safety_parameters:
                     if mapping_value is None:
                         # Set parameter to zero if it is not mapped
@@ -553,12 +545,6 @@ class FSoEMasterHandler:
     ) -> SAFE_INSTANCE_TYPE:
         """Get the instance of a safety function.
 
-        Raises:
-            IndexError: If the instance index is out of range of the available instances.
-            ValueError: If multiple instances of the type are found and
-                no instance index is specified.
-            ValueError: If no instance of the type is found.
-
         Args:
             typ: The type of the safety function to get.
             instance: The index of the instance to get.
@@ -566,6 +552,12 @@ class FSoEMasterHandler:
 
         Returns:
             The instance of the safety function of the specified type.
+
+        Raises:
+            IndexError: If the instance index is out of range of the available instances.
+            ValueError: If multiple instances of the type are found and
+                no instance index is specified.
+            ValueError: If no instance of the type is found.
         """
         funcs = [func for func in self.safety_functions if isinstance(func, typ)]
 
@@ -683,11 +675,11 @@ class FSoEMasterHandler:
     def safe_inputs_value(self) -> bool:
         """Get the safe inputs register value.
 
-        Raises:
-            ValueError: On unexpected value type.
-
         Returns:
             The safe inputs value as a boolean.
+
+        Raises:
+            ValueError: On unexpected value type.
         """
         safe_inputs_value = self.safe_inputs_function().value.get()
         if not isinstance(safe_inputs_value, bool):
@@ -722,11 +714,11 @@ class FSoEMasterHandler:
     def is_sto_active(self) -> bool:
         """Check the STO state.
 
-        Raises:
-            ValueError: On unexpected value type.
-
         Returns:
             True if the STO is active. False otherwise.
+
+        Raises:
+            ValueError: On unexpected value type.
 
         """
         sto_command = self.sto_function().command.get()
@@ -764,11 +756,11 @@ class FSoEMasterHandler:
 
         Creates the FSoE dictionary from the servo's dictionary.
 
-        Raises:
-            TypeError: If the register is not of type CanopenRegister.
-
         Returns:
             A Dictionary instance with the safe inputs and outputs.
+
+        Raises:
+            TypeError: If the register is not of type CanopenRegister.
 
         """
         items = []
@@ -776,17 +768,10 @@ class FSoEMasterHandler:
             if register.cat_id != cls.FSOE_DICTIONARY_CATEGORY:
                 continue
 
-            if not isinstance(register, CanopenRegister):
-                # Type could be narrowed to EthercatRegister
-                # After this bugfix:
-                # https://novantamotion.atlassian.net/browse/INGK-1111
+            if not isinstance(register, EthercatRegister):
                 raise TypeError
 
-            identifier = register.identifier
-            if identifier is None:
-                continue
-
-            if identifier.startswith(("FSOE_SLAVE_FRAME", "FSOE_MASTER_FRAME")):
+            if register.identifier.startswith(("FSOE_SLAVE_FRAME", "FSOE_MASTER_FRAME")):
                 # Elements of the standard FSoE frame are not added to the safe data dictionary
                 continue
 

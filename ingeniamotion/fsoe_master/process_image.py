@@ -148,11 +148,6 @@ class ProcessImage:
     def validate(self) -> bool:
         """Check if the map is valid.
 
-        Args:
-            rules: list of specific rules to validate. If None, all rules are validated.
-            raise_exceptions: If True, raises an exception if any rule is invalid.
-                If False, returns the validation output with exceptions. Defaults to False.
-
         Returns:
             True if the maps are valid.
         """
@@ -362,11 +357,11 @@ class ProcessImage:
         Args:
             pdo_byte_length: byte length of the PDO map
 
-        Raises:
-            ValueError: if pdo_byte_lenght is less than 6
-
         Returns:
             Tuple containing all byte indexes of the PDO map that belong to safe data
+
+        Raises:
+            ValueError: if pdo_byte_lenght is less than 6
         """
         if pdo_byte_length < 6:
             raise ValueError("pdo_lenght must be at least 6")

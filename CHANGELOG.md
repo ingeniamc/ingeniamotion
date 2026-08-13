@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.10.4] - 2026-08-13
+### Added
+- Add dynamic forced phasing test
+
+### Fixed
+- Feedback test symmetry check
+
 ## [0.10.3] - 2026-04-29
 ### Fixed
 - Added validation for zero feedback resolution in `DCFeedbacksResolutionTest` and `DCFeedbacksPolarityTest`.

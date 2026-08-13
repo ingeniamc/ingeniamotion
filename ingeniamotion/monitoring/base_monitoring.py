@@ -124,13 +124,13 @@ class Monitoring(ABC):
         Args:
             registers: List of registers to map.
 
+        Returns:
+            register with dtype information.
+
         Raises:
             TypeError: If the subnode is not an integer.
             TypeError: If the register is not a string.
             IMMonitoringError: If the register cannot be mapped as a monitoring register.
-
-        Returns:
-            register with dtype information.
         """
         for channel in registers:
             subnode = channel.get("axis", DEFAULT_AXIS)
@@ -258,12 +258,12 @@ class Monitoring(ABC):
         if dtype == RegDtype.U16:
             return int(np.array([int(value)], dtype="int64").astype("uint16")[0])
         if dtype == RegDtype.U32:
-            return int(struct.unpack("L", struct.pack("I", int(value)))[0])
+            return int(struct.unpack("I", struct.pack("I", int(value)))[0])
         if dtype == RegDtype.S32:
             if value < 0:
                 return int(value + (1 << 32))
             return int(np.array([int(value)], dtype="int64").astype("int32")[0])
-        return int(struct.unpack("L", struct.pack("f", value))[0])
+        return int(struct.unpack("I", struct.pack("f", value))[0])
 
     @abstractmethod
     @check_monitoring_disabled
@@ -381,11 +381,11 @@ class Monitoring(ABC):
                 ``None`` by default.
             progress_callback : callback with progress.
 
-        Raises:
-            IMMonitoringError: If monitoring is disabled.
-
         Returns:
             Data of monitoring. Each element of the list is a different register data.
+
+        Raises:
+            IMMonitoringError: If monitoring is disabled.
 
         """
         if not self.mc.capture.is_monitoring_enabled(servo=self.servo):
@@ -479,11 +479,11 @@ class Monitoring(ABC):
                 trigger only once.
             timeout : blocking timeout in seconds. ``5`` by default.
 
-        Raises:
-            IMMonitoringError: If monitoring trigger type is not Forced Trigger.
-
         Returns:
             Return ``True`` if trigger is raised, else ``False``.
+
+        Raises:
+            IMMonitoringError: If monitoring trigger type is not Forced Trigger.
 
         """
         trigger_mode = self.get_trigger_type()
