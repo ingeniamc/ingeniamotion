@@ -66,6 +66,29 @@ def reassignFilePermissions() {
     }
 }
 
+def ensureRustToolchain() {
+    if (isUnix()) {
+        sh '''
+            if ! command -v rustc >/dev/null 2>&1 || ! command -v cargo >/dev/null 2>&1; then
+                curl --proto "=https" --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile minimal
+            fi
+            . "$HOME/.cargo/env"
+            rustc --version
+            cargo --version
+        '''
+    } else {
+        bat '''
+            where rustc >nul 2>&1 && where cargo >nul 2>&1
+            if %ERRORLEVEL% NEQ 0 (
+                powershell -NoProfile -ExecutionPolicy Bypass -Command "$ErrorActionPreference = 'Stop'; $installer = Join-Path $env:TEMP 'rustup-init.exe'; Invoke-WebRequest -UseBasicParsing https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe -OutFile $installer; & $installer -y --profile minimal; Remove-Item $installer"
+            )
+            set "PATH=%USERPROFILE%\\.cargo\\bin;%PATH%"
+            rustc --version
+            cargo --version
+        '''
+    }
+}
+
 /* Build develop everyday 3 times starting at 19:00 UTC (21:00 Barcelona Time), running all python versions */
 /*
  * Cron schedules for the develop branch:
@@ -332,9 +355,16 @@ pipeline {
                         stage('Build wheels') {
                             steps {
                                 script {
-                                    venvManager.runInWorkingFolder("rm -rf dist")
-                                    venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
-                                        venv.run("poetry run poe build")
+                                    withEnv([
+                                        "PATH=/root/.cargo/bin:${env.PATH}",
+                                        "RUSTC=/root/.cargo/bin/rustc",
+                                        "CARGO=/root/.cargo/bin/cargo",
+                                    ]) {
+                                        ensureRustToolchain()
+                                        venvManager.runInWorkingFolder("rm -rf dist")
+                                        venvManager.withPython(DEFAULT_PYTHON_VERSION) { venv ->
+                                            venv.run("poetry run poe build")
+                                        }
                                     }
                                     venvManager.copyFromWorkingFolder("dist/")
                                 }
