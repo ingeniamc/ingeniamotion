@@ -1,9 +1,11 @@
 import math
 import time
+from collections.abc import Iterator, Mapping
 from enum import IntEnum
-from typing import TYPE_CHECKING, Final, Optional
+from typing import TYPE_CHECKING, Final, Optional, cast
 
 import ingenialogger
+from ingenialink.drive_context_manager import DriveContextManager
 from ingenialink.exceptions import ILIOError, ILStateError, ILTimeoutError
 from typing_extensions import override
 
@@ -23,6 +25,83 @@ from ingeniamotion.wizard_tests.base_test import (
     TestConfigurationError,
     TestError,
 )
+
+MAX_SIMULTANEOUS_FEEDBACKS = 4
+FEEDBACK_SELECTOR_REGISTERS = (
+    "COMMU_ANGLE_SENSOR",
+    "COMMU_ANGLE_REF_SENSOR",
+    "CL_VEL_FBK_SENSOR",
+    "CL_POS_FBK_SENSOR",
+    "CL_AUX_FBK_SENSOR",
+)
+
+
+def _feedback_replacement_order(  # noqa: C901
+    current_feedbacks: Mapping[str, int], target_feedbacks: Mapping[str, int]
+) -> Iterator[tuple[str, int]]:  # noqa: C901
+    """Order feedback slots for a safe transition between two configurations.
+
+    Args:
+        current_feedbacks: Current feedback types keyed by selector register.
+        target_feedbacks: Target feedback types keyed by selector register.
+
+    Yields:
+        Register and sensor pairs ordered so each intermediate configuration stays valid.
+
+    Raises:
+        ValueError: If the configurations do not use the selector registers or cannot
+            be transitioned safely.
+    """
+    if set(current_feedbacks) != set(target_feedbacks) or set(current_feedbacks) != set(
+        FEEDBACK_SELECTOR_REGISTERS
+    ):
+        raise ValueError("Feedback configurations must use the selector registers.")
+
+    def find_order(  # noqa: C901
+        state: Mapping[str, int], pending: tuple[str, ...]
+    ) -> Optional[list[tuple[str, int]]]:  # noqa: C901
+        if not pending:
+            return []
+
+        active_sources = set(state.values())
+        for register in pending:
+            target_sensor = target_feedbacks[register]
+            if (
+                len(active_sources) >= MAX_SIMULTANEOUS_FEEDBACKS
+                and target_sensor not in active_sources
+            ):
+                continue
+            candidate_state = dict(state)
+            candidate_state[register] = target_sensor
+            remaining = tuple(item for item in pending if item != register)
+            suffix = find_order(candidate_state, remaining)
+            if suffix is not None:
+                return [(register, target_sensor), *suffix]
+
+        for register in pending:
+            for parking_sensor in dict.fromkeys(state.values()):
+                if parking_sensor not in active_sources:
+                    continue
+                if state[register] == parking_sensor:
+                    continue
+                candidate_state = dict(state)
+                candidate_state[register] = parking_sensor
+                if len(set(candidate_state.values())) >= len(active_sources):
+                    continue
+                suffix = find_order(candidate_state, pending)
+                if suffix is not None:
+                    return [(register, parking_sensor), *suffix]
+        return None
+
+    pending = tuple(
+        register
+        for register in FEEDBACK_SELECTOR_REGISTERS
+        if current_feedbacks[register] != target_feedbacks[register]
+    )
+    order = find_order(current_feedbacks, pending)
+    if order is None:
+        raise ValueError("Feedback configurations cannot be transitioned safely.")
+    yield from order
 
 
 class Feedbacks(BaseTest[ReportBase]):
@@ -152,15 +231,38 @@ class Feedbacks(BaseTest[ReportBase]):
         Raises:
             TestConfigurationError: If the feedback resolution is not greater than 0.
         """
-        # First set all feedback to feedback in test, so there won't be
-        # more than 5 feedback at the same time
-        self.mc.configuration.set_commutation_feedback(
-            self.sensor, servo=self.servo, axis=self.axis
+        feedback_slots = (
+            (
+                self.mc.configuration.get_commutation_feedback,
+                self.mc.configuration.set_commutation_feedback,
+            ),
+            (
+                self.mc.configuration.get_reference_feedback,
+                self.mc.configuration.set_reference_feedback,
+            ),
+            (
+                self.mc.configuration.get_velocity_feedback,
+                self.mc.configuration.set_velocity_feedback,
+            ),
+            (
+                self.mc.configuration.get_position_feedback,
+                self.mc.configuration.set_position_feedback,
+            ),
+            (
+                self.mc.configuration.get_auxiliar_feedback,
+                self.mc.configuration.set_auxiliar_feedback,
+            ),
         )
-        self.mc.configuration.set_reference_feedback(self.sensor, servo=self.servo, axis=self.axis)
-        self.mc.configuration.set_velocity_feedback(self.sensor, servo=self.servo, axis=self.axis)
-        self.mc.configuration.set_position_feedback(self.sensor, servo=self.servo, axis=self.axis)
-        self.mc.configuration.set_auxiliar_feedback(self.sensor, servo=self.servo, axis=self.axis)
+        current_feedbacks = {
+            register: getter(servo=self.servo, axis=self.axis)
+            for register, (getter, _setter) in zip(FEEDBACK_SELECTOR_REGISTERS, feedback_slots)
+        }
+        target_feedbacks = current_feedbacks.copy()
+        target_feedbacks.update(dict.fromkeys(FEEDBACK_SELECTOR_REGISTERS[1:], self.sensor))
+        setters = dict(zip(FEEDBACK_SELECTOR_REGISTERS, feedback_slots))
+        for register, sensor in _feedback_replacement_order(current_feedbacks, target_feedbacks):
+            _getter, setter = setters[register]
+            setter(sensor, servo=self.servo, axis=self.axis)
         # Set Polarity to 0
         self.mc.communication.set_register(
             self.FEEDBACK_POLARITY_REGISTER,
@@ -177,6 +279,45 @@ class Feedbacks(BaseTest[ReportBase]):
             raise TestConfigurationError(
                 "The feedback resolution must be greater than 0. Please adjust it accordingly."
             )
+
+    @override
+    def _restore_configuration(self, context: DriveContextManager) -> None:
+        """Restore feedback selectors without exceeding the drive feedback limit."""
+        baseline = context.baseline
+        if baseline is None:
+            return
+
+        drive = self.mc._get_drive(self.servo)
+        registers = drive.dictionary.registers(self.axis)
+        selector_registers = tuple(registers[uid] for uid in FEEDBACK_SELECTOR_REGISTERS)
+        baseline_values = tuple(baseline.get(register) for register in selector_registers)
+        if not all(isinstance(value, int) for value in baseline_values):
+            return
+
+        target_feedbacks = dict(
+            zip(
+                FEEDBACK_SELECTOR_REGISTERS,
+                (SensorType(cast("int", value)) for value in baseline_values),
+            )
+        )
+        current_feedbacks = {
+            register: SensorType(
+                cast(
+                    "int",
+                    self.mc.communication.get_register(register, servo=self.servo, axis=self.axis),
+                )
+            )
+            for register in FEEDBACK_SELECTOR_REGISTERS
+        }
+        state = {register: int(sensor) for register, sensor in current_feedbacks.items()}
+        for register, target_sensor in _feedback_replacement_order(state, target_feedbacks):
+            self.mc.communication.set_register(
+                register,
+                target_sensor,
+                servo=self.servo,
+                axis=self.axis,
+            )
+            state[register] = target_sensor
 
     @BaseTest.stoppable
     def __reaction_codes_to_warning(self) -> None:
@@ -240,10 +381,10 @@ class Feedbacks(BaseTest[ReportBase]):
         )
         # For each feedback on motor side we should repeat this test using the
         # feedback as position sensor. The polarity of the feedback must be set
-        # also to normal at the beginning. All feedback are set to the same,
-        # in order to avoid feedback configuration
+        # also to normal at the beginning. Reference/velocity/position/auxiliary
+        # feedback are set to the same, in order to avoid feedback configuration
         # error (wizard_tests series can only support 4 feedback at the
-        # same time)
+        # same time). Commutation is handled separately below.
         self.feedback_setting()
 
         self.mc.motion.set_internal_generator_configuration(
