@@ -1,8 +1,8 @@
+from functools import cached_property
 from typing import TYPE_CHECKING
 
 from ingenialink.utils._utils import REG_VALUE
 
-from ingeniamotion._utils import weak_lru_prop
 from ingeniamotion.errors import MOCO_ERROR_QUEUE, AxisErrors, ServoErrorQueue
 from ingeniamotion.feedbacks import AxisFeedbacks
 
@@ -53,7 +53,7 @@ class Axis:
         """
         self.__motion_node.servo.write(reg_uid, value, subnode=self.__axis_number)
 
-    @weak_lru_prop
+    @cached_property
     def errors(self) -> AxisErrors:
         """The errors of the axis.
 
@@ -62,7 +62,7 @@ class Axis:
         """
         return AxisErrors(self)
 
-    @weak_lru_prop
+    @cached_property
     def feedbacks(self) -> AxisFeedbacks:
         """The feedbacks of the axis.
 
@@ -71,7 +71,7 @@ class Axis:
         """
         return AxisFeedbacks(self)
 
-    @weak_lru_prop
+    @cached_property
     def error_queue(self) -> ServoErrorQueue:
         """The error queue of the axis.
 

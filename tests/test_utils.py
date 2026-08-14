@@ -3,7 +3,7 @@ import weakref
 
 import pytest
 
-from ingeniamotion._utils import weak_lru, weak_lru_prop
+from ingeniamotion._utils import weak_lru
 from ingeniamotion.exceptions import IMErrorQueueNotExistsError
 
 
@@ -16,20 +16,6 @@ class ExpensiveCalculator:
     def compute(self, x):
         self.calls += 1
         return x * self.factor
-
-
-class ExpensiveProperty:
-    """Small helper used to verify weakly cached properties."""
-
-    def __init__(self, factor: int) -> None:
-        self.factor = factor
-        self.calls = 0
-
-    @weak_lru_prop
-    def value(self) -> int:
-        """Return the calculated value."""
-        self.calls += 1
-        return self.factor * 5
 
 
 @pytest.mark.virtual
@@ -46,34 +32,17 @@ def test_weak_lru_cache():
     assert result2 == 50
 
 
-def test_weak_lru_property_cache() -> None:
-    """A weakly cached property should calculate its value only once."""
-    calculator = ExpensiveProperty(10)
+def test_weak_lru_cache_does_not_retain_instance():
+    """A weakly cached method should not keep its instance alive after use."""
+    calculator = ExpensiveCalculator(10)
+    calculator_ref = weakref.ref(calculator)
 
-    result1 = calculator.value
-    result2 = calculator.value
+    assert calculator.compute(5) == 50
 
-    assert calculator.calls == 1
-    assert result1 == 50
-    assert result2 == 50
-
-
-def test_weak_lru_property_does_not_retain_instance() -> None:
-    """A cached property should not keep an instance alive after its owner is gone."""
-
-    class RetainingProperty:
-        @weak_lru_prop
-        def value(self) -> "RetainingProperty":
-            return self
-
-    instance = RetainingProperty()
-    instance_ref = weakref.ref(instance)
-    assert instance.value is instance
-
-    del instance
+    del calculator
     gc.collect()
 
-    assert instance_ref() is None
+    assert calculator_ref() is None
 
 
 def test_exception_group_context_error():

@@ -1,8 +1,8 @@
 from collections.abc import Iterator
+from functools import cached_property
 
 from ingenialink import Network, Servo
 
-from ingeniamotion._utils import weak_lru_prop
 from ingeniamotion.axis import Axis
 from ingeniamotion.errors import NodeErrors
 
@@ -59,7 +59,7 @@ class MotionNode:
         """
         return self.__axes[axis_number]
 
-    @weak_lru_prop
+    @cached_property
     def errors(self) -> NodeErrors:
         """The errors of the motion node.
 

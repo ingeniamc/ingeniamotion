@@ -1,10 +1,10 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterator, Mapping
+from functools import cached_property
 from typing import TYPE_CHECKING, ClassVar, Final, Optional
 
 import ingenialogger
 
-from ingeniamotion._utils import weak_lru_prop
 from ingeniamotion.enums import FeedbackPolarity, SensorCategory, SensorType
 
 if TYPE_CHECKING:
@@ -542,7 +542,7 @@ class AxisFeedbacks:
         self.__axis = axis
         self.__sensors: dict[SensorType, Encoder] = {}
 
-    @weak_lru_prop
+    @cached_property
     def commutation(self) -> FeedbackSlot:
         """The commutation feedback slot.
 
@@ -551,7 +551,7 @@ class AxisFeedbacks:
         """
         return FeedbackSlot(COMMUTATION_FEEDBACK_REGISTER, self.__axis)
 
-    @weak_lru_prop
+    @cached_property
     def reference(self) -> FeedbackSlot:
         """The reference feedback slot.
 
@@ -560,7 +560,7 @@ class AxisFeedbacks:
         """
         return FeedbackSlot(REFERENCE_FEEDBACK_REGISTER, self.__axis)
 
-    @weak_lru_prop
+    @cached_property
     def velocity(self) -> FeedbackSlot:
         """The velocity feedback slot.
 
@@ -569,7 +569,7 @@ class AxisFeedbacks:
         """
         return FeedbackSlot(VELOCITY_FEEDBACK_REGISTER, self.__axis)
 
-    @weak_lru_prop
+    @cached_property
     def position(self) -> FeedbackSlot:
         """The position feedback slot.
 
@@ -578,7 +578,7 @@ class AxisFeedbacks:
         """
         return FeedbackSlot(POSITION_FEEDBACK_REGISTER, self.__axis)
 
-    @weak_lru_prop
+    @cached_property
     def auxiliary(self) -> FeedbackSlot:
         """The auxiliary feedback slot.
 

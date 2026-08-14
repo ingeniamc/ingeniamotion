@@ -1,12 +1,13 @@
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
+from functools import cached_property
 from typing import TYPE_CHECKING, Any, ClassVar, Generic, Optional, TypeVar, Union
 
 import ingenialogger
 from ingenialink.drive_context_manager import DriveContextManager, DriveRegistersValue
 from ingenialink.exceptions import ILError
 
-from ingeniamotion._utils import weak_lru, weak_lru_prop
+from ingeniamotion._utils import weak_lru
 from ingeniamotion.metaclass import DEFAULT_SERVO
 from ingeniamotion.wizard_tests.stoppable import StopExceptionError, Stoppable
 
@@ -75,7 +76,7 @@ class BaseTest(ABC, Stoppable, Generic[T]):
         """
         return self.mc._get_drive(self.servo)
 
-    @weak_lru_prop
+    @cached_property
     def _motion_node(self) -> "MotionNode":
         """Get the motion node targeted by the test.
 
@@ -84,7 +85,7 @@ class BaseTest(ABC, Stoppable, Generic[T]):
         """
         return self.mc._get_motion_node(self.servo)
 
-    @weak_lru_prop
+    @cached_property
     def _axis(self) -> "Axis":
         """Get the axis targeted by the test.
 
@@ -93,7 +94,7 @@ class BaseTest(ABC, Stoppable, Generic[T]):
         """
         return self._motion_node.get_axis(self.axis)
 
-    @weak_lru_prop
+    @cached_property
     def _axis_feedbacks(self) -> "AxisFeedbacks":
         """Get the feedback container for the test axis.
 
