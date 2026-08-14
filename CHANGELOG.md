@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.10.4] - 2026-08-13
 ### Added
 - Add dynamic forced phasing test
 - Add SDCP servo support.

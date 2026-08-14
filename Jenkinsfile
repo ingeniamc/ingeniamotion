@@ -1,5 +1,5 @@
 // https://novantamotion.atlassian.net/browse/CIT-707
-@Library('cicd-lib@646e931') _
+@Library('cicd-lib@7049ca4') _
 
 import python.VirtualEnvironment
 import python.VEnvManager
@@ -7,6 +7,7 @@ import pytest.TestSession
 import pytest.TestGroup
 import pytest.PyTestManager
 import pytest.PyTestParams
+import pytest.TestSessionScheduler
 
 def SW_NODE = "windows-slave"
 def ECAT_NODE = "ecat-test"
@@ -45,7 +46,6 @@ PyTestManager testManager = new PyTestManager(pipeline: this, venvManager: venvM
 TestSession TEST_SESSIONS = new TestSession(
     covPackageName: "ingeniamotion",
     covFromSitePackages: false,
-    wiresharkScope: null, // Set later based on parameter
     startWiresharkTimeoutS: 10.0,
     importMode: "importlib",
     enableFirmwareVersionCheck: true,
@@ -54,6 +54,7 @@ TestSession TEST_SESSIONS = new TestSession(
 TestSession HW_TEST_SESSIONS = TEST_SESSIONS.override()
 TestGroup CAN_TESTS = testManager.createGroup("CAN_TEST_SESSIONS", HW_TEST_SESSIONS.override())
 TestGroup ETH_TESTS = testManager.createGroup("ETH_TEST_SESSIONS", HW_TEST_SESSIONS.override())
+TestSessionScheduler CAN_MACHINE_SCHEDULER = new TestSessionScheduler([CAN_TESTS, ETH_TESTS])
 TestGroup ECAT_TESTS = testManager.createGroup("ECAT_TEST_SESSIONS", HW_TEST_SESSIONS.override())
 TestGroup LINUX_DOCKER_TESTS = testManager.createGroup("LINUX_DOCKER_TEST_SESSIONS", TEST_SESSIONS.override())
 TestGroup WIN_DOCKER_TESTS = testManager.createGroup("WIN_DOCKER_TEST_SESSIONS", TEST_SESSIONS.override())
@@ -180,7 +181,6 @@ pipeline {
                     TEST_SESSIONS.setAttributeInCascade(
                         runInVirtualEnvs: venvManager.pythonVersionsToDefaultVenvNames(pythonVersions),
                         jobName: "${env.JOB_NAME}-#${env.BUILD_NUMBER}",
-                        wiresharkScope: PyTestParams.readValue(params, 'wiresharkLoggingScope'),
                         clearSuccessfulWiresharkLogs: PyTestParams.readValue(params, 'clearSuccessfulWiresharkLogs', env, currentBuild),
                         checkStateScope: PyTestParams.readValue(params, 'checkStateScope'),
                         archiveData: "*",
@@ -478,7 +478,7 @@ pipeline {
                         beforeOptions true
                         beforeAgent true
                         expression {
-                            CAN_TESTS.anyShouldRun() || ETH_TESTS.anyShouldRun()
+                            CAN_MACHINE_SCHEDULER.anyShouldRun()
                         }
                     }
                     options {
@@ -500,8 +500,7 @@ pipeline {
                         stage('Run CANopen/Ethernet Tests') {
                             steps {
                                 script {
-                                    CAN_TESTS.runTestStages()
-                                    ETH_TESTS.runTestStages()
+                                    CAN_MACHINE_SCHEDULER.runTestStages()
                                 }
                             }
                         }
