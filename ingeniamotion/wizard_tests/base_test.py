@@ -78,7 +78,7 @@ class BaseTest(ABC, Stoppable, Generic[T]):
 
     @cached_property
     def _motion_node(self) -> "MotionNode":
-        """Get the motion node targeted by the test.
+        """Motion node targeted by the test.
 
         Returns:
             The motion node selected by ``self.servo``.
@@ -87,7 +87,7 @@ class BaseTest(ABC, Stoppable, Generic[T]):
 
     @cached_property
     def _axis(self) -> "Axis":
-        """Get the axis targeted by the test.
+        """Axis targeted by the test.
 
         Returns:
             The axis selected by ``self.axis``.
@@ -96,7 +96,7 @@ class BaseTest(ABC, Stoppable, Generic[T]):
 
     @cached_property
     def _axis_feedbacks(self) -> "AxisFeedbacks":
-        """Get the feedback container for the test axis.
+        """Feedback container for the test axis.
 
         Returns:
             The feedback container selected by ``self._axis``.
