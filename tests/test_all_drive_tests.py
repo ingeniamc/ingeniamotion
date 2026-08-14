@@ -16,6 +16,8 @@ from ingeniamotion.enums import PhasingMode, SensorType, SeverityLevel
 from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.wizard_tests.base_test import TestError
 from ingeniamotion.wizard_tests.dynamic_forced_phasing import (
+    COMMUTATION_ANGLE_VALUE_REGISTER,
+    REFERENCE_ANGLE_VALUE_REGISTER,
     DynamicForcedPhasing,
     circular_distance,
 )
@@ -509,18 +511,19 @@ def test_dynamic_forced_phasing(mc, alias, registers_baseline: DriveRegistersVal
     """Run the test on a real drive and check it succeeds, leaving the drive in NO_PHASING.
 
     Reads the motor rated current, runs the phasing without writing registers, and verifies
-    the result is SUCCESS with a normalised commutation angle in [0, 1).
+    the result is SUCCESS with a normalized commutation angle in [0, 1).
     """
     rated_current = mc.communication.get_register(RATED_CURRENT_REGISTER, servo=alias, axis=1)
     result = mc.tests.dynamic_forced_phasing(
         alias,
         1,
         apply_changes=False,
-        phasing_max_current=rated_current,  # don't persist registers
+        phasing_max_current=rated_current,
     )
     assert result.result_severity == SeverityLevel.SUCCESS
     assert result.result_message == "Success"
     assert result.commutation_phasing_mode == PhasingMode.NO_PHASING
+    assert result.phasing_max_current == rated_current
     assert 0 <= result.commutation_angle <= 1
 
     assert_returns_to_initial_value(servo, registers_baseline)
@@ -644,20 +647,44 @@ def test_dynamic_forced_phasing_signals_with_noise(mc, alias, offset, noise_ampl
     test = DynamicForcedPhasing(mc, alias, 1)
     num_points = 200
 
-    # signal1 is a normalised ramp; signal2 is the same ramp shifted by `offset` plus noise
+    # signal1 is a normalized ramp; signal2 is the same ramp shifted by `offset` plus noise
     signal1 = [i / num_points for i in range(num_points)]
     signal2 = [
         (s1 - offset + random.uniform(-noise_amplitude, noise_amplitude)) % 1 for s1 in signal1
     ]
 
-    tolerance = DynamicForcedPhasing.NORM_TOLERANCE
-    mean_diff, max_diff = test._DynamicForcedPhasing__check_signals_difference_is_constant(
-        signal1, signal2, tolerance
+    # Points deviate from the mean by at most the noise span (each side of it).
+    tolerance = 2 * noise_amplitude + 1e-6
+    mean_diff = test._DynamicForcedPhasing__check_signals_difference_is_constant(
+        signal1, signal2, tolerance_norm=tolerance
     )
 
     assert mean_diff is not None
-    assert max_diff is not None
     # Compare in the circular [0, 1) domain so the wrap-around boundary is handled.
     assert circular_distance(mean_diff, offset) < noise_amplitude + 1e-6
-    # Points deviate from the mean by at most the noise span (each side of it).
-    assert max_diff <= 2 * noise_amplitude + 1e-6
+
+
+@pytest.mark.virtual
+def test_calculate_monitoring_max_time(mc, alias, mocker):
+    """Check the monitoring max time calculation returns the expected value."""
+    # Mock the loop rate and max sample size to known values so the calculation is deterministic.
+    mocker.patch.object(
+        mc.configuration, "get_position_and_velocity_loop_rate", return_value=20000.0
+    )
+    mocker.patch.object(mc.capture, "monitoring_max_sample_size", return_value=8192)
+    dfp = DynamicForcedPhasing(mc, alias, 1)
+    mapped_registers = [
+        {"name": COMMUTATION_ANGLE_VALUE_REGISTER, "axis": 1},
+        {"name": REFERENCE_ANGLE_VALUE_REGISTER, "axis": 1},
+    ]
+    result = dfp._DynamicForcedPhasing__calculate_monitoring_max_time(
+        frequency_divider=20,
+        mapped_registers=mapped_registers,
+    )
+    # The expected max time is calculated as:
+    # map_reg_size = 2*4 bytes (two float registers)
+    # max_sample_size = 8192 bytes
+    # frequency = loop_rate / frequency_divider = 20000 Hz / 20 = 1000 Hz
+    # max_time = (8192 bytes / 8 bytes) / 1000 Hz = 1.024 seconds
+    expected = 1.024
+    assert result == pytest.approx(expected)
