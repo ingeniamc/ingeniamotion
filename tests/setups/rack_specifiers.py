@@ -20,6 +20,9 @@ import summit_drives_ci_configs.config_files as config_files
 __EXECUTION_POLICY_KEY: str = "execution_policy"
 __TEST_CONFIGS_KEY: str = "test_configs"
 
+# Fraction of exhaustive test configurations to run in shorter daytime test sessions.
+__RANDOM_COMBINATIONS_SLICE_KEY: str = "random_combinations_slice"
+
 ETH_SETUP = SpecifierContainer({
     PartNumber.EVE_XCR_C: RackServiceConfigSpecifier.from_version_configs(
         part_number=PartNumber.EVE_XCR_C,
@@ -122,7 +125,9 @@ ECAT_SETUP = SpecifierContainer({
                 config_file=config_files.EVE_XCR_E_2_1_0_CONFIG,
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
-                    __EXECUTION_POLICY_KEY: "always",
+                    # No everest ethercat during day or PRs, it has a flaky STO abnormal
+                    # https://novantamotion.atlassian.net/browse/INGM-807
+                    __EXECUTION_POLICY_KEY: "nightly",
                     __TEST_CONFIGS_KEY: {
                         "ECAT_TEST_SESSIONS": PyTestConfig(
                             markers="soem",
@@ -159,6 +164,7 @@ ECAT_SETUP = SpecifierContainer({
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "always",
+                    __RANDOM_COMBINATIONS_SLICE_KEY: 0.1,
                     __TEST_CONFIGS_KEY: {
                         "ECAT_TEST_SESSIONS": PyTestConfig(
                             markers="soem",
@@ -197,6 +203,7 @@ ECAT_DEN_S_NET_E_SETUP = RackServiceConfigSpecifier.from_version_configs(
             dictionary_type=DictionaryType.XDF_V3,
             extra_data={
                 __EXECUTION_POLICY_KEY: "always",
+                __RANDOM_COMBINATIONS_SLICE_KEY: 0.1,
                 __TEST_CONFIGS_KEY: {
                     "ECAT_TEST_SESSIONS": PyTestConfig(
                         markers="fsoe or fsoe_phase2",
@@ -236,6 +243,7 @@ CAN_SETUP = SpecifierContainer({
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "always",
+                    __RANDOM_COMBINATIONS_SLICE_KEY: 0.1,
                     __TEST_CONFIGS_KEY: {
                         "CAN_TEST_SESSIONS": PyTestConfig(
                             markers="canopen",
@@ -257,6 +265,7 @@ CAN_SETUP = SpecifierContainer({
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
                     __EXECUTION_POLICY_KEY: "always",
+                    __RANDOM_COMBINATIONS_SLICE_KEY: 0.1,
                     __TEST_CONFIGS_KEY: {
                         "CAN_TEST_SESSIONS": PyTestConfig(
                             markers="canopen",
@@ -298,6 +307,7 @@ ECAT_MULTISLAVE_SETUP = MultiRackServiceConfigSpecifier.create(
     ],
     extra_data={
         __EXECUTION_POLICY_KEY: "always",
+        __RANDOM_COMBINATIONS_SLICE_KEY: 0.1,
         __TEST_CONFIGS_KEY: {
             "ECAT_TEST_SESSIONS": PyTestConfig(
                 markers="soem_multislave",
@@ -323,7 +333,7 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
             ),
             config_file=config_files.SIRIUS_EVS_NET_E_2_11_0_CONFIG,
             extra_data={
-                __EXECUTION_POLICY_KEY: "always",
+                __EXECUTION_POLICY_KEY: "nightly",
                 __TEST_CONFIGS_KEY: {
                     "SIRIUS_TEST_SESSIONS": PyTestConfig(
                         markers="soem and biss_c_flaky",
@@ -344,6 +354,7 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
             dictionary_type=DictionaryType.XDF_V3,
             extra_data={
                 __EXECUTION_POLICY_KEY: "always",
+                __RANDOM_COMBINATIONS_SLICE_KEY: 0.1,
                 __TEST_CONFIGS_KEY: {
                     "SIRIUS_TEST_SESSIONS": PyTestConfig(
                         markers="soem and biss_c_flaky",  # https://novantamotion.atlassian.net/browse/INGM-798

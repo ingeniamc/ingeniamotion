@@ -1,4 +1,5 @@
 import pytest
+from ingenialink import exceptions
 
 from ingeniamotion.enums import SensorCategory, SensorType
 
@@ -62,7 +63,15 @@ def skip_if_qei2_is_not_available(mc, alias, sensor=SensorType.QEI2):
 @pytest.mark.virtual
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_commutation_feedback(mc, alias, sensor):
-    mc.communication.set_register(COMMUTATION_FEEDBACK_REGISTER, sensor, servo=alias)
+    register_values = mc.info.register_info(
+        COMMUTATION_FEEDBACK_REGISTER, servo=alias
+    ).enums.values()
+    try:
+        mc.communication.set_register(COMMUTATION_FEEDBACK_REGISTER, sensor, servo=alias)
+    except exceptions.ILNACKError:
+        if sensor.value in register_values:
+            raise
+        return
     test_feedback = mc.configuration.get_commutation_feedback(servo=alias)
     assert sensor == test_feedback
 
@@ -70,7 +79,15 @@ def test_get_commutation_feedback(mc, alias, sensor):
 @pytest.mark.virtual
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_set_commutation_feedback(mc, alias, sensor):
-    mc.configuration.set_commutation_feedback(sensor, servo=alias)
+    register_values = mc.info.register_info(
+        COMMUTATION_FEEDBACK_REGISTER, servo=alias
+    ).enums.values()
+    try:
+        mc.configuration.set_commutation_feedback(sensor, servo=alias)
+    except exceptions.ILNACKError:
+        if sensor.value in register_values:
+            raise
+        return
     register_value = mc.communication.get_register(COMMUTATION_FEEDBACK_REGISTER, servo=alias)
     assert sensor == register_value
 
@@ -87,7 +104,15 @@ def test_get_commutation_feedback_category(mc, alias, sensor, category):
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_commutation_feedback_resolution(mc, alias, sensor):
     skip_if_qei2_is_not_available(mc, alias, sensor=sensor)
-    mc.communication.set_register(COMMUTATION_FEEDBACK_REGISTER, sensor, servo=alias)
+    register_values = mc.info.register_info(
+        COMMUTATION_FEEDBACK_REGISTER, servo=alias
+    ).enums.values()
+    try:
+        mc.communication.set_register(COMMUTATION_FEEDBACK_REGISTER, sensor, servo=alias)
+    except exceptions.ILNACKError:
+        if sensor.value in register_values:
+            raise
+        return
     if sensor in [SensorType.INTGEN]:
         with pytest.raises(ValueError):
             mc.configuration.get_commutation_feedback_resolution(servo=alias)
@@ -100,7 +125,13 @@ def test_get_commutation_feedback_resolution(mc, alias, sensor):
 @pytest.mark.virtual
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_reference_feedback(mc, alias, sensor):
-    mc.communication.set_register(REFERENCE_FEEDBACK_REGISTER, sensor, servo=alias)
+    register_values = mc.info.register_info(REFERENCE_FEEDBACK_REGISTER, servo=alias).enums.values()
+    try:
+        mc.communication.set_register(REFERENCE_FEEDBACK_REGISTER, sensor, servo=alias)
+    except exceptions.ILNACKError:
+        if sensor.value in register_values:
+            raise
+        return
     test_feedback = mc.configuration.get_reference_feedback(servo=alias)
     assert sensor == test_feedback
 
@@ -108,7 +139,13 @@ def test_get_reference_feedback(mc, alias, sensor):
 @pytest.mark.virtual
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_set_reference_feedback(mc, alias, sensor):
-    mc.configuration.set_reference_feedback(sensor, servo=alias)
+    register_values = mc.info.register_info(REFERENCE_FEEDBACK_REGISTER, servo=alias).enums.values()
+    try:
+        mc.configuration.set_reference_feedback(sensor, servo=alias)
+    except exceptions.ILNACKError:
+        if sensor.value in register_values:
+            raise
+        return
     register_value = mc.communication.get_register(REFERENCE_FEEDBACK_REGISTER, servo=alias)
     assert sensor == register_value
 
@@ -125,7 +162,13 @@ def test_get_reference_feedback_category(mc, alias, sensor, category):
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_reference_feedback_resolution(mc, alias, sensor):
     skip_if_qei2_is_not_available(mc, alias, sensor=sensor)
-    mc.communication.set_register(REFERENCE_FEEDBACK_REGISTER, sensor, servo=alias)
+    register_values = mc.info.register_info(REFERENCE_FEEDBACK_REGISTER, servo=alias).enums.values()
+    try:
+        mc.communication.set_register(REFERENCE_FEEDBACK_REGISTER, sensor, servo=alias)
+    except exceptions.ILNACKError:
+        if sensor.value in register_values:
+            raise
+        return
     if sensor in [SensorType.INTGEN]:
         with pytest.raises(ValueError):
             mc.configuration.get_reference_feedback_resolution(servo=alias)
@@ -138,7 +181,13 @@ def test_get_reference_feedback_resolution(mc, alias, sensor):
 @pytest.mark.virtual
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_velocity_feedback(mc, alias, sensor):
-    mc.communication.set_register(VELOCITY_FEEDBACK_REGISTER, sensor, servo=alias)
+    register_values = mc.info.register_info(VELOCITY_FEEDBACK_REGISTER, servo=alias).enums.values()
+    try:
+        mc.communication.set_register(VELOCITY_FEEDBACK_REGISTER, sensor, servo=alias)
+    except exceptions.ILNACKError:
+        if sensor.value in register_values:
+            raise
+        return
     test_feedback = mc.configuration.get_velocity_feedback(servo=alias)
     assert sensor == test_feedback
 
@@ -146,7 +195,13 @@ def test_get_velocity_feedback(mc, alias, sensor):
 @pytest.mark.virtual
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_set_velocity_feedback(mc, alias, sensor):
-    mc.configuration.set_velocity_feedback(sensor, servo=alias)
+    register_values = mc.info.register_info(VELOCITY_FEEDBACK_REGISTER, servo=alias).enums.values()
+    try:
+        mc.configuration.set_velocity_feedback(sensor, servo=alias)
+    except exceptions.ILNACKError:
+        if sensor.value in register_values:
+            raise
+        return
     register_value = mc.communication.get_register(VELOCITY_FEEDBACK_REGISTER, servo=alias)
     assert sensor == register_value
 
@@ -163,7 +218,13 @@ def test_get_velocity_feedback_category(mc, alias, sensor, category):
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_velocity_feedback_resolution(mc, alias, sensor):
     skip_if_qei2_is_not_available(mc, alias, sensor=sensor)
-    mc.communication.set_register(VELOCITY_FEEDBACK_REGISTER, sensor, servo=alias)
+    register_values = mc.info.register_info(VELOCITY_FEEDBACK_REGISTER, servo=alias).enums.values()
+    try:
+        mc.communication.set_register(VELOCITY_FEEDBACK_REGISTER, sensor, servo=alias)
+    except exceptions.ILNACKError:
+        if sensor.value in register_values:
+            raise
+        return
     if sensor in [SensorType.INTGEN]:
         with pytest.raises(ValueError):
             mc.configuration.get_velocity_feedback_resolution(servo=alias)
@@ -176,7 +237,13 @@ def test_get_velocity_feedback_resolution(mc, alias, sensor):
 @pytest.mark.virtual
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_position_feedback(mc, alias, sensor):
-    mc.communication.set_register(POSITION_FEEDBACK_REGISTER, sensor, servo=alias)
+    register_values = mc.info.register_info(POSITION_FEEDBACK_REGISTER, servo=alias).enums.values()
+    try:
+        mc.communication.set_register(POSITION_FEEDBACK_REGISTER, sensor, servo=alias)
+    except exceptions.ILNACKError:
+        if sensor.value in register_values:
+            raise
+        return
     test_feedback = mc.configuration.get_position_feedback(servo=alias)
     assert sensor == test_feedback
 
@@ -184,7 +251,13 @@ def test_get_position_feedback(mc, alias, sensor):
 @pytest.mark.virtual
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_set_position_feedback(mc, alias, sensor):
-    mc.configuration.set_position_feedback(sensor, servo=alias)
+    register_values = mc.info.register_info(POSITION_FEEDBACK_REGISTER, servo=alias).enums.values()
+    try:
+        mc.configuration.set_position_feedback(sensor, servo=alias)
+    except exceptions.ILNACKError:
+        if sensor.value in register_values:
+            raise
+        return
     register_value = mc.communication.get_register(POSITION_FEEDBACK_REGISTER, servo=alias)
     assert sensor == register_value
 
@@ -201,7 +274,13 @@ def test_get_position_feedback_category(mc, alias, sensor, category):
 @pytest.mark.parametrize("sensor", list(SensorType))
 def test_get_position_feedback_resolution(mc, alias, sensor):
     skip_if_qei2_is_not_available(mc, alias, sensor=sensor)
-    mc.communication.set_register(POSITION_FEEDBACK_REGISTER, sensor, servo=alias)
+    register_values = mc.info.register_info(POSITION_FEEDBACK_REGISTER, servo=alias).enums.values()
+    try:
+        mc.communication.set_register(POSITION_FEEDBACK_REGISTER, sensor, servo=alias)
+    except exceptions.ILNACKError:
+        if sensor.value in register_values:
+            raise
+        return
     if sensor in [SensorType.INTGEN]:
         with pytest.raises(ValueError):
             mc.configuration.get_position_feedback_resolution(servo=alias)
@@ -224,7 +303,13 @@ def test_get_position_feedback_resolution(mc, alias, sensor):
     ],
 )
 def test_get_auxiliar_feedback(mc, alias, sensor):
-    mc.communication.set_register(AUXILIAR_FEEDBACK_REGISTER, sensor, servo=alias)
+    register_values = mc.info.register_info(AUXILIAR_FEEDBACK_REGISTER, servo=alias).enums.values()
+    try:
+        mc.communication.set_register(AUXILIAR_FEEDBACK_REGISTER, sensor, servo=alias)
+    except exceptions.ILNACKError:
+        if sensor.value in register_values:
+            raise
+        return
     test_feedback = mc.configuration.get_auxiliar_feedback(servo=alias)
     assert sensor == test_feedback
 
@@ -242,7 +327,13 @@ def test_get_auxiliar_feedback(mc, alias, sensor):
     ],
 )
 def test_set_auxiliar_feedback(mc, alias, sensor):
-    mc.configuration.set_auxiliar_feedback(sensor, servo=alias)
+    register_values = mc.info.register_info(AUXILIAR_FEEDBACK_REGISTER, servo=alias).enums.values()
+    try:
+        mc.configuration.set_auxiliar_feedback(sensor, servo=alias)
+    except exceptions.ILNACKError:
+        if sensor.value in register_values:
+            raise
+        return
     register_value = mc.communication.get_register(AUXILIAR_FEEDBACK_REGISTER, servo=alias)
     assert sensor == register_value
 

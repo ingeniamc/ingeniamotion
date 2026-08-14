@@ -73,6 +73,7 @@ class BaseTest(ABC, Stoppable, Generic[T]):
     """Registers that the test is expected to leave changed after it runs."""
 
     def __init__(self) -> None:
+        super().__init__()
         self.suggested_registers: RegisterChangeProposal = {}
         self.mc: MotionController
         self.servo: str = DEFAULT_SERVO
@@ -135,25 +136,36 @@ class BaseTest(ABC, Stoppable, Generic[T]):
         Raises:
             ILError: If the underlying drive communication fails during the test run.
         """
-        with DriveContextManager(
-            servo=self.mc._get_drive(self.servo),
-            baseline=registers_baseline,
-            do_not_restore_registers=list(self.ACCEPTED_CHANGED_REGISTERS),
-            track_objects=False,
+        with (
+            context := DriveContextManager(
+                servo=self.mc._get_drive(self.servo),
+                baseline=registers_baseline,
+                do_not_restore_registers=list(self.ACCEPTED_CHANGED_REGISTERS),
+                track_objects=False,
+            )
         ):
             self.reset_stop()
             try:
                 self.setup()
+                self.check_stop()
                 output = self.loop()
+                self.check_stop()
                 self.report = self.generate_report(output)
+                self.check_stop()
             except ILError as err:
                 raise err
             except StopExceptionError:
                 self.logger.warning("Test has been stopped")
             finally:
-                self.teardown()
+                try:
+                    self.teardown()
+                finally:
+                    self._restore_configuration(context)
 
         return self.report
+
+    def _restore_configuration(self, context: DriveContextManager) -> None:
+        """Restore configuration that requires an ordered transition."""
 
     def generate_report(self, output: Any) -> T:
         """Generate the test report.

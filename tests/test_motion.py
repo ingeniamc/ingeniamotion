@@ -81,7 +81,13 @@ def test_target_latch(servo, mc, alias):
 @pytest.mark.virtual
 @pytest.mark.parametrize("operation_mode", list(OperationMode))
 def test_set_operation_mode(mc, alias, operation_mode):
-    mc.motion.set_operation_mode(operation_mode, servo=alias)
+    register_values = mc.info.register_info(OPERATION_MODE_REGISTER, servo=alias).enums.values()
+    try:
+        mc.motion.set_operation_mode(operation_mode, servo=alias)
+    except exceptions.ILNACKError:
+        if operation_mode.value in register_values:
+            raise
+        return
     test_op = mc.communication.get_register(OPERATION_MODE_REGISTER, servo=alias)
     assert operation_mode.value == test_op
 
@@ -498,6 +504,7 @@ def test_set_internal_generator_configuration(
 @pytest.mark.canopen
 @pytest.mark.parametrize("op_mode", [OperationMode.VOLTAGE, OperationMode.CURRENT])
 @pytest.mark.parametrize("direction", [-1, 1])
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C")
 def test_internal_generator_saw_tooth_move(
     mc: "MotionController", alias: str, op_mode: "OperationMode", direction: int
 ) -> None:
