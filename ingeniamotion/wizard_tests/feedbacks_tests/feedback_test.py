@@ -22,13 +22,13 @@ from ingeniamotion.enums import (
 from ingeniamotion.exceptions import IMRegisterNotExistError
 from ingeniamotion.wizard_tests.base_test import (
     BaseTest,
-    LegacyDictReportType,
+    ReportBase,
     TestConfigurationError,
     TestError,
 )
 
 
-class FeedbacksTest(BaseTest[LegacyDictReportType]):
+class FeedbacksTest(BaseTest[ReportBase]):
     """Base class for feedback wizard tests."""
 
     class ResultType(IntEnum):

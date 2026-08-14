@@ -9,7 +9,7 @@ from ingeniamotion.enums import OperationMode, SensorType, SeverityLevel
 from ingeniamotion.exceptions import IMTimeoutError
 from ingeniamotion.wizard_tests.base_test import (
     BaseTest,
-    LegacyDictReportType,
+    ReportBase,
     TestConfigurationError,
     TestError,
 )
@@ -18,7 +18,7 @@ if TYPE_CHECKING:
     from ingeniamotion.motion_controller import MotionController
 
 
-class DCFeedbacksResolutionTest(BaseTest[LegacyDictReportType]):
+class DCFeedbacksResolutionTest(BaseTest[ReportBase]):
     """DC feedback resolution test class."""
 
     MOVEMENT_ERROR_FACTOR = 0.05

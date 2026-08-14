@@ -7,13 +7,13 @@ from typing_extensions import override
 
 from ingeniamotion.enums import OperationMode, PhasingMode, SensorType, SeverityLevel
 from ingeniamotion.metaclass import DEFAULT_AXIS, DEFAULT_SERVO
-from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType, TestError
+from ingeniamotion.wizard_tests.base_test import BaseTest, ReportBase, TestError
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
 
 
-class PhasingCheck(BaseTest[LegacyDictReportType]):
+class PhasingCheck(BaseTest[ReportBase]):
     """Phasing check test class."""
 
     MAX_ALLOWED_ANGLE_MOVE = 15

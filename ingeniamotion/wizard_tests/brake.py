@@ -138,6 +138,7 @@ class Brake(BaseTest[ResultsBrakeTest]):
         self.report = ResultsBrakeTest(
             result_severity=SeverityLevel.SUCCESS,
             result_message=self.get_result_msg(SeverityLevel.SUCCESS),
+            suggested_registers={},
         )
         return self.report
 

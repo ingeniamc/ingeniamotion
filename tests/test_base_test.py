@@ -4,14 +4,14 @@ import pytest
 from ingenialink.drive_context_manager import DriveContextManager
 
 from ingeniamotion.enums import SeverityLevel
-from ingeniamotion.wizard_tests.base_test import BaseTest, LegacyDictReportType
+from ingeniamotion.wizard_tests.base_test import BaseTest, ReportBase
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
     from ingeniamotion.axis import Axis
 
 
-class TeardownFailureTest(BaseTest[LegacyDictReportType]):
+class TeardownFailureTest(BaseTest[ReportBase]):
     """Concrete BaseTest whose teardown fails after the test body succeeds."""
 
     def __init__(self, mc: "MotionController") -> None:
