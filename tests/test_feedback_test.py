@@ -482,6 +482,7 @@ def test_update_configuration_reads_feedback_selectors_once():
     assert axis.read_registers == list(FEEDBACK_SELECTOR_REGISTERS)
 
 
+@pytest.mark.virtual
 def test_all_feedback_transitions_stay_within_limit_and_reach_target(
     subtests, setup_specifier
 ) -> None:
