@@ -1,5 +1,5 @@
 // https://novantamotion.atlassian.net/browse/CIT-707
-@Library('cicd-lib@a4917789c4f220d36fff6f8956bcc239e8068f56') _
+@Library('cicd-lib@173ddb4ffc75557c611d227efe9f47e5cc5250e5') _
 
 import python.VirtualEnvironment
 import python.VEnvManager
@@ -7,6 +7,7 @@ import pytest.TestSession
 import pytest.TestGroup
 import pytest.PyTestManager
 import pytest.PyTestParams
+import pytest.TestSessionScheduler
 
 def SW_NODE = "windows-slave"
 def ECAT_NODE = "ecat-test"
@@ -53,6 +54,7 @@ TestSession TEST_SESSIONS = new TestSession(
 TestSession HW_TEST_SESSIONS = TEST_SESSIONS.override()
 TestGroup CAN_TESTS = testManager.createGroup("CAN_TEST_SESSIONS", HW_TEST_SESSIONS.override())
 TestGroup ETH_TESTS = testManager.createGroup("ETH_TEST_SESSIONS", HW_TEST_SESSIONS.override())
+TestSessionScheduler CAN_MACHINE_SCHEDULER = new TestSessionScheduler([CAN_TESTS, ETH_TESTS])
 TestGroup ECAT_TESTS = testManager.createGroup("ECAT_TEST_SESSIONS", HW_TEST_SESSIONS.override())
 TestGroup LINUX_DOCKER_TESTS = testManager.createGroup("LINUX_DOCKER_TEST_SESSIONS", TEST_SESSIONS.override())
 TestGroup WIN_DOCKER_TESTS = testManager.createGroup("WIN_DOCKER_TEST_SESSIONS", TEST_SESSIONS.override())
@@ -472,7 +474,7 @@ pipeline {
                         beforeOptions true
                         beforeAgent true
                         expression {
-                            CAN_TESTS.anyShouldRun() || ETH_TESTS.anyShouldRun()
+                            CAN_MACHINE_SCHEDULER.anyShouldRun()
                         }
                     }
                     options {
@@ -494,8 +496,7 @@ pipeline {
                         stage('Run CANopen/Ethernet Tests') {
                             steps {
                                 script {
-                                    CAN_TESTS.runTestStages()
-                                    ETH_TESTS.runTestStages()
+                                    CAN_MACHINE_SCHEDULER.runTestStages()
                                 }
                             }
                         }
