@@ -1,7 +1,7 @@
 import sys
 import time
 from collections.abc import Generator
-from typing import TYPE_CHECKING, Optional, Union
+from typing import TYPE_CHECKING, Callable, Optional, Union
 
 import ingenialogger
 from ingenialink.exceptions import ILError, ILTimeoutError
@@ -392,6 +392,7 @@ class Motion:
         axis: int = DEFAULT_AXIS,
         init_value: float = 0,
         interval: Optional[float] = None,
+        step: Optional[Callable[[], None]] = None,
     ) -> None:
         """Generate a current quadrature ramp.
 
@@ -407,6 +408,7 @@ class Motion:
             init_value : initial value of the ramp. ``0`` by default.
             interval : time interval between register writes, in seconds.
                 ``None`` by default, no interval.
+            step: Optional callback invoked after each register write.
 
         Raises:
             TypeError: If target_value or time_s is not a float.
@@ -414,6 +416,8 @@ class Motion:
         """
         for value in self.ramp_generator(init_value, target_value, time_s, interval):
             self.set_current_quadrature(value, servo=servo, axis=axis)
+            if step is not None:
+                step()
 
     def current_direct_ramp(
         self,
@@ -423,6 +427,7 @@ class Motion:
         axis: int = DEFAULT_AXIS,
         init_value: float = 0,
         interval: Optional[float] = None,
+        step: Optional[Callable[[], None]] = None,
     ) -> None:
         """Generate a current direct ramp.
 
@@ -438,6 +443,7 @@ class Motion:
             init_value : initial value of the ramp. ``0`` by default.
             interval : time interval between register writes, in seconds.
                 ``None`` by default, no interval.
+            step: Optional callback invoked after each register write.
 
         Raises:
             TypeError: If target_value or time_s is not a float.
@@ -445,6 +451,8 @@ class Motion:
         """
         for value in self.ramp_generator(init_value, target_value, time_s, interval):
             self.set_current_direct(value, servo=servo, axis=axis)
+            if step is not None:
+                step()
 
     def voltage_quadrature_ramp(
         self,
@@ -454,6 +462,7 @@ class Motion:
         axis: int = DEFAULT_AXIS,
         init_value: float = 0,
         interval: Optional[float] = None,
+        step: Optional[Callable[[], None]] = None,
     ) -> None:
         """Generate a voltage quadrature ramp.
 
@@ -469,6 +478,7 @@ class Motion:
             init_value : initial value of the ramp. ``0`` by default.
             interval : time interval between register writes, in seconds.
                 ``None`` by default, no interval.
+            step: Optional callback invoked after each register write.
 
         Raises:
             TypeError: If target_value or time_s is not a float.
@@ -476,6 +486,8 @@ class Motion:
         """
         for value in self.ramp_generator(init_value, target_value, time_s, interval):
             self.set_voltage_quadrature(value, servo=servo, axis=axis)
+            if step is not None:
+                step()
 
     def voltage_direct_ramp(
         self,
@@ -485,6 +497,7 @@ class Motion:
         axis: int = DEFAULT_AXIS,
         init_value: float = 0,
         interval: Optional[float] = None,
+        step: Optional[Callable[[], None]] = None,
     ) -> None:
         """Generate a voltage direct ramp.
 
@@ -500,6 +513,7 @@ class Motion:
             init_value : initial value of the ramp. ``0`` by default.
             interval : time interval between register writes, in seconds.
                 ``None`` by default, no interval.
+            step: Optional callback invoked after each register write.
 
         Raises:
             TypeError: If target_value or time_s is not a float.
@@ -507,6 +521,8 @@ class Motion:
         """
         for value in self.ramp_generator(init_value, target_value, time_s, interval):
             self.set_voltage_direct(value, servo=servo, axis=axis)
+            if step is not None:
+                step()
 
     @staticmethod
     def ramp_generator(
