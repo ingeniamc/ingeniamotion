@@ -1,5 +1,6 @@
 import sys
 import time
+from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, Optional
 
 import numpy as np
@@ -378,6 +379,35 @@ def test_ramp_generator(mocker, init_v, final_v, total_t, t, result):
     for result_v in result:
         test_result = next(generator)
         assert pytest.approx(result_v) == test_result
+
+
+@pytest.mark.parametrize(
+    "ramp_method",
+    [
+        Motion.current_quadrature_ramp,
+        Motion.current_direct_ramp,
+        Motion.voltage_quadrature_ramp,
+        Motion.voltage_direct_ramp,
+    ],
+)
+def test_ramp_step_callback(ramp_method):
+    """Each ramp method should invoke its step callback after every setpoint."""
+    setpoints = []
+    communication = SimpleNamespace(
+        set_register=lambda register, value, servo, axis: setpoints.append((
+            register,
+            value,
+            servo,
+            axis,
+        ))
+    )
+    motion = Motion(SimpleNamespace(communication=communication))
+    step_calls = []
+
+    ramp_method(motion, 1.0, 0.001, interval=0.001, step=lambda: step_calls.append(None))
+
+    assert setpoints
+    assert len(step_calls) == len(setpoints)
 
 
 @pytest.mark.ethernet
