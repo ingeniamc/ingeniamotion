@@ -464,8 +464,8 @@ class FeedbacksConfiguration:
 
 
 def _find_feedback_order(  # noqa: C901
-    target: FeedbacksConfiguration,
-    state: FeedbacksConfiguration,
+    target_config: FeedbacksConfiguration,
+    current_config: FeedbacksConfiguration,
     pending: tuple[FeedbackSlot, ...],
 ) -> Optional[list[tuple[FeedbackSlot, Encoder]]]:
     """Find a safe order for reaching the target configuration.
@@ -478,8 +478,8 @@ def _find_feedback_order(  # noqa: C901
     The returned order includes these temporary parking writes.
 
     Args:
-        target: Target feedback configuration.
-        state: Feedback configuration reached so far.
+        target_config: Target feedback configuration.
+        current_config: Feedback configuration reached so far.
         pending: Slots that still need to reach their target.
 
     Returns:
@@ -492,13 +492,13 @@ def _find_feedback_order(  # noqa: C901
     # First, try to apply a pending target directly. This is safe when the
     # target encoder is already active or there is still room for a new sensor.
     for slot in pending:
-        target_encoder = target.encoder_at(slot)
-        if not state.can_execute_transition(slot, target_encoder):
+        target_encoder = target_config.encoder_at(slot)
+        if not current_config.can_execute_transition(slot, target_encoder):
             continue
         # Candidate configuration with the target encoder assigned to this slot.
-        candidate_state = state.with_encoder_at(slot, target_encoder)
+        candidate_state = current_config.with_encoder_at(slot, target_encoder)
         remaining = tuple(s for s in pending if s != slot)
-        suffix = _find_feedback_order(target, candidate_state, remaining)
+        suffix = _find_feedback_order(target_config, candidate_state, remaining)
         if suffix is not None:
             return [(slot, target_encoder), *suffix]
 
@@ -506,32 +506,24 @@ def _find_feedback_order(  # noqa: C901
     # encoder already in use. This removes a distinct sensor and makes room for
     # one of the target encoders in a later recursive step.
     for slot in pending:
-        for parking_encoder in state.active_encoders_in_order():
-            if state.encoder_at(slot) == parking_encoder:
+        for parking_encoder in current_config.active_encoders_in_order():
+            if current_config.encoder_at(slot) == parking_encoder:
                 continue
-            if not state.can_execute_transition(slot, parking_encoder):
+            if not current_config.can_execute_transition(slot, parking_encoder):
                 continue
             # Candidate configuration with this slot temporarily assigned to an
             # encoder that is already active in another slot.
-            candidate_state = state.with_encoder_at(slot, parking_encoder)
-            if len(candidate_state.active_sensors()) >= len(state.active_sensors()):
+            candidate_state = current_config.with_encoder_at(slot, parking_encoder)
+            if len(candidate_state.active_sensors()) >= len(current_config.active_sensors()):
                 continue
-            suffix = _find_feedback_order(target, candidate_state, pending)
+            suffix = _find_feedback_order(target_config, candidate_state, pending)
             if suffix is not None:
                 return [(slot, parking_encoder), *suffix]
     return None
 
 
 class AxisFeedbacks:
-    """Class to manage the feedback slots of an axis.
-
-    Attributes:
-        commutation: The commutation feedback slot.
-        reference: The reference feedback slot.
-        velocity: The velocity feedback slot.
-        position: The position feedback slot.
-        auxiliary: The auxiliary feedback slot.
-    """
+    """Class to manage the feedback slots of an axis."""
 
     def __init__(self, axis: "Axis") -> None:
         """Constructor.
