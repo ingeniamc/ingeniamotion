@@ -470,7 +470,12 @@ class DynamicForcedPhasing(BaseTest[DynamicForcedPhasingReport]):
             f"Increasing direct current to {self.phasing_max_current:.4f} A", axis=self.axis
         )
         self.mc.motion.current_direct_ramp(
-            self.phasing_max_current, self.CURRENT_RAMP_TIME_S, servo=self.servo, axis=self.axis
+            self.phasing_max_current,
+            self.CURRENT_RAMP_TIME_S,
+            servo=self.servo,
+            axis=self.axis,
+            interval=0.01,
+            step=self.check_stop,
         )
 
         mean_difference_pos = self._collect_mean_difference(

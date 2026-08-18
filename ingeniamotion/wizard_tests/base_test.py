@@ -1,7 +1,18 @@
+import time
 from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from dataclasses import dataclass
 from functools import cached_property
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, Optional, TypeVar, Union
+from typing import (
+    TYPE_CHECKING,
+    Any,
+    Callable,
+    ClassVar,
+    Generic,
+    Optional,
+    TypeVar,
+    Union,
+)
 
 import ingenialogger
 from ingenialink.drive_context_manager import DriveContextManager, DriveRegistersValue
@@ -209,3 +220,65 @@ class BaseTest(ABC, Stoppable, Generic[T]):
             The test result severity level.
 
         """
+
+    def _timeout_loop(
+        self,
+        timeout_sec: float,
+        sleep_sec: float = 0.0,
+        timeout: Optional[Callable[[], Exception]] = lambda: TimeoutError("Test timed out"),
+    ) -> Iterator[int]:
+        """Iterate until a timeout expires or the test is stopped.
+
+        The first iteration is yielded immediately unless the timeout has already
+        expired. Between iterations, ``stoppable_sleep`` is used so that the loop
+        can be interrupted while waiting.
+
+        Args:
+            timeout_sec: Maximum duration of the loop, in seconds.
+            sleep_sec: Delay between iterations, in seconds.
+            timeout: Callable that returns an exception to be raised if the timeout
+                expires. If omitted, the iteration stops and continues flow
+
+        Yields:
+            Iteration number, starting at 1.
+
+        Raises:
+            ValueError: If ``timeout_sec`` or ``sleep_sec`` is negative.
+
+
+        Examples:
+
+            .. code-block:: python
+
+                for iteration in self.timeout_loop(
+                    timeout_sec=0.5,
+                    sleep_sec=0.1,
+                    timeout= lambda: TimeoutError("Test timed out")
+                ):
+                    print(f"Iteration {iteration}")
+        """
+        if timeout_sec < 0:
+            raise ValueError("timeout_sec cannot be negative")
+
+        if sleep_sec < 0:
+            raise ValueError("sleep_sec cannot be negative")
+
+        iteration = 1
+        deadline = time.monotonic() + timeout_sec
+
+        while True:
+            self.check_stop()
+
+            remaining_time = deadline - time.monotonic()
+
+            if remaining_time <= 0:
+                if timeout is not None:
+                    raise timeout()
+                return
+
+            yield iteration
+            iteration += 1
+
+            next_sleep = min(sleep_sec, remaining_time)
+            if next_sleep > 0:
+                self.stoppable_sleep(next_sleep)
