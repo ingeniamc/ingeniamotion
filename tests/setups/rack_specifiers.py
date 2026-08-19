@@ -338,7 +338,7 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
                     "SIRIUS_TEST_SESSIONS": PyTestConfig(
                         markers="soem and biss_c_flaky",
                         run_test_stage_uid="ethercat_everest_s_2.11.0.005",
-                        stage_name="SIRIUS EVS-NET-E Tests - FW. 2.11.0.005",
+                        stage_name="SIRIUS EVS-NET-E (BiSS-C) Tests - FW. 2.11.0.005",
                     )
                 },
             },
@@ -359,7 +359,7 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
                     "SIRIUS_TEST_SESSIONS": PyTestConfig(
                         markers="soem and biss_c_flaky",  # https://novantamotion.atlassian.net/browse/INGM-798
                         run_test_stage_uid="ethercat_everest_s_2.10.0",
-                        stage_name="SIRIUS EVS-NET-E Tests - FW. 2.10.0",
+                        stage_name="SIRIUS EVS-NET-E (SSI) Tests - FW. 2.10.0",
                     )
                 },
             },
