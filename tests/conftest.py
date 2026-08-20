@@ -20,7 +20,6 @@ from summit_testing_framework.pytest_helpers.marker_helper import (
 from summit_testing_framework.setups.specifiers import DictionaryType, DictionaryVersion
 
 from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY
-from tests.setups.rack_specifiers import __RANDOM_COMBINATIONS_SLICE_KEY
 
 if TYPE_CHECKING:
     from summit_testing_framework.setups.specifiers import SetupSpecifier
@@ -32,6 +31,9 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 __BISS_C_CONFIG_MARKER: str = "biss_c_flaky"
+
+# Fraction of exhaustive test configurations to run in shorter daytime test sessions.
+RANDOM_COMBINATIONS_SLICE_KEY: str = "random_combinations_slice"
 
 
 pytest_plugins = [
@@ -273,7 +275,7 @@ def slice_configurations(
         fraction with at least one configuration.
     """
     assert configurations, "At least one test configuration is required"
-    configuration_slice = setup_specifier.extra_data.get(__RANDOM_COMBINATIONS_SLICE_KEY, None)
+    configuration_slice = setup_specifier.extra_data.get(RANDOM_COMBINATIONS_SLICE_KEY, None)
     if configuration_slice is None:
         return configurations
     return configurations[: max(1, int(len(configurations) * configuration_slice))]
