@@ -30,7 +30,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-__BISS_C_CONFIG_MARKER: str = "biss_c_flaky"
+# Tests that are known to be flaky for BISS-C configuration should be marked with this marker.
+BISS_C_CONFIG_MARKER: str = "biss_c_flaky"
 
 # Fraction of exhaustive test configurations to run in shorter daytime test sessions.
 RANDOM_COMBINATIONS_SLICE_KEY: str = "random_combinations_slice"
@@ -128,7 +129,7 @@ def apply_configuration_marker_to_items(
         return
 
     for item in items:
-        if not item.get_closest_marker(__BISS_C_CONFIG_MARKER):
+        if not item.get_closest_marker(BISS_C_CONFIG_MARKER):
             continue
 
         for skip_product in ["CAP-*", "EVE-*", "EVS-*"]:

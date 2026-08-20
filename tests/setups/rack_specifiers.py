@@ -16,7 +16,7 @@ from summit_testing_framework.setups.specifiers import (
 )
 
 import summit_drives_ci_configs.config_files as config_files
-from tests.conftest import RANDOM_COMBINATIONS_SLICE_KEY
+from tests.conftest import BISS_C_CONFIG_MARKER, RANDOM_COMBINATIONS_SLICE_KEY
 
 __EXECUTION_POLICY_KEY: str = "execution_policy"
 __TEST_CONFIGS_KEY: str = "test_configs"
@@ -335,7 +335,7 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
                 __EXECUTION_POLICY_KEY: "nightly",
                 __TEST_CONFIGS_KEY: {
                     "SIRIUS_TEST_SESSIONS": PyTestConfig(
-                        markers="soem and biss_c_flaky",
+                        markers=f"soem and {BISS_C_CONFIG_MARKER}",
                         run_test_stage_uid="ethercat_everest_s_2.11.0.005",
                         stage_name="SIRIUS EVS-NET-E Tests - FW. 2.11.0.005",
                     )
@@ -356,7 +356,7 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
                 RANDOM_COMBINATIONS_SLICE_KEY: 0.1,
                 __TEST_CONFIGS_KEY: {
                     "SIRIUS_TEST_SESSIONS": PyTestConfig(
-                        markers="soem and biss_c_flaky",  # https://novantamotion.atlassian.net/browse/INGM-798
+                        markers=f"soem and {BISS_C_CONFIG_MARKER}",  # https://novantamotion.atlassian.net/browse/INGM-798
                         run_test_stage_uid="ethercat_everest_s_2.10.0",
                         stage_name="SIRIUS EVS-NET-E Tests - FW. 2.10.0",
                     )
