@@ -62,6 +62,7 @@ def delayed_function_return(delay_s: int, first_response: Any, delayed_response:
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C")
 def test_target_latch(servo, mc, alias):
     with refresh_registers_for_test_rollback(servo, ["COMMU_ANGLE_OFFSET"]):
         mc.communication.set_register(PROFILER_LATCHING_MODE_REGISTER, 0x40, servo=alias)
