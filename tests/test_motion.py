@@ -566,31 +566,32 @@ def test_internal_generator_saw_tooth_move(
 @pytest.mark.parametrize("op_mode", [OperationMode.VOLTAGE, OperationMode.CURRENT])
 @pytest.mark.parametrize("direction", [-1, 1])
 def test_internal_generator_constant_move(
-    mc: "MotionController", alias: str, op_mode: "OperationMode", direction: int
+    servo, mc: "MotionController", alias: str, op_mode: "OperationMode", direction: int
 ) -> None:
-    pair_poles = mc.configuration.get_motor_pair_poles(servo=alias)
-    pos_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
-    cycle_pos = pos_resolution / pair_poles
-    mc.motion.set_internal_generator_configuration(op_mode, servo=alias)
-    mc.motion.motor_enable(servo=alias)
-    if op_mode == OperationMode.CURRENT:
-        mc.motion.current_quadrature_ramp(1, 2, servo=alias)
-    else:
-        mc.motion.voltage_quadrature_ramp(1, 2, servo=alias)
-    time.sleep(1)
-    mc.motion.internal_generator_constant_move(0, servo=alias)
-    initial_position = mc.motion.get_actual_position(servo=alias)
-    list_values = np.linspace(0, 1, 5) if direction > 0 else np.linspace(1, 0, 5)
-    for value in list_values:
-        mc.motion.internal_generator_constant_move(value, servo=alias)
+    with refresh_registers_for_test_rollback(servo, ["COMMU_ANGLE_OFFSET"]):
+        pair_poles = mc.configuration.get_motor_pair_poles(servo=alias)
+        pos_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
+        cycle_pos = pos_resolution / pair_poles
+        mc.motion.set_internal_generator_configuration(op_mode, servo=alias)
+        mc.motion.motor_enable(servo=alias)
+        if op_mode == OperationMode.CURRENT:
+            mc.motion.current_quadrature_ramp(1, 2, servo=alias)
+        else:
+            mc.motion.voltage_quadrature_ramp(1, 2, servo=alias)
         time.sleep(1)
-        final_position = mc.motion.get_actual_position(servo=alias)
-        total_movement = final_position - initial_position
-        expected_movement = cycle_pos * value if direction > 0 else cycle_pos * (value - 1)
-        assert (
-            abs(total_movement - expected_movement)
-            < pos_resolution * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
-        )
+        mc.motion.internal_generator_constant_move(0, servo=alias)
+        initial_position = mc.motion.get_actual_position(servo=alias)
+        list_values = np.linspace(0, 1, 5) if direction > 0 else np.linspace(1, 0, 5)
+        for value in list_values:
+            mc.motion.internal_generator_constant_move(value, servo=alias)
+            time.sleep(1)
+            final_position = mc.motion.get_actual_position(servo=alias)
+            total_movement = final_position - initial_position
+            expected_movement = cycle_pos * value if direction > 0 else cycle_pos * (value - 1)
+            assert (
+                abs(total_movement - expected_movement)
+                < pos_resolution * POSITION_PERCENTAGE_ERROR_ALLOWED / 100
+            )
 
 
 @pytest.mark.parametrize(
