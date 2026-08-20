@@ -80,8 +80,11 @@ resources/
 # Version
 ingeniamotion/_version.py
 
-# Test outputs 
+# Test outputs
 tests/outputs/
 
 # Pipenv and venv
 /.venv*
+
+# Wireshark files
+*.*pcap
