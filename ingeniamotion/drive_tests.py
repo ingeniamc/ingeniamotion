@@ -359,9 +359,7 @@ class DriveTests:
         sto_test = STOTest(self.mc, servo, axis)
         return sto_test.run()
 
-    def brake_test(
-        self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ) -> Brake:
+    def brake_test(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> Brake:
         """Run brake test.
 
         Args:
