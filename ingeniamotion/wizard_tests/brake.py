@@ -54,20 +54,16 @@ class Brake(BaseTest[ResultsBrakeTest]):
         self.mc.motion.set_internal_generator_configuration(
             OperationMode.VOLTAGE, servo=self.servo, axis=self.axis
         )
-        self.mc.configuration.set_reference_feedback(
-            SensorType.INTGEN, servo=self.servo, axis=self.axis
-        )
-        self.mc.configuration.set_velocity_feedback(
-            SensorType.INTGEN, servo=self.servo, axis=self.axis
-        )
-        self.mc.configuration.set_position_feedback(
-            SensorType.INTGEN, servo=self.servo, axis=self.axis
-        )
-        # Set the auxiliar feedback to ABS1 because the internal generator is not allowed
-        # as auxiliar feedback for all drives
-        self.mc.configuration.set_auxiliar_feedback(
-            SensorType.ABS1, servo=self.servo, axis=self.axis
-        )
+        # Set the auxiliary feedback to ABS1 because the internal generator is not allowed
+        # as auxiliary feedback for all drives
+        axis_feedbacks = self._axis_feedbacks
+        internal_generator = axis_feedbacks.get_sensor(SensorType.INTGEN)
+        axis_feedbacks.update_configuration({
+            axis_feedbacks.reference: internal_generator,
+            axis_feedbacks.velocity: internal_generator,
+            axis_feedbacks.position: internal_generator,
+            axis_feedbacks.auxiliary: axis_feedbacks.get_sensor(SensorType.ABS1),
+        })
         # Set the absolute encoder protocol to SSI and the frame type to RAW to avoid errors.
         self.mc.communication.set_register(
             self.PRIMARY_ABSOLUTE_SLAVE_1_PROTOCOL, 1, servo=self.servo, axis=self.axis

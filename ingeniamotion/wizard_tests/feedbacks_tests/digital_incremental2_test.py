@@ -3,10 +3,10 @@ from typing import TYPE_CHECKING, Optional
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
 from ingeniamotion.enums import SensorType
-from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
+from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import FeedbacksTest
 
 
-class DigitalIncremental2Test(Feedbacks):
+class DigitalIncremental2Test(FeedbacksTest):
     """Digital incremental 2 test class."""
 
     FEEDBACK_POLARITY_REGISTER = "FBK_DIGENC2_POLARITY"

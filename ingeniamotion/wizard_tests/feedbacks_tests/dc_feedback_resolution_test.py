@@ -75,28 +75,30 @@ class DCFeedbacksResolutionTest(BaseTest[ReportBase]):
     def setup(self) -> None:
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
         self.logger.info("Motor disable")
-        self.feedback_resolution = self.mc.configuration.get_feedback_resolution(
-            self.sensor, servo=self.servo, axis=self.axis
-        )
+        feedbacks = self._axis_feedbacks
+        sensor = feedbacks.get_sensor(self.sensor)
+        self.feedback_resolution = sensor.get_resolution()
         if self.feedback_resolution == 0:
             raise TestConfigurationError(
                 "The feedback resolution must be greater than 0. Please adjust it accordingly."
             )
-        self.mc.configuration.set_velocity_feedback(self.sensor, servo=self.servo, axis=self.axis)
-        self.mc.configuration.set_position_feedback(self.sensor, servo=self.servo, axis=self.axis)
+        auxiliary_sensor = (
+            feedbacks.get_sensor(SensorType.ABS1) if self.sensor == SensorType.BISSC2 else sensor
+        )
+        feedbacks.update_configuration({
+            feedbacks.velocity: sensor,
+            feedbacks.position: sensor,
+            feedbacks.auxiliary: auxiliary_sensor,
+        })
         if self.sensor == SensorType.BISSC2:
-            self.mc.configuration.set_auxiliar_feedback(
-                SensorType.ABS1, servo=self.servo, axis=self.axis
-            )
             self.logger.info(
                 f"Set velocity and position feedbacks to {self.sensor.name}"
-                f" and axuiliar to {SensorType.ABS1.name}"
+                f" and auxiliary to {SensorType.ABS1.name}"
             )
         else:
-            self.mc.configuration.set_auxiliar_feedback(
-                self.sensor, servo=self.servo, axis=self.axis
+            self.logger.info(
+                f"Set velocity, position and auxiliary feedbacks to {self.sensor.name}"
             )
-            self.logger.info(f"Set velocity, position and auxiliar feedbacks to {self.sensor.name}")
         self.mc.configuration.set_velocity_pid(
             **self.test_velocity_pid, servo=self.servo, axis=self.axis
         )
