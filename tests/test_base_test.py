@@ -69,8 +69,7 @@ def test_run_context_creates_report_after_context_body(mocker) -> None:
     test.mc = Mock()
     test.mc._get_drive.return_value = Mock()
 
-    with test.run_context() as output:
-        assert output is None
+    with test.run_context():
         assert test.report is None
 
     assert test.report is not None

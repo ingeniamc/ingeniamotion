@@ -37,7 +37,7 @@ class Brake(BaseTest[ResultsBrakeTest]):
         self.mc = mc
         self.servo = servo
         self.axis = axis
-        self.__context: Optional[AbstractContextManager[object]] = None
+        self.__context: Optional[AbstractContextManager[None]] = None
         if logger_drive_name is None:
             self.logger = ingenialogger.get_logger(__name__, axis=axis, drive=mc.servo_name(servo))
         else:
@@ -85,8 +85,9 @@ class Brake(BaseTest[ResultsBrakeTest]):
         Returns:
             This brake test.
         """
-        self.__context = self.run_context()
-        self.__context.__enter__()
+        context = self.run_context()
+        context.__enter__()
+        self.__context = context
         return self
 
     def __exit__(
