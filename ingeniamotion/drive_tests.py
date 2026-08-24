@@ -359,7 +359,9 @@ class DriveTests:
         sto_test = STOTest(self.mc, servo, axis)
         return sto_test.run()
 
-    def brake_test(self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS) -> Brake:
+    def brake_test(
+        self, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
+    ) -> Brake:
         """Run brake test.
 
         Args:
@@ -367,13 +369,9 @@ class DriveTests:
             axis : axis that will run the test. ``1`` by default.
 
         Returns:
-            Instance of Brake test, with the drive left configured for the test. Use it
-            as a context manager (``with mc.tests.brake_test() as brake: ...``) or call
-            ``Brake.finish()`` to end the test and restore the drive state.
+            A brake test that configures the drive on context entry and restores it on exit.
         """
-        brake_test = Brake(self.mc, servo, axis)
-        brake_test.run()
-        return brake_test
+        return Brake(self.mc, servo, axis)
 
     def polarity_feedback_single_phase_test(
         self,

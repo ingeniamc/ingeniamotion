@@ -1,10 +1,12 @@
 from collections.abc import Iterator
 from typing import TYPE_CHECKING
+from unittest.mock import Mock
 
 import pytest
 from ingenialink.drive_context_manager import DriveContextManager
 
 from ingeniamotion.enums import SeverityLevel
+from ingeniamotion.wizard_tests import base_test as base_test_module
 from ingeniamotion.wizard_tests.base_test import BaseTest, ReportBase
 from ingeniamotion.wizard_tests.stoppable import StopExceptionError
 
@@ -57,6 +59,22 @@ class ConcreteBaseTest(BaseTest[ReportBase]):
 
     def get_result_severity(self, _output: object) -> SeverityLevel:
         return SeverityLevel.SUCCESS
+
+
+def test_run_context_creates_report_after_context_body(mocker) -> None:
+    """The context API should create its report after the caller leaves the context."""
+    context_manager = mocker.patch.object(base_test_module, "DriveContextManager")
+    context_manager.return_value.__enter__.return_value = context_manager.return_value
+    test = ConcreteBaseTest()
+    test.mc = Mock()
+    test.mc._get_drive.return_value = Mock()
+
+    with test.run_context() as output:
+        assert output is None
+        assert test.report is None
+
+    assert test.report is not None
+    assert context_manager.return_value.__exit__.call_count == 1
 
 
 @pytest.mark.virtual
