@@ -367,9 +367,13 @@ class DriveTests:
             axis : axis that will run the test. ``1`` by default.
 
         Returns:
-            A brake test that configures the drive on context entry and restores it on exit.
+            Instance of Brake test, with the drive left configured for the test. Use it
+            as a context manager (``with mc.tests.brake_test() as brake: ...``) or call
+            ``Brake.finish()`` to end the test and restore the drive state.
         """
-        return Brake(self.mc, servo, axis)
+        brake_test = Brake(self.mc, servo, axis)
+        brake_test.start()
+        return brake_test
 
     def polarity_feedback_single_phase_test(
         self,

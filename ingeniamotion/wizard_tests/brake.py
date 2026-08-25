@@ -72,12 +72,41 @@ class Brake(BaseTest[ResultsBrakeTest]):
         )
 
     @override
-    def loop(self) -> None:
+    def loop(self) -> SeverityLevel:
         self.mc.motion.motor_enable(servo=self.servo, axis=self.axis)
+        return SeverityLevel.SUCCESS
 
     @override
     def teardown(self) -> None:
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
+
+    def start(self) -> "Brake":
+        """Configure the drive and return this brake test.
+
+        Idempotent: the drive is configured on the first call. A later call
+        (e.g. the implicit one made by a ``with`` statement after
+        ``DriveTests.brake_test`` already configured the drive) is a no-op.
+
+        Returns:
+            This brake test.
+        """
+        if self.__context is None:
+            context = self.run_context()
+            context.__enter__()
+            self.__context = context
+        return self
+
+    def finish(self) -> Optional[ResultsBrakeTest]:
+        """Disable the motor and restore the drive state changed during the test.
+
+        Equivalent to exiting the context manager. Idempotent: a second call
+        (e.g. after the test already cleaned up) is a no-op.
+
+        Returns:
+            The test report.
+        """
+        self.__exit__(None, None, None)
+        return self.report
 
     def __enter__(self) -> "Brake":
         """Configure the drive and return this brake test.
@@ -85,10 +114,7 @@ class Brake(BaseTest[ResultsBrakeTest]):
         Returns:
             This brake test.
         """
-        context = self.run_context()
-        context.__enter__()
-        self.__context = context
-        return self
+        return self.start()
 
     def __exit__(
         self,
