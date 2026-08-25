@@ -187,10 +187,11 @@ class BaseTest(ABC, Stoppable, Generic[T]):
                 self.check_stop()
                 output = self.loop()
                 self.check_stop()
-                yield
-                self.report = self.generate_report(output)
-            except StopExceptionError:
-                self.logger.warning("Test has been stopped")
+                try:
+                    yield
+                    self.report = self.generate_report(output)
+                except StopExceptionError:
+                    self.logger.warning("Test has been stopped")
             finally:
                 try:
                     self.teardown()
