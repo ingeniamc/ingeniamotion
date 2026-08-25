@@ -20,7 +20,6 @@ from summit_testing_framework.pytest_helpers.marker_helper import (
 from summit_testing_framework.setups.specifiers import DictionaryType, DictionaryVersion
 
 from tests.dictionaries import SAMPLE_SAFE_PH1_XDFV3_DICTIONARY
-from tests.setups.rack_specifiers import __RANDOM_COMBINATIONS_SLICE_KEY
 
 if TYPE_CHECKING:
     from summit_testing_framework.setups.specifiers import SetupSpecifier
@@ -31,7 +30,11 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-__BISS_C_CONFIG_MARKER: str = "biss_c_flaky"
+# Tests that are known to be flaky for BISS-C configuration should be marked with this marker.
+BISS_C_CONFIG_MARKER: str = "biss_c_flaky"
+
+# Fraction of exhaustive test configurations to run in shorter daytime test sessions.
+RANDOM_COMBINATIONS_SLICE_KEY: str = "random_combinations_slice"
 
 
 pytest_plugins = [
@@ -126,13 +129,13 @@ def apply_configuration_marker_to_items(
         return
 
     for item in items:
-        if not item.get_closest_marker(__BISS_C_CONFIG_MARKER):
+        if not item.get_closest_marker(BISS_C_CONFIG_MARKER):
             continue
 
         for skip_product in ["CAP-*", "EVE-*", "EVS-*"]:
             item.add_marker(
                 pytest.mark.not_valid_version_for_product(
-                    part_number=skip_product, min="2.6.0", max="2.11.0"
+                    part_number=skip_product, min="2.6.0", max="2.10.0"
                 )
             )
 
@@ -273,7 +276,7 @@ def slice_configurations(
         fraction with at least one configuration.
     """
     assert configurations, "At least one test configuration is required"
-    configuration_slice = setup_specifier.extra_data.get(__RANDOM_COMBINATIONS_SLICE_KEY, None)
+    configuration_slice = setup_specifier.extra_data.get(RANDOM_COMBINATIONS_SLICE_KEY, None)
     if configuration_slice is None:
         return configurations
     return configurations[: max(1, int(len(configurations) * configuration_slice))]
@@ -289,8 +292,8 @@ def stoppable_profiler_config() -> StoppableProfilerConfig:
         The stoppable profiler configuration.
     """
     return StoppableProfilerConfig(
-        gap_threshold_seconds=5.1,  # https://novantamotion.atlassian.net/browse/INGM-768
-        good_enough_gap_seconds=2.6,
+        gap_threshold_seconds=5.1,
+        good_enough_gap_seconds=0.2,
     )
 
 

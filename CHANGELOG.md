@@ -1,9 +1,17 @@
 # Changelog
 
+## [Unreleased]
+### Added
+- Add SDCP servo support.
+- Add `Axis.feedbacks` (`AxisFeedbacks`), a typed API for configuring and accessing an axis's feedback slots.
+
+### Changed
+- Refactor feedback management around `Axis.feedbacks`; the legacy `Feedbacks` API remains available for backward compatibility.
+- Remove obsolete feedback resolution and polarity helpers, including SinCos resolution support.
+
 ## [0.10.4] - 2026-08-13
 ### Added
 - Add dynamic forced phasing test
-- Add SDCP servo support.
 
 ### Fixed
 - Feedback test symmetry check
