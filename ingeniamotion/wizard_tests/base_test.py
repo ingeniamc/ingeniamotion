@@ -2,7 +2,6 @@ import time
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, ClassVar, Generic, Optional, TypeVar
 from functools import cached_property
 from typing import (
     TYPE_CHECKING,
@@ -12,7 +11,6 @@ from typing import (
     Generic,
     Optional,
     TypeVar,
-    Union,
 )
 
 import ingenialogger
