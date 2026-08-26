@@ -431,9 +431,9 @@ def test_instance_sensor_type(mc, alias):
         (SensorType.QEI2, "FBK_DIGENC2_POLARITY"),
     ],
 )
-def test_encoder_polarity_register_uid(axis, sensor, register):
+def test_encoder_polarity_register(axis, sensor, register):
     """Each encoder exposes the polarity register for its sensor type."""
-    assert register == axis.feedbacks.get_sensor(sensor).POLARITY_REGISTER_UID
+    assert register == axis.feedbacks.get_sensor(sensor).polarity_reg.identifier
 
 
 @pytest.mark.virtual

@@ -15,8 +15,6 @@ class DigitalHallTest(FeedbacksTest):
     HALLS_FILTER_CUTOFF_FREQUENCY = 10
     DIG_HALL_POLE_PAIRS_REGISTER = "FBK_DIGHALL_PAIRPOLES"
 
-    FEEDBACK_POLARITY_REGISTER = "FBK_DIGHALL_POLARITY"
-
     SENSOR_TYPE_FEEDBACK_TEST = SensorType.HALLS
 
     ACCEPTED_CHANGED_REGISTERS = (
@@ -67,13 +65,11 @@ class DigitalHallTest(FeedbacksTest):
     @override
     @BaseTest.stoppable
     def suggest_polarity(self, pol: FeedbacksTest.Polarity) -> None:
-        polarity_uid = self.FEEDBACK_POLARITY_REGISTER
         pair_poles_uid = self.DIG_HALL_POLE_PAIRS_REGISTER
         if self.pair_poles is None:
             raise TypeError("Pair poles has to be set before polarity suggestion.")
         pair_poles_register = self._get_servo().dictionary.get_register(
             pair_poles_uid, axis=self.axis
         )
-        polarity_register = self._get_servo().dictionary.get_register(polarity_uid, axis=self.axis)
         self.suggest_register(pair_poles_register, self.pair_poles)
-        self.suggest_register(polarity_register, pol)
+        self.suggest_register(self._encoder.polarity_reg, pol)

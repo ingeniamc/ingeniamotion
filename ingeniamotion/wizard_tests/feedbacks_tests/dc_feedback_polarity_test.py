@@ -153,15 +153,7 @@ class DCFeedbacksPolarityTest(BaseTest[ReportBase]):
         polarity = self.calculate_polarity(initial_position, final_position)
         self.logger.info(f"Polarity found: {polarity.name}")
         encoder = self._axis_feedbacks.get_sensor(self.sensor)
-        polarity_register_uid = encoder.POLARITY_REGISTER_UID
-        polarity_register = self._get_servo().dictionary.get_register(
-            polarity_register_uid, axis=self.axis
-        )
-        if polarity_register_uid is None:
-            raise TestConfigurationError(
-                f"Sensor {self.sensor.name} does not support polarity configuration"
-            )
-        self.suggest_register(polarity_register, polarity)
+        self.suggest_register(encoder.polarity_reg, polarity)
         return self.ResultType.SUCCESS
 
     @override

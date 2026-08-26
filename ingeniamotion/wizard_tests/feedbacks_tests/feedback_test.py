@@ -10,10 +10,11 @@ from typing_extensions import override
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
-    from ingeniamotion.feedbacks import FeedbacksConfiguration
+    from ingeniamotion.feedbacks import Encoder, FeedbacksConfiguration
 
 from ingeniamotion.enums import (
     CommutationMode,
+    FeedbackPolarity,
     OperationMode,
     SensorType,
     SeverityLevel,
@@ -69,8 +70,6 @@ class FeedbacksTest(BaseTest[ReportBase]):
     POSITIONING_OPTION_CODE_REGISTER = "PROF_POS_OPTION_CODE"
     MAX_POSITION_RANGE_LIMIT_REGISTER = "CL_POS_REF_MAX_RANGE"
     MIN_POSITION_RANGE_LIMIT_REGISTER = "CL_POS_REF_MIN_RANGE"
-
-    FEEDBACK_POLARITY_REGISTER: str
 
     SENSOR_TYPE_FEEDBACK_TEST: SensorType
 
@@ -163,13 +162,7 @@ class FeedbacksTest(BaseTest[ReportBase]):
             feedbacks.position: sensor,
             feedbacks.auxiliary: sensor,
         })
-        # Set Polarity to 0
-        self.mc.communication.set_register(
-            self.FEEDBACK_POLARITY_REGISTER,
-            self.Polarity.NORMAL,
-            servo=self.servo,
-            axis=self.axis,
-        )
+        sensor.set_polarity(FeedbackPolarity.NORMAL)
         # Depending on the type of the feedback, calculate the correct
         # feedback resolution
         self.feedback_resolution = sensor.get_resolution()
@@ -208,22 +201,19 @@ class FeedbacksTest(BaseTest[ReportBase]):
             except IMRegisterNotExistError as e:  # noqa: PERF203
                 self.logger.warning(e)
 
+    @property
+    def _encoder(self) -> "Encoder":
+        """Encoder of the feedback under test."""
+        return self._axis_feedbacks.get_sensor(self.sensor)
+
     @BaseTest.stoppable
     def suggest_polarity(self, pol: Polarity) -> None:
         """Suggest the detected polarity.
 
         Args:
             pol: The detected polarity.
-
-        Raises:
-            TypeError: If the feedback polarity register is not set before suggesting polarity.
-
         """
-        if not isinstance(self.FEEDBACK_POLARITY_REGISTER, str):
-            raise TypeError("Feedback polarity register has to be set before polarity suggestion.")
-        polarity_uid = self.FEEDBACK_POLARITY_REGISTER
-        polarity_register = self._get_servo().dictionary.get_register(polarity_uid, axis=self.axis)
-        self.suggest_register(polarity_register, pol)
+        self.suggest_register(self._encoder.polarity_reg, pol)
 
     @override
     @BaseTest.stoppable

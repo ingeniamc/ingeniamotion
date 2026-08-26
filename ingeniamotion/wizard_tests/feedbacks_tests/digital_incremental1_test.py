@@ -9,8 +9,6 @@ from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import FeedbacksTe
 class DigitalIncremental1Test(FeedbacksTest):
     """Digital incremental 1 test class."""
 
-    FEEDBACK_POLARITY_REGISTER = "FBK_DIGENC1_POLARITY"
-
     SENSOR_TYPE_FEEDBACK_TEST = SensorType.QEI
 
     def __init__(

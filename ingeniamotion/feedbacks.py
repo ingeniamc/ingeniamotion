@@ -1,9 +1,10 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterator, Mapping
 from functools import cached_property
-from typing import TYPE_CHECKING, ClassVar, Final, Optional
+from typing import TYPE_CHECKING, ClassVar, Final, Optional, Union
 
 import ingenialogger
+from ingenialink.register import Register
 
 from ingeniamotion.enums import FeedbackPolarity, SensorCategory, SensorType
 
@@ -38,7 +39,7 @@ class Encoder(ABC):
 
     SENSOR_TYPE: ClassVar[SensorType]
     CATEGORY: ClassVar[SensorCategory]
-    POLARITY_REGISTER_UID: ClassVar[Optional[str]] = None
+    _POLARITY_REGISTER_UID: ClassVar[Optional[str]] = None
 
     def __init__(self, axis: "Axis") -> None:
         """Constructor.
@@ -66,11 +67,11 @@ class Encoder(ABC):
         """
         return hash((id(self.__axis), self.SENSOR_TYPE))
 
-    def _read(self, reg_uid: str) -> int:
+    def _read(self, reg: Union[str, Register]) -> int:
         """Read an integer register with type validation.
 
         Args:
-            reg_uid: register UID to read.
+            reg: register UID or register to read.
 
         Returns:
             The register value as an integer.
@@ -78,19 +79,33 @@ class Encoder(ABC):
         Raises:
             TypeError: If the register value is not an integer.
         """
-        value = self.__axis.read(reg_uid)
+        value = self.__axis.read(reg)
         if not isinstance(value, int):
-            raise TypeError(f"Register {reg_uid} value has to be an integer")
+            raise TypeError(f"Register {reg} value has to be an integer")
         return value
 
-    def _write(self, reg_uid: str, value: int) -> None:
+    def _write(self, reg: Union[str, Register], value: int) -> None:
         """Write a register value.
 
         Args:
-            reg_uid: register UID to write.
+            reg: register UID or register to write.
             value: value to write.
         """
-        self.__axis.write(reg_uid, value)
+        self.__axis.write(reg, value)
+
+    @cached_property
+    def polarity_reg(self) -> Register:
+        """Polarity register of the encoder.
+
+        Returns:
+            The polarity register.
+
+        Raises:
+            NotImplementedError: If the encoder has no polarity register.
+        """
+        if self._POLARITY_REGISTER_UID is None:
+            raise NotImplementedError(f"Sensor {self.SENSOR_TYPE.name} polarity is not implemented")
+        return self.__axis.get_register(self._POLARITY_REGISTER_UID)
 
     def get_polarity(self) -> FeedbackPolarity:
         """Get the polarity of the encoder.
@@ -103,9 +118,7 @@ class Encoder(ABC):
             TypeError: If the read value has a wrong type.
             ValueError: If the polarity value is not a valid :class:`FeedbackPolarity`.
         """
-        if self.POLARITY_REGISTER_UID is None:
-            raise NotImplementedError(f"Sensor {self.SENSOR_TYPE.name} polarity is not implemented")
-        raw_polarity = self._read(self.POLARITY_REGISTER_UID)
+        raw_polarity = self._read(self.polarity_reg)
         return FeedbackPolarity(raw_polarity)
 
     def set_polarity(self, polarity: FeedbackPolarity) -> None:
@@ -117,9 +130,7 @@ class Encoder(ABC):
         Raises:
             NotImplementedError: If the encoder polarity is not implemented.
         """
-        if self.POLARITY_REGISTER_UID is None:
-            raise NotImplementedError(f"Sensor {self.SENSOR_TYPE.name} polarity is not implemented")
-        self._write(self.POLARITY_REGISTER_UID, polarity)
+        self._write(self.polarity_reg, polarity)
 
     @abstractmethod
     def get_resolution(self) -> int:
@@ -163,7 +174,7 @@ class Abs1Encoder(AbsoluteEncoder):
     """ABS1 absolute encoder."""
 
     SENSOR_TYPE = SensorType.ABS1
-    POLARITY_REGISTER_UID = "FBK_BISS1_SSI1_POS_POLARITY"
+    _POLARITY_REGISTER_UID = "FBK_BISS1_SSI1_POS_POLARITY"
     _BITS_REGISTER_UID = "FBK_BISS1_SSI1_POS_ST_BITS"
 
 
@@ -171,7 +182,7 @@ class Ssi2Encoder(AbsoluteEncoder):
     """Secondary SSI absolute encoder."""
 
     SENSOR_TYPE = SensorType.SSI2
-    POLARITY_REGISTER_UID = "FBK_SSI2_POS_POLARITY"
+    _POLARITY_REGISTER_UID = "FBK_SSI2_POS_POLARITY"
     _BITS_REGISTER_UID = "FBK_SSI2_POS_ST_BITS"
 
 
@@ -179,7 +190,7 @@ class Bissc2Encoder(AbsoluteEncoder):
     """BISSC2 absolute encoder."""
 
     SENSOR_TYPE = SensorType.BISSC2
-    POLARITY_REGISTER_UID = "FBK_BISS2_POS_POLARITY"
+    _POLARITY_REGISTER_UID = "FBK_BISS2_POS_POLARITY"
     _BITS_REGISTER_UID = "FBK_BISS2_POS_ST_BITS"
 
 
@@ -205,7 +216,7 @@ class QeiEncoder(IncrementalEncoder):
     """QEI incremental encoder."""
 
     SENSOR_TYPE = SensorType.QEI
-    POLARITY_REGISTER_UID = "FBK_DIGENC1_POLARITY"
+    _POLARITY_REGISTER_UID = "FBK_DIGENC1_POLARITY"
     _RESOLUTION_REGISTER_UID = "FBK_DIGENC1_RESOLUTION"
 
 
@@ -213,7 +224,7 @@ class Qei2Encoder(IncrementalEncoder):
     """QEI2 incremental encoder."""
 
     SENSOR_TYPE = SensorType.QEI2
-    POLARITY_REGISTER_UID = "FBK_DIGENC2_POLARITY"
+    _POLARITY_REGISTER_UID = "FBK_DIGENC2_POLARITY"
     _RESOLUTION_REGISTER_UID = "FBK_DIGENC2_RESOLUTION"
 
 
@@ -222,7 +233,7 @@ class HallsEncoder(Encoder):
 
     SENSOR_TYPE = SensorType.HALLS
     CATEGORY = SensorCategory.ABSOLUTE
-    POLARITY_REGISTER_UID = "FBK_DIGHALL_POLARITY"
+    _POLARITY_REGISTER_UID = "FBK_DIGHALL_POLARITY"
     _PAIR_POLES_REGISTER_UID = "FBK_DIGHALL_PAIRPOLES"
 
     def get_resolution(self) -> int:
