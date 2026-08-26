@@ -404,6 +404,7 @@ def run_test_and_stop(test):
         SecondarySSITest,
     ],
 )
+@pytest.mark.repeat(100)
 def test_feedback_stop(
     mc: "MotionController",
     alias: str,
