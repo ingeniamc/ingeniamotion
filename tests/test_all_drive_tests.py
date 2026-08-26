@@ -13,7 +13,6 @@ from ingenialink.servo import Servo
 from summit_testing_framework.connection.reconnect_utils import ConnectionWrapper
 
 from ingeniamotion.enums import PhasingMode, SensorType, SeverityLevel
-from ingeniamotion.motion_controller import MotionController
 from ingeniamotion.wizard_tests.base_test import TestError
 from ingeniamotion.wizard_tests.dynamic_forced_phasing import (
     COMMUTATION_ANGLE_VALUE_REGISTER,
@@ -40,6 +39,9 @@ pytestmark = pytest.mark.usefixtures("stoppable_trace_recorder")
 
 if TYPE_CHECKING:
     from summit_testing_framework.setups.environment_control import DriveEnvironmentController
+
+    from ingeniamotion.motion_controller import MotionController
+    from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import FeedbacksTest
 
 
 CURRENT_QUADRATURE_SET_POINT_REGISTER = "CL_CUR_Q_SET_POINT"
@@ -402,11 +404,13 @@ def run_test_and_stop(test):
         SecondarySSITest,
     ],
 )
-# https://novantamotion.atlassian.net/browse/INGM-790
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
 def test_feedback_stop(
-    mc, alias, feedback_class, servo: Servo, registers_baseline: DriveRegistersValue
-):
+    mc: "MotionController",
+    alias: str,
+    feedback_class: "FeedbacksTest",
+    servo: "Servo",
+    registers_baseline: "DriveRegistersValue",
+) -> None:
     test = feedback_class(mc, alias, 1)
     run_test_and_stop(test)
 
@@ -414,7 +418,9 @@ def test_feedback_stop(
 
 
 @pytest.mark.virtual
-def test_commutation_stop(mc, alias, servo: Servo, registers_baseline: DriveRegistersValue):
+def test_commutation_stop(
+    mc: "MotionController", alias: str, servo: "Servo", registers_baseline: "DriveRegistersValue"
+):
     test = Phasing(mc, alias, 1)
     run_test_and_stop(test)
 
@@ -424,7 +430,9 @@ def test_commutation_stop(mc, alias, servo: Servo, registers_baseline: DriveRegi
 
 
 @pytest.mark.virtual
-def test_phasing_check_stop(mc, alias, servo: Servo, registers_baseline: DriveRegistersValue):
+def test_phasing_check_stop(
+    mc: "MotionController", alias: str, servo: "Servo", registers_baseline: "DriveRegistersValue"
+):
     test = PhasingCheck(mc, alias, 1)
     run_test_and_stop(test)
 
@@ -454,7 +462,7 @@ class TestCurrents(Enum):
     ],
 )
 def test_current_ramp_up(
-    mc: MotionController,
+    mc: "MotionController",
     alias: str,
     test_currents: TestCurrents,
     test_sensor: SensorType,
