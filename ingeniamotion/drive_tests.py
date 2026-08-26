@@ -28,7 +28,7 @@ from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental1_test import
 from ingeniamotion.wizard_tests.feedbacks_tests.digital_incremental2_test import (
     DigitalIncremental2Test,
 )
-from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
+from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import FeedbacksTest
 from ingeniamotion.wizard_tests.feedbacks_tests.secondary_ssi_test import SecondarySSITest
 from ingeniamotion.wizard_tests.phase_calibration import Phasing
 from ingeniamotion.wizard_tests.phasing_check import PhasingCheck
@@ -38,7 +38,7 @@ from ingeniamotion.wizard_tests.sto import STOTest
 class DriveTests:
     """Class that contain the tests that can be performed on a drive."""
 
-    __sensors: Final[dict[SensorType, type[Feedbacks]]] = {
+    __sensors: Final[dict[SensorType, type[FeedbacksTest]]] = {
         SensorType.ABS1: AbsoluteEncoder1Test,
         SensorType.QEI: DigitalIncremental1Test,
         SensorType.HALLS: DigitalHallTest,
@@ -188,7 +188,7 @@ class DriveTests:
 
     def __get_feedback_test(
         self, feedback: SensorType, servo: str = DEFAULT_SERVO, axis: int = DEFAULT_AXIS
-    ) -> Feedbacks:
+    ) -> FeedbacksTest:
         return self.__sensors[feedback](self.mc, servo, axis)
 
     def __feedback_test(

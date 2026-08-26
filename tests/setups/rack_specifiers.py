@@ -6,7 +6,6 @@ from summit_testing_framework.configuration.encoder_configurator import (
 from summit_testing_framework.configuration.feedback_configuration import FeedbackConfiguration
 from summit_testing_framework.jenkins.pytest_config import PyTestConfig
 from summit_testing_framework.setups.specifier_container import SpecifierContainer
-from summit_testing_framework.setups.specifier_utils import dist_path
 from summit_testing_framework.setups.specifiers import (
     DictionaryType,
     MultiRackServiceConfigSpecifier,
@@ -322,22 +321,17 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
     interface=Interface.ECAT,
     version_configs={
         # BiSS-C tests are flaky on 2.10.0 should pass on 2.11.0
-        "2.11.0.005": VersionConfig.from_files(
-            version="2.11.0.005",
-            firmware=dist_path(
-                "//azr-srv-ingfs1//dist//products//i050_summit//i059_evs-net-e//release_candidate//2.11.0.5//evs-net-e_2.11.0.005.lfu"
-            ),
-            dictionary=dist_path(
-                "//azr-srv-ingfs1//dist//products//i050_summit//i059_evs-net-e//release_candidate//2.11.0.5//evs-net-e_eoe_2.11.0.005_v2.xdf"
-            ),
+        "2.11.0": VersionConfig.from_version(
+            version="2.11.0",
+            dictionary_type=DictionaryType.XDF_V3,
             config_file=config_files.SIRIUS_EVS_NET_E_2_11_0_CONFIG,
             extra_data={
-                __EXECUTION_POLICY_KEY: "nightly",
+                __EXECUTION_POLICY_KEY: "always",
                 __TEST_CONFIGS_KEY: {
                     "SIRIUS_TEST_SESSIONS": PyTestConfig(
                         markers=f"soem and {BISS_C_CONFIG_MARKER}",
-                        run_test_stage_uid="ethercat_everest_s_2.11.0.005",
-                        stage_name="SIRIUS EVS-NET-E Tests - FW. 2.11.0.005",
+                        run_test_stage_uid="ethercat_everest_s_2.11.0",
+                        stage_name="SIRIUS EVS-NET-E (BiSS-C) Tests - FW. 2.11.0",
                     )
                 },
             },
@@ -349,8 +343,8 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
         ),
         "2.10.0": VersionConfig.from_version(
             version="2.10.0",
-            config_file=config_files.SIRIUS_EVS_NET_E_2_10_0_CONFIG,
             dictionary_type=DictionaryType.XDF_V3,
+            config_file=config_files.SIRIUS_EVS_NET_E_2_10_0_CONFIG,
             extra_data={
                 __EXECUTION_POLICY_KEY: "always",
                 RANDOM_COMBINATIONS_SLICE_KEY: 0.1,
@@ -358,7 +352,7 @@ SIRIUS_SETUP = RackServiceConfigSpecifier.from_version_configs(
                     "SIRIUS_TEST_SESSIONS": PyTestConfig(
                         markers=f"soem and {BISS_C_CONFIG_MARKER}",  # https://novantamotion.atlassian.net/browse/INGM-798
                         run_test_stage_uid="ethercat_everest_s_2.10.0",
-                        stage_name="SIRIUS EVS-NET-E Tests - FW. 2.10.0",
+                        stage_name="SIRIUS EVS-NET-E (SSI) Tests - FW. 2.10.0",
                     )
                 },
             },

@@ -6,10 +6,10 @@ if TYPE_CHECKING:
     from ingeniamotion import MotionController
 from ingeniamotion.enums import SensorType
 from ingeniamotion.wizard_tests.base_test import BaseTest
-from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
+from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import FeedbacksTest
 
 
-class AbsoluteEncoder2Test(Feedbacks):
+class AbsoluteEncoder2Test(FeedbacksTest):
     """Absolute encoder 2 test class."""
 
     FEEDBACK_POLARITY_REGISTER = "FBK_BISS2_POS_POLARITY"
@@ -25,6 +25,4 @@ class AbsoluteEncoder2Test(Feedbacks):
     @BaseTest.stoppable
     def feedback_setting(self) -> None:
         super().feedback_setting()
-        self.mc.configuration.set_auxiliar_feedback(
-            SensorType.ABS1, servo=self.servo, axis=self.axis
-        )
+        self._axis_feedbacks.auxiliary.set_encoder_type(SensorType.ABS1)

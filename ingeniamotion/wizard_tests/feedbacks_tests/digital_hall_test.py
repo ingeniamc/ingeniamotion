@@ -6,10 +6,10 @@ if TYPE_CHECKING:
     from ingeniamotion import MotionController
 from ingeniamotion.enums import SensorType
 from ingeniamotion.wizard_tests.base_test import BaseTest
-from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import Feedbacks
+from ingeniamotion.wizard_tests.feedbacks_tests.feedback_test import FeedbacksTest
 
 
-class DigitalHallTest(Feedbacks):
+class DigitalHallTest(FeedbacksTest):
     """Digital hall test class."""
 
     HALLS_FILTER_CUTOFF_FREQUENCY = 10
@@ -46,9 +46,7 @@ class DigitalHallTest(Feedbacks):
         )
 
         # Read velocity feedback
-        velocity_feedback = self.mc.configuration.get_velocity_feedback(
-            servo=self.servo, axis=self.axis
-        )
+        velocity_feedback = self._axis_feedbacks.velocity.get_encoder_type()
         # Read velocity feedback, if is HALLS set filter to 10 Hz
         if velocity_feedback == SensorType.HALLS:
             filter_type_uid = self.VELOCITY_FEEDBACK_FILTER_1_TYPE_REGISTER
@@ -62,7 +60,7 @@ class DigitalHallTest(Feedbacks):
 
     @override
     @BaseTest.stoppable
-    def suggest_polarity(self, pol: Feedbacks.Polarity) -> None:
+    def suggest_polarity(self, pol: FeedbacksTest.Polarity) -> None:
         polarity_uid = self.FEEDBACK_POLARITY_REGISTER
         pair_poles_uid = self.DIG_HALL_POLE_PAIRS_REGISTER
         if self.pair_poles is None:

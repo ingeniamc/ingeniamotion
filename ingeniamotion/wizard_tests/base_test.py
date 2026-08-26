@@ -2,6 +2,7 @@ import time
 from abc import ABC, abstractmethod
 from collections.abc import Iterator
 from dataclasses import dataclass
+from functools import cached_property
 from typing import (
     TYPE_CHECKING,
     Any,
@@ -25,6 +26,9 @@ if TYPE_CHECKING:
     from ingenialink.servo import Servo
 
     from ingeniamotion import MotionController
+    from ingeniamotion.axis import Axis
+    from ingeniamotion.feedbacks import AxisFeedbacks
+    from ingeniamotion.motion_node import MotionNode
 
 from ingeniamotion.enums import SeverityLevel
 
@@ -82,6 +86,33 @@ class BaseTest(ABC, Stoppable, Generic[T]):
 
         """
         return self.mc._get_drive(self.servo)
+
+    @cached_property
+    def _motion_node(self) -> "MotionNode":
+        """Motion node targeted by the test.
+
+        Returns:
+            The motion node selected by ``self.servo``.
+        """
+        return self.mc._get_motion_node(self.servo)
+
+    @cached_property
+    def _axis(self) -> "Axis":
+        """Axis targeted by the test.
+
+        Returns:
+            The axis selected by ``self.axis``.
+        """
+        return self._motion_node.get_axis(self.axis)
+
+    @cached_property
+    def _axis_feedbacks(self) -> "AxisFeedbacks":
+        """Feedback container for the test axis.
+
+        Returns:
+            The feedback container selected by ``self._axis``.
+        """
+        return self._axis.feedbacks
 
     @Stoppable.stoppable
     def show_error_message(self) -> None:

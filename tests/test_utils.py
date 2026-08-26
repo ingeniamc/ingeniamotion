@@ -1,3 +1,6 @@
+import gc
+import weakref
+
 import pytest
 
 from ingeniamotion._utils import weak_lru
@@ -27,6 +30,19 @@ def test_weak_lru_cache():
 
     assert result1 == 50
     assert result2 == 50
+
+
+def test_weak_lru_cache_does_not_retain_instance():
+    """A weakly cached method should not keep its instance alive after use."""
+    calculator = ExpensiveCalculator(10)
+    calculator_ref = weakref.ref(calculator)
+
+    assert calculator.compute(5) == 50
+
+    del calculator
+    gc.collect()
+
+    assert calculator_ref() is None
 
 
 def test_exception_group_context_error():

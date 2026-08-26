@@ -1,7 +1,7 @@
 import math
-from collections.abc import Iterator, Mapping
+import warnings
 from enum import IntEnum
-from typing import TYPE_CHECKING, Final, Optional, cast
+from typing import TYPE_CHECKING, Any, Final, Optional
 
 import ingenialogger
 from ingenialink.drive_context_manager import DriveContextManager
@@ -10,6 +10,7 @@ from typing_extensions import override
 
 if TYPE_CHECKING:
     from ingeniamotion import MotionController
+    from ingeniamotion.feedbacks import FeedbacksConfiguration
 
 from ingeniamotion.enums import (
     CommutationMode,
@@ -25,86 +26,9 @@ from ingeniamotion.wizard_tests.base_test import (
     TestError,
 )
 
-MAX_SIMULTANEOUS_FEEDBACKS = 4
-FEEDBACK_SELECTOR_REGISTERS = (
-    "COMMU_ANGLE_SENSOR",
-    "COMMU_ANGLE_REF_SENSOR",
-    "CL_VEL_FBK_SENSOR",
-    "CL_POS_FBK_SENSOR",
-    "CL_AUX_FBK_SENSOR",
-)
 
-
-def _feedback_replacement_order(  # noqa: C901
-    current_feedbacks: Mapping[str, int], target_feedbacks: Mapping[str, int]
-) -> Iterator[tuple[str, int]]:  # noqa: C901
-    """Order feedback slots for a safe transition between two configurations.
-
-    Args:
-        current_feedbacks: Current feedback types keyed by selector register.
-        target_feedbacks: Target feedback types keyed by selector register.
-
-    Yields:
-        Register and sensor pairs ordered so each intermediate configuration stays valid.
-
-    Raises:
-        ValueError: If the configurations do not use the selector registers or cannot
-            be transitioned safely.
-    """
-    if set(current_feedbacks) != set(target_feedbacks) or set(current_feedbacks) != set(
-        FEEDBACK_SELECTOR_REGISTERS
-    ):
-        raise ValueError("Feedback configurations must use the selector registers.")
-
-    def find_order(  # noqa: C901
-        state: Mapping[str, int], pending: tuple[str, ...]
-    ) -> Optional[list[tuple[str, int]]]:  # noqa: C901
-        if not pending:
-            return []
-
-        active_sources = set(state.values())
-        for register in pending:
-            target_sensor = target_feedbacks[register]
-            if (
-                len(active_sources) >= MAX_SIMULTANEOUS_FEEDBACKS
-                and target_sensor not in active_sources
-            ):
-                continue
-            candidate_state = dict(state)
-            candidate_state[register] = target_sensor
-            remaining = tuple(item for item in pending if item != register)
-            suffix = find_order(candidate_state, remaining)
-            if suffix is not None:
-                return [(register, target_sensor), *suffix]
-
-        for register in pending:
-            for parking_sensor in dict.fromkeys(state.values()):
-                if parking_sensor not in active_sources:
-                    continue
-                if state[register] == parking_sensor:
-                    continue
-                candidate_state = dict(state)
-                candidate_state[register] = parking_sensor
-                if len(set(candidate_state.values())) >= len(active_sources):
-                    continue
-                suffix = find_order(candidate_state, pending)
-                if suffix is not None:
-                    return [(register, parking_sensor), *suffix]
-        return None
-
-    pending = tuple(
-        register
-        for register in FEEDBACK_SELECTOR_REGISTERS
-        if current_feedbacks[register] != target_feedbacks[register]
-    )
-    order = find_order(current_feedbacks, pending)
-    if order is None:
-        raise ValueError("Feedback configurations cannot be transitioned safely.")
-    yield from order
-
-
-class Feedbacks(BaseTest[ReportBase]):
-    """Feedbacks Wizard Class description."""
+class FeedbacksTest(BaseTest[ReportBase]):
+    """Base class for feedback wizard tests."""
 
     class ResultType(IntEnum):
         """Test result."""
@@ -172,6 +96,7 @@ class Feedbacks(BaseTest[ReportBase]):
         self.resolution_multiplier = 1.0
         self.test_frequency = self.TEST_FREQUENCY
         self.suggested_registers = {}
+        self._original_feedbacks_configuration: Optional[FeedbacksConfiguration] = None
 
     @BaseTest.stoppable
     def __check_feedback_tolerance(
@@ -230,38 +155,14 @@ class Feedbacks(BaseTest[ReportBase]):
         Raises:
             TestConfigurationError: If the feedback resolution is not greater than 0.
         """
-        feedback_slots = (
-            (
-                self.mc.configuration.get_commutation_feedback,
-                self.mc.configuration.set_commutation_feedback,
-            ),
-            (
-                self.mc.configuration.get_reference_feedback,
-                self.mc.configuration.set_reference_feedback,
-            ),
-            (
-                self.mc.configuration.get_velocity_feedback,
-                self.mc.configuration.set_velocity_feedback,
-            ),
-            (
-                self.mc.configuration.get_position_feedback,
-                self.mc.configuration.set_position_feedback,
-            ),
-            (
-                self.mc.configuration.get_auxiliar_feedback,
-                self.mc.configuration.set_auxiliar_feedback,
-            ),
-        )
-        current_feedbacks = {
-            register: getter(servo=self.servo, axis=self.axis)
-            for register, (getter, _setter) in zip(FEEDBACK_SELECTOR_REGISTERS, feedback_slots)
-        }
-        target_feedbacks = current_feedbacks.copy()
-        target_feedbacks.update(dict.fromkeys(FEEDBACK_SELECTOR_REGISTERS[1:], self.sensor))
-        setters = dict(zip(FEEDBACK_SELECTOR_REGISTERS, feedback_slots))
-        for register, sensor in _feedback_replacement_order(current_feedbacks, target_feedbacks):
-            _getter, setter = setters[register]
-            setter(sensor, servo=self.servo, axis=self.axis)
+        feedbacks = self._axis_feedbacks
+        sensor = feedbacks.get_sensor(self.sensor)
+        feedbacks.update_configuration({
+            feedbacks.reference: sensor,
+            feedbacks.velocity: sensor,
+            feedbacks.position: sensor,
+            feedbacks.auxiliary: sensor,
+        })
         # Set Polarity to 0
         self.mc.communication.set_register(
             self.FEEDBACK_POLARITY_REGISTER,
@@ -271,9 +172,7 @@ class Feedbacks(BaseTest[ReportBase]):
         )
         # Depending on the type of the feedback, calculate the correct
         # feedback resolution
-        self.feedback_resolution = self.mc.configuration.get_feedback_resolution(
-            self.sensor, servo=self.servo, axis=self.axis
-        )
+        self.feedback_resolution = sensor.get_resolution()
         if self.feedback_resolution == 0:
             raise TestConfigurationError(
                 "The feedback resolution must be greater than 0. Please adjust it accordingly."
@@ -282,41 +181,10 @@ class Feedbacks(BaseTest[ReportBase]):
     @override
     def _restore_configuration(self, context: DriveContextManager) -> None:
         """Restore feedback selectors without exceeding the drive feedback limit."""
-        baseline = context.baseline
-        if baseline is None:
+        if self._original_feedbacks_configuration is None:
             return
-
-        drive = self.mc._get_drive(self.servo)
-        registers = drive.dictionary.registers(self.axis)
-        selector_registers = tuple(registers[uid] for uid in FEEDBACK_SELECTOR_REGISTERS)
-        baseline_values = tuple(baseline.get(register) for register in selector_registers)
-        if not all(isinstance(value, int) for value in baseline_values):
-            return
-
-        target_feedbacks = dict(
-            zip(
-                FEEDBACK_SELECTOR_REGISTERS,
-                (SensorType(cast("int", value)) for value in baseline_values),
-            )
-        )
-        current_feedbacks = {
-            register: SensorType(
-                cast(
-                    "int",
-                    self.mc.communication.get_register(register, servo=self.servo, axis=self.axis),
-                )
-            )
-            for register in FEEDBACK_SELECTOR_REGISTERS
-        }
-        state = {register: int(sensor) for register, sensor in current_feedbacks.items()}
-        for register, target_sensor in _feedback_replacement_order(state, target_feedbacks):
-            self.mc.communication.set_register(
-                register,
-                target_sensor,
-                servo=self.servo,
-                axis=self.axis,
-            )
-            state[register] = target_sensor
+        self._axis_feedbacks.set_configuration(self._original_feedbacks_configuration)
+        self._original_feedbacks_configuration = None
 
     @BaseTest.stoppable
     def __reaction_codes_to_warning(self) -> None:
@@ -363,7 +231,9 @@ class Feedbacks(BaseTest[ReportBase]):
         #  - Motor & Feedbacks configured (Pair poles & rated current are used)
         #  - Current control loop tuned
         #  - Feedback reaction codes to WARNING
-        # Protection to avoid any unwanted movement
+        # Protection to avoid any unwanted movement: snapshot the feedback configuration
+        # before it's reconfigured below, so _restore_configuration can put it back.
+        self._original_feedbacks_configuration = self._axis_feedbacks.get_configuration()
         self.mc.motion.motor_disable(servo=self.servo, axis=self.axis)
         self.logger.info("CONFIGURATION OF THE TEST")
         # Set commutation modulation to sinusoidal
@@ -441,12 +311,8 @@ class Feedbacks(BaseTest[ReportBase]):
         Raises:
             TypeError: On registers with unexpected type.
         """
-        position_feedback_value = self.mc.configuration.get_position_feedback(
-            servo=self.servo, axis=self.axis
-        )
-        velocity_feedback_value = self.mc.configuration.get_velocity_feedback(
-            servo=self.servo, axis=self.axis
-        )
+        position_feedback_value = self._axis_feedbacks.position.get_encoder_type()
+        velocity_feedback_value = self._axis_feedbacks.velocity.get_encoder_type()
 
         self.pos_vel_same_feedback = position_feedback_value == velocity_feedback_value
         if position_feedback_value == self.sensor:
@@ -636,3 +502,20 @@ class Feedbacks(BaseTest[ReportBase]):
             return SeverityLevel.FAIL
         else:
             return SeverityLevel.SUCCESS
+
+
+# WARNING: Deprecated aliases
+_DEPRECATED = {
+    "Feedbacks": "FeedbacksTest",
+}
+
+
+def __getattr__(name: str) -> Any:
+    if name in _DEPRECATED:
+        warnings.warn(
+            f"{name} is deprecated, use {_DEPRECATED[name]} instead",
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        return globals()[_DEPRECATED[name]]
+    raise AttributeError(f"module '{__name__}' has no attribute '{name}'")
