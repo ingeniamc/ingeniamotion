@@ -776,7 +776,7 @@ def test_get_available_canopen_devices(mocker):
 
 
 @pytest.mark.virtual
-def test_subscribe_register_updates(mc, alias):
+def test_subscribe_register_updates(mc: "MotionController", alias: str) -> None:
     user_over_voltage_uid = "DRV_PROT_USER_OVER_VOLT"
     register_update_callback = RegisterUpdateTest()
 
@@ -809,9 +809,8 @@ def test_subscribe_register_updates(mc, alias):
 
 @pytest.mark.canopen
 @pytest.mark.soem
-# https://novantamotion.atlassian.net/browse/INGM-789
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-E")
-def test_emcy_callback(mc, alias):
+@pytest.mark.repeat(100)
+def test_emcy_callback(mc: "MotionController", alias: str) -> None:
     emcy_test = EmcyTest()
     mc.communication.subscribe_emergency_message(emcy_test.emcy_callback, servo=alias)
     prev_val = mc.communication.get_register("DRV_PROT_USER_OVER_VOLT", axis=1, servo=alias)
