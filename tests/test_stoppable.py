@@ -24,11 +24,14 @@ class DummyStoppable(Stoppable):
     def __init__(self) -> None:
         super().__init__()
         self.calls = 0
+        self.stop_in_body = False
 
     @Stoppable.stoppable
     def run(self, value: int) -> int:
         """Return a transformed value while recording that the body ran."""
         self.calls += 1
+        if self.stop_in_body:
+            self.stop()
         return value * 2
 
 
@@ -92,6 +95,16 @@ def test_stoppable_decorator_blocks_body_when_stop_is_pending() -> None:
     assert stoppable.calls == 0
 
 
+def test_stoppable_decorator_checks_stop_after_body() -> None:
+    """The stoppable decorator should check again after the wrapped body returns."""
+    stoppable = DummyStoppable()
+    stoppable.stop_in_body = True
+
+    with pytest.raises(StopExceptionError):
+        stoppable.run(5)
+    assert stoppable.calls == 1
+
+
 def test_stoppable_sleep_handles_empty_and_pending_stop_queue() -> None:
     """`stoppable_sleep()` should pass on an empty queue and raise on a stop signal."""
     stoppable = Stoppable()
@@ -113,8 +126,10 @@ def test_subscription_captures_stop_opportunities_with_tracebacks() -> None:
     finally:
         Stoppable.unsubscribe_from_stop_opportunities(subscription)
 
-    assert len(events) == 3
-    assert events[0].timestamp <= events[1].timestamp <= events[2].timestamp
+    assert len(events) == 4
+    assert all(
+        previous.timestamp <= current.timestamp for previous, current in zip(events, events[1:])
+    )
     assert all(event.traceback for event in events)
     assert any(
         frame.name == "test_subscription_captures_stop_opportunities_with_tracebacks"

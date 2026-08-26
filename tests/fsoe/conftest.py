@@ -302,7 +302,7 @@ def mc_with_fsoe_with_sra_and_feedback_scenario(
 
     mc.communication.set_register(
         "CL_AUX_FBK_SENSOR", 5
-    )  # Digital Halls as auxiliar sensor in Comoco
+    )  # Digital Halls as auxiliary sensor in Comoco
     handler.safety_parameters.get("FSOE_FEEDBACK_SCENARIO").set(4)
 
     yield mc, handler

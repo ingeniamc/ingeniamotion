@@ -1,5 +1,5 @@
 // https://novantamotion.atlassian.net/browse/CIT-707
-@Library('cicd-lib@646e931') _
+@Library('cicd-lib@0142b4f') _
 
 import python.VirtualEnvironment
 import python.VEnvManager
@@ -7,6 +7,7 @@ import pytest.TestSession
 import pytest.TestGroup
 import pytest.PyTestManager
 import pytest.PyTestParams
+import pytest.TestSessionScheduler
 
 def SW_NODE = "windows-slave"
 def ECAT_NODE = "ecat-test"
@@ -16,7 +17,7 @@ def CAN_NODE_LOCK = "test_execution_lock_can"
 def SIRIUS_NODE = "RA-RD-CT-SIRIUS"
 
 def LIN_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/docker-python:1.7"
-def WIN_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/win-python-builder:1.7"
+def WIN_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/win-python-builder:1.9"
 def PUBLISHER_DOCKER_IMAGE = "ingeniacontainers.azurecr.io/publisher:1.8"
 
 def WIN_DOCKER_TMP_PATH = "C:\\Users\\ContainerAdministrator\\ingeniamotion"
@@ -45,7 +46,6 @@ PyTestManager testManager = new PyTestManager(pipeline: this, venvManager: venvM
 TestSession TEST_SESSIONS = new TestSession(
     covPackageName: "ingeniamotion",
     covFromSitePackages: false,
-    wiresharkScope: null, // Set later based on parameter
     startWiresharkTimeoutS: 10.0,
     importMode: "importlib",
     enableFirmwareVersionCheck: true,
@@ -54,6 +54,7 @@ TestSession TEST_SESSIONS = new TestSession(
 TestSession HW_TEST_SESSIONS = TEST_SESSIONS.override()
 TestGroup CAN_TESTS = testManager.createGroup("CAN_TEST_SESSIONS", HW_TEST_SESSIONS.override())
 TestGroup ETH_TESTS = testManager.createGroup("ETH_TEST_SESSIONS", HW_TEST_SESSIONS.override())
+TestSessionScheduler CAN_MACHINE_SCHEDULER = new TestSessionScheduler([CAN_TESTS, ETH_TESTS])
 TestGroup ECAT_TESTS = testManager.createGroup("ECAT_TEST_SESSIONS", HW_TEST_SESSIONS.override())
 TestGroup LINUX_DOCKER_TESTS = testManager.createGroup("LINUX_DOCKER_TEST_SESSIONS", TEST_SESSIONS.override())
 TestGroup WIN_DOCKER_TESTS = testManager.createGroup("WIN_DOCKER_TEST_SESSIONS", TEST_SESSIONS.override())
@@ -113,9 +114,6 @@ def pipelineParams = PyTestParams.pytestParams(this, currentBuild, [
         default: DEFAULT_LOGGING_LEVEL,
     ],
     wiresharkLoggingConfig: [
-        default: false,
-    ],
-    clearSuccessfulWiresharkLogsConfig: [
         default: true,
     ],
     checkStateScopeConfig: [
@@ -142,6 +140,11 @@ pipeline {
         timestamps()
     }
     stages {
+        stage('Inspect pipeline parameters') {
+            steps {
+                echo("${PyTestParams.configSummary(params, env, currentBuild)}")
+            }
+        }
         stage('Prepare test sessions') {
             agent {
                 docker {
@@ -180,23 +183,22 @@ pipeline {
                     TEST_SESSIONS.setAttributeInCascade(
                         runInVirtualEnvs: venvManager.pythonVersionsToDefaultVenvNames(pythonVersions),
                         jobName: "${env.JOB_NAME}-#${env.BUILD_NUMBER}",
-                        wiresharkScope: PyTestParams.readValue(params, 'wiresharkLoggingScope'),
-                        clearSuccessfulWiresharkLogs: PyTestParams.readValue(params, 'clearSuccessfulWiresharkLogs', env, currentBuild),
                         checkStateScope: PyTestParams.readValue(params, 'checkStateScope'),
                         archiveData: "*",
                         testSelectionRepeatCount: PyTestParams.readValue(params, 'pytestRepeatCounts'),
                         logLevel: PyTestParams.readValue(params, 'pytestLoggingLevel')
                     )
 
-                    // Sirius tests should only run on python 3.12
-                    SIRIUS_TESTS.baseTestSession.setAttributeInCascade(
-                        runInVirtualEnvs: venvManager.pythonVersionsToDefaultVenvNames(["3.12"] as Set)
-                    )
 
                     // Configure if ECAT and ETH sessions use Wireshark logging based on parameter
                     def wiresharkLogging = PyTestParams.readValue(params, 'wiresharkLogging', env, currentBuild)
                     ECAT_TESTS.baseTestSession.setAttributeInCascade(useWiresharkLogging: wiresharkLogging)
                     ETH_TESTS.baseTestSession.setAttributeInCascade(useWiresharkLogging: wiresharkLogging)
+                    // Sirius tests should only run on python 3.12
+                    SIRIUS_TESTS.baseTestSession.setAttributeInCascade(
+                        runInVirtualEnvs: venvManager.pythonVersionsToDefaultVenvNames(["3.12"] as Set),
+                        useWiresharkLogging: wiresharkLogging
+                    )
 
                     testManager.testSessionFilter = PyTestParams.readValue(params, 'testSessionFilter')
                     testManager.testSessionSelection = PyTestParams.readValue(params, 'pytestSelection')
@@ -478,7 +480,7 @@ pipeline {
                         beforeOptions true
                         beforeAgent true
                         expression {
-                            CAN_TESTS.anyShouldRun() || ETH_TESTS.anyShouldRun()
+                            CAN_MACHINE_SCHEDULER.anyShouldRun()
                         }
                     }
                     options {
@@ -500,8 +502,7 @@ pipeline {
                         stage('Run CANopen/Ethernet Tests') {
                             steps {
                                 script {
-                                    CAN_TESTS.runTestStages()
-                                    ETH_TESTS.runTestStages()
+                                    CAN_MACHINE_SCHEDULER.runTestStages()
                                 }
                             }
                         }

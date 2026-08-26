@@ -3333,6 +3333,38 @@ files = [
 six = ">=1.5"
 
 [[package]]
+name = "python-dotenv"
+version = "1.2.1"
+description = "Read key-value pairs from a .env file and set them as environment variables"
+optional = false
+python-versions = ">=3.9"
+groups = ["tests"]
+markers = "python_version < \"3.12\""
+files = [
+    {file = "python_dotenv-1.2.1-py3-none-any.whl", hash = "sha256:b81ee9561e9ca4004139c6cbba3a238c32b03e4894671e181b671e8cb8425d61"},
+    {file = "python_dotenv-1.2.1.tar.gz", hash = "sha256:42667e897e16ab0d66954af0e60a9caa94f0fd4ecf3aaf6d2d260eec1aa36ad6"},
+]
+
+[package.extras]
+cli = ["click (>=5.0)"]
+
+[[package]]
+name = "python-dotenv"
+version = "1.2.3"
+description = "Read key-value pairs from a .env file and set them as environment variables"
+optional = false
+python-versions = ">=3.10"
+groups = ["tests"]
+markers = "python_version >= \"3.12\""
+files = [
+    {file = "python_dotenv-1.2.3-py3-none-any.whl", hash = "sha256:904552145e8bfed22162c09dab1c2b9b54fefa7b23ba780f4f26ca0316b0f0d9"},
+    {file = "python_dotenv-1.2.3.tar.gz", hash = "sha256:a20a594dabeaa385725aa239d5244871c143ecb356add8a20fcf23773a6c3a35"},
+]
+
+[package.extras]
+cli = ["click (>=5.0)"]
+
+[[package]]
 name = "pywin32"
 version = "311"
 description = "Python for Window Extensions"
@@ -4373,21 +4405,23 @@ test = ["pytest"]
 
 [[package]]
 name = "summit-testing-framework"
-version = "0.3.1.post234+develop.a41806d"
+version = "0.3.1.post319+pr.99.b5"
 description = "Testing framework for Novanta drives"
 optional = false
 python-versions = ">=3.9"
 groups = ["tests"]
 files = [
-    {file = "summit_testing_framework-0.3.1.post234+develop.a41806d-py3-none-any.whl", hash = "sha256:0d73f77eed8afa3665ff343f57a08fbebdcb2c47bfc9fb4bd60c28cc8d8234f3"},
+    {file = "summit_testing_framework-0.3.1.post319+pr.99.b5-py3-none-any.whl", hash = "sha256:55195f994eeffff3208f43ca3b4fa61062ba3d2a8bd7c87ef333bc0fca910e2a"},
 ]
 
 [package.dependencies]
 ingenia-att-api = "2.3.1"
 ingenialogger = ">=0.2.1"
 jinja2 = ">=3.1.0"
-pytest = ">=8.4.1,<9.0.0"
+pydantic = ">=1.10,<2.0"
+pytest = ">=8.4.1"
 pytest-env = ">=1.1.5"
+python-dotenv = ">=1.0.0,<2.0.0"
 rpyc = "6.0.0"
 typing_extensions = ">=4.16.0"
 virtual_drive = ">=0.1.1"
@@ -4953,4 +4987,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "057a11c2a4f2a9160c3eced47983a8325ec0c2f157cf8f44bce4d73147b38209"
+content-hash = "bb97f74acef9e47220797d9d1cc75874c9be68850e7afd03290f67d56dc0956e"

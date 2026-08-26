@@ -1,7 +1,10 @@
+from functools import cached_property
 from typing import TYPE_CHECKING
 
-from ingeniamotion._utils import weak_lru
+from ingenialink.utils._utils import REG_VALUE
+
 from ingeniamotion.errors import MOCO_ERROR_QUEUE, AxisErrors, ServoErrorQueue
+from ingeniamotion.feedbacks import AxisFeedbacks
 
 if TYPE_CHECKING:
     from ingeniamotion.motion_node import MotionNode
@@ -20,8 +23,6 @@ class Axis:
         self.__motion_node = motion_node
         self.__axis_number = axis_number
 
-        self.__errors = AxisErrors(self)
-
     @property
     def motion_node(self) -> "MotionNode":
         """The motion node associated with the axis."""
@@ -32,13 +33,49 @@ class Axis:
         """The axis number."""
         return self.__axis_number
 
-    @property
-    def errors(self) -> AxisErrors:
-        """The errors of the axis."""
-        return self.__errors
+    def read(self, reg_uid: str) -> REG_VALUE:
+        """Read a register of this axis.
 
-    @property
-    @weak_lru()
+        Args:
+            reg_uid: register UID to read.
+
+        Returns:
+            The register value.
+        """
+        return self.__motion_node.servo.read(reg_uid, subnode=self.__axis_number)
+
+    def write(self, reg_uid: str, value: REG_VALUE) -> None:
+        """Write a register of this axis.
+
+        Args:
+            reg_uid: register UID to write.
+            value: value to write.
+        """
+        self.__motion_node.servo.write(reg_uid, value, subnode=self.__axis_number)
+
+    @cached_property
+    def errors(self) -> AxisErrors:
+        """The errors of the axis.
+
+        Returns:
+            The error container, built on first access.
+        """
+        return AxisErrors(self)
+
+    @cached_property
+    def feedbacks(self) -> AxisFeedbacks:
+        """The feedbacks of the axis.
+
+        Returns:
+            The feedback slots container, built on first access.
+        """
+        return AxisFeedbacks(self)
+
+    @cached_property
     def error_queue(self) -> ServoErrorQueue:
-        """The error queue of the axis."""
+        """The error queue of the axis.
+
+        Returns:
+            The error queue, built on first access.
+        """
         return ServoErrorQueue(MOCO_ERROR_QUEUE, self.motion_node.servo, axis=self.axis_number)

@@ -1,4 +1,5 @@
 from collections.abc import Iterator
+from functools import cached_property
 
 from ingenialink import Network, Servo
 
@@ -24,8 +25,6 @@ class MotionNode:
             for axis_number in self.__servo.dictionary.subnodes
             if axis_number != 0  # Axis 0 is the motion node itself, not an axis
         }
-
-        self.__errors = NodeErrors(self)
 
     @property
     def servo(self) -> Servo:
@@ -60,7 +59,11 @@ class MotionNode:
         """
         return self.__axes[axis_number]
 
-    @property
+    @cached_property
     def errors(self) -> NodeErrors:
-        """The errors of the motion node."""
-        return self.__errors
+        """The errors of the motion node.
+
+        Returns:
+            The error container, built on first access.
+        """
+        return NodeErrors(self)
