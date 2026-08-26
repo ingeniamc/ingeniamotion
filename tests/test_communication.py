@@ -812,23 +812,29 @@ def test_subscribe_register_updates(mc: "MotionController", alias: str) -> None:
 @pytest.mark.repeat(100)
 def test_emcy_callback(mc: "MotionController", alias: str) -> None:
     emcy_test = EmcyTest()
-    mc.communication.subscribe_emergency_message(emcy_test.emcy_callback, servo=alias)
     prev_val = mc.communication.get_register("DRV_PROT_USER_OVER_VOLT", axis=1, servo=alias)
-    mc.communication.set_register("DRV_PROT_USER_OVER_VOLT", value=10.0, axis=1, servo=alias)
-    with pytest.raises(ILError):
-        mc.motion.motor_enable(servo=alias)
-    mc.motion.fault_reset(servo=alias)
-    assert len(emcy_test.messages) == 2
-    servo_alias, first_emcy = emcy_test.messages[0]
-    assert servo_alias == alias
-    assert first_emcy.error_code == 0x3231
-    assert first_emcy.get_desc() == "User Over-voltage detected"
-    servo_alias, second_emcy = emcy_test.messages[1]
-    assert servo_alias == alias
-    assert second_emcy.error_code == 0x0000
-    assert second_emcy.get_desc() == "No error"
-    mc.communication.set_register("DRV_PROT_USER_OVER_VOLT", value=prev_val, axis=1, servo=alias)
-    mc.communication.unsubscribe_emergency_message(emcy_test.emcy_callback, servo=alias)
+    mc.communication.subscribe_emergency_message(emcy_test.emcy_callback, servo=alias)
+    try:
+        mc.communication.set_register("DRV_PROT_USER_OVER_VOLT", value=10.0, axis=1, servo=alias)
+        with pytest.raises(ILError):
+            mc.motion.motor_enable(servo=alias)
+        mc.motion.fault_reset(servo=alias)
+        assert len(emcy_test.messages) == 2
+        servo_alias, first_emcy = emcy_test.messages[0]
+        assert servo_alias == alias
+        assert first_emcy.error_code == 0x3231
+        assert first_emcy.get_desc() == "User Over-voltage detected"
+        servo_alias, second_emcy = emcy_test.messages[1]
+        assert servo_alias == alias
+        assert second_emcy.error_code == 0x0000
+        assert second_emcy.get_desc() == "No error"
+    finally:
+        try:
+            mc.communication.set_register(
+                "DRV_PROT_USER_OVER_VOLT", value=prev_val, axis=1, servo=alias
+            )
+        finally:
+            mc.communication.unsubscribe_emergency_message(emcy_test.emcy_callback, servo=alias)
 
 
 def test_scan_sdcp_nodes(mocker):
