@@ -201,9 +201,7 @@ def __check_homing_was_successful(mc, alias, timeout_ms):
 @pytest.mark.canopen
 @pytest.mark.usefixtures("initial_position")
 @pytest.mark.parametrize("direction", [1, 0])
-# https://novantamotion.atlassian.net/browse/INGM-772
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-@pytest.mark.not_valid_for_product(part_number="EVE-*")
+@pytest.mark.repeat(100)
 def test_homing_on_index_pulse(servo, mc, alias, feedback_list, direction):
     with refresh_registers_for_test_rollback(
         servo,
