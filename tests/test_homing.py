@@ -25,11 +25,12 @@ RELATIVE_ERROR_ALLOWED = 3e-2
 @pytest.fixture
 def initial_position(mc, alias):
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
-    mc.motion.motor_enable(servo=alias)
-    last_pos = mc.motion.get_actual_position(servo=alias)
     position = mc.configuration.get_position_feedback_resolution(servo=alias) // 2
-    mc.motion.move_to_position(position + last_pos, servo=alias, blocking=True, timeout=5)
-    mc.motion.motor_disable(servo=alias)
+    try:
+        mc.motion.motor_enable(servo=alias)
+        mc.motion.move_to_position(position, servo=alias, blocking=True, timeout=5)
+    finally:
+        mc.motion.motor_disable(servo=alias)
     return position
 
 
