@@ -1,5 +1,5 @@
 // https://novantamotion.atlassian.net/browse/CIT-707
-@Library('cicd-lib@173ddb4ffc75557c611d227efe9f47e5cc5250e5') _
+@Library('cicd-lib@0142b4f') _
 
 import python.VirtualEnvironment
 import python.VEnvManager
@@ -140,6 +140,11 @@ pipeline {
         timestamps()
     }
     stages {
+        stage('Inspect pipeline parameters') {
+            steps {
+                echo("${PyTestParams.configSummary(params, env, currentBuild)}")
+            }
+        }
         stage('Prepare test sessions') {
             agent {
                 docker {
