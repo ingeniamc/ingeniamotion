@@ -460,7 +460,7 @@ def test_get_actual_position(mc: "MotionController", alias: str, position_value:
 @pytest.mark.canopen
 @pytest.mark.parametrize("velocity_value", [1, 0, -1])
 # https://novantamotion.atlassian.net/browse/INGM-802
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C")
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-*")
 def test_get_actual_velocity(servo, mc, alias, velocity_value):
     with refresh_registers_for_test_rollback(
         servo,
@@ -535,7 +535,8 @@ def test_set_internal_generator_configuration(
 @pytest.mark.canopen
 @pytest.mark.parametrize("op_mode", [OperationMode.VOLTAGE, OperationMode.CURRENT])
 @pytest.mark.parametrize("direction", [-1, 1])
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C")
+# https://novantamotion.atlassian.net/browse/INGM-808
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-*")
 def test_internal_generator_saw_tooth_move(
     mc: "MotionController", alias: str, op_mode: "OperationMode", direction: int
 ) -> None:
