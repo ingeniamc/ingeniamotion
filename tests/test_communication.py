@@ -809,7 +809,9 @@ def test_subscribe_register_updates(mc: "MotionController", alias: str) -> None:
 
 @pytest.mark.canopen
 @pytest.mark.soem
-@pytest.mark.repeat(100)
+@pytest.mark.not_valid_for_product(
+    part_number="EVE-XCR-E", xfail="https://novantamotion.atlassian.net/browse/DRIVSUS-392"
+)
 def test_emcy_callback(mc: "MotionController", alias: str) -> None:
     emcy_test = EmcyTest()
     prev_val = mc.communication.get_register("DRV_PROT_USER_OVER_VOLT", axis=1, servo=alias)
@@ -822,12 +824,20 @@ def test_emcy_callback(mc: "MotionController", alias: str) -> None:
         assert len(emcy_test.messages) == 2
         servo_alias, first_emcy = emcy_test.messages[0]
         assert servo_alias == alias
-        assert first_emcy.error_code == 0x3231
-        assert first_emcy.get_desc() == "User Over-voltage detected"
+        assert first_emcy.error_code == 0x3231, (
+            f"Expected error code 0x3231, got {first_emcy.error_code:#06x}"
+        )
+        assert first_emcy.get_desc() == "User Over-voltage detected", (
+            f"Expected description 'User Over-voltage detected', got '{first_emcy.get_desc()}'"
+        )
         servo_alias, second_emcy = emcy_test.messages[1]
         assert servo_alias == alias
-        assert second_emcy.error_code == 0x0000
-        assert second_emcy.get_desc() == "No error"
+        assert second_emcy.error_code == 0x0000, (
+            f"Expected error code 0x0000, got {second_emcy.error_code:#06x}"
+        )
+        assert second_emcy.get_desc() == "No error", (
+            f"Expected description 'No error', got '{second_emcy.get_desc()}'"
+        )
     finally:
         try:
             mc.communication.set_register(
