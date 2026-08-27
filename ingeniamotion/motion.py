@@ -39,6 +39,8 @@ class Motion:
 
     STATUS_WORD_TARGET_REACHED_BIT = 0x800
     CONTROL_WORD_TARGET_LATCH_BIT = 0x200
+    TARGET_LATCH_TIMEOUT_S = 0.1
+    TARGET_LATCH_POLL_INTERVAL_S = 0.01
 
     def __init__(self, motion_controller: "MotionController") -> None:
         self.mc = motion_controller
@@ -53,6 +55,7 @@ class Motion:
 
         Raises:
             TypeError: If some read value has a wrong type.
+            IMTimeoutError: If the target latch control bit does not change state in time.
 
         """
         control_word = self.mc.communication.get_register(
@@ -64,10 +67,30 @@ class Motion:
         self.mc.communication.set_register(
             self.CONTROL_WORD_REGISTER, new_control_word, servo=servo, axis=axis
         )
+        control_word = self._wait_for_target_latch_bit(bit_set=False, servo=servo, axis=axis)
         new_control_word = control_word | self.CONTROL_WORD_TARGET_LATCH_BIT
         self.mc.communication.set_register(
             self.CONTROL_WORD_REGISTER, new_control_word, servo=servo, axis=axis
         )
+        self._wait_for_target_latch_bit(bit_set=True, servo=servo, axis=axis)
+
+    def _wait_for_target_latch_bit(self, bit_set: bool, servo: str, axis: int) -> int:
+        deadline = time.monotonic() + self.TARGET_LATCH_TIMEOUT_S
+        while True:
+            control_word = self.mc.communication.get_register(
+                self.CONTROL_WORD_REGISTER, servo=servo, axis=axis
+            )
+            if not isinstance(control_word, int):
+                raise TypeError("Control word register value has to be a integer")
+            if bool(control_word & self.CONTROL_WORD_TARGET_LATCH_BIT) == bit_set:
+                return control_word
+            if time.monotonic() >= deadline:
+                state = "set" if bit_set else "clear"
+                raise IMTimeoutError(
+                    f"Target latch control bit did not {state} within "
+                    f"{self.TARGET_LATCH_TIMEOUT_S} seconds"
+                )
+            time.sleep(self.TARGET_LATCH_POLL_INTERVAL_S)
 
     def set_operation_mode(
         self,

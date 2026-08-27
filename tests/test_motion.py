@@ -2,6 +2,7 @@ import sys
 import time
 from types import SimpleNamespace
 from typing import TYPE_CHECKING, Any, Optional
+from unittest.mock import call
 
 import numpy as np
 import pytest
@@ -78,6 +79,44 @@ def test_target_latch(servo, mc, alias):
         time.sleep(1)
         test_act_pos = mean_actual_velocity_position(mc, alias)
         assert pytest.approx(init_pos + pos_res, rel_tolerance) == test_act_pos
+
+
+@pytest.mark.virtual
+def test_target_latch_verifies_control_word_edge(mocker):
+    communication = SimpleNamespace(
+        get_register=mocker.Mock(side_effect=[0x020F, 0x000F, 0x020F]),
+        set_register=mocker.Mock(),
+    )
+    motion = Motion(SimpleNamespace(communication=communication))
+
+    motion.target_latch(servo="default")
+
+    assert communication.get_register.call_args_list == [
+        call(Motion.CONTROL_WORD_REGISTER, servo="default", axis=1),
+        call(Motion.CONTROL_WORD_REGISTER, servo="default", axis=1),
+        call(Motion.CONTROL_WORD_REGISTER, servo="default", axis=1),
+    ]
+    assert communication.set_register.call_args_list == [
+        call(Motion.CONTROL_WORD_REGISTER, 0x000F, servo="default", axis=1),
+        call(Motion.CONTROL_WORD_REGISTER, 0x020F, servo="default", axis=1),
+    ]
+
+
+@pytest.mark.virtual
+def test_target_latch_raises_when_control_word_bit_does_not_clear(mocker):
+    communication = SimpleNamespace(
+        get_register=mocker.Mock(side_effect=[0x020F, 0x020F]),
+        set_register=mocker.Mock(),
+    )
+    motion = Motion(SimpleNamespace(communication=communication))
+    motion.TARGET_LATCH_TIMEOUT_S = 0
+
+    with pytest.raises(IMTimeoutError, match="did not clear"):
+        motion.target_latch(servo="default")
+
+    communication.set_register.assert_called_once_with(
+        Motion.CONTROL_WORD_REGISTER, 0x000F, servo="default", axis=1
+    )
 
 
 @pytest.mark.virtual
