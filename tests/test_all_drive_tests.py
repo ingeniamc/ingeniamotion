@@ -105,6 +105,10 @@ def assert_returns_to_initial_value(
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
+@pytest.mark.biss_c_flaky(
+    "Sporadically fails during shared commutation setup with ABS BiSS-C configuration"
+)
+@pytest.mark.repeat(100)
 @pytest.mark.usefixtures("feedback_test_setup")
 def test_digital_halls_test(
     servo: Servo, mc, alias, feedback_list, registers_baseline: DriveRegistersValue
@@ -392,6 +396,10 @@ def run_test_and_stop(test):
 @pytest.mark.ethernet
 @pytest.mark.soem
 @pytest.mark.canopen
+@pytest.mark.biss_c_flaky(
+    "Sporadically fails during shared commutation setup with ABS BiSS-C configuration"
+)
+@pytest.mark.repeat(100)
 @pytest.mark.usefixtures("feedback_test_setup")
 @pytest.mark.parametrize(
     "feedback_class",
