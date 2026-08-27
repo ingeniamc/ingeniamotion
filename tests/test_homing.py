@@ -188,11 +188,14 @@ def __check_index_pulse_is_allowed(feedback_list):
 
 def __check_homing_was_successful(mc, alias, timeout_ms):
     init_time = time.time()
+    homing_started = False
     while init_time + timeout_ms / 1000 > time.time():
         status_word = mc.configuration.get_status_word(servo=alias)
         homing_error = bool(status_word & STATUS_WORD_HOMING_ERROR_BIT)
         homing_attained = bool(status_word & STATUS_WORD_HOMING_ATTAINED_BIT)
-        if (not homing_error) & homing_attained:
+        if not homing_attained:
+            homing_started = True
+        elif homing_started and not homing_error:
             return True
     return False
 
