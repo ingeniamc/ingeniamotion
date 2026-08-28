@@ -21,6 +21,17 @@ STATUS_WORD_HOMING_ERROR_BIT = 0x2000
 STATUS_WORD_HOMING_ATTAINED_BIT = 0x1000
 STATUS_WORD_TARGET_REACHED_BIT = 0x400
 HOMING_STATUS_POLL_INTERVAL_S = 0.01
+FEEDBACK_SELECTOR_REGISTERS = (
+    "COMMU_ANGLE_SENSOR",
+    "COMMU_ANGLE_REF_SENSOR",
+    "CL_VEL_FBK_SENSOR",
+    "CL_POS_FBK_SENSOR",
+    "CL_AUX_FBK_SENSOR",
+)
+POSITION_FEEDBACK_DIAGNOSTIC_REGISTERS = (
+    "FBK_DIGENC1_RESOLUTION",
+    "FBK_DIGHALL_PAIRPOLES",
+)
 
 RELATIVE_ERROR_ALLOWED = 3e-2
 
@@ -55,8 +66,46 @@ def _run_initial_position_stage(mc, alias, stage: str, action: Callable[[], obje
     return result
 
 
+def _read_initial_position_register(mc, alias, register_uid):
+    try:
+        return mc.communication.get_register(register_uid, servo=alias)
+    except Exception as error:
+        return f"unavailable ({type(error).__name__}: {error})"
+
+
+def _log_initial_position_feedback_state(mc, alias):
+    register_values = {
+        register_uid: _read_initial_position_register(mc, alias, register_uid)
+        for register_uid in (*FEEDBACK_SELECTOR_REGISTERS, *POSITION_FEEDBACK_DIAGNOSTIC_REGISTERS)
+    }
+
+    try:
+        selected_position_feedback = mc.configuration.get_position_feedback(servo=alias)
+    except Exception as error:
+        selected_position_feedback = f"unavailable ({type(error).__name__}: {error})"
+    try:
+        selected_position_resolution = mc.configuration.get_position_feedback_resolution(
+            servo=alias
+        )
+    except Exception as error:
+        selected_position_resolution = f"unavailable ({type(error).__name__}: {error})"
+
+    halls_pair_poles = register_values["FBK_DIGHALL_PAIRPOLES"]
+    halls_resolution = 6 * halls_pair_poles if isinstance(halls_pair_poles, int) else "unavailable"
+    logger.info(
+        "initial_position feedback state: selectors=%s, selected_position_feedback=%s, "
+        "selected_position_resolution=%s, raw_registers=%s, expected_halls_resolution=%s",
+        {uid: register_values[uid] for uid in FEEDBACK_SELECTOR_REGISTERS},
+        selected_position_feedback,
+        selected_position_resolution,
+        {uid: register_values[uid] for uid in POSITION_FEEDBACK_DIAGNOSTIC_REGISTERS},
+        halls_resolution,
+    )
+
+
 @pytest.fixture
 def initial_position(mc, alias):
+    _log_initial_position_feedback_state(mc, alias)
     _run_initial_position_stage(
         mc,
         alias,
