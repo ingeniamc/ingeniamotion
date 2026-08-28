@@ -1,4 +1,6 @@
+import logging
 import time
+from collections.abc import Callable
 
 import pytest
 
@@ -22,16 +24,73 @@ HOMING_STATUS_POLL_INTERVAL_S = 0.01
 
 RELATIVE_ERROR_ALLOWED = 3e-2
 
+logger = logging.getLogger(__name__)
+
+
+def _log_initial_position_state(mc, alias, stage):
+    try:
+        status_word = mc.configuration.get_status_word(servo=alias)
+    except Exception as error:
+        status_word = f"unavailable ({type(error).__name__}: {error})"
+    try:
+        actual_position = mc.motion.get_actual_position(servo=alias)
+    except Exception as error:
+        actual_position = f"unavailable ({type(error).__name__}: {error})"
+    logger.info(
+        "initial_position %s: status_word=%s, actual_position=%s",
+        stage,
+        status_word,
+        actual_position,
+    )
+
+
+def _run_initial_position_stage(mc, alias, stage: str, action: Callable[[], object]):
+    logger.info("initial_position: starting %s", stage)
+    try:
+        result = action()
+    except Exception:
+        _log_initial_position_state(mc, alias, f"{stage} failed")
+        raise
+    logger.info("initial_position: completed %s with result=%r", stage, result)
+    return result
+
 
 @pytest.fixture
 def initial_position(mc, alias):
-    mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
-    position = mc.configuration.get_position_feedback_resolution(servo=alias) // 2
+    _run_initial_position_stage(
+        mc,
+        alias,
+        "set profile-position mode",
+        lambda: mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias),
+    )
+    position_resolution = _run_initial_position_stage(
+        mc,
+        alias,
+        "read position-feedback resolution",
+        lambda: mc.configuration.get_position_feedback_resolution(servo=alias),
+    )
+    position = position_resolution // 2
+    _log_initial_position_state(mc, alias, "before motor enable")
     try:
-        mc.motion.motor_enable(servo=alias)
-        mc.motion.move_to_position(position, servo=alias, blocking=True, timeout=5)
+        _run_initial_position_stage(
+            mc,
+            alias,
+            "motor enable",
+            lambda: mc.motion.motor_enable(servo=alias),
+        )
+        _run_initial_position_stage(
+            mc,
+            alias,
+            "blocking move",
+            lambda: mc.motion.move_to_position(position, servo=alias, blocking=True, timeout=5),
+        )
     finally:
-        mc.motion.motor_disable(servo=alias)
+        _run_initial_position_stage(
+            mc,
+            alias,
+            "motor disable",
+            lambda: mc.motion.motor_disable(servo=alias),
+        )
     return position
 
 
