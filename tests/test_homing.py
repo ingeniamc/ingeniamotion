@@ -247,19 +247,75 @@ def __check_index_pulse_is_allowed(feedback_list):
     return motor_enable, sensor_index
 
 
-def __check_homing_was_successful(mc, alias, timeout_ms):
-    init_time = time.time()
+def _format_homing_status_sequence(status_sequence: list[tuple[float, int]]) -> str:
+    if not status_sequence:
+        return "no status samples"
+    return " -> ".join(
+        f"{elapsed:.3f}s: {status_word:#06x}" for elapsed, status_word in status_sequence
+    )
+
+
+def __check_homing_was_successful(mc, alias, timeout_ms) -> tuple[bool, str]:
+    start_time = time.monotonic()
+    deadline = start_time + timeout_ms / 1000
     homing_started = False
-    while init_time + timeout_ms / 1000 > time.time():
+    homing_error_seen = False
+    status_sequence = []
+    last_status_word = None
+    while time.monotonic() < deadline:
         status_word = mc.configuration.get_status_word(servo=alias)
+        if status_word != last_status_word:
+            status_sequence.append((time.monotonic() - start_time, status_word))
+            last_status_word = status_word
         homing_error = bool(status_word & STATUS_WORD_HOMING_ERROR_BIT)
         homing_attained = bool(status_word & STATUS_WORD_HOMING_ATTAINED_BIT)
+        homing_error_seen |= homing_error
         if not homing_attained:
             homing_started = True
         elif homing_started and not homing_error:
-            return True
+            return True, ""
         time.sleep(HOMING_STATUS_POLL_INTERVAL_S)
-    return False
+    status_sequence_text = _format_homing_status_sequence(status_sequence)
+    if homing_error_seen:
+        failure_reason = "Homing error bit was set"
+    elif not homing_started and last_status_word & STATUS_WORD_HOMING_ATTAINED_BIT:
+        failure_reason = "Homing attained bit was already set and never cleared"
+    else:
+        failure_reason = "Homing attained bit was not observed after homing started"
+    diagnostic = f"{failure_reason}. Status sequence: {status_sequence_text}"
+    logger.error(diagnostic)
+    return False, diagnostic
+
+
+@pytest.mark.virtual
+def test_homing_status_checker_accepts_clear_then_attained(mocker):
+    mc = mocker.Mock()
+    mc.configuration.get_status_word.side_effect = [0x4237, 0x5237]
+    mocker.patch("tests.test_homing.time.sleep")
+    mocker.patch(
+        "tests.test_homing.time.monotonic",
+        side_effect=[0.0, 0.001, 0.002, 0.003, 0.004],
+    )
+
+    successful, diagnostic = __check_homing_was_successful(mc, "default", timeout_ms=10)
+
+    assert successful
+    assert diagnostic == ""
+
+
+@pytest.mark.virtual
+def test_homing_status_checker_reports_stale_attained_bit(mocker):
+    mc = mocker.Mock()
+    mc.configuration.get_status_word.return_value = 0x5237
+    mocker.patch("tests.test_homing.time.sleep")
+    mocker.patch("tests.test_homing.time.monotonic", side_effect=[0.0, 0.001, 0.002, 0.003])
+
+    successful, diagnostic = __check_homing_was_successful(mc, "default", timeout_ms=2)
+
+    assert not successful
+    assert "Homing attained bit was already set and never cleared" in diagnostic
+    assert "Status sequence:" in diagnostic
+    assert "0x5237" in diagnostic
 
 
 @pytest.mark.soem
@@ -288,7 +344,10 @@ def test_homing_on_index_pulse(servo, mc, alias, feedback_list, direction):
             motor_enable=motor_enable,
         )
         if motor_enable:
-            assert __check_homing_was_successful(mc, alias, homing_timeout)
+            homing_successful, homing_diagnostic = __check_homing_was_successful(
+                mc, alias, homing_timeout
+            )
+            assert homing_successful, homing_diagnostic
         test_offset = mc.communication.get_register(HOMING_OFFSET_REGISTER, servo=alias)
         test_timeout = mc.communication.get_register(HOMING_TIMEOUT_REGISTER, servo=alias)
         test_hom_mode = mc.communication.get_register(HOMING_MODE_REGISTER, servo=alias)
