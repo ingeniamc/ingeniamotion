@@ -18,6 +18,7 @@ VELOCITY_SET_POINT_REGISTER = "CL_VEL_SET_POINT_VALUE"
 STATUS_WORD_HOMING_ERROR_BIT = 0x2000
 STATUS_WORD_HOMING_ATTAINED_BIT = 0x1000
 STATUS_WORD_TARGET_REACHED_BIT = 0x400
+HOMING_STATUS_POLL_INTERVAL_S = 0.01
 
 RELATIVE_ERROR_ALLOWED = 3e-2
 
@@ -198,6 +199,7 @@ def __check_homing_was_successful(mc, alias, timeout_ms):
             homing_started = True
         elif homing_started and not homing_error:
             return True
+        time.sleep(HOMING_STATUS_POLL_INTERVAL_S)
     return False
 
 
