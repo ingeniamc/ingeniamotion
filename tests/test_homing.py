@@ -231,6 +231,7 @@ def test_homing_status_checker_reports_stale_attained_bit(mocker):
 @pytest.mark.canopen
 @pytest.mark.usefixtures("initial_position")
 @pytest.mark.parametrize("direction", [1, 0])
+# https://novantamotion.atlassian.net/browse/COMOCOAPP-493 -> has been fixed in 2.9.0
 @pytest.mark.not_valid_version_for_product(part_number="EVE-*", min="2.7.0", max="2.8.1")
 def test_homing_on_index_pulse(servo, mc, alias, feedback_list, direction):
     with refresh_registers_for_test_rollback(
