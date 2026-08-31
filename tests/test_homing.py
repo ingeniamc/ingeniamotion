@@ -172,9 +172,7 @@ def test_set_homing_timeout(mc, alias, homing_timeout):
 @pytest.mark.canopen
 @pytest.mark.parametrize("homing_offset", [0, 1000])
 @pytest.mark.usefixtures("initial_position")
-# https://novantamotion.atlassian.net/browse/INGM-773
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-@pytest.mark.not_valid_for_product(part_number="EVE-*")
+@pytest.mark.repeat(100)
 def test_homing_on_current_position(servo, mc, alias, homing_offset):
     with refresh_registers_for_test_rollback(
         servo,
