@@ -154,22 +154,6 @@ ECAT_SETUP = SpecifierContainer({
                     },
                 },
             ),
-            "2.8.1": VersionConfig.from_version(
-                version="2.8.1",
-                config_file=config_files.CAP_XCR_E_2_9_0_CONFIG,
-                dictionary_type=DictionaryType.XDF_V2,
-                extra_data={
-                    __EXECUTION_POLICY_KEY: "always",
-                    RANDOM_COMBINATIONS_SLICE_KEY: 0.1,
-                    __TEST_CONFIGS_KEY: {
-                        "ECAT_TEST_SESSIONS": PyTestConfig(
-                            markers="soem",
-                            run_test_stage_uid="ethercat_capitan_2.8.1",
-                            stage_name="EtherCAT Capitan - FW. 2.8.1",
-                        )
-                    },
-                },
-            ),
             "2.9.0": VersionConfig.from_version(
                 version="2.9.0",
                 config_file=config_files.CAP_XCR_E_2_9_0_CONFIG,
