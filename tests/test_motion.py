@@ -110,7 +110,7 @@ def test_clear_target_latch_verifies_control_word_edge(mocker):
     )
     motion = Motion(SimpleNamespace(communication=communication))
 
-    motion.clear_target_latch(servo="default")
+    motion._clear_target_latch(servo="default")
 
     assert communication.get_register.call_args_list == [
         call(Motion.CONTROL_WORD_REGISTER, servo="default", axis=1),
