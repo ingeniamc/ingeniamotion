@@ -32,6 +32,15 @@ POSITION_FEEDBACK_DIAGNOSTIC_REGISTERS = (
     "FBK_DIGENC1_RESOLUTION",
     "FBK_DIGHALL_PAIRPOLES",
 )
+INITIAL_POSITION_STATE_REGISTERS = (
+    "DRV_STATE_CONTROL",
+    "DRV_OP_CMD",
+    "DRV_OP_VALUE",
+    "CL_POS_SET_POINT_VALUE",
+    "CL_POS_FBK_VALUE",
+    "CL_VEL_SET_POINT_VALUE",
+    "CL_VEL_FBK_VALUE",
+)
 
 RELATIVE_ERROR_ALLOWED = 3e-2
 
@@ -39,20 +48,52 @@ logger = logging.getLogger(__name__)
 
 
 def _log_initial_position_state(mc, alias, stage):
-    try:
-        status_word = mc.configuration.get_status_word(servo=alias)
-    except Exception as error:
-        status_word = f"unavailable ({type(error).__name__}: {error})"
-    try:
-        actual_position = mc.motion.get_actual_position(servo=alias)
-    except Exception as error:
-        actual_position = f"unavailable ({type(error).__name__}: {error})"
+    status_word = _read_initial_position_value(
+        lambda: mc.configuration.get_status_word(servo=alias)
+    )
+    actual_position = _read_initial_position_value(
+        lambda: mc.motion.get_actual_position(servo=alias)
+    )
+    operation_mode = _read_initial_position_value(lambda: mc.motion.get_operation_mode(servo=alias))
+    motor_enabled = _read_initial_position_value(
+        lambda: mc.configuration.is_motor_enabled(servo=alias)
+    )
+    fault_active = _read_initial_position_value(lambda: mc.errors.is_fault_active(servo=alias))
+    warning_active = _read_initial_position_value(lambda: mc.errors.is_warning_active(servo=alias))
+    error_count = _read_initial_position_value(
+        lambda: mc.errors.get_number_total_errors(servo=alias, axis=1)
+    )
+    last_error = _read_initial_position_value(lambda: mc.errors.get_last_error(servo=alias, axis=1))
+    last_buffer_error = _read_initial_position_value(
+        lambda: mc.errors.get_last_buffer_error(servo=alias, axis=1)
+    )
+    registers = {
+        register_uid: _read_initial_position_register(mc, alias, register_uid)
+        for register_uid in INITIAL_POSITION_STATE_REGISTERS
+    }
     logger.info(
-        "initial_position %s: status_word=%s, actual_position=%s",
+        "initial_position %s: status_word=%s, actual_position=%s, operation_mode=%s, "
+        "motor_enabled=%s, fault_active=%s, warning_active=%s, error_count=%s, "
+        "last_error=%s, last_buffer_error=%s, registers=%s",
         stage,
         status_word,
         actual_position,
+        operation_mode,
+        motor_enabled,
+        fault_active,
+        warning_active,
+        error_count,
+        last_error,
+        last_buffer_error,
+        registers,
     )
+
+
+def _read_initial_position_value(action: Callable[[], object]):
+    try:
+        return action()
+    except Exception as error:
+        return f"unavailable ({type(error).__name__}: {error})"
 
 
 def _run_initial_position_stage(mc, alias, stage: str, action: Callable[[], object]):
@@ -127,12 +168,14 @@ def initial_position(mc, alias):
             "motor enable",
             lambda: mc.motion.motor_enable(servo=alias),
         )
+        _log_initial_position_state(mc, alias, "before blocking move")
         _run_initial_position_stage(
             mc,
             alias,
             "blocking move",
             lambda: mc.motion.move_to_position(position, servo=alias, blocking=True, timeout=5),
         )
+        _log_initial_position_state(mc, alias, "after blocking move")
     finally:
         _run_initial_position_stage(
             mc,
