@@ -1,5 +1,5 @@
 // https://novantamotion.atlassian.net/browse/CIT-707
-@Library('cicd-lib@2ae6d3c23e1b069f1297992f2274a8e7d117b97b') _
+@Library('cicd-lib@a30b3e0') _
 
 import python.VirtualEnvironment
 import python.VEnvManager
@@ -220,7 +220,7 @@ pipeline {
                     testManager.buildTestSessions("tests.setups.rack_specifiers")
                     testManager.buildTestSessions("tests.setups.virtual_drive")
 
-                    if (env.BRANCH_NAME == 'develop' && BuildParamUtils.isBranchEventBuild(currentBuild?.rawBuild)) {
+                    if (env.BRANCH_NAME == 'develop' && BuildParamUtils.isBranchEventBuild(currentBuild)) {
                         HW_TEST_SESSIONS.setAttributeInCascade(
                             shouldRun: false,
                             skipReason: 'Develop webhook/indexing builds do not run hardware tests',
