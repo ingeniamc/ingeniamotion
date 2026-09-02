@@ -605,6 +605,8 @@ def test_internal_generator_saw_tooth_move(
 @pytest.mark.canopen
 @pytest.mark.parametrize("op_mode", [OperationMode.VOLTAGE, OperationMode.CURRENT])
 @pytest.mark.parametrize("direction", [-1, 1])
+# https://novantamotion.atlassian.net/browse/INGM-812
+@pytest.mark.not_valid_for_product(part_number="EVE-XCR-C")
 def test_internal_generator_constant_move(
     servo, mc: "MotionController", alias: str, op_mode: "OperationMode", direction: int
 ) -> None:
