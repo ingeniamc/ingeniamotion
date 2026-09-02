@@ -121,7 +121,7 @@ pytest-subtests = "==0.15.0"
 matplotlib = "==3.9.4"
 summit-testing-framework = {version = "0.3.1.post396+pr.111.b5"}
 ingenialink = {version = "7.6.2.post354+pr.911.b25"}
-virtual_drive = {version = "0.1.1.post234+pr.116.b2"}
+virtual_drive = {version = "0.1.1.post261+develop.7854ff4"}
 
 # -----------------------------------------------------------------------
 #                                   TASKS

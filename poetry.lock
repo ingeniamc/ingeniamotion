@@ -4701,13 +4701,13 @@ zstd = ["backports-zstd (>=1.0.0) ; python_version < \"3.14\""]
 
 [[package]]
 name = "virtual-drive"
-version = "0.1.1.post234+pr.116.b2"
+version = "0.1.1.post261+develop.7854ff4"
 description = "Emulates a Summit drive for development and testing purposes."
 optional = false
 python-versions = ">=3.9"
 groups = ["main", "tests"]
 files = [
-    {file = "virtual_drive-0.1.1.post234+pr.116.b2-py3-none-any.whl", hash = "sha256:1098d408eb09bd65e6425ce426098a5b089ca57c44e3d9906153c7fbca8b6da5"},
+    {file = "virtual_drive-0.1.1.post261+develop.7854ff4-py3-none-any.whl", hash = "sha256:5ab3cc674210320e84cfab07235ccbda4baf6626a31acd90c5b6290aa15ac965"},
 ]
 
 [package.dependencies]
@@ -5056,4 +5056,4 @@ fsoe = ["fsoe_master"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.9"
-content-hash = "e6b72da10d5003644774b521d36e3a070948c52fc73b8a9317bf561a70996632"
+content-hash = "e715f2e5d2de62214b6d531dccf4271720307409415a51e2b69a7f38befc9cba"
