@@ -144,7 +144,10 @@ def test_digital_halls_test(
     assert_returns_to_initial_value(
         servo,
         registers_baseline,
-        accepted_changed_registers=DigitalHallTest.ACCEPTED_CHANGED_REGISTERS,
+        accepted_changed_registers=(
+            *DigitalHallTest.ACCEPTED_CHANGED_REGISTERS,
+            DigitalHallTest.FEEDBACK_POLARITY_REGISTER,
+        ),
         do_not_restore_registers=do_not_restore_registers,
     )
 
@@ -173,7 +176,10 @@ def test_incremental_encoder_1_test(
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
     assert_returns_to_initial_value(
-        servo, registers_baseline, do_not_restore_registers=do_not_restore_registers
+        servo,
+        registers_baseline,
+        accepted_changed_registers=(DigitalIncremental1Test.FEEDBACK_POLARITY_REGISTER,),
+        do_not_restore_registers=do_not_restore_registers,
     )
 
 
@@ -203,7 +209,10 @@ def test_incremental_encoder_2_test(
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
     assert_returns_to_initial_value(
-        servo, registers_baseline, do_not_restore_registers=do_not_restore_registers
+        servo,
+        registers_baseline,
+        accepted_changed_registers=(DigitalIncremental2Test.FEEDBACK_POLARITY_REGISTER,),
+        do_not_restore_registers=do_not_restore_registers,
     )
 
 
@@ -231,7 +240,10 @@ def test_absolute_encoder_1_test(
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
     assert_returns_to_initial_value(
-        servo, registers_baseline, do_not_restore_registers=do_not_restore_registers
+        servo,
+        registers_baseline,
+        accepted_changed_registers=(AbsoluteEncoder1Test.FEEDBACK_POLARITY_REGISTER,),
+        do_not_restore_registers=do_not_restore_registers,
     )
 
 
@@ -259,7 +271,10 @@ def test_absolute_encoder_2_test(
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
     assert_returns_to_initial_value(
-        servo, registers_baseline, do_not_restore_registers=do_not_restore_registers
+        servo,
+        registers_baseline,
+        accepted_changed_registers=(AbsoluteEncoder2Test.FEEDBACK_POLARITY_REGISTER,),
+        do_not_restore_registers=do_not_restore_registers,
     )
 
 
@@ -289,7 +304,10 @@ def test_secondary_ssi_test(
     assert commutation_fdbk == mc.configuration.get_commutation_feedback(servo=alias)
 
     assert_returns_to_initial_value(
-        servo, registers_baseline, do_not_restore_registers=do_not_restore_registers
+        servo,
+        registers_baseline,
+        accepted_changed_registers=(SecondarySSITest.FEEDBACK_POLARITY_REGISTER,),
+        do_not_restore_registers=do_not_restore_registers,
     )
 
 
