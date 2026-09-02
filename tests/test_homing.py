@@ -41,6 +41,7 @@ INITIAL_POSITION_STATE_REGISTERS = (
     "CL_VEL_SET_POINT_VALUE",
     "CL_VEL_FBK_VALUE",
 )
+POST_ENABLE_SAMPLE_COUNT = 5
 
 RELATIVE_ERROR_ALLOWED = 3e-2
 
@@ -87,6 +88,39 @@ def _log_initial_position_state(mc, alias, stage):
         last_buffer_error,
         registers,
     )
+
+
+def _log_initial_position_post_enable_samples(mc, alias):
+    start_time = time.monotonic()
+    previous_position = None
+    for sample_index in range(POST_ENABLE_SAMPLE_COUNT):
+        register_values = {
+            register_uid: _read_initial_position_register(mc, alias, register_uid)
+            for register_uid in INITIAL_POSITION_STATE_REGISTERS
+        }
+        status_word = _read_initial_position_value(
+            lambda: mc.configuration.get_status_word(servo=alias)
+        )
+        motor_enabled = _read_initial_position_value(
+            lambda: mc.configuration.is_motor_enabled(servo=alias)
+        )
+        actual_position = register_values["CL_POS_FBK_VALUE"]
+        position_delta = (
+            actual_position - previous_position
+            if isinstance(actual_position, int) and isinstance(previous_position, int)
+            else "unavailable"
+        )
+        logger.info(
+            "initial_position post-enable sample=%s elapsed=%.3fs: status_word=%s, "
+            "motor_enabled=%s, position_delta=%s, registers=%s",
+            sample_index + 1,
+            time.monotonic() - start_time,
+            status_word,
+            motor_enabled,
+            position_delta,
+            register_values,
+        )
+        previous_position = actual_position
 
 
 def _read_initial_position_value(action: Callable[[], object]):
@@ -168,6 +202,7 @@ def initial_position(mc, alias):
             "motor enable",
             lambda: mc.motion.motor_enable(servo=alias),
         )
+        _log_initial_position_post_enable_samples(mc, alias)
         _log_initial_position_state(mc, alias, "before blocking move")
         _run_initial_position_stage(
             mc,
