@@ -3,6 +3,7 @@ import time
 from collections.abc import Callable
 
 import pytest
+from summit_testing_framework.connection.teardown_utils import _wait_for_zero_velocity
 
 from ingeniamotion.enums import HomingMode, OperationMode, SensorType
 from tests.conftest import mean_actual_velocity_position, refresh_registers_for_test_rollback
@@ -17,10 +18,6 @@ POSITIVE_HOMING_SWITCH_REGISTER = "IO_IN_POS_HOM_SWITCH"
 NEGATIVE_HOMING_SWITCH_REGISTER = "IO_IN_NEG_HOM_SWITCH"
 VELOCITY_SET_POINT_REGISTER = "CL_VEL_SET_POINT_VALUE"
 TARGET_LATCH_CONTROL_BIT = 0x200
-ACTUAL_VELOCITY_ZERO_TOLERANCE = 0.05
-ACTUAL_VELOCITY_SETTLING_TIMEOUT_S = 1.0
-ACTUAL_VELOCITY_SETTLING_POLL_INTERVAL_S = 0.01
-ACTUAL_VELOCITY_SETTLED_DURATION_S = 0.1
 
 STATUS_WORD_HOMING_ERROR_BIT = 0x2000
 STATUS_WORD_HOMING_ATTAINED_BIT = 0x1000
@@ -50,34 +47,6 @@ INITIAL_POSITION_STATE_REGISTERS = (
 RELATIVE_ERROR_ALLOWED = 3e-2
 
 logger = logging.getLogger(__name__)
-
-
-def _wait_for_zero_velocity(mc, alias):
-    deadline = time.monotonic() + ACTUAL_VELOCITY_SETTLING_TIMEOUT_S
-    settled_since = None
-    last_velocity = None
-
-    while True:
-        now = time.monotonic()
-        if now >= deadline:
-            break
-
-        last_velocity = mc.motion.get_actual_velocity(servo=alias)
-        if abs(last_velocity) <= ACTUAL_VELOCITY_ZERO_TOLERANCE:
-            if settled_since is None:
-                settled_since = now
-            elif now - settled_since >= ACTUAL_VELOCITY_SETTLED_DURATION_S:
-                return
-        else:
-            settled_since = None
-        time.sleep(ACTUAL_VELOCITY_SETTLING_POLL_INTERVAL_S)
-
-    pytest.fail(
-        f"Actual velocity did not remain within +/-{ACTUAL_VELOCITY_ZERO_TOLERANCE} "
-        f"for {ACTUAL_VELOCITY_SETTLED_DURATION_S} seconds within "
-        f"{ACTUAL_VELOCITY_SETTLING_TIMEOUT_S} seconds; "
-        f"last observed velocity was {last_velocity!r}"
-    )
 
 
 def _log_initial_position_state(mc, alias, stage):
