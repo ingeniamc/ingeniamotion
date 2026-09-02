@@ -76,7 +76,7 @@ class Motion:
 
     def _wait_for_target_latch_bit(self, bit_set: bool, servo: str, axis: int) -> int:
         deadline = time.monotonic() + self.TARGET_LATCH_TIMEOUT_S
-        while True:
+        while time.monotonic() < deadline:
             control_word = self.mc.communication.get_register(
                 self.CONTROL_WORD_REGISTER, servo=servo, axis=axis
             )
@@ -84,13 +84,11 @@ class Motion:
                 raise TypeError("Control word register value has to be a integer")
             if bool(control_word & self.CONTROL_WORD_TARGET_LATCH_BIT) == bit_set:
                 return control_word
-            if time.monotonic() >= deadline:
-                state = "set" if bit_set else "clear"
-                raise IMTimeoutError(
-                    f"Target latch control bit did not {state} within "
-                    f"{self.TARGET_LATCH_TIMEOUT_S} seconds"
-                )
             time.sleep(self.TARGET_LATCH_POLL_INTERVAL_S)
+        state = "set" if bit_set else "clear"
+        raise IMTimeoutError(
+            f"Target latch control bit did not {state} within {self.TARGET_LATCH_TIMEOUT_S} seconds"
+        )
 
     def set_operation_mode(
         self,
