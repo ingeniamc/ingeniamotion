@@ -1,6 +1,4 @@
-import logging
 import time
-from collections.abc import Callable
 
 import pytest
 
@@ -32,192 +30,20 @@ POSITION_FEEDBACK_DIAGNOSTIC_REGISTERS = (
     "FBK_DIGENC1_RESOLUTION",
     "FBK_DIGHALL_PAIRPOLES",
 )
-INITIAL_POSITION_STATE_REGISTERS = (
-    "DRV_STATE_CONTROL",
-    "DRV_OP_CMD",
-    "DRV_OP_VALUE",
-    "CL_POS_SET_POINT_VALUE",
-    "CL_POS_FBK_VALUE",
-    "CL_VEL_SET_POINT_VALUE",
-    "CL_VEL_FBK_VALUE",
-)
-POST_ENABLE_SAMPLE_COUNT = 5
 
 RELATIVE_ERROR_ALLOWED = 3e-2
-
-logger = logging.getLogger(__name__)
-
-
-def _log_initial_position_state(mc, alias, stage):
-    status_word = _read_initial_position_value(
-        lambda: mc.configuration.get_status_word(servo=alias)
-    )
-    actual_position = _read_initial_position_value(
-        lambda: mc.motion.get_actual_position(servo=alias)
-    )
-    operation_mode = _read_initial_position_value(lambda: mc.motion.get_operation_mode(servo=alias))
-    motor_enabled = _read_initial_position_value(
-        lambda: mc.configuration.is_motor_enabled(servo=alias)
-    )
-    fault_active = _read_initial_position_value(lambda: mc.errors.is_fault_active(servo=alias))
-    warning_active = _read_initial_position_value(lambda: mc.errors.is_warning_active(servo=alias))
-    error_count = _read_initial_position_value(
-        lambda: mc.errors.get_number_total_errors(servo=alias, axis=1)
-    )
-    last_error = _read_initial_position_value(lambda: mc.errors.get_last_error(servo=alias, axis=1))
-    last_buffer_error = _read_initial_position_value(
-        lambda: mc.errors.get_last_buffer_error(servo=alias, axis=1)
-    )
-    registers = {
-        register_uid: _read_initial_position_register(mc, alias, register_uid)
-        for register_uid in INITIAL_POSITION_STATE_REGISTERS
-    }
-    logger.info(
-        "initial_position %s: status_word=%s, actual_position=%s, operation_mode=%s, "
-        "motor_enabled=%s, fault_active=%s, warning_active=%s, error_count=%s, "
-        "last_error=%s, last_buffer_error=%s, registers=%s",
-        stage,
-        status_word,
-        actual_position,
-        operation_mode,
-        motor_enabled,
-        fault_active,
-        warning_active,
-        error_count,
-        last_error,
-        last_buffer_error,
-        registers,
-    )
-
-
-def _log_initial_position_post_enable_samples(mc, alias):
-    start_time = time.monotonic()
-    previous_position = None
-    for sample_index in range(POST_ENABLE_SAMPLE_COUNT):
-        register_values = {
-            register_uid: _read_initial_position_register(mc, alias, register_uid)
-            for register_uid in INITIAL_POSITION_STATE_REGISTERS
-        }
-        status_word = _read_initial_position_value(
-            lambda: mc.configuration.get_status_word(servo=alias)
-        )
-        motor_enabled = _read_initial_position_value(
-            lambda: mc.configuration.is_motor_enabled(servo=alias)
-        )
-        actual_position = register_values["CL_POS_FBK_VALUE"]
-        position_delta = (
-            actual_position - previous_position
-            if isinstance(actual_position, int) and isinstance(previous_position, int)
-            else "unavailable"
-        )
-        logger.info(
-            "initial_position post-enable sample=%s elapsed=%.3fs: status_word=%s, "
-            "motor_enabled=%s, position_delta=%s, registers=%s",
-            sample_index + 1,
-            time.monotonic() - start_time,
-            status_word,
-            motor_enabled,
-            position_delta,
-            register_values,
-        )
-        previous_position = actual_position
-
-
-def _read_initial_position_value(action: Callable[[], object]):
-    try:
-        return action()
-    except Exception as error:
-        return f"unavailable ({type(error).__name__}: {error})"
-
-
-def _run_initial_position_stage(mc, alias, stage: str, action: Callable[[], object]):
-    logger.info("initial_position: starting %s", stage)
-    try:
-        result = action()
-    except Exception:
-        _log_initial_position_state(mc, alias, f"{stage} failed")
-        raise
-    logger.info("initial_position: completed %s with result=%r", stage, result)
-    return result
-
-
-def _read_initial_position_register(mc, alias, register_uid):
-    try:
-        return mc.communication.get_register(register_uid, servo=alias)
-    except Exception as error:
-        return f"unavailable ({type(error).__name__}: {error})"
-
-
-def _log_initial_position_feedback_state(mc, alias):
-    register_values = {
-        register_uid: _read_initial_position_register(mc, alias, register_uid)
-        for register_uid in (*FEEDBACK_SELECTOR_REGISTERS, *POSITION_FEEDBACK_DIAGNOSTIC_REGISTERS)
-    }
-
-    try:
-        selected_position_feedback = mc.configuration.get_position_feedback(servo=alias)
-    except Exception as error:
-        selected_position_feedback = f"unavailable ({type(error).__name__}: {error})"
-    try:
-        selected_position_resolution = mc.configuration.get_position_feedback_resolution(
-            servo=alias
-        )
-    except Exception as error:
-        selected_position_resolution = f"unavailable ({type(error).__name__}: {error})"
-
-    halls_pair_poles = register_values["FBK_DIGHALL_PAIRPOLES"]
-    halls_resolution = 6 * halls_pair_poles if isinstance(halls_pair_poles, int) else "unavailable"
-    logger.info(
-        "initial_position feedback state: selectors=%s, selected_position_feedback=%s, "
-        "selected_position_resolution=%s, raw_registers=%s, expected_halls_resolution=%s",
-        {uid: register_values[uid] for uid in FEEDBACK_SELECTOR_REGISTERS},
-        selected_position_feedback,
-        selected_position_resolution,
-        {uid: register_values[uid] for uid in POSITION_FEEDBACK_DIAGNOSTIC_REGISTERS},
-        halls_resolution,
-    )
 
 
 @pytest.fixture
 def initial_position(mc, alias):
-    _log_initial_position_feedback_state(mc, alias)
-    _run_initial_position_stage(
-        mc,
-        alias,
-        "set profile-position mode",
-        lambda: mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias),
-    )
-    position_resolution = _run_initial_position_stage(
-        mc,
-        alias,
-        "read position-feedback resolution",
-        lambda: mc.configuration.get_position_feedback_resolution(servo=alias),
-    )
+    mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
+    position_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
     position = position_resolution // 2
-    _log_initial_position_state(mc, alias, "before motor enable")
     try:
-        _run_initial_position_stage(
-            mc,
-            alias,
-            "motor enable",
-            lambda: mc.motion.motor_enable(servo=alias),
-        )
-        _log_initial_position_post_enable_samples(mc, alias)
-        _log_initial_position_state(mc, alias, "before blocking move")
-        _run_initial_position_stage(
-            mc,
-            alias,
-            "blocking move",
-            lambda: mc.motion.move_to_position(position, servo=alias, blocking=True, timeout=5),
-        )
-        _log_initial_position_state(mc, alias, "after blocking move")
+        mc.motion.motor_enable(servo=alias)
+        mc.motion.move_to_position(position, servo=alias, blocking=True, timeout=5)
     finally:
-        _run_initial_position_stage(
-            mc,
-            alias,
-            "motor disable",
-            lambda: mc.motion.motor_disable(servo=alias),
-        )
+        mc.motion.motor_disable(servo=alias)
     return position
 
 
@@ -415,7 +241,6 @@ def __check_homing_was_successful(mc, alias, timeout_ms) -> tuple[bool, str]:
     else:
         failure_reason = "Homing attained bit was not observed after homing started"
     diagnostic = f"{failure_reason}. Status sequence: {status_sequence_text}"
-    logger.error(diagnostic)
     return False, diagnostic
 
 
