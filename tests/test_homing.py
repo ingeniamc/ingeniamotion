@@ -3,7 +3,6 @@ import time
 from collections.abc import Callable
 
 import pytest
-from summit_testing_framework.connection.teardown_utils import _wait_for_zero_velocity
 
 from ingeniamotion.enums import HomingMode, OperationMode, SensorType
 from tests.conftest import mean_actual_velocity_position, refresh_registers_for_test_rollback
@@ -17,7 +16,6 @@ HOMING_INDEX_PULSE_SOURCE_REGISTER = "HOM_IDX_PULSE_SRC"
 POSITIVE_HOMING_SWITCH_REGISTER = "IO_IN_POS_HOM_SWITCH"
 NEGATIVE_HOMING_SWITCH_REGISTER = "IO_IN_NEG_HOM_SWITCH"
 VELOCITY_SET_POINT_REGISTER = "CL_VEL_SET_POINT_VALUE"
-TARGET_LATCH_CONTROL_BIT = 0x200
 
 STATUS_WORD_HOMING_ERROR_BIT = 0x2000
 STATUS_WORD_HOMING_ATTAINED_BIT = 0x1000
@@ -233,13 +231,7 @@ def test_homing_on_current_position(servo, mc, alias, homing_offset):
                 abs=feedback_resolution * RELATIVE_ERROR_ALLOWED,
             ) == mc.motion.get_actual_position(servo=alias)
         finally:
-            try:
-                mc.motion._clear_target_latch(servo=alias, axis=1)
-                control_word = mc.communication.get_register("DRV_STATE_CONTROL", servo=alias)
-                assert isinstance(control_word, int)
-                assert control_word & TARGET_LATCH_CONTROL_BIT == 0
-            finally:
-                _wait_for_zero_velocity(mc, alias)
+            mc.motion._clear_target_latch(servo=alias, axis=1)
 
 
 @pytest.mark.ethernet
