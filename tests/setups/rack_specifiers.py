@@ -123,9 +123,7 @@ ECAT_SETUP = SpecifierContainer({
                 config_file=config_files.EVE_XCR_E_2_1_0_CONFIG,
                 dictionary_type=DictionaryType.XDF_V2,
                 extra_data={
-                    # No everest ethercat during day or PRs, it has a flaky STO abnormal
-                    # https://novantamotion.atlassian.net/browse/INGM-807
-                    __EXECUTION_POLICY_KEY: "nightly",
+                    __EXECUTION_POLICY_KEY: "always",
                     __TEST_CONFIGS_KEY: {
                         "ECAT_TEST_SESSIONS": PyTestConfig(
                             markers="soem",
