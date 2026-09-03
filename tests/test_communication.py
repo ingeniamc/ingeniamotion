@@ -809,8 +809,9 @@ def test_subscribe_register_updates(mc: "MotionController", alias: str) -> None:
 
 @pytest.mark.canopen
 @pytest.mark.soem
-# https://novantamotion.atlassian.net/browse/DRIVSUS-392
-@pytest.mark.not_valid_for_product(part_number="EVE-XCR-E")
+@pytest.mark.not_valid_for_product(
+    part_number="EVE-XCR-E", skip_reason="https://novantamotion.atlassian.net/browse/DRIVSUS-392"
+)
 def test_emcy_callback(mc: "MotionController", alias: str) -> None:
     emcy_test = EmcyTest()
     prev_val = mc.communication.get_register("DRV_PROT_USER_OVER_VOLT", axis=1, servo=alias)
