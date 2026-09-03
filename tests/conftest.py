@@ -39,6 +39,7 @@ RANDOM_COMBINATIONS_SLICE_KEY: str = "random_combinations_slice"
 
 pytest_plugins = [
     "summit_testing_framework.pytest_addoptions",
+    "summit_testing_framework.pytest_markers",
     "summit_testing_framework.setup_fixtures",
     "summit_testing_framework.profilers.stoppable_gaps",
 ]
