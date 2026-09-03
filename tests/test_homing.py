@@ -1,3 +1,5 @@
+import logging
+import os
 import time
 
 import pytest
@@ -14,6 +16,21 @@ HOMING_INDEX_PULSE_SOURCE_REGISTER = "HOM_IDX_PULSE_SRC"
 POSITIVE_HOMING_SWITCH_REGISTER = "IO_IN_POS_HOM_SWITCH"
 NEGATIVE_HOMING_SWITCH_REGISTER = "IO_IN_NEG_HOM_SWITCH"
 VELOCITY_SET_POINT_REGISTER = "CL_VEL_SET_POINT_VALUE"
+POSITION_SET_POINT_REGISTER = "CL_POS_SET_POINT_VALUE"
+POSITION_REFERENCE_REGISTER = "CL_POS_REF_VALUE"
+POSITION_COMMAND_REGISTER = "CL_POS_CMD_VALUE"
+ACTUAL_POSITION_REGISTER = "CL_POS_FBK_VALUE"
+ACTUAL_VELOCITY_REGISTER = "CL_VEL_FBK_VALUE"
+CONTROL_WORD_REGISTER = "DRV_STATE_CONTROL"
+STATUS_WORD_REGISTER = "DRV_STATE_STATUS"
+PROFILER_LATCHING_MODE_REGISTER = "PROF_LATCH_MODE"
+
+POSITION_ORDER_DIAGNOSTIC_ENVIRONMENT_VARIABLE = "RUN_HOMING_POSITION_DIAGNOSTIC"
+POSITION_ORDER_DIAGNOSTIC_TIMEOUT_S = 5.0
+POSITION_ORDER_DIAGNOSTIC_SAMPLE_INTERVAL_S = 0.1
+POSITION_ORDER_DIAGNOSTIC_ALLOWED_ERROR = 20
+
+logger = logging.getLogger(__name__)
 
 STATUS_WORD_HOMING_ERROR_BIT = 0x2000
 STATUS_WORD_HOMING_ATTAINED_BIT = 0x1000
@@ -21,6 +38,169 @@ STATUS_WORD_TARGET_REACHED_BIT = 0x400
 HOMING_STATUS_POLL_INTERVAL_S = 0.01
 
 RELATIVE_ERROR_ALLOWED = 3e-2
+
+
+def _read_position_order_diagnostic_registers(mc, alias):
+    register_uids = [
+        CONTROL_WORD_REGISTER,
+        STATUS_WORD_REGISTER,
+        "DRV_OP_CMD",
+        "DRV_OP_VALUE",
+        POSITION_SET_POINT_REGISTER,
+        POSITION_REFERENCE_REGISTER,
+        POSITION_COMMAND_REGISTER,
+        ACTUAL_POSITION_REGISTER,
+        ACTUAL_VELOCITY_REGISTER,
+        PROFILER_LATCHING_MODE_REGISTER,
+    ]
+    return {
+        register_uid: mc.communication.get_register(register_uid, servo=alias, axis=1)
+        for register_uid in register_uids
+        if mc.info.register_exists(register_uid, servo=alias, axis=1)
+    }
+
+
+def _log_position_order_diagnostic_sample(
+    variant, phase, elapsed, start_position, target_position, registers
+):
+    logger.info(
+        "Position-order diagnostic variant=%s phase=%s elapsed=%.3fs "
+        "start=%s target=%s registers=%s",
+        variant,
+        phase,
+        elapsed,
+        start_position,
+        target_position,
+        registers,
+    )
+
+
+@pytest.mark.canopen
+@pytest.mark.skipif(
+    os.getenv(POSITION_ORDER_DIAGNOSTIC_ENVIRONMENT_VARIABLE) != "1",
+    reason=("Set RUN_HOMING_POSITION_DIAGNOSTIC=1 to run the target-order CAN diagnostic."),
+)
+@pytest.mark.parametrize(
+    "target_before_enable",
+    [False, True],
+    ids=["target_after_enable", "target_before_enable"],
+)
+def test_profile_position_target_order_diagnostic(mc, alias, target_before_enable):
+    """Compare profile-position target writes before and after motor enable."""
+    required_registers = [
+        POSITION_SET_POINT_REGISTER,
+        POSITION_REFERENCE_REGISTER,
+        POSITION_COMMAND_REGISTER,
+        ACTUAL_POSITION_REGISTER,
+    ]
+    missing_registers = [
+        register_uid
+        for register_uid in required_registers
+        if not mc.info.register_exists(register_uid, servo=alias, axis=1)
+    ]
+    if missing_registers:
+        pytest.skip(f"Diagnostic registers are not available: {missing_registers}")
+
+    variant = "target_before_enable" if target_before_enable else "target_after_enable"
+    position_resolution = mc.configuration.get_position_feedback_resolution(servo=alias)
+    start_position = mc.motion.get_actual_position(servo=alias)
+    target_position = start_position + position_resolution // 2
+    reached = False
+    last_registers = None
+    start_time = time.monotonic()
+
+    try:
+        mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
+        mc.motion._clear_target_latch(servo=alias, axis=1)
+        _log_position_order_diagnostic_sample(
+            variant,
+            "before_enable",
+            time.monotonic() - start_time,
+            start_position,
+            target_position,
+            _read_position_order_diagnostic_registers(mc, alias),
+        )
+
+        if target_before_enable:
+            mc.communication.set_register(
+                POSITION_SET_POINT_REGISTER,
+                target_position,
+                servo=alias,
+                axis=1,
+            )
+
+        mc.motion.motor_enable(servo=alias)
+        _log_position_order_diagnostic_sample(
+            variant,
+            "after_enable",
+            time.monotonic() - start_time,
+            start_position,
+            target_position,
+            _read_position_order_diagnostic_registers(mc, alias),
+        )
+
+        if not target_before_enable:
+            mc.communication.set_register(
+                POSITION_SET_POINT_REGISTER,
+                target_position,
+                servo=alias,
+                axis=1,
+            )
+
+        target_readback = mc.communication.get_register(
+            POSITION_SET_POINT_REGISTER, servo=alias, axis=1
+        )
+        logger.info(
+            "Position-order diagnostic variant=%s target readback=%s expected=%s",
+            variant,
+            target_readback,
+            target_position,
+        )
+        assert target_readback == target_position, (
+            f"Position-order diagnostic target write was not accepted for {variant}: "
+            f"readback={target_readback}, expected={target_position}"
+        )
+        _log_position_order_diagnostic_sample(
+            variant,
+            "after_target_write",
+            time.monotonic() - start_time,
+            start_position,
+            target_position,
+            _read_position_order_diagnostic_registers(mc, alias),
+        )
+        mc.motion.target_latch(servo=alias, axis=1)
+
+        deadline = time.monotonic() + POSITION_ORDER_DIAGNOSTIC_TIMEOUT_S
+        while time.monotonic() < deadline:
+            last_registers = _read_position_order_diagnostic_registers(mc, alias)
+            _log_position_order_diagnostic_sample(
+                variant,
+                "poll",
+                time.monotonic() - start_time,
+                start_position,
+                target_position,
+                last_registers,
+            )
+            actual_position = last_registers.get(ACTUAL_POSITION_REGISTER)
+            if isinstance(actual_position, int) and abs(actual_position - target_position) <= (
+                POSITION_ORDER_DIAGNOSTIC_ALLOWED_ERROR
+            ):
+                reached = True
+                break
+            time.sleep(POSITION_ORDER_DIAGNOSTIC_SAMPLE_INTERVAL_S)
+    finally:
+        try:
+            mc.motion.motor_disable(servo=alias)
+        finally:
+            mc.motion._clear_target_latch(servo=alias, axis=1)
+
+    if not reached:
+        logger.warning(
+            "Position-order diagnostic variant=%s timed out. Last registers=%s",
+            variant,
+            last_registers,
+        )
+    assert reached, f"Position-order diagnostic timed out for {variant}: {last_registers}"
 
 
 @pytest.fixture
