@@ -1,5 +1,5 @@
 // https://novantamotion.atlassian.net/browse/CIT-707
-@Library('cicd-lib@0142b4f') _
+@Library('cicd-lib@a30b3e0') _
 
 import python.VirtualEnvironment
 import python.VEnvManager
@@ -8,6 +8,7 @@ import pytest.TestGroup
 import pytest.PyTestManager
 import pytest.PyTestParams
 import pytest.TestSessionScheduler
+import utils.BuildParamUtils
 
 def SW_NODE = "windows-slave"
 def ECAT_NODE = "ecat-test"
@@ -219,10 +220,10 @@ pipeline {
                     testManager.buildTestSessions("tests.setups.rack_specifiers")
                     testManager.buildTestSessions("tests.setups.virtual_drive")
 
-                    if (env.BRANCH_NAME == 'develop' && testManager.runPolicyTags.isEmpty()) {
+                    if (env.BRANCH_NAME == 'develop' && BuildParamUtils.isBranchEventBuild(currentBuild)) {
                         HW_TEST_SESSIONS.setAttributeInCascade(
                             shouldRun: false,
-                            skipReason: 'Develop builds without nightly/weekend policy do not run hardware tests',
+                            skipReason: 'Develop webhook/indexing builds do not run hardware tests',
                         )
                     }
 
