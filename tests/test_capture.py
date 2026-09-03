@@ -4,6 +4,7 @@ import numpy as np
 import pytest
 from ingenialink.dictionary import Interface
 
+from ingeniamotion.capture import Capture
 from ingeniamotion.enums import (
     MonitoringProcessStage,
     MonitoringSoCConfig,
@@ -11,7 +12,7 @@ from ingeniamotion.enums import (
     MonitoringVersion,
     OperationMode,
 )
-from ingeniamotion.exceptions import IMMonitoringError, IMStatusWordError
+from ingeniamotion.exceptions import IMMonitoringError, IMRegisterNotExistError, IMStatusWordError
 
 
 def __compare_signals(expected_signal, received_signal, fft_tol=0.05):
@@ -329,31 +330,109 @@ def test_check_monitoring_version_v3(mc, alias):
 
 
 @pytest.mark.virtual
+def test_motion_node_capture_version_is_cached(mocker, motion_node):
+    """Test that version detection reads the registers only once."""
+    read = mocker.spy(motion_node.servo, "read")
+
+    first_version = motion_node.capture.version
+    second_version = motion_node.capture.version
+
+    assert first_version == MonitoringVersion.MONITORING_V3
+    assert second_version == MonitoringVersion.MONITORING_V3
+    detection_registers = {
+        Capture.MONITORING_VERSION_REGISTER,
+        Capture.MONITORING_CURRENT_NUMBER_BYTES_REGISTER,
+        Capture.MONITORING_STATUS_REGISTER,
+    }
+    detection_reads = [
+        call.args[0] for call in read.call_args_list if call.args[0] in detection_registers
+    ]
+    assert detection_reads == [Capture.MONITORING_VERSION_REGISTER]
+    detection_calls = [call for call in read.call_args_list if call.args[0] in detection_registers]
+    assert all(call.kwargs == {"subnode": 0} for call in detection_calls)
+
+
+@pytest.mark.virtual
+def test_motion_node_capture_unsupported_version_is_cached(mocker, motion_node):
+    """Test that unsupported monitoring detection is not repeated."""
+    detection_registers = {
+        Capture.MONITORING_VERSION_REGISTER,
+        Capture.MONITORING_CURRENT_NUMBER_BYTES_REGISTER,
+        Capture.MONITORING_STATUS_REGISTER,
+    }
+    original_read = motion_node.servo.read
+
+    def read(register, *args, **kwargs):
+        if register in detection_registers:
+            raise IMRegisterNotExistError
+        return original_read(register, *args, **kwargs)
+
+    read_mock = mocker.patch.object(motion_node.servo, "read", side_effect=read)
+
+    with pytest.raises(NotImplementedError) as first_error:
+        motion_node.capture.version
+    with pytest.raises(NotImplementedError) as second_error:
+        motion_node.capture.version
+
+    assert first_error.value is not second_error.value
+    detection_reads = [call.args[0] for call in read_mock.call_args_list]
+    assert detection_reads == [
+        Capture.MONITORING_VERSION_REGISTER,
+        Capture.MONITORING_CURRENT_NUMBER_BYTES_REGISTER,
+        Capture.MONITORING_STATUS_REGISTER,
+    ]
+    assert all(call.kwargs == {"subnode": 0} for call in read_mock.call_args_list)
+
+
+@pytest.mark.virtual
 def test_check_monitoring_version_v2(mocker, mc, alias):
-    mocker.patch.object(mc.capture, "MONITORING_VERSION_REGISTER", return_value="NON_EXISTING_UID")
+    mocker.patch.object(Capture, "MONITORING_VERSION_REGISTER", "NON_EXISTING_UID")
     version = mc.capture._check_version(servo=alias)
     assert version == MonitoringVersion.MONITORING_V2
 
 
 @pytest.mark.virtual
 def test_check_monitoring_version_v1(mocker, mc, alias):
-    mocker.patch.object(mc.capture, "MONITORING_VERSION_REGISTER", return_value="NON_EXISTING_UID")
-    mocker.patch.object(
-        mc.capture, "MONITORING_CURRENT_NUMBER_BYTES_REGISTER", return_value="NON_EXISTING_UID"
-    )
+    mocker.patch.object(Capture, "MONITORING_VERSION_REGISTER", "NON_EXISTING_UID")
+    mocker.patch.object(Capture, "MONITORING_CURRENT_NUMBER_BYTES_REGISTER", "NON_EXISTING_UID")
     version = mc.capture._check_version(servo=alias)
     assert version == MonitoringVersion.MONITORING_V1
 
 
 @pytest.mark.virtual
 def test_check_monitoring_version_not_available(mocker, mc, alias):
-    mocker.patch.object(mc.capture, "MONITORING_VERSION_REGISTER", return_value="NON_EXISTING_UID")
-    mocker.patch.object(
-        mc.capture, "MONITORING_CURRENT_NUMBER_BYTES_REGISTER", return_value="NON_EXISTING_UID"
-    )
-    mocker.patch.object(mc.capture, "MONITORING_STATUS_REGISTER", return_value="NON_EXISTING_UID")
+    motion_node = mc.motion_nodes[alias]
+
+    def read(_register, *args, **kwargs):
+        raise IMRegisterNotExistError
+
+    read_mock = mocker.patch.object(motion_node.servo, "read", side_effect=read)
     with pytest.raises(NotImplementedError):
         mc.capture._check_version(servo=alias)
+    assert [call.args[0] for call in read_mock.call_args_list] == [
+        Capture.MONITORING_VERSION_REGISTER,
+        Capture.MONITORING_CURRENT_NUMBER_BYTES_REGISTER,
+        Capture.MONITORING_STATUS_REGISTER,
+    ]
+    assert all(call.kwargs == {"subnode": 0} for call in read_mock.call_args_list)
+
+
+@pytest.mark.virtual
+def test_capture_explicit_version_bypasses_detection(mocker, mc, alias):
+    """Test that an explicit facade version does not probe detection registers."""
+    read = mocker.spy(mc.servos[alias], "read")
+
+    mc.capture.disable_disturbance(servo=alias, version=MonitoringVersion.MONITORING_V3)
+
+    detection_registers = {
+        Capture.MONITORING_VERSION_REGISTER,
+        Capture.MONITORING_CURRENT_NUMBER_BYTES_REGISTER,
+        Capture.MONITORING_STATUS_REGISTER,
+    }
+    detection_reads = [
+        call.args[0] for call in read.call_args_list if call.args[0] in detection_registers
+    ]
+    assert not detection_reads
 
 
 @pytest.mark.virtual
@@ -364,7 +443,7 @@ def test_enable_monitoring_exception(mocker, mc, alias):
         sample_time=0.1,
         servo=alias,
     )
-    mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=False)
+    mocker.patch.object(mc.servos[alias], "read", return_value=0)
     with pytest.raises(IMMonitoringError):
         mc.capture.enable_monitoring(servo=alias)
 
@@ -372,9 +451,8 @@ def test_enable_monitoring_exception(mocker, mc, alias):
 @pytest.mark.virtual
 def test_enable_disturbance_exception(mocker, mc, alias):
     monitoring = mc.capture.create_empty_monitoring(alias)
-    mocker.patch.object(mc.capture, "is_disturbance_enabled", return_value=False)
-    mocker.patch.object(mc.capture, "is_monitoring_enabled", return_value=False)
     monitoring.map_registers([{"axis": 1, "name": "CL_POS_FBK_VALUE"}])
+    mocker.patch.object(mc.servos[alias], "read", return_value=0)
     with pytest.raises(IMMonitoringError):
         mc.capture.enable_disturbance(servo=alias)
 
@@ -385,7 +463,7 @@ def test_enable_disturbance_exception(mocker, mc, alias):
 )
 @pytest.mark.virtual
 def test_get_monitoring_disturbance_status_exception(mocker, mc, alias, function):
-    mocker.patch.object(mc.communication, "get_register", return_value="invalid_value")
+    mocker.patch.object(mc.servos[alias], "read", return_value="invalid_value")
     with pytest.raises(TypeError):
         getattr(mc.capture, function)(servo=alias)
 

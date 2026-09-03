@@ -1,3 +1,4 @@
+import summit_drives_ci_configs.config_files as config_files
 from ingenialink.dictionary import Interface
 from summit_testing_framework.configuration.encoder_configurator import (
     EncoderConfiguration,
@@ -14,7 +15,6 @@ from summit_testing_framework.setups.specifiers import (
     VersionConfig,
 )
 
-import summit_drives_ci_configs.config_files as config_files
 from tests.conftest import BISS_C_CONFIG_MARKER, RANDOM_COMBINATIONS_SLICE_KEY
 
 __EXECUTION_POLICY_KEY: str = "execution_policy"
