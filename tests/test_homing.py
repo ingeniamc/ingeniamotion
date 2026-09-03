@@ -1,5 +1,4 @@
 import logging
-import os
 import time
 
 import pytest
@@ -25,7 +24,6 @@ CONTROL_WORD_REGISTER = "DRV_STATE_CONTROL"
 STATUS_WORD_REGISTER = "DRV_STATE_STATUS"
 PROFILER_LATCHING_MODE_REGISTER = "PROF_LATCH_MODE"
 
-POSITION_ORDER_DIAGNOSTIC_ENVIRONMENT_VARIABLE = "RUN_HOMING_POSITION_DIAGNOSTIC"
 POSITION_ORDER_DIAGNOSTIC_TIMEOUT_S = 5.0
 POSITION_ORDER_DIAGNOSTIC_SAMPLE_INTERVAL_S = 0.1
 POSITION_ORDER_DIAGNOSTIC_ALLOWED_ERROR = 20
@@ -76,10 +74,6 @@ def _log_position_order_diagnostic_sample(
 
 
 @pytest.mark.canopen
-@pytest.mark.skipif(
-    os.getenv(POSITION_ORDER_DIAGNOSTIC_ENVIRONMENT_VARIABLE) != "1",
-    reason=("Set RUN_HOMING_POSITION_DIAGNOSTIC=1 to run the target-order CAN diagnostic."),
-)
 @pytest.mark.parametrize(
     "target_before_enable",
     [False, True],
