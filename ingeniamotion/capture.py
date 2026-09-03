@@ -219,7 +219,7 @@ class MotionNodeCapture:
         )
         for register, version in candidates:
             try:
-                self.__motion_node.read(register)
+                self.__servo.read(register, subnode=0)
             except ILRegisterNotFoundError:
                 continue
             except ILError:
@@ -242,7 +242,7 @@ class MotionNodeCapture:
             ILRegisterNotFoundError: If the register doesn't exist.
             TypeError: If the read value has a wrong type.
         """
-        value = self.__motion_node.read(register)
+        value = self.__servo.read(register, subnode=0)
         if not isinstance(value, int):
             raise TypeError(type_error_message)
         return value
