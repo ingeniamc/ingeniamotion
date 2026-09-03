@@ -18,6 +18,7 @@ VELOCITY_SET_POINT_REGISTER = "CL_VEL_SET_POINT_VALUE"
 STATUS_WORD_HOMING_ERROR_BIT = 0x2000
 STATUS_WORD_HOMING_ATTAINED_BIT = 0x1000
 STATUS_WORD_TARGET_REACHED_BIT = 0x400
+HOMING_STATUS_POLL_INTERVAL_S = 0.01
 
 RELATIVE_ERROR_ALLOWED = 3e-2
 
@@ -25,11 +26,12 @@ RELATIVE_ERROR_ALLOWED = 3e-2
 @pytest.fixture
 def initial_position(mc, alias):
     mc.motion.set_operation_mode(OperationMode.PROFILE_POSITION, servo=alias)
-    mc.motion.motor_enable(servo=alias)
-    last_pos = mc.motion.get_actual_position(servo=alias)
     position = mc.configuration.get_position_feedback_resolution(servo=alias) // 2
-    mc.motion.move_to_position(position + last_pos, servo=alias, blocking=True, timeout=5)
-    mc.motion.motor_disable(servo=alias)
+    try:
+        mc.motion.motor_enable(servo=alias)
+        mc.motion.move_to_position(position, servo=alias, blocking=True, timeout=5)
+    finally:
+        mc.motion.motor_disable(servo=alias)
     return position
 
 
@@ -188,22 +190,49 @@ def __check_index_pulse_is_allowed(feedback_list):
 
 def __check_homing_was_successful(mc, alias, timeout_ms):
     init_time = time.time()
+    homing_started = False
     while init_time + timeout_ms / 1000 > time.time():
         status_word = mc.configuration.get_status_word(servo=alias)
         homing_error = bool(status_word & STATUS_WORD_HOMING_ERROR_BIT)
         homing_attained = bool(status_word & STATUS_WORD_HOMING_ATTAINED_BIT)
-        if (not homing_error) & homing_attained:
+        if not homing_attained:
+            homing_started = True
+        elif homing_started and not homing_error:
             return True
+        time.sleep(HOMING_STATUS_POLL_INTERVAL_S)
     return False
+
+
+@pytest.mark.virtual
+def test_homing_status_checker_accepts_clear_then_attained(mocker):
+    mc = mocker.Mock()
+    mc.configuration.get_status_word.side_effect = [0x4237, 0x5237]
+    mocker.patch("tests.test_homing.time.sleep")
+    mocker.patch("tests.test_homing.time.time", side_effect=[0.0, 0.001, 0.002, 0.003])
+
+    successful = __check_homing_was_successful(mc, "default", timeout_ms=10)
+
+    assert successful
+
+
+@pytest.mark.virtual
+def test_homing_status_checker_reports_stale_attained_bit(mocker):
+    mc = mocker.Mock()
+    mc.configuration.get_status_word.return_value = 0x5237
+    mocker.patch("tests.test_homing.time.sleep")
+    mocker.patch("tests.test_homing.time.time", side_effect=[0.0, 0.001, 0.002])
+
+    successful = __check_homing_was_successful(mc, "default", timeout_ms=2)
+
+    assert not successful
 
 
 @pytest.mark.soem
 @pytest.mark.canopen
 @pytest.mark.usefixtures("initial_position")
 @pytest.mark.parametrize("direction", [1, 0])
-# https://novantamotion.atlassian.net/browse/INGM-772
-@pytest.mark.not_valid_for_product(part_number="CAP-XCR-E")
-@pytest.mark.not_valid_for_product(part_number="EVE-*")
+# https://novantamotion.atlassian.net/browse/COMOCOAPP-493 -> has been fixed in 2.9.0
+@pytest.mark.not_valid_version_for_product(part_number="EVE-*", min="2.7.0", max="2.8.1")
 def test_homing_on_index_pulse(servo, mc, alias, feedback_list, direction):
     with refresh_registers_for_test_rollback(
         servo,
